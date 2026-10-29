@@ -1,0 +1,127 @@
+{
+  "feature": "module-pages",
+  "journey": "realtime-row-reaches-other-tab",
+  "title": "a user created in one tab appears in another tab on the same table without a reload",
+  "entryPoint": "realtime: /api/realtime/connection shared by the tabs of a browser",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j064",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "module-pages/realtime-row-reaches-other-tab/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-watcher-signed-in-as-admin",
+      "folder": "module-pages/realtime-row-reaches-other-tab/07-watcher-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-watcher-open-table-view-table-view-users",
+      "folder": "module-pages/realtime-row-reaches-other-tab/08-watcher-open-table-view-table-view-users",
+      "checks": [
+        {
+          "name": "open /table-view/table-view-users",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "09-writer-open-table-view-table-view-users",
+      "folder": "module-pages/realtime-row-reaches-other-tab/09-writer-open-table-view-table-view-users",
+      "checks": [
+        {
+          "name": "open /table-view/table-view-users",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "10-writer-click-button-new-entry",
+      "folder": "module-pages/realtime-row-reaches-other-tab/10-writer-click-button-new-entry",
+      "checks": [
+        {
+          "name": "click button \"New entry\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "11-writer-fill-textbox-name",
+      "folder": "module-pages/realtime-row-reaches-other-tab/11-writer-fill-textbox-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "12-writer-fill-textbox-email",
+      "folder": "module-pages/realtime-row-reaches-other-tab/12-writer-fill-textbox-email",
+      "checks": [
+        {
+          "name": "fill textbox \"Email\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "13-writer-fill-textbox-avatar",
+      "folder": "module-pages/realtime-row-reaches-other-tab/13-writer-fill-textbox-avatar",
+      "checks": [
+        {
+          "name": "fill textbox \"Avatar\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users/table/new"
+        }
+      ]
+    },
+    {
+      "name": "14-writer-click-button-create",
+      "folder": "module-pages/realtime-row-reaches-other-tab/14-writer-click-button-create",
+      "checks": [
+        {
+          "name": "click button \"Create\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "15-the-watching-tab-shows-the-new-row-without-reloading",
+      "folder": "module-pages/realtime-row-reaches-other-tab/15-the-watching-tab-shows-the-new-row-without-reloading",
+      "checks": [
+        {
+          "name": "cell \"Realtime User 2e16e4\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "module-pages/realtime-row-reaches-other-tab"
+}

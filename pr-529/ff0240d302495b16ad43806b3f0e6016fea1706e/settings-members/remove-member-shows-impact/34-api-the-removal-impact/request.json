@@ -1,0 +1,6 @@
+{
+  "method": "GET",
+  "url": "http://127.0.0.1:35351/dms/pages/settings/workspace/members/default:901cec28-28b7-4409-a7ed-15cb6b718e73/removal-impact",
+  "authenticated": true,
+  "body": null
+}

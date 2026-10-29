@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "cdd46f86-fa47-44a1-8cc0-ee07f3403484",
+        "name": "Viewer e2a5ab",
+        "permissions": [
+          "settings",
+          "settings.workspace",
+          "settings.workspace.playground",
+          "settings.workspace.playground.form"
+        ]
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

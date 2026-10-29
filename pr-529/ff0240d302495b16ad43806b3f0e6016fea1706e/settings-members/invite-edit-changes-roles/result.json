@@ -1,0 +1,335 @@
+{
+  "feature": "settings-members",
+  "journey": "invite-edit-changes-roles",
+  "title": "editing a pending invitation changes the roles and the name its invitee gets on accepting",
+  "entryPoint": "Member invitations > Edit invitation",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j024",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-members/invite-edit-changes-roles/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-reader-1ed3dc-exists",
+      "folder": "settings-members/invite-edit-changes-roles/04-the-role-reader-1ed3dc-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"08abbb47-a0a0-432b-955e-ea426c34ac2f\"}"
+        }
+      ]
+    },
+    {
+      "name": "06-the-role-writer-9be3d9-exists",
+      "folder": "settings-members/invite-edit-changes-roles/06-the-role-writer-9be3d9-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"823200a3-168b-4bc0-9841-96dc0c615d30\"}"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-signed-in-as-admin",
+      "folder": "settings-members/invite-edit-changes-roles/11-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-open-settings-workspace-members",
+      "folder": "settings-members/invite-edit-changes-roles/12-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-click-button-invite-members",
+      "folder": "settings-members/invite-edit-changes-roles/13-admin-click-button-invite-members",
+      "checks": [
+        {
+          "name": "click button \"Invite members\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-fill-textbox-email-addresses",
+      "folder": "settings-members/invite-edit-changes-roles/14-admin-fill-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "fill textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-press-enter-in-textbox-email-addresses",
+      "folder": "settings-members/invite-edit-changes-roles/15-admin-press-enter-in-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "press Enter in textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-click-combobox-team",
+      "folder": "settings-members/invite-edit-changes-roles/16-admin-click-combobox-team",
+      "checks": [
+        {
+          "name": "click combobox \"Team\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "17-admin-click-option-sales",
+      "folder": "settings-members/invite-edit-changes-roles/17-admin-click-option-sales",
+      "checks": [
+        {
+          "name": "click option \"Sales\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "18-admin-click-button-reader-1ed3dc-in-group-roles",
+      "folder": "settings-members/invite-edit-changes-roles/18-admin-click-button-reader-1ed3dc-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Reader 1ed3dc\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "19-admin-click-button-send-invitations",
+      "folder": "settings-members/invite-edit-changes-roles/19-admin-click-button-send-invitations",
+      "checks": [
+        {
+          "name": "click button \"Send invitations\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "20-admin-click-button-edit-invitation",
+      "folder": "settings-members/invite-edit-changes-roles/20-admin-click-button-edit-invitation",
+      "checks": [
+        {
+          "name": "click button \"Edit invitation\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "21-admin-fill-textbox-first-name",
+      "folder": "settings-members/invite-edit-changes-roles/21-admin-fill-textbox-first-name",
+      "checks": [
+        {
+          "name": "fill textbox \"First name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "22-admin-fill-textbox-last-name",
+      "folder": "settings-members/invite-edit-changes-roles/22-admin-fill-textbox-last-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Last name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "23-admin-click-button-reader-1ed3dc-in-group-roles",
+      "folder": "settings-members/invite-edit-changes-roles/23-admin-click-button-reader-1ed3dc-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Reader 1ed3dc\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "24-admin-click-button-writer-9be3d9-in-group-roles",
+      "folder": "settings-members/invite-edit-changes-roles/24-admin-click-button-writer-9be3d9-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Writer 9be3d9\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "25-admin-click-button-save-changes",
+      "folder": "settings-members/invite-edit-changes-roles/25-admin-click-button-save-changes",
+      "checks": [
+        {
+          "name": "click button \"Save changes\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "26-the-edit-is-saved",
+      "folder": "settings-members/invite-edit-changes-roles/26-the-edit-is-saved",
+      "checks": [
+        {
+          "name": "page shows /Data has been successfully saved/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Member invitations 1 Settings / All settings ACCOUNT Profile…"
+        }
+      ]
+    },
+    {
+      "name": "27-admin-reload",
+      "folder": "settings-members/invite-edit-changes-roles/27-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "28-the-list-shows-the-new-role-after-a-reload",
+      "folder": "settings-members/invite-edit-changes-roles/28-the-list-shows-the-new-role-after-a-reload",
+      "checks": [
+        {
+          "name": "cell \"Writer 9be3d9\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        },
+        {
+          "name": "cell \"Reader 1ed3dc\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "30-the-api-holds-the-new-role",
+      "folder": "settings-members/invite-edit-changes-roles/30-the-api-holds-the-new-role",
+      "checks": [
+        {
+          "name": "roles",
+          "pass": true,
+          "detail": "expected [\"823200a3-168b-4bc0-9841-96dc0c615d30\"], got [\"823200a3-168b-4bc0-9841-96dc0c615d30\"]"
+        }
+      ]
+    },
+    {
+      "name": "32-the-invitation-email-reaches-gina-20261029t064557-d7cef6-inv",
+      "folder": "settings-members/invite-edit-changes-roles/32-the-invitation-email-reaches-gina-20261029t064557-d7cef6-inv",
+      "checks": [
+        {
+          "name": "an email with a signup link arrived",
+          "pass": true,
+          "detail": "1 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "33-admin-click-button-resend",
+      "folder": "settings-members/invite-edit-changes-roles/33-admin-click-button-resend",
+      "checks": [
+        {
+          "name": "click button \"Resend\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "34-admin-click-button-resend-in-dialog",
+      "folder": "settings-members/invite-edit-changes-roles/34-admin-click-button-resend-in-dialog",
+      "checks": [
+        {
+          "name": "click button \"Resend\" in dialog",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "36-the-invitation-email-reaches-gina-20261029t064557-d7cef6-inv",
+      "folder": "settings-members/invite-edit-changes-roles/36-the-invitation-email-reaches-gina-20261029t064557-d7cef6-inv",
+      "checks": [
+        {
+          "name": "an email with a signup link arrived",
+          "pass": true,
+          "detail": "2 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "37-invitee-open-http-127-0-0-1-40839-auth-signup-token-bcyepjue",
+      "folder": "settings-members/invite-edit-changes-roles/37-invitee-open-http-127-0-0-1-40839-auth-signup-token-bcyepjue",
+      "checks": [
+        {
+          "name": "open http://127.0.0.1:40839/auth/signup?token=BCyePJUEWWrix2OwMWkh7BGHZ9xo6a6vOGlqUg643QyIHA5NAmHm607Uj7lS53VJ&email=gina%2B20261029t064557-d7cef6-invite-edit-changes-roles%40verify.local&name=Gina+Edited&lang=en",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/signup?token=BCyePJUEWWrix2OwMWkh7BGHZ9xo6a6vOGlqUg643QyIHA5NAmHm607Uj7lS53VJ&email=gina%2B20261029t064557-d7cef6-invite-edit-changes-roles%40verify.local&name=Gina+Edited&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "38-the-invitee-sees-the-edited-name-on-the-sign-up-form",
+      "folder": "settings-members/invite-edit-changes-roles/38-the-invitee-sees-the-edited-name-on-the-sign-up-form",
+      "checks": [
+        {
+          "name": "heading \"Create your account\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/signup?token=BCyePJUEWWrix2OwMWkh7BGHZ9xo6a6vOGlqUg643QyIHA5NAmHm607Uj7lS53VJ&email=gina%2B20261029t064557-d7cef6-invite-edit-changes-roles%40verify.local&name=Gina+Edited&lang=en"
+        },
+        {
+          "name": "name",
+          "pass": true,
+          "detail": "expected \"Gina Edited\", got \"Gina Edited\""
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-members/invite-edit-changes-roles"
+}

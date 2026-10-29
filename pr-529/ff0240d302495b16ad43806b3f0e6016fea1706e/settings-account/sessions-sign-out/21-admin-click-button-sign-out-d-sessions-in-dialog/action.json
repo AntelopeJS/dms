@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"/^Sign out \\d+ sessions?$/\" in dialog",
+  "baseUrl": "http://127.0.0.1:40839"
+}

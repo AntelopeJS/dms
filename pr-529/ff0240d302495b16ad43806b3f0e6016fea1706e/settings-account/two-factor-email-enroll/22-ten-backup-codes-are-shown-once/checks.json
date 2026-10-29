@@ -1,0 +1,12 @@
+[
+  {
+    "name": "heading \"Your new backup codes\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/user/security"
+  },
+  {
+    "name": "backup codes listed",
+    "pass": true,
+    "detail": "expected 10, got 10"
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "name": "heading \"Reset your password\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/auth/recover?token=3NVP5N&email=admin%2B20261029t064557-d7cef6%40verify.local"
+  }
+]

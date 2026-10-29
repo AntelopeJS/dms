@@ -1,0 +1,12 @@
+[
+  {
+    "name": "heading \"Language & region\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/user/region"
+  },
+  {
+    "name": "language",
+    "pass": true,
+    "detail": "expected \"en\", got \"en\""
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "method": "GET",
+  "url": "http://127.0.0.1:35351/api/user/list?limit=100",
+  "authenticated": true,
+  "body": null
+}

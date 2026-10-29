@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Confirm new password\"",
+  "value": "Vr1!HFJUFayz7Tww",
+  "baseUrl": "http://127.0.0.1:40839"
+}

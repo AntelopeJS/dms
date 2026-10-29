@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "option \"Heir ccfa99\"",
+  "baseUrl": "http://127.0.0.1:40839"
+}

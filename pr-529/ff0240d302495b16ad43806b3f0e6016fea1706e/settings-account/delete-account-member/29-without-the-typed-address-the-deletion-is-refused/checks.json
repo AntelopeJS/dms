@@ -1,0 +1,12 @@
+[
+  {
+    "name": "page shows /This field is required/",
+    "pass": true,
+    "detail": "Search… CTRL K QM Quinn Member quinn+20261029t064557-d7cef6-delete-account-member@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Notifications 1 Appearance Shortcuts Profile How you appear to other members, and what the dashboard ke…"
+  },
+  {
+    "name": "dialog \"Delete your account?\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/user/profile"
+  }
+]

@@ -1,0 +1,275 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation:
+  - list:
+    - listitem: Examples
+    - listitem:
+      - link "Overview":
+        - /url: /examples/overview
+    - listitem:
+      - link "Feature index":
+        - /url: /examples/features
+  - list:
+    - listitem: Library
+    - listitem:
+      - button "Design system"
+    - listitem:
+      - button "Layout"
+    - listitem:
+      - button "Components" [expanded]
+      - region "Components":
+        - list:
+          - listitem:
+            - button "Table View" [expanded]
+            - region "Table View":
+              - list:
+                - listitem:
+                  - link "Drawer Mode":
+                    - /url: /table-view/table-view-drawer
+                - listitem:
+                  - link "Modal Mode":
+                    - /url: /table-view/table-view-modal
+                - listitem:
+                  - link "Page Mode (Auto URLs)":
+                    - /url: /table-view/table-view-page
+                - listitem:
+                  - link "Page Mode (custom URLs)":
+                    - /url: /table-view/table-view-page-custom-urls
+                - listitem:
+                  - link "Density & sticky header":
+                    - /url: /table-view/table-view-density
+                - listitem:
+                  - link "Compact list":
+                    - /url: /table-view/table-view-compact-list
+                - listitem:
+                  - link "Expandable rows":
+                    - /url: /table-view/table-view-expandable-rows
+                - listitem:
+                  - link "Cell displays":
+                    - /url: /table-view/table-view-cell-displays
+                - listitem:
+                  - link "Views & grouped display":
+                    - /url: /table-view/table-view-views
+                - listitem:
+                  - link "URL query filters":
+                    - /url: /table-view/table-view-query-filters
+                - listitem:
+                  - link "Sources":
+                    - /url: /table-view/table-view-sources
+                - listitem:
+                  - link "API request log (side panel)":
+                    - /url: /table-view/table-view-request-log
+                - listitem:
+                  - link "Filter tabs 92":
+                    - /url: /table-view/table-view-tabs
+                - listitem:
+                  - link "Form field groups":
+                    - /url: /table-view/table-view-grouped
+                - listitem:
+                  - link "Custom Row Actions":
+                    - /url: /table-view/table-view-custom-row-actions
+                - listitem:
+                  - link "Conditional Delete":
+                    - /url: /table-view/table-view-conditional-delete
+                - listitem:
+                  - link "Archive Mode":
+                    - /url: /table-view/table-view-archive
+                - listitem:
+                  - link "Kanban":
+                    - /url: /table-view/table-view-kanban
+                - listitem:
+                  - link "Kanban & cards (no grid)":
+                    - /url: /table-view/table-view-kanban-custom-card
+                - listitem:
+                  - link "Rows ordered by hand":
+                    - /url: /table-view/table-view-reorder
+                - listitem:
+                  - link "Cards (Custom Display)":
+                    - /url: /table-view/table-view-cards-display
+                - listitem:
+                  - link "Relation · Key":
+                    - /url: /table-view/table-view-relation-key
+                - listitem:
+                  - link "Relation · DMS Member (tenant)":
+                    - /url: /table-view/table-view-relation-dms-member
+                - listitem:
+                  - link "Cascader · Categories":
+                    - /url: /table-view/table-view-cascader-categories
+                - listitem:
+                  - link "Cascader · Products":
+                    - /url: /table-view/table-view-cascader-products
+                - listitem:
+                  - link "Users 16":
+                    - /url: /table-view/table-view-users
+                - listitem:
+                  - link "Gate Bypass":
+                    - /url: /table-view/table-view-gate-bypass
+          - listitem:
+            - button "Form"
+          - listitem:
+            - button "Charts"
+    - listitem:
+      - button "Pages & navigation"
+    - listitem:
+      - button "Dashboard chrome"
+    - listitem:
+      - button "Frontend modules"
+    - listitem:
+      - button "System"
+- navigation:
+  - list:
+    - listitem:
+      - link "Modules 2":
+        - /url: /modules
+- button "Verify Admin": VA Verify Admin admin+20261029t064557-d7cef6@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+      - listitem: Table View
+      - listitem:
+        - link "Users":
+          - /url: /table-view/table-view-users
+  - button "Add to favorites"
+- button "Quick actions"
+- button "Notifications": "1"
+- heading "Users" [level=1]
+- paragraph: Users TableView used as relation target by Tasks.assignees
+- banner:
+  - heading "Users 16" [level=2]
+  - button "Open search"
+  - button "Filters"
+  - button "Refresh data"
+  - button
+  - button "New entry"
+- table "Users":
+  - caption: Users
+  - rowgroup:
+    - row "Name Email":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Name":
+        - text: Name
+        - button
+      - cell "Email":
+        - text: Email
+        - button
+      - cell
+  - rowgroup:
+    - row "Verify User 3aa23c table-user+20261029t064557-d7cef6-table-create-record@verify.local Actions for Verify User 3aa23c":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Verify User 3aa23c"
+      - cell "table-user+20261029t064557-d7cef6-table-create-record@verify.local":
+        - link "table-user+20261029t064557-d7cef6-table-create-record@verify.local":
+          - /url: mailto:table-user+20261029t064557-d7cef6-table-create-record@verify.local
+      - cell "Actions for Verify User 3aa23c":
+        - button "Actions for Verify User 3aa23c"
+    - row "Ada Lovelace ada.lovelace@example.com Actions for Ada Lovelace":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Ada Lovelace"
+      - cell "ada.lovelace@example.com":
+        - link "ada.lovelace@example.com":
+          - /url: mailto:ada.lovelace@example.com
+      - cell "Actions for Ada Lovelace":
+        - button "Actions for Ada Lovelace"
+    - row "Grace Hopper grace.hopper@example.com Actions for Grace Hopper":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Grace Hopper"
+      - cell "grace.hopper@example.com":
+        - link "grace.hopper@example.com":
+          - /url: mailto:grace.hopper@example.com
+      - cell "Actions for Grace Hopper":
+        - button "Actions for Grace Hopper"
+    - row "Alan Turing alan.turing@example.com Actions for Alan Turing":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Alan Turing"
+      - cell "alan.turing@example.com":
+        - link "alan.turing@example.com":
+          - /url: mailto:alan.turing@example.com
+      - cell "Actions for Alan Turing":
+        - button "Actions for Alan Turing"
+    - row "Katherine Johnson katherine.johnson@example.com Actions for Katherine Johnson":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Katherine Johnson"
+      - cell "katherine.johnson@example.com":
+        - link "katherine.johnson@example.com":
+          - /url: mailto:katherine.johnson@example.com
+      - cell "Actions for Katherine Johnson":
+        - button "Actions for Katherine Johnson"
+    - row "Linus Torvalds linus.torvalds@example.com Actions for Linus Torvalds":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Linus Torvalds"
+      - cell "linus.torvalds@example.com":
+        - link "linus.torvalds@example.com":
+          - /url: mailto:linus.torvalds@example.com
+      - cell "Actions for Linus Torvalds":
+        - button "Actions for Linus Torvalds"
+    - row "Margaret Hamilton margaret.hamilton@example.com Actions for Margaret Hamilton":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Margaret Hamilton"
+      - cell "margaret.hamilton@example.com":
+        - link "margaret.hamilton@example.com":
+          - /url: mailto:margaret.hamilton@example.com
+      - cell "Actions for Margaret Hamilton":
+        - button "Actions for Margaret Hamilton"
+    - row "Tim Berners-Lee tim.berners.lee@example.com Actions for Tim Berners-Lee":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Tim Berners-Lee"
+      - cell "tim.berners.lee@example.com":
+        - link "tim.berners.lee@example.com":
+          - /url: mailto:tim.berners.lee@example.com
+      - cell "Actions for Tim Berners-Lee":
+        - button "Actions for Tim Berners-Lee"
+    - row "Barbara Liskov barbara.liskov@example.com Actions for Barbara Liskov":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Barbara Liskov"
+      - cell "barbara.liskov@example.com":
+        - link "barbara.liskov@example.com":
+          - /url: mailto:barbara.liskov@example.com
+      - cell "Actions for Barbara Liskov":
+        - button "Actions for Barbara Liskov"
+    - row "Dennis Ritchie dennis.ritchie@example.com Actions for Dennis Ritchie":
+      - cell
+      - cell:
+        - checkbox
+      - cell "Dennis Ritchie"
+      - cell "dennis.ritchie@example.com":
+        - link "dennis.ritchie@example.com":
+          - /url: mailto:dennis.ritchie@example.com
+      - cell "Actions for Dennis Ritchie":
+        - button "Actions for Dennis Ritchie"
+- navigation "Navigation":
+  - text: 16 items Page size
+  - combobox "Page size": "10"
+  - text: Page 1 of 2
+  - button "First page" [disabled]
+  - button "Previous page" [disabled]
+  - button "Next page"
+  - button "Last page"
+- region "Notifications (F8)":
+  - list

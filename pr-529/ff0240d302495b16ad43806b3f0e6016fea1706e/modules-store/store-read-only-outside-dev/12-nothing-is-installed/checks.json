@@ -1,0 +1,22 @@
+[
+  {
+    "name": "HTTP 403",
+    "pass": true,
+    "detail": "status 403: \"error.store_disabled\""
+  },
+  {
+    "name": "error",
+    "pass": true,
+    "detail": "expected \"error.store_disabled\", got \"error.store_disabled\""
+  },
+  {
+    "name": "store enabled",
+    "pass": true,
+    "detail": "expected false, got false"
+  },
+  {
+    "name": "the API module stays available, not installed",
+    "pass": true,
+    "detail": "expected \"available\", got \"available\""
+  }
+]

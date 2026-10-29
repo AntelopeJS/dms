@@ -1,0 +1,12 @@
+[
+  {
+    "name": "page shows /1 active/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+  },
+  {
+    "name": "revoked token status",
+    "pass": true,
+    "detail": "expected 401, got 401"
+  }
+]

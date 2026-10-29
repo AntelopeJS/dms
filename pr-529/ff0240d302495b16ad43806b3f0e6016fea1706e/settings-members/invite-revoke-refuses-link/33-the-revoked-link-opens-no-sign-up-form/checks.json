@@ -1,0 +1,12 @@
+[
+  {
+    "name": "heading \"This invitation was revoked\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/auth/signup?token=vDccc60ar8QwfD38RZHrxniRyY5cGtbNxkoOVGFGPke3ojCsKo8WEe8j7KeVB4Kq&email=erin%2B20261029t064557-d7cef6-invite-revoke-refuses-link%40verify.local&lang=en"
+  },
+  {
+    "name": "button \"Create my account\" is absent",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/auth/signup?token=vDccc60ar8QwfD38RZHrxniRyY5cGtbNxkoOVGFGPke3ojCsKo8WEe8j7KeVB4Kq&email=erin%2B20261029t064557-d7cef6-invite-revoke-refuses-link%40verify.local&lang=en"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "status": 400,
+  "body": [
+    {
+      "code": "too_small",
+      "minimum": 8,
+      "type": "string",
+      "inclusive": true,
+      "exact": false,
+      "message": "String must contain at least 8 character(s)",
+      "path": [
+        "password"
+      ]
+    },
+    {
+      "validation": "regex",
+      "code": "invalid_string",
+      "message": "Invalid",
+      "path": [
+        "password"
+      ]
+    }
+  ],
+  "error": null
+}

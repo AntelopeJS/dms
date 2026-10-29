@@ -1,0 +1,60 @@
+{
+  "feature": "onboarding",
+  "journey": "register-refused-once-onboarded",
+  "title": "a second registration after onboarding is refused and the first owner stays the only one",
+  "entryPoint": "POST /api/onboarding/register",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j005",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "onboarding/register-refused-once-onboarded/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "05-the-platform-keeps-its-one-owner",
+      "folder": "onboarding/register-refused-once-onboarded/05-the-platform-keeps-its-one-owner",
+      "checks": [
+        {
+          "name": "HTTP 400",
+          "pass": true,
+          "detail": "status 400: \"error.admin_already_set\""
+        },
+        {
+          "name": "error",
+          "pass": true,
+          "detail": "expected \"error.admin_already_set\", got \"error.admin_already_set\""
+        },
+        {
+          "name": "owners",
+          "pass": true,
+          "detail": "expected [\"admin+20261029t064557-d7cef6@verify.local\"], got [\"admin+20261029t064557-d7cef6@verify.local\"]"
+        }
+      ]
+    },
+    {
+      "name": "07-the-platform-is-still-onboarded-after-a-backend-restart",
+      "folder": "onboarding/register-refused-once-onboarded/07-the-platform-is-still-onboarded-after-a-backend-restart",
+      "checks": [
+        {
+          "name": "has_onboarded",
+          "pass": true,
+          "detail": "expected true, got true"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "onboarding/register-refused-once-onboarded"
+}

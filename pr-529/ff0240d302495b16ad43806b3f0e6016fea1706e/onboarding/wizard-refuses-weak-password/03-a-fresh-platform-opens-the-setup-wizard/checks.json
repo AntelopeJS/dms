@@ -1,0 +1,12 @@
+[
+  {
+    "name": "path matches /^\\/onboarding/",
+    "pass": true,
+    "detail": "/onboarding"
+  },
+  {
+    "name": "heading \"Welcome to Antelope DMS\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/onboarding"
+  }
+]

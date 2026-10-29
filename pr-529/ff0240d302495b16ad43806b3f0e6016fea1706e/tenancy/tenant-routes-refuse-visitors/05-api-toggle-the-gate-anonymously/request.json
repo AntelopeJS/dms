@@ -1,0 +1,6 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:35351/api/playground/gate-demo/toggle",
+  "authenticated": false,
+  "body": null
+}

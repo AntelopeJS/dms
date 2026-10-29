@@ -1,0 +1,34 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - group "Setup progress":
+    - button "Platform" [disabled]: "1"
+    - text: Platform
+    - button "Administrator" [disabled]: "2"
+    - text: Administrator
+    - button "Ready" [disabled]: "3"
+    - text: Ready
+    - status: Step 0 of 3
+  - text: Step 1 of 3 · Platform about 1 min
+  - heading "Welcome to Antelope DMS" [level=1]
+  - paragraph: Name the platform and pick its default language. The name appears in the browser tab and on the sign-in page.
+  - text: Platform name
+  - textbox "Platform name": AntelopeJS
+  - text: Shown in the browser tab and on the sign-in page. Default language
+  - combobox "Default language": English
+  - text: Your administrator account starts in this language. Everyone can switch in their profile. Address
+  - textbox "Address" [disabled]: 127.0.0.1:40839
+  - text: http://
+  - paragraph: Detected from this browser · HTTPS is off
+  - button "Continue to administrator"
+  - paragraph: Setting up for a team? You invite teammates once the platform is ready.
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

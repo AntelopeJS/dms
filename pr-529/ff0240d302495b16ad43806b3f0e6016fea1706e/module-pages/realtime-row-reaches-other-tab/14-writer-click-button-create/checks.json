@@ -1,0 +1,7 @@
+[
+  {
+    "name": "click button \"Create\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+  }
+]

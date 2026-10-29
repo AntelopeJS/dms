@@ -1,0 +1,22 @@
+[
+  {
+    "name": "HTTP 403",
+    "pass": true,
+    "detail": "status 403: \"playground.gate_demo.suspended\""
+  },
+  {
+    "name": "code",
+    "pass": true,
+    "detail": "expected \"playground.gate_demo.suspended\", got \"playground.gate_demo.suspended\""
+  },
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"items\":[{\"label\":\"Workspace\",\"value\":\"default\",\"type\":\"mono\"},{\"label\":\"CheckTenantAccess\",\"value\":\"Denied\",\"type\":\"status\",\"tone\":\"error\",\"detail\":\"playground.gate_demo.suspended\"}]}"
+  },
+  {
+    "name": "the gate says denied",
+    "pass": true,
+    "detail": "{\"items\":[{\"label\":\"Workspace\",\"value\":\"default\",\"type\":\"mono\"},{\"label\":\"CheckTenantAccess\",\"value\":\"Denied\",\"type\":\"status\",\"tone\":\"error\",\"detail\":\"playground.gate_demo.suspended\"}]}"
+  }
+]

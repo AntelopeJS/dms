@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"carol+20261029t064557-d7cef6-invite-validation-errors@verify.local\"",
+  "baseUrl": "http://127.0.0.1:40839"
+}

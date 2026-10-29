@@ -1,0 +1,132 @@
+{
+  "feature": "module-pages",
+  "journey": "table-edit-record",
+  "title": "Edit from the row menu renames a user, and the new name persists",
+  "entryPoint": "row menu > Edit",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j062",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "module-pages/table-edit-record/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "module-pages/table-edit-record/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-table-view-table-view-users",
+      "folder": "module-pages/table-edit-record/08-admin-open-table-view-table-view-users",
+      "checks": [
+        {
+          "name": "open /table-view/table-view-users",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-button-actions-for-ada-lovelace",
+      "folder": "module-pages/table-edit-record/09-admin-click-button-actions-for-ada-lovelace",
+      "checks": [
+        {
+          "name": "click button \"Actions for Ada Lovelace\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-click-menuitem-edit",
+      "folder": "module-pages/table-edit-record/10-admin-click-menuitem-edit",
+      "checks": [
+        {
+          "name": "click menuitem \"Edit\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users/table/1/edit"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-fill-textbox-name",
+      "folder": "module-pages/table-edit-record/11-admin-fill-textbox-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users/table/1/edit"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-click-button-save-update",
+      "folder": "module-pages/table-edit-record/12-admin-click-button-save-update",
+      "checks": [
+        {
+          "name": "click button \"/^(Save|Update)/\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-open-table-view-table-view-users",
+      "folder": "module-pages/table-edit-record/13-admin-open-table-view-table-view-users",
+      "checks": [
+        {
+          "name": "open /table-view/table-view-users",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "14-the-table-shows-the-new-name",
+      "folder": "module-pages/table-edit-record/14-the-table-shows-the-new-name",
+      "checks": [
+        {
+          "name": "cell \"Ada Renamed c5d1c2\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+        },
+        {
+          "name": "cell \"Ada Lovelace\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/table-view/table-view-users"
+        }
+      ]
+    },
+    {
+      "name": "16-the-data-api-holds-the-new-name",
+      "folder": "module-pages/table-edit-record/16-the-data-api-holds-the-new-name",
+      "checks": [
+        {
+          "name": "user 1",
+          "pass": true,
+          "detail": "expected \"Ada Renamed c5d1c2\", got \"Ada Renamed c5d1c2\""
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "module-pages/table-edit-record"
+}

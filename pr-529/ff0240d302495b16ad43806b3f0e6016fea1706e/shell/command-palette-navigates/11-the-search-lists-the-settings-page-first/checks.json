@@ -1,0 +1,7 @@
+[
+  {
+    "name": "option \"/^Member invitations/\" in listbox is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/examples/overview"
+  }
+]

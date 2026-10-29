@@ -1,0 +1,12 @@
+[
+  {
+    "name": "path matches /^\\/settings\\/workspace\\/members$/",
+    "pass": true,
+    "detail": "/settings/workspace/members"
+  },
+  {
+    "name": "heading \"Members\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/workspace/members"
+  }
+]

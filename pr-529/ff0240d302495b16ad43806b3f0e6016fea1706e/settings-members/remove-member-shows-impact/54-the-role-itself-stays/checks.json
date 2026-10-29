@@ -1,0 +1,7 @@
+[
+  {
+    "name": "role ids",
+    "pass": true,
+    "detail": "expected [\"066689fe-b42e-4f58-bb74-8fc471be5f62\"], got [\"066689fe-b42e-4f58-bb74-8fc471be5f62\"]"
+  }
+]

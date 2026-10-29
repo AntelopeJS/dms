@@ -1,0 +1,10 @@
+{
+  "from": "<>",
+  "to": [
+    "<admin+20261029t064557-d7cef6@verify.local>"
+  ],
+  "subject": "Your sign-in email is being changed",
+  "links": [],
+  "text": "Your sign-in email is being changed Hello Verify Admin, Someone signed in to your account asked to change its sign-in email to renamed+20261029t064557-d7cef6-change-email-confirms-with-code@verify.local. The change takes effect once that address is confirmed. If this wasn't you, change your password now and sign out the other sessions in Security: your account keeps this address until the new one is confirmed.",
+  "receivedAt": "2026-10-29T06:56:39.028Z"
+}

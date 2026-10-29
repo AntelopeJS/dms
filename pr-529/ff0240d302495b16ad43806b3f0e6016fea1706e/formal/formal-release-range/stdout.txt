@@ -1,0 +1,118 @@
+TAP version 13
+# Subtest: range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded)
+not ok 1 - range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded) # TODO F4: a leading zero in a range field is accepted though semver cannot parse it
+  ---
+  duration_ms: 4.457982
+  type: 'test'
+  location: '/home/antony/code/antelope/t6/dms/checks/release-range.test.mjs:212:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Property failed after 15 tests
+    { seed: 20261029, path: "14:0:0", endOnFailure: true }
+    Counterexample: [{"floor":{"minor":0,"patch":0},"name":"leading zero floor patch","range":">=0.0.00 <0.1.0"}]
+    Shrunk 2 time(s)
+    
+    Hint: Enable verbose mode in order to have the list of all failing values encountered during the run
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    buildError (file:///home/antony/code/antelope/t6/dms/node_modules/.pnpm/fast-check@4.10.2/node_modules/fast-check/lib/fast-check.js:2469:16)
+    throwIfFailed (file:///home/antony/code/antelope/t6/dms/node_modules/.pnpm/fast-check@4.10.2/node_modules/fast-check/lib/fast-check.js:2476:8)
+    reportRunDetails (file:///home/antony/code/antelope/t6/dms/node_modules/.pnpm/fast-check@4.10.2/node_modules/fast-check/lib/fast-check.js:2492:14)
+    Module.assert (file:///home/antony/code/antelope/t6/dms/node_modules/.pnpm/fast-check@4.10.2/node_modules/fast-check/lib/fast-check.js:2662:7)
+    assertProperty (file:///home/antony/code/antelope/t6/dms/checks/release-range.test.mjs:15:6)
+    TestContext.<anonymous> (file:///home/antony/code/antelope/t6/dms/checks/release-range.test.mjs:218:5)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.start (node:internal/test_runner/test:1262:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: range: every mutated range other than the leading-zero ones is judged like semver (catches a cap that is not the next minor, a loose operator or a union)
+ok 2 - range: every mutated range other than the leading-zero ones is judged like semver (catches a cap that is not the next minor, a loose operator or a union)
+  ---
+  duration_ms: 11.573126
+  type: 'test'
+  ...
+# Subtest: range F4: a leading zero in the floor or cap is accepted though semver rejects the range (fails once the rule rejects it)
+ok 3 - range F4: a leading zero in the floor or cap is accepted though semver rejects the range (fails once the rule rejects it)
+  ---
+  duration_ms: 20.105154
+  type: 'test'
+  ...
+# Subtest: membership: stable versions agree with semver.satisfies on every canonical range (catches string comparison, an inclusive cap, an exclusive floor, a missing patch compare)
+ok 4 - membership: stable versions agree with semver.satisfies on every canonical range (catches string comparison, an inclusive cap, an exclusive floor, a missing patch compare)
+  ---
+  duration_ms: 10.632885
+  type: 'test'
+  ...
+# Subtest: cap: no version of the next minor or any later release is accepted, prereleases included (catches ordering a prerelease below its release)
+ok 5 - cap: no version of the next minor or any later release is accepted, prereleases included (catches ordering a prerelease below its release)
+  ---
+  duration_ms: 10.589224
+  type: 'test'
+  ...
+# Subtest: prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded)
+not ok 6 - prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) # TODO F1, F2 and F3 are recorded in FINDINGS
+  ---
+  duration_ms: 0.771559
+  type: 'test'
+  location: '/home/antony/code/antelope/t6/dms/checks/release-range.test.mjs:257:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Property failed after 16 tests
+    { seed: 20261029, path: "15:0:1:0", endOnFailure: true }
+    Counterexample: [{"floor":{"minor":0,"patch":0},"range":">=0.0.0 <0.1.0","version":{"major":0,"minor":0,"patch":0,"pre":undefined,"build":"build.0"},"text":"0.0.0+build.0"}]
+    Shrunk 3 time(s)
+    
+    Hint: Enable verbose mode in order to have the list of all failing values encountered during the run
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    buildError (file:///home/antony/code/antelope/t6/dms/node_modules/.pnpm/fast-check@4.10.2/node_modules/fast-check/lib/fast-check.js:2469:16)
+    throwIfFailed (file:///home/antony/code/antelope/t6/dms/node_modules/.pnpm/fast-check@4.10.2/node_modules/fast-check/lib/fast-check.js:2476:8)
+    reportRunDetails (file:///home/antony/code/antelope/t6/dms/node_modules/.pnpm/fast-check@4.10.2/node_modules/fast-check/lib/fast-check.js:2492:14)
+    Module.assert (file:///home/antony/code/antelope/t6/dms/node_modules/.pnpm/fast-check@4.10.2/node_modules/fast-check/lib/fast-check.js:2662:7)
+    assertProperty (file:///home/antony/code/antelope/t6/dms/checks/release-range.test.mjs:15:6)
+    TestContext.<anonymous> (file:///home/antony/code/antelope/t6/dms/checks/release-range.test.mjs:261:5)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1402:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+    Test.postRun (node:internal/test_runner/test:1542:19)
+  ...
+# Subtest: prerelease and build metadata: outside the recorded classes the rule agrees with semver.satisfies (catches a new disagreement)
+ok 7 - prerelease and build metadata: outside the recorded classes the rule agrees with semver.satisfies (catches a new disagreement)
+  ---
+  duration_ms: 8.380731
+  type: 'test'
+  ...
+# Subtest: finding F1: 0.9.1-next.0 against >=0.9.1 <0.10.0 still disagrees as recorded (fails once the rule is fixed)
+ok 8 - finding F1: 0.9.1-next.0 against >=0.9.1 <0.10.0 still disagrees as recorded (fails once the rule is fixed)
+  ---
+  duration_ms: 64.289399
+  type: 'test'
+  ...
+# Subtest: finding F2: 0.9.5-rc.1 against >=0.9.1 <0.10.0 still disagrees as recorded (fails once the rule is fixed)
+ok 9 - finding F2: 0.9.5-rc.1 against >=0.9.1 <0.10.0 still disagrees as recorded (fails once the rule is fixed)
+  ---
+  duration_ms: 44.639246
+  type: 'test'
+  ...
+# Subtest: finding F3: 0.9.5+build.0 against >=0.9.1 <0.10.0 still disagrees as recorded (fails once the rule is fixed)
+ok 10 - finding F3: 0.9.5+build.0 against >=0.9.1 <0.10.0 still disagrees as recorded (fails once the rule is fixed)
+  ---
+  duration_ms: 130.464586
+  type: 'test'
+  ...
+# Subtest: oracle choice: only the default options state the promise, includePrerelease admits the breaking minor's prerelease
+ok 11 - oracle choice: only the default options state the promise, includePrerelease admits the breaking minor's prerelease
+  ---
+  duration_ms: 0.910234
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 2
+# duration_ms 372.265767

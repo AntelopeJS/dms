@@ -1,0 +1,21 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - heading "Forgot password" [level=1]
+  - paragraph: Enter the e-mail address of your account. We'll send you a 6-character code to reset your password.
+  - text: Email address
+  - textbox "Email address":
+    - /placeholder: you@company.com
+  - button "Send the code"
+  - link "Back to login":
+    - /url: /auth
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

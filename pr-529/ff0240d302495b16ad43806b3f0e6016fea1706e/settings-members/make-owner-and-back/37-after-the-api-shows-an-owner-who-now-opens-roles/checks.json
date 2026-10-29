@@ -1,0 +1,12 @@
+[
+  {
+    "name": "isTenantOwner",
+    "pass": true,
+    "detail": "expected true, got true"
+  },
+  {
+    "name": "heading \"Roles\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/workspace/roles"
+  }
+]

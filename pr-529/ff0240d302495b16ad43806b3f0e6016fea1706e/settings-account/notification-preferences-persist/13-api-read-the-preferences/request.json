@@ -1,0 +1,6 @@
+{
+  "method": "GET",
+  "url": "http://127.0.0.1:35351/dms/pages/settings/user/notifications/preferences",
+  "authenticated": true,
+  "body": null
+}

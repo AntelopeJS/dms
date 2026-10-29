@@ -1,0 +1,50 @@
+{
+  "feature": "block-preview",
+  "journey": "preview-refuses-unknown-and-remote",
+  "title": "an unregistered block type and an off-site fetchUrl render inline notices instead of blocks",
+  "entryPoint": "/dms-preview?state=",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j074",
+  "steps": [
+    {
+      "name": "02-preview-open-dms-preview-state-eyj0cmvlijpbeyj0exblijoitm9td",
+      "folder": "block-preview/preview-refuses-unknown-and-remote/02-preview-open-dms-preview-state-eyj0cmvlijpbeyj0exblijoitm9td",
+      "checks": [
+        {
+          "name": "open /dms-preview?state=eyJ0cmVlIjpbeyJ0eXBlIjoiTm9TdWNoQmxvY2sifSx7InR5cGUiOiJLcGlDYXJkIiwib3B0aW9ucyI6eyJ0aXRsZSI6IlJlbW90ZSIsImZldGNoVXJsIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9kYXRhIn19XX0",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/dms-preview?state=eyJ0cmVlIjpbeyJ0eXBlIjoiTm9TdWNoQmxvY2sifSx7InR5cGUiOiJLcGlDYXJkIiwib3B0aW9ucyI6eyJ0aXRsZSI6IlJlbW90ZSIsImZldGNoVXJsIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9kYXRhIn19XX0"
+        }
+      ]
+    },
+    {
+      "name": "03-each-refused-node-says-why",
+      "folder": "block-preview/preview-refuses-unknown-and-remote/03-each-refused-node-says-why",
+      "checks": [
+        {
+          "name": "page shows /“NoSuchBlock” is not a registered block type/",
+          "pass": true,
+          "detail": "“NoSuchBlock” is not a registered block type. KpiCard was not drawn: “https://example.com/data” is not a path of this site."
+        },
+        {
+          "name": "page shows /KpiCard was not drawn: “https:\\/\\/example\\.com\\/data” is not a path of this site/",
+          "pass": true,
+          "detail": "“NoSuchBlock” is not a registered block type. KpiCard was not drawn: “https://example.com/data” is not a path of this site."
+        }
+      ]
+    },
+    {
+      "name": "04-the-page-never-called-the-off-site-url",
+      "folder": "block-preview/preview-refuses-unknown-and-remote/04-the-page-never-called-the-off-site-url",
+      "checks": [
+        {
+          "name": "no request to example.com",
+          "pass": true,
+          "detail": "none off-site"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "block-preview/preview-refuses-unknown-and-remote"
+}

@@ -1,0 +1,9 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:35351/api/auth/login",
+  "authenticated": false,
+  "body": {
+    "email": "wizard+20261029t064557-d7cef6-wizard-creates-admin@verify.local",
+    "password": "WizardPass1!"
+  }
+}

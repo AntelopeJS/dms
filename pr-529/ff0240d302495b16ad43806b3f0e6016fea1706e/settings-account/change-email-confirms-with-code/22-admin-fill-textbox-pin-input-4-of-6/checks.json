@@ -1,0 +1,7 @@
+[
+  {
+    "name": "fill textbox \"pin input 4 of 6\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/user/security"
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "e4258df1-f290-4d95-a0d3-e9787cb80e7f",
+        "name": "Support 5fd262",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

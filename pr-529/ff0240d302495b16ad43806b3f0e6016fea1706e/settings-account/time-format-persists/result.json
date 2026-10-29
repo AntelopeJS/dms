@@ -1,0 +1,104 @@
+{
+  "feature": "settings-account",
+  "journey": "time-format-persists",
+  "title": "a 24-hour clock changes the preview at once and is stored on the account",
+  "entryPoint": "Settings > Language & region > Time format",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j048",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-account/time-format-persists/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-account/time-format-persists/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-settings-user-region",
+      "folder": "settings-account/time-format-persists/08-admin-open-settings-user-region",
+      "checks": [
+        {
+          "name": "open /settings/user/region",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/region"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-radio-24-hour",
+      "folder": "settings-account/time-format-persists/09-admin-click-radio-24-hour",
+      "checks": [
+        {
+          "name": "click radio \"24-hour\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/region"
+        }
+      ]
+    },
+    {
+      "name": "10-the-preview-drops-am-and-pm",
+      "folder": "settings-account/time-format-persists/10-the-preview-drops-am-and-pm",
+      "checks": [
+        {
+          "name": "page shows /Time\\s+\\d{2}:\\d{2}/i",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Language & region 1 Settings / All settings ACCOUNT Profile La…"
+        },
+        {
+          "name": "page does not show /\\d{2}:\\d{2} (AM|PM)/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Language & region 1 Settings / All settings ACCOUNT Profile La…"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-reload",
+      "folder": "settings-account/time-format-persists/11-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/region"
+        }
+      ]
+    },
+    {
+      "name": "13-a-reload-and-the-api-keep-the-24-hour-clock",
+      "folder": "settings-account/time-format-persists/13-a-reload-and-the-api-keep-the-24-hour-clock",
+      "checks": [
+        {
+          "name": "checked",
+          "pass": true,
+          "detail": "expected true, got true"
+        },
+        {
+          "name": "timeFormat",
+          "pass": true,
+          "detail": "expected \"h23\", got \"h23\""
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-account/time-format-persists"
+}

@@ -1,0 +1,6 @@
+{
+  "method": "DELETE",
+  "url": "http://127.0.0.1:35351/api/tables/members/delete?id=default%3A74d9d80d-fe95-4b76-9f6c-52819cbea9dd",
+  "authenticated": true,
+  "body": null
+}

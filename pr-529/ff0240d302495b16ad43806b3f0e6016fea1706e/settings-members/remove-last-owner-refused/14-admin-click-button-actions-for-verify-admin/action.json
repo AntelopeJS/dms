@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"Actions for Verify Admin\"",
+  "baseUrl": "http://127.0.0.1:40839"
+}

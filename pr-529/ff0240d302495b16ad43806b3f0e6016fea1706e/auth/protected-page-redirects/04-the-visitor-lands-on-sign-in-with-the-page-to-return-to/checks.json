@@ -1,0 +1,12 @@
+[
+  {
+    "name": "path matches /^\\/auth/",
+    "pass": true,
+    "detail": "/auth"
+  },
+  {
+    "name": "redirect names the page",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+  }
+]

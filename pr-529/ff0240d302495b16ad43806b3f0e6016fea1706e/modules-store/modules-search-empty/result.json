@@ -1,0 +1,132 @@
+{
+  "feature": "modules-store",
+  "journey": "modules-search-empty",
+  "title": "a module search that matches nothing shows no module, and clearing it brings them back",
+  "entryPoint": "/modules search, /modules/store search",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j067",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "modules-store/modules-search-empty/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "modules-store/modules-search-empty/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-modules-store",
+      "folder": "modules-store/modules-search-empty/08-admin-open-modules-store",
+      "checks": [
+        {
+          "name": "open /modules/store",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/modules/store"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-fill-textbox-search-the-store",
+      "folder": "modules-store/modules-search-empty/09-admin-fill-textbox-search-the-store",
+      "checks": [
+        {
+          "name": "fill textbox \"Search the store\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/modules/store"
+        }
+      ]
+    },
+    {
+      "name": "10-the-store-says-nothing-matches",
+      "folder": "modules-store/modules-search-empty/10-the-store-says-nothing-matches",
+      "checks": [
+        {
+          "name": "page shows /No module in the store matches “qqxzjjwv”/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Modules / Module store 1 Module store Official AntelopeJS modules to discover and i…"
+        },
+        {
+          "name": "0 × article",
+          "pass": true,
+          "detail": "found 0"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-button-clear-search",
+      "folder": "modules-store/modules-search-empty/11-admin-click-button-clear-search",
+      "checks": [
+        {
+          "name": "click button \"Clear search\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/modules/store"
+        }
+      ]
+    },
+    {
+      "name": "12-clearing-the-search-lists-the-catalog-again",
+      "folder": "modules-store/modules-search-empty/12-clearing-the-search-lists-the-catalog-again",
+      "checks": [
+        {
+          "name": "article \"API\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/modules/store"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-open-modules",
+      "folder": "modules-store/modules-search-empty/13-admin-open-modules",
+      "checks": [
+        {
+          "name": "open /modules",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/modules"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-fill-textbox-search-modules",
+      "folder": "modules-store/modules-search-empty/14-admin-fill-textbox-search-modules",
+      "checks": [
+        {
+          "name": "fill textbox \"Search modules\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/modules"
+        }
+      ]
+    },
+    {
+      "name": "15-the-installed-list-hides-every-module",
+      "folder": "modules-store/modules-search-empty/15-the-installed-list-hides-every-module",
+      "checks": [
+        {
+          "name": "0 × article",
+          "pass": true,
+          "detail": "found 0"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "modules-store/modules-search-empty"
+}

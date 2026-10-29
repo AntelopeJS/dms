@@ -1,0 +1,12 @@
+[
+  {
+    "name": "at least one unread",
+    "pass": true,
+    "detail": "{\"count\":1}"
+  },
+  {
+    "name": "a sign-in notification linking to Security",
+    "pass": true,
+    "detail": "[{\"_id\":\"notification-recent:076d1e3d195115f655b9355235bfa51c00bdbdb759c84cb663cc9a2376386bab\",\"userId\":\"ddea64bd-1798-4a1d-a555-dea3ff54fc54\",\"icon\":\"i-ph-sign-in\",\"title\":\"$dms.notifications.messages.new_login.title_browser_os\",\"description\":\"$dms.notifications.messages.new_login.description_no_country\",\"linkTo\":\"/settings/user/security\",\"params\":{\"browser\":\"Chrome Headless\",\"os\":\"Linux\"},\"isRead\":false,\"categoryId\":\"system\",\"subjectId\":\"security\",\"groupId\":null,\"tone\":\"warning\",\"createdAt\":\"2026-10-29T06:49:52.497Z\",\"updatedAt\":\"2026-10-29T06:49:52.497Z\",\"_instance\":null}]"
+  }
+]

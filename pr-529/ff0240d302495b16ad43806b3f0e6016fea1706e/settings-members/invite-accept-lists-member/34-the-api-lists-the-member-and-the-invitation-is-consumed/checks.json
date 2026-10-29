@@ -1,0 +1,27 @@
+[
+  {
+    "name": "the member exists",
+    "pass": true,
+    "detail": "bob+20261029t064557-d7cef6-invite-accept-lists-member@verify.local"
+  },
+  {
+    "name": "name",
+    "pass": true,
+    "detail": "expected \"Bob Tester\", got \"Bob Tester\""
+  },
+  {
+    "name": "roles",
+    "pass": true,
+    "detail": "expected [\"e1d49050-0656-4d27-b92e-e5949e08eeee\"], got [\"e1d49050-0656-4d27-b92e-e5949e08eeee\"]"
+  },
+  {
+    "name": "not an owner",
+    "pass": true,
+    "detail": "expected false, got false"
+  },
+  {
+    "name": "no invitation left",
+    "pass": true,
+    "detail": "expected undefined, got undefined"
+  }
+]

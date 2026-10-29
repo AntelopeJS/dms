@@ -1,0 +1,7 @@
+[
+  {
+    "name": "fill textbox \"pin input 6 of 6\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAzNGQ4NGFkLWYxMzItNDVjNi1iOTdjLTQxZmFjYjRkNjNkOCIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTcxMjYsImV4cCI6MTc5MzI1NzQyNiwianRpIjoiNjU0ZDg1NGQtYjRhOC00MGI0LTliNjYtZDM4NDk1ZDM1MDIzIn0.59-eZ5Ivd-y9tWFxFX8ddc3GBMmyMVxDykq81MCCHsk&methods=email"
+  }
+]

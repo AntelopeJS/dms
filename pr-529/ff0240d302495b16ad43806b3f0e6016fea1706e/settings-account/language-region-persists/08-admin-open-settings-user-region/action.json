@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "/settings/user/region",
+  "baseUrl": "http://127.0.0.1:40839"
+}

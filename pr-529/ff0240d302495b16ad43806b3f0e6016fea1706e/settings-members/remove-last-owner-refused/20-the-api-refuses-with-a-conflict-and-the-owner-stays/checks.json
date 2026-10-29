@@ -1,0 +1,17 @@
+[
+  {
+    "name": "HTTP 409",
+    "pass": true,
+    "detail": "status 409: \"$page.settings.members.error.last_owner_delete\""
+  },
+  {
+    "name": "members",
+    "pass": true,
+    "detail": "expected [\"admin+20261029t064557-d7cef6@verify.local\"], got [\"admin+20261029t064557-d7cef6@verify.local\"]"
+  },
+  {
+    "name": "still an owner",
+    "pass": true,
+    "detail": "expected true, got true"
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "2cc45ce5-cd83-4b5b-bd6f-43436b286191",
+        "email": "member+20261029t064557-d7cef6-smoke@verify.local",
+        "roles_ids": [],
+        "asTenantOwner": true,
+        "createdAt": "2026-10-29T06:46:55.291Z",
+        "expiresAt": "2026-11-05T06:46:55.290Z",
+        "invitedBy": "cc8e28e4-173e-449a-9f10-c61e1c6e56f9",
+        "invitedByName": "Verify Admin",
+        "status": true
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

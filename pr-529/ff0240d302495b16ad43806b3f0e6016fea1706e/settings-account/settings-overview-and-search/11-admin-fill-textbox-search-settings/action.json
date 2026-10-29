@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Search settings\"",
+  "value": "secur",
+  "baseUrl": "http://127.0.0.1:40839"
+}

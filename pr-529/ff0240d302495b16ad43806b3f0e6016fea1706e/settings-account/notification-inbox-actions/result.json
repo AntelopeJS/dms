@@ -1,0 +1,191 @@
+{
+  "feature": "settings-account",
+  "journey": "notification-inbox-actions",
+  "title": "Mark all as read and Delete all change the inbox and the counts, and the state survives a reload",
+  "entryPoint": "Settings > Notifications > Inbox",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j051",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-account/notification-inbox-actions/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-account/notification-inbox-actions/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "12-admin2-signed-in-as-admin2",
+      "folder": "settings-account/notification-inbox-actions/12-admin2-signed-in-as-admin2",
+      "checks": [
+        {
+          "name": "admin2 signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-open-settings-user-notifications",
+      "folder": "settings-account/notification-inbox-actions/13-admin-open-settings-user-notifications",
+      "checks": [
+        {
+          "name": "open /settings/user/notifications",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        }
+      ]
+    },
+    {
+      "name": "14-the-inbox-lists-unread-alerts",
+      "folder": "settings-account/notification-inbox-actions/14-the-inbox-lists-unread-alerts",
+      "checks": [
+        {
+          "name": "button \"/^Unread [1-9]/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        },
+        {
+          "name": "page shows /New sign-in from/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications 1 Settings / All settings ACCOUNT Profile Langua…"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-click-button-mark-all-as-read",
+      "folder": "settings-account/notification-inbox-actions/15-admin-click-button-mark-all-as-read",
+      "checks": [
+        {
+          "name": "click button \"Mark all as read\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        }
+      ]
+    },
+    {
+      "name": "16-every-notification-is-read",
+      "folder": "settings-account/notification-inbox-actions/16-every-notification-is-read",
+      "checks": [
+        {
+          "name": "button \"Unread 0\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        }
+      ]
+    },
+    {
+      "name": "17-admin-reload",
+      "folder": "settings-account/notification-inbox-actions/17-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        }
+      ]
+    },
+    {
+      "name": "18-a-reload-keeps-them-read-but-listed",
+      "folder": "settings-account/notification-inbox-actions/18-a-reload-keeps-them-read-but-listed",
+      "checks": [
+        {
+          "name": "button \"Unread 0\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        },
+        {
+          "name": "page shows /New sign-in from/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications Settings / All settings ACCOUNT Profile Language…"
+        }
+      ]
+    },
+    {
+      "name": "19-admin-click-button-delete-all",
+      "folder": "settings-account/notification-inbox-actions/19-admin-click-button-delete-all",
+      "checks": [
+        {
+          "name": "click button \"Delete all…\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        }
+      ]
+    },
+    {
+      "name": "20-the-dialog-asks-before-deleting",
+      "folder": "settings-account/notification-inbox-actions/20-the-dialog-asks-before-deleting",
+      "checks": [
+        {
+          "name": "dialog is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        }
+      ]
+    },
+    {
+      "name": "21-admin-click-button-delete-in-dialog",
+      "folder": "settings-account/notification-inbox-actions/21-admin-click-button-delete-in-dialog",
+      "checks": [
+        {
+          "name": "click button \"/^Delete/\" in dialog",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        }
+      ]
+    },
+    {
+      "name": "22-admin-reload",
+      "folder": "settings-account/notification-inbox-actions/22-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        }
+      ]
+    },
+    {
+      "name": "24-the-inbox-is-empty-after-a-reload",
+      "folder": "settings-account/notification-inbox-actions/24-the-inbox-is-empty-after-a-reload",
+      "checks": [
+        {
+          "name": "page does not show /New sign-in from/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications Settings / All settings ACCOUNT Profile Language…"
+        },
+        {
+          "name": "button \"All 0\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/notifications"
+        },
+        {
+          "name": "counts are zero",
+          "pass": true,
+          "detail": "{\"all\":0,\"unread\":0}"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-account/notification-inbox-actions"
+}

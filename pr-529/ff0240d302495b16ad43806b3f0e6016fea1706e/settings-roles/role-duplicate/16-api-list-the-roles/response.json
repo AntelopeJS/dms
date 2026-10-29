@@ -1,0 +1,25 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "113759f7-4d42-4e77-ad51-521fc3b0aa70",
+        "name": "Support 70be53",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      },
+      {
+        "_id": "07195368-539f-4c6e-ac09-f76060f3b8cb",
+        "name": "Support 70be53 (copy)",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      }
+    ],
+    "total": 2,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

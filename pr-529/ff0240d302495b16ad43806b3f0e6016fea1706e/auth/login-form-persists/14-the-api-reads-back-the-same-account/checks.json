@@ -1,0 +1,12 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"_id\":\"036d1457-8e75-48af-a868-7a0428b800be\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t064557-d7cef6@verify.local\",\"createdAt\":\"2026-10-29T06:47:39.405Z\",\"updatedAt\":\"2026-10-29T06:47:40.979Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T06:47:40.9"
+  },
+  {
+    "name": "email",
+    "pass": true,
+    "detail": "expected \"admin+20261029t064557-d7cef6@verify.local\", got \"admin+20261029t064557-d7cef6@verify.local\""
+  }
+]

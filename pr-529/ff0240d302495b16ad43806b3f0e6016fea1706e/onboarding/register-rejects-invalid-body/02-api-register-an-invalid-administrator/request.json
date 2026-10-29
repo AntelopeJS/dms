@@ -1,0 +1,11 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:35351/api/onboarding/register",
+  "authenticated": false,
+  "body": {
+    "email": "not-an-email",
+    "firstName": "",
+    "lastName": "E",
+    "password": "WizardPass1!"
+  }
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "name": "the role stores a Roles permission",
+    "pass": true,
+    "detail": "[\"settings\",\"settings.workspace\",\"settings.workspace.playground\",\"settings.workspace.playground.form\",\"settings.workspace.roles\",\"settings.workspace.roles.table\",\"settings.workspace.roles.table.list\",\"settings.workspace.roles.table.add\",\"settings.workspace.roles.table.edit\",\"settings.workspace.roles.table.view\",\"settings.workspace.roles.table.delete\",\"settings.workspace.roles.table.export\"]"
+  },
+  {
+    "name": "Roles is no longer hidden in the preview",
+    "pass": true,
+    "detail": "241"
+  },
+  {
+    "name": "heading \"Roles\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/workspace/roles"
+  }
+]

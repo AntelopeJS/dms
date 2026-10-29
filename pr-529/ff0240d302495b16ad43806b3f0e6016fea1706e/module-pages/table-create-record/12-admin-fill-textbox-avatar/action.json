@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Avatar\"",
+  "value": "https://example.com/avatar.png",
+  "baseUrl": "http://127.0.0.1:40839"
+}

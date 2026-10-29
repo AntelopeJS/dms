@@ -1,0 +1,3848 @@
+[
+  {
+    "feature": "settings-account",
+    "journey": "profile-name-persists",
+    "title": "editing the full name shows Profile saved and the new name everywhere it is read back",
+    "entryPoint": "Settings > Profile > Full name",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j041",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/profile-name-persists/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/profile-name-persists/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-profile",
+        "folder": "settings-account/profile-name-persists/08-admin-open-settings-user-profile",
+        "checks": [
+          {
+            "name": "open /settings/user/profile",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "09-the-profile-shows-the-current-name-and-a-read-only-email",
+        "folder": "settings-account/profile-name-persists/09-the-profile-shows-the-current-name-and-a-read-only-email",
+        "checks": [
+          {
+            "name": "name",
+            "pass": true,
+            "detail": "expected \"Verify Admin\", got \"Verify Admin\""
+          },
+          {
+            "name": "email is editable",
+            "pass": true,
+            "detail": "expected false, got false"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-fill-textbox-full-name",
+        "folder": "settings-account/profile-name-persists/10-admin-fill-textbox-full-name",
+        "checks": [
+          {
+            "name": "fill textbox \"Full name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "11-the-page-offers-to-save-and-names-the-previous-value",
+        "folder": "settings-account/profile-name-persists/11-the-page-offers-to-save-and-names-the-previous-value",
+        "checks": [
+          {
+            "name": "page shows /Unsaved changes/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "page shows /Was “Verify Admin”/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-click-button-save-changes",
+        "folder": "settings-account/profile-name-persists/12-admin-click-button-save-changes",
+        "checks": [
+          {
+            "name": "click button \"Save changes\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "13-the-profile-is-saved",
+        "folder": "settings-account/profile-name-persists/13-the-profile-is-saved",
+        "checks": [
+          {
+            "name": "page shows /Profile saved/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VR Verify Renamed admin+20261029t064557-d7cef6@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-reload",
+        "folder": "settings-account/profile-name-persists/14-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "15-a-reload-shows-the-new-name-in-the-form-and-in-the-account-m",
+        "folder": "settings-account/profile-name-persists/15-a-reload-shows-the-new-name-in-the-form-and-in-the-account-m",
+        "checks": [
+          {
+            "name": "name",
+            "pass": true,
+            "detail": "expected \"Verify Renamed\", got \"Verify Renamed\""
+          },
+          {
+            "name": "button \"/Verify Renamed/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "18-the-api-and-the-members-list-hold-the-new-name",
+        "folder": "settings-account/profile-name-persists/18-the-api-and-the-members-list-hold-the-new-name",
+        "checks": [
+          {
+            "name": "name",
+            "pass": true,
+            "detail": "expected \"Verify Renamed\", got \"Verify Renamed\""
+          },
+          {
+            "name": "member names",
+            "pass": true,
+            "detail": "expected [\"Verify Renamed\"], got [\"Verify Renamed\"]"
+          }
+        ]
+      },
+      {
+        "name": "19-admin-open-settings",
+        "folder": "settings-account/profile-name-persists/19-admin-open-settings",
+        "checks": [
+          {
+            "name": "open /settings",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          }
+        ]
+      },
+      {
+        "name": "20-the-settings-overview-reads-the-new-name",
+        "folder": "settings-account/profile-name-persists/20-the-settings-overview-reads-the-new-name",
+        "checks": [
+          {
+            "name": "page shows /Verify Renamed/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VR Verify Renamed admin+20261029t064557-d7cef6@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 N…"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/profile-name-persists"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "profile-name-required",
+    "title": "a blank full name is refused and nothing is saved, and Discard restores the stored name",
+    "entryPoint": "Settings > Profile > Full name > Save changes",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j042",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/profile-name-required/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/profile-name-required/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-profile",
+        "folder": "settings-account/profile-name-required/08-admin-open-settings-user-profile",
+        "checks": [
+          {
+            "name": "open /settings/user/profile",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-fill-textbox-full-name",
+        "folder": "settings-account/profile-name-required/09-admin-fill-textbox-full-name",
+        "checks": [
+          {
+            "name": "fill textbox \"Full name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-click-button-save-changes",
+        "folder": "settings-account/profile-name-required/10-admin-click-button-save-changes",
+        "checks": [
+          {
+            "name": "click button \"Save changes\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "11-the-form-asks-for-a-name-and-does-not-confirm-a-save",
+        "folder": "settings-account/profile-name-required/11-the-form-asks-for-a-name-and-does-not-confirm-a-save",
+        "checks": [
+          {
+            "name": "page shows /This field is required\\./",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & r…"
+          },
+          {
+            "name": "page does not show /Profile saved/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-reload",
+        "folder": "settings-account/profile-name-required/12-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "14-the-stored-name-is-unchanged",
+        "folder": "settings-account/profile-name-required/14-the-stored-name-is-unchanged",
+        "checks": [
+          {
+            "name": "name",
+            "pass": true,
+            "detail": "expected \"Verify Admin\", got \"Verify Admin\""
+          },
+          {
+            "name": "API name",
+            "pass": true,
+            "detail": "expected \"Verify Admin\", got \"Verify Admin\""
+          }
+        ]
+      },
+      {
+        "name": "15-admin-fill-textbox-full-name",
+        "folder": "settings-account/profile-name-required/15-admin-fill-textbox-full-name",
+        "checks": [
+          {
+            "name": "fill textbox \"Full name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-discard",
+        "folder": "settings-account/profile-name-required/16-admin-click-button-discard",
+        "checks": [
+          {
+            "name": "click button \"Discard\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "17-discard-puts-the-stored-name-back",
+        "folder": "settings-account/profile-name-required/17-discard-puts-the-stored-name-back",
+        "checks": [
+          {
+            "name": "name",
+            "pass": true,
+            "detail": "expected \"Verify Admin\", got \"Verify Admin\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/profile-name-required"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "change-password-signs-out-other-devices",
+    "title": "a new password signs in, the old one is refused, and the account's other sessions are signed out",
+    "entryPoint": "Settings > Security > Change password",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j043",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/change-password-signs-out-other-devices/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/change-password-signs-out-other-devices/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "12-admin2-signed-in-as-admin2",
+        "folder": "settings-account/change-password-signs-out-other-devices/12-admin2-signed-in-as-admin2",
+        "checks": [
+          {
+            "name": "admin2 signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-open-settings-user-security",
+        "folder": "settings-account/change-password-signs-out-other-devices/13-admin-open-settings-user-security",
+        "checks": [
+          {
+            "name": "open /settings/user/security",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-button-change-password",
+        "folder": "settings-account/change-password-signs-out-other-devices/14-admin-click-button-change-password",
+        "checks": [
+          {
+            "name": "click button \"Change password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-fill-textbox-current-password",
+        "folder": "settings-account/change-password-signs-out-other-devices/15-admin-fill-textbox-current-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Current password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-fill-textbox-new-password",
+        "folder": "settings-account/change-password-signs-out-other-devices/16-admin-fill-textbox-new-password",
+        "checks": [
+          {
+            "name": "fill textbox \"New password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-fill-textbox-confirm-new-password",
+        "folder": "settings-account/change-password-signs-out-other-devices/17-admin-fill-textbox-confirm-new-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Confirm new password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "18-the-form-shows-every-rule-met-and-offers-to-update",
+        "folder": "settings-account/change-password-signs-out-other-devices/18-the-form-shows-every-rule-met-and-offers-to-update",
+        "checks": [
+          {
+            "name": "page shows /5 of 5 met/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          },
+          {
+            "name": "button \"Update password\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "19-admin-click-button-update-password",
+        "folder": "settings-account/change-password-signs-out-other-devices/19-admin-click-button-update-password",
+        "checks": [
+          {
+            "name": "click button \"Update password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "20-the-page-confirms-and-says-other-sessions-were-signed-out",
+        "folder": "settings-account/change-password-signs-out-other-devices/20-the-page-confirms-and-says-other-sessions-were-signed-out",
+        "checks": [
+          {
+            "name": "page shows /Password updated/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 2 Settings / All settings ACCOUNT Profile Language & …"
+          },
+          {
+            "name": "page shows /other sessions? signed out/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 2 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-reload",
+        "folder": "settings-account/change-password-signs-out-other-devices/21-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "22-this-device-stays-signed-in-and-the-page-says-the-password-c",
+        "folder": "settings-account/change-password-signs-out-other-devices/22-this-device-stays-signed-in-and-the-page-says-the-password-c",
+        "checks": [
+          {
+            "name": "path matches /^\\/settings\\/user\\/security$/",
+            "pass": true,
+            "detail": "/settings/user/security"
+          },
+          {
+            "name": "page shows /Changed today/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 2 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "23-admin2-open-settings-user-security",
+        "folder": "settings-account/change-password-signs-out-other-devices/23-admin2-open-settings-user-security",
+        "checks": [
+          {
+            "name": "open /settings/user/security",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fuser%2Fsecurity"
+          }
+        ]
+      },
+      {
+        "name": "24-the-other-device-is-sent-back-to-sign-in",
+        "folder": "settings-account/change-password-signs-out-other-devices/24-the-other-device-is-sent-back-to-sign-in",
+        "checks": [
+          {
+            "name": "path matches /^\\/auth/",
+            "pass": true,
+            "detail": "/auth"
+          }
+        ]
+      },
+      {
+        "name": "27-only-the-new-password-signs-in",
+        "folder": "settings-account/change-password-signs-out-other-devices/27-only-the-new-password-signs-in",
+        "checks": [
+          {
+            "name": "new password accepted",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "HTTP 401",
+            "pass": true,
+            "detail": "status 401: \"error.invalid_credentials\""
+          }
+        ]
+      },
+      {
+        "name": "28-admin-open-settings-user-notifications",
+        "folder": "settings-account/change-password-signs-out-other-devices/28-admin-open-settings-user-notifications",
+        "checks": [
+          {
+            "name": "open /settings/user/notifications",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "29-a-password-changed-alert-is-in-the-inbox",
+        "folder": "settings-account/change-password-signs-out-other-devices/29-a-password-changed-alert-is-in-the-inbox",
+        "checks": [
+          {
+            "name": "page shows /Password changed/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications 2 Settings / All settings ACCOUNT Profile Langua…"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/change-password-signs-out-other-devices"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "change-password-errors",
+    "title": "a wrong current password, a weak new password and a mismatched confirmation are all refused and the password stays",
+    "entryPoint": "Settings > Security > Change password, POST /dms/pages/settings/user/security/password",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j044",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/change-password-errors/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/change-password-errors/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-security",
+        "folder": "settings-account/change-password-errors/08-admin-open-settings-user-security",
+        "checks": [
+          {
+            "name": "open /settings/user/security",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-button-change-password",
+        "folder": "settings-account/change-password-errors/09-admin-click-button-change-password",
+        "checks": [
+          {
+            "name": "click button \"Change password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-fill-textbox-current-password",
+        "folder": "settings-account/change-password-errors/10-admin-fill-textbox-current-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Current password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-fill-textbox-new-password",
+        "folder": "settings-account/change-password-errors/11-admin-fill-textbox-new-password",
+        "checks": [
+          {
+            "name": "fill textbox \"New password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-confirm-new-password",
+        "folder": "settings-account/change-password-errors/12-admin-fill-textbox-confirm-new-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Confirm new password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-button-update-password",
+        "folder": "settings-account/change-password-errors/13-admin-click-button-update-password",
+        "checks": [
+          {
+            "name": "click button \"Update password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "14-a-wrong-current-password-is-named-as-incorrect",
+        "folder": "settings-account/change-password-errors/14-a-wrong-current-password-is-named-as-incorrect",
+        "checks": [
+          {
+            "name": "page shows /Your current password is incorrect/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-fill-textbox-current-password",
+        "folder": "settings-account/change-password-errors/15-admin-fill-textbox-current-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Current password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-fill-textbox-new-password",
+        "folder": "settings-account/change-password-errors/16-admin-fill-textbox-new-password",
+        "checks": [
+          {
+            "name": "fill textbox \"New password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-fill-textbox-confirm-new-password",
+        "folder": "settings-account/change-password-errors/17-admin-fill-textbox-confirm-new-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Confirm new password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "18-admin-click-button-update-password",
+        "folder": "settings-account/change-password-errors/18-admin-click-button-update-password",
+        "checks": [
+          {
+            "name": "click button \"Update password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "19-a-weak-new-password-shows-its-unmet-rules-and-is-not-saved",
+        "folder": "settings-account/change-password-errors/19-a-weak-new-password-shows-its-unmet-rules-and-is-not-saved",
+        "checks": [
+          {
+            "name": "page shows /At least 8 characters\\s+not met/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          },
+          {
+            "name": "page does not show /Password updated/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "20-admin-fill-textbox-current-password",
+        "folder": "settings-account/change-password-errors/20-admin-fill-textbox-current-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Current password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-fill-textbox-new-password",
+        "folder": "settings-account/change-password-errors/21-admin-fill-textbox-new-password",
+        "checks": [
+          {
+            "name": "fill textbox \"New password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "22-admin-fill-textbox-confirm-new-password",
+        "folder": "settings-account/change-password-errors/22-admin-fill-textbox-confirm-new-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Confirm new password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "23-admin-click-button-update-password",
+        "folder": "settings-account/change-password-errors/23-admin-click-button-update-password",
+        "checks": [
+          {
+            "name": "click button \"Update password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "24-a-mismatched-confirmation-is-not-saved",
+        "folder": "settings-account/change-password-errors/24-a-mismatched-confirmation-is-not-saved",
+        "checks": [
+          {
+            "name": "page does not show /Password updated/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "28-the-api-refuses-the-weak-password-and-the-account-keeps-its-",
+        "folder": "settings-account/change-password-errors/28-the-api-refuses-the-weak-password-and-the-account-keeps-its-",
+        "checks": [
+          {
+            "name": "weak password answers 4xx",
+            "pass": true,
+            "detail": "400"
+          },
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImE5OTliZDNkLTEwZTMtNGM0MS1iM2Y4LWQ0OTFjYjdiN2UyNyIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjhmMzgyMmQyLWQwNjUtNDQyZS05MmU2LTg4ZWRkY2YxNzUyOCIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTY5ODksImV4cCI6MTc5MzI2MDU4"
+          },
+          {
+            "name": "HTTP 401",
+            "pass": true,
+            "detail": "status 401: \"error.invalid_credentials\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/change-password-errors"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "change-email-confirms-with-code",
+    "title": "a new sign-in address takes effect only after the code emailed to it is entered, and the old address is told",
+    "entryPoint": "Settings > Security > Change email, mail sink",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j045",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/change-email-confirms-with-code/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/change-email-confirms-with-code/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-security",
+        "folder": "settings-account/change-email-confirms-with-code/08-admin-open-settings-user-security",
+        "checks": [
+          {
+            "name": "open /settings/user/security",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-button-change-email",
+        "folder": "settings-account/change-email-confirms-with-code/09-admin-click-button-change-email",
+        "checks": [
+          {
+            "name": "click button \"Change email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-fill-textbox-new-email",
+        "folder": "settings-account/change-email-confirms-with-code/10-admin-fill-textbox-new-email",
+        "checks": [
+          {
+            "name": "fill textbox \"New email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-fill-textbox-current-password",
+        "folder": "settings-account/change-email-confirms-with-code/11-admin-fill-textbox-current-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Current password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-click-button-change-email-in-form-changing-email",
+        "folder": "settings-account/change-email-confirms-with-code/12-admin-click-button-change-email-in-form-changing-email",
+        "checks": [
+          {
+            "name": "click button \"Change email\" in form \"Changing email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "13-the-page-asks-for-the-emailed-code-and-keeps-the-current-add",
+        "folder": "settings-account/change-email-confirms-with-code/13-the-page-asks-for-the-emailed-code-and-keeps-the-current-add",
+        "checks": [
+          {
+            "name": "heading \"Confirm your new email\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          },
+          {
+            "name": "page shows /sent to renamed\\+20261029t064557-d7cef6-change-email-confirms-with-code@verify\\.local/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "16-a-code-reaches-renamed-20261029t064557-d7cef6-change-email-c",
+        "folder": "settings-account/change-email-confirms-with-code/16-a-code-reaches-renamed-20261029t064557-d7cef6-change-email-c",
+        "checks": [
+          {
+            "name": "a mail with a code arrived",
+            "pass": true,
+            "detail": "2 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "18-the-old-address-is-warned-and-the-account-still-uses-it",
+        "folder": "settings-account/change-email-confirms-with-code/18-the-old-address-is-warned-and-the-account-still-uses-it",
+        "checks": [
+          {
+            "name": "a warning reached the old address",
+            "pass": true,
+            "detail": "Your sign-in email is being changed | Confirm your new sign-in email"
+          },
+          {
+            "name": "email before the code",
+            "pass": true,
+            "detail": "expected \"admin+20261029t064557-d7cef6@verify.local\", got \"admin+20261029t064557-d7cef6@verify.local\""
+          }
+        ]
+      },
+      {
+        "name": "19-admin-fill-textbox-pin-input-1-of-6",
+        "folder": "settings-account/change-email-confirms-with-code/19-admin-fill-textbox-pin-input-1-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 1 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "20-admin-fill-textbox-pin-input-2-of-6",
+        "folder": "settings-account/change-email-confirms-with-code/20-admin-fill-textbox-pin-input-2-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 2 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-fill-textbox-pin-input-3-of-6",
+        "folder": "settings-account/change-email-confirms-with-code/21-admin-fill-textbox-pin-input-3-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 3 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "22-admin-fill-textbox-pin-input-4-of-6",
+        "folder": "settings-account/change-email-confirms-with-code/22-admin-fill-textbox-pin-input-4-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 4 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "23-admin-fill-textbox-pin-input-5-of-6",
+        "folder": "settings-account/change-email-confirms-with-code/23-admin-fill-textbox-pin-input-5-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 5 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "24-admin-fill-textbox-pin-input-6-of-6",
+        "folder": "settings-account/change-email-confirms-with-code/24-admin-fill-textbox-pin-input-6-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 6 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "25-the-sixth-character-confirms-and-the-page-shows-the-new-addr",
+        "folder": "settings-account/change-email-confirms-with-code/25-the-sixth-character-confirms-and-the-page-shows-the-new-addr",
+        "checks": [
+          {
+            "name": "page shows /renamed\\+20261029t064557-d7cef6-change-email-confirms-with-code@verify\\.local/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin renamed+20261029t064557-d7cef6-change-email-confirms-with-code@verify.local / Settings / Account / Security 2 Settings / All se…"
+          }
+        ]
+      },
+      {
+        "name": "26-admin-reload",
+        "folder": "settings-account/change-email-confirms-with-code/26-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "29-a-reload-the-api-and-the-sign-in-all-use-the-new-address-onl",
+        "folder": "settings-account/change-email-confirms-with-code/29-a-reload-the-api-and-the-sign-in-all-use-the-new-address-onl",
+        "checks": [
+          {
+            "name": "page shows /renamed\\+20261029t064557-d7cef6-change-email-confirms-with-code@verify\\.local/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin renamed+20261029t064557-d7cef6-change-email-confirms-with-code@verify.local / Settings / Account / Security 2 Settings / All se…"
+          },
+          {
+            "name": "new address signs in",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "HTTP 401",
+            "pass": true,
+            "detail": "status 401: \"error.invalid_credentials\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/change-email-confirms-with-code"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "change-email-errors",
+    "title": "a wrong password, a malformed address and a wrong code all leave the sign-in address unchanged",
+    "entryPoint": "Settings > Security > Change email, POST /dms/pages/settings/user/security/email/confirm",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j046",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/change-email-errors/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/change-email-errors/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-security",
+        "folder": "settings-account/change-email-errors/08-admin-open-settings-user-security",
+        "checks": [
+          {
+            "name": "open /settings/user/security",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-button-change-email",
+        "folder": "settings-account/change-email-errors/09-admin-click-button-change-email",
+        "checks": [
+          {
+            "name": "click button \"Change email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-fill-textbox-new-email",
+        "folder": "settings-account/change-email-errors/10-admin-fill-textbox-new-email",
+        "checks": [
+          {
+            "name": "fill textbox \"New email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-fill-textbox-current-password",
+        "folder": "settings-account/change-email-errors/11-admin-fill-textbox-current-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Current password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-click-button-change-email-in-form-changing-email",
+        "folder": "settings-account/change-email-errors/12-admin-click-button-change-email-in-form-changing-email",
+        "checks": [
+          {
+            "name": "click button \"Change email\" in form \"Changing email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "13-a-wrong-password-is-refused-and-no-code-is-asked-for",
+        "folder": "settings-account/change-email-errors/13-a-wrong-password-is-refused-and-no-code-is-asked-for",
+        "checks": [
+          {
+            "name": "page shows /current password is incorrect/i",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          },
+          {
+            "name": "heading \"Confirm your new email\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-fill-textbox-new-email",
+        "folder": "settings-account/change-email-errors/14-admin-fill-textbox-new-email",
+        "checks": [
+          {
+            "name": "fill textbox \"New email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-fill-textbox-current-password",
+        "folder": "settings-account/change-email-errors/15-admin-fill-textbox-current-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Current password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-change-email-in-form-changing-email",
+        "folder": "settings-account/change-email-errors/16-admin-click-button-change-email-in-form-changing-email",
+        "checks": [
+          {
+            "name": "click button \"Change email\" in form \"Changing email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "17-a-malformed-address-is-refused",
+        "folder": "settings-account/change-email-errors/17-a-malformed-address-is-refused",
+        "checks": [
+          {
+            "name": "heading \"Confirm your new email\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          },
+          {
+            "name": "page shows /valid email|isn’t valid|not a valid/i",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "18-admin-fill-textbox-new-email",
+        "folder": "settings-account/change-email-errors/18-admin-fill-textbox-new-email",
+        "checks": [
+          {
+            "name": "fill textbox \"New email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "19-admin-fill-textbox-current-password",
+        "folder": "settings-account/change-email-errors/19-admin-fill-textbox-current-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Current password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "20-admin-click-button-change-email-in-form-changing-email",
+        "folder": "settings-account/change-email-errors/20-admin-click-button-change-email-in-form-changing-email",
+        "checks": [
+          {
+            "name": "click button \"Change email\" in form \"Changing email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-fill-textbox-pin-input-1-of-6",
+        "folder": "settings-account/change-email-errors/21-admin-fill-textbox-pin-input-1-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 1 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "22-admin-fill-textbox-pin-input-2-of-6",
+        "folder": "settings-account/change-email-errors/22-admin-fill-textbox-pin-input-2-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 2 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "23-admin-fill-textbox-pin-input-3-of-6",
+        "folder": "settings-account/change-email-errors/23-admin-fill-textbox-pin-input-3-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 3 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "24-admin-fill-textbox-pin-input-4-of-6",
+        "folder": "settings-account/change-email-errors/24-admin-fill-textbox-pin-input-4-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 4 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "25-admin-fill-textbox-pin-input-5-of-6",
+        "folder": "settings-account/change-email-errors/25-admin-fill-textbox-pin-input-5-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 5 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "26-admin-fill-textbox-pin-input-6-of-6",
+        "folder": "settings-account/change-email-errors/26-admin-fill-textbox-pin-input-6-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 6 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "27-a-wrong-code-is-named-invalid-and-the-dialog-stays-open",
+        "folder": "settings-account/change-email-errors/27-a-wrong-code-is-named-invalid-and-the-dialog-stays-open",
+        "checks": [
+          {
+            "name": "page shows /The validation code is invalid/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          },
+          {
+            "name": "heading \"Confirm your new email\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "31-the-address-is-unchanged",
+        "folder": "settings-account/change-email-errors/31-the-address-is-unchanged",
+        "checks": [
+          {
+            "name": "email",
+            "pass": true,
+            "detail": "expected \"admin+20261029t064557-d7cef6@verify.local\", got \"admin+20261029t064557-d7cef6@verify.local\""
+          },
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY0ODFlYjIyLTQ0M2EtNDM1ZC1iNGY4LTM3Njc3ZTQ1MDY3YiIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6ImQzZTk1MjI1LTEwMjMtNGQ2Ny1hODM4LWVkZDYzNDVhOTRjOSIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTcwMjIsImV4cCI6MTc5MzI2MDYy"
+          },
+          {
+            "name": "HTTP 401",
+            "pass": true,
+            "detail": "status 401: \"error.invalid_credentials\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/change-email-errors"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "language-region-persists",
+    "title": "choosing French switches the dashboard at once, survives a reload and shows on the account; a 24-hour clock persists too",
+    "entryPoint": "Settings > Language & region",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j047",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/language-region-persists/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/language-region-persists/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-region",
+        "folder": "settings-account/language-region-persists/08-admin-open-settings-user-region",
+        "checks": [
+          {
+            "name": "open /settings/user/region",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-combobox-application-language",
+        "folder": "settings-account/language-region-persists/09-admin-click-combobox-application-language",
+        "checks": [
+          {
+            "name": "click combobox \"Application language\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-click-option-fran-ais",
+        "folder": "settings-account/language-region-persists/10-admin-click-option-fran-ais",
+        "checks": [
+          {
+            "name": "click option \"Français\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          }
+        ]
+      },
+      {
+        "name": "11-the-page-switches-to-french-and-says-it-saved",
+        "folder": "settings-account/language-region-persists/11-the-page-switches-to-french-and-says-it-saved",
+        "checks": [
+          {
+            "name": "heading \"Langue et région\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          },
+          {
+            "name": "page shows /Enregistré/",
+            "pass": true,
+            "detail": "Rechercher… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Paramètres / Compte / Langue et région 1 Paramètres / Tous les réglages COMPTE …"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-reload",
+        "folder": "settings-account/language-region-persists/12-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          }
+        ]
+      },
+      {
+        "name": "13-a-reload-keeps-french",
+        "folder": "settings-account/language-region-persists/13-a-reload-keeps-french",
+        "checks": [
+          {
+            "name": "heading \"Langue et région\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          },
+          {
+            "name": "combobox \"Langue de l'application\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          }
+        ]
+      },
+      {
+        "name": "16-the-account-and-its-preferences-hold-french",
+        "folder": "settings-account/language-region-persists/16-the-account-and-its-preferences-hold-french",
+        "checks": [
+          {
+            "name": "language",
+            "pass": true,
+            "detail": "expected \"fr\", got \"fr\""
+          },
+          {
+            "name": "preference language",
+            "pass": true,
+            "detail": "expected \"fr\", got \"fr\""
+          }
+        ]
+      },
+      {
+        "name": "21-admin2-signed-in-as-admin2",
+        "folder": "settings-account/language-region-persists/21-admin2-signed-in-as-admin2",
+        "checks": [
+          {
+            "name": "admin2 signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "22-admin2-open-settings",
+        "folder": "settings-account/language-region-persists/22-admin2-open-settings",
+        "checks": [
+          {
+            "name": "open /settings",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          }
+        ]
+      },
+      {
+        "name": "23-another-browser-signed-in-as-the-account-is-in-french-too",
+        "folder": "settings-account/language-region-persists/23-another-browser-signed-in-as-the-account-is-in-french-too",
+        "checks": [
+          {
+            "name": "heading \"Paramètres\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          }
+        ]
+      },
+      {
+        "name": "24-admin-click-combobox-langue-de-l-application",
+        "folder": "settings-account/language-region-persists/24-admin-click-combobox-langue-de-l-application",
+        "checks": [
+          {
+            "name": "click combobox \"Langue de l'application\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          }
+        ]
+      },
+      {
+        "name": "25-admin-click-option-english",
+        "folder": "settings-account/language-region-persists/25-admin-click-option-english",
+        "checks": [
+          {
+            "name": "click option \"English\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          }
+        ]
+      },
+      {
+        "name": "27-switching-back-restores-english",
+        "folder": "settings-account/language-region-persists/27-switching-back-restores-english",
+        "checks": [
+          {
+            "name": "heading \"Language & region\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          },
+          {
+            "name": "language",
+            "pass": true,
+            "detail": "expected \"en\", got \"en\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/language-region-persists"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "time-format-persists",
+    "title": "a 24-hour clock changes the preview at once and is stored on the account",
+    "entryPoint": "Settings > Language & region > Time format",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j048",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/time-format-persists/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/time-format-persists/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-region",
+        "folder": "settings-account/time-format-persists/08-admin-open-settings-user-region",
+        "checks": [
+          {
+            "name": "open /settings/user/region",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-radio-24-hour",
+        "folder": "settings-account/time-format-persists/09-admin-click-radio-24-hour",
+        "checks": [
+          {
+            "name": "click radio \"24-hour\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          }
+        ]
+      },
+      {
+        "name": "10-the-preview-drops-am-and-pm",
+        "folder": "settings-account/time-format-persists/10-the-preview-drops-am-and-pm",
+        "checks": [
+          {
+            "name": "page shows /Time\\s+\\d{2}:\\d{2}/i",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Language & region 1 Settings / All settings ACCOUNT Profile La…"
+          },
+          {
+            "name": "page does not show /\\d{2}:\\d{2} (AM|PM)/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Language & region 1 Settings / All settings ACCOUNT Profile La…"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-reload",
+        "folder": "settings-account/time-format-persists/11-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/region"
+          }
+        ]
+      },
+      {
+        "name": "13-a-reload-and-the-api-keep-the-24-hour-clock",
+        "folder": "settings-account/time-format-persists/13-a-reload-and-the-api-keep-the-24-hour-clock",
+        "checks": [
+          {
+            "name": "checked",
+            "pass": true,
+            "detail": "expected true, got true"
+          },
+          {
+            "name": "timeFormat",
+            "pass": true,
+            "detail": "expected \"h23\", got \"h23\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/time-format-persists"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "appearance-persists",
+    "title": "dark theme, large density and the accessibility switches apply at once, survive a reload and stay on this browser",
+    "entryPoint": "Settings > Appearance",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j049",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/appearance-persists/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/appearance-persists/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-appearance",
+        "folder": "settings-account/appearance-persists/08-admin-open-settings-user-appearance",
+        "checks": [
+          {
+            "name": "open /settings/user/appearance",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/appearance"
+          }
+        ]
+      },
+      {
+        "name": "09-the-default-is-the-system-theme-light-here",
+        "folder": "settings-account/appearance-persists/09-the-default-is-the-system-theme-light-here",
+        "checks": [
+          {
+            "name": "radio \"/^System/\" is enabled",
+            "pass": true,
+            "detail": "disabled=false"
+          },
+          {
+            "name": "dark class",
+            "pass": true,
+            "detail": "expected false, got false"
+          }
+        ]
+      },
+      {
+        "name": "10-the-page-applies-the-choices-at-once",
+        "folder": "settings-account/appearance-persists/10-the-page-applies-the-choices-at-once",
+        "checks": [
+          {
+            "name": "dark class set",
+            "pass": true,
+            "detail": "html has no dark class"
+          },
+          {
+            "name": "page shows /Saved instantly/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Appearance 1 Settings / All settings ACCOUNT Profile Language …"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-reload",
+        "folder": "settings-account/appearance-persists/11-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/appearance"
+          }
+        ]
+      },
+      {
+        "name": "12-a-reload-keeps-theme-density-and-contrast",
+        "folder": "settings-account/appearance-persists/12-a-reload-keeps-theme-density-and-contrast",
+        "checks": [
+          {
+            "name": "dark class kept",
+            "pass": true,
+            "detail": "html has no dark class"
+          },
+          {
+            "name": "Dark checked",
+            "pass": true,
+            "detail": "expected true, got true"
+          },
+          {
+            "name": "Large checked",
+            "pass": true,
+            "detail": "expected true, got true"
+          },
+          {
+            "name": "contrast on",
+            "pass": true,
+            "detail": "expected true, got true"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-open-settings",
+        "folder": "settings-account/appearance-persists/13-admin-open-settings",
+        "checks": [
+          {
+            "name": "open /settings",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          }
+        ]
+      },
+      {
+        "name": "14-the-choice-follows-the-person-to-other-pages",
+        "folder": "settings-account/appearance-persists/14-the-choice-follows-the-person-to-other-pages",
+        "checks": [
+          {
+            "name": "dark class kept",
+            "pass": true,
+            "detail": "html has no dark class"
+          }
+        ]
+      },
+      {
+        "name": "19-admin2-signed-in-as-admin2",
+        "folder": "settings-account/appearance-persists/19-admin2-signed-in-as-admin2",
+        "checks": [
+          {
+            "name": "admin2 signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "20-admin2-open-settings-user-appearance",
+        "folder": "settings-account/appearance-persists/20-admin2-open-settings-user-appearance",
+        "checks": [
+          {
+            "name": "open /settings/user/appearance",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/appearance"
+          }
+        ]
+      },
+      {
+        "name": "21-another-browser-keeps-its-own-choice-still-the-light-default",
+        "folder": "settings-account/appearance-persists/21-another-browser-keeps-its-own-choice-still-the-light-default",
+        "checks": [
+          {
+            "name": "dark class",
+            "pass": true,
+            "detail": "expected false, got false"
+          },
+          {
+            "name": "Dark checked",
+            "pass": true,
+            "detail": "expected false, got false"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/appearance-persists"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "notification-preferences-persist",
+    "title": "turning Security alerts off persists across a reload and stops the Password changed alert while it is off",
+    "entryPoint": "Settings > Notifications > Preferences",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j050",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/notification-preferences-persist/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/notification-preferences-persist/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-notifications",
+        "folder": "settings-account/notification-preferences-persist/08-admin-open-settings-user-notifications",
+        "checks": [
+          {
+            "name": "open /settings/user/notifications",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "09-every-system-subject-is-on-by-default-and-general-cannot-be-",
+        "folder": "settings-account/notification-preferences-persist/09-every-system-subject-is-on-by-default-and-general-cannot-be-",
+        "checks": [
+          {
+            "name": "page shows /5 of 5 on/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications 1 Settings / All settings ACCOUNT Profile Langua…"
+          },
+          {
+            "name": "switch \"General\" is disabled",
+            "pass": true,
+            "detail": "disabled=true"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-click-switch-security-alerts",
+        "folder": "settings-account/notification-preferences-persist/10-admin-click-switch-security-alerts",
+        "checks": [
+          {
+            "name": "click switch \"Security alerts\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "11-the-table-saves-the-switch-on-its-own",
+        "folder": "settings-account/notification-preferences-persist/11-the-table-saves-the-switch-on-its-own",
+        "checks": [
+          {
+            "name": "page shows /4 of 5 on/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications 1 Settings / All settings ACCOUNT Profile Langua…"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-reload",
+        "folder": "settings-account/notification-preferences-persist/12-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "14-a-reload-and-the-api-keep-security-alerts-off",
+        "folder": "settings-account/notification-preferences-persist/14-a-reload-and-the-api-keep-security-alerts-off",
+        "checks": [
+          {
+            "name": "page shows /4 of 5 on/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications 1 Settings / All settings ACCOUNT Profile Langua…"
+          },
+          {
+            "name": "system:security",
+            "pass": true,
+            "detail": "expected false, got false"
+          },
+          {
+            "name": "system:general",
+            "pass": true,
+            "detail": "expected true, got true"
+          }
+        ]
+      },
+      {
+        "name": "17-the-password-change-is-accepted",
+        "folder": "settings-account/notification-preferences-persist/17-the-password-change-is-accepted",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"success\":true,\"passwordChangedAt\":\"2026-10-29T06:57:51.401Z\",\"signedOutSessions\":1,\"sessionHandoff\":{\"endpoint\":\"/api/auth/session-handoff\",\"payload\":{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjdmZTY5MjJiLThmMDYtNDdjNy05ZWM3LTc0ZWM2MjY3MjhlMSIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZ"
+          }
+        ]
+      },
+      {
+        "name": "20-a-password-change-raises-no-alert-while-security-alerts-is-o",
+        "folder": "settings-account/notification-preferences-persist/20-a-password-change-raises-no-alert-while-security-alerts-is-o",
+        "checks": [
+          {
+            "name": "all",
+            "pass": true,
+            "detail": "expected 1, got 1"
+          }
+        ]
+      },
+      {
+        "name": "25-admin-signed-in-as-admin",
+        "folder": "settings-account/notification-preferences-persist/25-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "26-admin-open-settings-user-notifications",
+        "folder": "settings-account/notification-preferences-persist/26-admin-open-settings-user-notifications",
+        "checks": [
+          {
+            "name": "open /settings/user/notifications",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "27-admin-click-switch-security-alerts",
+        "folder": "settings-account/notification-preferences-persist/27-admin-click-switch-security-alerts",
+        "checks": [
+          {
+            "name": "click switch \"Security alerts\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "28-switching-it-back-on-is-saved",
+        "folder": "settings-account/notification-preferences-persist/28-switching-it-back-on-is-saved",
+        "checks": [
+          {
+            "name": "page shows /5 of 5 on/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications 1 Settings / All settings ACCOUNT Profile Langua…"
+          }
+        ]
+      },
+      {
+        "name": "30-the-password-change-is-accepted",
+        "folder": "settings-account/notification-preferences-persist/30-the-password-change-is-accepted",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"success\":true,\"passwordChangedAt\":\"2026-10-29T06:57:54.714Z\",\"signedOutSessions\":2,\"sessionHandoff\":{\"endpoint\":\"/api/auth/session-handoff\",\"payload\":{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjdmZTY5MjJiLThmMDYtNDdjNy05ZWM3LTc0ZWM2MjY3MjhlMSIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZ"
+          }
+        ]
+      },
+      {
+        "name": "33-with-security-alerts-on-the-same-change-raises-one-alert",
+        "folder": "settings-account/notification-preferences-persist/33-with-security-alerts-on-the-same-change-raises-one-alert",
+        "checks": [
+          {
+            "name": "all",
+            "pass": true,
+            "detail": "expected 2, got 2"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/notification-preferences-persist"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "notification-inbox-actions",
+    "title": "Mark all as read and Delete all change the inbox and the counts, and the state survives a reload",
+    "entryPoint": "Settings > Notifications > Inbox",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j051",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/notification-inbox-actions/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/notification-inbox-actions/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "12-admin2-signed-in-as-admin2",
+        "folder": "settings-account/notification-inbox-actions/12-admin2-signed-in-as-admin2",
+        "checks": [
+          {
+            "name": "admin2 signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-open-settings-user-notifications",
+        "folder": "settings-account/notification-inbox-actions/13-admin-open-settings-user-notifications",
+        "checks": [
+          {
+            "name": "open /settings/user/notifications",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "14-the-inbox-lists-unread-alerts",
+        "folder": "settings-account/notification-inbox-actions/14-the-inbox-lists-unread-alerts",
+        "checks": [
+          {
+            "name": "button \"/^Unread [1-9]/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          },
+          {
+            "name": "page shows /New sign-in from/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications 1 Settings / All settings ACCOUNT Profile Langua…"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-button-mark-all-as-read",
+        "folder": "settings-account/notification-inbox-actions/15-admin-click-button-mark-all-as-read",
+        "checks": [
+          {
+            "name": "click button \"Mark all as read\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "16-every-notification-is-read",
+        "folder": "settings-account/notification-inbox-actions/16-every-notification-is-read",
+        "checks": [
+          {
+            "name": "button \"Unread 0\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-reload",
+        "folder": "settings-account/notification-inbox-actions/17-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "18-a-reload-keeps-them-read-but-listed",
+        "folder": "settings-account/notification-inbox-actions/18-a-reload-keeps-them-read-but-listed",
+        "checks": [
+          {
+            "name": "button \"Unread 0\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          },
+          {
+            "name": "page shows /New sign-in from/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications Settings / All settings ACCOUNT Profile Language…"
+          }
+        ]
+      },
+      {
+        "name": "19-admin-click-button-delete-all",
+        "folder": "settings-account/notification-inbox-actions/19-admin-click-button-delete-all",
+        "checks": [
+          {
+            "name": "click button \"Delete all…\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "20-the-dialog-asks-before-deleting",
+        "folder": "settings-account/notification-inbox-actions/20-the-dialog-asks-before-deleting",
+        "checks": [
+          {
+            "name": "dialog is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-click-button-delete-in-dialog",
+        "folder": "settings-account/notification-inbox-actions/21-admin-click-button-delete-in-dialog",
+        "checks": [
+          {
+            "name": "click button \"/^Delete/\" in dialog",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "22-admin-reload",
+        "folder": "settings-account/notification-inbox-actions/22-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          }
+        ]
+      },
+      {
+        "name": "24-the-inbox-is-empty-after-a-reload",
+        "folder": "settings-account/notification-inbox-actions/24-the-inbox-is-empty-after-a-reload",
+        "checks": [
+          {
+            "name": "page does not show /New sign-in from/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Notifications Settings / All settings ACCOUNT Profile Language…"
+          },
+          {
+            "name": "button \"All 0\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/notifications"
+          },
+          {
+            "name": "counts are zero",
+            "pass": true,
+            "detail": "{\"all\":0,\"unread\":0}"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/notification-inbox-actions"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "sessions-sign-out",
+    "title": "signing out a listed session ends it, and Sign out other sessions makes every other token refused",
+    "entryPoint": "Settings > Security > Sessions",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j052",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/sessions-sign-out/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/sessions-sign-out/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "12-admin2-signed-in-as-admin2",
+        "folder": "settings-account/sessions-sign-out/12-admin2-signed-in-as-admin2",
+        "checks": [
+          {
+            "name": "admin2 signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-open-settings-user-security",
+        "folder": "settings-account/sessions-sign-out/13-admin-open-settings-user-security",
+        "checks": [
+          {
+            "name": "open /settings/user/security",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "14-the-list-shows-this-device-and-the-others",
+        "folder": "settings-account/sessions-sign-out/14-the-list-shows-this-device-and-the-others",
+        "checks": [
+          {
+            "name": "page shows /3 active/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          },
+          {
+            "name": "page shows /This device/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-button-sign-out-chrome-headless",
+        "folder": "settings-account/sessions-sign-out/15-admin-click-button-sign-out-chrome-headless",
+        "checks": [
+          {
+            "name": "click button \"/^Sign out Chrome Headless/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "16-that-session-leaves-the-list",
+        "folder": "settings-account/sessions-sign-out/16-that-session-leaves-the-list",
+        "checks": [
+          {
+            "name": "page shows /2 active/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "17-admin2-open-settings-user-security",
+        "folder": "settings-account/sessions-sign-out/17-admin2-open-settings-user-security",
+        "checks": [
+          {
+            "name": "open /settings/user/security",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fuser%2Fsecurity"
+          }
+        ]
+      },
+      {
+        "name": "18-the-signed-out-browser-is-sent-to-sign-in",
+        "folder": "settings-account/sessions-sign-out/18-the-signed-out-browser-is-sent-to-sign-in",
+        "checks": [
+          {
+            "name": "path matches /^\\/auth/",
+            "pass": true,
+            "detail": "/auth"
+          }
+        ]
+      },
+      {
+        "name": "19-the-api-session-that-was-not-signed-out-still-works",
+        "folder": "settings-account/sessions-sign-out/19-the-api-session-that-was-not-signed-out-still-works",
+        "checks": [
+          {
+            "name": "status",
+            "pass": true,
+            "detail": "expected 200, got 200"
+          }
+        ]
+      },
+      {
+        "name": "20-admin-click-button-sign-out-other-sessions",
+        "folder": "settings-account/sessions-sign-out/20-admin-click-button-sign-out-other-sessions",
+        "checks": [
+          {
+            "name": "click button \"Sign out other sessions\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-click-button-sign-out-d-sessions-in-dialog",
+        "folder": "settings-account/sessions-sign-out/21-admin-click-button-sign-out-d-sessions-in-dialog",
+        "checks": [
+          {
+            "name": "click button \"/^Sign out \\d+ sessions?$/\" in dialog",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "22-admin-reload",
+        "folder": "settings-account/sessions-sign-out/22-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "23-only-this-device-is-left-and-the-other-token-is-refused",
+        "folder": "settings-account/sessions-sign-out/23-only-this-device-is-left-and-the-other-token-is-refused",
+        "checks": [
+          {
+            "name": "page shows /1 active/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          },
+          {
+            "name": "revoked token status",
+            "pass": true,
+            "detail": "expected 401, got 401"
+          }
+        ]
+      },
+      {
+        "name": "24-admin-open-settings",
+        "folder": "settings-account/sessions-sign-out/24-admin-open-settings",
+        "checks": [
+          {
+            "name": "open /settings",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          }
+        ]
+      },
+      {
+        "name": "25-this-device-stays-signed-in",
+        "folder": "settings-account/sessions-sign-out/25-this-device-stays-signed-in",
+        "checks": [
+          {
+            "name": "path matches /^\\/settings$/",
+            "pass": true,
+            "detail": "/settings"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/sessions-sign-out"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "two-factor-email-enroll",
+    "title": "adding email codes as a second factor shows backup codes, asks for a code at the next sign-in, and removing it restores plain sign-in",
+    "entryPoint": "Settings > Security > Two-factor authentication, /auth/2fa",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j053",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/two-factor-email-enroll/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/two-factor-email-enroll/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-security",
+        "folder": "settings-account/two-factor-email-enroll/08-admin-open-settings-user-security",
+        "checks": [
+          {
+            "name": "open /settings/user/security",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "09-two-factor-starts-off",
+        "folder": "settings-account/two-factor-email-enroll/09-two-factor-starts-off",
+        "checks": [
+          {
+            "name": "page shows /Two-factor is off/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-click-button-add-method",
+        "folder": "settings-account/two-factor-email-enroll/10-admin-click-button-add-method",
+        "checks": [
+          {
+            "name": "click button \"Add method\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-menuitem-email-verification",
+        "folder": "settings-account/two-factor-email-enroll/11-admin-click-menuitem-email-verification",
+        "checks": [
+          {
+            "name": "click menuitem \"Email verification\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-current-password",
+        "folder": "settings-account/two-factor-email-enroll/12-admin-fill-textbox-current-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Current password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-button-continue",
+        "folder": "settings-account/two-factor-email-enroll/13-admin-click-button-continue",
+        "checks": [
+          {
+            "name": "click button \"Continue\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "15-a-code-reaches-admin-20261029t064557-d7cef6-verify-local",
+        "folder": "settings-account/two-factor-email-enroll/15-a-code-reaches-admin-20261029t064557-d7cef6-verify-local",
+        "checks": [
+          {
+            "name": "a mail with a code arrived",
+            "pass": true,
+            "detail": "1 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-fill-textbox-pin-input-1-of-6",
+        "folder": "settings-account/two-factor-email-enroll/16-admin-fill-textbox-pin-input-1-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 1 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "17-admin-fill-textbox-pin-input-2-of-6",
+        "folder": "settings-account/two-factor-email-enroll/17-admin-fill-textbox-pin-input-2-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 2 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "18-admin-fill-textbox-pin-input-3-of-6",
+        "folder": "settings-account/two-factor-email-enroll/18-admin-fill-textbox-pin-input-3-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 3 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "19-admin-fill-textbox-pin-input-4-of-6",
+        "folder": "settings-account/two-factor-email-enroll/19-admin-fill-textbox-pin-input-4-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 4 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "20-admin-fill-textbox-pin-input-5-of-6",
+        "folder": "settings-account/two-factor-email-enroll/20-admin-fill-textbox-pin-input-5-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 5 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "21-admin-fill-textbox-pin-input-6-of-6",
+        "folder": "settings-account/two-factor-email-enroll/21-admin-fill-textbox-pin-input-6-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 6 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "22-ten-backup-codes-are-shown-once",
+        "folder": "settings-account/two-factor-email-enroll/22-ten-backup-codes-are-shown-once",
+        "checks": [
+          {
+            "name": "heading \"Your new backup codes\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          },
+          {
+            "name": "backup codes listed",
+            "pass": true,
+            "detail": "expected 10, got 10"
+          }
+        ]
+      },
+      {
+        "name": "23-admin-click-button-i-ve-saved-my-codes",
+        "folder": "settings-account/two-factor-email-enroll/23-admin-click-button-i-ve-saved-my-codes",
+        "checks": [
+          {
+            "name": "click button \"I've saved my codes\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "24-admin-reload",
+        "folder": "settings-account/two-factor-email-enroll/24-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "25-the-page-reports-two-factor-on-with-the-backup-codes-counted",
+        "folder": "settings-account/two-factor-email-enroll/25-the-page-reports-two-factor-on-with-the-backup-codes-counted",
+        "checks": [
+          {
+            "name": "heading \"/Two-factor authentication On/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          },
+          {
+            "name": "page shows /10 of 10 left/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 2 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "26-second-device-open-auth",
+        "folder": "settings-account/two-factor-email-enroll/26-second-device-open-auth",
+        "checks": [
+          {
+            "name": "open /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth"
+          }
+        ]
+      },
+      {
+        "name": "27-second-device-fill-textbox-email-address",
+        "folder": "settings-account/two-factor-email-enroll/27-second-device-fill-textbox-email-address",
+        "checks": [
+          {
+            "name": "fill textbox \"Email address\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth"
+          }
+        ]
+      },
+      {
+        "name": "28-second-device-fill-textbox-password",
+        "folder": "settings-account/two-factor-email-enroll/28-second-device-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth"
+          }
+        ]
+      },
+      {
+        "name": "29-second-device-click-button-login",
+        "folder": "settings-account/two-factor-email-enroll/29-second-device-click-button-login",
+        "checks": [
+          {
+            "name": "click button \"Login\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAzNGQ4NGFkLWYxMzItNDVjNi1iOTdjLTQxZmFjYjRkNjNkOCIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTcxMjYsImV4cCI6MTc5MzI1NzQyNiwianRpIjoiNjU0ZDg1NGQtYjRhOC00MGI0LTliNjYtZDM4NDk1ZDM1MDIzIn0.59-eZ5Ivd-y9tWFxFX8ddc3GBMmyMVxDykq81MCCHsk&methods=email"
+          }
+        ]
+      },
+      {
+        "name": "30-a-new-sign-in-is-stopped-at-the-two-factor-step",
+        "folder": "settings-account/two-factor-email-enroll/30-a-new-sign-in-is-stopped-at-the-two-factor-step",
+        "checks": [
+          {
+            "name": "heading \"Two-factor verification\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAzNGQ4NGFkLWYxMzItNDVjNi1iOTdjLTQxZmFjYjRkNjNkOCIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTcxMjYsImV4cCI6MTc5MzI1NzQyNiwianRpIjoiNjU0ZDg1NGQtYjRhOC00MGI0LTliNjYtZDM4NDk1ZDM1MDIzIn0.59-eZ5Ivd-y9tWFxFX8ddc3GBMmyMVxDykq81MCCHsk&methods=email"
+          },
+          {
+            "name": "path matches /^\\/auth\\/2fa/",
+            "pass": true,
+            "detail": "/auth/2fa"
+          }
+        ]
+      },
+      {
+        "name": "31-second-device-click-button-send-verification-code-by-email",
+        "folder": "settings-account/two-factor-email-enroll/31-second-device-click-button-send-verification-code-by-email",
+        "checks": [
+          {
+            "name": "click button \"Send verification code by email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAzNGQ4NGFkLWYxMzItNDVjNi1iOTdjLTQxZmFjYjRkNjNkOCIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTcxMjYsImV4cCI6MTc5MzI1NzQyNiwianRpIjoiNjU0ZDg1NGQtYjRhOC00MGI0LTliNjYtZDM4NDk1ZDM1MDIzIn0.59-eZ5Ivd-y9tWFxFX8ddc3GBMmyMVxDykq81MCCHsk&methods=email"
+          }
+        ]
+      },
+      {
+        "name": "33-a-code-reaches-admin-20261029t064557-d7cef6-verify-local",
+        "folder": "settings-account/two-factor-email-enroll/33-a-code-reaches-admin-20261029t064557-d7cef6-verify-local",
+        "checks": [
+          {
+            "name": "a mail with a code arrived",
+            "pass": true,
+            "detail": "2 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "34-second-device-fill-textbox-pin-input-1-of-6",
+        "folder": "settings-account/two-factor-email-enroll/34-second-device-fill-textbox-pin-input-1-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 1 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAzNGQ4NGFkLWYxMzItNDVjNi1iOTdjLTQxZmFjYjRkNjNkOCIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTcxMjYsImV4cCI6MTc5MzI1NzQyNiwianRpIjoiNjU0ZDg1NGQtYjRhOC00MGI0LTliNjYtZDM4NDk1ZDM1MDIzIn0.59-eZ5Ivd-y9tWFxFX8ddc3GBMmyMVxDykq81MCCHsk&methods=email"
+          }
+        ]
+      },
+      {
+        "name": "35-second-device-fill-textbox-pin-input-2-of-6",
+        "folder": "settings-account/two-factor-email-enroll/35-second-device-fill-textbox-pin-input-2-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 2 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAzNGQ4NGFkLWYxMzItNDVjNi1iOTdjLTQxZmFjYjRkNjNkOCIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTcxMjYsImV4cCI6MTc5MzI1NzQyNiwianRpIjoiNjU0ZDg1NGQtYjRhOC00MGI0LTliNjYtZDM4NDk1ZDM1MDIzIn0.59-eZ5Ivd-y9tWFxFX8ddc3GBMmyMVxDykq81MCCHsk&methods=email"
+          }
+        ]
+      },
+      {
+        "name": "36-second-device-fill-textbox-pin-input-3-of-6",
+        "folder": "settings-account/two-factor-email-enroll/36-second-device-fill-textbox-pin-input-3-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 3 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAzNGQ4NGFkLWYxMzItNDVjNi1iOTdjLTQxZmFjYjRkNjNkOCIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTcxMjYsImV4cCI6MTc5MzI1NzQyNiwianRpIjoiNjU0ZDg1NGQtYjRhOC00MGI0LTliNjYtZDM4NDk1ZDM1MDIzIn0.59-eZ5Ivd-y9tWFxFX8ddc3GBMmyMVxDykq81MCCHsk&methods=email"
+          }
+        ]
+      },
+      {
+        "name": "37-second-device-fill-textbox-pin-input-4-of-6",
+        "folder": "settings-account/two-factor-email-enroll/37-second-device-fill-textbox-pin-input-4-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 4 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAzNGQ4NGFkLWYxMzItNDVjNi1iOTdjLTQxZmFjYjRkNjNkOCIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTcxMjYsImV4cCI6MTc5MzI1NzQyNiwianRpIjoiNjU0ZDg1NGQtYjRhOC00MGI0LTliNjYtZDM4NDk1ZDM1MDIzIn0.59-eZ5Ivd-y9tWFxFX8ddc3GBMmyMVxDykq81MCCHsk&methods=email"
+          }
+        ]
+      },
+      {
+        "name": "38-second-device-fill-textbox-pin-input-5-of-6",
+        "folder": "settings-account/two-factor-email-enroll/38-second-device-fill-textbox-pin-input-5-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 5 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAzNGQ4NGFkLWYxMzItNDVjNi1iOTdjLTQxZmFjYjRkNjNkOCIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTcxMjYsImV4cCI6MTc5MzI1NzQyNiwianRpIjoiNjU0ZDg1NGQtYjRhOC00MGI0LTliNjYtZDM4NDk1ZDM1MDIzIn0.59-eZ5Ivd-y9tWFxFX8ddc3GBMmyMVxDykq81MCCHsk&methods=email"
+          }
+        ]
+      },
+      {
+        "name": "39-second-device-fill-textbox-pin-input-6-of-6",
+        "folder": "settings-account/two-factor-email-enroll/39-second-device-fill-textbox-pin-input-6-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 6 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/2fa?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAzNGQ4NGFkLWYxMzItNDVjNi1iOTdjLTQxZmFjYjRkNjNkOCIsInRlbmFudElkIjoiZGVmYXVsdCIsInB1cnBvc2UiOiIyZmEiLCJpYXQiOjE3OTMyNTcxMjYsImV4cCI6MTc5MzI1NzQyNiwianRpIjoiNjU0ZDg1NGQtYjRhOC00MGI0LTliNjYtZDM4NDk1ZDM1MDIzIn0.59-eZ5Ivd-y9tWFxFX8ddc3GBMmyMVxDykq81MCCHsk&methods=email"
+          }
+        ]
+      },
+      {
+        "name": "40-second-device-click-button-verify",
+        "folder": "settings-account/two-factor-email-enroll/40-second-device-click-button-verify",
+        "checks": [
+          {
+            "name": "click button \"Verify\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "41-the-emailed-code-completes-the-sign-in",
+        "folder": "settings-account/two-factor-email-enroll/41-the-emailed-code-completes-the-sign-in",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "42-admin-open-settings-user-security",
+        "folder": "settings-account/two-factor-email-enroll/42-admin-open-settings-user-security",
+        "checks": [
+          {
+            "name": "open /settings/user/security",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "43-admin-click-button-remove",
+        "folder": "settings-account/two-factor-email-enroll/43-admin-click-button-remove",
+        "checks": [
+          {
+            "name": "click button \"Remove…\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "44-admin-click-button-send-code-by-email",
+        "folder": "settings-account/two-factor-email-enroll/44-admin-click-button-send-code-by-email",
+        "checks": [
+          {
+            "name": "click button \"Send code by email\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "46-a-code-reaches-admin-20261029t064557-d7cef6-verify-local",
+        "folder": "settings-account/two-factor-email-enroll/46-a-code-reaches-admin-20261029t064557-d7cef6-verify-local",
+        "checks": [
+          {
+            "name": "a mail with a code arrived",
+            "pass": true,
+            "detail": "3 messages captured"
+          }
+        ]
+      },
+      {
+        "name": "47-admin-fill-textbox-pin-input-1-of-6",
+        "folder": "settings-account/two-factor-email-enroll/47-admin-fill-textbox-pin-input-1-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 1 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "48-admin-fill-textbox-pin-input-2-of-6",
+        "folder": "settings-account/two-factor-email-enroll/48-admin-fill-textbox-pin-input-2-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 2 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "49-admin-fill-textbox-pin-input-3-of-6",
+        "folder": "settings-account/two-factor-email-enroll/49-admin-fill-textbox-pin-input-3-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 3 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "50-admin-fill-textbox-pin-input-4-of-6",
+        "folder": "settings-account/two-factor-email-enroll/50-admin-fill-textbox-pin-input-4-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 4 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "51-admin-fill-textbox-pin-input-5-of-6",
+        "folder": "settings-account/two-factor-email-enroll/51-admin-fill-textbox-pin-input-5-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 5 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "52-admin-fill-textbox-pin-input-6-of-6",
+        "folder": "settings-account/two-factor-email-enroll/52-admin-fill-textbox-pin-input-6-of-6",
+        "checks": [
+          {
+            "name": "fill textbox \"pin input 6 of 6\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "53-admin-reload",
+        "folder": "settings-account/two-factor-email-enroll/53-admin-reload",
+        "checks": [
+          {
+            "name": "reload",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/security"
+          }
+        ]
+      },
+      {
+        "name": "54-removing-the-last-method-turns-two-factor-off",
+        "folder": "settings-account/two-factor-email-enroll/54-removing-the-last-method-turns-two-factor-off",
+        "checks": [
+          {
+            "name": "page shows /Two-factor is off/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 3 Settings / All settings ACCOUNT Profile Language & …"
+          }
+        ]
+      },
+      {
+        "name": "56-sign-in-needs-no-second-factor-again",
+        "folder": "settings-account/two-factor-email-enroll/56-sign-in-needs-no-second-factor-again",
+        "checks": [
+          {
+            "name": "an access token is issued",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/two-factor-email-enroll"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "export-my-data",
+    "title": "Export my data downloads a JSON file with the profile and never the password",
+    "entryPoint": "Settings > Profile > Your data > Export my data",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j054",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/export-my-data/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/export-my-data/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-profile",
+        "folder": "settings-account/export-my-data/08-admin-open-settings-user-profile",
+        "checks": [
+          {
+            "name": "open /settings/user/profile",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-button-export-my-data",
+        "folder": "settings-account/export-my-data/09-admin-click-button-export-my-data",
+        "checks": [
+          {
+            "name": "click button \"Export my data\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "10-a-file-is-downloaded-and-the-page-confirms",
+        "folder": "settings-account/export-my-data/10-a-file-is-downloaded-and-the-page-confirms",
+        "checks": [
+          {
+            "name": "a download started",
+            "pass": true,
+            "detail": "no download"
+          },
+          {
+            "name": "page shows /Your data was downloaded/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "11-the-file-holds-the-account-and-no-secret",
+        "folder": "settings-account/export-my-data/11-the-file-holds-the-account-and-no-secret",
+        "checks": [
+          {
+            "name": "it names the email",
+            "pass": true,
+            "detail": "email missing"
+          },
+          {
+            "name": "it names the full name",
+            "pass": true,
+            "detail": "name missing"
+          },
+          {
+            "name": "it is an object",
+            "pass": true,
+            "detail": "object"
+          },
+          {
+            "name": "it leaves the password out",
+            "pass": true,
+            "detail": "password present"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/export-my-data"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "delete-account-last-owner-refused",
+    "title": "the last owner is told the account cannot be deleted yet and keeps it",
+    "entryPoint": "Settings > Profile > Your data > Delete my account",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j055",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/delete-account-last-owner-refused/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/delete-account-last-owner-refused/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-profile",
+        "folder": "settings-account/delete-account-last-owner-refused/08-admin-open-settings-user-profile",
+        "checks": [
+          {
+            "name": "open /settings/user/profile",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-click-button-delete-my-account",
+        "folder": "settings-account/delete-account-last-owner-refused/09-admin-click-button-delete-my-account",
+        "checks": [
+          {
+            "name": "click button \"Delete my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "10-the-dialog-explains-who-must-take-over-first",
+        "folder": "settings-account/delete-account-last-owner-refused/10-the-dialog-explains-who-must-take-over-first",
+        "checks": [
+          {
+            "name": "dialog \"Your account can't be deleted yet\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          },
+          {
+            "name": "page shows /You're the last owner of/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & r…"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-got-it",
+        "folder": "settings-account/delete-account-last-owner-refused/11-admin-click-button-got-it",
+        "checks": [
+          {
+            "name": "click button \"Got it\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "13-the-account-still-exists",
+        "folder": "settings-account/delete-account-last-owner-refused/13-the-account-still-exists",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"_id\":\"f11f77ab-a539-4a39-a32f-81661af29a9c\",\"name\":\"Verify Admin\",\"email\":\"admin+20261029t064557-d7cef6@verify.local\",\"createdAt\":\"2026-10-29T07:00:12.331Z\",\"updatedAt\":\"2026-10-29T07:00:13.957Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-10-29T07:00:13.9"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/delete-account-last-owner-refused"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "delete-account-member",
+    "title": "a member who deletes their account is signed out, cannot sign in again, and leaves the Members list",
+    "entryPoint": "Settings > Profile > Your data > Delete my account",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j056",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/delete-account-member/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-signed-in-as-admin",
+        "folder": "settings-account/delete-account-member/08-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-open-settings-workspace-members",
+        "folder": "settings-account/delete-account-member/09-admin-open-settings-workspace-members",
+        "checks": [
+          {
+            "name": "open /settings/workspace/members",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-click-button-invite-members",
+        "folder": "settings-account/delete-account-member/10-admin-click-button-invite-members",
+        "checks": [
+          {
+            "name": "click button \"Invite members\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-fill-textbox-email-addresses",
+        "folder": "settings-account/delete-account-member/11-admin-fill-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "fill textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-press-enter-in-textbox-email-addresses",
+        "folder": "settings-account/delete-account-member/12-admin-press-enter-in-textbox-email-addresses",
+        "checks": [
+          {
+            "name": "press Enter in textbox \"Email addresses\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-combobox-team",
+        "folder": "settings-account/delete-account-member/13-admin-click-combobox-team",
+        "checks": [
+          {
+            "name": "click combobox \"Team\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-click-option-sales",
+        "folder": "settings-account/delete-account-member/14-admin-click-option-sales",
+        "checks": [
+          {
+            "name": "click option \"Sales\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "15-admin-click-button-support-7c081a-in-group-roles",
+        "folder": "settings-account/delete-account-member/15-admin-click-button-support-7c081a-in-group-roles",
+        "checks": [
+          {
+            "name": "click button \"Support 7c081a\" in group \"Roles\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/workspace/members"
+          }
+        ]
+      },
+      {
+        "name": "16-admin-click-button-send-invitations",
+        "folder": "settings-account/delete-account-member/16-admin-click-button-send-invitations",
+        "checks": [
+          {
+            "name": "click button \"Send invitations\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+          }
+        ]
+      },
+      {
+        "name": "18-quinn-open-http-127-0-0-1-40839-auth-signup-token-17mvxzyhic",
+        "folder": "settings-account/delete-account-member/18-quinn-open-http-127-0-0-1-40839-auth-signup-token-17mvxzyhic",
+        "checks": [
+          {
+            "name": "open http://127.0.0.1:40839/auth/signup?token=17mVxzYhiclp7hd8lEhzzeRcGNOk1hdMa8sd1HqqpgUKSVFP0ZCu5j6of8ckqnNe&email=quinn%2B20261029t064557-d7cef6-delete-account-member%40verify.local&lang=en",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/signup?token=17mVxzYhiclp7hd8lEhzzeRcGNOk1hdMa8sd1HqqpgUKSVFP0ZCu5j6of8ckqnNe&email=quinn%2B20261029t064557-d7cef6-delete-account-member%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "19-quinn-fill-textbox-first-and-last-name",
+        "folder": "settings-account/delete-account-member/19-quinn-fill-textbox-first-and-last-name",
+        "checks": [
+          {
+            "name": "fill textbox \"First and last name\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/signup?token=17mVxzYhiclp7hd8lEhzzeRcGNOk1hdMa8sd1HqqpgUKSVFP0ZCu5j6of8ckqnNe&email=quinn%2B20261029t064557-d7cef6-delete-account-member%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "20-quinn-fill-textbox-password",
+        "folder": "settings-account/delete-account-member/20-quinn-fill-textbox-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth/signup?token=17mVxzYhiclp7hd8lEhzzeRcGNOk1hdMa8sd1HqqpgUKSVFP0ZCu5j6of8ckqnNe&email=quinn%2B20261029t064557-d7cef6-delete-account-member%40verify.local&lang=en"
+          }
+        ]
+      },
+      {
+        "name": "21-quinn-click-button-create-my-account",
+        "folder": "settings-account/delete-account-member/21-quinn-click-button-create-my-account",
+        "checks": [
+          {
+            "name": "click button \"Create my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "22-quinn-joined",
+        "folder": "settings-account/delete-account-member/22-quinn-joined",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!auth)/",
+            "pass": true,
+            "detail": "/page-access/access-public"
+          }
+        ]
+      },
+      {
+        "name": "23-quinn-open-settings-user-profile",
+        "folder": "settings-account/delete-account-member/23-quinn-open-settings-user-profile",
+        "checks": [
+          {
+            "name": "open /settings/user/profile",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "24-quinn-click-button-delete-my-account",
+        "folder": "settings-account/delete-account-member/24-quinn-click-button-delete-my-account",
+        "checks": [
+          {
+            "name": "click button \"Delete my account\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "25-the-dialog-states-what-is-removed-and-asks-for-confirmation",
+        "folder": "settings-account/delete-account-member/25-the-dialog-states-what-is-removed-and-asks-for-confirmation",
+        "checks": [
+          {
+            "name": "dialog is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          },
+          {
+            "name": "page shows /Delete my account|Delete your account/",
+            "pass": true,
+            "detail": "Search… CTRL K QM Quinn Member quinn+20261029t064557-d7cef6-delete-account-member@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Notifications 1 Appearance Shortcuts Profile How you appear to other members, and what the dashboard ke…"
+          }
+        ]
+      },
+      {
+        "name": "26-the-dialog-counts-what-the-deletion-takes-away",
+        "folder": "settings-account/delete-account-member/26-the-dialog-counts-what-the-deletion-takes-away",
+        "checks": [
+          {
+            "name": "page shows /Workspaces you leave\\s*1/",
+            "pass": true,
+            "detail": "Search… CTRL K QM Quinn Member quinn+20261029t064557-d7cef6-delete-account-member@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Notifications 1 Appearance Shortcuts Profile How you appear to other members, and what the dashboard ke…"
+          },
+          {
+            "name": "page shows /Devices signed out\\s*1/",
+            "pass": true,
+            "detail": "Search… CTRL K QM Quinn Member quinn+20261029t064557-d7cef6-delete-account-member@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Notifications 1 Appearance Shortcuts Profile How you appear to other members, and what the dashboard ke…"
+          }
+        ]
+      },
+      {
+        "name": "27-quinn-fill-textbox-current-password",
+        "folder": "settings-account/delete-account-member/27-quinn-fill-textbox-current-password",
+        "checks": [
+          {
+            "name": "fill textbox \"Current password\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "28-quinn-click-button-delete-permanently",
+        "folder": "settings-account/delete-account-member/28-quinn-click-button-delete-permanently",
+        "checks": [
+          {
+            "name": "click button \"Delete permanently\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "29-without-the-typed-address-the-deletion-is-refused",
+        "folder": "settings-account/delete-account-member/29-without-the-typed-address-the-deletion-is-refused",
+        "checks": [
+          {
+            "name": "page shows /This field is required/",
+            "pass": true,
+            "detail": "Search… CTRL K QM Quinn Member quinn+20261029t064557-d7cef6-delete-account-member@verify.local / Settings / Account / Profile 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Notifications 1 Appearance Shortcuts Profile How you appear to other members, and what the dashboard ke…"
+          },
+          {
+            "name": "dialog \"Delete your account?\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "31-nothing-was-deleted-yet",
+        "folder": "settings-account/delete-account-member/31-nothing-was-deleted-yet",
+        "checks": [
+          {
+            "name": "still signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "32-quinn-fill-textbox-type-quinn-20261029t064557-d7cef6-delete-",
+        "folder": "settings-account/delete-account-member/32-quinn-fill-textbox-type-quinn-20261029t064557-d7cef6-delete-",
+        "checks": [
+          {
+            "name": "fill textbox \"/^Type quinn\\+20261029t064557-d7cef6-delete-account-member@verify\\.local to confirm/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/profile"
+          }
+        ]
+      },
+      {
+        "name": "33-quinn-click-button-delete-permanently",
+        "folder": "settings-account/delete-account-member/33-quinn-click-button-delete-permanently",
+        "checks": [
+          {
+            "name": "click button \"Delete permanently\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/auth"
+          }
+        ]
+      },
+      {
+        "name": "34-the-member-lands-on-sign-in",
+        "folder": "settings-account/delete-account-member/34-the-member-lands-on-sign-in",
+        "checks": [
+          {
+            "name": "path matches /^\\/auth/",
+            "pass": true,
+            "detail": "/auth"
+          }
+        ]
+      },
+      {
+        "name": "37-the-account-can-no-longer-sign-in-and-the-member-is-gone",
+        "folder": "settings-account/delete-account-member/37-the-account-can-no-longer-sign-in-and-the-member-is-gone",
+        "checks": [
+          {
+            "name": "no access token",
+            "pass": true,
+            "detail": "\"error.invalid_credentials\""
+          },
+          {
+            "name": "members",
+            "pass": true,
+            "detail": "expected [\"admin+20261029t064557-d7cef6@verify.local\"], got [\"admin+20261029t064557-d7cef6@verify.local\"]"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/delete-account-member"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "settings-overview-and-search",
+    "title": "the settings overview summarises the account and links every page, and the settings search filters the menu",
+    "entryPoint": "Settings (/settings), Search settings",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j057",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/settings-overview-and-search/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/settings-overview-and-search/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings",
+        "folder": "settings-account/settings-overview-and-search/08-admin-open-settings",
+        "checks": [
+          {
+            "name": "open /settings",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          }
+        ]
+      },
+      {
+        "name": "09-the-overview-summarises-the-account",
+        "folder": "settings-account/settings-overview-and-search/09-the-overview-summarises-the-account",
+        "checks": [
+          {
+            "name": "page shows /Verify Admin/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Not…"
+          },
+          {
+            "name": "page shows /admin\\+20261029t064557-d7cef6@verify\\.local/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Not…"
+          },
+          {
+            "name": "page shows /Owner/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Not…"
+          },
+          {
+            "name": "page shows /recent account activity/i",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Not…"
+          },
+          {
+            "name": "page shows /joined default/i",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings 1 Settings / All settings ACCOUNT Profile Language & region Security 1 Not…"
+          }
+        ]
+      },
+      {
+        "name": "10-it-links-every-account-and-workspace-page",
+        "folder": "settings-account/settings-overview-and-search/10-it-links-every-account-and-workspace-page",
+        "checks": [
+          {
+            "name": "link \"/^Profile/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          },
+          {
+            "name": "link \"/^Language & region/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          },
+          {
+            "name": "link \"/^Security/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          },
+          {
+            "name": "link \"/^Notifications/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          },
+          {
+            "name": "link \"/^Appearance/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          },
+          {
+            "name": "link \"/^Shortcuts/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          },
+          {
+            "name": "link \"/^Members/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          },
+          {
+            "name": "link \"/^Roles/\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-fill-textbox-search-settings",
+        "folder": "settings-account/settings-overview-and-search/11-admin-fill-textbox-search-settings",
+        "checks": [
+          {
+            "name": "fill textbox \"Search settings\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          }
+        ]
+      },
+      {
+        "name": "12-the-search-keeps-the-matching-page-only",
+        "folder": "settings-account/settings-overview-and-search/12-the-search-keeps-the-matching-page-only",
+        "checks": [
+          {
+            "name": "link \"/^Security/\" in navigation \"Settings\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          },
+          {
+            "name": "link \"Profile\" in navigation \"Settings\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-fill-textbox-search-settings",
+        "folder": "settings-account/settings-overview-and-search/13-admin-fill-textbox-search-settings",
+        "checks": [
+          {
+            "name": "fill textbox \"Search settings\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings"
+          }
+        ]
+      },
+      {
+        "name": "14-a-search-without-a-match-says-so",
+        "folder": "settings-account/settings-overview-and-search/14-a-search-without-a-match-says-so",
+        "checks": [
+          {
+            "name": "page shows /No settings match your search\\./",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings 1 Settings / All settings No settings match your search. Settings Your pro…"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/settings-overview-and-search"
+  },
+  {
+    "feature": "settings-account",
+    "journey": "shortcuts-layout-and-search",
+    "title": "the keyboard layout switches the key labels, and the shortcut search filters or says nothing matches",
+    "entryPoint": "Settings > Shortcuts",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j058",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "settings-account/shortcuts-layout-and-search/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "settings-account/shortcuts-layout-and-search/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-settings-user-shortcuts",
+        "folder": "settings-account/shortcuts-layout-and-search/08-admin-open-settings-user-shortcuts",
+        "checks": [
+          {
+            "name": "open /settings/user/shortcuts",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/shortcuts"
+          }
+        ]
+      },
+      {
+        "name": "09-the-windows-linux-layout-is-detected-here",
+        "folder": "settings-account/shortcuts-layout-and-search/09-the-windows-linux-layout-is-detected-here",
+        "checks": [
+          {
+            "name": "page shows /Open command palette\\s+Ctrl\\s*K/i",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "checked",
+            "pass": true,
+            "detail": "expected true, got true"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-click-radio-macos",
+        "folder": "settings-account/shortcuts-layout-and-search/10-admin-click-radio-macos",
+        "checks": [
+          {
+            "name": "click radio \"macOS\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/shortcuts"
+          }
+        ]
+      },
+      {
+        "name": "11-choosing-macos-relabels-the-keys",
+        "folder": "settings-account/shortcuts-layout-and-search/11-choosing-macos-relabels-the-keys",
+        "checks": [
+          {
+            "name": "page shows /Open command palette\\s+⌘\\s*K/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "page does not show /Open command palette\\s+Ctrl\\s*K/i",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-fill-textbox-search-shortcuts",
+        "folder": "settings-account/shortcuts-layout-and-search/12-admin-fill-textbox-search-shortcuts",
+        "checks": [
+          {
+            "name": "fill textbox \"/^Search shortcuts/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/shortcuts"
+          }
+        ]
+      },
+      {
+        "name": "13-a-search-keeps-the-matching-shortcut-only",
+        "folder": "settings-account/shortcuts-layout-and-search/13-a-search-keeps-the-matching-shortcut-only",
+        "checks": [
+          {
+            "name": "page shows /Open command palette/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+          },
+          {
+            "name": "page does not show /Refresh table data/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-fill-textbox-search-shortcuts",
+        "folder": "settings-account/shortcuts-layout-and-search/14-admin-fill-textbox-search-shortcuts",
+        "checks": [
+          {
+            "name": "fill textbox \"/^Search shortcuts/\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/settings/user/shortcuts"
+          }
+        ]
+      },
+      {
+        "name": "15-a-search-without-a-match-says-so",
+        "folder": "settings-account/shortcuts-layout-and-search/15-a-search-without-a-match-says-so",
+        "checks": [
+          {
+            "name": "page shows /No shortcut matches your search\\./",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Shortcuts 1 Settings / All settings ACCOUNT Profile Language &…"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "settings-account/shortcuts-layout-and-search"
+  }
+]

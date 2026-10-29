@@ -1,0 +1,411 @@
+[
+  {
+    "feature": "modules-store",
+    "journey": "installed-modules-open",
+    "title": "Modules lists the playground's two modules with their status, and Open starts a module from its home page",
+    "entryPoint": "/modules",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j066",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "modules-store/installed-modules-open/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "modules-store/installed-modules-open/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-modules",
+        "folder": "modules-store/installed-modules-open/08-admin-open-modules",
+        "checks": [
+          {
+            "name": "open /modules",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules"
+          }
+        ]
+      },
+      {
+        "name": "09-both-installed-modules-are-listed-with-their-status",
+        "folder": "modules-store/installed-modules-open/09-both-installed-modules-are-listed-with-their-status",
+        "checks": [
+          {
+            "name": "heading \"Installed 2\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules"
+          },
+          {
+            "name": "article \"Demo Module\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules"
+          },
+          {
+            "name": "article \"Plain Module\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules"
+          },
+          {
+            "name": "page shows /1 sync job failing/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Modules 1 Modules Everything installed on this platform and what each module is doi…"
+          }
+        ]
+      },
+      {
+        "name": "10-admin-click-link-open-in-article-demo-module",
+        "folder": "modules-store/installed-modules-open/10-admin-click-link-open-in-article-demo-module",
+        "checks": [
+          {
+            "name": "click link \"Open\" in article \"Demo Module\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules/demo/pages/contact"
+          }
+        ]
+      },
+      {
+        "name": "11-open-leaves-the-modules-page-for-the-module-s-home",
+        "folder": "modules-store/installed-modules-open/11-open-leaves-the-modules-page-for-the-module-s-home",
+        "checks": [
+          {
+            "name": "path matches /^\\/(?!modules$)/",
+            "pass": true,
+            "detail": "/modules/demo/pages/contact"
+          }
+        ]
+      },
+      {
+        "name": "12-admin-open-modules",
+        "folder": "modules-store/installed-modules-open/12-admin-open-modules",
+        "checks": [
+          {
+            "name": "open /modules",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-click-radio-developer-1",
+        "folder": "modules-store/installed-modules-open/13-admin-click-radio-developer-1",
+        "checks": [
+          {
+            "name": "click radio \"Developer 1\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules"
+          }
+        ]
+      },
+      {
+        "name": "14-the-category-filter-keeps-only-the-developer-module",
+        "folder": "modules-store/installed-modules-open/14-the-category-filter-keeps-only-the-developer-module",
+        "checks": [
+          {
+            "name": "article \"Plain Module\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules"
+          },
+          {
+            "name": "article \"Demo Module\" is absent",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "modules-store/installed-modules-open"
+  },
+  {
+    "feature": "modules-store",
+    "journey": "modules-search-empty",
+    "title": "a module search that matches nothing shows no module, and clearing it brings them back",
+    "entryPoint": "/modules search, /modules/store search",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j067",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "modules-store/modules-search-empty/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "modules-store/modules-search-empty/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-modules-store",
+        "folder": "modules-store/modules-search-empty/08-admin-open-modules-store",
+        "checks": [
+          {
+            "name": "open /modules/store",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules/store"
+          }
+        ]
+      },
+      {
+        "name": "09-admin-fill-textbox-search-the-store",
+        "folder": "modules-store/modules-search-empty/09-admin-fill-textbox-search-the-store",
+        "checks": [
+          {
+            "name": "fill textbox \"Search the store\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules/store"
+          }
+        ]
+      },
+      {
+        "name": "10-the-store-says-nothing-matches",
+        "folder": "modules-store/modules-search-empty/10-the-store-says-nothing-matches",
+        "checks": [
+          {
+            "name": "page shows /No module in the store matches “qqxzjjwv”/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Modules / Module store 1 Module store Official AntelopeJS modules to discover and i…"
+          },
+          {
+            "name": "0 × article",
+            "pass": true,
+            "detail": "found 0"
+          }
+        ]
+      },
+      {
+        "name": "11-admin-click-button-clear-search",
+        "folder": "modules-store/modules-search-empty/11-admin-click-button-clear-search",
+        "checks": [
+          {
+            "name": "click button \"Clear search\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules/store"
+          }
+        ]
+      },
+      {
+        "name": "12-clearing-the-search-lists-the-catalog-again",
+        "folder": "modules-store/modules-search-empty/12-clearing-the-search-lists-the-catalog-again",
+        "checks": [
+          {
+            "name": "article \"API\" is visible",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules/store"
+          }
+        ]
+      },
+      {
+        "name": "13-admin-open-modules",
+        "folder": "modules-store/modules-search-empty/13-admin-open-modules",
+        "checks": [
+          {
+            "name": "open /modules",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules"
+          }
+        ]
+      },
+      {
+        "name": "14-admin-fill-textbox-search-modules",
+        "folder": "modules-store/modules-search-empty/14-admin-fill-textbox-search-modules",
+        "checks": [
+          {
+            "name": "fill textbox \"Search modules\"",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules"
+          }
+        ]
+      },
+      {
+        "name": "15-the-installed-list-hides-every-module",
+        "folder": "modules-store/modules-search-empty/15-the-installed-list-hides-every-module",
+        "checks": [
+          {
+            "name": "0 × article",
+            "pass": true,
+            "detail": "found 0"
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "modules-store/modules-search-empty"
+  },
+  {
+    "feature": "modules-store",
+    "journey": "store-read-only-outside-dev",
+    "title": "outside development the store lists the catalog with Install disabled, and the install API answers 403",
+    "entryPoint": "/modules/store, POST /dms/store/install",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j068",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "modules-store/store-read-only-outside-dev/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "07-admin-signed-in-as-admin",
+        "folder": "modules-store/store-read-only-outside-dev/07-admin-signed-in-as-admin",
+        "checks": [
+          {
+            "name": "admin signs in and leaves /auth",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/examples/overview"
+          }
+        ]
+      },
+      {
+        "name": "08-admin-open-modules-store",
+        "folder": "modules-store/store-read-only-outside-dev/08-admin-open-modules-store",
+        "checks": [
+          {
+            "name": "open /modules/store",
+            "pass": true,
+            "detail": "http://127.0.0.1:40839/modules/store"
+          }
+        ]
+      },
+      {
+        "name": "09-the-store-explains-it-is-read-only-and-disables-install",
+        "folder": "modules-store/store-read-only-outside-dev/09-the-store-explains-it-is-read-only-and-disables-install",
+        "checks": [
+          {
+            "name": "page shows /The store is read-only here/",
+            "pass": true,
+            "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Modules / Module store 1 Module store Official AntelopeJS modules to discover and i…"
+          },
+          {
+            "name": "button \"Install\" in article \"API\" is disabled",
+            "pass": true,
+            "detail": "disabled=true"
+          }
+        ]
+      },
+      {
+        "name": "12-nothing-is-installed",
+        "folder": "modules-store/store-read-only-outside-dev/12-nothing-is-installed",
+        "checks": [
+          {
+            "name": "HTTP 403",
+            "pass": true,
+            "detail": "status 403: \"error.store_disabled\""
+          },
+          {
+            "name": "error",
+            "pass": true,
+            "detail": "expected \"error.store_disabled\", got \"error.store_disabled\""
+          },
+          {
+            "name": "store enabled",
+            "pass": true,
+            "detail": "expected false, got false"
+          },
+          {
+            "name": "the API module stays available, not installed",
+            "pass": true,
+            "detail": "expected \"available\", got \"available\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "modules-store/store-read-only-outside-dev"
+  },
+  {
+    "feature": "modules-store",
+    "journey": "store-listing-owners-only",
+    "title": "the store listing answers the platform owner and refuses a visitor",
+    "entryPoint": "GET /dms/store/listing",
+    "status": "PASS",
+    "database": "verify_20261029T064557_d7cef6_j069",
+    "steps": [
+      {
+        "name": "02-onboard-the-administrator",
+        "folder": "modules-store/store-listing-owners-only/02-onboard-the-administrator",
+        "checks": [
+          {
+            "name": "POST /api/onboarding/register answers 2xx",
+            "pass": true,
+            "detail": "200"
+          },
+          {
+            "name": "the administrator signs in",
+            "pass": true,
+            "detail": "200"
+          }
+        ]
+      },
+      {
+        "name": "05-only-the-owner-reads-the-catalog",
+        "folder": "modules-store/store-listing-owners-only/05-only-the-owner-reads-the-catalog",
+        "checks": [
+          {
+            "name": "HTTP 200",
+            "pass": true,
+            "detail": "status 200: {\"enabled\":false,\"modules\":[{\"id\":\"ai\",\"package\":\"@antelopejs/dms-ai\",\"icon\":\"i-ph-robot\",\"category\":\"ai\",\"title\":\"$modules.store.catalog.ai.title\",\"description\":\"$modules.store.catalog.ai.description\",\"state\":\"available\",\"source\":\"npm\",\"latestVersion\":\"0.6.1\",\"updateAvailable\":false,\"compatible\":tr"
+          },
+          {
+            "name": "the catalog has modules",
+            "pass": true,
+            "detail": "11"
+          },
+          {
+            "name": "HTTP 403",
+            "pass": true,
+            "detail": "status 403: \"error.unauthorized\""
+          }
+        ]
+      }
+    ],
+    "error": null,
+    "folder": "modules-store/store-listing-owners-only"
+  }
+]

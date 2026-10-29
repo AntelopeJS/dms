@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "http://127.0.0.1:40839/auth/signup?token=jNiq0kmsfHzQwT9nSUlc1nYzE48j2BtqAV1boyhnPMx8D1ZsAvELC5xnSlaY0p7G&email=noa%2B20261029t064557-d7cef6-role-delete-in-use-moves-members%40verify.local&lang=en",
+  "baseUrl": "http://127.0.0.1:40839"
+}

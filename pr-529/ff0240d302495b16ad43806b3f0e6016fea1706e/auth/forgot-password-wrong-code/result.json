@@ -1,0 +1,181 @@
+{
+  "feature": "auth",
+  "journey": "forgot-password-wrong-code",
+  "title": "a wrong reset code is refused and the password does not change",
+  "entryPoint": "/auth/forgot-validation",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j012",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "auth/forgot-password-wrong-code/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "03-stranger-open-auth-forgot",
+      "folder": "auth/forgot-password-wrong-code/03-stranger-open-auth-forgot",
+      "checks": [
+        {
+          "name": "open /auth/forgot",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot"
+        }
+      ]
+    },
+    {
+      "name": "04-stranger-fill-textbox-email-address",
+      "folder": "auth/forgot-password-wrong-code/04-stranger-fill-textbox-email-address",
+      "checks": [
+        {
+          "name": "fill textbox \"Email address\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot"
+        }
+      ]
+    },
+    {
+      "name": "05-stranger-click-button-send-the-code",
+      "folder": "auth/forgot-password-wrong-code/05-stranger-click-button-send-the-code",
+      "checks": [
+        {
+          "name": "click button \"Send the code\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "06-the-reset-page-asks-for-the-emailed-code",
+      "folder": "auth/forgot-password-wrong-code/06-the-reset-page-asks-for-the-emailed-code",
+      "checks": [
+        {
+          "name": "heading \"Check your inbox\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        },
+        {
+          "name": "path matches /^\\/auth\\/forgot-validation/",
+          "pass": true,
+          "detail": "/auth/forgot-validation"
+        }
+      ]
+    },
+    {
+      "name": "08-the-account-s-address-receives-a-reset-code",
+      "folder": "auth/forgot-password-wrong-code/08-the-account-s-address-receives-a-reset-code",
+      "checks": [
+        {
+          "name": "a reset email arrived",
+          "pass": true,
+          "detail": "1 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "09-stranger-fill-textbox-pin-input-1-of-6",
+      "folder": "auth/forgot-password-wrong-code/09-stranger-fill-textbox-pin-input-1-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 1 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "10-stranger-fill-textbox-pin-input-2-of-6",
+      "folder": "auth/forgot-password-wrong-code/10-stranger-fill-textbox-pin-input-2-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 2 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "11-stranger-fill-textbox-pin-input-3-of-6",
+      "folder": "auth/forgot-password-wrong-code/11-stranger-fill-textbox-pin-input-3-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 3 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "12-stranger-fill-textbox-pin-input-4-of-6",
+      "folder": "auth/forgot-password-wrong-code/12-stranger-fill-textbox-pin-input-4-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 4 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "13-stranger-fill-textbox-pin-input-5-of-6",
+      "folder": "auth/forgot-password-wrong-code/13-stranger-fill-textbox-pin-input-5-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 5 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "14-stranger-fill-textbox-pin-input-6-of-6",
+      "folder": "auth/forgot-password-wrong-code/14-stranger-fill-textbox-pin-input-6-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 6 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "15-the-wrong-code-does-not-open-the-new-password-form",
+      "folder": "auth/forgot-password-wrong-code/15-the-wrong-code-does-not-open-the-new-password-form",
+      "checks": [
+        {
+          "name": "heading \"Reset your password\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        },
+        {
+          "name": "path matches /^\\/auth\\/forgot-validation/",
+          "pass": true,
+          "detail": "/auth/forgot-validation"
+        }
+      ]
+    },
+    {
+      "name": "17-the-password-is-unchanged",
+      "folder": "auth/forgot-password-wrong-code/17-the-password-is-unchanged",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI5MjI1YzgyLTM3ZTktNDRhZC04N2NjLTBmYjI0MWIwNTRhZiIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjM3NjlmYmY5LWJhMDItNGYzYi04ZTJkLTllNzA1NGQwMjgzMiIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTMyNTY1MTIsImV4cCI6MTc5MzI2MDEx"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "auth/forgot-password-wrong-code"
+}

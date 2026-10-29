@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"Writer 81af4d\" in group \"Roles\"",
+  "baseUrl": "http://127.0.0.1:40839"
+}

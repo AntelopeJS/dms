@@ -1,0 +1,39 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - group "Setup progress":
+    - button "Platform" [disabled]
+    - text: Platform
+    - button "Administrator" [disabled]
+    - text: Administrator
+    - button "Ready" [disabled]: "3"
+    - text: Ready
+    - status: Step 2 of 3
+  - text: Step 3 of 3 · Ready
+  - heading "Verify Wizard 2cb6d4 is ready" [level=1]
+  - paragraph: You're signed in as Wiz Ard, owner of the platform. Here's what most teams do first.
+  - list:
+    - listitem:
+      - button "Invite your teammates Give them a role so they only see what they need."
+    - listitem:
+      - button "Turn on two-factor authentication Recommended for the owner account."
+    - listitem:
+      - button "Review installed modules See what each installed module adds to the platform."
+    - listitem:
+      - link "Read the documentation Antelope DMS and the Antelope framework.":
+        - /url: https://antelopejs.com/docs
+  - button "Open the dashboard"
+  - term: Platform
+  - definition: Verify Wizard 2cb6d4
+  - term: Default language
+  - definition: English
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

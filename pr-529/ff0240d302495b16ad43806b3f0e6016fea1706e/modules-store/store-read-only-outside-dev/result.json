@@ -1,0 +1,92 @@
+{
+  "feature": "modules-store",
+  "journey": "store-read-only-outside-dev",
+  "title": "outside development the store lists the catalog with Install disabled, and the install API answers 403",
+  "entryPoint": "/modules/store, POST /dms/store/install",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j068",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "modules-store/store-read-only-outside-dev/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "modules-store/store-read-only-outside-dev/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-modules-store",
+      "folder": "modules-store/store-read-only-outside-dev/08-admin-open-modules-store",
+      "checks": [
+        {
+          "name": "open /modules/store",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/modules/store"
+        }
+      ]
+    },
+    {
+      "name": "09-the-store-explains-it-is-read-only-and-disables-install",
+      "folder": "modules-store/store-read-only-outside-dev/09-the-store-explains-it-is-read-only-and-disables-install",
+      "checks": [
+        {
+          "name": "page shows /The store is read-only here/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Modules / Module store 1 Module store Official AntelopeJS modules to discover and i…"
+        },
+        {
+          "name": "button \"Install\" in article \"API\" is disabled",
+          "pass": true,
+          "detail": "disabled=true"
+        }
+      ]
+    },
+    {
+      "name": "12-nothing-is-installed",
+      "folder": "modules-store/store-read-only-outside-dev/12-nothing-is-installed",
+      "checks": [
+        {
+          "name": "HTTP 403",
+          "pass": true,
+          "detail": "status 403: \"error.store_disabled\""
+        },
+        {
+          "name": "error",
+          "pass": true,
+          "detail": "expected \"error.store_disabled\", got \"error.store_disabled\""
+        },
+        {
+          "name": "store enabled",
+          "pass": true,
+          "detail": "expected false, got false"
+        },
+        {
+          "name": "the API module stays available, not installed",
+          "pass": true,
+          "detail": "expected \"available\", got \"available\""
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "modules-store/store-read-only-outside-dev"
+}

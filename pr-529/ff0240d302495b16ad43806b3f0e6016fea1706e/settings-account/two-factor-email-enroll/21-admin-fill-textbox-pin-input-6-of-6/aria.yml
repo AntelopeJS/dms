@@ -1,0 +1,19 @@
+- dialog:
+  - heading [level=2]
+  - paragraph
+  - heading "Your new backup codes" [level=3]
+  - paragraph: Save these codes in a safe place. Each code can only be used once and they will not be shown again.
+  - list:
+    - listitem: 01 IHV3OO9W
+    - listitem: 02 ZOW2U4SW
+    - listitem: 03 KD4COOJV
+    - listitem: 04 ISGXTHFD
+    - listitem: 05 UV0ERDKO
+    - listitem: 06 BGBQ01YR
+    - listitem: 07 T07XOROR
+    - listitem: 08 HLDYSMET
+    - listitem: 09 IQU3MV13
+    - listitem: 10 YMKHVGTO
+  - button "Download .txt"
+  - button "Copy"
+  - button "I've saved my codes"

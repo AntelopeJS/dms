@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "/examples/features",
+  "baseUrl": "http://127.0.0.1:40839"
+}

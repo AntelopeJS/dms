@@ -1,0 +1,214 @@
+{
+  "feature": "auth",
+  "journey": "forgot-password-resets",
+  "title": "the emailed code resets the password: the new one signs in and the old one is refused",
+  "entryPoint": "/auth/forgot, /auth/forgot-validation, /auth/recover",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j011",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "auth/forgot-password-resets/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "03-stranger-open-auth-forgot",
+      "folder": "auth/forgot-password-resets/03-stranger-open-auth-forgot",
+      "checks": [
+        {
+          "name": "open /auth/forgot",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot"
+        }
+      ]
+    },
+    {
+      "name": "04-stranger-fill-textbox-email-address",
+      "folder": "auth/forgot-password-resets/04-stranger-fill-textbox-email-address",
+      "checks": [
+        {
+          "name": "fill textbox \"Email address\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot"
+        }
+      ]
+    },
+    {
+      "name": "05-stranger-click-button-send-the-code",
+      "folder": "auth/forgot-password-resets/05-stranger-click-button-send-the-code",
+      "checks": [
+        {
+          "name": "click button \"Send the code\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "06-the-reset-page-asks-for-the-emailed-code",
+      "folder": "auth/forgot-password-resets/06-the-reset-page-asks-for-the-emailed-code",
+      "checks": [
+        {
+          "name": "heading \"Check your inbox\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        },
+        {
+          "name": "path matches /^\\/auth\\/forgot-validation/",
+          "pass": true,
+          "detail": "/auth/forgot-validation"
+        }
+      ]
+    },
+    {
+      "name": "08-the-account-s-address-receives-a-reset-code",
+      "folder": "auth/forgot-password-resets/08-the-account-s-address-receives-a-reset-code",
+      "checks": [
+        {
+          "name": "a reset email arrived",
+          "pass": true,
+          "detail": "1 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "09-stranger-fill-textbox-pin-input-1-of-6",
+      "folder": "auth/forgot-password-resets/09-stranger-fill-textbox-pin-input-1-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 1 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "10-stranger-fill-textbox-pin-input-2-of-6",
+      "folder": "auth/forgot-password-resets/10-stranger-fill-textbox-pin-input-2-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 2 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "11-stranger-fill-textbox-pin-input-3-of-6",
+      "folder": "auth/forgot-password-resets/11-stranger-fill-textbox-pin-input-3-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 3 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "12-stranger-fill-textbox-pin-input-4-of-6",
+      "folder": "auth/forgot-password-resets/12-stranger-fill-textbox-pin-input-4-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 4 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "13-stranger-fill-textbox-pin-input-5-of-6",
+      "folder": "auth/forgot-password-resets/13-stranger-fill-textbox-pin-input-5-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 5 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "14-stranger-fill-textbox-pin-input-6-of-6",
+      "folder": "auth/forgot-password-resets/14-stranger-fill-textbox-pin-input-6-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 6 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/recover?token=3NVP5N&email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "15-the-code-opens-the-new-password-form",
+      "folder": "auth/forgot-password-resets/15-the-code-opens-the-new-password-form",
+      "checks": [
+        {
+          "name": "heading \"Reset your password\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/recover?token=3NVP5N&email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "16-stranger-fill-textbox-new-password",
+      "folder": "auth/forgot-password-resets/16-stranger-fill-textbox-new-password",
+      "checks": [
+        {
+          "name": "fill textbox \"New password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/recover?token=3NVP5N&email=admin%2B20261029t064557-d7cef6%40verify.local"
+        }
+      ]
+    },
+    {
+      "name": "17-stranger-click-button-save-the-new-password",
+      "folder": "auth/forgot-password-resets/17-stranger-click-button-save-the-new-password",
+      "checks": [
+        {
+          "name": "click button \"Save the new password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/recover-success"
+        }
+      ]
+    },
+    {
+      "name": "18-the-page-confirms-the-change",
+      "folder": "auth/forgot-password-resets/18-the-page-confirms-the-change",
+      "checks": [
+        {
+          "name": "page shows /Password changed|Your password has been reset/",
+          "pass": true,
+          "detail": "Password changed Your password has been reset. Sign in with your new password. Sign in © Antelope Documentation Website English"
+        }
+      ]
+    },
+    {
+      "name": "21-only-the-new-password-signs-in",
+      "folder": "auth/forgot-password-resets/21-only-the-new-password-signs-in",
+      "checks": [
+        {
+          "name": "new password accepted",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "HTTP 401",
+          "pass": true,
+          "detail": "status 401: \"error.invalid_credentials\""
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "auth/forgot-password-resets"
+}

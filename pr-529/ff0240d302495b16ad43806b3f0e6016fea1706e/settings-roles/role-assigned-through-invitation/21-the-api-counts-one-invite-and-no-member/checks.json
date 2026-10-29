@@ -1,0 +1,12 @@
+[
+  {
+    "name": "inviteCount",
+    "pass": true,
+    "detail": "expected 1, got 1"
+  },
+  {
+    "name": "memberCount",
+    "pass": true,
+    "detail": "expected 0, got 0"
+  }
+]

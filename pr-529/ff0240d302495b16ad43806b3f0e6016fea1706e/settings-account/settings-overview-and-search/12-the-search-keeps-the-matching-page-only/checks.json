@@ -1,0 +1,12 @@
+[
+  {
+    "name": "link \"/^Security/\" in navigation \"Settings\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings"
+  },
+  {
+    "name": "link \"Profile\" in navigation \"Settings\" is absent",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings"
+  }
+]

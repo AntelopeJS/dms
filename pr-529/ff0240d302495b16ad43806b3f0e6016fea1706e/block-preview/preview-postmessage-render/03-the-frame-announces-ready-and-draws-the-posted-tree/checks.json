@@ -1,0 +1,17 @@
+[
+  {
+    "name": "the frame posted ready",
+    "pass": true,
+    "detail": "true"
+  },
+  {
+    "name": "the posted KpiCard is drawn",
+    "pass": true,
+    "detail": "true"
+  },
+  {
+    "name": "the frame reported its height",
+    "pass": true,
+    "detail": "resize message"
+  }
+]

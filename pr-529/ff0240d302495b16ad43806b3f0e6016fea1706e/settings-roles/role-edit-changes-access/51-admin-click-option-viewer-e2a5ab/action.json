@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "option \"/^Viewer e2a5ab/\"",
+  "baseUrl": "http://127.0.0.1:40839"
+}

@@ -1,0 +1,17 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - heading "This invitation was replaced by a newer email" [level=1]
+  - paragraph: A newer invitation was sent to this address, and only its link works. Open the latest invitation email, or ask the person who invited you to send it again.
+  - link "Login":
+    - /url: /auth
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

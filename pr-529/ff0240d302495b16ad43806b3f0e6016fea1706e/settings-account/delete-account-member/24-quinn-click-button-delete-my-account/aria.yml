@@ -1,0 +1,17 @@
+- dialog "Delete your account?":
+  - heading "Delete your account?" [level=2]
+  - paragraph: This can't be undone. You're signed out everywhere and can't sign in with this account again.
+  - button "Close"
+  - list:
+    - listitem: Workspaces you leave 1
+    - listitem: Devices signed out 1
+    - listitem: Notifications deleted 1
+    - listitem: Linked sign-in providers removed 0
+    - listitem: Invitations you sent, kept valid 0
+  - text: Current password
+  - textbox "Current password"
+  - text: Type quinn+20261029t064557-d7cef6-delete-account-member@verify.local to confirm
+  - textbox "Type quinn+20261029t064557-d7cef6-delete-account-member@verify.local to confirm"
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Delete permanently"

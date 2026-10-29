@@ -1,0 +1,12 @@
+[
+  {
+    "name": "heading \"Langue et région\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/user/region"
+  },
+  {
+    "name": "combobox \"Langue de l'application\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/user/region"
+  }
+]

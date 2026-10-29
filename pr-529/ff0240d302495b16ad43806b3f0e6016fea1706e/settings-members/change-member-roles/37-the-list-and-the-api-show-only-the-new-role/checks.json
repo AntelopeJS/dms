@@ -1,0 +1,17 @@
+[
+  {
+    "name": "cell \"Writer 81af4d\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/workspace/members"
+  },
+  {
+    "name": "cell \"Reader e8b086\" is absent",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/workspace/members"
+  },
+  {
+    "name": "roles",
+    "pass": true,
+    "detail": "expected [\"cf55d551-abc8-4e0d-b5d3-27c0c8f19350\"], got [\"cf55d551-abc8-4e0d-b5d3-27c0c8f19350\"]"
+  }
+]

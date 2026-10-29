@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"New email\"",
+  "value": "renamed+20261029t064557-d7cef6-change-email-confirms-with-code@verify.local",
+  "baseUrl": "http://127.0.0.1:40839"
+}

@@ -1,0 +1,5 @@
+{
+  "status": 401,
+  "body": "No jwt token provided",
+  "error": null
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "POST /api/onboarding/register answers 2xx",
+    "pass": true,
+    "detail": "200"
+  },
+  {
+    "name": "the administrator signs in",
+    "pass": true,
+    "detail": "200"
+  }
+]

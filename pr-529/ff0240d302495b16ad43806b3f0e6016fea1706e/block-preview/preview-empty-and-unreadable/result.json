@@ -1,0 +1,56 @@
+{
+  "feature": "block-preview",
+  "journey": "preview-empty-and-unreadable",
+  "title": "no state says there is nothing to preview, and an unreadable state says so",
+  "entryPoint": "/dms-preview with no or a malformed ?state=",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j075",
+  "steps": [
+    {
+      "name": "02-preview-open-dms-preview",
+      "folder": "block-preview/preview-empty-and-unreadable/02-preview-open-dms-preview",
+      "checks": [
+        {
+          "name": "open /dms-preview",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/dms-preview"
+        }
+      ]
+    },
+    {
+      "name": "03-the-empty-page-says-there-is-nothing-to-preview",
+      "folder": "block-preview/preview-empty-and-unreadable/03-the-empty-page-says-there-is-nothing-to-preview",
+      "checks": [
+        {
+          "name": "page shows /Nothing to preview yet/",
+          "pass": true,
+          "detail": "Nothing to preview yet."
+        }
+      ]
+    },
+    {
+      "name": "04-preview-open-dms-preview-state-not-base64-json",
+      "folder": "block-preview/preview-empty-and-unreadable/04-preview-open-dms-preview-state-not-base64-json",
+      "checks": [
+        {
+          "name": "open /dms-preview?state=not-base64-json",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/dms-preview?state=not-base64-json"
+        }
+      ]
+    },
+    {
+      "name": "05-a-malformed-state-is-reported",
+      "folder": "block-preview/preview-empty-and-unreadable/05-a-malformed-state-is-reported",
+      "checks": [
+        {
+          "name": "page shows /The preview state could not be read/",
+          "pass": true,
+          "detail": "The preview state could not be read."
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "block-preview/preview-empty-and-unreadable"
+}

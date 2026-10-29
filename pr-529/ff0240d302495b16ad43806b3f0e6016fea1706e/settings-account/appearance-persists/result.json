@@ -1,0 +1,179 @@
+{
+  "feature": "settings-account",
+  "journey": "appearance-persists",
+  "title": "dark theme, large density and the accessibility switches apply at once, survive a reload and stay on this browser",
+  "entryPoint": "Settings > Appearance",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j049",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-account/appearance-persists/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-account/appearance-persists/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-settings-user-appearance",
+      "folder": "settings-account/appearance-persists/08-admin-open-settings-user-appearance",
+      "checks": [
+        {
+          "name": "open /settings/user/appearance",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/appearance"
+        }
+      ]
+    },
+    {
+      "name": "09-the-default-is-the-system-theme-light-here",
+      "folder": "settings-account/appearance-persists/09-the-default-is-the-system-theme-light-here",
+      "checks": [
+        {
+          "name": "radio \"/^System/\" is enabled",
+          "pass": true,
+          "detail": "disabled=false"
+        },
+        {
+          "name": "dark class",
+          "pass": true,
+          "detail": "expected false, got false"
+        }
+      ]
+    },
+    {
+      "name": "10-the-page-applies-the-choices-at-once",
+      "folder": "settings-account/appearance-persists/10-the-page-applies-the-choices-at-once",
+      "checks": [
+        {
+          "name": "dark class set",
+          "pass": true,
+          "detail": "html has no dark class"
+        },
+        {
+          "name": "page shows /Saved instantly/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Appearance 1 Settings / All settings ACCOUNT Profile Language …"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-reload",
+      "folder": "settings-account/appearance-persists/11-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/appearance"
+        }
+      ]
+    },
+    {
+      "name": "12-a-reload-keeps-theme-density-and-contrast",
+      "folder": "settings-account/appearance-persists/12-a-reload-keeps-theme-density-and-contrast",
+      "checks": [
+        {
+          "name": "dark class kept",
+          "pass": true,
+          "detail": "html has no dark class"
+        },
+        {
+          "name": "Dark checked",
+          "pass": true,
+          "detail": "expected true, got true"
+        },
+        {
+          "name": "Large checked",
+          "pass": true,
+          "detail": "expected true, got true"
+        },
+        {
+          "name": "contrast on",
+          "pass": true,
+          "detail": "expected true, got true"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-open-settings",
+      "folder": "settings-account/appearance-persists/13-admin-open-settings",
+      "checks": [
+        {
+          "name": "open /settings",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings"
+        }
+      ]
+    },
+    {
+      "name": "14-the-choice-follows-the-person-to-other-pages",
+      "folder": "settings-account/appearance-persists/14-the-choice-follows-the-person-to-other-pages",
+      "checks": [
+        {
+          "name": "dark class kept",
+          "pass": true,
+          "detail": "html has no dark class"
+        }
+      ]
+    },
+    {
+      "name": "19-admin2-signed-in-as-admin2",
+      "folder": "settings-account/appearance-persists/19-admin2-signed-in-as-admin2",
+      "checks": [
+        {
+          "name": "admin2 signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "20-admin2-open-settings-user-appearance",
+      "folder": "settings-account/appearance-persists/20-admin2-open-settings-user-appearance",
+      "checks": [
+        {
+          "name": "open /settings/user/appearance",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/appearance"
+        }
+      ]
+    },
+    {
+      "name": "21-another-browser-keeps-its-own-choice-still-the-light-default",
+      "folder": "settings-account/appearance-persists/21-another-browser-keeps-its-own-choice-still-the-light-default",
+      "checks": [
+        {
+          "name": "dark class",
+          "pass": true,
+          "detail": "expected false, got false"
+        },
+        {
+          "name": "Dark checked",
+          "pass": true,
+          "detail": "expected false, got false"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-account/appearance-persists"
+}

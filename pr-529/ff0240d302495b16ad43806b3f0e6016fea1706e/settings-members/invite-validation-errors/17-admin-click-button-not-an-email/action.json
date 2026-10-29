@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"not-an-email\"",
+  "baseUrl": "http://127.0.0.1:40839"
+}

@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Email addresses\"",
+  "value": "member+20261029t064557-d7cef6-smoke@verify.local",
+  "baseUrl": "http://127.0.0.1:40839"
+}

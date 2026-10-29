@@ -1,0 +1,31 @@
+- link "Go to homepage":
+  - /url: /examples/overview
+  - img "Go to homepage"
+- button "Search… Ctrl K"
+- navigation
+- button "Mia": M Mia mia+20261029t064557-d7cef6-role-edit-changes-access@verify.local
+- separator
+- button "Collapse sidebar"
+- heading "Breadcrumb Add to favorites" [level=1]:
+  - navigation "Breadcrumb":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /examples/overview
+      - listitem: page-access
+      - listitem:
+        - link "Public page":
+          - /url: /page-access/access-public
+  - button "Add to favorites"
+- button "Notifications": "1"
+- heading "Public page" [level=1]
+- paragraph: "Demonstrates: MenuOptions.publicAccess. Open this URL in a private window: it renders without signing in."
+- text: What this page shows
+- term: "publicAccess: true"
+- definition: No auth decorator Served to anonymous callers; its blocks must not need a session.
+- term: Check it
+- definition:
+  - link "Settings › Roles › Preview as role":
+    - /url: /settings/workspace/roles
+- region "Notifications (F8)":
+  - list

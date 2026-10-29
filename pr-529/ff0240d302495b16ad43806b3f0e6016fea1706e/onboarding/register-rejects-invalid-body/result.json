@@ -1,0 +1,38 @@
+{
+  "feature": "onboarding",
+  "journey": "register-rejects-invalid-body",
+  "title": "POST /api/onboarding/register answers 400 with the invalid fields and creates nobody",
+  "entryPoint": "POST /api/onboarding/register",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j004",
+  "steps": [
+    {
+      "name": "04-the-request-is-refused-field-by-field",
+      "folder": "onboarding/register-rejects-invalid-body/04-the-request-is-refused-field-by-field",
+      "checks": [
+        {
+          "name": "HTTP 400",
+          "pass": true,
+          "detail": "status 400: [{\"validation\":\"email\",\"code\":\"invalid_string\",\"message\":\"Invalid email\",\"path\":[\"email\"]},{\"code\":\"too_small\",\"minimum\":1,\"type\":\"string\",\"inclusive\":true,\"exact\":false,\"message\":\"String must contain at least 1 character(s)\",\"path\":[\"firstName\"]}]"
+        },
+        {
+          "name": "email is named",
+          "pass": true,
+          "detail": "[\"email\",\"firstName\"]"
+        },
+        {
+          "name": "firstName is named",
+          "pass": true,
+          "detail": "[\"email\",\"firstName\"]"
+        },
+        {
+          "name": "has_onboarded",
+          "pass": true,
+          "detail": "expected false, got false"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "onboarding/register-rejects-invalid-body"
+}

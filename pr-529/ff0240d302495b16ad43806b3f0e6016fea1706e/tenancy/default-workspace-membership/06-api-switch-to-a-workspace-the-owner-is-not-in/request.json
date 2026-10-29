@@ -1,0 +1,9 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:35351/api/auth/switch-tenant",
+  "authenticated": false,
+  "body": {
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRiYzNiZmNkLTRiNDMtNDI2YS04MGM1LTMyOWJiZmE3MzQ1NyIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjBlNTVhNzc0LWY4MzAtNGUyYi05NGEzLTgyMzU4ZTgxMDNkZCIsInB1cnBvc2UiOiJyZWZyZXNoIiwiaWF0IjoxNzkzMjU3MzczLCJleHAiOjE3OTU4NDkzNzN9.2k_36iXOV4lRTi0zN7433B3uqh4mVReMDHordbqAe0g",
+    "tenantId": "verify-foreign-workspace"
+  }
+}

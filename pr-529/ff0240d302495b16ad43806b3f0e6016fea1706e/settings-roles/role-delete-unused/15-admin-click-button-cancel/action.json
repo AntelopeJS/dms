@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"Cancel\"",
+  "baseUrl": "http://127.0.0.1:40839"
+}

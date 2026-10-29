@@ -1,0 +1,10 @@
+{
+  "name": "formal-realtime-tabs",
+  "exitCode": 0,
+  "violated": [
+    "ShowsLatest",
+    "ReconnectCatchesUp",
+    "NeverGoesBack"
+  ],
+  "folder": "formal/formal-realtime-tabs"
+}

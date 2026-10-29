@@ -1,0 +1,12 @@
+[
+  {
+    "name": "dialog \"Delete Temp 7e7453?\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/workspace/roles"
+  },
+  {
+    "name": "page shows /Nobody holds this role/",
+    "pass": true,
+    "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Roles 1 Settings / All settings ACCOUNT Profile Language & r…"
+  }
+]

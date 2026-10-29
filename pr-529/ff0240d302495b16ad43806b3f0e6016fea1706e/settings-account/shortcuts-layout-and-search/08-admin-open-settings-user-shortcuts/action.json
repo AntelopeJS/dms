@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "/settings/user/shortcuts",
+  "baseUrl": "http://127.0.0.1:40839"
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "name": "names",
+    "pass": true,
+    "detail": "expected [\"Support 70be53\",\"Support 70be53 (copy)\"], got [\"Support 70be53\",\"Support 70be53 (copy)\"]"
+  },
+  {
+    "name": "permissions",
+    "pass": true,
+    "detail": "expected [[\"playground.reports.export\"],[\"playground.reports.export\"]], got [[\"playground.reports.export\"],[\"playground.reports.export\"]]"
+  },
+  {
+    "name": "option \"/^Support 70be53 \\(copy\\)/\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/settings/workspace/roles"
+  }
+]

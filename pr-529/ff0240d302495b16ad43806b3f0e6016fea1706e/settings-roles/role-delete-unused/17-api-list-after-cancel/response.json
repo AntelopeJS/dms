@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "719a97ec-f674-48e9-8fce-ba753a865334",
+        "name": "Temp 7e7453",
+        "permissions": [
+          "playground.reports.export"
+        ]
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

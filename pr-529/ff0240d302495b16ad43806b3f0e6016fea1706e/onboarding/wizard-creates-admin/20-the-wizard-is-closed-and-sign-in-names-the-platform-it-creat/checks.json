@@ -1,0 +1,12 @@
+[
+  {
+    "name": "path matches /^\\/auth/",
+    "pass": true,
+    "detail": "/auth"
+  },
+  {
+    "name": "page shows /Sign in to the Verify Wizard 2cb6d4 workspace/",
+    "pass": true,
+    "detail": "Connect to your account Welcome back. Sign in to the Verify Wizard 2cb6d4 workspace. Email address Password Forgot password? Keep my active session Login © Antelope Documentation Website English"
+  }
+]

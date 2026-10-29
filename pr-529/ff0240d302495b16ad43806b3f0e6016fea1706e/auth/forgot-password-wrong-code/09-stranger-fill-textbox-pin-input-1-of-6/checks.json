@@ -1,0 +1,7 @@
+[
+  {
+    "name": "fill textbox \"pin input 1 of 6\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/auth/forgot-validation?email=admin%2B20261029t064557-d7cef6%40verify.local"
+  }
+]

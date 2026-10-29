@@ -1,0 +1,148 @@
+{
+  "feature": "onboarding",
+  "journey": "wizard-refuses-weak-password",
+  "title": "the wizard lists the unmet password rules and creates nobody",
+  "entryPoint": "/onboarding wizard, Administrator step",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j003",
+  "steps": [
+    {
+      "name": "02-visitor-open",
+      "folder": "onboarding/wizard-refuses-weak-password/02-visitor-open",
+      "checks": [
+        {
+          "name": "open /",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "03-a-fresh-platform-opens-the-setup-wizard",
+      "folder": "onboarding/wizard-refuses-weak-password/03-a-fresh-platform-opens-the-setup-wizard",
+      "checks": [
+        {
+          "name": "path matches /^\\/onboarding/",
+          "pass": true,
+          "detail": "/onboarding"
+        },
+        {
+          "name": "heading \"Welcome to Antelope DMS\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "04-visitor-fill-textbox-platform-name",
+      "folder": "onboarding/wizard-refuses-weak-password/04-visitor-fill-textbox-platform-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Platform name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "05-visitor-click-button-continue-to-administrator",
+      "folder": "onboarding/wizard-refuses-weak-password/05-visitor-click-button-continue-to-administrator",
+      "checks": [
+        {
+          "name": "click button \"Continue to administrator\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "06-visitor-fill-textbox-first-name",
+      "folder": "onboarding/wizard-refuses-weak-password/06-visitor-fill-textbox-first-name",
+      "checks": [
+        {
+          "name": "fill textbox \"First name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "07-visitor-fill-textbox-last-name",
+      "folder": "onboarding/wizard-refuses-weak-password/07-visitor-fill-textbox-last-name",
+      "checks": [
+        {
+          "name": "fill textbox \"Last name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "08-visitor-fill-textbox-work-e-mail",
+      "folder": "onboarding/wizard-refuses-weak-password/08-visitor-fill-textbox-work-e-mail",
+      "checks": [
+        {
+          "name": "fill textbox \"Work e-mail\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "09-visitor-fill-textbox-password",
+      "folder": "onboarding/wizard-refuses-weak-password/09-visitor-fill-textbox-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "10-visitor-click-button-create-administrator-account",
+      "folder": "onboarding/wizard-refuses-weak-password/10-visitor-click-button-create-administrator-account",
+      "checks": [
+        {
+          "name": "click button \"Create administrator account\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "11-the-wizard-stays-on-the-administrator-step-with-the-rules",
+      "folder": "onboarding/wizard-refuses-weak-password/11-the-wizard-stays-on-the-administrator-step-with-the-rules",
+      "checks": [
+        {
+          "name": "page shows /The password doesn’t meet every rule/",
+          "pass": true,
+          "detail": "Platform 2 Administrator 3 Ready Step 1 of 3 STEP 2 OF 3 · ADMINISTRATOR Verify Weak a61934 Create the administrator account This account owns the platform: it can manage modules, settings and invite everyone else. First name Last name Work e-mail Password Show At least 8 characters not met At least…"
+        },
+        {
+          "name": "page shows /At least 8 characters\\s+not met/",
+          "pass": true,
+          "detail": "Platform 2 Administrator 3 Ready Step 1 of 3 STEP 2 OF 3 · ADMINISTRATOR Verify Weak a61934 Create the administrator account This account owns the platform: it can manage modules, settings and invite everyone else. First name Last name Work e-mail Password Show At least 8 characters not met At least…"
+        },
+        {
+          "name": "heading \"Create the administrator account\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/onboarding"
+        }
+      ]
+    },
+    {
+      "name": "13-the-platform-is-still-not-onboarded",
+      "folder": "onboarding/wizard-refuses-weak-password/13-the-platform-is-still-not-onboarded",
+      "checks": [
+        {
+          "name": "has_onboarded",
+          "pass": true,
+          "detail": "expected false, got false"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "onboarding/wizard-refuses-weak-password"
+}

@@ -1,0 +1,110 @@
+{
+  "feature": "auth",
+  "journey": "protected-page-redirects",
+  "title": "an anonymous visit to a settings page goes to sign-in and returns to the page afterwards",
+  "entryPoint": "/settings/workspace/members as a visitor",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j009",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "auth/protected-page-redirects/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "03-stranger-open-settings-workspace-members",
+      "folder": "auth/protected-page-redirects/03-stranger-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+        }
+      ]
+    },
+    {
+      "name": "04-the-visitor-lands-on-sign-in-with-the-page-to-return-to",
+      "folder": "auth/protected-page-redirects/04-the-visitor-lands-on-sign-in-with-the-page-to-return-to",
+      "checks": [
+        {
+          "name": "path matches /^\\/auth/",
+          "pass": true,
+          "detail": "/auth"
+        },
+        {
+          "name": "redirect names the page",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+        }
+      ]
+    },
+    {
+      "name": "05-stranger-fill-textbox-email-address",
+      "folder": "auth/protected-page-redirects/05-stranger-fill-textbox-email-address",
+      "checks": [
+        {
+          "name": "fill textbox \"Email address\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+        }
+      ]
+    },
+    {
+      "name": "06-stranger-fill-textbox-password",
+      "folder": "auth/protected-page-redirects/06-stranger-fill-textbox-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth?redirect=%2Fsettings%2Fworkspace%2Fmembers"
+        }
+      ]
+    },
+    {
+      "name": "07-stranger-click-button-login",
+      "folder": "auth/protected-page-redirects/07-stranger-click-button-login",
+      "checks": [
+        {
+          "name": "click button \"Login\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "08-after-signing-in-the-visitor-is-back-on-the-page",
+      "folder": "auth/protected-page-redirects/08-after-signing-in-the-visitor-is-back-on-the-page",
+      "checks": [
+        {
+          "name": "path matches /^\\/settings\\/workspace\\/members$/",
+          "pass": true,
+          "detail": "/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "10-the-members-api-refuses-an-anonymous-caller",
+      "folder": "auth/protected-page-redirects/10-the-members-api-refuses-an-anonymous-caller",
+      "checks": [
+        {
+          "name": "401 or 403",
+          "pass": true,
+          "detail": "401"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "auth/protected-page-redirects"
+}

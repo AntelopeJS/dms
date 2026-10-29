@@ -1,0 +1,12 @@
+[
+  {
+    "name": "HTTP 400",
+    "pass": true,
+    "detail": "status 400: [{\"code\":\"too_small\",\"minimum\":1,\"type\":\"string\",\"inclusive\":true,\"exact\":false,\"message\":\"$page.settings.roles.error.name_required\",\"path\":[\"name\"]}]"
+  },
+  {
+    "name": "HTTP 400",
+    "pass": true,
+    "detail": "status 400: [{\"code\":\"too_big\",\"maximum\":80,\"type\":\"string\",\"inclusive\":true,\"exact\":false,\"message\":\"String must contain at most 80 character(s)\",\"path\":[\"name\"]}]"
+  }
+]

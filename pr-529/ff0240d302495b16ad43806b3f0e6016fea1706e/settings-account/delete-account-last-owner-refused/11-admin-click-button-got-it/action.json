@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "button \"Got it\"",
+  "baseUrl": "http://127.0.0.1:40839"
+}

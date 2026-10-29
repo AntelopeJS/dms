@@ -1,0 +1,7 @@
+[
+  {
+    "name": "fill textbox \"First and last name\"",
+    "pass": true,
+    "detail": "http://127.0.0.1:40839/auth/signup?token=v3QnmltxVKSal8K7FzNHrz9W6qLZlr0KGYdG5qKbttdthw7ynbMeql5hQFPz3WVj&email=iris%2B20261029t064557-d7cef6-removed-member-lands-on-a-page%40verify.local&lang=en"
+  }
+]

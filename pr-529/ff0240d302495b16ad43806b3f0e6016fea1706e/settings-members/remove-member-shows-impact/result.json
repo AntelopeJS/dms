@@ -1,0 +1,501 @@
+{
+  "feature": "settings-members",
+  "journey": "remove-member-shows-impact",
+  "title": "removing a member first shows what it takes away, then the member is gone from the list and the API and loses access (Data door containment)",
+  "entryPoint": "Members > row menu > Remove from workspace",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j026",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-members/remove-member-shows-impact/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "04-the-role-viewer-0a62b9-exists",
+      "folder": "settings-members/remove-member-shows-impact/04-the-role-viewer-0a62b9-exists",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"id\":\"066689fe-b42e-4f58-bb74-8fc471be5f62\"}"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-signed-in-as-admin",
+      "folder": "settings-members/remove-member-shows-impact/09-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-open-settings-workspace-members",
+      "folder": "settings-members/remove-member-shows-impact/10-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-click-button-invite-members",
+      "folder": "settings-members/remove-member-shows-impact/11-admin-click-button-invite-members",
+      "checks": [
+        {
+          "name": "click button \"Invite members\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-fill-textbox-email-addresses",
+      "folder": "settings-members/remove-member-shows-impact/12-admin-fill-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "fill textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "13-admin-press-enter-in-textbox-email-addresses",
+      "folder": "settings-members/remove-member-shows-impact/13-admin-press-enter-in-textbox-email-addresses",
+      "checks": [
+        {
+          "name": "press Enter in textbox \"Email addresses\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "14-admin-click-combobox-team",
+      "folder": "settings-members/remove-member-shows-impact/14-admin-click-combobox-team",
+      "checks": [
+        {
+          "name": "click combobox \"Team\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-click-option-sales",
+      "folder": "settings-members/remove-member-shows-impact/15-admin-click-option-sales",
+      "checks": [
+        {
+          "name": "click option \"Sales\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "16-admin-click-button-viewer-0a62b9-in-group-roles",
+      "folder": "settings-members/remove-member-shows-impact/16-admin-click-button-viewer-0a62b9-in-group-roles",
+      "checks": [
+        {
+          "name": "click button \"Viewer 0a62b9\" in group \"Roles\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "17-admin-click-button-send-invitations",
+      "folder": "settings-members/remove-member-shows-impact/17-admin-click-button-send-invitations",
+      "checks": [
+        {
+          "name": "click button \"Send invitations\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/invites"
+        }
+      ]
+    },
+    {
+      "name": "19-the-invitation-email-reaches-hank-20261029t064557-d7cef6-rem",
+      "folder": "settings-members/remove-member-shows-impact/19-the-invitation-email-reaches-hank-20261029t064557-d7cef6-rem",
+      "checks": [
+        {
+          "name": "an email with a signup link arrived",
+          "pass": true,
+          "detail": "1 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "20-invitee-open-http-127-0-0-1-40839-auth-signup-token-73f3ev6n",
+      "folder": "settings-members/remove-member-shows-impact/20-invitee-open-http-127-0-0-1-40839-auth-signup-token-73f3ev6n",
+      "checks": [
+        {
+          "name": "open http://127.0.0.1:40839/auth/signup?token=73F3EV6nFKNSC154C8ceu9z9ygkB6CRY4PTN3MC5LaeXcWKnJDV6ktKybkV3T6bW&email=hank%2B20261029t064557-d7cef6-remove-member-shows-impact%40verify.local&lang=en",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/signup?token=73F3EV6nFKNSC154C8ceu9z9ygkB6CRY4PTN3MC5LaeXcWKnJDV6ktKybkV3T6bW&email=hank%2B20261029t064557-d7cef6-remove-member-shows-impact%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "21-the-link-opens-the-sign-up-form",
+      "folder": "settings-members/remove-member-shows-impact/21-the-link-opens-the-sign-up-form",
+      "checks": [
+        {
+          "name": "heading \"Create your account\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/signup?token=73F3EV6nFKNSC154C8ceu9z9ygkB6CRY4PTN3MC5LaeXcWKnJDV6ktKybkV3T6bW&email=hank%2B20261029t064557-d7cef6-remove-member-shows-impact%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "22-invitee-fill-textbox-first-and-last-name",
+      "folder": "settings-members/remove-member-shows-impact/22-invitee-fill-textbox-first-and-last-name",
+      "checks": [
+        {
+          "name": "fill textbox \"First and last name\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/signup?token=73F3EV6nFKNSC154C8ceu9z9ygkB6CRY4PTN3MC5LaeXcWKnJDV6ktKybkV3T6bW&email=hank%2B20261029t064557-d7cef6-remove-member-shows-impact%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "23-invitee-fill-textbox-password",
+      "folder": "settings-members/remove-member-shows-impact/23-invitee-fill-textbox-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/auth/signup?token=73F3EV6nFKNSC154C8ceu9z9ygkB6CRY4PTN3MC5LaeXcWKnJDV6ktKybkV3T6bW&email=hank%2B20261029t064557-d7cef6-remove-member-shows-impact%40verify.local&lang=en"
+        }
+      ]
+    },
+    {
+      "name": "24-invitee-click-button-create-my-account",
+      "folder": "settings-members/remove-member-shows-impact/24-invitee-click-button-create-my-account",
+      "checks": [
+        {
+          "name": "click button \"Create my account\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "25-hank-is-signed-in-after-accepting",
+      "folder": "settings-members/remove-member-shows-impact/25-hank-is-signed-in-after-accepting",
+      "checks": [
+        {
+          "name": "path matches /^\\/(?!auth)/",
+          "pass": true,
+          "detail": "/page-access/access-public"
+        }
+      ]
+    },
+    {
+      "name": "26-invitee-open-settings-workspace-members",
+      "folder": "settings-members/remove-member-shows-impact/26-invitee-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "28-before-the-removal-the-member-reads-what-the-role-grants",
+      "folder": "settings-members/remove-member-shows-impact/28-before-the-removal-the-member-reads-what-the-role-grants",
+      "checks": [
+        {
+          "name": "heading \"Members\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        },
+        {
+          "name": "members the member sees",
+          "pass": true,
+          "detail": "expected 2, got 2"
+        }
+      ]
+    },
+    {
+      "name": "29-admin-open-settings-workspace-members",
+      "folder": "settings-members/remove-member-shows-impact/29-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "30-admin-click-button-actions-for-hank",
+      "folder": "settings-members/remove-member-shows-impact/30-admin-click-button-actions-for-hank",
+      "checks": [
+        {
+          "name": "click button \"Actions for Hank\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "31-admin-click-menuitem-remove-from-workspace",
+      "folder": "settings-members/remove-member-shows-impact/31-admin-click-menuitem-remove-from-workspace",
+      "checks": [
+        {
+          "name": "click menuitem \"Remove from workspace…\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "33-the-dialog-spells-out-the-impact-before-anything-changes",
+      "folder": "settings-members/remove-member-shows-impact/33-the-dialog-spells-out-the-impact-before-anything-changes",
+      "checks": [
+        {
+          "name": "dialog \"Remove Hank from the workspace?\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        },
+        {
+          "name": "page shows /signed out of the workspace right away/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+        },
+        {
+          "name": "page shows /Roles removed\\s*Viewer 0a62b9/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+        },
+        {
+          "name": "page shows /Records they created stay/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "35-the-api-reports-the-same-impact",
+      "folder": "settings-members/remove-member-shows-impact/35-the-api-reports-the-same-impact",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"memberId\":\"default:901cec28-28b7-4409-a7ed-15cb6b718e73\",\"name\":\"Hank\",\"email\":\"hank+20261029t064557-d7cef6-remove-member-shows-impact@verify.local\",\"roles\":[\"Viewer 0a62b9\"],\"isTenantOwner\":false,\"isLastOwner\":false,\"isSelf\":false}"
+        },
+        {
+          "name": "roles",
+          "pass": true,
+          "detail": "expected [\"Viewer 0a62b9\"], got [\"Viewer 0a62b9\"]"
+        },
+        {
+          "name": "last owner",
+          "pass": true,
+          "detail": "expected false, got false"
+        }
+      ]
+    },
+    {
+      "name": "36-admin-click-button-cancel",
+      "folder": "settings-members/remove-member-shows-impact/36-admin-click-button-cancel",
+      "checks": [
+        {
+          "name": "click button \"Cancel\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "37-admin-reload",
+      "folder": "settings-members/remove-member-shows-impact/37-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "39-cancelling-removes-nobody",
+      "folder": "settings-members/remove-member-shows-impact/39-cancelling-removes-nobody",
+      "checks": [
+        {
+          "name": "cell \"/Hank/\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        },
+        {
+          "name": "still a member",
+          "pass": true,
+          "detail": "hank+20261029t064557-d7cef6-remove-member-shows-impact@verify.local"
+        }
+      ]
+    },
+    {
+      "name": "40-admin-open-settings-workspace-members",
+      "folder": "settings-members/remove-member-shows-impact/40-admin-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "41-admin-click-button-actions-for-hank",
+      "folder": "settings-members/remove-member-shows-impact/41-admin-click-button-actions-for-hank",
+      "checks": [
+        {
+          "name": "click button \"Actions for Hank\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "42-admin-click-menuitem-remove-from-workspace",
+      "folder": "settings-members/remove-member-shows-impact/42-admin-click-menuitem-remove-from-workspace",
+      "checks": [
+        {
+          "name": "click menuitem \"Remove from workspace…\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "43-admin-click-button-remove-member",
+      "folder": "settings-members/remove-member-shows-impact/43-admin-click-button-remove-member",
+      "checks": [
+        {
+          "name": "click button \"Remove member\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "44-the-removal-is-confirmed",
+      "folder": "settings-members/remove-member-shows-impact/44-the-removal-is-confirmed",
+      "checks": [
+        {
+          "name": "page shows /Member removed/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "45-admin-reload",
+      "folder": "settings-members/remove-member-shows-impact/45-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "46-the-member-is-gone-from-the-list-after-a-reload",
+      "folder": "settings-members/remove-member-shows-impact/46-the-member-is-gone-from-the-list-after-a-reload",
+      "checks": [
+        {
+          "name": "cell \"/Hank/\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        },
+        {
+          "name": "page shows /1 member/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Workspace / Members 2 Settings / All settings ACCOUNT Profile Language &…"
+        }
+      ]
+    },
+    {
+      "name": "50-the-api-drops-the-member-and-refuses-what-the-role-granted",
+      "folder": "settings-members/remove-member-shows-impact/50-the-api-drops-the-member-and-refuses-what-the-role-granted",
+      "checks": [
+        {
+          "name": "members",
+          "pass": true,
+          "detail": "expected [\"admin+20261029t064557-d7cef6@verify.local\"], got [\"admin+20261029t064557-d7cef6@verify.local\"]"
+        },
+        {
+          "name": "the members list is refused",
+          "pass": true,
+          "detail": "403"
+        },
+        {
+          "name": "sign-in yields no session",
+          "pass": true,
+          "detail": "{\"requires_tenant_assignment\":true,\"tenant_assignment_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwMWNlYzI4L"
+        },
+        {
+          "name": "sign-in asks for a workspace",
+          "pass": true,
+          "detail": "expected true, got true"
+        }
+      ]
+    },
+    {
+      "name": "51-invitee-open-settings-workspace-members",
+      "folder": "settings-members/remove-member-shows-impact/51-invitee-open-settings-workspace-members",
+      "checks": [
+        {
+          "name": "open /settings/workspace/members",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "52-the-removed-member-s-open-browser-no-longer-reaches-the-page",
+      "folder": "settings-members/remove-member-shows-impact/52-the-removed-member-s-open-browser-no-longer-reaches-the-page",
+      "checks": [
+        {
+          "name": "heading \"Members\" is absent",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/workspace/members"
+        }
+      ]
+    },
+    {
+      "name": "54-the-role-itself-stays",
+      "folder": "settings-members/remove-member-shows-impact/54-the-role-itself-stays",
+      "checks": [
+        {
+          "name": "role ids",
+          "pass": true,
+          "detail": "expected [\"066689fe-b42e-4f58-bb74-8fc471be5f62\"], got [\"066689fe-b42e-4f58-bb74-8fc471be5f62\"]"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-members/remove-member-shows-impact"
+}

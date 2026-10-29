@@ -1,0 +1,5 @@
+{
+  "do": "goto",
+  "path": "http://127.0.0.1:40839/auth/signup?token=SRglWoXmnAROf7wpLqU9TSxzQIhMXVmjFytpZp12PE8V4zI7RWbv0Z2sTneiyiQU&email=mia%2B20261029t064557-d7cef6-role-edit-changes-access%40verify.local&lang=en",
+  "baseUrl": "http://127.0.0.1:40839"
+}

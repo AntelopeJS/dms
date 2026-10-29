@@ -1,0 +1,28 @@
+- dialog:
+  - heading [level=2]
+  - paragraph
+  - heading "Remove Email verification?" [level=3]
+  - paragraph: "Enter your current verification code to confirm. This is your last method: two-factor turns off and your backup codes stop working."
+  - text: Code sent to your email
+  - group "Code sent to your email":
+    - textbox "pin input 1 of 6":
+      - /placeholder: ""
+      - text: "7"
+    - textbox "pin input 2 of 6":
+      - /placeholder: ""
+      - text: "1"
+    - textbox "pin input 3 of 6":
+      - /placeholder: ""
+      - text: "8"
+    - textbox "pin input 4 of 6":
+      - /placeholder: ""
+      - text: "2"
+    - textbox "pin input 5 of 6":
+      - /placeholder: ""
+      - text: "7"
+    - textbox "pin input 6 of 6":
+      - /placeholder: ""
+  - button "Send code by email"
+  - text: Esc to cancel
+  - button "Cancel"
+  - button "Remove method"

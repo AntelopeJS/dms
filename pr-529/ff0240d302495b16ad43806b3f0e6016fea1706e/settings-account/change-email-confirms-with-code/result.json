@@ -1,0 +1,246 @@
+{
+  "feature": "settings-account",
+  "journey": "change-email-confirms-with-code",
+  "title": "a new sign-in address takes effect only after the code emailed to it is entered, and the old address is told",
+  "entryPoint": "Settings > Security > Change email, mail sink",
+  "status": "PASS",
+  "database": "verify_20261029T064557_d7cef6_j045",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "settings-account/change-email-confirms-with-code/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-admin-signed-in-as-admin",
+      "folder": "settings-account/change-email-confirms-with-code/07-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "08-admin-open-settings-user-security",
+      "folder": "settings-account/change-email-confirms-with-code/08-admin-open-settings-user-security",
+      "checks": [
+        {
+          "name": "open /settings/user/security",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "09-admin-click-button-change-email",
+      "folder": "settings-account/change-email-confirms-with-code/09-admin-click-button-change-email",
+      "checks": [
+        {
+          "name": "click button \"Change email\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "10-admin-fill-textbox-new-email",
+      "folder": "settings-account/change-email-confirms-with-code/10-admin-fill-textbox-new-email",
+      "checks": [
+        {
+          "name": "fill textbox \"New email\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "11-admin-fill-textbox-current-password",
+      "folder": "settings-account/change-email-confirms-with-code/11-admin-fill-textbox-current-password",
+      "checks": [
+        {
+          "name": "fill textbox \"Current password\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "12-admin-click-button-change-email-in-form-changing-email",
+      "folder": "settings-account/change-email-confirms-with-code/12-admin-click-button-change-email-in-form-changing-email",
+      "checks": [
+        {
+          "name": "click button \"Change email\" in form \"Changing email\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "13-the-page-asks-for-the-emailed-code-and-keeps-the-current-add",
+      "folder": "settings-account/change-email-confirms-with-code/13-the-page-asks-for-the-emailed-code-and-keeps-the-current-add",
+      "checks": [
+        {
+          "name": "heading \"Confirm your new email\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        },
+        {
+          "name": "page shows /sent to renamed\\+20261029t064557-d7cef6-change-email-confirms-with-code@verify\\.local/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin admin+20261029t064557-d7cef6@verify.local / Settings / Account / Security 1 Settings / All settings ACCOUNT Profile Language & …"
+        }
+      ]
+    },
+    {
+      "name": "16-a-code-reaches-renamed-20261029t064557-d7cef6-change-email-c",
+      "folder": "settings-account/change-email-confirms-with-code/16-a-code-reaches-renamed-20261029t064557-d7cef6-change-email-c",
+      "checks": [
+        {
+          "name": "a mail with a code arrived",
+          "pass": true,
+          "detail": "2 messages captured"
+        }
+      ]
+    },
+    {
+      "name": "18-the-old-address-is-warned-and-the-account-still-uses-it",
+      "folder": "settings-account/change-email-confirms-with-code/18-the-old-address-is-warned-and-the-account-still-uses-it",
+      "checks": [
+        {
+          "name": "a warning reached the old address",
+          "pass": true,
+          "detail": "Your sign-in email is being changed | Confirm your new sign-in email"
+        },
+        {
+          "name": "email before the code",
+          "pass": true,
+          "detail": "expected \"admin+20261029t064557-d7cef6@verify.local\", got \"admin+20261029t064557-d7cef6@verify.local\""
+        }
+      ]
+    },
+    {
+      "name": "19-admin-fill-textbox-pin-input-1-of-6",
+      "folder": "settings-account/change-email-confirms-with-code/19-admin-fill-textbox-pin-input-1-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 1 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "20-admin-fill-textbox-pin-input-2-of-6",
+      "folder": "settings-account/change-email-confirms-with-code/20-admin-fill-textbox-pin-input-2-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 2 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "21-admin-fill-textbox-pin-input-3-of-6",
+      "folder": "settings-account/change-email-confirms-with-code/21-admin-fill-textbox-pin-input-3-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 3 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "22-admin-fill-textbox-pin-input-4-of-6",
+      "folder": "settings-account/change-email-confirms-with-code/22-admin-fill-textbox-pin-input-4-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 4 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "23-admin-fill-textbox-pin-input-5-of-6",
+      "folder": "settings-account/change-email-confirms-with-code/23-admin-fill-textbox-pin-input-5-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 5 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "24-admin-fill-textbox-pin-input-6-of-6",
+      "folder": "settings-account/change-email-confirms-with-code/24-admin-fill-textbox-pin-input-6-of-6",
+      "checks": [
+        {
+          "name": "fill textbox \"pin input 6 of 6\"",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "25-the-sixth-character-confirms-and-the-page-shows-the-new-addr",
+      "folder": "settings-account/change-email-confirms-with-code/25-the-sixth-character-confirms-and-the-page-shows-the-new-addr",
+      "checks": [
+        {
+          "name": "page shows /renamed\\+20261029t064557-d7cef6-change-email-confirms-with-code@verify\\.local/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin renamed+20261029t064557-d7cef6-change-email-confirms-with-code@verify.local / Settings / Account / Security 2 Settings / All se…"
+        }
+      ]
+    },
+    {
+      "name": "26-admin-reload",
+      "folder": "settings-account/change-email-confirms-with-code/26-admin-reload",
+      "checks": [
+        {
+          "name": "reload",
+          "pass": true,
+          "detail": "http://127.0.0.1:40839/settings/user/security"
+        }
+      ]
+    },
+    {
+      "name": "29-a-reload-the-api-and-the-sign-in-all-use-the-new-address-onl",
+      "folder": "settings-account/change-email-confirms-with-code/29-a-reload-the-api-and-the-sign-in-all-use-the-new-address-onl",
+      "checks": [
+        {
+          "name": "page shows /renamed\\+20261029t064557-d7cef6-change-email-confirms-with-code@verify\\.local/",
+          "pass": true,
+          "detail": "Search… CTRL K EXAMPLES Overview Feature index LIBRARY Design system Layout Components Pages & navigation Dashboard chrome Frontend modules System Modules 2 VA Verify Admin renamed+20261029t064557-d7cef6-change-email-confirms-with-code@verify.local / Settings / Account / Security 2 Settings / All se…"
+        },
+        {
+          "name": "new address signs in",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "HTTP 401",
+          "pass": true,
+          "detail": "status 401: \"error.invalid_credentials\""
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "settings-account/change-email-confirms-with-code"
+}

@@ -1,0 +1,10 @@
+{
+  "from": "<>",
+  "to": [
+    "<renamed+20261029t064557-d7cef6-change-email-confirms-with-code@verify.local>"
+  ],
+  "subject": "Confirm your new sign-in email",
+  "links": [],
+  "text": "Confirm your new sign-in email Hello Verify Admin, Enter the code below to make renamed+20261029t064557-d7cef6-change-email-confirms-with-code@verify.local the sign-in email of your account: Your verification code is: 255160 This code expires in 24 hours. If you didn't ask for this change, you can safely ignore this email: your account keeps its current address.",
+  "receivedAt": "2026-10-29T06:56:39.028Z"
+}

@@ -1,0 +1,5 @@
+{
+  "do": "click",
+  "target": "radio \"Developer 1\"",
+  "baseUrl": "http://127.0.0.1:40839"
+}
