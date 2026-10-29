@@ -7,7 +7,7 @@ description: "Drive the AntelopeJS DMS (@antelopejs/dms backend and its Vue dash
 
 Every deterministic step is a `dms-control` command. You choose which journeys to run and judge what they show; you never write a multi-step shell recipe. When a journey you need does not exist, add it to `journeys/<feature>.mjs`, describe it in its feature file, and run it.
 
-`dms-control` is the bin of `@antelopejs/dms` (`packages/dms/bin/dms-control.mjs`). Run it from the repository root with Node 24, after `pnpm install --frozen-lockfile` and a build of the module and the playground (`pnpm --dir packages/dms build`, `pnpm --dir packages/dms/playground build`). `doctor` fails on a stale build.
+`dms-control` is the bin of `@antelopejs/dms` (`packages/dms/bin/dms-control.mjs`). Run it from the repository root with Node 24.
 
 ```bash
 C="node packages/dms/bin/dms-control.mjs"
@@ -17,10 +17,10 @@ $C                       # lists every command
 ## Launch
 
 ```bash
-RUN=$($C up)             # prints the run folder
+RUN=$($C up --prepare)   # installs, builds, starts; prints the run folder
 ```
 
-`up` reads the playground from `verify.config.ts` and starts an isolated DMS:
+`--prepare` first runs the `prepare` commands of `verify.config.ts` (the frozen install, the module build and the playground build); without it `up` uses the builds already there, and `doctor` fails on a stale one. `up` reads the playground from `verify.config.ts` and starts an isolated DMS:
 
 - the checkout is laid out again under `$RUN/root`, every sibling linked, and the playground copied without `node_modules`, `.antelope` and `.dms-frontend`, so the run's build and `.antelope/` are its own;
 - the API, the dashboard and the mail sink get free ports from the kernel, and `HOME` is `$RUN/home`;
@@ -92,7 +92,7 @@ $C down "$RUN"
 3. **Every registered journey of a feature in `run` must have run and passed.** A missing journey fails as "not run", so run whole features. Known findings stay as failing journeys (see the feature files' Gotchas): they fail a verdict only when the diff touches their feature.
 4. **Docs.** Each touched feature lists its `docs:` pages. Judge every page against what the journeys showed. A page that no longer matches fails the verdict.
 5. **Formal checks.** `verify.config.ts` lists each formal check with the files it covers. Run `$C formal "$RUN"` before the verdict: it runs the full configuration of every check that covers the diff and records it under `evidence/formal/<name>/`. A covered check that did not run, reports a violated rule (recorded findings included), or exits with a tool error fails the verdict. `--all` runs the others too, without gating.
-6. **One-way doors.** The section comes right after the result line and is mandatory; a verdict without it is void. It holds `None` with a reason, or one row per door: kind, location, what cannot be undone, containment. `$C doors` prints the `One-way-door:` line for the diff from the path rules in `verify.config.ts`. Every file they flag needs a row, or a `falsePositives` entry saying why it is not a door. A Data or Format door is contained only by one of that kind's `containments` journeys passing in this run: `module-pages/table-delete-record` or `settings-members/remove-member-shows-impact` for Data, `auth/base-written-data-upgrade` for Format.
+6. **One-way doors.** The section comes right after the result line and is mandatory; a verdict without it is void. It holds `None` with a reason, or one row per door: kind, location, what cannot be undone, containment. `$C doors` prints the `One-way-door:` line for the diff from the path rules in `verify.config.ts`. Every file they flag needs a row, or a `falsePositives` entry saying why it is not a door. A Data or Format door is contained only by one of that kind's `containments` journeys passing in this run: `module-pages/table-delete-record` or `settings-members/remove-member-shows-impact` for Data, `auth/base-written-data-upgrade` for Format. `plan` lists them as `containments` when the diff opens such a door; run the one you name (`$C journey "$RUN" <feature> <journey>`). The verdict reads its result from this run whether or not its feature is in `run`.
 7. **Result.** FAIL if any of rules 1 to 6 fail. PASS+NOTES when something is not verified or needs the owner's attention. PASS otherwise.
 
 Write your judgement to `$RUN/evidence/judgement.json`:
