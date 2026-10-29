@@ -257,7 +257,7 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
 
   describe("RelationType filterOnly", () => {
     class UnregisteredController {}
-    // SAFETY: RelationType expects a registered ControllerClass; these cases pass a bare class on purpose, because none of them may need the controller's routing API or its data-api registration.
+    // SAFETY: RelationType expects a registered ControllerClass; these cases pass a bare class on purpose: none but the Foreign-join case needs the controller's routing API or data-api registration, and that case relies on the missing registration to make decorateField throw.
     const UNREGISTERED_CONTROLLER = UnregisteredController as never;
 
     it("keeps the relation compare modes whether or not filterOnly is set", () => {

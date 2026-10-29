@@ -157,9 +157,11 @@ async function rejectionOf(
   throw new Error("expected a refusal");
 }
 
-function listContext(query: string): never {
+function listContext(query: string): Parameters<typeof applyArchiveFilter>[1] {
   // SAFETY: Archive filtering reads only url; a full HTTP context would add unrelated behavior to this fixture.
-  return { url: new URL(`http://localhost/list?${query}`) } as never;
+  return { url: new URL(`http://localhost/list?${query}`) } as Parameters<
+    typeof applyArchiveFilter
+  >[1];
 }
 
 function ruleOf(action: "archive" | "restore" | "delete" | "edit") {

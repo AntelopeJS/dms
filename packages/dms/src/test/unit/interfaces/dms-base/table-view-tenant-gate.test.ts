@@ -37,7 +37,7 @@ const PERMISSION_ID = "tv-gate.invoices";
 const HTTP_FORBIDDEN = 403;
 
 function userWithId(id: string): User {
-  // SAFETY: Authorization reads only the user id; the fixture deliberately omits the other persisted user columns.
+  // SAFETY: Authorization reads only the user id and the owner flag (absent here, so the user is not a platform owner); the fixture deliberately omits the other persisted user columns.
   return { _id: id } as User;
 }
 
