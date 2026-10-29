@@ -1,0 +1,82 @@
+### rr-move-module: checks/release-range.mjs content moved to another module and re-exported
+$ git commit (scratch worktree at 6e76725c, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-release-range: covered behaviour unchanged (probe node .agents/skills/formal-release-range/probe.mjs): known findings range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-release-range` (covers the diff, gates the verdict): covered behaviour unchanged (probe node .agents/skills/formal-release-range/probe.mjs): known findings range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded). [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/6e76725c6ed2b53008e6ccf1a7a976d906ba8beb/formal/formal-release-range)
+formal reasons in Why it fails: none
+behaviour: {"formal-release-range": {"method": "probe node .agents/skills/formal-release-range/probe.mjs", "changed": false, "removed": [], "added": []}}
+
+### rr-reshape-step: release.yml validate step reordered, same decisions
+$ git commit (scratch worktree at db382a3e, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-release-range: covered behaviour unchanged (probe node .agents/skills/formal-release-range/probe.mjs): known findings range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-release-range` (covers the diff, gates the verdict): covered behaviour unchanged (probe node .agents/skills/formal-release-range/probe.mjs): known findings range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded). [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/db382a3eafc16542b0870453594c8b9f3022b576/formal/formal-release-range)
+formal reasons in Why it fails: none
+behaviour: {"formal-release-range": {"method": "probe node .agents/skills/formal-release-range/probe.mjs", "changed": false, "removed": [], "added": []}}
+
+### rr-behaviour-change: release.yml validate step no longer checks the license
+$ git commit (scratch worktree at 04cb6528, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+FAIL formal-release-range: covered behaviour changed (probe node .agents/skills/formal-release-range/probe.mjs), violated range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-release-range` (covers the diff, gates the verdict): covered behaviour changed (probe node .agents/skills/formal-release-range/probe.mjs), violated range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded). [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/04cb6528915dba7138b050beb8b07acafcf44375/formal/formal-release-range)
+formal reasons in Why it fails: - formal check formal-release-range: covered behaviour changed (probe node .agents/skills/formal-release-range/probe.mjs), violated range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded)
+behaviour: {"formal-release-range": {"method": "probe node .agents/skills/formal-release-range/probe.mjs", "changed": true, "removed": ["manifest license\texit 1"], "added": ["manifest license\texit 0"]}}
+
+### rr-fixed: the release range rule fixed and its recorded findings removed from the test
+$ git commit (scratch worktree at ce19389e, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-release-range: covered behaviour changed (probe node .agents/skills/formal-release-range/probe.mjs), no violated rule; fixed: range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-release-range` (covers the diff, gates the verdict): covered behaviour changed (probe node .agents/skills/formal-release-range/probe.mjs), no violated rule; fixed: range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded). [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/ce19389e66739cb99d04037299e20f2f34d048e1/formal/formal-release-range)
+formal reasons in Why it fails: none
+behaviour: {"formal-release-range": {"method": "probe node .agents/skills/formal-release-range/probe.mjs", "changed": true, "removed": ["range \">=0.9.1 <0.10.0\" version 0.9.1-next.0\texit 0", "range \">=0.9.1 <0.10.0\" version 0.9.5-rc.1\texit 0", "range \">=0.9.1 <0.10.0\" version 0.9.5+build.0\texit 1", "range \">=0.09.1 <0.10.0\" version 0.9.1\texit 0", "range \">=0.09.1 <0.10.0\" version 0.9.5\texit 0"], "added": ["range \">=0.9.1 <0.10.0\" version 0.9.1-next.0\texit 1", "range \">=0.9.1 <0.10.0\" version 0.9.5-rc.1\texit 1", "range \">=0.9.1 <0.10.0\" version 0.9.5+build.0\texit 0", "range \">=0.09.1 <0.10.0\" version 0.9.1\texit 1", "range \">=0.09.1 <0.10.0\" version 0.9.5\texit 1"]}}
+
+### onboarding-type-only: a type annotation added in onboarding.ts
+$ git commit (scratch worktree at 1e7ba400, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-onboarding-bootstrap: covered behaviour unchanged (emit): known findings AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-onboarding-bootstrap` (covers the diff, gates the verdict): covered behaviour unchanged (emit): known findings AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/1e7ba400d0616c5f5e3fdfe2ef8a55e38a8f427a/formal/formal-onboarding-bootstrap)
+formal reasons in Why it fails: none
+behaviour: {"formal-onboarding-bootstrap": {"method": "emit", "changed": false, "removed": [], "added": []}}
+
+### onboarding-status-409: onboarding.ts answers 409 instead of 400 on a second admin
+$ git commit (scratch worktree at a32cf683, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+FAIL formal-onboarding-bootstrap: covered behaviour changed (emit), violated AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-onboarding-bootstrap` (covers the diff, gates the verdict): covered behaviour changed (emit), violated AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/a32cf683a1482aac7a5cc430d3b436274a6f3dfe/formal/formal-onboarding-bootstrap)
+formal reasons in Why it fails: - formal check formal-onboarding-bootstrap: covered behaviour changed (emit), violated AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen
+behaviour: {"formal-onboarding-bootstrap": {"method": "emit", "changed": true, "removed": ["class PublicOnboardingController extends Controller(\"/api/onboarding\") {\n    async getInformations(userModel) {\n        const settings = await this.model.getCon\u2026"], "added": ["class PublicOnboardingController extends Controller(\"/api/onboarding\") {\n    async getInformations(userModel) {\n        const settings = await this.model.getCon\u2026"]}}
+
+### realtime-move: isEventForTenant moved verbatim from broker.ts to registry.ts, re-exported
+$ git commit (scratch worktree at aa8ebd89, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-realtime-tabs: covered behaviour unchanged (emit): known findings ShowsLatest, ReconnectCatchesUp, NeverGoesBack (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-realtime-tabs` (covers the diff, gates the verdict): covered behaviour unchanged (emit): known findings ShowsLatest, ReconnectCatchesUp, NeverGoesBack. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/aa8ebd895e62e6455ac39d3d10e7e79058f439ca/formal/formal-realtime-tabs)
+formal reasons in Why it fails: none
+behaviour: {"formal-realtime-tabs": {"method": "emit", "changed": false, "removed": [], "added": []}}
+
+### realtime-behaviour-change: table-view.ts no longer releases presence on updates
+$ git commit (scratch worktree at 4dde99c0, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+FAIL formal-realtime-tabs: covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-realtime-tabs` (covers the diff, gates the verdict): covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/4dde99c0455fc48cff25fcfb4fadcf6f7964c711/formal/formal-realtime-tabs)
+formal reasons in Why it fails: - formal check formal-realtime-tabs: covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack
+behaviour: {"formal-realtime-tabs": {"method": "emit", "changed": true, "removed": ["const PRESENCE_RELEASING_EVENTS = new Set([\"updated\", \"deleted\"]);"], "added": ["const PRESENCE_RELEASING_EVENTS = new Set([\"deleted\"]);"]}}
+
+### pr529-move: the branch head against 4c96f61d, before #529 moved the rule out of release.yml
+$ git commit (scratch worktree at def97c79, base 4c96f61d)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-release-range: covered behaviour unchanged (probe node .agents/skills/formal-release-range/probe.mjs): known findings range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-release-range` (covers the diff, gates the verdict): covered behaviour unchanged (probe node .agents/skills/formal-release-range/probe.mjs): known findings range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded). [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/def97c79f76b336b35d9dcdb0b931e70ad177036/formal/formal-release-range)
+formal reasons in Why it fails: none
+behaviour: {"formal-release-range": {"method": "probe node .agents/skills/formal-release-range/probe.mjs", "changed": false, "removed": [], "added": []}}
+
+exit 0

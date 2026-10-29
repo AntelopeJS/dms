@@ -1,0 +1,10 @@
+
+> dms-workspace@ checks /home/antony/code/antelope/t6/dms
+> antelopejs-checks
+
+Checks: 8 passed, 0 failed.
+
+real	2m27.058s
+user	3m46.095s
+sys	0m22.396s
+exit 0

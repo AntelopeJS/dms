@@ -1,0 +1,39 @@
+API: 2 packages, 332 entries unchanged against origin/main (committed HEAD).
+API: skipped ., private.
+API: skipped packages/dms/playground, private.
+Runtime API: 2 packages, 330 entries unchanged against origin/main (committed HEAD).
+No behavioural probe ran.
+
+Suppressions in authored code files (origin/main and committed HEAD). A lint directive counts once per rule it names; `*` is a directive naming none.
+| Suppressions | base | HEAD |
+| --- | ---: | ---: |
+| Lint suppressions, all rules | 1016 | 1016 |
+| Lint suppressions, `@typescript-eslint/no-dynamic-delete` | 1 | 1 |
+| Lint suppressions, `@typescript-eslint/no-unused-vars` | 2 | 2 |
+| Lint suppressions, `antelopejs/no-comments` | 1 | 1 |
+| Lint suppressions, `anti-slop/no-chained-type-assertions` | 17 | 17 |
+| Lint suppressions, `anti-slop/no-conditional-empty-object-spread` | 3 | 3 |
+| Lint suppressions, `anti-slop/no-known-value-widening` | 59 | 59 |
+| Lint suppressions, `anti-slop/no-object-parameters` | 6 | 6 |
+| Lint suppressions, `anti-slop/no-reflect-apply` | 2 | 2 |
+| Lint suppressions, `anti-slop/no-reflect-get` | 1 | 1 |
+| Lint suppressions, `anti-slop/no-runtime-typeof` | 193 | 193 |
+| Lint suppressions, `anti-slop/no-shape-in-symbol-names` | 26 | 26 |
+| Lint suppressions, `anti-slop/no-unknown-parameters` | 84 | 84 |
+| Lint suppressions, `anti-slop/no-unknown-returns` | 23 | 23 |
+| Lint suppressions, `anti-slop/no-unsafe-dictionary-type` | 166 | 166 |
+| Lint suppressions, `anti-slop/require-safety-comment-for-type-assertion` | 378 | 378 |
+| Lint suppressions, `eslint/max-params` | 12 | 12 |
+| Lint suppressions, `import/no-cycle` | 11 | 11 |
+| Lint suppressions, `import/no-duplicates` | 1 | 1 |
+| Lint suppressions, `no-empty` | 16 | 16 |
+| Lint suppressions, `promise/no-callback-in-promise` | 1 | 1 |
+| Lint suppressions, `typescript/no-misused-spread` | 5 | 5 |
+| Lint suppressions, `typescript/no-redundant-type-constituents` | 1 | 1 |
+| Lint suppressions, `typescript/unbound-method` | 1 | 1 |
+| Lint suppressions, `unicorn/no-useless-spread` | 4 | 4 |
+| Lint suppressions, `vue/no-v-html` | 2 | 2 |
+| `@ts-expect-error` | 20 | 20 |
+| `@ts-ignore` | 0 | 0 |
+| `SAFETY:` comments | 307 | 307 |
+exit 0
