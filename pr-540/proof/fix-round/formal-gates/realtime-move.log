@@ -1,0 +1,8 @@
+### realtime-move: isEventForTenant moved verbatim from broker.ts to registry.ts, re-exported
+$ git commit (scratch worktree at e3b6cae6, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-realtime-tabs: covered behaviour unchanged (emit): known findings ShowsLatest, ReconnectCatchesUp, NeverGoesBack (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-realtime-tabs` (covers the diff, gates the verdict): covered behaviour unchanged (emit): known findings ShowsLatest, ReconnectCatchesUp, NeverGoesBack. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/e3b6cae6b42458ee7874707414f868c9b083c09a/formal/formal-realtime-tabs)
+formal reasons in Why it fails: none
+behaviour: {"formal-realtime-tabs": {"method": "emit", "changed": false, "removed": [], "added": []}}

@@ -1,0 +1,8 @@
+### order-swap: two statements swapped in the covered [...slug].vue script setup
+$ git commit (scratch worktree at 326d5ee5, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+FAIL formal-realtime-tabs: covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-realtime-tabs` (covers the diff, gates the verdict): covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/326d5ee51482159372800fe31863e07903d26671/formal/formal-realtime-tabs)
+formal reasons in Why it fails: - formal check formal-realtime-tabs: covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack
+behaviour: {"formal-realtime-tabs": {"method": "emit", "changed": true, "removed": ["packages/dms/frontend-vue/layers/dms-layout/app/pages/[...slug].vue statement 15: await enforcePageValidation();"], "added": ["packages/dms/frontend-vue/layers/dms-layout/app/pages/[...slug].vue statement 15: await checkPageMetadata(pagelayoutMetadata.value);"]}}

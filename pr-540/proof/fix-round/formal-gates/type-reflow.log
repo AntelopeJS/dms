@@ -1,0 +1,8 @@
+### type-reflow: a long type annotation in onboarding.ts, reflowed by oxfmt
+$ git commit (scratch worktree at 45b3c4f3, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-onboarding-bootstrap: covered behaviour unchanged (emit): known findings AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-onboarding-bootstrap` (covers the diff, gates the verdict): covered behaviour unchanged (emit): known findings AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/45b3c4f3d831c0db0e0fc574b5ad267aae49e3b7/formal/formal-onboarding-bootstrap)
+formal reasons in Why it fails: none
+behaviour: {"formal-onboarding-bootstrap": {"method": "emit", "changed": false, "removed": [], "added": []}}

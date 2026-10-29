@@ -1,0 +1,8 @@
+### realtime-behaviour-change: table-view.ts no longer releases presence on updates
+$ git commit (scratch worktree at b2f7e183, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+FAIL formal-realtime-tabs: covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-realtime-tabs` (covers the diff, gates the verdict): covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/b2f7e18388789997039e9f44d067c8955460f40d/formal/formal-realtime-tabs)
+formal reasons in Why it fails: - formal check formal-realtime-tabs: covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack
+behaviour: {"formal-realtime-tabs": {"method": "emit", "changed": true, "removed": ["packages/dms/src/realtime/table-view.ts statement 1: const PRESENCE_RELEASING_EVENTS = new Set([\"updated\", \"deleted\"]);"], "added": ["packages/dms/src/realtime/table-view.ts statement 1: const PRESENCE_RELEASING_EVENTS = new Set([\"deleted\"]);"]}}

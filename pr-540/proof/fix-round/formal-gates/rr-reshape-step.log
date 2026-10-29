@@ -1,0 +1,8 @@
+### rr-reshape-step: release.yml validate step reordered, same decisions
+$ git commit (scratch worktree at 9c6eeac2, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-release-range: covered behaviour unchanged (probe node .agents/skills/formal-release-range/probe.mjs): known findings range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-release-range` (covers the diff, gates the verdict): covered behaviour unchanged (probe node .agents/skills/formal-release-range/probe.mjs): known findings range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded). [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/9c6eeac2e2c9420d8b440228e6729ea867a9bfe0/formal/formal-release-range)
+formal reasons in Why it fails: none
+behaviour: {"formal-release-range": {"method": "probe node .agents/skills/formal-release-range/probe.mjs", "changed": false, "removed": [], "added": []}}

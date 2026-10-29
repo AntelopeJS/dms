@@ -1,0 +1,8 @@
+### pr529-move: the branch head against 4c96f61d, before #529 moved the rule out of release.yml
+$ git commit (scratch worktree at 83e79a4c, base 4c96f61d)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-release-range: covered behaviour unchanged (probe node .agents/skills/formal-release-range/probe.mjs): known findings range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-release-range` (covers the diff, gates the verdict): covered behaviour unchanged (probe node .agents/skills/formal-release-range/probe.mjs): known findings range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded). [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/83e79a4c149e83a932c92ae712f7202987ae388a/formal/formal-release-range)
+formal reasons in Why it fails: none
+behaviour: {"formal-release-range": {"method": "probe node .agents/skills/formal-release-range/probe.mjs", "changed": false, "removed": [], "added": []}}

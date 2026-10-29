@@ -1,0 +1,8 @@
+### side-effect-import: a use of an imported binding replaced by a local, leaving a side-effect import
+$ git commit (scratch worktree at 52201fa2, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+FAIL formal-onboarding-bootstrap: covered behaviour changed (emit), violated AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-onboarding-bootstrap` (covers the diff, gates the verdict): covered behaviour changed (emit), violated AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/52201fa212c6d49f7a672f64b82c2f118bf08546/formal/formal-onboarding-bootstrap)
+formal reasons in Why it fails: - formal check formal-onboarding-bootstrap: covered behaviour changed (emit), violated AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen
+behaviour: {"formal-onboarding-bootstrap": {"method": "emit", "changed": true, "removed": ["packages/dms/src/routes/onboarding.ts statement 3: const DEFAULT_ADMIN_LANGUAGE = \"en\";"], "added": ["hoisted import packages/dms/src/utils", "packages/dms/src/routes/onboarding.ts statement 3: const generateAuthKey = () => \"k\";"]}}

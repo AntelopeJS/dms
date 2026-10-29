@@ -1,0 +1,8 @@
+### rr-rule-removed: the prerelease/build rule removed from the release-range test
+$ git commit (scratch worktree at 1d64a0a4, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+FAIL formal-release-range: rules the base broke are absent at HEAD: prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-release-range` (covers the diff, gates the verdict): rules the base broke are absent at HEAD: prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded). [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/1d64a0a43c915378d264e8c13ab9fffb5a2c61ef/formal/formal-release-range)
+formal reasons in Why it fails: - formal check formal-release-range: rules the base broke are absent at HEAD: prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded)
+behaviour: {"formal-release-range": {"method": "probe node .agents/skills/formal-release-range/probe.mjs", "changed": false, "removed": [], "added": []}}

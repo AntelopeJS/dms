@@ -1,0 +1,8 @@
+### statement-move: a const moved from broker.ts to registry.ts, both covered
+$ git commit (scratch worktree at 7f7386c0, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+FAIL formal-realtime-tabs: covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-realtime-tabs` (covers the diff, gates the verdict): covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/7f7386c0f2b5dfed9a763fb7ca80deb786609aa2/formal/formal-realtime-tabs)
+formal reasons in Why it fails: - formal check formal-realtime-tabs: covered behaviour changed (emit), violated ShowsLatest, ReconnectCatchesUp, NeverGoesBack
+behaviour: {"formal-realtime-tabs": {"method": "emit", "changed": true, "removed": ["packages/dms/src/realtime/broker.ts statement 1: const NO_LISTENER_LIMIT = 0;", "packages/dms/src/realtime/registry.ts statement 1: const USER_NOTIFICATION_TOPIC_PREFIX = \"notifications:user:\";"], "added": ["packages/dms/src/realtime/broker.ts statement 1: export const EVERY_TENANT = Symbol(\"every tenant\");", "packages/dms/src/realtime/registry.ts statement 1: const NO_LISTENER_LIMIT = 0;"]}}

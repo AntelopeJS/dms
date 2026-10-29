@@ -1,0 +1,8 @@
+### rr-behaviour-change: release.yml validate step no longer checks the license
+$ git commit (scratch worktree at 45c4b64a, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+FAIL formal-release-range: covered behaviour changed (probe node .agents/skills/formal-release-range/probe.mjs), violated range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded) (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-release-range` (covers the diff, gates the verdict): covered behaviour changed (probe node .agents/skills/formal-release-range/probe.mjs), violated range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded). [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/45c4b64a84a4037255a71b58c19f9dbf8b738df2/formal/formal-release-range)
+formal reasons in Why it fails: - formal check formal-release-range: covered behaviour changed (probe node .agents/skills/formal-release-range/probe.mjs), violated range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded), prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded)
+behaviour: {"formal-release-range": {"method": "probe node .agents/skills/formal-release-range/probe.mjs", "changed": true, "removed": ["manifest license\texit 1"], "added": ["manifest license\texit 0"]}}

@@ -1,0 +1,8 @@
+### onboarding-type-only: a type annotation added in onboarding.ts
+$ git commit (scratch worktree at 70bce5fd, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+PASS formal-onboarding-bootstrap: covered behaviour unchanged (emit): known findings AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-onboarding-bootstrap` (covers the diff, gates the verdict): covered behaviour unchanged (emit): known findings AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/70bce5fd2ebdefaa2e018149aacdaf1b9e9f4950/formal/formal-onboarding-bootstrap)
+formal reasons in Why it fails: none
+behaviour: {"formal-onboarding-bootstrap": {"method": "emit", "changed": false, "removed": [], "added": []}}

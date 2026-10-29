@@ -1,0 +1,8 @@
+### import-retarget: an import in onboarding.ts retargeted to another module
+$ git commit (scratch worktree at eb62553f, base fecbdb3c)
+$ dms-control formal <run copy> --skill <scratch skill>
+FAIL formal-onboarding-bootstrap: covered behaviour changed (emit), violated AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen (exit 0)
+$ dms-control verdict <run copy> --pr 540 --skill <scratch skill>  (Formal checks section)
+- `formal-onboarding-bootstrap` (covers the diff, gates the verdict): covered behaviour changed (emit), violated AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen. [evidence](https://github.com/AntelopeJS/dms/tree/verify-evidence/pr-540/eb62553f8fb726df82af675c7877fb9a8bfa7843/formal/formal-onboarding-bootstrap)
+formal reasons in Why it fails: - formal check formal-onboarding-bootstrap: covered behaviour changed (emit), violated AtMostOneOwner, RefusedRegisterCreatedNoUser, OnboardedHasOwner, OwnerlessStaysOpen
+behaviour: {"formal-onboarding-bootstrap": {"method": "emit", "changed": true, "removed": ["packages/dms/src/routes/onboarding.ts statement 4: export class PublicOnboardingController extends Controller(\"/api/onboarding\") { async getInformations(userModel) { const settings = await this.model.getConfig()\u2026"], "added": ["packages/dms/src/routes/onboarding.ts statement 4: export class PublicOnboardingController extends Controller(\"/api/onboarding\") { async getInformations(userModel) { const settings = await this.model.getConfig()\u2026"]}}
