@@ -8,6 +8,7 @@ import {
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, expect, vi } from "vitest";
+import { unusedApi } from "./fixtures/unusedApi";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import type { RowNavigationSource } from "../layers/dms-ui/app/entries/composables/actions/rowNavigation";
 import RowHeader from "../layers/dms-ui/app/entries/components/containers/row/RowHeader";
@@ -118,8 +119,7 @@ function mountTargets(
     defineComponent({
       setup() {
         targets = useActionTargets({
-          // SAFETY: Drawer-only actions never invoke the API client; this callable sentinel preserves the unused dependency.
-          api: vi.fn() as never,
+          api: unusedApi(),
           pageId: "orders-page",
           componentId: "orders",
           handleApiError: vi.fn(),

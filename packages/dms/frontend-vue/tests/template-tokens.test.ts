@@ -7,6 +7,7 @@
  */
 import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchClientMock } from "./fixtures/unusedApi";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import {
   interpolateRowText,
@@ -30,7 +31,7 @@ const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/modules/shop/stores/s1",
   query: {},
 });
-const api = vi.fn();
+const api = fetchClientMock();
 const runJob = vi.fn();
 let app: App | undefined;
 
@@ -40,8 +41,7 @@ function mountTargets() {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          // SAFETY: These target cases invoke only the callable API mock, never $fetch's raw/create/native members.
-          api: api as Parameters<typeof useActionTargets>[0]["api"],
+          api,
           pageId: "store-page",
           componentId: "orders",
           handleApiError: vi.fn(),

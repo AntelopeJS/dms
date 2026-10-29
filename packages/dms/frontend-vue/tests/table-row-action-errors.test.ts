@@ -1,5 +1,6 @@
 import "./helpers/table-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchClientMock } from "./fixtures/unusedApi";
 import { ref } from "vue";
 import { createI18n } from "vue-i18n";
 import { Color } from "../layers/dms-core/app/types/color";
@@ -40,7 +41,7 @@ const t = i18n.global.t;
 
 const toast = { add: vi.fn() };
 const refresh = vi.fn();
-const api = vi.fn();
+const api = fetchClientMock();
 
 const dialogs: {
   options: ConfirmOptions;
@@ -81,8 +82,7 @@ async function rowActions() {
     "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
   );
   return useTableRowActions({
-    // SAFETY: Row action tests only call the configured fetch function, never its raw/create helpers.
-    api: api as Parameters<typeof useTableRowActions>[0]["api"],
+    api,
     location: "/api/task",
     columns: [],
     componentId: "table",

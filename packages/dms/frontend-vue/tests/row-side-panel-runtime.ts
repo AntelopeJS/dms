@@ -14,6 +14,7 @@ import {
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, vi } from "vitest";
+import { unusedApi } from "./fixtures/unusedApi";
 import SidePanelHost from "../layers/dms-layout/app/entries/components/layout/SidePanelHost";
 import RowSidePanel from "../layers/dms-ui/app/entries/components/containers/RowSidePanel";
 import RecursiveComponent from "../layers/dms-ui/app/components/RecursiveComponent.vue";
@@ -183,8 +184,7 @@ function mountPanel(
   const Table = defineComponent({
     setup() {
       targets = useActionTargets({
-        // SAFETY: Side-panel targets use no API transport or $fetch helper members in this mounted fixture.
-        api: vi.fn() as Parameters<typeof useActionTargets>[0]["api"],
+        api: unusedApi(),
         pageId: "requests-page",
         componentId: "requests",
         handleApiError: vi.fn(),

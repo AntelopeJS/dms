@@ -208,7 +208,7 @@ describe("annotations", () => {
       optionsFor({ annotations: [CAP] }),
       "annotations",
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; using the Apex annotation owner retains its fields without claiming runtime validation.
+    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
     const [line] = annotations.yaxis as NonNullable<
       NonNullable<ApexOptions["annotations"]>["yaxis"]
     >;
@@ -223,7 +223,7 @@ describe("annotations", () => {
       optionsFor({ annotations: [{ ...CAP, dashed: false }] }),
       "annotations",
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; the Apex annotation owner preserves the fields under test.
+    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
     const [line] = annotations.yaxis as NonNullable<
       NonNullable<ApexOptions["annotations"]>["yaxis"]
     >;
@@ -235,7 +235,7 @@ describe("annotations", () => {
       optionsFor({ annotations: [{ y: 4, label: "cap", color: "warning" }] }),
       "annotations",
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; the Apex annotation owner preserves the fields under test.
+    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
     const [line] = annotations.yaxis as NonNullable<
       NonNullable<ApexOptions["annotations"]>["yaxis"]
     >;
@@ -251,7 +251,7 @@ describe("annotations", () => {
       optionsFor({ annotations: [{ y: 10, y2: 40, color: "#10b981" }] }),
       "annotations",
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; the Apex annotation owner preserves the fields under test.
+    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
     const [band] = annotations.yaxis as NonNullable<
       NonNullable<ApexOptions["annotations"]>["yaxis"]
     >;
