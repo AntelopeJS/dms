@@ -97,6 +97,7 @@ function membership(
 }
 
 function exportOf(user: User) {
+  // SAFETY: The session row deliberately keeps the legacy refreshToken field absent from the current Session contract, and the invite row omits the language and extensions fields the exported snapshot never reads.
   return buildAccountExport({
     user,
     notificationPreferences: { "security.sign_in": true },
@@ -120,7 +121,6 @@ function exportOf(user: User) {
       },
     ],
     sessions: [
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The secret-leak fixture deliberately retains the legacy refreshToken field absent from the current Session contract.
       {
         _id: "s1",
         userId: USER_ID,
@@ -153,7 +153,6 @@ function exportOf(user: User) {
       {
         tenantId: "acme",
         roleNames: ["Viewer"],
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The invite fixture omits required language and extensions fields outside the exported snapshot.
         invite: {
           _id: "inv1",
           email: "new@acme.dev",

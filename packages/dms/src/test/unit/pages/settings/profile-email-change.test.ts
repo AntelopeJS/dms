@@ -1,5 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assertEmailAvailable } from "../../../../pages/account";
 
@@ -42,11 +42,9 @@ describe("[unit] profile — e-mail change is refused for an address another acc
 
   it("refuses another account's address, whatever its casing", async () => {
     const result = await attempt(userModel, " Holder@ACME.dev ");
-    expect(result).to.be.instanceOf(HTTPResult);
-    // SAFETY: The preceding assertion fails unless result is an HTTPResult; Chai's assertion does not narrow the union for TypeScript.
-    const refusal = result as HTTPResult;
-    expect(refusal.getStatus()).to.equal(HTTP_CONFLICT);
-    expect(refusal.getBody()).to.equal(EMAIL_TAKEN);
+    assert.instanceOf(result, HTTPResult);
+    expect(result.getStatus()).to.equal(HTTP_CONFLICT);
+    expect(result.getBody()).to.equal(EMAIL_TAKEN);
   });
 
   it("accepts a free address, normalized", async () => {

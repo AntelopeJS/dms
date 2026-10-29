@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import type {
   SessionModel,
   User,
@@ -76,9 +76,8 @@ async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
     { ip: IP },
   ).catch(() => undefined);
 
-  expect(account, "signup wrote no account").to.not.equal(undefined);
-  // SAFETY: The preceding assertion rejects an absent account; Chai does not narrow the closure-assigned variable for TypeScript.
-  return account as User;
+  assert.isDefined(account, "signup wrote no account");
+  return account;
 }
 
 function expectValidated(account: User): void {

@@ -57,7 +57,7 @@ async function fixture(field = "file"): Promise<Fixture> {
     token,
   });
   const request: AttachmentSaveRequest = {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The attachment fixture supplies only authorization headers, not a complete HTTP context.
+    // SAFETY: File access authenticates through the raw request's authorization header only, which the fixture supplies.
     context: {
       rawRequest: { headers: { authorization: `Bearer ${user.accessToken}` } },
     } as RequestContext,

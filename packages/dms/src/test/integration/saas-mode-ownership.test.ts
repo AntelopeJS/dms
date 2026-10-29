@@ -43,7 +43,7 @@ async function promoteInDefaultTenant(): Promise<void> {
 }
 
 function removeLastOwner(): Promise<void> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The guard fixture supplies ownership fields only, not a full stored member instance.
+  // SAFETY: The last-owner guard reads only the member's userId and isTenantOwner, which the fixture supplies.
   const target = { userId: USER_ID, isTenantOwner: true } as TenantMember;
   return assertNotLastPlatformOwnerOnDelete([target]);
 }
