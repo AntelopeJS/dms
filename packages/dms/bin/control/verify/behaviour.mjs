@@ -81,10 +81,10 @@ function sequenceChanges(path, base, head) {
 
 function compareEmit(base, head) {
   const removed = difference(base.functions, head.functions).map(
-    (item) => `function ${item.text}`,
+    (item) => `hoisted ${item.text}`,
   );
   const added = difference(head.functions, base.functions).map(
-    (item) => `function ${item.text}`,
+    (item) => `hoisted ${item.text}`,
   );
   for (const path of new Set([
     ...Object.keys(base.files),
