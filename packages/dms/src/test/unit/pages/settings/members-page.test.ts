@@ -22,6 +22,7 @@ import {
   resolveInviteeNameParts,
   uniqueInviteEmails,
 } from "../../../../validation";
+import { roleFixture } from "../../../helpers/table-fixtures";
 
 const HTTP_CONFLICT = 409;
 
@@ -41,8 +42,7 @@ function registered(
 }
 
 function role(id: string, name: string, permissions: string[]): Role {
-  // SAFETY: buildInviteRoleOptions reads only the role id, name and permissions; these rows are never persisted or accessed as full database entities.
-  return { _id: id, name, permissions } as Role;
+  return roleFixture({ _id: id, name, permissions });
 }
 
 const tree = {

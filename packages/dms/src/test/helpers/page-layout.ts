@@ -7,8 +7,8 @@ import {
   GetPageLayoutBySlug,
   type PageLayout,
 } from "@antelopejs/interface-dms/page";
-import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { stubPageAccessModels } from "./page-access";
 import { userFixture } from "./user-fixture";
 
 export interface LayoutCaller {
@@ -25,20 +25,8 @@ export const ANONYMOUS: LayoutCaller = {
 };
 
 export function grantedTo(permissions: string[]): LayoutCaller {
-  // SAFETY: Permission lookup reads only the member row's role ids and the role rows' permissions; the stubs implement just those reads.
-  return {
-    user: userFixture({ _id: "pe-user" }),
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Inference and Pick expose a partial member row; authorization only reads its role ids.
-    memberModel: {
-      getByUser: async () => ({ roleIds: ["pe-role"] }),
-    } as unknown as TenantMemberModel,
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- Inference and Pick expose partial role rows; authorization only reads their permissions.
-    roleModel: {
-      getBy: async () => [
-        { permissions: withPermissionAncestors(permissions) },
-      ],
-    } as unknown as RoleModel,
-  };
+  const { memberModel, roleModel } = stubPageAccessModels(permissions);
+  return { user: userFixture({ _id: "pe-user" }), memberModel, roleModel };
 }
 
 export async function loadLayout(

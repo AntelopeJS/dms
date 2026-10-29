@@ -10,6 +10,7 @@ import {
   isDeletionConfirmed,
   selfDeletionPayload,
 } from "../../../../pages/account";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const USER_ID = "account-data-user";
 const PASSWORD_HASH = "$2b$10$secret-password-hash";
@@ -268,8 +269,7 @@ describe("[unit] account data — deletion guards", () => {
 
 describe("[unit] account data — deletion hook", () => {
   it("names the user, their e-mail, the workspaces they left and why", () => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This deletion payload fixture supplies only the user identifier and email that the hook reads.
-    const user = { _id: USER_ID, email: "ada@example.com" } as User;
+    const user = userFixture({ _id: USER_ID, email: "ada@example.com" });
 
     expect(
       selfDeletionPayload(user, [

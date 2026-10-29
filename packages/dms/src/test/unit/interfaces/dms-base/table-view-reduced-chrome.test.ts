@@ -618,11 +618,11 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
       confirm: { title: "$orders.edit_locked" },
     });
     const [refund] = options.rowActions?.custom ?? [];
-    // SAFETY: This fixture declares an inline confirmation with fields; the serialized union also includes confirmations loaded from a route.
-    const refundConfirm = refund?.confirm as
-      | { fields?: Array<{ id: string; type: string; required?: boolean }> }
-      | undefined;
-    const [reason] = refundConfirm?.fields ?? [];
+    const refundConfirm = refund?.confirm;
+    const [reason] =
+      refundConfirm && "fields" in refundConfirm
+        ? (refundConfirm.fields ?? [])
+        : [];
     expect(reason).to.deep.include({
       id: "reason",
       type: "string",

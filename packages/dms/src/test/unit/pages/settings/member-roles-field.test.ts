@@ -25,9 +25,8 @@ describe("[unit] pages/settings/members — the roles field", () => {
       .find((field) => "type" in field && field.id === "roleIds");
 
     expect(roles).to.not.equal(undefined);
-    // SAFETY: Only the legacy optional property is probed; optional access preserves the test's missing-field behavior without claiming a full serialized form field.
     expect(
-      (roles as { inputComponent?: unknown } | undefined)?.inputComponent,
+      roles && "inputComponent" in roles ? roles.inputComponent : undefined,
     ).to.equal(undefined);
   });
 

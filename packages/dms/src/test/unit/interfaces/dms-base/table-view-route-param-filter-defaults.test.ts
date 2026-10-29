@@ -39,6 +39,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view/options";
 import { derivedController } from "../../../helpers/derived-controller";
+import { formOptionsOf } from "../../../helpers/serialized-options";
 
 const TABLE = "route-param-filter-documents";
 const LOCATION = "/api/route-param-filter-defaults";
@@ -168,11 +169,10 @@ const pages = [
 
 async function formPageOptions(
   formPageFullId: string,
-): Promise<FormPropsSerialized | undefined> {
+): Promise<FormPropsSerialized> {
   const form = pageMetadataByFullId.get(formPageFullId)?.components.form;
   if (!form) throw new Error(`No form page registered as ${formPageFullId}`);
-  // SAFETY: These registered table-view form pages contain a Form builder named form; the registry erases individual component option types.
-  return (await form.serialize()).options as FormPropsSerialized | undefined;
+  return formOptionsOf(await form.serialize());
 }
 
 async function formComponents(

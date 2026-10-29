@@ -11,7 +11,7 @@ import { untouchedRequestContext } from "../../../helpers/request-context";
 const HTTP_UNAUTHORIZED = 401;
 
 const SETTLE_TIMEOUT_MS = 2000;
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The unauthenticated caller is intentionally outside the public User contract so the runtime's unauthorized rejection is exercised.
+// SAFETY: The anonymous caller is deliberately undefined although the contract requires a User: the assertion is false on purpose, and the test asserts the runtime rejects it as unauthorized.
 const ANONYMOUS_USER = undefined as unknown as User;
 const UNUSED_CONTEXT = untouchedRequestContext();
 const UNKNOWN_JOB_ID = "unknown-export-job";

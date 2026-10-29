@@ -361,11 +361,10 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
       "delete",
       "help",
     ]);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The action target owner is a union including drawers; this fixture's directions action is the external URL declared above.
-    const directions = byId(options, "directions")?.target as
-      | Extract<PageHeaderButtonSerialized["target"], { url: string }>
-      | undefined;
-    expect(directions?.url).to.equal(
+    const directions = byId(options, "directions")?.target;
+    expect(
+      directions && "url" in directions ? directions.url : undefined,
+    ).to.equal(
       `https://maps.example.com/?q=${encodeURIComponent("1 rue de l'Église, Liège")}&o=u%261&x={{record.none}}`,
     );
     expect(byId(options, "edit")).to.not.have.property("requiresRecord");

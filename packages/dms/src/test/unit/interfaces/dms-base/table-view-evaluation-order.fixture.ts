@@ -30,7 +30,7 @@ const SESSION = "evaluation-order-session";
 const ROW = "evaluation-order-row";
 
 function enterThroughTableView(): typeof TableViewInterface {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Node's public Module declaration omits _load; this isolated child process deliberately intercepts that private loader to control evaluation order.
+  // SAFETY: Node's Module class carries the loader entry point _load, which its public declaration omits; ModuleLoader describes only that member.
   const loader = Module as unknown as ModuleLoader;
   const load = loader._load;
   const manifest = findPackageJSON(

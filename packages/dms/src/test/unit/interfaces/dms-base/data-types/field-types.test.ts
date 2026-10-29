@@ -11,6 +11,18 @@ const ITEMS = [
 const componentOf = (type: { inputComponent(): { componentName: string } }) =>
   type.inputComponent().componentName;
 
+type RepeaterOptions = NonNullable<
+  Parameters<typeof FormComponents.InputRepeater>[0]
+>;
+
+function isRepeaterOptions(value: unknown): value is RepeaterOptions {
+  return (
+    value instanceof Object &&
+    "columns" in value &&
+    Array.isArray(value.columns)
+  );
+}
+
 describe("[unit] interfaces/dms-base — SelectType display", () => {
   it("renders a dropdown by default, cards, segments or radios when asked", () => {
     const select = (display?: DefaultDataTypes.SelectTypeOptions["display"]) =>
@@ -123,10 +135,10 @@ describe("[unit] interfaces/dms-base — ArrayType", () => {
   it("renders a repeater, a column per field", () => {
     const component = headers().inputComponent();
     expect(component.componentName).to.equal("dms-repeater");
-    // SAFETY: ArrayType builds InputRepeater options; DataType.inputComponent erases that concrete options type.
-    const options = component.options as NonNullable<
-      Parameters<typeof FormComponents.InputRepeater>[0]
-    >;
+    const { options } = component;
+    if (!isRepeaterOptions(options)) {
+      throw new Error("The component carries no repeater options");
+    }
     expect(
       options.columns.map(({ id, label, type }) => [id, label, type]),
     ).to.deep.equal([

@@ -11,11 +11,9 @@ import {
   pagesCategory,
   RegisterPage,
 } from "@antelopejs/interface-dms/page";
-import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
 import {
   type FormBuilder,
   type FormFieldOrGroupSerialized,
-  type FormPropsSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { captureWarnings } from "../../../helpers/logging";
@@ -40,6 +38,10 @@ import {
   register,
   setAdmin,
 } from "./invite-extension.helpers";
+import {
+  formOptionsOf,
+  tableViewOptionsOf,
+} from "../../../helpers/serialized-options";
 
 function settle(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
@@ -58,9 +60,7 @@ async function hostLayout(slug: string) {
 
 async function hostLayoutFields(slug: string) {
   const layout = await hostLayout(slug);
-  // SAFETY: registerHostPage declares the invite component with a Form builder.
-  const options = layout.components.invite.options as FormPropsSerialized;
-  return options.fields;
+  return formOptionsOf(layout.components.invite).fields;
 }
 
 async function registerHostPage(
@@ -166,15 +166,14 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       await registerHostPage("ie-schema");
 
       const layout = await hostLayout("/ie-schema");
-      // SAFETY: registerHostPage declares invite with Form, which serializes these fields into an object schema.
-      const schema = (layout.components.invite.options as FormPropsSerialized)
-        .schema as {
-        properties: Record<string, FormPropsSerialized["schema"]>;
-        required: string[];
-      };
+      const { schema } = formOptionsOf(layout.components.invite);
 
-      expect(Object.keys(schema.properties)).to.include("billing__costCenter");
-      expect(schema.required).to.include("billing__costCenter");
+      expect(schema)
+        .to.have.own.property("properties")
+        .that.has.own.property("billing__costCenter");
+      expect(schema)
+        .to.have.own.property("required")
+        .that.includes("billing__costCenter");
     });
 
     it("takes the fields back out when the extension goes away", async () => {
@@ -271,9 +270,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("billing", "costCenter").options);
 
       const layout = await hostLayout("/settings/workspace/invites");
-      // SAFETY: The registered invitations page builds this component with TableView.
-      const table = layout.components.table
-        .options as TableViewOptionsSerialized;
+      const table = tableViewOptionsOf(layout.components.table);
       const editForm = table.formComponents.edit?.options;
       ok(editForm);
 

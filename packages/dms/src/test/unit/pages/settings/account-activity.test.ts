@@ -1,12 +1,12 @@
 import { expect } from "chai";
 import type { Session, User } from "@antelopejs/interface-dms/auth/db";
-import type { UserInvite } from "@antelopejs/interface-dms/db";
 import type { UserNotification } from "../../../../db";
 import {
   type AccountActivitySources,
   buildAccountActivity,
   notificationToEvent,
 } from "../../../../pages/account";
+import { inviteFixture } from "../../../helpers/table-fixtures";
 
 const USER_ID = "activity-user";
 const OTHER_ID = "someone-else";
@@ -211,14 +211,13 @@ describe("account activity", () => {
         ],
         invites: [
           {
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The invite fixture supplies activity fields only, not the full stored invite contract.
-            invite: {
+            invite: inviteFixture({
               _id: "i1",
               email: "lea@acme.dev",
               invitedBy: USER_ID,
               token: INVITE_TOKEN,
               createdAt: at("2026-09-29T09:00:00Z"),
-            } as UserInvite,
+            }),
             workspace: "Acme",
           },
         ],
@@ -321,13 +320,12 @@ describe("account activity", () => {
         ],
         invites: [
           {
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The foreign-invite fixture omits fields that activity filtering does not read.
-            invite: {
+            invite: inviteFixture({
               _id: "i2",
               email: "theirs@acme.dev",
               invitedBy: OTHER_ID,
               createdAt: at("2026-09-30T12:00:00Z"),
-            } as UserInvite,
+            }),
             workspace: "Acme",
           },
         ],
@@ -349,7 +347,7 @@ describe("account activity", () => {
   it("leaves out events without a valid date", () => {
     const events = buildAccountActivity(
       sources({
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This negative fixture deliberately violates the required date contract.
+        // SAFETY: createdAt is deliberately undefined although the row contract requires a Date: the assertion is false on purpose, and the test asserts that the event is left out.
         user: user({ createdAt: undefined as unknown as Date }),
         sessions: [session("bad", "not a date")],
       }),

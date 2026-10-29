@@ -42,6 +42,7 @@ import {
   TableViewFunctions,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import { formOptionsOf } from "../../../helpers/serialized-options";
 
 const TABLE = "form-redirect-documents";
 const LOCATION = "/api/form-redirect-placeholders";
@@ -145,11 +146,10 @@ const pages = [
 
 async function formOptions(
   formPageFullId: string,
-): Promise<FormPropsSerialized | undefined> {
+): Promise<FormPropsSerialized> {
   const form = pageMetadataByFullId.get(formPageFullId)?.components.form;
   if (!form) throw new Error(`No form page registered as ${formPageFullId}`);
-  // SAFETY: These registered table-view form pages contain a Form builder named form; the registry erases individual component option types.
-  return (await form.serialize()).options as FormPropsSerialized | undefined;
+  return formOptionsOf(await form.serialize());
 }
 
 async function formRedirects(formPageFullId: string) {

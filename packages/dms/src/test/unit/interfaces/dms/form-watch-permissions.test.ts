@@ -7,7 +7,6 @@ import {
   FormEvents,
   FormFunctions,
 } from "@antelopejs/interface-dms/base/form";
-import type { WatchAction } from "@antelopejs/interface-dms/base/types/watch";
 import {
   ComponentBuilder,
   type ComponentInfoSerialized,
@@ -18,6 +17,7 @@ import {
   filterComponents,
 } from "@antelopejs/interface-dms/page/layout-filter";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
+import { formOptionsOf } from "../../../helpers/serialized-options";
 
 const CONTEXT = { tenantId: "tenant", user: undefined };
 
@@ -73,10 +73,23 @@ const componentMap: ComponentNodeMap = new Map([
 ]);
 
 const watchTargets = (options: ComponentInfoSerialized["options"]) =>
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Serialized components erase their option type; these callers supply the Form built above, and the projection reads only its watch actions.
-  ((options as { watchActions?: WatchAction[] }).watchActions ?? []).map(
+  (formOptionsOf({ options }).watchActions ?? []).map(
     (watch) => watch.params?.targetField,
   );
+
+interface DrawerHostOptions {
+  drawer: { content: { options?: unknown } };
+}
+
+function isDrawerHostOptions(value: unknown): value is DrawerHostOptions {
+  return (
+    value instanceof Object &&
+    "drawer" in value &&
+    value.drawer instanceof Object &&
+    "content" in value.drawer &&
+    value.drawer.content instanceof Object
+  );
+}
 
 const HOST = `${PAGE}.host`;
 const host = new ComponentBuilder<{ drawer: { content: unknown } }>(
@@ -95,10 +108,11 @@ async function servedEmbeddedWatchTargets(permissions: Set<string>) {
     hostMap,
     CONTEXT,
   );
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- filterComponents returns type-erased options; this fixture's DemoDrawerHost embeds the serialized Form under drawer.content.
-  const options = served.host!.options as { drawer: { content: unknown } };
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The host fixture above embeds form.serializeSync(); the generic filter output cannot retain the embedded component's option type.
-  return watchTargets((options.drawer.content as { options: unknown }).options);
+  const options = served.host?.options;
+  if (!isDrawerHostOptions(options)) {
+    throw new Error("The served host carries no drawer content");
+  }
+  return watchTargets(options.drawer.content.options);
 }
 
 /** The fields the watches the caller is served act on, in order. */

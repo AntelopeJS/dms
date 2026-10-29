@@ -6,6 +6,7 @@ import {
 } from "@antelopejs/interface-dms/auth/db/models/sessions.model";
 import { REFRESH_TOKEN_PREDECESSOR_GRACE_MS } from "@antelopejs/interface-dms/auth/db/internal/sessions.model";
 import type { Session } from "@antelopejs/interface-dms/auth/db/tables/sessions.table";
+import { sessionFixture } from "../../../helpers/table-fixtures";
 
 interface RotationUpdate {
   refreshTokenHash: string;
@@ -42,8 +43,10 @@ function sha256(token: string): string {
 
 /** A session whose current refresh token is `refreshToken`. */
 function createSession(refreshToken: string): Session {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rotation reads only the token fields of this deliberately partial session, not the remaining persisted session columns.
-  return { _id: "session", refreshTokenHash: sha256(refreshToken) } as Session;
+  return sessionFixture({
+    _id: "session",
+    refreshTokenHash: sha256(refreshToken),
+  });
 }
 
 /**
