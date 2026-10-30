@@ -38,7 +38,7 @@ function mustRun(cwd, program, args) {
  * A scratch worktree of HEAD with the current skill copied in, the patch
  * applied when there is one, and the config's `prepare` commands run.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} label What the worktree is for
  * @param {string | null} patch The patch file, or `null` for the control
  * @returns {{ worktree: string, skill: string }} The worktree and its skill copy
@@ -134,7 +134,7 @@ function judge(feature, control, seeded) {
  * harness error and does not count. Worktrees are removed; both runs keep
  * their evidence, and `seeded.json` in the patched run records the outcome.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string[]} features The features
  * @returns {Record<string, any>[]} One outcome per feature
  */

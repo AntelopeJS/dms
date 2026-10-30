@@ -5,7 +5,7 @@ import { matchesGlob } from "node:path";
  * The one-way door kinds whose path rules a set of changed files hits, with
  * the files per kind. A declared funnel module is a path rule of its kind.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string[]} files Repository paths
  * @returns {{ kind: string, files: string[] }[]} The flagged kinds
  */

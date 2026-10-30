@@ -24,8 +24,8 @@ function baseCache() {
  * A prepared worktree of the run's base ref, built once per commit under
  * `~/.cache/dms-control/base/<sha>` with the skill's `prepare` commands.
  *
- * @param {Record<string, any>} state The run
- * @param {Record<string, any>} skill The skill
+ * @param {import("./run-state.mjs").RunState} state The run
+ * @param {import("./verify/skill.mjs").Skill} skill The skill
  * @returns {{ sha: string, dir: string }} The base commit and its worktree
  */
 function baseCheckout(state, skill) {
@@ -47,8 +47,8 @@ function baseCheckout(state, skill) {
  * containment journey writes data with the base version inside `action`
  * and reads it back with the head version after it.
  *
- * @param {Record<string, any>} state The run
- * @param {Record<string, any>} skill The skill, whose `prepare` builds the base
+ * @param {import("./run-state.mjs").RunState} state The run
+ * @param {import("./verify/skill.mjs").Skill} skill The skill, whose `prepare` builds the base
  * @param {(sha: string) => Promise<void>} action What to do against the base backend
  * @returns {Promise<string>} The base commit
  */
