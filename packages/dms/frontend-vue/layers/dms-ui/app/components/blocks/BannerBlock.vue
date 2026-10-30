@@ -17,6 +17,7 @@ import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import type { BlockText } from "../../../../dms-core/app/types/composed-text";
+import { BANNER_DISMISSED_COOKIE } from "../../build/utils/bannerDismissals";
 
 /** What a banner shows (interface-dms `BannerContent`). */
 interface BannerContent {
@@ -70,7 +71,6 @@ const props = withDefaults(defineProps<BannerBlockProps>(), {
   realtimeTopic: undefined,
 });
 
-const DISMISSED_COOKIE = "dms-dismissed-blocks";
 const DISMISSED_MAX_AGE_S = 60 * 60 * 24 * 365;
 
 const DISMISSED_MAX_KEYS = 40;
@@ -119,7 +119,7 @@ const banner = computed<ResolvedBanner>(() => {
 });
 
 const { processText } = useComposedText();
-const dismissed = useDmsCookie<string[]>(DISMISSED_COOKIE, {
+const dismissed = useDmsCookie<string[]>(BANNER_DISMISSED_COOKIE, {
   default: () => [],
   maxAge: DISMISSED_MAX_AGE_S,
   sameSite: "lax",

@@ -1,0 +1,77 @@
+{
+  "page": {
+    "settings": {
+      "appearance": {
+        "theme_title": "Interface theme",
+        "theme_description": "Adapt your color theme for your Antelope DMS",
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark",
+        "scale_title": "Interface density",
+        "scale_description": "Scale the whole interface up or down while keeping proportions. Use Small to fit more data on screen, Large for comfort on big displays",
+        "scale_small": "Small",
+        "scale_normal": "Normal",
+        "scale_large": "Large",
+        "scale_small_hint": "Compact · more data",
+        "scale_normal_hint": "Default",
+        "scale_large_hint": "Spacious · big screens",
+        "css_variables": "CSS variables",
+        "css_variables_description": "List of all UI CSS properties used in the design system",
+        "system_hint": "Matches your OS setting",
+        "light_hint": "Bright surfaces",
+        "dark_hint": "Easy on the eyes",
+        "sidebar_title": "Sidebar",
+        "sidebar_description": "You can also collapse it any time with the button next to the breadcrumb.",
+        "sidebar_start_collapsed": "Start with the sidebar collapsed",
+        "sidebar_start_collapsed_hint": "Shows icons only, with labels on hover. Handy on small laptop screens.",
+        "developer_title": "Developer",
+        "developer_description": "Design tokens used by the interface, for building modules that match it.",
+        "css_vars": {
+          "count": "{count} variables",
+          "filter_placeholder": "Filter variables",
+          "category_label": "Variable group",
+          "theme_hint": "Values for the current theme",
+          "copy": "Copy",
+          "copied": "Copied",
+          "showing": "Showing {shown} of {total}",
+          "export": "Export as CSS",
+          "no_results": "No variable matches this filter.",
+          "categories": {
+            "all": "All",
+            "colors": "Colors",
+            "text": "Text",
+            "background": "Background",
+            "border": "Border",
+            "radius": "Radius",
+            "shadow": "Shadow",
+            "other": "Other"
+          }
+        },
+        "accessibility": {
+          "title": "Accessibility",
+          "description": "Calmer, crisper and easier-to-scan screens on this device. Density above scales the text.",
+          "reduce_motion": "Reduce motion",
+          "reduce_motion_hint": "Turns off animations and transitions, live pulses and chart animations. Automatic follows your operating system's setting.",
+          "motion_auto": "Automatic",
+          "motion_on": "On",
+          "motion_off": "Off",
+          "increase_contrast": "Increase contrast",
+          "increase_contrast_hint": "Darker secondary text and stronger borders, in light and dark themes.",
+          "underline_links": "Always underline links",
+          "underline_links_hint": "Underlines links in content and tables, so they don't rely on color alone. Menus and buttons stay as they are."
+        },
+        "reset": {
+          "title": "Reset",
+          "description": "Puts back everything the DMS remembers on this device, as on a first visit.",
+          "label": "Reset this device's preferences",
+          "hint": "Tables (sort, filters, columns, views), periods, drawer, sidebar and panel sizes, appearance, dismissed banners and tips, recent modules, paused live pages. Your session, favorite pages, language and time zone stay as they are.",
+          "button": "Reset",
+          "confirm_title": "Reset this device's preferences?",
+          "confirm_description": "Tables, periods, sizes, appearance and dismissed banners go back to their defaults on this device, and the page reloads. Your session and favorite pages are kept.",
+          "confirm": "Reset",
+          "cancel": "Cancel"
+        }
+      }
+    }
+  }
+}

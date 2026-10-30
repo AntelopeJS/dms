@@ -6,6 +6,7 @@ import { type Ref, watch } from "vue";
 import type { ColorModePreference } from "../composables/general/types";
 import {
   COLOR_MODE_COOKIE,
+  COLOR_SCHEME_STORAGE_KEY,
   useColorModePreference,
 } from "../composables/general/useColorModePreference";
 
@@ -15,11 +16,6 @@ type ExplicitColorMode = Exclude<ColorModePreference, "system">;
 const EXPLICIT_COLOR_MODES: ExplicitColorMode[] = ["light", "dark"];
 const SYSTEM_PREFERENCE: ColorModePreference = "system";
 const VUEUSE_SYSTEM_MODE: BasicColorSchema = "auto";
-/**
- * vueuse's default key. Nuxt UI's `useDark()`, installed with the app, and its
- * color-mode components (`UDashboardSearch`'s theme group…) all read it.
- */
-const VUEUSE_STORAGE_KEY = "vueuse-color-scheme";
 const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
 const PRE_PAINT_SCRIPT_ID = "dms-color-mode";
 
@@ -42,7 +38,7 @@ const PRE_PAINT_SCRIPT = `(() => {
   } catch {}
   const mode = modes.includes(preference) ? preference : ${JSON.stringify(VUEUSE_SYSTEM_MODE)};
   try {
-    localStorage.setItem(${JSON.stringify(VUEUSE_STORAGE_KEY)}, mode);
+    localStorage.setItem(${JSON.stringify(COLOR_SCHEME_STORAGE_KEY)}, mode);
   } catch {}
   const system = matchMedia(${JSON.stringify(DARK_SCHEME_QUERY)}).matches ? "dark" : "light";
   document.documentElement.classList.remove(...modes);
@@ -59,7 +55,9 @@ function explicitColorMode(value: string): ExplicitColorMode | undefined {
  * Each side is written only when it would change, so neither echoes the other.
  */
 function syncWithVueUse(preference: Ref<ColorModePreference>): void {
-  const { store } = useVueUseColorMode({ storageKey: VUEUSE_STORAGE_KEY });
+  const { store } = useVueUseColorMode({
+    storageKey: COLOR_SCHEME_STORAGE_KEY,
+  });
   watch(
     preference,
     (next) => {
