@@ -1048,6 +1048,8 @@
     "footer": {
       "documentation": "Documentation",
       "website": "Website",
+      "github_star": "Star",
+      "github_star_label": "Star AntelopeJS DMS on GitHub",
       "language": "Language"
     }
   },
