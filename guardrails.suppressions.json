@@ -28,5 +28,30 @@
   },
   "tsExpectError": 20,
   "tsIgnore": 0,
-  "safety": 211
+  "safety": 211,
+  "config": {
+    "@typescript-eslint/no-explicit-any for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "anti-slop/no-chained-type-assertions for packages/dms/src/test/integration/**": 1,
+    "anti-slop/no-chained-type-assertions for packages/dms/src/test/unit/**": 1,
+    "eslint/max-lines for packages/dms/playground/**": 1,
+    "eslint/max-lines for packages/dms/src/test/integration/**": 1,
+    "eslint/max-lines for packages/dms/src/test/unit/**": 1,
+    "eslint/max-lines-per-function for packages/dms/src/test/integration/**": 1,
+    "eslint/max-lines-per-function for packages/dms/src/test/unit/**": 1,
+    "eslint/no-restricted-imports for packages/dms/src/test/integration/**": 1,
+    "eslint/no-restricted-imports for packages/dms/src/test/unit/**": 1,
+    "eslint/no-restricted-imports for packages/interface-dms/src/index.ts": 1,
+    "eslint/no-unused-expressions for packages/dms/src/test/integration/**": 1,
+    "eslint/no-unused-expressions for packages/dms/src/test/unit/**": 1,
+    "no-redeclare for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "no-undef for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "no-unused-vars for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "vue/attributes-order for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "vue/html-indent for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "vue/html-self-closing for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "vue/max-attributes-per-line for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "vue/multi-word-component-names for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "vue/require-default-prop for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "vue/singleline-html-element-content-newline for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1
+  }
 }
