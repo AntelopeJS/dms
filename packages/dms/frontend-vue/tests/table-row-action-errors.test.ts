@@ -77,7 +77,7 @@ const shownRows = [
 
 const getRow = vi.fn();
 
-async function rowActions() {
+async function rowActions(overrides: Record<string, unknown> = {}) {
   const { useTableRowActions } = await import(
     "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
   );
@@ -90,6 +90,7 @@ async function rowActions() {
     formComponents: {},
     refreshCallback: refresh,
     rowNavigation: { rows: () => shownRows, rowIdKey: "_id", getRow },
+    ...overrides,
   });
 }
 
@@ -439,3 +440,33 @@ function registerRowActionConfirmationTests() {
     expect(proceed).toHaveBeenCalledTimes(2);
   });
 }
+
+describe("Table row actions: the form drawer", () => {
+  it("keeps one size for the table's form, whatever the row", async () => {
+    const drawerOpen = vi.fn(
+      (_options: { containerId: string; sizeKey?: string }) => ({
+        result: new Promise(() => {}),
+        close: vi.fn(),
+        patch: vi.fn(),
+      }),
+    );
+    vi.stubGlobal("useDrawer", () => ({ open: drawerOpen }));
+    vi.stubGlobal("useI18n", () => ({ t, locale: ref("en-GB") }));
+    const form = { componentName: "DmsForm", options: {} };
+    const { editRow, newRow } = await rowActions({
+      formContainer: { type: "drawer" },
+      formComponents: { new: form, edit: form },
+    });
+    for (const row of shownRows) await editRow(row);
+    await newRow();
+
+    const calls = drawerOpen.mock.calls.map(([options]) => options);
+    expect(calls).toHaveLength(3);
+    expect(new Set(calls.map((options) => options.containerId)).size).toBe(3);
+    expect(calls.map((options) => options.sizeKey)).toEqual([
+      "tasks-table-form",
+      "tasks-table-form",
+      "tasks-table-form",
+    ]);
+  });
+});
