@@ -3,6 +3,12 @@ const { existsSync, readFileSync } = require("node:fs");
 const { createRequire, Module } = require("node:module");
 const { join } = require("node:path");
 
+/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator. */
+function byCodeUnit(left, right) {
+  if (left < right) return -1;
+  return left > right ? 1 : 0;
+}
+
 const root = process.argv[2];
 const playground = join(root, "packages/dms/playground");
 execFileSync("pnpm", ["--dir", playground, "exec", "tsc"], {
@@ -235,7 +241,7 @@ const names = new Set([
 const modules = RunWithModuleContext({ module: "playground-probe" }, () =>
   Object.fromEntries(
     [...names]
-      .sort()
+      .sort(byCodeUnit)
       .map((name) => [
         name,
         descriptors(
