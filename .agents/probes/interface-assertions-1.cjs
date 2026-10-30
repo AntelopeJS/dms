@@ -21,8 +21,29 @@ function recordDefReads(schema, log, label) {
   return Object.create(schema, { _def: { value: proxy } });
 }
 
+function observeDefReads(describeSchema) {
+  const observed = {};
+  for (const [name, schema] of Object.entries({
+    optionalString: z.string().optional(),
+    defaultString: z.string().default("x"),
+    lazyString: z.lazy(() => z.string()),
+    tuple: z.tuple([z.string()]),
+    object: z.object({ a: z.string() }),
+    record: z.record(z.string(), z.number()),
+    enumeration: z.enum(["a"]),
+  })) {
+    const reads = [];
+    try {
+      describeSchema(recordDefReads(schema, reads, name));
+    } catch (error) {
+      reads.push(`threw ${error.message}`);
+    }
+    observed[`reads:${name}`] = reads;
+  }
+  return observed;
+}
+
 function describeBattery(describeSchema, describeOptions) {
-  const log = [];
   const counts = { lazy: 0, factory: 0, receivers: [] };
   const nativeEnum = { A: "x", B: 2 };
   const lazy = z.lazy(() => {
@@ -123,23 +144,7 @@ function describeBattery(describeSchema, describeOptions) {
     };
     observed[name] = record;
   }
-  for (const [name, schema] of Object.entries({
-    optionalString: z.string().optional(),
-    defaultString: z.string().default("x"),
-    lazyString: z.lazy(() => z.string()),
-    tuple: z.tuple([z.string()]),
-    object: z.object({ a: z.string() }),
-    record: z.record(z.string(), z.number()),
-    enumeration: z.enum(["a"]),
-  })) {
-    const reads = [];
-    try {
-      describeSchema(recordDefReads(schema, reads, name));
-    } catch (error) {
-      reads.push(`threw ${error.message}`);
-    }
-    observed[`reads:${name}`] = reads;
-  }
+  Object.assign(observed, observeDefReads(describeSchema));
   return JSON.parse(
     JSON.stringify(observed, (_key, value) =>
       value === undefined ? "__undefined" : value,

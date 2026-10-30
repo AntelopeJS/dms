@@ -212,6 +212,36 @@ function observeDataTypesAndHints() {
   return { hints, registrations, type: serializeType(new ProbeType()) };
 }
 
+function openTenantGate(tenantAccess) {
+  const previousGate = tenantAccess.CheckTenantAccess;
+  const gates = [];
+  tenantAccess.CheckTenantAccess = async (...args) => {
+    gates.push(args);
+    return { allowed: true };
+  };
+  return {
+    gates,
+    restore() {
+      tenantAccess.CheckTenantAccess = previousGate;
+    },
+  };
+}
+
+function bodyRewritingGuards(receiver) {
+  const events = [];
+  return {
+    events,
+    guards: {
+      new: function (_context, { body: value }) {
+        events.push({ guardReceiver: this === receiver });
+        value.count += 7;
+        delete value.discard;
+        return () => events.push("after");
+      },
+    },
+  };
+}
+
 async function observeRoutes() {
   const { GetMetadata } = requireInterface("@antelopejs/interface-core");
   const { TableViewMeta } = requireInterface("./dist/base/table-view/meta.js");
@@ -273,12 +303,7 @@ async function observeRoutes() {
     "1",
     { _id: "user-2" },
   );
-  const previousGate = tenantAccess.CheckTenantAccess;
-  const gates = [];
-  tenantAccess.CheckTenantAccess = async (...args) => {
-    gates.push(args);
-    return { allowed: true };
-  };
+  const gate = openTenantGate(tenantAccess);
   let authResult;
   try {
     authResult = await withActionCheck("probe", base).func.call(
@@ -290,17 +315,10 @@ async function observeRoutes() {
       { _id: "user-3" },
     );
   } finally {
-    tenantAccess.CheckTenantAccess = previousGate;
+    gate.restore();
   }
-  const events = [];
-  meta.setControllerGuards({
-    new: function (_context, { body: value }) {
-      events.push({ guardReceiver: this === receiver });
-      value.count += 7;
-      delete value.discard;
-      return () => events.push("after");
-    },
-  });
+  const { events, guards } = bodyRewritingGuards(receiver);
+  meta.setControllerGuards(guards);
   const guarded = createGuardedRoute(
     {
       ...base,
@@ -332,7 +350,7 @@ async function observeRoutes() {
   return {
     calls,
     events,
-    gates,
+    gates: gate.gates,
     untouched,
     results: [mutationResult, presenceResult, authResult, guardResult].map(
       (result) => result === sentinel,
@@ -698,11 +716,8 @@ async function observeExtractedPageCalls() {
   return { calls, pageInfoReads, layout, recursiveMethodReads };
 }
 
-async function observeEvaluationOrder() {
-  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
-  const fresh = () => new PageMetadata(class EvaluationOrderProbe {});
-  const results = {};
-  results.publish = [false, true].map((readAuthOnly) => {
+function publishOrder(fresh) {
+  return [false, true].map((readAuthOnly) => {
     const page = fresh();
     const trace = [];
     const info = {
@@ -727,6 +742,76 @@ async function observeEvaluationOrder() {
     page.Dispose();
     return state;
   });
+}
+
+function notifyOrder(fresh) {
+  return ["absent", "replace", "distinct"].map((mode) => {
+    const page = fresh();
+    const trace = [];
+    let calls = 0;
+    let reads = 0;
+    let live = new Set();
+    const first = live;
+    const second = new Set();
+    Object.defineProperty(page, "notifiedComponents", {
+      get() {
+        trace.push(["notified", ++reads, this === page]);
+        return mode === "distinct" && reads > 1 ? second : live;
+      },
+    });
+    const component = {
+      get onPageCreated() {
+        trace.push(["hook", this === component]);
+        if (mode === "absent") return undefined;
+        if (mode === "replace") live = new Set([component]);
+        return function (owner) {
+          calls++;
+          trace.push(["call", this === component, owner === page]);
+        };
+      },
+    };
+    page.notifyPageCreated({ component, depth: 0, permissionId: "order.component" });
+    return { mode, trace, calls, firstContains: first.has(component), secondContains: second.has(component) };
+  });
+}
+
+function takenKeysOrder(fresh) {
+  return [false, true].map((throws) => {
+    const page = fresh();
+    const trace = [];
+    let live = new Map();
+    Object.defineProperty(page, "pageInfo", {
+      get() { trace.push(["pageInfo", this === page]); return { fullId: "order-page" }; },
+    });
+    const own = new Proxy({ own: {} }, {
+      ownKeys(target) {
+        trace.push(["ownKeys"]);
+        if (throws) throw new Error("order-stop");
+        live = new Map([[{ extensionName: "replacement" }, [{ key: "injected" }]]]);
+        return Reflect.ownKeys(target);
+      },
+    });
+    Object.defineProperty(page, "ownComponents", {
+      get() { trace.push(["own", this === page]); return own; },
+    });
+    Object.defineProperty(page, "extensionEntries", {
+      get() { trace.push(["entries", this === page]); return live; },
+    });
+    let keys;
+    try {
+      keys = [...page.takenComponentKeys()];
+    } catch (error) {
+      if (!throws || error.message !== "order-stop") throw error;
+    }
+    return { throws, trace, keys: keys ?? null };
+  });
+}
+
+async function observeEvaluationOrder() {
+  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
+  const fresh = () => new PageMetadata(class EvaluationOrderProbe {});
+  const results = {};
+  results.publish = publishOrder(fresh);
   const api = requireInterface("@antelopejs/interface-api");
   const register = api.RegisterRoute;
   const unregister = api.UnregisterRoute;
@@ -757,34 +842,7 @@ async function observeEvaluationOrder() {
     api.RegisterRoute = register;
     api.UnregisterRoute = unregister;
   }
-  results.notify = ["absent", "replace", "distinct"].map((mode) => {
-    const page = fresh();
-    const trace = [];
-    let calls = 0;
-    let reads = 0;
-    let live = new Set();
-    const first = live;
-    const second = new Set();
-    Object.defineProperty(page, "notifiedComponents", {
-      get() {
-        trace.push(["notified", ++reads, this === page]);
-        return mode === "distinct" && reads > 1 ? second : live;
-      },
-    });
-    const component = {
-      get onPageCreated() {
-        trace.push(["hook", this === component]);
-        if (mode === "absent") return undefined;
-        if (mode === "replace") live = new Set([component]);
-        return function (owner) {
-          calls++;
-          trace.push(["call", this === component, owner === page]);
-        };
-      },
-    };
-    page.notifyPageCreated({ component, depth: 0, permissionId: "order.component" });
-    return { mode, trace, calls, firstContains: first.has(component), secondContains: second.has(component) };
-  });
+  results.notify = notifyOrder(fresh);
   results.addExtension = [];
   for (const throws of [false, true]) {
     const page = fresh();
@@ -813,35 +871,7 @@ async function observeEvaluationOrder() {
     }
     results.addExtension.push({ throws, trace, liveContains: replacement.has(info), staleContains: stale.has(info) });
   }
-  results.takenKeys = [false, true].map((throws) => {
-    const page = fresh();
-    const trace = [];
-    let live = new Map();
-    Object.defineProperty(page, "pageInfo", {
-      get() { trace.push(["pageInfo", this === page]); return { fullId: "order-page" }; },
-    });
-    const own = new Proxy({ own: {} }, {
-      ownKeys(target) {
-        trace.push(["ownKeys"]);
-        if (throws) throw new Error("order-stop");
-        live = new Map([[{ extensionName: "replacement" }, [{ key: "injected" }]]]);
-        return Reflect.ownKeys(target);
-      },
-    });
-    Object.defineProperty(page, "ownComponents", {
-      get() { trace.push(["own", this === page]); return own; },
-    });
-    Object.defineProperty(page, "extensionEntries", {
-      get() { trace.push(["entries", this === page]); return live; },
-    });
-    let keys;
-    try {
-      keys = [...page.takenComponentKeys()];
-    } catch (error) {
-      if (!throws || error.message !== "order-stop") throw error;
-    }
-    return { throws, trace, keys: keys ?? null };
-  });
+  results.takenKeys = takenKeysOrder(fresh);
   assert.deepEqual(results, {
     publish: [
       { trace: [["noComponentPermissions", true, true]], moduleScoped: true },
@@ -868,13 +898,44 @@ async function observeEvaluationOrder() {
   return results;
 }
 
-async function observeOwnerAccessorOrder() {
-  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
-  const { pageExtensions } = requireInterface("./dist/page/internal/registry.js");
-  const results = {};
-  const expected = {};
-  const failures = [];
-  const cases = {
+async function ownerExtensionComponent(PageMetadata, pageExtensions, throws) {
+  const page = new PageMetadata(class ExtensionOwnerAccessorProbe {});
+  const before = new ComponentBuilder("before").options({ marker: "before" });
+  const after = new ComponentBuilder("after").options({ marker: "after" });
+  const contribution = { key: "child", component: before };
+  const info = {
+    extensionName: "owner-accessor-probe",
+    targetFullId: `owner-accessor-probe-${throws}`,
+    components: [contribution],
+  };
+  const trace = [];
+  page.prepareComponent = function (...args) {
+    trace.push(["prepare", this === page, args.length, args[0].serializeSync().options.marker, args[1]]);
+    throw new Error("owner-accessor-prepare-stop");
+  };
+  Object.defineProperty(page, throws ? "unregisterComponent" : "prepareComponent", {
+    get() {
+      trace.push(["get", this === page]);
+      contribution.component = after;
+      return function (...args) {
+        trace.push(["call", this === page, args.length, args[0].serializeSync().options.marker, args[1]]);
+        return async () => ({ key: args[1], serialized: args[0].serializeSync() });
+      };
+    },
+  });
+  const prior = pageExtensions.get(info.targetFullId);
+  pageExtensions.set(info.targetFullId, [info]);
+  try {
+    await page.addExtension(info);
+    return trace;
+  } finally {
+    if (prior === undefined) pageExtensions.delete(info.targetFullId);
+    else pageExtensions.set(info.targetFullId, prior);
+  }
+}
+
+function ownerAccessorCases(PageMetadata, pageExtensions) {
+  return {
     async preparePermissionId() {
       const page = new PageMetadata(class PrepareOwnerAccessorProbe {});
       page.skipComponentPermissions = true;
@@ -935,10 +996,10 @@ async function observeOwnerAccessorOrder() {
       return trace;
     },
     async extensionPrepareComponent() {
-      return extensionComponent(false);
+      return ownerExtensionComponent(PageMetadata, pageExtensions, false);
     },
     async extensionUnregisterComponent() {
-      return extensionComponent(true);
+      return ownerExtensionComponent(PageMetadata, pageExtensions, true);
     },
     async unregisterNodeComponent() {
       const page = new PageMetadata(class UnregisterNodeOwnerAccessorProbe {});
@@ -989,41 +1050,15 @@ async function observeOwnerAccessorOrder() {
       return trace;
     },
   };
-  async function extensionComponent(throws) {
-    const page = new PageMetadata(class ExtensionOwnerAccessorProbe {});
-    const before = new ComponentBuilder("before").options({ marker: "before" });
-    const after = new ComponentBuilder("after").options({ marker: "after" });
-    const contribution = { key: "child", component: before };
-    const info = {
-      extensionName: "owner-accessor-probe",
-      targetFullId: `owner-accessor-probe-${throws}`,
-      components: [contribution],
-    };
-    const trace = [];
-    page.prepareComponent = function (...args) {
-      trace.push(["prepare", this === page, args.length, args[0].serializeSync().options.marker, args[1]]);
-      throw new Error("owner-accessor-prepare-stop");
-    };
-    Object.defineProperty(page, throws ? "unregisterComponent" : "prepareComponent", {
-      get() {
-        trace.push(["get", this === page]);
-        contribution.component = after;
-        return function (...args) {
-          trace.push(["call", this === page, args.length, args[0].serializeSync().options.marker, args[1]]);
-          return async () => ({ key: args[1], serialized: args[0].serializeSync() });
-        };
-      },
-    });
-    const prior = pageExtensions.get(info.targetFullId);
-    pageExtensions.set(info.targetFullId, [info]);
-    try {
-      await page.addExtension(info);
-      return trace;
-    } finally {
-      if (prior === undefined) pageExtensions.delete(info.targetFullId);
-      else pageExtensions.set(info.targetFullId, prior);
-    }
-  }
+}
+
+async function observeOwnerAccessorOrder() {
+  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
+  const { pageExtensions } = requireInterface("./dist/page/internal/registry.js");
+  const results = {};
+  const expected = {};
+  const failures = [];
+  const cases = ownerAccessorCases(PageMetadata, pageExtensions);
   expected.preparePermissionId = [["get", true], ["call", true, 2, "child", "after.child"]];
   expected.uploadComponentName = [["get", true], ["call", true, 4, true, "after", "page.child", []]];
   expected.uploadChildId = [["get", true], ["call", true, 2, true, "page.child.after"]];
