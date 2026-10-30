@@ -113,11 +113,20 @@ export function findWorkingCopy(
   return undefined;
 }
 
-/** The runtime id to reuse for an npm package, or its name for a new load. */
+/**
+ * The id of the runtime module installed from npm as `packageName`, whatever
+ * its status, so a reinstall reuses it; `packageName` itself when there is
+ * none. Local and git working copies of the package are never matched.
+ */
 export function packageRuntimeId(
   packageName: string,
-  _runtime: Iterable<RuntimeModule>,
+  runtime: Iterable<RuntimeModule>,
 ): string {
+  for (const module of runtime) {
+    if (module.isPackageSource && module.packageName === packageName) {
+      return module.id;
+    }
+  }
   return packageName;
 }
 
