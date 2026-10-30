@@ -1,3 +1,4 @@
+/* oxlint-disable max-lines -- antelopejs-api-diff --probe takes a single script file, so this probe cannot be split into modules. */
 const { join } = require("node:path");
 const { createRequire } = require("node:module");
 const { execFileSync } = require("node:child_process");
