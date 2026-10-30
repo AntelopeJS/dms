@@ -2,6 +2,15 @@ import { readFileSync } from "node:fs";
 import { PROFILE, SECURITY, NOTIFICATIONS, SHORTCUTS, SETTINGS, USER_API, SIGNED_IN, ADMIN_NAME, TWO_FACTOR_CODE_WINDOW_MS, me, login, secondDevice, typeCode, mailedCode, openPasswordForm, fillPasswordForm, openEmailForm, submitEmailForm, joinMember } from "./settings-account/steps.mjs";
 import { preferenceJourneys } from "./settings-account/preferences.mjs";
 
+/**
+ * Whether a parsed JSON value is an object or an array, not a primitive or `null`.
+ * @param {unknown} value
+ * @returns {value is object}
+ */
+function isJsonObject(value) {
+  return typeof value === "object" && value !== null;
+}
+
 /** The personal settings pages: profile, security, language and region, notifications, appearance, shortcuts. */
 export const journeys = [
   {
@@ -323,7 +332,7 @@ export const journeys = [
       await ctx.verify("the file holds the account and no secret", [
         ctx.holds("it names the email", text.includes(admin.email), "email missing"),
         ctx.holds("it names the full name", text.includes(ADMIN_NAME), "name missing"),
-        ctx.holds("it is an object", typeof data === "object" && data !== null, typeof data),
+        ctx.holds("it is an object", isJsonObject(data), typeof data),
         ctx.holds("it leaves the password out", !text.includes(admin.password), "password present"),
       ]);
     },
