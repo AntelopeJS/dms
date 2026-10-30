@@ -2,11 +2,18 @@ const fs = require("node:fs");
 const os = require("node:os");
 const { join, relative, sep } = require("node:path");
 
+/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator. */
+function byCodeUnit(left, right) {
+  if (left < right) return -1;
+  return left > right ? 1 : 0;
+}
+
 const root = process.argv[2];
 const report = process.env.INTERFACE_DMS_LAYERS_REPORT === "1";
 const packageRoot = join(root, "packages/interface-dms");
 const realDist = join(packageRoot, "dist");
 
+/** @type {Array<[oldEntry: string, names: string[], newEntry: string]>} */
 const MOVED = [
   ["base/types/watch.js", ["ComponentId"], "watch-actions.js"],
   ["base/types/tone.js", ["TONES"], "tones.js"],
@@ -292,7 +299,7 @@ function loadAlone(distRoot, entry) {
         ? relative(distRoot, file).split(sep).join("/")
         : `npm:${file.slice(file.lastIndexOf(`node_modules${sep}`) + 13)}`,
     )
-    .sort();
+    .sort(byCodeUnit);
   return {
     error,
     registries,
@@ -331,7 +338,7 @@ function listEntries(distRoot) {
       }
     }
   })(distRoot);
-  return files.filter((file) => !NEW_MODULES.has(file)).sort();
+  return files.filter((file) => !NEW_MODULES.has(file)).sort(byCodeUnit);
 }
 
 function observeExports(distRoot) {

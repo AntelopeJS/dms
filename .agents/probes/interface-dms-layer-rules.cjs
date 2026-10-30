@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
+const { createRequire } = require("node:module");
 const repo = path.resolve(process.argv[2]);
 const wt = fs.mkdtempSync(path.join(os.tmpdir(), "interface-dms-layer-rules-"));
 process.on("exit", () => fs.rmSync(wt, { recursive: true, force: true }));
@@ -15,8 +16,15 @@ fs.symlinkSync(path.join(repo, "packages/interface-dms/node_modules"), path.join
 const src = path.join(wt, "packages/interface-dms/src");
 const cfgText = fs.readFileSync(path.join(wt, ".dependency-cruiser/interface-dms.cjs"), "utf8");
 const cfg = require(path.join(wt, ".dependency-cruiser/interface-dms.cjs"));
-const tiers = eval(cfgText.match(/const tiers = (\[[\s\S]*?\n\]);/)[1]);
-const internals = eval("(" + cfgText.match(/const internals = (\{[\s\S]*?\n\});/)[1] + ")");
+const ts = createRequire(path.join(repo, "packages/interface-dms/package.json"))("typescript");
+function literal(name, pattern) {
+  const errors = [];
+  const value = ts.convertToObject(ts.parseJsonText("interface-dms.cjs", cfgText.match(pattern)[1]), errors);
+  if (errors.length > 0) throw new Error(`.dependency-cruiser/interface-dms.cjs: ${name} is not a JSON literal`);
+  return value;
+}
+const tiers = literal("tiers", /const tiers = (\[[\s\S]*?\n\]);/);
+const internals = literal("internals", /const internals = (\{[\s\S]*?\n\});/);
 const slug = (u) => u.replace(/\/$/, "").replaceAll(".", "-");
 function filesOf(unit) {
   if (unit.endsWith("/")) {

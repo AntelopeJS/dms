@@ -1,5 +1,11 @@
 const { execFileSync } = require("node:child_process");
-const { existsSync, readFileSync, statSync } = require("node:fs");
+const {
+  existsSync,
+  lstatSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} = require("node:fs");
 const { createRequire } = require("node:module");
 const { dirname, extname, join, relative, resolve, sep } = require("node:path");
 const ts = require("typescript");
@@ -51,6 +57,24 @@ function propertyName(property) {
   return name && (ts.isIdentifier(name) || ts.isStringLiteralLike(name))
     ? name.text
     : undefined;
+}
+
+/**
+ * Whether an ignore pattern names a `.claude/skills` link into `.agents/skills`,
+ * or everything below one. The lint reads the link's files at their target, so
+ * ignoring the link hides nothing.
+ */
+function isSkillLink(pattern) {
+  const entry = pattern.replace(/\/\*\*$/u, "");
+  if (!/^\.claude\/skills\/[^/]+$/u.test(entry)) return false;
+  const path = join(repository, entry);
+  return (
+    existsSync(path) &&
+    lstatSync(path).isSymbolicLink() &&
+    realpathSync(path).startsWith(
+      join(realpathSync(repository), ".agents/skills") + sep,
+    )
+  );
 }
 
 /** The file Vite loads for a path written without its extension or as a directory. */
@@ -220,7 +244,10 @@ for (const file of files) {
 const defaults = new Set(ANTELOPE_IGNORE_PATTERNS);
 const listed = new Set(
   ignorePatterns.filter(
-    (pattern) => !defaults.has(pattern) && pattern !== ESLINT_OWNED,
+    (pattern) =>
+      !defaults.has(pattern) &&
+      pattern !== ESLINT_OWNED &&
+      !isSkillLink(pattern),
   ),
 );
 const byPath = (left, right) => left.localeCompare(right);

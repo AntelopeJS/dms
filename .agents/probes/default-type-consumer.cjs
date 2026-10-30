@@ -5,6 +5,12 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
+/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator. */
+function byCodeUnit(left, right) {
+  if (left < right) return -1;
+  return left > right ? 1 : 0;
+}
+
 const referenceCommit = '2bac38976877c3e6ac94cedf9552988bd245cf87';
 const packageName = '@antelopejs/interface-dms';
 const owners = {
@@ -64,10 +70,10 @@ function declarationCoverage(ts, declaration) {
   const source = ts.createSourceFile('default-type-consumer.d.ts', declaration, ts.ScriptTarget.Latest, true);
   const functions = source.statements.filter(ts.isFunctionDeclaration).map((statement) => {
     const specifiers = [...statement.getText(source).matchAll(/import\(["']([^"']+)["']\)/g)].map((match) => match[1]);
-    return { name: statement.name.text, specifiers: [...new Set(specifiers)].sort() };
+    return { name: statement.name.text, specifiers: [...new Set(specifiers)].sort(byCodeUnit) };
   });
   assert.deepEqual(functions.map((entry) => entry.name).sort(), [...expectedFunctions].sort());
-  const specifiers = [...new Set(functions.flatMap((entry) => entry.specifiers))].sort();
+  const specifiers = [...new Set(functions.flatMap((entry) => entry.specifiers))].sort(byCodeUnit);
   const defaultSubpaths = specifiers.filter((specifier) =>
     specifier.startsWith(`${packageName}/base/data-types/internal/default-`) ||
     specifier.startsWith(`${packageName}/base/data-types/default/`),

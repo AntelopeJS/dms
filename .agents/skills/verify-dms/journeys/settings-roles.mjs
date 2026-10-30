@@ -1,6 +1,12 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator. */
+function byCodeUnit(left, right) {
+  if (left < right) return -1;
+  return left > right ? 1 : 0;
+}
+
 const ROLES = "/settings/workspace/roles";
 const MEMBERS = "/settings/workspace/members";
 const INVITATIONS = "/settings/workspace/invites";
@@ -392,7 +398,7 @@ export const journeys = [
       await openRoles(tab);
       const stored = await storedRoles(ctx, "list the roles");
       await ctx.verify("both roles are stored with the same permissions", [
-        ctx.equal("names", stored.map((role) => role.name).sort(), [name, `${name} (copy)`].sort()),
+        ctx.equal("names", stored.map((role) => role.name).sort(byCodeUnit), [name, `${name} (copy)`].sort(byCodeUnit)),
         ctx.equal("permissions", stored.map((role) => role.permissions), [[EXPORT_PERMISSION], [EXPORT_PERMISSION]]),
         tab.visible({ role: "option", name: new RegExp(`^${name} \\(copy\\)`) }),
       ]);
