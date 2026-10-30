@@ -113,6 +113,23 @@ export function findWorkingCopy(
   return undefined;
 }
 
+/**
+ * The id of the runtime module installed from npm as `packageName`, whatever
+ * its status, so a reinstall reuses it; `packageName` itself when there is
+ * none. Local and git working copies of the package are never matched.
+ */
+export function packageRuntimeId(
+  packageName: string,
+  runtime: Iterable<RuntimeModule>,
+): string {
+  for (const module of runtime) {
+    if (module.isPackageSource && module.packageName === packageName) {
+      return module.id;
+    }
+  }
+  return packageName;
+}
+
 /** Every module the runtime holds, by runtime id. */
 export async function listRuntimeModules(): Promise<
   Map<string, RuntimeModule>

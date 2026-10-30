@@ -26,6 +26,7 @@ import {
   isLive,
   listRuntimeModules,
   loadStoreModule,
+  packageRuntimeId,
   unloadStoreModule,
 } from "./runtime";
 import type {
@@ -351,6 +352,7 @@ async function prepareContext(
     "error.store_invalid_state",
   );
 
+  let key = declaration?.key ?? catalogEntry.package;
   if (!declaration) {
     const runtime = await listRuntimeModules();
     assert(
@@ -358,12 +360,13 @@ async function prepareContext(
       HTTP_CONFLICT,
       "error.store_working_copy",
     );
+    key = packageRuntimeId(catalogEntry.package, runtime.values());
   }
   const context: OperationContext = {
     id,
     catalogEntry,
     projectPath,
-    key: declaration?.key ?? catalogEntry.package,
+    key,
     declaration,
     written: false,
     dependencies: options.dependencies ?? [],
