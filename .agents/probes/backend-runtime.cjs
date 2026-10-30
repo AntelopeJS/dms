@@ -278,51 +278,62 @@ boot().then((failures) => { process.exitCode = failures > 0 ? 1 : 0; })
   }
 }
 
+function keyInfo(key) {
+  return typeof key === "symbol" ? { symbol: String(key), global: Symbol.keyFor(key) ?? null } : key;
+}
+
+function functionInfo(fn) {
+  let constructible = true;
+  try {
+    Reflect.construct(Object, [], fn);
+  } catch {
+    constructible = false;
+  }
+  return { ...describe(fn), constructible };
+}
+
+function typeInfo(value) {
+  if (value === undefined) return { kind: "undefined" };
+  if (value === null) return { kind: "null" };
+  if (Array.isArray(value)) return { kind: "array", values: value.map(typeInfo) };
+  if (typeof value === "function") return { kind: "function", ...functionInfo(value) };
+  return { kind: typeof value, value: String(value) };
+}
+
+function propertyInfo(object) {
+  if (object === null || !["object", "function"].includes(typeof object)) return [];
+  return Reflect.ownKeys(object).map((key) => {
+    const descriptor = Object.getOwnPropertyDescriptor(object, key);
+    const common = {
+      key: keyInfo(key),
+      enumerable: descriptor.enumerable,
+      configurable: descriptor.configurable,
+    };
+    return "value" in descriptor
+      ? { ...common, kind: "data", writable: descriptor.writable,
+          value: typeof descriptor.value === "function"
+            ? { kind: "function", ...functionInfo(descriptor.value) }
+            : { kind: descriptor.value === null ? "null" : typeof descriptor.value } }
+      : { ...common, kind: "accessor",
+          get: descriptor.get ? functionInfo(descriptor.get) : null,
+          set: descriptor.set ? functionInfo(descriptor.set) : null };
+  });
+}
+
+function targetInfo(target, key) {
+  return {
+    class: typeof target === "function" ? target.name : target.constructor?.name,
+    placement: typeof target === "function" ? "static" : "prototype",
+    member: key === undefined ? null : keyInfo(key),
+  };
+}
+
 function observeRuntime() {
   const Module = require("node:module");
   const contract = baselineContract();
   const dist = join(root, "packages/dms/dist");
   const inside = (file) => file.startsWith(dist + sep);
   const moduleName = (file) => relative(dist, file).split(sep).join("/");
-  const keyInfo = (key) => typeof key === "symbol"
-    ? { symbol: String(key), global: Symbol.keyFor(key) ?? null }
-    : key;
-  const functionInfo = (fn) => {
-    let constructible = true;
-    try {
-      Reflect.construct(Object, [], fn);
-    } catch {
-      constructible = false;
-    }
-    return { ...describe(fn), constructible };
-  };
-  const typeInfo = (value) => {
-    if (value === undefined) return { kind: "undefined" };
-    if (value === null) return { kind: "null" };
-    if (Array.isArray(value)) return { kind: "array", values: value.map(typeInfo) };
-    if (typeof value === "function") return { kind: "function", ...functionInfo(value) };
-    return { kind: typeof value, value: String(value) };
-  };
-  const propertyInfo = (object) => {
-    if (object === null || !["object", "function"].includes(typeof object)) return [];
-    return Reflect.ownKeys(object).map((key) => {
-      const descriptor = Object.getOwnPropertyDescriptor(object, key);
-      const common = {
-        key: keyInfo(key),
-        enumerable: descriptor.enumerable,
-        configurable: descriptor.configurable,
-      };
-      return "value" in descriptor
-        ? { ...common, kind: "data", writable: descriptor.writable,
-            value: typeof descriptor.value === "function"
-              ? { kind: "function", ...functionInfo(descriptor.value) }
-              : { kind: descriptor.value === null ? "null" : typeof descriptor.value } }
-        : { ...common, kind: "accessor",
-            get: descriptor.get ? functionInfo(descriptor.get) : null,
-            set: descriptor.set ? functionInfo(descriptor.set) : null };
-    });
-  };
-
   createRequire(load.resolve("@antelopejs/interface-core"))("reflect-metadata");
   assert.equal(typeof Reflect.decorate, "function");
   assert.equal(typeof Reflect.getOwnMetadata, "function");
@@ -333,22 +344,17 @@ function observeRuntime() {
   const decorated = [];
   const applications = [];
   const metadataDecorators = new WeakMap();
-  const targetInfo = (target, key) => ({
-    class: typeof target === "function" ? target.name : target.constructor?.name,
-    placement: typeof target === "function" ? "static" : "prototype",
-    member: key === undefined ? null : keyInfo(key),
-  });
 
   Module.prototype._compile = function (source, filename, ...rest) {
     if (inside(filename)) reached.add(filename);
-    return Reflect.apply(originalCompile, this, [source, filename, ...rest]);
+    return originalCompile.call(this, source, filename, ...rest);
   };
   Reflect.metadata = function (key, value) {
-    const decorator = Reflect.apply(originalMetadata, this, [key, value]);
+    const decorator = originalMetadata.call(this, key, value);
     metadataDecorators.set(decorator, { key: typeInfo(key), value: typeInfo(value) });
     return decorator;
   };
-  Reflect.decorate = function (decorators, target, key, descriptor) {
+  Reflect.decorate = function (decorators, target, key, _descriptor) {
     const site = targetInfo(target, key);
     const call = decorated.length;
     const record = { site, target, key, result: undefined };
@@ -364,7 +370,7 @@ function observeRuntime() {
     });
     const args = Array.from(arguments);
     args[0] = wrapped;
-    record.result = Reflect.apply(originalDecorate, this, args);
+    record.result = originalDecorate.apply(this, args);
     return record.result;
   };
 
