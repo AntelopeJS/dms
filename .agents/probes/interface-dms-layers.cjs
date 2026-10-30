@@ -13,6 +13,7 @@ const report = process.env.INTERFACE_DMS_LAYERS_REPORT === "1";
 const packageRoot = join(root, "packages/interface-dms");
 const realDist = join(packageRoot, "dist");
 
+/** @type {Array<[oldEntry: string, names: string[], newEntry: string]>} */
 const MOVED = [
   ["base/types/watch.js", ["ComponentId"], "watch-actions.js"],
   ["base/types/tone.js", ["TONES"], "tones.js"],
