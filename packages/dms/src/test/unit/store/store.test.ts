@@ -12,6 +12,7 @@ import {
   packageDeclarationSource,
   supportsFrontend,
   findWorkingCopy,
+  packageRuntimeId,
   isLive,
   sourceKindOf,
   startStoreOperation,
@@ -76,6 +77,35 @@ describe("[unit] store/compatibility", () => {
 });
 
 describe("[unit] store/runtime", () => {
+  it("reuses a destroyed npm module's id without selecting a local or git working copy", () => {
+    const packageName = "@antelopejs/dms-builder";
+    const destroyed = {
+      ...runtimeModule("loaded"),
+      id: "dms-builder",
+      packageName,
+    };
+    const local = {
+      ...destroyed,
+      id: "local-builder",
+      isPackageSource: false,
+      sourceKind: "local",
+      status: "active",
+    } satisfies RuntimeModule;
+    const git = {
+      ...local,
+      id: "git-builder",
+      sourceKind: "github",
+    } satisfies RuntimeModule;
+    const runtime = [local, git, runtimeModule("active"), destroyed];
+
+    expect(packageRuntimeId(packageName, runtime)).to.equal("dms-builder");
+    expect(packageRuntimeId(packageName, [local, git])).to.equal(packageName);
+    expect(packageRuntimeId("@antelopejs/dms-media", runtime)).to.equal(
+      "@antelopejs/dms-media",
+    );
+    expect(packageRuntimeId(packageName, [])).to.equal(packageName);
+  });
+
   it("counts a module as running only while it holds an instance", () => {
     expect(isLive(runtimeModule("active"))).to.equal(true);
     expect(isLive(runtimeModule("constructed"))).to.equal(true);

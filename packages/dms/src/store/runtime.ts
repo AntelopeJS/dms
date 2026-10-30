@@ -113,6 +113,14 @@ export function findWorkingCopy(
   return undefined;
 }
 
+/** The runtime id to reuse for an npm package, or its name for a new load. */
+export function packageRuntimeId(
+  packageName: string,
+  _runtime: Iterable<RuntimeModule>,
+): string {
+  return packageName;
+}
+
 /** Every module the runtime holds, by runtime id. */
 export async function listRuntimeModules(): Promise<
   Map<string, RuntimeModule>
