@@ -9,6 +9,7 @@ import type {
   TableViewPaginationMode,
   TableViewSourceConfig,
   TableViewReorderConfig,
+  TableViewInlineEditConfig,
 } from "../../composables/table-view/types";
 import type { RowActionRule } from "#dms-core/app/types/row-action";
 import type { TableViewLiveHoldOptions } from "#dms-core/app/types/live";
@@ -17,6 +18,7 @@ import UTable from "../../build/components/table/Table.vue";
 import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDetail.vue";
 import LiveHoldBanner from "../../build/components/table-view/LiveHoldBanner.vue";
 import TableViews from "../../build/components/table/Views.vue";
+import InlineEditCell from "../../build/components/table/InlineEditCell.vue";
 import { useTableViewSetup } from "../../build/composables/table-view/tableViewSetup";
 
 interface TableViewProps<T extends Data> extends TableViewConfig<T> {
@@ -38,6 +40,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   source?: TableViewSourceConfig;
   /** Rows ordered by hand on a number column (backend `reorder`). */
   reorder?: TableViewReorderConfig;
+  /** Simple values edited in the grid (backend `inlineEdit`). */
+  inlineEdit?: boolean | TableViewInlineEditConfig;
   /** Rows listed first whatever the sort (backend `pinnedRows`). */
   pinnedRows?: RowActionRule;
   /** Footer texts and figures: row count, hint, summaries and legend. */
@@ -142,6 +146,8 @@ const {
   expandedRowProps,
   handleRowEdit,
   contextForSlot,
+  inlineEditing,
+  inlineEditSlots,
 } = useTableViewSetup<T>(props);
 </script>
 
@@ -272,6 +278,9 @@ const {
         @save-as="saveAsNewView"
         @delete="deleteView"
       />
+    </template>
+    <template v-for="slot in inlineEditSlots" :key="slot" #[slot]="cell">
+      <InlineEditCell :cell="cell" :inline-edit="inlineEditing" />
     </template>
     <template v-if="expandableConfig" #expanded="{ row }">
       <ExpandedRowDetail

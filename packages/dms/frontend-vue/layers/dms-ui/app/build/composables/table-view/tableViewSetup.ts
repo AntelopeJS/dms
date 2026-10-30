@@ -93,6 +93,7 @@ import {
   useTableViewEvents as createEvents,
   useTableViewMount as createMount,
 } from "./tableViewEvents";
+import { useTableViewInlineEdit as createInlineEdit } from "./tableViewInlineEdit";
 import type { TableViewSetupProps } from "./tableViewTypes";
 import { TableViewScope } from "./tableViewScope";
 import { tableViewBindings } from "./tableViewBindings";
@@ -194,6 +195,7 @@ export function useTableViewSetup<T extends Data>(
   const rowEdit = createRowEdit<T>(scope);
   const recordLink = createRecordLink<T>(scope);
   const displaySelection = createDisplaySelection<T>(scope);
+  const inlineEdit = createInlineEdit<T>(scope);
   const displayActions = createDisplayActions<T>(scope);
   const displayContext = createDisplayContext<T>(scope);
   const quickActions = createQuickActions<T>(scope);
@@ -202,5 +204,5 @@ export function useTableViewSetup<T extends Data>(
   createSizingPersistence<T>(scope);
   createEvents<T>(scope);
   createMount<T>(scope);
-  return tableViewBindings(scope);
+  return { ...tableViewBindings(scope), ...inlineEdit };
 }

@@ -22,6 +22,8 @@ export * from "./key-value-list";
 export * from "./kpi-card";
 export * from "./layouts";
 export * from "./live-toggle";
+export * from "./matrix";
+export * from "./matrix-types";
 export * from "./meter";
 export * from "./nav-card-grid";
 export * from "./page-toolbar";

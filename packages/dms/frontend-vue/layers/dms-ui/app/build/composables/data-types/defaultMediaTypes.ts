@@ -14,6 +14,7 @@ import {
   DisplayImage,
   DisplayColor,
 } from "./defaultDisplayComponents";
+import { richTextFormatter } from "./richTextCell";
 
 type CellOptions = Parameters<DataTypeFormatter>[2];
 
@@ -93,7 +94,11 @@ export const registerFileType = (
 export const registerDisplayOnlyTypes = (
   registerDataType: (dataType: DataType) => void,
 ) => {
-  registerDataType({ id: "rich_text", displayComponent: DisplayRichText });
+  registerDataType({
+    id: "rich_text",
+    displayComponent: DisplayRichText,
+    formatter: richTextFormatter,
+  });
   registerDataType({ id: "password", displayComponent: DisplayPassword });
   registerDataType({
     id: "color",
