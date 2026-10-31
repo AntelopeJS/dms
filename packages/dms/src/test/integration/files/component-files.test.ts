@@ -221,7 +221,7 @@ describe("[integration] native component file security", () => {
         saves += 1;
         return { document: submitted, result: "saved" };
       },
-    ).catch((error) => error);
+    ).catch((error: unknown) => error);
     expect(denied).to.be.instanceOf(HTTPResult);
     expect(saves).to.equal(0);
   });

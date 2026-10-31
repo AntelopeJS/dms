@@ -265,12 +265,12 @@ export async function start(): Promise<void> {
 
   if (defaultTenantCreated) await provisionDefaultTenant();
 
-  staleExportsSweep = runSweepStaleExports().catch((error) => {
+  staleExportsSweep = runSweepStaleExports().catch((error: unknown) => {
     Logging.Error(`Cron '${SWEEP_STALE_EXPORTS_CRON_NAME}' failed:`, error);
   });
   cronTasks = registerDmsCrons();
 
-  void runCleanupUserInvites().catch((error) => {
+  void runCleanupUserInvites().catch((error: unknown) => {
     Logging.Error(`Cron '${CLEANUP_USER_INVITES_CRON_NAME}' failed:`, error);
   });
   await registerAutomationNodes();

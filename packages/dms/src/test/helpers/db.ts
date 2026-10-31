@@ -19,10 +19,12 @@ function getMongoUrl(): string {
 let sharedClient: Promise<MongoClient> | undefined;
 
 function getClient(): Promise<MongoClient> {
-  sharedClient ??= MongoClient.connect(getMongoUrl()).catch((error) => {
-    sharedClient = undefined;
-    throw error;
-  });
+  sharedClient ??= MongoClient.connect(getMongoUrl()).catch(
+    (error: unknown) => {
+      sharedClient = undefined;
+      throw error;
+    },
+  );
   return sharedClient;
 }
 
