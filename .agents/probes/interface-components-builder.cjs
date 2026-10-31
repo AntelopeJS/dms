@@ -1,41 +1,17 @@
 const path = require("node:path");
 
-const { createRequire } = require("node:module");
-
 const {
   execFileSync,
 } = require("node:child_process");
 
 const root = process.argv[2];
 
-const requireInterface = createRequire(
-  path.join(root, "packages/interface-dms/package.json"),
-);
+/** api-diff runs a scratch copy of this file, so relative requires must start from the tree under test. */
+module.filename = path.join(root, ".agents/probes/interface-components-builder.cjs");
 
 const assert = require("node:assert/strict");
 
-/**
- * @typedef {{
- *   "./dist/component.js": typeof import("../../packages/interface-dms/dist/component.js");
- *   "./dist/base/data-types/index.js": typeof import("../../packages/interface-dms/dist/base/data-types/index.js");
- *   "./dist/page/metadata.js": typeof import("../../packages/interface-dms/dist/page/metadata.js");
- *   "./dist/uploads.js": typeof import("../../packages/interface-dms/dist/uploads.js");
- *   "./dist/base/display.js": typeof import("../../packages/interface-dms/dist/base/display.js");
- *   "./dist/base/block-registry/internal/ui.js": typeof import("../../packages/interface-dms/dist/base/block-registry/internal/ui.js");
- * }} InterfaceModules
- */
-
-/**
- * The one place this probe reads built interface-dms output: each entry is typed by the declaration the build emits next to it.
- * @template {keyof InterfaceModules} Entry
- * @param {Entry} entry
- * @returns {InterfaceModules[Entry]}
- */
-function loadInterface(entry) {
-  return requireInterface(entry);
-}
-
-/** @typedef {InstanceType<InterfaceModules["./dist/page/metadata.js"]["PageMetadata"]>} Page */
+/** @typedef {InstanceType<typeof import("../../packages/interface-dms/dist/page/metadata.js")["PageMetadata"]>} Page */
 
 /**
  * @param {string} text
@@ -51,11 +27,11 @@ const {
   ComponentBuilder,
   ComponentTarget,
   getPermissionIdRef,
-} = loadInterface("./dist/component.js");
+} = require("../../packages/interface-dms/dist/component.js");
 
 async function observeUploadConstraintReads() {
-  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
-  const uploads = loadInterface("./dist/uploads.js");
+  const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
+  const uploads = require("../../packages/interface-dms/dist/uploads.js");
   const priorSigner = uploads.SignUploadToken;
   const observed = [];
   try {
@@ -149,12 +125,10 @@ function observeDefaultTypesFresh() {
 }
 
 function observeDataTypesAndHints() {
-  const { blockFetchUrlOption } = loadInterface("./dist/base/display.js");
-  const { getUiHints } = loadInterface(
-    "./dist/base/block-registry/internal/ui.js",
-  );
+  const { blockFetchUrlOption } = require("../../packages/interface-dms/dist/base/display.js");
+  const { getUiHints } = require("../../packages/interface-dms/dist/base/block-registry/internal/ui.js");
   const { DataType, RegisterDataType, RegisterDataCompareMode, serializeType } =
-    loadInterface("./dist/base/data-types/index.js");
+    require("../../packages/interface-dms/dist/base/data-types/index.js");
   /** @type {unknown[]} */
   const registrations = [];
   class EmptyMode {

@@ -1,40 +1,9 @@
 const path = require("node:path");
 
-const { createRequire } = require("node:module");
-
 const root = process.argv[2];
 
-const requireInterface = createRequire(
-  path.join(root, "packages/interface-dms/package.json"),
-);
-
-/**
- * @typedef {{
- *   "./dist/component.js": typeof import("../../packages/interface-dms/dist/component.js");
- *   "./dist/page/internal/registry.js": typeof import("../../packages/interface-dms/dist/page/internal/registry.js");
- *   "./dist/page/metadata.js": typeof import("../../packages/interface-dms/dist/page/metadata.js");
- *   "@antelopejs/interface-core": typeof import("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
- *   "./dist/base/table-view/meta.js": typeof import("../../packages/interface-dms/dist/base/table-view/meta.js");
- *   "./dist/base/table-view/internal/guards.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/guards.js");
- *   "./dist/base/table-view/internal/auth.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/auth.js");
- *   "./dist/base/table-view/internal/realtime.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/realtime.js");
- *   "./dist/tenant-access.js": typeof import("../../packages/interface-dms/dist/tenant-access.js");
- *   "./dist/base/table-view/internal/factory-helpers.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/factory-helpers.js");
- *   "./dist/base/table-view/factory.js": typeof import("../../packages/interface-dms/dist/base/table-view/factory.js");
- *   "./dist/permissions.js": typeof import("../../packages/interface-dms/dist/permissions.js");
- *   "@antelopejs/interface-data-api/metadata": typeof import("../../packages/interface-dms/node_modules/@antelopejs/interface-data-api/dist/metadata.js");
- * }} InterfaceModules
- */
-
-/**
- * The one place this probe reads built interface-dms output: each entry is typed by the declaration the build emits next to it.
- * @template {keyof InterfaceModules} Entry
- * @param {Entry} entry
- * @returns {InterfaceModules[Entry]}
- */
-function loadInterface(entry) {
-  return requireInterface(entry);
-}
+/** api-diff runs a scratch copy of this file, so relative requires must start from the tree under test. */
+module.filename = path.join(root, ".agents/probes/interface-components-routes.cjs");
 
 /**
  * @param {unknown} error
@@ -46,10 +15,10 @@ function messageOf(error) {
 
 const {
   ComponentBuilder,
-} = loadInterface("./dist/component.js");
+} = require("../../packages/interface-dms/dist/component.js");
 
 /**
- * @param {InterfaceModules["./dist/tenant-access.js"]} tenantAccess
+ * @param {typeof import("../../packages/interface-dms/dist/tenant-access.js")} tenantAccess
  */
 function openTenantGate(tenantAccess) {
   const previousGate = tenantAccess.CheckTenantAccess;
@@ -92,18 +61,12 @@ function bodyRewritingGuards(receiver) {
 }
 
 async function observeRoutes() {
-  const { GetMetadata } = loadInterface("@antelopejs/interface-core");
-  const { TableViewMeta } = loadInterface("./dist/base/table-view/meta.js");
-  const { createGuardedRoute } = loadInterface(
-    "./dist/base/table-view/internal/guards.js",
-  );
-  const { withActionCheck } = loadInterface(
-    "./dist/base/table-view/internal/auth.js",
-  );
-  const { withRealtimeMutation, withPresenceAcquire } = loadInterface(
-    "./dist/base/table-view/internal/realtime.js",
-  );
-  const tenantAccess = loadInterface("./dist/tenant-access.js");
+  const { GetMetadata } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
+  const { TableViewMeta } = require("../../packages/interface-dms/dist/base/table-view/meta.js");
+  const { createGuardedRoute } = require("../../packages/interface-dms/dist/base/table-view/internal/guards.js");
+  const { withActionCheck } = require("../../packages/interface-dms/dist/base/table-view/internal/auth.js");
+  const { withRealtimeMutation, withPresenceAcquire } = require("../../packages/interface-dms/dist/base/table-view/internal/realtime.js");
+  const tenantAccess = require("../../packages/interface-dms/dist/tenant-access.js");
   class ProbeController {}
   const receiver = new Proxy(new ProbeController(), {});
   const meta = GetMetadata(ProbeController, TableViewMeta);
@@ -219,9 +182,7 @@ async function observeRoutes() {
 }
 
 function observeFactoryHelpers() {
-  const helpers = loadInterface(
-    "./dist/base/table-view/internal/factory-helpers.js",
-  );
+  const helpers = require("../../packages/interface-dms/dist/base/table-view/internal/factory-helpers.js");
   const flags = [
     "hasNewForm",
     "hasEditForm",
@@ -282,8 +243,8 @@ function observeFactoryHelpers() {
 }
 
 function observePageAndTableMetadata() {
-  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
-  const { TableViewMeta } = loadInterface("./dist/base/table-view/meta.js");
+  const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
+  const { TableViewMeta } = require("../../packages/interface-dms/dist/base/table-view/meta.js");
   class ParentController {}
   class ChildController {}
   const parent = new PageMetadata(ParentController);
@@ -344,16 +305,12 @@ function observePageAndTableMetadata() {
 }
 
 async function observeTableViewLifecycle() {
-  const { TableView } = loadInterface("./dist/base/table-view/factory.js");
-  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
-  const { permissionMap } = loadInterface(
-    "./dist/page/internal/registry.js",
-  );
-  const permissions = loadInterface("./dist/permissions.js");
-  const { GetMetadata } = loadInterface("@antelopejs/interface-core");
-  const { DataAPIMeta } = loadInterface(
-    "@antelopejs/interface-data-api/metadata",
-  );
+  const { TableView } = require("../../packages/interface-dms/dist/base/table-view/factory.js");
+  const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
+  const { permissionMap } = require("../../packages/interface-dms/dist/page/internal/registry.js");
+  const permissions = require("../../packages/interface-dms/dist/permissions.js");
+  const { GetMetadata } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
+  const { DataAPIMeta } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-data-api/dist/metadata.js");
   const previous = permissions.HasPermission;
   /** @type {unknown[]} */
   const calls = [];

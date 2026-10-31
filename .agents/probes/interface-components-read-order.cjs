@@ -1,39 +1,13 @@
 const path = require("node:path");
 
-const { createRequire } = require("node:module");
-
 const root = process.argv[2];
 
-const requireInterface = createRequire(
-  path.join(root, "packages/interface-dms/package.json"),
-);
+/** api-diff runs a scratch copy of this file, so relative requires must start from the tree under test. */
+module.filename = path.join(root, ".agents/probes/interface-components-read-order.cjs");
 
 const assert = require("node:assert/strict");
 
-/**
- * @typedef {{
- *   "@antelopejs/interface-api": typeof import("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
- *   "./dist/auth/internal/jwt-auth-decorator.js": typeof import("../../packages/interface-dms/dist/auth/internal/jwt-auth-decorator.js");
- *   "./dist/auth/internal/request-authenticators.js": typeof import("../../packages/interface-dms/dist/auth/internal/request-authenticators.js");
- *   "./dist/utils/internal/type-check.js": typeof import("../../packages/interface-dms/dist/utils/internal/type-check.js");
- *   "./dist/base/data-types/index.js": typeof import("../../packages/interface-dms/dist/base/data-types/index.js");
- *   "./dist/base/helpers/file-refs.js": typeof import("../../packages/interface-dms/dist/base/helpers/file-refs.js");
- *   "./dist/page/internal/registry.js": typeof import("../../packages/interface-dms/dist/page/internal/registry.js");
- *   "./dist/page/metadata.js": typeof import("../../packages/interface-dms/dist/page/metadata.js");
- *   "@antelopejs/interface-core": typeof import("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
- *   "./dist/permissions.js": typeof import("../../packages/interface-dms/dist/permissions.js");
- * }} InterfaceModules
- */
-
-/**
- * The one place this probe reads built interface-dms output: each entry is typed by the declaration the build emits next to it.
- * @template {keyof InterfaceModules} Entry
- * @param {Entry} entry
- * @returns {InterfaceModules[Entry]}
- */
-function loadInterface(entry) {
-  return requireInterface(entry);
-}
+/** @typedef {InstanceType<typeof import("../../packages/interface-dms/dist/page/metadata.js")["PageMetadata"]>} Page */
 
 /**
  * @param {unknown} error
@@ -75,13 +49,13 @@ function inherit(prototype, own) {
 }
 
 async function observeTypeBoundaries() {
-  const api = loadInterface("@antelopejs/interface-api");
-  const { CreateJwtAuthDecorator } = loadInterface("./dist/auth/internal/jwt-auth-decorator.js");
-  const { getAuthenticatedRequestTenantId } = loadInterface("./dist/auth/internal/request-authenticators.js");
-  const { isPrimitive } = loadInterface("./dist/utils/internal/type-check.js");
-  const { CreateDataType } = loadInterface("./dist/base/data-types/index.js");
-  const { collectFileRefs, remapRecordFileKeys } = loadInterface("./dist/base/helpers/file-refs.js");
-  const { RegistrationIdentity } = loadInterface("./dist/page/internal/registry.js");
+  const api = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
+  const { CreateJwtAuthDecorator } = require("../../packages/interface-dms/dist/auth/internal/jwt-auth-decorator.js");
+  const { getAuthenticatedRequestTenantId } = require("../../packages/interface-dms/dist/auth/internal/request-authenticators.js");
+  const { isPrimitive } = require("../../packages/interface-dms/dist/utils/internal/type-check.js");
+  const { CreateDataType } = require("../../packages/interface-dms/dist/base/data-types/index.js");
+  const { collectFileRefs, remapRecordFileKeys } = require("../../packages/interface-dms/dist/base/helpers/file-refs.js");
+  const { RegistrationIdentity } = require("../../packages/interface-dms/dist/page/internal/registry.js");
   const priorProvider = api.SetParameterProvider;
   const authenticated = [];
   /** @type {unknown[]} */
@@ -139,8 +113,8 @@ async function observeTypeBoundaries() {
 }
 
 function observePageInfoPrecedence() {
-  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
-  const { GetMetadata } = loadInterface("@antelopejs/interface-core");
+  const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
+  const { GetMetadata } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
   const results = [];
   for (const mode of ["explicit", "menu", "ancestor", "default", "controller"]) {
     /** @type {unknown[]} */
@@ -227,10 +201,10 @@ function observePageInfoPrecedence() {
 }
 
 async function observeExtractedPageCalls() {
-  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
-  const api = loadInterface("@antelopejs/interface-api");
-  const permissions = loadInterface("./dist/permissions.js");
-  const { pageLayoutHandlers } = loadInterface("./dist/page/internal/registry.js");
+  const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
+  const api = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
+  const permissions = require("../../packages/interface-dms/dist/permissions.js");
+  const { pageLayoutHandlers } = require("../../packages/interface-dms/dist/page/internal/registry.js");
   const priorRegister = api.RegisterRoute;
   const priorUnregister = api.UnregisterRoute;
   const priorPermission = permissions.HasPermission;
@@ -408,11 +382,11 @@ function takenKeysOrder(fresh) {
 }
 
 async function observeEvaluationOrder() {
-  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
+  const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
   const fresh = () => new PageMetadata(class EvaluationOrderProbe {});
   const results = {};
   results.publish = publishOrder(fresh);
-  const api = loadInterface("@antelopejs/interface-api");
+  const api = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
   const register = api.RegisterRoute;
   const unregister = api.UnregisterRoute;
   /** @type {Parameters<typeof api.RegisterRoute>[0] | undefined} */

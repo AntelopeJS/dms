@@ -1,39 +1,13 @@
 const path = require("node:path");
 
-const { createRequire } = require("node:module");
-
 const root = process.argv[2];
 
-const requireInterface = createRequire(
-  path.join(root, "packages/interface-dms/package.json"),
-);
+/** api-diff runs a scratch copy of this file, so relative requires must start from the tree under test. */
+module.filename = path.join(root, ".agents/probes/interface-components-owner-order.cjs");
 
 const assert = require("node:assert/strict");
 
-/**
- * @typedef {{
- *   "./dist/component.js": typeof import("../../packages/interface-dms/dist/component.js");
- *   "./dist/page/internal/registry.js": typeof import("../../packages/interface-dms/dist/page/internal/registry.js");
- *   "./dist/page/metadata.js": typeof import("../../packages/interface-dms/dist/page/metadata.js");
- *   "./dist/uploads.js": typeof import("../../packages/interface-dms/dist/uploads.js");
- *   "@antelopejs/interface-core": typeof import("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
- *   "./dist/base/table-view/factory.js": typeof import("../../packages/interface-dms/dist/base/table-view/factory.js");
- *   "@antelopejs/interface-data-api/metadata": typeof import("../../packages/interface-dms/node_modules/@antelopejs/interface-data-api/dist/metadata.js");
- *   "./dist/page.js": typeof import("../../packages/interface-dms/dist/page.js");
- * }} InterfaceModules
- */
-
-/**
- * The one place this probe reads built interface-dms output: each entry is typed by the declaration the build emits next to it.
- * @template {keyof InterfaceModules} Entry
- * @param {Entry} entry
- * @returns {InterfaceModules[Entry]}
- */
-function loadInterface(entry) {
-  return requireInterface(entry);
-}
-
-/** @typedef {InstanceType<InterfaceModules["./dist/component.js"]["ComponentBuilder"]>} ComponentBuilderInstance */
+/** @typedef {InstanceType<typeof import("../../packages/interface-dms/dist/component.js")["ComponentBuilder"]>} ComponentBuilderInstance */
 
 /**
  * @param {unknown} value
@@ -55,11 +29,11 @@ function ownMethod(value) {
 
 const {
   ComponentBuilder,
-} = loadInterface("./dist/component.js");
+} = require("../../packages/interface-dms/dist/component.js");
 
 /**
- * @param {InterfaceModules["./dist/page/metadata.js"]["PageMetadata"]} PageMetadata
- * @param {InterfaceModules["./dist/page/internal/registry.js"]["pageExtensions"]} pageExtensions
+ * @param {typeof import("../../packages/interface-dms/dist/page/metadata.js")["PageMetadata"]} PageMetadata
+ * @param {typeof import("../../packages/interface-dms/dist/page/internal/registry.js")["pageExtensions"]} pageExtensions
  * @param {boolean} throws
  */
 async function ownerExtensionComponent(PageMetadata, pageExtensions, throws) {
@@ -100,8 +74,8 @@ async function ownerExtensionComponent(PageMetadata, pageExtensions, throws) {
 }
 
 /**
- * @param {InterfaceModules["./dist/page/metadata.js"]["PageMetadata"]} PageMetadata
- * @param {InterfaceModules["./dist/page/internal/registry.js"]["pageExtensions"]} pageExtensions
+ * @param {typeof import("../../packages/interface-dms/dist/page/metadata.js")["PageMetadata"]} PageMetadata
+ * @param {typeof import("../../packages/interface-dms/dist/page/internal/registry.js")["pageExtensions"]} pageExtensions
  */
 function ownerAccessorCases(PageMetadata, pageExtensions) {
   return {
@@ -227,8 +201,8 @@ function ownerAccessorCases(PageMetadata, pageExtensions) {
 }
 
 async function observeOwnerAccessorOrder() {
-  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
-  const { pageExtensions } = loadInterface("./dist/page/internal/registry.js");
+  const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
+  const { pageExtensions } = require("../../packages/interface-dms/dist/page/internal/registry.js");
   const results = {};
   const expected = {};
   const failures = [];
@@ -255,9 +229,9 @@ async function observeOwnerAccessorOrder() {
 }
 
 async function observePublicWatchFilterOrder() {
-  const { GetMetadata } = loadInterface("@antelopejs/interface-core");
-  const { DataAPIMeta } = loadInterface("@antelopejs/interface-data-api/metadata");
-  const { TableView } = loadInterface("./dist/base/table-view/factory.js");
+  const { GetMetadata } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
+  const { DataAPIMeta } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-data-api/dist/metadata.js");
+  const { TableView } = require("../../packages/interface-dms/dist/base/table-view/factory.js");
   const results = [];
   for (let trial = 0; trial < 3; trial++) {
     class Controller {}
@@ -302,9 +276,9 @@ async function observePublicWatchFilterOrder() {
 }
 
 async function observePublicPageScheduling() {
-  const { ImplementInterface } = loadInterface("@antelopejs/interface-core");
-  const { PageMetadata, GetPageLayoutBySlug } = loadInterface("./dist/page.js");
-  const { SignUploadToken } = loadInterface("./dist/uploads.js");
+  const { ImplementInterface } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
+  const { PageMetadata, GetPageLayoutBySlug } = require("../../packages/interface-dms/dist/page.js");
+  const { SignUploadToken } = require("../../packages/interface-dms/dist/uploads.js");
   ImplementInterface({ SignUploadToken }, { SignUploadToken: async () => "timing-token" });
   /** @type {unknown[]} */
   const trace = [];
