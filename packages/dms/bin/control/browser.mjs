@@ -299,7 +299,7 @@ export async function serveBrowser(dir, from, port) {
     }
     /** @type {Buffer[]} */
     const chunks = [];
-    incoming.on("data", (chunk) => chunks.push(chunk));
+    incoming.on("data", (/** @type {Buffer} */ chunk) => chunks.push(chunk));
     incoming.on("end", () => {
       handle(JSON.parse(Buffer.concat(chunks).toString("utf8")))
         .then((result) => outgoing.end(JSON.stringify(result)))
