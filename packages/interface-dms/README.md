@@ -70,10 +70,7 @@ export class SalesPage extends PageController("sales", {
 
 <!-- antelopejs-docs-compat:end -->
 
-| `@antelopejs/interface-dms` | `@antelopejs/dms` (implementation) |
-| --- | --- |
-| 0.7 | 0.9 |
-| 0.6 | 0.8 |
+A `@antelopejs/dms` release implements the `@antelopejs/interface-dms` range listed in the compatibility block of the [`dms` README](../dms/README.md#compatibility).
 
 ## Documentation
 
