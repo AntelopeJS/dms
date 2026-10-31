@@ -86,8 +86,7 @@ let dockerRuns = 0;
  * The program and leading arguments that run `java`: `$JAVA`, `java` on
  * PATH, or a throwaway container that mounts the jar folder and the work
  * folder at the same paths.
- */
-/**
+ *
  * @param {string} jar
  * @param {string} work
  */
@@ -171,8 +170,7 @@ function runTlc({ jar, work, spec, name, constants, bounds, invariants, workers 
  * those in `findings`, each of which must break with a shortest
  * counterexample of exactly the recorded number of states. Prints one line
  * per rule and exits with {@link EXIT}.
- */
-/**
+ *
  * @param {{ dir: string, spec: string, config?: string, findings: Record<string, number> }} options
  */
 export async function checkSpec({ dir, spec, config = spec, findings }) {

@@ -148,8 +148,7 @@ export class JourneyContext {
   /**
    * Records a step of checks, which may be promises (`tab.visible(...)`).
    * With `{ critical: true }` a failure ends the journey.
-   */
-  /**
+   *
    * @param {string} label What the step verifies
    * @param {(Check | Promise<Check>)[]} checks The checks, or promises of them
    * @param {{ critical?: boolean }} [options] Whether a failure ends the journey
@@ -163,8 +162,9 @@ export class JourneyContext {
     );
   }
 
-  /** A new tab as `account` (`anon` for nobody), in that account's own browser context. */
   /**
+   * A new tab as `account` (`anon` for nobody), in that account's own browser context.
+   *
    * @param {string} [account] The account, or `anon`
    * @param {string} [label] The tab's name in evidence
    * @returns {Promise<Tab>} The tab
@@ -179,8 +179,7 @@ export class JourneyContext {
   /**
    * Calls the backend as `as` (an account, or `anon`; `admin` by default),
    * or with an explicit `token` and no retry, and records the exchange.
-   */
-  /**
+   *
    * @param {string} label What the call does
    * @param {{ method: string, path: string, body?: any, as?: string, token?: string }} request What to send and as whom
    * @returns {Promise<{ status: number | null, body: any, error: string | null, folder?: string }>} The answer
@@ -199,8 +198,9 @@ export class JourneyContext {
     });
   }
 
-  /** Sends anonymous requests at once, for races, each recorded in its own step folder. */
   /**
+   * Sends anonymous requests at once, for races, each recorded in its own step folder.
+   *
    * @param {string} label What the calls do
    * @param {{ method: string, path: string, body?: any, token?: string }[]} requests What to send
    * @returns {Promise<{ status: number | null, body: any, error: string | null }[]>} The answers
@@ -216,8 +216,9 @@ export class JourneyContext {
     );
   }
 
-  /** Adds an account the journey created (an invited member) so tabs and the API can act as it. */
   /**
+   * Adds an account the journey created (an invited member) so tabs and the API can act as it.
+   *
    * @param {string} name The account name
    * @param {import("./run-state.mjs").RunState["accounts"][string]} credentials Its credentials
    */
@@ -226,8 +227,9 @@ export class JourneyContext {
     saveRun(this.state);
   }
 
-  /** An address unique to this run and journey, which the mail sink receives. */
   /**
+   * An address unique to this run and journey, which the mail sink receives.
+   *
    * @param {string} name The local part
    * @returns {string} The address
    */
@@ -235,8 +237,9 @@ export class JourneyContext {
     return `${name}+${this.state.id}-${slug(this.journey)}@verify.local`.toLowerCase();
   }
 
-  /** A string unique to this journey, for names a journey creates. */
   /**
+   * A string unique to this journey, for names a journey creates.
+   *
    * @param {string} prefix What the string starts with
    * @returns {string} The unique string
    */
@@ -281,8 +284,7 @@ export class JourneyContext {
   /**
    * The mail the sink captured since the journey started, waiting until
    * `accept` matches one or the timeout passes; `match` is the latest match.
-   */
-  /**
+   *
    * @param {(message: CapturedMail) => boolean} accept Whether a message is the awaited one
    * @param {number} [timeoutMs] How long to wait
    * @returns {Promise<{ folder: string, messages: CapturedMail[], match: CapturedMail | undefined }>} What arrived

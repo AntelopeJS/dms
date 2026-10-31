@@ -132,8 +132,9 @@ function actor(action, from, to) {
   return changedTab(from, to);
 }
 
-/** The arrow label, as the person at the browser sees it happen. */
 /**
+ * The arrow label, as the person at the browser sees it happen.
+ *
  * @param {string} action
  * @param {State} from
  * @param {State} to

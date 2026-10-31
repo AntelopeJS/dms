@@ -97,8 +97,9 @@ const STEPS = {
   OAuthCreatesUser: () => "a visitor signs up with OAuth",
 };
 
-/** The arrow label, as the person onboarding or the visitor sees it happen. */
 /**
+ * The arrow label, as the person onboarding or the visitor sees it happen.
+ *
  * @param {string} action
  * @param {State} from
  * @param {State} to

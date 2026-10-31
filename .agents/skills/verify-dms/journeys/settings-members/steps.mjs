@@ -120,8 +120,9 @@ export async function acceptInvitation(/** @type {Ctx} */ ctx, /** @type {string
   return tab;
 }
 
-/** Invites, accepts and returns a member who is signed in on `tab`. */
 /**
+ * Invites, accepts and returns a member who is signed in on `tab`.
+ *
  * @param {Ctx} ctx
  * @param {Tab} admin
  * @param {{ firstName: string, roleName: string }} member
