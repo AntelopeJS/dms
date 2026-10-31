@@ -4,12 +4,18 @@ import fc from "fast-check";
 import semver from "semver";
 import { satisfiesImplementedRange } from "./release-range.mjs";
 
+/** @typedef {{ minor: number, patch: number }} Floor */
+/** @typedef {{ major: number, minor: number, patch: number, pre?: string, build?: string }} VersionParts */
+
 const SEED = Number(process.env.FC_SEED ?? 20261029);
 const NUM_RUNS = 1000;
 
 /**
  * Runs a property with the fixed seed. Rerun with the printed `seed` and
  * `path` in `FC_SEED` to reproduce a failure and its shrinking.
+ * @template T
+ * @param {fc.Arbitrary<T>} arbitrary
+ * @param {(value: T) => boolean | void} predicate
  */
 const assertProperty = (arbitrary, predicate) =>
   fc.assert(fc.property(arbitrary, predicate), {
@@ -17,14 +23,37 @@ const assertProperty = (arbitrary, predicate) =>
     numRuns: NUM_RUNS,
   });
 
+/**
+ * @param {Floor} floor
+ * @returns {string}
+ */
 const canonicalRange = ({ minor, patch }) =>
   `>=0.${minor}.${patch} <0.${minor + 1}.0`;
 
+/**
+ * @param {VersionParts} version
+ * @returns {string}
+ */
 const formatVersion = ({ major, minor, patch, pre, build }) =>
   `${major}.${minor}.${patch}${pre === undefined ? "" : `-${pre}`}${build === undefined ? "" : `+${build}`}`;
 
+/**
+ * @param {string} version
+ * @param {string | undefined} range
+ * @returns {boolean}
+ */
 const rule = (version, range) => satisfiesImplementedRange(version, range);
+/**
+ * @param {string} version
+ * @param {string} range
+ * @returns {boolean}
+ */
 const oracle = (version, range) => semver.satisfies(version, range);
+/**
+ * @param {string} version
+ * @param {string} range
+ * @returns {boolean}
+ */
 const oracleWithPrereleases = (version, range) =>
   semver.satisfies(version, range, { includePrerelease: true });
 
@@ -45,6 +74,10 @@ const prereleases = fc
   .map(([tag, id]) => `${tag}.${id}`);
 const builds = fc.constantFrom("build.0", "sha.abc123");
 
+/**
+ * @param {Floor} floor
+ * @param {boolean} suffixes
+ */
 const versionsAround = (floor, suffixes) =>
   fc.record({
     major: fc.oneof(
@@ -67,6 +100,7 @@ const versionsAround = (floor, suffixes) =>
       : fc.constant(undefined),
   });
 
+/** @param {boolean} suffixes */
 const cases = (suffixes) =>
   floors.chain((floor) =>
     versionsAround(floor, suffixes).map((version) => ({
@@ -84,6 +118,8 @@ const suffixedCases = cases(true);
  * rule and `semver.satisfies` with default options disagree. A class names
  * where, not how often: every member must disagree, and no input outside a
  * class may.
+ * @param {{ floor: Floor, version: VersionParts }} input
+ * @returns {string | undefined}
  */
 const findingOf = ({ floor, version }) => {
   if (version.major !== 0 || version.minor !== floor.minor) return undefined;
@@ -93,6 +129,7 @@ const findingOf = ({ floor, version }) => {
   return undefined;
 };
 
+/** @type {Record<string, { version: string, range: string, rule: boolean, semver: boolean }>} */
 const FINDINGS = {
   F1: {
     version: "0.9.1-next.0",
@@ -114,6 +151,7 @@ const FINDINGS = {
   },
 };
 
+/** @type {[string, (floor: Floor) => string | undefined][]} */
 const mutations = [
   ["canonical", (f) => canonicalRange(f)],
   ["cap skips a minor", (f) => `>=0.${f.minor}.${f.patch} <0.${f.minor + 2}.0`],
@@ -174,8 +212,11 @@ const candidates = floors.chain((floor) =>
  * cannot parse it or it is anything but one `>=` and one `<` comparator on
  * plain `0.minor.patch` and `0.(minor+1).0` versions. `semver` drops a `>=0.0.0`
  * floor, so a lone `<0.1.0` stands for the floor `0.0.0`.
+ * @param {string} range
+ * @returns {Floor | undefined}
  */
 const semverFloor = (range) => {
+  /** @type {readonly import("semver").Comparator[]} */
   let comparators;
   try {
     const { set } = new semver.Range(range);
@@ -189,6 +230,10 @@ const semverFloor = (range) => {
       ? [new semver.Comparator(">=0.0.0"), comparators[0]]
       : comparators;
   if (comparators.length > 2 || upper === undefined) return undefined;
+  /**
+   * @param {import("semver").Comparator} c
+   * @returns {boolean}
+   */
   const plain = (c) =>
     c.semver.prerelease.length === 0 && c.semver.build.length === 0;
   if (lower.operator !== ">=" || upper.operator !== "<") return undefined;
@@ -199,6 +244,10 @@ const semverFloor = (range) => {
   return { minor: lower.semver.minor, patch: lower.semver.patch };
 };
 
+/**
+ * @param {{ floor: Floor, range: string | undefined }} input
+ * @returns {boolean}
+ */
 const acceptsOnlyCanonical = ({ floor, range }) => {
   const parsed = semverFloor(range);
   const probe = `0.${(parsed ?? floor).minor}.${(parsed ?? floor).patch}`;
@@ -207,9 +256,13 @@ const acceptsOnlyCanonical = ({ floor, range }) => {
     (parsed !== undefined && range === canonicalRange(parsed))
   );
 };
+/**
+ * @param {{ name: string }} input
+ * @returns {boolean}
+ */
 const isLeadingZero = ({ name }) => name.startsWith("leading zero");
 
-test(
+await test(
   "range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded)",
   {
     todo: "F4: a leading zero in a range field is accepted though semver cannot parse it",
@@ -219,14 +272,14 @@ test(
   },
 );
 
-test("range: every mutated range other than the leading-zero ones is judged like semver (catches a cap that is not the next minor, a loose operator or a union)", () => {
+await test("range: every mutated range other than the leading-zero ones is judged like semver (catches a cap that is not the next minor, a loose operator or a union)", () => {
   assertProperty(
     candidates.filter((candidate) => !isLeadingZero(candidate)),
     acceptsOnlyCanonical,
   );
 });
 
-test("range F4: a leading zero in the floor or cap is accepted though semver rejects the range (fails once the rule rejects it)", () => {
+await test("range F4: a leading zero in the floor or cap is accepted though semver rejects the range (fails once the rule rejects it)", () => {
   const example = { version: "0.9.1", range: ">=0.09.1 <0.10.0" };
   assert.equal(rule(example.version, example.range), true);
   assert.equal(semver.validRange(example.range), null);
@@ -238,14 +291,14 @@ test("range F4: a leading zero in the floor or cap is accepted though semver rej
   });
 });
 
-test("membership: stable versions agree with semver.satisfies on every canonical range (catches string comparison, an inclusive cap, an exclusive floor, a missing patch compare)", () => {
+await test("membership: stable versions agree with semver.satisfies on every canonical range (catches string comparison, an inclusive cap, an exclusive floor, a missing patch compare)", () => {
   assertProperty(
     stableCases,
     ({ range, text }) => rule(text, range) === oracle(text, range),
   );
 });
 
-test("cap: no version of the next minor or any later release is accepted, prereleases included (catches ordering a prerelease below its release)", () => {
+await test("cap: no version of the next minor or any later release is accepted, prereleases included (catches ordering a prerelease below its release)", () => {
   assertProperty(
     suffixedCases.filter(
       ({ floor, version }) => version.major > 0 || version.minor > floor.minor,
@@ -254,7 +307,7 @@ test("cap: no version of the next minor or any later release is accepted, prerel
   );
 });
 
-test(
+await test(
   "prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded)",
   { todo: "F1, F2 and F3 are recorded in FINDINGS" },
   () => {
@@ -265,7 +318,7 @@ test(
   },
 );
 
-test("prerelease and build metadata: outside the recorded classes the rule agrees with semver.satisfies (catches a new disagreement)", () => {
+await test("prerelease and build metadata: outside the recorded classes the rule agrees with semver.satisfies (catches a new disagreement)", () => {
   assertProperty(
     suffixedCases.filter((input) => findingOf(input) === undefined),
     ({ range, text }) => rule(text, range) === oracle(text, range),
@@ -273,7 +326,7 @@ test("prerelease and build metadata: outside the recorded classes the rule agree
 });
 
 for (const [id, finding] of Object.entries(FINDINGS)) {
-  test(`finding ${id}: ${finding.version} against ${finding.range} still disagrees as recorded (fails once the rule is fixed)`, () => {
+  await test(`finding ${id}: ${finding.version} against ${finding.range} still disagrees as recorded (fails once the rule is fixed)`, () => {
     assert.equal(rule(finding.version, finding.range), finding.rule);
     assert.equal(oracle(finding.version, finding.range), finding.semver);
     assertProperty(
@@ -285,7 +338,7 @@ for (const [id, finding] of Object.entries(FINDINGS)) {
   });
 }
 
-test("oracle choice: only the default options state the promise, includePrerelease admits the breaking minor's prerelease", () => {
+await test("oracle choice: only the default options state the promise, includePrerelease admits the breaking minor's prerelease", () => {
   const range = ">=0.9.1 <0.10.0";
   const observed = [
     "0.9.1",
