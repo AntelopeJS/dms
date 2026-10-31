@@ -3,41 +3,53 @@
  * the platform (owners, an OAuth account, has_onboarded) and one per request.
  */
 
-const REQUEST_NAMES = {
-  r1: "Alice's register",
-  r2: "Bob's register",
-  r3: "Carol's register",
-  p1: "a page load",
-  p2: "another page load",
-  p3: "a third page load",
-};
+/**
+ * @typedef {{
+ *   onboarded: boolean;
+ *   oauth: string;
+ *   ownerRows: unknown[];
+ *   rpc: Record<string, string>;
+ *   ppc: Record<string, string>;
+ *   answer: Record<string, string>;
+ * }} State
+ */
 
-const capitalized = (name) => name[0].toUpperCase() + name.slice(1);
+const REQUEST_NAMES = new Map([
+  ["r1", "Alice's register"],
+  ["r2", "Bob's register"],
+  ["r3", "Carol's register"],
+  ["p1", "a page load"],
+  ["p2", "another page load"],
+  ["p3", "a third page load"],
+]);
 
-const REGISTER = {
-  idle: "Not sent",
-  insert: "Found no user",
-  tenant: "Created the admin as owner",
-  readState: "Made the admin tenant owner",
-  writeState: "Found onboarding open",
-};
+const capitalized = (/** @type {string | undefined} */ name = "") => name.charAt(0).toUpperCase() + name.slice(1);
 
-const ANSWER = {
-  200: "Answered 200",
-  400: "Answered 400 admin_already_set",
-  412: "Answered 412 onboarding_already_completed",
-  500: "Answered 500",
-};
+const REGISTER = new Map([
+  ["idle", "Not sent"],
+  ["insert", "Found no user"],
+  ["tenant", "Created the admin as owner"],
+  ["readState", "Made the admin tenant owner"],
+  ["writeState", "Found onboarding open"],
+]);
 
-const POLL = {
-  idle: "Not sent",
-  readUsers: "Found onboarding open",
-  write: "Found a user",
-  done: "Answered",
-};
+const ANSWER = new Map([
+  ["200", "Answered 200"],
+  ["400", "Answered 400 admin_already_set"],
+  ["412", "Answered 412 onboarding_already_completed"],
+  ["500", "Answered 500"],
+]);
+
+const POLL = new Map([
+  ["idle", "Not sent"],
+  ["readUsers", "Found onboarding open"],
+  ["write", "Found a user"],
+  ["done", "Answered"],
+]);
 
 const OWNERS = ["no owner", "one owner", "two owners", "three owners"];
 
+/** @param {State} v */
 function platform(v) {
   const phase = v.onboarded ? "Onboarded" : "Onboarding open";
   const oauth = v.oauth === "done" ? " and an OAuth account" : "";
@@ -45,21 +57,31 @@ function platform(v) {
 }
 
 /** One region for the platform, one per register and per status poll. */
+/** @param {State} v */
 export function state(v) {
+  const answers = new Map(Object.entries(v.answer));
+  /** @type {Record<string, string | undefined>} */
   const regions = { Platform: platform(v) };
   for (const [r, pc] of Object.entries(v.rpc)) {
-    regions[REQUEST_NAMES[r]] = pc === "done" ? ANSWER[v.answer[r]] : REGISTER[pc];
+    regions[REQUEST_NAMES.get(r) ?? "undefined"] = pc === "done" ? ANSWER.get(answers.get(r) ?? "") : REGISTER.get(pc);
   }
   for (const [p, pc] of Object.entries(v.ppc)) {
-    regions[capitalized(REQUEST_NAMES[p])] = POLL[pc];
+    regions[capitalized(REQUEST_NAMES.get(p))] = POLL.get(pc);
   }
   return regions;
 }
 
+/**
+ * @param {State} from
+ * @param {State} to
+ * @param {"rpc" | "ppc"} field
+ */
 function moved(from, to, field) {
-  return Object.keys(to[field]).find((key) => from[field][key] !== to[field][key]);
+  const before = new Map(Object.entries(from[field]));
+  return Object.keys(to[field]).find((key) => before.get(key) !== new Map(Object.entries(to[field])).get(key));
 }
 
+/** @type {Record<string, (who?: string, to?: string) => string>} */
 const STEPS = {
   RegReadUsers: (who, to) => (to === "insert" ? `${who} finds no user` : `${who} finds a user`),
   RegInsert: (who) => `${who} creates the admin as owner`,
@@ -75,13 +97,19 @@ const STEPS = {
   OAuthCreatesUser: () => "a visitor signs up with OAuth",
 };
 
-/** The arrow label, as the person onboarding or the visitor sees it happen. */
+/**
+ * The arrow label, as the person onboarding or the visitor sees it happen.
+ *
+ * @param {string} action
+ * @param {State} from
+ * @param {State} to
+ */
 export function step(action, from, to) {
   const label = STEPS[action];
   if (!label) return null;
   const field = action.startsWith("Poll") ? "ppc" : "rpc";
   const key = moved(from, to, field);
-  return key ? label(REQUEST_NAMES[key], to[field][key]) : label();
+  return key ? label(REQUEST_NAMES.get(key), new Map(Object.entries(to[field])).get(key)) : label();
 }
 
 export const title = "First-admin bootstrap: POST /api/onboarding/register, GET /api/onboarding/informations";

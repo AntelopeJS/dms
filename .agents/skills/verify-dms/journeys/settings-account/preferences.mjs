@@ -1,11 +1,15 @@
 import { REGION, NOTIFICATIONS, APPEARANCE, SETTINGS, USER_API, me, secondDevice, changePasswordThroughApi, tick, expandSystem, htmlHasClass } from "./steps.mjs";
 
+/**
+ * @typedef {import("../../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ */
+
 export const preferenceJourneys = [
   {
     id: "language-region-persists",
     title: "choosing French switches the dashboard at once, survives a reload and shows on the account; a 24-hour clock persists too",
     entryPoint: "Settings > Language & region",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.goto(REGION);
@@ -43,7 +47,7 @@ export const preferenceJourneys = [
     id: "time-format-persists",
     title: "a 24-hour clock changes the preview at once and is stored on the account",
     entryPoint: "Settings > Language & region > Time format",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.goto(REGION);
@@ -61,7 +65,7 @@ export const preferenceJourneys = [
     id: "appearance-persists",
     title: "dark theme, large density and the accessibility switches apply at once, survive a reload and stay on this browser",
     entryPoint: "Settings > Appearance",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.goto(APPEARANCE);
@@ -97,7 +101,7 @@ export const preferenceJourneys = [
     id: "notification-preferences-persist",
     title: "turning Security alerts off persists across a reload and stops the Password changed alert while it is off",
     entryPoint: "Settings > Notifications > Preferences",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.goto(NOTIFICATIONS);
@@ -116,7 +120,7 @@ export const preferenceJourneys = [
         ctx.equal("system:security", stored.body?.["system:security"], false),
         ctx.equal("system:general", stored.body?.["system:general"], true),
       ]);
-      const counts = async (label) => (await ctx.api(label, { method: "GET", path: `${USER_API}/notifications/counts` })).body;
+      const counts = async (/** @type {string} */ label) => (await ctx.api(label, { method: "GET", path: `${USER_API}/notifications/counts` })).body;
       const before = await counts("count the notifications");
       await changePasswordThroughApi(ctx);
       const whileOff = await counts("count the notifications after a password change with alerts off");
@@ -135,7 +139,7 @@ export const preferenceJourneys = [
     id: "notification-inbox-actions",
     title: "Mark all as read and Delete all change the inbox and the counts, and the state survives a reload",
     entryPoint: "Settings > Notifications > Inbox",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await secondDevice(ctx);
