@@ -8,6 +8,10 @@ import { originRepository } from "./verdict.mjs";
 const EVIDENCE_BRANCH = "verify-evidence";
 const SCRATCH_BRANCH = "verify-evidence-scratch";
 
+/**
+ * @param {string} repo The checkout
+ * @returns {boolean} Whether origin holds the evidence branch
+ */
 function remoteBranchExists(repo) {
   return git(["ls-remote", "--heads", "origin", EVIDENCE_BRANCH], repo) !== "";
 }
@@ -164,6 +168,7 @@ export function setStatus(skill, verdict, targetUrl) {
  * @returns {string} The status state, or `absent`
  */
 export function readStatus(skill, sha) {
+  /** @type {{ context: string, state: string }[]} */
   const statuses = JSON.parse(
     execFileSync(
       "gh",

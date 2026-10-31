@@ -8,6 +8,11 @@ import { emitFingerprint } from "./emit.mjs";
 const DETAIL_LIMIT = 5;
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
+/**
+ * @param {string} repo The checkout
+ * @param {string} sha The commit
+ * @returns {string} The scratch worktree
+ */
 function worktreeAt(repo, sha) {
   const dir = mkdtempSync(join(tmpdir(), "dms-control-behaviour-"));
   git(["worktree", "add", "--quiet", "--detach", "--force", dir, sha], repo);
@@ -21,8 +26,9 @@ function worktreeAt(repo, sha) {
  *
  * @param {string} repo The checkout
  * @param {string} sha The commit
- * @param {(dir: string) => any} action What to run there
- * @returns {any} What `action` returned
+ * @param {(dir: string) => Result} action What to run there
+ * @returns {Result} What `action` returned
+ * @template Result
  */
 export function inWorktree(repo, sha, action) {
   const dir = worktreeAt(repo, sha);
@@ -34,6 +40,12 @@ export function inWorktree(repo, sha, action) {
   }
 }
 
+/**
+ * @param {string} repo The checkout
+ * @param {string[]} command The probe command
+ * @param {string} sha The commit
+ * @returns {string[]} The lines the probe printed
+ */
 function probeFingerprint(repo, command, sha) {
   const [program, ...args] = command;
   return inWorktree(repo, sha, (dir) => {
@@ -50,7 +62,13 @@ function probeFingerprint(repo, command, sha) {
   });
 }
 
+/**
+ * @param {{ structure: string, text: string }[]} left The items
+ * @param {{ structure: string, text: string }[]} right The items to subtract
+ * @returns {{ structure: string, text: string }[]} The items of `left` that `right` lacks
+ */
 function difference(left, right) {
+  /** @type {Map<string, number>} */
   const counts = new Map();
   for (const item of right)
     counts.set(item.structure, (counts.get(item.structure) ?? 0) + 1);
@@ -62,6 +80,12 @@ function difference(left, right) {
   });
 }
 
+/**
+ * @param {string} path The covered file
+ * @param {{ structure: string, text: string }[]} base Its statements at the base
+ * @param {{ structure: string, text: string }[]} head Its statements at HEAD
+ * @returns {{ removed: string[], added: string[] }} The first statement that differs
+ */
 function sequenceChanges(path, base, head) {
   const length = Math.max(base.length, head.length);
   for (let index = 0; index < length; index += 1) {
@@ -79,6 +103,11 @@ function sequenceChanges(path, base, head) {
   return { removed: [], added: [] };
 }
 
+/**
+ * @param {ReturnType<typeof emitFingerprint>} base The fingerprint at the base
+ * @param {ReturnType<typeof emitFingerprint>} head The fingerprint at HEAD
+ * @returns {{ removed: string[], added: string[] }} What differs
+ */
 function compareEmit(base, head) {
   const removed = difference(base.functions, head.functions).map(
     (item) => `hoisted ${item.text}`,
@@ -101,7 +130,16 @@ function compareEmit(base, head) {
   return { removed, added };
 }
 
+/**
+ * @param {string[]} base The probe lines at the base
+ * @param {string[]} head The probe lines at HEAD
+ * @returns {{ removed: string[], added: string[] }} What differs
+ */
 function compareProbe(base, head) {
+  /**
+   * @param {string[]} list Probe lines
+   * @returns {{ structure: string, text: string }[]} The lines as items
+   */
   const lines = (list) => list.map((line) => ({ structure: line, text: line }));
   if (JSON.stringify(base) === JSON.stringify(head))
     return { removed: [], added: [] };
@@ -120,9 +158,9 @@ function compareProbe(base, head) {
  * check's probe prints the same lines on a checkout of the base and of HEAD.
  *
  * @param {import("./skill.mjs").Skill} skill The skill
- * @param {Record<string, any>} check The formal check
- * @param {{ baseSha: string, headSha: string }} commits The two commits
- * @returns {{ method: string, changed: boolean, removed: string[], added: string[] }} The decision and what differs
+ * @param {Pick<import("./types.mjs").FormalCheck, "covers" | "behaviour">} check The formal check
+ * @param {import("./types.mjs").Commits} commits The two commits
+ * @returns {import("./types.mjs").BehaviourChange} The decision and what differs
  */
 export function behaviourChange(skill, check, commits) {
   const probe =

@@ -26,22 +26,46 @@ export function originRepository(repo) {
   return match[1];
 }
 
+/**
+ * @param {string} sha A commit
+ * @returns {string} Its first seven characters
+ */
 function short(sha) {
   return sha.slice(0, 7);
 }
 
+/**
+ * @param {string[]} entries The list items
+ * @param {string} empty The item that stands for an empty list
+ * @returns {string[]} The Markdown bullets
+ */
 function bullets(entries, empty) {
   return (entries.length > 0 ? entries : [empty]).map((entry) => `- ${entry}`);
 }
 
+/**
+ * @param {import("../run-state.mjs").RunState} state The run
+ * @param {string} feature The feature
+ * @returns {import("./types.mjs").FeatureResult[]} The journey results the run recorded
+ */
 function readResults(state, feature) {
   const file = join(state.evidence, feature, "feature.json");
   return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : [];
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../run-state.mjs").RunState} state The run
+ * @param {import("./types.mjs").Plan} plan The plan
+ * @param {(path: string) => string} link The evidence link of a path
+ * @returns {Promise<{ rows: string[], reasons: string[], byJourney: Map<string, import("./types.mjs").FeatureResult> }>} The table rows and why the verdict fails
+ */
 async function journeyRows(skill, state, plan, link) {
+  /** @type {string[]} */
   const rows = [];
+  /** @type {string[]} */
   const reasons = [];
+  /** @type {Map<string, import("./types.mjs").FeatureResult>} */
   const byJourney = new Map();
   for (const feature of plan.run) {
     const results = readResults(state, feature);
@@ -71,6 +95,12 @@ async function journeyRows(skill, state, plan, link) {
   return { rows, reasons, byJourney };
 }
 
+/**
+ * @param {import("../run-state.mjs").RunState} state The run
+ * @param {Map<string, import("./types.mjs").FeatureResult>} byJourney The results of this verdict's journeys
+ * @param {string} id The containment journey, as `feature/journey`
+ * @returns {import("./types.mjs").FeatureResult | undefined} Its result
+ */
 function containmentResult(state, byJourney, id) {
   const [feature, journey] = id.split("/");
   return (
@@ -79,7 +109,16 @@ function containmentResult(state, byJourney, id) {
   );
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../run-state.mjs").RunState} state The run
+ * @param {import("./types.mjs").Judgement} judgement The verifier's judgement
+ * @param {Map<string, import("./types.mjs").FeatureResult>} byJourney The results of this verdict's journeys
+ * @param {import("./types.mjs").Plan} plan The plan
+ * @returns {string[]} Why the doors fail the verdict
+ */
 function doorReasons(skill, state, judgement, byJourney, plan) {
+  /** @type {string[]} */
   const reasons = [];
   for (const row of judgement.doors.filter((door) =>
     CONTAINED_KINDS.has(door.kind),
@@ -114,6 +153,10 @@ function doorReasons(skill, state, judgement, byJourney, plan) {
   return reasons;
 }
 
+/**
+ * @param {import("./types.mjs").Judgement} judgement The verifier's judgement
+ * @returns {string[]} The section's lines
+ */
 function doorsSection(judgement) {
   const dismissed = judgement.falsePositives.map(
     (entry) =>
@@ -134,6 +177,13 @@ function doorsSection(judgement) {
   ];
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../run-state.mjs").RunState} state The run
+ * @param {import("./types.mjs").Plan} plan The plan
+ * @param {(path: string) => string} link The evidence link of a path
+ * @returns {{ reasons: string[], lines: string[] }} Why the formal checks fail the verdict, and their lines
+ */
 function formalSection(skill, state, plan, link) {
   const reasons = [];
   const lines = [];
@@ -173,6 +223,11 @@ function formalSection(skill, state, plan, link) {
   return { reasons, lines };
 }
 
+/**
+ * @param {import("./types.mjs").Judgement} judgement The verifier's judgement
+ * @param {import("./types.mjs").Plan} plan The plan
+ * @returns {string[]} The docs pages that no longer match
+ */
 function docsReasons(judgement, plan) {
   return plan.docs.flatMap((page) => {
     const docs = judgement.docs.find((entry) => entry.page === page);
@@ -184,6 +239,12 @@ function docsReasons(judgement, plan) {
   });
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("./types.mjs").VerdictCore} verdict The verdict
+ * @param {{ plan: import("./types.mjs").Plan, judgement: import("./types.mjs").Judgement, journeys: Awaited<ReturnType<typeof journeyRows>>, formal: ReturnType<typeof formalSection>, reasons: string[], attention: string[], link: (path: string) => string }} parts What the verdict is rendered from
+ * @returns {string} The verdict as Markdown
+ */
 function markdown(skill, verdict, parts) {
   const { plan, judgement, journeys, formal, reasons, attention, link } = parts;
   const touched = plan.touched.map(
@@ -254,8 +315,8 @@ function markdown(skill, verdict, parts) {
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {import("../run-state.mjs").RunState} state The run
  * @param {number} pr The pull request
- * @param {Record<string, any>} judgement The verifier's judgement
- * @returns {Promise<{ result: string, headSha: string, skillSha: string, pr: number, markdown: string, reasons: string[] }>} The verdict
+ * @param {import("./types.mjs").Judgement} judgement The verifier's judgement
+ * @returns {Promise<import("./types.mjs").Verdict>} The verdict
  */
 export async function renderVerdict(skill, state, pr, judgement) {
   const plan = planFor(skill, state.baseRef);
@@ -265,6 +326,10 @@ export async function renderVerdict(skill, state, pr, judgement) {
       skill.repo,
     ) || plan.headSha;
   const repository = originRepository(skill.repo);
+  /**
+   * @param {string} path A path under the run's evidence
+   * @returns {string} Its link on the evidence branch
+   */
   const link = (path) =>
     `https://github.com/${repository}/tree/verify-evidence/pr-${pr}/${plan.headSha}/${path}`;
   const reasons = [];

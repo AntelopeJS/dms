@@ -15,6 +15,12 @@ import { runPrepare } from "./skill.mjs";
 
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
+/**
+ * @param {string} cwd Where to run it
+ * @param {string} program The program
+ * @param {string[]} args Its arguments
+ * @returns {import("node:child_process").SpawnSyncReturns<string>} The run
+ */
 function run(cwd, program, args) {
   return spawnSync(program, args, {
     cwd,
@@ -24,6 +30,12 @@ function run(cwd, program, args) {
   });
 }
 
+/**
+ * @param {string} cwd Where to run it
+ * @param {string} program The program
+ * @param {string[]} args Its arguments
+ * @returns {string} Its trimmed output
+ */
 function mustRun(cwd, program, args) {
   const result = run(cwd, program, args);
   if (result.status !== 0) {
@@ -56,12 +68,26 @@ function prepareWorktree(skill, label, patch) {
   return { worktree, skill: copy };
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {string} worktree The scratch worktree
+ */
 function removeWorktree(skill, worktree) {
   git(["worktree", "remove", "--force", worktree], skill.repo);
 }
 
+/**
+ * @param {{ worktree: string, skill: string }} prepared The scratch worktree and its skill copy
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {string} feature The feature
+ * @returns {{ run: string, results: import("./types.mjs").FeatureResult[], output: string }} The run folder, its results and output
+ */
 function runFeatureIn(prepared, skill, feature) {
   const playground = join(prepared.worktree, skill.config.playground);
+  /**
+   * @param {string[]} args The dms-control arguments
+   * @returns {import("node:child_process").SpawnSyncReturns<string>} The run
+   */
   const control = (args) =>
     run(prepared.worktree, process.execPath, [CONTROL_BIN, ...args]);
   const started = control([
@@ -88,16 +114,27 @@ function runFeatureIn(prepared, skill, feature) {
   ]);
   control(["down", dir]);
   const file = join(dir, "evidence", feature, "feature.json");
+  /** @type {import("./types.mjs").FeatureResult[]} */
   const results = existsSync(file)
     ? JSON.parse(readFileSync(file, "utf8"))
     : [];
   return { run: dir, results, output: `${journeys.stdout}${journeys.stderr}` };
 }
 
+/**
+ * @param {import("./types.mjs").FeatureResult} result A journey result
+ * @returns {boolean} Whether one of its checks failed
+ */
 function failsACheck(result) {
   return result.steps.some((step) => step.checks.some((check) => !check.pass));
 }
 
+/**
+ * @param {string} feature The feature
+ * @param {ReturnType<typeof runFeatureIn>} control The unpatched run
+ * @param {ReturnType<typeof runFeatureIn>} seeded The patched run
+ * @returns {import("./types.mjs").SeededOutcome} The outcome
+ */
 function judge(feature, control, seeded) {
   const passedInControl = new Set(
     control.results
@@ -136,7 +173,7 @@ function judge(feature, control, seeded) {
  *
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string[]} features The features
- * @returns {Record<string, any>[]} One outcome per feature
+ * @returns {import("./types.mjs").SeededOutcome[]} One outcome per feature
  */
 export function runSeededBreaks(skill, features) {
   const control = prepareWorktree(skill, "control", null);

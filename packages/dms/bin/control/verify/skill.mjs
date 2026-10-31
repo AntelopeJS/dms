@@ -9,12 +9,18 @@ const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
 /**
  * @typedef {{ dir: string, name: string, repo: string, config: SkillConfig, featuresDir: string, journeysDir: string, seededBreaksDir: string, seededDoorsDir: string }} Skill
- * @typedef {{ playground: string, prepare: string[][], userFacing: string[], notUserFacing: string[], smoke: string, smokeJourney: string, doors: Record<string, { globs: string[], funnels: string[], containments: string[], why: string } | null>, formal: { name: string, covers: string[], files: string[], command: string[], baseCommand?: string[], violation: RegExp | null, passing: RegExp | null, behaviour: { kind: "emit" } | { kind: "probe", command: string[] } }[] }} SkillConfig
+ * @typedef {{ playground: string, prepare: string[][], userFacing: string[], notUserFacing: string[], smoke: string, smokeJourney: string, doors: Record<string, { globs: string[], funnels: string[], containments: string[], why: string } | null>, formal: import("./types.mjs").FormalCheck[] }} SkillConfig
  */
 
+/**
+ * @param {string} text A feature file
+ * @returns {Map<string, string[]>} The lists of its frontmatter
+ */
 function frontmatterLists(text) {
+  /** @type {Map<string, string[]>} */
   const lists = new Map();
   const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
+  /** @type {string[] | undefined} */
   let current;
   for (const line of (match?.[1] ?? "").split("\n")) {
     const key = /^(\w+):\s*$/.exec(line);
@@ -29,6 +35,10 @@ function frontmatterLists(text) {
   return lists;
 }
 
+/**
+ * @param {string} cwd Where the command runs
+ * @returns {string} The one verification skill folder of the checkout
+ */
 function discover(cwd) {
   const { root } = checkoutOf(cwd);
   const skills = join(root ?? cwd, ".agents", "skills");
