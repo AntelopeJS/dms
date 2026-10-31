@@ -15,32 +15,73 @@ fs.symlinkSync(path.join(repo, "node_modules"), path.join(wt, "node_modules"), "
 fs.symlinkSync(path.join(repo, "packages/interface-dms/node_modules"), path.join(wt, "packages/interface-dms/node_modules"), "dir");
 const src = path.join(wt, "packages/interface-dms/src");
 const cfgText = fs.readFileSync(path.join(wt, ".dependency-cruiser/interface-dms.cjs"), "utf8");
-const cfg = require(path.join(wt, ".dependency-cruiser/interface-dms.cjs"));
-const ts = createRequire(path.join(repo, "packages/interface-dms/package.json"))("typescript");
+const requireInterface = createRequire(path.join(repo, "packages/interface-dms/package.json"));
+
+/**
+ * @typedef {{
+ *   typescript: typeof import("../../packages/interface-dms/node_modules/typescript");
+ *   zod: typeof import("../../packages/interface-dms/node_modules/zod");
+ * }} InterfaceModules
+ */
+
+/**
+ * The one place this probe reads a package from interface-dms's install, typed by the declaration that package ships.
+ * @template {keyof InterfaceModules} Name
+ * @param {Name} name
+ * @returns {InterfaceModules[Name]}
+ */
+function loadInterfaceModule(name) {
+  return requireInterface(name);
+}
+
+const ts = loadInterfaceModule("typescript");
+const { z } = loadInterfaceModule("zod");
+const Cruiser = z.object({ forbidden: z.array(z.object({ name: z.string() })) });
+const CruiseResult = z.object({
+  summary: z.object({
+    violations: z.array(z.object({ rule: z.object({ name: z.string() }), from: z.string(), to: z.string() })),
+  }),
+});
+const cfg = Cruiser.parse(require(path.join(wt, ".dependency-cruiser/interface-dms.cjs")));
+
+/**
+ * @param {string} name
+ * @param {RegExp} pattern
+ * @returns {unknown}
+ */
 function literal(name, pattern) {
+  /** @type {import("typescript").Diagnostic[]} */
   const errors = [];
+  /** @type {unknown} */
   const value = ts.convertToObject(ts.parseJsonText("interface-dms.cjs", cfgText.match(pattern)[1]), errors);
   if (errors.length > 0) throw new Error(`.dependency-cruiser/interface-dms.cjs: ${name} is not a JSON literal`);
   return value;
 }
-const tiers = literal("tiers", /const tiers = (\[[\s\S]*?\n\]);/);
-const internals = literal("internals", /const internals = (\{[\s\S]*?\n\});/);
-const slug = (u) => u.replace(/\/$/, "").replaceAll(".", "-");
+const tiers = z.array(z.array(z.string())).parse(literal("tiers", /const tiers = (\[[\s\S]*?\n\]);/));
+const internals = z.record(z.string(), z.array(z.string())).parse(literal("internals", /const internals = (\{[\s\S]*?\n\});/));
+const slug = (/** @type {string} */ u) => u.replace(/\/$/, "").replaceAll(".", "-");
+
+/**
+ * @param {string} unit
+ * @returns {string[]}
+ */
 function filesOf(unit) {
   if (unit.endsWith("/")) {
+    /** @type {string[]} */
     const out = [];
     (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (p.endsWith(".ts")) out.push(path.relative(src, p)); } })(path.join(src, unit));
     return out;
   }
   return [unit, ...(internals[unit] ?? []).map((f) => `internal/${f}.ts`)];
 }
+/** @type {{ kind: string, from: string, to: string, expect: string | null }[]} */
 const probes = [];
-const appendImport = (from, to) => {
+const appendImport = (/** @type {string} */ from, /** @type {string} */ to) => {
   let rel = path.relative(path.dirname(path.join(src, from)), path.join(src, to)).replace(/\.ts$/, "");
   if (!rel.startsWith(".")) rel = "./" + rel;
   fs.appendFileSync(path.join(src, from), `\nimport "${rel}";\n`);
 };
-const add = (kind, from, to, expect) => { probes.push({ kind, from, to, expect }); appendImport(from, to); };
+const add = (/** @type {string} */ kind, /** @type {string} */ from, /** @type {string} */ to, /** @type {string | null} */ expect) => { probes.push({ kind, from, to, expect }); appendImport(from, to); };
 tiers.forEach((tier, rank) => tier.forEach((unit) => {
   const files = filesOf(unit);
   const from = files[files.length - 1];
@@ -75,9 +116,11 @@ probes.push({ kind: "exception-other-target", from: "auth/db/tables/users.table.
 fs.appendFileSync(path.join(src, "auth/db/tables/sessions.table.ts"), `\nimport type { DefaultDataTypes as SessionTypes } from "../../../base/data-types/default-types";\nexport type SessionImage = SessionTypes.ImageValue;\n`);
 probes.push({ kind: "exception-other-source", from: "auth/db/tables/sessions.table.ts", to: "base/data-types/default-types.ts", expect: "interface-dms-auth-no-upward" });
 const out = execFileSync(path.join(repo, "node_modules/.bin/depcruise"), ["packages/interface-dms/src", "--config", ".dependency-cruiser.cjs", "--output-type", "json"], { cwd: wt, encoding: "utf8", maxBuffer: 1 << 28 });
-const violations = JSON.parse(out).summary.violations.map((v) => ({ rule: v.rule.name, from: v.from.replace("packages/interface-dms/src/", ""), to: v.to.replace("packages/interface-dms/src/", "") }));
-let failed = 0; const rows = [];
-const norm = (p) => `packages/${p.split("/").slice(2).join("/")}`;
+const violations = CruiseResult.parse(JSON.parse(out)).summary.violations.map((v) => ({ rule: v.rule.name, from: v.from.replace("packages/interface-dms/src/", ""), to: v.to.replace("packages/interface-dms/src/", "") }));
+let failed = 0;
+/** @type {string[]} */
+const rows = [];
+const norm = (/** @type {string} */ p) => `packages/${p.split("/").slice(2).join("/")}`;
 for (const p of probes) {
   const to = p.to.startsWith("../") ? norm(p.to) : p.to;
   const hits = violations.filter((v) => v.from === p.from && v.to === to).map((v) => v.rule);
