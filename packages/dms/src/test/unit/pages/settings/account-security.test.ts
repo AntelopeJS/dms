@@ -111,7 +111,7 @@ const authorization = `Bearer ${sign({ sessionId: CURRENT_SESSION, tenantId: TEN
 async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
   const outcome = await action.then(
     () => undefined,
-    (error) => error,
+    (error: unknown) => error,
   );
   if (outcome instanceof HTTPResult) return outcome;
   throw new Error(`Expected an HTTP refusal, got ${String(outcome)}`);

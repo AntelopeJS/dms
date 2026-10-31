@@ -94,7 +94,10 @@ async function registerPage(
   registered.push(meta);
   return meta.Register().then(
     () => undefined,
-    (error) => error,
+    (error: unknown) => {
+      if (error instanceof Error) return error;
+      throw error;
+    },
   );
 }
 
