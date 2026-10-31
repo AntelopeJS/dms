@@ -4,7 +4,7 @@ import { assertOAuthRelay, deriveOAuthRelaySecret } from "../../routes/oauth";
 
 const HTTP_UNAUTHORIZED = 401;
 
-function expectRefusal<T>(run: () => T): void {
+function expectRefusal(run: () => void): void {
   try {
     run();
   } catch (error: unknown) {

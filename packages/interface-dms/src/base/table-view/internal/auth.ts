@@ -102,9 +102,9 @@ export async function authorizeAction(
 }
 
 /** @internal */
-export function withActionCheck<T extends DataControllerCallback>(
+export function withActionCheck(
   actionId: string,
-  baseRoute: T,
+  baseRoute: DataControllerCallback,
 ): DataControllerCallback {
   return {
     method: baseRoute.method,
