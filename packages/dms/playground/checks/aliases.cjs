@@ -39,7 +39,6 @@ const layers = ["core", "ui", "layout", "auth", "onboarding"].map((layer) =>
   realpathSync(nodePath.join(root, `../frontend-vue/layers/dms-${layer}/app`)),
 );
 const specifierSchema = z.string();
-const manifestSchema = z.record(z.string(), z.unknown());
 const rankRules = require("../../../../.dependency-cruiser/playground.cjs")
   .forbidden.filter((rule) => rule.name.endsWith("-no-upward"))
   .map((rule) => ({
@@ -581,7 +580,9 @@ function checkManifest(path) {
     );
     return;
   }
-  const manifest = manifestSchema.parse(JSON.parse(readFileSync(path, "utf8")));
+  const manifest = z.unknown().parse(JSON.parse(readFileSync(path, "utf8")));
+  if (manifest === null || manifest === undefined)
+    throw new TypeError(`${path}: playground package manifest is null`);
   for (const field of Object.keys(manifest))
     if (!fields.has(field))
       failures.push(`${path}: unsupported playground package field ${field}`);
