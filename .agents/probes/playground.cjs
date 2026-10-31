@@ -211,7 +211,23 @@ function serializedWhenAble(value) {
 
 /** @type {unknown[]} */
 const registrations = [];
+/**
+ * @typedef {{
+ *   "@antelopejs/interface-dms/page": typeof import("../../packages/dms/playground/node_modules/@antelopejs/interface-dms/dist/page.js");
+ *   "@antelopejs/interface-database-decorators": typeof import("../../packages/dms/playground/node_modules/@antelopejs/interface-database-decorators");
+ * }} PatchedPackages
+ */
+
+/**
+ * The one place this probe reads `Module._load`, which @types/node omits: it answers the two packages the probe patches with their declared exports and any other request with whatever that module exports.
+ * @type {<Request extends string>(request: Request, parent: Module | null | undefined, isMain: boolean) => Request extends keyof PatchedPackages ? PatchedPackages[Request] : unknown}
+ */
 const load = Module._load;
+/**
+ * @param {string} request
+ * @param {Module | null | undefined} parent
+ * @param {boolean} main
+ */
 Module._load = function (request, parent, main) {
   if (request === "@antelopejs/interface-dms/page") {
     const result = load(request, parent, main);
