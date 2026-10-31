@@ -16,9 +16,9 @@ const load = createRequire(nodePath.join(root, "packages/dms/package.json"));
  *   "@antelopejs/interface-core": typeof import("../../packages/dms/node_modules/@antelopejs/interface-core");
  *   "@antelopejs/interface-dms/page": typeof import("../../packages/dms/node_modules/@antelopejs/interface-dms/dist/page.js");
  *   "@antelopejs/interface-file-storage": typeof import("../../packages/dms/node_modules/@antelopejs/interface-file-storage");
- *   "./dist/implementations/dms/page.js": typeof import("../../packages/dms/dist/implementations/dms/page.js");
- *   "./dist/implementations/dms-base/footer-summary.js": typeof import("../../packages/dms/dist/implementations/dms-base/footer-summary.js");
- *   "./dist/utils/export-jobs.js": typeof import("../../packages/dms/dist/utils/export-jobs.js");
+ *   "./dist/implementations/dms/page.js": typeof import("../../packages/dms/src/implementations/dms/page");
+ *   "./dist/implementations/dms-base/footer-summary.js": typeof import("../../packages/dms/src/implementations/dms-base/footer-summary");
+ *   "./dist/utils/export-jobs.js": typeof import("../../packages/dms/src/utils/export-jobs");
  * }} DmsModules
  */
 

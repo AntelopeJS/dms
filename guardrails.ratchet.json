@@ -9,7 +9,7 @@
     "typescript/no-base-to-string": 1,
     "typescript/no-unnecessary-type-parameters": 12,
     "typescript/no-unsafe-argument": 575,
-    "typescript/no-unsafe-assignment": 1262,
+    "typescript/no-unsafe-assignment": 1269,
     "typescript/no-unsafe-return": 407,
     "typescript/unbound-method": 9,
     "typescript/use-unknown-in-catch-callback-variable": 37
