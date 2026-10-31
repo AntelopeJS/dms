@@ -7,7 +7,12 @@
 
 # AntelopeJS DMS
 
-**Plug in your PostgreSQL database. Your coding agent writes the back office and an analytics dashboard as typed TypeScript in your repository.**
+<a href="https://www.npmjs.com/package/@antelopejs/dms"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a>
+<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a>
+<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
+<a href="https://dms.antelopejs.com/docs"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
+
+**Plug in your PostgreSQL, MongoDB or RethinkDB database. Your coding agent writes the back office and an analytics dashboard as typed TypeScript in your repository.**
 
 Open source under Apache-2.0. Self-hosted today.
 
@@ -15,9 +20,9 @@ Open source under Apache-2.0. Self-hosted today.
 
 </div>
 
-![Screen recording of the AntelopeJS DMS Builder. A postgres:// connection string is entered and filled into the Connect form, the Builder reads 11 tables, and a Music Overview dashboard with four count cards appears, captioned with the first-pass time, 10:50.](./docs/media/hero-connect.gif)
+![Screen recording of the AntelopeJS DMS Builder. The Connect form is filled from a postgres:// URL under the caption Paste the URL. Press Connect. Four steps run, the Builder reports 11 tables detected, then a Music Overview dashboard with four count cards appears under the caption First pass done in 10:50.](./docs/media/hero-connect.gif)
 
-[Watch the full Meet AntelopeJS DMS video (75 seconds)](./docs/media/meet.mp4)
+[Watch the full Meet AntelopeJS DMS video (72 seconds)](./docs/media/meet.mp4)
 
 ## Try it in one command
 
@@ -39,7 +44,7 @@ Open [http://localhost:3001](http://localhost:3001), create the administrator ac
 
 Start the same stack. In the Builder's **Database** tab, enter the connection URL of your own database instead of the sample one and press **Connect**. The Builder reads the schema, proposes a page for each table, and writes the pages you keep as TypeScript into your clone.
 
-- Connect with an account that has `SELECT` and nothing else. The generated pages are read-only, but the connection can write whatever its account can write.
+- Connect with an account that can only read, which on PostgreSQL means `SELECT` and nothing else. The generated pages are read-only, but the connection can write whatever its account can write.
 - Inside the `dms` container, `localhost` is the container itself. A database on your machine needs an address the container can reach.
 - To add the DMS to an existing AntelopeJS project instead, follow [Add the DMS to an existing project](#add-the-dms-to-an-existing-project).
 
@@ -49,19 +54,19 @@ Start the same stack. In the Builder's **Database** tab, enter the connection UR
 
 Each table you keep gets a typed table definition and a page, written into your repository next to your code. You read it, change it, and review it like any other change to your product.
 
-<img src="./docs/media/code.gif" alt="Screen recording of the generated Invoice page, public-invoice/page.ts, open in a code editor. A "Read-only by default" badge appears and the TableView line is highlighted." width="720">
+<img src="./docs/media/code.gif" alt="Screen recording of the generated Invoice page, public-invoice/page.ts, open in a code editor under the caption Or write it yourself. Same TypeScript. The RegisterPage line and then the TableView line are highlighted. A diagram follows where Builder clicks, AI prompts, and your own code all lead into the same page.ts file, which passes typecheck, under the caption The code stays yours. In your repo." width="720">
 
 ### Read-only by default, roles for the rest
 
 A generated page lists, shows, and exports rows. It gets no create, edit, or delete route until you switch on **Rows can be edited** for that table. Roles and permissions then decide who sees and edits what, down to each block.
 
-<img src="./docs/media/roles-readonly.gif" alt="Screen recording of the generated Invoice page with its "Read-only by default" badge, then the Builder API tab with the four Read options on and the four Write options off, then the role permission tree where pages are ticked for a role." width="720">
+<img src="./docs/media/roles-readonly.gif" alt="Screen recording of the role permission tree, where the Invoice and Music Overview pages are ticked for a role under the caption Roles, down to each page. A second panel then shows settings toggles under the lines Connects to PostgreSQL, MongoDB or RethinkDB and Generated pages are read-only until you switch editing on." width="720">
 
 ### The Builder turns clicks into code
 
 Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript, and the Builder writes files only when the whole project still compiles.
 
-<img src="./docs/media/builder.gif" alt="Screen recording of the Builder editing the Music Overview page. A KPI card is retitled "Artists in the catalog", given a description, and saved, under the caption "Builder edits save as TypeScript"." width="720">
+<img src="./docs/media/builder.gif" alt="Screen recording of the Builder editing the Music Overview page under the caption Click. The Builder writes the code. A KPI card is retitled Artists in the catalog, given the description Distinct artists across all albums, and saved." width="720">
 
 ### And more
 
@@ -75,8 +80,8 @@ Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript,
 
 ## Limits
 
-- **Databases.** The Builder connects PostgreSQL. Its database list also offers MongoDB and RethinkDB, but with `@antelopejs/dms-builder` 0.7.0 and `@antelopejs/core` 1.18.1 both connections stop the project from restarting until you remove them from `antelope.config.ts`. MySQL is not supported.
-- **Read-only covers the generated pages.** The connection itself can write whatever the database account can write, so connect with an account that has `SELECT` only. The table pages still show **New entry**, **Edit**, and **Delete**. Those actions answer "Not Found" because the routes do not exist.
+- **Databases.** The Builder connects PostgreSQL, MongoDB, and RethinkDB. MySQL is not supported.
+- **Read-only covers the generated pages.** The connection itself can write whatever the database account can write, so connect with an account that can only read. The table pages still show **New entry**, **Edit**, and **Delete**. Those actions answer "Not Found" because the routes do not exist.
 - **No automatic refresh.** Pages show the data as of the last load. When your external database changes, reload the page.
 - **Dashboards need a coding agent.** Generated dashboards need Claude Code or Codex. Without one, you still get the table pages.
 - **Check what the agent builds.** On the 11-table Chinook sample, the assistant's first pass took about 11 minutes. One of its two dashboards answered "Error 500" until a follow-up message fixed the data shape of its charts. Open each page it creates.
