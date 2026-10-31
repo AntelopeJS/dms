@@ -117,9 +117,6 @@ function registeredInviteRoute(method: string, location: string) {
   return matches[0].handler;
 }
 
-/** The flat fields an invitation form submits: strings and lists of strings. */
-type InviteFields = Record<string, string | string[]>;
-
 export async function editPendingInvite(
   id: string,
   fields: InviteFields,
@@ -157,3 +154,6 @@ export async function submitInvite(fields: InviteFields, admin: User) {
     .object({ results: z.array(z.object({ email: z.string() })) })
     .parse(response);
 }
+
+/** The flat fields an invitation form submits: strings and lists of strings. */
+type InviteFields = Record<string, string | string[]>;
