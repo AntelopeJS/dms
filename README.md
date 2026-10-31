@@ -15,7 +15,7 @@ Open source under Apache-2.0. Self-hosted today.
 
 </div>
 
-![Screen recording of the AntelopeJS DMS Builder. A postgres:// connection URL is pasted into the Connect form, the Builder reads the tables, and the DMS shows the generated table pages and an analytics dashboard.](./docs/media/hero-connect.gif)
+![Screen recording of the AntelopeJS DMS Builder. A postgres:// connection string is entered and filled into the Connect form, the Builder reads 11 tables, and a Music Overview dashboard with four count cards appears, captioned with the first-pass time, 10:50.](./docs/media/hero-connect.gif)
 
 [Watch the full Meet AntelopeJS DMS video (75 seconds)](./docs/media/meet.mp4)
 
@@ -49,19 +49,19 @@ Start the same stack. In the Builder's **Database** tab, enter the connection UR
 
 Each table you keep gets a typed table definition and a page, written into your repository next to your code. You read it, change it, and review it like any other change to your product.
 
-<img src="./docs/media/code.gif" alt="Screen recording of a generated TypeScript page for a database table, typed in a code editor." width="720">
+<img src="./docs/media/code.gif" alt="Screen recording of the generated Invoice page, public-invoice/page.ts, open in a code editor. A "Read-only by default" badge appears and the TableView line is highlighted." width="720">
 
 ### Read-only by default, roles for the rest
 
 A generated page lists, shows, and exports rows. It gets no create, edit, or delete route until you switch on **Rows can be edited** for that table. Roles and permissions then decide who sees and edits what, down to each block.
 
-<img src="./docs/media/roles-readonly.gif" alt="Screen recording of the DMS showing a table page that is read-only and the roles and permissions settings." width="720">
+<img src="./docs/media/roles-readonly.gif" alt="Screen recording of the generated Invoice page with its "Read-only by default" badge, then the Builder API tab with the four Read options on and the four Write options off, then the role permission tree where pages are ticked for a role." width="720">
 
 ### The Builder turns clicks into code
 
 Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript, and the Builder writes files only when the whole project still compiles.
 
-<img src="./docs/media/builder.gif" alt="Screen recording of the AntelopeJS DMS Builder editing a page, with each edit written as TypeScript." width="720">
+<img src="./docs/media/builder.gif" alt="Screen recording of the Builder editing the Music Overview page. A KPI card is retitled "Artists in the catalog", given a description, and saved, under the caption "Builder edits save as TypeScript"." width="720">
 
 ### And more
 
