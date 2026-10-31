@@ -127,7 +127,7 @@ export function isOk(answer) {
  * Signs an account in through `POST /api/auth/login` and keeps its tokens in
  * the run state.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} account The account name, `admin` for the run's administrator
  * @returns {Promise<{ status: number | null, body: any }>} The login answer
  */
@@ -155,7 +155,7 @@ export async function signIn(state, account) {
  * Creates the run's administrator through `POST /api/onboarding/register`,
  * then signs it in.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {{ platformName?: string }} options Wizard details
  * @returns {Promise<{ register: { status: number | null, body: any }, login: { status: number | null, body: any } | null }>} Both answers
  */
@@ -189,7 +189,7 @@ export async function onboard(state, options) {
  * An authenticated (or anonymous) request to the run's backend, signing the
  * account in again once when its token was refused.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {{ method: string, path: string, body?: any, as: string, label?: string, folder?: () => string }} request What to send and as whom; `as` is an account name or `anon`; `folder` makes each attempt's evidence folder
  * @returns {Promise<{ status: number | null, body: any, error: string | null, folder: string }>} The answer and its evidence folder
  */

@@ -133,7 +133,7 @@ function inheritedEnv() {
  * database, origin and secrets, an npm cache and a pnpm store shared by
  * every run, no update checks and no colors. Extra `KEY=VALUE` pairs from `--env` come last.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @returns {NodeJS.ProcessEnv} The environment
  */
 export function runEnv(state) {
@@ -223,7 +223,7 @@ async function initialState(options) {
  * How to run one of the playground's CLIs for the run: its own log, the
  * run's environment, from the run's playground copy or `cwd`.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} name The log name
  * @param {string} script The CLI script
  * @param {string[]} args Its arguments
@@ -253,7 +253,7 @@ function record(state, processRecord) {
  * Starts the run's mail sink unless it already runs, and waits until it is
  * the process listening on the run's mail port.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @returns {Promise<void>} Resolves once it listens
  */
 export async function ensureMail(state) {
@@ -350,7 +350,7 @@ async function buildAndStart(state) {
  * it stops what it started and keeps the logs.
  *
  * @param {{ playground: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string }} options Where the playground and the runs are
- * @returns {Promise<Record<string, any>>} The ready run
+ * @returns {Promise<import("./run-state.mjs").RunState>} The ready run
  */
 export async function up(options) {
   const state = await initialState(options);
@@ -373,7 +373,7 @@ export async function up(options) {
  * a crash would, from the run's build or another one (`build`, the base
  * version's). The frontend keeps serving and proxies to the same port.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {{ playground: string, cwd: string }} [build] Another build to start
  * @returns {Promise<void>} Resolves once the backend answers again
  */
@@ -389,7 +389,7 @@ export async function restartBackend(state, build) {
  * journey database is dropped, so a long run does not exhaust mongod's
  * file handles; its evidence stays.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} suffix What tells the database apart, such as `j03`
  * @returns {Promise<string>} The database now in use
  */
@@ -411,7 +411,7 @@ export async function freshDatabase(state, suffix) {
  * run's databases, and removes everything but `evidence/`, `logs/` and
  * `run.json`, from which the secrets and passwords are removed.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @returns {Promise<string[]>} One line per action
  */
 export async function down(state) {
