@@ -9,6 +9,8 @@ import { apiRequest, isOk, onboard } from "./session.mjs";
 import { down, freshDatabase, resolutionFolders, up } from "./stack.mjs";
 import { loadSkill, runPrepare } from "./verify/skill.mjs";
 
+/** @typedef {import("./options.mjs").Values} Values */
+
 const BROWSER_ACTIONS = [...ACTION_NAMES, "login"];
 
 /**
@@ -20,6 +22,10 @@ export function print(text) {
   process.stdout.write(text.endsWith("\n") ? text : `${text}\n`);
 }
 
+/**
+ * @param {Values} values
+ * @returns {Promise<string>}
+ */
 async function defaultPlayground(values) {
   if (values.playground) return values.playground;
   const skill = await loadSkill(values.skill, process.cwd()).catch(() => null);
@@ -27,6 +33,10 @@ async function defaultPlayground(values) {
   return "playground";
 }
 
+/**
+ * @param {Values} values
+ * @returns {Promise<number>}
+ */
 async function commandUp(values) {
   const skill = values.skill ? resolve(values.skill) : undefined;
   if (values.prepare) {
@@ -45,6 +55,11 @@ async function commandUp(values) {
   return 0;
 }
 
+/**
+ * @param {string} dir
+ * @param {Values} values
+ * @returns {Promise<number>}
+ */
 async function commandDoctor(dir, values) {
   const state = loadRun(dir);
   const lines = await doctor(state);
@@ -58,6 +73,11 @@ async function commandDoctor(dir, values) {
   return lines.every((line) => line.ok) ? 0 : 1;
 }
 
+/**
+ * @param {string} dir
+ * @param {Values} values
+ * @returns {Promise<number>}
+ */
 async function commandOnboard(dir, values) {
   const state = loadRun(dir);
   const answer = await onboard(state, {
@@ -73,6 +93,7 @@ async function commandOnboard(dir, values) {
   return 0;
 }
 
+/** @param {Values} values */
 function browserTarget(values) {
   if (!values.role) return undefined;
   const within = values["within-role"]
@@ -87,6 +108,12 @@ function browserTarget(values) {
   };
 }
 
+/**
+ * @param {string} dir
+ * @param {string} action
+ * @param {Values} values
+ * @returns {Promise<number>}
+ */
 async function commandBrowser(dir, action, values) {
   if (!BROWSER_ACTIONS.includes(action)) {
     print(
@@ -118,8 +145,16 @@ async function commandBrowser(dir, action, values) {
   return 0;
 }
 
+/**
+ * @param {string} dir
+ * @param {string} method
+ * @param {string} path
+ * @param {Values} values
+ * @returns {Promise<number>}
+ */
 async function commandApi(dir, method, path, values) {
   const state = loadRun(dir);
+  /** @type {unknown} */
   const body = values.body === undefined ? undefined : JSON.parse(values.body);
   const answer = await apiRequest(state, {
     method: method.toUpperCase(),
@@ -132,6 +167,10 @@ async function commandApi(dir, method, path, values) {
   return isOk(answer) ? 0 : 1;
 }
 
+/**
+ * @param {string} dir
+ * @returns {Promise<number>}
+ */
 async function commandDown(dir) {
   const state = loadRun(dir);
   const lines = await down(state);
@@ -145,9 +184,9 @@ async function commandDown(dir) {
  * Runs a command that drives the product: `up`, `doctor`, `onboard`,
  * `browser`, `api`, `mail`, `down`, and the two services `up` starts.
  *
- * @param {string} command The command
+ * @param {string | undefined} command The command
  * @param {string[]} rest Its positional arguments
- * @param {Record<string, any>} values Its options
+ * @param {Values} values Its options
  * @returns {Promise<number | undefined>} The exit code, or undefined for a command it does not own; the two services keep the process alive
  */
 export async function runStackCommand(command, rest, values) {

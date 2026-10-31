@@ -349,3 +349,78 @@ test("an import aliased to a name that a local variable also has is changed when
     true,
   );
 });
+
+const NON_LITERAL_SPECIFIERS = [
+  ["an identifier", "import x from foo;\nx();\n", "import x from bar;\nx();\n"],
+  [
+    "a template without substitutions",
+    "import x from `./a`;\nx();\n",
+    "import x from `./b`;\nx();\n",
+  ],
+  ["a numeric literal", "import x from 1;\nx();\n", "import x from 2;\nx();\n"],
+  ["an export-star identifier", "export * from foo;\n", "export * from bar;\n"],
+  [
+    "a named re-export identifier",
+    "export { a } from foo;\n",
+    "export { a } from bar;\n",
+  ],
+];
+
+for (const [kind, base, head] of NON_LITERAL_SPECIFIERS) {
+  test(`retargeting a module specifier written as ${kind} is changed`, (t) => {
+    assert.equal(changed(t, { "src/a.ts": base }, { "src/a.ts": head }), true);
+  });
+}
+
+test("retargeting an identifier specifier in a Vue script is changed", (t) => {
+  const vue = (specifier) =>
+    `<template><p/></template>\n<script>import x from ${specifier}; x();</script>\n`;
+  assert.equal(
+    changed(t, { "src/a.vue": vue("foo") }, { "src/a.vue": vue("bar") }, [
+      "src/a.vue",
+    ]),
+    true,
+  );
+});
+
+const SAME_TEXT_SPECIFIERS = [
+  [
+    "a bare package against the same name as an identifier",
+    'import ts from "typescript";\nts.version;\n',
+    "import ts from typescript;\nts.version;\n",
+  ],
+  [
+    "a bare package against the same name as a template",
+    'import ts from "typescript";\nts.version;\n',
+    "import ts from `typescript`;\nts.version;\n",
+  ],
+  [
+    "a quoted number against the number",
+    'import x from "1";\nx();\n',
+    "import x from 1;\nx();\n",
+  ],
+  [
+    "a quoted relative path against the same text as a template",
+    'import x from "./a";\nx();\n',
+    "import x from `./a`;\nx();\n",
+  ],
+];
+
+for (const [kind, base, head] of SAME_TEXT_SPECIFIERS) {
+  test(`${kind} is unchanged`, (t) => {
+    assert.equal(changed(t, { "src/a.ts": base }, { "src/a.ts": head }), false);
+  });
+}
+
+test("a module specifier that is a call expression throws on either commit", (t) => {
+  const call = "import x from a();\nx();\n";
+  const valid = 'import x from "./a";\nx();\n';
+  assert.throws(() => changed(t, { "src/a.ts": valid }, { "src/a.ts": call }), {
+    name: "TypeError",
+    message: /startsWith/,
+  });
+  assert.throws(() => changed(t, { "src/a.ts": call }, { "src/a.ts": valid }), {
+    name: "TypeError",
+    message: /startsWith/,
+  });
+});

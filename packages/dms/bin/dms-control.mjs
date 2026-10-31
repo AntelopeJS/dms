@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
+import { OPTIONS } from "./control/options.mjs";
 import { print, runStackCommand } from "./control/commands-stack.mjs";
 import { runVerifyCommand } from "./control/commands-verify.mjs";
 
@@ -32,32 +33,6 @@ Verify a change (the .agents/skills/verify-* folder of the checkout, or --skill 
   verdict <run> --pr <n>            render evidence/verdict.md from the results and evidence/judgement.json
   publish <run> --pr <n>            push the evidence, comment the verdict, set the verify status
 `;
-
-const OPTIONS = {
-  prepare: { type: "boolean" },
-  playground: { type: "string" },
-  runs: { type: "string" },
-  "mongo-url": { type: "string" },
-  env: { type: "string", multiple: true },
-  base: { type: "string", default: "origin/main" },
-  skill: { type: "string" },
-  verbose: { type: "boolean" },
-  "platform-name": { type: "string" },
-  as: { type: "string" },
-  tab: { type: "string" },
-  role: { type: "string" },
-  name: { type: "string" },
-  exact: { type: "boolean" },
-  nth: { type: "string" },
-  "within-role": { type: "string" },
-  "within-name": { type: "string" },
-  value: { type: "string" },
-  key: { type: "string" },
-  path: { type: "string" },
-  body: { type: "string" },
-  pr: { type: "string" },
-  all: { type: "boolean" },
-};
 
 async function main(argv) {
   const { positionals, values } = parseArgs({

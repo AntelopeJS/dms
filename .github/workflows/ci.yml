@@ -23,7 +23,7 @@ concurrency:
 # that build rather than compiling it again.
 jobs:
   ci:
-    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
+    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1-campaign
     with:
       docs-files: |
         README.md

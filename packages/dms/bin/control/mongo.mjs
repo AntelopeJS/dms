@@ -9,6 +9,7 @@ import { freePort, startDetached, waitForPort } from "./processes.mjs";
 const MONGO_VERSION = "8.0.8";
 const READY_TIMEOUT_MS = 30_000;
 
+/** @param {{ default?: object }} namespace */
 function withDefaultExports(namespace) {
   return { ...namespace.default, ...namespace };
 }
@@ -89,6 +90,10 @@ export async function startMongod(paths, from) {
   return { url: `mongodb://127.0.0.1:${port}`, record: { ...record, port } };
 }
 
+/**
+ * @param {string[]} from
+ * @returns {string | undefined}
+ */
 function driverBesideMemoryServer(from) {
   for (const folder of from) {
     try {
@@ -103,6 +108,7 @@ function driverBesideMemoryServer(from) {
   return undefined;
 }
 
+/** @param {string[]} from */
 async function mongoDriver(from) {
   const beside = driverBesideMemoryServer(from);
   if (beside)

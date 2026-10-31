@@ -37,9 +37,10 @@ class SharedAPI extends DataController(
 function stampedBuilder(
   actions: Record<string, string | undefined>,
 ): ComponentBuilder<TableViewOptionsSerialized> {
+  const ids = new Map(Object.entries(actions));
   const builder = {
     getAction: (id: string) =>
-      id in actions ? { permissionId: actions[id] } : undefined,
+      ids.has(id) ? { permissionId: ids.get(id) } : undefined,
   } satisfies {
     getAction: (
       id: string,

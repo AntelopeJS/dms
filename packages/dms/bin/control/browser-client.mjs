@@ -5,6 +5,10 @@ import { nextFolder } from "./session.mjs";
 
 const READY_TIMEOUT_MS = 60_000;
 
+/**
+ * @param {import("./run-state.mjs").RunState} state The run
+ * @returns {Promise<import("./run-state.mjs").ServerRecord>} Its running browser server, started if it was not
+ */
 async function browserServer(state) {
   if (state.browser && isAlive(state.browser.pid)) return state.browser;
   const port = await freePort();

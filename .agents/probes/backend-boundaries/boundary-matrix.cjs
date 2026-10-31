@@ -48,6 +48,11 @@ const privateFiles = {
   types: "realtime.ts",
 };
 
+/**
+ * @param {string} path
+ * @param {string[]} targets
+ * @param {string[]} files
+ */
 function write(path, targets, files) {
   writeFileSync(
     path,
@@ -59,6 +64,10 @@ function write(path, targets, files) {
   files.push(path);
 }
 
+/**
+ * @param {string} domain
+ * @param {number} rank
+ */
 function importTargets(domain, rank) {
   const targets = [];
   const upward = [];
@@ -73,6 +82,16 @@ function importTargets(domain, rank) {
   return { targets, upward };
 }
 
+/**
+ * @typedef {string[][]} Expected
+ */
+
+/**
+ * @param {string} domain
+ * @param {number} rank
+ * @param {string[]} files
+ * @param {Expected} expected
+ */
 function writeDomainProbe(domain, rank, files, expected) {
   const path = join(source, domain, `__boundary_probe_${process.pid}.ts`);
   const { targets, upward } = importTargets(domain, rank);
@@ -86,6 +105,10 @@ function writeDomainProbe(domain, rank, files, expected) {
   write(path, targets, files);
 }
 
+/**
+ * @param {string[]} files
+ * @param {Expected} expected
+ */
 function writeOutsiderProbe(files, expected) {
   const outsider = join(source, "test", `__boundary_probe_${process.pid}.ts`);
   write(
@@ -105,7 +128,9 @@ function writeOutsiderProbe(files, expected) {
 }
 
 function boundaryMatrix() {
+  /** @type {string[]} */
   const files = [];
+  /** @type {Expected} */
   const expected = [];
   try {
     for (const [rank, tier] of tiers.entries()) {
@@ -118,7 +143,7 @@ function boundaryMatrix() {
       item.from,
       item.to,
     ]);
-    const normalize = (rows) => rows.map((row) => row.join("\t")).sort();
+    const normalize = (/** @type {string[][]} */ rows) => rows.map((row) => row.join("\t")).sort();
     assert.deepEqual(normalize(actual), normalize(expected));
     process.stdout.write(
       `Backend boundary probes passed: ${expected.length} forbidden imports; every allowed rank/peer import accepted.\n`,

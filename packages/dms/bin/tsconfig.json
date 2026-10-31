@@ -8,5 +8,5 @@
     "types": ["node"]
   },
   "include": ["**/*.mjs"],
-  "exclude": ["**/*.test.mjs"]
+  "exclude": ["**/verify/*.test.mjs"]
 }

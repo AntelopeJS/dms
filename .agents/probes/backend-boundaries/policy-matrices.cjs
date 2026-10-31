@@ -17,6 +17,11 @@ const {
   sourceFailures,
 } = require("./policy-forms.cjs");
 
+/**
+ * @param {ReturnType<typeof loadTypescript>} ts
+ * @param {string} folder
+ * @param {string} input
+ */
 function emitPolicy(ts, folder, input) {
   return folder === "src"
     ? input
@@ -28,6 +33,10 @@ function emitPolicy(ts, folder, input) {
       }).outputText;
 }
 
+/**
+ * @param {ReturnType<typeof loadTypescript>} ts
+ * @param {string} folder
+ */
 function policyFolder(ts, folder) {
   const path = join(
     root,
@@ -78,6 +87,7 @@ function literalPolicy() {
   for (const folder of ["src", "dist"]) policyFolder(ts, folder);
 }
 
+/** @param {string} extension */
 function sourceExtensionPolicy(extension) {
   const file = join(
     source,

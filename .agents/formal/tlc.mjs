@@ -36,11 +36,16 @@ const DOCKER_IMAGE = "eclipse-temurin:21-jre";
 /** Exit codes shared by every check. */
 export const EXIT = { ok: 0, changed: 1, tool: 2 };
 
+/**
+ * @param {string} message
+ * @returns {never}
+ */
 function fail(message) {
   console.error(`check: ${message}`);
   process.exit(EXIT.tool);
 }
 
+/** @param {string} file */
 function sha256(file) {
   return createHash("sha256").update(readFileSync(file)).digest("hex");
 }
@@ -70,6 +75,7 @@ export async function ensureJar() {
   return jar;
 }
 
+/** @param {string} program */
 function onPath(program) {
   return spawnSync(program, ["-version"], { stdio: "ignore" }).status === 0;
 }
@@ -80,6 +86,9 @@ let dockerRuns = 0;
  * The program and leading arguments that run `java`: `$JAVA`, `java` on
  * PATH, or a throwaway container that mounts the jar folder and the work
  * folder at the same paths.
+ *
+ * @param {string} jar
+ * @param {string} work
  */
 function javaInvocation(jar, work) {
   if (process.env.JAVA) {
@@ -111,6 +120,11 @@ function javaInvocation(jar, work) {
   };
 }
 
+/**
+ * @param {string} dir
+ * @param {string} config
+ * @param {Record<string, number>} findings
+ */
 function readConfig(dir, config, findings) {
   const text = readFileSync(path.join(dir, `${config}.cfg`), "utf8");
   const constants = [...text.matchAll(/^\s+(\w+)\s*=\s*(.+?)\s*$/gm)].map(([, name, value]) => `  ${name} = ${value}`);
@@ -124,6 +138,9 @@ function readConfig(dir, config, findings) {
   return { constants, invariants, bounds };
 }
 
+/**
+ * @param {{ jar: string, work: string, spec: string, name: string, constants: string[], bounds: string[], invariants: string[], workers: string }} run
+ */
 function runTlc({ jar, work, spec, name, constants, bounds, invariants, workers }) {
   const cfg = path.join(work, `${name}.cfg`);
   writeFileSync(cfg, ["SPECIFICATION Spec", "CONSTANTS", ...constants, ...bounds, ...invariants.map((rule) => `INVARIANT ${rule}`), ""].join("\n"));
@@ -153,6 +170,8 @@ function runTlc({ jar, work, spec, name, constants, bounds, invariants, workers 
  * those in `findings`, each of which must break with a shortest
  * counterexample of exactly the recorded number of states. Prints one line
  * per rule and exits with {@link EXIT}.
+ *
+ * @param {{ dir: string, spec: string, config?: string, findings: Record<string, number> }} options
  */
 export async function checkSpec({ dir, spec, config = spec, findings }) {
   const { constants, invariants, bounds } = readConfig(dir, config, findings);
@@ -161,7 +180,7 @@ export async function checkSpec({ dir, spec, config = spec, findings }) {
   for (const file of readdirSync(dir).filter((name) => name.endsWith(".tla"))) {
     copyFileSync(path.join(dir, file), path.join(work, file));
   }
-  const holding = invariants.filter((rule) => !(rule in findings));
+  const holding = invariants.filter((rule) => !Object.hasOwn(findings, rule));
   console.log(`TLC ${TLC_VERSION} on ${spec}.tla (${config}.cfg) with ${constants.map((line) => line.trim()).join(", ")}`);
   let changed = false;
   if (holding.length > 0) {

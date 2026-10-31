@@ -5,6 +5,11 @@ import { flaggedDoors, patchFiles } from "./doors.mjs";
 import { loadJourneys } from "../journey.mjs";
 import { journeysFile, readFeatures } from "./skill.mjs";
 
+/**
+ * @param {string} file A repository path
+ * @param {string[]} globs The globs
+ * @returns {boolean} Whether a glob matches the path
+ */
 function matches(file, globs) {
   return globs.some((glob) => matchesGlob(file, glob));
 }
@@ -37,10 +42,20 @@ export function featuresOf(file, features) {
     .map((feature) => feature.name);
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @returns {string[]} The tracked paths
+ */
 function trackedFiles(skill) {
   return git(["ls-files"], skill.repo).split("\n").filter(Boolean);
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {ReturnType<typeof readFeatures>[number]} feature The feature
+ * @param {string[]} tracked The tracked paths
+ * @returns {Promise<string[]>} One line per problem
+ */
 async function featureProblems(skill, feature, tracked) {
   const problems = [];
   const file = journeysFile(skill, feature.name);
@@ -84,6 +99,11 @@ async function featureProblems(skill, feature, tracked) {
   return problems;
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {string[]} tracked The tracked paths
+ * @returns {string[]} One line per problem
+ */
 function doorProblems(skill, tracked) {
   const problems = [];
   for (const [kind, rule] of Object.entries(skill.config.doors)) {
@@ -169,7 +189,7 @@ function containmentJourneys(skill, changed) {
  *
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} baseRef The base, such as `origin/main`
- * @returns {{ baseRef: string, baseSha: string, headSha: string, changed: string[], touched: { feature: string, files: string[] }[], unmapped: string[], docs: string[], containments: string[], run: string[] }} The plan
+ * @returns {import("./types.mjs").Plan} The plan
  */
 export function planFor(skill, baseRef) {
   const features = readFeatures(skill);

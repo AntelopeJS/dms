@@ -16,7 +16,7 @@ import {
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as realtimeImpl from "../../../../implementations/dms/realtime";
@@ -342,13 +342,14 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
 
     const failure = await meta.Register().then(
       () => undefined,
-      (error) => error,
+      (error: unknown) => error,
     );
 
-    expect(failure?.message ?? "").to.match(
+    assert.instanceOf(failure, Error);
+    expect(failure.message).to.match(
       /TableView "fpu-clash\.first" and TableView "fpu-clash\.second"/,
     );
-    expect(failure?.message ?? "").to.contain('at "/fpu-clash/clash"');
+    expect(failure.message).to.contain('at "/fpu-clash/clash"');
     expect(GetPageLayoutBySlug("/fpu-clash")).to.equal(undefined);
   });
 
@@ -384,10 +385,11 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
 
     const failure = await meta.Register().then(
       () => undefined,
-      (error) => error,
+      (error: unknown) => error,
     );
 
-    expect(failure?.message ?? "").to.contain(
+    assert.instanceOf(failure, Error);
+    expect(failure.message).to.contain(
       'TableView permission id "fpu-default.table" names no component',
     );
     expect(GetPageLayoutBySlug("/fpu-borrowing")).to.equal(undefined);

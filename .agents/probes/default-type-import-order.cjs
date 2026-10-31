@@ -3,8 +3,13 @@ const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 
 const root = process.argv[2];
+
+/** @type {typeof import("../../packages/interface-dms/node_modules/zod")} */
+const { z } = require(path.join(__dirname, '../../packages/interface-dms/node_modules/zod'));
+const Observation = z.object({ group: z.string(), constructors: z.number(), aliases: z.array(z.string()) });
 const manifest = path.join(root, 'package.json');
 const groups = ['address', 'choices', 'files', 'inputs', 'numbers', 'options', 'relations', 'strings'];
+/** @type {ReturnType<typeof Observation.parse>[]} */
 const observations = [];
 const failures = [];
 for (const group of groups) {
@@ -28,7 +33,7 @@ for (const group of groups) {
   `;
   const child = spawnSync(process.execPath, ['-e', source], { encoding: 'utf8' });
   if (child.status !== 0) failures.push({ group, status: child.status, stderr: child.stderr });
-  else observations.push(JSON.parse(child.stdout));
+  else observations.push(Observation.parse(JSON.parse(child.stdout)));
 }
 assert.deepEqual(failures, [], JSON.stringify(failures));
 assert.equal(observations.length, groups.length);

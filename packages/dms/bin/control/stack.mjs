@@ -31,6 +31,11 @@ import {
 } from "./run-state.mjs";
 import { newPassword } from "./session.mjs";
 
+/**
+ * @typedef {import("./run-state.mjs").RunState} RunState
+ * @typedef {{ playground: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string }} UpOptions Where the playground and the runs are
+ */
+
 const READY_TIMEOUT_MS = 180_000;
 const SECRET_BYTES = 32;
 const MAIL_PORT_ATTEMPTS = 3;
@@ -83,6 +88,11 @@ export function cliPaths(playground) {
   };
 }
 
+/**
+ * @param {string} real
+ * @param {string} shadow
+ * @param {string} keep
+ */
 function shadowLevel(real, shadow, keep) {
   mkdirSync(shadow, { recursive: true });
   for (const entry of readdirSync(real)) {
@@ -162,6 +172,10 @@ export function runEnv(state) {
   };
 }
 
+/**
+ * @param {string[]} pairs
+ * @returns {Record<string, string>}
+ */
 function parseExtraEnv(pairs) {
   return Object.fromEntries(
     pairs.map((pair) => {
@@ -172,6 +186,10 @@ function parseExtraEnv(pairs) {
   );
 }
 
+/**
+ * @param {UpOptions} options
+ * @returns {Promise<RunState>}
+ */
 async function initialState(options) {
   const playground = resolve(options.playground);
   if (!existsSync(join(playground, "antelope.config.ts"))) {
@@ -241,6 +259,10 @@ export function spec(state, name, script, args, cwd = state.runPlayground) {
   };
 }
 
+/**
+ * @param {RunState} state
+ * @param {import("./run-state.mjs").ProcessRecord} processRecord
+ */
 function record(state, processRecord) {
   state.processes = [
     ...state.processes.filter((entry) => entry.name !== processRecord.name),
@@ -271,6 +293,10 @@ export async function ensureMail(state) {
   await waitForOwnPort(state.smtpPort, mail, READY_TIMEOUT_MS);
 }
 
+/**
+ * @param {RunState} state
+ * @returns {Promise<void>}
+ */
 async function startFirstMail(state) {
   for (let attempt = 1; ; attempt += 1) {
     try {
@@ -283,6 +309,11 @@ async function startFirstMail(state) {
   }
 }
 
+/**
+ * @param {RunState} state
+ * @param {{ playground?: string, cwd?: string }} [build]
+ * @returns {Promise<void>}
+ */
 async function startBackend(state, build) {
   const { ajs } = cliPaths(build?.playground ?? state.playground);
   const backend = startDetached(
@@ -302,6 +333,10 @@ async function startBackend(state, build) {
   );
 }
 
+/**
+ * @param {RunState} state
+ * @returns {Promise<void>}
+ */
 async function buildAndStart(state) {
   const clis = cliPaths(state.playground);
   state.runPlayground = layOutCopy(
@@ -349,7 +384,7 @@ async function buildAndStart(state) {
  * `/api/onboarding/informations` and `/dms-preview` answer 200. On failure
  * it stops what it started and keeps the logs.
  *
- * @param {{ playground: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string }} options Where the playground and the runs are
+ * @param {UpOptions} options Where the playground and the runs are
  * @returns {Promise<import("./run-state.mjs").RunState>} The ready run
  */
 export async function up(options) {

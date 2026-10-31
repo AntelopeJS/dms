@@ -33,7 +33,7 @@
   "scripts": {
     "build": "rimraf dist && tsc",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm run build && node --test tests/*.test.cjs",
+    "test": "pnpm run build && node --test tests/*.test.mjs",
     "prepack": "pnpm run build && pnpm run check:exports && pnpm run check:proxies",
     "check:exports": "node scripts/check-exports.mjs",
     "check:proxies": "node scripts/check-proxies.mjs",
