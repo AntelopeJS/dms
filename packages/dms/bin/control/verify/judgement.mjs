@@ -43,7 +43,7 @@ function parseFalsePositives(skill, raw) {
  * verdict without a One-way doors section is void, and one that does not
  * name its verifier is refused, so both throw.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} file The judgement file
  * @returns {{ notVerified: string[], attention: string[], docs: { page: string, matches: boolean, note: string }[], doorsNone: string | null, doors: Record<string, string>[], falsePositives: Record<string, string>[], verifier: string }} The judgement
  */

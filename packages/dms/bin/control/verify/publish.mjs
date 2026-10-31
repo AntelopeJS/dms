@@ -17,8 +17,8 @@ function remoteBranchExists(repo) {
  * `verify-evidence` branch and pushes it, from a temporary worktree so the
  * checkout under review is never touched.
  *
- * @param {Record<string, any>} skill The skill
- * @param {Record<string, any>} state The run
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../run-state.mjs").RunState} state The run
  * @param {{ pr: number, headSha: string, result: string }} verdict The verdict
  * @returns {string} The pushed evidence commit
  */
@@ -102,7 +102,7 @@ export function pushEvidence(skill, state, verdict) {
 /**
  * Posts the verdict as a PR comment.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {{ pr: number, markdown: string }} verdict The verdict
  * @returns {string} The comment URL gh prints
  */
@@ -126,7 +126,7 @@ export function postComment(skill, verdict) {
  * Sets the `verify` commit status on the head SHA the verdict judged:
  * `success` for PASS and PASS+NOTES, `failure` for FAIL.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {{ headSha: string, result: string }} verdict The verdict
  * @param {string} targetUrl The comment URL
  * @returns {string | null} GitHub's error when the status could not be set
@@ -159,7 +159,7 @@ export function setStatus(skill, verdict, targetUrl) {
  * Reads back the `verify` status GitHub holds for a SHA, so the write is
  * checked through a second command.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} sha The commit
  * @returns {string} The status state, or `absent`
  */

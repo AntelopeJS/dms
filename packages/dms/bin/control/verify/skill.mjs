@@ -7,6 +7,11 @@ import { checkoutOf } from "../git.mjs";
 const CONFIG_FILE = "verify.config.ts";
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
+/**
+ * @typedef {{ dir: string, name: string, repo: string, config: SkillConfig, featuresDir: string, journeysDir: string, seededBreaksDir: string, seededDoorsDir: string }} Skill
+ * @typedef {{ playground: string, prepare: string[][], userFacing: string[], notUserFacing: string[], smoke: string, smokeJourney: string, doors: Record<string, { globs: string[], funnels: string[], containments: string[], why: string } | null>, formal: { name: string, covers: string[], files: string[], command: string[], baseCommand?: string[], violation: RegExp | null, passing: RegExp | null, behaviour: { kind: "emit" } | { kind: "probe", command: string[] } }[] }} SkillConfig
+ */
+
 function frontmatterLists(text) {
   const lists = new Map();
   const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
@@ -49,7 +54,7 @@ function discover(cwd) {
  *
  * @param {string | undefined} option The `--skill` folder
  * @param {string} cwd Where the command runs
- * @returns {Promise<Record<string, any>>} The skill
+ * @returns {Promise<import("./skill.mjs").Skill>} The skill
  */
 export async function loadSkill(option, cwd) {
   const dir = resolve(option ?? discover(cwd));
@@ -74,7 +79,7 @@ export async function loadSkill(option, cwd) {
  * Every feature file under `features/`, README.md excluded, with its
  * `covers:` globs, `docs:` pages and text.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {Skill} skill The skill
  * @returns {{ name: string, file: string, covers: string[], docs: string[], body: string }[]} The features
  */
 export function readFeatures(skill) {
@@ -97,7 +102,7 @@ export function readFeatures(skill) {
 /**
  * The journeys module of a feature.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {Skill} skill The skill
  * @param {string} feature The feature name
  * @returns {string} Its path
  */
@@ -109,7 +114,7 @@ export function journeysFile(skill, feature) {
  * Runs the config's `prepare` commands (install and build) in a checkout of
  * the repository, so a run starts from a fresh build.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {Skill} skill The skill
  * @param {string} cwd The checkout
  * @throws When a command fails, with its output
  */
