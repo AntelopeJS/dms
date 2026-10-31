@@ -1,6 +1,24 @@
 const { existsSync } = require("node:fs");
 const { baselineRules, join } = require("./context.cjs");
 
+/**
+ * @typedef {{
+ *   name: string;
+ *   from: string;
+ *   target: string;
+ *   request?: string;
+ *   binding?: string;
+ *   escape?: boolean;
+ *   runtime?: boolean;
+ *   allowed?: boolean;
+ *   rule?: string;
+ * }} Round11Case
+ */
+
+/**
+ * @param {string} sourceRoot
+ * @returns {Round11Case[]}
+ */
 function round11Cases(sourceRoot) {
   return [
     {

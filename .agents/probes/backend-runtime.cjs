@@ -2,12 +2,44 @@
 
 const assert = require("node:assert/strict");
 const { createRequire } = require("node:module");
-const { join, relative, resolve, sep } = require("node:path");
+const nodePath = require("node:path");
+const { sep } = nodePath;
 const { mkdirSync, rmSync, writeFileSync } = require("node:fs");
 const { spawnSync } = require("node:child_process");
+const { baselineContract } = require("./backend-runtime-contract.cjs");
 
-const root = resolve(process.argv[2]);
-const load = createRequire(join(root, "packages/dms/package.json"));
+const root = nodePath.resolve(process.argv[2]);
+const load = createRequire(nodePath.join(root, "packages/dms/package.json"));
+
+/**
+ * @typedef {{
+ *   "@antelopejs/interface-core": typeof import("../../packages/dms/node_modules/@antelopejs/interface-core");
+ *   "@antelopejs/interface-dms/page": typeof import("../../packages/dms/node_modules/@antelopejs/interface-dms/dist/page.js");
+ *   "@antelopejs/interface-file-storage": typeof import("../../packages/dms/node_modules/@antelopejs/interface-file-storage");
+ *   "./dist/implementations/dms/page.js": typeof import("../../packages/dms/src/implementations/dms/page");
+ *   "./dist/implementations/dms-base/footer-summary.js": typeof import("../../packages/dms/src/implementations/dms-base/footer-summary");
+ *   "./dist/utils/export-jobs.js": typeof import("../../packages/dms/src/utils/export-jobs");
+ * }} DmsModules
+ */
+
+/**
+ * The one place this probe reads named modules of the dms package and its dependencies, typed by the declarations they ship.
+ * @template {keyof DmsModules} Entry
+ * @param {Entry} entry
+ * @returns {DmsModules[Entry]}
+ */
+function loadDms(entry) {
+  return load(entry);
+}
+
+/**
+ * The one place this probe reads a built module it only inspects: the exports are an opaque record.
+ * @param {string} file
+ * @returns {Record<string, unknown>}
+ */
+function loadExports(file) {
+  return load(file);
+}
 
 if (process.argv[3] === "--observe") {
   writeFileSync(1, JSON.stringify(observeRuntime()) + "\n");
@@ -22,16 +54,26 @@ const fresh = spawnSync(process.execPath, [__filename, root, "--observe"], {
 });
 if (fresh.error) throw fresh.error;
 assert.equal(fresh.status, 0, fresh.stderr || `Observer exited ${fresh.signal}`);
+/** @type {unknown} */
 const runtime = JSON.parse(fresh.stdout);
 
-const { IsInterfaceProxy } = load("@antelopejs/interface-core");
-const declaration = load("@antelopejs/interface-dms/page");
-const implementation = load(
-  join(root, "packages/dms/dist/implementations/dms/page.js"),
-);
+const { IsInterfaceProxy } = loadDms("@antelopejs/interface-core");
+const declaration = loadDms("@antelopejs/interface-dms/page");
+const implementation = loadDms("./dist/implementations/dms/page.js");
 
-function describe(handler) {
+/**
+ * @param {unknown} handler
+ * @returns {asserts handler is Function}
+ */
+function assertFunction(handler) {
   assert.equal(typeof handler, "function");
+}
+
+/**
+ * @param {unknown} handler
+ */
+function describe(handler) {
+  assertFunction(handler);
   return {
     name: handler.name,
     length: handler.length,
@@ -39,6 +81,20 @@ function describe(handler) {
   };
 }
 
+/**
+ * @param {unknown} value
+ * @returns {value is { register: unknown, unregister: unknown }}
+ */
+function hasRegistration(value) {
+  return value instanceof Object && "register" in value && "unregister" in value;
+}
+
+/**
+ * @param {Record<string, unknown>} declared
+ * @param {Record<string, unknown>} implemented
+ * @param {string} [prefix]
+ * @returns {[string, ReturnType<typeof describe>][]}
+ */
 function implementedProxies(declared, implemented, prefix = "page") {
   return Object.entries(declared)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -50,9 +106,11 @@ function implementedProxies(declared, implemented, prefix = "page") {
         return [[path, describe(implemented[key])]];
       }
       if (IsInterfaceProxy(proxy, "registering")) {
+        const handlers = implemented[key];
+        assert.ok(hasRegistration(handlers), `${path} must implement register and unregister`);
         return [
-          [`${path}.register`, describe(implemented[key].register)],
-          [`${path}.unregister`, describe(implemented[key].unregister)],
+          [`${path}.register`, describe(handlers.register)],
+          [`${path}.unregister`, describe(handlers.unregister)],
         ];
       }
       if (value && typeof value === "object" && !IsInterfaceProxy(value)) {
@@ -75,9 +133,8 @@ const exportedFunctions = Object.fromEntries(
     .map(([key, value]) => [key, describe(value)]),
 );
 
-const { compileRowRule } = load(
-  join(root, "packages/dms/dist/implementations/dms-base/footer-summary.js"),
-);
+const { compileRowRule } = loadDms("./dist/implementations/dms-base/footer-summary.js");
+/** @type {string[]} */
 const evaluationOrder = [];
 const result = compileRowRule(
   {
@@ -101,20 +158,19 @@ assert.equal(result, true);
 assert.deepEqual(evaluationOrder, ["read:amount", "operand", "method"]);
 
 async function uploadEvaluationOrder() {
-  const fs = load("node:fs");
-  const { Readable } = load("node:stream");
-  const storage = load("@antelopejs/interface-file-storage");
-  const { uploadExportToStorage } = load(
-    join(root, "packages/dms/dist/utils/export-jobs.js"),
-  );
+  const fs = require("node:fs");
+  const { Readable } = require("node:stream");
+  const storage = loadDms("@antelopejs/interface-file-storage");
+  const { uploadExportToStorage } = loadDms("./dist/utils/export-jobs.js");
   const original = {
     stat: fs.promises.stat,
     unlink: fs.promises.unlink,
     createReadStream: fs.createReadStream,
-    toWeb: Readable.toWeb,
+    toWeb: Object.getOwnPropertyDescriptor(Readable, "toWeb"),
     createUploadUrl: storage.CreateUploadUrl,
     fetch: globalThis.fetch,
   };
+  /** @type {string[]} */
   const trace = [];
   let uploadUrl = "https://old.example";
   try {
@@ -137,7 +193,7 @@ async function uploadEvaluationOrder() {
       },
       resourceKey: "resource",
     });
-    globalThis.fetch = async (url) => {
+    globalThis.fetch = async (/** @type {string} */ url) => {
       trace.push(`fetch ${url}`);
       return { ok: true };
     };
@@ -162,7 +218,8 @@ async function uploadEvaluationOrder() {
     fs.promises.stat = original.stat;
     fs.promises.unlink = original.unlink;
     fs.createReadStream = original.createReadStream;
-    Readable.toWeb = original.toWeb;
+    assert.ok(original.toWeb, "Readable.toWeb is an own property");
+    Object.defineProperty(Readable, "toWeb", original.toWeb);
     storage.CreateUploadUrl = original.createUploadUrl;
     globalThis.fetch = original.fetch;
   }
@@ -185,18 +242,18 @@ uploadEvaluationOrder()
       }) + "\n",
     );
   })
-  .catch((error) => {
+  .catch((/** @type {unknown} */ error) => {
     process.stderr.write(String(error) + "\n");
     process.exitCode = 1;
   });
 
 function observeBootedRegistries() {
   const name = `backend-runtime-${process.pid}`;
-  const directory = join(root, "packages/dms/dist/test", name);
+  const directory = nodePath.join(root, "packages/dms/dist/test", name);
   const marker = "BACKEND_RUNTIME_REGISTRIES=";
   mkdirSync(directory, { recursive: true });
   try {
-    writeFileSync(join(directory, "probe.test.js"), `
+    writeFileSync(nodePath.join(directory, "probe.test.js"), `
 const assert = require("node:assert/strict");
 describe("booted backend registry observations", function () {
   it("preserves public registry order", async function () {
@@ -261,8 +318,8 @@ async function boot() {
 }
 boot().then((failures) => { process.exitCode = failures > 0 ? 1 : 0; })
   .catch((error) => { console.error(error); process.exitCode = 1; });
-`, join(root, "packages/dms"), join(directory, "probe.test.js")], {
-      cwd: join(root, "packages/dms"),
+`, nodePath.join(root, "packages/dms"), nodePath.join(directory, "probe.test.js")], {
+      cwd: nodePath.join(root, "packages/dms"),
       env: { ...process.env, DMS_PREBUILT: "1", DMS_TEST_DIR: `dist/test/${name}` },
       encoding: "utf8",
       timeout: 180000,
@@ -272,16 +329,24 @@ boot().then((failures) => { process.exitCode = failures > 0 ? 1 : 0; })
     assert.equal(boot.status, 0, boot.stdout + boot.stderr);
     const lines = boot.stdout.split("\n").filter((line) => line.includes(marker));
     assert.equal(lines.length, 1, boot.stdout + boot.stderr);
-    return JSON.parse(lines[0].slice(lines[0].indexOf(marker) + marker.length));
+    /** @type {unknown} */
+    const observed = JSON.parse(lines[0].slice(lines[0].indexOf(marker) + marker.length));
+    return observed;
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
 }
 
+/**
+ * @param {string | symbol} key
+ */
 function keyInfo(key) {
   return typeof key === "symbol" ? { symbol: String(key), global: Symbol.keyFor(key) ?? null } : key;
 }
 
+/**
+ * @param {unknown} fn
+ */
 function functionInfo(fn) {
   let constructible = true;
   try {
@@ -292,6 +357,10 @@ function functionInfo(fn) {
   return { ...describe(fn), constructible };
 }
 
+/**
+ * @param {unknown} value
+ * @returns {Record<string, unknown>}
+ */
 function typeInfo(value) {
   if (value === undefined) return { kind: "undefined" };
   if (value === null) return { kind: "null" };
@@ -300,6 +369,9 @@ function typeInfo(value) {
   return { kind: typeof value, value: String(value) };
 }
 
+/**
+ * @param {unknown} object
+ */
 function propertyInfo(object) {
   if (object === null || !["object", "function"].includes(typeof object)) return [];
   return Reflect.ownKeys(object).map((key) => {
@@ -320,6 +392,10 @@ function propertyInfo(object) {
   });
 }
 
+/**
+ * @param {Function | { constructor?: Function }} target
+ * @param {string | symbol | undefined} key
+ */
 function targetInfo(target, key) {
   return {
     class: typeof target === "function" ? target.name : target.constructor?.name,
@@ -331,25 +407,29 @@ function targetInfo(target, key) {
 function observeRuntime() {
   const Module = require("node:module");
   const contract = baselineContract();
-  const dist = join(root, "packages/dms/dist");
-  const inside = (file) => file.startsWith(dist + sep);
-  const moduleName = (file) => relative(dist, file).split(sep).join("/");
+  const dist = nodePath.join(root, "packages/dms/dist");
+  const inside = (/** @type {string} */ file) => file.startsWith(dist + sep);
+  const moduleName = (/** @type {string} */ file) => nodePath.relative(dist, file).split(sep).join("/");
   createRequire(load.resolve("@antelopejs/interface-core"))("reflect-metadata");
   assert.equal(typeof Reflect.decorate, "function");
   assert.equal(typeof Reflect.getOwnMetadata, "function");
   const originalCompile = Module.prototype._compile;
   const originalDecorate = Reflect.decorate;
   const originalMetadata = Reflect.metadata;
+  /** @type {Set<string>} */
   const reached = new Set();
+  /** @type {{ site: ReturnType<typeof targetInfo>, target: Function | { constructor?: Function }, key: string | symbol | undefined, result: Function | PropertyDescriptor | undefined }[]} */
   const decorated = [];
+  /** @type {unknown[]} */
   const applications = [];
+  /** @type {WeakMap<Function, { key: unknown, value: unknown }>} */
   const metadataDecorators = new WeakMap();
 
-  Module.prototype._compile = function (source, filename, ...rest) {
+  Module.prototype._compile = function (/** @type {string} */ source, /** @type {string} */ filename, /** @type {unknown[]} */ ...rest) {
     if (inside(filename)) reached.add(filename);
     return originalCompile.call(this, source, filename, ...rest);
   };
-  Reflect.metadata = function (key, value) {
+  Reflect.metadata = function (/** @type {unknown} */ key, /** @type {unknown} */ value) {
     const decorator = originalMetadata.call(this, key, value);
     metadataDecorators.set(decorator, { key: typeInfo(key), value: typeInfo(value) });
     return decorator;
@@ -375,11 +455,10 @@ function observeRuntime() {
   };
 
   try {
-    const entry = join(dist, "index.js");
-    load(entry);
+    load(nodePath.join(dist, "index.js"));
     const implementationEntries = contract.implementationEntries.map((name) => {
-      const file = join(dist, name);
-      const exports = load(file);
+      const file = nodePath.join(dist, name);
+      const exports = loadExports(file);
       return {
         module: name,
         ownKeys: Reflect.ownKeys(exports).map(keyInfo),
@@ -407,25 +486,26 @@ function observeRuntime() {
     assert.ok(metadata.some((item) => item.class === "RegionSettingsController"
       && item.member === "getPreferences"), "Region preferences metadata not reached");
     const modules = contract.modules.map((name) => {
-      const originalFile = join(dist, name);
+      const originalFile = nodePath.join(dist, name);
       const file = reached.has(originalFile) ? originalFile
-        : join(dist, contract.moves[name] ?? name);
+        : nodePath.join(dist, contract.moves.get(name) ?? name);
       assert.ok(reached.has(file), `Baseline module not reached ${name}`);
       const cached = require.cache[file];
       assert.ok(cached, `Missing loaded module ${moduleName(file)}`);
       const originalKeys = contract.privateBarrels[name];
       const keep = originalKeys
-        ? (key) => originalKeys.includes(key)
+        ? (/** @type {string | symbol} */ key) => originalKeys.includes(String(key))
         : () => true;
+      const cachedExports = loadExports(file);
       if (originalKeys) {
         for (const key of originalKeys) {
-          assert.ok(Object.hasOwn(cached.exports, key), `Missing baseline export ${name}.${key}`);
+          assert.ok(Object.hasOwn(cachedExports, key), `Missing baseline export ${name}.${key}`);
         }
       }
       return {
         module: name,
-        ownKeys: Reflect.ownKeys(cached.exports).filter(keep).map(keyInfo),
-        properties: propertyInfo(cached.exports).filter((item) => keep(item.key)),
+        ownKeys: Reflect.ownKeys(cachedExports).filter(keep).map(keyInfo),
+        properties: propertyInfo(cachedExports).filter((item) => keep(item.key)),
       };
     });
     for (const name of ["utils/index.js", "implementations/dms/page.js",
@@ -438,85 +518,4 @@ function observeRuntime() {
     Reflect.decorate = originalDecorate;
     Reflect.metadata = originalMetadata;
   }
-}
-
-function baselineContract() {
-  const inventory = {
-    "attachments/": "access bindings constraints fields read registry save table-view uploads",
-    "automation/": "actions events i18n index registration-lifecycle send-notification sources triggers",
-    "": "client-origin-cors config frontend-module index startup-config",
-    "crons/": "cleanup-user-invites index sweep-expired-sessions sweep-stale-exports",
-    "db/": "index",
-    "db/models/": "attachments.model index notification-feed-filter signInAttempts.model systemState.model userEmailChanges.model userKnownDevices.model userNotificationPreferences.model userNotifications.model",
-    "db/tables/": "attachments.table index signInAttempts.table systemState.table userEmailChanges.table userKnownDevices.table userNotificationPreferences.table userNotifications.table",
-    "dev/": "module-update-notifications",
-    "hooks/": "invite-extensions tenant-deleted workspace-notifications",
-    "implementations/dms-auth/": "account-emails index session-handoff token-secret token-session",
-    "implementations/dms-base/": "bulk-selection export-jobs filter-tokens footer-summary search-route table-view tenant-export-archive",
-    "implementations/dms-html-render/": "constants index service-jwt template-registry",
-    "implementations/dms-notifications/": "delivery-dedupe delivery-guard index registry",
-    "implementations/dms/": "api-base-url attachments client-base-url client-ip dev-handshake dev-reload frontend-backend-proxies frontend-bootstrap frontend-modules frontend-public-endpoints frontend-ready guards invite-extensions layout-banners manifest menu-categories nav-badges page permission-preview permissions-resolver permissions quick-actions realtime resolver-timeout route-params saas-mode stale-session tenant-access uploads warn-once",
-    "page-extensions/": "pending-report",
-    "pages/": "index",
-    "pages/modules/": "index modules-index modules-store",
-    "pages/public/auth/": "2fa accounts backup forgot-validation forgot login oauth-complete recover-success recover signup validate",
-    "pages/public/": "index",
-    "pages/public/onboarding/": "index",
-    "pages/public/preview/": "block-types fixtures index",
-    "pages/settings/": "index settings-index",
-    "pages/settings/overview/": "account-activity account-summary",
-    "pages/settings/users/": "account-activity-feed account-activity-store account-activity account-credentials account-data-store account-data appearance category current-password dashboard-languages email-change index invite-email-outcome invite-extension-routes invite-resend invites member-change-notifications member-invite-batch member-invite-form member-management member-role-options member-roles-field members notifications permission-tree-nodes permission-warnings profile-access profile-helpers profile quick-actions region-form region regional-preferences role-editor-store role-editor role-preview roles security-attention security shortcuts two-factor-operations",
-    "realtime/": "broker current heartbeat index instance presence redis-broker registry sessions sse table-view",
-    "routes/": "auth block-preview files index onboarding realtime store system-state",
-    "routes/auth/": "client-ip constants forgot-password index invite login-throttle login logout me pick-tenant refresh request-2fa-email request-email-verification reset-code reset-password session-handoff session-response signup switch-tenant two-factor-throttle types validate-forgot-password-token validate-invite-token verify-2fa verify-email",
-    "routes/auth/oauth/": "authorize-url callback config identity-resolution index linking-policy providers relay state token-exchange",
-    "store/": "activity cache catalog compatibility declarations frontend-compatibility interfaces listing operations registry requirements runtime tarball",
-    "utils/": "account-notifications admin-invite-email attempt-limiter auth-key email-change-mail email-subjects ensure-default-tenant export-jobs-run export-jobs failed-sign-ins index notification-emitter notification-rules notification-tones one-time-code row-action-rule-evaluator run-in-batches sign-in-country sign-in-devices sign-in-monitor tenant-export-archive tenant-instances two-factor-codes upload-constraints upload-token user-activity user-agent workspace-notifications",
-    "validation/": "account-deletion.schema auth.schema file.schema issue-message member-invite.schema member-ownership.schema password regional-preferences.schema role-editor.schema security.schema store.schema user-notification-preferences.schema",
-    "validation/onboarding/": "index register-admin.schema",
-  };
-  const modules = Object.entries(inventory).flatMap(([directory, names]) =>
-    names.split(" ").map((name) => `${directory}${name}.js`)).sort();
-  assert.equal(modules.length, 273);
-  const moves = {
-    "config.js": "config/internal/state.js",
-    "startup-config.js": "config/startup-config.js",
-    "client-origin-cors.js": "config/client-origin-cors.js",
-    "implementations/dms-notifications/registry.js": "utils/notification-registry.js",
-    "routes/auth/client-ip.js": "utils/client-ip.js",
-    "routes/auth/constants.js": "utils/auth-constants.js",
-    "routes/auth/login-throttle.js": "utils/login-throttle.js",
-    "routes/auth/request-email-verification.js": "utils/request-email-verification.js",
-    "utils/sign-in-monitor.js": "hooks/internal/sign-in-monitor.js",
-    "utils/workspace-notifications.js": "hooks/internal/workspace-notifications.js",
-  };
-  for (const name of ["dev-reload", "frontend-backend-proxies", "frontend-bootstrap",
-    "frontend-modules", "frontend-public-endpoints", "frontend-ready", "manifest", "warn-once"]) {
-    moves[`implementations/dms/${name}.js`] = `store/internal/frontend/${name}.js`;
-  }
-  const privateBarrels = {
-    "automation/index.js": "__esModule registerAutomationNodes unregisterAutomationNodes listenersFor emitAutomationEvent",
-    "db/index.js": "__esModule AttachmentModel SignInAttemptsModel SystemStateModel UserEmailChangesModel UserKnownDevicesModel UserNotificationPreferencesModel UserNotificationsModel buildNewUserNotification attachmentsTableName Attachment signInAttemptsTableName SignInAttempt systemStateTableName SystemState userEmailChangesTableName UserEmailChange userKnownDevicesTableName UserKnownDevice userNotificationPreferencesTableName UserNotificationPreferences userNotificationsTableName UserNotification",
-    "db/models/index.js": "__esModule AttachmentModel SignInAttemptsModel SystemStateModel UserEmailChangesModel UserKnownDevicesModel UserNotificationPreferencesModel UserNotificationsModel buildNewUserNotification",
-    "realtime/index.js": "__esModule getPresenceTracker getRealtimeBroker subscribeRealtime setRealtimeBroker configureRealtime stopRealtime EVERY_TENANT InMemoryBroker isEventForTenant instanceId PRESENCE_EVENT_TYPE PresenceTracker RedisBroker MENU_CHANGED_EVENT_TYPE MENU_BROADCAST_TOPIC buildMenuTopic buildMemberMenuTopic buildUserNotificationTopic registerPageTopic unregisterPageTopic clearPageTopics getPageTopics openSseStream",
-    "routes/auth/index.js": "__esModule resolveClientIp resolveRequestClientIp trustedProxyCount forgotPassword login logout me buildOAuthAuthorizeUrl oauthCallback OAUTH_CALLBACK_PATH resolveOAuthPolicy listEnabledOAuthProviders describeEnabledOAuthProviders getEnabledOAuthProvider buildOAuthRedirectUri claimUnvalidatedAccount resolveOAuthUser decideOAuthResolution OAUTH_PROVIDERS deriveOAuthRelaySecret assertOAuthRelay signOAuthState assertValidOAuthState exchangeCodeForAccessToken HTTP_FORBIDDEN refresh request2FAEmail requestEmailVerification resetPassword redeemSessionHandoff issueAuthResponse resolveLoginOutcome signupLanguage signup switchTenant validateForgotPasswordToken validateInviteToken verify2FA verifyEmail",
-    "utils/index.js": "__esModule ensureDefaultTenantExists provisionDefaultTenant DEFAULT_DELIVERY DEFAULT_EXPORT_FORMAT EMAIL_DELIVERY EXPORT_JOB_QUERY_PARAM EXPORT_TTL_MS DEFAULT_EXPORT_HISTORY_LIMIT getExporter readJobResult getDeliverer getExportLocalScratchPath uploadExportToStorage streamExportFromStorage deleteExportFromStorage sweepStaleExportsAllTenants deleteUserExportsInTenant deleteAllExportsForTenant buildExportFilename runExportJob loadExportJobForUser getExportJobExpiry getExportJobStatus listExportJobs downloadExportJob runInBatches TENANT_EXPORT_CONTENT_TYPE TENANT_EXPORT_EXTENSION buildTenantExportArchive startTenantExportJob getRowInstance MILLISECONDS_PER_SECOND MILLISECONDS_PER_MINUTE MILLISECONDS_PER_HOUR MILLISECONDS_PER_DAY assertPrimitiveValue parseValue parseObject isStringKeyword isStringNumber isStringDate isStringJSON registerTenantInstance registerExistingTenantInstances",
-  };
-  const implementationEntries = [
-    "implementations/dms-auth/index.js",
-    "implementations/dms-base/export-jobs.js",
-    "implementations/dms-base/table-view.js",
-    "implementations/dms-base/tenant-export-archive.js",
-    "implementations/dms-html-render/index.js",
-    "implementations/dms-notifications/index.js",
-    ..."api-base-url attachments client-base-url client-ip guards invite-extensions layout-banners page permissions permissions-resolver quick-actions realtime saas-mode tenant-access uploads"
-      .split(" ").map((name) => `implementations/dms/${name}.js`),
-  ].sort();
-  return {
-    modules,
-    moves,
-    implementationEntries,
-    privateBarrels: Object.fromEntries(Object.entries(privateBarrels)
-      .map(([name, keys]) => [name, keys.split(" ")])),
-  };
 }

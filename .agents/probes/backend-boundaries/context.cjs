@@ -2,10 +2,14 @@ const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
 const { mkdtempSync } = require("node:fs");
 const { tmpdir } = require("node:os");
-const { dirname, join, relative } = require("node:path");
+const path = require("node:path");
 
 const { argv, execPath } = process;
 
+/**
+ * @param {string} prefix
+ * @returns {string | undefined}
+ */
 function optionValue(prefix) {
   return argv
     .find((argument) => argument.startsWith(prefix))
@@ -17,8 +21,8 @@ const baseline = argv[3]?.startsWith("--") ? undefined : argv[3];
 const baselineHelper = optionValue("--baseline-helper=");
 const baselineRules = optionValue("--baseline-rules=");
 const expectRejections = argv.includes("--expect-rejections");
-const source = join(root, "packages/dms/src");
-const typeCheckTarget = join(
+const source = path.join(root, "packages/dms/src");
+const typeCheckTarget = path.join(
   root,
   "packages/interface-dms/dist/utils/internal/type-check.js",
 );
@@ -54,19 +58,39 @@ function runGuard(env = process.env) {
   );
 }
 
+/**
+ * @param {string} from
+ * @param {string} to
+ */
 function specifier(from, to) {
-  const value = relative(dirname(from), to)
+  const value = path.relative(path.dirname(from), to)
     .replace(/\\/g, "/")
     .replace(/\.ts$/, "");
   return value.startsWith(".") ? value : `./${value}`;
 }
 
+/**
+ * @param {string} prefix
+ */
 function makeTempDir(prefix) {
-  return mkdtempSync(join(tmpdir(), prefix));
+  return mkdtempSync(path.join(tmpdir(), prefix));
 }
 
+/**
+ * The one place the probes read the checkout's TypeScript, typed by the declaration it ships.
+ * @returns {typeof import("../../../packages/interface-dms/node_modules/typescript")}
+ */
 function loadTypescript() {
   return require(require.resolve("typescript", { paths: [root] }));
+}
+
+/**
+ * The one place the probes decode a dependency-cruiser JSON report, typed by the declaration the tool ships.
+ * @param {string} text
+ * @returns {import("../../../node_modules/dependency-cruiser").ICruiseResult}
+ */
+function parseCruiseResult(text) {
+  return JSON.parse(text);
 }
 
 function dependencyViolations() {
@@ -84,20 +108,21 @@ function dependencyViolations() {
     { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
   );
   assert.equal(result.status, 0, result.stderr);
-  return JSON.parse(result.stdout).summary.violations;
+  return parseCruiseResult(result.stdout).summary.violations;
 }
 
 module.exports = {
   baseline,
   baselineRules,
   dependencyViolations,
-  dirname,
+  dirname: (/** @type {string} */ value) => path.dirname(value),
   execPath,
   expectRejections,
-  join,
+  join: (/** @type {string[]} */ ...segments) => path.join(...segments),
   loadTypescript,
   makeTempDir,
-  relative,
+  parseCruiseResult,
+  relative: (/** @type {string} */ from, /** @type {string} */ to) => path.relative(from, to),
   root,
   runGuard,
   source,
