@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed, provide, reactive } from "vue";
+import {
+  hasDrawablePoints,
+  resolveBlockState,
+  useBlockStateAttributes,
+} from "../../build/composables/blocks/blockDataState";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
 
 import DmsTrendBadge from "./internal/TrendBadge.vue";
@@ -71,7 +76,7 @@ const { state: watchState } = useWatch(
 );
 const watchKey = computed(() => JSON.stringify(watchState.value));
 
-const { data, isLoading } = useChartFetch<ChartCardResponse>({
+const { data, isLoading, error } = useChartFetch<ChartCardResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
   routeParams: () => props.routeParams,
@@ -159,6 +164,17 @@ const comparisonLegendLabel = computed(() =>
       t(DEFAULT_COMPARISON_LABEL_KEY, "Comparison")),
 );
 
+const blockAttributes = useBlockStateAttributes("ChartCard", () =>
+  resolveBlockState({
+    loading: isLoading.value,
+    failed: Boolean(error.value),
+    hasContent:
+      value.value !== undefined ||
+      hasDrawablePoints(cardSeries.value) ||
+      hasDrawablePoints(cardComparisonSeries.value),
+  }),
+);
+
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
 
 const isRefreshing = computed(() => isLoading.value && data.value !== null);
@@ -170,7 +186,11 @@ const hasMeta = computed(
 </script>
 
 <template>
-  <DmsCard :padded="false" class="flex min-w-0 flex-col">
+  <DmsCard
+    v-bind="blockAttributes"
+    :padded="false"
+    class="flex min-w-0 flex-col"
+  >
     <div class="flex flex-wrap items-start gap-3 px-4 pt-4 pb-1.5 sm:px-[18px]">
       <div class="grid min-w-0 justify-items-start">
         <DmsEyebrow

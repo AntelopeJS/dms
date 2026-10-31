@@ -3,6 +3,11 @@ import { computed, inject, ref, watch } from "vue";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsChartSkeleton from "../../build/components/chart/internal/ChartSkeleton.vue";
 import {
+  hasDrawablePoints,
+  resolveBlockState,
+  useBlockStateAttributes,
+} from "../../build/composables/blocks/blockDataState";
+import {
   chartFrameHeight,
   useApexChart,
 } from "../../composables/chart/useApexChart";
@@ -148,7 +153,7 @@ const staticDonut = computed<DonutRecord[]>(() => {
 
 const isNested = computed(() => !!nestedContext);
 
-const { data, isLoading } = useChartFetch<ChartResponse>({
+const { data, isLoading, error } = useChartFetch<ChartResponse>({
   fetchUrl: isNested.value ? undefined : props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
   routeParams: () => props.routeParams,
@@ -318,6 +323,16 @@ const isAwaitingData = computed(() =>
 
 const isRefreshing = computed(() => hasData.value && isAwaitingData.value);
 
+const blockAttributes = useBlockStateAttributes("Chart", () =>
+  resolveBlockState({
+    loading: isAwaitingData.value,
+    failed: !nestedContext && Boolean(error.value),
+    hasContent: isCircular.value
+      ? finalDonutData.value.some((record) => record.value !== 0)
+      : hasDrawablePoints(finalSeries.value),
+  }),
+);
+
 const isDrawn = ref(false);
 watch(hasData, (present) => {
   if (!present) isDrawn.value = false;
@@ -328,6 +343,7 @@ watch(hasData, (present) => {
   <!-- Standalone charts get the card frame; charts nested inside a
        DmsChartCard inherit its frame instead. -->
   <div
+    v-bind="blockAttributes"
     class="dms-chart"
     :class="nestedContext ? undefined : 'dms-card p-3.5 sm:pr-[18px]'"
   >
