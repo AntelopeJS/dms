@@ -133,8 +133,6 @@ function prepareScratch(layout, synthetic) {
 /**
  * Exercises the same resolver/edge checker as the scanner, without scanning
  * unrelated production code or fixtures owned by another agent.
- */
-/**
  * @param {State["checkTarget"]} checkTarget
  * @param {string} request
  * @param {string} file
