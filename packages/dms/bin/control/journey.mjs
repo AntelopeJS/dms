@@ -349,6 +349,7 @@ async function prepare(state, feature, journey, context) {
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, run: (context: JourneyContext) => Promise<void> }} journey The journey
+ * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
  * @returns {Promise<Record<string, any>>} The result
  */
 export async function runJourney(state, feature, journey, skill) {
