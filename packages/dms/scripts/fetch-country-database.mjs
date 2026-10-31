@@ -5,9 +5,10 @@ import { gunzipSync } from "node:zlib";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const target = join(packageRoot, "data", "dbip-country-lite.mmdb");
-const editionUrl = (month) =>
+const editionUrl = (/** @type {string} */ month) =>
   `https://download.db-ip.com/free/dbip-country-lite-${month}.mmdb.gz`;
 
+/** @param {number} monthsBack */
 function editionMonth(monthsBack) {
   const date = new Date();
   date.setUTCDate(1);
@@ -15,6 +16,7 @@ function editionMonth(monthsBack) {
   return date.toISOString().slice(0, 7);
 }
 
+/** @param {string} month */
 async function download(month) {
   const response = await fetch(editionUrl(month));
   if (!response.ok) return undefined;

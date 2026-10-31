@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { z } from "zod";
 
 const SCHEMA_VERSION = 1;
 const JSON_INDENT = 2;
@@ -9,18 +9,15 @@ const CHECK_FLAG = "--check";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const catalogPath = join(packageRoot, "docs-data", "blocks.json");
-const require = createRequire(join(packageRoot, "package.json"));
 
-function readCatalog() {
-  const { version } = JSON.parse(
-    readFileSync(join(packageRoot, "package.json"), "utf8"),
-  );
-  const {
-    ListBlockTypes,
-  } = require("@antelopejs/interface-dms/base/block-types");
-  const {
-    BlockPresentationPaths,
-  } = require("@antelopejs/interface-dms/base/block-registry/presentation");
+async function readCatalog() {
+  const { version } = z
+    .object({ version: z.string() })
+    .parse(JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8")));
+  const { ListBlockTypes } =
+    await import("@antelopejs/interface-dms/base/block-types");
+  const { BlockPresentationPaths } =
+    await import("@antelopejs/interface-dms/base/block-registry/presentation");
   const blocks = [...ListBlockTypes()].sort((left, right) =>
     left.type < right.type ? -1 : 1,
   );
@@ -34,10 +31,12 @@ function readCatalog() {
   };
 }
 
+/** @param {object} catalog */
 function serialize(catalog) {
   return `${JSON.stringify(catalog, null, JSON_INDENT)}\n`;
 }
 
+/** @param {string} expected */
 function check(expected) {
   const shown = relative(process.cwd(), catalogPath);
   const current = existsSync(catalogPath)
@@ -53,7 +52,7 @@ function check(expected) {
   process.exit(1);
 }
 
-const expected = serialize(readCatalog());
+const expected = serialize(await readCatalog());
 if (process.argv.includes(CHECK_FLAG)) {
   check(expected);
 } else {
