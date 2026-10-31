@@ -11,26 +11,26 @@ const acceptedLocales = [
   [
     "an array message under a key the check never reads",
     (messages) => {
-      messages.zzList = ["a", "b"];
+      messages.testOnlyList = ["a", "b"];
     },
   ],
   [
     "a number under a key the check never reads",
     (messages) => {
-      messages.zzCount = 3;
+      messages.testOnlyCount = 3;
     },
   ],
   [
     "a boolean and a null under keys the check never reads",
     (messages) => {
-      messages.zzFlag = true;
-      messages.zzNothing = null;
+      messages.testOnlyFlag = true;
+      messages.testOnlyNothing = null;
     },
   ],
   [
     "an array nested in a group the check never reads",
     (messages) => {
-      messages.zzGroup = { items: ["a", { deeper: [1, 2] }] };
+      messages.testOnlyGroup = { items: ["a", { deeper: [1, 2] }] };
     },
   ],
 ];
@@ -61,6 +61,12 @@ await test("backend-checks: still fails when a key it reads holds an array", () 
 });
 
 /**
+ * The `dms.automation` group of a locale file.
+ * @param {import("./helpers/backend-checks-tree.mjs").LocaleFile} messages
+ */
+const automation = (messages) => group(group(messages, "dms"), "automation");
+
+/**
  * Translate a label named __proto__ in a group of the locale file that the
  * extra trigger's title points at.
  * @param {import("./helpers/backend-checks-tree.mjs").LocaleFile} messages
@@ -75,7 +81,7 @@ function translateProtoField(messages, value) {
     writable: true,
     configurable: true,
   });
-  group(group(messages, "dms"), "automation").zzFields = labels;
+  automation(messages).testOnlyLabels = labels;
 }
 
 await test("backend-checks: a field named __proto__ passes once both locales translate it", () => {
@@ -91,11 +97,17 @@ await test("backend-checks: a field named __proto__ passes once both locales tra
 });
 
 await test("backend-checks: a field named __proto__ fails while no locale translates it", () => {
-  const { status, stderr } = runWithLocales(() => {}, {
-    outputField: "__proto__",
-  });
+  const { status, stderr } = runWithLocales(
+    (messages) => {
+      delete automation(messages).testOnlyLabels;
+    },
+    { outputField: "__proto__" },
+  );
   assert.equal(status, 1);
-  assert.match(stderr, /must translate dms\.automation\.zzFields\.__proto__/);
+  assert.match(
+    stderr,
+    /must translate dms\.automation\.testOnlyLabels\.__proto__/,
+  );
 });
 
 await test("backend-checks: a node text reaching constructor.name passes as on base", () => {
@@ -110,9 +122,9 @@ await test("backend-checks: a node text reaching constructor.name passes as on b
 await test("backend-checks: a node text indexing a string message passes as on base", () => {
   const { status, stdout, stderr } = runWithLocales(
     (messages) => {
-      group(group(messages, "dms"), "automation").zz = "Text";
+      automation(messages).testOnlyText = "Text";
     },
-    { name: "$dms.automation.zz.0" },
+    { name: "$dms.automation.testOnlyText.0" },
   );
   assert.equal(stderr, "");
   assert.equal(stdout.trim(), "Backend invariant checks passed.");
@@ -120,11 +132,14 @@ await test("backend-checks: a node text indexing a string message passes as on b
 });
 
 await test("backend-checks: a node text indexing a missing message still fails", () => {
-  const { status, stderr } = runWithLocales(() => {}, {
-    name: "$dms.automation.zz.0",
-  });
+  const { status, stderr } = runWithLocales(
+    (messages) => {
+      delete automation(messages).testOnlyText;
+    },
+    { name: "$dms.automation.testOnlyText.0" },
+  );
   assert.equal(status, 1);
-  assert.match(stderr, /must translate dms\.automation\.zz\.0/);
+  assert.match(stderr, /must translate dms\.automation\.testOnlyText\.0/);
 });
 
 await test("backend-checks: an engines entry of another tool that is not a string passes as on base", () => {

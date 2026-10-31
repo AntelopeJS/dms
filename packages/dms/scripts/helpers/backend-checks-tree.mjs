@@ -52,7 +52,7 @@ function mirror(source, target, segments) {
  * A trigger the catalogue gains on top of the shipped ones, as a source edit
  * to `src/automation` would add it: `name` replaces its name text, and
  * `outputField` adds an output property titled with a label of the group
- * `dms.automation.zzFields`, which the shipped locale files do not have.
+ * `dms.automation.testOnlyLabels`, which the shipped locale files do not have.
  * @typedef {{ name?: string, outputField?: string }} ExtraTrigger
  */
 
@@ -70,7 +70,7 @@ function extraTriggerSource(extra) {
     ...(extra.outputField === undefined
       ? []
       : [
-          `"outputSchema": { "type": "object", "properties": Object.fromEntries([[${JSON.stringify(extra.outputField)}, { "title": ${JSON.stringify(`$dms.automation.zzFields.${extra.outputField}`)} }]]) }`,
+          `"outputSchema": { "type": "object", "properties": Object.fromEntries([[${JSON.stringify(extra.outputField)}, { "title": ${JSON.stringify(`$dms.automation.testOnlyLabels.${extra.outputField}`)} }]]) }`,
         ]),
   ];
   return `\n;exports.TRIGGERS.push({ ...exports.TRIGGERS[0], ${overrides.join(", ")} });\n`;
