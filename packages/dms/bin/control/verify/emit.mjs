@@ -3,6 +3,12 @@ import { createRequire } from "node:module";
 import { dirname, extname, join, posix } from "node:path";
 import { PACKAGE_ROOT } from "../stack.mjs";
 
+/** @typedef {typeof import("typescript")} TypeScript */
+/** @typedef {import("typescript").Node} Node */
+/** @typedef {{ modules: Set<string>, functions: Set<string> }} Covered The covered modules and function names */
+/** @typedef {{ structure: string, text: string, hoisted: boolean }} Item */
+/** @typedef {{ path: string, file: import("typescript").SourceFile }} Script */
+
 const CODE_EXTENSIONS = new Set([
   ".ts",
   ".mts",
@@ -16,6 +22,10 @@ const CODE_EXTENSIONS = new Set([
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 const TEXT_LENGTH = 160;
 
+/**
+ * @param {string} repo
+ * @returns {TypeScript}
+ */
 function loadTypeScript(repo) {
   for (const folder of [repo, join(repo, "packages", "dms"), PACKAGE_ROOT]) {
     try {
@@ -29,6 +39,12 @@ function loadTypeScript(repo) {
   );
 }
 
+/**
+ * @param {string} repo
+ * @param {string} sha
+ * @param {string} path
+ * @returns {string | null}
+ */
 function fileAt(repo, sha, path) {
   const shown = spawnSync("git", ["show", `${sha}:${path}`], {
     cwd: repo,
@@ -38,6 +54,12 @@ function fileAt(repo, sha, path) {
   return shown.status === 0 ? shown.stdout : null;
 }
 
+/**
+ * @param {TypeScript} ts
+ * @param {Node} node
+ * @param {Map<string, string>} bindings
+ * @returns {string}
+ */
 function leafOf(ts, node, bindings) {
   if (ts.isIdentifier(node))
     return propertyName(ts, node)
@@ -59,15 +81,29 @@ function leafOf(ts, node, bindings) {
 
 const MODULE_EXTENSION = /\.(?:[cm]?[jt]s|[jt]sx)$/;
 
+/**
+ * @param {string} path
+ * @param {string} specifier
+ * @returns {string}
+ */
 function moduleKey(path, specifier) {
   if (!specifier.startsWith(".")) return specifier;
   return posix.join(dirname(path), specifier).replace(MODULE_EXTENSION, "");
 }
 
+/**
+ * @param {string} path
+ * @returns {string}
+ */
 function stripExtension(path) {
   return path.replace(MODULE_EXTENSION, "");
 }
 
+/**
+ * @param {TypeScript} ts
+ * @param {Node} node
+ * @returns {boolean}
+ */
 function propertyName(ts, node) {
   const parent = node.parent;
   return (
@@ -89,7 +125,7 @@ function propertyName(ts, node) {
  * otherwise, so a variable or class of one file never reads as one of the same
  * name in another.
  *
- * @param {{ modules: Set<string>, functions: Set<string> }} covered The covered modules and function names
+ * @param {Covered} covered The covered modules and function names
  * @param {string} module The resolved module
  * @param {string} name The imported name
  * @returns {string} The origin
@@ -100,6 +136,13 @@ function bindingOrigin(covered, module, name) {
     : `${module}#${name}`;
 }
 
+/**
+ * @param {TypeScript} ts
+ * @param {import("typescript").ImportClause} clause
+ * @param {string} module
+ * @param {Covered} covered
+ * @returns {[string, string][]}
+ */
 function importedBindings(ts, clause, module, covered) {
   const named = clause.namedBindings;
   const bindings = [];
@@ -123,6 +166,13 @@ function importedBindings(ts, clause, module, covered) {
   return bindings;
 }
 
+/**
+ * @param {TypeScript} ts
+ * @param {import("typescript").ExportDeclaration} statement
+ * @param {string} module
+ * @param {Covered} covered
+ * @returns {string[]}
+ */
 function reexportTexts(ts, statement, module, covered) {
   const exported = statement.exportClause;
   const inside = covered.modules.has(module);
@@ -146,6 +196,11 @@ function reexportTexts(ts, statement, module, covered) {
  * origin of what they export. An export under its own name of a local needs no
  * entry, the same as an `export` keyword, so only a renamed local and any
  * imported binding does.
+ * @param {TypeScript} ts
+ * @param {import("typescript").ExportDeclaration} statement
+ * @param {Map<string, string>} bindings
+ * @param {Map<string, string>} locals
+ * @returns {string[]}
  */
 function localExportTexts(ts, statement, bindings, locals) {
   const exported = statement.exportClause;
@@ -170,17 +225,21 @@ function localExportTexts(ts, statement, bindings, locals) {
  * module. Side-effect imports keep their order in the file. Re-exports and
  * renamed or imported exports become entries keyed by the origin they export.
  *
- * @param {any} ts The TypeScript module
+ * @param {TypeScript} ts The TypeScript module
  * @param {string} path The file
- * @param {{ modules: Set<string>, functions: Set<string> }} covered The covered modules and function names
- * @param {any} file The emitted source file
+ * @param {Covered} covered The covered modules and function names
+ * @param {import("typescript").SourceFile} file The emitted source file
  * @param {Map<string, string>} locals The top-level variables and classes of the file, keyed by file and name
  * @returns {{ bindings: Map<string, string>, entries: { structure: string, text: string, hoisted: boolean }[], ordered: { structure: string, text: string, hoisted: boolean }[] }} The origins; `entries` may move freely, `ordered` keep their order in the file
  */
 function originsOf(ts, path, covered, file, locals) {
+  /** @type {Map<string, string>} */
   const bindings = new Map();
+  /** @type {string[]} */
   const texts = [];
+  /** @type {string[]} */
   const ordered = [];
+  /** @type {import("typescript").ExportDeclaration[]} */
   const exports = [];
   for (const statement of file.statements) {
     if (
@@ -190,7 +249,7 @@ function originsOf(ts, path, covered, file, locals) {
     const specifier = statement.moduleSpecifier;
     if (specifier === undefined && ts.isExportDeclaration(statement))
       exports.push(statement);
-    if (specifier === undefined) continue;
+    if (specifier === undefined || !ts.isStringLiteral(specifier)) continue;
     const module = moduleKey(path, specifier.text);
     if (ts.isImportDeclaration(statement)) {
       if (statement.importClause === undefined) {
@@ -208,6 +267,11 @@ function originsOf(ts, path, covered, file, locals) {
   }
   for (const statement of exports)
     texts.push(...localExportTexts(ts, statement, bindings, locals));
+  /**
+   * @param {string} text
+   * @param {boolean} hoisted
+   * @returns {Item}
+   */
   const item = (text, hoisted) => ({ structure: text, text, hoisted });
   return {
     bindings,
@@ -216,6 +280,11 @@ function originsOf(ts, path, covered, file, locals) {
   };
 }
 
+/**
+ * @param {TypeScript} ts
+ * @param {Node} node
+ * @returns {boolean}
+ */
 function dropped(ts, node) {
   return (
     node.kind === ts.SyntaxKind.ExportKeyword ||
@@ -228,14 +297,15 @@ function dropped(ts, node) {
  * and its children's structure, with parentheses, positions, trivia, quote
  * style and line breaks left out, so formatting never changes it.
  *
- * @param {any} ts The TypeScript module
- * @param {any} node A node of the emitted JavaScript
+ * @param {TypeScript} ts The TypeScript module
+ * @param {Node} node A node of the emitted JavaScript
  * @param {Map<string, string>} bindings The origin of each imported binding
  * @returns {string} The structure
  */
 function structureOf(ts, node, bindings) {
   if (ts.isParenthesizedExpression(node))
     return structureOf(ts, node.expression, bindings);
+  /** @type {string[]} */
   const children = [];
   ts.forEachChild(node, (child) => {
     if (!dropped(ts, child)) children.push(structureOf(ts, child, bindings));
@@ -243,6 +313,12 @@ function structureOf(ts, node, bindings) {
   return `${ts.SyntaxKind[node.kind]}(${leafOf(ts, node, bindings)}|${children.join(",")})`;
 }
 
+/**
+ * @param {TypeScript} ts
+ * @param {string} path
+ * @param {string} source
+ * @returns {Script}
+ */
 function parseScript(ts, path, source) {
   const { outputText } = ts.transpileModule(source, {
     fileName: path,
@@ -265,11 +341,20 @@ function parseScript(ts, path, source) {
   };
 }
 
+/**
+ * @param {string} text
+ * @returns {string}
+ */
 function readable(text) {
   const flat = text.replace(/\s+/g, " ").trim();
   return flat.length > TEXT_LENGTH ? `${flat.slice(0, TEXT_LENGTH)}…` : flat;
 }
 
+/**
+ * @param {TypeScript} ts
+ * @param {import("typescript").BindingName} name
+ * @returns {string[]}
+ */
 function declaredNames(ts, name) {
   return ts.isIdentifier(name)
     ? [name.text]
@@ -278,6 +363,11 @@ function declaredNames(ts, name) {
       );
 }
 
+/**
+ * @param {TypeScript} ts
+ * @param {import("typescript").Statement} statement
+ * @returns {statement is import("typescript").FunctionDeclaration & { name: import("typescript").Identifier }}
+ */
 function isFunctionDeclaration(ts, statement) {
   return (
     ts.isFunctionDeclaration(statement) &&
@@ -286,7 +376,12 @@ function isFunctionDeclaration(ts, statement) {
   );
 }
 
-/** The top-level variables, classes and enums of a script, each keyed by its file and name: what a function moved into another file must not pick up by name. */
+/**
+ * The top-level variables, classes and enums of a script, each keyed by its file and name: what a function moved into another file must not pick up by name.
+ * @param {TypeScript} ts
+ * @param {Script} script
+ * @returns {Map<string, string>}
+ */
 function localsOf(ts, script) {
   const file = stripExtension(script.path);
   const names = script.file.statements.flatMap((statement) => {
@@ -303,6 +398,12 @@ function localsOf(ts, script) {
   return new Map(names.map((name) => [name, `${file}#${name}`]));
 }
 
+/**
+ * @param {TypeScript} ts
+ * @param {Script} script
+ * @param {Covered} covered
+ * @returns {Item[]}
+ */
 function scriptItems(ts, script, covered) {
   const locals = localsOf(ts, script);
   const origins = originsOf(ts, script.path, covered, script.file, locals);
@@ -329,7 +430,12 @@ function scriptItems(ts, script, covered) {
   return [...origins.entries, ...origins.ordered, ...statements];
 }
 
-/** A covered file as its scripts and the items that are not scripts: a Vue template, or the whole text of any other file. */
+/**
+ * A covered file as its scripts and the items that are not scripts: a Vue template, or the whole text of any other file.
+ * @param {TypeScript} ts
+ * @param {string} path
+ * @param {string} source
+ */
 function parsedFile(ts, path, source) {
   if (path.endsWith(".vue")) {
     const template = /<template\b[^>]*>([\s\S]*)<\/template>/.exec(source);
@@ -384,6 +490,7 @@ function parsedFile(ts, path, source) {
  */
 export function emitFingerprint(repo, sha, files) {
   const ts = loadTypeScript(repo);
+  /** @type {{ functions: Item[], files: Record<string, Item[]> }} */
   const fingerprint = { functions: [], files: {} };
   const parsed = files.flatMap((path) => {
     const source = fileAt(repo, sha, path);
