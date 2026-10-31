@@ -6,7 +6,6 @@ const nodePath = require("node:path");
 const { sep } = nodePath;
 const { fileURLToPath, pathToFileURL } = require("node:url");
 const ts = require("typescript");
-const { z } = require("zod");
 const { forbidden } = require("../../../.dependency-cruiser/backend.cjs");
 
 const root = nodePath.resolve(__dirname, "..");
@@ -227,8 +226,6 @@ function checkEdge(importer, target) {
   }
 }
 
-const packageName = z.object({ name: z.string().optional() });
-
 /**
  * @param {string} path
  * @returns {{ directory: string, name: string }}
@@ -241,9 +238,7 @@ function owner(path) {
   ) {
     const manifest = nodePath.join(directory, "package.json");
     if (existsSync(manifest)) {
-      const { name } = packageName.parse(
-        JSON.parse(readFileSync(manifest, "utf8")),
-      );
+      const { name } = JSON.parse(readFileSync(manifest, "utf8"));
       if (name) return { directory, name };
     }
     assert.notEqual(
