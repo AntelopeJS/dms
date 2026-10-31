@@ -83,7 +83,7 @@ const MODULE_EXTENSION = /\.(?:[cm]?[jt]s|[jt]sx)$/;
 
 /**
  * @param {string} path
- * @param {string} specifier
+ * @param specifier The `text` of the module specifier node. An expression that has none, such as a call, is not a string and throws here.
  * @returns {string}
  */
 function moduleKey(path, specifier) {
@@ -250,7 +250,7 @@ function originsOf(ts, path, covered, file, locals) {
     const specifier = statement.moduleSpecifier;
     if (specifier === undefined && ts.isExportDeclaration(statement))
       exports.push(statement);
-    if (specifier === undefined || !ts.isStringLiteral(specifier)) continue;
+    if (specifier === undefined) continue;
     const module = moduleKey(path, specifier.text);
     if (ts.isImportDeclaration(statement)) {
       if (statement.importClause === undefined) {
