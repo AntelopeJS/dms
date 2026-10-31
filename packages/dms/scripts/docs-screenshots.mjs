@@ -3,7 +3,6 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { chromium } from "playwright-core";
-import { z } from "zod";
 
 const DEFAULT_BASE_URL = "http://localhost:3001";
 const PREVIEW_PATH = "/dms-preview";
@@ -25,15 +24,8 @@ const outputDir = join(packageRoot, "docs", "images", "blocks");
 
 /** @typedef {import("playwright-core").Page} Page */
 /** @typedef {import("playwright-core").Browser} Browser */
-/** @typedef {z.infer<typeof exampleSchema>} Example */
 /** @typedef {ReturnType<typeof readOptions>} Options */
-
-const exampleSchema = z.object({
-  type: z.string(),
-  options: z.unknown(),
-  children: z.unknown(),
-  width: z.number().optional(),
-});
+/** @typedef {ReturnType<typeof readExamples>[number]} Entry */
 
 function readOptions() {
   const { values } = parseArgs({
@@ -54,16 +46,14 @@ function readOptions() {
 /** @param {Set<string> | undefined} only */
 function readExamples(only) {
   const examples = Object.entries(
-    z
-      .record(z.string(), exampleSchema)
-      .parse(JSON.parse(readFileSync(examplesPath, "utf8"))),
+    JSON.parse(readFileSync(examplesPath, "utf8")),
   );
   return only ? examples.filter(([id]) => only.has(id)) : examples;
 }
 
 /**
  * @param {string} baseUrl
- * @param {Example} example
+ * @param {Entry[1]} example
  * @param {string} theme
  */
 function previewUrl(baseUrl, example, theme) {
@@ -88,7 +78,7 @@ async function waitForBlocks(page) {
 /**
  * @param {Browser} browser
  * @param {string} baseUrl
- * @param {[string, Example]} entry
+ * @param {Entry} entry
  * @param {string} theme
  */
 async function capture(browser, baseUrl, [id, example], theme) {
@@ -126,7 +116,7 @@ function report(path) {
 /**
  * @param {Browser} browser
  * @param {Options} options
- * @param {[string, Example][]} examples
+ * @param {Entry[]} examples
  */
 async function captureAll(browser, options, examples) {
   /** @type {string[]} */
