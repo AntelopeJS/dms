@@ -8,9 +8,15 @@ const packageRoot = path.resolve(
   "..",
 );
 const sourceRoot = path.join(packageRoot, "src");
+/** @type {Set<string | undefined>} */
 const PROXY_FACTORIES = new Set(["InterfaceFunction"]);
+/** @type {Set<string | undefined>} */
 const PROXY_CLASSES = new Set(["RegisteringProxy", "AsyncProxy"]);
 
+/**
+ * @param {string} directory
+ * @returns {string[]}
+ */
 function listSources(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(directory, entry.name);
@@ -21,21 +27,34 @@ function listSources(directory) {
   });
 }
 
+/**
+ * @param {ts.Node} node
+ * @returns {boolean}
+ */
 function hasExportModifier(node) {
   return (ts.getModifiers(node) ?? []).some(
     (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
   );
 }
 
+/**
+ * @param {ts.Node} expression
+ * @returns {string | undefined}
+ */
 function identifierName(expression) {
   return ts.isIdentifier(expression) ? expression.text : undefined;
 }
 
-/** Classes of the file deriving from a proxy class, however indirectly. */
+/**
+ * Classes of the file deriving from a proxy class, however indirectly.
+ * @param {ts.SourceFile} sourceFile
+ * @returns {Set<string | undefined>}
+ */
 function collectProxyClasses(sourceFile) {
   const proxyClasses = new Set(PROXY_CLASSES);
+  /** @type {{ name: string, bases: (string | undefined)[] }[]} */
   const derived = [];
-  const visit = (node) => {
+  const visit = (/** @type {ts.Node} */ node) => {
     if (ts.isClassDeclaration(node) && node.name) {
       const bases = (node.heritageClauses ?? []).flatMap((clause) =>
         clause.types.map((type) => identifierName(type.expression)),
@@ -58,6 +77,11 @@ function collectProxyClasses(sourceFile) {
   return proxyClasses;
 }
 
+/**
+ * @param {ts.Node} node
+ * @param {Set<string | undefined>} proxyClasses
+ * @returns {boolean}
+ */
 function createsProxy(node, proxyClasses) {
   if (ts.isCallExpression(node)) {
     return PROXY_FACTORIES.has(identifierName(node.expression));
@@ -68,6 +92,10 @@ function createsProxy(node, proxyClasses) {
   return false;
 }
 
+/**
+ * @param {ts.Node} node
+ * @returns {boolean}
+ */
 function isWrapper(node) {
   return (
     ts.isParenthesizedExpression(node) ||
@@ -76,7 +104,11 @@ function isWrapper(node) {
   );
 }
 
-/** Whether the declaration chain above `node` is exported all the way up. */
+/**
+ * Whether the declaration chain above `node` is exported all the way up.
+ * @param {ts.Node} node
+ * @returns {boolean}
+ */
 function isReachableFromExports(node) {
   let current = node.parent;
   while (isWrapper(current)) current = current.parent;
@@ -96,6 +128,10 @@ function isReachableFromExports(node) {
   return true;
 }
 
+/**
+ * @param {string} file
+ * @returns {string[]}
+ */
 function findUnreachableProxies(file) {
   const sourceFile = ts.createSourceFile(
     file,
@@ -104,8 +140,9 @@ function findUnreachableProxies(file) {
     true,
   );
   const proxyClasses = collectProxyClasses(sourceFile);
+  /** @type {string[]} */
   const offenders = [];
-  const visit = (node) => {
+  const visit = (/** @type {ts.Node} */ node) => {
     if (createsProxy(node, proxyClasses) && !isReachableFromExports(node)) {
       const { line } = sourceFile.getLineAndCharacterOfPosition(
         node.getStart(),
