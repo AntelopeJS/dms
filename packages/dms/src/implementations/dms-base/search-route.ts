@@ -1,7 +1,11 @@
+import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
-import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
+import {
+  type DataControllerInstance,
+  GetDataControllerMeta,
+} from "@antelopejs/interface-data-api";
 import {
   type Parameters,
   Query,
@@ -22,10 +26,7 @@ import {
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { SearchableMeta } from "@antelopejs/interface-dms/base";
-import {
-  DEFAULT_ROW_ID_FIELD,
-  TableViewMeta,
-} from "@antelopejs/interface-dms/base/table-view";
+import { DEFAULT_ROW_ID_FIELD } from "@antelopejs/interface-dms/base/table-view";
 import { resolveFilterTokens } from "./filter-tokens";
 import type { evaluateRowActionRule } from "../../utils";
 
@@ -42,7 +43,7 @@ interface SearchTarget {
   searchValue: string;
   context: RequestContext;
   meta: DataAPIMeta;
-  thisObj: any;
+  thisObj: DataControllerInstance;
 }
 
 type Condition = ValueProxyOrValue<boolean>;
@@ -63,8 +64,7 @@ function resolveSearchFilter(
   if (declared) {
     return declared;
   }
-  const columnType = GetMetadata(target.thisObj.constructor, TableViewMeta)
-    .columns[field]?.type;
+  const columnType = getTableViewMetaFor(target.thisObj).columns[field]?.type;
   return columnType?.filter.bind(columnType);
 }
 
@@ -93,8 +93,7 @@ function applySearchFilter(
     unlockedValue,
     field,
     searchValue,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- SearchableMeta exposes arbitrary string modes while the filter owner accepts CompareMode; inference and Parameters<SearchFilter>[4] cannot establish that legacy registration invariant without rejecting modes.
-    compareMode as globalThis.Parameters<SearchFilter>[4],
+    compareMode,
     row,
   );
 }
@@ -158,12 +157,12 @@ async function computeEffectivePermissions(
 }
 
 async function canViewArchived(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   user: User | undefined,
   permissions: Set<string> | undefined,
 ): Promise<boolean> {
-  const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
+  const tableViewMeta = getTableViewMetaFor(thisObj);
 
   const permissionIds = tableViewMeta.actionPermissionIds("viewArchived");
   if (permissionIds.length === 0) {
@@ -191,13 +190,13 @@ export function archiveFilter(
 }
 
 export async function applyArchiveFilter(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   user: User | undefined,
   permissions: Set<string> | undefined,
   filters: Parameters.ListParameters["filters"],
 ): Promise<Parameters.ListParameters["filters"]> {
-  const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
+  const tableViewMeta = getTableViewMetaFor(thisObj);
   const archiveField = tableViewMeta?.archiveField;
   if (!archiveField) {
     return filters;
@@ -237,13 +236,13 @@ export async function applyArchiveFilter(
  * — else the table's row id key.
  */
 function resolveIdsField(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   pluck: Set<string> | undefined,
 ): string {
   const requested = reqCtx.url.searchParams.get(ID_KEY_KEY);
   if (requested && pluck?.has(requested)) return requested;
-  const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
+  const tableViewMeta = getTableViewMetaFor(thisObj);
   return tableViewMeta?.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
 }
 
@@ -264,7 +263,7 @@ function applyIdsRestriction(
 }
 
 export async function buildFilteredQuery(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   params: Parameters.ListParameters,
   user?: User,
@@ -301,7 +300,7 @@ export async function buildFilteredQuery(
   const searchValue = extractSearchParameter(reqCtx);
 
   if (searchValue) {
-    const searchableMeta = GetMetadata(thisObj.constructor, SearchableMeta);
+    const searchableMeta = GetMetadata(meta.target, SearchableMeta);
     const searchableFields = searchableMeta?.getSearchableFields() || {};
 
     if (Object.keys(searchableFields).length > 0) {
@@ -326,7 +325,7 @@ export async function buildFilteredQuery(
 }
 
 export async function countWithSearch(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   params: Parameters.ListParameters,
   user?: User,
@@ -344,7 +343,7 @@ export async function countWithSearch(
 }
 
 export async function listWithSearch(
-  thisObj: any,
+  thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   params: Parameters.ListParameters,
   user?: User,
@@ -399,6 +398,7 @@ export async function listWithSearch(
   const results = await Promise.all(
     dbResult.map((entry) => {
       const entryInstance = model.constructor.fromDatabase(entry);
+      assert(entryInstance, 500, "The database answered an empty row.");
       Validation.Unlock(thisObj, meta, entryInstance);
       return Query.ReadProperties(thisObj, meta, entryInstance);
     }),

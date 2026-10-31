@@ -1,5 +1,8 @@
 import type { RequestContext } from "@antelopejs/interface-api";
-import type { DataControllerCallback } from "@antelopejs/interface-data-api";
+import type {
+  DataControllerCallback,
+  DataControllerInstance,
+} from "@antelopejs/interface-data-api";
 
 /**
  * Trusted inputs used to wrap a table-view attachment write.
@@ -7,7 +10,7 @@ import type { DataControllerCallback } from "@antelopejs/interface-data-api";
  * @internal
  */
 export interface TableViewAttachmentSaveRequest {
-  controller: unknown;
+  controller: DataControllerInstance;
   route: DataControllerCallback;
   context: RequestContext;
   params: unknown;

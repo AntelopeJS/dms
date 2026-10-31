@@ -184,6 +184,15 @@ async function served(
   });
 }
 
+/** What `Query.GetModel` recognizes as a model, over a table of `rows`. */
+function modelOver(rows: Parameters<typeof createTable>[0]) {
+  return {
+    table: createTable(rows),
+    database: {},
+    constructor: { fromDatabase: () => undefined },
+  };
+}
+
 describe("[unit] TableView row rules are those of the controller's writing table view", () => {
   before(() => {
     ImplementInterface(permissionsInterface, permissionsImpl);
@@ -198,7 +207,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
   beforeEach(() => {
     rows = createRows();
     // SAFETY: The route exercises only getAll/delete; this in-memory table intentionally is not a complete TaskModel.
-    controller.model = { table: createTable(rows) } as never;
+    controller.model = modelOver(rows) as never;
   });
 
   after(() => {

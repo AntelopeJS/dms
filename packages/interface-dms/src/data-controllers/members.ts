@@ -86,7 +86,7 @@ function memberWriteRoute(
       const tenantId = getRequestTenantId(args[0]);
       return changeTenantMembers(tenantId, async () => ({
         changes: await describe(GetModel(TenantMemberModel, tenantId), args),
-        write: () => route.func.apply(this, args),
+        write: async () => route.func.apply(this, args),
       }));
     },
   };
