@@ -9,7 +9,7 @@ import {
   type TenantExportArchive,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { buildTenantExportArchive } from "../../../utils";
 import { readText } from "../../helpers/files";
 
@@ -163,7 +163,7 @@ describe("[unit] utils/tenant-export-archive", () => {
     await build();
     const late = await escaped
       ?.addJson("late.json", {})
-      .catch((error) => error);
+      .catch((error: unknown) => error);
 
     expect(late).to.be.instanceOf(Error);
   });
@@ -175,9 +175,11 @@ describe("[unit] utils/tenant-export-archive", () => {
       throw new Error("contributor noticed the abort");
     });
 
-    const failure = await build(controller.signal).catch((error) => error);
+    const failure = await build(controller.signal).catch(
+      (error: unknown) => error,
+    );
 
-    expect(failure).to.be.instanceOf(Error);
+    assert.instanceOf(failure, Error);
     expect(failure.message).to.equal("cancelled by user");
   });
 });
