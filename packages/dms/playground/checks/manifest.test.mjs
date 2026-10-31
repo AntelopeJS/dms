@@ -33,13 +33,15 @@ await test("rejects browser remapping and unknown fields in both trusted manifes
       "react-native",
       "workspaces",
       "futureResolver",
+      "__proto__",
     ]) {
-      /** @type {Record<string, unknown>} */
-      const metadata = { name: "guard-fixture" };
-      if (field !== null)
-        metadata[field] = {
-          "./app/safe.ts": "../../src/utils/run-in-batches.ts",
-        };
+      const remap = JSON.stringify({
+        "./app/safe.ts": "../../src/utils/run-in-batches.ts",
+      });
+      const fixture =
+        field === null
+          ? '{"name":"guard-fixture"}'
+          : `{"name":"guard-fixture",${JSON.stringify(field)}:${remap}}`;
       const result = spawnSync(
         process.execPath,
         ["--require", preload, scanner],
@@ -47,7 +49,7 @@ await test("rejects browser remapping and unknown fields in both trusted manifes
           encoding: "utf8",
           env: {
             ...process.env,
-            PLAYGROUND_MANIFEST_FIXTURE: JSON.stringify(metadata),
+            PLAYGROUND_MANIFEST_FIXTURE: fixture,
           },
         },
       );
@@ -56,6 +58,11 @@ await test("rejects browser remapping and unknown fields in both trusted manifes
         field === null ? 0 : 1,
         result.stdout + result.stderr,
       );
+      if (field !== null)
+        assert.match(
+          result.stderr,
+          new RegExp(`unsupported playground package field ${field}$`, "m"),
+        );
     }
   }
 });
