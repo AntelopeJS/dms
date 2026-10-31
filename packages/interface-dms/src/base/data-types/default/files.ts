@@ -116,7 +116,7 @@ function createFileValidationSchema(
         ? GetAttachmentValidationMetadata
         : GetFileMetadata;
       const metadata = await getMetadata(resourceKey, storage).catch(
-        (error) => {
+        (error: unknown) => {
           if (isMissingFileError(error)) return null;
           throw error;
         },

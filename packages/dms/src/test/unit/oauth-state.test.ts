@@ -7,7 +7,7 @@ import { assertValidOAuthState, signOAuthState } from "../../routes/oauth";
 const HTTP_BAD_REQUEST = 400;
 const INVALID_STATE_MESSAGE = "error.oauth.invalid_state";
 
-function expectRejection<T>(run: () => T): void {
+function expectRejection(run: () => void): void {
   try {
     run();
   } catch (error: unknown) {
