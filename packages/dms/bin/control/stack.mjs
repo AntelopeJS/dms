@@ -311,7 +311,7 @@ async function startFirstMail(state) {
 
 /**
  * @param {RunState} state
- * @param {{ playground?: string, cwd?: string } | undefined} build
+ * @param {{ playground?: string, cwd?: string }} [build]
  * @returns {Promise<void>}
  */
 async function startBackend(state, build) {

@@ -9,7 +9,7 @@ import { freePort, startDetached, waitForPort } from "./processes.mjs";
 const MONGO_VERSION = "8.0.8";
 const READY_TIMEOUT_MS = 30_000;
 
-/** @param {object} namespace */
+/** @param {{ default?: object }} namespace */
 function withDefaultExports(namespace) {
   return { ...namespace.default, ...namespace };
 }

@@ -8,7 +8,7 @@ export function fireAndForget(
   task: Promise<unknown>,
   description: string,
 ): void {
-  task.catch((error) => {
+  task.catch((error: unknown) => {
     Logging.Error(`[DMS] Background ${description} failed: ${String(error)}`);
   });
 }

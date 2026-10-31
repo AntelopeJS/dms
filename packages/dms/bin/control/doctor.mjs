@@ -46,9 +46,9 @@ function mtime(file) {
 
 /**
  * @param {string} check
- * @param {boolean | null} ok
+ * @param {boolean} ok
  * @param {string} detail
- * @returns {{ check: string, ok: boolean | null, detail: string }}
+ * @returns {{ check: string, ok: boolean, detail: string }}
  */
 function line(check, ok, detail) {
   return { check, ok, detail };

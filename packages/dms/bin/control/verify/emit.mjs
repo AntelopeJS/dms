@@ -145,6 +145,7 @@ function bindingOrigin(covered, module, name) {
  */
 function importedBindings(ts, clause, module, covered) {
   const named = clause.namedBindings;
+  /** @type {[string, string][]} */
   const bindings = [];
   if (clause.name)
     bindings.push([

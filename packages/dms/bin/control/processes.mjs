@@ -214,7 +214,7 @@ function procEntries() {
   }
 }
 
-/** @param {number} pid */
+/** @param {string} pid */
 function parentOf(pid) {
   try {
     const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
