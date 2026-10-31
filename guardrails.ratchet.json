@@ -8,9 +8,9 @@
     "anti-slop/no-runtime-typeof": 28,
     "typescript/no-base-to-string": 1,
     "typescript/no-unnecessary-type-parameters": 6,
-    "typescript/no-unsafe-argument": 637,
-    "typescript/no-unsafe-assignment": 2135,
-    "typescript/no-unsafe-return": 511,
+    "typescript/no-unsafe-argument": 583,
+    "typescript/no-unsafe-assignment": 1648,
+    "typescript/no-unsafe-return": 434,
     "typescript/restrict-template-expressions": 1,
     "typescript/unbound-method": 9,
     "typescript/use-unknown-in-catch-callback-variable": 5
