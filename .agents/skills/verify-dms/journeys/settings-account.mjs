@@ -3,6 +3,10 @@ import { PROFILE, SECURITY, NOTIFICATIONS, SHORTCUTS, SETTINGS, USER_API, SIGNED
 import { preferenceJourneys } from "./settings-account/preferences.mjs";
 
 /**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ */
+
+/**
  * Whether a parsed JSON value is an object or an array, not a primitive or `null`.
  * @param {unknown} value
  * @returns {value is object}
@@ -17,7 +21,7 @@ export const journeys = [
     id: "profile-name-persists",
     title: "editing the full name shows Profile saved and the new name everywhere it is read back",
     entryPoint: "Settings > Profile > Full name",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.goto(PROFILE);
@@ -51,7 +55,7 @@ export const journeys = [
     id: "profile-name-required",
     title: "a blank full name is refused and nothing is saved, and Discard restores the stored name",
     entryPoint: "Settings > Profile > Full name > Save changes",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.goto(PROFILE);
@@ -78,7 +82,7 @@ export const journeys = [
     id: "change-password-signs-out-other-devices",
     title: "a new password signs in, the old one is refused, and the account's other sessions are signed out",
     entryPoint: "Settings > Security > Change password",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const fresh = ctx.password();
       const tab = await ctx.tab("admin");
@@ -117,7 +121,7 @@ export const journeys = [
     id: "change-password-errors",
     title: "a wrong current password, a weak new password and a mismatched confirmation are all refused and the password stays",
     entryPoint: "Settings > Security > Change password, POST /dms/pages/settings/user/security/password",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const fresh = ctx.password();
       const tab = await ctx.tab("admin");
@@ -153,7 +157,7 @@ export const journeys = [
     id: "change-email-confirms-with-code",
     title: "a new sign-in address takes effect only after the code emailed to it is entered, and the old address is told",
     entryPoint: "Settings > Security > Change email, mail sink",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const address = ctx.email("renamed");
       const tab = await ctx.tab("admin");
@@ -190,7 +194,7 @@ export const journeys = [
     id: "change-email-errors",
     title: "a wrong password, a malformed address and a wrong code all leave the sign-in address unchanged",
     entryPoint: "Settings > Security > Change email, POST /dms/pages/settings/user/security/email/confirm",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const address = ctx.email("never");
       const tab = await ctx.tab("admin");
@@ -228,7 +232,7 @@ export const journeys = [
     id: "sessions-sign-out",
     title: "signing out a listed session ends it, and Sign out other sessions makes every other token refused",
     entryPoint: "Settings > Security > Sessions",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       const other = await secondDevice(ctx);
@@ -260,7 +264,7 @@ export const journeys = [
     id: "two-factor-email-enroll",
     title: "adding email codes as a second factor shows backup codes, asks for a code at the next sign-in, and removing it restores plain sign-in",
     entryPoint: "Settings > Security > Two-factor authentication, /auth/2fa",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
@@ -315,7 +319,7 @@ export const journeys = [
     id: "export-my-data",
     title: "Export my data downloads a JSON file with the profile and never the password",
     entryPoint: "Settings > Profile > Your data > Export my data",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
@@ -341,7 +345,7 @@ export const journeys = [
     id: "delete-account-last-owner-refused",
     title: "the last owner is told the account cannot be deleted yet and keeps it",
     entryPoint: "Settings > Profile > Your data > Delete my account",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.goto(PROFILE);
@@ -359,7 +363,7 @@ export const journeys = [
     id: "delete-account-member",
     title: "a member who deletes their account is signed out, cannot sign in again, and leaves the Members list",
     entryPoint: "Settings > Profile > Your data > Delete my account",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const leaver = await joinMember(ctx, "Quinn");
       await leaver.tab.goto(PROFILE);
       await leaver.tab.click({ role: "button", name: "Delete my account" });
@@ -394,7 +398,7 @@ export const journeys = [
     id: "settings-overview-and-search",
     title: "the settings overview summarises the account and links every page, and the settings search filters the menu",
     entryPoint: "Settings (/settings), Search settings",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
@@ -429,7 +433,7 @@ export const journeys = [
     id: "shortcuts-layout-and-search",
     title: "the keyboard layout switches the key labels, and the shortcut search filters or says nothing matches",
     entryPoint: "Settings > Shortcuts",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.goto(SHORTCUTS);
