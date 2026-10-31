@@ -42,14 +42,19 @@ export const useAuthFetch = () => {
     useSessionRecovery();
   const config = useDmsRuntimeConfig();
   const dmsApp = useDmsApp();
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
 
   const realtimeSessionId = useDmsState<string | undefined>(
     REALTIME_SESSION_STATE_KEY,
     () => undefined,
   );
 
-  const baseFetch = $fetch.create({
-    baseURL: config.public.dms.baseURL,
+  const baseFetch = $fetch.create({});
+  type AuthFetch = typeof baseFetch;
+  type AuthFetchArgs = Parameters<AuthFetch>;
+  type AuthFetchOptions = NonNullable<AuthFetchArgs[1]>;
+
+  const authHooks = {
     onRequest({ options }) {
       if (!options.headers.has(CONTENT_LANGUAGE_HEADER)) {
         options.headers.set(CONTENT_LANGUAGE_HEADER, dmsApp.$i18n.locale.value);
@@ -59,6 +64,7 @@ export const useAuthFetch = () => {
       }
     },
     async onResponseError({ response, options }) {
+      if (consumeReadOnlyRefusal({ response })) return;
       if (response.status !== HTTP_UNAUTHORIZED) {
         return;
       }
@@ -74,10 +80,19 @@ export const useAuthFetch = () => {
 
       await redirectToAuth();
     },
-  });
+  } satisfies AuthFetchOptions;
 
-  type AuthFetch = typeof baseFetch;
-  type AuthFetchArgs = Parameters<AuthFetch>;
+  function requestOptions(options?: AuthFetchOptions): AuthFetchOptions {
+    return {
+      baseURL: config.public.dms.baseURL,
+      ...options,
+      onRequest: [authHooks.onRequest, options?.onRequest ?? []].flat(),
+      onResponseError: [
+        authHooks.onResponseError,
+        options?.onResponseError ?? [],
+      ].flat(),
+    };
+  }
 
   function withSessionRetry<R>(
     invoke: (
@@ -109,10 +124,10 @@ export const useAuthFetch = () => {
   }
 
   const retryingFetch = withSessionRetry((request, options) =>
-    baseFetch(request, options),
+    baseFetch(request, requestOptions(options)),
   );
   const retryingRaw = withSessionRetry((request, options) =>
-    baseFetch.raw(request, options),
+    baseFetch.raw(request, requestOptions(options)),
   );
 
   /**

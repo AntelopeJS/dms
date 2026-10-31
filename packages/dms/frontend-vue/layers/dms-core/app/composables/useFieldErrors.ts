@@ -491,6 +491,7 @@ export function useFieldErrors<F extends string>(
 ) {
   const { t } = useI18n();
   const toast = useToast();
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
   const translate = (key: string, params: Parameters<I18nTranslate>[1] = {}) =>
     t(key, params);
   const fieldIds = Object.keys(options.fields) as F[];
@@ -571,6 +572,7 @@ export function useFieldErrors<F extends string>(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     toastOptions: HandleApiErrorOptions,
   ) {
+    if (consumeReadOnlyRefusal(error)) return;
     toast.add({
       title: t(toastOptions.toastTitle),
       description: toastOptions.toastDescription
@@ -589,6 +591,7 @@ export function useFieldErrors<F extends string>(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     toastOptions: HandleApiErrorOptions,
   ): Promise<boolean> {
+    if (consumeReadOnlyRefusal(error)) return false;
     if (await applyApiError(error)) return true;
     toastError(error, toastOptions);
     return false;

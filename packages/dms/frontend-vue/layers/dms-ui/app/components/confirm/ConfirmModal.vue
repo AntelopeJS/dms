@@ -113,6 +113,7 @@ const props = withDefaults(defineProps<ConfirmModalProps>(), {
 const emit = defineEmits<ConfirmModalEmits>();
 const slots = defineSlots<ConfirmModalSlots>();
 const { t } = useI18n();
+const consumeReadOnlyRefusal = useReadOnlyRefusal();
 
 const BodyRender: FunctionalComponent = () => props.body?.();
 
@@ -292,6 +293,7 @@ async function runConfirm(
       close(true);
     }
   } catch (error) {
+    if (consumeReadOnlyRefusal(error)) return;
     if (error instanceof ConfirmTextError && props.confirmText) {
       typedError.value = error.message;
     } else if (!showFieldErrors(error)) {
@@ -341,6 +343,7 @@ async function handleSecondary() {
   try {
     await action.run();
   } catch (error) {
+    if (consumeReadOnlyRefusal(error)) return;
     notice.value = { ...errorNotice(error), tone: "error" };
   } finally {
     isSecondaryPending.value = false;

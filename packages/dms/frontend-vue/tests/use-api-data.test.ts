@@ -57,20 +57,16 @@ interface Sent {
 
 const sent: Sent[] = [];
 let failNextWith: number | undefined;
+type TransportOptions = NonNullable<Parameters<typeof engine.$fetch>[1]>;
 
 /** The transport under `$fetch`: what reaches the backend. */
 // SAFETY: These cases request only { url, page }; the transport invokes the auth hook with normalized headers before answering.
-const transport = (async (
-  url: string,
-  options: {
-    query?: { page?: number };
-    headers?: HeadersInit;
-    signal?: AbortSignal;
-    onRequest?: (context: { options: { headers: Headers } }) => void;
-  } = {},
-) => {
+const transport = (async (url: string, options: TransportOptions = {}) => {
   const headers = new Headers(options.headers);
-  options.onRequest?.({ options: { headers } });
+  const hooks = options.onRequest ?? [];
+  for (const hook of Array.isArray(hooks) ? hooks : [hooks]) {
+    await hook({ request: url, options: { ...options, headers } });
+  }
   sent.push({ url, query: options.query, headers, signal: options.signal });
   if (failNextWith) {
     const status = failNextWith;

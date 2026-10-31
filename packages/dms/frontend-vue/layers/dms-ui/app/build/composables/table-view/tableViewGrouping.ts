@@ -35,6 +35,7 @@ export function useTableViewReorder<T extends Data>(
   const { toast } = scope.sortRecovery;
   const { processI18n } = scope.arrival;
   const { props } = scope;
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
   const ORDERED_DISPLAY_IDS = new Set([TABLE_DISPLAY_ID, CARDS_DISPLAY_ID]);
   const { reorderState } = useTableReorder<T>({
     reorder: reorderConfig,
@@ -53,7 +54,8 @@ export function useTableViewReorder<T extends Data>(
       ORDERED_DISPLAY_IDS.has(activeDisplayId.value),
     ),
     refresh: () => refresh(),
-    onError: (failure) =>
+    onError: (failure) => {
+      if (consumeReadOnlyRefusal(failure)) return;
       toast.add({
         title: t("dms.table.reorder.error"),
         description: describeTableWriteError(
@@ -64,7 +66,8 @@ export function useTableViewReorder<T extends Data>(
         ),
         color: Color.error,
         icon: "i-ph-warning-circle",
-      }),
+      });
+    },
   });
   return { reorderState };
 }

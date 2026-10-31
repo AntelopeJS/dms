@@ -19,6 +19,10 @@ import {
 import { ConfirmActionError } from "../layers/dms-ui/app/composables/confirm/types";
 
 import { DialogRoot } from "reka-ui";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
 
 /** An ofetch `FetchError` as a refused (or unreachable) request throws it. */
 function fetchError<Data = undefined>(status: number | undefined, data?: Data) {
@@ -229,6 +233,27 @@ function createConfirmActionErrorsFixture() {
 function registerConfirmationRetryTests(
   fixture: ReturnType<typeof createConfirmActionErrorsFixture>,
 ) {
+  it("keeps a marked refusal open without an inline alert and clears pending for retry", async () => {
+    const add = vi.fn();
+    vi.stubGlobal("useToast", () => ({ add }));
+    installReadOnlyRefusal();
+    fixture.mount({
+      title: "Delete?",
+      confirmLabel: "Delete",
+      onConfirm: vi.fn().mockRejectedValue(readOnlyFailure()),
+    });
+    await fixture.flush();
+    fixture.button("Delete")!.click();
+    await fixture.flush();
+    expect(fixture.closed).not.toHaveBeenCalled();
+    expect(fixture.alert()).toBeNull();
+    expect(fixture.button("Delete")!.disabled).toBe(false);
+    expect(fixture.button("Delete")!.dataset.loading).toBeUndefined();
+    expect(add).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "dms-read-only" }),
+    );
+  });
+
   it("stays open on a refusal, shows why, and lets the user retry", async () => {
     const onConfirm = vi
       .fn()

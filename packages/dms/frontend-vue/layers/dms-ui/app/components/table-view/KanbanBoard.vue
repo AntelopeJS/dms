@@ -89,6 +89,7 @@ const { getDataType } = useDataTypes();
 const { t } = useI18n();
 const { processText } = useComposedText();
 const toast = useToast();
+const consumeReadOnlyRefusal = useReadOnlyRefusal();
 
 const rowIdKey = computed(() => props.rowIdKey ?? DEFAULT_ROW_ID_KEY);
 const pageSize = computed(
@@ -298,6 +299,7 @@ const awaitNewerMoves = async (itemId: string, current: Promise<void>) => {
 const notifyMoveError = (
   error: Parameters<typeof describeTableWriteError>[0],
 ) => {
+  if (consumeReadOnlyRefusal(error)) return;
   toast.add({
     color: Color.error,
     title: t("dms.table.kanban.move_error"),
