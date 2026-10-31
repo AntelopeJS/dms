@@ -121,3 +121,28 @@ await test("backend-checks: a node text indexing a missing message still fails",
   assert.equal(status, 1);
   assert.match(stderr, /must translate dms\.automation\.zz\.0/);
 });
+
+await test("backend-checks: an engines entry of another tool that is not a string passes as on base", () => {
+  const { status, stdout, stderr } = runWithLocales(
+    () => {},
+    {},
+    (manifest) => {
+      manifest.engines.node = 20;
+    },
+  );
+  assert.equal(stderr, "");
+  assert.equal(stdout.trim(), "Backend invariant checks passed.");
+  assert.equal(status, 0);
+});
+
+await test("backend-checks: still fails when the renderer range is missing", () => {
+  const { status, stderr } = runWithLocales(
+    () => {},
+    {},
+    (manifest) => {
+      delete manifest.engines["@antelopejs/dms-frontend"];
+    },
+  );
+  assert.equal(status, 1);
+  assert.match(stderr, /frontend-vue renderer range/);
+});

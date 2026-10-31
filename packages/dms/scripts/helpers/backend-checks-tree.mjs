@@ -59,6 +59,12 @@ function mirror(source, target, segments) {
 
 /** @typedef {z.infer<typeof localeFile>} LocaleFile */
 
+const rendererManifest = z
+  .object({ engines: z.record(z.string(), z.unknown()) })
+  .passthrough();
+
+/** @typedef {z.infer<typeof rendererManifest>} RendererManifest */
+
 /**
  * A trigger the catalogue gains on top of the shipped ones, as a source edit
  * to `src/automation` would add it: `name` replaces its name text, and
@@ -90,12 +96,14 @@ function extraTriggerSource(extra) {
  * Run a copy of `backend-checks.cjs` in a package tree whose locale files are
  * the real ones after `edit`.
  * Both locale files get the same edit. `extra` adds a trigger to the copy of
- * the compiled catalogue that the run reads.
+ * the compiled catalogue that the run reads, and `editManifest` edits the
+ * `package.json` of the renderer layer.
  * @param {(messages: LocaleFile) => void} edit
  * @param {ExtraTrigger} [extra]
+ * @param {(manifest: RendererManifest) => void} [editManifest]
  * @returns {{ status: number | null, stderr: string, stdout: string }}
  */
-export function runWithLocales(edit, extra = {}) {
+export function runWithLocales(edit, extra = {}, editManifest = () => {}) {
   const workspace = mkdtempSync(nodePath.join(tmpdir(), "backend-checks-"));
   try {
     const tree = nodePath.join(workspace, "packages", "dms");
@@ -128,6 +136,13 @@ export function runWithLocales(edit, extra = {}) {
         JSON.stringify(messages),
       );
     }
+    const manifestPath = nodePath.join(tree, "frontend-vue", "package.json");
+    const manifest = rendererManifest.parse(
+      JSON.parse(readFileSync(manifestPath, "utf8")),
+    );
+    editManifest(manifest);
+    rmSync(manifestPath);
+    writeFileSync(manifestPath, JSON.stringify(manifest));
     return spawnSync(
       process.execPath,
       [nodePath.join(tree, "scripts", "backend-checks.cjs")],
