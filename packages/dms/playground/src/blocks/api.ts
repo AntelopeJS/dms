@@ -31,7 +31,7 @@ let outstanding = 4890;
  */
 function inBackground(job: () => Promise<void>): void {
   setTimeout(() => {
-    job().catch((error: PromiseRejectedResult["reason"]) => {
+    job().catch((error: unknown) => {
       console.warn("[playground] background demo job failed", error);
     });
   }, BACKGROUND_JOB_DELAY_MS);
