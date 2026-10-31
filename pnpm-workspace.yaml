@@ -16,3 +16,4 @@ onlyBuiltDependencies:
 overrides:
   "@antelopejs/interface-database": "file:.campaign/tgz/antelopejs-interface-database-6bef278.tgz"
   "@antelopejs/interface-database-decorators": "file:.campaign/tgz/antelopejs-interface-database-decorators-9dc0781.tgz"
+  "@antelopejs/tooling-configs": "file:.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz"

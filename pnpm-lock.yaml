@@ -7,6 +7,7 @@ settings:
 overrides:
   '@antelopejs/interface-database': file:.campaign/tgz/antelopejs-interface-database-6bef278.tgz
   '@antelopejs/interface-database-decorators': file:.campaign/tgz/antelopejs-interface-database-decorators-9dc0781.tgz
+  '@antelopejs/tooling-configs': file:.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz
 
 importers:
 
@@ -16,8 +17,8 @@ importers:
         specifier: '>=1.17.0 <2'
         version: 1.17.0
       '@antelopejs/tooling-configs':
-        specifier: ^0.2.17
-        version: 0.2.17(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
+        specifier: file:.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz
+        version: file:.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
       dependency-cruiser:
         specifier: ^18.7.0
         version: 18.7.0
@@ -113,8 +114,8 @@ importers:
         specifier: '>=1.17.0 <2'
         version: 1.17.0
       '@antelopejs/tooling-configs':
-        specifier: 0.2.0
-        version: 0.2.0(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
+        specifier: file:../../.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz
+        version: file:.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
       '@types/archiver':
         specifier: ^6.0.4
         version: 6.0.4
@@ -601,30 +602,9 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/tooling-configs@0.2.0':
-    resolution: {integrity: sha512-D3yCA9ZuvuDfzz8lS5VKyP8sgDkSdM0k1Awp3Q8qwq3u1/dc8UF4ep3SHW5fZpTQpLwNRcEDv1DSrRx+b7w9aA==}
-    engines: {node: '>=22.18.0'}
-    hasBin: true
-    peerDependencies:
-      '@nuxt/eslint-config': '>=1.2.0'
-      eslint-plugin-perfectionist: '>=5.0.0'
-      knip: '>=6.0.0'
-      oxfmt: ^0.66.0
-      oxlint: 1.81.0
-    peerDependenciesMeta:
-      '@nuxt/eslint-config':
-        optional: true
-      eslint-plugin-perfectionist:
-        optional: true
-      knip:
-        optional: true
-      oxfmt:
-        optional: true
-      oxlint:
-        optional: true
-
-  '@antelopejs/tooling-configs@0.2.17':
-    resolution: {integrity: sha512-8fwh7xQPzazP/l/ivEwRKpfN8qShV9+PRizpI9cBewe2TwoRPu4n95w6sYSlygiRmm0HxLJYZFhmSPRgtiNo1Q==}
+  '@antelopejs/tooling-configs@file:.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz':
+    resolution: {integrity: sha512-7XrhAYF82ZtSMpDAA1I02uRL8RmgcPm6VHRua+MBlf5IMdpaHbI0WmrdkQHBncu8XwGKV+psp+wjdMueS+AKxw==, tarball: file:.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz}
+    version: 0.2.17
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -6585,16 +6565,7 @@ snapshots:
       - supports-color
     optional: true
 
-  '@antelopejs/tooling-configs@0.2.0(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
-    dependencies:
-      '@oxlint/plugins': 1.81.0
-      yaml: 2.9.1
-    optionalDependencies:
-      knip: 6.34.0
-      oxfmt: 0.66.0
-      oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)
-
-  '@antelopejs/tooling-configs@0.2.17(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
+  '@antelopejs/tooling-configs@file:.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
     dependencies:
       '@oxlint/plugins': 1.81.0
       dts-bundle-generator: 9.5.1

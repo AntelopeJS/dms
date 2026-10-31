@@ -18,6 +18,7 @@
     "eslint/max-params": 12,
     "import/no-cycle": 11,
     "import/no-duplicates": 1,
+    "max-lines": 1,
     "no-empty": 16,
     "promise/no-callback-in-promise": 1,
     "typescript/no-misused-spread": 5,
@@ -53,5 +54,6 @@
     "vue/multi-word-component-names for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
     "vue/require-default-prop for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
     "vue/singleline-html-element-content-newline for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1
-  }
+  },
+  "agentFiles": true
 }
