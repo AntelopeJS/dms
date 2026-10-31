@@ -55,7 +55,7 @@
     "frontend:dev": "pnpm --dir playground frontend:dev",
     "typecheck": "node scripts/unless-prebuilt.mjs pnpm --filter @antelopejs/interface-dms build && tsc --noEmit",
     "test": "node scripts/unless-prebuilt.mjs pnpm run build && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
-    "test:unit": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/backend-checks.cjs && node --test scripts/backend-checks.test.mjs && DMS_TEST_DIR=dist/test/unit NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
+    "test:unit": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/backend-checks.cjs && node scripts/backend-checks.test.mjs && DMS_TEST_DIR=dist/test/unit NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
     "test:integration": "node scripts/unless-prebuilt.mjs pnpm run build && DMS_TEST_DIR=dist/test/integration NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
     "test:watch": "tsc -w & tsc-alias -w",
     "release": "pnpm --filter @antelopejs/interface-dms build && pnpm --dir frontend-vue install --frozen-lockfile && release-it",
