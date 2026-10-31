@@ -1,18 +1,23 @@
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
+ */
+
 const USERS = "/table-view/table-view-users";
 const USERS_API = "/api/user";
 
-async function signedIn(ctx, label = "admin") {
+async function signedIn(/** @type {Ctx} */ ctx, label = "admin") {
   const tab = await ctx.tab("admin", label);
   await tab.signIn("admin");
   return tab;
 }
 
-async function listUsers(ctx, label) {
+async function listUsers(/** @type {Ctx} */ ctx, label) {
   const answer = await ctx.api(label, { method: "GET", path: `${USERS_API}/list?limit=100` });
   return answer.body?.results ?? [];
 }
 
-async function createUser(tab, name, email) {
+async function createUser(/** @type {Tab} */ tab, name, email) {
   await tab.goto(USERS);
   await tab.click({ role: "button", name: "New entry" });
   await tab.fill({ role: "textbox", name: "Name" }, name);
@@ -21,7 +26,7 @@ async function createUser(tab, name, email) {
   await tab.click({ role: "button", name: "Create" });
 }
 
-async function search(tab, text) {
+async function search(/** @type {Tab} */ tab, text) {
   await tab.click({ role: "button", name: "Open search" });
   await tab.fill({ role: "textbox", name: "Search" }, text);
 }
@@ -32,7 +37,7 @@ export const journeys = [
     id: "table-create-record",
     title: "New entry creates a user that the table lists, and it survives a reload and a backend restart",
     entryPoint: "/table-view/table-view-users > New entry",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       const name = ctx.unique("Verify User");
       const email = ctx.email("table-user");
@@ -54,7 +59,7 @@ export const journeys = [
     id: "form-required-fields",
     title: "Create with empty required fields names them and stores nothing",
     entryPoint: "/table-view/table-view-users/table/new",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       const before = await listUsers(ctx, "count the users before");
       await tab.goto(USERS);
@@ -73,7 +78,7 @@ export const journeys = [
     id: "table-search-empty",
     title: "a search that matches no user shows the empty table, and clearing it lists them again",
     entryPoint: "/table-view/table-view-users search",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.goto(USERS);
       await search(tab, "qqxzjjwv");
@@ -86,7 +91,7 @@ export const journeys = [
     id: "table-edit-record",
     title: "Edit from the row menu renames a user, and the new name persists",
     entryPoint: "row menu > Edit",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       const renamed = ctx.unique("Ada Renamed");
       await tab.goto(USERS);
@@ -109,7 +114,7 @@ export const journeys = [
     id: "table-delete-record",
     title: "Delete from the row menu asks to confirm, then the user is gone from the table and the API",
     entryPoint: "row menu > Delete",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.goto(USERS);
       await tab.click({ role: "button", name: "Actions for Grace Hopper" });
@@ -128,7 +133,7 @@ export const journeys = [
     id: "realtime-row-reaches-other-tab",
     title: "a user created in one tab appears in another tab on the same table without a reload",
     entryPoint: "realtime: /api/realtime/connection shared by the tabs of a browser",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const watcher = await signedIn(ctx, "watcher");
       await watcher.goto(USERS);
       const writer = await ctx.tab("admin", "writer");
@@ -143,7 +148,7 @@ export const journeys = [
     id: "record-not-found",
     title: "the edit page of a record that does not exist says so instead of an empty form",
     entryPoint: "/table-view/table-view-users/table/<missing id>/edit",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.goto(`${USERS}/table/verify-missing-record/edit`);
       await ctx.verify("the page reports the missing record", [

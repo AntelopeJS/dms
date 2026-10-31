@@ -1,3 +1,7 @@
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ */
+
 const MEMBERS = "/settings/workspace/members";
 const INVITATIONS = "/settings/workspace/invites";
 
@@ -7,7 +11,7 @@ export const journeys = [
     id: "smoke",
     title: "a fresh platform onboards, its admin signs in, invites a member, and the invitation survives a reload",
     entryPoint: "POST /api/onboarding/register, then the sign-in form and Settings > Members > Invite members",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const email = ctx.email("member");
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");

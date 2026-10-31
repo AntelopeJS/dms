@@ -1,8 +1,13 @@
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
+ */
+
 const REGISTER = "/api/onboarding/register";
 const INFORMATIONS = "/api/onboarding/informations";
 const POLICY_PASSWORD = "WizardPass1!";
 
-function wizardAdmin(ctx) {
+function wizardAdmin(/** @type {Ctx} */ ctx) {
   return {
     email: ctx.email("wizard"),
     firstName: "Wiz",
@@ -11,7 +16,7 @@ function wizardAdmin(ctx) {
   };
 }
 
-async function openWizard(ctx, platformName) {
+async function openWizard(/** @type {Ctx} */ ctx, platformName) {
   const tab = await ctx.tab("anon", "visitor");
   await tab.goto("/");
   await ctx.verify("a fresh platform opens the setup wizard", [
@@ -23,18 +28,18 @@ async function openWizard(ctx, platformName) {
   return tab;
 }
 
-async function fillAdministrator(tab, admin) {
+async function fillAdministrator(/** @type {Tab} */ tab, admin) {
   await tab.fill({ role: "textbox", name: "First name" }, admin.firstName);
   await tab.fill({ role: "textbox", name: "Last name" }, admin.lastName);
   await tab.fill({ role: "textbox", name: "Work e-mail" }, admin.email);
   await tab.fill({ role: "textbox", name: "Password", exact: true }, admin.password);
 }
 
-async function informations(ctx, label) {
+async function informations(/** @type {Ctx} */ ctx, label) {
   return ctx.api(label, { method: "GET", path: INFORMATIONS, as: "anon" });
 }
 
-async function signInAs(ctx, name, credentials) {
+async function signInAs(/** @type {Ctx} */ ctx, name, credentials) {
   ctx.addAccount(name, credentials);
   return ctx.api(`sign in as ${name}`, { method: "GET", path: "/api/auth/me", as: name });
 }
@@ -46,7 +51,7 @@ export const journeys = [
     title: "the wizard names the platform, creates the owner, signs it in, and the platform stays onboarded",
     entryPoint: "/onboarding wizard (Platform, Administrator, Ready)",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const before = await informations(ctx, "a fresh platform is not onboarded");
       await ctx.verify("the empty platform reports it is not onboarded", [
         ctx.equal("has_onboarded", before.body?.has_onboarded, false),
@@ -83,7 +88,7 @@ export const journeys = [
     title: "the wizard lists the unmet password rules and creates nobody",
     entryPoint: "/onboarding wizard, Administrator step",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await openWizard(ctx, ctx.unique("Verify Weak"));
       await fillAdministrator(tab, { ...wizardAdmin(ctx), password: "weak" });
       await tab.click({ role: "button", name: "Create administrator account" });
@@ -103,7 +108,7 @@ export const journeys = [
     title: "POST /api/onboarding/register answers 400 with the invalid fields and creates nobody",
     entryPoint: "POST /api/onboarding/register",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const answer = await ctx.api("register an invalid administrator", {
         method: "POST",
         path: REGISTER,
@@ -125,7 +130,7 @@ export const journeys = [
     title: "a second registration after onboarding is refused and the first owner stays the only one",
     entryPoint: "POST /api/onboarding/register",
     onboard: true,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const second = await ctx.api("register a second administrator", {
         method: "POST",
         path: REGISTER,
@@ -151,7 +156,7 @@ export const journeys = [
     title: "two registrations sent at once leave exactly one platform owner (formal-onboarding-bootstrap AtMostOneOwner)",
     entryPoint: "POST /api/onboarding/register, twice concurrently",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admins = ["first", "second"].map((name) => ({
         email: ctx.email(name),
         firstName: name,
