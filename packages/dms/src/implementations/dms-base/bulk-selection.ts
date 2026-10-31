@@ -17,9 +17,9 @@ import {
   type BulkRowSource,
   DEFAULT_ROW_ID_FIELD,
   MAX_BULK_MATCHING_ROWS,
-  TableViewMeta,
   type resolveBulkRowIds as ResolveBulkDeclaration,
 } from "@antelopejs/interface-dms/base/table-view";
+import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { buildFilteredQuery } from "./search-route";
 
@@ -43,9 +43,6 @@ function isControllerInstance(value: unknown): value is DataControllerInstance {
 /** A data controller as the list query reads it: its properties by key. */
 // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Inference from Object.create yields any and BulkRowSource.tableView.target constructs unknown; neither describes the proxy's arbitrary controller fields, which must stay unknown until their data-api owner reads them.
 type ControllerReader = Record<PropertyKey, unknown>;
-type ControllerInstance = {
-  constructor: ConstructorParameters<typeof TableViewMeta>[0];
-};
 
 /**
  * What the list query reads a source's rows through, in place of a data
@@ -105,11 +102,7 @@ export async function resolveBulkRowIds(
     permissions,
   );
   const idField =
-    GetMetadata(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference retains the interface's unknown controller input; TableViewMeta's constructor owner states the required target but cannot prove the existing unchecked route-receiver assumption.
-      (thisObj as ControllerInstance).constructor,
-      TableViewMeta,
-    ).options.rowIdKey ?? DEFAULT_ROW_ID_FIELD;
+    getTableViewMetaFor(thisObj).options.rowIdKey ?? DEFAULT_ROW_ID_FIELD;
   const matching = await rows
     .slice(0, MAX_BULK_MATCHING_ROWS + 1)
     .pluck(idField);

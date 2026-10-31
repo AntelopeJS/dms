@@ -120,7 +120,7 @@ function useRows(next: Map<string, Row>) {
   rows = next;
 
   // SAFETY: The in-memory fixture implements only getAll/update/delete, not the complete database-backed TaskModel contract.
-  controller.model = { table: createTable(rows) } as never;
+  controller.model = modelOver(rows) as never;
 }
 
 function archive(ids: string[]) {
@@ -161,6 +161,15 @@ function remove(ids: string[]) {
 
 const archivedIds = () =>
   [...rows.values()].filter((row) => row.isArchived).map((row) => row._id);
+
+/** What `Query.GetModel` recognizes as a model, over a table of `rows`. */
+function modelOver(rows: Parameters<typeof createTable>[0]) {
+  return {
+    table: createTable(rows),
+    database: {},
+    constructor: { fromDatabase: () => undefined },
+  };
+}
 
 describe("[unit] TableView bulk operations", () => {
   const originalDelete = Query.Delete;
