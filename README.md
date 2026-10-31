@@ -31,20 +31,28 @@ Open source under Apache-2.0. Self-hosted today.
 You need Docker with Compose v2 and git.
 
 ```bash
-git clone https://github.com/AntelopeJS/template-dms-light.git
-cd template-dms-light
+git clone https://github.com/AntelopeJS/template-dms-connect-demo.git
+cd template-dms-connect-demo
 docker compose up
 ```
 
-The stack starts the DMS, a MongoDB for the DMS's own data, and a PostgreSQL database filled with the Chinook sample (a music store with 11 tables). On one Linux machine the dashboard was ready after about 2 minutes from a cold start and after about 1 minute with the images and packages cached.
+[`template-dms-connect-demo`](https://github.com/AntelopeJS/template-dms-connect-demo) is a demo for trying the Connect flow. The stack starts the DMS, a MongoDB for the DMS's own data, and a PostgreSQL database filled with the Chinook sample (a music store with 11 tables). The command chooses the sample database. To get the same data in MongoDB or RethinkDB, run `docker compose --profile mongodb up` or `docker compose --profile rethinkdb up` instead. On one Linux machine the dashboard was ready after about 2 minutes from a cold start and after about 1 minute with the images and packages cached.
 
-The template uses placeholder secrets, so keep its ports on your own machine.
+The demo uses placeholder secrets, so keep its ports on your own machine.
 
-Open [http://localhost:3001](http://localhost:3001), create the administrator account, open the Builder, choose the **Database** tab, and connect the sample database. The [template README](https://github.com/AntelopeJS/template-dms-light#connect-the-sample-database) lists each step with the connection URL.
+Open [http://localhost:3001](http://localhost:3001), create the administrator account, open the Builder, choose the **Database** tab, and connect the sample database. The [demo README](https://github.com/AntelopeJS/template-dms-connect-demo#connect-a-sample-database) lists each step with the connection string for each database.
 
-### Use it on your own database
+### Start your project
 
-Start the same stack. In the Builder's **Database** tab, enter the connection URL of your own database instead of the sample one and press **Connect**. The Builder reads the schema, proposes a page for each table, and writes the pages you keep as TypeScript into your clone.
+Start from [`template-dms`](https://github.com/AntelopeJS/template-dms). It runs the same DMS, Builder, and assistant with no sample data.
+
+```bash
+git clone https://github.com/AntelopeJS/template-dms.git my-project
+cd my-project
+docker compose up
+```
+
+In the Builder's **Database** tab, enter the connection URL of your own database and press **Connect**. The Builder reads the schema, proposes a page for each table, and writes the pages you keep as TypeScript into your clone.
 
 - Inside the `dms` container, `localhost` is the container itself. A database on your machine needs an address the container can reach.
 - To add the DMS to an existing AntelopeJS project instead, follow [Add the DMS to an existing project](#add-the-dms-to-an-existing-project).
