@@ -28,6 +28,7 @@
   "dmsFrontend": "dist/frontend-module.js",
   "files": [
     "bin",
+    "!bin/tsconfig.json",
     "dist",
     "!dist/.tsbuildinfo",
     "!dist/test",
