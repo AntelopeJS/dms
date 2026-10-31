@@ -12,18 +12,20 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
-import { z } from "zod";
-import { readJsonRecord } from "./json-record.mjs";
+import { parseJsonRecord, readJsonRecord } from "./json-record.mjs";
 
 const helpersDir = import.meta.dirname;
 const scriptsDir = nodePath.resolve(helpersDir, "..");
 const packageRoot = nodePath.resolve(scriptsDir, "..");
 const installed = nodePath.join(packageRoot, "node_modules");
-const record = z.record(z.string(), z.unknown());
-const logEntry = z.object({
-  width: z.number().optional(),
-  url: z.string().optional(),
-});
+
+/**
+ * @param {unknown} value
+ * @returns {value is number}
+ */
+function isWidth(value) {
+  return typeof value === "number";
+}
 
 /**
  * A scratch package root that holds a copy of `script` and resolves the
@@ -88,7 +90,7 @@ export function generateCatalog(edit) {
     const generate = run(root, ["scripts/docs-catalog.mjs"]);
     const catalogPath = nodePath.join(root, "docs-data", "blocks.json");
     const generated = existsSync(catalogPath)
-      ? record.parse(JSON.parse(readFileSync(catalogPath, "utf8")))
+      ? readJsonRecord(catalogPath)
       : {};
     const check = run(root, ["scripts/docs-catalog.mjs", "--check"]);
     return {
@@ -129,7 +131,7 @@ export function captureExamples(examples, only) {
       nodePath.join(playwright, "index.js"),
     );
     writeFileSync(nodePath.join(root, "docs-data", "examples.json"), examples);
-    const { status, stderr } = run(root, [
+    const { status } = run(root, [
       "scripts/docs-screenshots.mjs",
       "--base-url",
       "http://preview.invalid",
@@ -144,15 +146,12 @@ export function captureExamples(examples, only) {
       ? readFileSync(logPath, "utf8")
           .split("\n")
           .filter(Boolean)
-          .map((line) => logEntry.parse(JSON.parse(line)))
+          .map((line) => parseJsonRecord(line, logPath))
       : [];
     return {
       status,
-      stderr,
       shots: existsSync(shotsDir) ? readdirSync(shotsDir).sort() : [],
-      widths: entries.flatMap(({ width }) =>
-        width === undefined ? [] : [width],
-      ),
+      widths: entries.flatMap(({ width }) => (isWidth(width) ? [width] : [])),
     };
   } finally {
     rmSync(root, { recursive: true, force: true });

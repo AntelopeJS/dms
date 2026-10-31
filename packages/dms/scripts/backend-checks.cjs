@@ -5,7 +5,6 @@ const { sep } = nodePath;
 const join = nodePath.join.bind(nodePath);
 const { satisfies, validRange } = require("semver");
 const ts = require("typescript");
-const { z } = require("zod");
 const { ACTIONS, TRIGGERS } = require("./backend-automation.cjs");
 const checkTarget = require("./backend-import-target.cjs");
 const {
@@ -93,14 +92,9 @@ const locked = [
   ...lockfile.matchAll(/^ {2}'@antelopejs\/dms-frontend@([^'(]+)':$/gm),
 ].map(([, version]) => version);
 assert.notDeepEqual(locked, []);
-const rendererEngines = z.object({
-  engines: z
-    .object({ "@antelopejs/dms-frontend": z.string().optional() })
-    .optional(),
-});
 for (const layer of ["frontend-vue", "playground/frontend-vue"]) {
-  const manifest = rendererEngines.parse(
-    JSON.parse(readFileSync(join(root, layer, "package.json"), "utf8")),
+  const manifest = JSON.parse(
+    readFileSync(join(root, layer, "package.json"), "utf8"),
   );
   const range = manifest.engines?.["@antelopejs/dms-frontend"];
   assert.match(range, /./, `${layer} renderer range`);

@@ -9,16 +9,26 @@ function isRecord(value) {
 }
 
 /**
- * The JSON object in the file at `path`, as `JSON.parse` returns it. No entry
- * is dropped or rebuilt, so an own `__proto__` entry stays.
+ * The JSON object in `text`, as `JSON.parse` returns it. No entry is dropped
+ * or rebuilt, so an own `__proto__` entry stays.
+ * @param {string} text
+ * @param {string} source
+ * @returns {Record<string, unknown>}
+ */
+export function parseJsonRecord(text, source) {
+  /** @type {unknown} */
+  const parsed = JSON.parse(text);
+  if (!isRecord(parsed)) throw new TypeError(`${source} is not a JSON object`);
+  return parsed;
+}
+
+/**
+ * The JSON object in the file at `path`.
  * @param {string} path
  * @returns {Record<string, unknown>}
  */
 export function readJsonRecord(path) {
-  /** @type {unknown} */
-  const parsed = JSON.parse(readFileSync(path, "utf8"));
-  if (!isRecord(parsed)) throw new TypeError(`${path} is not a JSON object`);
-  return parsed;
+  return parseJsonRecord(readFileSync(path, "utf8"), path);
 }
 
 /**
