@@ -68,7 +68,7 @@ export namespace DefaultDataTypes {
   export import StringTimeType = defaultFiles.StringTimeType;
   export import FileTypeOptions = defaultFiles.FileTypeOptions;
   export import FileType = defaultFiles.FileType;
-  export import ImageValue = defaultFiles.ImageValue;
+  export type ImageValue = defaultFiles.ImageValue;
   export import ImageTypeOptions = defaultFiles.ImageTypeOptions;
   export import ImageType = defaultFiles.ImageType;
 
