@@ -150,6 +150,7 @@ export async function waitForOk(url, record, timeoutMs) {
   );
 }
 
+/** @param {number} port */
 function accepts(port) {
   return new Promise((resolve) => {
     const socket = createConnection({ host: "127.0.0.1", port });
@@ -213,6 +214,7 @@ function procEntries() {
   }
 }
 
+/** @param {number} pid */
 function parentOf(pid) {
   try {
     const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
@@ -247,6 +249,7 @@ export function descendantsOf(pids) {
   return [...found].filter((pid) => !pids.includes(pid));
 }
 
+/** @param {number} port */
 function listeningInodes(port) {
   const inodes = new Set();
   for (const table of ["/proc/net/tcp", "/proc/net/tcp6"]) {
@@ -266,6 +269,7 @@ function listeningInodes(port) {
   return inodes;
 }
 
+/** @param {number} pid */
 function socketInodes(pid) {
   try {
     return readdirSync(`/proc/${pid}/fd`).flatMap((fd) => {
@@ -293,6 +297,10 @@ export function listenersOf(port) {
     .filter((pid) => socketInodes(pid).some((inode) => inodes.has(inode)));
 }
 
+/**
+ * @param {number} pid
+ * @param {NodeJS.Signals} signal
+ */
 function signalGroup(pid, signal) {
   try {
     process.kill(-pid, signal);
