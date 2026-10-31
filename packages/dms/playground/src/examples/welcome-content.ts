@@ -311,7 +311,7 @@ export const CONTRIBUTE_ITEMS: KeyValueListItem[] = [
     label: "Talk to the team",
     value: "Discord",
     type: "link",
-    to: "https://discord.gg/kxzZMWqdFU",
+    to: "https://discord.gg/g4pFt6eXqu",
   },
 ];
 
