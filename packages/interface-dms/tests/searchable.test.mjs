@@ -1,10 +1,10 @@
-const assert = require("node:assert/strict");
-const test = require("node:test");
-const { GetMetadata } = require("@antelopejs/interface-core");
-const { Searchable, SearchableMeta } = require("../dist/base/searchable");
-const { hasSearchableFields } = require("../dist/base/internal/searchable");
+import assert from "node:assert/strict";
+import test from "node:test";
+import { GetMetadata } from "@antelopejs/interface-core";
+import { Searchable, SearchableMeta } from "../dist/base/searchable.js";
+import { hasSearchableFields } from "../dist/base/internal/searchable.js";
 
-test("a symbol-keyed @Searchable property is rejected instead of leaving an empty-but-present declaration", () => {
+await test("a symbol-keyed @Searchable property is rejected instead of leaving an empty-but-present declaration", () => {
   class Controller {}
   const key = Symbol("hidden");
 
@@ -16,7 +16,7 @@ test("a symbol-keyed @Searchable property is rejected instead of leaving an empt
   );
 });
 
-test("string-keyed @Searchable properties keep their compare mode", () => {
+await test("string-keyed @Searchable properties keep their compare mode", () => {
   class Controller {}
 
   Searchable()(Controller.prototype, "name");
