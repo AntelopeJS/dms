@@ -8,7 +8,7 @@
     "anti-slop/no-runtime-typeof": 28,
     "typescript/no-base-to-string": 1,
     "typescript/no-unnecessary-type-parameters": 6,
-    "typescript/no-unsafe-argument": 583,
+    "typescript/no-unsafe-argument": 582,
     "typescript/no-unsafe-assignment": 1648,
     "typescript/no-unsafe-return": 434,
     "typescript/restrict-template-expressions": 1,
