@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runWithLocales } from "./helpers/backend-checks-tree.mjs";
+import { group } from "./helpers/json-record.mjs";
 
 /**
  * @type {readonly [string, (messages: import("./helpers/backend-checks-tree.mjs").LocaleFile) => void][]}
@@ -45,7 +46,7 @@ for (const [name, edit] of acceptedLocales) {
 
 await test("backend-checks: still fails when a key it reads is missing", () => {
   const { status, stderr } = runWithLocales((messages) => {
-    delete messages.error.tenant_owner_required;
+    delete group(messages, "error").tenant_owner_required;
   });
   assert.equal(status, 1);
   assert.match(stderr, /must translate error\.tenant_owner_required/);
@@ -53,24 +54,28 @@ await test("backend-checks: still fails when a key it reads is missing", () => {
 
 await test("backend-checks: still fails when a key it reads holds an array", () => {
   const { status, stderr } = runWithLocales((messages) => {
-    messages.error.tenant_owner_required = ["a"];
+    group(messages, "error").tenant_owner_required = ["a"];
   });
   assert.equal(status, 1);
   assert.match(stderr, /must translate error\.tenant_owner_required/);
 });
 
 /**
+ * Translate a label named __proto__ in a group of the locale file that the
+ * extra trigger's title points at.
  * @param {import("./helpers/backend-checks-tree.mjs").LocaleFile} messages
  * @param {string} value
  * @returns {void}
  */
 function translateProtoField(messages, value) {
-  Object.defineProperty(messages.dms.automation.fields, "__proto__", {
+  const labels = {};
+  Object.defineProperty(labels, "__proto__", {
     value,
     enumerable: true,
     writable: true,
     configurable: true,
   });
+  group(group(messages, "dms"), "automation").zzFields = labels;
 }
 
 await test("backend-checks: a field named __proto__ passes once both locales translate it", () => {
@@ -90,7 +95,7 @@ await test("backend-checks: a field named __proto__ fails while no locale transl
     outputField: "__proto__",
   });
   assert.equal(status, 1);
-  assert.match(stderr, /must translate dms\.automation\.fields\.__proto__/);
+  assert.match(stderr, /must translate dms\.automation\.zzFields\.__proto__/);
 });
 
 await test("backend-checks: a node text reaching constructor.name passes as on base", () => {
@@ -105,7 +110,7 @@ await test("backend-checks: a node text reaching constructor.name passes as on b
 await test("backend-checks: a node text indexing a string message passes as on base", () => {
   const { status, stdout, stderr } = runWithLocales(
     (messages) => {
-      messages.dms.automation.zz = "Text";
+      group(group(messages, "dms"), "automation").zz = "Text";
     },
     { name: "$dms.automation.zz.0" },
   );
@@ -127,7 +132,7 @@ await test("backend-checks: an engines entry of another tool that is not a strin
     () => {},
     {},
     (manifest) => {
-      manifest.engines.node = 20;
+      group(manifest, "engines").node = 20;
     },
   );
   assert.equal(stderr, "");
@@ -140,7 +145,7 @@ await test("backend-checks: still fails when the renderer range is missing", () 
     () => {},
     {},
     (manifest) => {
-      delete manifest.engines["@antelopejs/dms-frontend"];
+      delete group(manifest, "engines")["@antelopejs/dms-frontend"];
     },
   );
   assert.equal(status, 1);

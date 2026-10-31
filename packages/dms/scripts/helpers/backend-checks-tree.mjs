@@ -5,14 +5,13 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
-  readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
-import { z } from "zod";
+import { readJsonRecord } from "./json-record.mjs";
 
 const packageRoot = nodePath.resolve(import.meta.dirname, "../..");
 const repoRoot = nodePath.resolve(packageRoot, "../..");
@@ -24,18 +23,6 @@ const localeSegments = [
   "locales",
 ];
 const locales = ["core-en-GB.json", "core-fr-FR.json"];
-const localeFile = z
-  .object({
-    error: z.record(z.string(), z.unknown()),
-    dms: z
-      .object({
-        automation: z
-          .object({ fields: z.record(z.string(), z.unknown()) })
-          .passthrough(),
-      })
-      .passthrough(),
-  })
-  .passthrough();
 
 /**
  * Recreate `source` under `target` entry by entry as symlinks, except the path
@@ -57,18 +44,15 @@ function mirror(source, target, segments) {
   }
 }
 
-/** @typedef {z.infer<typeof localeFile>} LocaleFile */
+/** @typedef {Record<string, unknown>} LocaleFile */
 
-const rendererManifest = z
-  .object({ engines: z.record(z.string(), z.unknown()) })
-  .passthrough();
-
-/** @typedef {z.infer<typeof rendererManifest>} RendererManifest */
+/** @typedef {Record<string, unknown>} RendererManifest */
 
 /**
  * A trigger the catalogue gains on top of the shipped ones, as a source edit
  * to `src/automation` would add it: `name` replaces its name text, and
- * `outputField` adds an output property titled with its shared field label.
+ * `outputField` adds an output property titled with a label of the group
+ * `dms.automation.zzFields`, which the shipped locale files do not have.
  * @typedef {{ name?: string, outputField?: string }} ExtraTrigger
  */
 
@@ -86,7 +70,7 @@ function extraTriggerSource(extra) {
     ...(extra.outputField === undefined
       ? []
       : [
-          `"outputSchema": { "type": "object", "properties": Object.fromEntries([[${JSON.stringify(extra.outputField)}, { "title": ${JSON.stringify(`$dms.automation.fields.${extra.outputField}`)} }]]) }`,
+          `"outputSchema": { "type": "object", "properties": Object.fromEntries([[${JSON.stringify(extra.outputField)}, { "title": ${JSON.stringify(`$dms.automation.zzFields.${extra.outputField}`)} }]]) }`,
         ]),
   ];
   return `\n;exports.TRIGGERS.push({ ...exports.TRIGGERS[0], ${overrides.join(", ")} });\n`;
@@ -127,9 +111,7 @@ export function runWithLocales(edit, extra = {}, editManifest = () => {}) {
     );
     const realLocales = nodePath.join(packageRoot, ...localeSegments);
     for (const file of locales) {
-      const messages = localeFile.parse(
-        JSON.parse(readFileSync(nodePath.join(realLocales, file), "utf8")),
-      );
+      const messages = readJsonRecord(nodePath.join(realLocales, file));
       edit(messages);
       writeFileSync(
         nodePath.join(tree, ...localeSegments, file),
@@ -137,9 +119,7 @@ export function runWithLocales(edit, extra = {}, editManifest = () => {}) {
       );
     }
     const manifestPath = nodePath.join(tree, "frontend-vue", "package.json");
-    const manifest = rendererManifest.parse(
-      JSON.parse(readFileSync(manifestPath, "utf8")),
-    );
+    const manifest = readJsonRecord(manifestPath);
     editManifest(manifest);
     rmSync(manifestPath);
     writeFileSync(manifestPath, JSON.stringify(manifest));
