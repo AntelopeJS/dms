@@ -1,7 +1,7 @@
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
- * @typedef {import("./rows.mjs").UserRow} UserRow
+ * @typedef {import("../rows.mjs").UserRow} UserRow
  */
 
 const USERS = "/table-view/table-view-users";

@@ -1,8 +1,8 @@
 /**
  * @typedef {import("../../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
- * @typedef {import("../rows.mjs").MemberRow} MemberRow
- * @typedef {import("../rows.mjs").InviteRow} InviteRow
+ * @typedef {import("../../rows.mjs").MemberRow} MemberRow
+ * @typedef {import("../../rows.mjs").InviteRow} InviteRow
  */
 
 export const MEMBERS = "/settings/workspace/members";

@@ -4,8 +4,8 @@ import { join } from "node:path";
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
- * @typedef {import("./rows.mjs").MemberRow} MemberRow
- * @typedef {import("./rows.mjs").RoleRow} RoleRow
+ * @typedef {import("../rows.mjs").MemberRow} MemberRow
+ * @typedef {import("../rows.mjs").RoleRow} RoleRow
  */
 
 /** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator. */
