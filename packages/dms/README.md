@@ -87,7 +87,7 @@ export class SalesPage extends PageController("sales", {
 | `@antelopejs/interface-core`                | `>=0.2.4 <1.0.0`                                                                | `0.2.6`                                                                   |
 | `@antelopejs/interface-data-api`            | `file:../../.campaign/tgz/antelopejs-interface-data-api-2b29c9d.tgz`            | `file:.campaign/tgz/antelopejs-interface-data-api-2b29c9d.tgz`            |
 | `@antelopejs/interface-database`            | `file:../../.campaign/tgz/antelopejs-interface-database-6bef278.tgz`            | `file:.campaign/tgz/antelopejs-interface-database-6bef278.tgz`            |
-| `@antelopejs/interface-database-decorators` | `file:../../.campaign/tgz/antelopejs-interface-database-decorators-9dc0781.tgz` | `file:.campaign/tgz/antelopejs-interface-database-decorators-9dc0781.tgz` |
+| `@antelopejs/interface-database-decorators` | `file:../../.campaign/tgz/antelopejs-interface-database-decorators-fcb0a29.tgz` | `file:.campaign/tgz/antelopejs-interface-database-decorators-fcb0a29.tgz` |
 | `@antelopejs/interface-dms`                 | `>=0.10.0 <0.11.0`                                                              | `0.10.0`                                                                  |
 | `@antelopejs/interface-dms-automation`      | `>=0.4.0 <1.0.0`                                                                | `0.4.0`                                                                   |
 | `@antelopejs/interface-email`               | `>=0.0.6 <1.0.0`                                                                | `0.0.6`                                                                   |
