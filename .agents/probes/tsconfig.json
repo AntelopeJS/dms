@@ -6,5 +6,5 @@
     "incremental": false,
     "types": ["node"]
   },
-  "include": ["./**/*.cjs"]
+  "include": ["./**/*.cjs", "./module-internals.d.ts"]
 }
