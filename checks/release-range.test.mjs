@@ -212,10 +212,11 @@ const candidates = floors.chain((floor) =>
  * cannot parse it or it is anything but one `>=` and one `<` comparator on
  * plain `0.minor.patch` and `0.(minor+1).0` versions. `semver` drops a `>=0.0.0`
  * floor, so a lone `<0.1.0` stands for the floor `0.0.0`.
- * @param {string} range
+ * @param {string | undefined} range
  * @returns {Floor | undefined}
  */
 const semverFloor = (range) => {
+  if (range === undefined) return undefined;
   /** @type {readonly import("semver").Comparator[]} */
   let comparators;
   try {
