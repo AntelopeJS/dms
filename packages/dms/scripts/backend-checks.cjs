@@ -77,35 +77,45 @@ for (const { where, text } of texts) {
   );
 }
 
-/** @typedef {{ [key: string]: string | LocaleMessages }} LocaleMessages */
-
-/** @type {z.ZodType<LocaleMessages>} */
-const localeMessages = z.record(
-  z.string(),
-  z.union([z.string(), z.lazy(() => localeMessages)]),
+/** @type {z.ZodType<unknown>} */
+const jsonValue = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValue),
+    z.record(z.string(), jsonValue),
+  ]),
 );
 
+const container = z.union([
+  z.array(z.unknown()),
+  z.record(z.string(), z.unknown()),
+]);
+
 /**
- * @param {string | LocaleMessages | undefined} node
+ * @param {unknown} node
  * @param {string} part
- * @returns {string | LocaleMessages | undefined}
+ * @returns {unknown}
  */
 function descend(node, part) {
-  return node instanceof Object ? node[part] : undefined;
+  const parsed = container.safeParse(node);
+  return parsed.success
+    ? new Map(Object.entries(parsed.data)).get(part)
+    : undefined;
 }
 
 for (const file of locales) {
-  const messages = localeMessages.parse(
+  const messages = jsonValue.parse(
     JSON.parse(readFileSync(nodePath.join(localeRoot, file), "utf8")),
   );
-  /** @type {string | LocaleMessages | undefined} */
-  const start = messages;
   for (const key of [
     ...texts.map(({ text }) => text.slice(1)),
     "error.tenant_owner_required",
     "error.tenant_member_required",
   ]) {
-    const message = key.split(".").reduce(descend, start);
+    const message = key.split(".").reduce(descend, messages);
     assert.match(message, /\S/, `${file} must translate ${key}`);
   }
 }
