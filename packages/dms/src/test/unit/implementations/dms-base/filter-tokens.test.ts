@@ -11,7 +11,6 @@ const CONTEXT = { userId: "user-42", now: NOW };
 function asFilters(
   filters: Record<string, [string, string] | [string, string][]>,
 ): Parameters.ListParameters["filters"] {
-  // @ts-expect-error These fixtures preserve opaque frontend modes (is/less_than/greater_than), outside the owner's eq/ne/gt/ge/lt/le union, while testing token interpolation only.
   return filters;
 }
 

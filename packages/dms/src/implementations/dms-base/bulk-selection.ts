@@ -1,8 +1,12 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
-import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
+import {
+  type DataControllerInstance,
+  GetDataControllerMeta,
+} from "@antelopejs/interface-data-api";
 import { Parameters } from "@antelopejs/interface-data-api/components";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   authorizeAction,
@@ -25,12 +29,15 @@ type BulkReceiver = globalThis.Parameters<typeof ResolveBulkDeclaration>[0];
 
 function isBulkRowSource(table: BulkReceiver): table is BulkRowSource {
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The public input accepts both opaque route receivers and BulkRowSource; the existing object check must precede property membership on arbitrary values.
     typeof table === "object" &&
     table !== null &&
     "tableView" in table &&
     "model" in table
   );
+}
+
+function isControllerInstance(value: unknown): value is DataControllerInstance {
+  return typeof value === "object" && value !== null;
 }
 
 /** A data controller as the list query reads it: its properties by key. */
@@ -49,9 +56,7 @@ type ControllerInstance = {
  */
 function sourceReader({ model, tableView }: BulkRowSource) {
   const controller = tableView.target;
-  const { modelKey } = GetDataControllerMeta(
-    Object.create(controller.prototype),
-  );
+  const { modelKey } = GetMetadata(controller, DataAPIMeta, true);
   assert(modelKey, 500, `${controller.name} declares no model.`);
   const reader: ControllerReader = Object.create(controller.prototype, {
     [modelKey]: { value: model, enumerable: true },
@@ -87,6 +92,7 @@ export async function resolveBulkRowIds(
   );
   const query = ctx.url.searchParams;
   if (query.get(BULK_ALL_MATCHING_KEY) !== "true") return query.getAll(IDS_KEY);
+  assert(isControllerInstance(thisObj), 500, "No data controller to read.");
   const filters = Parameters.ExtractFilters(
     ctx,
     GetDataControllerMeta(thisObj),

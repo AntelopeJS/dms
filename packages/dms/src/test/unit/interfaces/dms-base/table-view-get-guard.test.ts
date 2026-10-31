@@ -91,7 +91,7 @@ async function guard(
     throw new HTTPResult(NOT_FOUND, "Not Found");
 }
 
-function get(id: string) {
+async function get(id: string) {
   return TableViewRoutes.Get.func.call(
     controller,
     ctx,

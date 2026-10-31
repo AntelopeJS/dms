@@ -1,5 +1,8 @@
 import type { RequestContext } from "@antelopejs/interface-api";
-import type { DataControllerCallback } from "@antelopejs/interface-data-api";
+import type {
+  DataControllerCallback,
+  DataControllerInstance,
+} from "@antelopejs/interface-data-api";
 import { internal } from "../../../attachments";
 import { GetComponentPermissionIds } from "../../../page";
 import { hasFileColumns } from "../../helpers/file-refs";
@@ -15,7 +18,7 @@ export const withFilePromotion = (
   mode: "save" | "delete" = "save",
 ): DataControllerCallback => ({
   func: async function (
-    this: ThisParameterType<DataControllerCallback["func"]>,
+    this: DataControllerInstance,
     context: RequestContext,
     // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Route-specific parameters pass unchanged to the wrapped callback or attachment proxy; parsing them here would alter the published wrapper behavior.
     params: unknown,

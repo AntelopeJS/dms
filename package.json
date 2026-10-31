@@ -40,7 +40,8 @@
   "pnpm": {
     "overrides": {
       "@antelopejs/interface-database": "file:.campaign/tgz/antelopejs-interface-database-6bef278.tgz",
-      "@antelopejs/interface-database-decorators": "file:.campaign/tgz/antelopejs-interface-database-decorators-9dc0781.tgz"
+      "@antelopejs/interface-database-decorators": "file:.campaign/tgz/antelopejs-interface-database-decorators-9dc0781.tgz",
+      "@antelopejs/interface-data-api": "file:.campaign/tgz/antelopejs-interface-data-api-2b29c9d.tgz"
     }
   }
 }
