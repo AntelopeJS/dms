@@ -122,8 +122,18 @@ export interface TopListCardResponse {
   items: TopListItem[];
 }
 
+/** One measured group, as a data source of shape `series` answers it. */
+export interface ChartGroupPoint {
+  x: string | number;
+  y: number | null;
+}
+
+/**
+ * What a bare chart's data source answers: one point per group, the shape the
+ * block registry declares as `series`, or named series.
+ */
 export interface ChartResponse {
-  series: ChartSeries[];
+  series: ChartSeries[] | ChartGroupPoint[];
 }
 
 export type ValueFormat = "number" | "currency" | "percent" | "compact";
