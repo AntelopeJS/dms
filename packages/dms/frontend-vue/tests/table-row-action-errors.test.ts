@@ -1,6 +1,10 @@
 import "./helpers/table-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchClientMock } from "./fixtures/unusedApi";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
 import { ref } from "vue";
 import { createI18n } from "vue-i18n";
 import { Color } from "../layers/dms-core/app/types/color";
@@ -138,6 +142,20 @@ describe("Table row actions: refusals", () => {
 });
 
 function registerRowActionRefusalTests() {
+  it("returns false for a direct marked restore, keeping rows and selection rather than refreshing", async () => {
+    installReadOnlyRefusal();
+    api.mockRejectedValue(readOnlyFailure());
+    const actions = await rowActions();
+    const selected = ["t1"];
+    expect(await actions.restoreRows(selected, true)).toBe(false);
+    expect(selected).toEqual(["t1"]);
+    expect(shownRows.map(({ _id }) => _id)).toEqual(["t1", "t2"]);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(toast.add).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "dms-read-only" }),
+    );
+  });
+
   it("runs a confirmed action inside its dialog, which shows the refusal", async () => {
     api.mockRejectedValue(
       fetchError(404, "$page.settings.invites.error.not_found"),

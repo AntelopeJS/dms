@@ -44,6 +44,7 @@ export function useActionConfirm() {
   const { $authFetch } = useAuthFetch();
   const { t } = useI18n();
   const toast = useToast();
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
   const runSecondaryTarget = secondaryTargetRunner($authFetch.raw);
 
   const loadDialog = async (
@@ -61,6 +62,7 @@ export function useActionConfirm() {
     try {
       return await $authFetch<ConfirmDialog>(url);
     } catch (error) {
+      if (consumeReadOnlyRefusal(error)) return undefined;
       toast.add({
         color: Color.error,
         icon: "i-ph-warning-circle",

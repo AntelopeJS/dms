@@ -14,6 +14,7 @@ export const useTableRowActions = <T extends Data>(
   config: TableRowActionsConfig,
 ) => {
   const toast = useToast();
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
   const { t, locale } = useI18n();
   const { confirm } = useConfirm();
   const { confirmAction } = useActionConfirm();
@@ -42,6 +43,7 @@ export const useTableRowActions = <T extends Data>(
     error: Parameters<typeof describeTableWriteError>[0],
     title?: string,
   ) => {
+    if (consumeReadOnlyRefusal(error)) return;
     toast.add({
       color: Color.error,
       icon: "i-ph-warning-circle",

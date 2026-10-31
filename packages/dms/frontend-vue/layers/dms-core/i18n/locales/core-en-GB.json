@@ -17,6 +17,7 @@
     }
   },
   "error": {
+    "read_only_demo": "Read-only demo, changes are not saved",
     "401": {
       "title": "Access denied",
       "description": "You don't have permission to access this page."
