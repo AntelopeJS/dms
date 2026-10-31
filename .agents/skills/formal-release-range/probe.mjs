@@ -16,9 +16,23 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, write
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+/**
+ * @typedef {{
+ *   name?: string;
+ *   version?: string;
+ *   private?: boolean;
+ *   license?: string;
+ *   repository?: { type?: string, url?: string, directory?: string };
+ *   publishConfig?: { registry?: string, access?: string, provenance?: boolean };
+ *   antelopeJs?: { implements: string[] };
+ *   dependencies?: Record<string, string>;
+ * }} Manifest
+ */
+
 const VERSIONS = ["0.8.9", "0.9.0", "0.9.1", "0.9.5", "0.9.1-next.0", "0.9.5-rc.1", "0.9.5+build.0", "0.10.0", "0.10.0-next.0", "1.9.1"];
 const RANGES = [">=0.9.1 <0.10.0", ">=0.9.1 <0.11.0", ">0.9.1 <0.10.0", ">=0.9.1 <=0.10.0", "^0.9.1", ">=0.09.1 <0.10.0", ">=0.9.1  <0.10.0", ""];
 const CANONICAL = { version: "0.9.5", range: ">=0.9.1 <0.10.0" };
+/** @type {Record<string, (pkg: Manifest) => Manifest>} */
 const MANIFEST_BREAKS = {
   "name": (pkg) => ({ ...pkg, name: "@antelopejs/dms-renamed" }),
   "private": (pkg) => ({ ...pkg, private: true }),
@@ -27,9 +41,10 @@ const MANIFEST_BREAKS = {
   "registry": (pkg) => ({ ...pkg, publishConfig: { ...pkg.publishConfig, registry: "https://registry.example.com/" } }),
   "access": (pkg) => ({ ...pkg, publishConfig: { ...pkg.publishConfig, access: "restricted" } }),
   "provenance": (pkg) => ({ ...pkg, publishConfig: { ...pkg.publishConfig, provenance: false } }),
-  "implements": (pkg) => ({ ...pkg, antelopeJs: { ...pkg.antelopeJs, implements: [...pkg.antelopeJs.implements, "@antelopejs/interface-extra"] } }),
+  "implements": (pkg) => ({ ...pkg, antelopeJs: { ...pkg.antelopeJs, implements: [...(pkg.antelopeJs?.implements ?? []), "@antelopejs/interface-extra"] } }),
 };
 
+/** @param {string} checkout */
 function validateStep(checkout) {
   const workflow = readFileSync(path.join(checkout, ".github", "workflows", "release.yml"), "utf8");
   const match = /^(\s*)node((?: --\S+)*) <<'NODE'\n([\s\S]*?)\n\1NODE$/m.exec(workflow);
@@ -39,6 +54,11 @@ function validateStep(checkout) {
   return { flags: match[2].trim().split(/\s+/).filter(Boolean), body };
 }
 
+/**
+ * @param {string} checkout
+ * @param {{ flags: string[], body: string }} step
+ * @param {Record<string, Manifest>} manifests
+ */
 function decide(checkout, step, manifests) {
   const dir = mkdtempSync(path.join(tmpdir(), "release-range-probe-"));
   try {
@@ -57,13 +77,23 @@ function decide(checkout, step, manifests) {
 
 const checkout = path.resolve(process.argv[2] ?? ".");
 const step = validateStep(checkout);
-const pkg = JSON.parse(readFileSync(path.join(checkout, "packages", "dms", "package.json"), "utf8"));
-const iface = JSON.parse(readFileSync(path.join(checkout, "packages", "interface-dms", "package.json"), "utf8"));
-const manifests = (dms, version) => ({
+
+/**
+ * The one place this probe decodes a manifest of the checkout, typed by the fields it reads.
+ * @param {string} file
+ * @returns {Manifest}
+ */
+function readManifest(file) {
+  return JSON.parse(readFileSync(file, "utf8"));
+}
+
+const pkg = readManifest(path.join(checkout, "packages", "dms", "package.json"));
+const iface = readManifest(path.join(checkout, "packages", "interface-dms", "package.json"));
+const manifests = (/** @type {Manifest} */ dms, /** @type {string} */ version) => ({
   "packages/dms/package.json": dms,
   "packages/interface-dms/package.json": { ...iface, version },
 });
-const withRange = (range) => ({ ...pkg, dependencies: { ...pkg.dependencies, "@antelopejs/interface-dms": range } });
+const withRange = (/** @type {string} */ range) => ({ ...pkg, dependencies: { ...pkg.dependencies, "@antelopejs/interface-dms": range } });
 
 for (const range of RANGES) {
   for (const version of VERSIONS) {

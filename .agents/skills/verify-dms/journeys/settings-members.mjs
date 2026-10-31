@@ -1,12 +1,16 @@
 import { MEMBERS, INVITATIONS, ROLES, PAGES_API, MEMBERS_ONLY, ON_MEMBERS, createRole, listMembers, listInvites, openInviteDialog, addAddresses, pickTeam, pickRole, invite, signupLink, acceptInvitation, joinedMember, byEmail, rowActions, removeThroughMenu, REVOKED_LINK, REPLACED_LINK } from "./settings-members/steps.mjs";
 
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ */
+
 /** Invitations, member management and the sign-up link, each read back through a second view. */
 export const journeys = [
   {
     id: "invite-accept-lists-member",
     title: "an invitation accepted through its emailed link creates a member who is listed and can sign in",
     entryPoint: "Invite members dialog, /auth/signup?token=, Members list",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const roleName = ctx.unique("Support");
       const roleId = await createRole(ctx, roleName);
       const email = ctx.email("bob");
@@ -63,7 +67,7 @@ export const journeys = [
     id: "invite-validation-errors",
     title: "the invite dialog refuses a bad address, a missing Team and a missing role, and an existing member is skipped",
     entryPoint: "Invite members dialog, POST /dms/pages/settings/workspace/members/invite",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const roleName = ctx.unique("Support");
       await createRole(ctx, roleName);
       const tab = await ctx.tab("admin");
@@ -112,7 +116,7 @@ export const journeys = [
     id: "invite-revoke-refuses-link",
     title: "revoking an invitation removes it after a reload and its emailed link no longer creates an account",
     entryPoint: "Member invitations > Revoke, /auth/signup?token=",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const roleName = ctx.unique("Support");
       await createRole(ctx, roleName);
       const email = ctx.email("erin");
@@ -152,7 +156,7 @@ export const journeys = [
     id: "invite-resend-replaces-link",
     title: "resending an invitation emails a new link and the previous link stops working",
     entryPoint: "Member invitations > Resend, /auth/signup?token=",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const roleName = ctx.unique("Support");
       await createRole(ctx, roleName);
       const email = ctx.email("fred");
@@ -177,7 +181,7 @@ export const journeys = [
     id: "invite-edit-changes-roles",
     title: "editing a pending invitation changes the roles and the name its invitee gets on accepting",
     entryPoint: "Member invitations > Edit invitation",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const first = ctx.unique("Reader");
       const second = ctx.unique("Writer");
       await createRole(ctx, first);
@@ -218,7 +222,7 @@ export const journeys = [
     id: "members-search-empty-state",
     title: "searching members and invitations for nothing shows the empty state, and clearing restores the rows",
     entryPoint: "Members and Member invitations search fields",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.goto(INVITATIONS);
@@ -248,7 +252,7 @@ export const journeys = [
     id: "remove-member-shows-impact",
     title: "removing a member first shows what it takes away, then the member is gone from the list and the API and loses access (Data door containment)",
     entryPoint: "Members > row menu > Remove from workspace",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const roleName = ctx.unique("Viewer");
       const roleId = await createRole(ctx, roleName, MEMBERS_ONLY);
       const admin = await ctx.tab("admin");
@@ -317,7 +321,7 @@ export const journeys = [
     id: "removed-member-lands-on-a-page",
     title: "a removed member who signs in again is told they have no workspace instead of reaching a missing page",
     entryPoint: "/auth sign-in form after Remove from workspace",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const roleName = ctx.unique("Support");
       await createRole(ctx, roleName);
       const admin = await ctx.tab("admin");
@@ -341,7 +345,7 @@ export const journeys = [
     id: "remove-last-owner-refused",
     title: "the only owner cannot remove themself or lose the owner role, and nothing changes",
     entryPoint: "Members > row menu of the only owner, DELETE /api/tables/members/delete",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await rowActions(tab, "Verify Admin");
@@ -374,7 +378,7 @@ export const journeys = [
     id: "make-owner-and-back",
     title: "making a member owner grants the owner-only pages and removing the owner role takes them away again",
     entryPoint: "Members > row menu > Make owner / Remove owner role",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const roleName = ctx.unique("Support");
       await createRole(ctx, roleName);
       const admin = await ctx.tab("admin");
@@ -416,7 +420,7 @@ export const journeys = [
     id: "change-member-roles",
     title: "Change roles swaps a member's role and the new role is what the API and the list show",
     entryPoint: "Members > row menu > Change roles",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const first = ctx.unique("Reader");
       const second = ctx.unique("Writer");
       await createRole(ctx, first);
