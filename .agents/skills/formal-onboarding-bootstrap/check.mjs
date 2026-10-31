@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Model-checks the first-admin bootstrap with TLC through the shared runner:
+ * Model-checks the first-admin bootstrap with TLC through the shared runner
+ * of @antelopejs/tooling-configs:
  * OnboardingBootstrapInviteOnly.tla, the default instance where OAuth sign-up
  * cannot create accounts, then OnboardingBootstrap.tla, where it can.
  *
@@ -12,7 +13,7 @@
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkSpec, EXIT } from "../../formal/tlc.mjs";
+import { checkSpec, EXIT } from "@antelopejs/tooling-configs/formal";
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
