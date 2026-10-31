@@ -5,6 +5,7 @@ import type { ComponentBuilder } from "../../../component";
 import { GetPermissionId, PageMetadata } from "../../../page";
 import { claimFormPageRoute } from "../../../page/internal/form-page-routes";
 import { resolveInheritedLayout } from "../../../page/internal/categories";
+import type { CreatedPage } from "../../../types";
 import { fireAndForget } from "../../../utils/fire-and-forget";
 import type { FormBuilder } from "../../form-types";
 import { FormPageLayout } from "../../layouts";
@@ -45,7 +46,7 @@ interface CreationState<T extends ControllerClass> {
 /** @internal */
 export function tableViewCreated<T extends ControllerClass>(
   state: CreationState<T>,
-  parentPage: PageMetadata,
+  parentPage: CreatedPage,
 ): void {
   const {
     controller,
@@ -57,10 +58,10 @@ export function tableViewCreated<T extends ControllerClass>(
     forms,
     isPageMode,
   } = state;
-  const parentInfo = parentPage.pageInfo;
-  if (!parentInfo) {
+  if (!(parentPage instanceof PageMetadata) || !parentPage.pageInfo) {
     throw new Error("Parent page info not found");
   }
+  const parentInfo = parentPage.pageInfo;
 
   const customPages =
     options.formContainer?.type === "page"

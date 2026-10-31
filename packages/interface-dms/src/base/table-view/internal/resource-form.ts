@@ -82,8 +82,8 @@ export function stampAttachmentFields(
  *
  * @internal
  */
-export function resourceForm<T extends ControllerClass>(
-  controller: T,
+export function resourceForm(
+  controller: ControllerClass,
   mode: ResourceFormMode,
   options: ResourceFormOptions = {},
 ): FormBuilder | undefined {

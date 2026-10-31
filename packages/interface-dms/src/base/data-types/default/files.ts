@@ -9,6 +9,7 @@ import { FormComponents } from "../../form-schema";
 import { DataType, RegisterDataType } from "../core";
 import { DefaultDataCompareTypes } from "../compare-types";
 import { RichTextTypeOptions, StringTimeTypeOptions } from "./options";
+import type { ImageValue } from "../../../types";
 
 @RegisterDataType("rich_text")
 export class RichTextType extends DataType {
@@ -179,11 +180,7 @@ export class FileType extends DataType {
   }
 }
 
-export interface ImageValue {
-  key: string;
-  alt?: string;
-  principal?: boolean;
-}
+export type { ImageValue };
 
 export interface ImageTypeOptions extends Record<string, unknown> {
   multiple?: boolean;
