@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getErrorMessage } from "../dist/base/types/error.js";
+import {
+  getErrorMessage,
+  isErrorWithMessage,
+} from "../dist/base/types/error.js";
 
 await test("getErrorMessage returns the message of an error carrying a string message", () => {
   assert.equal(getErrorMessage(new Error("boom")), "boom");
@@ -16,5 +19,13 @@ await test("getErrorMessage uses the fallback for a non-string message instead o
 await test("getErrorMessage uses the fallback for values without a message", () => {
   for (const value of [null, undefined, "text", 3, {}]) {
     assert.equal(getErrorMessage(value), "Unknown error");
+  }
+});
+
+await test("isErrorWithMessage answers true only for a string message, as its narrowing claims (fails a guard that checks the key alone)", () => {
+  assert.equal(isErrorWithMessage(new Error("boom")), true);
+  assert.equal(isErrorWithMessage({ message: "plain" }), true);
+  for (const message of [7, null, undefined, {}, ["x"], true]) {
+    assert.equal(isErrorWithMessage({ message }), false);
   }
 });
