@@ -94,7 +94,9 @@ const locked = [
 ].map(([, version]) => version);
 assert.notDeepEqual(locked, []);
 const rendererEngines = z.object({
-  engines: z.record(z.string(), z.string()).optional(),
+  engines: z
+    .object({ "@antelopejs/dms-frontend": z.string().optional() })
+    .optional(),
 });
 for (const layer of ["frontend-vue", "playground/frontend-vue"]) {
   const manifest = rendererEngines.parse(
