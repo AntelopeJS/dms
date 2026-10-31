@@ -39,7 +39,9 @@ const fields = z.object({
 });
 type Schema = z.output<typeof fields>;
 const schema = useLocalizedSchema(fields);
-const state = reactive<Partial<Schema>>({});
+const state = reactive<Partial<Schema>>({
+  ...useDmsRuntimeConfig().public.dms.loginPrefill,
+});
 useLiveFormErrors(form, state);
 
 function isTwoFactorRequired(

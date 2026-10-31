@@ -181,10 +181,21 @@ export interface StoreConfig {
   catalogUrl?: string;
 }
 
+/**
+ * Public login defaults delivered in HTML and browser configuration.
+ * Use only intentionally public demo credentials, never deployment secrets.
+ */
+export interface LoginPrefillConfig {
+  email: string;
+  password: string;
+}
+
 export interface Config {
   auth?: AuthConfig;
   htmlRender?: HtmlRenderConfig;
   homepage?: string;
+  /** Prefills the login form once without submitting or enabling keep-login. */
+  loginPrefill?: LoginPrefillConfig;
   apiBaseUrl?: string;
   clientBaseUrl?: string;
   realtime?: RealtimeConfig;
