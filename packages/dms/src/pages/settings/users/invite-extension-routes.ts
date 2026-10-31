@@ -9,6 +9,7 @@ import {
   type Parameters,
   Validation,
 } from "@antelopejs/interface-data-api/components";
+import type { RowFields } from "@antelopejs/interface-data-api/metadata";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
@@ -43,6 +44,10 @@ async function loadPendingInvite(
   return invite;
 }
 
+function isRow(answer: unknown): answer is RowFields {
+  return typeof answer === "object" && answer !== null;
+}
+
 /** The invitation's row, with its extension payloads as edit-form values. */
 export const inviteGetRoute: DataControllerCallback = {
   ...TableViewRoutes.Get,
@@ -56,6 +61,7 @@ export const inviteGetRoute: DataControllerCallback = {
     const invite = await GetModel(UserInviteModel, getRequestTenantId(ctx)).get(
       String(params.id),
     );
+    assert(isRow(row), 500, "The invitation route answered no row.");
     return {
       ...row,
       ...ReadInviteExtensionFields(invite?.extensions),
@@ -130,7 +136,7 @@ export const inviteEditRoute: DataControllerCallback = {
   func(...args: Parameters<DataControllerCallback["func"]>) {
     return changeTenantMembers(getRequestTenantId(args[0]), async () => ({
       changes: [],
-      write: () => guardedInviteEditRoute.func.apply(this, args),
+      write: async () => guardedInviteEditRoute.func.apply(this, args),
     }));
   },
 };

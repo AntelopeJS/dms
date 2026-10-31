@@ -133,7 +133,13 @@ export class ComputedTaskController extends DataController(
   @Column({ name: "Siblings", type: new DefaultDataTypes.NumberType() })
   @Computed(
     (row, db) =>
-      db.table(TABLE).getAll(row.key("projectId"), "projectId").count(),
+      db
+        .table(TABLE)
+        .getAll(
+          row.key("projectId").cast<string | number | boolean>(),
+          "projectId",
+        )
+        .count(),
     { default: 0 },
   )
   declare siblings: number;

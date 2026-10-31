@@ -1,3 +1,4 @@
+import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import {
   type ControllerClass,
   ControllerMeta,
@@ -8,6 +9,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import {
   type DataControllerCallback,
   type DataControllerCallbackWithOptions,
+  type DataControllerInstance,
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
 import {
@@ -81,13 +83,11 @@ async function processBatch({
 }: ExportBatch): Promise<void> {
   const dbResult = await pendingRecordBatch;
   const results = await Promise.all(
-    dbResult.map((entry) =>
-      Query.ReadProperties(
-        controller,
-        controllerMetadata,
-        model.constructor.fromDatabase(entry),
-      ),
-    ),
+    dbResult.map((entry) => {
+      const stored = model.constructor.fromDatabase(entry);
+      assert(stored, 500, "The database answered an empty row.");
+      return Query.ReadProperties(controller, controllerMetadata, stored);
+    }),
   );
 
   Validation.ClearInternal(controllerMetadata, results);
@@ -370,7 +370,7 @@ interface RuleValidationResult {
 }
 
 export async function fetchRowForGuard(
-  controller: any,
+  controller: DataControllerInstance,
   id: string,
   idField: string,
 ): Promise<RuleRow | undefined> {
@@ -378,16 +378,18 @@ export async function fetchRowForGuard(
 }
 
 async function readRuleRow(
-  controller: any,
+  controller: DataControllerInstance,
   controllerMetadata: DataAPIMeta,
   model: ReturnType<typeof Query.GetModel>,
   row: RuleRow,
 ): Promise<RuleRow> {
   try {
+    const stored = model.constructor.fromDatabase(row);
+    assert(stored, 500, "The database answered an empty row.");
     const read = await Query.ReadProperties(
       controller,
       controllerMetadata,
-      model.constructor.fromDatabase(row),
+      stored,
     );
     return { ...row, ...read };
   } catch {
@@ -396,7 +398,7 @@ async function readRuleRow(
 }
 
 export async function validateRowsAgainstRule(
-  controller: any,
+  controller: DataControllerInstance,
   ids: string[],
   rule: RowActionRule | undefined,
   strictMode: boolean,
@@ -446,12 +448,12 @@ const updatedRowCount = (updated: number, ids: string[]): number =>
   typeof updated === "number" ? updated : ids.length;
 
 export async function archiveRows(
-  controller: any,
+  controller: DataControllerInstance,
   _ctx: RequestContext,
   ids: string | string[],
 ) {
   const controllerMetadata = GetDataControllerMeta(controller);
-  const tableViewMetadata = GetMetadata(controller.constructor, TableViewMeta);
+  const tableViewMetadata = getTableViewMetaFor(controller);
   const idField = tableViewMetadata.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
   const archiveField = tableViewMetadata.archiveField;
   const model = Query.GetModel(controller, controllerMetadata);
@@ -476,12 +478,12 @@ export async function archiveRows(
 }
 
 export async function restoreRows(
-  controller: any,
+  controller: DataControllerInstance,
   _ctx: RequestContext,
   ids: string | string[],
 ) {
   const controllerMetadata = GetDataControllerMeta(controller);
-  const tableViewMetadata = GetMetadata(controller.constructor, TableViewMeta);
+  const tableViewMetadata = getTableViewMetaFor(controller);
   const idField = tableViewMetadata.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
   const archiveField = tableViewMetadata.archiveField;
   const model = Query.GetModel(controller, controllerMetadata);
