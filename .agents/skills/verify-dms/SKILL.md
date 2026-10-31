@@ -158,6 +158,17 @@ $C doors .agents/skills/verify-dms/seeded-doors/data.patch
 - `up` and the frontend build install from the npm registry. A package published minutes earlier can answer 404 until the registry propagates it; `up` then fails on its `frontend-build` or `project-build` log. Run `up` again a few minutes later.
 - Writing a journey: a check (`tab.visible`, `tab.shows`, `tab.at`, `ctx.equal`…) only counts inside `ctx.verify`. Uppercase styling changes `innerText`, so match such text case-insensitively. `ctx.api` signs the account in again on a 401; pass `token` to observe a refused token. The raw Playwright page is `tab.page`, for popups, downloads and visually hidden inputs.
 
+## Component probes
+
+`antelopejs-api-diff <base-ref> --probe <file.cjs>` captures one file, so the `interface-dms` component coverage in `.agents/probes/` is four standalone scripts. Pass the ones whose keys your change reaches, one api-diff run each.
+
+| Probe | Keys it prints |
+|---|---|
+| `interface-components-builder.cjs` | `sync`, `serialized`, `filtered`, `shadowedCall`, `ownKeys`, `positional`, `permission`, `uploadConstraintReads`, `defaultTypesFresh`, `dataTypesAndHints` |
+| `interface-components-routes.cjs` | `routes`, `factoryHelpers`, `metadata`, `lifecycle` |
+| `interface-components-read-order.cjs` | `typeBoundaries`, `pageInfoPrecedence`, `extractedPageCalls`, `evaluationOrder` |
+| `interface-components-owner-order.cjs` | `ownerAccessorOrder`, `publicWatchFilterOrder`, `publicPageScheduling` |
+
 ## Feature map
 
 [features/README.md](features/README.md).
