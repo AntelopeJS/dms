@@ -77,7 +77,6 @@ function propertyName(property) {
  * Whether an ignore pattern names a `.claude/skills` link into `.agents/skills`,
  * or everything below one. The lint reads the link's files at their target, so
  * ignoring the link hides nothing.
-
  * @param {string} pattern
  * @returns {boolean}
  */
