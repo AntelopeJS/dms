@@ -7,7 +7,7 @@
 
 # AntelopeJS DMS
 
-**Plug in your PostgreSQL or MongoDB database. Your coding agent writes the back office and an analytics dashboard as typed TypeScript in your repository.**
+**Plug in your PostgreSQL database. Your coding agent writes the back office and an analytics dashboard as typed TypeScript in your repository.**
 
 Open source under Apache-2.0. Self-hosted today.
 
@@ -75,10 +75,11 @@ Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript,
 
 ## Limits
 
-- **Databases.** The Builder connects PostgreSQL and MongoDB. RethinkDB does not on `@antelopejs/dms-builder` 0.7.0: the Builder asks for `@antelopejs/rethinkdb` `>=1.6.0`, which is not published, and the project does not restart. Use PostgreSQL or MongoDB until a fixed release ships. MySQL is not supported yet.
-- **Read-only covers the generated pages.** The connection itself can write whatever the database account can write.
+- **Databases.** The Builder connects PostgreSQL. Its database list also offers MongoDB and RethinkDB, but with `@antelopejs/dms-builder` 0.7.0 and `@antelopejs/core` 1.18.1 both connections stop the project from restarting until you remove them from `antelope.config.ts`. MySQL is not supported.
+- **Read-only covers the generated pages.** The connection itself can write whatever the database account can write, so connect with an account that has `SELECT` only. The table pages still show **New entry**, **Edit**, and **Delete**. Those actions answer "Not Found" because the routes do not exist.
 - **No automatic refresh.** Pages show the data as of the last load. When your external database changes, reload the page.
 - **Dashboards need a coding agent.** Generated dashboards need Claude Code or Codex. Without one, you still get the table pages.
+- **Check what the agent builds.** On the 11-table Chinook sample, the assistant's first pass took about 11 minutes. One of its two dashboards answered "Error 500" until a follow-up message fixed the data shape of its charts. Open each page it creates.
 - **The DMS keeps its own data in MongoDB.** Accounts, roles, and settings live there. The sample stack starts one for you.
 - **The sample stack is for development.** The Builder and the assistant run only in development mode, and the template uses placeholder secrets. Do not expose its ports.
 
