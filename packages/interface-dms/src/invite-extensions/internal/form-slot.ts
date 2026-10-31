@@ -160,11 +160,13 @@ async function buildContribution(
 function contributionOf(
   entry: InviteExtensionEntry,
 ): Promise<InviteFieldContribution | undefined> {
-  entry.contribution ??= buildContribution(entry.info).catch((error) => {
-    logInviteExtensionFailure(entry.info.key, "serialize its form", error);
-    entry.contribution = undefined;
-    return undefined;
-  });
+  entry.contribution ??= buildContribution(entry.info).catch(
+    (error: unknown) => {
+      logInviteExtensionFailure(entry.info.key, "serialize its form", error);
+      entry.contribution = undefined;
+      return undefined;
+    },
+  );
   return entry.contribution;
 }
 

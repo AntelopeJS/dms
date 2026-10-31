@@ -159,7 +159,7 @@ describe("[unit] implementations/dms/page — page-level bypassTenantAccessGate"
         roleModel,
         DENIED_TENANT,
         includeShared,
-      ).catch((error) => error);
+      ).catch((error: unknown) => error);
 
       expect(result).to.deep.equal(new HTTPResult(403, SUSPENDED_CODE));
     });

@@ -23,12 +23,13 @@ type TableViewBuilder = ComponentBuilder<TableViewOptionsSerialized>;
 function stampedBuilder(
   permissionIds: Record<string, string> = {},
 ): TableViewBuilder {
+  const ids = new Map(Object.entries(permissionIds));
   // SAFETY: TableViewMeta.actionPermissionIds only calls getAction and reads permissionId; no other builder or action members are exercised by this fixture.
   return {
-    getAction: (actionId: string) =>
-      permissionIds[actionId]
-        ? { permissionId: permissionIds[actionId] }
-        : undefined,
+    getAction: (actionId: string) => {
+      const permissionId = ids.get(actionId);
+      return permissionId ? { permissionId } : undefined;
+    },
   } as TableViewBuilder;
 }
 

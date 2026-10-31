@@ -104,7 +104,7 @@ run().then(
   (result) => {
     process.stdout.write(JSON.stringify(result), () => process.exit(0));
   },
-  (error) => {
+  (error: unknown) => {
     const report = error instanceof Error ? error.stack : String(error);
     process.stderr.write(`${report}\n`, () => process.exit(1));
   },

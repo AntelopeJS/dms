@@ -436,7 +436,7 @@ describe("Tenant lifecycle admission (MongoDB adapter)", () => {
         language: "en",
         roleIds: [],
         asTenantOwner: false,
-      }).catch((error) => {
+      }).catch((error: unknown) => {
         refusal = error;
       });
     } finally {
