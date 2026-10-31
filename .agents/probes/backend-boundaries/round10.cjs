@@ -32,6 +32,12 @@ const payload = `
 
 function createCheck() {
   let cases = 0;
+  /**
+   * @param {string} name
+   * @param {string} caller
+   * @param {string} runtimeCode
+   * @param {boolean} [allowed]
+   */
   function check(name, caller, runtimeCode, allowed = false) {
     const loaded = spawnSync(execPath, ["-e", runtimeCode], {
       cwd: root,
@@ -39,6 +45,7 @@ function createCheck() {
       timeout: 15000,
     });
     assert.equal(loaded.status, 0, `${name}\n${loaded.stderr}`);
+    /** @type {unknown} */
     const runtime = JSON.parse(loaded.stdout.trim());
     const result = runGuard();
     assert.equal(
@@ -56,6 +63,14 @@ function createCheck() {
   return { check, count: () => cases };
 }
 
+/**
+ * @typedef {ReturnType<typeof createCheck>["check"]} Check
+ */
+
+/**
+ * @param {string} spelling
+ * @param {string} payloadFile
+ */
 function spawnBodies(spelling, payloadFile) {
   return {
     "worker-eval": `new (require('${spelling}worker_threads').Worker)(${JSON.stringify(payload)}, { 'eval': true });`,
@@ -68,6 +83,12 @@ function spawnBodies(spelling, payloadFile) {
   };
 }
 
+/**
+ * @param {Check} check
+ * @param {string} folder
+ * @param {string} spelling
+ * @param {string} payloadFile
+ */
 function spawnCases(check, folder, spelling, payloadFile) {
   const base = join(root, "packages/dms", folder, "utils");
   const bodies = spawnBodies(spelling, payloadFile);
@@ -102,6 +123,11 @@ function spawnCases(check, folder, spelling, payloadFile) {
   }
 }
 
+/**
+ * @param {string} caller
+ * @param {string} alias
+ * @param {boolean} allowed
+ */
 function esmConditionScript(caller, alias, allowed) {
   return `
               const assert = require('node:assert/strict');
@@ -122,6 +148,10 @@ function esmConditionScript(caller, alias, allowed) {
             `;
 }
 
+/**
+ * @param {Check} check
+ * @param {string} folder
+ */
 function esmConditionCases(check, folder) {
   const base = join(root, "packages/dms", folder, "utils");
   const alias = `__round10_${process.pid}_${folder}`;
@@ -160,6 +190,7 @@ function esmConditionCases(check, folder) {
   }
 }
 
+/** @param {Check} check */
 function importCases(check) {
   for (const spelling of ["", "node:"]) {
     for (const [name, body] of [

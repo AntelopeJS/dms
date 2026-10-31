@@ -158,7 +158,7 @@ async function uploadEvaluationOrder() {
     stat: fs.promises.stat,
     unlink: fs.promises.unlink,
     createReadStream: fs.createReadStream,
-    toWeb: Readable.toWeb,
+    toWeb: Object.getOwnPropertyDescriptor(Readable, "toWeb"),
     createUploadUrl: storage.CreateUploadUrl,
     fetch: globalThis.fetch,
   };
@@ -210,7 +210,8 @@ async function uploadEvaluationOrder() {
     fs.promises.stat = original.stat;
     fs.promises.unlink = original.unlink;
     fs.createReadStream = original.createReadStream;
-    Readable.toWeb = original.toWeb;
+    assert.ok(original.toWeb, "Readable.toWeb is an own property");
+    Object.defineProperty(Readable, "toWeb", original.toWeb);
     storage.CreateUploadUrl = original.createUploadUrl;
     globalThis.fetch = original.fetch;
   }

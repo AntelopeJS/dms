@@ -26,8 +26,29 @@ const {
   scratchLayout,
 } = require("./scratch-layout.cjs");
 
+/**
+ * @typedef {import("./scratch-layout.cjs").Layout} Layout
+ * @typedef {import("./round11-cases.cjs").Round11Case} Case
+ * @typedef {{ item: Case, request: string, caller: string, compiled: string, accepted: boolean }} Edge
+ * @typedef {{ layout: Layout, checkTarget: typeof import("../../../packages/dms/scripts/backend-import-target.cjs"), edges: number, loads: number, hookChecks: number }} State
+ */
 
+/**
+ * @param {string} text
+ * @returns {unknown}
+ */
+function parseJson(text) {
+  return JSON.parse(text);
+}
 
+/**
+ * The one place this probe reads the backend's import-target checker, typed by the declaration inferred from its source.
+ * @param {string} file
+ * @returns {State["checkTarget"]}
+ */
+function loadCheckTarget(file) {
+  return require(file);
+}
 
 
 /**
@@ -46,6 +67,10 @@ const configFaces = [
   "config/session-handoff.ts",
 ];
 
+/**
+ * @param {Layout} layout
+ * @param {string} name
+ */
 function emit(layout, name) {
   const { ts, sourceRoot, distRoot } = layout;
   const from = join(sourceRoot, name);
@@ -65,6 +90,10 @@ function emit(layout, name) {
   return to;
 }
 
+/**
+ * @param {Layout} layout
+ * @param {string[]} synthetic
+ */
 function seedRetiredPaths(layout, synthetic) {
   for (const name of retiredPaths) {
     if (!existsSync(join(layout.sourceRoot, name))) {
@@ -82,6 +111,10 @@ function seedRetiredPaths(layout, synthetic) {
   }
 }
 
+/**
+ * @param {Layout} layout
+ * @param {string[]} synthetic
+ */
 function prepareScratch(layout, synthetic) {
   copyBackend(layout);
   symlinkSync(join(root, "node_modules"), join(layout.scratch, "node_modules"));
@@ -101,6 +134,14 @@ function prepareScratch(layout, synthetic) {
  * Exercises the same resolver/edge checker as the scanner, without scanning
  * unrelated production code or fixtures owned by another agent.
  */
+/**
+ * @param {State["checkTarget"]} checkTarget
+ * @param {string} request
+ * @param {string} file
+ * @param {string} boundary
+ * @param {boolean} isCompiled
+ * @returns {Error | undefined}
+ */
 function edgeFailure(checkTarget, request, file, boundary, isCompiled) {
   try {
     checkTarget(request, file, boundary, isCompiled, {
@@ -108,11 +149,15 @@ function edgeFailure(checkTarget, request, file, boundary, isCompiled) {
       esm: false,
     });
   } catch (error) {
-    return error;
+    return error instanceof Error ? error : new Error(String(error));
   }
   return undefined;
 }
 
+/**
+ * @param {State} state
+ * @param {Edge} edge
+ */
 function checkEdges(state, edge) {
   const { layout, checkTarget } = state;
   const { item, request, caller, compiled, accepted } = edge;
@@ -146,6 +191,12 @@ function checkEdges(state, edge) {
   }
 }
 
+/**
+ * @param {Layout} layout
+ * @param {Case} item
+ * @param {string} compiled
+ * @param {string} runtimeTarget
+ */
 function runtimeScript(layout, item, compiled, runtimeTarget) {
   return `
         const assert = require('node:assert/strict');
@@ -159,6 +210,11 @@ function runtimeScript(layout, item, compiled, runtimeTarget) {
       `;
 }
 
+/**
+ * @param {State} state
+ * @param {Case} item
+ * @param {string} runtimeCode
+ */
 function nodeLoad(state, item, runtimeCode) {
   const loaded = spawnSync(execPath, ["-e", runtimeCode], {
     cwd: state.layout.scratch,
@@ -168,10 +224,16 @@ function nodeLoad(state, item, runtimeCode) {
   assert.equal(loaded.status, 0, `${item.name}\n${loaded.stderr}`);
   state.loads++;
   process.stdout.write(
-    JSON.stringify({ name: item.name, node: JSON.parse(loaded.stdout) }) + "\n",
+    JSON.stringify({ name: item.name, node: parseJson(loaded.stdout) }) + "\n",
   );
 }
 
+/**
+ * @param {State} state
+ * @param {Edge} edge
+ * @param {string} runtimeTarget
+ * @param {string} runtimeCode
+ */
 function hookLoad(state, edge, runtimeTarget, runtimeCode) {
   const { item, compiled, accepted } = edge;
   const loaded = spawnSync(
@@ -202,6 +264,11 @@ function hookLoad(state, edge, runtimeTarget, runtimeCode) {
   );
 }
 
+/**
+ * @param {State} state
+ * @param {Case} item
+ * @param {number} index
+ */
 function runCase(state, item, index) {
   const { layout } = state;
   const callerName = join(item.from, `__round11_${index}.ts`);
@@ -217,7 +284,7 @@ function runCase(state, item, index) {
   writeFileSync(caller, body, { flag: "wx" });
   const compiled = emit(layout, callerName);
   const accepted =
-    item.allowed || (baselineRules && item.escape && !expectRejections);
+    Boolean(item.allowed || (baselineRules && item.escape && !expectRejections));
   const edge = { item, request, caller, compiled, accepted };
   checkEdges(state, edge);
   const runtimeTarget = join(
@@ -233,10 +300,11 @@ function runCase(state, item, index) {
 function round11Targets() {
   const scratch = makeTempDir("backend-round11-");
   const layout = scratchLayout(scratch, loadTypescript());
+  /** @type {string[]} */
   const synthetic = [];
   try {
     prepareScratch(layout, synthetic);
-    const checkTarget = require(
+    const checkTarget = loadCheckTarget(
       join(layout.backend, "scripts/backend-import-target.cjs"),
     );
     const state = { layout, checkTarget, edges: 0, loads: 0, hookChecks: 0 };

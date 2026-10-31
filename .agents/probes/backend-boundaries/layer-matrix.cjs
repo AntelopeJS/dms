@@ -33,6 +33,14 @@ const layerEdges = [
   { name: "downward", domain: "routes", target: "../utils", rule: undefined },
 ];
 
+/**
+ * @typedef {{ file: string, body: string, form: string, rule: string | undefined }} LayerCase
+ */
+
+/**
+ * @param {string} form
+ * @param {string} target
+ */
 function layerBody(form, target) {
   const literal = JSON.stringify(target);
   if (form === "literal") return `require(${literal});`;
@@ -40,6 +48,7 @@ function layerBody(form, target) {
   return `require(\`\${"../"}${target.slice(3)}\`);`;
 }
 
+/** @param {LayerCase[]} layerCases */
 function writeLayerCases(layerCases) {
   for (const { name, domain, target, rule } of layerEdges) {
     for (const form of ["literal", "const", "template"]) {
@@ -55,6 +64,7 @@ function writeLayerCases(layerCases) {
   }
 }
 
+/** @param {LayerCase[]} layerCases */
 function assertDependencyCruiser(layerCases) {
   const actual = dependencyViolations()
     .map((item) => [item.rule.name, item.from].join("\t"))
@@ -66,6 +76,7 @@ function assertDependencyCruiser(layerCases) {
   assert.deepEqual(actual, expected);
 }
 
+/** @param {LayerCase[]} layerCases */
 function guardLayerCases(layerCases) {
   let computedRejected = 0;
   let literalsAccepted = 0;
@@ -80,7 +91,7 @@ function guardLayerCases(layerCases) {
         assert.match(result.stderr, /plain string literal/);
         computedRejected++;
       } else if (!allowed) {
-        assert.ok(result.stderr.includes(rule), result.stderr);
+        assert.ok(rule && result.stderr.includes(rule), result.stderr);
         literalEdgesRejected++;
       } else literalsAccepted++;
     } finally {
@@ -91,6 +102,7 @@ function guardLayerCases(layerCases) {
 }
 
 function layerMatrix() {
+  /** @type {LayerCase[]} */
   const layerCases = [];
   try {
     writeLayerCases(layerCases);
@@ -110,6 +122,10 @@ const linkGroups = [
   { folder: "dist", extension: "js" },
 ];
 
+/**
+ * @param {string} link
+ * @param {string} linked
+ */
 function assertSymlinkRejected(link, linked) {
   symlinkSync(linked, link);
   try {

@@ -16,6 +16,7 @@ const {
   join,
   loadTypescript,
   makeTempDir,
+  parseCruiseResult,
   root,
   spawnSync,
 } = require("./context.cjs");
@@ -26,7 +27,20 @@ const {
 } = require("./scratch-layout.cjs");
 
 
+/**
+ * @typedef {import("./scratch-layout.cjs").Layout} Layout
+ * @typedef {{ name: string, targetName: string, marker: string }} Scenario
+ * @typedef {Scenario & { accepted: boolean, fixtureCallers: Buffer[] }} RunScenario
+ * @typedef {{ layout: Layout, scanner: string, callers: string[], originals: Buffer[], config: string, checks: number }} State
+ */
 
+/**
+ * @param {string} text
+ * @returns {unknown}
+ */
+function parseJson(text) {
+  return JSON.parse(text);
+}
 
 const rule = "backend-unranked-folder";
 const scenarios = [
@@ -47,6 +61,11 @@ const scenarios = [
   },
 ];
 
+/**
+ * @param {Layout} layout
+ * @param {string} name
+ * @param {string} body
+ */
 function writeSource(layout, name, body) {
   const path = join(layout.sourceRoot, name);
   mkdirSync(dirname(path), { recursive: true });
@@ -66,6 +85,10 @@ function writeSource(layout, name, body) {
   );
 }
 
+/**
+ * @param {Layout} layout
+ * @param {string[]} args
+ */
 function run(layout, args) {
   return spawnSync(execPath, args, {
     cwd: layout.scratch,
@@ -75,6 +98,9 @@ function run(layout, args) {
   });
 }
 
+/**
+ * @param {Layout} layout
+ */
 function prepareScratch(layout) {
   copyBackend(layout);
   for (const name of ["frontend-vue", "playground", "node_modules"])
@@ -88,6 +114,9 @@ function prepareScratch(layout) {
   copyRules(layout);
 }
 
+/**
+ * @param {Layout} layout
+ */
 function snapshotFrontendModule(layout) {
   for (const [folder, extension] of [
     ["src", "ts"],
@@ -107,6 +136,9 @@ function snapshotFrontendModule(layout) {
   );
 }
 
+/**
+ * @param {Layout} layout
+ */
 function seedSources(layout) {
   writeSource(layout, "routes/index.ts", 'export const marker = "routes";\n');
   writeSource(
@@ -126,6 +158,10 @@ function seedSources(layout) {
   );
 }
 
+/**
+ * @param {State} state
+ * @param {RunScenario} scenario
+ */
 function cruiseScenario(state, scenario) {
   const { layout, config } = state;
   const { name, targetName, accepted } = scenario;
@@ -138,7 +174,7 @@ function cruiseScenario(state, scenario) {
     "json",
   ]);
   assert.equal(cruise.status, 0, cruise.stderr);
-  const graph = JSON.parse(cruise.stdout);
+  const graph = parseCruiseResult(cruise.stdout);
   const from = "packages/dms/src/db/index.ts";
   const to = `packages/dms/src/${targetName}`;
   assert.ok(
@@ -164,6 +200,12 @@ function cruiseScenario(state, scenario) {
   );
 }
 
+/**
+ * @param {string} folder
+ * @param {Scenario} scenario
+ * @param {string} caller
+ * @param {string} target
+ */
 function runtimeScript(folder, scenario, caller, target) {
   const { targetName, marker } = scenario;
   return `
@@ -175,6 +217,12 @@ function runtimeScript(folder, scenario, caller, target) {
         `;
 }
 
+/**
+ * @param {State} state
+ * @param {RunScenario} scenario
+ * @param {number} index
+ * @param {string} folder
+ */
 function scanFolder(state, scenario, index, folder) {
   const { layout, scanner, callers, originals } = state;
   const { name, targetName, accepted } = scenario;
@@ -220,13 +268,17 @@ function scanFolder(state, scenario, index, folder) {
       from: caller,
       to: target,
       scanner: scanned.status,
-      unguarded: JSON.parse(loaded.stdout),
+      unguarded: parseJson(loaded.stdout),
       hook: guarded.status,
       diagnostic: accepted ? undefined : edge,
     }) + "\n",
   );
 }
 
+/**
+ * @param {State} state
+ * @param {Scenario} scenario
+ */
 function runScenario(state, { name, targetName, marker }) {
   const { layout, callers, originals } = state;
   const accepted =
@@ -241,6 +293,11 @@ function runScenario(state, { name, targetName, marker }) {
   callers.forEach((path, i) => writeFileSync(path, originals[i]));
 }
 
+/**
+ * @param {Layout} layout
+ * @param {string} scanner
+ * @returns {State}
+ */
 function fixtureState(layout, scanner) {
   const callers = [
     join(layout.sourceRoot, "db/index.ts"),
