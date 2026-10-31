@@ -1,0 +1,10 @@
+@antelopejs/interface-database	packages/dms/package.json	dependencies	>=0.1.11 <1.0.0
+@antelopejs/interface-database	packages/dms/playground/package.json	dependencies	>=0.1.11 <1.0.0
+@antelopejs/interface-database	packages/interface-dms/package.json	devDependencies	>=0.1.11 <1.0.0
+@antelopejs/interface-database	package.json	pnpm.overrides	
+@antelopejs/interface-database	pnpm-workspace.yaml	overrides	
+@antelopejs/interface-database-decorators	packages/dms/package.json	dependencies	>=0.1.10 <1.0.0
+@antelopejs/interface-database-decorators	packages/dms/playground/package.json	dependencies	>=0.1.10 <1.0.0
+@antelopejs/interface-database-decorators	packages/interface-dms/package.json	devDependencies	>=0.1.10 <1.0.0
+@antelopejs/interface-database-decorators	package.json	pnpm.overrides	
+@antelopejs/interface-database-decorators	pnpm-workspace.yaml	overrides	
