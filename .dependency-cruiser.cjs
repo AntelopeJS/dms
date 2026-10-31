@@ -1,12 +1,12 @@
 const { existsSync, readdirSync } = require("node:fs");
-const { join } = require("node:path");
+const path = require("node:path");
 
-const areaDirectory = join(__dirname, ".dependency-cruiser");
+const areaDirectory = path.join(__dirname, ".dependency-cruiser");
 const areas = existsSync(areaDirectory)
   ? readdirSync(areaDirectory)
       .filter((file) => file.endsWith(".cjs"))
       .sort()
-      .map((file) => require(join(areaDirectory, file)))
+      .map((file) => require(path.join(areaDirectory, file)))
   : [];
 
 module.exports = {
