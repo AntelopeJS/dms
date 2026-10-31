@@ -11,7 +11,7 @@ const TIMESTAMP_LENGTH = 15;
  * @typedef {{ name: string, pid: number, command: string, cwd: string, log: string, startedAt: string, port?: number }} ProcessRecord
  * @typedef {ProcessRecord & { port: number }} ServerRecord
  * @typedef {{ email: string, password: string, userId?: string | null }} Account
- * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser: string | ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number }} RunState
+ * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number }} RunState
  */
 
 /**
@@ -46,7 +46,7 @@ export function newRunId() {
  * The folders of a run, all under its root.
  *
  * @param {string} dir The run root
- * @returns {{ dir: string, root: string, home: string, logs: string, mongo: string, browser: string, evidence: string, cache: string }} The run's folders
+ * @returns {{ dir: string, root: string, home: string, logs: string, mongo: string, evidence: string, cache: string }} The run's folders
  */
 export function runPaths(dir) {
   return {
@@ -55,7 +55,6 @@ export function runPaths(dir) {
     home: join(dir, "home"),
     logs: join(dir, "logs"),
     mongo: join(dir, "mongo"),
-    browser: join(dir, "browser"),
     evidence: join(dir, "evidence"),
     cache: join(dir, "cache"),
   };
@@ -87,7 +86,20 @@ export function createRunFolders(dir) {
 }
 
 /**
- * Reads the state `up` recorded for a run.
+ * @typedef {Omit<RunState, "browser"> & { browser?: string | ServerRecord }} StoredRunState The state as a file may hold it. A run saved by an earlier release holds the browser's folder in `browser` until the browser starts.
+ */
+
+/**
+ * @param {StoredRunState} stored The state as the file holds it
+ * @returns {stored is RunState} Whether `browser` holds no folder
+ */
+function holdsNoFolder(stored) {
+  return typeof stored?.browser !== "string";
+}
+
+/**
+ * Reads the state `up` recorded for a run. A folder an earlier release stored
+ * in `browser` is dropped, since nothing creates or reads that folder.
  *
  * @param {string} dir The run root, as `up` printed it
  * @returns {RunState} The run state
@@ -100,7 +112,11 @@ export function loadRun(dir) {
       `No run at ${dir}: run.json is missing. Start one with dms-control up.`,
     );
   }
-  return JSON.parse(readFileSync(file, "utf8"));
+  /** @type {StoredRunState} */
+  const stored = JSON.parse(readFileSync(file, "utf8"));
+  if (holdsNoFolder(stored)) return stored;
+  const { browser, ...current } = stored;
+  return current;
 }
 
 /**

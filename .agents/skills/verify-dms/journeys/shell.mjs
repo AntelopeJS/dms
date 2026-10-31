@@ -1,8 +1,12 @@
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ */
+
 const HOME = "/examples/overview";
 const FEATURES = "/examples/features";
 const NOTIFICATIONS = "/dms/pages/settings/user/notifications";
 
-async function signedIn(ctx) {
+async function signedIn(/** @type {Ctx} */ ctx) {
   const tab = await ctx.tab("admin");
   await tab.signIn("admin");
   return tab;
@@ -14,7 +18,7 @@ export const journeys = [
     id: "sidebar-navigation",
     title: "the sidebar opens a page, the breadcrumb names it, and a reload stays on it",
     entryPoint: "sidebar navigation and breadcrumb",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await ctx.verify("signing in lands on the configured homepage", [tab.at(new RegExp(`^${HOME}$`))]);
       await tab.click({ role: "link", name: "Feature index", within: { role: "navigation" } });
@@ -30,7 +34,7 @@ export const journeys = [
     id: "command-palette-navigates",
     title: "Ctrl K searches pages and Enter opens the first match",
     entryPoint: "command palette (Ctrl K)",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.press("Control+k");
       await ctx.verify("the palette opens", [tab.visible({ role: "dialog", name: "Search" })]);
@@ -46,7 +50,7 @@ export const journeys = [
     id: "command-palette-no-match",
     title: "a palette search that matches nothing shows no option and opens nothing",
     entryPoint: "command palette (Ctrl K), empty result",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.press("Control+k");
       await tab.fill({ role: "textbox", name: "Type a command or search…" }, "qqxzjjwv");
@@ -59,7 +63,7 @@ export const journeys = [
     id: "favorites-persist",
     title: "a favorite page appears in the sidebar, survives a reload and a new tab, and can be removed",
     entryPoint: "page header > Add to favorites",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.goto(FEATURES);
       await tab.click({ role: "button", name: "Add to favorites" });
@@ -83,7 +87,7 @@ export const journeys = [
     id: "sign-in-notification",
     title: "signing in from a new device puts a notification behind the bell, which opens the inbox",
     entryPoint: "header > Notifications",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.click({ role: "button", name: "Notifications" });
       await ctx.verify("the bell lists the new sign-in", [
@@ -105,7 +109,7 @@ export const journeys = [
     id: "unknown-page-404",
     title: "an unknown path shows the 404 page with a way home",
     entryPoint: "any unknown URL",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.goto("/no-such-page-here");
       await ctx.verify("the 404 page explains and offers a way out", [

@@ -1,12 +1,12 @@
-const assert = require("node:assert/strict");
-const test = require("node:test");
-const {
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
   IsSimpleBlockOption,
   BlockPresentationPaths,
-} = require("../dist/base/block-registry/presentation");
-const { ListBlockTypes } = require("../dist/base/block-types");
+} from "../dist/base/block-registry/presentation.js";
+import { ListBlockTypes } from "../dist/base/block-types.js";
 
-test("simple mode leaves binding to the builder, but not hidden or developer options", () => {
+await test("simple mode leaves binding to the builder, but not hidden or developer options", () => {
   assert.equal(
     IsSimpleBlockOption({ ui: { group: "data", widget: "resource" } }),
     true,
@@ -21,7 +21,7 @@ test("simple mode leaves binding to the builder, but not hidden or developer opt
   }
 });
 
-test("presentation edits leaves, never a parent that can replace data or factory constants", () => {
+await test("presentation edits leaves, never a parent that can replace data or factory constants", () => {
   const config = {
     title: { type: "string" },
     mixed: {
@@ -75,7 +75,7 @@ test("presentation edits leaves, never a parent that can replace data or factory
   assert.deepEqual(descriptor, before);
 });
 
-test("real chart presentation keeps axes and appearance, without source or fixture controls", () => {
+await test("real chart presentation keeps axes and appearance, without source or fixture controls", () => {
   const blocks = ListBlockTypes();
   const chart = blocks.find((block) => block.type === "ChartLine");
   const paths = BlockPresentationPaths(chart);
@@ -97,7 +97,7 @@ test("real chart presentation keeps axes and appearance, without source or fixtu
   }
 });
 
-test("closed presentation collections and scalar unions do not open fixture collections", () => {
+await test("closed presentation collections and scalar unions do not open fixture collections", () => {
   const scalar = {
     type: "union",
     oneOf: [{ type: "number" }, { type: "string" }, { type: "boolean" }],

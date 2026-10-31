@@ -5,11 +5,24 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator. */
+/** @typedef {typeof import("../../packages/interface-dms/node_modules/typescript")} TypeScript */
+
+/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator.
+ * @param {string} left
+ * @param {string} right
+ */
 function byCodeUnit(left, right) {
   if (left < right) return -1;
   return left > right ? 1 : 0;
 }
+
+/** @type {typeof import("../../packages/interface-dms/node_modules/zod")} */
+const { z } = require(path.join(__dirname, '../../packages/interface-dms/node_modules/zod'));
+const PackageManifest = z.object({
+  name: z.string(),
+  version: z.string().optional(),
+  peerDependencies: z.record(z.string(), z.string()).optional(),
+});
 
 const referenceCommit = '2bac38976877c3e6ac94cedf9552988bd245cf87';
 const packageName = '@antelopejs/interface-dms';
@@ -53,6 +66,13 @@ const expectedFunctions = [
   'makeNumber',
 ];
 
+/**
+ * @param {string} command
+ * @param {string[]} args
+ * @param {string} cwd
+ * @param {string} logFile
+ * @returns {string}
+ */
 function run(command, args, cwd, logFile) {
   const result = spawnSync(command, args, {
     cwd,
@@ -66,6 +86,10 @@ function run(command, args, cwd, logFile) {
   return result.stdout.trim();
 }
 
+/**
+ * @param {TypeScript} ts
+ * @param {string} declaration
+ */
 function declarationCoverage(ts, declaration) {
   const source = ts.createSourceFile('default-type-consumer.d.ts', declaration, ts.ScriptTarget.Latest, true);
   const functions = source.statements.filter(ts.isFunctionDeclaration).map((statement) => {
@@ -90,12 +114,13 @@ function main() {
   const checkoutRoot = fs.realpathSync(process.argv[2]);
   const outputDirectory = path.resolve(process.argv[3]);
   const packageRoot = path.join(checkoutRoot, 'packages/interface-dms');
-  const packageJson = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
+  const packageJson = PackageManifest.parse(JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8')));
   assert.equal(packageJson.name, packageName);
   const tsPackagePath = require.resolve('typescript/package.json', { paths: [packageRoot, checkoutRoot] });
-  const tsPackage = JSON.parse(fs.readFileSync(tsPackagePath, 'utf8'));
+  const tsPackage = PackageManifest.parse(JSON.parse(fs.readFileSync(tsPackagePath, 'utf8')));
   assert.equal(tsPackage.version, '6.0.3', 'The checkout must supply TypeScript 6.0.3');
   const tsRoot = path.dirname(tsPackagePath);
+  /** @type {TypeScript} */
   const ts = require(path.join(tsRoot, 'lib/typescript.js'));
   const fixturePath = path.join(__dirname, 'fixtures/default-type-consumer.ts');
   const fixture = fs.readFileSync(fixturePath, 'utf8');

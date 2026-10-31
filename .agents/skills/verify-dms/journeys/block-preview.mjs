@@ -1,3 +1,7 @@
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ */
+
 const CHANNEL = "dms-preview";
 const KPI = { type: "KpiCard", options: { title: "Revenue", staticValue: 48200, staticDelta: 12.4, showDelta: true } };
 
@@ -5,7 +9,7 @@ function stateParam(state) {
   return Buffer.from(JSON.stringify(state)).toString("base64url");
 }
 
-async function previewTab(ctx) {
+async function previewTab(/** @type {Ctx} */ ctx) {
   return ctx.tab("stranger", "preview");
 }
 
@@ -21,7 +25,7 @@ export const journeys = [
     title: "a KpiCard tree in ?state= renders without the dashboard chrome, also after a reload",
     entryPoint: "/dms-preview?state=<base64url JSON>",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await previewTab(ctx);
       await tab.goto(`/dms-preview?state=${stateParam({ tree: KPI })}`);
       await ctx.verify("the card shows its title, value and delta", [
@@ -39,7 +43,7 @@ export const journeys = [
     title: "an unregistered block type and an off-site fetchUrl render inline notices instead of blocks",
     entryPoint: "/dms-preview?state=",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await previewTab(ctx);
       const tree = [{ type: "NoSuchBlock" }, { type: "KpiCard", options: { title: "Remote", fetchUrl: "https://example.com/data" } }];
       const requests = [];
@@ -59,7 +63,7 @@ export const journeys = [
     title: "no state says there is nothing to preview, and an unreadable state says so",
     entryPoint: "/dms-preview with no or a malformed ?state=",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await previewTab(ctx);
       await tab.goto("/dms-preview");
       await ctx.verify("the empty page says there is nothing to preview", [tab.shows(/Nothing to preview yet/)]);
@@ -72,7 +76,7 @@ export const journeys = [
     title: "an embedding page draws a tree through postMessage after the frame says it is ready",
     entryPoint: "/dms-preview in an iframe, postMessage channel dms-preview",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await previewTab(ctx);
       await tab.page.setContent(embedderHtml(ctx.state.webUrl));
       const ready = await tab.page
@@ -99,7 +103,7 @@ export const journeys = [
     id: "block-types-api-members-only",
     title: "GET /api/block-preview/types lists the registered blocks to a member and refuses a visitor",
     entryPoint: "GET /api/block-preview/types",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const member = await ctx.api("list the block types as the admin", { method: "GET", path: "/api/block-preview/types" });
       const visitor = await ctx.api("list the block types anonymously", { method: "GET", path: "/api/block-preview/types", as: "anon" });
       const text = JSON.stringify(member.body ?? "");

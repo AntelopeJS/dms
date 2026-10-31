@@ -12,8 +12,18 @@ const {
   typeCheckTarget,
 } = require("./context.cjs");
 
+/**
+ * @typedef {{ prefix: string, create: (path: string, body: string) => string, directory: (path: string) => string, owned: string[] }} FixtureContext
+ * @typedef {(name: string, exercise: (context: FixtureContext) => void) => void} Fixture
+ */
+
 const privateTarget = join(source, "utils/auth-constants.ts");
 
+/**
+ * @param {string} caller
+ * @param {string} target
+ * @param {string} [request]
+ */
 function loadScript(caller, target, request) {
   return `
         const assert = require('node:assert/strict');
@@ -36,11 +46,17 @@ function loadScript(caller, target, request) {
       `;
 }
 
+/**
+ * @param {string} name
+ * @param {string} caller
+ * @param {{ target?: string, allowed?: boolean, env?: NodeJS.ProcessEnv, request?: string }} [options]
+ */
 function check(
   name,
   caller,
   { target, allowed = false, env = process.env, request } = {},
 ) {
+  /** @type {unknown} */
   let runtime;
   if (target) {
     const loaded = spawnSync(
@@ -77,15 +93,17 @@ function check(
 
 function createFixtures() {
   let cases = 0;
+  /** @type {Fixture} */
   function fixture(name, exercise) {
+    /** @type {string[]} */
     const owned = [];
     const prefix = `__round9_${process.pid}_${cases++}_${name}`;
-    const create = (path, body) => {
+    const create = (/** @type {string} */ path, /** @type {string} */ body) => {
       writeFileSync(path, body, { flag: "wx" });
       owned.push(path);
       return path;
     };
-    const directory = (path) => {
+    const directory = (/** @type {string} */ path) => {
       mkdirSync(path);
       owned.push(path);
       return path;
@@ -100,6 +118,7 @@ function createFixtures() {
   return { fixture, count: () => cases };
 }
 
+/** @param {Fixture} fixture */
 function payloadCases(fixture) {
   for (const suffix of ["", ".weird"]) {
     fixture("payload", ({ prefix, create }) => {
@@ -121,6 +140,7 @@ function payloadCases(fixture) {
   }
 }
 
+/** @param {Fixture} fixture */
 function bareCases(fixture) {
   for (const form of ["parent-main", "exports-symlink", "node-path"]) {
     fixture(form, ({ prefix, create, directory, owned }) => {
@@ -157,6 +177,7 @@ function bareCases(fixture) {
   }
 }
 
+/** @param {Fixture} fixture */
 function processCases(fixture) {
   for (const name of ["process", "node:process"]) {
     for (const folder of ["src", "dist"]) {
@@ -188,6 +209,11 @@ function processCases(fixture) {
   }
 }
 
+/**
+ * @param {string} edge
+ * @param {string} prefix
+ * @param {string} suffix
+ */
 function supportedRequest(edge, prefix, suffix) {
   if (edge === "private") return `../types/${prefix}-target.cjs`;
   if (edge === "upward") return `../utils/index.${suffix}`;
@@ -195,6 +221,7 @@ function supportedRequest(edge, prefix, suffix) {
   return "@antelopejs/interface-dms/page";
 }
 
+/** @param {Fixture} fixture */
 function supportedCases(fixture) {
   for (const folder of ["src", "dist"]) {
     const base = join(root, "packages/dms", folder);
