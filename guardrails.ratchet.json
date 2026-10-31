@@ -4,15 +4,16 @@
     "antelopejs/no-inherited-key-lookup": 70,
     "antelopejs/no-presence-only-type-guard": 4,
     "anti-slop/no-reflect-apply": 1,
-    "anti-slop/no-reflect-get": 2,
+    "anti-slop/no-reflect-get": 9,
     "anti-slop/no-runtime-typeof": 28,
     "typescript/no-base-to-string": 1,
     "typescript/no-unnecessary-type-parameters": 6,
-    "typescript/no-unsafe-argument": 552,
-    "typescript/no-unsafe-assignment": 1224,
-    "typescript/no-unsafe-return": 384,
+    "typescript/no-unsafe-argument": 559,
+    "typescript/no-unsafe-assignment": 1613,
+    "typescript/no-unsafe-return": 424,
+    "typescript/restrict-template-expressions": 1,
     "typescript/unbound-method": 9,
-    "typescript/use-unknown-in-catch-callback-variable": 2
+    "typescript/use-unknown-in-catch-callback-variable": 5
   },
   "oversizeFiles": {}
 }

@@ -25,7 +25,7 @@ function flatten(text) {
 export class Tab {
   /**
    * @param {import("./journey.mjs").JourneyContext} context The journey
-   * @param {any} page The Playwright page
+   * @param {import("playwright-core").Page} page The Playwright page
    * @param {string} label The tab's name in evidence
    */
   constructor(context, page, label) {

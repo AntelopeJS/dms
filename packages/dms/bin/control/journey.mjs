@@ -27,6 +27,11 @@ import {
 } from "./stack.mjs";
 import { Tab } from "./tab.mjs";
 
+/**
+ * @typedef {{ name: string, pass: boolean, detail: string }} Check
+ * @typedef {ReturnType<typeof capturedMail>[number]} CapturedMail
+ */
+
 const EXPECT_TIMEOUT_MS = 15_000;
 const POLL_MS = 250;
 const DETAIL_LENGTH = 300;
@@ -77,6 +82,13 @@ function holds(name, pass, detail) {
  * folders under `<run>/evidence/<feature>/<journey>/`.
  */
 export class JourneyContext {
+  /**
+   * @param {import("./run-state.mjs").RunState} state The run
+   * @param {string} feature The feature the journey belongs to
+   * @param {string} journey The journey id
+   * @param {any} browser The Playwright browser
+   * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
+   */
   constructor(state, feature, journey, browser, skill) {
     this.state = state;
     this.skill = skill;
@@ -95,7 +107,12 @@ export class JourneyContext {
     mkdirSync(this.folder, { recursive: true });
   }
 
-  /** A new numbered step folder. */
+  /**
+   * A new numbered step folder.
+   *
+   * @param {string} label What the step does
+   * @returns {string} The step folder
+   */
   step(label) {
     this.index += 1;
     const name = `${String(this.index).padStart(2, "0")}-${slug(label)}`;
@@ -104,7 +121,14 @@ export class JourneyContext {
     return folder;
   }
 
-  /** Records the checks of a step folder; a failed critical step ends the journey. */
+  /**
+   * Records the checks of a step folder; a failed critical step ends the journey.
+   *
+   * @param {string} folder The step folder
+   * @param {{ name: string, pass: boolean, detail: string }[]} checks The checks
+   * @param {{ critical?: boolean }} [options] Whether a failure ends the journey
+   * @returns {boolean} Whether every check passed
+   */
   record(folder, checks, options = {}) {
     this.steps.push({
       name: relative(this.folder, folder),
@@ -124,12 +148,27 @@ export class JourneyContext {
   /**
    * Records a step of checks, which may be promises (`tab.visible(...)`).
    * With `{ critical: true }` a failure ends the journey.
+   *
+   * @param {string} label What the step verifies
+   * @param {(Check | Promise<Check>)[]} checks The checks, or promises of them
+   * @param {{ critical?: boolean }} [options] Whether a failure ends the journey
+   * @returns {Promise<boolean>} Whether every check passed
    */
   async verify(label, checks, options = {}) {
-    return this.record(this.step(label), await Promise.all(checks), options);
+    return this.record(
+      this.step(label),
+      await Promise.all(checks.map((check) => Promise.resolve(check))),
+      options,
+    );
   }
 
-  /** A new tab as `account` (`anon` for nobody), in that account's own browser context. */
+  /**
+   * A new tab as `account` (`anon` for nobody), in that account's own browser context.
+   *
+   * @param {string} [account] The account, or `anon`
+   * @param {string} [label] The tab's name in evidence
+   * @returns {Promise<Tab>} The tab
+   */
   async tab(account = "admin", label = account) {
     if (!this.contexts.has(account)) {
       this.contexts.set(account, await newContext(this.browser));
@@ -140,6 +179,10 @@ export class JourneyContext {
   /**
    * Calls the backend as `as` (an account, or `anon`; `admin` by default),
    * or with an explicit `token` and no retry, and records the exchange.
+   *
+   * @param {string} label What the call does
+   * @param {{ method: string, path: string, body?: any, as?: string, token?: string }} request What to send and as whom
+   * @returns {Promise<{ status: number | null, body: any, error: string | null, folder?: string }>} The answer
    */
   api(label, request) {
     if (request.token) {
@@ -155,7 +198,13 @@ export class JourneyContext {
     });
   }
 
-  /** Sends anonymous requests at once, for races, each recorded in its own step folder. */
+  /**
+   * Sends anonymous requests at once, for races, each recorded in its own step folder.
+   *
+   * @param {string} label What the calls do
+   * @param {{ method: string, path: string, body?: any, token?: string }[]} requests What to send
+   * @returns {Promise<{ status: number | null, body: any, error: string | null }[]>} The answers
+   */
   concurrent(label, requests) {
     return Promise.all(
       requests.map((request, index) =>
@@ -167,18 +216,33 @@ export class JourneyContext {
     );
   }
 
-  /** Adds an account the journey created (an invited member) so tabs and the API can act as it. */
+  /**
+   * Adds an account the journey created (an invited member) so tabs and the API can act as it.
+   *
+   * @param {string} name The account name
+   * @param {import("./run-state.mjs").RunState["accounts"][string]} credentials Its credentials
+   */
   addAccount(name, credentials) {
     this.state.accounts = { ...this.state.accounts, [name]: credentials };
     saveRun(this.state);
   }
 
-  /** An address unique to this run and journey, which the mail sink receives. */
+  /**
+   * An address unique to this run and journey, which the mail sink receives.
+   *
+   * @param {string} name The local part
+   * @returns {string} The address
+   */
   email(name) {
     return `${name}+${this.state.id}-${slug(this.journey)}@verify.local`.toLowerCase();
   }
 
-  /** A string unique to this journey, for names a journey creates. */
+  /**
+   * A string unique to this journey, for names a journey creates.
+   *
+   * @param {string} prefix What the string starts with
+   * @returns {string} The unique string
+   */
   unique(prefix) {
     return `${prefix} ${randomBytes(UNIQUE_BYTES).toString("hex")}`;
   }
@@ -220,6 +284,10 @@ export class JourneyContext {
   /**
    * The mail the sink captured since the journey started, waiting until
    * `accept` matches one or the timeout passes; `match` is the latest match.
+   *
+   * @param {(message: CapturedMail) => boolean} accept Whether a message is the awaited one
+   * @param {number} [timeoutMs] How long to wait
+   * @returns {Promise<{ folder: string, messages: CapturedMail[], match: CapturedMail | undefined }>} What arrived
    */
   async mail(accept, timeoutMs = EXPECT_TIMEOUT_MS) {
     const deadline = Date.now() + timeoutMs;
@@ -281,6 +349,7 @@ async function prepare(state, feature, journey, context) {
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, run: (context: JourneyContext) => Promise<void> }} journey The journey
+ * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
  * @returns {Promise<Record<string, any>>} The result
  */
 export async function runJourney(state, feature, journey, skill) {
@@ -342,7 +411,7 @@ export async function loadJourneys(file) {
  * into `<feature>/feature.json` so a partial run never drops earlier ones.
  *
  * @param {import("./run-state.mjs").RunState} state The run
- * @param {{ file: string, feature: string, ids: string[], skill: Record<string, any> }} request Which journeys, and the skill they belong to
+ * @param {{ file: string, feature: string, ids: string[], skill: import("./verify/skill.mjs").Skill }} request Which journeys, and the skill they belong to
  * @returns {Promise<Record<string, any>[]>} The results of this run
  */
 export async function runJourneyFile(state, request) {
