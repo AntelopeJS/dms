@@ -11,7 +11,7 @@ const TIMESTAMP_LENGTH = 15;
  * @typedef {{ name: string, pid: number, command: string, cwd: string, log: string, startedAt: string }} ProcessRecord
  * @typedef {ProcessRecord & { port: number }} ServerRecord
  * @typedef {{ email: string, password: string, userId?: string | null }} Account
- * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browserFolder: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number }} RunState
+ * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number }} RunState
  */
 
 /**
@@ -46,7 +46,7 @@ export function newRunId() {
  * The folders of a run, all under its root.
  *
  * @param {string} dir The run root
- * @returns {{ dir: string, root: string, home: string, logs: string, mongo: string, browserFolder: string, evidence: string, cache: string }} The run's folders
+ * @returns {{ dir: string, root: string, home: string, logs: string, mongo: string, evidence: string, cache: string }} The run's folders
  */
 export function runPaths(dir) {
   return {
@@ -55,7 +55,6 @@ export function runPaths(dir) {
     home: join(dir, "home"),
     logs: join(dir, "logs"),
     mongo: join(dir, "mongo"),
-    browserFolder: join(dir, "browser"),
     evidence: join(dir, "evidence"),
     cache: join(dir, "cache"),
   };
@@ -87,34 +86,20 @@ export function createRunFolders(dir) {
 }
 
 /**
- * @typedef {Omit<RunState, "browser" | "browserFolder"> & { browser?: string | ServerRecord, browserFolder?: string }} StoredRunState The state as a file may hold it. Before `browserFolder` existed, `browser` held the browser's folder until the browser started and its server record afterwards.
+ * @typedef {Omit<RunState, "browser"> & { browser?: string | ServerRecord }} StoredRunState The state as a file may hold it. A run saved by an earlier release holds the browser's folder in `browser` until the browser starts.
  */
-
-/**
- * @param {string | ServerRecord | undefined} browser The stored `browser`
- * @returns {browser is string} Whether it is the folder an earlier release stored there
- */
-function isFolder(browser) {
-  return typeof browser === "string";
-}
 
 /**
  * @param {StoredRunState} stored The state as the file holds it
- * @returns {RunState} The state with the folder and the server in their own fields
+ * @returns {stored is RunState} Whether `browser` holds no folder
  */
-function withBrowserFields(stored) {
-  const { browser, browserFolder, ...rest } = stored;
-  const folder =
-    browserFolder ??
-    (isFolder(browser) ? browser : runPaths(stored.dir).browserFolder);
-  return browser && !isFolder(browser)
-    ? { ...rest, browserFolder: folder, browser }
-    : { ...rest, browserFolder: folder };
+function holdsNoFolder(stored) {
+  return typeof stored?.browser !== "string";
 }
 
 /**
- * Reads the state `up` recorded for a run, including one saved before the
- * browser's folder and its server record had fields of their own.
+ * Reads the state `up` recorded for a run. A folder an earlier release stored
+ * in `browser` is dropped, since nothing creates or reads that folder.
  *
  * @param {string} dir The run root, as `up` printed it
  * @returns {RunState} The run state
@@ -129,7 +114,9 @@ export function loadRun(dir) {
   }
   /** @type {StoredRunState} */
   const stored = JSON.parse(readFileSync(file, "utf8"));
-  return withBrowserFields(stored);
+  if (holdsNoFolder(stored)) return stored;
+  const { browser, ...current } = stored;
+  return current;
 }
 
 /**

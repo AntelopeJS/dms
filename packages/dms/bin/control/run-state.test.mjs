@@ -28,47 +28,44 @@ function savedRun(t, fields) {
   return dir;
 }
 
-await test("a run saved before the split keeps its folder when the browser never started", (t) => {
+await test("a run saved by an earlier release drops the browser folder it held in `browser`", (t) => {
   const dir = savedRun(t, { browser: "/runs/old/browser" });
   const state = loadRun(dir);
-  assert.equal(state.browserFolder, "/runs/old/browser");
-  assert.equal(state.browser, undefined);
+  assert.equal("browser" in state, false);
 });
 
-await test("a run saved before the split keeps its server record once the browser started", (t) => {
+await test("a run saved by an earlier release keeps its server record once the browser started", (t) => {
+  const dir = savedRun(t, { browser: SERVER });
+  assert.deepEqual(loadRun(dir).browser, SERVER);
+});
+
+await test("a run without a browser reads back without one", (t) => {
+  const dir = savedRun(t, {});
+  assert.equal("browser" in loadRun(dir), false);
+});
+
+await test("saving a loaded run again keeps its server record", (t) => {
   const dir = savedRun(t, { browser: SERVER });
   const state = loadRun(dir);
-  assert.deepEqual(state.browser, SERVER);
-  assert.equal(state.browserFolder, join(dir, "browser"));
-});
-
-await test("a run saved before the split and stopped by down has the folder again, and no server", (t) => {
-  const dir = savedRun(t, {});
-  const state = loadRun(dir);
-  assert.equal(state.browserFolder, join(dir, "browser"));
-  assert.equal(state.browser, undefined);
-});
-
-await test("a run saved after the split reads back both fields, and saving it again keeps them", (t) => {
-  const dir = savedRun(t, {
-    browserFolder: "/runs/new/browser",
-    browser: SERVER,
-  });
-  const state = loadRun(dir);
-  assert.equal(state.browserFolder, "/runs/new/browser");
-  assert.deepEqual(state.browser, SERVER);
   saveRun(state);
   assert.deepEqual(loadRun(dir), state);
 });
 
-await test("a new run's folders name the browser folder, and loading a fresh run has no server", (t) => {
+await test("a run.json that holds no object reads back as it is", (t) => {
+  for (const text of ["null", "[]", "5", '"s"', "{}"]) {
+    const dir = mkdtempSync(join(tmpdir(), "dms-control-run-state-test-"));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    writeFileSync(join(dir, "run.json"), text);
+    assert.deepEqual(loadRun(dir), JSON.parse(text));
+  }
+});
+
+await test("a new run's folders hold no browser folder, and loading a fresh run has no server", (t) => {
   const parent = mkdtempSync(join(tmpdir(), "dms-control-run-state-test-"));
   t.after(() => rmSync(parent, { recursive: true, force: true }));
   const dir = join(parent, "run");
   const paths = createRunFolders(dir);
-  assert.equal(paths.browserFolder, join(dir, "browser"));
+  assert.equal("browser" in paths, false);
   saveRun({ ...paths, id: "x" });
-  const state = loadRun(dir);
-  assert.equal(state.browserFolder, join(dir, "browser"));
-  assert.equal(state.browser, undefined);
+  assert.equal("browser" in loadRun(dir), false);
 });
