@@ -13,7 +13,18 @@ function isGroupPoint(
 }
 
 function isSeries(entry: ChartSeries | ChartGroupPoint): entry is ChartSeries {
-  return "data" in entry;
+  return "data" in entry && Array.isArray(entry.data);
+}
+
+/**
+ * The series of a fetched answer that carry their points. The answer comes
+ * from a route, so one answering another shape leaves its chart empty rather
+ * than failing the page the chart sits on.
+ */
+export function drawableSeries(
+  series: ReadonlyArray<ChartSeries | ChartGroupPoint>,
+): ChartSeries[] {
+  return series.filter(isSeries);
 }
 
 /**
@@ -31,7 +42,7 @@ export function responseSeries(
 ): ChartSeries[] {
   const entries: Array<ChartSeries | ChartGroupPoint> = series;
   if (entries.length === 0 || !entries.every(isGroupPoint))
-    return entries.filter(isSeries);
+    return drawableSeries(entries);
   const labelled = xaxisType === "category";
   const data = entries
     .filter(isGroupPoint)
