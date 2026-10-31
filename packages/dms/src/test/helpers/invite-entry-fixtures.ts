@@ -117,9 +117,9 @@ function registeredInviteRoute(method: string, location: string) {
   return matches[0].handler;
 }
 
-export async function editPendingInvite<T extends object>(
+export async function editPendingInvite(
   id: string,
-  fields: T,
+  fields: InviteFields,
   admin: User,
 ) {
   const ctx = await requestContext(admin);
@@ -137,7 +137,7 @@ export async function editPendingInvite<T extends object>(
   );
 }
 
-export async function submitInvite<T extends object>(fields: T, admin: User) {
+export async function submitInvite(fields: InviteFields, admin: User) {
   const ctx = await requestContext(admin);
   const route = registeredInviteRoute(
     "post",
@@ -154,3 +154,6 @@ export async function submitInvite<T extends object>(fields: T, admin: User) {
     .object({ results: z.array(z.object({ email: z.string() })) })
     .parse(response);
 }
+
+/** The flat fields an invitation form submits: strings and lists of strings. */
+type InviteFields = Record<string, string | string[]>;

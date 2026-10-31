@@ -13,10 +13,11 @@ const FREE_EMAIL = "free@acme.dev";
 const OWN_EMAIL = "mine@acme.dev";
 
 function modelHolding(accounts: Record<string, string>): UserModel {
+  const ids = new Map(Object.entries(accounts));
   // SAFETY: assertEmailAvailable calls only getByEmail and reads only the returned _id; omitted model methods and user fields are never used.
   return {
     getByEmail: async (lookup: string) => {
-      const id = accounts[lookup.trim().toLowerCase()];
+      const id = ids.get(lookup.trim().toLowerCase());
       return id ? userFixture({ _id: id }) : undefined;
     },
   } as UserModel;
