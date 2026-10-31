@@ -58,3 +58,66 @@ await test("backend-checks: still fails when a key it reads holds an array", () 
   assert.equal(status, 1);
   assert.match(stderr, /must translate error\.tenant_owner_required/);
 });
+
+/**
+ * @param {import("./helpers/backend-checks-tree.mjs").LocaleFile} messages
+ * @param {string} value
+ * @returns {void}
+ */
+function translateProtoField(messages, value) {
+  Object.defineProperty(messages.dms.automation.fields, "__proto__", {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+}
+
+await test("backend-checks: a field named __proto__ passes once both locales translate it", () => {
+  const { status, stdout, stderr } = runWithLocales(
+    (messages) => {
+      translateProtoField(messages, "Prototype");
+    },
+    { outputField: "__proto__" },
+  );
+  assert.equal(stderr, "");
+  assert.equal(stdout.trim(), "Backend invariant checks passed.");
+  assert.equal(status, 0);
+});
+
+await test("backend-checks: a field named __proto__ fails while no locale translates it", () => {
+  const { status, stderr } = runWithLocales(() => {}, {
+    outputField: "__proto__",
+  });
+  assert.equal(status, 1);
+  assert.match(stderr, /must translate dms\.automation\.fields\.__proto__/);
+});
+
+await test("backend-checks: a node text reaching constructor.name passes as on base", () => {
+  const { status, stdout, stderr } = runWithLocales(() => {}, {
+    name: "$dms.automation.constructor.name",
+  });
+  assert.equal(stderr, "");
+  assert.equal(stdout.trim(), "Backend invariant checks passed.");
+  assert.equal(status, 0);
+});
+
+await test("backend-checks: a node text indexing a string message passes as on base", () => {
+  const { status, stdout, stderr } = runWithLocales(
+    (messages) => {
+      messages.dms.automation.zz = "Text";
+    },
+    { name: "$dms.automation.zz.0" },
+  );
+  assert.equal(stderr, "");
+  assert.equal(stdout.trim(), "Backend invariant checks passed.");
+  assert.equal(status, 0);
+});
+
+await test("backend-checks: a node text indexing a missing message still fails", () => {
+  const { status, stderr } = runWithLocales(() => {}, {
+    name: "$dms.automation.zz.0",
+  });
+  assert.equal(status, 1);
+  assert.match(stderr, /must translate dms\.automation\.zz\.0/);
+});
