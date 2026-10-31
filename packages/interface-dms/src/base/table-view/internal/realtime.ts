@@ -170,9 +170,9 @@ interface MutationConfig {
 }
 
 /** @internal */
-export function withRealtimeMutation(
+export function withRealtimeMutation<T extends DataControllerCallback>(
   config: MutationConfig,
-  baseRoute: DataControllerCallback,
+  baseRoute: T,
 ): DataControllerCallback {
   return {
     method: baseRoute.method,
@@ -213,8 +213,8 @@ export function withRealtimeMutation(
 }
 
 /** @internal */
-export function withPresenceAcquire(
-  baseRoute: DataControllerCallback,
+export function withPresenceAcquire<T extends DataControllerCallback>(
+  baseRoute: T,
 ): DataControllerCallback {
   return {
     method: baseRoute.method,

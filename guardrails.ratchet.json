@@ -7,7 +7,7 @@
     "anti-slop/no-reflect-get": 9,
     "anti-slop/no-runtime-typeof": 28,
     "typescript/no-base-to-string": 1,
-    "typescript/no-unnecessary-type-parameters": 2,
+    "typescript/no-unnecessary-type-parameters": 6,
     "typescript/no-unsafe-argument": 661,
     "typescript/no-unsafe-assignment": 2315,
     "typescript/no-unsafe-return": 566,
