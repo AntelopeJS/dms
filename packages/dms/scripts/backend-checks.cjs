@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const { readdirSync, readFileSync } = require("node:fs");
 const nodePath = require("node:path");
 const { sep } = nodePath;
+const join = nodePath.join.bind(nodePath);
 const { satisfies, validRange } = require("semver");
 const ts = require("typescript");
 const { z } = require("zod");
@@ -15,10 +16,7 @@ const {
 
 const root = nodePath.resolve(__dirname, "..");
 
-const localeRoot = nodePath.join(
-  root,
-  "frontend-vue/layers/dms-core/i18n/locales",
-);
+const localeRoot = join(root, "frontend-vue/layers/dms-core/i18n/locales");
 const locales = ["core-en-GB.json", "core-fr-FR.json"];
 const emailNames = [
   "EmailAdminInvite",
@@ -100,7 +98,7 @@ function descend(node, part) {
 
 for (const file of locales) {
   const messages = jsonValue.parse(
-    JSON.parse(readFileSync(nodePath.join(localeRoot, file), "utf8")),
+    JSON.parse(readFileSync(join(localeRoot, file), "utf8")),
   );
   for (const key of [
     ...texts.map(({ text }) => text.slice(1)),
@@ -113,16 +111,13 @@ for (const file of locales) {
 }
 
 const components = readdirSync(
-  nodePath.join(root, "frontend-vue/layers/dms-layout/app/emails"),
+  join(root, "frontend-vue/layers/dms-layout/app/emails"),
 )
   .filter((file) => file.endsWith(".vue"))
   .map((file) => nodePath.basename(file, ".vue"));
 assert.deepEqual(components.sort(), emailNames.sort());
 
-const lockfile = readFileSync(
-  nodePath.join(root, "../../pnpm-lock.yaml"),
-  "utf8",
-);
+const lockfile = readFileSync(join(root, "../../pnpm-lock.yaml"), "utf8");
 const locked = [
   ...lockfile.matchAll(/^ {2}'@antelopejs\/dms-frontend@([^'(]+)':$/gm),
 ].map(([, version]) => version);
@@ -132,9 +127,7 @@ const rendererEngines = z.object({
 });
 for (const layer of ["frontend-vue", "playground/frontend-vue"]) {
   const manifest = rendererEngines.parse(
-    JSON.parse(
-      readFileSync(nodePath.join(root, layer, "package.json"), "utf8"),
-    ),
+    JSON.parse(readFileSync(join(root, layer, "package.json"), "utf8")),
   );
   const range = manifest.engines?.["@antelopejs/dms-frontend"];
   assert.match(range, /./, `${layer} renderer range`);
@@ -191,10 +184,7 @@ function memberName(node) {
  */
 function exempt(node, path, exemptions) {
   const source = node.getSourceFile();
-  const file = nodePath
-    .relative(nodePath.join(root, "src"), path)
-    .split(sep)
-    .join("/");
+  const file = nodePath.relative(join(root, "src"), path).split(sep).join("/");
   const line =
     source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
   const location = `${file}:${line}`;
@@ -246,10 +236,7 @@ function checkConstructor(node, path) {
  * @param {string} path
  */
 function checkSourceRoots(source, path) {
-  const file = nodePath
-    .relative(nodePath.join(root, "src"), path)
-    .split(sep)
-    .join("/");
+  const file = nodePath.relative(join(root, "src"), path).split(sep).join("/");
   const lines = source.text.split(/\r?\n/);
   /** @type {ts.TypeChecker | undefined} */
   let checker;
@@ -526,7 +513,7 @@ function checkSource(source, path, boundary, compiled) {
  */
 function checkImports(directory, boundary = directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = nodePath.join(directory, entry.name);
+    const path = join(directory, entry.name);
     assert.ok(
       !entry.isSymbolicLink(),
       `${path} backend dependency files must not use symbolic links`,
@@ -535,7 +522,7 @@ function checkImports(directory, boundary = directory) {
       checkImports(path, boundary);
       continue;
     }
-    const compiled = boundary === nodePath.join(root, "dist");
+    const compiled = boundary === join(root, "dist");
     assert.ok(
       compiled || entry.name !== "package.json",
       `${path} backend source package manifests are forbidden`,
@@ -560,8 +547,8 @@ function checkImports(directory, boundary = directory) {
   }
 }
 
-checkImports(nodePath.join(root, "dist"));
-checkImports(nodePath.join(root, "src"));
+checkImports(join(root, "dist"));
+checkImports(join(root, "src"));
 assert.equal(
   usedExemptions.size,
   Object.keys(sourceExemptions).length,
