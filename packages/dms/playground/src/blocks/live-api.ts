@@ -97,7 +97,7 @@ async function publishBatch(): Promise<void> {
 
 function publishLater(delayMs: number): void {
   setTimeout(() => {
-    publishBatch().catch((error: PromiseRejectedResult["reason"]) => {
+    publishBatch().catch((error: unknown) => {
       console.warn("[playground] live batch failed", error);
     });
   }, delayMs);

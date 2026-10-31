@@ -64,7 +64,7 @@ describe("[unit] interfaces/dms-base/table-view — after-write guards", () => {
       }),
     ).then(
       () => undefined,
-      (error) => error,
+      (error: unknown) => error,
     );
     expect(failure).to.be.instanceOf(Error);
     expect(events).to.deep.equal([]);
