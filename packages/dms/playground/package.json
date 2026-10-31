@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.2.0",
   "scripts": {
     "build": "rimraf dist && tsc",
-    "test": "node checks/aliases.cjs && node --test checks/imports.test.cjs",
+    "test": "node checks/aliases.cjs && node --test checks/imports.test.mjs",
     "dev": "ajs project run -w",
     "frontend:dev": "ajs dms dev"
   },
