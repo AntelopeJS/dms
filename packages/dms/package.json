@@ -1,7 +1,7 @@
 {
   "name": "@antelopejs/dms",
   "version": "0.12.0",
-  "description": "AntelopeJS DMS. Plug in your PostgreSQL, MongoDB or RethinkDB database and your coding agent builds the back office and an analytics dashboard as typed TypeScript in your repo.",
+  "description": "AntelopeJS DMS. Plug in your PostgreSQL, MongoDB or RethinkDB database and your coding agent builds a back office and analytics dashboard as typed TypeScript. Real-time updates on the data the DMS manages.",
   "keywords": [
     "antelopejs",
     "dms",
