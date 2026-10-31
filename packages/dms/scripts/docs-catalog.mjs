@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { z } from "zod";
 
 const SCHEMA_VERSION = 1;
 const JSON_INDENT = 2;
@@ -11,9 +10,9 @@ const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const catalogPath = join(packageRoot, "docs-data", "blocks.json");
 
 async function readCatalog() {
-  const { version } = z
-    .object({ version: z.string() })
-    .parse(JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8")));
+  const { version } = JSON.parse(
+    readFileSync(join(packageRoot, "package.json"), "utf8"),
+  );
   const { ListBlockTypes } =
     await import("@antelopejs/interface-dms/base/block-types");
   const { BlockPresentationPaths } =
