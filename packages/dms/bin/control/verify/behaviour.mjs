@@ -119,7 +119,7 @@ function compareProbe(base, head) {
  * function declarations stay the same wherever they live; for `probe`, the
  * check's probe prints the same lines on a checkout of the base and of HEAD.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {Record<string, any>} check The formal check
  * @param {{ baseSha: string, headSha: string }} commits The two commits
  * @returns {{ method: string, changed: boolean, removed: string[], added: string[] }} The decision and what differs

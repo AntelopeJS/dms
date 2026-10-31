@@ -13,7 +13,7 @@ function matches(file, globs) {
  * Whether a repository path is user-facing: matched by the config's
  * `userFacing` globs and by none of its `notUserFacing` globs.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} file A repository path
  * @returns {boolean} True when a feature must cover it
  */
@@ -112,7 +112,7 @@ function doorProblems(skill, tracked) {
  * pages, every feature and door glob
  * matches a tracked file, and every door rule has a seeded door.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @returns {Promise<string[]>} One line per problem
  */
 export async function checkMap(skill) {
@@ -146,7 +146,7 @@ const CONTAINED_KINDS = ["data", "format"];
  * doors a set of changed files opens: a door row must name one of them,
  * passing in the run.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string[]} changed Repository paths
  * @returns {string[]} The journeys, each once
  */
@@ -167,7 +167,7 @@ function containmentJourneys(skill, changed) {
  * outside every glob is an unmapped surface, and `containments` lists the
  * journeys that can contain each Data or Format door the diff opens.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} baseRef The base, such as `origin/main`
  * @returns {{ baseRef: string, baseSha: string, headSha: string, changed: string[], touched: { feature: string, files: string[] }[], unmapped: string[], docs: string[], containments: string[], run: string[] }} The plan
  */
