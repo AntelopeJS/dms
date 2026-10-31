@@ -1,5 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
-import { BasicDataModel } from "@antelopejs/interface-database-decorators";
+import {
+  BasicDataModel,
+  type IndexKey,
+} from "@antelopejs/interface-database-decorators";
 import type {
   NotificationData,
   NotificationTone,
@@ -114,8 +117,8 @@ export class UserNotificationsModel extends BasicDataModel(
 
   /** Queries visible rows by index. */
   async getBy(
-    index: keyof UserNotification,
-    ...keys: unknown[]
+    index: Extract<keyof UserNotification, string>,
+    ...keys: IndexKey[]
   ): Promise<UserNotification[]> {
     return (await super.getBy(index, ...keys)).filter(
       (row) => !row.isDismissed,
