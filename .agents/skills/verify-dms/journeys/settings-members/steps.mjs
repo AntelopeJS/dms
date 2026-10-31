@@ -89,7 +89,12 @@ export async function invite(/** @type {Tab} */ tab, /** @type {string} */ email
   await tab.at(ON_INVITATIONS);
 }
 
-export async function signupLink(/** @type {Ctx} */ ctx, /** @type {string} */ email, /** @type {string} */ notLink) {
+/**
+ * @param {Ctx} ctx
+ * @param {string} email
+ * @param {string} [notLink]
+ */
+export async function signupLink(ctx, email, notLink) {
   const mail = await ctx.mail(
     (message) =>
       message.to.some((to) => to.includes(email)) &&

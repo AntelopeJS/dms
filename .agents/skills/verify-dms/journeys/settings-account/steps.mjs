@@ -96,7 +96,7 @@ export async function submitEmailForm(/** @type {Tab} */ tab, { address, passwor
 }
 
 /** Ticks a visually hidden radio or switch of the Appearance tiles through its label. */
-export async function tick(/** @type {Tab} */ tab, /** @type {string} */ role, /** @type {string} */ name) {
+export async function tick(/** @type {Tab} */ tab, /** @type {Parameters<Tab["page"]["getByRole"]>[0]} */ role, /** @type {string | RegExp} */ name) {
   await tab.page.getByRole(role, { name }).check({ force: true });
 }
 

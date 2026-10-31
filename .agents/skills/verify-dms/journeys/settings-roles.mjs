@@ -78,7 +78,7 @@ async function newRole(tab, name, ...permissionLabels) {
   for (const label of permissionLabels) await tab.click({ role: "checkbox", name: label, exact: true });
 }
 
-async function selectRole(/** @type {Tab} */ tab, /** @type {string} */ name) {
+async function selectRole(/** @type {Tab} */ tab, /** @type {string | RegExp} */ name) {
   await tab.click({ role: "option", name });
 }
 

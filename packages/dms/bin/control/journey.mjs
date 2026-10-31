@@ -87,7 +87,7 @@ export class JourneyContext {
    * @param {string} feature The feature the journey belongs to
    * @param {string} journey The journey id
    * @param {any} browser The Playwright browser
-   * @param {Record<string, any>} skill The skill the journey belongs to
+   * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
    */
   constructor(state, feature, journey, browser, skill) {
     this.state = state;
@@ -408,7 +408,7 @@ export async function loadJourneys(file) {
  * into `<feature>/feature.json` so a partial run never drops earlier ones.
  *
  * @param {import("./run-state.mjs").RunState} state The run
- * @param {{ file: string, feature: string, ids: string[], skill: Record<string, any> }} request Which journeys, and the skill they belong to
+ * @param {{ file: string, feature: string, ids: string[], skill: import("./verify/skill.mjs").Skill }} request Which journeys, and the skill they belong to
  * @returns {Promise<Record<string, any>[]>} The results of this run
  */
 export async function runJourneyFile(state, request) {

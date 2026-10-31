@@ -1,6 +1,7 @@
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
+ * @typedef {ReturnType<typeof wizardAdmin>} Administrator
  */
 
 const REGISTER = "/api/onboarding/register";
@@ -28,7 +29,7 @@ async function openWizard(/** @type {Ctx} */ ctx, platformName) {
   return tab;
 }
 
-async function fillAdministrator(/** @type {Tab} */ tab, /** @type {Tab} */ admin) {
+async function fillAdministrator(/** @type {Tab} */ tab, /** @type {Administrator} */ admin) {
   await tab.fill({ role: "textbox", name: "First name" }, admin.firstName);
   await tab.fill({ role: "textbox", name: "Last name" }, admin.lastName);
   await tab.fill({ role: "textbox", name: "Work e-mail" }, admin.email);
@@ -165,7 +166,7 @@ export const journeys = [
       }));
       const answers = await ctx.concurrent(
         "register",
-        admins.map((/** @type {Tab} */ admin) => ({ method: "POST", path: REGISTER, body: admin })),
+        admins.map((/** @type {Administrator} */ admin) => ({ method: "POST", path: REGISTER, body: admin })),
       );
       const accepted = answers.filter((answer) => answer.status === 200).length;
       const owners = [];
