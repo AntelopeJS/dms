@@ -10,7 +10,7 @@
  *   ownerRows: unknown[];
  *   rpc: Record<string, string>;
  *   ppc: Record<string, string>;
- *   answer: Record<string, number>;
+ *   answer: Record<string, string>;
  * }} State
  */
 
@@ -34,10 +34,10 @@ const REGISTER = new Map([
 ]);
 
 const ANSWER = new Map([
-  [200, "Answered 200"],
-  [400, "Answered 400 admin_already_set"],
-  [412, "Answered 412 onboarding_already_completed"],
-  [500, "Answered 500"],
+  ["200", "Answered 200"],
+  ["400", "Answered 400 admin_already_set"],
+  ["412", "Answered 412 onboarding_already_completed"],
+  ["500", "Answered 500"],
 ]);
 
 const POLL = new Map([
@@ -63,7 +63,7 @@ export function state(v) {
   /** @type {Record<string, string | undefined>} */
   const regions = { Platform: platform(v) };
   for (const [r, pc] of Object.entries(v.rpc)) {
-    regions[REQUEST_NAMES.get(r) ?? "undefined"] = pc === "done" ? ANSWER.get(answers.get(r) ?? Number.NaN) : REGISTER.get(pc);
+    regions[REQUEST_NAMES.get(r) ?? "undefined"] = pc === "done" ? ANSWER.get(answers.get(r) ?? "") : REGISTER.get(pc);
   }
   for (const [p, pc] of Object.entries(v.ppc)) {
     regions[capitalized(REQUEST_NAMES.get(p))] = POLL.get(pc);

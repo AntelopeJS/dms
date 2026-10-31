@@ -6,13 +6,14 @@
 
 /**
  * @typedef {"t1" | "t2"} TabId
+ * @typedef {TabId | "none"} LeadTab
  * @typedef {{ st: string, sid: number, conn: number, topics: boolean, loaded: boolean, shown: number }} TabState
  * @typedef {{ alive: boolean, page: boolean }} SessionState
  * @typedef {{ k: string }} Message
  * @typedef {{
  *   tab: Record<TabId, TabState>;
  *   sess: Record<number, SessionState>;
- *   lead: { tab: TabId, h: number };
+ *   lead: { tab: LeadTab, h: number };
  *   conn: Record<number, { open: boolean, q: Record<number, Message> }>;
  *   chan: Record<TabId, Record<number, Message>>;
  *   stored: number;
@@ -25,6 +26,9 @@ const TAB_IDS = ["t1", "t2"];
 
 /** @type {Record<TabId, string>} */
 const TAB_NAMES = { t1: "Tab 1", t2: "Tab 2" };
+
+/** @param {LeadTab | undefined} tab */
+const tabName = (tab) => (tab === undefined || tab === "none" ? undefined : TAB_NAMES[tab]);
 
 /**
  * A TLA+ sequence arrives as an object keyed from 1.
@@ -79,10 +83,10 @@ function changedTab(from, to) {
 
 /** @param {State} v */
 function leaderName(v) {
-  return TAB_NAMES[v.lead.tab] ?? "the leader";
+  return tabName(v.lead.tab) ?? "the leader";
 }
 
-/** @type {Record<string, (who: string, from: State, to: State, t: TabId | undefined) => string>} */
+/** @type {Record<string, (who: string, from: State, to: State, t: LeadTab | undefined) => string>} */
 const STEPS = {
   Write: () => "someone saves the record",
   OpenTab: () => "you open the page in tab 2",
@@ -96,7 +100,7 @@ const STEPS = {
   LeaderSeesDrop: (_who, from) => `${leaderName(from)} sees the stream end`,
   LeaderReconnects: (_who, from) => `${leaderName(from)} reopens the stream`,
   TabReceives: (who, from, _to, t) => {
-    if (t === undefined) throw new TypeError("TabReceives has an acting tab");
+    if (t === undefined || t === "none") throw new TypeError("TabReceives has an acting tab");
     const m = from.chan[t][1];
     if (m.k === "conn") return `${who} hears the connection`;
     if (m.k === "frame") return `${who} hears a relayed frame`;
@@ -143,7 +147,7 @@ export function step(action, from, to) {
   const label = STEPS[action];
   if (!label) return action;
   const t = actor(action, from, to);
-  return label((t && TAB_NAMES[t]) ?? "a tab", from, to, t);
+  return label(tabName(t) ?? "a tab", from, to, t);
 }
 
 /** @param {State} v */
