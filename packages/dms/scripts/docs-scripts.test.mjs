@@ -3,14 +3,15 @@ import { test } from "node:test";
 import {
   captureExamples,
   generateCatalog,
-  shippedVersion,
 } from "./helpers/docs-scripts-tree.mjs";
 
 /**
- * @type {readonly [string, (manifest: Record<string, unknown>) => void, [string, unknown][]][]}
+ * The third entry is the `dmsVersion` entries the catalogue must hold, or
+ * `undefined` for the version the package.json written to the scratch root has.
+ * @type {readonly [string, (manifest: Record<string, unknown>) => void, [string, unknown][] | undefined][]}
  */
 const manifests = [
-  ["the shipped package.json", () => {}, [["dmsVersion", shippedVersion]]],
+  ["the shipped package.json", () => {}, undefined],
   [
     "a package.json without a version",
     (manifest) => {
@@ -43,10 +44,10 @@ const manifests = [
 
 for (const [name, edit, expected] of manifests) {
   await test(`docs-catalog: generates and checks with ${name}`, () => {
-    const { generate, check, dmsVersion } = generateCatalog(edit);
+    const { generate, check, dmsVersion, shipped } = generateCatalog(edit);
     assert.equal(generate.stderr, "");
     assert.equal(generate.status, 0);
-    assert.deepEqual(dmsVersion, expected);
+    assert.deepEqual(dmsVersion, expected ?? shipped);
     assert.equal(check.stderr, "");
     assert.equal(check.status, 0);
   });

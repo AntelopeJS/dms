@@ -13,6 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
 import { z } from "zod";
+import { readJsonRecord } from "./json-record.mjs";
 
 const helpersDir = import.meta.dirname;
 const scriptsDir = nodePath.resolve(helpersDir, "..");
@@ -55,47 +56,48 @@ function run(root, args) {
   return spawnSync(process.execPath, args, { cwd: root, encoding: "utf8" });
 }
 
-/** The `version` of the real package.json. */
-export const shippedVersion = z
-  .object({ version: z.string() })
-  .parse(
-    JSON.parse(
-      readFileSync(nodePath.join(packageRoot, "package.json"), "utf8"),
-    ),
-  ).version;
+/**
+ * The entries of `manifest` named `version`, as the `dmsVersion` entries that
+ * docs-catalog.mjs writes for them.
+ * @param {Record<string, unknown>} manifest
+ * @returns {[string, unknown][]}
+ */
+function expectedVersion(manifest) {
+  return Object.entries(manifest)
+    .filter(([key]) => key === "version")
+    .map(([, value]) => ["dmsVersion", value]);
+}
 
 /**
  * Generate the docs catalogue in a package root whose package.json is the real
  * one after `edit`, then check the generated file against the same script.
+ * The real package.json is read as docs-catalog.mjs reads it, as plain parsed
+ * JSON, so any `version` a contributor commits reaches the script.
  * `dmsVersion` holds the entries of the generated file named `dmsVersion`, so
- * a missing key and a null value stay apart.
+ * a missing key and a null value stay apart, and `shipped` the entries that
+ * the package.json written to the scratch root asks for.
  * @param {(manifest: Record<string, unknown>) => void} edit
  */
 export function generateCatalog(edit) {
   const root = scratchRoot("docs-catalog.mjs", ["@antelopejs"]);
   try {
-    const manifest = record.parse(
-      JSON.parse(
-        readFileSync(nodePath.join(packageRoot, "package.json"), "utf8"),
-      ),
-    );
+    const manifest = readJsonRecord(nodePath.join(packageRoot, "package.json"));
     edit(manifest);
-    writeFileSync(
-      nodePath.join(root, "package.json"),
-      JSON.stringify(manifest),
-    );
+    const written = nodePath.join(root, "package.json");
+    writeFileSync(written, JSON.stringify(manifest));
     const generate = run(root, ["scripts/docs-catalog.mjs"]);
     const catalogPath = nodePath.join(root, "docs-data", "blocks.json");
-    const written = existsSync(catalogPath)
+    const generated = existsSync(catalogPath)
       ? record.parse(JSON.parse(readFileSync(catalogPath, "utf8")))
       : {};
     const check = run(root, ["scripts/docs-catalog.mjs", "--check"]);
     return {
       generate,
       check,
-      dmsVersion: Object.entries(written).filter(
+      dmsVersion: Object.entries(generated).filter(
         ([key]) => key === "dmsVersion",
       ),
+      shipped: expectedVersion(readJsonRecord(written)),
     };
   } finally {
     rmSync(root, { recursive: true, force: true });
