@@ -1,38 +1,148 @@
 /* oxlint-disable max-lines -- antelopejs-api-diff --probe takes a single script file, so this probe cannot be split into modules. */
-const { join } = require("node:path");
+const path = require("node:path");
 const { createRequire } = require("node:module");
 const { execFileSync } = require("node:child_process");
 
 const root = process.argv[2];
 const requireInterface = createRequire(
-  join(root, "packages/interface-dms/package.json"),
+  path.join(root, "packages/interface-dms/package.json"),
 );
 const assert = require("node:assert/strict");
+
+/**
+ * @typedef {{
+ *   "./dist/component.js": typeof import("../../packages/interface-dms/dist/component.js");
+ *   "@antelopejs/interface-api": typeof import("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
+ *   "./dist/auth/internal/jwt-auth-decorator.js": typeof import("../../packages/interface-dms/dist/auth/internal/jwt-auth-decorator.js");
+ *   "./dist/auth/internal/request-authenticators.js": typeof import("../../packages/interface-dms/dist/auth/internal/request-authenticators.js");
+ *   "./dist/utils/internal/type-check.js": typeof import("../../packages/interface-dms/dist/utils/internal/type-check.js");
+ *   "./dist/base/data-types/index.js": typeof import("../../packages/interface-dms/dist/base/data-types/index.js");
+ *   "./dist/base/helpers/file-refs.js": typeof import("../../packages/interface-dms/dist/base/helpers/file-refs.js");
+ *   "./dist/page/internal/registry.js": typeof import("../../packages/interface-dms/dist/page/internal/registry.js");
+ *   "./dist/page/metadata.js": typeof import("../../packages/interface-dms/dist/page/metadata.js");
+ *   "./dist/uploads.js": typeof import("../../packages/interface-dms/dist/uploads.js");
+ *   "./dist/base/display.js": typeof import("../../packages/interface-dms/dist/base/display.js");
+ *   "./dist/base/block-registry/internal/ui.js": typeof import("../../packages/interface-dms/dist/base/block-registry/internal/ui.js");
+ *   "@antelopejs/interface-core": typeof import("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
+ *   "./dist/base/table-view/meta.js": typeof import("../../packages/interface-dms/dist/base/table-view/meta.js");
+ *   "./dist/base/table-view/internal/guards.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/guards.js");
+ *   "./dist/base/table-view/internal/auth.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/auth.js");
+ *   "./dist/base/table-view/internal/realtime.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/realtime.js");
+ *   "./dist/tenant-access.js": typeof import("../../packages/interface-dms/dist/tenant-access.js");
+ *   "./dist/base/table-view/internal/factory-helpers.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/factory-helpers.js");
+ *   "./dist/base/table-view/factory.js": typeof import("../../packages/interface-dms/dist/base/table-view/factory.js");
+ *   "./dist/permissions.js": typeof import("../../packages/interface-dms/dist/permissions.js");
+ *   "@antelopejs/interface-data-api/metadata": typeof import("../../packages/interface-dms/node_modules/@antelopejs/interface-data-api/dist/metadata.js");
+ *   "./dist/page.js": typeof import("../../packages/interface-dms/dist/page.js");
+ * }} InterfaceModules
+ */
+
+/**
+ * The one place this probe reads built interface-dms output: each entry is typed by the declaration the build emits next to it.
+ * @template {keyof InterfaceModules} Entry
+ * @param {Entry} entry
+ * @returns {InterfaceModules[Entry]}
+ */
+function loadInterface(entry) {
+  return requireInterface(entry);
+}
+
+/** @typedef {InstanceType<InterfaceModules["./dist/page/metadata.js"]["PageMetadata"]>} Page */
+
+/**
+ * @param {string} text
+ * @returns {unknown}
+ */
+function parseJson(text) {
+  return JSON.parse(text);
+}
+
+/**
+ * @param {unknown} error
+ * @returns {string | undefined}
+ */
+function messageOf(error) {
+  return error instanceof Error ? error.message : undefined;
+}
+
+/** @typedef {InstanceType<InterfaceModules["./dist/component.js"]["ComponentBuilder"]>} ComponentBuilderInstance */
+
+/**
+ * @param {unknown} value
+ * @returns {number}
+ */
+function watchCount(value) {
+  assert.ok(value instanceof Object && "watchActions" in value && Array.isArray(value.watchActions), "Expected watch actions");
+  return value.watchActions.length;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Function}
+ */
+function ownMethod(value) {
+  assert.ok(value instanceof Function, "Expected a function");
+  return value;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Map<unknown, unknown>}
+ */
+function asMap(value) {
+  assert.ok(value instanceof Map, "Expected a Map");
+  return value;
+}
+
+/**
+ * Reads through a proxy exactly as a proxy without a `get` trap would.
+ * @param {object} target
+ * @param {PropertyKey} key
+ * @param {unknown} receiver
+ * @returns {unknown}
+ */
+function forwardRead(target, key, receiver) {
+  return Reflect.get(target, key, receiver);
+}
+
+/**
+ * Builds an object that inherits from `prototype` and owns `own`, as `Object.create(prototype)` followed by `Object.assign` does.
+ * @param {object} prototype
+ * @param {Record<string, unknown>} own
+ */
+function inherit(prototype, own) {
+  const created = {};
+  Object.setPrototypeOf(created, prototype);
+  return Object.assign(created, own);
+}
+
 const {
   Action,
   Component,
   ComponentBuilder,
   ComponentTarget,
   getPermissionIdRef,
-} = require(join(root, "packages/interface-dms/dist/component.js"));
+} = loadInterface("./dist/component.js");
 
 async function observeTypeBoundaries() {
-  const api = requireInterface("@antelopejs/interface-api");
-  const { CreateJwtAuthDecorator } = requireInterface("./dist/auth/internal/jwt-auth-decorator.js");
-  const { getAuthenticatedRequestTenantId } = requireInterface("./dist/auth/internal/request-authenticators.js");
-  const { isPrimitive } = requireInterface("./dist/utils/internal/type-check.js");
-  const { CreateDataType } = requireInterface("./dist/base/data-types/index.js");
-  const { collectFileRefs, remapRecordFileKeys } = requireInterface("./dist/base/helpers/file-refs.js");
-  const { RegistrationIdentity } = requireInterface("./dist/page/internal/registry.js");
+  const api = loadInterface("@antelopejs/interface-api");
+  const { CreateJwtAuthDecorator } = loadInterface("./dist/auth/internal/jwt-auth-decorator.js");
+  const { getAuthenticatedRequestTenantId } = loadInterface("./dist/auth/internal/request-authenticators.js");
+  const { isPrimitive } = loadInterface("./dist/utils/internal/type-check.js");
+  const { CreateDataType } = loadInterface("./dist/base/data-types/index.js");
+  const { collectFileRefs, remapRecordFileKeys } = loadInterface("./dist/base/helpers/file-refs.js");
+  const { RegistrationIdentity } = loadInterface("./dist/page/internal/registry.js");
   const priorProvider = api.SetParameterProvider;
   const authenticated = [];
+  /** @type {unknown[]} */
   const reads = [];
+  /** @type {Parameters<typeof api.SetParameterProvider>[3] | undefined} */
   let provider;
   api.SetParameterProvider = (_target, _key, _index, value) => { provider = value; };
   try {
-    for (const value of [null, false, 17, "plain", {}, { _id: 23 }, Object.assign(Object.create({
+    for (const value of [null, false, 17, "plain", {}, { _id: 23 }, inherit({
       get _id() { reads.push(this.marker === 31); return "user-31"; },
-    }), { marker: 31 })]) {
+    }, { marker: 31 })]) {
       const decorate = CreateJwtAuthDecorator({
         authenticator: async () => ({ tenantId: "tenant-17" }),
         validator: async () => value,
@@ -48,11 +158,11 @@ async function observeTypeBoundaries() {
   } finally {
     api.SetParameterProvider = priorProvider;
   }
+  /** @type {unknown[]} */
   const keyReads = [];
-  const node = Object.create({
+  const node = inherit({
     get key() { keyReads.push(this === node); return "image-17"; },
-  });
-  node.extra = 31;
+  }, { extra: 31 });
   const columns = { image: { type: CreateDataType("image", { storage: "proof" }) } };
   const refs = collectFileRefs(columns, { image: node });
   const remapped = await remapRecordFileKeys(columns, { image: node }, async (key, storage) => `${storage}/${key}`);
@@ -63,7 +173,7 @@ async function observeTypeBoundaries() {
   const view = new Proxy(original, {
     get(target, key, receiver) {
       if (key === Symbol.for("@antelopejs/interface-dms:pageRegistration")) tokenReads++;
-      return Reflect.get(target, key, receiver);
+      return forwardRead(target, key, receiver);
     },
   });
   return {
@@ -79,8 +189,8 @@ async function observeTypeBoundaries() {
 }
 
 async function observeUploadConstraintReads() {
-  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
-  const uploads = requireInterface("./dist/uploads.js");
+  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
+  const uploads = loadInterface("./dist/uploads.js");
   const priorSigner = uploads.SignUploadToken;
   const observed = [];
   try {
@@ -88,6 +198,7 @@ async function observeUploadConstraintReads() {
       const page = new PageMetadata(class ConstraintReadProbe {});
       page.skipComponentPermissions = true;
       page.componentMap.set("constraint.component", { access: "own" });
+      /** @type {unknown[]} */
       const trace = [];
       let maxReads = 0;
       let mimeReads = 0;
@@ -98,12 +209,14 @@ async function observeUploadConstraintReads() {
           if (key === "allowedMimetypes") return ++mimeReads === 1 ? [17] : [false, "image/png", 31];
         },
       });
+      /** @type {Record<string, unknown>} */
       const values = { undefined, null: null, false: false, number: 17, string: "plain", array: [], proxy };
       const options = {
         get constraints() { trace.push(["constraints", this === options]); return values[mode]; },
       };
+      /** @type {unknown} */
       let constraints;
-      uploads.SignUploadToken = async (registration) => {
+      uploads.SignUploadToken = async (/** @type {{ constraints?: unknown }} */ registration) => {
         constraints = registration.constraints;
         page.detached = true;
         return "constraint-probe-token";
@@ -167,16 +280,17 @@ function observeDefaultTypesFresh() {
     "./dist/base/data-types/default-types.js",
     "./dist/base/data-types/index.js",
     "./dist/base/table-view.js",
-  ].map((entry) => JSON.parse(execFileSync(process.execPath, ["-e", script, root, entry], { encoding: "utf8" })));
+  ].map((entry) => parseJson(execFileSync(process.execPath, ["-e", script, root, entry], { encoding: "utf8" })));
 }
 
 function observeDataTypesAndHints() {
-  const { blockFetchUrlOption } = requireInterface("./dist/base/display.js");
-  const { getUiHints } = requireInterface(
+  const { blockFetchUrlOption } = loadInterface("./dist/base/display.js");
+  const { getUiHints } = loadInterface(
     "./dist/base/block-registry/internal/ui.js",
   );
   const { DataType, RegisterDataType, RegisterDataCompareMode, serializeType } =
-    requireInterface("./dist/base/data-types/index.js");
+    loadInterface("./dist/base/data-types/index.js");
+  /** @type {unknown[]} */
   const registrations = [];
   class EmptyMode {
     constructor() {
@@ -213,10 +327,14 @@ function observeDataTypesAndHints() {
   return { hints, registrations, type: serializeType(new ProbeType()) };
 }
 
+/**
+ * @param {InterfaceModules["./dist/tenant-access.js"]} tenantAccess
+ */
 function openTenantGate(tenantAccess) {
   const previousGate = tenantAccess.CheckTenantAccess;
+  /** @type {unknown[]} */
   const gates = [];
-  tenantAccess.CheckTenantAccess = async (...args) => {
+  tenantAccess.CheckTenantAccess = async (/** @type {unknown[]} */ ...args) => {
     gates.push(args);
     return { allowed: true };
   };
@@ -228,11 +346,20 @@ function openTenantGate(tenantAccess) {
   };
 }
 
+/**
+ * @param {object} receiver
+ */
 function bodyRewritingGuards(receiver) {
+  /** @type {unknown[]} */
   const events = [];
   return {
     events,
     guards: {
+      /**
+       * @this {object}
+       * @param {unknown} _context
+       * @param {{ body: { count: number, discard?: unknown } }} request
+       */
       new: function (_context, { body: value }) {
         events.push({ guardReceiver: this === receiver });
         value.count += 7;
@@ -244,22 +371,23 @@ function bodyRewritingGuards(receiver) {
 }
 
 async function observeRoutes() {
-  const { GetMetadata } = requireInterface("@antelopejs/interface-core");
-  const { TableViewMeta } = requireInterface("./dist/base/table-view/meta.js");
-  const { createGuardedRoute } = requireInterface(
+  const { GetMetadata } = loadInterface("@antelopejs/interface-core");
+  const { TableViewMeta } = loadInterface("./dist/base/table-view/meta.js");
+  const { createGuardedRoute } = loadInterface(
     "./dist/base/table-view/internal/guards.js",
   );
-  const { withActionCheck } = requireInterface(
+  const { withActionCheck } = loadInterface(
     "./dist/base/table-view/internal/auth.js",
   );
-  const { withRealtimeMutation, withPresenceAcquire } = requireInterface(
+  const { withRealtimeMutation, withPresenceAcquire } = loadInterface(
     "./dist/base/table-view/internal/realtime.js",
   );
-  const tenantAccess = requireInterface("./dist/tenant-access.js");
+  const tenantAccess = loadInterface("./dist/tenant-access.js");
   class ProbeController {}
   const receiver = new Proxy(new ProbeController(), {});
   const meta = GetMetadata(ProbeController, TableViewMeta);
   meta.options.realtime = false;
+  /** @type {unknown[]} */
   const calls = [];
   const context = { rawRequest: { headers: {} } };
   const params = { id: "row-31" };
@@ -268,6 +396,10 @@ async function observeRoutes() {
   const base = {
     method: "post",
     args: [],
+    /**
+     * @this {object}
+     * @param {unknown[]} args
+     */
     async func(...args) {
       calls.push({
         receiver: this === receiver,
@@ -283,6 +415,7 @@ async function observeRoutes() {
     base,
   );
   const presence = withPresenceAcquire(base);
+  /** @type {unknown} */
   const mutationResult = await mutation.func.call(
     receiver,
     context,
@@ -293,6 +426,7 @@ async function observeRoutes() {
     "session-1",
     { _id: "user-1" },
   );
+  /** @type {unknown} */
   const presenceResult = await presence.func.call(
     receiver,
     context,
@@ -305,6 +439,7 @@ async function observeRoutes() {
     { _id: "user-2" },
   );
   const gate = openTenantGate(tenantAccess);
+  /** @type {unknown} */
   let authResult;
   try {
     authResult = await withActionCheck("probe", base).func.call(
@@ -330,6 +465,7 @@ async function observeRoutes() {
     },
     "new",
   );
+  /** @type {unknown} */
   const guardResult = await guarded.func.call(
     receiver,
     context,
@@ -338,6 +474,7 @@ async function observeRoutes() {
     "trailing",
   );
   meta.setControllerGuards({});
+  /** @type {boolean | undefined} */
   let untouched;
   await createGuardedRoute(
     {
@@ -361,7 +498,7 @@ async function observeRoutes() {
 }
 
 function observeFactoryHelpers() {
-  const helpers = requireInterface(
+  const helpers = loadInterface(
     "./dist/base/table-view/internal/factory-helpers.js",
   );
   const flags = [
@@ -424,10 +561,11 @@ function observeFactoryHelpers() {
 }
 
 function observePageInfoPrecedence() {
-  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
-  const { GetMetadata } = requireInterface("@antelopejs/interface-core");
+  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
+  const { GetMetadata } = loadInterface("@antelopejs/interface-core");
   const results = [];
   for (const mode of ["explicit", "menu", "ancestor", "default", "controller"]) {
+    /** @type {unknown[]} */
     const trace = [];
     const explicit = { componentName: "explicit-layout" };
     const menuLayout = { componentName: "menu-layout" };
@@ -447,7 +585,7 @@ function observePageInfoPrecedence() {
       {
         get(target, key, receiver) {
           trace.push(`category.${String(key)}`);
-          return Reflect.get(target, key, receiver);
+          return forwardRead(target, key, receiver);
         },
       },
     );
@@ -469,7 +607,7 @@ function observePageInfoPrecedence() {
     const menu = new Proxy(options, {
       get(target, key, receiver) {
         trace.push(`menu.${String(key)}`);
-        return Reflect.get(target, key, receiver);
+        return forwardRead(target, key, receiver);
       },
     });
     class Controller {}
@@ -487,9 +625,10 @@ function observePageInfoPrecedence() {
       mode === "explicit" ? explicit : undefined,
     );
     const info = page.pageInfo;
+    const pageCategory = info?.category;
     const snapshot = {
       ...info,
-      category: info.category?.fullId,
+      category: pageCategory && "fullId" in pageCategory ? pageCategory.fullId : undefined,
     };
     results.push({
       mode,
@@ -510,8 +649,8 @@ function observePageInfoPrecedence() {
 }
 
 function observePageAndTableMetadata() {
-  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
-  const { TableViewMeta } = requireInterface("./dist/base/table-view/meta.js");
+  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
+  const { TableViewMeta } = loadInterface("./dist/base/table-view/meta.js");
   class ParentController {}
   class ChildController {}
   const parent = new PageMetadata(ParentController);
@@ -572,17 +711,18 @@ function observePageAndTableMetadata() {
 }
 
 async function observeTableViewLifecycle() {
-  const { TableView } = requireInterface("./dist/base/table-view/factory.js");
-  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
-  const { permissionMap } = requireInterface(
+  const { TableView } = loadInterface("./dist/base/table-view/factory.js");
+  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
+  const { permissionMap } = loadInterface(
     "./dist/page/internal/registry.js",
   );
-  const permissions = requireInterface("./dist/permissions.js");
-  const { GetMetadata } = requireInterface("@antelopejs/interface-core");
-  const { DataAPIMeta } = requireInterface(
+  const permissions = loadInterface("./dist/permissions.js");
+  const { GetMetadata } = loadInterface("@antelopejs/interface-core");
+  const { DataAPIMeta } = loadInterface(
     "@antelopejs/interface-data-api/metadata",
   );
   const previous = permissions.HasPermission;
+  /** @type {unknown[]} */
   const calls = [];
   permissions.HasPermission = async (held, id) => {
     calls.push(id);
@@ -616,17 +756,19 @@ async function observeTableViewLifecycle() {
       permissionMap.set(parent.target, "page");
       receiver.onPageCreated(parent);
       const serialized = receiver.serializeSync();
+      /** @type {unknown} */
       const filtered = await receiver.onFilterCallback(
         new Set(["page.table.edit", "page.table.view"]),
         serialized.options,
         "page.table",
         { tenantId: "tenant" },
       );
+      /** @type {string | undefined} */
       let missingPage;
       try {
         receiver.onPageCreated(new PageMetadata(class EmptyPage {}));
       } catch (error) {
-        missingPage = error.message;
+        missingPage = messageOf(error);
       }
       results.push({
         serialized,
@@ -645,14 +787,15 @@ async function observeTableViewLifecycle() {
 }
 
 async function observeExtractedPageCalls() {
-  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
-  const api = requireInterface("@antelopejs/interface-api");
-  const permissions = requireInterface("./dist/permissions.js");
-  const { pageLayoutHandlers } = requireInterface("./dist/page/internal/registry.js");
+  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
+  const api = loadInterface("@antelopejs/interface-api");
+  const permissions = loadInterface("./dist/permissions.js");
+  const { pageLayoutHandlers } = loadInterface("./dist/page/internal/registry.js");
   const priorRegister = api.RegisterRoute;
   const priorUnregister = api.UnregisterRoute;
   const priorPermission = permissions.HasPermission;
   let route;
+  /** @type {unknown[]} */
   const calls = [];
   const page = new PageMetadata(class ForwardingProbe {});
   api.RegisterRoute = (value) => {
@@ -661,7 +804,7 @@ async function observeExtractedPageCalls() {
   };
   api.UnregisterRoute = () => {};
   try {
-    page.resolvePageLayout = function (...args) {
+    page.resolvePageLayout = /** @this {Page} @param {unknown[]} args */ function (...args) {
       calls.push({
         receiver: this === page,
         argc: args.length,
@@ -685,6 +828,7 @@ async function observeExtractedPageCalls() {
   }
   permissions.HasPermission = async () => false;
   let pageInfoReads = 0;
+  /** @type {unknown} */
   let layout;
   try {
     const owner = new PageMetadata(class LazyReadProbe {});
@@ -699,7 +843,7 @@ async function observeExtractedPageCalls() {
           pageInfoReads++;
           return { publicAccess: pageInfoReads > 1 };
         }
-        return Reflect.get(target, key, receiver);
+        return forwardRead(target, key, receiver);
       },
     });
     layout = await receiver.resolvePageLayout({ tenantId: "tenant" });
@@ -710,16 +854,20 @@ async function observeExtractedPageCalls() {
   const receiver = new Proxy(new PageMetadata(class RecursionProbe {}), {
     get(target, key, owner) {
       if (key === "bindUploadOptions") recursiveMethodReads++;
-      return Reflect.get(target, key, owner);
+      return forwardRead(target, key, owner);
     },
   });
   await receiver.bindUploadOptions({ a: { b: 17 } }, "probe", "page.probe", []);
   return { calls, pageInfoReads, layout, recursiveMethodReads };
 }
 
+/**
+ * @param {() => Page} fresh
+ */
 function publishOrder(fresh) {
   return [false, true].map((readAuthOnly) => {
     const page = fresh();
+    /** @type {unknown[]} */
     const trace = [];
     const info = {
       fullId: `order-publish-${readAuthOnly}`,
@@ -737,17 +885,23 @@ function publishOrder(fresh) {
     try {
       page.publish(info);
     } catch (error) {
-      if (error.message !== "order-stop") throw error;
+      if (messageOf(error) !== "order-stop") throw error;
     }
-    const state = { trace, moduleScoped: page.moduleScoped };
+    /** @type {unknown} */
+    const moduleScoped = page.moduleScoped;
+    const state = { trace, moduleScoped };
     page.Dispose();
     return state;
   });
 }
 
+/**
+ * @param {() => Page} fresh
+ */
 function notifyOrder(fresh) {
   return ["absent", "replace", "distinct"].map((mode) => {
     const page = fresh();
+    /** @type {unknown[]} */
     const trace = [];
     let calls = 0;
     let reads = 0;
@@ -765,7 +919,7 @@ function notifyOrder(fresh) {
         trace.push(["hook", this === component]);
         if (mode === "absent") return undefined;
         if (mode === "replace") live = new Set([component]);
-        return function (owner) {
+        return /** @this {object} @param {unknown} owner */ function (owner) {
           calls++;
           trace.push(["call", this === component, owner === page]);
         };
@@ -776,9 +930,13 @@ function notifyOrder(fresh) {
   });
 }
 
+/**
+ * @param {() => Page} fresh
+ */
 function takenKeysOrder(fresh) {
   return [false, true].map((throws) => {
     const page = fresh();
+    /** @type {unknown[]} */
     const trace = [];
     let live = new Map();
     Object.defineProperty(page, "pageInfo", {
@@ -798,30 +956,33 @@ function takenKeysOrder(fresh) {
     Object.defineProperty(page, "extensionEntries", {
       get() { trace.push(["entries", this === page]); return live; },
     });
+    /** @type {unknown[] | undefined} */
     let keys;
     try {
-      keys = [...page.takenComponentKeys()];
+      keys = [...asMap(page.takenComponentKeys())];
     } catch (error) {
-      if (!throws || error.message !== "order-stop") throw error;
+      if (!throws || messageOf(error) !== "order-stop") throw error;
     }
     return { throws, trace, keys: keys ?? null };
   });
 }
 
 async function observeEvaluationOrder() {
-  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
+  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
   const fresh = () => new PageMetadata(class EvaluationOrderProbe {});
   const results = {};
   results.publish = publishOrder(fresh);
-  const api = requireInterface("@antelopejs/interface-api");
+  const api = loadInterface("@antelopejs/interface-api");
   const register = api.RegisterRoute;
   const unregister = api.UnregisterRoute;
+  /** @type {Parameters<typeof api.RegisterRoute>[0] | undefined} */
   let route;
   api.RegisterRoute = (value) => { route = value; return "order-route"; };
   api.UnregisterRoute = () => {};
   try {
     class First {}
     class Second {}
+    /** @type {unknown[]} */
     const trace = [];
     let reads = 0;
     const receiver = new Proxy(fresh(), {
@@ -830,7 +991,7 @@ async function observeEvaluationOrder() {
           trace.push(["target", ++reads, owner === receiver]);
           return reads === 1 ? First : Second;
         }
-        return Reflect.get(target, key, owner);
+        return forwardRead(target, key, owner);
       },
     });
     receiver.registerLayoutRoute({
@@ -848,8 +1009,9 @@ async function observeEvaluationOrder() {
   for (const throws of [false, true]) {
     const page = fresh();
     page.takenComponentKeys = () => new Map();
-    const stale = page.extensionEntries;
+    const stale = asMap(page.extensionEntries);
     const replacement = new Map();
+    /** @type {unknown[]} */
     const trace = [];
     let live = stale;
     Object.defineProperty(page, "extensionEntries", {
@@ -868,7 +1030,7 @@ async function observeEvaluationOrder() {
     try {
       await page.addExtension(info);
     } catch (error) {
-      if (!throws || error.message !== "order-stop") throw error;
+      if (!throws || messageOf(error) !== "order-stop") throw error;
     }
     results.addExtension.push({ throws, trace, liveContains: replacement.has(info), staleContains: stale.has(info) });
   }
@@ -899,6 +1061,11 @@ async function observeEvaluationOrder() {
   return results;
 }
 
+/**
+ * @param {InterfaceModules["./dist/page/metadata.js"]["PageMetadata"]} PageMetadata
+ * @param {InterfaceModules["./dist/page/internal/registry.js"]["pageExtensions"]} pageExtensions
+ * @param {boolean} throws
+ */
 async function ownerExtensionComponent(PageMetadata, pageExtensions, throws) {
   const page = new PageMetadata(class ExtensionOwnerAccessorProbe {});
   const before = new ComponentBuilder("before").options({ marker: "before" });
@@ -909,8 +1076,9 @@ async function ownerExtensionComponent(PageMetadata, pageExtensions, throws) {
     targetFullId: `owner-accessor-probe-${throws}`,
     components: [contribution],
   };
+  /** @type {unknown[]} */
   const trace = [];
-  page.prepareComponent = function (...args) {
+  page.prepareComponent = /** @this {Page} @param {[ComponentBuilderInstance, string]} args */ function (...args) {
     trace.push(["prepare", this === page, args.length, args[0].serializeSync().options.marker, args[1]]);
     throw new Error("owner-accessor-prepare-stop");
   };
@@ -918,7 +1086,7 @@ async function ownerExtensionComponent(PageMetadata, pageExtensions, throws) {
     get() {
       trace.push(["get", this === page]);
       contribution.component = after;
-      return function (...args) {
+      return /** @this {Page} @param {[ComponentBuilderInstance, string]} args */ function (...args) {
         trace.push(["call", this === page, args.length, args[0].serializeSync().options.marker, args[1]]);
         return async () => ({ key: args[1], serialized: args[0].serializeSync() });
       };
@@ -935,6 +1103,10 @@ async function ownerExtensionComponent(PageMetadata, pageExtensions, throws) {
   }
 }
 
+/**
+ * @param {InterfaceModules["./dist/page/metadata.js"]["PageMetadata"]} PageMetadata
+ * @param {InterfaceModules["./dist/page/internal/registry.js"]["pageExtensions"]} pageExtensions
+ */
 function ownerAccessorCases(PageMetadata, pageExtensions) {
   return {
     async preparePermissionId() {
@@ -942,6 +1114,7 @@ function ownerAccessorCases(PageMetadata, pageExtensions) {
       page.skipComponentPermissions = true;
       page.pagePermissionId = "before";
       const component = new ComponentBuilder("child").options({ marker: 17 });
+      /** @type {unknown[]} */
       const trace = [];
       Object.defineProperty(page, "bindNativeUploadFields", {
         get() {
@@ -963,6 +1136,7 @@ function ownerAccessorCases(PageMetadata, pageExtensions) {
       const page = new PageMetadata(class UploadNameOwnerAccessorProbe {});
       page.componentMap.set("page.child", { access: "own" });
       const serialized = { componentName: "before", options: { marker: 17 } };
+      /** @type {unknown[]} */
       const trace = [];
       Object.defineProperty(page, "bindUploadOptions", {
         get() {
@@ -982,13 +1156,14 @@ function ownerAccessorCases(PageMetadata, pageExtensions) {
       const component = new ComponentBuilder("child").options({ marker: 17 }).serializeSync();
       const child = { id: "before", component };
       const serialized = { componentName: "parent", children: [child] };
+      /** @type {unknown[]} */
       const trace = [];
-      const bind = page.bindNativeUploadFields;
+      const bind = ownMethod(page.bindNativeUploadFields);
       Object.defineProperty(page, "bindNativeUploadFields", {
         get() {
           trace.push(["get", this === page]);
           child.id = "after";
-          return async function (...args) {
+          return async function (/** @type {unknown[]} */ ...args) {
             trace.push(["call", this === page, args.length, args[0] === component, args[1]]);
           };
         },
@@ -1005,6 +1180,7 @@ function ownerAccessorCases(PageMetadata, pageExtensions) {
     async unregisterNodeComponent() {
       const page = new PageMetadata(class UnregisterNodeOwnerAccessorProbe {});
       page.registersComponentPermissions = () => true;
+      /** @type {unknown[]} */
       const trace = [];
       let component = "before";
       const node = {
@@ -1029,7 +1205,8 @@ function ownerAccessorCases(PageMetadata, pageExtensions) {
     },
     async uploadPathIterator() {
       const page = new PageMetadata(class UploadPathOwnerAccessorProbe {});
-      const bind = page.bindUploadOptions;
+      const bind = ownMethod(page.bindUploadOptions);
+      /** @type {unknown[]} */
       const trace = [];
       let segment = "before";
       const path = {
@@ -1054,8 +1231,8 @@ function ownerAccessorCases(PageMetadata, pageExtensions) {
 }
 
 async function observeOwnerAccessorOrder() {
-  const { PageMetadata } = requireInterface("./dist/page/metadata.js");
-  const { pageExtensions } = requireInterface("./dist/page/internal/registry.js");
+  const { PageMetadata } = loadInterface("./dist/page/metadata.js");
+  const { pageExtensions } = loadInterface("./dist/page/internal/registry.js");
   const results = {};
   const expected = {};
   const failures = [];
@@ -1076,15 +1253,15 @@ async function observeOwnerAccessorOrder() {
     }
   }
   if (failures.length) {
-    throw new AggregateError(failures, `Owner accessor order failed: ${JSON.stringify(results)}\n${failures.map((error) => error.stack).join("\n")}`);
+    throw new AggregateError(failures, `Owner accessor order failed: ${JSON.stringify(results)}\n${failures.map((error) => (error instanceof Error ? error.stack : String(error))).join("\n")}`);
   }
   return results;
 }
 
 async function observePublicWatchFilterOrder() {
-  const { GetMetadata } = requireInterface("@antelopejs/interface-core");
-  const { DataAPIMeta } = requireInterface("@antelopejs/interface-data-api/metadata");
-  const { TableView } = requireInterface("./dist/base/table-view/factory.js");
+  const { GetMetadata } = loadInterface("@antelopejs/interface-core");
+  const { DataAPIMeta } = loadInterface("@antelopejs/interface-data-api/metadata");
+  const { TableView } = loadInterface("./dist/base/table-view/factory.js");
   const results = [];
   for (let trial = 0; trial < 3; trial++) {
     class Controller {}
@@ -1093,6 +1270,7 @@ async function observePublicWatchFilterOrder() {
     GetMetadata(Controller, DataAPIMeta).tableClass = Table;
     let expired = false;
     let reads = 0;
+    /** @type {unknown[]} */
     const trace = [];
     const builder = TableView(Controller, {
       realtime: false,
@@ -1116,8 +1294,9 @@ async function observePublicWatchFilterOrder() {
         return false;
       },
     });
+    /** @type {unknown} */
     const result = await builder.onFilterCallback(new Set(["*"]), options, "page.table", {});
-    results.push({ trace, watches: result.watchActions.length });
+    results.push({ trace, watches: watchCount(result) });
   }
   assert.deepEqual(results, Array.from({ length: 3 }, () => ({
     trace: ["watchFilter", "expire"],
@@ -1127,10 +1306,11 @@ async function observePublicWatchFilterOrder() {
 }
 
 async function observePublicPageScheduling() {
-  const { ImplementInterface } = requireInterface("@antelopejs/interface-core");
-  const { PageMetadata, GetPageLayoutBySlug } = requireInterface("./dist/page.js");
-  const { SignUploadToken } = requireInterface("./dist/uploads.js");
+  const { ImplementInterface } = loadInterface("@antelopejs/interface-core");
+  const { PageMetadata, GetPageLayoutBySlug } = loadInterface("./dist/page.js");
+  const { SignUploadToken } = loadInterface("./dist/uploads.js");
   ImplementInterface({ SignUploadToken }, { SignUploadToken: async () => "timing-token" });
+  /** @type {unknown[]} */
   const trace = [];
   let ticks = 0;
   let active = true;
@@ -1168,11 +1348,12 @@ async function observePublicPageScheduling() {
     assert.deepEqual(Object.keys(result.components), ["first", "second"]);
     active = false;
     const failure = new Error("request getter");
+    /** @type {Promise<unknown> | undefined} */
     let rejected;
     assert.doesNotThrow(() => {
       rejected = layout({ get query() { throw failure; } });
     });
-    await assert.rejects(rejected, error => error === failure);
+    await assert.rejects(rejected, (/** @type {unknown} */ error) => error === failure);
     return trace;
   } finally {
     active = false;
@@ -1194,6 +1375,7 @@ async function observe() {
   const view = new Proxy(builder, {});
   const sync = view.serializeSync();
   const serialized = await view.serialize();
+  /** @type {unknown} */
   const filtered = await view.onFilterCallback(
     new Set(["page.component.refresh"]),
     serialized.options,
@@ -1201,6 +1383,7 @@ async function observe() {
     { tenantId: "tenant", user: undefined },
   );
   const shadowedCallFilter = Object.assign(
+    /** @this {{ metadata: { name: string } }} @param {unknown} _permissions @param {Record<string, unknown>} options */
     function (_permissions, options) {
       return { ...options, receiver: this.metadata.name };
     },
@@ -1209,6 +1392,7 @@ async function observe() {
   const shadowedCallBuilder = new ComponentBuilder("probe")
     .options({ x: 17 })
     .onFilter(shadowedCallFilter);
+  /** @type {unknown} */
   const shadowedCall = await shadowedCallBuilder.onFilterCallback(
     new Set(),
     { x: 17 },
@@ -1221,7 +1405,8 @@ async function observe() {
     () => undefined,
   );
   const target = new ComponentTarget(plain, ["left", "right"]);
-  const priorGet = getPermissionIdRef.get;
+  const priorGet = Object.getOwnPropertyDescriptor(getPermissionIdRef, "get");
+  assert.ok(priorGet, "getPermissionIdRef.get is an own property");
   getPermissionIdRef.get = (component) =>
     component === plain ? "page.plain" : undefined;
   const action = new Action(
@@ -1230,7 +1415,7 @@ async function observe() {
     plain,
   );
   const permission = action.toPermission();
-  getPermissionIdRef.get = priorGet;
+  Object.defineProperty(getPermissionIdRef, "get", priorGet);
   return {
     sync,
     serialized,
@@ -1264,7 +1449,7 @@ async function observe() {
 
 observe()
   .then((result) => process.stdout.write(JSON.stringify(result)))
-  .catch((error) => {
-    process.stderr.write(String(error.stack));
+  .catch((/** @type {unknown} */ error) => {
+    process.stderr.write(String(error instanceof Error ? error.stack : error));
     process.exitCode = 1;
   });

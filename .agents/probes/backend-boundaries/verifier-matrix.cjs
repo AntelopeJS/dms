@@ -8,6 +8,10 @@ const verifierGroups = [
   { folder: "dist", extensions: ["js", "mjs", "cjs"] },
 ];
 
+/**
+ * @param {string} folder
+ * @param {string} extension
+ */
 function escapeBodies(folder, extension) {
   if (extension === "mts" || extension === "mjs")
     return [
@@ -27,6 +31,10 @@ function escapeBodies(folder, extension) {
   ];
 }
 
+/**
+ * @param {string} folder
+ * @param {string} extension
+ */
 function verifierProbe(folder, extension) {
   const bodies = escapeBodies(folder, extension);
   const file = join(

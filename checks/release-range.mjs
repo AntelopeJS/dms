@@ -2,8 +2,15 @@
  * The first three dot-separated fields of a version, read as numbers. The
  * prerelease suffix is dropped and build metadata is not, so a patch field that
  * carries `+build` reads as `NaN`.
+ * @param {string} a
+ * @param {string} b
+ * @returns {number}
  */
 const compare = (a, b) => {
+  /**
+   * @param {string} v
+   * @returns {number[]}
+   */
   const parts = (v) => v.split("-")[0].split(".").map(Number);
   const [x, y] = [parts(a), parts(b)];
   return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];

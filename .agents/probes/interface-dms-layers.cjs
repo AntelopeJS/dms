@@ -1,8 +1,12 @@
 const fs = require("node:fs");
 const os = require("node:os");
-const { join, relative, sep } = require("node:path");
+const nodePath = require("node:path");
+const { sep } = nodePath;
 
-/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator. */
+/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator.
+ * @param {string} left
+ * @param {string} right
+ */
 function byCodeUnit(left, right) {
   if (left < right) return -1;
   return left > right ? 1 : 0;
@@ -10,8 +14,8 @@ function byCodeUnit(left, right) {
 
 const root = process.argv[2];
 const report = process.env.INTERFACE_DMS_LAYERS_REPORT === "1";
-const packageRoot = join(root, "packages/interface-dms");
-const realDist = join(packageRoot, "dist");
+const packageRoot = nodePath.join(root, "packages/interface-dms");
+const realDist = nodePath.join(packageRoot, "dist");
 
 /** @type {Array<[oldEntry: string, names: string[], newEntry: string]>} */
 const MOVED = [
@@ -92,7 +96,7 @@ const NEW_MODULES = new Set([
   "watch-actions.js",
 ]);
 
-const MOVED_FROM = {
+const MOVED_FROM = new Map(Object.entries({
   "component-options/data-type.js": "base/data-types/core.js",
   "component-options/page-layout.js": "base/layouts.js",
   "component-options/confirm-dialog.js": "base/confirm-dialog.js",
@@ -110,7 +114,7 @@ const MOVED_FROM = {
   "export-status.js": "base/types/export-status.js",
   "tones.js": "base/types/tone.js",
   "watch-actions.js": "base/types/watch.js",
-};
+}));
 
 const ISOLATED = [
   "index.js",
@@ -177,23 +181,44 @@ const ISOLATED = [
   "page/types.js",
 ];
 
+/** @type {Map<unknown, unknown>["set"]} */
 const originalMapSet = Map.prototype.set;
+/** @type {Map<unknown, unknown>["has"]} */
 const originalMapHas = Map.prototype.has;
+/** @type {WeakMap<object, unknown>["set"]} */
 const originalWeakMapSet = WeakMap.prototype.set;
+/** @type {WeakMap<object, unknown>["has"]} */
 const originalWeakMapHas = WeakMap.prototype.has;
+/** @type {WeakMap<object, string | null>["get"]} */
 const originalWeakMapGet = WeakMap.prototype.get;
+/** @type {Set<unknown>["add"]} */
 const originalSetAdd = Set.prototype.add;
+/** @type {Set<unknown>["has"]} */
 const originalSetHas = Set.prototype.has;
 
+/**
+ * @typedef {{
+ *   distRoot: string;
+ *   labels: WeakMap<object, string | null>;
+ *   ordinals: Map<string, number>;
+ *   inserts: Map<string, string[]>;
+ * }} Recording
+ */
+
+/** @type {Recording | undefined} */
 let recording;
 let inside = false;
 
+/**
+ * @param {unknown} key
+ * @returns {string}
+ */
 function describeKey(key) {
   if (typeof key === "string" || typeof key === "number") return String(key);
   if (typeof key === "symbol") return key.toString();
   if (typeof key === "function") return `fn:${key.name || "anonymous"}`;
   if (key === null || typeof key !== "object") return String(key);
-  const tag = Object.getPrototypeOf(key)?.constructor?.name ?? "null";
+  const tag = Reflect.getPrototypeOf(key)?.constructor?.name ?? "null";
   for (const field of ["id", "name", "key"]) {
     const own = Object.getOwnPropertyDescriptor(key, field);
     if (own && "value" in own && typeof own.value === "string") {
@@ -203,7 +228,12 @@ function describeKey(key) {
   return `obj:${tag}`;
 }
 
-function containerLabel(container) {
+/**
+ * @param {Recording} recording
+ * @param {object} container
+ * @returns {string | null}
+ */
+function containerLabel(recording, container) {
   if (originalWeakMapHas.call(recording.labels, container)) {
     return originalWeakMapGet.call(recording.labels, container);
   }
@@ -212,6 +242,7 @@ function containerLabel(container) {
   const stack = new Error().stack ?? "";
   Error.stackTraceLimit = limit;
   const prefix = recording.distRoot + sep;
+  /** @type {string | undefined} */
   let file;
   for (const line of stack.split("\n").slice(1)) {
     const at = line.indexOf(prefix);
@@ -222,7 +253,7 @@ function containerLabel(container) {
   }
   let label = null;
   if (file) {
-    const canonical = MOVED_FROM[file] ?? file;
+    const canonical = MOVED_FROM.get(file) ?? file;
     const ordinal = (recording.ordinals.get(canonical) ?? 0) + 1;
     originalMapSet.call(recording.ordinals, canonical, ordinal);
     label = `${canonical}#${ordinal}`;
@@ -231,11 +262,16 @@ function containerLabel(container) {
   return label;
 }
 
+/**
+ * @param {object} container
+ * @param {unknown} key
+ * @param {boolean} isNew
+ */
 function record(container, key, isNew) {
   if (!recording || inside || !isNew) return;
   inside = true;
   try {
-    const label = containerLabel(container);
+    const label = containerLabel(recording, container);
     if (label) {
       const list = recording.inserts.get(label) ?? [];
       list.push(describeKey(key));
@@ -272,6 +308,20 @@ function globalsSnapshot() {
   };
 }
 
+/**
+ * The one place this probe reads a module out of a dist tree: the modules are inspected as opaque records of exports.
+ * @param {string} distRoot
+ * @param {string} entry
+ * @returns {Record<string, unknown>}
+ */
+function loadDist(distRoot, entry) {
+  return require(nodePath.join(distRoot, entry));
+}
+
+/**
+ * @param {string} distRoot
+ * @param {string} entry
+ */
 function loadAlone(distRoot, entry) {
   clearCache();
   const before = globalsSnapshot();
@@ -281,9 +331,10 @@ function loadAlone(distRoot, entry) {
     ordinals: new Map(),
     inserts: new Map(),
   };
+  /** @type {string | undefined} */
   let error;
   try {
-    require(join(distRoot, entry));
+    loadDist(distRoot, entry);
   } catch (caught) {
     error = String(caught && caught.message);
   }
@@ -296,7 +347,7 @@ function loadAlone(distRoot, entry) {
   const loadSet = Object.keys(require.cache)
     .map((file) =>
       file.startsWith(distRoot + sep)
-        ? relative(distRoot, file).split(sep).join("/")
+        ? nodePath.relative(distRoot, file).split(sep).join("/")
         : `npm:${file.slice(file.lastIndexOf(`node_modules${sep}`) + 13)}`,
     )
     .sort(byCodeUnit);
@@ -311,11 +362,16 @@ function loadAlone(distRoot, entry) {
   };
 }
 
+/**
+ * @param {object} exportsObject
+ * @returns {string[]}
+ */
 function describeExports(exportsObject) {
   return Reflect.ownKeys(exportsObject).map((key) => {
     const d = Object.getOwnPropertyDescriptor(exportsObject, key);
     const flags = `${d.enumerable ? "e" : "-"}${d.configurable ? "c" : "-"}`;
     if (!("value" in d)) return `${String(key)} accessor ${flags}`;
+    /** @type {unknown} */
     const value = d.value;
     const type =
       typeof value === "function"
@@ -327,42 +383,56 @@ function describeExports(exportsObject) {
   });
 }
 
+/**
+ * @param {string} distRoot
+ * @returns {string[]}
+ */
 function listEntries(distRoot) {
+  /** @type {string[]} */
   const files = [];
-  (function walk(directory) {
+  (function walk(/** @type {string} */ directory) {
     for (const item of fs.readdirSync(directory, { withFileTypes: true })) {
-      const full = join(directory, item.name);
+      const full = nodePath.join(directory, item.name);
       if (item.isDirectory()) walk(full);
       else if (item.name.endsWith(".js")) {
-        files.push(relative(distRoot, full).split(sep).join("/"));
+        files.push(nodePath.relative(distRoot, full).split(sep).join("/"));
       }
     }
   })(distRoot);
   return files.filter((file) => !NEW_MODULES.has(file)).sort(byCodeUnit);
 }
 
+/**
+ * @param {string} distRoot
+ * @returns {Record<string, string[]>}
+ */
 function observeExports(distRoot) {
   clearCache();
-  require(join(distRoot, "index.js"));
+  loadDist(distRoot, "index.js");
+  /** @type {Record<string, string[]>} */
   const entries = {};
   for (const entry of listEntries(distRoot)) {
-    entries[entry] = describeExports(require(join(distRoot, entry)));
+    entries[entry] = describeExports(loadDist(distRoot, entry));
   }
   return entries;
 }
 
+/**
+ * @param {string} distRoot
+ */
 function observeIdentity(distRoot) {
   clearCache();
-  require(join(distRoot, "index.js"));
-  const all = listEntries(distRoot).map((entry) => [
+  loadDist(distRoot, "index.js");
+  const all = listEntries(distRoot).map((entry) => /** @type {const} */ ([
     entry,
-    require(join(distRoot, entry)),
-  ]);
+    loadDist(distRoot, entry),
+  ]));
+  /** @type {{ old: string, type: string, aliases: string[], newPathSameObject: boolean }[]} */
   const result = [];
   for (const [oldEntry, names, newEntry] of MOVED) {
-    const oldModule = require(join(distRoot, oldEntry));
-    const newFile = join(distRoot, newEntry);
-    const newModule = fs.existsSync(newFile) ? require(newFile) : undefined;
+    const oldModule = loadDist(distRoot, oldEntry);
+    const newFile = nodePath.join(distRoot, newEntry);
+    const newModule = fs.existsSync(newFile) ? loadDist(distRoot, newEntry) : undefined;
     for (const name of names) {
       const value = oldModule[name];
       const aliases = all
@@ -379,7 +449,11 @@ function observeIdentity(distRoot) {
   return result;
 }
 
+/**
+ * @param {string} distRoot
+ */
 function observeIsolated(distRoot) {
+  /** @type {Record<string, unknown>} */
   const result = {};
   for (const entry of ISOLATED) {
     const { loadSet, ...observed } = loadAlone(distRoot, entry);
@@ -388,34 +462,46 @@ function observeIsolated(distRoot) {
   return result;
 }
 
+/**
+ * @template Observation
+ * @param {(distRoot: string) => Observation} run
+ * @returns {Observation}
+ */
 function withScratchCopy(run) {
-  const scratch = fs.mkdtempSync(join(os.tmpdir(), "interface-dms-layers-"));
+  const scratch = fs.mkdtempSync(nodePath.join(os.tmpdir(), "interface-dms-layers-"));
   try {
-    const scratchPackage = join(scratch, "packages/interface-dms");
+    const scratchPackage = nodePath.join(scratch, "packages/interface-dms");
     fs.mkdirSync(scratchPackage, { recursive: true });
-    fs.cpSync(realDist, join(scratchPackage, "dist"), {
+    fs.cpSync(realDist, nodePath.join(scratchPackage, "dist"), {
       recursive: true,
       filter: (path) => !path.endsWith(".map") && !path.endsWith(".d.ts"),
     });
     fs.copyFileSync(
-      join(packageRoot, "package.json"),
-      join(scratchPackage, "package.json"),
+      nodePath.join(packageRoot, "package.json"),
+      nodePath.join(scratchPackage, "package.json"),
     );
     fs.symlinkSync(
-      join(packageRoot, "node_modules"),
-      join(scratchPackage, "node_modules"),
+      nodePath.join(packageRoot, "node_modules"),
+      nodePath.join(scratchPackage, "node_modules"),
       "dir",
     );
-    fs.symlinkSync(join(root, "node_modules"), join(scratch, "node_modules"), "dir");
-    return run(join(scratchPackage, "dist"));
+    fs.symlinkSync(nodePath.join(root, "node_modules"), nodePath.join(scratch, "node_modules"), "dir");
+    return run(nodePath.join(scratchPackage, "dist"));
   } finally {
     clearCache();
     fs.rmSync(scratch, { recursive: true, force: true });
   }
 }
 
+/**
+ * @param {string} distRoot
+ * @param {string} file
+ * @param {(code: string) => string} edit
+ * @param {() => unknown} observe
+ * @returns {boolean}
+ */
 function mutated(distRoot, file, edit, observe) {
-  const path = join(distRoot, file);
+  const path = nodePath.join(distRoot, file);
   const original = fs.readFileSync(path, "utf8");
   const before = JSON.stringify(observe());
   fs.writeFileSync(path, edit(original));

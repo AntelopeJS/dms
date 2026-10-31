@@ -6,7 +6,14 @@ const frontend = fileURLToPath(
   new URL("../packages/dms/frontend-vue/", import.meta.url),
 );
 const require = createRequire(`${frontend}package.json`);
-const { createServer } = await import(pathToFileURL(require.resolve("vite")));
+
+/**
+ * The frontend package's vite, which the workspace root does not depend on.
+ * @returns {Promise<typeof import("vite")>}
+ */
+const loadVite = () => import(pathToFileURL(require.resolve("vite")).href);
+
+const { createServer } = await loadVite();
 const server = await createServer({
   root: frontend,
   configFile: false,
@@ -36,7 +43,10 @@ try {
     await server.ssrLoadModule(
       `${frontend}layers/dms-layout/app/entries/components/pages/settings/notification/notificationDisplay.ts`,
     );
-  const row = (tone, isRead) => ({
+  const row = (
+    /** @type {string | null} */ tone,
+    /** @type {boolean} */ isRead,
+  ) => ({
     _id: "n1",
     userId: "u1",
     icon: "i-ph-bell",
