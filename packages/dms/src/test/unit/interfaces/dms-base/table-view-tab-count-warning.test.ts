@@ -1,6 +1,7 @@
 import { Controller } from "@antelopejs/interface-api";
 import {
   DataController,
+  DefaultRoutes,
   RegisterDataController,
 } from "@antelopejs/interface-data-api";
 import {
@@ -49,6 +50,19 @@ class BatchAPI extends DataController(
   Row,
   { list: TableViewRoutes.List, countBatch: TableViewRoutes.CountBatch },
   Controller("/api/tab-count-warning/batch"),
+) {}
+
+@RegisterDataController()
+class PostOnlyBatchAPI extends DataController(
+  Row,
+  {
+    countBatch: DefaultRoutes.WithOptions(
+      { func: () => ({}), args: [], method: "post" },
+      {},
+      "/count/batch",
+    ),
+  },
+  Controller("/api/tab-count-warning/post-only"),
 ) {}
 
 @RegisterDataController()
@@ -106,6 +120,14 @@ describe("[unit] interfaces/dms-base/table-view — filter tabs require countBat
       TableView(RenamedBatchAPI, { tabs: TABS, realtime: false }),
     );
     expect(warnings).to.be.empty;
+  });
+
+  it("warns for a POST-only batch route rather than accepting a stale method census", () => {
+    const warnings = countBatchWarnings(() =>
+      TableView(PostOnlyBatchAPI, { tabs: TABS, realtime: false }),
+    );
+    expect(warnings).to.have.length(1);
+    expect(warnings[0]).to.include("GET");
   });
 
   it("stays silent when the table declares no tabs", () => {

@@ -112,7 +112,7 @@ export function declaresCounters(
 }
 
 const COUNT_BATCH_PATH = "count/batch";
-const COUNT_BATCH_METHOD = "post";
+const COUNT_BATCH_METHOD = "get";
 const EDGE_SLASHES = /^\/+|\/+$/g;
 
 const controllersWarnedForTabCounts = new WeakSet<ControllerClass>();
@@ -132,7 +132,7 @@ export function servesRoute(
 
 /**
  * Warn, once per controller, when a table view declares filter tabs, counted
- * views or counted groups but its controller mounts no `POST count/batch`
+ * views or counted groups but its controller mounts no `GET count/batch`
  * route: every counter request would fail. The fix belongs in the controller
  * (mount `countBatch: TableViewRoutes.CountBatch`), so this only reports it.
  *
@@ -148,6 +148,6 @@ export function warnIfTabsLackCountBatch(
   if (servesRoute(endpoints, COUNT_BATCH_PATH, COUNT_BATCH_METHOD)) return;
   controllersWarnedForTabCounts.add(controller);
   Logging.Warn(
-    `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs, counted views or counted groups but its controller mounts no POST ${location}/${COUNT_BATCH_PATH} route: their counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,
+    `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs, counted views or counted groups but its controller mounts no GET ${location}/${COUNT_BATCH_PATH} route: their counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,
   );
 }
