@@ -1,27 +1,24 @@
-const assert = require("node:assert/strict");
-const test = require("node:test");
-const { HTTPResult } = require("@antelopejs/interface-api");
-const {
+import assert from "node:assert/strict";
+import test from "node:test";
+import { HTTPResult } from "@antelopejs/interface-api";
+import {
   RegisterInviteExtension,
   internal,
-} = require("../dist/invite-extensions/registry");
-const {
+} from "../dist/invite-extensions/registry.js";
+import {
   applyInviteExtension,
   revokeInviteExtension,
   clearInviteExtensions,
-} = require("../dist/invite-extensions/internal/registry");
-const {
-  CollectInviteExtensionPayloads,
-} = require("../dist/invite-extensions/internal/delivery");
-const {
-  CollectInviteExtensionEdits,
-} = require("../dist/invite-extensions/internal/edit");
+} from "../dist/invite-extensions/internal/registry.js";
+import { CollectInviteExtensionPayloads } from "../dist/invite-extensions/internal/delivery.js";
+import { CollectInviteExtensionEdits } from "../dist/invite-extensions/internal/edit.js";
 
 internal.RegisterInviteExtension.onHandlers(
   applyInviteExtension,
   revokeInviteExtension,
 );
 
+/** @param {unknown} thrown */
 function rejectedWith(thrown) {
   clearInviteExtensions();
   RegisterInviteExtension({
@@ -39,6 +36,10 @@ function rejectedWith(thrown) {
   });
 }
 
+/**
+ * @param {(body: object) => unknown} collect
+ * @param {object} body
+ */
 function failureOf(collect, body) {
   try {
     collect(body);
@@ -89,7 +90,7 @@ const thrownValues = [
 
 for (const { flow, collect, body } of submissions) {
   for (const { label, thrown, expected } of thrownValues) {
-    test(`${flow}: ${label} thrown by an extension schema is reported as a 400 carrying that failure, not a TypeError from reading .issues first`, () => {
+    await test(`${flow}: ${label} thrown by an extension schema is reported as a 400 carrying that failure, not a TypeError from reading .issues first`, () => {
       rejectedWith(thrown);
       const failure = failureOf(collect, body);
 

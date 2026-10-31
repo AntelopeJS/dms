@@ -325,7 +325,7 @@ async function execute(
     const message = describeError(error);
     Logging.Error(`[DMS] Module store: ${kind} ${context.id} failed`, error);
     errors.set(context.id, message);
-    await rollback(context).catch((rollbackError) =>
+    await rollback(context).catch((rollbackError: unknown) =>
       Logging.Error(
         `[DMS] Module store: rolling back ${context.id} failed`,
         rollbackError,
@@ -403,7 +403,7 @@ export async function startStoreOperation(
       execute(kind, context).finally(() => {
         setCurrent(undefined);
       }),
-    ).catch((error) =>
+    ).catch((error: unknown) =>
       Logging.Error(`[DMS] Module store: ${kind} ${id} failed`, error),
     );
   } catch (error) {

@@ -1,11 +1,12 @@
-const assert = require("node:assert/strict");
-const test = require("node:test");
-const { z } = require("zod");
-const {
+import assert from "node:assert/strict";
+import test from "node:test";
+import { z } from "zod";
+import {
   RegisterBlockType,
   GetBlockType,
-} = require("../dist/base/block-registry/registry");
+} from "../dist/base/block-registry/registry.js";
 
+/** @param {import("zod").ZodTypeAny} option */
 function describeOption(option) {
   const type = `LiteralProbe${Math.random().toString(36).slice(2)}`;
   RegisterBlockType({
@@ -17,7 +18,7 @@ function describeOption(option) {
   return GetBlockType(type).config.option;
 }
 
-test("string, number and boolean literals keep their kind and carry their value", () => {
+await test("string, number and boolean literals keep their kind and carry their value", () => {
   assert.deepEqual(describeOption(z.literal("a")), {
     type: "string",
     enum: ["a"],
@@ -36,7 +37,7 @@ test("string, number and boolean literals keep their kind and carry their value"
   });
 });
 
-test("a literal JSON cannot hold is unknown with no enum, never a string enum of that value", () => {
+await test("a literal JSON cannot hold is unknown with no enum, never a string enum of that value", () => {
   for (const literal of [
     z.literal(null),
     z.literal(undefined),
@@ -49,19 +50,19 @@ test("a literal JSON cannot hold is unknown with no enum, never a string enum of
   }
 });
 
-test("a descriptor holding a bigint literal still serializes to JSON", () => {
+await test("a descriptor holding a bigint literal still serializes to JSON", () => {
   const described = describeOption(z.literal(10n));
   assert.equal(JSON.stringify(described), '{"type":"unknown"}');
 });
 
-test("a union of boolean literals merges into one boolean enum", () => {
+await test("a union of boolean literals merges into one boolean enum", () => {
   assert.deepEqual(
     describeOption(z.union([z.literal(true), z.literal(false)])),
     { type: "boolean", enum: [true, false] },
   );
 });
 
-test("a union of a string literal and null keeps both branches rather than a string enum holding null", () => {
+await test("a union of a string literal and null keeps both branches rather than a string enum holding null", () => {
   const described = describeOption(z.union([z.literal("a"), z.literal(null)]));
   assert.deepEqual(described, {
     type: "union",

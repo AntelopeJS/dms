@@ -158,10 +158,9 @@ export const reportsNoChange = (result: unknown): boolean => {
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Mutation callbacks own these count values; the numeric filter below interprets them without changing the published result contract.
   const input: Partial<Record<(typeof CHANGED_COUNT_KEYS)[number], unknown>> =
     result;
-  const counts = CHANGED_COUNT_KEYS.map(
-    (key) => input[key],
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Count fields are unchecked callback output; this filter establishes the numeric contract before comparisons.
-  ).filter((value): value is number => typeof value === "number");
+  const counts = CHANGED_COUNT_KEYS.map((key) => input[key]).filter(
+    (value): value is number => typeof value === "number",
+  );
   return counts.length > 0 && counts.every((count) => count === 0);
 };
 
