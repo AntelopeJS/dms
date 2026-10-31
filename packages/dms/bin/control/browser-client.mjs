@@ -28,7 +28,7 @@ async function browserServer(state) {
  * page, both kept between commands. The action, the URL, the ARIA snapshot
  * and a screenshot go to `<run>/evidence/browser/NN-<label>/`.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {Record<string, any>} request The action: `do`, `account`, `tab`, and the action's target, value, key or path
  * @param {string} label What the step does
  * @returns {Promise<{ ok: boolean, url: string, error: string | null, aria: string, folder: string }>} The outcome

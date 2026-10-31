@@ -14,7 +14,7 @@ function changesCheckFiles(check, changed) {
 /**
  * The formal checks whose covered files or own `files` a set of changed files touches.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string[]} changed Repository paths
  * @returns {Record<string, any>[]} The checks
  */
@@ -106,8 +106,8 @@ function gateFields(skill, check, diff, folder, head) {
  * `fixed` lists the rules the base broke that HEAD reports passing, and
  * `missing` the rules the base broke that HEAD reports neither failing nor passing.
  *
- * @param {Record<string, any>} skill The skill
- * @param {Record<string, any>} state The run
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../run-state.mjs").RunState} state The run
  * @param {Record<string, any>} check The check
  * @param {{ baseSha: string, headSha: string, changed: string[] } | null} diff The diff's base, head and changed files, for a check that covers it
  * @returns {Record<string, any>} The result
@@ -198,7 +198,7 @@ export function formalGate(result) {
 /**
  * The recorded result of a formal check in a run, if it ran.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("../run-state.mjs").RunState} state The run
  * @param {string} name The check
  * @returns {Record<string, any> | undefined} The result
  */

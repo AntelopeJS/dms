@@ -278,7 +278,7 @@ async function prepare(state, feature, journey, context) {
  * false` skips the administrator), with a fresh browser, and writes its
  * result.json.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, run: (context: JourneyContext) => Promise<void> }} journey The journey
  * @returns {Promise<Record<string, any>>} The result
@@ -341,7 +341,7 @@ export async function loadJourneys(file) {
  * Runs a feature's journeys, all or those named, and merges their results
  * into `<feature>/feature.json` so a partial run never drops earlier ones.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {{ file: string, feature: string, ids: string[], skill: Record<string, any> }} request Which journeys, and the skill they belong to
  * @returns {Promise<Record<string, any>[]>} The results of this run
  */

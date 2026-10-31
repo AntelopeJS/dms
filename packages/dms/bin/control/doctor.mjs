@@ -169,7 +169,7 @@ async function sessionLine(state) {
  * backend, the builds are newer than their sources, the database is the
  * run's own, and the admin session (once onboarded) is valid.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @returns {Promise<{ check: string, ok: boolean, detail: string }[]>} One line per check
  */
 export async function doctor(state) {

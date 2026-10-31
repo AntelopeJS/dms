@@ -251,8 +251,8 @@ function markdown(skill, verdict, parts) {
  * the formal check results and the verifier's judgement, and writes
  * verdict.md, verdict.json and plan.json into the evidence folder.
  *
- * @param {Record<string, any>} skill The skill
- * @param {Record<string, any>} state The run
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("../run-state.mjs").RunState} state The run
  * @param {number} pr The pull request
  * @param {Record<string, any>} judgement The verifier's judgement
  * @returns {Promise<{ result: string, headSha: string, skillSha: string, pr: number, markdown: string, reasons: string[] }>} The verdict
