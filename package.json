@@ -36,5 +36,11 @@
     "suppressions:update": "antelopejs-suppressions --update",
     "ratchet": "antelopejs-ratchet",
     "ratchet:update": "antelopejs-ratchet --update"
+  },
+  "pnpm": {
+    "overrides": {
+      "@antelopejs/interface-database": "file:.campaign/tgz/antelopejs-interface-database-4939b45.tgz",
+      "@antelopejs/interface-database-decorators": "file:.campaign/tgz/antelopejs-interface-database-decorators-d4f3b5a.tgz"
+    }
   }
 }
