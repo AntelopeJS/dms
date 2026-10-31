@@ -5,6 +5,11 @@ import { behaviourChange, inWorktree } from "./behaviour.mjs";
 
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
+/**
+ * @param {import("./types.mjs").FormalCheck} check The check
+ * @param {string[]} changed Repository paths
+ * @returns {boolean} Whether a changed path matches the check's own files
+ */
 function changesCheckFiles(check, changed) {
   return changed.some((file) =>
     (check.files ?? []).some((glob) => matchesGlob(file, glob)),
@@ -16,7 +21,7 @@ function changesCheckFiles(check, changed) {
  *
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string[]} changed Repository paths
- * @returns {Record<string, any>[]} The checks
+ * @returns {import("./types.mjs").FormalCheck[]} The checks
  */
 export function touchedFormalChecks(skill, changed) {
   return skill.config.formal.filter(
@@ -26,6 +31,12 @@ export function touchedFormalChecks(skill, changed) {
   );
 }
 
+/**
+ * @param {import("./types.mjs").FormalCheck} check The check
+ * @param {number | null} exitCode How the run exited
+ * @param {string} output What the run printed
+ * @returns {string[]} The violated rules
+ */
 function violatedRules(check, exitCode, output) {
   if (check.violation) {
     return [
@@ -37,6 +48,11 @@ function violatedRules(check, exitCode, output) {
   return exitCode === 0 ? [] : ["property"];
 }
 
+/**
+ * @param {string[]} command The program and its arguments
+ * @param {string} cwd Where to run it
+ * @returns {import("node:child_process").SpawnSyncReturns<string>} The run
+ */
 function runCommand(command, cwd) {
   const [program, ...args] = command;
   return spawnSync(program, args, {
@@ -46,6 +62,12 @@ function runCommand(command, cwd) {
   });
 }
 
+/**
+ * @param {string} folder The evidence folder
+ * @param {string} prefix `base-` for the base run, else empty
+ * @param {string[]} command The command that ran
+ * @param {import("node:child_process").SpawnSyncReturns<string>} run The run
+ */
 function writeRun(folder, prefix, command, run) {
   writeFileSync(join(folder, `${prefix}command.txt`), `${command.join(" ")}\n`);
   writeFileSync(join(folder, `${prefix}stdout.txt`), run.stdout ?? "");
@@ -56,12 +78,22 @@ function writeRun(folder, prefix, command, run) {
   writeFileSync(join(folder, `${prefix}exit-code.txt`), `${run.status}\n`);
 }
 
+/**
+ * @param {import("./types.mjs").FormalCheck} check The check
+ * @param {string} output What the run printed
+ * @returns {string[]} The passing rules
+ */
 function passingRules(check, output) {
   return check.passing
     ? [...new Set([...output.matchAll(check.passing)].map((match) => match[1]))]
     : [];
 }
 
+/**
+ * @param {import("./types.mjs").FormalCheck} check The check
+ * @param {import("node:child_process").SpawnSyncReturns<string>} run The run
+ * @returns {import("./types.mjs").Rules} The exit code and rules
+ */
 function rulesOf(check, run) {
   return {
     exitCode: run.status,
@@ -70,6 +102,13 @@ function rulesOf(check, run) {
   };
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("./types.mjs").FormalCheck} check The check
+ * @param {string} baseSha The base commit
+ * @param {string} folder The evidence folder
+ * @returns {import("./types.mjs").Rules} The rules at the base
+ */
 function baseRules(skill, check, baseSha, folder) {
   const command = check.baseCommand ?? check.command;
   const run = inWorktree(skill.repo, baseSha, (dir) =>
@@ -79,6 +118,14 @@ function baseRules(skill, check, baseSha, folder) {
   return rulesOf(check, run);
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("./types.mjs").FormalCheck} check The check
+ * @param {{ baseSha: string, headSha: string, changed: string[] }} diff The diff
+ * @param {string} folder The evidence folder
+ * @param {import("./types.mjs").Rules} head The rules at HEAD
+ * @returns {Pick<import("./types.mjs").FormalResult, "behaviour" | "checkChanged" | "base" | "fixed" | "missing">} The gate fields
+ */
 function gateFields(skill, check, diff, folder, head) {
   const behaviour = behaviourChange(skill, check, diff);
   const checkChanged = changesCheckFiles(check, diff.changed);
@@ -108,9 +155,9 @@ function gateFields(skill, check, diff, folder, head) {
  *
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {import("../run-state.mjs").RunState} state The run
- * @param {Record<string, any>} check The check
+ * @param {import("./types.mjs").FormalCheck} check The check
  * @param {{ baseSha: string, headSha: string, changed: string[] } | null} diff The diff's base, head and changed files, for a check that covers it
- * @returns {Record<string, any>} The result
+ * @returns {import("./types.mjs").FormalResult} The result
  */
 export function runFormalCheck(skill, state, check, diff) {
   const folder = join(state.evidence, "formal", check.name);
@@ -147,7 +194,7 @@ export function runFormalCheck(skill, state, check, diff) {
  * covered code's behaviour; a rule the base reported and HEAD no longer
  * reports fails; rules the base broke that HEAD reports passing are fixed.
  *
- * @param {Record<string, any>} result The recorded result
+ * @param {import("./types.mjs").FormalResult} result The recorded result
  * @returns {{ fails: boolean, outcome: string }} The weight and its wording
  */
 export function formalGate(result) {
@@ -200,7 +247,7 @@ export function formalGate(result) {
  *
  * @param {import("../run-state.mjs").RunState} state The run
  * @param {string} name The check
- * @returns {Record<string, any> | undefined} The result
+ * @returns {import("./types.mjs").FormalResult | undefined} The result
  */
 export function readFormalResult(state, name) {
   const file = join(state.evidence, "formal", name, "result.json");
