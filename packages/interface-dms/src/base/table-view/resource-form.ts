@@ -18,8 +18,8 @@ export { ROUTE_PARAM_ROW_ID } from "../resource-form-schema";
  * default ({@link QUERY_ROW_ID}): a page the builder writes has no `:id`
  * segment to read it from.
  */
-export function ResourceForm<T extends ControllerClass>(
-  controller: T,
+export function ResourceForm(
+  controller: ControllerClass,
   options: ResourceFormBlockOptions,
 ): FormBuilder {
   const { mode, rowId = QUERY_ROW_ID, ...formOptions } = options;
