@@ -1,19 +1,19 @@
-const assert = require("node:assert/strict");
-const { spawnSync } = require("node:child_process");
-const { mkdtempSync, rmSync, writeFileSync } = require("node:fs");
-const { tmpdir } = require("node:os");
-const { join, resolve } = require("node:path");
-const { test } = require("node:test");
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { test } from "node:test";
 
-const root = resolve(__dirname, "..");
-const scanner = join(__dirname, "aliases.cjs");
+const root = path.resolve(import.meta.dirname, "..");
+const scanner = path.join(import.meta.dirname, "aliases.cjs");
 
-test("rejects browser remapping and unknown fields in both trusted manifests", (t) => {
-  const fixtures = mkdtempSync(join(tmpdir(), "playground-manifests-"));
+await test("rejects browser remapping and unknown fields in both trusted manifests", (t) => {
+  const fixtures = mkdtempSync(path.join(tmpdir(), "playground-manifests-"));
   t.after(() => rmSync(fixtures, { recursive: true, force: true }));
-  const preload = join(fixtures, "manifest.cjs");
-  for (const directory of [root, join(root, "frontend-vue")]) {
-    const manifest = join(directory, "package.json");
+  const preload = path.join(fixtures, "manifest.cjs");
+  for (const directory of [root, path.join(root, "frontend-vue")]) {
+    const manifest = path.join(directory, "package.json");
     writeFileSync(
       preload,
       `
@@ -34,6 +34,7 @@ test("rejects browser remapping and unknown fields in both trusted manifests", (
       "workspaces",
       "futureResolver",
     ]) {
+      /** @type {Record<string, unknown>} */
       const metadata = { name: "guard-fixture" };
       if (field !== null)
         metadata[field] = {

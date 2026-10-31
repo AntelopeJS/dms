@@ -1,22 +1,21 @@
 const { readdirSync, readFileSync, realpathSync } = require("node:fs");
-const { createRequire, isBuiltin } = require("node:module");
-const {
-  basename,
-  dirname,
-  extname,
-  isAbsolute,
-  join,
-  relative,
-  resolve,
-  sep,
-} = require("node:path");
+const { isBuiltin } = require("node:module");
+const nodePath = require("node:path");
+const { sep } = nodePath;
 const ts = require("typescript");
 const { z } = require("zod");
+const {
+  unwrap,
+  constantValue,
+  importMeta,
+  propertyName,
+  loaderReference,
+} = require("./syntax.cjs");
 
-const root = resolve(__dirname, "..");
-const repository = resolve(root, "../../..");
+const root = nodePath.resolve(__dirname, "..");
+const repository = nodePath.resolve(root, "../../..");
 const config = ts.readConfigFile(
-  join(repository, ".dependency-cruiser.tsconfig.json"),
+  nodePath.join(repository, ".dependency-cruiser.tsconfig.json"),
   (path) => ts.sys.readFile(path),
 );
 const { options } = ts.parseJsonConfigFileContent(
@@ -29,25 +28,18 @@ const cache = ts.createModuleResolutionCache(
   (path) => path,
   options,
 );
-const frontendRequire = createRequire(
-  join(root, "../frontend-vue/package.json"),
-);
-const { parse, compileTemplate } = frontendRequire("vue/compiler-sfc");
-const css = createRequire(frontendRequire.resolve("jsdom/package.json"))(
-  "css-tree",
-);
-const { globSync } = createRequire(
-  frontendRequire.resolve("vite/package.json"),
-)("tinyglobby");
-const server = realpathSync(join(root, "src"));
-const client = realpathSync(join(root, "frontend-vue"));
+const {
+  vue: { parse, compileTemplate },
+  glob: { globSync },
+  css,
+} = require("./frontend-tools.cjs");
+const server = realpathSync(nodePath.join(root, "src"));
+const client = realpathSync(nodePath.join(root, "frontend-vue"));
 const layers = ["core", "ui", "layout", "auth", "onboarding"].map((layer) =>
-  realpathSync(join(root, `../frontend-vue/layers/dms-${layer}/app`)),
+  realpathSync(nodePath.join(root, `../frontend-vue/layers/dms-${layer}/app`)),
 );
 const specifierSchema = z.string();
-const rankRules = require(
-  join(repository, ".dependency-cruiser/playground.cjs"),
-)
+const rankRules = require("../../../../.dependency-cruiser/playground.cjs")
   .forbidden.filter((rule) => rule.name.endsWith("-no-upward"))
   .map((rule) => ({
     from: new RegExp(rule.from.path),
@@ -58,30 +50,6 @@ const loaderLibraries = new Set([
   "vm",
   "worker_threads",
   "child_process",
-  "process",
-]);
-const loaderNames = new Set([
-  "require",
-  "createRequire",
-  "eval",
-  "Function",
-  "System",
-  "Worker",
-  "URL",
-  "SharedWorker",
-  "importScripts",
-  "_load",
-  "_resolveFilename",
-  "getBuiltinModule",
-  "dlopen",
-  "mainModule",
-  "loadModule",
-  "globalThis",
-  "global",
-  "module",
-  "document",
-  "window",
-  "self",
   "process",
 ]);
 const globalMethods = new Map([
@@ -119,7 +87,7 @@ const nonExecutableKinds = new Map([
 ]);
 const trustedManifests = new Map([
   [
-    join(root, "package.json"),
+    nodePath.join(root, "package.json"),
     new Set([
       "name",
       "version",
@@ -133,7 +101,7 @@ const trustedManifests = new Map([
     ]),
   ],
   [
-    join(client, "package.json"),
+    nodePath.join(client, "package.json"),
     new Set(["name", "version", "private", "type", "main", "engines"]),
   ],
 ]);
@@ -168,58 +136,31 @@ const vueScriptKinds = new Map([
   ["ts", ts.ScriptKind.TS],
   ["tsx", ts.ScriptKind.TSX],
 ]);
+/** @type {string[]} */
 const failures = [];
 
-function unwrap(node) {
-  while (
-    ts.isParenthesizedExpression(node) ||
-    ts.isAsExpression(node) ||
-    ts.isTypeAssertionExpression(node) ||
-    ts.isNonNullExpression(node) ||
-    ts.isSatisfiesExpression(node)
-  ) {
-    node = node.expression;
-  }
-  return node;
-}
-
-function constantValue(expression) {
-  const node = unwrap(expression);
-  if (ts.isStringLiteralLike(node)) return node.text;
-  if (ts.isNumericLiteral(node)) return Number(node.text);
-  if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
-  if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
-  if (node.kind === ts.SyntaxKind.NullKeyword) return null;
-  if (ts.isTemplateExpression(node)) {
-    let text = node.head.text;
-    for (const span of node.templateSpans) {
-      const value = constantValue(span.expression);
-      if (value === undefined) return undefined;
-      text += String(value) + span.literal.text;
-    }
-    return text;
-  }
-  if (
-    ts.isBinaryExpression(node) &&
-    node.operatorToken.kind === ts.SyntaxKind.PlusToken
-  ) {
-    const left = constantValue(node.left);
-    const right = constantValue(node.right);
-    if (left !== undefined && right !== undefined) return left + right;
-  }
-  return undefined;
-}
-
+/**
+ * @param {string} path
+ * @param {string} area
+ * @returns {boolean}
+ */
 function inside(path, area) {
-  const suffix = relative(area, path);
+  const suffix = nodePath.relative(area, path);
   return (
-    suffix !== ".." && !suffix.startsWith(`..${sep}`) && !isAbsolute(suffix)
+    suffix !== ".." &&
+    !suffix.startsWith(`..${sep}`) &&
+    !nodePath.isAbsolute(suffix)
   );
 }
 
+/**
+ * @param {string} specifier
+ * @param {string} importer
+ * @returns {string | undefined}
+ */
 function fallbackTarget(specifier, importer) {
-  if (specifier.startsWith(".") || isAbsolute(specifier)) {
-    const target = resolve(dirname(importer), specifier);
+  if (specifier.startsWith(".") || nodePath.isAbsolute(specifier)) {
+    const target = nodePath.resolve(nodePath.dirname(importer), specifier);
     return ts.sys.fileExists(target) ? target : undefined;
   }
   for (const [pattern, targets] of Object.entries(options.paths)) {
@@ -230,16 +171,26 @@ function fallbackTarget(specifier, importer) {
       specifier.length - suffix.length,
     );
     for (const target of targets) {
-      const path = resolve(options.baseUrl, target.replace("*", match));
+      const path = nodePath.resolve(
+        options.baseUrl,
+        target.replace("*", match),
+      );
       if (ts.sys.fileExists(path)) return path;
     }
   }
   return undefined;
 }
 
+/**
+ * @param {string} importer
+ * @param {string} target
+ * @param {string | undefined} query
+ * @param {boolean} viteAssets
+ * @returns {boolean}
+ */
 function permittedEdge(importer, target, query, viteAssets) {
   if ([server, client, ...layers].some((area) => inside(target, area))) {
-    const extension = extname(target);
+    const extension = nodePath.extname(target);
     const inert = nonExecutableKinds.get(query ?? extension);
     if (
       target.split(sep).some((part) => skippedDirectories.has(part)) ||
@@ -252,8 +203,8 @@ function permittedEdge(importer, target, query, viteAssets) {
     )
       return false;
   }
-  const from = relative(repository, importer).split(sep).join("/");
-  const to = relative(repository, target).split(sep).join("/");
+  const from = nodePath.relative(repository, importer).split(sep).join("/");
+  const to = nodePath.relative(repository, target).split(sep).join("/");
   if (rankRules.some((rule) => rule.from.test(from) && rule.to.test(to)))
     return false;
   return (
@@ -264,6 +215,12 @@ function permittedEdge(importer, target, query, viteAssets) {
   );
 }
 
+/**
+ * @param {string} specifier
+ * @param {string} importer
+ * @param {boolean} viteAssets
+ * @returns {boolean}
+ */
 function permitted(specifier, importer, viteAssets) {
   importer = realpathSync(importer);
   const isClient = inside(importer, client);
@@ -314,12 +271,18 @@ function permitted(specifier, importer, viteAssets) {
     (isClient &&
       layers.some(
         (area) =>
-          request.startsWith(`#${basename(dirname(area))}/app/`) &&
-          inside(canonical, area),
+          request.startsWith(
+            `#${nodePath.basename(nodePath.dirname(area))}/app/`,
+          ) && inside(canonical, area),
       ))
   );
 }
 
+/**
+ * @param {unknown} value
+ * @param {string} path
+ * @param {boolean} [viteAssets]
+ */
 function checkSpecifier(value, path, viteAssets = true) {
   const specifier = specifierSchema.safeParse(value);
   if (!specifier.success) {
@@ -336,12 +299,17 @@ function checkSpecifier(value, path, viteAssets = true) {
   }
 }
 
+/**
+ * @param {string} pattern
+ * @param {string} importer
+ * @returns {{ pattern: string, request: (file: string) => string } | undefined}
+ */
 function globPattern(pattern, importer) {
   if (pattern.startsWith("./") || pattern.startsWith("../")) {
     return {
-      pattern: resolve(dirname(importer), pattern),
+      pattern: nodePath.resolve(nodePath.dirname(importer), pattern),
       request: (file) =>
-        `./${relative(dirname(importer), file).split(sep).join("/")}`,
+        `./${nodePath.relative(nodePath.dirname(importer), file).split(sep).join("/")}`,
     };
   }
   if (!/^#dms-(?:core|ui|layout|auth|onboarding)\/app\//.test(pattern))
@@ -349,16 +317,23 @@ function globPattern(pattern, importer) {
   for (const [alias, targets] of Object.entries(options.paths)) {
     const prefix = alias.replace(/\*$/, "");
     if (!pattern.startsWith(prefix)) continue;
-    const directory = resolve(options.baseUrl, targets[0].replace(/\*$/, ""));
+    const directory = nodePath.resolve(
+      options.baseUrl,
+      targets[0].replace(/\*$/, ""),
+    );
     return {
-      pattern: resolve(directory, pattern.slice(prefix.length)),
+      pattern: nodePath.resolve(directory, pattern.slice(prefix.length)),
       request: (file) =>
-        prefix + relative(directory, file).split(sep).join("/"),
+        prefix + nodePath.relative(directory, file).split(sep).join("/"),
     };
   }
   return undefined;
 }
 
+/**
+ * @param {ts.Expression | undefined} argument
+ * @returns {z.infer<typeof globOptions> | false | undefined}
+ */
 function permittedGlobSettings(argument) {
   const settings = argument && unwrap(argument);
   const values = {};
@@ -378,6 +353,11 @@ function permittedGlobSettings(argument) {
   return parsed.success ? parsed.data : undefined;
 }
 
+/**
+ * @param {ts.CallExpression} node
+ * @param {string} importer
+ * @returns {boolean}
+ */
 function checkGlob(node, importer) {
   const argument = node.arguments[0] && unwrap(node.arguments[0]);
   const expressions =
@@ -391,7 +371,9 @@ function checkGlob(node, importer) {
     );
   const settings = permittedGlobSettings(node.arguments[1]);
   if (!parsed.success || !settings || node.arguments.length > 2) return false;
+  /** @type {NonNullable<ReturnType<typeof globPattern>>[]} */
   const positives = [];
+  /** @type {NonNullable<ReturnType<typeof globPattern>>[]} */
   const negatives = [];
   for (const pattern of parsed.data) {
     const negative = pattern.startsWith("!");
@@ -422,42 +404,11 @@ function checkGlob(node, importer) {
   return true;
 }
 
-function importMeta(node) {
-  return (
-    ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword
-  );
-}
-
-function propertyName(node) {
-  if (ts.isPropertyAccessExpression(node)) return node.name.text;
-  if (ts.isElementAccessExpression(node) && node.argumentExpression)
-    return constantValue(node.argumentExpression);
-  return undefined;
-}
-
-function loaderReference(node) {
-  if (importMeta(node)) return "import.meta";
-  if (node.kind === ts.SyntaxKind.ImportKeyword) return "import";
-  if (ts.isIdentifier(node) && ["module", "document"].includes(node.text)) {
-    const property = [
-      ts.isPropertyAccessExpression,
-      ts.isPropertyAssignment,
-      ts.isPropertySignature,
-      ts.isPropertyDeclaration,
-    ].some((matches) => matches(node.parent));
-    if (property && node.parent.name === node) return undefined;
-  }
-  if (ts.isIdentifier(node) && loaderNames.has(node.text)) return node.text;
-  const property = propertyName(node);
-  if (
-    (loaderNames.has(property) && !["module", "document"].includes(property)) ||
-    property === "constructor" ||
-    property === "import"
-  )
-    return `property ${property}`;
-  return undefined;
-}
-
+/**
+ * @param {ts.CallExpression} node
+ * @param {string} path
+ * @param {WeakSet<ts.Node>} allowed
+ */
 function checkCall(node, path, allowed) {
   const callee = unwrap(node.expression);
   if (
@@ -492,6 +443,11 @@ function checkCall(node, path, allowed) {
   }
 }
 
+/**
+ * @param {string} text
+ * @param {string} path
+ * @param {ts.ScriptKind} [kind]
+ */
 function checkScript(text, path, kind = ts.getScriptKindFromFileName(path)) {
   const source = ts.createSourceFile(
     path,
@@ -508,6 +464,7 @@ function checkScript(text, path, kind = ts.getScriptKindFromFileName(path)) {
     return;
   }
   const allowed = new WeakSet();
+  /** @param {ts.Node} node */
   function visit(node) {
     if (ts.isCallExpression(node)) checkCall(node, path, allowed);
     if (
@@ -531,6 +488,10 @@ function checkScript(text, path, kind = ts.getScriptKindFromFileName(path)) {
   visit(source);
 }
 
+/**
+ * @param {import("vue/compiler-sfc").SFCStyleBlock} block
+ * @param {string} path
+ */
 function checkStyle(block, path) {
   if (block.src !== undefined) {
     failures.push(`${path}: external playground styles are forbidden`);
@@ -558,6 +519,7 @@ function checkStyle(block, path) {
   }
 }
 
+/** @param {string} path */
 function checkVue(path) {
   const { descriptor, errors } = parse(readFileSync(path, "utf8"), {
     filename: path,
@@ -609,6 +571,7 @@ function checkVue(path) {
   checkScript(compiled.code, filename, ts.ScriptKind.TS);
 }
 
+/** @param {string} path */
 function checkManifest(path) {
   const fields = trustedManifests.get(path);
   if (!fields) {
@@ -623,9 +586,10 @@ function checkManifest(path) {
       failures.push(`${path}: unsupported playground package field ${field}`);
 }
 
+/** @param {string} directory */
 function checkDirectory(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name);
+    const path = nodePath.join(directory, entry.name);
     if (entry.isSymbolicLink()) {
       failures.push(`${path}: playground source symlinks are forbidden`);
     } else if (entry.isDirectory()) {
@@ -638,15 +602,15 @@ function checkDirectory(directory) {
       failures.push(`${path}: playground CSS files are forbidden`);
     } else if (entry.name.endsWith(".vue")) {
       checkVue(path);
-    } else if (codeExtensions.has(extname(entry.name))) {
+    } else if (codeExtensions.has(nodePath.extname(entry.name))) {
       checkScript(readFileSync(path, "utf8"), path);
     }
   }
 }
 
-checkManifest(join(root, "package.json"));
-checkDirectory(join(root, "src"));
-checkDirectory(join(root, "frontend-vue"));
+checkManifest(nodePath.join(root, "package.json"));
+checkDirectory(nodePath.join(root, "src"));
+checkDirectory(nodePath.join(root, "frontend-vue"));
 if (failures.length) {
   process.stderr.write(`${failures.join("\n")}\n`);
   process.exitCode = 1;
