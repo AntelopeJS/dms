@@ -2,35 +2,97 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/dark.svg">
-  <img alt="Antelope DMS" src="./packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/light.svg" height="72">
+  <img alt="AntelopeJS DMS" src="./packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/light.svg" height="72">
 </picture>
 
 # AntelopeJS DMS
 
-<a href="https://www.npmjs.com/package/@antelopejs/dms"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
-<a href="https://dms.antelopejs.com/docs"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
+**Plug in your PostgreSQL or MongoDB database. Your coding agent writes the back office and an analytics dashboard as typed TypeScript in your repository.**
 
-**Admin dashboards for AntelopeJS, declared in TypeScript on the backend.**
+Open source under Apache-2.0. Self-hosted today.
 
-[Documentation](https://dms.antelopejs.com/docs) · [Modules](https://dms.antelopejs.com/docs/modules) · [Frontend](https://dms.antelopejs.com/docs/frontend)
+[Docs](https://dms.antelopejs.com/docs) · [Quick start](https://dms.antelopejs.com/docs/getting-started/quickstart) · [Discord](https://discord.gg/sjK28QHrA7)
 
 </div>
 
-![A DMS dashboard: a period selector, KPI cards, a sales chart and ranked products](./packages/dms/docs/images/template-dashboard.png)
+![Screen recording of the AntelopeJS DMS Builder. A postgres:// connection URL is pasted into the Connect form, the Builder reads the tables, and the DMS shows the generated table pages and an analytics dashboard.](./docs/media/hero-connect.gif)
 
-## What it does
+[Watch the full Meet AntelopeJS DMS video (75 seconds)](./docs/media/meet.mp4)
 
-- Declares pages as TypeScript classes: forms, tables, charts and layouts are blocks the shared Vue renderer draws, with no Vue to write for standard screens.
-- Handles sign-in, members, roles and permissions down to each block, multi-tenancy and a SaaS mode.
-- Manages data through data controllers and table views, with file uploads, notifications and realtime updates.
-- Grows with installable modules: an AI assistant, a page builder, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics and a media library.
-- Ships Claude Code skills (`dms`, `dms-best-practices`, `dms-pages`…) so coding agents build pages the way the DMS expects.
+## Try it in one command
 
-## Install
+### Try it on a sample database
 
-For a new application, start from the template in the quick start below. To add the DMS to an existing AntelopeJS project, add the module and the dashboard's frontend loader:
+You need Docker with Compose v2 and git.
+
+```bash
+git clone https://github.com/AntelopeJS/template-dms-light.git
+cd template-dms-light
+docker compose up
+```
+
+The stack starts the DMS, a MongoDB for the DMS's own data, and a PostgreSQL database filled with the Chinook sample (a music store with 11 tables). On one Linux machine the dashboard was ready after about 2 minutes from a cold start and after about 1 minute with the images and packages cached.
+
+Open [http://localhost:3001](http://localhost:3001), create the administrator account, open the Builder, choose the **Database** tab, and connect the sample database. The [template README](https://github.com/AntelopeJS/template-dms-light#connect-the-sample-database) lists each step with the connection URL.
+
+### Use it on your own database
+
+Start the same stack. In the Builder's **Database** tab, enter the connection URL of your own database instead of the sample one and press **Connect**. The Builder reads the schema, proposes a page for each table, and writes the pages you keep as TypeScript into your clone.
+
+- Connect with an account that has `SELECT` and nothing else. The generated pages are read-only, but the connection can write whatever its account can write.
+- Inside the `dms` container, `localhost` is the container itself. A database on your machine needs an address the container can reach.
+- To add the DMS to an existing AntelopeJS project instead, follow [Add the DMS to an existing project](#add-the-dms-to-an-existing-project).
+
+## What you get
+
+### Your back office is TypeScript in your repository
+
+Each table you keep gets a typed table definition and a page, written into your repository next to your code. You read it, change it, and review it like any other change to your product.
+
+<img src="./docs/media/code.gif" alt="Screen recording of a generated TypeScript page for a database table, typed in a code editor." width="720">
+
+### Read-only by default, roles for the rest
+
+A generated page lists, shows, and exports rows. It gets no create, edit, or delete route until you switch on **Rows can be edited** for that table. Roles and permissions then decide who sees and edits what, down to each block.
+
+<img src="./docs/media/roles-readonly.gif" alt="Screen recording of the DMS showing a table page that is read-only and the roles and permissions settings." width="720">
+
+### The Builder turns clicks into code
+
+Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript, and the Builder writes files only when the whole project still compiles.
+
+<img src="./docs/media/builder.gif" alt="Screen recording of the AntelopeJS DMS Builder editing a page, with each edit written as TypeScript." width="720">
+
+### And more
+
+- **An analytics dashboard from your coding agent.** The DMS asks Claude Code or Codex, the agent you already use, to build the back office and a stats dashboard for your data. The DMS ships no AI model of its own.
+- **Pages as TypeScript classes.** Forms, tables, charts, and layouts are blocks that the shared Vue renderer draws. Standard screens need no Vue.
+- **Sign-in, members, and multi-tenancy.** A SaaS mode is included.
+- **An AI dev assistant.** It changes your project for you in Safe mode or Code mode.
+- **Agent skills in the packages.** They teach coding agents how to build DMS pages the way the DMS expects.
+- **Embedding.** Run the DMS inside an AdonisJS 6 backend.
+- **Installable modules.** Page builder, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics, and a media library.
+
+## Limits
+
+- **Databases.** The Builder connects PostgreSQL and MongoDB. RethinkDB does not on `@antelopejs/dms-builder` 0.7.0: the Builder asks for `@antelopejs/rethinkdb` `>=1.6.0`, which is not published, and the project does not restart. Use PostgreSQL or MongoDB until a fixed release ships. MySQL is not supported yet.
+- **Read-only covers the generated pages.** The connection itself can write whatever the database account can write.
+- **No automatic refresh.** Pages show the data as of the last load. When your external database changes, reload the page.
+- **Dashboards need a coding agent.** Generated dashboards need Claude Code or Codex. Without one, you still get the table pages.
+- **The DMS keeps its own data in MongoDB.** Accounts, roles, and settings live there. The sample stack starts one for you.
+- **The sample stack is for development.** The Builder and the assistant run only in development mode, and the template uses placeholder secrets. Do not expose its ports.
+
+## How AntelopeJS makes money
+
+Everything is Apache-2.0, including the DMS, the Builder, the AI features, and roles. Nothing is gated and there is no per-seat price. You can self-host for free.
+
+[AntelopeJS Cloud](https://cloud.antelopejs.com) is managed hosting. It is the only paid part, and it is waitlist-only today.
+
+---
+
+## Add the DMS to an existing project
+
+For a new application, start from the demo application below. To add the DMS to an existing AntelopeJS project, add the module and the dashboard's frontend loader:
 
 ```bash
 ajs project modules add @antelopejs/dms
@@ -39,7 +101,7 @@ pnpm add -D @antelopejs/dms-frontend
 
 The DMS also needs an API module, a module implementing the database interface, and an authentication module: see [Installation](https://dms.antelopejs.com/docs/getting-started/installation).
 
-## Quick start
+## Run the demo application
 
 Clone [template-dms-demo](https://github.com/AntelopeJS/template-dms-demo), which loads the DMS, its companions and a seeded demo application. It needs Node.js 22, pnpm and a MongoDB on `localhost:27017`.
 
@@ -98,7 +160,7 @@ The dashboard's frontend loader and Vue renderer live in [AntelopeJS/dms-fronten
 - [Getting started](https://dms.antelopejs.com/docs/getting-started/introduction): installation, quickstart, tutorial, architecture
 - [Building](https://dms.antelopejs.com/docs/building/overview): configuration, pages and components, navigation, localization, deployment
 - [Auth and tenancy](https://dms.antelopejs.com/docs/auth-and-tenancy/overview)
-- [Components](https://dms.antelopejs.com/docs/components/overview): every block, with a live preview
+- [Components](https://dms.antelopejs.com/docs/components/overview): every block, with a rendered preview
 - [Interfaces](https://dms.antelopejs.com/docs/interfaces): the `@antelopejs/interface-dms` reference
 - [AI and Claude Code](https://dms.antelopejs.com/docs/ai-and-claude-code/overview): the skill suite and the AI assistant
 - [Modules](https://dms.antelopejs.com/docs/modules) and [Frontend](https://dms.antelopejs.com/docs/frontend)
