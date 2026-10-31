@@ -49,12 +49,8 @@ export const useAuthFetch = () => {
     () => undefined,
   );
 
-  const baseFetch = $fetch.create({});
-  type AuthFetch = typeof baseFetch;
-  type AuthFetchArgs = Parameters<AuthFetch>;
-  type AuthFetchOptions = NonNullable<AuthFetchArgs[1]>;
-
-  const authHooks = {
+  const baseFetch = $fetch.create({
+    baseURL: config.public.dms.baseURL,
     onRequest({ options }) {
       if (!options.headers.has(CONTENT_LANGUAGE_HEADER)) {
         options.headers.set(CONTENT_LANGUAGE_HEADER, dmsApp.$i18n.locale.value);
@@ -80,19 +76,10 @@ export const useAuthFetch = () => {
 
       await redirectToAuth();
     },
-  } satisfies AuthFetchOptions;
+  });
 
-  function requestOptions(options?: AuthFetchOptions): AuthFetchOptions {
-    return {
-      baseURL: config.public.dms.baseURL,
-      ...options,
-      onRequest: [authHooks.onRequest, options?.onRequest ?? []].flat(),
-      onResponseError: [
-        authHooks.onResponseError,
-        options?.onResponseError ?? [],
-      ].flat(),
-    };
-  }
+  type AuthFetch = typeof baseFetch;
+  type AuthFetchArgs = Parameters<AuthFetch>;
 
   function withSessionRetry<R>(
     invoke: (
@@ -124,10 +111,10 @@ export const useAuthFetch = () => {
   }
 
   const retryingFetch = withSessionRetry((request, options) =>
-    baseFetch(request, requestOptions(options)),
+    baseFetch(request, options),
   );
   const retryingRaw = withSessionRetry((request, options) =>
-    baseFetch.raw(request, requestOptions(options)),
+    baseFetch.raw(request, options),
   );
 
   /**

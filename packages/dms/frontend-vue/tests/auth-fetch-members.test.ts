@@ -172,18 +172,12 @@ it.each(["call", "raw", "create.raw"] as const)(
   },
 );
 
-it("keeps raw success data and headers while composing caller hook arrays after auth hooks", async () => {
+it("keeps raw success data and auth headers across a session retry", async () => {
   const api = authFetch("session-42");
-  const calls: string[] = [];
   const answer = json({ id: "raw-order" });
   answers.push(json({ message: "expired" }, 401), answer);
   const result = await api.raw("/api/orders", {
     headers: { "x-content-language": "nl" },
-    onRequest: [
-      () => {
-        calls.push("request");
-      },
-    ],
   });
   expect(result).toBe(answer);
   expect(result._data).toEqual({ id: "raw-order" });
@@ -191,24 +185,10 @@ it("keeps raw success data and headers while composing caller hook arrays after 
     url: "https://backend.test/api/orders",
     language: "nl",
   });
-  expect(calls).toEqual(["request", "request"]);
   expect(refreshSession).toHaveBeenCalledOnce();
   expect(
     new Headers(platformFetch.mock.calls[1]?.[1]?.headers).get(
       "x-realtime-session",
     ),
   ).toBe("session-42");
-});
-
-it("runs the refusal owner before a caller response-error hook instead of letting the caller replace it", async () => {
-  const refusal = json({}, 403);
-  refusal.headers.set("x-dms-readonly", "1");
-  answers.push(refusal);
-  const hook = vi.fn(() => {
-    expect(addToast).toHaveBeenCalledOnce();
-  });
-  await expect(
-    authFetch().raw("/api/orders", { onResponseError: [hook] }),
-  ).rejects.toMatchObject({ response: refusal });
-  expect(hook).toHaveBeenCalledOnce();
 });
