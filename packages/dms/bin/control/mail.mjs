@@ -8,23 +8,41 @@ import {
 import { createServer } from "node:net";
 import { join } from "node:path";
 
+/**
+ * @typedef {{ from: string, to: string[] }} Envelope
+ * @typedef {{ buffer: string, inData: boolean, envelope: Envelope }} SmtpSession
+ */
+
 const END_OF_DATA = "\r\n.\r\n";
 const QUOTED_SOFT_BREAK = /=\r?\n/g;
 const QUOTED_BYTE = /=([0-9A-F]{2})/g;
 const HEX = 16;
 
+/**
+ * @param {import("node:net").Socket} socket
+ * @param {string} line
+ */
 function reply(socket, line) {
   socket.write(`${line}\r\n`);
 }
 
+/**
+ * @param {string} text
+ * @returns {string}
+ */
 function decodeQuotedPrintable(text) {
   return text
     .replace(QUOTED_SOFT_BREAK, "")
-    .replace(QUOTED_BYTE, (_match, byte) =>
+    .replace(QUOTED_BYTE, (_match, /** @type {string} */ byte) =>
       String.fromCharCode(Number.parseInt(byte, HEX)),
     );
 }
 
+/**
+ * @param {string} message
+ * @param {string} name
+ * @returns {string}
+ */
 function headerOf(message, name) {
   const match = new RegExp(`^${name}:\\s*(.+(?:\\r?\\n[ \\t].+)*)`, "im").exec(
     message,
@@ -32,6 +50,7 @@ function headerOf(message, name) {
   return match ? match[1].replace(/\r?\n[ \t]+/g, " ").trim() : "";
 }
 
+/** @type {Record<string, string>} */
 const ENTITIES = {
   amp: "&",
   lt: "<",
@@ -41,6 +60,10 @@ const ENTITIES = {
   nbsp: " ",
 };
 
+/**
+ * @param {string} html
+ * @returns {string}
+ */
 function readableText(html) {
   const body = html.slice(html.search(/\r?\n\r?\n/));
   return body
@@ -51,6 +74,11 @@ function readableText(html) {
     .trim();
 }
 
+/**
+ * @param {string} folder
+ * @param {Envelope} envelope
+ * @param {string} raw
+ */
 function saveMessage(folder, envelope, raw) {
   mkdirSync(folder, { recursive: true });
   const index =
@@ -76,6 +104,11 @@ function saveMessage(folder, envelope, raw) {
   );
 }
 
+/**
+ * @param {SmtpSession} state
+ * @param {import("node:net").Socket} socket
+ * @param {string} line
+ */
 function command(state, socket, line) {
   const verb = line.slice(0, 4).toUpperCase();
   if (verb === "EHLO" || verb === "HELO")
@@ -99,11 +132,13 @@ function command(state, socket, line) {
   return reply(socket, "250 OK");
 }
 
+/** @param {string} folder */
 function session(folder) {
-  return (socket) => {
+  return (/** @type {import("node:net").Socket} */ socket) => {
+    /** @type {SmtpSession} */
     const state = { buffer: "", inData: false, envelope: { from: "", to: [] } };
     reply(socket, "220 dms-control mail sink");
-    socket.on("data", (chunk) => {
+    socket.on("data", (/** @type {Buffer} */ chunk) => {
       state.buffer += chunk.toString("latin1");
       while (state.buffer.length > 0) {
         if (state.inData) {

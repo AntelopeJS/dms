@@ -6,6 +6,8 @@ import { checkoutOf } from "./git.mjs";
 import { apiRequest } from "./session.mjs";
 import { packageVersion } from "./stack.mjs";
 
+/** @typedef {import("./run-state.mjs").RunState} RunState */
+
 const SKIPPED = new Set([
   "node_modules",
   ".antelope",
@@ -16,6 +18,10 @@ const SKIPPED = new Set([
   ".output",
 ]);
 
+/**
+ * @param {string} folder
+ * @returns {number}
+ */
 function newestMtime(folder) {
   if (!existsSync(folder)) return 0;
   let newest = 0;
@@ -30,14 +36,25 @@ function newestMtime(folder) {
   return newest;
 }
 
+/**
+ * @param {string} file
+ * @returns {number}
+ */
 function mtime(file) {
   return existsSync(file) ? statSync(file).mtimeMs : 0;
 }
 
+/**
+ * @param {string} check
+ * @param {boolean} ok
+ * @param {string} detail
+ * @returns {{ check: string, ok: boolean, detail: string }}
+ */
 function line(check, ok, detail) {
   return { check, ok, detail };
 }
 
+/** @param {RunState} state */
 function processLines(state) {
   const family = new Set([
     ...state.processes.map((record) => record.pid),
@@ -71,6 +88,10 @@ function processLines(state) {
   });
 }
 
+/**
+ * @param {RunState} state
+ * @returns {string}
+ */
 function frontendBackendUrl(state) {
   const frontend = state.processes.find((record) => record.name === "frontend");
   if (!frontend) return "no frontend recorded";
@@ -88,8 +109,13 @@ function frontendBackendUrl(state) {
   return args[args.indexOf("-b") + 1] ?? "no -b";
 }
 
+/** @param {RunState} state */
 function versions(state) {
   const require = createRequire(join(state.playground, "package.json"));
+  /**
+   * @param {string} name
+   * @returns {string}
+   */
   const version = (name) => {
     try {
       return packageVersion(require.resolve(`${name}/package.json`));
@@ -104,6 +130,7 @@ function versions(state) {
   };
 }
 
+/** @param {RunState} state */
 function freshnessLines(state) {
   const moduleDist = join(state.moduleRoot, "dist");
   const playgroundDist = join(state.playground, "dist");
@@ -138,6 +165,7 @@ function freshnessLines(state) {
   ];
 }
 
+/** @param {RunState} state */
 function headLine(state) {
   const now = state.repo ? checkoutOf(state.repo).head : null;
   return line(
@@ -147,6 +175,7 @@ function headLine(state) {
   );
 }
 
+/** @param {RunState} state */
 async function sessionLine(state) {
   if (!state.accounts?.admin)
     return line("admin session", true, "not onboarded yet");
