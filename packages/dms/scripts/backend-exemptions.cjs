@@ -31,9 +31,9 @@ const constructorExemptions = {
     "  const controller = await GetControllerInstance(route.proto.constructor, ctx);",
   "test/helpers/invite-entry-fixtures.ts:146":
     "  const controller = await GetControllerInstance(route.proto.constructor, ctx);",
-  "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:75":
+  "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:76":
     "    const meta = GetMetadata(instance.constructor, TableViewMeta);",
-  "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:86":
+  "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:87":
     "    const meta = GetMetadata(instance.constructor, TableViewMeta);",
 };
 const builtinExemptions = {

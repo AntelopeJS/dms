@@ -106,7 +106,7 @@ async function persist(
 function outcome<T>(promise: Promise<T>): Promise<PromiseSettledResult<T>> {
   return promise.then(
     (value) => ({ status: "fulfilled", value }),
-    (reason) => ({ status: "rejected", reason }),
+    (reason: unknown) => ({ status: "rejected", reason }),
   );
 }
 

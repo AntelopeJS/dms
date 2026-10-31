@@ -194,7 +194,7 @@ export async function startModuleUpdateWatcher(): Promise<void> {
       .then(() =>
         runUpdateCheck(runtime.projectPath, generation, controller.signal),
       )
-      .catch((error) =>
+      .catch((error: unknown) =>
         Logging.Debug(`[DMS] Module update check failed: ${String(error)}`),
       );
   };
