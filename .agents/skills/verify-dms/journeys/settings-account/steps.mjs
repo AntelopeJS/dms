@@ -17,31 +17,31 @@ export const CODE = /verification code is:\s*([A-Z0-9]{6})/;
 export const ADMIN_NAME = "Verify Admin";
 export const TWO_FACTOR_CODE_WINDOW_MS = 61_000;
 
-export async function me(/** @type {Ctx} */ ctx, label, as = "admin") {
+export async function me(/** @type {Ctx} */ ctx, /** @type {string} */ label, /** @type {string} */ as = "admin") {
   const answer = await ctx.api(label, { method: "GET", path: "/api/auth/me", as });
   return answer;
 }
 
-export async function login(/** @type {Ctx} */ ctx, label, email, password) {
+export async function login(/** @type {Ctx} */ ctx, /** @type {string} */ label, /** @type {string} */ email, /** @type {string} */ password) {
   return ctx.api(label, { method: "POST", path: "/api/auth/login", as: "anon", body: { email, password } });
 }
 
 /** Another browser signed in as the run's administrator, as a second device. */
-export async function secondDevice(/** @type {Ctx} */ ctx, name = "admin2") {
+export async function secondDevice(/** @type {Ctx} */ ctx, /** @type {string} */ name = "admin2") {
   ctx.addAccount(name, { ...ctx.state.accounts.admin });
   const tab = await ctx.tab(name);
   await tab.signIn(name);
   return tab;
 }
 
-export async function typeCode(/** @type {Tab} */ tab, code) {
-  for (const [index, character] of [...code].entries()) {
+export async function typeCode(/** @type {Tab} */ tab, /** @type {string} */ code) {
+  for (const [index, character] of Array.from(code).entries()) {
     await tab.fill({ role: "textbox", name: `pin input ${index + 1} of 6` }, character);
   }
 }
 
 /** The code of the first mail to `address` after `since` whose subject matches. */
-export async function mailedCode(/** @type {Ctx} */ ctx, address, since, subject) {
+export async function mailedCode(/** @type {Ctx} */ ctx, /** @type {string} */ address, /** @type {string} */ since, /** @type {RegExp} */ subject) {
   const mail = await ctx.mail(
     (message) =>
       message.to.some((to) => to.includes(address)) &&
@@ -74,7 +74,11 @@ export async function openPasswordForm(/** @type {Tab} */ tab) {
   await tab.click({ role: "button", name: "Change password" });
 }
 
-export async function fillPasswordForm(/** @type {Tab} */ tab, { current, next, confirm = next }) {
+/**
+ * @param {Tab} tab
+ * @param {{ current: string, next: string, confirm?: string }} passwords
+ */
+export async function fillPasswordForm(tab, { current, next, confirm = next }) {
   await tab.fill({ role: "textbox", name: "Current password" }, current);
   await tab.fill({ role: "textbox", name: "New password", exact: true }, next);
   await tab.fill({ role: "textbox", name: "Confirm new password" }, confirm);
@@ -92,7 +96,7 @@ export async function submitEmailForm(/** @type {Tab} */ tab, { address, passwor
 }
 
 /** Ticks a visually hidden radio or switch of the Appearance tiles through its label. */
-export async function tick(/** @type {Tab} */ tab, role, name) {
+export async function tick(/** @type {Tab} */ tab, /** @type {string} */ role, /** @type {string} */ name) {
   await tab.page.getByRole(role, { name }).check({ force: true });
 }
 
@@ -101,11 +105,11 @@ export async function expandSystem(/** @type {Tab} */ tab) {
   if ((await toggle.count()) > 0) await toggle.click();
 }
 
-export async function htmlHasClass(/** @type {Tab} */ tab, name) {
+export async function htmlHasClass(/** @type {Tab} */ tab, /** @type {string} */ name) {
   return tab.page.evaluate((cls) => document.documentElement.classList.contains(cls), name);
 }
 
-export async function joinMember(/** @type {Ctx} */ ctx, firstName) {
+export async function joinMember(/** @type {Ctx} */ ctx, /** @type {string} */ firstName) {
   const email = ctx.email(firstName.toLowerCase());
   const password = ctx.password();
   const roleName = ctx.unique("Support");
@@ -124,9 +128,9 @@ export async function joinMember(/** @type {Ctx} */ ctx, firstName) {
   await admin.click({ role: "option", name: "Sales" });
   await admin.click({ role: "button", name: roleName, exact: true, within: { role: "group", name: "Roles" } });
   await admin.click({ role: "button", name: "Send invitations" });
-  const mail = await ctx.mail((message) => message.to.some((to) => to.includes(email)) && message.links.some((link) => SIGNUP_LINK.test(link)));
+  const mail = await ctx.mail((message) => message.to.some((to) => to.includes(email)) && message.links.some((/** @type {string} */ link) => SIGNUP_LINK.test(link)));
   const tab = await ctx.tab("anon", firstName.toLowerCase());
-  await tab.goto(mail.match.links.find((link) => SIGNUP_LINK.test(link)));
+  await tab.goto(mail.match.links.find((/** @type {string} */ link) => SIGNUP_LINK.test(link)));
   await tab.fill({ role: "textbox", name: "First and last name" }, `${firstName} Member`);
   await tab.fill({ role: "textbox", name: "Password" }, password);
   await tab.click({ role: "button", name: "Create my account" });

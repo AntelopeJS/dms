@@ -120,7 +120,7 @@ export const preferenceJourneys = [
         ctx.equal("system:security", stored.body?.["system:security"], false),
         ctx.equal("system:general", stored.body?.["system:general"], true),
       ]);
-      const counts = async (label) => (await ctx.api(label, { method: "GET", path: `${USER_API}/notifications/counts` })).body;
+      const counts = async (/** @type {string} */ label) => (await ctx.api(label, { method: "GET", path: `${USER_API}/notifications/counts` })).body;
       const before = await counts("count the notifications");
       await changePasswordThroughApi(ctx);
       const whileOff = await counts("count the notifications after a password change with alerts off");

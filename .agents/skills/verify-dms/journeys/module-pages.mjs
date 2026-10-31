@@ -1,23 +1,29 @@
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
+ * @typedef {import("./rows.mjs").UserRow} UserRow
  */
 
 const USERS = "/table-view/table-view-users";
 const USERS_API = "/api/user";
 
-async function signedIn(/** @type {Ctx} */ ctx, label = "admin") {
+async function signedIn(/** @type {Ctx} */ ctx, /** @type {string} */ label = "admin") {
   const tab = await ctx.tab("admin", label);
   await tab.signIn("admin");
   return tab;
 }
 
-async function listUsers(/** @type {Ctx} */ ctx, label) {
+/**
+ * @param {Ctx} ctx
+ * @param {string} label
+ * @returns {Promise<UserRow[]>}
+ */
+async function listUsers(ctx, label) {
   const answer = await ctx.api(label, { method: "GET", path: `${USERS_API}/list?limit=100` });
   return answer.body?.results ?? [];
 }
 
-async function createUser(/** @type {Tab} */ tab, name, email) {
+async function createUser(/** @type {Tab} */ tab, /** @type {string} */ name, /** @type {string} */ email) {
   await tab.goto(USERS);
   await tab.click({ role: "button", name: "New entry" });
   await tab.fill({ role: "textbox", name: "Name" }, name);
@@ -26,7 +32,7 @@ async function createUser(/** @type {Tab} */ tab, name, email) {
   await tab.click({ role: "button", name: "Create" });
 }
 
-async function search(/** @type {Tab} */ tab, text) {
+async function search(/** @type {Tab} */ tab, /** @type {string} */ text) {
   await tab.click({ role: "button", name: "Open search" });
   await tab.fill({ role: "textbox", name: "Search" }, text);
 }

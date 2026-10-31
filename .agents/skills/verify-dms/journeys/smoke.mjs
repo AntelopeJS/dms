@@ -42,7 +42,7 @@ export const journeys = [
       const mail = await ctx.mail((message) => message.to.some((to) => to.includes(email)));
       await ctx.verify("the invitee gets an email with a signup link", [
         ctx.holds("an email reached the invitee", mail.match, `${mail.messages.length} messages captured`),
-        ctx.holds("it links to /auth/signup with a token", mail.match?.links.some((link) => /\/auth\/signup\?token=/.test(link)), JSON.stringify(mail.match?.links)),
+        ctx.holds("it links to /auth/signup with a token", mail.match?.links.some((/** @type {string} */ link) => /\/auth\/signup\?token=/.test(link)), JSON.stringify(mail.match?.links)),
       ]);
     },
   },

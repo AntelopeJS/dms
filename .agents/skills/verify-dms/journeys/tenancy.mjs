@@ -17,7 +17,7 @@ async function refreshToken(/** @type {Ctx} */ ctx) {
   return login.body?.refresh_token ?? "";
 }
 
-function switchTenant(/** @type {Ctx} */ ctx, label, token, tenantId) {
+function switchTenant(/** @type {Ctx} */ ctx, /** @type {string} */ label, /** @type {string} */ token, /** @type {string} */ tenantId) {
   return ctx.api(label, { method: "POST", path: "/api/auth/switch-tenant", as: "anon", body: { refreshToken: token, tenantId } });
 }
 

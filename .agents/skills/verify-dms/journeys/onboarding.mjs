@@ -28,18 +28,18 @@ async function openWizard(/** @type {Ctx} */ ctx, platformName) {
   return tab;
 }
 
-async function fillAdministrator(/** @type {Tab} */ tab, admin) {
+async function fillAdministrator(/** @type {Tab} */ tab, /** @type {Tab} */ admin) {
   await tab.fill({ role: "textbox", name: "First name" }, admin.firstName);
   await tab.fill({ role: "textbox", name: "Last name" }, admin.lastName);
   await tab.fill({ role: "textbox", name: "Work e-mail" }, admin.email);
   await tab.fill({ role: "textbox", name: "Password", exact: true }, admin.password);
 }
 
-async function informations(/** @type {Ctx} */ ctx, label) {
+async function informations(/** @type {Ctx} */ ctx, /** @type {string} */ label) {
   return ctx.api(label, { method: "GET", path: INFORMATIONS, as: "anon" });
 }
 
-async function signInAs(/** @type {Ctx} */ ctx, name, credentials) {
+async function signInAs(/** @type {Ctx} */ ctx, /** @type {string} */ name, /** @type {{ email: string, password: string }} */ credentials) {
   ctx.addAccount(name, credentials);
   return ctx.api(`sign in as ${name}`, { method: "GET", path: "/api/auth/me", as: name });
 }
@@ -157,7 +157,7 @@ export const journeys = [
     entryPoint: "POST /api/onboarding/register, twice concurrently",
     onboard: false,
     async run(/** @type {Ctx} */ ctx) {
-      const admins = ["first", "second"].map((name) => ({
+      const admins = ["first", "second"].map((/** @type {string} */ name) => ({
         email: ctx.email(name),
         firstName: name,
         lastName: "Racer",
@@ -165,7 +165,7 @@ export const journeys = [
       }));
       const answers = await ctx.concurrent(
         "register",
-        admins.map((admin) => ({ method: "POST", path: REGISTER, body: admin })),
+        admins.map((/** @type {Tab} */ admin) => ({ method: "POST", path: REGISTER, body: admin })),
       );
       const accepted = answers.filter((answer) => answer.status === 200).length;
       const owners = [];

@@ -6,17 +6,17 @@
 const MEMBERS = "/settings/workspace/members";
 const RESET_CODE = /verification code is:\s*([A-Z0-9]{6})/;
 
-function login(/** @type {Ctx} */ ctx, label, email, password) {
+function login(/** @type {Ctx} */ ctx, /** @type {string} */ label, /** @type {string} */ email, /** @type {string} */ password) {
   return ctx.api(label, { method: "POST", path: "/api/auth/login", as: "anon", body: { email, password } });
 }
 
-async function fillLoginForm(/** @type {Tab} */ tab, email, password) {
+async function fillLoginForm(/** @type {Tab} */ tab, /** @type {string} */ email, /** @type {string} */ password) {
   await tab.fill({ role: "textbox", name: "Email address" }, email);
   await tab.fill({ role: "textbox", name: "Password", exact: true }, password);
   await tab.click({ role: "button", name: "Login", exact: true });
 }
 
-async function requestResetCode(/** @type {Ctx} */ ctx, /** @type {Tab} */ tab, email) {
+async function requestResetCode(/** @type {Ctx} */ ctx, /** @type {Tab} */ tab, /** @type {string} */ email) {
   await tab.goto("/auth/forgot");
   await tab.fill({ role: "textbox", name: "Email address" }, email);
   await tab.click({ role: "button", name: "Send the code" });
@@ -31,8 +31,8 @@ async function requestResetCode(/** @type {Ctx} */ ctx, /** @type {Tab} */ tab, 
   return RESET_CODE.exec(mail.match?.text ?? "")?.[1] ?? "";
 }
 
-async function typeCode(/** @type {Tab} */ tab, code) {
-  for (const [index, character] of [...code].entries()) {
+async function typeCode(/** @type {Tab} */ tab, /** @type {string} */ code) {
+  for (const [index, character] of Array.from(code).entries()) {
     await tab.fill({ role: "textbox", name: `pin input ${index + 1} of 6` }, character);
   }
 }

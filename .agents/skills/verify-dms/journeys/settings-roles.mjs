@@ -4,6 +4,8 @@ import { join } from "node:path";
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
+ * @typedef {import("./rows.mjs").MemberRow} MemberRow
+ * @typedef {import("./rows.mjs").RoleRow} RoleRow
  */
 
 /** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator. */
@@ -24,7 +26,13 @@ const PLAYGROUND_ONLY = ["settings", "settings.workspace", "settings.workspace.p
 const TOTAL_PERMISSIONS = /1259/;
 const LONG_NAME = "x".repeat(81);
 
-async function createRole(/** @type {Ctx} */ ctx, name, permissions = [EXPORT_PERMISSION]) {
+/**
+ * @param {Ctx} ctx
+ * @param {string} name
+ * @param {string[]} [permissions]
+ * @returns {Promise<string>}
+ */
+async function createRole(ctx, name, permissions = [EXPORT_PERMISSION]) {
   const answer = await ctx.api(`create the role ${name}`, {
     method: "POST",
     path: `${PAGES_API}/roles/create`,
@@ -34,12 +42,22 @@ async function createRole(/** @type {Ctx} */ ctx, name, permissions = [EXPORT_PE
   return answer.body.id;
 }
 
-async function storedRoles(/** @type {Ctx} */ ctx, label) {
+/**
+ * @param {Ctx} ctx
+ * @param {string} label
+ * @returns {Promise<RoleRow[]>}
+ */
+async function storedRoles(ctx, label) {
   const answer = await ctx.api(label, { method: "GET", path: "/api/tables/roles/list" });
   return answer.body?.results ?? [];
 }
 
-async function listMembers(/** @type {Ctx} */ ctx, label) {
+/**
+ * @param {Ctx} ctx
+ * @param {string} label
+ * @returns {Promise<MemberRow[]>}
+ */
+async function listMembers(ctx, label) {
   const answer = await ctx.api(label, { method: "GET", path: "/api/tables/members/list" });
   return answer.body?.results ?? [];
 }
@@ -49,27 +67,32 @@ async function openRoles(/** @type {Tab} */ tab) {
   await tab.visible({ role: "heading", name: "Roles", exact: true });
 }
 
-async function newRole(/** @type {Tab} */ tab, name, ...permissionLabels) {
+/**
+ * @param {Tab} tab
+ * @param {string} name
+ * @param {...string} permissionLabels
+ */
+async function newRole(tab, name, ...permissionLabels) {
   await tab.click({ role: "button", name: "New role" });
   await tab.fill({ role: "textbox", name: "Role name*" }, name);
   for (const label of permissionLabels) await tab.click({ role: "checkbox", name: label, exact: true });
 }
 
-async function selectRole(/** @type {Tab} */ tab, name) {
+async function selectRole(/** @type {Tab} */ tab, /** @type {string} */ name) {
   await tab.click({ role: "option", name });
 }
 
-async function signupLink(/** @type {Ctx} */ ctx, email) {
+async function signupLink(/** @type {Ctx} */ ctx, /** @type {string} */ email) {
   const mail = await ctx.mail(
-    (message) => message.to.some((to) => to.includes(email)) && message.links.some((link) => SIGNUP_LINK.test(link)),
+    (message) => message.to.some((to) => to.includes(email)) && message.links.some((/** @type {string} */ link) => SIGNUP_LINK.test(link)),
   );
   await ctx.verify(`the invitation email reaches ${email}`, [
     ctx.holds("an email with a signup link arrived", mail.match, `${mail.messages.length} messages captured`),
   ], { critical: true });
-  return mail.match.links.findLast((link) => SIGNUP_LINK.test(link));
+  return mail.match.links.findLast((/** @type {string} */ link) => SIGNUP_LINK.test(link));
 }
 
-async function invite(/** @type {Tab} */ tab, email, roleName) {
+async function invite(/** @type {Tab} */ tab, /** @type {string} */ email, /** @type {string} */ roleName) {
   await tab.goto(MEMBERS);
   await tab.click({ role: "button", name: "Invite members" });
   await tab.fill({ role: "textbox", name: "Email addresses" }, email);
@@ -81,7 +104,7 @@ async function invite(/** @type {Tab} */ tab, email, roleName) {
   await tab.at(ON_INVITATIONS);
 }
 
-async function acceptInvitation(/** @type {Ctx} */ ctx, link, name, password) {
+async function acceptInvitation(/** @type {Ctx} */ ctx, /** @type {string} */ link, /** @type {string} */ name, /** @type {string} */ password) {
   const tab = await ctx.tab("anon", "invitee");
   await tab.goto(link);
   await tab.fill({ role: "textbox", name: "First and last name" }, name);
@@ -92,7 +115,7 @@ async function acceptInvitation(/** @type {Ctx} */ ctx, link, name, password) {
 }
 
 /** Invites a member with `roleName` and returns them signed in on their own tab. */
-async function joinedMember(/** @type {Ctx} */ ctx, admin, firstName, roleName) {
+async function joinedMember(/** @type {Ctx} */ ctx, /** @type {Tab} */ admin, /** @type {string} */ firstName, /** @type {string} */ roleName) {
   const email = ctx.email(firstName.toLowerCase());
   const password = ctx.password();
   await invite(admin, email, roleName);
@@ -101,7 +124,7 @@ async function joinedMember(/** @type {Ctx} */ ctx, admin, firstName, roleName) 
   return { email, password, tab };
 }
 
-async function previewHidden(/** @type {Ctx} */ ctx, label, permissions, path) {
+async function previewHidden(/** @type {Ctx} */ ctx, /** @type {string} */ label, /** @type {string[]} */ permissions, /** @type {string} */ path) {
   const answer = await ctx.api(label, {
     method: "POST",
     path: `${PAGES_API}/roles/preview`,
