@@ -63,9 +63,9 @@ export class SalesPage extends PageController("sales", {
 | `@antelopejs/interface-api`                 | `>=0.0.15 <1.0.0` | `file:.campaign/tgz/antelopejs-interface-api-f206be7.tgz`                 |
 | `@antelopejs/interface-api-util`            | `>=0.1.3 <1.0.0`  | `file:.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz`            |
 | `@antelopejs/interface-core`                | `>=0.2.4 <1.0.0`  | `0.2.6`                                                                   |
-| `@antelopejs/interface-data-api`            | `>=0.5.0 <1.0.0`  | `file:.campaign/tgz/antelopejs-interface-data-api-2b29c9d.tgz`            |
-| `@antelopejs/interface-database`            | `>=0.1.11 <1.0.0` | `file:.campaign/tgz/antelopejs-interface-database-e642b3e.tgz`            |
-| `@antelopejs/interface-database-decorators` | `>=0.1.10 <1.0.0` | `file:.campaign/tgz/antelopejs-interface-database-decorators-9dc0781.tgz` |
+| `@antelopejs/interface-data-api`            | `>=0.5.0 <1.0.0`  | `file:.campaign/tgz/antelopejs-interface-data-api-4352b2c.tgz`            |
+| `@antelopejs/interface-database`            | `>=0.1.11 <1.0.0` | `file:.campaign/tgz/antelopejs-interface-database-8261536.tgz`            |
+| `@antelopejs/interface-database-decorators` | `>=0.1.10 <1.0.0` | `file:.campaign/tgz/antelopejs-interface-database-decorators-fcb0a29.tgz` |
 | `@antelopejs/interface-file-storage`        | `>=0.1.4 <1.0.0`  | `0.1.4`                                                                   |
 
 <!-- antelopejs-docs-compat:end -->
