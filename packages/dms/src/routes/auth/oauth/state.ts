@@ -1,6 +1,7 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { assert } from "@antelopejs/interface-api-util";
 import { sign, verify } from "jsonwebtoken";
+import { z } from "zod";
 import { getAuthConfig } from "../../../config";
 import { isJwtClaims } from "../../../utils";
 
@@ -15,11 +16,13 @@ const SECONDS_IN_MINUTE = 60;
 const STATE_LIFETIME_MINUTES = 10;
 const STATE_LIFETIME_SECONDS = STATE_LIFETIME_MINUTES * SECONDS_IN_MINUTE;
 
-interface OAuthStateClaims {
-  provider?: string;
-  nonce?: string;
-  purpose?: string;
-}
+const oauthStateClaims = z.object({
+  provider: z.string().optional(),
+  nonce: z.string().optional(),
+  purpose: z.string().optional(),
+});
+
+type OAuthStateClaims = z.infer<typeof oauthStateClaims>;
 
 const MILLISECONDS_IN_SECOND = 1000;
 const CONSUMED_NONCE_TTL_MS = STATE_LIFETIME_SECONDS * MILLISECONDS_IN_SECOND;
@@ -68,11 +71,8 @@ function decodeState(state: string): OAuthStateClaims | undefined {
   try {
     const claims = verify(state, getStateSecret());
     if (!isJwtClaims(claims)) return undefined;
-    return {
-      provider: claims.provider,
-      nonce: claims.nonce,
-      purpose: claims.purpose,
-    };
+    const parsed = oauthStateClaims.safeParse(claims);
+    return parsed.success ? parsed.data : undefined;
   } catch {
     return undefined;
   }
