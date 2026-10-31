@@ -63,9 +63,17 @@ const implementation = loadDms("./dist/implementations/dms/page.js");
 
 /**
  * @param {unknown} handler
+ * @returns {asserts handler is Function}
+ */
+function assertFunction(handler) {
+  assert.equal(typeof handler, "function");
+}
+
+/**
+ * @param {unknown} handler
  */
 function describe(handler) {
-  assert.ok(handler instanceof Function, "Expected a function");
+  assertFunction(handler);
   return {
     name: handler.name,
     length: handler.length,
@@ -357,7 +365,7 @@ function typeInfo(value) {
   if (value === undefined) return { kind: "undefined" };
   if (value === null) return { kind: "null" };
   if (Array.isArray(value)) return { kind: "array", values: value.map(typeInfo) };
-  if (value instanceof Function) return { kind: "function", ...functionInfo(value) };
+  if (typeof value === "function") return { kind: "function", ...functionInfo(value) };
   return { kind: typeof value, value: String(value) };
 }
 
@@ -375,7 +383,7 @@ function propertyInfo(object) {
     };
     return "value" in descriptor
       ? { ...common, kind: "data", writable: descriptor.writable,
-          value: descriptor.value instanceof Function
+          value: typeof descriptor.value === "function"
             ? { kind: "function", ...functionInfo(descriptor.value) }
             : { kind: descriptor.value === null ? "null" : typeof descriptor.value } }
       : { ...common, kind: "accessor",
