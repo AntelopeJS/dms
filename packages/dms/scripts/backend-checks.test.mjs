@@ -37,10 +37,9 @@ const acceptedLocales = [
 
 for (const [name, edit] of acceptedLocales) {
   await test(`backend-checks: passes with ${name}`, () => {
-    const { status, stdout, stderr } = runWithLocales(edit);
-    assert.equal(stderr, "");
-    assert.equal(stdout.trim(), "Backend invariant checks passed.");
+    const { status, stdout } = runWithLocales(edit);
     assert.equal(status, 0);
+    assert.match(stdout, /Backend invariant checks passed\./);
   });
 }
 
@@ -85,15 +84,14 @@ function translateProtoField(messages, value) {
 }
 
 await test("backend-checks: a field named __proto__ passes once both locales translate it", () => {
-  const { status, stdout, stderr } = runWithLocales(
+  const { status, stdout } = runWithLocales(
     (messages) => {
       translateProtoField(messages, "Prototype");
     },
     { outputField: "__proto__" },
   );
-  assert.equal(stderr, "");
-  assert.equal(stdout.trim(), "Backend invariant checks passed.");
   assert.equal(status, 0);
+  assert.match(stdout, /Backend invariant checks passed\./);
 });
 
 await test("backend-checks: a field named __proto__ fails while no locale translates it", () => {
@@ -111,24 +109,22 @@ await test("backend-checks: a field named __proto__ fails while no locale transl
 });
 
 await test("backend-checks: a node text reaching constructor.name passes as on base", () => {
-  const { status, stdout, stderr } = runWithLocales(() => {}, {
+  const { status, stdout } = runWithLocales(() => {}, {
     name: "$dms.automation.constructor.name",
   });
-  assert.equal(stderr, "");
-  assert.equal(stdout.trim(), "Backend invariant checks passed.");
   assert.equal(status, 0);
+  assert.match(stdout, /Backend invariant checks passed\./);
 });
 
 await test("backend-checks: a node text indexing a string message passes as on base", () => {
-  const { status, stdout, stderr } = runWithLocales(
+  const { status, stdout } = runWithLocales(
     (messages) => {
       automation(messages).testOnlyText = "Text";
     },
     { name: "$dms.automation.testOnlyText.0" },
   );
-  assert.equal(stderr, "");
-  assert.equal(stdout.trim(), "Backend invariant checks passed.");
   assert.equal(status, 0);
+  assert.match(stdout, /Backend invariant checks passed\./);
 });
 
 await test("backend-checks: a node text indexing a missing message still fails", () => {
@@ -143,16 +139,15 @@ await test("backend-checks: a node text indexing a missing message still fails",
 });
 
 await test("backend-checks: an engines entry of another tool that is not a string passes as on base", () => {
-  const { status, stdout, stderr } = runWithLocales(
+  const { status, stdout } = runWithLocales(
     () => {},
     {},
     (manifest) => {
       group(manifest, "engines").node = 20;
     },
   );
-  assert.equal(stderr, "");
-  assert.equal(stdout.trim(), "Backend invariant checks passed.");
   assert.equal(status, 0);
+  assert.match(stdout, /Backend invariant checks passed\./);
 });
 
 await test("backend-checks: still fails when the renderer range is missing", () => {

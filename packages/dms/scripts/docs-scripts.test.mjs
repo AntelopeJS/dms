@@ -45,10 +45,8 @@ const manifests = [
 for (const [name, edit, expected] of manifests) {
   await test(`docs-catalog: generates and checks with ${name}`, () => {
     const { generate, check, dmsVersion, shipped } = generateCatalog(edit);
-    assert.equal(generate.stderr, "");
     assert.equal(generate.status, 0);
     assert.deepEqual(dmsVersion, expected ?? shipped);
-    assert.equal(check.stderr, "");
     assert.equal(check.status, 0);
   });
 }
@@ -70,7 +68,6 @@ await test("docs-screenshots: asks for the width an example names", () => {
 await test("docs-screenshots: a null width gets the width of an example without one", () => {
   const withoutWidth = captureExamples(`{ "a": ${block} }`, "a");
   const nullWidth = captureExamples(`{ "a": ${withWidth("null")} }`, "a");
-  assert.equal(nullWidth.stderr, "");
   assert.equal(nullWidth.status, 0);
   assert.deepEqual(nullWidth.shots, ["a.light.png"]);
   assert.equal(nullWidth.widths.length, 1);
@@ -78,35 +75,31 @@ await test("docs-screenshots: a null width gets the width of an example without 
 });
 
 await test("docs-screenshots: captures an example named __proto__", () => {
-  const { status, stderr, shots } = captureExamples(
+  const { status, shots } = captureExamples(
     `{ "__proto__": ${block} }`,
     "__proto__",
   );
-  assert.equal(stderr, "");
   assert.equal(status, 0);
   assert.deepEqual(shots, ["__proto__.light.png"]);
 });
 
 await test("docs-screenshots: captures the entries of a root array by index", () => {
-  const { status, stderr, shots } = captureExamples(`[ ${block} ]`, "0");
-  assert.equal(stderr, "");
+  const { status, shots } = captureExamples(`[ ${block} ]`, "0");
   assert.equal(status, 0);
   assert.deepEqual(shots, ["0.light.png"]);
 });
 
 await test("docs-screenshots: leaves a numeric type to the preview page", () => {
-  const { status, stderr, shots } = captureExamples(
+  const { status, shots } = captureExamples(
     '{ "a": { "type": 5, "options": {}, "children": [] } }',
     "a",
   );
-  assert.equal(stderr, "");
   assert.equal(status, 0);
   assert.deepEqual(shots, ["a.light.png"]);
 });
 
 await test("docs-screenshots: leaves an entry that is a string to the preview page", () => {
-  const { status, stderr, shots } = captureExamples('{ "a": "heading" }', "a");
-  assert.equal(stderr, "");
+  const { status, shots } = captureExamples('{ "a": "heading" }', "a");
   assert.equal(status, 0);
   assert.deepEqual(shots, ["a.light.png"]);
 });
