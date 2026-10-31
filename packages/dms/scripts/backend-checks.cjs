@@ -67,45 +67,16 @@ for (const { where, text } of texts) {
   );
 }
 
-/** @type {z.ZodType<unknown>} */
-const jsonValue = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValue),
-    z.record(z.string(), jsonValue),
-  ]),
-);
-
-const container = z.union([
-  z.array(z.unknown()),
-  z.record(z.string(), z.unknown()),
-]);
-
-/**
- * @param {unknown} node
- * @param {string} part
- * @returns {unknown}
- */
-function descend(node, part) {
-  const parsed = container.safeParse(node);
-  return parsed.success
-    ? new Map(Object.entries(parsed.data)).get(part)
-    : undefined;
-}
-
 for (const file of locales) {
-  const messages = jsonValue.parse(
-    JSON.parse(readFileSync(join(localeRoot, file), "utf8")),
-  );
+  const messages = JSON.parse(readFileSync(join(localeRoot, file), "utf8"));
   for (const key of [
     ...texts.map(({ text }) => text.slice(1)),
     "error.tenant_owner_required",
     "error.tenant_member_required",
   ]) {
-    const message = key.split(".").reduce(descend, messages);
+    const message = key
+      .split(".")
+      .reduce((node, part) => node?.[part], messages);
     assert.match(message, /\S/, `${file} must translate ${key}`);
   }
 }
