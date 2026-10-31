@@ -38,13 +38,14 @@ docker compose up
 
 The stack starts the DMS, a MongoDB for the DMS's own data, and a PostgreSQL database filled with the Chinook sample (a music store with 11 tables). On one Linux machine the dashboard was ready after about 2 minutes from a cold start and after about 1 minute with the images and packages cached.
 
+The template uses placeholder secrets, so keep its ports on your own machine.
+
 Open [http://localhost:3001](http://localhost:3001), create the administrator account, open the Builder, choose the **Database** tab, and connect the sample database. The [template README](https://github.com/AntelopeJS/template-dms-light#connect-the-sample-database) lists each step with the connection URL.
 
 ### Use it on your own database
 
 Start the same stack. In the Builder's **Database** tab, enter the connection URL of your own database instead of the sample one and press **Connect**. The Builder reads the schema, proposes a page for each table, and writes the pages you keep as TypeScript into your clone.
 
-- Connect with an account that can only read, which on PostgreSQL means `SELECT` and nothing else. The generated pages are read-only, but the connection can write whatever its account can write.
 - Inside the `dms` container, `localhost` is the container itself. A database on your machine needs an address the container can reach.
 - To add the DMS to an existing AntelopeJS project instead, follow [Add the DMS to an existing project](#add-the-dms-to-an-existing-project).
 
@@ -73,20 +74,10 @@ Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript,
 - **An analytics dashboard from your coding agent.** The DMS asks Claude Code or Codex, the agent you already use, to build the back office and a stats dashboard for your data. The DMS ships no AI model of its own.
 - **Pages as TypeScript classes.** Forms, tables, charts, and layouts are blocks that the shared Vue renderer draws. Standard screens need no Vue.
 - **Sign-in, members, and multi-tenancy.** A SaaS mode is included.
-- **An AI dev assistant.** It changes your project for you in Safe mode or Code mode.
+- **An AI dev assistant.** It changes your project for you in Safe mode or Code mode. To run it, you need Claude Code or Codex.
 - **Agent skills in the packages.** They teach coding agents how to build DMS pages the way the DMS expects.
 - **Embedding.** Run the DMS inside an AdonisJS 6 backend.
 - **Installable modules.** Page builder, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics, and a media library.
-
-## Limits
-
-- **Databases.** The Builder connects PostgreSQL, MongoDB, and RethinkDB. MySQL is not supported.
-- **Read-only covers the generated pages.** The connection itself can write whatever the database account can write, so connect with an account that can only read. The table pages still show **New entry**, **Edit**, and **Delete**. Those actions answer "Not Found" because the routes do not exist.
-- **No automatic refresh.** Pages show the data as of the last load. When your external database changes, reload the page.
-- **Dashboards need a coding agent.** Generated dashboards need Claude Code or Codex. Without one, you still get the table pages.
-- **Check what the agent builds.** On the 11-table Chinook sample, the assistant's first pass took about 11 minutes. One of its two dashboards answered "Error 500" until a follow-up message fixed the data shape of its charts. Open each page it creates.
-- **The DMS keeps its own data in MongoDB.** Accounts, roles, and settings live there. The sample stack starts one for you.
-- **The sample stack is for development.** The Builder and the assistant run only in development mode, and the template uses placeholder secrets. Do not expose its ports.
 
 ## How AntelopeJS makes money
 
