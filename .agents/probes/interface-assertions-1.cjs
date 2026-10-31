@@ -37,29 +37,35 @@ const { z } = loadBuilt("zod");
 
 const describeModule = loadBuilt("./dist/base/block-registry/internal/describe.js");
 
-/** @typedef {null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }} JsonValue */
-
 /**
- * The one place this probe decodes serialized observations: JSON text is read as the JSON values it can only hold.
+ * The one place this probe decodes serialized observations: JSON text holds values of no declared shape.
  * @param {string} text
- * @returns {JsonValue}
+ * @returns {unknown}
  */
 function parseJson(text) {
   return JSON.parse(text);
 }
 
 /**
- * @param {JsonValue | undefined} value
- * @returns {{ [key: string]: JsonValue }}
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isJsonObject(value) {
+  return value instanceof Object && !Array.isArray(value);
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Record<string, unknown>}
  */
 function asObject(value) {
-  if (value instanceof Object && !Array.isArray(value)) return value;
+  if (isJsonObject(value)) return value;
   throw new TypeError("Expected a JSON object");
 }
 
 /**
- * @param {JsonValue | undefined} value
- * @returns {JsonValue[]}
+ * @param {unknown} value
+ * @returns {unknown[]}
  */
 function asArray(value) {
   if (Array.isArray(value)) return value;
@@ -125,7 +131,7 @@ function observeDefReads(describeSchema) {
 /**
  * @param {(schema: unknown) => unknown} describeSchema
  * @param {(schema: unknown) => unknown} describeOptions
- * @returns {JsonValue}
+ * @returns {unknown}
  */
 function describeBattery(describeSchema, describeOptions) {
   /** @type {{ lazy: number, factory: number, receivers: boolean[] }} */
