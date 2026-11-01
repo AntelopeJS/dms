@@ -469,10 +469,9 @@ export async function archiveRows(
     return { success: true, archivedCount: 0 };
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference gives a boolean archive patch, but data-api's erased model makes DeepPartial<any> reject booleans; Parameters of the overloaded update exposes its callback overload instead, so retain the existing unchecked adapter call.
   const updated = await model.table.getAll(idArray, idField).update({
     [archiveField]: true,
-  } as any);
+  });
 
   return { success: true, archivedCount: updatedRowCount(updated, idArray) };
 }
@@ -499,10 +498,9 @@ export async function restoreRows(
     return { success: true, restoredCount: 0 };
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The inferred boolean restore patch fails the erased model's DeepPartial<any>; owner-derived Parameters selects the callback overload, not the document overload, so preserving this adapter call still needs its legacy assertion.
   const updated = await model.table.getAll(idArray, idField).update({
     [archiveField]: false,
-  } as any);
+  });
 
   return { success: true, restoredCount: updatedRowCount(updated, idArray) };
 }
