@@ -8,14 +8,14 @@
 @antelopejs/interface-database-decorators	packages/interface-dms/package.json	devDependencies	>=0.1.10 <1.0.0
 @antelopejs/interface-database-decorators	package.json	pnpm.overrides	
 @antelopejs/interface-database-decorators	pnpm-workspace.yaml	overrides	
-@antelopejs/interface-data-api	packages/dms/package.json	dependencies	>=0.5.0 <1.0.0
-@antelopejs/interface-data-api	packages/dms/playground/package.json	dependencies	>=0.5.0 <1.0.0
-@antelopejs/interface-data-api	packages/interface-dms/package.json	devDependencies	>=0.5.0 <1.0.0
+@antelopejs/interface-data-api	packages/dms/package.json	dependencies	>=0.6.0 <1.0.0
+@antelopejs/interface-data-api	packages/dms/playground/package.json	dependencies	>=0.6.0 <1.0.0
+@antelopejs/interface-data-api	packages/interface-dms/package.json	devDependencies	>=0.6.0 <1.0.0
 @antelopejs/interface-data-api	package.json	pnpm.overrides	
 @antelopejs/interface-data-api	pnpm-workspace.yaml	overrides	
-@antelopejs/interface-api	packages/dms/package.json	dependencies	>=0.0.15 <1.0.0
-@antelopejs/interface-api	packages/dms/playground/package.json	dependencies	>=0.0.15 <1.0.0
-@antelopejs/interface-api	packages/interface-dms/package.json	devDependencies	>=0.0.15 <1.0.0
+@antelopejs/interface-api	packages/dms/package.json	dependencies	>=0.3.0 <1.0.0
+@antelopejs/interface-api	packages/dms/playground/package.json	dependencies	>=0.3.0 <1.0.0
+@antelopejs/interface-api	packages/interface-dms/package.json	devDependencies	>=0.3.0 <1.0.0
 @antelopejs/interface-api	package.json	pnpm.overrides	
 @antelopejs/interface-api	pnpm-workspace.yaml	overrides	
 @antelopejs/interface-api-util	packages/dms/package.json	dependencies	>=0.1.3 <1.0.0
@@ -30,3 +30,12 @@
 @antelopejs/tooling-configs	packages/dms/package.json	devDependencies	0.2.0
 @antelopejs/tooling-configs	package.json	pnpm.overrides	
 @antelopejs/tooling-configs	pnpm-workspace.yaml	overrides	
+@antelopejs/dms-frontend	packages/dms/frontend-vue/package.json	devDependencies	>=0.10.0 <0.11.0
+@antelopejs/dms-frontend	packages/dms/playground/package.json	devDependencies	>=0.10.0 <0.11.0
+@antelopejs/dms-frontend	package.json	pnpm.overrides	
+@antelopejs/dms-frontend	pnpm-workspace.yaml	overrides	
+@antelopejs/api	packages/dms/package.json	devDependencies	
+@antelopejs/api	package.json	pnpm.overrides	
+@antelopejs/api	pnpm-workspace.yaml	overrides	
+@antelopejs/api>@antelopejs/interface-core	package.json	pnpm.overrides	
+@antelopejs/api>@antelopejs/interface-core	pnpm-workspace.yaml	overrides	

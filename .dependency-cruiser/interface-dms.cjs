@@ -42,6 +42,7 @@ const tiers = [
     "export-status.ts",
     "invite-extension-payloads.ts",
   ],
+  ["json.ts"],
 ];
 const internals = {
   "attachments.ts": ["attachments"],

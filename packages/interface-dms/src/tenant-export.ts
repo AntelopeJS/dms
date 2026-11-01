@@ -1,4 +1,5 @@
 import type { Readable } from "node:stream";
+import type { JsonValue } from "./json";
 
 /**
  * Sink handed to `Hook.TENANT_DATA_EXPORT` contributors.
@@ -11,8 +12,7 @@ import type { Readable } from "node:stream";
  */
 export interface TenantExportArchive {
   /** Serializes `data` as a JSON entry. */
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The published archive accepts arbitrary consumer JSON input; it does not own the contributor's schema.
-  addJson(path: string, data: unknown): Promise<void>;
+  addJson(path: string, data: JsonValue): Promise<void>;
   /** Adds an artifact already materialized on disk. */
   addFile(path: string, localPath: string): Promise<void>;
   /** Adds a remote or generated dump without ever holding it in memory. */

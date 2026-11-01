@@ -42,13 +42,18 @@ export type FieldOperatorKey = keyof typeof FIELD_OPERATORS;
 type IsArrayOperator<Op extends FieldOperatorKey> =
   (typeof FIELD_OPERATORS)[Op]["isArray"];
 
+/**
+ * A rule comparing one field of the row a table view serves. A getter's
+ * field holds what it resolved to, so a rule on a getter answering a promise
+ * compares the awaited value.
+ */
 export type FieldRule<
   T extends Record<string, unknown>,
   Op extends FieldOperatorKey,
 > = {
   [K in keyof T]: { field: K } & Record<
     Op,
-    IsArrayOperator<Op> extends true ? T[K][] : T[K]
+    IsArrayOperator<Op> extends true ? Awaited<T[K]>[] : Awaited<T[K]>
   >;
 }[keyof T];
 

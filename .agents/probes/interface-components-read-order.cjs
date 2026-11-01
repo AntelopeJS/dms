@@ -412,7 +412,7 @@ async function observeEvaluationOrder() {
       fullSlug: "/order-route",
       get layoutUrl() { trace.push(["layoutUrl"]); return "/order-route/layout"; },
     });
-    results.layoutRoute = { trace: [...trace], secondPrototype: route.proto === Second.prototype };
+    results.layoutRoute = { trace: [...trace], secondController: route.controller === Second };
     receiver.Dispose();
   } finally {
     api.RegisterRoute = register;
@@ -456,7 +456,7 @@ async function observeEvaluationOrder() {
     ],
     layoutRoute: {
       trace: [["target", 1, true], ["layoutUrl"], ["target", 2, true]],
-      secondPrototype: true,
+      secondController: true,
     },
     notify: [
       { mode: "absent", trace: [["hook", true]], calls: 0, firstContains: false, secondContains: false },

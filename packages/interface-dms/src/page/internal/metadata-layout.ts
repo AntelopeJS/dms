@@ -61,7 +61,6 @@ export function registerLayoutRoute(
     parameters: [],
     properties: apimeta.computed_props,
     controller: target(),
-    proto: target().prototype,
   });
   registration().track(() => {
     if (pageLayoutHandlers.get(pageInfo.fullSlug) === handler) {
