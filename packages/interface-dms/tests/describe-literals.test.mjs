@@ -69,3 +69,10 @@ await test("a union of a string literal and null keeps both branches rather than
     oneOf: [{ type: "string", enum: ["a"] }, { type: "unknown" }],
   });
 });
+
+await test("an enum option lists its values in a copy, so freezing the descriptor never reaches zod's own list", () => {
+  const schema = z.enum(["draft", "sent"]);
+  const described = describeOption(schema);
+  assert.deepEqual(described.enum, ["draft", "sent"]);
+  assert.notEqual(described.enum, schema.options);
+});
