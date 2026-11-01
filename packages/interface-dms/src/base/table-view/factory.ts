@@ -3,7 +3,6 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { ComponentBuilder } from "../../component";
-import type { PageMetadata } from "../../page";
 import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
@@ -144,7 +143,7 @@ export function TableView<T extends ControllerClass>(
       name: options.caption || "TableView",
       icon: "i-ph-table",
     })
-    .onCreated((parentPage: PageMetadata) => {
+    .onCreated((parentPage) => {
       tableViewCreated(
         {
           controller,

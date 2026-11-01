@@ -23,7 +23,6 @@ import {
 } from "./internal/request-filter";
 import { resolveTableViewTabs, serializeTableViewTabs } from "./internal/tabs";
 import { registerTableViewCustomTopics } from "./internal/realtime";
-import type { PageMetadata } from "../../page";
 import { serializeEmptyStates } from "./internal/footer";
 import {
   assertTabTargets,
@@ -374,7 +373,7 @@ export function tableViewFromSource(
       formComponents: {},
     })
     .meta({ name: options.caption || "TableView", icon: "i-ph-table" })
-    .onCreated((parentPage: PageMetadata) => {
+    .onCreated((parentPage) => {
       const parentInfo = parentPage.pageInfo;
       if (!parentInfo) return;
       registerTableViewCustomTopics(parentInfo.fullId, options.realtimeTopic);

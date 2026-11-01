@@ -21,6 +21,11 @@ import { collectAttachments } from "./fields";
 import { denyAttachment } from "./registry";
 import { SaveComponentFiles } from "./save";
 
+/** Whether a route answered a row that names its id. */
+function isSavedRow(result: unknown): result is { _id: unknown } {
+  return typeof result === "object" && result !== null && "_id" in result;
+}
+
 async function loadDocument(
   controller: TableViewAttachmentSaveRequest["controller"],
   fields: AttachmentField[],
@@ -93,7 +98,7 @@ export async function SaveTableViewAttachments(
         ...args.slice(1),
       );
 
-      const id = documentId || result?._id;
+      const id = documentId || (isSavedRow(result) ? result._id : undefined);
       // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a nonempty string id may be used to reload the saved document.
       if (typeof id !== "string" || !id) denyAttachment();
       const document = await loadDocument(controller, fields, id);

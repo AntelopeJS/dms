@@ -1,5 +1,4 @@
 import type { ComponentBuilder } from "../../component";
-import type { PageMetadata } from "../../page";
 import { RegisterPageTopic } from "../../realtime";
 
 /**
@@ -27,7 +26,7 @@ export function attachRealtimeTopicsHook<TProps>(
 ): ComponentBuilder<TProps> {
   const topics = normalizeRealtimeTopics(topic);
   if (topics.length === 0) return builder;
-  return builder.onCreated((parentPage: PageMetadata) => {
+  return builder.onCreated((parentPage) => {
     const parentInfo = parentPage.pageInfo;
     if (!parentInfo) return;
     for (const entry of topics) {

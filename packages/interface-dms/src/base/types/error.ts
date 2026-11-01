@@ -11,7 +11,12 @@ export interface ErrorWithMessage {
  * Type guard to check if an error has a message
  */
 export function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
-  return isObject(error) && !isNull(error) && "message" in error;
+  return (
+    isObject(error) &&
+    !isNull(error) &&
+    "message" in error &&
+    isString(error.message)
+  );
 }
 
 /**
@@ -19,7 +24,7 @@ export function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
  */
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published error boundary accepts every thrown value and preserves its existing fallback instead of parsing errors.
 export function getErrorMessage(error: unknown): string {
-  if (isErrorWithMessage(error) && isString(error.message)) {
+  if (isErrorWithMessage(error)) {
     return error.message;
   }
   return "Unknown error";

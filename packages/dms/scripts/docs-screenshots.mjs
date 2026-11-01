@@ -22,6 +22,11 @@ const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const examplesPath = join(packageRoot, "docs-data", "examples.json");
 const outputDir = join(packageRoot, "docs", "images", "blocks");
 
+/** @typedef {import("playwright-core").Page} Page */
+/** @typedef {import("playwright-core").Browser} Browser */
+/** @typedef {ReturnType<typeof readOptions>} Options */
+/** @typedef {ReturnType<typeof readExamples>[number]} Entry */
+
 function readOptions() {
   const { values } = parseArgs({
     options: {
@@ -38,6 +43,7 @@ function readOptions() {
   };
 }
 
+/** @param {Set<string> | undefined} only */
 function readExamples(only) {
   const examples = Object.entries(
     JSON.parse(readFileSync(examplesPath, "utf8")),
@@ -45,6 +51,11 @@ function readExamples(only) {
   return only ? examples.filter(([id]) => only.has(id)) : examples;
 }
 
+/**
+ * @param {string} baseUrl
+ * @param {Entry[1]} example
+ * @param {string} theme
+ */
 function previewUrl(baseUrl, example, theme) {
   const { type, options, children } = example;
   const state = { tree: { type, options, children }, theme, padding: true };
@@ -52,6 +63,7 @@ function previewUrl(baseUrl, example, theme) {
   return `${baseUrl}${PREVIEW_PATH}?state=${encoded}`;
 }
 
+/** @param {Page} page */
 async function waitForBlocks(page) {
   await page.waitForSelector(BLOCK_SELECTOR, { timeout: READY_TIMEOUT_MS });
   await page.waitForFunction(
@@ -63,6 +75,12 @@ async function waitForBlocks(page) {
   await page.waitForTimeout(SETTLE_MS);
 }
 
+/**
+ * @param {Browser} browser
+ * @param {string} baseUrl
+ * @param {Entry} entry
+ * @param {string} theme
+ */
 async function capture(browser, baseUrl, [id, example], theme) {
   const context = await browser.newContext({
     viewport: {
@@ -89,12 +107,19 @@ async function capture(browser, baseUrl, [id, example], theme) {
   }
 }
 
+/** @param {string} path */
 function report(path) {
   const kilobytes = Math.round(statSync(path).size / BYTES_PER_KILOBYTE);
   console.log(`${relative(process.cwd(), path)} (${kilobytes} KB)`);
 }
 
+/**
+ * @param {Browser} browser
+ * @param {Options} options
+ * @param {Entry[]} examples
+ */
 async function captureAll(browser, options, examples) {
+  /** @type {string[]} */
   const failures = [];
   for (const entry of examples) {
     for (const theme of options.themes) {

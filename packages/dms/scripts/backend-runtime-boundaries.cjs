@@ -1,10 +1,14 @@
 const { registerHooks } = require("node:module");
 const { fileURLToPath } = require("node:url");
-const { join, resolve, sep } = require("node:path");
+const path = require("node:path");
+const { sep } = path;
 const { checkEdge } = require("./backend-import-target.cjs");
 
-const root = resolve(__dirname, "..");
-const boundaries = [join(root, "src") + sep, join(root, "dist") + sep];
+const root = path.resolve(__dirname, "..");
+const boundaries = [
+  path.join(root, "src") + sep,
+  path.join(root, "dist") + sep,
+];
 
 registerHooks({
   resolve(specifier, context, nextResolve) {

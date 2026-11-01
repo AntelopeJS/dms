@@ -39,9 +39,8 @@ import {
   spliceChildWatches,
   stripWatchActions,
 } from "./internal/component-watches";
-import type { PageMetadata } from "./page";
 import type { Permission } from "./permissions";
-import type { MaybePromise } from "./types";
+import type { CreatedPage, MaybePromise } from "./types";
 
 export interface ActionDefinition {
   title: string;
@@ -293,7 +292,7 @@ export const DEFAULT_PLACEMENT: ComponentPlacement = {
 export class Component<T = unknown> {
   protected _componentInfo: ComponentInfoPromise<T>;
   protected _metadata: ComponentMetadata;
-  protected _onPageCreated?: (page: PageMetadata) => void;
+  protected _onPageCreated?: (page: CreatedPage) => void;
   protected _onFilter?: ComponentFilter<any>;
   protected _actions: Record<string, Action> = {};
   protected _buttons: Record<string, ComponentButton> = {};
@@ -325,7 +324,7 @@ export class Component<T = unknown> {
   constructor(
     componentInfo: ComponentInfoPromise<T>,
     metadata: ComponentMetadata,
-    onPageCreated?: (page: PageMetadata) => void,
+    onPageCreated?: (page: CreatedPage) => void,
   ) {
     this._componentInfo = componentInfo;
     this._metadata = metadata;
@@ -512,7 +511,7 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     return this;
   }
 
-  onCreated(callback: (page: PageMetadata) => void): this {
+  onCreated(callback: (page: CreatedPage) => void): this {
     this._onPageCreated = callback;
     return this;
   }

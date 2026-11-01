@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.2.0",
   "devDependencies": {
     "@antelopejs/core": ">=1.17.0 <2",
-    "@antelopejs/tooling-configs": "file:.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz",
+    "@antelopejs/tooling-configs": "file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz",
     "dependency-cruiser": "^18.7.0",
     "fast-check": "^4.10.2",
     "knip": "^6.34.0",
@@ -39,9 +39,12 @@
   },
   "pnpm": {
     "overrides": {
-      "@antelopejs/interface-database": "file:.campaign/tgz/antelopejs-interface-database-6bef278.tgz",
-      "@antelopejs/interface-database-decorators": "file:.campaign/tgz/antelopejs-interface-database-decorators-9dc0781.tgz",
-      "@antelopejs/tooling-configs": "file:.campaign/tgz/antelopejs-tooling-configs-70050fb.tgz"
+      "@antelopejs/interface-database": "file:.campaign/tgz/antelopejs-interface-database-8261536.tgz",
+      "@antelopejs/interface-database-decorators": "file:.campaign/tgz/antelopejs-interface-database-decorators-fcb0a29.tgz",
+      "@antelopejs/interface-data-api": "file:.campaign/tgz/antelopejs-interface-data-api-4352b2c.tgz",
+      "@antelopejs/interface-api": "file:.campaign/tgz/antelopejs-interface-api-f206be7.tgz",
+      "@antelopejs/interface-api-util": "file:.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz",
+      "@antelopejs/tooling-configs": "file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz"
     }
   }
 }

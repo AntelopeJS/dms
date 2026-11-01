@@ -64,23 +64,6 @@ const internals = {
   "tenant-ownership.ts": ["member-changes", "tenant-ownership"],
   "uploads.ts": ["uploads"],
 };
-const typeOnlyCycles = [
-  {
-    name: "interface-dms-component-page-metadata-type-cycle",
-    comment:
-      "Component and ComponentBuilder name the PageMetadata class in their published onCreated callback types, while page/ loads Component at runtime. Only the type-only import of page.ts by component.ts may cross upward; AntelopeJS/dms#531 removes it in the next breaking release.",
-    from: "component.ts",
-    to: "page.ts",
-  },
-  {
-    name: "interface-dms-user-avatar-data-types-type-cycle",
-    comment:
-      "The published User table declares avatar as DefaultDataTypes.ImageValue, a member of the data-type namespace in base/, while base/ builds on component.ts, which names User. Only this type-only import may cross upward; AntelopeJS/dms#531 removes it in the next breaking release.",
-    from: "auth/db/tables/users.table.ts",
-    to: "base/data-types/default-types.ts",
-  },
-];
-
 const escape = (text) => text.replaceAll(".", "\\.");
 const unitPaths = (unit) =>
   unit.endsWith("/")
@@ -93,7 +76,6 @@ const unitPaths = (unit) =>
       ];
 const slug = (unit) => unit.replace(/\/$/, "").replaceAll(".", "-");
 const rankedPaths = tiers.flat().flatMap(unitPaths);
-const filePath = (file) => `${root}${escape(file)}$`;
 
 module.exports = {
   forbidden: [
@@ -123,50 +105,13 @@ module.exports = {
           .concat(tier.filter((peer) => peer !== unit))
           .flatMap(unitPaths);
         if (forbidden.length === 0) return [];
-        const name = `interface-dms-${slug(unit)}-no-upward`;
-        const cycles = typeOnlyCycles.filter(({ from }) =>
-          unitPaths(unit).some((path) =>
-            new RegExp(path).test(`${root.slice(1)}${from}`),
-          ),
-        );
-        if (cycles.length === 0) {
-          return [
-            {
-              name,
-              severity: "error",
-              from: { path: unitPaths(unit) },
-              to: { path: forbidden },
-            },
-          ];
-        }
         return [
           {
-            name,
+            name: `interface-dms-${slug(unit)}-no-upward`,
             severity: "error",
-            from: {
-              path: unitPaths(unit),
-              pathNot: cycles.map(({ from }) => filePath(from)),
-            },
+            from: { path: unitPaths(unit) },
             to: { path: forbidden },
           },
-          ...cycles.flatMap((cycle) => [
-            {
-              name,
-              severity: "error",
-              from: { path: filePath(cycle.from) },
-              to: { path: forbidden, pathNot: filePath(cycle.to) },
-            },
-            {
-              name: cycle.name,
-              comment: cycle.comment,
-              severity: "error",
-              from: { path: filePath(cycle.from) },
-              to: {
-                path: filePath(cycle.to),
-                dependencyTypesNot: ["type-only"],
-              },
-            },
-          ]),
         ];
       }),
     ),
