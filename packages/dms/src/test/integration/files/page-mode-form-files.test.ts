@@ -1,10 +1,15 @@
 import { stripStagingPrefix } from "@antelopejs/interface-file-storage";
 import axios, { type AxiosInstance } from "axios";
+import type { PageLayout } from "@antelopejs/interface-dms/page";
 import { expect } from "chai";
 import {
   findUploadToken,
   nativeUploadToken,
   uploadAttachment,
+  type AttachmentMetadata,
+  type PresignResponse,
+  type SavedDocument,
+  type TableLayout,
 } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
@@ -29,18 +34,22 @@ async function formPageSlug(
   client: AxiosInstance,
   kind: FormPageKind,
 ): Promise<string> {
-  const layout = await client.get("/dms/pagelayout", {
+  const layout = await client.get<TableLayout>("/dms/pagelayout", {
     params: { slug: TABLE_SLUG },
   });
   expect(layout.status, JSON.stringify(layout.data)).to.equal(200);
-  return layout.data.components.content.options.formPages[kind];
+  const slug = layout.data.components.content.options?.formPages?.[kind];
+  if (!slug) throw new Error(`No ${kind} form page on ${TABLE_SLUG}`);
+  return slug;
 }
 
 async function subPageUploadToken(
   client: AxiosInstance,
   slug: string,
 ): Promise<string> {
-  const layout = await client.get("/dms/pagelayout", { params: { slug } });
+  const layout = await client.get<PageLayout>("/dms/pagelayout", {
+    params: { slug },
+  });
   expect(layout.status, JSON.stringify(layout.data)).to.equal(200);
   const token = findUploadToken(layout.data.components.form, FILE_FIELD);
   if (!token) throw new Error(`No upload token on ${slug}`);
@@ -60,7 +69,7 @@ async function stageFrom(client: AxiosInstance, slug: string): Promise<string> {
 }
 
 async function storedUrl(client: AxiosInstance, key: string): Promise<string> {
-  const promoted = await client.get(METADATA, {
+  const promoted = await client.get<AttachmentMetadata>(METADATA, {
     params: { resourceKey: stripStagingPrefix(key) },
   });
   expect(promoted.status, JSON.stringify(promoted.data)).to.equal(200);
@@ -84,7 +93,9 @@ describe("[integration] native files submitted from page-mode TableView forms", 
       client,
       await formPageSlug(client, "new"),
     );
-    const created = await client.post(`${LOCATION}/new`, { file: createdKey });
+    const created = await client.post<SavedDocument>(`${LOCATION}/new`, {
+      file: createdKey,
+    });
     expect(created.status, JSON.stringify(created.data)).to.equal(200);
     const createdUrl = await storedUrl(client, createdKey);
 
@@ -131,7 +142,7 @@ describe("[integration] saving a native file that was never stored", () => {
 
   it("answers 400 without leaking the storage key", async () => {
     const client = await ownerClient();
-    const presigned = await client.post(PRESIGN_URL, {
+    const presigned = await client.post<PresignResponse>(PRESIGN_URL, {
       filename: "never-uploaded.txt",
       size: CONTENT.byteLength,
       mimetype: "text/plain",

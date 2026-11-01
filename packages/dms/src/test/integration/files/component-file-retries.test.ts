@@ -7,13 +7,17 @@ import type {
   AttachmentSaveResult,
 } from "@antelopejs/interface-dms/attachments";
 import { verifyUploadToken } from "../../../utils";
-import { nativeUploadToken, uploadAttachment } from "../../helpers/attachments";
+import {
+  nativeUploadToken,
+  uploadAttachment,
+  type AttachmentMetadata,
+  type SavedDocument,
+} from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { requestContextFixture } from "../../helpers/request-context";
 
-type StorageInterface = typeof import("@antelopejs/interface-file-storage");
-const storage: StorageInterface = require("@antelopejs/interface-file-storage");
+import storage = require("@antelopejs/interface-file-storage");
 const CONTENT = Buffer.from("retained canonical bytes");
 const LOCATION = "/api/native-attachments";
 const METADATA = "/api/files/metadata";
@@ -80,11 +84,11 @@ async function fixture(field = "file"): Promise<Fixture> {
 }
 
 async function assertFinal(f: Fixture): Promise<void> {
-  const metadata = await f.client.get(METADATA, {
+  const metadata = await f.client.get<AttachmentMetadata>(METADATA, {
     params: { resourceKey: f.canonical },
   });
   expect(metadata.status, JSON.stringify(metadata.data)).to.equal(200);
-  expect((await axios.get(metadata.data.url)).data).to.equal(
+  expect((await axios.get<string>(metadata.data.url)).data).to.equal(
     CONTENT.toString(),
   );
 }
@@ -94,7 +98,7 @@ async function persist(
   document: AttachmentSaveResult<string>["document"],
 ): Promise<AttachmentSaveResult<string>> {
   expect(document.file).to.equal(f.canonical);
-  const response = await f.client.post(`${LOCATION}/new`, {
+  const response = await f.client.post<SavedDocument>(`${LOCATION}/new`, {
     ...document,
     readerId: f.userId,
   });

@@ -16,6 +16,8 @@ import {
   findUploadToken,
   nativeUploadToken,
   uploadAttachment,
+  type AttachmentMetadata,
+  type SavedDocument,
 } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
@@ -55,12 +57,12 @@ describe("[integration] native component file security", () => {
     });
     const reader = await registerUser({ roles_ids: [role] });
     const other = authorizedClient(reader.accessToken);
-    const metadata = await other.get(METADATA, {
+    const metadata = await other.get<AttachmentMetadata>(METADATA, {
       params: { resourceKey: upload.key },
     });
     expect(metadata.status, JSON.stringify(metadata.data)).to.equal(200);
     expect(metadata.data.expiresAt).to.be.at.most(Date.now() + 60000);
-    expect((await axios.get(metadata.data.url)).data).to.equal(
+    expect((await axios.get<string>(metadata.data.url)).data).to.equal(
       CONTENT.toString(),
     );
     const denied = await other.post("/api/files/presign", {
@@ -100,26 +102,26 @@ describe("[integration] native component file security", () => {
   it("serves public staging immediately without a document save", async () => {
     const { client, upload } = await ownerUpload("publicFile");
     expect(isStagedKey(upload.key)).to.equal(true);
-    const metadata = await client.get(METADATA, {
+    const metadata = await client.get<AttachmentMetadata>(METADATA, {
       params: { resourceKey: upload.key },
     });
     expect(metadata.status, JSON.stringify(metadata.data)).to.equal(200);
     expect(metadata.data.expiresAt).to.equal(undefined);
-    expect((await axios.get(metadata.data.url)).data).to.equal(
+    expect((await axios.get<string>(metadata.data.url)).data).to.equal(
       CONTENT.toString(),
     );
   });
 
   it("promotes an aliased field without changing provenance and deletes it after removal", async () => {
     const { client, upload } = await ownerUpload();
-    const saved = await client.post(`${LOCATION}/new`, {
+    const saved = await client.post<SavedDocument>(`${LOCATION}/new`, {
       file: upload.key,
       files: [],
       readerId: "row-read-denied",
     });
     expect(saved.status, JSON.stringify(saved.data)).to.equal(200);
     const key = stripStagingPrefix(upload.key);
-    const metadata = await client.get(METADATA, {
+    const metadata = await client.get<AttachmentMetadata>(METADATA, {
       params: { resourceKey: key },
     });
     expect(metadata.status, JSON.stringify(metadata.data)).to.equal(200);
@@ -163,13 +165,13 @@ describe("[integration] native component file security", () => {
       filename: "second.txt",
       token: await nativeUploadToken(client, "files"),
     });
-    const saved = await client.post(`${LOCATION}/new`, {
+    const saved = await client.post<SavedDocument>(`${LOCATION}/new`, {
       files: [upload.key, second.key],
     });
     expect(saved.status, JSON.stringify(saved.data)).to.equal(200);
     const links = await Promise.all(
       [upload, second].map(async (file) => {
-        const metadata = await client.get(METADATA, {
+        const metadata = await client.get<AttachmentMetadata>(METADATA, {
           params: { resourceKey: stripStagingPrefix(file.key) },
         });
         expect(metadata.status).to.equal(200);
@@ -256,11 +258,11 @@ describe("[integration] native component file security", () => {
       (await client.get(METADATA, { params: { resourceKey: image.key } }))
         .status,
     ).to.equal(404);
-    const retained = await client.get(METADATA, {
+    const retained = await client.get<AttachmentMetadata>(METADATA, {
       params: { resourceKey: stripStagingPrefix(image.key) },
     });
     expect(retained.status).to.equal(200);
-    expect((await axios.get(retained.data.url)).data).to.equal(
+    expect((await axios.get<string>(retained.data.url)).data).to.equal(
       CONTENT.toString(),
     );
     const saved = await client.post("/dms/pages/settings/user/profile", {
@@ -291,7 +293,7 @@ describe("[integration] native component file security", () => {
       filename: "french.png",
       token,
     });
-    const saved = await client.post(
+    const saved = await client.post<SavedDocument>(
       `${LOCATION}/new`,
       { image: { en: { key: first.key } } },
       { headers: { "x-content-language": "*" } },

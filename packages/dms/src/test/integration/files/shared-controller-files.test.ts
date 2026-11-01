@@ -9,6 +9,7 @@ import {
   findUploadToken,
   nativeUploadToken,
   uploadAttachment,
+  type TableLayout,
 } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
@@ -77,11 +78,13 @@ describe("[integration] native files on a data controller shared by a writing an
 
   it("serves the read-only TableView no form to stage a file from", async () => {
     const client = await ownerClient();
-    const layout = await client.get("/dms/pagelayout", {
+    const layout = await client.get<TableLayout>("/dms/pagelayout", {
       params: { slug: LAST_TABLE_SLUG },
     });
     expect(layout.status, JSON.stringify(layout.data)).to.equal(200);
-    const { formComponents } = layout.data.components.content.options;
+    const options = layout.data.components.content.options;
+    if (!options) throw new Error(`No table options on ${LAST_TABLE_SLUG}`);
+    const { formComponents } = options;
     expect(formComponents.new).to.equal(undefined);
     expect(formComponents.edit).to.equal(undefined);
   });

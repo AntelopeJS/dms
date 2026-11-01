@@ -1,7 +1,10 @@
 import axios from "axios";
 import { expect } from "chai";
 import { DEFAULT_MAX_UPLOAD_SIZE } from "../../..";
-import { nativeUploadToken } from "../../helpers/attachments";
+import {
+  nativeUploadToken,
+  type PresignResponse,
+} from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
@@ -54,7 +57,7 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
     const user = await registerUser({ owner: true });
     const client = authorizedClient(user.accessToken);
 
-    const presignResponse = await client.post(PRESIGN_URL, {
+    const presignResponse = await client.post<PresignResponse>(PRESIGN_URL, {
       filename: FILE_NAME,
       size: FILE_SIZE,
       mimetype: FILE_MIMETYPE,
@@ -69,7 +72,7 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
       {
         headers: presign.headers,
         validateStatus: () => true,
-        transformRequest: [(data) => data],
+        transformRequest: [(data: Buffer) => data],
       },
     );
     expect(uploadResponse.status).to.equal(HTTP_OK);
@@ -112,7 +115,7 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
     const user = await registerUser({ owner: true });
     const client = authorizedClient(user.accessToken);
 
-    const presignResponse = await client.post(PRESIGN_URL, {
+    const presignResponse = await client.post<PresignResponse>(PRESIGN_URL, {
       filename: FILE_NAME,
       size: FILE_SIZE,
       mimetype: FILE_MIMETYPE,
@@ -124,7 +127,7 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
       .put(presign.uploadUrl, Buffer.from(FILE_CONTENT), {
         headers: { ...presign.headers, "Content-Type": IMAGE_MIMETYPE },
         validateStatus: () => true,
-        transformRequest: [(data) => data],
+        transformRequest: [(data: Buffer) => data],
       })
       .then((response) => response.status);
 

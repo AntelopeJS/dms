@@ -1,9 +1,28 @@
 import axios, { type AxiosInstance } from "axios";
 import { expect } from "chai";
+import type { PageLayout } from "@antelopejs/interface-dms/page";
+import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
+import type { createAttachmentUpload, readAttachment } from "../../attachments";
 import { signUploadToken, type UploadTokenClaims } from "../../utils";
 
 const PRESIGN_URL = "/api/files/presign";
 const HTTP_OK = 200;
+
+/** Body of a successful `POST /api/files/presign`, as the route returns it. */
+export type PresignResponse = Awaited<
+  ReturnType<typeof createAttachmentUpload>
+>;
+
+/** Body of a successful `GET /api/files/metadata`, as the route returns it. */
+export type AttachmentMetadata = Awaited<ReturnType<typeof readAttachment>>;
+
+/** Page layout of a TableView page, as `GET /dms/pagelayout` serves it. */
+export type TableLayout = PageLayout<TableViewOptionsSerialized>;
+
+/** Body of a successful write on the native attachment test controller. */
+export interface SavedDocument {
+  _id: string;
+}
 
 /** Obtain the real server-generated field token rather than bypassing page registration. */
 export async function nativeUploadToken(
@@ -12,11 +31,11 @@ export async function nativeUploadToken(
   mode = "new",
   slug = "/nativefiles",
 ): Promise<string> {
-  const response = await client.get("/dms/pagelayout", {
+  const response = await client.get<TableLayout>("/dms/pagelayout", {
     params: { slug },
   });
   expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-  const form = response.data.components.content.options.formComponents[mode];
+  const form = response.data.components.content.options?.formComponents[mode];
   const token = findUploadToken(form, `/api/native-attachments#${field}`);
   if (!token) throw new Error(`No upload token for ${mode}/${field}`);
   return token;
@@ -68,9 +87,7 @@ export async function uploadAttachment(
     filename = "attachment.txt",
     token,
   } = request;
-  const response = await client.post<
-    UploadedAttachment & { resourceKey: string }
-  >(PRESIGN_URL, {
+  const response = await client.post<PresignResponse>(PRESIGN_URL, {
     filename,
     size: content.byteLength,
     mimetype,
@@ -81,7 +98,7 @@ export async function uploadAttachment(
   const uploaded = await axios.put(upload.uploadUrl, content, {
     headers: upload.headers,
     validateStatus: () => true,
-    transformRequest: [(data) => data],
+    transformRequest: [(data: Buffer) => data],
   });
   expect(uploaded.status, JSON.stringify(uploaded.data)).to.equal(HTTP_OK);
   return {

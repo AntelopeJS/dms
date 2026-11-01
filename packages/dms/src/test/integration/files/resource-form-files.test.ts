@@ -1,10 +1,13 @@
 import { stripStagingPrefix } from "@antelopejs/interface-file-storage";
 import axios, { type AxiosInstance } from "axios";
+import type { PageLayout } from "@antelopejs/interface-dms/page";
 import { expect } from "chai";
 import {
   findUploadToken,
   nativeUploadToken,
   uploadAttachment,
+  type AttachmentMetadata,
+  type SavedDocument,
 } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
@@ -29,7 +32,9 @@ async function formUploadToken(
   client: AxiosInstance,
   slug: string,
 ): Promise<string> {
-  const layout = await client.get("/dms/pagelayout", { params: { slug } });
+  const layout = await client.get<PageLayout>("/dms/pagelayout", {
+    params: { slug },
+  });
   expect(layout.status, JSON.stringify(layout.data)).to.equal(200);
   const token = findUploadToken(layout.data.components.content, FILE_FIELD);
   if (!token) throw new Error(`No upload token on ${slug}`);
@@ -49,7 +54,7 @@ async function stageFrom(client: AxiosInstance, slug: string): Promise<string> {
 }
 
 async function storedUrl(client: AxiosInstance, key: string): Promise<string> {
-  const promoted = await client.get(METADATA, {
+  const promoted = await client.get<AttachmentMetadata>(METADATA, {
     params: { resourceKey: stripStagingPrefix(key) },
   });
   expect(promoted.status, JSON.stringify(promoted.data)).to.equal(200);
@@ -79,7 +84,9 @@ describe("[integration] native files submitted from ResourceForm blocks", () => 
         token: await nativeUploadToken(client),
       })
     ).key;
-    const created = await client.post(`${LOCATION}/new`, { file: tableKey });
+    const created = await client.post<SavedDocument>(`${LOCATION}/new`, {
+      file: tableKey,
+    });
     expect(created.status, JSON.stringify(created.data)).to.equal(200);
     const tableUrl = await storedUrl(client, tableKey);
 
@@ -100,7 +107,9 @@ describe("[integration] native files submitted from ResourceForm blocks", () => 
   it("deletes a row holding a ResourceForm file through the shared delete route", async () => {
     const client = await ownerClient();
     const key = await stageFrom(client, NEW_FORM_SLUG);
-    const saved = await client.post(`${LOCATION}/new`, { file: key });
+    const saved = await client.post<SavedDocument>(`${LOCATION}/new`, {
+      file: key,
+    });
     expect(saved.status, JSON.stringify(saved.data)).to.equal(200);
     const url = await storedUrl(client, key);
     const removed = await client.delete(`${LOCATION}/delete`, {
