@@ -2,18 +2,17 @@
   "pack": "0.2.17",
   "rules": {
     "antelopejs/no-inherited-key-lookup": 70,
-    "antelopejs/no-presence-only-type-guard": 4,
+    "antelopejs/no-presence-only-type-guard": 3,
     "anti-slop/no-reflect-apply": 1,
-    "anti-slop/no-reflect-get": 9,
+    "anti-slop/no-reflect-get": 2,
     "anti-slop/no-runtime-typeof": 28,
     "typescript/no-base-to-string": 1,
-    "typescript/no-unnecessary-type-parameters": 6,
-    "typescript/no-unsafe-argument": 477,
-    "typescript/no-unsafe-assignment": 1451,
-    "typescript/no-unsafe-return": 395,
-    "typescript/restrict-template-expressions": 1,
+    "typescript/no-unnecessary-type-parameters": 4,
+    "typescript/no-unsafe-argument": 122,
+    "typescript/no-unsafe-assignment": 201,
+    "typescript/no-unsafe-return": 130,
     "typescript/unbound-method": 9,
-    "typescript/use-unknown-in-catch-callback-variable": 5
+    "typescript/use-unknown-in-catch-callback-variable": 1
   },
   "oversizeFiles": {}
 }

@@ -141,7 +141,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "optionalDependencies": {
-    "@antelopejs/interface-dms-automation": ">=0.4.0 <1.0.0",
+    "@antelopejs/interface-dms-automation": "file:../../.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz",
     "@antelopejs/interface-redis": ">=0.0.9 <1.0.0"
   },
   "peerDependencies": {
