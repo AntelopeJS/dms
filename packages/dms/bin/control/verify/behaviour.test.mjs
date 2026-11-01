@@ -44,6 +44,12 @@ function commit(repo, files, message) {
   return git(repo, "rev-parse", "HEAD");
 }
 
+/**
+ * @param {import("node:test").TestContext} t
+ * @param {Record<string, string>} base
+ * @param {Record<string, string>} head
+ * @param {string[]} [covers]
+ */
 function changed(t, base, head, covers = COVERS) {
   const repo = mkdtempSync(join(tmpdir(), "dms-control-emit-test-"));
   t.after(() => rmSync(repo, { recursive: true, force: true }));

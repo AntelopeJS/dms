@@ -63,6 +63,10 @@ function commit(repo, files, message) {
   return git(repo, "rev-parse", "HEAD");
 }
 
+/**
+ * @param {import("node:test").TestContext} t
+ * @param {Record<string, string>} head
+ */
 function formalRepo(t, head) {
   const root = mkdtempSync(join(tmpdir(), "dms-control-formal-test-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
@@ -86,6 +90,9 @@ function formalRepo(t, head) {
   return { skill, state: { evidence }, diff: { baseSha, headSha, changed } };
 }
 
+/**
+ * @param {ReturnType<typeof formalRepo>} repo
+ */
 function gated({ skill, state, diff }) {
   const [check] = touchedFormalChecks(skill, diff.changed);
   return check ? runFormalCheck(skill, state, check, diff) : null;

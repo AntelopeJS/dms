@@ -83,7 +83,7 @@ const MODULE_EXTENSION = /\.(?:[cm]?[jt]s|[jt]sx)$/;
 
 /**
  * @param {string} path
- * @param specifier The `text` of the module specifier node. An expression that has none, such as a call, is not a string and throws here.
+ * @param {string} specifier The `text` of the module specifier node. An expression that has none, such as a call, is not a string and throws here.
  * @returns {string}
  */
 function moduleKey(path, specifier) {
