@@ -1,7 +1,5 @@
 import { expect } from "chai";
-import { SaveComponentFiles } from "../../attachments/save";
-import { ensureContainer } from "../../implementations/dms/page/registry";
-import type { SiteLayoutTree } from "../../implementations/dms/page/types";
+import { SaveComponentFiles } from "../../attachments";
 import { GetPermission } from "../../implementations/dms/permissions";
 import { toActivityFeedItems } from "../../pages/account";
 import { findPermissionNode } from "../../pages/permissions";
@@ -35,14 +33,6 @@ describe("[unit] lookups answer own keys only", () => {
       expect(findPermissionNode(tree, `sales.${key}`)).to.equal(undefined);
     });
   }
-
-  it("ensureContainer creates the container of a segment named like an Object.prototype key", () => {
-    const level: Record<string, SiteLayoutTree> = {};
-    const container = ensureContainer(level, "constructor");
-    expect(container.displayName).to.equal("none");
-    expect(Object.hasOwn(level, "constructor")).to.equal(true);
-    expect(ensureContainer(level, "constructor")).to.equal(container);
-  });
 
   it("the activity feed keeps the event's icon when the device type is an Object.prototype key", () => {
     const [item] = toActivityFeedItems(

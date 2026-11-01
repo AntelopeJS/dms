@@ -1,4 +1,4 @@
-import { ownValue } from "../../../utils/own-value";
+import { ownValue } from "../../../utils";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
 import type { Tone } from "@antelopejs/interface-dms/base/types/tone";
 import type {

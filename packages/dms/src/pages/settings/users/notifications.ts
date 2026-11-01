@@ -1,4 +1,4 @@
-import { ownValue } from "../../../utils/own-value";
+import { ownValue } from "../../../utils";
 import {
   Context,
   Controller,

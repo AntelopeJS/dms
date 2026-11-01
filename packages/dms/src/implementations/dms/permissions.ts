@@ -1,3 +1,4 @@
+import { ownValue } from "../../utils";
 import type {
   Permission,
   PermissionTree,
@@ -13,15 +14,14 @@ function addPermissionToTree(permission: Permission): void {
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i];
 
-    if (!currentLevel[part]) {
-      currentLevel[part] = { children: {} };
-    }
+    const node = ownValue(currentLevel, part) ?? { children: {} };
+    currentLevel[part] = node;
 
     if (i === parts.length - 1) {
-      currentLevel[part].data = permission;
+      node.data = permission;
     }
 
-    currentLevel = currentLevel[part].children;
+    currentLevel = node.children;
   }
 }
 
@@ -31,19 +31,19 @@ function removePermissionFromTree(id: string): void {
   let currentLevel = permissionTree;
 
   for (let i = 0; i < parts.length - 1; i++) {
-    const node = currentLevel[parts[i]];
+    const node = ownValue(currentLevel, parts[i]);
     if (!node) return;
     currentLevel = node.children;
     levels.push(currentLevel);
   }
 
-  const target = currentLevel[parts[parts.length - 1]];
+  const target = ownValue(currentLevel, parts[parts.length - 1]);
   if (!target) return;
   target.data = undefined;
 
   for (let i = parts.length - 1; i >= 0; i--) {
     const level = levels[i];
-    const node = level[parts[i]];
+    const node = ownValue(level, parts[i]);
     if (!node || node.data || Object.keys(node.children).length > 0) return;
     delete level[parts[i]];
   }

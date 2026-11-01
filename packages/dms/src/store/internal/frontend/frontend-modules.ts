@@ -42,7 +42,7 @@ import {
 } from "./manifest";
 import { isStoreOperationRunning } from "../../activity";
 import { warnOnceFor } from "./warn-once";
-import { ownValue } from "../../../utils/own-value";
+import { ownValue } from "../../../utils";
 import {
   copyPublicEndpoints,
   resolvePublicEndpoints,

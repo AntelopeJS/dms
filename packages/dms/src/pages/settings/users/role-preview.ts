@@ -1,4 +1,4 @@
-import { ownValue } from "../../../utils/own-value";
+import { ownValue } from "../../../utils";
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { PermissionTree } from "@antelopejs/interface-dms/permissions";

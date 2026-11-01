@@ -1,4 +1,4 @@
-import { ownValue } from "../../../utils/own-value";
+import { ownValue } from "../../../utils";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { KeyValueListItem } from "@antelopejs/interface-dms/base/key-value-list";
 import { getTwoFactorStatus } from "../users/two-factor-operations";
