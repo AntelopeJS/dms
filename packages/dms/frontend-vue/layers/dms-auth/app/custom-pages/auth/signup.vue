@@ -15,7 +15,7 @@ import {
   useLiveFormErrors,
   useLocalizedSchema,
 } from "#dms-core/app/composables/useFormValidation";
-import { resolveApiErrorMessage } from "#dms-core/app/composables/useApiError";
+import { resolveApiErrorMessage } from "#dms-core/app/composables/resolveApiError";
 import { isString } from "#dms-core/app/utils/type-check";
 
 const MIN_NAME_LENGTH = 2;

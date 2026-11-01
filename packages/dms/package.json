@@ -147,7 +147,6 @@
     },
     "./package.json": "./package.json",
     "./checks/api-error-presentation": "./frontend-vue/scripts/check-api-error-presentation.mjs",
-    "./codemods/api-error-presenter": "./frontend-vue/scripts/codemods/api-error-presenter.mjs",
     "./interfaces/*": null
   },
   "publishConfig": {

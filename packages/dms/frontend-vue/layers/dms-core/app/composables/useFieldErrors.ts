@@ -1,6 +1,6 @@
 import { nextTick, reactive } from "vue";
 import { type I18nTranslate } from "./translation/useTranslation";
-import { resolveApiErrorMessage } from "./useApiError";
+import { resolveApiErrorMessage } from "./resolveApiError";
 import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 
 /**

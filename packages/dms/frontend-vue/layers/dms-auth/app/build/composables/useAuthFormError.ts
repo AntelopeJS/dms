@@ -4,7 +4,7 @@ import {
   type FieldErrorCode,
   resolveFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
-import { resolveApiErrorMessage } from "#dms-core/app/composables/useApiError";
+import { resolveApiErrorMessage } from "#dms-core/app/composables/resolveApiError";
 
 export interface AuthFormError {
   title: string;

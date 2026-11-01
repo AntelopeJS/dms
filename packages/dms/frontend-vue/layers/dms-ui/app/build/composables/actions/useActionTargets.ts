@@ -25,10 +25,7 @@ export interface ActionTargetsConfig {
   /** Called once a target changed something (an API call, a closed form). */
   refreshCallback?: () => void;
   /** Toasts a failure no dialog shows. */
-  handleApiError: (
-    error: Parameters<typeof useApiError>[0],
-    title?: string,
-  ) => void;
+  handleApiError: (error: unknown, title?: string) => void;
   /** The rows a drawer or modal opened on a row steps through (J / K). */
   rowNavigation?: RowNavigationSource;
   /** Where a `deepLink` action writes the row it has open in the URL. */
