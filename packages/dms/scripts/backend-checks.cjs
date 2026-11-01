@@ -3,9 +3,10 @@ const { readdirSync, readFileSync } = require("node:fs");
 const nodePath = require("node:path");
 const { sep } = nodePath;
 const join = nodePath.join.bind(nodePath);
-const { satisfies, validRange } = require("semver");
+const { satisfies, valid, validRange } = require("semver");
 const ts = require("typescript");
 const { ACTIONS, TRIGGERS } = require("./backend-automation.cjs");
+const { readJsonRecord, textAt } = require("./helpers/json-record.mjs");
 const checkTarget = require("./backend-import-target.cjs");
 const {
   constructorExemptions,
@@ -67,15 +68,13 @@ for (const { where, text } of texts) {
 }
 
 for (const file of locales) {
-  const messages = JSON.parse(readFileSync(join(localeRoot, file), "utf8"));
+  const messages = readJsonRecord(join(localeRoot, file));
   for (const key of [
     ...texts.map(({ text }) => text.slice(1)),
     "error.tenant_owner_required",
     "error.tenant_member_required",
   ]) {
-    const message = key
-      .split(".")
-      .reduce((node, part) => node?.[part], messages);
+    const message = textAt(messages, key) ?? "";
     assert.match(message, /\S/, `${file} must translate ${key}`);
   }
 }
@@ -89,14 +88,17 @@ assert.deepEqual(components.sort(), emailNames.sort());
 
 const lockfile = readFileSync(join(root, "../../pnpm-lock.yaml"), "utf8");
 const locked = [
-  ...lockfile.matchAll(/^ {2}'@antelopejs\/dms-frontend@([^'(]+)':$/gm),
-].map(([, version]) => version);
+  ...lockfile.matchAll(
+    /^ {2}'@antelopejs\/dms-frontend@([^'(]+)':\n((?: {4}.*\n)*)/gm,
+  ),
+].map(([, key, entry]) => entry.match(/^ {4}version: (\S+)$/m)?.[1] ?? key);
 assert.notDeepEqual(locked, []);
+for (const version of locked) {
+  assert.notEqual(valid(version), null, `locked renderer ${version}`);
+}
 for (const layer of ["frontend-vue", "playground/frontend-vue"]) {
-  const manifest = JSON.parse(
-    readFileSync(join(root, layer, "package.json"), "utf8"),
-  );
-  const range = manifest.engines?.["@antelopejs/dms-frontend"];
+  const manifest = readJsonRecord(join(root, layer, "package.json"));
+  const range = textAt(manifest, "engines.@antelopejs/dms-frontend") ?? "";
   assert.match(range, /./, `${layer} renderer range`);
   assert.notEqual(validRange(range), null, `${layer} renderer range`);
   for (const version of locked) {

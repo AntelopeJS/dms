@@ -1,3 +1,5 @@
+import { isInviteRow, isMemberRow, listOf, requiredStringIn } from "../../rows.mjs";
+
 /**
  * @typedef {import("../../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
@@ -34,7 +36,7 @@ export async function createRole(ctx, name, permissions = ["playground.reports.e
     body: { name, description: "", permissions },
   });
   await ctx.verify(`the role ${name} exists`, [ctx.status(answer, 200)], { critical: true });
-  return answer.body.id;
+  return requiredStringIn(answer.body, "id");
 }
 
 /**
@@ -45,7 +47,7 @@ export async function createRole(ctx, name, permissions = ["playground.reports.e
  */
 export async function listMembers(ctx, label, as = "admin") {
   const answer = await ctx.api(label, { method: "GET", path: "/api/tables/members/list", as });
-  return answer.body?.results ?? [];
+  return listOf(answer.body, isMemberRow);
 }
 
 /**
@@ -55,7 +57,7 @@ export async function listMembers(ctx, label, as = "admin") {
  */
 export async function listInvites(ctx, label) {
   const answer = await ctx.api(label, { method: "GET", path: "/api/tables/admin-invites/list" });
-  return answer.body?.results ?? [];
+  return listOf(answer.body, isInviteRow);
 }
 
 export async function openInviteDialog(/** @type {Tab} */ tab) {

@@ -1,16 +1,11 @@
 import { randomBytes } from "node:crypto";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { withBaseBackend } from "./base.mjs";
 import { launchBrowser, newContext } from "./browser.mjs";
 import { capturedMail } from "./mail.mjs";
+import { isRecord, isString, readRecordList } from "./json.mjs";
 import { saveRun } from "./run-state.mjs";
 import {
   adminCredentials,
@@ -435,6 +430,22 @@ export async function runJourney(state, feature, journey, skill) {
 }
 
 /**
+ * @param {unknown} value A value a journeys module exports
+ * @returns {value is Journey} True for an object with the fields a journey run reads
+ */
+function isJourney(value) {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isString(value.title) &&
+    isString(value.entryPoint) &&
+    (value.database === undefined || isString(value.database)) &&
+    (value.onboard === undefined || typeof value.onboard === "boolean") &&
+    typeof value.run === "function"
+  );
+}
+
+/**
  * Loads the journeys a feature's file exports (`export const journeys`).
  *
  * @param {string} file The journeys module
@@ -442,9 +453,16 @@ export async function runJourney(state, feature, journey, skill) {
  */
 export async function loadJourneys(file) {
   if (!existsSync(file)) throw new Error(`${file} does not exist`);
-  const { journeys } = await import(pathToFileURL(file).href);
-  if (!Array.isArray(journeys))
+  /** @type {unknown} */
+  const exported = await import(pathToFileURL(file).href);
+  const entries = isRecord(exported) ? exported.journeys : undefined;
+  if (!Array.isArray(entries))
     throw new Error(`${file} exports no journeys array`);
+  const journeys = entries.filter(isJourney);
+  if (journeys.length !== entries.length)
+    throw new Error(
+      `${file} exports a journey without an id, title, entry point or run function`,
+    );
   return journeys;
 }
 
@@ -470,15 +488,14 @@ export async function runJourneyFile(state, request) {
     request.ids.length > 0
       ? journeys.filter((journey) => request.ids.includes(journey.id))
       : journeys;
+  /** @type {FeatureResult[]} */
   const results = [];
   for (const journey of selected)
     results.push(
       await runJourney(state, request.feature, journey, request.skill),
     );
   const file = join(state.evidence, request.feature, "feature.json");
-  const earlier = existsSync(file)
-    ? JSON.parse(readFileSync(file, "utf8"))
-    : [];
+  const earlier = existsSync(file) ? readRecordList(file) : [];
   const merged = journeys.flatMap((journey) => {
     const fresh = results.filter((result) => result.journey === journey.id);
     return fresh.length > 0

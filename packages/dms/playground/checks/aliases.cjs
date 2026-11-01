@@ -93,6 +93,7 @@ const trustedManifests = new Map([
       "version",
       "private",
       "main",
+      "dmsFrontend",
       "packageManager",
       "scripts",
       "devDependencies",
