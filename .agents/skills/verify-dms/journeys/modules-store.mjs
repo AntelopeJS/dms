@@ -1,4 +1,4 @@
-import { isStoreModule, listIn } from "../rows.mjs";
+import { booleanIn, isStoreModule, listIn } from "../rows.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -75,7 +75,7 @@ export const journeys = [
       await ctx.verify("nothing is installed", [
         ctx.status(install, 403),
         ctx.equal("error", install.body, "error.store_disabled"),
-        ctx.equal("store enabled", listing.body?.enabled, false),
+        ctx.equal("store enabled", booleanIn(listing.body, "enabled"), false),
         ctx.equal("the API module stays available, not installed", api?.state, "available"),
       ]);
     },
@@ -86,10 +86,11 @@ export const journeys = [
     entryPoint: "GET /dms/store/listing",
     async run(/** @type {Ctx} */ ctx) {
       const owner = await ctx.api("read the listing as the owner", { method: "GET", path: LISTING });
+      const catalog = listIn(owner.body, "modules", isStoreModule);
       const visitor = await ctx.api("read the listing anonymously", { method: "GET", path: LISTING, as: "anon" });
       await ctx.verify("only the owner reads the catalog", [
         ctx.status(owner, 200),
-        ctx.holds("the catalog has modules", (owner.body?.modules ?? []).length > 0, (owner.body?.modules ?? []).length),
+        ctx.holds("the catalog has modules", catalog.length > 0, catalog.length),
         ctx.status(visitor, 403),
       ]);
     },

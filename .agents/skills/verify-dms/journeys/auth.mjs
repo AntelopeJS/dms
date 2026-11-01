@@ -1,4 +1,4 @@
-import { stringIn } from "../rows.mjs";
+import { isUserRow, listOf, stringIn } from "../rows.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -62,7 +62,7 @@ export const journeys = [
       const me = await ctx.api("read the signed-in account", { method: "GET", path: "/api/auth/me" });
       await ctx.verify("the API reads back the same account", [
         ctx.status(me, 200),
-        ctx.equal("email", me.body?.email, ctx.adminCredentials().email),
+        ctx.equal("email", stringIn(me.body, "email"), ctx.adminCredentials().email),
       ]);
     },
   },
@@ -137,7 +137,7 @@ export const journeys = [
       const withNew = await login(ctx, "sign in with the new password", admin.email, fresh);
       const withOld = await login(ctx, "sign in with the old password", admin.email, admin.password);
       await ctx.verify("only the new password signs in", [
-        ctx.holds("new password accepted", withNew.status === 200 && withNew.body?.access_token, withNew.status),
+        ctx.holds("new password accepted", withNew.status === 200 && stringIn(withNew.body, "access_token"), withNew.status),
         ctx.status(withOld, 401),
       ]);
     },
@@ -190,10 +190,10 @@ export const journeys = [
       const users = await ctx.api("read the base record", { method: "GET", path: "/api/user/list?limit=100" });
       await ctx.verify("this version reads what the base version wrote", [
         ctx.status(me, 200),
-        ctx.equal("the account behind the base token", me.body?.email, admin.email),
-        ctx.holds("the base refresh token refreshes", refreshed.status === 200 && refreshed.body?.access_token, refreshed.status),
+        ctx.equal("the account behind the base token", stringIn(me.body, "email"), admin.email),
+        ctx.holds("the base refresh token refreshes", refreshed.status === 200 && stringIn(refreshed.body, "access_token"), refreshed.status),
         ctx.status(relogin, 200),
-        ctx.holds("the record is listed", (users.body?.results ?? []).some((user) => user._id === written.recordId), written.recordId),
+        ctx.holds("the record is listed", listOf(users.body, isUserRow).some((user) => user._id === written.recordId), written.recordId),
       ]);
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");

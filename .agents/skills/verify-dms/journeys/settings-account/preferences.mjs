@@ -1,5 +1,5 @@
 import { REGION, NOTIFICATIONS, APPEARANCE, SETTINGS, USER_API, me, secondDevice, changePasswordThroughApi, tick, expandSystem, htmlHasClass } from "./steps.mjs";
-import { numberIn } from "../../rows.mjs";
+import { booleanIn, numberIn, stringIn } from "../../rows.mjs";
 
 /**
  * @typedef {import("../../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -28,8 +28,8 @@ export const preferenceJourneys = [
       const account = await me(ctx, "read the account");
       const preferences = await ctx.api("read the regional preferences", { method: "GET", path: `${USER_API}/region/preferences` });
       await ctx.verify("the account and its preferences hold French", [
-        ctx.equal("language", account.body?.language, "fr"),
-        ctx.equal("preference language", preferences.body?.language, "fr"),
+        ctx.equal("language", stringIn(account.body, "language"), "fr"),
+        ctx.equal("preference language", stringIn(preferences.body, "language"), "fr"),
       ]);
       const other = await secondDevice(ctx);
       await other.goto(SETTINGS);
@@ -40,7 +40,7 @@ export const preferenceJourneys = [
       await tab.click({ role: "option", name: "English" });
       await ctx.verify("switching back restores English", [
         tab.visible({ role: "heading", name: "Language & region", exact: true }),
-        ctx.equal("language", (await me(ctx, "read the account again")).body?.language, "en"),
+        ctx.equal("language", stringIn((await me(ctx, "read the account again")).body, "language"), "en"),
       ]);
     },
   },
@@ -58,7 +58,7 @@ export const preferenceJourneys = [
       const preferences = await ctx.api("read the regional preferences", { method: "GET", path: `${USER_API}/region/preferences` });
       await ctx.verify("a reload and the API keep the 24-hour clock", [
         ctx.equal("checked", await tab.page.getByRole("radio", { name: "24-hour" }).isChecked(), true),
-        ctx.equal("timeFormat", preferences.body?.timeFormat, "h23"),
+        ctx.equal("timeFormat", stringIn(preferences.body, "timeFormat"), "h23"),
       ]);
     },
   },
@@ -118,8 +118,8 @@ export const preferenceJourneys = [
       const stored = await ctx.api("read the preferences", { method: "GET", path: `${USER_API}/notifications/preferences` });
       await ctx.verify("a reload and the API keep Security alerts off", [
         tab.shows(/4 of 5 on/),
-        ctx.equal("system:security", stored.body?.["system:security"], false),
-        ctx.equal("system:general", stored.body?.["system:general"], true),
+        ctx.equal("system:security", booleanIn(stored.body, "system:security"), false),
+        ctx.equal("system:general", booleanIn(stored.body, "system:general"), true),
       ]);
       const allCount = async (/** @type {string} */ label) => numberIn((await ctx.api(label, { method: "GET", path: `${USER_API}/notifications/counts` })).body, "all");
       const before = await allCount("count the notifications");

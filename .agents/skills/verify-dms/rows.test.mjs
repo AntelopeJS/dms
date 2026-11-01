@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isInviteRow, isMemberRow, isRoleOverviewRow, isRoleRow, isStoreModule, isUserRow, issuePaths, listIn, listOf, numberIn, requiredStringIn, stringIn, stringsIn } from "./rows.mjs";
+import { booleanIn, isInviteRow, isMemberRow, isNotificationRow, isRoleOverviewRow, isRoleRow, isStoreModule, isUserRow, issuePaths, listIn, listOf, numberIn, rowsOf, requiredStringIn, stringIn, stringsIn } from "./rows.mjs";
 
 const MEMBER = { _id: "default:u1", email: "a@example.com", name: "Ada", isTenantOwner: true, roleIds: [{ _id: "r1" }] };
 const INVITE = { _id: "i1", email: "b@example.com", asTenantOwner: false, roles_ids: [{ _id: "r1" }] };
@@ -119,4 +119,38 @@ await test("issuePaths names the field of each validation issue and leaves other
   assert.deepEqual(issuePaths({ path: ["email"] }), []);
   assert.throws(() => issuePaths([{ path: "email" }]), /path/);
   assert.throws(() => issuePaths([{ path: [{}] }]), /path/);
+});
+
+await test("booleanIn reads a boolean field and refuses a present value that is not one", () => {
+  assert.equal(booleanIn({ owner: true }, "owner"), true);
+  assert.equal(booleanIn({ owner: false }, "owner"), false);
+  assert.equal(booleanIn({}, "owner"), undefined);
+  assert.equal(booleanIn(null, "owner"), undefined);
+  assert.equal(booleanIn("error.forbidden", "owner"), undefined);
+  assert.throws(() => booleanIn({ owner: "true" }, "owner"), /owner/);
+  assert.throws(() => booleanIn({ owner: 1 }, "owner"), /owner/);
+});
+
+await test("the scalar readers never answer a key the body inherits", () => {
+  assert.equal(booleanIn({}, "constructor"), undefined);
+  assert.equal(booleanIn({}, "toString"), undefined);
+});
+
+await test("isNotificationRow accepts the fields the shell journey reads and refuses a mistyped one", () => {
+  assert.equal(isNotificationRow({ icon: "i-ph-sign-in", linkTo: "/settings/user/security", isRead: false }), true);
+  assert.equal(isNotificationRow({}), true);
+  assert.equal(isNotificationRow(null), false);
+  assert.equal(isNotificationRow([]), false);
+  assert.equal(isNotificationRow({ icon: 3 }), false);
+  assert.equal(isNotificationRow({ linkTo: {} }), false);
+  assert.equal(isNotificationRow({ isRead: "no" }), false);
+});
+
+await test("rowsOf reads a body that is itself a list and refuses a malformed one", () => {
+  const row = { icon: "i" };
+  assert.deepEqual(rowsOf([row, {}], isNotificationRow), [row, {}]);
+  assert.deepEqual(rowsOf("error.forbidden", isNotificationRow), []);
+  assert.deepEqual(rowsOf(undefined, isNotificationRow), []);
+  assert.deepEqual(rowsOf({ results: [row] }, isNotificationRow), []);
+  assert.throws(() => rowsOf([row, { icon: 3 }], isNotificationRow), /\[1\]/);
 });

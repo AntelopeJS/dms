@@ -1,7 +1,7 @@
 import { PROFILE, SECURITY, NOTIFICATIONS, SHORTCUTS, SETTINGS, USER_API, ADMIN_NAME, me, login, secondDevice, typeCode, mailedCode, openPasswordForm, fillPasswordForm, openEmailForm, submitEmailForm } from "./settings-account/steps.mjs";
 import { preferenceJourneys } from "./settings-account/preferences.mjs";
 import { accessJourneys } from "./settings-account/access.mjs";
-import { isMemberRow, listOf } from "../rows.mjs";
+import { isMemberRow, listOf, stringIn } from "../rows.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -36,7 +36,7 @@ export const journeys = [
       const account = await me(ctx, "read the account");
       const members = await ctx.api("list the members", { method: "GET", path: "/api/tables/members/list" });
       await ctx.verify("the API and the members list hold the new name", [
-        ctx.equal("name", account.body?.name, "Verify Renamed"),
+        ctx.equal("name", stringIn(account.body, "name"), "Verify Renamed"),
         ctx.equal("member names", listOf(members.body, isMemberRow).map((member) => member.name), ["Verify Renamed"]),
       ]);
       await tab.goto(SETTINGS);
@@ -61,7 +61,7 @@ export const journeys = [
       const account = await me(ctx, "read the account");
       await ctx.verify("the stored name is unchanged", [
         ctx.equal("name", await tab.value({ role: "textbox", name: "Full name" }), ADMIN_NAME),
-        ctx.equal("API name", account.body?.name, ADMIN_NAME),
+        ctx.equal("API name", stringIn(account.body, "name"), ADMIN_NAME),
       ]);
       await tab.fill({ role: "textbox", name: "Full name" }, "Typed then discarded");
       await tab.click({ role: "button", name: "Discard" });
@@ -101,7 +101,7 @@ export const journeys = [
       const withNew = await login(ctx, "sign in with the new password", admin.email, fresh);
       const withOld = await login(ctx, "sign in with the old password", admin.email, admin.password);
       await ctx.verify("only the new password signs in", [
-        ctx.holds("new password accepted", withNew.status === 200 && withNew.body?.access_token, withNew.status),
+        ctx.holds("new password accepted", withNew.status === 200 && stringIn(withNew.body, "access_token"), withNew.status),
         ctx.status(withOld, 401),
       ]);
       ctx.addAccount("admin", { ...ctx.state.accounts.admin, password: fresh });
@@ -168,7 +168,7 @@ export const journeys = [
       );
       await ctx.verify("the old address is warned and the account still uses it", [
         ctx.holds("a warning reached the old address", warning.match, warning.messages.map((message) => message.subject).join(" | ")),
-        ctx.equal("email before the code", pending.body?.email, admin.email),
+        ctx.equal("email before the code", stringIn(pending.body, "email"), admin.email),
       ]);
       await typeCode(tab, code);
       await ctx.verify("the sixth character confirms and the page shows the new address as the sign-in email", [tab.shows(new RegExp(address.replace(/[+.]/g, "\\$&")))]);
@@ -177,7 +177,7 @@ export const journeys = [
       const withOld = await login(ctx, "sign in with the old address", admin.email, admin.password);
       await ctx.verify("a reload, the API and the sign-in all use the new address only", [
         tab.shows(new RegExp(address.replace(/[+.]/g, "\\$&"))),
-        ctx.holds("new address signs in", withNew.status === 200 && withNew.body?.access_token, withNew.status),
+        ctx.holds("new address signs in", withNew.status === 200 && stringIn(withNew.body, "access_token"), withNew.status),
         ctx.status(withOld, 401),
       ]);
     },
@@ -213,7 +213,7 @@ export const journeys = [
       const withOld = await login(ctx, "the old address still signs in", admin.email, admin.password);
       const withNew = await login(ctx, "the new address does not sign in", address, admin.password);
       await ctx.verify("the address is unchanged", [
-        ctx.equal("email", account.body?.email, admin.email),
+        ctx.equal("email", stringIn(account.body, "email"), admin.email),
         ctx.status(withOld, 200),
         ctx.status(withNew, 401),
       ]);

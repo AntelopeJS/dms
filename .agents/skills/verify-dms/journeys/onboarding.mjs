@@ -1,4 +1,4 @@
-import { isMemberRow, issuePaths, listOf } from "../rows.mjs";
+import { booleanIn, isMemberRow, issuePaths, listOf, stringIn } from "../rows.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -57,7 +57,7 @@ export const journeys = [
     async run(/** @type {Ctx} */ ctx) {
       const before = await informations(ctx, "a fresh platform is not onboarded");
       await ctx.verify("the empty platform reports it is not onboarded", [
-        ctx.equal("has_onboarded", before.body?.has_onboarded, false),
+        ctx.equal("has_onboarded", booleanIn(before.body, "has_onboarded"), false),
       ]);
       const platformName = ctx.unique("Verify Wizard");
       const admin = wizardAdmin(ctx);
@@ -73,10 +73,10 @@ export const journeys = [
       const after = await informations(ctx, "the platform is onboarded");
       const me = await signInAs(ctx, "wizard", { email: admin.email, password: admin.password });
       await ctx.verify("the API reads back one onboarded owner", [
-        ctx.equal("has_onboarded", after.body?.has_onboarded, true),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), true),
         ctx.status(me, 200),
-        ctx.equal("the owner's email", me.body?.email, admin.email),
-        ctx.equal("the owner flag", me.body?.owner, true),
+        ctx.equal("the owner's email", stringIn(me.body, "email"), admin.email),
+        ctx.equal("the owner flag", booleanIn(me.body, "owner"), true),
       ]);
       const visitor = await ctx.tab("stranger");
       await visitor.goto("/onboarding");
@@ -102,7 +102,7 @@ export const journeys = [
       ]);
       const after = await informations(ctx, "nothing was created");
       await ctx.verify("the platform is still not onboarded", [
-        ctx.equal("has_onboarded", after.body?.has_onboarded, false),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), false),
       ]);
     },
   },
@@ -124,7 +124,7 @@ export const journeys = [
         ctx.status(answer, 400),
         ctx.holds("email is named", paths.includes("email"), JSON.stringify(paths)),
         ctx.holds("firstName is named", paths.includes("firstName"), JSON.stringify(paths)),
-        ctx.equal("has_onboarded", after.body?.has_onboarded, false),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), false),
       ]);
     },
   },
@@ -150,7 +150,7 @@ export const journeys = [
       await ctx.restartBackend();
       const after = await informations(ctx, "onboarding survives a restart");
       await ctx.verify("the platform is still onboarded after a backend restart", [
-        ctx.equal("has_onboarded", after.body?.has_onboarded, true),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), true),
       ]);
     },
   },
@@ -175,7 +175,7 @@ export const journeys = [
       const refusedButCreated = [];
       for (const [index, admin] of admins.entries()) {
         const me = await signInAs(ctx, `racer${index}`, admin);
-        if (me.status === 200 && me.body?.owner) owners.push(admin.email);
+        if (me.status === 200 && booleanIn(me.body, "owner")) owners.push(admin.email);
         if (me.status === 200 && answers[index].status !== 200) refusedButCreated.push(admin.email);
       }
       const after = await informations(ctx, "the platform after the race");
@@ -183,7 +183,7 @@ export const journeys = [
         ctx.equal("accepted registrations", accepted, 1),
         ctx.equal("platform owners", owners.length, 1),
         ctx.equal("accounts created by a refused registration", refusedButCreated, []),
-        ctx.equal("has_onboarded", after.body?.has_onboarded, true),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), true),
       ]);
     },
   },

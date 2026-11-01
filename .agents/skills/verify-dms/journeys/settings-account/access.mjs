@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { PROFILE, SECURITY, SETTINGS, SIGNED_IN, ADMIN_NAME, TWO_FACTOR_CODE_WINDOW_MS, me, login, secondDevice, typeCode, mailedCode, joinMember } from "./steps.mjs";
-import { isMemberRow, listOf } from "../../rows.mjs";
+import { isMemberRow, listOf, stringIn } from "../../rows.mjs";
 
 /**
  * @typedef {import("../../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -101,7 +101,7 @@ export const accessJourneys = [
       await tab.reload();
       await ctx.verify("removing the last method turns two-factor off", [tab.shows(/Two-factor is off/)]);
       const plain = await login(ctx, "sign in without a second factor", admin.email, admin.password);
-      await ctx.verify("sign-in needs no second factor again", [ctx.holds("an access token is issued", plain.body?.access_token, plain.status)]);
+      await ctx.verify("sign-in needs no second factor again", [ctx.holds("an access token is issued", stringIn(plain.body, "access_token"), plain.status)]);
     },
   },
   {
@@ -172,14 +172,14 @@ export const accessJourneys = [
         leaver.tab.visible({ role: "dialog", name: "Delete your account?" }),
       ]);
       const stillThere = await login(ctx, "the account still signs in", leaver.email, leaver.password);
-      await ctx.verify("nothing was deleted yet", [ctx.holds("still signs in", stillThere.body?.access_token, stillThere.status)]);
+      await ctx.verify("nothing was deleted yet", [ctx.holds("still signs in", stringIn(stillThere.body, "access_token"), stillThere.status)]);
       await leaver.tab.fill({ role: "textbox", name: new RegExp(`^Type ${leaver.email.replace(/[+.]/g, "\\$&")} to confirm`) }, leaver.email);
       await leaver.tab.click({ role: "button", name: "Delete permanently" });
       await ctx.verify("the member lands on sign-in", [leaver.tab.at(/^\/auth/)]);
       const again = await login(ctx, "sign in after deleting", leaver.email, leaver.password);
       const members = await ctx.api("list the members", { method: "GET", path: "/api/tables/members/list" });
       await ctx.verify("the account can no longer sign in and the member is gone", [
-        ctx.holds("no access token", !again.body?.access_token, JSON.stringify(again.body)?.slice(0, 120)),
+        ctx.holds("no access token", !stringIn(again.body, "access_token"), JSON.stringify(again.body)?.slice(0, 120)),
         ctx.equal("members", listOf(members.body, isMemberRow).map((member) => member.email), [ctx.adminCredentials().email]),
       ]);
     },

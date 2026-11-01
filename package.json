@@ -24,7 +24,7 @@
     "lint:fix": "oxlint --fix && pnpm --dir packages/dms/frontend-vue lint:fix",
     "format": "oxfmt . && pnpm --dir packages/dms/frontend-vue format",
     "knip": "pnpm --dir packages/interface-dms knip && pnpm --dir packages/dms knip",
-    "test": "pnpm --dir packages/interface-dms test && pnpm --dir packages/dms/playground test && node --test checks/release-range.test.mjs .agents/formal/maps.test.mjs .agents/skills/verify-dms/rows.test.mjs packages/dms/bin/control/run-state.test.mjs packages/dms/bin/control/verify/behaviour.test.mjs packages/dms/bin/control/verify/doors.test.mjs packages/dms/bin/control/verify/formal.test.mjs",
+    "test": "pnpm --dir packages/interface-dms test && pnpm --dir packages/dms/playground test && node --test checks/release-range.test.mjs .agents/formal/maps.test.mjs .agents/skills/formal-release-range/manifest.test.mjs .agents/skills/verify-dms/rows.test.mjs packages/dms/bin/control/run-state.test.mjs packages/dms/bin/control/verify/behaviour.test.mjs packages/dms/bin/control/verify/doors.test.mjs packages/dms/bin/control/verify/formal.test.mjs",
     "prepare": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && command -v lefthook >/dev/null 2>&1; then lefthook install; fi",
     "checks": "antelopejs-checks",
     "size": "antelopejs-check-size",

@@ -8,6 +8,7 @@
  * @typedef {{ _id: string, name: string, email: string }} UserRow
  * @typedef {{ _id: string, inviteCount?: number, memberCount?: number }} RoleOverviewRow
  * @typedef {{ id: string, state?: string }} StoreModule
+ * @typedef {{ icon?: string, linkTo?: string, isRead?: boolean }} NotificationRow
  */
 
 /**
@@ -140,6 +141,14 @@ export function isStoreModule(value) {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {value is NotificationRow}
+ */
+export function isNotificationRow(value) {
+  return isRecord(value) && optionally(value, "icon", isString) && optionally(value, "linkTo", isString) && optionally(value, "isRead", isBoolean);
+}
+
+/**
  * The rows a list answer holds under `key`. An answer with no such list
  * (an error answer, an empty body) holds no rows. A list that is present and
  * malformed is refused, so a journey never reads from a body it did not
@@ -246,4 +255,32 @@ export function issuePaths(body) {
       })
       .join(".");
   });
+}
+
+/**
+ * @template T
+ * @param {unknown} body The answer's body
+ * @param {(row: unknown) => row is T} isRow Whether an item is a row
+ * @returns {T[]} The rows of an answer that is itself a list; any other answer holds none
+ */
+export function rowsOf(body, isRow) {
+  if (!Array.isArray(body)) return [];
+  /** @type {unknown[]} */
+  const items = body;
+  return items.map((item, index) => {
+    if (!isRow(item)) throw new Error(`[${index}] is not the row the journey reads`);
+    return item;
+  });
+}
+
+/**
+ * @param {unknown} body The answer's body
+ * @param {string} key
+ * @returns {boolean | undefined} The boolean field, `undefined` when the body holds none
+ */
+export function booleanIn(body, key) {
+  const value = isRecord(body) ? own(body, key) : undefined;
+  if (value === undefined || value === null) return undefined;
+  if (!isBoolean(value)) throw new Error(`${key} is not a boolean`);
+  return value;
 }
