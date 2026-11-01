@@ -1,0 +1,14 @@
+{
+  "dms": {
+    "table": {
+      "inline_edit": {
+        "cell": "{column} de {row}",
+        "start": "Modifier {cell}",
+        "hint": "Cliquer pour modifier",
+        "saving": "Enregistrement…",
+        "not_saved": "Non enregistré : cliquer pour réessayer",
+        "error": "La modification n’a pas pu être enregistrée"
+      }
+    }
+  }
+}

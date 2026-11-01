@@ -32,6 +32,7 @@ import type {
   TableViewCardOptions,
   TableViewDisplayOption,
 } from "./option-displays";
+import type { TableViewInlineEditOptions } from "../inline-edit";
 import type {
   TableViewFormPageUrls,
   FormContainer,
@@ -155,8 +156,7 @@ export interface TableViewOptions<
    */
   maxHeight?: string;
   /**
-   * What runs the row's click action: a double-click by default, a single
-   * click with `"single"`. See {@link TableViewRowClick}.
+   * What runs the row's click action. See {@link TableViewRowClick}.
    * @example "single"
    */
   rowClick?: TableViewRowClick;
@@ -349,6 +349,13 @@ export interface TableViewOptions<
    * filter or a tab narrows the rows. Needs the `edit` action.
    */
   reorder?: TableViewReorderOptions;
+  /**
+   * Lets the user edit a row's simple values in the grid, one cell at a
+   * time, each saved at once. See {@link TableViewInlineEditOptions}.
+   * @example true
+   * @example { columns: ["price", "stock"], inputs: "always" }
+   */
+  inlineEdit?: boolean | TableViewInlineEditOptions;
   /**
    * Offers the `grouped` display: the grid's columns with a header row per
    * group of rows. A view may open in it (`display: "grouped"`).
