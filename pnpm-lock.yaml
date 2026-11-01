@@ -72,7 +72,7 @@ importers:
         specifier: file:../../.campaign/tgz/antelopejs-interface-database-decorators-e79a62b.tgz
         version: file:.campaign/tgz/antelopejs-interface-database-decorators-e79a62b.tgz(@antelopejs/interface-api@file:.campaign/tgz/antelopejs-interface-api-11c035a.tgz(@antelopejs/interface-core@0.2.6))(@antelopejs/interface-core@0.2.6)(@antelopejs/interface-database@file:.campaign/tgz/antelopejs-interface-database-724ff72.tgz(@antelopejs/interface-core@0.2.6))
       '@antelopejs/interface-dms':
-        specifier: '>=0.11.0 <0.12.0'
+        specifier: '>=0.12.0 <0.13.0'
         version: link:../interface-dms
       '@antelopejs/interface-email':
         specifier: '>=0.0.6 <1.0.0'
