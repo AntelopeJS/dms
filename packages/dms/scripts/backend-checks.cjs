@@ -1,12 +1,20 @@
 const assert = require("node:assert/strict");
 const { readdirSync, readFileSync } = require("node:fs");
-const { join, resolve, basename, relative, sep } = require("node:path");
+const nodePath = require("node:path");
+const { sep } = nodePath;
+const join = nodePath.join.bind(nodePath);
 const { satisfies, validRange } = require("semver");
 const ts = require("typescript");
-const { ACTIONS, TRIGGERS } = require("../dist/automation");
+const { ACTIONS, TRIGGERS } = require("./backend-automation.cjs");
 const checkTarget = require("./backend-import-target.cjs");
+const {
+  constructorExemptions,
+  builtinExemptions,
+  requireResolveExemptions,
+} = require("./backend-exemptions.cjs");
 
-const root = resolve(__dirname, "..");
+const root = nodePath.resolve(__dirname, "..");
+
 const localeRoot = join(root, "frontend-vue/layers/dms-core/i18n/locales");
 const locales = ["core-en-GB.json", "core-fr-FR.json"];
 const emailNames = [
@@ -19,6 +27,11 @@ const emailNames = [
   "EmailUserValidation",
 ];
 
+/**
+ * @param {string} where
+ * @param {{ properties?: Record<string, { title: string, description?: string }> }} schema
+ * @returns {{ where: string, text: string }[]}
+ */
 function schemaTexts(where, schema) {
   return Object.entries(schema.properties ?? {}).flatMap(([name, property]) => [
     { where: `${where}.${name}.title`, text: property.title },
@@ -71,7 +84,7 @@ const components = readdirSync(
   join(root, "frontend-vue/layers/dms-layout/app/emails"),
 )
   .filter((file) => file.endsWith(".vue"))
-  .map((file) => basename(file, ".vue"));
+  .map((file) => nodePath.basename(file, ".vue"));
 assert.deepEqual(components.sort(), emailNames.sort());
 
 const lockfile = readFileSync(join(root, "../../pnpm-lock.yaml"), "utf8");
@@ -94,40 +107,10 @@ for (const layer of ["frontend-vue", "playground/frontend-vue"]) {
   }
 }
 
-const constructorExemptions = {
-  "implementations/dms-base/search-route.ts:400":
-    "      const entryInstance = model.constructor.fromDatabase(entry);",
-  "implementations/dms-base/table-view.ts:87":
-    "      const stored = model.constructor.fromDatabase(entry);",
-  "implementations/dms-base/table-view.ts:124":
-    "    controller.constructor as ConstructorParameters<typeof TableViewMeta>[0],",
-  "implementations/dms-base/table-view.ts:190":
-    "    controller.constructor as ControllerClass;",
-  "implementations/dms-base/table-view.ts:387":
-    "    const stored = model.constructor.fromDatabase(row);",
-  "test/helpers/invite-entry-fixtures.ts:92":
-    "  const controller = await GetControllerInstance(route.proto.constructor, ctx);",
-  "test/helpers/invite-entry-fixtures.ts:127":
-    "  const controller = await GetControllerInstance(route.proto.constructor, ctx);",
-  "test/helpers/invite-entry-fixtures.ts:146":
-    "  const controller = await GetControllerInstance(route.proto.constructor, ctx);",
-  "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:76":
-    "    const meta = GetMetadata(instance.constructor, TableViewMeta);",
-  "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:87":
-    "    const meta = GetMetadata(instance.constructor, TableViewMeta);",
-};
-const builtinExemptions = {
-  "test/unit/interfaces/dms-base/table-view-evaluation-order.fixture.ts:1":
-    'import Module, { findPackageJSON } from "node:module";',
-};
-const requireResolveExemptions = {
-  "src/store/compatibility.ts:32":
-    "  let folder = path.dirname(require.resolve(INTERFACE_ENTRY));",
-  "dist/store/compatibility.js:26":
-    "    let folder = node_path_1.default.dirname(require.resolve(INTERFACE_ENTRY));",
-};
+/** @type {Set<string>} */
 const usedRequireResolveExemptions = new Set();
 const sourceExemptions = { ...constructorExemptions, ...builtinExemptions };
+/** @type {Set<string>} */
 const usedExemptions = new Set();
 const processMembers = new Set([
   "env",
@@ -140,6 +123,10 @@ const processMembers = new Set([
   "hrtime",
 ]);
 
+/**
+ * @param {ts.Node} node
+ * @returns {boolean}
+ */
 function memberName(node) {
   const parent = node.parent;
   return (
@@ -156,9 +143,15 @@ function memberName(node) {
   );
 }
 
+/**
+ * @param {ts.Node} node
+ * @param {string} path
+ * @param {Record<string, string>} exemptions
+ * @returns {boolean}
+ */
 function exempt(node, path, exemptions) {
   const source = node.getSourceFile();
-  const file = relative(join(root, "src"), path).split(sep).join("/");
+  const file = nodePath.relative(join(root, "src"), path).split(sep).join("/");
   const line =
     source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
   const location = `${file}:${line}`;
@@ -167,6 +160,10 @@ function exempt(node, path, exemptions) {
   return true;
 }
 
+/**
+ * @param {ts.StringLiteral} expression
+ * @param {string} path
+ */
 function checkBuiltin(expression, path) {
   if (["module", "node:module", "vm", "node:vm"].includes(expression.text)) {
     assert.ok(
@@ -178,6 +175,10 @@ function checkBuiltin(expression, path) {
   }
 }
 
+/**
+ * @param {ts.Node} node
+ * @param {string} path
+ */
 function checkConstructor(node, path) {
   if (ts.isPropertyAccessExpression(node) && node.name.text === "constructor") {
     assert.ok(
@@ -197,9 +198,14 @@ function checkConstructor(node, path) {
   }
 }
 
+/**
+ * @param {ts.SourceFile} source
+ * @param {string} path
+ */
 function checkSourceRoots(source, path) {
-  const file = relative(join(root, "src"), path).split(sep).join("/");
+  const file = nodePath.relative(join(root, "src"), path).split(sep).join("/");
   const lines = source.text.split(/\r?\n/);
+  /** @type {ts.TypeChecker | undefined} */
   let checker;
   for (const [location, text] of Object.entries(sourceExemptions)) {
     if (!location.startsWith(`${file}:`)) continue;
@@ -210,6 +216,10 @@ function checkSourceRoots(source, path) {
       `${location} loader exemption moved or changed`,
     );
   }
+  /**
+   * @param {ts.Identifier} node
+   * @returns {boolean | undefined}
+   */
   function localBinding(node) {
     if (!checker) {
       const options = {
@@ -240,6 +250,7 @@ function checkSourceRoots(source, path) {
             declaration.parent.flags & ts.NodeFlags.BlockScoped)),
     );
   }
+  /** @param {ts.Identifier} node */
   function sourceRoot(node) {
     if (!["module", "exports", "process"].includes(node.text)) return;
     const parent = node.parent;
@@ -278,6 +289,7 @@ function checkSourceRoots(source, path) {
       );
     }
   }
+  /** @param {ts.Node} node */
   function visit(node) {
     if (ts.isIdentifier(node)) sourceRoot(node);
     checkConstructor(node, path);
@@ -286,6 +298,12 @@ function checkSourceRoots(source, path) {
   visit(source);
 }
 
+/**
+ * @param {ts.Identifier} node
+ * @param {ts.SourceFile} source
+ * @param {string} path
+ * @returns {boolean}
+ */
 function pinnedRequireResolve(node, source, path) {
   const member = node.parent;
   if (
@@ -296,7 +314,7 @@ function pinnedRequireResolve(node, source, path) {
     return false;
   const line =
     source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
-  const location = `${relative(root, path).split(sep).join("/")}:${line}`;
+  const location = `${nodePath.relative(root, path).split(sep).join("/")}:${line}`;
   assert.ok(
     Object.hasOwn(requireResolveExemptions, location),
     `${location} require.resolve is forbidden outside pinned exemptions`,
@@ -310,7 +328,18 @@ function pinnedRequireResolve(node, source, path) {
   return true;
 }
 
+/**
+ * @param {ts.SourceFile} source
+ * @param {string} path
+ * @param {string} boundary
+ * @param {boolean} compiled
+ */
 function checkSource(source, path, boundary, compiled) {
+  /**
+   * @param {ts.Node | undefined} expression
+   * @param {boolean} [runtime]
+   * @param {boolean} [esm]
+   */
   function checkSpecifier(
     expression,
     runtime = false,
@@ -326,6 +355,10 @@ function checkSource(source, path, boundary, compiled) {
     if (!compiled) checkBuiltin(expression, path);
     checkTarget(expression.text, path, boundary, compiled, { runtime, esm });
   }
+  /**
+   * @param {ts.Node} node
+   * @returns {boolean}
+   */
   function metadataType(node) {
     const value = ts.isArrayLiteralExpression(node.parent) ? node.parent : node;
     const call = value.parent;
@@ -341,6 +374,10 @@ function checkSource(source, path, boundary, compiled) {
       )
     );
   }
+  /**
+   * @param {string} name
+   * @returns {boolean}
+   */
   function sensitiveName(name) {
     return [
       "require",
@@ -350,6 +387,10 @@ function checkSource(source, path, boundary, compiled) {
       "Function",
     ].includes(name);
   }
+  /**
+   * @param {ts.Node} node
+   * @returns {boolean}
+   */
   function computedReceiver(node) {
     while (
       ts.isParenthesizedExpression(node) ||
@@ -364,6 +405,7 @@ function checkSource(source, path, boundary, compiled) {
       ["module", "process", "globalThis", "global"].includes(node.text)
     );
   }
+  /** @param {ts.Identifier} node */
   function checkIdentifier(node) {
     if (node.text === "require" && !pinnedRequireResolve(node, source, path)) {
       assert.ok(
@@ -382,6 +424,7 @@ function checkSource(source, path, boundary, compiled) {
       `${path} loader construction or dynamic evaluation is forbidden: ${node.text}`,
     );
   }
+  /** @param {ts.Node} node */
   function visit(node) {
     let specifier;
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
@@ -431,6 +474,10 @@ function checkSource(source, path, boundary, compiled) {
   visit(source);
 }
 
+/**
+ * @param {string} directory
+ * @param {string} [boundary]
+ */
 function checkImports(directory, boundary = directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
