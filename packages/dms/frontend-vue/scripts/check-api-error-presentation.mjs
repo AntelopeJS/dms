@@ -1,4 +1,10 @@
-import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
+import {
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  existsSync,
+  statSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -233,7 +239,7 @@ export function assertApiErrorPresentation(roots) {
 
 if (
   process.argv[1] &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+  realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
 ) {
   const roots = process.argv.slice(2);
   if (!roots.length)
