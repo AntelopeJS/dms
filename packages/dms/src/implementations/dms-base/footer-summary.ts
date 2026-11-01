@@ -11,10 +11,6 @@ import type {
   ValueProxy,
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
-import {
-  IsQueryValue,
-  type QueryValue,
-} from "@antelopejs/interface-database/common";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { rowRuleProblem } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
 import type { FooterSummaryValues } from "@antelopejs/interface-dms/base/table-view/internal/data-functions";
@@ -25,6 +21,7 @@ import type {
 } from "@antelopejs/interface-dms/base/table-view";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import type { evaluateRowActionRule } from "../../utils";
+import { isRuleOperand, type RuleOperand } from "./row-rule-operand";
 import { buildFilteredQuery } from "./search-route";
 
 type RuleRow = globalThis.Parameters<typeof evaluateRowActionRule>[1];
@@ -54,22 +51,22 @@ function negate(condition: Condition): Condition {
 
 const anyOf = (
   value: ValueProxy<unknown>,
-  operands: readonly QueryValue[],
+  operands: readonly RuleOperand[],
 ): Condition =>
   operands.map((operand): Condition => value.eq(operand)).reduce(either, false);
 
 type FieldComparison = (
   value: ValueProxy<unknown>,
-  operand: QueryValue,
+  operand: RuleOperand,
 ) => Condition;
 
 // SAFETY: compileRowRule rejects a rule whose dispatched in/notIn operand is no array (rowRuleProblem) before this table runs, so the operand is an array.
 const FIELD_COMPARISONS = {
   equals: (value, operand) => value.eq(operand),
   notEquals: (value, operand) => value.ne(operand),
-  in: (value, operands) => anyOf(value, operands as readonly QueryValue[]),
+  in: (value, operands) => anyOf(value, operands as readonly RuleOperand[]),
   notIn: (value, operands) =>
-    negate(anyOf(value, operands as readonly QueryValue[])),
+    negate(anyOf(value, operands as readonly RuleOperand[])),
 } satisfies Record<string, FieldComparison>;
 
 type RuleCompiler = (
@@ -103,8 +100,8 @@ function compileChecked(rule: RowActionRule, read: FieldReader): Condition {
   const operator = Object.keys(FIELD_COMPARISONS).find((key) => key in record);
   if (!operator) return true;
   const operand = record[operator];
-  if (!IsQueryValue(operand)) {
-    throw new Error(`Malformed row rule: ${operator} must hold query values`);
+  if (!isRuleOperand(operand)) {
+    throw new Error(`Malformed row rule: ${operator} must hold plain values`);
   }
   // SAFETY: operator was selected from Object.keys of this same handler table.
   return FIELD_COMPARISONS[operator as keyof typeof FIELD_COMPARISONS](

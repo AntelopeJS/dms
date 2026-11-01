@@ -130,15 +130,15 @@ describe("[unit] dms-base — footer summary rules", () => {
   it("rejects an operand no provider records, alone or in a list or a nested rule", () => {
     expect(() => compile({ field: "amount", equals: 41n })).to.throw(
       Error,
-      /Malformed row rule: equals must hold query values/,
+      /Malformed row rule: equals must hold plain values/,
     );
     expect(() => compile({ field: "amount", in: [41, Symbol("x")] })).to.throw(
       Error,
-      /Malformed row rule: in must hold query values/,
+      /Malformed row rule: in must hold plain values/,
     );
     expect(() =>
       compile({ not: { field: "amount", notEquals: () => 1 } }),
-    ).to.throw(Error, /Malformed row rule: notEquals must hold query values/);
+    ).to.throw(Error, /Malformed row rule: notEquals must hold plain values/);
   });
 
   it("keeps compiling a valid rule that carries a shadowed operator", () => {
