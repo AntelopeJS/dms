@@ -13,6 +13,7 @@ const BATCH_SERVER_ERRORS = 2;
 const BURST_BATCHES = 3;
 const BURST_INTERVAL_MS = 1_500;
 const MAX_FEED_ENTRIES = 30;
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary preset query strings require the existing indexed lookup and fallback.
 const PRESET_SCALES: Record<string, number> = {
   "last-hour": 1,
   "last-24h": 24,
@@ -33,7 +34,6 @@ interface StatusLook {
   icon: string;
 }
 
-// Checked in order: the first whose `from` the status reaches wins.
 const STATUS_LOOKS: StatusLook[] = [
   { from: 500, tone: "error", icon: "i-ph-x-circle" },
   { from: 400, tone: "warning", icon: "i-ph-warning-circle" },
@@ -81,8 +81,6 @@ function feedEntry(): ActivityFeedItem {
   };
 }
 
-// The payload says how many requests the event stands for: a paused page
-// counts "40 new requests", not "1 new".
 async function publishBatch(): Promise<void> {
   const batch: RequestBatch = {
     count: BATCH_SIZE,
@@ -99,7 +97,7 @@ async function publishBatch(): Promise<void> {
 
 function publishLater(delayMs: number): void {
   setTimeout(() => {
-    publishBatch().catch((error: unknown) => {
+    publishBatch().catch((error: PromiseRejectedResult["reason"]) => {
       console.warn("[playground] live batch failed", error);
     });
   }, delayMs);
@@ -160,7 +158,6 @@ export class BlocksLiveApiController extends Controller("/api/blocks/live") {
     return { batches: BURST_BATCHES };
   }
 
-  // A row event: a paused page counts each id once, however often it comes.
   @Post("rows")
   async touchRows() {
     const ids = ["order-1", "order-2", "order-3"];

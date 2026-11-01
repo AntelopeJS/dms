@@ -2,7 +2,7 @@ import type { RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { User } from "../../auth/db";
 import type { Component, NavBadgeCount, NavBadgeSource } from "../../component";
-import type { Tone } from "../../base/types/tone";
+import type { Tone } from "../../tones";
 import { getDeclaredComponentChildren } from "./component-target";
 import { PageMetadata } from "../metadata";
 import { pageMetadataByFullId } from "./registry";
@@ -65,6 +65,7 @@ export function combineNavBadgeCounts(
   values: Array<number | NavBadgeCount>,
 ): NavBadgeCount {
   const counts = values.map((value) =>
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The public count union uses a number for neutral counts and an object for counts carrying tone.
     typeof value === "number" ? { count: value } : value,
   );
   const nonZero = counts.filter(({ count }) => count > 0);

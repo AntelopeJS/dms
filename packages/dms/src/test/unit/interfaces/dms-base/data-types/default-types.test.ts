@@ -256,18 +256,17 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   });
 
   describe("RelationType filterOnly", () => {
-    // A bare class with no @RegisterTable/@Model: reading its DataAPIMeta
-    // yields an empty meta with no table, so the Foreign join can only
-    // succeed (or, here, fail loudly) when the join path is actually reached.
     class UnregisteredController {}
+    // SAFETY: RelationType expects a registered ControllerClass; these cases pass a bare class on purpose: none but the Foreign-join case needs the controller's routing API or data-api registration, and that case relies on the missing registration to make decorateField throw.
+    const UNREGISTERED_CONTROLLER = UnregisteredController as never;
 
     it("keeps the relation compare modes whether or not filterOnly is set", () => {
       const filtering = new DefaultDataTypes.RelationType({
-        dataApiController: UnregisteredController as never,
+        dataApiController: UNREGISTERED_CONTROLLER,
         keyMapping: { label: "name", value: "_id" },
         filterOnly: true,
       });
-      // The funnel still offers the relation filter operators.
+
       expect(filtering.compareModes).to.include(DefaultDataCompareTypes.Is);
       expect(filtering.compareModes).to.include(DefaultDataCompareTypes.IsNot);
       expect(filtering.defaultCompareMode).to.equal(DefaultDataCompareTypes.Is);
@@ -275,7 +274,7 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
 
     it("filters a multiple relation on whether its ids include the picked one", () => {
       const crew = new DefaultDataTypes.RelationType({
-        dataApiController: UnregisteredController as never,
+        dataApiController: UNREGISTERED_CONTROLLER,
         keyMapping: { label: "name", value: "_id" },
         multiple: true,
       });
@@ -288,7 +287,7 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(crew.defaultCompareMode).to.equal(DefaultDataCompareTypes.Include);
 
       const tree = new DefaultDataTypes.CascaderRelationType({
-        dataApiController: UnregisteredController as never,
+        dataApiController: UNREGISTERED_CONTROLLER,
         keyMapping: { label: "name", value: "_id", parent: "parentId" },
         multiple: true,
       });
@@ -299,19 +298,15 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
     it("skips the Foreign join when filterOnly is set (raw scalar stays in /list)", () => {
       class Target {}
       const rel = new DefaultDataTypes.RelationType({
-        dataApiController: UnregisteredController as never,
+        dataApiController: UNREGISTERED_CONTROLLER,
         keyMapping: { label: "name", value: "_id" },
         filterOnly: true,
       });
 
-      // decorateField returns before touching the related controller metadata
-      // or the Foreign decorator, so it never throws despite the unregistered
-      // controller...
       expect(() =>
         rel.decorateField(Target.prototype, "procedureId", {}),
       ).to.not.throw();
 
-      // ...and registers no foreign reference: the column stays a raw scalar.
       const meta = GetMetadata(Target, DataAPIMeta);
       expect(meta.fields.procedureId?.foreign).to.equal(undefined);
     });
@@ -319,14 +314,10 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
     it("engages the Foreign join when filterOnly is not set", () => {
       class Target {}
       const rel = new DefaultDataTypes.RelationType({
-        dataApiController: UnregisteredController as never,
+        dataApiController: UNREGISTERED_CONTROLLER,
         keyMapping: { label: "name", value: "_id" },
       });
 
-      // The default path reads the related controller metadata and runs the
-      // Foreign decorator, which throws here because the controller declares
-      // no table/schema — proving the join machinery is reached (the very
-      // machinery filterOnly bypasses).
       expect(() =>
         rel.decorateField(Target.prototype, "procedureId", {}),
       ).to.throw();
@@ -336,12 +327,14 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("RelationType filterBy", () => {
     class SiteController {}
     GetMetadata(SiteController, DataAPIMeta).filters.customer = () => true;
+    // SAFETY: RelationType expects a ControllerClass; this class carries only data-api filter metadata, which is all these cases read, and none mounts it as a controller.
+    const SITE_CONTROLLER = SiteController as never;
 
     it("accepts a filterBy field the related controller can filter on", () => {
       class Target {}
       const rel = new DefaultDataTypes.RelationType({
-        dataApiController: SiteController as never,
-        filterBy: { field: "customer" as never, from: "customer" },
+        dataApiController: SITE_CONTROLLER,
+        filterBy: { field: "customer", from: "customer" },
         filterOnly: true,
       });
 
@@ -353,8 +346,8 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
     it("refuses a filterBy field the search route would drop", () => {
       class Target {}
       const rel = new DefaultDataTypes.RelationType({
-        dataApiController: SiteController as never,
-        filterBy: { field: "region" as never, from: "region" },
+        dataApiController: SITE_CONTROLLER,
+        filterBy: { field: "region", from: "region" },
         filterOnly: true,
       });
 

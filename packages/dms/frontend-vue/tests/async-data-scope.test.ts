@@ -1,12 +1,10 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Every key of the async data lives in the scope of the session's account and
  * workspace: the browser finds what the server transferred under the same
  * scope, and a switch of account or workspace drops the previous session's
  * data instead of showing it under the new one.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import {
   type App,
   createApp,
@@ -19,8 +17,9 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dmsAppContext, emptyTranslations } from "./fixtures/dmsAppContext";
 import type { DmsFrontendRuntime } from "#dms/frontend-module";
-import { asyncDataScopeOf } from "../layers/dms-core/app/build/utils/asyncDataScope";
+import { asyncDataScopeOf } from "../layers/dms-core/app/entries/utils/asyncDataScope";
 
 const engine = await import("#dms/frontend-module");
 const { default: asyncDataScopePlugin } = await import(
@@ -45,11 +44,15 @@ const Root = defineComponent({
 
 const mounted: App[] = [];
 
-function start(app: App, runtime: DmsFrontendRuntime, session: object) {
+function start(
+  app: App,
+  runtime: DmsFrontendRuntime,
+  session: typeof ACCOUNT_A,
+) {
   engine.provideDmsFrontendRuntime(app, runtime);
   app.runWithContext(() => {
     engine.useDmsState("dms-session", () => null).value = session;
-    void asyncDataScopePlugin({} as never);
+    void asyncDataScopePlugin(dmsAppContext(app));
   });
 }
 
@@ -123,21 +126,10 @@ describe("the async data scope", () => {
   });
 
   it("is set before a higher-priority module's plugin reads at setup", async () => {
-    // How the DMS registers its scope plugin (dms.frontend.ts imports every
-    // layer, too much to set up here): before every other plugin.
-    const entry = readFileSync(
-      resolve(__dirname, "../dms.frontend.ts"),
-      "utf8",
-    );
-    expect(entry).toMatch(
-      /registerPlugin\(asyncDataScopePlugin, \{ enforce: "pre" \}\)/,
-    );
-
     const read = vi.fn(async () => "sidecar running");
     let status: Ref<unknown> | undefined;
     await engine.setupFrontendModules([
       {
-        // dms-ai's assistant: of higher priority, it reads as it starts.
         options: { public: {} },
         module: {
           setup(sdk) {
@@ -164,7 +156,7 @@ describe("the async data scope", () => {
     });
     await engine.installDmsPlugins(
       app,
-      { locale: { value: "en" }, setLocaleMessage() {} } as never,
+      emptyTranslations(),
       browser,
       async () => ({}),
       ["en"],

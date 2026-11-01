@@ -4,7 +4,7 @@ import { computed, onMounted, ref } from "vue";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import { useUniqueLocales } from "#dms-core/app/composables/translation/useUniqueLocales";
 import { formatDate } from "#dms-core/app/utils/formatter";
-import { iconWellToneOf } from "#dms-ui/app/build/utils/tone";
+import { iconWellToneOf } from "#dms-ui/app/entries/utils/tone";
 import { useAccessibilityPreferences } from "../../../../composables/general/useAccessibilityPreferences";
 import { useColorModePreference } from "../../../../composables/general/useColorModePreference";
 import { useInterfaceScale } from "../../../../composables/general/useInterfaceScale";
@@ -21,7 +21,6 @@ import {
   buildRegionSummary,
   type ProfileAccess,
   resolvePreferenceRows,
-  type SummaryTranslate,
   tallySubjects,
 } from "./preferencesSummary";
 
@@ -29,21 +28,20 @@ export const PROFILE_ACCESS_ENDPOINT = pageRoutePath(
   "/settings/user/profile",
   "/access",
 );
-// Sample values the skeletons are shaped from.
+
 const SAMPLE_ACCESS: ProfileAccess = {
   roles: ["Admin", "Finance"],
   workspaceOwner: false,
   platformOwner: false,
 };
-// Who holds every permission is most likely a platform owner.
+
 const SAMPLE_OWNER_ACCESS: ProfileAccess = {
   roles: [],
   workspaceOwner: false,
   platformOwner: true,
 };
 const SAMPLE_TIME_ZONE = "Europe/Brussels";
-// Noon UTC: the same calendar day in every time zone a server or browser
-// could run in, so both write the same sample date.
+
 const SAMPLE_DATE = new Date(Date.UTC(2026, 9, 3, 12));
 const SAMPLE_UNREAD = 3;
 const SAMPLE_TALLY = { on: 6, total: 9 };
@@ -61,14 +59,11 @@ const MONDAY = 1;
  * mount so the server and the hydrating browser render the same skeleton.
  */
 export function useProfilePreferences() {
-  const { t: translate, locale } = useI18n();
-  const t = translate as SummaryTranslate;
+  const { t, locale } = useI18n();
   const { groups } = useSettingsNavigation();
   const isOwner = useIsOwner();
   const isMounted = ref(false);
 
-  // The settings navigation's own list decides: a row shows when the page
-  // it leads to is one the nav offers.
   const rows = computed(() =>
     resolvePreferenceRows(
       new Map(
@@ -89,10 +84,9 @@ export function useProfilePreferences() {
 
   const { uniqueLocales } = useUniqueLocales();
   const regional = useUserRegionalPreferences();
-  // Frozen at mount: the row shows formats, not a ticking clock.
+
   let today = new Date();
-  // Some languages name themselves in lower case ("français"): it opens
-  // the summary, so it is capitalized.
+
   const languageName = computed(() => {
     const tag = locale.value;
     const name =
@@ -131,8 +125,7 @@ export function useProfilePreferences() {
   const hasUnread = computed(
     () => !isNotificationsLoading.value && unreadCount.value > 0,
   );
-  // The well takes the unread badge's tone, the bell's and the navigation's,
-  // which the server weighs; quiet when nothing is unread.
+
   const notificationsTone = computed(() =>
     hasUnread.value ? iconWellToneOf(unreadTone.value) : "muted",
   );
@@ -141,8 +134,7 @@ export function useProfilePreferences() {
   const scale = useInterfaceScale();
   const { preferences: accessibility } = useAccessibilityPreferences();
   const prefersDark = usePreferredDark();
-  // The cookies are read on the server too; only a theme that follows the
-  // system waits for the browser to say which it is.
+
   const appearanceSummary = computed(() => {
     if (colorMode.value === "system" && !isMounted.value) return undefined;
     return buildAppearanceSummary(t, {
@@ -154,9 +146,6 @@ export function useProfilePreferences() {
     });
   });
 
-  // What the skeletons are drawn from: the same sentences with what the
-  // server already knows, and sample values for the rest. Nothing here
-  // reads the browser, so the server and the hydrating browser agree.
   const placeholders = computed(() => {
     const { preferences } = regional;
     return {

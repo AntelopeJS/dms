@@ -39,8 +39,7 @@ const handleBlur = () => {
   isUserTyping.value = false;
   if (displayValue.value) {
     const parsed = readTimeSpan(displayValue.value);
-    // An unreadable duration is no duration: kept on screen for its author
-    // to fix, and refused by the form until then.
+
     report(parsed === undefined ? UNREADABLE_DURATION : undefined);
     if (parsed === undefined) {
       emits("update:modelValue", null);
@@ -54,7 +53,6 @@ const handleBlur = () => {
       emits("update:modelValue", parsed);
     }
   } else {
-    // A cleared time is no time, not midnight: a required one stays missing.
     report(undefined);
     emits("update:modelValue", null);
   }

@@ -1,9 +1,3 @@
-// `ajs dms dev`, `ajs dms build` and `ajs dms start` read a project, not the
-// backend's `AddFrontendModule` registrations: they take a module's frontend
-// from the file its package.json names as `dmsFrontend`, and leave out, with a
-// mere warning, a package that ships `frontend-vue/` without one. This asserts that
-// every package of this directory shipping `frontend-vue/` (the DMS and its
-// playground) declares a file that exports `frontendModule`.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,11 +38,19 @@ function sourceOf(declaration) {
   return declaration.replace(/^dist\//, "src/").replace(/\.js$/, ".ts");
 }
 
+/**
+ * `ajs dms dev`, `build` and `start` read a project, not the backend's
+ * `AddFrontendModule` registrations: they take a module's frontend from the
+ * file its package.json names as `dmsFrontend`, and leave out, with a mere
+ * warning, a package that ships `frontend-vue/` without one. This lists the
+ * packages that ship `frontend-vue/` and declare no file exporting
+ * `frontendModule`.
+ */
 function problemsOf(directory) {
   if (!fs.existsSync(path.join(directory, FRONTEND_SOURCE_DIR))) return [];
   const name = path.relative(packageRoot, directory) || ".";
   const declaration = readManifest(directory)[DECLARATION_FIELD];
-  if (typeof declaration !== "string") {
+  if (!declaration) {
     return [
       `${name} ships ${FRONTEND_SOURCE_DIR}/ but its package.json declares no ${DECLARATION_FIELD}: ajs dms dev, build and start leave its pages' components out`,
     ];

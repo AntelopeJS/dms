@@ -15,8 +15,6 @@ export function absolutizeJoinedSchemas(meta: DataAPIMeta): void {
   }
 }
 
-// An empty value is neither below nor above a bound, but the database orders
-// a missing value before every number and date, so "less than" matched it.
 /** @internal Keeps `comparison` to the rows whose value is set. */
 export function whenValueSet(
   proxy: ValueProxy<unknown>,

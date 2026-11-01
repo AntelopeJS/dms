@@ -4,7 +4,7 @@ import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel } from "@antelopejs/interface-dms/db";
-import { verifyUploadToken } from "../../../utils/upload-token";
+import { verifyUploadToken } from "../../../utils";
 import {
   findUploadToken,
   nativeUploadToken,
@@ -16,8 +16,7 @@ import { resetDatabase } from "../../helpers/db";
 const CONTENT = Buffer.from("shared-controller file");
 const METADATA = "/api/files/metadata";
 const LOCATION = "/api/native-attachments";
-// Both pages mount a TableView on the same data controller: the first one
-// writes, the secondary one, built last, only reads.
+
 const FIRST_TABLE_SLUG = "/nativefiles";
 const LAST_TABLE_SLUG = "/nativefiles-secondary";
 const READ_ONLY_TABLE: TableClaims = {

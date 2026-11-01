@@ -7,12 +7,16 @@ import {
 import {
   type NotifiedInviteOutcome,
   notifyInviteOutcome,
-} from "../utils/workspace-notifications";
+} from "./internal/workspace-notifications";
 
 const NOTIFIED_OUTCOMES: ReadonlySet<string> = new Set<NotifiedInviteOutcome>([
   "accepted",
   "expired",
 ]);
+
+function isNotifiedOutcome(reason: string): reason is NotifiedInviteOutcome {
+  return NOTIFIED_OUTCOMES.has(reason);
+}
 
 /**
  * Runs inside the invitation's completion, which a throwing handler would
@@ -21,14 +25,14 @@ const NOTIFIED_OUTCOMES: ReadonlySet<string> = new Set<NotifiedInviteOutcome>([
 async function onInviteDeleted(
   payload: InviteDeletedHookPayload,
 ): Promise<undefined> {
-  if (!payload.deliveryId || !NOTIFIED_OUTCOMES.has(payload.reason)) {
+  if (!payload.deliveryId || !isNotifiedOutcome(payload.reason)) {
     return undefined;
   }
   try {
     await notifyInviteOutcome(
       payload.tenantId,
       payload.deliveryId,
-      payload.reason as NotifiedInviteOutcome,
+      payload.reason,
     );
   } catch (error) {
     Logging.Error(

@@ -1,3 +1,7 @@
+import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
+import { isObject } from "#dms-core/app/utils/type-check";
+import { DEFAULT_RELATION_VALUE_KEY } from "./relationValue";
+
 /** How many labels a multi-value relation cell shows before collapsing. */
 export const MAX_RELATION_BADGES = 3;
 
@@ -7,12 +11,22 @@ export interface RelationBadges {
   hidden: string[];
 }
 
-function readRelationLabel(item: unknown, labelKey: string): string {
-  if (typeof item === "object" && item !== null) {
-    const label = (item as Record<string, unknown>)[labelKey];
-    return label === undefined || label === null ? "" : String(label);
+const textOf = (value: unknown): string =>
+  value === undefined || value === null ? "" : String(value);
+
+/**
+ * The text a related row shows: its label, or its key when the label is
+ * empty. A raw id (join skipped) is shown as is.
+ */
+export function readRelationLabel(
+  item: Parameters<DataTypeFormatter>[0],
+  labelKey: string,
+  valueKey = DEFAULT_RELATION_VALUE_KEY,
+): string {
+  if (isObject(item) && item !== null) {
+    return textOf(item[labelKey]) || textOf(item[valueKey]);
   }
-  return item === undefined || item === null ? "" : String(item);
+  return textOf(item);
 }
 
 /**
@@ -25,9 +39,10 @@ export function buildRelationBadges(
   values: unknown[],
   labelKey: string,
   maxVisible = MAX_RELATION_BADGES,
+  valueKey = DEFAULT_RELATION_VALUE_KEY,
 ): RelationBadges {
   const labels = values
-    .map((item) => readRelationLabel(item, labelKey))
+    .map((item) => readRelationLabel(item, labelKey, valueKey))
     .filter((label) => label !== "");
   return {
     visible: labels.slice(0, maxVisible),

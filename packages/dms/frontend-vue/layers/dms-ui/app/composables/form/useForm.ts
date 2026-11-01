@@ -1,79 +1,87 @@
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { z } from "zod";
-import { nextTick, onMounted, onScopeDispose, unref } from "vue";
-import type { FormProps, FormFetchResponse, FormSubmitResponse } from "./types";
-import { jsonSchemaToZod } from "json-schema-to-zod";
+import { nextTick } from "vue";
+import type { FormProps, FormSubmitResponse } from "./types";
 import { FormEvents } from "./types/events";
-import type { FormData, FormFieldValue } from "./types/value";
-import type {
-  FieldCondition,
-  FormField,
-  FormFieldOrGroup,
-} from "./types/field";
+import type { FormData } from "./types/value";
 import { isFieldGroup } from "./types/field";
 import { resolveResponseToast } from "../../build/utils/responseWarning";
-import { processFieldI18n } from "../../build/utils/fieldOptionsI18n";
-import { orderFormEntries } from "../../build/composables/form/formEntryOrder";
 import {
   type ReplaceUrlVariablesContext,
-  hasUrlVariables,
   resolveLinkVariables,
-  resolveTextVariables,
-  resolveUrlVariables,
 } from "../../build/utils/urlVariables";
+import { apiErrorText } from "#dms-core/app/composables/useFieldErrors";
+import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
+import { isNumber } from "#dms-core/app/utils/type-check";
+import { isPlainObject } from "../../build/composables/unsaved-changes/formValue";
+import { createFormFields } from "../../build/composables/form/formState";
+import {
+  collectSubmitData,
+  computeResetState,
+  processBeforeStateMappers,
+  resolveFormFieldErrors,
+  resolveSubmitTarget,
+  snapshotFormState,
+} from "../../build/composables/form/useFormModel";
 
 export {
   type ReplaceUrlVariablesContext,
   replaceUrlVariables,
 } from "../../build/utils/urlVariables";
+export {
+  buildValidationSchema,
+  clearedFieldValue,
+  cloneFormValue,
+  collectSubmitData,
+  computeResetState,
+  createFieldValueComparer,
+  fieldValuesOfSubmitDefaults,
+  formShowsActions,
+  isAcceptanceField,
+  isClearedFieldValue,
+  isFieldMarkedRequired,
+  localizedSubmitValue,
+  makeFieldSchemaRequired,
+  resolveFormFieldErrors,
+  resolveSubmitDefaults,
+  resolveSubmitTarget,
+  snapshotFormState,
+  withConditionFields,
+} from "../../build/composables/form/useFormModel";
+
+export type FieldValueComparer =
+  import("../../build/composables/form/useFormModel").FieldValueComparer;
+export type SubmitDataContext =
+  import("../../build/composables/form/useFormModel").SubmitDataContext;
+export type SubmitField =
+  import("../../build/composables/form/useFormModel").SubmitField;
+export type SubmitTarget =
+  import("../../build/composables/form/useFormModel").SubmitTarget;
 
 /** A toast a submit response asks for, on top of the success one. */
 interface FormSubmitNotice {
   title: string;
   description?: string;
-  /** Toast color; `info` by default. */
+  /** Toast color; info by default. */
   color?: string;
-  /** i18n parameters of the texts; a numeric `count` pluralizes them. */
-  params?: Record<string, unknown>;
+  /** Translation parameters; a numeric count pluralizes the text. */
+  params?: Parameters<I18nTranslate>[1];
 }
-import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
-import {
-  type ApiFieldError,
-  apiErrorStatus,
-  apiErrorText,
-  resolveFieldErrors,
-} from "#dms-core/app/composables/useFieldErrors";
-import { HTTP_NOT_FOUND } from "#dms-core/app/utils/http-status";
-import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
-import {
-  isPlainObject,
-  sameFormValue,
-} from "../../build/composables/unsaved-changes/formValue";
-import { createStartingValueTracker } from "../../build/composables/form/fieldValueRule";
 
 /** A server error shown under its field, translated. */
 export interface FormServerFieldError {
   /** The field id. */
   name: string;
   message: string;
-  /** The values of the field the error names (addresses of a list…). */
+  /** The values of the field the error names. */
   values?: string[];
-  /** The part of the field it names (`address.streetName`), if any. */
+  /** The part of the field it names, if any. */
   path?: string;
 }
 
 export interface UseFormOptions {
-  /**
-   * Shows server errors under their fields (and focuses the first one): a
-   * submit refused for a field never shows a toast. Returns whether any
-   * landed on a rendered field; the toast shows otherwise.
-   */
+  /** Shows field errors and returns whether any landed on a rendered field. */
   showFieldErrors?: (errors: FormServerFieldError[]) => boolean;
-  /**
-   * Called once a submit succeeded and the values are the saved ones (or
-   * back to the opening ones for an `action` form), before the success event
-   * goes out and any redirect: the form has nothing unsaved from there on.
-   */
+  /** Runs once saved values are clean, before the success event and redirect. */
   onSaved?: () => void;
 }
 
@@ -81,677 +89,20 @@ interface FormResetTarget {
   clear?: () => void;
 }
 
-const INTERNAL_STATE_KEYS = new Set([
-  "disabledFields",
-  "hiddenFields",
-  "requiredFields",
-]);
-
-type ResetStateValues = Record<string, FormFieldValue | undefined>;
-
-export function cloneFormValue(
-  value: FormFieldValue | undefined,
-): FormFieldValue | undefined {
-  if (value === undefined) return undefined;
-  return JSON.parse(JSON.stringify(value));
-}
-
-/**
- * Whether a form offers to save: once it has an address and a field someone
- * can fill in, unless its `saveMode` is `none`. An `action` form does
- * something even with nothing to fill in, so it needs only the address.
- */
-export function formShowsActions(
-  options: Pick<FormProps, "saveMode" | "submitUrl" | "kind">,
-  fields: ReadonlyArray<{ disabled?: boolean }>,
-): boolean {
-  return (
-    options.saveMode !== "none" &&
-    !!options.submitUrl &&
-    (options.kind === "action" || !fields.every((field) => field.disabled))
-  );
-}
-
-export function computeResetState(
-  state: Record<string, unknown>,
-  initialValues: FormData,
-): ResetStateValues {
-  const result: ResetStateValues = {};
-  for (const key of Object.keys(state)) {
-    if (INTERNAL_STATE_KEYS.has(key)) continue;
-    result[key] = cloneFormValue(initialValues[key]);
-  }
-  return result;
-}
-
-export function snapshotFormState(state: Record<string, unknown>): FormData {
-  return computeResetState(state, state as FormData) as FormData;
-}
-
-function flattenFields(items: FormFieldOrGroup[]): FormField[] {
-  const result: FormField[] = [];
-  for (const item of items) {
-    if (isFieldGroup(item)) {
-      result.push(...item.fields);
-    } else {
-      result.push(item);
-    }
-  }
-  return result;
-}
-
-function createBaseValidationSchema(
-  schema: unknown,
-): z.ZodObject<Record<string, z.ZodTypeAny>> {
-  if (!schema) return z.object({});
-
-  try {
-    const zodCode = jsonSchemaToZod(schema, { module: "none" }).replace(
-      /\.strict\(\)$/,
-      ".passthrough()",
-    );
-    return new Function("z", `"use strict"; return (${zodCode})`)(z);
-  } catch {
-    return z.object({});
-  }
-}
-
-/** Where a submit goes, or what it lacks to go anywhere. */
-export type SubmitTarget = { url: string } | { missing: "url" | "token" };
-
-/**
- * Where a submit is sent. A form with no URL has nowhere to send it — it is a
- * read-only one — and a URL naming a token the page does not carry, such as an
- * edit form opened without the id of its row, is not a route either: loading
- * already skips such a URL, and submitting to it wrote to a path that was never
- * meant to exist.
- */
-export function resolveSubmitTarget(
-  submitUrl: string | undefined,
-  context: ReplaceUrlVariablesContext,
-): SubmitTarget {
-  if (!submitUrl) return { missing: "url" };
-  const url = resolveUrlVariables(submitUrl, context);
-  return url === undefined ? { missing: "token" } : { url };
-}
-
-function processBeforeStateMappers(
-  data: FormData,
-  fields: FormFieldOrGroup[],
-  getDataType: (type: string) => DataType | undefined,
-): FormData {
-  const result = { ...data };
-  const flatFields = flattenFields(fields);
-
-  for (const field of flatFields) {
-    if (!field.type || result[field.id] === undefined) continue;
-
-    const dataType = getDataType(field.type);
-    if (!dataType?.beforeStateMapper) continue;
-
-    result[field.id] = dataType.beforeStateMapper(
-      result[field.id],
-      field.component.options,
-    ) as FormFieldValue;
-  }
-
-  return result;
-}
-
-/**
- * The value a cleared field is submitted as: `[]` for a field holding a list
- * (a multiple select, tree, relation, date or file), `null` for any other.
- * The stored value tells which, whatever the control emitted on clearing.
- */
-export function clearedFieldValue(initial: unknown): FormFieldValue {
-  return Array.isArray(initial) ? [] : null;
-}
-
-/**
- * Whether a control's value means its field was emptied: no value, a blank
- * text (an emptied editor's markup or a cleared number included) or a plain
- * object whose parts are all blank (an address nobody filled). A list is not:
- * an empty list is the value of an emptied list. Nor is a file or another
- * instance, whatever its own properties.
- */
-export function isClearedFieldValue(value: unknown, type?: string): boolean {
-  if (Array.isArray(value)) return false;
-  const isInstance =
-    typeof value === "object" &&
-    value !== null &&
-    !(value instanceof Date) &&
-    !isPlainObject(value);
-  return !isInstance && isBlankValue(value, type);
-}
-
-/**
- * A localized value as submitted: each emptied language as `""`, the way the
- * localized field holds a language nobody filled, whatever its editor emitted.
- */
-export function localizedSubmitValue(value: unknown, type?: string): unknown {
-  if (!isPlainObject(value)) return value;
-  return Object.fromEntries(
-    Object.entries(value).map(([locale, text]) => [
-      locale,
-      typeof text === "string" && isBlankValue(text, type) ? "" : text,
-    ]),
-  );
-}
-
-// A localized field keeps its languages even emptied, never `null`: the
-// database stores it as one value per language and cannot read a `null` back.
-function isClearedField(field: SubmitField, value: unknown): boolean {
-  if (field.localized) return value === undefined;
-  return isClearedFieldValue(value, field.type);
-}
-
-function submittedFieldValue(field: SubmitField, value: unknown): unknown {
-  return field.localized ? localizedSubmitValue(value, field.type) : value;
-}
-
-/** A field as `collectSubmitData` reads it. */
-export type SubmitField = Pick<
-  FormField,
-  "id" | "type" | "disabled" | "localized"
-> &
-  Partial<Pick<FormField, "component">>;
-
-/** Whether a field holds the same value on both sides. */
-export type FieldValueComparer = (
-  field: SubmitField,
-  left: unknown,
-  right: unknown,
-) => boolean;
-
-/**
- * Compares the values of a field as its data type does (see
- * `DataType.isSameValue`), deeply by value for a type that does not say.
- */
-export function createFieldValueComparer(
-  getDataType: (type: string) => DataType | undefined,
-): FieldValueComparer {
-  return (field, left, right) => {
-    const compare = field.type
-      ? getDataType(field.type)?.isSameValue
-      : undefined;
-    return compare
-      ? compare(left, right, field.component?.options)
-      : sameFormValue(left, right);
-  };
-}
-
-const defaultFieldValueComparer: FieldValueComparer = (_field, left, right) =>
-  sameFormValue(left, right);
-
-/** What `collectSubmitData` needs to know of the form besides its values. */
-export interface SubmitDataContext {
-  /** The values the form loaded (or last saved, or its field defaults). */
-  initialValues?: Record<string, unknown>;
-  /** Values the form always submits under its fields' (resolved tokens). */
-  submitDefaults?: Record<string, unknown>;
-  /** Fields a watch action disabled. */
-  disabled?: Set<string>;
-  /**
-   * Send only the fields whose value differs from `initialValues`: an edit of
-   * a loaded record must not write back a value someone else changed since.
-   */
-  onlyChanged?: boolean;
-  /**
-   * How a field's value compares with its initial one under `onlyChanged`
-   * (by default deeply, by value).
-   */
-  isSameValue?: FieldValueComparer;
-}
-
-/**
- * The body a submit sends.
- *
- * Every field holding a value is sent. A field its control emptied (left
- * `undefined`, or holding a blank text, see `isClearedFieldValue`) is sent as
- * its empty value (`clearedFieldValue`) when it started with a value: an
- * endpoint merging the body into the stored row would otherwise keep the value
- * the user removed. A localized field is sent with its emptied languages as
- * `""` (`localizedSubmitValue`). A field that started empty and is still empty is not sent,
- * so a create form sends no `null` for the fields nobody touched, nor an edit
- * form for values the row never had. A disabled field is never cleared: the
- * user cannot have emptied it. With `onlyChanged`, a field still holding the
- * value it loaded is left out.
- */
-export function collectSubmitData(
-  data: Record<string, unknown>,
-  fields: ReadonlyArray<SubmitField>,
-  context: SubmitDataContext = {},
-): FormData {
-  const fieldData: FormData = {};
-  const isSameValue = context.isSameValue ?? defaultFieldValueComparer;
-
-  for (const field of fields) {
-    const value = unref(data[field.id]) as FormFieldValue | undefined;
-    const initial = context.initialValues?.[field.id];
-    if (context.onlyChanged && isSameValue(field, value, initial)) continue;
-    if (!isClearedField(field, value)) {
-      fieldData[field.id] = submittedFieldValue(field, value) as FormFieldValue;
-      continue;
-    }
-    if (field.disabled || context.disabled?.has(field.id)) continue;
-    if (isBlankValue(initial, field.type)) continue;
-    fieldData[field.id] = clearedFieldValue(initial);
-  }
-
-  return {
-    ...(context.submitDefaults as FormData | undefined),
-    ...fieldData,
-  };
-}
-
-// `submitDefaults` string values may contain `{{query.X}}` / `{{params.X}}`
-// tokens (e.g. a "new" form generated from `queryParamFilters`). Resolve them
-// against the current route at submit time; drop entries whose tokens cannot
-// be resolved so an unfiltered form doesn't submit a literal `{{...}}`.
-export function resolveSubmitDefaults(
-  submitDefaults: Record<string, unknown> | undefined,
-  context: ReplaceUrlVariablesContext,
-): Record<string, unknown> | undefined {
-  if (!submitDefaults) return undefined;
-
-  const resolved: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(submitDefaults)) {
-    if (typeof value === "string" && hasUrlVariables(value)) {
-      const replaced = resolveTextVariables(value, context);
-      if (replaced === undefined) continue;
-      resolved[key] = replaced;
-    } else {
-      resolved[key] = value;
-    }
-  }
-
-  return Object.keys(resolved).length > 0 ? resolved : undefined;
-}
-
-/**
- * The values a form's fields start from among its submit defaults: a field
- * the form submits under anyway (the parent a table is filtered on by a route
- * parameter) shows it from the start, and a mandatory one is filled. A
- * default with no field of the form is only submitted.
- */
-export function fieldValuesOfSubmitDefaults(
-  fields: ReadonlyArray<{ id: string }>,
-  submitDefaults: Record<string, unknown> | undefined,
-): FormData {
-  const values: FormData = {};
-  if (!submitDefaults) return values;
-  for (const { id } of fields) {
-    if (id in submitDefaults) {
-      values[id] = submitDefaults[id] as FormFieldValue;
-    }
-  }
-  return values;
-}
-
-export function makeFieldSchemaRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
-  if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
-    return makeFieldSchemaRequired(schema.unwrap());
-  }
-  if (schema instanceof z.ZodDefault) {
-    return makeFieldSchemaRequired(schema.removeDefault());
-  }
-  // A nullable+optional field round-trips through zod-to-json-schema back to
-  // `z.union([<type>, z.null()])`, so unwrap the null branch to reach the base
-  // type; otherwise the checks below never apply and clearing the field passes.
-  if (schema instanceof z.ZodUnion) {
-    const nonNullOptions = schema.options.filter(
-      (option: z.ZodTypeAny) => !(option instanceof z.ZodNull),
-    );
-    if (nonNullOptions.length === 1) {
-      return makeFieldSchemaRequired(nonNullOptions[0]);
-    }
-    return schema;
-  }
-  if (schema instanceof z.ZodString || schema instanceof z.ZodArray) {
-    return schema.min(1);
-  }
-  return schema;
-}
-
-export function buildValidationSchema(
-  baseSchema: z.ZodObject<Record<string, z.ZodTypeAny>>,
-  disabled: Set<string> | undefined,
-  hidden: Set<string> | undefined,
-  required: Set<string> | undefined,
-): z.ZodObject<Record<string, z.ZodTypeAny>> {
-  const hasInactive =
-    (disabled && disabled.size > 0) || (hidden && hidden.size > 0);
-  const hasRequired = required && required.size > 0;
-  if (!hasInactive && !hasRequired) return baseSchema;
-
-  const newShape: Record<string, z.ZodTypeAny> = {};
-  for (const [key, value] of Object.entries(baseSchema.shape)) {
-    const fieldSchema = value as z.ZodTypeAny;
-    const isInactive = disabled?.has(key) || hidden?.has(key);
-    if (isInactive) {
-      newShape[key] = fieldSchema.optional().nullable();
-    } else if (required?.has(key)) {
-      newShape[key] = makeFieldSchemaRequired(fieldSchema);
-    } else {
-      newShape[key] = fieldSchema;
-    }
-  }
-  return z.object(newShape).passthrough();
-}
-
-// A switch always holds a value (off is `false`): it can never be left
-// missing, so marking it required would only suggest an action that does not
-// exist.
-const ALWAYS_FILLED_FIELD_TYPES = new Set(["boolean"]);
-// ...unless it is a box to tick: required, it is an agreement ("I accept the
-// terms") left missing until ticked.
-const ACCEPTANCE_COMPONENTS = new Set(["dms-checkbox"]);
-
-/** Whether a field is a box to tick, which only `true` fills when required. */
-export function isAcceptanceField(
-  field: Pick<FormField, "type"> & Partial<Pick<FormField, "component">>,
-): boolean {
-  return (
-    !!field.type &&
-    ALWAYS_FILLED_FIELD_TYPES.has(field.type) &&
-    ACCEPTANCE_COMPONENTS.has(field.component?.componentName ?? "")
-  );
-}
-
-/**
- * Whether the form marks a field as required: declared so, or made so by a
- * watch action, and neither disabled nor hidden, since `buildValidationSchema`
- * does not validate inactive fields, nor a type that always holds a value.
- */
-export function isFieldMarkedRequired(
-  field: Pick<FormField, "id" | "required" | "disabled" | "type"> &
-    Partial<Pick<FormField, "component" | "readonly">>,
-  disabled: Set<string> | undefined,
-  hidden: Set<string> | undefined,
-  required: Set<string> | undefined,
-): boolean {
-  if (field.disabled || field.readonly) return false;
-  if (disabled?.has(field.id) || hidden?.has(field.id)) return false;
-  const isAlwaysFilled =
-    !!field.type && ALWAYS_FILLED_FIELD_TYPES.has(field.type);
-  if (isAlwaysFilled && !isAcceptanceField(field)) return false;
-  return !!field.required || (required?.has(field.id) ?? false);
-}
-
-const meetsCondition = (
-  condition: FieldCondition,
-  values: Record<string, unknown>,
-): boolean => condition.in.includes(values[condition.field] ?? null);
-
-/**
- * The fields the values hide (`visibleWhen` not met) or disable
- * (`disabledWhen` met), added to those the watches hide or disable: the
- * conditions hold from the values the form opens with, without a watch.
- */
-export function withConditionFields(
-  fields: ReadonlyArray<Pick<FormField, "id" | "visibleWhen" | "disabledWhen">>,
-  values: Record<string, unknown>,
-  watched: { disabled?: Set<string>; hidden?: Set<string> },
-): { disabled: Set<string>; hidden: Set<string> } {
-  const disabled = new Set(watched.disabled);
-  const hidden = new Set(watched.hidden);
-  for (const field of fields) {
-    if (field.visibleWhen && !meetsCondition(field.visibleWhen, values)) {
-      hidden.add(field.id);
-    }
-    if (field.disabledWhen && meetsCondition(field.disabledWhen, values)) {
-      disabled.add(field.id);
-    }
-  }
-  return { disabled, hidden };
-}
-
-function watchFieldChanges(
-  state: Ref<Record<string, unknown>>,
-  componentId: string | undefined,
-  sendComponentEvent: (
-    event: string,
-    componentId: string,
-    payload?: unknown,
-  ) => void,
-  isStartingValue: (fieldId: string, value: unknown) => boolean,
-): void {
-  if (!componentId) return;
-  const id = componentId;
-  const previousValuesJson: Record<string, string> = {};
-  // `initial` on each change: a watch writing values (SetFieldValue) leaves
-  // the values the form started from to the record it loaded.
-  const isInitial = createStartingValueTracker(isStartingValue);
-
-  // From mount, once `useWatch` listens: the values the form starts from
-  // (defaults, loaded row) reach the watch rules too, not only later edits.
-  onMounted(() => {
-    watch(() => state.value, sendChanges, { deep: true, immediate: true });
-  });
-
-  function sendChanges(newState: Record<string, unknown>): void {
-    for (const fieldId of Object.keys(newState)) {
-      if (INTERNAL_STATE_KEYS.has(fieldId)) continue;
-
-      let newJson: string;
-      try {
-        newJson = JSON.stringify(newState[fieldId]);
-      } catch {
-        newJson = String(newState[fieldId]);
-      }
-      if (newJson !== previousValuesJson[fieldId]) {
-        sendComponentEvent(FormEvents.FIELD_CHANGE, id, {
-          fieldId,
-          value: newState[fieldId],
-          formValues: newState,
-          initial: isInitial(fieldId, newState[fieldId]),
-        });
-        previousValuesJson[fieldId] = newJson;
-      }
-    }
-  }
-}
-
-/**
- * The errors of a refused submit the form shows under its fields: only the
- * fields it shows (neither hidden nor disabled) can carry one, anything else
- * is a toast.
- */
-export function resolveFormFieldErrors(
-  error: unknown,
-  fields: ReadonlyArray<Pick<FormField, "id" | "disabled">>,
-  inactive: { disabled?: Set<string>; hidden?: Set<string> } = {},
-): ApiFieldError[] {
-  const shown = fields
-    .filter(
-      (field) =>
-        !field.disabled &&
-        !inactive.disabled?.has(field.id) &&
-        !inactive.hidden?.has(field.id),
-    )
-    .map((field) => field.id);
-  return resolveFieldErrors(error, { fields: shown }).fields;
-}
-
-export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
-  const toast = useToast();
-  const { $authFetch } = useAuthFetch();
-  const { getDataType } = useDataTypes();
-  const isSameFieldValue = createFieldValueComparer(getDataType);
-  const { processI18n, processApiMessage } = useTranslation();
-  const route = useDmsRoute();
-
-  const { sendComponentEvent } = useComponentEvent(props.componentId);
-
-  const { execute: executeSubmit } = useEventedAction<FormSubmitResponse>({
-    componentId: props.componentId,
-    events: {
-      start: FormEvents.SUBMIT,
-      success: FormEvents.SUBMIT_SUCCESS,
-      error: FormEvents.SUBMIT_ERROR,
-    },
-  });
-
-  const { isLoading: loading, state } = useWatch(
-    props.watchActions || [],
-    props.componentId,
-    {
-      disabledFields: new Set<string>(),
-      hiddenFields: new Set<string>(),
-      requiredFields: new Set<string>(),
-    },
-  );
-  const initialValues = ref<FormData>({});
-  const submitSucceeded = ref(false);
-
-  const allFields = computed(() => flattenFields(props.fields));
-
-  // Whether a field holds the value the form started from: its default or
-  // the loaded record's, compared as its data type does (a joined row is
-  // the same as the id the picker holds).
-  const isStartingValue = (fieldId: string, value: unknown): boolean => {
-    const field = allFields.value.find((entry) => entry.id === fieldId);
-    const initial = initialValues.value[fieldId];
-    return field
-      ? isSameFieldValue(field, value, initial)
-      : sameFormValue(value, initial);
-  };
-
-  watchFieldChanges(
-    state,
-    props.componentId,
-    sendComponentEvent,
-    isStartingValue,
-  );
-
-  // A successful submit leaves the form at its saved state; a later edit makes
-  // it dirty again, so clear `submitSucceeded` to re-arm the unsaved-changes
-  // guard (and the realtime release-on-unmount) for the new edits. Without this
-  // the guard would stay permanently disabled after the first save.
-  // Set while the record a save stored reaches the state: what the server
-  // stored is no edit made since.
-  let isApplyingSavedRecord = false;
-  let isDisposed = false;
-  onScopeDispose(() => {
-    isDisposed = true;
-  });
-  watch(
-    () => state.value,
-    () => {
-      if (isApplyingSavedRecord) return;
-      if (submitSucceeded.value) {
-        submitSucceeded.value = false;
-      }
-    },
-    { deep: true },
-  );
-
-  const inactiveFields = computed(() =>
-    withConditionFields(allFields.value, state.value, {
-      disabled: state.value.disabledFields as Set<string> | undefined,
-      hidden: state.value.hiddenFields as Set<string> | undefined,
-    }),
-  );
-
-  const disabledFields = computed(() => inactiveFields.value.disabled);
-
-  const hiddenFields = computed(() => inactiveFields.value.hidden);
-
-  const requiredFields = computed(
-    () => state.value.requiredFields as Set<string> | undefined,
-  );
-
-  const fields = computed<FormFieldOrGroup[]>(() =>
-    orderFormEntries(props.fields).map((item) => {
-      if (isFieldGroup(item)) {
-        return {
-          ...item,
-          fields: item.fields.map((f) => processFieldI18n(f, processI18n)),
-        };
-      }
-      return processFieldI18n(item, processI18n);
-    }),
-  );
-
-  const buildUrlContext = (
-    response?: Record<string, unknown>,
-  ): ReplaceUrlVariablesContext => ({
-    routeParams: props.routeParams,
-    routeQuery: route.query as Record<string, unknown>,
-    response,
-  });
-
-  const effectiveSubmitDefaults = computed(() =>
-    resolveSubmitDefaults(props.submitDefaults, buildUrlContext()),
-  );
-
-  const resolvedFetchUrl = computed(() =>
-    resolveUrlVariables(props.fetchUrl, buildUrlContext()),
-  );
-
-  // A form that loaded a record and does not create one (a duplicate posts
-  // the loaded values as a new row) updates it: only its changes are sent.
-  const isRecordUpdate = computed(
-    () => !!resolvedFetchUrl.value && props.submitUrlMethod !== HttpMethod.post,
-  );
-  // A create form (a table view's add form, the duplicate it opens) makes a
-  // new row: what it holds is new as a whole, nothing "changed" in it.
-  const createsRecord = props.kind === "create";
-
-  /** Reads the record at `fetchUrl`: its values, mapped for the fields. */
-  const loadRecord = async () => {
-    if (!props.fetchUrl) return undefined;
-    const processedUrl = resolveUrlVariables(props.fetchUrl, buildUrlContext());
-    if (processedUrl === undefined) return undefined;
-
-    const fetchedData = await $authFetch<FormFetchResponse>(processedUrl, {
-      method: props.fetchUrlMethod || "GET",
-      headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
-    });
-
-    initialValues.value = {
-      ...initialValues.value,
-      ...JSON.parse(JSON.stringify(fetchedData)),
-    };
-    return processBeforeStateMappers(fetchedData, props.fields, getDataType);
-  };
-
-  const fetchData = async () => {
-    try {
-      return await loadRecord();
-    } catch (error) {
-      // A server render shows the failure in the form (FormLoadError) and
-      // hands it to the browser; a toast it added would show in its HTML
-      // alone, which the browser's toasts never hold.
-      // A 404 is no error either: the form says the record is not found.
-      if (!import.meta.env.SSR && apiErrorStatus(error) !== HTTP_NOT_FOUND) {
-        showFetchErrorToast(error);
-      }
-      throw error;
-    }
-  };
-
-  const showFetchErrorToast = (error: unknown) => {
-    const err = error as Error & { data?: string };
-    toast.add({
-      title: processI18n("$dms.form.fetch_error_title"),
-      description: isString(err.data)
-        ? processApiMessage(err.data)
-        : processI18n("$dms.form.fetch_error_unknown"),
-      color: Color.error,
-    });
-  };
-
-  const baseSchema = createBaseValidationSchema(props.schema);
-
-  const validationSchema = computed(() =>
-    buildValidationSchema(
-      baseSchema,
-      disabledFields.value,
-      hiddenFields.value,
-      requiredFields.value,
-    ),
-  );
+function createFormNotices(
+  context: ReturnType<typeof createFormFields>,
+  options: UseFormOptions,
+) {
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
+  const {
+    props,
+    toast,
+    processI18n,
+    processApiMessage,
+    allFields,
+    disabledFields,
+    hiddenFields,
+  } = context;
 
   const showSubmitSuccessToast = (response: FormSubmitResponse | undefined) => {
     toast.add(
@@ -770,22 +121,17 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   };
 
   const { t } = useI18n();
-
-  // A notice text: an i18n key (`$`) pluralized on a numeric `count` param.
-  const noticeText = (value: string, params?: Record<string, unknown>) => {
+  const noticeText = (value: string, params?: FormSubmitNotice["params"]) => {
     if (!value.startsWith("$")) return value;
     const count = params?.count;
-    return typeof count === "number"
+    return isNumber(count)
       ? t(value.slice(1), params ?? {}, count)
       : t(value.slice(1), params ?? {});
   };
 
-  /**
-   * A submit response may carry a `notice` the server words for this
-   * submission (some of a batch skipped, a partial success): shown as a toast
-   * of its own next to the success one.
-   */
+  /** Shows a server-authored notice next to the ordinary success toast. */
   const showSubmitNotice = (response: FormSubmitResponse | undefined) => {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The response contract omits this optional server extension. Keep the original unchecked title/description behavior for malformed notices instead of validating or dropping them.
     const notice = (response as { notice?: FormSubmitNotice } | undefined)
       ?.notice;
     if (!notice?.title) return;
@@ -794,7 +140,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       description: notice.description
         ? noticeText(notice.description, notice.params)
         : undefined,
-      color: (notice.color as Color | undefined) ?? Color.info,
+      color: notice.color ?? Color.info,
     });
   };
 
@@ -805,8 +151,10 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     return processI18n("$dms.form.error_unknown");
   };
 
-  /** Puts a refused submit's field errors under their fields, if any. */
-  const showServerFieldErrors = (error: unknown): boolean => {
+  /** Puts a refused submit's field errors under its fields, if any. */
+  const showServerFieldErrors = (
+    error: Parameters<typeof resolveFormFieldErrors>[0],
+  ): boolean => {
     if (!options.showFieldErrors) return false;
     const fieldErrors = resolveFormFieldErrors(error, allFields.value, {
       disabled: disabledFields.value,
@@ -816,8 +164,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     return options.showFieldErrors(
       fieldErrors.map((entry) => ({
         name: entry.field,
-        // An error naming values of the field (addresses of a list) lists
-        // them: the field shows which ones to fix.
         message: entry.values?.length
           ? t("dms.field_errors.with_values", {
               message: processApiMessage(entry.message, entry.params),
@@ -831,6 +177,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   };
 
   const showSubmitErrorToast = (error: EventError) => {
+    if (consumeReadOnlyRefusal(error)) return;
     toast.add({
       title: processI18n("$dms.form.error_title"),
       description: resolveSubmitErrorDescription(error),
@@ -838,12 +185,37 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     });
   };
 
+  return {
+    ...context,
+    options,
+    consumeReadOnlyRefusal,
+    showSubmitSuccessToast,
+    showSubmitNotice,
+    showServerFieldErrors,
+    showSubmitErrorToast,
+  };
+}
+
+function createSavedForm(context: ReturnType<typeof createFormNotices>) {
+  const {
+    props,
+    options,
+    state,
+    initialValues,
+    getDataType,
+    submitSucceeded,
+    lifecycle,
+    loadRecord,
+    allFields,
+  } = context;
+
   /** Puts every field back to the value it opened with. */
   const restoreInitialValues = (): void => {
     const restored = computeResetState(state.value, initialValues.value);
     Object.assign(
       state.value,
       processBeforeStateMappers(
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reset intentionally carries undefined for initially absent fields. The mapper's nominal FormData contract omits undefined, but no validation or dropping of those fields is intended.
         restored as FormData,
         props.fields,
         getDataType,
@@ -851,60 +223,45 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     );
   };
 
-  /** A submit the server accepted: nothing is left unsaved. */
+  /** Marks values clean before the accepted submit emits its success event. */
   const markSubmitSaved = (): void => {
     submitSucceeded.value = true;
-    // A form sending something new each time starts over from the values it
-    // opened with; any other keeps what it saved as its new starting point.
     if (props.kind === "action") restoreInitialValues();
     else initialValues.value = snapshotFormState(state.value);
     options.onSaved?.();
   };
 
-  /** Puts the record a save stored in the state: no edit made since. */
+  /** Applies the saved record without clearing the saved flag in the watcher. */
   const applyStoredRecord = async (stored: FormData): Promise<void> => {
-    isApplyingSavedRecord = true;
+    lifecycle.isApplyingSavedRecord = true;
     Object.assign(state.value, stored);
     options.onSaved?.();
     await nextTick();
-    isApplyingSavedRecord = false;
+    lifecycle.isApplyingSavedRecord = false;
   };
 
-  /**
-   * Reads the record back from `fetchUrl` once its update went through, for
-   * a route that does not answer it. An edit made meanwhile is kept, and a
-   * failed read leaves the values as they were sent.
-   */
+  /** Re-reads a saved record, keeping intervening edits or failed-read values. */
   const refreshSavedRecord = async (): Promise<void> => {
     let stored: FormData | undefined;
     try {
-      stored = (await loadRecord()) as FormData | undefined;
+      stored = await loadRecord();
     } catch {
       return;
     }
-    if (isDisposed || !submitSucceeded.value) return;
+    if (lifecycle.isDisposed || !submitSucceeded.value) return;
     if (!stored || Object.keys(stored).length === 0) return;
     await applyStoredRecord(stored);
   };
 
-  /**
-   * Shows the record its update stored rather than what was typed: the
-   * server may store what it was sent normalized (a VAT number stripped of
-   * its spaces, the empty rows of a list dropped). A route that answers the
-   * record (a table view's edit route, interface-data-api 0.3) is read
-   * without a second request: its answer holds the record when it carries
-   * one of the form's fields, and only those are taken. Any other answer
-   * (`{ success: true }`, nothing) has the form read `fetchUrl` again. The
-   * form stays saved.
-   */
+  /** Uses response fields as the saved record, otherwise re-reads fetchUrl. */
   const showSavedRecord = async (
     response: FormSubmitResponse | undefined,
   ): Promise<void> => {
     if (!submitSucceeded.value) return;
     const fieldIds = new Set(allFields.value.map((field) => field.id));
-    // The route answers JSON, as `fetchUrl` does: field values.
     const record: FormData = isPlainObject(response)
-      ? (Object.fromEntries(
+      ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only field names are checked, not values; preserve arbitrary response values at this existing unchecked FormData boundary.
+        (Object.fromEntries(
           Object.entries(response).filter(([key]) => fieldIds.has(key)),
         ) as FormData)
       : {};
@@ -914,9 +271,26 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       ...JSON.parse(JSON.stringify(record)),
     };
     await applyStoredRecord(
-      processBeforeStateMappers(record, props.fields, getDataType) as FormData,
+      processBeforeStateMappers(record, props.fields, getDataType),
     );
   };
+
+  return { ...context, restoreInitialValues, markSubmitSaved, showSavedRecord };
+}
+
+function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
+  const {
+    props,
+    toast,
+    processI18n,
+    buildUrlContext,
+    showSubmitSuccessToast,
+    showSubmitNotice,
+    executeSubmit,
+    $authFetch,
+    showServerFieldErrors,
+    showSubmitErrorToast,
+  } = context;
 
   const handleSubmitSuccess = async (
     response: FormSubmitResponse | undefined,
@@ -928,7 +302,8 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     if (props.redirectOnSuccess) {
       const target = resolveLinkVariables(
         props.redirectOnSuccess,
-        buildUrlContext(response as Record<string, unknown> | undefined),
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- URL interpolation reads the response's arbitrary keys without validation. The nominal success contract has no index signature; preserve this unchecked projection and malformed runtime responses.
+        buildUrlContext(response as ReplaceUrlVariablesContext["response"]),
       );
       await navigateDms(target);
     }
@@ -942,12 +317,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     });
   };
 
-  /**
-   * Sends a body to the submit URL, through the form's submit events.
-   * `onAccepted` runs once the server took it, before the success event goes
-   * out: what watches that event (a form page's way back to its list) finds
-   * the form with nothing unsaved, and leaves it without asking.
-   */
+  /** Sends through submit events, marking accepted data clean before success. */
   const sendSubmit = async (
     submitUrl: string,
     body: FormData,
@@ -970,6 +340,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
         successPayload: (response) => ({ data: body, response, submitUrl }),
         errorPayload: (error) => ({
           data: body,
+          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Evented actions may reject with anything. Retain direct data/message access, fallback ordering and nullish throws rather than narrowing to Error instances.
           error: (error as EventError).data || (error as EventError).message,
         }),
       },
@@ -977,19 +348,50 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     return submitResponse;
   };
 
-  /** A refused save: under its field when it names one, else a toast. */
-  const reportSubmitError = (error: unknown): void => {
+  /** Reports a refused save under its field when possible, otherwise as a toast. */
+  const reportSubmitError = (
+    error: Parameters<typeof resolveFormFieldErrors>[0],
+  ): void => {
+    if (context.consumeReadOnlyRefusal(error)) return;
     if (!showServerFieldErrors(error)) {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejection values are passed unchanged to the existing error formatter; there is no Error-instance validation at this boundary.
       showSubmitErrorToast(error as EventError);
     }
   };
 
+  return {
+    ...context,
+    handleSubmitSuccess,
+    showUnresolvedTargetToast,
+    sendSubmit,
+    reportSubmitError,
+  };
+}
+
+function createFormActions(context: ReturnType<typeof createFormSubmission>) {
+  const {
+    props,
+    buildUrlContext,
+    showUnresolvedTargetToast,
+    allFields,
+    initialValues,
+    effectiveSubmitDefaults,
+    disabledFields,
+    isRecordUpdate,
+    isSameFieldValue,
+    loading,
+    sendSubmit,
+    markSubmitSaved,
+    handleSubmitSuccess,
+    showSavedRecord,
+    reportSubmitError,
+    restoreInitialValues,
+    sendComponentEvent,
+  } = context;
+
   const onSubmit = async (event: FormSubmitEvent<FormData>) => {
     const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
     if ("missing" in target) {
-      // A read-only form renders no submit button, but Enter in one of its
-      // fields still submits it: that does nothing. Falling back on `/` sent
-      // the values to the site root with a PUT and reported nothing.
       if (target.missing === "token") showUnresolvedTargetToast();
       return;
     }
@@ -1000,19 +402,16 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       onlyChanged: isRecordUpdate.value,
       isSameValue: isSameFieldValue,
     });
-
     loading.value = true;
     try {
       const response = await sendSubmit(target.url, plainData, markSubmitSaved);
       await handleSubmitSuccess(response, plainData);
-      // A redirect leaves the form, an action form starts over.
       if (
         isRecordUpdate.value &&
         props.kind !== "action" &&
         !props.redirectOnSuccess
-      ) {
+      )
         await showSavedRecord(response);
-      }
     } catch (error) {
       reportSubmitError(error);
     } finally {
@@ -1020,13 +419,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     }
   };
 
-  /**
-   * Saves some fields at once, alone (the instant save of a form): sent to
-   * `submitUrl` with the form's `submitDefaults`, a cleared field as its
-   * empty value, without the success toast of a submit. Rejects when the
-   * server refuses them, for the caller to put the values back before
-   * `reportSubmitError` says why.
-   */
+  /** Saves only changed fields without success toasts, rejecting refused saves. */
   const submitChanges = async (changes: FormData): Promise<void> => {
     const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
     if ("missing" in target) {
@@ -1044,7 +437,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     await sendSubmit(target.url, body);
     initialValues.value = {
       ...initialValues.value,
-      ...(snapshotFormState(changes) as FormData),
+      ...snapshotFormState(changes),
     };
   };
 
@@ -1053,6 +446,37 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     restoreInitialValues();
     sendComponentEvent(FormEvents.RESET, props.componentId, {});
   };
+
+  return { ...context, onSubmit, submitChanges, reset };
+}
+
+export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
+  const context = createFormActions(
+    createFormSubmission(
+      createSavedForm(createFormNotices(createFormFields(props), options)),
+    ),
+  );
+  const {
+    loading,
+    state,
+    initialValues,
+    isSameFieldValue,
+    validationSchema,
+    onSubmit,
+    submitChanges,
+    reportSubmitError,
+    reset,
+    fetchData,
+    fields,
+    allFields,
+    disabledFields,
+    hiddenFields,
+    requiredFields,
+    submitSucceeded,
+    resolvedFetchUrl,
+    createsRecord,
+    effectiveSubmitDefaults,
+  } = context;
 
   return {
     loading,

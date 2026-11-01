@@ -3,7 +3,7 @@ import type {
   NotificationCategoryInfo,
   TogglePermission,
 } from "@antelopejs/interface-dms/notifications/types";
-import { isSubjectLocked } from "../../../implementations/dms-notifications/registry";
+import { isSubjectLocked } from "../../../utils";
 
 function subject(
   own: TogglePermission | undefined,

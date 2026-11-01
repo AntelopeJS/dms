@@ -4,7 +4,7 @@ import {
   FileNotFoundError,
   GetFileMetadata,
 } from "@antelopejs/interface-file-storage";
-import type { UploadTokenClaims } from "../utils/upload-token";
+import type { UploadTokenClaims } from "../utils";
 import { assertNativeFileAccess } from "./access";
 import {
   denyAttachment,
@@ -38,7 +38,7 @@ export async function readAttachment(
   storage?: string,
 ) {
   const attachment = await loadAttachment(key, storage);
-  const claims = JSON.parse(attachment.claimsJson) as UploadTokenClaims;
+  const claims: UploadTokenClaims = JSON.parse(attachment.claimsJson);
   const principal = await assertNativeFileAccess(context, claims, false);
   if (attachment.tenantId !== principal.tenantId) denyAttachment();
   const deadline =
@@ -46,7 +46,9 @@ export async function readAttachment(
   const read = await readStoredFile(key, storage);
   if (
     claims.visibility !== "public" &&
-    (!Number.isFinite(read.expiresAt) || (read.expiresAt as number) > deadline)
+    (read.expiresAt === undefined ||
+      !Number.isFinite(read.expiresAt) ||
+      read.expiresAt > deadline)
   ) {
     denyAttachment();
   }

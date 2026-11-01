@@ -3,10 +3,7 @@ import type { DmsServerEvent } from "#dms/server";
 import { privateSecret } from "../../../server/private-options";
 import { persistAccountSession } from "./accounts";
 import { type SessionTokens, sessionFrom } from "./session";
-
-// The provider sign-in, on the frontend's origin: the backend builds the
-// provider's URL and its callback (`relay.ts`, `config.ts`) and checks the
-// relay header this server sends, from the DMS module's private options.
+import { isNumber, isString } from "../../dms-core/app/utils/type-check";
 
 const FLOW = "dms_oauth_flow";
 const HANDOFF = "dms_oauth_handoff";
@@ -44,15 +41,16 @@ interface OAuthResult extends SessionTokens {
   methods?: unknown;
 }
 
-// Process-local, like the session refresh: one frontend process per sticky
-// client. A development reload of this file starts it over.
 const attempts = new Map<string, RateWindow>();
 
 function sweepAttempts(now: number) {
   for (const [key, window] of attempts)
     if (now - window.startedAt >= RATE_WINDOW_MS) attempts.delete(key);
-  while (attempts.size >= MAX_RATE_LIMIT_CLIENTS)
-    attempts.delete(attempts.keys().next().value as string);
+  while (attempts.size >= MAX_RATE_LIMIT_CLIENTS) {
+    const [oldest] = attempts.keys();
+    if (oldest === undefined) return;
+    attempts.delete(oldest);
+  }
 }
 
 /** Counts an attempt for `key`; false once over the limit of the window. */
@@ -72,12 +70,12 @@ function rateLimited(event: DmsServerEvent, scope: string): boolean {
 }
 
 export function isValidOAuthProvider(provider: unknown): provider is string {
-  return typeof provider === "string" && PROVIDER.test(provider);
+  return isString(provider) && PROVIDER.test(provider);
 }
 
 function safePath(value: string | null): string {
   if (
-    typeof value !== "string" ||
+    !isString(value) ||
     !value.startsWith("/") ||
     value.startsWith("//") ||
     value.includes("\\")
@@ -99,19 +97,17 @@ function errorRedirect(key: string): Response {
   return redirect(`${SIGN_IN}?oauth_error=${encodeURIComponent(key)}`);
 }
 
-// The backend's own OAuth key says why a provider sign-in failed; any other
-// failure keeps the generic one.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Catch values have no shared owner schema; an Error-only parameter would exclude existing thrown payloads.
 function failureRedirect(error: unknown): Response {
   const message = error instanceof Error ? error.message : "";
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This unchecked status access preserves existing thrown-value handling, including a TypeError for nullish errors; no validated owner exists.
   const status = (error as { status?: unknown }).status;
   return errorRedirect(
-    typeof status === "number" && message.startsWith(OAUTH_ERROR)
-      ? message
-      : FAILED,
+    isNumber(status) && message.startsWith(OAUTH_ERROR) ? message : FAILED,
   );
 }
 
-function relayHeaders(event: DmsServerEvent): Record<string, string> {
+function relayHeaders(event: DmsServerEvent) {
   const secret = privateSecret(
     event,
     "oauth",
@@ -155,8 +151,11 @@ export async function oauthStart(event: DmsServerEvent): Promise<Response> {
   }
 }
 
-function sameState(left: unknown, right: unknown): boolean {
-  if (typeof left !== "string" || typeof right !== "string") return false;
+function sameState(
+  left: OAuthFlow["state"],
+  right: OAuthFlow["state"],
+): boolean {
+  if (!isString(left) || !isString(right)) return false;
   const a = Buffer.from(left);
   const b = Buffer.from(right);
   return a.length === b.length && timingSafeEqual(a, b);
@@ -168,9 +167,9 @@ function validCallback(flow: OAuthFlow | undefined, query: URLSearchParams) {
   return Boolean(
     flow &&
       flow.expiresAt >= Date.now() &&
-      typeof code === "string" &&
+      isString(code) &&
       code.length <= MAX_CALLBACK_PARAMETER_LENGTH &&
-      typeof state === "string" &&
+      isString(state) &&
       state.length <= MAX_CALLBACK_PARAMETER_LENGTH &&
       sameState(state, flow.state),
   );

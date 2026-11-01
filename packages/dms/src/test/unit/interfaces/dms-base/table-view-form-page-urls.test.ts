@@ -1,6 +1,4 @@
-// A page is a class carrying only static component fields — that is the shape the decorator consumes.
-
-import { Controller, type ControllerClass } from "@antelopejs/interface-api";
+import { Controller } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
   DataController,
@@ -71,7 +69,6 @@ class DocumentAPI extends DataController(
   declare name: string;
 }
 
-// One controller per writing TableView, each derived from DocumentAPI.
 const documentAPI = (suffix: string) =>
   derivedController(Document, DocumentAPI, `${LOCATION}-${suffix}`);
 
@@ -188,7 +185,6 @@ class SiblingsPage extends RootPageController("fpu-siblings", {
   static second = secondSiblingTable;
 }
 
-// The page's own slug ends in `:id`, so its form pages carry two of them.
 @RegisterPage()
 class DetailPage extends RootPageController("fpu-detail", {
   displayName: "Detail of a row",
@@ -197,7 +193,6 @@ class DetailPage extends RootPageController("fpu-detail", {
   static rows = detailTable;
 }
 
-// Its components descend from `fpu.custom-permission`, not from its `fullId`.
 @RegisterPage()
 class CustomPermissionPage extends RootPageController("fpu-permission", {
   displayName: "Custom page permission",
@@ -250,8 +245,6 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     }
   });
 
-  // The key of the table view among the components of its page names the form
-  // routes, so a second table view on the same page gets URLs of its own.
   it("serializes the default slugs under the key of the table view", async () => {
     expect(await formPages(defaultTable)).to.deep.equal({
       new: "/fpu-default/table/new",
@@ -266,8 +259,6 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     );
   });
 
-  // A declared slug is full control: it stays relative to the page, with no key
-  // segment inserted, so every existing declaration keeps its URL.
   it("resolves a custom relative slug against the page slug, key-free", async () => {
     expect(await formPages(customTable)).to.deep.equal({
       new: "/fpu-custom/create",
@@ -277,8 +268,6 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     expect(GetPageLayoutBySlug("/fpu-custom/create")).to.not.equal(undefined);
   });
 
-  // A `customPage` entry registers nothing — the page is hand-written — but the
-  // table view still navigates to its URL.
   it("serializes a customPage entry it registers no page for", async () => {
     expect((await formPages(customTable))?.view).to.equal("/fpu-custom/:id");
     expect(GetPageLayoutBySlug("/fpu-custom/:id")).to.equal(undefined);
@@ -292,8 +281,6 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     });
   });
 
-  // Its simple key, not the path of components leading to it: the URL stays
-  // readable and survives the layout being reorganised around the table view.
   it("names a nested table view after its own key, and registers its pages", async () => {
     expect(await formPages(nestedTable)).to.deep.equal({
       new: "/fpu-nested/table/new",
@@ -324,9 +311,6 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     );
   });
 
-  // Two `:id` in one route: the page contributes the first, the form the
-  // second. `fillFormPageUrl` tells them apart, and the page registry matches
-  // a pattern segment by segment, so the duplicate name costs nothing.
   it("registers a form page below a page whose own slug is :id", async () => {
     expect(await formPages(detailTable)).to.deep.equal({
       new: "/fpu-detail/:id/rows/new",
@@ -338,8 +322,6 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     );
   });
 
-  // `@RegisterPage` fires and forgets, so the rejection is taken here the way
-  // the teardown suite takes a component that fails to serialize.
   it("fails the registration of two table views claiming one form URL", async () => {
     const clashingPages = { new: { urlSlug: "clash" } };
     const first = TableView(documentAPI("clash-first"), {
@@ -354,13 +336,13 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     class ClashingPage extends RootPageController("fpu-clash", {
       displayName: "Clashing table views",
     }) {}
-    const meta = GetMetadata(ClashingPage as ControllerClass, PageMetadata);
+    const meta = GetMetadata(ClashingPage, PageMetadata);
     meta.SetComponent("first", first);
     meta.SetComponent("second", second);
 
     const failure = await meta.Register().then(
       () => undefined,
-      (error: unknown) => error as Error,
+      (error) => error,
     );
 
     expect(failure?.message ?? "").to.match(
@@ -393,18 +375,16 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     );
   });
 
-  // The first page to mount the table view owns its permission id, so on the
-  // second one it names no component and its form routes have no key.
   it("fails the registration of a page mounting a table view owned by another", async () => {
     class BorrowingPage extends RootPageController("fpu-borrowing", {
       displayName: "Borrowed table view",
     }) {}
-    const meta = GetMetadata(BorrowingPage as ControllerClass, PageMetadata);
+    const meta = GetMetadata(BorrowingPage, PageMetadata);
     meta.SetComponent("table", defaultTable);
 
     const failure = await meta.Register().then(
       () => undefined,
-      (error: unknown) => error as Error,
+      (error) => error,
     );
 
     expect(failure?.message ?? "").to.contain(

@@ -13,7 +13,7 @@ export interface FilterTokenContext {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// `{{user.id}}`, `{{now}}`, `{{now-7d}}`, `{{now+14d}}`.
+
 const TOKEN = /\{\{\s*(user\.id|now)(?:\s*([+-])\s*(\d+)d)?\s*\}\}/g;
 
 function resolveToken(
@@ -54,6 +54,7 @@ export function resolveFilterTokens(
   const resolved: ListFilters = {};
   for (const [field, filter] of Object.entries(filters)) {
     const values = FilterValuesOf(filter).map(([value, mode]): FilterValue => [
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Archive filters also carry boolean values despite FilterValue's string declaration; interpolation must keep those values unchanged.
       typeof value === "string"
         ? resolveFilterValueTokens(value, context)
         : value,

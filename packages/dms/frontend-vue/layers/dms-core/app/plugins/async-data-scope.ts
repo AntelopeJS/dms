@@ -20,7 +20,7 @@ export default defineDmsPlugin(() => {
   const { session } = useDmsUserSession<unknown, ScopedSession>();
   const scope = () => asyncDataScopeOf(session.value);
   setDmsAsyncDataScope(scope());
-  // One app per request on a server: its session never changes there.
+
   if (typeof window === "undefined") return;
   watch(scope, (next) => setDmsAsyncDataScope(next));
 });

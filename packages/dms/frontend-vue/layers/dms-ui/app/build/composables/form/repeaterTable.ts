@@ -1,5 +1,6 @@
 import type {
   DataType,
+  DataTypeFormatter,
   DataTypeSelectSource,
 } from "#dms-core/app/composables/data-types/useDataType";
 import type { RenderableColumn } from "../data-types/useColumnValueRenderer";
@@ -29,7 +30,8 @@ export function renderableColumn(
     id: column.type ?? "",
     compareModes: [],
     filterComponents: {},
-    // The column came from the form's JSON: its options are JSON values.
+
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ComponentInfo permits non-JSON options while RenderableColumn requires DataTypeConfig's JSON options; the formatter's unknown owner cannot prove that narrower handoff without changing its existing contract.
     inputComponent: column.component as ComponentInfo<ComponentOptionsData>,
   };
   return { id: column.id, type };
@@ -43,16 +45,17 @@ export function relationLabelSource(
   column: RepeaterTableColumn,
   dataType: Pick<DataType, "selectSource"> | undefined,
 ): RelationLabelSource | undefined {
-  const options = column.component.options as
-    | { multiple?: unknown }
-    | undefined;
+  const options: { multiple?: unknown } | undefined = column.component.options;
   const source = dataType?.selectSource?.(options);
   return source ? { ...source, multiple: !!options?.multiple } : undefined;
 }
 
 /** The rows a relation column's read answered, by value, and the ids it asked. */
 export interface RelationColumnRows {
-  rowsByValue: ReadonlyMap<unknown, Record<string, unknown>>;
+  rowsByValue: ReadonlyMap<
+    Parameters<DataTypeFormatter>[0],
+    NonNullable<Parameters<DataTypeFormatter>[3]>
+  >;
   readIds: ReadonlySet<string>;
 }
 
@@ -63,11 +66,11 @@ export interface RelationColumnRows {
  * the server already joined.
  */
 export function joinRelationValue(
-  value: unknown,
+  value: Parameters<DataTypeFormatter>[0],
   { rowsByValue, readIds }: RelationColumnRows,
   multiple: boolean,
-): unknown {
-  const join = (item: unknown) => {
+): ReturnType<DataTypeFormatter> {
+  const join = (item: Parameters<DataTypeFormatter>[0]) => {
     const row = rowsByValue.get(item);
     if (row) return row;
     const id = String(item);

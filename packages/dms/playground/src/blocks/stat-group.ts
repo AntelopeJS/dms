@@ -84,8 +84,6 @@ export class PageBlocksStatGroup extends PageController("blocks-stat-group", {
     ],
   });
 
-  // The well tones the other groups leave out. A long detail wraps to a
-  // second line rather than being cut.
   static tones = StatGroup({
     layout: "cards",
     label: "Well tones",
@@ -155,26 +153,19 @@ export class PageBlocksStatGroup extends PageController("blocks-stat-group", {
     defaultPreset: "this-month",
   });
 
-  // Follows the selector above: the route scales its figures to the period.
-  // Its first cell composes its eyebrow, value and detail in the reader's
-  // language (a money amount, a long date).
   static live = StatGroup({
     layout: "cards",
     fetchUrl: "/api/blocks/stats",
     periodScope: LIVE_PERIOD_SCOPE,
-    // The route answers 5 figures: the skeleton draws as many cells.
     skeletonCount: 5,
   });
 
-  // The route answers 503: the block draws its load error with Retry.
   static failing = StatGroup({
     layout: "joined",
     columns: 2,
     fetchUrl: "/api/blocks/broken",
   });
 
-  // The route answers 404 with `{ message, emptyState }`: "Not found", with
-  // the route's title, icon and link laid over it.
   static notFound = StatGroup({
     layout: "joined",
     columns: 2,

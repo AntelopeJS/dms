@@ -1,7 +1,5 @@
 import {
-  type ControllerClass,
   Context,
-  JSONBody,
   MultiParameter,
   Parameter,
   type RequestContext,
@@ -53,36 +51,47 @@ import type { TableViewFooterSummary } from "./options";
 import { createValidatedRoute } from "./internal/row-rules";
 
 const MAX_BATCH_COUNT_QUERIES = 50;
-
-/** One query value; a list repeats its key (`filter_x=a&filter_x=b`). */
-type BatchCountQueryValue = string | number | boolean | string[] | undefined;
+const MAX_BATCH_COUNT_TARGET_BYTES = 8_192;
+const HTTP_BAD_REQUEST = 400;
+const HTTP_URI_TOO_LONG = 414;
+const COUNT_QUERY_SEPARATOR = "?";
 
 interface BatchCountQuery {
   id: string;
-  query: Record<string, BatchCountQueryValue>;
+  query: URLSearchParams;
 }
 
-interface BatchCountBody {
-  queries: BatchCountQuery[];
+function decodeCountId(id: string): string {
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    assert(false, HTTP_BAD_REQUEST, "Invalid count batch query.");
+  }
 }
 
-function parseBatchCountBody(body: unknown): BatchCountBody {
-  assert(body && typeof body === "object", 400, "Invalid count batch body.");
-  const queries = (body as Partial<BatchCountBody>).queries;
-  assert(Array.isArray(queries), 400, "Invalid count batch queries.");
+function parseBatchCountQueries(
+  ctx: RequestContext,
+  values: string[],
+): BatchCountQuery[] {
   assert(
-    queries.length <= MAX_BATCH_COUNT_QUERIES,
-    400,
+    Buffer.byteLength(ctx.url.pathname + ctx.url.search, "utf8") <=
+      MAX_BATCH_COUNT_TARGET_BYTES,
+    HTTP_URI_TOO_LONG,
+    "Count batch URI too long.",
+  );
+  assert(
+    values.length <= MAX_BATCH_COUNT_QUERIES,
+    HTTP_BAD_REQUEST,
     "Too many count batch queries.",
   );
-  for (const query of queries) {
-    assert(
-      query && typeof query.id === "string" && query.query,
-      400,
-      "Invalid count batch query.",
-    );
-  }
-  return { queries };
+  return values.map((value) => {
+    const separator = value.indexOf(COUNT_QUERY_SEPARATOR);
+    assert(separator >= 0, HTTP_BAD_REQUEST, "Invalid count batch query.");
+    return {
+      id: decodeCountId(value.slice(0, separator)),
+      query: new URLSearchParams(value.slice(separator + 1)),
+    };
+  });
 }
 
 function buildBatchCountContext(
@@ -90,20 +99,16 @@ function buildBatchCountContext(
   query: BatchCountQuery["query"],
 ): RequestContext {
   const url = new URL(ctx.url);
-  url.search = "";
-  for (const [key, value] of Object.entries(query)) {
-    if (value === undefined) continue;
-    for (const item of Array.isArray(value) ? value : [value]) {
-      url.searchParams.append(key, String(item));
-    }
-  }
+  url.search = query.toString();
   return { ...ctx, url };
 }
 
-// The selection arrives as a repeated query parameter (`?ids=a&ids=b`): every
-// value is read, a single-value read would act on the first row only.
+type BulkOperationResult =
+  | ReturnType<typeof archiveRows>
+  | ReturnType<typeof restoreRows>;
+
 const createBulkOperationRoute = (
-  operationFunc: (...args: RowBulkOperationParams) => unknown,
+  operationFunc: (...args: RowBulkOperationParams) => BulkOperationResult,
 ): DataControllerCallback => ({
   func: function (ctx: RequestContext, ids: string[]) {
     assert(ids.length > 0, 400, "Missing ids.");
@@ -116,7 +121,9 @@ const createBulkOperationRoute = (
 function createListRoute(actionId: string): DataControllerCallback {
   return {
     func: async function (
-      this: unknown,
+      this: globalThis.Parameters<typeof listWithSearch>[0] & {
+        constructor: ConstructorParameters<typeof TableViewMeta>[0];
+      },
       ctx: RequestContext,
       listParams: Parameters.ListParameters,
       user: User,
@@ -127,13 +134,7 @@ function createListRoute(actionId: string): DataControllerCallback {
         user,
         getRequestTenantId(ctx),
       );
-      return listWithSearch(
-        this as DataControllerCallback,
-        ctx,
-        listParams,
-        user,
-        permissions,
-      );
+      return listWithSearch(this, ctx, listParams, user, permissions);
     },
     args: [Context(), Parameters.List(), AuthUser()],
     method: "get" as const,
@@ -143,7 +144,9 @@ function createListRoute(actionId: string): DataControllerCallback {
 function createCountRoute(actionId: string): DataControllerCallback {
   return {
     func: async function (
-      this: unknown,
+      this: globalThis.Parameters<typeof listWithSearch>[0] & {
+        constructor: ConstructorParameters<typeof TableViewMeta>[0];
+      },
       ctx: RequestContext,
       listParams: Parameters.ListParameters,
       user: User,
@@ -154,13 +157,7 @@ function createCountRoute(actionId: string): DataControllerCallback {
         user,
         getRequestTenantId(ctx),
       );
-      return countWithSearch(
-        this as DataControllerCallback,
-        ctx,
-        listParams,
-        user,
-        permissions,
-      );
+      return countWithSearch(this, ctx, listParams, user, permissions);
     },
     args: [Context(), Parameters.List(), AuthUser()],
     method: "get" as const,
@@ -169,13 +166,12 @@ function createCountRoute(actionId: string): DataControllerCallback {
 
 /** The footer summaries a request names, refusing an id never declared. */
 function requestedSummaries(
-  thisObj: unknown,
+  thisObj: globalThis.Parameters<typeof listWithSearch>[0] & {
+    constructor: ConstructorParameters<typeof TableViewMeta>[0];
+  },
   ids: string[],
-): Record<string, TableViewFooterSummary> {
-  const meta = GetMetadata(
-    (thisObj as { constructor: ControllerClass }).constructor,
-    TableViewMeta,
-  );
+) {
+  const meta = GetMetadata(thisObj.constructor, TableViewMeta);
   const summaries: Record<string, TableViewFooterSummary> = {};
   for (const id of ids) {
     const summary = meta.footerSummary(id);
@@ -188,7 +184,9 @@ function requestedSummaries(
 function createSummaryRoute(actionId: string): DataControllerCallback {
   return {
     func: async function (
-      this: unknown,
+      this: globalThis.Parameters<typeof listWithSearch>[0] & {
+        constructor: ConstructorParameters<typeof TableViewMeta>[0];
+      },
       ctx: RequestContext,
       listParams: Parameters.ListParameters,
       ids: string[],
@@ -202,7 +200,7 @@ function createSummaryRoute(actionId: string): DataControllerCallback {
         getRequestTenantId(ctx),
       );
       return summarizeWithSearch(
-        this as DataControllerCallback,
+        this,
         ctx,
         listParams,
         summaries,
@@ -223,12 +221,14 @@ function createSummaryRoute(actionId: string): DataControllerCallback {
 function createBatchCountRoute(actionId: string): DataControllerCallback {
   return {
     func: async function (
-      this: unknown,
+      this: globalThis.Parameters<typeof listWithSearch>[0] & {
+        constructor: ConstructorParameters<typeof TableViewMeta>[0];
+      },
       ctx: RequestContext,
-      body: unknown,
+      values: string[],
       user: User,
     ) {
-      const parsed = parseBatchCountBody(body);
+      const queries = parseBatchCountQueries(ctx, values);
       const permissions = await authorizeAction(
         this,
         actionId,
@@ -237,13 +237,13 @@ function createBatchCountRoute(actionId: string): DataControllerCallback {
       );
       const meta = GetDataControllerMeta(this);
       const entries = await Promise.all(
-        parsed.queries.map(async ({ id, query }) => {
+        queries.map(async ({ id, query }) => {
           const queryContext = buildBatchCountContext(ctx, query);
           const listParams = {
             filters: Parameters.ExtractFilters(queryContext, meta),
           };
           const result = await countWithSearch(
-            this as DataControllerCallback,
+            this,
             queryContext,
             listParams,
             user,
@@ -254,8 +254,8 @@ function createBatchCountRoute(actionId: string): DataControllerCallback {
       );
       return Object.fromEntries(entries);
     },
-    args: [Context(), JSONBody(), AuthUser()],
-    method: "post" as const,
+    args: [Context(), MultiParameter("query", "query"), AuthUser()],
+    method: "get" as const,
   };
 }
 
@@ -294,7 +294,9 @@ export namespace TableViewRoutes {
    */
   export const Count = createCountRoute(LIST_ACTION);
   /**
-   * `POST <location>/count/batch`: one count per query, in a single request.
+   * `GET <location>/count/batch`: one count per repeated `query` value,
+   * encoded as an escaped id, `?`, and its list query string. Accepts up to
+   * 50 entries and 8,192 UTF-8 bytes in the encoded path plus search.
    * Filter tabs with counters require the controller to mount
    * `countBatch: TableViewRoutes.CountBatch`; a table view declaring `tabs`
    * without it gets failing counters and a registration warning.
@@ -375,15 +377,13 @@ export namespace TableViewRoutes {
   export const ExportRoutes: Record<
     string,
     DataControllerCallback | DataControllerCallbackWithOptions
+    // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published export is an open callback dictionary; inference or satisfies would expose narrower named route members and change its declaration.
   > = {
     exportStart: withActionCheckOptions(
       "export",
       DefaultRoutes.WithOptions(
         {
-          // A published contract: the runtime calls this positionally and every
-          // implementing module declares the same shape, so an options object
-          // cannot be introduced from this side.
-          // oxlint-disable-next-line eslint/max-params
+          // oxlint-disable-next-line eslint/max-params -- DefaultRoutes.WithOptions calls this export route with positional context, list parameters and export arguments.
           func: function (
             ctx: RequestContext,
             listParams: Parameters.ListParameters,

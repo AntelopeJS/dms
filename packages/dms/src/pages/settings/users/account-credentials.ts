@@ -1,17 +1,13 @@
-// Sign-in credentials and sessions of the signed-in user, for the Security
-// page and the password reset.
-
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import type {
   SessionModel,
   User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { notifyPasswordChanged } from "../../../utils/account-notifications";
-import { generateSessionHandoffToken } from "../../../implementations/dms-auth/session-handoff";
-import { SESSION_HANDOFF_ENDPOINT } from "../../../frontend-module";
-import { generateAuthKey } from "../../../utils/auth-key";
-import { securitySchema } from "../../../validation/security.schema";
+import { notifyPasswordChanged, generateAuthKey } from "../../../utils";
+import { generateSessionHandoffToken } from "../../../implementations/dms-auth/services";
+import { SESSION_HANDOFF_ENDPOINT } from "../../../config/session-handoff";
+import { securitySchema } from "../../../validation";
 import { assertCurrentPasswordIfSet } from "./current-password";
 import { findPendingEmail } from "./email-change";
 import {
@@ -165,9 +161,6 @@ async function deleteOtherSessions(
   return others.length;
 }
 
-// The handoff takes the session's refresh slot: the refresh token the device
-// holds was signed with the old key and is dead anyway, and redeeming the
-// handoff rotates it out, so it serves once.
 async function handOffCurrentSession(
   user: User,
   { sessionModel, authorization }: SessionContext,
@@ -213,7 +206,7 @@ export async function revokeOtherSessions(
  */
 export async function changePassword(
   user: User,
-  body: unknown,
+  body: Parameters<typeof securitySchema.changePassword.parse>[0],
   context: PasswordChangeContext,
 ): Promise<PasswordChangeResult> {
   const { currentPassword, password } = assertValidation(body, (value) =>

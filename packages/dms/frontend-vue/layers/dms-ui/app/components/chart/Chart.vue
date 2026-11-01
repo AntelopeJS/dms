@@ -6,7 +6,10 @@ import {
   chartFrameHeight,
   useApexChart,
 } from "../../composables/chart/useApexChart";
-import type { MixedSeriesDef } from "../../composables/chart/useApexChart.types";
+import type {
+  ApexClickHandler,
+  MixedSeriesDef,
+} from "../../composables/chart/useApexChart.types";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { useThemeRevision } from "../../composables/chart/useThemeRevision";
 import { formatValue } from "../../composables/chart/formatValue";
@@ -40,6 +43,7 @@ import {
   NESTED_CHART_INJECT_KEY,
 } from "../../composables/chart/types";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import { responseSeries } from "../../build/composables/chart/groupPoints";
 
 interface Props extends DefaultComponentProps {
   type: ChartType;
@@ -92,7 +96,7 @@ const EMPTY_ICON = "i-ph-chart-line-up";
 
 const props = withDefaults(defineProps<Props>(), {
   height: DEFAULT_CHART_HEIGHT,
-  // Declared like the server schema: Vue casts a missing boolean to false.
+
   showGrid: true,
   roundedCorners: true,
   showTooltip: true,
@@ -121,9 +125,6 @@ const themeRevision = useThemeRevision();
 
 const isCircular = computed(() => CIRCULAR_CHART_TYPES.includes(props.type));
 
-// A bare chart's own series and slices are translated like a card's: the
-// `$` keys of a name, a category or a label reach Apex in the reader's
-// language. A nested chart receives its card's series already translated.
 function localized(series: ChartSeries[]): ChartSeries[] {
   return series.map((entry) => localizeSeries(entry, processI18n));
 }
@@ -131,6 +132,7 @@ function localized(series: ChartSeries[]): ChartSeries[] {
 const staticSeries = computed<ChartSeries[]>(() => {
   if (isCircular.value) return [];
   if (!props.staticDataset) return [];
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The prop permits either dataset independently of chart type. This legacy non-circular handoff assumes series without validating or transforming mismatched datasets.
   return localized(props.staticDataset as ChartSeries[]);
 });
 
@@ -138,6 +140,7 @@ const staticDonut = computed<DonutRecord[]>(() => {
   if (!isCircular.value) return [];
   if (!props.staticDataset) return [];
   return localizeDonutRecords(
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The prop permits either dataset independently of chart type. This legacy circular handoff assumes donut records without validating or transforming mismatched datasets.
     props.staticDataset as DonutRecord[],
     processI18n,
   );
@@ -162,7 +165,9 @@ const seriesFromCtx = computed<ChartSeries[]>(() => {
 
 const fetchSeries = computed<ChartSeries[]>(() => {
   if (!data.value) return [];
-  return localized(data.value.series ?? []);
+  return localized(
+    responseSeries(data.value.series ?? [], props.title ?? "", props.xaxisType),
+  );
 });
 
 const finalSeries = computed<ChartSeries[]>(() => {
@@ -171,8 +176,6 @@ const finalSeries = computed<ChartSeries[]>(() => {
   return staticSeries.value;
 });
 
-// A donut plots the first series only; a nested one plots its card's, like
-// every other nested chart type.
 const finalDonutData = computed<DonutRecord[]>(() => {
   if (!isCircular.value) return [];
   const source = nestedContext ? nestedContext.cardSeries : fetchSeries.value;
@@ -206,8 +209,9 @@ function buildXyClickPayload(opts: {
   const point = series?.data[dataPointIndex];
   const pointValue = readPointValue(point);
   const label =
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens this owner union's label to unknown; typeof preserves the ChartSeries field without a cast or changed payload validation.
     typeof point === "object" && point !== null && "label" in point
-      ? (point as { label?: string }).label
+      ? point.label
       : undefined;
   return {
     dataPointIndex,
@@ -219,8 +223,8 @@ function buildXyClickPayload(opts: {
 }
 
 function emitDataClick(
-  _e: unknown,
-  _ctx: unknown,
+  _e: Parameters<ApexClickHandler>[0],
+  _ctx: Parameters<ApexClickHandler>[1],
   opts: { dataPointIndex: number; seriesIndex: number },
 ) {
   const isSegment = isSegmentChart(props.type);
@@ -299,8 +303,7 @@ const apex = useApexChart(() => ({
 }));
 
 const heightInPx = computed(() => props.height);
-// Every state (placeholder, drawn chart, empty state) takes the box the drawn
-// chart occupies, so nothing moves when the data or the chart arrives.
+
 const frameHeight = computed(() =>
   chartFrameHeight(props.height, isCircular.value),
 );
@@ -308,16 +311,13 @@ const frameHeight = computed(() =>
 const hasData = computed(
   () => finalSeries.value.length > 0 || finalDonutData.value.length > 0,
 );
-// A nested chart plots its card's data, so it waits on the card's request.
+
 const isAwaitingData = computed(() =>
   nestedContext ? nestedContext.isLoading : isLoading.value,
 );
-// New inputs (a period applied) are on their way: the chart on screen still
-// shows the previous ones, so it dims like the KPI values do.
+
 const isRefreshing = computed(() => hasData.value && isAwaitingData.value);
 
-// The host (a lazy chunk) and Apex (another one) take a moment to draw: the
-// frame keeps the chart's box and its skeleton until the host says it drew.
 const isDrawn = ref(false);
 watch(hasData, (present) => {
   if (!present) isDrawn.value = false;

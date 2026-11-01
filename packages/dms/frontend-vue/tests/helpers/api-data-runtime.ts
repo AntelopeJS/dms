@@ -14,7 +14,9 @@ const { useApiData } = await import(
 );
 
 /** Stubs the globals `useApiData` reads, `$authFetch` being `authFetch`. */
-export function stubApiData(authFetch: (...args: never[]) => unknown): void {
+export function stubApiData<Result>(
+  authFetch: (...args: never[]) => Result,
+): void {
   vi.stubGlobal("useDmsFetch", engine.useDmsFetch);
   vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
   vi.stubGlobal("useDmsState", engine.useDmsState);
@@ -52,7 +54,7 @@ export function hydrate(
   html: string,
   payload: DmsPayload,
   setup?: (app: App) => void,
-): { app: App; container: HTMLElement } {
+) {
   const runtime = engine.createDmsFrontendRuntime();
   engine.restoreDmsPayload(runtime, payload);
   const container = document.createElement("div");
@@ -65,10 +67,7 @@ export function hydrate(
 }
 
 /** Mounts `root` in the browser, past the hydration (a client navigation). */
-export function mountInBrowser(
-  root: Component,
-  setup?: (app: App) => void,
-): { app: App; container: HTMLElement } {
+export function mountInBrowser(root: Component, setup?: (app: App) => void) {
   const container = document.createElement("div");
   const app = createApp(root);
   browserRuntime(app);

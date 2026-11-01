@@ -28,7 +28,6 @@ import {
   type TableStyleSlots,
 } from "./useTableColumns";
 import { useTableStates } from "./useTableStates";
-import type { TableColumnMeta } from "./types";
 import {
   ALWAYS_PINNED_LEFT_COLUMN_IDS,
   ALWAYS_PINNED_RIGHT_COLUMN_IDS,
@@ -112,8 +111,6 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     labelKey: props.tableProps.labelKey,
   });
 
-  // A saved order (the user's, a view's) is kept, completed with the
-  // columns it leaves out.
   const declaredColumnOrder = columns.value
     .map((x) => x.id ?? "")
     .filter(Boolean);
@@ -135,40 +132,37 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
 
   const tableConfig = shallowRef({
     data: tableData,
-    // Read on each update rather than once: labelled row actions are sized on
-    // the rows listed, which a table opened by client-side navigation only
-    // receives after it is set up. A copy taken then keeps the width of an
-    // empty list, and the rows' buttons are cut.
+
     get columns() {
       return columns.value;
     },
 
     ...stateHandlers,
 
-    ...(props.tableProps.globalFilterOptions || {}),
-    ...(props.tableProps.orderOptions || {}),
-    ...(props.tableProps.columnFiltersOptions || {}),
+    ...props.tableProps.globalFilterOptions,
+    ...props.tableProps.orderOptions,
+    ...props.tableProps.columnFiltersOptions,
     getFilteredRowModel: isManualFiltering ? undefined : getFilteredRowModel(),
 
-    ...(props.tableProps.rowSelectionOptions || {}),
+    ...props.tableProps.rowSelectionOptions,
 
-    ...(props.tableProps.sortingOptions || {}),
+    ...props.tableProps.sortingOptions,
     getSortedRowModel: isManualSorting ? undefined : getSortedRowModel(),
 
-    ...(props.tableProps.expandedOptions || {}),
+    ...props.tableProps.expandedOptions,
     getExpandedRowModel: getExpandedRowModel(),
 
-    ...(props.tableProps.paginationOptions || {}),
+    ...props.tableProps.paginationOptions,
     getPaginationRowModel: getPaginationRowModel(),
 
     columnResizeMode: "onChange" as const,
-    // A reduced chrome keeps its columns as laid out.
+
     enableColumnResizing: props.columnMenus !== false,
-    ...(props.tableProps.sizingOptions || {}),
+    ...props.tableProps.sizingOptions,
 
     state: stateGetters,
 
-    getRowId: (row: unknown) => get(row as Record<string, unknown>, rowIdKey),
+    getRowId: (row: T) => get(row, rowIdKey),
 
     getCoreRowModel: getCoreRowModel(),
   });
@@ -185,8 +179,6 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     },
   );
 
-  // A display that cannot sort (a hand-ordered table) leaves every header
-  // without its sort button, arrow and menu items.
   watch(
     () => props.tableProps.sortingOptions?.enableSorting,
     (enableSorting) => {
@@ -198,10 +190,10 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     return table
       .getAllColumns()
       .map((col) => ({
-        label: (col.columnDef.meta as TableColumnMeta)?.label,
+        label: col.columnDef.meta?.label,
         column: col,
       }))
-      .filter((col) => col.label) as LabeledColumn<T>[];
+      .filter((col): col is LabeledColumn<T> => !!col.label);
   });
 
   return {

@@ -10,7 +10,6 @@ import {
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import {
@@ -24,10 +23,11 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "mhb-tenant";
-const MEMBER = { _id: "mhb-member" } as User;
-const OWNER = { _id: "mhb-owner", owner: true } as User;
+const MEMBER = userFixture({ _id: "mhb-member" });
+const OWNER = userFixture({ _id: "mhb-owner", owner: true });
 const BLOCKS_PAGE = "pages.mhb-blocks";
 const NESTED_PAGE = `${BLOCKS_PAGE}.mhb-nested`;
 const BARE_PAGE = "pages.mhb-bare";
@@ -44,7 +44,6 @@ class BlocksPage extends PageController("mhb-blocks", {
   static quota = block("quota");
 }
 
-// Filed under the page, like Member invitations under Members.
 class NestedPage extends PageController("mhb-nested", {
   displayName: "Invitations",
   category: BlocksPage,
@@ -92,9 +91,6 @@ async function previewHiddenEntries(permissions: string[]): Promise<string[]> {
   return access.hiddenEntries;
 }
 
-// A role holding a page but none of its blocks was served the page as a menu
-// entry, which opened on "nothing to show for you" — an Invitations-only role
-// got a dead Members entry in the settings navigation.
 describe("[unit] implementations/dms/page — a page whose every block is hidden", () => {
   const cleanups: Array<() => void> = [];
 

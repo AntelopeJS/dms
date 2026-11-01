@@ -102,7 +102,7 @@ const tableOptions = (options: TicketOptions): TableViewOptionsSerialized =>
     realtime: false,
     rowActions: READ_ONLY,
     ...options,
-  }).serializeSync().options as TableViewOptionsSerialized;
+  }).serializeSync().options!;
 
 const register = (options: TicketOptions) => () =>
   TableView(TicketAPI, { realtime: false, rowActions: READ_ONLY, ...options });
@@ -284,7 +284,7 @@ describe("[unit] interfaces/dms-base — table view links and URL keys", () => {
     class TicketsPage extends RootPageController("views-tickets-page", {
       displayName: "Tickets",
     }) {}
-    page = TicketsPage as ControllerClass;
+    page = TicketsPage;
     meta = GetMetadata(page, PageMetadata);
     meta.SetComponent(
       "content",
@@ -307,7 +307,8 @@ describe("[unit] interfaces/dms-base — table view links and URL keys", () => {
   it("refuses to link a controller that is no page", () => {
     class NotAPage {}
     expect(() =>
-      tableViewLink(NotAPage as ControllerClass, "content", { view: "a" }),
+      // @ts-expect-error Non-controller deliberately exercises page registration validation.
+      tableViewLink(NotAPage, "content", { view: "a" }),
     ).to.throw(/is no page/);
   });
 

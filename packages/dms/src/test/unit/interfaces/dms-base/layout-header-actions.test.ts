@@ -8,16 +8,15 @@ import {
 } from "@antelopejs/interface-dms/page/internal/layout-filter";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import { resolveCustomButtons } from "@antelopejs/interface-dms/base/table-view/internal/request-filter";
-import type {
-  CustomButton,
-  CustomButtonSerialized,
-} from "@antelopejs/interface-dms/base/types/custom-button";
+import type { CustomButton } from "@antelopejs/interface-dms/base/types/custom-button";
+import { headerActionsOf } from "../../../helpers/serialized-options";
 
 const CONTEXT = { tenantId: "tenant", user: undefined };
 
-function actionsOf(options: unknown): PageHeaderButtonSerialized[] {
-  return (options as { headerActions?: PageHeaderButtonSerialized[] })
-    .headerActions!;
+function actionsOf(
+  layout: Parameters<typeof headerActionsOf>[0],
+): PageHeaderButtonSerialized[] {
+  return headerActionsOf(layout).headerActions;
 }
 
 describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
@@ -51,7 +50,7 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
       ],
     });
 
-    expect(actionsOf(layout.options)).to.deep.equal([
+    expect(actionsOf(layout)).to.deep.equal([
       {
         id: "new",
         label: "New invoice",
@@ -86,7 +85,7 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
       headerActions: [{ id: "download-language", label: "Download", target }],
     });
 
-    expect(actionsOf(layout.options)).to.deep.equal([
+    expect(actionsOf(layout)).to.deep.equal([
       { id: "download-language", label: "Download", target },
     ]);
   });
@@ -102,7 +101,7 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
         },
       ],
     });
-    expect(actionsOf(layout.options)[0]).to.deep.include({ order: 1 });
+    expect(actionsOf(layout)[0]).to.deep.include({ order: 1 });
   });
 
   it("keeps the full-width default next to the buttons", () => {
@@ -144,13 +143,13 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       "pages.billing",
     );
 
-    expect(
-      actionsOf(filtered!.options).map((action) => action.id),
-    ).to.deep.equal(["open", "export", "ledger"]);
-    expect(actionsOf(filtered!.options)[1]).to.not.have.property("permission");
-    expect(actionsOf(filtered!.options)[2]).to.not.have.property(
-      "permissionId",
-    );
+    expect(actionsOf(filtered).map((action) => action.id)).to.deep.equal([
+      "open",
+      "export",
+      "ledger",
+    ]);
+    expect(actionsOf(filtered)[1]).to.not.have.property("permission");
+    expect(actionsOf(filtered)[2]).to.not.have.property("permissionId");
   });
 
   it("refuses a button naming an action when the page has no permission id", async () => {
@@ -161,9 +160,9 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       undefined,
     );
 
-    expect(
-      actionsOf(filtered!.options).map((action) => action.id),
-    ).to.deep.equal(["open"]);
+    expect(actionsOf(filtered).map((action) => action.id)).to.deep.equal([
+      "open",
+    ]);
   });
 
   it("disables a button its availability refuses, with the reason", async () => {
@@ -178,12 +177,12 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
     });
 
     const [invite] = actionsOf(
-      (await filterLayoutHeaderActions(
+      await filterLayoutHeaderActions(
         limited,
         async () => new Set(),
         CONTEXT,
         "pages.billing",
-      ))!.options,
+      ),
     );
 
     expect(invite).to.deep.include({
@@ -205,15 +204,14 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       ],
     });
     const serve = async (query: Record<string, string>) =>
-      (await filterLayoutHeaderActions(
-        scoped,
-        async () => new Set(),
-        { ...CONTEXT, query },
-        "pages.lang",
-      ))!.options as {
-        headerActions: PageHeaderButtonSerialized[];
-        headerActionsQuery?: Record<string, string>;
-      };
+      headerActionsOf(
+        await filterLayoutHeaderActions(
+          scoped,
+          async () => new Set(),
+          { ...CONTEXT, query },
+          "pages.lang",
+        ),
+      );
 
     const readOnly = await serve({ workspace: "modules" });
     expect(readOnly.headerActions.map((action) => action.id)).to.deep.equal([
@@ -239,15 +237,14 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       ],
     });
     const serve = async (query: Record<string, string>) =>
-      (await filterLayoutHeaderActions(
-        queue,
-        async () => new Set(),
-        { ...CONTEXT, query },
-        "pages.lang",
-      ))!.options as {
-        headerActions: PageHeaderButtonSerialized[];
-        headerActionsQuery?: Record<string, string>;
-      };
+      headerActionsOf(
+        await filterLayoutHeaderActions(
+          queue,
+          async () => new Set(),
+          { ...CONTEXT, query },
+          "pages.lang",
+        ),
+      );
 
     const german = await serve({ workspace: "web", locale: "de" });
     expect(german.headerActions[0]).to.not.have.property("disabled");
@@ -293,7 +290,7 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       CONTEXT,
       "pages.billing",
     );
-    expect(actionsOf(layout.options)).to.have.length(4);
+    expect(actionsOf(layout)).to.have.length(4);
   });
 });
 
@@ -321,7 +318,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
         rowActions: { add: { placement: "header", label: "$tasks.new" } },
       },
     },
-  } as unknown as Record<string, ComponentInfoSerialized>;
+  } satisfies Record<string, ComponentInfoSerialized>;
 
   it("adds them after the page's own, naming the component that runs them", () => {
     const layout = withComponentHeaderButtons(
@@ -333,7 +330,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
       components,
     );
 
-    expect(actionsOf(layout!.options)).to.deep.equal([
+    expect(actionsOf(layout)).to.deep.equal([
       { id: "header-0", label: "Docs", target: { type: "page", url: "/docs" } },
       {
         id: "table:invite",
@@ -360,7 +357,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
         ...components.table,
         options: { rowActions: { add: false } },
       },
-    } as unknown as Record<string, ComponentInfoSerialized>;
+    } satisfies Record<string, ComponentInfoSerialized>;
     const layout = DefaultLayout();
     expect(withComponentHeaderButtons(layout, refused)).to.equal(layout);
   });
@@ -379,12 +376,12 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
           },
         ],
       },
-    } as unknown as Record<string, ComponentInfoSerialized>;
+    } satisfies Record<string, ComponentInfoSerialized>;
 
     const layout = withComponentHeaderButtons(DefaultLayout(), nested);
 
     expect(
-      actionsOf(layout!.options).map(({ id, componentId, buttonId }) => ({
+      actionsOf(layout).map(({ id, componentId, buttonId }) => ({
         id,
         componentId,
         buttonId,
@@ -406,7 +403,7 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
 
 describe("[unit] interfaces/dms-base/table-view — a toolbar button its availability hides", () => {
   it("is left out of the buttons served, the others kept", async () => {
-    const declared: CustomButton[] = [
+    const declared = [
       { id: "export", label: "Export", target: { type: "page", url: "/x" } },
       {
         id: "add",
@@ -420,10 +417,9 @@ describe("[unit] interfaces/dms-base/table-view — a toolbar button its availab
         target: { type: "page", url: "/purge" },
         availability: () => ({ reason: "$locked" }),
       },
-    ];
+    ] satisfies CustomButton[];
     const serialized = declared.map(
-      ({ availability: _availability, ...button }) =>
-        button as CustomButtonSerialized,
+      ({ availability: _availability, ...button }) => button,
     );
 
     const served = await resolveCustomButtons(

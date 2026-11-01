@@ -7,8 +7,8 @@ const WIDGET_REQUEST_FAILED_MESSAGE = "[dms] Header widget request failed";
  * reaching the app error handler, which would replace the whole page with an
  * error screen.
  */
-export async function settleWidgetRequest(
-  request: () => Promise<unknown>,
+export async function settleWidgetRequest<T>(
+  request: () => Promise<T>,
   onFailure?: () => void,
 ): Promise<void> {
   try {

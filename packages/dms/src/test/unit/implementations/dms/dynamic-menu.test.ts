@@ -26,6 +26,7 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const CATEGORY_ID = "dyn-projects";
 const CATEGORY_FULL_ID = `pages.${CATEGORY_ID}`;
@@ -33,7 +34,7 @@ const PAGE_SLUG = "/dyn-project";
 const PARAM_PAGE_SLUG = "/dyn-projects/:projectId/services";
 const TENANT_A = "dyn-tenant-a";
 const TENANT_B = "dyn-tenant-b";
-const OWNER = { _id: "dyn-owner", owner: true } as User;
+const OWNER = userFixture({ _id: "dyn-owner", owner: true });
 const RESTRICTED_PERMISSION = "dyn.restricted";
 const DENIED_TENANT = "dyn-denied-tenant";
 const BYPASS_TARGET_ACTION = "pages.dyn-bypass-target.settle";
@@ -228,7 +229,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([CATEGORY_FULL_ID]);
-    const member = { _id: "dyn-member" } as User;
+    const member = userFixture({ _id: "dyn-member" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
@@ -256,7 +257,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([]);
-    const outsider = { _id: "dyn-outsider" } as User;
+    const outsider = userFixture({ _id: "dyn-outsider" });
     const payload = await buildSiteLayoutPayload(
       outsider,
       memberModel,
@@ -293,7 +294,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([CATEGORY_FULL_ID]);
-    const member = { _id: "dyn-member" } as User;
+    const member = userFixture({ _id: "dyn-member" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
@@ -352,7 +353,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
       BYPASS_TARGET_ACTION,
       RESTRICTED_PERMISSION,
     ]);
-    const member = { _id: "dyn-suspended" } as User;
+    const member = userFixture({ _id: "dyn-suspended" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
@@ -361,16 +362,11 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
     const node = payload.siteLayoutTree.children.pages?.children["dyn-bypass"];
 
-    // The resolver sees the caller's real set under a flagged category, and the
-    // entry survives because its permission belongs to the flagged page.
     expect(resolverPermissions?.has(RESTRICTED_PERMISSION)).to.equal(true);
     expect(node?.childrenOrders).to.deep.equal(["recover"]);
   });
 
   it("hides an entry the caller's permission set cannot explain", async () => {
-    // The category survives the gate on its own (public) and the entry targets a
-    // page flagged bypassTenantAccessGate, but its permission belongs to no
-    // flagged surface: the client never receives it, so the entry stays out.
     const publicCategory = registerTestCategory("dyn-public", {
       displayName: "Recovery links",
       category: pagesCategory,
@@ -408,7 +404,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
       "pages.dyn-public-target",
       RESTRICTED_PERMISSION,
     ]);
-    const member = { _id: "dyn-suspended-member" } as User;
+    const member = userFixture({ _id: "dyn-suspended-member" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
@@ -459,7 +455,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
       "pages.dyn-kept-target",
       settlePermission,
     ]);
-    const member = { _id: "dyn-suspended-owner" } as User;
+    const member = userFixture({ _id: "dyn-suspended-owner" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,
@@ -473,9 +469,6 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
   });
 
   it("hides an entry granted only by a defaultGranted permission", async () => {
-    // `publicAccess` registers the page permission as defaultGranted, which the
-    // server would honour but the browser never receives: such an entry would
-    // render with its controls disabled.
     const openPage = PageController("dyn-default-granted", {
       displayName: "Open page",
       category: pagesCategory,
@@ -496,7 +489,7 @@ describe("[unit] implementations/dms/page — dynamic menu providers", () => {
     );
 
     const { memberModel, roleModel } = stubPageAccessModels([CATEGORY_FULL_ID]);
-    const member = { _id: "dyn-plain-member" } as User;
+    const member = userFixture({ _id: "dyn-plain-member" });
     const payload = await buildSiteLayoutPayload(
       member,
       memberModel,

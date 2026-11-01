@@ -1,13 +1,12 @@
 import { expect } from "chai";
 import type { Session, User } from "@antelopejs/interface-dms/auth/db";
-import type { TenantMember, UserInvite } from "@antelopejs/interface-dms/db";
 import type { UserNotification } from "../../../../db";
 import {
-  ACCOUNT_ACTIVITY_LIMIT,
   type AccountActivitySources,
   buildAccountActivity,
   notificationToEvent,
-} from "../../../../pages/settings/users/account-activity";
+} from "../../../../pages/account";
+import { inviteFixture } from "../../../helpers/table-fixtures";
 
 const USER_ID = "activity-user";
 const OTHER_ID = "someone-else";
@@ -37,6 +36,7 @@ const at = (iso: string) => new Date(iso);
 const SHORT_LIMIT = 6;
 
 function user(overrides: Partial<User> = {}): User {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This activity fixture omits database instance methods and unrelated user fields.
   return {
     _id: USER_ID,
     createdAt: at("2025-03-12T09:00:00Z"),
@@ -49,10 +49,11 @@ function user(overrides: Partial<User> = {}): User {
     twoFactorBackupCodes: [BACKUP_CODE_HASH],
     twoFactorBackupCodesGeneratedAt: null,
     ...overrides,
-  } as unknown as User;
+  } as User;
 }
 
 function session(id: string, createdAt: string, userId = USER_ID): Session {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The secret-leak fixture deliberately retains the legacy refreshToken field absent from the current Session contract.
   return {
     _id: id,
     userId,
@@ -91,7 +92,7 @@ function notification(
     createdAt: at(createdAt),
     updatedAt: at(createdAt),
     ...overrides,
-  } as UserNotification;
+  };
 }
 
 function sources(
@@ -204,19 +205,19 @@ describe("account activity", () => {
               isTenantOwner: true,
               joinedAt: at("2025-03-12T09:00:00Z"),
               invitedBy: null,
-            } as TenantMember,
+            },
             workspace: "Acme",
           },
         ],
         invites: [
           {
-            invite: {
+            invite: inviteFixture({
               _id: "i1",
               email: "lea@acme.dev",
               invitedBy: USER_ID,
               token: INVITE_TOKEN,
               createdAt: at("2026-09-29T09:00:00Z"),
-            } as unknown as UserInvite,
+            }),
             workspace: "Acme",
           },
         ],
@@ -257,8 +258,7 @@ describe("account activity", () => {
       ),
     );
     const events = buildAccountActivity(sources({ sessions }));
-    expect(ACCOUNT_ACTIVITY_LIMIT).to.equal(20);
-    expect(events).to.have.length(ACCOUNT_ACTIVITY_LIMIT);
+    expect(events).to.have.length(20);
     expect(events[0]?.date).to.deep.equal(at("2026-09-25T09:00:00Z"));
     expect(events.at(-1)?.date).to.deep.equal(at("2026-09-06T09:00:00Z"));
   });
@@ -277,7 +277,7 @@ describe("account activity", () => {
             device: "Chrome on Windows",
             origin: " (203.0.113.7)",
           }),
-          // A sign-in whose session has ended: still listed.
+
           notification("new_login", "2026-09-29T07:00:00Z", {
             device: "Safari on iOS",
           }),
@@ -320,12 +320,12 @@ describe("account activity", () => {
         ],
         invites: [
           {
-            invite: {
+            invite: inviteFixture({
               _id: "i2",
               email: "theirs@acme.dev",
               invitedBy: OTHER_ID,
               createdAt: at("2026-09-30T12:00:00Z"),
-            } as unknown as UserInvite,
+            }),
             workspace: "Acme",
           },
         ],
@@ -347,6 +347,7 @@ describe("account activity", () => {
   it("leaves out events without a valid date", () => {
     const events = buildAccountActivity(
       sources({
+        // SAFETY: createdAt is deliberately undefined although the row contract requires a Date: the assertion is false on purpose, and the test asserts that the event is left out.
         user: user({ createdAt: undefined as unknown as Date }),
         sessions: [session("bad", "not a date")],
       }),

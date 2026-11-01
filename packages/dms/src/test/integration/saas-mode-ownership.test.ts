@@ -10,7 +10,7 @@ import {
   internal as saasModeInternal,
 } from "@antelopejs/interface-dms/utils/saas-mode";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import { assertNotLastPlatformOwnerOnDelete } from "../../pages/settings/users/members";
+import { assertNotLastPlatformOwnerOnDelete } from "../../pages/members";
 import { resetDatabase } from "../helpers/db";
 
 const USER_ID = "saas-mode-user";
@@ -43,11 +43,11 @@ async function promoteInDefaultTenant(): Promise<void> {
 }
 
 function removeLastOwner(): Promise<void> {
+  // SAFETY: The last-owner guard reads only the member's userId and isTenantOwner, which the fixture supplies.
   const target = { userId: USER_ID, isTenantOwner: true } as TenantMember;
   return assertNotLastPlatformOwnerOnDelete([target]);
 }
 
-// A registration belongs to the module that made it: here, the test module.
 function unloadRegisteringModule(): void {
   const moduleId = GetResponsibleModule();
   if (!moduleId) throw new Error("No responsible module for the test");
@@ -76,16 +76,17 @@ describe("Platform ownership in and out of SaaS mode", () => {
     try {
       await removeLastOwner();
       expect.fail("Expected the last platform owner guard to reject");
-    } catch (error) {
+    } catch (error: PromiseRejectedResult["reason"]) {
       expect(error).to.be.instanceOf(HTTPResult);
-      expect((error as HTTPResult).getStatus()).to.equal(HTTP_CONFLICT);
+      expect(error.getStatus()).to.equal(HTTP_CONFLICT);
     }
   });
 
   it("lets the last tenant owner go in SaaS mode", async () => {
     await insertUser(true);
     RegisterSaasMode();
-    await removeLastOwner();
+    expect(await removeLastOwner()).to.equal(undefined);
+    expect(await isPlatformOwner()).to.equal(true);
   });
 
   it("goes back to mirroring once the SaaS module unloads", async () => {

@@ -1,6 +1,5 @@
 import { Controller } from "@antelopejs/interface-api";
 import { ReloadModule } from "@antelopejs/interface-core/modules";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   extractFromResult,
   withRealtimeMutation,
@@ -15,15 +14,15 @@ import {
   RELOAD_HOST_TENANT,
   takeReloadHostCalls,
 } from "../../../helpers/reload-host";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const ROW_ID = "reload-host-row";
 const SESSION_ID = "reload-host-session";
-const USER = {
+const USER = userFixture({
   _id: "reload-host-user",
   email: "reload-host@example.test",
-} as User;
+});
 
-// A request without a bound principal or token: its tenant is the default.
 const REQUEST_CONTEXT = { rawRequest: { headers: {} } };
 
 class RowsController extends Controller(RELOAD_HOST_LOCATION) {}
@@ -42,10 +41,6 @@ async function mutateRow(): Promise<void> {
   );
 }
 
-// The reload-host module registers from `construct()` and releases nothing, as
-// consumer modules do. What the interface holds for it has to follow it through
-// a real reload: its departing generation's registrations go, and only the new
-// generation's answer.
 describe("[unit] interfaces/dms — registrations of a reloaded module", () => {
   before(async () => {
     await ReloadModule(RELOAD_HOST_MODULE);

@@ -12,8 +12,6 @@ interface GuardResponse {
   items: KeyValueListItem[];
 }
 
-// Guarded by the permission of a table nested in a stack, named through
-// `targetChild("tasks")`: a role without it gets a 403 here.
 export class NestedTargetGuardAPI extends Controller(NESTED_TARGET_API) {
   @Get("permission")
   permission(

@@ -20,7 +20,7 @@ export const useSystemState = () => {
     key: SYSTEM_STATE_CACHE_KEY,
     lazy: true,
     default: () => ({ ...DEFAULT_SYSTEM_STATE }),
-    // The deployment's state, not the page's data.
+
     refreshOnPageRefresh: false,
   });
 

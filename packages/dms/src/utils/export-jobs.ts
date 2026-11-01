@@ -36,8 +36,6 @@ import {
 } from "@antelopejs/interface-dms/base/export-jobs";
 import { MILLISECONDS_PER_HOUR } from "@antelopejs/interface-dms/utils/internal/time";
 
-// The contract declares the vocabulary and the defaults; re-exported here so a
-// caller inside the module reaches the whole export surface from one place.
 export type {
   Deliverer,
   ExportJobDeliveryOptions,
@@ -63,7 +61,9 @@ const ARRAY_JOIN_SEPARATOR = ";";
 const FILENAME_ILLEGAL_CHARS = /[^a-zA-Z0-9._-]/g;
 const FILENAME_REPLACEMENT = "-";
 
-function castCsvValue(value: unknown): string {
+function castCsvValue(
+  value: Parameters<ExportWriter["appendRow"]>[1][string],
+): string {
   if (Array.isArray(value)) return value.join(ARRAY_JOIN_SEPARATOR);
   return String(value);
 }
@@ -72,12 +72,14 @@ class CsvWriter implements ExportWriter {
   constructor(private readonly filePath: string) {}
 
   writeHeaders(headers: string[]): void {
-    // Quoted like the rows: a column named for a reader may hold a comma.
     const headerLine = stringify([headers], { header: false });
     fs.writeFileSync(this.filePath, `﻿${headerLine}`);
   }
 
-  appendRow(headers: string[], row: Record<string, unknown>): void {
+  appendRow(
+    headers: string[],
+    row: Parameters<ExportWriter["appendRow"]>[1],
+  ): void {
     const csvRowContent = stringify([row], {
       header: false,
       columns: headers,
@@ -100,6 +102,7 @@ const csvExporter: Exporter = {
   },
 };
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Format names are open HTTP inputs; missing registry keys retain the existing unknown-format error.
 const exporters: Record<string, Exporter> = {
   csv: csvExporter,
 };
@@ -136,7 +139,7 @@ export function readJobResult(
   exportRecord: ExportJob,
 ): ExportJobResultSummary | undefined {
   if (!exportRecord.json_result) return undefined;
-  return JSON.parse(exportRecord.json_result) as ExportJobResultSummary;
+  return JSON.parse(exportRecord.json_result);
 }
 
 function exportReadyEmailData(
@@ -185,6 +188,7 @@ const emailDeliverer: Deliverer = {
   },
 };
 
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Delivery names are open inputs; missing registry keys retain the existing unknown-delivery error.
 const deliverers: Record<string, Deliverer> = {
   download: downloadDeliverer,
   email: emailDeliverer,
@@ -220,20 +224,20 @@ export async function uploadExportToStorage(
   });
 
   const fileStream = fs.createReadStream(localPath);
-  const response = await fetch(presign.uploadUrl, {
-    method: "PUT",
-    headers: presign.headers,
-    // Node's web-stream types and the DOM BodyInit / AsyncIterable do not
-    // overlap, so neither can be a single assertion; the runtime accepts
-    // the stream.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
-    body: Readable.toWeb(fileStream) as unknown as BodyInit,
-    duplex: "half",
-  } as RequestInit & { duplex: "half" });
-  // A rejected upload must fail the job: the artifact does not exist, and a
-  // completed job would hand the requester a download — or an e-mail link —
-  // that resolves to nothing. The body is discarded first, or the connection
-  // stays held until the response is garbage-collected.
+  const response = await fetch(
+    presign.uploadUrl,
+    // SAFETY: The literal satisfies RequestInit apart from its body and duplex; Node's web readable stream is accepted by fetch with duplex half, which the DOM RequestInit and ReadableStream declarations omit or type differently.
+    {
+      method: "PUT",
+      headers: presign.headers,
+      body: Readable.toWeb(fileStream),
+      duplex: "half",
+    } satisfies Omit<RequestInit, "body"> & {
+      body: ReturnType<typeof Readable.toWeb>;
+      duplex: "half";
+    } as RequestInit,
+  );
+
   if (!response.ok) {
     await response.body?.cancel().catch(() => undefined);
     assert(false, 500, `Failed to upload export: HTTP ${response.status}`);

@@ -21,6 +21,7 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "redaction-tenant";
 const SECRET_SLUG = "/redaction-secret";
@@ -42,13 +43,13 @@ const PAGE_ACCESS_SCENARIOS: PageAccessScenario[] = [
   { name: "anonymous", user: undefined, permissions: [], hasAccess: false },
   {
     name: "denied role",
-    user: { _id: "redaction-member" } as User,
+    user: userFixture({ _id: "redaction-member" }),
     permissions: [],
     hasAccess: false,
   },
   {
     name: "authorized role",
-    user: { _id: "redaction-member" } as User,
+    user: userFixture({ _id: "redaction-member" }),
     permissions: [SECRET_FULL_ID, DYNAMIC_FULL_ID],
     hasAccess: true,
   },
@@ -57,7 +58,7 @@ const PAGE_ACCESS_SCENARIOS: PageAccessScenario[] = [
 async function pageEntry(grantedPermissions: string[]) {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   const payload = await buildSiteLayoutPayload(
-    { _id: "redaction-member" } as User,
+    userFixture({ _id: "redaction-member" }),
     memberModel,
     roleModel,
     TENANT,
@@ -113,7 +114,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     const { memberModel, roleModel } = stubPageAccessModels([SECRET_FULL_ID]);
     const payload = await buildPagePayload(
       SECRET_SLUG,
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,
@@ -131,7 +132,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     const { memberModel, roleModel } = stubPageAccessModels([SECRET_FULL_ID]);
     const payload = await buildPagePayload(
       SECRET_SLUG,
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,
@@ -184,7 +185,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     const { memberModel, roleModel } = stubPageAccessModels([DYNAMIC_FULL_ID]);
     const payload = await buildPagePayload(
       DYNAMIC_PATH,
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,
@@ -204,8 +205,6 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     expect(entry?.icon).to.equal(undefined);
   });
 
-  // The browser matches the slug to tell a 403 from a 404 and to send a
-  // signed-out visitor to the auth screens: the entry has to stay addressable.
   it("keeps the structural fields so routing still works", async () => {
     const entry = await pageEntry([]);
 
@@ -216,7 +215,7 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
   it("redacts the navigation tree the same way", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
     const payload = await buildSiteLayoutPayload(
-      { _id: "redaction-member" } as User,
+      userFixture({ _id: "redaction-member" }),
       memberModel,
       roleModel,
       TENANT,

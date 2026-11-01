@@ -1,9 +1,4 @@
 <script setup lang="ts">
-// The component of a drawer, modal or side panel action target that holds
-// blocks of its own (a Card, a VStack, a Grid, a Tab): drawn as a page draws
-// a layout block, its children mounted in its slots. The container's own
-// props (`rowData`, `navigation`, `onSuccessCallback`…) and listeners go to
-// the container block, as they go to a single block.
 import { useAttrs } from "vue";
 import DmsRecursiveComponent from "../../../components/RecursiveComponent.vue";
 

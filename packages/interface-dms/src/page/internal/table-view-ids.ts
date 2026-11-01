@@ -1,4 +1,4 @@
-import { TABLE_VIEW_COMPONENT_NAME } from "../../base/table-view/internal/options";
+import { TABLE_VIEW_COMPONENT_NAME } from "../../component-options/internal/page-layout";
 import type { ChildSerialized, ComponentInfoSerialized } from "../../component";
 
 /** What a served table view learns of its place in the page. */
@@ -32,6 +32,7 @@ function placeTableViews(
   const placed = children ? { ...component, children } : component;
   if (!isTableView(component)) return placed;
   const placement: TableViewPlacement = { tableId: id, isSoleTableView };
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- The table-view component name identifies erased options, but their contents are not validated here; preserve the published placement helper's existing shallow spread of those options.
   const options = component.options as Record<string, unknown> | undefined;
   return { ...placed, options: { ...options, ...placement } };
 }

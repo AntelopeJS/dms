@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A PeriodSelector keeps its period in the page URL: the period it starts
  * from (the URL, then the user's last choice, then its default), the server
@@ -16,37 +16,46 @@ import {
   type Component,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { router as inertiaRouter } from "@inertiajs/vue3";
 import type { PeriodPreset } from "../layers/dms-core/app/composables/period/types";
+import type { RememberedPeriods } from "../layers/dms-ui/app/entries/composables/period/periodQuery";
 
 const route = reactive<{ query: Record<string, string> }>({ query: {} });
-const preferences = new Map<string, unknown>();
+const preferences = new Map<string, RememberedPeriods>();
 
 vi.stubGlobal("useDmsRoute", () => route);
-// Mounted in the browser, never hydrating a server render.
+
 vi.stubGlobal("isDmsHydrating", () => false);
-// Inertia's client-side replace moves its page URL, which the DMS route
-// follows: the route then holds the query the browser shows.
-function followInertiaPage({ url }: { url: string }): void {
+
+function followInertiaPage({
+  url,
+}: Parameters<typeof inertiaRouter.replace>[0]): void {
   route.query = Object.fromEntries(
-    new URL(url, "http://dms.local").searchParams,
+    new URL(url ?? window.location.href, "http://dms.local").searchParams,
   );
 }
-const { inertiaReplace } = vi.hoisted(() => ({
-  inertiaReplace: vi.fn(),
-}));
-vi.mock("@inertiajs/vue3", () => ({ router: { replace: inertiaReplace } }));
+const inertiaReplace = vi.spyOn(inertiaRouter, "replace");
 vi.stubGlobal("usePreferences", () => ({
-  getPreference: <T>(key: string, fallback?: T) =>
-    (preferences.get(key) as T | undefined) ?? fallback,
-  setPreference: (key: string, value: unknown) => preferences.set(key, value),
+  getPreference: (key: string, fallback?: RememberedPeriods) =>
+    preferences.get(key) ?? fallback,
+  setPreference: (key: string, value: RememberedPeriods) =>
+    preferences.set(key, value),
 }));
 
 const { usePeriod } = await import(
   "../layers/dms-core/app/composables/period/usePeriod"
 );
 const { usePeriodLocation, PERIOD_PREFERENCE_KEY } = await import(
-  "../layers/dms-ui/app/build/composables/period/usePeriodLocation"
+  "../layers/dms-ui/app/entries/composables/period/usePeriodLocation"
 );
 
 type Period = ReturnType<typeof usePeriod>;
@@ -144,6 +153,8 @@ afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
 });
 
+afterAll(() => inertiaReplace.mockRestore());
+
 describe("the period a selector starts from", () => {
   it("is the URL's", () => {
     route.query = {
@@ -223,7 +234,7 @@ describe("a change of period", () => {
     mount("page");
     handles.page!.setPreset("last-7-days");
     await nextTick();
-    // What useTab does: the route's query, plus its own key.
+
     const query = { ...route.query, tab: "2" };
     window.history.replaceState(
       null,
@@ -244,11 +255,10 @@ describe("a change of period", () => {
     expect(search().get("page.period")).toBe("last-7-days");
     expect(search().get("page.compare")).toBe("previous-period");
     expect(window.history.length).toBe(entries);
-    expect(
-      (preferences.get(PERIOD_PREFERENCE_KEY) as Record<string, unknown>)[
-        `${PAGE_ID}#page`
-      ],
-    ).toEqual({ period: "last-7-days", compare: "previous-period" });
+    expect(preferences.get(PERIOD_PREFERENCE_KEY)![`${PAGE_ID}#page`]).toEqual({
+      period: "last-7-days",
+      compare: "previous-period",
+    });
   });
 
   it("swaps the preset key for the custom range keys", async () => {
@@ -375,10 +385,8 @@ describe("a link framing a window no preset matches", () => {
     });
     period.setComparison("previous-period");
     await nextTick();
-    expect(
-      (preferences.get(PERIOD_PREFERENCE_KEY) as Record<string, unknown>)[
-        `${PAGE_ID}#page`
-      ],
-    ).toEqual({ period: "last-7-days" });
+    expect(preferences.get(PERIOD_PREFERENCE_KEY)![`${PAGE_ID}#page`]).toEqual({
+      period: "last-7-days",
+    });
   });
 });

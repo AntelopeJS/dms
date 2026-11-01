@@ -67,8 +67,7 @@ export function regionPreferencesForm() {
             label: `${TEXTS}.time_zone_title`,
             description: `${TEXTS}.time_zone_description`,
             type: new DefaultDataTypes.StringType(),
-            // The zones with their current offset and the browser's own as
-            // "Automatic": a list only the browser can draw.
+
             inputComponent: CustomComponent(
               "DmsRegionTimeZoneInput",
             ).serializeSync(),

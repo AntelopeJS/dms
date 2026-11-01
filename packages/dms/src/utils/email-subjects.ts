@@ -10,8 +10,7 @@ export type BuiltInEmailSubject =
   | "emailChangeNotice"
   | "exportReady";
 
-// The subject is set by the sender rather than the template, which only renders
-// the body; each wording follows the template's `emails.<name>.title` key.
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- User language tags are open-ended; missing languages intentionally fall back to English.
 const SUBJECTS: Record<string, Record<BuiltInEmailSubject, string>> = {
   en: {
     userValidation: "Verify Your Email",

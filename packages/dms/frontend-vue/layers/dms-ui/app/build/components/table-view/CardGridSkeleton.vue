@@ -30,8 +30,6 @@ const props = withDefaults(defineProps<CardGridSkeletonProps>(), {
   labelClass: "text-[10.5px] leading-[1.2]",
 });
 
-// A full page of cards, as for the rows of a table: the pagination footer
-// below them stands where the loaded page puts it.
 const MAX_CARD_COUNT = MAX_PAGE_SIZE;
 const cardCount = computed(() =>
   Math.max(1, Math.min(props.count, MAX_CARD_COUNT)),

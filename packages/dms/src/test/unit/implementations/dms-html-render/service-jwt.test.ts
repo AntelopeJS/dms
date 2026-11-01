@@ -1,11 +1,9 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { decode } from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
 import { applyConfig, getHtmlRenderConfig } from "../../../../config";
-import { generateServiceToken } from "../../../../implementations/dms-html-render/service-jwt";
+import { generateServiceToken } from "../../../../implementations/dms-html-render/services";
 
-// Mirrors `claimsValid` in the frontend render server
-// (@antelopejs/dms-frontend templates/vue/server/render-token.mjs).
 const RENDER_TOKEN_LIFETIME_SECONDS = 5 * 60;
 const RENDER_TOKEN_MIN_JTI_LENGTH = 16;
 const DEFAULT_SERVICE_TOKEN_LIFETIME = 5 * 60 * 1000;
@@ -19,7 +17,11 @@ function decodeServiceToken(serviceTokenLifetime: number): ServiceTokenClaims {
   applyConfig({
     htmlRender: { ...getHtmlRenderConfig(), serviceTokenLifetime },
   });
-  return decode(generateServiceToken(), { json: true }) as ServiceTokenClaims;
+  const claims = decode(generateServiceToken(), { json: true });
+  assert.isNotNull(claims);
+  assert.isDefined(claims.iat);
+  assert.isDefined(claims.exp);
+  return { ...claims, iat: claims.iat, exp: claims.exp };
 }
 
 describe("[unit] implementations/dms-html-render — generateServiceToken", () => {

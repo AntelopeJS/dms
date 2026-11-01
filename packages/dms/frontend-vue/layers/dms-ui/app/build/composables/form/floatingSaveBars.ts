@@ -7,7 +7,6 @@ import {
   watch,
 } from "vue";
 
-// Only mounted bars count, so a server render never adds to it.
 const shownBars = shallowReactive(new Set<symbol>());
 
 /**

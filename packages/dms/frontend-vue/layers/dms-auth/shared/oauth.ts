@@ -1,3 +1,5 @@
+import { isString } from "../../dms-core/app/utils/type-check";
+
 export interface TwoFactorHandoff {
   kind: "2fa";
   token: string;
@@ -40,8 +42,10 @@ const ABSOLUTE_PATH_PATTERN = /^\/(?!\/)[^\\]*$/;
  * and must never turn the login flow into an open redirect. Shared so the
  * server routes and the completion page apply the exact same rule.
  */
-export function sanitizeRedirectPath(value: unknown): string {
-  if (typeof value !== "string" || !ABSOLUTE_PATH_PATTERN.test(value)) {
+export function sanitizeRedirectPath(
+  value: Parameters<typeof isString>[0],
+): string {
+  if (!isString(value) || !ABSOLUTE_PATH_PATTERN.test(value)) {
     return "";
   }
   return value;

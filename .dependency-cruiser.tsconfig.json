@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "#dms-core/*": ["packages/dms/frontend-vue/layers/dms-core/*"],
+      "#dms-ui/*": ["packages/dms/frontend-vue/layers/dms-ui/*"],
+      "#dms-layout/*": ["packages/dms/frontend-vue/layers/dms-layout/*"],
+      "#dms-auth/*": ["packages/dms/frontend-vue/layers/dms-auth/*"],
+      "#dms-onboarding/*": ["packages/dms/frontend-vue/layers/dms-onboarding/*"]
+    }
+  }
+}

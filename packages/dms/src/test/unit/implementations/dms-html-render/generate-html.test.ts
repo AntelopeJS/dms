@@ -1,10 +1,10 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { applyConfig } from "../../../../config";
 import { GenerateHtml } from "../../../../implementations/dms-html-render";
 import type { HtmlTemplateRef } from "@antelopejs/interface-dms/html-render";
 
 const RENDER_ENDPOINT = "https://renderer.example/api/html/render";
-const TEMPLATE = { name: "welcome" } as HtmlTemplateRef<{ name: string }>;
+const TEMPLATE: HtmlTemplateRef<{ name: string }> = { name: "welcome" };
 
 describe("[unit] implementations/dms-html-render — GenerateHtml", () => {
   const originalFetch = globalThis.fetch;
@@ -63,7 +63,8 @@ describe("[unit] implementations/dms-html-render — GenerateHtml", () => {
       await GenerateHtml(TEMPLATE, { name: "Ada" }).catch((error) => {
         failure = error;
       });
-      expect((failure as Error).message).to.equal(
+      assert.instanceOf(failure, Error);
+      expect(failure.message).to.equal(
         "Failed to render HTML template: Invalid service token",
       );
     } finally {

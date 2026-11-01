@@ -1,4 +1,3 @@
-import type { ControllerClass } from "@antelopejs/interface-api";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
@@ -16,18 +15,18 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   denyingTenantGate,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "layout-gate-denied-tenant";
 const ALLOWED_TENANT = "layout-gate-allowed-tenant";
 const SUSPENDED_CODE = "layout-gate.suspended";
 const HTTP_FORBIDDEN = 403;
-const MEMBER = { _id: "layout-gate-member" } as User;
+const MEMBER = userFixture({ _id: "layout-gate-member" });
 
 const gateInfo = denyingTenantGate(
   "layout-gate",
@@ -35,13 +34,9 @@ const gateInfo = denyingTenantGate(
   SUSPENDED_CODE,
 );
 
-// The by-slug entry (`GET /dms/pagelayout`) only requires a session, so the
-// resolver is what applies the gate there. The page's own route is guarded by
-// its auth decorators instead — and `authOnly` pages never receive the
-// tenant-scoped models at all, which is why they must stay exempt.
 const models = stubPageAccessModels(["*"]);
 
-async function loadLayout(slug: string, tenantId: string): Promise<unknown> {
+async function loadLayout(slug: string, tenantId: string) {
   const handler = GetPageLayoutBySlug(slug);
   if (!handler) throw new Error(`no layout handler registered for ${slug}`);
   return handler({
@@ -55,9 +50,9 @@ async function loadLayout(slug: string, tenantId: string): Promise<unknown> {
 async function refusalOf(promise: Promise<unknown>): Promise<HTTPResult> {
   try {
     await promise;
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    return error as HTTPResult;
+    return error;
   }
   throw new Error("expected the layout resolution to refuse");
 }
@@ -72,7 +67,7 @@ describe("[unit] interfaces/dms/page — layout fetched by slug under a tenant g
     ImplementInterface(tenantAccessInterface, tenantAccessImpl);
     ImplementInterface(pageInterfaceInternal, pageImplInternal);
 
-    const controllers: Record<string, ControllerClass> = {
+    const controllers = {
       product: PageController("lg-product", {
         displayName: "Product",
         category: pagesCategory,
@@ -123,9 +118,6 @@ describe("[unit] interfaces/dms/page — layout fetched by slug under a tenant g
     );
   });
 
-  // The three exemptions: a recovery surface opts out explicitly, and
-  // authOnly/publicAccess pages are the screens a denied tenant must still
-  // reach — the auth pages and the suspended-workspace screen.
   it("serves a page flagged bypassTenantAccessGate", async () => {
     expect(await loadLayout(slugs.recovery, DENIED_TENANT)).to.not.equal(
       undefined,

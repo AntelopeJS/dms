@@ -1,7 +1,3 @@
-// A resolver runs inside /dms/sitelayout, on the critical path of every page
-// load: one that hangs would hold the layout of every user of the tenant. Long
-// enough for a database round trip, short enough that a stuck resolver costs a
-// slow page rather than an unusable dashboard.
 const DEFAULT_RESOLVER_TIMEOUT_MS = 2000;
 
 let resolverTimeoutMs = DEFAULT_RESOLVER_TIMEOUT_MS;

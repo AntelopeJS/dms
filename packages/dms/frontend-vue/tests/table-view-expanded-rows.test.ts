@@ -5,7 +5,7 @@ import {
   type ExpandedRowsState,
   keepListedRows,
   nextExpandedRows,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/expandedRows";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/expandedRows";
 
 const ROWS = ["a", "b", "c"];
 
@@ -61,8 +61,6 @@ describe("TableView expandable rows on listing", () => {
   const PAGE_2 = JSON.stringify([{ page: 2 }, {}]);
 
   it("waits for the first rows before opening the default ones", () => {
-    // The table is set up before its list answered (a first load, a
-    // hydration): the rows arrive later under the same query.
     let state: ExpandedRowsState = { expanded: {} };
     state = expandedRowsOnListing(state, undefined, PAGE_1, "first");
     expect(state).toEqual({ expanded: {} });

@@ -1,7 +1,7 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { SessionModel } from "@antelopejs/interface-dms/auth/db";
 import type { AxiosInstance } from "axios";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { decode } from "jsonwebtoken";
 import {
   authorizedClient,
@@ -12,10 +12,6 @@ import {
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
-
-// A password change and "Sign out other sessions" rotate the account's auth
-// key: every token issued so far stops working, the other sessions go, and
-// the caller's own session gets a handoff that buys it a new pair once.
 
 const SECURITY = pageRoutePath("/settings/user/security");
 const NEW_PASSWORD = "Rotated26!";
@@ -30,10 +26,6 @@ interface HandoffPayload {
 interface SessionHandoff {
   endpoint: string;
   payload: HandoffPayload;
-}
-
-interface HandoffClaims {
-  sessionId: string;
 }
 
 interface TokenPair {
@@ -76,7 +68,8 @@ describe("[integration] auth/auth key rotation", () => {
     );
     expect(await meStatus(user.accessToken)).to.equal(HTTP_UNAUTHORIZED);
 
-    const redeemed = await redeem(handoff as SessionHandoff);
+    assert.isDefined(handoff);
+    const redeemed = await redeem(handoff);
     expect(redeemed.status, JSON.stringify(redeemed.data)).to.equal(HTTP_OK);
     expect(redeemed.data.user?.email).to.equal(user.email);
     expect(await meStatus(redeemed.data.access_token)).to.equal(HTTP_OK);
@@ -107,12 +100,15 @@ describe("[integration] auth/auth key rotation", () => {
   });
 
   it("hands a session back once only", async () => {
-    const response = await thisDevice.delete(`${SECURITY}/other-sessions`);
-    const handoff = response.data.sessionHandoff as SessionHandoff;
+    const response = await thisDevice.delete<{
+      sessionHandoff: SessionHandoff;
+    }>(`${SECURITY}/other-sessions`);
+    const handoff = response.data.sessionHandoff;
     expect((await redeem(handoff)).status).to.equal(HTTP_OK);
-    // A duplicate racing the first trade gets the same pair back for a few
-    // seconds (the refresh rotation's predecessor grace); past it, nothing.
-    const { sessionId } = decode(handoff.payload.token) as HandoffClaims;
+
+    const claims = decode(handoff.payload.token, { json: true });
+    assert.exists(claims);
+    const { sessionId } = claims;
     await GetModel(SessionModel).update(sessionId, {
       refreshTokenRotatedAt: new Date(Date.now() - PAST_GRACE_MS),
     });

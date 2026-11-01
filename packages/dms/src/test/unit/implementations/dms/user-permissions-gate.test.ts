@@ -23,6 +23,7 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "perm-denied-tenant";
 const ALLOWED_TENANT = "perm-allowed-tenant";
@@ -36,7 +37,7 @@ const gateInfo = denyingTenantGate("perm-gate", DENIED_TENANT);
 async function resolveFor(
   grantedPermissions: string[],
   tenantId: string,
-  user: User = { _id: "perm-member" } as User,
+  user: User = userFixture({ _id: "perm-member" }),
 ): Promise<string[]> {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   return resolveUserPermissions(user, memberModel, roleModel, tenantId);
@@ -149,7 +150,7 @@ describe("[unit] implementations/dms/page — permissions under a tenant gate", 
   });
 
   it("keeps the owner wildcard so the recovery page stays usable", async () => {
-    const owner = { _id: "perm-owner", owner: true } as User;
+    const owner = userFixture({ _id: "perm-owner", owner: true });
     expect(await resolveFor([], DENIED_TENANT, owner)).to.deep.equal(["*"]);
   });
 
@@ -192,7 +193,7 @@ describe("[unit] implementations/dms/page — permissions under a tenant gate", 
       [RECOVERY_FULL_ID, PRODUCT_FULL_ID],
       ALLOWED_TENANT,
     );
-    // Whole as the role stores it, the category both pages sit under included.
+
     expect(granted.sort()).to.deep.equal(
       withPermissionAncestors([RECOVERY_FULL_ID, PRODUCT_FULL_ID]).sort(),
     );

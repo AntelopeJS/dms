@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The permission set the `auth` middleware preloads while a server renders a
  * page reaches the browser with the page, through the runtime's real async
@@ -15,6 +15,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import type { DmsFrontendRuntime } from "#dms/frontend-module";
 
 const engine = await import("#dms/frontend-module");
@@ -58,7 +59,7 @@ interface PendingRequest {
 }
 
 const requests: PendingRequest[] = [];
-// Answers each request once the test releases it, in order.
+
 const $authFetch = vi.fn(
   () =>
     new Promise<string[]>((resolve, reject) => {
@@ -92,7 +93,7 @@ const { defineDmsPageMeta } = engine;
 
 /** A runtime whose app carries the DMS app context, as the real app's does. */
 function attach(app: App, runtime: DmsFrontendRuntime): void {
-  const context = {} as DmsFrontendRuntime["appContext"];
+  const context = dmsAppContext(app);
   app.config.globalProperties.$dms = context;
   runtime.appContext = context;
   runtime.route.matched = [{}];

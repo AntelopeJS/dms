@@ -11,12 +11,11 @@ import {
   changePassword,
   listSessions,
   revokeOtherSessions,
-} from "../../../../pages/settings/users/account-credentials";
-import { requestEmailChange } from "../../../../pages/settings/users/email-change";
-import {
+  requestEmailChange,
   getTwoFactorStatus,
   markBackupCodesSaved,
-} from "../../../../pages/settings/users/two-factor-operations";
+} from "../../../../pages/account";
+import { sessionFixture } from "../../../helpers/table-fixtures";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
@@ -46,6 +45,7 @@ interface Harness {
 }
 
 function buildUser(password: string | null): User {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The credential fixture implements only user fields and hashing behavior exercised here, not the full database instance.
   return {
     _id: USER_ID,
     email: OWN_EMAIL,
@@ -54,14 +54,14 @@ function buildUser(password: string | null): User {
     createdAt: new Date(0),
     twoFactorMethods: [],
     twoFactorBackupCodes: [],
-    // Mirrors HashModifier: the stored hash is compared, never exposed.
+
     testHash: (_field: string, candidate: string) =>
       candidate === CURRENT_PASSWORD,
   } as unknown as User;
 }
 
 function session(id: string, lastActiveAt: number): Session {
-  return {
+  return sessionFixture({
     _id: id,
     userId: USER_ID,
     browser: "Chrome",
@@ -71,11 +71,12 @@ function session(id: string, lastActiveAt: number): Session {
     location: "",
     createdAt: new Date(0),
     lastActiveAt: new Date(lastActiveAt),
-  } as unknown as Session;
+  });
 }
 
 function buildHarness(password: string | null = "hashed"): Harness {
-  const harness = {
+  // SAFETY: The user model double implements only lookup and update, and the session model double only listing, deletion and refresh-token replacement; the credential flow calls nothing else on them.
+  const harness: Harness = {
     user: buildUser(password),
     sessions: [
       session("session-old", 1),
@@ -84,26 +85,24 @@ function buildHarness(password: string | null = "hashed"): Harness {
     ],
     updates: 0,
     refreshTokens: new Map<string, string>(),
-  } as Harness;
-  harness.userModel = {
-    get: async () => harness.user,
-    getByEmail: async (email: string) =>
-      email === TAKEN_EMAIL
-        ? ({ _id: OTHER_USER_ID } as unknown as User)
-        : undefined,
-    update: async () => {
-      harness.updates += 1;
-    },
-  } as unknown as UserModel;
-  harness.sessionModel = {
-    getByUserId: async () => [...harness.sessions],
-    delete: async (id: string) => {
-      harness.sessions = harness.sessions.filter((entry) => entry._id !== id);
-    },
-    replaceRefreshToken: async (id: string, token: string) => {
-      harness.refreshTokens.set(id, token);
-    },
-  } as unknown as SessionModel;
+    userModel: {
+      get: async () => harness.user,
+      getByEmail: async (email: string) =>
+        email === TAKEN_EMAIL ? { _id: OTHER_USER_ID } : undefined,
+      update: async () => {
+        harness.updates += 1;
+      },
+    } as unknown as UserModel,
+    sessionModel: {
+      getByUserId: async () => [...harness.sessions],
+      delete: async (id: string) => {
+        harness.sessions = harness.sessions.filter((entry) => entry._id !== id);
+      },
+      replaceRefreshToken: async (id: string, token: string) => {
+        harness.refreshTokens.set(id, token);
+      },
+    } as unknown as SessionModel,
+  };
   return harness;
 }
 
@@ -112,13 +111,16 @@ const authorization = `Bearer ${sign({ sessionId: CURRENT_SESSION, tenantId: TEN
 async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
   const outcome = await action.then(
     () => undefined,
-    (error: unknown) => error,
+    (error) => error,
   );
   if (outcome instanceof HTTPResult) return outcome;
   throw new Error(`Expected an HTTP refusal, got ${String(outcome)}`);
 }
 
-function passwordChange(harness: Harness, body: Record<string, unknown>) {
+function passwordChange(
+  harness: Harness,
+  body: Parameters<typeof changePassword>[1],
+) {
   return changePassword(harness.user, body, {
     userModel: harness.userModel,
     sessionModel: harness.sessionModel,

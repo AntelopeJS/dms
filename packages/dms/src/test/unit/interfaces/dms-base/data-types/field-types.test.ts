@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { serializeType } from "@antelopejs/interface-dms/base/data-types";
+import { FormComponents } from "@antelopejs/interface-dms/base/form";
 
 const ITEMS = [
   { label: "Low", value: "low", description: "When there is time" },
@@ -9,6 +10,18 @@ const ITEMS = [
 
 const componentOf = (type: { inputComponent(): { componentName: string } }) =>
   type.inputComponent().componentName;
+
+type RepeaterOptions = NonNullable<
+  Parameters<typeof FormComponents.InputRepeater>[0]
+>;
+
+function isRepeaterOptions(value: unknown): value is RepeaterOptions {
+  return (
+    value instanceof Object &&
+    "columns" in value &&
+    Array.isArray(value.columns)
+  );
+}
 
 describe("[unit] interfaces/dms-base — SelectType display", () => {
   it("renders a dropdown by default, cards, segments or radios when asked", () => {
@@ -122,11 +135,10 @@ describe("[unit] interfaces/dms-base — ArrayType", () => {
   it("renders a repeater, a column per field", () => {
     const component = headers().inputComponent();
     expect(component.componentName).to.equal("dms-repeater");
-    const options = component.options as {
-      columns: Array<{ id: string; label: string; type: string }>;
-      sortable: boolean;
-      addLabel: string;
-    };
+    const { options } = component;
+    if (!isRepeaterOptions(options)) {
+      throw new Error("The component carries no repeater options");
+    }
     expect(
       options.columns.map(({ id, label, type }) => [id, label, type]),
     ).to.deep.equal([

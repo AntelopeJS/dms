@@ -3,12 +3,6 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { countRawDocuments, resetDatabase } from "../helpers/db";
 
-// The data routes hold to the columns' `visibleWhen` / `disabledWhen`
-// (src/test/attachment-host/conditions.ts): the loss reason shows, and is
-// mandatory, on a lost deal only; the probability is locked on a won or lost
-// deal. A hidden or disabled field's value is ignored, and a field an edit
-// hides loses the value it stored.
-
 const LOCATION = "/api/conditions/deals";
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -30,18 +24,18 @@ describe("[integration] table view column conditions", () => {
     client = authorizedClient(owner.accessToken);
   });
 
-  const create = (body: Record<string, unknown>) =>
+  const create = (body: Parameters<AxiosInstance["post"]>[1]) =>
     client.post(`${LOCATION}/new`, body, { validateStatus: () => true });
-  const edit = (id: string, body: Record<string, unknown>) =>
+  const edit = (id: string, body: Parameters<AxiosInstance["put"]>[1]) =>
     client.put(`${LOCATION}/edit?id=${id}`, body, {
       validateStatus: () => true,
     });
   const read = async (title: string): Promise<Deal> => {
-    const response = await client.get(`${LOCATION}/list?limit=50`);
-    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    const deal = (response.data.results as Deal[]).find(
-      (entry) => entry.title === title,
+    const response = await client.get<{ results: Deal[] }>(
+      `${LOCATION}/list?limit=50`,
     );
+    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+    const deal = response.data.results.find((entry) => entry.title === title);
     expect(deal, title).to.exist;
     return deal!;
   };
@@ -90,7 +84,7 @@ describe("[integration] table view column conditions", () => {
 
   it("reads an edit's conditions on the stored row under its body", async () => {
     const open = await read("Open");
-    // Moving to "lost" shows the reason, which the stored row lacks.
+
     const refused = await edit(open._id, { stage: "lost" });
     expect(refused.status).to.equal(HTTP_BAD_REQUEST);
     expect(refused.data).to.deep.equal({
@@ -101,7 +95,6 @@ describe("[integration] table view column conditions", () => {
     const lost = await edit(open._id, { stage: "lost", lostReason: "timing" });
     expect(lost.status, JSON.stringify(lost.data)).to.equal(HTTP_OK);
 
-    // The stored stage locks the probability of a body that leaves it out.
     const locked = await edit(open._id, { probability: 90 });
     expect(locked.status, JSON.stringify(locked.data)).to.equal(HTTP_OK);
     const deal = await read("Open");
@@ -117,7 +110,7 @@ describe("[integration] table view column conditions", () => {
       vatNumber: "BE0123456749",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id = (created.data as { _id: string })._id;
+    const id: string = created.data._id;
     expect(
       await countRawDocuments("condition-customers", {
         vatNumber: "BE0123456749",
@@ -139,7 +132,6 @@ describe("[integration] table view column conditions", () => {
   });
 
   it("keeps the value a disabled field stored", async () => {
-    // The lost deal of the edit test kept its probability (30).
     expect(
       await countRawDocuments("condition-deals", {
         title: "Open",

@@ -2,8 +2,6 @@
 import { computed } from "vue";
 import { useClipboard } from "@vueuse/core";
 
-// Copy-to-clipboard icon button (design .copy-btn): muted by default, turns
-// success-green once the value lands on the clipboard, then reverts.
 const props = defineProps<{
   value: string;
 }>();

@@ -26,15 +26,13 @@ const { confirm } = useConfirm();
 const { $authFetch } = useAuthFetch();
 const markFieldSaved = inject(FORM_FIELD_SAVED_KEY, null);
 
-// v2 .secret: the end of the value stays visible, so a reader can tell two
-// secrets apart without revealing either.
 const VISIBLE_TAIL = 4;
 const MASK_LENGTH = 22;
 const MASK = "•";
 
 const isRevealed = ref(false);
 const value = computed(() => model.value ?? "");
-// An empty secret is typed in plainly: there is nothing to hide yet.
+
 const isMasked = computed(() => !isRevealed.value && value.value !== "");
 const masked = computed(() => {
   const tail = value.value.slice(-VISIBLE_TAIL);
@@ -58,8 +56,7 @@ async function rotate(): Promise<void> {
         method: "POST",
       });
       model.value = response.value;
-      // The server stored the new secret already: it is not a change to
-      // save, and "Discard" must not bring the old one back.
+
       if (props.id) markFieldSaved?.(props.id, response.value);
     },
   });

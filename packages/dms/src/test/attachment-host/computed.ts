@@ -11,7 +11,6 @@ import {
   ModelReference,
   Sortable,
 } from "@antelopejs/interface-data-api/metadata";
-import type { ValueProxy } from "@antelopejs/interface-database";
 import {
   BasicDataModel,
   Field,
@@ -33,10 +32,6 @@ import {
   TableView,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
-
-// Tasks with fields the database computes: `remaining` declares no access of
-// its own (`@Computed` makes it read-only), `shout` does. Neither is filtered
-// nor sorted by default, so the list must compute them for its page.
 
 const TABLE = "computed-tasks";
 const PROJECT_TABLE = "computed-projects";
@@ -118,9 +113,9 @@ export class ComputedTaskController extends DataController(
   @Sortable()
   @Column({ name: "Remaining", type: new DefaultDataTypes.NumberType() })
   @Computed((row) =>
-    (row.key("estimate") as ValueProxy<number>).sub(
-      row.key("spent") as ValueProxy<number>,
-    ),
+    row
+      .key<ComputedTask, "estimate">("estimate")
+      .sub(row.key<ComputedTask, "spent">("spent")),
   )
   declare remaining: number;
 
@@ -134,7 +129,6 @@ export class ComputedTaskController extends DataController(
   @Access(AccessMode.ReadWrite)
   declare projectId: string;
 
-  // A sub-query on the table: the tasks of the same project.
   @Listable()
   @Column({ name: "Siblings", type: new DefaultDataTypes.NumberType() })
   @Computed(
@@ -146,7 +140,7 @@ export class ComputedTaskController extends DataController(
 
   @Listable()
   @Column({ name: "Shout", type: new DefaultDataTypes.StringType() })
-  @Computed((row) => (row.key("title") as ValueProxy<string>).upcase())
+  @Computed((row) => row.key<ComputedTask, "title">("title").upcase())
   @Access(AccessMode.ReadOnly)
   declare shout: string;
 }
@@ -158,12 +152,13 @@ export class ComputedTasksPage extends RootPageController("computed-tasks", {
   static content = TableView(ComputedTaskController, {
     realtime: false,
     rowActions: { add: true, edit: true },
-    // Guards amending the body their route writes.
+
     guards: {
       new: (_ctx, { body }) => {
         body.spent ??= 0;
       },
       edit: (_ctx, { body }) => {
+        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The edit guard runs before body validation; inference and the controller type cannot assume a submitted title is a string without changing malformed-input handling.
         if (typeof body.title === "string") body.title = body.title.trim();
       },
     },

@@ -37,14 +37,12 @@ export class PageBlocksSettings extends PageController(
           newTab: true,
         },
       },
-      // Lends its label and icon; hidden for users it is not served to.
       {
         id: "new-task",
         label: "",
         color: "primary",
         target: { type: "quickAction", id: "playground:new-task" },
       },
-      // Nobody holds this permission: the button never reaches the client.
       {
         id: "audit",
         label: "Audit log",

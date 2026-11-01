@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The reads of the settings pages through the runtime's real async data: a
  * server render reads what the page shows and hands it to the browser, which
@@ -17,19 +17,16 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { hydrate, serverRender, stubApiData } from "./helpers/api-data-runtime";
-import { useSecurityOverview } from "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview";
-import { useNotificationPreferences } from "../layers/dms-layout/app/build/composables/notification/useNotificationPreferences";
-import { useNotificationCatalog } from "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog";
-
-vi.mock(
-  "../layers/dms-layout/app/build/composables/security/useSessionHandoff",
-  () => ({ useSessionHandoff: () => async () => {} }),
-);
+import { useSecurityOverview } from "../layers/dms-layout/app/entries/composables/settings/security/useSecurityOverview";
+import { useNotificationPreferences } from "../layers/dms-layout/app/entries/composables/notification/useNotificationPreferences";
+import { useNotificationCatalog } from "../layers/dms-layout/app/entries/composables/notification/useNotificationCatalog";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import type { I18nTranslate } from "../layers/dms-core/app/composables/translation/useTranslation";
 
 const NOW = new Date("2026-10-15T12:00:00Z").getTime();
 const MINUTE = 60_000;
 
-const ANSWERS: Record<string, unknown> = {
+const ANSWERS = {
   "/dms/pages/settings/user/security": {
     activeSessions: 2,
     attention: ["two_factor_off"],
@@ -41,7 +38,7 @@ const ANSWERS: Record<string, unknown> = {
       _id: "other",
       browser: "Firefox",
       os: "Linux",
-      // Half a minute short of 5: rounded to 4 minutes, to 5 a second later.
+
       lastActiveAt: new Date(NOW - 4.5 * MINUTE + 1000).toISOString(),
       isCurrent: false,
     },
@@ -53,15 +50,19 @@ const ANSWERS: Record<string, unknown> = {
       { id: "mention", labelKey: "Mention", category: { id: "core" } },
     ],
   },
-  "/dms/pages/settings/user/notifications/preferences": { "core:mention": false },
+  "/dms/pages/settings/user/notifications/preferences": {
+    "core:mention": false,
+  },
 };
 
 const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
   if (options?.method === "PATCH") return undefined;
-  return structuredClone(ANSWERS[url]);
+  return structuredClone(new Map(Object.entries(ANSWERS)).get(url));
 });
 const reads = () =>
-  authFetch.mock.calls.filter(([, options]) => !options?.method).map(([url]) => url);
+  authFetch.mock.calls
+    .filter(([, options]) => !options?.method)
+    .map(([url]) => url);
 const mounted: App[] = [];
 
 /** Renders `root` on the server, then hydrates it: the reads of each side. */
@@ -84,6 +85,7 @@ async function renderAndHydrate(root: Component) {
 }
 
 beforeEach(() => {
+  installAuthSettingsRuntime();
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
   vi.stubGlobal("computed", computed);
@@ -94,7 +96,7 @@ beforeEach(() => {
     t: (key: string) => key,
     te: () => false,
   }));
-  stubApiData(authFetch as never);
+  stubApiData(authFetch);
 });
 
 afterEach(() => {
@@ -120,7 +122,9 @@ describe("Security", () => {
 
     const { html, server, browser, hydrationWarnings } =
       await renderAndHydrate(Page);
-    expect(html).toBe("<div><p>2:two_factor_off</p><p>2:two_factor_off</p></div>");
+    expect(html).toBe(
+      "<div><p>2:two_factor_off</p><p>2:two_factor_off</p></div>",
+    );
     expect(server).toEqual(["/dms/pages/settings/user/security"]);
     expect(browser).toEqual([]);
     expect(hydrationWarnings).toEqual([]);
@@ -128,11 +132,11 @@ describe("Security", () => {
 
   it("says when a session was last active as of the read, the same in the hydrating browser", async () => {
     const { default: SecuritySessions } = await import(
-      "../layers/dms-layout/app/build/components/pages/settings/security/SecuritySessions.vue"
+      "../layers/dms-layout/app/entries/components/pages/settings/security/SecuritySessions"
     );
     vi.stubGlobal("useI18n", () => ({
       locale: ref("en"),
-      t: (key: string, named?: Record<string, unknown>) =>
+      t: (key: string, named?: Parameters<I18nTranslate>[1]) =>
         named ? `${key}(${Object.values(named).join()})` : key,
       te: () => false,
     }));
@@ -162,11 +166,16 @@ describe("Security", () => {
     const { html, payload } = await serverRender(SecuritySessions, register);
     vi.stubEnv("SSR", false);
     expect(html).toContain("active_ago(4 minutes ago)");
-    // The browser hydrates two seconds later: "5 minutes ago" from now.
+
     vi.setSystemTime(NOW + 2000);
     authFetch.mockClear();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { app, container } = hydrate(SecuritySessions, html, payload, register);
+    const { app, container } = hydrate(
+      SecuritySessions,
+      html,
+      payload,
+      register,
+    );
     mounted.push(app);
     await nextTick();
     await new Promise((done) => setTimeout(done, 0));

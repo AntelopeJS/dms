@@ -84,6 +84,7 @@ export type ActionTarget =
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
       /** JSON body sent with the request. */
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- API action bodies are module-defined JSON dictionaries; inference has no initializer and the transport's body owner is broader than this existing object contract.
       body?: Record<string, unknown>;
       /** Field of the JSON response copied to the clipboard on success. */
       copy?: string;

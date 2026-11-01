@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SelectItem } from "@nuxt/ui";
+import { GITHUB_REPOSITORY_URL } from "../../utils/github-repository";
 
 const EXTERNAL_LINK_PATTERN = /^https?:\/\//;
 const DEFAULT_COPYRIGHT = "Antelope";
@@ -29,16 +30,12 @@ function isExternal(to: string): boolean {
   return EXTERNAL_LINK_PATTERN.test(to);
 }
 
-// A signed-in user on a page of this layout (the account switcher) switches
-// their profile's language too: the session applies that one on every load,
-// and the server writes in it, so switching the screen alone would leave the
-// two apart. A visitor's choice lives in the locale cookie.
-async function onLocaleChange(code: unknown) {
+async function onLocaleChange(code: Parameters<typeof changeLanguage>[0]) {
   if (isLoggedIn.value) {
-    await changeLanguage(code as string);
+    await changeLanguage(code);
     return;
   }
-  await setLocale(code as typeof locale.value);
+  await setLocale(code);
 }
 </script>
 
@@ -68,6 +65,19 @@ async function onLocaleChange(code: unknown) {
         {{ t(link.label) }}
       </DmsLink>
     </template>
+
+    <a
+      :href="GITHUB_REPOSITORY_URL"
+      target="_blank"
+      rel="noopener noreferrer"
+      :aria-label="t('empty_layout.footer.github_star_label')"
+      :title="t('empty_layout.footer.github_star_label')"
+      class="border-default text-muted hover:text-highlighted hover:border-accented hover:bg-elevated inline-flex h-6 items-center gap-1.5 rounded-md border px-2 font-medium transition-colors max-sm:h-8"
+    >
+      <UIcon name="i-ph-github-logo" class="size-3.5" aria-hidden="true" />
+      <UIcon name="i-ph-star" class="size-3" aria-hidden="true" />
+      {{ t("empty_layout.footer.github_star") }}
+    </a>
 
     <USelect
       v-if="showsLocaleSwitcher"

@@ -1,0 +1,12 @@
+diff --git a/packages/dms/src/routes/auth/login.ts b/packages/dms/src/routes/auth/login.ts
+index 4ce2e0d7..9f629062 100644
+--- a/packages/dms/src/routes/auth/login.ts
++++ b/packages/dms/src/routes/auth/login.ts
+@@ -40,7 +40,6 @@ export async function login(
+       : recordFailedPassword(user),
+     "failed password bookkeeping",
+   );
+-  assert(isPasswordValid, HTTP_UNAUTHORIZED, INVALID_CREDENTIALS_MESSAGE);
+   clearLoginFailures(normalizedEmail);
+ 
+   return resolveLoginOutcome(sessionModel, user, userAgent, origin);

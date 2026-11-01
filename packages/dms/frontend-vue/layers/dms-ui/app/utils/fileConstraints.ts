@@ -1,7 +1,9 @@
-// Client-side mirror of the backend upload-constraint check
-// (`@antelopejs/interface-dms/base/data-types/default-types`). The backend stays
-// the authority; validating here avoids uploading files the server will reject.
-
+/**
+ * Client-side upload constraints matching the file data type in
+ * `@antelopejs/interface-dms/base/data-types/default-types`.
+ * Keep size and mimetype checks in sync with that backend validation; the
+ * backend remains authoritative even when this pre-upload check passes.
+ */
 export interface FileFieldConstraints {
   maxSize?: number;
   allowedMimetypes?: string[];

@@ -8,7 +8,7 @@ import {
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import { sanitizePreviewPermissions } from "../../../../pages/settings/users/role-preview";
+import { sanitizePreviewPermissions } from "../../../../pages/permissions";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import {
@@ -28,41 +28,35 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const HOME = "pages.prr-home";
 const INVOICES = "pages.prr-invoices";
 const INVOICES_EXPORT = `${INVOICES}.export`;
 const ROLES = "pages.prr-roles";
-// A screen kept for the workspace owners, whatever a role grants.
+
 const BILLING = "pages.prr-billing";
 const EVERY_GRANT = [HOME, INVOICES, INVOICES_EXPORT, ROLES, BILLING];
 
-// One workspace without a subscription, one whose plan the test sets.
 const FREE_TENANT = "prr-free";
 const PLAN_TENANT = "prr-plan";
 
-const PLATFORM_OWNER = { _id: "prr-platform-owner", owner: true } as User;
-const TENANT_OWNER = { _id: "prr-tenant-owner" } as User;
-// A member who may manage roles, holding every page but the owners' one.
-const ROLE_MANAGER = { _id: "prr-role-manager" } as User;
+const PLATFORM_OWNER = userFixture({ _id: "prr-platform-owner", owner: true });
+const TENANT_OWNER = userFixture({ _id: "prr-tenant-owner" });
+
+const ROLE_MANAGER = userFixture({ _id: "prr-role-manager" });
 const TENANT_OWNER_IDS = new Set([PLATFORM_OWNER._id, TENANT_OWNER._id]);
 
 let planPermissions = new Set<string>();
 
-// A plan stores its grants like a role, with every id they sit under.
 function setPlan(...ids: string[]): void {
   planPermissions = new Set(withPermissionAncestors(ids));
 }
 
-// Whether a resolver counts the user as a workspace owner: never in a role
-// preview, whose set is the role's whoever previews it.
 function isOwner(userId: string, context: PermissionsResolverContext): boolean {
   return !context.preview && TENANT_OWNER_IDS.has(userId);
 }
 
-// Like a subscription plan: an owner is handed all the plan grants, any
-// other member keeps the plan's share of their roles. Then the screens kept
-// for owners, withheld from everyone else.
 function fakeResolvers(): PermissionsResolverInfo[] {
   return [
     {
@@ -114,8 +108,6 @@ interface PreviewOutcome {
   hiddenHeaderActions: string[];
 }
 
-// The preview as the roles route computes it: the role's set resolved for a
-// member holding it, compared with what the viewer is served.
 async function preview(
   viewer: Viewer,
   tenantId: string,
@@ -163,7 +155,7 @@ interface ResolverCall {
 }
 
 async function recordResolverCalls(
-  run: () => Promise<unknown>,
+  run: () => Promise<PreviewOutcome>,
 ): Promise<ResolverCall[]> {
   const calls: ResolverCall[] = [];
   const spy: PermissionsResolverInfo = {
@@ -183,9 +175,6 @@ async function recordResolverCalls(
   return calls;
 }
 
-// The roles screen previewed a role through the viewer's own identity: a
-// resolver widening an owner's set (a plan handing its owners all it grants)
-// widened the role's too, and an owner saw every page open to it.
 describe("[unit] implementations/dms/page — role preview through permission resolvers", () => {
   const cleanups: Array<() => void> = [];
 
@@ -279,7 +268,7 @@ describe("[unit] implementations/dms/page — role preview through permission re
         preview(VIEWERS[1], PLAN_TENANT, [HOME, INVOICES]),
       );
       const previews = calls.filter((call) => call.context.preview);
-      // The previewed set, then the set of the preview's header layout.
+
       expect(previews).to.have.length.of.at.least(2);
       for (const call of previews) {
         expect(call.userId).to.equal(TENANT_OWNER._id);
@@ -335,8 +324,6 @@ describe("[unit] implementations/dms/page — role preview through permission re
       });
     }
 
-    // Only a platform owner reaches a page the plan refuses: anyone else is
-    // refused it too, and a preview never shows beyond the viewer's access.
     it("withholds what the plan refuses, though the role grants it", async () => {
       setPlan(HOME, ROLES, BILLING);
       const outcome = await preview(VIEWERS[0], PLAN_TENANT, [HOME, INVOICES]);
@@ -362,8 +349,7 @@ describe("[unit] implementations/dms/page — role preview through permission re
           preview(viewer, PLAN_TENANT, [HOME], "/prr-home"),
         ),
       );
-      // The member managing roles never reaches the owners' screen, so it
-      // cannot lose it; everything else reads the same.
+
       const comparable = outcomes.map((outcome) =>
         outcome.hiddenEntries.filter((id) => id !== BILLING).sort(),
       );

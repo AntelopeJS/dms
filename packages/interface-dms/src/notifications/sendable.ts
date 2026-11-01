@@ -14,7 +14,7 @@ export class SendableNotification {
   private readonly data: NotificationData;
 
   constructor(data: NotificationData) {
-    this.data = Object.freeze({ ...data }) as NotificationData;
+    this.data = Object.freeze({ ...data });
   }
 
   /**

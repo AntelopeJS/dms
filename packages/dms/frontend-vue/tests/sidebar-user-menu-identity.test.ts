@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -10,8 +10,9 @@ import {
   ref,
   watch,
   type App,
+  type PropType,
 } from "vue";
-import SidebarUserMenu from "../layers/dms-layout/app/build/components/layout/SidebarUserMenu.vue";
+import SidebarUserMenu from "../layers/dms-layout/app/entries/components/layout/SidebarUserMenu";
 import type { User } from "../layers/dms-core/app/types/user";
 import {
   ACCOUNT_MENU_ENTRIES,
@@ -25,7 +26,7 @@ interface MenuItemStub {
 
 const FIRST_KEY = "avatars/first";
 const SECOND_KEY = "avatars/second";
-const READ_URLS: Record<string, string> = {
+const READ_URLS = {
   [FIRST_KEY]: "https://files.test/first.png",
   [SECOND_KEY]: "https://files.test/second.png",
 };
@@ -55,14 +56,14 @@ function installRuntime(): void {
   vi.stubGlobal("useUserLanguage", () => ({ changeLanguage: vi.fn() }));
   vi.stubGlobal("ACCOUNT_MENU_ENTRIES", ACCOUNT_MENU_ENTRIES);
   vi.stubGlobal("useDmsCookie", () => ref(false));
-  vi.stubGlobal("useDmsState", (key: string, init: () => unknown) => {
+  vi.stubGlobal("useDmsState", <T>(key: string, init: () => T) => {
     if (!states.has(key)) states.set(key, ref(init()));
     return states.get(key);
   });
   vi.stubGlobal("useFileReadUrls", () => ({
     getUrl: (key: string) => resolved.value[key],
-    resolve: async (key: string) => {
-      resolved.value = { ...resolved.value, [key]: READ_URLS[key]! };
+    resolve: async (key: keyof typeof READ_URLS) => {
+      resolved.value = { ...resolved.value, [key]: READ_URLS[key] };
     },
   }));
 }
@@ -72,11 +73,14 @@ function mount(): void {
   app.component(
     "UDropdownMenu",
     defineComponent({
-      props: { items: Array },
+      // SAFETY: The mounted menu supplies groups of items with destinations and selection handlers.
+      props: {
+        items: { type: Array as PropType<MenuItemStub[][]>, required: true },
+      },
       setup:
         (props, { slots }) =>
         () => {
-          menuItems = props.items as MenuItemStub[][];
+          menuItems = props.items;
           return h("div", [slots.default?.(), slots["content-top"]?.()]);
         },
     }),
@@ -143,8 +147,6 @@ it("falls back to initials without a picture", async () => {
   expect(avatarSources()).toEqual(["", ""]);
 });
 
-// The settings have no sidebar entry: the menu that opens them shows the user
-// where they are.
 it.each([
   ["/settings", true],
   ["/settings/workspace/roles", true],
@@ -160,8 +162,6 @@ it.each([
   expect(trigger.classList.contains("bg-elevated")).toBe(isActive);
 });
 
-// The menu content renders in a portal, outside the sidebar whose link clicks
-// close the phone drawer.
 it.each(ACCOUNT_MENU_ENTRIES.map((entry) => [entry.to]))(
   "closes the phone drawer when %s is chosen",
   async (to) => {

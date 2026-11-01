@@ -1,8 +1,4 @@
 <script setup lang="ts">
-// The placeholder of a list row while it loads: an icon well and a few text
-// lines, each sized like the row it stands for so nothing moves once the
-// rows arrive. The padding is the caller's (`class`).
-
 interface RowSkeletonProps {
   /** Classes of the icon well: its size and radius. */
   well: string;

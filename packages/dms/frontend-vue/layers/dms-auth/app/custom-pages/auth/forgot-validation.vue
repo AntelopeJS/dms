@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { nextTick, useTemplateRef } from "vue";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthBackLink from "../../build/components/AuthBackLink.vue";
-import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
+import DmsOtpInput from "#dms-ui/app/entries/components/form/OtpInput";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import AuthResendCode from "../../build/components/AuthResendCode.vue";
 import { useAuthFormError } from "../../build/composables/useAuthFormError";
@@ -27,13 +27,13 @@ if (!route.query.email) {
 }
 
 const PIN_LENGTH = 6;
-// Refusals of the typed code: shown under the cells, not above the form.
+
 const CODE_ERRORS = {
   "error.invalid_or_expired_token": "token",
 } as const;
 const COOLDOWN_DURATION = 60;
 
-const email = computed(() => route.query.email as string);
+const email = computed(() => route.query.email);
 
 const isLoading = ref(false);
 const form = useTemplateRef("form");
@@ -45,7 +45,6 @@ interface CodeState {
 }
 const state = reactive<CodeState>({});
 
-// Typing a new code clears the refusal of the previous one.
 watch(
   () => state.pin,
   (digits) => {
@@ -60,7 +59,6 @@ onMounted(() => {
 });
 
 async function onSubmit(event: FormSubmitEvent<CodeState>) {
-  // An empty or partial code is flagged under the cells, not sent.
   const missing = codeEntryError(event.data.pin, PIN_LENGTH);
   if (missing) {
     codeError.value = processApiMessage(missing);
@@ -99,7 +97,7 @@ async function onSubmit(event: FormSubmitEvent<CodeState>) {
   } finally {
     isLoading.value = false;
   }
-  // The cells are disabled while the request runs: focus them once enabled.
+
   if (codeError.value) {
     await nextTick();
     codeInput.value?.focus();
@@ -124,7 +122,7 @@ async function requestForgotPassword() {
     });
 
     startCooldown();
-    // The refusal was about the previous code: the new one starts clean.
+
     clearFormError();
     codeError.value = undefined;
 

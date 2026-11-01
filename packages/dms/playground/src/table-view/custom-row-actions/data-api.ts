@@ -20,10 +20,14 @@ const HTTP_NOT_FOUND = 404;
 const HTTP_BAD_REQUEST = 400;
 const JSON_TYPE = "application/json";
 const SHARE_BASE_URL = "https://share.example.com/tasks";
-const PRIORITIES = ["low", "medium", "high"];
+const PRIORITIES = ["low", "medium", "high"] as const;
 
 interface PriorityBody {
   priority?: string;
+}
+
+interface TaskShare {
+  url: string;
 }
 
 function refuse(status: number, message: string): HTTPResult {
@@ -73,7 +77,7 @@ export class customRowActionsTaskDataAPI extends DataController(
 
   /** Answers a link the "Copy share link" action copies (`copy: "url"`). */
   @Post("share")
-  share(@Parameter("id", "query") id: string): { url: string } {
+  share(@Parameter("id", "query") id: string): TaskShare {
     return { url: `${SHARE_BASE_URL}/${encodeURIComponent(id)}` };
   }
 
@@ -89,16 +93,13 @@ export class customRowActionsTaskDataAPI extends DataController(
     @Context() ctx: RequestContext,
     @JSONBody() body: PriorityBody,
   ): Promise<{ count: number }> {
-    const priority = body?.priority ?? "";
-    if (!PRIORITIES.includes(priority)) {
+    const candidate = body?.priority ?? "";
+    const priority = PRIORITIES.find((value) => value === candidate);
+    if (!priority) {
       throw refuse(HTTP_BAD_REQUEST, "Unknown priority");
     }
     const ids = ctx.url.searchParams.getAll("ids");
-    await Promise.all(
-      ids.map((id) =>
-        this.model.update(id, { priority: priority as Task["priority"] }),
-      ),
-    );
+    await Promise.all(ids.map((id) => this.model.update(id, { priority })));
     return { count: ids.length };
   }
 

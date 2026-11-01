@@ -3,7 +3,7 @@ import {
   RunWithResponsibleModule,
 } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { InviteExtensionPayloads } from "./invite-extensions/types";
+import type { InviteExtensionPayloads } from "./invite-extension-payloads";
 import type {
   TenantDataExportContribution,
   TenantExportArchive,
@@ -12,8 +12,6 @@ import { OwnedRegistry } from "./utils/internal/owned-registry";
 
 export * from "./tenant-export";
 
-// A hook may be synchronous or asynchronous; `any` already covers both, and
-// `Promise<any> | any` collapsed to exactly the same type.
 export type HookCallback = (...args: any[]) => any;
 
 export enum Hook {
@@ -103,6 +101,7 @@ export interface TenantProvisioningHookPayload {
    * not a party to — which is what lets a consumer collect new fields without
    * a DMS release.
    */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Provisioning extras are opaque consumer data in the published hook payload; the interface does not own their schema.
   extras: Record<string, unknown>;
 }
 
@@ -250,8 +249,6 @@ export interface HookSignatures {
   };
   [Hook.TENANT_DATA_EXPORT]: {
     args: [tenantId: string, archive: TenantExportArchive, signal: AbortSignal];
-    // `void` rather than `undefined`, which would reject a handler that only
-    // writes to the archive.
     result: TenantDataExportContribution | void;
   };
   [Hook.INVITE_BEING_CREATED]: {
@@ -341,8 +338,6 @@ interface SettledHook {
 
 const hooksRegistry = new Map<Hook, OwnedRegistry<HookEntry>>();
 
-// Owned by the module generation that settles a hook, so a destroyed DMS
-// takes the settled state down with it even when `stop()` never ran.
 const settledHooks = new OwnedRegistry<SettledHook>();
 
 function getHooks(name: Hook): OwnedRegistry<HookEntry> {
@@ -353,7 +348,7 @@ function getHooks(name: Hook): OwnedRegistry<HookEntry> {
   return hooks;
 }
 
-function logHookFailure(name: Hook, error: unknown): void {
+function logHookFailure(name: Hook, error: Error["cause"]): void {
   Logging.Error(`Hook '${name}' execution failed:`, error);
 }
 
@@ -371,12 +366,12 @@ function runLateHandler(
   callback: HookCallback,
   owner: string | undefined,
 ): void {
-  const run = async (): Promise<unknown> => callback(...settled.args);
-  const runAsOwner = async (): Promise<unknown> =>
+  const run = async () => callback(...settled.args);
+  const runAsOwner = async () =>
     owner ? RunWithResponsibleModule(owner, run) : run();
   void Promise.resolve()
     .then(runAsOwner)
-    .catch((error: unknown) => {
+    .catch((error: Error["cause"]) => {
       Logging.Error(
         `Hook '${settled.name}' handler of module '${owner ?? "unknown"}' failed:`,
         error,
@@ -403,11 +398,11 @@ export function RegisterHook<H extends Hook>(
 ): void {
   const owner = GetResponsibleModule();
   getHooks(name).add({
-    callback: callback as HookCallback,
+    callback,
     moduleId: options?.moduleId ?? owner,
   });
   const settled = findSettledHook(name);
-  if (settled) runLateHandler(settled, callback as HookCallback, owner);
+  if (settled) runLateHandler(settled, callback, owner);
 }
 
 /**
@@ -433,7 +428,7 @@ export function GetRegisteredHooks<H extends Hook>(
     .values()
     .map((entry) => ({
       moduleId: entry.moduleId,
-      handler: entry.callback as HookHandler<H>,
+      handler: entry.callback,
     }));
 }
 
@@ -502,9 +497,7 @@ export async function CollectHooks<H extends Hook>(
   const results: HookSignatures[H]["result"][] = [];
   for (const hook of getHooks(name).values()) {
     try {
-      const value = (await hook.callback(
-        ...args,
-      )) as HookSignatures[H]["result"];
+      const value: HookSignatures[H]["result"] = await hook.callback(...args);
       results.push(value);
     } catch (error) {
       logHookFailure(name, error);

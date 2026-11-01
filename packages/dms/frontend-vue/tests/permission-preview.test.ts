@@ -12,7 +12,7 @@ import {
   type PreviewLockableEntry,
   resolveActivePreviewBlock,
   resolvePreviewBlock,
-} from "#dms-core/app/build/utils/permission-preview";
+} from "#dms-core/app/entries/utils/permission-preview";
 
 const SESSION = {
   id: "p1",
@@ -25,6 +25,11 @@ const SESSION = {
 };
 
 describe("permission preview", () => {
+  registerPreviewSessionAndRenderingTests();
+  registerPreviewLockTests();
+});
+
+function registerPreviewSessionAndRenderingTests() {
   describe("parsePreviewSession", () => {
     it("reads a stored session", () => {
       expect(parsePreviewSession(JSON.stringify(SESSION))).toEqual(SESSION);
@@ -115,7 +120,7 @@ describe("permission preview", () => {
       expect(resolveActivePreviewBlock(true, RESULT, "table")).toEqual({
         state: "hidden",
       });
-      // A normal session, even holding a stale result, veils nothing.
+
       expect(resolveActivePreviewBlock(false, RESULT, "table")).toBeUndefined();
     });
 
@@ -126,7 +131,9 @@ describe("permission preview", () => {
       expect(isPreviewEntryLocked(true, HIDDEN, undefined)).toBe(false);
     });
   });
+}
 
+function registerPreviewLockTests() {
   describe("applyPreviewLocks", () => {
     interface Entry extends PreviewLockableEntry {
       label: string;
@@ -140,8 +147,7 @@ describe("permission preview", () => {
         ...(entry.locked ? [entry.label] : []),
         ...lockedLabels(entry.children ?? []),
       ]);
-    // A label group, a category with a nested category and a dynamic entry,
-    // and the sidebar footer.
+
     const MENU: Entry[] = [
       { label: "Sales", type: "label", fullId: "pages.sales" },
       {
@@ -192,4 +198,4 @@ describe("permission preview", () => {
       expect(lockedLabels(locked)).toEqual([]);
     });
   });
-});
+}

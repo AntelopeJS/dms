@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
@@ -10,7 +10,7 @@ import {
   ref,
   type App,
 } from "vue";
-import type { DmsFooterConfig } from "../layers/dms-core/shared/types/app-config";
+import type { DmsFooterConfig } from "../layers/dms-core/app/entries/shared/types/app-config";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -32,7 +32,7 @@ const SelectStub = defineComponent({
 
 async function mountFooter(): Promise<void> {
   const { default: Footer } = await import(
-    "../layers/dms-layout/app/build/components/layout/Footer.vue"
+    "../layers/dms-layout/app/entries/components/layout/Footer"
   );
   host = document.createElement("div");
   document.body.append(host);
@@ -45,6 +45,7 @@ async function mountFooter(): Promise<void> {
         h("a", { href: props.to }, slots.default?.()),
   });
   app.component("USelect", SelectStub);
+  app.component("UIcon", () => h("span"));
   app.mount(host);
   await nextTick();
 }
@@ -106,6 +107,7 @@ describe("footer", () => {
     expect(linkTexts()).toEqual([
       "empty_layout.footer.documentation",
       "empty_layout.footer.website",
+      "empty_layout.footer.github_star",
     ]);
     expect(host.querySelector("[data-locale-switcher]")).not.toBeNull();
   });
@@ -124,7 +126,7 @@ describe("footer", () => {
     unregisterFooterLink("dms:website");
     unregisterFooterLink("never-registered");
     await mountFooter();
-    expect(linkTexts()).toEqual(["Status"]);
+    expect(linkTexts()).toEqual(["Status", "empty_layout.footer.github_star"]);
   });
 
   it("names the copyright holder, or drops it and the picker", async () => {
@@ -161,13 +163,24 @@ describe("footer", () => {
     expect(setLocale).not.toHaveBeenCalled();
   });
 
-  // The footer used to show a GitHub "Star" button with the DMS repository's
-  // live star count, read from api.github.com in every visitor's browser.
-  it("shows no GitHub star and asks nothing of GitHub", async () => {
+  it("shows one static GitHub star link and asks nothing of GitHub", async () => {
     await mountFooter();
     await nextTick();
-    expect(host.querySelector('a[href*="github.com"]')).toBeNull();
-    expect(host.textContent).not.toContain("github_star");
+    const links = host.querySelectorAll(
+      'a[href="https://github.com/AntelopeJS/dms"]',
+    );
+    expect(links).toHaveLength(1);
+    expect(links[0]?.textContent?.trim()).toBe(
+      "empty_layout.footer.github_star",
+    );
+    expect(links[0]?.getAttribute("aria-label")).toBe(
+      "empty_layout.footer.github_star_label",
+    );
+    expect(links[0]?.getAttribute("title")).toBe(
+      "empty_layout.footer.github_star_label",
+    );
+    expect(links[0]?.getAttribute("target")).toBe("_blank");
+    expect(links[0]?.getAttribute("rel")).toBe("noopener noreferrer");
     expect(fetch).not.toHaveBeenCalled();
   });
 });

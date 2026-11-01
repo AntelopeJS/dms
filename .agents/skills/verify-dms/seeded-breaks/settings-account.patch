@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/pages/settings/users/account-credentials.ts b/packages/dms/src/pages/settings/users/account-credentials.ts
+index 06c22123..46aaf0ee 100644
+--- a/packages/dms/src/pages/settings/users/account-credentials.ts
++++ b/packages/dms/src/pages/settings/users/account-credentials.ts
+@@ -155,7 +155,7 @@ async function deleteOtherSessions(
+   currentSessionId: string | undefined,
+ ): Promise<number> {
+   const others = (await sessionModel.getByUserId(user._id)).filter(
+-    (session) => session._id !== currentSessionId,
++    (session) => session._id === currentSessionId,
+   );
+   for (const session of others) await sessionModel.delete(session._id);
+   return others.length;

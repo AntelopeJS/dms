@@ -16,8 +16,6 @@ import SourceSnippet from "../showcase/SourceSnippet.vue";
 
 const { t } = useI18n();
 const sidePanel = useSidePanelDemo();
-// Sources register from `.client` plugins: the server never sees the
-// playground's, so what the registry holds is drawn once mounted.
 const { groups } = useCommandPaletteGroups();
 const isSourceRegistered = computed(() =>
   groups.value.some((group) =>

@@ -1,5 +1,6 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 import {
   type App,
   type Component,
@@ -18,12 +19,6 @@ import {
   useFormField,
 } from "@nuxt/ui/composables/useFormField";
 
-vi.mock(
-  "../layers/dms-core/app/composables/user/useUserRegionalPreferences",
-  () => ({ useUserRegionalPreferences: () => ({ weekStartsOn: ref(1) }) }),
-);
-
-// The field UFormField would provide: its error drives the control's state.
 const fieldError = ref<string | undefined>();
 const formEvents: Array<{ type: string; name: string }> = [];
 
@@ -34,7 +29,6 @@ async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
 }
 
-// Renders its props as attributes, so the test reads what the control passed.
 const passThrough = (tag: string) =>
   defineComponent({
     inheritAttrs: false,
@@ -45,7 +39,7 @@ const passThrough = (tag: string) =>
           Object.fromEntries(
             Object.entries(attrs).map(([key, value]) => [
               key,
-              typeof value === "object" && !Array.isArray(value)
+              isObject(value) && !Array.isArray(value)
                 ? JSON.stringify(value)
                 : value,
             ]),
@@ -57,7 +51,7 @@ const passThrough = (tag: string) =>
 
 async function mountInField(
   control: Component,
-  props: Record<string, unknown> = {},
+  props: NonNullable<Parameters<typeof h>[1]> = {},
 ): Promise<void> {
   const Field = defineComponent({
     setup() {
@@ -67,8 +61,9 @@ async function mountInField(
           name: "field",
           error: fieldError.value,
           ariaId: "field-aria",
-        })) as never,
+        })),
       );
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This partial event bus intentionally supplies only emit; the mounted controls never subscribe, reset, or read listeners, so it is not a complete Nuxt event bus.
       provide(formBusInjectionKey, {
         emit: (event: { type: string; name: string }) => formEvents.push(event),
       } as never);
@@ -85,14 +80,16 @@ async function mountInField(
 }
 
 beforeEach(() => {
+  vi.stubGlobal("useDmsUserSession", () => ({ user: ref(null) }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("useFormField", useFormField);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal(
     "isObject",
-    (value: unknown) => typeof value === "object" && value !== null,
+    (value: Parameters<typeof isObject>[0]) =>
+      isObject(value) && value !== null,
   );
   vi.stubGlobal("useI18n", () => ({
     t: (key: string) => key,

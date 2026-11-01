@@ -12,6 +12,7 @@ const LATENCY_AVERAGE = [118, 104, 162, 210, 188, 131];
 const LATENCY_P95 = [240, 221, 330, 452, 401, 276];
 const SIGNUPS = [12, 18, 9, 22, 15, 30];
 const NO_SIGNUP = [0, 0, 0, 0, 0, 0];
+// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary preset query strings require the existing indexed lookup and fallback.
 const PRESET_SCALES: Record<string, number> = {
   "last-month": 0.9,
   "this-quarter": 2.8,
@@ -30,7 +31,6 @@ function hourly(values: number[], scale = 1): SeriesPoint[] {
  * (`chartCardData`, `kpiCardData`) instead of by hand.
  */
 export class CardsDemoApiController extends Controller("/api/dashboard/cards") {
-  // A ChartCard wrapping a donut reads the first series, one slice per point.
   @Get("channels")
   getChannels(@Parameter("preset", "query") preset?: string) {
     const scale = PRESET_SCALES[preset ?? ""] ?? 1;
@@ -41,7 +41,6 @@ export class CardsDemoApiController extends Controller("/api/dashboard/cards") {
     return chartCardData(points, { measure: "sum", label: "Sessions" });
   }
 
-  // Two series: the second line has no headline of its own.
   @Get("latency")
   getLatency(@Parameter("preset", "query") preset?: string) {
     const scale = PRESET_SCALES[preset ?? ""] ?? 1;
@@ -58,8 +57,6 @@ export class CardsDemoApiController extends Controller("/api/dashboard/cards") {
     };
   }
 
-  // Compared with a period that measured nothing: the value shows, and no
-  // delta at all rather than an unbounded one.
   @Get("signups")
   getSignups(@Parameter("comparison", "query") comparison?: string) {
     return kpiCardData(hourly(SIGNUPS), {

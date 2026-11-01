@@ -5,16 +5,17 @@ import {
 } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { generateAccessToken } from "../../../../implementations/dms-auth";
-import { NotificationsApiController } from "../../../../pages/settings/users/notifications";
+import { NotificationsApiController } from "../../../../pages/account";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
   RegisterTenantAccessGate,
   internal as tenantAccessInternal,
 } from "@antelopejs/interface-dms/tenant-access";
-import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { denyingTenantGate } from "../../../helpers/page-access";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const DENIED_TENANT = "notifications-gate-tenant";
 const MEMBER_ID = "notifications-gate-member";
@@ -23,9 +24,7 @@ const AUTH_KEY = "notifications-gate-key";
 const gate = denyingTenantGate("notifications-gate", DENIED_TENANT);
 
 function context(token: string): RequestContext {
-  return {
-    rawRequest: { headers: { authorization: `Bearer ${token}` } },
-  } as RequestContext;
+  return requestContextFixture(undefined, `Bearer ${token}`);
 }
 
 async function insertUser(id: string): Promise<User> {
@@ -43,7 +42,9 @@ async function insertUser(id: string): Promise<User> {
   return stored;
 }
 
-function resolveControllerUser(token: string): Promise<unknown> {
+function resolveControllerUser(
+  token: string,
+): ReturnType<typeof computeParameter> {
   const meta = GetMetadata(NotificationsApiController, ControllerMeta);
   return computeParameter(
     context(token),
@@ -76,14 +77,14 @@ describe("[unit] pages/settings/users/notifications — tenant access gate", () 
   });
 
   it("serves a member's own notifications while a gate denies the tenant", async () => {
-    const user = (await resolveControllerUser(memberToken)) as User;
+    const user = await resolveControllerUser(memberToken);
+    assert.instanceOf(user, User);
     expect(user._id).to.equal(MEMBER_ID);
   });
 
-  // A member removed from the tenant still reads the notification telling
-  // them so: their notifications are theirs, not the tenant's.
   it("serves a user who is not a member of the tenant their own notifications", async () => {
-    const user = (await resolveControllerUser(outsiderToken)) as User;
+    const user = await resolveControllerUser(outsiderToken);
+    assert.instanceOf(user, User);
     expect(user._id).to.equal(OUTSIDER_ID);
   });
 });

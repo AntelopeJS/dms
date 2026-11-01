@@ -1,19 +1,22 @@
 import { GetMetadata } from "@antelopejs/interface-core";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import {
   type FormFieldSerialized,
   type FormPropsSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
-import { inviteSettingDataAPI } from "../../../../pages/settings/users/invites";
-import { memberInviteForm } from "../../../../pages/settings/users/member-invite-form";
+import {
+  inviteSettingDataAPI,
+  memberInviteForm,
+} from "../../../../pages/members";
 
 const RETIRED_OPTION = "skipEmailValidation";
 
 function inviteFormOptions(): FormPropsSerialized {
-  return memberInviteForm.serializeSync()
-    .options as unknown as FormPropsSerialized;
+  const { options } = memberInviteForm.serializeSync();
+  assert.isDefined(options);
+  return options;
 }
 
 function inviteFormFields(): FormFieldSerialized[] {

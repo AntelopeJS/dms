@@ -20,9 +20,10 @@ export interface StoredPayload {
   value: unknown;
 }
 
-function issuesOf(error: unknown): IssueLike[] | undefined {
-  const issues = (error as { issues?: unknown }).issues;
-  return Array.isArray(issues) ? (issues as IssueLike[]) : undefined;
+function issuesOf(error: Error["cause"]): IssueLike[] | undefined {
+  if (error === null || error === undefined) return undefined;
+  const issues = Object(error).issues;
+  return Array.isArray(issues) ? issues : undefined;
 }
 
 /**
@@ -34,7 +35,7 @@ function issuesOf(error: unknown): IssueLike[] | undefined {
  * it keeps an empty path rather than being handed a fabricated one, which the
  * form could not attach to anything either way.
  */
-function describeFailure(key: string, error: unknown): unknown {
+function describeFailure(key: string, error: Error["cause"]) {
   const issues = issuesOf(error);
   if (!issues) return String(error);
   return {
@@ -54,15 +55,18 @@ function describeFailure(key: string, error: unknown): unknown {
  */
 export function sliceOf(
   key: string,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published slice helper receives raw form values before the extension schema parses them.
   body: Record<string, unknown>,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published return keeps the submitted values, not transformed schema output.
 ): Record<string, unknown> {
-  const slice: Record<string, unknown> = {};
+  const slice: ReturnType<typeof sliceOf> = {};
   for (const [id, value] of Object.entries(body)) {
     const split = splitInviteExtensionFieldId(id);
     if (split?.key === key) {
       slice[split.fieldId] = value;
     }
   }
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published return contract remains the raw form-value dictionary populated above.
   return slice;
 }
 
@@ -73,6 +77,7 @@ export function sliceOf(
  */
 export function assertSliceValid(
   info: InviteExtensionInfo,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This published validation boundary accepts raw fields and parses them with the registering extension's schema below.
   slice: Record<string, unknown>,
 ): void {
   assertValidation(

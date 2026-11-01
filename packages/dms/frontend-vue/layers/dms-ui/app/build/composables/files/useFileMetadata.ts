@@ -24,7 +24,7 @@ export interface FileMetadata {
 }
 
 const METADATA_URL = "/api/files/metadata";
-// A read URL is read again this long before it expires.
+
 const URL_REFRESH_LEAD_MS = 5000;
 
 const isExpired = (metadata: FileMetadata): boolean =>
@@ -46,7 +46,7 @@ const isExpired = (metadata: FileMetadata): boolean =>
  */
 export function useFileMetadata(storage?: string) {
   const contentLanguage = inject(FORM_CONTENT_LANGUAGE_KEY, undefined);
-  // Reads resolved past the setup run with the application's context.
+
   const app = getCurrentInstance()?.appContext.app;
   const scope = effectScope();
   const reads = shallowReactive(new Map<string, ApiDataResult<FileMetadata>>());
@@ -134,7 +134,7 @@ export function useFileMetadata(storage?: string) {
    */
   function isUnavailable(key: string): boolean {
     const result = reads.get(key);
-    // A failure stays until the next answer: a retry keeps the file marked.
+
     if (!result?.error.value) return false;
     const known = result.data.value;
     return (

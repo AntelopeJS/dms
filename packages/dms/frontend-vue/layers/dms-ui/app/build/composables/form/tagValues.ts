@@ -8,7 +8,6 @@ export interface AddTagsOptions {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Addresses compare in lower case: "Ann@acme.io" is the one "ann@acme.io".
 const NORMALIZERS: Record<TagItemType, (item: string) => string> = {
   string: (item) => item.trim(),
   email: (item) => item.trim().toLowerCase(),

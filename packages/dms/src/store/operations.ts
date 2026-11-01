@@ -1,7 +1,7 @@
 import { assert } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
-import { removeFrontendModulesUnder } from "../implementations/dms/frontend-modules";
+import { removeFrontendModulesUnder } from "./internal/frontend/frontend-modules";
 import { setStoreOperationRunning } from "./activity";
 import { findCatalogEntry } from "./catalog";
 import { isCompatible, installedInterfaceVersion } from "./compatibility";
@@ -26,6 +26,7 @@ import {
   isLive,
   listRuntimeModules,
   loadStoreModule,
+  packageRuntimeId,
   unloadStoreModule,
 } from "./runtime";
 import type {
@@ -96,7 +97,7 @@ function setStep(step: StoreOperationStep): void {
   if (current) current.step = step;
 }
 
-function describeError(error: unknown): string {
+function describeError(error: PromiseRejectedResult["reason"]): string {
   if (error instanceof AggregateError && error.errors.length > 0) {
     return error.errors.map(describeError).join("; ");
   }
@@ -106,7 +107,7 @@ function describeError(error: unknown): string {
 async function load(
   context: OperationContext,
   range: string,
-  config?: unknown,
+  config?: StoreDeclaration["config"],
 ): Promise<void> {
   setStep("load");
   await loadStoreModule(context.key, {
@@ -324,7 +325,7 @@ async function execute(
     const message = describeError(error);
     Logging.Error(`[DMS] Module store: ${kind} ${context.id} failed`, error);
     errors.set(context.id, message);
-    await rollback(context).catch((rollbackError: unknown) =>
+    await rollback(context).catch((rollbackError) =>
       Logging.Error(
         `[DMS] Module store: rolling back ${context.id} failed`,
         rollbackError,
@@ -350,7 +351,8 @@ async function prepareContext(
     HTTP_CONFLICT,
     "error.store_invalid_state",
   );
-  // Installing next to a working copy would load the package a second time.
+
+  let key = declaration?.key ?? catalogEntry.package;
   if (!declaration) {
     const runtime = await listRuntimeModules();
     assert(
@@ -358,12 +360,13 @@ async function prepareContext(
       HTTP_CONFLICT,
       "error.store_working_copy",
     );
+    key = packageRuntimeId(catalogEntry.package, runtime.values());
   }
   const context: OperationContext = {
     id,
     catalogEntry,
     projectPath,
-    key: declaration?.key ?? catalogEntry.package,
+    key,
     declaration,
     written: false,
     dependencies: options.dependencies ?? [],
@@ -400,7 +403,7 @@ export async function startStoreOperation(
       execute(kind, context).finally(() => {
         setCurrent(undefined);
       }),
-    ).catch((error: unknown) =>
+    ).catch((error) =>
       Logging.Error(`[DMS] Module store: ${kind} ${id} failed`, error),
     );
   } catch (error) {

@@ -6,14 +6,14 @@ import type {
   User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { generateAuthKey } from "../../utils/auth-key";
-import { authSchema } from "../../validation/auth.schema";
+import { generateAuthKey } from "../../utils";
+import { authSchema } from "../../validation";
 
 export async function logout(
   userModel: UserModel,
   sessionModel: SessionModel,
   user: User,
-  body: unknown,
+  body: Parameters<typeof authSchema.logout.parse>[0],
 ): Promise<HTTPResult> {
   const { token } = assertValidation(body, (v) => authSchema.logout.parse(v));
 

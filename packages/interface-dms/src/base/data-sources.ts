@@ -1,3 +1,4 @@
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Preserve the public BlockResponseShape type name in this subpath's declarations.
 import type { BlockOptionSchema, BlockResponseShape } from "./block-registry";
 
 /**
@@ -18,6 +19,7 @@ export interface DataSourceDefinition {
   title: string;
   description?: string;
   /** The shape the route answers with, so only blocks that can read it offer it. */
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Published source compatibility property and type cannot be renamed.
   responseShape: BlockResponseShape;
   /** The route's path, as a block would fetch it. */
   path: string;
@@ -66,11 +68,14 @@ export function RegisterDataSource(definition: DataSourceDefinition): void {
  * sources without anything having to invalidate a cache.
  */
 export function ListDataSources(
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Preserve the published parameter and type names.
   responseShape?: BlockResponseShape,
 ): DataSourceDefinition[] {
   const all = Array.from(SOURCES.values());
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- This parameter name is part of the published declaration.
   return responseShape
-    ? all.filter((source) => source.responseShape === responseShape)
+    ? // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Compare the published source compatibility property without renaming its parameter.
+      all.filter((source) => source.responseShape === responseShape)
     : all;
 }
 

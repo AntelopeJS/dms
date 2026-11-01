@@ -4,7 +4,6 @@ import { MONO_CHIP_CLASS } from "../../utils/monoChip";
 import { onMounted, ref, resolveComponent, useTemplateRef } from "vue";
 import { useResizeObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { toneTextClass } from "../../utils/tone";
 import { PREVIEW_LOCK_ICON } from "../../utils/permissionPreview";
 
@@ -52,7 +51,6 @@ interface Props {
 const props = defineProps<Props>();
 const activeId = defineModel<string>({ required: true });
 
-// v2 link tabs: a 2px accent underline sits on the row's bottom rule.
 const theme = tv({
   slots: {
     root: "no-scrollbar flex gap-5 overflow-x-auto border-b border-default px-[18px]",
@@ -79,13 +77,13 @@ const theme = tv({
         tab: "h-11",
       },
     },
-    // Same hatch as the sidebar's locked entries.
+
     previewLocked: {
       true: {
         tab: "px-1.5 text-muted dms-hatch-locked",
       },
     },
-    // Same hatch as the sidebar's partially locked entries.
+
     previewPartial: {
       true: {
         tab: "px-1.5 dms-hatch-partial",
@@ -94,13 +92,14 @@ const theme = tv({
   },
 });
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
+// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
+const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableTabs: Partial<typeof theme> };
 };
 
 const uiVariant = tv({
   extend: tv(theme),
-  ...(appConfig.ui?.tableTabs || {}),
+  ...appConfig.ui?.tableTabs,
 });
 
 const ui = computed(() => uiVariant({ inline: props.inline }));
@@ -110,7 +109,6 @@ const DmsLink = resolveComponent("DmsLink");
 const isActive = (tab: TableTabItem): boolean =>
   !tab.to && tab.id === activeId.value;
 
-// Beside link tabs, the active tab stands for the page itself.
 const currentValue = computed(() =>
   props.tabs.some((tab) => tab.to) ? "page" : "true",
 );
@@ -120,8 +118,6 @@ const onTabClick = (tab: TableTabItem) => {
   activeId.value = tab.id;
 };
 
-// A strip wider than the card scrolls sideways: its clipped edges fade out so
-// the hidden tabs read as reachable.
 const FADE_EDGE = "24px";
 const navRef = useTemplateRef<HTMLElement>("nav");
 const fadeStart = ref(false);

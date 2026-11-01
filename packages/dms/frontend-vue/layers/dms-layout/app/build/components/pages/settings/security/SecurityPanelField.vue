@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, type Slot } from "vue";
 import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
 import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
 
@@ -16,12 +16,12 @@ interface SecurityPanelFieldProps {
 
 interface SecurityPanelFieldSlots {
   /** The control; bind `describedby` and `invalid` onto it. */
-  default?: (props: {
+  default?: Slot<{
     describedby: string | undefined;
     invalid: boolean;
-  }) => unknown;
+  }>;
   /** Under the control and its error (a "Forgot your password?" link). */
-  after?: () => unknown;
+  after?: Slot;
 }
 
 const props = withDefaults(defineProps<SecurityPanelFieldProps>(), {

@@ -1,4 +1,10 @@
+import "./helpers/table-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchClientMock } from "./fixtures/unusedApi";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
 import { ref } from "vue";
 import { createI18n } from "vue-i18n";
 import { Color } from "../layers/dms-core/app/types/color";
@@ -10,22 +16,19 @@ import { useEventedAction } from "../layers/dms-core/app/composables/useEventedA
 import {
   ConfirmActionError,
   type ConfirmOptions,
+  type ConfirmValues,
 } from "../layers/dms-ui/app/composables/confirm/types";
-import core from "../layers/dms-core/i18n/locales/core-en-GB.json";
-import ui from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
+import core from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
+import ui from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 
-// The form the row actions open is not under test.
-vi.mock("../layers/dms-ui/app/components/form/Form.vue", () => ({
-  default: {},
-}));
-
-type Messages = Record<string, unknown>;
+type Messages = { [key: string]: string | Messages };
 const merge = (target: Messages, source: Messages): Messages => {
   for (const [key, value] of Object.entries(source)) {
     const current = target[key];
     target[key] =
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Locale trees contain string leaves and nested message branches; only branches are merged recursively.
       current && typeof current === "object" && typeof value === "object"
-        ? merge({ ...(current as Messages) }, value as Messages)
+        ? merge({ ...current }, value)
         : value;
   }
   return target;
@@ -36,22 +39,20 @@ const i18n = createI18n({
   locale: "en",
   missingWarn: false,
   fallbackWarn: false,
-  messages: { en: merge(merge({}, core), ui) as never },
+  messages: { en: merge(merge({}, core), ui) },
 });
-const t = i18n.global.t as (...args: unknown[]) => string;
+const t = i18n.global.t;
 
 const toast = { add: vi.fn() };
 const refresh = vi.fn();
-const api = vi.fn();
-// The dialog as ConfirmModal runs it: the action goes inside with the values
-// of its fields, a rejection keeps it open (here: the user then gives up), a
-// partial outcome is acknowledged.
+const api = fetchClientMock();
+
 const dialogs: {
   options: ConfirmOptions;
   outcome?: unknown;
   error?: unknown;
 }[] = [];
-let dialogValues: Record<string, unknown> = {};
+let dialogValues: ConfirmValues = {};
 const confirm = vi.fn(async (options: ConfirmOptions) => {
   const dialog: (typeof dialogs)[number] = { options };
   dialogs.push(dialog);
@@ -65,7 +66,7 @@ const confirm = vi.fn(async (options: ConfirmOptions) => {
   }
 });
 
-function fetchError(status: number | undefined, data?: unknown) {
+function fetchError(status: number | undefined, data?: string) {
   return Object.assign(new Error(`[PUT] "/api/task": ${status}`), {
     name: "FetchError",
     statusCode: status,
@@ -82,11 +83,12 @@ const getRow = vi.fn();
 
 async function rowActions() {
   const { useTableRowActions } = await import(
-    "../layers/dms-ui/app/build/composables/table-view/useTableViewRowActions"
+    "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
   );
   return useTableRowActions({
-    api: api as never,
+    api,
     location: "/api/task",
+    columns: [],
     componentId: "table",
     pageId: "tasks",
     formComponents: {},
@@ -96,7 +98,7 @@ async function rowActions() {
 }
 
 beforeEach(() => {
-  const globals: Record<string, unknown> = {
+  const globals = {
     ref,
     Color,
     HttpMethod,
@@ -133,6 +135,27 @@ afterEach(() => {
 });
 
 describe("Table row actions: refusals", () => {
+  registerRowActionRefusalTests();
+  registerBulkActionRefusalTests();
+  registerRowActionDialogTests();
+  registerRowActionConfirmationTests();
+});
+
+function registerRowActionRefusalTests() {
+  it("returns false for a direct marked restore, keeping rows and selection rather than refreshing", async () => {
+    installReadOnlyRefusal();
+    api.mockRejectedValue(readOnlyFailure());
+    const actions = await rowActions();
+    const selected = ["t1"];
+    expect(await actions.restoreRows(selected, true)).toBe(false);
+    expect(selected).toEqual(["t1"]);
+    expect(shownRows.map(({ _id }) => _id)).toEqual(["t1", "t2"]);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(toast.add).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "dms-read-only" }),
+    );
+  });
+
   it("runs a confirmed action inside its dialog, which shows the refusal", async () => {
     api.mockRejectedValue(
       fetchError(404, "$page.settings.invites.error.not_found"),
@@ -147,7 +170,7 @@ describe("Table row actions: refusals", () => {
           successMessage: "Sent",
         },
         confirm: { title: "Resend?", description: "" },
-      } as never,
+      },
       { _id: "i1" },
     );
     await vi.waitFor(() => expect(dialogs).toHaveLength(1));
@@ -156,8 +179,8 @@ describe("Table row actions: refusals", () => {
     expect(api).toHaveBeenCalledWith("/api/invites/i1/resend", {
       method: HttpMethod.post,
     });
-    // The dialog shows it: no toast on top.
-    expect((dialogs[0]!.error as { statusCode: number }).statusCode).toBe(404);
+
+    expect(dialogs[0]!.error).toHaveProperty("statusCode", 404);
     expect(toast.add).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -177,7 +200,7 @@ describe("Table row actions: refusals", () => {
           successMessage: "Copied",
           copy: "url",
         },
-      } as never,
+      },
       { _id: "i1" },
     );
     await vi.waitFor(() => expect(toast.add).toHaveBeenCalled());
@@ -213,7 +236,9 @@ describe("Table row actions: refusals", () => {
     );
     expect(refresh).toHaveBeenCalledOnce();
   });
+}
 
+function registerBulkActionRefusalTests() {
   it("keeps the dialog open when the rules refused every row", async () => {
     api.mockResolvedValue({ deleted: 0 });
     const { deleteRows } = await rowActions();
@@ -221,9 +246,12 @@ describe("Table row actions: refusals", () => {
     const done = await deleteRows(["1", "2"], true);
 
     expect(done).toBe(false);
-    const error = dialogs[0]!.error as ConfirmActionError;
+    const error = dialogs[0]!.error;
     expect(error).toBeInstanceOf(ConfirmActionError);
-    expect(error.message).toBe("These 2 items couldn’t be deleted.");
+    expect(error).toHaveProperty(
+      "message",
+      "These 2 items couldn’t be deleted.",
+    );
     expect(toast.add).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -233,7 +261,7 @@ describe("Table row actions: refusals", () => {
     const { archiveRows } = await rowActions();
 
     expect(await archiveRows(["1"], true)).toBe(false);
-    expect((dialogs[0]!.error as Error).name).toBe("FetchError");
+    expect(dialogs[0]!.error).toHaveProperty("name", "FetchError");
     expect(toast.add).not.toHaveBeenCalled();
   });
 
@@ -275,7 +303,7 @@ describe("Table row actions: refusals", () => {
           successMessage: "Banned",
         },
         confirm: { title: "Ban {name}?", fields: [] },
-      } as never,
+      },
       { _id: "u1", name: "Ada" },
     );
     await vi.waitFor(() => expect(api).toHaveBeenCalled());
@@ -286,7 +314,9 @@ describe("Table row actions: refusals", () => {
       body: { notify: false, scope: "all", reason: "spam" },
     });
   });
+}
 
+function registerRowActionDialogTests() {
   it("asks the dialog a `from` URL words for one row, before a delete", async () => {
     api.mockImplementation(async (url: string) =>
       url === "/api/task/t1/delete-confirm"
@@ -376,7 +406,9 @@ describe("Table row actions: refusals", () => {
     expect(api).not.toHaveBeenCalledWith("/api/task/t1/delete-confirm");
     expect(dialogs[0]!.options.title).toBe("Delete 2 items?");
   });
+}
 
+function registerRowActionConfirmationTests() {
   it("hands a `from` URL naming no row the whole selection, and the delete its answer", async () => {
     api.mockImplementation(async (url: string) =>
       url.startsWith("/api/roles/delete-confirm")
@@ -424,4 +456,4 @@ describe("Table row actions: refusals", () => {
     await runConfirmedBuiltIn(true, undefined, proceed);
     expect(proceed).toHaveBeenCalledTimes(2);
   });
-});
+}

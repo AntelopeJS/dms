@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -13,7 +13,8 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import DashboardBanners from "../layers/dms-layout/app/build/components/layout/DashboardBanners.vue";
+import type { NamedValue } from "vue-i18n";
+import DashboardBanners from "../layers/dms-layout/app/entries/components/layout/DashboardBanners";
 import {
   isLayoutBannerInScope,
   isModuleAreaPath,
@@ -25,7 +26,7 @@ import {
   type LayoutBanner,
   type LayoutBannerVariant,
   type SiteLayout,
-} from "../layers/dms-layout/app/types/page";
+} from "../layers/dms-core/app/types/page";
 
 const DISMISSED_BANNERS_COOKIE = "dms-dismissed-banners";
 const APP_PAGE = "/finance/invoices";
@@ -50,8 +51,6 @@ function serveBanners(banners: LayoutBanner[] | undefined): void {
   siteLayout.value = { pages: {}, categories: {}, banners };
 }
 
-// Renders what the real alert exposes to the banner: its description slot and
-// a close button that reports the alert closed.
 const AlertStub = defineComponent({
   props: {
     color: { type: String, default: undefined },
@@ -109,7 +108,7 @@ beforeEach(() => {
     processI18n: (key: string) => key.replace(/^\$/, "t:"),
   }));
   vi.stubGlobal("useI18n", () => ({
-    t: (key: string, named?: Record<string, unknown>) =>
+    t: (key: string, named?: NamedValue) =>
       named && Object.keys(named).length
         ? `t:${key}:${JSON.stringify(named)}`
         : `t:${key}`,
@@ -139,6 +138,7 @@ describe("resolveLayoutBannerPresentation", () => {
 
   it("renders an unknown variant as info rather than unstyled", () => {
     const presentation = resolveLayoutBannerPresentation(
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Deliberately inject an unsupported server variant to test the fallback, not a valid variant.
       banner({ variant: "success" as LayoutBannerVariant }),
     );
     expect(presentation).toEqual(
@@ -229,8 +229,6 @@ describe("useLayoutBanners", () => {
     expect(banners.value).toEqual([]);
   });
 
-  // A banner that turned non-dismissible (an overdue invoice) must show again
-  // even to a user who closed its dismissible predecessor under the same key.
   it("ignores a dismissal for a banner that is not dismissible", () => {
     dismissedCookie.value = ["a"];
     serveBanners([banner({ key: "a", dismissible: false })]);
@@ -239,6 +237,11 @@ describe("useLayoutBanners", () => {
 });
 
 describe("DashboardBanners", () => {
+  registerBannerPresentationTests();
+  registerBannerScopeAndDismissalTests();
+});
+
+function registerBannerPresentationTests() {
   it("server-renders the banners in order, each with its variant's role", async () => {
     serveBanners([
       banner({ key: "billing", variant: "error", text: "$billing.overdue" }),
@@ -309,8 +312,6 @@ describe("DashboardBanners", () => {
     ]);
   });
 
-  // The server reads the same cookie, so a dismissed banner never reaches the
-  // page only to be removed on hydration.
   it("leaves a dismissed banner out of the server-rendered page", async () => {
     dismissedCookie.value = ["news"];
     serveBanners([banner({ key: "news", dismissible: true })]);
@@ -321,7 +322,6 @@ describe("DashboardBanners", () => {
     expect(html).not.toContain("data-dms-layout-banners");
   });
 
-  // The site layout is fetched once: the scope is what changes between pages.
   it("adds and removes scoped banners on client-side navigation", async () => {
     serveBanners([
       banner({ key: "overdue", scope: "app" }),
@@ -347,7 +347,9 @@ describe("DashboardBanners", () => {
     expect(renderedKeys()).toEqual(["overdue", "past-due"]);
     app.unmount();
   });
+}
 
+function registerBannerScopeAndDismissalTests() {
   it("server-renders only the banners scoped to the requested page", async () => {
     route.path = MODULE_PAGE;
     serveBanners([
@@ -384,4 +386,4 @@ describe("DashboardBanners", () => {
     ).toEqual(["sticky"]);
     app.unmount();
   });
-});
+}

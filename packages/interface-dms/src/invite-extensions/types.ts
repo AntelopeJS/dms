@@ -115,5 +115,4 @@ export interface InviteExtensionOptions<T> {
   placement?: InviteExtensionPlacement;
 }
 
-/** Payloads stored on an invitation, keyed by extension key. */
-export type InviteExtensionPayloads = Record<string, unknown>;
+export type { InviteExtensionPayloads } from "../invite-extension-payloads";

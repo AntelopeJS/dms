@@ -1,11 +1,7 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import EmptyState from "../layers/dms-ui/app/components/empty-state/EmptyState.vue";
-
-vi.mock("../layers/dms-ui/app/components/icon-well/IconWell.vue", () => ({
-  default: { render: () => null },
-}));
 
 let app: App | undefined;
 

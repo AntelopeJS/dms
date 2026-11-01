@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   AUTOMATIC_PREFERENCE,
@@ -6,14 +6,14 @@ import {
   fromRegionFormValues,
   readRegionalPreferences,
   toRegionFormValues,
-} from "../../../../pages/settings/users/regional-preferences";
-import type { FormPropsSerialized } from "@antelopejs/interface-dms/base/form-types";
-import { regionPreferencesForm } from "../../../../pages/settings/users/region-form";
-import { regionalPreferencesSchema } from "../../../../validation/regional-preferences.schema";
+  regionPreferencesForm,
+} from "../../../../pages/account";
+import { regionalPreferencesSchema } from "../../../../validation";
 
 const PASSWORD_HASH = "$2b$10$kept-hash";
 
 function storedUser(): User {
+  // SAFETY: The preference helpers read and update regional fields only; password is retained to assert unrelated fields survive, and no persistence methods run.
   return {
     _id: "regional-user",
     email: "ada@acme.dev",
@@ -21,7 +21,7 @@ function storedUser(): User {
     language: "en",
     password: PASSWORD_HASH,
     timeZone: "Asia/Tokyo",
-  } as unknown as User;
+  } as User;
 }
 
 describe("[unit] regional preferences — validation", () => {
@@ -127,8 +127,8 @@ describe("[unit] regional preferences — the Language & region form", () => {
   });
 
   it("is one instant form with a section per group", () => {
-    const options = regionPreferencesForm().serializeSync()
-      .options as FormPropsSerialized;
+    const { options } = regionPreferencesForm().serializeSync();
+    assert.isDefined(options);
     expect(options?.saveMode).to.equal("instant");
     expect(options?.sections?.map((section) => section.id)).to.deep.equal([
       "language",

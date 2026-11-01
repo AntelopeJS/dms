@@ -1,6 +1,6 @@
 import { getQuery, parseURL } from "ufo";
 import type { FavoritePage } from "../composables/favorites/useFavoritePages";
-import type { PageValidation } from "../types/page";
+import type { PageValidation } from "#dms-core/app/types/page";
 import { buildPageTarget } from "./breadcrumb";
 
 const FAVORITE_TITLE_SEPARATOR = " · ";
@@ -15,7 +15,7 @@ export interface FavoritePageMetadata {
 export interface FavoritePageSource {
   path: string;
   metadata: FavoritePageMetadata;
-  query: Record<string, unknown>;
+  query: Parameters<typeof buildPageTarget>[2];
   translate: (text: string) => string;
 }
 
@@ -25,15 +25,13 @@ export type FavoriteRouteResolver = (
 
 function requiredQueryValues(
   validation: PageValidation | undefined,
-  query: Record<string, unknown>,
+  query: FavoritePageSource["query"],
 ): string[] {
   return (validation?.requiredQueryParams ?? []).map((param) =>
     String(query[param]),
   );
 }
 
-// A page narrowed by its query shows one entity out of many: its generic
-// display name would label every favorite of it the same way.
 function entityTitle(pageTitle: string, queryValues: string[]): string {
   return [pageTitle, ...queryValues].join(FAVORITE_TITLE_SEPARATOR);
 }

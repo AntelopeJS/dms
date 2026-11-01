@@ -51,9 +51,7 @@ function isDrawnInBrowser(
   return typeof window !== "undefined" && from?.path === to.path;
 }
 
-function ensureSiteLayoutLoaded(
-  siteLayout: ReturnType<typeof useSiteLayout>,
-): Promise<unknown> | undefined {
+function ensureSiteLayoutLoaded(siteLayout: ReturnType<typeof useSiteLayout>) {
   if (siteLayout.siteLayout.value) return undefined;
   return siteLayout.loadSiteLayout();
 }
@@ -68,15 +66,6 @@ export default defineDmsMiddleware(async (to, from) => {
   const pendingLoad = ensureSiteLayoutLoaded(siteLayout);
   if (pendingLoad) await pendingLoad;
 
-  // Redirect to the configured homepage, but never in a way that re-enters this
-  // guard and loops: not to the path we're already on, and not to a homepage
-  // that is itself an unresolved module route. Either makes Vue Router abort
-  // with "Infinite redirect in navigation guard" — most visibly mid dev
-  // hot-reload, when the re-registering module's route is briefly absent from
-  // the site layout before it is re-committed (see
-  // useSiteLayout.probeAndCommitRoute), or simply when a project pins its
-  // homepage to one of its own `/modules/*` pages. Falling through lets the page
-  // render its own 404 (or the dev-reload plugin re-commit the layout) instead.
   const redirectToHomepage = () => {
     const homepage = useHomepage();
     if (homepage === to.path) return undefined;
@@ -88,7 +77,6 @@ export default defineDmsMiddleware(async (to, from) => {
 
   const moduleEntry = siteLayout.modules.value?.[moduleId];
 
-  // A page of the Modules page itself (the module store), not of a module.
   if (!moduleEntry && siteLayout.findMatchingRoute(to.path)?.metadata) return;
 
   if (!moduleId || !moduleEntry) {
@@ -117,10 +105,6 @@ export default defineDmsMiddleware(async (to, from) => {
     moduleEntry.landingPage,
   );
 
-  // Answered rather than navigated to: the navigation that entered the
-  // module goes to the landing page instead, so the module's own address
-  // never renders (a 404 before the redirect landed), never enters the
-  // history, and a server render answers it with a redirect.
   if (landingSlug && landingSlug !== to.path) {
     const landing = withQueryAndHash(landingSlug, to.fullPath);
     if (isDrawnInBrowser(to, from)) {

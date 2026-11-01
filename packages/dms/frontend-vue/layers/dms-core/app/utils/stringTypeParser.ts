@@ -5,10 +5,14 @@ export type Primitive =
   | Date
   | null
   | undefined
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Primitive is the exported parser contract; JSON objects have arbitrary members and a recursive JSON-only replacement would narrow existing consumers of this union.
   | Record<string, unknown>
   | unknown[];
 
-const KEYWORD_VALUES = {
+const KEYWORD_VALUES: Record<
+  Parameters<typeof isKeyword>[0],
+  ReturnType<typeof parse>
+> = {
   true: true,
   false: false,
   null: null,
@@ -18,8 +22,7 @@ const KEYWORD_VALUES = {
 const PARSER_REGISTRY = [
   {
     test: isKeyword,
-    parse: (value: string) =>
-      KEYWORD_VALUES[value as keyof typeof KEYWORD_VALUES],
+    parse: (value: string) => KEYWORD_VALUES[value],
   },
   {
     test: isStringNumber,
@@ -44,9 +47,7 @@ export function parse(value: string): Primitive {
   return value;
 }
 
-export function parseObject(
-  items: Array<{ key: string; value: string }>,
-): Record<string, Primitive> {
+export function parseObject(items: Array<{ key: string; value: string }>) {
   const result: Record<string, Primitive> = {};
   for (const item of items) {
     result[item.key] = parse(item.value);

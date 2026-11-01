@@ -1,6 +1,8 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import { computed } from "vue";
+import { stringifyQuery, withQuery } from "ufo";
 import { interpolateUrl } from "#dms-core/app/utils/url-interpolation";
+import { isString } from "#dms-core/app/utils/type-check";
 import type {
   TableViewColumn,
   TableViewListResponse,
@@ -18,6 +20,7 @@ import {
   usePeriodScope,
 } from "#dms-core/app/composables/period/usePeriodScope";
 
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Source plugins and data controllers own different query keys and values. TableQueryParams excludes plugin extensions and malformed query handling; retain the open request contract.
 type Query = Record<string, unknown>;
 
 /** One count of a batch: its id and its list query. */
@@ -56,10 +59,51 @@ const DESCENDING = "desc";
  */
 export const LIVE_HELD_AT_QUERY_KEY = "liveHeldAt";
 const NO_ROUTE_VALUES: ReplaceUrlVariablesContext = { routeQuery: {} };
+const MAX_BATCH_COUNT_QUERIES = 50;
+const MAX_BATCH_COUNT_TARGET_BYTES = 8_192;
+
+function encodeCountQuery({ id, query }: TableCountQuery): string {
+  const values = Object.fromEntries(
+    Object.entries(query)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => [
+        key,
+        Array.isArray(value) ? value.map(String) : String(value),
+      ]),
+  );
+  return `${encodeURIComponent(id)}?${stringifyQuery(values)}`;
+}
+
+function countBatchTargetBytes(location: string, entries: string[]): number {
+  const url = new URL(location, "http://dms.invalid");
+  const target = withQuery(url.pathname + url.search, { query: entries });
+  return new TextEncoder().encode(target).byteLength;
+}
+
+function packCountQueries(
+  location: string,
+  queries: TableCountQuery[],
+): string[][] {
+  const batches: string[][] = [];
+  let batch: string[] = [];
+  for (const entry of queries.map(encodeCountQuery)) {
+    if (
+      batch.length > 0 &&
+      (batch.length >= MAX_BATCH_COUNT_QUERIES ||
+        countBatchTargetBytes(location, [...batch, entry]) >
+          MAX_BATCH_COUNT_TARGET_BYTES)
+    ) {
+      batches.push(batch);
+      batch = [];
+    }
+    batch.push(entry);
+  }
+  batches.push(batch);
+  return batches;
+}
 
 type SourceCapabilities = TableViewSourceConfig["capabilities"];
 
-// Which capability lets a query key reach the route.
 const QUERY_KEY_CAPABILITIES: Array<
   [matches: (key: string) => boolean, capability: keyof SourceCapabilities]
 > = [
@@ -101,7 +145,7 @@ export function processSourceRows<T extends Record<string, unknown>>(
   pinnedRows?: RowActionRule,
 ): TableViewListResponse<T> {
   let processed = rows;
-  const search = typeof query.search === "string" ? query.search.trim() : "";
+  const search = isString(query.search) ? query.search.trim() : "";
   if (!capabilities.search && search) {
     const needle = search.toLocaleLowerCase();
     const keys = columns.map((column) => column.accessorKey);
@@ -111,7 +155,7 @@ export function processSourceRows<T extends Record<string, unknown>>(
       ),
     );
   }
-  const sortKey = typeof query.sortKey === "string" ? query.sortKey : "";
+  const sortKey = isString(query.sortKey) ? query.sortKey : "";
   if (!capabilities.sort && sortKey) {
     const direction = query.sortDirection === DESCENDING ? -1 : 1;
     processed = [...processed].sort(
@@ -181,21 +225,7 @@ function emptySourcePage<T>(query: Query): TableViewListResponse<T> {
   };
 }
 
-/**
- * Where a table view reads its rows: its data controller's routes, or the
- * route of a `TableView.fromSource` table — which answers `{ results, total }`
- * for the part of the query it handles. A route answering every row leaves
- * the rest to the browser; a route answering one page is taken as it is.
- *
- * A source's `{{params.X}}` and `{{query.X}}` tokens are filled from `route`;
- * while one has no value nothing is requested and the list is empty. A
- * source's `periodScope` adds the period of its selector to the URL, like a
- * chart's; until that selector registers, nothing is requested and the list
- * answers `null`, which the table draws as its skeleton. `sourceUrl` is the
- * URL requested, for the caller to list again when it changes. The rows
- * `pinnedRows` accepts lead each list answered.
- */
-export function useTableRows<T extends Record<string, unknown>>(
+function createTableSource<T extends Record<string, unknown>>(
   options: TableRowsOptions,
 ) {
   const { api, location, source, columns } = options;
@@ -213,10 +243,6 @@ export function useTableRows<T extends Record<string, unknown>>(
     return source.periodScope ? appendPeriodToUrl(url, periodScope.value) : url;
   });
 
-  // Reads of the same source with the same query, while one is in flight,
-  // share it: the list and the counter of a tab that filters nothing the
-  // route handles ask it the same thing at the same time. The request is
-  // cancelled once every caller waiting on it has given up.
   const sharedReads = new Map<string, SharedRead<T>>();
   const readSource = (
     url: string,
@@ -240,7 +266,7 @@ export function useTableRows<T extends Record<string, unknown>>(
       read = started;
     }
     const joined = read;
-    // A caller without a signal never gives up: the request stays.
+
     joined.waiting += 1;
     if (!signal) return joined.answer;
     return awaitUnlessAborted(joined.answer, signal, () => {
@@ -281,12 +307,34 @@ export function useTableRows<T extends Record<string, unknown>>(
     );
   };
 
+  return { api, location, source, sourceUrl, isPeriodPending, listFromSource };
+}
+
+/**
+ * Where a table view reads its rows: its data controller's routes, or the
+ * route of a `TableView.fromSource` table — which answers `{ results, total }`
+ * for the part of the query it handles. A route answering every row leaves
+ * the rest to the browser; a route answering one page is taken as it is.
+ *
+ * A source's `{{params.X}}` and `{{query.X}}` tokens are filled from `route`;
+ * while one has no value nothing is requested and the list is empty. A
+ * source's `periodScope` adds the period of its selector to the URL, like a
+ * chart's; until that selector registers, nothing is requested and the list
+ * answers `null`, which the table draws as its skeleton. `sourceUrl` is the
+ * URL requested, for the caller to list again when it changes. The rows
+ * `pinnedRows` accepts lead each list answered.
+ */
+export function useTableRows<T extends Record<string, unknown>>(
+  options: TableRowsOptions,
+) {
+  const { api, location, source, sourceUrl, isPeriodPending, listFromSource } =
+    createTableSource<T>(options);
+
   const withPinnedRows = (
     page: TableViewListResponse<T> | null,
   ): TableViewListResponse<T> | null =>
     page && { ...page, results: pinRows(page.results, options.pinnedRows?.()) };
 
-  // The list the route answers, before the pinned rows lead it.
   const listAnswered = (
     query: Query,
     signal?: AbortSignal,
@@ -295,7 +343,6 @@ export function useTableRows<T extends Record<string, unknown>>(
       ? listFromSource(source, query, signal)
       : api<TableViewListResponse<T>>(`${location}/list`, { query, signal });
 
-  // `signal` aborts the request once its answer is no longer wanted.
   const list = async (
     query: Query,
     signal?: AbortSignal,
@@ -338,17 +385,21 @@ export function useTableRows<T extends Record<string, unknown>>(
     };
   };
 
-  // A source answers its totals one list at a time.
   const countBatch = async (
     queries: TableCountQuery[],
     signal?: AbortSignal,
   ): Promise<Record<string, number>> => {
     if (!source) {
-      return api<Record<string, number>>(`${location}/count/batch`, {
-        method: "POST",
-        body: { queries },
-        signal,
-      });
+      const endpoint = `${location}/count/batch`;
+      const counts = await Promise.all(
+        packCountQueries(endpoint, queries).map((entries) =>
+          api<Record<string, number>>(endpoint, {
+            query: { query: entries },
+            signal,
+          }),
+        ),
+      );
+      return Object.assign({}, ...counts);
     }
     const totals = await Promise.all(
       queries.map(async ({ id, query }) => {
@@ -363,8 +414,6 @@ export function useTableRows<T extends Record<string, unknown>>(
     return Object.fromEntries(totals.flat());
   };
 
-  // A source reads one row through its `fetchRowUrl`, if it declares one. It
-  // sends no list query, the period included: one row by id depends on none.
   const getSourceRow = (
     sourceConfig: TableViewSourceConfig,
     id: string,

@@ -8,6 +8,7 @@ export type Primitive =
   | Date
   | null
   | undefined
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published Primitive alias includes arbitrary JSON objects; restricting their values would change the parser contract.
   | Record<string, unknown>
   | unknown[];
 
@@ -18,11 +19,12 @@ const KEYWORD_VALUES = {
   undefined: undefined,
 };
 
+const KEYWORD_LOOKUP = new Map(Object.entries(KEYWORD_VALUES));
+
 const STRING_TYPE_PARSERS = [
   {
     test: isStringKeyword,
-    parse: (value: string) =>
-      KEYWORD_VALUES[value as keyof typeof KEYWORD_VALUES],
+    parse: (value: string) => KEYWORD_LOOKUP.get(value),
   },
   {
     test: isStringNumber,
@@ -83,6 +85,7 @@ export function parseObject(
   for (const item of items) {
     result[item.key] = parseValue(item.value);
   }
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published return type is a dictionary of Primitive values, populated by parseValue above.
   return result;
 }
 
@@ -163,11 +166,13 @@ const PRIMITIVE_TYPE_VALIDATORS = [
   isNull,
 ];
 /** @internal */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published assertion validates arbitrary comparison operands and throws for unsupported values.
 export const assertPrimitiveValue = (value: unknown): void => {
   if (PRIMITIVE_TYPE_VALIDATORS.some((test) => test(value))) {
     return;
   }
   throw new Error(
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The error reports the rejected operand's JavaScript tag without changing its validation contract.
     `Value must be a string, number, boolean, or Date for is comparison. Got: ${typeof value}`,
   );
 };

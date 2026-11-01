@@ -45,7 +45,7 @@ export async function exchangeCodeForAccessToken(
   });
 
   assert(response.ok, HTTP_BAD_GATEWAY, TOKEN_EXCHANGE_FAILED_MESSAGE);
-  const tokens = (await response.json()) as TokenResponse;
+  const tokens: TokenResponse = await response.json();
 
   if (tokens.access_token) {
     return tokens.access_token;

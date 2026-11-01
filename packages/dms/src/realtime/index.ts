@@ -19,25 +19,27 @@ import {
 import { instanceId } from "./instance";
 import { RedisBroker } from "./redis-broker";
 import { closeAllSessions } from "./sessions";
+import { RealtimeDriver, RealtimeConfig } from "../types";
+export { RealtimeDriver, RealtimeConfig } from "../types";
 
 export * from "./broker";
-// Only the readers: setCurrentRealtime does not migrate subscriptions and
-// must not be reachable from outside this module.
+
 export { getPresenceTracker, getRealtimeBroker } from "./current";
+
 export * from "./instance";
+
 export * from "./presence";
+
 export * from "./redis-broker";
+
 export * from "./registry";
+
 export * from "./sse";
 
-export type RealtimeDriver = "redis" | "memory" | "auto";
 type ResolvedDriver = "redis" | "memory";
 
-export interface RealtimeConfig {
-  driver?: RealtimeDriver;
-}
-
 const DEFAULT_DRIVER: RealtimeDriver = "auto";
+
 const REDIS_INTERFACE_ID = "@antelopejs/interface-redis";
 
 const driverFactories: Record<ResolvedDriver, () => RealtimeBroker> = {
@@ -68,6 +70,7 @@ interface TrackedSubscription {
 }
 
 const trackedSubscriptions = new Map<number, TrackedSubscription>();
+
 let nextSubscriptionId = 0;
 
 /**
@@ -106,8 +109,6 @@ export function setRealtimeBroker(broker: RealtimeBroker): void {
   const previousBroker = setCurrentRealtime(broker);
   if (previousBroker === broker) return;
   for (const tracked of trackedSubscriptions.values()) {
-    // Each entry is moved independently: one broker refusing a topic must not
-    // leave the entries after it attached to the broker about to be closed.
     try {
       tracked.detach();
     } catch (error) {
@@ -159,8 +160,6 @@ export async function configureRealtime(
 }
 
 export async function stopRealtime(): Promise<void> {
-  // Before the broker goes: closing a session releases its presence entries,
-  // which still need a live store.
   await closeAllSessions();
   if (stopHeartbeatFn) {
     try {
@@ -172,3 +171,5 @@ export async function stopRealtime(): Promise<void> {
   }
   await getRealtimeBroker().close?.();
 }
+export * from "./current";
+export * from "./sessions";

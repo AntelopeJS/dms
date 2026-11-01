@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * `useApiData` through the runtime's real async data and the real
  * `$authFetch`: a server render reads, renders and hands over the data, the
@@ -27,7 +27,7 @@ vi.stubGlobal("useDmsState", engine.useDmsState);
 vi.stubGlobal("useDmsRuntimeConfig", () => ({
   public: { dms: { baseURL: "" } },
 }));
-// The app's language, which a test may switch.
+
 const appLocale = ref("fr");
 vi.stubGlobal("useDmsApp", () => ({ $i18n: { locale: appLocale } }));
 vi.stubGlobal("HTTP_UNAUTHORIZED", 401);
@@ -50,26 +50,23 @@ vi.stubGlobal("useDmsPagedData", engine.useDmsPagedData);
 
 interface Sent {
   url: string;
-  query?: Record<string, unknown>;
+  query?: { page?: number };
   headers: Headers;
   signal?: AbortSignal;
 }
 
 const sent: Sent[] = [];
 let failNextWith: number | undefined;
+type TransportOptions = NonNullable<Parameters<typeof engine.$fetch>[1]>;
 
 /** The transport under `$fetch`: what reaches the backend. */
-const transport = (async (
-  url: string,
-  options: {
-    query?: Record<string, unknown>;
-    headers?: HeadersInit;
-    signal?: AbortSignal;
-    onRequest?: (context: { options: { headers: Headers } }) => void;
-  } = {},
-) => {
+// SAFETY: These cases request only { url, page }; the transport invokes the auth hook with normalized headers before answering.
+const transport = (async (url: string, options: TransportOptions = {}) => {
   const headers = new Headers(options.headers);
-  options.onRequest?.({ options: { headers } });
+  const hooks = options.onRequest ?? [];
+  for (const hook of Array.isArray(hooks) ? hooks : [hooks]) {
+    await hook({ request: url, options: { ...options, headers } });
+  }
   sent.push({ url, query: options.query, headers, signal: options.signal });
   if (failNextWith) {
     const status = failNextWith;
@@ -80,7 +77,7 @@ const transport = (async (
     });
   }
   return { url, page: options.query?.page ?? null };
-}) as never;
+}) as Parameters<typeof engine.createDmsFrontendRuntime>[0];
 
 const mounted: App[] = [];
 
@@ -126,6 +123,80 @@ const settle = async () => {
 };
 
 describe("useApiData", () => {
+  registerApiHydrationTests();
+  registerApiPollingTests();
+  registerApiRequestContextTests();
+});
+
+describe("useApiPagedData", () => {
+  interface Listing {
+    url: string;
+    page: number | null;
+  }
+  const LAST_PAGE = 3;
+
+  function listing() {
+    let list: ReturnType<typeof useApiPagedData<Listing, number>> | undefined;
+    const Explorer = defineComponent({
+      setup() {
+        list = useApiPagedData<Listing, number>(
+          "media:root",
+          ({ $authFetch, cursor, signal }) =>
+            $authFetch<Listing>("/api/media", {
+              query: { page: cursor },
+              signal,
+            }),
+          {
+            initialCursor: 1,
+            nextCursor: (page) =>
+              (page.page ?? LAST_PAGE) < LAST_PAGE ? page.page! + 1 : null,
+          },
+        );
+        return () =>
+          h("p", list!.pages.value.map((page) => page.page).join(","));
+      },
+    });
+    return { Explorer, list: () => list! };
+  }
+
+  it("renders the first page on the server, then loads more in the browser", async () => {
+    const server = listing();
+    const { html, payload } = await serverRender(server.Explorer);
+    expect(html).toBe("<p>1</p>");
+    expect(sent[0]!.headers.get("x-content-language")).toBe("fr");
+
+    sent.length = 0;
+    const browser = listing();
+    const container = hydrate(browser.Explorer, html, payload);
+    await settle();
+    expect(sent).toEqual([]);
+
+    await browser.list().loadMore();
+    await browser.list().loadMore();
+    await settle();
+    expect(sent.map(({ query }) => query)).toEqual([{ page: 2 }, { page: 3 }]);
+    expect(container.textContent).toBe("1,2,3");
+    expect(browser.list().hasMore.value).toBe(false);
+  });
+
+  it("reads every loaded page again on a refresh", async () => {
+    const { Explorer, list } = listing();
+    const runtime = engine.createDmsFrontendRuntime(transport);
+    const app = createApp(Explorer);
+    engine.provideDmsFrontendRuntime(app, runtime);
+    app.mount(document.createElement("div"));
+    mounted.push(app);
+    await settle();
+    await list().loadMore();
+    sent.length = 0;
+
+    await list().refresh();
+    expect(sent.map(({ query }) => query)).toEqual([{ page: 1 }, { page: 2 }]);
+    expect(list().pages.value).toHaveLength(2);
+  });
+});
+
+function registerApiHydrationTests() {
   it("reads in the server render, and the browser hydrates without asking again", async () => {
     const page = ref(1);
     const Orders = defineComponent({
@@ -224,7 +295,9 @@ describe("useApiData", () => {
       "1",
     ]);
   });
+}
 
+function registerApiPollingTests() {
   it("waits for execute() with immediate: false, as a dialog does", async () => {
     let execute: (() => Promise<void>) | undefined;
     const Dialog = defineComponent({
@@ -320,7 +393,9 @@ describe("useApiData", () => {
     expect(sent).toHaveLength(stopped);
     runtime.scope.stop();
   });
+}
 
+function registerApiRequestContextTests() {
   it("asks in the language current when each request leaves", async () => {
     const runtime = engine.createDmsFrontendRuntime(transport);
     const app = createApp({ render: () => null });
@@ -339,72 +414,4 @@ describe("useApiData", () => {
   it("is the one read helper: useAuthFetch returns $authFetch alone", () => {
     expect(Object.keys(useAuthFetch())).toEqual(["$authFetch"]);
   });
-});
-
-describe("useApiPagedData", () => {
-  interface Listing {
-    url: string;
-    page: number | null;
-  }
-  const LAST_PAGE = 3;
-
-  function listing() {
-    let list: ReturnType<typeof useApiPagedData<Listing, number>> | undefined;
-    const Explorer = defineComponent({
-      setup() {
-        list = useApiPagedData<Listing, number>(
-          "media:root",
-          ({ $authFetch, cursor, signal }) =>
-            $authFetch<Listing>("/api/media", {
-              query: { page: cursor },
-              signal,
-            }),
-          {
-            initialCursor: 1,
-            nextCursor: (page) =>
-              (page.page ?? LAST_PAGE) < LAST_PAGE ? page.page! + 1 : null,
-          },
-        );
-        return () =>
-          h("p", list!.pages.value.map((page) => page.page).join(","));
-      },
-    });
-    return { Explorer, list: () => list! };
-  }
-
-  it("renders the first page on the server, then loads more in the browser", async () => {
-    const server = listing();
-    const { html, payload } = await serverRender(server.Explorer);
-    expect(html).toBe("<p>1</p>");
-    expect(sent[0]!.headers.get("x-content-language")).toBe("fr");
-
-    sent.length = 0;
-    const browser = listing();
-    const container = hydrate(browser.Explorer, html, payload);
-    await settle();
-    expect(sent).toEqual([]);
-
-    await browser.list().loadMore();
-    await browser.list().loadMore();
-    await settle();
-    expect(sent.map(({ query }) => query)).toEqual([{ page: 2 }, { page: 3 }]);
-    expect(container.textContent).toBe("1,2,3");
-    expect(browser.list().hasMore.value).toBe(false);
-  });
-
-  it("reads every loaded page again on a refresh", async () => {
-    const { Explorer, list } = listing();
-    const runtime = engine.createDmsFrontendRuntime(transport);
-    const app = createApp(Explorer);
-    engine.provideDmsFrontendRuntime(app, runtime);
-    app.mount(document.createElement("div"));
-    mounted.push(app);
-    await settle();
-    await list().loadMore();
-    sent.length = 0;
-
-    await list().refresh();
-    expect(sent.map(({ query }) => query)).toEqual([{ page: 1 }, { page: 2 }]);
-    expect(list().pages.value).toHaveLength(2);
-  });
-});
+}

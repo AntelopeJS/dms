@@ -58,21 +58,24 @@ const applyPageCall = (server: FakeServer, url: string): void => {
 };
 
 const installFetch = (server: FakeServer): void => {
-  globalThis.fetch = vi.fn(async (url: string) => {
-    if (url === CONNECTION_URL) return openConnection();
-    if (url === SESSION_URL) return openSession();
-    if (!server.isHoldingCalls) {
-      applyPageCall(server, url);
-      return { ok: true, status: 200 };
-    }
-    await new Promise<void>((resolve) =>
-      server.heldCalls.push(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url === CONNECTION_URL) return openConnection();
+      if (url === SESSION_URL) return openSession();
+      if (!server.isHoldingCalls) {
         applyPageCall(server, url);
-        resolve();
-      }),
-    );
-    return { ok: true, status: 200 };
-  }) as unknown as typeof fetch;
+        return { ok: true, status: 200 };
+      }
+      await new Promise<void>((resolve) =>
+        server.heldCalls.push(() => {
+          applyPageCall(server, url);
+          resolve();
+        }),
+      );
+      return { ok: true, status: 200 };
+    }),
+  );
 };
 
 const settle = async (): Promise<void> => {
@@ -105,9 +108,7 @@ beforeEach(async () => {
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("toValue", toValue);
   vi.stubGlobal("onScopeDispose", onScopeDispose);
-  vi.stubGlobal("useDmsState", (_key: string, init: () => unknown) =>
-    ref(init()),
-  );
+  vi.stubGlobal("useDmsState", <T>(_key: string, init: () => T) => ref(init()));
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: BASE_URL } },
   }));

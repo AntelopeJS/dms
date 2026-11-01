@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * The date picker closes once the day is picked, as a select closes on its
  * pick; a range closes on its end, a multiple picker stays open for more.
@@ -16,21 +16,22 @@ import {
 } from "vue";
 import { CalendarDate } from "@internationalized/date";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
-
-vi.mock(
-  "../layers/dms-core/app/composables/user/useUserRegionalPreferences",
-  () => ({ useUserRegionalPreferences: () => ({ weekStartsOn: ref(1) }) }),
-);
+import {
+  isFunction,
+  isObject,
+  isString,
+} from "../layers/dms-core/app/utils/type-check";
+import type { CalendarProps } from "@nuxt/ui/components/Calendar.vue";
 
 let app: App | undefined;
 let host: HTMLDivElement;
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- The calendar stub forwards raw emitted values, including half-picked ranges. Inference needs a callable initializer and the completed DatePicker model contract would exclude those intermediate events.
 let pick: (value: unknown) => void = () => {};
 
 async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
 }
 
-// The popover shows whether it is open; the calendar hands out its picks.
 const Popover = defineComponent({
   props: { open: Boolean },
   emits: ["update:open"],
@@ -49,13 +50,19 @@ const Popover = defineComponent({
 const Calendar = defineComponent({
   inheritAttrs: false,
   setup(_, { attrs }) {
-    pick = (value) =>
-      (attrs["onUpdate:modelValue"] as (value: unknown) => void)(value);
+    pick = (value) => {
+      const listener = attrs["onUpdate:modelValue"];
+      if (!isFunction(listener))
+        throw new Error("The picker received no update listener");
+      listener(value);
+    };
     return () => h("div");
   },
 });
 
-async function mount(props: Record<string, unknown> = {}) {
+async function mount(
+  props: Pick<CalendarProps<boolean, boolean>, "range" | "multiple"> = {},
+) {
   const { default: DatePicker } = await import(
     "../layers/dms-ui/app/components/form/components/DatePicker.vue"
   );
@@ -74,14 +81,15 @@ const isOpen = () =>
 const day = (date: number) => new CalendarDate(2026, 10, date);
 
 beforeEach(() => {
+  vi.stubGlobal("useDmsUserSession", () => ({ user: ref(null) }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("useFormField", useFormField);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal(
     "isObject",
-    (value: unknown) => typeof value === "object" && value !== null,
+    <Value>(value: Value) => isObject(value) && value !== null,
   );
   vi.stubGlobal("useI18n", () => ({
     t: (key: string) => key,

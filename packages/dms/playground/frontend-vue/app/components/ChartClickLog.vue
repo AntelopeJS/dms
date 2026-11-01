@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// Lists the click events the charts of the page broadcast on the window bus
-// (ChartEvents.SEGMENT_CLICK on circular charts, POINT_CLICK on XY ones), the
-// same events a backend `.watch()` subscribes to.
 
 interface Props {
   title: string;
@@ -45,8 +42,8 @@ function describe(data: ChartClickData | undefined): string {
   return `${data?.seriesName ?? "?"} · ${where} · ${value ?? "—"}`;
 }
 
-function onChartEvent(event: Event): void {
-  const detail = (event as CustomEvent<ChartClickDetail>).detail;
+function onChartEvent(event: Event & Partial<CustomEvent<ChartClickDetail>>): void {
+  const detail = event.detail;
   nextId += 1;
   entries.value = [
     {

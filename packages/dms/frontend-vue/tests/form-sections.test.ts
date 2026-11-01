@@ -5,7 +5,7 @@ import {
   layoutSections,
   resolveSectionNav,
   sectionState,
-} from "../layers/dms-ui/app/build/composables/form/formSections";
+} from "../layers/dms-ui/app/entries/composables/form/formSections";
 import type { FormFieldOrGroup } from "../layers/dms-ui/app/composables/form/types/field";
 
 const field = (id: string, label?: string) => ({

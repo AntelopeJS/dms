@@ -2,8 +2,8 @@
 set -euo pipefail
 
 if ! command -v mongod >/dev/null 2>&1; then
-  echo "MongoDB is not installed; run .agents/setup" >&2
-  exit 1
+  echo "MongoDB will be installed when the playground service starts"
+  exit 0
 fi
 
 if ! systemctl is-active --quiet mongod; then

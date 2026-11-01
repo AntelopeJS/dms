@@ -1,11 +1,11 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import type {
   SessionModel,
   User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { applyConfig, getAuthConfig } from "../../config";
-import { signup } from "../../routes/auth/signup";
+import { signup } from "../../routes/authentication";
 import { seedUserInvite } from "../helpers/fixtures";
 
 const INVITEE_NAME = "Invitee";
@@ -22,10 +22,8 @@ interface SignupScenario {
   existingDraft?: User;
 }
 
-// One id per address: a takeover accepts the invitation, which makes its
-// account a workspace member, and a later draft under the same id would then
-// be refused as a real account.
 function buildDraft(email: string): User {
+  // SAFETY: The draft takeover path reads and rewrites plain account fields; this fixture does not implement database-row methods.
   return {
     _id: `signup-validation-draft:${email}`,
     email,
@@ -34,7 +32,7 @@ function buildDraft(email: string): User {
     validationToken: "STALE1",
     validationRequestedAt: new Date(),
     language: "en",
-  } as unknown as User;
+  } as User;
 }
 
 /**
@@ -45,11 +43,13 @@ function buildDraft(email: string): User {
 async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
   let account: User | undefined = scenario.existingDraft;
   const newUserId = `signup-validation:${scenario.email}`;
+  // SAFETY: The harness supplies only signup's account lookups and writes; it records the account before later unserved token interfaces can reject.
   const userModel = {
     getByEmail: async () => scenario.existingDraft,
     get: async () => account,
     getOwners: async () => [],
     insert: async (row: Partial<User>) => {
+      // SAFETY: Signup supplies the creation fields inspected below; this plain captured row is not used as a complete database entity with methods.
       account = { ...row, _id: newUserId } as User;
       return [newUserId];
     },
@@ -57,14 +57,14 @@ async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
       account = user;
     },
   } as unknown as UserModel;
-  // The fixture skips validation by default; the invitation here must not,
-  // or a signup left to its validation round would read as validated.
+
   const { token } = await seedUserInvite({
     email: scenario.email,
   });
 
   await signup(
     userModel,
+    // SAFETY: This intentionally empty session model is allowed to fail after account creation; the catch below discards that downstream failure and assertions inspect only the written account.
     {} as SessionModel,
     {
       name: INVITEE_NAME,
@@ -76,8 +76,8 @@ async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
     { ip: IP },
   ).catch(() => undefined);
 
-  expect(account, "signup wrote no account").to.not.equal(undefined);
-  return account as User;
+  assert.isDefined(account, "signup wrote no account");
+  return account;
 }
 
 function expectValidated(account: User): void {
@@ -90,8 +90,6 @@ describe("[unit] auth/signup — email validation of an invited account", () => 
   afterEach(() => setEmailValidation(false));
 
   describe("on an instance that does not validate emails", () => {
-    // Nothing would ever validate such an account: it kept the "Email not
-    // verified" badge for good, and resending the email always failed.
     it("marks the new account verified", async () => {
       expectValidated(
         await signUpThroughInvite({ email: "validation-off@acme.dev" }),
@@ -106,8 +104,6 @@ describe("[unit] auth/signup — email validation of an invited account", () => 
     });
   });
 
-  // The invitation link proves the address (an admin who copies it by hand
-  // vouches for it): no second validation round follows the signup.
   describe("on an instance that validates emails", () => {
     beforeEach(() => setEmailValidation(true));
 

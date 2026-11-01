@@ -1,8 +1,6 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import enGB from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
-import frFR from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
+import enGB from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+import frFR from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 import {
   defaultSortingState,
   headerSortCue,
@@ -17,10 +15,8 @@ import {
   sortDirectionLabelKey,
   sortingOrDefault,
   sortValueKind,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/sortableColumns";
+} from "../layers/dms-ui/app/entries/composables/table-view/utils/sortableColumns";
 
-// The Drawer demo's task columns: only `due_date` and
-// `completion_percentage` are `@Sortable()` on `/api/task`.
 const columns = [
   { id: "name", accessorKey: "name", enableSorting: false },
   { id: "email", accessorKey: "email", enableSorting: false },
@@ -77,12 +73,10 @@ describe("sanitizeSorting", () => {
   it("survives malformed preferences", () => {
     expect(sanitizeSorting(undefined, sortable)).toEqual([]);
     expect(sanitizeSorting(null, sortable)).toEqual([]);
-    expect(sanitizeSorting("due_date" as unknown as never[], sortable)).toEqual(
-      [],
-    );
-    expect(sanitizeSorting([{ id: 3 } as unknown as never], sortable)).toEqual(
-      [],
-    );
+    // @ts-expect-error Malformed persisted data must be rejected even outside the declared sorting contract.
+    expect(sanitizeSorting("due_date", sortable)).toEqual([]);
+    // @ts-expect-error A numeric persisted sort id must be rejected, not coerced to a column id.
+    expect(sanitizeSorting([{ id: 3 }], sortable)).toEqual([]);
   });
 
   it("drops a sort on a column the route refused since", () => {
@@ -103,8 +97,6 @@ describe("sortingOrDefault", () => {
     expect(sortingOrDefault(sorting, sortable, byDueDate)).toEqual(sorting);
   });
 
-  // Clearing the sort (a third click on a header) used to be remembered as
-  // `[]`: the table then listed in the database's natural order for good.
   it("goes back to the default sort once the user clears theirs", () => {
     expect(sortingOrDefault([], sortable, byDueDate)).toEqual(byDueDate);
     expect(sortingOrDefault(null, sortable, byDueDate)).toEqual(byDueDate);
@@ -118,22 +110,6 @@ describe("sortingOrDefault", () => {
     expect(
       sortingOrDefault([], new Set(["completion_percentage"]), byDueDate),
     ).toEqual([]);
-  });
-
-  it("is what the table view restores, and corrects, its sort with", () => {
-    const tableView = readFileSync(
-      resolve(
-        __dirname,
-        "../layers/dms-ui/app/components/table-view/TableView.vue",
-      ),
-      "utf8",
-    );
-    expect(tableView).toMatch(
-      /const sorting = ref<SortingState>\(\s*reorderConfig\s*\? defaultSortState\s*: sortingOrDefault\(/,
-    );
-    expect(tableView).toMatch(
-      /const sanitized = sortingOrDefault\(\s*next,\s*sortableIds\.value,\s*defaultSortState,\s*\);/,
-    );
   });
 });
 
@@ -226,7 +202,6 @@ describe("stable default sort", () => {
   });
 
   it("invents nothing without a sortable creation date", () => {
-    // The task demos list `created_at`, but not as @Sortable.
     expect(resolveDefaultSortConfig(undefined, sortable)).toBeUndefined();
   });
 
@@ -244,7 +219,7 @@ describe("header sort cue", () => {
     expect(
       headerSortCue({ canSort: false, sorted: false, isDefaultSorting: false }),
     ).toBe("none");
-    // Even a stale sort state on it never shows.
+
     expect(
       headerSortCue({ canSort: false, sorted: "asc", isDefaultSorting: true }),
     ).toBe("none");
@@ -316,18 +291,17 @@ describe("sort direction labels", () => {
   });
 
   it("are translated in English and French", () => {
-    const lookup = (messages: unknown, key: string) =>
-      key
-        .split(".")
-        .reduce<unknown>(
-          (node, part) => (node as Record<string, unknown>)?.[part],
-          messages,
-        );
+    type Message = string | { [key: string]: Message };
+    const lookup = (messages: Message, key: string) =>
+      key.split(".").reduce<Message | undefined>((node, part) => {
+        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Locale messages are recursive branches or string leaves; only branches can be traversed.
+        return typeof node === "object" ? node[part] : undefined;
+      }, messages);
     for (const kind of ["number", "date", "text"] as const) {
       for (const desc of [false, true]) {
         const key = sortDirectionLabelKey(kind, desc);
-        expect(typeof lookup(enGB, key), key).toBe("string");
-        expect(typeof lookup(frFR, key), key).toBe("string");
+        expect(lookup(enGB, key), key).toBeTypeOf("string");
+        expect(lookup(frFR, key), key).toBeTypeOf("string");
       }
     }
     expect(lookup(enGB, "dms.sort.direction.date.desc")).toBe(

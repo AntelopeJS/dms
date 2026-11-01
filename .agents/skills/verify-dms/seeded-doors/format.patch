@@ -1,0 +1,13 @@
+diff --git a/packages/dms/src/db/tables/userNotifications.table.ts b/packages/dms/src/db/tables/userNotifications.table.ts
+index de63f6e3..5efcce5b 100644
+--- a/packages/dms/src/db/tables/userNotifications.table.ts
++++ b/packages/dms/src/db/tables/userNotifications.table.ts
+@@ -37,7 +37,7 @@ export class UserNotification extends Table {
+   declare description: string;
+ 
+   @Field("string")
+-  declare linkTo: string | null;
++  declare link: string | null;
+ 
+   @Field("any")
+   declare params: Record<string, string | number> | null;

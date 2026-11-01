@@ -17,19 +17,13 @@ import {
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// A browser keeps the site layout it was sent for a few minutes (an Inertia
-// once prop) and reloads it when the backend announces a menu change. A
-// change of what a member may open is one: it reaches the sessions of the
-// members it changes, on each one's topic, whichever page made it, and leaves
-// the rest of the workspace alone.
-
 const ROLES = pageRoutePath("/settings/workspace/roles");
 const ROLES_TABLE = "/api/tables/roles";
 const MEMBERS = pageRoutePath("/settings/workspace/members");
 const MEMBERS_TABLE = "/api/tables/members";
 const HTTP_OK = 200;
 const HTTP_NO_CONTENT = 204;
-// Longer than the 250 ms window a burst of menu events collapses into.
+
 const MENU_WINDOW_MARGIN_MS = 600;
 
 interface MenuEvents {
@@ -61,7 +55,7 @@ async function menuEventsDuring(
     const deadline = Date.now() + MENU_WINDOW_MARGIN_MS;
     while (events.member === 0 && Date.now() < deadline)
       await new Promise((resolve) => setTimeout(resolve, 20));
-    // The window a stray publish to another topic would land in.
+
     await new Promise((resolve) => setTimeout(resolve, MENU_WINDOW_MARGIN_MS));
     return events;
   } finally {
@@ -90,9 +84,11 @@ describe("[integration] menu events on access changes", () => {
   let member: RegisteredUser;
 
   async function createRole(name: string): Promise<string> {
-    const response = await owner.post(`${ROLES}/create`, { name });
+    const response = await owner.post<{ id: string }>(`${ROLES}/create`, {
+      name,
+    });
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data.id as string;
+    return response.data.id;
   }
 
   beforeEach(async () => {

@@ -10,13 +10,14 @@ import {
   DEFAULT_API_BASE_URL,
   DEFAULT_CLIENT_BASE_URL,
 } from "./config";
-import { describeEnabledOAuthProviders } from "./routes/auth/oauth/config";
+import { SESSION_HANDOFF_ENDPOINT as sessionHandoffEndpoint } from "./config/session-handoff";
+import { describeEnabledOAuthProviders } from "./routes/oauth-config";
 
 /**
  * Where the frontend server opens the session a credential change handed back
  * (`/auth/establish`). Declared as an establish endpoint of the DMS frontend.
  */
-export const SESSION_HANDOFF_ENDPOINT = "/api/auth/session-handoff";
+export const SESSION_HANDOFF_ENDPOINT = sessionHandoffEndpoint;
 
 const DEFAULT_HOMEPAGE = "/";
 
@@ -54,6 +55,7 @@ export const frontendModule: FrontendModuleFunction<Config> = (
         MILLISECONDS_PER_SECOND,
     },
     homepage: config.homepage ?? DEFAULT_HOMEPAGE,
+    ...(config.loginPrefill && { loginPrefill: { ...config.loginPrefill } }),
     oauthProviders: describeEnabledOAuthProviders(config.auth?.oauth).map(
       ({ id, label, icon }) => ({ id, label, icon }),
     ),

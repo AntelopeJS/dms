@@ -7,9 +7,7 @@ const theme = tv({
       "relative flex items-center justify-center size-8 rounded-md transition-colors hover:bg-elevated",
     link: "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors hover:bg-elevated",
     icon: "shrink-0",
-    // The collapsed rail leaves no room for a trailing dot, so a top-level
-    // entry carries it as a badge on the corner of its icon. The ring makes it
-    // readable whatever the icon underneath.
+
     topLevelStatusDot:
       "absolute top-0.5 right-0.5 size-2 rounded-full bg-current ring-2 ring-default",
     statusDot: "ml-auto size-2 shrink-0 rounded-full bg-current",
@@ -20,8 +18,7 @@ const theme = tv({
     childList: "space-y-0.5",
     collapsibleTrigger: "w-full justify-between",
     collapsibleContent: "mt-0.5 space-y-0.5",
-    // "Preview as role" only: the badge the rail puts on a locked entry's
-    // icon, and the lock a nested locked entry ends with (toned by state).
+
     topLevelLock:
       "absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-default",
     lock: "ml-auto size-3.5 shrink-0",
@@ -38,8 +35,7 @@ const theme = tv({
     isAccent: {
       true: { topLevelButton: "text-primary", link: "text-primary" },
     },
-    // Same hatches as the expanded menu (NavigationMenu.vue): red for an
-    // entry the role could not open, orange for one it opens partially.
+
     previewState: {
       hidden: {
         topLevelButton: "text-muted dms-hatch-locked",
@@ -62,7 +58,7 @@ const theme = tv({
 
 <script setup lang="ts">
 import { DmsLink } from "#dms/frontend-module";
-import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/entries/utils/permissionPreview";
 
 interface Props {
   item: DmsMenuItem;
@@ -83,7 +79,6 @@ const ui = computed(() =>
   }),
 );
 
-// Rendered as a plain dot taking its color from the shared status map.
 const statusClass = computed(() =>
   props.item.status ? MENU_STATUS_TEXT_CLASSES[props.item.status] : undefined,
 );

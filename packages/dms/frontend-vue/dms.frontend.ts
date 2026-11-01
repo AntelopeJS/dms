@@ -1,6 +1,11 @@
 import { defineAsyncComponent, type Component } from "vue";
+import { buildComponents as authBuildComponents } from "./layers/dms-auth/app/entries/component-registry";
+import { buildComponents as layoutBuildComponents } from "./layers/dms-layout/app/entries/component-registry";
+import { buildComponents as onboardingBuildComponents } from "./layers/dms-onboarding/app/entries/component-registry";
+import { buildComponents as uiBuildComponents } from "./layers/dms-ui/app/entries/component-registry";
 import {
   type DmsFrontendModule,
+  type DmsFrontendSdk,
   useDmsRuntimeConfig,
 } from "#dms/frontend-module";
 import authMiddleware from "./layers/dms-auth/app/middleware/auth";
@@ -26,8 +31,8 @@ import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
 import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays";
 import "./layers/dms-layout/app/assets/css/main.css";
-import type {} from "./layers/dms-core/shared/types/runtime-config";
-import type {} from "./layers/dms-core/shared/types/app-config";
+import type {} from "./layers/dms-core/app/entries/shared/types/runtime-config";
+import type {} from "./layers/dms-core/app/entries/shared/types/app-config";
 
 interface VueModule {
   default: Component;
@@ -35,19 +40,16 @@ interface VueModule {
 
 type VueLoader = () => Promise<VueModule>;
 
-interface DmsPublicOptions {
-  dms?: {
-    baseURL?: string;
-  };
-}
-
-// The build/ components are registered too, so a backend page tree can name
-// them, but they stay the layer's internals: never auto-imported, and not a
-// surface other modules should build on.
-const components = import.meta.glob<VueModule>([
-  "./layers/**/app/components/**/*.vue",
-  "./layers/**/app/build/components/**/*.vue",
-]);
+const components = {
+  ...import.meta.glob<VueModule>([
+    "./layers/**/app/components/**/*.vue",
+    "!./layers/dms-ui/app/components/form/components/ImagePresentation.vue",
+  ]),
+  ...uiBuildComponents,
+  ...layoutBuildComponents,
+  ...authBuildComponents,
+  ...onboardingBuildComponents,
+};
 const customPages = import.meta.glob<VueModule>(
   "./layers/**/app/custom-pages/**/*.vue",
 );
@@ -94,12 +96,10 @@ function lazyComponent(loader: VueLoader): Component {
   return defineAsyncComponent(async () => (await loader()).default);
 }
 
-// Not a compatibility path: two current contracts name these components.
-// Templates use the component's own name (`<DmsSection>`, `<DmsFieldRow>`,
-// `<DmsActivityFeed>`), while the backend blocks follow the `dms-xxx-block`
-// vocabulary that `block-vocabulary.test.ts` enforces. Each entry maps the
-// template name to the block name, so both resolve to one component.
-const COMPONENT_ALIASES: Record<string, string> = {
+const COMPONENT_ALIASES: Record<
+  ReturnType<typeof componentName>,
+  Parameters<DmsFrontendSdk["registerComponent"]>[0]
+> = {
   ActivityFeed: "ActivityFeedBlock",
   Section: "SectionBlock",
   FieldRow: "FieldRowBlock",
@@ -164,12 +164,12 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   const clientOnly = { clientOnly: true };
   if (import.meta.env.DEV) {
     sdk.registerPlugin(async (context) => {
-      const plugin =
-        await import("./layers/dms-layout/app/plugins/dms-dev-reload.client");
+      const plugin = await import(
+        "./layers/dms-layout/app/plugins/dms-dev-reload.client"
+      );
       await plugin.default(context);
     }, clientOnly);
-    // Browser only: the server already logs a render that fails, with its
-    // stack. First, so an error a later plugin's work raises is logged too.
+
     sdk.registerPlugin(
       async (context) => {
         const plugin = await import(
@@ -180,13 +180,9 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
       { ...clientOnly, enforce: "pre" },
     );
   }
-  // Before any data is read, a higher-priority module's plugins included:
-  // every key lives in the session's scope, and a new scope aborts the reads
-  // started before it.
+
   sdk.registerPlugin(asyncDataScopePlugin, { enforce: "pre" });
-  // First: the requests the middlewares wait on start with the app, alongside
-  // the ones the plugins below and the page make, instead of one after the
-  // other once the page has set up.
+
   sdk.registerPlugin(onboardingPreloadPlugin);
   sdk.registerPlugin(permissionsPreloadPlugin);
   sdk.registerPlugin(colorModePlugin);
@@ -198,9 +194,9 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   sdk.registerPlugin(seoPlugin);
   sdk.registerPlugin(faviconPlugin);
   sdk.registerPlugin(sidePanelHostPlugin);
-  // Not deferred: a page's first poll reads it.
+
   sdk.registerPlugin(livePauseSourcePlugin, clientOnly);
-  // Not deferred: the first dialog the user closes needs it.
+
   sdk.registerPlugin(closingLayersPlugin, clientOnly);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);
@@ -225,11 +221,9 @@ function registerMiddleware(
 
 const frontendModule: DmsFrontendModule = {
   componentPrefix: "Dms",
-  // The layout's app config is not merged here: the loader applies every
-  // layer's `app/app.config.ts` before any module is set up, and a second
-  // merge would repeat the arrays defu concatenates.
+
   setup(sdk) {
-    const runtimeDms = (useDmsRuntimeConfig().public as DmsPublicOptions).dms;
+    const runtimeDms = useDmsRuntimeConfig().public.dms;
     if (runtimeDms && typeof window !== "undefined")
       runtimeDms.baseURL = window.location.origin;
     registerPlugins(sdk);

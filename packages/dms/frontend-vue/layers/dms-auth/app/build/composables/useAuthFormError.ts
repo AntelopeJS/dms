@@ -1,10 +1,14 @@
 import { ref, type Ref } from "vue";
+import type { LiveFormHandle } from "#dms-core/app/composables/useFormValidation";
 import {
   type FieldErrorCode,
   resolveFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
 import { resolveApiErrorMessage } from "#dms-core/app/composables/useApiError";
-import { resolveApiMessage } from "#dms-core/app/composables/translation/useTranslation";
+import {
+  type I18nTranslate,
+  resolveApiMessage,
+} from "#dms-core/app/composables/translation/useTranslation";
 
 export interface AuthFormError {
   title: string;
@@ -15,7 +19,7 @@ export interface AuthFormError {
 export interface AuthFormHandle {
   setErrors: (errors: Array<{ name: string; message: string }>) => void;
   getErrors: (name?: string) => Array<{ id?: string; name?: string }>;
-  validate: (options: { name: string; silent: boolean }) => Promise<unknown>;
+  validate: LiveFormHandle["validate"];
 }
 
 /** Where an auth page shows the errors that belong to one of its fields. */
@@ -38,12 +42,16 @@ export interface AuthFieldErrorTarget {
  * after an `await` without the i18n context.
  */
 export function useAuthFormError() {
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
   const { t } = useI18n();
-  const translate = (key: string, params: Record<string, unknown> = {}) =>
-    t(key, params);
+  const translate: I18nTranslate = (key, params = {}) => t(key, params);
   const formError = ref<AuthFormError | null>(null);
 
-  function showFormError(error: unknown, titleKey: string): void {
+  function showFormError(
+    error: Parameters<typeof resolveApiErrorMessage>[0],
+    titleKey: string,
+  ): void {
+    if (consumeReadOnlyRefusal(error)) return;
     formError.value = {
       title: t(titleKey),
       description: resolveApiMessage(translate, resolveApiErrorMessage(error)),
@@ -71,10 +79,11 @@ export function useAuthFormError() {
    * @returns Whether it went under a field
    */
   async function showError(
-    error: unknown,
+    error: Parameters<typeof resolveFieldErrors>[0],
     titleKey: string,
     target: AuthFieldErrorTarget,
   ): Promise<boolean> {
+    if (consumeReadOnlyRefusal(error)) return false;
     const { fields } = resolveFieldErrors(error, {
       fields: target.fields,
       codes: target.codes,

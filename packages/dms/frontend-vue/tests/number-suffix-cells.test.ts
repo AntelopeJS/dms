@@ -15,22 +15,12 @@ import {
   formatPrice,
 } from "../layers/dms-core/app/utils/formatter";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
-import { withNumberSuffix } from "../layers/dms-ui/app/build/composables/data-types/numberSuffix";
-
-const stub = { default: { render: () => null } };
-vi.mock("@nuxt/ui/components/Avatar.vue", () => stub);
-vi.mock("@nuxt/ui/components/Badge.vue", () => stub);
-vi.mock("@nuxt/ui/components/Link.vue", () => stub);
-vi.mock("@nuxt/ui/runtime/vue/components/Icon.vue", () => stub);
-vi.mock("../layers/dms-ui/app/composables/useFileReadUrls", () => ({
-  useFileReadUrls: () => ({ getUrl: () => undefined, resolve: () => {} }),
-}));
+import { withNumberSuffix } from "../layers/dms-ui/app/entries/composables/data-types/numberSuffix";
 
 const NBSP = " ";
 const formatters = new Map<string, DataType["formatter"]>();
 
 beforeAll(async () => {
-  // As outside a setup: a composable throws, the app's composer answers.
   const outsideSetup = () => {
     throw new Error("Must be called at the top of a `setup` function");
   };
@@ -52,7 +42,7 @@ beforeAll(async () => {
       formatters.set(dataType.id, dataType.formatter),
   }));
   const { registerDefaultDataTypes } = await import(
-    "../layers/dms-ui/app/build/composables/data-types/registerDefaults"
+    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
   );
   registerDefaultDataTypes();
 });
@@ -84,8 +74,12 @@ describe("withNumberSuffix", () => {
 });
 
 describe("the numeric data types", () => {
-  const draw = (id: string, value: unknown, options: unknown) =>
-    formatters.get(id)?.default(value, "en-US", options);
+  type Formatter = NonNullable<DataType["formatter"]>["default"];
+  const draw = (
+    id: string,
+    value: Parameters<Formatter>[0],
+    options: Parameters<Formatter>[2],
+  ) => formatters.get(id)?.default(value, "en-US", options);
 
   it("write the unit in every place they are drawn", () => {
     expect(draw("number", 12.5, { suffix: "kWp" })).toBe(`12.5${NBSP}kWp`);

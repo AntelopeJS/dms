@@ -16,13 +16,13 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   registerTestCategory,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const LABEL_ID = "pv-label";
 const LABEL_FULL_ID = `pages.${LABEL_ID}`;
@@ -32,13 +32,12 @@ const TARGET_SLUG = "/pv-target";
 const ENTRY_PERMISSION = "pv.entry-permission";
 const OPEN_ENTRY_FULL_ID = `${LABEL_FULL_ID}.open-entry`;
 const GUARDED_ENTRY_FULL_ID = `${LABEL_FULL_ID}.guarded-entry`;
-// A page every member opens (`memberAccess: "self"`, like the settings
-// overview), holding a page that needs a grant.
+
 const MEMBER_PAGE_FULL_ID = "pages.pv-member";
 const MEMBER_CHILD_FULL_ID = `${MEMBER_PAGE_FULL_ID}.pv-member-child`;
 const TENANT = "pv-tenant";
-// A platform owner reaches every entry: the preview compares all of them.
-const OWNER = { _id: "pv-owner", owner: true } as User;
+
+const OWNER = userFixture({ _id: "pv-owner", owner: true });
 
 async function hiddenEntriesFor(permissions: string[]): Promise<string[]> {
   const { memberModel, roleModel } = stubPageAccessModels([]);
@@ -61,8 +60,6 @@ describe("[unit] implementations/dms/page — permission preview of the menu", (
     ImplementInterface(tenantAccessInterface, tenantAccessImpl);
     ImplementInterface(pageInterfaceInternal, pageImplInternal);
 
-    // A label category with no URL of its own (URL-transparent): drawn in the
-    // menu, never navigable — the kind the preview used to leave unlocked.
     const label = registerTestCategory(LABEL_ID, {
       displayName: "Preview label",
       category: pagesCategory,

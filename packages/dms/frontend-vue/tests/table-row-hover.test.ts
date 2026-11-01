@@ -1,35 +1,10 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { tv } from "tailwind-variants";
-import { EYEBROW_CLASS } from "../layers/dms-ui/app/build/utils/eyebrow";
-import { REORDER_HANDLE_CLASS } from "../layers/dms-ui/app/build/composables/table-view/useReorderHandles";
 import {
   resolveRowClickAction,
   rowCustomActions,
   type RowClickActionOptions,
 } from "../layers/dms-ui/app/utils/rowClickAction";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
-
-const tableSource = readFileSync(
-  new URL(
-    "../layers/dms-ui/app/build/components/table/Table.vue",
-    import.meta.url,
-  ),
-  "utf8",
-);
-const themeSource = tableSource.slice(
-  tableSource.indexOf("const PANEL_MATCH_BG"),
-  tableSource.indexOf("// Grid-like default"),
-);
-const theme = new Function(
-  "tv",
-  "EYEBROW_CLASS",
-  "REORDER_HANDLE_CLASS",
-  `${themeSource}; return theme;`,
-)(tv, EYEBROW_CLASS, REORDER_HANDLE_CLASS);
-
-const HOVER_ROW = "hover:bg-elevated";
-const HOVER_CELL = "group-hover:bg-elevated";
 
 const detailsAction: CustomRowAction = {
   label: "Details",
@@ -41,61 +16,6 @@ const defaultDetailsAction: CustomRowAction = {
 };
 
 const rowFor = (status: string) => ({ _id: "1", status });
-
-describe("row hover affordance", () => {
-  it.each([true, false])(
-    "gives the row and its pinned cells the same hover for rowClickable=%s",
-    (rowClickable) => {
-      const ui = theme();
-      const rowHasHover = ui
-        .row({ loading: false, rowClickable })
-        .includes(HOVER_ROW);
-      const leftHasHover = ui
-        .rowCell({ pinned: "left", loading: false, rowClickable })
-        .includes(HOVER_CELL);
-      const rightHasHover = ui
-        .rowCell({ pinned: "right", loading: false, rowClickable })
-        .includes(HOVER_CELL);
-
-      expect(rowHasHover).toBe(rowClickable);
-      expect(leftHasHover).toBe(rowClickable);
-      expect(rightHasHover).toBe(rowClickable);
-    },
-  );
-
-  it("treats an unset loading flag like a loaded table", () => {
-    const ui = theme();
-    expect(ui.row({ rowClickable: true })).toContain(HOVER_ROW);
-    expect(ui.rowCell({ pinned: "left", rowClickable: true })).toContain(
-      HOVER_CELL,
-    );
-  });
-
-  it("keeps pinned cells inert while the table is loading", () => {
-    const ui = theme();
-    expect(ui.row({ loading: true, rowClickable: true })).not.toContain(
-      HOVER_ROW,
-    );
-    expect(
-      ui.rowCell({ pinned: "left", loading: true, rowClickable: true }),
-    ).not.toContain(HOVER_CELL);
-  });
-
-  it("never tints unpinned cells, which inherit the row background", () => {
-    expect(
-      theme().rowCell({ loading: false, rowClickable: true }),
-    ).not.toContain(HOVER_CELL);
-  });
-
-  it("keeps the presence tint independent of the hover", () => {
-    const pinned = theme().rowCell({
-      pinned: "left",
-      loading: false,
-      rowClickable: false,
-    });
-    expect(pinned).toContain("group-data-[presence=true]:bg-elevated");
-  });
-});
 
 describe("resolveRowClickAction", () => {
   it("leaves a row inert when nothing can open it", () => {

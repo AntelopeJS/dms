@@ -6,7 +6,7 @@ import {
   isActivityWriteDue,
   recordUserActivity,
   USER_ACTIVITY_WRITE_INTERVAL_MS,
-} from "../../../utils/user-activity";
+} from "../../../utils";
 
 const NOW = new Date("2026-09-30T12:00:00.000Z");
 const PASSWORD = "activity-test-password";
@@ -33,6 +33,7 @@ describe("[unit] utils/user-activity", () => {
     });
 
     it("reads a stored value serialized as a string", () => {
+      // SAFETY: This intentionally supplies an ISO string to the Date-typed legacy-row boundary to verify runtime coercion; it is not a Date instance.
       const recent = msBefore(NOW, 1).toISOString() as unknown as Date;
       expect(isActivityWriteDue(recent, NOW)).to.equal(false);
     });
@@ -71,8 +72,6 @@ describe("[unit] utils/user-activity", () => {
       );
     });
 
-    // A partial update of the user row resets the hashed fields' modifier
-    // storage: recording activity must never cost the user their password.
     it("keeps the password verifiable", async () => {
       const model = GetModel(UserModel);
       await recordUserActivity(model, user, NOW);

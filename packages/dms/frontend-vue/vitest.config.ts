@@ -1,29 +1,40 @@
 import { defineConfig } from "vitest/config";
 import { resolve } from "node:path";
 import vue from "@vitejs/plugin-vue";
+import ui from "@nuxt/ui/vite";
+import { backendBoundary } from "./build/backend-boundary.ts";
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    backendBoundary(),
+    vue(),
+    ui({
+      router: "inertia",
+      dts: false,
+      autoImport: false,
+      components: false,
+    }),
+  ],
   resolve: {
     alias: {
       "#dms-core": resolve(__dirname, "layers/dms-core"),
       "#dms-ui": resolve(__dirname, "layers/dms-ui"),
       "#dms-layout": resolve(__dirname, "layers/dms-layout"),
-      // Mocked by the tests that reach it: the engine runs in the generated
-      // application, not under Vitest.
+      "#dms-auth": resolve(__dirname, "layers/dms-auth"),
+      "#dms-onboarding": resolve(__dirname, "layers/dms-onboarding"),
+
       "#dms/frontend-module": resolve(
         __dirname,
         "node_modules/@antelopejs/dms-frontend/templates/vue/frontend-module.ts",
       ),
-      // The server routes run under Vitest through the renderer's own router
-      // (`module-testing.mjs`), so their import resolves to its definitions.
+
       "#dms/server": resolve(
         __dirname,
         "node_modules/@antelopejs/dms-frontend/templates/vue/server-module.ts",
       ),
       "#shortcuts-aggregated": resolve(
         __dirname,
-        "layers/dms-ui/app/config/shortcuts-registry.ts",
+        "tests/fixtures/aggregatedShortcuts.ts",
       ),
     },
   },
@@ -31,6 +42,7 @@ export default defineConfig({
     tsconfigRaw: "{}",
   },
   test: {
+    setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.ts"],
   },
 });

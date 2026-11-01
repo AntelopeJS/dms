@@ -31,7 +31,7 @@ import {
   RegisterPage,
   RootPageController,
 } from "@antelopejs/interface-dms/page";
-import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
+import { authenticateRequestUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
@@ -118,8 +118,8 @@ const form = TableView(NativeDocumentController, {
   rowActions: { add: true, edit: true, details: true },
   guards: {
     get: async (context, { current }) => {
-      const principal = await authenticateRequestPrincipal(context);
-      if (current.readerId !== principal.user._id)
+      const user = await authenticateRequestUser(context);
+      if (current.readerId !== user._id)
         throw new HTTPResult(403, "Native row denied");
     },
   },
@@ -132,8 +132,6 @@ export class NativeFilePage extends RootPageController("nativefiles", {
   static content = form;
 }
 
-// Evaluated after `form`, so it is the last TableView built on the controller.
-// It only reads: the controller has one writing TableView, `form`.
 const secondaryTable = TableView(NativeDocumentController, {
   rowIdKey: "id",
   rowActions: {
@@ -153,7 +151,6 @@ export class NativeFileSecondaryPage extends RootPageController(
   static content = secondaryTable;
 }
 
-// Standalone forms posting to the same data routes as the TableViews above.
 @RegisterPage()
 export class NativeFileNewFormPage extends RootPageController(
   "nativefiles-new-form",
@@ -178,7 +175,6 @@ export class NativeAttachmentFormController extends Controller(
     return form.serialize();
   }
 
-  // Serialized per request, once both table views are mounted.
   @Get("/relation")
   async relation(@AuthTenantMember() _user: User) {
     return new DefaultDataTypes.RelationType({

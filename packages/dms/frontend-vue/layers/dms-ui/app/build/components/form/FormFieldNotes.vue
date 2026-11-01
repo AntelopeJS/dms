@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { isVNode, type VNodeChild } from "vue";
+import { isString, isNumber } from "#dms-core/app/utils/type-check";
+import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 import type { FormField } from "../../../composables/form/types/field";
 import {
   isEmptyFormValue,
@@ -20,13 +22,10 @@ const value = computed(() => context.state.value[props.field.id]);
 const baseline = computed(() => context.baselineValue(props.field.id));
 const defaultValue = computed(() => props.field.defaultValue);
 
-// "Changed · was X" while a change waits for its save.
 const showsChange = computed(
   () => context.showsChanges && context.isFieldChanged(props.field.id),
 );
-// "Module default · Use default" on a value that is not the default, for a
-// field that offers it (a setting, not a record's initial value), unless the
-// change line already says what it was.
+
 const showsDefault = computed(
   () =>
     !!props.field.offersDefault &&
@@ -36,20 +35,21 @@ const showsDefault = computed(
     !sameFormValue(baseline.value, defaultValue.value),
 );
 
-// Values that do not fit a line, or must not show: "Changed" alone.
 const UNWORDED_TYPES = new Set(["password", "code", "rich_text"]);
 
 /** A value as the field's type words it, or nothing when it cannot. */
-function wordValue(raw: unknown): VNodeChild | undefined {
+function wordValue(
+  raw: Parameters<DataTypeFormatter>[0],
+): VNodeChild | undefined {
   if (UNWORDED_TYPES.has(props.field.type ?? "")) return undefined;
   const dataType = props.field.type ? getDataType(props.field.type) : undefined;
   if (dataType?.displayComponent && !dataType.formatter) return undefined;
   const formatter = dataType?.formatter?.default;
   if (formatter) {
     const worded = formatter(raw, locale.value, props.field.component.options);
-    return isVNode(worded) || typeof worded === "string" ? worded : undefined;
+    return isVNode(worded) || isString(worded) ? worded : undefined;
   }
-  if (typeof raw === "string" || typeof raw === "number") return String(raw);
+  if (isString(raw) || isNumber(raw)) return String(raw);
   return undefined;
 }
 

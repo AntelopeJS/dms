@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Every drawer is resizable from `lg`: a handle on its inner edge (the width
  * of a side drawer, the height of a top or bottom one), driven by the pointer
@@ -18,44 +18,52 @@ import {
   watch,
   type App,
   type Component,
+  type InjectionKey,
   type Ref,
+  type VNode,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   componentSizeKey,
   DRAWER_SIZE_COOKIE,
   readDrawerSizePreferences,
-} from "../layers/dms-ui/app/build/composables/containers/drawerSize";
+} from "../layers/dms-ui/app/entries/composables/containers/drawerSize";
 
-vi.mock("reka-ui", () => {
-  const passThrough = defineComponent({
-    setup:
-      (_props, { slots }) =>
-      () =>
-        h("div", slots.default?.()),
-  });
-  // A heading unless told otherwise, as reka's.
-  const title = defineComponent({
-    props: { as: { type: String, default: "h2" } },
-    setup:
-      (props, { slots }) =>
-      () =>
-        h(props.as, slots.default?.()),
-  });
-  return {
-    DialogTitle: title,
-    DialogDescription: passThrough,
-    VisuallyHidden: passThrough,
-  };
-});
+import { DialogRoot } from "reka-ui";
+import type { DrawerOptions } from "../layers/dms-ui/app/composables/containers/types";
+import type { formFieldInjectionKey as FormFieldKey } from "@nuxt/ui/composables/useFormField";
+
+type FieldInjection =
+  typeof FormFieldKey extends InjectionKey<infer Value> ? Value : never;
+type DrawerProps = NonNullable<VNode["props"]>;
+
+interface BodyInjections {
+  explorer?: string | null;
+  containerId?: string;
+  formField?: FieldInjection | null;
+}
 
 const SIZE_VARIABLE = "--dms-drawer-size";
 
 let app: App | undefined;
 let host: HTMLDivElement;
 let cookies: Map<string, Ref<unknown>>;
-// What the stubbed drawer renders at: its rendered width and height.
-let renderedRect: { width: number; height: number };
+
+let renderedRect = { width: 600, height: 320 };
+
+function domRect(width: number, height: number): DOMRect {
+  return {
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    right: width,
+    bottom: height,
+    width,
+    height,
+    toJSON: () => ({ width, height }),
+  };
+}
 
 const rendered = reactive<{
   ui?: Record<string, string>;
@@ -65,9 +73,10 @@ const rendered = reactive<{
 
 function useDmsCookie<T>(
   name: string,
-  options: { default?: () => unknown } = {},
+  options: { default?: () => T } = {},
 ): Ref<T> {
   if (!cookies.has(name)) cookies.set(name, ref(options.default?.() ?? null));
+  // SAFETY: The only caller, useDrawerSizePreferences, reads the drawer size cookie as DrawerSizePreferences with a default, so the ref stored under that name holds that type.
   return cookies.get(name) as Ref<T>;
 }
 
@@ -84,24 +93,25 @@ const DrawerStub = defineComponent({
   },
   setup(props, { slots }) {
     return () => {
-      rendered.ui = props.ui as Record<string, string> | undefined;
+      rendered.ui = props.ui;
       rendered.handle = props.handle;
       rendered.dismissible = props.dismissible;
-      const style = (props.content as { style?: Record<string, string> })
-        ?.style;
-      return h("div", { "data-slot": "content", style }, [
-        slots.header?.(),
-        slots.body?.(),
-      ]);
+      const style = props.content?.style;
+      return h(DialogRoot, null, () =>
+        h("div", { "data-slot": "content", style }, [
+          slots.header?.(),
+          slots.body?.(),
+        ]),
+      );
     };
   },
 });
 
-async function mountDrawer(props: Record<string, unknown>): Promise<void> {
+async function mountDrawer(props: DrawerProps): Promise<void> {
   app?.unmount();
   host.replaceChildren();
   const { default: DynamicDrawer } = await import(
-    "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
+    "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"
   );
   app = createApp({
     setup: () => () =>
@@ -147,7 +157,7 @@ beforeEach(() => {
   cookies = new Map();
   renderedRect = { width: 600, height: 320 };
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
-    () => ({ ...renderedRect }) as DOMRect,
+    () => domRect(renderedRect.width, renderedRect.height),
   );
   window.innerWidth = 1600;
   window.innerHeight = 1000;
@@ -199,8 +209,6 @@ describe("a side drawer's width", () => {
     expect(rendered.ui?.content).toContain("w-3xl");
   });
 
-  // Nuxt UI caps a side drawer at the window less 2rem: a sized one keeps
-  // that strip of backdrop on a phone, as an unsized one does.
   it("leaves the same backdrop strip on a phone, sized or not", async () => {
     await mountDrawer({ direction: "right", size: "3xl" });
     expect(rendered.ui?.content).not.toMatch(/max-sm:|max-w-full/);
@@ -267,8 +275,6 @@ describe("a side drawer's width", () => {
     expect(rendered.ui?.body).toContain("min-h-0");
   });
 
-  // Vaul drags only a dismissible drawer: the press is left to bubble, so
-  // reka's outside-click detection sees it (see container-closing-body).
   it("keeps the drawer's own drag off its handle without swallowing the press", async () => {
     await mountDrawer({ direction: "right" });
     const onContentPointerDown = vi.fn();
@@ -321,30 +327,28 @@ describe("a bottom drawer's height", () => {
 });
 
 describe("a drawer opened through useDrawer", () => {
-  const SetupEditor = defineComponent({
+  const editorOptions = {
     name: undefined,
     __name: "KeyEditor",
     render: () => null,
-  } as never);
+  };
+  const SetupEditor = defineComponent(editorOptions);
 
-  async function openThroughUseDrawer(
-    options: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    const create = vi.fn(() => ({
-      open: () => new Promise(() => {}),
-      close: vi.fn(),
-      patch: vi.fn(),
-    }));
+  async function openThroughUseDrawer(options: Partial<DrawerOptions>) {
+    const create = vi.fn(
+      (_component: Component, _options: { props: DrawerOptions }) => ({
+        open: () => new Promise(() => {}),
+        close: vi.fn(),
+        patch: vi.fn(),
+      }),
+    );
     vi.stubGlobal("useOverlay", () => ({ create }));
     vi.stubGlobal("markRaw", <T>(value: T) => value);
     const { useDrawer } = await import(
       "../layers/dms-ui/app/composables/containers/useDrawer"
     );
     useDrawer().open({ title: "Key", component: SetupEditor, ...options });
-    const [, createOptions] = create.mock.calls[0] as unknown as [
-      unknown,
-      { props: Record<string, unknown> },
-    ];
+    const [, createOptions] = create.mock.calls[0];
     return createOptions.props;
   }
 
@@ -373,9 +377,7 @@ describe("a drawer opened through useDrawer", () => {
 
   it("names no key for an anonymous or async-wrapped component", () => {
     expect(componentSizeKey({ render: () => null })).toBeUndefined();
-    expect(
-      componentSizeKey({ name: "AsyncComponentWrapper" } as never),
-    ).toBeUndefined();
+    expect(componentSizeKey({ name: "AsyncComponentWrapper" })).toBeUndefined();
     expect(componentSizeKey({ name: "JsonCellEditor" })).toBe(
       "component:JsonCellEditor",
     );
@@ -405,8 +407,6 @@ describe("a drawer's heading", () => {
   });
 });
 
-// jsdom lays nothing out: what is checked is the chain a growing body
-// component relies on to fill the drawer and push its footer down.
 describe("a drawer's body", () => {
   it("is a flex column a growing body component and its footer fill", async () => {
     const { default: ContainerFooter } = await import(
@@ -432,31 +432,26 @@ describe("a drawer's body", () => {
   });
 });
 
-// The overlay provider mounts the drawer outside the caller's tree: the body
-// still reads what the caller provides, and the drawer's own provides win.
 describe("a drawer opened through useDrawer, and its caller's provides", () => {
-  const EXPLORER_KEY = Symbol("explorer");
+  const EXPLORER_KEY: InjectionKey<string> = Symbol("explorer");
 
-  // Opens a drawer from a caller that provides after calling useDrawer(),
-  // inside another container and a Nuxt UI form field; returns what the body
-  // injected.
   async function injectedByBody(
-    wrap: (options: Record<string, unknown>) => Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
+    wrap: (options: DrawerOptions) => DrawerOptions,
+  ) {
     const { default: DynamicDrawer } = await import(
-      "../layers/dms-ui/app/build/components/containers/drawer/DynamicDrawer.vue"
+      "../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"
     );
     const { DMS_CONTAINER_KEY } = await import(
-      "../layers/dms-ui/app/build/composables/containers/context"
+      "../layers/dms-ui/app/entries/composables/containers/context"
     );
     const { formFieldInjectionKey } = await import(
       "@nuxt/ui/runtime/composables/useFormField.js"
     );
-    const opened = shallowRef<Record<string, unknown>>();
+    const opened = shallowRef<DrawerProps>();
     vi.stubGlobal("markRaw", <T>(value: T) => value);
     vi.stubGlobal("useOverlay", () => ({
-      create: (_component: unknown, { props }: { props: object }) => {
-        opened.value = props as Record<string, unknown>;
+      create: (_component: Component, { props }: { props: DrawerProps }) => {
+        opened.value = props;
         return {
           open: () => new Promise(() => {}),
           close: vi.fn(),
@@ -467,7 +462,7 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     const { useDrawer } = await import(
       "../layers/dms-ui/app/composables/containers/useDrawer"
     );
-    const injected: Record<string, unknown> = {};
+    const injected: BodyInjections = {};
     const Body: Component = {
       setup() {
         injected.explorer = inject(EXPLORER_KEY, null);
@@ -484,18 +479,19 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
         const drawer = useDrawer();
         provide(EXPLORER_KEY, "library-1");
         provide(DMS_CONTAINER_KEY, { id: "outer", close: () => {} });
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This deliberately malformed outer form field must never reach the drawer body; it is not a computed Nuxt form-field context.
         provide(formFieldInjectionKey, { name: "outer-field" } as never);
         drawer.open(
           wrap({
             title: "Details",
             component: Body,
             containerId: "inner",
-          }) as never,
+          }),
         );
         return () => null;
       },
     };
-    // The overlay provider, a sibling of the caller under the app root.
+
     const Host: Component = {
       setup: () => () => (opened.value ? h(DynamicDrawer, opened.value) : null),
     };
@@ -517,14 +513,14 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     expect(await injectedByBody((options) => options)).toEqual({
       explorer: "library-1",
       containerId: "inner",
-      // A field in the body does not join the caller's form field.
+
       formField: undefined,
     });
   });
 
   it("keeps the DMS's own drawers on the app's provides", async () => {
     const { dmsOwnDrawer } = await import(
-      "../layers/dms-ui/app/build/composables/containers/context"
+      "../layers/dms-ui/app/entries/composables/containers/context"
     );
     expect(await injectedByBody(dmsOwnDrawer)).toEqual({
       explorer: null,
@@ -534,10 +530,9 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
   });
 });
 
-// A container that draws its slot (Nuxt UI's UContainer).
-const PassThrough: Component = {
+const PassThrough = defineComponent({
   setup:
-    (_props: unknown, { slots }: { slots: { default?: () => unknown } }) =>
+    (_props, { slots }) =>
     () =>
-      h("div", slots.default?.() as never),
-};
+      h("div", slots.default?.()),
+});

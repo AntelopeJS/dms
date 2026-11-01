@@ -5,12 +5,12 @@ const page = { routeParams: { id: "42" }, routeQuery: { id: "7" } };
 
 describe("resolveSubmitTarget", () => {
   it("sends a submit where its URL points, tokens filled in", () => {
-    expect(resolveSubmitTarget("/api/ticket/edit?id={{query.id}}", page)).toEqual(
-      { url: "/api/ticket/edit?id=7" },
-    );
-    expect(resolveSubmitTarget("/api/ticket/edit?id={{params.id}}", page)).toEqual(
-      { url: "/api/ticket/edit?id=42" },
-    );
+    expect(
+      resolveSubmitTarget("/api/ticket/edit?id={{query.id}}", page),
+    ).toEqual({ url: "/api/ticket/edit?id=7" });
+    expect(
+      resolveSubmitTarget("/api/ticket/edit?id={{params.id}}", page),
+    ).toEqual({ url: "/api/ticket/edit?id=42" });
   });
 
   it("has nowhere to send a read-only form's values", () => {

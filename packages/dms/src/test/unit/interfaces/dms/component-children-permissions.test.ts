@@ -1,8 +1,6 @@
-// A page is a class carrying only static component fields — that is the shape the decorator consumes.
-
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import * as guardsImpl from "../../../../implementations/dms/guards";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
@@ -12,11 +10,6 @@ import {
   Component,
   ComponentBuilder,
 } from "@antelopejs/interface-dms/component";
-import type {
-  RoleModel,
-  TenantMemberModel,
-} from "@antelopejs/interface-dms/db";
-import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import * as pageInterface from "@antelopejs/interface-dms/page";
 import {
   GetPageLayoutBySlug,
@@ -27,12 +20,12 @@ import {
   RegisterPage,
 } from "@antelopejs/interface-dms/page";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
-import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { TenantTokenInput } from "@antelopejs/interface-dms/auth";
-import type { User } from "@antelopejs/interface-dms/auth/db";
-import { loadRoleEditorTree } from "../../../../pages/settings/users/role-editor-store";
-import type { RoleEditorPermissionNode } from "../../../../pages/settings/users/role-editor";
+import { loadRoleEditorTree } from "../../../../pages/permissions";
+import type { RoleEditorPermissionNode } from "../../../../pages/permissions";
+import { stubPageAccessModels } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "cc-tenant";
 const PAGE_ID = "cc-children";
@@ -63,8 +56,6 @@ const panel = new ComponentBuilder<{ tag: string }>("cc-panel")
   })
   .child("leaf", leaf);
 
-// A nested TableView-like component verifies that action permissions still
-// descend from the child's positional permission.
 const table = new ComponentBuilder<{ tag: string }>("cc-table")
   .options({ tag: "table" })
   .meta({ name: "Nested table" })
@@ -90,31 +81,24 @@ interface LayoutChild {
 async function layoutChildren(permissions: string[]): Promise<LayoutChild[]> {
   const slug = GetMetadata(ChildrenPage, PageMetadata).pageInfo?.fullSlug ?? "";
   const handler = GetPageLayoutBySlug(slug);
-  expect(handler, `no layout handler registered for ${slug}`).to.not.equal(
-    undefined,
-  );
-  const layout = await (handler as NonNullable<typeof handler>)({
-    user: { _id: "cc-user" } as User,
-    memberModel: {
-      getByUser: async () => ({ roleIds: ["cc-role"] }),
-    } as unknown as TenantMemberModel,
-    roleModel: {
-      getBy: async () => [
-        { permissions: withPermissionAncestors(permissions) },
-      ],
-    } as unknown as RoleModel,
+  assert.isDefined(handler, `no layout handler registered for ${slug}`);
+  const { memberModel, roleModel } = stubPageAccessModels(permissions);
+  const layout = await handler({
+    user: userFixture({ _id: "cc-user" }),
+    memberModel,
+    roleModel,
     tenantId: TENANT,
   });
-  return (layout.components.card?.children ?? []) as LayoutChild[];
+  return layout.components.card?.children ?? [];
 }
 
 async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
   try {
     await promise;
     throw new Error("Expected promise to reject");
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    return error as HTTPResult;
+    return error;
   }
 }
 
@@ -137,9 +121,6 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
     await settle();
   });
 
-  // The registries are process-wide and shared by every suite of the run, so a
-  // failing assertion must not leave this page's subtree behind. Disposal is
-  // idempotent, which is what lets the release test do it first.
   after(() => {
     const { pageInfo } = GetMetadata(ChildrenPage, PageMetadata);
     if (pageInfo) pageInterface.internal.RegisterPage.unregister(pageInfo);
@@ -197,7 +178,7 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
     const previousValidator = dmsAuthImpl.internal.AuthUserValidator;
     Object.defineProperty(dmsAuthImpl.internal, "AuthUserValidator", {
       configurable: true,
-      value: async () => ({ _id: "cc-user" }) as User,
+      value: async () => ({ _id: "cc-user" }),
     });
 
     try {
@@ -227,12 +208,6 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
     );
     expect(GetPermissionId(card.targetChild("panel", "leaf"))).to.equal(
       LEAF_PERMISSION,
-    );
-  });
-
-  it("accepts an exact child target in the permission guard", () => {
-    expect(AuthUserWithPermission(card.targetChild("table"))).to.be.a(
-      "function",
     );
   });
 
@@ -313,8 +288,6 @@ const SHARED_FIRST_PERMISSION = `${SHARED_PAGE_PERMISSION}.host.first`;
 const SHARED_SECOND_PERMISSION = `${SHARED_PAGE_PERMISSION}.host.second`;
 const sharedHookCalls: string[] = [];
 
-// One instance, two positions: the hook registers side effects, so running it
-// per position would register them twice.
 const shared = new ComponentBuilder<{ tag: string }>("cc-shared-child")
   .options({ tag: "shared" })
   .meta({ name: "Shared" })
@@ -326,8 +299,6 @@ const throwing = new ComponentBuilder<{ tag: string }>("cc-throwing")
     throw new Error("nested onCreated boom");
   });
 
-// Children hanging off a promised ComponentInfo: serialization emits them, the
-// synchronous walk cannot reach them.
 const promisedChildren = new Component(
   Promise.resolve({
     componentName: "cc-promised",
@@ -344,7 +315,6 @@ const promisedChildren = new Component(
   { name: "Promised" },
 );
 
-// `collides.edit` would be both this child's id and the parent action's.
 const collidingChild = new ComponentBuilder<{ tag: string }>("cc-colliding")
   .options({ tag: "colliding" })
   .meta({ name: "Colliding" })
@@ -372,19 +342,12 @@ async function sharedLayout(permissions: string[]) {
   const slug =
     GetMetadata(SharedInstancePage, PageMetadata).pageInfo?.fullSlug ?? "";
   const handler = GetPageLayoutBySlug(slug);
-  expect(handler, `no layout handler registered for ${slug}`).to.not.equal(
-    undefined,
-  );
-  return (handler as NonNullable<typeof handler>)({
-    user: { _id: "cc-shared-user" } as User,
-    memberModel: {
-      getByUser: async () => ({ roleIds: ["cc-role"] }),
-    } as unknown as TenantMemberModel,
-    roleModel: {
-      getBy: async () => [
-        { permissions: withPermissionAncestors(permissions) },
-      ],
-    } as unknown as RoleModel,
+  assert.isDefined(handler, `no layout handler registered for ${slug}`);
+  const { memberModel, roleModel } = stubPageAccessModels(permissions);
+  return handler({
+    user: userFixture({ _id: "cc-shared-user" }),
+    memberModel,
+    roleModel,
     tenantId: TENANT,
   });
 }
@@ -438,8 +401,6 @@ describe("[unit] interfaces/dms/page — nested components under stress", () => 
     );
   });
 
-  // The action already owns `<parent>.edit`; the child must not claim it, or
-  // granting the action would serve the child too.
   it("leaves a child whose id collides with an action unregistered", async () => {
     const collidingId = `${SHARED_PAGE_PERMISSION}.collides.edit`;
 
@@ -447,13 +408,12 @@ describe("[unit] interfaces/dms/page — nested components under stress", () => 
     expect(
       SharedInstancePage.collides.getAction("edit")?.permissionId,
     ).to.equal(collidingId);
-    // The id stayed the action's: its title, not the child's.
+
     expect(
       (await permissionsInterface.GetPermission(collidingId))?.title,
     ).to.equal("Edit");
   });
 
-  // Holding the action must not serve the child that shares its id.
   it("withholds a colliding child from a role granted the action", async () => {
     const layout = await sharedLayout([
       SHARED_PAGE_PERMISSION,

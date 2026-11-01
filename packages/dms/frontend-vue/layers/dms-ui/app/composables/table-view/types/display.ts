@@ -3,6 +3,7 @@ import type { Table } from "@tanstack/vue-table";
 import type { TableViewColumn } from "./column";
 import type { CustomRowAction } from "../../../types/row-action";
 import type { TableViewPaginationMode } from "./config";
+import type { Data } from "../../../build/components/table/Table.vue";
 
 /** The built-in grid display id. */
 export const TABLE_DISPLAY_ID = "table";
@@ -164,7 +165,7 @@ export interface TableViewCardConfig {
  * The props a custom card component receives, the same in the `kanban` and
  * `cards` displays.
  */
-export interface TableViewCardProps<T = Record<string, unknown>> {
+export interface TableViewCardProps<T = Data> {
   /** The row the card stands for. */
   row: T;
   /** Its id (its `rowIdKey` value). */
@@ -201,7 +202,7 @@ export interface TableViewCardProps<T = Record<string, unknown>> {
  * The props a custom detail band receives (backend `expandable.component`):
  * a card's, without the selection the grid row above it already shows.
  */
-export interface TableViewExpandedRowProps<T = Record<string, unknown>> {
+export interface TableViewExpandedRowProps<T = Data> {
   /** The row the band details: the listed one, or the one `lazyLoad` read. */
   row: T;
   /** Its id (its `rowIdKey` value). */
@@ -224,7 +225,7 @@ export interface TableViewExpandedRowProps<T = Record<string, unknown>> {
  * view's existing state/handlers so a display inherits search/filters/sorting/
  * pagination for free (when it consumes the shared list query).
  */
-export interface TableViewDisplayContext<T = Record<string, unknown>> {
+export interface TableViewDisplayContext<T = Data> {
   /** Current page rows from the shared list query. Empty for self-managed displays. */
   items: T[];
   /** Full column metadata (types, labels, accessor keys) — for field rendering. */
@@ -248,11 +249,13 @@ export interface TableViewDisplayContext<T = Record<string, unknown>> {
   /** Data API location (`{location}/list`, `/get`, ...). Needed by self-managed displays. */
   location: string;
   /** Active filters/search/sort query (no limit/offset) — for self-managed fetching. */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Custom self-managed displays receive module-defined query values beyond the built-in TableQueryParams contract.
   query: Record<string, unknown>;
   /** Stable component/page identifiers, e.g. for per-instance fetch keys. */
   componentId?: string;
   pageId?: string;
   /** Per-instance options declared for this display in the backend config. */
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Registered display implementations own their options; no common options schema exists across module displays.
   options?: Record<string, unknown>;
   /**
    * A self-managed display hands the rows it shows, in the order the user
@@ -305,7 +308,7 @@ export interface TableViewDisplayCapabilities {
 /** Lightweight context passed to {@link TableViewDisplay.isAvailable}. */
 export interface TableViewDisplayAvailabilityContext {
   columns: TableViewColumn[];
-  options?: Record<string, unknown>;
+  options?: TableViewDisplayContext["options"];
 }
 
 /**

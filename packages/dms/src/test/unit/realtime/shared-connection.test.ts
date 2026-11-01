@@ -7,19 +7,26 @@ import {
   DEV_RELOAD_TOPIC,
   scheduleBroadcast,
   setSlugProvider,
-} from "../../../implementations/dms/dev-reload";
+} from "../../../store/frontend";
 import {
   buildUserNotificationTopic,
   getRealtimeBroker,
   InMemoryBroker,
   setRealtimeBroker,
   stopRealtime,
+  getSessionInfo,
 } from "../../../realtime";
-import { getSessionInfo } from "../../../realtime/sessions";
-import { RealtimeController } from "../../../routes/realtime";
+import { RealtimeController } from "../../../routes";
+import { userFixture } from "../../helpers/user-fixture";
 
-const USER = { _id: "shared-connection-user", email: "u@example.com" };
-const OTHER_USER = { _id: "shared-connection-other", email: "o@example.com" };
+const USER = userFixture({
+  _id: "shared-connection-user",
+  email: "u@example.com",
+});
+const OTHER_USER = userFixture({
+  _id: "shared-connection-other",
+  email: "o@example.com",
+});
 
 interface FakeStream {
   ctx: RequestContext;
@@ -29,7 +36,7 @@ interface FakeStream {
 
 interface Frame {
   event: string;
-  data: Record<string, unknown>;
+  data: ReturnType<typeof JSON.parse>;
 }
 
 interface SessionGreeting {
@@ -39,7 +46,6 @@ interface SessionGreeting {
   devReloadTopic?: string;
 }
 
-// Comfortably past the 250 ms dev reload broadcast debounce.
 const BROADCAST_SETTLE_MS = 400;
 
 const createFakeStream = (): FakeStream => {
@@ -55,6 +61,7 @@ const createFakeStream = (): FakeStream => {
     },
   };
   const rawRequest = Object.assign(new EventEmitter(), { headers: {} });
+  // SAFETY: The controller methods under test pass ctx only to openSseStream, which calls response.addHeader, response.getWriteStream and rawRequest.on, and to getRequestTenantId, which reads rawRequest and its authorization header; the double supplies each of those, and its writer implements the write and end that openSseStream calls.
   const ctx = {
     rawRequest,
     response: { addHeader: () => {}, getWriteStream: () => writer },
@@ -76,24 +83,20 @@ const parseFrames = (stream: FakeStream): Frame[] =>
 const controller = RealtimeController.prototype;
 
 const openConnection = async (stream: FakeStream): Promise<string> => {
-  await controller.connectionStream.call(
-    undefined,
-    stream.ctx,
-    USER as unknown as User,
-  );
+  await controller.connectionStream.call(undefined, stream.ctx, USER);
   const hello = parseFrames(stream).find((frame) => frame.event === "hello");
-  return hello!.data.connectionId as string;
+  return hello!.data.connectionId;
 };
 
 const openSession = (
   connectionId: string,
-  user: typeof USER = USER,
+  user: User = USER,
 ): Promise<SessionGreeting> =>
   controller.openSession.call(
     undefined,
     createFakeStream().ctx,
     connectionId,
-    user as unknown as User,
+    user,
   );
 
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -128,8 +131,7 @@ describe("[unit] realtime — shared connection", () => {
 
     for (const greeting of [first, second]) {
       const delivered = sessionFramesOf(stream, greeting.sessionId!).filter(
-        (frame) =>
-          (frame.data.data as { type?: string }).type === "notification:new",
+        (frame) => frame.data.data.type === "notification:new",
       );
       expect(delivered).to.have.length(1);
       expect(delivered[0]!.data.event).to.equal(
@@ -148,7 +150,7 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       connectionId,
       first.sessionId!,
-      USER as unknown as User,
+      USER,
     );
 
     expect(ack.ok).to.equal(true);
@@ -187,7 +189,7 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       connectionId,
       greeting.sessionId!,
-      OTHER_USER as unknown as User,
+      OTHER_USER,
     );
 
     expect(ack.ok).to.equal(false);
@@ -203,7 +205,7 @@ describe("[unit] realtime — shared connection", () => {
       undefined,
       otherConnectionId,
       greeting.sessionId!,
-      USER as unknown as User,
+      USER,
     );
 
     expect(ack.ok).to.equal(false);
@@ -237,8 +239,8 @@ describe("[unit] realtime — shared connection", () => {
     let status: number | undefined;
     try {
       await openSession(connectionId, OTHER_USER);
-    } catch (error) {
-      status = (error as { status?: number }).status;
+    } catch (error: PromiseRejectedResult["reason"]) {
+      status = error.status;
     }
     expect(status).to.equal(403);
   });

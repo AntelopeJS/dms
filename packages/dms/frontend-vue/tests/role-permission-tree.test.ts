@@ -1,88 +1,34 @@
-// @vitest-environment jsdom
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+/** @vitest-environment jsdom */
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   type App,
   type Component,
   computed,
   createApp,
   defineComponent,
-  type FunctionalComponent,
   h,
   nextTick,
   ref,
 } from "vue";
-import type { RolePermissionNode } from "../layers/dms-layout/app/build/components/pages/settings/roles/role-types";
+import type { RolePermissionNode } from "../layers/dms-layout/app/entries/components/pages/settings/roles/role-types";
+import type * as RolePermissionHelpers from "../layers/dms-layout/app/entries/components/pages/settings/roles/role-permissions";
+import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { browserRuntime } from "./helpers/api-data-runtime";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
+import { TREE } from "./helpers/role-permission-tree-fixture";
 
-// The tree components lean on Nuxt auto-imports; provide what they read.
 Object.assign(globalThis, {
   computed,
   ref,
-  // Named values are appended, so a test can read them back.
+
   useI18n: () => ({
-    t: (key: string, named?: unknown) =>
-      named && typeof named === "object"
+    t: (key: string, named?: Record<string, string | number>) =>
+      named && isObject(named)
         ? `${key} ${Object.values(named).join("/")}`
         : key,
   }),
   useTranslation: () => ({ processI18n: (label: string) => label }),
 });
-
-const TREE: RolePermissionNode[] = [
-  {
-    id: "pages",
-    label: "Pages",
-    children: [
-      {
-        id: "pages.form",
-        label: "Form",
-        children: [
-          {
-            id: "pages.form.simple",
-            label: "Simple form",
-            children: [{ id: "pages.form.simple.form", label: "Form" }],
-          },
-          {
-            id: "pages.form.table",
-            label: "Table page",
-            children: [
-              {
-                id: "pages.form.table.table",
-                label: "Table",
-                children: [
-                  {
-                    id: "pages.form.table.table.add",
-                    label: "Add",
-                    children: [
-                      { id: "pages.form.table.table.add.form", label: "Form" },
-                    ],
-                  },
-                  { id: "pages.form.table.table.list", label: "List" },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    children: [
-      {
-        id: "settings.user",
-        label: "User settings",
-        children: [
-          {
-            id: "settings.user.profile",
-            label: "Profile",
-            children: [{ id: "settings.user.profile.profile", label: "Info" }],
-          },
-        ],
-      },
-    ],
-  },
-];
 
 const stub = (tag: string) =>
   defineComponent({
@@ -111,21 +57,22 @@ const CheckboxStub = defineComponent({
 
 let RolePermissionTree: Component;
 let RoleEditor: Component;
-let helpers: typeof import("../layers/dms-layout/app/build/components/pages/settings/roles/role-permissions");
+let helpers: typeof RolePermissionHelpers;
 let app: App | undefined;
 
 beforeAll(async () => {
+  installAuthSettingsRuntime();
   helpers = await import(
-    "../layers/dms-layout/app/build/components/pages/settings/roles/role-permissions"
+    "../layers/dms-layout/app/entries/components/pages/settings/roles/role-permissions"
   );
   RolePermissionTree = (
     await import(
-      "../layers/dms-layout/app/build/components/pages/settings/roles/RolePermissionTree.vue"
+      "../layers/dms-layout/app/entries/components/pages/settings/roles/RolePermissionTree"
     )
   ).default;
   RoleEditor = (
     await import(
-      "../layers/dms-layout/app/build/components/pages/settings/roles/RoleEditor.vue"
+      "../layers/dms-layout/app/entries/components/pages/settings/roles/RoleEditor"
     )
   ).default;
 });
@@ -160,6 +107,7 @@ function mountTree(tree = TREE, selection = new Set<string>()) {
         },
       }),
   });
+  browserRuntime(app);
   app.component("UCheckbox", CheckboxStub);
   app.component("UButton", stub("button"));
   app.component("UIcon", stub("i"));
@@ -251,7 +199,7 @@ describe("nested role permission tree", () => {
       .querySelector<HTMLButtonElement>('[role="checkbox"]')
       ?.click();
     expect(toggles).toEqual([["pages.form.table", true]]);
-    // Ticking does not open the row.
+
     expect(shownIds(host)).not.toContain("pages.form.table.table");
   });
 });
@@ -264,26 +212,11 @@ const InputStub = defineComponent({
     () =>
       h("input", {
         value: props.modelValue,
+        // SAFETY: This listener is attached to the input itself and the test dispatches input events on it.
         onInput: (event: Event) =>
           emit("update:modelValue", (event.target as HTMLInputElement).value),
       }),
 });
-
-interface SearchInputStubProps {
-  modelValue?: string;
-  placeholder?: string;
-}
-
-// DmsSearchInput: an input named by its placeholder.
-const SearchInputStub: FunctionalComponent<SearchInputStubProps> = (
-  props,
-  { attrs },
-) => h(InputStub, { ...attrs, ...props, "aria-label": props.placeholder });
-SearchInputStub.props = ["modelValue", "placeholder"];
-
-vi.mock("../layers/dms-ui/app/build/components/form/SearchInput.vue", () => ({
-  default: SearchInputStub,
-}));
 
 const slotStub = defineComponent({
   setup:
@@ -292,7 +225,6 @@ const slotStub = defineComponent({
       h("div", slots.default?.()),
 });
 
-// DmsBanner: its title and description as text.
 const BannerStub = defineComponent({
   props: { title: String, description: String },
   setup:
@@ -328,6 +260,7 @@ function mountEditor(tree = TREE, selection = new Set<string>()) {
         description: "",
       }),
   });
+  browserRuntime(app);
   app.component("UCheckbox", CheckboxStub);
   app.component("UButton", stub("button"));
   app.component("UIcon", stub("i"));
@@ -434,7 +367,7 @@ describe("role editor level buttons", () => {
     await nextTick();
     caretOf(host, "pages.form.table").click();
     await nextTick();
-    // Depth 1 is still incomplete (`settings.user` closed): it opens first.
+
     levelButton(host, "expand").click();
     await nextTick();
     expect(openIds(host)).toEqual([
@@ -451,7 +384,7 @@ describe("role editor level buttons", () => {
       "settings.user",
       "settings.user.profile",
     ]);
-    // Collapse closes the deepest depth shown open, depth 2 here.
+
     levelButton(host, "collapse").click();
     await nextTick();
     expect(openIds(host)).toEqual(["pages.form", "settings.user"]);

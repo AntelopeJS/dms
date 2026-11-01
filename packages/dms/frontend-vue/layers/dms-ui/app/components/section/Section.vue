@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { computed, provide } from "vue";
+import { type Slot, computed, provide } from "vue";
 import { tv } from "tailwind-variants";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import { DMS_SECTION_SURFACE_KEY } from "../../build/components/section/context";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
-// The renderer's props are optional: DmsSection is both the backend `Section`
-// block (`dms-section-block`) and a template component.
 interface SectionProps extends Partial<DefaultComponentProps> {
   /** Heading (i18n key with `$` or literal). */
   title?: string;
@@ -21,13 +19,13 @@ interface SectionProps extends Partial<DefaultComponentProps> {
 
 interface SectionSlots {
   /** The card content: field rows, list rows… */
-  default?: () => unknown;
+  default?: () => ReturnType<Slot>;
   /** Inline after the title (a count, a status pill). */
-  badge?: () => unknown;
+  badge?: () => ReturnType<Slot>;
   /** Right of the heading (a section-level action). */
-  trail?: () => unknown;
+  trail?: () => ReturnType<Slot>;
   /** Muted band at the bottom of the card. */
-  footer?: () => unknown;
+  footer?: () => ReturnType<Slot>;
 }
 
 const props = withDefaults(defineProps<SectionProps>(), {
@@ -40,13 +38,10 @@ const slots = defineSlots<SectionSlots>();
 
 useWatch(props.watchActions || [], props.componentId);
 
-// v2 .st-block: a 15px title and one line of description (the generic
-// section header) above a card whose rows are set apart by hairlines.
 const theme = tv({
   slots: {
     root: "mt-7 first:mt-0",
-    // Clip, not hidden: a sticky save bar or form footer inside the card
-    // keeps sticking to the panel instead of to the card.
+
     card: "dms-card overflow-clip",
     footer:
       "flex flex-wrap items-center gap-3 border-t border-default bg-(--dms-bg-muted) px-4 py-2.5 text-[12.5px] text-muted",

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick, ref, watch, type Ref } from "vue";
 import type {
   RealtimeEvent,
+  RealtimeTopicHandler,
   UserRealtimeApi,
 } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 import {
@@ -16,7 +17,6 @@ import {
   installRealtimeFetch,
 } from "./fixtures/realtimeServer";
 
-// Past the six connections an HTTP/1.1 browser opens per host.
 const TAB_COUNT = 8;
 const USER_ID = "user-1";
 const OTHER_USER_ID = "user-2";
@@ -26,7 +26,7 @@ interface Tab {
   api: UserRealtimeApi;
   loggedIn: Ref<boolean>;
   browserTab: FakeTab;
-  received: RealtimeEvent[];
+  received: Parameters<RealtimeTopicHandler>[0][];
 }
 
 const settle = async (): Promise<void> => {
@@ -55,8 +55,8 @@ const openTab = async (userId = USER_ID): Promise<Tab> => {
     "../layers/dms-core/app/composables/realtime/useUserRealtime"
   );
   const api = module.useUserRealtime();
-  const received: RealtimeEvent[] = [];
-  api.subscribe(TOPIC, (event) => received.push(event as RealtimeEvent));
+  const received: Parameters<RealtimeTopicHandler>[0][] = [];
+  api.subscribe(TOPIC, (event) => received.push(event));
   const tab = { api, loggedIn, browserTab, received };
   tabs.push(tab);
   await settle();
@@ -90,9 +90,7 @@ beforeEach(() => {
   vi.stubEnv("SSR", false);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
-  vi.stubGlobal("useDmsState", (_key: string, init: () => unknown) =>
-    ref(init()),
-  );
+  vi.stubGlobal("useDmsState", <T>(_key: string, init: () => T) => ref(init()));
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: BASE_URL } },
   }));
@@ -116,6 +114,11 @@ afterEach(async () => {
 });
 
 describe("useUserRealtime across tabs", () => {
+  registerSharedConnectionDeliveryTests();
+  registerSharedConnectionRecoveryTests();
+});
+
+function registerSharedConnectionDeliveryTests() {
   it("shares one connection between every tab, each with a session of its own", async () => {
     const opened = await openTabs(TAB_COUNT);
 
@@ -208,7 +211,7 @@ describe("useUserRealtime across tabs", () => {
       expect(sessionId).toBeDefined();
       expect(sessionId).not.toBe(before[index]);
     }
-    // Each tab put its page back on its new session.
+
     expect(server.pageCalls.slice(-2)).toEqual(
       expect.arrayContaining([
         { sessionId: after[0], pageId: "orders" },
@@ -220,7 +223,9 @@ describe("useUserRealtime across tabs", () => {
     await settle();
     expect(followers[2]!.received).toEqual([eventFor(2)]);
   });
+}
 
+function registerSharedConnectionRecoveryTests() {
   it("keeps the connection when the leader's stream drops, on the next one", async () => {
     const opened = await openTabs(3);
 
@@ -242,7 +247,6 @@ describe("useUserRealtime across tabs", () => {
     const tab = await openTab();
     expect(tab.api.sessionId.value).toBeUndefined();
 
-    // The tab's retry delay, then the leader's reconnect delay.
     await vi.advanceTimersByTimeAsync(500);
     await settle();
     await vi.advanceTimersByTimeAsync(500);
@@ -302,4 +306,4 @@ describe("useUserRealtime across tabs", () => {
     expect(isolated.sessionId.value).toBeDefined();
     expect(isolated.sessionId.value).not.toBe(sessionOf(first));
   });
-});
+}

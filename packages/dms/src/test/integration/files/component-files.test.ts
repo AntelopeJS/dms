@@ -1,4 +1,4 @@
-import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
+import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
   isStagedKey,
@@ -7,12 +7,11 @@ import {
 } from "@antelopejs/interface-file-storage";
 import axios from "axios";
 import { expect } from "chai";
-import { attachmentId } from "../../../attachments/registry";
-import { SaveComponentFiles } from "../../../attachments/save";
-import { AttachmentModel } from "../../../db/models/attachments.model";
+import { attachmentId, SaveComponentFiles } from "../../../attachments";
+import { AttachmentModel } from "../../../db/models";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel } from "@antelopejs/interface-dms/db";
-import { verifyUploadToken } from "../../../utils/upload-token";
+import { verifyUploadToken } from "../../../utils";
 import {
   findUploadToken,
   nativeUploadToken,
@@ -20,6 +19,7 @@ import {
 } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
+import { untouchedRequestContext } from "../../helpers/request-context";
 
 const CONTENT = Buffer.from("component-owned file");
 const METADATA = "/api/files/metadata";
@@ -211,7 +211,7 @@ describe("[integration] native component file security", () => {
     let saves = 0;
     const denied = await SaveComponentFiles(
       {
-        context: {} as RequestContext,
+        context: untouchedRequestContext(),
         componentIds: [],
         fields: [{ id: "unclassified#file", key: "file", kind: "file" }],
         before: document,
@@ -221,7 +221,7 @@ describe("[integration] native component file security", () => {
         saves += 1;
         return { document: submitted, result: "saved" };
       },
-    ).catch((error: unknown) => error);
+    ).catch((error) => error);
     expect(denied).to.be.instanceOf(HTTPResult);
     expect(saves).to.equal(0);
   });

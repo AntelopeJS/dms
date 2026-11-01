@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 /**
  * A row's actions are named after the row: a custom action's label fills its
  * `{field}` braces from the row ("Translate {name}"), and the ⋯ button opening
@@ -7,38 +8,32 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
+  createApp,
   h,
+  nextTick,
   ref,
   shallowRef,
   watch,
   watchEffect,
   type VNode,
+  type App,
 } from "vue";
-import { useTableColumns } from "../layers/dms-ui/app/build/composables/table/useTableColumns";
+import { useTableColumns } from "../layers/dms-ui/app/entries/composables/table/useTableColumns";
 import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import * as colors from "../layers/dms-core/app/types/color";
 import * as buttons from "../layers/dms-core/app/types/button";
 import * as sizes from "../layers/dms-core/app/types/size";
+import { isFunction, isString } from "../layers/dms-core/app/utils/type-check";
+import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 
-vi.mock("@nuxt/ui/components/Button.vue", () => ({
-  default: { name: "UButton", render: () => null },
-}));
-vi.mock("@nuxt/ui/components/Checkbox.vue", () => ({
-  default: { render: () => null },
-}));
-vi.mock("@nuxt/ui/components/DropdownMenu.vue", () => ({
-  default: { name: "UDropdownMenu", render: () => null },
-}));
-vi.mock("@nuxt/ui/runtime/utils/index.js", () => ({
-  get: (row: Record<string, unknown>, key: string) => row[key],
-}));
+type Row = { _id: string; name: string; code: string };
 
-type Row = Record<string, unknown>;
+const ROW = { _id: "fr", name: "Français", code: "fr" };
 
-const ROW: Row = { _id: "fr", name: "Français", code: "fr" };
-
-const translateKey = (key: string, params: Record<string, unknown> = {}) =>
+const translateKey = (key: string, params: Record<string, string> = {}) =>
   Object.keys(params).length > 0 ? `${key}(${JSON.stringify(params)})` : key;
+
+const mounted: App[] = [];
 
 beforeEach(() => {
   for (const [name, value] of Object.entries({
@@ -54,9 +49,9 @@ beforeEach(() => {
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("watchEffect", watchEffect);
   vi.stubGlobal("shallowRef", shallowRef);
-  vi.stubGlobal("isFunction", (value: unknown) => typeof value === "function");
+  vi.stubGlobal("isFunction", isFunction);
   vi.stubGlobal("h", h);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("useI18n", () => ({ t: translateKey }));
   vi.stubGlobal("useDmsRouter", () => ({ push: vi.fn() }));
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
@@ -64,7 +59,7 @@ beforeEach(() => {
     ui: { icons: { ellipsis: "i-ellipsis" } },
   }));
   vi.stubGlobal("useTranslation", () => ({
-    processI18n: (key: string, params?: Record<string, unknown>) =>
+    processI18n: (key: string, params?: Parameters<typeof translateKey>[1]) =>
       key.startsWith("$") ? translateKey(key.slice(1), params ?? {}) : key,
   }));
   vi.stubGlobal("useConfirm", () => ({ confirm: vi.fn() }));
@@ -73,11 +68,20 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  mounted.splice(0).forEach((app) => app.unmount());
+  document.body.replaceChildren();
   vi.unstubAllGlobals();
 });
 
+type LabelAction = Omit<CustomRowAction, "target"> & {
+  target: Pick<
+    Extract<CustomRowAction["target"], { type: "api" | "page" }>,
+    "type" | "url"
+  >;
+};
+
 interface ActionsCellOptions {
-  custom: Array<Record<string, unknown>>;
+  custom: LabelAction[];
   menuLabel?: string;
   labelKey?: string;
 }
@@ -94,29 +98,47 @@ function actionsCell({ custom, menuLabel, labelKey }: ActionsCellOptions) {
       details: false,
       duplicate: false,
       edit: false,
-      custom: custom as never,
+      // SAFETY: These label/menu tests never select an action; their API targets omit the unused successMessage.
+      custom: custom as CustomRowAction[],
       menuLabel,
     },
     labelKey,
-    emits: (() => undefined) as never,
-    ui: computed(() => ({ rowAction: () => "" }) as never),
+    emits: () => undefined,
+    // SAFETY: This actions-cell probe uses only rowAction; no header or selection cell is rendered.
+    ui: computed(
+      () =>
+        ({ rowAction: () => "" }) as Parameters<
+          typeof useTableColumns<Row>
+        >[0]["ui"]["value"],
+    ),
   });
   const column = columns.value.find((entry) => entry.id === "actions");
-  const cell = column?.cell as (context: unknown) => VNode;
+  // SAFETY: The actions column installs a cell callback that only reads row.original and row.id.
+  const cell = column?.cell as (context: {
+    row: { original: Row; id: string };
+  }) => VNode;
   return cell({ row: { original: ROW, id: "fr" } });
 }
 
-const childrenOf = (node: VNode) => node.children as VNode[];
-
-function menuButtonProps(cell: VNode): Record<string, unknown> {
-  const menu = childrenOf(cell).find(
-    (child) => (child.type as { name?: string }).name === "UDropdownMenu",
-  );
-  const slots = menu?.children as { default: () => VNode };
-  return slots.default().props ?? {};
+function renderCell(cell: VNode) {
+  const app = createApp({ render: () => cell });
+  const host = document.createElement("div");
+  document.body.append(host);
+  app.mount(host);
+  mounted.push(app);
+  return host;
 }
 
-const MENU_ACTION = { label: "Remove", target: { type: "api", url: "/x" } };
+function menuButtonProps(cell: VNode) {
+  const button = renderCell(cell).querySelector('[aria-haspopup="menu"]');
+  expect(button).not.toBeNull();
+  return { "aria-label": button?.getAttribute("aria-label") };
+}
+
+const MENU_ACTION = {
+  label: "Remove",
+  target: { type: "api", url: "/x" },
+} satisfies LabelAction;
 
 it("names the ⋯ button after the row's label field by default", () => {
   const cell = actionsCell({ custom: [MENU_ACTION], labelKey: "name" });
@@ -147,7 +169,7 @@ it("names the ⋯ button with menuLabel, filled from the row", () => {
   );
 });
 
-it("fills a custom action's label from the row, inline and in the menu", () => {
+it("fills a custom action's label from the row, inline and in the menu", async () => {
   const cell = actionsCell({
     custom: [
       {
@@ -166,15 +188,17 @@ it("fills a custom action's label from the row, inline and in the menu", () => {
       },
     ],
   });
-  const [inline] = childrenOf(cell);
-  expect(inline.props?.label).toBe("Translate Français");
-  expect(inline.props?.["aria-label"]).toBe("Translate Français");
-
-  const menu = childrenOf(cell).find(
-    (child) => (child.type as { name?: string }).name === "UDropdownMenu",
+  const host = renderCell(cell);
+  const inline = host.querySelector('[aria-label="Translate Français"]');
+  expect(inline?.textContent).toBe("Translate Français");
+  const menu = host.querySelector('[aria-haspopup="menu"]')!;
+  menu.dispatchEvent(
+    new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
   );
-  const items = (menu?.props?.items as Array<Array<{ label: string }>>).flat();
-  expect(items.map((item) => item.label)).toEqual([
+  await nextTick();
+  await new Promise((resolve) => setTimeout(resolve));
+  const items = [...document.querySelectorAll('[role="menuitem"]')];
+  expect(items.map((item) => item.textContent?.trim())).toEqual([
     expect.stringContaining('dms_lang.languages.remove({"_id":"fr"'),
     "Keep {unknown} as written",
   ]);

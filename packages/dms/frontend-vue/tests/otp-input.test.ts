@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   type App,
@@ -8,6 +8,7 @@ import {
   nextTick,
   ref,
 } from "vue";
+import type OtpInputComponent from "../layers/dms-ui/app/entries/components/form/OtpInput";
 
 const CELLS = 6;
 
@@ -36,9 +37,11 @@ PinInput.emits = ["complete"];
 let app: App | undefined;
 let host: HTMLDivElement;
 
-async function mount(props: Record<string, unknown> = {}) {
+async function mount(
+  props: Partial<InstanceType<typeof OtpInputComponent>["$props"]> = {},
+) {
   const { default: OtpInput } = await import(
-    "../layers/dms-ui/app/build/components/form/OtpInput.vue"
+    "../layers/dms-ui/app/entries/components/form/OtpInput"
   );
   const exposed = ref<{ focus: () => void } | null>(null);
   const onComplete = vi.fn();

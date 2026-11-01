@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
+import { isString } from "../layers/dms-core/app/utils/type-check";
+import { formSubmitEvent } from "./helpers/form-submit-event";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 
 /**
@@ -32,10 +34,11 @@ const STORED = {
 
 const authFetch = vi.fn();
 let scope: EffectScope;
+// oxlint-disable-next-line anti-slop/no-unknown-returns -- Submit responses deliberately include records, unrelated objects, arrays and undefined; no parsed record owner describes this transport double before useForm handles the response.
 let answer: () => unknown;
 
 function setupForm(
-  props: Record<string, unknown> = {},
+  props: Partial<Parameters<typeof useForm>[0]> = {},
   onSaved: () => void = () => undefined,
 ) {
   return scope.run(() =>
@@ -47,7 +50,7 @@ function setupForm(
         fetchUrl: GET_URL,
         submitUrl: EDIT_URL,
         ...props,
-      } as never,
+      },
       { onSaved },
     ),
   )!;
@@ -56,7 +59,7 @@ function setupForm(
 async function saveTyped(form: ReturnType<typeof setupForm>) {
   form.initialValues.value = structuredClone(LOADED);
   Object.assign(form.state.value, structuredClone(TYPED));
-  await form.onSubmit({ data: structuredClone(TYPED) } as never);
+  await form.onSubmit(formSubmitEvent(structuredClone(TYPED)));
 }
 
 const reads = () => authFetch.mock.calls.filter(([url]) => url === GET_URL);
@@ -71,7 +74,7 @@ beforeEach(() => {
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("HttpMethod", HttpMethod);
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("Color", { error: "error", success: "success", info: "info" });
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "Content-Language");
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
@@ -85,11 +88,15 @@ beforeEach(() => {
   vi.stubGlobal("useDmsRoute", () => ({ query: {}, params: {} }));
   vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
   vi.stubGlobal("useEventedAction", () => ({
-    execute: (action: () => Promise<unknown>) => action(),
+    execute: <Result>(action: () => Promise<Result>) => action(),
   }));
   vi.stubGlobal(
     "useWatch",
-    (_actions: unknown, _id: unknown, initial: Record<string, unknown>) => ({
+    (
+      ...[_actions, _id, initial]: Parameters<
+        typeof import("../layers/dms-core/app/composables/watch/useWatch").useWatch
+      >
+    ) => ({
       isLoading: ref(false),
       state: ref({ ...initial }),
     }),
@@ -114,7 +121,7 @@ describe("DMS form after a save", () => {
     expect(form.state.value).toMatchObject(STORED);
     expect(form.initialValues.value).toMatchObject(STORED);
     expect(form.submitSucceeded.value).toBe(true);
-    // Saved once accepted, then again with what the route stored.
+
     expect(onSaved).toHaveBeenCalledTimes(2);
   });
 

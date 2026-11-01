@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
-import type { MissingInterface } from "../../../../types/module-store";
+import type { InputEmits, RadioGroupEmits, TextareaEmits } from "@nuxt/ui";
+import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
+import type { MissingInterface } from "#dms-core/app/types/module-store";
 import {
   type DependencyDraft,
   type DependencyDraftError,
@@ -62,7 +63,10 @@ function errorText(error: DependencyDraftError | undefined) {
 function updateField(
   index: number,
   field: keyof DependencyDraft,
-  value: unknown,
+  value:
+    | InputEmits["update:modelValue"][0]
+    | TextareaEmits["update:modelValue"][0]
+    | RadioGroupEmits["update:modelValue"][0],
 ): void {
   emit("update", index, { [field]: String(value ?? "") });
 }

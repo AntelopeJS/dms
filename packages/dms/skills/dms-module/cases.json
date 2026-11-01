@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "package-module",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Package our invoicing pages as a reusable DMS module that other projects can install.",
+      "expect": {
+        "skills": ["dms-module"],
+        "acceptable": [
+          "dms",
+          "dms-pages",
+          "ajs-author-interface",
+          "dms-frontend"
+        ]
+      }
+    },
+    {
+      "id": "ai-ship-module-skills",
+      "area": "dms-ai",
+      "style": "clean",
+      "prompt": "Make our module ship its own skill so dms-ai loads it.",
+      "expect": {
+        "skills": ["dms-module"],
+        "acceptable": ["dms-ai", "antelopejs"]
+      }
+    },
+    {
+      "id": "dms-module-installable-casual",
+      "area": "dms",
+      "style": "casual",
+      "prompt": "how do i make my dms stuff installable by other people, like dms-lang is",
+      "expect": {
+        "skills": ["dms-module"],
+        "acceptable": ["dms", "dms-pages"]
+      }
+    },
+    {
+      "id": "dms-module-lifecycle-entry",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Write the src/index.ts of a distributable DMS module with id invoicing that registers its pages and attaches its own Vue frontend.",
+      "expect": {
+        "skills": ["dms-module"],
+        "acceptable": ["dms", "dms-pages", "dms-frontend"],
+        "mustMention": ["RegisterModule", "AddFrontendModule"]
+      }
+    },
+    {
+      "id": "dms-module-not-app-pages",
+      "area": "dms",
+      "style": "clean",
+      "prompt": "Register my app's own orders page under a category and wire the lifecycle in the src/index.ts of my DMS project. It is not meant to be shared.",
+      "expect": {
+        "skills": ["dms-project"],
+        "acceptable": ["dms", "dms-pages"],
+        "avoid": ["dms-module"]
+      }
+    }
+  ]
+}

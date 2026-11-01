@@ -6,10 +6,9 @@ import { Send } from "@antelopejs/interface-email";
 import type { AdminInviteEmailContext } from "@antelopejs/interface-dms/auth";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
-import {
-  GenerateHtml,
-  RegisterHtmlTemplate,
-} from "@antelopejs/interface-dms/html-render";
+import { GenerateHtml } from "@antelopejs/interface-dms/html-render";
+export * from "./account-emails";
+import { AdminInviteTemplate } from "./email-templates";
 import { decode, sign, verify } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
@@ -17,14 +16,12 @@ import {
   buildAdminInviteSignupLink,
   buildAdminInviteSubject,
   resolveAdminInviteLanguage,
-} from "../../utils/admin-invite-email";
+  recordUserActivity,
+} from "../../utils";
 import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
-import { recordUserActivity } from "../../utils/user-activity";
 import { generateSecret } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
-
-export * from "./account-emails";
 
 const HTTP_FORBIDDEN = 403;
 const HTTP_UNAUTHORIZED = 401;
@@ -51,15 +48,6 @@ interface TokenResult {
   expiresIn: number;
 }
 
-interface AdminInviteData extends AdminInviteEmailNames {
-  email: string;
-  signupLink: string;
-  expiresInDays: number;
-}
-
-const AdminInviteTemplate =
-  RegisterHtmlTemplate<AdminInviteData>("EmailAdminInvite");
-
 /**
  * Common validation logic for user tokens
  * @param data Token data with tenantId, id, and raw token
@@ -72,8 +60,7 @@ async function validateUserToken(
   checkEmailValidation: boolean = false,
 ): Promise<User> {
   const userModel = GetModel(UserModel);
-  // The session is read alongside the user, so checking it costs no extra
-  // round trip; which session counts is settled from the verified payload.
+
   const [user, session] = await Promise.all([
     userModel.get(data.id),
     loadTokenSession(data.sessionId),
@@ -120,15 +107,19 @@ function verifySessionToken(
 ): DecodedAuthPayload {
   const payload = verify(token, secret, { algorithms: ["HS256"] });
   if (
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- jsonwebtoken can return a text payload; only an object carries the claims checked below.
     typeof payload === "string" ||
     payload.purpose !== purpose ||
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A valid signature does not establish the id claim's JSON type.
     typeof payload.id !== "string" ||
     !payload.id ||
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A valid signature does not establish the tenant claim's JSON type.
     typeof payload.tenantId !== "string" ||
     !payload.tenantId
   ) {
     throw new Error(INVALID_SESSION_TOKEN_ERROR);
   }
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and JwtPayload leave sessionId unchecked; downstream session validation currently assumes DecodedAuthPayload, and checking or rejecting another claim here would change token acceptance.
   return payload as DecodedAuthPayload;
 }
 
@@ -137,6 +128,7 @@ export namespace internal {
     if (!data) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, NO_JWT_TOKEN_ERROR);
     }
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode's inferred JwtPayload|string|null and JWT owner types cannot establish the claims consumed by AuthUserValidator; this authenticator forwards them without checking so rejection stays in the validator.
     const result = decode(data) as DecodedAuthPayload;
     return {
       ...result,
@@ -149,6 +141,7 @@ export namespace internal {
       return undefined;
     }
     try {
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode and its owner return JwtPayload|string|null rather than the claims IfAuthUserValidator consumes; retaining this unchecked forwarding avoids adding new authenticator rejections.
       const result = decode(data) as DecodedAuthPayload;
       return {
         ...result,
@@ -265,6 +258,7 @@ export function generateRefreshToken(
 
 export async function validateRefreshToken(token: string) {
   const result = decode(token);
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Decoding returns text, an open claims object or null; these existing checks gate the id used for the user query.
   if (!result || typeof result === "string" || typeof result.id !== "string") {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
@@ -293,9 +287,7 @@ export function generateTwoFactorToken(
   user: User,
 ): TokenResult {
   const secret = generateSecret(user.authKey);
-  // The token is the challenge its tries are counted against. Its claims are
-  // signed to the second: without an id of its own, two sign-ins in the same
-  // second would share one token, one budget of tries and one session.
+
   const token = sign(
     { id: user._id, tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE },
     secret,
@@ -341,11 +333,6 @@ function isSignedFor(token: string, user: User): boolean {
   }
 }
 
-// One refusal whatever failed: an unknown user answered apart from a bad
-// signature would tell which user ids exist, and the token library's own
-// messages ("jwt expired", "invalid signature") stay out of the answer. The
-// user is read before the signature is checked because the secret derives
-// from their key.
 async function verifyPurposeToken<T extends PurposeTokenClaims>(
   token: string,
   purpose: string,
@@ -354,8 +341,10 @@ async function verifyPurposeToken<T extends PurposeTokenClaims>(
   const claims = decode(token);
   if (
     !claims ||
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JWT decode can return a text payload without object claims.
     typeof claims === "string" ||
     claims.purpose !== purpose ||
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The decoded id is untrusted even when its purpose matches.
     typeof claims.id !== "string"
   ) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
@@ -364,6 +353,7 @@ async function verifyPurposeToken<T extends PurposeTokenClaims>(
   if (!user || !isSignedFor(token, user)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and JwtPayload cannot establish generic T's extra claims; the legacy two-factor return assumes tenantId without checking it, which this refactor must not start rejecting.
   return { claims: claims as T, user };
 }
 
@@ -400,20 +390,27 @@ const BUILTIN_SENSITIVE_USER_KEYS: string[] = [
   "twoFactorEmailCodeRequestedAt",
 ];
 
-function deleteNestedKey(target: Record<string, unknown>, dottedKey: string) {
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- User's owner type cannot describe arbitrary nested configured paths; the traversal must preserve dynamic property access rather than validate or reject those paths.
+type PropertyBag = Record<string, unknown>;
+
+function isPropertyBag(value: unknown): value is PropertyBag {
+  return isObject(value) && value !== null;
+}
+
+function deleteNestedKey(target: User, dottedKey: string) {
   const parts = dottedKey.split(".");
   let current: unknown = target;
 
   for (let i = 0; i < parts.length - 1; i++) {
-    if (isObject(current) && current !== null && parts[i] in current) {
-      current = (current as Record<string, unknown>)[parts[i]];
+    if (isPropertyBag(current) && parts[i] in current) {
+      current = current[parts[i]];
     } else {
       return;
     }
   }
 
-  if (isObject(current) && current !== null && parts.length > 0) {
-    delete (current as Record<string, unknown>)[parts[parts.length - 1]];
+  if (isPropertyBag(current) && parts.length > 0) {
+    delete current[parts[parts.length - 1]];
   }
 }
 
@@ -424,18 +421,14 @@ export function sanitizeUser(user: User): Partial<User> {
     ...config.userSensitiveKeys,
   ];
 
-  // Unlike the other spread rows, `User` extends `Table.with(HashModifier)`
-  // and does carry a prototype method, `testHash`. It is not needed here: what
-  // this builds is the redacted copy that goes out as JSON, and the only
-  // `testHash` call is made on the model row, not on this.
-  // oxlint-disable-next-line typescript/no-misused-spread
+  // oxlint-disable-next-line typescript/no-misused-spread -- Sanitization intentionally copies only the User instance's own enumerable database fields, not prototype methods.
   const result = { ...user };
 
   for (const key of sensitiveKeys) {
     if (key.includes(".")) {
-      deleteNestedKey(result as Record<string, unknown>, key);
+      deleteNestedKey(result, key);
     } else {
-      delete result[key as keyof User];
+      Reflect.deleteProperty(result, key);
     }
   }
 
@@ -488,6 +481,6 @@ export async function sendAdminInviteEmail(
   Logging.Info(`[DMS-AUTH] Invite email sent to "${email}"`);
 }
 
-export { notifyWelcome as NotifyWelcome } from "../../utils/account-notifications";
-export { notifyCollaboratorJoined as NotifyCollaboratorJoined } from "../../utils/workspace-notifications";
-export { parseUserAgent as ParseUserAgent } from "../../utils/user-agent";
+export { notifyWelcome as NotifyWelcome } from "../../utils";
+export { notifyCollaboratorJoined as NotifyCollaboratorJoined } from "../../hooks";
+export { parseUserAgent as ParseUserAgent } from "../../utils";

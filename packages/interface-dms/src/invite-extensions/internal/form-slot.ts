@@ -56,7 +56,8 @@ const INVITE_EDIT_FORM_HOST: InviteFormHost = {
 };
 
 interface JsonSchemaObject {
-  properties?: Record<string, unknown>;
+  $schema?: NonNullable<FormPropsSerialized["schema"]>["$schema"];
+  properties?: InviteFieldContribution["properties"];
   required?: string[];
 }
 
@@ -75,13 +76,15 @@ function flattenSerializedFields(
 function prefixWatchAction(key: string, watch: WatchAction): WatchAction {
   const params = { ...watch.params };
   for (const param of WATCH_FIELD_PARAMS) {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Watch params are heterogeneous; only string field references receive the invitation prefix.
     if (typeof params[param] === "string") {
-      params[param] = inviteExtensionFieldId(key, params[param] as string);
+      params[param] = inviteExtensionFieldId(key, params[param]);
     }
   }
   const conditions = watch.onParam
     ? [watch.onParam].flat().map((condition) =>
         condition.key === WATCH_FIELD_CONDITION_KEY &&
+        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Conditions support nonstring operands; remap only string field references without validating unrelated watch values.
         typeof condition.value === "string"
           ? {
               ...condition,
@@ -91,7 +94,6 @@ function prefixWatchAction(key: string, watch: WatchAction): WatchAction {
       )
     : undefined;
 
-  // `onParam` is set only when the contribution declared conditions.
   const resolvedWatch: WatchAction = { ...watch, params };
   if (conditions) resolvedWatch.onParam = conditions;
   return resolvedWatch;
@@ -99,10 +101,10 @@ function prefixWatchAction(key: string, watch: WatchAction): WatchAction {
 
 function prefixSchemaEntries(
   key: string,
-  schema: unknown,
+  schema: FormPropsSerialized["schema"],
 ): Pick<InviteFieldContribution, "properties" | "requiredProperties"> {
-  const source = (schema ?? {}) as JsonSchemaObject;
-  const properties: Record<string, unknown> = {};
+  const source: JsonSchemaObject = schema ?? {};
+  const properties: InviteFieldContribution["properties"] = {};
   for (const [fieldId, definition] of Object.entries(source.properties ?? {})) {
     properties[inviteExtensionFieldId(key, fieldId)] = definition;
   }
@@ -117,11 +119,8 @@ function prefixSchemaEntries(
 async function buildContribution(
   info: InviteExtensionInfo,
 ): Promise<InviteFieldContribution | undefined> {
-  // Serializing here — not at registration — is what runs the form's option
-  // transforms, so the upload fields it carries are stamped exactly as they
-  // would be on a page that hosts the form directly.
   const serialized = await info.component.serialize();
-  const options = serialized.options as FormPropsSerialized | undefined;
+  const options = serialized.options;
   const fields = flattenSerializedFields(options?.fields ?? []);
 
   if (fields.length === 0) {
@@ -142,10 +141,9 @@ async function buildContribution(
     })),
   };
 
-  const watchActions = (
-    (options as { watchActions?: WatchAction[] } | undefined)?.watchActions ??
-    []
-  ).map((watch) => prefixWatchAction(info.key, watch));
+  const watchActions = (options?.watchActions ?? []).map((watch) =>
+    prefixWatchAction(info.key, watch),
+  );
 
   return {
     key: info.key,
@@ -162,22 +160,14 @@ async function buildContribution(
 function contributionOf(
   entry: InviteExtensionEntry,
 ): Promise<InviteFieldContribution | undefined> {
-  entry.contribution ??= buildContribution(entry.info).catch(
-    (error: unknown) => {
-      logInviteExtensionFailure(entry.info.key, "serialize its form", error);
-      // Cleared so a later request retries: a transient failure (an unreachable
-      // signing implementation while the DMS is still starting) must not leave
-      // the extension permanently out of the modal.
-      entry.contribution = undefined;
-      return undefined;
-    },
-  );
+  entry.contribution ??= buildContribution(entry.info).catch((error) => {
+    logInviteExtensionFailure(entry.info.key, "serialize its form", error);
+    entry.contribution = undefined;
+    return undefined;
+  });
   return entry.contribution;
 }
 
-// Every criterion is intrinsic to the declaration — never module start order —
-// so the modal assembles identically on every host and across restarts. Keys
-// are unique, so they close the total order.
 function compareContributions(
   a: InviteFieldContribution,
   b: InviteFieldContribution,
@@ -193,8 +183,6 @@ function disableGroup(group: FieldGroupSerialized): FieldGroupSerialized {
   };
 }
 
-// Returns a copy: the contribution is the process-wide cache shared by every
-// request and by both invite forms.
 function adaptToHost(
   contribution: InviteFieldContribution,
   host: InviteFormHost,
@@ -283,14 +271,6 @@ function assembleFields(
     contributions,
     new Set(own.map((field) => field.id)),
   );
-  // Cloned, not spread: the group hangs off a process-wide cache shared by
-  // every request, and a shallow copy would hand each of them the same field
-  // objects — one in-place edit downstream and the cache is corrupted for
-  // every tenant.
-  //
-  // A contributed block lays out like the form it lands in unless its author
-  // asked otherwise: a block that reads sideways in a column of fields looks
-  // like a rendering bug, not like a deliberate choice.
   const blockOf = (
     contribution: InviteFieldContribution,
   ): FieldGroupSerialized => ({
@@ -315,14 +295,13 @@ function assembleFields(
   return assembled;
 }
 
-// The browser validates against the form's JSON schema, so a contributed field
-// left out of it would submit unchecked — its own `required` flag included.
 function mergeSchema(
-  own: unknown,
+  own: FormPropsSerialized["schema"],
   contributions: InviteFieldContribution[],
-): unknown {
+) {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This slot leaves nonobject schema representations untouched and only augments object schemas, preserving the opaque form schema contract.
   if (!own || typeof own !== "object") return own;
-  const source = own as JsonSchemaObject;
+  const source: JsonSchemaObject = own;
 
   return {
     ...source,
@@ -344,29 +323,21 @@ async function resolveInviteFormSlot(
   options: SlotOptions,
   host: InviteFormHost,
 ): Promise<SlotOptions> {
-  // The marker has done its job here; leaving it in would ship an internal id
-  // to the browser, where an unknown form prop lands as a DOM attribute.
   const { [COMPONENT_SLOT_KEY]: _slot, ...resolved } = options;
   const contributions = (await collectContributions()).map((contribution) =>
     adaptToHost(contribution, host),
   );
   if (contributions.length === 0) return resolved;
 
-  // The source and the target do not overlap, so this cannot be one
-  // assertion: the value reaches here through a decorator, a JWT
-  // payload or a filter tuple, none of which the type system sees.
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions
-  const form = options as unknown as FormPropsSerialized & {
+  const form: Partial<FormPropsSerialized> & {
     watchActions?: WatchAction[];
-  };
+  } = options;
   const watchActions = [
     ...(form.watchActions ?? []),
     ...contributions.flatMap((contribution) => contribution.watchActions),
   ];
 
-  // `watchActions` is set only when there is at least one, so a form with none
-  // carries no key for it.
-  const merged: Record<string, unknown> = {
+  const merged: SlotOptions = {
     ...resolved,
     fields: assembleFields(
       form.fields ?? [],
@@ -376,11 +347,9 @@ async function resolveInviteFormSlot(
     schema: mergeSchema(form.schema, contributions),
   };
   if (watchActions.length > 0) merged.watchActions = watchActions;
-  return merged as SlotOptions;
+  return merged;
 }
 
-// Claimed on import: the DMS invite forms declare their slots at page
-// registration, which can run before any module extends them.
 RegisterComponentSlot(INVITE_FORM_SLOT_ID, (options) =>
   resolveInviteFormSlot(options, INVITE_FORM_HOST),
 );

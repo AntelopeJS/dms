@@ -1,13 +1,5 @@
-// Run as a plain Node process by table-view-evaluation-order.test.ts: only a
-// fresh module graph lets a test choose what evaluates first.
-//
-// A consumer enters the interface package through the table-view subpath, and
-// the DMS's realtime modules evaluate before that subpath has finished: its
-// exports are still empty. The DMS used to install a table-view bridge from
-// those modules, which is why the install had been deferred to `start()`.
-// Nothing there may reach into table-view any more: implementing the interface
-// in `construct()` is all the table view needs to reach the DMS.
-import Module from "node:module";
+import Module, { findPackageJSON } from "node:module";
+import { dirname, join } from "node:path";
 import { ImplementInterface } from "@antelopejs/interface-core";
 import type * as TableViewInterface from "@antelopejs/interface-dms/base/table-view";
 import type * as RealtimeInterface from "@antelopejs/interface-dms/realtime";
@@ -16,11 +8,11 @@ import type * as DmsRealtimeImplementation from "../../../../implementations/dms
 import type * as DmsTableViewImplementation from "../../../../implementations/dms-base/table-view";
 
 type LoadModule = (
-  this: unknown,
+  this: ModuleLoader,
   request: string,
   parent: NodeModule | undefined,
   isMain: boolean,
-) => unknown;
+) => ReturnType<NodeRequire>;
 
 interface ModuleLoader {
   _load: LoadModule;
@@ -32,36 +24,33 @@ export interface EvaluationOrderResult {
   pageTopics: string[];
 }
 
-const TABLE_VIEW = "@antelopejs/interface-dms/base/table-view";
-const REALTIME = "@antelopejs/interface-dms/realtime";
 const LOCATION = "/api/evaluation-order";
 const PAGE_ID = "pages.evaluation-order";
 const SESSION = "evaluation-order-session";
 const ROW = "evaluation-order-row";
-const DMS_REALTIME = "../../../../realtime";
-const DMS_REALTIME_IMPLEMENTATION = "../../../../implementations/dms/realtime";
-const DMS_TABLE_VIEW_IMPLEMENTATION =
-  "../../../../implementations/dms-base/table-view";
-const DMS_REALTIME_MODULES = [
-  DMS_REALTIME,
-  "../../../../realtime/table-view",
-  DMS_REALTIME_IMPLEMENTATION,
-];
 
 function enterThroughTableView(): typeof TableViewInterface {
+  // SAFETY: Node's Module class carries the loader entry point _load, which its public declaration omits; ModuleLoader describes only that member.
   const loader = Module as unknown as ModuleLoader;
   const load = loader._load;
-  const tableViewEntry = require.resolve(TABLE_VIEW);
+  const manifest = findPackageJSON(
+    "@antelopejs/interface-dms/base/table-view",
+    __filename,
+  );
+  if (!manifest) throw new Error("Cannot locate table-view package");
+  const tableViewEntry = join(dirname(manifest), "dist/base/table-view.js");
   let hasLoadedDms = false;
   loader._load = function (request, parent, isMain) {
     if (!hasLoadedDms && parent?.filename === tableViewEntry) {
       hasLoadedDms = true;
-      for (const path of DMS_REALTIME_MODULES) require(path);
+      require("../../../../realtime");
+      require("../../../../realtime/table-view/index");
+      require("../../../../implementations/dms/realtime");
     }
     return load.call(this, request, parent, isMain);
   };
   try {
-    return require(TABLE_VIEW) as typeof TableViewInterface;
+    return require("@antelopejs/interface-dms/base/table-view");
   } finally {
     loader._load = load;
   }
@@ -69,21 +58,19 @@ function enterThroughTableView(): typeof TableViewInterface {
 
 async function run(): Promise<EvaluationOrderResult> {
   const tableView = enterThroughTableView();
-  const realtimeInterface = require(REALTIME) as typeof RealtimeInterface;
-  const realtime = require(DMS_REALTIME) as typeof DmsRealtime;
+  const realtimeInterface: typeof RealtimeInterface = require("@antelopejs/interface-dms/realtime");
+  const realtime: typeof DmsRealtime = require("../../../../realtime");
   const rowTopic = tableView.tableViewRowTopic(LOCATION);
 
-  // A page registers its topics before the DMS implements the interface.
   realtimeInterface.RegisterPageTopic(PAGE_ID, rowTopic);
 
-  // What the DMS's `construct()` does, once every module has evaluated.
   ImplementInterface(
     realtimeInterface,
-    require(DMS_REALTIME_IMPLEMENTATION) as typeof DmsRealtimeImplementation,
+    require("../../../../implementations/dms/realtime") satisfies typeof DmsRealtimeImplementation,
   );
   ImplementInterface(
     tableView,
-    require(DMS_TABLE_VIEW_IMPLEMENTATION) as typeof DmsTableViewImplementation,
+    require("../../../../implementations/dms-base/table-view") satisfies typeof DmsTableViewImplementation,
   );
 
   const published: string[] = [];
@@ -117,7 +104,7 @@ run().then(
   (result) => {
     process.stdout.write(JSON.stringify(result), () => process.exit(0));
   },
-  (error: unknown) => {
+  (error) => {
     const report = error instanceof Error ? error.stack : String(error);
     process.stderr.write(`${report}\n`, () => process.exit(1));
   },

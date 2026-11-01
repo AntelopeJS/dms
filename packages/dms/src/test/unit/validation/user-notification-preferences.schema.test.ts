@@ -2,7 +2,7 @@ import { expect } from "chai";
 import {
   userNotificationPreferencesPatchSchema,
   userNotificationPreferencesSchema,
-} from "../../../validation/user-notification-preferences.schema";
+} from "../../../validation";
 
 describe("[unit] validation/user-notification-preferences", () => {
   it("accepts an empty record", () => {

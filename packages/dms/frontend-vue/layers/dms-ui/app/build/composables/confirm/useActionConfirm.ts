@@ -9,24 +9,17 @@ import type {
   ConfirmPartialOutcome,
   ConfirmValues,
 } from "../../../composables/confirm/types";
-import {
-  type ConfirmTranslate,
-  resolveConfirmDialog,
-} from "./confirmDialogTexts";
-import type { DownloadFetch } from "../../utils/fileDownload";
+import { resolveConfirmDialog } from "./confirmDialogTexts";
 import { secondaryTargetRunner } from "./secondaryTarget";
-import {
-  namesPageValue,
-  resolveLinkVariables,
-} from "../../utils/urlVariables";
+import { namesPageValue, resolveLinkVariables } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
 
 /** What an action asks its confirmation with. */
 export interface ActionConfirmRequest {
   /** The row the action targets: its fields fill the texts and `from` URL. */
-  row?: Record<string, unknown>;
+  row?: ConfirmDialog["params"];
   /** Fill-ins of a `from` URL besides the row's fields (`{{row.id}}`). */
-  urlParams?: Record<string, unknown>;
+  urlParams?: Parameters<typeof interpolateUrl>[1];
   /**
    * The look of the action, where the dialog leaves it out (an archive's
    * amber, a delete's trash icon).
@@ -51,9 +44,8 @@ export function useActionConfirm() {
   const { $authFetch } = useAuthFetch();
   const { t } = useI18n();
   const toast = useToast();
-  const runSecondaryTarget = secondaryTargetRunner(
-    $authFetch.raw as unknown as DownloadFetch,
-  );
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
+  const runSecondaryTarget = secondaryTargetRunner($authFetch.raw);
 
   const loadDialog = async (
     declared: ActionConfirm,
@@ -70,6 +62,7 @@ export function useActionConfirm() {
     try {
       return await $authFetch<ConfirmDialog>(url);
     } catch (error) {
+      if (consumeReadOnlyRefusal(error)) return undefined;
       toast.add({
         color: Color.error,
         icon: "i-ph-warning-circle",
@@ -93,7 +86,7 @@ export function useActionConfirm() {
     const options = resolveConfirmDialog(
       dialog,
       request.row,
-      t as ConfirmTranslate,
+      t,
       runSecondaryTarget,
     );
     const isConfirmed = await confirm({
@@ -108,8 +101,8 @@ export function useActionConfirm() {
   return { confirmAction };
 }
 
-// A text the dialog leaves out keeps the action's own (its fallback).
 function withoutUndefined<T extends object>(value: T): Partial<T> {
+  // SAFETY: Filtering Object.entries only removes properties from T; it never changes the values of the retained properties.
   return Object.fromEntries(
     Object.entries(value).filter(([, entry]) => entry !== undefined),
   ) as Partial<T>;

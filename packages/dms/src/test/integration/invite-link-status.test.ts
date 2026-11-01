@@ -1,6 +1,9 @@
-import { HTTPResult } from "@antelopejs/interface-api";
+import {
+  getRegisteredRouteHandlers,
+  HTTPResult,
+} from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import {
   completeInviteResolution,
@@ -8,7 +11,6 @@ import {
 } from "@antelopejs/interface-dms/invite-resolution";
 import type { InviteResolutionReason } from "@antelopejs/interface-dms/db/tables/inviteResolutions.table";
 import { createUserInviteToken } from "@antelopejs/interface-dms/invites";
-import { validateInviteToken } from "../../routes/auth/validate-invite-token";
 import { resetDatabase } from "../helpers/db";
 
 const TENANT = "invite-link-status-tenant";
@@ -36,8 +38,8 @@ async function seedInvite(expiresAt: Date): Promise<UserInvite> {
     extensions: null,
   });
   const invite = await invites.get(INVITE_ID);
-  expect(invite).to.not.equal(undefined);
-  return invite as UserInvite;
+  assert.isDefined(invite);
+  return invite;
 }
 
 async function retire(
@@ -55,15 +57,31 @@ async function retire(
 }
 
 /** The refusal the signup page reads when it opens on this link. */
-async function refusalOf(token: string, email: string): Promise<unknown> {
+async function refusalOf(
+  token: string,
+  email: string,
+): Promise<ReturnType<HTTPResult["getBody"]>> {
   try {
     await validateInviteToken({ token, email });
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    expect((error as HTTPResult).getStatus()).to.equal(HTTP_BAD_REQUEST);
-    return (error as HTTPResult).getBody();
+    expect(error.getStatus()).to.equal(HTTP_BAD_REQUEST);
+    return error.getBody();
   }
   return undefined;
+}
+
+async function validateInviteToken(body: { token: string; email: string }) {
+  const matches = getRegisteredRouteHandlers().filter(
+    ({ handler }) =>
+      handler.module === "local" &&
+      handler.mode === "handler" &&
+      handler.method === "post" &&
+      handler.location === "/api/auth/validate-invite-token",
+  );
+  expect(matches).to.have.length(1);
+  const route = matches[0].handler;
+  await route.callback.call(Object.create(route.proto), body);
 }
 
 describe("[integration] auth/validate-invite-token", () => {
@@ -115,8 +133,6 @@ describe("[integration] auth/validate-invite-token", () => {
     expect(await refusalOf(TOKEN, EMAIL)).to.equal("error.invite_used");
   });
 
-  // The reason belongs to whoever holds both halves of the link: a token
-  // paired with another address reads exactly like one that never existed.
   it("tells nothing about a retired invitation to another address", async () => {
     const invite = await seedInvite(new Date(Date.now() + FUTURE_MS));
     await retire(invite, "cancelled");

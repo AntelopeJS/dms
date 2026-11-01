@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from "vue";
+import { nextTick, ref, watch, type Slot } from "vue";
 import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
-import DmsUnsavedStatus from "#dms-ui/app/build/components/form/UnsavedStatus.vue";
+import DmsUnsavedStatus from "#dms-ui/app/entries/components/form/UnsavedStatus";
 
 interface SecurityEditPanelProps {
   /** Id of the form; the trigger and the panel ids derive from it. */
@@ -31,11 +31,11 @@ interface SecurityEditPanelProps {
 
 interface SecurityEditPanelSlots {
   /** The row lead (a DmsListRow with the icon, the value and its meta). */
-  label?: () => unknown;
+  label?: Slot;
   /** The form fields, laid out on the panel's two-column grid. */
-  default?: () => unknown;
+  default?: Slot;
   /** Left of the Cancel / Submit buttons (a checkbox, a note). */
-  footer?: () => unknown;
+  footer?: Slot;
 }
 
 const props = withDefaults(defineProps<SecurityEditPanelProps>(), {
@@ -68,8 +68,6 @@ function open(): void {
   isOpen.value = true;
 }
 
-// The collapsible mounts its content a few ticks after opening: the first
-// field takes the focus as soon as the form exists.
 watch(
   form,
   (element) => {
@@ -89,8 +87,6 @@ async function cancel(): Promise<void> {
   isOpen.value = false;
 }
 
-// Closing (Cancel, Escape or a successful save) from inside the panel hands
-// the focus back to the trigger instead of dropping it on the page.
 watch(isOpen, async (value, previous) => {
   if (value || !previous) return;
   const active =

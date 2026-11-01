@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type App,
@@ -11,11 +11,11 @@ import {
 import {
   useBlockPreviewEmbed,
   type BlockPreviewEmbed,
-} from "../layers/dms-ui/app/build/composables/block-preview/useBlockPreviewEmbed";
+} from "../layers/dms-ui/app/entries/composables/block-preview/useBlockPreviewEmbed";
 import {
   PREVIEW_CHANNEL,
   type PreviewState,
-} from "../layers/dms-ui/app/build/utils/blockPreview";
+} from "../layers/dms-ui/app/entries/utils/blockPreview";
 
 const parentWindow = { postMessage: vi.fn() };
 const setLocale = vi.fn();
@@ -47,11 +47,12 @@ function mount(initialState?: PreviewState): HTMLElement {
   return host;
 }
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Message payloads are raw cross-window input; the embed, not its test sender, must validate them.
 function postFromParent(data: unknown): void {
   window.dispatchEvent(
     new MessageEvent("message", {
       data,
-      source: parentWindow as unknown as Window,
+      source: window.parent,
     }),
   );
 }

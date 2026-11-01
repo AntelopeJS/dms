@@ -23,8 +23,8 @@ import {
 import { expect } from "chai";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as tableViewImpl from "../../../../implementations/dms-base/table-view";
-import { applyArchiveFilter } from "../../../../implementations/dms-base/search-route";
-import { evaluateRowActionRule } from "../../../../utils/row-action-rule-evaluator";
+import { applyArchiveFilter } from "../../../../implementations/dms-base/services";
+import { evaluateRowActionRule } from "../../../../utils";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import { permissionMap } from "@antelopejs/interface-dms/page/internal/registry";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types";
@@ -41,11 +41,7 @@ import { createValidatedRoute } from "@antelopejs/interface-dms/base/table-view/
 import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 
 import { tableViewAccess } from "@antelopejs/interface-dms/base/table-view/internal/writer";
-
-// Several table views may mount one controller, but only one of them writes:
-// its rules, archive-mode defaults included, are the ones the data routes
-// enforce, and its permission is the one that guards them. A read-only table
-// view sharing the controller changes neither.
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const SCHEMA = "writer-row-rules-test";
 const TABLE = "tasks";
@@ -71,7 +67,6 @@ class SharedTaskAPI extends DataController(
   @Model(TaskModel)
   declare model: TaskModel;
 
-  // An editable column: the table views get an edit form, hence an edit action.
   @Column({ name: "Priority", type: new DefaultDataTypes.StringType() })
   @Access(AccessMode.ReadWrite)
   declare priority: string;
@@ -98,8 +93,6 @@ function createTable(rows: Map<string, Row>) {
   };
 }
 
-// "archived" is the only row archived; "legacy" was created before the
-// archive field existed.
 function createRows(): Map<string, Row> {
   return new Map<string, Row>([
     ["low", { _id: "low", priority: "low", isArchived: false }],
@@ -119,7 +112,7 @@ const writer = TableView(SharedTaskAPI, {
   archiveMode: true,
   rowActions: { archive: true, restore: true, hasSelection: true },
 });
-// Built last: the table view the controller used to take its options from.
+
 const reader = TableView(SharedTaskAPI, {
   realtime: false,
   rowActions: { add: false, duplicate: false, edit: false, delete: false },
@@ -132,7 +125,7 @@ const remove = createValidatedRoute(
     },
     args: [],
     method: "delete",
-  } as DataControllerCallback,
+  } satisfies DataControllerCallback,
   "delete",
 );
 
@@ -141,30 +134,37 @@ const edit = createValidatedRoute(
     func: () => ({ edited: true }),
     args: [],
     method: "put",
-  } as DataControllerCallback,
+  } satisfies DataControllerCallback,
   "edit",
 );
 
 const REQUEST = {
   url: new URL("http://localhost/api/writer-row-rules/delete"),
-} as RequestContext;
+};
 
 function deleteRows(ids: string[]) {
   return remove.func.call(controller, REQUEST, { id: ids });
 }
 
-async function rejectionOf(run: () => unknown): Promise<HTTPResult> {
+async function rejectionOf(
+  run: () => ReturnType<typeof edit.func>,
+): Promise<HTTPResult> {
   try {
     await run();
-  } catch (error) {
+  } catch (error: PromiseRejectedResult["reason"]) {
     expect(error).to.be.instanceOf(HTTPResult);
-    return error as HTTPResult;
+    return error;
   }
   throw new Error("expected a refusal");
 }
 
+function listContext(query: string): Parameters<typeof applyArchiveFilter>[1] {
+  return requestContextFixture(new URL(`http://localhost/list?${query}`));
+}
+
 function ruleOf(action: "archive" | "restore" | "delete" | "edit") {
   const config = meta.controllerRowActionRules?.[action];
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The owner contract is a boolean-or-rule union; this branch extracts the rule variant and retains the existing missing-rule failure.
   if (typeof config !== "object" || !config?.rule) {
     throw new Error(`no ${action} rule`);
   }
@@ -197,6 +197,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
 
   beforeEach(() => {
     rows = createRows();
+    // SAFETY: The route exercises only getAll/delete; this in-memory table intentionally is not a complete TaskModel.
     controller.model = { table: createTable(rows) } as never;
   });
 
@@ -270,17 +271,16 @@ describe("[unit] TableView row rules are those of the controller's writing table
     it("lists such a row among the active ones", async () => {
       const filters = await applyArchiveFilter(
         controller,
-        { url: new URL("http://localhost/list?showArchived=false") } as never,
+        listContext("showArchived=false"),
         undefined,
         new Set(["*"]),
         {},
       );
-      // "not archived", which a missing field satisfies — "archived is
-      // false" never matches it.
+
       expect(filters?.isArchived).to.deep.equal([true, "ne"]);
       const archived = await applyArchiveFilter(
         controller,
-        { url: new URL("http://localhost/list?showArchived=true") } as never,
+        listContext("showArchived=true"),
         undefined,
         new Set(["*"]),
         {},

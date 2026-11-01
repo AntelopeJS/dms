@@ -2,42 +2,40 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import type {
   DefaultLayoutSerializedOptions,
   PageHeaderButtonDeclared,
-} from "../../base/internal/layouts";
+  PageRecordStatus,
+} from "../../component-options/internal/page-layout";
 import type { ComponentFilterContext, ComponentInfo } from "../../component";
-
-// The record a page shows (`DefaultLayout({ record })`), read with its layout:
-// `{{record.X}}` in a header button's target, a button acting on it.
 
 const RECORD_TOKEN = /\{\{\s*record\.([\w.-]+)\s*\}\}/g;
 const NAMES_RECORD = /\{\{\s*record\./;
 const PATH_SEPARATOR = ".";
 
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This alias appears in published declarations and represents the loader's arbitrary record fields; preserving it avoids changing wildcard consumers' contracts.
 type PageRecord = Readonly<Record<string, unknown>>;
 
-const targetUrl = (target: unknown): string | undefined => {
-  const url = (target as { url?: unknown } | undefined)?.url;
+const targetUrl = (
+  target:
+    | (NonNullable<PageHeaderButtonDeclared["target"]> & { url?: unknown })
+    | undefined,
+): string | undefined => {
+  const url = target?.url;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string URL properties participate in record interpolation; other target variants remain untouched.
   return typeof url === "string" ? url : undefined;
 };
 
-function valueAt(record: PageRecord, path: string): unknown {
-  return path
-    .split(PATH_SEPARATOR)
-    .reduce<unknown>(
-      (value, key) =>
-        value && typeof value === "object"
-          ? (value as Record<string, unknown>)[key]
-          : undefined,
-      record,
-    );
+function valueAt(record: PageRecord, path: string): PageRecord[string] {
+  // SAFETY: The reducer reads keys only after checking a non-null object; PageRecord imposes no constraints on those values.
+  return path.split(PATH_SEPARATOR).reduce<unknown>(
+    (value, key) =>
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Record paths traverse arbitrary loader fields and stop at nonobjects without imposing a shared record schema.
+      value && typeof value === "object"
+        ? (value as PageRecord)[key]
+        : undefined,
+    record,
+  );
 }
 
-/**
- * How the page's record was read for one request: `found`, `missing` when its
- * loader answered none (not found, not the caller's), `error` when it threw.
- * The frontend takes a record going from `found` to `missing` for one that
- * was deleted.
- */
-export type PageRecordStatus = "found" | "missing" | "error";
+export type { PageRecordStatus } from "../../component-options/internal/page-layout";
 
 /** What reading the page's record answered. */
 export interface PageRecordRead {
@@ -57,6 +55,7 @@ export async function readPageRecord(
   layout: ComponentInfo | undefined,
   context: ComponentFilterContext,
 ): Promise<PageRecordRead | undefined> {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ComponentInfo erases layout-specific options; this published helper trusts the layout's optional record loader without validating unrelated layout shapes.
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!options?.record) return undefined;
   try {
@@ -83,6 +82,7 @@ function isRecordBound(button: PageHeaderButtonDeclared): boolean {
 function fillRecordTokens(url: string, record: PageRecord): string {
   return url.replace(RECORD_TOKEN, (match, path: string) => {
     const value = valueAt(record, path);
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The record loader owns its schema; the URL interpolation contract encodes only string and number leaves.
     return typeof value === "string" || typeof value === "number"
       ? encodeURIComponent(String(value))
       : match;
@@ -108,6 +108,7 @@ export function withPageRecord(
   if (!url) return button;
   return {
     ...button,
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- targetUrl checked only the URL property, not the entire action-target union; keep the existing target spread and URL replacement without changing that public union.
     target: {
       ...button.target,
       url: fillRecordTokens(url, record),

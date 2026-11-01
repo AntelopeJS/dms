@@ -18,8 +18,6 @@ interface BillingMonth {
 
 const { locale } = useI18n();
 
-// In the reader's calendar, as a PeriodSelector resolves its presets: a
-// server render then computes the months the browser will, in its zone.
 function billingMonthRange(monthsAgo: number): PeriodRange {
   const clock = readerClock();
   const { year, month } = clock.wall(new Date());

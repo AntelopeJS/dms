@@ -17,7 +17,11 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import type { FormField } from "@antelopejs/interface-dms/base/form-types";
+import {
+  type FormField,
+  type FormFieldOrGroup,
+  isFieldGroup,
+} from "@antelopejs/interface-dms/base/form-types";
 import {
   Column,
   TableViewMeta,
@@ -54,12 +58,10 @@ class OrderAPI extends DataController(
   @Model(OrderModel)
   declare model: OrderModel;
 
-  // Set when the order is created, never changed after.
   @Column({ name: "Reference", type: new DefaultDataTypes.StringType() })
   @Access(AccessMode.ReadWrite, { edit: AccessMode.ReadOnly })
   declare reference: string;
 
-  // Set by the server on creation, chosen afterwards.
   @Column({
     name: "Customer",
     type: new DefaultDataTypes.StringType(),
@@ -68,7 +70,6 @@ class OrderAPI extends DataController(
   @Access(AccessMode.ReadWrite, { new: AccessMode.ReadOnly })
   declare customer: string;
 
-  // Read-only but for the new form.
   @Column({ name: "Status", type: new DefaultDataTypes.StringType() })
   @Access(AccessMode.ReadOnly, { new: AccessMode.ReadWrite })
   declare status: string;
@@ -89,9 +90,14 @@ class OrderAPI extends DataController(
   declare createdBy: string;
 }
 
+function ungrouped(entry: FormFieldOrGroup): FormField {
+  if (isFieldGroup(entry)) throw new Error("expected an ungrouped field");
+  return entry;
+}
+
 function formFields(mode: "new" | "edit" | "view"): Map<string, FormField> {
   const meta = GetMetadata(OrderAPI, TableViewMeta);
-  const fields = meta.getFormFields(mode) as FormField[];
+  const fields = meta.getFormFields(mode).map(ungrouped);
   return new Map(fields.map((field) => [field.id, field]));
 }
 

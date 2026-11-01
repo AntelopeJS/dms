@@ -1,4 +1,4 @@
-import { Controller, type RequestContext } from "@antelopejs/interface-api";
+import { Controller } from "@antelopejs/interface-api";
 import { DataController } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import {
@@ -8,7 +8,7 @@ import {
   ModelReference,
   Sortable,
 } from "@antelopejs/interface-data-api/metadata";
-import { Schema, type ValueProxy } from "@antelopejs/interface-database";
+import { Schema } from "@antelopejs/interface-database";
 import {
   BasicDataModel,
   Field,
@@ -17,7 +17,6 @@ import {
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { Exported } from "@antelopejs/interface-dms/base/table-view";
 import { expect } from "chai";
 import {
@@ -25,16 +24,14 @@ import {
   generateTableViewExport,
 } from "../../../../implementations/dms-base/table-view";
 import type { ExportWriter } from "../../../../utils";
+import { userFixture } from "../../../helpers/user-fixture";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const SCHEMA = "export-batching-test";
 const TABLE = "invoices";
-const USER = { _id: "export-batching-user" } as User;
-const ctx = {
-  url: new URL("http://localhost/export"),
-} as RequestContext;
+const USER = userFixture({ _id: "export-batching-user" });
+const ctx = requestContextFixture(new URL("http://localhost/export"));
 
-// Two full pages plus a partial one: the third iteration is where the
-// (start, end) misreading of slice() overlaps the widest.
 const ROW_COUNT = EXPORT_BATCH_SIZE * 2 + Math.floor(EXPORT_BATCH_SIZE / 2);
 const ID_FIELD = "_id";
 
@@ -63,21 +60,23 @@ class InvoiceAPI extends DataController(
   @Access(AccessMode.ReadOnly)
   declare position: number;
 
-  // Computed in the database, and neither sorted nor filtered on.
   @Exported()
-  @Computed((row) => (row.key("position") as ValueProxy<number>).add(1))
+  @Computed((row) => row.key<Invoice, "position">("position").add(1))
   declare rank: number;
 }
 
 class CollectingWriter implements ExportWriter {
   readonly headers: string[] = [];
-  readonly rows: Record<string, unknown>[] = [];
+  readonly rows: globalThis.Parameters<ExportWriter["appendRow"]>[1][] = [];
 
   writeHeaders(headers: string[]): void {
     this.headers.push(...headers);
   }
 
-  appendRow(_headers: string[], row: Record<string, unknown>): void {
+  appendRow(
+    _headers: string[],
+    row: globalThis.Parameters<ExportWriter["appendRow"]>[1],
+  ): void {
     this.rows.push(row);
   }
 
@@ -93,7 +92,10 @@ const listParams: Parameters.ListParameters = {
 async function exportAll(ids?: string[]): Promise<CollectingWriter> {
   const writer = new CollectingWriter();
   await generateTableViewExport({
-    controller: controller as never,
+    // SAFETY: ExportRun types its receiver as a callback descriptor, but the implementation reads controller metadata and the model from this real decorated InvoiceAPI instance.
+    controller: controller as unknown as globalThis.Parameters<
+      typeof generateTableViewExport
+    >[0]["controller"],
     ctx,
     listParams,
     writer,
@@ -142,8 +144,6 @@ describe("[unit] implementations/dms-base/table-view — export batching", () =>
     );
   });
 
-  // The id-scoped export (a selection larger than one page) paginates through
-  // the same loop from a different query builder.
   it("exports a multi-batch id selection exactly once", async () => {
     const writer = await exportAll(sourceIds);
     const exportedIds = idsOf(writer);

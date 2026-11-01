@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keepHyphenatedWords } from "../layers/dms-ui/app/build/utils/eyebrow";
+import { keepHyphenatedWords } from "../layers/dms-ui/app/entries/utils/eyebrow";
 import {
   foldBreadcrumb,
   withParentCrumb,

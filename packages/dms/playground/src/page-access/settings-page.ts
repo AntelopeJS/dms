@@ -6,8 +6,6 @@ import {
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Form } from "@antelopejs/interface-dms/base/form";
 
-// A project's own workspace settings page: no layout argument, so it inherits
-// the SettingsLayout of the settings root and sits in the settings navigation.
 @RegisterPage()
 export class PlaygroundSettingsPage extends PageController("playground", {
   displayName: "Playground",

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A link followed from a page keeps its context: a TopList row's `to` and a
  * link row action fill the page URL's `{{params.X}}` / `{{query.X}}` tokens,
@@ -15,31 +15,15 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { unusedApi } from "./fixtures/unusedApi";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
-import { resolveLinkVariables } from "../layers/dms-ui/app/build/utils/urlVariables";
+import { resolveLinkVariables } from "../layers/dms-ui/app/entries/utils/urlVariables";
 import {
   periodQueryKeys,
   withPeriodQuery,
 } from "../layers/dms-core/app/composables/period/periodLink";
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({
-      items: [
-        {
-          id: "pricing",
-          title: "/pricing",
-          value: 12,
-          to: "/modules/marketing/pages?path=%2Fpricing&website={{query.website}}&mk.period={{query.mk.period}}&mk.from={{query.mk.from}}",
-        },
-        { id: "plain", title: "/", value: 3, to: "/modules/marketing/pages" },
-      ],
-    }),
-    isLoading: ref(false),
-  }),
-}));
 
 const PAGE_QUERY = {
   website: "site-1",
@@ -125,6 +109,15 @@ async function renderTopList(): Promise<string> {
         title: "Top pages",
         componentId: "pages",
         pageId: "overview",
+        staticItems: [
+          {
+            id: "pricing",
+            title: "/pricing",
+            value: 12,
+            to: "/modules/marketing/pages?path=%2Fpricing&website={{query.website}}&mk.period={{query.mk.period}}&mk.from={{query.mk.from}}",
+          },
+          { id: "plain", title: "/", value: 3, to: "/modules/marketing/pages" },
+        ],
       }),
   });
   for (const name of ["DmsCard", "UBadge", "UIcon", "USkeleton", "UButton"]) {
@@ -162,7 +155,7 @@ function mountTargets() {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          api: vi.fn() as never,
+          api: unusedApi(),
           pageId: "orders-page",
           componentId: "orders",
           handleApiError: vi.fn(),

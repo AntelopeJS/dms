@@ -20,7 +20,7 @@ function register(id: string, defaultGranted = false): void {
   });
 }
 
-function treeNode(path: string[]): unknown {
+function treeNode(path: string[]) {
   let level = GetPermissions();
   for (const part of path.slice(0, -1)) {
     const node = level[part];
@@ -50,8 +50,6 @@ describe("[unit] implementations/dms/permissions — teardown", () => {
     expect(treeNode(["teardown", "parent"])).to.equal(undefined);
   });
 
-  // Unregistering a parent used to delete the whole subtree: pages still
-  // registered under a category lost their permission with it.
   it("leaves a still-registered descendant alone", () => {
     register(PARENT);
     register(CHILD);
@@ -69,10 +67,7 @@ describe("[unit] implementations/dms/permissions — teardown", () => {
     permissionsImplInternal.RegisterPermission.unregister(PARENT);
 
     expect(GetPermission(PARENT)).to.equal(undefined);
-    expect(
-      (treeNode(["teardown", "parent"]) as { data?: unknown } | undefined)
-        ?.data,
-    ).to.equal(undefined);
+    expect(treeNode(["teardown", "parent"])?.data).to.equal(undefined);
   });
 
   it("prunes the branch once its last descendant goes", () => {
@@ -85,8 +80,6 @@ describe("[unit] implementations/dms/permissions — teardown", () => {
     expect(treeNode(["teardown"])).to.equal(undefined);
   });
 
-  // A stale `defaultGranted` permission keeps granting access, and the roles
-  // UI hides those by design — invisible and still in force.
   it("stops a defaultGranted permission from granting once unregistered", async () => {
     register(GRANDCHILD, true);
     expect(

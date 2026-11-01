@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type App,
@@ -14,19 +14,10 @@ import ConfirmModal from "../layers/dms-ui/app/components/confirm/ConfirmModal.v
 import {
   resolveConfirmDialog,
   resolveConfirmText,
-} from "../layers/dms-ui/app/build/composables/confirm/confirmDialogTexts";
+} from "../layers/dms-ui/app/entries/composables/confirm/confirmDialogTexts";
 import type { ConfirmDialogField } from "../layers/dms-core/app/types/confirm-dialog";
 
-vi.mock("reka-ui", async () => {
-  const { defineComponent: define, h: render } = await import("vue");
-  const Text = define({
-    setup:
-      (_, { slots }) =>
-      () =>
-        render("div", slots.default?.()),
-  });
-  return { DialogTitle: Text, DialogDescription: Text };
-});
+import { DialogRoot } from "reka-ui";
 
 const i18n = createI18n({
   legacy: false,
@@ -41,11 +32,7 @@ const i18n = createI18n({
     },
   },
 });
-const t = i18n.global.t as (
-  key: string,
-  params: Record<string, unknown>,
-  plural?: number,
-) => string;
+const t = i18n.global.t;
 
 describe("confirmation dialog texts", () => {
   it("translates keys with the dialog's params, pluralized on its count", () => {
@@ -87,7 +74,7 @@ describe("confirmation dialog texts", () => {
     expect(options.title).toBe("Delete Editors?");
     expect(options.description).toBe("2 members hold it");
     expect(options.fields?.[0]?.label).toBe("Move them to");
-    // The input's placeholder and item labels read as in a form.
+
     expect(options.fields?.[0]?.component.options).toMatchObject({
       placeholder: "Move them to",
       items: [{ value: "r2", label: "Readers" }],
@@ -127,6 +114,11 @@ describe("confirmation dialog texts", () => {
 });
 
 describe("ConfirmModal fields", () => {
+  const fixture = createConfirmDialogFieldsFixture();
+  registerConfirmationFieldTests(fixture);
+});
+
+function createConfirmDialogFieldsFixture() {
   let app: App | undefined;
   let host: HTMLDivElement;
   const closed = vi.fn();
@@ -145,7 +137,7 @@ describe("ConfirmModal fields", () => {
       () =>
         h("button", { onClick: () => emit("click") }, props.label),
   });
-  // A form field: its label, its input, its error under it.
+
   const FormField = defineComponent({
     props: { label: String, error: String },
     setup:
@@ -165,8 +157,10 @@ describe("ConfirmModal fields", () => {
       () =>
         h("input", {
           value: props.modelValue ?? "",
-          onInput: (event: Event) =>
-            emit("update:modelValue", (event.target as HTMLInputElement).value),
+          onInput: (event: Event) => {
+            if (event.target instanceof HTMLInputElement)
+              emit("update:modelValue", event.target.value);
+          },
         }),
   });
   const Empty = defineComponent({ setup: () => () => null });
@@ -183,8 +177,15 @@ describe("ConfirmModal fields", () => {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
-  function mount(props: Record<string, unknown>): void {
-    app = createApp(ConfirmModal, { onClose: closed, ...props });
+  function mount(
+    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+  ): void {
+    app = createApp({
+      render: () =>
+        h(DialogRoot, null, () =>
+          h(ConfirmModal, { onClose: closed, ...props }),
+        ),
+    });
     app.config.globalProperties.$t = (key: string) => key;
     app.component("UModal", Slots);
     app.component("UButton", Button);
@@ -228,43 +229,61 @@ describe("ConfirmModal fields", () => {
     host.remove();
     vi.unstubAllGlobals();
   });
+  return {
+    mount,
+    reassign,
+    flush,
+    get host() {
+      return host;
+    },
+    typeIn,
+    confirmButton,
+    closed,
+  };
+}
 
+function registerConfirmationFieldTests(
+  fixture: ReturnType<typeof createConfirmDialogFieldsFixture>,
+) {
   it("draws the fields and confirms with their values", async () => {
     const onConfirm = vi.fn().mockResolvedValue(undefined);
-    mount({ title: "Delete?", fields: [reassign], onConfirm });
-    await flush();
-    expect(host.textContent).toContain("Move them to");
+    fixture.mount({ title: "Delete?", fields: [fixture.reassign], onConfirm });
+    await fixture.flush();
+    expect(fixture.host.textContent).toContain("Move them to");
 
-    await typeIn("role-2");
-    confirmButton().click();
-    await flush();
+    await fixture.typeIn("role-2");
+    fixture.confirmButton().click();
+    await fixture.flush();
 
     expect(onConfirm).toHaveBeenCalledWith({ reassignTo: "role-2" });
-    expect(closed).toHaveBeenCalledWith(true);
+    expect(fixture.closed).toHaveBeenCalledWith(true);
   });
 
   it("says what the required mark means under the fields", async () => {
-    mount({ title: "Delete?", fields: [reassign] });
-    await flush();
-    expect(host.textContent).toContain("dms.form.required_legend");
+    fixture.mount({ title: "Delete?", fields: [fixture.reassign] });
+    await fixture.flush();
+    expect(fixture.host.textContent).toContain("dms.form.required_legend");
   });
 
   it("draws no legend when no field is required", async () => {
-    mount({ title: "Delete?", fields: [{ ...reassign, required: false }] });
-    await flush();
-    expect(host.textContent).not.toContain("dms.form.required_legend");
+    fixture.mount({
+      title: "Delete?",
+      fields: [{ ...fixture.reassign, required: false }],
+    });
+    await fixture.flush();
+    expect(fixture.host.textContent).not.toContain("dms.form.required_legend");
   });
 
   it("flags a required field left empty instead of confirming", async () => {
     const onConfirm = vi.fn();
-    mount({ title: "Delete?", fields: [reassign], onConfirm });
-    await flush();
+    fixture.mount({ title: "Delete?", fields: [fixture.reassign], onConfirm });
+    await fixture.flush();
 
-    confirmButton().click();
-    await flush();
+    fixture.confirmButton().click();
+    await fixture.flush();
 
     expect(onConfirm).not.toHaveBeenCalled();
-    expect(host.querySelector("em")?.textContent).toBe(
+    expect(fixture.host.querySelector("em")?.textContent).toBe(
       "dms.field_errors.required",
     );
   });
@@ -280,16 +299,16 @@ describe("ConfirmModal fields", () => {
         },
       }),
     );
-    mount({ title: "Delete?", fields: [reassign], onConfirm });
-    await flush();
+    fixture.mount({ title: "Delete?", fields: [fixture.reassign], onConfirm });
+    await fixture.flush();
 
-    await typeIn("role-1");
-    confirmButton().click();
-    await flush();
+    await fixture.typeIn("role-1");
+    fixture.confirmButton().click();
+    await fixture.flush();
 
-    expect(host.querySelector("em")?.textContent).toBe(
+    expect(fixture.host.querySelector("em")?.textContent).toBe(
       "t($page.settings.roles.error.invalid_reassign)",
     );
-    expect(closed).not.toHaveBeenCalled();
+    expect(fixture.closed).not.toHaveBeenCalled();
   });
-});
+}

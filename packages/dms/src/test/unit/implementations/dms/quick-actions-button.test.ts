@@ -28,7 +28,6 @@ import {
   internal as quickActionsInterface,
 } from "@antelopejs/interface-dms/quick-actions";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import {
   denyingTenantGate,
@@ -37,6 +36,7 @@ import {
   stubExactPermissionModels,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const ALLOWED_TENANT = "qb-allowed-tenant";
 const DENIED_TENANT = "qb-denied-tenant";
@@ -52,7 +52,7 @@ function componentWithButton(
   const component = CustomComponent(name).meta({ name });
   component.action("add", { title: "Add" });
   component.button(INVITE_BUTTON, { permission });
-  return component as ComponentBuilder<unknown>;
+  return component;
 }
 
 class PageQbGated extends PageController("qb-gated", {
@@ -95,7 +95,7 @@ class PageQbRecovery extends PageController("qb-recovery", {
   static table = componentWithButton("QbRecoveryTable", "add");
 }
 
-const TARGETS: Record<string, QuickActionTarget> = {
+const TARGETS = {
   "qb-gated": { type: "button", page: PageQbGated, button: INVITE_BUTTON },
   "qb-open": { type: "button", page: PageQbOpen, button: INVITE_BUTTON },
   "qb-foreign": { type: "button", page: PageQbForeign, button: INVITE_BUTTON },
@@ -116,9 +116,11 @@ const TARGETS: Record<string, QuickActionTarget> = {
     page: PageQbRecovery,
     button: INVITE_BUTTON,
   },
-};
+} satisfies Record<string, QuickActionTarget>;
 
-type QuickActionTargetPayload = Record<string, { target: unknown }>;
+type QuickActionTargetPayload = Awaited<
+  ReturnType<typeof buildSiteLayoutPayload>
+>["quickActions"]["actions"];
 
 async function actionsFor(
   grantedPermissions: string[],
@@ -132,12 +134,12 @@ async function actionsServedTo(
   tenantId = ALLOWED_TENANT,
 ): Promise<QuickActionTargetPayload> {
   const payload = await buildSiteLayoutPayload(
-    { _id: "qb-member" } as User,
+    userFixture({ _id: "qb-member" }),
     memberModel,
     roleModel,
     tenantId,
   );
-  return payload.quickActions.actions as QuickActionTargetPayload;
+  return payload.quickActions.actions;
 }
 
 async function registerPage(
@@ -226,7 +228,6 @@ describe("[unit] implementations/dms/quick-actions — button targets", () => {
     });
   });
 
-  // The action declares no permission: the button's own decides.
   it("is left out for a caller who reaches the page but may not press the button", async () => {
     const actions = await actionsFor(["pages.qb-gated"]);
 
@@ -234,7 +235,6 @@ describe("[unit] implementations/dms/quick-actions — button targets", () => {
   });
 
   it("is left out for a caller who cannot reach the page, whatever the button allows", async () => {
-    // A role saved before the role routes completed it: the button's id alone.
     const actions = await actionsServedTo(
       stubExactPermissionModels(["pages.qb-gated.table.add"]),
     );

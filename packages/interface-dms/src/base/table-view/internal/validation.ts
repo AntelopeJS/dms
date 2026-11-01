@@ -1,10 +1,3 @@
-// The declaration checks the TableView factory runs before building anything:
-// every option naming a column, a display or a form slug must name one the
-// table view actually has.
-//
-// Split out of factory-helpers.ts.
-
-import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import {
@@ -96,10 +89,6 @@ export function assertKnownColumns(
   }
 }
 
-// Types whose quick filter values are known whatever their input: the two
-// labels of a boolean or a status, the rows a relation's `select` endpoint
-// lists. Their input is not built here: a relation's reads the metadata of
-// the controller it points to, which may not be declared yet.
 const QUICK_FILTER_VALUED_TYPES = new Set([
   "boolean",
   "status",
@@ -125,8 +114,8 @@ function offersQuickFilterValues(type: DataType): boolean {
   const typeId = getDataTypeId(type);
   if (typeId && QUICK_FILTER_VALUED_TYPES.has(typeId)) return true;
   try {
-    const options = (type.inputComponent().options ??
-      {}) as QuickFilterInputOptions;
+    const options: QuickFilterInputOptions =
+      type.inputComponent().options ?? {};
     return (
       (options.items?.length ?? 0) > 0 ||
       (options.suggestions?.length ?? 0) > 0 ||
@@ -198,6 +187,7 @@ interface KanbanGroupColumnType {
 const KANBAN_GROUP_TYPE_ELIGIBILITY: Record<
   string,
   (type: KanbanGroupColumnType) => boolean
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Data-type registry ids are arbitrary strings, so the eligibility lookup must accept ids absent from this built-in-only table.
 > = {
   select: (type) => !type.options?.multiple,
   boolean: () => true,
@@ -218,9 +208,7 @@ function validateKanbanField(
   const typeId = getDataTypeId(groupColumn.type);
   const isEligible =
     typeId !== undefined &&
-    KANBAN_GROUP_TYPE_ELIGIBILITY[typeId]?.(
-      groupColumn.type as KanbanGroupColumnType,
-    );
+    KANBAN_GROUP_TYPE_ELIGIBILITY[typeId]?.(groupColumn.type);
   if (!isEligible) {
     throw new Error(
       `TableView kanban groupByField "${groupByField}" on ${controllerName} must be a non-multiple SelectType, a BooleanType or a StatusType column (got "${typeId}")`,
@@ -250,7 +238,6 @@ const RESERVED_DISPLAY_IDS: readonly string[] = [
   CARDS_DISPLAY_ID,
   GROUPED_DISPLAY_ID,
 ];
-// `<module>:<id>`: the module's name, then the display's own id.
 const MODULE_DISPLAY_ID = /^[a-z0-9][\w-]*:[\w-]+$/i;
 
 /**
@@ -365,10 +352,7 @@ export function validateDefaultDisplay(
 }
 
 function isSortableColumn(meta: TableViewMeta, key: string): boolean {
-  const fields = GetMetadata(
-    meta.target as ControllerClass,
-    DataAPIMeta,
-  ).fields;
+  const fields = GetMetadata(meta.target, DataAPIMeta).fields;
   return fields[key]?.sortable !== undefined;
 }
 
@@ -404,12 +388,7 @@ export function validateGroupedOptions(
       `TableView grouped on ${controllerName} groups "${groupByField}" by ${by}, which needs a DateType column (got "${typeId}")`,
     );
   }
-  // A group is counted with `filter_<column>`, which the count route ignores
-  // on a column without a filter: every header would read the whole total.
-  const filters = GetMetadata(
-    meta.target as ControllerClass,
-    DataAPIMeta,
-  ).filters;
+  const filters = GetMetadata(meta.target, DataAPIMeta).filters;
   if (grouped.count && !filters[groupByField]) {
     Logging.Warn(
       `[DMS] TableView grouped on ${controllerName} counts its groups, but "${groupByField}" is not filterable: every group would count every row. Declare the column \`filterable: true\`.`,
@@ -437,8 +416,7 @@ export function validateReorder<T extends Record<string, unknown>>(
   if (!column || getDataTypeId(column.type) !== NUMBER_TYPE_ID) {
     throw new Error(`${where} must be a NumberType column`);
   }
-  const fieldMeta = GetMetadata(meta.target as ControllerClass, DataAPIMeta)
-    .fields[field];
+  const fieldMeta = GetMetadata(meta.target, DataAPIMeta).fields[field];
   if (fieldMeta?.sortable === undefined) {
     throw new Error(
       `${where} must be @Sortable(): the rows are listed sorted on it`,

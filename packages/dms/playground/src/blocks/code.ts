@@ -108,8 +108,6 @@ export class PageBlocksCode extends PageController("blocks-code", {
       ),
   );
 
-  // The title is composed in the reader's language, the snippet read from a
-  // route answering `{ code, language }`.
   static fetched = CodeBlock({
     title: {
       key: "demo.blocks.code.generated",

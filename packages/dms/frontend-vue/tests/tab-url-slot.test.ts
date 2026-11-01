@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A tab set keeping its open tab in the URL writes the tab's slot
  * (`?tab=tester`), which stays right when tabs are added or reordered, and
@@ -13,10 +13,7 @@ import type { TabProps } from "../layers/dms-ui/app/composables/tab/types";
 import { AxeOrientation } from "../layers/dms-core/app/types/orientation";
 import { Color } from "../layers/dms-core/app/types/color";
 import { Size } from "../layers/dms-core/app/types/size";
-
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({ data: vue.ref(null) }),
-}));
+import { isNumber, isString } from "../layers/dms-core/app/utils/type-check";
 
 const ITEMS = [
   { label: "Statistics", slot: "statistics" },
@@ -34,17 +31,22 @@ function tabsAt(query: Record<string, string>) {
   return useTab(ITEMS.length, {
     items: ITEMS,
     persistState: true,
-  } as TabProps);
+  } satisfies TabProps);
 }
 
 beforeEach(() => {
   route = vue.reactive({ query: {} });
   push.mockClear();
-  for (const name of ["computed", "ref", "watch", "useTemplateRef"] as const)
-    vi.stubGlobal(name, vue[name]);
+  for (const [name, value] of Object.entries({
+    computed: vue.computed,
+    ref: vue.ref,
+    watch: vue.watch,
+    useTemplateRef: vue.useTemplateRef,
+  }))
+    vi.stubGlobal(name, value);
   vi.stubGlobal("TabEvents", TabEvents);
-  vi.stubGlobal("isNumber", (value: unknown) => typeof value === "number");
-  vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
+  vi.stubGlobal("isNumber", isNumber);
+  vi.stubGlobal("isString", isString);
   vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
   vi.stubGlobal("useWatch", () => ({
     isLoading: vue.ref(false),
@@ -96,9 +98,15 @@ describe("a tab's badge", () => {
   let app: vue.App | undefined;
 
   const Tabs = vue.defineComponent({
-    props: { items: { type: Array, default: () => [] } },
+    props: {
+      items: {
+        // SAFETY: Tab passes its normalized items array to this UTabs replacement.
+        type: Array as vue.PropType<TabsItem[]>,
+        default: () => [],
+      },
+    },
     setup: (props) => () => {
-      received = props.items as TabsItem[];
+      received = props.items;
       return vue.h("div");
     },
   });

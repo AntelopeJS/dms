@@ -7,7 +7,9 @@ import { WEBHOOK_SIGNATURE_HEADER, WEBHOOKS_API } from "./hooks/webhook-route";
  * `AddFrontendModule`, and `ajs dms dev`, `build` and `start` call this same
  * function, declared as `dmsFrontend` in package.json, since they read the
  * project rather than the backend's registrations. Without the declaration
- * the frontend leaves the playground's components out.
+ * the frontend leaves the playground's components out. Its public endpoint is
+ * a provider's webhook, reachable through the frontend server without a
+ * session or a same-site Origin (see hooks/webhooks.ts).
  */
 export function frontendModule(): AddFrontendModuleOptions {
   return {
@@ -16,8 +18,6 @@ export function frontendModule(): AddFrontendModuleOptions {
     renderer: { name: "vue", version: "3" },
     priority: 100,
     options: { dmsI18nAppLayer: true },
-    // A provider's webhook, reachable through the frontend server without a
-    // session or a same-site Origin (see hooks/webhooks.ts).
     publicEndpoints: [
       {
         path: `${WEBHOOKS_API}/*`,

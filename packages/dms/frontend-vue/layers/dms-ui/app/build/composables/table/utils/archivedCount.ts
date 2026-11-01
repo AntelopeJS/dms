@@ -1,6 +1,6 @@
 type Translate = (
   key: string,
-  named: Record<string, unknown>,
+  named: { count: string },
   plural: number,
 ) => string;
 

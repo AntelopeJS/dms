@@ -1,9 +1,6 @@
 import axios, { type AxiosInstance } from "axios";
 import { expect } from "chai";
-import {
-  signUploadToken,
-  type UploadTokenClaims,
-} from "../../utils/upload-token";
+import { signUploadToken, type UploadTokenClaims } from "../../utils";
 
 const PRESIGN_URL = "/api/files/presign";
 const HTTP_OK = 200;
@@ -26,14 +23,21 @@ export async function nativeUploadToken(
 }
 
 export function findUploadToken(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This recursive layout boundary visits arbitrary JSON leaves; a component-owner type excludes primitive and array children.
   value: unknown,
   field: string,
 ): string | undefined {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Layout children include primitive leaves; owner-derived component types cannot narrow recursively mixed JSON.
   if (!value || typeof value !== "object") return undefined;
-  const node = value as Record<string, unknown>;
-  if (node.attachmentField === field && typeof node.uploadToken === "string")
-    return node.uploadToken;
-  return Object.values(node)
+  if (
+    "attachmentField" in value &&
+    value.attachmentField === field &&
+    "uploadToken" in value &&
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The upload token comes from layout JSON; the property existence checks alone do not establish a string.
+    typeof value.uploadToken === "string"
+  )
+    return value.uploadToken;
+  return Object.values(value)
     .map((child) => findUploadToken(child, field))
     .find(Boolean);
 }
@@ -64,14 +68,16 @@ export async function uploadAttachment(
     filename = "attachment.txt",
     token,
   } = request;
-  const response = await client.post(PRESIGN_URL, {
+  const response = await client.post<
+    UploadedAttachment & { resourceKey: string }
+  >(PRESIGN_URL, {
     filename,
     size: content.byteLength,
     mimetype,
     uploadToken: token || signUploadToken(claims),
   });
   expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-  const upload = response.data as UploadedAttachment & { resourceKey: string };
+  const upload = response.data;
   const uploaded = await axios.put(upload.uploadUrl, content, {
     headers: upload.headers,
     validateStatus: () => true,

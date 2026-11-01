@@ -1,10 +1,10 @@
 import type { MenuItemStatus } from "#dms-core/app/types/menu";
-import type { SiteLayoutTree } from "../../../types/page";
+import type { SiteLayoutTree } from "#dms-core/app/types/page";
 import {
   listCategoryPages,
   listPagesAmong,
   orderedChildren,
-} from "../../utils/categoryPages";
+} from "#dms-ui/app/entries/utils/categoryPages";
 
 export const SETTINGS_ROOT_ID = "settings";
 const DEFAULT_SETTINGS_ICON = "i-ph-gear-six";

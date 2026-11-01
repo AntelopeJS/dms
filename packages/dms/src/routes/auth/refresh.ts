@@ -12,15 +12,15 @@ import {
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { decode } from "jsonwebtoken";
-import { authSchema } from "../../validation/auth.schema";
-import { REFRESH_TOKEN_ROTATION_THRESHOLD_MS } from "./constants";
+import { authSchema } from "../../validation";
+import { isJwtClaims, REFRESH_TOKEN_ROTATION_THRESHOLD_MS } from "../../utils";
 import type { AuthResponse } from "./types";
 
 export const HTTP_FORBIDDEN = 403;
 
 function shouldRotateRefreshToken(token: string): boolean {
-  const payload = decode(token) as { iat?: number } | null;
-  if (!payload?.iat) return false;
+  const payload = decode(token);
+  if (!isJwtClaims(payload) || !payload.iat) return false;
   const tokenAgeMs = Date.now() - payload.iat * 1000;
   return tokenAgeMs > REFRESH_TOKEN_ROTATION_THRESHOLD_MS;
 }
@@ -43,7 +43,7 @@ async function assertTenantAccess(
 export async function refresh(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: unknown,
+  body: Parameters<typeof authSchema.refresh.parse>[0],
 ): Promise<AuthResponse> {
   const { token } = assertValidation(body, (v) => authSchema.refresh.parse(v));
 

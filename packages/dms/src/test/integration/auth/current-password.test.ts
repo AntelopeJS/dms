@@ -9,10 +9,6 @@ import { resetDatabase } from "../../helpers/db";
 import { captureEmails } from "../../helpers/emails";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
-// The account password asked again by a signed-in session gets the sign-in
-// form's budget of tries, shared by every form that asks for it, so a
-// borrowed session cannot guess it any faster than the sign-in form allows.
-
 const SECURITY = pageRoutePath("/settings/user/security");
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -23,7 +19,7 @@ const NEW_PASSWORD = "Antelope26!";
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 const TOO_MANY_ATTEMPTS = "error.too_many_current_password_attempts";
 const EMAIL_RATE_LIMITED = "error.rate_limited";
-// A dozen password checks, each hashing, outlast mocha's default.
+
 const TEST_TIMEOUT_MS = 20 * 1000;
 
 function expectAnswer(
@@ -52,7 +48,6 @@ describe("[integration] auth/current password re-check", function () {
   const enableTotp = (currentPassword: string) =>
     client.post(`${SECURITY}/two-factor/enable-totp`, { currentPassword });
 
-  // An accepted email change sends its code and notice.
   before(captureEmails);
 
   beforeEach(async () => {

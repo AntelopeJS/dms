@@ -124,184 +124,9 @@ const CLEARABLE = [
 ] as const;
 
 describe("collectSubmitData on an edit form", () => {
-  for (const entry of CLEARABLE) {
-    const name =
-      "label" in entry ? `${entry.type} (${entry.label})` : entry.type;
-
-    it(`sends a cleared ${name} as its empty value`, () => {
-      expect(
-        collectSubmitData(
-          { value: entry.cleared },
-          [field("value", entry.type)],
-          {
-            initialValues: { value: entry.stored },
-          },
-        ),
-      ).toEqual({ value: entry.sent });
-    });
-
-    it(`sends an untouched ${name} as stored`, () => {
-      expect(
-        collectSubmitData(
-          { value: entry.stored },
-          [field("value", entry.type)],
-          {
-            initialValues: { value: entry.stored },
-          },
-        ),
-      ).toEqual({ value: entry.stored });
-    });
-  }
-
-  it("sends an emptied text as null, an emptied list as an empty list", () => {
-    // A file or image control emits `null`, a multiple select `[]`, a text
-    // input `""`: the text is a cleared field like the others.
-    expect(
-      collectSubmitData(
-        { file: null, tags: [], title: "" },
-        [
-          field("file", "file"),
-          field("tags", "select"),
-          field("title", "string"),
-        ],
-        { initialValues: { file: "a.pdf", tags: ["x"], title: "Old" } },
-      ),
-    ).toEqual({ file: null, tags: [], title: null });
-  });
-
-  it("sends a number cleared to zero as zero, and an unticked box as false", () => {
-    expect(
-      collectSubmitData(
-        { quantity: 0, done: false },
-        [field("quantity", "number"), field("done", "boolean")],
-        { initialValues: { quantity: 4, done: true } },
-      ),
-    ).toEqual({ quantity: 0, done: false });
-  });
-
-  it("sends no null for an empty text the row never had a value for", () => {
-    expect(
-      collectSubmitData(
-        { name: "Task", phone: "", notes: "<p></p>", title: { en: "" } },
-        [
-          field("name", "string"),
-          field("phone", "phone"),
-          field("notes", "rich_text"),
-          field("title", "string"),
-        ],
-        { initialValues: { name: "Task", phone: null, notes: "" } },
-      ),
-    ).toEqual({ name: "Task" });
-  });
-
-  it("leaves out an untouched empty text when only changes are sent", () => {
-    expect(
-      collectSubmitData(
-        { name: "Task", phone: "" },
-        [field("name", "string"), field("phone", "phone")],
-        { initialValues: { name: "Task", phone: null }, onlyChanged: true },
-      ),
-    ).toEqual({});
-  });
-
-  it("leaves out a field the row never had a value for", () => {
-    expect(
-      collectSubmitData(
-        { name: "Task", phone: undefined, color: undefined, tags: undefined },
-        [
-          field("name", "string"),
-          field("phone", "phone"),
-          field("color", "color"),
-          field("tags", "select"),
-        ],
-        { initialValues: { name: "Task", phone: null, color: "", tags: [] } },
-      ),
-    ).toEqual({ name: "Task" });
-  });
-
-  it("clears only the field the user emptied, the others keep their values", () => {
-    expect(
-      collectSubmitData(
-        { name: "Task", priority: "low", brandColor: undefined },
-        [
-          field("name", "string"),
-          field("priority", "select"),
-          field("brandColor", "color"),
-        ],
-        {
-          initialValues: {
-            name: "Task",
-            priority: "low",
-            brandColor: "#112233",
-          },
-        },
-      ),
-    ).toEqual({ name: "Task", priority: "low", brandColor: null });
-  });
-
-  it("never clears a disabled field", () => {
-    const fields = [field("createdAt", "date", true), field("owner", "string")];
-    expect(
-      collectSubmitData({ createdAt: undefined, owner: undefined }, fields, {
-        initialValues: { createdAt: "2026-01-01", owner: "Ann" },
-        disabled: new Set(["owner"]),
-      }),
-    ).toEqual({});
-  });
-
-  it("clears a field of a group like any other", () => {
-    // Groups reach `collectSubmitData` flattened: their fields are fields.
-    expect(
-      collectSubmitData(
-        { email: "a@b.c", phone: undefined },
-        [field("email", "email"), field("phone", "phone")],
-        { initialValues: { email: "a@b.c", phone: "+32 2 123" } },
-      ),
-    ).toEqual({ email: "a@b.c", phone: null });
-  });
-
-  it("clears one language of a localized field, keeping the others", () => {
-    const body = collectSubmitData(
-      { title: { en: "", fr: "Titre" } },
-      [localizedField("title")],
-      { initialValues: { title: { en: "Title", fr: "Titre" } } },
-    );
-    expect(body).toEqual({ title: { en: "", fr: "Titre" } });
-  });
-
-  it("drops a language whose control emitted nothing from the body", () => {
-    const body = collectSubmitData(
-      { title: { en: undefined, fr: "Titre" } },
-      [localizedField("title")],
-      { initialValues: { title: { en: "Title", fr: "Titre" } } },
-    );
-    expect(JSON.parse(JSON.stringify(body))).toEqual({
-      title: { fr: "Titre" },
-    });
-  });
-
-  it("sends a localized field with every language emptied as empty languages", () => {
-    // The database stores a localized field as one value per language and
-    // cannot read a `null` back in its place.
-    expect(
-      collectSubmitData(
-        { title: { en: "", fr: "" }, notes: { en: "<p></p>", fr: "" } },
-        [localizedField("title"), localizedField("notes", "rich_text")],
-        {
-          initialValues: {
-            title: { en: "Title", fr: "Titre" },
-            notes: { en: "<p>Notes</p>" },
-          },
-        },
-      ),
-    ).toEqual({ title: { en: "", fr: "" }, notes: { en: "", fr: "" } });
-  });
-
-  it("unwraps a ref held in the state", () => {
-    expect(
-      collectSubmitData({ count: ref(3) }, [field("count", "number")]),
-    ).toEqual({ count: 3 });
-  });
+  registerClearableTypeTests();
+  registerClearableFieldTests();
+  registerGroupedAndLocalizedClearTests();
 });
 
 describe("collectSubmitData on a create form", () => {
@@ -404,3 +229,183 @@ describe("clearedFieldValue", () => {
     expect(clearedFieldValue(3)).toBeNull();
   });
 });
+
+function registerClearableTypeTests() {
+  for (const entry of CLEARABLE) {
+    const name =
+      "label" in entry ? `${entry.type} (${entry.label})` : entry.type;
+
+    it(`sends a cleared ${name} as its empty value`, () => {
+      expect(
+        collectSubmitData(
+          { value: entry.cleared },
+          [field("value", entry.type)],
+          {
+            initialValues: { value: entry.stored },
+          },
+        ),
+      ).toEqual({ value: entry.sent });
+    });
+
+    it(`sends an untouched ${name} as stored`, () => {
+      expect(
+        collectSubmitData(
+          { value: entry.stored },
+          [field("value", entry.type)],
+          {
+            initialValues: { value: entry.stored },
+          },
+        ),
+      ).toEqual({ value: entry.stored });
+    });
+  }
+}
+
+function registerClearableFieldTests() {
+  it("sends an emptied text as null, an emptied list as an empty list", () => {
+    expect(
+      collectSubmitData(
+        { file: null, tags: [], title: "" },
+        [
+          field("file", "file"),
+          field("tags", "select"),
+          field("title", "string"),
+        ],
+        { initialValues: { file: "a.pdf", tags: ["x"], title: "Old" } },
+      ),
+    ).toEqual({ file: null, tags: [], title: null });
+  });
+
+  it("sends a number cleared to zero as zero, and an unticked box as false", () => {
+    expect(
+      collectSubmitData(
+        { quantity: 0, done: false },
+        [field("quantity", "number"), field("done", "boolean")],
+        { initialValues: { quantity: 4, done: true } },
+      ),
+    ).toEqual({ quantity: 0, done: false });
+  });
+
+  it("sends no null for an empty text the row never had a value for", () => {
+    expect(
+      collectSubmitData(
+        { name: "Task", phone: "", notes: "<p></p>", title: { en: "" } },
+        [
+          field("name", "string"),
+          field("phone", "phone"),
+          field("notes", "rich_text"),
+          field("title", "string"),
+        ],
+        { initialValues: { name: "Task", phone: null, notes: "" } },
+      ),
+    ).toEqual({ name: "Task" });
+  });
+
+  it("leaves out an untouched empty text when only changes are sent", () => {
+    expect(
+      collectSubmitData(
+        { name: "Task", phone: "" },
+        [field("name", "string"), field("phone", "phone")],
+        { initialValues: { name: "Task", phone: null }, onlyChanged: true },
+      ),
+    ).toEqual({});
+  });
+
+  it("leaves out a field the row never had a value for", () => {
+    expect(
+      collectSubmitData(
+        { name: "Task", phone: undefined, color: undefined, tags: undefined },
+        [
+          field("name", "string"),
+          field("phone", "phone"),
+          field("color", "color"),
+          field("tags", "select"),
+        ],
+        { initialValues: { name: "Task", phone: null, color: "", tags: [] } },
+      ),
+    ).toEqual({ name: "Task" });
+  });
+
+  it("clears only the field the user emptied, the others keep their values", () => {
+    expect(
+      collectSubmitData(
+        { name: "Task", priority: "low", brandColor: undefined },
+        [
+          field("name", "string"),
+          field("priority", "select"),
+          field("brandColor", "color"),
+        ],
+        {
+          initialValues: {
+            name: "Task",
+            priority: "low",
+            brandColor: "#112233",
+          },
+        },
+      ),
+    ).toEqual({ name: "Task", priority: "low", brandColor: null });
+  });
+
+  it("never clears a disabled field", () => {
+    const fields = [field("createdAt", "date", true), field("owner", "string")];
+    expect(
+      collectSubmitData({ createdAt: undefined, owner: undefined }, fields, {
+        initialValues: { createdAt: "2026-01-01", owner: "Ann" },
+        disabled: new Set(["owner"]),
+      }),
+    ).toEqual({});
+  });
+}
+
+function registerGroupedAndLocalizedClearTests() {
+  it("clears a field of a group like any other", () => {
+    expect(
+      collectSubmitData(
+        { email: "a@b.c", phone: undefined },
+        [field("email", "email"), field("phone", "phone")],
+        { initialValues: { email: "a@b.c", phone: "+32 2 123" } },
+      ),
+    ).toEqual({ email: "a@b.c", phone: null });
+  });
+
+  it("clears one language of a localized field, keeping the others", () => {
+    const body = collectSubmitData(
+      { title: { en: "", fr: "Titre" } },
+      [localizedField("title")],
+      { initialValues: { title: { en: "Title", fr: "Titre" } } },
+    );
+    expect(body).toEqual({ title: { en: "", fr: "Titre" } });
+  });
+
+  it("drops a language whose control emitted nothing from the body", () => {
+    const body = collectSubmitData(
+      { title: { en: undefined, fr: "Titre" } },
+      [localizedField("title")],
+      { initialValues: { title: { en: "Title", fr: "Titre" } } },
+    );
+    expect(JSON.parse(JSON.stringify(body))).toEqual({
+      title: { fr: "Titre" },
+    });
+  });
+
+  it("sends a localized field with every language emptied as empty languages", () => {
+    expect(
+      collectSubmitData(
+        { title: { en: "", fr: "" }, notes: { en: "<p></p>", fr: "" } },
+        [localizedField("title"), localizedField("notes", "rich_text")],
+        {
+          initialValues: {
+            title: { en: "Title", fr: "Titre" },
+            notes: { en: "<p>Notes</p>" },
+          },
+        },
+      ),
+    ).toEqual({ title: { en: "", fr: "" }, notes: { en: "", fr: "" } });
+  });
+
+  it("unwraps a ref held in the state", () => {
+    expect(
+      collectSubmitData({ count: ref(3) }, [field("count", "number")]),
+    ).toEqual({ count: 3 });
+  });
+}

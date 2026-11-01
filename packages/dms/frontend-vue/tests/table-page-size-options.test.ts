@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pageSizeOptions } from "../layers/dms-ui/app/build/composables/table/utils/pageSizeOptions";
+import { pageSizeOptions } from "../layers/dms-ui/app/entries/composables/table/utils/pageSizeOptions";
 
 describe("Table page size picker", () => {
   it("offers the standard sizes", () => {

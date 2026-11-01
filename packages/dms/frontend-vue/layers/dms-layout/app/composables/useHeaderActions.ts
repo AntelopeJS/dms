@@ -1,3 +1,5 @@
+import { isFunction, isString } from "#dms-core/app/utils/type-check";
+
 /**
  * An icon-only button in the dashboard header. Either `onSelect` runs on
  * click, or `sidePanelId` makes the button toggle that side panel: the DMS then
@@ -29,18 +31,6 @@ export interface HeaderAction {
  */
 export const BUILDER_ACTION_ID = "dms-builder-edit";
 
-// Shared via keyed DMS app state (not a module-level ref) so any frontend module
-// can register an action without a build-time dependency on this layer: it just
-// pushes to useDmsState(HEADER_ACTIONS_STATE_KEY).
-//
-// An action that carries callables (onSelect/isVisible/isActive) must be
-// registered from CLIENT context (a `.client` plugin or component setup):
-// function values are not part of the SSR payload, so a server-side
-// registration would arrive on the client with its callbacks stripped.
-// `useHeaderActions` defensively drops any entry left with neither an onSelect
-// nor a sidePanelId, so a stray server-side registration degrades to "button
-// not shown" rather than a runtime crash. A side panel action is plain data
-// and may be registered from a universal plugin.
 const HEADER_ACTIONS_STATE_KEY = "dms:header-actions";
 const DEFAULT_ORDER = 100;
 
@@ -50,10 +40,9 @@ function actionOrder(action: HeaderAction): number {
 
 function isActionRenderable(action: HeaderAction): boolean {
   const isSelectable =
-    typeof action.onSelect === "function" ||
-    typeof action.sidePanelId === "string";
+    isFunction(action.onSelect) || isString(action.sidePanelId);
   if (!isSelectable) return false;
-  if (typeof action.isVisible !== "function") return true;
+  if (!isFunction(action.isVisible)) return true;
   return action.isVisible();
 }
 

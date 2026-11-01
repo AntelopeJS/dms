@@ -1,8 +1,9 @@
+import { isString } from "../../../../../../dms-core/app/utils/type-check";
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import UFormField from "@nuxt/ui/components/FormField.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import UInput from "@nuxt/ui/components/Input.vue";
-import type { Component, Ref } from "vue";
+import type { Ref } from "vue";
 import { downloadFile } from "#dms-core/app/utils/downloadFile";
 import { useConfirm } from "#dms-ui/app/composables/confirm";
 import {
@@ -57,12 +58,7 @@ export function accountExportFilename(at: Date = new Date()): string {
   return `${EXPORT_FILE_PREFIX}-${at.toISOString().slice(0, ISO_DATE_LENGTH)}.json`;
 }
 
-/**
- * "Your data" on the profile page: download everything the DMS keeps about
- * the signed-in user, or delete the account after a password and a typed
- * e-mail, then sign out.
- */
-export function useAccountData() {
+function useAccountDataContext() {
   const { $authFetch } = useAuthFetch();
   const { confirm } = useConfirm();
   const { user, clear } = useDmsUserSession<User>();
@@ -76,7 +72,10 @@ export function useAccountData() {
   const isCheckingDeletion = ref(false);
 
   /** A message key the API answers with (`$…`), else a known error code. */
-  function describeError(error: unknown, fallbackKey: string): string {
+  function describeError(
+    error: Parameters<typeof errorCode>[0],
+    fallbackKey: string,
+  ): string {
     const code = errorCode(error);
     if (code?.startsWith("$")) return processI18n(code);
     return errorMessage(error, fallbackKey);
@@ -107,6 +106,38 @@ export function useAccountData() {
       isExporting.value = false;
     }
   }
+
+  async function signOutDeleted(): Promise<void> {
+    const userId = user.value?._id;
+    await clear().catch(() => undefined);
+    if (userId) await removeAccount(userId).catch(() => undefined);
+    toast.add({
+      color: "success",
+      icon: "i-ph-check-circle",
+      title: t(`${I18N}.delete_done_title`),
+      description: t(`${I18N}.delete_done_description`),
+    });
+    await navigateDms(AUTH_ROUTE);
+  }
+
+  return {
+    $authFetch,
+    confirm,
+    processApiMessage,
+    toast,
+    t,
+    isExporting,
+    isCheckingDeletion,
+    describeError,
+    exportData,
+    signOutDeleted,
+  };
+}
+
+function createDeletionPresentation(
+  context: ReturnType<typeof useAccountDataContext>,
+) {
+  const { t, confirm, processApiMessage } = context;
 
   function impactList(impact: AccountDeletionImpact): ConfirmImpact[] {
     return [
@@ -153,15 +184,14 @@ export function useAccountData() {
         { label: t(`${I18N}.delete_password`), error: error.value },
         {
           default: () =>
-            // Generic in its value type, which `h` cannot infer.
-            h(UInput as Component, {
+            h(UInput<typeof password.value, {}>, {
               ref: input,
               modelValue: password.value,
               type: "password",
               autocomplete: "current-password",
               class: "w-full",
-              "onUpdate:modelValue": (value: unknown) => {
-                password.value = typeof value === "string" ? value : "";
+              "onUpdate:modelValue": (value) => {
+                password.value = isString(value) ? value : "";
                 error.value = undefined;
               },
             }),
@@ -202,18 +232,43 @@ export function useAccountData() {
     });
   }
 
-  async function signOutDeleted(): Promise<void> {
-    const userId = user.value?._id;
-    await clear().catch(() => undefined);
-    if (userId) await removeAccount(userId).catch(() => undefined);
-    toast.add({
-      color: "success",
-      icon: "i-ph-check-circle",
-      title: t(`${I18N}.delete_done_title`),
-      description: t(`${I18N}.delete_done_description`),
-    });
-    await navigateDms(AUTH_ROUTE);
+  /** The password is required: an empty one is flagged, not sent. */
+  function passwordCheck(
+    password: Ref<string>,
+    error: Ref<string | undefined>,
+    input: Ref<PasswordInputHandle | null>,
+  ) {
+    return async (): Promise<boolean> => {
+      if (password.value) return true;
+      error.value = processApiMessage(REQUIRED_MESSAGE);
+      await nextTick();
+      input.value?.inputRef?.focus();
+      return false;
+    };
   }
+
+  return { impactList, passwordField, explainBlockers, passwordCheck };
+}
+
+/**
+ * "Your data" on the profile page: download everything the DMS keeps about
+ * the signed-in user, or delete the account after a password and a typed
+ * e-mail, then sign out.
+ */
+export function useAccountData() {
+  const context = useAccountDataContext();
+  const {
+    $authFetch,
+    confirm,
+    processApiMessage,
+    toast,
+    t,
+    isCheckingDeletion,
+    describeError,
+    signOutDeleted,
+  } = context;
+  const { impactList, passwordField, explainBlockers, passwordCheck } =
+    createDeletionPresentation(context);
 
   /**
    * Sends the deletion. A wrong password shows under the password field, a
@@ -267,21 +322,6 @@ export function useAccountData() {
     }
   }
 
-  /** The password is required: an empty one is flagged, not sent. */
-  function passwordCheck(
-    password: Ref<string>,
-    error: Ref<string | undefined>,
-    input: Ref<PasswordInputHandle | null>,
-  ) {
-    return async (): Promise<boolean> => {
-      if (password.value) return true;
-      error.value = processApiMessage(REQUIRED_MESSAGE);
-      await nextTick();
-      input.value?.inputRef?.focus();
-      return false;
-    };
-  }
-
   async function confirmDeletion(impact: AccountDeletionImpact): Promise<void> {
     const password = ref("");
     const passwordError = ref<string>();
@@ -326,5 +366,10 @@ export function useAccountData() {
     return confirmDeletion(impact);
   }
 
-  return { isExporting, isCheckingDeletion, exportData, deleteAccount };
+  return {
+    isExporting: context.isExporting,
+    isCheckingDeletion,
+    exportData: context.exportData,
+    deleteAccount,
+  };
 }

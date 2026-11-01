@@ -23,9 +23,7 @@ import {
   Column,
   DefaultDisplays,
   TableView,
-  type TableViewExpandableOptions,
   type TableViewOptions,
-  type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
@@ -139,12 +137,19 @@ class StatusOrderAPI extends DataController(
 }
 
 const optionsOf = (table: ReturnType<typeof TableView>) =>
-  table.serializeSync().options as TableViewOptionsSerialized;
+  table.serializeSync().options!;
 
 const columnsOf = (table: ReturnType<typeof TableView>) =>
+  // SAFETY: TableView writes metadata columns absent from its serialized options type.
   (
     optionsOf(table) as unknown as {
-      columns: Array<{ id: string; size?: number; display?: unknown }>;
+      columns: Array<{
+        id: string;
+        size?: number;
+        display?: unknown;
+        isVisible?: boolean;
+        listable?: boolean;
+      }>;
     }
   ).columns;
 
@@ -165,7 +170,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
   it("hides a column declared isVisible: false from the grid only", () => {
     const carrier = columnsOf(TableView(OrderAPI, { realtime: false })).find(
       (column) => column.id === "carrier",
-    ) as { isVisible?: boolean; listable?: boolean } | undefined;
+    );
     expect(carrier).to.include({ isVisible: false });
   });
 
@@ -417,16 +422,18 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
       lazyLoad: undefined,
       component: component.serializeSync(),
     });
-    // What the types refuse, a schema-built option can still carry.
+
     const both = {
       component,
       fields: ["carrier"],
-    } as unknown as TableViewExpandableOptions;
+    };
     expect(() =>
+      // @ts-expect-error Both alternatives are deliberately present to exercise runtime validation.
       TableView(OrderAPI, { realtime: false, expandable: both }),
     ).to.throw(/both fields and a component/);
-    const neither = { single: true } as unknown as TableViewExpandableOptions;
+    const neither = { single: true };
     expect(() =>
+      // @ts-expect-error Both alternatives are deliberately absent to exercise runtime validation.
       TableView(OrderAPI, { realtime: false, expandable: neither }),
     ).to.throw(/neither fields nor a component/);
   });
@@ -611,10 +618,11 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
       confirm: { title: "$orders.edit_locked" },
     });
     const [refund] = options.rowActions?.custom ?? [];
-    const refundConfirm = refund?.confirm as
-      | { fields?: Array<{ id: string; type: string; required?: boolean }> }
-      | undefined;
-    const [reason] = refundConfirm?.fields ?? [];
+    const refundConfirm = refund?.confirm;
+    const [reason] =
+      refundConfirm && "fields" in refundConfirm
+        ? (refundConfirm.fields ?? [])
+        : [];
     expect(reason).to.deep.include({
       id: "reason",
       type: "string",

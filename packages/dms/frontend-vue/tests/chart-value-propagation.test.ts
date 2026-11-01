@@ -1,7 +1,7 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { useRealDataEngine } from "./fixtures/dataEngine";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { chartRuntime } from "./helpers/charts-runtime";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
 import KpiCard from "../layers/dms-ui/app/components/kpi/KpiCard.vue";
@@ -9,35 +9,10 @@ import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vu
 import type { ValuePrecision } from "../layers/dms-ui/app/composables/chart/types";
 
 const AMOUNT = 9.391;
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({
-    data: ref({
-      value: AMOUNT,
-      previousValue: AMOUNT,
-      series: [{ name: "Spend", data: [AMOUNT] }],
-      items: [{ id: "spend", title: "Spend", value: AMOUNT }],
-    }),
-    isLoading: ref(false),
-  }),
-}));
-
-interface ValueFormatter {
-  formatter: (value: number) => string;
-}
-interface FormattedAxis {
-  labels: ValueFormatter;
-}
-interface FormattedTooltip {
-  y: ValueFormatter;
-}
-interface ChartOptions {
-  yaxis: FormattedAxis;
-  tooltip: FormattedTooltip;
-}
 
 const PlotProbe = defineComponent({
   props: {
-    options: { type: Object as PropType<ChartOptions>, required: true },
+    options: { type: Object, required: true },
   },
   setup: (props) => () =>
     h("output", [
@@ -70,11 +45,6 @@ function stubNuxt(locale: string) {
     t: (key: string, params?: Record<string, string>) =>
       params ? `${key} ${Object.values(params).join(" ")}` : key,
   }));
-  vi.stubGlobal("useTranslation", () => ({
-    processI18n: (text: string) => text,
-  }));
-  vi.stubGlobal("useComponentEvent", () => ({}));
-  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
 }
 
 const SLOT_COMPONENTS = [
@@ -102,6 +72,7 @@ async function renderCards(
     valueFormat: "currency",
     currencyCode,
     valuePrecision,
+    fetchUrl: "/spend",
   };
   const app = createSSRApp({
     render: () =>
@@ -116,12 +87,17 @@ async function renderCards(
   for (const name of SLOT_COMPONENTS) app.component(name, Slot);
   app.component("DmsApexChartHost", PlotProbe);
   app.component("DmsTopListRow", Row);
+  await chartRuntime(app, {
+    value: AMOUNT,
+    previousValue: AMOUNT,
+    series: [{ name: "Spend", data: [AMOUNT] }],
+    items: [{ id: "spend", title: "Spend", value: AMOUNT }],
+  });
+  await renderToString(app);
   return renderToString(app);
 }
 
 afterEach(() => vi.unstubAllGlobals());
-
-beforeEach(() => useRealDataEngine());
 
 describe("card → nested chart → Apex format propagation", () => {
   it.each(["EUR", "JPY", "KWD"])(
@@ -132,8 +108,7 @@ describe("card → nested chart → Apex format propagation", () => {
         currency,
       }).format(AMOUNT);
       const html = await renderCards(currency, "fr-FR", "native");
-      // The card headline and its comparison, the KPI's comparison, the axis,
-      // the tooltip and the list row (the KPI's value is split in parts).
+
       expect(html.split(expected)).toHaveLength(7);
       expect(html).toContain(`class="axis">${expected}`);
       expect(html).toContain(`class="tooltip">${expected}`);

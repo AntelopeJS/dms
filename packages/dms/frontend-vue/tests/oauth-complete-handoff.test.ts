@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import {
   computed,
   createApp,
@@ -16,12 +16,8 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePostLoginRedirect";
 import { usePageLayout } from "../layers/dms-layout/app/composables/page/usePageLayout";
-import { useSiteLayout } from "../layers/dms-layout/app/composables/page/useSiteLayout";
-import type { PageLayout } from "../layers/dms-layout/app/types/page";
-
-// The OAuth completion page, drawn by the real page layout cache: the
-// post-login redirect refreshes the site layout for the new identity, which
-// empties that cache and remounts the page while its layout comes back.
+import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
+import type { PageLayout } from "../layers/dms-core/app/types/page";
 
 const { default: OAuthCompletePage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/oauth-complete.vue"
@@ -45,7 +41,7 @@ let host: HTMLDivElement;
 const completionLayout: PageLayout = {
   components: { complete: { options: {} } },
   layout: {},
-} as unknown as PageLayout;
+};
 
 const siteResponse = {
   siteLayout: {
@@ -82,13 +78,13 @@ const Page = defineComponent({
 
 function installRuntime() {
   const runtime = {
-    runWithContext: (fn: () => unknown) => fn(),
+    runWithContext: <T>(fn: () => T) => fn(),
     $i18n: { setLocale: vi.fn() },
   };
   Object.entries({ computed, ref, watch }).forEach(([key, value]) =>
     vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("onMounted", (hook: () => unknown) =>
+  vi.stubGlobal("onMounted", (hook: Parameters<typeof onMounted>[0]) =>
     onMounted(() => {
       mounts += 1;
       return hook();
@@ -96,7 +92,7 @@ function installRuntime() {
   );
   vi.stubGlobal("useDmsApp", () => runtime);
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useDmsState", (key: string, initial: () => unknown) => {
+  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
     if (!state.has(key)) state.set(key, ref(initial()));
     return state.get(key);
   });
@@ -110,15 +106,17 @@ function installRuntime() {
   vi.stubGlobal("useMultiAccount", () => ({ addCurrentAccount: vi.fn() }));
   vi.stubGlobal("usePostLoginRedirect", usePostLoginRedirect);
   vi.stubGlobal("navigateDms", navigate);
-  vi.stubGlobal("$fetch", (url: string, options: unknown) =>
-    url === HANDOFF_URL ? fetchHandoff(options) : Promise.reject(url),
+  vi.stubGlobal(
+    "$fetch",
+    (url: string, options: Parameters<typeof $fetch>[1]) =>
+      url === HANDOFF_URL ? fetchHandoff(options) : Promise.reject(url),
   );
 }
 
 function mountCompletionPage() {
   route.path = PATH;
   const layout = useSiteLayout();
-  layout.siteLayout.value = siteResponse.siteLayout as never;
+  layout.siteLayout.value = siteResponse.siteLayout;
   layout.pageLayouts.value = { [LAYOUT_URL]: completionLayout };
   app = createApp({
     render: () => h(Suspense, null, { default: () => h(Page) }),
@@ -138,21 +136,21 @@ async function settle() {
   }
 }
 
+async function respond(url: string) {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return url === SITE_LAYOUT_URL ? siteResponse : completionLayout;
+}
+
 beforeEach(() => {
   state.clear();
   mounts = 0;
-  // Answered on later tasks, like the network, the page layout first as on
-  // the playground: the page is drawn again before the redirect leaves it.
-  authFetch.mockImplementation(async (url: string) => {
-    const site = url === SITE_LAYOUT_URL;
-    await new Promise((resolve) => setTimeout(resolve, site ? 5 : 0));
-    return site ? siteResponse : completionLayout;
-  });
+
+  authFetch.mockImplementation(respond);
   fetchHandoff.mockResolvedValue({ kind: "none" });
   route = reactive({ path: PATH, query: {} });
-  // Leaving the page unmounts it, as the router does: the completion page
-  // has no layout on any other route.
+
   navigate.mockImplementation(async (to: string | { path: string }) => {
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The navigation stub accepts the router's string and object destination variants.
     route.path = typeof to === "string" ? to : to.path;
   });
   installRuntime();
@@ -168,7 +166,14 @@ afterEach(() => {
 });
 
 it("consumes the handoff once when the identity refresh remounts the page", async () => {
+  const identityRefresh = Promise.withResolvers<void>();
+  authFetch.mockImplementation(async (url: string) => {
+    if (url === SITE_LAYOUT_URL) await identityRefresh.promise;
+    return respond(url);
+  });
   mountCompletionPage();
+  await vi.waitFor(() => expect(mounts).toBeGreaterThanOrEqual(2));
+  identityRefresh.resolve();
   await vi.waitFor(() =>
     expect(navigate).toHaveBeenCalledWith(HOMEPAGE, { replace: true }),
   );
@@ -177,8 +182,7 @@ it("consumes the handoff once when the identity refresh remounts the page", asyn
   expect(fetchHandoff).toHaveBeenCalledOnce();
   expect(siteLayoutFetches()).toBe(1);
   expect(navigate).toHaveBeenCalledOnce();
-  // The refresh did empty the cache and remount the page: the new instance
-  // joined the completion already running.
+
   expect(mounts).toBe(2);
 });
 

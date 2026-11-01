@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { computed, ref } from "vue";
+import { computed, createApp, ref } from "vue";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import type { CommandPaletteGroup } from "@nuxt/ui";
 import {
   ACCOUNT_MENU_ENTRIES,
@@ -69,13 +70,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// The session group lists the account entries: navigation offering the same
-// destinations showed Settings (and Profile) twice.
 it("leaves the account destinations to the session group", async () => {
   const { default: setup } = await import(
     "../layers/dms-layout/app/plugins/command-palette-navigation.client"
   );
-  (setup as unknown as () => void)();
+  setup(dmsAppContext(createApp({ render: () => null })));
 
   const targets = registered!
     .groups()

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * `usePageLive` while a component hydrates. The server renders a live page
  * with no controller: it knows the page declares `live`, and reads it as
@@ -22,8 +22,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   provideServerPageLive,
   setCurrentPageLive,
-} from "../layers/dms-ui/app/build/composables/live/currentPageLive";
-import type { PageLiveController } from "../layers/dms-ui/app/build/composables/live/pageLiveController";
+} from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
+import type { PageLiveController } from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 import {
   engine,
@@ -55,6 +55,7 @@ const ServerLivePage = defineComponent({
 /** A page's controller as the browser has it once the page has read once. */
 function pollingController(): PageLiveController {
   const value = <T>(initial: T) => computed(() => shallowRef(initial).value);
+  // SAFETY: usePageLive only reads these six controller state refs; controller actions are not invoked by this hydration fixture.
   return {
     isPaused: value(false),
     pauseReason: value(null),
@@ -62,7 +63,7 @@ function pollingController(): PageLiveController {
     missedCount: value(0),
     missedDetail: value(null),
     isPolling: value(true),
-  } as unknown as PageLiveController;
+  } as PageLiveController;
 }
 
 let warn: ReturnType<typeof vi.spyOn>;

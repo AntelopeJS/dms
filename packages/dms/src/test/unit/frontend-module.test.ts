@@ -1,17 +1,15 @@
 import { expect } from "chai";
-import type { Config } from "../../config";
+import { getAuthConfig, type Config } from "../../config";
 import { frontendModule } from "../../frontend-module";
-import { findVersionDrift } from "../../implementations/dms/frontend-ready";
+import { findVersionDrift } from "../../store/frontend";
 
 const PRODUCTION = { dev: false };
 const CLIENT_ORIGIN = "https://dashboard.example.com";
 const HALF_AN_HOUR_MS = 30 * 60 * 1000;
 
 function productionOptions(config: Partial<Config>) {
-  return frontendModule(
-    { clientBaseUrl: CLIENT_ORIGIN, ...config } as Config,
-    PRODUCTION,
-  )?.options;
+  return frontendModule({ clientBaseUrl: CLIENT_ORIGIN, ...config }, PRODUCTION)
+    ?.options;
 }
 
 describe("[unit] dms frontend module", () => {
@@ -20,6 +18,7 @@ describe("[unit] dms frontend module", () => {
       apiBaseUrl: "https://api.example.com",
       homepage: "/home",
       auth: {
+        ...getAuthConfig(),
         accessTokenLifetime: HALF_AN_HOUR_MS,
         oauth: {
           providers: {
@@ -27,7 +26,7 @@ describe("[unit] dms frontend module", () => {
             github: { clientId: "id", clientSecret: "" },
           },
         },
-      } as unknown as Config["auth"],
+      },
     });
     expect(options).to.deep.include({
       baseURL: "https://api.example.com",
@@ -44,6 +43,17 @@ describe("[unit] dms frontend module", () => {
     expect(frontendModule({}, PRODUCTION)?.options?.clientBaseUrl).to.equal(
       "http://localhost:3001",
     );
+  });
+
+  it("forwards distinct public demo credentials and leaves an unconfigured login empty", () => {
+    const loginPrefill = {
+      email: "visitor@example.test",
+      password: "public-demo-only",
+    };
+    expect(productionOptions({ loginPrefill })?.loginPrefill).to.deep.equal(
+      loginPrefill,
+    );
+    expect(productionOptions({})?.loginPrefill).to.equal(undefined);
   });
 });
 

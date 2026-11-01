@@ -3,8 +3,6 @@ import type {
   NavCardItem,
 } from "@antelopejs/interface-dms/base";
 
-// Copy and links of the welcome page, kept apart from its layout in page.ts.
-
 const DMS_DOCS_URL = "https://dms.antelopejs.com/docs";
 export const DMS_REPOSITORY_URL = "https://github.com/AntelopeJS/dms";
 
@@ -313,7 +311,7 @@ export const CONTRIBUTE_ITEMS: KeyValueListItem[] = [
     label: "Talk to the team",
     value: "Discord",
     type: "link",
-    to: "https://discord.gg/kxzZMWqdFU",
+    to: "https://discord.gg/g4pFt6eXqu",
   },
 ];
 

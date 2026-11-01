@@ -2,7 +2,9 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
-import { withMemberRolePicker } from "../../../../pages/settings/users/member-roles-field";
+import { withMemberRolePicker } from "../../../../pages/members";
+import type { FormFieldSerialized } from "@antelopejs/interface-dms/base/form";
+import type { EditRolePickerOptions } from "../../../../pages/members";
 
 const plainField = (id: string) => ({
   id,
@@ -24,7 +26,7 @@ describe("[unit] pages/settings/members — the roles field", () => {
 
     expect(roles).to.not.equal(undefined);
     expect(
-      (roles as { inputComponent?: unknown } | undefined)?.inputComponent,
+      roles && "inputComponent" in roles ? roles.inputComponent : undefined,
     ).to.equal(undefined);
   });
 
@@ -35,16 +37,20 @@ describe("[unit] pages/settings/members — the roles field", () => {
         { id: "access", label: "Access", fields: [plainField("roleIds")] },
       ],
     });
-    const [name, group] = options.fields as Array<Record<string, unknown>>;
-    const [roles] = (group as { fields: Array<Record<string, unknown>> })
-      .fields;
+    // SAFETY: This fixture supplies one field and one group containing one field; withMemberRolePicker only replaces components, while SlotOptions erases the fields' shape.
+    const [name, group] = options.fields as [
+      FormFieldSerialized,
+      { fields: FormFieldSerialized[] },
+    ];
+    const [roles] = group.fields;
 
     expect(name.component).to.deep.equal({ componentName: "DmsInputText" });
     expect(roles.component).to.deep.include({
       componentName: "DmsMemberRolePicker",
     });
+    // SAFETY: The roleIds field is replaced by editRolePicker, whose serialized component options include the rolesUrl and ownerField contract.
     expect(
-      (roles.component as { options: Record<string, unknown> }).options,
+      (roles.component as { options: EditRolePickerOptions }).options,
     ).to.include({
       rolesUrl: "/dms/pages/settings/workspace/members/role-options",
       ownerField: "isTenantOwner",

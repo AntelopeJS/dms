@@ -1,31 +1,31 @@
-import type { RequestContext } from "@antelopejs/interface-api";
 import type { ValueProxy } from "@antelopejs/interface-database";
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import type { DataCompareMode } from "@antelopejs/interface-dms/base/data-types/core";
 import { DefaultDataCompareTypes } from "@antelopejs/interface-dms/base/data-types/compare-types";
+import { untouchedRequestContext } from "../../../helpers/request-context";
 
-// The expression a filter builds, recorded instead of querying a database.
 class Expression {
   constructor(
     readonly op: string,
-    readonly operand: unknown,
+    readonly operand: Date | number | null | Expression[],
   ) {}
 
-  and(other: unknown): Expression {
+  and(other: Expression): Expression {
     return new Expression("and", [this, other]);
   }
 }
 
-const expression = (op: string, operand: unknown) =>
+const expression = (op: string, operand: Expression["operand"]) =>
   new Expression(op, operand);
 
 /** What an order filter wraps its comparison in: the value is set. */
 const whenSet = (comparison: Expression) =>
   expression("and", [expression("ne", null), comparison]);
 
-function recordingProxy(): ValueProxy<unknown> {
-  const compare = (op: string) => (operand: unknown) => expression(op, operand);
+function recordingProxy<T = unknown>(): ValueProxy<T> {
+  const compare = (op: string) => (operand: Expression["operand"]) =>
+    expression(op, operand);
   const proxy = {
     gt: compare("gt"),
     ge: compare("ge"),
@@ -34,11 +34,19 @@ function recordingProxy(): ValueProxy<unknown> {
     ne: compare("ne"),
     default: () => proxy,
   };
-  return proxy as unknown as ValueProxy<unknown>;
+  // SAFETY: These order filters only call gt, ge, lt, le, ne, default, and the returned expression's and; they never use other ValueProxy operations or execute the recorded expression.
+  return proxy as unknown as ValueProxy<T>;
 }
 
-const context = {} as RequestContext;
-const row = {} as ValueProxy<Record<string, unknown>>;
+const context = untouchedRequestContext();
+const row: Parameters<DataCompareMode["filter"]>[4] = new Proxy(
+  recordingProxy(),
+  {
+    get: () => {
+      throw new Error("The filter read the row");
+    },
+  },
+);
 
 describe("[unit] interfaces/dms-base — date filters", () => {
   const dateType = new DefaultDataTypes.DateType();
@@ -178,4 +186,44 @@ describe("[unit] interfaces/dms-base — order filters on a number", () => {
       expect(built).to.deep.equal(whenSet(comparison));
     });
   }
+});
+
+describe("[unit] interfaces/dms-base — is_between on a numeric field", () => {
+  /**
+   * Catches an IsBetween that hands the parsed Date objects to the numeric
+   * value proxy: the sibling order filters send epoch milliseconds.
+   */
+  it("sends epoch milliseconds for ISO date bounds", () => {
+    const built = new DefaultDataCompareTypes.IsBetween().filter(
+      context,
+      recordingProxy(),
+      "occurredAtMs",
+      "2026-10-01, 2026-10-15T12:00:00.000Z",
+      row,
+    );
+    expect(built).to.deep.equal(
+      whenSet(
+        expression("ge", Date.parse("2026-10-01T00:00:00.000Z")).and(
+          expression("le", Date.parse("2026-10-15T12:00:00.000Z")),
+        ),
+      ),
+    );
+  });
+
+  it("sends a number bound and an ISO date bound together as numbers", () => {
+    const built = new DefaultDataCompareTypes.IsBetween().filter(
+      context,
+      recordingProxy(),
+      "occurredAtMs",
+      "1, 2026-10-01",
+      row,
+    );
+    expect(built).to.deep.equal(
+      whenSet(
+        expression("ge", 1).and(
+          expression("le", Date.parse("2026-10-01T00:00:00.000Z")),
+        ),
+      ),
+    );
+  });
 });

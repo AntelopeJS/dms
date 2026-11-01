@@ -9,10 +9,11 @@ import {
 } from "./utils/recordLink";
 import { queryOfUrl } from "./utils/urlFilters";
 import type { TableUrlScope } from "./utils/views";
+import type { LocationQuery } from "#dms/frontend-module";
 
 /** What `useTableRecordLink` follows the URL's `?record=` with. */
 export interface TableRecordLinkOptions<T> {
-  route: { query: Record<string, unknown> };
+  route: { query: LocationQuery };
   urlScope: TableUrlScope;
   /** The table's `deepLink` action: the container a link opens. */
   action: CustomRowAction;
@@ -48,21 +49,23 @@ export function useTableRecordLink<T>(
   options: TableRecordLinkOptions<T>,
 ): TableRecordLink {
   const { action, urlScope } = options;
-  // The row opened or being opened: arrival and the visit that mounted the
-  // table name it twice, a visit while it is open names it again.
+
   let linkedId: string | undefined;
 
   const settle = async (id: string) => {
     const found = await options.resolve(id);
     const outcome = deepLinkOutcome(found, action);
-    if (outcome === "open") return options.open(found.row as T);
+    if (outcome === "open") {
+      if (found.row) options.open(found.row);
+      return;
+    }
     if (outcome === "missingPanel") return options.showMissing(id);
     writeRecordId(urlScope);
     if (linkedId === id) linkedId = undefined;
     options.notify(outcome);
   };
 
-  const follow = (query: Record<string, unknown>) => {
+  const follow = (query: LocationQuery) => {
     const id = readRecordId(query, urlScope);
     if (!id || id === linkedId) return;
     linkedId = id;
@@ -78,8 +81,6 @@ export function useTableRecordLink<T>(
   });
   onBeforeUnmount(() => stopFollowingVisits?.());
 
-  // A visit Inertia does not announce (a `router.replace`) still moves the
-  // route: a new value there is followed as well.
   watch(
     () => readRecordId(options.route.query, urlScope),
     () => follow(options.route.query),

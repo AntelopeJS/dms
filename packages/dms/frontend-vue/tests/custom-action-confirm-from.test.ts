@@ -1,7 +1,8 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import { unusedApi } from "./fixtures/unusedApi";
+import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 
@@ -15,7 +16,7 @@ function mountTargets(rowIdKey?: string) {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          api: vi.fn() as never,
+          api: unusedApi(),
           pageId: "orders-page",
           componentId: "orders",
           handleApiError: vi.fn(),
@@ -32,7 +33,9 @@ function mountTargets(rowIdKey?: string) {
 const REFUND: CustomRowAction = {
   label: "Refund",
   target: { type: "page", url: "/orders" },
-  confirm: { from: "/api/orders/{{row.id}}/refund-confirm?customer={{row.customer}}" },
+  confirm: {
+    from: "/api/orders/{{row.id}}/refund-confirm?customer={{row.customer}}",
+  },
 };
 
 beforeEach(() => {

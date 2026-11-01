@@ -1,7 +1,3 @@
-// What the reload-host test module (`src/test/reload-host`) records, read from
-// the suite's side. The module keeps its own copy of these values rather than
-// importing them: see the note at the top of its entry point.
-
 /** Module id the harness loads `src/test/reload-host` under. */
 export const RELOAD_HOST_MODULE = "reload-host";
 
@@ -35,6 +31,8 @@ export interface ReloadHostProvisionedTenant {
   userId?: string;
   /** Whether that generation's `DATABASE_INITIALIZED` handler had run. */
   afterDatabaseInitialized: boolean;
+  /** Whether that generation's `start()` had completed. */
+  afterStart: boolean;
 }
 
 interface ReloadHostProbe {
@@ -46,7 +44,8 @@ interface ReloadHostProbe {
 }
 
 function probe(): ReloadHostProbe {
-  const holder = globalThis as Record<symbol, ReloadHostProbe | undefined>;
+  const holder: typeof globalThis & { [PROBE_KEY]?: ReloadHostProbe } =
+    globalThis;
   holder[PROBE_KEY] ??= {
     generations: [],
     calls: [],

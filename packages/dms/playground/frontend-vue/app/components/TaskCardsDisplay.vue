@@ -2,16 +2,11 @@
 import DmsEmpty from "#dms-ui/app/build/components/table/Empty.vue";
 import DmsPagination from "#dms-ui/app/build/components/table/Pagination.vue";
 import DmsCardGridSkeleton from "#dms-ui/app/build/components/table-view/CardGridSkeleton.vue";
-// Example project-contributed table view display: a responsive card grid.
-//
-// It receives the single normalized `context` prop every display gets. It
-// leaves `selfManagedData` unset in the page config (the default), so it
-// consumes the shared list query and inherits search/filters/sorting/pagination
-// for free. It renders inside the table card, so the shared footer
-// (`DmsPagination`) and empty state (`DmsEmpty`) plug straight in.
-//
-// The context type is mirrored locally so this example stays decoupled from the
-// dms package's internal type paths (same approach as KanbanTaskCard.vue).
+import type { TableViewDisplayContext } from "#dms-ui/app/composables/table-view/types";
+
+type DisplayRow = TableViewDisplayContext["items"][number];
+type DisplayValue = DisplayRow[string];
+
 interface ColumnMeta {
   id: string;
   header: string;
@@ -21,7 +16,7 @@ interface ColumnMeta {
 }
 
 interface DisplayContext {
-  items: Record<string, unknown>[];
+  items: TableViewDisplayContext["items"];
   columns: ColumnMeta[];
   loading: boolean;
   pagination: { pageSize: number };
@@ -36,12 +31,12 @@ interface DisplayContext {
     canEdit: boolean;
     canDelete: boolean;
     add: () => void;
-    edit: (item: Record<string, unknown>) => void;
+    edit: (item: DisplayRow) => void;
     delete: (ids: string[]) => void;
     /** The custom row actions a row offers (their `rule` accepted). */
-    customFor: (item: Record<string, unknown>) => CustomRowAction[];
+    customFor: (item: DisplayRow) => CustomRowAction[];
     /** Runs a custom row action on a row, as its grid menu entry does. */
-    custom: (action: CustomRowAction, item?: Record<string, unknown>) => void;
+    custom: (action: CustomRowAction, item?: DisplayRow) => void;
   };
 }
 
@@ -61,19 +56,20 @@ const { locale } = useI18n();
 const { processI18n } = useTranslation();
 const { getDataType } = useDataTypes();
 
-const getValue = (item: Record<string, unknown>, path: string): unknown =>
+const getValue = (item: DisplayRow, path: string): DisplayValue =>
   path
     .split(".")
-    .reduce<unknown>(
+    .reduce<DisplayValue>(
       (acc, key) =>
-        acc == null ? undefined : (acc as Record<string, unknown>)[key],
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Configured dotted paths traverse unvalidated row values; preserving the existing unchecked property access.
+        acc == null ? undefined : (acc as DisplayRow)[key],
       item,
     );
 
-const rowId = (item: Record<string, unknown>): string =>
+const rowId = (item: DisplayRow): string =>
   String(getValue(item, props.context.rowIdKey) ?? "");
 
-const title = (item: Record<string, unknown>): string => {
+const title = (item: DisplayRow): string => {
   const value = props.context.labelKey
     ? getValue(item, props.context.labelKey)
     : undefined;
@@ -82,7 +78,7 @@ const title = (item: Record<string, unknown>): string => {
     : rowId(item);
 };
 
-const initials = (item: Record<string, unknown>): string =>
+const initials = (item: DisplayRow): string =>
   title(item)
     .split(/\s+/)
     .filter(Boolean)
@@ -101,11 +97,9 @@ const fieldColumns = computed(() =>
     .slice(0, MAX_CARD_FIELDS),
 );
 
-// Values go through the column's data type formatter, like table cells do
-// (status pills, links, dates, amounts).
 const FieldValue = (fieldProps: {
   column: ColumnMeta;
-  item: Record<string, unknown>;
+  item: DisplayRow;
 }) => {
   const value = getValue(fieldProps.item, fieldProps.column.accessorKey);
   if (value === null || value === undefined || value === "") {
@@ -120,13 +114,14 @@ const FieldValue = (fieldProps: {
         fieldProps.column.type?.inputComponent?.options,
       )
     : value;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Formatter results are unknown in the owning DataTypeFormatter contract; retain the existing primitive rendering branch.
   if (typeof rendered === "string" || typeof rendered === "number") {
     return h("span", { class: "truncate" }, String(rendered));
   }
-  return rendered as ReturnType<typeof h>;
+  return rendered;
 };
 
-const openItem = (item: Record<string, unknown>) => {
+const openItem = (item: DisplayRow) => {
   if (props.context.actions.canEdit) props.context.actions.edit(item);
 };
 </script>

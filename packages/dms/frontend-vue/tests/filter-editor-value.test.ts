@@ -3,9 +3,8 @@ import {
   dateFilterEditorValue,
   filterEditorValue,
   numberFilterEditorValue,
-} from "../layers/dms-ui/app/build/composables/table/utils/filterEditorValue";
+} from "../layers/dms-ui/app/entries/composables/table/utils/filterEditorValue";
 
-// The data types as they register their filter editor's value.
 const NUMBER = { filterEditorValue: numberFilterEditorValue };
 const DATE = { filterEditorValue: dateFilterEditorValue };
 
@@ -30,9 +29,6 @@ describe("filterEditorValue", () => {
     );
   });
 
-  // Whatever component a type's filter uses: the type decides, so a custom
-  // type with its own number editor converts the same way, and a boolean's
-  // select keeps the "true" its items hold.
   it("leaves a typed value, or a type without a conversion, as it is", () => {
     expect(filterEditorValue(NUMBER, "is", 12)).toBe(12);
     expect(filterEditorValue({}, "is", "true")).toBe("true");

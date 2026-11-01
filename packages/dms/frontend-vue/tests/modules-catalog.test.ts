@@ -4,19 +4,18 @@ import type {
   ModuleWithAccess,
   PageInfo,
   SiteLayoutTree,
-} from "../layers/dms-layout/app/types/page";
+} from "../layers/dms-core/app/types/page";
 import {
   MODULE_CATEGORY_ALL,
   MODULE_CATEGORY_OTHER,
   filterModules,
   findModulePageMatch,
-  DEFAULT_MODULE_SORT_MODE,
   moduleCategoryOptions,
   parseModuleSortMode,
   recentModules,
   sortModules,
   summarizeModules,
-} from "../layers/dms-layout/app/build/utils/modules-catalog";
+} from "../layers/dms-layout/app/entries/utils/modules-catalog";
 
 const resolve = (value: string) =>
   value === MODULE_CATEGORY_OTHER ? "Other" : value;
@@ -129,7 +128,6 @@ describe("sortModules", () => {
 
 describe("parseModuleSortMode", () => {
   it("opens alphabetical, keeping a remembered choice", () => {
-    expect(DEFAULT_MODULE_SORT_MODE).toBe("name");
     expect(parseModuleSortMode(undefined)).toBe("name");
     expect(parseModuleSortMode("recent")).toBe("recent");
     expect(parseModuleSortMode("name")).toBe("name");
@@ -142,15 +140,17 @@ describe("parseModuleSortMode", () => {
 });
 
 describe("findModulePageMatch", () => {
-  const page = (slug: string, extra: Record<string, unknown>): PageInfo =>
-    ({
-      id: slug,
-      fullId: slug,
-      fullSlug: slug,
-      layoutUrl: `${slug}/pagelayout`,
-      displayName: "",
-      ...extra,
-    }) as unknown as PageInfo;
+  const page = (
+    slug: string,
+    extra: Partial<PageInfo> & { module?: string },
+  ): PageInfo => ({
+    id: slug,
+    fullId: slug,
+    fullSlug: slug,
+    layoutUrl: `${slug}/pagelayout`,
+    displayName: "",
+    ...extra,
+  });
 
   const pages = {
     "/modules/saas/billing/invoices": page("/modules/saas/billing/invoices", {
@@ -169,7 +169,6 @@ describe("findModulePageMatch", () => {
     }),
   };
 
-  // Every category once, by full id: a page names its own.
   const layout = {
     pages,
     categories: {
@@ -204,41 +203,45 @@ describe("findModulePageMatch", () => {
 });
 
 describe("recentModules", () => {
+  const treeNode = (
+    id: string,
+    fullSlug: string,
+    extra: Partial<SiteLayoutTree> = {},
+  ): SiteLayoutTree => ({
+    id,
+    displayName: id,
+    fullId: id,
+    fullSlug,
+    children: {},
+    childrenOrders: [],
+    ...extra,
+  });
   const landingTree = (moduleId: string, slugs: string[]): SiteLayoutTree => {
-    const pages = slugs.map((fullSlug, index) => ({
-      id: `page-${index}`,
-      fullSlug,
-      layoutUrl: "/layout",
-      children: {},
-      childrenOrders: [],
-    }));
-    const root = {
-      id: moduleId,
-      fullSlug: `/modules/${moduleId}`,
+    const pages = slugs.map((fullSlug, index) =>
+      treeNode(`page-${index}`, fullSlug, { layoutUrl: "/layout" }),
+    );
+    const root = treeNode(moduleId, `/modules/${moduleId}`, {
       isModuleRoot: true,
       children: Object.fromEntries(pages.map((page) => [page.id, page])),
       childrenOrders: pages.map((page) => page.id),
-    };
-    return {
-      id: "",
-      fullSlug: "/",
+    });
+    return treeNode("", "/", {
       children: {
-        modules: {
-          id: "modules",
-          fullSlug: "/modules",
+        modules: treeNode("modules", "/modules", {
           children: { [moduleId]: root },
           childrenOrders: [moduleId],
-        },
+        }),
       },
       childrenOrders: ["modules"],
-    } as unknown as SiteLayoutTree;
+    });
   };
-  const cms = {
+  const cms: ModuleWithAccess = {
     id: "cms",
     title: "$cms.title",
     icon: "i-ph-article",
+    description: "",
     hasAccess: true,
-  } as ModuleWithAccess;
+  };
 
   it("opens a recent module on its landing page, not where it was left", () => {
     const tree = landingTree("cms", [

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Accessibility preferences (Settings › Appearance): how the cookie is read,
  * how `auto` motion resolves against the system, which classes land on
@@ -12,6 +12,8 @@ import {
 import { createHead, renderSSRHead } from "@unhead/vue/server";
 import { createApp, createSSRApp, nextTick, ref, type Ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { sectionIn } from "./fixtures/axisCallbacks";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import {
   accessibilityHtmlClasses,
   isReducedMotionActive,
@@ -19,10 +21,10 @@ import {
   reduceMotionFromClasses,
   resolveReducedMotion,
   type AccessibilityPreferences,
-} from "../layers/dms-ui/app/build/utils/accessibilityPreferences";
+} from "../layers/dms-ui/app/entries/utils/accessibilityPreferences";
 
 interface CookieOptions {
-  default: () => unknown;
+  default: () => AccessibilityPreferences;
   maxAge?: number;
 }
 
@@ -35,10 +37,10 @@ const DEFAULTS: AccessibilityPreferences = {
 };
 const requestCookies = new Map<string, unknown>();
 const cookieOptions = new Map<string, CookieOptions>();
-// One ref per cookie name, shared by every caller like the real useDmsCookie.
+
 const cookieRefs = new Map<string, Ref<unknown>>();
 
-vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
+vi.stubGlobal("defineDmsPlugin", <Setup>(setup: Setup) => setup);
 vi.stubGlobal("useHead", useHead);
 vi.stubGlobal("useDmsCookie", (name: string, options: CookieOptions) => {
   cookieOptions.set(name, options);
@@ -205,9 +207,8 @@ describe("useAccessibilityPreferences", () => {
 });
 
 describe("server render", () => {
-  // `colorMode` stands for the color-mode plugin, whose server branch puts an
-  // explicit mode's class on <html> through its own useHead entry.
   async function renderHead(
+    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Cookies enter the real preference parser as raw values. Inference needs a reusable dictionary and AccessibilityPreferences would exclude malformed cookie inputs from this boundary fixture.
     cookies: Record<string, unknown>,
     colorMode?: string,
   ) {
@@ -218,7 +219,7 @@ describe("server render", () => {
     app.use(head);
     app.runWithContext(() => {
       if (colorMode) useHead({ htmlAttrs: { class: colorMode } });
-      accessibilityPlugin({} as never);
+      accessibilityPlugin(dmsAppContext(app));
     });
     return renderSSRHead(head);
   }
@@ -260,7 +261,7 @@ describe("in the browser", () => {
     const head = createClientHead();
     app.use(head);
     const { underlineLinks, reduceMotion } = app.runWithContext(() => {
-      accessibilityPlugin({} as never);
+      accessibilityPlugin(dmsAppContext(app));
       return useAccessibilityPreferences();
     });
     await renderDOMHead(head);
@@ -302,13 +303,12 @@ describe("in the browser", () => {
 });
 
 describe("chart animations", () => {
-  function animationsEnabled(): unknown {
+  function animationsEnabled() {
     const { options } = useApexChart(() => ({
       type: "line",
       series: [{ name: "Visits", data: [{ x: "Mon", y: 3 }] }],
     }));
-    const chart = options.value.chart as { animations: { enabled: boolean } };
-    return chart.animations.enabled;
+    return sectionIn(sectionIn(options.value, "chart"), "animations").enabled;
   }
 
   it("animates by default and stops when motion is reduced", () => {

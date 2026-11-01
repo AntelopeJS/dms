@@ -7,22 +7,24 @@ import {
   FormEvents,
   FormFunctions,
 } from "@antelopejs/interface-dms/base/form";
-import type { WatchAction } from "@antelopejs/interface-dms/base/types/watch";
-import { ComponentBuilder } from "@antelopejs/interface-dms/component";
+import {
+  ComponentBuilder,
+  type ComponentInfoSerialized,
+} from "@antelopejs/interface-dms/component";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import {
   type ComponentNodeMap,
   filterComponents,
 } from "@antelopejs/interface-dms/page/layout-filter";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
+import { formOptionsOf } from "../../../helpers/serialized-options";
 
 const CONTEXT = { tenantId: "tenant", user: undefined };
 
 const CATEGORY = "fwp-forms";
 const PAGE = `${CATEGORY}.watch-actions`;
 const FORM = `${PAGE}.form`;
-// What the gated watch requires: the form of another page, as the Watch
-// Actions demo requires the grouped form's.
+
 const GROUPED_PAGE = `${CATEGORY}.form-grouped`;
 const GROUPED_FORM = `${GROUPED_PAGE}.form`;
 
@@ -35,8 +37,6 @@ const REGISTERED = [
   { id: `${PAGE}.host`, title: "Host" },
 ];
 
-// The form of the Watch Actions demo: one watch for everyone, one gated by
-// `requirePermission`.
 const form = Form({
   title: "Demo Form",
   fields: [
@@ -72,13 +72,25 @@ const componentMap: ComponentNodeMap = new Map([
   [FORM, { component: form, permissionId: FORM, depth: 0, access: "own" }],
 ]);
 
-const watchTargets = (options: unknown) =>
-  ((options as { watchActions?: WatchAction[] }).watchActions ?? []).map(
+const watchTargets = (options: ComponentInfoSerialized["options"]) =>
+  (formOptionsOf({ options }).watchActions ?? []).map(
     (watch) => watch.params?.targetField,
   );
 
-// A host that opens the form in a drawer embeds it in its own options, as a
-// table view embeds its generated forms: not a node of the page's tree.
+interface DrawerHostOptions {
+  drawer: { content: { options?: unknown } };
+}
+
+function isDrawerHostOptions(value: unknown): value is DrawerHostOptions {
+  return (
+    value instanceof Object &&
+    "drawer" in value &&
+    value.drawer instanceof Object &&
+    "content" in value.drawer &&
+    value.drawer.content instanceof Object
+  );
+}
+
 const HOST = `${PAGE}.host`;
 const host = new ComponentBuilder<{ drawer: { content: unknown } }>(
   "DemoDrawerHost",
@@ -96,8 +108,11 @@ async function servedEmbeddedWatchTargets(permissions: Set<string>) {
     hostMap,
     CONTEXT,
   );
-  const options = served.host!.options as { drawer: { content: unknown } };
-  return watchTargets((options.drawer.content as { options: unknown }).options);
+  const options = served.host?.options;
+  if (!isDrawerHostOptions(options)) {
+    throw new Error("The served host carries no drawer content");
+  }
+  return watchTargets(options.drawer.content.options);
 }
 
 /** The fields the watches the caller is served act on, in order. */

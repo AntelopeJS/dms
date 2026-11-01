@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * `fit` draws a horizontal pill list as wide as its tabs: the list stops
  * taking the column's width and the triggers stop growing to share it. A
@@ -9,32 +9,31 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AxeOrientation } from "../layers/dms-core/app/types/orientation";
 import { Color } from "../layers/dms-core/app/types/color";
 import { Size } from "../layers/dms-core/app/types/size";
-import { TabVariant } from "../layers/dms-ui/app/composables/tab/types/props";
+import {
+  TabVariant,
+  type TabProps,
+} from "../layers/dms-ui/app/composables/tab/types/props";
+import { browserRuntime } from "./helpers/api-data-runtime";
+import { stubBlockRuntime } from "./helpers/block-runtime";
 
-vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
-  useChartFetch: () => ({ data: vue.ref(null) }),
-}));
-
-interface TabsUi {
-  list?: unknown;
-  trigger?: unknown;
-}
+type TabsUi = NonNullable<import("@nuxt/ui").TabsProps["ui"]>;
 
 let received: TabsUi = {};
 let app: vue.App | undefined;
+let runtime: ReturnType<typeof browserRuntime> | undefined;
 
 const Tabs = vue.defineComponent({
   props: { ui: { type: Object, default: () => ({}) } },
   setup: (props) => () => {
-    received = props.ui as TabsUi;
+    received = { list: props.ui.list, trigger: props.ui.trigger };
     return vue.h("div");
   },
 });
 
-const classesOf = (value: unknown): string =>
+const classesOf = (value: TabsUi["list"]): string =>
   [value].flat(Infinity).filter(Boolean).join(" ");
 
-async function mount(props: Record<string, unknown>): Promise<TabsUi> {
+async function mount(props: Partial<TabProps>): Promise<TabsUi> {
   const { default: Tab } = await import(
     "../layers/dms-ui/app/components/tab/Tab.vue"
   );
@@ -51,27 +50,23 @@ async function mount(props: Record<string, unknown>): Promise<TabsUi> {
       }),
   });
   app.component("UTabs", Tabs);
+  runtime = browserRuntime(app);
   app.mount(document.createElement("div"));
   await vue.nextTick();
   return received;
 }
 
-beforeEach(() => {
-  for (const name of ["computed", "ref", "useTemplateRef"] as const) {
-    vi.stubGlobal(name, vue[name]);
-  }
+beforeEach(async () => {
+  await stubBlockRuntime(vi.fn().mockResolvedValue(null));
   vi.stubGlobal("AxeOrientation", AxeOrientation);
   vi.stubGlobal("Color", Color);
   vi.stubGlobal("Size", Size);
   vi.stubGlobal("useI18n", () => ({ locale: vue.ref("en-US"), t: String }));
-  vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
-  vi.stubGlobal("useWatch", () => ({ state: vue.ref({}) }));
-  vi.stubGlobal("useTab", () => ({ activeTab: vue.ref("0") }));
-  vi.stubGlobal("useTabShortcuts", () => {});
 });
 
 afterEach(() => {
   app?.unmount();
+  runtime?.scope.stop();
   vi.unstubAllGlobals();
 });
 

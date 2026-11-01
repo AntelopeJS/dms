@@ -6,7 +6,7 @@ import {
 } from "../layers/dms-ui/app/utils/fileConstraints";
 
 function fakeFile(type: string, size: number): File {
-  return { type, size, name: "sample" } as File;
+  return new File([new Uint8Array(size)], "sample", { type });
 }
 
 describe("matchMimetype", () => {

@@ -5,7 +5,6 @@ const NON_OVERLAP_GAP_MS = 1;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-// In the reader's calendar (`readerClock`), as the range was resolved.
 function isLocalMidnight(date: Date): boolean {
   const { hours, minutes, seconds, milliseconds } = readerClock().wall(date);
   return hours === 0 && minutes === 0 && seconds === 0 && milliseconds === 0;
@@ -33,8 +32,6 @@ function isWholeDayRange(range: PeriodRange): boolean {
 const MONTHS_PER_YEAR = 12;
 const MONTHS_PER_QUARTER = 3;
 
-// The calendar unit a preset counts in, in months: its previous period is
-// the previous month, quarter or year, not the same number of days before.
 const PRESET_MONTH_SPANS: Partial<Record<PeriodPreset, number>> = {
   "this-month": 1,
   "last-month": 1,
@@ -60,7 +57,7 @@ function shiftMonths(date: Date, months: number): Date {
   const clock = readerClock();
   const wall = clock.wall(date);
   const month = wall.month + months;
-  // Day 0 of the next month is the last day of this one.
+
   const lastDay = clock.wall(
     clock.instant({ ...wall, month: month + 1, day: 0 }),
   ).day;
@@ -138,7 +135,6 @@ function shiftCalendarPeriod(
   const from = shiftMonths(range.from, -months);
   const isComplete = end.getTime() === range.to.getTime();
   if (isComplete && isMonthStart(afterRange(range))) {
-    // The span before ends where the range starts: August, then September.
     return { from, to: new Date(range.from.getTime() - NON_OVERLAP_GAP_MS) };
   }
   return { from, to: endOfDay(shiftMonths(end, -months)) };
@@ -156,8 +152,6 @@ function shiftPreviousPeriod(
 }
 
 function shiftEqualLength(range: PeriodRange): PeriodRange {
-  // Whole-day ranges move by calendar days, so a span crossing a daylight
-  // saving change still starts at midnight (a fixed-ms shift lands an hour off).
   if (isWholeDayRange(range)) {
     const end = range.to.getTime() + NON_OVERLAP_GAP_MS;
     const days = Math.round((end - range.from.getTime()) / MS_PER_DAY);

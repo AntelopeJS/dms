@@ -1,4 +1,7 @@
-import { DefaultLayout, SettingsLayout } from "../base/layouts";
+import {
+  DefaultLayout,
+  SettingsLayout,
+} from "../component-options/page-layout";
 import { internal } from "./categories";
 import { RootCategory } from "./internal/categories";
 import { Category, RootPageController } from "./controllers";
@@ -27,8 +30,6 @@ export function RegisterModule(opts: ModuleInfo): CategoryInfo {
 
   if (opts.defaultCategory) {
     const defaultCategory = RootCategory("pages", {
-      // Treat an empty string the same as omitted: fall back to the built-in
-      // i18n label rather than rendering a blank heading.
       displayName: opts.defaultCategory.displayName || "$menu.section.pages",
       icon: opts.defaultCategory.icon,
       order: opts.defaultCategory.order,

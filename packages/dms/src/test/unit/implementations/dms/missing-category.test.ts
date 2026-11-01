@@ -17,16 +17,16 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { captureWarnings } from "../../../helpers/logging";
 import {
   registerTestCategory,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "missing-category-tenant";
-const MEMBER = { _id: "missing-category-member" } as User;
+const MEMBER = userFixture({ _id: "missing-category-member" });
 const OWNER_PERMISSIONS = ["*"];
 const PLACEHOLDER_LABEL = "none";
 
@@ -51,7 +51,6 @@ function displayNames(level: SiteLayoutTree): string[] {
   return Object.values(level.children).map((child) => child.displayName);
 }
 
-// Never registered: only its identity is needed to place a page under it.
 function unregisteredCategory(id: string): CategoryInfo {
   return {
     id,
@@ -141,7 +140,6 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
     expect(reported[0]).to.include("pages.missing-ghost.missing-ghost-sales");
   });
 
-  // A hot reload or a stop unregisters the category first, then its pages.
   it("does not warn about a category unregistered just before its pages", async () => {
     const reloaded = registerTestCategory("missing-reloaded", {
       displayName: "Reloaded",
@@ -240,8 +238,6 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
     );
   });
 
-  // The container has no permission of its own: checking one on an empty id
-  // denied it to every non-owner, and took the page with it.
   it("shows a hoisted page to a non-owner who may open it", async () => {
     const pageFullId = "pages.missing-member-parent.missing-member-page";
     const captured = captureWarnings();

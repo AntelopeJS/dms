@@ -17,8 +17,8 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const MODULE_ID = "ucap-mod";
 const TENANT_ID = "ucap-tenant";
@@ -27,8 +27,6 @@ const REGULAR_PAGE_FULL_ID = "pages.ucap-normal";
 
 describe("[unit] implementations/dms/page — userCanAccessPage module gating", () => {
   before(async () => {
-    // Wire the mocha-loaded interface proxies to the mocha-loaded
-    // implementation so registered pages land in its page registry.
     ImplementInterface(permissionsInterface, permissionsImpl);
     ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
     ImplementInterface(tenantAccessInterface, tenantAccessImpl);
@@ -58,7 +56,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
     const { memberModel, roleModel } = stubPageAccessModels([
       MODULE_PAGE_FULL_ID,
     ]);
-    const nonOwner = { _id: "user-1" } as User;
+    const nonOwner = userFixture({ _id: "user-1" });
     expect(
       await userCanAccessPage(
         nonOwner,
@@ -72,7 +70,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
 
   it("allows the platform owner on a module page", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
-    const owner = { _id: "user-2", owner: true } as User;
+    const owner = userFixture({ _id: "user-2", owner: true });
     expect(
       await userCanAccessPage(
         owner,
@@ -98,10 +96,6 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
   });
 
   it("unmarks a module page permission when the page unregisters (hot reload)", async () => {
-    // Default ids stay covered by the still-marked module root prefix, so
-    // the stale-deny scenario is only observable for a custom permission id
-    // living outside the modules.* namespace — exactly what unregister must
-    // release.
     const customPermissionId = "ucap-custom-perm";
     const reloadedPage = PageController("ucap-reloaded", {
       displayName: "Reloaded module page",
@@ -125,7 +119,7 @@ describe("[unit] implementations/dms/page — userCanAccessPage module gating", 
     const { memberModel, roleModel } = stubPageAccessModels([
       REGULAR_PAGE_FULL_ID,
     ]);
-    const nonOwner = { _id: "user-3" } as User;
+    const nonOwner = userFixture({ _id: "user-3" });
     expect(
       await userCanAccessPage(
         nonOwner,

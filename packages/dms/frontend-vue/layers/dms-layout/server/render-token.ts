@@ -1,8 +1,5 @@
+import { isString } from "../../dms-core/app/utils/type-check";
 import { createHmac, timingSafeEqual } from "node:crypto";
-
-// The service token that guards the HTML render route, minted by the DMS
-// backend (`service-jwt.ts`) for its own render requests: its signature, its
-// claims and its single use.
 
 const RENDER_TOKEN_LIFETIME_SECONDS = 5 * 60;
 const RENDER_REPLAY_LIMIT = 10_000;
@@ -32,6 +29,10 @@ function signatureValid(parts: string[], secret: string): boolean {
   return timingSafeEqual(Buffer.from(expected), Buffer.from(parts[2]));
 }
 
+function isSafeInteger(value: RenderTokenClaims["iat"]): value is number {
+  return Number.isSafeInteger(value);
+}
+
 /**
  * The claims this service accepts. `exp - iat` is bounded so a token minted
  * with a far-future expiry cannot outlive the intended window.
@@ -44,14 +45,13 @@ function claimsValid(
     payload.namespace === "html-render-service" &&
     payload.purpose === "html-render" &&
     payload.aud === "dms-frontend" &&
-    typeof payload.jti === "string" &&
+    isString(payload.jti) &&
     payload.jti.length >= 16 &&
-    Number.isSafeInteger(payload.iat) &&
-    Number.isSafeInteger(payload.exp) &&
-    (payload.exp as number) > now &&
-    (payload.exp as number) - (payload.iat as number) <=
-      RENDER_TOKEN_LIFETIME_SECONDS &&
-    (payload.iat as number) <= now
+    isSafeInteger(payload.iat) &&
+    isSafeInteger(payload.exp) &&
+    payload.exp > now &&
+    payload.exp - payload.iat <= RENDER_TOKEN_LIFETIME_SECONDS &&
+    payload.iat <= now
   );
 }
 
@@ -63,8 +63,11 @@ function claimsValid(
 function rememberToken(jti: string, exp: number, now: number) {
   for (const [spent, expiresAt] of usedRenderTokens)
     if (expiresAt <= now) usedRenderTokens.delete(spent);
-  while (usedRenderTokens.size >= RENDER_REPLAY_LIMIT)
-    usedRenderTokens.delete(usedRenderTokens.keys().next().value as string);
+  while (usedRenderTokens.size >= RENDER_REPLAY_LIMIT) {
+    const [oldest] = usedRenderTokens.keys();
+    if (oldest === undefined) break;
+    usedRenderTokens.delete(oldest);
+  }
   usedRenderTokens.set(jti, exp);
 }
 
@@ -81,9 +84,9 @@ export function validRenderToken(
   if (parts.length !== 3) return false;
   if (!signatureValid(parts, secret)) return false;
   try {
-    const payload = JSON.parse(
+    const payload: Parameters<typeof claimsValid>[0] = JSON.parse(
       Buffer.from(parts[1], "base64url").toString("utf8"),
-    ) as RenderTokenClaims;
+    );
     const now = Math.floor(Date.now() / 1000);
     if (!claimsValid(payload, now)) return false;
     if (usedRenderTokens.has(payload.jti)) return false;

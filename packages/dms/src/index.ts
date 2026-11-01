@@ -1,5 +1,6 @@
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { Events } from "@antelopejs/interface-core/modules";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { RegisterSchema } from "@antelopejs/interface-database-decorators";
 import {
@@ -7,10 +8,10 @@ import {
   TENANT_SCHEMA_NAME,
 } from "@antelopejs/interface-dms/constants";
 import "./db";
-// Evaluated here on purpose, ahead of the named import below: the realtime
-// module has to be initialised before anything that reaches into it.
-// oxlint-disable-next-line import/no-duplicates
+
+// oxlint-disable-next-line import/no-duplicates -- Initialize realtime before page and route side effects; the later named import supplies lifecycle functions without moving this initialization order.
 import "./realtime";
+import "./implementations/dms-auth/email-templates";
 import "./pages";
 import "./routes";
 import {
@@ -36,24 +37,21 @@ import {
   CLEANUP_USER_INVITES_CRON_NAME,
   registerDmsCrons,
   runCleanupUserInvites,
-} from "./crons";
-import {
   runSweepStaleExports,
   SWEEP_STALE_EXPORTS_CRON_NAME,
-} from "./crons/sweep-stale-exports";
+} from "./crons";
+import { startModuleUpdateWatcher, stopModuleUpdateWatcher } from "./dev";
 import {
-  startModuleUpdateWatcher,
-  stopModuleUpdateWatcher,
-} from "./dev/module-update-notifications";
-import { registerInviteExtensionCleanup } from "./hooks/invite-extensions";
-import { registerTenantDeletedCleanup } from "./hooks/tenant-deleted";
-import { registerWorkspaceNotifications } from "./hooks/workspace-notifications";
+  registerInviteExtensionCleanup,
+  registerTenantDeletedCleanup,
+  registerWorkspaceNotifications,
+} from "./hooks";
 import {
   cancelScheduledBroadcast,
   closeDevReloadStreams,
-} from "./implementations/dms/dev-reload";
-import { publishDevBootstrapCredential } from "./implementations/dms/dev-handshake";
-import { initFrontendBootstrapSecret } from "./implementations/dms/frontend-bootstrap";
+  initFrontendBootstrapSecret,
+} from "./store/frontend";
+import { publishDevBootstrapCredential } from "./implementations/dms/services";
 import {
   cancelMissingCategoryCheck,
   cancelPendingMenuNotifications,
@@ -67,15 +65,15 @@ import {
   cancelPendingExtensionReport,
   startPendingExtensionReport,
   stopPendingExtensionReport,
-} from "./page-extensions/pending-report";
+} from "./page-extensions";
 import { registerDocsPreviewPage } from "./pages/public/preview";
-import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
+import { deriveOAuthRelaySecret } from "./routes/oauth";
 import { frontendModule } from "./frontend-module";
 import {
   assertProductionSecrets,
   resolveClientBaseUrl,
-} from "./startup-config";
-import { allowClientOrigin } from "./client-origin-cors";
+} from "./config/startup-config";
+import { allowClientOrigin } from "./config/client-origin-cors";
 import {
   ensureDefaultTenantExists,
   provisionDefaultTenant,
@@ -86,13 +84,13 @@ export * from "./config";
 
 let cronTasks: ScheduledTask[] = [];
 let staleExportsSweep: Promise<void> = Promise.resolve();
+let defaultTenantProvisioning: Promise<void> | undefined;
 
 let globalRealtimeConfig: RealtimeConfig | undefined;
 
 export async function construct(config: Config): Promise<void> {
   const { dev } = await GetRuntimeInfo();
-  // Checked here rather than when the project configuration is evaluated: a
-  // production build evaluates it without the deployment's secrets.
+
   applyConfig({
     ...config,
     clientBaseUrl: resolveClientBaseUrl(config.clientBaseUrl, dev),
@@ -227,7 +225,6 @@ async function implementInterfaces(): Promise<void> {
  * private options filled with the backend's secrets.
  */
 async function registerDmsFrontend(dev: boolean): Promise<void> {
-  // The merged configuration: its clientBaseUrl is the one construct() checked.
   const registration = frontendModule(getConfig(), { dev });
   if (!registration) return;
   await AddFrontendModule({
@@ -259,34 +256,39 @@ export function destroy(): void {
   closeDevReloadStreams();
 }
 
+function onModulesStarted(): void {
+  if (defaultTenantProvisioning) return;
+  defaultTenantProvisioning = provisionDefaultTenant().finally(() => {
+    defaultTenantProvisioning = undefined;
+  });
+}
+
 export async function start(): Promise<void> {
   await allowClientOrigin();
   await configureRealtime(globalRealtimeConfig);
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
-  const defaultTenantCreated = await ensureDefaultTenantExists();
+  await ensureDefaultTenantExists();
   await registerExistingTenantInstances();
   await SettleHook(Hook.DATABASE_INITIALIZED);
-  // Only once every DATABASE_INITIALIZED handler has finished: the modules'
-  // tables and settings are ready when they write the tenant's default data.
-  if (defaultTenantCreated) await provisionDefaultTenant();
-  // `start()` means ready to serve: the sweep scans every tenant and serves
-  // no request, so it runs behind the open gate. `stop()` waits for it.
-  staleExportsSweep = runSweepStaleExports().catch((error: unknown) => {
+
+  staleExportsSweep = runSweepStaleExports().catch((error) => {
     Logging.Error(`Cron '${SWEEP_STALE_EXPORTS_CRON_NAME}' failed:`, error);
   });
   cronTasks = registerDmsCrons();
-  // Invitations that expired while no process ran are settled now, not at
-  // the next 3 a.m. run: their inviters hear about it the same day.
-  void runCleanupUserInvites().catch((error: unknown) => {
+
+  void runCleanupUserInvites().catch((error) => {
     Logging.Error(`Cron '${CLEANUP_USER_INVITES_CRON_NAME}' failed:`, error);
   });
   await registerAutomationNodes();
   await startModuleUpdateWatcher();
   startPendingExtensionReport();
+  Events.ModulesStarted.register(onModulesStarted);
 }
 
 export async function stop(): Promise<void> {
+  Events.ModulesStarted.unregister(onModulesStarted);
+  await defaultTenantProvisioning;
   await staleExportsSweep;
   UnsettleHook(Hook.DATABASE_INITIALIZED);
   stopPendingExtensionReport();

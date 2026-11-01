@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { twMerge } from "tailwind-merge";
 import appConfig from "../layers/dms-layout/app/app.config";
 
-// Nuxt UI 4's own button base, which the app config is merged over.
 const NUXT_UI_BUTTON_BASE =
   "rounded-md font-medium inline-flex items-center disabled:cursor-not-allowed aria-disabled:cursor-not-allowed disabled:opacity-75 aria-disabled:opacity-75";
 

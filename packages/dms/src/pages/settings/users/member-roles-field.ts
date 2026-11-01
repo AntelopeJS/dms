@@ -1,8 +1,3 @@
-// The roles field of the members table's edit form ("Change roles"), drawn as
-// the role picker of the invite form. The data controller declares a plain
-// roles relation; the page swaps in its picker through the form's slot, so
-// the interface names no route or component of the DMS.
-
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import type {
   FormFieldOrGroupSerialized,
@@ -57,6 +52,10 @@ const ROLE_PICKER = editRolePicker({
   ownerField: "isTenantOwner",
 }).serializeSync();
 
+function withRolePicker(item: FormFieldSerialized): FormFieldSerialized;
+function withRolePicker(
+  item: FormFieldOrGroupSerialized,
+): FormFieldOrGroupSerialized;
 function withRolePicker(
   item: FormFieldOrGroupSerialized,
 ): FormFieldOrGroupSerialized {
@@ -64,15 +63,16 @@ function withRolePicker(
     return {
       ...item,
       fields: item.fields.map((field) => withRolePicker(field)),
-    } as FormFieldOrGroupSerialized;
+    };
   }
   return item.id === ROLES_FIELD_ID
-    ? ({ ...item, component: ROLE_PICKER } as FormFieldSerialized)
+    ? { ...item, component: ROLE_PICKER }
     : item;
 }
 
 /** The edit form's options with the role picker on its roles field. */
 export function withMemberRolePicker(options: SlotOptions): SlotOptions {
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- SlotOptions erases fields to unknown; inference and the slot owner's type cannot recover the serialized form shape, and validating arbitrary slot input would change this exported transform's acceptance.
   const fields = options.fields as FormFieldOrGroupSerialized[] | undefined;
   if (!fields) return options;
   return { ...options, fields: fields.map(withRolePicker) };

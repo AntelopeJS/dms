@@ -1,48 +1,31 @@
+import { isBoolean } from "./type-check";
+import type { DataTypeFormatter } from "../composables/data-types/useDataType";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { RowActionRule, RowActionConfig } from "../types/row-action";
-import {
-  FIELD_KEY,
-  FIELD_OPERATORS,
-  LOGICAL_OPERATOR_KEYS,
-} from "../types/row-action-operators";
+import { FIELD_KEY, FIELD_OPERATORS } from "../types/row-action-operators";
 
 type RuleEvaluator = (
   rule: RowActionRule,
-  row: Record<string, unknown>,
+  row: NonNullable<Parameters<DataTypeFormatter>[3]>,
 ) => boolean;
 
-const createLogicalEvaluators = (evaluate: RuleEvaluator) => ({
-  and: (val: unknown, row: Record<string, unknown>) =>
-    (val as RowActionRule[]).every((r) => evaluate(r, row)),
-  or: (val: unknown, row: Record<string, unknown>) =>
-    (val as RowActionRule[]).some((r) => evaluate(r, row)),
-  not: (val: unknown, row: Record<string, unknown>) =>
-    !evaluate(val as RowActionRule, row),
-});
-
-let cachedLogicalEvaluators: ReturnType<typeof createLogicalEvaluators>;
-const getLogicalEvaluators = () => {
-  if (!cachedLogicalEvaluators) {
-    cachedLogicalEvaluators = createLogicalEvaluators(evaluateRowActionRule);
-  }
-  return cachedLogicalEvaluators;
-};
+type RuleDictionary = Record<
+  ReturnType<typeof Object.entries>[number][0],
+  Parameters<typeof FIELD_OPERATORS.equals.compare>[0]
+>;
 
 export const evaluateRowActionRule: RuleEvaluator = (rule, row) => {
-  const ruleObj = rule as Record<string, unknown>;
-  const logicalEvaluators = getLogicalEvaluators();
+  if ("and" in rule)
+    return rule.and.every((r) => evaluateRowActionRule(r, row));
+  if ("or" in rule) return rule.or.some((r) => evaluateRowActionRule(r, row));
+  if ("not" in rule) return !evaluateRowActionRule(rule.not, row);
 
-  for (const operator of LOGICAL_OPERATOR_KEYS) {
-    if (operator in ruleObj) {
-      return logicalEvaluators[operator](ruleObj[operator], row);
-    }
-  }
-
-  if (FIELD_KEY in ruleObj) {
-    const fieldValue = get(row, ruleObj[FIELD_KEY] as string);
+  if (FIELD_KEY in rule) {
+    const ruleObj: RuleDictionary = rule;
+    const fieldValue = get(row, rule.field);
     for (const [operator, def] of Object.entries(FIELD_OPERATORS)) {
       if (operator in ruleObj) {
-        const compare = def.compare as <T>(a: T, b: T | T[]) => boolean;
+        const compare = def.compare;
         return compare(fieldValue, ruleObj[operator]);
       }
     }
@@ -54,7 +37,7 @@ export const evaluateRowActionRule: RuleEvaluator = (rule, row) => {
 export const normalizeActionConfig = (
   value: boolean | RowActionConfig | undefined,
 ): RowActionConfig => {
-  if (typeof value === "boolean") {
+  if (isBoolean(value)) {
     return { isEnabled: value };
   }
   if (!value) {
@@ -73,7 +56,7 @@ export const isActionVisible = (
 
 export const createActionValidator = (
   actionConfig: RowActionConfig,
-  allRows: Record<string, unknown>[],
+  allRows: Parameters<RuleEvaluator>[1][],
   idKey: string,
 ) => {
   const config = normalizeActionConfig(actionConfig);

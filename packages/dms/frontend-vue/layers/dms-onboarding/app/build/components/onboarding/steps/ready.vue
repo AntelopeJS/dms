@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { TILE_ROW_INTERACTIVE_CLASS } from "#dms-ui/app/build/utils/tileRow";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from "vue";
+import { TILE_ROW_INTERACTIVE_CLASS } from "#dms-ui/app/entries/utils/tileRow";
 import type { KeyValueItem } from "#dms-ui/app/components/key-value-list/KeyValueList.vue";
-import StageCard from "../../../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import type {
   OnboardingAdministrator,
   OnboardingPlatform,
@@ -91,15 +92,15 @@ const recapItems = computed<KeyValueItem[]>(() => [
   },
 ]);
 
-function actionAttributes(action: NextAction): Record<string, unknown> {
+function actionAttributes(
+  action: NextAction,
+): AnchorHTMLAttributes | ButtonHTMLAttributes {
   if (action.isExternal) {
     return { href: action.to, ...EXTERNAL_LINK_ATTRIBUTES };
   }
   return { type: "button", disabled: isOpening.value };
 }
 
-// The session is refreshed on the way out, not before: the owner stays on
-// this page, and every exit first loads their permissions and language.
 async function open(destination?: string) {
   if (isOpening.value) return;
   isOpening.value = true;
@@ -110,7 +111,6 @@ async function open(destination?: string) {
       ),
     );
   } catch {
-    // A full reload also clears fatal layout errors from the failed refresh.
     window.location.replace(LOGIN_PATH);
   }
 }

@@ -1,7 +1,3 @@
-// Checks of the codes a second factor produces, shared by the sign-in step and
-// the Security page so both accept a code under the same rules: an emailed
-// code is stored hashed and expires, an authenticator code works once.
-
 import { assert } from "@antelopejs/interface-api-util";
 import { send2FAEmail } from "@antelopejs/interface-dms/auth";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -9,7 +5,7 @@ import { generateCode as generateTotpCode } from "2fa";
 import {
   TWO_FACTOR_EMAIL_CODE_LIFETIME_MS,
   TWO_FACTOR_RATE_LIMIT_MS,
-} from "../routes/auth/constants";
+} from "./auth-constants";
 import { generateCode, hashCode, hashesMatch } from "./one-time-code";
 
 export type TwoFactorMethod = "totp" | "email";
@@ -95,7 +91,6 @@ export async function acceptTotpCode(
   code: string,
   now = Date.now(),
 ): Promise<boolean> {
-  // Same window as `verifyTOTP`: the current step only, no drift.
   const step = totpStepAt(now);
   if (generateTotpCode(secret, step) !== code) return false;
   const claimed = await userModel.table

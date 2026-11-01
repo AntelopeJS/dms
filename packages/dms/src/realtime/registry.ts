@@ -46,9 +46,6 @@ export function unregisterPageTopic(pageId: string, topic: string): void {
   if (topics.size === 0) pageTopics.delete(pageId);
 }
 
-// A page that goes away takes its topics with it: they are the allowlist the
-// SSE routes check subscriptions against, so a stale one keeps offering a
-// surface that no longer serves.
 export function clearPageTopics(pageId: string): void {
   pageTopics.delete(pageId);
 }

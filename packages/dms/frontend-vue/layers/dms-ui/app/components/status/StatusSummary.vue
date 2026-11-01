@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-// DMS "health hero" (design .status-hero): a status ring + value next to a
-// divided row of key metrics, optionally over a per-day history strip.
-// Generic over any service — API health, DB connection, job runner… — and
-// reused across module overviews. Wraps DmsCard so it drops into a page.
 type Status = "ok" | "warn" | "down" | "info";
 
 interface Metric {
@@ -104,8 +100,6 @@ const DEFAULT_ICON: Record<Status, string> = {
 const tone = computed(() => STATUS_TONES[props.status]);
 const resolvedIcon = computed(() => props.icon || DEFAULT_ICON[props.status]);
 
-// A faint status wash from the left edge (same recipe as the banner), so the
-// state reads at a glance without a coloured border.
 const cardStyle = computed(() => ({
   "--dms-status-tint": tone.value.tint,
   "--dms-status-line": tone.value.line,

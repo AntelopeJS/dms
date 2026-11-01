@@ -7,14 +7,13 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { TENANT_SCHEMA_NAME } from "../../constants";
-import type { InviteExtensionPayloads } from "../../invite-extensions/types";
+import type { InviteExtensionPayloads } from "../../invite-extension-payloads";
 import { Role } from "./roles.table";
 
 export const USER_INVITES_TABLE_NAME = "user_invites";
 
 @RegisterTable(USER_INVITES_TABLE_NAME, TENANT_SCHEMA_NAME)
 export class UserInvite extends Table {
-  /* 📅 Meta */
   @Field("string")
   declare _id: string;
 

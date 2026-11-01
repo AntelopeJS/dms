@@ -1,15 +1,12 @@
-import type { RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import { createGuardedRoute } from "@antelopejs/interface-dms/base/table-view/internal/guards";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewGuards } from "@antelopejs/interface-dms/base/types/guards";
 import { expect } from "chai";
+import { untouchedRequestContext } from "../../../helpers/request-context";
 
-// A mutating guard may hand back work to run once the write succeeded: after
-// the write, never when it failed, and without failing the request itself.
-
-const ctx = {} as RequestContext;
+const ctx = untouchedRequestContext();
 const DELETE_PARAMS = { id: ["row-1"] };
 
 class GuardedController {}
@@ -24,12 +21,12 @@ function route(write: () => Promise<string>): DataControllerCallback {
       func: write,
       args: [],
       method: "delete",
-    } as unknown as DataControllerCallback,
+    },
     "delete",
   );
 }
 
-async function call(guarded: DataControllerCallback): Promise<unknown> {
+async function call(guarded: DataControllerCallback) {
   return guarded.func.call(new GuardedController(), ctx, DELETE_PARAMS);
 }
 
@@ -67,7 +64,7 @@ describe("[unit] interfaces/dms-base/table-view — after-write guards", () => {
       }),
     ).then(
       () => undefined,
-      (error: unknown) => error,
+      (error) => error,
     );
     expect(failure).to.be.instanceOf(Error);
     expect(events).to.deep.equal([]);

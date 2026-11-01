@@ -37,8 +37,6 @@ function nextTurn(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
-// The DMS started before the suite runs, so the hook is already settled here:
-// a handler registered now is a module loaded after the database came up.
 describe("[unit] interfaces/dms/hooks — DATABASE_INITIALIZED", () => {
   afterEach(async () => {
     for (const handler of registered) {
@@ -52,7 +50,6 @@ describe("[unit] interfaces/dms/hooks — DATABASE_INITIALIZED", () => {
     const calls: number[] = [];
     register(countingHandler(calls));
 
-    // In the background: the registration itself does not wait for it.
     expect(calls).to.have.length(0);
     await nextTurn();
     expect(calls).to.have.length(1);

@@ -1,36 +1,16 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * Apex merges an update into the options it holds, so a chart switching from
  * calendar buckets (a category axis with its own formatters) to a datetime
  * axis kept the bucket formatter and wrote raw timestamps, and the reverse
  * wrote indexes. The host draws such a chart anew instead of updating it.
  */
-import { createApp, defineComponent, h, nextTick, ref } from "vue";
+import { createApp, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ApexChartHost from "../layers/dms-ui/app/components/chart/ApexChartHost.vue";
+import { installApexDom } from "./helpers/chart-extra-runtime";
 
-const mountedWith: Record<string, unknown>[] = [];
-const updateOptions = vi.fn(async () => undefined);
-
-vi.mock("apexcharts", () => ({ default: {} }));
-vi.mock("../layers/dms-ui/app/composables/chart/apexLocales", () => ({
-  ensureApexLocale: async () => undefined,
-}));
-vi.mock("vue3-apexcharts", () => ({
-  default: defineComponent({
-    props: { options: { type: Object, default: () => ({}) } },
-    setup(props, { expose }) {
-      mountedWith.push(props.options);
-      expose({
-        chart: { windowResizeHandler: () => undefined },
-        updateOptions,
-      });
-      return () => h("div", { class: "apex-stub" });
-    },
-  }),
-}));
-
-const formatter = (value: string) => value;
+const formatter = (value: string) => `Bucket ${value}`;
 const BUCKETED = {
   xaxis: { type: "category", labels: { formatter } },
   tooltip: { x: { formatter } },
@@ -41,66 +21,86 @@ const DATETIME = {
 };
 
 let app: ReturnType<typeof createApp> | undefined;
-const options = ref<Record<string, unknown>>({});
+type HostOptions = InstanceType<typeof ApexChartHost>["$props"]["options"];
+const options = ref<HostOptions>({});
 
-async function mountHost(initial: Record<string, unknown>): Promise<void> {
-  options.value = initial;
+async function mountHost(initial: HostOptions): Promise<HTMLElement> {
+  options.value = { chart: { animations: { enabled: false } }, ...initial };
   const root = document.createElement("div");
+  document.body.append(root);
   app = createApp(() =>
     h(ApexChartHost, {
       apexType: "bar",
       height: 300,
       options: options.value,
-      series: [],
+      series: [
+        {
+          name: "Revenue",
+          data: [
+            { x: 1728000000000, y: 2 },
+            { x: 1728086400000, y: 4 },
+          ],
+        },
+      ],
     }),
   );
   app.mount(root);
   await vi.waitFor(() => {
-    expect(root.querySelector(".apex-stub")).not.toBeNull();
+    expect(root.querySelector("svg.apexcharts-svg")).not.toBeNull();
   });
+  return root;
 }
 
 beforeEach(() => {
+  installApexDom();
   vi.stubGlobal("useI18n", () => ({ locale: ref("en") }));
 });
 
 afterEach(() => {
   app?.unmount();
-  mountedWith.length = 0;
-  updateOptions.mockClear();
+  document.body.replaceChildren();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
 it("draws a bucketed chart anew when its axis turns datetime", async () => {
-  await mountHost(BUCKETED);
+  const root = await mountHost(BUCKETED);
+  const before = root.querySelector(".vue-apexcharts");
+  expect(root.textContent).toContain("Bucket");
 
   options.value = DATETIME;
   await nextTick();
   await nextTick();
 
-  expect(updateOptions).not.toHaveBeenCalled();
-  expect(mountedWith).toHaveLength(2);
-  const xaxis = mountedWith[1]!.xaxis as Record<string, unknown>;
-  expect(xaxis.type).toBe("datetime");
-  expect(xaxis.labels).not.toHaveProperty("formatter");
+  await vi.waitFor(() =>
+    expect(root.querySelector(".vue-apexcharts")).not.toBe(before),
+  );
+  expect(root.querySelector("svg.apexcharts-svg")).not.toBeNull();
+  expect(root.querySelector(".apexcharts-xaxis")?.textContent).not.toContain(
+    "Bucket",
+  );
 });
 
 it("draws a datetime chart anew when its axis turns to buckets", async () => {
-  await mountHost(DATETIME);
+  const root = await mountHost(DATETIME);
+  const before = root.querySelector(".vue-apexcharts");
 
   options.value = BUCKETED;
   await nextTick();
   await nextTick();
 
-  expect(updateOptions).not.toHaveBeenCalled();
-  expect(mountedWith).toHaveLength(2);
-  const xaxis = mountedWith[1]!.xaxis as Record<string, unknown>;
-  expect(xaxis.type).toBe("category");
-  expect(xaxis.labels).not.toHaveProperty("format");
+  await vi.waitFor(() =>
+    expect(root.querySelector(".vue-apexcharts")).not.toBe(before),
+  );
+  expect(root.querySelector("svg.apexcharts-svg")).not.toBeNull();
+  expect(root.querySelector(".apexcharts-xaxis")?.textContent).toContain(
+    "Bucket",
+  );
 });
 
 it("updates a chart in place while its axis keeps its type", async () => {
-  await mountHost(DATETIME);
+  const root = await mountHost(DATETIME);
+  const before = root.querySelector(".vue-apexcharts");
 
   options.value = {
     ...DATETIME,
@@ -108,6 +108,10 @@ it("updates a chart in place while its axis keeps its type", async () => {
   };
   await nextTick();
 
-  expect(updateOptions).toHaveBeenCalledOnce();
-  expect(mountedWith).toHaveLength(1);
+  expect(root.querySelector(".vue-apexcharts")).toBe(before);
+  await vi.waitFor(() =>
+    expect(root.querySelector(".apexcharts-xaxis")?.textContent).toContain(
+      "Oct",
+    ),
+  );
 });
