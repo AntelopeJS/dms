@@ -8,11 +8,10 @@
     "anti-slop/no-runtime-typeof": 28,
     "typescript/no-base-to-string": 1,
     "typescript/no-unnecessary-type-parameters": 1,
-    "typescript/no-unsafe-argument": 60,
-    "typescript/no-unsafe-assignment": 152,
+    "typescript/no-unsafe-argument": 63,
+    "typescript/no-unsafe-assignment": 161,
     "typescript/no-unsafe-return": 115,
-    "typescript/unbound-method": 9,
-    "typescript/use-unknown-in-catch-callback-variable": 1
+    "typescript/unbound-method": 9
   },
   "oversizeFiles": {}
 }

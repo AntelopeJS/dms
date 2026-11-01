@@ -1,11 +1,12 @@
 diff --git a/packages/dms/package.json b/packages/dms/package.json
-index 1b46fb3c..9bf6ac91 100644
+index d70d1a71..0118f555 100644
 --- a/packages/dms/package.json
 +++ b/packages/dms/package.json
-@@ -1,5 +1,5 @@
- {
--  "name": "@antelopejs/dms",
-+  "name": "@antelopejs/dms-runtime",
-   "version": "0.11.1",
-   "description": "The AntelopeJS dashboard management system: admin dashboards declared in TypeScript, with auth and tenancy, data management, file uploads, notifications and realtime.",
-   "keywords": [
+@@ -40,7 +40,6 @@
+     "!frontend-vue/.vscode",
+     "!frontend-vue/pnpm-lock.yaml",
+     "!frontend-vue/pnpm-workspace.yaml",
+-    "skills",
+     "data",
+     "package.json",
+     "README.md",
