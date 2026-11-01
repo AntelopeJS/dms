@@ -19,9 +19,9 @@ const builtinExemptions = {
     'import Module, { findPackageJSON } from "node:module";',
 };
 const requireResolveExemptions = {
-  "src/store/compatibility.ts:32":
+  "src/store/compatibility.ts:39":
     "  let folder = path.dirname(require.resolve(INTERFACE_ENTRY));",
-  "dist/store/compatibility.js:26":
+  "dist/store/compatibility.js:33":
     "    let folder = node_path_1.default.dirname(require.resolve(INTERFACE_ENTRY));",
 };
 
