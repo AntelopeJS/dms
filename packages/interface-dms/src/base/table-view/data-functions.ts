@@ -4,6 +4,7 @@ import type {
   DataControllerCallback,
   DataControllerCallbackWithOptions,
 } from "@antelopejs/interface-data-api";
+import type { RowFields } from "@antelopejs/interface-data-api/metadata";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "../../auth/db";
 import type { RowActionRule } from "../types/row-action";
@@ -14,22 +15,29 @@ import type {
   RowBulkOperationParams,
 } from "./internal/data-functions";
 
+/**
+ * The page of rows a table view's list answers: the listable fields of each
+ * row, read through a guard, and where the page sits among every row the
+ * filters and search match.
+ */
+export interface TableViewListPage {
+  results: RowFields[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
 /** @internal */
-export const listWithSearch = InterfaceFunction<
-  (
-    thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
-    ctx: RequestContext,
-    listParams: Parameters.ListParameters,
-    user?: User,
-    permissions?: Set<string>,
-  ) => Promise<{
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The runtime proxy returns module-defined rows; its published result cannot name a single module's row schema.
-    results: Record<string, unknown>[];
-    total: number;
-    offset: number;
-    limit: number;
-  }>
->();
+export const listWithSearch =
+  InterfaceFunction<
+    (
+      thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+      ctx: RequestContext,
+      listParams: Parameters.ListParameters,
+      user?: User,
+      permissions?: Set<string>,
+    ) => Promise<TableViewListPage>
+  >();
 
 /** @internal */
 export const countWithSearch =

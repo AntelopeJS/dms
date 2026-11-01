@@ -36,6 +36,7 @@ export {
   listWithSearch,
   restoreRows,
   startExport,
+  type TableViewListPage,
   validateRowsAgainstRule,
 } from "./table-view/data-functions";
 export * from "./table-view/column-display";
