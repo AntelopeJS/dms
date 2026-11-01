@@ -11,7 +11,7 @@ overrides:
   '@antelopejs/interface-api': file:.campaign/tgz/antelopejs-interface-api-fc8048d.tgz
   '@antelopejs/interface-api-util': file:.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz
   '@antelopejs/interface-dms-automation': file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz
-  '@antelopejs/tooling-configs': file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz
+  '@antelopejs/tooling-configs': file:.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz
   '@antelopejs/api': file:.campaign/tgz/antelopejs-api-6afe3e2.tgz
   '@antelopejs/api>@antelopejs/interface-core': 0.2.6
 
@@ -23,8 +23,8 @@ importers:
         specifier: '>=1.17.0 <2'
         version: 1.17.0
       '@antelopejs/tooling-configs':
-        specifier: file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz
-        version: file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)
+        specifier: file:.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz
+        version: file:.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)
       dependency-cruiser:
         specifier: ^18.7.0
         version: 18.7.0
@@ -123,8 +123,8 @@ importers:
         specifier: '>=1.17.0 <2'
         version: 1.17.0
       '@antelopejs/tooling-configs':
-        specifier: file:../../.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz
-        version: file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)
+        specifier: file:../../.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz
+        version: file:.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)
       '@types/archiver':
         specifier: ^6.0.4
         version: 6.0.4
@@ -626,8 +626,8 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/tooling-configs@file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz':
-    resolution: {integrity: sha512-Ok+CzYr3MB0p/ZYAYkCe9HECVmNGwjKCd2S+YAOegfZeEHL34s1UxTEFPcIt7hHkSvyRq1h5XmAEfUH0uF++xw==, tarball: file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz}
+  '@antelopejs/tooling-configs@file:.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz':
+    resolution: {integrity: sha512-QfhlLga353+OolT4PpYHawrSwecx+FmHg0AR3bxEF/R4t2ea6l87n2IAiNcjnLDQQlv2SfWaBhaszDkH8AnmWQ==, tarball: file:.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz}
     version: 0.2.17
     engines: {node: '>=22.18.0'}
     hasBin: true
@@ -6626,7 +6626,7 @@ snapshots:
       - supports-color
     optional: true
 
-  '@antelopejs/tooling-configs@file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)':
+  '@antelopejs/tooling-configs@file:.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)':
     dependencies:
       '@oxlint/plugins': 1.81.0
       dts-bundle-generator: 9.5.1
