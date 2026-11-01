@@ -15,6 +15,7 @@ import {
   getTwoFactorStatus,
   markBackupCodesSaved,
 } from "../../../../pages/account";
+import { sessionFixture } from "../../../helpers/table-fixtures";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
@@ -60,8 +61,7 @@ function buildUser(password: string | null): User {
 }
 
 function session(id: string, lastActiveAt: number): Session {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The session fixture omits the required userAgent field, which these credential operations do not read.
-  return {
+  return sessionFixture({
     _id: id,
     userId: USER_ID,
     browser: "Chrome",
@@ -71,7 +71,7 @@ function session(id: string, lastActiveAt: number): Session {
     location: "",
     createdAt: new Date(0),
     lastActiveAt: new Date(lastActiveAt),
-  } as Session;
+  });
 }
 
 function buildHarness(password: string | null = "hashed"): Harness {

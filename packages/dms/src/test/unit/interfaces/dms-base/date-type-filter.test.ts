@@ -1,9 +1,9 @@
-import type { RequestContext } from "@antelopejs/interface-api";
 import type { ValueProxy } from "@antelopejs/interface-database";
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import type { DataCompareMode } from "@antelopejs/interface-dms/base/data-types/core";
 import { DefaultDataCompareTypes } from "@antelopejs/interface-dms/base/data-types/compare-types";
+import { untouchedRequestContext } from "../../../helpers/request-context";
 
 class Expression {
   constructor(
@@ -23,7 +23,7 @@ const expression = (op: string, operand: Expression["operand"]) =>
 const whenSet = (comparison: Expression) =>
   expression("and", [expression("ne", null), comparison]);
 
-function recordingProxy(): ValueProxy<unknown> {
+function recordingProxy<T = unknown>(): ValueProxy<T> {
   const compare = (op: string) => (operand: Expression["operand"]) =>
     expression(op, operand);
   const proxy = {
@@ -35,13 +35,18 @@ function recordingProxy(): ValueProxy<unknown> {
     default: () => proxy,
   };
   // SAFETY: These order filters only call gt, ge, lt, le, ne, default, and the returned expression's and; they never use other ValueProxy operations or execute the recorded expression.
-  return proxy as unknown as ValueProxy<unknown>;
+  return proxy as unknown as ValueProxy<T>;
 }
 
-// SAFETY: DateType and these numeric compare modes do not access context members; they only construct comparisons from the provided value proxy.
-const context = {} as RequestContext;
-// SAFETY: DateType and these numeric compare modes do not access row members; they only construct comparisons from the provided value proxy.
-const row = {} as Parameters<DataCompareMode["filter"]>[4];
+const context = untouchedRequestContext();
+const row: Parameters<DataCompareMode["filter"]>[4] = new Proxy(
+  recordingProxy(),
+  {
+    get: () => {
+      throw new Error("The filter read the row");
+    },
+  },
+);
 
 describe("[unit] interfaces/dms-base — date filters", () => {
   const dateType = new DefaultDataTypes.DateType();

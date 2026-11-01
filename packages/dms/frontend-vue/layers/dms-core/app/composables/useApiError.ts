@@ -73,6 +73,7 @@ export function useApiError(
   error: Parameters<typeof resolveApiErrorTitle>[0],
   options?: Options,
 ) {
+  if (useReadOnlyRefusal()(error)) return;
   const toast = useToast();
   const { processApiMessage } = getAppTranslation();
 

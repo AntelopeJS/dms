@@ -63,9 +63,11 @@ function claimsValid(
 function rememberToken(jti: string, exp: number, now: number) {
   for (const [spent, expiresAt] of usedRenderTokens)
     if (expiresAt <= now) usedRenderTokens.delete(spent);
-  while (usedRenderTokens.size >= RENDER_REPLAY_LIMIT)
-    // SAFETY: The synchronous loop requires at least 10,000 entries in this Map<string, number>, so next() has a string key.
-    usedRenderTokens.delete(usedRenderTokens.keys().next().value as string);
+  while (usedRenderTokens.size >= RENDER_REPLAY_LIMIT) {
+    const [oldest] = usedRenderTokens.keys();
+    if (oldest === undefined) break;
+    usedRenderTokens.delete(oldest);
+  }
   usedRenderTokens.set(jti, exp);
 }
 

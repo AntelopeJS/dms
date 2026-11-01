@@ -1,6 +1,5 @@
 import { EventEmitter } from "node:events";
 import type { RequestContext } from "@antelopejs/interface-api";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
 import {
   InMemoryBroker,
@@ -9,8 +8,12 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { RealtimeController } from "../../../routes";
+import { userFixture } from "../../helpers/user-fixture";
 
-const USER = { _id: "stop-closes-streams-user", email: "u@example.com" };
+const USER = userFixture({
+  _id: "stop-closes-streams-user",
+  email: "u@example.com",
+});
 
 interface FakeStream {
   ctx: RequestContext;
@@ -37,7 +40,7 @@ const createFakeStream = (): FakeStream => {
     },
   };
   const rawRequest = Object.assign(new EventEmitter(), { headers: {} });
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE context double provides lifecycle events and a writer, not the full HTTP context.
+  // SAFETY: The controller methods under test pass ctx only to openSseStream, which calls response.addHeader, response.getWriteStream and rawRequest.on, and to getRequestTenantId, which reads rawRequest and its authorization header; the double supplies each of those, and its writer implements the write and end that openSseStream calls.
   const ctx = {
     rawRequest,
     response: { addHeader: () => {}, getWriteStream: () => writer },
@@ -81,8 +84,7 @@ const openConnection = async (stream: FakeStream): Promise<void> => {
   await RealtimeController.prototype.connectionStream.call(
     undefined,
     stream.ctx,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    USER as User,
+    USER,
   );
 };
 
@@ -92,8 +94,7 @@ const openSession = async (stream: FakeStream): Promise<string> => {
     undefined,
     createFakeStream().ctx,
     readConnectionId(stream),
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The realtime fixture supplies identity fields only, not a complete stored user instance.
-    USER as User,
+    USER,
   );
   return greeting.sessionId!;
 };

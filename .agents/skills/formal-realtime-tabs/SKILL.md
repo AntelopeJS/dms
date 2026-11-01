@@ -42,7 +42,7 @@ The lines that name a changed rule match `^(?:BROKEN|CHANGED|HOLDS) +(\w+)`. A r
 
 ## When to run it
 
-Run `--full` when a change touches a file in the coverage record below, or this folder. A failure makes the Verdict FAIL. The CI configurations catch every scratch break in the last section, so they are the ones to run on every push.
+Run `--full` when a change touches a file in the coverage record below, or this folder. A changed rule (exit 1) makes the Verdict FAIL. The recorded findings fail it only when the diff changes what the covered code does, which `dms-control formal` decides by comparing the covered files' JavaScript statements on the base and on HEAD (`verify-dms` verdict rule 5). The CI configurations catch every scratch break in the last section, so they are the ones to run on every push.
 
 ## The rules
 

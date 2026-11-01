@@ -2,7 +2,9 @@
  * The faces of the dashboard: files of the build (named after their content,
  * cached for good), and only the one every page sets its text in preloaded.
  */
+import { createApp } from "vue";
 import { describe, expect, it, vi } from "vitest";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 
 interface HeadInput {
   link: Array<Record<string, string>>;
@@ -15,11 +17,10 @@ describe("the dashboard fonts", () => {
     vi.stubGlobal("useHead", (input: HeadInput) => heads.push(input));
     vi.stubEnv("SSR", true);
     try {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
-      const plugin = (
-        await import("../layers/dms-layout/app/plugins/font-preload")
-      ).default as () => void;
-      plugin();
+      const { default: plugin } = await import(
+        "../layers/dms-layout/app/plugins/font-preload"
+      );
+      plugin(dmsAppContext(createApp({ render: () => null })));
     } finally {
       vi.unstubAllEnvs();
       vi.unstubAllGlobals();

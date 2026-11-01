@@ -18,6 +18,10 @@ export class Tenant extends Table {
   @Field("string")
   declare name: string;
 
+  /** True while default tenant provisioning must be retried. Absent means provisioned. */
+  @Field("boolean")
+  declare provisioningPending?: boolean;
+
   @CreationTime()
   @Index()
   @Field("date")

@@ -17,6 +17,7 @@
     }
   },
   "error": {
+    "read_only_demo": "Démo en lecture seule, les modifications ne sont pas enregistrées",
     "401": {
       "title": "Accès refusé",
       "description": "Vous n'avez pas la permission d'accéder à cette page."

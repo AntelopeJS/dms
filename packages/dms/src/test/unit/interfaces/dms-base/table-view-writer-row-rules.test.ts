@@ -41,6 +41,7 @@ import { createValidatedRoute } from "@antelopejs/interface-dms/base/table-view/
 import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 
 import { tableViewAccess } from "@antelopejs/interface-dms/base/table-view/internal/writer";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const SCHEMA = "writer-row-rules-test";
 const TABLE = "tasks";
@@ -158,10 +159,7 @@ async function rejectionOf(
 }
 
 function listContext(query: string): Parameters<typeof applyArchiveFilter>[1] {
-  // SAFETY: Archive filtering reads only url; a full HTTP context would add unrelated behavior to this fixture.
-  return { url: new URL(`http://localhost/list?${query}`) } as Parameters<
-    typeof applyArchiveFilter
-  >[1];
+  return requestContextFixture(new URL(`http://localhost/list?${query}`));
 }
 
 function ruleOf(action: "archive" | "restore" | "delete" | "edit") {

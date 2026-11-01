@@ -40,6 +40,16 @@ On failure, rebuild the counterexample as a pair of `iface.version` and `pkg.dep
 
 A malformed generator is a modelling error. A mismatch after those checks is a finding. Keep the property, record it in `FINDINGS` with its class in `findingOf`, add it below, and leave `checks/release-range.mjs` unchanged unless the user asks for a fix.
 
+## Behaviour probe
+
+`probe.mjs` prints what the release workflow's `validate` step decides in a checkout, one line per case: 80 version and range pairs, prereleases and build metadata included, and 8 manifests that each break one of the step's other checks. It extracts the step's node script from `release.yml`, wherever the rule lives (inline, as before #529, or imported from `checks/release-range.mjs`), and runs it on fixture manifests built from the checkout's own.
+
+```sh
+node .agents/skills/formal-release-range/probe.mjs <checkout>
+```
+
+`dms-control formal` runs it on the base and on HEAD of a diff that touches the coverage record. The same output means the diff kept the covered behaviour, so the recorded findings are reported as known and do not fail the verdict (`verify-dms` verdict rule 5). A changed line fails it.
+
 ## Findings on main
 
 The rule accepts a floor-tuple prerelease and an inside prerelease that `semver.satisfies` rejects, rejects a stable build-metadata version that `semver` accepts, and accepts a range with a leading zero that `semver` cannot parse. The real `validate` step, extracted from the workflow and run on Node 22 and 24 against the range `>=0.9.1 <0.10.0` that `packages/dms/package.json` declares today, exits 0 for `iface.version` `0.9.1-next.0` and `0.9.5-rc.1` and exits 1 for `0.9.5+b`.

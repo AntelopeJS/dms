@@ -1,6 +1,6 @@
 /** @internal */
-import type { WatchAction } from "../base/types/watch";
-import { ComponentId } from "../base/types/watch";
+import type { WatchAction } from "../watch-actions";
+import { ComponentId } from "../watch-actions";
 import type {
   ComponentBuilder,
   ComponentFilter,

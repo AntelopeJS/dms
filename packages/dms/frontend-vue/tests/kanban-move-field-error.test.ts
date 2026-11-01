@@ -9,6 +9,10 @@ import "./helpers/table-runtime";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import Sortable from "sortablejs";
 import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
+import {
   type App,
   type Component,
   Suspense,
@@ -55,10 +59,11 @@ const refusal = Object.assign(
     data: { code: "missing_mandatory_fields", fields: ["lostReason"] },
   },
 );
+let isReadOnly = false;
 
 const authFetch = vi.fn(
   async (url: string, options: { query?: Record<string, string> } = {}) => {
-    if (url.endsWith("/edit")) throw refusal;
+    if (url.endsWith("/edit")) throw isReadOnly ? readOnlyFailure() : refusal;
     if (url.endsWith("/get")) return { ...DEAL };
     const stage = options.query?.filter_stage?.replace("is:", "");
     const results = stage === DEAL.stage ? [{ ...DEAL }] : [];
@@ -82,6 +87,7 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 beforeEach(() => {
+  isReadOnly = false;
   addToast.mockClear();
   for (const [name, value] of Object.entries({
     computed,
@@ -136,32 +142,42 @@ async function mountBoard() {
 }
 
 describe("a card dropped on a column the server refuses", () => {
-  it("names the missing field by its column's label", async () => {
-    await mountBoard();
-    const lists = [...host.querySelectorAll("div")]
-      .map((element) => Sortable.get(element))
-      .filter((list) => list !== undefined);
-    expect(lists).toHaveLength(2);
-    const [source, target] = lists;
-    const item = source!.el.children[0]!;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Sortable's full event requires browser drag fields; this synthetic callback fixture supplies only the fields consumed by the board.
-    source!.option("onStart")!({ item, oldIndex: 0 } as never);
-    target!.el.append(item);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
-    target!.option("onAdd")!({ item, newIndex: 0 } as never);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
-    source!.option("onRemove")!({ item, oldIndex: 0 } as never);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The board's end callback consumes no event fields; constructing a browser drag event would add irrelevant fixture state.
-    source!.option("onEnd")!({} as never);
-    await flushPromises();
-    await flushPromises();
+  it.each([false, true])(
+    "keeps the refusal visible and rolls back when read-only=%s",
+    async (marked) => {
+      isReadOnly = marked;
+      if (marked) installReadOnlyRefusal();
+      await mountBoard();
+      const lists = [...host.querySelectorAll("div")]
+        .map((element) => Sortable.get(element))
+        .filter((list) => list !== undefined);
+      expect(lists).toHaveLength(2);
+      const [source, target] = lists;
+      const item = source!.el.children[0]!;
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Sortable's full event requires browser drag fields; this synthetic callback fixture supplies only the fields consumed by the board.
+      source!.option("onStart")!({ item, oldIndex: 0 } as never);
+      target!.el.append(item);
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
+      target!.option("onAdd")!({ item, newIndex: 0 } as never);
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
+      source!.option("onRemove")!({ item, oldIndex: 0 } as never);
+      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The board's end callback consumes no event fields; constructing a browser drag event would add irrelevant fixture state.
+      source!.option("onEnd")!({} as never);
+      await flushPromises();
+      await flushPromises();
 
-    expect(addToast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        color: "error",
-        title: "dms.table.kanban.move_error",
-        description: "Loss reason est obligatoire.",
-      }),
-    );
-  });
+      const expected = marked
+        ? { id: "dms-read-only", color: "warning" }
+        : {
+            color: "error",
+            title: "dms.table.kanban.move_error",
+            description: "Loss reason est obligatoire.",
+          };
+      expect(addToast).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining(expected),
+      );
+      expect(source!.el.children).toHaveLength(1);
+      expect(target!.el.children).toHaveLength(0);
+    },
+  );
 });

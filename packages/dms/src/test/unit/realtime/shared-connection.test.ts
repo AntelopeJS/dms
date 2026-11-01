@@ -17,14 +17,16 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { RealtimeController } from "../../../routes";
+import { userFixture } from "../../helpers/user-fixture";
 
-// SAFETY: The realtime controller reads the user's id, name and email and, through page access, the owner flag (absent here, so the user is not a platform owner); it never calls stored-user methods, and this fixture supplies id and email.
-const USER = { _id: "shared-connection-user", email: "u@example.com" } as User;
-// SAFETY: The realtime controller reads the user's id, name and email and, through page access, the owner flag (absent here, so the user is not a platform owner); it never calls stored-user methods, and this fixture supplies id and email.
-const OTHER_USER = {
+const USER = userFixture({
+  _id: "shared-connection-user",
+  email: "u@example.com",
+});
+const OTHER_USER = userFixture({
   _id: "shared-connection-other",
   email: "o@example.com",
-} as User;
+});
 
 interface FakeStream {
   ctx: RequestContext;
@@ -59,7 +61,7 @@ const createFakeStream = (): FakeStream => {
     },
   };
   const rawRequest = Object.assign(new EventEmitter(), { headers: {} });
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE context double supplies lifecycle events and a writer, not the complete HTTP context.
+  // SAFETY: The controller methods under test pass ctx only to openSseStream, which calls response.addHeader, response.getWriteStream and rawRequest.on, and to getRequestTenantId, which reads rawRequest and its authorization header; the double supplies each of those, and its writer implements the write and end that openSseStream calls.
   const ctx = {
     rawRequest,
     response: { addHeader: () => {}, getWriteStream: () => writer },

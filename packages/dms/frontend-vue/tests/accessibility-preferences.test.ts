@@ -12,6 +12,8 @@ import {
 import { createHead, renderSSRHead } from "@unhead/vue/server";
 import { createApp, createSSRApp, nextTick, ref, type Ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { sectionIn } from "./fixtures/axisCallbacks";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import {
   accessibilityHtmlClasses,
   isReducedMotionActive,
@@ -217,8 +219,7 @@ describe("server render", () => {
     app.use(head);
     app.runWithContext(() => {
       if (colorMode) useHead({ htmlAttrs: { class: colorMode } });
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
-      accessibilityPlugin({} as never);
+      accessibilityPlugin(dmsAppContext(app));
     });
     return renderSSRHead(head);
   }
@@ -260,8 +261,7 @@ describe("in the browser", () => {
     const head = createClientHead();
     app.use(head);
     const { underlineLinks, reduceMotion } = app.runWithContext(() => {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The setup callback reads no argument. Its DmsPluginSetup owner requires an app context; this identity-stub fixture deliberately omits unused runtime services.
-      accessibilityPlugin({} as never);
+      accessibilityPlugin(dmsAppContext(app));
       return useAccessibilityPreferences();
     });
     await renderDOMHead(head);
@@ -308,9 +308,7 @@ describe("chart animations", () => {
       type: "line",
       series: [{ name: "Visits", data: [{ x: "Mon", y: 3 }] }],
     }));
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw chart sections do not carry Apex's nested animation fields. Inference and the owner contract leave this projection unchecked; validating here would change the existing chart-output test.
-    const chart = options.value.chart as { animations: { enabled: boolean } };
-    return chart.animations.enabled;
+    return sectionIn(sectionIn(options.value, "chart"), "animations").enabled;
   }
 
   it("animates by default and stops when motion is reduced", () => {

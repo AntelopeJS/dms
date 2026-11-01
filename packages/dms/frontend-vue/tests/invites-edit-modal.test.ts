@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { unusedApi } from "./fixtures/unusedApi";
 import { ref, shallowRef } from "vue";
 import { createI18n } from "vue-i18n";
 import { Color } from "../layers/dms-core/app/types/color";
@@ -55,8 +56,7 @@ async function invitesRowActions() {
     "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
   );
   return useTableRowActions({
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Editing opens a modal without fetching; the mock deliberately omits unused fetch methods.
-    api: vi.fn() as never,
+    api: unusedApi(),
     location: "/api/tables/admin-invites",
     componentId: "table",
     pageId: "settings.workspace.invites",

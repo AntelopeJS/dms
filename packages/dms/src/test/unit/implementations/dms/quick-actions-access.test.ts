@@ -21,12 +21,12 @@ import {
   internal as quickActionsInterface,
 } from "@antelopejs/interface-dms/quick-actions";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   denyingTenantGate,
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "qa-denied-tenant";
 const ALLOWED_TENANT = "qa-allowed-tenant";
@@ -56,8 +56,7 @@ class PageQaRecovery extends PageController("qa-recovery", {
 async function actionsFor(grantedPermissions: string[], tenantId: string) {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   const payload = await buildSiteLayoutPayload(
-    // SAFETY: Quick-action access uses this id and the absent owner flag, not persisted-user methods.
-    { _id: "qa-member" } as User,
+    userFixture({ _id: "qa-member" }),
     memberModel,
     roleModel,
     tenantId,
@@ -154,8 +153,7 @@ describe("[unit] implementations/dms/quick-actions — access follows the page",
   it("omits a category whose actions all dropped", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([]);
     const payload = await buildSiteLayoutPayload(
-      // SAFETY: Quick-action access uses this id and the absent owner flag, not persisted-user methods.
-      { _id: "qa-member" } as User,
+      userFixture({ _id: "qa-member" }),
       memberModel,
       roleModel,
       DENIED_TENANT,

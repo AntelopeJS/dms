@@ -1,6 +1,5 @@
 import {
   Context,
-  JSONBody,
   MultiParameter,
   Parameter,
   type RequestContext,
@@ -52,39 +51,47 @@ import type { TableViewFooterSummary } from "./options";
 import { createValidatedRoute } from "./internal/row-rules";
 
 const MAX_BATCH_COUNT_QUERIES = 50;
-
-/** One query value; a list repeats its key (`filter_x=a&filter_x=b`). */
-type BatchCountQueryValue = string | number | boolean | string[] | undefined;
+const MAX_BATCH_COUNT_TARGET_BYTES = 8_192;
+const HTTP_BAD_REQUEST = 400;
+const HTTP_URI_TOO_LONG = 414;
+const COUNT_QUERY_SEPARATOR = "?";
 
 interface BatchCountQuery {
   id: string;
-  query: Record<string, BatchCountQueryValue>;
+  query: URLSearchParams;
 }
 
-interface BatchCountBody {
-  queries: BatchCountQuery[];
+function decodeCountId(id: string): string {
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    assert(false, HTTP_BAD_REQUEST, "Invalid count batch query.");
+  }
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This parser is the JSONBody boundary of the published count-batch route; it must accept arbitrary decoded request values before checking them.
-function parseBatchCountBody(body: unknown): BatchCountBody {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JSONBody supplies untyped input; this existing parser rejects non-object request bodies before inspecting queries.
-  assert(body && typeof body === "object", 400, "Invalid count batch body.");
-  const { queries }: Partial<BatchCountBody> = body;
-  assert(Array.isArray(queries), 400, "Invalid count batch queries.");
+function parseBatchCountQueries(
+  ctx: RequestContext,
+  values: string[],
+): BatchCountQuery[] {
   assert(
-    queries.length <= MAX_BATCH_COUNT_QUERIES,
-    400,
+    Buffer.byteLength(ctx.url.pathname + ctx.url.search, "utf8") <=
+      MAX_BATCH_COUNT_TARGET_BYTES,
+    HTTP_URI_TOO_LONG,
+    "Count batch URI too long.",
+  );
+  assert(
+    values.length <= MAX_BATCH_COUNT_QUERIES,
+    HTTP_BAD_REQUEST,
     "Too many count batch queries.",
   );
-  for (const query of queries) {
-    assert(
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The count-batch parser checks each request entry's id representation; a stronger schema would reject inputs currently accepted by this published route.
-      query && typeof query.id === "string" && query.query,
-      400,
-      "Invalid count batch query.",
-    );
-  }
-  return { queries };
+  return values.map((value) => {
+    const separator = value.indexOf(COUNT_QUERY_SEPARATOR);
+    assert(separator >= 0, HTTP_BAD_REQUEST, "Invalid count batch query.");
+    return {
+      id: decodeCountId(value.slice(0, separator)),
+      query: new URLSearchParams(value.slice(separator + 1)),
+    };
+  });
 }
 
 function buildBatchCountContext(
@@ -92,13 +99,7 @@ function buildBatchCountContext(
   query: BatchCountQuery["query"],
 ): RequestContext {
   const url = new URL(ctx.url);
-  url.search = "";
-  for (const [key, value] of Object.entries(query)) {
-    if (value === undefined) continue;
-    for (const item of Array.isArray(value) ? value : [value]) {
-      url.searchParams.append(key, String(item));
-    }
-  }
+  url.search = query.toString();
   return { ...ctx, url };
 }
 
@@ -224,11 +225,10 @@ function createBatchCountRoute(actionId: string): DataControllerCallback {
         constructor: ConstructorParameters<typeof TableViewMeta>[0];
       },
       ctx: RequestContext,
-      // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JSONBody is decoded by parseBatchCountBody below; its published route boundary must still accept arbitrary request values.
-      body: unknown,
+      values: string[],
       user: User,
     ) {
-      const parsed = parseBatchCountBody(body);
+      const queries = parseBatchCountQueries(ctx, values);
       const permissions = await authorizeAction(
         this,
         actionId,
@@ -237,7 +237,7 @@ function createBatchCountRoute(actionId: string): DataControllerCallback {
       );
       const meta = GetDataControllerMeta(this);
       const entries = await Promise.all(
-        parsed.queries.map(async ({ id, query }) => {
+        queries.map(async ({ id, query }) => {
           const queryContext = buildBatchCountContext(ctx, query);
           const listParams = {
             filters: Parameters.ExtractFilters(queryContext, meta),
@@ -254,8 +254,8 @@ function createBatchCountRoute(actionId: string): DataControllerCallback {
       );
       return Object.fromEntries(entries);
     },
-    args: [Context(), JSONBody(), AuthUser()],
-    method: "post" as const,
+    args: [Context(), MultiParameter("query", "query"), AuthUser()],
+    method: "get" as const,
   };
 }
 
@@ -294,7 +294,9 @@ export namespace TableViewRoutes {
    */
   export const Count = createCountRoute(LIST_ACTION);
   /**
-   * `POST <location>/count/batch`: one count per query, in a single request.
+   * `GET <location>/count/batch`: one count per repeated `query` value,
+   * encoded as an escaped id, `?`, and its list query string. Accepts up to
+   * 50 entries and 8,192 UTF-8 bytes in the encoded path plus search.
    * Filter tabs with counters require the controller to mount
    * `countBatch: TableViewRoutes.CountBatch`; a table view declaring `tabs`
    * without it gets failing counters and a registration warning.

@@ -42,6 +42,7 @@ export const useAuthFetch = () => {
     useSessionRecovery();
   const config = useDmsRuntimeConfig();
   const dmsApp = useDmsApp();
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
 
   const realtimeSessionId = useDmsState<string | undefined>(
     REALTIME_SESSION_STATE_KEY,
@@ -59,6 +60,7 @@ export const useAuthFetch = () => {
       }
     },
     async onResponseError({ response, options }) {
+      if (consumeReadOnlyRefusal({ response })) return;
       if (response.status !== HTTP_UNAUTHORIZED) {
         return;
       }
@@ -126,12 +128,12 @@ export const useAuthFetch = () => {
       ...defaults,
       ...options,
     });
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The wrapper forwards each call to baseFetch, whose generic response correlation inference loses; raw, native and create are attached below before it is returned.
+    // SAFETY: retryingFetch resolves with the response baseFetch gives for the same request, of the same response type, so the wrapper answers as AuthFetch's call signature does; raw, native and create are attached below before it is returned.
     const authFetch = ((
       request: AuthFetchArgs[0],
       options?: AuthFetchArgs[1],
     ) => retryingFetch(request, optionsOf(options))) as AuthFetch;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw wrapper preserves the owner's generic overloads through forwarding; inference loses their response-type correlation.
+    // SAFETY: retryingRaw resolves with the response baseFetch.raw gives for the same request, of the same response type, so the wrapper answers as AuthFetch['raw'] does.
     authFetch.raw = ((request: AuthFetchArgs[0], options?: AuthFetchArgs[1]) =>
       retryingRaw(request, optionsOf(options))) as AuthFetch["raw"];
     authFetch.native = baseFetch.native;

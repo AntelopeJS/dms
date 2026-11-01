@@ -6,6 +6,10 @@ import { formSubmitEvent } from "./helpers/form-submit-event";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 import { useEventedAction } from "../layers/dms-core/app/composables/useEventedAction";
 import { FormEvents } from "../layers/dms-ui/app/composables/form/types/events";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
 
 const authFetch = vi.fn();
 const sendComponentEvent = vi.fn();
@@ -73,6 +77,28 @@ afterEach(() => {
 });
 
 describe("DMS form announcing a successful submit", () => {
+  it("keeps a marked refused changed-field save dirty and rejected without accepted callbacks", async () => {
+    installReadOnlyRefusal();
+    const refusal = readOnlyFailure();
+    authFetch.mockRejectedValue(refusal);
+    const onSaved = vi.fn();
+    const form = setupForm(onSaved);
+    form.initialValues.value = { roles: ["auditor"] };
+    form.state.value.roles = ["finance"];
+    await expect(form.submitChanges({ roles: ["finance"] })).rejects.toBe(
+      refusal,
+    );
+    expect(form.initialValues.value).toEqual({ roles: ["auditor"] });
+    expect(form.state.value.roles).toEqual(["finance"]);
+    expect(form.submitSucceeded.value).toBe(false);
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(sendComponentEvent).not.toHaveBeenCalledWith(
+      FormEvents.SUBMIT_SUCCESS,
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
   it("holds nothing unsaved once the success event goes out", async () => {
     const steps: string[] = [];
     const form = setupForm(() => steps.push("saved"));

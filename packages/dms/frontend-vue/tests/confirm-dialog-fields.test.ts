@@ -157,9 +157,10 @@ function createConfirmDialogFieldsFixture() {
       () =>
         h("input", {
           value: props.modelValue ?? "",
-          // SAFETY: This handler is attached to the input rendered immediately above.
-          onInput: (event: Event) =>
-            emit("update:modelValue", (event.target as HTMLInputElement).value),
+          onInput: (event: Event) => {
+            if (event.target instanceof HTMLInputElement)
+              emit("update:modelValue", event.target.value);
+          },
         }),
   });
   const Empty = defineComponent({ setup: () => () => null });

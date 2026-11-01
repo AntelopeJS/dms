@@ -1,8 +1,31 @@
+import { existsSync, readdirSync, realpathSync } from "node:fs";
+import { join, sep } from "node:path";
 import {
   ANTELOPE_IGNORE_PATTERNS,
   antelopePreset,
 } from "@antelopejs/tooling-configs/oxc/lint";
 import { defineConfig } from "oxlint";
+
+const AGENT_SKILLS = realpathSync(join(import.meta.dirname, ".agents/skills"));
+const CLAUDE_SKILLS = join(import.meta.dirname, ".claude/skills");
+
+/**
+ * The `.claude/skills` links into `.agents/skills`. The lint already reads each
+ * target under `.agents`, so through the link it would report every finding twice.
+ */
+const CLAUDE_SKILL_LINKS = readdirSync(CLAUDE_SKILLS, { withFileTypes: true })
+  .filter((entry) => {
+    const link = join(CLAUDE_SKILLS, entry.name);
+    return (
+      entry.isSymbolicLink() &&
+      existsSync(link) &&
+      realpathSync(link).startsWith(AGENT_SKILLS + sep)
+    );
+  })
+  .flatMap((entry) => [
+    `.claude/skills/${entry.name}`,
+    `.claude/skills/${entry.name}/**`,
+  ]);
 
 /**
  * Reaching the runtime root from a leaf creates an evaluation cycle for
@@ -68,6 +91,7 @@ export default defineConfig({
   extends: [antelopePreset({ importSorting: false })],
   ignorePatterns: [
     ...ANTELOPE_IGNORE_PATTERNS,
+    ...CLAUDE_SKILL_LINKS,
     "packages/dms/frontend-vue/**",
     "packages/dms/playground/frontend-vue/app/plugins/app-widget-demo.ts",
     "packages/dms/playground/frontend-vue/app/plugins/command-palette-assistant-demo.client.ts",

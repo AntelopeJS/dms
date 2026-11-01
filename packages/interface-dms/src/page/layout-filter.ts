@@ -1,4 +1,4 @@
-import type { WatchAction } from "../base/types/watch";
+import type { WatchAction } from "../watch-actions";
 import type {
   ChildSerialized,
   ComponentFilterContext,

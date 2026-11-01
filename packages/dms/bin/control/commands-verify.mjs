@@ -3,7 +3,11 @@ import { print } from "./commands-stack.mjs";
 import { runJourneyFile } from "./journey.mjs";
 import { loadRun } from "./run-state.mjs";
 import { doorLine, flaggedDoors, patchFiles } from "./verify/doors.mjs";
-import { runFormalCheck, touchedFormalChecks } from "./verify/formal.mjs";
+import {
+  formalGate,
+  runFormalCheck,
+  touchedFormalChecks,
+} from "./verify/formal.mjs";
 import { readJudgement } from "./verify/judgement.mjs";
 import { checkMap, planFor } from "./verify/map.mjs";
 import {
@@ -92,20 +96,30 @@ async function commandDoors(patch, values) {
 async function commandFormal(dir, values) {
   const state = loadRun(dir);
   const skill = await skillOf(values, state);
-  const checks = values.all
-    ? skill.config.formal
-    : touchedFormalChecks(skill, planFor(skill, state.baseRef).changed);
+  const plan = planFor(skill, state.baseRef);
+  const touched = touchedFormalChecks(skill, plan.changed);
+  const checks = values.all ? skill.config.formal : touched;
+  const diff = {
+    baseSha: plan.baseSha,
+    headSha: plan.headSha,
+    changed: plan.changed,
+  };
   for (const check of checks) {
-    const result = runFormalCheck(skill, state, check);
-    const outcome =
-      result.violated.length > 0
+    const gate = touched.includes(check);
+    const result = runFormalCheck(skill, state, check, gate ? diff : null);
+    const weight = formalGate(result);
+    const outcome = gate
+      ? weight.fails
+        ? "FAIL"
+        : "PASS"
+      : result.violated.length > 0
         ? "VIOLATED"
         : result.exitCode === 0
           ? "HOLDS"
           : "ERROR";
-    const rules =
-      result.violated.length > 0 ? `: ${result.violated.join(", ")}` : "";
-    print(`${outcome} ${check.name}${rules} (exit ${result.exitCode})`);
+    print(
+      `${outcome} ${check.name}: ${gate ? weight.outcome : `${result.violated.join(", ") || "no violated rule"} (does not cover the diff)`} (exit ${result.exitCode})`,
+    );
   }
   if (checks.length === 0) print("no formal check covers the diff");
   return 0;

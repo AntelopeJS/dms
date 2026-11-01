@@ -41,7 +41,6 @@ beforeEach(async () => {
       url: string,
       options?: {
         query?: TableCountQuery["query"];
-        body?: { queries: Array<{ id: string }> };
       },
     ) => {
       requests.push(url);
@@ -58,7 +57,12 @@ beforeEach(async () => {
       if (url.endsWith("/delete")) return 1;
       if (url.endsWith("/summary")) return { sum: stage === "lead" ? 1 : 2 };
       if (url.endsWith("/count/batch")) {
-        const ids = options?.body?.queries.map(({ id }) => id) ?? [];
+        const entries = options?.query?.query;
+        const ids = Array.isArray(entries)
+          ? entries.map((entry: string) =>
+              decodeURIComponent(entry.slice(0, entry.indexOf("?"))),
+            )
+          : [];
         countIds.push(ids);
         return Object.fromEntries(
           ids.map((id) => [id, stage === "lead" ? 1 : 2]),

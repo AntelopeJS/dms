@@ -37,16 +37,14 @@ function renderBoolean(value: CellValue) {
   ]);
 }
 
+function dateBoundsOf(value: CellValue): [unknown, unknown] {
+  const bounds: { start?: unknown; end?: unknown } = value ?? {};
+  return [bounds.start, bounds.end];
+}
+
 function formatDateBetween(value: CellValue, locale: string): string {
   const { t } = getAppTranslation();
-  const [rawStart, rawEnd] = Array.isArray(value)
-    ? value
-    : [
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The open formatter value has no date-range schema; preserve optional start access on the original input.
-        (value as { start?: unknown })?.start,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The open formatter value has no date-range schema; preserve optional end access on the original input.
-        (value as { end?: unknown })?.end,
-      ];
+  const [rawStart, rawEnd] = Array.isArray(value) ? value : dateBoundsOf(value);
   const start = formatDate(rawStart, locale) ?? t("dms.date.undefined");
   const end = formatDate(rawEnd, locale) ?? t("dms.date.undefined");
   return `${start} - ${end}`;

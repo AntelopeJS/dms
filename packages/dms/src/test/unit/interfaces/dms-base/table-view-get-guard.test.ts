@@ -27,18 +27,17 @@ import { expect } from "chai";
 import { internal as tableViewImplInternal } from "../../../../implementations/dms-base/table-view";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
 import * as tenantAccess from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { internal as tableViewInternal } from "@antelopejs/interface-dms/base/table-view";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import type { GetGuardArgs } from "@antelopejs/interface-dms/base/types/guards";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const SCHEMA = "get-guard-test";
 const TABLE = "documents";
 const NOT_FOUND = 404;
 const FORBIDDEN = 403;
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Authorization consumes only this id; the fixture deliberately omits other persisted user columns.
-const USER = { _id: "get-guard-user" } as User;
+const USER = userFixture({ _id: "get-guard-user" });
 const ctx = { url: new URL("http://localhost/get") };
 const events: string[] = [];
 let denied = false;

@@ -18,18 +18,16 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "nested-menu-tenant";
-// SAFETY: Menu access reads only the user's id and optional owner flag.
-const MEMBER = { _id: "nested-menu-member" } as User;
-// SAFETY: Menu access reads only the user's id and owner flag.
-const OWNER = { _id: "nested-menu-owner", owner: true } as User;
+const MEMBER = userFixture({ _id: "nested-menu-member" });
+const OWNER = userFixture({ _id: "nested-menu-owner", owner: true });
 const PUBLIC_SLUG = "/nested-menu-public";
 const PRIVATE_SLUG = "/nested-menu-private";
 const PRIVATE_FULL_ID = "pages.nested-menu-private";

@@ -7,8 +7,8 @@ import type {
   WatchAction,
   WatchActionCondition,
   WatchFunctionParams,
-} from "./base/types/watch";
-import type { Tone } from "./base/types/tone";
+} from "./watch-actions";
+import type { Tone } from "./tones";
 import {
   appendChild,
   builderInfo,

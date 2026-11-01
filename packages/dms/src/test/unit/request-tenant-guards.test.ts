@@ -26,8 +26,9 @@ import {
   IfAuthUser,
   type RequestAuthenticator,
 } from "@antelopejs/interface-dms/auth";
-import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { denyingTenantGate } from "../helpers/page-access";
+import { requestContextFixture } from "../helpers/request-context";
 
 const TENANT = "request-guard-tenant";
 const OTHER_TENANT = "request-guard-other";
@@ -41,10 +42,7 @@ const TENANT_OWNER_REQUIRED = "error.tenant_owner_required";
 const TENANT_MEMBER_REQUIRED = "error.tenant_member_required";
 
 function context(token: string): RequestContext {
-  // SAFETY: The guards under test read only the raw request's authorization header and key per-request state on the raw request object, both of which the double supplies.
-  return {
-    rawRequest: { headers: { authorization: `Bearer ${token}` } },
-  } as RequestContext;
+  return requestContextFixture(undefined, `Bearer ${token}`);
 }
 
 async function expectStatus<T>(
@@ -163,10 +161,9 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
 
     const anonymous = context(other);
     expect(getRequestTenantId(anonymous)).to.equal(DEFAULT_TENANT_ID);
-    expect(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator computation API erases its result type; this test assumes IfAuthUser supplies a user or undefined.
-      ((await provided(IfAuthUser(), anonymous)) as User | undefined)?._id,
-    ).to.equal(USER_ID);
+    const resolved = await provided(IfAuthUser(), anonymous);
+    assert.instanceOf(resolved, User);
+    expect(resolved._id).to.equal(USER_ID);
     expect(getRequestTenantId(anonymous)).to.equal(OTHER_TENANT);
 
     const guarded = context(other);

@@ -7,7 +7,7 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { TENANT_SCHEMA_NAME } from "../../constants";
-import type { InviteExtensionPayloads } from "../../invite-extensions/types";
+import type { InviteExtensionPayloads } from "../../invite-extension-payloads";
 import { Role } from "./roles.table";
 
 export const USER_INVITES_TABLE_NAME = "user_invites";

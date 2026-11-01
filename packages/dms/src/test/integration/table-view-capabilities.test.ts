@@ -10,6 +10,14 @@ const SLUG = "/capability-invoices";
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
+const HTTP_URI_TOO_LONG = 414;
+const MAX_BATCH_COUNT_TARGET_BYTES = 8_192;
+
+function batchUrl(location: string, entries: string[]): string {
+  const query = new URLSearchParams();
+  entries.forEach((entry) => query.append("query", entry));
+  return `${location}/count/batch?${query}`;
+}
 
 interface Invoice {
   _id: string;
@@ -187,18 +195,12 @@ describe("[integration] table view capabilities", () => {
       "INV-1",
       "INV-2",
     ]);
-    const counts = await client.post(`${LOCATION}/count/batch`, {
-      queries: [{ id: "mine", query: { filter_ownerId: "is:{{user.id}}" } }],
-    });
+    const url = batchUrl(LOCATION, ["mine?filter_ownerId=is:{{user.id}}"]);
+    const counts = await client.get(url);
     expect(counts.data).to.deep.equal({ mine: 2 });
 
     const other = await registerUser({ owner: true });
-    const otherCounts = await authorizedClient(other.accessToken).post(
-      `${LOCATION}/count/batch`,
-      {
-        queries: [{ id: "mine", query: { filter_ownerId: "is:{{user.id}}" } }],
-      },
-    );
+    const otherCounts = await authorizedClient(other.accessToken).get(url);
     expect(otherCounts.data).to.deep.equal({ mine: 0 });
   });
 
@@ -206,14 +208,74 @@ describe("[integration] table view capabilities", () => {
     const scoped = "/api/capabilities/open-invoices";
     const count = await client.get(`${scoped}/count`);
     expect(count.data).to.deep.equal({ total: 3 });
-    const counts = await client.post(`${scoped}/count/batch`, {
-      queries: [
-        { id: "all", query: {} },
-        { id: "mine", query: { filter_ownerId: "is:{{user.id}}" } },
-      ],
-    });
+    const counts = await client.get(
+      batchUrl(scoped, ["all?", "mine?filter_ownerId=is:{{user.id}}"]),
+    );
     expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
     expect(counts.data).to.deep.equal({ all: 3, mine: 2 });
+  });
+
+  it("counts zero and three independently without inheriting the contradictory outer filter", async () => {
+    const query = new URLSearchParams({ filter_number: "is:missing" });
+    query.append("query", "none?filter_number=is:missing");
+    query.append("query", "all?");
+    const counts = await client.get(
+      `/api/capabilities/open-invoices/count/batch?${query}`,
+    );
+    expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
+    expect(counts.data).to.deep.equal({ none: 0, all: 3 });
+  });
+
+  it("decodes an escaped id only once and splits before a nested search question mark", async () => {
+    const id = "why?50% & é";
+    const search = "Acme? & + % é";
+    const query = new URLSearchParams({ search });
+    const single = await client.get(`${LOCATION}/count?${query}`);
+    const counts = await client.get(
+      batchUrl(LOCATION, [
+        `${encodeURIComponent(id)}?${query}`,
+        "?",
+        "duplicate?filter_status=is:missing",
+        "duplicate?",
+      ]),
+    );
+    expect(counts.status).to.equal(HTTP_OK);
+    expect(counts.data).to.deep.equal({
+      [id]: single.data.total,
+      "": 5,
+      duplicate: 5,
+    });
+  });
+
+  it("accepts empty and fifty-entry batches but rejects fifty-one or malformed entries", async () => {
+    const empty = await client.get(batchUrl(LOCATION, []));
+    expect(empty.data).to.deep.equal({});
+    const fifty = Array.from({ length: 50 }, (_, index) => `${index}?`);
+    const accepted = await client.get(batchUrl(LOCATION, fifty));
+    expect(accepted.status).to.equal(HTTP_OK);
+    expect(Object.values(accepted.data)).to.deep.equal(Array(50).fill(5));
+    for (const entries of [[...fifty, "extra?"], ["missing"], ["%GG?"]]) {
+      const refused = await client.get(batchUrl(LOCATION, entries));
+      expect(refused.status, JSON.stringify(entries)).to.equal(
+        HTTP_BAD_REQUEST,
+      );
+    }
+    const post = await client.post(`${LOCATION}/count/batch`, { queries: [] });
+    expect(post.status).not.to.equal(HTTP_OK);
+  });
+
+  it("bounds the encoded path plus search at 8192 bytes, not the decoded query size", async () => {
+    const prefix = `${batchUrl(LOCATION, ["all?"])}&padding=`;
+    const padding = "x".repeat(
+      MAX_BATCH_COUNT_TARGET_BYTES - Buffer.byteLength(prefix),
+    );
+    const accepted = await client.get(prefix + padding);
+    expect(accepted.status).to.equal(HTTP_OK);
+    expect(accepted.data).to.deep.equal({ all: 5 });
+    const refused = await client.get(prefix + padding + "x");
+    expect(refused.status).to.equal(HTTP_URI_TOO_LONG);
+    const encoded = await client.get(prefix + "%C3%A9".repeat(1400));
+    expect(encoded.status).to.equal(HTTP_URI_TOO_LONG);
   });
 
   it("keeps the rows passing every filter of a column filtered twice", async () => {
@@ -230,12 +292,12 @@ describe("[integration] table view capabilities", () => {
       await list(client, "&filter_status=is:open&filter_status=is_not:open"),
     ).to.deep.equal([]);
 
-    const counts = await client.post(`${LOCATION}/count/batch`, {
-      queries: [
-        { id: "both", query: { filter_status: ["is_not:paid", "is:open"] } },
-        { id: "none", query: { filter_status: ["is:open", "is_not:open"] } },
-      ],
-    });
+    const counts = await client.get(
+      batchUrl(LOCATION, [
+        "both?filter_status=is_not:paid&filter_status=is:open",
+        "none?filter_status=is:open&filter_status=is_not:open",
+      ]),
+    );
     expect(counts.data).to.deep.equal({ both: open.length, none: 0 });
   });
 
@@ -254,12 +316,12 @@ describe("[integration] table view capabilities", () => {
     expect(summary.status, JSON.stringify(summary.data)).to.equal(HTTP_OK);
     expect(summary.data[summaryIds[0]!]).to.equal(350);
 
-    const counts = await client.post(`${LOCATION}/count/batch`, {
-      queries: [
-        { id: "included", query: { filter_labels: "include:urgent" } },
-        { id: "excluded", query: { filter_labels: "exclude:urgent" } },
-      ],
-    });
+    const counts = await client.get(
+      batchUrl(LOCATION, [
+        "included?filter_labels=include:urgent",
+        "excluded?filter_labels=exclude:urgent",
+      ]),
+    );
     expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
     expect(counts.data).to.deep.equal({ included: 1, excluded: 4 });
   });

@@ -1,7 +1,4 @@
-import type {
-  ControllerClass,
-  RequestContext,
-} from "@antelopejs/interface-api";
+import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import {
@@ -25,18 +22,17 @@ import { readRequestQuery } from "@antelopejs/interface-dms/page/internal/metada
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const TENANT = "layout-query-tenant";
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Layout permission lookup reads only the id; this fixture deliberately omits unrelated user columns.
-const MEMBER = { _id: "layout-query-member" } as User;
+const MEMBER = userFixture({ _id: "layout-query-member" });
 const models = stubPageAccessModels(["*"]);
-// SAFETY: buildPagePayload reads the request's url, and tenant resolution reads the optional rawRequest, whose absence falls back to the default tenant; the double supplies the url only.
-const requestAt = (url: URL) => ({ url }) as RequestContext;
+const requestAt = (url: URL) => requestContextFixture(url);
 // SAFETY: Every suite here installs DefaultLayout on its page, so the options are DefaultLayout's serialized options, of which ServedOptions describes only the headerActions the tests read.
 const headerOptions = (layout: { options?: unknown } | undefined) =>
   layout?.options as ServedOptions;
@@ -365,11 +361,10 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
       "delete",
       "help",
     ]);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The action target owner is a union including drawers; this fixture's directions action is the external URL declared above.
-    const directions = byId(options, "directions")?.target as
-      | Extract<PageHeaderButtonSerialized["target"], { url: string }>
-      | undefined;
-    expect(directions?.url).to.equal(
+    const directions = byId(options, "directions")?.target;
+    expect(
+      directions && "url" in directions ? directions.url : undefined,
+    ).to.equal(
       `https://maps.example.com/?q=${encodeURIComponent("1 rue de l'Église, Liège")}&o=u%261&x={{record.none}}`,
     );
     expect(byId(options, "edit")).to.not.have.property("requiresRecord");

@@ -10,6 +10,7 @@ import {
   type TableViewOptionsSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const ARCHIVE_FIELD = "archived";
 const VIEW_ARCHIVED_ACTION = "viewArchived";
@@ -32,10 +33,9 @@ function stampedBuilder(
 }
 
 function requestShowingArchived(): RequestContext {
-  // SAFETY: applyArchiveFilter reads only url.searchParams on this request; this is not a complete request context.
-  return {
-    url: new URL("http://localhost/list?showArchived=true"),
-  } as RequestContext;
+  return requestContextFixture(
+    new URL("http://localhost/list?showArchived=true"),
+  );
 }
 
 async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {

@@ -51,6 +51,20 @@ let cookies: Map<string, Ref<unknown>>;
 
 let renderedRect = { width: 600, height: 320 };
 
+function domRect(width: number, height: number): DOMRect {
+  return {
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    right: width,
+    bottom: height,
+    width,
+    height,
+    toJSON: () => ({ width, height }),
+  };
+}
+
 const rendered = reactive<{
   ui?: Record<string, string>;
   handle?: boolean;
@@ -62,7 +76,7 @@ function useDmsCookie<T>(
   options: { default?: () => T } = {},
 ): Ref<T> {
   if (!cookies.has(name)) cookies.set(name, ref(options.default?.() ?? null));
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This cookie double stores unvalidated values including null; it mirrors the generic cookie API rather than claiming the stored value was validated as T.
+  // SAFETY: The only caller, useDrawerSizePreferences, reads the drawer size cookie as DrawerSizePreferences with a default, so the ref stored under that name holds that type.
   return cookies.get(name) as Ref<T>;
 }
 
@@ -143,8 +157,7 @@ beforeEach(() => {
   cookies = new Map();
   renderedRect = { width: 600, height: 320 };
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This geometry double intentionally returns only width and height, the fields resizing reads; it is not a complete DOMRect.
-    () => ({ ...renderedRect }) as DOMRect,
+    () => domRect(renderedRect.width, renderedRect.height),
   );
   window.innerWidth = 1600;
   window.innerHeight = 1000;

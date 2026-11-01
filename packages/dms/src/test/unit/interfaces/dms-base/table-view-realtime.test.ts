@@ -1,4 +1,4 @@
-import { Controller, type RequestContext } from "@antelopejs/interface-api";
+import { Controller } from "@antelopejs/interface-api";
 import {
   type AsyncProxy,
   GetMetadata,
@@ -10,7 +10,6 @@ import { expect } from "chai";
 import { bindVerifiedRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { internal as dmsTableView } from "../../../../implementations/dms-base/table-view";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import * as tableViewInterface from "@antelopejs/interface-dms/base/table-view";
 import {
   type RealtimeMutationContext,
@@ -22,18 +21,19 @@ import {
   withPresenceAcquire,
   withRealtimeMutation,
 } from "@antelopejs/interface-dms/base/table-view/internal/realtime";
+import { userFixture } from "../../../helpers/user-fixture";
+import { requestContextFixture } from "../../../helpers/request-context";
 
 const LOCATION = "/api/table-view-realtime";
 const SESSION = "table-view-realtime-session";
 const PRESENCE_ACQUIRE = "1";
 const TENANT = "table-view-realtime-tenant";
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Principal binding reads rawRequest.headers only; this fixture deliberately omits the rest of the HTTP context.
-const REQUEST_CONTEXT = {
-  rawRequest: { headers: { authorization: "Bearer table-view-realtime" } },
-} as RequestContext;
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Realtime actor resolution needs id and name only, not a complete persisted user.
-const USER = { _id: "table-view-realtime-user", name: "Realtime" } as User;
+const REQUEST_CONTEXT = requestContextFixture(
+  undefined,
+  "Bearer table-view-realtime",
+);
+const USER = userFixture({ _id: "table-view-realtime-user", name: "Realtime" });
 bindVerifiedRequestPrincipal(REQUEST_CONTEXT, {
   userId: USER._id,
   tenantId: TENANT,

@@ -16,6 +16,10 @@ import { secondaryTargetRunner } from "../layers/dms-ui/app/entries/composables/
 import { downloadFilename } from "../layers/dms-ui/app/entries/utils/fileDownload";
 
 import { DialogRoot } from "reka-ui";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
 
 const i18n = createI18n({
   legacy: false,
@@ -220,6 +224,25 @@ describe("ConfirmModal secondary action", () => {
     mount({ title: "Remove French?" });
     await flush();
     expect(host.querySelectorAll("button")).toHaveLength(3);
+  });
+
+  it("keeps a marked secondary refusal open with one toast, no alert, and allows retry", async () => {
+    const add = vi.fn();
+    vi.stubGlobal("useToast", () => ({ add }));
+    installReadOnlyRefusal();
+    const run = vi.fn().mockRejectedValue(readOnlyFailure());
+    mount({ title: "Remove?", secondaryAction: { label: "Download", run } });
+    await flush();
+    button("Download")!.click();
+    await flush();
+    button("Download")!.click();
+    await flush();
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(closed).not.toHaveBeenCalled();
+    expect(host.querySelector("[data-alert]")).toBeNull();
+    expect(add).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "dms-read-only" }),
+    );
   });
 
   it("runs it and stays open, the action still to confirm", async () => {

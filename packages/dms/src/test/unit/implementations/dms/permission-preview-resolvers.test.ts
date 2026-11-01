@@ -28,6 +28,7 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const HOME = "pages.prr-home";
 const INVOICES = "pages.prr-invoices";
@@ -40,13 +41,10 @@ const EVERY_GRANT = [HOME, INVOICES, INVOICES_EXPORT, ROLES, BILLING];
 const FREE_TENANT = "prr-free";
 const PLAN_TENANT = "prr-plan";
 
-// SAFETY: Preview permission resolution consumes this id and owner flag, not persisted-user methods.
-const PLATFORM_OWNER = { _id: "prr-platform-owner", owner: true } as User;
-// SAFETY: The resolver identifies this tenant owner by id; the absent platform-owner flag intentionally remains undefined.
-const TENANT_OWNER = { _id: "prr-tenant-owner" } as User;
+const PLATFORM_OWNER = userFixture({ _id: "prr-platform-owner", owner: true });
+const TENANT_OWNER = userFixture({ _id: "prr-tenant-owner" });
 
-// SAFETY: Preview permission resolution consumes this id and the absent owner flag, not persisted-user methods.
-const ROLE_MANAGER = { _id: "prr-role-manager" } as User;
+const ROLE_MANAGER = userFixture({ _id: "prr-role-manager" });
 const TENANT_OWNER_IDS = new Set([PLATFORM_OWNER._id, TENANT_OWNER._id]);
 
 let planPermissions = new Set<string>();

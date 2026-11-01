@@ -17,18 +17,17 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { captureWarnings } from "../../../helpers/logging";
 import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "warn-once-tenant";
 const CATEGORY_FULL_ID = pagesCategory.fullId;
 const UNKNOWN_CATEGORY = "pages.warn-once-nowhere";
-// SAFETY: Menu permission resolution consumes this id and the absent owner flag, not persisted-user methods.
-const MEMBER = { _id: "warn-once-member" } as User;
+const MEMBER = userFixture({ _id: "warn-once-member" });
 const PAGE_SLUG = "/warn-once-target";
 
 function rowsTargetingNothing(count: number): DynamicMenuItem[] {

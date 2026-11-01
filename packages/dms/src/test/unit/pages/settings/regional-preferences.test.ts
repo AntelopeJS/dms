@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   AUTOMATIC_PREFERENCE,
@@ -8,7 +8,6 @@ import {
   toRegionFormValues,
   regionPreferencesForm,
 } from "../../../../pages/account";
-import type { FormPropsSerialized } from "@antelopejs/interface-dms/base/form-types";
 import { regionalPreferencesSchema } from "../../../../validation";
 
 const PASSWORD_HASH = "$2b$10$kept-hash";
@@ -128,9 +127,8 @@ describe("[unit] regional preferences — the Language & region form", () => {
   });
 
   it("is one instant form with a section per group", () => {
-    // SAFETY: regionPreferencesForm builds a form component; its serialized options contain the form sections and save mode read by these assertions.
-    const options = regionPreferencesForm().serializeSync()
-      .options as FormPropsSerialized;
+    const { options } = regionPreferencesForm().serializeSync();
+    assert.isDefined(options);
     expect(options?.saveMode).to.equal("instant");
     expect(options?.sections?.map((section) => section.id)).to.deep.equal([
       "language",

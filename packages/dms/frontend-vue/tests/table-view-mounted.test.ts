@@ -13,6 +13,8 @@ import type {
 } from "../layers/dms-ui/app/composables/table-view/types";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
+import { readOnlyFailure } from "./helpers/read-only-refusal";
+import { useReadOnlyRefusal } from "../layers/dms-core/app/composables/useReadOnlyRefusal";
 import type { TableCountQuery } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 
 const apps: Array<{ unmount: () => void }> = [];
@@ -216,6 +218,51 @@ it("a hand-ordered table neither restores nor offers nor overwrites saved sortin
   expect(
     restored.querySelector('th[aria-sort="descending"]')?.textContent,
   ).toBe("Name");
+});
+
+it("refreshes a refused reorder without a second operation-specific toast", async () => {
+  const add = vi.fn();
+  await tableViewRuntime((url: string) => {
+    requests.push(url);
+    if (url.endsWith("/edit")) throw readOnlyFailure();
+    return {
+      results: [
+        { _id: "r1", name: "First", position: 1 },
+        { _id: "r2", name: "Second", position: 2 },
+      ],
+      total: 2,
+    };
+  });
+  vi.stubGlobal("useToast", () => ({ add }));
+  vi.stubGlobal("useReadOnlyRefusal", useReadOnlyRefusal);
+  vi.stubGlobal("getAppTranslation", () => ({
+    processApiMessage: (key: string) => key,
+  }));
+  const host = await mount({
+    reorder: { field: "position" },
+    rowActions: { edit: true },
+  });
+  await settleTable();
+  requests.length = 0;
+  const handle = host.querySelector(
+    'button[aria-label="dms.table.reorder.move"]',
+  );
+  if (!handle) throw new Error("Missing reorder handle");
+  handle.dispatchEvent(
+    new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }),
+  );
+  await settleTable();
+  await settleTable();
+  expect(requests).toContain("/api/orders/edit");
+  expect(requests).toContain("/api/orders/list");
+  expect(
+    [...host.querySelectorAll("tr[data-row-id]")].map((row) =>
+      row.getAttribute("data-row-id"),
+    ),
+  ).toEqual(["r1", "r2"]);
+  expect(add).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ id: "dms-read-only", color: "warning" }),
+  );
 });
 
 it("reapplies sorting capability when switching away from a display and back", async () => {

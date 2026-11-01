@@ -1,21 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { reactive } from "vue";
+import {
+  autoBoundsOf,
+  yAxisLabelFormatter,
+  type AutoBounds,
+} from "./fixtures/axisCallbacks";
 import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChart";
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
-
-interface AutoBounds {
-  min: (value: number) => number;
-  max: (value: number) => number;
-}
 
 function chartFor(input: Partial<UseApexChartInput> = {}) {
   return useApexChart(() => ({ type: "line", series: [], ...input }));
 }
 
+function yAxisFor(input: Partial<UseApexChartInput> = {}) {
+  return chartFor({ autoYRange: {}, ...input }).options.value.yaxis;
+}
+
 function boundsFor(input: Partial<UseApexChartInput> = {}): AutoBounds {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw options can replace this axis, and Apex allows numeric bounds too; the tests deliberately exercise unchecked auto-range callbacks rather than validate away failures.
-  return chartFor({ autoYRange: {}, ...input }).options.value
-    .yaxis as AutoBounds;
+  return autoBoundsOf(chartFor({ autoYRange: {}, ...input }).options.value);
 }
 
 describe("annotation-aware auto Y range", () => {
@@ -26,7 +28,7 @@ describe("annotation-aware auto Y range", () => {
   });
 
   it("keeps explicit bounds authoritative even with annotations and auto range", () => {
-    const yaxis = boundsFor({
+    const yaxis = yAxisFor({
       yRange: { min: 0, max: 10 },
       annotations: [{ y: 200 }],
     });
@@ -54,8 +56,7 @@ describe("annotation-aware auto Y range", () => {
   it("gives zero-only data a nonzero range without changing the series", () => {
     const series = [{ name: "zero", data: [0, 0] }];
     const chart = chartFor({ autoYRange: {}, series });
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw-option output type cannot promise auto-range callbacks; invoking them is the behavior under test.
-    const bounds = chart.options.value.yaxis as AutoBounds;
+    const bounds = autoBoundsOf(chart.options.value);
     expect(bounds.min(0)).toBe(-0.08);
     expect(bounds.max(0)).toBe(0.08);
     expect(chart.series.value).toEqual(series);
@@ -96,12 +97,10 @@ describe("annotation-aware auto Y range", () => {
       annotations: [{ y: 20 }],
     });
     const chart = useApexChart(() => input);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw-option output type cannot promise auto-range callbacks; invoking them is the behavior under test.
-    expect((chart.options.value.yaxis as AutoBounds).max(10)).toBe(22);
+    expect(autoBoundsOf(chart.options.value).max(10)).toBe(22);
     input.annotations![0]!.y = 40;
     input.autoYRange!.padding = 0.2;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The raw-option output type cannot promise auto-range callbacks; invoking them is the behavior under test.
-    expect((chart.options.value.yaxis as AutoBounds).max(10)).toBe(48);
+    expect(autoBoundsOf(chart.options.value).max(10)).toBe(48);
   });
 
   it("retains the rawOptions escape hatch precedence", () => {
@@ -121,16 +120,13 @@ describe("annotation-aware auto Y range", () => {
   });
 
   it("writes unformatted axis labels without float noise", () => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Apex's formatter is optional and raw output is unchecked; this test intentionally invokes the default formatter without masking a missing callback.
-    const labels = chartFor().options.value.yaxis as {
-      labels: { formatter: (value: number) => string };
-    };
-    expect(labels.labels.formatter(160.00000000000003)).toBe("160");
-    expect(labels.labels.formatter(0.1 + 0.2)).toBe("0.3");
-    expect(labels.labels.formatter(603.6)).toBe("603.6");
+    const format = yAxisLabelFormatter(chartFor().options.value);
+    expect(format(160.00000000000003)).toBe("160");
+    expect(format(0.1 + 0.2)).toBe("0.3");
+    expect(format(603.6)).toBe("603.6");
   });
 
   it("does not scale circular charts", () => {
-    expect(boundsFor({ type: "donut" })).not.toHaveProperty("min");
+    expect(yAxisFor({ type: "donut" })).not.toHaveProperty("min");
   });
 });

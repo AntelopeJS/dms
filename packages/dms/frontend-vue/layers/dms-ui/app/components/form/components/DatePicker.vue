@@ -164,8 +164,7 @@ function trackRangePick(value: Parameters<typeof forwardEmit>[1]): void {
     report(undefined);
     return;
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The forwarded event has no validated range owner; keep optional property reads on arbitrary non-null values rather than adding validation.
-  const ends = value as Partial<StrictDateRange>;
+  const ends: { start?: unknown; end?: unknown } = value;
   if (!ends.start) return;
   isHalfPicked = !ends.end;
   if (!isHalfPicked) report(undefined);
@@ -180,8 +179,7 @@ const isPickerOpen = ref(false);
 function isPickComplete(value: Parameters<typeof forwardEmit>[1]): boolean {
   if (!value || props.multiple) return false;
   if (!props.range) return true;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The forwarded event has no validated range owner; keep its existing optional-property truthiness checks on arbitrary values.
-  const ends = value as Partial<StrictDateRange>;
+  const ends: { start?: unknown; end?: unknown } = value;
   return !!ends.start && !!ends.end;
 }
 

@@ -4,6 +4,7 @@ import type {
   LineChartProps,
 } from "@antelopejs/interface-dms/base/chart";
 import { reactive } from "vue";
+import { sectionIn } from "./fixtures/axisCallbacks";
 import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChart";
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
 import type {
@@ -12,8 +13,6 @@ import type {
   ChartXAxis,
 } from "../layers/dms-ui/app/composables/chart/types";
 import type { ApexOptions } from "apexcharts";
-
-type RawOptionSection = ReturnType<typeof useApexChart>["options"]["value"];
 
 const SERIES: ChartSeries[] = [
   { name: "p50 – p99", data: [{ x: "10:00", y: [12, 48] }] },
@@ -33,15 +32,15 @@ describe("typed X axis", () => {
   });
 
   it("preserves defaults when settings are absent or empty", () => {
-    const baseline = sectionOf(optionsFor({}), "xaxis");
-    expect(sectionOf(optionsFor({ xAxis: {} }), "xaxis")).toEqual(baseline);
+    const baseline = sectionIn(optionsFor({}), "xaxis");
+    expect(sectionIn(optionsFor({ xAxis: {} }), "xaxis")).toEqual(baseline);
     expect(baseline.type).toBe("category");
     expect(baseline.tickAmount).toBeUndefined();
-    expect(sectionOf(baseline, "labels").datetimeUTC).toBe(false);
+    expect(sectionIn(baseline, "labels").datetimeUTC).toBe(false);
   });
 
   it("keeps theme labels and explicit zero/false settings", () => {
-    const axis = sectionOf(
+    const axis = sectionIn(
       optionsFor({
         xAxis: {
           tickAmount: 2,
@@ -52,7 +51,7 @@ describe("typed X axis", () => {
       "xaxis",
     );
     expect(axis.tickAmount).toBe(2);
-    expect(sectionOf(axis, "labels")).toMatchObject({
+    expect(sectionIn(axis, "labels")).toMatchObject({
       rotate: 0,
       hideOverlappingLabels: false,
       style: { fontSize: "11px" },
@@ -65,7 +64,7 @@ describe("typed X axis", () => {
     (xaxisType) => {
       const formatter = (value: string, timestamp?: number) =>
         `${timestamp ?? value} units`;
-      const axis = sectionOf(
+      const axis = sectionIn(
         optionsFor({
           xaxisType,
           xAxis: { datetimeFormat: "dd MMM" },
@@ -73,7 +72,7 @@ describe("typed X axis", () => {
         }),
         "xaxis",
       );
-      const labels = sectionOf(axis, "labels");
+      const labels = sectionIn(axis, "labels");
       expect(labels.formatter).toBe(formatter);
       expect(labels.format).toBe(
         xaxisType === "datetime" ? "dd MMM" : undefined,
@@ -86,7 +85,7 @@ describe("typed X axis", () => {
   it("keeps rawOptions as the final whole-section override", () => {
     const rawAxis = { type: "numeric", tickAmount: 7 };
     expect(
-      sectionOf(
+      sectionIn(
         optionsFor({
           xAxis: { tickAmount: 2 },
           xAxisFormatter: (value) => `Day ${value}`,
@@ -105,14 +104,14 @@ describe("typed X axis", () => {
       xAxisFormatter: (value) => `Jour ${value}`,
     });
     const chart = useApexChart(() => input);
-    expect(sectionOf(chart.options.value, "xaxis").tickAmount).toBe(2);
+    expect(sectionIn(chart.options.value, "xaxis").tickAmount).toBe(2);
     input.xAxis = { tickAmount: 4 };
-    expect(sectionOf(chart.options.value, "xaxis").tickAmount).toBe(4);
+    expect(sectionIn(chart.options.value, "xaxis").tickAmount).toBe(4);
     input.xAxis = undefined;
     input.xAxisFormatter = undefined;
-    expect(sectionOf(chart.options.value, "xaxis").tickAmount).toBeUndefined();
+    expect(sectionIn(chart.options.value, "xaxis").tickAmount).toBeUndefined();
     expect(
-      sectionOf(sectionOf(chart.options.value, "xaxis"), "labels").formatter,
+      sectionIn(sectionIn(chart.options.value, "xaxis"), "labels").formatter,
     ).toBeUndefined();
   });
 });
@@ -126,11 +125,6 @@ function optionsFor(input: Partial<UseApexChartInput>) {
   return chart.options.value;
 }
 
-function sectionOf(options: RawOptionSection, key: string): RawOptionSection {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- RawOptionSection deliberately permits arbitrary overrides; no Apex owner type guarantees this section and the tests must observe its unchecked output.
-  return options[key] as RawOptionSection;
-}
-
 describe("rangeArea", () => {
   it("maps to the Apex rangeArea type", () => {
     const chart = useApexChart(() => ({ type: "rangeArea", series: SERIES }));
@@ -138,13 +132,13 @@ describe("rangeArea", () => {
   });
 
   it("fills the band with a flat opacity", () => {
-    const fill = sectionOf(optionsFor({ type: "rangeArea" }), "fill");
+    const fill = sectionIn(optionsFor({ type: "rangeArea" }), "fill");
     expect(fill.opacity).toBeGreaterThan(0);
     expect(fill.type).toBeUndefined();
   });
 
   it("honours an explicit fillOpacity", () => {
-    const fill = sectionOf(
+    const fill = sectionIn(
       optionsFor({ type: "rangeArea", fillOpacity: 0.5 }),
       "fill",
     );
@@ -161,7 +155,7 @@ describe("rangeArea", () => {
       ],
     }));
     expect(chart.apexType.value).toBe("rangeArea");
-    const config = sectionOf(chart.options.value, "chart");
+    const config = sectionIn(chart.options.value, "chart");
     expect(config.type).toBe("rangeArea");
   });
 
@@ -177,17 +171,17 @@ describe("rangeArea", () => {
 
 describe("curve", () => {
   it("defaults to the type's own curve", () => {
-    expect(sectionOf(optionsFor({}), "stroke").curve).toBe("smooth");
+    expect(sectionIn(optionsFor({}), "stroke").curve).toBe("smooth");
   });
 
   it("applies stepline", () => {
-    expect(sectionOf(optionsFor({ curve: "stepline" }), "stroke").curve).toBe(
+    expect(sectionIn(optionsFor({ curve: "stepline" }), "stroke").curve).toBe(
       "stepline",
     );
   });
 
   it("takes precedence over smooth", () => {
-    const stroke = sectionOf(
+    const stroke = sectionIn(
       optionsFor({ curve: "stepline", smooth: false }),
       "stroke",
     );
@@ -195,7 +189,7 @@ describe("curve", () => {
   });
 
   it("still lets smooth false fall back to straight", () => {
-    expect(sectionOf(optionsFor({ smooth: false }), "stroke").curve).toBe(
+    expect(sectionIn(optionsFor({ smooth: false }), "stroke").curve).toBe(
       "straight",
     );
   });
@@ -210,11 +204,11 @@ describe("annotations", () => {
   });
 
   it("maps a reference line onto the Y axis", () => {
-    const annotations = sectionOf(
+    const annotations = sectionIn(
       optionsFor({ annotations: [CAP] }),
       "annotations",
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; using the Apex annotation owner retains its fields without claiming runtime validation.
+    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
     const [line] = annotations.yaxis as NonNullable<
       NonNullable<ApexOptions["annotations"]>["yaxis"]
     >;
@@ -225,11 +219,11 @@ describe("annotations", () => {
   });
 
   it("draws a solid line when dashed is false", () => {
-    const annotations = sectionOf(
+    const annotations = sectionIn(
       optionsFor({ annotations: [{ ...CAP, dashed: false }] }),
       "annotations",
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; the Apex annotation owner preserves the fields under test.
+    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
     const [line] = annotations.yaxis as NonNullable<
       NonNullable<ApexOptions["annotations"]>["yaxis"]
     >;
@@ -237,11 +231,11 @@ describe("annotations", () => {
   });
 
   it("resolves theme color names to usable CSS colors", () => {
-    const annotations = sectionOf(
+    const annotations = sectionIn(
       optionsFor({ annotations: [{ y: 4, label: "cap", color: "warning" }] }),
       "annotations",
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; the Apex annotation owner preserves the fields under test.
+    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
     const [line] = annotations.yaxis as NonNullable<
       NonNullable<ApexOptions["annotations"]>["yaxis"]
     >;
@@ -253,11 +247,11 @@ describe("annotations", () => {
   });
 
   it("shades a band when y2 is set", () => {
-    const annotations = sectionOf(
+    const annotations = sectionIn(
       optionsFor({ annotations: [{ y: 10, y2: 40, color: "#10b981" }] }),
       "annotations",
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option output is unchecked; the Apex annotation owner preserves the fields under test.
+    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
     const [band] = annotations.yaxis as NonNullable<
       NonNullable<ApexOptions["annotations"]>["yaxis"]
     >;
@@ -270,13 +264,13 @@ describe("annotations", () => {
 
 describe("syncGroup", () => {
   it("leaves the chart ungrouped by default", () => {
-    const chart = sectionOf(optionsFor({}), "chart");
+    const chart = sectionIn(optionsFor({}), "chart");
     expect(chart.group).toBeUndefined();
     expect(chart.id).toBeUndefined();
   });
 
   it("exposes the group and a per-chart id", () => {
-    const chart = sectionOf(
+    const chart = sectionIn(
       optionsFor({ syncGroup: "service-metrics", chartId: "latency" }),
       "chart",
     );
@@ -285,7 +279,7 @@ describe("syncGroup", () => {
   });
 
   it("leaves the id to Apex when no chart id is given", () => {
-    const chart = sectionOf(optionsFor({ syncGroup: "grid" }), "chart");
+    const chart = sectionIn(optionsFor({ syncGroup: "grid" }), "chart");
     expect(chart.group).toBe("grid");
     expect(chart.id).toBeUndefined();
   });

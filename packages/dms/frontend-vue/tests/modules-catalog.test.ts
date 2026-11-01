@@ -203,43 +203,45 @@ describe("findModulePageMatch", () => {
 });
 
 describe("recentModules", () => {
+  const treeNode = (
+    id: string,
+    fullSlug: string,
+    extra: Partial<SiteLayoutTree> = {},
+  ): SiteLayoutTree => ({
+    id,
+    displayName: id,
+    fullId: id,
+    fullSlug,
+    children: {},
+    childrenOrders: [],
+    ...extra,
+  });
   const landingTree = (moduleId: string, slugs: string[]): SiteLayoutTree => {
-    const pages = slugs.map((fullSlug, index) => ({
-      id: `page-${index}`,
-      fullSlug,
-      layoutUrl: "/layout",
-      children: {},
-      childrenOrders: [],
-    }));
-    const root = {
-      id: moduleId,
-      fullSlug: `/modules/${moduleId}`,
+    const pages = slugs.map((fullSlug, index) =>
+      treeNode(`page-${index}`, fullSlug, { layoutUrl: "/layout" }),
+    );
+    const root = treeNode(moduleId, `/modules/${moduleId}`, {
       isModuleRoot: true,
       children: Object.fromEntries(pages.map((page) => [page.id, page])),
       childrenOrders: pages.map((page) => page.id),
-    };
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This deliberately sparse landing tree omits displayName and fullId because recentModules only reads slugs, children, ordering and module-root flags; it is not a complete SiteLayoutTree.
-    return {
-      id: "",
-      fullSlug: "/",
+    });
+    return treeNode("", "/", {
       children: {
-        modules: {
-          id: "modules",
-          fullSlug: "/modules",
+        modules: treeNode("modules", "/modules", {
           children: { [moduleId]: root },
           childrenOrders: [moduleId],
-        },
+        }),
       },
       childrenOrders: ["modules"],
-    } as SiteLayoutTree;
+    });
   };
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This sparse module omits description because recentModules only reads its title, icon and access; it is not a complete ModuleWithAccess.
-  const cms = {
+  const cms: ModuleWithAccess = {
     id: "cms",
     title: "$cms.title",
     icon: "i-ph-article",
+    description: "",
     hasAccess: true,
-  } as ModuleWithAccess;
+  };
 
   it("opens a recent module on its landing page, not where it was left", () => {
     const tree = landingTree("cms", [

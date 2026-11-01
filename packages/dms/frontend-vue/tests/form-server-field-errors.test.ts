@@ -1,6 +1,10 @@
 import { HttpMethod } from "../layers/dms-core/app/types/http";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import { formSubmitEvent } from "./helpers/form-submit-event";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import {
@@ -111,6 +115,16 @@ afterEach(() => {
 });
 
 describe("DMS form server errors", () => {
+  it("shows only the generic refusal toast even when the body names a field", async () => {
+    installReadOnlyRefusal();
+    authFetch.mockRejectedValue(readOnlyFailure());
+    await submit(setupForm());
+    expect(showFieldErrors).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "dms-read-only", color: "warning" }),
+    );
+  });
+
   it("puts a refused value under its field, without a toast", async () => {
     authFetch.mockRejectedValue(
       zodRefusal([
