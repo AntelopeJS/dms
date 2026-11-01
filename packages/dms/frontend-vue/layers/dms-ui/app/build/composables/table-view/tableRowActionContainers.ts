@@ -136,6 +136,7 @@ const createContainerOpeners = (
         title,
         description,
         containerId,
+        sizeKey: `${config.pageId}-${config.componentId}-form`,
         component: DmsForm,
         componentOptions: {
           ...processedOptions,
