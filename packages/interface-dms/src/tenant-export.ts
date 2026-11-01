@@ -1,5 +1,5 @@
 import type { Readable } from "node:stream";
-import type { JsonValue } from "./base/types/json";
+import type { JsonValue } from "./json";
 
 /**
  * Sink handed to `Hook.TENANT_DATA_EXPORT` contributors.
