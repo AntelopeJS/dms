@@ -29,10 +29,16 @@ interface SaveBarProps {
   /** Save button label (i18n key with `$` or literal). */
   saveLabel?: string;
   /**
-   * With nothing to save, the bar shows a Cancel button (emitting `cancel`)
-   * instead of hiding: a form page the user leaves from there.
+   * The form has somewhere to go back to: Cancel (emitting `cancel`) drops
+   * the changes and leaves, beside the save button of a changed form, or
+   * alone on a page an `action` form can leave.
    */
   cancellable?: boolean;
+  /**
+   * The form is in a drawer or a modal, closed by its own button: no Cancel
+   * before any change.
+   */
+  closable?: boolean;
   variant?: SaveBarVariant;
   /**
    * What the form edits (see `FormKind`): an `action` form's bar has no
@@ -52,6 +58,7 @@ const props = withDefaults(defineProps<SaveBarProps>(), {
   form: undefined,
   saveLabel: undefined,
   cancellable: false,
+  closable: false,
   variant: "floating",
   kind: "record",
   resettable: true,
@@ -105,7 +112,7 @@ const theme = tv({
     {
       variant: "band",
       hidden: true,
-      class: { root: "invisible translate-y-2 opacity-0" },
+      class: { root: "hidden" },
     },
   ],
 });
@@ -123,6 +130,7 @@ const state = computed(() =>
     kind: props.kind,
     dirty: props.dirty,
     cancellable: props.cancellable,
+    closable: props.closable,
     resettable: props.resettable,
   }),
 );

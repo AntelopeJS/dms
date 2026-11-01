@@ -69,7 +69,7 @@ export class PageFormSaving extends PageController(
   static footer = Form({
     title: "Footer buttons",
     description:
-      "saveMode footer: the buttons sit under the fields. Clean, Cancel leads to the Simple form (backTo); the breadcrumb ends with the name (labelKey).",
+      "saveMode footer: the buttons sit under the fields. Clean, no buttons; changed, Cancel leads to the Simple form (backTo); the breadcrumb ends with the name (labelKey).",
     saveMode: "footer",
     backTo: "/form/form-simple",
     fetchUrl: `${FORM_SAVING_API}/get`,
