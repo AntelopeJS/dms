@@ -70,6 +70,7 @@ function installRuntime(initialCookies: Record<string, string>) {
   vi.stubGlobal("useDmsState", <T>(_key: string, initial: () => T) =>
     ref(initial()),
   );
+  vi.stubGlobal("isDmsHydrating", () => false);
 
   vi.stubGlobal(
     "useDmsCookie",
