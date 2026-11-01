@@ -23,6 +23,8 @@ interface FilterDeclarations<T extends Record<string, unknown>> {
   declaredTabs: TableViewOptions<T>["tabs"];
   declaredViews: TableViewOptions<T>["views"];
   meta: TableViewMeta;
+  /** Whether the controller mounts a `new` route: without it nobody can add. */
+  hasNewEndpoint: boolean;
 }
 
 /** @internal */
@@ -36,9 +38,11 @@ export async function filterTableViewOptions<T extends Record<string, unknown>>(
     declaredTabs,
     declaredViews,
     meta,
+    hasNewEndpoint,
   } = declarations;
   const [permissions, options, permissionId, context] = request;
-  const grants = await resolveTableViewGrants(permissions, permissionId);
+  const held = await resolveTableViewGrants(permissions, permissionId);
+  const grants = { ...held, add: held.add && hasNewEndpoint };
 
   const adaptedFormComponents = {
     new: grants.add ? options.formComponents.new : undefined,

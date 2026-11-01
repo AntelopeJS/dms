@@ -204,6 +204,17 @@ describe("[integration] table view capabilities", () => {
     expect(otherCounts.data).to.deep.equal({ mine: 0 });
   });
 
+  it("counts the entries the table view sends, paging parameters included", async () => {
+    const counts = await client.get(
+      batchUrl(LOCATION, [
+        "all?offset=0&limit=0",
+        "paid?filter_status=is%3Apaid&offset=0&limit=0",
+      ]),
+    );
+    expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
+    expect(counts.data).to.deep.equal({ all: 5, paid: 2 });
+  });
+
   it("keeps a route scope in the tab counters' batch count", async () => {
     const scoped = "/api/capabilities/open-invoices";
     const count = await client.get(`${scoped}/count`);
