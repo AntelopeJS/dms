@@ -13,7 +13,7 @@ const OK_MAX = 299;
  * The credentials of the run's administrator, derived from the run id so a
  * journey can name them before onboarding.
  *
- * @param {{ id: string }} state The run
+ * @param {Pick<import("./run-state.mjs").RunState, "id" | "adminPassword">} state The run
  * @returns {{ email: string, password: string, firstName: string, lastName: string }} The administrator's credentials
  */
 export function adminCredentials(state) {
@@ -35,6 +35,10 @@ export function newPassword() {
   return `Vr1!${randomBytes(PASSWORD_BYTES).toString("base64url").replace(/[-_]/g, "x")}`;
 }
 
+/**
+ * @param {string} text The text
+ * @returns {string} The text as a folder name
+ */
 function slug(text) {
   return text
     .toLowerCase()
@@ -63,6 +67,9 @@ export function nextFolder(state, group, label) {
   return folder;
 }
 
+/**
+ * @param {string} text The response text
+ */
 function parseBody(text) {
   try {
     return JSON.parse(text);
