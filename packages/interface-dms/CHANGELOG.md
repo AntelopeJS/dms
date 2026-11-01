@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.10.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.10.2...v0.10.3)
+
+### 🚀 Enhancements
+
+- **dms-ui:** State the data state of each data block on its root element ([#585](https://github.com/AntelopeJS/dms/pull/585))
+
+### 🩹 Fixes
+
+- **frontend:** Run the API error CLIs when pnpm links the package ([#634](https://github.com/AntelopeJS/dms/pull/634))
+- **table-view:** Currency on prices, settled counters, no add without a new route ([#611](https://github.com/AntelopeJS/dms/pull/611))
+- **interface-dms:** Name a bucketed series' periods for a person, 202608 as Aug 2026 ([#617](https://github.com/AntelopeJS/dms/pull/617))
+- **chart:** Thin the category x-axis labels of a long series so they never overlap ([#626](https://github.com/AntelopeJS/dms/pull/626))
+
+### 💅 Refactors
+
+- **frontend:** ⚠️  Remove API error migration helpers ([#638](https://github.com/AntelopeJS/dms/pull/638))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.13.0 ([5f222413](https://github.com/AntelopeJS/dms/commit/5f222413))
+- **release:** @antelopejs/dms v0.13.1 ([5bf5a885](https://github.com/AntelopeJS/dms/commit/5bf5a885))
+- **release:** @antelopejs/dms v0.14.0 ([59a52f99](https://github.com/AntelopeJS/dms/commit/59a52f99))
+
+#### ⚠️ Breaking Changes
+
+- **frontend:** ⚠️  Remove API error migration helpers ([#638](https://github.com/AntelopeJS/dms/pull/638))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.10.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.10.1...v0.10.2)
