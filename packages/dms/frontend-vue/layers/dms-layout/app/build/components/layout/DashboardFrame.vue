@@ -11,8 +11,8 @@ import {
   sidePanelWidthStyle,
   useActiveSidePanel,
 } from "#dms-ui/app/entries/composables/layout/sidePanelState";
+import { DASHBOARD_STORAGE_KEY } from "../../utils/dashboardStorage";
 
-const DASHBOARD_STORAGE_KEY = "dms-dashboard";
 const DASHBOARD_SIZE_UNIT = "px";
 
 const REGION_PADDING_CLASS = "pb-12 lg:pb-16";

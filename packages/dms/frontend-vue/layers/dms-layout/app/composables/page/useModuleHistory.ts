@@ -3,7 +3,7 @@ import {
   isString,
   isNumber,
 } from "../../../../dms-core/app/utils/type-check";
-const MODULE_HISTORY_COOKIE = "dms-module-history";
+export const MODULE_HISTORY_COOKIE = "dms-module-history";
 
 const MODULE_HISTORY_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 const MODULE_HISTORY_MAX_ENTRIES = 12;
