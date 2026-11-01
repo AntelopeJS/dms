@@ -106,6 +106,8 @@ export interface DeepLinkedRow<T> {
    * error): the row may still exist, the link just could not be followed.
    */
   isFailed?: boolean;
+  /** Original request failure retained for presentation. */
+  error?: unknown;
 }
 
 /**
@@ -125,7 +127,7 @@ export async function resolveDeepLinkedRow<T>(
     return { row: row ?? undefined, isMissing: false };
   } catch (error: unknown) {
     if (readFetchNotFound(error) !== null) return { isMissing: true };
-    return { isMissing: false, isFailed: true };
+    return { isMissing: false, isFailed: true, error };
   }
 }
 

@@ -34,6 +34,7 @@ export default defineDmsPlugin(() => {
   const { $i18n: i18n } = useDmsApp();
   const { t } = getAppTranslation();
   const toast = useToast();
+  const { presentError } = useApiErrorPresenter();
   const { logout } = useLogout();
   const { changeLanguage } = useUserLanguage();
   const { copy } = useClipboard({ legacy: true });
@@ -51,10 +52,9 @@ export default defineDmsPlugin(() => {
     try {
       await copy(window.location.href);
       toast.add({ title: t("commandPalette.session.urlCopied") });
-    } catch {
-      toast.add({
-        title: t("commandPalette.session.copyFailed"),
-        color: "error",
+    } catch (error) {
+      presentError(error, {
+        fallbackKey: "commandPalette.session.copyFailed",
       });
     }
   }

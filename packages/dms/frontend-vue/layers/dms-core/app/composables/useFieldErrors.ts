@@ -1,8 +1,5 @@
 import { nextTick, reactive } from "vue";
-import {
-  type I18nTranslate,
-  resolveApiMessage,
-} from "./translation/useTranslation";
+import { type I18nTranslate } from "./translation/useTranslation";
 import { resolveApiErrorMessage } from "./useApiError";
 import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 
@@ -19,11 +16,10 @@ import { isBoolean, isNumber, isObject, isString } from "../utils/type-check";
 export interface ApiFieldError {
   /** Id of the field, as the form names it (the request body key). */
   field: string;
-  /**
-   * What to show under the field: an i18n key (bare `error.xxx` or `$key`)
-   * or prose, resolved with `resolveApiMessage`.
-   */
+  /** Server translation key, resolved by the API error presenter. */
   message: string;
+  /** Caller key used only when the server's message is not translated. */
+  fallbackKey?: string;
   /** The values of the field the error names (addresses of a list…). */
   values?: string[];
   /**
@@ -325,7 +321,7 @@ function lookupCode<F extends string>(
   if (!entry) return undefined;
   return isString(entry)
     ? { field: entry, message: code }
-    : { field: entry.field, message: entry.message };
+    : { field: entry.field, message: code, fallbackKey: entry.message };
 }
 
 function fromBody(body: ReturnType<typeof bodyOf>): ApiFieldError[] {
@@ -489,11 +485,7 @@ export interface HandleApiErrorOptions {
 export function useFieldErrors<F extends string>(
   options: UseFieldErrorsOptions<F>,
 ) {
-  const { t } = useI18n();
-  const toast = useToast();
-  const consumeReadOnlyRefusal = useReadOnlyRefusal();
-  const translate = (key: string, params: Parameters<I18nTranslate>[1] = {}) =>
-    t(key, params);
+  const { presentError, resolveError } = useApiErrorPresenter();
   const fieldIds = Object.keys(options.fields) as F[];
   const errors: Partial<Record<F, string>> = reactive({});
 
@@ -549,21 +541,20 @@ export function useFieldErrors<F extends string>(
   async function applyApiError(
     error: Parameters<typeof resolveApiErrorMessage>[0],
   ): Promise<boolean> {
-    const { fields } = resolveFieldErrors(error, {
+    const { fields, hasUnmatched } = resolveFieldErrors(error, {
       fields: fieldIds,
       codes: options.codes,
     });
     if (fields.length === 0) return false;
     clear();
     for (const entry of fields) {
-      errors[entry.field as F] = resolveApiMessage(
-        translate,
-        entry.message,
-        entry.params,
-      );
+      errors[entry.field as F] = resolveError(entry.message, {
+        fallbackKey: entry.fallbackKey ?? "dms.field_errors.invalid",
+        params: entry.params,
+      })?.message;
     }
     await focus(fields[0]!.field as F);
-    return true;
+    return !hasUnmatched;
   }
   /* oxlint-enable anti-slop/require-safety-comment-for-type-assertion */
 
@@ -572,13 +563,8 @@ export function useFieldErrors<F extends string>(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     toastOptions: HandleApiErrorOptions,
   ) {
-    if (consumeReadOnlyRefusal(error)) return;
-    toast.add({
-      title: t(toastOptions.toastTitle),
-      description: toastOptions.toastDescription
-        ? t(toastOptions.toastDescription)
-        : resolveApiMessage(translate, describeApiError(error)),
-      color: "error",
+    presentError(error, {
+      fallbackKey: toastOptions.toastDescription ?? toastOptions.toastTitle,
     });
   }
 
@@ -591,7 +577,6 @@ export function useFieldErrors<F extends string>(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     toastOptions: HandleApiErrorOptions,
   ): Promise<boolean> {
-    if (consumeReadOnlyRefusal(error)) return false;
     if (await applyApiError(error)) return true;
     toastError(error, toastOptions);
     return false;

@@ -134,7 +134,8 @@
     "release-it-changelogen": "^0.1.0",
     "rimraf": "^6.1.3",
     "tsc-alias": "^1.9.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vue": "^3.5.18"
   },
   "exports": {
     ".": {
@@ -142,6 +143,8 @@
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json",
+    "./checks/api-error-presentation": "./frontend-vue/scripts/check-api-error-presentation.mjs",
+    "./codemods/api-error-presenter": "./frontend-vue/scripts/codemods/api-error-presenter.mjs",
     "./interfaces/*": null
   },
   "publishConfig": {

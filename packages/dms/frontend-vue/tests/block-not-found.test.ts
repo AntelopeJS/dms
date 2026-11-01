@@ -201,12 +201,15 @@ describe("BlockStatus not-found", () => {
   it("says so in the user's language, with no retry", () => {
     const text = render({});
     expect(text).toContain("t(dms.blocks.not_found)");
-    expect(text).toContain("t(dms.blocks.not_found_hint)");
+    expect(text).toContain("dms.blocks.not_found_hint");
     expect(text).not.toContain("load_error");
   });
 
-  it("describes it with the server's message", () => {
-    expect(render({ message: "No such workspace" })).toContain(
+  it("describes it with a translated server key, not raw prose", () => {
+    expect(render({ message: "error.read_only_demo" })).toContain(
+      "error.read_only_demo",
+    );
+    expect(render({ message: "No such workspace" })).not.toContain(
       "No such workspace",
     );
   });

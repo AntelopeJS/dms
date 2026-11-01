@@ -7,8 +7,6 @@ const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 const MS_PER_MONTH = 30 * MS_PER_DAY;
 const MS_PER_YEAR = 365 * MS_PER_DAY;
-const ERROR_CODE_PREFIX = "error.";
-const SECURITY_ERRORS_PREFIX = "page.settings.security.errors.";
 
 interface RelativeUnit {
   unit: Intl.RelativeTimeFormatUnit;
@@ -35,7 +33,8 @@ type DateInput = string | Date;
  * translation of API error codes into sentences.
  */
 export function useSecurityFormat() {
-  const { locale, t, te } = useI18n();
+  const { locale } = useI18n();
+  const { resolveError } = useApiErrorPresenter();
 
   const formatDate = (value: DateInput): string =>
     regionalDateTimeFormat(locale.value, { dateStyle: "medium" }).format(
@@ -74,14 +73,7 @@ export function useSecurityFormat() {
    */
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript throws arbitrary values. FetchError-derived parameters would reject the boundary inputs this formatter already handles.
   const errorMessage = (error: unknown, fallbackKey: string): string => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked optional property projection preserves primitive and nullish thrown values; this is not a validated FetchError and owner typing cannot guarantee one.
-    const code = (error as FetchErrorLike | undefined)?.data;
-    if (!isString(code) || !code.startsWith(ERROR_CODE_PREFIX)) {
-      return t(fallbackKey);
-    }
-    const ownKey = `${SECURITY_ERRORS_PREFIX}${code.slice(ERROR_CODE_PREFIX.length)}`;
-    if (te(ownKey)) return t(ownKey);
-    return te(code) ? t(code) : t(fallbackKey);
+    return resolveError(error, { fallbackKey })?.message ?? "";
   };
 
   /** @returns The error code (`error.xxx`) the API answered with, if any */

@@ -43,7 +43,7 @@ const i18n = createI18n({
 });
 const t = i18n.global.t;
 
-const toast = { add: vi.fn() };
+const toast = { add: vi.fn(() => ({ id: "failure" })) };
 const refresh = vi.fn();
 const api = fetchClientMock();
 
@@ -98,6 +98,7 @@ async function rowActions() {
 }
 
 beforeEach(() => {
+  vi.stubEnv("SSR", false);
   const globals = {
     ref,
     Color,
@@ -121,7 +122,8 @@ beforeEach(() => {
   for (const [name, value] of Object.entries(globals)) {
     vi.stubGlobal(name, value);
   }
-  toast.add.mockReset();
+  vi.stubGlobal("getPluginI18n", () => ({ i18n: i18n.global }));
+  toast.add.mockClear();
   refresh.mockReset();
   api.mockReset();
   getRow.mockReset();
@@ -152,7 +154,10 @@ function registerRowActionRefusalTests() {
     expect(shownRows.map(({ _id }) => _id)).toEqual(["t1", "t2"]);
     expect(refresh).not.toHaveBeenCalled();
     expect(toast.add).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ id: "dms-read-only" }),
+      expect.objectContaining({
+        title: "error.read_only_demo",
+        color: "warning",
+      }),
     );
   });
 
@@ -185,7 +190,7 @@ function registerRowActionRefusalTests() {
     expect(refresh).not.toHaveBeenCalled();
   });
 
-  it("toasts the refusal of an action without a dialog, in the error colour", async () => {
+  it("toasts a plain refusal with its contextual fallback and warning tone", async () => {
     api.mockRejectedValue(
       fetchError(403, "Forbidden: missing permission settings.invites"),
     );
@@ -206,12 +211,14 @@ function registerRowActionRefusalTests() {
     await vi.waitFor(() => expect(toast.add).toHaveBeenCalled());
 
     expect(confirm).not.toHaveBeenCalled();
-    expect(toast.add).toHaveBeenCalledWith({
-      color: Color.error,
-      icon: "i-ph-warning-circle",
-      title: "Copy link",
-      description: "You don’t have permission to do this.",
-    });
+    expect(toast.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        color: Color.warning,
+        title:
+          "Something went wrong and the action couldn’t be completed. Try again.",
+        description: undefined,
+      }),
+    );
   });
 
   it("sums up a bulk action some rows refused, applying the rest", async () => {
@@ -248,10 +255,7 @@ function registerBulkActionRefusalTests() {
     expect(done).toBe(false);
     const error = dialogs[0]!.error;
     expect(error).toBeInstanceOf(ConfirmActionError);
-    expect(error).toHaveProperty(
-      "message",
-      "These 2 items couldn’t be deleted.",
-    );
+    expect(error).toHaveProperty("message", "dms.table.bulk_refused.delete");
     expect(toast.add).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -270,13 +274,13 @@ function registerBulkActionRefusalTests() {
 
     api.mockRejectedValueOnce(fetchError(undefined));
     expect(await restoreRows(["1", "2"], true)).toBe(false);
-    expect(toast.add).toHaveBeenLastCalledWith({
-      color: Color.error,
-      icon: "i-ph-warning-circle",
-      title: "Failed to restore items",
-      description:
-        "The server could not be reached. Check your connection and try again.",
-    });
+    expect(toast.add).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        color: Color.error,
+        title: "Failed to restore items",
+        description: undefined,
+      }),
+    );
 
     api.mockResolvedValueOnce({ success: true, restoredCount: 1 });
     expect(await restoreRows(["1", "2"], true)).toBe(true);

@@ -23,7 +23,7 @@ import {
 import { readSubline } from "../../build/composables/data-types/cellHelpers";
 import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 import { useCardFields } from "../../build/composables/table-view/useCardFields";
-import { describeTableWriteError } from "../../build/composables/table-view/utils/writeError";
+import { tableWriteErrorOptions } from "../../build/composables/table-view/utils/writeError";
 
 const DEFAULT_COLUMN_PAGE_SIZE = 10;
 const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
@@ -89,7 +89,7 @@ const { getDataType } = useDataTypes();
 const { t } = useI18n();
 const { processText } = useComposedText();
 const toast = useToast();
-const consumeReadOnlyRefusal = useReadOnlyRefusal();
+const { presentError } = useApiErrorPresenter();
 
 const rowIdKey = computed(() => props.rowIdKey ?? DEFAULT_ROW_ID_KEY);
 const pageSize = computed(
@@ -296,15 +296,17 @@ const awaitNewerMoves = async (itemId: string, current: Promise<void>) => {
   }
 };
 
-const notifyMoveError = (
-  error: Parameters<typeof describeTableWriteError>[0],
-) => {
-  if (consumeReadOnlyRefusal(error)) return;
-  toast.add({
-    color: Color.error,
-    title: t("dms.table.kanban.move_error"),
-    description: describeTableWriteError(error, t, props.columns, processI18n),
-  });
+const notifyMoveError = (error: unknown) => {
+  presentError(
+    error,
+    tableWriteErrorOptions(
+      error,
+      t,
+      props.columns,
+      processI18n,
+      "dms.table.kanban.move_error",
+    ),
+  );
 };
 
 const onColumnChange = async (

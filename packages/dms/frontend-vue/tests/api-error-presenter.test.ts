@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ref } from "vue";
+import { reactive, ref } from "vue";
 import { createI18n } from "vue-i18n";
+import { $fetch } from "#dms/frontend-module";
 import { useApiErrorPresenter } from "../layers/dms-core/app/composables/useApiErrorPresenter";
 
 const add = vi.fn(() => ({ id: "failure" }));
@@ -20,6 +21,7 @@ const messages = {
 };
 
 function install() {
+  vi.stubEnv("SSR", false);
   const i18n = createI18n({
     legacy: false,
     locale: "en",
@@ -55,6 +57,7 @@ describe("API error presentation", () => {
     second.presentError(new Error("wrapper", { cause: { ...error } }), {
       fallbackKey: "caller",
     });
+    second.presentError(reactive({ ...error }), { fallbackKey: "caller" });
     expect(add).toHaveBeenCalledTimes(1);
     expect(add).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Read-only demo", color: "warning" }),
@@ -152,6 +155,14 @@ describe("API error presentation", () => {
     ).toBe("Could not save");
     expect(
       resolveError(
+        { name: "AbortError", statusCode: 403 },
+        {
+          fallbackKey: "caller",
+        },
+      ),
+    ).toBeNull();
+    expect(
+      resolveError(
         { ...refusal("unknown"), name: "AbortError" },
         { fallbackKey: "caller" },
       )?.severity,
@@ -175,6 +186,11 @@ describe("API error presentation", () => {
         params: { max: 7 },
       })?.message,
     ).toBe("At most 7");
+    expect(
+      resolveError(new Error("wrapper", { cause: "error.read_only_demo" }), {
+        fallbackKey: "caller",
+      })?.message,
+    ).toBe("Démo en lecture seule");
     presentError(error, { fallbackKey: "caller" });
     expect(add).toHaveBeenCalledTimes(1);
   });
@@ -197,5 +213,65 @@ describe("API error presentation", () => {
     expect(remove).not.toHaveBeenCalled();
     presentError(error, { ...options, replaceToastId: "stale" });
     expect(remove).toHaveBeenCalledWith("stale");
+  });
+
+  it.each([
+    [
+      403,
+      { message: "error.read_only_demo", severity: "warning" },
+      "Read-only demo",
+      "warning",
+    ],
+    [409, "error.read_only_demo", "Read-only demo", "warning"],
+    [500, { message: "missing", severity: "info" }, "Could not save", "info"],
+    [
+      400,
+      { message: "error.read_only_demo", severity: "error" },
+      "Read-only demo",
+      "error",
+    ],
+  ])(
+    "presents the parsed body from real ofetch for HTTP %s",
+    async (status, body, title, color) => {
+      const response = new Response(
+        typeof body === "string" ? body : JSON.stringify(body),
+        {
+          status: Number(status),
+          headers: {
+            "content-type":
+              typeof body === "string" ? "text/plain" : "application/json",
+          },
+        },
+      );
+      vi.stubGlobal("fetch", async () => response);
+      const error = await $fetch
+        .raw("https://fixture.test/write", { retry: 0 })
+        .catch((failure: unknown) => failure);
+      const { presentError } = useApiErrorPresenter();
+      presentError(error, { fallbackKey: "caller" });
+      presentError(new Error("wrapper", { cause: error }), {
+        fallbackKey: "caller",
+      });
+      expect(add).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ title, color }),
+      );
+    },
+  );
+
+  it("does not claim a response during SSR and rolls back a failed toast emission", () => {
+    const presenter = useApiErrorPresenter();
+    const error = refusal("error.read_only_demo");
+    vi.stubEnv("SSR", true);
+    presenter.presentError(error, { fallbackKey: "caller" });
+    expect(add).not.toHaveBeenCalled();
+    vi.stubEnv("SSR", false);
+    add.mockImplementationOnce(() => {
+      throw new Error("toast unavailable");
+    });
+    expect(() =>
+      presenter.presentError(error, { fallbackKey: "caller" }),
+    ).toThrow("toast unavailable");
+    presenter.presentError(error, { fallbackKey: "caller" });
+    expect(add).toHaveBeenCalledTimes(2);
   });
 });

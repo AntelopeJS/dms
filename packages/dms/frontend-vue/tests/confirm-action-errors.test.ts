@@ -11,9 +11,7 @@ import {
 } from "vue";
 import ConfirmModal from "../layers/dms-ui/app/components/confirm/ConfirmModal.vue";
 import {
-  ACTION_ERROR_FORBIDDEN_KEY,
   ACTION_ERROR_GENERIC_KEY,
-  ACTION_ERROR_NETWORK_KEY,
   resolveActionError,
 } from "../layers/dms-ui/app/entries/composables/confirm/actionError";
 import { ConfirmActionError } from "../layers/dms-ui/app/composables/confirm/types";
@@ -32,94 +30,41 @@ function fetchError<Data = undefined>(status: number | undefined, data?: Data) {
   );
 }
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Translation is indexed by arbitrary server keys and preserves the existing missing-key fallback. Inference removes that index signature and I18nTranslate owns a callable, not a finite message dictionary.
-const TRANSLATIONS: Record<string, string> = {
-  "error.not_found": "Not found",
-  "page.settings.invites.error.expired": "This invitation has expired",
-};
-
-const translate = (key: string) => TRANSLATIONS[key] ?? key;
-
 describe("resolveActionError", () => {
-  it("translates the server's i18n key, bare or `$`-marked", () => {
-    expect(
-      resolveActionError(fetchError(404, "error.not_found"), translate),
-    ).toBe("Not found");
-    expect(
-      resolveActionError(
-        fetchError(410, { message: "$page.settings.invites.error.expired" }),
-        translate,
-      ),
-    ).toBe("This invitation has expired");
+  it("forwards loaded keys without using the legacy translator as a lookup", () => {
+    const translate = vi.fn(() => "Untrusted missing-handler text");
+    for (const message of ["error.read_only_demo", "$error.read_only_demo"]) {
+      expect(resolveActionError(fetchError(403, { message }), translate)).toBe(
+        "error.read_only_demo",
+      );
+    }
+    expect(translate).not.toHaveBeenCalled();
   });
 
-  it("shows the plain text of a 4xx as it came", () => {
-    expect(
-      resolveActionError(fetchError(409, "Already archived"), translate),
-    ).toBe("Already archived");
-  });
-
-  it("names the fields the data API refused by their labels", () => {
-    const named = (
-      key: string,
-      params: Parameters<
-        import("../layers/dms-core/app/composables/translation/useTranslation").I18nTranslate
-      >[1],
-    ) =>
-      key === "dms.field_errors.named_required"
-        ? `${String(params.field)} is required.`
-        : key;
-    const refused = fetchError(400, {
-      code: "missing_mandatory_fields",
-      fields: ["due_date", "owner"],
-    });
-    expect(
-      resolveActionError(refused, named, (field) =>
-        field === "due_date" ? "Due date" : undefined,
-      ),
-    ).toBe("Due date is required. owner is required.");
-  });
-
-  it("words a refused permission for users, not the server's developer text", () => {
-    expect(
-      resolveActionError(
-        fetchError(403, "Forbidden: missing permission settings.members.edit"),
-        translate,
-      ),
-    ).toBe(ACTION_ERROR_FORBIDDEN_KEY);
-    expect(resolveActionError(fetchError(401), translate)).toBe(
-      ACTION_ERROR_FORBIDDEN_KEY,
-    );
-  });
-
-  it("falls back on a generic message for a crash, JSON, a stack or an untranslated key", () => {
+  it("uses the presenter fallback for untrusted text and unknown keys", () => {
     for (const error of [
       fetchError(500, "Archive field not configured."),
       fetchError(422, '{"issues":[{"path":["name"]}]}'),
       fetchError(400, "TypeError: x is undefined\n    at run (a.js:1:2)"),
       fetchError(404, "error.no_such_key"),
       fetchError(400, { detail: "no message field" }),
+      new Error("Pick another role first."),
+      new TypeError("Failed to fetch"),
       { unexpected: true },
     ]) {
-      expect(resolveActionError(error, translate)).toBe(
+      expect(resolveActionError(error, (key) => key)).toBe(
         ACTION_ERROR_GENERIC_KEY,
       );
     }
   });
 
-  it("tells a request that never reached the server apart", () => {
-    expect(resolveActionError(fetchError(undefined), translate)).toBe(
-      ACTION_ERROR_NETWORK_KEY,
-    );
+  it("returns no text for cancellation", () => {
     expect(
-      resolveActionError(new TypeError("Failed to fetch"), translate),
-    ).toBe(ACTION_ERROR_NETWORK_KEY);
-  });
-
-  it("keeps a message a caller already worded for users", () => {
-    expect(
-      resolveActionError(new Error("Pick another role first."), translate),
-    ).toBe("Pick another role first.");
+      resolveActionError(
+        new DOMException("Aborted", "AbortError"),
+        (key) => key,
+      ),
+    ).toBe("");
   });
 });
 
@@ -233,7 +178,7 @@ function createConfirmActionErrorsFixture() {
 function registerConfirmationRetryTests(
   fixture: ReturnType<typeof createConfirmActionErrorsFixture>,
 ) {
-  it("keeps a marked refusal open without an inline alert and clears pending for retry", async () => {
+  it("keeps a refusal inline and clears pending for retry without a toast", async () => {
     const add = vi.fn();
     vi.stubGlobal("useToast", () => ({ add }));
     installReadOnlyRefusal();
@@ -246,12 +191,10 @@ function registerConfirmationRetryTests(
     fixture.button("Delete")!.click();
     await fixture.flush();
     expect(fixture.closed).not.toHaveBeenCalled();
-    expect(fixture.alert()).toBeNull();
+    expect(fixture.alert()?.textContent).toContain("error.read_only_demo");
     expect(fixture.button("Delete")!.disabled).toBe(false);
     expect(fixture.button("Delete")!.dataset.loading).toBeUndefined();
-    expect(add).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ id: "dms-read-only" }),
-    );
+    expect(add).not.toHaveBeenCalled();
   });
 
   it("stays open on a refusal, shows why, and lets the user retry", async () => {
@@ -272,8 +215,8 @@ function registerConfirmationRetryTests(
     fixture.button("Delete")!.click();
     await fixture.flush();
     expect(fixture.closed).not.toHaveBeenCalled();
-    expect(fixture.alert()?.dataset.alert).toBe("error");
-    expect(fixture.alert()?.textContent).toBe(ACTION_ERROR_FORBIDDEN_KEY);
+    expect(fixture.alert()?.dataset.alert).toBe("warning");
+    expect(fixture.alert()?.textContent).toBe(ACTION_ERROR_GENERIC_KEY);
 
     expect(fixture.host.textContent).not.toContain("[DELETE]");
 
@@ -322,7 +265,7 @@ function registerConfirmationRetryTests(
 
     fixture.button("Archive")!.click();
     await fixture.flush();
-    expect(fixture.alert()?.textContent).toBe(ACTION_ERROR_NETWORK_KEY);
+    expect(fixture.alert()?.textContent).toBe(ACTION_ERROR_GENERIC_KEY);
 
     fixture.button("Archive")!.click();
     await fixture.flush();
@@ -352,29 +295,38 @@ function registerConfirmationRetryTests(
 function registerConfirmationOutcomeTests(
   fixture: ReturnType<typeof createConfirmActionErrorsFixture>,
 ) {
-  it("shows a message already worded by the action, with its reason", async () => {
-    const onConfirm = vi.fn().mockRejectedValue(
-      new ConfirmActionError({
-        title: "These 2 items couldn’t be deleted.",
-        description: "Their rules don’t allow this action.",
-      }),
-    );
-    fixture.mount({
-      title: "Delete?",
-      description: "",
-      confirmLabel: "Delete",
-      onConfirm,
-    });
-    await fixture.flush();
-    fixture.button("Delete")!.click();
-    await fixture.flush();
-    expect(fixture.alert()?.querySelector("strong")?.textContent).toBe(
-      "These 2 items couldn’t be deleted.",
-    );
-    expect(fixture.alert()?.querySelector("p")?.textContent).toBe(
-      "Their rules don’t allow this action.",
-    );
-  });
+  it.each([
+    ["unknown.server.key", "These 2 items could not be deleted."],
+    ["error.read_only_demo", "error.read_only_demo"],
+  ])(
+    "resolves an action wrapping %s with its fallback and placeholders",
+    async (message, expected) => {
+      installReadOnlyRefusal().mergeLocaleMessage("en", {
+        action: { refused: "These {count} items could not be deleted." },
+      });
+      const onConfirm = vi
+        .fn()
+        .mockRejectedValue(
+          new ConfirmActionError(
+            { fallbackKey: "action.refused", params: { count: 2 } },
+            { cause: { ...readOnlyFailure(), data: { message } } },
+          ),
+        );
+      fixture.mount({
+        title: "Delete?",
+        description: "",
+        confirmLabel: "Delete",
+        onConfirm,
+      });
+      await fixture.flush();
+      fixture.button("Delete")!.click();
+      await fixture.flush();
+      expect(fixture.alert()?.querySelector("strong")?.textContent).toBe(
+        expected,
+      );
+      expect(fixture.alert()?.querySelector("p")).toBeNull();
+    },
+  );
 
   it("sums up a partial outcome, then only acknowledges it", async () => {
     const onConfirm = vi.fn().mockResolvedValue({
