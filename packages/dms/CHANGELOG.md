@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.15.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.14.0...v0.15.0)
+
+### 🚀 Enhancements
+
+- **dms-ui:** State the data state of each data block on its root element ([#585](https://github.com/AntelopeJS/dms/pull/585))
+
+### 🩹 Fixes
+
+- **table-view:** Currency on prices, settled counters, no add without a new route ([#611](https://github.com/AntelopeJS/dms/pull/611))
+- **interface-dms:** Name a bucketed series' periods for a person, 202608 as Aug 2026 ([#617](https://github.com/AntelopeJS/dms/pull/617))
+- **chart:** Thin the category x-axis labels of a long series so they never overlap ([#626](https://github.com/AntelopeJS/dms/pull/626))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.10.3 ([53af1aad](https://github.com/AntelopeJS/dms/commit/53af1aad))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.14.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.13.1...v0.14.0)
