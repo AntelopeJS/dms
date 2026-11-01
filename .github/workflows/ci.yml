@@ -27,6 +27,7 @@ jobs:
     with:
       docs-files: |
         README.md
+        docs
         packages/dms/README.md
         packages/dms/docs
         packages/interface-dms/README.md
