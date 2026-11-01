@@ -875,10 +875,6 @@
           "title": "Builder",
           "description": "Edits the project’s pages, tables and forms, writing only code that compiles."
         },
-        "cicd": {
-          "title": "Publishing",
-          "description": "Versions, environments and deploys of your project through git."
-        },
         "database": {
           "title": "Database",
           "description": "Schemas, data browser, schema diagram and an AQL query workspace."
