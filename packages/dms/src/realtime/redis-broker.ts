@@ -78,7 +78,6 @@ const buildKvStore = (
   },
 });
 
-/* oxlint-disable anti-slop/no-runtime-typeof -- Redis dispatch historically validates only the routing strings; these checks must remain until the wire contract can be hardened separately. */
 const isRealtimeEvent = (value: unknown): value is RealtimeEvent =>
   !!value &&
   typeof value === "object" &&
@@ -86,7 +85,6 @@ const isRealtimeEvent = (value: unknown): value is RealtimeEvent =>
   typeof value.topic === "string" &&
   "type" in value &&
   typeof value.type === "string";
-/* oxlint-enable anti-slop/no-runtime-typeof */
 
 export class RedisBroker implements RealtimeBroker {
   private readonly local = new InMemoryBroker();
@@ -113,7 +111,7 @@ export class RedisBroker implements RealtimeBroker {
 
   private dispatchMessage(message: string): void {
     try {
-      const event = JSON.parse(message);
+      const event: unknown = JSON.parse(message);
       if (!isRealtimeEvent(event)) return;
       fireAndForget(this.local.publish(event), "realtime event dispatch");
     } catch (error) {

@@ -55,9 +55,11 @@ function sourceReader({ model, tableView }: BulkRowSource) {
   const controller = tableView.target;
   const { modelKey } = GetMetadata(controller, DataAPIMeta, true);
   assert(modelKey, 500, `${controller.name} declares no model.`);
-  const reader: ControllerReader = Object.create(controller.prototype, {
-    [modelKey]: { value: model, enumerable: true },
-  });
+  const reader: ControllerReader = Object.defineProperty(
+    { __proto__: controller.prototype },
+    modelKey,
+    { value: model, enumerable: true },
+  );
   return new Proxy(reader, {
     get(target, key) {
       // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Proxy get keys are string or symbol; the existing symbol branch lets introspection pass without throwing the missing route-property error.

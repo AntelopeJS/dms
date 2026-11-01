@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { z } from "zod";
 import { createLookupCache } from "./cache";
 import { npmView } from "./registry";
 import type {
@@ -29,34 +30,43 @@ const LIFETIMES = { found: HOUR_MS, failed: FAILED_LOOKUP_MS };
 /** Interface packages carry `interface-` in their name by convention. */
 const INTERFACE_NAME_PATTERN = /(^|\/)interface-/;
 
-interface RegistryManifest {
-  interfaces?: Record<string, string>;
-}
+const TextSchema = z.string().optional().catch(undefined);
 
-interface RegistrySource {
-  type?: string;
-  package?: string;
-}
+const RegistryManifestSchema = z.object({
+  interfaces: z.record(z.string().catch("")).optional().catch(undefined),
+});
 
-interface RegistryModule {
-  name?: string;
-  source?: RegistrySource;
-}
+const RegistryModuleSchema = z.object({
+  name: TextSchema,
+  source: z
+    .object({ type: TextSchema, package: TextSchema })
+    .optional()
+    .catch(undefined),
+});
 
-interface InterfaceManifest {
-  modules?: RegistryModule[];
-}
+type RegistryModule = z.infer<typeof RegistryModuleSchema>;
 
-interface AntelopeManifest {
-  implements?: unknown;
-  standalone?: unknown;
-}
+const InterfaceManifestSchema = z.object({
+  modules: z.array(RegistryModuleSchema.catch({})).optional().catch(undefined),
+});
 
-interface ModulePackage {
-  name?: string;
-  dependencies?: Record<string, string>;
-  antelopeJs?: AntelopeManifest;
-}
+const AntelopeManifestSchema = z.object({
+  implements: z.unknown(),
+  standalone: z.unknown(),
+});
+
+type AntelopeManifest = z.infer<typeof AntelopeManifestSchema>;
+
+/** What `npm view <spec> antelopeJs` answers: one manifest, or one per release. */
+const AntelopeViewSchema = z.union([
+  z.array(AntelopeManifestSchema),
+  AntelopeManifestSchema,
+]);
+
+const ModulePackageSchema = z.object({
+  dependencies: z.record(z.string().catch("")).optional().catch(undefined),
+  antelopeJs: AntelopeManifestSchema.optional().catch(undefined),
+});
 
 const registryDocuments = createLookupCache<unknown>(LIFETIMES);
 const interfaceKinds = createLookupCache<InterfaceKind>(LIFETIMES);
@@ -67,20 +77,27 @@ const interfaceKinds = createLookupCache<InterfaceKind>(LIFETIMES);
  */
 type InterfaceKind = "required" | "standalone" | "library";
 
-function fetchRegistryDocument(file: string): ReturnType<Response["json"]> {
-  return registryDocuments.get(file, async () => {
+async function fetchRegistryDocument<Document>(
+  file: string,
+  schema: z.ZodType<Document, z.ZodTypeDef, unknown>,
+): Promise<Document | undefined> {
+  const document = await registryDocuments.get(file, async () => {
     const response = await fetch(`${INTERFACES_REGISTRY_URL}/${file}`, {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (!response.ok) return undefined;
-    const document: unknown = await response.json();
-    return document;
+    const body: unknown = await response.json();
+    return body;
   });
+  const parsed = schema.safeParse(document);
+  return parsed.success ? parsed.data : undefined;
 }
 
 async function registryFolders(): Promise<Record<string, string>> {
-  const manifest: RegistryManifest | undefined =
-    await fetchRegistryDocument(MANIFEST_FILE);
+  const manifest = await fetchRegistryDocument(
+    MANIFEST_FILE,
+    RegistryManifestSchema,
+  );
   return manifest?.interfaces ?? {};
 }
 
@@ -101,8 +118,9 @@ export async function findImplementations(
 ): Promise<InterfaceImplementation[]> {
   const folder = (await registryFolders())[interfacePackage];
   if (!folder) return [];
-  const manifest: InterfaceManifest | undefined = await fetchRegistryDocument(
+  const manifest = await fetchRegistryDocument(
     `interfaces/${folder}/${MANIFEST_FILE}`,
+    InterfaceManifestSchema,
   );
   return (manifest?.modules ?? []).flatMap((module) => {
     const implementation = asImplementation(module);
@@ -123,18 +141,6 @@ function kindOf(
 }
 
 /**
- * `npm view` answers a range matching several releases with one manifest per
- * release, oldest first: the newest is the one that installs.
- */
-function newestManifest(
-  view: Awaited<ReturnType<typeof npmView>>,
-): AntelopeManifest | undefined {
-  const manifest = Array.isArray(view) ? view.at(-1) : view;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing object-only npm metadata filter.
-  return manifest && typeof manifest === "object" ? manifest : undefined;
-}
-
-/**
  * Tells an interface package from a plain library as the core does: by its
  * `antelopeJs` manifest key, read from the registry. Only packages that look
  * like interfaces are looked up.
@@ -149,9 +155,14 @@ async function interfaceKind(
     dependency in (await registryFolders());
   if (!looksLikeInterface) return "library";
   const kind = await interfaceKinds.get(`${dependency}@${range}`, async () => {
-    const antelopeJs = newestManifest(
+    const view = AntelopeViewSchema.safeParse(
       await npmView(`${dependency}@${range}`, ["antelopeJs"], projectPath),
     );
+    const antelopeJs = !view.success
+      ? undefined
+      : Array.isArray(view.data)
+        ? view.data.at(-1)
+        : view.data;
     return antelopeJs ? kindOf(dependency, antelopeJs) : "library";
   });
   return kind ?? "library";
@@ -159,10 +170,10 @@ async function interfaceKind(
 
 async function readModulePackage(
   localPath: string,
-): Promise<ModulePackage | undefined> {
+): Promise<z.infer<typeof ModulePackageSchema> | undefined> {
   try {
-    return JSON.parse(
-      await readFile(path.join(localPath, PACKAGE_JSON), "utf-8"),
+    return ModulePackageSchema.parse(
+      JSON.parse(await readFile(path.join(localPath, PACKAGE_JSON), "utf-8")),
     );
   } catch {
     return undefined;

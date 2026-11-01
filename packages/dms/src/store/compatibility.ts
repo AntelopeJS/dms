@@ -1,22 +1,29 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { satisfies, validRange } from "semver";
+import { z } from "zod";
 import { INTERFACE_PACKAGE } from "./registry";
 import type { PackageRelease } from "./types";
 
 const PACKAGE_JSON = "package.json";
 const INTERFACE_ENTRY = `${INTERFACE_PACKAGE}/page`;
 
-interface PackageManifest {
-  name?: string;
-  version?: string;
-}
+const PackageManifestSchema = z
+  .object({
+    name: z.string().optional().catch(undefined),
+    version: z.string().optional().catch(undefined),
+  })
+  .catch({});
+
+type PackageManifest = z.infer<typeof PackageManifestSchema>;
 
 let interfaceVersion: string | undefined;
 
 function readManifest(folder: string): PackageManifest | undefined {
   try {
-    return JSON.parse(readFileSync(path.join(folder, PACKAGE_JSON), "utf-8"));
+    return PackageManifestSchema.parse(
+      JSON.parse(readFileSync(path.join(folder, PACKAGE_JSON), "utf-8")),
+    );
   } catch {
     return undefined;
   }
