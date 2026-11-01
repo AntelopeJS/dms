@@ -30,6 +30,9 @@ import { Tab } from "./tab.mjs";
 /**
  * @typedef {{ name: string, pass: boolean, detail: string }} Check
  * @typedef {ReturnType<typeof capturedMail>[number]} CapturedMail
+ * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult
+ * @typedef {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, run: (context: JourneyContext) => Promise<void> }} Journey
+ * @typedef {{ name: string, folder: string, checks: Check[] }} Step
  */
 
 const EXPECT_TIMEOUT_MS = 15_000;
@@ -39,6 +42,10 @@ const UNIQUE_BYTES = 3;
 
 class JourneyAbort extends Error {}
 
+/**
+ * @param {string} text The text
+ * @returns {string} The text as a folder name
+ */
 function slug(text) {
   return text
     .toLowerCase()
@@ -47,11 +54,22 @@ function slug(text) {
     .slice(0, 60);
 }
 
+/**
+ * @param {string} file The file
+ * @param {unknown} value The value
+ */
 function writeJson(file, value) {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-/** An equality check over JSON-serialisable values. */
+/**
+ * An equality check over JSON-serialisable values.
+ *
+ * @param {string} name What is compared
+ * @param {unknown} actual The value found
+ * @param {unknown} expected The value wanted
+ * @returns {Check} The check
+ */
 function equal(name, actual, expected) {
   const [left, right] = [JSON.stringify(actual), JSON.stringify(expected)];
   return {
@@ -61,7 +79,13 @@ function equal(name, actual, expected) {
   };
 }
 
-/** A check that an API answer has `expected` as its status. */
+/**
+ * A check that an API answer has `expected` as its status.
+ *
+ * @param {{ status: number | null, body: any }} answer The answer
+ * @param {number} expected The status wanted
+ * @returns {Check} The check
+ */
 function status(answer, expected) {
   const body = JSON.stringify(answer.body) ?? "";
   return {
@@ -71,7 +95,14 @@ function status(answer, expected) {
   };
 }
 
-/** A check that a condition holds, with what was observed. */
+/**
+ * A check that a condition holds, with what was observed.
+ *
+ * @param {string} name What is checked
+ * @param {unknown} pass Whether it holds
+ * @param {unknown} detail What was observed
+ * @returns {Check} The check
+ */
 function holds(name, pass, detail) {
   return { name, pass: Boolean(pass), detail: String(detail) };
 }
@@ -86,7 +117,7 @@ export class JourneyContext {
    * @param {import("./run-state.mjs").RunState} state The run
    * @param {string} feature The feature the journey belongs to
    * @param {string} journey The journey id
-   * @param {any} browser The Playwright browser
+   * @param {import("playwright-core").Browser} browser The Playwright browser
    * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
    */
   constructor(state, feature, journey, browser, skill) {
@@ -96,7 +127,9 @@ export class JourneyContext {
     this.journey = journey;
     this.browser = browser;
     this.folder = join(state.evidence, feature, journey);
+    /** @type {Step[]} */
     this.steps = [];
+    /** @type {Map<string, import("playwright-core").BrowserContext>} */
     this.contexts = new Map();
     this.index = 0;
     this.startedAt = new Date().toISOString();
@@ -266,6 +299,9 @@ export class JourneyContext {
    * Runs `action` against the base version's backend on the same database,
    * then the run's own backend again: data written inside `action` is data
    * the previous release wrote. Records the base commit as a step.
+   *
+   * @param {(sha: string) => Promise<void>} action What to do against the base backend
+   * @returns {Promise<string>} The base commit
    */
   async withBaseBackend(action) {
     const sha = await withBaseBackend(this.state, this.skill, action);
@@ -309,6 +345,12 @@ export class JourneyContext {
   }
 }
 
+/**
+ * @param {import("./run-state.mjs").RunState} state The run
+ * @param {string} feature The feature the journey belongs to
+ * @param {Journey} journey The journey
+ * @param {JourneyContext} context The journey's context
+ */
 async function prepare(state, feature, journey, context) {
   await ensureMail(state);
   if (journey.database !== "shared") {
@@ -348,9 +390,9 @@ async function prepare(state, feature, journey, context) {
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
- * @param {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, run: (context: JourneyContext) => Promise<void> }} journey The journey
+ * @param {Journey} journey The journey
  * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
- * @returns {Promise<Record<string, any>>} The result
+ * @returns {Promise<FeatureResult>} The result
  */
 export async function runJourney(state, feature, journey, skill) {
   const browser = await launchBrowser(resolutionFolders(state));
@@ -396,7 +438,7 @@ export async function runJourney(state, feature, journey, skill) {
  * Loads the journeys a feature's file exports (`export const journeys`).
  *
  * @param {string} file The journeys module
- * @returns {Promise<Record<string, any>[]>} The journeys
+ * @returns {Promise<Journey[]>} The journeys
  */
 export async function loadJourneys(file) {
   if (!existsSync(file)) throw new Error(`${file} does not exist`);
@@ -412,7 +454,7 @@ export async function loadJourneys(file) {
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {{ file: string, feature: string, ids: string[], skill: import("./verify/skill.mjs").Skill }} request Which journeys, and the skill they belong to
- * @returns {Promise<Record<string, any>[]>} The results of this run
+ * @returns {Promise<FeatureResult[]>} The results of this run
  */
 export async function runJourneyFile(state, request) {
   const journeys = await loadJourneys(request.file);
