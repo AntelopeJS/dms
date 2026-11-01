@@ -12,15 +12,17 @@ function buildDefaultTenant(): Partial<Tenant> {
   return {
     _id: DEFAULT_TENANT_ID,
     name: DEFAULT_TENANT_NAME,
+    provisioningPending: true,
     createdAt: now,
     updatedAt: now,
   };
 }
 
 /**
- * Creates the `default` tenant's row when it is missing.
+ * Creates the `default` tenant's row with provisioning pending when missing.
+ * Existing rows are left unchanged, including a pending provisioning attempt.
  *
- * @returns Whether this call created it, which is when it has to be provisioned
+ * @returns Whether this call created the row, not whether provisioning is pending
  */
 export async function ensureDefaultTenantExists(): Promise<boolean> {
   const tenants = GetModel(TenantModel);
@@ -36,18 +38,25 @@ export async function ensureDefaultTenantExists(): Promise<boolean> {
 }
 
 /**
- * Provisions the `default` tenant the current start just created. It has no
- * owner yet, so the payload carries no `userId`.
+ * Provisions the `default` tenant only when its row marks provisioning pending.
+ * It has no owner yet, so the payload carries no `userId`.
  *
- * A failure takes the row back before it propagates, like a signup that fails
- * takes its workspace with it: the next start creates the tenant again and
- * provisions it then, rather than leaving it without its default data.
+ * Clears the marker only after every provisioning handler resolves. A failure
+ * is logged and leaves the row pending for the next attempt. Legacy rows with
+ * no marker are already provisioned and are not run again.
  */
 export async function provisionDefaultTenant(): Promise<void> {
   try {
+    const tenants = GetModel(TenantModel);
+    const tenant = await tenants.get(DEFAULT_TENANT_ID);
+    if (!tenant?.provisioningPending) return;
+
     await ProvisionTenant({ tenantId: DEFAULT_TENANT_ID, extras: {} });
+    await tenants.update(DEFAULT_TENANT_ID, { provisioningPending: false });
   } catch (error) {
-    await GetModel(TenantModel).delete(DEFAULT_TENANT_ID);
-    throw error;
+    Logging.Error(
+      `Default tenant '${DEFAULT_TENANT_ID}' provisioning failed:`,
+      error,
+    );
   }
 }
