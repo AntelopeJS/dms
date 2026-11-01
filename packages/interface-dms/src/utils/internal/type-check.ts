@@ -1,3 +1,5 @@
+import type { Class } from "@antelopejs/interface-core/decorators";
+
 const primitiveTypes = [
   "string",
   "number",
@@ -21,7 +23,6 @@ type PrimitiveValue = PrimitiveValueByTag[Primitive];
 const createTypeGuard =
   <T>(type: string) =>
   (v: unknown): v is T =>
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- These published primitive predicates implement JavaScript tag checks, including the legacy object/null behavior, rather than schema validation.
     typeof v === type;
 
 /** @internal */
@@ -39,6 +40,9 @@ export const isFunction =
   // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published function predicate promises no result shape for arbitrary callable values.
   createTypeGuard<(...args: unknown[]) => unknown>("function");
 /** @internal */
+export const isClass = (value: unknown): value is Class =>
+  typeof value === "function";
+/** @internal */
 export const isBigint = createTypeGuard<bigint>("bigint");
 /** @internal */
 export const isSymbol = createTypeGuard<symbol>("symbol");
@@ -46,7 +50,6 @@ export const isSymbol = createTypeGuard<symbol>("symbol");
 /** @internal */
 export const isPrimitive = (value: unknown): value is PrimitiveValue => {
   const types: readonly string[] = primitiveTypes;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This published predicate classifies JavaScript tags and narrows to the primitive values whose tags it accepts.
   return types.includes(typeof value);
 };
 

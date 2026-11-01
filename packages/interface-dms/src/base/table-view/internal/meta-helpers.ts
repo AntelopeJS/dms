@@ -1,9 +1,5 @@
 /** @internal */
 import assert from "node:assert";
-import {
-  type ControllerClass,
-  ControllerMeta,
-} from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { MakeMethodAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
 import {
@@ -20,6 +16,10 @@ import { adaptFieldValidationSchema } from "../../form-schema";
 import { ReadonlyBehaviorType } from "../../types";
 import type { ColumnOptions, TableViewMeta } from "../meta";
 import { serializeColumnDisplay } from "./column-display";
+import {
+  controllerLocation,
+  decoratedClass,
+} from "../../../utils/internal/decorated-class";
 
 type FieldDecoratorArguments = Parameters<
   Parameters<typeof MakeMethodAndPropertyDecorator>[0]
@@ -30,12 +30,10 @@ export function buildTableConfig(
   view: TableViewMeta,
   serialize: typeof serializeType,
 ) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published target constructor type does not establish ControllerClass.location; registration is assumed rather than validated here.
-  const apimeta = GetMetadata(view.target as ControllerClass, ControllerMeta);
   const datameta = GetMetadata(view.target, DataAPIMeta);
 
   return {
-    location: apimeta.location,
+    location: controllerLocation(view.target),
     columns: Object.entries(view.columns)
       .sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0))
       .map(([key, options]) => {
@@ -78,7 +76,7 @@ export function decorateColumn(
     // oxlint-disable-next-line typescript/unbound-method -- This assertion checks method presence without calling it; getValidation is called through options.type below.
     assert(options.type.getValidation, "Type has no getValidation method");
 
-    const dataMeta = GetMetadata(target.constructor, DataAPIMeta);
+    const dataMeta = GetMetadata(decoratedClass(target), DataAPIMeta);
     const localizedFields = getModifiedFields(
       dataMeta.tableClass.prototype,
       LocalizationModifier,

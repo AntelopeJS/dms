@@ -19,6 +19,7 @@ import {
   logModuleRouteGated,
   RequestTenantIdProperty,
 } from "./metadata-helpers";
+import { prototypeOf } from "../../utils/internal/decorated-class";
 
 /** @internal */
 export function registerPagePermission(
@@ -78,10 +79,10 @@ export function applyAuthDecorators(
     : isModulePage
       ? AuthOwnerOnly()
       : AuthUserWithPermission(page.target, page.guardOptions);
-  authDecorator(page.target.prototype, "user");
+  authDecorator(prototypeOf(page.target), "user");
   if (isModulePage && !authOnly) logModuleRouteGated(pageInfo.fullSlug);
   if (authOnly) return;
-  TenantScopedModel(RoleModel)(page.target.prototype, "roleModel");
-  TenantScopedModel(TenantMemberModel)(page.target.prototype, "memberModel");
-  RequestTenantIdProperty()(page.target.prototype, "tenantId");
+  TenantScopedModel(RoleModel)(prototypeOf(page.target), "roleModel");
+  TenantScopedModel(TenantMemberModel)(prototypeOf(page.target), "memberModel");
+  RequestTenantIdProperty()(prototypeOf(page.target), "tenantId");
 }
