@@ -2,6 +2,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { computed, ref } from "vue";
 import { usePermissionPreview } from "../layers/dms-core/app/entries/composables/auth/usePermissionPreview";
+import { useReadOnlyRefusal } from "../layers/dms-core/app/composables/useReadOnlyRefusal";
+import {
+  readOnlyFailure,
+  unmarkedForbiddenFailure,
+} from "./helpers/read-only-refusal";
 import {
   PERMISSION_PREVIEW_STORAGE_PREFIX,
   PERMISSION_PREVIEW_TAB_KEY,
@@ -63,3 +68,35 @@ it("lets a preview tab's requests through untouched", () => {
   expect(window.fetch).toBe(nativeFetch);
   expect(XMLHttpRequest.prototype.open).toBe(nativeOpen);
 });
+
+it.each([true, false])(
+  "cleans up preview reads without a second refusal banner, marked %s",
+  async (marked) => {
+    const add = vi.fn();
+    vi.stubGlobal("useToast", () => ({ add }));
+    vi.stubGlobal("getAppTranslation", () => ({
+      processApiMessage: (key: string) => key,
+    }));
+    vi.stubGlobal("useReadOnlyRefusal", useReadOnlyRefusal);
+    const preview = usePermissionPreview();
+    preview.session.value = {
+      id: "a",
+      roleId: null,
+      roleName: "Support",
+      permissions: [],
+      unsaved: false,
+      returnTo: "/settings/workspace/roles",
+      updatedAt: Date.now(),
+    };
+    const failure = marked ? readOnlyFailure() : unmarkedForbiddenFailure();
+    vi.stubGlobal("useAuthFetch", () => ({
+      $authFetch: async () => {
+        throw failure;
+      },
+    }));
+    await preview.refresh("/home");
+    expect(preview.loading.value).toBe(false);
+    expect(preview.failed.value).toBe(!marked);
+    expect(add).toHaveBeenCalledTimes(marked ? 1 : 0);
+  },
+);

@@ -18,6 +18,10 @@ import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePost
 import { usePageLayout } from "../layers/dms-layout/app/composables/page/usePageLayout";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import type { PageLayout } from "../layers/dms-core/app/types/page";
+import {
+  installReadOnlyRefusal,
+  readOnlyFailure,
+} from "./helpers/read-only-refusal";
 
 const { default: OAuthCompletePage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/oauth-complete.vue"
@@ -210,4 +214,18 @@ it("completes again on a later visit, once the previous one settled", async () =
   await settle();
 
   expect(fetchHandoff).toHaveBeenCalledTimes(2);
+});
+
+it("shows only the read-only notice instead of redirecting to another error toast", async () => {
+  const add = vi.fn();
+  vi.stubGlobal("useToast", () => ({ add }));
+  installReadOnlyRefusal();
+  fetchHandoff.mockRejectedValue(readOnlyFailure());
+  app = createApp(OAuthCompletePage);
+  app.config.globalProperties.$t = (key: string) => key;
+  app.component("UIcon", defineComponent({ setup: () => () => h("i") }));
+  app.mount(host);
+  await settle();
+  expect(add).toHaveBeenCalledOnce();
+  expect(navigate).not.toHaveBeenCalled();
 });

@@ -21,3 +21,10 @@ export function readOnlyFailure() {
     data: { fields: ["roles"], message: "Private backend message" },
   };
 }
+
+export function unmarkedForbiddenFailure() {
+  return Object.assign(new Error("Forbidden"), {
+    response: new Response(null, { status: 403 }),
+    data: "error.forbidden",
+  });
+}

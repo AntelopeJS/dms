@@ -3,6 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 import { isString } from "../layers/dms-core/app/utils/type-check";
+import {
+  installReadOnlyRefusal,
+  readOnlyFailure,
+} from "./helpers/read-only-refusal";
+import { useReadOnlyRefusal } from "../layers/dms-core/app/composables/useReadOnlyRefusal";
 
 const authFetch = vi.fn();
 const toastAdd = vi.fn();
@@ -64,6 +69,29 @@ afterEach(() => {
 });
 
 describe("a form whose record read fails", () => {
+  it.each([true, false])(
+    "leaves a refused read rejected with only its owning toast, marked %s",
+    async (marked) => {
+      vi.stubEnv("SSR", false);
+      installReadOnlyRefusal();
+      const failure = marked
+        ? readOnlyFailure()
+        : { response: new Response(null, { status: 403 }), data: "forbidden" };
+      const consume = useReadOnlyRefusal();
+      authFetch.mockImplementationOnce(async () => {
+        consume(failure);
+        throw failure;
+      });
+      await expect(readRecord()).rejects.toBe(failure);
+      expect(toastAdd).toHaveBeenCalledOnce();
+      expect(toastAdd.mock.calls[0]?.[0]).toMatchObject(
+        marked
+          ? { id: "dms-read-only", color: "warning" }
+          : { title: "$dms.form.fetch_error_title", description: "forbidden" },
+      );
+    },
+  );
+
   it("adds no toast in a server render, and still fails the read", async () => {
     vi.stubEnv("SSR", true);
     await expect(readRecord()).rejects.toThrow("Forbidden");

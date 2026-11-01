@@ -6,6 +6,10 @@ import {
   INSTANT_SAVED_STATE_MS,
   useInstantSave,
 } from "../layers/dms-ui/app/entries/composables/instant-save/useInstantSave";
+import {
+  installReadOnlyRefusal,
+  readOnlyFailure,
+} from "./helpers/read-only-refusal";
 
 interface Settings {
   name: string;
@@ -56,12 +60,37 @@ function setup(save: (changes: Partial<Settings>) => Promise<void>) {
 }
 
 beforeEach(() => vi.useFakeTimers());
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe("useInstantSave", () => {
   registerSaveLifecycleTests();
   registerPendingSaveTests();
 });
+
+it.each([true, false])(
+  "rolls back a refused instant save without a second error presentation, marked %s",
+  async (marked) => {
+    const add = vi.fn();
+    vi.stubGlobal("useToast", () => ({ add }));
+    installReadOnlyRefusal();
+    const failure = marked
+      ? readOnlyFailure()
+      : { response: new Response(null, { status: 403 }) };
+    const { values, instant, scope } = setup(async () => {
+      throw failure;
+    });
+    instant.change("theme", "dark");
+    await settle();
+    expect(values.theme).toBe("light");
+    expect(instant.state.value).toBe(marked ? "idle" : "error");
+    expect(instant.failed.value).toEqual(marked ? null : { theme: "dark" });
+    expect(add).toHaveBeenCalledTimes(marked ? 1 : 0);
+    scope.stop();
+  },
+);
 
 function registerSaveLifecycleTests() {
   it("saves a pick at once, alone, and shows saving then saved", async () => {

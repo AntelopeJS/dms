@@ -1,6 +1,11 @@
 import { ref, type Ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
+import { useReadOnlyRefusal } from "../layers/dms-core/app/composables/useReadOnlyRefusal";
+import {
+  readOnlyFailure,
+  unmarkedForbiddenFailure,
+} from "./helpers/read-only-refusal";
 
 const state = new Map<string, Ref>();
 const authFetch = vi.fn();
@@ -82,3 +87,25 @@ it("does not show a stale request error after successful Inertia navigation", as
   expect(showDmsError).not.toHaveBeenCalled();
   expect(layout.loadingError.value).toBeNull();
 });
+
+it.each([true, false])(
+  "keeps site-layout rejection and cleanup without a second error page, marked %s",
+  async (marked) => {
+    const add = vi.fn();
+    const showDmsError = vi.fn();
+    vi.stubGlobal("useToast", () => ({ add }));
+    vi.stubGlobal("showDmsError", showDmsError);
+    vi.stubGlobal("getAppTranslation", () => ({
+      processApiMessage: (key: string) => key,
+    }));
+    vi.stubGlobal("useReadOnlyRefusal", useReadOnlyRefusal);
+    const failure = marked ? readOnlyFailure() : unmarkedForbiddenFailure();
+    authFetch.mockRejectedValueOnce(failure);
+    const layout = useSiteLayout();
+    await expect(layout.loadSiteLayout()).rejects.toBe(failure);
+    expect(layout.isLoading.value).toBe(false);
+    expect(layout.loadingError.value).toBe(marked ? null : "Forbidden");
+    expect(showDmsError).toHaveBeenCalledTimes(marked ? 0 : 1);
+    expect(add).toHaveBeenCalledTimes(marked ? 1 : 0);
+  },
+);

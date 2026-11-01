@@ -6,6 +6,8 @@ import { useNotifications } from "../layers/dms-layout/app/composables/notificat
 import { useComponentEvent } from "../layers/dms-core/app/composables/components/useComponentEvent";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { readOnlyFailure } from "./helpers/read-only-refusal";
+import { useReadOnlyRefusal } from "../layers/dms-core/app/composables/useReadOnlyRefusal";
 
 const BASE = "/dms/pages/settings/user/notifications";
 const authFetch = vi.fn(async (url: string) =>
@@ -15,6 +17,7 @@ const authFetch = vi.fn(async (url: string) =>
 );
 const confirmOpen = vi.fn(async () => true);
 const createOverlay = vi.fn(() => ({ open: confirmOpen }));
+const addToast = vi.fn();
 let app: App;
 
 beforeEach(() => {
@@ -29,7 +32,7 @@ beforeEach(() => {
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (text: string) => text,
   }));
-  vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
+  vi.stubGlobal("useToast", () => ({ add: addToast }));
   vi.stubGlobal("useOverlay", () => ({ create: createOverlay }));
 });
 
@@ -176,3 +179,36 @@ it("lists the feed again once per change the stream brings, not when the bell re
   await nextTick();
   expect(refresh).toHaveBeenCalledTimes(2);
 });
+
+it.each([true, false])(
+  "refreshes after a refused notification action with only its owning notice, marked %s",
+  async (marked) => {
+    vi.stubGlobal("useReadOnlyRefusal", useReadOnlyRefusal);
+    vi.stubGlobal("getAppTranslation", () => ({
+      processApiMessage: (key: string) => key,
+    }));
+    const failure = marked
+      ? readOnlyFailure()
+      : { response: new Response(null, { status: 403 }) };
+    const { action, refresh, feed } = mount();
+    const consume = app.runWithContext(useReadOnlyRefusal);
+    for (const label of ["mark_read", "mark_unread", "delete_one"]) {
+      addToast.mockClear();
+      authFetch.mockImplementationOnce(async () => {
+        consume(failure);
+        throw failure;
+      });
+      action(label === "mark_unread" ? 1 : 0, label);
+      await vi.waitFor(() => expect(addToast).toHaveBeenCalledOnce());
+      await nextTick();
+      expect(addToast.mock.calls[0]?.[0]).toMatchObject(
+        marked
+          ? { id: "dms-read-only", color: "warning" }
+          : { title: "dms.form.error_title", color: "error" },
+      );
+      if (marked) failure.response = readOnlyFailure().response;
+    }
+    expect(refresh).toHaveBeenCalledTimes(3);
+    expect(feed.notifications.value).toEqual([]);
+  },
+);

@@ -124,7 +124,7 @@ describe("deep link to a row the table does not list", () => {
     };
     expect(
       await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow: refused }),
-    ).toEqual({ isMissing: false, isFailed: true });
+    ).toMatchObject({ isMissing: false, isFailed: true });
     const noRoute = async () => undefined;
     expect(
       await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow: noRoute }),

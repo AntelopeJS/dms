@@ -1,4 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  installReadOnlyRefusal,
+  readOnlyFailure,
+  unmarkedForbiddenFailure,
+} from "./helpers/read-only-refusal";
 import { useExpandedRowDetails } from "../layers/dms-ui/app/entries/composables/table-view/useExpandedRowDetails";
 import { buildExpandedRowProps } from "../layers/dms-ui/app/entries/composables/table-view/utils/expandedRowProps";
 import type { TableViewDisplayActions } from "../layers/dms-ui/app/composables/table-view/types";
@@ -20,6 +25,24 @@ function deferred<T>() {
 }
 
 describe("lazyLoad expanded rows", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it.each([true, false])(
+    "settles a refused expanded row without another error notice, marked %s",
+    async (marked) => {
+      const add = vi.fn();
+      vi.stubGlobal("useToast", () => ({ add }));
+      installReadOnlyRefusal();
+      const failure = marked ? readOnlyFailure() : unmarkedForbiddenFailure();
+      const details = useExpandedRowDetails<Order>(async () => {
+        throw failure;
+      });
+      await details.load("a1");
+      expect(details.entryOf("a1")?.state).toBe(marked ? "ready" : "error");
+      expect(add).toHaveBeenCalledTimes(marked ? 1 : 0);
+    },
+  );
+
   it("reads an opened row once, until the listed rows reload", async () => {
     const getRow = vi.fn(async (id: string) => ({ _id: id, number: "A-1" }));
     const details = useExpandedRowDetails<Order>(getRow);

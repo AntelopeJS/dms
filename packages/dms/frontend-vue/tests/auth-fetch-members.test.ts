@@ -154,6 +154,22 @@ it("notifies a marked raw refusal after a 401 retry, not just a refusal on the f
   expect(sent.map(({ retry }) => retry)).toEqual([null, "1"]);
 });
 
+it("keeps background write refusals silent and rejected", async () => {
+  const app = createApp({});
+  engine.provideDmsFrontendRuntime(app, engine.createDmsFrontendRuntime());
+  const { $authFetch } = app.runWithContext(() =>
+    useAuthFetch({ notifyReadOnlyRefusal: false }),
+  );
+  const refusal = json({ message: "Forbidden" }, 403);
+  refusal.headers.set("x-dms-readonly", "1");
+  answers.push(refusal);
+  await expect(
+    $authFetch("/api/realtime/acquire", { method: "POST" }),
+  ).rejects.toMatchObject({ response: refusal });
+  expect(addToast).not.toHaveBeenCalled();
+  expect(refreshSession).not.toHaveBeenCalled();
+});
+
 it.each(["call", "raw", "create.raw"] as const)(
   "keeps %s refusals rejected with their response and no session recovery",
   async (member) => {

@@ -10,7 +10,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import type { DeepLinkedRow } from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import {
+  installReadOnlyRefusal,
+  readOnlyFailure,
+  unmarkedForbiddenFailure,
+} from "./helpers/read-only-refusal";
+import {
   clearWrittenRecord,
+  resolveDeepLinkedRow,
   writeRecordId,
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/recordLink";
 import {
@@ -50,7 +56,10 @@ async function visit(route: { query: Record<string, string> }, url: string) {
   await flush();
 }
 
-function mountTable(url: string) {
+function mountTable(
+  url: string,
+  resolve?: (id: string) => Promise<DeepLinkedRow<Row>>,
+) {
   window.history.replaceState({}, "", url);
   const route = reactive({
     query: Object.fromEntries(new URL(url, "http://x").searchParams),
@@ -65,10 +74,12 @@ function mountTable(url: string) {
           route,
           urlScope: SCOPE,
           action: DRAWER,
-          resolve: async (id): Promise<DeepLinkedRow<Row>> => {
-            const row = ROWS.find((candidate) => candidate.id === id);
-            return row ? { row, isMissing: false } : { isMissing: true };
-          },
+          resolve:
+            resolve ??
+            (async (id): Promise<DeepLinkedRow<Row>> => {
+              const row = ROWS.find((candidate) => candidate.id === id);
+              return row ? { row, isMissing: false } : { isMissing: true };
+            }),
 
           open: (row) => {
             opened.push(row.id);
@@ -95,9 +106,34 @@ function mountTable(url: string) {
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
   window.history.replaceState({}, "", "/");
+  vi.unstubAllGlobals();
 });
 
 describe("a record link on a mounted table", () => {
+  it.each([true, false])(
+    "avoids a second failed-link notice, marked %s",
+    async (marked) => {
+      const add = vi.fn();
+      vi.stubGlobal("useToast", () => ({ add }));
+      installReadOnlyRefusal();
+      const failure = marked ? readOnlyFailure() : unmarkedForbiddenFailure();
+      const { notify, opened } = mountTable("/sends?record=r9", (id) =>
+        resolveDeepLinkedRow(id, {
+          listed: ROWS,
+          idOf: (row) => row.id,
+          getRow: async () => {
+            throw failure;
+          },
+        }),
+      );
+      await flush();
+      expect(opened).toEqual([]);
+      expect(notify).toHaveBeenCalledTimes(marked ? 0 : 1);
+      expect(add).toHaveBeenCalledTimes(marked ? 1 : 0);
+      expect(window.location.search).toBe("");
+    },
+  );
+
   it("opens the row a link names on arrival, once", async () => {
     const { route, opened } = mountTable("/sends?record=r1");
     await flush();
