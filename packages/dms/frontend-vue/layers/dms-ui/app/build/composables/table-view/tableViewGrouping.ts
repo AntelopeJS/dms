@@ -3,7 +3,7 @@ import {
   CARDS_DISPLAY_ID,
 } from "../../../composables/table-view/types";
 import { KANBAN_DISPLAY_BRIDGE_KEY } from "../../../composables/table-view/kanban";
-import { describeTableWriteError } from "./utils/writeError";
+import { tableWriteErrorOptions } from "./utils/writeError";
 import { buildTableQuery, isFilterEffective } from "./utils/tableQuery";
 import { useGroupedRows } from "./useGroupedRows";
 import { useTableReorder } from "./useTableReorder";
@@ -32,10 +32,9 @@ export function useTableViewReorder<T extends Data>(
   const { effectiveColumnFilters, effectiveGlobalFilter } = scope.querySorting;
   const { activeTabFilters, t } = scope.tabs;
   const { activeDisplayId } = scope.displayOptions;
-  const { toast } = scope.sortRecovery;
   const { processI18n } = scope.arrival;
   const { props } = scope;
-  const consumeReadOnlyRefusal = useReadOnlyRefusal();
+  const { presentError } = useApiErrorPresenter();
   const ORDERED_DISPLAY_IDS = new Set([TABLE_DISPLAY_ID, CARDS_DISPLAY_ID]);
   const { reorderState } = useTableReorder<T>({
     reorder: reorderConfig,
@@ -55,18 +54,16 @@ export function useTableViewReorder<T extends Data>(
     ),
     refresh: () => refresh(),
     onError: (failure) => {
-      if (consumeReadOnlyRefusal(failure)) return;
-      toast.add({
-        title: t("dms.table.reorder.error"),
-        description: describeTableWriteError(
+      presentError(
+        failure,
+        tableWriteErrorOptions(
           failure,
           t,
           allColumns,
           processI18n,
+          "dms.table.reorder.error",
         ),
-        color: Color.error,
-        icon: "i-ph-warning-circle",
-      });
+      );
     },
   });
   return { reorderState };

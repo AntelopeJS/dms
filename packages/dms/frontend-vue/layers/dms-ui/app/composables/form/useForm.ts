@@ -9,7 +9,6 @@ import {
   type ReplaceUrlVariablesContext,
   resolveLinkVariables,
 } from "../../build/utils/urlVariables";
-import { apiErrorText } from "#dms-core/app/composables/useFieldErrors";
 import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
 import { isNumber } from "#dms-core/app/utils/type-check";
 import { isPlainObject } from "../../build/composables/unsaved-changes/formValue";
@@ -93,7 +92,7 @@ function createFormNotices(
   context: ReturnType<typeof createFormFields>,
   options: UseFormOptions,
 ) {
-  const consumeReadOnlyRefusal = useReadOnlyRefusal();
+  const { presentError, resolveError } = useApiErrorPresenter();
   const {
     props,
     toast,
@@ -144,13 +143,6 @@ function createFormNotices(
     });
   };
 
-  const resolveSubmitErrorDescription = (error: EventError) => {
-    if (props.errorMessage) return processI18n(props.errorMessage);
-    const text = apiErrorText(error);
-    if (text) return processApiMessage(text);
-    return processI18n("$dms.form.error_unknown");
-  };
-
   /** Puts a refused submit's field errors under its fields, if any. */
   const showServerFieldErrors = (
     error: Parameters<typeof resolveFormFieldErrors>[0],
@@ -166,10 +158,16 @@ function createFormNotices(
         name: entry.field,
         message: entry.values?.length
           ? t("dms.field_errors.with_values", {
-              message: processApiMessage(entry.message, entry.params),
+              message: resolveError(entry.message, {
+                fallbackKey: entry.fallbackKey ?? "dms.field_errors.invalid",
+                params: entry.params,
+              })?.message,
               values: entry.values.join(", "),
             })
-          : processApiMessage(entry.message, entry.params),
+          : (resolveError(entry.message, {
+              fallbackKey: entry.fallbackKey ?? "dms.field_errors.invalid",
+              params: entry.params,
+            })?.message ?? ""),
         values: entry.values,
         path: entry.path,
       })),
@@ -177,18 +175,15 @@ function createFormNotices(
   };
 
   const showSubmitErrorToast = (error: EventError) => {
-    if (consumeReadOnlyRefusal(error)) return;
-    toast.add({
-      title: processI18n("$dms.form.error_title"),
-      description: resolveSubmitErrorDescription(error),
-      color: Color.error,
+    presentError(error, {
+      fallbackKey: props.errorMessage || "dms.form.error_unknown",
     });
   };
 
   return {
     ...context,
     options,
-    consumeReadOnlyRefusal,
+    presentError,
     showSubmitSuccessToast,
     showSubmitNotice,
     showServerFieldErrors,
@@ -281,8 +276,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
 function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
   const {
     props,
-    toast,
-    processI18n,
+    presentError,
     buildUrlContext,
     showSubmitSuccessToast,
     showSubmitNotice,
@@ -310,11 +304,7 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
   };
 
   const showUnresolvedTargetToast = () => {
-    toast.add({
-      title: processI18n("$dms.form.error_title"),
-      description: processI18n("$dms.form.error_no_target"),
-      color: Color.error,
-    });
+    presentError(null, { fallbackKey: "dms.form.error_no_target" });
   };
 
   /** Sends through submit events, marking accepted data clean before success. */
@@ -352,7 +342,6 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
   const reportSubmitError = (
     error: Parameters<typeof resolveFormFieldErrors>[0],
   ): void => {
-    if (context.consumeReadOnlyRefusal(error)) return;
     if (!showServerFieldErrors(error)) {
       // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejection values are passed unchanged to the existing error formatter; there is no Error-instance validation at this boundary.
       showSubmitErrorToast(error as EventError);

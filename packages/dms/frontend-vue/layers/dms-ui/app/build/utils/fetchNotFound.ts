@@ -5,7 +5,7 @@ import {
 import { HTTP_NOT_FOUND } from "../../../../dms-core/app/utils/http-status";
 import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
 import type { BlockAction } from "../components/blocks/BlockActions.vue";
-import { userFacingText } from "../composables/confirm/actionError";
+import type { ApiErrorPresenter } from "#dms-core/app/composables/useApiErrorPresenter";
 import type { Tone } from "#dms-core/app/types/tone";
 
 /** Translation key of the not-found title, shared by blocks and guards. */
@@ -76,11 +76,12 @@ export function readFetchNotFound(
 export function notFoundTexts(
   notFound: FetchNotFound | null | undefined,
   translate: I18nTranslate,
+  resolveError: ApiErrorPresenter["resolveError"],
 ) {
   return {
     title: translate(NOT_FOUND_TITLE_KEY, {}),
     description:
-      userFacingText(notFound?.message, translate) ??
-      translate(NOT_FOUND_HINT_KEY, {}),
+      resolveError(notFound?.message, { fallbackKey: NOT_FOUND_HINT_KEY })
+        ?.message ?? translate(NOT_FOUND_HINT_KEY, {}),
   };
 }

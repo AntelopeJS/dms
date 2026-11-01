@@ -92,12 +92,14 @@ const { data } = useChartFetch<BannerContent | null>({
   watchSource: () => JSON.stringify(watchState.value),
 });
 
+const { presentError } = useApiErrorPresenter();
 const { handleCustomButton } = useActionTargets({
   api: useAuthFetch().$authFetch,
   componentId: props.componentId ?? FALLBACK_COMPONENT_ID,
   pageId: props.pageId ?? FALLBACK_PAGE_ID,
   refreshCallback: refreshPageBlocks,
-  handleApiError: (error, title) => useApiError(error, { title }),
+  handleApiError: (error, title) =>
+    presentError(error, { fallbackKey: title ?? "error.500.description" }),
 });
 
 const hasFetchedContent = computed(

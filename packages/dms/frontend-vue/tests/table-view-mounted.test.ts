@@ -14,7 +14,6 @@ import type {
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
 import { readOnlyFailure } from "./helpers/read-only-refusal";
-import { useReadOnlyRefusal } from "../layers/dms-core/app/composables/useReadOnlyRefusal";
 import type { TableCountQuery } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 
 const apps: Array<{ unmount: () => void }> = [];
@@ -158,7 +157,8 @@ it.each([500, 404])(
     let answer = (_value: typeof recovered) => {};
     await tableViewRuntime((url: string) => {
       if (!url.endsWith("/list")) return {};
-      if (!retry) throw { statusCode, data: { message: "Missing workspace" } };
+      if (!retry)
+        throw { statusCode, data: { message: "error.read_only_demo" } };
       return new Promise<typeof recovered>((resolve) => {
         answer = resolve;
       });
@@ -167,12 +167,14 @@ it.each([500, 404])(
     await settleTable();
     expect(host.querySelector("table") === null).toBe(statusCode === 404);
     expect(host.textContent).toContain(
-      statusCode === 404 ? "Missing workspace" : "dms.table.load_error_title",
+      statusCode === 404
+        ? "error.read_only_demo"
+        : "dms.table.load_error_title",
     );
     retry = true;
     const refreshed = refreshPageBlocks();
     await settleTable();
-    expect(host.textContent).not.toContain("Missing workspace");
+    expect(host.textContent).not.toContain("error.read_only_demo");
     expect(host.textContent).not.toContain("error.500");
     expect(host.textContent).not.toContain("dms.table.load_error_title");
     expect(host.querySelectorAll('tbody tr[aria-hidden="true"]')).toHaveLength(
@@ -221,7 +223,7 @@ it("a hand-ordered table neither restores nor offers nor overwrites saved sortin
 });
 
 it("refreshes a refused reorder without a second operation-specific toast", async () => {
-  const add = vi.fn();
+  const add = vi.fn(() => ({ id: "failure" }));
   await tableViewRuntime((url: string) => {
     requests.push(url);
     if (url.endsWith("/edit")) throw readOnlyFailure();
@@ -234,7 +236,6 @@ it("refreshes a refused reorder without a second operation-specific toast", asyn
     };
   });
   vi.stubGlobal("useToast", () => ({ add }));
-  vi.stubGlobal("useReadOnlyRefusal", useReadOnlyRefusal);
   vi.stubGlobal("getAppTranslation", () => ({
     processApiMessage: (key: string) => key,
   }));
@@ -261,7 +262,10 @@ it("refreshes a refused reorder without a second operation-specific toast", asyn
     ),
   ).toEqual(["r1", "r2"]);
   expect(add).toHaveBeenCalledExactlyOnceWith(
-    expect.objectContaining({ id: "dms-read-only", color: "warning" }),
+    expect.objectContaining({
+      title: "error.read_only_demo",
+      color: "warning",
+    }),
   );
 });
 
@@ -515,7 +519,7 @@ it("a settled not-found replaces even previously loaded rows and all table contr
   let missing = false;
   await tableViewRuntime(async (url: string) => {
     if (url.endsWith("/list") && missing) {
-      throw { statusCode: 404, data: { message: "Workspace deleted" } };
+      throw { statusCode: 404, data: { message: "error.read_only_demo" } };
     }
     return { results: [{ _id: "r1", name: "Old order" }], total: 1 };
   });
@@ -525,7 +529,7 @@ it("a settled not-found replaces even previously loaded rows and all table contr
   missing = true;
   await refreshPageBlocks();
   await settleTable();
-  expect(host.textContent).toContain("Workspace deleted");
+  expect(host.textContent).toContain("error.read_only_demo");
   expect(host.textContent).not.toContain("Old order");
   expect(host.textContent).not.toContain("dms.table.load_error_title");
   expect(host.querySelector("table, #refresh-trigger")).toBeNull();

@@ -178,10 +178,10 @@ const skeletonItems = Array.from(
            while the frontend restarts keeps the tiles and tries again. -->
       <DmsBanner
         v-else-if="moduleStore.loadingError.value && !storeListing"
-        tone="error"
+        :tone="moduleStore.loadingNotice.value?.severity ?? 'error'"
         size="sm"
         icon="i-ph-plugs"
-        :title="t('modules.store.load_error')"
+        :title="moduleStore.loadingNotice.value?.message"
       >
         <template #actions>
           <UButton

@@ -17,7 +17,7 @@ import {
 
 const authFetch = vi.fn();
 const confirm = vi.fn(async () => true);
-const addToast = vi.fn();
+const addToast = vi.fn(() => ({ id: "failure" }));
 let app: App | undefined;
 
 function mountConfirmFrom() {
@@ -35,6 +35,7 @@ function mountConfirmFrom() {
 }
 
 beforeEach(() => {
+  vi.stubEnv("SSR", false);
   authFetch.mockReset();
   confirm.mockClear();
   addToast.mockClear();
@@ -63,7 +64,10 @@ describe("confirmFrom", () => {
     expect(await mountConfirmFrom().confirmFrom("/api/x")).toBe(false);
     expect(confirm).not.toHaveBeenCalled();
     expect(addToast).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ id: "dms-read-only" }),
+      expect.objectContaining({
+        title: "error.read_only_demo",
+        color: "warning",
+      }),
     );
   });
 

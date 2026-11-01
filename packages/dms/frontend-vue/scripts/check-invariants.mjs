@@ -4,6 +4,8 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliDecompressSync } from "node:zlib";
 import { z } from "zod";
+import { assertApiErrorPresentation } from "./check-api-error-presentation.mjs";
+import "./test-api-error-presentation.mjs";
 import "./check-autoimport-boundaries.mjs";
 import "./test-autoimport-boundaries.mjs";
 import "./check-page-invariants.mjs";
@@ -11,6 +13,25 @@ import "../../../../checks/notification-tone-contract.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const LAYERS_DIR = join(ROOT, "layers");
+
+function checkCoreErrorFallback() {
+  for (const locale of ["en-GB", "fr-FR"]) {
+    const messages = JSON.parse(
+      readFileSync(
+        join(LAYERS_DIR, `dms-core/i18n/locales/core-${locale}.json`),
+        "utf8",
+      ),
+    );
+    assert.ok(
+      messages.error["500"].description.trim(),
+      `${locale}: always load error.500.description`,
+    );
+    assert.ok(
+      messages.error.read_only_demo.trim(),
+      `${locale}: translate error.read_only_demo`,
+    );
+  }
+}
 
 function collectSources(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -334,6 +355,8 @@ function checkGeistNarrowSpace() {
 }
 
 for (const [name, check] of [
+  ["API error presentation", () => assertApiErrorPresentation([LAYERS_DIR])],
+  ["core error fallback", checkCoreErrorFallback],
   ["translated accessible names", checkAccessibleNames],
   ["layer plugin registration", checkPluginRegistration],
   ["compare mode labels", checkCompareModeLabels],

@@ -1,6 +1,6 @@
 import { useActionConfirm } from "../confirm/useActionConfirm";
 import { useActionTargets } from "../actions/useActionTargets";
-import { describeTableWriteError } from "./utils/writeError";
+import { tableWriteErrorOptions } from "./utils/writeError";
 import type {
   TableRowActionsConfig,
   TableRowActionServices,
@@ -14,7 +14,7 @@ export const useTableRowActions = <T extends Data>(
   config: TableRowActionsConfig,
 ) => {
   const toast = useToast();
-  const consumeReadOnlyRefusal = useReadOnlyRefusal();
+  const { presentError } = useApiErrorPresenter();
   const { t, locale } = useI18n();
   const { confirm } = useConfirm();
   const { confirmAction } = useActionConfirm();
@@ -39,22 +39,11 @@ export const useTableRowActions = <T extends Data>(
    * what failed, the description is the server's message when it is meant
    * for users, else a translated fallback (never a raw error line).
    */
-  const handleApiError = (
-    error: Parameters<typeof describeTableWriteError>[0],
-    title?: string,
-  ) => {
-    if (consumeReadOnlyRefusal(error)) return;
-    toast.add({
-      color: Color.error,
-      icon: "i-ph-warning-circle",
-      title: title || t("dms.form.error_title"),
-      description: describeTableWriteError(
-        error,
-        t,
-        config.columns,
-        processI18n,
-      ),
-    });
+  const handleApiError = (error: unknown, title?: string) => {
+    presentError(
+      error,
+      tableWriteErrorOptions(error, t, config.columns, processI18n, title),
+    );
   };
 
   const createFormContainer = createTableRowFormContainer<T>(config, services);

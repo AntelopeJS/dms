@@ -42,7 +42,6 @@ export const useAuthFetch = () => {
     useSessionRecovery();
   const config = useDmsRuntimeConfig();
   const dmsApp = useDmsApp();
-  const consumeReadOnlyRefusal = useReadOnlyRefusal();
 
   const realtimeSessionId = useDmsState<string | undefined>(
     REALTIME_SESSION_STATE_KEY,
@@ -60,7 +59,6 @@ export const useAuthFetch = () => {
       }
     },
     async onResponseError({ response, options }) {
-      if (consumeReadOnlyRefusal({ response })) return;
       if (response.status !== HTTP_UNAUTHORIZED) {
         return;
       }

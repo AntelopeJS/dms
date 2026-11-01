@@ -69,20 +69,12 @@ export function resolveApiErrorMessage(
   return isApiError(error) ? resolveDescription(error) : FALLBACK_ERROR_KEY;
 }
 
+/** @deprecated Capture useApiErrorPresenter during setup instead. */
 export function useApiError(
   error: Parameters<typeof resolveApiErrorTitle>[0],
   options?: Options,
 ) {
-  if (useReadOnlyRefusal()(error)) return;
-  const toast = useToast();
-  const { processApiMessage } = getAppTranslation();
-
-  const title = options?.title || resolveApiErrorTitle(error);
-  const description = options?.description || resolveApiErrorMessage(error);
-
-  toast.add({
-    title: processApiMessage(title),
-    description: processApiMessage(description),
-    color: "error",
+  useApiErrorPresenter().presentError(error, {
+    fallbackKey: options?.description || options?.title || FALLBACK_ERROR_KEY,
   });
 }

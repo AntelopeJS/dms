@@ -748,6 +748,7 @@
       "not_found_hint": "What this shows doesn’t exist, or no longer does."
     },
     "action_error": {
+      "fields": "{summary}",
       "forbidden": "You don’t have permission to do this.",
       "generic": "Something went wrong and the action couldn’t be completed. Try again."
     },

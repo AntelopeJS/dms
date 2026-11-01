@@ -130,7 +130,7 @@ const loadedFilterSource = filterSourceValue.value;
 
 const { $authFetch } = useAuthFetch();
 const { readRelationRows } = useRelationRows();
-const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 const { hasPermission, loadPermissions } = usePermissions();
@@ -229,11 +229,7 @@ async function fetchRelationItems(): Promise<RelationItems> {
       ...filterParams.value,
     },
     onRequestError: ({ error }: { error: Error }) => {
-      toast.add({
-        color: Color.error,
-        title: t("dms.form.error_title"),
-        description: error.message,
-      });
+      presentError(error, { fallbackKey: "dms.form.error_title" });
     },
   });
 

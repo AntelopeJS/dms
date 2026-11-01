@@ -27,7 +27,7 @@ const props = defineProps<NotificationInboxDisplayProps>();
 const SKELETON_ROWS = 3;
 
 const { t, locale } = useI18n();
-const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { confirm } = useConfirm();
 const catalog = useNotificationCatalog();
 const {
@@ -70,8 +70,8 @@ const runThenRefresh = async (action: () => ReturnType<typeof markAsRead>) => {
     await action();
 
     await nextTick();
-  } catch {
-    toast.add({ title: t("dms.form.error_title"), color: "error" });
+  } catch (error) {
+    presentError(error, { fallbackKey: "dms.form.error_title" });
   } finally {
     ownChanges--;
   }
