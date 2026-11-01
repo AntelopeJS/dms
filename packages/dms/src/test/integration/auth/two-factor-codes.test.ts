@@ -1,11 +1,13 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { AxiosInstance } from "axios";
-import { assert, expect } from "chai";
+import { expect } from "chai";
 import { generateCode } from "2fa";
-import { decode } from "jsonwebtoken";
 import { UserNotificationsModel } from "../../../db/models";
-import { generateTwoFactorToken } from "../../../implementations/dms-auth";
+import {
+  generateTwoFactorToken,
+  validateTwoFactorToken,
+} from "../../../implementations/dms-auth";
 import { acceptTotpCode, totpStepAt } from "../../../utils";
 import {
   authorizedClient,
@@ -73,7 +75,10 @@ async function enableTotp(
   expect(setup.status, JSON.stringify(setup.data)).to.equal(HTTP_OK);
   const { secret } = setup.data;
   const code = await currentTotpCode(secret);
-  const confirmed = await client.post(`${TWO_FACTOR}/confirm-totp`, { code });
+  const confirmed = await client.post<{ backupCodes: string[] }>(
+    `${TWO_FACTOR}/confirm-totp`,
+    { code },
+  );
   expect(confirmed.status, JSON.stringify(confirmed.data)).to.equal(HTTP_OK);
   return { secret, code, backupCodes: confirmed.data.backupCodes };
 }
@@ -198,9 +203,7 @@ describe("[integration] auth/two-factor codes", function () {
 
     it("gives two sign-ins in the same second a challenge each", async () => {
       const { backupCodes } = await enableTotp(client, user);
-      const claims = decode(await signIn(user), { json: true });
-      assert.exists(claims);
-      const { tenantId } = claims;
+      const { tenantId } = await validateTwoFactorToken(await signIn(user));
       const stored = await storedUser(user.userId);
       const [first, second] = [
         generateTwoFactorToken(tenantId, stored),

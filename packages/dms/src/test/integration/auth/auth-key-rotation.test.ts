@@ -2,8 +2,9 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { SessionModel } from "@antelopejs/interface-dms/auth/db";
 import type { AxiosInstance } from "axios";
 import { assert, expect } from "chai";
-import { decode } from "jsonwebtoken";
+import { validateSessionHandoffToken } from "../../../implementations/dms-auth/services";
 import {
+  type AuthResponse,
   authorizedClient,
   loginUser,
   type RegisteredUser,
@@ -45,7 +46,7 @@ async function refreshStatus(refreshToken: string): Promise<number> {
 }
 
 async function redeem(handoff: SessionHandoff) {
-  return createClient().post(handoff.endpoint, handoff.payload);
+  return createClient().post<AuthResponse>(handoff.endpoint, handoff.payload);
 }
 
 describe("[integration] auth/auth key rotation", () => {
@@ -83,7 +84,10 @@ describe("[integration] auth/auth key rotation", () => {
   };
 
   it("rotates on a password change and keeps this device signed in", async () => {
-    const response = await thisDevice.post(`${SECURITY}/password`, {
+    const response = await thisDevice.post<{
+      signedOutSessions: number;
+      sessionHandoff: SessionHandoff;
+    }>(`${SECURITY}/password`, {
       currentPassword: user.password,
       password: NEW_PASSWORD,
     });
@@ -93,7 +97,10 @@ describe("[integration] auth/auth key rotation", () => {
   });
 
   it("rotates on signing out the other sessions and keeps this device signed in", async () => {
-    const response = await thisDevice.delete(`${SECURITY}/other-sessions`);
+    const response = await thisDevice.delete<{
+      count: number;
+      sessionHandoff: SessionHandoff;
+    }>(`${SECURITY}/other-sessions`);
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     expect(response.data.count).to.equal(1);
     await expectRotated(response.data.sessionHandoff);
@@ -106,9 +113,9 @@ describe("[integration] auth/auth key rotation", () => {
     const handoff = response.data.sessionHandoff;
     expect((await redeem(handoff)).status).to.equal(HTTP_OK);
 
-    const claims = decode(handoff.payload.token, { json: true });
-    assert.exists(claims);
-    const { sessionId } = claims;
+    const { sessionId } = await validateSessionHandoffToken(
+      handoff.payload.token,
+    );
     await GetModel(SessionModel).update(sessionId, {
       refreshTokenRotatedAt: new Date(Date.now() - PAST_GRACE_MS),
     });

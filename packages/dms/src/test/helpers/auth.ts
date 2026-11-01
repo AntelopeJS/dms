@@ -1,10 +1,14 @@
 import type { AxiosInstance } from "axios";
+import type { AuthController } from "../../routes";
 import { seedUserInvite } from "./fixtures";
 import { createClient } from "./http";
 
 const DEFAULT_PASSWORD = "TestPassw0rd!";
 const DEFAULT_NAME = "Test User";
 const DEFAULT_LANG = "en";
+
+/** Body of a successful token-issuing auth route, as the route returns it. */
+export type AuthResponse = Awaited<ReturnType<AuthController["refresh"]>>;
 
 export interface RegisteredUser {
   email: string;
@@ -40,7 +44,7 @@ export async function registerUser(
   });
 
   const client = createClient();
-  const response = await client.post("/api/auth/signup", {
+  const response = await client.post<AuthResponse>("/api/auth/signup", {
     name: options.name ?? DEFAULT_NAME,
     email,
     password,
@@ -54,12 +58,14 @@ export async function registerUser(
     );
   }
 
+  const userId = response.data.user?._id;
+  if (!userId) throw new Error("Signup response carries no user id");
   return {
     email,
     password,
     accessToken: response.data.access_token,
     refreshToken: response.data.refresh_token,
-    userId: response.data.user?._id,
+    userId,
   };
 }
 
@@ -68,7 +74,10 @@ export async function loginUser(
   password: string,
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const client = createClient();
-  const response = await client.post("/api/auth/login", { email, password });
+  const response = await client.post<AuthResponse>("/api/auth/login", {
+    email,
+    password,
+  });
 
   if (response.status >= 400) {
     throw new Error(
