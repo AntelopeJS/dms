@@ -14,10 +14,12 @@ import {
 import { ProvisionTenant } from "@antelopejs/interface-dms/tenant-provisioning";
 import { expect } from "chai";
 import {
+  ensureDefaultTenantExists,
+  provisionDefaultTenant,
   registerExistingTenantInstances,
   registerTenantInstance,
 } from "../../../utils";
-import { resetDatabase } from "../../helpers/db";
+import { countRawDocuments, resetDatabase } from "../../helpers/db";
 import { reloadHostProvisionedTenants } from "../../helpers/reload-host";
 
 const EXISTING_TENANT = "instances-existing-tenant";
@@ -90,5 +92,49 @@ describe("[unit] utils/tenant-instances", () => {
     expect(defaults).to.have.length(1);
     expect(defaults[0].userId).to.equal(undefined);
     expect(defaults[0].afterDatabaseInitialized).to.equal(true);
+  });
+
+  it("resumes interrupted default tenant provisioning without replacing its row", async () => {
+    const tenants = GetModel(TenantModel);
+    await ensureDefaultTenantExists();
+    const interrupted = new Error(
+      "Operation interrupted because client was closed",
+    );
+    const handler: HookHandler<Hook.TENANT_BEING_PROVISIONED> = () => {
+      throw interrupted;
+    };
+    RegisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
+    try {
+      await provisionDefaultTenant().catch(() => undefined);
+    } finally {
+      UnregisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
+    }
+
+    expect(await tenants.get(DEFAULT_TENANT_ID)).not.to.equal(undefined);
+    expect(
+      await countRawDocuments("tenants", { provisioningPending: true }),
+    ).to.equal(1);
+    expect(await ensureDefaultTenantExists()).to.equal(false);
+
+    const completed: string[] = [];
+    const complete: HookHandler<Hook.TENANT_BEING_PROVISIONED> = ({
+      tenantId,
+    }) => {
+      completed.push(tenantId);
+      return undefined;
+    };
+    RegisterHook(Hook.TENANT_BEING_PROVISIONED, complete);
+    try {
+      await provisionDefaultTenant();
+      await provisionDefaultTenant();
+    } finally {
+      UnregisterHook(Hook.TENANT_BEING_PROVISIONED, complete);
+    }
+
+    expect(completed).to.deep.equal([DEFAULT_TENANT_ID]);
+    expect(
+      await countRawDocuments("tenants", { provisioningPending: true }),
+    ).to.equal(0);
+    expect(await tenants.get(DEFAULT_TENANT_ID)).not.to.equal(undefined);
   });
 });
