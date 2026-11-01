@@ -64,8 +64,8 @@ async function refusalOf(
 ): Promise<string | undefined> {
   try {
     await validateInviteToken({ token, email });
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
+  } catch (error: unknown) {
+    if (!(error instanceof HTTPResult)) throw error;
     expect(error.getStatus()).to.equal(HTTP_BAD_REQUEST);
     return error.getBody();
   }
