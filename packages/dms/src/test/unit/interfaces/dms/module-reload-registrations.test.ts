@@ -1,4 +1,5 @@
-import { Controller } from "@antelopejs/interface-api";
+import { Controller, type RequestContext } from "@antelopejs/interface-api";
+import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ReloadModule } from "@antelopejs/interface-core/modules";
 import {
   extractFromResult,
@@ -14,6 +15,7 @@ import {
   RELOAD_HOST_TENANT,
   takeReloadHostCalls,
 } from "../../../helpers/reload-host";
+import { requestContextFixture } from "../../../helpers/request-context";
 import { userFixture } from "../../../helpers/user-fixture";
 
 const ROW_ID = "reload-host-row";
@@ -23,18 +25,31 @@ const USER = userFixture({
   email: "reload-host@example.test",
 });
 
-const REQUEST_CONTEXT = { rawRequest: { headers: {} } };
+const REQUEST_CONTEXT = requestContextFixture();
 
 class RowsController extends Controller(RELOAD_HOST_LOCATION) {}
 
 const updateRow = withRealtimeMutation(
   { eventType: "updated", extractIds: extractFromResult },
-  { method: "put", args: [], func: async () => ({ _id: ROW_ID }) },
+  {
+    method: "put",
+    args: [],
+    func: async (
+      _ctx: RequestContext,
+      _params: { id: string },
+      _body: Buffer,
+      _user: User,
+    ) => ({ _id: ROW_ID }),
+  },
 );
 
 async function mutateRow(): Promise<void> {
   await updateRow.func.call(
     new RowsController(),
+    REQUEST_CONTEXT,
+    { id: ROW_ID },
+    Buffer.from("{}"),
+    USER,
     REQUEST_CONTEXT,
     SESSION_ID,
     USER,

@@ -13,7 +13,10 @@ import {
   DefaultRoutes,
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
-import { Parameters } from "@antelopejs/interface-data-api/components";
+import {
+  Parameters,
+  type Validation,
+} from "@antelopejs/interface-data-api/components";
 import { getRequestTenantId } from "../../request-tenant";
 import { AuthUser } from "../../auth";
 import type { User } from "../../auth/db";
@@ -24,6 +27,7 @@ import {
   VIEW_ACTION,
   withActionCheck,
   withActionCheckOptions,
+  withParamsActionCheck,
 } from "./internal/auth";
 import {
   archiveRows,
@@ -38,7 +42,11 @@ import {
 import type { RowBulkOperationParams } from "./internal/data-functions";
 import { withFilePromotion } from "./internal/files";
 import { withColumnConditions } from "./internal/column-conditions";
-import { createGuardedRoute, guardedGetRoute } from "./internal/guards";
+import {
+  createGuardedConfirmRoute,
+  createGuardedWriteRoute,
+  guardedGetRoute,
+} from "./internal/guards";
 import {
   extractBulkArgIds,
   extractFromResult,
@@ -108,7 +116,11 @@ type BulkOperationResult =
 
 const createBulkOperationRoute = (
   operationFunc: (...args: RowBulkOperationParams) => BulkOperationResult,
-): DataControllerCallback => ({
+): DataControllerCallback<
+  unknown,
+  Awaited<BulkOperationResult>,
+  [RequestContext, string[]]
+> => ({
   func: function (ctx: RequestContext, ids: string[]) {
     assert(ids.length > 0, 400, "Missing ids.");
     return operationFunc(this, ctx, ids);
@@ -259,15 +271,19 @@ function createBatchCountRoute(actionId: string): DataControllerCallback {
   };
 }
 
-function createEditRoute(
-  baseRoute: DataControllerCallback,
-): DataControllerCallback {
+function createEditRoute<O, R>(
+  baseRoute: DataControllerCallback<
+    O,
+    R,
+    [RequestContext, Parameters.EditParameters, Validation.WrittenBody]
+  >,
+) {
   return withRealtimeMutation(
     { eventType: "updated", extractIds: extractSingleParamId },
     withActionCheck(
       "edit",
       withColumnConditions(
-        createGuardedRoute(
+        createGuardedWriteRoute(
           createValidatedRoute(withFilePromotion(baseRoute), "edit"),
           "edit",
         ),
@@ -279,7 +295,7 @@ function createEditRoute(
 
 export namespace TableViewRoutes {
   export const Get = withPresenceAcquire(
-    withActionCheck(VIEW_ACTION, guardedGetRoute),
+    withParamsActionCheck(VIEW_ACTION, guardedGetRoute),
   );
   export const List = createListRoute(LIST_ACTION);
   export const Select = DefaultRoutes.WithOptions(
@@ -320,7 +336,7 @@ export namespace TableViewRoutes {
     withActionCheck(
       "add",
       withColumnConditions(
-        createGuardedRoute(withFilePromotion(DefaultRoutes.New), "new"),
+        createGuardedWriteRoute(withFilePromotion(DefaultRoutes.New), "new"),
         "new",
       ),
     ),
@@ -342,7 +358,7 @@ export namespace TableViewRoutes {
     { eventType: "deleted", extractIds: extractMultiParamId },
     withActionCheck(
       "delete",
-      createGuardedRoute(
+      createGuardedConfirmRoute(
         createValidatedRoute(
           withFilePromotion(DefaultRoutes.Delete, "delete"),
           "delete",
@@ -355,7 +371,7 @@ export namespace TableViewRoutes {
     { eventType: "updated", extractIds: extractBulkArgIds },
     withActionCheck(
       "archive",
-      createGuardedRoute(
+      createGuardedConfirmRoute(
         createValidatedRoute(createBulkOperationRoute(archiveRows), "archive"),
         "archive",
       ),
@@ -365,7 +381,7 @@ export namespace TableViewRoutes {
     { eventType: "updated", extractIds: extractBulkArgIds },
     withActionCheck(
       "restore",
-      createGuardedRoute(
+      createGuardedConfirmRoute(
         createValidatedRoute(createBulkOperationRoute(restoreRows), "restore"),
         "restore",
       ),
@@ -377,42 +393,51 @@ export namespace TableViewRoutes {
     DataControllerCallback | DataControllerCallbackWithOptions
     // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published export is an open callback dictionary; inference or satisfies would expose narrower named route members and change its declaration.
   > = {
-    exportStart: withActionCheckOptions(
-      "export",
-      DefaultRoutes.WithOptions(
-        {
-          // oxlint-disable-next-line eslint/max-params -- DefaultRoutes.WithOptions calls this export route with positional context, list parameters and export arguments.
-          func: function (
-            ctx: RequestContext,
-            listParams: Parameters.ListParameters,
-            format: string | undefined,
-            delivery: string | undefined,
-            ids: string[],
-            user: User,
-          ) {
-            return startExport(
-              this,
-              ctx,
-              listParams,
-              format,
-              delivery,
-              ids,
-              user,
-            );
-          },
-          args: [
-            Context(),
-            Parameters.List(),
-            Parameter("format", "query"),
-            Parameter("delivery", "query"),
-            MultiParameter("ids", "query"),
-            AuthUser(),
-          ],
-          method: "get",
+    exportStart: DefaultRoutes.WithOptions(
+      {
+        func: async function (
+          this: globalThis.Parameters<typeof startExport>[0],
+          ...routeArgs: [
+            RequestContext,
+            Parameters.ListParameters,
+            string | undefined,
+            string | undefined,
+            string[],
+            User,
+            User,
+          ]
+        ) {
+          const [ctx, listParams, format, delivery, ids, user, checkedUser] =
+            routeArgs;
+          await authorizeAction(
+            this,
+            "export",
+            checkedUser,
+            getRequestTenantId(ctx),
+          );
+          return startExport(
+            this,
+            ctx,
+            listParams,
+            format,
+            delivery,
+            ids,
+            user,
+          );
         },
-        { pluckMode: "export" },
-        "/export/start",
-      ),
+        args: [
+          Context(),
+          Parameters.List(),
+          Parameter("format", "query"),
+          Parameter("delivery", "query"),
+          MultiParameter("ids", "query"),
+          AuthUser(),
+          AuthUser(),
+        ],
+        method: "get",
+      },
+      { pluckMode: "export" },
+      "/export/start",
     ),
     exportStatus: withActionCheckOptions("export", {
       endpoint: "/export/status/:exportId",

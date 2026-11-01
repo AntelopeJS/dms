@@ -1,8 +1,12 @@
-import { Controller } from "@antelopejs/interface-api";
+import { Controller, type RequestContext } from "@antelopejs/interface-api";
 import {
   DataController,
   type DataControllerCallback,
 } from "@antelopejs/interface-data-api";
+import type {
+  Parameters as DataParameters,
+  Validation,
+} from "@antelopejs/interface-data-api/components";
 import {
   Access,
   AccessMode,
@@ -47,17 +51,20 @@ const SYSTEM_MANAGED_FIELD = {
   new: ReadonlyBehaviorType.hidden,
 };
 
-type MemberRouteArgs = Parameters<DataControllerCallback["func"]>;
-
 /** What a table edit or delete changes, read from its request and the rows. */
-type MemberRouteChanges = (
+type MemberRouteChanges<A extends unknown[]> = (
   model: TenantMemberModel,
-  args: MemberRouteArgs,
+  args: A,
 ) => Promise<MemberChange[]>;
 
 async function describeEditRoute(
   model: TenantMemberModel,
-  [, params, body]: MemberRouteArgs,
+  [, params, body]: [
+    RequestContext,
+    DataParameters.EditParameters,
+    Validation.WrittenBody,
+    ...unknown[],
+  ],
 ): Promise<MemberChange[]> {
   const member = await model.get(String(params.id));
   if (!member) return [];
@@ -67,7 +74,7 @@ async function describeEditRoute(
 
 async function describeDeleteRoute(
   model: TenantMemberModel,
-  [, params]: MemberRouteArgs,
+  [, params]: [RequestContext, DataParameters.DeleteParameters, ...unknown[]],
 ): Promise<MemberChange[]> {
   const ids = [params.id].flat().map(String);
   const members = await Promise.all(ids.map((id) => model.get(id)));
@@ -76,13 +83,13 @@ async function describeDeleteRoute(
     .map(describeMemberRemoval);
 }
 
-function memberWriteRoute(
-  route: DataControllerCallback,
-  describe: MemberRouteChanges,
-): DataControllerCallback {
+function memberWriteRoute<O, R, A extends [RequestContext, ...unknown[]]>(
+  route: DataControllerCallback<O, R, A>,
+  describe: MemberRouteChanges<A>,
+): DataControllerCallback<O, R, A> {
   return {
     ...route,
-    async func(...args: MemberRouteArgs) {
+    async func(...args: A) {
       const tenantId = getRequestTenantId(args[0]);
       return changeTenantMembers(tenantId, async () => ({
         changes: await describe(GetModel(TenantMemberModel, tenantId), args),

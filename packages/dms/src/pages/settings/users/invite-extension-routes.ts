@@ -53,11 +53,10 @@ export const inviteGetRoute: DataControllerCallback = {
   ...TableViewRoutes.Get,
   func: async function (
     this: DataControllerInstance,
-    ctx: RequestContext,
-    params: Parameters.GetParameters,
-    ...rest: unknown[]
+    ...args: globalThis.Parameters<typeof TableViewRoutes.Get.func>
   ) {
-    const row = await TableViewRoutes.Get.func.call(this, ctx, params, ...rest);
+    const [ctx, params] = args;
+    const row = await TableViewRoutes.Get.func.apply(this, args);
     const invite = await GetModel(UserInviteModel, getRequestTenantId(ctx)).get(
       String(params.id),
     );
@@ -110,19 +109,19 @@ async function editAdmittedPendingInvite(
   });
 }
 
-const editInviteWithExtensions: DataControllerCallback = {
+const editInviteWithExtensions = {
   ...DefaultRoutes.Edit,
   func: function (
     this: DataControllerInstance,
     ctx: RequestContext,
     params: Parameters.EditParameters,
-    body: Buffer,
+    body: Validation.WrittenBody,
   ) {
     return editAdmittedPendingInvite(
       getRequestTenantId(ctx),
       String(params.id),
       Validation.ParseBody(body),
-      () => DefaultRoutes.Edit.func.call(this, ctx, params, body),
+      async () => DefaultRoutes.Edit.func.call(this, ctx, params, body),
     );
   },
 };
@@ -133,7 +132,7 @@ const guardedInviteEditRoute = TableViewRoutes.EditWith(
 
 export const inviteEditRoute: DataControllerCallback = {
   ...guardedInviteEditRoute,
-  func(...args: Parameters<DataControllerCallback["func"]>) {
+  func(...args: globalThis.Parameters<typeof guardedInviteEditRoute.func>) {
     return changeTenantMembers(getRequestTenantId(args[0]), async () => ({
       changes: [],
       write: async () => guardedInviteEditRoute.func.apply(this, args),

@@ -11,6 +11,12 @@ import { DEFAULT_ROW_ID_FIELD } from "../options";
 import { getTableViewMetaFor } from "./meta";
 
 type WriteMode = "new" | "edit";
+
+/** What a `new` or `edit` route receives second: the row an edit names, and whether mandatory fields are already checked. */
+interface ColumnWriteParameters {
+  id?: string;
+  noMandatory?: string;
+}
 type TableRow = NonNullable<Awaited<ReturnType<typeof fetchRowForGuard>>>;
 
 /** Whether `row` meets `condition`: a field it lacks counts as empty. */
@@ -56,26 +62,42 @@ const isEmptyValue = (value: TableRow[string]): boolean =>
  *
  * @internal
  */
-export const withColumnConditions = (
-  baseRoute: DataControllerCallback,
+export const withColumnConditions = <
+  O,
+  R,
+  P extends ColumnWriteParameters,
+  Rest extends unknown[],
+>(
+  baseRoute: DataControllerCallback<
+    O,
+    R,
+    [RequestContext, P, Validation.WrittenBody, ...Rest]
+  >,
   mode: WriteMode,
-): DataControllerCallback => ({
+): DataControllerCallback<
+  O,
+  R,
+  [RequestContext, P, Validation.WrittenBody, ...Rest]
+> => ({
   func: async function (
     this: Parameters<typeof fetchRowForGuard>[0] & {
       constructor: ConstructorParameters<typeof DataAPIMeta>[0];
     },
     ctx: RequestContext,
-    params: Parameters<DataControllerCallback["func"]>[1],
-    ...args: Parameters<DataControllerCallback["func"]>[2][]
+    params: P,
+    rawBody: Validation.WrittenBody,
+    ...rest: Rest
   ) {
     const tableMeta = getTableViewMetaFor(this);
     const { columns } = tableMeta;
     const hasConditions = Object.values(columns).some(
       (c) => c.visibleWhen || c.disabledWhen,
     );
-    if (!hasConditions) return baseRoute.func.call(this, ctx, params, ...args);
+    if (!hasConditions) {
+      return baseRoute.func.call(this, ctx, params, rawBody, ...rest);
+    }
 
-    const body = Validation.ParseBody(args[0]);
+    const body = Validation.ParseBody(rawBody);
     let row: TableRow = body;
     let current: TableRow | undefined;
     if (mode === "edit") {
@@ -96,7 +118,7 @@ export const withColumnConditions = (
     }
 
     if (params.noMandatory) {
-      return baseRoute.func.call(this, ctx, params, written, ...args.slice(1));
+      return baseRoute.func.call(this, ctx, params, written, ...rest);
     }
     const dataMeta = GetMetadata(this.constructor, DataAPIMeta);
     const conditional = Object.keys(columns).filter(
@@ -130,7 +152,7 @@ export const withColumnConditions = (
       ctx,
       { ...params, noMandatory: "true" },
       written,
-      ...args.slice(1),
+      ...rest,
     );
   },
   args: baseRoute.args,

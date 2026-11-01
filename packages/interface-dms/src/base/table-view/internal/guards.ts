@@ -5,7 +5,10 @@ import {
   type DataControllerCallback,
   DefaultRoutes,
 } from "@antelopejs/interface-data-api";
-import type { Parameters } from "@antelopejs/interface-data-api/components";
+import {
+  type Parameters,
+  Validation,
+} from "@antelopejs/interface-data-api/components";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { AfterWrite, GuardFn } from "../../types/guards";
 import { fetchRowForGuard } from "../data-functions";
@@ -42,21 +45,35 @@ export const parseGuardBody = (raw: unknown): Record<string, unknown> => {
   return {};
 };
 
-interface GuardInvocationConfig {
+/** The parameters each guarded action's route receives second. */
+interface GuardedActionParams {
+  edit: Parameters.EditParameters;
+  delete: Parameters.DeleteParameters;
+  archive: string[];
+  restore: string[];
+  new: Parameters.NewParameters;
+}
+
+interface GuardInvocationConfig<P> {
   // oxlint-disable-next-line eslint/max-params -- Guard adapters share six positional inputs, including the edit adapter configured row-id field.
   invokeGuard: (
     controller: globalThis.Parameters<typeof fetchRowForGuard>[0] & {
       constructor: ConstructorParameters<typeof TableViewMeta>[0];
     },
     ctx: RequestContext,
-    params: globalThis.Parameters<DataControllerCallback["func"]>[1],
+    params: P,
     args: unknown[],
     guard: GuardFn<any>,
     idField: string,
   ) => Promise<void | AfterWrite>;
 }
 
-const ACTION_GUARD_CONFIGS: Record<GuardedActionName, GuardInvocationConfig> = {
+/** The guard adapter of each guarded action. */
+type GuardInvocationConfigs = {
+  [K in GuardedActionName]: GuardInvocationConfig<GuardedActionParams[K]>;
+};
+
+const ACTION_GUARD_CONFIGS: GuardInvocationConfigs = {
   edit: {
     // oxlint-disable-next-line eslint/max-params -- The edit adapter consumes the six positional inputs declared by GuardInvocationConfig.
     invokeGuard: async (controller, ctx, params, args, guard, idField) => {
@@ -111,13 +128,14 @@ const getGuardForAction = (
 };
 
 /** @internal */
-export const guardedGetRoute: DataControllerCallback<Parameters.GetParameters> =
-  DefaultRoutes.WithGetGuard(async function (ctx, current, params) {
+export const guardedGetRoute = DefaultRoutes.WithGetGuard(
+  async function (ctx, current, params) {
     await getGuardForAction(this, "get")?.call(this, ctx, {
       id: params.id,
       current,
     });
-  });
+  },
+);
 
 const getIdField = (
   controller: globalThis.Parameters<typeof fetchRowForGuard>[0] & {
@@ -141,67 +159,118 @@ async function runAfterWrite(
   }
 }
 
-const CONFIRM_BODY_ACTIONS: ReadonlySet<GuardedActionName> = new Set([
-  "delete",
-  "archive",
-  "restore",
-]);
+type GuardedController = globalThis.Parameters<typeof fetchRowForGuard>[0] & {
+  constructor: ConstructorParameters<typeof TableViewMeta>[0];
+};
 
-const WRITE_BODY_ACTIONS: ReadonlySet<GuardedActionName> = new Set([
-  "new",
-  "edit",
-]);
-
-/** @internal */
-export const createGuardedRoute = (
-  baseRoute: DataControllerCallback,
-  actionName: GuardedActionName,
-): DataControllerCallback => {
-  const config = ACTION_GUARD_CONFIGS[actionName];
-  const readsConfirmBody = CONFIRM_BODY_ACTIONS.has(actionName);
+/**
+ * `baseRoute` behind the `actionName` guard, given the body the confirmation
+ * answered: the route takes it after the arguments of `baseRoute`.
+ *
+ * @internal
+ */
+export const createGuardedConfirmRoute = <
+  K extends "delete" | "archive" | "restore",
+  O,
+  R,
+>(
+  baseRoute: DataControllerCallback<
+    O,
+    R,
+    [RequestContext, GuardedActionParams[K]]
+  >,
+  actionName: K,
+): DataControllerCallback<
+  O,
+  R,
+  [RequestContext, GuardedActionParams[K], Buffer]
+> => {
+  const config: GuardInvocationConfig<GuardedActionParams[K]> =
+    ACTION_GUARD_CONFIGS[actionName];
   return {
     func: async function (
-      this: globalThis.Parameters<typeof fetchRowForGuard>[0] & {
-        constructor: ConstructorParameters<typeof TableViewMeta>[0];
-      },
+      this: GuardedController,
       ctx: RequestContext,
-      params: globalThis.Parameters<DataControllerCallback["func"]>[1],
-      ...routeArgs: unknown[]
+      params: GuardedActionParams[K],
+      confirmBody: Buffer,
     ) {
-      const confirmBody = readsConfirmBody ? routeArgs.pop() : undefined;
       const guard = getGuardForAction(this, actionName);
-      const writtenBody =
-        guard && WRITE_BODY_ACTIONS.has(actionName)
-          ? parseGuardBody(routeArgs[0])
-          : undefined;
-      const args = readsConfirmBody
-        ? [confirmBody]
-        : writtenBody
-          ? [writtenBody, ...routeArgs.slice(1)]
-          : routeArgs;
       const afterWrite = guard
         ? await config.invokeGuard(
             this,
             ctx,
             params,
-            args,
+            [confirmBody],
             guard,
             getIdField(this),
           )
         : undefined;
-      const writtenArgs = writtenBody
-        ? [writtenBody, ...routeArgs.slice(1)]
-        : routeArgs;
+      const result = await baseRoute.func.call(this, ctx, params);
+      if (afterWrite) await runAfterWrite(afterWrite, actionName);
+      return result;
+    },
+    args: [...baseRoute.args, RawBody()],
+    method: baseRoute.method,
+  };
+};
+
+/**
+ * `baseRoute` behind the `actionName` guard. A guard receives the body
+ * parsed by `Validation.ParseBody`, so one that is not a JSON object is
+ * refused with 400 before the guard runs, and the route then writes the body
+ * as the guard left it.
+ *
+ * @internal
+ */
+export const createGuardedWriteRoute = <
+  K extends "new" | "edit",
+  O,
+  R,
+  Rest extends unknown[],
+>(
+  baseRoute: DataControllerCallback<
+    O,
+    R,
+    [RequestContext, GuardedActionParams[K], Validation.WrittenBody, ...Rest]
+  >,
+  actionName: K,
+): DataControllerCallback<
+  O,
+  R,
+  [RequestContext, GuardedActionParams[K], Validation.WrittenBody, ...Rest]
+> => {
+  const config: GuardInvocationConfig<GuardedActionParams[K]> =
+    ACTION_GUARD_CONFIGS[actionName];
+  return {
+    func: async function (
+      this: GuardedController,
+      ctx: RequestContext,
+      params: GuardedActionParams[K],
+      body: Validation.WrittenBody,
+      ...rest: Rest
+    ) {
+      const guard = getGuardForAction(this, actionName);
+      if (!guard) return baseRoute.func.call(this, ctx, params, body, ...rest);
+      const writtenBody = Validation.ParseBody(body);
+      const afterWrite = await config.invokeGuard(
+        this,
+        ctx,
+        params,
+        [writtenBody, ...rest],
+        guard,
+        getIdField(this),
+      );
       const result = await baseRoute.func.call(
         this,
         ctx,
         params,
-        ...writtenArgs,
+        writtenBody,
+        ...rest,
       );
       if (afterWrite) await runAfterWrite(afterWrite, actionName);
       return result;
     },
-    args: readsConfirmBody ? [...baseRoute.args, RawBody()] : baseRoute.args,
+    args: baseRoute.args,
     method: baseRoute.method,
   };
 };
