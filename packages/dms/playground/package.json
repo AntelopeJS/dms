@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "main": "dist/index.js",
+  "dmsFrontend": "dist/frontend-module.js",
   "packageManager": "pnpm@10.2.0",
   "scripts": {
     "build": "rimraf dist && tsc",
