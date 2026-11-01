@@ -94,7 +94,10 @@ class InstantSaveQueue<V extends object> {
   private readonly debounceTimers = new Map<InstantSaveKey<V>, Timer>();
   private readonly savedTimers = new Map<InstantSaveKey<V>, Timer>();
 
-  constructor(private readonly source: InstantSaveSource<V>) {}
+  constructor(
+    private readonly source: InstantSaveSource<V>,
+    private readonly consumeRefusal: ReturnType<typeof useReadOnlyRefusal>,
+  ) {}
 
   /** The value a failure puts back: the server's, or the one first shown. */
   remember(key: InstantSaveKey<V>): void {
@@ -189,6 +192,7 @@ class InstantSaveQueue<V extends object> {
     error: Parameters<NonNullable<InstantSaveSource<V>["onError"]>>[0],
     changes: Partial<V>,
   ): void {
+    const isReadOnly = this.consumeRefusal(error);
     for (const key of saveKeys(changes)) {
       const isShown =
         !this.pending.has(key) &&
@@ -197,9 +201,9 @@ class InstantSaveQueue<V extends object> {
         // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The queue API does not require a remembered value; preserve the unchecked rollback lookup.
         this.source.write(key, this.confirmed.get(key) as V[typeof key]);
       }
-      this.setState(key, "error");
+      this.setState(key, isReadOnly ? "idle" : "error");
     }
-    this.settleFailed(changes, true);
+    this.settleFailed(changes, !isReadOnly);
     this.source.onError?.(error, changes);
   }
 
@@ -231,7 +235,8 @@ class InstantSaveQueue<V extends object> {
 export function useInstantSave<V extends object>(
   source: InstantSaveSource<V>,
 ): InstantSave<V> {
-  const saves = new InstantSaveQueue(source);
+  const consumeRefusal = useReadOnlyRefusal();
+  const saves = new InstantSaveQueue(source, consumeRefusal);
 
   const queue: InstantSave<V>["queue"] = (key, value, options = {}) =>
     saves.wait(key, value, !!options.debounce);

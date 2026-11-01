@@ -18,6 +18,7 @@ export function useExpandedRowDetails<T>(
   getRow: (id: string) => Promise<T | undefined>,
 ) {
   const entries = ref<Record<string, ExpandedRowDetailEntry<T>>>({});
+  const consumeRefusal = useReadOnlyRefusal();
   let generation = 0;
 
   const setEntry = (id: string, entry: ExpandedRowDetailEntry<T>) => {
@@ -30,7 +31,11 @@ export function useExpandedRowDetails<T>(
     let row: T | undefined;
     try {
       row = await getRow(id);
-    } catch {
+    } catch (error) {
+      if (consumeRefusal(error)) {
+        if (loadedFor === generation) setEntry(id, { state: "ready" });
+        return;
+      }
       row = undefined;
     }
     if (loadedFor !== generation) return;

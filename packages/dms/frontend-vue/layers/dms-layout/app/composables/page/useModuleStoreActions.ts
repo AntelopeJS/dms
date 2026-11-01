@@ -66,6 +66,7 @@ export const useModuleStoreActions = (
   const { t } = useI18n();
   const { processI18n } = useTranslation();
   const toast = useToast();
+  const consumeRefusal = useReadOnlyRefusal();
   const { confirm } = useConfirm();
 
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Store requests can reject with arbitrary JavaScript values; the store's Promise contract has no rejection owner type.
@@ -89,6 +90,7 @@ export const useModuleStoreActions = (
     try {
       await moduleStore.run(kind, entry, body);
     } catch (error) {
+      if (consumeRefusal(error)) throw error;
       throw new ConfirmActionError({
         title: t("modules.store.action_failed", {
           module: processI18n(entry.title),
@@ -165,6 +167,7 @@ export const useModuleStoreActions = (
     try {
       await moduleStore.run(kind, entry);
     } catch (error) {
+      if (consumeRefusal(error)) return;
       toast.add({
         color: "error",
         icon: "i-ph-warning-circle",

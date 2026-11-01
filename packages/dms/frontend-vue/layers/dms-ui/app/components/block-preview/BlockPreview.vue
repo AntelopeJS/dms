@@ -14,6 +14,8 @@ import {
 } from "../../build/utils/blockPreview";
 import { childComponentId } from "../../utils/componentId";
 
+const consumeRefusal = useReadOnlyRefusal();
+
 /**
  * Draws a tree of registered DMS blocks exactly as a page would.
  *
@@ -129,6 +131,7 @@ onMounted(async () => {
     fetchedBlockTypes.value =
       await $authFetch<PreviewBlockTypes>(BLOCK_TYPES_ENDPOINT);
   } catch (error: unknown) {
+    if (consumeRefusal(error)) return;
     embed?.reportError(error instanceof Error ? error.message : String(error));
   }
 });

@@ -36,7 +36,13 @@ function isUnauthorized(error: unknown): boolean {
   return response?.status === HTTP_UNAUTHORIZED;
 }
 
-export const useAuthFetch = () => {
+interface AuthFetchOptions {
+  notifyReadOnlyRefusal?: boolean;
+}
+
+export const useAuthFetch = ({
+  notifyReadOnlyRefusal = true,
+}: AuthFetchOptions = {}) => {
   const { loggedIn: isLoggedIn } = useDmsUserSession();
   const { refreshSession, reconcileSession, redirectToAuth } =
     useSessionRecovery();
@@ -60,7 +66,7 @@ export const useAuthFetch = () => {
       }
     },
     async onResponseError({ response, options }) {
-      if (consumeReadOnlyRefusal({ response })) return;
+      if (notifyReadOnlyRefusal && consumeReadOnlyRefusal({ response })) return;
       if (response.status !== HTTP_UNAUTHORIZED) {
         return;
       }

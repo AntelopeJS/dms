@@ -7,6 +7,7 @@ const IN_FLIGHT_COMPLETION_KEY = "__dmsInFlightOAuthCompletion";
 const route = useDmsRoute();
 const homepage = useHomepage();
 const dmsApp = useDmsApp();
+const consumeRefusal = useReadOnlyRefusal();
 
 const redirect = computed(
   () => sanitizeRedirectPath(route.query.redirect) || homepage,
@@ -64,7 +65,8 @@ async function completeOAuth(): Promise<void> {
       method: "POST",
     });
     await dmsApp.runWithContext(() => runHandoffAction(handoff));
-  } catch {
+  } catch (error) {
+    if (consumeRefusal(error)) return;
     await dmsApp.runWithContext(() => redirectToLoginWithError());
   }
 }

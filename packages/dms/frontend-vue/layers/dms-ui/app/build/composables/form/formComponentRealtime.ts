@@ -49,7 +49,7 @@ export function formComponentRealtime(source: FormRealtimeSource) {
   );
   const showConcurrentEditBanner = ref(false);
   const { user: realtimeUser } = useDmsUserSession();
-  const { $authFetch } = useAuthFetch();
+  const { $authFetch } = useAuthFetch({ notifyReadOnlyRefusal: false });
   const pageRealtime = useUserRealtime();
   const acquired = ref<{
     sessionId: string;

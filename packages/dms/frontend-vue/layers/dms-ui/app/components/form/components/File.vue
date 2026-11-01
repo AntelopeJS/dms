@@ -40,6 +40,7 @@ const emit = defineEmits<{
 }>();
 
 const { $authFetch } = useAuthFetch();
+const consumeRefusal = useReadOnlyRefusal();
 const { t } = useI18n();
 
 const { emitFormChange, color, highlight, ariaAttrs } = useFormField();
@@ -156,7 +157,13 @@ const processFile = async (file: File) => {
     }
 
     emitValue();
-  } catch (_error) {
+  } catch (error) {
+    if (consumeRefusal(error)) {
+      uploadingFiles.value = uploadingFiles.value.filter(
+        (u) => u.id !== uploadId,
+      );
+      return;
+    }
     const uploadingFile = uploadingFiles.value.find((u) => u.id === uploadId);
     if (uploadingFile) {
       uploadingFile.error = "Upload failed";

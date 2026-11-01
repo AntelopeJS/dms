@@ -189,6 +189,7 @@ function useSiteLayoutRequestsInFlight() {
 
 const useSiteLayoutRequests = () => {
   const state = useSiteLayoutState();
+  const consumeRefusal = useReadOnlyRefusal();
   const {
     siteLayout,
     siteLayoutTree,
@@ -215,6 +216,7 @@ const useSiteLayoutRequests = () => {
 
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Fetch rejection values have no shared owner schema; an Error-only input would exclude malformed thrown values that intentionally use the fallback message.
   const handleSiteLayoutError = (error: unknown) => {
+    if (consumeRefusal(error)) return;
     const errorMessage =
       error instanceof Error ? error.message : UNKNOWN_SITE_LAYOUT_ERROR;
     loadingError.value = errorMessage;

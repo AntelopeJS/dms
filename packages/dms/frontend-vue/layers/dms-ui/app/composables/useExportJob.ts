@@ -1,5 +1,7 @@
 import { h } from "vue";
 import DmsExportToastContent from "../components/table-view/ExportToastContent.vue";
+import { apiErrorText } from "#dms-core/app/composables/useFieldErrors";
+import { isObject } from "#dms-core/app/utils/type-check";
 
 const POLLING_INTERVAL_MS = 400;
 const EXPORT_TOAST_DURATION = 5000;
@@ -96,6 +98,7 @@ function createExportToasts(
   const { t } = useI18n();
   const { processApiMessage } = useTranslation();
   const { $authFetch } = useAuthFetch();
+  const consumeRefusal = useReadOnlyRefusal();
 
   function resolveLabels(
     overrides?: Partial<UseExportJobLabels>,
@@ -190,14 +193,13 @@ function createExportToasts(
     toastId: string | number,
     opts: RunExportJobOptions,
     labels: UseExportJobLabels,
-    error: Error,
   ): string | number {
     let newId: string | number = toastId;
     newId = replaceProgressToast(toastId, {
       color: Color.error,
       icon: "i-ph-warning",
       title: labels.fallbackErrorTitle,
-      description: processApiMessage(error.message),
+      description: labels.fallbackErrorTitle,
       duration: EXPORT_TOAST_DURATION,
       progress: true,
       actions: buildRetryActions(opts, labels, () => newId),
@@ -207,6 +209,8 @@ function createExportToasts(
 
   return {
     $authFetch,
+    consumeRefusal,
+    removeToast: toast.remove,
     resolveLabels,
     createExportToast,
     updateProgressToast,
@@ -355,16 +359,30 @@ async function readExportStream(
 function getErrorMessage(
   error: Parameters<typeof apiErrorText>[0],
 ): string | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- These fields are not validated as strings; preserve optional property access, getter order, and truthy non-string forwarding for malformed errors.
-  const err = error as { data?: string; message?: string };
-  const data = err?.data;
-  const message = err?.message;
-  return data || message;
+  const text =
+    apiErrorText(error) ?? (error instanceof Error ? error.message : undefined);
+  if (!text) return;
+  try {
+    const payload: unknown = JSON.parse(text);
+    return getErrorMessage({
+      data:
+        isObject(payload) && payload !== null && "body" in payload
+          ? payload.body
+          : payload,
+    });
+  } catch {
+    const trimmed = text.trimStart();
+    return trimmed.startsWith("{") || trimmed.startsWith("[")
+      ? undefined
+      : text;
+  }
 }
 
 export const useExportJob = () => {
   const context = createExportToasts((opts) => runJob(opts));
   const {
+    consumeRefusal,
+    removeToast,
     resolveLabels,
     createExportToast,
     showSuccess,
@@ -404,10 +422,13 @@ export const useExportJob = () => {
       );
       showSuccess(exportToast.id, labels);
     } catch (error) {
+      if (consumeRefusal(error)) {
+        removeToast(exportToast.id);
+        return;
+      }
       const message = getErrorMessage(error);
       if (message) showFailure(exportToast.id, opts, labels, message);
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejections are not checked as Error; retain showError's existing message access and failure behavior for malformed values.
-      else showError(exportToast.id, opts, labels, error as Error);
+      else showError(exportToast.id, opts, labels);
     }
   }
 

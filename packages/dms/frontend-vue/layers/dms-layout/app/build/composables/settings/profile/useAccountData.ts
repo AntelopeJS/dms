@@ -66,6 +66,7 @@ function useAccountDataContext() {
   const { processI18n, processApiMessage } = useTranslation();
   const { errorMessage, errorCode } = useSecurityFormat();
   const toast = useToast();
+  const consumeRefusal = useReadOnlyRefusal();
   const { t } = useI18n();
 
   const isExporting = ref(false);
@@ -97,6 +98,7 @@ function useAccountDataContext() {
         title: t(`${I18N}.export_done`),
       });
     } catch (error) {
+      if (consumeRefusal(error)) return;
       toast.add({
         color: "error",
         icon: "i-ph-warning-circle",
@@ -125,6 +127,7 @@ function useAccountDataContext() {
     confirm,
     processApiMessage,
     toast,
+    consumeRefusal,
     t,
     isExporting,
     isCheckingDeletion,
@@ -262,6 +265,7 @@ export function useAccountData() {
     confirm,
     processApiMessage,
     toast,
+    consumeRefusal,
     t,
     isCheckingDeletion,
     describeError,
@@ -292,6 +296,7 @@ export function useAccountData() {
       });
       return true;
     } catch (error) {
+      if (consumeRefusal(error)) return false;
       const [fieldError] = resolveFieldErrors<DeletionField>(error, {
         fields: impact.hasPassword
           ? ["password", "confirmation"]
@@ -353,6 +358,7 @@ export function useAccountData() {
     try {
       impact = await $authFetch<AccountDeletionImpact>(DELETION_ENDPOINT);
     } catch (error) {
+      if (consumeRefusal(error)) return;
       toast.add({
         color: "error",
         icon: "i-ph-warning-circle",

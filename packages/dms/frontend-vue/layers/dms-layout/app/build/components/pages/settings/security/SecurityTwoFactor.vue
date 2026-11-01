@@ -65,6 +65,7 @@ const METHODS: MethodConfig[] = [
 
 const { t } = useI18n();
 const toast = useToast();
+const consumeRefusal = useReadOnlyRefusal();
 const { $authFetch } = useAuthFetch();
 const { overview, attention, attentionToneOf, refresh } = useSecurityOverview();
 const { formatDate, errorMessage } = useSecurityFormat();
@@ -148,6 +149,7 @@ function fail(
   error: Parameters<typeof errorMessage>[0],
   fallbackKey: string,
 ): void {
+  if (consumeRefusal(error)) return;
   toast.add({ title: errorMessage(error, fallbackKey), color: "error" });
 }
 
@@ -207,6 +209,7 @@ async function run(
     await action();
     await refresh();
   } catch (error) {
+    if (consumeRefusal(error)) return;
     if (refusal?.matches(error)) {
       refusal.error.value = errorMessage(error, refusal.messageKey);
     } else {

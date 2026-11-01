@@ -36,6 +36,7 @@ const CONFIRM_FIELD_ID = "security-confirm-password";
 
 const { t } = useI18n();
 const toast = useToast();
+const consumeRefusal = useReadOnlyRefusal();
 const { $authFetch } = useAuthFetch();
 const { processApiMessage } = useTranslation();
 const { overview, refresh } = useSecurityOverview();
@@ -159,6 +160,7 @@ async function submit(): Promise<void> {
     isEditing.value = false;
     await refresh();
   } catch (error) {
+    if (consumeRefusal(error)) return;
     const isCurrentRefused =
       resolveFieldErrors(error, {
         fields: ["currentPassword"],

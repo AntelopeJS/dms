@@ -38,6 +38,7 @@ const FIELD_CODES = {
 
 const { t } = useI18n();
 const toast = useToast();
+const consumeRefusal = useReadOnlyRefusal();
 const { $authFetch } = useAuthFetch();
 const { refresh: refreshSession } = useCurrentUser();
 const { overview, refresh } = useSecurityOverview();
@@ -179,6 +180,7 @@ async function submit(): Promise<void> {
     await refresh();
     isCodeOpen.value = true;
   } catch (error) {
+    if (consumeRefusal(error)) return;
     if (await flagField(error)) return;
     toast.add({
       title: errorMessage(error, "page.settings.security.email.error"),
@@ -210,6 +212,7 @@ async function confirmCode(code: string): Promise<void> {
     });
     await Promise.all([refresh(), refreshSession()]);
   } catch (error) {
+    if (consumeRefusal(error)) return;
     if (isCodeRefusal(error)) {
       codeError.value = errorMessage(
         error,
@@ -239,6 +242,7 @@ async function cancelChange(): Promise<void> {
     });
     await refresh();
   } catch (error) {
+    if (consumeRefusal(error)) return;
     toast.add({
       title: errorMessage(error, "page.settings.security.email.error"),
       color: "error",

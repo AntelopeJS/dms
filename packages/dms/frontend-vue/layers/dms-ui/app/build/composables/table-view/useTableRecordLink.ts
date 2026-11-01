@@ -49,6 +49,7 @@ export function useTableRecordLink<T>(
   options: TableRecordLinkOptions<T>,
 ): TableRecordLink {
   const { action, urlScope } = options;
+  const consumeRefusal = useReadOnlyRefusal();
 
   let linkedId: string | undefined;
 
@@ -62,7 +63,7 @@ export function useTableRecordLink<T>(
     if (outcome === "missingPanel") return options.showMissing(id);
     writeRecordId(urlScope);
     if (linkedId === id) linkedId = undefined;
-    options.notify(outcome);
+    if (!consumeRefusal(found.error)) options.notify(outcome);
   };
 
   const follow = (query: LocationQuery) => {

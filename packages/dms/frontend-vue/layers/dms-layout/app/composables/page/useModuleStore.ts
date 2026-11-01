@@ -23,6 +23,7 @@ const FOLLOW_INTERVAL_MS = 1000;
  */
 export const useModuleStore = () => {
   const { $authFetch } = useAuthFetch();
+  const consumeRefusal = useReadOnlyRefusal();
   const isOwner = useIsOwner();
 
   const initial = useApiData<StoreListing>(() =>
@@ -59,7 +60,7 @@ export const useModuleStore = () => {
       listing.value = await $authFetch<StoreListing>(ENDPOINT_STORE_LISTING);
       followError.value = null;
     } catch (error) {
-      followError.value = error;
+      if (!consumeRefusal(error)) followError.value = error;
     }
     reloadWhenServed();
     scheduleFollow();

@@ -44,6 +44,7 @@ const emit = defineEmits<{
 }>();
 
 const { $authFetch } = useAuthFetch();
+const consumeRefusal = useReadOnlyRefusal();
 
 const { emitFormChange, color: fieldColor, ariaAttrs } = useFormField();
 const hasFieldError = computed(() => fieldColor.value === "error");
@@ -206,7 +207,12 @@ const runUpload = async (item: GalleryItem) => {
     item.progress = 100;
     ensurePrincipal();
     emitValue();
-  } catch (_error) {
+  } catch (error) {
+    if (consumeRefusal(error)) {
+      releaseItem(item);
+      items.value = items.value.filter((candidate) => candidate.id !== item.id);
+      return;
+    }
     item.status = "error";
   } finally {
     setFieldLoading?.(item.id, false);

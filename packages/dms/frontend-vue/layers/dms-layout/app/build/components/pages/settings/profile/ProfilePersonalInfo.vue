@@ -44,6 +44,7 @@ const EMAIL_ANCHOR = "#email";
 
 const { t } = useI18n();
 const toast = useToast();
+const consumeRefusal = useReadOnlyRefusal();
 const { $authFetch } = useAuthFetch();
 const { processApiMessage } = useTranslation();
 const { user, refresh: refreshSession } = useCurrentUser();
@@ -130,7 +131,8 @@ async function onFileChange(event: Event): Promise<void> {
     }
     avatar.value = { key: result.key! };
     pickedAvatarUrl.value = URL.createObjectURL(file);
-  } catch {
+  } catch (error) {
+    if (consumeRefusal(error)) return;
     toast.add({
       title: t("page.settings.profile.avatar_error"),
       color: "error",

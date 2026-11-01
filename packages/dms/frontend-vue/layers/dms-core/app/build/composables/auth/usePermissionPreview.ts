@@ -155,6 +155,7 @@ function createPreviewSharing() {
  */
 export function usePermissionPreview() {
   const state = usePreviewState();
+  const consumeRefusal = useReadOnlyRefusal();
   const isActive = computed(() => state.session.value !== null);
   const hiddenEntries = computed(
     () => new Set(state.result.value?.hiddenEntries ?? []),
@@ -249,8 +250,9 @@ export function usePermissionPreview() {
       if (current !== refreshGeneration) return;
       state.result.value = result;
       state.failed.value = false;
-    } catch {
+    } catch (error) {
       if (current !== refreshGeneration) return;
+      if (consumeRefusal(error)) return;
       state.failed.value = true;
     } finally {
       if (current === refreshGeneration) state.loading.value = false;

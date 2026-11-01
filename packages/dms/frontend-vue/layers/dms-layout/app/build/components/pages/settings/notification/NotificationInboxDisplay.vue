@@ -28,6 +28,7 @@ const SKELETON_ROWS = 3;
 
 const { t, locale } = useI18n();
 const toast = useToast();
+const consumeRefusal = useReadOnlyRefusal();
 const { confirm } = useConfirm();
 const catalog = useNotificationCatalog();
 const {
@@ -70,8 +71,9 @@ const runThenRefresh = async (action: () => ReturnType<typeof markAsRead>) => {
     await action();
 
     await nextTick();
-  } catch {
-    toast.add({ title: t("dms.form.error_title"), color: "error" });
+  } catch (error) {
+    if (!consumeRefusal(error))
+      toast.add({ title: t("dms.form.error_title"), color: "error" });
   } finally {
     ownChanges--;
   }

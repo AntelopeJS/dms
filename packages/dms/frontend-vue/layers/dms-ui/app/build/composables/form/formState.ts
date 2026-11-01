@@ -135,6 +135,7 @@ function createFormState(props: FormProps) {
 /** @internal */
 export function createFormFields(props: FormProps) {
   const context = createFormState(props);
+  const consumeRefusal = useReadOnlyRefusal();
   const {
     toast,
     $authFetch,
@@ -205,6 +206,7 @@ export function createFormFields(props: FormProps) {
   };
 
   const showFetchErrorToast = (error: Parameters<typeof apiErrorStatus>[0]) => {
+    if (consumeRefusal(error)) return;
     // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejections are arbitrary; keep direct data access, primitive boxing and nullish throws rather than treating this unchecked error projection as validated.
     const err = error as Error & { data?: string };
     toast.add({

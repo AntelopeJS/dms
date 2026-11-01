@@ -50,6 +50,7 @@ const DEVICE_ICONS: Readonly<
 
 const { t } = useI18n();
 const toast = useToast();
+const consumeRefusal = useReadOnlyRefusal();
 const { $authFetch } = useAuthFetch();
 const adoptSessionHandoff = useSessionHandoff();
 const { overview, refresh: refreshOverview } = useSecurityOverview();
@@ -106,6 +107,7 @@ async function revoke(session: SessionInfo): Promise<void> {
     toast.add({ title: t("page.settings.sessions.revoked"), color: "success" });
     await refreshOverview();
   } catch (error) {
+    if (consumeRefusal(error)) return;
     toast.add({
       title: errorMessage(error, "page.settings.sessions.revoke_error"),
       color: "error",
@@ -134,6 +136,7 @@ async function signOutOthers(): Promise<void> {
     });
     await Promise.all([fetchSessions(), refreshOverview()]);
   } catch (error) {
+    if (consumeRefusal(error)) return;
     toast.add({
       title: errorMessage(error, "page.settings.sessions.revoke_all_error"),
       color: "error",
