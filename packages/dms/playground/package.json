@@ -3,10 +3,11 @@
   "version": "0.0.1",
   "private": true,
   "main": "dist/index.js",
+  "dmsFrontend": "dist/frontend-module.js",
   "packageManager": "pnpm@10.2.0",
   "scripts": {
     "build": "rimraf dist && tsc",
-    "test": "node checks/aliases.cjs && node --test checks/imports.test.mjs",
+    "test": "pnpm build && node checks/aliases.cjs && node --test checks/imports.test.mjs dist/prototype-keys.test.js && node --import ./checks/resolve-ts.mjs --test checks/docs-fixtures.test.mjs",
     "dev": "ajs project run -w",
     "frontend:dev": "ajs dms dev"
   },

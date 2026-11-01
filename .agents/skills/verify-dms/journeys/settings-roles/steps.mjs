@@ -1,3 +1,5 @@
+import { isMemberRow, isRoleRow, listOf, requiredStringIn, stringsIn } from "../../rows.mjs";
+
 /**
  * @typedef {import("../../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
@@ -36,7 +38,7 @@ export async function createRole(ctx, name, permissions = [EXPORT_PERMISSION]) {
     body: { name, description: "", permissions },
   });
   await ctx.verify(`the role ${name} exists`, [ctx.status(answer, 200)], { critical: true });
-  return answer.body.id;
+  return requiredStringIn(answer.body, "id");
 }
 
 /**
@@ -46,7 +48,7 @@ export async function createRole(ctx, name, permissions = [EXPORT_PERMISSION]) {
  */
 export async function storedRoles(ctx, label) {
   const answer = await ctx.api(label, { method: "GET", path: "/api/tables/roles/list" });
-  return answer.body?.results ?? [];
+  return listOf(answer.body, isRoleRow);
 }
 
 /**
@@ -56,7 +58,7 @@ export async function storedRoles(ctx, label) {
  */
 export async function listMembers(ctx, label) {
   const answer = await ctx.api(label, { method: "GET", path: "/api/tables/members/list" });
-  return answer.body?.results ?? [];
+  return listOf(answer.body, isMemberRow);
 }
 
 export async function openRoles(/** @type {Tab} */ tab) {
@@ -127,5 +129,5 @@ export async function previewHidden(/** @type {Ctx} */ ctx, /** @type {string} *
     path: `${PAGES_API}/roles/preview`,
     body: { permissions, path },
   });
-  return { answer, hidden: answer.body?.hiddenEntries ?? [] };
+  return { answer, hidden: stringsIn(answer.body, "hiddenEntries") };
 }
