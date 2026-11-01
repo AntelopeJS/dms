@@ -22,11 +22,12 @@ function childrenOf(
 }
 
 function resolveAnchor(
-  own: Record<string, ComponentInfoSerialized>,
+  components: Record<string, ComponentInfoSerialized>,
   path: readonly string[],
 ): ComponentInfoSerialized | undefined {
   const [rootKey, ...childIds] = path;
-  let current: ComponentInfoSerialized | undefined = own[rootKey ?? ""];
+  const root = rootKey ?? "";
+  let current = Object.hasOwn(components, root) ? components[root] : undefined;
   for (const id of childIds) {
     current = childrenOf(current).find((child) => child.id === id)?.component;
   }

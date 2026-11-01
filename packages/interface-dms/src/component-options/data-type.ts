@@ -20,13 +20,13 @@ interface DataCompareModeMetadata {
   noInput: boolean;
 }
 
-const dataCompareModes: Record<string, DataCompareMode> = {};
+const dataCompareModes = new Map<string, DataCompareMode>();
 const dataCompareModesMetadata = new Map<
   Class<DataCompareMode>,
   DataCompareModeMetadata
 >();
-const dataTypes: Record<string, Class<DataType>> = {};
-const dataTypesReverse = new WeakMap<Class<DataType>, string>();
+const dataTypes = new Map<string, Class<DataType>>();
+const dataTypesReverse = new WeakMap<object, string>();
 
 export interface DataCompareMode {
   filter(
@@ -58,7 +58,7 @@ export abstract class DataType {
     // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator rows belong to application schemas, not a fixed interface model.
     row: ValueProxy<Record<string, unknown>>,
   ): ValueProxyOrValue<boolean> {
-    const compareMode = dataCompareModes[mode];
+    const compareMode = dataCompareModes.get(mode);
     if (!compareMode) return false;
     return compareMode.filter(context, proxy, key, value, row);
   }
@@ -142,8 +142,8 @@ export abstract class DataType {
  * @returns The data type class decorator
  */
 export const RegisterDataType: (id: string) => ClassDecorator<Class<DataType>> =
-  MakeClassDecorator((target, id: string) => {
-    dataTypes[id] = target;
+  MakeClassDecorator((target: Class<DataType>, id: string) => {
+    dataTypes.set(id, target);
     dataTypesReverse.set(target, id);
   });
 
@@ -157,9 +157,9 @@ export const RegisterDataCompareMode: (
   id: string,
   noInput?: boolean,
 ) => ClassDecorator<Class<DataCompareMode>> = MakeClassDecorator(
-  (target, id: string, noInput: boolean = false) => {
+  (target: Class<DataCompareMode>, id: string, noInput: boolean = false) => {
     const instance = new target();
-    dataCompareModes[id] = instance;
+    dataCompareModes.set(id, instance);
     dataCompareModesMetadata.set(target, {
       id,
       instance,
@@ -176,7 +176,7 @@ export const RegisterDataCompareMode: (
  */
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Published factory forwards options to the registered application class, which owns their interpretation.
 export function CreateDataType(id: string, options?: unknown) {
-  const cls = dataTypes[id];
+  const cls = dataTypes.get(id);
   assert(cls, `Unknown type ${id}`);
   return new cls(options);
 }
@@ -185,7 +185,8 @@ export function CreateDataType(id: string, options?: unknown) {
  * Get the ID of a DataType instance
  */
 export function getDataTypeId(instance: DataType): string | undefined {
-  return dataTypesReverse.get(Object.getPrototypeOf(instance).constructor);
+  const prototype = Reflect.getPrototypeOf(instance);
+  return prototype ? dataTypesReverse.get(prototype.constructor) : undefined;
 }
 
 export interface DataTypeSerialized {

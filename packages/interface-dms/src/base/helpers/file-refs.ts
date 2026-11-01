@@ -57,11 +57,10 @@ const collectFileKeys: KeyExtractor = (value) => {
   return keys;
 };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary registered type IDs use dynamic lookup, with unsupported IDs falling through; inferred literal keys would require an unchecked key assertion.
-const KEY_EXTRACTORS: Record<string, KeyExtractor> = {
-  [IMAGE_TYPE_ID]: collectImageKeys,
-  [FILE_TYPE_ID]: collectFileKeys,
-};
+const KEY_EXTRACTORS = new Map<string, KeyExtractor>([
+  [IMAGE_TYPE_ID, collectImageKeys],
+  [FILE_TYPE_ID, collectFileKeys],
+]);
 
 function resolveStorage(type: DataType): string | undefined {
   const options = type.options;
@@ -76,7 +75,7 @@ function refIdentity(ref: FileRef): string {
 export function hasFileColumns(columns: Record<string, FileColumn>): boolean {
   return Object.values(columns).some((column) => {
     const typeId = getDataTypeId(column.type);
-    return typeId !== undefined && typeId in KEY_EXTRACTORS;
+    return typeId !== undefined && KEY_EXTRACTORS.has(typeId);
   });
 }
 
@@ -88,10 +87,12 @@ export function collectFileRefs(
   const refs: FileRef[] = [];
   for (const [field, column] of Object.entries(columns)) {
     const typeId = getDataTypeId(column.type);
-    const extractor = typeId ? KEY_EXTRACTORS[typeId] : undefined;
+    const extractor = typeId ? KEY_EXTRACTORS.get(typeId) : undefined;
     if (!extractor) continue;
     const storage = resolveStorage(column.type);
-    for (const key of extractor(row[field])) {
+    for (const key of extractor(
+      Object.hasOwn(row, field) ? row[field] : undefined,
+    )) {
       refs.push({ key, storage });
     }
   }
@@ -162,11 +163,10 @@ const remapFileValue: ValueRemapper = async (value, mapKey) => {
   return remapObjectValues(value, mapKey, remapFileValue);
 };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary registered type IDs use dynamic lookup, with unsupported IDs falling through; inferred literal keys would require an unchecked key assertion.
-const VALUE_REMAPPERS: Record<string, ValueRemapper> = {
-  [IMAGE_TYPE_ID]: remapImageValue,
-  [FILE_TYPE_ID]: remapFileValue,
-};
+const VALUE_REMAPPERS = new Map<string, ValueRemapper>([
+  [IMAGE_TYPE_ID, remapImageValue],
+  [FILE_TYPE_ID, remapFileValue],
+]);
 
 export async function remapRecordFileKeys(
   columns: Record<string, FileColumn>,
@@ -178,8 +178,8 @@ export async function remapRecordFileKeys(
   const result = { ...record };
   for (const [field, column] of Object.entries(columns)) {
     const typeId = getDataTypeId(column.type);
-    const remap = typeId ? VALUE_REMAPPERS[typeId] : undefined;
-    if (!remap || !(field in record)) continue;
+    const remap = typeId ? VALUE_REMAPPERS.get(typeId) : undefined;
+    if (!remap || !Object.hasOwn(record, field)) continue;
     const storage = resolveStorage(column.type);
     result[field] = await remap(record[field], (key) => mapKey(key, storage));
   }
