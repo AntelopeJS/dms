@@ -165,6 +165,7 @@ export const journeys = [
     onboard: false,
     async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
+      /** @type {{ recordId?: string, access?: string, refresh?: string }} */
       const written = {};
       await ctx.withBaseBackend(async () => {
         const answer = await ctx.onboard({ platformName: "Written by the base version" });
