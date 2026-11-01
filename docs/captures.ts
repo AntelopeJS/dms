@@ -26,7 +26,7 @@ export default defineScenes([
       {
         action: "fill",
         selector: 'input[name="password"]',
-        value: "Helio-docs-2026!",
+        value: "HelioDocs2026!",
       },
       {
         action: "click",
