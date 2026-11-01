@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.13.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.13.0...v0.13.1)
+
+### 🩹 Fixes
+
+- **frontend:** Run the API error CLIs when pnpm links the package ([#634](https://github.com/AntelopeJS/dms/pull/634))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.13.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.12.1...v0.13.0)
