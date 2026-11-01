@@ -27,12 +27,18 @@ export function ruleFields<T extends Record<string, unknown>>(
   rule: RowActionRule<T>,
 ): string[] {
   if (FIELD_KEY in rule) return [String(rule[FIELD_KEY])];
-  const nested = [
-    ...("and" in rule ? rule.and : []),
-    ...("or" in rule ? rule.or : []),
-    ...("not" in rule ? [rule.not] : []),
-  ];
-  return nested.flatMap((entry) => ruleFields(entry));
+  return [
+    ...operandRules("and" in rule ? rule.and : undefined),
+    ...operandRules("or" in rule ? rule.or : undefined),
+    ...operandRules("not" in rule ? rule.not : undefined),
+  ].flatMap((entry) => ruleFields(entry));
+}
+
+function operandRules<T extends Record<string, unknown>>(
+  operand: RowActionRule<T> | RowActionRule<T>[] | undefined,
+): RowActionRule<T>[] {
+  if (!operand) return [];
+  return Array.isArray(operand) ? operand : [operand];
 }
 
 function assertSummary<T extends Record<string, unknown>>(
