@@ -27,6 +27,7 @@ import livePauseSourcePlugin from "./layers/dms-ui/app/plugins/live-pause-source
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
 import onboardingPreloadPlugin from "./layers/dms-onboarding/app/plugins/onboarding-preload";
 import closingLayersPlugin from "./layers/dms-ui/app/plugins/closing-layers.client";
+import kbdPlatformPlugin from "./layers/dms-ui/app/plugins/kbd-platform";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
 import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays";
@@ -200,6 +201,7 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   sdk.registerPlugin(closingLayersPlugin, clientOnly);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);
+  sdk.registerPlugin(kbdPlatformPlugin);
   sdk.registerPlugin(tableViewDisplaysPlugin);
   registerDeferredPlugins(sdk);
 }
