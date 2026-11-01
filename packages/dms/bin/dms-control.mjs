@@ -34,6 +34,10 @@ Verify a change (the .agents/skills/verify-* folder of the checkout, or --skill 
   publish <run> --pr <n>            push the evidence, comment the verdict, set the verify status
 `;
 
+/**
+ * @param {string[]} argv The command line without the node and script paths
+ * @returns {Promise<number>} The exit code
+ */
 async function main(argv) {
   const { positionals, values } = parseArgs({
     args: argv,
