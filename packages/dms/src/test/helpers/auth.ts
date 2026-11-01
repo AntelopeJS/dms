@@ -1,14 +1,51 @@
 import type { AxiosInstance } from "axios";
+import { z } from "zod";
 import type { AuthController } from "../../routes";
 import { seedUserInvite } from "./fixtures";
 import { createClient } from "./http";
+import { type BodyResponse, parseBody } from "./parse-body";
 
 const DEFAULT_PASSWORD = "TestPassw0rd!";
 const DEFAULT_NAME = "Test User";
 const DEFAULT_LANG = "en";
 
-/** Body of a successful token-issuing auth route, as the route returns it. */
-export type AuthResponse = Awaited<ReturnType<AuthController["refresh"]>>;
+/** Body of a token-issuing auth route, as the route returns it. */
+export type AuthResponse = Awaited<ReturnType<AuthController["signup"]>>;
+
+type LoginResponse = Awaited<ReturnType<AuthController["login"]>>;
+
+const UserBody = z.object({ _id: z.string(), email: z.string() }).partial();
+
+const AuthBody = z.object({
+  token_type: z.string(),
+  access_token: z.string(),
+  expires_in: z.number(),
+  refresh_token: z.string(),
+  user: UserBody.optional(),
+}) satisfies z.ZodType<AuthResponse>;
+
+const TwoFactorRequiredBody = z.object({
+  requires_2fa: z.literal(true),
+  two_factor_token: z.string(),
+  methods: z.array(z.string()),
+});
+
+const TenantAssignmentRequiredBody = z.object({
+  requires_tenant_assignment: z.literal(true),
+  tenant_assignment_token: z.string(),
+  user: UserBody,
+});
+
+const LoginBody = z.union([
+  AuthBody,
+  TwoFactorRequiredBody,
+  TenantAssignmentRequiredBody,
+]) satisfies z.ZodType<LoginResponse>;
+
+/** Parses the body of a route that answers with a session (signup, session handoff). */
+export function parseAuthBody(response: BodyResponse): AuthResponse {
+  return parseBody(AuthBody, response);
+}
 
 export interface RegisteredUser {
   email: string;
@@ -44,7 +81,7 @@ export async function registerUser(
   });
 
   const client = createClient();
-  const response = await client.post<AuthResponse>("/api/auth/signup", {
+  const response = await client.post("/api/auth/signup", {
     name: options.name ?? DEFAULT_NAME,
     email,
     password,
@@ -58,13 +95,14 @@ export async function registerUser(
     );
   }
 
-  const userId = response.data.user?._id;
+  const body = parseAuthBody(response);
+  const userId = body.user?._id;
   if (!userId) throw new Error("Signup response carries no user id");
   return {
     email,
     password,
-    accessToken: response.data.access_token,
-    refreshToken: response.data.refresh_token,
+    accessToken: body.access_token,
+    refreshToken: body.refresh_token,
     userId,
   };
 }
@@ -74,10 +112,7 @@ export async function loginUser(
   password: string,
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const client = createClient();
-  const response = await client.post<AuthResponse>("/api/auth/login", {
-    email,
-    password,
-  });
+  const response = await client.post("/api/auth/login", { email, password });
 
   if (response.status >= 400) {
     throw new Error(
@@ -85,10 +120,13 @@ export async function loginUser(
     );
   }
 
-  return {
-    accessToken: response.data.access_token,
-    refreshToken: response.data.refresh_token,
-  };
+  const body = parseBody(LoginBody, response);
+  if (!("access_token" in body)) {
+    throw new Error(
+      `Login did not open a session (two-factor or tenant assignment required): ${JSON.stringify(response.data)}`,
+    );
+  }
+  return { accessToken: body.access_token, refreshToken: body.refresh_token };
 }
 
 export function authorizedClient(token: string): AxiosInstance {
