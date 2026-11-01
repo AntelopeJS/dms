@@ -56,7 +56,7 @@
     "@antelopejs/interface-file-storage": ">=0.1.4 <1.0.0"
   },
   "devDependencies": {
-    "@antelopejs/interface-api": "file:../../.campaign/tgz/antelopejs-interface-api-fc8048d.tgz",
+    "@antelopejs/interface-api": "file:../../.campaign/tgz/antelopejs-interface-api-f2a99b5.tgz",
     "@antelopejs/interface-api-util": "file:../../.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz",
     "@antelopejs/interface-core": ">=0.2.4 <1.0.0",
     "@antelopejs/interface-data-api": "file:../../.campaign/tgz/antelopejs-interface-data-api-d8a868f.tgz",
