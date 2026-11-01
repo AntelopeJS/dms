@@ -1,14 +1,14 @@
-import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
-import type { PageLayout } from "@antelopejs/interface-dms/page";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { stripStagingPrefix } from "@antelopejs/interface-file-storage";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel } from "@antelopejs/interface-dms/db";
 import { findUploadToken, uploadAttachment } from "../helpers/attachments";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { parseBody } from "../helpers/parse-body";
 
 const BASE = "/api/derived-controller/base-notes";
 const DERIVED = "/api/derived-controller/derived-notes";
@@ -26,14 +26,30 @@ interface Note {
   file?: string;
 }
 
-interface TableViewColumn {
-  id: string;
+/** The served options carry the route location and the column list, which the serialized option type leaves out. */
+interface ServedTableOptions {
+  location: string;
+  columns: Array<{ id: string }>;
+  formComponents: Record<string, { componentName: string } | undefined>;
 }
 
-/** The served options also carry the route location and the column list. */
-type TableLayout = PageLayout<
-  TableViewOptionsSerialized & { location: string; columns: TableViewColumn[] }
->;
+const TableLayoutBody = z.object({
+  components: z.object({
+    content: z.object({
+      options: z
+        .object({
+          location: z.string(),
+          columns: z.array(z.object({ id: z.string() })),
+          formComponents: z.record(
+            z.object({ componentName: z.string() }).passthrough().optional(),
+          ),
+        })
+        .passthrough(),
+    }),
+  }),
+}) satisfies z.ZodType<{
+  components: { content: { options: ServedTableOptions } };
+}>;
 
 async function ownerClient(): Promise<AxiosInstance> {
   const owner = await registerUser({ owner: true });
@@ -41,13 +57,9 @@ async function ownerClient(): Promise<AxiosInstance> {
 }
 
 async function tableOptions(client: AxiosInstance, slug: string) {
-  const layout = await client.get<TableLayout>("/dms/pagelayout", {
-    params: { slug },
-  });
+  const layout = await client.get("/dms/pagelayout", { params: { slug } });
   expect(layout.status, JSON.stringify(layout.data)).to.equal(HTTP_OK);
-  const options = layout.data.components.content.options;
-  if (!options) throw new Error(`No table options on ${slug}`);
-  return options;
+  return parseBody(TableLayoutBody, layout).components.content.options;
 }
 
 async function listTitles(

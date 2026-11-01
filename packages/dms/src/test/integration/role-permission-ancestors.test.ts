@@ -3,8 +3,11 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel } from "@antelopejs/interface-dms/db/models";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
+import type { CreatedRole } from "../../pages";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { type BodyResponse, parseBody } from "../helpers/parse-body";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 const ROLES = pageRoutePath("/settings/workspace/roles");
@@ -25,8 +28,12 @@ const HTTP_OK = 200;
 const HTTP_NO_CONTENT = 204;
 const HTTP_FORBIDDEN = 403;
 
-interface RoleCreated {
-  id: string;
+const CreatedRoleBody = z.object({
+  id: z.string(),
+}) satisfies z.ZodType<CreatedRole>;
+
+function createdRoleId(response: BodyResponse): string {
+  return parseBody(CreatedRoleBody, response).id;
 }
 
 async function storedPermissions(roleId: string): Promise<string[]> {
@@ -52,13 +59,13 @@ describe("[integration] role permissions and their ancestors", () => {
   });
 
   it("stores a created role with every id its permissions sit under", async () => {
-    const created = await owner.post<RoleCreated>(`${ROLES}/create`, {
+    const created = await owner.post(`${ROLES}/create`, {
       name: "Deletes roles",
       permissions: [DELETE_ACTION],
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
 
-    expect(await storedPermissions(created.data.id)).to.have.members([
+    expect(await storedPermissions(createdRoleId(created))).to.have.members([
       DELETE_ACTION,
       LIST_ACTION,
       ...DELETE_ANCESTORS,
@@ -66,12 +73,10 @@ describe("[integration] role permissions and their ancestors", () => {
   });
 
   it("stores an updated role with every id its permissions sit under", async () => {
-    const created = await owner.post<RoleCreated>(`${ROLES}/create`, {
-      name: "Empty",
-    });
+    const created = await owner.post(`${ROLES}/create`, { name: "Empty" });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
 
-    const updated = await owner.put(`${ROLES}/${created.data.id}`, {
+    const updated = await owner.put(`${ROLES}/${createdRoleId(created)}`, {
       name: "Empty",
       permissions: [DELETE_ACTION],
     });
@@ -80,7 +85,7 @@ describe("[integration] role permissions and their ancestors", () => {
       HTTP_NO_CONTENT,
     ]);
 
-    expect(await storedPermissions(created.data.id)).to.have.members([
+    expect(await storedPermissions(createdRoleId(created))).to.have.members([
       DELETE_ACTION,
       LIST_ACTION,
       ...DELETE_ANCESTORS,
@@ -88,7 +93,7 @@ describe("[integration] role permissions and their ancestors", () => {
   });
 
   it("completes the permissions written through the roles table routes", async () => {
-    const created = await owner.post<RoleCreated>(`${ROLES_TABLE}/new`, {
+    const created = await owner.post(`${ROLES_TABLE}/new`, {
       name: "Written through the table",
       permissions: [DELETE_ACTION],
     });
@@ -105,19 +110,19 @@ describe("[integration] role permissions and their ancestors", () => {
   });
 
   it("stores a table's edit with its view, whichever route saved it", async () => {
-    const created = await owner.post<RoleCreated>(`${ROLES}/create`, {
+    const created = await owner.post(`${ROLES}/create`, {
       name: "Edits roles",
       permissions: [EDIT_ACTION],
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    expect(await storedPermissions(created.data.id)).to.include.members([
+    expect(await storedPermissions(createdRoleId(created))).to.include.members([
       EDIT_ACTION,
       VIEW_ACTION,
       ...DELETE_ANCESTORS,
     ]);
 
     const emptied = await owner.post(`${ROLES}/create`, { name: "Empty" });
-    const updated = await owner.put(`${ROLES}/${emptied.data.id}`, {
+    const updated = await owner.put(`${ROLES}/${createdRoleId(emptied)}`, {
       name: "Empty",
       permissions: [EDIT_ACTION],
     });
@@ -125,7 +130,9 @@ describe("[integration] role permissions and their ancestors", () => {
       HTTP_OK,
       HTTP_NO_CONTENT,
     ]);
-    expect(await storedPermissions(emptied.data.id)).to.include(VIEW_ACTION);
+    expect(await storedPermissions(createdRoleId(emptied))).to.include(
+      VIEW_ACTION,
+    );
 
     const written = await owner.post(`${ROLES_TABLE}/new`, {
       name: "Edits through the table",
@@ -139,17 +146,17 @@ describe("[integration] role permissions and their ancestors", () => {
   });
 
   it("lets a role saved with a table's edit load the row its form edits", async () => {
-    const created = await owner.post<RoleCreated>(`${ROLES}/create`, {
+    const created = await owner.post(`${ROLES}/create`, {
       name: "Edits roles",
       permissions: [EDIT_ACTION],
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
     const member = authorizedClient(
-      (await registerUser({ roles_ids: [created.data.id] })).accessToken,
+      (await registerUser({ roles_ids: [createdRoleId(created)] })).accessToken,
     );
 
     const row = await member.get(`${ROLES_TABLE}/get`, {
-      params: { id: created.data.id },
+      params: { id: createdRoleId(created) },
     });
     expect(row.status, JSON.stringify(row.data)).to.equal(HTTP_OK);
     expect(row.data).to.include({ name: "Edits roles" });

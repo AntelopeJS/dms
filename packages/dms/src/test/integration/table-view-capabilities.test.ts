@@ -1,9 +1,11 @@
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
-import type { PageLayout } from "@antelopejs/interface-dms/page";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
+import type { InvoiceBulkController } from "../attachment-host/capabilities";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { countRawDocuments, resetDatabase } from "../helpers/db";
+import { parseBody } from "../helpers/parse-body";
 
 const LOCATION = "/api/capabilities/invoices";
 const BULK_LOCATION = "/api/capabilities/invoice-bulk";
@@ -19,7 +21,50 @@ interface Invoice {
   status: string;
 }
 
-type TableLayout = PageLayout<TableViewOptionsSerialized>;
+type BulkIds = Awaited<ReturnType<InvoiceBulkController["matching"]>>;
+
+const BulkIdsBody = z.object({
+  ids: z.array(z.string()),
+}) satisfies z.ZodType<BulkIds>;
+
+const FooterBody = z.object({
+  legend: z.string().optional(),
+  summary: z
+    .array(
+      z
+        .object({
+          id: z.string(),
+          label: z.string(),
+          op: z.enum(["sum", "count"]),
+          field: z.string().optional(),
+        })
+        .strict(),
+    )
+    .optional(),
+});
+
+const TableLayoutBody = z.object({
+  components: z.object({
+    content: z.object({
+      options: z
+        .object({
+          tableId: z.string().optional(),
+          isSoleTableView: z.boolean().optional(),
+          footer: FooterBody.optional(),
+        })
+        .optional(),
+    }),
+  }),
+}) satisfies z.ZodType<{
+  components: {
+    content: {
+      options?: Pick<
+        TableViewOptionsSerialized,
+        "tableId" | "isSoleTableView" | "footer"
+      >;
+    };
+  };
+}>;
 
 async function seed(client: AxiosInstance, ownerId: string): Promise<void> {
   const rows = [
@@ -74,11 +119,11 @@ describe("[integration] table view capabilities", () => {
     userId = owner.userId;
     client = authorizedClient(owner.accessToken);
     await seed(client, userId);
-    const layout = await client.get<TableLayout>("/dms/pagelayout", {
+    const layout = await client.get("/dms/pagelayout", {
       params: { slug: SLUG },
     });
     expect(layout.status, JSON.stringify(layout.data)).to.equal(HTTP_OK);
-    const options = layout.data.components.content.options;
+    const { options } = parseBody(TableLayoutBody, layout).components.content;
     if (!options?.footer?.summary) throw new Error(`No footer on ${SLUG}`);
     expect(options.tableId).to.equal("content");
     expect(options.isSoleTableView).to.equal(true);
@@ -270,13 +315,13 @@ describe("[integration] table view capabilities", () => {
     const selected = await client.post(
       `${LOCATION}/mark-paid?ids=${first!._id}`,
     );
-    expect(selected.data.ids).to.deep.equal([first!._id]);
+    expect(parseBody(BulkIdsBody, selected).ids).to.deep.equal([first!._id]);
 
     const matching = await client.post(
       `${LOCATION}/mark-paid?allMatching=true&filter_status=is:open&search=INV`,
     );
     expect(matching.status, JSON.stringify(matching.data)).to.equal(HTTP_OK);
-    expect(matching.data.ids).to.have.length(2);
+    expect(parseBody(BulkIdsBody, matching).ids).to.have.length(2);
     expect(await list(client, "&filter_status=is:open")).to.deep.equal([]);
   });
 
@@ -301,16 +346,18 @@ describe("[integration] table view capabilities", () => {
     const idOf = (invoice: Invoice) => invoice._id;
     const mine = await list(client, `&filter_ownerId=is:${userId}`);
     expect(mine).to.have.length(2);
-    const matching = await client.post<{ ids: string[] }>(
+    const matching = await client.post(
       `${BULK_LOCATION}/matching?allMatching=true&filter_ownerId=is:${userId}`,
     );
     expect(matching.status, JSON.stringify(matching.data)).to.equal(HTTP_OK);
-    expect(sorted(matching.data.ids)).to.deep.equal(sorted(mine.map(idOf)));
+    expect(sorted(parseBody(BulkIdsBody, matching).ids)).to.deep.equal(
+      sorted(mine.map(idOf)),
+    );
 
     const selected = await client.post(
       `${BULK_LOCATION}/matching?ids=${mine[0]!._id}`,
     );
-    expect(selected.data.ids).to.deep.equal([mine[0]!._id]);
+    expect(parseBody(BulkIdsBody, selected).ids).to.deep.equal([mine[0]!._id]);
 
     const member = await registerUser();
     const refused = await authorizedClient(member.accessToken).post(

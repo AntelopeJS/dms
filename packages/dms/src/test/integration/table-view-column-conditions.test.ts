@@ -1,7 +1,9 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { countRawDocuments, resetDatabase } from "../helpers/db";
+import { parseBody } from "../helpers/parse-body";
 
 const LOCATION = "/api/conditions/deals";
 const HTTP_OK = 200;
@@ -18,6 +20,10 @@ interface Deal {
 interface SavedDocument {
   _id: string;
 }
+
+const SavedDocumentBody = z.object({
+  _id: z.string(),
+}) satisfies z.ZodType<SavedDocument>;
 
 describe("[integration] table view column conditions", () => {
   let client: AxiosInstance;
@@ -108,13 +114,13 @@ describe("[integration] table view column conditions", () => {
 
   it("clears the value a field stored once an edit hides it", async () => {
     const customers = "/api/conditions/customers";
-    const created = await client.post<SavedDocument>(`${customers}/new`, {
+    const created = await client.post(`${customers}/new`, {
       name: "Acme",
       kind: "business",
       vatNumber: "BE0123456749",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id = created.data._id;
+    const { _id: id } = parseBody(SavedDocumentBody, created);
     expect(
       await countRawDocuments("condition-customers", {
         vatNumber: "BE0123456749",

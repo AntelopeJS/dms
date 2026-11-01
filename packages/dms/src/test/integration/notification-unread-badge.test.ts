@@ -1,5 +1,9 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
+import { TONES } from "@antelopejs/interface-dms/base/types/tone";
+import type { UserNotificationCounts } from "../../db/models";
+import type { NotificationsApiController } from "../../pages/account";
 import { internal } from "../../implementations/dms-notifications";
 import { SendableNotification } from "@antelopejs/interface-dms/notifications/sendable";
 import type {
@@ -9,6 +13,7 @@ import type {
 import { buildUserNotificationTopic, getRealtimeBroker } from "../../realtime";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { parseBody } from "../helpers/parse-body";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 const LOCATION = pageRoutePath("/settings/user/notifications");
@@ -27,15 +32,25 @@ const data: NotificationData = {
   },
 };
 
-interface FeedCounts {
-  all: number;
-  unread: number;
-  unreadTone?: NotificationTone;
-}
+type MarkedRead = Awaited<
+  ReturnType<NotificationsApiController["markAllAsRead"]>
+>;
+
+const CountsBody = z.object({
+  all: z.number(),
+  unread: z.number(),
+  unreadTone: z.enum(TONES).optional(),
+}) satisfies z.ZodType<UserNotificationCounts>;
+
+const MarkedReadBody = z.object({
+  success: z.literal(true),
+  batchId: z.string(),
+  counts: CountsBody,
+}) satisfies z.ZodType<MarkedRead>;
 
 interface FeedEvent {
   type: string;
-  payload?: { counts?: FeedCounts };
+  payload?: { counts?: UserNotificationCounts };
 }
 
 interface MenuEntry {
@@ -52,10 +67,10 @@ describe("[integration] notifications unread badge", () => {
   let client: AxiosInstance;
   let userId: string;
 
-  const counts = async (): Promise<FeedCounts> => {
-    const response = await client.get<FeedCounts>(`${LOCATION}/counts`);
+  const counts = async (): Promise<UserNotificationCounts> => {
+    const response = await client.get(`${LOCATION}/counts`);
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data;
+    return parseBody(CountsBody, response);
   };
 
   const menuEntry = async (): Promise<MenuEntry | undefined> => {
@@ -178,14 +193,13 @@ describe("[integration] notifications unread badge", () => {
 
   it("shows no badge once everything is read", async () => {
     const { events, unsubscribe } = recordEvents();
-    const marked = await client.put<{ counts: FeedCounts }>(
-      `${LOCATION}/mark-all-read`,
-    );
+    const response = await client.put(`${LOCATION}/mark-all-read`);
     unsubscribe();
-    expect(marked.data.counts).to.deep.equal(await counts());
-    expect(marked.data.counts).to.include({ unread: 0 });
+    const marked = parseBody(MarkedReadBody, response);
+    expect(marked.counts).to.deep.equal(await counts());
+    expect(marked.counts).to.include({ unread: 0 });
     expect(events.map((event) => [event.type, event.payload])).to.deep.equal([
-      ["notification:all-read", { counts: marked.data.counts }],
+      ["notification:all-read", { counts: marked.counts }],
     ]);
 
     const bell = await counts();
