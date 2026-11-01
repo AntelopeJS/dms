@@ -100,7 +100,8 @@ const QUERY_FILTERS: QueryFilter[] = [
   heldFilter,
 ];
 
-function filterEntries(query: URLSearchParams): RequestLogEntry[] {
+/** The requests the query's search, column filters, period and live hold keep. */
+export function filterEntries(query: URLSearchParams): RequestLogEntry[] {
   const filters = QUERY_FILTERS.map((build) => build(query)).filter(
     (filter): filter is EntryFilter => !!filter,
   );
