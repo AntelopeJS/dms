@@ -11,6 +11,7 @@ import {
   REQUEST_LOG_ENTRIES,
   type RequestLogEntry,
 } from "../sources/request-log";
+import { ownEntry } from "../../own-entry";
 
 /**
  * A request as the "API request log" table lists it: keyed by `requestId`
@@ -68,7 +69,7 @@ function columnFilter(field: SortableField): QueryFilter {
     const raw = query.get(`${FILTER_PREFIX}${field}`);
     if (!raw) return undefined;
     const separator = raw.indexOf(":");
-    const compare = FILTER_MODES[raw.slice(0, separator)];
+    const compare = ownEntry(FILTER_MODES, raw.slice(0, separator));
     const expected = raw.slice(separator + 1);
     return compare ? (entry) => compare(entry[field], expected) : undefined;
   };
@@ -100,7 +101,8 @@ const QUERY_FILTERS: QueryFilter[] = [
   heldFilter,
 ];
 
-function filterEntries(query: URLSearchParams): RequestLogEntry[] {
+/** The requests the query's search, column filters, period and live hold keep. */
+export function filterEntries(query: URLSearchParams): RequestLogEntry[] {
   const filters = QUERY_FILTERS.map((build) => build(query)).filter(
     (filter): filter is EntryFilter => !!filter,
   );

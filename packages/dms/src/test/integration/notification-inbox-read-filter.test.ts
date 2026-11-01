@@ -1,5 +1,6 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
@@ -12,15 +13,20 @@ interface InboxPage {
   total: number;
 }
 
+const InboxPageSchema = z.object({
+  results: z.array(z.unknown()),
+  total: z.number(),
+}) satisfies z.ZodType<InboxPage>;
+
 describe("[integration] notifications inbox read-state filter", () => {
   let client: AxiosInstance;
 
   const inbox = async (filter?: string) => {
-    const response = await client.get<InboxPage>(`${LOCATION}/inbox`, {
+    const response = await client.get(`${LOCATION}/inbox`, {
       params: filter === undefined ? {} : { filter_isRead: filter },
     });
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    return response.data;
+    return InboxPageSchema.parse(response.data);
   };
 
   before(async () => {

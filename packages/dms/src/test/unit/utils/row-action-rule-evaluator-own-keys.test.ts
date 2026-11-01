@@ -59,4 +59,10 @@ describe("[unit] utils/row-action-rule-evaluator own keys", () => {
     // @ts-expect-error The field is a number, off contract; the evaluator must still reject it with a TypeError.
     expect(() => evaluateRowActionRule(rule, row)).to.throw(TypeError);
   });
+
+  it("reads a path into a string as absent, since a string holds no field of the row", () => {
+    expect(
+      evaluateRowActionRule({ field: "status.length", equals: undefined }, row),
+    ).to.equal(true);
+  });
 });
