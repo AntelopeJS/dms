@@ -9,12 +9,8 @@ const constructorExemptions = {
     "    controller.constructor as ControllerClass;",
   "implementations/dms-base/table-view.ts:387":
     "    const stored = model.constructor.fromDatabase(row);",
-  "test/helpers/invite-entry-fixtures.ts:92":
-    "  const controller = await GetControllerInstance(route.proto.constructor, ctx);",
-  "test/helpers/invite-entry-fixtures.ts:127":
-    "  const controller = await GetControllerInstance(route.proto.constructor, ctx);",
-  "test/helpers/invite-entry-fixtures.ts:146":
-    "  const controller = await GetControllerInstance(route.proto.constructor, ctx);",
+  "test/helpers/invite-entry-fixtures.ts:123":
+    "  const candidate: unknown = route.proto?.constructor;",
   "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:76":
     "    const meta = GetMetadata(instance.constructor, TableViewMeta);",
   "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:87":

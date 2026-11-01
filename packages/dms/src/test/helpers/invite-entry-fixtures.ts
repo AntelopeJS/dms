@@ -2,9 +2,11 @@ import { randomUUID } from "node:crypto";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { Socket } from "node:net";
 import {
+  type ControllerClass,
   GetControllerInstance,
   getRegisteredRouteHandlers,
   HTTPResult,
+  type RouteHandler,
 } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
@@ -89,7 +91,7 @@ export async function pendingInvite(extensions: UserInvite["extensions"]) {
 export async function readPendingInvite(id: string, admin: User) {
   const ctx = await requestContext(admin);
   const route = registeredInviteRoute("get", "/api/tables/admin-invites/get");
-  const controller = await GetControllerInstance(route.proto.constructor, ctx);
+  const controller = await GetControllerInstance(controllerClassOf(route), ctx);
   return route.callback.call(
     controller,
     ctx,
@@ -100,6 +102,29 @@ export async function readPendingInvite(id: string, admin: User) {
     undefined,
     admin,
   );
+}
+
+function isControllerClass(value: unknown): value is ControllerClass {
+  return (
+    typeof value === "function" &&
+    "location" in value &&
+    typeof value.location === "string" &&
+    "extend" in value &&
+    typeof value.extend === "function"
+  );
+}
+
+/**
+ * The controller class of a registered route, read from the prototype that every
+ * interface-api copy sets, because the implementation under test may predate
+ * `RouteHandler.controller`.
+ */
+function controllerClassOf(route: RouteHandler): ControllerClass {
+  const candidate: unknown = route.proto?.constructor;
+  if (!isControllerClass(candidate)) {
+    throw new TypeError(`${route.location} has no controller class`);
+  }
+  return candidate;
 }
 
 function registeredInviteRoute(method: string, location: string) {
@@ -124,7 +149,7 @@ export async function editPendingInvite(
 ) {
   const ctx = await requestContext(admin);
   const route = registeredInviteRoute("put", "/api/tables/admin-invites/edit");
-  const controller = await GetControllerInstance(route.proto.constructor, ctx);
+  const controller = await GetControllerInstance(controllerClassOf(route), ctx);
   return route.callback.call(
     controller,
     ctx,
@@ -143,7 +168,7 @@ export async function submitInvite(fields: InviteFields, admin: User) {
     "post",
     "/dms/pages/settings/workspace/members/invite",
   );
-  const controller = await GetControllerInstance(route.proto.constructor, ctx);
+  const controller = await GetControllerInstance(controllerClassOf(route), ctx);
   const response: unknown = await route.callback.call(controller, ctx, admin, {
     emails: [`${randomUUID()}@acme.dev`],
     language: "en",
