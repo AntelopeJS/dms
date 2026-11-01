@@ -190,7 +190,7 @@ const COMPONENT_FEATURES: FrontendFeature[] = [
   },
   {
     feature: "Refused call shown as a translated toast",
-    api: "useApiError(error)",
+    api: "useApiErrorPresenter().presentError(error, options)",
     demo: `${CUSTOM}/custom-toolkit#auth-fetch`,
   },
   {

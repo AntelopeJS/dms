@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveApiErrorTitle } from "../layers/dms-core/app/composables/useApiError";
+import { resolveApiErrorTitle } from "../layers/dms-core/app/composables/resolveApiError";
 
 describe("resolveApiErrorTitle", () => {
   it("titles a 4xx response as a refused request", () => {

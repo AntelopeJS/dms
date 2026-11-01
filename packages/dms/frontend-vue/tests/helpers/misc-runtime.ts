@@ -4,7 +4,6 @@ import { useRealDataEngine } from "../fixtures/dataEngine";
 import { Color } from "../../layers/dms-core/app/types/color";
 import { HttpMethod } from "../../layers/dms-core/app/types/http";
 import { interpolateUrl } from "../../layers/dms-core/app/utils/url-interpolation";
-import { useApiError } from "../../layers/dms-core/app/composables/useApiError";
 import { useConfirm } from "../../layers/dms-ui/app/composables/confirm/useConfirm";
 import type { ConfirmOptions } from "../../layers/dms-ui/app/composables/confirm/types";
 import { useModal } from "../../layers/dms-ui/app/composables/containers/useModal";
@@ -20,7 +19,6 @@ export function stubMiscActions() {
   vi.stubGlobal("useModal", useModal);
   vi.stubGlobal("useDrawer", useDrawer);
   vi.stubGlobal("useExportJob", useExportJob);
-  vi.stubGlobal("useApiError", useApiError);
   vi.stubGlobal("useConfirm", useConfirm);
   vi.stubGlobal("useOverlay", () => ({
     create: (_component: Component, { props }: { props: ConfirmOptions }) => ({

@@ -20,10 +20,11 @@ const JSON_INDENT = 2;
 
 const FETCH_CODE = `const { $authFetch } = useAuthFetch();
 const me = await $authFetch("${API_ROOT}/whoami");`;
-const ERROR_CODE = `try {
+const ERROR_CODE = `const { presentError } = useApiErrorPresenter();
+try {
   await $authFetch("${API_ROOT}/refused");
 } catch (error) {
-  useApiError(error); // toast: the backend's $-key, translated
+  presentError(error, { fallbackKey: "error.500.description" });
 }`;
 const DIRTY_CODE = `const { dirty, markClean } = useFormDirty(() => ({ ...state }));
 const { confirmLeave } = useUnsavedChanges({ dirty });`;
@@ -35,6 +36,7 @@ const REQUEST_BODY = JSON.stringify(
 const CURL_SAMPLE = `curl -H "Authorization: Bearer $TOKEN" https://dms.example.com${API_ROOT}/whoami?expand=roles,permissions,preferences,sessions`;
 
 const { $authFetch } = useAuthFetch();
+const { presentError } = useApiErrorPresenter();
 const { permissions, isLoaded, hasPermission } = usePermissions();
 const { processText } = useComposedText();
 
@@ -47,7 +49,7 @@ async function readWhoami(): Promise<void> {
     const answer = await $authFetch(`${API_ROOT}/whoami`);
     whoami.value = JSON.stringify(answer, null, JSON_INDENT);
   } catch (error) {
-    useApiError(error);
+    presentError(error, { fallbackKey: "error.500.description" });
   } finally {
     isFetching.value = false;
   }
@@ -57,7 +59,7 @@ async function callRefused(): Promise<void> {
   try {
     await $authFetch(`${API_ROOT}/refused`);
   } catch (error) {
-    useApiError(error);
+    presentError(error, { fallbackKey: "error.500.description" });
   }
 }
 
@@ -103,8 +105,8 @@ const invoiceText = computed(() =>
   <div class="grid gap-16 pb-10">
     <ShowcaseSection
       id="auth-fetch"
-      title="useAuthFetch · useApiError"
-      description="$authFetch sends the session's token and the content language with every request, and renews the token when it expired. useApiError turns a refused call into a toast: the backend answers an i18n key, the toast shows it translated."
+      title="useAuthFetch · useApiErrorPresenter"
+      description="$authFetch sends the session's token and the content language with every request, and renews the token when it expired. useApiErrorPresenter turns a refused call into one translated toast."
     >
       <ShowcaseDemo label="$authFetch(url)" :code="FETCH_CODE">
         <UButton
@@ -122,7 +124,7 @@ const invoiceText = computed(() =>
           title="Answer"
         />
       </ShowcaseDemo>
-      <ShowcaseDemo label="useApiError(error)" :code="ERROR_CODE">
+      <ShowcaseDemo label="presentError(error, options)" :code="ERROR_CODE">
         <UButton
           label="Call a route that refuses"
           icon="i-ph-prohibit"
