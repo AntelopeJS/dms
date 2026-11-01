@@ -875,10 +875,6 @@
           "title": "Builder",
           "description": "Modifie les pages, tableaux et formulaires du projet, en n’écrivant que du code qui compile."
         },
-        "cicd": {
-          "title": "Publication",
-          "description": "Versions, environnements et déploiements de votre projet via git."
-        },
         "database": {
           "title": "Base de données",
           "description": "Schémas, explorateur de données, diagramme et espace de requêtes AQL."
