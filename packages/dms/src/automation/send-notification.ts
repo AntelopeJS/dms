@@ -43,9 +43,9 @@ interface SendNotificationInput {
   idempotencyKey?: string;
 }
 
-interface SendNotificationOutput {
+type SendNotificationOutput = {
   ok: boolean;
-}
+};
 
 interface Recipients {
   userIds: string[];
