@@ -14,6 +14,10 @@ function byCodeUnit(left, right) {
 
 const root = process.argv[2];
 const playground = path.join(root, "packages/dms/playground");
+
+/** api-diff runs a scratch copy of this file, so relative requires must start from the tree under test. */
+module.filename = path.join(root, ".agents/probes/playground.cjs");
+
 execFileSync("pnpm", ["--dir", playground, "exec", "tsc"], {
   cwd: root,
   stdio: "pipe",
@@ -38,22 +42,47 @@ Math.random = () => {
 
 /**
  * @param {unknown} value
+ * @returns {value is symbol}
+ */
+function isSymbol(value) {
+  return typeof value === "symbol";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isObject(value) {
+  return Object(value) === value;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Record<string, unknown>}
+ */
+function exportsOf(value) {
+  if (isObject(value)) return value;
+  throw new TypeError("Expected a module's exports to be an object");
+}
+
+/**
+ * @param {unknown} value
  * @param {Set<unknown>} [ancestors]
  * @returns {unknown}
  */
 function snapshot(value, ancestors = new Set()) {
   if (value === undefined) return { type: "undefined" };
-  if (typeof value === "function")
+  if (value instanceof Function)
     return {
       type: "function",
       name: value.name,
       length: value.length,
       async: value.constructor.name === "AsyncFunction",
     };
-  if (typeof value === "symbol") return String(value);
+  if (isSymbol(value)) return String(value);
   if (value instanceof NativeDate)
     return { type: "Date", milliseconds: value.getTime() };
-  if (value !== null && typeof value === "object") {
+  if (isObject(value)) {
     if (ancestors.has(value)) return { type: "circular" };
     const next = new Set(ancestors).add(value);
     if (Array.isArray(value)) return value.map((item) => snapshot(item, next));
@@ -170,34 +199,15 @@ Module._extensions[".js"] = (module, filename) => {
 const local = createRequire(path.join(playground, "package.json"));
 
 /**
- * @typedef {{
- *   "@antelopejs/interface-core": typeof import("../../packages/dms/playground/node_modules/@antelopejs/interface-core");
- *   "@antelopejs/interface-core/modules": typeof import("../../packages/dms/playground/node_modules/@antelopejs/interface-core/dist/modules.js");
- *   "@antelopejs/interface-dms/base/block-types": typeof import("../../packages/dms/playground/node_modules/@antelopejs/interface-dms/dist/base/block-types.js");
- * }} PlaygroundPackages
- */
-
-/**
- * The one place this probe reads the playground's installed interface packages, typed by the declarations they ship.
- * @template {keyof PlaygroundPackages} Name
- * @param {Name} name
- * @returns {PlaygroundPackages[Name]}
- */
-function loadPackage(name) {
-  return local(name);
-}
-
-/**
- * The one place this probe reads the playground's built output; the modules it inspects are opaque records of exports.
  * @param {string} file
  * @returns {Record<string, unknown>}
  */
 function loadBuilt(file) {
-  return local(path.join(playground, "dist", file));
+  return exportsOf(local(path.join(playground, "dist", file)));
 }
 
-const core = loadPackage("@antelopejs/interface-core");
-const { RunWithModuleContext } = loadPackage("@antelopejs/interface-core/modules");
+const core = require("../../packages/dms/playground/node_modules/@antelopejs/interface-core");
+const { RunWithModuleContext } = require("../../packages/dms/playground/node_modules/@antelopejs/interface-core/dist/modules.js");
 /**
  * @param {unknown} value
  * @returns {unknown}
@@ -211,17 +221,6 @@ function serializedWhenAble(value) {
 
 /** @type {unknown[]} */
 const registrations = [];
-/**
- * @typedef {{
- *   "@antelopejs/interface-dms/page": typeof import("../../packages/dms/playground/node_modules/@antelopejs/interface-dms/dist/page.js");
- *   "@antelopejs/interface-database-decorators": typeof import("../../packages/dms/playground/node_modules/@antelopejs/interface-database-decorators");
- * }} PatchedPackages
- */
-
-/**
- * The one place this probe reads `Module._load`, which @types/node omits: it answers the two packages the probe patches with their declared exports and any other request with whatever that module exports.
- * @type {<Request extends string>(request: Request, parent: Module | null | undefined, isMain: boolean) => Request extends keyof PatchedPackages ? PatchedPackages[Request] : unknown}
- */
 const load = Module._load;
 /**
  * @param {string} request
@@ -230,7 +229,7 @@ const load = Module._load;
  */
 Module._load = function (request, parent, main) {
   if (request === "@antelopejs/interface-dms/page") {
-    const result = load(request, parent, main);
+    const result = require("../../packages/dms/playground/node_modules/@antelopejs/interface-dms/dist/page.js");
     return {
       ...result,
       RegisterPage:
@@ -247,7 +246,7 @@ Module._load = function (request, parent, main) {
     };
   }
   if (request === "@antelopejs/interface-database-decorators") {
-    const result = load(request, parent, main);
+    const result = require("../../packages/dms/playground/node_modules/@antelopejs/interface-database-decorators");
     return {
       ...result,
       RegisterTable:
@@ -325,9 +324,7 @@ const modules = RunWithModuleContext({ module: "playground-probe" }, () =>
       ]),
   ),
 );
-const blocksRegistered = loadPackage(
-  "@antelopejs/interface-dms/base/block-types",
-).ListBlockTypes();
+const blocksRegistered = require("../../packages/dms/playground/node_modules/@antelopejs/interface-dms/dist/base/block-types.js").ListBlockTypes();
 process.stdout.write(
   JSON.stringify({
     data,

@@ -1,41 +1,15 @@
 const path = require("node:path");
-const assert = require("node:assert/strict");
-const { createRequire } = require("node:module");
 
 const root = process.argv[2];
-const packageDir = path.join(root, "packages/interface-dms");
-const load = createRequire(path.join(packageDir, "package.json"));
 
-/**
- * @typedef {{
- *   "./dist/base/block-registry/internal/describe.js": typeof import("../../packages/interface-dms/dist/base/block-registry/internal/describe.js");
- *   "./dist/utils/internal/value-parser.js": typeof import("../../packages/interface-dms/dist/utils/internal/value-parser.js");
- *   "./dist/base/helpers/archive-mode-helpers.js": typeof import("../../packages/interface-dms/dist/base/helpers/archive-mode-helpers.js");
- *   "./dist/base/data-types/default/choices.js": typeof import("../../packages/interface-dms/dist/base/data-types/default/choices.js");
- *   "./dist/base/table-view/internal/factory-helpers.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/factory-helpers.js");
- *   "./dist/base/table-view/internal/request-filter.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/request-filter.js");
- *   "./dist/permissions.js": typeof import("../../packages/interface-dms/dist/permissions.js");
- *   "./dist/base/table-view/internal/auth.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/auth.js");
- *   "./dist/base/table-view/internal/meta.js": typeof import("../../packages/interface-dms/dist/base/table-view/internal/meta.js");
- *   "./dist/base/table-view/meta.js": typeof import("../../packages/interface-dms/dist/base/table-view/meta.js");
- *   "./dist/tenant-access.js": typeof import("../../packages/interface-dms/dist/tenant-access.js");
- *   "zod": typeof import("../../packages/interface-dms/node_modules/zod");
- * }} BuiltModules
- */
+/** api-diff runs a scratch copy of this file, so relative requires must start from the tree under test. */
+module.filename = path.join(root, ".agents/probes/interface-assertions-1.cjs");
 
-/**
- * The one place this probe reads built interface-dms output: each entry is typed by the declaration the build emits next to it.
- * @template {keyof BuiltModules} Entry
- * @param {Entry} entry
- * @returns {BuiltModules[Entry]}
- */
-function loadBuilt(entry) {
-  return load(entry);
-}
+const assert = require("node:assert/strict");
 
-const { z } = loadBuilt("zod");
+const { z } = require("../../packages/interface-dms/node_modules/zod");
 
-const describeModule = loadBuilt("./dist/base/block-registry/internal/describe.js");
+const describeModule = require("../../packages/interface-dms/dist/base/block-registry/internal/describe.js");
 
 /**
  * The one place this probe decodes serialized observations: JSON text holds values of no declared shape.
@@ -80,7 +54,13 @@ function asArray(value) {
  * @returns {unknown}
  */
 function forwardRead(target, key, receiver) {
-  return Reflect.get(target, key, receiver);
+  for (let holder = target; holder !== null; holder = Reflect.getPrototypeOf(holder)) {
+    const descriptor = Reflect.getOwnPropertyDescriptor(holder, key);
+    if (descriptor === undefined) continue;
+    if ("value" in descriptor) return descriptor.value;
+    return descriptor.get?.call(receiver);
+  }
+  return undefined;
 }
 
 /**
@@ -253,7 +233,7 @@ function observeDescribe() {
 }
 
 function observeParser() {
-  const { parseValue, parseObject } = loadBuilt("./dist/utils/internal/value-parser.js");
+  const { parseValue, parseObject } = require("../../packages/interface-dms/dist/utils/internal/value-parser.js");
   const inputs = [
     "true", "false", "null", "undefined", "TRUE", "toString", "constructor",
     "__proto__", "hasOwnProperty", "", " ", "42", "0", "-1.5", "1e3", "NaN",
@@ -281,7 +261,7 @@ function userEditRule(rowActions) {
 }
 
 function observeArchiveRules() {
-  const { applyArchiveModeDefaultRules } = loadBuilt("./dist/base/helpers/archive-mode-helpers.js");
+  const { applyArchiveModeDefaultRules } = require("../../packages/interface-dms/dist/base/helpers/archive-mode-helpers.js");
   const rule = { field: "other", equals: 1 };
   const cases = {
     none: undefined,
@@ -313,7 +293,7 @@ function observeArchiveRules() {
 }
 
 function observeChoices() {
-  const { SelectType } = loadBuilt("./dist/base/data-types/default/choices.js");
+  const { SelectType } = require("../../packages/interface-dms/dist/base/data-types/default/choices.js");
   /** @type {Record<string, unknown>} */
   const observed = {};
   for (const [name, options] of Object.entries({
@@ -338,7 +318,7 @@ function observeChoices() {
 }
 
 async function observeFormPages() {
-  const helpers = loadBuilt("./dist/base/table-view/internal/factory-helpers.js");
+  const helpers = require("../../packages/interface-dms/dist/base/table-view/internal/factory-helpers.js");
   /** @type {string[]} */
   const reads = [];
   const watch = (/** @type {object} */ target, /** @type {string} */ label) =>
@@ -362,8 +342,8 @@ async function observeFormPages() {
     observed[name] = { urls, keys: Object.keys(urls), reads: reads.slice() };
   }
   observed.kinds = helpers.FORM_PAGE_KINDS;
-  const { resolveTableViewGrants } = loadBuilt("./dist/base/table-view/internal/request-filter.js");
-  const permissions = loadBuilt("./dist/permissions.js");
+  const { resolveTableViewGrants } = require("../../packages/interface-dms/dist/base/table-view/internal/request-filter.js");
+  const permissions = require("../../packages/interface-dms/dist/permissions.js");
   const original = permissions.HasPermission;
   const asked = [];
   permissions.HasPermission = async (granted, id) => {
@@ -382,9 +362,9 @@ async function observeFormPages() {
 }
 
 async function observeReceivers() {
-  const { authorizeAction } = loadBuilt("./dist/base/table-view/internal/auth.js");
-  const { getTableViewMetaFor } = loadBuilt("./dist/base/table-view/internal/meta.js");
-  const { ArchiveField } = loadBuilt("./dist/base/table-view/meta.js");
+  const { authorizeAction } = require("../../packages/interface-dms/dist/base/table-view/internal/auth.js");
+  const { getTableViewMetaFor } = require("../../packages/interface-dms/dist/base/table-view/internal/meta.js");
+  const { ArchiveField } = require("../../packages/interface-dms/dist/base/table-view/meta.js");
   /** @type {Record<string, unknown>} */
   const observed = {};
   /** @type {string[]} */
@@ -402,7 +382,7 @@ async function observeReceivers() {
   observed.sameMetaPerClass = getTableViewMetaFor(new Controller()) === meta;
   observed.constructorReads = reads.slice();
   reads.length = 0;
-  const tenantAccess = loadBuilt("./dist/tenant-access.js");
+  const tenantAccess = require("../../packages/interface-dms/dist/tenant-access.js");
   const originalAssert = tenantAccess.AssertTenantAccess;
   tenantAccess.AssertTenantAccess = async () => {
     throw new Error("tenant gate reached");
