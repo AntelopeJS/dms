@@ -166,13 +166,13 @@ const PRIMITIVE_TYPE_VALIDATORS = [
   isNull,
 ];
 /** @internal */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published assertion validates arbitrary comparison operands and throws for unsupported values.
-export const assertPrimitiveValue = (value: unknown): void => {
+export function assertPrimitiveValue(
+  value: unknown,
+): asserts value is string | number | boolean | Date | null {
   if (PRIMITIVE_TYPE_VALIDATORS.some((test) => test(value))) {
     return;
   }
   throw new Error(
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The error reports the rejected operand's JavaScript tag without changing its validation contract.
     `Value must be a string, number, boolean, or Date for is comparison. Got: ${typeof value}`,
   );
-};
+}
