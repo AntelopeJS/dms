@@ -12,6 +12,7 @@ overrides:
   '@antelopejs/interface-api-util': file:.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz
   '@antelopejs/interface-dms-automation': file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz
   '@antelopejs/tooling-configs': file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz
+  '@antelopejs/dms-frontend': file:.campaign/tgz/antelopejs-dms-frontend-b4874c0.tgz
 
 importers:
 
@@ -363,8 +364,8 @@ importers:
         specifier: '>=1.16.0 <2'
         version: 1.17.0
       '@antelopejs/dms-frontend':
-        specifier: '>=0.9.1 <0.10.0'
-        version: 0.9.1(@antelopejs/core@1.17.0)
+        specifier: file:../../../.campaign/tgz/antelopejs-dms-frontend-b4874c0.tgz
+        version: file:.campaign/tgz/antelopejs-dms-frontend-b4874c0.tgz(@antelopejs/core@1.17.0)
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -460,8 +461,8 @@ importers:
         specifier: '>=1.17.0 <2'
         version: 1.17.0
       '@antelopejs/dms-frontend':
-        specifier: '>=0.9.1 <0.10.0'
-        version: 0.9.1(@antelopejs/core@1.17.0)
+        specifier: file:../../../.campaign/tgz/antelopejs-dms-frontend-b4874c0.tgz
+        version: file:.campaign/tgz/antelopejs-dms-frontend-b4874c0.tgz(@antelopejs/core@1.17.0)
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
@@ -544,8 +545,9 @@ packages:
     engines: {node: '>=20.19'}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.9.1':
-    resolution: {integrity: sha512-X0l/4uSCrRdO+7Y05918KJbaNatG6pI1iLzQ6xy/dkn7wNMY3aepFmkAT9ztu0YzFxYiKp2JCaBBX5C0xZDZHQ==}
+  '@antelopejs/dms-frontend@file:.campaign/tgz/antelopejs-dms-frontend-b4874c0.tgz':
+    resolution: {integrity: sha512-Taf+Jj52j/I3ozaarrMC7lZPed8My/l0/pjZVKHS1FX3xpOvfYbrf7/Y76RWchZI4lAtypGmH3dPaJTAS6yDhw==, tarball: file:.campaign/tgz/antelopejs-dms-frontend-b4874c0.tgz}
+    version: 0.10.0
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -6518,7 +6520,7 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.9.1(@antelopejs/core@1.17.0)':
+  '@antelopejs/dms-frontend@file:.campaign/tgz/antelopejs-dms-frontend-b4874c0.tgz(@antelopejs/core@1.17.0)':
     dependencies:
       '@antelopejs/core': 1.17.0
       '@intlify/message-compiler': 11.4.8

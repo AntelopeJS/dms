@@ -1,4 +1,8 @@
-import { isString } from "../../dms-core/app/utils/type-check";
+import {
+  isBoolean,
+  isObject,
+  isString,
+} from "../../dms-core/app/utils/type-check";
 import type { DmsBackendRequest, DmsServerEvent } from "#dms/server";
 import {
   isPersistent,
@@ -30,6 +34,16 @@ interface PendingLogin {
   persistent: boolean;
 }
 
+function isPendingLogin(value: unknown): value is PendingLogin {
+  return (
+    isObject(value) &&
+    value !== null &&
+    !Array.isArray(value) &&
+    isString(value.token) &&
+    isBoolean(value.persistent)
+  );
+}
+
 /**
  * Calls a backend endpoint that opens a session and, unless it asks for a
  * second step, writes the session and stores the account.
@@ -51,7 +65,7 @@ async function establishWith(
       { maxAge: PENDING_LOGIN_LIFETIME_S, path: PENDING_LOGIN_PATH },
     );
   if (result.requires_2fa || result.requires_tenant_assignment) return result;
-  if (event.cookies.readSealed(PENDING_LOGIN))
+  if (event.cookies.readSealed(PENDING_LOGIN, isPendingLogin))
     event.cookies.clear(PENDING_LOGIN, { path: PENDING_LOGIN_PATH });
   const account = persistAccountSession(event, sessionFrom(result, persistent));
   return { user: result.user, account };
@@ -83,7 +97,7 @@ export async function signup(event: DmsServerEvent) {
  */
 export async function verifyTwoFactor(event: DmsServerEvent) {
   const input = await event.readJson<Input>();
-  const pending = event.cookies.readSealed<PendingLogin>(PENDING_LOGIN);
+  const pending = event.cookies.readSealed(PENDING_LOGIN, isPendingLogin);
   const persistent =
     isString(input.token) && pending?.token === input.token
       ? isPersistent(pending)

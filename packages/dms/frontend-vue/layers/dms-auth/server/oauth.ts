@@ -3,7 +3,11 @@ import type { DmsServerEvent } from "#dms/server";
 import { privateSecret } from "../../../server/private-options";
 import { persistAccountSession } from "./accounts";
 import { type SessionTokens, sessionFrom } from "./session";
-import { isNumber, isString } from "../../dms-core/app/utils/type-check";
+import {
+  isNumber,
+  isObject,
+  isString,
+} from "../../dms-core/app/utils/type-check";
 
 const FLOW = "dms_oauth_flow";
 const HANDOFF = "dms_oauth_handoff";
@@ -33,6 +37,10 @@ interface OAuthFlow {
   invite: string;
 }
 
+interface OAuthHandoff {
+  kind: "2fa" | "no-workspace";
+}
+
 interface OAuthResult extends SessionTokens {
   requires_2fa?: boolean;
   requires_tenant_assignment?: boolean;
@@ -42,6 +50,28 @@ interface OAuthResult extends SessionTokens {
 }
 
 const attempts = new Map<string, RateWindow>();
+
+function isOAuthFlow(value: unknown): value is OAuthFlow {
+  return (
+    isObject(value) &&
+    value !== null &&
+    !Array.isArray(value) &&
+    isString(value.state) &&
+    isNumber(value.expiresAt) &&
+    isString(value.redirect) &&
+    isString(value.language) &&
+    isString(value.invite)
+  );
+}
+
+function isOAuthHandoff(value: unknown): value is OAuthHandoff {
+  return (
+    isObject(value) &&
+    value !== null &&
+    !Array.isArray(value) &&
+    (value.kind === "2fa" || value.kind === "no-workspace")
+  );
+}
 
 function sweepAttempts(now: number) {
   for (const [key, window] of attempts)
@@ -239,7 +269,7 @@ export async function oauthCallback(event: DmsServerEvent): Promise<Response> {
   const { provider } = event.params;
   if (!isValidOAuthProvider(provider) || rateLimited(event, "callback"))
     return errorRedirect(FAILED);
-  const flow = event.cookies.readSealed<OAuthFlow>(FLOW);
+  const flow = event.cookies.readSealed(FLOW, isOAuthFlow);
   event.cookies.clear(FLOW, { path: FLOW_PATH });
   const query = event.url.searchParams;
   if (query.has("error")) return errorRedirect("error.oauth.cancelled");
@@ -253,7 +283,7 @@ export async function oauthCallback(event: DmsServerEvent): Promise<Response> {
  * finish (a 2FA step, a workspace to pick), once.
  */
 export function oauthHandoff(event: DmsServerEvent) {
-  const handoff = event.cookies.readSealed(HANDOFF) ?? { kind: "none" };
+  const handoff = event.cookies.readSealed(HANDOFF, isOAuthHandoff) ?? { kind: "none" };
   event.cookies.clear(HANDOFF, { path: FLOW_PATH });
   return handoff;
 }
