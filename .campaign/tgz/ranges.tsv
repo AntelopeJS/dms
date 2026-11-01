@@ -30,6 +30,10 @@
 @antelopejs/tooling-configs	packages/dms/package.json	devDependencies	0.2.0
 @antelopejs/tooling-configs	package.json	pnpm.overrides	
 @antelopejs/tooling-configs	pnpm-workspace.yaml	overrides	
+@antelopejs/dms-frontend	packages/dms/frontend-vue/package.json	devDependencies	>=0.10.0 <0.11.0
+@antelopejs/dms-frontend	packages/dms/playground/package.json	devDependencies	>=0.10.0 <0.11.0
+@antelopejs/dms-frontend	package.json	pnpm.overrides	
+@antelopejs/dms-frontend	pnpm-workspace.yaml	overrides	
 @antelopejs/api	packages/dms/package.json	devDependencies	
 @antelopejs/api	package.json	pnpm.overrides	
 @antelopejs/api	pnpm-workspace.yaml	overrides	
