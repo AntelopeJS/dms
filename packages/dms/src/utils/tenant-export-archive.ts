@@ -100,11 +100,9 @@ class ExportArchiveWriter {
     }
   }
 
-  appendJson(
-    name: string,
-    data: Parameters<TenantExportArchive["addJson"]>[1],
-  ): Promise<void> {
-    const payload = Buffer.from(JSON.stringify(data, null, JSON_INDENT));
+  /** Adds a JSON entry, `text` being the JSON already serialized. */
+  appendJsonText(name: string, text: string): Promise<void> {
+    const payload = Buffer.from(text);
     return this.append(name, () => {
       this.archive.append(payload, { name });
     });
@@ -188,7 +186,9 @@ class ScopedTenantExportArchive implements TenantExportArchive {
     path: string,
     data: Parameters<TenantExportArchive["addJson"]>[1],
   ): Promise<void> {
-    return this.add(path, (name) => this.writer.appendJson(name, data));
+    return this.add(path, (name) =>
+      this.writer.appendJsonText(name, JSON.stringify(data, null, JSON_INDENT)),
+    );
   }
 
   addFile(path: string, localPath: string): Promise<void> {
@@ -254,9 +254,9 @@ async function writeContribution(
   contribution: TenantDataExportContribution | void,
 ): Promise<string | undefined> {
   if (!contribution) return undefined;
-  await writer.appendJson(
+  await writer.appendJsonText(
     `${MODULES_DIRECTORY}/${moduleId}.${JSON_EXTENSION}`,
-    contribution.data,
+    JSON.stringify(contribution.data, null, JSON_INDENT),
   );
   return contribution.moduleId === moduleId ? undefined : contribution.moduleId;
 }
@@ -369,9 +369,13 @@ export async function buildTenantExportArchive(
   const writer = new ExportArchiveWriter(options.localPath, options.signal);
   try {
     const reports = await runContributors(writer, options);
-    await writer.appendJson(
+    await writer.appendJsonText(
       MANIFEST_ENTRY,
-      buildManifest(options.tenantId, reports),
+      JSON.stringify(
+        buildManifest(options.tenantId, reports),
+        null,
+        JSON_INDENT,
+      ),
     );
     await writer.finalize();
     return summarize(reports);

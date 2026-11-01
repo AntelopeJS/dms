@@ -47,6 +47,7 @@ covers:
   - packages/interface-dms/src/utils/**
   - packages/interface-dms/src/internal/**
   - packages/interface-dms/src/types.ts
+  - packages/interface-dms/src/json.ts
   - packages/interface-dms/src/index.ts
   - packages/interface-dms/src/api-base-url.ts
   - packages/interface-dms/src/client-base-url.ts

@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/dms",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "The AntelopeJS dashboard management system: admin dashboards declared in TypeScript, with auth and tenancy, data management, file uploads, notifications and realtime.",
   "keywords": [
     "antelopejs",
@@ -86,7 +86,7 @@
     "@antelopejs/interface-data-api": "file:../../.campaign/tgz/antelopejs-interface-data-api-26c36e9.tgz",
     "@antelopejs/interface-database": "file:../../.campaign/tgz/antelopejs-interface-database-724ff72.tgz",
     "@antelopejs/interface-database-decorators": "file:../../.campaign/tgz/antelopejs-interface-database-decorators-e79a62b.tgz",
-    "@antelopejs/interface-dms": ">=0.11.0 <0.12.0",
+    "@antelopejs/interface-dms": ">=0.12.0 <0.13.0",
     "@antelopejs/interface-email": ">=0.0.6 <1.0.0",
     "@antelopejs/interface-file-storage": ">=0.1.4 <1.0.0",
     "archiver": "^7.0.1",

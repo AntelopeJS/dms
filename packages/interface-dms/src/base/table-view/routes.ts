@@ -38,6 +38,7 @@ import {
   restoreRows,
   startExport,
   summarizeWithSearch,
+  type TableViewListPage,
 } from "./data-functions";
 import type { RowBulkOperationParams } from "./internal/data-functions";
 import { withFilePromotion } from "./internal/files";
@@ -129,7 +130,13 @@ const createBulkOperationRoute = (
   method: "put",
 });
 
-function createListRoute(actionId: string): DataControllerCallback {
+function createListRoute(
+  actionId: string,
+): DataControllerCallback<
+  Parameters.ListParameters,
+  TableViewListPage,
+  [RequestContext, Parameters.ListParameters, User]
+> {
   return {
     func: async function (
       this: globalThis.Parameters<typeof listWithSearch>[0] & {
