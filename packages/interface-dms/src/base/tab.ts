@@ -100,6 +100,8 @@ const TAB_COMPONENT_NAME = "dms-tab";
  * places a block before anything is configured, and writes that as the bare
  * call `Tab()`. A page under construction has to compile — it is typechecked
  * on every edit — so a block with nothing set yet has to be a legal call.
+ *
+ * @docsApi
  */
 export const Tab = (options?: TabProps): ComponentBuilder<TabProps> => {
   return attachRealtimeTopicsHook(

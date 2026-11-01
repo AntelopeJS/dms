@@ -78,6 +78,8 @@ const EMPTY_STATE_DEFAULTS = {
  *   actions: [{ label: "Create an invoice", to: "/sales/invoices/new" }],
  * })
  * ```
+ *
+ * @docsApi
  */
 export function EmptyState(
   options: EmptyStateProps,

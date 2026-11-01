@@ -32,6 +32,11 @@ import {
   serializeTableViewOptions,
 } from "./internal/factory-lifecycle-options";
 
+/**
+ * A table of the rows `controller` serves.
+ *
+ * @docsApi
+ */
 export function TableView<T extends ControllerClass>(
   controller: T,
   options: TableViewOptions<InstanceType<T>> = {},

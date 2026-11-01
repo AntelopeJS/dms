@@ -84,6 +84,8 @@ export const GridChildSchema = z.object({
  *     .child('col1', Card(...))
  *   )
  * ```
+ *
+ * @docsApi
  */
 export function Grid(options?: GridOptions): ComponentBuilder<GridOptions> {
   return new ComponentBuilder<GridOptions>(GRID_COMPONENT_NAME)
@@ -112,6 +114,8 @@ export function Grid(options?: GridOptions): ComponentBuilder<GridOptions> {
  *   .child('item1', Card(...))
  *   .child('item2', Card(...))
  * ```
+ *
+ * @docsApi
  */
 export function GridRow(): ComponentBuilder {
   return new ComponentBuilder<unknown>(GRID_ROW_COMPONENT_NAME).meta({

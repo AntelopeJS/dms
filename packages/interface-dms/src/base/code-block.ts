@@ -76,6 +76,8 @@ const CODE_BLOCK_DEFAULTS = { language: "text", copy: true } as const;
  *   code: 'cover: MediaField({ accept: ["image/*"] })',
  * })
  * ```
+ *
+ * @docsApi
  */
 export function CodeBlock(
   options?: CodeBlockProps,

@@ -132,6 +132,8 @@ const BANNER_DEFAULTS = { tone: "info", size: "md" } as const;
  *
  * Banner({ fetchUrl: "/api/mailing/{{params.id}}/provider-status" })
  * ```
+ *
+ * @docsApi
  */
 export function Banner(options?: BannerProps): ComponentBuilder<BannerProps> {
   const builder = new ComponentBuilder<BannerProps>(BANNER_COMPONENT_NAME)

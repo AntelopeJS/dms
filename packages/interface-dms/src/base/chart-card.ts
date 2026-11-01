@@ -86,6 +86,8 @@ const CARD_SUPPLIED_CHART_OPTIONS = [
  * places a block before anything is configured, and writes that as the bare
  * call `ChartCard()`. A page under construction has to compile — it is typechecked
  * on every edit — so a block with nothing set yet has to be a legal call.
+ *
+ * @docsApi
  */
 export function ChartCard(
   options?: ChartCardBuilderOptions,
