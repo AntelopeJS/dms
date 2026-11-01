@@ -80,6 +80,7 @@ Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript,
 ### And more
 
 - **An analytics dashboard from your coding agent.** The DMS asks Claude Code or Codex, the agent you already use, to build the back office and a stats dashboard for your data. The DMS ships no AI model of its own.
+- **Realtime updates on the data the DMS manages.** When someone saves a record, other people viewing the page see it without reloading.
 - **Pages as TypeScript classes.** Forms, tables, charts, and layouts are blocks that the shared Vue renderer draws. Standard screens need no Vue.
 - **Sign-in, members, and multi-tenancy.** A SaaS mode is included.
 - **An AI dev assistant.** It changes your project for you in Safe mode or Code mode. To run it, you need Claude Code or Codex.
@@ -165,7 +166,7 @@ The dashboard's frontend loader and Vue renderer live in [AntelopeJS/dms-fronten
 - [Getting started](https://dms.antelopejs.com/docs/getting-started/introduction): installation, quickstart, tutorial, architecture
 - [Building](https://dms.antelopejs.com/docs/building/overview): configuration, pages and components, navigation, localization, deployment
 - [Auth and tenancy](https://dms.antelopejs.com/docs/auth-and-tenancy/overview)
-- [Components](https://dms.antelopejs.com/docs/components/overview): every block, with a rendered preview
+- [Components](https://dms.antelopejs.com/docs/components/overview): every block, with a live preview
 - [Interfaces](https://dms.antelopejs.com/docs/interfaces): the `@antelopejs/interface-dms` reference
 - [AI and Claude Code](https://dms.antelopejs.com/docs/ai-and-claude-code/overview): the skill suite and the AI assistant
 - [Modules](https://dms.antelopejs.com/docs/modules) and [Frontend](https://dms.antelopejs.com/docs/frontend)
