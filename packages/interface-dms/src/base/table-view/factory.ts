@@ -56,19 +56,19 @@ export function TableView<T extends ControllerClass>(
   const { endpoints } = GetMetadata(controller, DataAPIMeta);
   warnIfTabsLackCountBatch(
     controller,
-    config.location,
+    controller.location,
     declaresCounters(options),
     endpoints,
   );
 
   warnIfSummaryLacksRoute(
     controller,
-    config.location,
+    controller.location,
     options.footer,
     endpoints,
   );
 
-  stampAttachmentFields(meta, config.location);
+  stampAttachmentFields(meta, controller.location);
 
   const isExportEnabled = Object.keys(TableViewRoutes.ExportRoutes).every(
     (key) => !!endpoints[key],
@@ -150,7 +150,6 @@ export function TableView<T extends ControllerClass>(
           options,
           meta,
           builder,
-          config,
           isWriting,
           forms,
           isPageMode,

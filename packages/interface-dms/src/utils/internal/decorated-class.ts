@@ -1,5 +1,3 @@
-import { ControllerMeta } from "@antelopejs/interface-api";
-import { GetMetadata } from "@antelopejs/interface-core";
 import type {
   Class,
   DecoratorTarget,
@@ -18,20 +16,6 @@ export function decoratedClass(target: DecoratorTarget): Class {
     throw new TypeError("A member decorator applies to a class.");
   }
   return owner;
-}
-
-/**
- * The location `Controller` gave a controller class.
- *
- * @internal
- * @throws {TypeError} When `Controller` did not create the class.
- */
-export function controllerLocation(controller: Class): string {
-  const { location } = GetMetadata(controller, ControllerMeta);
-  if (location === undefined) {
-    throw new TypeError(`${controller.name} is not a Controller class`);
-  }
-  return location;
 }
 
 function isDecoratorTarget(value: unknown): value is DecoratorTarget {

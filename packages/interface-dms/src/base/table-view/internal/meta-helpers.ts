@@ -1,5 +1,6 @@
 /** @internal */
 import assert from "node:assert";
+import { ControllerMeta } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { MakeMethodAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
 import {
@@ -16,10 +17,7 @@ import { adaptFieldValidationSchema } from "../../form-schema";
 import { ReadonlyBehaviorType } from "../../types";
 import type { ColumnOptions, TableViewMeta } from "../meta";
 import { serializeColumnDisplay } from "./column-display";
-import {
-  controllerLocation,
-  decoratedClass,
-} from "../../../utils/internal/decorated-class";
+import { decoratedClass } from "../../../utils/internal/decorated-class";
 
 type FieldDecoratorArguments = Parameters<
   Parameters<typeof MakeMethodAndPropertyDecorator>[0]
@@ -33,7 +31,7 @@ export function buildTableConfig(
   const datameta = GetMetadata(view.target, DataAPIMeta);
 
   return {
-    location: controllerLocation(view.target),
+    location: GetMetadata(view.target, ControllerMeta).location,
     columns: Object.entries(view.columns)
       .sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0))
       .map(([key, options]) => {

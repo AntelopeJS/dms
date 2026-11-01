@@ -181,11 +181,10 @@ async function buildExportQuery({
 }
 
 function getControllerKey(controller: DataControllerThis): string {
-  const { location } = GetMetadata(controller.constructor, ControllerMeta);
+  const owner = controller.constructor;
+  const { location } = GetMetadata(owner, ControllerMeta);
   if (location === undefined) {
-    throw new TypeError(
-      `${controller.constructor.name} is not a Controller class`,
-    );
+    throw new TypeError(`${owner.name} is not a Controller class`);
   }
   return location;
 }

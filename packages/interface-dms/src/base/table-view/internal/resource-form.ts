@@ -88,7 +88,7 @@ export function resourceForm(
   options: ResourceFormOptions = {},
 ): FormBuilder | undefined {
   const meta = GetMetadata(controller, TableViewMeta);
-  const { location } = meta.config;
+  const { location } = controller;
   stampAttachmentFields(meta, location);
   const fields = meta.getFormFields(mode);
   if (fields.length === 0) {
