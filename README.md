@@ -88,12 +88,6 @@ Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript,
 - **Embedding.** Run the DMS inside an AdonisJS 6 backend.
 - **Installable modules.** Page builder, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics, and a media library.
 
-## How AntelopeJS makes money
-
-Everything is Apache-2.0, including the DMS, the Builder, the AI features, and roles. Nothing is gated and there is no per-seat price. You can self-host for free.
-
-[AntelopeJS Cloud](https://cloud.antelopejs.com) is managed hosting. It is the only paid part, and it is waitlist-only today.
-
 ---
 
 ## Add the DMS to an existing project
