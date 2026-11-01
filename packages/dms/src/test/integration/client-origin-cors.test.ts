@@ -9,11 +9,11 @@ const MANUAL_ORIGIN = "https://manual.example.com";
 const MANUAL_PATTERN = /^https:\/\/[a-z]+\.preview\.example\.com$/;
 const STRANGER_ORIGIN = "https://stranger.example.com";
 
-async function allowedOriginFor(origin: string) {
+async function responseHeadersFor(origin: string) {
   const response = await createClient().get(SYSTEM_STATE, {
     headers: { origin },
   });
-  return response.headers["access-control-allow-origin"];
+  return response.headers;
 }
 
 describe("[integration] the dashboard's CORS origin", () => {
@@ -25,8 +25,14 @@ describe("[integration] the dashboard's CORS origin", () => {
   });
 
   it("is allowed by the api with no CORS configured there", async () => {
-    expect(await allowedOriginFor(clientOrigin())).to.equal(clientOrigin());
-    expect(await allowedOriginFor(STRANGER_ORIGIN)).to.equal("false");
+    expect(
+      (await responseHeadersFor(clientOrigin()))["access-control-allow-origin"],
+    ).to.equal(clientOrigin());
+    expect(
+      (await responseHeadersFor(STRANGER_ORIGIN))[
+        "access-control-allow-origin"
+      ],
+    ).to.equal("false");
   });
 
   it("joins the origins configured on the api instead of replacing them", async () => {
@@ -41,8 +47,12 @@ describe("[integration] the dashboard's CORS origin", () => {
       allowedOrigins: [MANUAL_ORIGIN, MANUAL_PATTERN, clientOrigin()],
       credentials: true,
     });
-    expect(await allowedOriginFor(MANUAL_ORIGIN)).to.equal(MANUAL_ORIGIN);
-    expect(await allowedOriginFor(clientOrigin())).to.equal(clientOrigin());
+    expect(
+      (await responseHeadersFor(MANUAL_ORIGIN))["access-control-allow-origin"],
+    ).to.equal(MANUAL_ORIGIN);
+    expect(
+      (await responseHeadersFor(clientOrigin()))["access-control-allow-origin"],
+    ).to.equal(clientOrigin());
   });
 
   it("joins a single configured origin", async () => {

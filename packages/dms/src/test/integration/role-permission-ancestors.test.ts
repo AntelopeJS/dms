@@ -25,6 +25,10 @@ const HTTP_OK = 200;
 const HTTP_NO_CONTENT = 204;
 const HTTP_FORBIDDEN = 403;
 
+interface RoleCreated {
+  id: string;
+}
+
 async function storedPermissions(roleId: string): Promise<string[]> {
   const role = await GetModel(RoleModel, DEFAULT_TENANT_ID).get(roleId);
   return role?.permissions ?? [];
@@ -48,7 +52,7 @@ describe("[integration] role permissions and their ancestors", () => {
   });
 
   it("stores a created role with every id its permissions sit under", async () => {
-    const created = await owner.post(`${ROLES}/create`, {
+    const created = await owner.post<RoleCreated>(`${ROLES}/create`, {
       name: "Deletes roles",
       permissions: [DELETE_ACTION],
     });
@@ -62,7 +66,9 @@ describe("[integration] role permissions and their ancestors", () => {
   });
 
   it("stores an updated role with every id its permissions sit under", async () => {
-    const created = await owner.post(`${ROLES}/create`, { name: "Empty" });
+    const created = await owner.post<RoleCreated>(`${ROLES}/create`, {
+      name: "Empty",
+    });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
 
     const updated = await owner.put(`${ROLES}/${created.data.id}`, {
@@ -82,7 +88,7 @@ describe("[integration] role permissions and their ancestors", () => {
   });
 
   it("completes the permissions written through the roles table routes", async () => {
-    const created = await owner.post(`${ROLES_TABLE}/new`, {
+    const created = await owner.post<RoleCreated>(`${ROLES_TABLE}/new`, {
       name: "Written through the table",
       permissions: [DELETE_ACTION],
     });
@@ -99,7 +105,7 @@ describe("[integration] role permissions and their ancestors", () => {
   });
 
   it("stores a table's edit with its view, whichever route saved it", async () => {
-    const created = await owner.post(`${ROLES}/create`, {
+    const created = await owner.post<RoleCreated>(`${ROLES}/create`, {
       name: "Edits roles",
       permissions: [EDIT_ACTION],
     });
@@ -133,7 +139,7 @@ describe("[integration] role permissions and their ancestors", () => {
   });
 
   it("lets a role saved with a table's edit load the row its form edits", async () => {
-    const created = await owner.post(`${ROLES}/create`, {
+    const created = await owner.post<RoleCreated>(`${ROLES}/create`, {
       name: "Edits roles",
       permissions: [EDIT_ACTION],
     });

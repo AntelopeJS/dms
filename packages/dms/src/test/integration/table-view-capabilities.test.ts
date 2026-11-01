@@ -1,3 +1,5 @@
+import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
+import type { PageLayout } from "@antelopejs/interface-dms/page";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
@@ -17,10 +19,7 @@ interface Invoice {
   status: string;
 }
 
-interface FooterSummary {
-  id: string;
-  label: string;
-}
+type TableLayout = PageLayout<TableViewOptionsSerialized>;
 
 async function seed(client: AxiosInstance, ownerId: string): Promise<void> {
   const rows = [
@@ -75,15 +74,16 @@ describe("[integration] table view capabilities", () => {
     userId = owner.userId;
     client = authorizedClient(owner.accessToken);
     await seed(client, userId);
-    const layout = await client.get("/dms/pagelayout", {
+    const layout = await client.get<TableLayout>("/dms/pagelayout", {
       params: { slug: SLUG },
     });
     expect(layout.status, JSON.stringify(layout.data)).to.equal(HTTP_OK);
     const options = layout.data.components.content.options;
+    if (!options?.footer?.summary) throw new Error(`No footer on ${SLUG}`);
     expect(options.tableId).to.equal("content");
     expect(options.isSoleTableView).to.equal(true);
     expect(options.footer.legend).to.equal("status");
-    const summaries: FooterSummary[] = options.footer.summary;
+    const { summary: summaries } = options.footer;
     expect(summaries.map((summary) => summary.label)).to.deep.equal([
       "Total",
       "Open",
@@ -301,7 +301,7 @@ describe("[integration] table view capabilities", () => {
     const idOf = (invoice: Invoice) => invoice._id;
     const mine = await list(client, `&filter_ownerId=is:${userId}`);
     expect(mine).to.have.length(2);
-    const matching = await client.post(
+    const matching = await client.post<{ ids: string[] }>(
       `${BULK_LOCATION}/matching?allMatching=true&filter_ownerId=is:${userId}`,
     );
     expect(matching.status, JSON.stringify(matching.data)).to.equal(HTTP_OK);

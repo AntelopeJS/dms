@@ -1,3 +1,5 @@
+import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
+import type { PageLayout } from "@antelopejs/interface-dms/page";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { stripStagingPrefix } from "@antelopejs/interface-file-storage";
 import type { AxiosInstance } from "axios";
@@ -28,15 +30,24 @@ interface TableViewColumn {
   id: string;
 }
 
+/** The served options also carry the route location and the column list. */
+type TableLayout = PageLayout<
+  TableViewOptionsSerialized & { location: string; columns: TableViewColumn[] }
+>;
+
 async function ownerClient(): Promise<AxiosInstance> {
   const owner = await registerUser({ owner: true });
   return authorizedClient(owner.accessToken);
 }
 
 async function tableOptions(client: AxiosInstance, slug: string) {
-  const layout = await client.get("/dms/pagelayout", { params: { slug } });
+  const layout = await client.get<TableLayout>("/dms/pagelayout", {
+    params: { slug },
+  });
   expect(layout.status, JSON.stringify(layout.data)).to.equal(HTTP_OK);
-  return layout.data.components.content.options;
+  const options = layout.data.components.content.options;
+  if (!options) throw new Error(`No table options on ${slug}`);
+  return options;
 }
 
 async function listTitles(
@@ -95,10 +106,10 @@ describe("[integration] a data controller derived from another", () => {
 
     expect(derived.location).to.equal(DERIVED);
     expect(base.location).to.equal(BASE);
-    expect(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The layout HTTP response is unvalidated; the test assumes table-view columns to check the derived configuration.
-      (derived.columns as TableViewColumn[]).map((column) => column.id),
-    ).to.have.members(["title", "file"]);
+    expect(derived.columns.map((column) => column.id)).to.have.members([
+      "title",
+      "file",
+    ]);
     expect(derived.formComponents.new).to.not.equal(undefined);
     expect(derived.formComponents.edit).to.not.equal(undefined);
   });

@@ -1,12 +1,9 @@
 import { strict as assert } from "node:assert";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { z } from "zod";
-import { UserInviteModel } from "@antelopejs/interface-dms/db";
+import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import { decideInvite } from "@antelopejs/interface-dms/invite-resolution";
-import {
-  type InviteExtensionContext,
-  RegisterInviteExtension,
-} from "@antelopejs/interface-dms/invite-extensions";
+import { RegisterInviteExtension } from "@antelopejs/interface-dms/invite-extensions";
 import { Form } from "@antelopejs/interface-dms/base/form";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
@@ -26,7 +23,7 @@ interface ScopeSlice {
 interface RecordedUpdate {
   payload: unknown;
   previous: unknown;
-  context: InviteExtensionContext;
+  context: unknown;
 }
 
 function plain(
@@ -41,8 +38,10 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
   let admin: User;
   const disposers: Array<() => void> = [];
 
-  async function storedExtensions() {
-    return plain((await invites.get(INVITE_ID))?.extensions);
+  async function storedExtensions(): Promise<
+    UserInvite["extensions"] | undefined
+  > {
+    return (await invites.get(INVITE_ID))?.extensions;
   }
 
   beforeEach(async () => {

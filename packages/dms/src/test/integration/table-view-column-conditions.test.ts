@@ -15,6 +15,10 @@ interface Deal {
   probability?: number | null;
 }
 
+interface SavedDocument {
+  _id: string;
+}
+
 describe("[integration] table view column conditions", () => {
   let client: AxiosInstance;
 
@@ -104,13 +108,13 @@ describe("[integration] table view column conditions", () => {
 
   it("clears the value a field stored once an edit hides it", async () => {
     const customers = "/api/conditions/customers";
-    const created = await client.post(`${customers}/new`, {
+    const created = await client.post<SavedDocument>(`${customers}/new`, {
       name: "Acme",
       kind: "business",
       vatNumber: "BE0123456749",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id: string = created.data._id;
+    const id = created.data._id;
     expect(
       await countRawDocuments("condition-customers", {
         vatNumber: "BE0123456749",

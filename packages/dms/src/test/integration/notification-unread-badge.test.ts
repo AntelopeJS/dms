@@ -178,7 +178,9 @@ describe("[integration] notifications unread badge", () => {
 
   it("shows no badge once everything is read", async () => {
     const { events, unsubscribe } = recordEvents();
-    const marked = await client.put(`${LOCATION}/mark-all-read`);
+    const marked = await client.put<{ counts: FeedCounts }>(
+      `${LOCATION}/mark-all-read`,
+    );
     unsubscribe();
     expect(marked.data.counts).to.deep.equal(await counts());
     expect(marked.data.counts).to.include({ unread: 0 });

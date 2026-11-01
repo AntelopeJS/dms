@@ -37,6 +37,12 @@ const subject: NotificationSubjectInfo = {
 };
 const PREFERENCE_KEY = `${subject.category.id}:${subject.id}`;
 
+interface SiteLayoutResponse {
+  siteLayout: {
+    pages: Record<string, { hasAccess: boolean; displayName: string }>;
+  };
+}
+
 interface PageLayoutResponse {
   components: PageLayout["components"];
 }
@@ -117,20 +123,16 @@ describe("[integration] a member without a role and their own settings", () => {
   });
 
   it("is served the settings overview named, so its breadcrumb is translated", async () => {
-    const response = await member.get("/dms/sitelayout");
-    const overview: {
-      hasAccess: boolean;
-      displayName: string;
-    } = response.data.siteLayout.pages[SETTINGS_OVERVIEW];
+    const response = await member.get<SiteLayoutResponse>("/dms/sitelayout");
+    const overview = response.data.siteLayout.pages[SETTINGS_OVERVIEW];
     expect(overview.hasAccess).to.equal(true);
     expect(overview.displayName).to.equal("$page.settings.title");
   });
 
   it("sees the account pages in the navigation and not the workspace ones", async () => {
-    const response = await member.get("/dms/sitelayout");
+    const response = await member.get<SiteLayoutResponse>("/dms/sitelayout");
     expect(response.status).to.equal(HTTP_OK);
-    const pages: Record<string, { hasAccess: boolean }> =
-      response.data.siteLayout.pages;
+    const { pages } = response.data.siteLayout;
     for (const slug of PERSONAL_SLUGS) {
       expect(pages[slug]?.hasAccess, slug).to.equal(true);
     }
