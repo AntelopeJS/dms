@@ -11,6 +11,7 @@ import { Color } from "../layers/dms-core/app/types/color";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
 import { normalizeActionConfig } from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { useTranslation } from "../layers/dms-core/app/composables/translation/useTranslation";
 import { useEventedAction } from "../layers/dms-core/app/composables/useEventedAction";
 import {
@@ -26,8 +27,7 @@ const merge = (target: Messages, source: Messages): Messages => {
   for (const [key, value] of Object.entries(source)) {
     const current = target[key];
     target[key] =
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Locale trees contain string leaves and nested message branches; only branches are merged recursively.
-      current && typeof current === "object" && typeof value === "object"
+      isObject(current) && isObject(value)
         ? merge({ ...current }, value)
         : value;
   }
@@ -82,9 +82,8 @@ const shownRows = [
 const getRow = vi.fn();
 
 async function rowActions() {
-  const { useTableRowActions } = await import(
-    "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
-  );
+  const { useTableRowActions } =
+    await import("../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions");
   return useTableRowActions({
     api,
     location: "/api/task",
