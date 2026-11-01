@@ -1,6 +1,7 @@
 import { Controller, Get, Parameter, Post } from "@antelopejs/interface-api";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound } from "./demo-errors";
+import { ownEntry } from "../own-entry";
 
 /** Published on each test call, which the Guard demo follows. */
 export const GUARD_DEMO_TOPIC = "blocks:guard-demo";
@@ -28,7 +29,7 @@ function later<T>(value: T): Promise<T> {
 
 function callsIn(preset: string | undefined): number {
   if (!preset || preset === QUIET_PRESET) return callsThisHour;
-  return CALLS_BY_PRESET[preset] ?? 0;
+  return ownEntry(CALLS_BY_PRESET, preset) ?? 0;
 }
 
 function callSeries(total: number): number[] {
