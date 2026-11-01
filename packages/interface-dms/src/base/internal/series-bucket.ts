@@ -43,6 +43,22 @@ function dayLabel(stamp: number): string | undefined {
   return valid ? `${MONTH_NAMES[month - 1]} ${day}, ${year}` : undefined;
 }
 
+const MS_PER_DAY = 86_400_000;
+const DAYS_PER_WEEK = 7;
+/** 1970-01-01 was a Thursday, so a Monday's day count is 4 more than a multiple of 7. */
+const MONDAY_REMAINDER = 4;
+
+/** A week is stamped by its Monday as the days since 1970-01-01. */
+function weekLabel(stamp: number): string | undefined {
+  const isMonday =
+    ((stamp % DAYS_PER_WEEK) + DAYS_PER_WEEK) % DAYS_PER_WEEK ===
+    MONDAY_REMAINDER;
+  const monday = new Date(stamp * MS_PER_DAY);
+  return isMonday && !Number.isNaN(monday.getTime())
+    ? `Week of ${MONTH_NAMES[monday.getUTCMonth()]} ${monday.getUTCDate()}`
+    : undefined;
+}
+
 function monthLabel(stamp: number): string | undefined {
   const { year, part: month } = splitStamp(stamp, YEAR_STEP);
   return month >= 1 && month <= MONTHS_PER_YEAR
@@ -59,6 +75,7 @@ function quarterLabel(stamp: number): string | undefined {
 
 const LABELS: Record<SeriesBucket, (stamp: number) => string | undefined> = {
   day: dayLabel,
+  week: weekLabel,
   month: monthLabel,
   quarter: quarterLabel,
   year: (stamp) => String(stamp),
@@ -66,7 +83,8 @@ const LABELS: Record<SeriesBucket, (stamp: number) => string | undefined> = {
 
 /**
  * A period stamp as a person reads it: 202608 as "Aug 2026" for a month, 20263 as
- * "Q3 2026", 20260801 as "Aug 1, 2026". A key that is not a stamp of its bucket
+ * "Q3 2026", 20260801 as "Aug 1, 2026", and a week, stamped by its Monday as the days
+ * since 1970-01-01, as "Week of Aug 3". A key that is not a stamp of its bucket
  * (a text, a fraction, a month 13) is returned as it came, never guessed at.
  *
  * @internal

@@ -27,10 +27,11 @@ export interface SeriesPoint {
 
 /**
  * The period a query grouped a date field into. Its groups are keyed by a period
- * stamp: the year (2026), the quarter (20263), the month (202608) or the day
- * (20260801).
+ * stamp: the year (2026), the quarter (20263), the month (202608), the day
+ * (20260801) or the week, stamped by its Monday as the days since 1970-01-01
+ * (20668 for the week of Aug 3, 2026).
  */
-export type SeriesBucket = "day" | "month" | "quarter" | "year";
+export type SeriesBucket = "day" | "week" | "month" | "quarter" | "year";
 
 /** How the headline figure is taken from the points. */
 export type SeriesMeasure = "count" | "sum" | "avg" | "min" | "max";

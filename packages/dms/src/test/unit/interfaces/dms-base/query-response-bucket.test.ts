@@ -57,6 +57,16 @@ describe("[unit] interfaces/dms-base/query-response: a bucketed series read by a
     expect(labelOf(2026, "year")).to.equal("2026");
   });
 
+  it("names a week by its Monday, even across New Year", () => {
+    expect(labelOf(20668, "week")).to.equal("Week of Aug 3");
+    expect(labelOf(20815, "week")).to.equal("Week of Dec 28");
+    expect(labelOf(20822, "week")).to.equal("Week of Jan 4");
+  });
+
+  it("returns a week stamp that is not a Monday as it came", () => {
+    expect(labelOf(20669, "week")).to.equal(20669);
+  });
+
   it("titles a ranked entry by its period and keeps its id", () => {
     const [entry] = topListData([{ x: 202608, y: 10 }], BY_MONTH).items;
     expect(entry?.title).to.equal("Aug 2026");
