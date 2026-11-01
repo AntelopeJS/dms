@@ -24,7 +24,7 @@ import path from "node:path";
  *   license?: string;
  *   repository?: { type?: string, url?: string, directory?: string };
  *   publishConfig?: { registry?: string, access?: string, provenance?: boolean };
- *   antelopeJs?: { implements: string[] };
+ *   antelopeJs?: { implements?: string[] };
  *   dependencies?: Record<string, string>;
  * }} Manifest
  */
@@ -79,12 +79,84 @@ const checkout = path.resolve(process.argv[2] ?? ".");
 const step = validateStep(checkout);
 
 /**
- * The one place this probe decodes a manifest of the checkout, typed by the fields it reads.
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is string}
+ */
+function isString(value) {
+  return typeof value === "string";
+}
+
+/**
+ * @param {unknown} value
+ * @param {string} key
+ * @param {(field: unknown) => boolean} isField
+ * @returns {boolean} Whether the object holds the field absent or passing
+ */
+function optionally(value, key, isField) {
+  return isRecord(value) && (!Object.hasOwn(value, key) || isField(value[key]));
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is boolean}
+ */
+function isBoolean(value) {
+  return typeof value === "boolean";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {boolean} Whether it is an object whose values are all strings
+ */
+function isStringRecord(value) {
+  return isRecord(value) && Object.values(value).every(isString);
+}
+
+/**
+ * @param {unknown} value
+ * @returns {boolean} Whether it is an object whose `implements`, when present, lists strings
+ */
+function isImplementer(value) {
+  return isRecord(value) && optionally(value, "implements", (field) => Array.isArray(field) && field.every(isString));
+}
+
+/**
+ * Whether a parsed document holds the manifest fields this probe reads with the types it relies on. Other fields pass through untouched, since the probe writes the manifest back out.
+ * @param {unknown} value
+ * @returns {value is Manifest}
+ */
+function isManifest(value) {
+  return (
+    isRecord(value) &&
+    optionally(value, "name", isString) &&
+    optionally(value, "version", isString) &&
+    optionally(value, "private", isBoolean) &&
+    optionally(value, "license", isString) &&
+    optionally(value, "repository", isRecord) &&
+    optionally(value, "publishConfig", isRecord) &&
+    optionally(value, "antelopeJs", isImplementer) &&
+    optionally(value, "dependencies", isStringRecord)
+  );
+}
+
+/**
+ * The one place this probe decodes a manifest of the checkout; a document that is not a manifest is refused.
  * @param {string} file
  * @returns {Manifest}
  */
 function readManifest(file) {
-  return JSON.parse(readFileSync(file, "utf8"));
+  /** @type {unknown} */
+  const manifest = JSON.parse(readFileSync(file, "utf8"));
+  if (!isManifest(manifest)) throw new Error(`${file} is not a package manifest`);
+  return manifest;
 }
 
 const pkg = readManifest(path.join(checkout, "packages", "dms", "package.json"));

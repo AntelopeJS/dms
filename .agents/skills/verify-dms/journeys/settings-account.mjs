@@ -1,6 +1,7 @@
 import { PROFILE, SECURITY, NOTIFICATIONS, SHORTCUTS, SETTINGS, USER_API, ADMIN_NAME, me, login, secondDevice, typeCode, mailedCode, openPasswordForm, fillPasswordForm, openEmailForm, submitEmailForm } from "./settings-account/steps.mjs";
 import { preferenceJourneys } from "./settings-account/preferences.mjs";
 import { accessJourneys } from "./settings-account/access.mjs";
+import { isMemberRow, listOf } from "../rows.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -36,7 +37,7 @@ export const journeys = [
       const members = await ctx.api("list the members", { method: "GET", path: "/api/tables/members/list" });
       await ctx.verify("the API and the members list hold the new name", [
         ctx.equal("name", account.body?.name, "Verify Renamed"),
-        ctx.equal("member names", members.body?.results?.map((member) => member.name), ["Verify Renamed"]),
+        ctx.equal("member names", listOf(members.body, isMemberRow).map((member) => member.name), ["Verify Renamed"]),
       ]);
       await tab.goto(SETTINGS);
       await ctx.verify("the settings overview reads the new name", [tab.shows(/Verify Renamed/)]);

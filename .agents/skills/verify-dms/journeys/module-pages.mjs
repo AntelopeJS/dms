@@ -1,3 +1,5 @@
+import { isUserRow, listOf } from "../rows.mjs";
+
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
@@ -20,7 +22,7 @@ async function signedIn(/** @type {Ctx} */ ctx, /** @type {string} */ label = "a
  */
 async function listUsers(ctx, label) {
   const answer = await ctx.api(label, { method: "GET", path: `${USERS_API}/list?limit=100` });
-  return answer.body?.results ?? [];
+  return listOf(answer.body, isUserRow);
 }
 
 async function createUser(/** @type {Tab} */ tab, /** @type {string} */ name, /** @type {string} */ email) {

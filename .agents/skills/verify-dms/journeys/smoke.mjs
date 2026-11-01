@@ -1,3 +1,5 @@
+import { isInviteRow, listOf } from "../rows.mjs";
+
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  */
@@ -33,7 +35,7 @@ export const journeys = [
         tab.visible({ role: "cell", name: email }),
       ]);
       const list = await ctx.api("list the invitations", { method: "GET", path: "/api/tables/admin-invites/list" });
-      const invite = list.body?.results?.find((entry) => entry.email === email);
+      const invite = listOf(list.body, isInviteRow).find((entry) => entry.email === email);
       await ctx.verify("the API holds the invitation as an owner invite", [
         ctx.status(list, 200),
         ctx.holds("one pending invitation for the address", invite, JSON.stringify(list.body?.results)),

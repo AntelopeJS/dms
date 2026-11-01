@@ -1,3 +1,5 @@
+import { stringIn } from "../rows.mjs";
+
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
@@ -175,7 +177,7 @@ export const journeys = [
           body: { name: "Base Record", email: ctx.email("base-record"), avatar: "https://example.com/avatar.png" },
         });
         const session = await login(ctx, "sign in with the base version", admin.email, admin.password);
-        Object.assign(written, { recordId: created.body?._id, access: session.body?.access_token, refresh: session.body?.refresh_token });
+        Object.assign(written, { recordId: stringIn(created.body, "_id"), access: stringIn(session.body, "access_token"), refresh: stringIn(session.body, "refresh_token") });
         await ctx.verify("the base version onboards, writes a record and opens a session", [
           ctx.equal("register", answer.register.status, 200),
           ctx.status(created, 200),

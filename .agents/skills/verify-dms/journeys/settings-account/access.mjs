@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { PROFILE, SECURITY, SETTINGS, SIGNED_IN, ADMIN_NAME, TWO_FACTOR_CODE_WINDOW_MS, me, login, secondDevice, typeCode, mailedCode, joinMember } from "./steps.mjs";
+import { isMemberRow, listOf } from "../../rows.mjs";
 
 /**
  * @typedef {import("../../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -120,11 +121,12 @@ export const accessJourneys = [
         tab.shows(/Your data was downloaded/),
       ], { critical: true });
       const text = readFileSync(file, "utf8");
+      /** @type {unknown} */
       const data = JSON.parse(text);
       await ctx.verify("the file holds the account and no secret", [
         ctx.holds("it names the email", text.includes(admin.email), "email missing"),
         ctx.holds("it names the full name", text.includes(ADMIN_NAME), "name missing"),
-        ctx.holds("it is an object", isJsonObject(data), typeof data),
+        ctx.holds("it is an object", isJsonObject(data), text.slice(0, 80)),
         ctx.holds("it leaves the password out", !text.includes(admin.password), "password present"),
       ]);
     },
@@ -178,7 +180,7 @@ export const accessJourneys = [
       const members = await ctx.api("list the members", { method: "GET", path: "/api/tables/members/list" });
       await ctx.verify("the account can no longer sign in and the member is gone", [
         ctx.holds("no access token", !again.body?.access_token, JSON.stringify(again.body)?.slice(0, 120)),
-        ctx.equal("members", members.body?.results?.map((member) => member.email), [ctx.adminCredentials().email]),
+        ctx.equal("members", listOf(members.body, isMemberRow).map((member) => member.email), [ctx.adminCredentials().email]),
       ]);
     },
   },

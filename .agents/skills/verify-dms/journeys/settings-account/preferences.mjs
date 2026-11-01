@@ -1,4 +1,5 @@
 import { REGION, NOTIFICATIONS, APPEARANCE, SETTINGS, USER_API, me, secondDevice, changePasswordThroughApi, tick, expandSystem, htmlHasClass } from "./steps.mjs";
+import { numberIn } from "../../rows.mjs";
 
 /**
  * @typedef {import("../../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -120,19 +121,19 @@ export const preferenceJourneys = [
         ctx.equal("system:security", stored.body?.["system:security"], false),
         ctx.equal("system:general", stored.body?.["system:general"], true),
       ]);
-      const counts = async (/** @type {string} */ label) => (await ctx.api(label, { method: "GET", path: `${USER_API}/notifications/counts` })).body;
-      const before = await counts("count the notifications");
+      const allCount = async (/** @type {string} */ label) => numberIn((await ctx.api(label, { method: "GET", path: `${USER_API}/notifications/counts` })).body, "all");
+      const before = await allCount("count the notifications");
       await changePasswordThroughApi(ctx);
-      const whileOff = await counts("count the notifications after a password change with alerts off");
-      await ctx.verify("a password change raises no alert while Security alerts is off", [ctx.equal("all", whileOff?.all, before?.all)]);
+      const whileOff = await allCount("count the notifications after a password change with alerts off");
+      await ctx.verify("a password change raises no alert while Security alerts is off", [ctx.equal("all", whileOff, before)]);
       await tab.signIn("admin");
       await tab.goto(NOTIFICATIONS);
       await expandSystem(tab);
       await tab.click({ role: "switch", name: "Security alerts" });
       await ctx.verify("switching it back on is saved", [tab.shows(/5 of 5 on/)]);
       await changePasswordThroughApi(ctx);
-      const whileOn = await counts("count the notifications after a password change with alerts on");
-      await ctx.verify("with Security alerts on, the same change raises one alert", [ctx.equal("all", whileOn?.all, (before?.all ?? 0) + 1)]);
+      const whileOn = await allCount("count the notifications after a password change with alerts on");
+      await ctx.verify("with Security alerts on, the same change raises one alert", [ctx.equal("all", whileOn, (before ?? 0) + 1)]);
     },
   },
   {
@@ -159,6 +160,7 @@ export const preferenceJourneys = [
       await ctx.verify("the dialog asks before deleting", [tab.visible({ role: "dialog" })]);
       await tab.click({ role: "button", name: /^Delete/, within: { role: "dialog" } });
       await tab.reload();
+      /** @type {unknown} */
       const counts = (await ctx.api("count the notifications", { method: "GET", path: `${USER_API}/notifications/counts` })).body;
       await ctx.verify("the inbox is empty after a reload", [
         tab.shows(/New sign-in from/, { not: true }),

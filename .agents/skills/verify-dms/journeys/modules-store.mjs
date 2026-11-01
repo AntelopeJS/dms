@@ -1,3 +1,5 @@
+import { isStoreModule, listIn } from "../rows.mjs";
+
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  */
@@ -69,7 +71,7 @@ export const journeys = [
       ]);
       const install = await ctx.api("install the API module", { method: "POST", path: "/dms/store/install", body: { id: "api" } });
       const listing = await ctx.api("read the store listing", { method: "GET", path: LISTING });
-      const api = listing.body?.modules?.find((entry) => entry.id === "api");
+      const api = listIn(listing.body, "modules", isStoreModule).find((entry) => entry.id === "api");
       await ctx.verify("nothing is installed", [
         ctx.status(install, 403),
         ctx.equal("error", install.body, "error.store_disabled"),

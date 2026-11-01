@@ -1,3 +1,5 @@
+import { isMemberRow, issuePaths, listOf } from "../rows.mjs";
+
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
@@ -116,7 +118,7 @@ export const journeys = [
         as: "anon",
         body: { email: "not-an-email", firstName: "", lastName: "E", password: POLICY_PASSWORD },
       });
-      const paths = Array.isArray(answer.body) ? answer.body.map((issue) => issue.path?.join(".")) : [];
+      const paths = issuePaths(answer.body);
       const after = await informations(ctx, "nothing was created");
       await ctx.verify("the request is refused field by field", [
         ctx.status(answer, 400),
@@ -139,7 +141,7 @@ export const journeys = [
         body: { email: ctx.email("second"), firstName: "Second", lastName: "Owner", password: POLICY_PASSWORD },
       });
       const members = await ctx.api("list the members", { method: "GET", path: "/api/tables/members/list" });
-      const owners = (members.body?.results ?? []).filter((member) => member.isTenantOwner);
+      const owners = listOf(members.body, isMemberRow).filter((member) => member.isTenantOwner);
       await ctx.verify("the platform keeps its one owner", [
         ctx.status(second, 400),
         ctx.equal("error", second.body, "error.admin_already_set"),

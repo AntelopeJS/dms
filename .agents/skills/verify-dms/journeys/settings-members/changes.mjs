@@ -1,4 +1,5 @@
 import { MEMBERS, ROLES, PAGES_API, MEMBERS_ONLY, createRole, listMembers, pickRole, joinedMember, byEmail, rowActions, removeThroughMenu } from "./steps.mjs";
+import { isRoleRow, listOf } from "../../rows.mjs";
 
 /**
  * @typedef {import("../../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -72,7 +73,7 @@ export const memberChangeJourneys = [
         hank.tab.visible({ role: "heading", name: "Members", exact: true }, { hidden: true }),
       ]);
       const roles = await ctx.api("the role survives the removal", { method: "GET", path: "/api/tables/roles/list" });
-      await ctx.verify("the role itself stays", [ctx.equal("role ids", roles.body?.results?.map((role) => role._id), [roleId])]);
+      await ctx.verify("the role itself stays", [ctx.equal("role ids", listOf(roles.body, isRoleRow).map((role) => role._id), [roleId])]);
     },
   },
   {
