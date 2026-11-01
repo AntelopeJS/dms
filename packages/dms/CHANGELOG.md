@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.14.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.13.1...v0.14.0)
+
+### 💅 Refactors
+
+- **frontend:** ⚠️  Remove API error migration helpers ([#638](https://github.com/AntelopeJS/dms/pull/638))
+
+#### ⚠️ Breaking Changes
+
+- **frontend:** ⚠️  Remove API error migration helpers ([#638](https://github.com/AntelopeJS/dms/pull/638))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.13.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.13.0...v0.13.1)
