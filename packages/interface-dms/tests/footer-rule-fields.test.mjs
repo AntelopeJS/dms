@@ -3,6 +3,7 @@ import test from "node:test";
 import { ruleFields } from "../dist/base/table-view/internal/footer.js";
 
 await test("the columns of a row rule are read through nested operators, an absent operand adding none", () => {
+  /** @param {string} name */
   const field = (name) => ({ field: name, equals: 1 });
   assert.deepEqual(ruleFields(field("a")), ["a"]);
   assert.deepEqual(
