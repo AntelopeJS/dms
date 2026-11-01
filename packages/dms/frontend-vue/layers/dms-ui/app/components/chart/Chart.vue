@@ -43,6 +43,7 @@ import {
   NESTED_CHART_INJECT_KEY,
 } from "../../composables/chart/types";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import { responseSeries } from "../../build/composables/chart/groupPoints";
 
 interface Props extends DefaultComponentProps {
   type: ChartType;
@@ -164,7 +165,9 @@ const seriesFromCtx = computed<ChartSeries[]>(() => {
 
 const fetchSeries = computed<ChartSeries[]>(() => {
   if (!data.value) return [];
-  return localized(data.value.series ?? []);
+  return localized(
+    responseSeries(data.value.series ?? [], props.title ?? "", props.xaxisType),
+  );
 });
 
 const finalSeries = computed<ChartSeries[]>(() => {

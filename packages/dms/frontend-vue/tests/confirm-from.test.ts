@@ -10,6 +10,10 @@ import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { useConfirmFrom } from "../layers/dms-ui/app/composables/confirm/useConfirmFrom";
 import { isConfirmTextMatch } from "../layers/dms-ui/app/entries/composables/confirm/confirmTextMatch";
 import type { NamedValue } from "vue-i18n";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
 
 const authFetch = vi.fn();
 const confirm = vi.fn(async () => true);
@@ -53,6 +57,16 @@ afterEach(() => {
 });
 
 describe("confirmFrom", () => {
+  it("returns false on a marked refusal without a title-only local toast", async () => {
+    installReadOnlyRefusal();
+    authFetch.mockRejectedValue(readOnlyFailure());
+    expect(await mountConfirmFrom().confirmFrom("/api/x")).toBe(false);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "dms-read-only" }),
+    );
+  });
+
   it("reads the dialog from the URL filled with the params and shows it", async () => {
     authFetch.mockResolvedValue({
       title: "$campaigns.delete_title",

@@ -44,6 +44,17 @@ describe("[unit] dms frontend module", () => {
       "http://localhost:3001",
     );
   });
+
+  it("forwards distinct public demo credentials and leaves an unconfigured login empty", () => {
+    const loginPrefill = {
+      email: "visitor@example.test",
+      password: "public-demo-only",
+    };
+    expect(productionOptions({ loginPrefill })?.loginPrefill).to.deep.equal(
+      loginPrefill,
+    );
+    expect(productionOptions({})?.loginPrefill).to.equal(undefined);
+  });
 });
 
 describe("[unit] frontend version drift", () => {

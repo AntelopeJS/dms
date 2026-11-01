@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.12.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.12.0...v0.12.1)
+
+### 🚀 Enhancements
+
+- **dms-layout:** Restore a static GitHub star link in the footer ([#546](https://github.com/AntelopeJS/dms/pull/546))
+- **dms:** Support a read-only public demo ([#581](https://github.com/AntelopeJS/dms/pull/581))
+
+### 🩹 Fixes
+
+- **store:** Reuse the runtime id of an uninstalled module on reinstall ([#547](https://github.com/AntelopeJS/dms/pull/547))
+- **chart:** Draw the one point per group a series data source answers ([#586](https://github.com/AntelopeJS/dms/pull/586))
+
+### 💅 Refactors
+
+- **frontend:** Remove type assertions in tests ([#525](https://github.com/AntelopeJS/dms/pull/525))
+- **frontend:** Remove type assertions in core, auth and layout ([#526](https://github.com/AntelopeJS/dms/pull/526))
+- **frontend:** Remove type assertions in ui components and composables ([#527](https://github.com/AntelopeJS/dms/pull/527))
+- **frontend:** Remove type assertions in ui data types ([#528](https://github.com/AntelopeJS/dms/pull/528))
+- **backend:** Remove SAFETY assertions in test fixtures ([#542](https://github.com/AntelopeJS/dms/pull/542))
+- **backend:** Remove SAFETY assertions in serialized-option and fixture tests ([#543](https://github.com/AntelopeJS/dms/pull/543))
+- **agents:** Fix the lint findings in dms's own agent files ([#548](https://github.com/AntelopeJS/dms/pull/548))
+
+### 📖 Documentation
+
+- **readme:** Rewrite the README as a landing page ([#554](https://github.com/AntelopeJS/dms/pull/554))
+
+### 🏡 Chore
+
+- **package:** Update the npm description and keywords ([#580](https://github.com/AntelopeJS/dms/pull/580))
+- **package:** Restore realtime in the npm description ([#588](https://github.com/AntelopeJS/dms/pull/588))
+- **release:** @antelopejs/interface-dms v0.10.1 ([6fd39d98](https://github.com/AntelopeJS/dms/commit/6fd39d98))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.12.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.11.1...v0.12.0)

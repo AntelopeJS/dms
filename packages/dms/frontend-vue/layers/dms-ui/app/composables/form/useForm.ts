@@ -93,6 +93,7 @@ function createFormNotices(
   context: ReturnType<typeof createFormFields>,
   options: UseFormOptions,
 ) {
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
   const {
     props,
     toast,
@@ -176,6 +177,7 @@ function createFormNotices(
   };
 
   const showSubmitErrorToast = (error: EventError) => {
+    if (consumeReadOnlyRefusal(error)) return;
     toast.add({
       title: processI18n("$dms.form.error_title"),
       description: resolveSubmitErrorDescription(error),
@@ -186,6 +188,7 @@ function createFormNotices(
   return {
     ...context,
     options,
+    consumeReadOnlyRefusal,
     showSubmitSuccessToast,
     showSubmitNotice,
     showServerFieldErrors,
@@ -349,6 +352,7 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
   const reportSubmitError = (
     error: Parameters<typeof resolveFormFieldErrors>[0],
   ): void => {
+    if (context.consumeReadOnlyRefusal(error)) return;
     if (!showServerFieldErrors(error)) {
       // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejection values are passed unchanged to the existing error formatter; there is no Error-instance validation at this boundary.
       showSubmitErrorToast(error as EventError);

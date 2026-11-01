@@ -42,6 +42,7 @@ export interface AuthFieldErrorTarget {
  * after an `await` without the i18n context.
  */
 export function useAuthFormError() {
+  const consumeReadOnlyRefusal = useReadOnlyRefusal();
   const { t } = useI18n();
   const translate: I18nTranslate = (key, params = {}) => t(key, params);
   const formError = ref<AuthFormError | null>(null);
@@ -50,6 +51,7 @@ export function useAuthFormError() {
     error: Parameters<typeof resolveApiErrorMessage>[0],
     titleKey: string,
   ): void {
+    if (consumeReadOnlyRefusal(error)) return;
     formError.value = {
       title: t(titleKey),
       description: resolveApiMessage(translate, resolveApiErrorMessage(error)),
@@ -81,6 +83,7 @@ export function useAuthFormError() {
     titleKey: string,
     target: AuthFieldErrorTarget,
   ): Promise<boolean> {
+    if (consumeReadOnlyRefusal(error)) return false;
     const { fields } = resolveFieldErrors(error, {
       fields: target.fields,
       codes: target.codes,
