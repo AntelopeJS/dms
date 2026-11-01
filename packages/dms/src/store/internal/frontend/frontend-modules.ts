@@ -42,6 +42,7 @@ import {
 } from "./manifest";
 import { isStoreOperationRunning } from "../../activity";
 import { warnOnceFor } from "./warn-once";
+import { ownValue } from "../../../utils/own-value";
 import {
   copyPublicEndpoints,
   resolvePublicEndpoints,
@@ -198,7 +199,7 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
   const authEstablishEndpoints = resolveAuthEstablishEndpoints(config);
   const publicEndpoints = resolvePublicEndpoints(config);
   const backendProxies = resolveBackendProxies(config);
-  const registeredModule = modules[identity];
+  const registeredModule = ownValue(modules, identity);
   if (registeredModule && registeredModule.priority > (config.priority ?? 0)) {
     return;
   }

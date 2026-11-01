@@ -1,3 +1,4 @@
+import { ownValue } from "./own-value";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -108,7 +109,7 @@ const exporters: Record<string, Exporter> = {
 };
 
 export function getExporter(format: string): Exporter {
-  const exporter = exporters[format];
+  const exporter = ownValue(exporters, format);
   assert(exporter, 400, `Unknown export format: ${format}`);
   return exporter;
 }
@@ -195,7 +196,7 @@ const deliverers: Record<string, Deliverer> = {
 };
 
 export function getDeliverer(delivery: string): Deliverer {
-  const deliverer = deliverers[delivery];
+  const deliverer = ownValue(deliverers, delivery);
   assert(deliverer, 400, `Unknown export delivery: ${delivery}`);
   return deliverer;
 }

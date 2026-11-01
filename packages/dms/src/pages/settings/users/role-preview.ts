@@ -1,3 +1,4 @@
+import { ownValue } from "../../../utils/own-value";
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { PermissionTree } from "@antelopejs/interface-dms/permissions";
@@ -100,10 +101,10 @@ export function findPermissionNode(
   permissionId: string,
 ): PermissionTree | undefined {
   const [head, ...rest] = permissionId.split(ID_SEPARATOR);
-  let node = head === undefined ? undefined : tree[head];
+  let node = head === undefined ? undefined : ownValue(tree, head);
   for (const part of rest) {
     if (!node) return undefined;
-    node = node.children[part];
+    node = ownValue(node.children, part);
   }
   return node;
 }

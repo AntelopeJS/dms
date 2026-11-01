@@ -1,3 +1,4 @@
+import { ownValue } from "../../../utils/own-value";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
 import type { Tone } from "@antelopejs/interface-dms/base/types/tone";
 import type {
@@ -211,7 +212,7 @@ const META: Partial<
 
 function iconOf(event: AccountActivityEvent, look: EventLook): string {
   if (event.type !== "session_started") return look.icon;
-  return DEVICE_ICONS[event.deviceType ?? ""] ?? look.icon;
+  return ownValue(DEVICE_ICONS, event.deviceType ?? "") ?? look.icon;
 }
 
 function toneOf(event: AccountActivityEvent, look: EventLook): Tone {
@@ -251,7 +252,7 @@ export function toActivityFeedItems(
   return events.flatMap((event) => {
     if (!isKnownType(event.type)) return [];
     const look = LOOKS[event.type];
-    const route = routes[look.pageId];
+    const route = ownValue(routes, look.pageId);
     const { title, meta, params } = textsOf(event.type, event);
     const item: ActivityFeedItem = {
       id: event.id,

@@ -25,6 +25,7 @@ export * from "./notification-tones";
 export * from "./one-time-code";
 export * from "./page-access";
 export * from "./request-email-verification";
+export * from "./own-value";
 export * from "./row-action-rule-evaluator";
 export * from "./sign-in-country";
 export * from "./sign-in-devices";

@@ -3,7 +3,7 @@ import type {
   PermissionTree,
 } from "@antelopejs/interface-dms/permissions";
 
-const permissions: Record<string, Permission> = {};
+const permissions = new Map<string, Permission>();
 const permissionTree: Record<string, PermissionTree> = {};
 
 function addPermissionToTree(permission: Permission): void {
@@ -52,18 +52,18 @@ function removePermissionFromTree(id: string): void {
 export namespace internal {
   export const RegisterPermission = {
     register: (id: string, permission: Permission): void => {
-      permissions[id] = permission;
+      permissions.set(id, permission);
       addPermissionToTree(permission);
     },
     unregister: (id: string): void => {
-      delete permissions[id];
+      permissions.delete(id);
       removePermissionFromTree(id);
     },
   };
 }
 
 export function GetPermission(id: string): Permission | undefined {
-  return permissions[id];
+  return permissions.get(id);
 }
 
 export function GetPermissions() {
