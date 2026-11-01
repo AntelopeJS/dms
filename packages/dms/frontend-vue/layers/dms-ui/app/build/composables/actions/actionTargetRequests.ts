@@ -37,12 +37,8 @@ export function createExportJobHandler(
           successMessage: target.labels.successMessage
             ? processI18n(target.labels.successMessage)
             : undefined,
-          errorTitle: target.labels.errorTitle
-            ? processI18n(target.labels.errorTitle)
-            : undefined,
-          retry: target.labels.retry
-            ? processI18n(target.labels.retry)
-            : undefined,
+          errorTitle: target.labels.errorTitle,
+          retry: target.labels.retry,
         }
       : undefined;
     const statusUrlTemplate = target.statusUrl;
@@ -121,19 +117,19 @@ export function createActionRequests(
   const handleApiTarget = async (
     target: ActionTarget & { type: "api" },
     url: string,
-    label: string,
+    _label: string,
     rowData?: Data,
     selection?: BulkSelection,
   ) => {
     try {
       await requestApiTarget(target, url, rowData, {}, selection);
     } catch (error: unknown) {
-      handleApiError(error, label ? processI18n(label, rowData) : undefined);
+      handleApiError(error);
     }
   };
   const handleDownloadTarget = async (
     target: ActionTarget & { type: "download" },
-    label: string,
+    _label: string,
     rowData?: Data,
   ) => {
     try {
@@ -145,7 +141,7 @@ export function createActionRequests(
         fetchRaw,
       );
     } catch (error: unknown) {
-      handleApiError(error, label ? processI18n(label, rowData) : undefined);
+      handleApiError(error);
     }
   };
   return { requestApiTarget, handleApiTarget, handleDownloadTarget };

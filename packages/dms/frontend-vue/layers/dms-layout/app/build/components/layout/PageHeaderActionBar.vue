@@ -75,13 +75,15 @@ const { quickActions } = siteLayout;
 const route = useDmsRoute();
 const router = useDmsRouter();
 const { $authFetch } = useAuthFetch();
+const { presentError } = useApiErrorPresenter();
 
 const { handleCustomButton } = useActionTargets({
   api: $authFetch,
   componentId: "page-header",
   pageId: siteLayout.findMatchingRoute(route.path)?.metadata?.fullId ?? "page",
   refreshCallback: refreshPageBlocks,
-  handleApiError: (error, title) => useApiError(error, { title }),
+  handleApiError: (error, title) =>
+    presentError(error, { fallbackKey: title ?? "error.500.description" }),
 });
 
 function pressComponentButton(componentId: string, buttonId?: string) {

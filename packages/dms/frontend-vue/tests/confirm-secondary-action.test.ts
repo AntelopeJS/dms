@@ -226,7 +226,7 @@ describe("ConfirmModal secondary action", () => {
     expect(host.querySelectorAll("button")).toHaveLength(3);
   });
 
-  it("keeps a marked secondary refusal open with one toast, no alert, and allows retry", async () => {
+  it("keeps a secondary refusal inline without a toast and allows retry", async () => {
     const add = vi.fn();
     vi.stubGlobal("useToast", () => ({ add }));
     installReadOnlyRefusal();
@@ -239,10 +239,10 @@ describe("ConfirmModal secondary action", () => {
     await flush();
     expect(run).toHaveBeenCalledTimes(2);
     expect(closed).not.toHaveBeenCalled();
-    expect(host.querySelector("[data-alert]")).toBeNull();
-    expect(add).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ id: "dms-read-only" }),
+    expect(host.querySelector("[data-alert]")?.textContent).toContain(
+      "error.read_only_demo",
     );
+    expect(add).not.toHaveBeenCalled();
   });
 
   it("runs it and stays open, the action still to confirm", async () => {

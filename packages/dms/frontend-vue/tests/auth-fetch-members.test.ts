@@ -6,7 +6,6 @@
  */
 import { createApp, ref } from "vue";
 import { beforeEach, expect, it, vi } from "vitest";
-import { useReadOnlyRefusal } from "../layers/dms-core/app/composables/useReadOnlyRefusal";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("$fetch", engine.$fetch);
@@ -16,7 +15,6 @@ vi.stubGlobal("useDmsRuntimeConfig", () => ({
 }));
 vi.stubGlobal("useDmsApp", () => ({ $i18n: { locale: ref("fr") } }));
 vi.stubGlobal("HTTP_UNAUTHORIZED", 401);
-vi.stubGlobal("useReadOnlyRefusal", useReadOnlyRefusal);
 const addToast = vi.fn();
 vi.stubGlobal("useToast", () => ({ add: addToast }));
 vi.stubGlobal("getAppTranslation", () => ({
@@ -71,7 +69,6 @@ function authFetch(realtimeSessionId?: string) {
 }
 
 beforeEach(() => {
-  vi.stubGlobal("useReadOnlyRefusal", useReadOnlyRefusal);
   sent.length = 0;
   answers.length = 0;
   platformFetch.mockClear();
@@ -135,9 +132,11 @@ it("hands native calls to the platform fetch, as any $fetch.create instance does
   expect(platformFetch).toHaveBeenCalledWith("https://files.test/export.csv");
 });
 
-it("notifies a marked raw refusal after a 401 retry, not just a refusal on the first attempt", async () => {
-  const refusal = json({ message: "backend details must not leak" }, 403);
-  refusal.headers.set("x-dms-readonly", "1");
+it("leaves presentation to the caller after a 401 retry fails", async () => {
+  const refusal = json(
+    { message: "error.read_only_demo", severity: "warning" },
+    403,
+  );
   answers.push(json({ message: "expired" }, 401), refusal);
   await expect(
     authFetch().raw("/api/orders", { method: "PUT" }),
@@ -145,12 +144,7 @@ it("notifies a marked raw refusal after a 401 retry, not just a refusal on the f
     response: refusal,
   });
   expect(refreshSession).toHaveBeenCalledOnce();
-  expect(addToast).toHaveBeenCalledExactlyOnceWith({
-    id: "dms-read-only",
-    color: "warning",
-    icon: "i-ph-lock-simple",
-    title: "error.read_only_demo",
-  });
+  expect(addToast).not.toHaveBeenCalled();
   expect(sent.map(({ retry }) => retry)).toEqual([null, "1"]);
 });
 
@@ -158,7 +152,6 @@ it.each(["call", "raw", "create.raw"] as const)(
   "keeps %s refusals rejected with their response and no session recovery",
   async (member) => {
     const refusal = json({ message: "Forbidden" }, 403);
-    refusal.headers.set("x-dms-readonly", "1");
     answers.push(refusal);
     const api = authFetch();
     const invoke = {
@@ -167,7 +160,7 @@ it.each(["call", "raw", "create.raw"] as const)(
       "create.raw": () => api.create({ method: "PUT" }).raw("/api/orders"),
     };
     await expect(invoke[member]()).rejects.toMatchObject({ response: refusal });
-    expect(addToast).toHaveBeenCalledOnce();
+    expect(addToast).not.toHaveBeenCalled();
     expect(refreshSession).not.toHaveBeenCalled();
   },
 );

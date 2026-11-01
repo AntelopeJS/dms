@@ -223,7 +223,7 @@ const mapCountryData = (item: Record<string, string>) => {
 };
 
 const { $authFetch } = useAuthFetch();
-const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 
 /** The remote country list, already shaped for `USelectMenu`. */
 interface CountryOptions {
@@ -239,11 +239,7 @@ async function fetchCountryOptions(): Promise<CountryOptions> {
       q: countrySearchTermDebounced.value,
     },
     onRequestError: ({ error }: { error: Error }) => {
-      toast.add({
-        color: Color.error,
-        title: t("dms.form.error_title"),
-        description: error.message,
-      });
+      presentError(error, { fallbackKey: "dms.form.error_title" });
     },
   });
 

@@ -35,6 +35,7 @@ function setupForm(onSaved: () => void) {
 }
 
 beforeEach(() => {
+  vi.stubEnv("SSR", false);
   scope = effectScope();
   authFetch.mockResolvedValue({ success: true });
   vi.stubGlobal("computed", computed);
@@ -44,7 +45,7 @@ beforeEach(() => {
   vi.stubGlobal("isString", isString);
   vi.stubGlobal("Color", { error: "error", success: "success", info: "info" });
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "Content-Language");
-  vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
+  vi.stubGlobal("useToast", () => ({ add: vi.fn(() => ({ id: "failure" })) }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
   vi.stubGlobal("useTranslation", () => ({

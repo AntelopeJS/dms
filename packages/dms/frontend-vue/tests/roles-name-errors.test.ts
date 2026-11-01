@@ -28,7 +28,7 @@ const ROLE = {
   members: [],
   permissions: [],
 };
-const addToast = vi.fn();
+const addToast = vi.fn(() => ({ id: "failure" }));
 const write = vi.fn();
 const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
   if (url.endsWith("/overview"))
@@ -227,7 +227,7 @@ it("keeps a failure tied to no field as a toast", async () => {
   await save();
   expect(nameError()).toBeNull();
   expect(addToast).toHaveBeenCalledWith(
-    expect.objectContaining({ color: "error" }),
+    expect.objectContaining({ color: "warning" }),
   );
 });
 

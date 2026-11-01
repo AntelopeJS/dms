@@ -16,6 +16,7 @@ export interface GalleryItem {
   principal: boolean;
   status: ItemStatus;
   progress: number;
+  errorMessage?: string;
 }
 
 const FAILURE_LABEL_KEYS: Partial<Record<ItemStatus, string>> = {

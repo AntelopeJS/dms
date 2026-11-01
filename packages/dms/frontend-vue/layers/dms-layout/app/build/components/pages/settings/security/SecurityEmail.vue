@@ -38,6 +38,7 @@ const FIELD_CODES = {
 
 const { t } = useI18n();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { $authFetch } = useAuthFetch();
 const { refresh: refreshSession } = useCurrentUser();
 const { overview, refresh } = useSecurityOverview();
@@ -180,9 +181,8 @@ async function submit(): Promise<void> {
     isCodeOpen.value = true;
   } catch (error) {
     if (await flagField(error)) return;
-    toast.add({
-      title: errorMessage(error, "page.settings.security.email.error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.security.email.error",
     });
   } finally {
     isSaving.value = false;
@@ -217,9 +217,8 @@ async function confirmCode(code: string): Promise<void> {
       );
       return;
     }
-    toast.add({
-      title: errorMessage(error, "page.settings.security.email.error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.security.email.error",
     });
     if (errorCode(error) === CODE_BURNT) {
       isCodeOpen.value = false;
@@ -239,9 +238,8 @@ async function cancelChange(): Promise<void> {
     });
     await refresh();
   } catch (error) {
-    toast.add({
-      title: errorMessage(error, "page.settings.security.email.error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.security.email.error",
     });
   }
 }

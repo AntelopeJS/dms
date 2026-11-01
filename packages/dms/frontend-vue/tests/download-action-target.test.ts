@@ -160,12 +160,12 @@ describe("a download action target", () => {
     });
   });
 
-  it("toasts a refused download under the button's label", async () => {
+  it("forwards the refused download without treating its label as an error key", async () => {
     const refusal = new Error("Forbidden");
     fetchRaw.mockRejectedValue(refusal);
     mountTargets().handleCustomButton(downloadButton());
     await vi.waitFor(() =>
-      expect(handleApiError).toHaveBeenCalledWith(refusal, "Download"),
+      expect(handleApiError).toHaveBeenCalledWith(refusal),
     );
     expect(saved).toEqual([]);
   });

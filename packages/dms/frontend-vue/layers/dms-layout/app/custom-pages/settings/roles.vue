@@ -26,6 +26,8 @@ import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
 import { useActionConfirm } from "#dms-ui/app/entries/composables/confirm/useActionConfirm";
 
+const { presentError } = useApiErrorPresenter();
+
 interface RoleEditorHandle {
   inputOf: (field: RoleEditorField) => HTMLInputElement | undefined;
 }
@@ -152,7 +154,7 @@ async function runMutation(
     await mutation();
     toast.add({ title: t(successKey), color: "success" });
   } catch (error) {
-    useApiError(error);
+    presentError(error, { fallbackKey: "error.500.description" });
   }
 }
 
@@ -181,7 +183,8 @@ async function save(): Promise<void> {
       color: "success",
     });
   } catch (error) {
-    if (!(await fieldErrors.applyApiError(error))) useApiError(error);
+    if (!(await fieldErrors.applyApiError(error)))
+      presentError(error, { fallbackKey: "error.500.description" });
   } finally {
     isSaving.value = false;
   }

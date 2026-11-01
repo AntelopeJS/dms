@@ -71,7 +71,7 @@ const authFetch = vi.fn(
   },
 );
 
-const addToast = vi.fn();
+const addToast = vi.fn(() => ({ id: "failure" }));
 
 const translate = (
   key: string,
@@ -87,6 +87,7 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 beforeEach(() => {
+  vi.stubEnv("SSR", false);
   isReadOnly = false;
   addToast.mockClear();
   for (const [name, value] of Object.entries({
@@ -167,11 +168,10 @@ describe("a card dropped on a column the server refuses", () => {
       await flushPromises();
 
       const expected = marked
-        ? { id: "dms-read-only", color: "warning" }
+        ? { title: "error.read_only_demo", color: "warning" }
         : {
-            color: "error",
-            title: "dms.table.kanban.move_error",
-            description: "Loss reason est obligatoire.",
+            color: "warning",
+            title: "dms.action_error.fields",
           };
       expect(addToast).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining(expected),

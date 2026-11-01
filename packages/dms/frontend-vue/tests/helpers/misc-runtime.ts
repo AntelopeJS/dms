@@ -16,7 +16,7 @@ export function stubMiscActions() {
   vi.stubGlobal("Color", Color);
   vi.stubGlobal("HttpMethod", HttpMethod);
   vi.stubGlobal("interpolateUrl", interpolateUrl);
-  vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
+  vi.stubGlobal("useToast", () => ({ add: vi.fn(() => ({ id: "failure" })) }));
   vi.stubGlobal("useModal", useModal);
   vi.stubGlobal("useDrawer", useDrawer);
   vi.stubGlobal("useExportJob", useExportJob);

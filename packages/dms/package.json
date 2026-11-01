@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/dms",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "description": "AntelopeJS DMS. Plug in your PostgreSQL, MongoDB or RethinkDB database and your coding agent builds a back office and analytics dashboard as typed TypeScript. Real-time updates on the data the DMS manages.",
   "keywords": [
     "antelopejs",
@@ -62,6 +62,8 @@
     "build": "pnpm --filter @antelopejs/interface-dms build && rimraf dist && tsc && tsc-alias",
     "dev": "ajs project run --inspect -w -p playground",
     "frontend:dev": "pnpm --dir playground frontend:dev",
+    "frontend:build": "pnpm --dir playground frontend:build",
+    "frontend:start": "pnpm --dir playground frontend:start",
     "typecheck": "node scripts/unless-prebuilt.mjs pnpm --filter @antelopejs/interface-dms build && tsc --noEmit",
     "test": "node scripts/unless-prebuilt.mjs pnpm run build && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
     "test:unit": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/backend-checks.cjs && DMS_TEST_DIR=dist/test/unit NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
@@ -74,6 +76,7 @@
     "knip:all": "knip",
     "docs:catalog": "node scripts/docs-catalog.mjs",
     "docs:catalog:check": "node scripts/docs-catalog.mjs --check",
+    "check:frontend-declarations": "node scripts/check-frontend-declarations.mjs",
     "docs:screenshots": "node scripts/docs-screenshots.mjs",
     "realtime:tabs-check": "node scripts/realtime-tabs-check.mjs"
   },
@@ -91,11 +94,11 @@
     "2fa": "^0.1.2",
     "@antelopejs/interface-api": ">=0.0.15 <1.0.0",
     "@antelopejs/interface-api-util": ">=0.1.3 <1.0.0",
-    "@antelopejs/interface-core": ">=0.2.4 <1.0.0",
+    "@antelopejs/interface-core": ">=0.2.6 <1.0.0",
     "@antelopejs/interface-data-api": ">=0.5.0 <1.0.0",
     "@antelopejs/interface-database": ">=0.1.11 <1.0.0",
     "@antelopejs/interface-database-decorators": ">=0.1.10 <1.0.0",
-    "@antelopejs/interface-dms": ">=0.10.1 <0.11.0",
+    "@antelopejs/interface-dms": ">=0.10.2 <0.11.0",
     "@antelopejs/interface-email": ">=0.0.6 <1.0.0",
     "@antelopejs/interface-file-storage": ">=0.1.4 <1.0.0",
     "archiver": "^7.0.1",
@@ -134,7 +137,8 @@
     "release-it-changelogen": "^0.1.0",
     "rimraf": "^6.1.3",
     "tsc-alias": "^1.9.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vue": "^3.5.18"
   },
   "exports": {
     ".": {
@@ -142,6 +146,8 @@
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json",
+    "./checks/api-error-presentation": "./frontend-vue/scripts/check-api-error-presentation.mjs",
+    "./codemods/api-error-presenter": "./frontend-vue/scripts/codemods/api-error-presenter.mjs",
     "./interfaces/*": null
   },
   "publishConfig": {
