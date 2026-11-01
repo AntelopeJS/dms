@@ -62,6 +62,8 @@
     "build": "pnpm --filter @antelopejs/interface-dms build && rimraf dist && tsc && tsc-alias",
     "dev": "ajs project run --inspect -w -p playground",
     "frontend:dev": "pnpm --dir playground frontend:dev",
+    "frontend:build": "pnpm --dir playground frontend:build",
+    "frontend:start": "pnpm --dir playground frontend:start",
     "typecheck": "node scripts/unless-prebuilt.mjs pnpm --filter @antelopejs/interface-dms build && tsc --noEmit",
     "test": "node scripts/unless-prebuilt.mjs pnpm run build && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
     "test:unit": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/backend-checks.cjs && DMS_TEST_DIR=dist/test/unit NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
@@ -74,6 +76,7 @@
     "knip:all": "knip",
     "docs:catalog": "node scripts/docs-catalog.mjs",
     "docs:catalog:check": "node scripts/docs-catalog.mjs --check",
+    "check:frontend-declarations": "node scripts/check-frontend-declarations.mjs",
     "docs:screenshots": "node scripts/docs-screenshots.mjs",
     "realtime:tabs-check": "node scripts/realtime-tabs-check.mjs"
   },

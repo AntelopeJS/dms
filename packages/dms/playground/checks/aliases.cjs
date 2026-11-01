@@ -129,6 +129,7 @@ const trustedManifests = new Map([
       "scripts",
       "devDependencies",
       "antelopeJs",
+      "dmsFrontend",
       "dependencies",
     ]),
   ],

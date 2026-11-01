@@ -3,12 +3,15 @@
   "version": "0.0.1",
   "private": true,
   "main": "dist/index.js",
+  "dmsFrontend": "dist/frontend-module.js",
   "packageManager": "pnpm@10.2.0",
   "scripts": {
     "build": "rimraf dist && tsc",
     "test": "node checks/aliases.cjs && node --test checks/imports.test.cjs",
     "dev": "ajs project run -w",
-    "frontend:dev": "ajs dms dev"
+    "frontend:dev": "ajs dms dev",
+    "frontend:build": "ajs dms build",
+    "frontend:start": "ajs dms start -b http://127.0.0.1:5010"
   },
   "devDependencies": {
     "@antelopejs/core": ">=1.17.0 <2",

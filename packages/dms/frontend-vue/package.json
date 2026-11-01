@@ -18,9 +18,7 @@
     "test": "vitest run",
     "format": "prettier --write .",
     "lint": "node scripts/check-invariants.mjs && node scripts/check-disable-blocks.mjs && eslint .",
-    "lint:fix": "eslint . --fix",
-    "frontend:build": "ajs dms build -b http://127.0.0.1:5010",
-    "frontend:start": "ajs dms start -p 3001"
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.6",
