@@ -82,10 +82,10 @@ export class SalesPage extends PageController("sales", {
 | Package                                     | Supported                                                                       | Tested with                                                               |
 | ------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `@antelopejs/core`                          | `>=1.17.0 <2`                                                                   | `1.17.0`                                                                  |
-| `@antelopejs/interface-api`                 | `file:../../.campaign/tgz/antelopejs-interface-api-2d1cc37.tgz`                 | `file:.campaign/tgz/antelopejs-interface-api-2d1cc37.tgz`                 |
+| `@antelopejs/interface-api`                 | `file:../../.campaign/tgz/antelopejs-interface-api-015a93a.tgz`                 | `file:.campaign/tgz/antelopejs-interface-api-015a93a.tgz`                 |
 | `@antelopejs/interface-api-util`            | `file:../../.campaign/tgz/antelopejs-interface-api-util-639f38b.tgz`            | `file:.campaign/tgz/antelopejs-interface-api-util-639f38b.tgz`            |
-| `@antelopejs/interface-core`                | `file:../../.campaign/tgz/antelopejs-interface-core-6a8b526.tgz`                | `file:.campaign/tgz/antelopejs-interface-core-6a8b526.tgz`                |
-| `@antelopejs/interface-data-api`            | `file:../../.campaign/tgz/antelopejs-interface-data-api-7a8719d.tgz`            | `file:.campaign/tgz/antelopejs-interface-data-api-7a8719d.tgz`            |
+| `@antelopejs/interface-core`                | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz`                | `file:.campaign/tgz/antelopejs-interface-core-f7df541.tgz`                |
+| `@antelopejs/interface-data-api`            | `file:../../.campaign/tgz/antelopejs-interface-data-api-1c2d010.tgz`            | `file:.campaign/tgz/antelopejs-interface-data-api-1c2d010.tgz`            |
 | `@antelopejs/interface-database`            | `file:../../.campaign/tgz/antelopejs-interface-database-724ff72.tgz`            | `file:.campaign/tgz/antelopejs-interface-database-724ff72.tgz`            |
 | `@antelopejs/interface-database-decorators` | `file:../../.campaign/tgz/antelopejs-interface-database-decorators-1234214.tgz` | `file:.campaign/tgz/antelopejs-interface-database-decorators-1234214.tgz` |
 | `@antelopejs/interface-dms`                 | `>=0.12.0 <0.13.0`                                                              | `0.12.0`                                                                  |
