@@ -72,11 +72,16 @@ async function refusalOf(
   return undefined;
 }
 
+function isObject(value: unknown): value is object {
+  return typeof value === "object" && value !== null;
+}
+
 function prototypeOf(route: RouteHandler): object {
-  if (!route.proto) {
+  const prototype: unknown = route.controller.prototype;
+  if (!isObject(prototype)) {
     throw new Error(`${route.location} has no controller prototype`);
   }
-  return route.proto;
+  return prototype;
 }
 
 async function validateInviteToken(body: { token: string; email: string }) {
