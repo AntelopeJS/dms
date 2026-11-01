@@ -16,7 +16,12 @@ import {
 import { APEX_TYPE_CONFIGS } from "./apexTypeConfigs";
 import { buildAnnotations } from "./apexAnnotations";
 import { buildPlotOptions, ringFitsSliceLabels } from "./apexPlotOptions";
-import { buildXAxis, buildYAxis } from "../../build/composables/chart/apexAxes";
+import {
+  buildXAxis,
+  buildYAxis,
+  thinsOwnXLabels,
+} from "../../build/composables/chart/apexAxes";
+import { thinnedCategoryFormatter } from "./apexCategoryLabels";
 import {
   applyHeatmapThemeMode,
   applyValueBasedColorScale,
@@ -271,10 +276,14 @@ function applyDatetimeBuckets(
   if (!buckets) return;
   const xaxis = options.xaxis;
   const { format: _datetimeFormat, ...labels } = xaxis.labels;
+  const bucketLabels = bucketAxisFormatter(buckets, input);
+  const bucketFormatter = thinsOwnXLabels(input, true)
+    ? thinnedCategoryFormatter(bucketLabels)
+    : bucketLabels;
   options.xaxis = {
     ...xaxis,
     type: "category",
-    labels: { ...labels, formatter: bucketAxisFormatter(buckets, input) },
+    labels: { ...labels, formatter: bucketFormatter },
   };
   const tooltip = options.tooltip;
   options.tooltip = {
