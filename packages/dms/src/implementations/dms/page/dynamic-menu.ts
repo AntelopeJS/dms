@@ -7,7 +7,7 @@ import type {
   PageInfo,
 } from "@antelopejs/interface-dms/page";
 import { withResolverTimeout } from "../resolver-timeout";
-import { pagesBySlug, WILDCARD_PERMISSION } from "../../../utils";
+import { ownValue, pagesBySlug, WILDCARD_PERMISSION } from "../../../utils";
 import { fillRouteParams } from "../route-params";
 import type {
   SiteLayoutTree,
@@ -113,8 +113,9 @@ export async function buildChildrenWithAccess(
     children[key] = await addAccessToTree(child, context, false, dynamic);
   }
   for (const [key, entry] of hoisted) {
-    if (children[key]) {
-      warnHoistedCollision(entry, children[key]);
+    const existing = ownValue(children, key);
+    if (existing) {
+      warnHoistedCollision(entry, existing);
       continue;
     }
     children[key] = entry;

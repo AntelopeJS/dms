@@ -1,3 +1,4 @@
+import { ownValue } from "../../../utils";
 import {
   Context,
   Controller,
@@ -384,10 +385,10 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
     @Parameter("limit", "query") limitParam?: string,
     @Parameter("offset", "query") offsetParam?: string,
   ) {
-    const readState =
-      INBOX_READ_STATES[
-        context.url.searchParams.get(INBOX_READ_FILTER_KEY) ?? ""
-      ];
+    const readState = ownValue(
+      INBOX_READ_STATES,
+      context.url.searchParams.get(INBOX_READ_FILTER_KEY) ?? "",
+    );
     const [results, counts] = await Promise.all([
       notificationsModel.getFeedPage(
         this.user._id,
