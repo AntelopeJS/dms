@@ -10,6 +10,7 @@ overrides:
   '@antelopejs/interface-data-api': file:.campaign/tgz/antelopejs-interface-data-api-4352b2c.tgz
   '@antelopejs/interface-api': file:.campaign/tgz/antelopejs-interface-api-f206be7.tgz
   '@antelopejs/interface-api-util': file:.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz
+  '@antelopejs/interface-dms-automation': file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz
 
 importers:
 
@@ -186,8 +187,8 @@ importers:
         version: 6.0.3
     optionalDependencies:
       '@antelopejs/interface-dms-automation':
-        specifier: '>=0.4.0 <1.0.0'
-        version: 0.4.0(@antelopejs/interface-core@0.2.6)
+        specifier: file:../../.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz
+        version: file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz(@antelopejs/interface-core@0.2.6)
       '@antelopejs/interface-redis':
         specifier: '>=0.0.9 <1.0.0'
         version: 0.0.9(@antelopejs/interface-core@0.2.6)
@@ -589,8 +590,9 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/interface-dms-automation@0.4.0':
-    resolution: {integrity: sha512-L8YZmFYs7m4l/kn3Uc16evBcjhMYk1O9okUMZITjAHjfwRIQwEYU64yxgNE5tSPhHhk9VTyUmoBUV5GEdOmhQg==}
+  '@antelopejs/interface-dms-automation@file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz':
+    resolution: {integrity: sha512-QYkzTrr7ZGybut0ajNGNXUCwMQtP9WKeXeTfiwF8e6kFie/JXYL8RbcEditGg14AZgleAKESoCzvcQvtKeKweA==, tarball: file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz}
+    version: 0.6.0
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
@@ -6572,7 +6574,7 @@ snapshots:
     dependencies:
       '@antelopejs/interface-core': 0.2.6
 
-  '@antelopejs/interface-dms-automation@0.4.0(@antelopejs/interface-core@0.2.6)':
+  '@antelopejs/interface-dms-automation@file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz(@antelopejs/interface-core@0.2.6)':
     dependencies:
       '@antelopejs/interface-core': 0.2.6
     optional: true
