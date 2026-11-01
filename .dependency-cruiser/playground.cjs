@@ -34,9 +34,14 @@ const tiers = [
 const modules = tiers.flatMap((names, rank) =>
   names.map((name) => ({ name, rank })),
 );
+/**
+ * @param {string} name
+ * @returns {string}
+ */
 const modulePath = (name) =>
   `${source}${name.endsWith(".ts") ? name.replaceAll(".", "\\.") + "$" : name + "/"}`;
 
+/** @type {import("../.dependency-cruiser.cjs").Area} */
 module.exports = {
   forbidden: [
     {

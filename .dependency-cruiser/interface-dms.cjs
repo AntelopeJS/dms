@@ -44,40 +44,56 @@ const tiers = [
   ],
   ["json.ts"],
 ];
-const internals = {
-  "attachments.ts": ["attachments"],
-  "component.ts": [
-    "component-builder",
-    "component-permissions",
-    "component-serialization",
-    "component-watches",
-  ],
-  "component-slots.ts": ["component-slots"],
-  "invite-resolution.ts": [
-    "invite-membership",
-    "invite-replacement",
-    "invite-resolution",
-  ],
-  "invites.ts": ["invites"],
-  "permission-gate.ts": ["permission-gate"],
-  "permissions.ts": ["permission-ids", "permission-requirements"],
-  "tenant-access.ts": ["tenant-access"],
-  "tenant-ownership.ts": ["member-changes", "tenant-ownership"],
-  "uploads.ts": ["uploads"],
-};
+/** The files under `internal/` that stand behind each public unit. */
+const internals = new Map(
+  Object.entries({
+    "attachments.ts": ["attachments"],
+    "component.ts": [
+      "component-builder",
+      "component-permissions",
+      "component-serialization",
+      "component-watches",
+    ],
+    "component-slots.ts": ["component-slots"],
+    "invite-resolution.ts": [
+      "invite-membership",
+      "invite-replacement",
+      "invite-resolution",
+    ],
+    "invites.ts": ["invites"],
+    "permission-gate.ts": ["permission-gate"],
+    "permissions.ts": ["permission-ids", "permission-requirements"],
+    "tenant-access.ts": ["tenant-access"],
+    "tenant-ownership.ts": ["member-changes", "tenant-ownership"],
+    "uploads.ts": ["uploads"],
+  }),
+);
+/**
+ * @param {string} text
+ * @returns {string}
+ */
 const escape = (text) => text.replaceAll(".", "\\.");
+/**
+ * @param {string} unit
+ * @returns {string[]}
+ */
 const unitPaths = (unit) =>
   unit.endsWith("/")
     ? [`${root}${unit}`]
     : [
         `${root}${escape(unit)}$`,
-        ...(internals[unit] ?? []).map(
+        ...(internals.get(unit) ?? []).map(
           (file) => `${root}internal/${escape(file)}\\.ts$`,
         ),
       ];
+/**
+ * @param {string} unit
+ * @returns {string}
+ */
 const slug = (unit) => unit.replace(/\/$/, "").replaceAll(".", "-");
 const rankedPaths = tiers.flat().flatMap(unitPaths);
 
+/** @type {import("../.dependency-cruiser.cjs").Area} */
 module.exports = {
   forbidden: [
     {
