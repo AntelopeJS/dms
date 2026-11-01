@@ -41,7 +41,7 @@
     "overrides": {
       "@antelopejs/interface-database": "file:.campaign/tgz/antelopejs-interface-database-724ff72.tgz",
       "@antelopejs/interface-database-decorators": "file:.campaign/tgz/antelopejs-interface-database-decorators-e79a62b.tgz",
-      "@antelopejs/interface-data-api": "file:.campaign/tgz/antelopejs-interface-data-api-e070b68.tgz",
+      "@antelopejs/interface-data-api": "file:.campaign/tgz/antelopejs-interface-data-api-26c36e9.tgz",
       "@antelopejs/interface-api": "file:.campaign/tgz/antelopejs-interface-api-11c035a.tgz",
       "@antelopejs/interface-api-util": "file:.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz",
       "@antelopejs/interface-dms-automation": "file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz",

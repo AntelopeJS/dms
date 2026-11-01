@@ -2,6 +2,7 @@ import type { RequestContext } from "@antelopejs/interface-api";
 import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
+import type { Parameters as DataParameters } from "@antelopejs/interface-data-api/components";
 import type { RowActionRule } from "../../types/row-action";
 import { validateRowsAgainstRule } from "../data-functions";
 import { TableViewMeta } from "../meta";
@@ -15,26 +16,31 @@ enum EmptyResultBehavior {
   Strict = 1,
 }
 
-interface ActionValidationConfig {
-  extractIds: (
-    params: Parameters<DataControllerCallback["func"]>[1],
-  ) => string[];
+/** The parameters each validated action's route receives second. */
+interface ValidatedActionParams {
+  delete: DataParameters.DeleteParameters;
+  edit: DataParameters.EditParameters;
+  archive: string[];
+  restore: string[];
+}
+
+interface ActionValidationConfig<P> {
+  extractIds: (params: P) => string[];
   emptyResultBehavior: EmptyResultBehavior;
   emptyResult?: unknown;
-  transformParams?: (
-    params: Parameters<DataControllerCallback["func"]>[1],
-    eligibleIds: string[],
-  ) => Parameters<DataControllerCallback["func"]>[1];
+  transformParams?: (params: P, eligibleIds: string[]) => P;
 }
 
 /** @internal */
 export const normalizeToArray = (value: string | string[]): string[] =>
   Array.isArray(value) ? value : [value];
 
-const ACTION_VALIDATION_CONFIGS: Record<
-  ValidatedActionName,
-  ActionValidationConfig
-> = {
+/** The row-rule validation of each validated action. */
+type ActionValidationConfigs = {
+  [K in ValidatedActionName]: ActionValidationConfig<ValidatedActionParams[K]>;
+};
+
+const ACTION_VALIDATION_CONFIGS: ActionValidationConfigs = {
   delete: {
     extractIds: (params) => normalizeToArray(params.id),
     emptyResultBehavior: EmptyResultBehavior.Graceful,
@@ -95,10 +101,10 @@ export const extractRuleFromConfig = (
   return undefined;
 };
 
-const handleNoEligibleIds = (
-  config: ActionValidationConfig,
+const handleNoEligibleIds = <P>(
+  config: ActionValidationConfig<P>,
   actionName: ValidatedActionName,
-): ActionValidationConfig["emptyResult"] => {
+): ActionValidationConfig<P>["emptyResult"] => {
   if (config.emptyResultBehavior === EmptyResultBehavior.Strict) {
     throwHttpAssert(
       false,
@@ -110,11 +116,25 @@ const handleNoEligibleIds = (
 };
 
 /** @internal */
-export const createValidatedRoute = (
-  baseRoute: DataControllerCallback,
-  actionName: ValidatedActionName,
-): DataControllerCallback => {
-  const config = ACTION_VALIDATION_CONFIGS[actionName];
+export const createValidatedRoute = <
+  K extends ValidatedActionName,
+  O,
+  R,
+  Rest extends unknown[],
+>(
+  baseRoute: DataControllerCallback<
+    O,
+    R,
+    [RequestContext, ValidatedActionParams[K], ...Rest]
+  >,
+  actionName: K,
+): DataControllerCallback<
+  O,
+  unknown,
+  [RequestContext, ValidatedActionParams[K], ...Rest]
+> => {
+  const config: ActionValidationConfig<ValidatedActionParams[K]> =
+    ACTION_VALIDATION_CONFIGS[actionName];
 
   return {
     func: async function (
@@ -122,8 +142,8 @@ export const createValidatedRoute = (
         constructor: ConstructorParameters<typeof TableViewMeta>[0];
       },
       ctx: RequestContext,
-      params: Parameters<DataControllerCallback["func"]>[1],
-      ...args: unknown[]
+      params: ValidatedActionParams[K],
+      ...args: Rest
     ) {
       const validationCtx = getValidationContext(this, actionName);
       const { rule } = validationCtx;

@@ -4,10 +4,7 @@ import {
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
-import {
-  type DataControllerCallback,
-  DataController,
-} from "@antelopejs/interface-data-api";
+import { DataController } from "@antelopejs/interface-data-api";
 import {
   Access,
   AccessMode,
@@ -125,7 +122,7 @@ const remove = createValidatedRoute(
     },
     args: [],
     method: "delete",
-  } satisfies DataControllerCallback,
+  },
   "delete",
 );
 
@@ -134,13 +131,13 @@ const edit = createValidatedRoute(
     func: () => ({ edited: true }),
     args: [],
     method: "put",
-  } satisfies DataControllerCallback,
+  },
   "edit",
 );
 
-const REQUEST = {
-  url: new URL("http://localhost/api/writer-row-rules/delete"),
-};
+const REQUEST = requestContextFixture(
+  new URL("http://localhost/api/writer-row-rules/delete"),
+);
 
 function deleteRows(ids: string[]) {
   return remove.func.call(controller, REQUEST, { id: ids });

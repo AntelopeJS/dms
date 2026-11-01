@@ -63,7 +63,7 @@ function bodyRewritingGuards(receiver) {
 async function observeRoutes() {
   const { GetMetadata } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
   const { TableViewMeta } = require("../../packages/interface-dms/dist/base/table-view/meta.js");
-  const { createGuardedRoute } = require("../../packages/interface-dms/dist/base/table-view/internal/guards.js");
+  const { createGuardedWriteRoute } = require("../../packages/interface-dms/dist/base/table-view/internal/guards.js");
   const { withActionCheck } = require("../../packages/interface-dms/dist/base/table-view/internal/auth.js");
   const { withRealtimeMutation, withPresenceAcquire } = require("../../packages/interface-dms/dist/base/table-view/internal/realtime.js");
   const tenantAccess = require("../../packages/interface-dms/dist/tenant-access.js");
@@ -116,7 +116,6 @@ async function observeRoutes() {
     context,
     params,
     "right",
-    53,
     context,
     "session-2",
     "1",
@@ -131,7 +130,6 @@ async function observeRoutes() {
       context,
       params,
       "auth",
-      59,
       { _id: "user-3" },
     );
   } finally {
@@ -139,7 +137,7 @@ async function observeRoutes() {
   }
   const { events, guards } = bodyRewritingGuards(receiver);
   meta.setControllerGuards(guards);
-  const guarded = createGuardedRoute(
+  const guarded = createGuardedWriteRoute(
     {
       ...base,
       async func(...args) {
@@ -160,7 +158,7 @@ async function observeRoutes() {
   meta.setControllerGuards({});
   /** @type {boolean | undefined} */
   let untouched;
-  await createGuardedRoute(
+  await createGuardedWriteRoute(
     {
       ...base,
       func: async (_context, _params, value) => {

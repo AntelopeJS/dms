@@ -13,16 +13,15 @@ import { getTableViewMetaFor } from "./meta";
  *
  * @internal
  */
-export const withFilePromotion = (
-  baseRoute: DataControllerCallback,
+export const withFilePromotion = <O, R, P, Rest extends unknown[]>(
+  baseRoute: DataControllerCallback<O, R, [RequestContext, P, ...Rest]>,
   mode: "save" | "delete" = "save",
-): DataControllerCallback => ({
+): DataControllerCallback<O, unknown, [RequestContext, P, ...Rest]> => ({
   func: async function (
     this: DataControllerInstance,
     context: RequestContext,
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Route-specific parameters pass unchanged to the wrapped callback or attachment proxy; parsing them here would alter the published wrapper behavior.
-    params: unknown,
-    ...args: unknown[]
+    params: P,
+    ...args: Rest
   ) {
     if (!hasFileColumns(getTableViewMetaFor(this).columns)) {
       return baseRoute.func.call(this, context, params, ...args);
