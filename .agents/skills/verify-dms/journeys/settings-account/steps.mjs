@@ -89,7 +89,7 @@ export async function openEmailForm(/** @type {Tab} */ tab) {
   await tab.click({ role: "button", name: "Change email" });
 }
 
-export async function submitEmailForm(/** @type {Tab} */ tab, { address, password }) {
+export async function submitEmailForm(/** @type {Tab} */ tab, /** @type {{ address: string, password: string }} */ { address, password }) {
   await tab.fill({ role: "textbox", name: "New email" }, address);
   await tab.fill({ role: "textbox", name: "Current password" }, password);
   await tab.click({ role: "button", name: "Change email", within: { role: "form", name: "Changing email" } });

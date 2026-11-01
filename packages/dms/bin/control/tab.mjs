@@ -5,10 +5,22 @@ import {
   signInThroughForm,
 } from "./browser.mjs";
 
+/**
+ * @typedef {import("./browser.mjs").Action} Action
+ * @typedef {import("./browser.mjs").Outcome} Outcome
+ * @typedef {import("./browser.mjs").Target} Target
+ * @typedef {import("./journey.mjs").Check} Check
+ * @typedef {{ timeoutMs?: number }} Timeout
+ */
+
 const EXPECT_TIMEOUT_MS = 15_000;
 const POLL_MS = 250;
 const DETAIL_LENGTH = 300;
 
+/**
+ * @param {string} text The text
+ * @returns {string} The text on one line, cut to the detail length
+ */
 function flatten(text) {
   const flat = text.replace(/\s+/g, " ").trim();
   return flat.length > DETAIL_LENGTH
@@ -37,9 +49,9 @@ export class Tab {
   /**
    * Runs one browser action and records it as a critical step.
    *
-   * @param {Record<string, any>} action The action, as `perform` takes it
+   * @param {Omit<Action, "baseUrl">} action The action, as `perform` takes it
    * @param {string} label What the step does
-   * @returns {Promise<{ ok: boolean, url: string, error: string | null, aria: string, folder: string }>} The outcome
+   * @returns {Promise<Outcome & { folder: string }>} The outcome
    */
   async act(action, label) {
     const folder = this.context.step(`${this.label} ${label}`);
@@ -56,22 +68,44 @@ export class Tab {
     return { ...outcome, folder };
   }
 
-  /** Opens a path of the frontend. */
+  /**
+   * Opens a path of the frontend. Callers pass link lookups that are
+   * `undefined` when no link matched; the navigation then targets the
+   * literal path `undefined`.
+   *
+   * @param {string | undefined} path The path
+   * @returns {Promise<Outcome & { folder: string }>} The outcome
+   */
   goto(path) {
     return this.act({ do: "goto", path }, `open ${path}`);
   }
 
-  /** Reloads the page. */
+  /**
+   * Reloads the page.
+   *
+   * @returns {Promise<Outcome & { folder: string }>} The outcome
+   */
   reload() {
     return this.act({ do: "reload" }, "reload");
   }
 
-  /** Clicks a target found by role and name. */
+  /**
+   * Clicks a target found by role and name.
+   *
+   * @param {Target} target What to click
+   * @returns {Promise<Outcome & { folder: string }>} The outcome
+   */
   click(target) {
     return this.act({ do: "click", target }, `click ${describeTarget(target)}`);
   }
 
-  /** Types into a target found by role and name, replacing its value. */
+  /**
+   * Types into a target found by role and name, replacing its value.
+   *
+   * @param {Target} target What to fill
+   * @param {string} value The new value
+   * @returns {Promise<Outcome & { folder: string }>} The outcome
+   */
   fill(target, value) {
     return this.act(
       { do: "fill", target, value },
@@ -79,7 +113,13 @@ export class Tab {
     );
   }
 
-  /** Chooses an option of a native select by its label. */
+  /**
+   * Chooses an option of a native select by its label.
+   *
+   * @param {Target} target The select
+   * @param {string} value The option label
+   * @returns {Promise<Outcome & { folder: string }>} The outcome
+   */
   select(target, value) {
     return this.act(
       { do: "select", target, value },
@@ -87,23 +127,44 @@ export class Tab {
     );
   }
 
-  /** Ticks a checkbox or switch. */
+  /**
+   * Ticks a checkbox or switch.
+   *
+   * @param {Target} target The checkbox or switch
+   * @returns {Promise<Outcome & { folder: string }>} The outcome
+   */
   check(target) {
     return this.act({ do: "check", target }, `check ${describeTarget(target)}`);
   }
 
-  /** Presses a key, on a target or on the page. */
+  /**
+   * Presses a key, on a target or on the page.
+   *
+   * @param {string} key The key
+   * @param {Target} [target] Where to press it
+   * @returns {Promise<Outcome & { folder: string }>} The outcome
+   */
   press(key, target) {
     const where = target ? ` in ${describeTarget(target)}` : "";
     return this.act({ do: "press", key, target }, `press ${key}${where}`);
   }
 
-  /** Records the page as it is now. */
+  /**
+   * Records the page as it is now.
+   *
+   * @param {string} label What the step records
+   * @returns {Promise<Outcome & { folder: string }>} The outcome
+   */
   snapshot(label) {
     return this.act({ do: "snapshot" }, label);
   }
 
-  /** Signs an account of the journey in through the sign-in form. */
+  /**
+   * Signs an account of the journey in through the sign-in form.
+   *
+   * @param {string} account The account name
+   * @returns {Promise<Outcome | { ok: boolean, url: string, error: string }>} The outcome of the last sign-in step, or a failure without a snapshot when the journey has no such account
+   */
   async signIn(account) {
     const credentials = this.context.state.accounts?.[account];
     const outcome = credentials
@@ -127,7 +188,12 @@ export class Tab {
     return outcome;
   }
 
-  /** The Playwright locator of a target. */
+  /**
+   * The Playwright locator of a target.
+   *
+   * @param {Target} target What to find
+   * @returns {import("playwright-core").Locator} The locator
+   */
   locator(target) {
     return locate(this.page, target);
   }
@@ -135,6 +201,10 @@ export class Tab {
   /**
    * A check that a target becomes visible, or with `{ hidden: true }`
    * hidden or absent, within the timeout.
+   *
+   * @param {Target} target What to wait for
+   * @param {Timeout & { hidden?: boolean }} [options] Whether to wait for it to be hidden, and how long
+   * @returns {Promise<Check>} The check
    */
   async visible(target, options = {}) {
     const state = options.hidden ? "hidden" : "visible";
@@ -152,7 +222,13 @@ export class Tab {
     };
   }
 
-  /** A check that a target is enabled (or, with `{ disabled: true }`, disabled). */
+  /**
+   * A check that a target is enabled (or, with `{ disabled: true }`, disabled).
+   *
+   * @param {Target} target The control
+   * @param {Timeout & { disabled?: boolean }} [options] Whether to expect it disabled, and how long
+   * @returns {Promise<Check>} The check
+   */
   async enabled(target, options = {}) {
     const element = this.locator(target).first();
     const disabled = await element
@@ -166,7 +242,13 @@ export class Tab {
     };
   }
 
-  /** A check that the page shows (or, with `{ not: true }`, never shows) text matching `pattern`. */
+  /**
+   * A check that the page shows (or, with `{ not: true }`, never shows) text matching `pattern`.
+   *
+   * @param {RegExp} pattern The text to match
+   * @param {Timeout & { not?: boolean }} [options] Whether the text must never show, and how long
+   * @returns {Promise<Check>} The check
+   */
   async shows(pattern, options = {}) {
     const deadline = Date.now() + (options.timeoutMs ?? EXPECT_TIMEOUT_MS);
     let text = "";
@@ -185,7 +267,13 @@ export class Tab {
     };
   }
 
-  /** A check that the current path matches `pattern` within the timeout. */
+  /**
+   * A check that the current path matches `pattern` within the timeout.
+   *
+   * @param {RegExp} pattern The path to match
+   * @param {Timeout} [options] How long to wait
+   * @returns {Promise<Check>} The check
+   */
   async at(pattern, options = {}) {
     const reached = await this.page
       .waitForURL((url) => pattern.test(url.pathname), {
@@ -202,7 +290,13 @@ export class Tab {
     };
   }
 
-  /** A check on how many targets match. */
+  /**
+   * A check on how many targets match.
+   *
+   * @param {Target} target What to count
+   * @param {number} expected How many should match
+   * @returns {Promise<Check>} The check
+   */
   async count(target, expected) {
     const actual = await this.locator(target).count();
     return {
@@ -212,7 +306,12 @@ export class Tab {
     };
   }
 
-  /** The current value of a form field. */
+  /**
+   * The current value of a form field.
+   *
+   * @param {Target} target The form field
+   * @returns {Promise<string>} The value
+   */
   value(target) {
     return this.locator(target)
       .first()

@@ -63,7 +63,11 @@ export async function openInviteDialog(/** @type {Tab} */ tab) {
   await tab.click({ role: "button", name: "Invite members" });
 }
 
-export async function addAddresses(/** @type {Tab} */ tab, .../** @type {string[]} */ emails) {
+/**
+ * @param {Tab} tab
+ * @param {...string} emails
+ */
+export async function addAddresses(tab, ...emails) {
   for (const email of emails) {
     await tab.fill({ role: "textbox", name: "Email addresses" }, email);
     await tab.press("Enter", { role: "textbox", name: "Email addresses" });
@@ -107,7 +111,7 @@ export async function signupLink(ctx, email, notLink) {
 }
 
 /** Opens a signup link as a visitor, fills the form and creates the account. */
-export async function acceptInvitation(/** @type {Ctx} */ ctx, /** @type {string} */ link, { name, password }) {
+export async function acceptInvitation(/** @type {Ctx} */ ctx, /** @type {string} */ link, /** @type {{ name: string, password: string }} */ { name, password }) {
   const tab = await ctx.tab("anon", "invitee");
   await tab.goto(link);
   await ctx.verify("the link opens the sign-up form", [

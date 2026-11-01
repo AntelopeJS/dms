@@ -51,7 +51,7 @@ export function newContext(browser) {
  * What an action targets: an ARIA role and accessible name, optionally
  * inside another one (`within`), or the n-th of several matches.
  *
- * @typedef {{ role: string, name?: string, exact?: boolean, nth?: number, within?: { role: string, name?: string, exact?: boolean } }} Target
+ * @typedef {{ role: string, name?: string | RegExp, exact?: boolean, nth?: number, within?: { role: string, name?: string | RegExp, exact?: boolean } }} Target
  */
 
 /**

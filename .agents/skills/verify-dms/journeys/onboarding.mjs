@@ -17,7 +17,7 @@ function wizardAdmin(/** @type {Ctx} */ ctx) {
   };
 }
 
-async function openWizard(/** @type {Ctx} */ ctx, platformName) {
+async function openWizard(/** @type {Ctx} */ ctx, /** @type {string} */ platformName) {
   const tab = await ctx.tab("anon", "visitor");
   await tab.goto("/");
   await ctx.verify("a fresh platform opens the setup wizard", [
