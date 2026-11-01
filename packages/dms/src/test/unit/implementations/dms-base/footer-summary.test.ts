@@ -19,10 +19,8 @@ const expression = (text: string): Expression => ({
 const field = (name: string) =>
   // SAFETY: compileRowRule calls only eq/ne on fields; their expression results implement every and/or/not operation exercised here, not the entire database proxy API.
   ({
-    eq: (value: Parameters<ValueProxy<unknown>["eq"]>[0]) =>
-      expression(`${name}=${String(value)}`),
-    ne: (value: Parameters<ValueProxy<unknown>["ne"]>[0]) =>
-      expression(`${name}!=${String(value)}`),
+    eq: (value: string | number) => expression(`${name}=${String(value)}`),
+    ne: (value: string | number) => expression(`${name}!=${String(value)}`),
   }) as unknown as ValueProxy<unknown>;
 
 const fromJson = (json: string): Parameters<typeof compileRowRule>[0] =>
@@ -127,6 +125,20 @@ describe("[unit] dms-base — footer summary rules", () => {
       Error,
       /rule\.or\[0\] must be a rule object/,
     );
+  });
+
+  it("rejects an operand no provider records, alone or in a list or a nested rule", () => {
+    expect(() => compile({ field: "amount", equals: 41n })).to.throw(
+      Error,
+      /Malformed row rule: equals must hold plain values/,
+    );
+    expect(() => compile({ field: "amount", in: [41, Symbol("x")] })).to.throw(
+      Error,
+      /Malformed row rule: in must hold plain values/,
+    );
+    expect(() =>
+      compile({ not: { field: "amount", notEquals: () => 1 } }),
+    ).to.throw(Error, /Malformed row rule: notEquals must hold plain values/);
   });
 
   it("keeps compiling a valid rule that carries a shadowed operator", () => {
