@@ -69,9 +69,11 @@ export class Tab {
   }
 
   /**
-   * Opens a path of the frontend.
+   * Opens a path of the frontend. Callers pass link lookups that are
+   * `undefined` when no link matched; the navigation then targets the
+   * literal path `undefined`.
    *
-   * @param {string} path The path
+   * @param {string | undefined} path The path
    * @returns {Promise<Outcome & { folder: string }>} The outcome
    */
   goto(path) {
@@ -161,7 +163,7 @@ export class Tab {
    * Signs an account of the journey in through the sign-in form.
    *
    * @param {string} account The account name
-   * @returns {Promise<Outcome>} The outcome of the last sign-in step
+   * @returns {Promise<Outcome | { ok: boolean, url: string, error: string }>} The outcome of the last sign-in step, or a failure without a snapshot when the journey has no such account
    */
   async signIn(account) {
     const credentials = this.context.state.accounts?.[account];
