@@ -1,6 +1,7 @@
 import {
   getRegisteredRouteHandlers,
   HTTPResult,
+  type RouteHandler,
 } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { assert, expect } from "chai";
@@ -60,15 +61,22 @@ async function retire(
 async function refusalOf(
   token: string,
   email: string,
-): Promise<ReturnType<HTTPResult["getBody"]>> {
+): Promise<string | undefined> {
   try {
     await validateInviteToken({ token, email });
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
+  } catch (error: unknown) {
+    if (!(error instanceof HTTPResult)) throw error;
     expect(error.getStatus()).to.equal(HTTP_BAD_REQUEST);
     return error.getBody();
   }
   return undefined;
+}
+
+function prototypeOf(route: RouteHandler): object {
+  if (!route.proto) {
+    throw new Error(`${route.location} has no controller prototype`);
+  }
+  return route.proto;
 }
 
 async function validateInviteToken(body: { token: string; email: string }) {
@@ -81,7 +89,7 @@ async function validateInviteToken(body: { token: string; email: string }) {
   );
   expect(matches).to.have.length(1);
   const route = matches[0].handler;
-  await route.callback.call(Object.create(route.proto), body);
+  await route.callback.call(Object.create(prototypeOf(route)), body);
 }
 
 describe("[integration] auth/validate-invite-token", () => {

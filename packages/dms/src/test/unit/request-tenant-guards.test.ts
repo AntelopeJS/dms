@@ -63,8 +63,8 @@ async function refusalOf<T>(
 ): Promise<ReturnType<HTTPResult["getBody"]>> {
   try {
     await action();
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
+  } catch (error: unknown) {
+    if (!(error instanceof HTTPResult)) throw error;
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
     return error.getBody();
   }
