@@ -62,7 +62,7 @@ export const isJSON = (value: unknown): boolean => {
     return false;
   }
   try {
-    const parsed = JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
     return isObject(parsed) && !isNull(parsed);
   } catch {
     return false;
