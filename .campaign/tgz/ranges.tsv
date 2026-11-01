@@ -33,3 +33,5 @@
 @antelopejs/api	packages/dms/package.json	devDependencies	
 @antelopejs/api	package.json	pnpm.overrides	
 @antelopejs/api	pnpm-workspace.yaml	overrides	
+@antelopejs/api>@antelopejs/interface-core	package.json	pnpm.overrides	
+@antelopejs/api>@antelopejs/interface-core	pnpm-workspace.yaml	overrides	
