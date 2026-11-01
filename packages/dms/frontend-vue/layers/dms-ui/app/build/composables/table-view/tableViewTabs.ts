@@ -89,7 +89,7 @@ export function useTableViewTabs<T extends Data>(
 export function useTableViewTabPresentation<T extends Data>(
   scope: Pick<TableViewScope<T>, "countsData" | "linkCounts" | "tabs">,
 ) {
-  const { tabCountsData } = scope.countsData;
+  const { tabCountsData, areCountsPending } = scope.countsData;
   const { linkTabCountsLoaded, linkTabCounts } = scope.linkCounts;
   const { resolvedTabs } = scope.tabs;
   const permissionPreview = usePermissionPreview();
@@ -104,7 +104,7 @@ export function useTableViewTabPresentation<T extends Data>(
   };
 
   const isTabCountPending = (tab: ResolvedTab): boolean => {
-    if (!tab.to) return tabCountsData.value == null;
+    if (!tab.to) return areCountsPending.value;
     return !!tab.countFrom && !linkTabCountsLoaded.value;
   };
 

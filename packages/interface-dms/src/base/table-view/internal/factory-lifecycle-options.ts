@@ -1,5 +1,7 @@
 /** @internal */
 import type { ControllerClass } from "@antelopejs/interface-api";
+import { GetMetadata } from "@antelopejs/interface-core";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type { FormBuilder } from "../../form-types";
 import type { RowActionRule } from "../../types/row-action";
 import { hasSearchableFields } from "../../internal/searchable";
@@ -57,6 +59,8 @@ export function prepareTableViewSerialization<T extends ControllerClass>(
       declaredTabs,
       declaredViews,
       meta: state.meta,
+      hasNewEndpoint: !!GetMetadata(state.controller, DataAPIMeta).endpoints
+        .new,
     },
   };
 }

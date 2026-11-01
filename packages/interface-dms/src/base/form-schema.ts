@@ -273,6 +273,11 @@ export namespace FormComponents {
     /** Unit written after the field ("days"): an i18n key with `$`, or a literal. */
     suffix?: string;
     /**
+     * ISO 4217 code ("USD") of the amount a price field holds; read where
+     * the value is written, never by the input. Unset, amounts are in EUR.
+     */
+    currency?: string;
+    /**
      * `InputNumber` only. By default (`true`) a value typed outside `min` /
      * `max` is clamped into range when the field loses focus. `false` keeps
      * it as typed and shows "too small" / "too large" under the field, which

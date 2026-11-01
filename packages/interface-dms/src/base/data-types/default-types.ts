@@ -35,6 +35,7 @@ export type { SelectDisplay, BooleanDisplay } from "./default/inputs";
 
 export namespace DefaultDataTypes {
   export import NumberTypeOptions = defaultOptions.NumberTypeOptions;
+  export import PriceTypeOptions = defaultOptions.PriceTypeOptions;
   export import StringTypeOptions = defaultOptions.StringTypeOptions;
   export import DateTypeOptions = defaultOptions.DateTypeOptions;
   export import BooleanTypeOptions = defaultOptions.BooleanTypeOptions;
