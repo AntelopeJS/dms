@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.10.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.10.1...v0.10.2)
+
+### 🩹 Fixes
+
+- **chart:** Draw only the fetched series that carry their points ([#587](https://github.com/AntelopeJS/dms/pull/587))
+- **store:** Remove the archived CI/CD module from the catalog ([#609](https://github.com/AntelopeJS/dms/pull/609))
+- **tenants:** Resume the default tenant's provisioning after start ([#613](https://github.com/AntelopeJS/dms/pull/613))
+- **dms-ui:** Hydrate keyboard hints with the platform the server rendered ([#442](https://github.com/AntelopeJS/dms/pull/442))
+- **dms-ui:** Print Nuxt UI key hints for the dashboard's keyboard platform ([#541](https://github.com/AntelopeJS/dms/pull/541))
+- **playground:** Declare the playground's frontend, so dev and production include it ([#441](https://github.com/AntelopeJS/dms/pull/441))
+- **frontend:** Unify API error presentation ([#614](https://github.com/AntelopeJS/dms/pull/614))
+
+### 📖 Documentation
+
+- **readme:** Restore the realtime updates line and the live preview wording ([#589](https://github.com/AntelopeJS/dms/pull/589))
+- **readme:** Remove the How AntelopeJS makes money section ([#592](https://github.com/AntelopeJS/dms/pull/592))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.12.1 ([97b7122d](https://github.com/AntelopeJS/dms/commit/97b7122d))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.10.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.10.0...v0.10.1)
