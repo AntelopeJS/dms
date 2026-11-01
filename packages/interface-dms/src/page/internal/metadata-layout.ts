@@ -60,6 +60,7 @@ export function registerLayoutRoute(
     mode: "handler",
     parameters: [],
     properties: apimeta.computed_props,
+    controller: target(),
     proto: target().prototype,
   });
   registration().track(() => {
