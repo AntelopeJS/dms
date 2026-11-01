@@ -31,7 +31,7 @@ function unregisteredCategory(id: string): CategoryInfo {
   return {
     id,
     fullId: `${pagesCategory.fullId}.${id}`,
-    fullSlug: `/${id}`,
+    fullSlug: "/prototype-key-category",
     displayName: id,
     category: pagesCategory,
   };
