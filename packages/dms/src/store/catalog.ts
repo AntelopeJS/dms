@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { z } from "zod";
 import { getStoreConfig } from "../config";
-import type { StoreCatalog, StoreCatalogEntry } from "./types";
+import type { StoreCatalogEntry } from "./types";
 
 const BUNDLED_CATALOG_PATH = path.join(
   __dirname,
@@ -18,26 +19,24 @@ interface CachedCatalog {
   modules: StoreCatalogEntry[];
 }
 
-interface CatalogDocument {
-  version?: StoreCatalog["version"];
-  modules?: Partial<StoreCatalogEntry>[];
-}
+const CatalogEntrySchema = z
+  .object({
+    id: z.string(),
+    package: z.string(),
+    icon: z.string(),
+    category: z.string(),
+  })
+  .passthrough();
+
+const CatalogDocumentSchema = z.object({
+  version: z.unknown(),
+  modules: z.array(z.unknown()).nullish(),
+});
+
+type CatalogDocument = z.infer<typeof CatalogDocumentSchema>;
 
 let cachedRemote: CachedCatalog | undefined;
 let bundled: StoreCatalogEntry[] | undefined;
-
-/* oxlint-disable anti-slop/no-runtime-typeof -- Catalog entries are filtered by the existing required string checks, not by a stricter replacement schema. */
-function isCatalogEntry(
-  entry: Partial<StoreCatalogEntry> | null,
-): entry is StoreCatalogEntry {
-  return (
-    typeof entry?.id === "string" &&
-    typeof entry.package === "string" &&
-    typeof entry.icon === "string" &&
-    typeof entry.category === "string"
-  );
-}
-/* oxlint-enable anti-slop/no-runtime-typeof */
 
 /**
  * The entries of a catalog document. A document of another version, or an
@@ -52,12 +51,17 @@ export function readCatalogDocument(
       `Unsupported module catalog version: ${String(catalog?.version)}`,
     );
   }
-  return (catalog.modules ?? []).filter(isCatalogEntry);
+  return (catalog.modules ?? []).flatMap((entry) => {
+    const parsed = CatalogEntrySchema.safeParse(entry);
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 function bundledCatalog(): StoreCatalogEntry[] {
   bundled ??= readCatalogDocument(
-    JSON.parse(readFileSync(BUNDLED_CATALOG_PATH, "utf-8")),
+    CatalogDocumentSchema.parse(
+      JSON.parse(readFileSync(BUNDLED_CATALOG_PATH, "utf-8")),
+    ),
   );
   return bundled;
 }
@@ -69,7 +73,9 @@ async function fetchRemoteCatalog(url: string): Promise<StoreCatalogEntry[]> {
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
-  return readCatalogDocument(await response.json());
+  return readCatalogDocument(
+    CatalogDocumentSchema.parse(await response.json()),
+  );
 }
 
 /**

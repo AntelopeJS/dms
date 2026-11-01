@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { z } from "zod";
 import {
   DestroyModule,
   GetModuleInfo,
@@ -35,10 +36,14 @@ const GIT_HOSTS: ReadonlyArray<[word: string, kind: ModuleSourceKind]> = [
 /** The host of `https://host/…`, `ssh://user@host/…` or `user@host:path`. */
 const REMOTE_HOST = /^(?:[a-z+]+:\/\/)?(?:[^@/]+@)?([^/:]+)/i;
 
-interface PackageManifest {
-  name?: string;
-  version?: string;
-}
+const PackageManifestSchema = z
+  .object({
+    name: z.string().optional().catch(undefined),
+    version: z.string().optional().catch(undefined),
+  })
+  .catch({});
+
+type PackageManifest = z.infer<typeof PackageManifestSchema>;
 
 /** What the store loads: a catalog package, at a version range. */
 export interface StoreModuleLoad {
@@ -66,8 +71,8 @@ export function isLive(module: RuntimeModule | undefined): boolean {
 /** The manifest of the folder the module was loaded from, read from disk. */
 async function loadedManifest(localPath: string): Promise<PackageManifest> {
   try {
-    return JSON.parse(
-      await readFile(path.join(localPath, PACKAGE_JSON), "utf-8"),
+    return PackageManifestSchema.parse(
+      JSON.parse(await readFile(path.join(localPath, PACKAGE_JSON), "utf-8")),
     );
   } catch {
     return {};

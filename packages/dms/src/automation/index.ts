@@ -20,15 +20,10 @@ interface ModuleLoadError extends Error {
 let automationInterfacePromise: Promise<AutomationInterface | undefined>;
 const automationLifecycle = new AutomationRegistrationLifecycle();
 
-function isMissingAutomationInterface(
-  error: PromiseRejectedResult["reason"],
-): boolean {
-  const moduleError: ModuleLoadError = error;
-  const firstLine = moduleError?.message?.split("\n", 1)[0] ?? "";
+function isMissingAutomationInterface(error: ModuleLoadError): boolean {
+  const firstLine = error.message.split("\n", 1)[0] ?? "";
   return (
-    ["MODULE_NOT_FOUND", "ERR_MODULE_NOT_FOUND"].includes(
-      moduleError?.code ?? "",
-    ) &&
+    ["MODULE_NOT_FOUND", "ERR_MODULE_NOT_FOUND"].includes(error.code ?? "") &&
     (firstLine === `Cannot find module '${AUTOMATION_INTERFACE_PACKAGE}'` ||
       firstLine.startsWith(
         `Cannot find package '${AUTOMATION_INTERFACE_PACKAGE}' imported from `,
@@ -42,7 +37,8 @@ async function loadAutomationInterface(): Promise<
   try {
     return await import("@antelopejs/interface-dms-automation");
   } catch (error) {
-    if (isMissingAutomationInterface(error)) return undefined;
+    if (error instanceof Error && isMissingAutomationInterface(error))
+      return undefined;
     throw error;
   }
 }

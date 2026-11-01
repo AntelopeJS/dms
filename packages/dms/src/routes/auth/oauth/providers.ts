@@ -1,4 +1,5 @@
 import { assert } from "@antelopejs/interface-api-util";
+import { z } from "zod";
 
 const HTTP_BAD_GATEWAY = 502;
 const PROVIDER_UNREACHABLE_MESSAGE = "error.oauth.provider_unreachable";
@@ -39,29 +40,41 @@ export interface OAuthProvider {
   fetchIdentity: (accessToken: string) => Promise<ProviderIdentity>;
 }
 
-interface GithubUser {
-  id?: number | string;
-  login?: string;
-  name?: string | null;
-}
+/**
+ * What a provider answers is checked field by field below, so a field of the
+ * wrong type reads as absent and the identity is refused as malformed.
+ */
+const AccountIdSchema = z
+  .union([z.number(), z.string()])
+  .optional()
+  .catch(undefined);
+const TextSchema = z.string().optional().catch(undefined);
+const FlagSchema = z.boolean().optional().catch(undefined);
 
-interface GithubEmail {
-  email?: string;
-  primary?: boolean;
-  verified?: boolean;
-}
+const GithubUserSchema = z.object({
+  id: AccountIdSchema,
+  login: TextSchema,
+  name: z.string().nullable().optional().catch(undefined),
+});
 
-interface GoogleUserInfo {
-  sub?: string;
-  email?: string;
-  email_verified?: boolean;
-  name?: string;
-}
+const GithubEmailsSchema = z.array(
+  z.object({
+    email: TextSchema,
+    primary: FlagSchema,
+    verified: FlagSchema,
+  }),
+);
+
+const GoogleUserInfoSchema = z.object({
+  sub: AccountIdSchema,
+  email: TextSchema,
+  email_verified: FlagSchema,
+  name: TextSchema,
+});
 
 function isNonEmptyString(
-  value: GithubUser["id"] | GithubUser["name"] | GoogleUserInfo["email"],
+  value: number | string | null | undefined,
 ): value is string {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Provider JSON values have not acquired a string contract; this existing check establishes the nonempty email/name claim.
   return typeof value === "string" && value.length > 0;
 }
 
@@ -70,9 +83,7 @@ function isNonEmptyString(
  * hostile 200 must never coin an identity — an empty or missing id would
  * collapse every such login onto one deterministic row.
  */
-function requireAccountId(
-  value: GithubUser["id"] | GoogleUserInfo["sub"],
-): string {
+function requireAccountId(value: number | string | undefined): string {
   const isUsable =
     isNonEmptyString(value) ||
     // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Provider account ids accept both finite numbers and nonempty strings; the branch must preserve that existing wire-format distinction.
@@ -86,6 +97,7 @@ async function fetchProviderJson<T>(
   accessToken: string,
   headers: Record<string, string>,
   failureMessage: string,
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
 ): Promise<T> {
   const response = await fetch(url, {
     headers: {
@@ -96,27 +108,30 @@ async function fetchProviderJson<T>(
   });
 
   assert(response.ok, HTTP_BAD_GATEWAY, failureMessage);
-  return await response.json();
+  const answer = schema.safeParse(await response.json());
+  assert(answer.success, HTTP_BAD_GATEWAY, failureMessage);
+  return answer.data;
 }
 
 async function fetchGithubIdentity(
   accessToken: string,
 ): Promise<ProviderIdentity> {
-  const user = await fetchProviderJson<GithubUser>(
+  const user = await fetchProviderJson(
     `${GITHUB_API_URL}/user`,
     accessToken,
     GITHUB_HEADERS,
     PROVIDER_UNREACHABLE_MESSAGE,
+    GithubUserSchema,
   );
   const providerAccountId = requireAccountId(user.id);
 
-  const emails = await fetchProviderJson<GithubEmail[]>(
+  const emails = await fetchProviderJson(
     `${GITHUB_API_URL}/user/emails`,
     accessToken,
     GITHUB_HEADERS,
     EMAIL_UNAVAILABLE_MESSAGE,
+    GithubEmailsSchema,
   );
-  assert(Array.isArray(emails), HTTP_BAD_GATEWAY, EMAIL_UNAVAILABLE_MESSAGE);
 
   const primary = emails.find((entry) => entry.primary === true) ?? emails[0];
   assert(
@@ -137,11 +152,12 @@ async function fetchGithubIdentity(
 async function fetchGoogleIdentity(
   accessToken: string,
 ): Promise<ProviderIdentity> {
-  const profile = await fetchProviderJson<GoogleUserInfo>(
+  const profile = await fetchProviderJson(
     GOOGLE_USERINFO_URL,
     accessToken,
     {},
     PROVIDER_UNREACHABLE_MESSAGE,
+    GoogleUserInfoSchema,
   );
   const providerAccountId = requireAccountId(profile.sub);
   assert(
