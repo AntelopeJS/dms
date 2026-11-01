@@ -161,11 +161,11 @@ export function inviteNotice(
  * A refusal of the invite form's `emails` field, naming the addresses it
  * refuses: the form shows it under the field and marks those addresses.
  */
-export interface InviteEmailsFailure {
+export type InviteEmailsFailure = {
   message: string;
   field: typeof INVITE_EMAILS_FIELD;
   values: string[];
-}
+};
 
 /**
  * The error a request answers with when none of its addresses went through:
