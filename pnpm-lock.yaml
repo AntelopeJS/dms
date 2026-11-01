@@ -10,6 +10,8 @@ overrides:
   '@antelopejs/interface-data-api': file:.campaign/tgz/antelopejs-interface-data-api-817f819.tgz
   '@antelopejs/interface-api': file:.campaign/tgz/antelopejs-interface-api-11c035a.tgz
   '@antelopejs/interface-api-util': file:.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz
+  '@antelopejs/interface-dms-automation': file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz
+  '@antelopejs/tooling-configs': file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz
 
 importers:
 
@@ -19,8 +21,8 @@ importers:
         specifier: '>=1.17.0 <2'
         version: 1.17.0
       '@antelopejs/tooling-configs':
-        specifier: ^0.2.17
-        version: 0.2.17(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
+        specifier: file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz
+        version: file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)
       dependency-cruiser:
         specifier: ^18.7.0
         version: 18.7.0
@@ -116,8 +118,8 @@ importers:
         specifier: '>=1.17.0 <2'
         version: 1.17.0
       '@antelopejs/tooling-configs':
-        specifier: 0.2.0
-        version: 0.2.0(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
+        specifier: file:../../.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz
+        version: file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)
       '@types/archiver':
         specifier: ^6.0.4
         version: 6.0.4
@@ -186,8 +188,8 @@ importers:
         version: 6.0.3
     optionalDependencies:
       '@antelopejs/interface-dms-automation':
-        specifier: '>=0.4.0 <1.0.0'
-        version: 0.4.0(@antelopejs/interface-core@0.2.6)
+        specifier: file:../../.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz
+        version: file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz(@antelopejs/interface-core@0.2.6)
       '@antelopejs/interface-redis':
         specifier: '>=0.0.9 <1.0.0'
         version: 0.0.9(@antelopejs/interface-core@0.2.6)
@@ -589,8 +591,9 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/interface-dms-automation@0.4.0':
-    resolution: {integrity: sha512-L8YZmFYs7m4l/kn3Uc16evBcjhMYk1O9okUMZITjAHjfwRIQwEYU64yxgNE5tSPhHhk9VTyUmoBUV5GEdOmhQg==}
+  '@antelopejs/interface-dms-automation@file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz':
+    resolution: {integrity: sha512-QYkzTrr7ZGybut0ajNGNXUCwMQtP9WKeXeTfiwF8e6kFie/JXYL8RbcEditGg14AZgleAKESoCzvcQvtKeKweA==, tarball: file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz}
+    version: 0.6.0
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
@@ -609,16 +612,21 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/tooling-configs@0.2.0':
-    resolution: {integrity: sha512-D3yCA9ZuvuDfzz8lS5VKyP8sgDkSdM0k1Awp3Q8qwq3u1/dc8UF4ep3SHW5fZpTQpLwNRcEDv1DSrRx+b7w9aA==}
+  '@antelopejs/tooling-configs@file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz':
+    resolution: {integrity: sha512-Ok+CzYr3MB0p/ZYAYkCe9HECVmNGwjKCd2S+YAOegfZeEHL34s1UxTEFPcIt7hHkSvyRq1h5XmAEfUH0uF++xw==, tarball: file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz}
+    version: 0.2.17
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
       '@nuxt/eslint-config': '>=1.2.0'
       eslint-plugin-perfectionist: '>=5.0.0'
       knip: '>=6.0.0'
+      mongodb-memory-server: '>=10.0.0'
       oxfmt: ^0.66.0
       oxlint: 1.81.0
+      pixelmatch: '>=7.0.0'
+      playwright-core: '>=1.56.0'
+      sharp: '>=0.34.0'
     peerDependenciesMeta:
       '@nuxt/eslint-config':
         optional: true
@@ -626,31 +634,17 @@ packages:
         optional: true
       knip:
         optional: true
-      oxfmt:
-        optional: true
-      oxlint:
-        optional: true
-
-  '@antelopejs/tooling-configs@0.2.17':
-    resolution: {integrity: sha512-8fwh7xQPzazP/l/ivEwRKpfN8qShV9+PRizpI9cBewe2TwoRPu4n95w6sYSlygiRmm0HxLJYZFhmSPRgtiNo1Q==}
-    engines: {node: '>=22.18.0'}
-    hasBin: true
-    peerDependencies:
-      '@nuxt/eslint-config': '>=1.2.0'
-      eslint-plugin-perfectionist: '>=5.0.0'
-      knip: '>=6.0.0'
-      oxfmt: ^0.66.0
-      oxlint: 1.81.0
-    peerDependenciesMeta:
-      '@nuxt/eslint-config':
-        optional: true
-      eslint-plugin-perfectionist:
-        optional: true
-      knip:
+      mongodb-memory-server:
         optional: true
       oxfmt:
         optional: true
       oxlint:
+        optional: true
+      pixelmatch:
+        optional: true
+      playwright-core:
+        optional: true
+      sharp:
         optional: true
 
   '@antfu/install-pkg@1.1.0':
@@ -6572,7 +6566,7 @@ snapshots:
     dependencies:
       '@antelopejs/interface-core': 0.2.6
 
-  '@antelopejs/interface-dms-automation@0.4.0(@antelopejs/interface-core@0.2.6)':
+  '@antelopejs/interface-dms-automation@file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz(@antelopejs/interface-core@0.2.6)':
     dependencies:
       '@antelopejs/interface-core': 0.2.6
     optional: true
@@ -6593,16 +6587,7 @@ snapshots:
       - supports-color
     optional: true
 
-  '@antelopejs/tooling-configs@0.2.0(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
-    dependencies:
-      '@oxlint/plugins': 1.81.0
-      yaml: 2.9.1
-    optionalDependencies:
-      knip: 6.34.0
-      oxfmt: 0.66.0
-      oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)
-
-  '@antelopejs/tooling-configs@0.2.17(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))':
+  '@antelopejs/tooling-configs@file:.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)':
     dependencies:
       '@oxlint/plugins': 1.81.0
       dts-bundle-generator: 9.5.1
@@ -6612,6 +6597,7 @@ snapshots:
       knip: 6.34.0
       oxfmt: 0.66.0
       oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)
+      playwright-core: 1.56.1
 
   '@antfu/install-pkg@1.1.0':
     dependencies:

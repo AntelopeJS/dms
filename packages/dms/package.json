@@ -103,7 +103,7 @@
   },
   "devDependencies": {
     "@antelopejs/core": ">=1.17.0 <2",
-    "@antelopejs/tooling-configs": "0.2.0",
+    "@antelopejs/tooling-configs": "file:../../.campaign/tgz/antelopejs-tooling-configs-de99b0e.tgz",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
     "@types/jsonwebtoken": "^9.0.10",
@@ -141,7 +141,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "optionalDependencies": {
-    "@antelopejs/interface-dms-automation": ">=0.4.0 <1.0.0",
+    "@antelopejs/interface-dms-automation": "file:../../.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz",
     "@antelopejs/interface-redis": ">=0.0.9 <1.0.0"
   },
   "peerDependencies": {
