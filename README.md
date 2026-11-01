@@ -142,29 +142,28 @@ the MongoDB database and playground file storage.
 Two scripts keep the documentation data in step with the code (the [block preview page](https://dms.antelopejs.com/docs/ai-and-claude-code/block-preview-page) must be enabled for the screenshots):
 
 ```bash
-pnpm --dir packages/dms docs:catalog       # docs-data/blocks.json from ListBlockTypes(); CI runs docs:catalog:check
-pnpm --dir packages/dms docs:screenshots   # docs/images/blocks/<example>.<theme>.png from docs-data/examples.json
+pnpm --dir packages/dms docs:catalog       # docs-data/blocks.json from ListBlockTypes(); CI runs docs:catalog:check, which also fails unless each block type has exactly one page holding its `::block-playground` and `::block-options`
+pnpm --dir packages/dms docs:screenshots   # docs/images/blocks/<example>.dark.png from docs-data/examples.json
 ```
 
 ### Capture documentation screenshots
 
 `docs:screenshots` renders each hand-authored example in `packages/dms/docs-data/examples.json`
-through a running DMS's `/dms-preview` page. It captures light and dark themes, cropped
-to the blocks, into `packages/dms/docs/images/blocks/<id>.<theme>.png`. The docs use
+through a running DMS's `/dms-preview` page. It captures the dark theme only, cropped
+to the blocks, into `packages/dms/docs/images/blocks/<id>.dark.png`. The docs use
 these images when no live preview answers.
 
 Enable the preview with `docsPreview: true` or `DMS_DOCS_PREVIEW=1`, as the playground does.
 The default frontend URL is `http://localhost:3001`; `DMS_PREVIEW_URL` overrides it.
 
 ```bash
-pnpm --dir packages/dms docs:screenshots [--base-url <url>] [--only <id,...>] [--theme <light|dark>]
+pnpm --dir packages/dms docs:screenshots [--base-url <url>] [--only <id,...>]
 ```
 
 | Flag | Meaning | Default |
 | --- | --- | --- |
 | `--base-url` | DMS frontend URL | `DMS_PREVIEW_URL`, then `http://localhost:3001` |
 | `--only` | Comma-separated example IDs | All examples |
-| `--theme` | Capture only `light` or `dark` | Both themes |
 
 ### Check realtime connections across tabs
 
