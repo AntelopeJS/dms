@@ -3,7 +3,7 @@ const { readdirSync, readFileSync } = require("node:fs");
 const nodePath = require("node:path");
 const { sep } = nodePath;
 const join = nodePath.join.bind(nodePath);
-const { satisfies, validRange } = require("semver");
+const { satisfies, valid, validRange } = require("semver");
 const ts = require("typescript");
 const { ACTIONS, TRIGGERS } = require("./backend-automation.cjs");
 const checkTarget = require("./backend-import-target.cjs");
@@ -89,9 +89,14 @@ assert.deepEqual(components.sort(), emailNames.sort());
 
 const lockfile = readFileSync(join(root, "../../pnpm-lock.yaml"), "utf8");
 const locked = [
-  ...lockfile.matchAll(/^ {2}'@antelopejs\/dms-frontend@([^'(]+)':$/gm),
-].map(([, version]) => version);
+  ...lockfile.matchAll(
+    /^ {2}'@antelopejs\/dms-frontend@([^'(]+)':\n((?: {4}.*\n)*)/gm,
+  ),
+].map(([, key, entry]) => entry.match(/^ {4}version: (\S+)$/m)?.[1] ?? key);
 assert.notDeepEqual(locked, []);
+for (const version of locked) {
+  assert.notEqual(valid(version), null, `locked renderer ${version}`);
+}
 for (const layer of ["frontend-vue", "playground/frontend-vue"]) {
   const manifest = JSON.parse(
     readFileSync(join(root, layer, "package.json"), "utf8"),

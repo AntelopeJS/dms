@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { DmsServerEvent, DmsSession } from "#dms/server";
-import { isString } from "../../dms-core/app/utils/type-check";
+import {
+  isBoolean,
+  isObject,
+  isString,
+} from "../../dms-core/app/utils/type-check";
 
 /**
  * The accounts this browser is signed in to: an index of their descriptors,
@@ -68,8 +72,42 @@ function descriptor(session: DmsSession, accountId: string): AccountDescriptor {
   };
 }
 
+function isOptionalText(value: unknown): value is string | undefined {
+  return value === undefined || isString(value);
+}
+
+function isAccountDescriptor(value: unknown): value is AccountDescriptor {
+  return (
+    isObject(value) &&
+    value !== null &&
+    isString(value.accountId) &&
+    isOptionalText(value.userId) &&
+    isOptionalText(value.email) &&
+    isOptionalText(value.name) &&
+    isOptionalText(value.activeTenantId) &&
+    isBoolean(value.persistent)
+  );
+}
+
+function isStoredAccount(value: unknown): value is StoredAccount {
+  return (
+    isAccountDescriptor(value) &&
+    isObject(value) &&
+    isOptionalText(value.refreshToken)
+  );
+}
+
+function isAccountIndex(value: unknown): value is AccountIndex {
+  return (
+    isObject(value) &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.values(value).every(isAccountDescriptor)
+  );
+}
+
 export function readAccounts(event: DmsServerEvent): AccountIndex {
-  return event.cookies.readSealed<AccountIndex>(ACCOUNT_INDEX_COOKIE) ?? {};
+  return event.cookies.readSealed(ACCOUNT_INDEX_COOKIE, isAccountIndex) ?? {};
 }
 
 function writeAccountIndex(event: DmsServerEvent, accounts: AccountIndex) {
@@ -84,7 +122,10 @@ export function readAccount(
   accountId: Parameters<typeof isString>[0],
 ): StoredAccount | undefined {
   if (!isString(accountId) || !UUID.test(accountId)) return undefined;
-  return event.cookies.readSealed<StoredAccount>(accountCookieName(accountId));
+  return event.cookies.readSealed(
+    accountCookieName(accountId),
+    isStoredAccount,
+  );
 }
 
 export function storeAccount(
