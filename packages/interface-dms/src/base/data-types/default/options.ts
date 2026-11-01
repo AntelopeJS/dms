@@ -21,6 +21,15 @@ export type NumberTypeOptions = {
   fallback?: string;
 };
 
+export type PriceTypeOptions = NumberTypeOptions & {
+  /**
+   * ISO 4217 code of the amount ("USD", "GBP"): the currency table cells,
+   * cards, footer sums and read-only fields write it in. Left out, amounts
+   * are written in euros.
+   */
+  currency?: string;
+};
+
 export type StringTypeOptions = {
   placeholder?: string;
   maxLength?: number;

@@ -271,6 +271,20 @@ export function formatNumber(
   }
 }
 
+const CURRENCY_CODE = /^[A-Za-z]{3}$/;
+
+/**
+ * The currency an amount is written in: `options.currency` when it is an
+ * ISO 4217 code, euros otherwise (a missing or malformed code never turns the
+ * amount into a bare number).
+ */
+function priceCurrency(options: Intl.NumberFormatOptions | undefined): string {
+  const code = options?.currency;
+  return typeof code === "string" && CURRENCY_CODE.test(code)
+    ? code.toUpperCase()
+    : DEFAULT_CURRENCY;
+}
+
 /** An amount, in euros unless `options.currency` says otherwise. */
 export function formatPrice(
   value: number,
@@ -289,10 +303,10 @@ export function formatPrice(
 ): Parameters<typeof isNumber>[0] {
   return formatNumber(value, locale, {
     style: "currency",
-    currency: DEFAULT_CURRENCY,
     minimumFractionDigits: DEFAULT_PRICE_FRACTION_DIGITS,
     maximumFractionDigits: DEFAULT_PRICE_FRACTION_DIGITS,
     ...options,
+    currency: priceCurrency(options),
   });
 }
 

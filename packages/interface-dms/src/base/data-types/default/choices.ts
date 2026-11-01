@@ -7,6 +7,7 @@ import {
   BooleanTypeOptions,
   SelectTypeOptions,
   NumberTypeOptions,
+  PriceTypeOptions,
 } from "./options";
 import { BOOLEAN_INPUTS, SINGLE_PICK_DISPLAYS, SELECT_INPUTS } from "./inputs";
 import { NumberType } from "./numbers";
@@ -100,11 +101,25 @@ export class SelectType extends DataType {
 
 @RegisterDataType("price")
 export class PriceType extends NumberType {
-  constructor(options: NumberTypeOptions = {}) {
+  declare readonly options: PriceTypeOptions;
+
+  constructor(options: PriceTypeOptions = {}) {
     super({
       min: options.min ?? 0,
       step: options.step ?? 0.01,
       ...options,
+    });
+  }
+
+  protected defaultInputComponent() {
+    return FormComponents.InputNumber({
+      min: this.options.min,
+      max: this.options.max,
+      step: this.options.step,
+      placeholder: this.options.placeholder,
+      suffix: this.options.suffix,
+      width: this.options.width,
+      ...(this.options.currency && { currency: this.options.currency }),
     });
   }
 }
