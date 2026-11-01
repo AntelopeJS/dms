@@ -1,10 +1,7 @@
 import axios from "axios";
 import { expect } from "chai";
 import { DEFAULT_MAX_UPLOAD_SIZE } from "../../..";
-import {
-  nativeUploadToken,
-  type PresignResponse,
-} from "../../helpers/attachments";
+import { nativeUploadToken, parsePresign } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
@@ -57,14 +54,14 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
     const user = await registerUser({ owner: true });
     const client = authorizedClient(user.accessToken);
 
-    const presignResponse = await client.post<PresignResponse>(PRESIGN_URL, {
+    const presignResponse = await client.post(PRESIGN_URL, {
       filename: FILE_NAME,
       size: FILE_SIZE,
       mimetype: FILE_MIMETYPE,
       uploadToken: await nativeUploadToken(client),
     });
     expect(presignResponse.status).to.equal(HTTP_OK);
-    const presign = presignResponse.data;
+    const presign = parsePresign(presignResponse);
 
     const uploadResponse = await axios.put(
       presign.uploadUrl,
@@ -72,7 +69,7 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
       {
         headers: presign.headers,
         validateStatus: () => true,
-        transformRequest: [(data: Buffer) => data],
+        transformRequest: [],
       },
     );
     expect(uploadResponse.status).to.equal(HTTP_OK);
@@ -115,19 +112,19 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
     const user = await registerUser({ owner: true });
     const client = authorizedClient(user.accessToken);
 
-    const presignResponse = await client.post<PresignResponse>(PRESIGN_URL, {
+    const presignResponse = await client.post(PRESIGN_URL, {
       filename: FILE_NAME,
       size: FILE_SIZE,
       mimetype: FILE_MIMETYPE,
       uploadToken: await nativeUploadToken(client),
     });
-    const presign = presignResponse.data;
+    const presign = parsePresign(presignResponse);
 
     const status = await axios
       .put(presign.uploadUrl, Buffer.from(FILE_CONTENT), {
         headers: { ...presign.headers, "Content-Type": IMAGE_MIMETYPE },
         validateStatus: () => true,
-        transformRequest: [(data: Buffer) => data],
+        transformRequest: [],
       })
       .then((response) => response.status);
 

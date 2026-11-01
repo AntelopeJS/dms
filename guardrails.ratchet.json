@@ -1,5 +1,5 @@
 {
-  "pack": "0.2.17",
+  "pack": "0.2.18",
   "rules": {
     "antelopejs/no-inherited-key-lookup": 70,
     "antelopejs/no-presence-only-type-guard": 3,
@@ -8,9 +8,9 @@
     "anti-slop/no-runtime-typeof": 28,
     "typescript/no-base-to-string": 1,
     "typescript/no-unnecessary-type-parameters": 1,
-    "typescript/no-unsafe-argument": 63,
-    "typescript/no-unsafe-assignment": 161,
-    "typescript/no-unsafe-return": 115,
+    "typescript/no-unsafe-argument": 55,
+    "typescript/no-unsafe-assignment": 143,
+    "typescript/no-unsafe-return": 108,
     "typescript/unbound-method": 9
   },
   "oversizeFiles": {}
