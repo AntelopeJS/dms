@@ -15,15 +15,14 @@ overrides:
   '@antelopejs/dms-frontend': file:.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz
   '@antelopejs/api': file:.campaign/tgz/antelopejs-api-6afe3e2.tgz
   '@antelopejs/interface-core': file:.campaign/tgz/antelopejs-interface-core-6a8b526.tgz
-  '@antelopejs/core': file:.campaign/tgz/antelopejs-core-68d5ce0.tgz
 
 importers:
 
   .:
     devDependencies:
       '@antelopejs/core':
-        specifier: file:.campaign/tgz/antelopejs-core-68d5ce0.tgz
-        version: file:.campaign/tgz/antelopejs-core-68d5ce0.tgz
+        specifier: '>=1.17.0 <2'
+        version: 1.17.0
       '@antelopejs/tooling-configs':
         specifier: file:.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz
         version: file:.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)
@@ -57,9 +56,6 @@ importers:
       2fa:
         specifier: ^0.1.2
         version: 0.1.2
-      '@antelopejs/core':
-        specifier: file:../../.campaign/tgz/antelopejs-core-68d5ce0.tgz
-        version: file:.campaign/tgz/antelopejs-core-68d5ce0.tgz
       '@antelopejs/interface-api':
         specifier: file:../../.campaign/tgz/antelopejs-interface-api-2d1cc37.tgz
         version: file:.campaign/tgz/antelopejs-interface-api-2d1cc37.tgz(@antelopejs/interface-core@file:.campaign/tgz/antelopejs-interface-core-6a8b526.tgz)
@@ -123,7 +119,10 @@ importers:
     devDependencies:
       '@antelopejs/api':
         specifier: file:../../.campaign/tgz/antelopejs-api-6afe3e2.tgz
-        version: file:.campaign/tgz/antelopejs-api-6afe3e2.tgz(@antelopejs/core@file:.campaign/tgz/antelopejs-core-68d5ce0.tgz)
+        version: file:.campaign/tgz/antelopejs-api-6afe3e2.tgz(@antelopejs/core@1.17.0)
+      '@antelopejs/core':
+        specifier: '>=1.17.0 <2'
+        version: 1.17.0
       '@antelopejs/tooling-configs':
         specifier: file:../../.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz
         version: file:.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)
@@ -367,11 +366,11 @@ importers:
         version: 3.25.76
     devDependencies:
       '@antelopejs/core':
-        specifier: file:../../../.campaign/tgz/antelopejs-core-68d5ce0.tgz
-        version: file:.campaign/tgz/antelopejs-core-68d5ce0.tgz
+        specifier: '>=1.16.0 <2'
+        version: 1.17.0
       '@antelopejs/dms-frontend':
         specifier: file:../../../.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz
-        version: file:.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz(@antelopejs/core@file:.campaign/tgz/antelopejs-core-68d5ce0.tgz)
+        version: file:.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz(@antelopejs/core@1.17.0)
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -464,11 +463,11 @@ importers:
         version: 3.24.4
     devDependencies:
       '@antelopejs/core':
-        specifier: file:../../../.campaign/tgz/antelopejs-core-68d5ce0.tgz
-        version: file:.campaign/tgz/antelopejs-core-68d5ce0.tgz
+        specifier: '>=1.17.0 <2'
+        version: 1.17.0
       '@antelopejs/dms-frontend':
         specifier: file:../../../.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz
-        version: file:.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz(@antelopejs/core@file:.campaign/tgz/antelopejs-core-68d5ce0.tgz)
+        version: file:.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz(@antelopejs/core@1.17.0)
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
@@ -555,10 +554,9 @@ packages:
       '@antelopejs/core':
         optional: true
 
-  '@antelopejs/core@file:.campaign/tgz/antelopejs-core-68d5ce0.tgz':
-    resolution: {integrity: sha512-CsiXLalRIIxX5YHjMUVDlz0+zBGSeNjSNPdBTgHwVsWpT1bIeG8izJmbCgpi5tIs8rvxkdlEZ6eKa7yH1GK8CA==, tarball: file:.campaign/tgz/antelopejs-core-68d5ce0.tgz}
-    version: 1.20.0
-    engines: {node: ^20.19.0 || >=22.12.0}
+  '@antelopejs/core@1.17.0':
+    resolution: {integrity: sha512-wh+CDgDhydcybYzbbyA/Gly9X1f6DVqnnYcom7qhagkMVLF/d6wYecGMlTesUUwQC6HCZTPHiYwGyve4rKk+WA==}
+    engines: {node: '>=20.19'}
     hasBin: true
 
   '@antelopejs/dms-frontend@file:.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz':
@@ -6537,7 +6535,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@antelopejs/api@file:.campaign/tgz/antelopejs-api-6afe3e2.tgz(@antelopejs/core@file:.campaign/tgz/antelopejs-core-68d5ce0.tgz)':
+  '@antelopejs/api@file:.campaign/tgz/antelopejs-api-6afe3e2.tgz(@antelopejs/core@1.17.0)':
     dependencies:
       '@antelopejs/interface-api': file:.campaign/tgz/antelopejs-interface-api-2d1cc37.tgz(@antelopejs/interface-core@file:.campaign/tgz/antelopejs-interface-core-6a8b526.tgz)
       '@antelopejs/interface-api-util': file:.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz(@antelopejs/interface-api@file:.campaign/tgz/antelopejs-interface-api-2d1cc37.tgz(@antelopejs/interface-core@file:.campaign/tgz/antelopejs-interface-core-6a8b526.tgz))(@antelopejs/interface-core@file:.campaign/tgz/antelopejs-interface-core-6a8b526.tgz)
@@ -6545,12 +6543,12 @@ snapshots:
       reflect-metadata: 0.2.2
       ws: 8.22.1
     optionalDependencies:
-      '@antelopejs/core': file:.campaign/tgz/antelopejs-core-68d5ce0.tgz
+      '@antelopejs/core': 1.17.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@antelopejs/core@file:.campaign/tgz/antelopejs-core-68d5ce0.tgz':
+  '@antelopejs/core@1.17.0':
     dependencies:
       '@antelopejs/interface-core': file:.campaign/tgz/antelopejs-interface-core-6a8b526.tgz
       '@clack/prompts': 1.8.1
@@ -6565,9 +6563,9 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@file:.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz(@antelopejs/core@file:.campaign/tgz/antelopejs-core-68d5ce0.tgz)':
+  '@antelopejs/dms-frontend@file:.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz(@antelopejs/core@1.17.0)':
     dependencies:
-      '@antelopejs/core': file:.campaign/tgz/antelopejs-core-68d5ce0.tgz
+      '@antelopejs/core': 1.17.0
       '@intlify/message-compiler': 11.4.8
       chokidar: 4.0.3
       commander: 13.1.0

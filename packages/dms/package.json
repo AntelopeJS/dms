@@ -102,7 +102,7 @@
     "zod": "~3.24.2"
   },
   "devDependencies": {
-    "@antelopejs/core": "file:../../.campaign/tgz/antelopejs-core-68d5ce0.tgz",
+    "@antelopejs/core": ">=1.17.0 <2",
     "@antelopejs/tooling-configs": "file:../../.campaign/tgz/antelopejs-tooling-configs-6b759e6.tgz",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",

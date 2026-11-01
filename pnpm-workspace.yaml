@@ -24,4 +24,3 @@ overrides:
   "@antelopejs/dms-frontend": "file:.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz"
   "@antelopejs/api": "file:.campaign/tgz/antelopejs-api-6afe3e2.tgz"
   "@antelopejs/interface-core": "file:.campaign/tgz/antelopejs-interface-core-6a8b526.tgz"
-  "@antelopejs/core": "file:.campaign/tgz/antelopejs-core-68d5ce0.tgz"

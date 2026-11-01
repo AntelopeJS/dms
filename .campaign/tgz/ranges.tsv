@@ -42,8 +42,3 @@
 @antelopejs/interface-core	packages/interface-dms/package.json	devDependencies	>=0.2.4 <1.0.0
 @antelopejs/interface-core	package.json	pnpm.overrides	
 @antelopejs/interface-core	pnpm-workspace.yaml	overrides	
-@antelopejs/core	package.json	devDependencies	>=1.17.0 <2
-@antelopejs/core	packages/dms/package.json	devDependencies	>=1.17.0 <2
-@antelopejs/core	packages/dms/playground/package.json	devDependencies	>=1.17.0 <2
-@antelopejs/core	package.json	pnpm.overrides	
-@antelopejs/core	pnpm-workspace.yaml	overrides	
