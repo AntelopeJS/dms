@@ -31,7 +31,7 @@
     "@antelopejs/interface-api-util": "file:../../../.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz",
     "@antelopejs/interface-core": ">=0.2.4 <1.0.0",
     "@antelopejs/interface-data-api": "file:../../../.campaign/tgz/antelopejs-interface-data-api-4352b2c.tgz",
-    "@antelopejs/interface-database": "file:../../../.campaign/tgz/antelopejs-interface-database-8261536.tgz",
+    "@antelopejs/interface-database": "file:../../../.campaign/tgz/antelopejs-interface-database-f5775ba.tgz",
     "@antelopejs/interface-database-decorators": "file:../../../.campaign/tgz/antelopejs-interface-database-decorators-fcb0a29.tgz",
     "@antelopejs/interface-dms": "workspace:*",
     "zod": "~3.24.4"
