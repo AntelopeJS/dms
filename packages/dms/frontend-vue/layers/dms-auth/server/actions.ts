@@ -38,7 +38,6 @@ function isPendingLogin(value: unknown): value is PendingLogin {
   return (
     isObject(value) &&
     value !== null &&
-    !Array.isArray(value) &&
     isString(value.token) &&
     isBoolean(value.persistent)
   );
@@ -99,7 +98,7 @@ export async function verifyTwoFactor(event: DmsServerEvent) {
   const input = await event.readJson<Input>();
   const pending = event.cookies.readSealed(PENDING_LOGIN, isPendingLogin);
   const persistent =
-    isString(input.token) && pending?.token === input.token
+    pending !== undefined && pending.token === input.token
       ? isPersistent(pending)
       : true;
   return establishWith(event, "/api/auth/verify-2fa", input, persistent);

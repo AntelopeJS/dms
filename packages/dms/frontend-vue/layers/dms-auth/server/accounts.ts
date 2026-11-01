@@ -80,7 +80,6 @@ function isAccountDescriptor(value: unknown): value is AccountDescriptor {
   return (
     isObject(value) &&
     value !== null &&
-    !Array.isArray(value) &&
     isString(value.accountId) &&
     isOptionalText(value.userId) &&
     isOptionalText(value.email) &&
@@ -123,7 +122,10 @@ export function readAccount(
   accountId: Parameters<typeof isString>[0],
 ): StoredAccount | undefined {
   if (!isString(accountId) || !UUID.test(accountId)) return undefined;
-  return event.cookies.readSealed(accountCookieName(accountId), isStoredAccount);
+  return event.cookies.readSealed(
+    accountCookieName(accountId),
+    isStoredAccount,
+  );
 }
 
 export function storeAccount(

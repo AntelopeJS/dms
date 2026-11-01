@@ -3,6 +3,11 @@ import type { DmsServerEvent } from "#dms/server";
 import { privateSecret } from "../../../server/private-options";
 import { persistAccountSession } from "./accounts";
 import { type SessionTokens, sessionFrom } from "./session";
+import type {
+  NoHandoff,
+  NoWorkspaceHandoff,
+  TwoFactorHandoff,
+} from "../shared/oauth";
 import {
   isNumber,
   isObject,
@@ -37,10 +42,6 @@ interface OAuthFlow {
   invite: string;
 }
 
-interface OAuthHandoff {
-  kind: "2fa" | "no-workspace";
-}
-
 interface OAuthResult extends SessionTokens {
   requires_2fa?: boolean;
   requires_tenant_assignment?: boolean;
@@ -55,7 +56,6 @@ function isOAuthFlow(value: unknown): value is OAuthFlow {
   return (
     isObject(value) &&
     value !== null &&
-    !Array.isArray(value) &&
     isString(value.state) &&
     isNumber(value.expiresAt) &&
     isString(value.redirect) &&
@@ -64,12 +64,20 @@ function isOAuthFlow(value: unknown): value is OAuthFlow {
   );
 }
 
-function isOAuthHandoff(value: unknown): value is OAuthHandoff {
+function isTextList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isString);
+}
+
+function isOAuthHandoff(
+  value: unknown,
+): value is TwoFactorHandoff | NoWorkspaceHandoff {
+  if (!isObject(value) || value === null) return false;
+  if (value.kind === "2fa")
+    return isString(value.token) && isTextList(value.methods);
   return (
-    isObject(value) &&
-    value !== null &&
-    !Array.isArray(value) &&
-    (value.kind === "2fa" || value.kind === "no-workspace")
+    value.kind === "no-workspace" &&
+    isString(value.token) &&
+    isString(value.provider)
   );
 }
 
@@ -185,7 +193,6 @@ function sameState(
   left: OAuthFlow["state"],
   right: OAuthFlow["state"],
 ): boolean {
-  if (!isString(left) || !isString(right)) return false;
   const a = Buffer.from(left);
   const b = Buffer.from(right);
   return a.length === b.length && timingSafeEqual(a, b);
@@ -283,7 +290,8 @@ export async function oauthCallback(event: DmsServerEvent): Promise<Response> {
  * finish (a 2FA step, a workspace to pick), once.
  */
 export function oauthHandoff(event: DmsServerEvent) {
-  const handoff = event.cookies.readSealed(HANDOFF, isOAuthHandoff) ?? { kind: "none" };
+  const handoff: TwoFactorHandoff | NoWorkspaceHandoff | NoHandoff =
+    event.cookies.readSealed(HANDOFF, isOAuthHandoff) ?? { kind: "none" };
   event.cookies.clear(HANDOFF, { path: FLOW_PATH });
   return handoff;
 }

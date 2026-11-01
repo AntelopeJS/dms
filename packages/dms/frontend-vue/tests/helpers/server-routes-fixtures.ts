@@ -1,19 +1,12 @@
 import { createHmac, randomUUID } from "node:crypto";
-import {
-  IncomingMessage,
-  ServerResponse,
-  type Server,
-} from "node:http";
+import { IncomingMessage, ServerResponse, type Server } from "node:http";
 import { Socket } from "node:net";
 
 import {
   readSealedCookie,
   writeSealedCookie,
 } from "@antelopejs/dms-frontend/templates/vue/server/auth/session.mjs";
-import {
-  isObject,
-  isString,
-} from "../../layers/dms-core/app/utils/type-check";
+import { isObject, isString } from "../../layers/dms-core/app/utils/type-check";
 
 const RELAY_SECRET = "relay-secret-for-tests-only";
 const RENDER_SECRET = "render-secret-for-tests-only";

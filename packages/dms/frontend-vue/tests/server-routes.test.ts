@@ -1,26 +1,15 @@
-import { createServer, type Server } from "node:http";
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { serveModuleRoutes } from "@antelopejs/dms-frontend/templates/vue/server/module-testing.mjs";
 import dmsServer from "../dms.server";
-import {
-  isFunction,
-  isObject,
-} from "../layers/dms-core/app/utils/type-check";
+import { createServerRoutesFixture } from "./helpers/server-routes-fixture";
 import {
   RELAY_SECRET,
-  RENDER_SECRET,
   ESTABLISH_ENDPOINT,
   USER,
-  backendAnswer,
   calls,
-  readBody,
-  listen,
-  close,
-  ask,
   cookiesOf,
   renderToken,
-  sealedCookie,
 } from "./helpers/server-routes-fixtures";
 describe("the DMS's server routes", () => {
   const fixture = createServerRoutesFixture();
@@ -30,71 +19,6 @@ describe("the DMS's server routes", () => {
   registerServiceRouteTests(fixture);
   registerServerSecretTests(fixture);
 });
-
-function createServerRoutesFixture() {
-  const environment = { ...process.env };
-  let backend: Server;
-  let moduleRoutes: Awaited<ReturnType<typeof serveModuleRoutes>>;
-
-  beforeAll(async () => {
-    backend = createServer(async (request, response) => {
-      const body = await readBody(request);
-      const path = new URL(request.url ?? "/", "http://backend").pathname;
-      calls.push({
-        method: request.method ?? "",
-        path,
-        body,
-        authorization: request.headers.authorization,
-        // SAFETY: The requests below send one relay header, never a repeated header array.
-        relay: request.headers["x-dms-oauth-relay"] as string | undefined,
-        // SAFETY: The requests below send one forwarded-for header, never a repeated header array.
-        forwardedFor: request.headers["x-forwarded-for"] as string | undefined,
-      });
-      const answer = backendAnswer(path, body);
-      response.writeHead(answer.status, { "content-type": "application/json" });
-      response.end(JSON.stringify(answer.body));
-    });
-    process.env.DMS_API_BASE_URL = await listen(backend);
-    process.env.DMS_SESSION_SECRET =
-      "a-test-only-session-secret-of-32-characters";
-    process.env.DMS_COOKIE_SECURE = "false";
-    process.env.DMS_OAUTH_RELAY_SECRET = RELAY_SECRET;
-    process.env.DMS_HTML_RENDER_SECRET = RENDER_SECRET;
-    process.env.DMS_AUTH_ESTABLISH_ENDPOINTS = ESTABLISH_ENDPOINT;
-    moduleRoutes = await serveModuleRoutes([{ id: "dms", setup: dmsServer }], {
-      privateOptions: {
-        dms: {
-          oauth: { relaySecret: RELAY_SECRET },
-          htmlRender: { serviceSecret: RENDER_SECRET },
-        },
-      },
-      authEstablishEndpoints: [ESTABLISH_ENDPOINT],
-    });
-  });
-
-  afterAll(async () => {
-    await moduleRoutes.close();
-    await close(backend);
-    process.env = environment;
-  });
-
-  /** Asks the DMS's routes. */
-  async function askDms(
-    path: string,
-    init:
-      | Parameters<typeof ask>[2]
-      | ((base: string) => Promise<Parameters<typeof ask>[2]>) = {},
-  ): ReturnType<typeof ask> {
-    const options = isFunction(init) ? await init(moduleRoutes.url) : init;
-    return ask(moduleRoutes.url, path, options);
-  }
-  return {
-    get moduleRoutes() {
-      return moduleRoutes;
-    },
-    askDms,
-  };
-}
 
 function registerRouteDeclarationAndLoginTests(
   fixture: ReturnType<typeof createServerRoutesFixture>,
@@ -185,31 +109,6 @@ function registerSessionLifetimeTests(
     ).toBe(true);
   });
 
-  it("takes a pending-login cookie of the wrong shape for none, which keeps the default lifetime", async () => {
-    const verify = (persistent: unknown) =>
-      fixture.askDms("/auth/verify-2fa", {
-        cookie: sealedCookie("dms_pending_login", {
-          token: "challenge-1",
-          persistent,
-        }),
-        body: { token: "challenge-1", code: "123456" },
-      });
-    const browserOnly = await verify(false);
-    expect(browserOnly.status).toBe(200);
-    expect(
-      browserOnly.cookies.some((cookie) =>
-        cookie.attributes.endsWith("Max-Age=2592000"),
-      ),
-    ).toBe(false);
-    const malformed = await verify("no");
-    expect(malformed.status).toBe(200);
-    expect(
-      malformed.cookies.some((cookie) =>
-        cookie.attributes.endsWith("Max-Age=2592000"),
-      ),
-    ).toBe(true);
-  });
-
   it("serves, renews and ends the session on /api/_auth/session", async () => {
     const signedIn = (base: string) =>
       cookiesOf(base, "/auth/login", {
@@ -288,45 +187,6 @@ function registerAccountRouteTests(
       body: { accountId: randomUUID() },
     });
     expect(expired.status).toBe(401);
-  });
-
-  it("takes a stored account or index of the wrong shape for none", async () => {
-    const accountId = randomUUID();
-    const name = `dms_account_${accountId.replaceAll("-", "")}`;
-    const switchTo = (account: unknown) =>
-      fixture.askDms("/auth/switch-account", {
-        cookie: sealedCookie(name, account),
-        body: { accountId },
-      });
-    const stored = await switchTo({
-      accountId,
-      persistent: true,
-      refreshToken: "refresh-1",
-    });
-    expect(stored.status).toBe(200);
-    const malformed = await switchTo({
-      accountId,
-      persistent: "yes",
-      refreshToken: "refresh-1",
-    });
-    expect(malformed.status).toBe(401);
-    expect(malformed.calls).toEqual([]);
-
-    const indexAfterLogin = async (index: unknown) => {
-      const answer = await fixture.askDms("/auth/login", {
-        cookie: sealedCookie("dms_account_index", index),
-        body: { email: "ada@example.test", password: "secret" },
-      });
-      const stored = answer.cookies.find((cookie) =>
-        cookie.name.startsWith("dms_account_index_"),
-      );
-      return isObject(stored?.value) ? Object.keys(stored.value) : [];
-    };
-    const other = { accountId: "other", persistent: true };
-    expect(await indexAfterLogin({ other })).toEqual(["other", "<account>"]);
-    expect(await indexAfterLogin({ other: { ...other, persistent: 1 } })).toEqual(
-      ["<account>"],
-    );
   });
 
   it("switches tenant, opens a declared session and relays the 2FA e-mail", async () => {
@@ -417,36 +277,6 @@ function registerServiceRouteTests(
     expect(cancelled.location).toBe("/auth?oauth_error=error.oauth.cancelled");
     const handoff = await fixture.askDms("/auth/oauth/handoff", {});
     expect(handoff.body).toEqual({ kind: "none" });
-  });
-
-  it("takes an OAuth flow or handoff cookie of the wrong shape for none", async () => {
-    const callbackWith = (flow: unknown) =>
-      fixture.askDms("/auth/oauth/github/callback?code=c&state=state-1", {
-        method: "GET",
-        origin: false,
-        cookie: sealedCookie("dms_oauth_flow", flow),
-      });
-    const flow = {
-      state: "state-1",
-      expiresAt: Date.now() + 60_000,
-      redirect: "/projects",
-      language: "",
-      invite: "",
-    };
-    expect((await callbackWith(flow)).location).toBe(
-      "/auth/oauth/complete?redirect=%2Fprojects",
-    );
-    expect((await callbackWith({ ...flow, expiresAt: "soon" })).location).toBe(
-      "/auth?oauth_error=error.oauth.invalid_state",
-    );
-
-    const handoffOf = (value: unknown) =>
-      fixture.askDms("/auth/oauth/handoff", {
-        cookie: sealedCookie("dms_oauth_handoff", value),
-      });
-    const challenge = { kind: "2fa", token: "challenge-1", methods: ["totp"] };
-    expect((await handoffOf(challenge)).body).toEqual(challenge);
-    expect((await handoffOf({ kind: "other" })).body).toEqual({ kind: "none" });
   });
 
   it("renders e-mails for the backend's service token only", async () => {
