@@ -1,3 +1,5 @@
+import { setTimeout } from "node:timers/promises";
+import { ReloadModule } from "@antelopejs/interface-core/modules";
 import { Schema } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
@@ -20,7 +22,10 @@ import {
   registerTenantInstance,
 } from "../../../utils";
 import { countRawDocuments, resetDatabase } from "../../helpers/db";
-import { reloadHostProvisionedTenants } from "../../helpers/reload-host";
+import {
+  RELOAD_HOST_MODULE,
+  reloadHostProvisionedTenants,
+} from "../../helpers/reload-host";
 
 const EXISTING_TENANT = "instances-existing-tenant";
 const PROVISIONED_TENANT = "instances-provisioned-tenant";
@@ -84,7 +89,7 @@ describe("[unit] utils/tenant-instances", () => {
     expect(listedByHandler).to.include(PROVISIONED_TENANT);
   });
 
-  it("provisions the default tenant once, after DATABASE_INITIALIZED", () => {
+  it("provisions the default tenant once, after DATABASE_INITIALIZED and consumer start", () => {
     const defaults = reloadHostProvisionedTenants().filter(
       (call) => call.tenantId === DEFAULT_TENANT_ID,
     );
@@ -92,6 +97,68 @@ describe("[unit] utils/tenant-instances", () => {
     expect(defaults).to.have.length(1);
     expect(defaults[0].userId).to.equal(undefined);
     expect(defaults[0].afterDatabaseInitialized).to.equal(true);
+    expect(defaults[0].afterStart).to.equal(true);
+  });
+
+  it("leaves a legacy default tenant without a pending marker provisioned", async () => {
+    await GetModel(TenantModel).table.insert({ _id: DEFAULT_TENANT_ID }).run();
+    const calls: string[] = [];
+    const handler: HookHandler<Hook.TENANT_BEING_PROVISIONED> = ({
+      tenantId,
+    }) => {
+      calls.push(tenantId);
+      return undefined;
+    };
+    RegisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
+    try {
+      expect(await ensureDefaultTenantExists()).to.equal(false);
+      await provisionDefaultTenant();
+    } finally {
+      UnregisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
+    }
+    expect(calls).to.deep.equal([]);
+    expect(await GetModel(TenantModel).get(DEFAULT_TENANT_ID)).not.to.equal(
+      undefined,
+    );
+  });
+
+  it("resumes pending provisioning after consumer reloads without overlapping attempts", async () => {
+    await ensureDefaultTenantExists();
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    let attempts = 0;
+    const handler: HookHandler<Hook.TENANT_BEING_PROVISIONED> = async () => {
+      attempts += 1;
+      entered.resolve();
+      await release.promise;
+      return undefined;
+    };
+    RegisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
+    try {
+      await ReloadModule(RELOAD_HOST_MODULE);
+      await Promise.race([entered.promise, setTimeout(1000)]);
+      expect(attempts).to.equal(1);
+      await ReloadModule(RELOAD_HOST_MODULE);
+      expect(attempts).to.equal(1);
+      expect(
+        (await GetModel(TenantModel).get(DEFAULT_TENANT_ID))
+          ?.provisioningPending,
+      ).to.equal(true);
+    } finally {
+      release.resolve();
+      UnregisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
+    }
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (
+        !(await GetModel(TenantModel).get(DEFAULT_TENANT_ID))
+          ?.provisioningPending
+      )
+        break;
+      await setTimeout(10);
+    }
+    expect(
+      (await GetModel(TenantModel).get(DEFAULT_TENANT_ID))?.provisioningPending,
+    ).to.equal(false);
   });
 
   it("resumes interrupted default tenant provisioning without replacing its row", async () => {

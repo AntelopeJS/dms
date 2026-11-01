@@ -1,5 +1,6 @@
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { Events } from "@antelopejs/interface-core/modules";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { RegisterSchema } from "@antelopejs/interface-database-decorators";
 import {
@@ -83,6 +84,7 @@ export * from "./config";
 
 let cronTasks: ScheduledTask[] = [];
 let staleExportsSweep: Promise<void> = Promise.resolve();
+let defaultTenantProvisioning: Promise<void> | undefined;
 
 let globalRealtimeConfig: RealtimeConfig | undefined;
 
@@ -254,16 +256,21 @@ export function destroy(): void {
   closeDevReloadStreams();
 }
 
+function onModulesStarted(): void {
+  if (defaultTenantProvisioning) return;
+  defaultTenantProvisioning = provisionDefaultTenant().finally(() => {
+    defaultTenantProvisioning = undefined;
+  });
+}
+
 export async function start(): Promise<void> {
   await allowClientOrigin();
   await configureRealtime(globalRealtimeConfig);
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
-  const defaultTenantCreated = await ensureDefaultTenantExists();
+  await ensureDefaultTenantExists();
   await registerExistingTenantInstances();
   await SettleHook(Hook.DATABASE_INITIALIZED);
-
-  if (defaultTenantCreated) await provisionDefaultTenant();
 
   staleExportsSweep = runSweepStaleExports().catch((error) => {
     Logging.Error(`Cron '${SWEEP_STALE_EXPORTS_CRON_NAME}' failed:`, error);
@@ -276,9 +283,12 @@ export async function start(): Promise<void> {
   await registerAutomationNodes();
   await startModuleUpdateWatcher();
   startPendingExtensionReport();
+  Events.ModulesStarted.register(onModulesStarted);
 }
 
 export async function stop(): Promise<void> {
+  Events.ModulesStarted.unregister(onModulesStarted);
+  await defaultTenantProvisioning;
   await staleExportsSweep;
   UnsettleHook(Hook.DATABASE_INITIALIZED);
   stopPendingExtensionReport();
