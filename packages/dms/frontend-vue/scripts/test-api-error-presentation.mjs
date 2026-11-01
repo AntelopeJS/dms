@@ -1,4 +1,15 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import {
   analyzeApiErrorScript,
@@ -89,5 +100,35 @@ for (const source of [
     "expression",
   ]);
   assert.equal(result.manual[0].reason, "manual-error-presentation");
+}
+const linkRoot = mkdtempSync(join(tmpdir(), "dms-api-error-cli-"));
+const appRoot = mkdtempSync(
+  fileURLToPath(new URL("../.api-error-cli-", import.meta.url)),
+);
+try {
+  const scripts = join(linkRoot, "scripts");
+  symlinkSync(fileURLToPath(new URL(".", import.meta.url)), scripts, "dir");
+  writeFileSync(join(appRoot, "package.json"), "{}");
+  mkdirSync(join(appRoot, "app"));
+  writeFileSync(
+    join(appRoot, "app", "manual.ts"),
+    `export function useSave() { try {} catch (error) { toast.add({ title: t(dynamic), color: 'error' }); } }`,
+  );
+  const checker = spawnSync(
+    process.execPath,
+    [join(scripts, "check-api-error-presentation.mjs"), join(appRoot, "app")],
+    { encoding: "utf8" },
+  );
+  assert.notEqual(checker.status, 0, "checker fails through a symlinked path");
+  const codemod = spawnSync(
+    process.execPath,
+    [join(scripts, "codemods", "api-error-presenter.mjs"), join(appRoot, "app")],
+    { encoding: "utf8", cwd: appRoot },
+  );
+  assert.equal(codemod.status, 0, codemod.stderr);
+  assert.match(codemod.stdout, /"reason":"manual-error-presentation"/);
+} finally {
+  rmSync(linkRoot, { recursive: true, force: true });
+  rmSync(appRoot, { recursive: true, force: true });
 }
 console.log("PASS API error invariant and codemod fixtures");
