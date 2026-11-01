@@ -77,7 +77,7 @@ function equal(name, actual, expected) {
 /**
  * A check that an API answer has `expected` as its status.
  *
- * @param {{ status: number | null, body: any }} answer The answer
+ * @param {Pick<import("./session.mjs").ApiAnswer, "status" | "body">} answer The answer
  * @param {number} expected The status wanted
  * @returns {Check} The check
  */
@@ -209,8 +209,8 @@ export class JourneyContext {
    * or with an explicit `token` and no retry, and records the exchange.
    *
    * @param {string} label What the call does
-   * @param {{ method: string, path: string, body?: any, as?: string, token?: string }} request What to send and as whom
-   * @returns {Promise<{ status: number | null, body: any, error: string | null, folder?: string }>} The answer
+   * @param {{ method: string, path: string, body?: unknown, as?: string, token?: string }} request What to send and as whom
+   * @returns {Promise<import("./session.mjs").ApiAnswer & { folder?: string }>} The answer
    */
   api(label, request) {
     if (request.token) {
@@ -230,8 +230,8 @@ export class JourneyContext {
    * Sends anonymous requests at once, for races, each recorded in its own step folder.
    *
    * @param {string} label What the calls do
-   * @param {{ method: string, path: string, body?: any, token?: string }[]} requests What to send
-   * @returns {Promise<{ status: number | null, body: any, error: string | null }[]>} The answers
+   * @param {{ method: string, path: string, body?: unknown, token?: string }[]} requests What to send
+   * @returns {Promise<import("./session.mjs").ApiAnswer[]>} The answers
    */
   concurrent(label, requests) {
     return Promise.all(

@@ -37,6 +37,19 @@ export function stringField(body, key) {
 }
 
 /**
+ * The first element of a JSON array, when it is a string.
+ *
+ * @param {unknown} body A parsed JSON value
+ * @returns {string | undefined} The first string, or undefined when `body` is no array or starts with anything else
+ */
+export function firstString(body) {
+  if (!Array.isArray(body)) return undefined;
+  /** @type {unknown} */
+  const first = body.at(0);
+  return isString(first) ? first : undefined;
+}
+
+/**
  * The objects a JSON file lists, kept as written.
  *
  * @param {string} file The JSON file
