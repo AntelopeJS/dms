@@ -45,12 +45,14 @@ export default defineScenes([
   {
     id: "periods-this-month",
     route: "/helio/dashboard?helio.period=this-month",
+    viewport: { width: 1440, height: 664 },
     steps: [{ action: "wait", selector: ".apexcharts-canvas" }],
     output: "packages/dms/docs/images/captures/periods-this-month.webp",
   },
   {
     id: "periods-last-30-days",
     route: "/helio/dashboard?helio.period=last-30-days",
+    viewport: { width: 1440, height: 664 },
     steps: [{ action: "wait", selector: ".apexcharts-canvas" }],
     output: "packages/dms/docs/images/captures/periods-last-30-days.webp",
   },
