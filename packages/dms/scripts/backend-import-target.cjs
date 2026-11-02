@@ -77,7 +77,7 @@ const processPins = {
     'await execFileAsync("npm", ["pack", spec, "--pack-destination", destination, "--silent"], { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS });',
   "dist/test/helpers/replica-process.js:4":
     'const node_child_process_1 = require("node:child_process");',
-  "dist/test/helpers/replica-process.js:102":
+  "dist/test/helpers/replica-process.js:106":
     'const child = (0, node_child_process_1.spawn)((0, node_path_1.join)(MODULE_ROOT, "node_modules/.bin/ajs"), ["project", "run", "--project", directory], {\n            cwd: directory,\n            env: { ...process.env, REPLICA_HOST_HOLD_MS: String(holdMs) },\n        });',
   "dist/test/unit/package-contents.test.js:3":
     'const node_child_process_1 = require("node:child_process");',

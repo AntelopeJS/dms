@@ -2,13 +2,12 @@ import { randomUUID } from "node:crypto";
 import { setTimeout } from "node:timers/promises";
 import { expect } from "chai";
 import { MongoClient } from "mongodb";
-import { ReplicaProcess } from "../helpers/replica-process";
+import { LEASE, ReplicaProcess } from "../helpers/replica-process";
 
 const TEST_TIMEOUT_MS = 240_000;
 const STARTED_LINE = "replica-host provisioning default";
 const FINISHED_LINE = "replica-host provisioned default";
-/** Longer than the 3 s after which replicas count a silent holder as stopped. */
-const HOLD_MS = 6000;
+const HOLD_MS = 2 * LEASE.staleAfterMs;
 const POLL_MS = 250;
 
 function provisioning(replicas: ReplicaProcess[]): number {

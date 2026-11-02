@@ -11,7 +11,11 @@ const SECRET = "replica-test-secret";
 const READY_POLL_MS = 250;
 
 /** The lease timing a replica runs on, short enough for a test to outlast. */
-const LEASE = { renewEveryMs: 500, staleAfterMs: 3000, pollEveryMs: 250 };
+export const LEASE = {
+  renewEveryMs: 500,
+  staleAfterMs: 3000,
+  pollEveryMs: 250,
+};
 
 function freePort(): Promise<number> {
   return new Promise((done, fail) => {
@@ -122,7 +126,6 @@ export class ReplicaProcess {
     return new ReplicaProcess(child, directory, port);
   }
 
-  /** Whether the process is still running. */
   get running(): boolean {
     return this.exit === undefined;
   }

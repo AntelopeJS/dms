@@ -164,9 +164,8 @@ async function provisionUnderLease(
 
 /**
  * Tells whether a holder stopped, from its token alone: the same token seen
- * again after `staleAfterMs` on this replica's own clock. It holds wherever the
- * holder stopped and needs no clock agreement, a slow holder keeps changing its
- * token however long its work takes, and a read that failed is no evidence.
+ * again after `staleAfterMs` on this replica's own clock. A failed read is no
+ * evidence, so the caller forgets what it saw.
  */
 function createStaleWatch(staleAfterMs: number) {
   let seen: { revision: string | undefined; at: number } | undefined;
