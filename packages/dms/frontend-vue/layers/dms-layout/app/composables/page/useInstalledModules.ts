@@ -1,12 +1,14 @@
+import type { StoreListing } from "#dms-core/app/types/module-store";
 import type { ModuleCatalogEntry } from "#dms-core/app/types/page";
+import type { Ref } from "vue";
 import {
   sortStoreModules,
   storeOnlyModules,
   toModuleStoreEntry,
   withStoreDetails,
 } from "../../build/utils/module-store-catalog";
-import type { useModuleStore } from "./useModuleStore";
-import type { useModulesListing } from "./useModulesListing";
+import { ENDPOINT_STORE_LISTING } from "./useModuleStore";
+import { useModulesListing } from "./useModulesListing";
 
 /**
  * The installed modules, as the Modules page lists them and the sidebar
@@ -19,7 +21,7 @@ import type { useModulesListing } from "./useModulesListing";
  */
 export const useInstalledModules = (
   modulesListing: ReturnType<typeof useModulesListing>,
-  moduleStore: Pick<ReturnType<typeof useModuleStore>, "listing">,
+  moduleStore: { listing: Readonly<Ref<StoreListing | undefined>> },
 ) => {
   const { locale } = useI18n();
   const { processI18n } = useTranslation();
@@ -43,4 +45,26 @@ export const useInstalledModules = (
   });
 
   return { storeModules, modules };
+};
+
+/**
+ * How many modules are installed, for the sidebar's badge. The store listing
+ * waits on the npm registry, so a server render must not wait for it: the
+ * browser reads it, and the count shows once mounted. Until then the badge is
+ * absent, on the server and on the browser's first render, which a page that
+ * handed the listing over (the Modules page) would otherwise have filled in
+ * and mismatched.
+ */
+export const useInstalledModuleCount = () => {
+  const isOwner = useIsOwner();
+  const storeListing = useApiData<StoreListing>(
+    () => (isOwner.value ? ENDPOINT_STORE_LISTING : null),
+    { server: false },
+  );
+  const { modules } = useInstalledModules(useModulesListing(), {
+    listing: computed(() => storeListing.data.value ?? undefined),
+  });
+  const isMounted = ref(false);
+  onMounted(() => (isMounted.value = true));
+  return computed(() => (isMounted.value ? modules.value.length : 0));
 };

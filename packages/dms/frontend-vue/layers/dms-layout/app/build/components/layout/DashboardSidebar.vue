@@ -13,9 +13,7 @@ import { useSidebarState } from "./sidebarState";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import { useMediaQuery } from "@vueuse/core";
 import DmsSidebarUserMenu from "./SidebarUserMenu.vue";
-import { useInstalledModules } from "../../../composables/page/useInstalledModules";
-import { useModuleStore } from "../../../composables/page/useModuleStore";
-import { useModulesListing } from "../../../composables/page/useModulesListing";
+import { useInstalledModuleCount } from "../../../composables/page/useInstalledModules";
 
 const MODULES_PATH = "/modules";
 
@@ -208,11 +206,7 @@ watch(
   { immediate: true },
 );
 
-const { modules: installedModules } = useInstalledModules(
-  useModulesListing(),
-  useModuleStore(),
-);
-const moduleCount = computed(() => installedModules.value.length);
+const moduleCount = useInstalledModuleCount();
 
 const footerItems = computed((): NavigationMenuItem[] => {
   const result: NavigationMenuItem[] = [];
