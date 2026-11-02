@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computed,
   createApp,
@@ -13,10 +13,15 @@ import {
   type App,
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
+import { hydrate, serverRender, stubApiData } from "./helpers/api-data-runtime";
 import { stubModuleReads } from "./helpers/installed-modules-runtime";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 import { ENDPOINT_MODULES_LISTING } from "../layers/dms-layout/app/composables/page/useModulesListing";
 import { ENDPOINT_STORE_LISTING } from "../layers/dms-layout/app/composables/page/useModuleStore";
+
+const { useApiData } = await import(
+  "../layers/dms-core/app/composables/auth/useApiData"
+);
 
 const route = reactive({ path: "/home", query: {} });
 let app: App;
@@ -158,9 +163,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("badges Modules with the installed modules the Modules page lists, one of them without pages", () => {
-  app = createApp(Sidebar);
-  app.component(
+function registerSidebarParts(target: App): void {
+  target.component(
     "UDashboardSidebar",
     defineComponent({
       setup:
@@ -169,11 +173,77 @@ it("badges Modules with the installed modules the Modules page lists, one of the
           slots.footer?.({ collapsed: false }),
     }),
   );
-  app.component("DmsNavigationMenu", Navigation);
-  app.component("DmsDashboardSearch", defineComponent({ render: () => null }));
+  target.component("DmsNavigationMenu", Navigation);
+  target.component(
+    "DmsDashboardSearch",
+    defineComponent({ render: () => null }),
+  );
+}
+
+const badge = (container: Element) =>
+  container.querySelector('a[href="/modules"]')?.textContent;
+
+it("badges Modules with the installed modules the Modules page lists, one of them without pages", async () => {
+  app = createApp(Sidebar);
+  registerSidebarParts(app);
   app.mount(host);
 
-  expect(host.querySelector('a[href="/modules"]')?.textContent).toBe(
-    "menu.modules 2",
+  await vi.waitFor(() => expect(badge(host)).toBe("menu.modules 2"));
+});
+
+describe("with the real data reads", () => {
+  const storeReads = vi.fn(async (url: string) =>
+    structuredClone(ANSWERS[url]),
   );
+  const Page = defineComponent({
+    setup() {
+      useApiData(ENDPOINT_STORE_LISTING);
+      return () => h("main");
+    },
+  });
+  const Layout = (withPage: boolean) =>
+    defineComponent({
+      setup: () => () => h("div", [h(Sidebar), ...(withPage ? [h(Page)] : [])]),
+    });
+
+  beforeEach(() => {
+    storeReads.mockClear();
+    stubApiData(storeReads);
+    vi.stubGlobal("useApiData", useApiData);
+  });
+
+  it("never reads the store listing while it renders on the server", async () => {
+    const { html } = await serverRender(Layout(false), registerSidebarParts);
+
+    expect(storeReads.mock.calls.map(([url]) => url)).not.toContain(
+      ENDPOINT_STORE_LISTING,
+    );
+    expect(html).toContain("menu.modules");
+    expect(html).not.toContain("menu.modules 1");
+    expect(html).not.toContain("menu.modules 2");
+  });
+
+  it.each([
+    ["a page that does not read the listing", false],
+    ["the Modules page, which hands the listing over", true],
+  ])("hydrates without a mismatch after %s", async (_name, withPage) => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { html, payload } = await serverRender(
+      Layout(withPage),
+      registerSidebarParts,
+    );
+    storeReads.mockClear();
+
+    const { app: hydrated, container } = hydrate(
+      Layout(withPage),
+      html,
+      payload,
+      registerSidebarParts,
+    );
+    app = hydrated;
+    expect(badge(container)).toBe("menu.modules");
+    await vi.waitFor(() => expect(badge(container)).toBe("menu.modules 2"));
+
+    expect(warn.mock.calls.flat().join("\n")).not.toMatch(/hydration/i);
+  });
 });
