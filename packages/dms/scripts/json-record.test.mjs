@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   group,
+  optionalNumber,
   optionalText,
+  parseJsonEntries,
   parseJsonRecord,
   text,
   textAt,
@@ -53,4 +55,22 @@ await test("a group that is missing or not an object is refused, and an own __pr
   assert.throws(() => group(parseJsonRecord('{"a":[]}', "t"), "a"), TypeError);
   const own = parseJsonRecord('{"__proto__":{"k":"v"}}', "t");
   assert.equal(text(group(own, "__proto__"), "k"), "v");
+});
+
+await test("the entries of a JSON object or array are listed, anything else is refused", () => {
+  assert.deepEqual(parseJsonEntries('{"a":1,"__proto__":2}', "t"), [
+    ["a", 1],
+    ["__proto__", 2],
+  ]);
+  assert.deepEqual(parseJsonEntries("[true]", "t"), [["0", true]]);
+  for (const value of ["5", "null", '"text"'])
+    assert.throws(() => parseJsonEntries(value, "t"), TypeError);
+});
+
+await test("a number entry is read, null and a missing entry are absent, anything else is refused", () => {
+  const node = parseJsonRecord('{"n":3,"z":null,"s":"3"}', "t");
+  assert.equal(optionalNumber(node, "n"), 3);
+  assert.equal(optionalNumber(node, "z"), undefined);
+  assert.equal(optionalNumber(node, "missing"), undefined);
+  assert.throws(() => optionalNumber(node, "s"), TypeError);
 });
