@@ -21,6 +21,8 @@ import { generateAccessToken } from "@antelopejs/interface-dms/auth";
 
 export const TENANT = DEFAULT_TENANT_ID;
 
+const InviteRow = z.record(z.string(), z.unknown());
+
 async function requestContext(admin: User) {
   const { token } = await generateAccessToken(TENANT, admin);
   const rawRequest = new IncomingMessage(new Socket());
@@ -90,7 +92,7 @@ export async function readPendingInvite(id: string, admin: User) {
   const ctx = await requestContext(admin);
   const route = registeredInviteRoute("get", "/api/tables/admin-invites/get");
   const controller = await GetControllerInstance(route.controller, ctx);
-  return route.callback.call(
+  const row: unknown = await route.callback.call(
     controller,
     ctx,
     { id },
@@ -100,6 +102,7 @@ export async function readPendingInvite(id: string, admin: User) {
     undefined,
     admin,
   );
+  return InviteRow.parse(row);
 }
 
 function registeredInviteRoute(method: string, location: string) {
@@ -125,7 +128,7 @@ export async function editPendingInvite(
   const ctx = await requestContext(admin);
   const route = registeredInviteRoute("put", "/api/tables/admin-invites/edit");
   const controller = await GetControllerInstance(route.controller, ctx);
-  return route.callback.call(
+  await route.callback.call(
     controller,
     ctx,
     { id },
