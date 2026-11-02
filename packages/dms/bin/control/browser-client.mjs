@@ -1,3 +1,5 @@
+import { isOutcome } from "./browser-wire.mjs";
+import { decode } from "./json.mjs";
 import { CONTROL_BIN } from "./stack.mjs";
 import { freePort, isAlive, startDetached, waitForOk } from "./processes.mjs";
 import { saveRun } from "./run-state.mjs";
@@ -33,16 +35,29 @@ async function browserServer(state) {
  * and a screenshot go to `<run>/evidence/browser/NN-<label>/`.
  *
  * @param {import("./run-state.mjs").RunState} state The run
- * @param {Record<string, any>} request The action: `do`, `account`, `tab`, and the action's target, value, key or path
+ * @param {Omit<import("./browser.mjs").BrowserRequest, "folder">} request The action: `do`, `account`, `tab`, and the action's target, value, key or path
  * @param {string} label What the step does
  * @returns {Promise<{ ok: boolean, url: string, error: string | null, aria: string, folder: string }>} The outcome
  */
 export async function browserCommand(state, request, label) {
   const server = await browserServer(state);
   const folder = nextFolder(state, "browser", label);
-  const response = await fetch(`http://127.0.0.1:${server.port}/`, {
+  const outcome = await postAction(server.port, { ...request, folder });
+  return { ...outcome, folder };
+}
+
+/**
+ * @param {number} port The browser server's port
+ * @param {import("./browser.mjs").BrowserRequest} request The action
+ * @returns {Promise<import("./browser.mjs").Outcome>} The server's answer
+ * @throws When the answer is not an outcome
+ */
+export async function postAction(port, request) {
+  const response = await fetch(`http://127.0.0.1:${port}/`, {
     method: "POST",
-    body: JSON.stringify({ ...request, folder }),
+    body: JSON.stringify(request),
   });
-  return { ...(await response.json()), folder };
+  /** @type {unknown} */
+  const answer = await response.json();
+  return decode(isOutcome, answer, "the browser server's answer", "an outcome");
 }

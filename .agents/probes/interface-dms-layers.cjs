@@ -181,20 +181,16 @@ const ISOLATED = [
   "page/types.js",
 ];
 
-/** @type {Map<unknown, unknown>["set"]} */
-const originalMapSet = Map.prototype.set;
-/** @type {Map<unknown, unknown>["has"]} */
-const originalMapHas = Map.prototype.has;
-/** @type {WeakMap<object, unknown>["set"]} */
-const originalWeakMapSet = WeakMap.prototype.set;
-/** @type {WeakMap<object, unknown>["has"]} */
-const originalWeakMapHas = WeakMap.prototype.has;
-/** @type {WeakMap<object, string | null>["get"]} */
-const originalWeakMapGet = WeakMap.prototype.get;
-/** @type {Set<unknown>["add"]} */
-const originalSetAdd = Set.prototype.add;
-/** @type {Set<unknown>["has"]} */
-const originalSetHas = Set.prototype.has;
+const mapMethods = Object.getOwnPropertyDescriptors(Map.prototype);
+const weakMapMethods = Object.getOwnPropertyDescriptors(WeakMap.prototype);
+const setMethods = Object.getOwnPropertyDescriptors(Set.prototype);
+const originalMapSet = defined(mapMethods.set.value);
+const originalMapHas = defined(mapMethods.has.value);
+const originalWeakMapSet = defined(weakMapMethods.set.value);
+const originalWeakMapHas = defined(weakMapMethods.has.value);
+const originalWeakMapGet = defined(weakMapMethods.get.value);
+const originalSetAdd = defined(setMethods.add.value);
+const originalSetHas = defined(setMethods.has.value);
 
 /**
  * @typedef {{
@@ -247,6 +243,16 @@ function isBigInt(value) {
  */
 function isFunction(value) {
   return typeof value === "function";
+}
+
+/**
+ * @template T
+ * @param {T | undefined} value
+ * @returns {T}
+ */
+function defined(value) {
+  if (value === undefined) throw new TypeError("Expected a method of the prototype");
+  return value;
 }
 
 /**
