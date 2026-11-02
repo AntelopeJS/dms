@@ -6,6 +6,7 @@ import type {
 import type { StatGroupItem } from "@antelopejs/interface-dms/base/stat-group";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound, serviceUnavailable } from "./demo-errors";
+import { ownEntry } from "../own-entry";
 
 const DEMO_LATENCY_MS = 900;
 const MINUTE_MS = 60 * 1000;
@@ -190,8 +191,9 @@ function invoiceStats(scale: number, period: string): StatGroupItem[] {
 export class BlocksDemoApiController extends Controller("/api/blocks") {
   @Get("stats")
   getStats(@Parameter("preset", "query") preset?: string) {
-    const scale = PERIOD_SCALES[preset ?? DEFAULT_PERIOD] ?? 1;
-    const period = PERIOD_LABELS[preset ?? DEFAULT_PERIOD] ?? "Selected period";
+    const scale = ownEntry(PERIOD_SCALES, preset ?? DEFAULT_PERIOD) ?? 1;
+    const period =
+      ownEntry(PERIOD_LABELS, preset ?? DEFAULT_PERIOD) ?? "Selected period";
     return later({ items: [mrrStat(), ...invoiceStats(scale, period)] });
   }
 
@@ -234,8 +236,9 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
 
   @Get("period-facts")
   getPeriodFacts(@Parameter("preset", "query") preset?: string) {
-    const scale = PERIOD_SCALES[preset ?? DEFAULT_PERIOD] ?? 1;
-    const period = PERIOD_LABELS[preset ?? DEFAULT_PERIOD] ?? "Selected period";
+    const scale = ownEntry(PERIOD_SCALES, preset ?? DEFAULT_PERIOD) ?? 1;
+    const period =
+      ownEntry(PERIOD_LABELS, preset ?? DEFAULT_PERIOD) ?? "Selected period";
     return later({
       items: [
         { label: "Period", value: period },

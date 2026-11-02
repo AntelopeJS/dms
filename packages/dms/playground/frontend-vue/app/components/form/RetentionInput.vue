@@ -19,6 +19,11 @@ interface Props {
   disabled?: boolean;
   min?: number;
   max?: number;
+  /**
+   * Route answering the confirmation of a lowered retention, `{{row.days}}`
+   * the new value. The demo page's route when left out.
+   */
+  confirmUrl?: string;
 }
 
 const props = defineProps<Props>();
@@ -61,7 +66,7 @@ function isLowered(value: typeof model.value): value is number {
 }
 
 async function askThenSubmit(days: number): Promise<void> {
-  const confirmed = await confirmFrom(LOWER_RETENTION_URL, {
+  const confirmed = await confirmFrom(props.confirmUrl ?? LOWER_RETENTION_URL, {
     params: { days },
   });
   if (!confirmed || !form) return;

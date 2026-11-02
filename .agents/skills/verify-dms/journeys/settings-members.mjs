@@ -1,6 +1,8 @@
 import { MEMBERS, INVITATIONS, PAGES_API, ON_MEMBERS, createRole, listMembers, listInvites, openInviteDialog, addAddresses, pickTeam, pickRole, invite, signupLink, acceptInvitation, byEmail, REVOKED_LINK, REPLACED_LINK } from "./settings-members/steps.mjs";
 import { memberChangeJourneys } from "./settings-members/changes.mjs";
 
+import { booleanIn, stringIn } from "../rows.mjs";
+
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  */
@@ -55,8 +57,8 @@ export const journeys = [
       const me = await ctx.api("read the member's account", { method: "GET", path: "/api/auth/me", as: "bob" });
       await ctx.verify("the member signs in through the form in a new browser", [
         ctx.status(me, 200),
-        ctx.equal("email", me.body?.email, email),
-        ctx.equal("owner", me.body?.owner, false),
+        ctx.equal("email", stringIn(me.body, "email"), email),
+        ctx.equal("owner", booleanIn(me.body, "owner"), false),
       ]);
       await admin.goto("/settings/user/notifications");
       await ctx.verify("the inviter is told the invitation was accepted", [
