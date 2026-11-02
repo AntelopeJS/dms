@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import Module, { findPackageJSON } from "node:module";
 import { dirname, join } from "node:path";
 import { ImplementInterface } from "@antelopejs/interface-core";
@@ -38,7 +39,9 @@ function enterThroughTableView(): typeof TableViewInterface {
     __filename,
   );
   if (!manifest) throw new Error("Cannot locate table-view package");
-  const tableViewEntry = join(dirname(manifest), "dist/base/table-view.js");
+  const tableViewEntry = realpathSync(
+    join(dirname(manifest), "dist/base/table-view.js"),
+  );
   let hasLoadedDms = false;
   loader._load = function (request, parent, isMain) {
     if (!hasLoadedDms && parent?.filename === tableViewEntry) {
@@ -50,7 +53,10 @@ function enterThroughTableView(): typeof TableViewInterface {
     return load.call(this, request, parent, isMain);
   };
   try {
-    return require("@antelopejs/interface-dms/base/table-view");
+    const entered = require("@antelopejs/interface-dms/base/table-view");
+    if (!hasLoadedDms)
+      throw new Error(`The load of ${tableViewEntry} was never intercepted`);
+    return entered;
   } finally {
     loader._load = load;
   }
