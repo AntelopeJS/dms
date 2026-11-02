@@ -158,6 +158,20 @@ export default defineScenes([
     output: "packages/dms/docs/images/captures/workspace-members.webp",
   },
   {
+    id: "periods-this-month",
+    route: "/helio/dashboard?helio.period=this-month",
+    viewport: { width: 1440, height: 664 },
+    steps: [{ action: "wait", selector: ".apexcharts-canvas" }],
+    output: "packages/dms/docs/images/captures/periods-this-month.webp",
+  },
+  {
+    id: "periods-last-30-days",
+    route: "/helio/dashboard?helio.period=last-30-days",
+    viewport: { width: 1440, height: 664 },
+    steps: [{ action: "wait", selector: ".apexcharts-canvas" }],
+    output: "packages/dms/docs/images/captures/periods-last-30-days.webp",
+  },
+  {
     id: "sign-in",
     route: "/helio/dashboard",
     steps: [
@@ -171,19 +185,5 @@ export default defineScenes([
     id: "pricing",
     route: "/pricing",
     output: "packages/dms/docs/images/captures/pricing.webp",
-  },
-  {
-    id: "periods-this-month",
-    route: "/helio/dashboard?helio.period=this-month",
-    viewport: { width: 1440, height: 664 },
-    steps: [{ action: "wait", selector: ".apexcharts-canvas" }],
-    output: "packages/dms/docs/images/captures/periods-this-month.webp",
-  },
-  {
-    id: "periods-last-30-days",
-    route: "/helio/dashboard?helio.period=last-30-days",
-    viewport: { width: 1440, height: 664 },
-    steps: [{ action: "wait", selector: ".apexcharts-canvas" }],
-    output: "packages/dms/docs/images/captures/periods-last-30-days.webp",
   },
 ]);
