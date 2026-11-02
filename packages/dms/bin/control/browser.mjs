@@ -1,7 +1,9 @@
 import { writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
+import { browserRequestSchema } from "./browser-wire.mjs";
 import { describeFailure } from "./failure.mjs";
+import { decode } from "./json.mjs";
 import { importFrom } from "./mongo.mjs";
 import { loadRun } from "./run-state.mjs";
 
@@ -238,6 +240,33 @@ export async function signInThroughForm(page, credentials, options) {
 }
 
 /**
+ * @param {unknown} error What the action threw
+ * @returns {Outcome} The failed outcome
+ */
+function failedOutcome(error) {
+  return { ok: false, url: "", error: describeFailure(error), aria: "" };
+}
+
+/**
+ * Decodes a posted request and answers it. A body that is no valid request
+ * is answered as a failed action, like any action that throws.
+ *
+ * @param {string} body What the client posted
+ * @param {(request: BrowserRequest) => Promise<Outcome>} handle Runs one action
+ * @returns {Promise<string>} The outcome as JSON
+ */
+export function answerRequest(body, handle) {
+  return Promise.resolve()
+    .then(() => {
+      /** @type {unknown} */
+      const posted = JSON.parse(body);
+      return handle(decode(browserRequestSchema, posted, "browser request"));
+    })
+    .catch(failedOutcome)
+    .then((outcome) => JSON.stringify(outcome));
+}
+
+/**
  * Serves the run's browser for `dms-control browser`: one context per
  * account and one page per tab name, kept between commands, driven by JSON
  * posted to a loopback port. A GET answers 200 once it listens. It exits
@@ -301,18 +330,9 @@ export async function serveBrowser(dir, from, port) {
     const chunks = [];
     incoming.on("data", (/** @type {Buffer} */ chunk) => chunks.push(chunk));
     incoming.on("end", () => {
-      handle(JSON.parse(Buffer.concat(chunks).toString("utf8")))
-        .then((result) => outgoing.end(JSON.stringify(result)))
-        .catch((/** @type {unknown} */ error) =>
-          outgoing.end(
-            JSON.stringify({
-              ok: false,
-              url: "",
-              error: describeFailure(error),
-              aria: "",
-            }),
-          ),
-        );
+      answerRequest(Buffer.concat(chunks).toString("utf8"), handle)
+        .then((answer) => outgoing.end(answer))
+        .catch(() => outgoing.destroy());
     });
   });
   await new Promise((resolve) => server.listen(port, "127.0.0.1", resolve));

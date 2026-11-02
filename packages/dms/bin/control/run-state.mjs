@@ -2,6 +2,8 @@ import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { z } from "zod";
+import { decode } from "./json.mjs";
 
 const RUN_FILE = "run.json";
 const ID_BYTES = 3;
@@ -89,6 +91,73 @@ export function createRunFolders(dir) {
  * @typedef {Omit<RunState, "browser"> & { browser?: string | ServerRecord }} StoredRunState The state as a file may hold it. A run saved by an earlier release holds the browser's folder in `browser` until the browser starts.
  */
 
+const strings = z.record(z.string(), z.string());
+
+const processRecord = z.object({
+  name: z.string(),
+  pid: z.number(),
+  command: z.string(),
+  cwd: z.string(),
+  log: z.string(),
+  startedAt: z.string(),
+  port: z.number().optional(),
+});
+
+const serverRecord = processRecord.extend({ port: z.number() });
+
+const account = z.object({
+  email: z.string(),
+  password: z.string(),
+  userId: z.string().nullable().optional(),
+});
+
+/** The state as `run.json` holds it. Keys the schema does not name are kept, so saving a loaded run writes them back. */
+const storedRunSchema = /** @satisfies {z.ZodType<StoredRunState>} */ (
+  z
+    .object({
+      dir: z.string(),
+      root: z.string(),
+      home: z.string(),
+      logs: z.string(),
+      mongo: z.string(),
+      browser: z.union([z.string(), serverRecord]).optional(),
+      evidence: z.string(),
+      cache: z.string(),
+      id: z.string(),
+      createdAt: z.string(),
+      environment: z.string(),
+      playground: z.string(),
+      moduleRoot: z.string(),
+      repo: z.string().nullable(),
+      headSha: z.string().nullable(),
+      baseRef: z.string(),
+      skill: z.string().nullable(),
+      apiPort: z.number(),
+      webPort: z.number(),
+      smtpPort: z.number(),
+      mail: z.string(),
+      apiUrl: z.string(),
+      webUrl: z.string(),
+      databasePrefix: z.string(),
+      database: z.string(),
+      mongoUrl: z.string(),
+      ownsMongo: z.boolean(),
+      secrets: strings,
+      adminPassword: z.string(),
+      extraEnv: strings,
+      processes: z.array(processRecord),
+      accounts: z.record(z.string(), account),
+      tokens: strings,
+      ready: z.boolean(),
+      error: z.string().optional(),
+      runPlayground: z.string().optional(),
+      baseRoot: z.string().optional(),
+      resetCount: z.number().optional(),
+      journeyCount: z.number().optional(),
+    })
+    .passthrough()
+);
+
 /**
  * @param {StoredRunState} stored The state as the file holds it
  * @returns {stored is RunState} Whether `browser` holds no folder
@@ -112,8 +181,9 @@ export function loadRun(dir) {
       `No run at ${dir}: run.json is missing. Start one with dms-control up.`,
     );
   }
-  /** @type {StoredRunState} */
-  const stored = JSON.parse(readFileSync(file, "utf8"));
+  /** @type {unknown} */
+  const parsed = JSON.parse(readFileSync(file, "utf8"));
+  const stored = decode(storedRunSchema, parsed, file);
   if (holdsNoFolder(stored)) return stored;
   const { browser, ...current } = stored;
   return current;
