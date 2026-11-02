@@ -1,7 +1,8 @@
 import { EventEmitter } from "node:events";
-import type { RequestContext } from "@antelopejs/interface-api";
+import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
+import { z } from "zod";
 import {
   cancelScheduledBroadcast,
   DEV_RELOAD_TOPIC,
@@ -17,6 +18,7 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { RealtimeController } from "../../../routes";
+import { helloConnectionId, parseFrameData } from "../../helpers/sse-frames";
 import { userFixture } from "../../helpers/user-fixture";
 
 const USER = userFixture({
@@ -34,9 +36,18 @@ interface FakeStream {
   isEnded: () => boolean;
 }
 
+const FrameData = z.object({
+  connectionId: z.string().optional(),
+  sessionId: z.string().optional(),
+  event: z.string().optional(),
+  topic: z.string().optional(),
+  type: z.string().optional(),
+  data: z.object({ type: z.string().optional() }).optional(),
+});
+
 interface Frame {
   event: string;
-  data: ReturnType<typeof JSON.parse>;
+  data: z.infer<typeof FrameData>;
 }
 
 interface SessionGreeting {
@@ -72,20 +83,16 @@ const createFakeStream = (): FakeStream => {
 const parseFrames = (stream: FakeStream): Frame[] =>
   stream.frames
     .filter((frame) => frame.startsWith("event: "))
-    .map((frame) => {
-      const [eventLine, dataLine] = frame.split("\n");
-      return {
-        event: eventLine!.slice("event: ".length),
-        data: JSON.parse(dataLine!.slice("data: ".length)),
-      };
-    });
+    .map((frame) => ({
+      event: frame.split("\n")[0]!.slice("event: ".length),
+      data: parseFrameData(FrameData, frame),
+    }));
 
 const controller = RealtimeController.prototype;
 
 const openConnection = async (stream: FakeStream): Promise<string> => {
   await controller.connectionStream.call(undefined, stream.ctx, USER);
-  const hello = parseFrames(stream).find((frame) => frame.event === "hello");
-  return hello!.data.connectionId;
+  return helloConnectionId(stream.frames);
 };
 
 const openSession = (
@@ -131,7 +138,7 @@ describe("[unit] realtime — shared connection", () => {
 
     for (const greeting of [first, second]) {
       const delivered = sessionFramesOf(stream, greeting.sessionId!).filter(
-        (frame) => frame.data.data.type === "notification:new",
+        (frame) => frame.data.data?.type === "notification:new",
       );
       expect(delivered).to.have.length(1);
       expect(delivered[0]!.data.event).to.equal(
@@ -239,8 +246,9 @@ describe("[unit] realtime — shared connection", () => {
     let status: number | undefined;
     try {
       await openSession(connectionId, OTHER_USER);
-    } catch (error: PromiseRejectedResult["reason"]) {
-      status = error.status;
+    } catch (error) {
+      if (!(error instanceof HTTPResult)) throw error;
+      status = error.getStatus();
     }
     expect(status).to.equal(403);
   });

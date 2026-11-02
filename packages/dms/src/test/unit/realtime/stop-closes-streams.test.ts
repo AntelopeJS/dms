@@ -8,6 +8,7 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { RealtimeController } from "../../../routes";
+import { helloConnectionId } from "../../helpers/sse-frames";
 import { userFixture } from "../../helpers/user-fixture";
 
 const USER = userFixture({
@@ -74,12 +75,6 @@ const spyOnIntervals = (): TimerSpy => {
   };
 };
 
-const readConnectionId = (stream: FakeStream): string => {
-  const hello = stream.frames.find((frame) => frame.startsWith("event: hello"));
-  const data = hello?.split("\ndata: ")[1] ?? "{}";
-  return JSON.parse(data).connectionId;
-};
-
 const openConnection = async (stream: FakeStream): Promise<void> => {
   await RealtimeController.prototype.connectionStream.call(
     undefined,
@@ -93,7 +88,7 @@ const openSession = async (stream: FakeStream): Promise<string> => {
   const greeting = await RealtimeController.prototype.openSession.call(
     undefined,
     createFakeStream().ctx,
-    readConnectionId(stream),
+    helloConnectionId(stream.frames),
     USER,
   );
   return greeting.sessionId!;
