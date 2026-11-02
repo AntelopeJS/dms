@@ -18,7 +18,6 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { expect } from "chai";
-import { z } from "zod";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
@@ -75,14 +74,6 @@ class PaymentAPI extends DataController(
 type PaymentOptions = NonNullable<
   Parameters<typeof TableView<typeof PaymentAPI>>[1]
 >;
-
-type SummaryWhere = NonNullable<
-  NonNullable<NonNullable<PaymentOptions["footer"]>["summary"]>[number]["where"]
->;
-
-const MalformedWhereObject = z.custom<SummaryWhere>(
-  (value) => z.record(z.unknown()).safeParse(value).success,
-);
 
 const READ_ONLY = { add: false, duplicate: false, edit: false, delete: false };
 
@@ -154,13 +145,7 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
     const declare = (json: string) =>
       optionsOf({
         footer: {
-          summary: [
-            {
-              label: "Bad",
-              op: "count",
-              where: MalformedWhereObject.parse(JSON.parse(json)),
-            },
-          ],
+          summary: [{ label: "Bad", op: "count", where: JSON.parse(json) }],
         },
       });
     expect(() => declare('{"field":"amount","equals":41,"and":123}')).to.throw(
