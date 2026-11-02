@@ -96,7 +96,7 @@ export function setButton(
   id: string,
   info: Parameters<ComponentBuilder["button"]>[1],
 ): void {
-  if (buttons()[id]) {
+  if (ownEntry(buttons(), id)) {
     Logging.Warn(`Duplicate button id "${id}" in component "${name()}"`);
   }
   buttons()[id] = { id, ...info };

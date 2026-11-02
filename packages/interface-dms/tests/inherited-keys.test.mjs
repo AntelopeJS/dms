@@ -12,6 +12,7 @@ import {
 } from "../dist/base/table-view/internal/factory-helpers.js";
 import { collectExtensionErrors } from "../dist/page/internal/extension-validation.js";
 import { tableViewFromSource } from "../dist/base/table-view/source.js";
+import { Logging } from "@antelopejs/interface-core/logging";
 import { ComponentBuilder } from "../dist/component.js";
 import { DateType } from "../dist/base/data-types/default/numbers.js";
 
@@ -113,4 +114,14 @@ await test("a date filter mode named like an Object.prototype key filters nothin
       mode,
     );
   }
+});
+
+await test("a button id named like an Object.prototype key is not a duplicate of one never declared", (t) => {
+  const warn = t.mock.method(Logging, "Warn", () => undefined);
+  const component = new ComponentBuilder("Probe");
+  for (const id of INHERITED) component.button(id, {});
+  assert.equal(warn.mock.callCount(), 0);
+  component.button("open", {}).button("open", {});
+  assert.equal(warn.mock.callCount(), 1);
+  assert.match(warn.mock.calls[0].arguments[0], /Duplicate button id "open"/);
 });
