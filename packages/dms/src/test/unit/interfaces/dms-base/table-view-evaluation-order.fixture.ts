@@ -1,23 +1,8 @@
-import { realpathSync } from "node:fs";
 import Module, { findPackageJSON } from "node:module";
+import { realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { ImplementInterface } from "@antelopejs/interface-core";
-import type * as TableViewInterface from "@antelopejs/interface-dms/base/table-view";
-import type * as RealtimeInterface from "@antelopejs/interface-dms/realtime";
-import type * as DmsRealtime from "../../../../realtime";
-import type * as DmsRealtimeImplementation from "../../../../implementations/dms/realtime";
-import type * as DmsTableViewImplementation from "../../../../implementations/dms-base/table-view";
-
-type LoadModule = (
-  this: ModuleLoader,
-  request: string,
-  parent: NodeModule | undefined,
-  isMain: boolean,
-) => ReturnType<NodeRequire>;
-
-interface ModuleLoader {
-  _load: LoadModule;
-}
 
 export interface EvaluationOrderResult {
   published: string[];
@@ -30,53 +15,52 @@ const PAGE_ID = "pages.evaluation-order";
 const SESSION = "evaluation-order-session";
 const ROW = "evaluation-order-row";
 
-function enterThroughTableView(): typeof TableViewInterface {
-  // SAFETY: Node's Module class carries the loader entry point _load, which its public declaration omits; ModuleLoader describes only that member.
-  const loader = Module as unknown as ModuleLoader;
-  const load = loader._load;
+async function enterThroughTableView() {
   const manifest = findPackageJSON(
     "@antelopejs/interface-dms/base/table-view",
     __filename,
   );
   if (!manifest) throw new Error("Cannot locate table-view package");
-  const tableViewEntry = realpathSync(
-    join(dirname(manifest), "dist/base/table-view.js"),
-  );
+  const tableViewEntry = pathToFileURL(
+    realpathSync(join(dirname(manifest), "dist/base/table-view.js")),
+  ).href;
   let hasLoadedDms = false;
-  loader._load = function (request, parent, isMain) {
-    if (!hasLoadedDms && parent?.filename === tableViewEntry) {
-      hasLoadedDms = true;
-      require("../../../../realtime");
-      require("../../../../realtime/table-view/index");
-      require("../../../../implementations/dms/realtime");
-    }
-    return load.call(this, request, parent, isMain);
-  };
+  const hooks = Module.registerHooks({
+    resolve: (specifier, context, nextResolve) => {
+      if (!hasLoadedDms && context.parentURL === tableViewEntry) {
+        hasLoadedDms = true;
+        require("../../../../realtime");
+        require("../../../../realtime/table-view/index");
+        require("../../../../implementations/dms/realtime");
+      }
+      return nextResolve(specifier, context);
+    },
+  });
   try {
-    const entered = require("@antelopejs/interface-dms/base/table-view");
+    const entered = await import("@antelopejs/interface-dms/base/table-view");
     if (!hasLoadedDms)
       throw new Error(`The load of ${tableViewEntry} was never intercepted`);
     return entered;
   } finally {
-    loader._load = load;
+    hooks.deregister();
   }
 }
 
 async function run(): Promise<EvaluationOrderResult> {
-  const tableView = enterThroughTableView();
-  const realtimeInterface: typeof RealtimeInterface = require("@antelopejs/interface-dms/realtime");
-  const realtime: typeof DmsRealtime = require("../../../../realtime");
+  const tableView = await enterThroughTableView();
+  const realtimeInterface = await import("@antelopejs/interface-dms/realtime");
+  const realtime = await import("../../../../realtime");
   const rowTopic = tableView.tableViewRowTopic(LOCATION);
 
   realtimeInterface.RegisterPageTopic(PAGE_ID, rowTopic);
 
   ImplementInterface(
     realtimeInterface,
-    require("../../../../implementations/dms/realtime") satisfies typeof DmsRealtimeImplementation,
+    await import("../../../../implementations/dms/realtime"),
   );
   ImplementInterface(
     tableView,
-    require("../../../../implementations/dms-base/table-view") satisfies typeof DmsTableViewImplementation,
+    await import("../../../../implementations/dms-base/table-view"),
   );
 
   const published: string[] = [];
