@@ -36,8 +36,12 @@ function isBulkRowSource(table: BulkReceiver): table is BulkRowSource {
   );
 }
 
-function isControllerInstance(value: unknown): value is DataControllerInstance {
+function isObject(value: unknown): value is object {
   return typeof value === "object" && value !== null;
+}
+
+function isControllerInstance(value: unknown): value is DataControllerInstance {
+  return isObject(value);
 }
 
 /** A data controller as the list query reads it: its properties by key. */
@@ -55,8 +59,10 @@ function sourceReader({ model, tableView }: BulkRowSource) {
   const controller = tableView.target;
   const { modelKey } = GetMetadata(controller, DataAPIMeta, true);
   assert(modelKey, 500, `${controller.name} declares no model.`);
+  const prototype: unknown = controller.prototype;
+  assert(isObject(prototype), 500, `${controller.name} has no prototype.`);
   const reader: ControllerReader = Object.defineProperty(
-    { __proto__: controller.prototype },
+    { __proto__: prototype },
     modelKey,
     { value: model, enumerable: true },
   );

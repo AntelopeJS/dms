@@ -20,8 +20,24 @@ interface PrimitiveValueByTag {
 }
 type PrimitiveValue = PrimitiveValueByTag[Primitive];
 
+type TypeofTag<T> = T extends string
+  ? "string"
+  : T extends number
+    ? "number"
+    : T extends boolean
+      ? "boolean"
+      : T extends undefined
+        ? "undefined"
+        : T extends bigint
+          ? "bigint"
+          : T extends symbol
+            ? "symbol"
+            : T extends Function
+              ? "function"
+              : "object";
+
 const createTypeGuard =
-  <T>(type: string) =>
+  <T>(type: TypeofTag<T>) =>
   (v: unknown): v is T =>
     typeof v === type;
 
