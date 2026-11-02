@@ -10,9 +10,17 @@ function isText(value) {
 
 /**
  * @param {unknown} value
+ * @returns {value is number}
+ */
+function isNumber(value) {
+  return typeof value === "number";
+}
+
+/**
+ * @param {unknown} value
  * @returns {value is Record<string, unknown>}
  */
-function isRecord(value) {
+export function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -39,6 +47,20 @@ export function parseJsonRecord(text, source) {
   const parsed = JSON.parse(text);
   if (!isRecord(parsed)) throw new TypeError(`${source} is not a JSON object`);
   return parsed;
+}
+
+/**
+ * The entries of the JSON object or array in `text`, an array by index.
+ * @param {string} text
+ * @param {string} source
+ * @returns {[string, unknown][]}
+ */
+export function parseJsonEntries(text, source) {
+  /** @type {unknown} */
+  const parsed = JSON.parse(text);
+  if (!isRecord(parsed) && !Array.isArray(parsed))
+    throw new TypeError(`${source} is not a JSON object or array`);
+  return Object.entries(parsed);
 }
 
 /**
@@ -85,6 +107,20 @@ export function optionalText(node, key) {
   const value = ownEntry(node, key);
   if (value === undefined) return undefined;
   if (!isText(value)) throw new TypeError(`${key} is not a JSON string`);
+  return value;
+}
+
+/**
+ * The number that `node` holds under `key`, or `undefined` when it holds none
+ * or `null`. An entry that is neither is refused.
+ * @param {Record<string, unknown>} node
+ * @param {string} key
+ * @returns {number | undefined}
+ */
+export function optionalNumber(node, key) {
+  const value = ownEntry(node, key);
+  if (value === undefined || value === null) return undefined;
+  if (!isNumber(value)) throw new TypeError(`${key} is not a JSON number`);
   return value;
 }
 

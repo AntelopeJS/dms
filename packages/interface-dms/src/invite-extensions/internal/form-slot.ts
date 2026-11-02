@@ -307,10 +307,9 @@ function mergeSchema(
 
   return {
     ...source,
-    properties: Object.assign(
-      {},
-      source.properties,
-      ...contributions.map((contribution) => contribution.properties),
+    properties: contributions.reduce(
+      (merged, contribution) => ({ ...merged, ...contribution.properties }),
+      { ...source.properties },
     ),
     required: [
       ...(source.required ?? []),

@@ -1,3 +1,4 @@
+import { ownValue } from "./own-value";
 import { resolveEmailLanguage } from "./email-subjects";
 
 /** The names an invitation email can mention, each one optional. */
@@ -60,7 +61,9 @@ export function buildAdminInviteSubject(
   names: AdminInviteEmailNames,
   language?: string,
 ): string {
-  const copy = SUBJECT_COPY[resolveAdminInviteLanguage(language)];
+  const copy =
+    ownValue(SUBJECT_COPY, resolveAdminInviteLanguage(language)) ??
+    SUBJECT_COPY.en;
   const target = joinTarget(copy, names);
   if (!target) {
     return copy.generic;

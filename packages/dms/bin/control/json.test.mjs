@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { isRecord, readRecordList, stringField } from "./json.mjs";
+import { firstString, isRecord, readRecordList, stringField } from "./json.mjs";
 
 await test("an object is a record, an array, null and a string are not", () => {
   assert.equal(isRecord({}), true);
@@ -23,6 +23,13 @@ await test("a string field answers only an own string property", () => {
 await test("a string field never answers an inherited property", () => {
   assert.equal(stringField({}, "constructor"), undefined);
   assert.equal(stringField({}, "toString"), undefined);
+});
+
+await test("the first string of a list is its first element only", () => {
+  assert.equal(firstString(["user-1", "user-2"]), "user-1");
+  assert.equal(firstString([4, "user-2"]), undefined);
+  assert.equal(firstString([]), undefined);
+  assert.equal(firstString({ 0: "user-1" }), undefined);
 });
 
 /**

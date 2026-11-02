@@ -117,7 +117,7 @@ async function promoteReferences(
       assertConstraints(metadata, ref);
       mapping.set(ref.key, key);
     }
-    if (field.key in document)
+    if (Object.hasOwn(document, field.key))
       document[field.key] = await remapValue(document[field.key], mapping);
   }
   return document;

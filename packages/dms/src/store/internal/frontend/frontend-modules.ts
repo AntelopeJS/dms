@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { z } from "zod";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
@@ -42,6 +43,7 @@ import {
 } from "./manifest";
 import { isStoreOperationRunning } from "../../activity";
 import { warnOnceFor } from "./warn-once";
+import { ownValue } from "../../../utils";
 import {
   copyPublicEndpoints,
   resolvePublicEndpoints,
@@ -198,7 +200,7 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
   const authEstablishEndpoints = resolveAuthEstablishEndpoints(config);
   const publicEndpoints = resolvePublicEndpoints(config);
   const backendProxies = resolveBackendProxies(config);
-  const registeredModule = modules[identity];
+  const registeredModule = ownValue(modules, identity);
   if (registeredModule && registeredModule.priority > (config.priority ?? 0)) {
     return;
   }
@@ -219,6 +221,10 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
   FrontendModulesChanged.emit();
 }
 
+const ShippingPackageSchema = z.object({
+  version: z.string().optional().catch(undefined),
+});
+
 /**
  * The version of the package a frontend module ships in, read from the
  * package.json above its source directory, as `@antelopejs/dms-frontend`
@@ -226,11 +232,11 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
  */
 function shippingPackageVersion(sourcePath: string): string | undefined {
   try {
-    const manifest: { version?: unknown } = JSON.parse(
-      readFileSync(join(dirname(sourcePath), "package.json"), "utf-8"),
-    );
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- package.json is external JSON and its version may not be a string; retain the existing fallback to undefined.
-    return typeof manifest.version === "string" ? manifest.version : undefined;
+    return ShippingPackageSchema.parse(
+      JSON.parse(
+        readFileSync(join(dirname(sourcePath), "package.json"), "utf-8"),
+      ),
+    ).version;
   } catch {
     return undefined;
   }

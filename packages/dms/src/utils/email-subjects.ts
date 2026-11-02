@@ -1,3 +1,5 @@
+import { ownValue } from "./own-value";
+
 const DEFAULT_LANGUAGE = "en";
 const LANGUAGE_CODE_LENGTH = 2;
 
@@ -44,5 +46,7 @@ export function builtInEmailSubject(
   email: BuiltInEmailSubject,
   language?: string,
 ): string {
-  return SUBJECTS[resolveEmailLanguage(language)][email];
+  const copy =
+    ownValue(SUBJECTS, resolveEmailLanguage(language)) ?? SUBJECTS.en;
+  return copy[email];
 }
