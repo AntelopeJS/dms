@@ -50,7 +50,12 @@ npm install -g @antelopejs/core@latest
 ajs project init my-app --template "DMS Demo" --yes
 cd my-app
 pnpm dev            # backend on http://localhost:5010
-pnpm frontend:dev   # dashboard on http://localhost:3001, in a second terminal
+```
+
+When the backend answers, start the dashboard in a second terminal, from the same folder:
+
+```bash
+pnpm frontend:dev   # dashboard on http://localhost:3001
 ```
 
 Open `http://localhost:3001` and create the first administrator. The [Quickstart](https://dms.antelopejs.com/docs/getting-started/quickstart) walks through each step. A page is a class whose static fields are blocks:
@@ -90,7 +95,7 @@ export class SalesPage extends PageController("sales", {
 
 <!-- antelopejs-docs-compat:end -->
 
-Each DMS release declares the renderer releases it runs on in `engines["@antelopejs/dms-frontend"]` of its frontend module, and the frontend's [compatibility table](https://dms.antelopejs.com/docs/frontend/introduction#compatibility) lists the renderer release line of each DMS release it covers. The DMS also runs embedded in an AdonisJS 6 application: see [Run the DMS inside AdonisJS](https://dms.antelopejs.com/docs/getting-started/adonisjs).
+Each DMS release declares the renderer releases it runs on in `engines["@antelopejs/dms-frontend"]` of its frontend module, and the frontend's [compatibility table](https://dms.antelopejs.com/docs/frontend/introduction#compatibility) lists the renderer release line of each DMS release it covers. The DMS also runs embedded in an AdonisJS application: see [Run the DMS inside AdonisJS](https://dms.antelopejs.com/docs/getting-started/adonisjs).
 
 ## Documentation
 
