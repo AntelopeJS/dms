@@ -115,3 +115,16 @@ await test("decode returns a value that passes and names the source of one that 
     /x\.json is malformed: expected a thing/,
   );
 });
+
+await test("a record guard refuses what is no object, a list included", () => {
+  assert.equal(recordOf(isString)("abc"), false);
+  assert.equal(recordOf(isNumber)([1, 2]), false);
+  assert.equal(recordOf(isNumber)(null), false);
+  assert.equal(recordOf(isNumber)({}), true);
+});
+
+await test("a nullable guard accepts null and refuses a missing value", () => {
+  assert.equal(nullable(isString)(undefined), false);
+  assert.equal(nullable(isString)(null), true);
+  assert.equal(objectOf({ owner: nullable(isString) })({}), false);
+});

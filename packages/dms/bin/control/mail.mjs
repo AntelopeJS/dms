@@ -7,11 +7,21 @@ import {
 } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
+import { arrayOf, decode, isString, objectOf } from "./json.mjs";
 
 /**
  * @typedef {{ from: string, to: string[] }} Envelope
  * @typedef {{ buffer: string, inData: boolean, envelope: Envelope }} SmtpSession
  */
+
+const isSummary = objectOf({
+  from: isString,
+  to: arrayOf(isString),
+  subject: isString,
+  links: arrayOf(isString),
+  text: isString,
+  receivedAt: isString,
+});
 
 const END_OF_DATA = "\r\n.\r\n";
 const QUOTED_SOFT_BREAK = /=\r?\n/g;
@@ -191,8 +201,13 @@ export function capturedMail(folder) {
   return readdirSync(folder)
     .filter((name) => name.endsWith(".json"))
     .sort()
-    .map((name) => ({
-      file: join(folder, name.replace(/\.json$/, ".eml")),
-      ...JSON.parse(readFileSync(join(folder, name), "utf8")),
-    }));
+    .map((name) => {
+      const summary = join(folder, name);
+      /** @type {unknown} */
+      const stored = JSON.parse(readFileSync(summary, "utf8"));
+      return {
+        file: join(folder, name.replace(/\.json$/, ".eml")),
+        ...decode(isSummary, stored, summary, "a captured message"),
+      };
+    });
 }
