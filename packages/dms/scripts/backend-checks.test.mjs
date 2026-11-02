@@ -108,12 +108,12 @@ await test("backend-checks: a field named __proto__ fails while no locale transl
   );
 });
 
-await test("backend-checks: a node text reaching constructor.name passes as on base", () => {
-  const { status, stdout } = runWithLocales(() => {}, {
+await test("backend-checks: a node text reaching constructor.name fails, as no locale translates it", () => {
+  const { status, stderr } = runWithLocales(() => {}, {
     name: "$dms.automation.constructor.name",
   });
-  assert.equal(status, 0);
-  assert.match(stdout, /Backend invariant checks passed\./);
+  assert.equal(status, 1);
+  assert.match(stderr, /must translate dms\.automation\.constructor\.name/);
 });
 
 await test("backend-checks: a node text indexing a string message passes as on base", () => {

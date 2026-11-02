@@ -29,30 +29,33 @@ const loaderEntries = [
   "dms/api-base-url",
   "dms/client-ip",
 ];
-const faces = {
-  routes: ["oauth", "oauth-config", "authentication"],
-  pages: ["account", "members", "permissions", "preview"],
-  implementations: [
-    "dms/services",
-    "dms-base/services",
-    "dms-auth/services",
-    "dms-auth/email-templates",
-    "dms-html-render/services",
-    "dms-notifications/services",
-  ],
-  store: ["frontend"],
-  utils: [
-    "notification-tones",
-    "email-subjects",
-    "client-ip/index",
-    "notification-registry/index",
-    "request-email-verification/index",
-    "run-in-batches/index",
-  ],
-  realtime: ["table-view/index"],
-  config: ["startup-config", "client-origin-cors", "session-handoff"],
-};
+const faces = new Map(
+  Object.entries({
+    routes: ["oauth", "oauth-config", "authentication"],
+    pages: ["account", "members", "permissions", "preview"],
+    implementations: [
+      "dms/services",
+      "dms-base/services",
+      "dms-auth/services",
+      "dms-auth/email-templates",
+      "dms-html-render/services",
+      "dms-notifications/services",
+    ],
+    store: ["frontend"],
+    utils: [
+      "notification-tones",
+      "email-subjects",
+      "client-ip/index",
+      "notification-registry/index",
+      "request-email-verification/index",
+      "run-in-batches/index",
+    ],
+    realtime: ["table-view/index"],
+    config: ["startup-config", "client-origin-cors", "session-handoff"],
+  }),
+);
 
+/** @type {import("../.dependency-cruiser.cjs").Area} */
 module.exports = {
   forbidden: [
     {
@@ -106,7 +109,9 @@ module.exports = {
         path: `${root}${name}/`,
         pathNot: [
           `${root}${name}/(?:index\\.ts|.+/index\\.ts)$`,
-          ...(faces[name] ?? []).map((face) => `${root}${name}/${face}\\.ts$`),
+          ...(faces.get(name) ?? []).map(
+            (face) => `${root}${name}/${face}\\.ts$`,
+          ),
           ...(name === "implementations"
             ? loaderEntries.map(
                 (entry) => `${root}implementations/${entry}\\.ts$`,

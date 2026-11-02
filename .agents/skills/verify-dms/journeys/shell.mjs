@@ -1,3 +1,5 @@
+import { isNotificationRow, numberIn, rowsOf } from "../rows.mjs";
+
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  */
@@ -98,9 +100,9 @@ export const journeys = [
       await ctx.verify("View all opens the notification settings", [tab.at(/^\/settings\/user\/notifications$/)]);
       const unread = await ctx.api("read the unread count", { method: "GET", path: `${NOTIFICATIONS}/unread-count` });
       const list = await ctx.api("read the notifications", { method: "GET", path: `${NOTIFICATIONS}/list` });
-      const signIns = (Array.isArray(list.body) ? list.body : []).filter((entry) => entry.icon === "i-ph-sign-in");
+      const signIns = rowsOf(list.body, isNotificationRow).filter((entry) => entry.icon === "i-ph-sign-in");
       await ctx.verify("the API holds the unread sign-in notification", [
-        ctx.holds("at least one unread", unread.body?.count >= 1, JSON.stringify(unread.body)),
+        ctx.holds("at least one unread", (numberIn(unread.body, "count") ?? 0) >= 1, JSON.stringify(unread.body)),
         ctx.holds("a sign-in notification linking to Security", signIns.some((entry) => entry.linkTo === "/settings/user/security" && !entry.isRead), JSON.stringify(signIns)),
       ]);
     },
