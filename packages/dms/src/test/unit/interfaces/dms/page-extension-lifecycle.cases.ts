@@ -348,6 +348,8 @@ export function registerPageExtensionLifecycleCases(): void {
     class Extension {
       static block = CustomComponent("Block").meta({ name: "Block" });
     }
-    expect(() => RegisterPageExtension("  ")(Extension)).to.throw(/full id/);
+    expect(() => {
+      RegisterPageExtension("  ")(Extension);
+    }).to.throw(/full id/);
   });
 }

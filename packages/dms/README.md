@@ -76,7 +76,7 @@ export class SalesPage extends PageController("sales", {
 | Package                                     | Supported                                                                       | Tested with                                                               |
 | ------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `@antelopejs/core`                          | `>=1.17.0 <2`                                                                   | `1.17.0`                                                                  |
-| `@antelopejs/interface-api`                 | `file:../../.campaign/tgz/antelopejs-interface-api-015a93a.tgz`                 | `file:.campaign/tgz/antelopejs-interface-api-015a93a.tgz`                 |
+| `@antelopejs/interface-api`                 | `file:../../.campaign/tgz/antelopejs-interface-api-fcc62d2.tgz`                 | `file:.campaign/tgz/antelopejs-interface-api-fcc62d2.tgz`                 |
 | `@antelopejs/interface-api-util`            | `file:../../.campaign/tgz/antelopejs-interface-api-util-639f38b.tgz`            | `file:.campaign/tgz/antelopejs-interface-api-util-639f38b.tgz`            |
 | `@antelopejs/interface-core`                | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz`                | `file:.campaign/tgz/antelopejs-interface-core-f7df541.tgz`                |
 | `@antelopejs/interface-data-api`            | `file:../../.campaign/tgz/antelopejs-interface-data-api-bca1ca6.tgz`            | `file:.campaign/tgz/antelopejs-interface-data-api-bca1ca6.tgz`            |

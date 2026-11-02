@@ -58,7 +58,12 @@ function matchesPresented(session: Session, presentedHash: string): boolean {
 }
 
 function createModel(): FakeModel {
-  const model: FakeModel = Object.create(SessionModel.prototype);
+  const bare: FakeModelState = {};
+  Reflect.setPrototypeOf(bare, SessionModel.prototype);
+  if (!(bare instanceof SessionModel)) {
+    throw new Error("The bare model does not inherit from SessionModel");
+  }
+  const model: FakeModel = bare;
   let update: RotationUpdate;
   // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The fake replaces the database query builder with its CAS simulation; it deliberately does not implement the full database table contract.
   const tableHolder = model as unknown as FakeTableHolder;
