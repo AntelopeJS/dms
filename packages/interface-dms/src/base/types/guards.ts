@@ -3,7 +3,7 @@ import type { RequestContext } from "@antelopejs/interface-api";
 /** Loaded model before response field selection; treat current as read-only. */
 export interface GetGuardArgs<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published generic accepts application-owned models; no concrete row schema belongs to the interface package.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > {
   id: string;
   current: T;
@@ -11,7 +11,7 @@ export interface GetGuardArgs<
 
 export interface EditGuardArgs<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published generic accepts application-owned models; no concrete row schema belongs to the interface package.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > {
   id: string;
   /**
@@ -44,7 +44,7 @@ export interface BulkGuardArgs {
 
 export interface NewGuardArgs<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published generic accepts application-owned models; no concrete row schema belongs to the interface package.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > {
   /**
    * The row the request creates. The guard may amend it in place (fill a
@@ -82,7 +82,7 @@ export type GuardFn<TArgs, TController = unknown> = (
  */
 export interface TableViewGuards<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published generic accepts application-owned models; no concrete row schema belongs to the interface package.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > {
   /** Runs after view authorization and loading, before response and presence acquisition. Not used by exports. */
   get?: GuardFn<GetGuardArgs<T>, T>;

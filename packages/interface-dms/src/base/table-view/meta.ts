@@ -452,7 +452,7 @@ export class TableViewMeta {
   private readonly footerSummaries: TableViewFooterSummary<any>[] = [];
 
   /** Records footer summaries; the ids the `summary` route knows them by. */
-  public registerFooterSummaries<T extends Record<string, unknown>>(
+  public registerFooterSummaries<T extends object>(
     summaries: TableViewFooterSummary<T>[],
   ): string[] {
     return summaries.map((summary) => {
