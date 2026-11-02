@@ -14,10 +14,10 @@ import {
   builderInfo,
   initialInfo,
   mergeBuilderOptions,
-  ownEntry,
   setButton,
   warnUnknownChild,
 } from "./internal/component-builder";
+import { own } from "./internal/own";
 import {
   actionComponents,
   actionPermissionId,
@@ -310,11 +310,11 @@ export class Component<T = unknown> {
   }
 
   getAction(id: string): Action | undefined {
-    return ownEntry(this._actions, id);
+    return own(this._actions, id);
   }
 
   getButton(id: string): ComponentButton | undefined {
-    return ownEntry(this._buttons, id);
+    return own(this._buttons, id);
   }
 
   /** See {@link resolveButtonPermissionId}, resolved against this component. */

@@ -1,5 +1,6 @@
 /** @internal */
 import { Logging } from "@antelopejs/interface-core/logging";
+import { own } from "./own";
 import type {
   BaseComponentChild,
   Component,
@@ -83,21 +84,8 @@ export function setButton(
   id: string,
   info: Parameters<ComponentBuilder["button"]>[1],
 ): void {
-  if (ownEntry(buttons(), id)) {
+  if (own(buttons(), id)) {
     Logging.Warn(`Duplicate button id "${id}" in component "${name()}"`);
   }
   buttons()[id] = { id, ...info };
-}
-
-/**
- * The entry `table` holds under `key` itself. A key `Object.prototype`
- * supplies (`constructor`, `toString`) is not an entry.
- *
- * @internal
- */
-export function ownEntry<Entry>(
-  table: Readonly<Record<string, Entry>>,
-  key: string,
-): Entry | undefined {
-  return Object.hasOwn(table, key) ? table[key] : undefined;
 }
