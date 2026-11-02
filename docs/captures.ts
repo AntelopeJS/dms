@@ -43,13 +43,30 @@ export default defineScenes([
     output: "packages/dms/docs/images/captures/helio-dashboard.webp",
   },
   {
+    id: "demo-home",
+    route: "/home",
+    output: "packages/dms/docs/images/captures/demo-home.webp",
+  },
+  {
     id: "command-palette",
     route: "/helio/dashboard",
     steps: [
+      { action: "wait", selector: ".apexcharts-canvas" },
       { action: "press", key: "Control+k" },
       { action: "wait", selector: '[role="dialog"] input' },
     ],
+    crop: '[role="dialog"]',
     output: "packages/dms/docs/images/captures/command-palette.webp",
+  },
+  {
+    id: "settings-overview",
+    route: "/settings",
+    output: "packages/dms/docs/images/captures/settings-overview.webp",
+  },
+  {
+    id: "modules-page",
+    route: "/modules",
+    output: "packages/dms/docs/images/captures/modules-page.webp",
   },
   {
     id: "workspace-billing",

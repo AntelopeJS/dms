@@ -3,7 +3,21 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { firstString, isRecord, readRecordList, stringField } from "./json.mjs";
+import {
+  arrayOf,
+  decode,
+  firstString,
+  instanceOf,
+  isNumber,
+  isRecord,
+  isString,
+  nullable,
+  objectOf,
+  oneOf,
+  readRecordList,
+  recordOf,
+  stringField,
+} from "./json.mjs";
 
 await test("an object is a record, an array, null and a string are not", () => {
   assert.equal(isRecord({}), true);
@@ -62,4 +76,42 @@ await test("a file that is not a list of objects is refused", (t) => {
 
 await test("a file that is not JSON is refused", (t) => {
   assert.throws(() => readRecordList(jsonFile(t, "[")), SyntaxError);
+});
+
+await test("an object guard checks required and optional properties and keeps the rest", () => {
+  const guard = objectOf({ name: isString }, { count: isNumber });
+  assert.equal(guard({ name: "a" }), true);
+  assert.equal(guard({ name: "a", count: 2, extra: true }), true);
+  assert.equal(guard({ name: "a", count: "2" }), false);
+  assert.equal(guard({ count: 2 }), false);
+  assert.equal(guard([]), false);
+  assert.equal(guard(null), false);
+});
+
+await test("an object guard never counts an inherited property", () => {
+  assert.equal(objectOf({ constructor: isString })({}), false);
+  assert.equal(objectOf({}, { toString: isString })({}), true);
+});
+
+await test("list, record, nullable and name guards check what they hold", () => {
+  assert.equal(arrayOf(isString)(["a", 1]), false);
+  assert.equal(arrayOf(isString)([]), true);
+  assert.equal(recordOf(isNumber)({ a: 1, b: "x" }), false);
+  assert.equal(nullable(isString)(null), true);
+  assert.equal(nullable(isString)(3), false);
+  assert.equal(oneOf(["PASS", "FAIL"])("PASSED"), false);
+  assert.equal(instanceOf(RegExp)(/x/), true);
+  assert.equal(instanceOf(RegExp)("x"), false);
+});
+
+await test("decode returns a value that passes and names the source of one that does not", () => {
+  const value = { name: "a" };
+  assert.equal(
+    decode(objectOf({ name: isString }), value, "x.json", "a thing"),
+    value,
+  );
+  assert.throws(
+    () => decode(objectOf({ name: isString }), {}, "x.json", "a thing"),
+    /x\.json is malformed: expected a thing/,
+  );
 });
