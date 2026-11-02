@@ -52,7 +52,9 @@ const internals = new Map(
       "component-builder",
       "component-permissions",
       "component-serialization",
+      "component-watch-filter",
       "component-watches",
+      "own-entry",
     ],
     "component-slots.ts": ["component-slots"],
     "invite-resolution.ts": [
