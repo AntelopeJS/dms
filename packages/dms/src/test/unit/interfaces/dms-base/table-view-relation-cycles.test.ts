@@ -102,7 +102,7 @@ class MemberAPI extends DataController(
 function relateTo(
   from: ControllerClass,
   key: string,
-  to: ControllerClass,
+  to: ControllerClass<{ name: string }>,
 ): void {
   Column({
     name: key,

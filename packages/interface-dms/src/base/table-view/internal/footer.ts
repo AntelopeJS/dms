@@ -23,9 +23,7 @@ const LEGEND_TYPE_ID = "select";
  *
  * @internal
  */
-export function ruleFields<T extends Record<string, unknown>>(
-  rule: RowActionRule<T>,
-): string[] {
+export function ruleFields<T extends object>(rule: RowActionRule<T>): string[] {
   if (FIELD_KEY in rule) return [String(rule[FIELD_KEY])];
   return [
     ...operandRules("and" in rule ? rule.and : undefined),
@@ -34,14 +32,14 @@ export function ruleFields<T extends Record<string, unknown>>(
   ].flatMap((entry) => ruleFields(entry));
 }
 
-function operandRules<T extends Record<string, unknown>>(
+function operandRules<T extends object>(
   operand: RowActionRule<T> | RowActionRule<T>[] | undefined,
 ): RowActionRule<T>[] {
   if (!operand) return [];
   return Array.isArray(operand) ? operand : [operand];
 }
 
-function assertSummary<T extends Record<string, unknown>>(
+function assertSummary<T extends object>(
   controllerName: string,
   meta: TableViewMeta,
   summary: TableViewFooterSummary<T>,
@@ -70,7 +68,7 @@ function assertSummary<T extends Record<string, unknown>>(
  *
  * @internal
  */
-export function serializeFooter<T extends Record<string, unknown>>(
+export function serializeFooter<T extends object>(
   controllerName: string,
   meta: TableViewMeta,
   footer: TableViewFooterOptions<T> | undefined,
@@ -131,7 +129,7 @@ const controllersWarnedForSummaries = new WeakSet<ControllerClass>();
  *
  * @internal
  */
-export function warnIfSummaryLacksRoute<T extends Record<string, unknown>>(
+export function warnIfSummaryLacksRoute<T extends object>(
   controller: ControllerClass,
   location: string,
   footer: TableViewFooterOptions<T> | undefined,
