@@ -1,7 +1,9 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { countRawDocuments, resetDatabase } from "../helpers/db";
+import { parseBody } from "../helpers/parse-body";
 
 const LOCATION = "/api/conditions/deals";
 const HTTP_OK = 200;
@@ -14,6 +16,14 @@ interface Deal {
   lostReason?: string | null;
   probability?: number | null;
 }
+
+interface SavedDocument {
+  _id: string;
+}
+
+const SavedDocumentBody = z.object({
+  _id: z.string(),
+}) satisfies z.ZodType<SavedDocument>;
 
 describe("[integration] table view column conditions", () => {
   let client: AxiosInstance;
@@ -110,7 +120,7 @@ describe("[integration] table view column conditions", () => {
       vatNumber: "BE0123456749",
     });
     expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
-    const id: string = created.data._id;
+    const { _id: id } = parseBody(SavedDocumentBody, created);
     expect(
       await countRawDocuments("condition-customers", {
         vatNumber: "BE0123456749",

@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import axios, { type AxiosInstance } from "axios";
+import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { SaveComponentFiles } from "../../../attachments";
 import type {
@@ -7,13 +7,18 @@ import type {
   AttachmentSaveResult,
 } from "@antelopejs/interface-dms/attachments";
 import { verifyUploadToken } from "../../../utils";
-import { nativeUploadToken, uploadAttachment } from "../../helpers/attachments";
+import {
+  fetchStoredText,
+  nativeUploadToken,
+  parseAttachmentMetadata,
+  parseSavedDocument,
+  uploadAttachment,
+} from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { requestContextFixture } from "../../helpers/request-context";
 
-type StorageInterface = typeof import("@antelopejs/interface-file-storage");
-const storage: StorageInterface = require("@antelopejs/interface-file-storage");
+import storage = require("@antelopejs/interface-file-storage");
 const CONTENT = Buffer.from("retained canonical bytes");
 const LOCATION = "/api/native-attachments";
 const METADATA = "/api/files/metadata";
@@ -84,7 +89,7 @@ async function assertFinal(f: Fixture): Promise<void> {
     params: { resourceKey: f.canonical },
   });
   expect(metadata.status, JSON.stringify(metadata.data)).to.equal(200);
-  expect((await axios.get(metadata.data.url)).data).to.equal(
+  expect(await fetchStoredText(parseAttachmentMetadata(metadata).url)).to.equal(
     CONTENT.toString(),
   );
 }
@@ -100,7 +105,7 @@ async function persist(
   });
   expect(response.status, JSON.stringify(response.data)).to.equal(200);
   await assertFinal(f);
-  return { document, result: response.data._id };
+  return { document, result: parseSavedDocument(response)._id };
 }
 
 function outcome<T>(promise: Promise<T>): Promise<PromiseSettledResult<T>> {
@@ -243,7 +248,7 @@ describe("[integration] native canonical file retries", () => {
     expect(saved).to.deep.equal({ status: "rejected", reason: SAVE_FAILURE });
     const read = await storage.CreateReadUrl(f.canonical);
     expect(read.expiresAt).to.equal(undefined);
-    expect((await axios.get(read.url)).data).to.equal(CONTENT.toString());
+    expect(await fetchStoredText(read.url)).to.equal(CONTENT.toString());
   });
 
   it("validates canonical metadata before calling save, including on a retry", async () => {
