@@ -149,10 +149,10 @@ await test("a run that down stopped loads again, its accounts without a password
 
 await test("a run.json without its accounts, or with an account without an email, is refused", (t) => {
   const withoutAccounts = savedRun(t, {});
-  const raw = JSON.parse(
+  writeFileSync(
+    join(withoutAccounts, "run.json"),
     JSON.stringify({ ...RUN, dir: withoutAccounts, accounts: undefined }),
   );
-  writeFileSync(join(withoutAccounts, "run.json"), JSON.stringify(raw));
   assert.throws(() => loadRun(withoutAccounts), /malformed/);
   const noEmail = savedRun(t, { accounts: { admin: { password: "pw" } } });
   assert.throws(() => loadRun(noEmail), /malformed/);
