@@ -5,9 +5,9 @@ description: TLA+ model of the tenant lifecycle row of @antelopejs/interface-dms
 
 # Formal check: tenant lifecycle
 
-Every membership and invitation write runs under `runTenantLifecycleOperation`, which writes its attempt id into one row per tenant, runs the work and removes the id. dms-saas pauses admission on that row around a plan change, and tenant deletion closes admission on it for good before it deletes anything. A write to the row is one compare-and-set on its `revision`. A deletion that overtakes a writer leaves orphaned member or billing rows.
+Every membership and invitation write runs under `runTenantLifecycleOperation`, which writes its attempt id into one row per tenant, runs the work and removes the id. dms-saas pauses admission on that row around a plan change, and tenant deletion closes admission on it for good before it deletes anything. A deletion that overtakes a writer leaves orphaned member or billing rows.
 
-The model treats each database round trip as one step, and TLC checks every order of those steps across invocations, barrier owners and a deletion, within the bounds below. The database can throw or answer `unknown`. Any actor can stall between two steps, and an admitted invocation can stay suspended for as long as it likes. The promise it checks is that deletion cannot overtake a writer, and that a barrier stops new writers only while it is held.
+Each database round trip is one step, and TLC checks every order of those steps across invocations, barrier owners and a deletion, within the bounds below. The database can throw or answer `unknown`. Any actor can stall between two steps for as long as it likes. The promise it checks is that deletion cannot overtake a writer, and that a barrier stops new writers only while it is held.
 
 - `TenantLifecycle.tla` holds the variables, the actions and the rules. Each condition carries a `file.ts:NN` comment; the module header says what `model.ts`, `lifecycle.ts` and `deleted.ts` stand for.
 - `Healthy.cfg` (no database fault) and `Faults.cfg` (database calls fail) are the full configurations. Each has a `.ci.cfg` twin, the CI configuration.
@@ -27,18 +27,18 @@ Java 11 or later comes from `$JAVA`, else `java` on PATH, else the `eclipse-temu
 
 | Configuration | Invocations, owners, faults | States (healthy, faults) | Wall time |
 | --- | --- | --- | --- |
-| CI (`<config>.ci.cfg`) | 2, 1, 0 and 1 | 182,178, 676,680 | not timed again |
-| Full (`<config>.cfg`) | 2, 2, 0 for healthy; 2, 1, 2 for faults | 9,977,042, 1,384,896 | not timed again |
+| CI (`<config>.ci.cfg`) | 2, 2, 0 for healthy; 2, 1, 1 for faults | 6,863,342, 676,680 | 48 s |
+| Full (`<config>.cfg`) | 2, 2, 0 for healthy; 2, 1, 2 for faults | 9,977,042, 1,384,896 | 47 s |
 
-Both configurations allow up to 2 closes. The state counts are one run each in Docker Java 21 after the release retry of dms#653. The wall times of the earlier model (7.9 to 8.4 s for CI, 44.2 s for full) were not measured again.
+One run each, Docker Java 21, load near 40. The two-owner healthy run takes most of it.
 
 - Exit 0 means every rule that held still holds, and each finding still breaks with its recorded counterexample length.
-- Exit 1 means a rule changed. `BROKEN` names a rule that held and now breaks. `CHANGED` names a finding whose shortest counterexample changed length. `HOLDS` names a finding that no longer breaks. The script keeps TLC's output in a temporary folder and prints its path. The run stops at the first configuration that changed.
+- Exit 1 means a rule changed. `BROKEN` names a rule that held and now breaks. `CHANGED` names a finding whose shortest counterexample changed length. `HOLDS` names a finding that no longer breaks. TLC's output is kept in a printed temporary folder. The run stops at the first configuration that changed.
 - Exit 2 means TLC or Java could not run, or the arguments were wrong.
 
 The lines that name a changed rule match `^(?:BROKEN|CHANGED|HOLDS) +(\w+)`. A rule that still holds prints as lowercase `holds`.
 
-A rule with a recorded finding is judged by the length of its shortest counterexample alone, so a change that adds a longer counterexample to that rule exits 0 while the finding stands. No rule has a recorded finding now. `dms-control formal` closes that gap for a diff: while a finding stands, it fails a verdict whose diff changes the covered behaviour. The trace printed after `BROKEN` comes from a run on every core, so its length can vary between runs, and when a break violates two rules either can be the one named. Only the exit code and the fact of a `BROKEN` line are stable. Findings run on one worker, so their lengths are stable.
+No rule has a recorded finding now. If one is recorded, it is judged by the length of its shortest counterexample alone, so a longer new counterexample exits 0; while a finding stands, `dms-control formal` fails any diff that changes the covered behaviour. A `BROKEN` trace comes from a run on every core, so its length, and which of two broken rules it names, can vary. Findings run on one worker, so their lengths are stable.
 
 ## When to run it
 
@@ -52,14 +52,15 @@ Run `--full` when a change touches a file in the coverage record below, or this 
 | `PauseBlocksAdmission` | No admission is ever written while the row holds a barrier. | A plan change validates an inventory that a new writer is changing. | holds | holds |
 | `RefusalReleases` | An attempt that answered with its 4xx refusal holds no admission. | The tenant can never be deleted, for an attempt that wrote nothing. | holds | holds |
 | `SuccessReleases` | An attempt that finished holds no admission. | The tenant can never be deleted, for an attempt whose effects are all done. | holds | holds |
+| `BarrierStaysWithHolder` | An owner that `pause` answered true for holds the barrier until it resumes. | A second owner takes or frees the barrier, and a writer enters during the first owner's validation. | holds | holds |
 | `FailureRetains` | A failed attempt keeps its admission, whatever any other attempt does. | Deletion overtakes an effect whose outcome is unknown. | holds | holds |
 | `ResumeAdmits` | An attempt that asks after every owner's resume returned is admitted, unless a deletion closed the row. | The tenant stays frozen after the plan change that paused it. | holds | not listed |
 
 `TypeOK` holds too. The numbers in brackets are the states of TLC's shortest counterexample, which `check.mjs` records per configuration.
 
-`FailureRetains` differs from the plan that proposed this check, which said a failed attempt blocks "until it is replayed". The code has no such release. A replay is a new attempt with a new id and never retires the failed one (`tenant-lifecycle.test.ts`, "retains failed invocations even when a separate replay succeeds"), and no API retires an attempt. A failed attempt blocks the tenant's deletion for good, by design (`packages/interface-dms/docs/1.core/5.tenancy.md`, "There is no automatic expiry or reconciliation API"). In the model, a replay is another attempt.
+`FailureRetains` differs from the plan, which said a failed attempt blocks "until it is replayed". A replay is a new attempt with a new id, and no API retires the failed one (`tenant-lifecycle.test.ts`, "retains failed invocations even when a separate replay succeeds"; `5.tenancy.md`, "There is no automatic expiry or reconciliation API"). So a failed attempt blocks deletion for good, by design.
 
-`ResumeAdmits` is a liveness rule stated as an invariant, because the shared runner checks invariants only. The model has no cycle, so under weak fairness every behaviour ends in a state with no step that changes anything (`Quiescent`), and the rule asks for admission in those states. `Quiescent` also counts a step that changes nothing as no step, so an admission loop that spins breaks the rule. It is not listed under `Faults` because a database error may refuse an attempt, and that is correct. `Init` starts some behaviours with no deletion to come, so a closure cannot excuse an attempt that stays stuck.
+`ResumeAdmits` is a liveness rule stated as an invariant, because the shared runner checks invariants only. Under weak fairness every behaviour ends in a state where no step changes anything (`Quiescent`), and the rule asks for admission there, so an admission loop that spins breaks it too. It is not listed under `Faults`, where a database error may rightly refuse an attempt. `Init` starts some behaviours with no deletion to come, so closure cannot excuse a stuck attempt.
 
 `Live.cfg` checks both halves as real temporal properties, with weak fairness per actor: `<>Quiescent`, and `owed[a] ~> AdmittedOrClosed(a)`. Rerun it by hand after a change to the model, from a scratch copy of the `.tla` and `Live.cfg`, since it writes next to its input:
 
@@ -74,15 +75,15 @@ On the final model, TLC reports no error with 125,786 distinct states. It report
 F1 was replayed against the real code at the sync commit with the integration harness of `packages/dms/TESTING.md`, on the in-memory MongoDB. The replay was a scratch test and is not committed. F1 is fixed (AntelopeJS/dms#653); the committed tests are in `packages/dms/src/test/integration/tenant-lifecycle-refusal.test.ts`.
 
 - **F1, a refused attempt keeps its admission when the release fails (`RefusalReleases`). Fixed, AntelopeJS/dms#653.** A 4xx refusal released with `model.finish(...).catch(() => undefined)`, so a failed release was swallowed and never tried again. In TLC's counterexample, the attempt asks for admission, reads the row, writes its admission, the work refuses with a 4xx, and the release read throws. In the replay, `model.get` threw from inside the work: the call answered 402, `activeAttemptIds` kept 1 entry and `closeTenantLifecycleAdmission` rejected with `Tenant lifecycle deletion blocked by active or indeterminate attempts`. The same happened when the release's compare-and-set answered `unknown` without landing.
-- **F2, a finished attempt keeps its admission when the release fails (`SuccessReleases`). Fixed, AntelopeJS/dms#653.** Found by the verifier of the first model, which had no rule for it. A success propagated a failed `finish` but did not try again, so one transient fault blocked the tenant's deletion for good. The fix is the same as for F1: `releaseAttempt` (lifecycle.ts:35-52) tries `finish` `RELEASE_ATTEMPTS` (3) times, which is safe because `finish` is idempotent. If every try fails, the admission stays and the call rejects with the release failure (after a refusal, an `AggregateError` of the refusal and the release failure), so the blocked deletion is reported. The model retries a faulted release and assumes `MaxFaults < ReleaseAttempts`, so it does not reach the exhausted state; that state is the same as a failed attempt, which `FailureRetains` already covers.
+- **F2, a finished attempt keeps its admission when the release fails (`SuccessReleases`). Fixed, AntelopeJS/dms#653.** A success propagated a failed `finish` but did not try again, so one transient fault blocked the tenant's deletion for good. The fix is the same as for F1: `releaseAttempt` (lifecycle.ts:35-52) tries `finish` `RELEASE_ATTEMPTS` (3) times, which is safe because `finish` is idempotent. If every try fails, the admission stays and the call rejects with the release failure (after a refusal, an `AggregateError` of the refusal and the release failure), so the blocked deletion is reported. The model assumes `MaxFaults < ReleaseAttempts`; the exhausted state equals a failed attempt, which `FailureRetains` covers.
 
 ## Read every result with /statechart
 
-Read each TLC result with the pstack `/statechart` skill. Work on a copy of `TenantLifecycle.tla`, the map and the chart configs in a scratch folder outside the repo, since it writes its output next to its input. Use `TenantLifecycle.map.mjs` as the view: one region for the tenant, one per invocation, one per barrier owner and one for the deletion. `chart-barrier.cfg` (one invocation, one owner, no deletion, no fault) has 352 states and every rule holds. `chart-refusal.cfg` (one invocation, one deletion, one fault) is the configuration that drew the path to F1; since the fix it has no counterexample, and its state count was not charted again. The other configurations are too large to chart, and `/statechart` checks them only.
+Read each TLC result with the pstack `/statechart` skill, on a scratch copy outside the repo (it writes next to its input). Use `TenantLifecycle.map.mjs` as the view: one region for the tenant, one per invocation, one per barrier owner and one for the deletion. `chart-barrier.cfg` (one invocation, one owner, no deletion, no fault) has 352 states and every rule holds. `chart-refusal.cfg` (one invocation, one deletion, one fault) is the configuration that drew the path to F1; since the fix it has none. The other configurations are too large to chart.
 
 ## Real bug or modeling error
 
-Node runs other requests at every `await`, so any order of round trips across concurrent calls can happen. A step order is a modeling error when the code cannot produce it, for example one round trip split in two. Replay the counterexample through the integration harness, one action per step:
+A step order is a modeling error when the code cannot produce it, for example one round trip split in two. Replay the counterexample through the integration harness, one action per step:
 
 - Hold an invocation inside its `work` callback with a promise you resolve later, then call the other actor. `packages/dms/src/test/integration/tenant-lifecycle.test.ts` has examples.
 - Inject a database fault by replacing `model.get` to throw, or `table.atomicMutation` to answer `unknown`, on the object `GetModel(TenantLifecycleModel, tenantId)` returns.
@@ -111,11 +112,11 @@ Assert only what a caller observes: the answer, `observeTenantLifecycle`, and wh
 | `CloseStart`, `CloseRead`, `CloseApplied`, `CloseStale`, `CloseReread` and their faults | `model.close` (model.ts:121-135), retried by a new call of `closeTenantLifecycleAdmission` (lifecycle.ts:99-103) |
 | `deleter = "deleting"` | `cleanupTenantData` deletes after the close resolves (`packages/dms/src/hooks/tenant-deleted.ts:20-26`) |
 
-The sync commit is `82edc836` on AntelopeJS/dms `campaign/integration`.
+The sync commit is `0a3efc0f` on AntelopeJS/dms `campaign/integration`.
 
 ## Bounds and what is left out
 
-The CI configuration runs 2 invocations, 1 barrier owner, up to 2 closes, and 0 or 1 database fault. The full one runs 2 invocations with 2 owners and no fault, and 2 invocations with 1 owner and 2 faults. Three invocations with two owners did not finish within 3 minutes, so they are outside the bounds. Each owner pauses once, with one identity, which is what `pauseTenantLifecycleAdmission` asks for. A pass covers these bounds only.
+Every configuration runs 2 invocations. Healthy runs 2 barrier owners and no fault, with up to 1 close in CI and 2 in full. Faults runs 1 owner and up to 2 closes, with 1 fault in CI and 2 in full. Barrier exclusion needs two owners, so it is checked on a healthy database only. Three invocations with two owners did not finish within 3 minutes. Each owner pauses once, with one identity, as `pauseTenantLifecycleAdmission` asks. A pass covers these bounds only.
 
 The model leaves out:
 
@@ -124,6 +125,7 @@ The model leaves out:
 - the atomicity of `atomicMutation`. The model takes it from the database adapter, and the integration test "arbitrates simultaneous closure and admission on one revision" exercises it on MongoDB.
 - a process that dies. For these rules, that is an actor that stalls forever, which the model already allows.
 - a dropped `tenant_lifecycle` row. A new row would be open, and the docs forbid dropping it. `cleanupTenantData` leaves it in place.
+- the status boundary of `isDeliberateRefusal` (lifecycle.ts:25). `WorkRefuses` and `WorkFails` are free choices; only the verdict gate sees such a change.
 - nested calls. The docstring of `runTenantLifecycleOperation` says each call takes its own admission, as `changeTenantMembers` says. Each model attempt is one top-level call.
 
 ## Confirm the check can fail
@@ -148,7 +150,17 @@ On a scratch copy of this folder, inside the repository so the runner resolves, 
 | `release-gives-up`: a refused attempt's release stops at its first fault, as before dms#653 (`releaseAttempt`): the three `Release*` fault actions end at `refused` | `RefusalReleases` | `BROKEN RefusalReleases` | same |
 | `success-release-gives-up`: a finished attempt's release stops at its first fault: the three `Finish*` fault actions end at `done` | `SuccessReleases` | `BROKEN SuccessReleases` | same |
 | `success-skips-finish`: delete the release after a success (`runTenantLifecycleOperation`): `WorkSucceeds` goes straight to `done` | `SuccessReleases` | `BROKEN SuccessReleases` | same |
+| `resume-clears-foreign-barrier`: `resume` drops the foreign-barrier test (model.ts:102): `ResumeRead` tests only `row.closed` | `BarrierStaysWithHolder` | `BROKEN BarrierStaysWithHolder` | same |
+| `pause-overwrites-barrier`: `pause` drops `state.barrierId` (model.ts:91): `PauseRead` drops `row.barrier # NoBarrier` | `BarrierStaysWithHolder` | `BROKEN BarrierStaysWithHolder` | same |
+| `finish-gives-up-success-path`: a success-path conflict keeps the admission: `FinishStale` ends at `done` | `SuccessReleases` | `BROKEN SuccessReleases` | same |
 
-Every scratch run exited 1. The three rows added with the retry ran once in each configuration, with the trace printed as `BROKEN` ending at the fault action or at `WorkSucceeds`; the other rows ran twice at the sync commit.
+Every scratch run exited 1, twice per configuration (the rows added with the retry ran once). `admit-without-revision` breaks four rules, so a run can name another.
+
+These scratch changes exit 0, so no rule in this folder catches them:
+
+| Scratch change | Why no rule catches it |
+| --- | --- |
+| `resume-ignores-closed`: `resume` drops `state.closed` (model.ts:102) | On a closed row a resume admits nobody and reopens nothing; only its `true` is wrong, which no rule observes. A lifecycle integration test fails on it. |
+| `pause-ignores-closed`: `pause` drops `state.closed` (model.ts:91) | Closure already refuses every admission. The harm, a dms-saas plan change on a tenant being deleted, is outside the model. A lifecycle integration test fails on it. |
 
 With the edits dropped, both configurations exit 0.

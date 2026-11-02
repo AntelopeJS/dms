@@ -512,6 +512,12 @@ RefusalReleases ==
 SuccessReleases ==
   \A a \in Attempts : attempt[a] = "done" => a \notin row.active
 
+(* An owner that pause answered true for holds the barrier until it resumes. *)
+BarrierStaysWithHolder ==
+  \A o \in Owners :
+    (pausing[o] = "held" /\ resuming[o] \in {"idle", "resumeRead", "resumeCas"})
+      => row.barrier = o
+
 (* A failed attempt keeps its admission, whatever any other attempt does. *)
 FailureRetains ==
   \A a \in Attempts : attempt[a] = "failed" => a \in row.active
