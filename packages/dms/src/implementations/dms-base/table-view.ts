@@ -1,9 +1,5 @@
 import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
-import {
-  type ControllerClass,
-  ControllerMeta,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { ControllerMeta, type RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
@@ -185,10 +181,12 @@ async function buildExportQuery({
 }
 
 function getControllerKey(controller: DataControllerThis): string {
-  const controllerClass =
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference yields Function from the callback descriptor receiver; ControllerMeta's constructor owner needs ControllerClass, which the existing data-controller route binding supplies without a runtime check here.
-    controller.constructor as ControllerClass;
-  return GetMetadata(controllerClass, ControllerMeta).location;
+  const owner = controller.constructor;
+  const { location } = GetMetadata(owner, ControllerMeta);
+  if (location === undefined) {
+    throw new TypeError(`${owner.name} is not a Controller class`);
+  }
+  return location;
 }
 
 function buildTableViewAccessForController(

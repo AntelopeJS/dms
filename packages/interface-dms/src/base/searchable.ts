@@ -1,11 +1,15 @@
 import { GetMetadata } from "@antelopejs/interface-core";
-import { MakePropertyDecorator } from "@antelopejs/interface-core/decorators";
+import {
+  type Class,
+  MakePropertyDecorator,
+} from "@antelopejs/interface-core/decorators";
+
+import { decoratedClass } from "../utils/internal/decorated-class";
 
 export class SearchableMeta {
   public static key = Symbol();
 
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Published metadata accepts arbitrary controller constructors; it does not own their instance schemas.
-  constructor(public readonly target: new (...args: unknown[]) => unknown) {}
+  constructor(public readonly target: Class) {}
 
   public readonly searchableFields: Record<string, string> = {};
 
@@ -38,7 +42,7 @@ export const Searchable = MakePropertyDecorator(
         `@Searchable cannot be applied to the non-string property key ${field} of ${target.constructor.name}: search fields name database columns, which are strings`,
       );
     }
-    const searchableMeta = GetMetadata(target.constructor, SearchableMeta);
+    const searchableMeta = GetMetadata(decoratedClass(target), SearchableMeta);
     searchableMeta.setSearchableField(
       field,
       compareMode ?? DEFAULT_COMPARE_MODE,

@@ -14,6 +14,7 @@ import {
   permissionMap,
   stampPageRegistration,
 } from "./registry";
+import { prototypeOf } from "../../utils/internal/decorated-class";
 
 interface PublishContext {
   registration(): PageRegistration;
@@ -63,8 +64,8 @@ export function publish(
   });
   context.ownProperties();
   context.auth(pageInfo);
-  RequestQueryProperty()(page.target.prototype, "pageQuery");
-  RequestRouteParametersProperty()(page.target.prototype, "pageParams");
+  RequestQueryProperty()(prototypeOf(page.target), "pageQuery");
+  RequestRouteParametersProperty()(prototypeOf(page.target), "pageParams");
   context.route(pageInfo);
 }
 
