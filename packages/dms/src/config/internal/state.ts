@@ -5,6 +5,7 @@ import {
   MILLISECONDS_PER_DAY,
   MILLISECONDS_PER_HOUR,
   MILLISECONDS_PER_MINUTE,
+  MILLISECONDS_PER_SECOND,
 } from "@antelopejs/interface-dms/utils/internal/time";
 
 /**
@@ -190,6 +191,20 @@ export interface LoginPrefillConfig {
   password: string;
 }
 
+/**
+ * How replicas share the default tenant's first provisioning. Replicas compare
+ * no clocks: a holder is judged stopped when its token stays unchanged for
+ * `staleAfterMs` of the observer's own time.
+ */
+export interface ProvisioningLeaseConfig {
+  /** How often the holder replaces its token. Well below `staleAfterMs`. */
+  renewEveryMs: number;
+  /** How long an unchanged token must be observed before a takeover. */
+  staleAfterMs: number;
+  /** How often a waiting replica reads the lease. */
+  pollEveryMs: number;
+}
+
 export interface Config {
   auth?: AuthConfig;
   htmlRender?: HtmlRenderConfig;
@@ -210,6 +225,7 @@ export interface Config {
    * `false` does not override development mode or the environment opt-in.
    */
   docsPreview?: boolean;
+  provisioningLease?: Partial<ProvisioningLeaseConfig>;
 }
 
 const REFRESH_TOKEN_LIFETIME_DAYS = 30;
@@ -262,6 +278,16 @@ let devApiBaseUrl: string | undefined;
 
 export function getConfig(): Config {
   return globalConfig;
+}
+
+const DEFAULT_PROVISIONING_LEASE: ProvisioningLeaseConfig = {
+  renewEveryMs: 10 * MILLISECONDS_PER_SECOND,
+  staleAfterMs: MILLISECONDS_PER_MINUTE,
+  pollEveryMs: 5 * MILLISECONDS_PER_SECOND,
+};
+
+export function getProvisioningLeaseConfig(): ProvisioningLeaseConfig {
+  return { ...DEFAULT_PROVISIONING_LEASE, ...globalConfig.provisioningLease };
 }
 
 export function setDevClientBaseUrl(url: string): void {
