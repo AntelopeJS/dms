@@ -210,18 +210,91 @@ let recording;
 let inside = false;
 
 /**
+ * @param {unknown} value
+ * @returns {value is string}
+ */
+function isString(value) {
+  return typeof value === "string";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is number}
+ */
+function isNumber(value) {
+  return typeof value === "number";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is boolean}
+ */
+function isBoolean(value) {
+  return typeof value === "boolean";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is bigint}
+ */
+function isBigInt(value) {
+  return typeof value === "bigint";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is symbol}
+ */
+function isSymbol(value) {
+  return typeof value === "symbol";
+}
+
+/**
+ * The text `typeof` gives, built from the guards above.
+ * @param {unknown} value
+ * @returns {string}
+ */
+function typeName(value) {
+  if (value === undefined) return "undefined";
+  if (isString(value)) return "string";
+  if (isNumber(value)) return "number";
+  if (isBoolean(value)) return "boolean";
+  if (isBigInt(value)) return "bigint";
+  if (isSymbol(value)) return "symbol";
+  if (value instanceof Function) return "function";
+  return "object";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isObject(value) {
+  return Object(value) === value;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+function asLabel(value) {
+  if (value === null || isString(value)) return value;
+  throw new TypeError("Expected a recorded label");
+}
+
+/**
  * @param {unknown} key
  * @returns {string}
  */
 function describeKey(key) {
-  if (typeof key === "string" || typeof key === "number") return String(key);
-  if (typeof key === "symbol") return key.toString();
-  if (typeof key === "function") return `fn:${key.name || "anonymous"}`;
-  if (key === null || typeof key !== "object") return String(key);
+  if (isString(key) || isNumber(key)) return String(key);
+  if (isSymbol(key)) return key.toString();
+  if (key instanceof Function) return `fn:${key.name || "anonymous"}`;
+  if (key === null || !isObject(key)) return String(key);
   const tag = Reflect.getPrototypeOf(key)?.constructor?.name ?? "null";
   for (const field of ["id", "name", "key"]) {
     const own = Object.getOwnPropertyDescriptor(key, field);
-    if (own && "value" in own && typeof own.value === "string") {
+    if (own && "value" in own && isString(own.value)) {
       return `obj:${tag}:${own.value}`;
     }
   }
@@ -235,7 +308,7 @@ function describeKey(key) {
  */
 function containerLabel(recording, container) {
   if (originalWeakMapHas.call(recording.labels, container)) {
-    return originalWeakMapGet.call(recording.labels, container);
+    return asLabel(originalWeakMapGet.call(recording.labels, container));
   }
   const limit = Error.stackTraceLimit;
   Error.stackTraceLimit = 80;
@@ -315,7 +388,16 @@ function globalsSnapshot() {
  * @returns {Record<string, unknown>}
  */
 function loadDist(distRoot, entry) {
-  return require(nodePath.join(distRoot, entry));
+  return exportsOf(require(nodePath.join(distRoot, entry)));
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Record<string, unknown>}
+ */
+function exportsOf(value) {
+  if (isObject(value)) return value;
+  throw new TypeError("Expected a module's exports to be an object");
 }
 
 /**
@@ -373,12 +455,11 @@ function describeExports(exportsObject) {
     if (!("value" in d)) return `${String(key)} accessor ${flags}`;
     /** @type {unknown} */
     const value = d.value;
-    const type =
-      typeof value === "function"
-        ? `function ${value.name}/${value.length}`
-        : value === null
-          ? "null"
-          : typeof value;
+    const type = value instanceof Function
+      ? `function ${value.name}/${value.length}`
+      : value === null
+        ? "null"
+        : typeName(value);
     return `${String(key)} data ${flags}${d.writable ? "w" : "-"} ${type}`;
   });
 }
@@ -440,7 +521,7 @@ function observeIdentity(distRoot) {
         .map(([entry, exported]) => `${entry}:${exported[name] === value}`);
       result.push({
         old: `${oldEntry}#${name}`,
-        type: typeof value,
+        type: typeName(value),
         aliases,
         newPathSameObject: newModule === undefined || newModule[name] === value,
       });

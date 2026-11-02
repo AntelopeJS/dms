@@ -34,7 +34,13 @@ function asMap(value) {
  * @returns {unknown}
  */
 function forwardRead(target, key, receiver) {
-  return Reflect.get(target, key, receiver);
+  for (let holder = target; holder !== null; holder = Reflect.getPrototypeOf(holder)) {
+    const descriptor = Reflect.getOwnPropertyDescriptor(holder, key);
+    if (descriptor === undefined) continue;
+    if ("value" in descriptor) return descriptor.value;
+    return descriptor.get?.call(receiver);
+  }
+  return undefined;
 }
 
 /**
