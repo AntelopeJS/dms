@@ -191,6 +191,22 @@ const config: VerifyConfig = {
       behaviour: { kind: "emit" },
     },
     {
+      name: "formal-tenant-lifecycle",
+      covers: [
+        "packages/interface-dms/src/tenant-lifecycle.ts",
+        "packages/interface-dms/src/tenant-members.ts",
+        "packages/interface-dms/src/db/internal/tenantLifecycle.model.ts",
+        "packages/interface-dms/src/db/internal/tenantLifecycle.table.ts",
+        "packages/dms/src/hooks/tenant-deleted.ts",
+      ],
+      files: [".agents/skills/formal-tenant-lifecycle/**"],
+      command: ["node", ".agents/skills/formal-tenant-lifecycle/check.mjs", "--full"],
+      baseCommand: ["node", ".agents/skills/formal-tenant-lifecycle/check.mjs"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+      passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
+      behaviour: { kind: "emit" },
+    },
+    {
       name: "formal-realtime-tabs",
       covers: [
         "packages/dms/src/routes/realtime.ts",
