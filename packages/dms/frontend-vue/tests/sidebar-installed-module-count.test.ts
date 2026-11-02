@@ -13,7 +13,12 @@ import {
   type App,
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
-import { hydrate, serverRender, stubApiData } from "./helpers/api-data-runtime";
+import {
+  hydrate,
+  mountInBrowser,
+  serverRender,
+  stubApiData,
+} from "./helpers/api-data-runtime";
 import { stubModuleReads } from "./helpers/installed-modules-runtime";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 import { ENDPOINT_MODULES_LISTING } from "../layers/dms-layout/app/composables/page/useModulesListing";
@@ -207,7 +212,10 @@ describe("with the real data reads", () => {
     });
 
   beforeEach(() => {
-    storeReads.mockClear();
+    storeReads.mockReset();
+    storeReads.mockImplementation(async (url: string) =>
+      structuredClone(ANSWERS[url]),
+    );
     stubApiData(storeReads);
     vi.stubGlobal("useApiData", useApiData);
   });
@@ -245,5 +253,42 @@ describe("with the real data reads", () => {
     await vi.waitFor(() => expect(badge(container)).toBe("menu.modules 2"));
 
     expect(warn.mock.calls.flat().join("\n")).not.toMatch(/hydration/i);
+  });
+  it("shows no count while the store listing is still on its way", async () => {
+    storeReads.mockImplementation(async (url: string) =>
+      url === ENDPOINT_STORE_LISTING
+        ? new Promise<never>(() => {})
+        : structuredClone(ANSWERS[url]),
+    );
+    const { app: mounted, container } = mountInBrowser(
+      Layout(false),
+      registerSidebarParts,
+    );
+    app = mounted;
+
+    await vi.waitFor(() =>
+      expect(storeReads.mock.calls.map(([url]) => url)).toEqual(
+        expect.arrayContaining([
+          ENDPOINT_MODULES_LISTING,
+          ENDPOINT_STORE_LISTING,
+        ]),
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(badge(container)).toBe("menu.modules");
+  });
+
+  it("counts the registered modules when the store listing cannot be read", async () => {
+    storeReads.mockImplementation(async (url: string) => {
+      if (url === ENDPOINT_STORE_LISTING) throw new Error("registry down");
+      return structuredClone(ANSWERS[url]);
+    });
+    const { app: mounted, container } = mountInBrowser(
+      Layout(false),
+      registerSidebarParts,
+    );
+    app = mounted;
+
+    await vi.waitFor(() => expect(badge(container)).toBe("menu.modules 1"));
   });
 });
