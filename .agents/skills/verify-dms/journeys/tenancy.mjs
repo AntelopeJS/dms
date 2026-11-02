@@ -1,3 +1,5 @@
+import { isMemberRow, listOf, stringIn } from "../rows.mjs";
+
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  */
@@ -14,7 +16,7 @@ async function refreshToken(/** @type {Ctx} */ ctx) {
     as: "anon",
     body: { email: admin.email, password: admin.password },
   });
-  return login.body?.refresh_token ?? "";
+  return stringIn(login.body, "refresh_token") ?? "";
 }
 
 function switchTenant(/** @type {Ctx} */ ctx, /** @type {string} */ label, /** @type {string} */ token, /** @type {string} */ tenantId) {
@@ -29,7 +31,7 @@ export const journeys = [
     entryPoint: "POST /api/auth/switch-tenant, /api/tables/members/list",
     async run(/** @type {Ctx} */ ctx) {
       const members = await ctx.api("list the default workspace's members", { method: "GET", path: "/api/tables/members/list" });
-      const rows = members.body?.results ?? [];
+      const rows = listOf(members.body, isMemberRow);
       await ctx.verify("the owner is the default workspace's only member", [
         ctx.equal("member ids", rows.map((row) => row._id.split(":")[0]), ["default"]),
         ctx.equal("owner", rows.map((row) => row.isTenantOwner), [true]),
@@ -41,7 +43,7 @@ export const journeys = [
         ctx.status(foreign, 403),
         ctx.equal("error", foreign.body, "error.not_a_member"),
         ctx.status(home, 200),
-        ctx.holds("new tokens for the default workspace", home.body?.access_token, Object.keys(home.body ?? {}).join(", ")),
+        ctx.holds("new tokens for the default workspace", stringIn(home.body, "access_token"), JSON.stringify(home.body)),
       ]);
     },
   },

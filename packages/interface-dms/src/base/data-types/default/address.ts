@@ -61,6 +61,11 @@ export type AddressAutocomplete = {
   placeholder?: string;
 };
 
+/**
+ * The `address` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("address")
 export class AddressType<
   T extends ControllerClass = ControllerClass,

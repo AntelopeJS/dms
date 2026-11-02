@@ -18,6 +18,14 @@ function embedderHtml(webUrl) {
   return `<!doctype html><html><body><script>${record}</script><iframe id="preview" src="${webUrl}/dms-preview" style="width:800px;height:400px"></iframe></body></html>`;
 }
 
+/**
+ * The page-side expression that is true once the embedding page has recorded a message of `type` on the preview channel.
+ * @param {string} type
+ */
+function recordedMessage(type) {
+  return `window.received.some((data) => data?.channel === ${JSON.stringify(CHANNEL)} && data.type === ${JSON.stringify(type)})`;
+}
+
 /** The public /dms-preview page and the block types API behind it. */
 export const journeys = [
   {
@@ -80,10 +88,14 @@ export const journeys = [
       const tab = await previewTab(ctx);
       await tab.page.setContent(embedderHtml(ctx.state.webUrl));
       const ready = await tab.page
-        .waitForFunction((channel) => window.received.some((data) => data?.channel === channel && data.type === "ready"), CHANNEL, { timeout: 30_000 })
+        .waitForFunction(recordedMessage("ready"), undefined, { timeout: 30_000 })
         .then(() => true, () => false);
       await tab.page.evaluate(
-        ({ channel, tree, origin }) => document.querySelector("#preview").contentWindow.postMessage({ channel, type: "render", tree }, origin),
+        ({ channel, tree, origin }) => {
+          const frame = document.getElementById("preview");
+          if (!(frame instanceof HTMLIFrameElement) || !frame.contentWindow) throw new Error("the preview frame is missing");
+          frame.contentWindow.postMessage({ channel, type: "render", tree }, origin);
+        },
         { channel: CHANNEL, tree: KPI, origin: ctx.state.webUrl },
       );
       const frame = tab.page.frameLocator("#preview");
@@ -95,7 +107,7 @@ export const journeys = [
       await ctx.verify("the frame announces ready and draws the posted tree", [
         ctx.holds("the frame posted ready", ready, ready),
         ctx.holds("the posted KpiCard is drawn", drawn, drawn),
-        ctx.holds("the frame reported its height", await tab.page.evaluate((channel) => window.received.some((data) => data?.channel === channel && data.type === "resize"), CHANNEL), "resize message"),
+        ctx.holds("the frame reported its height", await tab.page.evaluate(recordedMessage("resize")), "resize message"),
       ]);
     },
   },
