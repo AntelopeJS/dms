@@ -53,9 +53,8 @@ export function findInterfaceVersion(startFolder: string): string | undefined {
  */
 export function installedInterfaceVersion(): string {
   if (interfaceVersion) return interfaceVersion;
-  const found = findInterfaceVersion(
-    path.dirname(require.resolve(INTERFACE_ENTRY)),
-  );
+  const entryFolder = path.dirname(require.resolve(INTERFACE_ENTRY));
+  const found = findInterfaceVersion(entryFolder);
   if (!found) {
     throw new Error(`Cannot find the installed ${INTERFACE_PACKAGE} version`);
   }
