@@ -69,6 +69,95 @@ export default defineScenes([
     output: "packages/dms/docs/images/captures/modules-page.webp",
   },
   {
+    id: "workspace-billing",
+    route: "/settings/workspace/billing",
+    output: "packages/dms/docs/images/captures/workspace-billing.webp",
+  },
+  {
+    id: "security",
+    route: "/settings/user/security",
+    output: "packages/dms/docs/images/captures/security.webp",
+  },
+  {
+    id: "two-factor-methods",
+    route: "/settings/user/security",
+    steps: [
+      { action: "click", selector: 'button:has-text("Add method")' },
+      { action: "wait", selector: 'text="Email verification"' },
+    ],
+    output: "packages/dms/docs/images/captures/two-factor-methods.webp",
+  },
+  {
+    id: "notification-bell",
+    route: "/helio/dashboard",
+    steps: [
+      { action: "click", selector: 'button[aria-label="Notifications"]' },
+      { action: "wait", selector: 'text="View all notifications"' },
+    ],
+    output: "packages/dms/docs/images/captures/notification-bell.webp",
+  },
+  {
+    id: "notification-preferences",
+    route: "/settings/user/notifications",
+    steps: [
+      {
+        action: "click",
+        selector: 'button[aria-label="Show System notifications"]',
+      },
+    ],
+    output: "packages/dms/docs/images/captures/notification-preferences.webp",
+  },
+  {
+    id: "role-editor",
+    route: "/settings/workspace/roles",
+    steps: [
+      { action: "click", selector: 'button:has-text("New role")' },
+      {
+        action: "fill",
+        selector: 'input[placeholder="e.g. Support"]',
+        value: "Office",
+      },
+      {
+        action: "fill",
+        selector: 'input[placeholder="What members with this role do"]',
+        value: "Quotes, invoices and customer records",
+      },
+      {
+        action: "fill",
+        selector: 'input[placeholder^="Search permissions"]',
+        value: "Invoices",
+      },
+    ],
+    output: "packages/dms/docs/images/captures/role-editor.webp",
+  },
+  {
+    id: "invite-members",
+    route: "/settings/workspace/members",
+    steps: [
+      { action: "click", selector: 'button:has-text("Invite members")' },
+      {
+        action: "fill",
+        selector: 'input[placeholder="Add addresses, separated with a comma"]',
+        value: "julie.renard@helio.be",
+      },
+    ],
+    output: "packages/dms/docs/images/captures/invite-members.webp",
+  },
+  {
+    id: "workspace-switcher",
+    route: "/helio/dashboard",
+    steps: [
+      { action: "click", selector: 'button[aria-label="Switch workspace"]' },
+      { action: "wait", selector: 'text="Create workspace"' },
+    ],
+    output: "packages/dms/docs/images/captures/workspace-switcher.webp",
+  },
+  {
+    id: "workspace-members",
+    route: "/settings/workspace/members",
+    output: "packages/dms/docs/images/captures/workspace-members.webp",
+  },
+  {
     id: "periods-this-month",
     route: "/helio/dashboard?helio.period=this-month",
     viewport: { width: 1440, height: 664 },
@@ -81,5 +170,20 @@ export default defineScenes([
     viewport: { width: 1440, height: 664 },
     steps: [{ action: "wait", selector: ".apexcharts-canvas" }],
     output: "packages/dms/docs/images/captures/periods-last-30-days.webp",
+  },
+  {
+    id: "sign-in",
+    route: "/helio/dashboard",
+    steps: [
+      { action: "click", selector: 'button[aria-label="Sophie Lambert"]' },
+      { action: "click", selector: 'text="Logout"' },
+      { action: "wait", selector: 'input[name="email"]' },
+    ],
+    output: "packages/dms/docs/images/captures/sign-in.webp",
+  },
+  {
+    id: "pricing",
+    route: "/pricing",
+    output: "packages/dms/docs/images/captures/pricing.webp",
   },
 ]);
