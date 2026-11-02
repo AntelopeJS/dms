@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { z } from "zod";
+import { decode } from "../json.mjs";
 
 /**
  * Decoders for the JSON the verification harness reads back: results it
@@ -157,23 +158,6 @@ export const skillConfigSchema =
       formal: z.array(formalCheck),
     })
   );
-
-/**
- * @template Output
- * @param {z.ZodType<Output, z.ZodTypeDef, unknown>} schema What the value must be
- * @param {unknown} value The value read
- * @param {string} source Where it was read, named in the error
- * @returns {Output} The decoded value
- * @throws When the value does not match the schema
- */
-export function decode(schema, value, source) {
-  const parsed = schema.safeParse(value);
-  if (parsed.success) return parsed.data;
-  const problems = parsed.error.issues
-    .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
-    .join("; ");
-  throw new Error(`${source} is malformed: ${problems}`);
-}
 
 /**
  * The journey results a run recorded for a feature.

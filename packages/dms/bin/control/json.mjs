@@ -66,3 +66,20 @@ export function readRecordList(file) {
     throw new Error(`${file} is not a list of objects`);
   return records;
 }
+
+/**
+ * @template Output
+ * @param {import("zod").ZodType<Output, import("zod").ZodTypeDef, unknown>} schema What the value must be
+ * @param {unknown} value The value read
+ * @param {string} source Where it was read, named in the error
+ * @returns {Output} The decoded value
+ * @throws When the value does not match the schema
+ */
+export function decode(schema, value, source) {
+  const parsed = schema.safeParse(value);
+  if (parsed.success) return parsed.data;
+  const problems = parsed.error.issues
+    .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+    .join("; ");
+  throw new Error(`${source} is malformed: ${problems}`);
+}

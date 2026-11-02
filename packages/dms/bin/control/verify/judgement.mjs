@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
-import { decode, rawJudgementSchema } from "./decode.mjs";
+import { decode } from "../json.mjs";
+import { rawJudgementSchema } from "./decode.mjs";
 
 /**
  * @param {import("./skill.mjs").Skill} skill The skill

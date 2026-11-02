@@ -3,8 +3,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { checkoutOf } from "../git.mjs";
-import { isRecord } from "../json.mjs";
-import { decode, skillConfigSchema } from "./decode.mjs";
+import { decode, isRecord } from "../json.mjs";
+import { skillConfigSchema } from "./decode.mjs";
 
 const CONFIG_FILE = "verify.config.ts";
 const OUTPUT_LIMIT = 64 * 1024 * 1024;

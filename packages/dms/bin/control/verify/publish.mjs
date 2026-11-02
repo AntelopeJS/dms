@@ -3,7 +3,8 @@ import { cpSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { git } from "../git.mjs";
-import { commitStatusesSchema, decode } from "./decode.mjs";
+import { decode } from "../json.mjs";
+import { commitStatusesSchema } from "./decode.mjs";
 import { originRepository } from "./verdict.mjs";
 
 const EVIDENCE_BRANCH = "verify-evidence";

@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, matchesGlob, relative } from "node:path";
 import { behaviourChange, inWorktree } from "./behaviour.mjs";
-import { decode, formalResultSchema } from "./decode.mjs";
+import { decode } from "../json.mjs";
+import { formalResultSchema } from "./decode.mjs";
 
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
