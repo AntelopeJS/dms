@@ -54,7 +54,7 @@ async function joinWorkspace(userId: string): Promise<void> {
 }
 
 interface ResolveAttempt {
-  error: PromiseRejectedResult["reason"];
+  error: unknown;
   result: Awaited<ReturnType<typeof resolveOAuthUser>> | undefined;
   updatedUsers: User[];
 }
@@ -88,7 +88,7 @@ async function attemptResolve(existingUser: User): Promise<ResolveAttempt> {
       language: "fr",
     });
     return { error: undefined, result, updatedUsers };
-  } catch (error: PromiseRejectedResult["reason"]) {
+  } catch (error: unknown) {
     return { error, result: undefined, updatedUsers };
   }
 }
@@ -103,8 +103,10 @@ describe("[unit] auth/oauth — claiming an existing account", () => {
 
     const attempt = await attemptResolve(provisioned);
 
-    expect(attempt.error).to.be.instanceOf(HTTPResult);
     const refusal = attempt.error;
+    if (!(refusal instanceof HTTPResult)) {
+      expect.fail("expected an HTTPResult refusal");
+    }
     expect(refusal.getStatus()).to.equal(HTTP_FORBIDDEN);
     expect(refusal.getBody()).to.equal(ACCOUNT_NOT_VALIDATED);
     expect(attempt.updatedUsers).to.deep.equal([]);
