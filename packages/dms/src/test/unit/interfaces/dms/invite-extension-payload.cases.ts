@@ -22,7 +22,10 @@ import {
   extensionForm,
   recordingExtension,
 } from "../../../helpers/invite-extensions";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
 import { admin, register } from "./invite-extension.helpers";
+
+const HTTP_BAD_REQUEST = 400;
 
 export function registerInviteExtensionPayloadCases(): void {
   describe("payload edited on a pending invitation", () => {
@@ -129,6 +132,40 @@ export function registerInviteExtensionPayloadCases(): void {
       expect(
         await GetModel(UserInviteModel, TENANT).getByEmail(email),
       ).to.equal(undefined);
+    });
+
+    it("reports a refused slice on the prefixed field id the browser submitted", async () => {
+      register(recordingExtension("billing", "costCenter").options);
+
+      const error = await httpRejectionOf(
+        submitInvite({ billing__costCenter: "" }, admin),
+      );
+      expect(error.getStatus()).to.equal(HTTP_BAD_REQUEST);
+      const body = z
+        .object({
+          issues: z.array(z.object({ path: z.array(z.string()) })),
+        })
+        .parse(JSON.parse(error.getBody()));
+      expect(body.issues.map(({ path }) => path)).to.deep.equal([
+        ["billing__costCenter"],
+      ]);
+    });
+
+    it("reports the error text of a schema that fails without a list of issues", async () => {
+      register({
+        key: "flaky",
+        component: extensionForm("note"),
+        schema: z.unknown().transform((): never => {
+          throw Object.assign(new Error("flaky schema"), { issues: [null] });
+        }),
+        onAccept: () => undefined,
+      });
+
+      const error = await httpRejectionOf(
+        submitInvite({ flaky__note: "x" }, admin),
+      );
+      expect(error.getStatus()).to.equal(HTTP_BAD_REQUEST);
+      expect(error.getBody()).to.contain("flaky schema");
     });
 
     it("drops keys of an extension that is no longer registered", async () => {

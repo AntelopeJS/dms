@@ -1,5 +1,6 @@
 /** @internal */
 import { z } from "zod";
+import { isNull, isObject } from "../../utils/internal/type-check";
 import { ComponentBuilder } from "../../component";
 import type {
   adaptFieldValidationSchema,
@@ -54,12 +55,17 @@ function isFilledText(value: z.output<z.ZodTypeAny>): boolean {
   return typeof value === "string" ? value.trim() !== "" : value != null;
 }
 
+function isLocaleMap(value: unknown): value is Record<string, unknown> {
+  return isObject(value) && !isNull(value);
+}
+
 /** @internal */
 export function withFallbackLocale(
   schema: z.ZodTypeAny,
   fallbackLocale: string,
 ): z.ZodTypeAny {
   return schema.superRefine((value, context) => {
+    if (!isLocaleMap(value)) return;
     const isAnyFilled = Object.values(value).some(isFilledText);
     if (!isAnyFilled || isFilledText(value[fallbackLocale])) return;
     context.addIssue({
@@ -81,7 +87,6 @@ const SECTIONS_KEY = "sections";
 
 /** @internal */
 export function isFormProps(source: FormSchemaSource): source is FormProps {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing malformed-source rejection at the public formSchema boundary.
   if (typeof source !== "object" || source === null) return false;
   return (
     (FIELDS_KEY in source && Array.isArray(source.fields)) ||
