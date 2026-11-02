@@ -11,7 +11,9 @@ import {
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { describeFailure } from "./failure.mjs";
 import { checkoutOf } from "./git.mjs";
+import { stringField } from "./json.mjs";
 import { dropDatabase, dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
   freePort,
@@ -463,8 +465,8 @@ export async function down(state) {
       state.mongoUrl,
       state.databasePrefix,
       resolutionFolders(state),
-    ).catch((error) => [
-      `could not drop the run's databases: ${error.message}`,
+    ).catch((/** @type {unknown} */ error) => [
+      `could not drop the run's databases: ${describeFailure(error)}`,
     ]);
     lines.push(...dropped);
   }
@@ -508,7 +510,9 @@ export async function down(state) {
  */
 export function packageVersion(file) {
   try {
-    return JSON.parse(readFileSync(file, "utf8")).version ?? "missing";
+    /** @type {unknown} */
+    const manifest = JSON.parse(readFileSync(file, "utf8"));
+    return stringField(manifest, "version") ?? "missing";
   } catch {
     return "missing";
   }

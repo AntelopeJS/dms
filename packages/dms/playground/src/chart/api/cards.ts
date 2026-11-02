@@ -4,6 +4,7 @@ import {
   kpiCardData,
   type SeriesPoint,
 } from "@antelopejs/interface-dms/base/query-response";
+import { ownEntry } from "../../own-entry";
 
 const CHANNELS = ["Direct", "Email", "Search", "Social"];
 const CHANNEL_SESSIONS = [4200, 1800, 6500, 2100];
@@ -33,7 +34,7 @@ function hourly(values: number[], scale = 1): SeriesPoint[] {
 export class CardsDemoApiController extends Controller("/api/dashboard/cards") {
   @Get("channels")
   getChannels(@Parameter("preset", "query") preset?: string) {
-    const scale = PRESET_SCALES[preset ?? ""] ?? 1;
+    const scale = ownEntry(PRESET_SCALES, preset ?? "") ?? 1;
     const points = CHANNELS.map((x, index) => ({
       x,
       y: Math.round(CHANNEL_SESSIONS[index] * scale),
@@ -43,7 +44,7 @@ export class CardsDemoApiController extends Controller("/api/dashboard/cards") {
 
   @Get("latency")
   getLatency(@Parameter("preset", "query") preset?: string) {
-    const scale = PRESET_SCALES[preset ?? ""] ?? 1;
+    const scale = ownEntry(PRESET_SCALES, preset ?? "") ?? 1;
     const data = chartCardData(hourly(LATENCY_AVERAGE, scale), {
       measure: "avg",
       label: "Average",

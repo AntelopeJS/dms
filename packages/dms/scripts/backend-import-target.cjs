@@ -1,11 +1,12 @@
 const assert = require("node:assert/strict");
 const { execFileSync } = require("node:child_process");
-const { existsSync, readFileSync, realpathSync } = require("node:fs");
+const { existsSync, realpathSync } = require("node:fs");
 const { createRequire, isBuiltin } = require("node:module");
 const nodePath = require("node:path");
 const { sep } = nodePath;
 const { fileURLToPath, pathToFileURL } = require("node:url");
 const ts = require("typescript");
+const { optionalText, readJsonRecord } = require("./helpers/json-record.mjs");
 const { forbidden } = require("../../../.dependency-cruiser/backend.cjs");
 
 const root = nodePath.resolve(__dirname, "..");
@@ -238,7 +239,7 @@ function owner(path) {
   ) {
     const manifest = nodePath.join(directory, "package.json");
     if (existsSync(manifest)) {
-      const { name } = JSON.parse(readFileSync(manifest, "utf8"));
+      const name = optionalText(readJsonRecord(manifest), "name");
       if (name) return { directory, name };
     }
     assert.notEqual(

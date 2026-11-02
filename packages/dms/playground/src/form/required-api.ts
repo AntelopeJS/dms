@@ -25,15 +25,14 @@ function refuseTakenUsername(username: DemoRecord["username"]): void {
     JSON.stringify({
       field: "username",
       message: USERNAME_TAKEN_KEY,
-      params: { name: username },
+      params: { name: TAKEN_USERNAME },
     }),
     JSON_TYPE,
   );
 }
 
 function refuseUnknownPostalCode(address: DemoRecord["address"]): void {
-  const postalCode = address?.postalCode;
-  if (postalCode !== UNKNOWN_POSTAL_CODE) return;
+  if (address?.postalCode !== UNKNOWN_POSTAL_CODE) return;
   throw new HTTPResult(
     HTTP_BAD_REQUEST,
     JSON.stringify([

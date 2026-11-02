@@ -1,14 +1,50 @@
-const { existsSync, readdirSync } = require("node:fs");
-const path = require("node:path");
+/**
+ * @typedef {{ path?: string | string[], pathNot?: string | string[] }} Selector
+ * One side of a rule: the paths it selects and the paths it leaves out.
+ */
 
-const areaDirectory = path.join(__dirname, ".dependency-cruiser");
-const areas = existsSync(areaDirectory)
-  ? readdirSync(areaDirectory)
-      .filter((file) => file.endsWith(".cjs"))
-      .sort()
-      .map((file) => require(path.join(areaDirectory, file)))
-  : [];
+/**
+ * @typedef {{
+ *   name: string,
+ *   severity: string,
+ *   from: Selector,
+ *   to: Selector & { couldNotResolve?: boolean, dependencyTypesNot?: string[] },
+ * }} ForbiddenRule
+ * A forbidden dependency between two sets of modules.
+ */
 
+/**
+ * @typedef {{ forbidden: ForbiddenRule[] }} Area
+ * What an area file under `.dependency-cruiser/` contributes.
+ */
+
+/**
+ * @typedef {{
+ *   forbidden: ForbiddenRule[],
+ *   options: {
+ *     doNotFollow: { path: string },
+ *     exclude: { path: string },
+ *     includeOnly: string,
+ *     tsPreCompilationDeps: boolean,
+ *     tsConfig: { fileName: string },
+ *     enhancedResolveOptions: {
+ *       exportsFields: string[],
+ *       conditionNames: string[],
+ *       mainFields: string[],
+ *     },
+ *   },
+ * }} Config
+ * The dependency-cruiser configuration this repository loads.
+ */
+
+const areas = [
+  require("./.dependency-cruiser/backend.cjs"),
+  require("./.dependency-cruiser/frontend.cjs"),
+  require("./.dependency-cruiser/interface-dms.cjs"),
+  require("./.dependency-cruiser/playground.cjs"),
+];
+
+/** @type {Config} */
 module.exports = {
   forbidden: [
     {

@@ -3,6 +3,7 @@ import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-f
 import type { StatGroupItem } from "@antelopejs/interface-dms/base/stat-group";
 import type { Tone } from "@antelopejs/interface-dms/base/types";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
+import { ownEntry } from "../own-entry";
 
 /** Published on each batch of requests the live page follows. */
 export const LIVE_DEMO_TOPIC = "blocks:live-demo";
@@ -104,7 +105,7 @@ function publishLater(delayMs: number): void {
 }
 
 function liveStats(preset: string | undefined): StatGroupItem[] {
-  const scale = PRESET_SCALES[preset ?? ""] ?? 1;
+  const scale = ownEntry(PRESET_SCALES, preset ?? "") ?? 1;
   return [
     {
       icon: "i-ph-arrows-left-right",

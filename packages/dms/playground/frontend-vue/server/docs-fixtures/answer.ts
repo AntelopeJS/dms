@@ -70,6 +70,8 @@ const DATASETS = new Map<string, Dataset>([
 ]);
 
 const FILTER_PREFIX = "filter_";
+/** Query flag of a bulk write covering every row the filters match. */
+const ALL_MATCHING_KEY = "allMatching";
 /** The value a demo form refuses, to show a failed save. */
 const REFUSED_VALUE = "fail";
 
@@ -217,8 +219,17 @@ const fieldsOf = (
   body: FixtureValue | undefined,
 ): Record<string, FixtureValue> => (isFields(body) ? body : {});
 
+/** The ids a write names, as `id` (a single row) or repeated `ids` (a selection). */
 const idsOf = (query: URLSearchParams): string[] =>
-  query.getAll("id").flatMap((id) => id.split(","));
+  [...query.getAll("id"), ...query.getAll("ids")].flatMap((id) =>
+    id.split(","),
+  );
+
+/** How many rows a write covers: every matching row after "Select all N matching". */
+const writtenCount = (rows: FixtureRow[], query: URLSearchParams): number =>
+  query.get(ALL_MATCHING_KEY) === "true"
+    ? matching(rows, query).length
+    : idsOf(query).length;
 
 function countBatch(
   rows: FixtureRow[],
@@ -355,7 +366,7 @@ function write(
       body: { ...fields, _id: `${name}-${rows.length + 1}` },
     };
   if (action === "invite") return invite(fields);
-  return { status: 200, body: { count: idsOf(request.query).length } };
+  return { status: 200, body: { count: writtenCount(rows, request.query) } };
 }
 
 /**

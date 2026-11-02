@@ -18,6 +18,14 @@ const LISTEN_STATE = "0A";
 const HEX = 16;
 
 /**
+ * @param {string | import("node:net").AddressInfo | null} address What a listening server reports
+ * @returns {address is import("node:net").AddressInfo} True for the address of a TCP listener
+ */
+function isTcpAddress(address) {
+  return typeof address === "object" && address !== null;
+}
+
+/**
  * Asks the kernel for a free TCP port on the loopback interface.
  *
  * @returns {Promise<number>} The port
@@ -27,8 +35,14 @@ export function freePort() {
     const server = createServer();
     server.once("error", reject);
     server.listen(0, "127.0.0.1", () => {
-      const { port } = server.address();
-      server.close(() => resolve(port));
+      const address = server.address();
+      if (!isTcpAddress(address)) {
+        server.close(() =>
+          reject(new Error("the probe server has no TCP port")),
+        );
+        return;
+      }
+      server.close(() => resolve(address.port));
     });
   });
 }

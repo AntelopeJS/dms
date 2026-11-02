@@ -1318,17 +1318,15 @@
   "Spacer": {
     "type": "HStack",
     "options": {
-      "alignment": "center",
-      "spacing": "0.75rem"
+      "alignment": "center"
     },
+    "width": 960,
     "children": [
       {
-        "id": "title",
-        "type": "Banner",
+        "id": "live",
+        "type": "LiveToggle",
         "options": {
-          "size": "sm",
-          "tone": "info",
-          "title": "Left"
+          "variant": "pill"
         }
       },
       {
@@ -1339,12 +1337,14 @@
         }
       },
       {
-        "id": "right",
-        "type": "Banner",
+        "id": "period",
+        "type": "PeriodSelector",
         "options": {
-          "size": "sm",
-          "tone": "success",
-          "title": "Pushed right by a Spacer"
+          "id": "spacer-period",
+          "variant": "segmented",
+          "defaultPreset": "last-7-days",
+          "presets": ["today", "last-7-days", "last-30-days"],
+          "comparisonControl": "hidden"
         }
       }
     ]
