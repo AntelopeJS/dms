@@ -3,6 +3,12 @@ import {
   inviteExtensionFieldId,
   splitInviteExtensionFieldId,
 } from "./field-ids";
+import {
+  isNull,
+  isNumber,
+  isObject,
+  isString,
+} from "../../utils/internal/type-check";
 import { logInviteExtensionFailure } from "./registry";
 import type { InviteDeliveryOptions, InviteExtensionInfo } from "./types";
 import type { InviteExtensionPayloads } from "../types";
@@ -20,10 +26,26 @@ export interface StoredPayload {
   value: unknown;
 }
 
+function isIssueLike(value: unknown): value is IssueLike {
+  return (
+    isObject(value) &&
+    !isNull(value) &&
+    "path" in value &&
+    Array.isArray(value.path) &&
+    value.path.every((step) => isString(step) || isNumber(step)) &&
+    "message" in value &&
+    isString(value.message)
+  );
+}
+
 function issuesOf(error: Error["cause"]): IssueLike[] | undefined {
-  if (error === null || error === undefined) return undefined;
-  const issues = Object(error).issues;
-  return Array.isArray(issues) ? issues : undefined;
+  if (!isObject(error) || isNull(error) || !("issues" in error)) {
+    return undefined;
+  }
+  const { issues } = error;
+  return Array.isArray(issues) && issues.every(isIssueLike)
+    ? issues
+    : undefined;
 }
 
 /**

@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, matchesGlob, relative } from "node:path";
 import { behaviourChange, inWorktree } from "./behaviour.mjs";
+import { decodeFormalResult } from "./decode.mjs";
 
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
@@ -251,5 +252,8 @@ export function formalGate(result) {
  */
 export function readFormalResult(state, name) {
   const file = join(state.evidence, "formal", name, "result.json");
-  return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : undefined;
+  if (!existsSync(file)) return undefined;
+  /** @type {unknown} */
+  const stored = JSON.parse(readFileSync(file, "utf8"));
+  return decodeFormalResult(stored, file);
 }
