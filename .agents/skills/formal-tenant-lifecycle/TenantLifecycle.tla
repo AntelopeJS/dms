@@ -20,6 +20,11 @@ CONSTANTS
   MaxFaults, \* database calls that throw, or answer "unknown"
   NoBarrier  \* barrierId null
 
+(* RELEASE_ATTEMPTS of lifecycle.ts:7. Every release tries `finish` this often. *)
+ReleaseAttempts == 3
+
+ASSUME MaxFaults < ReleaseAttempts
+
 VARIABLES
   row,     \* the tenant_lifecycle row
   snap,    \* what a caller's pending compare-and-set sends, from its last read
@@ -45,7 +50,7 @@ NoSnap == [rev |-> 0, active |-> {}]
 
 AttemptSteps == {
   "idle", "admitRead", "admitCas", "work", "finishRead", "finishCas",
-  "releaseRead", "releaseCas", "done", "refused", "failed", "finishFailed",
+  "releaseRead", "releaseCas", "done", "refused", "failed",
   "uncertain", "admitFailed", "refusedPaused", "refusedClosed"}
 PauseSteps == {"idle", "observed", "pauseRead", "pauseCas", "held", "lost", "pauseFailed"}
 ResumeSteps == {"idle", "resumeRead", "resumeCas", "resumed", "resumeRefused", "resumeFailed"}
@@ -92,7 +97,7 @@ AllResumed ==
   /\ \A o \in Owners : resuming[o] \in {"resumed", "resumeRefused"}
   /\ \E o \in Owners : resuming[o] = "resumed"
 
-(* ---- runTenantLifecycleOperation (lifecycle.ts:37-55) and model.admit ---- *)
+(* ---- runTenantLifecycleOperation (lifecycle.ts:68-93) and model.admit ---- *)
 
 MoveAttempt(a, to) == attempt' = [attempt EXCEPT ![a] = to]
 
@@ -127,7 +132,7 @@ Admitted(a) ==
   /\ row' = Patch(row, "active", snap[a].active \cup {a})
   /\ pausedAdmit' = (pausedAdmit \/ row.barrier # NoBarrier)
 
-(* model.ts:73-78, then lifecycle.ts:46 calls work. *)
+(* model.ts:73-78, then lifecycle.ts:77 calls work. *)
 AdmitApplied(a) ==
   /\ attempt[a] = "admitCas"
   /\ Applies(a)
@@ -165,29 +170,28 @@ AdmitUnknownLost(a) ==
   /\ UNCHANGED <<row, pausedAdmit, owed>>
   /\ AttemptOthersKeep
 
-(* lifecycle.ts:46 resolves, and lifecycle.ts:53 finishes. *)
+(* lifecycle.ts:77 resolves, and lifecycle.ts:90-91 finishes. *)
 WorkSucceeds(a) ==
   /\ attempt[a] = "work"
   /\ MoveAttempt(a, "finishRead")
   /\ UNCHANGED <<row, snap, faults, pausedAdmit, owed>>
   /\ AttemptOthersKeep
 
-(* lifecycle.ts:48-50: a 4xx, by isDeliberateRefusal (lifecycle.ts:19-26). *)
+(* lifecycle.ts:79-89: a 4xx, by isDeliberateRefusal (lifecycle.ts:20-27). *)
 WorkRefuses(a) ==
   /\ attempt[a] = "work"
   /\ MoveAttempt(a, "releaseRead")
   /\ UNCHANGED <<row, snap, faults, pausedAdmit, owed>>
   /\ AttemptOthersKeep
 
-(* lifecycle.ts:47-51: any other throw keeps the admission. *)
+(* lifecycle.ts:78-92: any other throw keeps the admission. *)
 WorkFails(a) ==
   /\ attempt[a] = "work"
   /\ MoveAttempt(a, "failed")
   /\ UNCHANGED <<row, snap, faults, pausedAdmit, owed>>
   /\ AttemptOthersKeep
 
-(* model.finish (model.ts:109-118). Each caller runs it from its own steps:
-   lifecycle.ts:53 propagates a throw, lifecycle.ts:49 swallows it. *)
+(* model.finish (model.ts:109-118). Each caller runs it from its own steps. *)
 ReadRow(a, cas, end) ==
   /\ IF a \in row.active
        THEN MoveAttempt(a, cas) /\ Remember(a)
@@ -237,18 +241,21 @@ UnknownIsLost(a, end) ==
 FinishRead(a) == attempt[a] = "finishRead" /\ ReadRow(a, "finishCas", "done")
 FinishApplied(a) == attempt[a] = "finishCas" /\ RemoveLands(a, "done")
 FinishStale(a) == attempt[a] = "finishCas" /\ RemoveConflicts(a, "finishRead")
-FinishReadFaults(a) == attempt[a] = "finishRead" /\ ThrowOnRead(a, "finishFailed")
-FinishUnknownLanded(a) == attempt[a] = "finishCas" /\ UnknownLands(a, "finishFailed")
-FinishUnknownLost(a) == attempt[a] = "finishCas" /\ UnknownIsLost(a, "finishFailed")
+(* releaseAttempt (lifecycle.ts:35-52) tries `finish` RELEASE_ATTEMPTS times
+   and finish is idempotent, so a throw or an unknown answer reads the row
+   again. The attempts run out only after RELEASE_ATTEMPTS faults, which the
+   assumption above rules out. *)
+FinishReadFaults(a) == attempt[a] = "finishRead" /\ ThrowOnRead(a, "finishRead")
+FinishUnknownLanded(a) == attempt[a] = "finishCas" /\ UnknownLands(a, "finishRead")
+FinishUnknownLost(a) == attempt[a] = "finishCas" /\ UnknownIsLost(a, "finishRead")
 
 ReleaseRead(a) == attempt[a] = "releaseRead" /\ ReadRow(a, "releaseCas", "refused")
 ReleaseApplied(a) == attempt[a] = "releaseCas" /\ RemoveLands(a, "refused")
 ReleaseStale(a) == attempt[a] = "releaseCas" /\ RemoveConflicts(a, "releaseRead")
 
-(* `.catch(() => undefined)` (lifecycle.ts:49): the refusal is rethrown either way. *)
-ReleaseReadFaults(a) == attempt[a] = "releaseRead" /\ ThrowOnRead(a, "refused")
-ReleaseUnknownLanded(a) == attempt[a] = "releaseCas" /\ UnknownLands(a, "refused")
-ReleaseUnknownLost(a) == attempt[a] = "releaseCas" /\ UnknownIsLost(a, "refused")
+ReleaseReadFaults(a) == attempt[a] = "releaseRead" /\ ThrowOnRead(a, "releaseRead")
+ReleaseUnknownLanded(a) == attempt[a] = "releaseCas" /\ UnknownLands(a, "releaseRead")
+ReleaseUnknownLost(a) == attempt[a] = "releaseCas" /\ UnknownIsLost(a, "releaseRead")
 
 (* ---- observeTenantLifecycle, model.pause and model.resume ---------------- *)
 
@@ -500,6 +507,10 @@ PauseBlocksAdmission == ~pausedAdmit
 (* An attempt that answered with its refusal holds no admission. *)
 RefusalReleases ==
   \A a \in Attempts : attempt[a] = "refused" => a \notin row.active
+
+(* An attempt that finished holds no admission. *)
+SuccessReleases ==
+  \A a \in Attempts : attempt[a] = "done" => a \notin row.active
 
 (* A failed attempt keeps its admission, whatever any other attempt does. *)
 FailureRetains ==
