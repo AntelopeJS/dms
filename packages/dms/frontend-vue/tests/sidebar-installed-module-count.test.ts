@@ -13,6 +13,7 @@ import {
   type App,
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
+import { stubModuleReads } from "./helpers/installed-modules-runtime";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 import { ENDPOINT_MODULES_LISTING } from "../layers/dms-layout/app/composables/page/useModulesListing";
 import { ENDPOINT_STORE_LISTING } from "../layers/dms-layout/app/composables/page/useModuleStore";
@@ -120,13 +121,7 @@ function installRuntime() {
     findMatchingRoute: () => null,
     findMatchingRouteOrCategory: () => null,
   }));
-  vi.stubGlobal("useApiData", (url: () => string | null) => ({
-    data: ref(ANSWERS[url() ?? ""] ?? null),
-    error: ref(null),
-    pending: ref(false),
-  }));
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
-  vi.stubGlobal("useApiErrorPresenter", () => ({ resolveError: vi.fn() }));
+  stubModuleReads(ANSWERS);
   vi.stubGlobal("useFavoritePages", () => ({
     cleanupInvalidFavorites: vi.fn(),
     sortedFavorites: ref([]),

@@ -13,6 +13,9 @@ import { useSidebarState } from "./sidebarState";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import { useMediaQuery } from "@vueuse/core";
 import DmsSidebarUserMenu from "./SidebarUserMenu.vue";
+import { useInstalledModules } from "../../../composables/page/useInstalledModules";
+import { useModuleStore } from "../../../composables/page/useModuleStore";
+import { useModulesListing } from "../../../composables/page/useModulesListing";
 
 const MODULES_PATH = "/modules";
 
@@ -205,14 +208,11 @@ watch(
   { immediate: true },
 );
 
-const moduleCount = computed(() => {
-  const modulesNode =
-    siteLayout.siteLayoutTree.value?.children[MODULES_TREE_KEY];
-  if (!modulesNode) return 0;
-  return modulesNode.childrenOrders.filter(
-    (childId) => modulesNode.children[childId]?.isModuleRoot,
-  ).length;
-});
+const { modules: installedModules } = useInstalledModules(
+  useModulesListing(),
+  useModuleStore(),
+);
+const moduleCount = computed(() => installedModules.value.length);
 
 const footerItems = computed((): NavigationMenuItem[] => {
   const result: NavigationMenuItem[] = [];

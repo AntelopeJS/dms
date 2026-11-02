@@ -16,6 +16,7 @@ import {
   type Ref,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
+import { stubModuleReads } from "./helpers/installed-modules-runtime";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 import { KEYBOARD_PLATFORM_COOKIE } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
 
@@ -61,7 +62,11 @@ function installRuntime(initialCookies: Record<string, string>) {
     onMounted,
     onBeforeUnmount,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
-  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal("useI18n", () => ({
+    t: (key: string) => key,
+    locale: ref("en"),
+  }));
+  stubModuleReads();
   vi.stubGlobal("useDmsAppConfig", () => ({}));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) => value,
