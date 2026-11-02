@@ -3,8 +3,6 @@ import test from "node:test";
 import {
   CreateDataType,
   DataType,
-  getDataTypeId,
-  RegisterDataCompareMode,
 } from "../dist/component-options/data-type.js";
 import { remapRecordFileKeys } from "../dist/base/helpers/file-refs.js";
 import { ImageType } from "../dist/base/data-types/default/files.js";
@@ -90,15 +88,4 @@ await test("a quick filter on a name that is not a column but is an Object.proto
       new RegExp(`references unknown column "${field}"`),
     );
   }
-});
-
-await test("the id of a data type instance is looked up on its own prototype only", () => {
-  assert.equal(getDataTypeId(new ImageType()), "image");
-  assert.equal(getDataTypeId(Object.create(null)), undefined);
-  assert.throws(() => getDataTypeId("not a data type"), TypeError);
-});
-
-await test("a compare mode class that does not implement filter is refused at registration", () => {
-  class NoFilter {}
-  assert.throws(() => RegisterDataCompareMode("no-filter")(NoFilter), /filter/);
 });

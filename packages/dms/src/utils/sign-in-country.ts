@@ -1,3 +1,4 @@
+import { ownValue } from "./own-value";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
@@ -109,8 +110,9 @@ export function resolveClientOrigin(
 ): ClientOrigin {
   const headerName = getAuthConfig().signInCountry?.header?.toLowerCase();
   const country =
-    (headerName ? normalizeCountryCode(headers[headerName]) : undefined) ??
-    lookupCountry(ip);
+    (headerName
+      ? normalizeCountryCode(ownValue(headers, headerName))
+      : undefined) ?? lookupCountry(ip);
   return { ip, country };
 }
 

@@ -1,3 +1,5 @@
+import type { Class } from "@antelopejs/interface-core/decorators";
+
 const primitiveTypes = [
   "string",
   "number",
@@ -37,6 +39,17 @@ export const isObject = createTypeGuard<object>("object");
 export const isFunction =
   // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published function predicate promises no result shape for arbitrary callable values.
   createTypeGuard<(...args: unknown[]) => unknown>("function");
+/**
+ * Whether a value is a class: a function with an object `prototype`, which
+ * arrow functions, methods and bound functions lack. A generator function has
+ * one too, a language limit this check shares with every `prototype` test.
+ *
+ * @internal
+ */
+export const isClass = (value: unknown): value is Class =>
+  typeof value === "function" &&
+  typeof value.prototype === "object" &&
+  value.prototype !== null;
 /** @internal */
 export const isBigint = createTypeGuard<bigint>("bigint");
 /** @internal */

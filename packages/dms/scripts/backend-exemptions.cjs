@@ -1,13 +1,13 @@
 const constructorExemptions = {
   "implementations/dms-base/search-route.ts:400":
     "      const entryInstance = model.constructor.fromDatabase(entry);",
-  "implementations/dms-base/table-view.ts:87":
+  "implementations/dms-base/table-view.ts:83":
     "      const stored = model.constructor.fromDatabase(entry);",
-  "implementations/dms-base/table-view.ts:124":
+  "implementations/dms-base/table-view.ts:120":
     "    controller.constructor as ConstructorParameters<typeof TableViewMeta>[0],",
-  "implementations/dms-base/table-view.ts:190":
-    "    controller.constructor as ControllerClass;",
-  "implementations/dms-base/table-view.ts:387":
+  "implementations/dms-base/table-view.ts:184":
+    "  const owner = controller.constructor;",
+  "implementations/dms-base/table-view.ts:385":
     "    const stored = model.constructor.fromDatabase(row);",
   "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:76":
     "    const meta = GetMetadata(instance.constructor, TableViewMeta);",
@@ -19,10 +19,10 @@ const builtinExemptions = {
     'import Module, { findPackageJSON } from "node:module";',
 };
 const requireResolveExemptions = {
-  "src/store/compatibility.ts:32":
-    "  let folder = path.dirname(require.resolve(INTERFACE_ENTRY));",
-  "dist/store/compatibility.js:26":
-    "    let folder = node_path_1.default.dirname(require.resolve(INTERFACE_ENTRY));",
+  "src/store/compatibility.ts:56":
+    "  const entryFolder = path.dirname(require.resolve(INTERFACE_ENTRY));",
+  "dist/store/compatibility.js:45":
+    "    const entryFolder = node_path_1.default.dirname(require.resolve(INTERFACE_ENTRY));",
 };
 
 module.exports = {

@@ -1,6 +1,7 @@
 /** Stable relation data types. @packageDocumentation */
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
+import type { DecoratorTarget } from "@antelopejs/interface-core/decorators";
 import { DataAPIMeta, Foreign } from "@antelopejs/interface-data-api/metadata";
 import { z } from "zod";
 import { FormComponents } from "../../form-schema";
@@ -149,8 +150,7 @@ export class RelationType<T extends ControllerClass> extends DataType {
   }
 
   public decorateField(
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Preserve DataType's decorator target contract.
-    target: unknown,
+    target: DecoratorTarget,
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
   ): void {
@@ -245,8 +245,7 @@ export class CascaderRelationType<T extends ControllerClass> extends DataType {
   }
 
   public decorateField(
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Preserve DataType's decorator target contract.
-    target: unknown,
+    target: DecoratorTarget,
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
   ): void {

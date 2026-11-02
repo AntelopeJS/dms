@@ -1,7 +1,4 @@
-import {
-  type ControllerClass,
-  ControllerMeta,
-} from "@antelopejs/interface-api";
+import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
@@ -16,9 +13,7 @@ import type {
 
 function dataApiLocation(countFrom: ControllerClass | string): string {
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The option declares either a literal location or a controller class; typeof selects the declared variant.
-  return typeof countFrom === "string"
-    ? countFrom
-    : GetMetadata(countFrom, ControllerMeta).location;
+  return typeof countFrom === "string" ? countFrom : countFrom.location;
 }
 
 /**
