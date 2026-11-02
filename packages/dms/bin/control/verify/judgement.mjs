@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { decodeRawJudgement } from "./decode.mjs";
 
 /**
  * @param {import("./skill.mjs").Skill} skill The skill
@@ -69,8 +70,9 @@ export function readJudgement(skill, file) {
       `${file} is missing: write the verifier's judgement before rendering the verdict`,
     );
   }
-  /** @type {import("./types.mjs").RawJudgement} */
-  const raw = JSON.parse(readFileSync(file, "utf8"));
+  /** @type {unknown} */
+  const stored = JSON.parse(readFileSync(file, "utf8"));
+  const raw = decodeRawJudgement(stored, file);
   const rows = parseRows(skill, raw);
   const none = raw.doors?.none?.trim() || null;
   if (!none && rows.length === 0) {
