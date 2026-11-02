@@ -1,6 +1,7 @@
 {
   "navigation": {
-    "goToHomepage": "Aller à la page d'accueil"
+    "goToHomepage": "Aller à la page d'accueil",
+    "goToBrandHomepage": "{name}, aller à la page d'accueil"
   },
   "header": {
     "home": "Accueil",

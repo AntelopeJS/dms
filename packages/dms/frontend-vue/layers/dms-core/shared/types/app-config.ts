@@ -14,6 +14,11 @@ export interface DmsLogoSources {
 
 /** The logos of an instance, one per place it is drawn. */
 export interface DmsBrandingLogo {
+  /**
+   * The name a screen reader announces for the logo: the application's name.
+   * Set it with a logo of your own.
+   */
+  alt?: string;
   /** The expanded sidebar and the auth pages. */
   default: DmsLogoSources;
   /** The icon-only sidebar. */
