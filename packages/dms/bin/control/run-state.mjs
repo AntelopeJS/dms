@@ -2,6 +2,17 @@ import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import {
+  arrayOf,
+  decode,
+  either,
+  isBoolean,
+  isNumber,
+  isString,
+  nullable,
+  objectOf,
+  recordOf,
+} from "./json.mjs";
 
 const RUN_FILE = "run.json";
 const ID_BYTES = 3;
@@ -86,20 +97,89 @@ export function createRunFolders(dir) {
 }
 
 /**
- * @typedef {Omit<RunState, "browser"> & { browser?: string | ServerRecord }} StoredRunState The state as a file may hold it. A run saved by an earlier release holds the browser's folder in `browser` until the browser starts.
+ * @typedef {Omit<RunState, "browser" | "accounts"> & { browser?: string | ServerRecord, accounts: Record<string, Omit<Account, "password"> & { password?: string }> }} StoredRunState The state as a file may hold it. A run saved by an earlier release holds the browser's folder in `browser` until the browser starts, and `down` leaves an account without its `password`.
  */
 
-/**
- * @param {StoredRunState} stored The state as the file holds it
- * @returns {stored is RunState} Whether `browser` holds no folder
- */
-function holdsNoFolder(stored) {
-  return typeof stored?.browser !== "string";
-}
+const isStrings = recordOf(isString);
+
+const isProcessRecord = objectOf(
+  {
+    name: isString,
+    pid: isNumber,
+    command: isString,
+    cwd: isString,
+    log: isString,
+    startedAt: isString,
+  },
+  { port: isNumber },
+);
+
+const isServerRecord = objectOf({
+  name: isString,
+  pid: isNumber,
+  command: isString,
+  cwd: isString,
+  log: isString,
+  startedAt: isString,
+  port: isNumber,
+});
+
+const isAccount = objectOf(
+  { email: isString },
+  { password: isString, userId: nullable(isString) },
+);
+
+/** @type {import("./json.mjs").Guard<StoredRunState>} The state as `run.json` holds it. Keys it does not check are kept, so saving a loaded run writes them back. */
+const isStoredRun = objectOf(
+  {
+    dir: isString,
+    root: isString,
+    home: isString,
+    logs: isString,
+    mongo: isString,
+    evidence: isString,
+    cache: isString,
+    id: isString,
+    createdAt: isString,
+    environment: isString,
+    playground: isString,
+    moduleRoot: isString,
+    repo: nullable(isString),
+    headSha: nullable(isString),
+    baseRef: isString,
+    skill: nullable(isString),
+    apiPort: isNumber,
+    webPort: isNumber,
+    smtpPort: isNumber,
+    mail: isString,
+    apiUrl: isString,
+    webUrl: isString,
+    databasePrefix: isString,
+    database: isString,
+    mongoUrl: isString,
+    ownsMongo: isBoolean,
+    secrets: isStrings,
+    adminPassword: isString,
+    extraEnv: isStrings,
+    processes: arrayOf(isProcessRecord),
+    accounts: recordOf(isAccount),
+    tokens: isStrings,
+    ready: isBoolean,
+  },
+  {
+    browser: either(isString, isServerRecord),
+    error: isString,
+    runPlayground: isString,
+    baseRoot: isString,
+    resetCount: isNumber,
+    journeyCount: isNumber,
+  },
+);
 
 /**
  * Reads the state `up` recorded for a run. A folder an earlier release stored
- * in `browser` is dropped, since nothing creates or reads that folder.
+ * in `browser` is dropped, since nothing creates or reads that folder. An
+ * account that `down` left without its `password` reads with an empty one.
  *
  * @param {string} dir The run root, as `up` printed it
  * @returns {RunState} The run state
@@ -112,11 +192,20 @@ export function loadRun(dir) {
       `No run at ${dir}: run.json is missing. Start one with dms-control up.`,
     );
   }
-  /** @type {StoredRunState} */
-  const stored = JSON.parse(readFileSync(file, "utf8"));
-  if (holdsNoFolder(stored)) return stored;
-  const { browser, ...current } = stored;
-  return current;
+  /** @type {unknown} */
+  const parsed = JSON.parse(readFileSync(file, "utf8"));
+  const stored = decode(isStoredRun, parsed, file, "a run state");
+  const { browser, accounts, ...rest } = stored;
+  const run = {
+    ...rest,
+    accounts: Object.fromEntries(
+      Object.entries(accounts).map(([name, account]) => [
+        name,
+        { ...account, password: account.password ?? "" },
+      ]),
+    ),
+  };
+  return browser === undefined || isString(browser) ? run : { ...run, browser };
 }
 
 /**
