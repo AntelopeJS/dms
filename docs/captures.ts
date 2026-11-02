@@ -42,4 +42,16 @@ export default defineScenes([
     steps: [{ action: "wait", selector: ".apexcharts-canvas" }],
     output: "packages/dms/docs/images/captures/helio-dashboard.webp",
   },
+  {
+    id: "periods-this-month",
+    route: "/helio/dashboard?helio.period=this-month",
+    steps: [{ action: "wait", selector: ".apexcharts-canvas" }],
+    output: "packages/dms/docs/images/captures/periods-this-month.webp",
+  },
+  {
+    id: "periods-last-30-days",
+    route: "/helio/dashboard?helio.period=last-30-days",
+    steps: [{ action: "wait", selector: ".apexcharts-canvas" }],
+    output: "packages/dms/docs/images/captures/periods-last-30-days.webp",
+  },
 ]);
