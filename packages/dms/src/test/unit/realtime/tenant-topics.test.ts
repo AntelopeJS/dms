@@ -8,6 +8,7 @@ import {
   RegisterModule,
 } from "@antelopejs/interface-dms/page";
 import { expect } from "chai";
+import { z } from "zod";
 import { bindVerifiedRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 import { internal as pageImplInternal } from "../../../implementations/dms/page";
 import { PublishMessage } from "../../../implementations/dms/realtime";
@@ -22,6 +23,7 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { ensureSessionOnPage, RealtimeController } from "../../../routes";
+import { helloConnectionId, parseFrameData } from "../../helpers/sse-frames";
 import { userFixture } from "../../helpers/user-fixture";
 
 const USER = userFixture({ _id: "tenant-topics-user", email: "u@example.com" });
@@ -62,19 +64,23 @@ const createFakeStream = (tenantId: string): FakeStream => {
   return { ctx, frames, isEnded: () => isEnded };
 };
 
-interface SharedFrame {
-  sessionId: string;
-  event: string;
-  data: { topic?: string; entries?: Array<{ rowId: string }> };
-}
+const SharedFrameSchema = z.object({
+  sessionId: z.string(),
+  event: z.string(),
+  data: z.object({
+    topic: z.string().optional(),
+    entries: z.array(z.object({ rowId: z.string() })).optional(),
+    sessionId: z.string().optional(),
+  }),
+});
+
+type SharedFrame = z.infer<typeof SharedFrameSchema>;
 
 /** The session frames a shared connection's stream carried. */
 const sharedFrames = (stream: FakeStream): SharedFrame[] =>
   stream.frames
     .filter((frame) => frame.startsWith("event: session\n"))
-    .map<SharedFrame>((frame) =>
-      JSON.parse(frame.split("\ndata: ")[1] ?? "{}"),
-    );
+    .map((frame) => parseFrameData(SharedFrameSchema, frame));
 
 /** Opens a browser's shared connection and returns its id. */
 const openSharedConnection = async (stream: FakeStream): Promise<string> => {
@@ -83,9 +89,7 @@ const openSharedConnection = async (stream: FakeStream): Promise<string> => {
     stream.ctx,
     USER,
   );
-  const hello = stream.frames.find((frame) => frame.startsWith("event: hello"));
-  const data = hello?.split("\ndata: ")[1] ?? "{}";
-  return JSON.parse(data).connectionId;
+  return helloConnectionId(stream.frames);
 };
 
 /** Opens a tab's session on the connection, in `tenantId`, on the page. */
