@@ -9,11 +9,16 @@ import {
 } from "../../routes/auth/oauth";
 
 const HTTP_BAD_GATEWAY = 502;
+const HTTP_INTERNAL_ERROR = 500;
 const ACCESS_TOKEN = "provider-access-token";
 
 const originalFetch = globalThis.fetch;
 
 type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+
+function stubFailedFetch(status: number, body: Json): void {
+  globalThis.fetch = async () => Response.json(body, { status });
+}
 
 function stubFetch(answers: Record<string, Json>): void {
   globalThis.fetch = async (input) => {
@@ -33,6 +38,16 @@ async function refusalOf(
     return error;
   }
   throw new Error("expected a refusal");
+}
+
+async function renderFailure(): Promise<string> {
+  try {
+    await GenerateHtml({ name: "welcome" }, {});
+  } catch (error: unknown) {
+    assert.instanceOf(error, Error);
+    return error.message;
+  }
+  throw new Error("expected a failure");
 }
 
 describe("[unit] documents read at a boundary", () => {
@@ -62,6 +77,27 @@ describe("[unit] documents read at a boundary", () => {
       }
       expect(message).to.equal(
         "Failed to render HTML template: the render service answered no html",
+      );
+    });
+
+    it("names the status when the failure body is not an object", async () => {
+      stubFailedFetch(HTTP_INTERNAL_ERROR, null);
+      expect(await renderFailure()).to.equal(
+        "Failed to render HTML template: HTTP 500",
+      );
+    });
+
+    it("names the status when the failure message is not a string", async () => {
+      stubFailedFetch(HTTP_INTERNAL_ERROR, { message: 5 });
+      expect(await renderFailure()).to.equal(
+        "Failed to render HTML template: HTTP 500",
+      );
+    });
+
+    it("reports the message of a failure body that carries one", async () => {
+      stubFailedFetch(HTTP_INTERNAL_ERROR, { message: "template missing" });
+      expect(await renderFailure()).to.equal(
+        "Failed to render HTML template: template missing",
       );
     });
 
@@ -119,6 +155,35 @@ describe("[unit] documents read at a boundary", () => {
       const refusal = await refusalOf(fetchIdentity);
       expect(refusal.getStatus()).to.equal(HTTP_BAD_GATEWAY);
       expect(refusal.getBody()).to.equal("error.oauth.provider_unreachable");
+    });
+  });
+
+  describe("google identity", () => {
+    const fetchIdentity = () =>
+      OAUTH_PROVIDERS.google.fetchIdentity(ACCESS_TOKEN);
+
+    it("refuses a profile that is not an object", async () => {
+      stubFetch({ "/userinfo": null });
+      const refusal = await refusalOf(fetchIdentity);
+      expect(refusal.getStatus()).to.equal(HTTP_BAD_GATEWAY);
+      expect(refusal.getBody()).to.equal("error.oauth.provider_unreachable");
+    });
+
+    it("reads the identity of a well-formed profile", async () => {
+      stubFetch({
+        "/userinfo": {
+          sub: "g-1",
+          email: "a@acme.dev",
+          email_verified: true,
+          name: "A",
+        },
+      });
+      expect(await fetchIdentity()).to.deep.equal({
+        providerAccountId: "g-1",
+        email: "a@acme.dev",
+        isEmailVerified: true,
+        name: "A",
+      });
     });
   });
 });
