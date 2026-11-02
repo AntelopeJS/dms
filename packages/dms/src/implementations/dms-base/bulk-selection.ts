@@ -41,7 +41,7 @@ function isControllerInstance(value: unknown): value is DataControllerInstance {
 }
 
 /** A data controller as the list query reads it: its properties by key. */
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Inference from Object.create yields any and BulkRowSource.tableView.target constructs unknown; neither describes the proxy's arbitrary controller fields, which must stay unknown until their data-api owner reads them.
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The proxy exposes arbitrary controller fields, which no closed type describes; they stay unknown until their data-api owner reads them.
 type ControllerReader = Record<PropertyKey, unknown>;
 
 /**

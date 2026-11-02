@@ -41,8 +41,11 @@ export interface OAuthProvider {
 }
 
 /**
- * What a provider answers is checked field by field below, so a field of the
- * wrong type reads as absent and the identity is refused as malformed.
+ * What a provider answers is checked field by field below, and a field of the
+ * wrong type reads as absent. An absent or wrong-type account id or e-mail
+ * refuses the identity as malformed. A wrong-type `name` or `login` falls back
+ * to the next name, and a wrong-type `verified` or `email_verified` reads as
+ * unverified.
  */
 const AccountIdSchema = z
   .union([z.number(), z.string()])

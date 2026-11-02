@@ -30,22 +30,37 @@ function readManifest(folder: string): PackageManifest | undefined {
 }
 
 /**
+ * The version of the `@antelopejs/interface-dms` package that holds
+ * `startFolder`, found by walking up to the first `package.json` that names
+ * it with a string version.
+ */
+export function findInterfaceVersion(startFolder: string): string | undefined {
+  let folder = startFolder;
+  while (folder !== path.dirname(folder)) {
+    const manifest = readManifest(folder);
+    if (manifest?.name === INTERFACE_PACKAGE && manifest.version) {
+      return manifest.version;
+    }
+    folder = path.dirname(folder);
+  }
+  return undefined;
+}
+
+/**
  * The version of the `@antelopejs/interface-dms` copy this process runs, the
  * one every module shares. Its `package.json` is not exported, so it is found
  * by walking up from a file that is.
  */
 export function installedInterfaceVersion(): string {
   if (interfaceVersion) return interfaceVersion;
-  let folder = path.dirname(require.resolve(INTERFACE_ENTRY));
-  while (folder !== path.dirname(folder)) {
-    const manifest = readManifest(folder);
-    if (manifest?.name === INTERFACE_PACKAGE && manifest.version) {
-      interfaceVersion = manifest.version;
-      return interfaceVersion;
-    }
-    folder = path.dirname(folder);
+  const found = findInterfaceVersion(
+    path.dirname(require.resolve(INTERFACE_ENTRY)),
+  );
+  if (!found) {
+    throw new Error(`Cannot find the installed ${INTERFACE_PACKAGE} version`);
   }
-  throw new Error(`Cannot find the installed ${INTERFACE_PACKAGE} version`);
+  interfaceVersion = found;
+  return found;
 }
 
 /**

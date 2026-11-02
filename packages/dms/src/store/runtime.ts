@@ -36,12 +36,10 @@ const GIT_HOSTS: ReadonlyArray<[word: string, kind: ModuleSourceKind]> = [
 /** The host of `https://host/…`, `ssh://user@host/…` or `user@host:path`. */
 const REMOTE_HOST = /^(?:[a-z+]+:\/\/)?(?:[^@/]+@)?([^/:]+)/i;
 
-const PackageManifestSchema = z
-  .object({
-    name: z.string().optional().catch(undefined),
-    version: z.string().optional().catch(undefined),
-  })
-  .catch({});
+const PackageManifestSchema = z.object({
+  name: z.string().optional().catch(undefined),
+  version: z.string().optional().catch(undefined),
+});
 
 type PackageManifest = z.infer<typeof PackageManifestSchema>;
 
@@ -68,15 +66,23 @@ export function isLive(module: RuntimeModule | undefined): boolean {
   return module !== undefined && LIVE_STATUSES.has(module.status);
 }
 
-/** The manifest of the folder the module was loaded from, read from disk. */
-async function loadedManifest(localPath: string): Promise<PackageManifest> {
+/**
+ * The manifest of the folder the module was loaded from, read from disk. A
+ * missing or unparsable file reads as an empty manifest; a file that parses
+ * to anything but an object throws, and the module is then left out.
+ */
+export async function loadedManifest(
+  localPath: string,
+): Promise<PackageManifest> {
+  let parsed: unknown;
   try {
-    return PackageManifestSchema.parse(
-      JSON.parse(await readFile(path.join(localPath, PACKAGE_JSON), "utf-8")),
+    parsed = JSON.parse(
+      await readFile(path.join(localPath, PACKAGE_JSON), "utf-8"),
     );
   } catch {
     return {};
   }
+  return PackageManifestSchema.parse(parsed);
 }
 
 async function describeModule(

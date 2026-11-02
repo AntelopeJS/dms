@@ -47,7 +47,7 @@ const RegistryModuleSchema = z.object({
 type RegistryModule = z.infer<typeof RegistryModuleSchema>;
 
 const InterfaceManifestSchema = z.object({
-  modules: z.array(RegistryModuleSchema.catch({})).optional().catch(undefined),
+  modules: z.array(RegistryModuleSchema).optional().catch(undefined),
 });
 
 const AntelopeManifestSchema = z.object({
@@ -56,12 +56,6 @@ const AntelopeManifestSchema = z.object({
 });
 
 type AntelopeManifest = z.infer<typeof AntelopeManifestSchema>;
-
-/** What `npm view <spec> antelopeJs` answers: one manifest, or one per release. */
-const AntelopeViewSchema = z.union([
-  z.array(AntelopeManifestSchema),
-  AntelopeManifestSchema,
-]);
 
 const ModulePackageSchema = z.object({
   dependencies: z.record(z.string().catch("")).optional().catch(undefined),
@@ -111,7 +105,8 @@ function asImplementation(
 
 /**
  * Modules the interfaces registry lists for `interfacePackage`, npm packages
- * only: the store never installs from git or a local folder.
+ * only: the store never installs from git or a local folder. A module list
+ * holding anything but module objects lists none: one bad entry is not skipped.
  */
 export async function findImplementations(
   interfacePackage: string,
@@ -155,15 +150,15 @@ async function interfaceKind(
     dependency in (await registryFolders());
   if (!looksLikeInterface) return "library";
   const kind = await interfaceKinds.get(`${dependency}@${range}`, async () => {
-    const view = AntelopeViewSchema.safeParse(
-      await npmView(`${dependency}@${range}`, ["antelopeJs"], projectPath),
+    const view = await npmView(
+      `${dependency}@${range}`,
+      ["antelopeJs"],
+      projectPath,
     );
-    const antelopeJs = !view.success
-      ? undefined
-      : Array.isArray(view.data)
-        ? view.data.at(-1)
-        : view.data;
-    return antelopeJs ? kindOf(dependency, antelopeJs) : "library";
+    const antelopeJs = AntelopeManifestSchema.safeParse(
+      Array.isArray(view) ? view.at(-1) : view,
+    );
+    return antelopeJs.success ? kindOf(dependency, antelopeJs.data) : "library";
   });
   return kind ?? "library";
 }
