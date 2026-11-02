@@ -44,11 +44,13 @@ export enum Hook {
    *
    * It fires once per tenant, when the tenant is created, through
    * `ProvisionTenant` (`@antelopejs/interface-dms/tenant-provisioning`): by
-   * the DMS for the `default` tenant, on the start that creates it, once
-   * `DATABASE_INITIALIZED` has settled; by the signup flow of a SaaS module
-   * for each workspace it creates. It is where a module writes the default
-   * data a tenant starts with: written once, that data then belongs to the
-   * tenant, and nothing writes it again on a later start.
+   * the DMS for the `default` tenant, once every module has started, on one
+   * replica at a time; by the signup flow of a SaaS module for each workspace
+   * it creates. It is where a module writes the default data a tenant starts
+   * with: written once, that data then belongs to the tenant, and nothing
+   * writes it again on a later start. The `default` tenant's handlers run again
+   * after an attempt that failed or whose process died, so a handler skips what
+   * it already wrote.
    */
   TENANT_BEING_PROVISIONED = "tenant:being-provisioned",
   TENANT_DELETED = "tenant:deleted",

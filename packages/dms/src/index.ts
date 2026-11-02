@@ -85,6 +85,7 @@ export * from "./config";
 let cronTasks: ScheduledTask[] = [];
 let staleExportsSweep: Promise<void> = Promise.resolve();
 let defaultTenantProvisioning: Promise<void> | undefined;
+let provisioningWait = new AbortController();
 
 let globalRealtimeConfig: RealtimeConfig | undefined;
 
@@ -258,7 +259,10 @@ export function destroy(): void {
 
 function onModulesStarted(): void {
   if (defaultTenantProvisioning) return;
-  defaultTenantProvisioning = provisionDefaultTenant().finally(() => {
+  provisioningWait = new AbortController();
+  defaultTenantProvisioning = provisionDefaultTenant(
+    provisioningWait.signal,
+  ).finally(() => {
     defaultTenantProvisioning = undefined;
   });
 }
@@ -288,6 +292,7 @@ export async function start(): Promise<void> {
 
 export async function stop(): Promise<void> {
   Events.ModulesStarted.unregister(onModulesStarted);
+  provisioningWait.abort();
   await defaultTenantProvisioning;
   await staleExportsSweep;
   UnsettleHook(Hook.DATABASE_INITIALIZED);
