@@ -1,4 +1,5 @@
 import { Controller, Get, Parameter } from "@antelopejs/interface-api";
+import { ownEntry } from "../../own-entry";
 
 const MAX_GENERATED_ITEMS = 500;
 
@@ -388,7 +389,7 @@ function comparedTo(current: number, previous?: number): ComparedPayload {
 }
 
 function resolveSeed(preset?: string, from?: string): number {
-  const presetSeed = PRESET_SEED_OFFSETS[preset ?? "this-month"] ?? 0;
+  const presetSeed = ownEntry(PRESET_SEED_OFFSETS, preset ?? "this-month") ?? 0;
   const dateSeed = from ? hashKey(from) : 0;
   return presetSeed + dateSeed;
 }
@@ -577,7 +578,7 @@ export class DashboardApiController extends Controller("/api/dashboard") {
     @Parameter("to", "query") to?: string,
     @Parameter("comparison", "query") comparison?: string,
   ): KpiCardPayload {
-    const build = KPI_BUILDERS[metric] ?? KPI_BUILDERS.revenue;
+    const build = ownEntry(KPI_BUILDERS, metric) ?? KPI_BUILDERS.revenue;
     return build({ preset, from, to, comparison });
   }
 

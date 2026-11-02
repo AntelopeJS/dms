@@ -15,19 +15,9 @@ import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { parseManifest } from "./manifest.mjs";
 
-/**
- * @typedef {{
- *   name?: string;
- *   version?: string;
- *   private?: boolean;
- *   license?: string;
- *   repository?: { type?: string, url?: string, directory?: string };
- *   publishConfig?: { registry?: string, access?: string, provenance?: boolean };
- *   antelopeJs?: { implements: string[] };
- *   dependencies?: Record<string, string>;
- * }} Manifest
- */
+/** @typedef {import("./manifest.mjs").Manifest} Manifest */
 
 const VERSIONS = ["0.8.9", "0.9.0", "0.9.1", "0.9.5", "0.9.1-next.0", "0.9.5-rc.1", "0.9.5+build.0", "0.10.0", "0.10.0-next.0", "1.9.1"];
 const RANGES = [">=0.9.1 <0.10.0", ">=0.9.1 <0.11.0", ">0.9.1 <0.10.0", ">=0.9.1 <=0.10.0", "^0.9.1", ">=0.09.1 <0.10.0", ">=0.9.1  <0.10.0", ""];
@@ -79,12 +69,12 @@ const checkout = path.resolve(process.argv[2] ?? ".");
 const step = validateStep(checkout);
 
 /**
- * The one place this probe decodes a manifest of the checkout, typed by the fields it reads.
+ * The one place this probe reads a manifest of the checkout; a document that is not a manifest is refused.
  * @param {string} file
  * @returns {Manifest}
  */
 function readManifest(file) {
-  return JSON.parse(readFileSync(file, "utf8"));
+  return parseManifest(readFileSync(file, "utf8"), file);
 }
 
 const pkg = readManifest(path.join(checkout, "packages", "dms", "package.json"));

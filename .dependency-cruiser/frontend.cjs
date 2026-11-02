@@ -8,6 +8,7 @@ const layers = [
   { name: "onboarding", rank: 4 },
 ];
 
+/** @type {import("../.dependency-cruiser.cjs").Area} */
 module.exports = {
   forbidden: [
     ...layers.map(({ name }) => {

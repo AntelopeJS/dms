@@ -1,4 +1,5 @@
 import { MEMBERS, ROLES, PAGES_API, MEMBERS_ONLY, createRole, listMembers, pickRole, joinedMember, byEmail, rowActions, removeThroughMenu } from "./steps.mjs";
+import { booleanIn, isRoleRow, listOf, stringIn, stringsIn } from "../../rows.mjs";
 
 /**
  * @typedef {import("../../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -36,8 +37,8 @@ export const memberChangeJourneys = [
       });
       await ctx.verify("the API reports the same impact", [
         ctx.status(impact, 200),
-        ctx.equal("roles", impact.body?.roles, [roleName]),
-        ctx.equal("last owner", impact.body?.isLastOwner, false),
+        ctx.equal("roles", stringsIn(impact.body, "roles"), [roleName]),
+        ctx.equal("last owner", booleanIn(impact.body, "isLastOwner"), false),
       ]);
       await admin.click({ role: "button", name: "Cancel" });
       await admin.reload();
@@ -64,15 +65,15 @@ export const memberChangeJourneys = [
       await ctx.verify("the API drops the member and refuses what the role granted", [
         ctx.equal("members", after.map((member) => member.email), [ctx.adminCredentials().email]),
         ctx.holds("the members list is refused", refused.status === 401 || refused.status === 403, refused.status),
-        ctx.holds("sign-in yields no session", !login.body?.access_token, JSON.stringify(login.body).slice(0, 120)),
-        ctx.equal("sign-in asks for a workspace", login.body?.requires_tenant_assignment, true),
+        ctx.holds("sign-in yields no session", !stringIn(login.body, "access_token"), JSON.stringify(login.body).slice(0, 120)),
+        ctx.equal("sign-in asks for a workspace", booleanIn(login.body, "requires_tenant_assignment"), true),
       ]);
       await hank.tab.goto(MEMBERS);
       await ctx.verify("the removed member's open browser no longer reaches the page", [
         hank.tab.visible({ role: "heading", name: "Members", exact: true }, { hidden: true }),
       ]);
       const roles = await ctx.api("the role survives the removal", { method: "GET", path: "/api/tables/roles/list" });
-      await ctx.verify("the role itself stays", [ctx.equal("role ids", roles.body?.results?.map((role) => role._id), [roleId])]);
+      await ctx.verify("the role itself stays", [ctx.equal("role ids", listOf(roles.body, isRoleRow).map((role) => role._id), [roleId])]);
     },
   },
   {
