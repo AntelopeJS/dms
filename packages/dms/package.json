@@ -55,7 +55,7 @@
     "frontend:dev": "pnpm --dir playground frontend:dev",
     "typecheck": "node scripts/unless-prebuilt.mjs pnpm --filter @antelopejs/interface-dms build && tsc --noEmit",
     "test": "node scripts/unless-prebuilt.mjs pnpm run build && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
-    "test:unit": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/backend-checks.cjs && node scripts/backend-checks.test.mjs && node scripts/docs-scripts.test.mjs && DMS_TEST_DIR=dist/test/unit NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
+    "test:unit": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/backend-checks.cjs && node scripts/backend-checks.test.mjs && node scripts/docs-scripts.test.mjs && node scripts/json-record.test.mjs && DMS_TEST_DIR=dist/test/unit NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
     "test:integration": "node scripts/unless-prebuilt.mjs pnpm run build && DMS_TEST_DIR=dist/test/integration NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
     "test:watch": "tsc -w & tsc-alias -w",
     "release": "pnpm --filter @antelopejs/interface-dms build && pnpm --dir frontend-vue install --frozen-lockfile && release-it",
@@ -81,7 +81,7 @@
   "dependencies": {
     "2fa": "^0.1.2",
     "@antelopejs/interface-api": "file:../../.campaign/tgz/antelopejs-interface-api-f2a99b5.tgz",
-    "@antelopejs/interface-api-util": "file:../../.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz",
+    "@antelopejs/interface-api-util": "file:../../.campaign/tgz/antelopejs-interface-api-util-639f38b.tgz",
     "@antelopejs/interface-core": ">=0.2.4 <1.0.0",
     "@antelopejs/interface-data-api": "file:../../.campaign/tgz/antelopejs-interface-data-api-d8a868f.tgz",
     "@antelopejs/interface-database": "file:../../.campaign/tgz/antelopejs-interface-database-724ff72.tgz",

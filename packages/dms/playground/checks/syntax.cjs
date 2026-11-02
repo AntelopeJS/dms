@@ -41,6 +41,21 @@ function unwrap(node) {
   return node;
 }
 /**
+ * Whether a `+` operand evaluates to text, so the operator concatenates.
+ * @param {ts.Node} expression
+ * @returns {boolean}
+ */
+function producesText(expression) {
+  const node = unwrap(expression);
+  if (ts.isStringLiteralLike(node) || ts.isTemplateExpression(node))
+    return true;
+  return (
+    ts.isBinaryExpression(node) &&
+    node.operatorToken.kind === ts.SyntaxKind.PlusToken &&
+    (producesText(node.left) || producesText(node.right))
+  );
+}
+/**
  * @param {ts.Node} expression
  * @returns {string | number | boolean | null | undefined}
  */
@@ -66,7 +81,10 @@ function constantValue(expression) {
   ) {
     const left = constantValue(node.left);
     const right = constantValue(node.right);
-    if (left !== undefined && right !== undefined) return left + right;
+    if (left === undefined || right === undefined) return undefined;
+    return producesText(node.left) || producesText(node.right)
+      ? String(left) + String(right)
+      : Number(left) + Number(right);
   }
   return undefined;
 }
