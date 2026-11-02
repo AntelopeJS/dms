@@ -1,19 +1,22 @@
 import { GetCorsConfig, SetCorsConfig } from "@antelopejs/interface-api";
 import { expect } from "chai";
+import { z } from "zod";
 import { allowClientOrigin } from "../../config/client-origin-cors";
 import { getConfig } from "../../config";
 import { createClient } from "../helpers/http";
+import { parseBody } from "../helpers/parse-body";
 
 const SYSTEM_STATE = "/api/system-state";
 const MANUAL_ORIGIN = "https://manual.example.com";
 const MANUAL_PATTERN = /^https:\/\/[a-z]+\.preview\.example\.com$/;
 const STRANGER_ORIGIN = "https://stranger.example.com";
 
-async function allowedOriginFor(origin: string) {
+async function allowedOriginFor(origin: string): Promise<string> {
   const response = await createClient().get(SYSTEM_STATE, {
     headers: { origin },
   });
-  return response.headers["access-control-allow-origin"];
+  const value: unknown = response.headers["access-control-allow-origin"];
+  return parseBody(z.string(), { status: response.status, data: value });
 }
 
 describe("[integration] the dashboard's CORS origin", () => {
