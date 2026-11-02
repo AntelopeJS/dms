@@ -118,7 +118,7 @@ removed; login, refresh, sessions and signup are covered over HTTP by
 `auth-key-rotation`.
 
 Drive state through the real endpoints (bootstrap the first owner with
-`POST /onboarding/register`, then create and consume invites over HTTP).
+`POST /onboarding/register`, sending the `setupToken` that `SetupTokenModel.ensure(...)` stored, then create and consume invites over HTTP).
 `resetDatabase` cleans the shared mongo through a raw client, which works
 regardless.
 

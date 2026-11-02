@@ -1,4 +1,5 @@
 export * from "./attachments.table";
+export * from "./setupToken.table";
 export * from "./signInAttempts.table";
 export * from "./systemState.table";
 export * from "./userEmailChanges.table";

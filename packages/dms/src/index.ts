@@ -7,7 +7,7 @@ import {
   CORE_SCHEMA_NAME,
   TENANT_SCHEMA_NAME,
 } from "@antelopejs/interface-dms/constants";
-import "./db";
+import { announceSetupToken } from "./db";
 
 // oxlint-disable-next-line import/no-duplicates -- Initialize realtime before page and route side effects; the later named import supplies lifecycle functions without moving this initialization order.
 import "./realtime";
@@ -269,6 +269,7 @@ export async function start(): Promise<void> {
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
   await ensureDefaultTenantExists();
+  await announceSetupToken();
   await registerExistingTenantInstances();
   await SettleHook(Hook.DATABASE_INITIALIZED);
 
