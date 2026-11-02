@@ -39,11 +39,10 @@ export function rowRuleProblem<T extends Record<string, unknown>>(
   path = "rule",
 ): string | undefined {
   if (!isRuleObject(rule)) return `${path} must be a rule object`;
+  if ("and" in rule) return operandProblem("and", rule.and, `${path}.and`);
+  if ("or" in rule) return operandProblem("or", rule.or, `${path}.or`);
+  if ("not" in rule) return operandProblem("not", rule.not, `${path}.not`);
   const operands = new Map(Object.entries(rule));
-  const logical = LOGICAL_OPERATOR_KEYS.find((key) => operands.has(key));
-  if (logical) {
-    return operandProblem(logical, operands.get(logical), `${path}.${logical}`);
-  }
   const comparison = Object.entries(FIELD_OPERATORS).find(([key]) =>
     operands.has(key),
   );
