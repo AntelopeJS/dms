@@ -71,6 +71,68 @@ function expectedVersion(manifest) {
 }
 
 /**
+ * The pages that document `types` one by one: each holds the playground and
+ * the options table of its block type.
+ * @param {readonly string[]} types
+ * @returns {Map<string, string>}
+ */
+function pagesFor(types) {
+  return new Map(
+    types.map((type) => [
+      `docs/${type}.md`,
+      `# ${type}\n\n::block-playground{type="${type}" height="200"}\n\n::block-options{type="${type}"}\n`,
+    ]),
+  );
+}
+
+/**
+ * @param {string} root
+ * @param {ReadonlyMap<string, string>} pages
+ */
+function writePages(root, pages) {
+  for (const [path, content] of pages) {
+    const full = nodePath.join(root, path);
+    mkdirSync(nodePath.dirname(full), { recursive: true });
+    writeFileSync(full, content);
+  }
+}
+
+/**
+ * @param {string} catalogPath
+ * @returns {string[]}
+ */
+function catalogTypes(catalogPath) {
+  const { blocks } = readJsonRecord(catalogPath);
+  if (!Array.isArray(blocks)) throw new TypeError("blocks is not an array");
+  return blocks.map(({ type }) => String(type));
+}
+
+/**
+ * Generate the catalogue in a scratch package root, write the pages that
+ * document each of its block types, let `edit` change those pages, and run the
+ * check. `types` lists the catalogue's block types.
+ * @param {(pages: Map<string, string>, types: readonly string[]) => void} edit
+ */
+export function checkPages(edit) {
+  const root = scratchRoot("docs-catalog.mjs", ["@antelopejs"]);
+  try {
+    writeFileSync(
+      nodePath.join(root, "package.json"),
+      JSON.stringify({ version: "1.0.0" }),
+    );
+    const generate = run(root, ["scripts/docs-catalog.mjs"]);
+    const types = catalogTypes(nodePath.join(root, "docs-data", "blocks.json"));
+    const pages = pagesFor(types);
+    edit(pages, types);
+    writePages(root, pages);
+    const check = run(root, ["scripts/docs-catalog.mjs", "--check"]);
+    return { generate, check, types };
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+/**
  * Generate the docs catalogue in a package root whose package.json is the real
  * one after `edit`, then check the generated file against the same script.
  * The real package.json is read as docs-catalog.mjs reads it, as plain parsed
@@ -92,6 +154,10 @@ export function generateCatalog(edit) {
     const generated = existsSync(catalogPath)
       ? readJsonRecord(catalogPath)
       : {};
+    writePages(
+      root,
+      pagesFor(catalogTypes(nodePath.join(root, "docs-data", "blocks.json"))),
+    );
     const check = run(root, ["scripts/docs-catalog.mjs", "--check"]);
     return {
       generate,
@@ -112,8 +178,9 @@ export function generateCatalog(edit) {
  * status, the files written and the viewport widths the script asked for.
  * @param {string} examples
  * @param {string} only
+ * @param {readonly string[]} [extra] more arguments for the script
  */
-export function captureExamples(examples, only) {
+export function captureExamples(examples, only, extra = []) {
   const root = scratchRoot("docs-screenshots.mjs", []);
   try {
     const playwright = nodePath.join(root, "node_modules", "playwright-core");
@@ -135,10 +202,9 @@ export function captureExamples(examples, only) {
       "scripts/docs-screenshots.mjs",
       "--base-url",
       "http://preview.invalid",
-      "--theme",
-      "light",
       "--only",
       only,
+      ...extra,
     ]);
     const shotsDir = nodePath.join(root, "docs", "images", "blocks");
     const logPath = nodePath.join(root, "fake-browser.log");

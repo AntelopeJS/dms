@@ -94,6 +94,8 @@ const STAT_GROUP_DEFAULT_LAYOUT: StatGroupLayout = "joined";
  *   ],
  * })
  * ```
+ *
+ * @docsApi
  */
 export function StatGroup(
   options?: StatGroupProps,

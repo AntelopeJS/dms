@@ -61,6 +61,8 @@ export interface ConfirmDialogSecondaryAction {
  * built-in (delete, archive, edit…) and custom, whatever its target. Texts
  * are i18n keys (with `$`) or literals, both interpolated with `params` —
  * and, on a row action, with the row's fields ("Remove {name}?").
+ *
+ * @docsApi
  */
 export interface ConfirmDialog {
   title: string;
