@@ -106,7 +106,7 @@ export function parseSavedDocument(response: BodyResponse): SavedDocument {
 }
 
 /** Parses the page layout of any page. */
-export function parsePageLayout(response: BodyResponse): PageLayout {
+export function parsePageLayout(response: BodyResponse) {
   return parseBody(PageLayoutBody, response);
 }
 
