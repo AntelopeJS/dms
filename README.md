@@ -16,7 +16,9 @@
 
 Open source under Apache-2.0. Self-hosted today.
 
-[Docs](https://dms.antelopejs.com/docs) · [Quick start](https://dms.antelopejs.com/docs/getting-started/quickstart) · [Discord](https://discord.gg/g4pFt6eXqu)
+[Live demo](https://dms-demo.antelopejs.com) · [Docs](https://dms.antelopejs.com/docs) · [Quick start](https://dms.antelopejs.com/docs/getting-started/quickstart) · [Discord](https://discord.gg/g4pFt6eXqu)
+
+**[Click through the read-only live demo](https://dms-demo.antelopejs.com)**, no install needed.
 
 </div>
 
