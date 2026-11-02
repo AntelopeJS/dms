@@ -97,7 +97,7 @@ export function createRunFolders(dir) {
 }
 
 /**
- * @typedef {Omit<RunState, "browser"> & { browser?: string | ServerRecord }} StoredRunState The state as a file may hold it. A run saved by an earlier release holds the browser's folder in `browser` until the browser starts.
+ * @typedef {Omit<RunState, "browser" | "accounts"> & { browser?: string | ServerRecord, accounts: Record<string, Omit<Account, "password"> & { password?: string }> }} StoredRunState The state as a file may hold it. A run saved by an earlier release holds the browser's folder in `browser` until the browser starts, and `down` leaves an account without its `password`.
  */
 
 const isStrings = recordOf(isString);
@@ -125,8 +125,8 @@ const isServerRecord = objectOf({
 });
 
 const isAccount = objectOf(
-  { email: isString, password: isString },
-  { userId: nullable(isString) },
+  { email: isString },
+  { password: isString, userId: nullable(isString) },
 );
 
 /** @type {import("./json.mjs").Guard<StoredRunState>} The state as `run.json` holds it. Keys it does not check are kept, so saving a loaded run writes them back. */
@@ -177,16 +177,9 @@ const isStoredRun = objectOf(
 );
 
 /**
- * @param {StoredRunState} stored The state as the file holds it
- * @returns {stored is RunState} Whether `browser` holds no folder
- */
-function holdsNoFolder(stored) {
-  return typeof stored?.browser !== "string";
-}
-
-/**
  * Reads the state `up` recorded for a run. A folder an earlier release stored
- * in `browser` is dropped, since nothing creates or reads that folder.
+ * in `browser` is dropped, since nothing creates or reads that folder. An
+ * account that `down` left without its `password` reads with an empty one.
  *
  * @param {string} dir The run root, as `up` printed it
  * @returns {RunState} The run state
@@ -202,9 +195,17 @@ export function loadRun(dir) {
   /** @type {unknown} */
   const parsed = JSON.parse(readFileSync(file, "utf8"));
   const stored = decode(isStoredRun, parsed, file, "a run state");
-  if (holdsNoFolder(stored)) return stored;
-  const { browser, ...current } = stored;
-  return current;
+  const { browser, accounts, ...rest } = stored;
+  const run = {
+    ...rest,
+    accounts: Object.fromEntries(
+      Object.entries(accounts).map(([name, account]) => [
+        name,
+        { ...account, password: account.password ?? "" },
+      ]),
+    ),
+  };
+  return browser === undefined || isString(browser) ? run : { ...run, browser };
 }
 
 /**

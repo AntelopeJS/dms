@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createRunFolders, loadRun, saveRun } from "./run-state.mjs";
+import { down } from "./stack.mjs";
 
 const SERVER = {
   name: "browser",
@@ -126,4 +127,33 @@ await test("a new run's folders hold no browser folder, and loading a fresh run 
   assert.equal("browser" in paths, false);
   saveRun({ ...RUN, ...paths, id: "x" });
   assert.equal("browser" in loadRun(dir), false);
+});
+
+await test("a run that down stopped loads again, its accounts without a password", async (t) => {
+  const dir = savedRun(t, {
+    accounts: {
+      admin: { email: "a@example.com", password: "pw", userId: "u1" },
+    },
+  });
+  await down(loadRun(dir));
+  const stopped = loadRun(dir);
+  assert.deepEqual(stopped.accounts, {
+    admin: { email: "a@example.com", password: "" },
+  });
+  assert.equal(stopped.ready, false);
+  await down(stopped);
+  assert.deepEqual(loadRun(dir).accounts, {
+    admin: { email: "a@example.com", password: "" },
+  });
+});
+
+await test("a run.json without its accounts, or with an account without an email, is refused", (t) => {
+  const withoutAccounts = savedRun(t, {});
+  const raw = JSON.parse(
+    JSON.stringify({ ...RUN, dir: withoutAccounts, accounts: undefined }),
+  );
+  writeFileSync(join(withoutAccounts, "run.json"), JSON.stringify(raw));
+  assert.throws(() => loadRun(withoutAccounts), /malformed/);
+  const noEmail = savedRun(t, { accounts: { admin: { password: "pw" } } });
+  assert.throws(() => loadRun(noEmail), /malformed/);
 });

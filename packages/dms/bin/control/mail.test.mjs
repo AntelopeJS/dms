@@ -47,3 +47,9 @@ await test("a folder that does not exist holds no mail", () => {
     [],
   );
 });
+
+await test("a stored summary without its links is refused", (t) => {
+  const { links: _links, ...withoutLinks } = SUMMARY;
+  const folder = sink(t, withoutLinks);
+  assert.throws(() => capturedMail(folder), /001\.json is malformed/);
+});
