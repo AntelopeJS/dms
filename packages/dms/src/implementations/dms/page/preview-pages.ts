@@ -11,7 +11,7 @@ import {
   findHeaderActionsHiddenByPreview,
   previewCacheKey,
 } from "../permission-preview";
-import type { User } from "@antelopejs/interface-dms/auth/db";
+import { User } from "@antelopejs/interface-dms/auth/db";
 import { resolvePagePermissionId, pagesBySlug } from "../../../utils";
 import type {
   PermissionPreviewRequest,
@@ -37,9 +37,11 @@ export async function findPreviewHeaderActions(
     request.previewPermissions,
   );
 
-  const previewUser: User = Object.assign(Object.create(request.user), {
-    owner: false,
-  });
+  const previewUser: unknown = Object.create(request.user);
+  if (!(previewUser instanceof User)) {
+    throw new Error("The previewing user is not a User.");
+  }
+  Object.assign(previewUser, { owner: false });
   const previewLayout = await handler({
     user: previewUser,
     memberModel,

@@ -1,11 +1,11 @@
 <div align="center">
 
-# @antelopejs/interface-dms
+# `@antelopejs/interface-dms`
 
-<a href="https://www.npmjs.com/package/@antelopejs/interface-dms"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/interface-dms?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/interface-dms?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
-<a href="https://dms.antelopejs.com/docs/interfaces"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
+<a href="https://www.npmjs.com/package/@antelopejs/interface-dms"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/interface-dms?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
+<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/interface-dms?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
+<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
+<a href="https://dms.antelopejs.com/docs/interfaces"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
 
 The public contracts of the AntelopeJS DMS: pages and components, permissions and tenancy, authentication, notifications and HTML rendering.
 
@@ -27,7 +27,7 @@ Add the interface to the module that extends the DMS:
 pnpm add @antelopejs/interface-dms
 ```
 
-Depend on it with a wide range, such as `>=0.7.0 <1.0.0`, and never bundle or vendor it: the host and every module must resolve the same installed copy, since the package holds live registries. `@antelopejs/core` fails at startup with `Incompatible interface package resolution` when a module resolves another copy.
+Depend on it with a range wide enough that every module shares one installed copy, and never bundle or vendor it: the host and every module must resolve the same installed copy, since the package holds live registries. `@antelopejs/core` fails at startup with `Incompatible interface package resolution` when a module resolves another copy.
 
 ## Quick start
 
