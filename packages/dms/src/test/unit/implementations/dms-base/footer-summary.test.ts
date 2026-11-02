@@ -1,5 +1,6 @@
 import type { ValueProxy } from "@antelopejs/interface-database";
 import { expect } from "chai";
+import { z } from "zod";
 import { compileRowRule } from "../../../../implementations/dms-base/services";
 
 interface Expression {
@@ -23,9 +24,6 @@ const field = (name: string) =>
     ne: (value: string | number) => expression(`${name}!=${String(value)}`),
   }) as unknown as ValueProxy<unknown>;
 
-const fromJson = (json: string): Parameters<typeof compileRowRule>[0] =>
-  JSON.parse(json);
-
 const compile = (rule: Parameters<typeof compileRowRule>[0]) => {
   const condition = compileRowRule(rule, field);
   // SAFETY: Nonliteral results originate from this fixture's eq/ne and expression combinators, all of which return an Expression with text.
@@ -34,6 +32,13 @@ const compile = (rule: Parameters<typeof compileRowRule>[0]) => {
     ? condition
     : (condition as unknown as Expression).text;
 };
+
+const MalformedRuleObject = z.custom<Parameters<typeof compileRowRule>[0]>(
+  (value) => z.record(z.unknown()).safeParse(value).success,
+);
+
+const compileJson = (json: string) =>
+  compile(MalformedRuleObject.parse(JSON.parse(json)));
 
 describe("[unit] dms-base — footer summary rules", () => {
   it("compiles field comparisons", () => {
@@ -95,33 +100,29 @@ describe("[unit] dms-base — footer summary rules", () => {
 
   it("rejects malformed operands nested in and, or and not instead of throwing a TypeError", () => {
     expect(() =>
-      compile(
-        fromJson('{"and":[{"field":"a","equals":1},{"field":"b","in":"x"}]}'),
-      ),
+      compileJson('{"and":[{"field":"a","equals":1},{"field":"b","in":"x"}]}'),
     ).to.throw(Error, /rule\.and\[1\]\.in must be an array/);
     expect(() =>
-      compile(
-        fromJson(
-          '{"or":[{"field":"a","equals":1},{"not":{"field":"b","notIn":7}}]}',
-        ),
+      compileJson(
+        '{"or":[{"field":"a","equals":1},{"not":{"field":"b","notIn":7}}]}',
       ),
     ).to.throw(Error, /rule\.or\[1\]\.not\.notIn must be an array/);
     expect(() =>
-      compile(fromJson('{"not":{"field":"b","equals":1,"or":{}}}')),
+      compileJson('{"not":{"field":"b","equals":1,"or":{}}}'),
     ).to.throw(Error, /rule\.not\.or must be an array of rules/);
-    expect(() => compile(fromJson('{"not":null}'))).to.throw(
+    expect(() => compileJson('{"not":null}')).to.throw(
       Error,
       /rule\.not must be a rule object/,
     );
-    expect(() => compile(fromJson('{"not":[]}'))).to.throw(
+    expect(() => compileJson('{"not":[]}')).to.throw(
       Error,
       /rule\.not must be a rule object/,
     );
-    expect(() => compile(fromJson('{"and":[null]}'))).to.throw(
+    expect(() => compileJson('{"and":[null]}')).to.throw(
       Error,
       /rule\.and\[0\] must be a rule object/,
     );
-    expect(() => compile(fromJson('{"or":[[]]}'))).to.throw(
+    expect(() => compileJson('{"or":[[]]}')).to.throw(
       Error,
       /rule\.or\[0\] must be a rule object/,
     );
