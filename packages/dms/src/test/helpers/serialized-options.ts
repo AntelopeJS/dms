@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { FormPropsSerialized } from "@antelopejs/interface-dms/base/form";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
 
@@ -19,7 +20,9 @@ function isTableViewOptions(
   return (
     value instanceof Object &&
     "formComponents" in value &&
-    "searchable" in value
+    value.formComponents instanceof Object &&
+    "searchable" in value &&
+    typeof value.searchable === "boolean"
   );
 }
 
@@ -51,11 +54,16 @@ export interface ServedHeaderActions {
   headerActionsQuery?: Record<string, string>;
 }
 
+const StringRecord = z.record(z.string());
+
 function isServedHeaderActions(value: unknown): value is ServedHeaderActions {
   return (
     value instanceof Object &&
     "headerActions" in value &&
-    Array.isArray(value.headerActions)
+    Array.isArray(value.headerActions) &&
+    (!("headerActionsQuery" in value) ||
+      value.headerActionsQuery === undefined ||
+      StringRecord.safeParse(value.headerActionsQuery).success)
   );
 }
 
