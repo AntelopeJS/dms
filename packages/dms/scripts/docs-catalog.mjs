@@ -7,6 +7,7 @@ import {
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readJsonRecord } from "./helpers/json-record.mjs";
 
 const SCHEMA_VERSION = 1;
 const JSON_INDENT = 2;
@@ -21,9 +22,7 @@ const DIRECTIVE = /^::block-(playground|options)\{([^}\n]*)\}/gm;
 const ATTRIBUTE = /([\w-]+)="([^"]*)"/g;
 
 async function readCatalog() {
-  const { version } = JSON.parse(
-    readFileSync(join(packageRoot, "package.json"), "utf8"),
-  );
+  const { version } = readJsonRecord(join(packageRoot, "package.json"));
   const { ListBlockTypes } =
     await import("@antelopejs/interface-dms/base/block-types");
   const { BlockPresentationPaths } =
