@@ -6,6 +6,7 @@ import { passwordSchema } from "../password";
 const MAX_NAME_PART_LENGTH = 100;
 const MAX_PLATFORM_NAME_LENGTH = 120;
 const MAX_LANGUAGE_TAG_LENGTH = 35;
+const MAX_SETUP_TOKEN_LENGTH = 256;
 const LANGUAGE_TAG_PATTERN = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/;
 
 function withoutTags(value: string): string {
@@ -22,7 +23,8 @@ const namePartSchema = z
 /**
  * The first-run payload: the administrator account, whose first and last
  * name the form keeps apart and the user record stores as one display name,
- * and the platform details of the wizard's first step, both optional.
+ * the setup token that proves the caller deployed the instance, and the
+ * platform details of the wizard's first step, both optional.
  */
 export const onboardingRegisterAdminSchema = z
   .object({
@@ -30,6 +32,7 @@ export const onboardingRegisterAdminSchema = z
     firstName: namePartSchema,
     lastName: namePartSchema,
     password: passwordSchema,
+    setupToken: z.string().max(MAX_SETUP_TOKEN_LENGTH).optional(),
     platformName: z
       .string()
       .max(MAX_PLATFORM_NAME_LENGTH)
@@ -45,6 +48,7 @@ export const onboardingRegisterAdminSchema = z
     email: striptags(data.email),
     name: `${data.firstName} ${data.lastName}`,
     password: data.password,
+    setupToken: data.setupToken,
     platformName: data.platformName || undefined,
     language: data.language,
   }));

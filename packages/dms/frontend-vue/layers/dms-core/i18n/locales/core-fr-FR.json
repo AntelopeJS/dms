@@ -64,6 +64,7 @@
     "invite_used": "Cette invitation a déjà été utilisée. Veuillez vous connecter.",
     "onboarding_already_completed": "L'onboarding a déjà été completé.",
     "admin_already_set": "Un compte administrateur existe déjà.",
+    "invalid_setup_token": "Le jeton d'installation est absent ou incorrect. Utilisez l'adresse affichée dans les logs du serveur, ou la valeur de DMS_SETUP_TOKEN.",
     "user_creation_failed": "Le compte utilisateur n'a pas pu être créé. Veuillez réessayer.",
     "settings_not_found": "Les paramètres généraux n'ont pas été trouvés.",
     "token_expired": "Le code de validation a expiré.",

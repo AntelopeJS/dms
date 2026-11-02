@@ -59,7 +59,7 @@ pnpm dev            # backend on http://localhost:5010
 pnpm frontend:dev   # dashboard on http://localhost:3001, in a second terminal
 ```
 
-Open `http://localhost:3001` and create the first administrator. A page is a class whose static fields are blocks:
+Open the address the backend logs after `No owner exists yet` and create the first administrator. A page is a class whose static fields are blocks:
 
 ```ts
 import { PageController, RegisterPage, pagesCategory } from "@antelopejs/interface-dms/page";
