@@ -10,6 +10,7 @@ import type {
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
 import type { ComponentInfoSerialized } from "../component";
+import { isFunction } from "../utils/internal/type-check";
 import type { z } from "zod";
 
 export type FilterComponent = ComponentInfoSerialized | "noInput";
@@ -22,7 +23,7 @@ interface DataCompareModeMetadata {
 
 const dataCompareModes = new Map<string, DataCompareMode>();
 const dataCompareModesMetadata = new Map<
-  Class<DataCompareMode>,
+  Class<object>,
   DataCompareModeMetadata
 >();
 const dataTypes = new Map<string, Class<DataType>>();
@@ -38,6 +39,16 @@ export interface DataCompareMode {
     // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator rows belong to application schemas, not a fixed interface model.
     row: ValueProxy<Record<string, unknown>>,
   ): ValueProxyOrValue<boolean>;
+}
+
+/**
+ * `filter` is the only member of {@link DataCompareMode}, so a callable
+ * `filter` is the whole shape a registered mode must have.
+ */
+function implementsFilter(
+  value: Partial<DataCompareMode>,
+): value is DataCompareMode {
+  return isFunction(value.filter);
 }
 
 export abstract class DataType {
@@ -142,7 +153,7 @@ export abstract class DataType {
  * @returns The data type class decorator
  */
 export const RegisterDataType: (id: string) => ClassDecorator<Class<DataType>> =
-  MakeClassDecorator((target: Class<DataType>, id: string) => {
+  MakeClassDecorator((target, id: string) => {
     dataTypes.set(id, target);
     dataTypesReverse.set(target, id);
   });
@@ -157,8 +168,11 @@ export const RegisterDataCompareMode: (
   id: string,
   noInput?: boolean,
 ) => ClassDecorator<Class<DataCompareMode>> = MakeClassDecorator(
-  (target: Class<DataCompareMode>, id: string, noInput: boolean = false) => {
+  (target, id: string, noInput: boolean = false) => {
     const instance = new target();
+    if (!implementsFilter(instance)) {
+      throw new TypeError(`Data compare mode "${id}" must implement filter()`);
+    }
     dataCompareModes.set(id, instance);
     dataCompareModesMetadata.set(target, {
       id,
