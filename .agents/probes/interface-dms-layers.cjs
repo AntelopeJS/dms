@@ -181,20 +181,13 @@ const ISOLATED = [
   "page/types.js",
 ];
 
-/** @type {Map<unknown, unknown>["set"]} */
-const originalMapSet = Map.prototype.set;
-/** @type {Map<unknown, unknown>["has"]} */
-const originalMapHas = Map.prototype.has;
-/** @type {WeakMap<object, unknown>["set"]} */
-const originalWeakMapSet = WeakMap.prototype.set;
-/** @type {WeakMap<object, unknown>["has"]} */
-const originalWeakMapHas = WeakMap.prototype.has;
-/** @type {WeakMap<object, string | null>["get"]} */
-const originalWeakMapGet = WeakMap.prototype.get;
-/** @type {Set<unknown>["add"]} */
-const originalSetAdd = Set.prototype.add;
-/** @type {Set<unknown>["has"]} */
-const originalSetHas = Set.prototype.has;
+const originalMapSet = builtinMethod(Map.prototype, "set");
+const originalMapHas = builtinMethod(Map.prototype, "has");
+const originalWeakMapSet = builtinMethod(WeakMap.prototype, "set");
+const originalWeakMapHas = builtinMethod(WeakMap.prototype, "has");
+const originalWeakMapGet = builtinMethod(WeakMap.prototype, "get");
+const originalSetAdd = builtinMethod(Set.prototype, "add");
+const originalSetHas = builtinMethod(Set.prototype, "has");
 
 /**
  * @typedef {{
@@ -247,6 +240,19 @@ function isBigInt(value) {
  */
 function isFunction(value) {
   return typeof value === "function";
+}
+
+/**
+ * @param {object} prototype
+ * @param {string} name
+ * @returns {Function}
+ */
+function builtinMethod(prototype, name) {
+  const descriptor = Object.getOwnPropertyDescriptor(prototype, name);
+  /** @type {unknown} */
+  const method = descriptor?.value;
+  if (isFunction(method)) return method;
+  throw new TypeError(`Expected ${name} to be a method of the prototype`);
 }
 
 /**
@@ -365,15 +371,18 @@ function record(container, key, isNew) {
 
 Map.prototype.set = function set(key, value) {
   record(this, key, !originalMapHas.call(this, key));
-  return originalMapSet.call(this, key, value);
+  originalMapSet.call(this, key, value);
+  return this;
 };
 WeakMap.prototype.set = function set(key, value) {
   record(this, key, !originalWeakMapHas.call(this, key));
-  return originalWeakMapSet.call(this, key, value);
+  originalWeakMapSet.call(this, key, value);
+  return this;
 };
 Set.prototype.add = function add(value) {
   record(this, value, !originalSetHas.call(this, value));
-  return originalSetAdd.call(this, value);
+  originalSetAdd.call(this, value);
+  return this;
 };
 
 function clearCache() {
