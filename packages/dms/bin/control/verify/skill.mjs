@@ -3,8 +3,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { checkoutOf } from "../git.mjs";
-import { decode, isRecord } from "../json.mjs";
-import { skillConfigSchema } from "./decode.mjs";
+import { isRecord } from "../json.mjs";
+import { decodeSkillConfig } from "./decode.mjs";
 
 const CONFIG_FILE = "verify.config.ts";
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
@@ -75,8 +75,7 @@ export async function loadSkill(option, cwd) {
   const file = join(dir, CONFIG_FILE);
   /** @type {unknown} */
   const loaded = await import(pathToFileURL(file).href);
-  const config = decode(
-    skillConfigSchema,
+  const config = decodeSkillConfig(
     isRecord(loaded) ? loaded.default : undefined,
     file,
   );

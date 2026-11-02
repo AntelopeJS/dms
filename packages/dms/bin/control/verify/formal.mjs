@@ -2,8 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, matchesGlob, relative } from "node:path";
 import { behaviourChange, inWorktree } from "./behaviour.mjs";
-import { decode } from "../json.mjs";
-import { formalResultSchema } from "./decode.mjs";
+import { decodeFormalResult } from "./decode.mjs";
 
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
@@ -256,5 +255,5 @@ export function readFormalResult(state, name) {
   if (!existsSync(file)) return undefined;
   /** @type {unknown} */
   const stored = JSON.parse(readFileSync(file, "utf8"));
-  return decode(formalResultSchema, stored, file);
+  return decodeFormalResult(stored, file);
 }
