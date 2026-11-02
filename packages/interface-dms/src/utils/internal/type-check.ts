@@ -20,29 +20,41 @@ interface PrimitiveValueByTag {
 }
 type PrimitiveValue = PrimitiveValueByTag[Primitive];
 
-interface GuardedByTag extends PrimitiveValueByTag {
-  object: object;
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published function predicate promises no result shape for arbitrary callable values.
-  function: (...args: unknown[]) => unknown;
-}
+type TypeofTag<T> = T extends string
+  ? "string"
+  : T extends number
+    ? "number"
+    : T extends boolean
+      ? "boolean"
+      : T extends undefined
+        ? "undefined"
+        : T extends bigint
+          ? "bigint"
+          : T extends symbol
+            ? "symbol"
+            : T extends Function
+              ? "function"
+              : "object";
 
 const createTypeGuard =
-  <Tag extends keyof GuardedByTag>(type: Tag) =>
-  (v: unknown): v is GuardedByTag[Tag] =>
+  <T>(type: TypeofTag<T>) =>
+  (v: unknown): v is T =>
     typeof v === type;
 
 /** @internal */
-export const isString = createTypeGuard("string");
+export const isString = createTypeGuard<string>("string");
 /** @internal */
-export const isNumber = createTypeGuard("number");
+export const isNumber = createTypeGuard<number>("number");
 /** @internal */
-export const isBoolean = createTypeGuard("boolean");
+export const isBoolean = createTypeGuard<boolean>("boolean");
 /** @internal */
-export const isUndefined = createTypeGuard("undefined");
+export const isUndefined = createTypeGuard<undefined>("undefined");
 /** @internal */
-export const isObject = createTypeGuard("object");
+export const isObject = createTypeGuard<object>("object");
 /** @internal */
-export const isFunction = createTypeGuard("function");
+export const isFunction =
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published function predicate promises no result shape for arbitrary callable values.
+  createTypeGuard<(...args: unknown[]) => unknown>("function");
 /**
  * Whether a value is a class: a function with an object `prototype`, which
  * arrow functions, methods and bound functions lack. A generator function has
@@ -55,9 +67,9 @@ export const isClass = (value: unknown): value is Class =>
   typeof value.prototype === "object" &&
   value.prototype !== null;
 /** @internal */
-export const isBigint = createTypeGuard("bigint");
+export const isBigint = createTypeGuard<bigint>("bigint");
 /** @internal */
-export const isSymbol = createTypeGuard("symbol");
+export const isSymbol = createTypeGuard<symbol>("symbol");
 
 /** @internal */
 export const isPrimitive = (value: unknown): value is PrimitiveValue => {
