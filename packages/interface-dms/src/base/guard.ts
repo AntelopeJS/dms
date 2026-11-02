@@ -132,6 +132,8 @@ export const GuardSchema = z.object({
  * // "Not found" in place of a record's blocks once the record is gone.
  * Guard({ fetchUrl: '/api/routes/{{params.id}}', when: 'notFound' })
  * ```
+ *
+ * @docsApi
  */
 export function Guard(options: GuardOptions): ComponentBuilder<GuardOptions> {
   return attachRealtimeTopicsHook(

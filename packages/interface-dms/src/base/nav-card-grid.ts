@@ -92,6 +92,11 @@ export interface NavCardGridOptions extends Omit<
   category?: CategoryInfo;
 }
 
+/**
+ * A grid of navigation cards.
+ *
+ * @docsApi
+ */
 export function NavCardGrid(
   options?: NavCardGridOptions,
 ): ComponentBuilder<NavCardGridProps> {

@@ -50,6 +50,8 @@ export const CARD_FOOTER_SLOT = "footer";
  *   .child("list", KeyValueList({ card: false, items: [...] }))
  *   .child("foot", HStack().child("sync", ...), { slot: "footer" })
  * ```
+ *
+ * @docsApi
  */
 export function Card(options?: CardProps): ComponentBuilder<CardProps> {
   return new ComponentBuilder<CardProps>(CARD_COMPONENT_NAME)

@@ -6,7 +6,7 @@ import { chromium } from "playwright-core";
 
 const DEFAULT_BASE_URL = "http://localhost:3001";
 const PREVIEW_PATH = "/dms-preview";
-const THEMES = ["light", "dark"];
+const THEME = "dark";
 const DEFAULT_WIDTH = 720;
 const VIEWPORT_HEIGHT = 900;
 const DEVICE_SCALE_FACTOR = 2;
@@ -32,14 +32,12 @@ function readOptions() {
     options: {
       "base-url": { type: "string" },
       only: { type: "string" },
-      theme: { type: "string" },
     },
   });
   return {
     baseUrl:
       values["base-url"] ?? process.env.DMS_PREVIEW_URL ?? DEFAULT_BASE_URL,
     only: values.only ? new Set(values.only.split(",")) : undefined,
-    themes: values.theme ? [values.theme] : THEMES,
   };
 }
 
@@ -54,11 +52,14 @@ function readExamples(only) {
 /**
  * @param {string} baseUrl
  * @param {Entry[1]} example
- * @param {string} theme
  */
-function previewUrl(baseUrl, example, theme) {
+function previewUrl(baseUrl, example) {
   const { type, options, children } = example;
-  const state = { tree: { type, options, children }, theme, padding: true };
+  const state = {
+    tree: { type, options, children },
+    theme: THEME,
+    padding: true,
+  };
   const encoded = Buffer.from(JSON.stringify(state)).toString("base64url");
   return `${baseUrl}${PREVIEW_PATH}?state=${encoded}`;
 }
@@ -79,25 +80,24 @@ async function waitForBlocks(page) {
  * @param {Browser} browser
  * @param {string} baseUrl
  * @param {Entry} entry
- * @param {string} theme
  */
-async function capture(browser, baseUrl, [id, example], theme) {
+async function capture(browser, baseUrl, [id, example]) {
   const context = await browser.newContext({
     viewport: {
       width: example.width ?? DEFAULT_WIDTH,
       height: VIEWPORT_HEIGHT,
     },
     deviceScaleFactor: DEVICE_SCALE_FACTOR,
-    colorScheme: theme,
+    colorScheme: THEME,
   });
   try {
     const page = await context.newPage();
-    await page.goto(previewUrl(baseUrl, example, theme), { waitUntil: "load" });
+    await page.goto(previewUrl(baseUrl, example), { waitUntil: "load" });
     await waitForBlocks(page);
     if (await page.locator(ISSUE_SELECTOR).count()) {
       throw new Error(await page.locator(ISSUE_SELECTOR).first().innerText());
     }
-    const path = join(outputDir, `${id}.${theme}.png`);
+    const path = join(outputDir, `${id}.${THEME}.png`);
     await page
       .locator(PREVIEW_SELECTOR)
       .screenshot({ path, animations: "disabled" });
@@ -122,12 +122,10 @@ async function captureAll(browser, options, examples) {
   /** @type {string[]} */
   const failures = [];
   for (const entry of examples) {
-    for (const theme of options.themes) {
-      try {
-        report(await capture(browser, options.baseUrl, entry, theme));
-      } catch (error) {
-        failures.push(`${entry[0]} (${theme}): ${error.message}`);
-      }
+    try {
+      report(await capture(browser, options.baseUrl, entry));
+    } catch (error) {
+      failures.push(`${entry[0]}: ${error.message}`);
     }
   }
   return failures;
