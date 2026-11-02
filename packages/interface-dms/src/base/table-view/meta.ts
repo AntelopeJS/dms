@@ -19,7 +19,6 @@ import {
 import type { Component, ComponentBuilder } from "../../component";
 import { isString } from "../../utils/internal/type-check";
 import { decoratedClass } from "../../utils/internal/decorated-class";
-import { ownEntry } from "../../internal/component-builder";
 import type { ColumnDisplay } from "./column-display";
 import { buildTableConfig, decorateColumn } from "./internal/meta-helpers";
 // oxlint-disable-next-line import/no-cycle -- The barrel evaluates built-in data-type decorators; serializeType needs the registry they populate.
@@ -405,7 +404,9 @@ export class TableViewMeta {
         }
         processedGroups.add(options.group);
 
-        const groupConfig = ownEntry(this.groups, options.group);
+        const groupConfig = Object.hasOwn(this.groups, options.group)
+          ? this.groups[options.group]
+          : undefined;
         const groupFields = sortedEntries
           .filter(([, opts]) => opts.group === options.group)
           .map(([k, opts]) =>
