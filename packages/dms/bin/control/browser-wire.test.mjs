@@ -3,6 +3,9 @@ import { createServer } from "node:http";
 import test from "node:test";
 import { answerRequest } from "./browser.mjs";
 import { postAction } from "./browser-client.mjs";
+import { outcomeSchema } from "./browser-wire.mjs";
+import { decode } from "./json.mjs";
+import { freePort } from "./processes.mjs";
 
 const REQUEST = {
   do: "click",
@@ -15,7 +18,7 @@ const OUTCOME = { ok: true, url: "/", error: null, aria: "- button" };
 
 /**
  * @param {string} body What a client posted
- * @returns {Promise<{ answer: unknown, handled: unknown[] }>} The answer and the requests that reached the handler
+ * @returns {Promise<{ answer: import("./browser.mjs").Outcome, handled: unknown[] }>} The answer and the requests that reached the handler
  */
 async function answered(body) {
   /** @type {unknown[]} */
@@ -24,7 +27,9 @@ async function answered(body) {
     handled.push(request);
     return Promise.resolve(OUTCOME);
   });
-  return { answer: JSON.parse(answer), handled };
+  /** @type {unknown} */
+  const posted = JSON.parse(answer);
+  return { answer: decode(outcomeSchema, posted, "the answer"), handled };
 }
 
 await test("a posted request reaches the handler as written and its outcome is the answer", async () => {
@@ -39,7 +44,7 @@ await test("a request with a field of the wrong type is answered as a failed act
   );
   assert.deepEqual(handled, []);
   assert.equal(answer.ok, false);
-  assert.match(answer.error, /browser request is malformed: tab/);
+  assert.match(answer.error ?? "", /browser request is malformed: tab/);
 });
 
 await test("a request without an action is answered as a failed action, not run", async () => {
@@ -47,7 +52,7 @@ await test("a request without an action is answered as a failed action, not run"
     JSON.stringify({ account: "admin" }),
   );
   assert.deepEqual(handled, []);
-  assert.match(answer.error, /malformed: do/);
+  assert.match(answer.error ?? "", /malformed: do/);
 });
 
 await test("a body that is no JSON is answered as a failed action", async () => {
@@ -62,15 +67,13 @@ await test("a body that is no JSON is answered as a failed action", async () => 
  * @returns {Promise<number>} The server's port
  */
 async function serving(t, answer) {
+  const port = await freePort();
   const server = createServer((_incoming, outgoing) => {
     outgoing.end(JSON.stringify(answer));
   });
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  await new Promise((resolve) => server.listen(port, "127.0.0.1", resolve));
   t.after(() => server.close());
-  const address = server.address();
-  if (address === null || typeof address === "string")
-    throw new Error("no port");
-  return address.port;
+  return port;
 }
 
 await test("the client returns the server's outcome", async (t) => {
