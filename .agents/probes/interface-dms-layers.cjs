@@ -243,6 +243,14 @@ function isBigInt(value) {
 
 /**
  * @param {unknown} value
+ * @returns {value is Function}
+ */
+function isFunction(value) {
+  return typeof value === "function";
+}
+
+/**
+ * @param {unknown} value
  * @returns {value is symbol}
  */
 function isSymbol(value) {
@@ -261,7 +269,7 @@ function typeName(value) {
   if (isBoolean(value)) return "boolean";
   if (isBigInt(value)) return "bigint";
   if (isSymbol(value)) return "symbol";
-  if (value instanceof Function) return "function";
+  if (isFunction(value)) return "function";
   return "object";
 }
 
@@ -289,7 +297,7 @@ function asLabel(value) {
 function describeKey(key) {
   if (isString(key) || isNumber(key)) return String(key);
   if (isSymbol(key)) return key.toString();
-  if (key instanceof Function) return `fn:${key.name || "anonymous"}`;
+  if (isFunction(key)) return `fn:${key.name || "anonymous"}`;
   if (key === null || !isObject(key)) return String(key);
   const tag = Reflect.getPrototypeOf(key)?.constructor?.name ?? "null";
   for (const field of ["id", "name", "key"]) {
@@ -455,7 +463,7 @@ function describeExports(exportsObject) {
     if (!("value" in d)) return `${String(key)} accessor ${flags}`;
     /** @type {unknown} */
     const value = d.value;
-    const type = value instanceof Function
+    const type = isFunction(value)
       ? `function ${value.name}/${value.length}`
       : value === null
         ? "null"

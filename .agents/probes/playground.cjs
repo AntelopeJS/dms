@@ -42,6 +42,14 @@ Math.random = () => {
 
 /**
  * @param {unknown} value
+ * @returns {value is Function}
+ */
+function isFunction(value) {
+  return typeof value === "function";
+}
+
+/**
+ * @param {unknown} value
  * @returns {value is symbol}
  */
 function isSymbol(value) {
@@ -72,7 +80,7 @@ function exportsOf(value) {
  */
 function snapshot(value, ancestors = new Set()) {
   if (value === undefined) return { type: "undefined" };
-  if (value instanceof Function)
+  if (isFunction(value))
     return {
       type: "function",
       name: value.name,
@@ -213,7 +221,7 @@ const { RunWithModuleContext } = require("../../packages/dms/playground/node_mod
  * @returns {unknown}
  */
 function serializedWhenAble(value) {
-  if (value instanceof Object && "serializeSync" in value && value.serializeSync instanceof Function) {
+  if (value instanceof Object && "serializeSync" in value && isFunction(value.serializeSync)) {
     return value.serializeSync() ?? value;
   }
   return value;
