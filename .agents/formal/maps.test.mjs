@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as onboarding from "../skills/formal-onboarding-bootstrap/OnboardingBootstrap.map.mjs";
 import * as realtime from "../skills/formal-realtime-tabs/RealtimeTabs.map.mjs";
+import * as lifecycle from "../skills/formal-tenant-lifecycle/TenantLifecycle.map.mjs";
 import { readModule, setOf, stringOf } from "./helpers/spec-values.mjs";
 
 const onboardingTla = readModule(
@@ -118,4 +119,36 @@ await test("the leader's tab names the leader, and no tab keeps the three region
     }),
     ["Tab 1 sees the stream end", "Tab 2 sees the stream end"],
   );
+});
+
+await test("every step of the tenant lifecycle has words, and the tenant names its state", () => {
+  const lifecycleTla = readModule("formal-tenant-lifecycle", "TenantLifecycle.tla");
+  const base = {
+    row: { closed: false, barrier: "o1", active: ["a1"] },
+    attempt: { a1: "idle" },
+    pausing: { o1: "idle" },
+    resuming: { o1: "idle" },
+    deleter: "idle",
+  };
+  assert.equal(lifecycle.state(base).Tenant, "Paused, one admission");
+  for (const step of setOf(lifecycleTla, "AttemptSteps")) {
+    const regions = lifecycle.state({ ...base, attempt: { a1: step } });
+    assert.notEqual(regions["Invocation a1"], undefined, `an attempt at ${step}`);
+  }
+  for (const step of setOf(lifecycleTla, "PauseSteps")) {
+    const regions = lifecycle.state({ ...base, pausing: { o1: step } });
+    assert.doesNotMatch(regions["Owner o1"] ?? "", /undefined/, `a pause at ${step}`);
+  }
+  for (const step of setOf(lifecycleTla, "ResumeSteps")) {
+    const regions = lifecycle.state({ ...base, resuming: { o1: step } });
+    assert.doesNotMatch(regions["Owner o1"] ?? "", /undefined/, `a resume at ${step}`);
+  }
+  for (const step of setOf(lifecycleTla, "DeleterSteps")) {
+    const regions = lifecycle.state({ ...base, deleter: step });
+    assert.notEqual(regions.Deletion, undefined, `the deletion at ${step}`);
+  }
+  for (const action of lifecycleTla.matchAll(/^([A-Z]\w+)\([ao]\) ==$/gm)) {
+    if (action[1]?.match(/^(?:Admitted|AttemptStep|OwnerStep)$/)) continue;
+    assert.notEqual(lifecycle.step(action[1] ?? ""), null, `the action ${action[1]}`);
+  }
 });
