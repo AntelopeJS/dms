@@ -30,8 +30,9 @@ function buildPayload(
 async function provision(payload: TenantProvisioningHookPayload) {
   try {
     await ExecuteHooks(Hook.TENANT_BEING_PROVISIONED, payload);
-  } catch (error: PromiseRejectedResult["reason"]) {
-    return error;
+  } catch (error: unknown) {
+    if (error instanceof Error) return error;
+    throw error;
   }
   return undefined;
 }
@@ -61,7 +62,7 @@ describe("[unit] interfaces/dms/hooks — TENANT_BEING_PROVISIONED", () => {
     const error = await provision(buildPayload());
 
     expect(error).to.be.instanceOf(Error);
-    expect(error.message).to.equal(HANDLER_FAILURE);
+    expect(error?.message).to.equal(HANDLER_FAILURE);
 
     expect(reached).to.deep.equal(["first"]);
   });
