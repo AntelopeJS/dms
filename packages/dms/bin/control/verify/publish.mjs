@@ -3,6 +3,7 @@ import { cpSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { git } from "../git.mjs";
+import { commitStatusesSchema, decode } from "./decode.mjs";
 import { originRepository } from "./verdict.mjs";
 
 const EVIDENCE_BRANCH = "verify-evidence";
@@ -168,17 +169,17 @@ export function setStatus(skill, verdict, targetUrl) {
  * @returns {string} The status state, or `absent`
  */
 export function readStatus(skill, sha) {
-  /** @type {{ context: string, state: string }[]} */
-  const statuses = JSON.parse(
-    execFileSync(
-      "gh",
-      ["api", `repos/${originRepository(skill.repo)}/commits/${sha}/statuses`],
-      {
-        cwd: skill.repo,
-        encoding: "utf8",
-      },
-    ),
+  const answer = execFileSync(
+    "gh",
+    ["api", `repos/${originRepository(skill.repo)}/commits/${sha}/statuses`],
+    {
+      cwd: skill.repo,
+      encoding: "utf8",
+    },
   );
+  /** @type {unknown} */
+  const stored = JSON.parse(answer);
+  const statuses = decode(commitStatusesSchema, stored, "gh api statuses");
   return (
     statuses.find((status) => status.context === "verify")?.state ?? "absent"
   );

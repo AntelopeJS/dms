@@ -3,6 +3,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { checkoutOf } from "../git.mjs";
+import { isRecord } from "../json.mjs";
+import { decode, skillConfigSchema } from "./decode.mjs";
 
 const CONFIG_FILE = "verify.config.ts";
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
@@ -70,8 +72,13 @@ export async function loadSkill(option, cwd) {
   const dir = resolve(option ?? discover(cwd));
   const { root } = checkoutOf(dir);
   if (!root) throw new Error(`${dir} is not inside a git checkout`);
-  const { default: config } = await import(
-    pathToFileURL(join(dir, CONFIG_FILE)).href
+  const file = join(dir, CONFIG_FILE);
+  /** @type {unknown} */
+  const loaded = await import(pathToFileURL(file).href);
+  const config = decode(
+    skillConfigSchema,
+    isRecord(loaded) ? loaded.default : undefined,
+    file,
   );
   return {
     dir,
