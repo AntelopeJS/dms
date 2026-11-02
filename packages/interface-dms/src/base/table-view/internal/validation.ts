@@ -142,7 +142,7 @@ export function warnIfQuickFiltersLackValues(
   quickFilters: TableViewQuickFilter[] | undefined,
 ): void {
   for (const { field } of quickFilters ?? []) {
-    const column = columns[field];
+    const column = Object.hasOwn(columns, field) ? columns[field] : undefined;
     if (!column || offersQuickFilterValues(column.type)) continue;
     const key = `${controllerName} ${field}`;
     if (warnedValuelessQuickFilters.has(key)) continue;
@@ -184,15 +184,14 @@ interface KanbanGroupColumnType {
   options?: { multiple?: boolean };
 }
 
-const KANBAN_GROUP_TYPE_ELIGIBILITY: Record<
+const KANBAN_GROUP_TYPE_ELIGIBILITY = new Map<
   string,
   (type: KanbanGroupColumnType) => boolean
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Data-type registry ids are arbitrary strings, so the eligibility lookup must accept ids absent from this built-in-only table.
-> = {
-  select: (type) => !type.options?.multiple,
-  boolean: () => true,
-  status: () => true,
-};
+>([
+  ["select", (type) => !type.options?.multiple],
+  ["boolean", () => true],
+  ["status", () => true],
+]);
 
 function validateKanbanField(
   controllerName: string,
@@ -208,7 +207,7 @@ function validateKanbanField(
   const typeId = getDataTypeId(groupColumn.type);
   const isEligible =
     typeId !== undefined &&
-    KANBAN_GROUP_TYPE_ELIGIBILITY[typeId]?.(groupColumn.type);
+    KANBAN_GROUP_TYPE_ELIGIBILITY.get(typeId)?.(groupColumn.type);
   if (!isEligible) {
     throw new Error(
       `TableView kanban groupByField "${groupByField}" on ${controllerName} must be a non-multiple SelectType, a BooleanType or a StatusType column (got "${typeId}")`,

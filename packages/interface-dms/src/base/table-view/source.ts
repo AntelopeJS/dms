@@ -278,7 +278,10 @@ function assertSourceOptions(options: TableViewSourceOptions): void {
     ...(options.card?.fields ?? []),
   ];
   for (const key of keys) {
-    if (!options.columns[key]) {
+    const column = Object.hasOwn(options.columns, key)
+      ? options.columns[key]
+      : undefined;
+    if (!column) {
       throw new Error(`${where} references unknown column "${key}"`);
     }
   }
