@@ -2,6 +2,7 @@ import assert from "node:assert";
 import type { RequestContext } from "@antelopejs/interface-api";
 import {
   type Class,
+  type DecoratorTarget,
   type ClassDecorator,
   MakeClassDecorator,
 } from "@antelopejs/interface-core/decorators";
@@ -10,7 +11,6 @@ import type {
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
 import type { ComponentInfoSerialized } from "../component";
-import { isFunction } from "../utils/internal/type-check";
 import type { z } from "zod";
 
 export type FilterComponent = ComponentInfoSerialized | "noInput";
@@ -23,11 +23,11 @@ interface DataCompareModeMetadata {
 
 const dataCompareModes = new Map<string, DataCompareMode>();
 const dataCompareModesMetadata = new Map<
-  Class<object>,
+  Class<DataCompareMode>,
   DataCompareModeMetadata
 >();
 const dataTypes = new Map<string, Class<DataType>>();
-const dataTypesReverse = new WeakMap<object, string>();
+const dataTypesReverse = new WeakMap<Function, string>();
 
 export interface DataCompareMode {
   filter(
@@ -39,16 +39,6 @@ export interface DataCompareMode {
     // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator rows belong to application schemas, not a fixed interface model.
     row: ValueProxy<Record<string, unknown>>,
   ): ValueProxyOrValue<boolean>;
-}
-
-/**
- * `filter` is the only member of {@link DataCompareMode}, so a callable
- * `filter` is the whole shape a registered mode must have.
- */
-function implementsFilter(
-  value: Partial<DataCompareMode>,
-): value is DataCompareMode {
-  return isFunction(value.filter);
 }
 
 export abstract class DataType {
@@ -140,8 +130,7 @@ export abstract class DataType {
    * @param descriptor Property descriptor
    */
   public decorateField?(
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Published decorator hook receives arbitrary application prototypes; narrowing changes subclass contracts.
-    target: unknown,
+    target: DecoratorTarget,
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
   ): void;
@@ -170,9 +159,6 @@ export const RegisterDataCompareMode: (
 ) => ClassDecorator<Class<DataCompareMode>> = MakeClassDecorator(
   (target, id: string, noInput: boolean = false) => {
     const instance = new target();
-    if (!implementsFilter(instance)) {
-      throw new TypeError(`Data compare mode "${id}" must implement filter()`);
-    }
     dataCompareModes.set(id, instance);
     dataCompareModesMetadata.set(target, {
       id,
@@ -199,8 +185,7 @@ export function CreateDataType(id: string, options?: unknown) {
  * Get the ID of a DataType instance
  */
 export function getDataTypeId(instance: DataType): string | undefined {
-  const prototype = Reflect.getPrototypeOf(instance);
-  return prototype ? dataTypesReverse.get(prototype.constructor) : undefined;
+  return dataTypesReverse.get(instance.constructor);
 }
 
 export interface DataTypeSerialized {

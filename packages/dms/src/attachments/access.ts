@@ -23,7 +23,7 @@ export const RegisterNativeUploadField = {
     const key = JSON.stringify(registration);
     const current = registrations.get(key);
     registrations.set(key, {
-      declaration: JSON.parse(key),
+      declaration: structuredClone(registration),
       count: (current?.count || 0) + 1,
     });
   },
