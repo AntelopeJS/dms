@@ -4,6 +4,7 @@ import type { BannerContent } from "@antelopejs/interface-dms/base/banner";
 import type { KeyValueListItem } from "@antelopejs/interface-dms/base/key-value-list";
 import type { StatGroupItem } from "@antelopejs/interface-dms/base/stat-group";
 import { notFound } from "./demo-errors";
+import { ownEntry } from "../own-entry";
 
 const DEMO_LATENCY_MS = 500;
 
@@ -135,7 +136,7 @@ function orderEntry(order: DemoOrder): ActivityFeedItem {
   return {
     id: order.number,
     icon: "i-ph-shopping-bag",
-    tone: ORDER_TONES[order.status],
+    tone: ownEntry(ORDER_TONES, order.status),
     title: `Order ${order.number} · ${order.total}`,
     meta: [order.customer, order.status],
   };

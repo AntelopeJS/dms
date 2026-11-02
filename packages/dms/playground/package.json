@@ -3,10 +3,11 @@
   "version": "0.0.1",
   "private": true,
   "main": "dist/index.js",
+  "dmsFrontend": "dist/frontend-module.js",
   "packageManager": "pnpm@10.2.0",
   "scripts": {
     "build": "rimraf dist && tsc",
-    "test": "node checks/aliases.cjs && node --test checks/imports.test.mjs",
+    "test": "pnpm build && node checks/aliases.cjs && node --test checks/imports.test.mjs dist/prototype-keys.test.js && node --import ./checks/resolve-ts.mjs --test checks/docs-fixtures.test.mjs",
     "dev": "ajs project run -w",
     "frontend:dev": "ajs dms dev"
   },
@@ -28,7 +29,7 @@
   },
   "dependencies": {
     "@antelopejs/interface-api": "file:../../../.campaign/tgz/antelopejs-interface-api-f2a99b5.tgz",
-    "@antelopejs/interface-api-util": "file:../../../.campaign/tgz/antelopejs-interface-api-util-cc740f8.tgz",
+    "@antelopejs/interface-api-util": "file:../../../.campaign/tgz/antelopejs-interface-api-util-639f38b.tgz",
     "@antelopejs/interface-core": ">=0.2.4 <1.0.0",
     "@antelopejs/interface-data-api": "file:../../../.campaign/tgz/antelopejs-interface-data-api-d8a868f.tgz",
     "@antelopejs/interface-database": "file:../../../.campaign/tgz/antelopejs-interface-database-724ff72.tgz",
