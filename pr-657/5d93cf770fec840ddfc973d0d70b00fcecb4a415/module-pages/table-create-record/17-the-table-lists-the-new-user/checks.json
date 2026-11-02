@@ -1,0 +1,7 @@
+[
+  {
+    "name": "cell \"Verify User 2c5f86\" is visible",
+    "pass": true,
+    "detail": "http://127.0.0.1:35605/table-view/table-view-users"
+  }
+]

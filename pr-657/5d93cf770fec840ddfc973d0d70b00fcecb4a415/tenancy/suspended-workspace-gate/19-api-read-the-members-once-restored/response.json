@@ -1,0 +1,24 @@
+{
+  "status": 200,
+  "body": {
+    "results": [
+      {
+        "_id": "default:398f1450-f1e6-4c43-b343-21e368b7306e",
+        "userId": "398f1450-f1e6-4c43-b343-21e368b7306e",
+        "name": "Verify Admin",
+        "avatar": null,
+        "email": "admin+20261102t152816-6f4809@verify.local",
+        "roleIds": [],
+        "isTenantOwner": true,
+        "lastActiveAt": "2026-11-02T15:30:22.084Z",
+        "twoFactorMethods": null,
+        "joinedAt": "2026-11-02T15:30:20.392Z",
+        "isValidated": true
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 10
+  },
+  "error": null
+}

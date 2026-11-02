@@ -1,0 +1,8 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:46607/api/auth/refresh",
+  "authenticated": false,
+  "body": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU3ZGIyMzVkLTM4NGMtNDJmOC1hODYwLWJkNDU5OTRhODBiZSIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6ImVhYTRjNTk2LWViN2MtNGNkMC1iZmY3LWE2MTcwODZkNWJlNyIsInB1cnBvc2UiOiJyZWZyZXNoIiwiaWF0IjoxNzkzNjMzNjY5LCJleHAiOjE3OTYyMjU2Njl9.kyQLSOvpue79R-NqIqawR3eTewJgO4eATIDI0f4Bvo0"
+  }
+}

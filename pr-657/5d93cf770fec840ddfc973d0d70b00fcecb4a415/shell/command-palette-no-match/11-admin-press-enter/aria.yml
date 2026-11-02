@@ -1,0 +1,15 @@
+- dialog "Search":
+  - heading "Search" [level=2]
+  - paragraph: Search pages, actions and settings
+  - textbox "Ask the demo assistant anything…": qqxzjjwv
+  - button "Close"
+  - listbox:
+    - region "Assistant":
+      - paragraph: Assistant
+      - status:
+        - text: The assistant is answering…
+        - alert "Loading"
+        - alert "Loading"
+        - alert "Loading"
+  - text: ↵ Send Esc Close
+  - button "Back to search Tab"

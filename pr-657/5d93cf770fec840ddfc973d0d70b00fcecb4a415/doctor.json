@@ -1,0 +1,107 @@
+[
+  {
+    "check": "run is ready",
+    "ok": true,
+    "detail": "/tmp/dms-control/20261102T152816-6f4809"
+  },
+  {
+    "check": "mongod pid 29059 alive",
+    "ok": true,
+    "detail": "/home/antony/.cache/mongodb-binaries/mongod-x64-void-8.0.8 --dbpath /tmp/dms-control/20261102T152816-6f4809/mongo --port 40465 --bind_ip 127.0.0.1"
+  },
+  {
+    "check": "port 40465 held by the run",
+    "ok": true,
+    "detail": "listening pids 29059"
+  },
+  {
+    "check": "mail pid 29230 alive",
+    "ok": true,
+    "detail": "/home/antony/.local/share/mise/installs/node/24.22.2/bin/node /home/antony/code/antelope/.wt/fix-first-boot-lease/packages/dms/bin/dms-control.mjs serve-mail /tmp/dms-control/20261102T152816-6f4809"
+  },
+  {
+    "check": "port 40851 held by the run",
+    "ok": true,
+    "detail": "listening pids 29230"
+  },
+  {
+    "check": "backend pid 11557 alive",
+    "ok": true,
+    "detail": "/home/antony/.local/share/mise/installs/node/24.22.2/bin/node /home/antony/code/antelope/.wt/fix-first-boot-lease/node_modules/.pnpm/@antelopejs+core@1.17.0/node_modules/@antelopejs/core/dist/core/cli/index.js project start -e docs --refresh-config"
+  },
+  {
+    "check": "port 46607 held by the run",
+    "ok": true,
+    "detail": "listening pids 11557"
+  },
+  {
+    "check": "frontend pid 11945 alive",
+    "ok": true,
+    "detail": "/home/antony/.local/share/mise/installs/node/24.22.2/bin/node /home/antony/code/antelope/.wt/fix-first-boot-lease/node_modules/.pnpm/@antelopejs+dms-frontend@0.9.2_@antelopejs+core@1.17.0/node_modules/@antelopejs/dms-frontend/dist/index.js start -e docs -b http://127.0.0.1:46607 -p 35605"
+  },
+  {
+    "check": "port 35605 held by the run",
+    "ok": true,
+    "detail": "listening pids 12413"
+  },
+  {
+    "check": "backend answers",
+    "ok": true,
+    "detail": "http://127.0.0.1:46607/api/onboarding/informations"
+  },
+  {
+    "check": "frontend answers",
+    "ok": true,
+    "detail": "http://127.0.0.1:35605/dms-preview"
+  },
+  {
+    "check": "frontend -b is this run's backend",
+    "ok": true,
+    "detail": "http://127.0.0.1:46607"
+  },
+  {
+    "check": "versions",
+    "ok": true,
+    "detail": "module 0.15.0 (/home/antony/code/antelope/.wt/fix-first-boot-lease/packages/dms), @antelopejs/core 1.17.0, @antelopejs/dms-frontend 0.9.2"
+  },
+  {
+    "check": "module dist newer than src",
+    "ok": true,
+    "detail": "/home/antony/code/antelope/.wt/fix-first-boot-lease/packages/dms/dist"
+  },
+  {
+    "check": "playground dist newer than src",
+    "ok": true,
+    "detail": "/home/antony/code/antelope/.wt/fix-first-boot-lease/packages/dms/playground/dist"
+  },
+  {
+    "check": "frontend build newer than frontend-vue",
+    "ok": true,
+    "detail": "/tmp/dms-control/20261102T152816-6f4809/root/packages/dms/playground/.dms-frontend/dist"
+  },
+  {
+    "check": "database is the run's",
+    "ok": true,
+    "detail": "mongodb://127.0.0.1:40465/verify_20261102T152816_6f4809"
+  },
+  {
+    "check": "checkout HEAD unchanged since up",
+    "ok": true,
+    "detail": "up at 5d93cf770fec840ddfc973d0d70b00fcecb4a415, now 5d93cf770fec840ddfc973d0d70b00fcecb4a415"
+  },
+  {
+    "check": "playground copy is the run's",
+    "ok": true,
+    "detail": "/tmp/dms-control/20261102T152816-6f4809/root/packages/dms/playground"
+  },
+  {
+    "check": "module copy links the checkout",
+    "ok": true,
+    "detail": "/tmp/dms-control/20261102T152816-6f4809/root"
+  },
+  {
+    "check": "admin session",
+    "ok": true,
+    "detail": "not onboarded yet"
+  }
+]

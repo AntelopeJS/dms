@@ -1,0 +1,72 @@
+{
+  "baseRef": "origin/main",
+  "baseSha": "c630e0e243aacdaed2d2ee248a6cb8b57ae8341a",
+  "headSha": "5d93cf770fec840ddfc973d0d70b00fcecb4a415",
+  "changed": [
+    "packages/dms/docs/02.building/02.configuration.md",
+    "packages/dms/docs/02.building/06.backend-services.md",
+    "packages/dms/scripts/backend-import-target.cjs",
+    "packages/dms/src/config/internal/state.ts",
+    "packages/dms/src/index.ts",
+    "packages/dms/src/test/helpers/replica-process.ts",
+    "packages/dms/src/test/integration/first-boot-replicas.test.ts",
+    "packages/dms/src/test/replica-host/index.ts",
+    "packages/dms/src/test/unit/utils/tenant-provisioning-lease.test.ts",
+    "packages/dms/src/utils/ensure-default-tenant.ts",
+    "packages/dms/test-hosts/replica-host/package.json",
+    "packages/interface-dms/docs/1.core/7.hooks.md",
+    "packages/interface-dms/src/db/tables/tenants.table.ts",
+    "packages/interface-dms/src/hooks.ts"
+  ],
+  "touched": [
+    {
+      "feature": "module-pages",
+      "files": [
+        "packages/interface-dms/src/db/tables/tenants.table.ts"
+      ]
+    },
+    {
+      "feature": "onboarding",
+      "files": [
+        "packages/dms/src/utils/ensure-default-tenant.ts"
+      ]
+    },
+    {
+      "feature": "shell",
+      "files": [
+        "packages/dms/src/config/internal/state.ts",
+        "packages/dms/src/index.ts",
+        "packages/interface-dms/src/hooks.ts"
+      ]
+    },
+    {
+      "feature": "tenancy",
+      "files": [
+        "packages/dms/src/utils/ensure-default-tenant.ts"
+      ]
+    }
+  ],
+  "unmapped": [],
+  "docs": [
+    "packages/dms/docs/02.building/03.pages-and-components.md",
+    "packages/dms/docs/04.components/08.tables/0.index.md",
+    "packages/dms/docs/04.components/07.forms/0.index.md",
+    "packages/dms/docs/06.frontend-composables/03.realtime-and-notifications.md",
+    "packages/dms/docs/01.getting-started/03.quickstart.md",
+    "packages/dms/docs/01.getting-started/06.built-in-dashboard.md",
+    "packages/dms/docs/05.extending-the-dashboard/02.dashboard-chrome.md",
+    "packages/dms/docs/02.building/04.navigation.md",
+    "packages/dms/docs/03.auth-and-tenancy/03.multi-tenant.md",
+    "packages/dms/docs/03.auth-and-tenancy/04.saas-mode.md"
+  ],
+  "containments": [
+    "auth/base-written-data-upgrade"
+  ],
+  "run": [
+    "smoke",
+    "module-pages",
+    "onboarding",
+    "shell",
+    "tenancy"
+  ]
+}

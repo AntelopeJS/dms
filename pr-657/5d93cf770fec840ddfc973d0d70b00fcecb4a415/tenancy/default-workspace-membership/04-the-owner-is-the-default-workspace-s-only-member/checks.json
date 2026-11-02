@@ -1,0 +1,12 @@
+[
+  {
+    "name": "member ids",
+    "pass": true,
+    "detail": "expected [\"default\"], got [\"default\"]"
+  },
+  {
+    "name": "owner",
+    "pass": true,
+    "detail": "expected [true], got [true]"
+  }
+]

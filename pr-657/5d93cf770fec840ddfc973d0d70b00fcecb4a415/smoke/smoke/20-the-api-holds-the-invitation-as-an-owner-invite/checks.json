@@ -1,0 +1,17 @@
+[
+  {
+    "name": "HTTP 200",
+    "pass": true,
+    "detail": "status 200: {\"results\":[{\"_id\":\"8eb3b043-a51d-475b-9cd0-941c3e410e34\",\"email\":\"member+20261102t152816-6f4809-smoke@verify.local\",\"roles_ids\":[],\"asTenantOwner\":true,\"createdAt\":\"2026-11-02T15:30:06.007Z\",\"expiresAt\":\"2026-11-09T15:30:06.007Z\",\"invitedBy\":\"b4d7398c-b41a-4996-b701-9deae4a41f8d\",\"invitedByName\":\"V"
+  },
+  {
+    "name": "one pending invitation for the address",
+    "pass": true,
+    "detail": "[{\"_id\":\"8eb3b043-a51d-475b-9cd0-941c3e410e34\",\"email\":\"member+20261102t152816-6f4809-smoke@verify.local\",\"roles_ids\":[],\"asTenantOwner\":true,\"createdAt\":\"2026-11-02T15:30:06.007Z\",\"expiresAt\":\"2026-11-09T15:30:06.007Z\",\"invitedBy\":\"b4d7398c-b41a-4996-b701-9deae4a41f8d\",\"invitedByName\":\"Verify Admin\",\"status\":true}]"
+  },
+  {
+    "name": "it makes a workspace owner",
+    "pass": true,
+    "detail": "expected true, got true"
+  }
+]

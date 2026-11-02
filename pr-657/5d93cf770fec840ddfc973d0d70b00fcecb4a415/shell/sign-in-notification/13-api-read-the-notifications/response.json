@@ -1,0 +1,26 @@
+{
+  "status": 200,
+  "body": [
+    {
+      "_id": "notification-recent:c973fdc3a5f4e1c36c007dec497c05f07d669396a5e7947f8e6410a2cd04ae56",
+      "userId": "82b2d2ee-b946-42cf-9f5c-2b299dbb7ec9",
+      "icon": "i-ph-sign-in",
+      "title": "$dms.notifications.messages.new_login.title_browser_os",
+      "description": "$dms.notifications.messages.new_login.description_no_country",
+      "linkTo": "/settings/user/security",
+      "params": {
+        "browser": "Chrome Headless",
+        "os": "Linux"
+      },
+      "isRead": false,
+      "categoryId": "system",
+      "subjectId": "security",
+      "groupId": null,
+      "tone": "warning",
+      "createdAt": "2026-11-02T15:32:16.851Z",
+      "updatedAt": "2026-11-02T15:32:16.851Z",
+      "_instance": null
+    }
+  ],
+  "error": null
+}

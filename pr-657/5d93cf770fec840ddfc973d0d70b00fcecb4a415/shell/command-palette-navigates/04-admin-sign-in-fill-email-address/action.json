@@ -1,0 +1,6 @@
+{
+  "do": "fill",
+  "target": "textbox \"Email address\"",
+  "value": "admin+20261102t152816-6f4809@verify.local",
+  "baseUrl": "http://127.0.0.1:35605"
+}

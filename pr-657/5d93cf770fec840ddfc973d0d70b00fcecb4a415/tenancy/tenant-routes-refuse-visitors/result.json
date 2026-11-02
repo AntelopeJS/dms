@@ -1,0 +1,54 @@
+{
+  "feature": "tenancy",
+  "journey": "tenant-routes-refuse-visitors",
+  "title": "tenant-scoped routes refuse a caller without a session",
+  "entryPoint": "AuthTenantMember guards",
+  "status": "PASS",
+  "database": "verify_20261102T152816_6f4809_j004",
+  "steps": [
+    {
+      "name": "02-onboard-the-administrator",
+      "folder": "tenancy/tenant-routes-refuse-visitors/02-onboard-the-administrator",
+      "checks": [
+        {
+          "name": "POST /api/onboarding/register answers 2xx",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "the administrator signs in",
+          "pass": true,
+          "detail": "200"
+        }
+      ]
+    },
+    {
+      "name": "07-no-tenant-data-or-action-without-a-member-session",
+      "folder": "tenancy/tenant-routes-refuse-visitors/07-no-tenant-data-or-action-without-a-member-session",
+      "checks": [
+        {
+          "name": "members refused",
+          "pass": true,
+          "detail": "401"
+        },
+        {
+          "name": "status refused",
+          "pass": true,
+          "detail": "401"
+        },
+        {
+          "name": "toggle refused",
+          "pass": true,
+          "detail": "401"
+        },
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"results\":[{\"_id\":\"default:9f216ea5-aad7-4b58-af51-2bf7e21a3cb2\",\"userId\":\"9f216ea5-aad7-4b58-af51-2bf7e21a3cb2\",\"name\":\"Verify Admin\",\"avatar\":null,\"email\":\"admin+20261102t152816-6f4809@verify.local\",\"roleIds\":[],\"isTenantOwner\":true,\"lastActiveAt\":\"2026-11-02T15:30:29.513Z\",\"twoFactorMethods\":nul"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "tenancy/tenant-routes-refuse-visitors"
+}

@@ -1,0 +1,76 @@
+- dialog "Search":
+  - heading "Search" [level=2]
+  - paragraph: Search pages, actions and settings
+  - textbox "Type a command or search…"
+  - button "Close"
+  - listbox:
+    - group "Playground":
+      - text: Playground
+      - option "Open the tabs table"
+      - option "Open project invoicer"
+      - option "New task"
+      - option "New invoice (survives the gate)"
+      - option "New nested task"
+      - option "Press the quick actions table's button"
+      - option "Dispatch a demo event"
+    - group "Table View":
+      - text: Table View
+      - option "New Task (Drawer)"
+      - option "New Task (Page)"
+      - option "New Task (Modal)"
+      - option "New Task (Custom Actions)"
+      - option "New Contact (Grouped)"
+      - option "New Task (Archive)"
+      - option "New Task (Conditional Delete)"
+      - option "Complete all pending tasks"
+    - group "Members":
+      - text: Members
+      - option "Invite a member"
+    - group "Playground":
+      - text: Playground
+      - option "Design system foundations"
+      - option "Feature index"
+      - option "Open the demo side panel"
+    - group "Navigation":
+      - text: Navigation
+      - option "OverviewExamples"
+      - option "Feature indexExamples"
+      - option "Themed Nuxt UILibrary › Design system › Primitives"
+      - option "Icons, pills & labelsLibrary › Design system › Foundations"
+      - option "Feedback & statusLibrary › Design system › Foundations"
+      - option "Lists & dataLibrary › Design system › Foundations"
+      - option "Cards & controlsLibrary › Design system › Foundations"
+      - option "OverlaysLibrary › Design system › Foundations"
+      - option "Stat groupLibrary › Design system › Blocks"
+      - option "Key / value & cardLibrary › Design system › Blocks"
+      - option "Navigation cardsLibrary › Design system › Blocks"
+      - option "Banner & empty stateLibrary › Design system › Blocks"
+    - group "Playground features":
+      - text: Playground features
+      - 'option "Link buttons on a block (route, #anchor, URL)actions: [{ label, to, icon }]"'
+      - 'option "Link button variant and colouractions: [{ variant, color }]"'
+      - option "Items read from a module routefetchUrl"
+      - 'option "Request method of a block routefetchUrlMethod: HttpMethod.get"'
+      - option "Loading skeleton sized to the answerskeletonCount"
+      - 'option "Empty text of a fetched listempty: { title, description }"'
+      - option "Load error with a Retry button (5xx)a fetchUrl answering 503"
+      - 'option "404 drawn as not found, reworded by the route404 body { message, emptyState }"'
+      - 'option "Route parameter token in a block URLfetchUrl: \"/api/x/{{params.id}}\""'
+      - 'option "Query token in a block URL, nothing read while unsetfetchUrl: \"/api/x?status={{query.status}}\""'
+      - 'option "Unknown record: every block says not found{{params.id}} route answering 404"'
+      - option "Page blocks read again after a form saves.watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE)"
+    - group "Session":
+      - text: Session
+      - option "Profile"
+      - option "Settings"
+      - option "Switch account"
+      - option "Change language"
+      - option "Copy current page URL"
+      - option "Logout"
+    - group "Theme":
+      - text: Theme
+      - option "System"
+      - option "Light"
+      - option "Dark"
+  - text: ↑ ↓ Navigate ↵ Open Esc Close
+  - button "Ask AI Tab"

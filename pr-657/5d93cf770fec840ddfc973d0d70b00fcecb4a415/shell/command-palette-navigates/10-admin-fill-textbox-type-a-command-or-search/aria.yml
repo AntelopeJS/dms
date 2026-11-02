@@ -1,0 +1,29 @@
+- dialog "Search":
+  - heading "Search" [level=2]
+  - paragraph: Search pages, actions and settings
+  - textbox "Type a command or search…": Member invitations
+  - button "Close"
+  - listbox:
+    - group "Navigation":
+      - text: Navigation
+      - option "Member invitationsSettings › Workspace"
+      - option "MembersSettings › Workspace"
+      - option "Every memberLibrary › Pages & navigation › Page access › Member access"
+    - group "Playground features":
+      - text: Playground features
+      - option "Hooks on invitations, members and usersRegisterHook(Hook.INVITE_CREATED | MEMBER_ADDED | USER_REGISTERED …)"
+      - option "Blocks injected into the DMS members pages@RegisterPageExtension(\"settings.workspace.members\")"
+      - option "A page every member opens without a roleMenuOptions.memberAccess"
+      - option "Relation to the tenant's membersRelationType over memberSettingDataAPI"
+      - 'option "Remembered period shared between pagesPeriodSelector({ rememberKey })"'
+      - 'option "Owner and member route guardsAuthTenantOwner / AuthTenantMember({ bypassTenantAccessGate })"'
+      - 'option "Remembered dismissBanner({ dismissible, dismissKey })"'
+      - 'option "Live choice shared between pageslive: { rememberKey }"'
+    - group "Members":
+      - text: Members
+      - option "Invite a member"
+    - group "Assistant":
+      - text: Assistant
+      - option "Ask the assistant “Member invitations” Tab"
+  - text: ↑ ↓ Navigate ↵ Open Esc Close
+  - button "Ask AI Tab"

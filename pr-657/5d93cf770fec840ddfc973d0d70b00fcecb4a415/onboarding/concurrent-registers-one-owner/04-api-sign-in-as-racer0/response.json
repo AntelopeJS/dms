@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "body": {
+    "_id": "ca0d1fa9-8197-4bc3-9e03-022e378b8b90",
+    "name": "first Racer",
+    "email": "first+20261102t152816-6f4809-concurrent-registers-one-owner@verify.local",
+    "updatedAt": "2026-11-02T15:31:01.651Z",
+    "isValidated": true,
+    "owner": true,
+    "language": "en",
+    "_instance": null,
+    "lastActiveAt": "2026-11-02T15:31:01.651Z"
+  },
+  "error": null
+}

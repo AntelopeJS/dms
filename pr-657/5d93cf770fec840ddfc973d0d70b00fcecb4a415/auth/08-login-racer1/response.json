@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "body": {
+    "token_type": "Bearer",
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjFhM2U2ZWJjLTM3OTYtNDU2YS1hYTBjLWYxNmQ5Zjg2ZWZjNSIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjAzNjU5YzZjLWRkOGMtNDE3Ni04YzQxLTU2OTJlYjZkN2RlYyIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTM2MzM0NjEsImV4cCI6MTc5MzYzNzA2MX0.b5iU6U0k6pw4QrHq-UafK2WwEwRWssvaZe58L-Fiehw",
+    "expires_in": 3600000,
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjFhM2U2ZWJjLTM3OTYtNDU2YS1hYTBjLWYxNmQ5Zjg2ZWZjNSIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6IjAzNjU5YzZjLWRkOGMtNDE3Ni04YzQxLTU2OTJlYjZkN2RlYyIsInB1cnBvc2UiOiJyZWZyZXNoIiwiaWF0IjoxNzkzNjMzNDYxLCJleHAiOjE3OTYyMjU0NjF9.7FraYZBruVpYAsIivlXg29DY8TFQDCiv3g1cdd4cUwE",
+    "user": {
+      "_id": "1a3e6ebc-3796-456a-aa0c-f16d9f86efc5",
+      "name": "second Racer",
+      "email": "second+20261102t152816-6f4809-concurrent-registers-one-owner@verify.local",
+      "createdAt": "2026-11-02T15:31:01.582Z",
+      "updatedAt": "2026-11-02T15:31:01.582Z",
+      "isValidated": true,
+      "owner": true,
+      "language": "en",
+      "_instance": null
+    }
+  },
+  "error": null
+}

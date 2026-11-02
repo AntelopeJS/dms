@@ -1,0 +1,36 @@
+- button "Toggle theme"
+- banner:
+  - img
+- main:
+  - heading "Connect to your account" [level=1]
+  - paragraph: Welcome back. Sign in to the Verify 20261102T152816-6f4809 workspace.
+  - text: Email address
+  - textbox "Email address":
+    - /placeholder: you@company.com
+    - text: admin+20261102t152816-6f4809@verify.local
+  - text: Password
+  - link "Forgot password?":
+    - /url: /auth/forgot
+  - textbox "Password":
+    - /placeholder: ••••••••
+    - text: Vr1!TsrdpUuWioh6
+  - button "Show password"
+  - checkbox "Keep my active session"
+  - text: Keep my active session
+  - button "Login"
+  - link "No account yet? Sign up":
+    - /url: /auth/signup
+- contentinfo:
+  - text: © Antelope
+  - link "Documentation":
+    - /url: https://dms.antelopejs.com/docs/
+  - link "Website":
+    - /url: https://dms.antelopejs.com/
+  - link "Playground source":
+    - /url: https://github.com/AntelopeJS/dms/tree/main/packages/dms/playground
+  - link "Star AntelopeJS DMS on GitHub":
+    - /url: https://github.com/AntelopeJS/dms
+    - text: Star
+  - combobox "Language": English
+- region "Notifications (F8)":
+  - list

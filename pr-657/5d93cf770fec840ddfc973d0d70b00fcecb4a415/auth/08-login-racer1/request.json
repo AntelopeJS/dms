@@ -1,0 +1,9 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:46607/api/auth/login",
+  "authenticated": false,
+  "body": {
+    "email": "second+20261102t152816-6f4809-concurrent-registers-one-owner@verify.local",
+    "password": "WizardPass1!"
+  }
+}

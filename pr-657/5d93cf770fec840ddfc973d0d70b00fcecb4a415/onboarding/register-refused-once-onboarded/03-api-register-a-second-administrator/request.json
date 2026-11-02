@@ -1,0 +1,11 @@
+{
+  "method": "POST",
+  "url": "http://127.0.0.1:46607/api/onboarding/register",
+  "authenticated": false,
+  "body": {
+    "email": "second+20261102t152816-6f4809-register-refused-once-onboarded@verify.local",
+    "firstName": "Second",
+    "lastName": "Owner",
+    "password": "WizardPass1!"
+  }
+}

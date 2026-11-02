@@ -1,0 +1,10 @@
+{
+  "result": "FAIL",
+  "headSha": "5d93cf770fec840ddfc973d0d70b00fcecb4a415",
+  "skillSha": "a6711ec4ef4e46a104a35b0d09d7bb32e13e6132",
+  "pr": 657,
+  "reasons": [
+    "onboarding/concurrent-registers-one-owner failed",
+    "shell/command-palette-no-match failed"
+  ]
+}

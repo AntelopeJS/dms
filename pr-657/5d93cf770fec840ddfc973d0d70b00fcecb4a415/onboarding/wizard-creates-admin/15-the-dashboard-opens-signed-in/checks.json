@@ -1,0 +1,7 @@
+[
+  {
+    "name": "path matches /^\\/(?!onboarding|auth)/",
+    "pass": true,
+    "detail": "/examples/overview"
+  }
+]

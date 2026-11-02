@@ -1,0 +1,86 @@
+{
+  "feature": "auth",
+  "journey": "base-written-data-upgrade",
+  "title": "an owner, a session and a record written by the base version are read by this version (Format containment)",
+  "entryPoint": "the base ref's backend, then this one, on the same database",
+  "status": "PASS",
+  "database": "verify_20261102T152816_6f4809_j023",
+  "steps": [
+    {
+      "name": "04-the-base-version-onboards-writes-a-record-and-opens-a-sessio",
+      "folder": "auth/base-written-data-upgrade/04-the-base-version-onboards-writes-a-record-and-opens-a-sessio",
+      "checks": [
+        {
+          "name": "register",
+          "pass": true,
+          "detail": "expected 200, got 200"
+        },
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"_id\":\"f6c0a8ed-8c1e-4341-be37-683349fc8b01\",\"name\":\"Base Record\",\"email\":\"base-record+20261102t152816-6f4809-base-written-data-upgrade@verify.local\",\"avatar\":\"https://example.com/avatar.png\"}"
+        },
+        {
+          "name": "tokens issued",
+          "pass": true,
+          "detail": "recordId, access, refresh"
+        }
+      ]
+    },
+    {
+      "name": "10-this-version-reads-what-the-base-version-wrote",
+      "folder": "auth/base-written-data-upgrade/10-this-version-reads-what-the-base-version-wrote",
+      "checks": [
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"_id\":\"e7db235d-384c-42f8-a860-bd45994a80be\",\"name\":\"Verify Admin\",\"email\":\"admin+20261102t152816-6f4809@verify.local\",\"createdAt\":\"2026-11-02T15:34:29.636Z\",\"updatedAt\":\"2026-11-02T15:34:29.699Z\",\"isValidated\":true,\"owner\":true,\"language\":\"en\",\"_instance\":null,\"lastActiveAt\":\"2026-11-02T15:34:29.6"
+        },
+        {
+          "name": "the account behind the base token",
+          "pass": true,
+          "detail": "expected \"admin+20261102t152816-6f4809@verify.local\", got \"admin+20261102t152816-6f4809@verify.local\""
+        },
+        {
+          "name": "the base refresh token refreshes",
+          "pass": true,
+          "detail": "200"
+        },
+        {
+          "name": "HTTP 200",
+          "pass": true,
+          "detail": "status 200: {\"token_type\":\"Bearer\",\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU3ZGIyMzVkLTM4NGMtNDJmOC1hODYwLWJkNDU5OTRhODBiZSIsInRlbmFudElkIjoiZGVmYXVsdCIsInNlc3Npb25JZCI6Ijk4ZjNhYjQyLTA2MTctNDM1MS1hNDY5LWY4ZWRmYTM5ZjQwYSIsInB1cnBvc2UiOiJhY2Nlc3MiLCJpYXQiOjE3OTM2MzM2NzIsImV4cCI6MTc5MzYzNzI3"
+        },
+        {
+          "name": "the record is listed",
+          "pass": true,
+          "detail": "f6c0a8ed-8c1e-4341-be37-683349fc8b01"
+        }
+      ]
+    },
+    {
+      "name": "15-admin-signed-in-as-admin",
+      "folder": "auth/base-written-data-upgrade/15-admin-signed-in-as-admin",
+      "checks": [
+        {
+          "name": "admin signs in and leaves /auth",
+          "pass": true,
+          "detail": "http://127.0.0.1:35605/examples/overview"
+        }
+      ]
+    },
+    {
+      "name": "16-the-owner-signs-in-through-the-form",
+      "folder": "auth/base-written-data-upgrade/16-the-owner-signs-in-through-the-form",
+      "checks": [
+        {
+          "name": "button \"Verify Admin\" is visible",
+          "pass": true,
+          "detail": "http://127.0.0.1:35605/examples/overview"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "folder": "auth/base-written-data-upgrade"
+}
