@@ -50,10 +50,11 @@ export const useInstalledModules = (
 /**
  * How many modules are installed, for the sidebar's badge. The store listing
  * waits on the npm registry, so a server render must not wait for it: the
- * browser reads it, and the count shows once mounted. Until then the badge is
- * absent, on the server and on the browser's first render, which a page that
- * handed the listing over (the Modules page) would otherwise have filled in
- * and mismatched.
+ * browser reads it, and the count shows once mounted and the read is over,
+ * whether it answered or failed. Until then the badge is absent, on the server
+ * and on the browser's first render, which a page that handed the listing
+ * over (the Modules page) would otherwise have filled in and mismatched, and
+ * while the read runs, so the count never shows without the store's modules.
  */
 export const useInstalledModuleCount = () => {
   const isOwner = useIsOwner();
@@ -66,5 +67,12 @@ export const useInstalledModuleCount = () => {
   });
   const isMounted = ref(false);
   onMounted(() => (isMounted.value = true));
-  return computed(() => (isMounted.value ? modules.value.length : 0));
+  const isSettled = computed(
+    () =>
+      storeListing.status.value === "success" ||
+      storeListing.status.value === "error",
+  );
+  return computed(() =>
+    isMounted.value && isSettled.value ? modules.value.length : 0,
+  );
 };

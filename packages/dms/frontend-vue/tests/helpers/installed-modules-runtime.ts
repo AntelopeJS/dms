@@ -10,6 +10,7 @@ export function stubModuleReads(answers: Record<string, unknown> = {}): void {
     data: ref(answers[url() ?? ""] ?? null),
     error: ref(null),
     pending: ref(false),
+    status: ref("success"),
   }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
   vi.stubGlobal("useApiErrorPresenter", () => ({ resolveError: vi.fn() }));
