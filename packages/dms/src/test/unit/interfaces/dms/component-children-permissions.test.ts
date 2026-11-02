@@ -1,4 +1,3 @@
-import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { assert, expect } from "chai";
 import * as guardsImpl from "../../../../implementations/dms/guards";
@@ -25,6 +24,7 @@ import type { TenantTokenInput } from "@antelopejs/interface-dms/auth";
 import { loadRoleEditorTree } from "../../../../pages/permissions";
 import type { RoleEditorPermissionNode } from "../../../../pages/permissions";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
 import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "cc-tenant";
@@ -90,16 +90,6 @@ async function layoutChildren(permissions: string[]): Promise<LayoutChild[]> {
     tenantId: TENANT,
   });
   return layout.components.card?.children ?? [];
-}
-
-async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
-  try {
-    await promise;
-    throw new Error("Expected promise to reject");
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    return error;
-  }
 }
 
 function flattenPermissionNodes(
@@ -187,7 +177,7 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
         rawToken: "cc-token",
         tenantId: "",
       };
-      const error = await rejectionOf(
+      const error = await httpRejectionOf(
         guardsImpl.internal.AuthUserWithPermissionValidator(panel, token),
       );
       expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);

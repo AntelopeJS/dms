@@ -6,6 +6,7 @@ import {
   getExportJobStatus,
   runExportJob,
 } from "@antelopejs/interface-dms/base/export-jobs";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
 import { untouchedRequestContext } from "../../../helpers/request-context";
 
 const HTTP_UNAUTHORIZED = 401;
@@ -23,18 +24,10 @@ async function rejectionOf(call: Promise<unknown>) {
       SETTLE_TIMEOUT_MS,
     ).unref();
   });
-  try {
-    await Promise.race([call, timeout]);
-  } catch (error: PromiseRejectedResult["reason"]) {
-    return error;
-  }
-  throw new Error("expected the call to be rejected");
+  return httpRejectionOf(Promise.race([call, timeout]));
 }
 
-function expectModuleRejection(
-  error: Awaited<ReturnType<typeof rejectionOf>>,
-): void {
-  expect(error).to.be.instanceOf(HTTPResult);
+function expectModuleRejection(error: HTTPResult): void {
   expect(error.getStatus()).to.equal(HTTP_UNAUTHORIZED);
 }
 

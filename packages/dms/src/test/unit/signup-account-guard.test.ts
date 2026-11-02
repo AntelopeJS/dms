@@ -25,7 +25,7 @@ const USER_AGENT = "signup-guard-test";
 const IP = "127.0.0.1";
 
 interface SignupAttempt {
-  error: PromiseRejectedResult["reason"];
+  error: unknown;
   updatedUsers: User[];
 }
 
@@ -95,15 +95,17 @@ async function attemptSignup(
       USER_AGENT,
       { ip: IP },
     );
-  } catch (error: PromiseRejectedResult["reason"]) {
+  } catch (error: unknown) {
     return { error, updatedUsers };
   }
   return { error: undefined, updatedUsers };
 }
 
 function expectRefusal(attempt: SignupAttempt, message: string): void {
-  expect(attempt.error).to.be.instanceOf(HTTPResult);
   const refusal = attempt.error;
+  if (!(refusal instanceof HTTPResult)) {
+    expect.fail("expected an HTTPResult refusal");
+  }
   expect(refusal.getStatus()).to.equal(HTTP_BAD_REQUEST);
   expect(refusal.getBody()).to.equal(message);
 }

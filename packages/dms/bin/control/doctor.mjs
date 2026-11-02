@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { descendantsOf, isAlive, listenersOf, probe } from "./processes.mjs";
 import { checkoutOf } from "./git.mjs";
+import { stringField } from "./json.mjs";
 import { apiRequest } from "./session.mjs";
 import { packageVersion } from "./stack.mjs";
 
@@ -187,7 +188,8 @@ async function sessionLine(state) {
   });
   return line(
     "admin session valid",
-    me.status === 200 && me.body?.email === state.accounts.admin.email,
+    me.status === 200 &&
+      stringField(me.body, "email") === state.accounts.admin.email,
     `GET /api/auth/me ${me.status}`,
   );
 }

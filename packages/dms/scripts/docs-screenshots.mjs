@@ -3,6 +3,11 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { chromium } from "playwright-core";
+import {
+  isRecord,
+  optionalNumber,
+  parseJsonEntries,
+} from "./helpers/json-record.mjs";
 
 const DEFAULT_BASE_URL = "http://localhost:3001";
 const PREVIEW_PATH = "/dms-preview";
@@ -26,6 +31,7 @@ const outputDir = join(packageRoot, "docs", "images", "blocks");
 /** @typedef {import("playwright-core").Browser} Browser */
 /** @typedef {ReturnType<typeof readOptions>} Options */
 /** @typedef {ReturnType<typeof readExamples>[number]} Entry */
+/** @typedef {{ type: unknown, options: unknown, children: unknown, width: number | undefined }} Example */
 
 function readOptions() {
   const { values } = parseArgs({
@@ -43,15 +49,35 @@ function readOptions() {
 
 /** @param {Set<string> | undefined} only */
 function readExamples(only) {
-  const examples = Object.entries(
-    JSON.parse(readFileSync(examplesPath, "utf8")),
+  const examples = parseJsonEntries(
+    readFileSync(examplesPath, "utf8"),
+    examplesPath,
   );
   return only ? examples.filter(([id]) => only.has(id)) : examples;
 }
 
 /**
+ * What the preview page is asked to render for an example. An entry that is
+ * not an object leaves the block to the preview page, and a `null` entry or a
+ * `width` that is neither a number nor `null` is refused.
+ * @param {unknown} value
+ * @returns {Example}
+ */
+function exampleOf(value) {
+  if (value === null) throw new TypeError("example is null");
+  /** @type {Record<string, unknown>} */
+  const node = isRecord(value) ? value : {};
+  return {
+    type: node.type,
+    options: node.options,
+    children: node.children,
+    width: optionalNumber(node, "width"),
+  };
+}
+
+/**
  * @param {string} baseUrl
- * @param {Entry[1]} example
+ * @param {Example} example
  */
 function previewUrl(baseUrl, example) {
   const { type, options, children } = example;
@@ -81,7 +107,8 @@ async function waitForBlocks(page) {
  * @param {string} baseUrl
  * @param {Entry} entry
  */
-async function capture(browser, baseUrl, [id, example]) {
+async function capture(browser, baseUrl, [id, value]) {
+  const example = exampleOf(value);
   const context = await browser.newContext({
     viewport: {
       width: example.width ?? DEFAULT_WIDTH,

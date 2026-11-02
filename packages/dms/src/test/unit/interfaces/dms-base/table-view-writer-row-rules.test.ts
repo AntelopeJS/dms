@@ -38,6 +38,7 @@ import { createValidatedRoute } from "@antelopejs/interface-dms/base/table-view/
 import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 
 import { tableViewAccess } from "@antelopejs/interface-dms/base/table-view/internal/writer";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
 import { requestContextFixture } from "../../../helpers/request-context";
 
 const SCHEMA = "writer-row-rules-test";
@@ -146,13 +147,7 @@ function deleteRows(ids: string[]) {
 async function rejectionOf(
   run: () => ReturnType<typeof edit.func>,
 ): Promise<HTTPResult> {
-  try {
-    await run();
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    return error;
-  }
-  throw new Error("expected a refusal");
+  return httpRejectionOf(Promise.resolve().then(run));
 }
 
 function listContext(query: string): Parameters<typeof applyArchiveFilter>[1] {
