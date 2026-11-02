@@ -13,8 +13,8 @@
     "anti-slop/no-shape-in-symbol-names": 26,
     "anti-slop/no-unknown-parameters": 78,
     "anti-slop/no-unknown-returns": 23,
-    "anti-slop/no-unsafe-dictionary-type": 165,
-    "anti-slop/require-safety-comment-for-type-assertion": 293,
+    "anti-slop/no-unsafe-dictionary-type": 164,
+    "anti-slop/require-safety-comment-for-type-assertion": 292,
     "eslint/max-params": 11,
     "import/no-cycle": 11,
     "import/no-duplicates": 1,
@@ -26,9 +26,9 @@
     "unicorn/no-useless-spread": 4,
     "vue/no-v-html": 2
   },
-  "tsExpectError": 19,
+  "tsExpectError": 21,
   "tsIgnore": 0,
-  "safety": 211,
+  "safety": 210,
   "config": {
     "@typescript-eslint/no-explicit-any for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
     "anti-slop/no-chained-type-assertions for packages/dms/src/test/integration/**": 1,

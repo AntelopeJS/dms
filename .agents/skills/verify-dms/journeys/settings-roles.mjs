@@ -2,6 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { byCodeUnit, ROLES, MEMBERS, PAGES_API, EXPORT_PERMISSION, PLAYGROUND_ONLY, TOTAL_PERMISSIONS, LONG_NAME, createRole, storedRoles, listMembers, openRoles, newRole, selectRole, signupLink, invite, acceptInvitation, joinedMember, previewHidden } from "./settings-roles/steps.mjs";
 import { roleDeletionJourneys } from "./settings-roles/deletion.mjs";
+import { isRoleOverviewRow, listIn } from "../rows.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -160,7 +161,7 @@ export const journeys = [
       await openRoles(admin);
       await ctx.verify("the role shows one pending invite", [admin.shows(/1 invite/)]);
       const overview = await ctx.api("read the roles overview", { method: "GET", path: `${PAGES_API}/roles/overview` });
-      const role = overview.body?.roles?.find((entry) => entry._id === roleId);
+      const role = listIn(overview.body, "roles", isRoleOverviewRow).find((entry) => entry._id === roleId);
       await ctx.verify("the API counts one invite and no member", [
         ctx.equal("inviteCount", role?.inviteCount, 1),
         ctx.equal("memberCount", role?.memberCount, 0),

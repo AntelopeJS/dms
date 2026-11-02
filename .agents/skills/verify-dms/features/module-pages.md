@@ -25,6 +25,7 @@ covers:
   - packages/dms/src/utils/run-in-batches/**
   - packages/dms/src/utils/run-in-batches.ts
   - packages/dms/src/utils/page-access.ts
+  - packages/dms/src/utils/own-value.ts
   - packages/dms/src/utils/row-action-rule-evaluator.ts
   - packages/dms/src/crons/sweep-stale-exports.ts
   - packages/dms/frontend-vue/layers/dms-ui/**

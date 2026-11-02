@@ -1,6 +1,7 @@
 /** Stable relation data types. @packageDocumentation */
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
+import type { DecoratorTarget } from "@antelopejs/interface-core/decorators";
 import { DataAPIMeta, Foreign } from "@antelopejs/interface-data-api/metadata";
 import { z } from "zod";
 import { FormComponents } from "../../form-schema";
@@ -32,6 +33,11 @@ function relationDefaultCompareMode(multiple?: boolean) {
     : DefaultDataCompareTypes.Is;
 }
 
+/**
+ * The `relation` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("relation")
 export class RelationType<T extends ControllerClass> extends DataType {
   constructor(
@@ -144,8 +150,7 @@ export class RelationType<T extends ControllerClass> extends DataType {
   }
 
   public decorateField(
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Preserve DataType's decorator target contract.
-    target: unknown,
+    target: DecoratorTarget,
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
   ): void {
@@ -174,6 +179,8 @@ export class RelationType<T extends ControllerClass> extends DataType {
  * (the `parent` field of `keyMapping` must be decorated with `@Select()`);
  * the widget rebuilds the tree client-side and displays the full path
  * (e.g. `Electronics / Audio / Headphones`) in table cells.
+ *
+ * @docsApi
  */
 @RegisterDataType("cascader_relation")
 export class CascaderRelationType<T extends ControllerClass> extends DataType {
@@ -238,8 +245,7 @@ export class CascaderRelationType<T extends ControllerClass> extends DataType {
   }
 
   public decorateField(
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Preserve DataType's decorator target contract.
-    target: unknown,
+    target: DecoratorTarget,
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
   ): void {

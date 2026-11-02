@@ -1,4 +1,5 @@
 const { execFileSync } = require("node:child_process");
+const { createRequire } = require("node:module");
 const {
   existsSync,
   lstatSync,
@@ -6,28 +7,19 @@ const {
   realpathSync,
   statSync,
 } = require("node:fs");
-const { createRequire } = require("node:module");
 const nodePath = require("node:path");
 const { sep } = nodePath;
 const ts = require("typescript");
 
 const playground = nodePath.resolve(__dirname, "..");
 const repository = nodePath.resolve(playground, "../../..");
-/**
- * The lint presets of the workspace root.
- * @returns {typeof import("@antelopejs/tooling-configs/oxc/lint")}
- */
-function loadLintPresets() {
-  return createRequire(nodePath.join(repository, "package.json"))(
-    "@antelopejs/tooling-configs/oxc/lint",
-  );
-}
-
 const {
   vue: { parse },
   glob: { globSync },
 } = require("./frontend-tools.cjs");
-const { ANTELOPE_IGNORE_PATTERNS } = loadLintPresets();
+const {
+  ANTELOPE_IGNORE_PATTERNS,
+} = require("@antelopejs/tooling-configs/oxc/lint");
 const { ignorePatterns } = require("../../../../oxlint.config.ts").default;
 
 /** The directory oxlint leaves to the Vue layer's own ESLint config. */

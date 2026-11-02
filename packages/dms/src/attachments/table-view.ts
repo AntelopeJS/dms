@@ -21,6 +21,11 @@ import { collectAttachments } from "./fields";
 import { denyAttachment } from "./registry";
 import { SaveComponentFiles } from "./save";
 
+/** A table instance read by field name, through its own fields and its modifiers' accessors. */
+function isFieldHolder(row: unknown): row is Record<string, unknown> {
+  return typeof row === "object" && row !== null;
+}
+
 /** Whether a route answered a row that names its id. */
 function isSavedRow(result: unknown): result is { _id: unknown } {
   return typeof result === "object" && result !== null && "_id" in result;
@@ -41,6 +46,9 @@ async function loadDocument(
   if (!row) return undefined;
   const stored = fromPlainData(row, meta.tableClass);
   unlock(stored, LocalizationModifier, undefined, "*");
+  if (!isFieldHolder(stored)) {
+    throw new TypeError(`A stored ${meta.tableName} row is not an object`);
+  }
   return Object.fromEntries(
     [idField, ...fields.map((field) => field.key)].map((key) => [
       key,

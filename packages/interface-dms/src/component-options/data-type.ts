@@ -2,6 +2,7 @@ import assert from "node:assert";
 import type { RequestContext } from "@antelopejs/interface-api";
 import {
   type Class,
+  type DecoratorTarget,
   type ClassDecorator,
   MakeClassDecorator,
 } from "@antelopejs/interface-core/decorators";
@@ -26,7 +27,7 @@ const dataCompareModesMetadata = new Map<
   DataCompareModeMetadata
 >();
 const dataTypes: Record<string, Class<DataType>> = {};
-const dataTypesReverse = new WeakMap<Class<DataType>, string>();
+const dataTypesReverse = new WeakMap<Function, string>();
 
 export interface DataCompareMode {
   filter(
@@ -129,8 +130,7 @@ export abstract class DataType {
    * @param descriptor Property descriptor
    */
   public decorateField?(
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Published decorator hook receives arbitrary application prototypes; narrowing changes subclass contracts.
-    target: unknown,
+    target: DecoratorTarget,
     key: PropertyKey,
     descriptor?: PropertyDescriptor,
   ): void;
@@ -185,7 +185,7 @@ export function CreateDataType(id: string, options?: unknown) {
  * Get the ID of a DataType instance
  */
 export function getDataTypeId(instance: DataType): string | undefined {
-  return dataTypesReverse.get(Object.getPrototypeOf(instance).constructor);
+  return dataTypesReverse.get(instance.constructor);
 }
 
 export interface DataTypeSerialized {
