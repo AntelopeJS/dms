@@ -3,7 +3,6 @@ import {
   cpSync,
   existsSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -11,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { git } from "../git.mjs";
 import { CONTROL_BIN } from "../stack.mjs";
+import { readFeatureResults } from "./decode.mjs";
 import { runPrepare } from "./skill.mjs";
 
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
@@ -114,10 +114,7 @@ function runFeatureIn(prepared, skill, feature) {
   ]);
   control(["down", dir]);
   const file = join(dir, "evidence", feature, "feature.json");
-  /** @type {import("./types.mjs").FeatureResult[]} */
-  const results = existsSync(file)
-    ? JSON.parse(readFileSync(file, "utf8"))
-    : [];
+  const results = readFeatureResults(file);
   return { run: dir, results, output: `${journeys.stdout}${journeys.stderr}` };
 }
 
