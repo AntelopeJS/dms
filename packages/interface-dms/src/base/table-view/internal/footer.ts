@@ -25,9 +25,7 @@ const LEGEND_TYPE_ID = "select";
  *
  * @internal
  */
-export function ruleFields<T extends Record<string, unknown>>(
-  rule: RowActionRule<T>,
-): string[] {
+export function ruleFields<T extends object>(rule: RowActionRule<T>): string[] {
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published generic rule union has field and logical variants; this traversal reads their operator keys without imposing a row-value schema.
   const record: Record<string, unknown> = rule;
   if (FIELD_KEY in record) return [String(record[FIELD_KEY])];
@@ -39,7 +37,7 @@ export function ruleFields<T extends Record<string, unknown>>(
   });
 }
 
-function assertSummary<T extends Record<string, unknown>>(
+function assertSummary<T extends object>(
   controllerName: string,
   meta: TableViewMeta,
   summary: TableViewFooterSummary<T>,
@@ -68,7 +66,7 @@ function assertSummary<T extends Record<string, unknown>>(
  *
  * @internal
  */
-export function serializeFooter<T extends Record<string, unknown>>(
+export function serializeFooter<T extends object>(
   controllerName: string,
   meta: TableViewMeta,
   footer: TableViewFooterOptions<T> | undefined,
@@ -127,7 +125,7 @@ const controllersWarnedForSummaries = new WeakSet<ControllerClass>();
  *
  * @internal
  */
-export function warnIfSummaryLacksRoute<T extends Record<string, unknown>>(
+export function warnIfSummaryLacksRoute<T extends object>(
   controller: ControllerClass,
   location: string,
   footer: TableViewFooterOptions<T> | undefined,

@@ -103,7 +103,7 @@ export function serializeCustomButtons(
  *
  * @internal
  */
-export function serializeRowActions<T extends Record<string, unknown>>(
+export function serializeRowActions<T extends object>(
   rowActions: TableViewRowActionOptions<T>,
 ): TableViewRowActionOptionsSerialized {
   return {

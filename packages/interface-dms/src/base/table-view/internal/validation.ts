@@ -404,7 +404,7 @@ const NUMBER_TYPE_ID = "number";
  *
  * @internal
  */
-export function validateReorder<T extends Record<string, unknown>>(
+export function validateReorder<T extends object>(
   controllerName: string,
   meta: TableViewMeta,
   options: TableViewOptions<T>,
@@ -543,7 +543,7 @@ export function assertTabTargets(
  *
  * @internal
  */
-export function validateTableViewOptions<T extends Record<string, unknown>>(
+export function validateTableViewOptions<T extends object>(
   controllerName: string,
   meta: TableViewMeta,
   options: TableViewOptions<T>,

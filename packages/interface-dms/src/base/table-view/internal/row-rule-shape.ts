@@ -5,12 +5,12 @@ import {
 } from "../../types/row-action-operators";
 import { isNull, isObject } from "../../../utils/internal/type-check";
 
-const isRuleObject = <T extends Record<string, unknown>>(
+const isRuleObject = <T extends object>(
   value: RowActionRule<T>,
 ): value is RowActionRule<T> & object =>
   isObject(value) && !isNull(value) && !Array.isArray(value);
 
-function operandProblem<T extends Record<string, unknown>>(
+function operandProblem<T extends object>(
   operator: (typeof LOGICAL_OPERATOR_KEYS)[number],
   operand: RowActionRule<T> | RowActionRule<T>[],
   path: string,
@@ -34,7 +34,7 @@ function operandProblem<T extends Record<string, unknown>>(
  *
  * @internal
  */
-export function rowRuleProblem<T extends Record<string, unknown>>(
+export function rowRuleProblem<T extends object>(
   rule: RowActionRule<T>,
   path = "rule",
 ): string | undefined {
