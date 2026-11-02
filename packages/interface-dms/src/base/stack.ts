@@ -228,6 +228,8 @@ export const SpacerSchema = z.object({
  *   .child('item1', someComponent)
  *   .child('item2', anotherComponent)
  * ```
+ *
+ * @docsApi
  */
 export function HStack(
   options?: HStackOptions,
@@ -260,6 +262,8 @@ export function HStack(
  *   .child('item1', someComponent)
  *   .child('item2', anotherComponent)
  * ```
+ *
+ * @docsApi
  */
 export function VStack(
   options?: VStackOptions,
@@ -295,6 +299,8 @@ export function VStack(
  *   .child('spacer', Spacer({ maxSize: '50px' }))
  *   .child('bottom', Text('Bottom'))
  * ```
+ *
+ * @docsApi
  */
 export function Spacer(
   options?: SpacerOptions,

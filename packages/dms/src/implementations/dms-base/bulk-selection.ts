@@ -41,7 +41,7 @@ function isControllerInstance(value: unknown): value is DataControllerInstance {
 }
 
 /** A data controller as the list query reads it: its properties by key. */
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Inference from Object.create yields any and BulkRowSource.tableView.target constructs unknown; neither describes the proxy's arbitrary controller fields, which must stay unknown until their data-api owner reads them.
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The proxy exposes arbitrary controller fields, which no closed type describes; they stay unknown until their data-api owner reads them.
 type ControllerReader = Record<PropertyKey, unknown>;
 
 /**
@@ -55,9 +55,11 @@ function sourceReader({ model, tableView }: BulkRowSource) {
   const controller = tableView.target;
   const { modelKey } = GetMetadata(controller, DataAPIMeta, true);
   assert(modelKey, 500, `${controller.name} declares no model.`);
-  const reader: ControllerReader = Object.create(controller.prototype, {
-    [modelKey]: { value: model, enumerable: true },
-  });
+  const reader: ControllerReader = Object.defineProperty(
+    { __proto__: controller.prototype },
+    modelKey,
+    { value: model, enumerable: true },
+  );
   return new Proxy(reader, {
     get(target, key) {
       // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Proxy get keys are string or symbol; the existing symbol branch lets introspection pass without throwing the missing route-property error.

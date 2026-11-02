@@ -156,7 +156,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        check: [formal-onboarding-bootstrap, formal-realtime-tabs]
+        check:
+          [
+            formal-onboarding-bootstrap,
+            formal-realtime-tabs,
+            formal-tenant-lifecycle,
+          ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

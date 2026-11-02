@@ -1,17 +1,17 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { z } from "zod";
 import type { EnabledOAuthProvider } from "./config";
 import { buildOAuthRedirectUri } from "./config";
 
 const HTTP_BAD_GATEWAY = 502;
 const TOKEN_EXCHANGE_FAILED_MESSAGE = "error.oauth.token_exchange_failed";
 
-interface TokenResponse {
-  access_token?: string;
-  error?: string;
-  error_description?: string;
-}
+const TokenResponseSchema = z.object({
+  access_token: z.string().optional().catch(undefined),
+  error: z.string().optional().catch(undefined),
+});
 
 /**
  * Trade the authorization code for an access token.
@@ -45,7 +45,9 @@ export async function exchangeCodeForAccessToken(
   });
 
   assert(response.ok, HTTP_BAD_GATEWAY, TOKEN_EXCHANGE_FAILED_MESSAGE);
-  const tokens: TokenResponse = await response.json();
+  const answer = TokenResponseSchema.safeParse(await response.json());
+  assert(answer.success, HTTP_BAD_GATEWAY, TOKEN_EXCHANGE_FAILED_MESSAGE);
+  const tokens = answer.data;
 
   if (tokens.access_token) {
     return tokens.access_token;
