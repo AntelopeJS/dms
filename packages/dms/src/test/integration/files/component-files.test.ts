@@ -13,8 +13,11 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel } from "@antelopejs/interface-dms/db";
 import { verifyUploadToken } from "../../../utils";
 import {
+  fetchStoredText,
   findUploadToken,
   nativeUploadToken,
+  parseAttachmentMetadata,
+  parseSavedDocument,
   uploadAttachment,
 } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
@@ -55,14 +58,13 @@ describe("[integration] native component file security", () => {
     });
     const reader = await registerUser({ roles_ids: [role] });
     const other = authorizedClient(reader.accessToken);
-    const metadata = await other.get(METADATA, {
+    const response = await other.get(METADATA, {
       params: { resourceKey: upload.key },
     });
-    expect(metadata.status, JSON.stringify(metadata.data)).to.equal(200);
-    expect(metadata.data.expiresAt).to.be.at.most(Date.now() + 60000);
-    expect((await axios.get(metadata.data.url)).data).to.equal(
-      CONTENT.toString(),
-    );
+    expect(response.status, JSON.stringify(response.data)).to.equal(200);
+    const metadata = parseAttachmentMetadata(response);
+    expect(metadata.expiresAt).to.be.at.most(Date.now() + 60000);
+    expect(await fetchStoredText(metadata.url)).to.equal(CONTENT.toString());
     const denied = await other.post("/api/files/presign", {
       filename: "copy.txt",
       size: CONTENT.length,
@@ -100,14 +102,13 @@ describe("[integration] native component file security", () => {
   it("serves public staging immediately without a document save", async () => {
     const { client, upload } = await ownerUpload("publicFile");
     expect(isStagedKey(upload.key)).to.equal(true);
-    const metadata = await client.get(METADATA, {
+    const response = await client.get(METADATA, {
       params: { resourceKey: upload.key },
     });
-    expect(metadata.status, JSON.stringify(metadata.data)).to.equal(200);
-    expect(metadata.data.expiresAt).to.equal(undefined);
-    expect((await axios.get(metadata.data.url)).data).to.equal(
-      CONTENT.toString(),
-    );
+    expect(response.status, JSON.stringify(response.data)).to.equal(200);
+    const metadata = parseAttachmentMetadata(response);
+    expect(metadata.expiresAt).to.equal(undefined);
+    expect(await fetchStoredText(metadata.url)).to.equal(CONTENT.toString());
   });
 
   it("promotes an aliased field without changing provenance and deletes it after removal", async () => {
@@ -118,24 +119,24 @@ describe("[integration] native component file security", () => {
       readerId: "row-read-denied",
     });
     expect(saved.status, JSON.stringify(saved.data)).to.equal(200);
+    const { _id: savedId } = parseSavedDocument(saved);
     const key = stripStagingPrefix(upload.key);
-    const metadata = await client.get(METADATA, {
+    const response = await client.get(METADATA, {
       params: { resourceKey: key },
     });
-    expect(metadata.status, JSON.stringify(metadata.data)).to.equal(200);
+    expect(response.status, JSON.stringify(response.data)).to.equal(200);
+    const metadata = parseAttachmentMetadata(response);
     expect(
-      (await client.get(`${LOCATION}/get`, { params: { id: saved.data._id } }))
-        .status,
+      (await client.get(`${LOCATION}/get`, { params: { id: savedId } })).status,
     ).to.equal(403);
     const removed = await client.put(
       `${LOCATION}/edit`,
       { file: "" },
-      { params: { id: saved.data._id } },
+      { params: { id: savedId } },
     );
     expect(removed.status, JSON.stringify(removed.data)).to.equal(200);
     expect(
-      (await axios.get(metadata.data.url, { validateStatus: () => true }))
-        .status,
+      (await axios.get(metadata.url, { validateStatus: () => true })).status,
     ).to.equal(404);
   });
 
@@ -173,11 +174,11 @@ describe("[integration] native component file security", () => {
           params: { resourceKey: stripStagingPrefix(file.key) },
         });
         expect(metadata.status).to.equal(200);
-        return metadata.data.url;
+        return parseAttachmentMetadata(metadata).url;
       }),
     );
     const removed = await client.delete(`${LOCATION}/delete`, {
-      params: { id: saved.data._id },
+      params: { id: parseSavedDocument(saved)._id },
     });
     expect(removed.status, JSON.stringify(removed.data)).to.equal(200);
     for (const url of links)
@@ -260,9 +261,9 @@ describe("[integration] native component file security", () => {
       params: { resourceKey: stripStagingPrefix(image.key) },
     });
     expect(retained.status).to.equal(200);
-    expect((await axios.get(retained.data.url)).data).to.equal(
-      CONTENT.toString(),
-    );
+    expect(
+      await fetchStoredText(parseAttachmentMetadata(retained).url),
+    ).to.equal(CONTENT.toString());
     const saved = await client.post("/dms/pages/settings/user/profile", {
       avatar: { key: image.key },
       email: user.email,
@@ -297,6 +298,7 @@ describe("[integration] native component file security", () => {
       { headers: { "x-content-language": "*" } },
     );
     expect(saved.status, JSON.stringify(saved.data)).to.equal(200);
+    const { _id: savedId } = parseSavedDocument(saved);
     const updated = await client.put(
       `${LOCATION}/edit`,
       {
@@ -306,7 +308,7 @@ describe("[integration] native component file security", () => {
         },
       },
       {
-        params: { id: saved.data._id },
+        params: { id: savedId },
         headers: { "x-content-language": "*" },
       },
     );
@@ -315,7 +317,7 @@ describe("[integration] native component file security", () => {
       `${LOCATION}/edit`,
       { file: "" },
       {
-        params: { id: saved.data._id },
+        params: { id: savedId },
         headers: { "x-content-language": "*" },
       },
     );

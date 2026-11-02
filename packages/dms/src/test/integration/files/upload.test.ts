@@ -1,7 +1,7 @@
 import axios from "axios";
 import { expect } from "chai";
 import { DEFAULT_MAX_UPLOAD_SIZE } from "../../..";
-import { nativeUploadToken } from "../../helpers/attachments";
+import { nativeUploadToken, parsePresign } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
@@ -61,7 +61,7 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
       uploadToken: await nativeUploadToken(client),
     });
     expect(presignResponse.status).to.equal(HTTP_OK);
-    const presign = presignResponse.data;
+    const presign = parsePresign(presignResponse);
 
     const uploadResponse = await axios.put(
       presign.uploadUrl,
@@ -69,7 +69,7 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
       {
         headers: presign.headers,
         validateStatus: () => true,
-        transformRequest: [(data) => data],
+        transformRequest: [],
       },
     );
     expect(uploadResponse.status).to.equal(HTTP_OK);
@@ -118,13 +118,13 @@ describe("[integration] files/upload (authenticated tenant member)", () => {
       mimetype: FILE_MIMETYPE,
       uploadToken: await nativeUploadToken(client),
     });
-    const presign = presignResponse.data;
+    const presign = parsePresign(presignResponse);
 
     const status = await axios
       .put(presign.uploadUrl, Buffer.from(FILE_CONTENT), {
         headers: { ...presign.headers, "Content-Type": IMAGE_MIMETYPE },
         validateStatus: () => true,
-        transformRequest: [(data) => data],
+        transformRequest: [],
       })
       .then((response) => response.status);
 

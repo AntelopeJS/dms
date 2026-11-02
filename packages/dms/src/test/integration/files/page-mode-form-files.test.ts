@@ -4,6 +4,11 @@ import { expect } from "chai";
 import {
   findUploadToken,
   nativeUploadToken,
+  parseAttachmentMetadata,
+  parsePageLayout,
+  parsePresign,
+  parseSavedDocument,
+  parseTableLayout,
   uploadAttachment,
 } from "../../helpers/attachments";
 import { authorizedClient, registerUser } from "../../helpers/auth";
@@ -33,16 +38,24 @@ async function formPageSlug(
     params: { slug: TABLE_SLUG },
   });
   expect(layout.status, JSON.stringify(layout.data)).to.equal(200);
-  return layout.data.components.content.options.formPages[kind];
+  const slug =
+    parseTableLayout(layout).components.content.options?.formPages?.[kind];
+  if (!slug) throw new Error(`No ${kind} form page on ${TABLE_SLUG}`);
+  return slug;
 }
 
 async function subPageUploadToken(
   client: AxiosInstance,
   slug: string,
 ): Promise<string> {
-  const layout = await client.get("/dms/pagelayout", { params: { slug } });
+  const layout = await client.get("/dms/pagelayout", {
+    params: { slug },
+  });
   expect(layout.status, JSON.stringify(layout.data)).to.equal(200);
-  const token = findUploadToken(layout.data.components.form, FILE_FIELD);
+  const token = findUploadToken(
+    parsePageLayout(layout).components.form,
+    FILE_FIELD,
+  );
   if (!token) throw new Error(`No upload token on ${slug}`);
   return token;
 }
@@ -64,7 +77,7 @@ async function storedUrl(client: AxiosInstance, key: string): Promise<string> {
     params: { resourceKey: stripStagingPrefix(key) },
   });
   expect(promoted.status, JSON.stringify(promoted.data)).to.equal(200);
-  return promoted.data.url;
+  return parseAttachmentMetadata(promoted).url;
 }
 
 describe("[integration] native files submitted from page-mode TableView forms", () => {
@@ -84,7 +97,9 @@ describe("[integration] native files submitted from page-mode TableView forms", 
       client,
       await formPageSlug(client, "new"),
     );
-    const created = await client.post(`${LOCATION}/new`, { file: createdKey });
+    const created = await client.post(`${LOCATION}/new`, {
+      file: createdKey,
+    });
     expect(created.status, JSON.stringify(created.data)).to.equal(200);
     const createdUrl = await storedUrl(client, createdKey);
 
@@ -95,7 +110,7 @@ describe("[integration] native files submitted from page-mode TableView forms", 
     const edited = await client.put(
       `${LOCATION}/edit`,
       { file: editedKey },
-      { params: { id: created.data._id } },
+      { params: { id: parseSavedDocument(created)._id } },
     );
     expect(edited.status, JSON.stringify(edited.data)).to.equal(200);
     await storedUrl(client, editedKey);
@@ -138,7 +153,7 @@ describe("[integration] saving a native file that was never stored", () => {
       uploadToken: await nativeUploadToken(client),
     });
     expect(presigned.status, JSON.stringify(presigned.data)).to.equal(200);
-    const key: string = presigned.data.resourceKey;
+    const { resourceKey: key } = parsePresign(presigned);
 
     const saved = await client.post(`${LOCATION}/new`, { file: key });
     expect(saved.status, JSON.stringify(saved.data)).to.equal(400);
