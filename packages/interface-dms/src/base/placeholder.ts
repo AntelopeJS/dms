@@ -62,6 +62,8 @@ export const PlaceholderSchema = z.object({
  * ```typescript
  * Placeholder({ label: 'Item 1', height: '200px' })
  * ```
+ *
+ * @docsApi
  */
 export function Placeholder(
   options?: PlaceholderOptions,

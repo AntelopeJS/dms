@@ -63,6 +63,8 @@ const LIVE_TOGGLE_COMPONENT_NAME = "dms-live-toggle-block";
  *   LiveToggle({ variant: "pill", missedLabel: "$api.live.new_requests" }),
  * );
  * ```
+ *
+ * @docsApi
  */
 export function LiveToggle(
   options?: LiveToggleProps,

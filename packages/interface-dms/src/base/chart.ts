@@ -337,16 +337,81 @@ function createChartBuilder<TType extends ChartType>(type: TType) {
   };
 }
 
+/**
+ * A line chart block.
+ *
+ * @docsApi
+ */
 export const ChartLine = createChartBuilder(ChartType.LINE);
+/**
+ * A area chart block.
+ *
+ * @docsApi
+ */
 export const ChartArea = createChartBuilder(ChartType.AREA);
+/**
+ * A range area chart block.
+ *
+ * @docsApi
+ */
 export const ChartRangeArea = createChartBuilder(ChartType.RANGE_AREA);
+/**
+ * A bar chart block.
+ *
+ * @docsApi
+ */
 export const ChartBar = createChartBuilder(ChartType.BAR);
+/**
+ * A column chart block.
+ *
+ * @docsApi
+ */
 export const ChartColumn = createChartBuilder(ChartType.COLUMN);
+/**
+ * A scatter chart block.
+ *
+ * @docsApi
+ */
 export const ChartScatter = createChartBuilder(ChartType.SCATTER);
+/**
+ * A donut chart block.
+ *
+ * @docsApi
+ */
 export const ChartDonut = createChartBuilder(ChartType.DONUT);
+/**
+ * A pie chart block.
+ *
+ * @docsApi
+ */
 export const ChartPie = createChartBuilder(ChartType.PIE);
+/**
+ * A mixed chart block.
+ *
+ * @docsApi
+ */
 export const ChartMixed = createChartBuilder(ChartType.MIXED);
+/**
+ * A radar chart block.
+ *
+ * @docsApi
+ */
 export const ChartRadar = createChartBuilder(ChartType.RADAR);
+/**
+ * A radial bar chart block.
+ *
+ * @docsApi
+ */
 export const ChartRadialBar = createChartBuilder(ChartType.RADIAL_BAR);
+/**
+ * A heatmap chart block.
+ *
+ * @docsApi
+ */
 export const ChartHeatmap = createChartBuilder(ChartType.HEATMAP);
+/**
+ * A candlestick chart block.
+ *
+ * @docsApi
+ */
 export const ChartCandlestick = createChartBuilder(ChartType.CANDLESTICK);

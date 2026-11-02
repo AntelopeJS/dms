@@ -1,8 +1,11 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import { assert, expect } from "chai";
-import { decode, sign } from "jsonwebtoken";
-import { generateTwoFactorToken } from "../../../implementations/dms-auth";
+import { expect } from "chai";
+import { sign } from "jsonwebtoken";
+import {
+  generateTwoFactorToken,
+  validateRefreshToken,
+} from "../../../implementations/dms-auth";
 import { generateSecret } from "../../../implementations/dms-auth/services";
 import { registerUser, type RegisteredUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
@@ -38,17 +41,15 @@ async function userSecret(userId: string): Promise<string> {
   return generateSecret(stored.authKey);
 }
 
-function tenantOf(user: RegisteredUser): string {
-  const claims = decode(user.accessToken, { json: true });
-  assert.exists(claims);
-  return claims.tenantId;
+async function tenantOf(user: RegisteredUser): Promise<string> {
+  return (await validateRefreshToken(user.refreshToken)).tenantId;
 }
 
 /** One token for each way a two-factor token can be wrong. */
 async function badTokens(
   user: RegisteredUser,
 ): Promise<Record<string, string>> {
-  const tenantId = tenantOf(user);
+  const tenantId = await tenantOf(user);
   const claims = { id: user.userId, tenantId, purpose: TWO_FACTOR_PURPOSE };
   const secret = await userSecret(user.userId);
   const nowSeconds = Math.floor(Date.now() / 1000);
@@ -106,7 +107,7 @@ describe("[integration] auth/two-factor token", () => {
   it("still takes a genuine token past the token check", async () => {
     const stored = await GetModel(UserModel).get(user.userId);
     if (!stored) throw new Error(`No user ${user.userId}`);
-    const { token } = generateTwoFactorToken(tenantOf(user), stored);
+    const { token } = generateTwoFactorToken(await tenantOf(user), stored);
     const response = await post("/api/auth/request-2fa-email", { token });
     expect(response.status, JSON.stringify(response.data)).to.equal(
       HTTP_BAD_REQUEST,
