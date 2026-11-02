@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
-import { browserRequestSchema } from "./browser-wire.mjs";
+import { isBrowserRequest } from "./browser-wire.mjs";
 import { describeFailure } from "./failure.mjs";
 import { decode } from "./json.mjs";
 import { importFrom } from "./mongo.mjs";
@@ -260,7 +260,9 @@ export function answerRequest(body, handle) {
     .then(() => {
       /** @type {unknown} */
       const posted = JSON.parse(body);
-      return handle(decode(browserRequestSchema, posted, "browser request"));
+      return handle(
+        decode(isBrowserRequest, posted, "browser request", "a browser action"),
+      );
     })
     .catch(failedOutcome)
     .then((outcome) => JSON.stringify(outcome));

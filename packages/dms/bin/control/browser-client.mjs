@@ -1,4 +1,4 @@
-import { outcomeSchema } from "./browser-wire.mjs";
+import { isOutcome } from "./browser-wire.mjs";
 import { decode } from "./json.mjs";
 import { CONTROL_BIN } from "./stack.mjs";
 import { freePort, isAlive, startDetached, waitForOk } from "./processes.mjs";
@@ -59,5 +59,5 @@ export async function postAction(port, request) {
   });
   /** @type {unknown} */
   const answer = await response.json();
-  return decode(outcomeSchema, answer, "the browser server's answer");
+  return decode(isOutcome, answer, "the browser server's answer", "an outcome");
 }

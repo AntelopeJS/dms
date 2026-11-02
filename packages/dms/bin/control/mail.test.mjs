@@ -35,7 +35,10 @@ await test("a captured message reads back with the path of its raw file", (t) =>
 
 await test("a stored summary whose recipients are no list is refused", (t) => {
   const folder = sink(t, { ...SUMMARY, to: "a@example.com" });
-  assert.throws(() => capturedMail(folder), /001\.json is malformed: to/);
+  assert.throws(
+    () => capturedMail(folder),
+    /001\.json is malformed: expected a captured message/,
+  );
 });
 
 await test("a folder that does not exist holds no mail", () => {

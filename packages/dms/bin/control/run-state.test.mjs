@@ -94,15 +94,18 @@ await test("a run.json that holds no run is refused", (t) => {
     const dir = mkdtempSync(join(tmpdir(), "dms-control-run-state-test-"));
     t.after(() => rmSync(dir, { recursive: true, force: true }));
     writeFileSync(join(dir, "run.json"), text);
-    assert.throws(() => loadRun(dir), /run\.json is malformed/);
+    assert.throws(
+      () => loadRun(dir),
+      /run\.json is malformed: expected a run state/,
+    );
   }
 });
 
 await test("a run.json whose field has the wrong type is refused", (t) => {
   const dir = savedRun(t, { ready: "yes" });
-  assert.throws(() => loadRun(dir), /malformed: ready/);
+  assert.throws(() => loadRun(dir), /malformed: expected a run state/);
   const processes = savedRun(t, { processes: [{ name: "api", pid: "7" }] });
-  assert.throws(() => loadRun(processes), /malformed: processes\.0\.pid/);
+  assert.throws(() => loadRun(processes), /malformed: expected a run state/);
 });
 
 await test("keys of a run.json that the schema does not name are written back", (t) => {

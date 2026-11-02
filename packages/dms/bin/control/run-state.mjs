@@ -2,8 +2,17 @@ import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { z } from "zod";
-import { decode } from "./json.mjs";
+import {
+  arrayOf,
+  decode,
+  either,
+  isBoolean,
+  isNumber,
+  isString,
+  nullable,
+  objectOf,
+  recordOf,
+} from "./json.mjs";
 
 const RUN_FILE = "run.json";
 const ID_BYTES = 3;
@@ -91,71 +100,80 @@ export function createRunFolders(dir) {
  * @typedef {Omit<RunState, "browser"> & { browser?: string | ServerRecord }} StoredRunState The state as a file may hold it. A run saved by an earlier release holds the browser's folder in `browser` until the browser starts.
  */
 
-const strings = z.record(z.string(), z.string());
+const isStrings = recordOf(isString);
 
-const processRecord = z.object({
-  name: z.string(),
-  pid: z.number(),
-  command: z.string(),
-  cwd: z.string(),
-  log: z.string(),
-  startedAt: z.string(),
-  port: z.number().optional(),
+const isProcessRecord = objectOf(
+  {
+    name: isString,
+    pid: isNumber,
+    command: isString,
+    cwd: isString,
+    log: isString,
+    startedAt: isString,
+  },
+  { port: isNumber },
+);
+
+const isServerRecord = objectOf({
+  name: isString,
+  pid: isNumber,
+  command: isString,
+  cwd: isString,
+  log: isString,
+  startedAt: isString,
+  port: isNumber,
 });
 
-const serverRecord = processRecord.extend({ port: z.number() });
+const isAccount = objectOf(
+  { email: isString, password: isString },
+  { userId: nullable(isString) },
+);
 
-const account = z.object({
-  email: z.string(),
-  password: z.string(),
-  userId: z.string().nullable().optional(),
-});
-
-/** The state as `run.json` holds it. Keys the schema does not name are kept, so saving a loaded run writes them back. */
-const storedRunSchema = /** @satisfies {z.ZodType<StoredRunState>} */ (
-  z
-    .object({
-      dir: z.string(),
-      root: z.string(),
-      home: z.string(),
-      logs: z.string(),
-      mongo: z.string(),
-      browser: z.union([z.string(), serverRecord]).optional(),
-      evidence: z.string(),
-      cache: z.string(),
-      id: z.string(),
-      createdAt: z.string(),
-      environment: z.string(),
-      playground: z.string(),
-      moduleRoot: z.string(),
-      repo: z.string().nullable(),
-      headSha: z.string().nullable(),
-      baseRef: z.string(),
-      skill: z.string().nullable(),
-      apiPort: z.number(),
-      webPort: z.number(),
-      smtpPort: z.number(),
-      mail: z.string(),
-      apiUrl: z.string(),
-      webUrl: z.string(),
-      databasePrefix: z.string(),
-      database: z.string(),
-      mongoUrl: z.string(),
-      ownsMongo: z.boolean(),
-      secrets: strings,
-      adminPassword: z.string(),
-      extraEnv: strings,
-      processes: z.array(processRecord),
-      accounts: z.record(z.string(), account),
-      tokens: strings,
-      ready: z.boolean(),
-      error: z.string().optional(),
-      runPlayground: z.string().optional(),
-      baseRoot: z.string().optional(),
-      resetCount: z.number().optional(),
-      journeyCount: z.number().optional(),
-    })
-    .passthrough()
+/** @type {import("./json.mjs").Guard<StoredRunState>} The state as `run.json` holds it. Keys it does not check are kept, so saving a loaded run writes them back. */
+const isStoredRun = objectOf(
+  {
+    dir: isString,
+    root: isString,
+    home: isString,
+    logs: isString,
+    mongo: isString,
+    evidence: isString,
+    cache: isString,
+    id: isString,
+    createdAt: isString,
+    environment: isString,
+    playground: isString,
+    moduleRoot: isString,
+    repo: nullable(isString),
+    headSha: nullable(isString),
+    baseRef: isString,
+    skill: nullable(isString),
+    apiPort: isNumber,
+    webPort: isNumber,
+    smtpPort: isNumber,
+    mail: isString,
+    apiUrl: isString,
+    webUrl: isString,
+    databasePrefix: isString,
+    database: isString,
+    mongoUrl: isString,
+    ownsMongo: isBoolean,
+    secrets: isStrings,
+    adminPassword: isString,
+    extraEnv: isStrings,
+    processes: arrayOf(isProcessRecord),
+    accounts: recordOf(isAccount),
+    tokens: isStrings,
+    ready: isBoolean,
+  },
+  {
+    browser: either(isString, isServerRecord),
+    error: isString,
+    runPlayground: isString,
+    baseRoot: isString,
+    resetCount: isNumber,
+    journeyCount: isNumber,
+  },
 );
 
 /**
@@ -183,7 +201,7 @@ export function loadRun(dir) {
   }
   /** @type {unknown} */
   const parsed = JSON.parse(readFileSync(file, "utf8"));
-  const stored = decode(storedRunSchema, parsed, file);
+  const stored = decode(isStoredRun, parsed, file, "a run state");
   if (holdsNoFolder(stored)) return stored;
   const { browser, ...current } = stored;
   return current;

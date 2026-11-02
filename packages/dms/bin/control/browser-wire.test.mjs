@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import test from "node:test";
 import { answerRequest } from "./browser.mjs";
 import { postAction } from "./browser-client.mjs";
-import { outcomeSchema } from "./browser-wire.mjs";
+import { isOutcome } from "./browser-wire.mjs";
 import { decode } from "./json.mjs";
 import { freePort } from "./processes.mjs";
 
@@ -29,7 +29,10 @@ async function answered(body) {
   });
   /** @type {unknown} */
   const posted = JSON.parse(answer);
-  return { answer: decode(outcomeSchema, posted, "the answer"), handled };
+  return {
+    answer: decode(isOutcome, posted, "the answer", "an outcome"),
+    handled,
+  };
 }
 
 await test("a posted request reaches the handler as written and its outcome is the answer", async () => {
@@ -44,7 +47,10 @@ await test("a request with a field of the wrong type is answered as a failed act
   );
   assert.deepEqual(handled, []);
   assert.equal(answer.ok, false);
-  assert.match(answer.error ?? "", /browser request is malformed: tab/);
+  assert.match(
+    answer.error ?? "",
+    /browser request is malformed: expected a browser action/,
+  );
 });
 
 await test("a request without an action is answered as a failed action, not run", async () => {
@@ -52,7 +58,7 @@ await test("a request without an action is answered as a failed action, not run"
     JSON.stringify({ account: "admin" }),
   );
   assert.deepEqual(handled, []);
-  assert.match(answer.error ?? "", /malformed: do/);
+  assert.match(answer.error ?? "", /malformed: expected a browser action/);
 });
 
 await test("a body that is no JSON is answered as a failed action", async () => {
@@ -85,6 +91,6 @@ await test("the client refuses an answer that is no outcome", async (t) => {
   const port = await serving(t, { ...OUTCOME, ok: "yes" });
   await assert.rejects(
     postAction(port, REQUEST),
-    /the browser server's answer is malformed: ok/,
+    /the browser server's answer is malformed: expected an outcome/,
   );
 });

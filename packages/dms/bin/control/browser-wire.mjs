@@ -1,45 +1,41 @@
-import { z } from "zod";
+import {
+  isBoolean,
+  isNumber,
+  isString,
+  nullable,
+  objectOf,
+  oneOf,
+} from "./json.mjs";
 
 /**
  * What the `dms-control browser` client and the browser server post to each
- * other, decoded on both sides.
+ * other, checked on both sides.
  */
 
-const name = z.string().optional();
-const exact = z.boolean().optional();
+const isRoleName = { role: isString };
+const isRoleOptions = { name: isString, exact: isBoolean };
 
-/** One browser action, as the client posts it. */
-export const browserRequestSchema =
-  /** @satisfies {z.ZodType<import("./browser.mjs").BrowserRequest>} */ (
-    z.object({
-      do: z.string(),
-      account: z.string(),
-      tab: z.string(),
-      folder: z.string(),
-      target: z
-        .object({
-          role: z.string(),
-          name,
-          exact,
-          nth: z.number().optional(),
-          within: z.object({ role: z.string(), name, exact }).optional(),
-        })
-        .optional(),
-      value: z.string().optional(),
-      key: z.string().optional(),
-      path: z.string().optional(),
-      state: z.enum(["attached", "detached", "visible", "hidden"]).optional(),
-      timeoutMs: z.number().optional(),
-    })
-  );
+/** @type {import("./json.mjs").Guard<import("./browser.mjs").BrowserRequest>} One browser action, as the client posts it */
+export const isBrowserRequest = objectOf(
+  { do: isString, account: isString, tab: isString, folder: isString },
+  {
+    target: objectOf(isRoleName, {
+      ...isRoleOptions,
+      nth: isNumber,
+      within: objectOf(isRoleName, isRoleOptions),
+    }),
+    value: isString,
+    key: isString,
+    path: isString,
+    state: oneOf(["attached", "detached", "visible", "hidden"]),
+    timeoutMs: isNumber,
+  },
+);
 
-/** What the server answers for one action. */
-export const outcomeSchema =
-  /** @satisfies {z.ZodType<import("./browser.mjs").Outcome>} */ (
-    z.object({
-      ok: z.boolean(),
-      url: z.string(),
-      error: z.string().nullable(),
-      aria: z.string(),
-    })
-  );
+/** @type {import("./json.mjs").Guard<import("./browser.mjs").Outcome>} What the server answers for one action */
+export const isOutcome = objectOf({
+  ok: isBoolean,
+  url: isString,
+  error: nullable(isString),
+  aria: isString,
+});

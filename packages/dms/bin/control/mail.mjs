@@ -7,21 +7,20 @@ import {
 } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
-import { z } from "zod";
-import { decode } from "./json.mjs";
+import { arrayOf, decode, isString, objectOf } from "./json.mjs";
 
 /**
  * @typedef {{ from: string, to: string[] }} Envelope
  * @typedef {{ buffer: string, inData: boolean, envelope: Envelope }} SmtpSession
  */
 
-const summarySchema = z.object({
-  from: z.string(),
-  to: z.array(z.string()),
-  subject: z.string(),
-  links: z.array(z.string()),
-  text: z.string(),
-  receivedAt: z.string(),
+const isSummary = objectOf({
+  from: isString,
+  to: arrayOf(isString),
+  subject: isString,
+  links: arrayOf(isString),
+  text: isString,
+  receivedAt: isString,
 });
 
 const END_OF_DATA = "\r\n.\r\n";
@@ -208,7 +207,7 @@ export function capturedMail(folder) {
       const stored = JSON.parse(readFileSync(summary, "utf8"));
       return {
         file: join(folder, name.replace(/\.json$/, ".eml")),
-        ...decode(summarySchema, stored, summary),
+        ...decode(isSummary, stored, summary, "a captured message"),
       };
     });
 }
