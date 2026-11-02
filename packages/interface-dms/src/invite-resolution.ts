@@ -51,20 +51,26 @@ export async function assertInviteReady(
  * the caller lives in another module, and `isDeepStrictEqual` refuses two views
  * holding the same values — which would report a faithful retry as a conflict.
  */
-function replacementContent(invite: UserInvite | null | undefined) {
+function replacementContent(
+  invite: UserInvite | null | undefined,
+): string | null {
   if (!invite) return null;
-  const content: ReturnType<typeof JSON.parse> = JSON.parse(
-    JSON.stringify([
-      invite.email,
-      invite.firstname,
-      invite.lastname,
-      invite.language,
-      invite.roles_ids,
-      invite.asTenantOwner,
-      invite.extensions,
-    ]),
+  return JSON.stringify([
+    invite.email,
+    invite.firstname,
+    invite.lastname,
+    invite.language,
+    invite.roles_ids,
+    invite.asTenantOwner,
+    invite.extensions,
+  ]);
+}
+
+function isSameContent(left: string | null, right: string | null): boolean {
+  return isDeepStrictEqual(
+    left === null ? null : JSON.parse(left),
+    right === null ? null : JSON.parse(right),
   );
-  return content;
 }
 
 function assertSameDecision(
@@ -78,7 +84,7 @@ function assertSameDecision(
     "Invitation already has a different terminal decision",
   );
   assert(
-    isDeepStrictEqual(
+    isSameContent(
       replacementContent(resolution.replacement),
       replacementContent(input.replacement),
     ),
