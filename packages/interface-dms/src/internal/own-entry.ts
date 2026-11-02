@@ -4,7 +4,7 @@
  *
  * @internal
  */
-export function own<Entry>(
+export function ownEntry<Entry>(
   table: Readonly<Record<string, Entry>>,
   key: string,
 ): Entry | undefined {

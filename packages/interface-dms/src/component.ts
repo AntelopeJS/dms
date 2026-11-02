@@ -17,7 +17,11 @@ import {
   setButton,
   warnUnknownChild,
 } from "./internal/component-builder";
-import { own } from "./internal/own";
+import { ownEntry } from "./internal/own-entry";
+import {
+  applyWatchFilter,
+  type WatchFilter,
+} from "./internal/component-watch-filter";
 import {
   actionComponents,
   actionPermissionId,
@@ -36,7 +40,6 @@ import {
   buildWatchAction,
   createFilterChain,
   mergeWatchesIntoOptions,
-  readWatchActions,
   spliceChildWatches,
   stripWatchActions,
 } from "./internal/component-watches";
@@ -310,11 +313,11 @@ export class Component<T = unknown> {
   }
 
   getAction(id: string): Action | undefined {
-    return own(this._actions, id);
+    return ownEntry(this._actions, id);
   }
 
   getButton(id: string): ComponentButton | undefined {
-    return own(this._buttons, id);
+    return ownEntry(this._buttons, id);
   }
 
   /** See {@link resolveButtonPermissionId}, resolved against this component. */
@@ -439,11 +442,7 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
   private _children: BaseComponentChild[] = [];
   private _watches: WatchAction[] = [];
   private _childWatches = new Map<string, WatchAction[]>();
-  private _watchFilter?: (
-    permissions: Set<string>,
-    watches: WatchAction[],
-    permissionId: string,
-  ) => MaybePromise<WatchAction[]>;
+  private _watchFilter?: WatchFilter;
   private _userOnFilter?: ComponentFilter<T>;
 
   constructor(componentName: string) {
@@ -592,19 +591,12 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     options: O,
     permissionId: string,
   ): Promise<O> {
-    if (!options || !this._watchFilter) {
-      return options;
-    }
-    const watches = readWatchActions(options);
-    if (watches.length === 0) {
-      return options;
-    }
-    const filtered = await this._watchFilter(
+    return applyWatchFilter(
+      this._watchFilter,
       permissions,
-      watches,
+      options,
       permissionId,
     );
-    return { ...options, watchActions: filtered };
   }
 
   action(id: string, definition: ActionDefinition): this {
