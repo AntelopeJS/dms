@@ -17,6 +17,11 @@ import {
   setButton,
   warnUnknownChild,
 } from "./internal/component-builder";
+import { ownEntry } from "./internal/own-entry";
+import {
+  applyWatchFilter,
+  type WatchFilter,
+} from "./internal/component-watch-filter";
 import {
   actionComponents,
   actionPermissionId,
@@ -40,11 +45,6 @@ import {
 } from "./internal/component-watches";
 import type { Permission } from "./permissions";
 import type { CreatedPage, MaybePromise } from "./types";
-import { ownEntry } from "./internal/own-entry";
-import {
-  applyWatchFilter,
-  type WatchFilter,
-} from "./internal/component-watch-filter";
 
 export interface ActionDefinition {
   title: string;
