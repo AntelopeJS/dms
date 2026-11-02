@@ -1,7 +1,7 @@
 {
   "pack": "0.2.18",
   "rules": {
-    "antelopejs/no-inherited-key-lookup": 51,
+    "antelopejs/no-inherited-key-lookup": 34,
     "antelopejs/no-presence-only-type-guard": 3,
     "anti-slop/no-reflect-apply": 1,
     "anti-slop/no-reflect-get": 2,
@@ -9,7 +9,7 @@
     "typescript/no-base-to-string": 1,
     "typescript/no-unnecessary-type-parameters": 1,
     "typescript/no-unsafe-argument": 55,
-    "typescript/no-unsafe-assignment": 131,
+    "typescript/no-unsafe-assignment": 128,
     "typescript/no-unsafe-return": 86,
     "typescript/unbound-method": 9
   },
