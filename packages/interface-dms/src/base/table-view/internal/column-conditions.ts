@@ -125,15 +125,14 @@ export const withColumnConditions = <
       (key) => columns[key].visibleWhen,
     );
     const exempt = new Set([...conditional, ...disabled]);
-    Validation.MandatoryFields(
-      Object.assign(Object.create(dataMeta), {
-        fields: Object.fromEntries(
-          Object.entries(dataMeta.fields).filter(([key]) => !exempt.has(key)),
-        ),
-      }),
-      written,
-      mode,
+    const checked = new DataAPIMeta(dataMeta.target);
+    Object.assign(
+      checked.fields,
+      Object.fromEntries(
+        Object.entries(dataMeta.fields).filter(([key]) => !exempt.has(key)),
+      ),
     );
+    Validation.MandatoryFields(checked, written, mode);
     const missing = conditional.filter(
       (key) =>
         dataMeta.fields[key]?.mandatory?.has(mode) &&

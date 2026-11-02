@@ -14,6 +14,7 @@ import {
   builderInfo,
   initialInfo,
   mergeBuilderOptions,
+  ownEntry,
   setButton,
   warnUnknownChild,
 } from "./internal/component-builder";
@@ -309,11 +310,11 @@ export class Component<T = unknown> {
   }
 
   getAction(id: string): Action | undefined {
-    return this._actions[id];
+    return ownEntry(this._actions, id);
   }
 
   getButton(id: string): ComponentButton | undefined {
-    return this._buttons[id];
+    return ownEntry(this._buttons, id);
   }
 
   /** See {@link resolveButtonPermissionId}, resolved against this component. */

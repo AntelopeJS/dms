@@ -207,8 +207,9 @@ export class DateType extends DataType {
     if (mode === "is_between") {
       return whenValueSet(proxy, this.dayRangeFilter(proxy, value));
     }
-    if (Object.hasOwn(INSTANT_COMPARISONS, mode)) {
-      return whenValueSet(proxy, this.orderFilter(proxy, value, mode));
+    const ordered = this.orderFilter(proxy, value, mode);
+    if (ordered !== undefined) {
+      return whenValueSet(proxy, ordered);
     }
     return super.filter(context, proxy, key, value, mode, row);
   }
@@ -225,12 +226,17 @@ export class DateType extends DataType {
     stored: ValueProxy<unknown>,
     value: string,
     mode: string,
-  ): ValueProxyOrValue<boolean> {
-    const instant = this.instant(value);
-    if (CALENDAR_DAY.test(value.trim())) {
-      return DAY_COMPARISONS[mode](stored, this.startOfUtcDay(instant));
+  ): ValueProxyOrValue<boolean> | undefined {
+    const calendarDay = CALENDAR_DAY.test(value.trim());
+    const comparisons = calendarDay ? DAY_COMPARISONS : INSTANT_COMPARISONS;
+    if (!Object.hasOwn(comparisons, mode)) {
+      return undefined;
     }
-    return INSTANT_COMPARISONS[mode](stored, instant);
+    const instant = this.instant(value);
+    return comparisons[mode](
+      stored,
+      calendarDay ? this.startOfUtcDay(instant) : instant,
+    );
   }
 
   private startOfUtcDay(date: Date): Date {
