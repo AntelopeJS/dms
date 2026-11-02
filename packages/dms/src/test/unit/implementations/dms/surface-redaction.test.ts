@@ -28,6 +28,7 @@ const SECRET_SLUG = "/redaction-secret";
 const SECRET_FULL_ID = "pages.redaction-secret";
 const SECRET_NAME = "Quarterly layoffs";
 const SECRET_DESCRIPTION = "Who goes and when";
+const PUBLIC_SLUG = "/redaction-public";
 const DYNAMIC_SLUG = "/redaction-dynamic/:id/view";
 const DYNAMIC_PATH = "/redaction-dynamic/record-1/view";
 const DYNAMIC_FULL_ID = "pages.redaction-dynamic";
@@ -91,6 +92,18 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
           displayName: "Dynamic fixture",
           category: pagesCategory,
           urlSlug: "redaction-dynamic/:id/view",
+        }),
+      ),
+    );
+  });
+
+  before(async () => {
+    cleanups.push(
+      await registerTestPage(
+        PageController("redaction-public", {
+          displayName: "Public fixture",
+          category: pagesCategory,
+          publicAccess: true,
         }),
       ),
     );
@@ -226,5 +239,52 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
     expect(node?.hasAccess).to.equal(false);
     expect(node?.displayName).to.equal("");
     expect(node?.description).to.equal(undefined);
+  });
+
+  describe("for a visitor who is not signed in", () => {
+    async function anonymousLayout() {
+      const { memberModel, roleModel } = stubPageAccessModels([]);
+      return buildSiteLayoutPayload(undefined, memberModel, roleModel, TENANT);
+    }
+
+    it("lists the public pages and none of the others", async () => {
+      const { siteLayout } = await anonymousLayout();
+
+      expect(siteLayout.pages[PUBLIC_SLUG]?.hasAccess).to.equal(true);
+      expect(Object.keys(siteLayout.pages)).not.to.include(SECRET_SLUG);
+      expect(
+        Object.values(siteLayout.pages).every((page) => page.hasAccess),
+      ).to.equal(true);
+    });
+
+    it("leaves the entries it cannot open out of the tree and the modules", async () => {
+      const { siteLayoutTree, modules } = await anonymousLayout();
+
+      expect(siteLayoutTree.children.pages?.children).not.to.have.property(
+        "redaction-secret",
+      );
+      expect(siteLayoutTree.childrenOrders).to.deep.equal(
+        Object.keys(siteLayoutTree.children),
+      );
+      expect(
+        Object.values(modules).some((module) => !module.hasAccess),
+      ).to.equal(false);
+    });
+
+    it("still answers the visited private page with its redacted route", async () => {
+      const { memberModel, roleModel } = stubPageAccessModels([]);
+      const payload = await buildPagePayload(
+        SECRET_SLUG,
+        undefined,
+        memberModel,
+        roleModel,
+        TENANT,
+      );
+
+      expect(payload.route.fullSlug).to.equal(SECRET_SLUG);
+      expect(payload.route.hasAccess).to.equal(false);
+      expect(payload.route.displayName).to.equal("");
+      expect(payload.shared.siteLayout.pages).not.to.have.property(SECRET_SLUG);
+    });
   });
 });
