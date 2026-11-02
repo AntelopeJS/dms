@@ -66,7 +66,7 @@ Each subpath is its own entry point, and importing one does not load the others.
 | `/invite-extensions` | Invite form contributions, validation, delivery and availability | [Core](/docs/interfaces/core/invites#registerinviteextension) |
 | `/invite-resolution` | Durable terminal decisions and retryable invite effects | [Core](/docs/interfaces/core/invites#durable-invite-resolution) |
 | `/hooks` | The `Hook` enum, handlers and dispatch | [Core](/docs/interfaces/core/hooks) |
-| `/tenant-export` | The tenant export archive, contribution and manifest types | [Core](/docs/interfaces/core/hooks) |
+| `/tenant-export` | The tenant export archive, contribution and manifest types | [Core](/docs/interfaces/core/tenant-data-export) |
 | `/realtime` | Page topics, publishing and backend subscription | [Core](/docs/interfaces/core/realtime) |
 | `/quick-actions` | Command-palette entries | [Core](/docs/interfaces/core/quick-actions) |
 | `/layout-banners` | Global banners under the dashboard header | [Core](/docs/interfaces/core/layout-banners) |
