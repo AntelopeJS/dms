@@ -230,6 +230,24 @@ describe("[unit] implementations/dms/page — role preview through permission re
     for (const cleanup of cleanups.splice(0)) cleanup();
   });
 
+  describe("with a viewer that is not a stored user", () => {
+    it("refuses to preview as it", async () => {
+      setPlan(...EVERY_GRANT);
+      const notAUser = Object.assign({}, TENANT_OWNER);
+      let refusal = "";
+      try {
+        await preview(
+          { name: "a plain object", user: notAUser, grants: EVERY_GRANT },
+          PLAN_TENANT,
+          [HOME, INVOICES],
+        );
+      } catch (error) {
+        refusal = error instanceof Error ? error.message : "";
+      }
+      expect(refusal).to.equal("The previewing user is not a User.");
+    });
+  });
+
   describe("without any resolver", () => {
     it("previews the role's set as is", async () => {
       const resolved = await resolvePreviewPermissions(

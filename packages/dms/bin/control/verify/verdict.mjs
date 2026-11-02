@@ -1,7 +1,8 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { git } from "../git.mjs";
 import { loadJourneys } from "../journey.mjs";
+import { readFeatureResults } from "./decode.mjs";
 import { flaggedDoors } from "./doors.mjs";
 import {
   formalGate,
@@ -49,8 +50,7 @@ function bullets(entries, empty) {
  * @returns {import("./types.mjs").FeatureResult[]} The journey results the run recorded
  */
 function readResults(state, feature) {
-  const file = join(state.evidence, feature, "feature.json");
-  return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : [];
+  return readFeatureResults(join(state.evidence, feature, "feature.json"));
 }
 
 /**
