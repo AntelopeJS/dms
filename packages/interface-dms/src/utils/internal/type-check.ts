@@ -20,22 +20,29 @@ interface PrimitiveValueByTag {
 }
 type PrimitiveValue = PrimitiveValueByTag[Primitive];
 
-/** @internal */
-export const isString = (v: unknown): v is string => typeof v === "string";
-/** @internal */
-export const isNumber = (v: unknown): v is number => typeof v === "number";
-/** @internal */
-export const isBoolean = (v: unknown): v is boolean => typeof v === "boolean";
-/** @internal */
-export const isUndefined = (v: unknown): v is undefined =>
-  typeof v === "undefined";
-/** @internal */
-export const isObject = (v: unknown): v is object => typeof v === "object";
-/** @internal */
-export const isFunction = (
-  v: unknown,
+interface GuardedByTag extends PrimitiveValueByTag {
+  object: object;
   // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published function predicate promises no result shape for arbitrary callable values.
-): v is (...args: unknown[]) => unknown => typeof v === "function";
+  function: (...args: unknown[]) => unknown;
+}
+
+const createTypeGuard =
+  <Tag extends keyof GuardedByTag>(type: Tag) =>
+  (v: unknown): v is GuardedByTag[Tag] =>
+    typeof v === type;
+
+/** @internal */
+export const isString = createTypeGuard("string");
+/** @internal */
+export const isNumber = createTypeGuard("number");
+/** @internal */
+export const isBoolean = createTypeGuard("boolean");
+/** @internal */
+export const isUndefined = createTypeGuard("undefined");
+/** @internal */
+export const isObject = createTypeGuard("object");
+/** @internal */
+export const isFunction = createTypeGuard("function");
 /**
  * Whether a value is a class: a function with an object `prototype`, which
  * arrow functions, methods and bound functions lack. A generator function has
@@ -48,9 +55,9 @@ export const isClass = (value: unknown): value is Class =>
   typeof value.prototype === "object" &&
   value.prototype !== null;
 /** @internal */
-export const isBigint = (v: unknown): v is bigint => typeof v === "bigint";
+export const isBigint = createTypeGuard("bigint");
 /** @internal */
-export const isSymbol = (v: unknown): v is symbol => typeof v === "symbol";
+export const isSymbol = createTypeGuard("symbol");
 
 /** @internal */
 export const isPrimitive = (value: unknown): value is PrimitiveValue => {

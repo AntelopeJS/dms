@@ -32,6 +32,7 @@ import {
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { z } from "zod";
+import { withFallbackLocale } from "@antelopejs/interface-dms/base/internal/form-schema-validation";
 
 const SCHEMA = "form-fallback-locale-test";
 const TABLE = "ranges";
@@ -108,6 +109,14 @@ describe("[unit] interfaces/dms-base/form-fallback-locale — the fallback langu
     ]);
     expect(schema.safeParse({ en: "Range", fr: "" }).success).to.equal(true);
     expect(schema.safeParse({ en: "", fr: "" }).success).to.equal(true);
+    expect(schema.safeParse(null).success).to.equal(true);
+  });
+
+  it("leaves a value that is no language map to the schema it wraps", () => {
+    const schema = withFallbackLocale(
+      z.record(z.string(), z.string()).or(z.null()),
+      "en",
+    );
     expect(schema.safeParse(null).success).to.equal(true);
   });
 });

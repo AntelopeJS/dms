@@ -53,10 +53,10 @@ export function adaptFieldValidationSchema(
   let schema = baseSchema;
 
   if (options.localized) {
-    const byLocale = z.record(z.string(), schema);
-    schema = options.fallbackLocale
-      ? withFallbackLocale(byLocale, options.fallbackLocale)
-      : byLocale;
+    schema = z.record(z.string(), schema);
+    if (options.fallbackLocale) {
+      schema = withFallbackLocale(schema, options.fallbackLocale);
+    }
   }
 
   if (!options.required) {
