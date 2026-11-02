@@ -11,6 +11,11 @@ import {
 import { BOOLEAN_INPUTS, SINGLE_PICK_DISPLAYS, SELECT_INPUTS } from "./inputs";
 import { NumberType } from "./numbers";
 
+/**
+ * The `boolean` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("boolean")
 export class BooleanType extends DataType {
   constructor(public readonly options: BooleanTypeOptions = {}) {
@@ -51,6 +56,11 @@ export class BooleanType extends DataType {
   }
 }
 
+/**
+ * The `select` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("select")
 export class SelectType extends DataType {
   constructor(public readonly options: SelectTypeOptions = { items: [] }) {
@@ -98,6 +108,11 @@ export class SelectType extends DataType {
   }
 }
 
+/**
+ * The `price` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("price")
 export class PriceType extends NumberType {
   constructor(options: NumberTypeOptions = {}) {
@@ -109,6 +124,11 @@ export class PriceType extends NumberType {
   }
 }
 
+/**
+ * The `percentage` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("percentage")
 export class PercentageType extends NumberType {
   constructor(options: NumberTypeOptions = {}) {

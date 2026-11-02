@@ -68,6 +68,8 @@ const PAGE_TOOLBAR_COMPONENT_NAME = "dms-page-toolbar-block";
  *   .child("live", LiveToggle({ variant: "pill" }))
  *   .child("period", PeriodSelector({ variant: "segmented" }));
  * ```
+ *
+ * @docsApi
  */
 export function PageToolbar(
   options?: PageToolbarProps,

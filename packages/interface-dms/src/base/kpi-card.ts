@@ -76,6 +76,8 @@ const KPI_CARD_COMPONENT_NAME = "dms-kpi-card";
  * places a block before anything is configured, and writes that as the bare
  * call `KpiCard()`. A page under construction has to compile — it is typechecked
  * on every edit — so a block with nothing set yet has to be a legal call.
+ *
+ * @docsApi
  */
 export function KpiCard(
   options?: KpiCardProps,

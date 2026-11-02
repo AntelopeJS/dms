@@ -33,6 +33,11 @@ function relationDefaultCompareMode(multiple?: boolean) {
     : DefaultDataCompareTypes.Is;
 }
 
+/**
+ * The `relation` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("relation")
 export class RelationType<T extends ControllerClass> extends DataType {
   constructor(
@@ -174,6 +179,8 @@ export class RelationType<T extends ControllerClass> extends DataType {
  * (the `parent` field of `keyMapping` must be decorated with `@Select()`);
  * the widget rebuilds the tree client-side and displays the full path
  * (e.g. `Electronics / Audio / Headphones`) in table cells.
+ *
+ * @docsApi
  */
 @RegisterDataType("cascader_relation")
 export class CascaderRelationType<T extends ControllerClass> extends DataType {

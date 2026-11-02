@@ -17,6 +17,11 @@ import {
   DateTypeOptions,
 } from "./options";
 
+/**
+ * The `number` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("number")
 export class NumberType extends DataType {
   constructor(public readonly options: NumberTypeOptions = {}) {
@@ -61,6 +66,11 @@ export class NumberType extends DataType {
   }
 }
 
+/**
+ * The `string` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("string")
 export class StringType extends DataType {
   constructor(public readonly options: StringTypeOptions = {}) {
@@ -150,6 +160,11 @@ const DAY_COMPARISONS: Record<
 /** A calendar day as the date picker sends it, without a time. */
 const CALENDAR_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * The `date` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("date")
 export class DateType extends DataType {
   constructor(public readonly options: DateTypeOptions = {}) {
@@ -238,7 +253,6 @@ export class DateType extends DataType {
     const parsed = parseValue(value);
     if (!(parsed instanceof Date)) {
       throw new Error(
-        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Diagnostic.
         `Date filter expects a date value. Got: ${typeof parsed}`,
       );
     }
