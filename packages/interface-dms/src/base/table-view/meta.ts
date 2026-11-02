@@ -22,7 +22,7 @@ import { decoratedClass } from "../../utils/internal/decorated-class";
 import type { ColumnDisplay } from "./column-display";
 import { buildTableConfig, decorateColumn } from "./internal/meta-helpers";
 // oxlint-disable-next-line import/no-cycle -- The barrel evaluates built-in data-type decorators; serializeType needs the registry they populate.
-import { type DataType, serializeType } from "../data-types";
+import { DataType, serializeType } from "../data-types";
 import {
   type FieldCondition,
   type FieldGroup,
@@ -143,7 +143,10 @@ export type TableViewAccess = "read" | "write";
 
 /** A data type of the same class whose options can change on their own. */
 function copyDataType(type: DataType): DataType {
-  const copy: DataType = Object.create(Object.getPrototypeOf(type));
+  const copy: unknown = Object.create(Reflect.getPrototypeOf(type));
+  if (!(copy instanceof DataType)) {
+    throw new TypeError("A copied data type must stay a DataType");
+  }
   return Object.assign(copy, type, {
     options: type.options && { ...type.options },
   });
@@ -401,7 +404,9 @@ export class TableViewMeta {
         }
         processedGroups.add(options.group);
 
-        const groupConfig = this.groups[options.group];
+        const groupConfig = Object.hasOwn(this.groups, options.group)
+          ? this.groups[options.group]
+          : undefined;
         const groupFields = sortedEntries
           .filter(([, opts]) => opts.group === options.group)
           .map(([k, opts]) =>
