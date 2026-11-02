@@ -592,6 +592,7 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     permissionId: string,
   ): Promise<O> {
     return applyWatchFilter(
+      this,
       this._watchFilter,
       permissions,
       options,

@@ -15,8 +15,11 @@ export type WatchFilter = (
  *
  * @internal
  */
-export async function applyWatchFilter<O>(
-  filter: WatchFilter | undefined,
+export async function applyWatchFilter<O, R>(
+  owner: R,
+  filter:
+    | ((this: R, ...args: Parameters<WatchFilter>) => ReturnType<WatchFilter>)
+    | undefined,
   permissions: Set<string>,
   options: O,
   permissionId: string,
@@ -28,6 +31,6 @@ export async function applyWatchFilter<O>(
   if (watches.length === 0) {
     return options;
   }
-  const filtered = await filter(permissions, watches, permissionId);
+  const filtered = await filter.call(owner, permissions, watches, permissionId);
   return { ...options, watchActions: filtered };
 }
