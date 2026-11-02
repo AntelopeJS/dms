@@ -19,10 +19,10 @@ const DEFAULT_MANAGED_ACTIONS = [
 const ACTIONS_NOT_EQUALS_TRUE = ["edit", "duplicate", "archive"] as const;
 const ACTIONS_EQUALS_TRUE = ["restore", "delete"] as const;
 
-function getConfig(
-  result: TableViewRowActionOptions | undefined,
+function getConfig<T extends object>(
+  result: TableViewRowActionOptions<T> | undefined,
   action: (typeof DEFAULT_MANAGED_ACTIONS)[number],
-): RowActionConfig | undefined {
+): RowActionConfig<T> | undefined {
   const value = result?.[action];
   if (value && value !== true) {
     return value;

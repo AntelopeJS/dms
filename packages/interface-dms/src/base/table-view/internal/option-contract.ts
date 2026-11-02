@@ -140,7 +140,7 @@ export interface TableViewLiveHoldOptions {
 
 export interface TableViewOptions<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published default accepts module-owned rows.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > {
   caption?: string;
   /**
