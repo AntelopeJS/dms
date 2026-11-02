@@ -1,12 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readJsonRecord, text } from "./helpers/json-record.mjs";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const { name, version } = JSON.parse(
-  readFileSync(join(packageRoot, "package.json"), "utf8"),
-);
+const manifest = readJsonRecord(join(packageRoot, "package.json"));
+const name = text(manifest, "name");
+const version = text(manifest, "version");
 
 const prerelease = version.split("-").slice(1).join("-");
 const identifier = prerelease.split(".")[0];
