@@ -36,11 +36,20 @@ function isWidth(value) {
  */
 function scratchRoot(script, linked) {
   const root = mkdtempSync(nodePath.join(tmpdir(), "docs-scripts-"));
-  for (const directory of ["scripts", "docs-data", "node_modules"])
+  for (const directory of [
+    "scripts",
+    "scripts/helpers",
+    "docs-data",
+    "node_modules",
+  ])
     mkdirSync(nodePath.join(root, directory));
   cpSync(
     nodePath.join(scriptsDir, script),
     nodePath.join(root, "scripts", script),
+  );
+  cpSync(
+    nodePath.join(helpersDir, "json-record.mjs"),
+    nodePath.join(root, "scripts", "helpers", "json-record.mjs"),
   );
   for (const name of linked)
     symlinkSync(

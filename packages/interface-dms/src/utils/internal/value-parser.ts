@@ -1,4 +1,11 @@
-import { isBoolean, isDate, isNull, isNumber, isString } from "./type-check";
+import {
+  isBoolean,
+  isDate,
+  isNull,
+  isNumber,
+  isObject,
+  isString,
+} from "./type-check";
 
 /** @internal */
 export type Primitive =
@@ -21,6 +28,25 @@ const KEYWORD_VALUES = {
 
 const KEYWORD_LOOKUP = new Map(Object.entries(KEYWORD_VALUES));
 
+/** What `JSON.parse` answers, read as the value it holds. */
+function parseJsonText(text: string): Primitive {
+  const parsed: unknown = JSON.parse(text);
+  if (
+    isString(parsed) ||
+    isNumber(parsed) ||
+    isBoolean(parsed) ||
+    isNull(parsed)
+  ) {
+    return parsed;
+  }
+  if (Array.isArray(parsed)) {
+    const items: unknown[] = parsed;
+    return items;
+  }
+  if (isObject(parsed)) return Object.fromEntries(Object.entries(parsed));
+  throw new TypeError("JSON text parsed to a value JSON cannot hold");
+}
+
 const STRING_TYPE_PARSERS = [
   {
     test: isStringKeyword,
@@ -36,7 +62,7 @@ const STRING_TYPE_PARSERS = [
   },
   {
     test: isStringJSON,
-    parse: (value: string) => JSON.parse(value),
+    parse: parseJsonText,
   },
 ];
 

@@ -175,3 +175,31 @@ await test("docs-screenshots: leaves an entry that is a string to the preview pa
   assert.equal(status, 0);
   assert.deepEqual(shots, ["a.dark.png"]);
 });
+
+await test("docs-screenshots: refuses a width that is neither a number nor null", () => {
+  for (const width of ['"800"', "true", "{}"]) {
+    const { status, shots } = captureExamples(
+      `{ "a": ${withWidth(width)} }`,
+      "a",
+    );
+    assert.notEqual(status, 0, width);
+    assert.deepEqual(shots, [], width);
+  }
+});
+
+await test("docs-screenshots: refuses a null entry and still captures the others", () => {
+  const { status, shots } = captureExamples(
+    `{ "a": null, "b": ${block} }`,
+    "a,b",
+  );
+  assert.notEqual(status, 0);
+  assert.deepEqual(shots, ["b.dark.png"]);
+});
+
+await test("docs-screenshots: refuses an examples file that is not an object or array", () => {
+  for (const examples of ["5", "null", '"text"']) {
+    const { status, shots } = captureExamples(examples, "0");
+    assert.notEqual(status, 0, examples);
+    assert.deepEqual(shots, [], examples);
+  }
+});

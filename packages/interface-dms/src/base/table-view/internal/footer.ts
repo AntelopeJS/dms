@@ -2,15 +2,13 @@ import type { ControllerClass } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
 import { getDataTypeId } from "../../data-types";
-import {
-  FIELD_KEY,
-  LOGICAL_OPERATOR_KEYS,
-} from "../../types/row-action-operators";
+import { FIELD_KEY } from "../../types/row-action-operators";
 import type { RowActionRule } from "../../types/row-action";
 import { TableViewMeta } from "../meta";
 import { rowRuleProblem } from "./row-rule-shape";
 import { servesRoute } from "./tabs";
 import type {
+  TableViewEmptyStateSerialized,
   TableViewEmptyStates,
   TableViewEmptyStatesSerialized,
   TableViewFooterOptions,
@@ -28,15 +26,19 @@ const LEGEND_TYPE_ID = "select";
 export function ruleFields<T extends Record<string, unknown>>(
   rule: RowActionRule<T>,
 ): string[] {
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published generic rule union has field and logical variants; this traversal reads their operator keys without imposing a row-value schema.
-  const record: Record<string, unknown> = rule;
-  if (FIELD_KEY in record) return [String(record[FIELD_KEY])];
-  return LOGICAL_OPERATOR_KEYS.flatMap((key) => {
-    const nested = record[key];
-    if (!nested) return [];
-    const rules = Array.isArray(nested) ? nested : [nested];
-    return rules.flatMap((entry) => ruleFields(entry));
-  });
+  if (FIELD_KEY in rule) return [String(rule[FIELD_KEY])];
+  return [
+    ...operandRules("and" in rule ? rule.and : undefined),
+    ...operandRules("or" in rule ? rule.or : undefined),
+    ...operandRules("not" in rule ? rule.not : undefined),
+  ].flatMap((entry) => ruleFields(entry));
+}
+
+function operandRules<T extends Record<string, unknown>>(
+  operand: RowActionRule<T> | RowActionRule<T>[] | undefined,
+): RowActionRule<T>[] {
+  if (!operand) return [];
+  return Array.isArray(operand) ? operand : [operand];
 }
 
 function assertSummary<T extends Record<string, unknown>>(
@@ -106,13 +108,15 @@ export function serializeEmptyStates(
 ): TableViewEmptyStatesSerialized | undefined {
   if (!emptyStates) return undefined;
   return Object.fromEntries(
-    Object.entries(emptyStates).map(([kind, state]) => [
-      kind,
-      state && {
-        ...state,
-        component: state.component?.serializeSync(),
-      },
-    ]),
+    Object.entries({ ...emptyStates }).map(
+      ([kind, state]): [string, TableViewEmptyStateSerialized | undefined] => [
+        kind,
+        state && {
+          ...state,
+          component: state.component?.serializeSync(),
+        },
+      ],
+    ),
   );
 }
 

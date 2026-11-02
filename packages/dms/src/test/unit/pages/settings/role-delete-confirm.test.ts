@@ -61,9 +61,9 @@ describe("[unit] pages/settings/users roles delete dialog", () => {
   ): Promise<HTTPResult> {
     try {
       await run();
-    } catch (error: PromiseRejectedResult["reason"]) {
-      expect(error).to.be.instanceOf(HTTPResult);
-      return error;
+    } catch (error: unknown) {
+      if (error instanceof HTTPResult) return error;
+      expect.fail(`expected an HTTPResult refusal, got ${String(error)}`);
     }
     return expect.fail("Expected the deletion to be refused");
   }

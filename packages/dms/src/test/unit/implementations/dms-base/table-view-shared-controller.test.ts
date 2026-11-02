@@ -42,9 +42,9 @@ function requestShowingArchived(): RequestContext {
 async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
   try {
     await promise;
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    return error;
+  } catch (error: unknown) {
+    if (error instanceof HTTPResult) return error;
+    expect.fail(`expected an HTTPResult refusal, got ${String(error)}`);
   }
   throw new Error("expected the archive filter to refuse");
 }
