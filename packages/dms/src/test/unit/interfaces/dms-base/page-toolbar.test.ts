@@ -138,7 +138,7 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     ).to.deep.include({ comparisonControl: "toggle" });
   });
 
-  it("places each control under the id and roles-editor metadata a page gives it", () => {
+  it("places each control under the id and roles-editor metadata a page gives it", async () => {
     const toolbar = pageToolbar({
       live: {
         childId: "toggle",
@@ -163,12 +163,12 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     expect(period).to.include({ id: "my-scope" });
     expect(period).to.not.have.any.keys("childId", "meta");
 
-    const children = toolbar["_children"];
-    expect(children[0]?.component.metadata).to.deep.include({
+    const { children } = await toolbar.componentInfo;
+    expect(children?.[0]?.component.metadata).to.deep.include({
       name: "$my.permissions.live.name",
       icon: "i-ph-broadcast",
     });
-    expect(children[1]?.component.metadata).to.deep.include({
+    expect(children?.[1]?.component.metadata).to.deep.include({
       name: "$my.permissions.period.name",
     });
   });
