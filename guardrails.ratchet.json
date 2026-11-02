@@ -8,8 +8,8 @@
     "anti-slop/no-unknown-returns": 1,
     "typescript/no-unnecessary-type-parameters": 1,
     "typescript/no-unsafe-argument": 10,
-    "typescript/no-unsafe-assignment": 45,
-    "typescript/no-unsafe-return": 34,
+    "typescript/no-unsafe-assignment": 40,
+    "typescript/no-unsafe-return": 30,
     "typescript/unbound-method": 7
   },
   "oversizeFiles": {}

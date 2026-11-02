@@ -24,8 +24,15 @@ type StateOverrides = Partial<
   Pick<SystemState, "has_onboarded" | "platform_name" | "default_language">
 >;
 
-function withModel<T extends object>(prototype: T, model: SystemStateModel): T {
-  const controller: T = Object.create(prototype);
+function withModel<T extends object>(
+  type: (abstract new (...args: never[]) => T) & { prototype: T },
+  model: SystemStateModel,
+): T {
+  const controller = {};
+  Reflect.setPrototypeOf(controller, type.prototype);
+  if (!(controller instanceof type)) {
+    throw new Error("The bare controller does not inherit from its class");
+  }
   Object.defineProperty(controller, "model", { value: model });
   return controller;
 }
@@ -73,7 +80,7 @@ describe("[unit] onboarding — platform details", () => {
 
   it("records the platform name and language when onboarding completes", async () => {
     await model.updateConfig(stateWith(original, { has_onboarded: false }));
-    const controller = withModel(PublicOnboardingController.prototype, model);
+    const controller = withModel(PublicOnboardingController, model);
 
     await controller["completeOnboarding"]({
       platformName: PLATFORM_NAME,
@@ -90,7 +97,7 @@ describe("[unit] onboarding — platform details", () => {
     await model.updateConfig(
       stateWith(original, { platform_name: PLATFORM_NAME }),
     );
-    const controller = withModel(PublicSystemStateController.prototype, model);
+    const controller = withModel(PublicSystemStateController, model);
 
     const view: SystemStateView = await controller.getSystemState();
 
@@ -101,7 +108,7 @@ describe("[unit] onboarding — platform details", () => {
     await model.updateConfig(
       stateWith(original, { platform_name: NO_PLATFORM_NAME }),
     );
-    const controller = withModel(PublicSystemStateController.prototype, model);
+    const controller = withModel(PublicSystemStateController, model);
 
     const view: SystemStateView = await controller.getSystemState();
 
