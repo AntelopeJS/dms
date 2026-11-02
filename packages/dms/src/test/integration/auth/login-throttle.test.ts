@@ -15,6 +15,7 @@ const WRONG_PASSWORD = "Wrong-password-1";
 const STORED_FAILURES = 30;
 const BURST_THRESHOLD = 5;
 const WINDOW_MS = 15 * 60 * 1000;
+const SIGN_IN_SERIES_TIMEOUT_MS = 30_000;
 
 let counter = 0;
 const next = () => (counter += 1);
@@ -30,7 +31,9 @@ async function signIn(email: string, password: string, client: string) {
   return response.status;
 }
 
-describe("[integration] auth/login throttle", () => {
+describe("[integration] auth/login throttle", function () {
+  this.timeout(SIGN_IN_SERIES_TIMEOUT_MS);
+
   let previousProxies: number | undefined;
   let client: string;
 
@@ -58,6 +61,17 @@ describe("[integration] auth/login throttle", () => {
     expect(await signIn(user.email, user.password, client)).to.equal(
       HTTP_TOO_MANY_REQUESTS,
     );
+  });
+
+  it("refuses a right password sent in the same burst as too many wrong ones", async () => {
+    const user = await registerUser();
+    const wrong = Array.from({ length: FAILURES_PER_ACCOUNT * 2 }, () =>
+      signIn(user.email, WRONG_PASSWORD, client),
+    );
+    const right = signIn(user.email, user.password, client);
+
+    await Promise.all(wrong);
+    expect(await right).to.equal(HTTP_TOO_MANY_REQUESTS);
   });
 
   it("throttles an unknown address the same, telling nothing of its existence", async () => {
