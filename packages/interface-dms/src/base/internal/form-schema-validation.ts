@@ -56,7 +56,7 @@ function isFilledText(value: z.output<z.ZodTypeAny>): boolean {
 
 /** @internal */
 export function withFallbackLocale(
-  schema: z.ZodTypeAny,
+  schema: z.ZodRecord<z.ZodString, z.ZodTypeAny>,
   fallbackLocale: string,
 ): z.ZodTypeAny {
   return schema.superRefine((value, context) => {

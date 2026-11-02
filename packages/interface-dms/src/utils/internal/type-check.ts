@@ -20,25 +20,22 @@ interface PrimitiveValueByTag {
 }
 type PrimitiveValue = PrimitiveValueByTag[Primitive];
 
-const createTypeGuard =
-  <T>(type: string) =>
-  (v: unknown): v is T =>
-    typeof v === type;
-
 /** @internal */
-export const isString = createTypeGuard<string>("string");
+export const isString = (v: unknown): v is string => typeof v === "string";
 /** @internal */
-export const isNumber = createTypeGuard<number>("number");
+export const isNumber = (v: unknown): v is number => typeof v === "number";
 /** @internal */
-export const isBoolean = createTypeGuard<boolean>("boolean");
+export const isBoolean = (v: unknown): v is boolean => typeof v === "boolean";
 /** @internal */
-export const isUndefined = createTypeGuard<undefined>("undefined");
+export const isUndefined = (v: unknown): v is undefined =>
+  typeof v === "undefined";
 /** @internal */
-export const isObject = createTypeGuard<object>("object");
+export const isObject = (v: unknown): v is object => typeof v === "object";
 /** @internal */
-export const isFunction =
+export const isFunction = (
+  v: unknown,
   // oxlint-disable-next-line anti-slop/no-unknown-returns -- The published function predicate promises no result shape for arbitrary callable values.
-  createTypeGuard<(...args: unknown[]) => unknown>("function");
+): v is (...args: unknown[]) => unknown => typeof v === "function";
 /**
  * Whether a value is a class: a function with an object `prototype`, which
  * arrow functions, methods and bound functions lack. A generator function has
@@ -51,9 +48,9 @@ export const isClass = (value: unknown): value is Class =>
   typeof value.prototype === "object" &&
   value.prototype !== null;
 /** @internal */
-export const isBigint = createTypeGuard<bigint>("bigint");
+export const isBigint = (v: unknown): v is bigint => typeof v === "bigint";
 /** @internal */
-export const isSymbol = createTypeGuard<symbol>("symbol");
+export const isSymbol = (v: unknown): v is symbol => typeof v === "symbol";
 
 /** @internal */
 export const isPrimitive = (value: unknown): value is PrimitiveValue => {

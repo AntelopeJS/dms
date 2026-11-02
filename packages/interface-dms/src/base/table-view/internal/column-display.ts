@@ -1,8 +1,7 @@
-import type { Class } from "@antelopejs/interface-core/decorators";
 import type { ColumnDisplay, ColumnDisplaySerialized } from "../column-display";
 
 /** @internal */
-export const displayIds = new WeakMap<Class<ColumnDisplay<object>>, string>();
+export const displayIds = new WeakMap<object, string>();
 
 /**
  * The id a display instance is registered under, if any.
@@ -12,7 +11,8 @@ export const displayIds = new WeakMap<Class<ColumnDisplay<object>>, string>();
 export function getColumnDisplayId(
   display: ColumnDisplay<object>,
 ): string | undefined {
-  return displayIds.get(Object.getPrototypeOf(display).constructor);
+  const prototype = Reflect.getPrototypeOf(display);
+  return prototype ? displayIds.get(prototype.constructor) : undefined;
 }
 
 /**
@@ -29,7 +29,7 @@ export function serializeColumnDisplay(
   const type = getColumnDisplayId(display);
   if (!type) {
     throw new Error(
-      `Column display ${Object.getPrototypeOf(display).constructor.name} is not registered: decorate its class with @RegisterDisplay("<module>:<id>")`,
+      `Column display ${Reflect.getPrototypeOf(display)?.constructor.name} is not registered: decorate its class with @RegisterDisplay("<module>:<id>")`,
     );
   }
   const { options } = display;
