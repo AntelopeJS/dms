@@ -4,6 +4,7 @@ import {
   scheduleBroadcast,
 } from "../../../store/frontend";
 import {
+  ownValue,
   pagesBySlug,
   findPageByFullId,
   resolvePagePermissionId,
@@ -131,10 +132,12 @@ export function ensureContainer(
   containerFullId: string,
 ): SiteLayoutTree {
   const key = containerFullId.slice(containerFullId.lastIndexOf(".") + 1);
+  const existing = ownValue(level, key);
   const isRegistered =
-    Boolean(level[key]?.fullId) || containerFullId in categoriesByFullId;
+    Boolean(existing?.fullId) || containerFullId in categoriesByFullId;
   if (!isRegistered) suspectMissingCategory(containerFullId);
-  level[key] ??= {
+  if (existing) return existing;
+  const container: SiteLayoutTree = {
     displayName: "none",
     children: {},
     childrenOrders: [],
@@ -143,7 +146,8 @@ export function ensureContainer(
     fullSlug: "",
     category: undefined,
   };
-  return level[key];
+  level[key] = container;
+  return container;
 }
 
 export function addToTree(newPageInfo: PageInfo | CategoryInfo) {
@@ -186,9 +190,9 @@ export function compareMenuChildren(
 export function sortChildIdsByOrder(
   children: Record<string, SiteLayoutTree>,
 ): string[] {
-  return Object.keys(children).sort((a, b) =>
-    compareMenuChildren(children[a], children[b]),
-  );
+  return Object.entries(children)
+    .sort(([, a], [, b]) => compareMenuChildren(a, b))
+    .map(([id]) => id);
 }
 
 export function updateChildrenOrders(node: SiteLayoutTree) {

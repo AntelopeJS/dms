@@ -1,3 +1,4 @@
+import { ownValue } from "../../../utils";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { KeyValueListItem } from "@antelopejs/interface-dms/base/key-value-list";
 import { getTwoFactorStatus } from "../users/two-factor-operations";
@@ -34,7 +35,10 @@ function twoFactorItem(user: User): KeyValueListItem {
     type: "status",
     value: isOn ? `${TEXTS}.two_factor_on_short` : `${TEXTS}.two_factor_off`,
     tone: isOn ? "success" : "warning",
-    detail: methods.length === 1 ? METHOD_LABELS[methods[0] ?? ""] : undefined,
+    detail:
+      methods.length === 1
+        ? ownValue(METHOD_LABELS, methods[0] ?? "")
+        : undefined,
   };
 }
 

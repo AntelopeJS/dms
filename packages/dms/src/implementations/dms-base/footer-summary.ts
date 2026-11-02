@@ -61,13 +61,16 @@ type FieldComparison = (
 ) => Condition;
 
 // SAFETY: compileRowRule rejects a rule whose dispatched in/notIn operand is no array (rowRuleProblem) before this table runs, so the operand is an array.
-const FIELD_COMPARISONS = {
-  equals: (value, operand) => value.eq(operand),
-  notEquals: (value, operand) => value.ne(operand),
-  in: (value, operands) => anyOf(value, operands as readonly RuleOperand[]),
-  notIn: (value, operands) =>
-    negate(anyOf(value, operands as readonly RuleOperand[])),
-} satisfies Record<string, FieldComparison>;
+const FIELD_COMPARISONS = new Map<string, FieldComparison>([
+  ["equals", (value, operand) => value.eq(operand)],
+  ["notEquals", (value, operand) => value.ne(operand)],
+  ["in", (value, operands) => anyOf(value, operands as readonly RuleOperand[])],
+  [
+    "notIn",
+    (value, operands) =>
+      negate(anyOf(value, operands as readonly RuleOperand[])),
+  ],
+]);
 
 type RuleCompiler = (
   rule: RowActionRule | RowActionRule[],
@@ -75,39 +78,41 @@ type RuleCompiler = (
 ) => Condition;
 
 // SAFETY: compileRowRule rejects a rule whose dispatched logical operand is no array of rules (and/or) or no rule (not) (rowRuleProblem) before this table runs.
-const LOGICAL_COMPILERS = {
-  and: (rules, read) =>
-    (rules as RowActionRule[])
-      .map((rule) => compileChecked(rule, read))
-      .reduce(both, true),
-  or: (rules, read) =>
-    (rules as RowActionRule[])
-      .map((rule) => compileChecked(rule, read))
-      .reduce(either, false),
-  not: (rule, read) => negate(compileChecked(rule as RowActionRule, read)),
-} satisfies Record<string, RuleCompiler>;
+const LOGICAL_COMPILERS = new Map<string, RuleCompiler>([
+  [
+    "and",
+    (rules, read) =>
+      (rules as RowActionRule[])
+        .map((rule) => compileChecked(rule, read))
+        .reduce(both, true),
+  ],
+  [
+    "or",
+    (rules, read) =>
+      (rules as RowActionRule[])
+        .map((rule) => compileChecked(rule, read))
+        .reduce(either, false),
+  ],
+  ["not", (rule, read) => negate(compileChecked(rule as RowActionRule, read))],
+]);
 
 function compileChecked(rule: RowActionRule, read: FieldReader): Condition {
   const record: RuleRow = rule;
-  const logical = Object.keys(LOGICAL_COMPILERS).find((key) => key in record);
-  if (logical) {
-    // SAFETY: Object.keys identifies a handler-table key and rowRuleProblem has checked its operand shape, array of rules for and/or and a rule for not.
-    return LOGICAL_COMPILERS[logical as keyof typeof LOGICAL_COMPILERS](
-      record[logical] as RowActionRule | RowActionRule[],
-      read,
-    );
+  for (const [operator, compile] of LOGICAL_COMPILERS) {
+    if (Object.hasOwn(record, operator)) {
+      // SAFETY: rowRuleProblem has checked the operand shape of a logical operator, an array of rules for and/or and a rule for not.
+      return compile(record[operator] as RowActionRule | RowActionRule[], read);
+    }
   }
-  const operator = Object.keys(FIELD_COMPARISONS).find((key) => key in record);
-  if (!operator) return true;
-  const operand = record[operator];
-  if (!isRuleOperand(operand)) {
-    throw new Error(`Malformed row rule: ${operator} must hold plain values`);
+  for (const [operator, compare] of FIELD_COMPARISONS) {
+    if (!Object.hasOwn(record, operator)) continue;
+    const operand = record[operator];
+    if (!isRuleOperand(operand)) {
+      throw new Error(`Malformed row rule: ${operator} must hold plain values`);
+    }
+    return compare(read(String(record.field)), operand);
   }
-  // SAFETY: operator was selected from Object.keys of this same handler table.
-  return FIELD_COMPARISONS[operator as keyof typeof FIELD_COMPARISONS](
-    read(String(record.field)),
-    operand,
-  );
+  return true;
 }
 
 /**
