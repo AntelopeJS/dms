@@ -32,7 +32,7 @@ const processPins = {
     'await execFileAsync(\n    "npm",\n    ["pack", spec, "--pack-destination", destination, "--silent"],\n    { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS },\n  );',
   "src/test/unit/package-contents.test.ts:1":
     'import { execFileSync } from "node:child_process";',
-  "src/test/unit/package-contents.test.ts:42":
+  "src/test/unit/package-contents.test.ts:47":
     'const output = execFileSync(\n    "npm",\n    ["pack", "--dry-run", "--json", "--ignore-scripts"],\n    {\n      cwd: PACKAGE_ROOT,\n      encoding: "utf8",\n      timeout: PACK_TIMEOUT_MS,\n\n      stdio: ["ignore", "pipe", "pipe"],\n    },\n  );',
   "src/test/unit/interfaces/dms-base/table-view-evaluation-order.test.ts:1":
     'import { execFile } from "node:child_process";',
@@ -70,7 +70,7 @@ const processPins = {
     'await execFileAsync("npm", ["pack", spec, "--pack-destination", destination, "--silent"], { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS });',
   "dist/test/unit/package-contents.test.js:3":
     'const node_child_process_1 = require("node:child_process");',
-  "dist/test/unit/package-contents.test.js:29":
+  "dist/test/unit/package-contents.test.js:33":
     'const output = (0, node_child_process_1.execFileSync)("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {\n        cwd: PACKAGE_ROOT,\n        encoding: "utf8",\n        timeout: PACK_TIMEOUT_MS,\n        stdio: ["ignore", "pipe", "pipe"],\n    });',
   "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:3":
     'const node_child_process_1 = require("node:child_process");',
@@ -78,11 +78,11 @@ const processPins = {
     'const node_path_1 = require("node:path");',
   "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:5":
     'const node_util_1 = require("node:util");',
-  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:7":
+  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:8":
     'const FIXTURE = (0, node_path_1.resolve)(__dirname, "table-view-evaluation-order.fixture.js");',
-  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:11":
+  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:12":
     "const runProcess = (0, node_util_1.promisify)(node_child_process_1.execFile);",
-  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:15":
+  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:16":
     "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
 };
 

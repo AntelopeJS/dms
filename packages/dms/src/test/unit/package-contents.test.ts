@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { expect } from "chai";
+import { z } from "zod";
 
 const PACKAGE_ROOT = resolve(__dirname, "..", "..", "..");
 const PACK_TIMEOUT_MS = 60_000;
@@ -38,6 +39,10 @@ const DEVELOPMENT_ONLY = [
   /^frontend-vue\/pnpm-workspace\.yaml$/,
 ];
 
+const PackOutput = z.tuple([
+  z.object({ files: z.array(z.object({ path: z.string() })) }),
+]);
+
 function packedFiles(): string[] {
   const output = execFileSync(
     "npm",
@@ -50,7 +55,7 @@ function packedFiles(): string[] {
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
-  const [pack]: [{ files: { path: string }[] }] = JSON.parse(output);
+  const [pack] = PackOutput.parse(JSON.parse(output));
   return pack.files.map((file) => file.path);
 }
 
