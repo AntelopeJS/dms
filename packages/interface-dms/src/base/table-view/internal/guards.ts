@@ -10,6 +10,7 @@ import {
   Validation,
 } from "@antelopejs/interface-data-api/components";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { z } from "zod";
 import type { AfterWrite, GuardFn } from "../../types/guards";
 import { fetchRowForGuard } from "../data-functions";
 import { TableViewMeta } from "../meta";
@@ -34,12 +35,26 @@ const parseConfirmValues = (
   return isEmpty ? undefined : parseGuardBody(raw);
 };
 
+const JSON_OBJECT = z.record(z.string(), z.unknown());
+
+/**
+ * The fields of a JSON object sent as text.
+ *
+ * @throws SyntaxError when `text` is not JSON, TypeError when it is JSON but
+ * not an object.
+ */
+const parseJsonObject = (text: string) => {
+  const parsed = JSON_OBJECT.safeParse(JSON.parse(text));
+  if (!parsed.success) throw new TypeError("The JSON body is not an object");
+  return parsed.data;
+};
+
 /** @internal */
 // oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- The published permissive body decoder accepts transport values and returns module-owned fields without a fixed schema; narrowing either side would change its contract.
 export const parseGuardBody = (raw: unknown): Record<string, unknown> => {
-  if (Buffer.isBuffer(raw)) return JSON.parse(raw.toString());
+  if (Buffer.isBuffer(raw)) return parseJsonObject(raw.toString());
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This published decoder distinguishes the string transport representation from already decoded values.
-  if (typeof raw === "string" && raw.length > 0) return JSON.parse(raw);
+  if (typeof raw === "string" && raw.length > 0) return parseJsonObject(raw);
   // oxlint-disable-next-line anti-slop/no-runtime-typeof, anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- The published decoder accepts any non-null object, including arrays, without proving an indexed row contract; preserve that unchecked compatibility behavior.
   if (raw && typeof raw === "object") return raw as Record<string, unknown>;
   return {};
