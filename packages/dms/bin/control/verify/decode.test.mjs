@@ -4,8 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { decode } from "../json.mjs";
-import { commitStatusesSchema, readFeatureResults } from "./decode.mjs";
+import { decodeCommitStatuses, readFeatureResults } from "./decode.mjs";
 import { readFormalResult } from "./formal.mjs";
 import { readJudgement } from "./judgement.mjs";
 import { loadSkill } from "./skill.mjs";
@@ -60,7 +59,7 @@ await test("a formal result whose rules are no list is refused", (t) => {
   });
   assert.throws(
     () => readFormalResult({ evidence }, "formal-add"),
-    /result\.json is malformed: violated/,
+    /result\.json is malformed: expected a formal check result/,
   );
 });
 
@@ -90,7 +89,7 @@ await test("a journey result with a status that is neither PASS nor FAIL is refu
   writeJson(join(dir, "feature.json"), [{ ...RESULT, status: "PASSED" }]);
   assert.throws(
     () => readFeatureResults(join(dir, "feature.json")),
-    /feature\.json is malformed: 0\.status/,
+    /feature\.json is malformed: expected a list of journey results/,
   );
 });
 
@@ -102,27 +101,20 @@ await test("a journey result whose check does not say pass or fail is refused", 
   writeJson(join(dir, "feature.json"), [{ ...RESULT, steps }]);
   assert.throws(
     () => readFeatureResults(join(dir, "feature.json")),
-    /steps\.0\.checks\.0\.pass/,
+    /malformed: expected a list of journey results/,
   );
 });
 
 await test("a status list without a context and state is refused", () => {
-  assert.deepEqual(
-    decode(
-      commitStatusesSchema,
-      [{ context: "verify", state: "success", id: 1 }],
-      "gh",
-    ),
-    [{ context: "verify", state: "success" }],
-  );
+  const statuses = [{ context: "verify", state: "success", id: 1 }];
+  assert.deepEqual(decodeCommitStatuses(statuses, "gh"), statuses);
   assert.throws(
-    () =>
-      decode(commitStatusesSchema, { message: "Not Found" }, "gh api statuses"),
+    () => decodeCommitStatuses({ message: "Not Found" }, "gh api statuses"),
     /gh api statuses is malformed/,
   );
   assert.throws(
-    () => decode(commitStatusesSchema, [{ context: "verify" }], "gh"),
-    /0\.state/,
+    () => decodeCommitStatuses([{ context: "verify" }], "gh"),
+    /malformed: expected a list of commit statuses/,
   );
 });
 
@@ -178,7 +170,7 @@ await test("a config missing a field is refused where the skill loads", async (t
   const dir = skillFolder(t, CONFIG.replace('smoke: "smoke",\n', ""));
   await assert.rejects(
     loadSkill(dir, tmpdir()),
-    /verify\.config\.ts is malformed: smoke/,
+    /verify\.config\.ts is malformed: expected a verification skill config/,
   );
 });
 
@@ -190,7 +182,10 @@ await test("a config whose formal check pattern is a string is refused", async (
       'formal: [{ name: "f", covers: [], command: ["node"], violation: "^x", passing: null }]',
     ),
   );
-  await assert.rejects(loadSkill(dir, tmpdir()), /formal\.0\.violation/);
+  await assert.rejects(
+    loadSkill(dir, tmpdir()),
+    /malformed: expected a verification skill config/,
+  );
 });
 
 await test("a config module without a default export is refused", async (t) => {
@@ -230,13 +225,16 @@ await test("a judgement whose lists hold other than strings is refused", async (
   writeJson(file, { ...JUDGEMENT, notVerified: "ui" });
   assert.throws(
     () => readJudgement(skill, file),
-    /judgement\.json is malformed: notVerified/,
+    /judgement\.json is malformed: expected a verifier's judgement/,
   );
   writeJson(file, {
     ...JUDGEMENT,
     docs: [{ page: "docs/a.md", matches: "yes" }],
   });
-  assert.throws(() => readJudgement(skill, file), /docs\.0\.matches/);
+  assert.throws(
+    () => readJudgement(skill, file),
+    /malformed: expected a verifier/,
+  );
 });
 
 await test("a judgement that is no object is refused", async (t) => {

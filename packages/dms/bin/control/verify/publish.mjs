@@ -3,8 +3,7 @@ import { cpSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { git } from "../git.mjs";
-import { decode } from "../json.mjs";
-import { commitStatusesSchema } from "./decode.mjs";
+import { decodeCommitStatuses } from "./decode.mjs";
 import { originRepository } from "./verdict.mjs";
 
 const EVIDENCE_BRANCH = "verify-evidence";
@@ -180,7 +179,7 @@ export function readStatus(skill, sha) {
   );
   /** @type {unknown} */
   const stored = JSON.parse(answer);
-  const statuses = decode(commitStatusesSchema, stored, "gh api statuses");
+  const statuses = decodeCommitStatuses(stored, "gh api statuses");
   return (
     statuses.find((status) => status.context === "verify")?.state ?? "absent"
   );
