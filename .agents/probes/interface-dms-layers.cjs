@@ -181,16 +181,20 @@ const ISOLATED = [
   "page/types.js",
 ];
 
-const mapMethods = Object.getOwnPropertyDescriptors(Map.prototype);
-const weakMapMethods = Object.getOwnPropertyDescriptors(WeakMap.prototype);
-const setMethods = Object.getOwnPropertyDescriptors(Set.prototype);
-const originalMapSet = mapMethods.set.value;
-const originalMapHas = mapMethods.has.value;
-const originalWeakMapSet = weakMapMethods.set.value;
-const originalWeakMapHas = weakMapMethods.has.value;
-const originalWeakMapGet = weakMapMethods.get.value;
-const originalSetAdd = setMethods.add.value;
-const originalSetHas = setMethods.has.value;
+/** @type {Map<unknown, unknown>["set"]} */
+const originalMapSet = Map.prototype.set;
+/** @type {Map<unknown, unknown>["has"]} */
+const originalMapHas = Map.prototype.has;
+/** @type {WeakMap<object, unknown>["set"]} */
+const originalWeakMapSet = WeakMap.prototype.set;
+/** @type {WeakMap<object, unknown>["has"]} */
+const originalWeakMapHas = WeakMap.prototype.has;
+/** @type {WeakMap<object, string | null>["get"]} */
+const originalWeakMapGet = WeakMap.prototype.get;
+/** @type {Set<unknown>["add"]} */
+const originalSetAdd = Set.prototype.add;
+/** @type {Set<unknown>["has"]} */
+const originalSetHas = Set.prototype.has;
 
 /**
  * @typedef {{

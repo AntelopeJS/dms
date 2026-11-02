@@ -246,14 +246,14 @@ Module._load = function (request, parent, main) {
     };
   }
   if (request === "@antelopejs/interface-database-decorators") {
-    const result = require("../../packages/dms/playground/node_modules/@antelopejs/interface-database-decorators");
+    const decorators = require("../../packages/dms/playground/node_modules/@antelopejs/interface-database-decorators");
     return {
-      ...result,
+      ...decorators,
       RegisterTable:
-        (/** @type {Parameters<typeof result.RegisterTable>} */ ...args) =>
-        (/** @type {Parameters<ReturnType<typeof result.RegisterTable>>[0]} */ target) => {
+        (/** @type {Parameters<typeof decorators.RegisterTable>} */ ...args) =>
+        (/** @type {Parameters<ReturnType<typeof decorators.RegisterTable>>[0]} */ target) => {
           registrations.push(["table", target.name, args]);
-          result.RegisterTable(...args)(target);
+          decorators.RegisterTable(...args)(target);
         },
     };
   }
@@ -306,7 +306,7 @@ const files = execFileSync(
   .split("\n");
 const names = new Set([
   ...files
-    .filter((file) => file.endsWith(".ts"))
+    .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
     .map((file) =>
       file.replace("packages/dms/playground/src/", "").replace(/\.ts$/, ""),
     ),
