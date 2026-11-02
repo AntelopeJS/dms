@@ -1,4 +1,3 @@
-import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
   GetModel,
@@ -25,6 +24,7 @@ import {
   type TableViewOptionsSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
 import { denyingTenantGate } from "../../../helpers/page-access";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
 import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "tv-gate-denied-tenant";
@@ -65,16 +65,6 @@ function tableViewInstance(options: TableViewOptions, permissionId?: string) {
   return new (tableViewController(options, permissionId))();
 }
 
-async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
-  try {
-    await promise;
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    return error;
-  }
-  throw new Error("expected the action authorization to refuse");
-}
-
 describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () => {
   before(async () => {
     ImplementInterface(permissionsInterface, permissionsImpl);
@@ -93,7 +83,7 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
   });
 
   it("keeps refusing an unflagged table view while the gate denies the tenant", async () => {
-    const error = await rejectionOf(
+    const error = await httpRejectionOf(
       authorizeAction(
         tableViewInstance({}),
         LIST_ACTION,
@@ -128,7 +118,7 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
   });
 
   it("re-gates an unstamped action of a flagged table view", async () => {
-    const error = await rejectionOf(
+    const error = await httpRejectionOf(
       authorizeAction(
         tableViewInstance({ bypassTenantAccessGate: true }),
         LIST_ACTION,
@@ -153,7 +143,7 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
 
   for (const writeAction of WRITE_ACTIONS) {
     it(`re-gates the "${writeAction}" action of a flagged table view`, async () => {
-      const error = await rejectionOf(
+      const error = await httpRejectionOf(
         authorizeAction(
           tableViewInstance({ bypassTenantAccessGate: true }, PERMISSION_ID),
           writeAction,
@@ -202,7 +192,7 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
   });
 
   it("still refuses a caller missing the action permission under bypass", async () => {
-    const error = await rejectionOf(
+    const error = await httpRejectionOf(
       authorizeAction(
         tableViewInstance({ bypassTenantAccessGate: true }, PERMISSION_ID),
         LIST_ACTION,
