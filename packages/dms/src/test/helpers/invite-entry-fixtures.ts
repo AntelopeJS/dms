@@ -13,7 +13,6 @@ import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import {
   TenantMemberModel,
-  type UserInvite,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import type { JsonValue } from "@antelopejs/interface-dms/base/types";
@@ -68,7 +67,9 @@ export async function directAdd(extensions: Record<string, JsonValue>) {
   return member;
 }
 
-export async function pendingInvite(extensions: UserInvite["extensions"]) {
+export async function pendingInvite(
+  extensions: Record<string, JsonValue> | null,
+) {
   const id = randomUUID();
   await GetModel(UserInviteModel, TENANT).insert({
     _id: id,

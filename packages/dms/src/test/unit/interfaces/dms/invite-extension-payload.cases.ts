@@ -7,9 +7,9 @@ import { UserInviteModel } from "@antelopejs/interface-dms/db";
 import {
   ExecuteHooks,
   Hook,
-  type InviteDeletedHookPayload,
   type InviteDeletedReason,
 } from "@antelopejs/interface-dms/hooks";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import {
   createUser,
   directAdd,
@@ -247,7 +247,7 @@ export function registerInviteExtensionPayloadCases(): void {
   describe("cleanup", () => {
     async function fireDeleted(
       reason: InviteDeletedReason,
-      extensions: InviteDeletedHookPayload["extensions"],
+      extensions: Record<string, JsonValue> | null | undefined,
     ): Promise<void> {
       await ExecuteHooks(Hook.INVITE_DELETED, {
         tenantId: TENANT,
