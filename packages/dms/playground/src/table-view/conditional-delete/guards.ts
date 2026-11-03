@@ -1,7 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import type { formSchema } from "@antelopejs/interface-dms/base/form";
-
-type SubmittedValue = Parameters<ReturnType<typeof formSchema>["safeParse"]>[0];
+import type { Task } from "../database";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
@@ -16,7 +14,7 @@ function refuse(status: number, message: string, field?: string): HTTPResult {
 }
 
 /** `edit` and `new`: a name too short is refused under the name field. */
-export function assertNameLength(name: SubmittedValue): void {
+export function assertNameLength(name: Task["name"] | undefined): void {
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This pre-schema guard refuses short strings and leaves every other submitted value for form validation.
   if (typeof name === "string" && name.trim().length < MIN_NAME_LENGTH) {
     throw refuse(
@@ -49,14 +47,14 @@ export function assertFewRows(ids: string[]): void {
 }
 
 /** `get`: a cancelled task's details are not served. */
-export function assertNotCancelled(status: SubmittedValue): void {
+export function assertNotCancelled(status: Task["status"]): void {
   if (status === "cancelled") {
     throw refuse(HTTP_NOT_FOUND, "A cancelled task has no details");
   }
 }
 
 /** The `AfterWrite` an edit returns: runs once the write succeeded. */
-export function logEdit(name: SubmittedValue) {
+export function logEdit(name: Task["name"]) {
   return () => {
     console.info(`[playground] task "${String(name)}" edited`);
   };
