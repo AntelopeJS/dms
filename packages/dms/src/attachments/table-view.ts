@@ -125,7 +125,10 @@ async function deleteDocuments(request: DeleteDocumentsRequest) {
     ),
   );
   const before = Object.fromEntries(
-    fields.map((field) => [field.key, rows.map((row) => row?.[field.key])]),
+    fields.map((field) => [
+      field.key,
+      rows.map((row) => (row ? ownValue(row, field.key) : undefined)),
+    ]),
   );
   return SaveComponentFiles(
     { context, componentIds, fields, before, submitted: {} },
