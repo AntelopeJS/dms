@@ -23,6 +23,7 @@ import {
   type GroupedOptions,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
+  type KanbanOptionsSerialized,
   type QueryParamFilters,
   type RouteParamFilters,
   type TableViewCardOptions,
@@ -280,7 +281,11 @@ export interface TableViewDisplaySources {
 type BuiltinDisplayOptions = (
   sources: TableViewDisplaySources,
   card: TableViewCardOptionsSerialized | undefined,
-) => TableViewDisplayOptionSerialized["options"];
+) =>
+  | { card: TableViewCardOptionsSerialized }
+  | KanbanOptionsSerialized
+  | GroupedOptions
+  | undefined;
 
 const BUILTIN_DISPLAY_OPTIONS = new Map<string, BuiltinDisplayOptions>([
   [CARDS_DISPLAY_ID, (_sources, card) => (card ? { card } : undefined)],
