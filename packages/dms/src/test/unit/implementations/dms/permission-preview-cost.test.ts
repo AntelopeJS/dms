@@ -38,8 +38,9 @@ let running = 0;
 let peak = 0;
 let reads = 0;
 
-const settle = () => new Promise((resolve) => setImmediate(resolve));
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
+const delay = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 function countedBlock() {
   return new ComponentBuilder<{ tag: string }>("pv-cost-block")

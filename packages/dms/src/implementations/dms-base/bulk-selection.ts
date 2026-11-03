@@ -18,7 +18,6 @@ import {
   DEFAULT_ROW_ID_FIELD,
   MAX_BULK_MATCHING_ROWS,
   TableViewMeta,
-  type resolveBulkRowIds as ResolveBulkDeclaration,
 } from "@antelopejs/interface-dms/base/table-view";
 import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -32,7 +31,7 @@ function isObject(value: unknown): value is object {
 }
 
 function isBulkRowSource(
-  table: globalThis.Parameters<typeof ResolveBulkDeclaration>[0],
+  table: DataControllerInstance | BulkRowSource,
 ): table is BulkRowSource {
   return (
     typeof table === "object" &&
@@ -89,7 +88,7 @@ function sourceReader({ model, tableView }: BulkRowSource) {
  * who cannot see the rows does not pick them by id either.
  */
 export async function resolveBulkRowIds(
-  table: globalThis.Parameters<typeof ResolveBulkDeclaration>[0],
+  table: DataControllerInstance | BulkRowSource,
   ctx: RequestContext,
   user: User,
 ): Promise<string[]> {

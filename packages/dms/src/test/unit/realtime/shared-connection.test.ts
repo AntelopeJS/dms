@@ -106,7 +106,7 @@ const openSession = (
     user,
   );
 
-const settle = () => new Promise((resolve) => setImmediate(resolve));
+const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 const sessionFramesOf = (stream: FakeStream, sessionId: string): Frame[] =>
   parseFrames(stream).filter(
