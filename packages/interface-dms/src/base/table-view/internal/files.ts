@@ -16,7 +16,7 @@ import { getTableViewMetaFor } from "./meta";
 export const withFilePromotion = <O, R, P, Rest extends unknown[]>(
   baseRoute: DataControllerCallback<O, R, [RequestContext, P, ...Rest]>,
   mode: "save" | "delete" = "save",
-): DataControllerCallback<O, unknown, [RequestContext, P, ...Rest]> => ({
+): DataControllerCallback<O, R, [RequestContext, P, ...Rest]> => ({
   func: async function (
     this: DataControllerInstance,
     context: RequestContext,
@@ -27,9 +27,17 @@ export const withFilePromotion = <O, R, P, Rest extends unknown[]>(
       return baseRoute.func.call(this, context, params, ...args);
     }
     const { writingComponents } = getTableViewMetaFor(this);
-    return internal.SaveTableViewAttachments({
+    let answered: { value: R } | undefined;
+    await internal.SaveTableViewAttachments({
       controller: this,
-      route: baseRoute,
+      route: {
+        ...baseRoute,
+        func: async (...called: [RequestContext, P, ...Rest]) => {
+          const value = await baseRoute.func.call(this, ...called);
+          answered = { value };
+          return value;
+        },
+      },
       context,
       params,
       args,
@@ -40,6 +48,8 @@ export const withFilePromotion = <O, R, P, Rest extends unknown[]>(
         ),
       ],
     });
+    if (!answered) throw new Error("The table route did not answer.");
+    return answered.value;
   },
   args: baseRoute.args,
   method: baseRoute.method,
