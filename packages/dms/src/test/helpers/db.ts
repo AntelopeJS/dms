@@ -1,9 +1,4 @@
-import {
-  MongoClient,
-  type Document,
-  type Filter,
-  type IndexDescriptionInfo,
-} from "mongodb";
+import { MongoClient, type Filter, type IndexDescriptionInfo } from "mongodb";
 
 const PRESERVED_COLLECTION_PREFIXES = ["system.", "__antelope"];
 const DMS_SCHEMA_DB = "dms-core";
@@ -50,9 +45,22 @@ export async function resetDatabase(): Promise<void> {
   );
 }
 
+type RawValue =
+  | string
+  | number
+  | boolean
+  | null
+  | Date
+  | RawValue[]
+  | { [key: string]: RawValue };
+
+interface RawDocument {
+  [key: string]: RawValue;
+}
+
 export async function countRawDocuments(
   collectionName: string,
-  filter: Filter<Document> = {},
+  filter: Filter<RawDocument> = {},
 ): Promise<number> {
   const client = await MongoClient.connect(getMongoUrl());
   try {

@@ -1,4 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import type { Role } from "@antelopejs/interface-dms/db";
 import type {
   Permission,
@@ -61,9 +62,7 @@ const tree = {
   media: registered("media"),
 } satisfies Record<string, PermissionTree>;
 
-function issuePaths(
-  payload: Parameters<typeof memberInviteSchema.safeParse>[0],
-): string[] {
+function issuePaths(payload: JsonValue): string[] {
   const result = memberInviteSchema.safeParse(payload);
   return result.success
     ? []

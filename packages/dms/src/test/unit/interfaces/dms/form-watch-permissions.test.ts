@@ -7,17 +7,17 @@ import {
   FormEvents,
   FormFunctions,
 } from "@antelopejs/interface-dms/base/form";
-import {
-  ComponentBuilder,
-  type ComponentInfoSerialized,
-} from "@antelopejs/interface-dms/component";
+import { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import {
   type ComponentNodeMap,
   filterComponents,
 } from "@antelopejs/interface-dms/page/layout-filter";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
-import { formOptionsOf } from "../../../helpers/serialized-options";
+import {
+  formOptionsOf,
+  type ServedComponent,
+} from "../../../helpers/serialized-options";
 
 const CONTEXT = { tenantId: "tenant", user: undefined };
 
@@ -72,8 +72,8 @@ const componentMap: ComponentNodeMap = new Map([
   [FORM, { component: form, permissionId: FORM, depth: 0, access: "own" }],
 ]);
 
-const watchTargets = (options: ComponentInfoSerialized["options"]) =>
-  (formOptionsOf({ options }).watchActions ?? []).map(
+const watchTargets = (component: ServedComponent | undefined) =>
+  (formOptionsOf(component).watchActions ?? []).map(
     (watch) => watch.params?.targetField,
   );
 
@@ -112,7 +112,7 @@ async function servedEmbeddedWatchTargets(permissions: Set<string>) {
   if (!isDrawerHostOptions(options)) {
     throw new Error("The served host carries no drawer content");
   }
-  return watchTargets(options.drawer.content.options);
+  return watchTargets(options.drawer.content);
 }
 
 /** The fields the watches the caller is served act on, in order. */
@@ -125,7 +125,7 @@ async function servedWatchTargets(permissions: Set<string>) {
     CONTEXT,
   );
   expect(served, "the form itself was not served").to.have.property("form");
-  return watchTargets(served.form!.options);
+  return watchTargets(served.form);
 }
 
 describe("[unit] interfaces/dms/page — a form's watches gated by requirePermission", () => {

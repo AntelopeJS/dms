@@ -21,7 +21,8 @@ interface StoredNotification {
   params: Record<string, string> | null;
 }
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 describe("[integration] auth/sign-in country", () => {
   let previous: SignInCountryConfig | undefined;

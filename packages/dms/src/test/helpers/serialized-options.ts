@@ -4,7 +4,7 @@ import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/
 
 import type { PageHeaderButtonSerialized } from "@antelopejs/interface-dms/base/internal/layouts";
 
-interface ServedComponent {
+export interface ServedComponent {
   options?: unknown;
 }
 
