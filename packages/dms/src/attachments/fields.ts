@@ -2,37 +2,40 @@ import type {
   AttachmentField,
   AttachmentSaveRequest,
 } from "@antelopejs/interface-dms/attachments";
+import { ownValue } from "../utils/own-value";
 
 export interface AttachmentReference {
   key: string;
   field: AttachmentField;
 }
 
-function extractKeys(
-  value: AttachmentSaveRequest["submitted"][string],
-  kind: AttachmentField["kind"],
-): string[] {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A file reference is a nonempty string; other submitted values remain ignored.
-  if (kind === "file" && typeof value === "string") return value ? [value] : [];
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only containers can hold nested references.
-  if (!value || typeof value !== "object") return [];
-  if (!Array.isArray(value) && kind === "image" && "key" in value) {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Image references require a nonempty string key.
-    return typeof value.key === "string" && value.key ? [value.key] : [];
-  }
-  return Object.values(value).flatMap((item) => extractKeys(item, kind));
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 export function collectAttachments(
   fields: AttachmentField[],
   document: AttachmentSaveRequest["submitted"],
 ): AttachmentReference[] {
-  return fields.flatMap((field) =>
-    [...new Set(extractKeys(document[field.key], field.kind))].map((key) => ({
-      key,
-      field,
-    })),
-  );
+  return fields.flatMap((field) => {
+    const keys = new Set<string>();
+    const pending: unknown[] = [ownValue(document, field.key)];
+    while (pending.length > 0) {
+      const item = pending.pop();
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A file reference is a nonempty string; other submitted values remain ignored.
+      if (field.kind === "file" && typeof item === "string") {
+        if (item) keys.add(item);
+      } else if (isRecord(item)) {
+        if (!Array.isArray(item) && field.kind === "image" && "key" in item) {
+          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Image references require a nonempty string key.
+          if (typeof item.key === "string" && item.key) keys.add(item.key);
+        } else {
+          pending.push(...Object.values(item).reverse());
+        }
+      }
+    }
+    return [...keys].map((key) => ({ key, field }));
+  });
 }
 
 export function containsAttachment(

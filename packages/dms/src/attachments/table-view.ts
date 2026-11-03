@@ -6,6 +6,7 @@ import {
   unlock,
 } from "@antelopejs/interface-database-decorators";
 import { fetchRowForGuard } from "../db";
+import { ownValue } from "../utils/own-value";
 import type {
   AttachmentField,
   internal,
@@ -57,17 +58,6 @@ async function loadDocument(
   );
 }
 
-function retainedFiles(
-  fields: AttachmentField[],
-  before: Parameters<typeof collectAttachments>[1],
-) {
-  return Object.fromEntries(
-    fields
-      .filter((field) => collectAttachments([field], before).length > 0)
-      .map((field) => [field.key, before[field.key]]),
-  );
-}
-
 /** Keeps the database/registry implementation out of host modules' interfaces. */
 export async function SaveTableViewAttachments(
   request: TableViewAttachmentSaveRequest,
@@ -93,7 +83,11 @@ export async function SaveTableViewAttachments(
       fields,
       before,
       submitted: {
-        ...retainedFiles(fields, before),
+        ...Object.fromEntries(
+          fields
+            .filter((field) => collectAttachments([field], before).length > 0)
+            .map((field) => [field.key, ownValue(before, field.key)]),
+        ),
         ...parseGuardBody(args[0]),
       },
     },
