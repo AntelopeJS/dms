@@ -1,4 +1,3 @@
-import { assertValidation } from "@antelopejs/interface-api-util";
 import { authSchema } from "../../validation";
 import { resolveValidInvite } from "./invite";
 
@@ -7,10 +6,8 @@ import { resolveValidInvite } from "./invite";
  * the signup runs, so the page refuses exactly what the signup would.
  */
 export async function validateInviteToken(
-  body: Parameters<typeof authSchema.validateInviteToken.parse>[0],
+  body: ReturnType<typeof authSchema.validateInviteToken.parse>,
 ): Promise<void> {
-  const { token, email } = assertValidation(body, (v) =>
-    authSchema.validateInviteToken.parse(v),
-  );
+  const { token, email } = body;
   await resolveValidInvite(token, email);
 }

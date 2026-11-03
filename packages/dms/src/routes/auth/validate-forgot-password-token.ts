@@ -1,14 +1,11 @@
-import { assertValidation } from "@antelopejs/interface-api-util";
 import type { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { authSchema } from "../../validation";
 import { assertResetCode } from "./reset-code";
 
 export async function validateForgotPasswordToken(
   userModel: UserModel,
-  body: Parameters<typeof authSchema.validateForgotPasswordToken.parse>[0],
+  body: ReturnType<typeof authSchema.validateForgotPasswordToken.parse>,
 ): Promise<void> {
-  const { email, token } = assertValidation(body, (v) =>
-    authSchema.validateForgotPasswordToken.parse(v),
-  );
+  const { email, token } = body;
   await assertResetCode(userModel, email, token);
 }

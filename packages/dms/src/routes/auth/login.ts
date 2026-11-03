@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import {
   type SessionModel,
   User,
@@ -22,13 +22,11 @@ const INVALID_CREDENTIALS_MESSAGE = "error.invalid_credentials";
 export async function login(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: Parameters<typeof authSchema.login.parse>[0],
+  body: ReturnType<typeof authSchema.login.parse>,
   userAgent: string,
   origin: ClientOrigin,
 ): Promise<LoginOutcome> {
-  const { email, password } = assertValidation(body, (v) =>
-    authSchema.login.parse(v),
-  );
+  const { email, password } = body;
   const normalizedEmail = email.toLowerCase();
   assertLoginAllowed(normalizedEmail, origin.ip);
   const user = await userModel.getByEmail(normalizedEmail);
