@@ -23,16 +23,20 @@ const targetUrl = (
   return typeof url === "string" ? url : undefined;
 };
 
-function valueAt(record: PageRecord, path: string): PageRecord[string] {
+function leafAt(record: PageRecord, path: string): string | number | undefined {
   // SAFETY: The reducer reads keys only after checking a non-null object; PageRecord imposes no constraints on those values.
-  return path.split(PATH_SEPARATOR).reduce<unknown>(
-    (value, key) =>
+  const value = path.split(PATH_SEPARATOR).reduce<unknown>(
+    (current, key) =>
       // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Record paths traverse arbitrary loader fields and stop at nonobjects without imposing a shared record schema.
-      value && typeof value === "object"
-        ? (value as PageRecord)[key]
+      current && typeof current === "object"
+        ? (current as PageRecord)[key]
         : undefined,
     record,
   );
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The record loader owns its schema; the URL interpolation contract encodes only string and number leaves.
+  return typeof value === "string" || typeof value === "number"
+    ? value
+    : undefined;
 }
 
 export type { PageRecordStatus } from "../../component-options/internal/page-layout";
@@ -81,11 +85,8 @@ function isRecordBound(button: PageHeaderButtonDeclared): boolean {
  */
 function fillRecordTokens(url: string, record: PageRecord): string {
   return url.replace(RECORD_TOKEN, (match, path: string) => {
-    const value = valueAt(record, path);
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The record loader owns its schema; the URL interpolation contract encodes only string and number leaves.
-    return typeof value === "string" || typeof value === "number"
-      ? encodeURIComponent(String(value))
-      : match;
+    const value = leafAt(record, path);
+    return value === undefined ? match : encodeURIComponent(String(value));
   });
 }
 
