@@ -152,25 +152,28 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
   });
 
   it("refuses a malformed where rule at declaration instead of failing a request later", () => {
-    const declare = (json: string) =>
+    const declare = (where: FooterRule) =>
       optionsOf({
-        footer: {
-          summary: [{ label: "Bad", op: "count", where: JSON.parse(json) }],
-        },
+        footer: { summary: [{ label: "Bad", op: "count", where }] },
       });
-    expect(() => declare('{"field":"amount","equals":41,"and":123}')).to.throw(
-      /footer summary "Bad".*where\.and must be an array of rules/,
-    );
-    expect(() => declare('{"field":"amount","notIn":[41],"in":123}')).to.throw(
-      /footer summary "Bad".*where\.in must be an array/,
-    );
     expect(() =>
-      declare('{"not":{"or":[{"field":"amount","in":"x"}]}}'),
+      // @ts-expect-error `and` holds 123, not a list of rules, for the declaration check to refuse
+      declare({ field: "amount", equals: 41, and: 123 }),
+    ).to.throw(/footer summary "Bad".*where\.and must be an array of rules/);
+    expect(() =>
+      // @ts-expect-error `in` holds 123, not a list, beside `notIn`, for the declaration check to refuse
+      declare({ field: "amount", notIn: [41], in: 123 }),
+    ).to.throw(/footer summary "Bad".*where\.in must be an array/);
+    expect(() =>
+      // @ts-expect-error a nested `in` holds text, not a list, for the declaration check to refuse
+      declare({ not: { or: [{ field: "amount", in: "x" }] } }),
     ).to.throw(/where\.not\.or\[0\]\.in must be an array/);
-    expect(() => declare('{"field":"amount"}')).to.throw(
+    // @ts-expect-error a rule naming a field and no operator, for the declaration check to refuse
+    expect(() => declare({ field: "amount" })).to.throw(
       /footer summary "Bad".*where must name an operator/,
     );
-    expect(() => declare('{"and":[{"equals":1}]}')).to.throw(
+    // @ts-expect-error an `and` member with an operator and no field, for the declaration check to refuse
+    expect(() => declare({ and: [{ equals: 1 }] })).to.throw(
       /footer summary "Bad".*where\.and\[0\]\.field must be a string/,
     );
   });
