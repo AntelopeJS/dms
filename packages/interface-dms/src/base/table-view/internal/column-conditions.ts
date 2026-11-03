@@ -19,11 +19,15 @@ interface ColumnWriteParameters {
 }
 type TableRow = NonNullable<Awaited<ReturnType<typeof fetchRowForGuard>>>;
 
+/** The value `row` holds under `key`; a key it does not hold itself reads as absent, whatever `Object.prototype` answers. */
+const ownValue = (row: Readonly<TableRow>, key: string) =>
+  Object.hasOwn(row, key) ? row[key] : undefined;
+
 /** Whether `row` meets `condition`: a field it lacks counts as empty. */
 const meetsFieldCondition = (
   condition: FieldCondition,
   row: Readonly<TableRow>,
-): boolean => condition.in.includes(row[condition.field] ?? null);
+): boolean => condition.in.includes(ownValue(row, condition.field) ?? null);
 
 /** The columns whose form field `row` hides or disables. */
 function inactiveColumns(
@@ -45,7 +49,7 @@ function inactiveColumns(
   };
 }
 
-const isEmptyValue = (value: TableRow[string]): boolean =>
+const isEmptyValue = (value: unknown): value is null | undefined | "" | [] =>
   value === undefined ||
   value === null ||
   value === "" ||
@@ -114,7 +118,7 @@ export const withColumnConditions = <
     const written = { ...body };
     for (const key of [...hidden, ...disabled]) delete written[key];
     for (const key of hidden) {
-      if (current && !isEmptyValue(current[key])) written[key] = null;
+      if (current && !isEmptyValue(ownValue(current, key))) written[key] = null;
     }
 
     if (params.noMandatory) {
@@ -138,7 +142,7 @@ export const withColumnConditions = <
         dataMeta.fields[key]?.mandatory?.has(mode) &&
         !hidden.includes(key) &&
         !disabled.includes(key) &&
-        isEmptyValue(row[key]),
+        isEmptyValue(ownValue(row, key)),
     );
     if (missing.length > 0) {
       throw new HTTPResult(400, {
