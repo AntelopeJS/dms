@@ -4,7 +4,7 @@
     "anti-slop/no-reflect-get": 2,
     "anti-slop/no-unknown-returns": 1,
     "typescript/no-unsafe-assignment": 8,
-    "typescript/no-unsafe-return": 4
+    "typescript/no-unsafe-return": 3
   },
   "oversizeFiles": {}
 }
