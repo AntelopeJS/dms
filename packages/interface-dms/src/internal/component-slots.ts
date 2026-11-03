@@ -1,5 +1,7 @@
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { ComponentSlotResolver, SlotOptions } from "../component-slots";
+import type { ComponentInfoSerialized } from "../component";
+import type { MaybePromise } from "../types";
+import type { WatchAction } from "../watch-actions";
 
 /**
  * Property a serialized component's options carry to open an extension point.
@@ -16,28 +18,66 @@ import type { ComponentSlotResolver, SlotOptions } from "../component-slots";
  */
 export const COMPONENT_SLOT_KEY = "slotId";
 
-/** @internal */
-export const slotResolvers = new Map<string, ComponentSlotResolver>();
+/**
+ * The component name `Form` serializes under. A copy: the form's own module
+ * sits above this one in the layering, and the walker tests resolve forms built
+ * by `Form`, so the two cannot drift apart.
+ */
+const SLOT_FORM_COMPONENT_NAME = "dms-form";
 
-function resolvableSlotIdOf(
-  node: Parameters<ComponentSlotResolver>[0][string],
-): string | undefined {
+/**
+ * What the walker checks of a form's options before it hands them to a
+ * resolver. `SlotOptions` is the full contract a resolver sees.
+ */
+interface SlotFormOptions {
+  slotId?: string;
+  fields: unknown[];
+  watchActions?: WatchAction[];
+}
+
+/** @internal */
+export type SlotFormResolver = (
+  options: SlotFormOptions,
+) => MaybePromise<SlotFormOptions>;
+
+/** @internal */
+export const slotResolvers = new Map<string, SlotFormResolver>();
+
+type SlotFormTarget = SlotFormOptions & { slotId: string };
+
+function isSlotFormOptions(options: unknown): options is SlotFormTarget {
+  if (typeof options !== "object" || options === null) return false;
+  if (!("fields" in options) || !Array.isArray(options.fields)) return false;
+  return (
+    COMPONENT_SLOT_KEY in options &&
+    typeof options[COMPONENT_SLOT_KEY] === "string" &&
+    slotResolvers.has(options[COMPONENT_SLOT_KEY])
+  );
+}
+
+/**
+ * The options of a serialized form that opens a slot someone owns. Only a
+ * form declares `slotId`, and it always serializes a `fields` array, so a node
+ * that is anything else is left alone, whatever its options say.
+ */
+function slotFormOptionsOf(
+  node: ComponentInfoSerialized["options"],
+): SlotFormTarget | undefined {
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized option trees contain primitives and arrays as well as slot-bearing objects.
   if (!node || typeof node !== "object" || Array.isArray(node)) {
     return undefined;
   }
-  const slotId =
-    COMPONENT_SLOT_KEY in node ? node[COMPONENT_SLOT_KEY] : undefined;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A serialized slot id must be a registered string; other option values remain ordinary data.
-  if (typeof slotId !== "string" || !slotResolvers.has(slotId)) {
+  if (
+    !("componentName" in node) ||
+    node.componentName !== SLOT_FORM_COMPONENT_NAME
+  ) {
     return undefined;
   }
-  return slotId;
+  const options = "options" in node ? node.options : undefined;
+  return isSlotFormOptions(options) ? options : undefined;
 }
 
-function hasResolvableSlot(
-  node: Parameters<ComponentSlotResolver>[0][string],
-): boolean {
+function hasResolvableSlot(node: ComponentInfoSerialized["options"]): boolean {
   if (Array.isArray(node)) {
     return node.some(hasResolvableSlot);
   }
@@ -45,7 +85,7 @@ function hasResolvableSlot(
   if (!node || typeof node !== "object") {
     return false;
   }
-  if (resolvableSlotIdOf(node)) {
+  if (slotFormOptionsOf(node)) {
     return true;
   }
   return Object.values(node).some(hasResolvableSlot);
@@ -57,7 +97,7 @@ function hasResolvableSlot(
  * contribution declaring the slot it was contributed to loop forever.
  */
 async function resolveNode(
-  node: Parameters<ComponentSlotResolver>[0][string],
+  node: ComponentInfoSerialized["options"],
 ): Promise<void> {
   if (Array.isArray(node)) {
     for (const item of node) await resolveNode(item);
@@ -69,16 +109,16 @@ async function resolveNode(
   }
   for (const value of Object.values(node)) await resolveNode(value);
 
-  const slotId = resolvableSlotIdOf(node);
-  const resolver = slotId ? slotResolvers.get(slotId) : undefined;
+  const target = slotFormOptionsOf(node);
+  if (!target) return;
+  const { slotId } = target;
+  const resolver = slotResolvers.get(slotId);
   if (!resolver) return;
 
-  // SAFETY: node is a non-null object and SlotOptions imposes no value constraint on its keys.
-  const target = node as SlotOptions;
   try {
     const resolved = await resolver(target);
     if (resolved === target) return;
-    for (const key of Object.keys(target)) delete target[key];
+    for (const key of Object.keys(target)) Reflect.deleteProperty(target, key);
     Object.assign(target, resolved);
   } catch (error) {
     Logging.Error(

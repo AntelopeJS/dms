@@ -27,6 +27,7 @@ Each section is the upgrade-notes block of one `@antelopejs/interface-dms` relea
 
 ### Components
 
+- **Component slots carry form options.** `SlotOptions` is a form's serialized options (`FormPropsSerialized` plus `watchActions`) instead of `Record<string, unknown>`, and a `ComponentSlotResolver` receives and returns them. A resolver that read `options.fields` through a cast drops the cast, and one that read a key the form does not declare stops compiling. Only a form's `slotId` is resolved: a `slotId` in another component's options, or in a form whose options carry no `fields` array, is ignored, where before any object holding a registered `slotId` reached its resolver. No module in the organization does either. `ComponentSlotResolver` and `RegisterComponentSlot` keep their names and arity.
 - **Option transforms belong to `ComponentBuilder`.** `Component` no longer has the protected `_optionTransforms` list, and `Component.serialize()` applies no transform. `ComponentBuilder` keeps its transforms privately, typed by its options `T`, and its `serialize()` applies them as before. `transformOptions` is unchanged. A subclass that pushed into `_optionTransforms` stops compiling: extend `ComponentBuilder` if it extended `Component`, and call `transformOptions`.
 
 ### Guards

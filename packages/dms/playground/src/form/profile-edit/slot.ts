@@ -37,13 +37,11 @@ function withContributedProperties(base: ObjectSchemaJson): FormSchemaJson {
 }
 
 const withContributedFields: ComponentSlotResolver = (options) => {
-  // SAFETY: The profile-social slot belongs to a Form, so its fields have Form's serialized field contract.
-  const fields = (options.fields as FormPropsSerialized["fields"]) ?? [];
   // SAFETY: The profile-social slot is declared only on a Form, whose fields produce an object schema.
   const base = options.schema as ObjectSchemaJson;
   return {
     ...options,
-    fields: [...fields, ...contributed.fields],
+    fields: [...options.fields, ...contributed.fields],
     schema: withContributedProperties(base),
   };
 };
