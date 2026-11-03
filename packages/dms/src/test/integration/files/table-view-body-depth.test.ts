@@ -5,7 +5,9 @@ import { resetDatabase } from "../../helpers/db";
 const NEW_ROUTE = "/api/native-attachments/new";
 const BODY_BYTES = 1024 * 1024;
 const WIDE_ENTRIES = 200_000;
+const WIDE_KEYS = 100_000;
 const TOO_DEEP = 10_000;
+const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const REFUSAL = "The JSON body nests more than 64 levels deep.";
 
@@ -26,11 +28,14 @@ function nest(container: Container, levels: number) {
     : `${'{"a":'.repeat(levels)}1${"}".repeat(levels)}`;
 }
 
-/** `{"files":[E,...]}` of about 1 MiB; E holds `levels` containers, so the body is `levels + 2` deep. */
-function wideBody(container: Container, levels: number) {
+/**
+ * A body of about 1 MiB holding `{"extra":[E,...]}` next to the fields in
+ * `head`. E holds `levels` containers, so the body is `levels + 2` deep.
+ */
+function wideBody(head: string, container: Container, levels: number) {
   const element = nest(container, levels);
   const count = Math.floor(BODY_BYTES / (element.length + 1));
-  return `{"files":[${Array(count).fill(element).join(",")}]}`;
+  return `{${head}"extra":[${Array(count).fill(element).join(",")}]}`;
 }
 
 describe("[integration] the table-view save route bounds the depth of its body", function () {
@@ -38,24 +43,24 @@ describe("[integration] the table-view save route bounds the depth of its body",
 
   beforeEach(resetDatabase);
 
-  async function post(body: string) {
+  async function post(body: (readerId: string) => string) {
     const user = await registerUser({ owner: true });
     const client = authorizedClient(user.accessToken);
+    const text = body(user.userId);
     const started = performance.now();
-    const response = await client.post(NEW_ROUTE, body, {
+    const response = await client.post(NEW_ROUTE, text, {
       headers: { "Content-Type": "application/json" },
       maxBodyLength: Infinity,
     });
-    return {
-      response,
-      milliseconds: performance.now() - started,
-    };
+    return { response, milliseconds: performance.now() - started };
   }
+
+  const reader = (readerId: string) => `"readerId":"${readerId}",`;
 
   for (const container of CONTAINERS) {
     it(`answers 400 to a body ${TOO_DEEP} ${container} levels deep`, async () => {
       const { response } = await post(
-        `{"files":${nest(container, TOO_DEEP - 1)}}`,
+        () => `{"files":${nest(container, TOO_DEEP - 1)}}`,
       );
       expect(response.status, JSON.stringify(response.data)).to.equal(
         HTTP_BAD_REQUEST,
@@ -64,7 +69,9 @@ describe("[integration] the table-view save route bounds the depth of its body",
     });
 
     it(`answers 400 to 1 MiB of ${container} elements 65 levels deep, within the time limit`, async () => {
-      const { response, milliseconds } = await post(wideBody(container, 63));
+      const { response, milliseconds } = await post((readerId) =>
+        wideBody(reader(readerId), container, 63),
+      );
       expect(response.status, JSON.stringify(response.data)).to.equal(
         HTTP_BAD_REQUEST,
       );
@@ -72,31 +79,33 @@ describe("[integration] the table-view save route bounds the depth of its body",
       expect(milliseconds).to.be.lessThan(REPLY_LIMIT_MS);
     });
 
-    it(`gives 1 MiB of ${container} elements 64 levels deep its normal answer, within the time limit`, async () => {
-      const { response, milliseconds } = await post(wideBody(container, 62));
-      expect(JSON.stringify(response.data)).not.to.contain(REFUSAL);
-      expect(response.status).to.be.lessThan(500);
+    it(`saves 1 MiB of ${container} elements 64 levels deep, within the time limit`, async () => {
+      const { response, milliseconds } = await post((readerId) =>
+        wideBody(reader(readerId), container, 62),
+      );
+      expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
       expect(milliseconds).to.be.lessThan(REPLY_LIMIT_MS);
     });
   }
 
-  it("gives 200k entries in one array its normal answer, within the time limit", async () => {
+  it("saves 200k entries in one array, within the time limit", async () => {
     const { response, milliseconds } = await post(
-      `{"files":[${Array(WIDE_ENTRIES).fill('"x"').join(",")}]}`,
+      (readerId) =>
+        `{${reader(readerId)}"extra":[${Array(WIDE_ENTRIES).fill('"x"').join(",")}]}`,
     );
-    expect(JSON.stringify(response.data)).not.to.contain(REFUSAL);
-    expect(response.status).to.be.lessThan(500);
+    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     expect(milliseconds).to.be.lessThan(REPLY_LIMIT_MS);
   });
 
-  it("gives 200k entries in one object its normal answer, within the time limit", async () => {
+  it("saves 100k keys in one object, within the time limit", async () => {
     const entries = Array.from(
-      { length: WIDE_ENTRIES },
-      (_, index) => `"k${index}":"x"`,
+      { length: WIDE_KEYS },
+      (_, index) => `"${index.toString(36)}":1`,
     ).join(",");
-    const { response, milliseconds } = await post(`{"files":{${entries}}}`);
-    expect(JSON.stringify(response.data)).not.to.contain(REFUSAL);
-    expect(response.status).to.be.lessThan(500);
+    const { response, milliseconds } = await post(
+      (readerId) => `{${reader(readerId)}"extra":{${entries}}}`,
+    );
+    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     expect(milliseconds).to.be.lessThan(REPLY_LIMIT_MS);
   });
 });
