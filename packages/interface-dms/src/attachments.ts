@@ -34,7 +34,14 @@ export interface AttachmentSaveRequest {
   before: Record<string, unknown>;
 }
 
-/** @internal */
+/**
+ * Table-view proxy that promotes the files of a `new`, `edit` or `delete` route.
+ * It answers nothing: the wrapper returns the wrapped route's own answer.
+ * A declared attachment field that nests more than 64 levels deep (the body is
+ * level 1) is refused with a 400 "The JSON body nests more than 64 levels deep."
+ *
+ * @internal
+ */
 export namespace internal {
   export const SaveTableViewAttachments =
     InterfaceFunction<
@@ -56,6 +63,8 @@ type AttachmentSaver = <T>(
  * another save may reference them. Retained objects keep their declared visibility.
  * Removed files are deleted after successful persistence; cleanup errors are logged.
  * This is not reference-counted cleanup: callers own the risk of shared keys.
+ * A declared attachment field that nests more than 64 levels deep (the body is
+ * level 1) is refused with a 400 "The JSON body nests more than 64 levels deep."
  */
 export const SaveComponentFiles =
   // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- InterfaceFunction erases the callback/result generic correlation; the published proxy must retain AttachmentSaver's generic call signature.
