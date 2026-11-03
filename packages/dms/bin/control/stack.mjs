@@ -31,11 +31,12 @@ import {
   runsRoot,
   saveRun,
 } from "./run-state.mjs";
+import { RENDERER_CLI, resolveRenderer } from "./renderer.mjs";
 import { newPassword } from "./session.mjs";
 
 /**
  * @typedef {import("./run-state.mjs").RunState} RunState
- * @typedef {{ playground: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string }} UpOptions Where the playground and the runs are
+ * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string }} UpOptions Where the playground and the runs are
  */
 
 const READY_TIMEOUT_MS = 180_000;
@@ -74,20 +75,22 @@ export function resolutionFolders(state) {
 }
 
 /**
- * The `ajs` and `ajs dms` entry points the playground installs.
+ * The `ajs` and `ajs dms` entry points the playground installs, `ajs dms`
+ * being the renderer checkout's when the run serves one.
  *
  * @param {string} playground The playground folder
+ * @param {string} [renderer] The renderer checkout the run serves
  * @returns {{ ajs: string, dms: string }} Their scripts
  */
-export function cliPaths(playground) {
+export function cliPaths(playground, renderer) {
   const require = createRequire(join(playground, "package.json"));
   const core = dirname(require.resolve("@antelopejs/core/package.json"));
-  const frontend = dirname(
-    require.resolve("@antelopejs/dms-frontend/package.json"),
-  );
+  const frontend =
+    renderer ??
+    dirname(require.resolve("@antelopejs/dms-frontend/package.json"));
   return {
     ajs: join(core, "dist", "core", "cli", "index.js"),
-    dms: join(frontend, "dist", "index.js"),
+    dms: join(frontend, RENDERER_CLI),
   };
 }
 
@@ -105,18 +108,39 @@ function shadowLevel(real, shadow, keep) {
 }
 
 /**
+ * A `node_modules` that is `modules` with `@antelopejs/dms-frontend` replaced
+ * by the renderer checkout, every other entry linked to the original.
+ *
+ * @param {string} modules The playground's installed modules
+ * @param {string} shadow The run's `node_modules`
+ * @param {string} renderer The renderer checkout
+ */
+export function linkRenderer(modules, shadow, renderer) {
+  const scope = "@antelopejs";
+  shadowLevel(modules, shadow, scope);
+  const scoped = join(modules, scope);
+  const shadowScope = join(shadow, scope);
+  if (existsSync(scoped)) shadowLevel(scoped, shadowScope, "dms-frontend");
+  else mkdirSync(shadowScope);
+  symlinkSync(renderer, join(shadowScope, "dms-frontend"));
+}
+
+/**
  * Lays out the run's copy of the checkout: from the checkout root down to
  * the playground, every sibling is linked, so relative paths such as a
  * tsconfig `extends` resolve as in the checkout. The playground itself is
  * copied without its installed modules and build, so `.antelope/` and the
- * frontend build belong to the run.
+ * frontend build belong to the run. Its `node_modules` is the playground's,
+ * except that `@antelopejs/dms-frontend` is the `renderer` checkout when
+ * there is one.
  *
  * @param {string} playground The playground folder
  * @param {string} checkout The checkout root, or the module folder outside one
  * @param {string} root The run's copy of the checkout
+ * @param {string} [renderer] The renderer checkout the run serves
  * @returns {string} The run's playground folder
  */
-export function layOutCopy(playground, checkout, root) {
+export function layOutCopy(playground, checkout, root, renderer) {
   const segments = relative(checkout, playground).split(sep);
   let real = checkout;
   let shadow = root;
@@ -129,7 +153,9 @@ export function layOutCopy(playground, checkout, root) {
     recursive: true,
     filter: (source) => !COPY_SKIPPED.has(basename(source)),
   });
-  symlinkSync(join(playground, "node_modules"), join(shadow, "node_modules"));
+  const modules = join(playground, "node_modules");
+  if (renderer) linkRenderer(modules, join(shadow, "node_modules"), renderer);
+  else symlinkSync(modules, join(shadow, "node_modules"));
   return shadow;
 }
 
@@ -204,7 +230,9 @@ async function initialState(options) {
   const webPort = await freePort();
   const smtpPort = await freePort();
   const checkout = checkoutOf(playground);
-  return {
+  const renderer = options.renderer && resolveRenderer(options.renderer);
+  const verified = renderer ? checkoutOf(renderer) : checkout;
+  const state = {
     ...paths,
     id,
     createdAt: new Date().toISOString(),
@@ -212,7 +240,7 @@ async function initialState(options) {
     playground,
     moduleRoot: dirname(playground),
     repo: checkout.root,
-    headSha: checkout.head,
+    headSha: verified.head,
     baseRef: options.base ?? "origin/main",
     skill: options.skill ?? null,
     apiPort,
@@ -238,6 +266,8 @@ async function initialState(options) {
     tokens: {},
     ready: false,
   };
+  if (renderer) state.renderer = renderer;
+  return state;
 }
 
 /**
@@ -341,11 +371,12 @@ async function startBackend(state, build) {
  * @returns {Promise<void>}
  */
 async function buildAndStart(state) {
-  const clis = cliPaths(state.playground);
+  const clis = cliPaths(state.playground, state.renderer);
   state.runPlayground = layOutCopy(
     state.playground,
     state.repo ?? state.moduleRoot,
     state.root,
+    state.renderer,
   );
   if (state.ownsMongo) {
     const mongo = await startMongod(state, resolutionFolders(state));
@@ -383,7 +414,8 @@ async function buildAndStart(state) {
 /**
  * Starts an isolated DMS from a playground: a copy of it in a run folder,
  * free ports, the `docs` environment, a `verify_<run>` database on a mongod
- * the run owns (or `--mongo-url`), fresh secrets and a mail sink. Ready once
+ * the run owns (or `--mongo-url`), fresh secrets and a mail sink. With
+ * `renderer`, the dashboard is that built dms-frontend checkout. Ready once
  * `/api/onboarding/informations` and `/dms-preview` answer 200. On failure
  * it stops what it started and keeps the logs.
  *

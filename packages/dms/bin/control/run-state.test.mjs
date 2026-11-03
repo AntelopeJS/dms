@@ -157,3 +157,15 @@ await test("a run.json without its accounts, or with an account without an email
   const noEmail = savedRun(t, { accounts: { admin: { password: "pw" } } });
   assert.throws(() => loadRun(noEmail), /malformed/);
 });
+
+await test("a run keeps the renderer checkout it serves across a save and a load", (t) => {
+  const dir = savedRun(t, { renderer: "/work/dms-frontend" });
+  const state = loadRun(dir);
+  assert.equal(state.renderer, "/work/dms-frontend");
+  saveRun(state);
+  assert.equal(loadRun(dir).renderer, "/work/dms-frontend");
+});
+
+await test("a run whose renderer is not a path is refused", (t) => {
+  assert.throws(() => loadRun(savedRun(t, { renderer: 3 })), /malformed/);
+});
