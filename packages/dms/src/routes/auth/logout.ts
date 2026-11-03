@@ -1,5 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import { validateRefreshToken } from "@antelopejs/interface-dms/auth";
 import type {
   SessionModel,
@@ -13,9 +13,9 @@ export async function logout(
   userModel: UserModel,
   sessionModel: SessionModel,
   user: User,
-  body: Parameters<typeof authSchema.logout.parse>[0],
+  body: ReturnType<typeof authSchema.logout.parse>,
 ): Promise<HTTPResult> {
-  const { token } = assertValidation(body, (v) => authSchema.logout.parse(v));
+  const { token } = body;
 
   const data = await validateRefreshToken(token);
   assert(data.id === String(user._id), 401, "error.invalid_token");

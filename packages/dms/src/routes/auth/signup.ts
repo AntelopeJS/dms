@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import { CROSS_INSTANCE } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
@@ -157,13 +157,11 @@ async function resolveOverwritableAccount(
 export async function signup(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: Parameters<typeof authSchema.signup.parse>[0],
+  body: ReturnType<typeof authSchema.signup.parse>,
   userAgent: string,
   origin: ClientOrigin,
 ): Promise<AuthResponse> {
-  const { name, email, password, token, lang } = assertValidation(body, (v) =>
-    authSchema.signup.parse(v),
-  );
+  const { name, email, password, token, lang } = body;
 
   const resolvedInvite = await resolveValidInvite(token, email);
   const { invite: existingInvite, tenantId } = resolvedInvite;
