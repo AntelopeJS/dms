@@ -20,7 +20,6 @@ import {
 } from "../../db/models";
 import type { UserNotification } from "../../db/tables";
 import { getRealtimeBroker, buildUserNotificationTopic } from "../../realtime";
-import type { RealtimeEvent } from "../../realtime";
 import { runInBatches } from "../../utils/run-in-batches/index";
 import {
   categoryRegistry,
@@ -50,10 +49,15 @@ function buildGroupId(readScope: ReadScope, key?: string): string | undefined {
     : `notification-group:${createHash("sha256").update(key).digest("hex")}`;
 }
 
+type NotificationEventPayload =
+  | { ids: string[]; counts: UserNotificationCounts }
+  | { counts: UserNotificationCounts }
+  | { notification: UserNotification };
+
 async function publishNotificationEvent(
   userId: string,
   type: string,
-  payload?: RealtimeEvent["payload"],
+  payload?: NotificationEventPayload,
 ): Promise<void> {
   try {
     await getRealtimeBroker().publish({

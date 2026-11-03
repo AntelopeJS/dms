@@ -42,19 +42,20 @@ function nestedField(levels: number, container: Container) {
 /**
  * An array of about one MiB of JSON held by a field. Each element nests so
  * that its deepest container sits `levels` levels down, the body counted.
- * `first` replaces the first element when given.
+ * `odd` replaces the element at `position`, the first or the last, when given.
  */
 function wideAndDeepField(
   levels: number,
   container: Container,
-  first = levels,
+  odd = levels,
+  position: "first" | "last" = "first",
 ) {
   const element = (deepest: number) =>
     nestedField(deepest - BODY_AND_FIELD_LEVELS + 1, container);
   const bytes = JSON.stringify(element(levels)).length + 1;
   const count = Math.ceil(BODY_BYTES / bytes);
   const elements = Array.from({ length: count }, () => element(levels));
-  elements[0] = element(first);
+  elements[position === "first" ? 0 : elements.length - 1] = element(odd);
   return elements;
 }
 
@@ -147,6 +148,12 @@ describe("[unit] a submitted file field is bounded in width and in wide-and-deep
       it(`with one ${MAX_DEPTH + 1}-level element first, found after every ${MAX_DEPTH}-level one, answers 400 in time`, async () => {
         await expectRefusedInTime(
           wideAndDeepField(MAX_DEPTH, container, MAX_DEPTH + 1),
+        );
+      });
+
+      it(`with one ${MAX_DEPTH + 1}-level element last among ${MAX_DEPTH}-level siblings answers 400 and never runs the save callback`, async () => {
+        await expectRefusedInTime(
+          wideAndDeepField(MAX_DEPTH, container, MAX_DEPTH + 1, "last"),
         );
       });
     });

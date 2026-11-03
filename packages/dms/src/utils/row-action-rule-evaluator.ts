@@ -1,8 +1,5 @@
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
-import {
-  type AnyFieldRule,
-  FIELD_OPERATORS,
-} from "@antelopejs/interface-dms/base/types/row-action-operators";
+import { FIELD_OPERATORS } from "@antelopejs/interface-dms/base/types/row-action-operators";
 
 type RuleEvaluator = (
   rule: RowActionRule,
@@ -10,14 +7,23 @@ type RuleEvaluator = (
   row: Record<string, unknown>,
 ) => boolean;
 
-type Row = Parameters<RuleEvaluator>[1];
-
-function isRow(value: unknown): value is Row {
+function isRow(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
 /** Compares the value a dotted path reaches in the row, reading each key from the object itself. */
-function evaluateFieldRule(rule: AnyFieldRule, row: Row): boolean {
+export const evaluateRowActionRule: RuleEvaluator = (rule, row) => {
+  if ("and" in rule) {
+    return rule.and.every((child) => evaluateRowActionRule(child, row));
+  }
+  if ("or" in rule) {
+    return rule.or.some((child) => evaluateRowActionRule(child, row));
+  }
+  if ("not" in rule) {
+    return !evaluateRowActionRule(rule.not, row);
+  }
+  if (!("field" in rule)) return false;
+
   let fieldValue: unknown = row;
   for (const key of rule.field.split(".")) {
     if (!isRow(fieldValue)) {
@@ -39,18 +45,4 @@ function evaluateFieldRule(rule: AnyFieldRule, row: Row): boolean {
     return FIELD_OPERATORS.notIn.compare(fieldValue, rule.notIn);
   }
   return false;
-}
-
-export const evaluateRowActionRule: RuleEvaluator = (rule, row) => {
-  if ("and" in rule) {
-    return rule.and.every((child) => evaluateRowActionRule(child, row));
-  }
-  if ("or" in rule) {
-    return rule.or.some((child) => evaluateRowActionRule(child, row));
-  }
-  if ("not" in rule) {
-    return !evaluateRowActionRule(rule.not, row);
-  }
-
-  return "field" in rule && evaluateFieldRule(rule, row);
 };
