@@ -8,6 +8,7 @@ import { dropDatabase, dropRunDatabases, mongodBinary } from "./mongo.mjs";
 
 const isDriverLog = objectOf({
   label: isString,
+  built: isNumber,
   closed: isNumber,
   dropped: arrayOf(isString),
 });
@@ -32,7 +33,7 @@ function project(t, packages) {
 
 /**
  * A driver whose client lists databases and records what is done to it in `globalThis.fakeMongo`, labelled by `label`.
- * @param {{ label?: string, names?: string, listing?: string, client?: string }} [shape]
+ * @param {{ label?: string, names?: string, listing?: string, client?: string, exported?: string }} [shape] `exported` is the expression the module exports as `MongoClient`
  * @returns {string}
  */
 function fakeDriver({
@@ -40,11 +41,13 @@ function fakeDriver({
   names = '["verify_run1_a", "verify_run1_b", "other", "verify_run2_a"]',
   listing = `{ databases: ${names}.map((name) => ({ name })), ok: 1 }`,
   client = "",
+  exported = "MongoClient",
 } = {}) {
   return `
-const state = { label: "${label}", closed: 0, dropped: [] };
+const state = { label: "${label}", built: 0, closed: 0, dropped: [] };
 Object.defineProperty(globalThis, "fakeMongo", { value: state, configurable: true });
 class MongoClient {
+  constructor() { state.built += 1; }
   async connect() {}
   async close() { state.closed += 1; }
   db(name) {
@@ -55,12 +58,12 @@ class MongoClient {
   }
 }
 ${client}
-module.exports = { MongoClient };
+module.exports = { MongoClient: ${exported} };
 `;
 }
 
 /**
- * @returns {{ label: string, closed: number, dropped: string[] }} What was done to the client built last
+ * @returns {{ label: string, built: number, closed: number, dropped: string[] }} What was done to the client built last
  */
 function driverLog() {
   /** @type {unknown} */
@@ -122,6 +125,44 @@ await test("a driver without MongoClient is refused", async (t) => {
   });
 });
 
+await test("an arrow function is no MongoClient and is never called", async (t) => {
+  const folder = project(t, {
+    mongodb: fakeDriver({ exported: "(url) => { state.built += 1; }" }),
+  });
+  await assert.rejects(dropDatabase("mongodb://x", "a", [folder]), {
+    message: "The MongoDB driver exports no MongoClient",
+  });
+  assert.equal(driverLog().built, 0);
+});
+
+await test("a class is a MongoClient and is built once", async (t) => {
+  const folder = project(t, { mongodb: fakeDriver() });
+  await dropDatabase("mongodb://x", "a", [folder]);
+  assert.equal(driverLog().built, 1);
+  assert.deepEqual(driverLog().dropped, ["a"]);
+});
+
+await test("a bound class is a MongoClient and is built once", async (t) => {
+  const folder = project(t, {
+    mongodb: fakeDriver({ exported: "MongoClient.bind(null)" }),
+  });
+  await dropDatabase("mongodb://x", "a", [folder]);
+  assert.equal(driverLog().built, 1);
+  assert.deepEqual(driverLog().dropped, ["a"]);
+});
+
+for (const member of ["connect", "close", "db"]) {
+  await test(`a client whose ${member} is no function is refused before it is used`, async (t) => {
+    const folder = project(t, {
+      mongodb: fakeDriver({ client: `MongoClient.prototype.${member} = 1;` }),
+    });
+    await assert.rejects(dropDatabase("mongodb://x", "a", [folder]), {
+      message: "MongoClient built something that is no client",
+    });
+    assert.deepEqual(driverLog().dropped, []);
+  });
+}
+
 await test("a client without close is refused before it is used", async (t) => {
   const folder = project(t, {
     mongodb: fakeDriver({ client: "delete MongoClient.prototype.close;" }),
@@ -131,6 +172,57 @@ await test("a client without close is refused before it is used", async (t) => {
   });
   assert.deepEqual(driverLog().dropped, []);
 });
+
+const NO_DATABASES = [
+  ["nothing", "{}"],
+  ["no admin", "{ dropDatabase: async () => {} }"],
+  ["no dropDatabase", "{ admin: () => ({}) }"],
+  [
+    "an admin that is no function",
+    "{ admin: 1, dropDatabase: async () => {} }",
+  ],
+  [
+    "a dropDatabase that is no function",
+    "{ admin: () => ({}), dropDatabase: 1 }",
+  ],
+];
+
+for (const [kind, database] of NO_DATABASES) {
+  await test(`a driver whose db() answers ${kind} is refused`, async (t) => {
+    const folder = project(t, {
+      mongodb: fakeDriver({
+        client: `MongoClient.prototype.db = () => (${database});`,
+      }),
+    });
+    await assert.rejects(dropDatabase("mongodb://x", "a", [folder]), {
+      message: "MongoClient.db(a) returned no database",
+    });
+    assert.equal(driverLog().closed, 1);
+  });
+}
+
+const NO_LIST_DATABASES = [
+  ["no listDatabases", "{}"],
+  ["a listDatabases that is no function", "{ listDatabases: 1 }"],
+];
+
+for (const [kind, admin] of NO_LIST_DATABASES) {
+  await test(`an admin handle with ${kind} is refused and drops nothing`, async (t) => {
+    const folder = project(t, {
+      mongodb: fakeDriver({
+        client: `MongoClient.prototype.db = () => ({ admin: () => (${admin}), dropDatabase: async () => { state.dropped.push("any"); } });`,
+      }),
+    });
+    await assert.rejects(
+      dropRunDatabases("mongodb://x", "verify_run1", [folder]),
+      {
+        message: "The admin handle of the driver has no listDatabases",
+      },
+    );
+    assert.equal(driverLog().closed, 1);
+    assert.deepEqual(driverLog().dropped, []);
+  });
+}
 
 await test("a missing driver names the devDependency to add", async (t) => {
   const folder = project(t, {});
@@ -181,6 +273,17 @@ await test("a binary path that is no string is refused", async (t) => {
   await assert.rejects(mongodBinary([folder]), {
     message:
       "MongoBinary.getPath is malformed: expected the path of a mongod binary",
+  });
+});
+
+await test("a MongoBinary whose getPath is no function is refused", async (t) => {
+  withoutConfiguredMongod(t);
+  const folder = project(t, {
+    "mongodb-memory-server-core":
+      "module.exports = { MongoBinary: { getPath: 42 } };",
+  });
+  await assert.rejects(mongodBinary([folder]), {
+    message: "mongodb-memory-server-core exports no MongoBinary",
   });
 });
 

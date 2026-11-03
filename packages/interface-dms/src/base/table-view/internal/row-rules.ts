@@ -24,10 +24,16 @@ interface ValidatedActionParams {
   restore: string[];
 }
 
+/** What a bulk action answers when its row rules leave it no row to run on. */
+type NoEligibleIdsResult =
+  | { deleted: number }
+  | { success: boolean; archivedCount: number }
+  | { success: boolean; restoredCount: number };
+
 interface ActionValidationConfig<P> {
   extractIds: (params: P) => string[];
   emptyResultBehavior: EmptyResultBehavior;
-  emptyResult?: unknown;
+  emptyResult?: NoEligibleIdsResult;
   transformParams?: (params: P, eligibleIds: string[]) => P;
 }
 
@@ -104,7 +110,7 @@ export const extractRuleFromConfig = (
 const handleNoEligibleIds = <P>(
   config: ActionValidationConfig<P>,
   actionName: ValidatedActionName,
-): ActionValidationConfig<P>["emptyResult"] => {
+): NoEligibleIdsResult | undefined => {
   if (config.emptyResultBehavior === EmptyResultBehavior.Strict) {
     throwHttpAssert(
       false,
