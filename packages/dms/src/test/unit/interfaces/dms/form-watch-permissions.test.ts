@@ -73,8 +73,10 @@ const componentMap: ComponentNodeMap = new Map([
 ]);
 
 const watchTargets = (component: ServedComponent | undefined) =>
-  (formOptionsOf(component).watchActions ?? []).map(
-    (watch) => watch.params?.targetField,
+  (formOptionsOf(component).watchActions ?? []).map((watch) =>
+    watch.params && "targetField" in watch.params
+      ? watch.params.targetField
+      : undefined,
   );
 
 interface DrawerHostOptions {
