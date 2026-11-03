@@ -1,4 +1,4 @@
-import { ownValue } from "../../utils";
+import { ownValue } from "../../utils/own-value";
 import type {
   Permission,
   PermissionTree,

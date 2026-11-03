@@ -8,7 +8,9 @@ import { WEBHOOK_SIGNATURE_HEADER, WEBHOOKS_API } from "./hooks/webhook-route";
 /**
  * The playground's Vue frontend layer: what `start` registers with
  * `AddFrontendModule`, and what `@antelopejs/dms-frontend` builds, as the
- * package's `dmsFrontend`.
+ * package's `dmsFrontend`. Its public endpoint is a provider's webhook,
+ * reachable through the frontend server without a session or a same-site
+ * Origin (see hooks/webhooks.ts).
  */
 export const frontendModule: FrontendModuleFunction = () =>
   ({

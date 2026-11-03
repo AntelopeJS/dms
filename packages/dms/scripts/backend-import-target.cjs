@@ -48,6 +48,18 @@ const processPins = {
     "const runProcess = promisify(execFile);",
   "src/test/unit/interfaces/dms-base/table-view-evaluation-order.test.ts:18":
     "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:1":
+    'import { execFile } from "node:child_process";',
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:2":
+    'import { resolve } from "node:path";',
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:3":
+    'import { promisify } from "node:util";',
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:7":
+    'const FIXTURE = resolve(__dirname, "permissions-standalone.fixture.js");',
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:10":
+    "const runProcess = promisify(execFile);",
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:15":
+    "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
   "dist/dev/module-update-notifications.js:8":
     'const node_child_process_1 = require("node:child_process");',
   "dist/dev/module-update-notifications.js:9":
@@ -90,6 +102,18 @@ const processPins = {
     "const runProcess = (0, node_util_1.promisify)(node_child_process_1.execFile);",
   "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:16":
     "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:3":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:4":
+    'const node_path_1 = require("node:path");',
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:5":
+    'const node_util_1 = require("node:util");',
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:8":
+    'const FIXTURE = (0, node_path_1.resolve)(__dirname, "permissions-standalone.fixture.js");',
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:10":
+    "const runProcess = (0, node_util_1.promisify)(node_child_process_1.execFile);",
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:14":
+    "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
 };
 
 /**
@@ -112,7 +136,10 @@ function checkCapabilities(source, path) {
     "promisify",
     "node_util_1",
   ]);
-  if (file.includes("table-view-evaluation-order.test.")) {
+  if (
+    file.includes("table-view-evaluation-order.test.") ||
+    file.includes("permissions-standalone.test.")
+  ) {
     names.add("resolve");
     names.add("node_path_1");
   }
