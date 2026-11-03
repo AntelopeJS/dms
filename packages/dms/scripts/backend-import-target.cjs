@@ -23,7 +23,7 @@ const processPins = {
   "src/store/registry.ts:1": 'import { execFile } from "node:child_process";',
   "src/store/registry.ts:2": 'import { promisify } from "node:util";',
   "src/store/registry.ts:5": "const execFileAsync = promisify(execFile);",
-  "src/store/registry.ts:39":
+  "src/store/registry.ts:40":
     'const { stdout } = await execFileAsync(\n      "npm",\n      ["view", spec, ...fields, "--json"],\n      { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS },\n    );',
   "src/store/tarball.ts:1": 'import { execFile } from "node:child_process";',
   "src/store/tarball.ts:5": 'import { promisify } from "node:util";',
