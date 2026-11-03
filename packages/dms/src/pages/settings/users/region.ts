@@ -11,6 +11,7 @@ import {
   applyRegionalPreferences,
   fromRegionFormValues,
   readRegionalPreferences,
+  type RegionFormValues,
   toRegionFormValues,
 } from "./regional-preferences";
 import { regionPreferencesForm } from "./region-form";
@@ -44,17 +45,16 @@ export class RegionSettingsController extends PageController("region", {
   declare user: User;
 
   @Get("/preferences")
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The original return contract emits Object decorator metadata; ReturnType changes that metadata to undefined.
-  getPreferences(): Record<string, unknown> {
+  getPreferences(): RegionFormValues {
     return toRegionFormValues(readRegionalPreferences(this.user));
   }
 
   /** Saves the preferences the body names; returns all of them. */
   @Post("/preferences")
   async updatePreferences(
-    @JSONBody() body: Parameters<typeof regionalPreferencesSchema.parse>[0],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
-  ): Promise<ReturnType<typeof toRegionFormValues>> {
+  ): Promise<RegionFormValues> {
     const input = assertValidation(fromRegionFormValues(body), (value) =>
       regionalPreferencesSchema.parse(value),
     );
