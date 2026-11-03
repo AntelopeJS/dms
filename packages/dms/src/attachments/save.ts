@@ -25,10 +25,6 @@ const BAD_REQUEST = 400;
 
 const FILE_NOT_FOUND_ERROR_NAME = "FileNotFoundError";
 
-function isFileNotFoundError(error: PromiseRejectedResult["reason"]): boolean {
-  return error instanceof Error && error.name === FILE_NOT_FOUND_ERROR_NAME;
-}
-
 /**
  * The canonical key of a submitted reference and its stored metadata. A
  * reference whose bytes never reached storage (an upload that failed or never
@@ -42,7 +38,7 @@ async function storedReference(ref: AttachmentReference) {
       : ref.key;
     return { key, metadata: await GetFileMetadata(key, ref.field.storage) };
   } catch (error) {
-    if (isFileNotFoundError(error))
+    if (error instanceof Error && error.name === FILE_NOT_FOUND_ERROR_NAME)
       throw new HTTPResult(
         BAD_REQUEST,
         "A submitted file was never stored. Upload it again.",

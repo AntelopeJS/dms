@@ -7,6 +7,7 @@ import {
   Post,
   type RequestContext,
 } from "@antelopejs/interface-api";
+import { assertValidation } from "@antelopejs/interface-api-util";
 import { Model } from "@antelopejs/interface-database-decorators";
 import { AuthRawUser } from "@antelopejs/interface-dms/auth";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@antelopejs/interface-dms/auth/db";
 import { getAuthConfig } from "../config";
 import { type ClientOrigin, resolveClientOrigin } from "../utils";
+import { authSchema, firstIssueMessage } from "../validation";
 import * as authRoutes from "./auth/index";
 import type { OAuthAuthorizeUrl } from "./auth/oauth";
 import type { LoginOutcome } from "./auth/session-response";
@@ -63,35 +65,35 @@ export class AuthController extends Controller("/api/auth") {
   }
 
   @Post("/signup")
-  signup(
-    @JSONBody() body: Parameters<typeof authRoutes.signup>[2],
-  ): Promise<AuthResponse> {
+  signup(@JSONBody() body: unknown): Promise<AuthResponse> {
     return authRoutes.signup(
       this.userModel,
       this.sessionModel,
-      body,
+      assertValidation(body, (value) => authSchema.signup.parse(value)),
       this.userAgent || "",
       this.clientOrigin,
     );
   }
 
   @Post("/validate-invite-token")
-  validateInviteToken(
-    @JSONBody() body: Parameters<typeof authRoutes.validateInviteToken>[0],
-  ): Promise<void> {
-    return authRoutes.validateInviteToken(body);
+  validateInviteToken(@JSONBody() body: unknown): Promise<void> {
+    return authRoutes.validateInviteToken(
+      assertValidation(body, (value) =>
+        authSchema.validateInviteToken.parse(value),
+      ),
+    );
   }
 
   @Post("/login")
   login(
-    @JSONBody() body: Parameters<typeof authRoutes.login>[2],
+    @JSONBody() body: unknown,
   ): Promise<
     AuthResponse | TwoFactorRequiredResponse | TenantAssignmentRequiredResponse
   > {
     return authRoutes.login(
       this.userModel,
       this.sessionModel,
-      body,
+      assertValidation(body, (value) => authSchema.login.parse(value)),
       this.userAgent || "",
       this.clientOrigin,
     );
@@ -108,7 +110,7 @@ export class AuthController extends Controller("/api/auth") {
   @Post("/oauth/:provider/callback")
   oauthCallback(
     @Parameter("provider") provider: string,
-    @JSONBody() body: Parameters<typeof authRoutes.oauthCallback>[0]["body"],
+    @JSONBody() body: unknown,
   ): Promise<LoginOutcome> {
     authRoutes.assertOAuthRelay(this.oauthRelayHeader);
     return authRoutes.oauthCallback({
@@ -122,44 +124,58 @@ export class AuthController extends Controller("/api/auth") {
   }
 
   @Post("/verify-2fa")
-  verify2FA(
-    @JSONBody() body: Parameters<typeof authRoutes.verify2FA>[2],
-  ): Promise<AuthResponse> {
+  verify2FA(@JSONBody() body: unknown): Promise<AuthResponse> {
     return authRoutes.verify2FA(
       this.userModel,
       this.sessionModel,
-      body,
+      assertValidation(
+        body,
+        (value) => authSchema.verify2FA.parse(value),
+        firstIssueMessage,
+      ),
       this.userAgent || "",
       this.clientOrigin,
     );
   }
 
   @Post("/session-handoff")
-  sessionHandoff(
-    @JSONBody() body: Parameters<typeof authRoutes.redeemSessionHandoff>[1],
-  ): Promise<AuthResponse> {
-    return authRoutes.redeemSessionHandoff(this.sessionModel, body);
+  sessionHandoff(@JSONBody() body: unknown): Promise<AuthResponse> {
+    return authRoutes.redeemSessionHandoff(
+      this.sessionModel,
+      assertValidation(body, (value) => authSchema.sessionHandoff.parse(value)),
+    );
   }
 
   @Post("/request-2fa-email")
-  request2FAEmail(
-    @JSONBody() body: Parameters<typeof authRoutes.request2FAEmail>[1],
-  ) {
-    return authRoutes.request2FAEmail(this.userModel, body);
+  request2FAEmail(@JSONBody() body: unknown) {
+    return authRoutes.request2FAEmail(
+      this.userModel,
+      assertValidation(
+        body,
+        (value) => authSchema.request2FAEmail.parse(value),
+        firstIssueMessage,
+      ),
+    );
   }
 
   @Post("/refresh")
-  refresh(
-    @JSONBody() body: Parameters<typeof authRoutes.refresh>[2],
-  ): Promise<AuthResponse> {
-    return authRoutes.refresh(this.userModel, this.sessionModel, body);
+  refresh(@JSONBody() body: unknown): Promise<AuthResponse> {
+    return authRoutes.refresh(
+      this.userModel,
+      this.sessionModel,
+      assertValidation(body, (value) => authSchema.refresh.parse(value)),
+    );
   }
 
   @Post("/switch-tenant")
-  switchTenant(
-    @JSONBody() body: Parameters<typeof authRoutes.switchTenant>[2],
-  ): Promise<AuthResponse> {
-    return authRoutes.switchTenant(this.userModel, this.sessionModel, body);
+  switchTenant(@JSONBody() body: unknown): Promise<AuthResponse> {
+    return authRoutes.switchTenant(
+      this.userModel,
+      this.sessionModel,
+      assertValidation(body, (value) =>
+        authRoutes.switchTenantSchema.parse(value),
+      ),
+    );
   }
 
   @Get("/me")
@@ -168,19 +184,25 @@ export class AuthController extends Controller("/api/auth") {
   }
 
   @Post("/logout")
-  logout(
-    @AuthRawUser() user: User,
-    @JSONBody() body: Parameters<typeof authRoutes.logout>[3],
-  ) {
-    return authRoutes.logout(this.userModel, this.sessionModel, user, body);
+  logout(@AuthRawUser() user: User, @JSONBody() body: unknown) {
+    return authRoutes.logout(
+      this.userModel,
+      this.sessionModel,
+      user,
+      assertValidation(body, (value) => authSchema.logout.parse(value)),
+    );
   }
 
   @Post("/verify-email")
   verifyEmail(
     @AuthRawUser() user: User,
-    @JSONBody() body: Parameters<typeof authRoutes.verifyEmail>[2],
+    @JSONBody() body: unknown,
   ): Promise<void> {
-    return authRoutes.verifyEmail(this.userModel, user, body);
+    return authRoutes.verifyEmail(
+      this.userModel,
+      user,
+      assertValidation(body, (value) => authSchema.verifyEmail.parse(value)),
+    );
   }
 
   @Get("/request-email-verification")
@@ -189,25 +211,29 @@ export class AuthController extends Controller("/api/auth") {
   }
 
   @Post("/forgot-password")
-  forgotPassword(
-    @JSONBody() body: Parameters<typeof authRoutes.forgotPassword>[1],
-  ): Promise<void> {
-    return authRoutes.forgotPassword(this.userModel, body);
+  forgotPassword(@JSONBody() body: unknown): Promise<void> {
+    return authRoutes.forgotPassword(
+      this.userModel,
+      assertValidation(body, (value) => authSchema.forgot.parse(value)),
+    );
   }
 
   @Post("/validate-forgot-password-token")
-  validateForgotPasswordToken(
-    @JSONBody() body: Parameters<
-      typeof authRoutes.validateForgotPasswordToken
-    >[1],
-  ): Promise<void> {
-    return authRoutes.validateForgotPasswordToken(this.userModel, body);
+  validateForgotPasswordToken(@JSONBody() body: unknown): Promise<void> {
+    return authRoutes.validateForgotPasswordToken(
+      this.userModel,
+      assertValidation(body, (value) =>
+        authSchema.validateForgotPasswordToken.parse(value),
+      ),
+    );
   }
 
   @Post("/reset-password")
-  resetPassword(
-    @JSONBody() body: Parameters<typeof authRoutes.resetPassword>[2],
-  ): Promise<void> {
-    return authRoutes.resetPassword(this.userModel, this.sessionModel, body);
+  resetPassword(@JSONBody() body: unknown): Promise<void> {
+    return authRoutes.resetPassword(
+      this.userModel,
+      this.sessionModel,
+      assertValidation(body, (value) => authSchema.reset.parse(value)),
+    );
   }
 }

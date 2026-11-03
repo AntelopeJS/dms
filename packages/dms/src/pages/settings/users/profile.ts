@@ -6,7 +6,7 @@ import {
   Post,
   type RequestContext,
 } from "@antelopejs/interface-api";
-import { assert } from "@antelopejs/interface-api-util";
+import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { Model } from "@antelopejs/interface-database-decorators";
 import { SaveComponentFiles } from "@antelopejs/interface-dms/attachments";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
@@ -37,6 +37,7 @@ import {
   requestAccountDeletion,
   requireStoredUser,
 } from "./account-data-store";
+import { accountDeletionSchema } from "../../../validation";
 import { userCategory } from "./category";
 import { loadProfileAccess, type ProfileAccess } from "./profile-access";
 import {
@@ -99,6 +100,16 @@ const personalInfoForm = CustomComponent("DmsProfilePersonalInfo")
     name: `${PROFILE_TEXTS}.title`,
     icon: "i-ph-identification-card",
   });
+
+/** The 400 a profile that fails its schema answers with: the first issue, prefixed by its field. */
+function profileRefusal(error: z.ZodError): HTTPResult {
+  const [issue] = error.issues;
+  const field = issue?.path.join(".");
+  return new HTTPResult(
+    HTTP_BAD_REQUEST,
+    issue ? (field ? `${field}: ${issue.message}` : issue.message) : "",
+  );
+}
 
 @RegisterPage()
 export class ProfileSettingsController extends PageController("profile", {
@@ -183,9 +194,7 @@ export class ProfileSettingsController extends PageController("profile", {
   @Post("/")
   async updateProfile(
     @Context() context: RequestContext,
-    @JSONBody() body: Parameters<
-      typeof ProfileSettingsController.updateProfileSchema.safeParseAsync
-    >[0],
+    @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ): Promise<Partial<User>> {
     assert(
@@ -208,7 +217,13 @@ export class ProfileSettingsController extends PageController("profile", {
         before: { avatar: (await userModel.get(this.user._id))?.avatar },
       },
       async (promoted) => {
-        await this.writeProfile(promoted, userModel);
+        const parsed =
+          await ProfileSettingsController.updateProfileSchema.safeParseAsync(
+            promoted,
+          );
+        if (!parsed.success) throw profileRefusal(parsed.error);
+        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The dynamic form schema erases field-specific output types; its runtime fields match UpdateProfileInput, but the generic schema cannot establish that statically.
+        await this.writeProfile(parsed.data as UpdateProfileInput, userModel);
         const user = await userModel.get(this.user._id);
         if (!user) throw new Error("Updated profile was not found");
         return {
@@ -221,32 +236,10 @@ export class ProfileSettingsController extends PageController("profile", {
     return sanitizeUser(persistedUser);
   }
 
-  private async parseProfile(
-    body: Parameters<
-      typeof ProfileSettingsController.updateProfileSchema.safeParseAsync
-    >[0],
-  ): Promise<UpdateProfileInput> {
-    const parsed =
-      await ProfileSettingsController.updateProfileSchema.safeParseAsync(body);
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The dynamic form schema erases field-specific output types; its runtime fields match UpdateProfileInput, but the generic schema cannot establish that statically.
-    if (parsed.success) return parsed.data as UpdateProfileInput;
-
-    const [issue] = parsed.error.issues;
-    const field = issue?.path.join(".");
-    throw new HTTPResult(
-      HTTP_BAD_REQUEST,
-      issue ? (field ? `${field}: ${issue.message}` : issue.message) : "",
-    );
-  }
-
   private async writeProfile(
-    body: Parameters<
-      typeof ProfileSettingsController.updateProfileSchema.safeParseAsync
-    >[0],
+    { name, email, language, avatar }: UpdateProfileInput,
     userModel: UserModel,
   ): Promise<void> {
-    const { name, email, language, avatar } = await this.parseProfile(body);
-
     assert(
       !email || normalizeEmail(email) === this.user.email,
       HTTP_BAD_REQUEST,
@@ -294,8 +287,11 @@ export class ProfileSettingsController extends PageController("profile", {
   async deleteAccount(
     @AuthUserWithPermission(ProfileSettingsController.accountDataComponent)
     user: User,
-    @JSONBody() body: Parameters<typeof requestAccountDeletion>[1],
+    @JSONBody() body: unknown,
   ): Promise<AccountDeletionResult> {
-    return requestAccountDeletion(user, body);
+    return requestAccountDeletion(
+      user,
+      assertValidation(body, (value) => accountDeletionSchema.parse(value)),
+    );
   }
 }
