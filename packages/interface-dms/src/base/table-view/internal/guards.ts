@@ -22,28 +22,49 @@ import { normalizeToArray } from "./row-rules";
 
 type GuardedActionName = "edit" | "delete" | "archive" | "restore" | "new";
 
-const JSON_VALUE: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(JSON_VALUE),
-    z.record(z.string(), JSON_VALUE),
-  ]),
-);
+/** The deepest nesting of arrays and objects a guard body may have, the body itself counted. */
+const MAX_BODY_DEPTH = 64;
 
-const JSON_OBJECT = z.record(z.string(), JSON_VALUE);
+const JSON_PRIMITIVE = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+
+/** The JSON values that nest arrays and objects at most `depth` levels deep. */
+const jsonValueWithin = (depth: number): z.ZodType<JsonValue> => {
+  let level: z.ZodType<JsonValue> = JSON_PRIMITIVE;
+  for (let nesting = 0; nesting < depth; nesting += 1) {
+    level = z.union([
+      JSON_PRIMITIVE,
+      z.array(level),
+      z.record(z.string(), level),
+    ]);
+  }
+  return level;
+};
+
+const JSON_FIELDS = z.record(z.string(), z.unknown());
+
+const BOUNDED_JSON_OBJECT = z.record(
+  z.string(),
+  jsonValueWithin(MAX_BODY_DEPTH - 1),
+);
 
 /**
  * The fields of a JSON object sent as text.
  *
  * @throws SyntaxError when `text` is not JSON, TypeError when it is JSON but
- * not an object.
+ * not an object, and an HTTP 400 result when it nests arrays and objects more
+ * than {@link MAX_BODY_DEPTH} levels deep.
  */
 const parseJsonObject = (text: string) => {
-  const parsed = JSON_OBJECT.safeParse(JSON.parse(text));
-  if (!parsed.success) throw new TypeError("The JSON body is not an object");
+  const json: unknown = JSON.parse(text);
+  if (!JSON_FIELDS.safeParse(json).success) {
+    throw new TypeError("The JSON body is not an object");
+  }
+  const parsed = BOUNDED_JSON_OBJECT.safeParse(json);
+  throwHttpAssert(
+    parsed.success,
+    400,
+    `The JSON body nests more than ${MAX_BODY_DEPTH} levels deep.`,
+  );
   return parsed.data;
 };
 

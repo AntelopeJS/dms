@@ -25,6 +25,7 @@ Each section is the upgrade-notes block of one `@antelopejs/interface-dms` relea
 ### Guards
 
 - **A guard's JSON body must be an object.** When the body arrives as JSON text or bytes, the guard body decoder throws unless it holds a JSON object, so a JSON array or `null` is refused. Before, such a body was accepted. A body that is already decoded is returned as is, arrays included. This applies to every caller, the member data controllers and the table-view attachments included.
+- **A guard's JSON body is bounded in depth.** When the body arrives as JSON text or bytes, the guard body decoder, and the confirmation bodies of a guarded delete, archive or restore, answer HTTP 400 ("The JSON body nests more than 64 levels deep.") when arrays and objects nest more than 64 levels, the body object counted. Before, the decoder accepted any depth. A key named `__proto__` is dropped from the decoded fields at every depth; before, the decoder returned it as an own key.
 
 ### Peer ranges
 
