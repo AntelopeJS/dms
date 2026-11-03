@@ -9,7 +9,7 @@ import {
   helioProjectTasks,
   type FixtureRow,
   type FixtureValue,
-} from "./helio";
+} from "./helio.ts";
 
 /**
  * Where the documentation examples read and write their rows: routes of the
