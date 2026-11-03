@@ -31,6 +31,11 @@ Each section is the upgrade-notes block of one `@antelopejs/interface-dms` relea
 - **A guard's JSON body must be an object.** When the body arrives as JSON text or bytes, the guard body decoder throws unless it holds a JSON object, so a JSON array or `null` is refused. Before, such a body was accepted. A body that is already decoded is returned as is, arrays included. This applies to every caller, the member data controllers and the table-view attachments included.
 - **A guard's JSON body is bounded in depth.** When the body arrives as JSON text or bytes, the guard body decoder, and the confirmation bodies of a guarded delete, archive or restore, answer HTTP 400 ("The JSON body nests more than 64 levels deep.") when arrays and objects nest more than 64 levels, the body object counted. Before, the decoder accepted any depth. A key named `__proto__` is dropped from the decoded fields at every depth; before, the decoder returned it as an own key.
 
+### Attachments
+
+- **`internal.SaveTableViewAttachments` answers nothing.** Its result type moves from `Promise<unknown>` to `Promise<void>`, and `withFilePromotion` keeps the wrapped route's own answer type. So `TableViewRoutes.New`, `TableViewRoutes.new` and the `new` route of a data controller built from them are typed with the saved row `{ _id: string }` instead of `unknown`. The proxy is `@internal` and had no caller outside `@antelopejs/dms`. HTTP answers are unchanged ([#730](https://github.com/AntelopeJS/dms/pull/730)).
+- **An attachment save refuses a field nested more than 64 levels deep with a 400.** The body counts as level 1, and the answer is "The JSON body nests more than 64 levels deep." Before, such a field overflowed the stack with a `RangeError`. Bodies within the bound are saved as before ([#728](https://github.com/AntelopeJS/dms/pull/728)).
+
 ### Peer ranges
 
 Four peer floors rise since interface-dms 0.10.3. npm refuses an older copy of any of them beside interface-dms 0.12.0, and pnpm reports the mix.

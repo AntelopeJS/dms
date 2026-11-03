@@ -6,10 +6,7 @@ import {
   unlock,
 } from "@antelopejs/interface-database-decorators";
 import { fetchRowForGuard } from "../db";
-import type {
-  AttachmentField,
-  internal,
-} from "@antelopejs/interface-dms/attachments";
+import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
 import type { TableViewAttachmentSaveRequest } from "@antelopejs/interface-dms/internal/attachments";
 import { parseGuardBody } from "@antelopejs/interface-dms/base/table-view/internal/guards";
 import {
@@ -71,7 +68,7 @@ function retainedFiles(
 /** Keeps the database/registry implementation out of host modules' interfaces. */
 export async function SaveTableViewAttachments(
   request: TableViewAttachmentSaveRequest,
-): Promise<Awaited<ReturnType<typeof internal.SaveTableViewAttachments>>> {
+): Promise<void> {
   const { controller, route, context, params, args, mode, componentIds } =
     request;
   const fields = tableAttachmentFields(
@@ -111,7 +108,7 @@ export async function SaveTableViewAttachments(
       if (typeof id !== "string" || !id) denyAttachment();
       const document = await loadDocument(controller, fields, id);
       if (!document) denyAttachment();
-      return { id, document, result };
+      return { id, document, result: undefined };
     },
   );
 }
@@ -135,9 +132,9 @@ async function deleteDocuments(request: DeleteDocumentsRequest) {
   );
   return SaveComponentFiles(
     { context, componentIds, fields, before, submitted: {} },
-    async () => ({
-      result: await route.func.call(controller, context, params, ...args),
-      document: {},
-    }),
+    async () => {
+      await route.func.call(controller, context, params, ...args);
+      return { result: undefined, document: {} };
+    },
   );
 }
