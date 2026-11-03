@@ -18,8 +18,8 @@ const USERNAME_TAKEN_KEY = "$demo.form_pages.username_taken";
 const ADDRESS_FIELD = "address";
 const POSTAL_CODE_PART = "postalCode";
 
-function refuseTakenUsername(username: DemoRecord["username"]): void {
-  if (username !== TAKEN_USERNAME) return;
+function refuseTakenUsername(body: DemoRecord): void {
+  if (body.username !== TAKEN_USERNAME) return;
   throw new HTTPResult(
     HTTP_CONFLICT,
     JSON.stringify({
@@ -31,8 +31,8 @@ function refuseTakenUsername(username: DemoRecord["username"]): void {
   );
 }
 
-function refuseUnknownPostalCode(address: DemoRecord["address"]): void {
-  if (address?.postalCode !== UNKNOWN_POSTAL_CODE) return;
+function refuseUnknownPostalCode(body: DemoRecord): void {
+  if (body[ADDRESS_FIELD]?.postalCode !== UNKNOWN_POSTAL_CODE) return;
   throw new HTTPResult(
     HTTP_BAD_REQUEST,
     JSON.stringify([
@@ -58,8 +58,8 @@ export class FormRequiredAPIController extends Controller(
 
   @Put("submit")
   async submit(@JSONBody() body: DemoRecord) {
-    refuseTakenUsername(body.username);
-    refuseUnknownPostalCode(body[ADDRESS_FIELD]);
+    refuseTakenUsername(body);
+    refuseUnknownPostalCode(body);
     const parsed = await formSchema(PageFormRequired.form).safeParseAsync(body);
     if (!parsed.success) {
       throw new HTTPResult(
