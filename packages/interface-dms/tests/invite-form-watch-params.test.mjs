@@ -40,11 +40,12 @@ async function paramsOnInviteForm(watchActions) {
   });
   /** @type {unknown} */
   const resolved = await ResolveComponentSlots({
-    form: { slotId: INVITE_FORM_SLOT_ID, fields: [{ id: "emails" }] },
+    componentName: "dms-form",
+    options: { slotId: INVITE_FORM_SLOT_ID, fields: [{ id: "emails" }] },
   });
   clearInviteExtensions();
-  assert.ok(isObject(resolved) && "form" in resolved);
-  const { form } = resolved;
+  assert.ok(isObject(resolved) && "options" in resolved);
+  const { options: form } = resolved;
   assert.ok(isObject(form) && "watchActions" in form);
   const { watchActions: served } = form;
   assert.ok(Array.isArray(served));
