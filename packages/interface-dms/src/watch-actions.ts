@@ -19,8 +19,7 @@ export interface WatchAction {
   component: string;
   event: string;
   functionId: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Application watch handlers own parameter schemas; narrowing this published transport contract would reject existing handlers.
-  params?: Record<string, unknown>;
+  params?: object;
   onParam?: WatchActionCondition | WatchActionCondition[];
   requirePermission?: string;
 }
