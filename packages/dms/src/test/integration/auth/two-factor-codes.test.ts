@@ -53,7 +53,8 @@ const POLL_INTERVAL_MS = 50;
 const TEST_TIMEOUT_MS = 20 * 1000;
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function currentTotpCode(secret: string): Promise<string> {
   const leftInStep = TOTP_STEP_MS - (Date.now() % TOTP_STEP_MS);

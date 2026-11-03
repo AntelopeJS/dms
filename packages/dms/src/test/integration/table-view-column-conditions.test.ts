@@ -1,3 +1,4 @@
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { z } from "zod";
@@ -34,9 +35,9 @@ describe("[integration] table view column conditions", () => {
     client = authorizedClient(owner.accessToken);
   });
 
-  const create = (body: Parameters<AxiosInstance["post"]>[1]) =>
+  const create = (body: JsonValue) =>
     client.post(`${LOCATION}/new`, body, { validateStatus: () => true });
-  const edit = (id: string, body: Parameters<AxiosInstance["put"]>[1]) =>
+  const edit = (id: string, body: JsonValue) =>
     client.put(`${LOCATION}/edit?id=${id}`, body, {
       validateStatus: () => true,
     });

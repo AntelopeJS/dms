@@ -16,6 +16,7 @@ import {
   type UserInvite,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
 import { generateAccessToken } from "@antelopejs/interface-dms/auth";
 
@@ -54,11 +55,7 @@ export async function createUser(): Promise<User> {
   return user;
 }
 
-export async function directAdd(
-  extensions: NonNullable<
-    Parameters<typeof inviteUserToTenant>[0]["extensions"]
-  >,
-) {
+export async function directAdd(extensions: Record<string, JsonValue>) {
   const user = await createUser();
   const result = await inviteUserToTenant({
     tenantId: TENANT,
