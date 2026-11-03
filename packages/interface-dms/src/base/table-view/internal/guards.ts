@@ -22,29 +22,83 @@ import { normalizeToArray } from "./row-rules";
 
 type GuardedActionName = "edit" | "delete" | "archive" | "restore" | "new";
 
-const JSON_VALUE: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(JSON_VALUE),
-    z.record(z.string(), JSON_VALUE),
-  ]),
-);
+/** The deepest nesting of arrays and objects a guard body may have, the body itself counted. */
+const MAX_BODY_DEPTH = 64;
 
-const JSON_OBJECT = z.record(z.string(), JSON_VALUE);
+const JSON_PRIMITIVE = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+
+const JSON_FIELDS = z.record(z.string(), z.unknown());
+
+/**
+ * Whether the arrays and objects below `members` nest more than `limit` levels
+ * deep, `members` being the values of the level-1 container. It walks one level
+ * at a time and stops at level `limit + 1`, so it neither recurses nor visits
+ * what lies below that level.
+ */
+const nestsDeeperThan = (members: unknown[], limit: number) => {
+  let level = [members];
+  for (let depth = 1; level.length > 0; depth += 1) {
+    if (depth > limit) return true;
+    const below: unknown[][] = [];
+    for (const values of level) {
+      for (const value of values) {
+        if (value instanceof Object) below.push(Object.values(value));
+      }
+    }
+    level = below;
+  }
+  return false;
+};
+
+/**
+ * A copy of the arrays and objects below `entries`, the entries of the level-1
+ * object, without recursion. A key named `__proto__` is left out at every depth,
+ * as the top-level record parse leaves it out.
+ */
+const copyJsonFields = (entries: [string, unknown][]) => {
+  const fields: Record<string, JsonValue> = {};
+  const pending: [
+    [string, unknown][],
+    JsonValue[] | Record<string, JsonValue>,
+  ][] = [[entries, fields]];
+  for (let item = pending.pop(); item; item = pending.pop()) {
+    const [members, target] = item;
+    for (const [key, child] of members) {
+      if (key === "__proto__") continue;
+      let value: JsonValue;
+      if (Array.isArray(child)) {
+        value = [];
+        pending.push([Object.entries(child), value]);
+      } else if (child instanceof Object) {
+        value = {};
+        pending.push([Object.entries(child), value]);
+      } else {
+        value = JSON_PRIMITIVE.parse(child);
+      }
+      if (Array.isArray(target)) target.push(value);
+      else target[key] = value;
+    }
+  }
+  return fields;
+};
 
 /**
  * The fields of a JSON object sent as text.
  *
  * @throws SyntaxError when `text` is not JSON, TypeError when it is JSON but
- * not an object.
+ * not an object, and an HTTP 400 result when it nests arrays and objects more
+ * than {@link MAX_BODY_DEPTH} levels deep.
  */
 const parseJsonObject = (text: string) => {
-  const parsed = JSON_OBJECT.safeParse(JSON.parse(text));
-  if (!parsed.success) throw new TypeError("The JSON body is not an object");
-  return parsed.data;
+  const json: unknown = JSON.parse(text);
+  const fields = JSON_FIELDS.safeParse(json);
+  if (!fields.success) throw new TypeError("The JSON body is not an object");
+  throwHttpAssert(
+    !nestsDeeperThan(Object.values(fields.data), MAX_BODY_DEPTH),
+    400,
+    `The JSON body nests more than ${MAX_BODY_DEPTH} levels deep.`,
+  );
+  return copyJsonFields(Object.entries(fields.data));
 };
 
 /**
