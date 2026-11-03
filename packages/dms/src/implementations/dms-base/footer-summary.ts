@@ -55,64 +55,54 @@ const anyOf = (
 ): Condition =>
   operands.map((operand): Condition => value.eq(operand)).reduce(either, false);
 
-type FieldComparison = (
-  value: ValueProxy<unknown>,
-  operand: RuleOperand,
-) => Condition;
+const isOperandList = (value: unknown[]): value is RuleOperand[] =>
+  isRuleOperand(value);
 
-// SAFETY: compileRowRule rejects a rule whose dispatched in/notIn operand is no array (rowRuleProblem) before this table runs, so the operand is an array.
-const FIELD_COMPARISONS = new Map<string, FieldComparison>([
-  ["equals", (value, operand) => value.eq(operand)],
-  ["notEquals", (value, operand) => value.ne(operand)],
-  ["in", (value, operands) => anyOf(value, operands as readonly RuleOperand[])],
-  [
-    "notIn",
-    (value, operands) =>
-      negate(anyOf(value, operands as readonly RuleOperand[])),
-  ],
-]);
+const plainValuesError = (operator: string): Error =>
+  new Error(`Malformed row rule: ${operator} must hold plain values`);
 
-type RuleCompiler = (
-  rule: RowActionRule | RowActionRule[],
+function compileLogical(
+  rule: RowActionRule,
   read: FieldReader,
-) => Condition;
-
-// SAFETY: compileRowRule rejects a rule whose dispatched logical operand is no array of rules (and/or) or no rule (not) (rowRuleProblem) before this table runs.
-const LOGICAL_COMPILERS = new Map<string, RuleCompiler>([
-  [
-    "and",
-    (rules, read) =>
-      (rules as RowActionRule[])
-        .map((rule) => compileChecked(rule, read))
-        .reduce(both, true),
-  ],
-  [
-    "or",
-    (rules, read) =>
-      (rules as RowActionRule[])
-        .map((rule) => compileChecked(rule, read))
-        .reduce(either, false),
-  ],
-  ["not", (rule, read) => negate(compileChecked(rule as RowActionRule, read))],
-]);
-
-function compileChecked(rule: RowActionRule, read: FieldReader): Condition {
-  const record: RuleRow = rule;
-  for (const [operator, compile] of LOGICAL_COMPILERS) {
-    if (Object.hasOwn(record, operator)) {
-      // SAFETY: rowRuleProblem has checked the operand shape of a logical operator, an array of rules for and/or and a rule for not.
-      return compile(record[operator] as RowActionRule | RowActionRule[], read);
-    }
+): Condition | undefined {
+  if (Object.hasOwn(rule, "and") && "and" in rule) {
+    return rule.and
+      .map((child) => compileChecked(child, read))
+      .reduce(both, true);
   }
-  for (const [operator, compare] of FIELD_COMPARISONS) {
-    if (!Object.hasOwn(record, operator)) continue;
-    const operand = record[operator];
-    if (!isRuleOperand(operand)) {
-      throw new Error(`Malformed row rule: ${operator} must hold plain values`);
-    }
-    return compare(read(String(record.field)), operand);
+  if (Object.hasOwn(rule, "or") && "or" in rule) {
+    return rule.or
+      .map((child) => compileChecked(child, read))
+      .reduce(either, false);
+  }
+  if (Object.hasOwn(rule, "not") && "not" in rule) {
+    return negate(compileChecked(rule.not, read));
+  }
+  return undefined;
+}
+
+function compileComparison(rule: RowActionRule, read: FieldReader): Condition {
+  if (Object.hasOwn(rule, "equals") && "equals" in rule) {
+    if (!isRuleOperand(rule.equals)) throw plainValuesError("equals");
+    return read(String(rule.field)).eq(rule.equals);
+  }
+  if (Object.hasOwn(rule, "notEquals") && "notEquals" in rule) {
+    if (!isRuleOperand(rule.notEquals)) throw plainValuesError("notEquals");
+    return read(String(rule.field)).ne(rule.notEquals);
+  }
+  if (Object.hasOwn(rule, "in") && "in" in rule) {
+    if (!isOperandList(rule.in)) throw plainValuesError("in");
+    return anyOf(read(String(rule.field)), rule.in);
+  }
+  if (Object.hasOwn(rule, "notIn") && "notIn" in rule) {
+    if (!isOperandList(rule.notIn)) throw plainValuesError("notIn");
+    return negate(anyOf(read(String(rule.field)), rule.notIn));
   }
   return true;
+}
+
+function compileChecked(rule: RowActionRule, read: FieldReader): Condition {
+  return compileLogical(rule, read) ?? compileComparison(rule, read);
 }
 
 /**
