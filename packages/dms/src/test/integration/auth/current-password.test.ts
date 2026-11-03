@@ -1,5 +1,8 @@
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { SessionModel } from "@antelopejs/interface-dms/auth/db";
 import type { AxiosInstance, AxiosResponse } from "axios";
 import { expect } from "chai";
+import { UserNotificationsModel } from "../../../db";
 import {
   authorizedClient,
   type RegisteredUser,
@@ -7,6 +10,7 @@ import {
 } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { captureEmails } from "../../helpers/emails";
+import { findUserByEmail } from "../../helpers/fixtures";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 const SECURITY = pageRoutePath("/settings/user/security");
@@ -49,6 +53,14 @@ describe("[integration] auth/current password re-check", function () {
   const enableTotp = (currentPassword: string) =>
     client.post(`${SECURITY}/two-factor/enable-totp`, { currentPassword });
 
+  const storedState = async () => ({
+    account: await findUserByEmail(user.email),
+    sessions: await GetModel(SessionModel).getByUserId(user.userId),
+    notifications: await GetModel(UserNotificationsModel).getByUserId(
+      user.userId,
+    ),
+  });
+
   before(captureEmails);
 
   beforeEach(async () => {
@@ -59,11 +71,16 @@ describe("[integration] auth/current password re-check", function () {
   });
 
   it("enforces the sign-up password rules on a new password", async () => {
+    const before = await storedState();
     const weak = await client.post(`${SECURITY}/password`, {
       currentPassword: user.password,
       password: WEAK_PASSWORD,
     });
     expect(weak.status, JSON.stringify(weak.data)).to.equal(HTTP_BAD_REQUEST);
+    expect(
+      await storedState(),
+      "a refused password writes nothing",
+    ).to.deep.equal(before);
 
     const strong = await changePassword(user.password);
     expect(strong.status, JSON.stringify(strong.data)).to.equal(HTTP_OK);
