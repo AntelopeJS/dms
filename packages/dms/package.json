@@ -42,6 +42,7 @@
     "dist",
     "!dist/.tsbuildinfo",
     "!dist/test",
+    "checks",
     "frontend-vue",
     "!frontend-vue/tests",
     "!frontend-vue/vitest.config.ts",
@@ -116,7 +117,7 @@
   },
   "devDependencies": {
     "@antelopejs/core": ">=1.17.0 <2",
-    "@antelopejs/tooling-configs": "file:../../.campaign/tgz/antelopejs-tooling-configs-13ae798.tgz",
+    "@antelopejs/tooling-configs": "file:../../.campaign/tgz/antelopejs-tooling-configs-adf87a5.tgz",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
     "@types/jsonwebtoken": "^9.0.10",
@@ -148,7 +149,10 @@
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json",
-    "./checks/api-error-presentation": "./frontend-vue/scripts/check-api-error-presentation.mjs",
+    "./checks/api-error-presentation": {
+      "types": "./checks/api-error-presentation.d.mts",
+      "default": "./frontend-vue/scripts/check-api-error-presentation.mjs"
+    },
     "./interfaces/*": null
   },
   "publishConfig": {
