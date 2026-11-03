@@ -1,14 +1,11 @@
 {
   "pack": "0.2.18",
   "rules": {
-    "antelopejs/no-inherited-key-lookup": 5,
     "anti-slop/no-reflect-get": 2,
-    "anti-slop/no-runtime-typeof": 8,
     "anti-slop/no-unknown-returns": 1,
-    "typescript/no-unsafe-argument": 7,
-    "typescript/no-unsafe-assignment": 25,
-    "typescript/no-unsafe-return": 20,
-    "typescript/unbound-method": 7
+    "typescript/no-unsafe-argument": 4,
+    "typescript/no-unsafe-assignment": 19,
+    "typescript/no-unsafe-return": 15
   },
   "oversizeFiles": {}
 }
