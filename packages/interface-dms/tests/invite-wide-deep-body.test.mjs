@@ -60,16 +60,24 @@ function element(kind, containers) {
 /**
  * About 1 MiB of JSON: an array of elements, each nested `containers` levels
  * deep, so held by a field of the body it is `containers + 2` levels deep. The
- * first element may be nested differently from the rest.
+ * first and the last element may be nested differently from the rest.
  *
- * @param {{ kind: "array" | "object", containers: number, firstContainers?: number }} shape
+ * @param {{ kind: "array" | "object", containers: number, firstContainers?: number, lastContainers?: number }} shape
  * @returns {string}
  */
-function wideArray({ kind, containers, firstContainers = containers }) {
+function wideArray({
+  kind,
+  containers,
+  firstContainers = containers,
+  lastContainers = containers,
+}) {
   const each = element(kind, containers);
   const head = `[${element(kind, firstContainers)}`;
-  const count = Math.floor((BODY_BYTES - head.length - 1) / (each.length + 1));
-  return `${head}${`,${each}`.repeat(count)}]`;
+  const tail = `,${element(kind, lastContainers)}]`;
+  const count = Math.floor(
+    (BODY_BYTES - head.length - tail.length) / (each.length + 1),
+  );
+  return `${head}${`,${each}`.repeat(count)}${tail}`;
 }
 
 /**
@@ -205,6 +213,23 @@ for (const { flow, collect } of flows) {
 
     assertRefusedInTime(timed(() => collect(body)));
   });
+
+  for (const kind of /** @type {const} */ (["array", "object"])) {
+    await test(`${flow}: one ${BOUND + 1}-deep ${kind} element last among ${BOUND}-deep siblings answers 400 in time and in memory`, () => {
+      registerBilling();
+      const body = {
+        billing__note: parse(
+          wideArray({
+            kind,
+            containers: BOUND - 2,
+            lastContainers: BOUND - 1,
+          }),
+        ),
+      };
+
+      assertRefusedInTime(timed(() => collect(body)));
+    });
+  }
 
   await test(`${flow}: a ${BODY_BYTES}-byte body of many fields ${BOUND} levels deep is accepted and ${BOUND + 1} levels answer 400, in time and in memory`, () => {
     registerBilling();

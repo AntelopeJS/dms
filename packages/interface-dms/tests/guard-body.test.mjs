@@ -16,6 +16,7 @@ const NOT_OBJECTS = ["null", "5", '"text"', "true", "[1]", "[]"];
 
 const MAX_DEPTH = 64;
 const TOO_DEEP = 10_000;
+const SIBLINGS = 64;
 
 /**
  * A JSON object body that nests arrays or objects `levels` deep, the body
@@ -146,6 +147,47 @@ for (const container of ["array", "object"]) {
     assertRefusedAs400(
       refusal(() => parseGuardBody(nestedBody(MAX_DEPTH + 1, container))),
       "one past the bound",
+    );
+  });
+}
+
+/**
+ * @param {"array" | "object"} container
+ * @param {number} containers
+ */
+const element = (container, containers) =>
+  container === "array"
+    ? "[".repeat(containers) + "]".repeat(containers)
+    : '{"a":'.repeat(containers) + "1" + "}".repeat(containers);
+
+/**
+ * `{"k":[E,...,E,L]}`: `siblings` elements of `containers` levels, then one of
+ * `lastContainers`. The body and the `k` array count as two levels.
+ *
+ * @param {"array" | "object"} container
+ * @param {number} lastContainers
+ */
+const withLastElement = (container, lastContainers) => {
+  const elements = Array(SIBLINGS).fill(element(container, MAX_DEPTH - 2));
+  elements.push(element(container, lastContainers));
+  return `{"k":[${elements.join(",")}]}`;
+};
+
+for (const container of ["array", "object"]) {
+  await test(`${container} siblings ${MAX_DEPTH} levels deep are decoded whole`, () => {
+    const body = withLastElement(container, MAX_DEPTH - 2);
+    assert.equal(JSON.stringify(parseGuardBody(body)), body);
+  });
+
+  await test(`one ${MAX_DEPTH + 1}-deep ${container} element last among ${MAX_DEPTH}-deep siblings answers 400`, () => {
+    const body = withLastElement(container, MAX_DEPTH - 1);
+    assertRefusedAs400(
+      refusal(() => parseGuardBody(body)),
+      "text",
+    );
+    assertRefusedAs400(
+      refusal(() => parseGuardBody(Buffer.from(body))),
+      "bytes",
     );
   });
 }
