@@ -6,7 +6,7 @@ const NEW_ROUTE = "/api/native-attachments/new";
 const BODY_BYTES = 1024 * 1024;
 const WIDE_ENTRIES = 200_000;
 const WIDE_KEYS = 100_000;
-const TOO_DEEP = 10_000;
+const TOO_DEEP = [1_088, 1_640, 5_000, 10_000, 100_000];
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const REFUSAL = "The JSON body nests more than 64 levels deep.";
@@ -58,15 +58,17 @@ describe("[integration] the table-view save route bounds the depth of its body",
   const reader = (readerId: string) => `"readerId":"${readerId}",`;
 
   for (const container of CONTAINERS) {
-    it(`answers 400 to a body ${TOO_DEEP} ${container} levels deep`, async () => {
-      const { response } = await post(
-        () => `{"files":${nest(container, TOO_DEEP - 1)}}`,
-      );
-      expect(response.status, JSON.stringify(response.data)).to.equal(
-        HTTP_BAD_REQUEST,
-      );
-      expect(JSON.stringify(response.data)).to.contain(REFUSAL);
-    });
+    for (const levels of TOO_DEEP) {
+      it(`answers 400 to a body ${levels} ${container} levels deep`, async () => {
+        const { response } = await post(
+          () => `{"files":${nest(container, levels - 1)}}`,
+        );
+        expect(response.status, JSON.stringify(response.data)).to.equal(
+          HTTP_BAD_REQUEST,
+        );
+        expect(JSON.stringify(response.data)).to.contain(REFUSAL);
+      });
+    }
 
     it(`answers 400 to 1 MiB of ${container} elements 65 levels deep, within the time limit`, async () => {
       const { response, milliseconds } = await post((readerId) =>
