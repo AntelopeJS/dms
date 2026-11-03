@@ -18,6 +18,17 @@ await test("a JSON object body decodes to its fields, as text or bytes", () => {
   });
 });
 
+await test("nested JSON values keep their shape through the decoder", () => {
+  const text =
+    '{"list":[1,{"flag":true,"none":null}],"inner":{"deep":["x",[]]}}';
+  const expected = {
+    list: [1, { flag: true, none: null }],
+    inner: { deep: ["x", []] },
+  };
+  assert.deepEqual(parseGuardBody(text), expected);
+  assert.deepEqual(parseGuardBody(Buffer.from(text)), expected);
+});
+
 await test("a body that is already decoded, or absent, keeps its answers", () => {
   const decoded = { title: "Plan" };
   assert.equal(parseGuardBody(decoded), decoded);
