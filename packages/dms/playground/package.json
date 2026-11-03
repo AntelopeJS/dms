@@ -9,11 +9,13 @@
     "build": "rimraf dist && tsc",
     "test": "pnpm build && node checks/aliases.cjs && node --test checks/imports.test.mjs dist/prototype-keys.test.js && node --import ./checks/resolve-ts.mjs --test checks/docs-fixtures.test.mjs",
     "dev": "ajs project run -w",
-    "frontend:dev": "ajs dms dev"
+    "frontend:dev": "ajs dms dev",
+    "frontend:build": "ajs dms build",
+    "frontend:start": "ajs dms start -b http://127.0.0.1:5010"
   },
   "devDependencies": {
     "@antelopejs/core": ">=1.17.0 <2",
-    "@antelopejs/dms-frontend": "file:../../../.campaign/tgz/antelopejs-dms-frontend-3f6c787.tgz",
+    "@antelopejs/dms-frontend": "file:../../../.campaign/tgz/antelopejs-dms-frontend-e07a04a.tgz",
     "@types/node": "^24.19.2",
     "prettier": "^3.9.10",
     "rimraf": "^6.1.3",
@@ -33,7 +35,7 @@
     "@antelopejs/interface-core": "file:../../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz",
     "@antelopejs/interface-data-api": "file:../../../.campaign/tgz/antelopejs-interface-data-api-bca1ca6.tgz",
     "@antelopejs/interface-database": "file:../../../.campaign/tgz/antelopejs-interface-database-1ade334.tgz",
-    "@antelopejs/interface-database-decorators": "file:../../../.campaign/tgz/antelopejs-interface-database-decorators-1234214.tgz",
+    "@antelopejs/interface-database-decorators": "file:../../../.campaign/tgz/antelopejs-interface-database-decorators-4a959c7.tgz",
     "@antelopejs/interface-dms": "workspace:*",
     "zod": "~3.24.4"
   }

@@ -7,7 +7,7 @@
  * registered formatter must write its text through the application's
  * composer instead, in its active locale.
  */
-import { createApp, defineComponent, h } from "vue";
+import { createApp, defineComponent, h, isVNode } from "vue";
 import { createI18n, useI18n } from "vue-i18n";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
@@ -156,6 +156,64 @@ describe("data-type formatters outside a component setup", () => {
   });
 });
 
+function mountRenderer<R>(use: () => R) {
+  let renderer: R | undefined;
+  const app = createApp(
+    defineComponent({
+      setup() {
+        renderer = use();
+        return () => null;
+      },
+    }),
+  );
+  app.use(i18n);
+  app.mount(document.createElement("div"));
+  return {
+    app,
+    renderer: (): R => {
+      if (renderer === undefined) throw new Error("setup did not run");
+      return renderer;
+    },
+  };
+}
+
+describe("the price formatter", () => {
+  it("writes euros by default and the currency the field states", () => {
+    const price = dataTypes.get("price")!.formatter!.default;
+    expect(price(12, "en-GB", undefined)).toBe("€12.00");
+    expect(price(12, "en-GB", { currency: "USD" })).toBe("US$12.00");
+  });
+
+  it("writes a column's currency into a footer sum and a display cell", async () => {
+    const { useColumnValueRenderer } = await import(
+      "../layers/dms-ui/app/entries/composables/data-types/useColumnValueRenderer"
+    );
+    const { renderer, app } = mountRenderer(useColumnValueRenderer);
+    try {
+      const text = (node: unknown): string =>
+        isVNode(node) ? String(node.children) : String(node);
+      const typed = {
+        accessorKey: "total",
+        type: {
+          id: "price",
+          inputComponent: { options: { currency: "USD" } },
+        },
+      };
+      const displayed = {
+        accessorKey: "total",
+        type: { id: "number" },
+        display: { type: "price", options: { currency: "USD" } },
+      };
+      expect(text(renderer().renderValue(typed, 5, undefined))).toBe("US$5.00");
+      expect(text(renderer().renderValue(displayed, 5, undefined))).toBe(
+        "US$5.00",
+      );
+    } finally {
+      app.unmount();
+    }
+  });
+});
+
 describe("a catalog-like table drawn after its setup", () => {
   const columns = {
     image: { accessorKey: "image", type: { id: "image" } },
@@ -206,27 +264,17 @@ describe("a catalog-like table drawn after its setup", () => {
     const { useColumnValueRenderer } = await import(
       "../layers/dms-ui/app/entries/composables/data-types/useColumnValueRenderer"
     );
-    let renderer: ReturnType<typeof useColumnValueRenderer> | undefined;
-    const app = createApp(
-      defineComponent({
-        setup() {
-          renderer = useColumnValueRenderer();
-          return () => null;
-        },
-      }),
-    );
-    app.use(i18n);
-    app.mount(document.createElement("div"));
+    const { renderer, app } = mountRenderer(useColumnValueRenderer);
     try {
       for (const column of Object.values(columns)) {
-        expect(() => renderer!.renderColumnValue(column, row)).not.toThrow();
+        expect(() => renderer().renderColumnValue(column, row)).not.toThrow();
         expect(() =>
-          renderer!.renderColumnValue(column, row, "detail"),
+          renderer().renderColumnValue(column, row, "detail"),
         ).not.toThrow();
       }
 
       expect(() =>
-        renderer!.renderValue(columns.price, 9999, undefined),
+        renderer().renderValue(columns.price, 9999, undefined),
       ).not.toThrow();
     } finally {
       app.unmount();

@@ -115,15 +115,15 @@ export interface ConfirmPartialOutcome {
 }
 
 /**
- * Thrown by `onConfirm` with a message already worded for users (a title and
- * its reason): the modal shows both in its error alert, as they are.
+ * Thrown by `onConfirm` with a fallback translation key and optional params.
+ * A translated server reason retained in `cause` takes precedence.
  */
 export class ConfirmActionError extends Error {
-  readonly description?: string;
+  readonly params?: ApiErrorParams;
 
-  constructor(notice: ConfirmNotice) {
-    super(notice.title);
-    this.description = notice.description;
+  constructor(options: ResolveApiErrorOptions, cause?: ErrorOptions) {
+    super(options.fallbackKey, cause);
+    this.params = options.params;
   }
 }
 

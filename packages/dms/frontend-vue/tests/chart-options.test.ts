@@ -33,7 +33,9 @@ describe("typed X axis", () => {
 
   it("preserves defaults when settings are absent or empty", () => {
     const baseline = sectionIn(optionsFor({}), "xaxis");
-    expect(sectionIn(optionsFor({ xAxis: {} }), "xaxis")).toEqual(baseline);
+    expect(
+      JSON.stringify(sectionIn(optionsFor({ xAxis: {} }), "xaxis")),
+    ).toEqual(JSON.stringify(baseline));
     expect(baseline.type).toBe("category");
     expect(baseline.tickAmount).toBeUndefined();
     expect(sectionIn(baseline, "labels").datetimeUTC).toBe(false);
@@ -73,7 +75,8 @@ describe("typed X axis", () => {
         "xaxis",
       );
       const labels = sectionIn(axis, "labels");
-      expect(labels.formatter).toBe(formatter);
+      const drawn = labels.formatter as typeof formatter;
+      expect(drawn("16", 7)).toBe(formatter("16", 7));
       expect(labels.format).toBe(
         xaxisType === "datetime" ? "dd MMM" : undefined,
       );
@@ -110,9 +113,8 @@ describe("typed X axis", () => {
     input.xAxis = undefined;
     input.xAxisFormatter = undefined;
     expect(sectionIn(chart.options.value, "xaxis").tickAmount).toBeUndefined();
-    expect(
-      sectionIn(sectionIn(chart.options.value, "xaxis"), "labels").formatter,
-    ).toBeUndefined();
+    const labels = sectionIn(sectionIn(chart.options.value, "xaxis"), "labels");
+    expect((labels.formatter as (value: string) => string)("16")).toBe("16");
   });
 });
 

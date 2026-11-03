@@ -12,7 +12,7 @@ const props = defineProps<AuthFormAlertProps>();
   <UAlert
     v-if="props.error"
     role="alert"
-    color="error"
+    :color="props.error.severity"
     variant="subtle"
     icon="i-ph-warning-circle"
     :title="props.error.title"

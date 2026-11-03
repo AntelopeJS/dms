@@ -32,6 +32,7 @@ const props = withDefaults(defineProps<GuardProps>(), {
 });
 
 const { t } = useI18n();
+const { resolveError } = useApiErrorPresenter();
 
 const state = useGuard(
   () => props,
@@ -44,7 +45,7 @@ const DEFAULT_FALLBACKS: Record<
 > = {
   empty: () => ({ title: t("dms.blocks.empty") }),
   notFound: ({ notFound }) => ({
-    ...notFoundTexts(notFound, t),
+    ...notFoundTexts(notFound, t, resolveError),
     variant: "no-result",
   }),
 };

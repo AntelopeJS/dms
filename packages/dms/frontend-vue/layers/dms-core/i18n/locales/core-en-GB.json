@@ -17,6 +17,7 @@
     }
   },
   "error": {
+    "read_only_demo": "Read-only demo, changes are not saved",
     "401": {
       "title": "Access denied",
       "description": "You don't have permission to access this page."
@@ -63,6 +64,7 @@
     "invite_used": "This invitation was already used. Please log in.",
     "onboarding_already_completed": "Onboarding already completed.",
     "admin_already_set": "An administrator account already exists.",
+    "invalid_setup_token": "The setup token is missing or wrong. Use the address in the server log, or the value of DMS_SETUP_TOKEN.",
     "user_creation_failed": "The user account could not be created. Please try again.",
     "settings_not_found": "General settings not found.",
     "token_expired": "The validation code has expired.",

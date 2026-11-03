@@ -5,7 +5,7 @@ import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 
 const authFetch = vi.fn();
-const toastAdd = vi.fn();
+const toastAdd = vi.fn(() => ({ id: "failure" }));
 let scope: EffectScope;
 
 function readRecord() {
@@ -75,8 +75,8 @@ describe("a form whose record read fails", () => {
     await expect(readRecord()).rejects.toThrow("Forbidden");
     expect(toastAdd).toHaveBeenCalledOnce();
     expect(toastAdd.mock.calls[0][0]).toMatchObject({
-      title: "$dms.form.fetch_error_title",
-      description: "forbidden",
+      title: "dms.form.fetch_error_unknown",
+      description: undefined,
     });
   });
 

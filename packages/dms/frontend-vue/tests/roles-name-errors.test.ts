@@ -13,7 +13,6 @@ import {
 } from "vue";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { useTranslation } from "../layers/dms-core/app/composables/translation/useTranslation";
-import { useApiError } from "../layers/dms-core/app/composables/useApiError";
 import { useConfirm } from "../layers/dms-ui/app/composables/confirm/useConfirm";
 import SaveBar from "../layers/dms-ui/app/components/save-bar/SaveBar.vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
@@ -28,7 +27,7 @@ const ROLE = {
   members: [],
   permissions: [],
 };
-const addToast = vi.fn();
+const addToast = vi.fn(() => ({ id: "failure" }));
 const write = vi.fn();
 const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
   if (url.endsWith("/overview"))
@@ -162,7 +161,6 @@ beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
   vi.stubGlobal("useTranslation", useTranslation);
-  vi.stubGlobal("useApiError", useApiError);
   vi.stubGlobal("useConfirm", useConfirm);
   vi.stubGlobal("interpolateUrl", interpolateUrl);
   vi.stubGlobal("useHomepage", () => "/");
@@ -227,7 +225,7 @@ it("keeps a failure tied to no field as a toast", async () => {
   await save();
   expect(nameError()).toBeNull();
   expect(addToast).toHaveBeenCalledWith(
-    expect.objectContaining({ color: "error" }),
+    expect.objectContaining({ color: "warning" }),
   );
 });
 

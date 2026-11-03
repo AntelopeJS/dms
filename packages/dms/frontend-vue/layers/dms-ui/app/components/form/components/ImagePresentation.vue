@@ -168,7 +168,7 @@ const {
             <span
               class="bg-error rounded-md px-2 py-0.5 text-[11px] font-semibold text-white"
             >
-              {{ t(failureLabelKey(item)!) }}
+              {{ item.errorMessage ?? t(failureLabelKey(item)!) }}
             </span>
             <UButton
               v-if="item.file"
@@ -311,7 +311,7 @@ const {
             <span
               class="bg-error rounded-md px-2 py-0.5 text-[11px] font-semibold text-white"
             >
-              {{ t(failureLabelKey(singleItem)!) }}
+              {{ singleItem.errorMessage ?? t(failureLabelKey(singleItem)!) }}
             </span>
             <UButton
               v-if="singleItem.file"

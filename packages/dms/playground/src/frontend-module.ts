@@ -3,7 +3,7 @@ import type {
   FrontendModuleFunction,
   FrontendModuleRegistration,
 } from "@antelopejs/interface-dms/page";
-import { WEBHOOK_SIGNATURE_HEADER, WEBHOOKS_API } from "./hooks/webhooks";
+import { WEBHOOK_SIGNATURE_HEADER, WEBHOOKS_API } from "./hooks/webhook-route";
 
 /**
  * The playground's Vue frontend layer: what `start` registers with

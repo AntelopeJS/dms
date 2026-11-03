@@ -25,7 +25,7 @@ const platform = {
 };
 
 await test("TLC prints the answers as strings, and the view words each one", () => {
-  assert.deepEqual(answers, ["none", "200", "400", "412", "500"]);
+  assert.deepEqual(answers, ["none", "200", "400", "403", "412", "500"]);
   const words = answers
     .filter((answer) => answer !== "none")
     .map(
@@ -39,6 +39,7 @@ await test("TLC prints the answers as strings, and the view words each one", () 
   assert.deepEqual(words, [
     "Answered 200",
     "Answered 400 admin_already_set",
+    "Answered 403 invalid_setup_token",
     "Answered 412 onboarding_already_completed",
     "Answered 500",
   ]);

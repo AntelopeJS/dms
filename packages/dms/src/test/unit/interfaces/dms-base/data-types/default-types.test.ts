@@ -243,6 +243,19 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(type.getValidation().safeParse(-1).success).to.equal(false);
       expect(type.getValidation().safeParse(0).success).to.equal(true);
     });
+
+    it("carries its currency to the description columns and cells read", () => {
+      const type = new DefaultDataTypes.PriceType({ currency: "USD" });
+      expect(type.inputComponent().options).to.deep.include({
+        currency: "USD",
+      });
+      expect(type.getValidation().safeParse(-1).success).to.equal(false);
+    });
+
+    it("states no currency by default", () => {
+      const type = new DefaultDataTypes.PriceType();
+      expect(type.inputComponent().options).to.not.have.property("currency");
+    });
   });
 
   describe("PercentageType defaults", () => {

@@ -31,7 +31,9 @@ manifest, including the `exports` entries for an interface subpath).
 when they provide none (`dms-lang`, `dms-saas`); consumed interfaces are plain `dependencies`
 (no manifest field). Typical dependencies: `@antelopejs/dms` plus
 `@antelopejs/interface-{core,api,api-util,auth,database,database-decorators}`. The frontend is
-attached at runtime by the `AddFrontendModule` call in `construct`; there is no manifest field for it.
+attached by the `AddFrontendModule` call in `construct` and declared as `"dmsFrontend": "dist/frontend-module.js"`
+in `package.json`: `ajs dms dev`, `build` and `start` read that declaration, not the backend, and leave
+out a module without it.
 
 **Ship a skill.** Add `skills/<module-name>/SKILL.md` (frontmatter `name`, a trigger-rich
 `description`, `icon`, `category`, `tags`) saying when and how to use the module, list `"skills"` in
@@ -81,7 +83,10 @@ export function destroy(): void { /* deactivate subscriptions */ }
 
 `RegisterModule` runs at import time (top level), so the module exists before its pages
 register — it returns the module's root `CategoryInfo`. `AddFrontendModule` is what surfaces the
-module's frontend; without it the module is backend-only.
+module's frontend; without it the module is backend-only. Keep its argument in a pure
+`export function frontendModule(config, { dev })` in `src/frontend-module.ts` (no runtime imports:
+`ajs dms build` loads that file on its own) and call `AddFrontendModule(frontendModule(config, …))`,
+as the official modules do; `dmsFrontend` names its compiled file.
 
 `renderer` names the framework (Vue 3), not a loader release. The `@antelopejs/dms-frontend`
 releases the frontend module runs on go in the frontend module's own `package.json`, as

@@ -75,7 +75,7 @@ function registerMappedFieldErrorTests() {
     });
   });
 
-  it("matches a code with or without its $ prefix and can reword it", () => {
+  it("preserves the server code and a mapped fallback separately", () => {
     const resolution = resolveFieldErrors(
       { statusCode: 409, data: "$page.settings.roles.error.name_taken" },
       {
@@ -88,7 +88,13 @@ function registerMappedFieldErrorTests() {
         },
       },
     );
-    expect(resolution.fields).toEqual([{ field: "name", message: "own.key" }]);
+    expect(resolution.fields).toEqual([
+      {
+        field: "name",
+        message: "$page.settings.roles.error.name_taken",
+        fallbackKey: "own.key",
+      },
+    ]);
   });
 
   it("accepts a mapped code on a 401, as a refused two-factor code is", () => {

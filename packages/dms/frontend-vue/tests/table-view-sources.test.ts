@@ -126,8 +126,8 @@ function registerTableSourceQueryTests() {
     });
     await controller.countBatch([{ id: "all", query: {} }]);
     expect(controllerApi).toHaveBeenCalledWith("/api/runs/count/batch", {
-      method: "POST",
-      body: { queries: [{ id: "all", query: {} }] },
+      query: { query: ["all?"] },
+      signal: undefined,
     });
   });
 }

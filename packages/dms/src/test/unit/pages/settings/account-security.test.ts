@@ -55,7 +55,7 @@ function buildUser(password: string | null): User {
     twoFactorMethods: [],
     twoFactorBackupCodes: [],
 
-    testHash: (_field: string, candidate: string) =>
+    testHashAsync: async (_field: string, candidate: string) =>
       candidate === CURRENT_PASSWORD,
   } as unknown as User;
 }

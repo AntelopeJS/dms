@@ -1,6 +1,7 @@
 {
   "navigation": {
-    "goToHomepage": "Aller à la page d'accueil"
+    "goToHomepage": "Aller à la page d'accueil",
+    "goToBrandHomepage": "{name}, aller à la page d'accueil"
   },
   "header": {
     "home": "Accueil",
@@ -874,10 +875,6 @@
         "builder": {
           "title": "Builder",
           "description": "Modifie les pages, tableaux et formulaires du projet, en n’écrivant que du code qui compile."
-        },
-        "cicd": {
-          "title": "Publication",
-          "description": "Versions, environnements et déploiements de votre projet via git."
         },
         "database": {
           "title": "Base de données",

@@ -119,12 +119,13 @@ describe("deep link to a row the table does not list", () => {
   });
 
   it("marks a refused read as failed and finds nothing without a row route", async () => {
+    const error = Object.assign(new Error("Forbidden"), { status: 403 });
     const refused = async () => {
-      throw Object.assign(new Error("Forbidden"), { status: 403 });
+      throw error;
     };
     expect(
       await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow: refused }),
-    ).toEqual({ isMissing: false, isFailed: true });
+    ).toEqual({ isMissing: false, isFailed: true, error });
     const noRoute = async () => undefined;
     expect(
       await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow: noRoute }),

@@ -1,5 +1,6 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import { computed } from "vue";
+import { stringifyQuery, withQuery } from "ufo";
 import { interpolateUrl } from "#dms-core/app/utils/url-interpolation";
 import { isString } from "#dms-core/app/utils/type-check";
 import type {
@@ -58,6 +59,48 @@ const DESCENDING = "desc";
  */
 export const LIVE_HELD_AT_QUERY_KEY = "liveHeldAt";
 const NO_ROUTE_VALUES: ReplaceUrlVariablesContext = { routeQuery: {} };
+const MAX_BATCH_COUNT_QUERIES = 50;
+const MAX_BATCH_COUNT_TARGET_BYTES = 8_192;
+
+function encodeCountQuery({ id, query }: TableCountQuery): string {
+  const values = Object.fromEntries(
+    Object.entries(query)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => [
+        key,
+        Array.isArray(value) ? value.map(String) : String(value),
+      ]),
+  );
+  return `${encodeURIComponent(id)}?${stringifyQuery(values)}`;
+}
+
+function countBatchTargetBytes(location: string, entries: string[]): number {
+  const url = new URL(location, "http://dms.invalid");
+  const target = withQuery(url.pathname + url.search, { query: entries });
+  return new TextEncoder().encode(target).byteLength;
+}
+
+function packCountQueries(
+  location: string,
+  queries: TableCountQuery[],
+): string[][] {
+  const batches: string[][] = [];
+  let batch: string[] = [];
+  for (const entry of queries.map(encodeCountQuery)) {
+    if (
+      batch.length > 0 &&
+      (batch.length >= MAX_BATCH_COUNT_QUERIES ||
+        countBatchTargetBytes(location, [...batch, entry]) >
+          MAX_BATCH_COUNT_TARGET_BYTES)
+    ) {
+      batches.push(batch);
+      batch = [];
+    }
+    batch.push(entry);
+  }
+  batches.push(batch);
+  return batches;
+}
 
 type SourceCapabilities = TableViewSourceConfig["capabilities"];
 
@@ -347,11 +390,16 @@ export function useTableRows<T extends Record<string, unknown>>(
     signal?: AbortSignal,
   ): Promise<Record<string, number>> => {
     if (!source) {
-      return api<Record<string, number>>(`${location}/count/batch`, {
-        method: "POST",
-        body: { queries },
-        signal,
-      });
+      const endpoint = `${location}/count/batch`;
+      const counts = await Promise.all(
+        packCountQueries(endpoint, queries).map((entries) =>
+          api<Record<string, number>>(endpoint, {
+            query: { query: entries },
+            signal,
+          }),
+        ),
+      );
+      return Object.assign({}, ...counts);
     }
     const totals = await Promise.all(
       queries.map(async ({ id, query }) => {

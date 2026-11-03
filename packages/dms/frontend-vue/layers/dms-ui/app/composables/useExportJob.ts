@@ -94,7 +94,7 @@ function createExportToasts(
 ) {
   const toast = useToast();
   const { t } = useI18n();
-  const { processApiMessage } = useTranslation();
+  const { presentError } = useApiErrorPresenter();
   const { $authFetch } = useAuthFetch();
 
   function resolveLabels(
@@ -152,14 +152,13 @@ function createExportToasts(
 
   function buildRetryActions(
     opts: RunExportJobOptions,
-    labels: UseExportJobLabels,
     getCurrentToastId: () => string | number,
-  ): { label: string; onClick: () => void }[] | undefined {
+  ): ApiErrorAction[] | undefined {
     if (opts.retryable === false) return undefined;
     return [
       {
-        label: labels.retry,
-        onClick: () => {
+        labelKey: opts.labels?.retry ?? "dms.table.export.retry",
+        onSelect: () => {
           toast.remove(getCurrentToastId());
           void runJob(opts);
         },
@@ -170,39 +169,13 @@ function createExportToasts(
   function showFailure(
     toastId: string | number,
     opts: RunExportJobOptions,
-    labels: UseExportJobLabels,
-    error?: string,
-  ): string | number {
-    let newId: string | number = toastId;
-    newId = replaceProgressToast(toastId, {
-      color: Color.error,
-      icon: "i-ph-warning",
-      title: labels.errorTitle,
-      description: error ? processApiMessage(error) : labels.fallbackErrorTitle,
-      duration: EXPORT_TOAST_DURATION,
-      progress: true,
-      actions: buildRetryActions(opts, labels, () => newId),
+    error: unknown,
+  ): void {
+    presentError(error, {
+      fallbackKey: opts.labels?.errorTitle ?? "dms.table.export.error_title",
+      replaceToastId: toastId,
+      actions: buildRetryActions(opts, () => toastId),
     });
-    return newId;
-  }
-
-  function showError(
-    toastId: string | number,
-    opts: RunExportJobOptions,
-    labels: UseExportJobLabels,
-    error: Error,
-  ): string | number {
-    let newId: string | number = toastId;
-    newId = replaceProgressToast(toastId, {
-      color: Color.error,
-      icon: "i-ph-warning",
-      title: labels.fallbackErrorTitle,
-      description: processApiMessage(error.message),
-      duration: EXPORT_TOAST_DURATION,
-      progress: true,
-      actions: buildRetryActions(opts, labels, () => newId),
-    });
-    return newId;
   }
 
   return {
@@ -212,7 +185,6 @@ function createExportToasts(
     updateProgressToast,
     showSuccess,
     showFailure,
-    showError,
   };
 }
 
@@ -352,25 +324,10 @@ async function readExportStream(
   return new Blob(chunks as BlobPart[]);
 }
 
-function getErrorMessage(
-  error: Parameters<typeof apiErrorText>[0],
-): string | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- These fields are not validated as strings; preserve optional property access, getter order, and truthy non-string forwarding for malformed errors.
-  const err = error as { data?: string; message?: string };
-  const data = err?.data;
-  const message = err?.message;
-  return data || message;
-}
-
 export const useExportJob = () => {
   const context = createExportToasts((opts) => runJob(opts));
-  const {
-    resolveLabels,
-    createExportToast,
-    showSuccess,
-    showFailure,
-    showError,
-  } = context;
+  const { resolveLabels, createExportToast, showSuccess, showFailure } =
+    context;
   const {
     startJob,
     resolveStatusUrl,
@@ -404,10 +361,7 @@ export const useExportJob = () => {
       );
       showSuccess(exportToast.id, labels);
     } catch (error) {
-      const message = getErrorMessage(error);
-      if (message) showFailure(exportToast.id, opts, labels, message);
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejections are not checked as Error; retain showError's existing message access and failure behavior for malformed values.
-      else showError(exportToast.id, opts, labels, error as Error);
+      showFailure(exportToast.id, opts, error);
     }
   }
 

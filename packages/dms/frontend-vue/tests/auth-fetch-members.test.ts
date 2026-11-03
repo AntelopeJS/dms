@@ -15,6 +15,11 @@ vi.stubGlobal("useDmsRuntimeConfig", () => ({
 }));
 vi.stubGlobal("useDmsApp", () => ({ $i18n: { locale: ref("fr") } }));
 vi.stubGlobal("HTTP_UNAUTHORIZED", 401);
+const addToast = vi.fn();
+vi.stubGlobal("useToast", () => ({ add: addToast }));
+vi.stubGlobal("getAppTranslation", () => ({
+  processApiMessage: (key: string) => key,
+}));
 vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: ref(true) }));
 const refreshSession = vi.fn(async () => true);
 vi.stubGlobal("useSessionRecovery", () => ({
@@ -54,10 +59,13 @@ const json = (body: object, status = 200) =>
     headers: { "content-type": "application/json" },
   });
 
-function authFetch() {
+function authFetch(realtimeSessionId?: string) {
   const app = createApp({});
   engine.provideDmsFrontendRuntime(app, engine.createDmsFrontendRuntime());
-  return app.runWithContext(() => useAuthFetch()).$authFetch;
+  return app.runWithContext(() => {
+    engine.useDmsState("dms.realtime.sessionId", () => realtimeSessionId);
+    return useAuthFetch();
+  }).$authFetch;
 }
 
 beforeEach(() => {
@@ -65,6 +73,7 @@ beforeEach(() => {
   answers.length = 0;
   platformFetch.mockClear();
   refreshSession.mockClear();
+  addToast.mockClear();
   vi.stubGlobal("fetch", platformFetch);
 });
 
@@ -121,4 +130,58 @@ it("hands native calls to the platform fetch, as any $fetch.create instance does
   ).resolves.toBe(answer);
 
   expect(platformFetch).toHaveBeenCalledWith("https://files.test/export.csv");
+});
+
+it("leaves presentation to the caller after a 401 retry fails", async () => {
+  const refusal = json(
+    { message: "error.read_only_demo", severity: "warning" },
+    403,
+  );
+  answers.push(json({ message: "expired" }, 401), refusal);
+  await expect(
+    authFetch().raw("/api/orders", { method: "PUT" }),
+  ).rejects.toMatchObject({
+    response: refusal,
+  });
+  expect(refreshSession).toHaveBeenCalledOnce();
+  expect(addToast).not.toHaveBeenCalled();
+  expect(sent.map(({ retry }) => retry)).toEqual([null, "1"]);
+});
+
+it.each(["call", "raw", "create.raw"] as const)(
+  "keeps %s refusals rejected with their response and no session recovery",
+  async (member) => {
+    const refusal = json({ message: "Forbidden" }, 403);
+    answers.push(refusal);
+    const api = authFetch();
+    const invoke = {
+      call: () => api("/api/orders", { method: "PUT" }),
+      raw: () => api.raw("/api/orders", { method: "PUT" }),
+      "create.raw": () => api.create({ method: "PUT" }).raw("/api/orders"),
+    };
+    await expect(invoke[member]()).rejects.toMatchObject({ response: refusal });
+    expect(addToast).not.toHaveBeenCalled();
+    expect(refreshSession).not.toHaveBeenCalled();
+  },
+);
+
+it("keeps raw success data and auth headers across a session retry", async () => {
+  const api = authFetch("session-42");
+  const answer = json({ id: "raw-order" });
+  answers.push(json({ message: "expired" }, 401), answer);
+  const result = await api.raw("/api/orders", {
+    headers: { "x-content-language": "nl" },
+  });
+  expect(result).toBe(answer);
+  expect(result._data).toEqual({ id: "raw-order" });
+  expect(sent[0]).toMatchObject({
+    url: "https://backend.test/api/orders",
+    language: "nl",
+  });
+  expect(refreshSession).toHaveBeenCalledOnce();
+  expect(
+    new Headers(platformFetch.mock.calls[1]?.[1]?.headers).get(
+      "x-realtime-session",
+    ),
+  ).toBe("session-42");
 });

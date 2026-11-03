@@ -1,5 +1,121 @@
 # Changelog
 
+## v0.15.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.14.0...v0.15.0)
+
+### 🚀 Enhancements
+
+- **dms-ui:** State the data state of each data block on its root element ([#585](https://github.com/AntelopeJS/dms/pull/585))
+
+### 🩹 Fixes
+
+- **table-view:** Currency on prices, settled counters, no add without a new route ([#611](https://github.com/AntelopeJS/dms/pull/611))
+- **interface-dms:** Name a bucketed series' periods for a person, 202608 as Aug 2026 ([#617](https://github.com/AntelopeJS/dms/pull/617))
+- **chart:** Thin the category x-axis labels of a long series so they never overlap ([#626](https://github.com/AntelopeJS/dms/pull/626))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.10.3 ([53af1aad](https://github.com/AntelopeJS/dms/commit/53af1aad))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.14.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.13.1...v0.14.0)
+
+### 💅 Refactors
+
+- **frontend:** ⚠️  Remove API error migration helpers ([#638](https://github.com/AntelopeJS/dms/pull/638))
+
+#### ⚠️ Breaking Changes
+
+- **frontend:** ⚠️  Remove API error migration helpers ([#638](https://github.com/AntelopeJS/dms/pull/638))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.13.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.13.0...v0.13.1)
+
+### 🩹 Fixes
+
+- **frontend:** Run the API error CLIs when pnpm links the package ([#634](https://github.com/AntelopeJS/dms/pull/634))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
+## v0.13.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.12.1...v0.13.0)
+
+### 🩹 Fixes
+
+- **chart:** Draw only the fetched series that carry their points ([#587](https://github.com/AntelopeJS/dms/pull/587))
+- **store:** Remove the archived CI/CD module from the catalog ([#609](https://github.com/AntelopeJS/dms/pull/609))
+- **tenants:** Resume the default tenant's provisioning after start ([#613](https://github.com/AntelopeJS/dms/pull/613))
+- **dms-ui:** Hydrate keyboard hints with the platform the server rendered ([#442](https://github.com/AntelopeJS/dms/pull/442))
+- **dms-ui:** Print Nuxt UI key hints for the dashboard's keyboard platform ([#541](https://github.com/AntelopeJS/dms/pull/541))
+- **playground:** Declare the playground's frontend, so dev and production include it ([#441](https://github.com/AntelopeJS/dms/pull/441))
+- **frontend:** Unify API error presentation ([#614](https://github.com/AntelopeJS/dms/pull/614))
+
+### 📖 Documentation
+
+- **readme:** Restore the realtime updates line and the live preview wording ([#589](https://github.com/AntelopeJS/dms/pull/589))
+- **readme:** Remove the How AntelopeJS makes money section ([#592](https://github.com/AntelopeJS/dms/pull/592))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.10.2 ([7b173edb](https://github.com/AntelopeJS/dms/commit/7b173edb))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
+## v0.12.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.12.0...v0.12.1)
+
+### 🚀 Enhancements
+
+- **dms-layout:** Restore a static GitHub star link in the footer ([#546](https://github.com/AntelopeJS/dms/pull/546))
+- **dms:** Support a read-only public demo ([#581](https://github.com/AntelopeJS/dms/pull/581))
+
+### 🩹 Fixes
+
+- **store:** Reuse the runtime id of an uninstalled module on reinstall ([#547](https://github.com/AntelopeJS/dms/pull/547))
+- **chart:** Draw the one point per group a series data source answers ([#586](https://github.com/AntelopeJS/dms/pull/586))
+
+### 💅 Refactors
+
+- **frontend:** Remove type assertions in tests ([#525](https://github.com/AntelopeJS/dms/pull/525))
+- **frontend:** Remove type assertions in core, auth and layout ([#526](https://github.com/AntelopeJS/dms/pull/526))
+- **frontend:** Remove type assertions in ui components and composables ([#527](https://github.com/AntelopeJS/dms/pull/527))
+- **frontend:** Remove type assertions in ui data types ([#528](https://github.com/AntelopeJS/dms/pull/528))
+- **backend:** Remove SAFETY assertions in test fixtures ([#542](https://github.com/AntelopeJS/dms/pull/542))
+- **backend:** Remove SAFETY assertions in serialized-option and fixture tests ([#543](https://github.com/AntelopeJS/dms/pull/543))
+- **agents:** Fix the lint findings in dms's own agent files ([#548](https://github.com/AntelopeJS/dms/pull/548))
+
+### 📖 Documentation
+
+- **readme:** Rewrite the README as a landing page ([#554](https://github.com/AntelopeJS/dms/pull/554))
+
+### 🏡 Chore
+
+- **package:** Update the npm description and keywords ([#580](https://github.com/AntelopeJS/dms/pull/580))
+- **package:** Restore realtime in the npm description ([#588](https://github.com/AntelopeJS/dms/pull/588))
+- **release:** @antelopejs/interface-dms v0.10.1 ([6fd39d98](https://github.com/AntelopeJS/dms/commit/6fd39d98))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.12.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.11.1...v0.12.0)

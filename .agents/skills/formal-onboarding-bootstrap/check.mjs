@@ -19,8 +19,7 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 
 /** Rules main breaks on every instance, with the states in TLC's shortest counterexample. */
 const RACE_FINDINGS = {
-  AtMostOneOwner: 5,
-  RefusedRegisterCreatedNoUser: 8,
+  RefusedRegisterCreatedNoUser: 9,
 };
 
 /** Rules main breaks only when auth.oauth.allowAccountCreation is on. */

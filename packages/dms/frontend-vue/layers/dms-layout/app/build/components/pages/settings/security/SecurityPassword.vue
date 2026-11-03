@@ -36,10 +36,11 @@ const CONFIRM_FIELD_ID = "security-confirm-password";
 
 const { t } = useI18n();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { $authFetch } = useAuthFetch();
 const { processApiMessage } = useTranslation();
 const { overview, refresh } = useSecurityOverview();
-const { formatDate, daysSince, errorMessage } = useSecurityFormat();
+const { formatDate, daysSince } = useSecurityFormat();
 const { passwordSchema } = usePasswordStrength(ref(""));
 const adoptSessionHandoff = useSessionHandoff();
 
@@ -170,9 +171,8 @@ async function submit(): Promise<void> {
       document.getElementById(CURRENT_FIELD_ID)?.focus();
       return;
     }
-    toast.add({
-      title: errorMessage(error, "page.settings.security.password.error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.security.password.error",
     });
   } finally {
     isSaving.value = false;

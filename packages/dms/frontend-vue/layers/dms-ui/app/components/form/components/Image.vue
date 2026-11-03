@@ -39,6 +39,7 @@ interface ImageProps {
 }
 
 const props = defineProps<ImageProps>();
+const { resolveError } = useApiErrorPresenter();
 const emit = defineEmits<{
   "update:modelValue": [ImageItemValue | ImageItemValue[] | null];
 }>();
@@ -206,8 +207,11 @@ const runUpload = async (item: GalleryItem) => {
     item.progress = 100;
     ensurePrincipal();
     emitValue();
-  } catch (_error) {
+  } catch (error) {
     item.status = "error";
+    item.errorMessage = resolveError(error, {
+      fallbackKey: "dms.form.image.upload_failed",
+    })?.message;
   } finally {
     setFieldLoading?.(item.id, false);
   }

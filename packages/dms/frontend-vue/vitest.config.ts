@@ -42,6 +42,7 @@ export default defineConfig({
     tsconfigRaw: "{}",
   },
   test: {
+    setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.ts"],
   },
 });

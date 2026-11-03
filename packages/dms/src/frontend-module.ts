@@ -55,6 +55,7 @@ export const frontendModule: FrontendModuleFunction<Config> = (
         MILLISECONDS_PER_SECOND,
     },
     homepage: config.homepage ?? DEFAULT_HOMEPAGE,
+    ...(config.loginPrefill && { loginPrefill: { ...config.loginPrefill } }),
     oauthProviders: describeEnabledOAuthProviders(config.auth?.oauth).map(
       ({ id, label, icon }) => ({ id, label, icon }),
     ),

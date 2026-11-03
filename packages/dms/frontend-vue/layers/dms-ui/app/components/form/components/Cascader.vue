@@ -60,7 +60,7 @@ const invalid = computed(() => fieldColor.value === "error");
 
 const instanceId = useId();
 const { $authFetch } = useAuthFetch();
-const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 
@@ -77,11 +77,7 @@ const { data, status, execute } = await useDmsAsyncData(
     return $authFetch<CascaderResponse>(url, {
       params: { limit: CASCADER_FETCH_LIMIT },
       onRequestError: ({ error }: { error: Error }) => {
-        toast.add({
-          color: Color.error,
-          title: t("dms.form.error_title"),
-          description: error.message,
-        });
+        presentError(error, { fallbackKey: "dms.form.error_title" });
       },
     });
   },

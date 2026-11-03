@@ -49,6 +49,7 @@ export function useTableRecordLink<T>(
   options: TableRecordLinkOptions<T>,
 ): TableRecordLink {
   const { action, urlScope } = options;
+  const { presentError } = useApiErrorPresenter();
 
   let linkedId: string | undefined;
 
@@ -62,7 +63,9 @@ export function useTableRecordLink<T>(
     if (outcome === "missingPanel") return options.showMissing(id);
     writeRecordId(urlScope);
     if (linkedId === id) linkedId = undefined;
-    options.notify(outcome);
+    if (outcome === "notifyFailed")
+      presentError(found.error, { fallbackKey: "dms.table.load_error_title" });
+    else options.notify(outcome);
   };
 
   const follow = (query: LocationQuery) => {

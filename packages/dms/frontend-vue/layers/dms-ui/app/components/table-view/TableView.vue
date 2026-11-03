@@ -18,6 +18,10 @@ import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDeta
 import LiveHoldBanner from "../../build/components/table-view/LiveHoldBanner.vue";
 import TableViews from "../../build/components/table/Views.vue";
 import { useTableViewSetup } from "../../build/composables/table-view/tableViewSetup";
+import {
+  resolveBlockState,
+  useBlockStateAttributes,
+} from "../../build/composables/blocks/blockDataState";
 
 interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Expandable rows: caret column + detail band (backend `expandable`). */
@@ -143,18 +147,27 @@ const {
   handleRowEdit,
   contextForSlot,
 } = useTableViewSetup<T>(props);
+
+const blockAttributes = useBlockStateAttributes("TableView", () =>
+  resolveBlockState({
+    loading: isListLoading.value,
+    failed: Boolean(listLoadError.value || listNotFound.value),
+    hasContent: (shownResults.value?.length ?? 0) > 0,
+  }),
+);
 </script>
 
 <template>
   <DmsBlockStatus
     v-if="listNotFound"
+    v-bind="blockAttributes"
     state="not-found"
     :not-found="listNotFound"
   />
   <UTable
     v-else
     ref="tableRoot"
-    v-bind="tableProps"
+    v-bind="{ ...tableProps, ...blockAttributes }"
     v-model:pagination="paginationState"
     v-model:global-filter="globalFilter"
     v-model:sorting="sorting"

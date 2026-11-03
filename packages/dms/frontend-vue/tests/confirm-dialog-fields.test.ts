@@ -307,7 +307,7 @@ function registerConfirmationFieldTests(
     await fixture.flush();
 
     expect(fixture.host.querySelector("em")?.textContent).toBe(
-      "t($page.settings.roles.error.invalid_reassign)",
+      "page.settings.roles.error.invalid_reassign",
     );
     expect(fixture.closed).not.toHaveBeenCalled();
   });

@@ -27,7 +27,8 @@ const capitalized = (/** @type {string | undefined} */ name = "") => name.charAt
 
 const REGISTER = new Map([
   ["idle", "Not sent"],
-  ["insert", "Found no user"],
+  ["claim", "Found no user"],
+  ["insert", "Spent the setup token"],
   ["tenant", "Created the admin as owner"],
   ["readState", "Made the admin tenant owner"],
   ["writeState", "Found onboarding open"],
@@ -36,6 +37,7 @@ const REGISTER = new Map([
 const ANSWER = new Map([
   ["200", "Answered 200"],
   ["400", "Answered 400 admin_already_set"],
+  ["403", "Answered 403 invalid_setup_token"],
   ["412", "Answered 412 onboarding_already_completed"],
   ["500", "Answered 500"],
 ]);
@@ -83,7 +85,9 @@ function moved(from, to, field) {
 
 /** @type {Record<string, (who?: string, to?: string) => string>} */
 const STEPS = {
-  RegReadUsers: (who, to) => (to === "insert" ? `${who} finds no user` : `${who} finds a user`),
+  RegReadUsers: (who, to) => (to === "claim" ? `${who} finds no user` : `${who} finds a user`),
+  RegClaim: (who, to) =>
+    to === "insert" ? `${who} spends the setup token` : `${who} finds the setup token spent`,
   RegInsert: (who) => `${who} creates the admin as owner`,
   RegTenant: (who) => `${who} makes the admin tenant owner`,
   RegReadState: (who, to) =>

@@ -73,14 +73,85 @@ describe("heatmap x-axis labels", () => {
     ).toBeUndefined();
   });
 
-  it("does not touch other charts' labels", () => {
-    const options = useApexChart(() => ({
-      type: "column",
-      series: [{ name: "A", data: [1, 2] }],
-    })).options.value;
-    // SAFETY: This column chart fixture creates xaxis.labels and leaves its optional formatter absent.
+  it("leaves a horizontal bar's labels alone", () => {
+    expect(heatmapFormatter({ type: "bar" })).toBeUndefined();
     expect(
-      (options.xaxis as { labels: { formatter?: unknown } }).labels.formatter,
-    ).toBeUndefined();
+      heatmapFormatter({ type: "bar", orientation: "vertical" }),
+    ).toBeDefined();
+  });
+});
+
+const DAYS = Array.from({ length: 90 }, (_, day) =>
+  new Date(Date.UTC(2026, 7, 4 + day)).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }),
+);
+const WIDE_GRID_WIDTH = 1500;
+
+function categoryFormatter(
+  labels: string[],
+  input: Partial<UseApexChartInput> = {},
+): LabelFormatter | undefined {
+  const options = useApexChart(() => ({
+    type: "line",
+    series: [{ name: "A", data: labels.map((x, y) => ({ x, y })) }],
+    ...input,
+  })).options.value;
+  // SAFETY: useApexChart creates xaxis.labels for these axis chart fixtures, and any formatter is the thinnedCategoryFormatter callback.
+  return (options.xaxis as { labels: { formatter?: LabelFormatter } }).labels
+    .formatter;
+}
+
+function drawn(
+  formatter: LabelFormatter,
+  labels: string[],
+  gridWidth: number,
+): string[] {
+  const w = { globals: { gridWidth, labels } };
+  return labels.map((label, i) => formatter(label, undefined, { i, w }));
+}
+
+describe("category x-axis labels of a long series", () => {
+  it.each(["line", "area", "rangeArea", "column", "mixed"] as const)(
+    "thins 90 daily labels on a %s chart",
+    (type) => {
+      const shown = drawn(
+        categoryFormatter(DAYS, { type })!,
+        DAYS,
+        WIDE_GRID_WIDTH,
+      ).filter(Boolean);
+      expect(shown.length).toBeGreaterThan(5);
+      expect(shown.length).toBeLessThan(DAYS.length / 2);
+    },
+  );
+
+  it("keeps every label of a short series", () => {
+    const six = DAYS.slice(0, 6);
+    expect(drawn(categoryFormatter(six)!, six, WIDE_GRID_WIDTH)).toEqual(six);
+  });
+
+  it("thins a datetime series drawn as buckets", () => {
+    const keys = Array.from({ length: 90 }, (_, day) =>
+      new Date(Date.UTC(2026, 7, 4 + day)).toISOString().slice(0, 10),
+    );
+    const formatter = categoryFormatter(keys, {
+      type: "column",
+      xaxisType: "datetime",
+    })!;
+    const shown = drawn(formatter, keys, WIDE_GRID_WIDTH).filter(Boolean);
+    expect(shown.length).toBeGreaterThan(5);
+    expect(shown.length).toBeLessThan(keys.length / 2);
+  });
+
+  it("respects explicit axis settings", () => {
+    for (const xAxis of [
+      { tickAmount: 6 },
+      { rotate: -45 },
+      { hideOverlappingLabels: false },
+    ])
+      expect(categoryFormatter(DAYS, { xAxis })).toBeUndefined();
   });
 });

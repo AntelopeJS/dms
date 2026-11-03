@@ -297,7 +297,13 @@ const footerItems = computed((): NavigationMenuItem[] => {
           "
           :class="isRail(sidebarRail) ? 'size-7' : 'h-12 w-auto'"
           class="object-contain"
-          :alt="t('navigation.goToHomepage')"
+          :alt="
+            appConfig.branding?.logo?.alt
+              ? t('navigation.goToBrandHomepage', {
+                  name: appConfig.branding.logo.alt,
+                })
+              : t('navigation.goToHomepage')
+          "
         />
       </DmsLink>
     </template>

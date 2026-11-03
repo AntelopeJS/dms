@@ -54,7 +54,7 @@ export async function assertCurrentPassword(
   assert(password, HTTP_BAD_REQUEST, INVALID_CURRENT_PASSWORD);
   await claimAttempt(stored._id, now);
   assert(
-    stored.testHash("password", password),
+    await stored.testHashAsync("password", password),
     HTTP_BAD_REQUEST,
     INVALID_CURRENT_PASSWORD,
   );

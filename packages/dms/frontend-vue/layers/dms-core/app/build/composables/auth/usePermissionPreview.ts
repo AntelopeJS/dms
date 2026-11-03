@@ -155,6 +155,7 @@ function createPreviewSharing() {
  */
 export function usePermissionPreview() {
   const state = usePreviewState();
+  const { presentError } = useApiErrorPresenter();
   const isActive = computed(() => state.session.value !== null);
   const hiddenEntries = computed(
     () => new Set(state.result.value?.hiddenEntries ?? []),
@@ -249,9 +250,12 @@ export function usePermissionPreview() {
       if (current !== refreshGeneration) return;
       state.result.value = result;
       state.failed.value = false;
-    } catch {
+    } catch (error) {
       if (current !== refreshGeneration) return;
       state.failed.value = true;
+      presentError(error, {
+        fallbackKey: "page.settings.roles.preview.failed",
+      });
     } finally {
       if (current === refreshGeneration) state.loading.value = false;
     }

@@ -26,12 +26,6 @@
       "category": "developer"
     },
     {
-      "id": "cicd",
-      "package": "@antelopejs-private/dms-cicd",
-      "icon": "i-ph-rocket-launch",
-      "category": "operations"
-    },
-    {
       "id": "database",
       "package": "@antelopejs/dms-database",
       "icon": "i-ph-database",
