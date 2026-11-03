@@ -4,6 +4,7 @@
 export const OPTIONS = /** @type {const} */ ({
   prepare: { type: "boolean" },
   playground: { type: "string" },
+  renderer: { type: "string" },
   runs: { type: "string" },
   "mongo-url": { type: "string" },
   env: { type: "string", multiple: true },

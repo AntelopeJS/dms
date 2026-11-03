@@ -11,7 +11,7 @@ const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
 /**
  * @typedef {{ dir: string, name: string, repo: string, config: SkillConfig, featuresDir: string, journeysDir: string, seededBreaksDir: string, seededDoorsDir: string }} Skill
- * @typedef {{ playground: string, prepare: string[][], userFacing: string[], notUserFacing: string[], smoke: string, smokeJourney: string, doors: Record<string, { globs: string[], funnels: string[], containments: string[], why: string } | null>, formal: import("./types.mjs").FormalCheck[] }} SkillConfig
+ * @typedef {{ playground: string, renderer?: string, prepare: string[][], userFacing: string[], notUserFacing: string[], smoke: string, smokeJourney: string, doors: Record<string, { globs: string[], funnels: string[], containments: string[], why: string } | null>, formal: import("./types.mjs").FormalCheck[] }} SkillConfig
  */
 
 /**
