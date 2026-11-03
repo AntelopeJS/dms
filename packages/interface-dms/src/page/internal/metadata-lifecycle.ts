@@ -38,6 +38,7 @@ export {
   prepareUploadOptions,
   prepareUploadRegistration,
   finishUploadRegistration,
+  registerNativeUploadField,
 } from "./metadata-upload-registration";
 export {
   removeStaleExtensions,

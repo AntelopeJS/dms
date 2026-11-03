@@ -1,7 +1,7 @@
 /** @internal */
 import type { ComponentInfoSerialized } from "../../component";
 import type { NativeUploadFieldRegistration } from "../../internal/uploads";
-import { internal as uploadInternal } from "../../uploads";
+import { internal as uploadInternal, SignUploadToken } from "../../uploads";
 import type { PageMetadata } from "../metadata";
 import { metadataOwner } from "./metadata-owner";
 import {
@@ -84,4 +84,24 @@ export function finishUploadRegistration(
   const fields = owner.nativeUploadFields.get(phase.componentId) ?? [];
   fields.push(phase.registration);
   owner.nativeUploadFields.set(phase.componentId, fields);
+}
+
+/** @internal */
+export async function registerNativeUploadField(
+  page: PageMetadata,
+  node: UploadFieldNode,
+  componentName: string,
+  componentId: string,
+  path: string[],
+): Promise<void> {
+  const phase = prepareUploadRegistration(
+    page,
+    node,
+    componentName,
+    componentId,
+    path,
+  );
+  if (!phase) return;
+  phase.options.uploadToken = await SignUploadToken(phase.registration);
+  finishUploadRegistration(page, phase);
 }

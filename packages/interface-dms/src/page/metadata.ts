@@ -17,8 +17,6 @@ import {
   type PageLayout,
   type PageLayoutRequest,
 } from "./types";
-import type { UploadFieldNode } from "./internal/metadata-uploads";
-import { SignUploadToken } from "../uploads";
 // oxlint-disable-next-line import/no-cycle -- Category proxies are read after evaluation.
 import * as metadata from "./internal/metadata-lifecycle";
 
@@ -463,29 +461,11 @@ export class PageMetadata {
     // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized options may be primitives; recurse only through objects.
     if (!value || typeof value !== "object") return;
     if (metadata.isNativeUploadField(value)) {
-      await this.registerNativeUploadField(value, name, id, path);
+      await metadata.registerNativeUploadField(this, value, name, id, path);
     }
     for (const [key, child] of Object.entries(value)) {
       await this.bindUploadOptions(child, name, id, [...path, key]);
     }
-  }
-
-  private async registerNativeUploadField(
-    node: UploadFieldNode,
-    name: string,
-    id: string,
-    path: string[],
-  ) {
-    const phase = metadata.prepareUploadRegistration(
-      this,
-      node,
-      name,
-      id,
-      path,
-    );
-    if (!phase) return;
-    phase.options.uploadToken = await SignUploadToken(phase.registration);
-    metadata.finishUploadRegistration(this, phase);
   }
 
   private registerComponentNode(node: ComponentTreeNode) {
