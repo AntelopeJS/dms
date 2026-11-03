@@ -3,7 +3,7 @@
   "rules": {
     "anti-slop/no-reflect-get": 2,
     "anti-slop/no-unknown-returns": 1,
-    "typescript/no-unsafe-argument": 4,
+    "typescript/no-unsafe-argument": 3,
     "typescript/no-unsafe-assignment": 19,
     "typescript/no-unsafe-return": 15
   },
