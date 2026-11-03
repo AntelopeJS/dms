@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
 import { withMemberRolePicker } from "../../../../pages/members";
-import type { FormFieldSerialized } from "@antelopejs/interface-dms/base/form";
+import type { FormFieldOrGroupSerialized } from "@antelopejs/interface-dms/base/form";
 import type { EditRolePickerOptions } from "../../../../pages/members";
 
 const plainField = (id: string) => ({
@@ -12,6 +12,16 @@ const plainField = (id: string) => ({
   type: "string",
   component: { componentName: "DmsInputText" },
 });
+
+function fieldOf(item: FormFieldOrGroupSerialized | undefined) {
+  if (!item || "fields" in item) throw new Error("expected a field");
+  return item;
+}
+
+function groupOf(item: FormFieldOrGroupSerialized | undefined) {
+  if (!item || !("fields" in item)) throw new Error("expected a group");
+  return item;
+}
 
 /**
  * The members data controller declares a plain roles relation; the members
@@ -37,12 +47,8 @@ describe("[unit] pages/settings/members — the roles field", () => {
         { id: "access", label: "Access", fields: [plainField("roleIds")] },
       ],
     });
-    // SAFETY: This fixture supplies one field and one group containing one field; withMemberRolePicker only replaces components, while SlotOptions erases the fields' shape.
-    const [name, group] = options.fields as [
-      FormFieldSerialized,
-      { fields: FormFieldSerialized[] },
-    ];
-    const [roles] = group.fields;
+    const name = fieldOf(options.fields[0]);
+    const roles = fieldOf(groupOf(options.fields[1]).fields[0]);
 
     expect(name.component).to.deep.equal({ componentName: "DmsInputText" });
     expect(roles.component).to.deep.include({
@@ -55,10 +61,5 @@ describe("[unit] pages/settings/members — the roles field", () => {
       rolesUrl: "/dms/pages/settings/workspace/members/role-options",
       ownerField: "isTenantOwner",
     });
-  });
-
-  it("leaves options without fields as they are", () => {
-    const options = { title: "Change roles" };
-    expect(withMemberRolePicker(options)).to.equal(options);
   });
 });

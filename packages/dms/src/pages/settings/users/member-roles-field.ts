@@ -72,10 +72,7 @@ function withRolePicker(
 
 /** The edit form's options with the role picker on its roles field. */
 export function withMemberRolePicker(options: SlotOptions): SlotOptions {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- SlotOptions erases fields to unknown; inference and the slot owner's type cannot recover the serialized form shape, and validating arbitrary slot input would change this exported transform's acceptance.
-  const fields = options.fields as FormFieldOrGroupSerialized[] | undefined;
-  if (!fields) return options;
-  return { ...options, fields: fields.map(withRolePicker) };
+  return { ...options, fields: options.fields.map(withRolePicker) };
 }
 
 RegisterComponentSlot(MEMBER_EDIT_FORM_SLOT_ID, withMemberRolePicker);

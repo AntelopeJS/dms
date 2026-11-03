@@ -11,11 +11,6 @@ import { DEFAULT_ROW_ID_FIELD } from "../options";
 
 type ValidatedActionName = "delete" | "edit" | "archive" | "restore";
 
-enum EmptyResultBehavior {
-  Graceful = 0,
-  Strict = 1,
-}
-
 /** The parameters each validated action's route receives second. */
 interface ValidatedActionParams {
   delete: DataParameters.DeleteParameters;
@@ -24,17 +19,24 @@ interface ValidatedActionParams {
   restore: string[];
 }
 
-/** What a bulk action answers when its row rules leave it no row to run on. */
-type NoEligibleIdsResult =
-  | { deleted: number }
-  | { success: boolean; archivedCount: number }
-  | { success: boolean; restoredCount: number };
+/**
+ * What each validated action answers when its row rules leave it no row to
+ * run on. An edit has no such answer: it is refused with 403.
+ */
+interface NoEligibleIdsResults {
+  delete: { deleted: number };
+  edit: never;
+  archive: { success: boolean; archivedCount: number };
+  restore: { success: boolean; restoredCount: number };
+}
 
-interface ActionValidationConfig<P> {
-  extractIds: (params: P) => string[];
-  emptyResultBehavior: EmptyResultBehavior;
-  emptyResult?: NoEligibleIdsResult;
-  transformParams?: (params: P, eligibleIds: string[]) => P;
+interface ActionValidationConfig<K extends ValidatedActionName> {
+  extractIds: (params: ValidatedActionParams[K]) => string[];
+  noEligibleIds: () => NoEligibleIdsResults[K];
+  transformParams?: (
+    params: ValidatedActionParams[K],
+    eligibleIds: string[],
+  ) => ValidatedActionParams[K];
 }
 
 /** @internal */
@@ -43,14 +45,21 @@ export const normalizeToArray = (value: string | string[]): string[] =>
 
 /** The row-rule validation of each validated action. */
 type ActionValidationConfigs = {
-  [K in ValidatedActionName]: ActionValidationConfig<ValidatedActionParams[K]>;
+  [K in ValidatedActionName]: ActionValidationConfig<K>;
+};
+
+const refuseEdit = (): never => {
+  throwHttpAssert(
+    false,
+    403,
+    "edit not allowed: row does not satisfy action rules",
+  );
 };
 
 const ACTION_VALIDATION_CONFIGS: ActionValidationConfigs = {
   delete: {
     extractIds: (params) => normalizeToArray(params.id),
-    emptyResultBehavior: EmptyResultBehavior.Graceful,
-    emptyResult: { deleted: 0 },
+    noEligibleIds: () => ({ deleted: 0 }),
     transformParams: (params, eligibleIds) => ({
       ...params,
       id: eligibleIds,
@@ -58,18 +67,16 @@ const ACTION_VALIDATION_CONFIGS: ActionValidationConfigs = {
   },
   edit: {
     extractIds: (params) => [params.id],
-    emptyResultBehavior: EmptyResultBehavior.Strict,
+    noEligibleIds: refuseEdit,
   },
   archive: {
     extractIds: (ids) => normalizeToArray(ids),
-    emptyResultBehavior: EmptyResultBehavior.Graceful,
-    emptyResult: { success: true, archivedCount: 0 },
+    noEligibleIds: () => ({ success: true, archivedCount: 0 }),
     transformParams: (_ids, eligibleIds) => eligibleIds,
   },
   restore: {
     extractIds: (ids) => normalizeToArray(ids),
-    emptyResultBehavior: EmptyResultBehavior.Graceful,
-    emptyResult: { success: true, restoredCount: 0 },
+    noEligibleIds: () => ({ success: true, restoredCount: 0 }),
     transformParams: (_ids, eligibleIds) => eligibleIds,
   },
 };
@@ -107,20 +114,6 @@ export const extractRuleFromConfig = (
   return undefined;
 };
 
-const handleNoEligibleIds = <P>(
-  config: ActionValidationConfig<P>,
-  actionName: ValidatedActionName,
-): NoEligibleIdsResult | undefined => {
-  if (config.emptyResultBehavior === EmptyResultBehavior.Strict) {
-    throwHttpAssert(
-      false,
-      403,
-      `${actionName} not allowed: row does not satisfy action rules`,
-    );
-  }
-  return config.emptyResult;
-};
-
 /** @internal */
 export const createValidatedRoute = <
   K extends ValidatedActionName,
@@ -136,10 +129,10 @@ export const createValidatedRoute = <
   actionName: K,
 ): DataControllerCallback<
   O,
-  unknown,
+  R | NoEligibleIdsResults[K],
   [RequestContext, ValidatedActionParams[K], ...Rest]
 > => {
-  const config: ActionValidationConfig<ValidatedActionParams[K]> =
+  const config: ActionValidationConfig<K> =
     ACTION_VALIDATION_CONFIGS[actionName];
 
   return {
@@ -168,7 +161,7 @@ export const createValidatedRoute = <
       );
 
       if (eligibleIds.length === 0) {
-        return handleNoEligibleIds(config, actionName);
+        return config.noEligibleIds();
       }
 
       const finalParams = config.transformParams

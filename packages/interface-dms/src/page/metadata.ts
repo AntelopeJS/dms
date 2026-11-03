@@ -4,7 +4,6 @@ import {
   type ComponentInfo,
   type ComponentInfoSerialized,
 } from "../component";
-import type { SlotOptions } from "../component-slots";
 import { type TenantGuardOptions } from "../guards";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
 import type { ComponentTreeNode } from "./component-tree";
@@ -456,7 +455,7 @@ export class PageMetadata {
   }
 
   private async bindUploadOptions(
-    value: SlotOptions[string],
+    value: ComponentInfoSerialized["options"],
     name: string,
     id: string,
     path: string[],
