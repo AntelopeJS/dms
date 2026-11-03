@@ -28,7 +28,7 @@
     "unicorn/no-useless-spread": 4,
     "vue/no-v-html": 2
   },
-  "tsExpectError": 26,
+  "tsExpectError": 21,
   "tsIgnore": 0,
   "safety": 210,
   "config": {

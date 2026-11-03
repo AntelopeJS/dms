@@ -21,6 +21,7 @@ import { expect } from "chai";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
+import { assertRowRule } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
 import {
   Column,
   TableView,
@@ -151,31 +152,35 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
     );
   });
 
-  it("refuses a malformed where rule at declaration instead of failing a request later", () => {
-    const declare = (where: FooterRule) =>
-      optionsOf({
-        footer: { summary: [{ label: "Bad", op: "count", where }] },
-      });
+  it("refuses a malformed where rule with the row-rule check its declaration runs", () => {
+    const subject = "Bad has a malformed rule";
     expect(() =>
-      // @ts-expect-error `and` holds 123, not a list of rules, for the declaration check to refuse
-      declare({ field: "amount", equals: 41, and: 123 }),
-    ).to.throw(/footer summary "Bad".*where\.and must be an array of rules/);
+      assertRowRule(
+        { field: "amount", equals: 41, and: 123 },
+        subject,
+        "where",
+      ),
+    ).to.throw(/where\.and must be an array of rules/);
     expect(() =>
-      // @ts-expect-error `in` holds 123, not a list, beside `notIn`, for the declaration check to refuse
-      declare({ field: "amount", notIn: [41], in: 123 }),
-    ).to.throw(/footer summary "Bad".*where\.in must be an array/);
+      assertRowRule(
+        { field: "amount", notIn: [41], in: 123 },
+        subject,
+        "where",
+      ),
+    ).to.throw(/where\.in must be an array/);
     expect(() =>
-      // @ts-expect-error a nested `in` holds text, not a list, for the declaration check to refuse
-      declare({ not: { or: [{ field: "amount", in: "x" }] } }),
+      assertRowRule(
+        { not: { or: [{ field: "amount", in: "x" }] } },
+        subject,
+        "where",
+      ),
     ).to.throw(/where\.not\.or\[0\]\.in must be an array/);
-    // @ts-expect-error a rule naming a field and no operator, for the declaration check to refuse
-    expect(() => declare({ field: "amount" })).to.throw(
-      /footer summary "Bad".*where must name an operator/,
+    expect(() => assertRowRule({ field: "amount" }, subject, "where")).to.throw(
+      /where must name an operator/,
     );
-    // @ts-expect-error an `and` member with an operator and no field, for the declaration check to refuse
-    expect(() => declare({ and: [{ equals: 1 }] })).to.throw(
-      /footer summary "Bad".*where\.and\[0\]\.field must be a string/,
-    );
+    expect(() =>
+      assertRowRule({ and: [{ equals: 1 }] }, subject, "where"),
+    ).to.throw(/where\.and\[0\]\.field must be a string/);
   });
 
   it("refuses a where rule nested deeper than 64 levels at declaration", () => {
