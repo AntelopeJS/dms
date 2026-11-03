@@ -5,8 +5,8 @@ type AppContextRunner = Pick<DmsAppContext, "runWithContext">;
 /**
  * A plugin whose file loads on demand. The renderer runs a plugin's setup inside
  * the app's context, which ends at the first `await`, so the loaded plugin runs
- * inside it again: a composable that injects (`useToast`, `useDmsState`) fails
- * outside it and, in a plugin, stops the app from hydrating.
+ * inside it again: a composable that injects (`useToast`, `useDmsState`) would
+ * otherwise warn that `inject()` was called outside `setup()` and get no value.
  */
 export function lazyPlugin<Context extends AppContextRunner>(
   load: () => Promise<{ default: (context: Context) => unknown }>,
