@@ -437,10 +437,10 @@ await test("a module specifier that is a call expression throws on either commit
   const valid = 'import x from "./a";\nx();\n';
   assert.throws(() => changed(t, { "src/a.ts": valid }, { "src/a.ts": call }), {
     name: "TypeError",
-    message: /startsWith/,
+    message: /found CallExpression/,
   });
   assert.throws(() => changed(t, { "src/a.ts": call }, { "src/a.ts": valid }), {
     name: "TypeError",
-    message: /startsWith/,
+    message: /found CallExpression/,
   });
 });
