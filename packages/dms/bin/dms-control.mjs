@@ -7,9 +7,10 @@ import { runVerifyCommand } from "./control/commands-verify.mjs";
 const USAGE = `Usage: dms-control <command>
 
 Drive an isolated DMS (run from the repository, or pass --playground):
-  up [--prepare] [--playground <dir>] [--runs <dir>] [--mongo-url <url>] [--env KEY=VALUE]... [--base <ref>] [--skill <dir>]
+  up [--prepare] [--playground <dir>] [--renderer <dir>] [--runs <dir>] [--mongo-url <url>] [--env KEY=VALUE]... [--base <ref>] [--skill <dir>]
                        build and start a playground copy on free ports; print the run folder
-                       (--prepare first runs the skill's install and build commands)
+                       (--prepare first runs the skill's install and build commands;
+                       --renderer serves that built @antelopejs/dms-frontend checkout)
   doctor <run> [--verbose]          check the run is worth driving; print the failing checks
   onboard <run> [--platform-name <name>]
                        create the run's administrator through POST /api/onboarding/register
