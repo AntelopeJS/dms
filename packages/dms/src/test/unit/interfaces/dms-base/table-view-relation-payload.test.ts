@@ -159,11 +159,6 @@ class OrderAPI extends DataController(
 
 const ADD_FORM_KEY = '"addForm"';
 
-const sizeOf = (value: ComponentInfoSerialized["options"]): number =>
-  JSON.stringify(value ?? null).length;
-const addFormsIn = (value: ComponentInfoSerialized["options"]): number =>
-  JSON.stringify(value ?? null).split(ADD_FORM_KEY).length - 1;
-
 interface SerializedColumn {
   id: string;
   type?: DataTypeSerialized;
@@ -172,6 +167,17 @@ interface SerializedColumn {
 type TableOptions = TableViewOptionsSerialized & {
   columns: SerializedColumn[];
 };
+
+type Weighed =
+  | TableOptions
+  | SerializedColumn[]
+  | ComponentInfoSerialized
+  | FormFieldSerialized
+  | undefined;
+
+const sizeOf = (value: Weighed): number => JSON.stringify(value ?? null).length;
+const addFormsIn = (value: Weighed): number =>
+  JSON.stringify(value ?? null).split(ADD_FORM_KEY).length - 1;
 
 function tableOptions(): TableOptions {
   // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TableView's owner type omits dynamically serialized columns; this fixture reads the columns produced from OrderAPI's registered metadata.

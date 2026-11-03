@@ -19,6 +19,7 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { Exported } from "@antelopejs/interface-dms/base/table-view";
 import { expect } from "chai";
+import { z } from "zod";
 import {
   EXPORT_BATCH_SIZE,
   generateTableViewExport,
@@ -33,7 +34,6 @@ const USER = userFixture({ _id: "export-batching-user" });
 const ctx = requestContextFixture(new URL("http://localhost/export"));
 
 const ROW_COUNT = EXPORT_BATCH_SIZE * 2 + Math.floor(EXPORT_BATCH_SIZE / 2);
-const ID_FIELD = "_id";
 
 @RegisterTable(TABLE, SCHEMA)
 class Invoice extends Table {
@@ -65,22 +65,34 @@ class InvoiceAPI extends DataController(
   declare rank: number;
 }
 
-class CollectingWriter implements ExportWriter {
-  readonly headers: string[] = [];
-  readonly rows: globalThis.Parameters<ExportWriter["appendRow"]>[1][] = [];
+const ExportedRow = z.object({
+  _id: z.string(),
+  position: z.number(),
+  rank: z.number(),
+});
 
-  writeHeaders(headers: string[]): void {
-    this.headers.push(...headers);
-  }
+interface Collected {
+  headers: string[];
+  rows: z.infer<typeof ExportedRow>[];
+}
 
-  appendRow(
-    _headers: string[],
-    row: globalThis.Parameters<ExportWriter["appendRow"]>[1],
-  ): void {
-    this.rows.push(row);
-  }
+interface CollectingExport {
+  writer: ExportWriter;
+  collected: Collected;
+}
 
-  close(): void {}
+function collectingWriter(): CollectingExport {
+  const collected: Collected = { headers: [], rows: [] };
+  const writer: ExportWriter = {
+    writeHeaders(headers) {
+      collected.headers.push(...headers);
+    },
+    appendRow(_headers, row) {
+      collected.rows.push(ExportedRow.parse(row));
+    },
+    close() {},
+  };
+  return { writer, collected };
 }
 
 const listParams: Parameters.ListParameters = {
@@ -89,8 +101,8 @@ const listParams: Parameters.ListParameters = {
   sortDirection: "asc",
 };
 
-async function exportAll(ids?: string[]): Promise<CollectingWriter> {
-  const writer = new CollectingWriter();
+async function exportAll(ids?: string[]): Promise<Collected> {
+  const { writer, collected } = collectingWriter();
   await generateTableViewExport({
     // SAFETY: ExportRun types its receiver as a callback descriptor, but the implementation reads controller metadata and the model from this real decorated InvoiceAPI instance.
     controller: controller as unknown as globalThis.Parameters<
@@ -103,11 +115,11 @@ async function exportAll(ids?: string[]): Promise<CollectingWriter> {
     user: USER,
     reportProgress: async () => {},
   });
-  return writer;
+  return collected;
 }
 
-function idsOf(writer: CollectingWriter): string[] {
-  return writer.rows.map((row) => String(row[ID_FIELD]));
+function idsOf(collected: Collected): string[] {
+  return collected.rows.map((row) => row._id);
 }
 
 const controller = new InvoiceAPI();
@@ -128,8 +140,8 @@ describe("[unit] implementations/dms-base/table-view — export batching", () =>
   });
 
   it("exports every source row exactly once across several batches", async () => {
-    const writer = await exportAll();
-    const exportedIds = idsOf(writer);
+    const collected = await exportAll();
+    const exportedIds = idsOf(collected);
 
     expect(exportedIds).to.have.lengthOf(ROW_COUNT);
     expect(new Set(exportedIds).size).to.equal(ROW_COUNT);
@@ -137,26 +149,26 @@ describe("[unit] implementations/dms-base/table-view — export batching", () =>
   });
 
   it("keeps the exported rows in the requested order", async () => {
-    const writer = await exportAll();
+    const collected = await exportAll();
 
-    expect(writer.rows.map((row) => row.position)).to.deep.equal(
+    expect(collected.rows.map((row) => row.position)).to.deep.equal(
       Array.from({ length: ROW_COUNT }, (_, position) => position),
     );
   });
 
   it("exports a multi-batch id selection exactly once", async () => {
-    const writer = await exportAll(sourceIds);
-    const exportedIds = idsOf(writer);
+    const collected = await exportAll(sourceIds);
+    const exportedIds = idsOf(collected);
 
     expect(exportedIds).to.have.lengthOf(ROW_COUNT);
     expect(new Set(exportedIds).size).to.equal(ROW_COUNT);
   });
 
   it("exports the computed fields of every row, listed or selected", async () => {
-    for (const writer of [await exportAll(), await exportAll(sourceIds)]) {
-      expect(writer.headers).to.include("rank");
-      const wrong = writer.rows.filter(
-        (row) => row.rank !== Number(row.position) + 1,
+    for (const collected of [await exportAll(), await exportAll(sourceIds)]) {
+      expect(collected.headers).to.include("rank");
+      const wrong = collected.rows.filter(
+        (row) => row.rank !== row.position + 1,
       );
       expect(wrong).to.deep.equal([]);
     }

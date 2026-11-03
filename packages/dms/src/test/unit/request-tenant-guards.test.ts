@@ -52,8 +52,8 @@ async function expectStatus<T>(
   try {
     await action();
     expect.fail("Expected guard rejection");
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
+  } catch (error: unknown) {
+    assert.instanceOf(error, HTTPResult);
     expect(error.getStatus()).to.equal(status);
   }
 }
@@ -83,13 +83,21 @@ function forgedToken(genuine: string, tenantId: string): string {
 async function provided(
   decorator: ReturnType<typeof AuthUser>,
   ctx: RequestContext,
-): Promise<Awaited<ReturnType<typeof computeParameter>>> {
+): Promise<User | undefined> {
   class Probe {
     static location = "/probe";
   }
   decorator(Probe.prototype, "user");
   const meta = GetMetadata(Probe, ControllerMeta);
-  return computeParameter(ctx, meta.computed_props.user, new Probe());
+  const provided = await computeParameter(
+    ctx,
+    meta.computed_props.user,
+    new Probe(),
+  );
+  if (provided !== undefined && !(provided instanceof User)) {
+    throw new Error("The auth decorator provided something other than a user");
+  }
+  return provided;
 }
 
 describe("[unit] request tenant guards — JWT and custom credentials", () => {

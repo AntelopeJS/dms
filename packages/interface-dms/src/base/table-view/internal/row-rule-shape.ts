@@ -1,54 +1,101 @@
 import type { RowActionRule } from "../../types/row-action";
-import {
-  FIELD_OPERATORS,
-  LOGICAL_OPERATOR_KEYS,
-} from "../../types/row-action-operators";
-import { isNull, isObject } from "../../../utils/internal/type-check";
+import { FIELD_OPERATORS } from "../../types/row-action-operators";
+import { isNull, isObject, isString } from "../../../utils/internal/type-check";
 
-const isRuleObject = <T extends object>(
-  value: RowActionRule<T>,
-): value is RowActionRule<T> & object =>
+const MAX_ROW_RULE_DEPTH = 64;
+
+interface RuleSite {
+  readonly subject: string;
+  readonly path: string;
+  readonly depth: number;
+}
+
+const isRuleObject = (value: unknown): value is object =>
   isObject(value) && !isNull(value) && !Array.isArray(value);
 
-function operandProblem<T extends object>(
-  operator: (typeof LOGICAL_OPERATOR_KEYS)[number],
-  operand: RowActionRule<T> | RowActionRule<T>[],
-  path: string,
-): string | undefined {
-  if (operator === "not") {
-    return Array.isArray(operand)
-      ? `${path} must be a rule object`
-      : rowRuleProblem(operand, path);
+const refusal = (site: RuleSite, problem: string): Error =>
+  new Error(`${site.subject}: ${site.path}${problem}`);
+
+const operandSite = (site: RuleSite, key: string): RuleSite => ({
+  ...site,
+  path: `${site.path}.${key}`,
+});
+
+const nestedSite = (site: RuleSite, step: string): RuleSite => ({
+  ...site,
+  path: `${site.path}${step}`,
+  depth: site.depth + 1,
+});
+
+function assertRuleList(
+  operand: unknown,
+  site: RuleSite,
+): asserts operand is RowActionRule[] {
+  if (!Array.isArray(operand)) {
+    throw refusal(site, " must be an array of rules");
   }
-  if (!Array.isArray(operand)) return `${path} must be an array of rules`;
-  return operand
-    .map((entry, index) => rowRuleProblem(entry, `${path}[${index}]`))
-    .find((problem) => problem !== undefined);
+  for (const [index, entry] of operand.entries()) {
+    assertRuleAt(entry, nestedSite(site, `[${index}]`));
+  }
+}
+
+function assertRuleAt(
+  rule: unknown,
+  site: RuleSite,
+): asserts rule is RowActionRule {
+  if (site.depth > MAX_ROW_RULE_DEPTH) {
+    throw refusal(
+      site,
+      ` nests rules deeper than ${MAX_ROW_RULE_DEPTH} levels`,
+    );
+  }
+  if (!isRuleObject(rule)) throw refusal(site, " must be a rule object");
+  if (Object.hasOwn(rule, "and") && "and" in rule) {
+    assertRuleList(rule.and, operandSite(site, "and"));
+  } else if (Object.hasOwn(rule, "or") && "or" in rule) {
+    assertRuleList(rule.or, operandSite(site, "or"));
+  } else if (Object.hasOwn(rule, "not") && "not" in rule) {
+    assertRuleAt(rule.not, nestedSite(site, ".not"));
+  } else {
+    const comparison = Object.entries(FIELD_OPERATORS).find(([key]) =>
+      Object.hasOwn(rule, key),
+    );
+    if (!comparison) {
+      throw refusal(
+        site,
+        " must name an operator (and, or, not, equals, notEquals, in or notIn)",
+      );
+    }
+    if (
+      !(Object.hasOwn(rule, "field") && "field" in rule && isString(rule.field))
+    ) {
+      throw refusal(site, ".field must be a string");
+    }
+    const [operator, { isArray }] = comparison;
+    if (
+      isArray &&
+      !Array.isArray(Object.getOwnPropertyDescriptor(rule, operator)?.value)
+    ) {
+      throw refusal(site, `.${operator} must be an array`);
+    }
+  }
 }
 
 /**
- * What stops a row rule from compiling or evaluating, or `undefined` when its
- * shape holds. It checks the operand of the operator that dispatch selects (a
- * logical operator before a field comparison, the first present of each), at
- * every nesting level, so a rule it accepts never throws a `TypeError`.
+ * Narrows unchecked input to a {@link RowActionRule} or throws an `Error`
+ * reading `<subject>: <path> <problem>`. It checks what the type declares at
+ * every nesting level: a rule object that names, as an own key, an operator
+ * dispatch can select (a logical operator before a field comparison, the
+ * first present of each) with a well-formed operand, and a string `field` for
+ * a comparison. A rule nested deeper than 64 levels is refused, a cyclic one
+ * included, so the walk is bounded however the input was built.
  *
  * @internal
  */
-export function rowRuleProblem<T extends object>(
-  rule: RowActionRule<T>,
+export function assertRowRule(
+  rule: unknown,
+  subject: string,
   path = "rule",
-): string | undefined {
-  if (!isRuleObject(rule)) return `${path} must be a rule object`;
-  if ("and" in rule) return operandProblem("and", rule.and, `${path}.and`);
-  if ("or" in rule) return operandProblem("or", rule.or, `${path}.or`);
-  if ("not" in rule) return operandProblem("not", rule.not, `${path}.not`);
-  const operands = new Map(Object.entries(rule));
-  const comparison = Object.entries(FIELD_OPERATORS).find(([key]) =>
-    operands.has(key),
-  );
-  if (!comparison) return undefined;
-  const [operator, { isArray }] = comparison;
-  return isArray && !Array.isArray(operands.get(operator))
-    ? `${path}.${operator} must be an array`
-    : undefined;
+): asserts rule is RowActionRule {
+  assertRuleAt(rule, { subject, path, depth: 0 });
 }

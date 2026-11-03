@@ -1,4 +1,5 @@
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { z } from "zod";
@@ -173,7 +174,7 @@ describe("[integration] table view capabilities", () => {
 
   it("stores the dates an edit sends as text as dates, and keeps what it leaves out", async () => {
     const [invoice] = await list(client, "&filter_number=is:INV-3");
-    const edit = async (body: Parameters<AxiosInstance["put"]>[1]) => {
+    const edit = async (body: JsonValue) => {
       const response = await client.put(`${LOCATION}/edit`, body, {
         params: { id: invoice!._id },
       });

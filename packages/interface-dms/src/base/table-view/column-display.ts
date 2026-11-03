@@ -36,8 +36,7 @@ export abstract class ColumnDisplay<
 export interface ColumnDisplaySerialized {
   /** Id of the frontend data type drawing the cells. */
   type: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published serialized envelope carries options owned by the registered display, not by this transport.
-  options?: Record<string, unknown>;
+  options?: object;
 }
 
 /**
