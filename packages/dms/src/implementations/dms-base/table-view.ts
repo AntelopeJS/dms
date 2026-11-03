@@ -41,10 +41,7 @@ import {
   countWithSearch as countWithSearchFunc,
   listWithSearch as listWithSearchFunc,
 } from "./search-route";
-import {
-  type RuleRow,
-  fetchRowForGuard as fetchRowForGuardHelper,
-} from "../../db";
+import { fetchRowForGuard as fetchRowForGuardHelper } from "../../db";
 
 type DataControllerThis =
   | DataControllerCallback
@@ -138,7 +135,8 @@ async function buildIdsExportQuery(
       const archiveValue = archiveConstraint[0];
 
       const isNotEqual = archiveConstraint[1] === "ne";
-      query = query.filter((row: ValueProxy<RuleRow>) =>
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the list serves, interface-data-api's RowFields, read by the archive field its table view names at run time.
+      query = query.filter((row: ValueProxy<Record<string, unknown>>) =>
         isNotEqual
           ? row.key(archiveField).ne(archiveValue)
           : row.key(archiveField).eq(archiveValue),
@@ -371,7 +369,8 @@ export async function fetchRowForGuard(
   controller: DataControllerInstance,
   id: string,
   idField: string,
-): Promise<RuleRow | undefined> {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- fetchRowForGuard implements the published InterfaceFunction of data-functions.ts, whose row is the stored row of whichever table the guard names, interface-data-api's RowFields.
+): Promise<Record<string, unknown> | undefined> {
   return fetchRowForGuardHelper(controller, id, idField);
 }
 
@@ -379,8 +378,10 @@ async function readRuleRow(
   controller: DataControllerInstance,
   controllerMetadata: DataAPIMeta,
   model: ReturnType<typeof Query.GetModel>,
-  row: RuleRow,
-): Promise<RuleRow> {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- readRuleRow takes the stored row of whichever table a rule guards, interface-data-api's RowFields, and answers it merged with Query.ReadProperties for the rule's runtime field paths.
+  row: Record<string, unknown>,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- readRuleRow takes the stored row of whichever table a rule guards, interface-data-api's RowFields, and answers it merged with Query.ReadProperties for the rule's runtime field paths.
+): Promise<Record<string, unknown>> {
   try {
     const stored = model.constructor.fromDatabase(row);
     assert(stored, 500, "The database answered an empty row.");

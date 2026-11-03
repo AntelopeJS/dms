@@ -31,15 +31,11 @@ interface UploadFieldNode {
   component: { options?: Record<string, unknown> };
 }
 
-function isTraversable(
-  value: Parameters<typeof StampUploadFieldTokens>[0],
-): value is object {
+function isTraversable(value: unknown): value is object {
   return !!value && typeof value === "object";
 }
 
-function isUploadFieldNode(
-  node: Parameters<typeof StampUploadFieldTokens>[0],
-): node is UploadFieldNode {
+function isUploadFieldNode(node: unknown): node is UploadFieldNode {
   return (
     isTraversable(node) &&
     !Array.isArray(node) &&
@@ -51,9 +47,8 @@ function isUploadFieldNode(
 }
 
 /** Every upload field of a serialized value, an enclosing one before the ones it holds. */
-function uploadFieldNodes(
-  node: Parameters<typeof StampUploadFieldTokens>[0],
-): UploadFieldNode[] {
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Walks every value of the serialized options a component declares, its own T, at any depth that declaration has, to find the upload fields among them.
+function uploadFieldNodes(node: unknown): UploadFieldNode[] {
   if (!isTraversable(node)) return [];
   return [
     ...(isUploadFieldNode(node) ? [node] : []),
@@ -103,6 +98,7 @@ export async function StampUploadFieldTokens<T>(options: T): Promise<T> {
   if (uploadFieldNodes(options).length === 0) {
     return options;
   }
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- The JSON round trip clones the caller's options as any and types the clone as its T, kept by the 2026-11-02 16:00 ruling because any other clone changes the upload answer.
   const cloned: T = JSON.parse(JSON.stringify(options));
   for (const node of uploadFieldNodes(cloned)) await stampNode(node);
   return cloned;

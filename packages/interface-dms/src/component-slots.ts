@@ -47,7 +47,7 @@ export function RegisterComponentSlot(
       `[dms] component slot "${slotId}" already had a resolver; the latest one now owns it.`,
     );
   }
-  // SAFETY: The walker hands a resolver only the options of a dms-form component that carry a registered string slotId and a fields array (slotFormOptionsOf), and Form serializes its options as FormPropsSerialized.
+  // SAFETY: The walker hands a resolver only the options of a dms-form component that carry a registered string slotId and a fields array (slotFormOptionsOf), and Form serializes its options as FormPropsSerialized with the watch actions its builder made.
   slotResolvers.set(slotId, resolver as SlotFormResolver);
   return () => {
     if (slotResolvers.get(slotId) === resolver) {

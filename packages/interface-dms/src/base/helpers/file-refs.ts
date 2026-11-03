@@ -13,16 +13,16 @@ interface KeyedNode {
   key?: unknown;
 }
 
-type KeyExtractor = (
-  value: Parameters<typeof collectFileRefs>[1][string],
-) => string[];
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes the value of one file or image column of the row a module passes to the published collectFileRefs: a key, an image object, lists and objects of them, or any other leaf it skips.
+type KeyExtractor = (value: unknown) => string[];
 
 const IMAGE_TYPE_ID = "image";
 const FILE_TYPE_ID = "file";
 
 const collectImageKeys: KeyExtractor = (value) => {
   const keys: string[] = [];
-  const visit = (node: Parameters<KeyExtractor>[0]): void => {
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Visits that column value node by node, so a node is a key, an image object, a list or object of them, or any other leaf it skips.
+  const visit = (node: unknown): void => {
     // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This is the field-value inspection boundary; parsing objects would reject previously ignored leaves.
     if (!node || typeof node !== "object") return;
     if (Array.isArray(node)) {
@@ -43,7 +43,8 @@ const collectImageKeys: KeyExtractor = (value) => {
 
 const collectFileKeys: KeyExtractor = (value) => {
   const keys: string[] = [];
-  const visit = (node: Parameters<KeyExtractor>[0]): void => {
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Visits that column value node by node, so a node is a key, an image object, a list or object of them, or any other leaf it skips.
+  const visit = (node: unknown): void => {
     // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String leaves identify file keys in this legacy field representation.
     if (typeof node === "string") {
       keys.push(node);
@@ -119,17 +120,16 @@ export function diffRemovedRefs(
 
 type KeyMapper = (key: string) => Promise<string>;
 type ScopedKeyMapper = (key: string, storage?: string) => Promise<string>;
-type ValueRemapper = (
-  value: Parameters<typeof remapRecordFileKeys>[1][string],
-  mapKey: KeyMapper,
-) => Promise<Parameters<typeof remapRecordFileKeys>[1][string]>;
+// oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns -- Takes and answers the value of one file or image column of the row a module passes to the published remapRecordFileKeys, keeping every leaf it does not remap.
+type ValueRemapper = (value: unknown, mapKey: KeyMapper) => Promise<unknown>;
 
 async function remapObjectValues(
   // oxlint-disable-next-line anti-slop/no-object-parameters -- Object.entries walks arbitrary object values and remaps them without requiring a dictionary index signature.
   value: object,
   mapKey: KeyMapper,
   remap: ValueRemapper,
-): Promise<Parameters<typeof remapRecordFileKeys>[1]> {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Rebuilds an object node of that column value with Object.fromEntries, so its entries hold whatever the node held.
+): Promise<Record<string, unknown>> {
   const entries = await Promise.all(
     Object.entries(value).map(
       async ([key, item]) => [key, await remap(item, mapKey)] as const,

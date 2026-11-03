@@ -5,7 +5,6 @@ import type {
   DataControllerCallbackWithOptions,
   DataControllerInstance,
 } from "@antelopejs/interface-data-api";
-import type { RowFields } from "@antelopejs/interface-data-api/metadata";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "../../auth/db";
 import type { RowActionRule } from "../types/row-action";
@@ -22,7 +21,8 @@ import type {
  * filters and search match.
  */
 export interface TableViewListPage {
-  results: RowFields[];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The listable fields of each row of whichever table the list serves, as Query.ReadProperties answers them: interface-data-api's RowFields.
+  results: Record<string, unknown>[];
   total: number;
   offset: number;
   limit: number;

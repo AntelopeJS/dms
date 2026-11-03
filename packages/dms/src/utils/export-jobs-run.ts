@@ -61,6 +61,7 @@ function assertOwnership<TContext>(
   if (access?.scope !== undefined) {
     assert(record.scope === access.scope, 403, "Export not accessible");
   }
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- exportJobs.json_context is a stored column whose only writer is ExportJobModel.createNewJob, JSON.stringify of the context runExportJob passes, and stored rows are never parsed on read.
   const context: TContext = record.json_context
     ? JSON.parse(record.json_context)
     : null;

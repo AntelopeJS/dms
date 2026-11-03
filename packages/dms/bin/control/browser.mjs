@@ -30,6 +30,7 @@ const VIEWPORT = { width: 1280, height: 900 };
  */
 export async function launchBrowser(from) {
   /** @type {typeof import("playwright-core")} */
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- importFrom resolves playwright-core by path from the project under test at run time and answers its namespace as any, which the JSDoc type binds to Playwright's own declarations.
   const { chromium } = await importFrom("playwright-core", from);
   return chromium.launch({ headless: true });
 }

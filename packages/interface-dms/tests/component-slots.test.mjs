@@ -198,6 +198,22 @@ await test("a form whose slot id is not a string is skipped", async (t) => {
   assert.deepEqual(resolved, layout);
 });
 
+await test("a form's slot resolves on its fields and slot id alone, whatever its watch actions hold", async (t) => {
+  const { slotId, calls } = registerSlot(t);
+  const layout = [
+    {
+      componentName: "dms-form",
+      options: { slotId, fields: [], watchActions: "not a list" },
+      children: [],
+    },
+  ];
+
+  await ResolveComponentSlots(layout);
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].watchActions, "not a list");
+});
+
 await test("a form's options without any component around them are skipped", async (t) => {
   const { slotId, calls } = registerSlot(t, withExtraField);
   const layout = [{ slotId, fields: [] }];

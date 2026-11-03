@@ -7,6 +7,8 @@ import {
 import { type TenantGuardOptions } from "../guards";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
 import type { ComponentTreeNode } from "./component-tree";
+import type { UploadFieldNode } from "./internal/metadata-uploads";
+import { registerNativeUploadField } from "./internal/metadata-upload-registration";
 import type { PageExtensionEntry } from "./internal/extension-assembly";
 import type { ComponentNodeMap } from "./layout-filter";
 import {
@@ -17,8 +19,6 @@ import {
   type PageLayout,
   type PageLayoutRequest,
 } from "./types";
-import type { UploadFieldNode } from "./internal/metadata-uploads";
-import { SignUploadToken } from "../uploads";
 // oxlint-disable-next-line import/no-cycle -- Category proxies are read after evaluation.
 import * as metadata from "./internal/metadata-lifecycle";
 
@@ -455,7 +455,8 @@ export class PageMetadata {
   }
 
   private async bindUploadOptions(
-    value: ComponentInfoSerialized["options"],
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Walks the serialized options of a page's component at registration, at any depth its declaration has, and registers every native upload field among them.
+    value: unknown,
     name: string,
     id: string,
     path: string[],
@@ -476,16 +477,7 @@ export class PageMetadata {
     id: string,
     path: string[],
   ) {
-    const phase = metadata.prepareUploadRegistration(
-      this,
-      node,
-      name,
-      id,
-      path,
-    );
-    if (!phase) return;
-    phase.options.uploadToken = await SignUploadToken(phase.registration);
-    metadata.finishUploadRegistration(this, phase);
+    await registerNativeUploadField(this, node, name, id, path);
   }
 
   private registerComponentNode(node: ComponentTreeNode) {

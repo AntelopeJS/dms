@@ -54,6 +54,7 @@ function asArray(value) {
  * @returns {unknown}
  */
 function forwardRead(target, key, receiver) {
+  // oxlint-disable-next-line anti-slop/no-reflect-get -- The get trap forwards the read with the trap's receiver, which only Reflect.get takes, so a getter on the proxied zod _def runs with the proxy as this and its own reads reach the log.
   return Reflect.get(target, key, receiver);
 }
 

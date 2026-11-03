@@ -69,10 +69,8 @@ class CsvWriter implements ExportWriter {
     fs.writeFileSync(this.filePath, `﻿${headerLine}`);
   }
 
-  appendRow(
-    headers: string[],
-    row: Parameters<ExportWriter["appendRow"]>[1],
-  ): void {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- appendRow implements the published ExportWriter.appendRow, whose row is what Query.ReadProperties answered for whichever table is exported (interface-data-api RowFields), keyed by its runtime column ids.
+  appendRow(headers: string[], row: Record<string, unknown>): void {
     const csvRowContent = stringify([row], {
       header: false,
       columns: headers,
@@ -131,6 +129,7 @@ export function readJobResult(
   exportRecord: ExportJob,
 ): ExportJobResultSummary | undefined {
   if (!exportRecord.json_result) return undefined;
+  // oxlint-disable-next-line typescript/no-unsafe-return -- exportJobs.json_result is a stored column whose only writer is ExportJobModel.markAsCompleted, JSON.stringify of the result processExportJob passes, and stored rows are never parsed on read.
   return JSON.parse(exportRecord.json_result);
 }
 

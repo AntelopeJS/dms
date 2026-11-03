@@ -85,9 +85,11 @@ const isPlainObject = (
  * is no string) is withheld, since no permission could grant it.
  */
 async function filterRequiredPermissionWatches(
-  value: ComponentInfoSerialized["options"],
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Walks the serialized options of whichever component it meets, each typed by its declaring module and able to hold a DefaultValue Date, and narrows each node with Array.isArray or isPlainObject before reading it.
+  value: unknown,
   permissions: Set<string>,
-): Promise<ComponentInfoSerialized["options"]> {
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Answers that options tree unchanged or with the gated watches removed, so it is as open as the options of whichever component it walked.
+): Promise<unknown> {
   if (Array.isArray(value)) {
     const items = await Promise.all(
       value.map((item) => filterRequiredPermissionWatches(item, permissions)),

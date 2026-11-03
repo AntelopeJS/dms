@@ -195,6 +195,7 @@ function requestedSummaries(
   for (const id of ids) {
     const summary = meta.footerSummary(id);
     assert(summary, 400, `Unknown footer summary "${id}".`);
+    // oxlint-disable-next-line typescript/no-unsafe-assignment -- meta.footerSummary answers TableViewFooterSummary<any> because TableViewMeta stores the summaries of every controller's row type, and TypeScript cannot relate RowActionRule<T> to RowActionRule<Record<string, unknown>> for a generic T.
     summaries[id] = summary;
   }
   return summaries;

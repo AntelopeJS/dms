@@ -34,6 +34,7 @@ function asMap(value) {
  * @returns {unknown}
  */
 function forwardRead(target, key, receiver) {
+  // oxlint-disable-next-line anti-slop/no-reflect-get -- The get trap forwards the read with the trap's receiver, which only Reflect.get takes, so a getter on the proxied object keeps the proxy as this.
   return Reflect.get(target, key, receiver);
 }
 
