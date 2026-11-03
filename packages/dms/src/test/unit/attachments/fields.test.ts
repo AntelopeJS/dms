@@ -3,7 +3,7 @@ import { expect } from "chai";
 import {
   type AttachmentReference,
   collectAttachments,
-} from "../../../attachments/fields";
+} from "../../../attachments";
 
 const FILE: AttachmentField = { id: "doc", key: "doc", kind: "file" };
 const IMAGE: AttachmentField = { id: "logo", key: "logo", kind: "image" };
