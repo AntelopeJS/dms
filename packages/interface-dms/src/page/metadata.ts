@@ -8,6 +8,7 @@ import { type TenantGuardOptions } from "../guards";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
 import type { ComponentTreeNode } from "./component-tree";
 import type { UploadFieldNode } from "./internal/metadata-uploads";
+import { registerNativeUploadField } from "./internal/metadata-upload-registration";
 import type { PageExtensionEntry } from "./internal/extension-assembly";
 import type { ComponentNodeMap } from "./layout-filter";
 import {
@@ -476,7 +477,7 @@ export class PageMetadata {
     id: string,
     path: string[],
   ) {
-    await metadata.registerNativeUploadField(this, node, name, id, path);
+    await registerNativeUploadField(this, node, name, id, path);
   }
 
   private registerComponentNode(node: ComponentTreeNode) {
