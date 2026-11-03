@@ -444,3 +444,16 @@ await test("a module specifier that is a call expression throws on either commit
     message: /found CallExpression/,
   });
 });
+
+await test("a module specifier that is a template literal with substitutions throws the named error on either commit", (t) => {
+  const template = "import x from `./${name}`;\nx();\n";
+  const valid = 'import x from "./a";\nx();\n';
+  assert.throws(
+    () => changed(t, { "src/a.ts": valid }, { "src/a.ts": template }),
+    { name: "TypeError", message: /found TemplateExpression/ },
+  );
+  assert.throws(
+    () => changed(t, { "src/a.ts": template }, { "src/a.ts": valid }),
+    { name: "TypeError", message: /found TemplateExpression/ },
+  );
+});
