@@ -23,16 +23,16 @@ const targetUrl = (
   return typeof url === "string" ? url : undefined;
 };
 
+const isRecordNode = (value: unknown): value is PageRecord =>
+  !!value && typeof value === "object";
+
 function leafAt(record: PageRecord, path: string): string | number | undefined {
-  // SAFETY: The reducer reads keys only after checking a non-null object; PageRecord imposes no constraints on those values.
-  const value = path.split(PATH_SEPARATOR).reduce<unknown>(
-    (current, key) =>
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Record paths traverse arbitrary loader fields and stop at nonobjects without imposing a shared record schema.
-      current && typeof current === "object"
-        ? (current as PageRecord)[key]
-        : undefined,
-    record,
-  );
+  const value = path
+    .split(PATH_SEPARATOR)
+    .reduce<unknown>(
+      (current, key) => (isRecordNode(current) ? current[key] : undefined),
+      record,
+    );
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The record loader owns its schema; the URL interpolation contract encodes only string and number leaves.
   return typeof value === "string" || typeof value === "number"
     ? value
