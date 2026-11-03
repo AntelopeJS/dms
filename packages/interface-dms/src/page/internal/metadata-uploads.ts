@@ -1,37 +1,48 @@
 /** @internal */
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 import type { Component } from "../../component";
-import type { SlotOptions } from "../../component-slots";
 
 const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
+
+/**
+ * The keys of a native upload field's options that registration reads, and
+ * the token it writes back. The options carry more keys than these.
+ *
+ * @internal
+ */
+export interface UploadFieldOptions {
+  storage?: unknown;
+  path?: unknown;
+  attachmentField?: unknown;
+  visibility?: unknown;
+  constraints?: unknown;
+  uploadToken?: string;
+}
 
 /** @internal */
 export interface UploadFieldNode {
   type: string;
-  disabled?: boolean;
-  component: { options?: SlotOptions };
+  disabled?: unknown;
+  component: { options?: UploadFieldOptions | null };
 }
 
 /** @internal */
-export function isNativeUploadField(
-  value: SlotOptions[string],
-): value is UploadFieldNode {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Native uploads are discovered inside arbitrary serialized component options; this boundary excludes nonobjects before inspecting their transport keys.
+export function isNativeUploadField(value: unknown): value is UploadFieldNode {
   if (!value || typeof value !== "object") return false;
-  const node: Partial<Pick<SlotOptions, keyof UploadFieldNode>> = value;
-  return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Upload field tags are read from serialized contributor options, not a common schema shared by all components.
-    typeof node.type === "string" &&
-    NATIVE_UPLOAD_FIELD_TYPES.has(node.type) &&
-    !!node.component &&
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing component-container check; nested options remain trusted rather than introducing new upload validation.
-    typeof node.component === "object"
-  );
+  const node: { type?: unknown; component?: unknown } = value;
+  if (
+    typeof node.type !== "string" ||
+    !NATIVE_UPLOAD_FIELD_TYPES.has(node.type)
+  )
+    return false;
+  if (!node.component || typeof node.component !== "object") return false;
+  const component: { options?: unknown } = node.component;
+  return component.options == null || typeof component.options === "object";
 }
 
 /** @internal */
 export function readUploadConstraints(
-  options: SlotOptions,
+  options: UploadFieldOptions,
 ): UploadConstraints | undefined {
   const raw = options.constraints;
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This is the serialized upload-constraints boundary; absent or nonobject constraints are ignored.
