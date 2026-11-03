@@ -27,25 +27,60 @@ const MAX_BODY_DEPTH = 64;
 
 const JSON_PRIMITIVE = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 
-/** The JSON values that nest arrays and objects at most `depth` levels deep. */
-const jsonValueWithin = (depth: number): z.ZodType<JsonValue> => {
-  let level: z.ZodType<JsonValue> = JSON_PRIMITIVE;
-  for (let nesting = 0; nesting < depth; nesting += 1) {
-    level = z.union([
-      JSON_PRIMITIVE,
-      z.array(level),
-      z.record(z.string(), level),
-    ]);
-  }
-  return level;
-};
-
 const JSON_FIELDS = z.record(z.string(), z.unknown());
 
-const BOUNDED_JSON_OBJECT = z.record(
-  z.string(),
-  jsonValueWithin(MAX_BODY_DEPTH - 1),
-);
+/**
+ * Whether the arrays and objects below `members` nest more than `limit` levels
+ * deep, `members` being the values of the level-1 container. It walks one level
+ * at a time and stops at level `limit + 1`, so it neither recurses nor visits
+ * what lies below that level.
+ */
+const nestsDeeperThan = (members: unknown[], limit: number) => {
+  let level = [members];
+  for (let depth = 1; level.length > 0; depth += 1) {
+    if (depth > limit) return true;
+    const below: unknown[][] = [];
+    for (const values of level) {
+      for (const value of values) {
+        if (value instanceof Object) below.push(Object.values(value));
+      }
+    }
+    level = below;
+  }
+  return false;
+};
+
+/**
+ * A copy of the arrays and objects below `entries`, the entries of the level-1
+ * object, without recursion. A key named `__proto__` is left out at every depth,
+ * as the top-level record parse leaves it out.
+ */
+const copyJsonFields = (entries: [string, unknown][]) => {
+  const fields: Record<string, JsonValue> = {};
+  const pending: [
+    [string, unknown][],
+    JsonValue[] | Record<string, JsonValue>,
+  ][] = [[entries, fields]];
+  for (let item = pending.pop(); item; item = pending.pop()) {
+    const [members, target] = item;
+    for (const [key, child] of members) {
+      if (key === "__proto__") continue;
+      let value: JsonValue;
+      if (Array.isArray(child)) {
+        value = [];
+        pending.push([Object.entries(child), value]);
+      } else if (child instanceof Object) {
+        value = {};
+        pending.push([Object.entries(child), value]);
+      } else {
+        value = JSON_PRIMITIVE.parse(child);
+      }
+      if (Array.isArray(target)) target.push(value);
+      else target[key] = value;
+    }
+  }
+  return fields;
+};
 
 /**
  * The fields of a JSON object sent as text.
@@ -56,16 +91,14 @@ const BOUNDED_JSON_OBJECT = z.record(
  */
 const parseJsonObject = (text: string) => {
   const json: unknown = JSON.parse(text);
-  if (!JSON_FIELDS.safeParse(json).success) {
-    throw new TypeError("The JSON body is not an object");
-  }
-  const parsed = BOUNDED_JSON_OBJECT.safeParse(json);
+  const fields = JSON_FIELDS.safeParse(json);
+  if (!fields.success) throw new TypeError("The JSON body is not an object");
   throwHttpAssert(
-    parsed.success,
+    !nestsDeeperThan(Object.values(fields.data), MAX_BODY_DEPTH),
     400,
     `The JSON body nests more than ${MAX_BODY_DEPTH} levels deep.`,
   );
-  return parsed.data;
+  return copyJsonFields(Object.entries(fields.data));
 };
 
 /**

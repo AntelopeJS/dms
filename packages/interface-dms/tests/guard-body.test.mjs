@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
@@ -57,7 +60,7 @@ await test("a JSON object body decodes to its fields, as text or bytes", () => {
   });
 });
 
-await test("nested JSON values keep their shape through the decoder", () => {
+await test("nested JSON values keep their bodyName through the decoder", () => {
   const text =
     '{"list":[1,{"flag":true,"none":null}],"inner":{"deep":["x",[]]}}';
   const expected = {
@@ -186,3 +189,67 @@ await test("a nested JSON key named __proto__ is dropped, as the top-level one i
     assert.equal(fields.inner.admin, undefined);
   }
 });
+
+/**
+ * Limits of the load tests, each run in a fresh process whose old-space heap is
+ * capped. Measured on a 32-core machine at load 10 to 15: the decoder takes
+ * 0.02 to 0.7 s and peaks under 215 MB on these bodies. Through the real API
+ * server, the recursive schema this branch started from took 3.3 s on a valid
+ * 64-deep body of 1 MiB, and the level-by-level schema of the first fix took
+ * 11 s on it and overran a 4 GB heap on a 65-deep one, so these limits fail on
+ * both.
+ */
+const LOAD_LIMITS = {
+  heapMb: 256,
+  rejectMs: 2_000,
+  decodeMs: 3_000,
+  rssMb: 400,
+};
+const LOAD_RUNNER = fileURLToPath(
+  new URL("./helpers/guard-body-load.mjs", import.meta.url),
+);
+
+/**
+ * @param {string} bodyName
+ * @returns {Promise<{ outcome: number | string, bodyBytes: number, milliseconds: number, peakRssMb: number }>}
+ */
+const runLoad = async (bodyName) => {
+  const { stdout } = await promisify(execFile)(process.execPath, [
+    `--max-old-space-size=${LOAD_LIMITS.heapMb}`,
+    LOAD_RUNNER,
+    bodyName,
+  ]);
+  return JSON.parse(stdout);
+};
+
+for (const bodyName of ["arrays-65", "objects-65", "arrays-65-last"]) {
+  await test(`a 1 MiB confirmation body of ${bodyName} levels answers 400 within ${LOAD_LIMITS.rejectMs} ms and ${LOAD_LIMITS.rssMb} MB`, async () => {
+    const run = await runLoad(bodyName);
+    assert.ok(run.bodyBytes > 1_000_000, "the body is about 1 MiB");
+    assert.equal(run.outcome, 400);
+    assert.ok(
+      run.milliseconds < LOAD_LIMITS.rejectMs,
+      `${run.milliseconds} ms`,
+    );
+    assert.ok(run.peakRssMb < LOAD_LIMITS.rssMb, `${run.peakRssMb} MB`);
+  });
+}
+
+for (const bodyName of [
+  "arrays-64",
+  "objects-64",
+  "flat-array",
+  "array-200k-entries",
+  "object-200k-entries",
+  "body-200k-keys",
+]) {
+  await test(`a confirmation body of ${bodyName} is decoded whole within ${LOAD_LIMITS.decodeMs} ms and ${LOAD_LIMITS.rssMb} MB`, async () => {
+    const run = await runLoad(bodyName);
+    assert.equal(run.outcome, "decoded");
+    assert.ok(
+      run.milliseconds < LOAD_LIMITS.decodeMs,
+      `${run.milliseconds} ms`,
+    );
+    assert.ok(run.peakRssMb < LOAD_LIMITS.rssMb, `${run.peakRssMb} MB`);
+  });
+}
