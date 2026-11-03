@@ -45,6 +45,7 @@ const faces = new Map(
     utils: [
       "notification-tones",
       "email-subjects",
+      "own-value",
       "client-ip/index",
       "notification-registry/index",
       "request-email-verification/index",
