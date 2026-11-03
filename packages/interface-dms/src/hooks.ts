@@ -362,10 +362,6 @@ function getHooks<H extends Hook>(name: H): OwnedRegistry<HookEntry<H>> {
   return hookStates[name].handlers;
 }
 
-function logHookFailure(name: Hook, error: Error["cause"]): void {
-  Logging.Error(`Hook '${name}' execution failed:`, error);
-}
-
 /**
  * Runs a handler registered after its hook settled, without blocking the
  * registration: the registering module's `construct()` or `start()` neither
@@ -382,7 +378,7 @@ function runLateHandler<H extends Hook>(
     owner ? RunWithResponsibleModule(owner, run) : run();
   void Promise.resolve()
     .then(runAsOwner)
-    .catch((error: Error["cause"]) => {
+    .catch((error: unknown) => {
       Logging.Error(
         `Hook '${name}' handler of module '${owner ?? "unknown"}' failed:`,
         error,
@@ -512,7 +508,7 @@ export async function CollectHooks<H extends Hook>(
       const value = await Promise.resolve(hook.callback(...args));
       results.push(value);
     } catch (error) {
-      logHookFailure(name, error);
+      Logging.Error(`Hook '${name}' execution failed:`, error);
     }
   }
   return results;
