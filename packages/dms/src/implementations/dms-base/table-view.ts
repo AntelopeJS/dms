@@ -369,7 +369,7 @@ export async function fetchRowForGuard(
   controller: DataControllerInstance,
   id: string,
   idField: string,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- fetchRowForGuard implements the published InterfaceFunction of data-functions.ts, whose row is the stored row of whichever table the guard names, interface-data-api's RowFields.
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- fetchRowForGuard implements the exported but @internal InterfaceFunction of data-functions.ts, whose row is the stored row of whichever table the guard names, interface-data-api's RowFields.
 ): Promise<Record<string, unknown> | undefined> {
   return fetchRowForGuardHelper(controller, id, idField);
 }
