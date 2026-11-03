@@ -20,7 +20,7 @@ Open source under Apache-2.0. Self-hosted today.
 
 </div>
 
-![Screen recording of the AntelopeJS DMS Builder. The Connect form is filled from a postgres:// URL under the caption Paste the URL. Press Connect. Four steps run, the Builder reports 11 tables detected, then a Music Overview dashboard with four count cards appears under the caption First pass done in 10:50.](./docs/media/hero-connect.gif)
+![Screen recording of the AntelopeJS DMS Builder. The Connect form is filled from a postgres:// URL under the caption Paste the URL. Press Connect. Four steps run, the Builder reports 11 tables detected, then a Music Overview dashboard with four count cards appears under the caption First pass done in 10:50.](./docs/media/hero-connect.gif "illustration")
 
 [Watch the full Meet AntelopeJS DMS video (72 seconds)](./docs/media/meet.mp4)
 
@@ -63,19 +63,19 @@ In the Builder's **Database** tab, enter the connection URL of your own database
 
 Each table you keep gets a typed table definition and a page, written into your repository next to your code. You read it, change it, and review it like any other change to your product.
 
-<img src="./docs/media/code.gif" alt="Screen recording of the generated Invoice page, public-invoice/page.ts, open in a code editor under the caption Or write it yourself. Same TypeScript. The RegisterPage line and then the TableView line are highlighted. A diagram follows where Builder clicks, AI prompts, and your own code all lead into the same page.ts file, which passes typecheck, under the caption The code stays yours. In your repo." width="720">
+<img src="./docs/media/code.gif" data-illustration alt="Screen recording of the generated Invoice page, public-invoice/page.ts, open in a code editor under the caption Or write it yourself. Same TypeScript. The RegisterPage line and then the TableView line are highlighted. A diagram follows where Builder clicks, AI prompts, and your own code all lead into the same page.ts file, which passes typecheck, under the caption The code stays yours. In your repo." width="720">
 
 ### Read-only by default, roles for the rest
 
 A generated page lists, shows, and exports rows. It gets no create, edit, or delete route until you switch on **Rows can be edited** for that table. Roles and permissions then decide who sees and edits what, down to each block.
 
-<img src="./docs/media/roles-readonly.gif" alt="Screen recording of the role permission tree, where the Invoice and Music Overview pages are ticked for a role under the caption Roles, down to each page. A second panel then shows settings toggles under the lines Connects to PostgreSQL, MongoDB or RethinkDB and Generated pages are read-only until you switch editing on." width="720">
+<img src="./docs/media/roles-readonly.gif" data-illustration alt="Screen recording of the role permission tree, where the Invoice and Music Overview pages are ticked for a role under the caption Roles, down to each page. A second panel then shows settings toggles under the lines Connects to PostgreSQL, MongoDB or RethinkDB and Generated pages are read-only until you switch editing on." width="720">
 
 ### The Builder turns clicks into code
 
 Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript, and the Builder writes files only when the whole project still compiles.
 
-<img src="./docs/media/builder.gif" alt="Screen recording of the Builder editing the Music Overview page under the caption Click. The Builder writes the code. A KPI card is retitled Artists in the catalog, given the description Distinct artists across all albums, and saved." width="720">
+<img src="./docs/media/builder.gif" data-illustration alt="Screen recording of the Builder editing the Music Overview page under the caption Click. The Builder writes the code. A KPI card is retitled Artists in the catalog, given the description Distinct artists across all albums, and saved." width="720">
 
 ### And more
 
