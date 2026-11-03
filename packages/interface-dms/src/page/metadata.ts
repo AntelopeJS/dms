@@ -453,7 +453,8 @@ export class PageMetadata {
   }
 
   private async bindUploadOptions(
-    value: ComponentInfoSerialized["options"],
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Walks the serialized options of a page's component at registration, at any depth its declaration has, and registers every native upload field among them.
+    value: unknown,
     name: string,
     id: string,
     path: string[],

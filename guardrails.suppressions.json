@@ -11,7 +11,7 @@
     "anti-slop/no-reflect-get": 3,
     "anti-slop/no-runtime-typeof": 157,
     "anti-slop/no-shape-in-symbol-names": 26,
-    "anti-slop/no-unknown-parameters": 79,
+    "anti-slop/no-unknown-parameters": 83,
     "anti-slop/no-unknown-returns": 24,
     "anti-slop/no-unsafe-dictionary-type": 182,
     "anti-slop/require-safety-comment-for-type-assertion": 292,

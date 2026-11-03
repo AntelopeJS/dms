@@ -1,5 +1,4 @@
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { ComponentInfoSerialized } from "../component";
 import type { MaybePromise } from "../types";
 import type { WatchAction } from "../watch-actions";
 
@@ -65,9 +64,8 @@ function isSlotFormOptions(options: unknown): options is SlotFormTarget {
  * form declares `slotId`, and it always serializes a `fields` array, so a node
  * that is anything else is left alone, whatever its options say.
  */
-function slotFormOptionsOf(
-  node: ComponentInfoSerialized["options"],
-): SlotFormTarget | undefined {
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and typeof before reading it.
+function slotFormOptionsOf(node: unknown): SlotFormTarget | undefined {
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized option trees contain primitives and arrays as well as slot-bearing objects.
   if (!node || typeof node !== "object" || Array.isArray(node)) {
     return undefined;
@@ -82,7 +80,8 @@ function slotFormOptionsOf(
   return isSlotFormOptions(options) ? options : undefined;
 }
 
-function hasResolvableSlot(node: ComponentInfoSerialized["options"]): boolean {
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and typeof before reading it.
+function hasResolvableSlot(node: unknown): boolean {
   if (Array.isArray(node)) {
     return node.some(hasResolvableSlot);
   }
@@ -101,9 +100,8 @@ function hasResolvableSlot(node: ComponentInfoSerialized["options"]): boolean {
  * what a resolver contributes is never walked again, which would let a
  * contribution declaring the slot it was contributed to loop forever.
  */
-async function resolveNode(
-  node: ComponentInfoSerialized["options"],
-): Promise<void> {
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and typeof before reading it.
+async function resolveNode(node: unknown): Promise<void> {
   if (Array.isArray(node)) {
     for (const item of node) await resolveNode(item);
     return;
