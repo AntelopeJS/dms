@@ -39,10 +39,9 @@ export interface AttachmentSaveRequest {
  * It answers nothing: the wrapper returns the wrapped route's own answer.
  * A declared attachment field that nests more than 64 levels deep (the body is
  * level 1) is refused with a 400 "The JSON body nests more than 64 levels deep."
- * only up to a depth that depends on the field's shape. Measured on a table-view
- * `new`, every shape answered 400 at 1,100 levels and 500 "Maximum call stack
- * size exceeded" at 5,000, because the guard decoder still overflows the stack
- * between and beyond. dms#723, open, addresses the decoder.
+ * at every depth. The attachment save path checks it, and the guard decoder
+ * counts depth iteratively before any schema parse. Measured on a table-view
+ * `new`, arrays and objects answered 400 from 65 levels up to 100,000.
  *
  * @internal
  */
