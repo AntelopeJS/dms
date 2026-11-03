@@ -12,6 +12,7 @@ import {
   type FormSchemaSource,
 } from "@antelopejs/interface-dms/base/form";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 
 const HTTP_BAD_REQUEST = 400;
 export const JSON_TYPE = "application/json";
@@ -19,16 +20,31 @@ export const JSON_TYPE = "application/json";
 type Scalar = string | number | boolean | null;
 type Flat = Scalar | Scalar[];
 
-/** A value of a demo form: a scalar, a list of scalars, or one level of named parts (an address, a localized text). */
-export type DemoValue = Flat | { [part: string]: Flat };
+/** What a date field parses to: a day, a list of days, or a `{ start, end }` range. */
+type DateValue = Date | Date[] | { start: Date; end: Date };
+
+/**
+ * A value of a demo form: a scalar, a list of scalars, a date shape, or one
+ * level of named parts (an address, a localized text).
+ */
+export type DemoValue = Flat | DateValue | { [part: string]: Flat };
 
 /** The record of a demo form, kept in memory: a restart puts it back. */
 export type DemoRecord = Record<string, DemoValue>;
 
+/** The body a client sends to save a demo form: any JSON object, checked by {@link parseFormBody}. */
+export type DemoBody = Record<string, JsonValue>;
+
 const ScalarSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 const FlatSchema = z.union([ScalarSchema, z.array(ScalarSchema)]);
+const DateSchema = z.date();
+const DateValueSchema = z.union([
+  DateSchema,
+  z.array(DateSchema),
+  z.object({ start: DateSchema, end: DateSchema }).strict(),
+]);
 const DemoRecordSchema = z.record(
-  z.union([FlatSchema, z.record(FlatSchema)]),
+  z.union([FlatSchema, DateValueSchema, z.record(FlatSchema)]),
 ) satisfies z.ZodType<DemoRecord>;
 
 /** Who may read and write a demo record: the page showing its form. */
@@ -41,7 +57,7 @@ export type DemoRecordGuard = Parameters<typeof AuthUserWithPermission>[0];
  */
 export async function parseFormBody(
   form: FormSchemaSource,
-  body: DemoRecord,
+  body: DemoBody,
 ): Promise<DemoRecord> {
   const parsed = await formSchema(form).partial().safeParseAsync(body);
   if (!parsed.success) {
@@ -86,7 +102,7 @@ export function DemoRecordController(options: DemoRecordOptions) {
     }
 
     @Put("save")
-    async save(@JSONBody() body: DemoRecord) {
+    async save(@JSONBody() body: DemoBody) {
       Object.assign(record, await parseFormBody(form, body));
       return record;
     }

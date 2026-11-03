@@ -10,7 +10,12 @@ import {
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { serializeConfirmDialog } from "@antelopejs/interface-dms/base/confirm-dialog";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
-import { type DemoRecord, JSON_TYPE, parseFormBody } from "../demo-record-api";
+import {
+  type DemoBody,
+  type DemoRecord,
+  JSON_TYPE,
+  parseFormBody,
+} from "../demo-record-api";
 import { FORM_CONFIRM_API, PageFormConfirm, WORKSPACE_NAME } from "./page";
 
 const HTTP_CONFLICT = 409;
@@ -59,7 +64,7 @@ export class FormConfirmAPIController extends Controller(FORM_CONFIRM_API) {
   }
 
   @Put("save")
-  async save(@JSONBody() body: DemoRecord) {
+  async save(@JSONBody() body: DemoBody) {
     Object.assign(
       workspace,
       await parseFormBody(PageFormConfirm.workspace, body),
