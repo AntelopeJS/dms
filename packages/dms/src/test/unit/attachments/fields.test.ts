@@ -3,7 +3,9 @@ import { expect } from "chai";
 import {
   type AttachmentReference,
   collectAttachments,
+  SaveComponentFiles,
 } from "../../../attachments";
+import { untouchedRequestContext } from "../../helpers/request-context";
 
 const FILE: AttachmentField = { id: "doc", key: "doc", kind: "file" };
 const IMAGE: AttachmentField = { id: "logo", key: "logo", kind: "image" };
@@ -13,6 +15,7 @@ type NestedObject = string | { a: NestedObject };
 
 const WIDTH = 200_000;
 const WIDE_BODY_MS = 2_000;
+const WIDE_SAVE_MS = 10_000;
 const MIB = 1024 * 1024;
 const BODY_AND_ARRAY_LEVELS = 2;
 const MAX_RSS_GROWTH = 256 * MIB;
@@ -138,6 +141,34 @@ describe("[unit] attachments/fields collectAttachments", () => {
       );
       expect(keys(result)).to.deep.equal(expected);
       expect(ms).to.be.below(WIDE_BODY_MS);
+    });
+  });
+
+  describe("saves a wide body through SaveComponentFiles", () => {
+    async function saveWide(logo: string[] | Record<string, string>) {
+      const started = performance.now();
+      const saved = await SaveComponentFiles(
+        {
+          context: untouchedRequestContext(),
+          componentIds: [],
+          fields: [IMAGE],
+          before: {},
+          submitted: { logo },
+        },
+        async (document) => ({ document, result: document }),
+      );
+      expect(performance.now() - started).to.be.below(WIDE_SAVE_MS);
+      return saved;
+    }
+
+    it("answers an array of two hundred thousand entries", async () => {
+      const logo = indexedKeys(WIDTH);
+      expect((await saveWide(logo)).logo).to.deep.equal(logo);
+    });
+
+    it("answers an object of two hundred thousand entries", async () => {
+      const logo = Object.fromEntries(indexedKeys(WIDTH).map((k) => [k, k]));
+      expect((await saveWide(logo)).logo).to.deep.equal(logo);
     });
   });
 
