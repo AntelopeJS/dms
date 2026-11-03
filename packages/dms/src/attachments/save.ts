@@ -138,13 +138,45 @@ async function cleanRemoved(
   }
 }
 
-/** Failed saves retain promoted objects: another save may already reference them. */
+/** The deepest nesting of arrays and objects a submitted file field may have, the body itself counted. */
+const MAX_BODY_DEPTH = 64;
+
+/**
+ * Refuses a submitted file field that nests arrays and objects deeper than
+ * {@link MAX_BODY_DEPTH}, before the recursive walks over it can overflow the
+ * stack. Walks with an explicit stack, so it is safe at any depth.
+ *
+ * @throws HTTPResult 400 when a field is nested too deep.
+ */
+function assertBodyDepth(request: AttachmentSaveRequest): void {
+  const pending = request.fields.map((field) => ({
+    value: request.submitted[field.key],
+    depth: 2,
+  }));
+  for (let node = pending.pop(); node; node = pending.pop()) {
+    if (!(node.value instanceof Object)) continue;
+    if (node.depth > MAX_BODY_DEPTH)
+      throw new HTTPResult(
+        BAD_REQUEST,
+        `The JSON body nests more than ${MAX_BODY_DEPTH} levels deep.`,
+      );
+    for (const item of Object.values(node.value))
+      pending.push({ value: item, depth: node.depth + 1 });
+  }
+}
+
+/**
+ * Failed saves retain promoted objects: another save may already reference
+ * them. A submitted file field nested more than {@link MAX_BODY_DEPTH} levels
+ * deep is refused with HTTP 400 before any file is touched.
+ */
 export async function SaveComponentFiles<T>(
   request: AttachmentSaveRequest,
   save: (
     document: AttachmentSaveRequest["submitted"],
   ) => Promise<AttachmentSaveResult<T>>,
 ): Promise<T> {
+  assertBodyDepth(request);
   const refs = await prepareReferences(request);
   const saved = await save(await promoteReferences(request, refs));
   await cleanRemoved(request, saved.document);
