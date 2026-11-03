@@ -96,7 +96,7 @@ interface PendingCopy {
  * and never its depth. The value is walked as the only entry of a one-slot
  * array, so the root takes the same path as every child.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns -- remapValue copies one submitted field value, request JSON or a stored attachment value of any shape, with promoted keys swapped, after dms#728 bounds the body at 64 levels, walking it with the explicit stack of dms#739.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns -- remapValue copies one field of request.submitted, request JSON that may carry a value an earlier save stored, of any shape, with promoted keys swapped, after dms#728 bounds the body at 64 levels, walking it with the explicit stack of dms#739.
 function remapValue(value: unknown, map: Map<string, string>): unknown {
   const result = [value];
   const pending: PendingCopy[] = [
