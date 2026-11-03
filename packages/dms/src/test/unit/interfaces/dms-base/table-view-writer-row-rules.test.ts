@@ -1,8 +1,4 @@
-import {
-  Controller,
-  HTTPResult,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { Controller, type RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { DataController } from "@antelopejs/interface-data-api";
 import {
@@ -145,10 +141,8 @@ function deleteRows(ids: string[]) {
   return remove.func.call(controller, REQUEST, { id: ids });
 }
 
-async function rejectionOf(
-  run: () => ReturnType<typeof edit.func>,
-): Promise<HTTPResult> {
-  return httpRejectionOf(Promise.resolve().then(run));
+async function editRow(id: string): Promise<void> {
+  await edit.func.call(controller, REQUEST, { id });
 }
 
 function listContext(query: string): Parameters<typeof applyArchiveFilter>[1] {
@@ -240,9 +234,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
   });
 
   it("refuses an edit the writing table view's rule refuses", async () => {
-    const error = await rejectionOf(() =>
-      edit.func.call(controller, REQUEST, { id: "archived" }),
-    );
+    const error = await httpRejectionOf(editRow("archived"));
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
     expect(
       await edit.func.call(controller, REQUEST, { id: "low" }),
