@@ -124,6 +124,30 @@ const remove = createValidatedRoute(
   "delete",
 );
 
+const archive = createValidatedRoute(
+  {
+    func: (_ctx: RequestContext, ids: string[]) => ({
+      success: true,
+      archivedCount: ids.length,
+    }),
+    args: [],
+    method: "post",
+  },
+  "archive",
+);
+
+const restore = createValidatedRoute(
+  {
+    func: (_ctx: RequestContext, ids: string[]) => ({
+      success: true,
+      restoredCount: ids.length,
+    }),
+    args: [],
+    method: "post",
+  },
+  "restore",
+);
+
 const edit = createValidatedRoute(
   {
     func: () => ({ edited: true }),
@@ -231,6 +255,19 @@ describe("[unit] TableView row rules are those of the controller's writing table
   it("enforces the archive-mode defaults server-side: only archived rows are deleted for good", async () => {
     expect(await deleteRows(ALL_IDS)).to.equal(1);
     expect([...rows.keys()]).to.deep.equal(["low", "high", "legacy"]);
+  });
+
+  it("answers an empty result when no row passes a bulk action's rule", async () => {
+    expect(await deleteRows(["low", "high", "legacy"])).to.deep.equal({
+      deleted: 0,
+    });
+    expect(
+      await archive.func.call(controller, REQUEST, ["archived"]),
+    ).to.deep.equal({ success: true, archivedCount: 0 });
+    expect(await restore.func.call(controller, REQUEST, ["low"])).to.deep.equal(
+      { success: true, restoredCount: 0 },
+    );
+    expect([...rows.keys()]).to.deep.equal(ALL_IDS);
   });
 
   it("refuses an edit the writing table view's rule refuses", async () => {
