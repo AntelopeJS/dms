@@ -1,6 +1,7 @@
 import {
   type FieldChangePayload,
-  type SetFieldValueParams,
+  readFieldFlagParams,
+  readSetFieldValueParams,
   resolveFieldValueWrite,
 } from "./fieldValueRule";
 import type { WatchActionFunction } from "#dms-core/app/types/watch";
@@ -13,16 +14,14 @@ function createFieldSetMutator(stateKey: FieldSetStateKey, flagKey: string) {
     _eventData: ComponentEventData,
     componentState: Parameters<WatchActionFunction>[2],
   ) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- WatchAction permits absent or arbitrary params; neither inference nor the registration's function type proves targetField, so retain this unchecked action boundary.
-    const params = action.params as NonNullable<WatchAction["params"]> & {
-      targetField: string;
-    };
+    const params = readFieldFlagParams(action.params, flagKey);
+    if (!params) return;
     const current =
       // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions can replace these open state entries; preserve the existing unchecked iterable conversion and falsy fallback.
       (componentState.value[stateKey] as Set<string>) || new Set();
     const nextSet = new Set(current);
 
-    if (params[flagKey]) {
+    if (params.flag) {
       nextSet.add(params.targetField);
     } else {
       nextSet.delete(params.targetField);
@@ -37,9 +36,8 @@ function setFieldValue(
   eventData: ComponentEventData,
   componentState: Parameters<WatchActionFunction>[2],
 ) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- WatchAction does not correlate the function ID with SetFieldValueParams; deriving the handler type still leaves this unchecked parameter handoff.
-  const params = action.params as NonNullable<WatchAction["params"]> &
-    SetFieldValueParams;
+  const params = readSetFieldValueParams(action.params);
+  if (!params) return;
   const write = resolveFieldValueWrite(
     params,
     // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions also receive arbitrary component events; FieldChangePayload's owner does not validate eventData.data, and filtering events would change behavior.

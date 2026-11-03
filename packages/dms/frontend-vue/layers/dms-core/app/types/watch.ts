@@ -21,7 +21,6 @@ export interface WatchAction {
   component: string;
   event: string;
   functionId: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Registered action functions own their heterogeneous parameters; no shared schema or ComponentOptionsData contract covers all public action callers.
-  params?: Record<string, unknown>;
+  params?: object;
   onParam?: WatchActionCondition | WatchActionCondition[];
 }
