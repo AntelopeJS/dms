@@ -60,6 +60,7 @@ async function validateReference(
   ref: AttachmentReference,
 ): Promise<void> {
   const attachment = await loadAttachment(ref.key, ref.field.storage);
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- attachments.claimsJson is a stored column whose only writer is createAttachmentUpload (attachments/uploads.ts), JSON.stringify of an UploadTokenClaims, and stored rows are never parsed on read.
   const owner: UploadTokenClaims = JSON.parse(attachment.claimsJson);
   const principal = await assertNativeFileAccess(request.context, owner, false);
   if (
@@ -95,10 +96,8 @@ interface PendingCopy {
  * and never its depth. The value is walked as the only entry of a one-slot
  * array, so the root takes the same path as every child.
  */
-function remapValue(
-  value: AttachmentSaveRequest["submitted"][string],
-  map: Map<string, string>,
-): AttachmentSaveRequest["submitted"][string] {
+// oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns -- remapValue copies one submitted field value, request JSON or a stored attachment value of any shape, with promoted keys swapped, after dms#728 bounds the body at 64 levels, walking it with the explicit stack of dms#739.
+function remapValue(value: unknown, map: Map<string, string>): unknown {
   const result = [value];
   const pending: PendingCopy[] = [
     { keys: ["0"], values: [value], copy: result },
@@ -151,7 +150,8 @@ async function promoteReferences(
 
 async function cleanRemoved(
   request: AttachmentSaveRequest,
-  document: AttachmentSaveRequest["submitted"],
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The document the save callback answers, the published AttachmentSaveResult.document, holds whichever table's stored fields, read here by its file column keys.
+  document: Record<string, unknown>,
 ) {
   const after = collectAttachments(request.fields, document);
   for (const ref of collectAttachments(request.fields, request.before)) {
@@ -202,9 +202,8 @@ function assertBodyDepth(request: AttachmentSaveRequest): void {
  */
 export async function SaveComponentFiles<T>(
   request: AttachmentSaveRequest,
-  save: (
-    document: AttachmentSaveRequest["submitted"],
-  ) => Promise<AttachmentSaveResult<T>>,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- SaveComponentFiles implements the published AttachmentSaver, whose save callback takes the promoted document as Record<string, unknown>: whichever table's request body fields.
+  save: (document: Record<string, unknown>) => Promise<AttachmentSaveResult<T>>,
 ): Promise<T> {
   assertBodyDepth(request);
   const refs = await prepareReferences(request);

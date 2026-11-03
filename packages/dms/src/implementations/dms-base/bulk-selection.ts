@@ -48,10 +48,6 @@ function isControllerInstance(value: unknown): value is DataControllerInstance {
   return isObject(value);
 }
 
-/** A data controller as the list query reads it: its properties by key. */
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The proxy exposes arbitrary controller fields, which no closed type describes; they stay unknown until their data-api owner reads them.
-type ControllerReader = Record<PropertyKey, unknown>;
-
 /**
  * What the list query reads a source's rows through, in place of a data
  * controller: the controller's prototype, for its metadata and its methods,
@@ -65,7 +61,8 @@ function sourceReader({ model, tableView }: BulkRowSource) {
   assert(modelKey, 500, `${controller.name} declares no model.`);
   const prototype: unknown = controller.prototype;
   assert(isObject(prototype), 500, `${controller.name} has no prototype.`);
-  const reader: ControllerReader = Object.defineProperty(
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The proxy's get trap reads a controller property by a runtime string or symbol key, and the reader's prototype is the controller's, so no closed type describes its keys.
+  const reader: Record<PropertyKey, unknown> = Object.defineProperty(
     { __proto__: prototype },
     modelKey,
     { value: model, enumerable: true },

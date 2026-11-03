@@ -29,6 +29,7 @@ const TEXT_LENGTH = 160;
 function loadTypeScript(repo) {
   for (const folder of [repo, join(repo, "packages", "dms"), PACKAGE_ROOT]) {
     try {
+      // oxlint-disable-next-line typescript/no-unsafe-return -- createRequire loads TypeScript from the checkout under test, a different copy from dms-control's own, and Node types what require answers as any.
       return createRequire(join(folder, "package.json"))("typescript");
     } catch {
       continue;

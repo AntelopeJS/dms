@@ -140,6 +140,7 @@ function innerAccessor(def: ZodDef): (() => ZodTypeAny) | undefined {
 }
 
 function defOf(schema: ZodTypeAny): ZodDef {
+  // oxlint-disable-next-line typescript/no-unsafe-return -- zod 3 declares _def as any on ZodTypeAny, and the walker reads the def of every schema kind, including kinds no zod class here types.
   return schema._def;
 }
 

@@ -20,13 +20,12 @@ import type {
   summarizeWithSearch as SummarizeDeclaration,
 } from "@antelopejs/interface-dms/base/table-view";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
-import type { evaluateRowActionRule } from "../../utils";
 import { isRuleOperand, type RuleOperand } from "./row-rule-operand";
 import { buildFilteredQuery } from "./search-route";
 
-type RuleRow = globalThis.Parameters<typeof evaluateRowActionRule>[1];
 type SummaryReceiver = globalThis.Parameters<typeof SummarizeDeclaration>[0];
-type Row = ValueProxy<RuleRow>;
+// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The rows of whichever data controller's table the footer summarizes, interface-data-api's RowFields, read by the field a summary or its where rule names at run time.
+type Row = ValueProxy<Record<string, unknown>>;
 type Condition = ValueProxyOrValue<boolean>;
 type FieldReader = (field: string) => ValueProxy<unknown>;
 
@@ -120,7 +119,8 @@ export function compileRowRule(
 }
 
 type SummaryReader = (
-  rows: Stream<RuleRow>,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The rows of whichever data controller's table the footer summarizes, interface-data-api's RowFields, read by the field a summary or its where rule names at run time.
+  rows: Stream<Record<string, unknown>>,
   field: string | undefined,
 ) => Datum<number>;
 
@@ -135,7 +135,13 @@ function fieldReader(
   row: Row,
 ): FieldReader {
   return (field) =>
-    Validation.UnlockRequest<RuleRow, string>(thisObj, meta, row, field);
+    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- UnlockRequest's K extends keyof T needs the string index of interface-data-api's RowFields to take the field name a summary declares at run time.
+    Validation.UnlockRequest<Record<string, unknown>, string>(
+      thisObj,
+      meta,
+      row,
+      field,
+    );
 }
 
 /**

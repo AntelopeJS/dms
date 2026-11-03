@@ -101,8 +101,8 @@ export function toRegionFormValues(
  * left for the schema to judge.
  */
 /* oxlint-disable anti-slop/no-runtime-typeof -- This pre-schema adapter preserves malformed input for regionalPreferencesSchema to reject, while translating only automatic and week-start representations. */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Input remains unparsed until regionalPreferencesSchema runs in the route.
-export function fromRegionFormValues(body: unknown) {
+// oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns -- The raw body stays unparsed in and out: a non-object comes back as given, an object with its automatic and week-start values mapped, for regionalPreferencesSchema to judge in the route.
+export function fromRegionFormValues(body: unknown): unknown {
   if (!body || typeof body !== "object") return body;
   // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- Only container identity is established; field values intentionally remain unknown until schema validation.
   const values = { ...(body as Record<string, unknown>) };
@@ -113,6 +113,7 @@ export function fromRegionFormValues(body: unknown) {
   if (typeof values.weekStart === "string") {
     values.weekStart = Number(values.weekStart);
   }
+  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The mapped copy of the raw body goes back unparsed, for regionalPreferencesSchema to judge in the route.
   return values;
 }
 /* oxlint-enable anti-slop/no-runtime-typeof */
