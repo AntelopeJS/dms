@@ -1,6 +1,7 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { ComponentInfoSerialized } from "../component";
 import type { MaybePromise } from "../types";
+import type { WatchAction } from "../watch-actions";
 
 /**
  * Property a serialized component's options carry to open an extension point.
@@ -31,6 +32,7 @@ const SLOT_FORM_COMPONENT_NAME = "dms-form";
 interface SlotFormOptions {
   slotId?: string;
   fields: unknown[];
+  watchActions?: WatchAction[];
 }
 
 /** @internal */
