@@ -27,23 +27,28 @@ const SLOT_FORM_COMPONENT_NAME = "dms-form";
 
 /**
  * What the walker checks of a form's options before it hands them to a
- * resolver. `SlotOptions` is the full contract a resolver sees.
+ * resolver: a `fields` array and, on the node it resolves, a registered slot
+ * id. `SlotOptions` is the full contract a resolver sees.
  */
-interface SlotFormOptions {
+interface SlotFormInput {
   slotId?: string;
   fields: unknown[];
+}
+
+/** What a resolver answers: a form's options, with its watch actions. */
+interface SlotFormOptions extends SlotFormInput {
   watchActions?: WatchAction[];
 }
 
 /** @internal */
 export type SlotFormResolver = (
-  options: SlotFormOptions,
+  options: SlotFormInput,
 ) => MaybePromise<SlotFormOptions>;
 
 /** @internal */
 export const slotResolvers = new Map<string, SlotFormResolver>();
 
-type SlotFormTarget = SlotFormOptions & { slotId: string };
+type SlotFormTarget = SlotFormInput & { slotId: string };
 
 function isSlotFormOptions(options: unknown): options is SlotFormTarget {
   if (typeof options !== "object" || options === null) return false;
