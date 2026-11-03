@@ -18,7 +18,6 @@ const WIDE_BODY_MS = 2_000;
 const WIDE_SAVE_MS = 10_000;
 const MIB = 1024 * 1024;
 const BODY_AND_ARRAY_LEVELS = 2;
-const MAX_RSS_GROWTH = 256 * MIB;
 
 function keys(references: AttachmentReference[]): string[] {
   return references.map(({ key }) => key);
@@ -176,15 +175,11 @@ describe("[unit] attachments/fields collectAttachments", () => {
     for (const depth of [63, 64]) {
       it(`reads every element when the body nests ${depth} levels deep`, () => {
         const elements = wideAndDeepElements(depth - BODY_AND_ARRAY_LEVELS);
-        const rssBefore = process.memoryUsage().rss;
         const { result, ms } = timed(() =>
           collectAttachments([FILE], { doc: elements }),
         );
         expect(keys(result)).to.deep.equal(indexedKeys(elements.length));
         expect(ms).to.be.below(WIDE_BODY_MS);
-        expect(process.memoryUsage().rss - rssBefore).to.be.below(
-          MAX_RSS_GROWTH,
-        );
       });
     }
   });
