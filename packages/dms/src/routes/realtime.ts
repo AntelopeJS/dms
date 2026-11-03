@@ -181,12 +181,6 @@ const cleanupSession = async (sessionId: string): Promise<void> => {
   await getPresenceTracker().releaseAllForSession(sessionId);
 };
 
-const warnUnlessClosed =
-  (sessionId: string) => (error: Parameters<typeof Logging.Warn>[1]) => {
-    if (!getSessionInfo(sessionId)) return;
-    Logging.Warn("Realtime: applySessionTopics failed", error);
-  };
-
 const isSessionOf = (
   info: SessionInfo,
   requester: RealtimeRequester,
@@ -296,7 +290,10 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
         await cleanupSession(sessionId);
       },
     });
-    void applySessionTopics(sessionId).catch(warnUnlessClosed(sessionId));
+    void applySessionTopics(sessionId).catch((error: unknown) => {
+      if (!getSessionInfo(sessionId)) return;
+      Logging.Warn("Realtime: applySessionTopics failed", error);
+    });
     return {
       ok: true,
       sessionId,

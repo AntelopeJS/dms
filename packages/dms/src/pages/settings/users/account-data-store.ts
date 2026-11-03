@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { CROSS_INSTANCE } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -329,15 +329,12 @@ export async function requireStoredUser(user: User): Promise<User> {
  * account of the signed-in user. A last owner is refused with 409.
  *
  * @param user The signed-in user
- * @param body `{ password?, confirmation }`
+ * @param input `{ password?, confirmation }`
  */
 export async function requestAccountDeletion(
   user: User,
-  body: Parameters<typeof accountDeletionSchema.parse>[0],
+  input: ReturnType<typeof accountDeletionSchema.parse>,
 ): Promise<AccountDeletionResult> {
-  const input = assertValidation(body, (value) =>
-    accountDeletionSchema.parse(value),
-  );
   const userModel = GetModel(UserModel);
   const stored = await requireStoredUser(user);
   if (stored.password) {

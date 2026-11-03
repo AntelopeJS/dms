@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
   normalizeEmail,
@@ -93,12 +93,10 @@ async function assertCodeMatches(
  */
 export async function requestEmailChange(
   user: User,
-  body: Parameters<typeof securitySchema.changeEmail.parse>[0],
+  body: ReturnType<typeof securitySchema.changeEmail.parse>,
   userModel: UserModel,
 ): Promise<EmailChangeRequested> {
-  const { email, currentPassword } = assertValidation(body, (value) =>
-    securitySchema.changeEmail.parse(value),
-  );
+  const { email, currentPassword } = body;
   const now = Date.now();
 
   await assertMayRequest(user._id, normalizeEmail(email), now);
@@ -139,12 +137,10 @@ export async function requestEmailChange(
  */
 export async function confirmEmailChange(
   user: User,
-  body: Parameters<typeof securitySchema.confirmEmailChange.parse>[0],
+  body: ReturnType<typeof securitySchema.confirmEmailChange.parse>,
   userModel: UserModel,
 ): Promise<string> {
-  const { code } = assertValidation(body, (value) =>
-    securitySchema.confirmEmailChange.parse(value),
-  );
+  const { code } = body;
   const changes = GetModel(UserEmailChangesModel);
   const pending = await changes.findPending(user._id);
   assert(pending, HTTP_BAD_REQUEST, "error.email_change_not_requested");

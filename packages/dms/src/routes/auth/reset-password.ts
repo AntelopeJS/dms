@@ -1,4 +1,3 @@
-import { assertValidation } from "@antelopejs/interface-api-util";
 import type {
   SessionModel,
   UserModel,
@@ -16,11 +15,9 @@ import { assertResetCode } from "./reset-code";
 export async function resetPassword(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: Parameters<typeof authSchema.reset.parse>[0],
+  body: ReturnType<typeof authSchema.reset.parse>,
 ): Promise<void> {
-  const { email, token, password } = assertValidation(body, (v) =>
-    authSchema.reset.parse(v),
-  );
+  const { email, token, password } = body;
   const user = await assertResetCode(userModel, email, token);
 
   user.forgotPasswordToken = null;

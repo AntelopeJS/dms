@@ -442,6 +442,25 @@ describe("[integration] auth/two-factor codes", function () {
       );
     });
 
+    it("refuses a malformed setup body before it looks at the resend wait", async () => {
+      await startEmailSetup();
+      await client.post(`${TWO_FACTOR}/confirm-email`, {
+        code: await lastEmailedCode(),
+      });
+      await allowNextEmailCode(user.userId);
+      const resent = await client.post(`${TWO_FACTOR}/request-email-code`);
+      expect(resent.status, JSON.stringify(resent.data)).to.equal(HTTP_OK);
+
+      const malformed = await client.post(`${TWO_FACTOR}/enable-email`, {
+        currentPassword: 5,
+      });
+      expect(malformed.status, JSON.stringify(malformed.data)).to.equal(
+        HTTP_BAD_REQUEST,
+      );
+      const waiting = await startEmailSetup();
+      expect(waiting.status).to.equal(HTTP_TOO_MANY_REQUESTS);
+    });
+
     it("keeps no code and starts no wait when the email could not be sent", async () => {
       const failed = await duringEmailOutage(startEmailSetup);
       expect(failed.status).to.be.at.least(HTTP_INTERNAL_ERROR);
