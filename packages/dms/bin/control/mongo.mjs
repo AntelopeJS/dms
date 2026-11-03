@@ -38,10 +38,16 @@ function isCallable(value) {
 
 /**
  * @param {unknown} value
- * @returns {value is Constructor} True for a function, which `new` can call
+ * @returns {value is Constructor} True for a function that `new` accepts, such as a class or a bound class, and false for an arrow function or a method
  */
 function isConstructor(value) {
-  return typeof value === "function";
+  if (!isCallable(value)) return false;
+  try {
+    Reflect.construct(Object, [], value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
