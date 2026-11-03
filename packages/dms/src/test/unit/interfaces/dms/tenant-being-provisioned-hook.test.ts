@@ -6,6 +6,7 @@ import {
   type TenantProvisioningHookPayload,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import { expect } from "chai";
 
 type ProvisioningHandler = HookHandler<Hook.TENANT_BEING_PROVISIONED>;
@@ -22,7 +23,7 @@ function register(handler: ProvisioningHandler): void {
 }
 
 function buildPayload(
-  extras: TenantProvisioningHookPayload["extras"] = {},
+  extras: Record<string, JsonValue> = {},
 ): TenantProvisioningHookPayload {
   return { tenantId: TENANT_ID, userId: USER_ID, extras };
 }
@@ -106,14 +107,14 @@ describe("[unit] interfaces/dms/hooks — TENANT_BEING_PROVISIONED", () => {
 
   it("carries extras a future consumer invents, with no DMS change", async () => {
     const unknownToTheDms = { whateverTheProductAsks: ["a", "b"] };
-    let seen: TenantProvisioningHookPayload["extras"] | undefined;
+    let seen: TenantProvisioningHookPayload | undefined;
     register(async (payload) => {
-      seen = payload.extras;
+      seen = payload;
       return undefined;
     });
 
     await provision(buildPayload(unknownToTheDms));
 
-    expect(seen).to.deep.equal(unknownToTheDms);
+    expect(seen?.extras).to.deep.equal(unknownToTheDms);
   });
 });

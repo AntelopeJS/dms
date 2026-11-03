@@ -1,9 +1,12 @@
 import { strict as assert } from "node:assert";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { z } from "zod";
-import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
+import { UserInviteModel } from "@antelopejs/interface-dms/db";
 import { decideInvite } from "@antelopejs/interface-dms/invite-resolution";
-import { RegisterInviteExtension } from "@antelopejs/interface-dms/invite-extensions";
+import {
+  type InviteExtensionContext,
+  RegisterInviteExtension,
+} from "@antelopejs/interface-dms/invite-extensions";
 import { Form } from "@antelopejs/interface-dms/base/form";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
@@ -20,16 +23,12 @@ interface ScopeSlice {
   access: string;
 }
 
-interface RecordedUpdate {
-  payload: unknown;
-  previous: unknown;
-  context: unknown;
-}
+const StoredExtensions = z.record(z.record(z.string())).nullish();
 
-function plain(
-  value: Parameters<typeof JSON.stringify>[0],
-): ReturnType<typeof JSON.parse> {
-  return JSON.parse(JSON.stringify(value));
+interface RecordedUpdate {
+  payload: ScopeSlice;
+  previous: ScopeSlice | undefined;
+  context: InviteExtensionContext;
 }
 
 describe("Pending invite edit with extension payloads (MongoDB adapter)", () => {
@@ -38,10 +37,8 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
   let admin: User;
   const disposers: Array<() => void> = [];
 
-  async function storedExtensions(): Promise<
-    UserInvite["extensions"] | undefined
-  > {
-    return (await invites.get(INVITE_ID))?.extensions;
+  async function storedExtensions() {
+    return StoredExtensions.parse((await invites.get(INVITE_ID))?.extensions);
   }
 
   beforeEach(async () => {
@@ -56,11 +53,7 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
         placement: { side: "end", order: 0 },
         onAccept: () => undefined,
         onUpdate: (payload, previous, context) => {
-          updates.push({
-            payload: plain(payload),
-            previous: plain(previous),
-            context: plain(context),
-          });
+          updates.push({ payload, previous, context });
         },
       }),
     );

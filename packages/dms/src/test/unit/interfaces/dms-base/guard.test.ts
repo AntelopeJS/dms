@@ -1,3 +1,4 @@
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import { expect } from "chai";
 import {
   GetBlockType,
@@ -11,7 +12,7 @@ function declared(type: string) {
   return block!;
 }
 
-const valid = (options: Parameters<typeof ValidateBlockOptions>[1]) =>
+const valid = (options: Record<string, JsonValue | undefined>) =>
   ValidateBlockOptions("Guard", options).valid;
 
 const GUARD = {

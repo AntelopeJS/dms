@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
 import {
   PAGE_TOOLBAR_LIVE_DEFAULTS,
@@ -101,8 +102,13 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
   });
 
   it("offers the comparisons in a menu only when there is a choice", () => {
+    const PeriodOptions = z
+      .object({ comparisonControl: z.string() })
+      .passthrough();
     const periodOf = (period: PageToolbarOptions["period"]) =>
-      childOf(pageToolbar({ period }).serializeSync(), "period")?.options;
+      PeriodOptions.parse(
+        childOf(pageToolbar({ period }).serializeSync(), "period")?.options,
+      );
 
     expect(
       periodOf({ comparisons: ["previous-period", "previous-year", "none"] }),

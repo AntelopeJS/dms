@@ -10,8 +10,12 @@ const POLL_ATTEMPTS = 50;
 
 export interface RenderedEmail {
   template: string;
-  props: Parameters<typeof GenerateHtml>[1];
+  props: object;
   language?: string;
+}
+
+function isObject<T>(value: T): value is T & object {
+  return typeof value === "object" && value !== null;
 }
 
 export const renderedEmails: RenderedEmail[] = [];
@@ -41,6 +45,9 @@ export function captureEmails(): void {
         language?: string,
       ) => {
         if (emailOutage.isOn) throw new Error("Email outage");
+        if (!isObject(props)) {
+          throw new Error(`Template ${template.name} rendered without props`);
+        }
         renderedEmails.push({
           template: template.name,
           props,
