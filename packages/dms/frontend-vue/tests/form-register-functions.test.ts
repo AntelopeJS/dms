@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { registerFormFunctions } from "../layers/dms-ui/app/build/composables/form/registerFormFunctions";
+import { registerFormFunctions } from "../layers/dms-ui/app/entries/composables/form/registerFormFunctions";
 
 const FUNCTIONS = {
   SET_FIELD_DISABLED: "disabled",
