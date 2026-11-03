@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { getHeapStatistics } from "node:v8";
 import { HTTPResult } from "@antelopejs/interface-api";
 import {
   type DataType,
@@ -13,7 +14,11 @@ import {
   isFieldGroup,
 } from "@antelopejs/interface-dms/base/form";
 import type { JsonValue } from "@antelopejs/interface-dms/base/types";
-import { type DemoBody, parseFormBody } from "./demo-record-api";
+import {
+  type DemoBody,
+  type DemoRecord,
+  parseFormBody,
+} from "./demo-record-api";
 import { PageFormAddress } from "./address/page";
 import { PageFormAdvanced } from "./advanced/page";
 import { PageFormConfirm } from "./confirm/page";
@@ -129,6 +134,76 @@ function clientBodies(form: FormBuilder): ClientBody[] {
   return bodies;
 }
 
+const ONE_MIB = 1024 * 1024;
+const MAX_MILLISECONDS = 500;
+const MAX_HEAP_GROWTH = 64 * ONE_MIB;
+const WIDE_LAYOUTS = ["many-keys", "wide-leaf"] as const;
+
+/** `depth` levels of list around `leaf`. */
+function nested(depth: number, leaf: JsonValue): JsonValue {
+  let value = leaf;
+  for (let level = 0; level < depth; level++) value = [value];
+  return value;
+}
+
+/**
+ * A body of at least 1 MiB whose values nest `depth` deep: one chain per key
+ * (`many-keys`), or one chain whose innermost list is the 1 MiB (`wide-leaf`).
+ * When `known`, a chain is also sent under a field of the form.
+ */
+function wideBody(
+  layout: (typeof WIDE_LAYOUTS)[number],
+  depth: number,
+  known: boolean,
+): DemoBody {
+  if (layout === "wide-leaf") {
+    const leaf = Array.from({ length: ONE_MIB / 2 }, () => 1);
+    return { [known ? "textField" : "unknown"]: nested(depth, leaf) };
+  }
+  const chainBytes = JSON.stringify(nested(depth, [])).length;
+  const body: DemoBody = {};
+  for (let index = 0; index < ONE_MIB / chainBytes; index++) {
+    body[`unknown${index}`] = nested(depth, []);
+  }
+  if (known) body.textField = nested(depth, []);
+  return body;
+}
+
+interface Answer {
+  saved?: DemoRecord;
+  refusal?: HTTPResult;
+}
+
+async function answerOf(body: DemoBody): Promise<Answer> {
+  try {
+    return { saved: await parseFormBody(PageFormSimple.form, body) };
+  } catch (error) {
+    if (error instanceof HTTPResult) return { refusal: error };
+    throw error;
+  }
+}
+
+async function assertAnsweredFast(
+  layout: (typeof WIDE_LAYOUTS)[number],
+  depth: number,
+  known: boolean,
+): Promise<void> {
+  const body = wideBody(layout, depth, known);
+  assert.ok(JSON.stringify(body).length >= ONE_MIB, "the body is 1 MiB");
+  const heapBefore = getHeapStatistics().used_heap_size;
+  const started = performance.now();
+  const answer = await answerOf(body);
+  const milliseconds = performance.now() - started;
+  const heapGrowth = getHeapStatistics().used_heap_size - heapBefore;
+  assert.ok(milliseconds < MAX_MILLISECONDS, `${milliseconds} ms`);
+  assert.ok(heapGrowth < MAX_HEAP_GROWTH, `${heapGrowth} bytes of heap`);
+  if (known) {
+    assert.equal(answer.refusal?.getStatus(), 400);
+  } else {
+    assert.deepEqual(answer.saved, {});
+  }
+}
+
 /** Resolves when every case has run. */
 export const settled = Promise.all([
   ...Object.entries(DEMO_FORMS).map(([name, form]) =>
@@ -173,4 +248,12 @@ export const settled = Promise.all([
         String(error.getBody()).includes("calendarField"),
     );
   }),
+  ...[63, 64].flatMap((depth) =>
+    WIDE_LAYOUTS.map((layout) =>
+      test(`a 1 MiB body of ${layout} values nested ${depth} deep is answered fast`, async () => {
+        await assertAnsweredFast(layout, depth, false);
+        await assertAnsweredFast(layout, depth, true);
+      }),
+    ),
+  ),
 ]);
