@@ -12,7 +12,7 @@ import type {
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import { rowRuleProblem } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
+import { assertRowRule } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
 import type { FooterSummaryValues } from "@antelopejs/interface-dms/base/table-view/internal/data-functions";
 import type {
   TableViewFooterSummary,
@@ -115,8 +115,7 @@ export function compileRowRule(
   rule: RowActionRule,
   read: FieldReader,
 ): Condition {
-  const problem = rowRuleProblem(rule);
-  if (problem) throw new Error(`Malformed row rule: ${problem}`);
+  assertRowRule(rule, "Malformed row rule");
   return compileChecked(rule, read);
 }
 
