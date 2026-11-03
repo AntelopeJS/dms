@@ -438,12 +438,9 @@ export function collectDefaults(
   described: Record<string, BlockOptionSchema>,
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published defaults contain arbitrary application values, matching BlockOptionSchema.default.
 ): Record<string, unknown> {
-  const defaults: Record<string, BlockOptionSchema["default"]> = {};
-  for (const [key, option] of Object.entries(described)) {
-    if (option.default !== undefined) {
-      defaults[key] = option.default;
-    }
-  }
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published return remains an open record of application defaults; values retain BlockOptionSchema.default without parsing or coercion.
-  return defaults;
+  return Object.fromEntries(
+    Object.entries(described).flatMap(([key, option]) =>
+      option.default === undefined ? [] : [[key, option.default]],
+    ),
+  );
 }
