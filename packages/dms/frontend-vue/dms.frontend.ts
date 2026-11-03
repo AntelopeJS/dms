@@ -8,6 +8,7 @@ import {
   type DmsFrontendSdk,
   useDmsRuntimeConfig,
 } from "#dms/frontend-module";
+import { lazyPlugin } from "./lazy-plugin";
 import authMiddleware from "./layers/dms-auth/app/middleware/auth";
 import permissionsPreloadPlugin from "./layers/dms-auth/app/plugins/permissions-preload";
 import asyncDataScopePlugin from "./layers/dms-core/app/plugins/async-data-scope";
@@ -164,20 +165,15 @@ function registerDeferredPlugins(
 function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   const clientOnly = { clientOnly: true };
   if (import.meta.env.DEV) {
-    sdk.registerPlugin(async (context) => {
-      const plugin = await import(
-        "./layers/dms-layout/app/plugins/dms-dev-reload.client"
-      );
-      await plugin.default(context);
-    }, clientOnly);
+    sdk.registerPlugin(
+      lazyPlugin(
+        () => import("./layers/dms-layout/app/plugins/dms-dev-reload.client"),
+      ),
+      clientOnly,
+    );
 
     sdk.registerPlugin(
-      async (context) => {
-        const plugin = await import(
-          "./layers/dms-core/app/plugins/dev-error-log"
-        );
-        await plugin.default(context);
-      },
+      lazyPlugin(() => import("./layers/dms-core/app/plugins/dev-error-log")),
       { ...clientOnly, enforce: "pre" },
     );
   }
