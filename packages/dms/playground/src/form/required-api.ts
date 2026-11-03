@@ -4,6 +4,7 @@ import {
   JSONBody,
   Put,
 } from "@antelopejs/interface-api";
+import { z } from "zod";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { formSchema } from "@antelopejs/interface-dms/base/form";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
@@ -17,6 +18,8 @@ const UNKNOWN_POSTAL_CODE = "0000";
 const USERNAME_TAKEN_KEY = "$demo.form_pages.username_taken";
 const ADDRESS_FIELD = "address";
 const POSTAL_CODE_PART = "postalCode";
+
+const AddressBody = z.object({ postalCode: z.string() });
 
 function refuseTakenUsername(body: DemoRecord): void {
   if (body.username !== TAKEN_USERNAME) return;
@@ -32,7 +35,10 @@ function refuseTakenUsername(body: DemoRecord): void {
 }
 
 function refuseUnknownPostalCode(body: DemoRecord): void {
-  if (body[ADDRESS_FIELD]?.postalCode !== UNKNOWN_POSTAL_CODE) return;
+  const address = AddressBody.safeParse(body[ADDRESS_FIELD]);
+  if (!address.success || address.data.postalCode !== UNKNOWN_POSTAL_CODE) {
+    return;
+  }
   throw new HTTPResult(
     HTTP_BAD_REQUEST,
     JSON.stringify([

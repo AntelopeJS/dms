@@ -2,10 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { SaveComponentFiles } from "../../../attachments";
-import type {
-  AttachmentSaveRequest,
-  AttachmentSaveResult,
-} from "@antelopejs/interface-dms/attachments";
+import type { AttachmentSaveRequest } from "@antelopejs/interface-dms/attachments";
 import { verifyUploadToken } from "../../../utils";
 import {
   fetchStoredText,
@@ -94,18 +91,19 @@ async function assertFinal(f: Fixture): Promise<void> {
   );
 }
 
-async function persist(
-  f: Fixture,
-  document: AttachmentSaveResult<string>["document"],
-): Promise<AttachmentSaveResult<string>> {
-  expect(document.file).to.equal(f.canonical);
-  const response = await f.client.post(`${LOCATION}/new`, {
-    ...document,
-    readerId: f.userId,
-  });
-  expect(response.status, JSON.stringify(response.data)).to.equal(200);
-  await assertFinal(f);
-  return { document, result: parseSavedDocument(response)._id };
+type SaveCallback = Parameters<typeof SaveComponentFiles<string>>[1];
+
+function persisting(f: Fixture): SaveCallback {
+  return async (document) => {
+    expect(document.file).to.equal(f.canonical);
+    const response = await f.client.post(`${LOCATION}/new`, {
+      ...document,
+      readerId: f.userId,
+    });
+    expect(response.status, JSON.stringify(response.data)).to.equal(200);
+    await assertFinal(f);
+    return { document, result: parseSavedDocument(response)._id };
+  };
 }
 
 function outcome<T>(promise: Promise<T>): Promise<PromiseSettledResult<T>> {
@@ -141,10 +139,6 @@ class PromotionBarrier {
   }
 }
 
-type SaveCallback = (
-  document: AttachmentSaveResult<string>["document"],
-) => Promise<AttachmentSaveResult<string>>;
-
 function startSave(
   f: Fixture,
   promotion: PromotionBarrier,
@@ -173,15 +167,16 @@ async function concurrentSaves(f: Fixture, failing: SaveOrder) {
   const promotion = new PromotionBarrier(f.staged);
   const firstPromoted = barrier();
   const finishFirst = barrier();
+  const persist = persisting(f);
   const first = startSave(f, promotion, "first", async (document) => {
     firstPromoted.release();
     await finishFirst.promise;
     if (failing === "first") throw SAVE_FAILURE;
-    return persist(f, document);
+    return persist(document);
   });
   const second = startSave(f, promotion, "second", async (document) => {
     if (failing === "second") throw SAVE_FAILURE;
-    return persist(f, document);
+    return persist(document);
   });
   try {
     await Promise.race([promotion.ready.promise, first, second]);

@@ -2,6 +2,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { HTTPResult } from "@antelopejs/interface-api";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import { assert, expect } from "chai";
 import {
   loadStoreCatalog,
@@ -238,7 +239,7 @@ describe("[unit] store/interfaces", () => {
 
   async function moduleAt(
     id: string,
-    manifest: Parameters<typeof JSON.stringify>[0],
+    manifest: Record<string, JsonValue>,
   ): Promise<RuntimeModule> {
     const localPath = path.join(root, id);
     await mkdir(localPath, { recursive: true });
