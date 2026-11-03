@@ -3,10 +3,6 @@ import {
   DataController,
   type DataControllerCallback,
 } from "@antelopejs/interface-data-api";
-import type {
-  Parameters as DataParameters,
-  Validation,
-} from "@antelopejs/interface-data-api/components";
 import {
   Access,
   AccessMode,
@@ -59,12 +55,7 @@ type MemberRouteChanges<A extends unknown[]> = (
 
 async function describeEditRoute(
   model: TenantMemberModel,
-  [, params, body]: [
-    RequestContext,
-    DataParameters.EditParameters,
-    Validation.WrittenBody,
-    ...unknown[],
-  ],
+  [, params, body]: Parameters<typeof TableViewRoutes.Edit.func>,
 ): Promise<MemberChange[]> {
   const member = await model.get(String(params.id));
   if (!member) return [];
@@ -74,7 +65,7 @@ async function describeEditRoute(
 
 async function describeDeleteRoute(
   model: TenantMemberModel,
-  [, params]: [RequestContext, DataParameters.DeleteParameters, ...unknown[]],
+  [, params]: Parameters<typeof TableViewRoutes.Delete.func>,
 ): Promise<MemberChange[]> {
   const ids = [params.id].flat().map(String);
   const members = await Promise.all(ids.map((id) => model.get(id)));
