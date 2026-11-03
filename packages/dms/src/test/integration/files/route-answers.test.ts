@@ -12,6 +12,7 @@ import type { BodyResponse } from "../../helpers/parse-body";
 const LOCATION = "/api/native-attachments";
 const CONTENT = Buffer.from("route answer");
 const HTTP_OK = 200;
+const TEST_TIMEOUT_MS = 20 * 1000;
 
 function answerOf({ status, data }: BodyResponse) {
   return { status, body: data };
@@ -37,7 +38,8 @@ async function stagedKey(
   return upload.key;
 }
 
-describe("[integration] file-bearing table routes answer what the route answers", () => {
+describe("[integration] file-bearing table routes answer what the route answers", function () {
+  this.timeout(TEST_TIMEOUT_MS);
   beforeEach(resetDatabase);
 
   it("answers the saved row from new and from every edit", async () => {

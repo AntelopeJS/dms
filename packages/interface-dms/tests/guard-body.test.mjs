@@ -173,6 +173,19 @@ const withLastElement = (container, lastContainers) => {
   return `{"k":[${elements.join(",")}]}`;
 };
 
+/**
+ * `{"k":[L,E,...,E]}`: one element of `firstContainers` levels, then `siblings`
+ * elements of `MAX_DEPTH - 2` levels.
+ *
+ * @param {"array" | "object"} container
+ * @param {number} firstContainers
+ */
+const withFirstElement = (container, firstContainers) => {
+  const elements = Array(SIBLINGS).fill(element(container, MAX_DEPTH - 2));
+  elements.unshift(element(container, firstContainers));
+  return `{"k":[${elements.join(",")}]}`;
+};
+
 for (const container of ["array", "object"]) {
   await test(`${container} siblings ${MAX_DEPTH} levels deep are decoded whole`, () => {
     const body = withLastElement(container, MAX_DEPTH - 2);
@@ -181,6 +194,18 @@ for (const container of ["array", "object"]) {
 
   await test(`one ${MAX_DEPTH + 1}-deep ${container} element last among ${MAX_DEPTH}-deep siblings answers 400`, () => {
     const body = withLastElement(container, MAX_DEPTH - 1);
+    assertRefusedAs400(
+      refusal(() => parseGuardBody(body)),
+      "text",
+    );
+    assertRefusedAs400(
+      refusal(() => parseGuardBody(Buffer.from(body))),
+      "bytes",
+    );
+  });
+
+  await test(`one ${MAX_DEPTH + 1}-deep ${container} element first among ${MAX_DEPTH}-deep siblings answers 400`, () => {
+    const body = withFirstElement(container, MAX_DEPTH - 1);
     assertRefusedAs400(
       refusal(() => parseGuardBody(body)),
       "text",
