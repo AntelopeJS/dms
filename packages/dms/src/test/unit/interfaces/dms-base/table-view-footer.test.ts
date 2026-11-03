@@ -75,6 +75,16 @@ type PaymentOptions = NonNullable<
   Parameters<typeof TableView<typeof PaymentAPI>>[1]
 >;
 
+type FooterRule = NonNullable<
+  NonNullable<NonNullable<PaymentOptions["footer"]>["summary"]>[number]["where"]
+>;
+
+const nestedNot = (depth: number): FooterRule => {
+  let rule: FooterRule = { field: "amount", equals: 1 };
+  for (let level = 0; level < depth; level += 1) rule = { not: rule };
+  return rule;
+};
+
 const READ_ONLY = { add: false, duplicate: false, edit: false, delete: false };
 
 const optionsOf = (options: PaymentOptions) =>
@@ -157,6 +167,31 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
     expect(() =>
       declare('{"not":{"or":[{"field":"amount","in":"x"}]}}'),
     ).to.throw(/where\.not\.or\[0\]\.in must be an array/);
+    expect(() => declare('{"field":"amount"}')).to.throw(
+      /footer summary "Bad".*where must name an operator/,
+    );
+    expect(() => declare('{"and":[{"equals":1}]}')).to.throw(
+      /footer summary "Bad".*where\.and\[0\]\.field must be a string/,
+    );
+  });
+
+  it("refuses a where rule nested deeper than 64 levels at declaration", () => {
+    const declare = (depth: number) =>
+      optionsOf({
+        footer: {
+          summary: [
+            {
+              label: "Deep",
+              op: "count",
+              where: nestedNot(depth),
+            },
+          ],
+        },
+      });
+    expect(() => declare(65)).to.throw(
+      /footer summary "Deep".*where(\.not)+ nests rules deeper than 64 levels/,
+    );
+    expect(() => declare(64)).not.to.throw();
   });
 
   it("serializes the empty states, a component included", () => {
