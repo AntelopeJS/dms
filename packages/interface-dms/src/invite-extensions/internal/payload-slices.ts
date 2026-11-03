@@ -1,3 +1,4 @@
+import { HTTPResult } from "@antelopejs/interface-api";
 import { assertValidation } from "@antelopejs/interface-api-util";
 import {
   inviteExtensionFieldId,
@@ -58,30 +59,54 @@ function isPlainObject(value: unknown): value is object {
   return prototype === Object.prototype || prototype === null;
 }
 
-function isInviteExtensionJson(value: unknown): value is InviteExtensionJson {
-  if (isNull(value) || isString(value) || isNumber(value) || isBoolean(value)) {
-    return true;
-  }
-  if (Array.isArray(value)) return value.every(isInviteExtensionJson);
-  return (
-    isPlainObject(value) && Object.values(value).every(isInviteExtensionJson)
-  );
-}
+/**
+ * Most levels of arrays and objects a submitted body may nest, the body itself
+ * being the first.
+ *
+ * @internal
+ */
+export const MAX_INVITE_BODY_DEPTH = 32;
 
 /**
  * Whether a submitted body is an object whose every value is JSON, which is
  * all a JSON request body can hold.
+ *
+ * The walk is iterative and bounded: a body nested deeper than
+ * {@link MAX_INVITE_BODY_DEPTH}, a cyclic one included, is refused instead of
+ * overflowing the call stack, which a recursive walk does on a few thousand
+ * levels of valid JSON.
+ *
+ * @throws HTTPResult 400 when the body nests more levels than the bound
  *
  * @internal
  */
 export function isInviteFieldValues(
   value: unknown,
 ): value is InviteFieldValues {
-  return (
-    isPlainObject(value) &&
-    !Array.isArray(value) &&
-    Object.values(value).every(isInviteExtensionJson)
-  );
+  const pending = [{ value, depth: 0 }];
+  if (!isPlainObject(value)) return false;
+  for (let next = pending.pop(); next; next = pending.pop()) {
+    const { value: current, depth } = next;
+    if (
+      isNull(current) ||
+      isString(current) ||
+      isNumber(current) ||
+      isBoolean(current)
+    ) {
+      continue;
+    }
+    if (!Array.isArray(current) && !isPlainObject(current)) return false;
+    if (depth >= MAX_INVITE_BODY_DEPTH) {
+      throw new HTTPResult(
+        HTTP_BAD_REQUEST,
+        `The submitted fields are nested more than ${MAX_INVITE_BODY_DEPTH} levels deep.`,
+      );
+    }
+    for (const child of Object.values(current)) {
+      pending.push({ value: child, depth: depth + 1 });
+    }
+  }
+  return true;
 }
 
 /**
