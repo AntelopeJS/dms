@@ -26,8 +26,8 @@ function resolvableSlotIdOf(
   if (!node || typeof node !== "object" || Array.isArray(node)) {
     return undefined;
   }
-  const slot: Partial<Pick<SlotOptions, typeof COMPONENT_SLOT_KEY>> = node;
-  const slotId = slot[COMPONENT_SLOT_KEY];
+  const slotId =
+    COMPONENT_SLOT_KEY in node ? node[COMPONENT_SLOT_KEY] : undefined;
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A serialized slot id must be a registered string; other option values remain ordinary data.
   if (typeof slotId !== "string" || !slotResolvers.has(slotId)) {
     return undefined;

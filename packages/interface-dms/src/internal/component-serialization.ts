@@ -16,16 +16,17 @@ export function normalizeComponentAnchor(
 }
 
 /** @internal */
-export function serializedInfo<T>(
+export async function serializedInfo<T>(
   componentInfo: Awaited<ComponentInfoPromise<T>>,
   options: T | undefined,
-  children: ChildSerialized[] | undefined,
-): ComponentInfoSerialized<T> {
+): Promise<ComponentInfoSerialized<T>> {
+  const children = componentInfo.children
+    ? await Promise.all(componentInfo.children.map(serializeChild))
+    : undefined;
   return { ...componentInfo, options, children: children ?? [] };
 }
 
-/** @internal */
-export async function serializeChild(
+async function serializeChild(
   child: NonNullable<Awaited<ComponentInfoPromise>["children"]>[number],
 ): Promise<ChildSerialized> {
   const { id, component, ...additionalProps } = child;

@@ -1,8 +1,4 @@
-import {
-  Controller,
-  HTTPResult,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { Controller, type RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { DataController } from "@antelopejs/interface-data-api";
 import {
@@ -18,6 +14,7 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import { z } from "zod";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as tableViewImpl from "../../../../implementations/dms-base/table-view";
 import { applyArchiveFilter } from "../../../../implementations/dms-base/services";
@@ -144,10 +141,8 @@ function deleteRows(ids: string[]) {
   return remove.func.call(controller, REQUEST, { id: ids });
 }
 
-async function rejectionOf(
-  run: () => ReturnType<typeof edit.func>,
-): Promise<HTTPResult> {
-  return httpRejectionOf(Promise.resolve().then(run));
+async function editRow(id: string): Promise<void> {
+  await edit.func.call(controller, REQUEST, { id });
 }
 
 function listContext(query: string): Parameters<typeof applyArchiveFilter>[1] {
@@ -163,6 +158,15 @@ function ruleOf(action: "archive" | "restore" | "delete" | "edit") {
   return config.rule;
 }
 
+const ServedOptions = z.object({
+  formComponents: z.object({
+    new: z.unknown(),
+    edit: z.unknown(),
+    view: z.unknown(),
+  }),
+  rowActions: z.object({ delete: z.unknown() }).optional(),
+});
+
 async function served(
   builder: ComponentBuilder<TableViewOptionsSerialized>,
   permissionId: string,
@@ -170,10 +174,12 @@ async function served(
   const { options } = builder.serializeSync();
   const filter = builder.onFilterCallback;
   if (!filter || !options) throw new Error("table view without a filter");
-  return filter(new Set(["*"]), options, permissionId, {
-    tenantId: "writer-row-rules-tenant",
-    user: undefined,
-  });
+  return ServedOptions.parse(
+    await filter(new Set(["*"]), options, permissionId, {
+      tenantId: "writer-row-rules-tenant",
+      user: undefined,
+    }),
+  );
 }
 
 /** What `Query.GetModel` recognizes as a model, over a table of `rows`. */
@@ -228,9 +234,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
   });
 
   it("refuses an edit the writing table view's rule refuses", async () => {
-    const error = await rejectionOf(() =>
-      edit.func.call(controller, REQUEST, { id: "archived" }),
-    );
+    const error = await httpRejectionOf(editRow("archived"));
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
     expect(
       await edit.func.call(controller, REQUEST, { id: "low" }),
