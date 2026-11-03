@@ -33,9 +33,7 @@
     "format:check": "oxfmt --check .",
     "deps": "depcruise packages --config .dependency-cruiser.cjs",
     "suppressions": "antelopejs-suppressions",
-    "suppressions:update": "antelopejs-suppressions --update",
-    "ratchet": "antelopejs-ratchet",
-    "ratchet:update": "antelopejs-ratchet --update"
+    "suppressions:update": "antelopejs-suppressions --update"
   },
   "pnpm": {
     "overrides": {
