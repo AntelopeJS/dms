@@ -292,9 +292,7 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
    */
   @Put("/preferences")
   async updatePreferences(
-    @JSONBody() body: Parameters<
-      typeof userNotificationPreferencesSchema.parse
-    >[0],
+    @JSONBody() body: unknown,
     @Model(UserNotificationPreferencesModel)
     preferencesModel: UserNotificationPreferencesModel,
   ) {
@@ -313,9 +311,7 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
    */
   @Route("handler", "patch", "/preferences")
   async patchPreferences(
-    @JSONBody() body: Parameters<
-      typeof userNotificationPreferencesPatchSchema.parse
-    >[0],
+    @JSONBody() body: unknown,
     @Model(UserNotificationPreferencesModel)
     preferencesModel: UserNotificationPreferencesModel,
   ) {

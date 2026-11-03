@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
@@ -43,9 +43,9 @@ async function assertTenantAccess(
 export async function refresh(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: Parameters<typeof authSchema.refresh.parse>[0],
+  body: ReturnType<typeof authSchema.refresh.parse>,
 ): Promise<AuthResponse> {
-  const { token } = assertValidation(body, (v) => authSchema.refresh.parse(v));
+  const { token } = body;
 
   const tokenPayload = await validateRefreshToken(token);
 

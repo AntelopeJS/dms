@@ -50,7 +50,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
   @Post("/register")
   async postRegister(
     @Model(UserModel) userModel: UserModel,
-    @JSONBody() body: Parameters<typeof onboardingRegisterAdminSchema.parse>[0],
+    @JSONBody() body: unknown,
   ) {
     const data = assertValidation(body, (v) =>
       onboardingRegisterAdminSchema.parse(v),

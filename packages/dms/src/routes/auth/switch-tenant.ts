@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
@@ -16,7 +16,7 @@ import type { AuthResponse } from "./types";
 
 const HTTP_FORBIDDEN = 403;
 
-const switchTenantSchema = z.object({
+export const switchTenantSchema = z.object({
   refreshToken: z.string().min(1),
   tenantId: z.string().min(1),
 });
@@ -33,11 +33,9 @@ async function assertMembership(
 export async function switchTenant(
   userModel: UserModel,
   sessionModel: SessionModel,
-  body: Parameters<typeof switchTenantSchema.parse>[0],
+  body: ReturnType<typeof switchTenantSchema.parse>,
 ): Promise<AuthResponse> {
-  const { refreshToken, tenantId } = assertValidation(body, (v) =>
-    switchTenantSchema.parse(v),
-  );
+  const { refreshToken, tenantId } = body;
 
   const tokenPayload = await validateRefreshToken(refreshToken);
 
