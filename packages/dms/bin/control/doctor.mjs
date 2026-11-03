@@ -127,7 +127,9 @@ function versions(state) {
   return {
     module: `${packageVersion(join(state.moduleRoot, "package.json"))} (${state.moduleRoot})`,
     core: version("@antelopejs/core"),
-    dmsFrontend: version("@antelopejs/dms-frontend"),
+    dmsFrontend: state.renderer
+      ? packageVersion(join(state.renderer, "package.json"))
+      : version("@antelopejs/dms-frontend"),
   };
 }
 
@@ -144,7 +146,18 @@ function freshnessLines(state) {
     newestMtime(join(state.moduleRoot, "frontend-vue")),
     newestMtime(join(state.playground, "frontend-vue")),
   );
+  const renderer = state.renderer
+    ? [
+        line(
+          "renderer build newer than src",
+          newestMtime(join(state.renderer, "dist")) >=
+            newestMtime(join(state.renderer, "src")),
+          state.renderer,
+        ),
+      ]
+    : [];
   return [
+    ...renderer,
     line(
       "module dist newer than src",
       !existsSync(join(state.moduleRoot, "src")) ||
@@ -168,7 +181,8 @@ function freshnessLines(state) {
 
 /** @param {RunState} state */
 function headLine(state) {
-  const now = state.repo ? checkoutOf(state.repo).head : null;
+  const verified = state.renderer ?? state.repo;
+  const now = verified ? checkoutOf(verified).head : null;
   return line(
     "checkout HEAD unchanged since up",
     now === state.headSha,

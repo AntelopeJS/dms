@@ -38,7 +38,10 @@ export interface FormalCheck {
 
 /** The repo-owned layer of the verification skill, read by `dms-control`. */
 export interface VerifyConfig {
+  /** The playground folder: relative to the repository root, or absolute for a playground that lives in another checkout. */
   playground: string;
+  /** The built `@antelopejs/dms-frontend` checkout the run serves, relative to the repository root, when this repository is the renderer. Absent: the playground's installed one. */
+  renderer?: string;
   prepare: string[][];
   userFacing: string[];
   notUserFacing: string[];
