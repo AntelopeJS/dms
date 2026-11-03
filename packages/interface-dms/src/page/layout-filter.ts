@@ -5,6 +5,7 @@ import type {
   ComponentInfoSerialized,
 } from "../component";
 import { HasPermission } from "../permissions";
+import { isNull, isObject, isString } from "../utils/internal/type-check";
 import type { ComponentTreeNode } from "./component-tree";
 
 /**
@@ -50,15 +51,21 @@ async function filterComponentInfo(
   return filtered;
 }
 
-type WatchHolder = Record<string, ComponentInfoSerialized["options"]> & {
-  watchActions?: WatchAction[];
-};
+type GatedWatch = Pick<WatchAction, "requirePermission">;
+
+const isList = (value: unknown): value is unknown[] => Array.isArray(value);
+
+const isGatedWatch = (value: unknown): value is GatedWatch =>
+  isObject(value) &&
+  !isNull(value) &&
+  (!("requirePermission" in value) ||
+    value.requirePermission === undefined ||
+    isString(value.requirePermission));
 
 const isPlainObject = (
   value: ComponentInfoSerialized["options"],
 ): value is Record<string, ComponentInfoSerialized["options"]> =>
   !!value &&
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This boundary excludes primitives before inspecting plain-object prototypes; it does not validate contributor options.
   typeof value === "object" &&
   (Object.getPrototypeOf(value) === Object.prototype ||
     Object.getPrototypeOf(value) === null);
@@ -74,6 +81,8 @@ const isPlainObject = (
  * are not nodes of the page's tree. `watchActions` is the transport key the
  * builder alone fills (it strips one a caller passes), so any object holding
  * it is a component's options. A value with no gated watch keeps its identity.
+ * A watch the walker cannot read (not an object, or a `requirePermission` that
+ * is no string) is withheld, since no permission could grant it.
  */
 async function filterRequiredPermissionWatches(
   value: ComponentInfoSerialized["options"],
@@ -96,14 +105,15 @@ async function filterRequiredPermissionWatches(
     ),
   );
   const changed = entries.some(([key, item]) => item !== value[key]);
-  const next: WatchHolder = changed ? Object.fromEntries(entries) : value;
-  if (!Array.isArray(next.watchActions)) return next;
+  const next = changed ? Object.fromEntries(entries) : value;
   const watches = next.watchActions;
+  if (!isList(watches)) return next;
   const granted = await Promise.all(
     watches.map(
-      async (w) =>
-        !w.requirePermission ||
-        (await HasPermission(permissions, w.requirePermission)),
+      async (watch) =>
+        isGatedWatch(watch) &&
+        (!watch.requirePermission ||
+          (await HasPermission(permissions, watch.requirePermission))),
     ),
   );
   if (granted.every(Boolean)) return next;
