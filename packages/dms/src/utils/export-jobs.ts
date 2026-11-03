@@ -58,16 +58,8 @@ const EXPORT_TMP_PREFIX = "dms-export-";
 const EXPORT_STORAGE_PREFIX = "table-view-exports";
 const READ_URL_EXPIRES_IN_SEC = 60 * 60;
 
-const ARRAY_JOIN_SEPARATOR = ";";
 const FILENAME_ILLEGAL_CHARS = /[^a-zA-Z0-9._-]/g;
 const FILENAME_REPLACEMENT = "-";
-
-function castCsvValue(
-  value: Parameters<ExportWriter["appendRow"]>[1][string],
-): string {
-  if (Array.isArray(value)) return value.join(ARRAY_JOIN_SEPARATOR);
-  return String(value);
-}
 
 class CsvWriter implements ExportWriter {
   constructor(private readonly filePath: string) {}
@@ -86,7 +78,6 @@ class CsvWriter implements ExportWriter {
       columns: headers,
       cast: {
         date: (value: Date) => value.toISOString(),
-        string: castCsvValue,
       },
     });
     fs.appendFileSync(this.filePath, csvRowContent);
