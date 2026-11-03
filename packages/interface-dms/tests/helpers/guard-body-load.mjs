@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createGuardedConfirmRoute } from "../../dist/base/table-view/internal/guards.js";
 import { TableViewMeta } from "../../dist/base/table-view/meta.js";
+import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 
 const BODY_BYTES = 1024 * 1024;
@@ -73,7 +74,7 @@ try {
   );
   assert.equal(JSON.stringify(seen[0]), body);
 } catch (error) {
-  outcome = error?.getStatus?.() ?? String(error);
+  outcome = error instanceof HTTPResult ? error.getStatus() : String(error);
 }
 console.log(
   JSON.stringify({

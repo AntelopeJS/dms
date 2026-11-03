@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { z } from "zod";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
@@ -209,17 +210,21 @@ const LOAD_RUNNER = fileURLToPath(
   new URL("./helpers/guard-body-load.mjs", import.meta.url),
 );
 
-/**
- * @param {string} bodyName
- * @returns {Promise<{ outcome: number | string, bodyBytes: number, milliseconds: number, peakRssMb: number }>}
- */
+const LOAD_RUN = z.object({
+  outcome: z.union([z.number(), z.string()]),
+  bodyBytes: z.number(),
+  milliseconds: z.number(),
+  peakRssMb: z.number(),
+});
+
+/** @param {string} bodyName */
 const runLoad = async (bodyName) => {
   const { stdout } = await promisify(execFile)(process.execPath, [
     `--max-old-space-size=${LOAD_LIMITS.heapMb}`,
     LOAD_RUNNER,
     bodyName,
   ]);
-  return JSON.parse(stdout);
+  return LOAD_RUN.parse(JSON.parse(stdout));
 };
 
 for (const bodyName of ["arrays-65", "objects-65", "arrays-65-last"]) {
