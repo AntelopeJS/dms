@@ -23,6 +23,7 @@ import {
   recordingExtension,
 } from "../../../helpers/invite-extensions";
 import { httpRejectionOf } from "../../../helpers/http-rejection";
+import { captureErrors } from "../../../helpers/logging";
 import { admin, register } from "./invite-extension.helpers";
 
 const HTTP_BAD_REQUEST = 400;
@@ -241,6 +242,69 @@ export function registerInviteExtensionPayloadCases(): void {
       });
 
       expect(billing.recorded.accepted).to.have.length(1);
+    });
+  });
+
+  describe("an extension keyed like an Object.prototype member", () => {
+    const seen: unknown[] = [];
+
+    function registerConstructorExtension(): void {
+      register({
+        key: "constructor",
+        component: extensionForm("note"),
+        schema: z.unknown(),
+        onAccept: (payload) => {
+          seen.push(payload);
+        },
+        onCleanup: (payload) => {
+          seen.push(payload);
+        },
+        onUpdate: (payload) => {
+          seen.push(payload);
+        },
+      });
+    }
+
+    beforeEach(() => {
+      seen.length = 0;
+    });
+
+    it("is handed nothing on delivery when the invitation carries no payload under its key", async () => {
+      registerConstructorExtension();
+
+      await directAdd({ billing: { costCenter: "CC-42" } });
+
+      expect(seen).to.deep.equal([]);
+    });
+
+    it("is cleaned up with no payload when the invitation carries none under its key", async () => {
+      registerConstructorExtension();
+
+      await ExecuteHooks(Hook.INVITE_DELETED, {
+        tenantId: TENANT,
+        inviteId: "invite-1",
+        email: "someone@acme.dev",
+        reason: "cancelled",
+        extensions: { billing: { costCenter: "CC-42" } },
+      });
+
+      expect(seen).to.deep.equal([undefined]);
+    });
+
+    it("is not told of an edit that carried nothing under its key", async () => {
+      registerConstructorExtension();
+      register(recordingExtension("billing", "costCenter").options);
+      const errors = captureErrors();
+
+      try {
+        const id = await pendingInvite(null);
+        await editPendingInvite(id, { billing__costCenter: "CC-43" }, admin);
+      } finally {
+        errors.restore();
+      }
+
+      expect(seen).to.deep.equal([]);
+      expect(errors.messages).to.deep.equal([]);
     });
   });
 
