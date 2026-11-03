@@ -166,6 +166,17 @@ describe("readFieldFlagParams", () => {
     });
   });
 
+  it("reads a function carrying a target as a watch without a flag", () => {
+    const params = Object.assign(() => undefined, {
+      targetField: "a",
+      setHidden: true,
+    });
+    expect(readFieldFlagParams(params, "setHidden")).toEqual({
+      targetField: "a",
+      flag: false,
+    });
+  });
+
   it("reads nothing from params that name no string target", () => {
     expect(readFieldFlagParams(undefined, "setHidden")).toBeUndefined();
     expect(readFieldFlagParams({ setHidden: true }, "setHidden")).toBeUndefined();
