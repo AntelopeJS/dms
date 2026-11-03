@@ -2,7 +2,7 @@
 import assert from "node:assert";
 import { ControllerMeta } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
-import type { MakeMethodAndPropertyDecorator } from "@antelopejs/interface-core/decorators";
+import type { DecoratorTarget } from "@antelopejs/interface-core/decorators";
 import {
   DataAPIMeta,
   Filter,
@@ -18,10 +18,6 @@ import { ReadonlyBehaviorType } from "../../types";
 import type { ColumnOptions, TableViewMeta } from "../meta";
 import { serializeColumnDisplay } from "./column-display";
 import { decoratedClass } from "../../../utils/internal/decorated-class";
-
-type FieldDecoratorArguments = Parameters<
-  Parameters<typeof MakeMethodAndPropertyDecorator>[0]
->;
 
 /** @internal */
 export function buildTableConfig(
@@ -60,9 +56,9 @@ export function buildTableConfig(
 
 /** @internal */
 export function decorateColumn(
-  target: FieldDecoratorArguments[0],
-  key: FieldDecoratorArguments[1],
-  descriptor: FieldDecoratorArguments[2],
+  target: DecoratorTarget,
+  key: PropertyKey,
+  descriptor: PropertyDescriptor | undefined,
   options: ColumnOptions,
   meta: TableViewMeta,
 ) {
