@@ -17,6 +17,7 @@ import {
   type BulkRowSource,
   DEFAULT_ROW_ID_FIELD,
   MAX_BULK_MATCHING_ROWS,
+  TableViewMeta,
 } from "@antelopejs/interface-dms/base/table-view";
 import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -25,6 +26,10 @@ import { buildFilteredQuery } from "./search-route";
 const IDS_KEY = "ids";
 const HTTP_PAYLOAD_TOO_LARGE = 413;
 
+function isObject(value: unknown): value is object {
+  return typeof value === "object" && value !== null;
+}
+
 function isBulkRowSource(
   table: DataControllerInstance | BulkRowSource,
 ): table is BulkRowSource {
@@ -32,12 +37,11 @@ function isBulkRowSource(
     typeof table === "object" &&
     table !== null &&
     "tableView" in table &&
-    "model" in table
+    table.tableView instanceof TableViewMeta &&
+    "model" in table &&
+    typeof table.model === "object" &&
+    table.model !== null
   );
-}
-
-function isObject(value: unknown): value is object {
-  return typeof value === "object" && value !== null;
 }
 
 function isControllerInstance(value: unknown): value is DataControllerInstance {

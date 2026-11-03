@@ -1,4 +1,5 @@
 export * from "./access";
+export * from "./fields";
 export * from "./read";
 export * from "./registry";
 export * from "./save";
