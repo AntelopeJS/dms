@@ -8,6 +8,8 @@ import {
 const FILE: AttachmentField = { id: "doc", key: "doc", kind: "file" };
 const IMAGE: AttachmentField = { id: "logo", key: "logo", kind: "image" };
 
+type Nested = string | Nested[];
+
 function keys(references: AttachmentReference[]): string[] {
   return references.map(({ key }) => key);
 }
@@ -61,6 +63,15 @@ describe("[unit] attachments/fields collectAttachments", () => {
     expect(references).to.deep.equal([
       { key: "a", field: FILE },
       { key: "b", field: IMAGE },
+    ]);
+  });
+
+  it("walks a body nested ten thousand levels deep without exhausting the stack", () => {
+    const depth = 10_000;
+    let nested: Nested = "deep";
+    for (let level = 0; level < depth; level += 1) nested = [nested];
+    expect(keys(collectAttachments([FILE], { doc: nested }))).to.deep.equal([
+      "deep",
     ]);
   });
 
