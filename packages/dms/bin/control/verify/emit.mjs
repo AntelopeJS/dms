@@ -82,8 +82,25 @@ function leafOf(ts, node, bindings) {
 const MODULE_EXTENSION = /\.(?:[cm]?[jt]s|[jt]sx)$/;
 
 /**
+ * The text of a module specifier: a string, template without substitutions,
+ * number or identifier, which is all the parser leaves a `text` on.
+ *
+ * @param {TypeScript} ts
+ * @param {import("typescript").Expression} specifier
+ * @returns {string}
+ * @throws {TypeError} For any other expression, such as a call
+ */
+function specifierText(ts, specifier) {
+  if (ts.isLiteralExpression(specifier) || ts.isIdentifier(specifier))
+    return specifier.text;
+  throw new TypeError(
+    `a module specifier must be a name, found ${ts.SyntaxKind[specifier.kind]}`,
+  );
+}
+
+/**
  * @param {string} path
- * @param {string | undefined} specifier The `text` of the module specifier node, `undefined` for an expression that has none, such as a call, which throws here.
+ * @param {string} specifier The text of the module specifier
  * @returns {string}
  */
 function moduleKey(path, specifier) {
@@ -251,7 +268,7 @@ function originsOf(ts, path, covered, file, locals) {
     if (specifier === undefined && ts.isExportDeclaration(statement))
       exports.push(statement);
     if (specifier === undefined) continue;
-    const module = moduleKey(path, specifier.text);
+    const module = moduleKey(path, specifierText(ts, specifier));
     if (ts.isImportDeclaration(statement)) {
       if (statement.importClause === undefined) {
         ordered.push(`import ${module}`);
