@@ -338,7 +338,7 @@ async function resolveInviteFormSlot(
     ...contributions.flatMap((contribution) => contribution.watchActions),
   ];
 
-  const merged: SlotOptions = {
+  const merged = {
     ...resolved,
     fields: assembleFields(
       form.fields ?? [],
@@ -347,8 +347,7 @@ async function resolveInviteFormSlot(
     ),
     schema: mergeSchema(form.schema, contributions),
   };
-  if (watchActions.length > 0) merged.watchActions = watchActions;
-  return merged;
+  return watchActions.length > 0 ? { ...merged, watchActions } : merged;
 }
 
 RegisterComponentSlot(INVITE_FORM_SLOT_ID, (options) =>
