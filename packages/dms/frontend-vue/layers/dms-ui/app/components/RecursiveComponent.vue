@@ -9,6 +9,7 @@ import {
 } from "./grid/constants";
 import DmsPermissionVeil from "../build/components/permission/PermissionVeil.vue";
 import { registerBlockAnchor } from "../build/composables/page/blockAnchors";
+import { BLOCK_PATH_KEY } from "../build/composables/blocks/blockDataState";
 
 interface Props {
   component: ResolvedComponentInfo;
@@ -39,6 +40,11 @@ function anchorBlock(instance: Element | ComponentPublicInstance | null): void {
   registerBlockAnchor(props.layoutPath, block, anchored);
   anchored = block;
 }
+
+provide(
+  BLOCK_PATH_KEY,
+  computed(() => props.layoutPath),
+);
 
 const { t } = useI18n();
 const preview = usePermissionPreview();

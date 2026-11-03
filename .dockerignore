@@ -3,6 +3,7 @@
 **/node_modules
 **/dist
 **/.antelope
+**/.dms-frontend
 **/.env
 **/.env.*
 **/.cache

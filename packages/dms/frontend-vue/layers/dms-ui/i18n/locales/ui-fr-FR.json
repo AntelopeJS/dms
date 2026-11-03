@@ -748,6 +748,7 @@
       "not_found_hint": "Ce qui est affiché ici n’existe pas, ou plus."
     },
     "action_error": {
+      "fields": "{summary}",
       "forbidden": "Vous n’avez pas l’autorisation d’effectuer cette action.",
       "generic": "Une erreur est survenue et l’action n’a pas pu aboutir. Réessayez."
     },

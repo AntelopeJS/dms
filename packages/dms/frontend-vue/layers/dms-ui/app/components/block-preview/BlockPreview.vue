@@ -14,6 +14,8 @@ import {
 } from "../../build/utils/blockPreview";
 import { childComponentId } from "../../utils/componentId";
 
+const { resolveError } = useApiErrorPresenter();
+
 /**
  * Draws a tree of registered DMS blocks exactly as a page would.
  *
@@ -129,7 +131,10 @@ onMounted(async () => {
     fetchedBlockTypes.value =
       await $authFetch<PreviewBlockTypes>(BLOCK_TYPES_ENDPOINT);
   } catch (error: unknown) {
-    embed?.reportError(error instanceof Error ? error.message : String(error));
+    const notice = resolveError(error, {
+      fallbackKey: "dms.blocks.load_error_hint",
+    });
+    if (notice) embed?.reportError(notice.message);
   }
 });
 </script>

@@ -31,6 +31,8 @@ export interface ReloadHostProvisionedTenant {
   userId?: string;
   /** Whether that generation's `DATABASE_INITIALIZED` handler had run. */
   afterDatabaseInitialized: boolean;
+  /** Whether that generation's `start()` had completed. */
+  afterStart: boolean;
 }
 
 interface ReloadHostProbe {

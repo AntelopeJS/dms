@@ -5,12 +5,12 @@ import {
   Post,
 } from "@antelopejs/interface-api";
 import { recordHookEvent } from "./log";
+import {
+  WEBHOOK_SECRET,
+  WEBHOOK_SIGNATURE_HEADER,
+  WEBHOOKS_API,
+} from "./webhook-route";
 
-export const WEBHOOKS_API = "/api/playground/webhooks";
-/** The header a provider signs its calls with, relayed by the proxy. */
-export const WEBHOOK_SIGNATURE_HEADER = "x-playground-signature";
-/** The playground's shared secret: a real module reads it from its config. */
-export const WEBHOOK_SECRET = "dev";
 const HTTP_UNAUTHORIZED = 401;
 
 interface WebhookResult {

@@ -4,7 +4,7 @@
 
 <a href="https://www.npmjs.com/package/@antelopejs/interface-dms"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/interface-dms?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
 <a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/interface-dms?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
-<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
+<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
 <a href="https://dms.antelopejs.com/docs/interfaces"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
 
 The public contracts of the AntelopeJS DMS: pages and components, permissions and tenancy, authentication, notifications and HTML rendering.
@@ -65,7 +65,7 @@ export class SalesPage extends PageController("sales", {
 | `@antelopejs/interface-core`                | `>=0.4.0 <1.0.0`  | `file:.campaign/tgz/antelopejs-interface-core-f7df541.tgz`                |
 | `@antelopejs/interface-data-api`            | `>=0.6.0 <1.0.0`  | `file:.campaign/tgz/antelopejs-interface-data-api-bca1ca6.tgz`            |
 | `@antelopejs/interface-database`            | `>=0.1.11 <1.0.0` | `file:.campaign/tgz/antelopejs-interface-database-1ade334.tgz`            |
-| `@antelopejs/interface-database-decorators` | `>=0.1.10 <1.0.0` | `file:.campaign/tgz/antelopejs-interface-database-decorators-1234214.tgz` |
+| `@antelopejs/interface-database-decorators` | `>=0.1.12 <1.0.0` | `file:.campaign/tgz/antelopejs-interface-database-decorators-4a959c7.tgz` |
 | `@antelopejs/interface-file-storage`        | `>=0.1.4 <1.0.0`  | `0.1.4`                                                                   |
 
 <!-- antelopejs-docs-compat:end -->

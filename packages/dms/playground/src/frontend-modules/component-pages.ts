@@ -125,7 +125,7 @@ export class PageCustomToolkit extends PageController(
   {
     displayName: "Module toolkit",
     description:
-      "The composables a module's component calls for its data and its forms: useAuthFetch, useApiError, usePermissions with DmsPermissionGate, useFormDirty with useUnsavedChanges, useComposedText and DmsCodeSnippet",
+      "The composables a module's component calls for its data and its forms: useAuthFetch, useApiErrorPresenter, usePermissions with DmsPermissionGate, useFormDirty with useUnsavedChanges, useComposedText and DmsCodeSnippet",
     icon: "i-ph-toolbox",
     category: customComponentsCategory,
     order: 20,

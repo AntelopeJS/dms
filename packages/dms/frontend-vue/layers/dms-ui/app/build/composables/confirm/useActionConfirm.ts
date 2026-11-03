@@ -3,7 +3,6 @@ import type {
   ConfirmDialog,
 } from "#dms-core/app/types/confirm-dialog";
 import { isConfirmFrom } from "#dms-core/app/types/confirm-dialog";
-import { resolveActionError } from "./actionError";
 import type {
   ConfirmOptions,
   ConfirmPartialOutcome,
@@ -43,7 +42,7 @@ export function useActionConfirm() {
   const { confirm } = useConfirm();
   const { $authFetch } = useAuthFetch();
   const { t } = useI18n();
-  const toast = useToast();
+  const { presentError } = useApiErrorPresenter();
   const runSecondaryTarget = secondaryTargetRunner($authFetch.raw);
 
   const loadDialog = async (
@@ -61,12 +60,7 @@ export function useActionConfirm() {
     try {
       return await $authFetch<ConfirmDialog>(url);
     } catch (error) {
-      toast.add({
-        color: Color.error,
-        icon: "i-ph-warning-circle",
-        title: t("dms.form.error_title"),
-        description: resolveActionError(error, t),
-      });
+      presentError(error, { fallbackKey: "dms.action_error.generic" });
       return undefined;
     }
   };

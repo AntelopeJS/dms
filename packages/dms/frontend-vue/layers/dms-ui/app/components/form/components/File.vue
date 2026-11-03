@@ -41,6 +41,7 @@ const emit = defineEmits<{
 
 const { $authFetch } = useAuthFetch();
 const { t } = useI18n();
+const { presentError, resolveError } = useApiErrorPresenter();
 
 const { emitFormChange, color, highlight, ariaAttrs } = useFormField();
 
@@ -156,11 +157,14 @@ const processFile = async (file: File) => {
     }
 
     emitValue();
-  } catch (_error) {
+  } catch (error) {
     const uploadingFile = uploadingFiles.value.find((u) => u.id === uploadId);
     if (uploadingFile) {
-      uploadingFile.error = "Upload failed";
+      uploadingFile.error = resolveError(error, {
+        fallbackKey: "dms.form.image.upload_failed",
+      })?.message;
     }
+    presentError(error, { fallbackKey: "dms.form.image.upload_failed" });
   } finally {
     setFieldLoading?.(uploadId, false);
   }

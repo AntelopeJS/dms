@@ -209,18 +209,19 @@ const useSiteLayoutRequests = () => {
   const { pageLayoutPromises, loadingPromise } =
     useSiteLayoutRequestsInFlight();
 
-  const SITE_LAYOUT_ERROR_MESSAGE = "Error loading siteLayout";
-  const UNKNOWN_SITE_LAYOUT_ERROR = "Unknown error loading siteLayout";
+  const { resolveError } = useApiErrorPresenter();
   const HTTP_INTERNAL_ERROR = 500;
 
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Fetch rejection values have no shared owner schema; an Error-only input would exclude malformed thrown values that intentionally use the fallback message.
   const handleSiteLayoutError = (error: unknown) => {
-    const errorMessage =
-      error instanceof Error ? error.message : UNKNOWN_SITE_LAYOUT_ERROR;
+    const errorMessage = resolveError(error, {
+      fallbackKey: "error.500.description",
+    })?.message;
+    if (!errorMessage) return;
     loadingError.value = errorMessage;
     showDmsError({
       statusCode: HTTP_INTERNAL_ERROR,
-      statusMessage: SITE_LAYOUT_ERROR_MESSAGE,
+      statusMessage: errorMessage,
       message: errorMessage,
     });
   };

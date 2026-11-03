@@ -1,11 +1,5 @@
 import { isObject, isString } from "../utils/type-check";
 
-interface Options {
-  context?: string;
-  title?: string;
-  description?: string;
-}
-
 interface ApiError {
   statusCode?: number;
   status?: number;
@@ -67,21 +61,4 @@ export function resolveApiErrorMessage(
   error: Parameters<typeof resolveApiErrorTitle>[0],
 ): string {
   return isApiError(error) ? resolveDescription(error) : FALLBACK_ERROR_KEY;
-}
-
-export function useApiError(
-  error: Parameters<typeof resolveApiErrorTitle>[0],
-  options?: Options,
-) {
-  const toast = useToast();
-  const { processApiMessage } = getAppTranslation();
-
-  const title = options?.title || resolveApiErrorTitle(error);
-  const description = options?.description || resolveApiErrorMessage(error);
-
-  toast.add({
-    title: processApiMessage(title),
-    description: processApiMessage(description),
-    color: "error",
-  });
 }

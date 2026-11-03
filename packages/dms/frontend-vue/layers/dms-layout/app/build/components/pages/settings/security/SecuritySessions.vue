@@ -50,10 +50,11 @@ const DEVICE_ICONS: Readonly<
 
 const { t } = useI18n();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { $authFetch } = useAuthFetch();
 const adoptSessionHandoff = useSessionHandoff();
 const { overview, refresh: refreshOverview } = useSecurityOverview();
-const { formatDate, formatRelative, errorMessage } = useSecurityFormat();
+const { formatDate, formatRelative } = useSecurityFormat();
 
 const list = useApiData<SessionsRead>(SESSIONS_URL, {
   transform: (sessions) => ({
@@ -106,9 +107,8 @@ async function revoke(session: SessionInfo): Promise<void> {
     toast.add({ title: t("page.settings.sessions.revoked"), color: "success" });
     await refreshOverview();
   } catch (error) {
-    toast.add({
-      title: errorMessage(error, "page.settings.sessions.revoke_error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.sessions.revoke_error",
     });
   } finally {
     revokingId.value = null;
@@ -134,9 +134,8 @@ async function signOutOthers(): Promise<void> {
     });
     await Promise.all([fetchSessions(), refreshOverview()]);
   } catch (error) {
-    toast.add({
-      title: errorMessage(error, "page.settings.sessions.revoke_all_error"),
-      color: "error",
+    presentError(error, {
+      fallbackKey: "page.settings.sessions.revoke_all_error",
     });
   } finally {
     isSigningOutOthers.value = false;

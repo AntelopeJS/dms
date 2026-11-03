@@ -18,6 +18,7 @@ export function useExpandedRowDetails<T>(
   getRow: (id: string) => Promise<T | undefined>,
 ) {
   const entries = ref<Record<string, ExpandedRowDetailEntry<T>>>({});
+  const { presentError } = useApiErrorPresenter();
   let generation = 0;
 
   const setEntry = (id: string, entry: ExpandedRowDetailEntry<T>) => {
@@ -30,7 +31,9 @@ export function useExpandedRowDetails<T>(
     let row: T | undefined;
     try {
       row = await getRow(id);
-    } catch {
+    } catch (error) {
+      if (loadedFor !== generation) return;
+      presentError(error, { fallbackKey: "dms.table.load_error_title" });
       row = undefined;
     }
     if (loadedFor !== generation) return;

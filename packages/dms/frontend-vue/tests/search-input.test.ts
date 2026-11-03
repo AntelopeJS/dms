@@ -57,6 +57,10 @@ const hints = () =>
 beforeEach(() => {
   vi.stubGlobal("defineShortcuts", defineShortcuts);
   vi.stubGlobal("useDmsCookie", () => ref("other"));
+  vi.stubGlobal("useDmsState", (_key: string, init: () => unknown) =>
+    ref(init()),
+  );
+  vi.stubGlobal("isDmsHydrating", () => false);
   vi.stubGlobal("computed", computed);
   host = document.createElement("div");
   document.body.append(host);

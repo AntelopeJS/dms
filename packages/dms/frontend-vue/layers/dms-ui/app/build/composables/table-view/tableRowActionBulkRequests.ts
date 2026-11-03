@@ -17,9 +17,8 @@ import {
   type ConfirmPartialOutcome,
 } from "../../../composables/confirm/types";
 import { getErrorPayload } from "./tableRowActionValues";
-import type { describeTableWriteError } from "./utils/writeError";
 export type TableRowActionErrorHandler = (
-  error: Parameters<typeof describeTableWriteError>[0],
+  error: unknown,
   title?: string,
 ) => void;
 const createBulkRequest = (config: TableRowActionsConfig) => {
@@ -92,7 +91,8 @@ export const createTableRowBulkOutcomes = (
   services: TableRowActionServices,
   handleApiError: TableRowActionErrorHandler,
 ) => {
-  const { toast, t } = services;
+  const { t } = services;
+  const { presentError } = useApiErrorPresenter();
   const requestBulkAction = createBulkRequest(config);
   const reportBulkSuccess = createBulkReporter(config, services);
   /**
@@ -112,7 +112,10 @@ export const createTableRowBulkOutcomes = (
       const outcome = await requestBulkAction(ids, bulkConfig, values);
       const shortfall = bulkActionShortfall(bulkConfig.kind, outcome, t);
       if (outcome.processed === 0 && shortfall) {
-        throw new ConfirmActionError(shortfall);
+        throw new ConfirmActionError({
+          fallbackKey: `dms.table.bulk_refused.${bulkConfig.kind}`,
+          params: { count: outcome.skipped },
+        });
       }
       reportBulkSuccess(outcome.processed, actionConfig, bulkConfig);
       if (shortfall) return { partial: shortfall };
@@ -131,16 +134,14 @@ export const createTableRowBulkOutcomes = (
     try {
       outcome = await requestBulkAction(ids, bulkConfig);
     } catch (error) {
-      handleApiError(error, t(bulkConfig.errorKey));
+      handleApiError(error, bulkConfig.errorKey);
       return false;
     }
     const shortfall = bulkActionShortfall(bulkConfig.kind, outcome, t);
     if (outcome.processed === 0) {
-      toast.add({
-        color: Color.error,
-        icon: "i-ph-warning-circle",
-        title: shortfall?.title ?? t(bulkConfig.errorKey),
-        description: shortfall?.description,
+      presentError(null, {
+        fallbackKey: `dms.table.bulk_refused.${bulkConfig.kind}`,
+        params: { count: outcome.skipped },
       });
       return false;
     }

@@ -65,6 +65,7 @@ const METHODS: MethodConfig[] = [
 
 const { t } = useI18n();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const { $authFetch } = useAuthFetch();
 const { overview, attention, attentionToneOf, refresh } = useSecurityOverview();
 const { formatDate, errorMessage } = useSecurityFormat();
@@ -148,7 +149,7 @@ function fail(
   error: Parameters<typeof errorMessage>[0],
   fallbackKey: string,
 ): void {
-  toast.add({ title: errorMessage(error, fallbackKey), color: "error" });
+  presentError(error, { fallbackKey });
 }
 
 function showCodes(

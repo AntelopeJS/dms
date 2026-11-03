@@ -224,17 +224,17 @@ function registerGuardNotFoundTests() {
       const html = await render(NOT_FOUND);
       expect(html).not.toContain("data-children");
       expect(html).toContain("t(dms.blocks.not_found)");
-      expect(html).toContain("t(dms.blocks.not_found_hint)");
+      expect(html).toContain("dms.blocks.not_found_hint");
     });
 
     it("describes it with the 404's message, as a block does", async () => {
       authFetch.mockRejectedValue({
         statusCode: 404,
-        data: { message: "No such route" },
+        data: { message: "error.read_only_demo" },
       });
       const html = await render(NOT_FOUND);
       expect(html).toContain("t(dms.blocks.not_found)");
-      expect(html).toContain("No such route");
+      expect(html).toContain("error.read_only_demo");
       expect(html).not.toContain("t(dms.blocks.not_found_hint)");
     });
 

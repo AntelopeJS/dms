@@ -26,6 +26,19 @@ watch(metaTitle, (title) => {
 });
 const administrator = ref<OnboardingAdministrator | null>(null);
 
+const route = useDmsRoute();
+const router = useDmsRouter();
+const setupToken = ref("");
+
+useHead({ meta: [{ name: "referrer", content: "no-referrer" }] });
+
+onMounted(() => {
+  const { token, ...query } = route.query;
+  if (typeof token !== "string" || !token) return;
+  setupToken.value = token;
+  void router.replace({ query });
+});
+
 const stepLabels = computed(() =>
   ONBOARDING_STEPS.map((id) => t(`page.onboarding.steps.${id}`)),
 );
@@ -53,6 +66,7 @@ function onRegistered(owner: OnboardingAdministrator) {
     <Register
       v-else-if="step === 'administrator'"
       :platform="platform"
+      :setup-token="setupToken"
       @back="step = 'platform'"
       @registered="onRegistered"
     />

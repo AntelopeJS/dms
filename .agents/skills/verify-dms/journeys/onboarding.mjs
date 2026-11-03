@@ -31,7 +31,10 @@ async function openWizard(/** @type {Ctx} */ ctx, /** @type {string} */ platform
   return tab;
 }
 
-async function fillAdministrator(/** @type {Tab} */ tab, /** @type {Administrator} */ admin) {
+async function fillAdministrator(/** @type {Tab} */ tab, /** @type {Administrator} */ admin, /** @type {string | undefined} */ setupToken) {
+  if (setupToken) {
+    await tab.fill({ role: "textbox", name: "Setup token" }, setupToken);
+  }
   await tab.fill({ role: "textbox", name: "First name" }, admin.firstName);
   await tab.fill({ role: "textbox", name: "Last name" }, admin.lastName);
   await tab.fill({ role: "textbox", name: "Work e-mail" }, admin.email);
@@ -62,7 +65,7 @@ export const journeys = [
       const platformName = ctx.unique("Verify Wizard");
       const admin = wizardAdmin(ctx);
       const tab = await openWizard(ctx, platformName);
-      await fillAdministrator(tab, admin);
+      await fillAdministrator(tab, admin, ctx.setupToken());
       await tab.click({ role: "button", name: "Create administrator account" });
       await ctx.verify("the Ready step names the platform and the owner", [
         tab.visible({ role: "heading", name: `${platformName} is ready` }),
@@ -93,7 +96,7 @@ export const journeys = [
     onboard: false,
     async run(/** @type {Ctx} */ ctx) {
       const tab = await openWizard(ctx, ctx.unique("Verify Weak"));
-      await fillAdministrator(tab, { ...wizardAdmin(ctx), password: "weak" });
+      await fillAdministrator(tab, { ...wizardAdmin(ctx), password: "weak" }, ctx.setupToken());
       await tab.click({ role: "button", name: "Create administrator account" });
       await ctx.verify("the wizard stays on the Administrator step with the rules", [
         tab.shows(/The password doesn’t meet every rule/),
@@ -155,6 +158,76 @@ export const journeys = [
     },
   },
   {
+    id: "register-needs-the-setup-token",
+    title: "POST /api/onboarding/register refuses a missing or wrong setup token and creates nobody",
+    entryPoint: "POST /api/onboarding/register",
+    onboard: false,
+    async run(/** @type {Ctx} */ ctx) {
+      const admin = wizardAdmin(ctx);
+      const missing = await ctx.api("register without the token", {
+        method: "POST",
+        path: REGISTER,
+        as: "anon",
+        body: admin,
+      });
+      const wrong = await ctx.api("register with a wrong token", {
+        method: "POST",
+        path: REGISTER,
+        as: "anon",
+        body: { ...admin, setupToken: `${ctx.setupToken()}x` },
+      });
+      const after = await informations(ctx, "nothing was created");
+      await ctx.verify("both are refused with the same code and the platform stays open", [
+        ctx.status(missing, 403),
+        ctx.equal("missing token error", missing.body, "error.invalid_setup_token"),
+        ctx.status(wrong, 403),
+        ctx.equal("wrong token error", wrong.body, "error.invalid_setup_token"),
+        ctx.equal("has_onboarded", after.body?.has_onboarded, false),
+      ]);
+      const created = await ctx.api("register with the token", {
+        method: "POST",
+        path: REGISTER,
+        as: "anon",
+        body: { ...admin, setupToken: ctx.setupToken() },
+      });
+      const again = await ctx.api("register again with the spent token", {
+        method: "POST",
+        path: REGISTER,
+        as: "anon",
+        body: { ...admin, setupToken: ctx.setupToken() },
+      });
+      await ctx.verify("the token creates the owner once and is spent", [
+        ctx.status(created, 200),
+        ctx.status(again, 400),
+        ctx.equal("error", again.body, "error.admin_already_set"),
+      ]);
+    },
+  },
+  {
+    id: "wizard-reads-the-setup-token-from-the-address",
+    title: "the wizard takes the token from the address, drops it from the URL and registers without asking for it",
+    entryPoint: "/onboarding?token=<setup token>",
+    onboard: false,
+    async run(/** @type {Ctx} */ ctx) {
+      const tab = await ctx.tab("anon", "visitor");
+      await tab.goto(`/onboarding?token=${ctx.setupToken()}`);
+      await tab.click({ role: "button", name: "Continue to administrator" });
+      await ctx.verify("the address no longer carries the token and the wizard does not ask for it", [
+        tab.at(/^\/onboarding$/),
+        tab.visible({ role: "heading", name: "Create the administrator account" }),
+        tab.visible({ role: "textbox", name: "Setup token" }, { hidden: true }),
+      ]);
+      const admin = wizardAdmin(ctx);
+      await fillAdministrator(tab, admin);
+      await tab.click({ role: "button", name: "Create administrator account" });
+      const after = await informations(ctx, "the platform is onboarded");
+      await ctx.verify("the registration went through with the token from the address", [
+        tab.visible({ role: "button", name: "Open the dashboard" }),
+        ctx.equal("has_onboarded", after.body?.has_onboarded, true),
+      ]);
+    },
+  },
+  {
     id: "concurrent-registers-one-owner",
     title: "two registrations sent at once leave exactly one platform owner (formal-onboarding-bootstrap AtMostOneOwner)",
     entryPoint: "POST /api/onboarding/register, twice concurrently",
@@ -168,7 +241,11 @@ export const journeys = [
       }));
       const answers = await ctx.concurrent(
         "register",
-        admins.map((/** @type {Administrator} */ admin) => ({ method: "POST", path: REGISTER, body: admin })),
+        admins.map((/** @type {Administrator} */ admin) => ({
+          method: "POST",
+          path: REGISTER,
+          body: { ...admin, setupToken: ctx.setupToken() },
+        })),
       );
       const accepted = answers.filter((answer) => answer.status === 200).length;
       const owners = [];

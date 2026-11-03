@@ -9,6 +9,7 @@ const ACCOUNT_SKELETON_ROWS = 2;
 
 const { t } = useI18n();
 const toast = useToast();
+const { presentError } = useApiErrorPresenter();
 const homepage = useHomepage();
 const {
   accounts,
@@ -49,8 +50,8 @@ async function handleSwitchAccount(userId: string) {
 
     await navigateDms(homepage);
   } catch (error: unknown) {
-    useApiError(error, {
-      title: "error.switch_account_failed",
+    presentError(error, {
+      fallbackKey: "error.switch_account_failed",
     });
   } finally {
     loading.value = null;

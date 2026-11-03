@@ -51,6 +51,7 @@ export const useTableConfigClipboard = <T extends Data>() => {
     injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
   const toast = useToast();
   const { t } = useI18n();
+  const { presentError } = useApiErrorPresenter();
 
   const buildConfig = (): SerializedTableConfig | null => {
     const data = tableSharedData?.value;
@@ -97,11 +98,9 @@ export const useTableConfigClipboard = <T extends Data>() => {
         title: t("dms.table.export_config_copied"),
         duration: TOAST_DURATION_MS,
       });
-    } catch {
-      toast.add({
-        color: "error",
-        title: t("dms.table.export_config_failed"),
-        description: code,
+    } catch (error) {
+      presentError(error, {
+        fallbackKey: "dms.table.export_config_failed",
       });
     }
   };
@@ -117,11 +116,9 @@ export const useTableConfigClipboard = <T extends Data>() => {
         duration: TOAST_DURATION_MS,
       });
       return true;
-    } catch {
-      toast.add({
-        color: "error",
-        title: t("dms.table.import_config_invalid"),
-        duration: TOAST_DURATION_MS,
+    } catch (error) {
+      presentError(error, {
+        fallbackKey: "dms.table.import_config_invalid",
       });
       return false;
     }

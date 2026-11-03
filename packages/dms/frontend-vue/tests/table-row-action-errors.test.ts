@@ -1,12 +1,17 @@
 import "./helpers/table-runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchClientMock } from "./fixtures/unusedApi";
+import {
+  readOnlyFailure,
+  installReadOnlyRefusal,
+} from "./helpers/read-only-refusal";
 import { ref } from "vue";
 import { createI18n } from "vue-i18n";
 import { Color } from "../layers/dms-core/app/types/color";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
 import { normalizeActionConfig } from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { useTranslation } from "../layers/dms-core/app/composables/translation/useTranslation";
 import { useEventedAction } from "../layers/dms-core/app/composables/useEventedAction";
 import {
@@ -22,8 +27,7 @@ const merge = (target: Messages, source: Messages): Messages => {
   for (const [key, value] of Object.entries(source)) {
     const current = target[key];
     target[key] =
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Locale trees contain string leaves and nested message branches; only branches are merged recursively.
-      current && typeof current === "object" && typeof value === "object"
+      isObject(current) && isObject(value)
         ? merge({ ...current }, value)
         : value;
   }
@@ -39,7 +43,7 @@ const i18n = createI18n({
 });
 const t = i18n.global.t;
 
-const toast = { add: vi.fn() };
+const toast = { add: vi.fn(() => ({ id: "failure" })) };
 const refresh = vi.fn();
 const api = fetchClientMock();
 
@@ -78,9 +82,8 @@ const shownRows = [
 const getRow = vi.fn();
 
 async function rowActions() {
-  const { useTableRowActions } = await import(
-    "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
-  );
+  const { useTableRowActions } =
+    await import("../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions");
   return useTableRowActions({
     api,
     location: "/api/task",
@@ -94,6 +97,7 @@ async function rowActions() {
 }
 
 beforeEach(() => {
+  vi.stubEnv("SSR", false);
   const globals = {
     ref,
     Color,
@@ -117,7 +121,8 @@ beforeEach(() => {
   for (const [name, value] of Object.entries(globals)) {
     vi.stubGlobal(name, value);
   }
-  toast.add.mockReset();
+  vi.stubGlobal("getPluginI18n", () => ({ i18n: i18n.global }));
+  toast.add.mockClear();
   refresh.mockReset();
   api.mockReset();
   getRow.mockReset();
@@ -138,6 +143,23 @@ describe("Table row actions: refusals", () => {
 });
 
 function registerRowActionRefusalTests() {
+  it("returns false for a direct marked restore, keeping rows and selection rather than refreshing", async () => {
+    installReadOnlyRefusal();
+    api.mockRejectedValue(readOnlyFailure());
+    const actions = await rowActions();
+    const selected = ["t1"];
+    expect(await actions.restoreRows(selected, true)).toBe(false);
+    expect(selected).toEqual(["t1"]);
+    expect(shownRows.map(({ _id }) => _id)).toEqual(["t1", "t2"]);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(toast.add).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        title: "error.read_only_demo",
+        color: "warning",
+      }),
+    );
+  });
+
   it("runs a confirmed action inside its dialog, which shows the refusal", async () => {
     api.mockRejectedValue(
       fetchError(404, "$page.settings.invites.error.not_found"),
@@ -167,7 +189,7 @@ function registerRowActionRefusalTests() {
     expect(refresh).not.toHaveBeenCalled();
   });
 
-  it("toasts the refusal of an action without a dialog, in the error colour", async () => {
+  it("toasts a plain refusal with its contextual fallback and warning tone", async () => {
     api.mockRejectedValue(
       fetchError(403, "Forbidden: missing permission settings.invites"),
     );
@@ -188,12 +210,14 @@ function registerRowActionRefusalTests() {
     await vi.waitFor(() => expect(toast.add).toHaveBeenCalled());
 
     expect(confirm).not.toHaveBeenCalled();
-    expect(toast.add).toHaveBeenCalledWith({
-      color: Color.error,
-      icon: "i-ph-warning-circle",
-      title: "Copy link",
-      description: "You don’t have permission to do this.",
-    });
+    expect(toast.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        color: Color.warning,
+        title:
+          "Something went wrong and the action couldn’t be completed. Try again.",
+        description: undefined,
+      }),
+    );
   });
 
   it("sums up a bulk action some rows refused, applying the rest", async () => {
@@ -230,10 +254,7 @@ function registerBulkActionRefusalTests() {
     expect(done).toBe(false);
     const error = dialogs[0]!.error;
     expect(error).toBeInstanceOf(ConfirmActionError);
-    expect(error).toHaveProperty(
-      "message",
-      "These 2 items couldn’t be deleted.",
-    );
+    expect(error).toHaveProperty("message", "dms.table.bulk_refused.delete");
     expect(toast.add).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -252,13 +273,13 @@ function registerBulkActionRefusalTests() {
 
     api.mockRejectedValueOnce(fetchError(undefined));
     expect(await restoreRows(["1", "2"], true)).toBe(false);
-    expect(toast.add).toHaveBeenLastCalledWith({
-      color: Color.error,
-      icon: "i-ph-warning-circle",
-      title: "Failed to restore items",
-      description:
-        "The server could not be reached. Check your connection and try again.",
-    });
+    expect(toast.add).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        color: Color.error,
+        title: "Failed to restore items",
+        description: undefined,
+      }),
+    );
 
     api.mockResolvedValueOnce({ success: true, restoredCount: 1 });
     expect(await restoreRows(["1", "2"], true)).toBe(true);

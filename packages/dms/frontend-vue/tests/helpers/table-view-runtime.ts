@@ -17,7 +17,7 @@ import * as rowRules from "../../layers/dms-core/app/utils/row-action-rule-evalu
 import { ButtonVariant } from "../../layers/dms-core/app/types/button";
 import { Size } from "../../layers/dms-core/app/types/size";
 import { SortDirection } from "../../layers/dms-ui/app/types/table/query";
-import { resolveApiErrorMessage } from "../../layers/dms-core/app/composables/useApiError";
+import { resolveApiErrorMessage } from "../../layers/dms-core/app/composables/resolveApiError";
 import * as typeChecks from "../../layers/dms-core/app/utils/type-check";
 import * as formatters from "../../layers/dms-core/app/utils/formatter";
 import type { TableViewConfig } from "../../layers/dms-ui/app/composables/table-view/types";

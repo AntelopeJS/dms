@@ -9,7 +9,7 @@
 
 <a href="https://www.npmjs.com/package/@antelopejs/dms"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
 <a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
-<a href="https://discord.gg/sjK28QHrA7"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
+<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
 <a href="https://dms.antelopejs.com/docs"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
 
 **Admin dashboards for AntelopeJS, declared in TypeScript on the backend.**
@@ -58,7 +58,7 @@ When the backend answers, start the dashboard in a second terminal, from the sam
 pnpm frontend:dev   # dashboard on http://localhost:3001
 ```
 
-Open `http://localhost:3001` and create the first administrator. The [Quickstart](https://dms.antelopejs.com/docs/getting-started/quickstart) walks through each step. A page is a class whose static fields are blocks:
+Open the address that the backend logs after `No owner exists yet`, and create the first administrator. The [Quickstart](https://dms.antelopejs.com/docs/getting-started/quickstart) walks through each step. A page is a class whose static fields are blocks:
 
 ```ts
 import { PageController, RegisterPage, pagesCategory } from "@antelopejs/interface-dms/page";
@@ -86,7 +86,7 @@ export class SalesPage extends PageController("sales", {
 | `@antelopejs/interface-core`                | `file:../../.campaign/tgz/antelopejs-interface-core-f7df541.tgz`                | `file:.campaign/tgz/antelopejs-interface-core-f7df541.tgz`                |
 | `@antelopejs/interface-data-api`            | `file:../../.campaign/tgz/antelopejs-interface-data-api-bca1ca6.tgz`            | `file:.campaign/tgz/antelopejs-interface-data-api-bca1ca6.tgz`            |
 | `@antelopejs/interface-database`            | `file:../../.campaign/tgz/antelopejs-interface-database-1ade334.tgz`            | `file:.campaign/tgz/antelopejs-interface-database-1ade334.tgz`            |
-| `@antelopejs/interface-database-decorators` | `file:../../.campaign/tgz/antelopejs-interface-database-decorators-1234214.tgz` | `file:.campaign/tgz/antelopejs-interface-database-decorators-1234214.tgz` |
+| `@antelopejs/interface-database-decorators` | `file:../../.campaign/tgz/antelopejs-interface-database-decorators-4a959c7.tgz` | `file:.campaign/tgz/antelopejs-interface-database-decorators-4a959c7.tgz` |
 | `@antelopejs/interface-dms`                 | `>=0.12.0 <0.13.0`                                                              | `0.12.0`                                                                  |
 | `@antelopejs/interface-dms-automation`      | `file:../../.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz`      | `file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz`      |
 | `@antelopejs/interface-email`               | `>=0.0.6 <1.0.0`                                                                | `0.0.6`                                                                   |

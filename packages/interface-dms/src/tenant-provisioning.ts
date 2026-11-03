@@ -14,9 +14,9 @@ import {
  * handler, so no handler ever runs before it, whatever order the modules
  * registered in.
  *
- * Call it once per tenant, at its creation, and fire the hook through it
- * only. A handler that throws rejects the call, and the caller unwinds the
- * tenant it was creating.
+ * Fire the hook only through this function. A handler that throws rejects the
+ * call. Signup callers unwind the tenant they were creating. Default tenant
+ * provisioning retains its pending row and retries this function after startup.
  *
  * @param payload Tenant being provisioned and what the caller carries along
  */

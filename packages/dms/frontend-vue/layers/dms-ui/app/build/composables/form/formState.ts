@@ -16,7 +16,6 @@ import {
 } from "../../utils/urlVariables";
 import { apiErrorStatus } from "#dms-core/app/composables/useFieldErrors";
 import { HTTP_NOT_FOUND } from "#dms-core/app/utils/http-status";
-import { isString } from "#dms-core/app/utils/type-check";
 import { sameFormValue } from "../unsaved-changes/formValue";
 import {
   type FieldValueComparer,
@@ -135,12 +134,11 @@ function createFormState(props: FormProps) {
 /** @internal */
 export function createFormFields(props: FormProps) {
   const context = createFormState(props);
+  const { presentError } = useApiErrorPresenter();
   const {
-    toast,
     $authFetch,
     getDataType,
     processI18n,
-    processApiMessage,
     route,
     initialValues,
     disabledFields,
@@ -205,15 +203,7 @@ export function createFormFields(props: FormProps) {
   };
 
   const showFetchErrorToast = (error: Parameters<typeof apiErrorStatus>[0]) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejections are arbitrary; keep direct data access, primitive boxing and nullish throws rather than treating this unchecked error projection as validated.
-    const err = error as Error & { data?: string };
-    toast.add({
-      title: processI18n("$dms.form.fetch_error_title"),
-      description: isString(err.data)
-        ? processApiMessage(err.data)
-        : processI18n("$dms.form.fetch_error_unknown"),
-      color: Color.error,
-    });
+    presentError(error, { fallbackKey: "dms.form.fetch_error_unknown" });
   };
 
   const baseSchema = createBaseValidationSchema(props.schema);

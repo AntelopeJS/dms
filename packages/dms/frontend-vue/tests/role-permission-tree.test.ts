@@ -13,6 +13,7 @@ import {
 import type { RolePermissionNode } from "../layers/dms-layout/app/entries/components/pages/settings/roles/role-types";
 import type * as RolePermissionHelpers from "../layers/dms-layout/app/entries/components/pages/settings/roles/role-permissions";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
+import { browserRuntime } from "./helpers/api-data-runtime";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { TREE } from "./helpers/role-permission-tree-fixture";
 
@@ -106,6 +107,7 @@ function mountTree(tree = TREE, selection = new Set<string>()) {
         },
       }),
   });
+  browserRuntime(app);
   app.component("UCheckbox", CheckboxStub);
   app.component("UButton", stub("button"));
   app.component("UIcon", stub("i"));
@@ -258,6 +260,7 @@ function mountEditor(tree = TREE, selection = new Set<string>()) {
         description: "",
       }),
   });
+  browserRuntime(app);
   app.component("UCheckbox", CheckboxStub);
   app.component("UButton", stub("button"));
   app.component("UIcon", stub("i"));

@@ -83,15 +83,27 @@ export function useTableViewCountsData<T extends Data>(
   const { liveHold } = scope.liveHold;
   const { tableViewItems, canSaveViews } = scope.views;
   const { props } = scope;
-  const { data: tabCountsData, refresh: refreshTabCounts } =
-    useTableCountsData<T>({
-      componentId,
-      pageId,
-      rows: tableRows,
-      queries: tabCountsQuery,
-      archiveQuery,
-      heldQuery: liveHold.heldQuery,
-    });
+  const {
+    data: tabCountsData,
+    status: tabCountsStatus,
+    refresh: refreshTabCounts,
+  } = useTableCountsData<T>({
+    componentId,
+    pageId,
+    rows: tableRows,
+    queries: tabCountsQuery,
+    archiveQuery,
+    heldQuery: liveHold.heldQuery,
+  });
+
+  /**
+   * The counters are still on their way: no answer yet, and no failure. A
+   * request that failed leaves `data` null as a pending one does, so it
+   * would draw the counters' skeleton for good.
+   */
+  const areCountsPending = computed(
+    () => tabCountsData.value == null && tabCountsStatus.value !== "error",
+  );
 
   const viewItems = computed<TableViewItem[]>(() =>
     tableViewItems.value.map((view) => ({
@@ -104,13 +116,20 @@ export function useTableViewCountsData<T extends Data>(
       count: view.count
         ? tabCountsData.value?.[`${VIEW_COUNT_ID_PREFIX}${view.id}`]
         : undefined,
-      countPending: !!view.count && tabCountsData.value == null,
+      countPending: !!view.count && areCountsPending.value,
     })),
   );
   const viewsLayout = props.views?.layout ?? "tabs";
   const hasViews =
     !!props.views && (props.views.items.length > 0 || canSaveViews);
-  return { refreshTabCounts, tabCountsData, viewItems, viewsLayout, hasViews };
+  return {
+    refreshTabCounts,
+    tabCountsData,
+    areCountsPending,
+    viewItems,
+    viewsLayout,
+    hasViews,
+  };
 }
 
 export function useTableViewLinkCounts<T extends Data>(

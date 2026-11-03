@@ -16,6 +16,7 @@
  */
 import type { ChartSeries } from "./chart";
 import { headline, measuredValues } from "./internal/query-response";
+import { bucketLabel } from "./internal/series-bucket";
 
 /** One measured group: what it is, and what was measured. */
 export interface SeriesPoint {
@@ -23,6 +24,14 @@ export interface SeriesPoint {
   /** Null for a group the calculation found nothing to measure in. */
   y: number | null;
 }
+
+/**
+ * The period a query grouped a date field into. Its groups are keyed by a period
+ * stamp: the year (2026), the quarter (20263), the month (202608), the day
+ * (20260801) or the week, stamped by its Monday as the days since 1970-01-01
+ * (20668 for the week of Aug 3, 2026).
+ */
+export type SeriesBucket = "day" | "week" | "month" | "quarter" | "year";
 
 /** How the headline figure is taken from the points. */
 export type SeriesMeasure = "count" | "sum" | "avg" | "min" | "max";
@@ -35,6 +44,12 @@ export interface SeriesOptions {
    * because all that is left to name a series by is the measure's own word.
    */
   label?: string;
+  /**
+   * The period the points are bucketed into, when the query grouped a date field.
+   * A chart's axis, a tooltip and a ranked entry then read "Aug 2026" where the
+   * key is the stamp 202608. Without it a key is passed on as it came.
+   */
+  bucket?: SeriesBucket;
   /** The same calculation over the preceding period, when one was asked for. */
   previous?: SeriesPoint[];
 }
@@ -134,8 +149,15 @@ function addComparison(
  * it takes each of them for a series with nothing in it and draws an empty
  * canvas, without an error anywhere to say why.
  */
-function chartSeries(points: SeriesPoint[], name: string): ChartSeries[] {
-  return [{ name, data: points }];
+function chartSeries(
+  points: SeriesPoint[],
+  name: string,
+  bucket?: SeriesBucket,
+): ChartSeries[] {
+  const data = bucket
+    ? points.map((point) => ({ ...point, x: bucketLabel(point.x, bucket) }))
+    : points;
+  return [{ name, data }];
 }
 
 /** Points as a chart card reads them: a figure, its series, and its variation. */
@@ -144,14 +166,16 @@ export function chartCardData(
   options: SeriesOptions,
 ): ChartCardData {
   const name = options.label ?? options.measure;
-  const data: ChartCardData = { series: chartSeries(points, name) };
+  const data: ChartCardData = {
+    series: chartSeries(points, name, options.bucket),
+  };
   const value = headline(points, options.measure);
   if (value !== undefined) {
     data.value = value;
   }
   addComparison(data, value, options);
   if (options.previous && options.previous.length > 0) {
-    data.comparisonSeries = chartSeries(options.previous, name);
+    data.comparisonSeries = chartSeries(options.previous, name, options.bucket);
   }
   return data;
 }
@@ -187,7 +211,11 @@ export function kpiCardData(
  * and year bucket does — is named by its date alone, since the zeroes below it
  * carry no information.
  */
-function groupTitle(key: number | string): string {
+function groupTitle(key: number | string, bucket?: SeriesBucket): string {
+  const labelled = bucket ? bucketLabel(key, bucket) : key;
+  if (labelled !== key) {
+    return String(labelled);
+  }
   if (
     // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Group keys are already a number-or-string domain; only numeric epoch buckets get date formatting.
     typeof key !== "number" ||
@@ -217,10 +245,11 @@ function topListEntry(
   point: SeriesPoint,
   value: number,
   before: Map<string, number>,
+  bucket?: SeriesBucket,
 ): TopListEntry {
   const entry: TopListEntry = {
     id: point.x,
-    title: groupTitle(point.x),
+    title: groupTitle(point.x, bucket),
     value,
   };
   const previous = before.get(String(point.x));
@@ -244,7 +273,9 @@ export function topListData(
   const before = measuredByGroup(options.previous ?? []);
   return {
     items: points.flatMap((point) =>
-      point.y === null ? [] : [topListEntry(point, point.y, before)],
+      point.y === null
+        ? []
+        : [topListEntry(point, point.y, before, options.bucket)],
     ),
   };
 }

@@ -4,7 +4,7 @@ import { Model } from "@antelopejs/interface-database-decorators";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { applyTenantOwnership } from "@antelopejs/interface-dms/tenant-ownership";
 import { normalizeEmail, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { SystemStateModel } from "../db";
+import { SetupTokenModel, SystemStateModel } from "../db";
 import { generateAuthKey } from "../utils";
 import {
   type OnboardingRegisterAdmin,
@@ -22,6 +22,9 @@ interface OnboardingPlatformDetails {
 export class PublicOnboardingController extends Controller("/api/onboarding") {
   @Model(SystemStateModel)
   declare model: SystemStateModel;
+
+  @Model(SetupTokenModel)
+  declare setupTokens: SetupTokenModel;
 
   @Get("/informations")
   async getInformations(@Model(UserModel) userModel: UserModel) {
@@ -57,10 +60,22 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
 
     assert(users.length === 0, 400, "error.admin_already_set");
 
-    const insertedIds = await this.createOwner(userModel, data);
-    await this.completeOnboarding(data);
+    const spentToken = await this.setupTokens.claim(data.setupToken);
+    assert(spentToken, 403, "error.invalid_setup_token");
 
-    return insertedIds;
+    try {
+      const insertedIds = await this.createOwner(userModel, data);
+      await this.completeOnboarding(data);
+      return insertedIds;
+    } catch (error) {
+      await this.restoreUnusedToken(userModel, spentToken);
+      throw error;
+    }
+  }
+
+  private async restoreUnusedToken(userModel: UserModel, spentToken: string) {
+    const users = await userModel.table.slice(0, 1).run();
+    if (users.length === 0) await this.setupTokens.restore(spentToken);
   }
 
   private async createOwner(

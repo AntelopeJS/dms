@@ -1,4 +1,3 @@
-import { isString } from "../../../../dms-core/app/utils/type-check";
 import type { Ref, VNode } from "vue";
 import ModuleStoreDependencyPicker from "../../build/components/pages/modules/ModuleStoreDependencyPicker.vue";
 import {
@@ -21,12 +20,6 @@ import type {
   StoreOperationKind,
 } from "#dms-core/app/types/module-store";
 import type { useModuleStore } from "./useModuleStore";
-
-/** What a refused store request carries: the server's error key, if any. */
-interface StoreRequestError {
-  data?: unknown;
-  message?: string;
-}
 
 /** What the frontend banner says while it lags behind the backend. */
 export interface StoreFrontendNotice {
@@ -65,17 +58,8 @@ export const useModuleStoreActions = (
 ) => {
   const { t } = useI18n();
   const { processI18n } = useTranslation();
-  const toast = useToast();
+  const { presentError } = useApiErrorPresenter();
   const { confirm } = useConfirm();
-
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Store requests can reject with arbitrary JavaScript values; the store's Promise contract has no rejection owner type.
-  function resolveStoreError(error: unknown): string {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This existing unchecked optional-property view is not validation of a StoreRequestError; inference cannot establish that rejected values have this shape, and parsing would change malformed-error behavior.
-    const details = error as StoreRequestError | undefined;
-    const key = isString(details?.data) ? details.data : undefined;
-    if (!key) return details?.message ?? "";
-    return t(`modules.store.errors.${key.replace("error.", "")}`);
-  }
 
   /**
    * Runs `kind` from a dialog: a refusal is worded as the toast words it and
@@ -89,12 +73,15 @@ export const useModuleStoreActions = (
     try {
       await moduleStore.run(kind, entry, body);
     } catch (error) {
-      throw new ConfirmActionError({
-        title: t("modules.store.action_failed", {
-          module: processI18n(entry.title),
-        }),
-        description: resolveStoreError(error),
-      });
+      throw new ConfirmActionError(
+        {
+          fallbackKey: "modules.store.action_failed",
+          params: {
+            module: processI18n(entry.title),
+          },
+        },
+        { cause: error },
+      );
     }
   }
 
@@ -165,11 +152,9 @@ export const useModuleStoreActions = (
     try {
       await moduleStore.run(kind, entry);
     } catch (error) {
-      toast.add({
-        color: "error",
-        icon: "i-ph-warning-circle",
-        title: t("modules.store.action_failed", { module: title }),
-        description: resolveStoreError(error),
+      presentError(error, {
+        fallbackKey: "modules.store.action_failed",
+        params: { module: title },
       });
     }
   }

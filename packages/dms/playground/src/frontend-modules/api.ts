@@ -9,7 +9,6 @@ export const READS_URL = `${API_ROOT}/reads`;
 
 const HTTP_BAD_REQUEST = 400;
 const JSON_TYPE = "application/json";
-/** In the playground's locale files, so `useApiError` shows it translated. */
 const REFUSED_MESSAGE = "$demo.frontend.toolkit.refused";
 
 const TIME_LOCALE = "en-GB";

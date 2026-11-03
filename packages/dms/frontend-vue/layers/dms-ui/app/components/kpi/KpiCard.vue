@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import {
+  resolveBlockState,
+  useBlockStateAttributes,
+} from "../../build/composables/blocks/blockDataState";
 import DmsStatCell from "../../build/components/stat/StatCell.vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
 
@@ -129,6 +133,14 @@ const previousText = computed(() => {
   return t("dms.chart.versus_value", { value: formatted });
 });
 
+const blockAttributes = useBlockStateAttributes("KpiCard", () =>
+  resolveBlockState({
+    loading: isLoading.value,
+    failed: Boolean(error.value),
+    hasContent: value.value !== undefined,
+  }),
+);
+
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
 
 const hasError = computed(
@@ -181,6 +193,7 @@ const isStat = computed(() => props.variant === "stat");
 <template>
   <DmsStatCell
     v-if="isStat"
+    v-bind="blockAttributes"
     :eyebrow="processI18n(title)"
     :icon="resolvedIcon"
     :loading="isFirstLoad"
@@ -245,6 +258,7 @@ const isStat = computed(() => props.variant === "stat");
 
   <DmsCard
     v-else
+    v-bind="blockAttributes"
     :padded="false"
     class="flex min-h-[132px] flex-col gap-1.5 px-4 py-4 sm:px-[18px]"
     :aria-busy="isFirstLoad"

@@ -4,15 +4,12 @@ import {
   type FieldErrorCode,
   resolveFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
-import { resolveApiErrorMessage } from "#dms-core/app/composables/useApiError";
-import {
-  type I18nTranslate,
-  resolveApiMessage,
-} from "#dms-core/app/composables/translation/useTranslation";
+import { resolveApiErrorMessage } from "#dms-core/app/composables/resolveApiError";
 
 export interface AuthFormError {
   title: string;
   description: string;
+  severity: ApiErrorSeverity;
 }
 
 /** What an auth page's `UForm` exposes that a field error needs. */
@@ -42,18 +39,17 @@ export interface AuthFieldErrorTarget {
  * after an `await` without the i18n context.
  */
 export function useAuthFormError() {
-  const { t } = useI18n();
-  const translate: I18nTranslate = (key, params = {}) => t(key, params);
+  const { resolveError } = useApiErrorPresenter();
   const formError = ref<AuthFormError | null>(null);
 
   function showFormError(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     titleKey: string,
   ): void {
-    formError.value = {
-      title: t(titleKey),
-      description: resolveApiMessage(translate, resolveApiErrorMessage(error)),
-    };
+    const notice = resolveError(error, { fallbackKey: titleKey });
+    formError.value = notice
+      ? { title: notice.message, description: "", severity: notice.severity }
+      : null;
   }
 
   function clearFormError(): void {
@@ -93,7 +89,11 @@ export function useAuthFormError() {
     clearFormError();
     const messages = fields.map((entry) => ({
       name: entry.field,
-      message: resolveApiMessage(translate, entry.message),
+      message:
+        resolveError(entry.message, {
+          fallbackKey: entry.fallbackKey ?? "dms.field_errors.invalid",
+          params: entry.params,
+        })?.message ?? "",
     }));
     if (target.show) {
       for (const { name, message } of messages) target.show(name, message);

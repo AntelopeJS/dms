@@ -174,6 +174,8 @@ const config: VerifyConfig = {
         "packages/dms/src/routes/onboarding.ts",
         "packages/dms/src/db/models/systemState.model.ts",
         "packages/dms/src/db/tables/systemState.table.ts",
+        "packages/dms/src/db/models/setupToken.model.ts",
+        "packages/dms/src/db/tables/setupToken.table.ts",
         "packages/interface-dms/src/auth/db/tables/users.table.ts",
         "packages/interface-dms/src/tenant-ownership.ts",
         "packages/interface-dms/src/internal/tenant-ownership.ts",

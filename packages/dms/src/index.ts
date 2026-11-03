@@ -1,12 +1,13 @@
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { Events } from "@antelopejs/interface-core/modules";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { RegisterSchema } from "@antelopejs/interface-database-decorators";
 import {
   CORE_SCHEMA_NAME,
   TENANT_SCHEMA_NAME,
 } from "@antelopejs/interface-dms/constants";
-import "./db";
+import { announceSetupToken } from "./db";
 
 // oxlint-disable-next-line import/no-duplicates -- Initialize realtime before page and route side effects; the later named import supplies lifecycle functions without moving this initialization order.
 import "./realtime";
@@ -83,6 +84,8 @@ export * from "./config";
 
 let cronTasks: ScheduledTask[] = [];
 let staleExportsSweep: Promise<void> = Promise.resolve();
+let defaultTenantProvisioning: Promise<void> | undefined;
+let provisioningWait = new AbortController();
 
 let globalRealtimeConfig: RealtimeConfig | undefined;
 
@@ -254,16 +257,25 @@ export function destroy(): void {
   closeDevReloadStreams();
 }
 
+function onModulesStarted(): void {
+  if (defaultTenantProvisioning) return;
+  provisioningWait = new AbortController();
+  defaultTenantProvisioning = provisionDefaultTenant(
+    provisioningWait.signal,
+  ).finally(() => {
+    defaultTenantProvisioning = undefined;
+  });
+}
+
 export async function start(): Promise<void> {
   await allowClientOrigin();
   await configureRealtime(globalRealtimeConfig);
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
-  const defaultTenantCreated = await ensureDefaultTenantExists();
+  await ensureDefaultTenantExists();
+  await announceSetupToken();
   await registerExistingTenantInstances();
   await SettleHook(Hook.DATABASE_INITIALIZED);
-
-  if (defaultTenantCreated) await provisionDefaultTenant();
 
   staleExportsSweep = runSweepStaleExports().catch((error: unknown) => {
     Logging.Error(`Cron '${SWEEP_STALE_EXPORTS_CRON_NAME}' failed:`, error);
@@ -276,9 +288,13 @@ export async function start(): Promise<void> {
   await registerAutomationNodes();
   await startModuleUpdateWatcher();
   startPendingExtensionReport();
+  Events.ModulesStarted.register(onModulesStarted);
 }
 
 export async function stop(): Promise<void> {
+  Events.ModulesStarted.unregister(onModulesStarted);
+  provisioningWait.abort();
+  await defaultTenantProvisioning;
   await staleExportsSweep;
   UnsettleHook(Hook.DATABASE_INITIALIZED);
   stopPendingExtensionReport();
