@@ -79,10 +79,6 @@ export interface UpdateProfileInput {
   avatar?: AvatarValue;
 }
 
-interface AvatarBodyProbe {
-  avatar?: { key?: unknown };
-}
-
 export const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
 
@@ -128,34 +124,6 @@ export function assertAvatarKeyAllowed(
     "error.invalid_avatar",
   );
 }
-
-/**
- * A client that saved once and submits again still holds the staged avatar key
- * while the file has already been promoted. Map that stale staged key back to
- * the stored key so the resubmission validates and stays a no-op.
- */
-/* oxlint-disable anti-slop/no-runtime-typeof -- This pre-schema adapter recognizes only resubmitted avatar keys and leaves all other input untouched for validation by the profile schema. */
-export function normalizeResubmittedAvatar(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Raw profile values must reach the downstream profile schema after stale-key normalization.
-  body: unknown,
-  currentKey: string | undefined,
-) {
-  if (!currentKey || !body || typeof body !== "object") {
-    return body;
-  }
-  const { avatar }: AvatarBodyProbe = body;
-  if (!avatar || typeof avatar !== "object") {
-    return body;
-  }
-  if (typeof avatar.key !== "string" || !isStagedKey(avatar.key)) {
-    return body;
-  }
-  if (stripStagingPrefix(avatar.key) !== currentKey) {
-    return body;
-  }
-  return { ...body, avatar: { ...avatar, key: currentKey } };
-}
-/* oxlint-enable anti-slop/no-runtime-typeof */
 
 export function generateTotpSecret(): Promise<string> {
   return new Promise((resolve, reject) => {
