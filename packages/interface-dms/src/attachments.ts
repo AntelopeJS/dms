@@ -36,10 +36,10 @@ export interface AttachmentSaveRequest {
 
 /** @internal */
 export namespace internal {
-  export const SaveTableViewAttachments = InterfaceFunction<
-    // oxlint-disable-next-line anti-slop/no-unknown-returns -- The runtime attachment implementation returns a consumer-specific save result through this published proxy.
-    (request: TableViewAttachmentSaveRequest) => Promise<unknown>
-  >();
+  export const SaveTableViewAttachments =
+    InterfaceFunction<
+      (request: TableViewAttachmentSaveRequest) => Promise<void>
+    >();
 }
 
 type AttachmentSaver = <T>(
