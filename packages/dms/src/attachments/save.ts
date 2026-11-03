@@ -81,24 +81,54 @@ async function prepareReferences(
   return submitted;
 }
 
-async function remapValue(
+/** A container of the submitted value: its keys and values, and the copy that receives them remapped. */
+interface PendingCopy {
+  keys: string[];
+  values: unknown[];
+  copy: object;
+}
+
+/**
+ * Copies a submitted value with each string that names a promoted file
+ * replaced by its canonical key. Walks with an explicit stack and allocates
+ * no promise per node, so the memory it holds follows the size of the value
+ * and never its depth. The value is walked as the only entry of a one-slot
+ * array, so the root takes the same path as every child.
+ */
+function remapValue(
   value: AttachmentSaveRequest["submitted"][string],
   map: Map<string, string>,
-): Promise<AttachmentSaveRequest["submitted"][string]> {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only strings can match promoted storage keys.
-  if (typeof value === "string") return map.get(value) ?? value;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Primitive non-string values are preserved without traversal.
-  if (!value || typeof value !== "object") return value;
-  if (Array.isArray(value))
-    return Promise.all(value.map((item) => remapValue(item, map)));
-  return Object.fromEntries(
-    await Promise.all(
-      Object.entries(value).map(async ([key, item]) => [
-        key,
-        await remapValue(item, map),
-      ]),
-    ),
-  );
+): AttachmentSaveRequest["submitted"][string] {
+  const result = [value];
+  const pending: PendingCopy[] = [
+    { keys: ["0"], values: [value], copy: result },
+  ];
+  for (let node = pending.pop(); node; node = pending.pop()) {
+    for (const [index, key] of node.keys.entries()) {
+      const item = node.values[index];
+      let remapped = item;
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only strings can match promoted storage keys.
+      if (typeof item === "string") remapped = map.get(item) ?? item;
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Primitive non-string values are preserved without traversal.
+      else if (item && typeof item === "object") {
+        const copy = Array.isArray(item) ? Array.from(item) : {};
+        const source = Array.isArray(copy) ? copy : item;
+        pending.push({
+          keys: Object.keys(source),
+          values: Object.values(source),
+          copy,
+        });
+        remapped = copy;
+      }
+      Object.defineProperty(node.copy, key, {
+        value: remapped,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
+  }
+  return result[0];
 }
 
 async function promoteReferences(
@@ -114,7 +144,7 @@ async function promoteReferences(
       mapping.set(ref.key, key);
     }
     if (Object.hasOwn(document, field.key))
-      document[field.key] = await remapValue(document[field.key], mapping);
+      document[field.key] = remapValue(document[field.key], mapping);
   }
   return document;
 }
