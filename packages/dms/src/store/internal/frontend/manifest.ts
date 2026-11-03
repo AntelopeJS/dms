@@ -242,16 +242,6 @@ interface NamedManifestModule extends ManifestModuleEntry {
   name: string;
 }
 
-function proxyPath(
-  proxy: NonNullable<ManifestModuleEntry["backendProxies"]>[number],
-): string | undefined {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Manifest proxy entries are intentionally opaque; retain the existing fallback for primitive entries.
-  if (!proxy || typeof proxy !== "object") return undefined;
-  const { path }: { path?: unknown } = proxy;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string proxy paths are included in the diagnostic; arbitrary manifest entries retain their existing no-path fallback.
-  return typeof path === "string" ? path : undefined;
-}
-
 /**
  * The backend proxies a manifest shaped by `keep` withholds, each named
  * `<module> <path>`: none when the caller may receive them.
@@ -266,8 +256,13 @@ export function listDroppedBackendProxies(
 ): string[] {
   if (keep.authEstablishEndpoints) return [];
   return modules.flatMap((module) =>
-    (module.backendProxies ?? []).map(
-      (proxy) => `${module.name} ${proxyPath(proxy) ?? "(no path)"}`,
-    ),
+    (module.backendProxies ?? []).map((proxy) => {
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Manifest proxy entries are intentionally opaque; retain the existing fallback for primitive entries.
+      if (!proxy || typeof proxy !== "object")
+        return `${module.name} (no path)`;
+      const { path }: { path?: unknown } = proxy;
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string proxy paths are included in the diagnostic; arbitrary manifest entries retain their existing no-path fallback.
+      return `${module.name} ${typeof path === "string" ? path : "(no path)"}`;
+    }),
   );
 }

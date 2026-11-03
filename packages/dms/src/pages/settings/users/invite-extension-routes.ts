@@ -77,9 +77,8 @@ export const inviteGetRoute: DataControllerCallback = {
 export async function editPendingInvite(
   tenantId: string,
   inviteId: string,
-  body: Parameters<typeof CollectInviteExtensionEdits>[0],
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The row callback result is awaited and discarded, matching the data controller's unconstrained result contract.
-  writeRow: () => Promise<unknown>,
+  body: Validation.RequestBody,
+  writeRow: () => Promise<void>,
 ): Promise<void> {
   return changeTenantMembers(tenantId, async () => ({
     changes: [],
@@ -90,8 +89,8 @@ export async function editPendingInvite(
 async function editAdmittedPendingInvite(
   tenantId: string,
   inviteId: string,
-  body: Parameters<typeof CollectInviteExtensionEdits>[0],
-  writeRow: Parameters<typeof editPendingInvite>[3],
+  body: Validation.RequestBody,
+  writeRow: () => Promise<void>,
 ): Promise<void> {
   const edits = CollectInviteExtensionEdits(body);
   const invite = await loadPendingInvite(tenantId, inviteId);
@@ -121,7 +120,9 @@ const editInviteWithExtensions = {
       getRequestTenantId(ctx),
       String(params.id),
       Validation.ParseBody(body),
-      async () => DefaultRoutes.Edit.func.call(this, ctx, params, body),
+      async () => {
+        await DefaultRoutes.Edit.func.call(this, ctx, params, body);
+      },
     );
   },
 };

@@ -40,8 +40,7 @@ const INVITE_FAILED_MESSAGE = "$page.settings.members.invite.failed";
 const ALREADY_MEMBER_MESSAGE = "$page.settings.members.invite.already_member";
 const INVITE_EMAILS_FIELD = "emails";
 
-function failureMessage(error: PromiseRejectedResult["reason"]): string {
-  if (!(error instanceof HTTPResult)) return INVITE_FAILED_MESSAGE;
+function failureMessage(error: HTTPResult): string {
   if (error.getStatus() >= HTTP_INTERNAL_ERROR) return INVITE_FAILED_MESSAGE;
   const body: unknown = error.getBody();
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- HTTP bodies can be structured; only nonempty strings are suitable failure messages.
@@ -95,7 +94,14 @@ async function inviteOne(
     return { email, outcome: result.kind, emailDelivery: result.emailDelivery };
   } catch (error) {
     Logging.Warn(`[dms] invitation to "${email}" was refused:`, error);
-    return { email, outcome: "failed", message: failureMessage(error) };
+    return {
+      email,
+      outcome: "failed",
+      message:
+        error instanceof HTTPResult
+          ? failureMessage(error)
+          : INVITE_FAILED_MESSAGE,
+    };
   }
 }
 
