@@ -65,7 +65,7 @@ function isPlainObject(value: unknown): value is object {
  *
  * @internal
  */
-export const MAX_INVITE_BODY_DEPTH = 32;
+export const MAX_INVITE_BODY_DEPTH = 64;
 
 /**
  * Whether a submitted body is an object whose every value is JSON, which is
@@ -99,7 +99,7 @@ export function isInviteFieldValues(
     if (depth >= MAX_INVITE_BODY_DEPTH) {
       throw new HTTPResult(
         HTTP_BAD_REQUEST,
-        `The submitted fields are nested more than ${MAX_INVITE_BODY_DEPTH} levels deep.`,
+        `The JSON body nests more than ${MAX_INVITE_BODY_DEPTH} levels deep.`,
       );
     }
     for (const child of Object.values(current)) {

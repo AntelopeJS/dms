@@ -19,7 +19,7 @@ internal.RegisterInviteExtension.onHandlers(
 );
 
 const HUGE_DEPTH = 5000;
-const BOUND = 32;
+const BOUND = 64;
 
 /**
  * @param {number} depth
@@ -108,7 +108,7 @@ for (const { flow, collect, empty } of flows) {
     );
   });
 
-  await test(`${flow}: the body counts as the first level: ${BOUND - 1} nested arrays pass and ${BOUND} are refused`, () => {
+  await test(`${flow}: ${BOUND} levels, the body counted, pass and ${BOUND + 1} answer 400`, () => {
     registerBilling();
     const allowed = nestedArrays(BOUND - 1);
 
