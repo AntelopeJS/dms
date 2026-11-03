@@ -1,18 +1,27 @@
 import { Logging } from "@antelopejs/interface-core/logging";
+import type { FormPropsSerialized } from "./base/form-types";
+import type { WatchAction } from "./base/types/watch";
 import type { MaybePromise } from "./types";
-import { slotResolvers } from "./internal/component-slots";
-
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published slot resolvers accept arbitrary consumer option keys; narrowing them changes the extension contract.
-export type SlotOptions = Record<string, unknown>;
+import {
+  slotResolvers,
+  type SlotFormResolver,
+} from "./internal/component-slots";
 
 /**
- * Rewrites the options of every component declaring the slot. Returning the
+ * The serialized options of the form that declares a slot: only a form has a
+ * `slotId` option, so a resolver always receives a form's options, with the
+ * `fields` array they carry.
+ */
+export type SlotOptions = FormPropsSerialized & {
+  watchActions?: WatchAction[];
+};
+
+/**
+ * Rewrites the options of every form declaring the slot. Returning the
  * input unchanged is how a resolver says it has nothing to contribute.
  */
 export type ComponentSlotResolver = (
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- SlotOptions is the published open options dictionary shared with consumer resolvers.
   options: SlotOptions,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Resolvers return the same published open options dictionary they receive.
 ) => MaybePromise<SlotOptions>;
 
 /**
@@ -38,7 +47,8 @@ export function RegisterComponentSlot(
       `[dms] component slot "${slotId}" already had a resolver; the latest one now owns it.`,
     );
   }
-  slotResolvers.set(slotId, resolver);
+  // SAFETY: The walker hands a resolver only the options of a dms-form component that carry a registered string slotId and a fields array (isSlotForm), and Form serializes its options as FormPropsSerialized.
+  slotResolvers.set(slotId, resolver as SlotFormResolver);
   return () => {
     if (slotResolvers.get(slotId) === resolver) {
       slotResolvers.delete(slotId);

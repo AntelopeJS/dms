@@ -330,22 +330,19 @@ async function resolveInviteFormSlot(
   );
   if (contributions.length === 0) return resolved;
 
-  const form: Partial<FormPropsSerialized> & {
-    watchActions?: WatchAction[];
-  } = options;
   const watchActions = [
-    ...(form.watchActions ?? []),
+    ...(options.watchActions ?? []),
     ...contributions.flatMap((contribution) => contribution.watchActions),
   ];
 
   const merged = {
     ...resolved,
     fields: assembleFields(
-      form.fields ?? [],
+      options.fields,
       contributions,
-      form.fieldsOrientation,
+      options.fieldsOrientation,
     ),
-    schema: mergeSchema(form.schema, contributions),
+    schema: mergeSchema(options.schema, contributions),
   };
   return watchActions.length > 0 ? { ...merged, watchActions } : merged;
 }
