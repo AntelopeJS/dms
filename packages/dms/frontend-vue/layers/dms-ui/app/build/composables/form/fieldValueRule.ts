@@ -8,6 +8,16 @@ export interface SetFieldValueParams {
   valueMap?: object;
 }
 
+/** The own member `key` of `source`, wrapped so that an absent one stays apart from an `undefined` one. */
+function ownMember(
+  source: object,
+  key: string,
+): { value: unknown } | undefined {
+  return isObject(source) && Object.hasOwn(source, key)
+    ? { value: source[key] }
+    : undefined;
+}
+
 /** What a field-state watch (`SetFieldDisabled`, `SetFieldHidden`, `SetFieldRequired`) sets, and on which field. */
 export interface FieldFlagParams {
   targetField: string;
@@ -26,9 +36,7 @@ export function readFieldFlagParams(
   if (!params || !("targetField" in params)) return undefined;
   const { targetField } = params;
   if (!isString(targetField)) return undefined;
-  const flag =
-    Object.hasOwn(params, flagKey) && flagKey in params && !!params[flagKey];
-  return { targetField, flag };
+  return { targetField, flag: !!ownMember(params, flagKey)?.value };
 }
 
 /**
@@ -83,13 +91,8 @@ export function resolveFieldValueWrite(
   if (payload?.initial) return undefined;
   if (params.valueMap) {
     const key = payload?.value;
-    if (!isMapKey(key) || !Object.hasOwn(params.valueMap, String(key))) {
-      return undefined;
-    }
-    const entry = String(key);
-    return entry in params.valueMap
-      ? { value: params.valueMap[entry] }
-      : undefined;
+    if (!isMapKey(key)) return undefined;
+    return ownMember(params.valueMap, String(key));
   }
   if (!Object.hasOwn(params, "value")) return undefined;
   return { value: params.value };
