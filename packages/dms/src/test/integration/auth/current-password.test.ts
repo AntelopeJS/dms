@@ -53,13 +53,24 @@ describe("[integration] auth/current password re-check", function () {
   const enableTotp = (currentPassword: string) =>
     client.post(`${SECURITY}/two-factor/enable-totp`, { currentPassword });
 
-  const storedState = async () => ({
-    account: await findUserByEmail(user.email),
-    sessions: await GetModel(SessionModel).getByUserId(user.userId),
-    notifications: await GetModel(UserNotificationsModel).getByUserId(
-      user.userId,
-    ),
-  });
+  /**
+   * What the account, its sessions and its notifications hold. The account's
+   * activity stamps move on every authenticated request, so they are left out.
+   */
+  const storedState = async () => {
+    const {
+      lastActiveAt: _lastActiveAt,
+      updatedAt: _updatedAt,
+      ...account
+    } = await findUserByEmail(user.email);
+    return {
+      account,
+      sessions: await GetModel(SessionModel).getByUserId(user.userId),
+      notifications: await GetModel(UserNotificationsModel).getByUserId(
+        user.userId,
+      ),
+    };
+  };
 
   before(captureEmails);
 
