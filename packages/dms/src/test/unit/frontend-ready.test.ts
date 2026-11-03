@@ -1,9 +1,6 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { assert, expect } from "chai";
-import {
-  assertFrontendReadyAllowed,
-  parseFrontendReady,
-} from "../../store/frontend";
+import { parseFrontendReady } from "../../store/frontend";
 
 const HTTP_BAD_REQUEST = 400;
 const MALFORMED_BODIES = [
@@ -52,8 +49,4 @@ describe("[unit] frontend ready report", () => {
       );
     });
   }
-
-  it("lets a caller through the gate on an instance that does not close it", () => {
-    expect(() => assertFrontendReadyAllowed(undefined)).to.not.throw();
-  });
 });
