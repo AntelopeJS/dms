@@ -9,9 +9,43 @@ const FILE: AttachmentField = { id: "doc", key: "doc", kind: "file" };
 const IMAGE: AttachmentField = { id: "logo", key: "logo", kind: "image" };
 
 type Nested = string | Nested[];
+type NestedObject = string | { a: NestedObject };
+
+const WIDTH = 200_000;
+const WIDE_BODY_MS = 2_000;
+const MIB = 1024 * 1024;
+const BODY_AND_ARRAY_LEVELS = 2;
+const MAX_RSS_GROWTH = 256 * MIB;
 
 function keys(references: AttachmentReference[]): string[] {
   return references.map(({ key }) => key);
+}
+
+function indexedKeys(count: number): string[] {
+  return Array.from({ length: count }, (_, index) => `k${index}`);
+}
+
+function nestedElement(levels: number, leaf: string): NestedObject {
+  let element: NestedObject = leaf;
+  for (let level = 0; level < levels; level += 1) element = { a: element };
+  return element;
+}
+
+function wideAndDeepElements(levels: number): NestedObject[] {
+  const elements: NestedObject[] = [];
+  let size = 0;
+  while (size < MIB) {
+    const element = nestedElement(levels, `k${elements.length}`);
+    elements.push(element);
+    size += JSON.stringify(element).length + 1;
+  }
+  return elements;
+}
+
+function timed<Result>(run: () => Result) {
+  const started = performance.now();
+  const result = run();
+  return { result, ms: performance.now() - started };
 }
 
 describe("[unit] attachments/fields collectAttachments", () => {
@@ -73,6 +107,55 @@ describe("[unit] attachments/fields collectAttachments", () => {
     expect(keys(collectAttachments([FILE], { doc: nested }))).to.deep.equal([
       "deep",
     ]);
+  });
+
+  describe("walks a wide body without a size limit of its own", () => {
+    it("reads an array of two hundred thousand strings in order", () => {
+      const expected = indexedKeys(WIDTH);
+      const { result, ms } = timed(() =>
+        collectAttachments([FILE], { doc: expected }),
+      );
+      expect(keys(result)).to.deep.equal(expected);
+      expect(ms).to.be.below(WIDE_BODY_MS);
+    });
+
+    it("reads an object of two hundred thousand entries in order", () => {
+      const expected = indexedKeys(WIDTH);
+      const wide = Object.fromEntries(expected.map((key) => [key, key]));
+      const { result, ms } = timed(() =>
+        collectAttachments([FILE], { doc: wide }),
+      );
+      expect(keys(result)).to.deep.equal(expected);
+      expect(ms).to.be.below(WIDE_BODY_MS);
+    });
+
+    it("reads an array of two hundred thousand image references", () => {
+      const expected = indexedKeys(WIDTH);
+      const { result, ms } = timed(() =>
+        collectAttachments([IMAGE], {
+          logo: expected.map((key) => ({ key })),
+        }),
+      );
+      expect(keys(result)).to.deep.equal(expected);
+      expect(ms).to.be.below(WIDE_BODY_MS);
+    });
+  });
+
+  describe("walks a one MiB body of deeply nested elements", () => {
+    for (const depth of [63, 64]) {
+      it(`reads every element when the body nests ${depth} levels deep`, () => {
+        const elements = wideAndDeepElements(depth - BODY_AND_ARRAY_LEVELS);
+        const rssBefore = process.memoryUsage().rss;
+        const { result, ms } = timed(() =>
+          collectAttachments([FILE], { doc: elements }),
+        );
+        expect(keys(result)).to.deep.equal(indexedKeys(elements.length));
+        expect(ms).to.be.below(WIDE_BODY_MS);
+        expect(process.memoryUsage().rss - rssBefore).to.be.below(
+          MAX_RSS_GROWTH,
+        );
+      });
+    }
   });
 
   describe("reads a document's own fields only", () => {

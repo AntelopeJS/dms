@@ -30,7 +30,9 @@ export function collectAttachments(
           // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Image references require a nonempty string key.
           if (typeof item.key === "string" && item.key) keys.add(item.key);
         } else {
-          pending.push(...Object.values(item).reverse());
+          const children = Object.values(item);
+          for (let index = children.length - 1; index >= 0; index -= 1)
+            pending.push(children[index]);
         }
       }
     }
