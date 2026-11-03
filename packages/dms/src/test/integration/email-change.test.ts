@@ -41,10 +41,7 @@ function captureRenderedEmails(): void {
   ImplementInterface(
     { GenerateHtml },
     {
-      GenerateHtml: async (
-        template: HtmlTemplateRef,
-        props: Parameters<typeof GenerateHtml>[1],
-      ) => {
+      GenerateHtml: async <T>(template: HtmlTemplateRef<T>, props: T) => {
         rendered.push({
           template: template.name,
           // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The email renderer accepts arbitrary template props; this capture assumes the email-change template contract.

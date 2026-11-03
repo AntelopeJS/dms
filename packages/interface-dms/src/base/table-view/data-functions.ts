@@ -3,6 +3,7 @@ import { InterfaceFunction } from "@antelopejs/interface-core";
 import type {
   DataControllerCallback,
   DataControllerCallbackWithOptions,
+  DataControllerInstance,
 } from "@antelopejs/interface-data-api";
 import type { RowFields } from "@antelopejs/interface-data-api/metadata";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
@@ -95,8 +96,7 @@ export interface BulkRowSource {
 export const resolveBulkRowIds = InterfaceFunction<
   (
     /** `this` of a data controller, or a `BulkRowSource`. */
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The runtime proxy accepts controller instances or BulkRowSource; replacing its published unknown input would narrow existing callers.
-    table: unknown,
+    table: DataControllerInstance | BulkRowSource,
     ctx: RequestContext,
     user: User,
   ) => Promise<string[]>

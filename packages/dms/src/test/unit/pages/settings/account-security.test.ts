@@ -7,6 +7,7 @@ import type {
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { sign } from "jsonwebtoken";
+import type { z } from "zod";
 import {
   changePassword,
   listSessions,
@@ -16,6 +17,7 @@ import {
   markBackupCodesSaved,
 } from "../../../../pages/account";
 import { sessionFixture } from "../../../helpers/table-fixtures";
+import { securitySchema } from "../../../../validation";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
@@ -118,7 +120,7 @@ async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
 
 function passwordChange(
   harness: Harness,
-  body: Parameters<typeof changePassword>[1],
+  body: z.input<typeof securitySchema.changePassword>,
 ) {
   return changePassword(harness.user, body, {
     userModel: harness.userModel,

@@ -23,7 +23,7 @@ import {
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { internal as tableViewImplInternal } from "../../../../implementations/dms-base/table-view";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
 import * as tenantAccess from "@antelopejs/interface-dms/tenant-access";
@@ -108,8 +108,8 @@ async function get(id: string) {
 async function expectStatus(promise: Promise<unknown>, status: number) {
   try {
     await promise;
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
+  } catch (error: unknown) {
+    assert.instanceOf(error, HTTPResult);
     expect(error.getStatus()).to.equal(status);
     return;
   }

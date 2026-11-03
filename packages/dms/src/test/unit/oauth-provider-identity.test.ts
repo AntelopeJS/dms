@@ -1,11 +1,12 @@
 import { HTTPResult } from "@antelopejs/interface-api";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import { assert, expect } from "chai";
 import { OAUTH_PROVIDERS } from "../../routes/oauth";
 
 const HTTP_BAD_GATEWAY = 502;
 const ACCESS_TOKEN = "provider-access-token";
 
-type FetchResponses = Record<string, Parameters<typeof Response.json>[0]>;
+type FetchResponses = Record<string, JsonValue>;
 
 const originalFetch = globalThis.fetch;
 

@@ -1,3 +1,4 @@
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import { expect } from "chai";
 import {
   GetBlockType,
@@ -10,10 +11,8 @@ function declared(type: string) {
   return block!;
 }
 
-const valid = (
-  type: string,
-  options: Parameters<typeof ValidateBlockOptions>[1],
-) => ValidateBlockOptions(type, options).valid;
+const valid = (type: string, options: Record<string, JsonValue | undefined>) =>
+  ValidateBlockOptions(type, options).valid;
 
 /**
  * The options that let a module draw with stock blocks what it drew with its

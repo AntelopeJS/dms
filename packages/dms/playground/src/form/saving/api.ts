@@ -8,7 +8,11 @@ import {
 } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
-import { type DemoRecord, parseFormBody } from "../demo-record-api";
+import {
+  type DemoBody,
+  type DemoRecord,
+  parseFormBody,
+} from "../demo-record-api";
 import { FORM_SAVING_API, PageFormSaving } from "./page";
 
 const HTTP_SERVER_ERROR = 500;
@@ -55,7 +59,7 @@ export class FormSavingAPIController extends Controller(FORM_SAVING_API) {
   }
 
   @Put("save")
-  async save(@JSONBody() body: DemoRecord) {
+  async save(@JSONBody() body: DemoBody) {
     if (body.name === FAILING_NAME) {
       throw new HTTPResult(HTTP_SERVER_ERROR, "Storage unavailable");
     }
