@@ -7,6 +7,7 @@ import {
 import { type TenantGuardOptions } from "../guards";
 import type { NativeUploadFieldRegistration } from "../internal/uploads";
 import type { ComponentTreeNode } from "./component-tree";
+import type { UploadFieldNode } from "./internal/metadata-uploads";
 import type { PageExtensionEntry } from "./internal/extension-assembly";
 import type { ComponentNodeMap } from "./layout-filter";
 import {
@@ -462,11 +463,20 @@ export class PageMetadata {
     // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized options may be primitives; recurse only through objects.
     if (!value || typeof value !== "object") return;
     if (metadata.isNativeUploadField(value)) {
-      await metadata.registerNativeUploadField(this, value, name, id, path);
+      await this.registerNativeUploadField(value, name, id, path);
     }
     for (const [key, child] of Object.entries(value)) {
       await this.bindUploadOptions(child, name, id, [...path, key]);
     }
+  }
+
+  private async registerNativeUploadField(
+    node: UploadFieldNode,
+    name: string,
+    id: string,
+    path: string[],
+  ) {
+    await metadata.registerNativeUploadField(this, node, name, id, path);
   }
 
   private registerComponentNode(node: ComponentTreeNode) {
