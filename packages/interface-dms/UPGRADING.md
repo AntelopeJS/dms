@@ -30,7 +30,7 @@ Each section is the upgrade-notes block of one `@antelopejs/interface-dms` relea
 ### Attachments
 
 - **`internal.SaveTableViewAttachments` answers nothing.** Its result type moves from `Promise<unknown>` to `Promise<void>`, and `withFilePromotion` keeps the wrapped route's own answer type. So `TableViewRoutes.New`, `TableViewRoutes.new` and the `new` route of a data controller built from them are typed with the saved row `{ _id: string }` instead of `unknown`. The proxy is `@internal` and had no caller outside `@antelopejs/dms`. HTTP answers are unchanged ([#730](https://github.com/AntelopeJS/dms/pull/730)).
-- **An attachment save refuses a field nested more than 64 levels deep with a 400.** The body counts as level 1, and the answer is "The JSON body nests more than 64 levels deep." Before, such a field threw a `RangeError`. This lands with [#728](https://github.com/AntelopeJS/dms/pull/728).
+- **An attachment save refuses a field nested more than 64 levels deep with a 400.** The body counts as level 1, and the answer is "The JSON body nests more than 64 levels deep." Before, such a field overflowed the stack with a `RangeError`. Bodies within the bound are saved as before ([#728](https://github.com/AntelopeJS/dms/pull/728)).
 
 ### Peer ranges
 

@@ -65,6 +65,7 @@ type AttachmentSaver = <T>(
  * This is not reference-counted cleanup: callers own the risk of shared keys.
  * A declared attachment field that nests more than 64 levels deep (the body is
  * level 1) is refused with a 400 "The JSON body nests more than 64 levels deep."
+ * before any file is touched.
  */
 export const SaveComponentFiles =
   // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- InterfaceFunction erases the callback/result generic correlation; the published proxy must retain AttachmentSaver's generic call signature.
