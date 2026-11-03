@@ -3,8 +3,8 @@
   "rules": {
     "anti-slop/no-reflect-get": 2,
     "anti-slop/no-unknown-returns": 1,
-    "typescript/no-unsafe-assignment": 12,
-    "typescript/no-unsafe-return": 6
+    "typescript/no-unsafe-assignment": 10,
+    "typescript/no-unsafe-return": 4
   },
   "oversizeFiles": {}
 }

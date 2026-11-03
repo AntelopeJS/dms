@@ -31,7 +31,6 @@ import {
 } from "./internal/component-permissions";
 import {
   normalizeComponentAnchor,
-  serializeChild,
   serializeInfoSync,
   serializedInfo,
 } from "./internal/component-serialization";
@@ -404,25 +403,9 @@ export class Component<T = unknown> {
     return this.setPlacement({ order: value });
   }
 
-  protected _optionTransforms: Array<(options: any) => MaybePromise<any>> = [];
-
-  private async applyOptionTransforms(
-    options: T | undefined,
-  ): Promise<T | undefined> {
-    let transformed = options;
-    for (const transform of this._optionTransforms) {
-      transformed = await transform(transformed);
-    }
-    return transformed;
-  }
-
   async serialize(): Promise<ComponentInfoSerialized<T>> {
     const componentInfo = await this.componentInfo;
-    const options = await this.applyOptionTransforms(componentInfo.options);
-    const children = componentInfo.children
-      ? await Promise.all(componentInfo.children.map(serializeChild))
-      : undefined;
-    return serializedInfo(componentInfo, options, children);
+    return serializedInfo(componentInfo, componentInfo.options);
   }
 
   serializeSync(): ComponentInfoSerialized<T> {
@@ -444,6 +427,9 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
   private _childWatches = new Map<string, WatchAction[]>();
   private _watchFilter?: WatchFilter;
   private _userOnFilter?: ComponentFilter<T>;
+  private _optionTransforms: Array<
+    (options: T | undefined) => MaybePromise<T | undefined>
+  > = [];
 
   constructor(componentName: string) {
     super(initialInfo<T>(componentName), { name: componentName });
@@ -650,8 +636,22 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     return spliceChildWatches(result, () => this._childWatches);
   }
 
+  private async applyOptionTransforms(
+    options: T | undefined,
+  ): Promise<T | undefined> {
+    let transformed = options;
+    for (const transform of this._optionTransforms) {
+      transformed = await transform(transformed);
+    }
+    return transformed;
+  }
+
   override async serialize(): Promise<ComponentInfoSerialized<T>> {
-    return this.spliceChildWatches(await super.serialize());
+    const componentInfo = await this.componentInfo;
+    const options = await this.applyOptionTransforms(componentInfo.options);
+    return this.spliceChildWatches(
+      await serializedInfo(componentInfo, options),
+    );
   }
 
   override serializeSync(): ComponentInfoSerialized<T> {
