@@ -13,9 +13,9 @@ import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import {
   TenantMemberModel,
+  type UserInvite,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
-import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
 import { generateAccessToken } from "@antelopejs/interface-dms/auth";
 
@@ -54,7 +54,11 @@ export async function createUser(): Promise<User> {
   return user;
 }
 
-export async function directAdd(extensions: Record<string, JsonValue>) {
+export async function directAdd(
+  extensions: NonNullable<
+    Parameters<typeof inviteUserToTenant>[0]["extensions"]
+  >,
+) {
   const user = await createUser();
   const result = await inviteUserToTenant({
     tenantId: TENANT,
@@ -67,9 +71,7 @@ export async function directAdd(extensions: Record<string, JsonValue>) {
   return member;
 }
 
-export async function pendingInvite(
-  extensions: Record<string, JsonValue> | null,
-) {
+export async function pendingInvite(extensions: UserInvite["extensions"]) {
   const id = randomUUID();
   await GetModel(UserInviteModel, TENANT).insert({
     _id: id,
