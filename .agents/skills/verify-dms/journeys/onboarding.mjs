@@ -182,7 +182,7 @@ export const journeys = [
         ctx.equal("missing token error", missing.body, "error.invalid_setup_token"),
         ctx.status(wrong, 403),
         ctx.equal("wrong token error", wrong.body, "error.invalid_setup_token"),
-        ctx.equal("has_onboarded", after.body?.has_onboarded, false),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), false),
       ]);
       const created = await ctx.api("register with the token", {
         method: "POST",
@@ -223,7 +223,7 @@ export const journeys = [
       const after = await informations(ctx, "the platform is onboarded");
       await ctx.verify("the registration went through with the token from the address", [
         tab.visible({ role: "button", name: "Open the dashboard" }),
-        ctx.equal("has_onboarded", after.body?.has_onboarded, true),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), true),
       ]);
     },
   },
