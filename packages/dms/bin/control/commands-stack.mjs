@@ -23,14 +23,25 @@ export function print(text) {
 }
 
 /**
- * @param {Values} values
- * @returns {Promise<string>}
+ * The playground and the renderer checkout `up` starts: the options, then
+ * the skill's `verify.config.ts`.
+ *
+ * @param {Pick<Values, "playground" | "renderer" | "skill">} values
+ * @param {string} cwd Where the command runs, which finds the skill
+ * @returns {Promise<{ playground: string, renderer: string | undefined }>}
  */
-async function defaultPlayground(values) {
-  if (values.playground) return values.playground;
-  const skill = await loadSkill(values.skill, process.cwd()).catch(() => null);
-  if (skill) return join(skill.repo, skill.config.playground);
-  return "playground";
+export async function targetOf(values, cwd) {
+  const skill =
+    values.playground && values.renderer
+      ? null
+      : await loadSkill(values.skill, cwd).catch(() => null);
+  const fromSkill = (/** @type {string | undefined} */ folder) =>
+    skill && folder ? resolve(skill.repo, folder) : undefined;
+  return {
+    playground:
+      values.playground ?? fromSkill(skill?.config.playground) ?? "playground",
+    renderer: values.renderer ?? fromSkill(skill?.config.renderer),
+  };
 }
 
 /**
@@ -44,7 +55,7 @@ async function commandUp(values) {
     runPrepare(loaded, loaded.repo);
   }
   const state = await up({
-    playground: await defaultPlayground(values),
+    ...(await targetOf(values, process.cwd())),
     runs: values.runs,
     mongoUrl: values["mongo-url"],
     env: values.env,

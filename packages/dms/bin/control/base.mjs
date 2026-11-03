@@ -53,6 +53,11 @@ function baseCheckout(state, skill) {
  * @returns {Promise<string>} The base commit
  */
 export async function withBaseBackend(state, skill, action) {
+  if (state.renderer) {
+    throw new Error(
+      "A run with --renderer has no base backend: the skill's prepare builds the renderer's repository, not the playground's.",
+    );
+  }
   const base = baseCheckout(state, skill);
   const playground = join(base.dir, relative(state.repo, state.playground));
   state.baseRoot = join(state.dir, "base-root");

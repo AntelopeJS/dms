@@ -88,7 +88,10 @@ function assertRuleAt(
  * dispatch can select (a logical operator before a field comparison, the
  * first present of each) with a well-formed operand, and a string `field` for
  * a comparison. A rule nested deeper than 64 levels is refused, a cyclic one
- * included, so the walk is bounded however the input was built.
+ * included, so the depth of the walk is bounded however the input was built.
+ * The number of nodes it visits is not: a rule built in code whose children
+ * are shared (a DAG) is walked once per path, so its cost grows with its
+ * paths, not with its size in memory. JSON cannot build one.
  *
  * @internal
  */

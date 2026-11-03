@@ -156,7 +156,7 @@ export const isSkillConfig = objectOf(
     doors: recordOf(nullable(isDoorRule)),
     formal: arrayOf(isFormalCheck),
   },
-  { notUserFacing: strings },
+  { notUserFacing: strings, renderer: isString },
 );
 
 /**
