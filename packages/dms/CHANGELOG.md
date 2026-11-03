@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.15.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.15.0...v0.15.1)
+
+### 🔥 Performance
+
+- **page:** Send anonymous visitors only the public pages of the site layout ([#675](https://github.com/AntelopeJS/dms/pull/675))
+
+### 🩹 Fixes
+
+- **auth:** Upgrade an outdated password hash on sign-in ([#691](https://github.com/AntelopeJS/dms/pull/691))
+- **dashboard:** Name the brand logo for screen readers ([#652](https://github.com/AntelopeJS/dms/pull/652))
+- **onboarding:** Require a setup token to register the first owner ([#654](https://github.com/AntelopeJS/dms/pull/654))
+- **tenants:** Elect one replica to provision the default tenant through a renewed lease ([#657](https://github.com/AntelopeJS/dms/pull/657))
+- **layout:** Count the sidebar's installed modules like the Modules page ([#666](https://github.com/AntelopeJS/dms/pull/666))
+
+### 📖 Documentation
+
+- **github:** Send questions and ideas to Discord ([#672](https://github.com/AntelopeJS/dms/pull/672))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.10.4 ([3c856c69](https://github.com/AntelopeJS/dms/commit/3c856c69))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.15.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.14.0...v0.15.0)
