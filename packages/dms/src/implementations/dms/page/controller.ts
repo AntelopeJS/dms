@@ -12,7 +12,9 @@ import {
   type FrontendManifest,
   type ManifestModuleEntry,
   buildFrontendManifest,
-  acknowledgeFrontendReady,
+  assertFrontendReadyAllowed,
+  parseFrontendReady,
+  recordFrontendReady,
 } from "../../../store/frontend";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
@@ -78,10 +80,10 @@ export class DMSController extends Controller("/dms") {
   }
 
   @Post("/frontend/ready")
-  frontendReady(
-    @JSONBody() body: Parameters<typeof acknowledgeFrontendReady>[0],
-  ): void {
-    acknowledgeFrontendReady(body, this.bootstrapHeader);
+  frontendReady(@JSONBody() body: unknown): void {
+    assertFrontendReadyAllowed(this.bootstrapHeader);
+    const { modules, version } = parseFrontendReady(body);
+    recordFrontendReady(modules, version);
   }
 
   @Get("/permissions")

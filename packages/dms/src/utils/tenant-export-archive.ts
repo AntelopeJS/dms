@@ -35,6 +35,7 @@ export {
   TENANT_EXPORT_EXTENSION,
 } from "@antelopejs/interface-dms/base/tenant-export-archive";
 
+const ABORTED_MESSAGE = "Tenant export aborted";
 const MANIFEST_ENTRY = "manifest.json";
 const MODULES_DIRECTORY = "modules";
 const JSON_INDENT = 2;
@@ -48,14 +49,6 @@ const FULL_PROGRESS = 100;
 const DEDUPE_START_SUFFIX = 2;
 
 type TenantExportContributor = RegisteredHook<Hook.TENANT_DATA_EXPORT>;
-
-function describeError(error: PromiseRejectedResult["reason"]): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function abortReason(signal: AbortSignal): AbortSignal["reason"] {
-  return signal.reason ?? new Error("Tenant export aborted");
-}
 
 class ExportArchiveWriter {
   private readonly archive = archiver("zip");
@@ -86,7 +79,7 @@ class ExportArchiveWriter {
 
   throwIfAborted(): void {
     if (this.signal.aborted) {
-      throw abortReason(this.signal);
+      throw this.signal.reason ?? new Error(ABORTED_MESSAGE);
     }
   }
 
@@ -157,10 +150,10 @@ class ExportArchiveWriter {
       const onEntry = (entry: archiver.EntryData): void => {
         if (entry.name === name) settle(resolve);
       };
-      const onError = (error: Parameters<typeof Promise.reject>[0]): void =>
+      const onError = (error: archiver.ArchiverError): void =>
         settle(() => reject(error));
       const onAbort = (): void =>
-        settle(() => reject(abortReason(this.signal)));
+        settle(() => reject(this.signal.reason ?? new Error(ABORTED_MESSAGE)));
 
       this.archive.on("entry", onEntry);
       this.archive.on("error", onError);
@@ -308,7 +301,7 @@ async function runContributor(
       moduleId,
       entries: scoped.entries,
       failed: true,
-      error: describeError(error),
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }

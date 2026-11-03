@@ -6,6 +6,7 @@ import {
   unlock,
 } from "@antelopejs/interface-database-decorators";
 import { fetchRowForGuard } from "../db";
+import { ownValue } from "../utils/own-value";
 import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
 import type { TableViewAttachmentSaveRequest } from "@antelopejs/interface-dms/internal/attachments";
 import { parseGuardBody } from "@antelopejs/interface-dms/base/table-view/internal/guards";
@@ -54,17 +55,6 @@ async function loadDocument(
   );
 }
 
-function retainedFiles(
-  fields: AttachmentField[],
-  before: Parameters<typeof collectAttachments>[1],
-) {
-  return Object.fromEntries(
-    fields
-      .filter((field) => collectAttachments([field], before).length > 0)
-      .map((field) => [field.key, before[field.key]]),
-  );
-}
-
 /** Keeps the database/registry implementation out of host modules' interfaces. */
 export async function SaveTableViewAttachments(
   request: TableViewAttachmentSaveRequest,
@@ -90,7 +80,11 @@ export async function SaveTableViewAttachments(
       fields,
       before,
       submitted: {
-        ...retainedFiles(fields, before),
+        ...Object.fromEntries(
+          fields
+            .filter((field) => collectAttachments([field], before).length > 0)
+            .map((field) => [field.key, ownValue(before, field.key)]),
+        ),
         ...parseGuardBody(args[0]),
       },
     },
@@ -128,7 +122,10 @@ async function deleteDocuments(request: DeleteDocumentsRequest) {
     ),
   );
   const before = Object.fromEntries(
-    fields.map((field) => [field.key, rows.map((row) => row?.[field.key])]),
+    fields.map((field) => [
+      field.key,
+      rows.map((row) => (row ? ownValue(row, field.key) : undefined)),
+    ]),
   );
   return SaveComponentFiles(
     { context, componentIds, fields, before, submitted: {} },
