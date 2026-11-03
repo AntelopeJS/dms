@@ -6,7 +6,6 @@ import type {
   NativeUploadFieldRegistration,
   UploadTokenClaims,
 } from "./internal/uploads";
-import { isNull, isObject, isString } from "./utils/internal/type-check";
 
 /** @internal */
 export namespace internal {
@@ -26,8 +25,6 @@ export namespace internal {
 export const SignUploadToken =
   InterfaceFunction<(claims: UploadTokenClaims) => Promise<string>>();
 
-const UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
-
 interface UploadFieldNode {
   type: string;
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Serialized component options carry consumer-defined fields alongside upload settings.
@@ -37,7 +34,7 @@ interface UploadFieldNode {
 function isTraversable(
   value: Parameters<typeof StampUploadFieldTokens>[0],
 ): value is object {
-  return isObject(value) && !isNull(value);
+  return !!value && typeof value === "object";
 }
 
 function isUploadFieldNode(
@@ -47,11 +44,9 @@ function isUploadFieldNode(
     isTraversable(node) &&
     !Array.isArray(node) &&
     "type" in node &&
-    isString(node.type) &&
-    UPLOAD_FIELD_TYPES.has(node.type) &&
+    (node.type === "file" || node.type === "image") &&
     "component" in node &&
-    !!node.component &&
-    isObject(node.component)
+    isTraversable(node.component)
   );
 }
 
