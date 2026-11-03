@@ -5,6 +5,7 @@ import {
   JSONBody,
   Put,
 } from "@antelopejs/interface-api";
+import { z } from "zod";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   formSchema,
@@ -15,10 +16,20 @@ import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 const HTTP_BAD_REQUEST = 400;
 export const JSON_TYPE = "application/json";
 
+type Scalar = string | number | boolean | null;
+type Flat = Scalar | Scalar[];
+
+/** A value of a demo form: a scalar, a list of scalars, or one level of named parts (an address, a localized text). */
+export type DemoValue = Flat | { [part: string]: Flat };
+
 /** The record of a demo form, kept in memory: a restart puts it back. */
-export type DemoRecord = Awaited<
-  ReturnType<ReturnType<typeof formSchema>["parseAsync"]>
->;
+export type DemoRecord = Record<string, DemoValue>;
+
+const ScalarSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+const FlatSchema = z.union([ScalarSchema, z.array(ScalarSchema)]);
+const DemoRecordSchema = z.record(
+  z.union([FlatSchema, z.record(FlatSchema)]),
+) satisfies z.ZodType<DemoRecord>;
 
 /** Who may read and write a demo record: the page showing its form. */
 export type DemoRecordGuard = Parameters<typeof AuthUserWithPermission>[0];
@@ -40,7 +51,15 @@ export async function parseFormBody(
       JSON_TYPE,
     );
   }
-  return parsed.data;
+  const record = DemoRecordSchema.safeParse(parsed.data);
+  if (!record.success) {
+    throw new HTTPResult(
+      HTTP_BAD_REQUEST,
+      JSON.stringify(record.error.issues),
+      JSON_TYPE,
+    );
+  }
+  return record.data;
 }
 
 /** What a demo record route serves: where, to whom, which form, its values. */

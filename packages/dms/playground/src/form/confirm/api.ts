@@ -32,8 +32,8 @@ function defaultWorkspace(): DemoRecord {
 /** The workspace the header buttons act on, kept in memory. */
 const workspace: DemoRecord = defaultWorkspace();
 
-function refuseNonMember(email: string | undefined): void {
-  if (email && MEMBERS.includes(email.toLowerCase())) return;
+function memberEmail(email: string | undefined): string {
+  if (email && MEMBERS.includes(email.toLowerCase())) return email;
   throw new HTTPResult(
     HTTP_CONFLICT,
     JSON.stringify({
@@ -80,8 +80,7 @@ export class FormConfirmAPIController extends Controller(FORM_CONFIRM_API) {
 
   @Post("transfer")
   transfer(@JSONBody() body: TransferBody) {
-    refuseNonMember(body.email);
-    workspace.owner = body.email;
+    workspace.owner = memberEmail(body.email);
     return { message: "Transferred" };
   }
 
