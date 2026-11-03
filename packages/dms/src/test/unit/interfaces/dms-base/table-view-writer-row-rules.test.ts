@@ -18,6 +18,7 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import { z } from "zod";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as tableViewImpl from "../../../../implementations/dms-base/table-view";
 import { applyArchiveFilter } from "../../../../implementations/dms-base/services";
@@ -163,6 +164,15 @@ function ruleOf(action: "archive" | "restore" | "delete" | "edit") {
   return config.rule;
 }
 
+const ServedOptions = z.object({
+  formComponents: z.object({
+    new: z.unknown(),
+    edit: z.unknown(),
+    view: z.unknown(),
+  }),
+  rowActions: z.object({ delete: z.unknown() }).optional(),
+});
+
 async function served(
   builder: ComponentBuilder<TableViewOptionsSerialized>,
   permissionId: string,
@@ -170,10 +180,12 @@ async function served(
   const { options } = builder.serializeSync();
   const filter = builder.onFilterCallback;
   if (!filter || !options) throw new Error("table view without a filter");
-  return filter(new Set(["*"]), options, permissionId, {
-    tenantId: "writer-row-rules-tenant",
-    user: undefined,
-  });
+  return ServedOptions.parse(
+    await filter(new Set(["*"]), options, permissionId, {
+      tenantId: "writer-row-rules-tenant",
+      user: undefined,
+    }),
+  );
 }
 
 /** What `Query.GetModel` recognizes as a model, over a table of `rows`. */
