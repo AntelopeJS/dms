@@ -4,8 +4,8 @@ import {
   type FormPropsSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import {
+  type ComponentSlotResolver,
   RegisterComponentSlot,
-  type SlotOptions,
 } from "@antelopejs/interface-dms/component-slots";
 
 export const PROFILE_SOCIAL_SLOT_ID = "playground:profile-social";
@@ -27,11 +27,7 @@ const contributed = Form({
   ],
 }).serializeSync().options as FormPropsSerialized;
 
-function withContributedProperties(
-  schema: SlotOptions["schema"],
-): FormSchemaJson {
-  // SAFETY: The profile-social slot is declared only on a Form, whose fields produce an object schema.
-  const base = schema as ObjectSchemaJson;
+function withContributedProperties(base: ObjectSchemaJson): FormSchemaJson {
   // SAFETY: The contributed Form builds an object schema from its mastodonUrl field.
   const extra = contributed.schema as ObjectSchemaJson;
   return {
@@ -40,14 +36,16 @@ function withContributedProperties(
   };
 }
 
-function withContributedFields(options: SlotOptions): SlotOptions {
+const withContributedFields: ComponentSlotResolver = (options) => {
   // SAFETY: The profile-social slot belongs to a Form, so its fields have Form's serialized field contract.
   const fields = (options.fields as FormPropsSerialized["fields"]) ?? [];
+  // SAFETY: The profile-social slot is declared only on a Form, whose fields produce an object schema.
+  const base = options.schema as ObjectSchemaJson;
   return {
     ...options,
     fields: [...fields, ...contributed.fields],
-    schema: withContributedProperties(options.schema),
+    schema: withContributedProperties(base),
   };
-}
+};
 
 RegisterComponentSlot(PROFILE_SOCIAL_SLOT_ID, withContributedFields);

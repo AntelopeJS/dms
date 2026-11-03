@@ -32,11 +32,6 @@ interface ItemsResponse {
   items: KeyValueListItem[];
 }
 
-function renderError(error: PromiseRejectedResult["reason"]): string {
-  const message = error instanceof Error ? error.message : String(error);
-  return `<!-- GenerateHtml failed: ${message} -->\n<!-- The email bundle is built by the frontend server: start it with pnpm --dir packages/dms frontend:dev. -->`;
-}
-
 export class EmailsDemoController extends Controller(EMAILS_DEMO_API) {
   @Get("preview")
   async preview(@AuthUser() user: User): Promise<CodeBlockResponse> {
@@ -48,7 +43,11 @@ export class EmailsDemoController extends Controller(EMAILS_DEMO_API) {
       );
       return { code: html, language: "html" };
     } catch (error) {
-      return { code: renderError(error), language: "html" };
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        code: `<!-- GenerateHtml failed: ${message} -->\n<!-- The email bundle is built by the frontend server: start it with pnpm --dir packages/dms frontend:dev. -->`,
+        language: "html",
+      };
     }
   }
 
