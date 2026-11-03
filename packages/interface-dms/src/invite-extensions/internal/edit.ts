@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import { inviteExtensionFieldId } from "./field-ids";
-import type { JsonValue } from "../../json";
+import type { InviteExtensionJson } from "../../invite-extension-payloads";
 import { isNull, isObject } from "../../utils/internal/type-check";
 import {
   assertSliceValid,
@@ -14,14 +14,14 @@ import type { InviteExtensionContext, InviteExtensionPayloads } from "../types";
 import type { InviteExtensionInfo, InviteFieldValues } from "./types";
 
 function isStoredSlice(
-  value: JsonValue | undefined,
+  value: InviteExtensionJson | undefined,
 ): value is InviteFieldValues {
   return isObject(value) && !isNull(value) && !Array.isArray(value);
 }
 
 function isSamePayload(
-  a: JsonValue | undefined,
-  b: JsonValue | undefined,
+  a: InviteExtensionJson | undefined,
+  b: InviteExtensionJson | undefined,
 ): boolean {
   return isDeepStrictEqual(
     JSON.parse(JSON.stringify(a ?? null)),

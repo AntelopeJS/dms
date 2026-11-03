@@ -308,6 +308,19 @@ export function registerInviteExtensionPayloadCases(): void {
     });
   });
 
+  describe("payload typing", () => {
+    it("stores a payload built from read-only arrays", async () => {
+      const access: readonly string[] = ["prj-1", "prj-2"];
+
+      const id = await pendingInvite({ scope: { access } });
+
+      const stored = await GetModel(UserInviteModel, TENANT).get(id);
+      expect(stored?.extensions).to.deep.equal({
+        scope: { access: ["prj-1", "prj-2"] },
+      });
+    });
+  });
+
   describe("cleanup", () => {
     async function fireDeleted(
       reason: InviteDeletedReason,

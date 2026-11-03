@@ -2,7 +2,7 @@ import type { FieldGroupSerialized, FormBuilder } from "../../base/form";
 import type { WatchAction } from "../../base/types/watch";
 import type { ZodType, ZodTypeDef } from "zod";
 import type { JsonSchema7ObjectType } from "zod-to-json-schema";
-import type { JsonValue } from "../../json";
+import type { InviteExtensionJson } from "../../invite-extension-payloads";
 import type { PlacementSide } from "../../component";
 import type {
   InviteAcceptHandler,
@@ -27,7 +27,7 @@ export interface ResolvedInvitePlacement {
  *
  * @internal
  */
-export type InviteFieldValues = Record<string, JsonValue>;
+export type InviteFieldValues = Record<string, InviteExtensionJson>;
 
 /** @internal */
 export interface InviteDeliveryOptions {

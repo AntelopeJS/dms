@@ -3,7 +3,7 @@ import {
   inviteExtensionFieldId,
   splitInviteExtensionFieldId,
 } from "./field-ids";
-import type { JsonValue } from "../../json";
+import type { InviteExtensionJson } from "../../invite-extension-payloads";
 import {
   isBoolean,
   isNull,
@@ -58,12 +58,14 @@ function isPlainObject(value: unknown): value is object {
   return prototype === Object.prototype || prototype === null;
 }
 
-function isJsonValue(value: unknown): value is JsonValue {
+function isInviteExtensionJson(value: unknown): value is InviteExtensionJson {
   if (isNull(value) || isString(value) || isNumber(value) || isBoolean(value)) {
     return true;
   }
-  if (Array.isArray(value)) return value.every(isJsonValue);
-  return isPlainObject(value) && Object.values(value).every(isJsonValue);
+  if (Array.isArray(value)) return value.every(isInviteExtensionJson);
+  return (
+    isPlainObject(value) && Object.values(value).every(isInviteExtensionJson)
+  );
 }
 
 /**
@@ -78,7 +80,7 @@ export function isInviteFieldValues(
   return (
     isPlainObject(value) &&
     !Array.isArray(value) &&
-    Object.values(value).every(isJsonValue)
+    Object.values(value).every(isInviteExtensionJson)
   );
 }
 
@@ -112,7 +114,7 @@ function describeIssues(key: string, issues: IssueLike[]) {
 export function payloadOf(
   payloads: InviteExtensionPayloads | null | undefined,
   key: string,
-): JsonValue | undefined {
+): InviteExtensionJson | undefined {
   return payloads && Object.hasOwn(payloads, key) ? payloads[key] : undefined;
 }
 
