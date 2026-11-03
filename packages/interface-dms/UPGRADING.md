@@ -18,6 +18,10 @@ Each section is the upgrade-notes block of one `@antelopejs/interface-dms` relea
 - **The table-view list page, JSON archive entries and awaited rule fields are typed.** `TableViewRoutes.List` and `Select` take `[RequestContext, ListParameters, User]` and answer the new `TableViewListPage` (`{ results; total; offset; limit }`). `TenantExportArchive.addJson(path, data)` takes a `JsonValue` instead of `unknown`. `FieldRule` compares `Awaited<T[K]>`, so a getter answering a promise is compared with the value it resolves to ([#606](https://github.com/AntelopeJS/dms/pull/606)).
 - **Table-view generics accept any object row.** Row generics move from `T extends Record<string, unknown>` to `T extends object`, with the published defaults unchanged. Code that relied on `T` being indexable inside a generic over the row stops compiling, and an inferred row with no candidate is now `object` ([#656](https://github.com/AntelopeJS/dms/pull/656)).
 
+### Components
+
+- **Option transforms belong to `ComponentBuilder`.** `Component` no longer has the protected `_optionTransforms` list, and `Component.serialize()` applies no transform. `ComponentBuilder` keeps its transforms privately, typed by its options `T`, and its `serialize()` applies them as before. `transformOptions` is unchanged. A subclass that pushed into `_optionTransforms` stops compiling: extend `ComponentBuilder` if it extended `Component`, and call `transformOptions`.
+
 ### Guards
 
 - **A guard's JSON body must be an object.** When the body arrives as JSON text or bytes, the guard body decoder throws unless it holds a JSON object, so a JSON array or `null` is refused. Before, such a body was accepted. A body that is already decoded is returned as is, arrays included. This applies to every caller, the member data controllers and the table-view attachments included.
