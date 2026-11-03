@@ -1,7 +1,7 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetResponsibleModule } from "@antelopejs/interface-core";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import type { TenantMember } from "@antelopejs/interface-dms/db";
 import { syncPlatformOwnerOnTenantOwnerChange } from "@antelopejs/interface-dms/tenant-ownership";
@@ -76,8 +76,8 @@ describe("Platform ownership in and out of SaaS mode", () => {
     try {
       await removeLastOwner();
       expect.fail("Expected the last platform owner guard to reject");
-    } catch (error: PromiseRejectedResult["reason"]) {
-      expect(error).to.be.instanceOf(HTTPResult);
+    } catch (error: unknown) {
+      assert.instanceOf(error, HTTPResult);
       expect(error.getStatus()).to.equal(HTTP_CONFLICT);
     }
   });
