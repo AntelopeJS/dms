@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { git } from "../git.mjs";
 import { CONTROL_BIN } from "../stack.mjs";
 import { readFeatureResults } from "./decode.mjs";
@@ -48,7 +48,9 @@ function mustRun(cwd, program, args) {
 
 /**
  * A scratch worktree of HEAD with the current skill copied in, the patch
- * applied when there is one, and the config's `prepare` commands run.
+ * applied when there is one, and the config's `prepare` commands run. The
+ * worktree is the skill's repository, which is also the renderer checkout
+ * when the config names a `renderer`: the patch changes what the run serves.
  *
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} label What the worktree is for
@@ -77,26 +79,39 @@ function removeWorktree(skill, worktree) {
 }
 
 /**
+ * The `up` arguments for a scratch worktree: the config's playground and
+ * renderer, resolved in the worktree unless absolute.
+ *
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {{ worktree: string, skill: string }} prepared The scratch worktree and its skill copy
+ * @returns {string[]} The arguments
+ */
+export function upArguments(skill, prepared) {
+  const { playground, renderer } = skill.config;
+  return [
+    "up",
+    "--playground",
+    resolve(prepared.worktree, playground),
+    ...(renderer ? ["--renderer", resolve(prepared.worktree, renderer)] : []),
+    "--skill",
+    prepared.skill,
+  ];
+}
+
+/**
  * @param {{ worktree: string, skill: string }} prepared The scratch worktree and its skill copy
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} feature The feature
  * @returns {{ run: string, results: import("./types.mjs").FeatureResult[], output: string }} The run folder, its results and output
  */
 function runFeatureIn(prepared, skill, feature) {
-  const playground = join(prepared.worktree, skill.config.playground);
   /**
    * @param {string[]} args The dms-control arguments
    * @returns {import("node:child_process").SpawnSyncReturns<string>} The run
    */
   const control = (args) =>
     run(prepared.worktree, process.execPath, [CONTROL_BIN, ...args]);
-  const started = control([
-    "up",
-    "--playground",
-    playground,
-    "--skill",
-    prepared.skill,
-  ]);
+  const started = control(upArguments(skill, prepared));
   const dir = started.stdout.trim().split("\n").at(-1) ?? "";
   if (started.status !== 0 || !existsSync(join(dir, "run.json"))) {
     return {
