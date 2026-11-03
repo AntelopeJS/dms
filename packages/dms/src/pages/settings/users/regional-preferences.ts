@@ -66,18 +66,33 @@ export function readRegionalPreferences(user: User): RegionalPreferences {
   };
 }
 
+/** The preferences as the Language & region form shows them. */
+export interface RegionFormValues {
+  language: string | null;
+  timeZone: string;
+  weekStart: string;
+  timeFormat: string;
+  dateFormat: string;
+}
+
+function toFormValue(value: string | number | null): string {
+  return value === null ? AUTOMATIC_PREFERENCE : String(value);
+}
+
 /**
  * The preferences as the Language & region form shows them: each regional
  * one as the text of its select option, "Automatic" when unset.
  */
-export function toRegionFormValues(preferences: RegionalPreferences) {
-  // oxlint-disable-next-line anti-slop/no-known-value-widening, anti-slop/no-unsafe-dictionary-type -- The form adapter accumulates computed regional keys while retaining its existing open record return contract.
-  const values: Record<string, unknown> = { language: preferences.language };
-  for (const key of REGIONAL_KEYS) {
-    const value = preferences[key];
-    values[key] = value === null ? AUTOMATIC_PREFERENCE : String(value);
-  }
-  return values;
+export function toRegionFormValues(
+  preferences: RegionalPreferences,
+): RegionFormValues {
+  return {
+    language: preferences.language,
+    timeZone: toFormValue(preferences.timeZone),
+    weekStart: toFormValue(preferences.weekStart),
+    timeFormat: toFormValue(preferences.timeFormat),
+    dateFormat: toFormValue(preferences.dateFormat),
+  };
 }
 
 /**
