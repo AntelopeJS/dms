@@ -12,17 +12,10 @@ interface StatusCarrier {
 }
 
 /**
- * Whether the work refused on purpose, with an HTTP 4xx: a decision rather
- * than an effect whose outcome is unknown. Read by shape, not `instanceof`,
- * because the refusal can come from another module's copy of the API
- * interface (a dms-saas seat limit raised from a hook, for instance).
+ * Whether a status is an HTTP 4xx: a refusal on purpose, a decision rather
+ * than an effect whose outcome is unknown.
  */
-function isDeliberateRefusal(error: Error["cause"]): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Legacy refusal detection reads getStatus from any thrown value without validating its shape; adding validation would change proxy and getter behavior.
-  const getStatus = (error as Partial<StatusCarrier> | null)?.getStatus;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Refusals can originate in another copy of the API; the existing callable shape check intentionally avoids instanceof.
-  if (typeof getStatus !== "function") return false;
-  const status = getStatus.call(error);
+function isClientErrorStatus(status: number): boolean {
   return status >= HTTP_CLIENT_ERROR_MIN && status < HTTP_SERVER_ERROR_MIN;
 }
 
@@ -64,6 +57,10 @@ async function releaseAttempt(
  * fails, the admission stays and the call rejects, so the blocked deletion is
  * reported instead of hidden: with an `AggregateError` of the refusal and the
  * release failure after a refusal, with the release failure after a success.
+ *
+ * A refusal is read by shape, not `instanceof`, because it can come from
+ * another module's copy of the API interface (a dms-saas seat limit raised
+ * from a hook, for instance).
  */
 export async function runTenantLifecycleOperation<T>(
   tenantId: string,
@@ -76,7 +73,13 @@ export async function runTenantLifecycleOperation<T>(
   try {
     result = await work();
   } catch (error) {
-    if (isDeliberateRefusal(error)) {
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Legacy refusal detection reads getStatus from any thrown value without validating its shape; adding validation would change proxy and getter behavior.
+    const getStatus = (error as Partial<StatusCarrier> | null)?.getStatus;
+    if (
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Refusals can originate in another copy of the API; the existing callable shape check intentionally avoids instanceof.
+      typeof getStatus === "function" &&
+      isClientErrorStatus(getStatus.call(error))
+    ) {
       const releaseFailure = await releaseAttempt(model, tenantId, attemptId);
       if (releaseFailure) {
         throw new AggregateError(
