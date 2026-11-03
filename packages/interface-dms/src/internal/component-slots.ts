@@ -108,8 +108,10 @@ async function resolveNode(
   for (const value of Object.values(node)) await resolveNode(value);
 
   const target = slotFormOptionsOf(node);
-  const resolver = target ? slotResolvers.get(target.slotId) : undefined;
-  if (!target || !resolver) return;
+  if (!target) return;
+  const { slotId } = target;
+  const resolver = slotResolvers.get(slotId);
+  if (!resolver) return;
 
   try {
     const resolved = await resolver(target);
@@ -118,7 +120,7 @@ async function resolveNode(
     Object.assign(target, resolved);
   } catch (error) {
     Logging.Error(
-      `[dms] component slot "${target.slotId}" could not be resolved:`,
+      `[dms] component slot "${slotId}" could not be resolved:`,
       error,
     );
   }
