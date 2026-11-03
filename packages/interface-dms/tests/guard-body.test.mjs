@@ -60,7 +60,7 @@ await test("a JSON object body decodes to its fields, as text or bytes", () => {
   });
 });
 
-await test("nested JSON values keep their bodyName through the decoder", () => {
+await test("nested JSON values keep their shape through the decoder", () => {
   const text =
     '{"list":[1,{"flag":true,"none":null}],"inner":{"deep":["x",[]]}}';
   const expected = {
