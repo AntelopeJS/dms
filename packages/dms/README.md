@@ -43,23 +43,16 @@ The DMS also needs an API module, a module implementing the database interface, 
 
 ## Quick start
 
-Clone [template-dms-demo](https://github.com/AntelopeJS/template-dms-demo), which loads the DMS, its companions and a seeded demo application. It needs Node.js 22, pnpm and a MongoDB on `localhost:27017`.
+The [DMS Demo](https://github.com/AntelopeJS/template-dms-demo) template loads the DMS, its companions and a seeded demo application. You need Node.js 22 or later, Git, pnpm (`corepack enable` installs it) and a MongoDB on `localhost:27017`.
 
 ```bash
-git clone https://github.com/AntelopeJS/template-dms-demo.git my-app
+npx @antelopejs/core project init my-app --template dms-demo
 cd my-app
-pnpm install
-pnpm --dir frontend-vue install
-cat > .env <<EOF
-DMS_API_BASE_URL=http://localhost:5010
-DMS_SESSION_SECRET=$(openssl rand -hex 32)
-EOF
-pnpm exec ajs project modules install
 pnpm dev            # backend on http://localhost:5010
 pnpm frontend:dev   # dashboard on http://localhost:3001, in a second terminal
 ```
 
-Open `http://localhost:3001` and create the first administrator. A page is a class whose static fields are blocks:
+The backend prints `[DMS] No owner exists yet. To create it, open http://localhost:3001/onboarding?token=…`. Open that address and create the administrator account. A page is a class whose static fields are blocks:
 
 ```ts
 import { PageController, RegisterPage, pagesCategory } from "@antelopejs/interface-dms/page";

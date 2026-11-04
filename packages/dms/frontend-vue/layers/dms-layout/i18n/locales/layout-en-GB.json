@@ -1,6 +1,7 @@
 {
   "navigation": {
-    "goToHomepage": "Go to homepage"
+    "goToHomepage": "Go to homepage",
+    "goToBrandHomepage": "{name}, go to homepage"
   },
   "header": {
     "home": "Home",

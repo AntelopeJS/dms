@@ -14,6 +14,7 @@ import {
   type PropType,
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
+import { stubModuleReads } from "./helpers/installed-modules-runtime";
 import Sidebar from "../layers/dms-layout/app/entries/components/layout/DashboardSidebar";
 
 const route = reactive({ path: "/modules/automation/runs", query: {} });
@@ -50,7 +51,11 @@ function installRuntime() {
     onMounted,
     onBeforeUnmount,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
-  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal("useI18n", () => ({
+    t: (key: string) => key,
+    locale: ref("en"),
+  }));
+  stubModuleReads();
   vi.stubGlobal("useDmsAppConfig", () => ({}));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) => value,

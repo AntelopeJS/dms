@@ -193,6 +193,11 @@ export class JourneyContext {
     return adminCredentials(this.state);
   }
 
+  /** The setup token the run's backend accepts for the first registration (`DMS_SETUP_TOKEN`). */
+  setupToken() {
+    return this.state.secrets.DMS_SETUP_TOKEN;
+  }
+
   /** Creates the administrator through `POST /api/onboarding/register`, then signs it in. */
   onboard(options = {}) {
     return onboard(this.state, options);

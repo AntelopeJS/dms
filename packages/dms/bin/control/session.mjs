@@ -168,6 +168,7 @@ export async function onboard(state, options) {
       method: "POST",
       body: {
         ...admin,
+        setupToken: state.secrets.DMS_SETUP_TOKEN,
         platformName: options.platformName ?? `Verify ${state.id}`,
       },
     },

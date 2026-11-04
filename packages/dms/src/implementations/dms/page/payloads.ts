@@ -39,6 +39,7 @@ import {
 } from "./access";
 import { resolveDynamicChildren, addAccessToTree } from "./dynamic-menu";
 import { resolveQuickActionTarget } from "./quick-action-access";
+import { publicSiteLayoutOnly } from "./public-layout";
 
 export const PAGE_LAYOUT_SLUG_PARAMETER = "slug";
 
@@ -165,19 +166,13 @@ export async function buildPagePayload(
     }),
     resolvePageNavBadges(user, context, requestContext),
   ]);
-  if (!includeShared) {
-    const routes = withCategoryRefs(
-      await annotateRegistryAccess({ [registeredSlug]: route }, context),
-    );
+  const routes = withCategoryRefs(
+    await annotateRegistryAccess({ [registeredSlug]: route }, context),
+  );
+  if (!includeShared)
     return { route: routes[registeredSlug], layout, navBadges };
-  }
   const shared = await buildSiteLayoutFor(user, tenantId, context);
-  return {
-    route: shared.siteLayout.pages[registeredSlug],
-    shared,
-    layout,
-    navBadges,
-  };
+  return { route: routes[registeredSlug], shared, layout, navBadges };
 }
 
 export async function annotateRegistryAccess<T extends NavigationEntry>(
@@ -297,7 +292,7 @@ export async function buildSiteLayoutFor(
     accessContext,
   );
 
-  return {
+  const layout: SiteLayoutPayload = {
     siteLayout: await annotateSiteLayoutAccess(accessContext, banners),
     siteLayoutTree: treeWithCategoryRefs(
       await addAccessToTree(
@@ -313,4 +308,5 @@ export async function buildSiteLayoutFor(
     modules: await buildModuleAccessMap(accessContext),
     isOwner: accessContext.gated.isOwner,
   };
+  return user ? layout : publicSiteLayoutOnly(layout);
 }

@@ -95,3 +95,21 @@ export function resolveClientBaseUrl(
     "[DMS] clientBaseUrl is required in production (set it from DMS_CLIENT_BASE_URL in the DMS templates): e-mail links, payment redirects and CORS start from the dashboard's origin, and the development one is localhost.",
   );
 }
+
+const MIN_SETUP_TOKEN_LENGTH = 16;
+
+/**
+ * The setup token the deployment configured through `DMS_SETUP_TOKEN`, if any.
+ *
+ * @throws When the value is shorter than 16 characters, which anyone could guess
+ */
+export function resolveConfiguredSetupToken(): string | undefined {
+  const value = process.env.DMS_SETUP_TOKEN?.trim();
+  if (!value) return undefined;
+  if (value.length < MIN_SETUP_TOKEN_LENGTH) {
+    throw new Error(
+      `[DMS] DMS_SETUP_TOKEN must be at least ${MIN_SETUP_TOKEN_LENGTH} characters: it is the only proof that the first owner registration comes from whoever deployed the instance.`,
+    );
+  }
+  return value;
+}

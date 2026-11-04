@@ -23,6 +23,8 @@ import {
 
 interface RegisterStepProps {
   platform: OnboardingPlatform;
+  /** The token the address carried; empty when the wizard has to ask for it. */
+  setupToken: string;
 }
 
 interface RegisterStepEmits {
@@ -43,6 +45,7 @@ const MAX_NAME_PART_LENGTH = 100;
 
 const isLoading = ref(false);
 const isRegistered = ref(false);
+const asksForSetupToken = !props.setupToken;
 
 const namePart = z.string().trim().min(1).max(MAX_NAME_PART_LENGTH);
 
@@ -52,12 +55,14 @@ const fields = z
     lastName: namePart,
     email: z.string().trim().email(),
     password: passwordSchema,
+    setupToken: z.string().trim().min(1),
   })
   .transform((data) => ({
     firstName: striptags(data.firstName),
     lastName: striptags(data.lastName),
     email: striptags(data.email),
     password: data.password,
+    setupToken: data.setupToken,
   }));
 
 type Schema = z.output<typeof fields>;
@@ -68,6 +73,7 @@ const state = reactive<Partial<Schema>>({
   lastName: undefined,
   email: undefined,
   password: undefined,
+  setupToken: props.setupToken,
 });
 useLiveFormErrors(form, state);
 
@@ -106,7 +112,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     }
 
     await showError(error, "page.onboarding.administrator.error_title", {
-      fields: ["firstName", "lastName", "email", "password"],
+      fields: ["firstName", "lastName", "email", "password", "setupToken"],
       form,
     });
   } finally {
@@ -138,6 +144,20 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       @error="focusFirstFormError($event.errors)"
     >
       <AuthFormAlert :error="formError" />
+
+      <UFormField
+        v-if="asksForSetupToken"
+        :label="$t('page.onboarding.administrator.setup_token')"
+        :help="$t('page.onboarding.administrator.setup_token_help')"
+        name="setupToken"
+      >
+        <UInput
+          v-model="state.setupToken"
+          autocomplete="off"
+          size="lg"
+          class="w-full"
+        />
+      </UFormField>
 
       <div class="grid gap-3 sm:grid-cols-2">
         <UFormField
