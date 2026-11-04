@@ -28,11 +28,11 @@ Open source under Apache-2.0. Self-hosted today.
 
 ### Try it on a sample database
 
-You need Docker with Compose v2 and git.
+You need Node.js, Git and Docker with Compose v2.
 
 ```bash
-git clone https://github.com/AntelopeJS/template-dms-connect-demo.git
-cd template-dms-connect-demo
+npx @antelopejs/core project init dms-connect-demo --template dms-connect-demo
+cd dms-connect-demo
 docker compose up
 ```
 
@@ -40,19 +40,19 @@ docker compose up
 
 The demo uses placeholder secrets, so keep its ports on your own machine.
 
-Open [http://localhost:3001](http://localhost:3001), create the administrator account, open the Builder, choose the **Database** tab, and connect the sample database. The [demo README](https://github.com/AntelopeJS/template-dms-connect-demo#connect-a-sample-database) lists each step with the connection string for each database.
+The `dms` service prints a line that starts with `[DMS] No owner exists yet`. Open the onboarding address in that line, which carries the setup token, and create the administrator account. Then open the Builder, choose the **Database** tab, and connect the sample database. The [demo README](https://github.com/AntelopeJS/template-dms-connect-demo#connect-a-sample-database) lists each step with the connection string for each database.
 
 ### Start your project
 
 Start from [`template-dms`](https://github.com/AntelopeJS/template-dms). It runs the same DMS, Builder, and assistant with no sample data.
 
 ```bash
-git clone https://github.com/AntelopeJS/template-dms.git my-project
+npx @antelopejs/core project init my-project --template dms-starter
 cd my-project
 docker compose up
 ```
 
-In the Builder's **Database** tab, enter the connection URL of your own database and press **Connect**. The Builder reads the schema, proposes a page for each table, and writes the pages you keep as TypeScript into your clone.
+Open the onboarding address that the `dms` service prints after `No owner exists yet` and create the administrator account. In the Builder's **Database** tab, enter the connection URL of your own database and press **Connect**. The Builder reads the schema, proposes a page for each table, and writes the pages you keep as TypeScript into your project.
 
 - Inside the `dms` container, `localhost` is the container itself. A database on your machine needs an address the container can reach.
 - To add the DMS to an existing AntelopeJS project instead, follow [Add the DMS to an existing project](#add-the-dms-to-an-existing-project).
@@ -106,8 +106,7 @@ The DMS also needs an API module, a module implementing the database interface, 
 Create a project from the `template-dms-demo` template, which loads the DMS, its companion modules and Helio, a demo back office for a solar installer. It needs the Node.js and pnpm releases the template pins, and a MongoDB on `localhost:27017`.
 
 ```bash
-npm install -g @antelopejs/core@latest
-ajs project init my-app --template "DMS Demo" --yes
+npx @antelopejs/core project init my-app --template dms-demo
 cd my-app
 pnpm dev            # backend on http://localhost:5010
 ```

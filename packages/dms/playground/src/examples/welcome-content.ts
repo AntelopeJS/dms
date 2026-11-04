@@ -154,7 +154,7 @@ export const ECOSYSTEM = {
       title: "AntelopeJS Cloud",
       tagline: "Push code. We run the rest.",
       description:
-        "Managed hosting for AntelopeJS apps and any Docker container: EU-hosted on dedicated hardware, with scale-to-zero.",
+        "Managed hosting for AntelopeJS apps and any Docker container, on dedicated hardware, with scale-to-zero.",
       icon: "i-ph-cloud",
       accent: "violet",
       to: "https://cloud.antelopejs.com",
@@ -165,7 +165,7 @@ export const ECOSYSTEM = {
   hosting: {
     title: "Host it yourself, or let AntelopeJS Cloud run it",
     description:
-      "The DMS runs on your own infrastructure today. AntelopeJS Cloud, coming soon, will deploy it from your antelope.config.ts on EU hardware, with your maximum bill known before you deploy.",
+      "The DMS runs on your own infrastructure today. AntelopeJS Cloud, coming soon, will deploy it from your antelope.config.ts on dedicated hardware, with your maximum bill known before you deploy.",
     icon: "i-ph-cloud-arrow-up",
     accent: "violet",
     actions: [

@@ -20,7 +20,6 @@ import {
   useModulesListing,
 } from "../composables/page/useModulesListing";
 import { useModuleHistory } from "../composables/page/useModuleHistory";
-import type { ModuleCatalogEntry } from "#dms-core/app/types/page";
 import {
   MODULE_CATEGORY_ALL,
   MODULE_STORE_PATH,
@@ -33,13 +32,8 @@ import {
   summarizeModules,
   type ModuleSortMode,
 } from "../build/utils/modules-catalog";
-import {
-  sortStoreModules,
-  storeOnlyModules,
-  storeOpenTarget,
-  toModuleStoreEntry,
-  withStoreDetails,
-} from "../build/utils/module-store-catalog";
+import { storeOpenTarget } from "../build/utils/module-store-catalog";
+import { useInstalledModules } from "../composables/page/useInstalledModules";
 import { useModuleStore } from "../composables/page/useModuleStore";
 import { useModuleStoreActions } from "../composables/page/useModuleStoreActions";
 import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
@@ -123,26 +117,13 @@ const isInitiallyLoading = computed(
 );
 const isRetrying = ref(false);
 
-const storeModules = computed(() =>
-  sortStoreModules(
-    (moduleStore.listing.value?.modules ?? []).map((entry) =>
-      toModuleStoreEntry(entry, modulesListing.modules.value ?? []),
-    ),
-    processI18n,
-    locale.value,
-  ),
+const { storeModules, modules } = useInstalledModules(
+  modulesListing,
+  moduleStore,
 );
 const storeEntries = computed(
   () => new Map(storeModules.value.map((entry) => [entry.id, entry])),
 );
-
-const modules = computed<ModuleCatalogEntry[]>(() => {
-  const registered = withStoreDetails(
-    (modulesListing.modules.value ?? []).filter((entry) => entry.hasAccess),
-    storeModules.value,
-  );
-  return [...registered, ...storeOnlyModules(storeModules.value, registered)];
-});
 const summary = computed(() => summarizeModules(modules.value));
 
 const visitedAt = computed(
