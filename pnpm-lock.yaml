@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@antelopejs/interface-core': 0.4.0
   '@antelopejs/interface-api': 0.2.0
   '@antelopejs/interface-api-util': 0.3.0
   '@antelopejs/interface-dms-automation': file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz
@@ -57,7 +58,7 @@ importers:
         specifier: 0.3.0
         version: 0.3.0(@antelopejs/interface-api@0.2.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-core':
-        specifier: '>=0.4.0 <1.0.0'
+        specifier: 0.4.0
         version: 0.4.0
       '@antelopejs/interface-data-api':
         specifier: '>=0.6.0 <1.0.0'
@@ -441,7 +442,7 @@ importers:
         specifier: 0.3.0
         version: 0.3.0(@antelopejs/interface-api@0.2.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-core':
-        specifier: '>=0.4.0 <1.0.0'
+        specifier: 0.4.0
         version: 0.4.0
       '@antelopejs/interface-data-api':
         specifier: '>=0.6.0 <1.0.0'
@@ -497,7 +498,7 @@ importers:
         specifier: 0.3.0
         version: 0.3.0(@antelopejs/interface-api@0.2.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-core':
-        specifier: '>=0.4.0 <1.0.0'
+        specifier: 0.4.0
         version: 0.4.0
       '@antelopejs/interface-data-api':
         specifier: '>=0.6.0 <1.0.0'
@@ -567,15 +568,12 @@ packages:
     resolution: {integrity: sha512-9XGBY3rJk/uwJVpEuazVCeehYHtL4llCtyIT/6YAIkUK7ib0bJFGTqj74ni0KRlbH+jtPp4FU6XyUJL5SVxf+Q==}
     peerDependencies:
       '@antelopejs/interface-api': 0.2.0
-      '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
+      '@antelopejs/interface-core': 0.4.0
 
   '@antelopejs/interface-api@0.2.0':
     resolution: {integrity: sha512-N7HGrJjJLIR/EN2QSYEAvMdYa9A13XWBoCxWJhy+BlilcIC+3fZySAE9sfQVUwb26Dg/6St+BY2RV0OufgvE1A==}
     peerDependencies:
-      '@antelopejs/interface-core': '>=0.4.0 <1.0.0'
-
-  '@antelopejs/interface-core@0.2.7':
-    resolution: {integrity: sha512-2zWWTxSMutyqVbnr/xfGtjgIcx2x4zLZk6wOQkXDgX+i0DVPw6DOE/nsUHGP4uGrVAYg6b1z4oLdTV1NMAyZjA==}
+      '@antelopejs/interface-core': 0.4.0
 
   '@antelopejs/interface-core@0.4.0':
     resolution: {integrity: sha512-IPX6dtt3KHknclN4mLOYeRYL2Odz1Pts+dtaZul62NghsBUX/0OFHD4Qhoaf+Beva4hjInbaF918ajr4Z5HVWQ==}
@@ -585,7 +583,7 @@ packages:
     peerDependencies:
       '@antelopejs/interface-api': 0.2.0
       '@antelopejs/interface-api-util': 0.3.0
-      '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
+      '@antelopejs/interface-core': 0.4.0
       '@antelopejs/interface-database': '>=0.1.10 <1.0.0'
       '@antelopejs/interface-database-decorators': '>=0.1.10 <1.0.0'
 
@@ -593,34 +591,34 @@ packages:
     resolution: {integrity: sha512-+lMsG19Kq52hDSiSe+FRMB9weAd3A2IO+9yVrxcQpX9OZRUg/14wIwPeYFIb8ylLS7W39CT0yH9kb7ADPENwBw==}
     peerDependencies:
       '@antelopejs/interface-api': 0.2.0
-      '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
+      '@antelopejs/interface-core': 0.4.0
       '@antelopejs/interface-database': '>=0.1.11 <1.0.0'
 
   '@antelopejs/interface-database@0.3.0':
     resolution: {integrity: sha512-sPs/EROiuRgFr8r3SGrvO+9b8ZzBNkuwanN3rZbMfLQyQQ42CnULLkLG2JjE9/tRnbvGjgebJlU/VxhGrHBaoA==}
     peerDependencies:
-      '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
+      '@antelopejs/interface-core': 0.4.0
 
   '@antelopejs/interface-dms-automation@file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz':
     resolution: {integrity: sha512-QYkzTrr7ZGybut0ajNGNXUCwMQtP9WKeXeTfiwF8e6kFie/JXYL8RbcEditGg14AZgleAKESoCzvcQvtKeKweA==, tarball: file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz}
     version: 0.6.0
     peerDependencies:
-      '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
+      '@antelopejs/interface-core': 0.4.0
 
   '@antelopejs/interface-email@0.0.6':
     resolution: {integrity: sha512-GpMv5SQoWKQlxJTsHqMzljJCFKoRnHqLR+OmxaYmsxw0ur9Lzugq+oZpXnUnzaxAG1VX3MiNFrD3CT4BorgYDQ==}
     peerDependencies:
-      '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
+      '@antelopejs/interface-core': 0.4.0
 
   '@antelopejs/interface-file-storage@0.1.4':
     resolution: {integrity: sha512-WT3iGUcQFBnTxdUVUdR9wAYXTbll61NJxC/aeU2VzzfRdlVDuPqeJIIxlsE4qepHxazMVQyQDdxdcyeYQVAykg==}
     peerDependencies:
-      '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
+      '@antelopejs/interface-core': 0.4.0
 
   '@antelopejs/interface-redis@0.0.9':
     resolution: {integrity: sha512-lI1zcm2J13tP4D/QKmsdKFBRIzjZ/GdG4z27uaOp/3yKPA3RkH5YgpzFm9pgBa353UIhgZDuVkozFJcFkqewUA==}
     peerDependencies:
-      '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
+      '@antelopejs/interface-core': 0.4.0
 
   '@antelopejs/tooling-configs@0.2.18':
     resolution: {integrity: sha512-bLZ5u4GQUdatgN0+9tJjwv2WXUBApPslgBKb3h98GYK34U1Potxrv5VVldLwmx54+Ldu8EPOp4PShLZqw+SkJw==}
@@ -6539,7 +6537,7 @@ snapshots:
 
   '@antelopejs/core@1.17.0':
     dependencies:
-      '@antelopejs/interface-core': 0.2.7
+      '@antelopejs/interface-core': 0.4.0
       '@clack/prompts': 1.8.1
       '@types/proper-lockfile': 4.1.4
       commander: 13.1.0
@@ -6575,10 +6573,6 @@ snapshots:
   '@antelopejs/interface-api@0.2.0(@antelopejs/interface-core@0.4.0)':
     dependencies:
       '@antelopejs/interface-core': 0.4.0
-
-  '@antelopejs/interface-core@0.2.7':
-    dependencies:
-      reflect-metadata: 0.2.2
 
   '@antelopejs/interface-core@0.4.0':
     dependencies:

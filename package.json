@@ -37,6 +37,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@antelopejs/interface-core": "0.4.0",
       "@antelopejs/interface-api": "0.2.0",
       "@antelopejs/interface-api-util": "0.3.0",
       "@antelopejs/interface-dms-automation": "file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz",
