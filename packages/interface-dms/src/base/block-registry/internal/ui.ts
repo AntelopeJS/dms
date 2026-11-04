@@ -32,5 +32,8 @@ export function mergeUiHints(
   if (defined.length === 0) {
     return undefined;
   }
-  return Object.assign({}, ...defined);
+  return defined.reduce<BlockOptionUi>(
+    (merged, hint) => ({ ...merged, ...hint }),
+    {},
+  );
 }

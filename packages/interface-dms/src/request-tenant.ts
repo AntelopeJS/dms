@@ -1,15 +1,10 @@
-import type { IncomingMessage } from "node:http";
 import type { RequestContext } from "@antelopejs/interface-api";
 import { internal } from "./auth";
 import {
-  bindVerifiedRequestPrincipal,
   getAuthenticatedRequestTenantId,
+  resolveRequestTenant,
 } from "./auth/internal/request-authenticators";
 import { DEFAULT_TENANT_ID } from "./constants";
-
-const BEARER_SCHEME = /^Bearer\s+(\S+)$/i;
-
-const pendingResolutions = new WeakMap<IncomingMessage, Promise<string>>();
 
 /**
  * The tenant of the request's verified credential: the one bound by the DMS
@@ -29,48 +24,35 @@ export function getRequestTenantId(ctx: RequestContext): string {
   return getAuthenticatedRequestTenantId(ctx) ?? DEFAULT_TENANT_ID;
 }
 
-async function verifyRequestTenantId(
-  ctx: RequestContext,
+async function verifyToken(
   token: string,
-): Promise<string> {
+): Promise<{ userId: string; tenantId: string } | undefined> {
   try {
     const data = await internal.IfAuthUserAuthenticator(token);
-    if (!data) return DEFAULT_TENANT_ID;
+    if (!data) return undefined;
     const user = await internal.AuthRawUserValidator(data);
     // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published validator can return a boolean sentinel rather than an authenticated user.
-    if (!user || typeof user === "boolean") return DEFAULT_TENANT_ID;
-    const tenantId = data.tenantId || DEFAULT_TENANT_ID;
-    bindVerifiedRequestPrincipal(ctx, { userId: user._id, tenantId });
-    return tenantId;
+    if (!user || typeof user === "boolean") return undefined;
+    return { userId: user._id, tenantId: data.tenantId || DEFAULT_TENANT_ID };
   } catch {
-    return DEFAULT_TENANT_ID;
+    return undefined;
   }
 }
 
 /**
- * {@link getRequestTenantId} for a provider that may run before the route's
- * auth decorator (`TenantScopedModel`, a tenant-scoped `Model`): a bearer
- * token not yet verified is verified here, and its tenant bound to the
- * request. An invalid token reads as anonymous: `DEFAULT_TENANT_ID`.
+ * {@link getRequestTenantId} for a provider resolved alongside the route's
+ * auth decorators (`TenantScopedModel`, a tenant-scoped `Model`). It waits
+ * for the tenant guards and credential checks the route's other providers
+ * start, and answers the tenant they verified. Without one, a bearer token is
+ * verified here and its tenant bound to the request. A request without a
+ * verified credential reads as anonymous: `DEFAULT_TENANT_ID`, and an
+ * identity verified on it afterwards is refused.
+ *
+ * @throws HTTPResult 401 when the request's authentication failed, its
+ * credential changed since, or another provider verified a different identity
  */
 export async function resolveRequestTenantId(
   ctx: RequestContext,
 ): Promise<string> {
-  const bound = getAuthenticatedRequestTenantId(ctx);
-  if (bound) return bound;
-  const header = ctx.rawRequest?.headers?.authorization;
-  const token =
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a string authorization header can carry a bearer token for tenant verification.
-    typeof header === "string" ? header.match(BEARER_SCHEME)?.[1] : undefined;
-  if (!token) return DEFAULT_TENANT_ID;
-  const request = ctx.rawRequest;
-  const pending = pendingResolutions.get(request);
-  if (pending) return pending;
-  const resolution = verifyRequestTenantId(ctx, token);
-  pendingResolutions.set(request, resolution);
-  try {
-    return await resolution;
-  } finally {
-    pendingResolutions.delete(request);
-  }
+  return (await resolveRequestTenant(ctx, verifyToken)) ?? DEFAULT_TENANT_ID;
 }

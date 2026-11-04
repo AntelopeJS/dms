@@ -1,16 +1,23 @@
 const { execFileSync } = require("node:child_process");
 const { existsSync, readFileSync } = require("node:fs");
 const { createRequire, Module } = require("node:module");
-const { join } = require("node:path");
+const path = require("node:path");
 
-/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator. */
+/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator.
+ * @param {string} left
+ * @param {string} right
+ */
 function byCodeUnit(left, right) {
   if (left < right) return -1;
   return left > right ? 1 : 0;
 }
 
 const root = process.argv[2];
-const playground = join(root, "packages/dms/playground");
+const playground = path.join(root, "packages/dms/playground");
+
+/** api-diff runs a scratch copy of this file, so relative requires must start from the tree under test. */
+module.filename = path.join(root, ".agents/probes/playground.cjs");
+
 execFileSync("pnpm", ["--dir", playground, "exec", "tsc"], {
   cwd: root,
   stdio: "pipe",
@@ -18,6 +25,7 @@ execFileSync("pnpm", ["--dir", playground, "exec", "tsc"], {
 
 const NativeDate = Date;
 global.Date = class extends NativeDate {
+  /** @param {ConstructorParameters<typeof Date>} args */
   constructor(...args) {
     super(...(args.length ? args : ["2026-10-26T12:00:00.000Z"]));
   }
@@ -32,19 +40,57 @@ Math.random = () => {
   return randomState / 2 ** 32;
 };
 
+/**
+ * @param {unknown} value
+ * @returns {value is Function}
+ */
+function isFunction(value) {
+  return typeof value === "function";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is symbol}
+ */
+function isSymbol(value) {
+  return typeof value === "symbol";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isObject(value) {
+  return Object(value) === value;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {Record<string, unknown>}
+ */
+function exportsOf(value) {
+  if (isObject(value)) return value;
+  throw new TypeError("Expected a module's exports to be an object");
+}
+
+/**
+ * @param {unknown} value
+ * @param {Set<unknown>} [ancestors]
+ * @returns {unknown}
+ */
 function snapshot(value, ancestors = new Set()) {
   if (value === undefined) return { type: "undefined" };
-  if (typeof value === "function")
+  if (isFunction(value))
     return {
       type: "function",
       name: value.name,
       length: value.length,
       async: value.constructor.name === "AsyncFunction",
     };
-  if (typeof value === "symbol") return String(value);
+  if (isSymbol(value)) return String(value);
   if (value instanceof NativeDate)
     return { type: "Date", milliseconds: value.getTime() };
-  if (value !== null && typeof value === "object") {
+  if (isObject(value)) {
     if (ancestors.has(value)) return { type: "circular" };
     const next = new Set(ancestors).add(value);
     if (Array.isArray(value)) return value.map((item) => snapshot(item, next));
@@ -56,6 +102,9 @@ function snapshot(value, ancestors = new Set()) {
   return value;
 }
 
+/**
+ * @param {Record<string, unknown>} value
+ */
 function descriptors(value) {
   return Object.entries(Object.getOwnPropertyDescriptors(value)).map(
     ([key, descriptor]) => [
@@ -124,9 +173,11 @@ const leaves = {
   ],
 };
 
+/** @type {Record<string, Record<string, unknown>>} */
 const virtualLeaves = {};
 const capture = Symbol.for("playground-probe.capture");
-global[capture] = (name, entries) => {
+global[capture] = (/** @type {string} */ name, /** @type {[string, unknown][]} */ entries) => {
+  /** @type {Record<string, unknown>} */
   const exports = {};
   Object.defineProperty(exports, "__esModule", { value: true });
   for (const [key, value] of entries) exports[key] = value;
@@ -137,8 +188,8 @@ const extension = Module._extensions[".js"];
 Module._extensions[".js"] = (module, filename) => {
   const additions = Object.entries(leaves).filter(
     ([name, [owner]]) =>
-      filename === join(playground, "dist", owner + ".js") &&
-      !existsSync(join(playground, "dist", name + ".js")),
+      filename === path.join(playground, "dist", owner + ".js") &&
+      !existsSync(path.join(playground, "dist", name + ".js")),
   );
   if (!additions.length) return extension(module, filename);
   const captures = additions
@@ -153,46 +204,72 @@ Module._extensions[".js"] = (module, filename) => {
   module._compile(readFileSync(filename, "utf8") + "\n" + captures, filename);
 };
 
-const local = createRequire(join(playground, "package.json"));
-const core = local("@antelopejs/interface-core");
-const { RunWithModuleContext } = local("@antelopejs/interface-core/modules");
+const local = createRequire(path.join(playground, "package.json"));
+
+/**
+ * @param {string} file
+ * @returns {Record<string, unknown>}
+ */
+function loadBuilt(file) {
+  return exportsOf(local(path.join(playground, "dist", file)));
+}
+
+const core = require("../../packages/dms/playground/node_modules/@antelopejs/interface-core");
+const { RunWithModuleContext } = require("../../packages/dms/playground/node_modules/@antelopejs/interface-core/dist/modules.js");
+/**
+ * @param {unknown} value
+ * @returns {unknown}
+ */
+function serializedWhenAble(value) {
+  if (value instanceof Object && "serializeSync" in value && isFunction(value.serializeSync)) {
+    return value.serializeSync() ?? value;
+  }
+  return value;
+}
+
+/** @type {unknown[]} */
 const registrations = [];
 const load = Module._load;
+/**
+ * @param {string} request
+ * @param {Module | null | undefined} parent
+ * @param {boolean} main
+ */
 Module._load = function (request, parent, main) {
-  const result = load.call(this, request, parent, main);
-  if (request === "@antelopejs/interface-dms/page")
+  if (request === "@antelopejs/interface-dms/page") {
+    const result = require("../../packages/dms/playground/node_modules/@antelopejs/interface-dms/dist/page.js");
     return {
       ...result,
       RegisterPage:
-        (...args) =>
-        (target) => {
+        (/** @type {Parameters<typeof result.RegisterPage>} */ ...args) =>
+        (/** @type {Parameters<ReturnType<typeof result.RegisterPage>>[0]} */ target) => {
           registrations.push([
             "page",
             target.name,
             core.GetMetadata(target, result.PageMetadata).pageInfo,
-            Object.entries(target).map(([key, value]) => [
-              key,
-              value?.serializeSync?.() ?? value,
-            ]),
+            Object.entries(target).map(([key, value]) => [key, serializedWhenAble(value)]),
           ]);
           result.RegisterPage(...args)(target);
         },
     };
-  if (request === "@antelopejs/interface-database-decorators")
+  }
+  if (request === "@antelopejs/interface-database-decorators") {
+    const decorators = require("../../packages/dms/playground/node_modules/@antelopejs/interface-database-decorators");
     return {
-      ...result,
+      ...decorators,
       RegisterTable:
-        (...args) =>
-        (target) => {
+        (/** @type {Parameters<typeof decorators.RegisterTable>} */ ...args) =>
+        (/** @type {Parameters<ReturnType<typeof decorators.RegisterTable>>[0]} */ target) => {
           registrations.push(["table", target.name, args]);
-          result.RegisterTable(...args)(target);
+          decorators.RegisterTable(...args)(target);
         },
     };
-  return result;
+  }
+  return load(request, parent, main);
 };
 
 RunWithModuleContext({ module: "playground-probe" }, () =>
-  local(join(playground, "dist/index.js")),
+  loadBuilt("index.js"),
 );
 
 const dataModules = [
@@ -202,21 +279,26 @@ const dataModules = [
 ];
 const data = Object.fromEntries(
   dataModules.map((name) => {
-    const exports = require(join(playground, "dist", name + ".js"));
-    if (exports !== require(join(playground, "dist", name + ".js")))
+    const exports = loadBuilt(name + ".js");
+    if (exports !== loadBuilt(name + ".js"))
       throw new Error("Module cache identity changed");
     return [name, descriptors(exports)];
   }),
 );
-const catalog = require(
-  join(playground, "dist/feature-index/catalog.js"),
-).PLAYGROUND_FEATURES;
-const blocks = require(
-  join(playground, "dist/feature-index/blocks.js"),
-).BLOCKS_FEATURES;
-const tables = require(
-  join(playground, "dist/feature-index/table-view.js"),
-).TABLE_VIEW_FEATURES;
+/**
+ * @param {string} file
+ * @param {string} name
+ * @returns {unknown[]}
+ */
+function builtList(file, name) {
+  const value = loadBuilt(file)[name];
+  if (!Array.isArray(value)) throw new TypeError(`${file} does not export a list named ${name}`);
+  return value;
+}
+
+const catalog = builtList("feature-index/catalog.js", "PLAYGROUND_FEATURES");
+const blocks = builtList("feature-index/blocks.js", "BLOCKS_FEATURES");
+const tables = builtList("feature-index/table-view.js", "TABLE_VIEW_FEATURES");
 for (const [index, item] of [...blocks, ...tables].entries()) {
   if (catalog[index] !== item)
     throw new Error("Catalog no longer shares feature objects");
@@ -232,7 +314,7 @@ const files = execFileSync(
   .split("\n");
 const names = new Set([
   ...files
-    .filter((file) => file.endsWith(".ts"))
+    .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
     .map((file) =>
       file.replace("packages/dms/playground/src/", "").replace(/\.ts$/, ""),
     ),
@@ -245,14 +327,12 @@ const modules = RunWithModuleContext({ module: "playground-probe" }, () =>
       .map((name) => [
         name,
         descriptors(
-          virtualLeaves[name] ?? local(join(playground, "dist", name + ".js")),
+          virtualLeaves[name] ?? loadBuilt(name + ".js"),
         ),
       ]),
   ),
 );
-const blocksRegistered = local(
-  "@antelopejs/interface-dms/base/block-types",
-).ListBlockTypes();
+const blocksRegistered = require("../../packages/dms/playground/node_modules/@antelopejs/interface-dms/dist/base/block-types.js").ListBlockTypes();
 process.stdout.write(
   JSON.stringify({
     data,

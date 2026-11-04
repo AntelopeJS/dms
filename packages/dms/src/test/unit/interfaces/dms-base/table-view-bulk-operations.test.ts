@@ -16,6 +16,7 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import { z } from "zod";
 import * as tableViewImpl from "../../../../implementations/dms-base/table-view";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
 import {
@@ -120,47 +121,76 @@ function useRows(next: Map<string, Row>) {
   rows = next;
 
   // SAFETY: The in-memory fixture implements only getAll/update/delete, not the complete database-backed TaskModel contract.
-  controller.model = { table: createTable(rows) } as never;
+  controller.model = modelOver(rows) as never;
 }
 
-function archive(ids: string[]) {
-  return TableViewRoutes.Archive.func.call(
-    controller,
-    context(""),
-    ids,
-    USER,
-    context(""),
-    SESSION,
-    USER,
+const ArchiveAnswer = z
+  .object({ success: z.literal(true), archivedCount: z.number() })
+  .strict();
+const RestoreAnswer = z
+  .object({ success: z.literal(true), restoredCount: z.number() })
+  .strict();
+const DeleteAnswer = z.union([
+  z.number(),
+  z.object({ deleted: z.number() }).strict(),
+]);
+
+async function archive(ids: string[]) {
+  return ArchiveAnswer.parse(
+    await TableViewRoutes.Archive.func.call(
+      controller,
+      context(""),
+      ids,
+      Buffer.alloc(0),
+      USER,
+      context(""),
+      SESSION,
+      USER,
+    ),
   );
 }
 
-function restore(ids: string[]) {
-  return TableViewRoutes.Restore.func.call(
-    controller,
-    context(""),
-    ids,
-    USER,
-    context(""),
-    SESSION,
-    USER,
+async function restore(ids: string[]) {
+  return RestoreAnswer.parse(
+    await TableViewRoutes.Restore.func.call(
+      controller,
+      context(""),
+      ids,
+      Buffer.alloc(0),
+      USER,
+      context(""),
+      SESSION,
+      USER,
+    ),
   );
 }
 
-function remove(ids: string[]) {
-  return TableViewRoutes.Delete.func.call(
-    controller,
-    context(""),
-    { id: ids },
-    USER,
-    context(""),
-    SESSION,
-    USER,
+async function remove(ids: string[]) {
+  return DeleteAnswer.parse(
+    await TableViewRoutes.Delete.func.call(
+      controller,
+      context(""),
+      { id: ids },
+      Buffer.alloc(0),
+      USER,
+      context(""),
+      SESSION,
+      USER,
+    ),
   );
 }
 
 const archivedIds = () =>
   [...rows.values()].filter((row) => row.isArchived).map((row) => row._id);
+
+/** What `Query.GetModel` recognizes as a model, over a table of `rows`. */
+function modelOver(rows: Parameters<typeof createTable>[0]) {
+  return {
+    table: createTable(rows),
+    database: {},
+    constructor: { fromDatabase: () => undefined },
+  };
+}
 
 describe("[unit] TableView bulk operations", () => {
   const originalDelete = Query.Delete;

@@ -28,10 +28,19 @@ const CHECK_CONFIG = {
   behaviour: { kind: "emit" },
 };
 
+/**
+ * @param {string} repo
+ * @param {...string} args
+ */
 function git(repo, ...args) {
   return execFileSync("git", args, { cwd: repo, encoding: "utf8" }).trim();
 }
 
+/**
+ * @param {string} repo
+ * @param {Record<string, string>} files
+ * @param {string} message
+ */
 function commit(repo, files, message) {
   for (const [path, content] of Object.entries(files)) {
     mkdirSync(dirname(join(repo, path)), { recursive: true });
@@ -54,6 +63,10 @@ function commit(repo, files, message) {
   return git(repo, "rev-parse", "HEAD");
 }
 
+/**
+ * @param {import("node:test").TestContext} t
+ * @param {Record<string, string>} head
+ */
 function formalRepo(t, head) {
   const root = mkdtempSync(join(tmpdir(), "dms-control-formal-test-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
@@ -77,12 +90,15 @@ function formalRepo(t, head) {
   return { skill, state: { evidence }, diff: { baseSha, headSha, changed } };
 }
 
+/**
+ * @param {ReturnType<typeof formalRepo>} repo
+ */
 function gated({ skill, state, diff }) {
   const [check] = touchedFormalChecks(skill, diff.changed);
   return check ? runFormalCheck(skill, state, check, diff) : null;
 }
 
-test("a rule counts as fixed only when HEAD reports it passing, never when HEAD drops it", (t) => {
+await test("a rule counts as fixed only when HEAD reports it passing, never when HEAD drops it", (t) => {
   const fixed = gated(
     formalRepo(t, {
       "src/math.js": ADD.replace("a + b", "a + b + 0"),
@@ -101,7 +117,7 @@ test("a rule counts as fixed only when HEAD reports it passing, never when HEAD 
   assert.deepEqual(dropped.missing, ["NegativeZero"]);
 });
 
-test("a diff that touches only a check's own files runs the check and gates it against the base", (t) => {
+await test("a diff that touches only a check's own files runs the check and gates it against the base", (t) => {
   const result = gated(
     formalRepo(t, {
       ".agents/skills/formal-add/check.mjs": CHECK_WITHOUT_RULE,
@@ -114,7 +130,7 @@ test("a diff that touches only a check's own files runs the check and gates it a
   });
 });
 
-test("a diff that touches neither the covered files nor the check's files does not touch the check", (t) => {
+await test("a diff that touches neither the covered files nor the check's files does not touch the check", (t) => {
   const { skill, diff } = formalRepo(t, { "README.md": "# Demo\n" });
   assert.deepEqual(touchedFormalChecks(skill, diff.changed), []);
 });

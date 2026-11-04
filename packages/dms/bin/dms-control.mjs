@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
+import { OPTIONS } from "./control/options.mjs";
 import { print, runStackCommand } from "./control/commands-stack.mjs";
 import { runVerifyCommand } from "./control/commands-verify.mjs";
 
 const USAGE = `Usage: dms-control <command>
 
 Drive an isolated DMS (run from the repository, or pass --playground):
-  up [--prepare] [--playground <dir>] [--runs <dir>] [--mongo-url <url>] [--env KEY=VALUE]... [--base <ref>] [--skill <dir>]
+  up [--prepare] [--playground <dir>] [--renderer <dir>] [--runs <dir>] [--mongo-url <url>] [--env KEY=VALUE]... [--base <ref>] [--skill <dir>]
                        build and start a playground copy on free ports; print the run folder
-                       (--prepare first runs the skill's install and build commands)
+                       (--prepare first runs the skill's install and build commands;
+                       --renderer serves that built @antelopejs/dms-frontend checkout)
   doctor <run> [--verbose]          check the run is worth driving; print the failing checks
   onboard <run> [--platform-name <name>]
                        create the run's administrator through POST /api/onboarding/register
@@ -33,32 +35,10 @@ Verify a change (the .agents/skills/verify-* folder of the checkout, or --skill 
   publish <run> --pr <n>            push the evidence, comment the verdict, set the verify status
 `;
 
-const OPTIONS = {
-  prepare: { type: "boolean" },
-  playground: { type: "string" },
-  runs: { type: "string" },
-  "mongo-url": { type: "string" },
-  env: { type: "string", multiple: true },
-  base: { type: "string", default: "origin/main" },
-  skill: { type: "string" },
-  verbose: { type: "boolean" },
-  "platform-name": { type: "string" },
-  as: { type: "string" },
-  tab: { type: "string" },
-  role: { type: "string" },
-  name: { type: "string" },
-  exact: { type: "boolean" },
-  nth: { type: "string" },
-  "within-role": { type: "string" },
-  "within-name": { type: "string" },
-  value: { type: "string" },
-  key: { type: "string" },
-  path: { type: "string" },
-  body: { type: "string" },
-  pr: { type: "string" },
-  all: { type: "boolean" },
-};
-
+/**
+ * @param {string[]} argv The command line without the node and script paths
+ * @returns {Promise<number>} The exit code
+ */
 async function main(argv) {
   const { positionals, values } = parseArgs({
     args: argv,

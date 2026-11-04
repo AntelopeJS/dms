@@ -1,21 +1,16 @@
 const assert = require("node:assert/strict");
 const { execFileSync } = require("node:child_process");
-const { existsSync, readFileSync, realpathSync } = require("node:fs");
+const { existsSync, realpathSync } = require("node:fs");
 const { createRequire, isBuiltin } = require("node:module");
-const {
-  basename,
-  dirname,
-  join,
-  relative,
-  resolve,
-  sep,
-} = require("node:path");
+const nodePath = require("node:path");
+const { sep } = nodePath;
 const { fileURLToPath, pathToFileURL } = require("node:url");
 const ts = require("typescript");
+const { optionalText, readJsonRecord } = require("./helpers/json-record.mjs");
 const { forbidden } = require("../../../.dependency-cruiser/backend.cjs");
 
-const root = resolve(__dirname, "..");
-const workspace = resolve(root, "../..");
+const root = nodePath.resolve(__dirname, "..");
+const workspace = nodePath.resolve(root, "../..");
 const processPins = {
   "src/dev/module-update-notifications.ts:1":
     'import { execFile } from "node:child_process";',
@@ -28,7 +23,7 @@ const processPins = {
   "src/store/registry.ts:1": 'import { execFile } from "node:child_process";',
   "src/store/registry.ts:2": 'import { promisify } from "node:util";',
   "src/store/registry.ts:5": "const execFileAsync = promisify(execFile);",
-  "src/store/registry.ts:39":
+  "src/store/registry.ts:40":
     'const { stdout } = await execFileAsync(\n      "npm",\n      ["view", spec, ...fields, "--json"],\n      { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS },\n    );',
   "src/store/tarball.ts:1": 'import { execFile } from "node:child_process";',
   "src/store/tarball.ts:5": 'import { promisify } from "node:util";',
@@ -39,7 +34,7 @@ const processPins = {
     'import { type ChildProcess, spawn } from "node:child_process";',
   "src/test/unit/package-contents.test.ts:1":
     'import { execFileSync } from "node:child_process";',
-  "src/test/unit/package-contents.test.ts:42":
+  "src/test/unit/package-contents.test.ts:47":
     'const output = execFileSync(\n    "npm",\n    ["pack", "--dry-run", "--json", "--ignore-scripts"],\n    {\n      cwd: PACKAGE_ROOT,\n      encoding: "utf8",\n      timeout: PACK_TIMEOUT_MS,\n\n      stdio: ["ignore", "pipe", "pipe"],\n    },\n  );',
   "src/test/unit/interfaces/dms-base/table-view-evaluation-order.test.ts:1":
     'import { execFile } from "node:child_process";',
@@ -52,6 +47,18 @@ const processPins = {
   "src/test/unit/interfaces/dms-base/table-view-evaluation-order.test.ts:13":
     "const runProcess = promisify(execFile);",
   "src/test/unit/interfaces/dms-base/table-view-evaluation-order.test.ts:18":
+    "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:1":
+    'import { execFile } from "node:child_process";',
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:2":
+    'import { resolve } from "node:path";',
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:3":
+    'import { promisify } from "node:util";',
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:7":
+    'const FIXTURE = resolve(__dirname, "permissions-standalone.fixture.js");',
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:10":
+    "const runProcess = promisify(execFile);",
+  "src/test/unit/implementations/dms/permissions-standalone.test.ts:15":
     "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
   "dist/dev/module-update-notifications.js:8":
     'const node_child_process_1 = require("node:child_process");',
@@ -77,11 +84,11 @@ const processPins = {
     'await execFileAsync("npm", ["pack", spec, "--pack-destination", destination, "--silent"], { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS });',
   "dist/test/helpers/replica-process.js:4":
     'const node_child_process_1 = require("node:child_process");',
-  "dist/test/helpers/replica-process.js:106":
+  "dist/test/helpers/replica-process.js:107":
     'const child = (0, node_child_process_1.spawn)((0, node_path_1.join)(MODULE_ROOT, "node_modules/.bin/ajs"), ["project", "run", "--project", directory], {\n            cwd: directory,\n            env: { ...process.env, REPLICA_HOST_HOLD_MS: String(holdMs) },\n        });',
   "dist/test/unit/package-contents.test.js:3":
     'const node_child_process_1 = require("node:child_process");',
-  "dist/test/unit/package-contents.test.js:29":
+  "dist/test/unit/package-contents.test.js:33":
     'const output = (0, node_child_process_1.execFileSync)("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {\n        cwd: PACKAGE_ROOT,\n        encoding: "utf8",\n        timeout: PACK_TIMEOUT_MS,\n        stdio: ["ignore", "pipe", "pipe"],\n    });',
   "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:3":
     'const node_child_process_1 = require("node:child_process");',
@@ -89,16 +96,32 @@ const processPins = {
     'const node_path_1 = require("node:path");',
   "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:5":
     'const node_util_1 = require("node:util");',
-  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:7":
+  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:8":
     'const FIXTURE = (0, node_path_1.resolve)(__dirname, "table-view-evaluation-order.fixture.js");',
-  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:11":
+  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:12":
     "const runProcess = (0, node_util_1.promisify)(node_child_process_1.execFile);",
-  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:15":
+  "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:16":
+    "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:3":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:4":
+    'const node_path_1 = require("node:path");',
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:5":
+    'const node_util_1 = require("node:util");',
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:8":
+    'const FIXTURE = (0, node_path_1.resolve)(__dirname, "permissions-standalone.fixture.js");',
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:10":
+    "const runProcess = (0, node_util_1.promisify)(node_child_process_1.execFile);",
+  "dist/test/unit/implementations/dms/permissions-standalone.test.js:14":
     "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
 };
 
+/**
+ * @param {ts.SourceFile} source
+ * @param {string} path
+ */
 function checkCapabilities(source, path) {
-  const file = relative(root, path).split(sep).join("/");
+  const file = nodePath.relative(root, path).split(sep).join("/");
   const pins = Object.keys(processPins).filter((key) =>
     key.startsWith(`${file}:`),
   );
@@ -113,10 +136,14 @@ function checkCapabilities(source, path) {
     "promisify",
     "node_util_1",
   ]);
-  if (file.includes("table-view-evaluation-order.test.")) {
+  if (
+    file.includes("table-view-evaluation-order.test.") ||
+    file.includes("permissions-standalone.test.")
+  ) {
     names.add("resolve");
     names.add("node_path_1");
   }
+  /** @param {ts.Node} node */
   function visit(node) {
     if (ts.isIdentifier(node) || ts.isStringLiteral(node)) {
       assert.notEqual(
@@ -158,6 +185,12 @@ function checkCapabilities(source, path) {
   );
 }
 
+/**
+ * @param {string} value
+ * @param {string} importer
+ * @param {boolean} esm
+ * @returns {string}
+ */
 function resolveRuntime(value, importer, esm) {
   if (!esm) return createRequire(importer).resolve(value);
   const url = execFileSync(
@@ -175,19 +208,36 @@ function resolveRuntime(value, importer, esm) {
   return fileURLToPath(url);
 }
 
+/**
+ * @param {string} path
+ * @returns {string}
+ */
 function policyPath(path) {
-  const file = relative(workspace, realpathSync(path)).split(sep).join("/");
+  const file = nodePath
+    .relative(workspace, realpathSync(path))
+    .split(sep)
+    .join("/");
   return file.startsWith("packages/dms/dist/")
     ? file.replace("/dist/", "/src/").replace(/\.(c|m)?js$/, ".$1ts")
     : file;
 }
 
+/**
+ * @param {string | string[]} pattern
+ * @param {string} path
+ * @returns {boolean}
+ */
 function matches(pattern, path) {
   return (Array.isArray(pattern) ? pattern : [pattern]).some((value) =>
     new RegExp(value).test(path),
   );
 }
 
+/**
+ * @param {{ path?: string | string[], pathNot?: string | string[] }} selector
+ * @param {string} path
+ * @returns {boolean}
+ */
 function applies(selector, path) {
   return (
     (!selector.path || matches(selector.path, path)) &&
@@ -195,6 +245,10 @@ function applies(selector, path) {
   );
 }
 
+/**
+ * @param {string} importer
+ * @param {string} target
+ */
 function checkEdge(importer, target) {
   const from = policyPath(importer);
   const to = policyPath(target);
@@ -206,21 +260,35 @@ function checkEdge(importer, target) {
   }
 }
 
+/**
+ * @param {string} path
+ * @returns {{ directory: string, name: string }}
+ */
 function owner(path) {
-  for (let directory = dirname(path); ; directory = dirname(directory)) {
-    const manifest = join(directory, "package.json");
+  for (
+    let directory = nodePath.dirname(path);
+    ;
+    directory = nodePath.dirname(directory)
+  ) {
+    const manifest = nodePath.join(directory, "package.json");
     if (existsSync(manifest)) {
-      const { name } = JSON.parse(readFileSync(manifest, "utf8"));
+      const name = optionalText(readJsonRecord(manifest), "name");
       if (name) return { directory, name };
     }
     assert.notEqual(
       directory,
-      dirname(directory),
+      nodePath.dirname(directory),
       `${path} has no package owner`,
     );
   }
 }
 
+/**
+ * @param {string} value
+ * @param {string} importer
+ * @param {boolean} runtime
+ * @param {boolean} esm
+ */
 function checkPackage(value, importer, runtime, esm) {
   assert.ok(
     /^(?:node:[\w/-]+|(?:@[\w.-]+\/)?[\w-][\w.-]*(?:\/[\w.-]+)*)$/.test(
@@ -239,7 +307,9 @@ function checkPackage(value, importer, runtime, esm) {
     ].includes(value) &&
       (!["child_process", "node:child_process"].includes(value) ||
         Object.keys(processPins).some((key) =>
-          key.startsWith(`${relative(root, importer).split(sep).join("/")}:`),
+          key.startsWith(
+            `${nodePath.relative(root, importer).split(sep).join("/")}:`,
+          ),
         )),
     `${importer} builtin loader imports are forbidden: ${value}`,
   );
@@ -273,10 +343,14 @@ function checkPackage(value, importer, runtime, esm) {
     actual.name,
     `${importer} package ${value} resolves to another package owner: ${target}`,
   );
-  if (target.startsWith(join(workspace, "packages") + sep)) {
+  if (target.startsWith(nodePath.join(workspace, "packages") + sep)) {
     assert.equal(
       realpathSync(
-        resolveRuntime(value, join(actual.directory, "package.json"), esm),
+        resolveRuntime(
+          value,
+          nodePath.join(actual.directory, "package.json"),
+          esm,
+        ),
       ),
       target,
       `${importer} in-repo targets must use their own public package specifier: ${value}`,
@@ -285,6 +359,13 @@ function checkPackage(value, importer, runtime, esm) {
   checkEdge(importer, target);
 }
 
+/**
+ * @param {string} value
+ * @param {string} path
+ * @param {string} boundary
+ * @param {boolean} compiled
+ * @param {{ runtime: boolean, esm: boolean }} flags
+ */
 module.exports = function checkTarget(
   value,
   path,
@@ -300,14 +381,15 @@ module.exports = function checkTarget(
   let importer = path;
   if (!compiled && runtime && /\.[cm]?tsx?$/.test(path)) {
     assert.ok(
-      (resolve(dirname(path), value) + sep).startsWith(boundary + sep),
+      (nodePath.resolve(nodePath.dirname(path), value) + sep).startsWith(
+        boundary + sep,
+      ),
       `${path} relative imports must resolve inside backend src: ${value}`,
     );
-    importer = join(root, "dist", relative(join(root, "src"), path)).replace(
-      /\.(c|m)?tsx?$/,
-      ".$1js",
-    );
-    boundary = join(root, "dist");
+    importer = nodePath
+      .join(root, "dist", nodePath.relative(nodePath.join(root, "src"), path))
+      .replace(/\.(c|m)?tsx?$/, ".$1js");
+    boundary = nodePath.join(root, "dist");
   }
   if (compiled || runtime) {
     try {
@@ -331,7 +413,7 @@ module.exports = function checkTarget(
   assert.ok(
     target &&
       (realpathSync(target) + sep).startsWith(realpathSync(boundary) + sep),
-    `${path} relative imports must resolve inside backend ${basename(boundary)}; use package exports for other packages: ${value}`,
+    `${path} relative imports must resolve inside backend ${nodePath.basename(boundary)}; use package exports for other packages: ${value}`,
   );
   checkEdge(path, target);
 };

@@ -1,18 +1,19 @@
 import path from "node:path";
-import type { AddFrontendModuleOptions } from "@antelopejs/interface-dms/page";
+import type {
+  FrontendModuleFunction,
+  FrontendModuleRegistration,
+} from "@antelopejs/interface-dms/page";
 import { WEBHOOK_SIGNATURE_HEADER, WEBHOOKS_API } from "./hooks/webhook-route";
 
 /**
- * The playground's Vue frontend: the backend registers it with
- * `AddFrontendModule`, and `ajs dms dev`, `build` and `start` call this same
- * function, declared as `dmsFrontend` in package.json, since they read the
- * project rather than the backend's registrations. Without the declaration
- * the frontend leaves the playground's components out. Its public endpoint is
- * a provider's webhook, reachable through the frontend server without a
- * session or a same-site Origin (see hooks/webhooks.ts).
+ * The playground's Vue frontend layer: what `start` registers with
+ * `AddFrontendModule`, and what `@antelopejs/dms-frontend` builds, as the
+ * package's `dmsFrontend`. Its public endpoint is a provider's webhook,
+ * reachable through the frontend server without a session or a same-site
+ * Origin (see hooks/webhooks.ts).
  */
-export function frontendModule(): AddFrontendModuleOptions {
-  return {
+export const frontendModule: FrontendModuleFunction = () =>
+  ({
     name: "playground-frontend",
     sourcePath: path.join(__dirname, "../frontend-vue"),
     renderer: { name: "vue", version: "3" },
@@ -25,5 +26,4 @@ export function frontendModule(): AddFrontendModuleOptions {
         headers: [WEBHOOK_SIGNATURE_HEADER],
       },
     ],
-  };
-}
+  }) satisfies FrontendModuleRegistration;

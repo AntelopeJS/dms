@@ -18,6 +18,14 @@ const LISTEN_STATE = "0A";
 const HEX = 16;
 
 /**
+ * @param {string | import("node:net").AddressInfo | null} address What a listening server reports
+ * @returns {address is import("node:net").AddressInfo} True for the address of a TCP listener
+ */
+function isTcpAddress(address) {
+  return typeof address === "object" && address !== null;
+}
+
+/**
  * Asks the kernel for a free TCP port on the loopback interface.
  *
  * @returns {Promise<number>} The port
@@ -27,8 +35,14 @@ export function freePort() {
     const server = createServer();
     server.once("error", reject);
     server.listen(0, "127.0.0.1", () => {
-      const { port } = server.address();
-      server.close(() => resolve(port));
+      const address = server.address();
+      if (!isTcpAddress(address)) {
+        server.close(() =>
+          reject(new Error("the probe server has no TCP port")),
+        );
+        return;
+      }
+      server.close(() => resolve(address.port));
     });
   });
 }
@@ -150,6 +164,7 @@ export async function waitForOk(url, record, timeoutMs) {
   );
 }
 
+/** @param {number} port */
 function accepts(port) {
   return new Promise((resolve) => {
     const socket = createConnection({ host: "127.0.0.1", port });
@@ -213,6 +228,7 @@ function procEntries() {
   }
 }
 
+/** @param {string} pid */
 function parentOf(pid) {
   try {
     const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
@@ -247,6 +263,7 @@ export function descendantsOf(pids) {
   return [...found].filter((pid) => !pids.includes(pid));
 }
 
+/** @param {number} port */
 function listeningInodes(port) {
   const inodes = new Set();
   for (const table of ["/proc/net/tcp", "/proc/net/tcp6"]) {
@@ -266,6 +283,7 @@ function listeningInodes(port) {
   return inodes;
 }
 
+/** @param {number} pid */
 function socketInodes(pid) {
   try {
     return readdirSync(`/proc/${pid}/fd`).flatMap((fd) => {
@@ -293,6 +311,10 @@ export function listenersOf(port) {
     .filter((pid) => socketInodes(pid).some((inode) => inodes.has(inode)));
 }
 
+/**
+ * @param {number} pid
+ * @param {NodeJS.Signals} signal
+ */
 function signalGroup(pid, signal) {
   try {
     process.kill(-pid, signal);

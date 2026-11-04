@@ -17,6 +17,11 @@ import {
   setButton,
   warnUnknownChild,
 } from "./internal/component-builder";
+import { ownEntry } from "./internal/own-entry";
+import {
+  applyWatchFilter,
+  type WatchFilter,
+} from "./internal/component-watch-filter";
 import {
   actionComponents,
   actionPermissionId,
@@ -26,7 +31,6 @@ import {
 } from "./internal/component-permissions";
 import {
   normalizeComponentAnchor,
-  serializeChild,
   serializeInfoSync,
   serializedInfo,
 } from "./internal/component-serialization";
@@ -35,13 +39,11 @@ import {
   buildWatchAction,
   createFilterChain,
   mergeWatchesIntoOptions,
-  readWatchActions,
   spliceChildWatches,
   stripWatchActions,
 } from "./internal/component-watches";
-import type { PageMetadata } from "./page";
 import type { Permission } from "./permissions";
-import type { MaybePromise } from "./types";
+import type { CreatedPage, MaybePromise } from "./types";
 
 export interface ActionDefinition {
   title: string;
@@ -293,7 +295,7 @@ export const DEFAULT_PLACEMENT: ComponentPlacement = {
 export class Component<T = unknown> {
   protected _componentInfo: ComponentInfoPromise<T>;
   protected _metadata: ComponentMetadata;
-  protected _onPageCreated?: (page: PageMetadata) => void;
+  protected _onPageCreated?: (page: CreatedPage) => void;
   protected _onFilter?: ComponentFilter<any>;
   protected _actions: Record<string, Action> = {};
   protected _buttons: Record<string, ComponentButton> = {};
@@ -310,11 +312,11 @@ export class Component<T = unknown> {
   }
 
   getAction(id: string): Action | undefined {
-    return this._actions[id];
+    return ownEntry(this._actions, id);
   }
 
   getButton(id: string): ComponentButton | undefined {
-    return this._buttons[id];
+    return ownEntry(this._buttons, id);
   }
 
   /** See {@link resolveButtonPermissionId}, resolved against this component. */
@@ -325,7 +327,7 @@ export class Component<T = unknown> {
   constructor(
     componentInfo: ComponentInfoPromise<T>,
     metadata: ComponentMetadata,
-    onPageCreated?: (page: PageMetadata) => void,
+    onPageCreated?: (page: CreatedPage) => void,
   ) {
     this._componentInfo = componentInfo;
     this._metadata = metadata;
@@ -401,25 +403,9 @@ export class Component<T = unknown> {
     return this.setPlacement({ order: value });
   }
 
-  protected _optionTransforms: Array<(options: any) => MaybePromise<any>> = [];
-
-  private async applyOptionTransforms(
-    options: T | undefined,
-  ): Promise<T | undefined> {
-    let transformed = options;
-    for (const transform of this._optionTransforms) {
-      transformed = await transform(transformed);
-    }
-    return transformed;
-  }
-
   async serialize(): Promise<ComponentInfoSerialized<T>> {
     const componentInfo = await this.componentInfo;
-    const options = await this.applyOptionTransforms(componentInfo.options);
-    const children = componentInfo.children
-      ? await Promise.all(componentInfo.children.map(serializeChild))
-      : undefined;
-    return serializedInfo(componentInfo, options, children);
+    return serializedInfo(componentInfo, componentInfo.options);
   }
 
   serializeSync(): ComponentInfoSerialized<T> {
@@ -439,12 +425,11 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
   private _children: BaseComponentChild[] = [];
   private _watches: WatchAction[] = [];
   private _childWatches = new Map<string, WatchAction[]>();
-  private _watchFilter?: (
-    permissions: Set<string>,
-    watches: WatchAction[],
-    permissionId: string,
-  ) => MaybePromise<WatchAction[]>;
+  private _watchFilter?: WatchFilter;
   private _userOnFilter?: ComponentFilter<T>;
+  private _optionTransforms: Array<
+    (options: T | undefined) => MaybePromise<T | undefined>
+  > = [];
 
   constructor(componentName: string) {
     super(initialInfo<T>(componentName), { name: componentName });
@@ -512,7 +497,7 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     return this;
   }
 
-  onCreated(callback: (page: PageMetadata) => void): this {
+  onCreated(callback: (page: CreatedPage) => void): this {
     this._onPageCreated = callback;
     return this;
   }
@@ -592,19 +577,13 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     options: O,
     permissionId: string,
   ): Promise<O> {
-    if (!options || !this._watchFilter) {
-      return options;
-    }
-    const watches = readWatchActions(options);
-    if (watches.length === 0) {
-      return options;
-    }
-    const filtered = await this._watchFilter(
+    return applyWatchFilter(
+      this,
+      this._watchFilter,
       permissions,
-      watches,
+      options,
       permissionId,
     );
-    return { ...options, watchActions: filtered };
   }
 
   action(id: string, definition: ActionDefinition): this {
@@ -657,8 +636,22 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     return spliceChildWatches(result, () => this._childWatches);
   }
 
+  private async applyOptionTransforms(
+    options: T | undefined,
+  ): Promise<T | undefined> {
+    let transformed = options;
+    for (const transform of this._optionTransforms) {
+      transformed = await transform(transformed);
+    }
+    return transformed;
+  }
+
   override async serialize(): Promise<ComponentInfoSerialized<T>> {
-    return this.spliceChildWatches(await super.serialize());
+    const componentInfo = await this.componentInfo;
+    const options = await this.applyOptionTransforms(componentInfo.options);
+    return this.spliceChildWatches(
+      await serializedInfo(componentInfo, options),
+    );
   }
 
   override serializeSync(): ComponentInfoSerialized<T> {

@@ -14,11 +14,7 @@ describe("[unit] implementations/dms-notifications/delivery-guard", () => {
   });
 
   it("refuses a missing title a request body passed through", () => {
-    const fromBody: Parameters<typeof hasNotificationTitle>[0] =
-      JSON.parse('{"title":null}');
-    const withoutTitle: Parameters<typeof hasNotificationTitle>[0] =
-      JSON.parse("{}");
-    expect(hasNotificationTitle(fromBody)).to.equal(false);
-    expect(hasNotificationTitle(withoutTitle)).to.equal(false);
+    expect(hasNotificationTitle({ title: null })).to.equal(false);
+    expect(hasNotificationTitle({})).to.equal(false);
   });
 });

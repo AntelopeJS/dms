@@ -1,9 +1,30 @@
 import {
-  type ZodFirstPartySchemaTypes,
+  type ZodArrayDef,
+  type ZodBrandedDef,
+  type ZodCatchDef,
+  type ZodDefaultDef,
+  type ZodDiscriminatedUnionDef,
+  type ZodDiscriminatedUnionOption,
+  type ZodEffectsDef,
+  type ZodEnumDef,
   ZodFirstPartyTypeKind,
+  type ZodIntersectionDef,
+  type ZodLazyDef,
+  type ZodLiteralDef,
+  type ZodNativeEnumDef,
+  type ZodNullableDef,
+  type ZodObjectDef,
+  type ZodOptionalDef,
+  type ZodPipelineDef,
+  type ZodPromiseDef,
   // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Zod owns the imported public type name.
   type ZodRawShape,
+  type ZodReadonlyDef,
+  type ZodRecordDef,
+  type ZodTupleDef,
   type ZodTypeAny,
+  type ZodTypeDef,
+  type ZodUnionDef,
 } from "zod";
 import type {
   BlockOptionSchema,
@@ -16,7 +37,65 @@ import { getUiHints, mergeUiHints } from "./ui";
 const MAX_DEPTH = 6;
 const MAX_WRAPPERS = 8;
 
-type ZodDef = ZodFirstPartySchemaTypes["_def"];
+type LiteralValue =
+  | string
+  | number
+  | boolean
+  | bigint
+  | symbol
+  | null
+  | undefined;
+
+/**
+ * The definition of each kind the walker reads fields from, with the schemas
+ * it holds typed as schemas. Every other kind is a name and nothing more.
+ */
+type ZodDef =
+  | ZodOptionalDef
+  | ZodNullableDef
+  | ZodDefaultDef
+  | ZodCatchDef
+  | ZodReadonlyDef
+  | ZodPromiseDef
+  | ZodBrandedDef<ZodTypeAny>
+  | ZodEffectsDef
+  | ZodLazyDef
+  | ZodPipelineDef<ZodTypeAny, ZodTypeAny>
+  | ZodObjectDef
+  | ZodUnionDef
+  | ZodDiscriminatedUnionDef<string, ZodDiscriminatedUnionOption<string>[]>
+  | ZodArrayDef
+  | ZodTupleDef
+  | ZodRecordDef
+  | ZodIntersectionDef
+  | ZodLiteralDef<LiteralValue>
+  | ZodEnumDef
+  | ZodNativeEnumDef
+  | (ZodTypeDef & {
+      typeName: Exclude<
+        ZodFirstPartyTypeKind,
+        | ZodFirstPartyTypeKind.ZodOptional
+        | ZodFirstPartyTypeKind.ZodNullable
+        | ZodFirstPartyTypeKind.ZodDefault
+        | ZodFirstPartyTypeKind.ZodCatch
+        | ZodFirstPartyTypeKind.ZodReadonly
+        | ZodFirstPartyTypeKind.ZodPromise
+        | ZodFirstPartyTypeKind.ZodBranded
+        | ZodFirstPartyTypeKind.ZodEffects
+        | ZodFirstPartyTypeKind.ZodLazy
+        | ZodFirstPartyTypeKind.ZodPipeline
+        | ZodFirstPartyTypeKind.ZodObject
+        | ZodFirstPartyTypeKind.ZodUnion
+        | ZodFirstPartyTypeKind.ZodDiscriminatedUnion
+        | ZodFirstPartyTypeKind.ZodArray
+        | ZodFirstPartyTypeKind.ZodTuple
+        | ZodFirstPartyTypeKind.ZodRecord
+        | ZodFirstPartyTypeKind.ZodIntersection
+        | ZodFirstPartyTypeKind.ZodLiteral
+        | ZodFirstPartyTypeKind.ZodEnum
+        | ZodFirstPartyTypeKind.ZodNativeEnum
+      >;
+    });
 
 type DefOf<Kind extends ZodFirstPartyTypeKind> = Extract<
   ZodDef,
@@ -61,6 +140,7 @@ function innerAccessor(def: ZodDef): (() => ZodTypeAny) | undefined {
 }
 
 function defOf(schema: ZodTypeAny): ZodDef {
+  // oxlint-disable-next-line typescript/no-unsafe-return -- zod 3 declares _def as any on ZodTypeAny, and the walker reads the def of every schema kind, including kinds no zod class here types.
   return schema._def;
 }
 
@@ -216,7 +296,7 @@ function describeUnion(
   >,
   depth: number,
 ): BlockOptionSchema {
-  const options: ZodTypeAny[] = def.options ?? [];
+  const options: readonly ZodTypeAny[] = def.options ?? [];
   const branches = options.map((option) => describeSchema(option, depth + 1));
   const merged = mergeLiteralBranches(branches);
   if (merged) {
@@ -280,7 +360,7 @@ function describeKind(
     case ZodFirstPartyTypeKind.ZodLiteral:
       return describeLiteral(def.value);
     case ZodFirstPartyTypeKind.ZodEnum:
-      return { type: "string", enum: def.values };
+      return { type: "string", enum: [...def.values] };
     case ZodFirstPartyTypeKind.ZodNativeEnum:
       return { type: "string", enum: Object.values(def.values) };
     default:
@@ -359,12 +439,9 @@ export function collectDefaults(
   described: Record<string, BlockOptionSchema>,
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published defaults contain arbitrary application values, matching BlockOptionSchema.default.
 ): Record<string, unknown> {
-  const defaults: Record<string, BlockOptionSchema["default"]> = {};
-  for (const [key, option] of Object.entries(described)) {
-    if (option.default !== undefined) {
-      defaults[key] = option.default;
-    }
-  }
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published return remains an open record of application defaults; values retain BlockOptionSchema.default without parsing or coercion.
-  return defaults;
+  return Object.fromEntries(
+    Object.entries(described).flatMap(([key, option]) =>
+      option.default === undefined ? [] : [[key, option.default]],
+    ),
+  );
 }

@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { firstString, stringField } from "./json.mjs";
 import { saveRun } from "./run-state.mjs";
 
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -10,10 +11,14 @@ const OK_MIN = 200;
 const OK_MAX = 299;
 
 /**
+ * @typedef {{ status: number | null, body: unknown, error: string | null }} ApiAnswer
+ */
+
+/**
  * The credentials of the run's administrator, derived from the run id so a
  * journey can name them before onboarding.
  *
- * @param {{ id: string }} state The run
+ * @param {Pick<import("./run-state.mjs").RunState, "id" | "adminPassword">} state The run
  * @returns {{ email: string, password: string, firstName: string, lastName: string }} The administrator's credentials
  */
 export function adminCredentials(state) {
@@ -35,6 +40,10 @@ export function newPassword() {
   return `Vr1!${randomBytes(PASSWORD_BYTES).toString("base64url").replace(/[-_]/g, "x")}`;
 }
 
+/**
+ * @param {string} text The text
+ * @returns {string} The text as a folder name
+ */
 function slug(text) {
   return text
     .toLowerCase()
@@ -63,9 +72,15 @@ export function nextFolder(state, group, label) {
   return folder;
 }
 
+/**
+ * @param {string} text The response text
+ * @returns {unknown} The parsed JSON, or the text when it is not JSON
+ */
 function parseBody(text) {
   try {
-    return JSON.parse(text);
+    /** @type {unknown} */
+    const parsed = JSON.parse(text);
+    return parsed;
   } catch {
     return text;
   }
@@ -76,8 +91,8 @@ function parseBody(text) {
  * response.json into `folder`. Secrets in the request are left out.
  *
  * @param {string} folder Where the evidence goes
- * @param {{ url: string, method: string, body?: any, token?: string }} request What to send
- * @returns {Promise<{ status: number | null, body: any, error: string | null }>} The answer
+ * @param {{ url: string, method: string, body?: unknown, token?: string }} request What to send
+ * @returns {Promise<ApiAnswer>} The answer
  */
 export async function recordedRequest(folder, request) {
   const headers = { accept: "application/json" };
@@ -127,9 +142,9 @@ export function isOk(answer) {
  * Signs an account in through `POST /api/auth/login` and keeps its tokens in
  * the run state.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} account The account name, `admin` for the run's administrator
- * @returns {Promise<{ status: number | null, body: any }>} The login answer
+ * @returns {Promise<ApiAnswer>} The login answer
  */
 export async function signIn(state, account) {
   const credentials = state.accounts?.[account];
@@ -144,8 +159,9 @@ export async function signIn(state, account) {
     method: "POST",
     body: { email: credentials.email, password: credentials.password },
   });
-  if (isOk(answer) && answer.body?.access_token) {
-    state.tokens = { ...state.tokens, [account]: answer.body.access_token };
+  const token = stringField(answer.body, "access_token");
+  if (isOk(answer) && token) {
+    state.tokens = { ...state.tokens, [account]: token };
     saveRun(state);
   }
   return answer;
@@ -155,9 +171,9 @@ export async function signIn(state, account) {
  * Creates the run's administrator through `POST /api/onboarding/register`,
  * then signs it in.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {{ platformName?: string }} options Wizard details
- * @returns {Promise<{ register: { status: number | null, body: any }, login: { status: number | null, body: any } | null }>} Both answers
+ * @returns {Promise<{ register: ApiAnswer, login: ApiAnswer | null }>} Both answers
  */
 export async function onboard(state, options) {
   const admin = adminCredentials(state);
@@ -179,7 +195,7 @@ export async function onboard(state, options) {
     admin: {
       email: admin.email,
       password: admin.password,
-      userId: register.body?.[0] ?? null,
+      userId: firstString(register.body) ?? null,
     },
   };
   saveRun(state);
@@ -190,9 +206,9 @@ export async function onboard(state, options) {
  * An authenticated (or anonymous) request to the run's backend, signing the
  * account in again once when its token was refused.
  *
- * @param {Record<string, any>} state The run
- * @param {{ method: string, path: string, body?: any, as: string, label?: string, folder?: () => string }} request What to send and as whom; `as` is an account name or `anon`; `folder` makes each attempt's evidence folder
- * @returns {Promise<{ status: number | null, body: any, error: string | null, folder: string }>} The answer and its evidence folder
+ * @param {import("./run-state.mjs").RunState} state The run
+ * @param {{ method: string, path: string, body?: unknown, as: string, label?: string, folder?: () => string }} request What to send and as whom; `as` is an account name or `anon`; `folder` makes each attempt's evidence folder
+ * @returns {Promise<ApiAnswer & { folder: string }>} The answer and its evidence folder
  */
 export async function apiRequest(state, request) {
   const label = request.label ?? `${request.method} ${request.path}`;

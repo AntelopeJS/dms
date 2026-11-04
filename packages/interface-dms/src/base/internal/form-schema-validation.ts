@@ -1,5 +1,6 @@
 /** @internal */
 import { z } from "zod";
+import { isNull, isObject } from "../../utils/internal/type-check";
 import { ComponentBuilder } from "../../component";
 import type {
   adaptFieldValidationSchema,
@@ -49,9 +50,14 @@ export function buildSchema(
 
 const REQUIRED_MESSAGE = "$dms.field_errors.required";
 
-function isFilledText(value: z.output<z.ZodTypeAny>): boolean {
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes the output of a caller-supplied zod field schema, any on zod 3's ZodTypeAny, then trims text and checks that every other value is present.
+function isFilledText(value: unknown): boolean {
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Presence rules trim text but preserve the existing non-null rule for every other field value.
   return typeof value === "string" ? value.trim() !== "" : value != null;
+}
+
+function isLocaleMap(value: unknown): value is Record<string, unknown> {
+  return isObject(value) && !isNull(value);
 }
 
 /** @internal */
@@ -60,6 +66,7 @@ export function withFallbackLocale(
   fallbackLocale: string,
 ): z.ZodTypeAny {
   return schema.superRefine((value, context) => {
+    if (!isLocaleMap(value)) return;
     const isAnyFilled = Object.values(value).some(isFilledText);
     if (!isAnyFilled || isFilledText(value[fallbackLocale])) return;
     context.addIssue({
@@ -81,7 +88,6 @@ const SECTIONS_KEY = "sections";
 
 /** @internal */
 export function isFormProps(source: FormSchemaSource): source is FormProps {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing malformed-source rejection at the public formSchema boundary.
   if (typeof source !== "object" || source === null) return false;
   return (
     (FIELDS_KEY in source && Array.isArray(source.fields)) ||

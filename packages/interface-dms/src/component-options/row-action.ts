@@ -42,58 +42,60 @@ export type FieldOperatorKey = keyof typeof FIELD_OPERATORS;
 type IsArrayOperator<Op extends FieldOperatorKey> =
   (typeof FIELD_OPERATORS)[Op]["isArray"];
 
-export type FieldRule<
-  T extends Record<string, unknown>,
-  Op extends FieldOperatorKey,
-> = {
+/**
+ * A rule comparing one field of the row a table view serves. A getter's
+ * field holds what it resolved to, so a rule on a getter answering a promise
+ * compares the awaited value.
+ */
+export type FieldRule<T extends object, Op extends FieldOperatorKey> = {
   [K in keyof T]: { field: K } & Record<
     Op,
-    IsArrayOperator<Op> extends true ? T[K][] : T[K]
+    IsArrayOperator<Op> extends true ? Awaited<T[K]>[] : Awaited<T[K]>
   >;
 }[keyof T];
 
 export type AnyFieldRule<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row generic permits arbitrary application fields; the caller's T owns their value types.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > = {
   [Op in FieldOperatorKey]: FieldRule<T, Op>;
 }[FieldOperatorKey];
 
 export type AndRule<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > = {
   and: RowActionRule<T>[];
 };
 
 export type OrRule<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > = {
   or: RowActionRule<T>[];
 };
 
 export type NotRule<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > = {
   not: RowActionRule<T>;
 };
 
 export type LogicalRule<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > = AndRule<T> | OrRule<T> | NotRule<T>;
 
 export type RowActionRule<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > = AnyFieldRule<T> | LogicalRule<T>;
 
 /** A built-in row action of a table view, configured. */
 export interface RowActionConfig<
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published row constraint accepts application-owned fields; narrowing it changes the generic contract.
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 > {
   isEnabled?: boolean;
   isVisible?: boolean;

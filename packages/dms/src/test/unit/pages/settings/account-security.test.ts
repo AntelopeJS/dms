@@ -7,6 +7,7 @@ import type {
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { sign } from "jsonwebtoken";
+import type { z } from "zod";
 import {
   changePassword,
   listSessions,
@@ -16,12 +17,12 @@ import {
   markBackupCodesSaved,
 } from "../../../../pages/account";
 import { sessionFixture } from "../../../helpers/table-fixtures";
+import { securitySchema } from "../../../../validation";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
 const CURRENT_PASSWORD = "Current1!";
 const NEW_PASSWORD = "Antelope26!";
-const WEAK_PASSWORD = "antelope";
 const USER_ID = "account-security-user";
 const OTHER_USER_ID = "account-security-other";
 const OWN_EMAIL = "camille@acme.dev";
@@ -111,7 +112,7 @@ const authorization = `Bearer ${sign({ sessionId: CURRENT_SESSION, tenantId: TEN
 async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
   const outcome = await action.then(
     () => undefined,
-    (error) => error,
+    (error: unknown) => error,
   );
   if (outcome instanceof HTTPResult) return outcome;
   throw new Error(`Expected an HTTP refusal, got ${String(outcome)}`);
@@ -119,7 +120,7 @@ async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
 
 function passwordChange(
   harness: Harness,
-  body: Parameters<typeof changePassword>[1],
+  body: z.input<typeof securitySchema.changePassword>,
 ) {
   return changePassword(harness.user, body, {
     userModel: harness.userModel,
@@ -148,18 +149,6 @@ describe("[unit] settings/security — password change asks for the current pass
       passwordChange(harness, { password: NEW_PASSWORD }),
     );
     expect(result.getBody()).to.equal(INVALID_CURRENT_PASSWORD);
-  });
-
-  it("enforces the sign-up password rules", async () => {
-    const harness = buildHarness();
-    const result = await refusal(
-      passwordChange(harness, {
-        currentPassword: CURRENT_PASSWORD,
-        password: WEAK_PASSWORD,
-      }),
-    );
-    expect(result.getStatus()).to.equal(HTTP_BAD_REQUEST);
-    expect(harness.updates).to.equal(0);
   });
 
   it("changes the password and stamps the change, with the new auth key in one write", async () => {

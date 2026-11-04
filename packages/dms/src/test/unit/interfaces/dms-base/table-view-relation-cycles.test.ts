@@ -21,6 +21,7 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { TableView } from "@antelopejs/interface-dms/base/table-view/factory";
 import { Column } from "@antelopejs/interface-dms/base/table-view/meta";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
+import { prototypeOf } from "@antelopejs/interface-dms/utils/internal/decorated-class";
 
 const SCHEMA = "relation-cycles-test";
 
@@ -101,7 +102,7 @@ class MemberAPI extends DataController(
 function relateTo(
   from: ControllerClass,
   key: string,
-  to: ControllerClass,
+  to: ControllerClass<{ name: string }>,
 ): void {
   Column({
     name: key,
@@ -109,8 +110,8 @@ function relateTo(
       dataApiController: to,
       keyMapping: { label: "name" },
     }),
-  })(from.prototype, key);
-  Access(AccessMode.ReadWrite)(from.prototype, key);
+  })(prototypeOf(from), key);
+  Access(AccessMode.ReadWrite)(prototypeOf(from), key);
 }
 
 relateTo(EmployeeAPI, "manager", EmployeeAPI);

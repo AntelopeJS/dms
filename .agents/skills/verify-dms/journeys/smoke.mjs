@@ -1,3 +1,9 @@
+import { isInviteRow, listOf } from "../rows.mjs";
+
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ */
+
 const MEMBERS = "/settings/workspace/members";
 const INVITATIONS = "/settings/workspace/invites";
 
@@ -7,7 +13,7 @@ export const journeys = [
     id: "smoke",
     title: "a fresh platform onboards, its admin signs in, invites a member, and the invitation survives a reload",
     entryPoint: "POST /api/onboarding/register, then the sign-in form and Settings > Members > Invite members",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const email = ctx.email("member");
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
@@ -29,16 +35,17 @@ export const journeys = [
         tab.visible({ role: "cell", name: email }),
       ]);
       const list = await ctx.api("list the invitations", { method: "GET", path: "/api/tables/admin-invites/list" });
-      const invite = list.body?.results?.find((entry) => entry.email === email);
+      const invites = listOf(list.body, isInviteRow);
+      const invite = invites.find((entry) => entry.email === email);
       await ctx.verify("the API holds the invitation as an owner invite", [
         ctx.status(list, 200),
-        ctx.holds("one pending invitation for the address", invite, JSON.stringify(list.body?.results)),
+        ctx.holds("one pending invitation for the address", invite, JSON.stringify(invites)),
         ctx.equal("it makes a workspace owner", invite?.asTenantOwner, true),
       ]);
       const mail = await ctx.mail((message) => message.to.some((to) => to.includes(email)));
       await ctx.verify("the invitee gets an email with a signup link", [
         ctx.holds("an email reached the invitee", mail.match, `${mail.messages.length} messages captured`),
-        ctx.holds("it links to /auth/signup with a token", mail.match?.links.some((link) => /\/auth\/signup\?token=/.test(link)), JSON.stringify(mail.match?.links)),
+        ctx.holds("it links to /auth/signup with a token", mail.match?.links.some((/** @type {string} */ link) => /\/auth\/signup\?token=/.test(link)), JSON.stringify(mail.match?.links)),
       ]);
     },
   },

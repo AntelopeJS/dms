@@ -18,6 +18,9 @@ const previewUrl = "http://127.0.0.1:3001";
 const READY_ATTEMPTS = 120;
 const POLL_MS = 1000;
 const SECRET_BYTES = 32;
+/** @typedef {import("node:child_process").ChildProcess & { done: Promise<void> }} Server */
+
+/** @type {Set<Server>} */
 const children = new Set();
 
 for (const name of [
@@ -34,15 +37,19 @@ process.env.DMS_API_BASE_URL = apiUrl;
 process.env.DMS_DOCS_PREVIEW = "1";
 process.env.PORT = "5010";
 
+/**
+ * @param {string} script
+ * @param {string[]} [args]
+ * @returns {Server}
+ */
 function start(script, args = []) {
   const child = spawn(process.execPath, [script, ...args], {
     cwd: playgroundRoot,
     stdio: "inherit",
     env: process.env,
   });
-  children.add(child);
-  child.once("exit", () => children.delete(child));
-  child.done = new Promise((resolve, reject) => {
+  /** @type {Promise<void>} */
+  const done = new Promise((resolve, reject) => {
     child.once("error", reject);
     child.once("exit", (code, signal) =>
       code === 0
@@ -50,8 +57,11 @@ function start(script, args = []) {
         : reject(new Error(`${script} exited: ${code ?? signal}`)),
     );
   });
-  child.done.catch(() => {});
-  return child;
+  done.catch(() => {});
+  const server = Object.assign(child, { done });
+  children.add(server);
+  child.once("exit", () => children.delete(server));
+  return server;
 }
 
 function backend() {
@@ -62,6 +72,11 @@ function frontend() {
   return start(frontendCli, ["start", "-b", apiUrl, "-p", "3001"]);
 }
 
+/**
+ * @param {string} url
+ * @param {Server} child
+ * @param {Record<string, string | undefined>} [headers]
+ */
 async function waitFor(url, child, headers = {}) {
   for (let attempt = 0; attempt < READY_ATTEMPTS; attempt++) {
     if (child.exitCode !== null || child.signalCode) {
@@ -116,6 +131,7 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
   });
 }
 
+/** @type {Record<string, () => Promise<void>>} */
 const modes = {
   build,
   backend: () => backend().done,

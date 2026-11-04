@@ -13,7 +13,7 @@ import { LIST_ACTION, VIEW_ACTION, VIEW_ARCHIVED_ACTION } from "./auth";
 import type { TableViewCapabilities } from "./factory-helpers";
 
 /** A built-in row action as the options carry it: its confirmation serialized. */
-export function serializeRowActionConfig<T extends Record<string, unknown>>(
+export function serializeRowActionConfig<T extends object>(
   config: boolean | BulkRowActionConfig<T> | AddRowActionConfig<T> | undefined,
 ): boolean | RowActionConfigSerialized | undefined {
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published action union includes boolean shorthand and configured actions; this selects the shorthand.
@@ -27,7 +27,7 @@ export function serializeRowActionConfig<T extends Record<string, unknown>>(
 }
 
 /** A custom row action as the options carry it. */
-export function serializeCustomRowAction<T extends Record<string, unknown>>(
+export function serializeCustomRowAction<T extends object>(
   action: CustomRowAction<T>,
 ): CustomRowActionSerialized {
   const served: CustomRowActionSerialized = {

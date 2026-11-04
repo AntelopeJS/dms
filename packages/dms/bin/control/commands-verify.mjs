@@ -20,6 +20,16 @@ import { runSeededBreaks } from "./verify/seeded.mjs";
 import { journeysFile, loadSkill } from "./verify/skill.mjs";
 import { renderVerdict } from "./verify/verdict.mjs";
 
+/**
+ * @typedef {import("./options.mjs").Values} Values
+ * @typedef {import("./run-state.mjs").RunState} RunState
+ */
+
+/**
+ * @param {Values} values The options of the command line
+ * @param {RunState} [state] The run, whose skill and checkout are the defaults
+ * @returns {ReturnType<typeof loadSkill>} The skill
+ */
 function skillOf(values, state) {
   return loadSkill(
     values.skill ?? state?.skill ?? undefined,
@@ -27,18 +37,33 @@ function skillOf(values, state) {
   );
 }
 
+/**
+ * @param {Values} values The options of the command line
+ * @returns {Promise<number>} The exit code
+ */
 async function commandMap(values) {
   const problems = await checkMap(await skillOf(values));
   for (const problem of problems) print(problem);
   return problems.length === 0 ? 0 : 1;
 }
 
+/**
+ * @param {Values} values The options of the command line
+ * @returns {Promise<number>} The exit code
+ */
 async function commandPlan(values) {
   const plan = planFor(await skillOf(values), values.base);
   print(JSON.stringify(plan, null, 2));
   return plan.unmapped.length === 0 ? 0 : 1;
 }
 
+/**
+ * @param {string} dir The run root
+ * @param {string} feature The feature whose journeys run
+ * @param {string[]} ids The journeys to run, or none for all
+ * @param {Values} values The options of the command line
+ * @returns {Promise<number>} The exit code
+ */
 async function commandJourney(dir, feature, ids, values) {
   const state = loadRun(dir);
   const skill = await skillOf(values, state);
@@ -61,6 +86,11 @@ async function commandJourney(dir, feature, ids, values) {
   return results.every((result) => result.status === "PASS") ? 0 : 1;
 }
 
+/**
+ * @param {string[]} features The features whose seeded breaks run
+ * @param {Values} values The options of the command line
+ * @returns {Promise<number>} The exit code
+ */
 async function commandSeeded(features, values) {
   const skill = await skillOf(values);
   const outcomes = runSeededBreaks(skill, features);
@@ -81,6 +111,11 @@ async function commandSeeded(features, values) {
   return outcomes.every((outcome) => outcome.caught) ? 0 : 1;
 }
 
+/**
+ * @param {string | undefined} patch A patch file, or none for the diff
+ * @param {Values} values The options of the command line
+ * @returns {Promise<number>} The exit code
+ */
 async function commandDoors(patch, values) {
   const skill = await skillOf(values);
   const doors = flaggedDoors(
@@ -93,6 +128,11 @@ async function commandDoors(patch, values) {
   return 0;
 }
 
+/**
+ * @param {string} dir The run root
+ * @param {Values} values The options of the command line
+ * @returns {Promise<number>} The exit code
+ */
 async function commandFormal(dir, values) {
   const state = loadRun(dir);
   const skill = await skillOf(values, state);
@@ -125,6 +165,12 @@ async function commandFormal(dir, values) {
   return 0;
 }
 
+/**
+ * @param {string} command `verdict` or `publish`
+ * @param {string} dir The run root
+ * @param {Values} values The options of the command line
+ * @returns {Promise<number>} The exit code
+ */
 async function commandJudge(command, dir, values) {
   const pr = Number(values.pr);
   if (!Number.isInteger(pr) || pr <= 0) {
@@ -159,7 +205,7 @@ async function commandJudge(command, dir, values) {
  *
  * @param {string} command The command
  * @param {string[]} rest Its positional arguments
- * @param {Record<string, any>} values Its options
+ * @param {Values} values Its options
  * @returns {Promise<number | undefined>} The exit code, or undefined for a command it does not own
  */
 export function runVerifyCommand(command, rest, values) {

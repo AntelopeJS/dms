@@ -10,6 +10,7 @@ import { RegisterHtmlTemplate } from "@antelopejs/interface-dms/html-render";
 import type {
   ActionType,
   ExecutionCtx,
+  JsonObject,
 } from "@antelopejs/interface-dms-automation";
 import {
   ACTIONS,
@@ -34,7 +35,7 @@ const ctx: ExecutionCtx = {
   log: () => undefined,
 };
 
-function dryRun(id: string, input: Parameters<ActionType["execute"]>[0]) {
+function dryRun(id: string, input: JsonObject) {
   const action: ActionType | undefined = ACTIONS.find(
     (candidate) => candidate.id === id,
   );

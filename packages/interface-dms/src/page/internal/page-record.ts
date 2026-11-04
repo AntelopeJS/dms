@@ -10,9 +10,6 @@ const RECORD_TOKEN = /\{\{\s*record\.([\w.-]+)\s*\}\}/g;
 const NAMES_RECORD = /\{\{\s*record\./;
 const PATH_SEPARATOR = ".";
 
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This alias appears in published declarations and represents the loader's arbitrary record fields; preserving it avoids changing wildcard consumers' contracts.
-type PageRecord = Readonly<Record<string, unknown>>;
-
 const targetUrl = (
   target:
     | (NonNullable<PageHeaderButtonDeclared["target"]> & { url?: unknown })
@@ -23,23 +20,32 @@ const targetUrl = (
   return typeof url === "string" ? url : undefined;
 };
 
-function valueAt(record: PageRecord, path: string): PageRecord[string] {
-  // SAFETY: The reducer reads keys only after checking a non-null object; PageRecord imposes no constraints on those values.
-  return path.split(PATH_SEPARATOR).reduce<unknown>(
-    (value, key) =>
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Record paths traverse arbitrary loader fields and stop at nonobjects without imposing a shared record schema.
-      value && typeof value === "object"
-        ? (value as PageRecord)[key]
-        : undefined,
-    record,
-  );
+const isRecordNode = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === "object";
+
+function leafAt(
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The record the page's loader read (the published PageRecordLoader and ComponentFilterContext.record), keyed by that page's data and read by the {{record.X}} paths its author writes.
+  record: Readonly<Record<string, unknown>>,
+  path: string,
+): string | number | undefined {
+  const value = path
+    .split(PATH_SEPARATOR)
+    .reduce<unknown>(
+      (current, key) => (isRecordNode(current) ? current[key] : undefined),
+      record,
+    );
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The record loader owns its schema; the URL interpolation contract encodes only string and number leaves.
+  return typeof value === "string" || typeof value === "number"
+    ? value
+    : undefined;
 }
 
 export type { PageRecordStatus } from "../../component-options/internal/page-layout";
 
 /** What reading the page's record answered. */
 export interface PageRecordRead {
-  record?: PageRecord;
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The record the page's loader read (the published PageRecordLoader and ComponentFilterContext.record), keyed by that page's data and read by the {{record.X}} paths its author writes.
+  record?: Readonly<Record<string, unknown>>;
   status: PageRecordStatus;
 }
 
@@ -79,13 +85,14 @@ function isRecordBound(button: PageHeaderButtonDeclared): boolean {
  * (an address is one query value). A token the record has no value for is
  * left as written.
  */
-function fillRecordTokens(url: string, record: PageRecord): string {
+function fillRecordTokens(
+  url: string,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The record the page's loader read (the published PageRecordLoader and ComponentFilterContext.record), keyed by that page's data and read by the {{record.X}} paths its author writes.
+  record: Readonly<Record<string, unknown>>,
+): string {
   return url.replace(RECORD_TOKEN, (match, path: string) => {
-    const value = valueAt(record, path);
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The record loader owns its schema; the URL interpolation contract encodes only string and number leaves.
-    return typeof value === "string" || typeof value === "number"
-      ? encodeURIComponent(String(value))
-      : match;
+    const value = leafAt(record, path);
+    return value === undefined ? match : encodeURIComponent(String(value));
   });
 }
 
@@ -100,7 +107,8 @@ function fillRecordTokens(url: string, record: PageRecord): string {
 export function withPageRecord(
   button: PageHeaderButtonDeclared,
   declaresRecord: boolean,
-  record: PageRecord | undefined,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The record the page's loader read (the published PageRecordLoader and ComponentFilterContext.record), keyed by that page's data and read by the {{record.X}} paths its author writes.
+  record: Readonly<Record<string, unknown>> | undefined,
 ): PageHeaderButtonDeclared | undefined {
   if (!declaresRecord || !isRecordBound(button)) return button;
   if (!record) return undefined;

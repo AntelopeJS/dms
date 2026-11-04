@@ -38,7 +38,10 @@ export interface FormalCheck {
 
 /** The repo-owned layer of the verification skill, read by `dms-control`. */
 export interface VerifyConfig {
+  /** The playground folder: relative to the repository root, or absolute for a playground that lives in another checkout. */
   playground: string;
+  /** The built `@antelopejs/dms-frontend` checkout the run serves, relative to the repository root, when this repository is the renderer. Absent: the playground's installed one. */
+  renderer?: string;
   prepare: string[][];
   userFacing: string[];
   notUserFacing: string[];
@@ -185,9 +188,25 @@ const config: VerifyConfig = {
         "packages/dms/src/routes/auth/oauth/config.ts",
         "packages/dms/src/routes/auth/signup.ts",
       ],
-      files: [".agents/skills/formal-onboarding-bootstrap/**", ".agents/formal/**"],
+      files: [".agents/skills/formal-onboarding-bootstrap/**"],
       command: ["node", ".agents/skills/formal-onboarding-bootstrap/check.mjs", "--full"],
       baseCommand: ["node", ".agents/skills/formal-onboarding-bootstrap/check.mjs"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+      passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
+      behaviour: { kind: "emit" },
+    },
+    {
+      name: "formal-tenant-lifecycle",
+      covers: [
+        "packages/interface-dms/src/tenant-lifecycle.ts",
+        "packages/interface-dms/src/tenant-members.ts",
+        "packages/interface-dms/src/db/internal/tenantLifecycle.model.ts",
+        "packages/interface-dms/src/db/internal/tenantLifecycle.table.ts",
+        "packages/dms/src/hooks/tenant-deleted.ts",
+      ],
+      files: [".agents/skills/formal-tenant-lifecycle/**"],
+      command: ["node", ".agents/skills/formal-tenant-lifecycle/check.mjs", "--full"],
+      baseCommand: ["node", ".agents/skills/formal-tenant-lifecycle/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
       passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
       behaviour: { kind: "emit" },
@@ -219,7 +238,7 @@ const config: VerifyConfig = {
         "packages/dms/frontend-vue/layers/dms-ui/app/build/composables/table-view/useTableListData.ts",
         "packages/dms/frontend-vue/layers/dms-layout/app/pages/[...slug].vue",
       ],
-      files: [".agents/skills/formal-realtime-tabs/**", ".agents/formal/**"],
+      files: [".agents/skills/formal-realtime-tabs/**"],
       command: ["node", ".agents/skills/formal-realtime-tabs/check.mjs", "--full"],
       baseCommand: ["node", ".agents/skills/formal-realtime-tabs/check.mjs"],
       violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,

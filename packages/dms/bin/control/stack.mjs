@@ -11,7 +11,9 @@ import {
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { describeFailure } from "./failure.mjs";
 import { checkoutOf } from "./git.mjs";
+import { stringField } from "./json.mjs";
 import { dropDatabase, dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
   freePort,
@@ -29,7 +31,13 @@ import {
   runsRoot,
   saveRun,
 } from "./run-state.mjs";
+import { RENDERER_CLI, resolveRenderer } from "./renderer.mjs";
 import { newPassword } from "./session.mjs";
+
+/**
+ * @typedef {import("./run-state.mjs").RunState} RunState
+ * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string }} UpOptions Where the playground and the runs are
+ */
 
 const READY_TIMEOUT_MS = 180_000;
 const SECRET_BYTES = 32;
@@ -67,23 +75,30 @@ export function resolutionFolders(state) {
 }
 
 /**
- * The `ajs` and `ajs dms` entry points the playground installs.
+ * The `ajs` and `ajs dms` entry points the playground installs, `ajs dms`
+ * being the renderer checkout's when the run serves one.
  *
  * @param {string} playground The playground folder
+ * @param {string} [renderer] The renderer checkout the run serves
  * @returns {{ ajs: string, dms: string }} Their scripts
  */
-export function cliPaths(playground) {
+export function cliPaths(playground, renderer) {
   const require = createRequire(join(playground, "package.json"));
   const core = dirname(require.resolve("@antelopejs/core/package.json"));
-  const frontend = dirname(
-    require.resolve("@antelopejs/dms-frontend/package.json"),
-  );
+  const frontend =
+    renderer ??
+    dirname(require.resolve("@antelopejs/dms-frontend/package.json"));
   return {
     ajs: join(core, "dist", "core", "cli", "index.js"),
-    dms: join(frontend, "dist", "index.js"),
+    dms: join(frontend, RENDERER_CLI),
   };
 }
 
+/**
+ * @param {string} real
+ * @param {string} shadow
+ * @param {string} keep
+ */
 function shadowLevel(real, shadow, keep) {
   mkdirSync(shadow, { recursive: true });
   for (const entry of readdirSync(real)) {
@@ -93,18 +108,39 @@ function shadowLevel(real, shadow, keep) {
 }
 
 /**
+ * A `node_modules` that is `modules` with `@antelopejs/dms-frontend` replaced
+ * by the renderer checkout, every other entry linked to the original.
+ *
+ * @param {string} modules The playground's installed modules
+ * @param {string} shadow The run's `node_modules`
+ * @param {string} renderer The renderer checkout
+ */
+export function linkRenderer(modules, shadow, renderer) {
+  const scope = "@antelopejs";
+  shadowLevel(modules, shadow, scope);
+  const scoped = join(modules, scope);
+  const shadowScope = join(shadow, scope);
+  if (existsSync(scoped)) shadowLevel(scoped, shadowScope, "dms-frontend");
+  else mkdirSync(shadowScope);
+  symlinkSync(renderer, join(shadowScope, "dms-frontend"));
+}
+
+/**
  * Lays out the run's copy of the checkout: from the checkout root down to
  * the playground, every sibling is linked, so relative paths such as a
  * tsconfig `extends` resolve as in the checkout. The playground itself is
  * copied without its installed modules and build, so `.antelope/` and the
- * frontend build belong to the run.
+ * frontend build belong to the run. Its `node_modules` is the playground's,
+ * except that `@antelopejs/dms-frontend` is the `renderer` checkout when
+ * there is one.
  *
  * @param {string} playground The playground folder
  * @param {string} checkout The checkout root, or the module folder outside one
  * @param {string} root The run's copy of the checkout
+ * @param {string} [renderer] The renderer checkout the run serves
  * @returns {string} The run's playground folder
  */
-export function layOutCopy(playground, checkout, root) {
+export function layOutCopy(playground, checkout, root, renderer) {
   const segments = relative(checkout, playground).split(sep);
   let real = checkout;
   let shadow = root;
@@ -117,7 +153,9 @@ export function layOutCopy(playground, checkout, root) {
     recursive: true,
     filter: (source) => !COPY_SKIPPED.has(basename(source)),
   });
-  symlinkSync(join(playground, "node_modules"), join(shadow, "node_modules"));
+  const modules = join(playground, "node_modules");
+  if (renderer) linkRenderer(modules, join(shadow, "node_modules"), renderer);
+  else symlinkSync(modules, join(shadow, "node_modules"));
   return shadow;
 }
 
@@ -134,7 +172,7 @@ function inheritedEnv() {
  * database, origin and secrets, an npm cache and a pnpm store shared by
  * every run, no update checks and no colors. Extra `KEY=VALUE` pairs from `--env` come last.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @returns {NodeJS.ProcessEnv} The environment
  */
 export function runEnv(state) {
@@ -163,6 +201,10 @@ export function runEnv(state) {
   };
 }
 
+/**
+ * @param {string[]} pairs
+ * @returns {Record<string, string>}
+ */
 function parseExtraEnv(pairs) {
   return Object.fromEntries(
     pairs.map((pair) => {
@@ -173,6 +215,10 @@ function parseExtraEnv(pairs) {
   );
 }
 
+/**
+ * @param {UpOptions} options
+ * @returns {Promise<RunState>}
+ */
 async function initialState(options) {
   const playground = resolve(options.playground);
   if (!existsSync(join(playground, "antelope.config.ts"))) {
@@ -184,7 +230,9 @@ async function initialState(options) {
   const webPort = await freePort();
   const smtpPort = await freePort();
   const checkout = checkoutOf(playground);
-  return {
+  const renderer = options.renderer && resolveRenderer(options.renderer);
+  const verified = renderer ? checkoutOf(renderer) : checkout;
+  const state = {
     ...paths,
     id,
     createdAt: new Date().toISOString(),
@@ -192,7 +240,7 @@ async function initialState(options) {
     playground,
     moduleRoot: dirname(playground),
     repo: checkout.root,
-    headSha: checkout.head,
+    headSha: verified.head,
     baseRef: options.base ?? "origin/main",
     skill: options.skill ?? null,
     apiPort,
@@ -218,13 +266,15 @@ async function initialState(options) {
     tokens: {},
     ready: false,
   };
+  if (renderer) state.renderer = renderer;
+  return state;
 }
 
 /**
  * How to run one of the playground's CLIs for the run: its own log, the
  * run's environment, from the run's playground copy or `cwd`.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} name The log name
  * @param {string} script The CLI script
  * @param {string[]} args Its arguments
@@ -242,6 +292,10 @@ export function spec(state, name, script, args, cwd = state.runPlayground) {
   };
 }
 
+/**
+ * @param {RunState} state
+ * @param {import("./run-state.mjs").ProcessRecord} processRecord
+ */
 function record(state, processRecord) {
   state.processes = [
     ...state.processes.filter((entry) => entry.name !== processRecord.name),
@@ -254,7 +308,7 @@ function record(state, processRecord) {
  * Starts the run's mail sink unless it already runs, and waits until it is
  * the process listening on the run's mail port.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @returns {Promise<void>} Resolves once it listens
  */
 export async function ensureMail(state) {
@@ -272,6 +326,10 @@ export async function ensureMail(state) {
   await waitForOwnPort(state.smtpPort, mail, READY_TIMEOUT_MS);
 }
 
+/**
+ * @param {RunState} state
+ * @returns {Promise<void>}
+ */
 async function startFirstMail(state) {
   for (let attempt = 1; ; attempt += 1) {
     try {
@@ -284,6 +342,11 @@ async function startFirstMail(state) {
   }
 }
 
+/**
+ * @param {RunState} state
+ * @param {{ playground?: string, cwd?: string }} [build]
+ * @returns {Promise<void>}
+ */
 async function startBackend(state, build) {
   const { ajs } = cliPaths(build?.playground ?? state.playground);
   const backend = startDetached(
@@ -303,12 +366,17 @@ async function startBackend(state, build) {
   );
 }
 
+/**
+ * @param {RunState} state
+ * @returns {Promise<void>}
+ */
 async function buildAndStart(state) {
-  const clis = cliPaths(state.playground);
+  const clis = cliPaths(state.playground, state.renderer);
   state.runPlayground = layOutCopy(
     state.playground,
     state.repo ?? state.moduleRoot,
     state.root,
+    state.renderer,
   );
   if (state.ownsMongo) {
     const mongo = await startMongod(state, resolutionFolders(state));
@@ -346,12 +414,13 @@ async function buildAndStart(state) {
 /**
  * Starts an isolated DMS from a playground: a copy of it in a run folder,
  * free ports, the `docs` environment, a `verify_<run>` database on a mongod
- * the run owns (or `--mongo-url`), fresh secrets and a mail sink. Ready once
+ * the run owns (or `--mongo-url`), fresh secrets and a mail sink. With
+ * `renderer`, the dashboard is that built dms-frontend checkout. Ready once
  * `/api/onboarding/informations` and `/dms-preview` answer 200. On failure
  * it stops what it started and keeps the logs.
  *
- * @param {{ playground: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string }} options Where the playground and the runs are
- * @returns {Promise<Record<string, any>>} The ready run
+ * @param {UpOptions} options Where the playground and the runs are
+ * @returns {Promise<import("./run-state.mjs").RunState>} The ready run
  */
 export async function up(options) {
   const state = await initialState(options);
@@ -374,7 +443,7 @@ export async function up(options) {
  * a crash would, from the run's build or another one (`build`, the base
  * version's). The frontend keeps serving and proxies to the same port.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {{ playground: string, cwd: string }} [build] Another build to start
  * @returns {Promise<void>} Resolves once the backend answers again
  */
@@ -390,7 +459,7 @@ export async function restartBackend(state, build) {
  * journey database is dropped, so a long run does not exhaust mongod's
  * file handles; its evidence stays.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} suffix What tells the database apart, such as `j03`
  * @returns {Promise<string>} The database now in use
  */
@@ -412,7 +481,7 @@ export async function freshDatabase(state, suffix) {
  * run's databases, and removes everything but `evidence/`, `logs/` and
  * `run.json`, from which the secrets and passwords are removed.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @returns {Promise<string[]>} One line per action
  */
 export async function down(state) {
@@ -429,8 +498,8 @@ export async function down(state) {
       state.mongoUrl,
       state.databasePrefix,
       resolutionFolders(state),
-    ).catch((error) => [
-      `could not drop the run's databases: ${error.message}`,
+    ).catch((/** @type {unknown} */ error) => [
+      `could not drop the run's databases: ${describeFailure(error)}`,
     ]);
     lines.push(...dropped);
   }
@@ -474,7 +543,9 @@ export async function down(state) {
  */
 export function packageVersion(file) {
   try {
-    return JSON.parse(readFileSync(file, "utf8")).version ?? "missing";
+    /** @type {unknown} */
+    const manifest = JSON.parse(readFileSync(file, "utf8"));
+    return stringField(manifest, "version") ?? "missing";
   } catch {
     return "missing";
   }

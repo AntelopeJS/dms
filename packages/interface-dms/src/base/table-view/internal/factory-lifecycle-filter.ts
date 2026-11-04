@@ -15,7 +15,7 @@ type FilterArguments = Parameters<
   Parameters<ComponentBuilder<TableViewOptionsSerialized>["onFilter"]>[0]
 >;
 
-interface FilterDeclarations<T extends Record<string, unknown>> {
+interface FilterDeclarations<T extends object> {
   declaredCustomButtons: TableViewOptions<T>["customButtons"];
   declaredCustomRowActions: NonNullable<
     TableViewOptions<T>["rowActions"]
@@ -28,7 +28,7 @@ interface FilterDeclarations<T extends Record<string, unknown>> {
 }
 
 /** @internal */
-export async function filterTableViewOptions<T extends Record<string, unknown>>(
+export async function filterTableViewOptions<T extends object>(
   declarations: FilterDeclarations<T>,
   request: FilterArguments,
 ): Promise<TableViewOptionsSerialized> {

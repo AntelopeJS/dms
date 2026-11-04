@@ -262,11 +262,10 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
     owner?: { id: string };
     locked?: boolean;
   };
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The concrete SiteRecord fixture is indexed by arbitrary route ids, including missing ids; its lookup must retain the existing undefined result without adding runtime key validation.
-  const SITES: Record<string, SiteRecord> = {
-    s1: { address: "1 rue de l'Église, Liège", owner: { id: "u&1" } },
-    locked: { address: "Gare", locked: true },
-  };
+  const SITES = new Map<string, SiteRecord>([
+    ["s1", { address: "1 rue de l'Église, Liège", owner: { id: "u&1" } }],
+    ["locked", { address: "Gare", locked: true }],
+  ]);
   let pattern = "";
   let notePattern = "";
 
@@ -287,7 +286,7 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
       DefaultLayout({
         record: ({ params }) => {
           if (params?.id === "broken") throw new Error("database down");
-          return SITES[params?.id ?? ""];
+          return SITES.get(params?.id ?? "");
         },
         headerActions: [
           {
@@ -326,7 +325,7 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
         urlSlug: "lq-notes/:id",
         hidden: true,
       },
-      DefaultLayout({ record: ({ params }) => SITES[params?.id ?? ""] }),
+      DefaultLayout({ record: ({ params }) => SITES.get(params?.id ?? "") }),
     );
     cleanups.push(await registerTestPage(note));
     notePattern = GetMetadata(note, PageMetadata).pageInfo?.fullSlug ?? "";

@@ -1,21 +1,17 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import { validateTwoFactorToken } from "@antelopejs/interface-dms/auth";
 import type { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { sendNewEmailCode } from "../../utils";
-import { authSchema, firstIssueMessage } from "../../validation";
+import { authSchema } from "../../validation";
 import { assertTwoFactorChallengeOpen } from "./two-factor-throttle";
 
 type Request2FAEmailResult = { success: boolean };
 
 export async function request2FAEmail(
   userModel: UserModel,
-  body: Parameters<typeof authSchema.request2FAEmail.parse>[0],
+  body: ReturnType<typeof authSchema.request2FAEmail.parse>,
 ): Promise<Request2FAEmailResult> {
-  const { token } = assertValidation(
-    body,
-    (v) => authSchema.request2FAEmail.parse(v),
-    firstIssueMessage,
-  );
+  const { token } = body;
 
   const { user } = await validateTwoFactorToken(token);
 

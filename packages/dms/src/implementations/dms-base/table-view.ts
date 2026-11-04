@@ -1,13 +1,11 @@
-import {
-  type ControllerClass,
-  ControllerMeta,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
+import { ControllerMeta, type RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
   type DataControllerCallback,
   type DataControllerCallbackWithOptions,
+  type DataControllerInstance,
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
 import {
@@ -43,10 +41,7 @@ import {
   countWithSearch as countWithSearchFunc,
   listWithSearch as listWithSearchFunc,
 } from "./search-route";
-import {
-  type RuleRow,
-  fetchRowForGuard as fetchRowForGuardHelper,
-} from "../../db";
+import { fetchRowForGuard as fetchRowForGuardHelper } from "../../db";
 
 type DataControllerThis =
   | DataControllerCallback
@@ -81,13 +76,11 @@ async function processBatch({
 }: ExportBatch): Promise<void> {
   const dbResult = await pendingRecordBatch;
   const results = await Promise.all(
-    dbResult.map((entry) =>
-      Query.ReadProperties(
-        controller,
-        controllerMetadata,
-        model.constructor.fromDatabase(entry),
-      ),
-    ),
+    dbResult.map((entry) => {
+      const stored = model.constructor.fromDatabase(entry);
+      assert(stored, 500, "The database answered an empty row.");
+      return Query.ReadProperties(controller, controllerMetadata, stored);
+    }),
   );
 
   Validation.ClearInternal(controllerMetadata, results);
@@ -142,7 +135,8 @@ async function buildIdsExportQuery(
       const archiveValue = archiveConstraint[0];
 
       const isNotEqual = archiveConstraint[1] === "ne";
-      query = query.filter((row: ValueProxy<RuleRow>) =>
+      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the list serves, interface-data-api's RowFields, read by the archive field its table view names at run time.
+      query = query.filter((row: ValueProxy<Record<string, unknown>>) =>
         isNotEqual
           ? row.key(archiveField).ne(archiveValue)
           : row.key(archiveField).eq(archiveValue),
@@ -185,10 +179,12 @@ async function buildExportQuery({
 }
 
 function getControllerKey(controller: DataControllerThis): string {
-  const controllerClass =
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference yields Function from the callback descriptor receiver; ControllerMeta's constructor owner needs ControllerClass, which the existing data-controller route binding supplies without a runtime check here.
-    controller.constructor as ControllerClass;
-  return GetMetadata(controllerClass, ControllerMeta).location;
+  const owner = controller.constructor;
+  const { location } = GetMetadata(owner, ControllerMeta);
+  if (location === undefined) {
+    throw new TypeError(`${owner.name} is not a Controller class`);
+  }
+  return location;
 }
 
 function buildTableViewAccessForController(
@@ -370,24 +366,29 @@ interface RuleValidationResult {
 }
 
 export async function fetchRowForGuard(
-  controller: any,
+  controller: DataControllerInstance,
   id: string,
   idField: string,
-): Promise<RuleRow | undefined> {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- fetchRowForGuard implements the exported but @internal InterfaceFunction of data-functions.ts, whose row is the stored row of whichever table the guard names, interface-data-api's RowFields.
+): Promise<Record<string, unknown> | undefined> {
   return fetchRowForGuardHelper(controller, id, idField);
 }
 
 async function readRuleRow(
-  controller: any,
+  controller: DataControllerInstance,
   controllerMetadata: DataAPIMeta,
   model: ReturnType<typeof Query.GetModel>,
-  row: RuleRow,
-): Promise<RuleRow> {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- readRuleRow takes the stored row of whichever table a rule guards, interface-data-api's RowFields, and answers it merged with Query.ReadProperties for the rule's runtime field paths.
+  row: Record<string, unknown>,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- readRuleRow takes the stored row of whichever table a rule guards, interface-data-api's RowFields, and answers it merged with Query.ReadProperties for the rule's runtime field paths.
+): Promise<Record<string, unknown>> {
   try {
+    const stored = model.constructor.fromDatabase(row);
+    assert(stored, 500, "The database answered an empty row.");
     const read = await Query.ReadProperties(
       controller,
       controllerMetadata,
-      model.constructor.fromDatabase(row),
+      stored,
     );
     return { ...row, ...read };
   } catch {
@@ -396,7 +397,7 @@ async function readRuleRow(
 }
 
 export async function validateRowsAgainstRule(
-  controller: any,
+  controller: DataControllerInstance,
   ids: string[],
   rule: RowActionRule | undefined,
   strictMode: boolean,
@@ -446,12 +447,12 @@ const updatedRowCount = (updated: number, ids: string[]): number =>
   typeof updated === "number" ? updated : ids.length;
 
 export async function archiveRows(
-  controller: any,
+  controller: DataControllerInstance,
   _ctx: RequestContext,
   ids: string | string[],
 ) {
   const controllerMetadata = GetDataControllerMeta(controller);
-  const tableViewMetadata = GetMetadata(controller.constructor, TableViewMeta);
+  const tableViewMetadata = getTableViewMetaFor(controller);
   const idField = tableViewMetadata.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
   const archiveField = tableViewMetadata.archiveField;
   const model = Query.GetModel(controller, controllerMetadata);
@@ -467,21 +468,20 @@ export async function archiveRows(
     return { success: true, archivedCount: 0 };
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference gives a boolean archive patch, but data-api's erased model makes DeepPartial<any> reject booleans; Parameters of the overloaded update exposes its callback overload instead, so retain the existing unchecked adapter call.
   const updated = await model.table.getAll(idArray, idField).update({
     [archiveField]: true,
-  } as any);
+  });
 
   return { success: true, archivedCount: updatedRowCount(updated, idArray) };
 }
 
 export async function restoreRows(
-  controller: any,
+  controller: DataControllerInstance,
   _ctx: RequestContext,
   ids: string | string[],
 ) {
   const controllerMetadata = GetDataControllerMeta(controller);
-  const tableViewMetadata = GetMetadata(controller.constructor, TableViewMeta);
+  const tableViewMetadata = getTableViewMetaFor(controller);
   const idField = tableViewMetadata.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
   const archiveField = tableViewMetadata.archiveField;
   const model = Query.GetModel(controller, controllerMetadata);
@@ -497,10 +497,9 @@ export async function restoreRows(
     return { success: true, restoredCount: 0 };
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The inferred boolean restore patch fails the erased model's DeepPartial<any>; owner-derived Parameters selects the callback overload, not the document overload, so preserving this adapter call still needs its legacy assertion.
   const updated = await model.table.getAll(idArray, idField).update({
     [archiveField]: false,
-  } as any);
+  });
 
   return { success: true, restoredCount: updatedRowCount(updated, idArray) };
 }

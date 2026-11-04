@@ -117,6 +117,8 @@ const DEFAULT_ICON = "i-ph-gauge";
  *   warnAt: 80,
  * })
  * ```
+ *
+ * @docsApi
  */
 export function Meter(options?: MeterProps): ComponentBuilder<MeterProps> {
   return attachRealtimeTopicsHook(

@@ -3,13 +3,26 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { checkoutOf } from "../git.mjs";
+import { isRecord } from "../json.mjs";
+import { decodeSkillConfig } from "./decode.mjs";
 
 const CONFIG_FILE = "verify.config.ts";
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
+/**
+ * @typedef {{ dir: string, name: string, repo: string, config: SkillConfig, featuresDir: string, journeysDir: string, seededBreaksDir: string, seededDoorsDir: string }} Skill
+ * @typedef {{ playground: string, renderer?: string, prepare: string[][], userFacing: string[], notUserFacing: string[], smoke: string, smokeJourney: string, doors: Record<string, { globs: string[], funnels: string[], containments: string[], why: string } | null>, formal: import("./types.mjs").FormalCheck[] }} SkillConfig
+ */
+
+/**
+ * @param {string} text A feature file
+ * @returns {Map<string, string[]>} The lists of its frontmatter
+ */
 function frontmatterLists(text) {
+  /** @type {Map<string, string[]>} */
   const lists = new Map();
   const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
+  /** @type {string[] | undefined} */
   let current;
   for (const line of (match?.[1] ?? "").split("\n")) {
     const key = /^(\w+):\s*$/.exec(line);
@@ -24,6 +37,10 @@ function frontmatterLists(text) {
   return lists;
 }
 
+/**
+ * @param {string} cwd Where the command runs
+ * @returns {string} The one verification skill folder of the checkout
+ */
 function discover(cwd) {
   const { root } = checkoutOf(cwd);
   const skills = join(root ?? cwd, ".agents", "skills");
@@ -49,14 +66,18 @@ function discover(cwd) {
  *
  * @param {string | undefined} option The `--skill` folder
  * @param {string} cwd Where the command runs
- * @returns {Promise<Record<string, any>>} The skill
+ * @returns {Promise<import("./skill.mjs").Skill>} The skill
  */
 export async function loadSkill(option, cwd) {
   const dir = resolve(option ?? discover(cwd));
   const { root } = checkoutOf(dir);
   if (!root) throw new Error(`${dir} is not inside a git checkout`);
-  const { default: config } = await import(
-    pathToFileURL(join(dir, CONFIG_FILE)).href
+  const file = join(dir, CONFIG_FILE);
+  /** @type {unknown} */
+  const loaded = await import(pathToFileURL(file).href);
+  const config = decodeSkillConfig(
+    isRecord(loaded) ? loaded.default : undefined,
+    file,
   );
   return {
     dir,
@@ -74,7 +95,7 @@ export async function loadSkill(option, cwd) {
  * Every feature file under `features/`, README.md excluded, with its
  * `covers:` globs, `docs:` pages and text.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {Skill} skill The skill
  * @returns {{ name: string, file: string, covers: string[], docs: string[], body: string }[]} The features
  */
 export function readFeatures(skill) {
@@ -97,7 +118,7 @@ export function readFeatures(skill) {
 /**
  * The journeys module of a feature.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {Skill} skill The skill
  * @param {string} feature The feature name
  * @returns {string} Its path
  */
@@ -109,7 +130,7 @@ export function journeysFile(skill, feature) {
  * Runs the config's `prepare` commands (install and build) in a checkout of
  * the repository, so a run starts from a fresh build.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {Skill} skill The skill
  * @param {string} cwd The checkout
  * @throws When a command fails, with its output
  */

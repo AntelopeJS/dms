@@ -10,6 +10,7 @@ import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-f
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound, serviceUnavailable } from "./demo-errors";
 import { ago, attentionEntries, workspaceActivity } from "./feed-data";
+import { ownEntry } from "../own-entry";
 
 const DEMO_LATENCY_MS = 700;
 
@@ -94,7 +95,7 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
   getAttention(@Parameter("preset", "query") preset?: string) {
     return later({
       items: attentionEntries(),
-      count: ATTENTION_COUNT_BY_PERIOD[preset ?? ""],
+      count: ownEntry(ATTENTION_COUNT_BY_PERIOD, preset ?? ""),
     });
   }
 
@@ -103,7 +104,7 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
     const isCurrentMonth = (preset ?? DEFAULT_PERIOD) === DEFAULT_PERIOD;
     const value = isCurrentMonth
       ? quotaUsedThisMonth
-      : (QUOTA_BY_PERIOD[preset ?? ""] ?? 0);
+      : (ownEntry(QUOTA_BY_PERIOD, preset ?? "") ?? 0);
     return later({ value });
   }
 

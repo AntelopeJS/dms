@@ -60,7 +60,7 @@ export function unregisterSession(sessionId: string): Map<string, Unsubscribe> {
   sessions.delete(sessionId);
   if (state)
     connections.get(state.info.connectionId)?.sessionIds.delete(sessionId);
-  return state?.subscriptions ?? new Map();
+  return state?.subscriptions ?? new Map<string, Unsubscribe>();
 }
 
 export function getSessionInfo(sessionId: string): SessionInfo | undefined {

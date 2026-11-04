@@ -1,5 +1,7 @@
 import type { ValueProxy } from "@antelopejs/interface-database";
 import { expect } from "chai";
+import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
+import { assertRowRule } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
 import { compileRowRule } from "../../../../implementations/dms-base/services";
 
 interface Expression {
@@ -19,16 +21,17 @@ const expression = (text: string): Expression => ({
 const field = (name: string) =>
   // SAFETY: compileRowRule calls only eq/ne on fields; their expression results implement every and/or/not operation exercised here, not the entire database proxy API.
   ({
-    eq: (value: Parameters<ValueProxy<unknown>["eq"]>[0]) =>
-      expression(`${name}=${String(value)}`),
-    ne: (value: Parameters<ValueProxy<unknown>["ne"]>[0]) =>
-      expression(`${name}!=${String(value)}`),
+    eq: (value: string | number) => expression(`${name}=${String(value)}`),
+    ne: (value: string | number) => expression(`${name}!=${String(value)}`),
   }) as unknown as ValueProxy<unknown>;
 
-const fromJson = (json: string): Parameters<typeof compileRowRule>[0] =>
-  JSON.parse(json);
+const fromJson = (json: string): RowActionRule => {
+  const parsed: unknown = JSON.parse(json);
+  assertRowRule(parsed, "Malformed row rule");
+  return parsed;
+};
 
-const compile = (rule: Parameters<typeof compileRowRule>[0]) => {
+const compile = (rule: RowActionRule) => {
   const condition = compileRowRule(rule, field);
   // SAFETY: Nonliteral results originate from this fixture's eq/ne and expression combinators, all of which return an Expression with text.
   // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The owner returns literal booleans or query proxies; preserve the existing distinction before reading the fixture expression's text.
@@ -127,6 +130,20 @@ describe("[unit] dms-base — footer summary rules", () => {
       Error,
       /rule\.or\[0\] must be a rule object/,
     );
+  });
+
+  it("rejects an operand no provider records, alone or in a list or a nested rule", () => {
+    expect(() => compile({ field: "amount", equals: 41n })).to.throw(
+      Error,
+      /Malformed row rule: equals must hold plain values/,
+    );
+    expect(() => compile({ field: "amount", in: [41, Symbol("x")] })).to.throw(
+      Error,
+      /Malformed row rule: in must hold plain values/,
+    );
+    expect(() =>
+      compile({ not: { field: "amount", notEquals: () => 1 } }),
+    ).to.throw(Error, /Malformed row rule: notEquals must hold plain values/);
   });
 
   it("keeps compiling a valid rule that carries a shadowed operator", () => {

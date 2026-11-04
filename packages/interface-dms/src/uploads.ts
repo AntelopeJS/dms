@@ -25,83 +25,59 @@ export namespace internal {
 export const SignUploadToken =
   InterfaceFunction<(claims: UploadTokenClaims) => Promise<string>>();
 
-const UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
-
 interface UploadFieldNode {
   type: string;
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Serialized component options carry consumer-defined fields alongside upload settings.
   component: { options?: Record<string, unknown> };
 }
 
-function isUploadFieldNode(
-  node: Parameters<typeof StampUploadFieldTokens>[0],
-): node is UploadFieldNode {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Traversal accepts arbitrary serialized option values and only inspects object nodes.
-  if (!node || typeof node !== "object") return false;
-  const candidate: Partial<
-    Record<keyof UploadFieldNode, Parameters<typeof StampUploadFieldTokens>[0]>
-  > = node;
+function isTraversable(value: unknown): value is object {
+  return !!value && typeof value === "object";
+}
+
+function isUploadFieldNode(node: unknown): node is UploadFieldNode {
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A native upload node must name a file or image field rather than an arbitrary option type.
-    typeof candidate.type === "string" &&
-    UPLOAD_FIELD_TYPES.has(candidate.type) &&
-    !!candidate.component &&
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the serialized-node shape check before accessing the component's options.
-    typeof candidate.component === "object"
+    isTraversable(node) &&
+    !Array.isArray(node) &&
+    "type" in node &&
+    (node.type === "file" || node.type === "image") &&
+    "component" in node &&
+    isTraversable(node.component)
   );
 }
 
-function hasUploadField(
-  node: Parameters<typeof StampUploadFieldTokens>[0],
-): boolean {
-  if (Array.isArray(node)) {
-    return node.some(hasUploadField);
-  }
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Recursive traversal stops at primitive leaves of consumer options.
-  if (!node || typeof node !== "object") {
-    return false;
-  }
-  if (isUploadFieldNode(node)) {
-    return true;
-  }
-  return Object.values(node).some(hasUploadField);
+/** Every upload field of a serialized value, an enclosing one before the ones it holds. */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Walks every value of the serialized options a component declares, its own T, at any depth that declaration has, to find the upload fields among them.
+function uploadFieldNodes(node: unknown): UploadFieldNode[] {
+  if (!isTraversable(node)) return [];
+  return [
+    ...(isUploadFieldNode(node) ? [node] : []),
+    ...Object.values(node).flatMap(uploadFieldNodes),
+  ];
 }
 
-async function stampNode(
-  node: Parameters<typeof StampUploadFieldTokens>[0],
-): Promise<void> {
-  if (Array.isArray(node)) {
-    for (const item of node) await stampNode(item);
-    return;
+async function stampNode(node: UploadFieldNode): Promise<void> {
+  const component = node.component;
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The existing serialized-node check does not validate options; non-object options are replaced before stamping.
+  if (!component.options || typeof component.options !== "object") {
+    component.options = {};
   }
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Primitive option leaves have no upload fields or child objects to stamp.
-  if (!node || typeof node !== "object") {
-    return;
-  }
-  if (isUploadFieldNode(node)) {
-    const component = node.component;
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The existing serialized-node check does not validate options; non-object options are replaced before stamping.
-    if (!component.options || typeof component.options !== "object") {
-      component.options = {};
-    }
-    const options = component.options;
-    options.uploadToken = await SignUploadToken({
-      pageId: "",
-      componentId: "",
-      storage:
-        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized consumer storage values contribute to claims only when strings.
-        typeof options.storage === "string" ? options.storage : undefined,
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a string serialized path is copied into upload claims.
-      path: typeof options.path === "string" ? options.path : undefined,
-      field:
-        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a string attachmentField identifies the server-declared upload field.
-        typeof options.attachmentField === "string"
-          ? options.attachmentField
-          : undefined,
-      visibility: options.visibility === "public" ? "public" : "private",
-    });
-  }
-  for (const value of Object.values(node)) await stampNode(value);
+  const options = component.options;
+  options.uploadToken = await SignUploadToken({
+    pageId: "",
+    componentId: "",
+    storage:
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized consumer storage values contribute to claims only when strings.
+      typeof options.storage === "string" ? options.storage : undefined,
+    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a string serialized path is copied into upload claims.
+    path: typeof options.path === "string" ? options.path : undefined,
+    field:
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a string attachmentField identifies the server-declared upload field.
+      typeof options.attachmentField === "string"
+        ? options.attachmentField
+        : undefined,
+    visibility: options.visibility === "public" ? "public" : "private",
+  });
 }
 
 /**
@@ -119,10 +95,11 @@ async function stampNode(
  * start from the untransformed declaration.
  */
 export async function StampUploadFieldTokens<T>(options: T): Promise<T> {
-  if (!hasUploadField(options)) {
+  if (uploadFieldNodes(options).length === 0) {
     return options;
   }
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- The JSON round trip clones the caller's options as any and types the clone as its T, kept by the 2026-11-02 16:00 ruling because any other clone changes the upload answer.
   const cloned: T = JSON.parse(JSON.stringify(options));
-  await stampNode(cloned);
+  for (const node of uploadFieldNodes(cloned)) await stampNode(node);
   return cloned;
 }

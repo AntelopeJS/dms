@@ -60,7 +60,7 @@ describe("[unit] implementations/dms-html-render — GenerateHtml", () => {
       });
     try {
       let failure: unknown;
-      await GenerateHtml(TEMPLATE, { name: "Ada" }).catch((error) => {
+      await GenerateHtml(TEMPLATE, { name: "Ada" }).catch((error: unknown) => {
         failure = error;
       });
       assert.instanceOf(failure, Error);

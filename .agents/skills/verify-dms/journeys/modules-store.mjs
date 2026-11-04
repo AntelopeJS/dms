@@ -1,8 +1,14 @@
+import { booleanIn, isStoreModule, listIn } from "../rows.mjs";
+
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ */
+
 const MODULES = "/modules";
 const STORE = "/modules/store";
 const LISTING = "/dms/store/listing";
 
-async function signedIn(ctx) {
+async function signedIn(/** @type {Ctx} */ ctx) {
   const tab = await ctx.tab("admin");
   await tab.signIn("admin");
   return tab;
@@ -14,7 +20,7 @@ export const journeys = [
     id: "installed-modules-open",
     title: "Modules lists the playground's two modules with their status, and Open starts a module from its home page",
     entryPoint: "/modules",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.goto(MODULES);
       await ctx.verify("both installed modules are listed with their status", [
@@ -37,7 +43,7 @@ export const journeys = [
     id: "modules-search-empty",
     title: "a module search that matches nothing shows no module, and clearing it brings them back",
     entryPoint: "/modules search, /modules/store search",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.goto(STORE);
       await tab.fill({ role: "textbox", name: "Search the store" }, "qqxzjjwv");
@@ -56,7 +62,7 @@ export const journeys = [
     id: "store-read-only-outside-dev",
     title: "outside development the store lists the catalog with Install disabled, and the install API answers 403",
     entryPoint: "/modules/store, POST /dms/store/install",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.goto(STORE);
       await ctx.verify("the store explains it is read-only and disables Install", [
@@ -65,11 +71,11 @@ export const journeys = [
       ]);
       const install = await ctx.api("install the API module", { method: "POST", path: "/dms/store/install", body: { id: "api" } });
       const listing = await ctx.api("read the store listing", { method: "GET", path: LISTING });
-      const api = listing.body?.modules?.find((entry) => entry.id === "api");
+      const api = listIn(listing.body, "modules", isStoreModule).find((entry) => entry.id === "api");
       await ctx.verify("nothing is installed", [
         ctx.status(install, 403),
         ctx.equal("error", install.body, "error.store_disabled"),
-        ctx.equal("store enabled", listing.body?.enabled, false),
+        ctx.equal("store enabled", booleanIn(listing.body, "enabled"), false),
         ctx.equal("the API module stays available, not installed", api?.state, "available"),
       ]);
     },
@@ -78,12 +84,13 @@ export const journeys = [
     id: "store-listing-owners-only",
     title: "the store listing answers the platform owner and refuses a visitor",
     entryPoint: "GET /dms/store/listing",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const owner = await ctx.api("read the listing as the owner", { method: "GET", path: LISTING });
+      const catalog = listIn(owner.body, "modules", isStoreModule);
       const visitor = await ctx.api("read the listing anonymously", { method: "GET", path: LISTING, as: "anon" });
       await ctx.verify("only the owner reads the catalog", [
         ctx.status(owner, 200),
-        ctx.holds("the catalog has modules", (owner.body?.modules ?? []).length > 0, (owner.body?.modules ?? []).length),
+        ctx.holds("the catalog has modules", catalog.length > 0, catalog.length),
         ctx.status(visitor, 403),
       ]);
     },

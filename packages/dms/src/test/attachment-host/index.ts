@@ -4,3 +4,4 @@ import "./capabilities";
 import "./archive";
 import "./computed";
 import "./conditions";
+import "./tenant-models";

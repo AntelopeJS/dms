@@ -97,7 +97,8 @@ function setStep(step: StoreOperationStep): void {
   if (current) current.step = step;
 }
 
-function describeError(error: PromiseRejectedResult["reason"]): string {
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Renders a rejected value and the members of AggregateError.errors, which JS lets be any value.
+function describeError(error: unknown): string {
   if (error instanceof AggregateError && error.errors.length > 0) {
     return error.errors.map(describeError).join("; ");
   }
@@ -107,7 +108,8 @@ function describeError(error: PromiseRejectedResult["reason"]): string {
 async function load(
   context: OperationContext,
   range: string,
-  config?: StoreDeclaration["config"],
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- A module's own configuration from antelope.config, unknown in interface-core's ModuleDeclaration.config, which the store module it loads parses itself.
+  config?: unknown,
 ): Promise<void> {
   setStep("load");
   await loadStoreModule(context.key, {
@@ -325,7 +327,7 @@ async function execute(
     const message = describeError(error);
     Logging.Error(`[DMS] Module store: ${kind} ${context.id} failed`, error);
     errors.set(context.id, message);
-    await rollback(context).catch((rollbackError) =>
+    await rollback(context).catch((rollbackError: unknown) =>
       Logging.Error(
         `[DMS] Module store: rolling back ${context.id} failed`,
         rollbackError,
@@ -403,7 +405,7 @@ export async function startStoreOperation(
       execute(kind, context).finally(() => {
         setCurrent(undefined);
       }),
-    ).catch((error) =>
+    ).catch((error: unknown) =>
       Logging.Error(`[DMS] Module store: ${kind} ${id} failed`, error),
     );
   } catch (error) {

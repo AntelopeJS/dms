@@ -1,8 +1,16 @@
+import { booleanIn, isMemberRow, issuePaths, listOf, stringIn } from "../rows.mjs";
+
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
+ * @typedef {ReturnType<typeof wizardAdmin>} Administrator
+ */
+
 const REGISTER = "/api/onboarding/register";
 const INFORMATIONS = "/api/onboarding/informations";
 const POLICY_PASSWORD = "WizardPass1!";
 
-function wizardAdmin(ctx) {
+function wizardAdmin(/** @type {Ctx} */ ctx) {
   return {
     email: ctx.email("wizard"),
     firstName: "Wiz",
@@ -11,7 +19,7 @@ function wizardAdmin(ctx) {
   };
 }
 
-async function openWizard(ctx, platformName) {
+async function openWizard(/** @type {Ctx} */ ctx, /** @type {string} */ platformName) {
   const tab = await ctx.tab("anon", "visitor");
   await tab.goto("/");
   await ctx.verify("a fresh platform opens the setup wizard", [
@@ -23,7 +31,7 @@ async function openWizard(ctx, platformName) {
   return tab;
 }
 
-async function fillAdministrator(tab, admin, setupToken) {
+async function fillAdministrator(/** @type {Tab} */ tab, /** @type {Administrator} */ admin, /** @type {string | undefined} */ setupToken) {
   if (setupToken) {
     await tab.fill({ role: "textbox", name: "Setup token" }, setupToken);
   }
@@ -33,11 +41,11 @@ async function fillAdministrator(tab, admin, setupToken) {
   await tab.fill({ role: "textbox", name: "Password", exact: true }, admin.password);
 }
 
-async function informations(ctx, label) {
+async function informations(/** @type {Ctx} */ ctx, /** @type {string} */ label) {
   return ctx.api(label, { method: "GET", path: INFORMATIONS, as: "anon" });
 }
 
-async function signInAs(ctx, name, credentials) {
+async function signInAs(/** @type {Ctx} */ ctx, /** @type {string} */ name, /** @type {{ email: string, password: string }} */ credentials) {
   ctx.addAccount(name, credentials);
   return ctx.api(`sign in as ${name}`, { method: "GET", path: "/api/auth/me", as: name });
 }
@@ -49,10 +57,10 @@ export const journeys = [
     title: "the wizard names the platform, creates the owner, signs it in, and the platform stays onboarded",
     entryPoint: "/onboarding wizard (Platform, Administrator, Ready)",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const before = await informations(ctx, "a fresh platform is not onboarded");
       await ctx.verify("the empty platform reports it is not onboarded", [
-        ctx.equal("has_onboarded", before.body?.has_onboarded, false),
+        ctx.equal("has_onboarded", booleanIn(before.body, "has_onboarded"), false),
       ]);
       const platformName = ctx.unique("Verify Wizard");
       const admin = wizardAdmin(ctx);
@@ -68,10 +76,10 @@ export const journeys = [
       const after = await informations(ctx, "the platform is onboarded");
       const me = await signInAs(ctx, "wizard", { email: admin.email, password: admin.password });
       await ctx.verify("the API reads back one onboarded owner", [
-        ctx.equal("has_onboarded", after.body?.has_onboarded, true),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), true),
         ctx.status(me, 200),
-        ctx.equal("the owner's email", me.body?.email, admin.email),
-        ctx.equal("the owner flag", me.body?.owner, true),
+        ctx.equal("the owner's email", stringIn(me.body, "email"), admin.email),
+        ctx.equal("the owner flag", booleanIn(me.body, "owner"), true),
       ]);
       const visitor = await ctx.tab("stranger");
       await visitor.goto("/onboarding");
@@ -86,7 +94,7 @@ export const journeys = [
     title: "the wizard lists the unmet password rules and creates nobody",
     entryPoint: "/onboarding wizard, Administrator step",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await openWizard(ctx, ctx.unique("Verify Weak"));
       await fillAdministrator(tab, { ...wizardAdmin(ctx), password: "weak" }, ctx.setupToken());
       await tab.click({ role: "button", name: "Create administrator account" });
@@ -97,7 +105,7 @@ export const journeys = [
       ]);
       const after = await informations(ctx, "nothing was created");
       await ctx.verify("the platform is still not onboarded", [
-        ctx.equal("has_onboarded", after.body?.has_onboarded, false),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), false),
       ]);
     },
   },
@@ -106,20 +114,20 @@ export const journeys = [
     title: "POST /api/onboarding/register answers 400 with the invalid fields and creates nobody",
     entryPoint: "POST /api/onboarding/register",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const answer = await ctx.api("register an invalid administrator", {
         method: "POST",
         path: REGISTER,
         as: "anon",
         body: { email: "not-an-email", firstName: "", lastName: "E", password: POLICY_PASSWORD },
       });
-      const paths = Array.isArray(answer.body) ? answer.body.map((issue) => issue.path?.join(".")) : [];
+      const paths = issuePaths(answer.body);
       const after = await informations(ctx, "nothing was created");
       await ctx.verify("the request is refused field by field", [
         ctx.status(answer, 400),
         ctx.holds("email is named", paths.includes("email"), JSON.stringify(paths)),
         ctx.holds("firstName is named", paths.includes("firstName"), JSON.stringify(paths)),
-        ctx.equal("has_onboarded", after.body?.has_onboarded, false),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), false),
       ]);
     },
   },
@@ -128,7 +136,7 @@ export const journeys = [
     title: "a second registration after onboarding is refused and the first owner stays the only one",
     entryPoint: "POST /api/onboarding/register",
     onboard: true,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const second = await ctx.api("register a second administrator", {
         method: "POST",
         path: REGISTER,
@@ -136,7 +144,7 @@ export const journeys = [
         body: { email: ctx.email("second"), firstName: "Second", lastName: "Owner", password: POLICY_PASSWORD },
       });
       const members = await ctx.api("list the members", { method: "GET", path: "/api/tables/members/list" });
-      const owners = (members.body?.results ?? []).filter((member) => member.isTenantOwner);
+      const owners = listOf(members.body, isMemberRow).filter((member) => member.isTenantOwner);
       await ctx.verify("the platform keeps its one owner", [
         ctx.status(second, 400),
         ctx.equal("error", second.body, "error.admin_already_set"),
@@ -145,7 +153,7 @@ export const journeys = [
       await ctx.restartBackend();
       const after = await informations(ctx, "onboarding survives a restart");
       await ctx.verify("the platform is still onboarded after a backend restart", [
-        ctx.equal("has_onboarded", after.body?.has_onboarded, true),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), true),
       ]);
     },
   },
@@ -154,7 +162,7 @@ export const journeys = [
     title: "POST /api/onboarding/register refuses a missing or wrong setup token and creates nobody",
     entryPoint: "POST /api/onboarding/register",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = wizardAdmin(ctx);
       const missing = await ctx.api("register without the token", {
         method: "POST",
@@ -174,7 +182,7 @@ export const journeys = [
         ctx.equal("missing token error", missing.body, "error.invalid_setup_token"),
         ctx.status(wrong, 403),
         ctx.equal("wrong token error", wrong.body, "error.invalid_setup_token"),
-        ctx.equal("has_onboarded", after.body?.has_onboarded, false),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), false),
       ]);
       const created = await ctx.api("register with the token", {
         method: "POST",
@@ -200,7 +208,7 @@ export const journeys = [
     title: "the wizard takes the token from the address, drops it from the URL and registers without asking for it",
     entryPoint: "/onboarding?token=<setup token>",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("anon", "visitor");
       await tab.goto(`/onboarding?token=${ctx.setupToken()}`);
       await tab.click({ role: "button", name: "Continue to administrator" });
@@ -215,7 +223,7 @@ export const journeys = [
       const after = await informations(ctx, "the platform is onboarded");
       await ctx.verify("the registration went through with the token from the address", [
         tab.visible({ role: "button", name: "Open the dashboard" }),
-        ctx.equal("has_onboarded", after.body?.has_onboarded, true),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), true),
       ]);
     },
   },
@@ -224,8 +232,8 @@ export const journeys = [
     title: "two registrations sent at once leave exactly one platform owner (formal-onboarding-bootstrap AtMostOneOwner)",
     entryPoint: "POST /api/onboarding/register, twice concurrently",
     onboard: false,
-    async run(ctx) {
-      const admins = ["first", "second"].map((name) => ({
+    async run(/** @type {Ctx} */ ctx) {
+      const admins = ["first", "second"].map((/** @type {string} */ name) => ({
         email: ctx.email(name),
         firstName: name,
         lastName: "Racer",
@@ -233,7 +241,7 @@ export const journeys = [
       }));
       const answers = await ctx.concurrent(
         "register",
-        admins.map((admin) => ({
+        admins.map((/** @type {Administrator} */ admin) => ({
           method: "POST",
           path: REGISTER,
           body: { ...admin, setupToken: ctx.setupToken() },
@@ -244,7 +252,7 @@ export const journeys = [
       const refusedButCreated = [];
       for (const [index, admin] of admins.entries()) {
         const me = await signInAs(ctx, `racer${index}`, admin);
-        if (me.status === 200 && me.body?.owner) owners.push(admin.email);
+        if (me.status === 200 && booleanIn(me.body, "owner")) owners.push(admin.email);
         if (me.status === 200 && answers[index].status !== 200) refusedButCreated.push(admin.email);
       }
       const after = await informations(ctx, "the platform after the race");
@@ -252,7 +260,7 @@ export const journeys = [
         ctx.equal("accepted registrations", accepted, 1),
         ctx.equal("platform owners", owners.length, 1),
         ctx.equal("accounts created by a refused registration", refusedButCreated, []),
-        ctx.equal("has_onboarded", after.body?.has_onboarded, true),
+        ctx.equal("has_onboarded", booleanIn(after.body, "has_onboarded"), true),
       ]);
     },
   },

@@ -4,6 +4,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import type {
   DataControllerCallback,
   DataControllerCallbackWithOptions,
+  DataControllerInstance,
 } from "@antelopejs/interface-data-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { RoleModel, TenantMemberModel } from "../../../db";
@@ -101,31 +102,63 @@ export async function authorizeAction(
   );
 }
 
-/** @internal */
-export function withActionCheck<T extends DataControllerCallback>(
+/**
+ * `baseRoute` behind the permission check of `actionId`: the route takes the
+ * user after the arguments of `baseRoute`, and runs `baseRoute` only once the
+ * user holds the permission.
+ *
+ * @internal
+ */
+export function withActionCheck<O, R, P, B>(
   actionId: string,
-  baseRoute: T,
-): DataControllerCallback {
+  baseRoute: DataControllerCallback<O, R, [RequestContext, P, B]>,
+): DataControllerCallback<O, R, [RequestContext, P, B, User]> {
   return {
     method: baseRoute.method,
     args: [...baseRoute.args, AuthUser()],
     func: async function (
-      this: ThisParameterType<DataControllerCallback["func"]>,
-      ...allArgs: Parameters<DataControllerCallback["func"]>
+      this: DataControllerInstance,
+      ctx: RequestContext,
+      params: P,
+      body: B,
+      user: User,
     ) {
-      const user: User = allArgs.pop();
-      const ctx: RequestContext = allArgs[0];
       await authorizeAction(this, actionId, user, getRequestTenantId(ctx));
-      return baseRoute.func.apply(this, allArgs);
+      return baseRoute.func.call(this, ctx, params, body);
+    },
+  };
+}
+
+/**
+ * {@link withActionCheck} for a route taking only the request context and its
+ * parameters, such as `get`.
+ *
+ * @internal
+ */
+export function withParamsActionCheck<O, R, P>(
+  actionId: string,
+  baseRoute: DataControllerCallback<O, R, [RequestContext, P]>,
+): DataControllerCallback<O, R, [RequestContext, P, User]> {
+  return {
+    method: baseRoute.method,
+    args: [...baseRoute.args, AuthUser()],
+    func: async function (
+      this: DataControllerInstance,
+      ctx: RequestContext,
+      params: P,
+      user: User,
+    ) {
+      await authorizeAction(this, actionId, user, getRequestTenantId(ctx));
+      return baseRoute.func.call(this, ctx, params);
     },
   };
 }
 
 /** @internal */
-export function withActionCheckOptions(
+export function withActionCheckOptions<O, R, P, B>(
   actionId: string,
-  baseRoute: DataControllerCallbackWithOptions,
-): DataControllerCallbackWithOptions {
+  baseRoute: DataControllerCallbackWithOptions<O, R, [RequestContext, P, B]>,
+): DataControllerCallbackWithOptions<O, R, [RequestContext, P, B, User]> {
   return {
     endpoint: baseRoute.endpoint,
     options: baseRoute.options,

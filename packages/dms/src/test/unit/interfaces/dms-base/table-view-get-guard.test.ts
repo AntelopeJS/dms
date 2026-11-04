@@ -23,7 +23,7 @@ import {
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { internal as tableViewImplInternal } from "../../../../implementations/dms-base/table-view";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
 import * as tenantAccess from "@antelopejs/interface-dms/tenant-access";
@@ -31,6 +31,7 @@ import { internal as tableViewInternal } from "@antelopejs/interface-dms/base/ta
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import type { GetGuardArgs } from "@antelopejs/interface-dms/base/types/guards";
+import { requestContextFixture } from "../../../helpers/request-context";
 import { userFixture } from "../../../helpers/user-fixture";
 
 const SCHEMA = "get-guard-test";
@@ -38,7 +39,7 @@ const TABLE = "documents";
 const NOT_FOUND = 404;
 const FORBIDDEN = 403;
 const USER = userFixture({ _id: "get-guard-user" });
-const ctx = { url: new URL("http://localhost/get") };
+const ctx = requestContextFixture(new URL("http://localhost/get"));
 const events: string[] = [];
 let denied = false;
 const gate: tenantAccess.TenantAccessGateInfo = {
@@ -91,7 +92,7 @@ async function guard(
     throw new HTTPResult(NOT_FOUND, "Not Found");
 }
 
-function get(id: string) {
+async function get(id: string) {
   return TableViewRoutes.Get.func.call(
     controller,
     ctx,
@@ -107,8 +108,8 @@ function get(id: string) {
 async function expectStatus(promise: Promise<unknown>, status: number) {
   try {
     await promise;
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
+  } catch (error: unknown) {
+    assert.instanceOf(error, HTTPResult);
     expect(error.getStatus()).to.equal(status);
     return;
   }

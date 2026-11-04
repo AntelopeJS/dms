@@ -1,11 +1,15 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { AxiosInstance } from "axios";
-import { assert, expect } from "chai";
+import { expect } from "chai";
 import { generateCode } from "2fa";
-import { decode } from "jsonwebtoken";
+import { z } from "zod";
 import { UserNotificationsModel } from "../../../db/models";
-import { generateTwoFactorToken } from "../../../implementations/dms-auth";
+import {
+  generateTwoFactorToken,
+  validateTwoFactorToken,
+} from "../../../implementations/dms-auth";
+import type { MethodEnabledResult } from "../../../pages/account";
 import { acceptTotpCode, totpStepAt } from "../../../utils";
 import {
   authorizedClient,
@@ -20,6 +24,7 @@ import {
   renderedEmails,
 } from "../../helpers/emails";
 import { createClient } from "../../helpers/http";
+import { parseBody } from "../../helpers/parse-body";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 const TWO_FACTOR = pageRoutePath("/settings/user/security", "/two-factor");
@@ -33,6 +38,10 @@ const ATTEMPTS_PER_CHALLENGE = 5;
 const WRONG_BACKUP_CODE = "WRONG000";
 const TOTP_STEP_MS = 30 * 1000;
 
+const MethodEnabledBody = z.object({
+  success: z.literal(true),
+  backupCodes: z.array(z.string()).optional(),
+}) satisfies z.ZodType<MethodEnabledResult>;
 const TOTP_SAFE_MARGIN_MS = 3 * 1000;
 
 const TOTP_BOUNDARY_OVERSHOOT_MS = 50;
@@ -44,7 +53,8 @@ const POLL_INTERVAL_MS = 50;
 const TEST_TIMEOUT_MS = 20 * 1000;
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function currentTotpCode(secret: string): Promise<string> {
   const leftInStep = TOTP_STEP_MS - (Date.now() % TOTP_STEP_MS);
@@ -75,7 +85,9 @@ async function enableTotp(
   const code = await currentTotpCode(secret);
   const confirmed = await client.post(`${TWO_FACTOR}/confirm-totp`, { code });
   expect(confirmed.status, JSON.stringify(confirmed.data)).to.equal(HTTP_OK);
-  return { secret, code, backupCodes: confirmed.data.backupCodes };
+  const { backupCodes } = parseBody(MethodEnabledBody, confirmed);
+  if (!backupCodes) throw new Error("Confirming TOTP issued no backup codes");
+  return { secret, code, backupCodes };
 }
 
 async function lastEmailedCode(): Promise<string> {
@@ -198,9 +210,7 @@ describe("[integration] auth/two-factor codes", function () {
 
     it("gives two sign-ins in the same second a challenge each", async () => {
       const { backupCodes } = await enableTotp(client, user);
-      const claims = decode(await signIn(user), { json: true });
-      assert.exists(claims);
-      const { tenantId } = claims;
+      const { tenantId } = await validateTwoFactorToken(await signIn(user));
       const stored = await storedUser(user.userId);
       const [first, second] = [
         generateTwoFactorToken(tenantId, stored),
@@ -430,6 +440,25 @@ describe("[integration] auth/two-factor codes", function () {
       expect(confirmed.status, JSON.stringify(confirmed.data)).to.equal(
         HTTP_OK,
       );
+    });
+
+    it("refuses a malformed setup body before it looks at the resend wait", async () => {
+      await startEmailSetup();
+      await client.post(`${TWO_FACTOR}/confirm-email`, {
+        code: await lastEmailedCode(),
+      });
+      await allowNextEmailCode(user.userId);
+      const resent = await client.post(`${TWO_FACTOR}/request-email-code`);
+      expect(resent.status, JSON.stringify(resent.data)).to.equal(HTTP_OK);
+
+      const malformed = await client.post(`${TWO_FACTOR}/enable-email`, {
+        currentPassword: 5,
+      });
+      expect(malformed.status, JSON.stringify(malformed.data)).to.equal(
+        HTTP_BAD_REQUEST,
+      );
+      const waiting = await startEmailSetup();
+      expect(waiting.status).to.equal(HTTP_TOO_MANY_REQUESTS);
     });
 
     it("keeps no code and starts no wait when the email could not be sent", async () => {

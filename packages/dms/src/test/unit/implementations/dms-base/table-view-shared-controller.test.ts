@@ -23,12 +23,13 @@ type TableViewBuilder = ComponentBuilder<TableViewOptionsSerialized>;
 function stampedBuilder(
   permissionIds: Record<string, string> = {},
 ): TableViewBuilder {
+  const ids = new Map(Object.entries(permissionIds));
   // SAFETY: TableViewMeta.actionPermissionIds only calls getAction and reads permissionId; no other builder or action members are exercised by this fixture.
   return {
-    getAction: (actionId: string) =>
-      permissionIds[actionId]
-        ? { permissionId: permissionIds[actionId] }
-        : undefined,
+    getAction: (actionId: string) => {
+      const permissionId = ids.get(actionId);
+      return permissionId ? { permissionId } : undefined;
+    },
   } as TableViewBuilder;
 }
 
@@ -41,9 +42,9 @@ function requestShowingArchived(): RequestContext {
 async function rejectionOf(promise: Promise<unknown>): Promise<HTTPResult> {
   try {
     await promise;
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    return error;
+  } catch (error: unknown) {
+    if (error instanceof HTTPResult) return error;
+    expect.fail(`expected an HTTPResult refusal, got ${String(error)}`);
   }
   throw new Error("expected the archive filter to refuse");
 }

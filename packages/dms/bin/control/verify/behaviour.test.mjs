@@ -9,10 +9,19 @@ import { behaviourChange } from "./behaviour.mjs";
 const COVERS = ["src/a.ts", "src/b.ts"];
 const IMPORT_OUTPUT = 'import { FAILURE, SUCCESS } from "./output";\n';
 
+/**
+ * @param {string} repo
+ * @param {...string} args
+ */
 function git(repo, ...args) {
   return execFileSync("git", args, { cwd: repo, encoding: "utf8" }).trim();
 }
 
+/**
+ * @param {string} repo
+ * @param {Record<string, string>} files
+ * @param {string} message
+ */
 function commit(repo, files, message) {
   for (const [path, content] of Object.entries(files)) {
     mkdirSync(dirname(join(repo, path)), { recursive: true });
@@ -35,6 +44,12 @@ function commit(repo, files, message) {
   return git(repo, "rev-parse", "HEAD");
 }
 
+/**
+ * @param {import("node:test").TestContext} t
+ * @param {Record<string, string>} base
+ * @param {Record<string, string>} head
+ * @param {string[]} [covers]
+ */
 function changed(t, base, head, covers = COVERS) {
   const repo = mkdtempSync(join(tmpdir(), "dms-control-emit-test-"));
   t.after(() => rmSync(repo, { recursive: true, force: true }));
@@ -50,7 +65,7 @@ const OUTPUT = {
   "src/output.ts": "export const FAILURE = 1;\nexport const SUCCESS = 0;\n",
 };
 
-test("a function declaration moved verbatim to another covered file is unchanged", (t) => {
+await test("a function declaration moved verbatim to another covered file is unchanged", (t) => {
   assert.equal(
     changed(
       t,
@@ -64,7 +79,7 @@ test("a function declaration moved verbatim to another covered file is unchanged
   );
 });
 
-test("an import that moves with its use to another covered file is unchanged", (t) => {
+await test("an import that moves with its use to another covered file is unchanged", (t) => {
   const use = `${IMPORT_OUTPUT}export function code() {\n  return FAILURE + SUCCESS;\n}\n`;
   assert.equal(
     changed(
@@ -80,7 +95,7 @@ test("an import that moves with its use to another covered file is unchanged", (
   );
 });
 
-test("a comment, a type annotation and a reformat are unchanged", (t) => {
+await test("a comment, a type annotation and a reformat are unchanged", (t) => {
   assert.equal(
     changed(
       t,
@@ -94,14 +109,14 @@ test("a comment, a type annotation and a reformat are unchanged", (t) => {
   );
 });
 
-test("single quotes against double quotes are unchanged", (t) => {
+await test("single quotes against double quotes are unchanged", (t) => {
   assert.equal(
     changed(t, { "src/a.ts": "run('x');\n" }, { "src/a.ts": 'run("x");\n' }),
     false,
   );
 });
 
-test("a body edit is changed", (t) => {
+await test("a body edit is changed", (t) => {
   assert.equal(
     changed(
       t,
@@ -112,7 +127,7 @@ test("a body edit is changed", (t) => {
   );
 });
 
-test("swapping two statements of a covered file is changed", (t) => {
+await test("swapping two statements of a covered file is changed", (t) => {
   assert.equal(
     changed(
       t,
@@ -123,7 +138,7 @@ test("swapping two statements of a covered file is changed", (t) => {
   );
 });
 
-test("moving a statement that is not a function declaration to another covered file is changed", (t) => {
+await test("moving a statement that is not a function declaration to another covered file is changed", (t) => {
   assert.equal(
     changed(
       t,
@@ -140,7 +155,7 @@ test("moving a statement that is not a function declaration to another covered f
   );
 });
 
-test("importing the same name under an alias that points elsewhere is changed", (t) => {
+await test("importing the same name under an alias that points elsewhere is changed", (t) => {
   const use = (specifier) =>
     `import { ${specifier} } from "./output";\nexport function code() {\n  return CANCELLED + FAILURE;\n}\n`;
   assert.equal(
@@ -153,7 +168,7 @@ test("importing the same name under an alias that points elsewhere is changed", 
   );
 });
 
-test("importing a binding from another module is changed", (t) => {
+await test("importing a binding from another module is changed", (t) => {
   const use = (module) =>
     `import { FAILURE } from "${module}";\nexport function code() {\n  return FAILURE;\n}\n`;
   assert.equal(
@@ -166,7 +181,7 @@ test("importing a binding from another module is changed", (t) => {
   );
 });
 
-test("retargeting a re-export is changed", (t) => {
+await test("retargeting a re-export is changed", (t) => {
   assert.equal(
     changed(
       t,
@@ -177,7 +192,7 @@ test("retargeting a re-export is changed", (t) => {
   );
 });
 
-test("removing a side-effect import is changed", (t) => {
+await test("removing a side-effect import is changed", (t) => {
   assert.equal(
     changed(
       t,
@@ -188,7 +203,7 @@ test("removing a side-effect import is changed", (t) => {
   );
 });
 
-test("swapping two assignments to the same field is changed", (t) => {
+await test("swapping two assignments to the same field is changed", (t) => {
   assert.equal(
     changed(
       t,
@@ -199,7 +214,7 @@ test("swapping two assignments to the same field is changed", (t) => {
   );
 });
 
-test("swapping two registrations pushed to the same list is changed", (t) => {
+await test("swapping two registrations pushed to the same list is changed", (t) => {
   assert.equal(
     changed(
       t,
@@ -210,7 +225,7 @@ test("swapping two registrations pushed to the same list is changed", (t) => {
   );
 });
 
-test("importing min instead of max under the same alias, both in covered files, is changed", (t) => {
+await test("importing min instead of max under the same alias, both in covered files, is changed", (t) => {
   const use = (name) =>
     `import { ${name} as pick } from "./b";\nexport function best() {\n  return pick(1, 2);\n}\n`;
   const lib = {
@@ -227,6 +242,11 @@ test("importing min instead of max under the same alias, both in covered files, 
   );
 });
 
+/**
+ * @param {import("node:test").TestContext} t
+ * @param {Record<string, string>} base
+ * @param {Record<string, string>} head
+ */
 function changedAll(t, base, head) {
   return changed(t, base, head, Object.keys(base));
 }
@@ -234,7 +254,7 @@ function changedAll(t, base, head) {
 const OPS =
   "export function add(a, b) {\n  return a + b;\n}\nexport function sub(a, b) {\n  return a - b;\n}\n";
 
-test("retargeting a re-export of a covered module to another of its exports is changed", (t) => {
+await test("retargeting a re-export of a covered module to another of its exports is changed", (t) => {
   assert.equal(
     changedAll(
       t,
@@ -248,7 +268,7 @@ test("retargeting a re-export of a covered module to another of its exports is c
   );
 });
 
-test("a re-export of a covered module under its own name, reflowed, is unchanged", (t) => {
+await test("a re-export of a covered module under its own name, reflowed, is unchanged", (t) => {
   assert.equal(
     changedAll(
       t,
@@ -259,7 +279,7 @@ test("a re-export of a covered module under its own name, reflowed, is unchanged
   );
 });
 
-test("retargeting a local export alias is changed", (t) => {
+await test("retargeting a local export alias is changed", (t) => {
   const local = (target) =>
     `function f() {\n  return 1;\n}\nfunction g() {\n  return 2;\n}\nexport { ${target} as run };\n`;
   assert.equal(
@@ -276,7 +296,7 @@ test("retargeting a local export alias is changed", (t) => {
   );
 });
 
-test("exporting a local under its own name, by keyword or by list, is unchanged", (t) => {
+await test("exporting a local under its own name, by keyword or by list, is unchanged", (t) => {
   assert.equal(
     changedAll(
       t,
@@ -287,7 +307,7 @@ test("exporting a local under its own name, by keyword or by list, is unchanged"
   );
 });
 
-test("swapping two side-effect imports is changed", (t) => {
+await test("swapping two side-effect imports is changed", (t) => {
   assert.equal(
     changedAll(
       t,
@@ -298,7 +318,7 @@ test("swapping two side-effect imports is changed", (t) => {
   );
 });
 
-test("a function moved verbatim into a file with a different top-level variable of the same name is changed", (t) => {
+await test("a function moved verbatim into a file with a different top-level variable of the same name is changed", (t) => {
   const log = "export function report() {\n  return Logger.channel;\n}\n";
   assert.equal(
     changedAll(
@@ -318,7 +338,7 @@ test("a function moved verbatim into a file with a different top-level variable 
   );
 });
 
-test("a function moved with the variable it reads, or reading it through an import, is judged by that variable", (t) => {
+await test("a function moved with the variable it reads, or reading it through an import, is judged by that variable", (t) => {
   const log = "export function report() {\n  return Logger.channel;\n}\n";
   assert.equal(
     changedAll(
@@ -336,7 +356,7 @@ test("a function moved with the variable it reads, or reading it through an impo
   );
 });
 
-test("an import aliased to a name that a local variable also has is changed when a function switches to the local", (t) => {
+await test("an import aliased to a name that a local variable also has is changed when a function switches to the local", (t) => {
   const lib = "export const x = 1;\n";
   const use = (name) =>
     `import { x as y } from "./lib";\nconst x = 2;\nexport function value() {\n  return ${name};\n}\n`;
@@ -347,5 +367,93 @@ test("an import aliased to a name that a local variable also has is changed when
       { "src/lib.ts": lib, "src/a.ts": use("x") },
     ),
     true,
+  );
+});
+
+const NON_LITERAL_SPECIFIERS = [
+  ["an identifier", "import x from foo;\nx();\n", "import x from bar;\nx();\n"],
+  [
+    "a template without substitutions",
+    "import x from `./a`;\nx();\n",
+    "import x from `./b`;\nx();\n",
+  ],
+  ["a numeric literal", "import x from 1;\nx();\n", "import x from 2;\nx();\n"],
+  ["an export-star identifier", "export * from foo;\n", "export * from bar;\n"],
+  [
+    "a named re-export identifier",
+    "export { a } from foo;\n",
+    "export { a } from bar;\n",
+  ],
+];
+
+for (const [kind, base, head] of NON_LITERAL_SPECIFIERS) {
+  await test(`retargeting a module specifier written as ${kind} is changed`, (t) => {
+    assert.equal(changed(t, { "src/a.ts": base }, { "src/a.ts": head }), true);
+  });
+}
+
+await test("retargeting an identifier specifier in a Vue script is changed", (t) => {
+  const vue = (specifier) =>
+    `<template><p/></template>\n<script>import x from ${specifier}; x();</script>\n`;
+  assert.equal(
+    changed(t, { "src/a.vue": vue("foo") }, { "src/a.vue": vue("bar") }, [
+      "src/a.vue",
+    ]),
+    true,
+  );
+});
+
+const SAME_TEXT_SPECIFIERS = [
+  [
+    "a bare package against the same name as an identifier",
+    'import ts from "typescript";\nts.version;\n',
+    "import ts from typescript;\nts.version;\n",
+  ],
+  [
+    "a bare package against the same name as a template",
+    'import ts from "typescript";\nts.version;\n',
+    "import ts from `typescript`;\nts.version;\n",
+  ],
+  [
+    "a quoted number against the number",
+    'import x from "1";\nx();\n',
+    "import x from 1;\nx();\n",
+  ],
+  [
+    "a quoted relative path against the same text as a template",
+    'import x from "./a";\nx();\n',
+    "import x from `./a`;\nx();\n",
+  ],
+];
+
+for (const [kind, base, head] of SAME_TEXT_SPECIFIERS) {
+  await test(`${kind} is unchanged`, (t) => {
+    assert.equal(changed(t, { "src/a.ts": base }, { "src/a.ts": head }), false);
+  });
+}
+
+await test("a module specifier that is a call expression throws on either commit", (t) => {
+  const call = "import x from a();\nx();\n";
+  const valid = 'import x from "./a";\nx();\n';
+  assert.throws(() => changed(t, { "src/a.ts": valid }, { "src/a.ts": call }), {
+    name: "TypeError",
+    message: /found CallExpression/,
+  });
+  assert.throws(() => changed(t, { "src/a.ts": call }, { "src/a.ts": valid }), {
+    name: "TypeError",
+    message: /found CallExpression/,
+  });
+});
+
+await test("a module specifier that is a template literal with substitutions throws the named error on either commit", (t) => {
+  const template = "import x from `./${name}`;\nx();\n";
+  const valid = 'import x from "./a";\nx();\n';
+  assert.throws(
+    () => changed(t, { "src/a.ts": valid }, { "src/a.ts": template }),
+    { name: "TypeError", message: /found TemplateExpression/ },
+  );
+  assert.throws(
+    () => changed(t, { "src/a.ts": template }, { "src/a.ts": valid }),
+    { name: "TypeError", message: /found TemplateExpression/ },
   );
 });

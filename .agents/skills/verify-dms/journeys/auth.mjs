@@ -1,17 +1,24 @@
+import { isUserRow, listOf, stringIn } from "../rows.mjs";
+
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
+ */
+
 const MEMBERS = "/settings/workspace/members";
 const RESET_CODE = /verification code is:\s*([A-Z0-9]{6})/;
 
-function login(ctx, label, email, password) {
+function login(/** @type {Ctx} */ ctx, /** @type {string} */ label, /** @type {string} */ email, /** @type {string} */ password) {
   return ctx.api(label, { method: "POST", path: "/api/auth/login", as: "anon", body: { email, password } });
 }
 
-async function fillLoginForm(tab, email, password) {
+async function fillLoginForm(/** @type {Tab} */ tab, /** @type {string} */ email, /** @type {string} */ password) {
   await tab.fill({ role: "textbox", name: "Email address" }, email);
   await tab.fill({ role: "textbox", name: "Password", exact: true }, password);
   await tab.click({ role: "button", name: "Login", exact: true });
 }
 
-async function requestResetCode(ctx, tab, email) {
+async function requestResetCode(/** @type {Ctx} */ ctx, /** @type {Tab} */ tab, /** @type {string} */ email) {
   await tab.goto("/auth/forgot");
   await tab.fill({ role: "textbox", name: "Email address" }, email);
   await tab.click({ role: "button", name: "Send the code" });
@@ -26,8 +33,8 @@ async function requestResetCode(ctx, tab, email) {
   return RESET_CODE.exec(mail.match?.text ?? "")?.[1] ?? "";
 }
 
-async function typeCode(tab, code) {
-  for (const [index, character] of [...code].entries()) {
+async function typeCode(/** @type {Tab} */ tab, /** @type {string} */ code) {
+  for (const [index, character] of Array.from(code).entries()) {
     await tab.fill({ role: "textbox", name: `pin input ${index + 1} of 6` }, character);
   }
 }
@@ -38,7 +45,7 @@ export const journeys = [
     id: "login-form-persists",
     title: "the sign-in form opens the dashboard and the session survives a reload and a backend restart",
     entryPoint: "/auth sign-in form",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await ctx.verify("the dashboard shows the signed-in account", [
@@ -55,7 +62,7 @@ export const journeys = [
       const me = await ctx.api("read the signed-in account", { method: "GET", path: "/api/auth/me" });
       await ctx.verify("the API reads back the same account", [
         ctx.status(me, 200),
-        ctx.equal("email", me.body?.email, ctx.adminCredentials().email),
+        ctx.equal("email", stringIn(me.body, "email"), ctx.adminCredentials().email),
       ]);
     },
   },
@@ -63,7 +70,7 @@ export const journeys = [
     id: "login-wrong-password",
     title: "a wrong password keeps the visitor on the sign-in page with an error, and the API refuses it",
     entryPoint: "/auth sign-in form, POST /api/auth/login",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const tab = await ctx.tab("stranger");
       await tab.goto("/auth");
@@ -83,7 +90,7 @@ export const journeys = [
     id: "protected-page-redirects",
     title: "an anonymous visit to a settings page goes to sign-in and returns to the page afterwards",
     entryPoint: "/settings/workspace/members as a visitor",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const tab = await ctx.tab("stranger");
       await tab.goto(MEMBERS);
@@ -103,7 +110,7 @@ export const journeys = [
     id: "logout-ends-session",
     title: "Logout from the account menu ends the session, and the settings page asks to sign in again",
     entryPoint: "account menu > Logout",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.click({ role: "button", name: "Verify Admin" });
@@ -117,7 +124,7 @@ export const journeys = [
     id: "forgot-password-resets",
     title: "the emailed code resets the password: the new one signs in and the old one is refused",
     entryPoint: "/auth/forgot, /auth/forgot-validation, /auth/recover",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const tab = await ctx.tab("stranger");
       const code = await requestResetCode(ctx, tab, admin.email);
@@ -130,7 +137,7 @@ export const journeys = [
       const withNew = await login(ctx, "sign in with the new password", admin.email, fresh);
       const withOld = await login(ctx, "sign in with the old password", admin.email, admin.password);
       await ctx.verify("only the new password signs in", [
-        ctx.holds("new password accepted", withNew.status === 200 && withNew.body?.access_token, withNew.status),
+        ctx.holds("new password accepted", withNew.status === 200 && stringIn(withNew.body, "access_token"), withNew.status),
         ctx.status(withOld, 401),
       ]);
     },
@@ -139,7 +146,7 @@ export const journeys = [
     id: "forgot-password-wrong-code",
     title: "a wrong reset code is refused and the password does not change",
     entryPoint: "/auth/forgot-validation",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
       const tab = await ctx.tab("stranger");
       const code = await requestResetCode(ctx, tab, admin.email);
@@ -158,8 +165,9 @@ export const journeys = [
     title: "an owner, a session and a record written by the base version are read by this version (Format containment)",
     entryPoint: "the base ref's backend, then this one, on the same database",
     onboard: false,
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const admin = ctx.adminCredentials();
+      /** @type {{ recordId?: string, access?: string, refresh?: string }} */
       const written = {};
       await ctx.withBaseBackend(async () => {
         const answer = await ctx.onboard({ platformName: "Written by the base version" });
@@ -169,7 +177,7 @@ export const journeys = [
           body: { name: "Base Record", email: ctx.email("base-record"), avatar: "https://example.com/avatar.png" },
         });
         const session = await login(ctx, "sign in with the base version", admin.email, admin.password);
-        Object.assign(written, { recordId: created.body?._id, access: session.body?.access_token, refresh: session.body?.refresh_token });
+        Object.assign(written, { recordId: stringIn(created.body, "_id"), access: stringIn(session.body, "access_token"), refresh: stringIn(session.body, "refresh_token") });
         await ctx.verify("the base version onboards, writes a record and opens a session", [
           ctx.equal("register", answer.register.status, 200),
           ctx.status(created, 200),
@@ -182,10 +190,10 @@ export const journeys = [
       const users = await ctx.api("read the base record", { method: "GET", path: "/api/user/list?limit=100" });
       await ctx.verify("this version reads what the base version wrote", [
         ctx.status(me, 200),
-        ctx.equal("the account behind the base token", me.body?.email, admin.email),
-        ctx.holds("the base refresh token refreshes", refreshed.status === 200 && refreshed.body?.access_token, refreshed.status),
+        ctx.equal("the account behind the base token", stringIn(me.body, "email"), admin.email),
+        ctx.holds("the base refresh token refreshes", refreshed.status === 200 && stringIn(refreshed.body, "access_token"), refreshed.status),
         ctx.status(relogin, 200),
-        ctx.holds("the record is listed", (users.body?.results ?? []).some((user) => user._id === written.recordId), written.recordId),
+        ctx.holds("the record is listed", listOf(users.body, isUserRow).some((user) => user._id === written.recordId), written.recordId),
       ]);
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");

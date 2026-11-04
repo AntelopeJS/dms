@@ -4,6 +4,7 @@ import { TenantLifecycleModel } from "./db/internal/tenantLifecycle.model";
 
 const HTTP_CLIENT_ERROR_MIN = 400;
 const HTTP_SERVER_ERROR_MIN = 500;
+const RELEASE_ATTEMPTS = 3;
 
 /** What a thrown `HTTPResult` exposes, whichever copy of the API built it. */
 interface StatusCarrier {
@@ -11,28 +12,55 @@ interface StatusCarrier {
 }
 
 /**
- * Whether the work refused on purpose, with an HTTP 4xx: a decision rather
- * than an effect whose outcome is unknown. Read by shape, not `instanceof`,
- * because the refusal can come from another module's copy of the API
- * interface (a dms-saas seat limit raised from a hook, for instance).
+ * Whether a status is an HTTP 4xx: a refusal on purpose, a decision rather
+ * than an effect whose outcome is unknown.
  */
-function isDeliberateRefusal(error: Error["cause"]): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Legacy refusal detection reads getStatus from any thrown value without validating its shape; adding validation would change proxy and getter behavior.
-  const getStatus = (error as Partial<StatusCarrier> | null)?.getStatus;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Refusals can originate in another copy of the API; the existing callable shape check intentionally avoids instanceof.
-  if (typeof getStatus !== "function") return false;
-  const status = getStatus.call(error);
+function isClientErrorStatus(status: number): boolean {
   return status >= HTTP_CLIENT_ERROR_MIN && status < HTTP_SERVER_ERROR_MIN;
+}
+
+/**
+ * Releases the admission of an invocation whose effects are all known: it
+ * finished, or it refused on purpose. Releasing is idempotent, so a failed
+ * release is tried again; the failure of the last try is returned, never
+ * swallowed.
+ */
+async function releaseAttempt(
+  model: TenantLifecycleModel,
+  tenantId: string,
+  attemptId: string,
+): Promise<Error | undefined> {
+  let failure: Error | undefined;
+  for (let attempt = 0; attempt < RELEASE_ATTEMPTS; attempt++) {
+    try {
+      await model.finish(tenantId, attemptId);
+      return undefined;
+    } catch (releaseFailure) {
+      failure = new Error("Tenant lifecycle release failed", {
+        cause: releaseFailure,
+      });
+    }
+  }
+  return failure;
 }
 
 /**
  * Admits one invocation. Work must await every producer effect and start no
  * detached writer. Failure retains its admission; an independent replay must
- * never retire this invocation's identity. Internal nested calls reuse admission.
+ * never retire this invocation's identity. Each call takes its own admission,
+ * so work never calls this again for the same tenant.
  *
- * A deliberate refusal (an HTTP 4xx) is the exception: work that awaits every
- * effect has none left in flight once it refuses, so keeping the admission
- * would only block the tenant's deletion forever.
+ * A success, and a deliberate refusal (an HTTP 4xx), are the exceptions: work
+ * that awaits every effect has none left in flight once it finishes or
+ * refuses, so keeping the admission would only block the tenant's deletion
+ * forever. The release is tried {@link RELEASE_ATTEMPTS} times. If every try
+ * fails, the admission stays and the call rejects, so the blocked deletion is
+ * reported instead of hidden: with an `AggregateError` of the refusal and the
+ * release failure after a refusal, with the release failure after a success.
+ *
+ * A refusal is read by shape, not `instanceof`, because it can come from
+ * another module's copy of the API interface (a dms-saas seat limit raised
+ * from a hook, for instance).
  */
 export async function runTenantLifecycleOperation<T>(
   tenantId: string,
@@ -45,12 +73,25 @@ export async function runTenantLifecycleOperation<T>(
   try {
     result = await work();
   } catch (error) {
-    if (isDeliberateRefusal(error)) {
-      await model.finish(tenantId, attemptId).catch(() => undefined);
+    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Legacy refusal detection reads getStatus from any thrown value without validating its shape; adding validation would change proxy and getter behavior.
+    const getStatus = (error as Partial<StatusCarrier> | null)?.getStatus;
+    if (
+      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Refusals can originate in another copy of the API; the existing callable shape check intentionally avoids instanceof.
+      typeof getStatus === "function" &&
+      isClientErrorStatus(getStatus.call(error))
+    ) {
+      const releaseFailure = await releaseAttempt(model, tenantId, attemptId);
+      if (releaseFailure) {
+        throw new AggregateError(
+          [error, releaseFailure],
+          "Tenant lifecycle admission refused the work but could not release; deletion of this tenant stays blocked",
+        );
+      }
     }
     throw error;
   }
-  await model.finish(tenantId, attemptId);
+  const releaseFailure = await releaseAttempt(model, tenantId, attemptId);
+  if (releaseFailure) throw releaseFailure;
   return result;
 }
 

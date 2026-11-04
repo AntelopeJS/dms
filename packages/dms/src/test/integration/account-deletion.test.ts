@@ -7,7 +7,7 @@ import { SessionModel, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import { FileExists } from "@antelopejs/interface-file-storage";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { SignInAttemptsModel, UserKnownDevicesModel } from "../../db/models";
 import { deleteAccount } from "../../pages/account";
 import { uploadExportToStorage } from "../../utils";
@@ -102,9 +102,9 @@ describe("[integration] account deletion", () => {
     const user = await GetModel(UserModel).get(owner.userId);
     const refusal = await deleteAccount(user!).then(
       () => undefined,
-      (error) => error,
+      (error: unknown) => error,
     );
-    expect(refusal).to.be.instanceOf(HTTPResult);
+    assert.instanceOf(refusal, HTTPResult);
     expect(refusal.getStatus()).to.equal(HTTP_CONFLICT);
     expect(await GetModel(UserModel).get(owner.userId)).to.not.equal(undefined);
   });

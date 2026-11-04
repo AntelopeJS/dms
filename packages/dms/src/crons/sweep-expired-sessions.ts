@@ -18,7 +18,7 @@ export async function runSweepExpiredSessions(now = new Date()): Promise<void> {
 
 export function scheduleSweepExpiredSessions(): ScheduledTask {
   return cron.schedule(SWEEP_EXPIRED_SESSIONS_SCHEDULE, () => {
-    void runSweepExpiredSessions().catch((error) => {
+    void runSweepExpiredSessions().catch((error: unknown) => {
       Logging.Error(
         `Cron '${SWEEP_EXPIRED_SESSIONS_CRON_NAME}' failed:`,
         error,

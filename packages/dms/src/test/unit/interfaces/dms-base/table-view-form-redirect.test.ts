@@ -204,21 +204,25 @@ describe("[unit] interfaces/dms-base — table view form page redirect", () => {
 
   it("keeps the bare name of a placeholder the form route does not repeat", async () => {
     for (const kind of ["new", "edit"]) {
-      expect((await redirectOf(`frd-named.rows.${kind}`)).url).to.equal(
+      expect(await redirectOf(`frd-named.rows.${kind}`)).to.have.property(
+        "url",
         "/frd-named/{{params.workspace}}",
       );
     }
-    expect((await redirectOf("frd-mixed.rows.new")).url).to.equal(
+    expect(await redirectOf("frd-mixed.rows.new")).to.have.property(
+      "url",
       "/frd-mixed/{{params.project}}/members/{{params.id}}",
     );
-    expect((await redirectOf("frd-mixed.rows.edit")).url).to.equal(
+    expect(await redirectOf("frd-mixed.rows.edit")).to.have.property(
+      "url",
       "/frd-mixed/{{params.project}}/members/{{params.id:1}}",
     );
   });
 
   it("numbers every occurrence of a name the page slug repeats", async () => {
     for (const kind of ["new", "edit"]) {
-      expect((await redirectOf(`frd-deep.rows.${kind}`)).url).to.equal(
+      expect(await redirectOf(`frd-deep.rows.${kind}`)).to.have.property(
+        "url",
         "/frd-deep/{{params.id:1}}/sub/{{params.id:2}}",
       );
     }
@@ -228,8 +232,9 @@ describe("[unit] interfaces/dms-base — table view form page redirect", () => {
     for (const page of [TopLevelPage, UnfilteredPage]) {
       const { pageInfo } = GetMetadata(page, PageMetadata);
       for (const kind of ["new", "edit"]) {
-        const redirect = await redirectOf(`${pageInfo!.id}.rows.${kind}`);
-        expect(redirect.url).to.equal(pageInfo!.fullSlug);
+        expect(
+          await redirectOf(`${pageInfo!.id}.rows.${kind}`),
+        ).to.have.property("url", pageInfo!.fullSlug);
       }
     }
     expect(await redirectOf("frd-top.rows.edit")).to.deep.equal({

@@ -11,18 +11,33 @@ import { DEFAULT_ROW_ID_FIELD } from "../options";
 import { getTableViewMetaFor } from "./meta";
 
 type WriteMode = "new" | "edit";
-type TableRow = NonNullable<Awaited<ReturnType<typeof fetchRowForGuard>>>;
+
+/** What a `new` or `edit` route receives second: the row an edit names, and whether mandatory fields are already checked. */
+interface ColumnWriteParameters {
+  id?: string;
+  noMandatory?: string;
+}
+
+/** The value `row` holds under `key`; a key it does not hold itself reads as absent, whatever `Object.prototype` answers. */
+const ownValue = (
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The stored row merged with the request body holds whichever table's module-defined fields, read by the column names its conditions declare.
+  row: Readonly<Record<string, unknown>>,
+  key: string,
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Answers the own value of a column a condition names, which holds whatever that table's module declares for it.
+): unknown => (Object.hasOwn(row, key) ? row[key] : undefined);
 
 /** Whether `row` meets `condition`: a field it lacks counts as empty. */
 const meetsFieldCondition = (
   condition: FieldCondition,
-  row: Readonly<TableRow>,
-): boolean => condition.in.includes(row[condition.field] ?? null);
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The stored row merged with the request body holds whichever table's module-defined fields, read by the column names its conditions declare.
+  row: Readonly<Record<string, unknown>>,
+): boolean => condition.in.includes(ownValue(row, condition.field) ?? null);
 
 /** The columns whose form field `row` hides or disables. */
 function inactiveColumns(
   columns: Readonly<Record<string, ColumnOptions>>,
-  row: Readonly<TableRow>,
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The stored row merged with the request body holds whichever table's module-defined fields, read by the column names its conditions declare.
+  row: Readonly<Record<string, unknown>>,
 ) {
   const entries = Object.entries(columns);
   return {
@@ -39,7 +54,7 @@ function inactiveColumns(
   };
 }
 
-const isEmptyValue = (value: TableRow[string]): boolean =>
+const isEmptyValue = (value: unknown): value is null | undefined | "" | [] =>
   value === undefined ||
   value === null ||
   value === "" ||
@@ -56,28 +71,46 @@ const isEmptyValue = (value: TableRow[string]): boolean =>
  *
  * @internal
  */
-export const withColumnConditions = (
-  baseRoute: DataControllerCallback,
+export const withColumnConditions = <
+  O,
+  R,
+  P extends ColumnWriteParameters,
+  Rest extends unknown[],
+>(
+  baseRoute: DataControllerCallback<
+    O,
+    R,
+    [RequestContext, P, Validation.WrittenBody, ...Rest]
+  >,
   mode: WriteMode,
-): DataControllerCallback => ({
+): DataControllerCallback<
+  O,
+  R,
+  [RequestContext, P, Validation.WrittenBody, ...Rest]
+> => ({
   func: async function (
     this: Parameters<typeof fetchRowForGuard>[0] & {
       constructor: ConstructorParameters<typeof DataAPIMeta>[0];
     },
     ctx: RequestContext,
-    params: Parameters<DataControllerCallback["func"]>[1],
-    ...args: Parameters<DataControllerCallback["func"]>[2][]
+    params: P,
+    rawBody: Validation.WrittenBody,
+    ...rest: Rest
   ) {
     const tableMeta = getTableViewMetaFor(this);
     const { columns } = tableMeta;
     const hasConditions = Object.values(columns).some(
       (c) => c.visibleWhen || c.disabledWhen,
     );
-    if (!hasConditions) return baseRoute.func.call(this, ctx, params, ...args);
+    if (!hasConditions) {
+      return baseRoute.func.call(this, ctx, params, rawBody, ...rest);
+    }
 
-    const body = Validation.ParseBody(args[0]);
-    let row: TableRow = body;
-    let current: TableRow | undefined;
+    const body = Validation.ParseBody(rawBody);
+    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The request body, merged below with the stored row of an edit, holds whichever table's module-defined fields, read by the column names its conditions declare.
+    let row: Record<string, unknown> = body;
+    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The stored row fetchRowForGuard reads for an edit holds whichever table's module-defined fields, read by the column names its conditions declare.
+    let current: Record<string, unknown> | undefined;
     if (mode === "edit") {
       current = await fetchRowForGuard(
         this,
@@ -85,6 +118,7 @@ export const withColumnConditions = (
         tableMeta.options.rowIdKey || DEFAULT_ROW_ID_FIELD,
       );
       throwHttpAssert(current, 404, "Not Found");
+      // oxlint-disable-next-line anti-slop/no-known-value-widening -- The stored row merged with the request body widens into the open row the conditions read, whose fields hold whatever that table's module declares.
       row = { ...current, ...body };
     }
 
@@ -92,32 +126,31 @@ export const withColumnConditions = (
     const written = { ...body };
     for (const key of [...hidden, ...disabled]) delete written[key];
     for (const key of hidden) {
-      if (current && !isEmptyValue(current[key])) written[key] = null;
+      if (current && !isEmptyValue(ownValue(current, key))) written[key] = null;
     }
 
     if (params.noMandatory) {
-      return baseRoute.func.call(this, ctx, params, written, ...args.slice(1));
+      return baseRoute.func.call(this, ctx, params, written, ...rest);
     }
     const dataMeta = GetMetadata(this.constructor, DataAPIMeta);
     const conditional = Object.keys(columns).filter(
       (key) => columns[key].visibleWhen,
     );
     const exempt = new Set([...conditional, ...disabled]);
-    Validation.MandatoryFields(
-      Object.assign(Object.create(dataMeta), {
-        fields: Object.fromEntries(
-          Object.entries(dataMeta.fields).filter(([key]) => !exempt.has(key)),
-        ),
-      }),
-      written,
-      mode,
+    const checked = new DataAPIMeta(dataMeta.target);
+    Object.assign(
+      checked.fields,
+      Object.fromEntries(
+        Object.entries(dataMeta.fields).filter(([key]) => !exempt.has(key)),
+      ),
     );
+    Validation.MandatoryFields(checked, written, mode);
     const missing = conditional.filter(
       (key) =>
         dataMeta.fields[key]?.mandatory?.has(mode) &&
         !hidden.includes(key) &&
         !disabled.includes(key) &&
-        isEmptyValue(row[key]),
+        isEmptyValue(ownValue(row, key)),
     );
     if (missing.length > 0) {
       throw new HTTPResult(400, {
@@ -130,7 +163,7 @@ export const withColumnConditions = (
       ctx,
       { ...params, noMandatory: "true" },
       written,
-      ...args.slice(1),
+      ...rest,
     );
   },
   args: baseRoute.args,

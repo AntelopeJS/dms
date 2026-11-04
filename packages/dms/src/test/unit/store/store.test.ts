@@ -2,7 +2,8 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { HTTPResult } from "@antelopejs/interface-api";
-import { expect } from "chai";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
+import { assert, expect } from "chai";
 import {
   loadStoreCatalog,
   readCatalogDocument,
@@ -155,9 +156,9 @@ describe("[unit] store/production", () => {
       "@antelopejs/dms-lang",
     ).then(
       () => undefined,
-      (error) => error,
+      (error: unknown) => error,
     );
-    expect(refusal).to.be.instanceOf(HTTPResult);
+    assert.instanceOf(refusal, HTTPResult);
     expect(refusal.getStatus()).to.equal(HTTP_FORBIDDEN);
     expect(refusal.getBody()).to.equal("error.store_disabled");
   });
@@ -238,7 +239,7 @@ describe("[unit] store/interfaces", () => {
 
   async function moduleAt(
     id: string,
-    manifest: Parameters<typeof JSON.stringify>[0],
+    manifest: Record<string, JsonValue>,
   ): Promise<RuntimeModule> {
     const localPath = path.join(root, id);
     await mkdir(localPath, { recursive: true });

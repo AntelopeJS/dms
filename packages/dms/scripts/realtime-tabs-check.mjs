@@ -13,6 +13,11 @@ const PROBE_PATH = "/api/_auth/session";
 const LEGACY_STREAM_PATH = "/api/realtime/connection";
 const STREAM_PATHS = ["/api/realtime/connection", "/dms/dev/reload"];
 
+/** @typedef {ReturnType<typeof readOptions>} Options */
+/** @typedef {import("playwright-core").Page} Page */
+/** @typedef {import("playwright-core").BrowserContext} BrowserContext */
+/** @typedef {import("playwright-core").Request} Request */
+
 function readOptions() {
   const { values } = parseArgs({
     options: {
@@ -45,18 +50,23 @@ function readOptions() {
   };
 }
 
-/** The streams the tabs hold open, as the browser sees them. */
+/**
+ * The streams the tabs hold open, as the browser sees them.
+ * @param {BrowserContext} context
+ * @param {string} baseUrl
+ */
 function trackStreams(context, baseUrl) {
+  /** @type {Set<Request>} */
   const open = new Set();
   let peak = 0;
-  const isStream = (request) => {
+  const isStream = (/** @type {Request} */ request) => {
     const url = new URL(request.url());
     return (
       url.origin === new URL(baseUrl).origin &&
       STREAM_PATHS.includes(url.pathname)
     );
   };
-  const settle = (request) => open.delete(request);
+  const settle = (/** @type {Request} */ request) => open.delete(request);
   context.on("request", (request) => {
     if (!isStream(request)) return;
     open.add(request);
@@ -70,6 +80,10 @@ function trackStreams(context, baseUrl) {
   };
 }
 
+/**
+ * @param {Page} page
+ * @param {Options} options
+ */
 async function signIn(page, options) {
   await page.goto(`${options.baseUrl}${SIGN_IN_PATH}`, {
     waitUntil: "load",
@@ -89,6 +103,10 @@ async function signIn(page, options) {
   if (status >= 400) throw new Error(`Sign-in answered ${status}`);
 }
 
+/**
+ * @param {Page} page
+ * @param {number} count
+ */
 async function openLegacyStreams(page, count) {
   const open = () =>
     page.evaluate(
@@ -107,9 +125,15 @@ async function openLegacyStreams(page, count) {
 
 /**
  * Resolves to the promise's value, or null if it rejects or exceeds `ms`.
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @returns {Promise<T | null>}
  */
 function withDeadline(promise, ms) {
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
   let timer;
+  /** @type {Promise<null>} */
   const deadline = new Promise((resolve) => {
     timer = setTimeout(() => resolve(null), ms);
   });
@@ -118,7 +142,11 @@ function withDeadline(promise, ms) {
   );
 }
 
-/** How long a plain request from the tab takes, or `null` past the timeout. */
+/**
+ * How long a plain request from the tab takes, or `null` past the timeout.
+ * @param {Page} page
+ * @param {number} timeoutMs
+ */
 function probe(page, timeoutMs) {
   const request = page.evaluate(
     async ({ path, timeoutMs: limit }) => {
@@ -139,11 +167,17 @@ function probe(page, timeoutMs) {
   return withDeadline(request, timeoutMs);
 }
 
+/**
+ * @param {BrowserContext} context
+ * @param {Options} options
+ */
 async function openTabs(context, options) {
+  /** @type {{ page: Page, loadMs: number | null }[]} */
   const pages = [];
   for (let index = 0; index < options.tabs; index += 1) {
     const page = await context.newPage();
     const started = Date.now();
+    /** @type {number | null} */
     let loadMs = null;
     // oxfmt-ignore
     try {
@@ -165,6 +199,13 @@ async function openTabs(context, options) {
   return pages;
 }
 
+/**
+ * @param {Options} options
+ * @param {ReturnType<typeof trackStreams>} streams
+ * @param {{ page: Page, loadMs: number | null }[]} tabs
+ * @param {(number | null)[]} probes
+ * @returns {string[]}
+ */
 function report(options, streams, tabs, probes) {
   console.log("Requests from each tab:");
   for (const [index, ms] of probes.entries()) {
@@ -176,6 +217,7 @@ function report(options, streams, tabs, probes) {
   console.log(
     `Long-lived streams open: ${open.length} (peak ${streams.peak()}): ${open.join(", ") || "none"}`,
   );
+  /** @type {string[]} */
   const failures = [];
   if (tabs.some((tab) => tab.loadMs === null))
     failures.push("a tab never loaded");

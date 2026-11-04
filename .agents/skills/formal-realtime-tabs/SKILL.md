@@ -18,7 +18,7 @@ Another user's save commits and publishes its event through `withRealtimeMutatio
 
 ## Run it
 
-From the repository root, with Node 24:
+From the repository root, with Node 24 and `pnpm install` done (the runner comes from `@antelopejs/tooling-configs/formal`):
 
 ```sh
 node .agents/skills/formal-realtime-tabs/check.mjs          # CI configurations

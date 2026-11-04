@@ -27,11 +27,11 @@ interface SendEmailInput {
   language?: string;
 }
 
-interface SendEmailOutput {
+type SendEmailOutput = {
   success: boolean;
   messageId?: string;
   error?: string;
-}
+};
 
 /** A user's language when the address belongs to one, for a rendered template. */
 async function recipientLanguage(email: string): Promise<string | undefined> {
@@ -146,11 +146,11 @@ interface InviteUserInput {
   inviterName?: string;
 }
 
-interface InviteUserOutput {
+type InviteUserOutput = {
   kind: "added" | "invited" | "already-member";
   userId?: string;
   inviteId?: string;
-}
+};
 
 type InvitationDetails = Pick<
   InviteUserToTenantOptions,

@@ -1,5 +1,8 @@
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { SessionModel } from "@antelopejs/interface-dms/auth/db";
 import type { AxiosInstance, AxiosResponse } from "axios";
 import { expect } from "chai";
+import { UserNotificationsModel } from "../../../db";
 import {
   authorizedClient,
   type RegisteredUser,
@@ -7,6 +10,7 @@ import {
 } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { captureEmails } from "../../helpers/emails";
+import { findUserByEmail } from "../../helpers/fixtures";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 const SECURITY = pageRoutePath("/settings/user/security");
@@ -16,6 +20,7 @@ const HTTP_TOO_MANY_REQUESTS = 429;
 const ATTEMPTS_PER_WINDOW = 10;
 const WRONG_PASSWORD = "Not-the-password-1";
 const NEW_PASSWORD = "Antelope26!";
+const WEAK_PASSWORD = "antelope";
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 const TOO_MANY_ATTEMPTS = "error.too_many_current_password_attempts";
 const EMAIL_RATE_LIMITED = "error.rate_limited";
@@ -48,6 +53,25 @@ describe("[integration] auth/current password re-check", function () {
   const enableTotp = (currentPassword: string) =>
     client.post(`${SECURITY}/two-factor/enable-totp`, { currentPassword });
 
+  /**
+   * What the account, its sessions and its notifications hold. The account's
+   * activity stamps move on every authenticated request, so they are left out.
+   */
+  const storedState = async () => {
+    const {
+      lastActiveAt: _lastActiveAt,
+      updatedAt: _updatedAt,
+      ...account
+    } = await findUserByEmail(user.email);
+    return {
+      account,
+      sessions: await GetModel(SessionModel).getByUserId(user.userId),
+      notifications: await GetModel(UserNotificationsModel).getByUserId(
+        user.userId,
+      ),
+    };
+  };
+
   before(captureEmails);
 
   beforeEach(async () => {
@@ -55,6 +79,22 @@ describe("[integration] auth/current password re-check", function () {
     user = await registerUser({ owner: true });
     client = authorizedClient(user.accessToken);
     newEmail = `moved-${Date.now()}@test.local`;
+  });
+
+  it("enforces the sign-up password rules on a new password", async () => {
+    const before = await storedState();
+    const weak = await client.post(`${SECURITY}/password`, {
+      currentPassword: user.password,
+      password: WEAK_PASSWORD,
+    });
+    expect(weak.status, JSON.stringify(weak.data)).to.equal(HTTP_BAD_REQUEST);
+    expect(
+      await storedState(),
+      "a refused password writes nothing",
+    ).to.deep.equal(before);
+
+    const strong = await changePassword(user.password);
+    expect(strong.status, JSON.stringify(strong.data)).to.equal(HTTP_OK);
   });
 
   it("refuses every re-check past 10 wrong passwords, across the forms, the right one included", async () => {

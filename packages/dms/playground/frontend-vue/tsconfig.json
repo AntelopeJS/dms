@@ -1,0 +1,12 @@
+{
+  "extends": "../../../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false,
+    "declaration": false,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node", "vite/client"]
+  },
+  "include": ["dms.email.ts", "dms.frontend.ts"]
+}

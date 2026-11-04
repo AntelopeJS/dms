@@ -8,7 +8,7 @@ type ArchiveModeAction =
   | "restore"
   | "delete";
 
-export function applyArchiveModeDefaultRules<T extends Record<string, unknown>>(
+export function applyArchiveModeDefaultRules<T extends object>(
   rowActions: TableViewRowActionOptions<T> | undefined,
   archiveField: string,
 ): TableViewRowActionOptions<T> | undefined {

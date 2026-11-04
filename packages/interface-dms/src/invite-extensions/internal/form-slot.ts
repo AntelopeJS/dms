@@ -61,8 +61,6 @@ interface JsonSchemaObject {
   required?: string[];
 }
 
-/** Watch params naming a field, remapped with the ids they now refer to. */
-const WATCH_FIELD_PARAMS = ["targetField"];
 const WATCH_FIELD_CONDITION_KEY = "fieldId";
 
 function flattenSerializedFields(
@@ -75,11 +73,9 @@ function flattenSerializedFields(
 
 function prefixWatchAction(key: string, watch: WatchAction): WatchAction {
   const params = { ...watch.params };
-  for (const param of WATCH_FIELD_PARAMS) {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Watch params are heterogeneous; only string field references receive the invitation prefix.
-    if (typeof params[param] === "string") {
-      params[param] = inviteExtensionFieldId(key, params[param]);
-    }
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Watch params are heterogeneous; only a string field reference receives the invitation prefix.
+  if ("targetField" in params && typeof params.targetField === "string") {
+    params.targetField = inviteExtensionFieldId(key, params.targetField);
   }
   const conditions = watch.onParam
     ? [watch.onParam].flat().map((condition) =>
@@ -160,11 +156,13 @@ async function buildContribution(
 function contributionOf(
   entry: InviteExtensionEntry,
 ): Promise<InviteFieldContribution | undefined> {
-  entry.contribution ??= buildContribution(entry.info).catch((error) => {
-    logInviteExtensionFailure(entry.info.key, "serialize its form", error);
-    entry.contribution = undefined;
-    return undefined;
-  });
+  entry.contribution ??= buildContribution(entry.info).catch(
+    (error: unknown) => {
+      logInviteExtensionFailure(entry.info.key, "serialize its form", error);
+      entry.contribution = undefined;
+      return undefined;
+    },
+  );
   return entry.contribution;
 }
 
@@ -305,10 +303,9 @@ function mergeSchema(
 
   return {
     ...source,
-    properties: Object.assign(
-      {},
-      source.properties,
-      ...contributions.map((contribution) => contribution.properties),
+    properties: contributions.reduce(
+      (merged, contribution) => ({ ...merged, ...contribution.properties }),
+      { ...source.properties },
     ),
     required: [
       ...(source.required ?? []),
@@ -329,25 +326,21 @@ async function resolveInviteFormSlot(
   );
   if (contributions.length === 0) return resolved;
 
-  const form: Partial<FormPropsSerialized> & {
-    watchActions?: WatchAction[];
-  } = options;
   const watchActions = [
-    ...(form.watchActions ?? []),
+    ...(options.watchActions ?? []),
     ...contributions.flatMap((contribution) => contribution.watchActions),
   ];
 
-  const merged: SlotOptions = {
+  const merged = {
     ...resolved,
     fields: assembleFields(
-      form.fields ?? [],
+      options.fields,
       contributions,
-      form.fieldsOrientation,
+      options.fieldsOrientation,
     ),
-    schema: mergeSchema(form.schema, contributions),
+    schema: mergeSchema(options.schema, contributions),
   };
-  if (watchActions.length > 0) merged.watchActions = watchActions;
-  return merged;
+  return watchActions.length > 0 ? { ...merged, watchActions } : merged;
 }
 
 RegisterComponentSlot(INVITE_FORM_SLOT_ID, (options) =>

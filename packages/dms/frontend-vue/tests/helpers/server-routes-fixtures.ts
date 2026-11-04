@@ -1,8 +1,12 @@
 import { createHmac, randomUUID } from "node:crypto";
-import type { IncomingMessage, Server } from "node:http";
+import { IncomingMessage, ServerResponse, type Server } from "node:http";
+import { Socket } from "node:net";
 
-import { readSealedCookie } from "@antelopejs/dms-frontend/templates/vue/server/auth/session.mjs";
-import { isObject } from "../../layers/dms-core/app/utils/type-check";
+import {
+  readSealedCookie,
+  writeSealedCookie,
+} from "@antelopejs/dms-frontend/templates/vue/server/auth/session.mjs";
+import { isObject, isString } from "../../layers/dms-core/app/utils/type-check";
 
 const RELAY_SECRET = "relay-secret-for-tests-only";
 const RENDER_SECRET = "render-secret-for-tests-only";
@@ -204,6 +208,16 @@ async function cookiesOf(
     .join("; ");
 }
 
+/** The Cookie header pair a browser would send for a sealed cookie of `value`. */
+function sealedCookie(name: string, value: unknown): string {
+  const response = new ServerResponse(new IncomingMessage(new Socket()));
+  writeSealedCookie(response, name, value, undefined);
+  const header = response.getHeader("set-cookie");
+  const cookie = Array.isArray(header) ? header[0] : header;
+  if (!isString(cookie)) throw new Error("no cookie was written");
+  return cookie.split(";", 1)[0];
+}
+
 function renderToken(): string {
   const header = Buffer.from('{"alg":"HS256","typ":"JWT"}').toString(
     "base64url",
@@ -238,4 +252,5 @@ export {
   ask,
   cookiesOf,
   renderToken,
+  sealedCookie,
 };

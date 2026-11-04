@@ -1,13 +1,6 @@
-import {
-  Controller,
-  HTTPResult,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { Controller, type RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
-import {
-  type DataControllerCallback,
-  DataController,
-} from "@antelopejs/interface-data-api";
+import { DataController } from "@antelopejs/interface-data-api";
 import {
   Access,
   AccessMode,
@@ -21,6 +14,7 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import { z } from "zod";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as tableViewImpl from "../../../../implementations/dms-base/table-view";
 import { applyArchiveFilter } from "../../../../implementations/dms-base/services";
@@ -41,6 +35,7 @@ import { createValidatedRoute } from "@antelopejs/interface-dms/base/table-view/
 import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 
 import { tableViewAccess } from "@antelopejs/interface-dms/base/table-view/internal/writer";
+import { httpRejectionOf } from "../../../helpers/http-rejection";
 import { requestContextFixture } from "../../../helpers/request-context";
 
 const SCHEMA = "writer-row-rules-test";
@@ -125,8 +120,32 @@ const remove = createValidatedRoute(
     },
     args: [],
     method: "delete",
-  } satisfies DataControllerCallback,
+  },
   "delete",
+);
+
+const archive = createValidatedRoute(
+  {
+    func: (_ctx: RequestContext, ids: string[]) => ({
+      success: true,
+      archivedCount: ids.length,
+    }),
+    args: [],
+    method: "post",
+  },
+  "archive",
+);
+
+const restore = createValidatedRoute(
+  {
+    func: (_ctx: RequestContext, ids: string[]) => ({
+      success: true,
+      restoredCount: ids.length,
+    }),
+    args: [],
+    method: "post",
+  },
+  "restore",
 );
 
 const edit = createValidatedRoute(
@@ -134,28 +153,20 @@ const edit = createValidatedRoute(
     func: () => ({ edited: true }),
     args: [],
     method: "put",
-  } satisfies DataControllerCallback,
+  },
   "edit",
 );
 
-const REQUEST = {
-  url: new URL("http://localhost/api/writer-row-rules/delete"),
-};
+const REQUEST = requestContextFixture(
+  new URL("http://localhost/api/writer-row-rules/delete"),
+);
 
 function deleteRows(ids: string[]) {
   return remove.func.call(controller, REQUEST, { id: ids });
 }
 
-async function rejectionOf(
-  run: () => ReturnType<typeof edit.func>,
-): Promise<HTTPResult> {
-  try {
-    await run();
-  } catch (error: PromiseRejectedResult["reason"]) {
-    expect(error).to.be.instanceOf(HTTPResult);
-    return error;
-  }
-  throw new Error("expected a refusal");
+async function editRow(id: string): Promise<void> {
+  await edit.func.call(controller, REQUEST, { id });
 }
 
 function listContext(query: string): Parameters<typeof applyArchiveFilter>[1] {
@@ -171,6 +182,15 @@ function ruleOf(action: "archive" | "restore" | "delete" | "edit") {
   return config.rule;
 }
 
+const ServedOptions = z.object({
+  formComponents: z.object({
+    new: z.unknown(),
+    edit: z.unknown(),
+    view: z.unknown(),
+  }),
+  rowActions: z.object({ delete: z.unknown() }).optional(),
+});
+
 async function served(
   builder: ComponentBuilder<TableViewOptionsSerialized>,
   permissionId: string,
@@ -178,10 +198,21 @@ async function served(
   const { options } = builder.serializeSync();
   const filter = builder.onFilterCallback;
   if (!filter || !options) throw new Error("table view without a filter");
-  return filter(new Set(["*"]), options, permissionId, {
-    tenantId: "writer-row-rules-tenant",
-    user: undefined,
-  });
+  return ServedOptions.parse(
+    await filter(new Set(["*"]), options, permissionId, {
+      tenantId: "writer-row-rules-tenant",
+      user: undefined,
+    }),
+  );
+}
+
+/** What `Query.GetModel` recognizes as a model, over a table of `rows`. */
+function modelOver(rows: Parameters<typeof createTable>[0]) {
+  return {
+    table: createTable(rows),
+    database: {},
+    constructor: { fromDatabase: () => undefined },
+  };
 }
 
 describe("[unit] TableView row rules are those of the controller's writing table view", () => {
@@ -198,7 +229,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
   beforeEach(() => {
     rows = createRows();
     // SAFETY: The route exercises only getAll/delete; this in-memory table intentionally is not a complete TaskModel.
-    controller.model = { table: createTable(rows) } as never;
+    controller.model = modelOver(rows) as never;
   });
 
   after(() => {
@@ -226,10 +257,21 @@ describe("[unit] TableView row rules are those of the controller's writing table
     expect([...rows.keys()]).to.deep.equal(["low", "high", "legacy"]);
   });
 
-  it("refuses an edit the writing table view's rule refuses", async () => {
-    const error = await rejectionOf(() =>
-      edit.func.call(controller, REQUEST, { id: "archived" }),
+  it("answers an empty result when no row passes a bulk action's rule", async () => {
+    expect(await deleteRows(["low", "high", "legacy"])).to.deep.equal({
+      deleted: 0,
+    });
+    expect(
+      await archive.func.call(controller, REQUEST, ["archived"]),
+    ).to.deep.equal({ success: true, archivedCount: 0 });
+    expect(await restore.func.call(controller, REQUEST, ["low"])).to.deep.equal(
+      { success: true, restoredCount: 0 },
     );
+    expect([...rows.keys()]).to.deep.equal(ALL_IDS);
+  });
+
+  it("refuses an edit the writing table view's rule refuses", async () => {
+    const error = await httpRejectionOf(editRow("archived"));
     expect(error.getStatus()).to.equal(HTTP_FORBIDDEN);
     expect(
       await edit.func.call(controller, REQUEST, { id: "low" }),

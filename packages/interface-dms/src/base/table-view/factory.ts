@@ -3,7 +3,6 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { ComponentBuilder } from "../../component";
-import type { PageMetadata } from "../../page";
 import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
@@ -33,6 +32,11 @@ import {
   serializeTableViewOptions,
 } from "./internal/factory-lifecycle-options";
 
+/**
+ * A table of the rows `controller` serves.
+ *
+ * @docsApi
+ */
 export function TableView<T extends ControllerClass>(
   controller: T,
   options: TableViewOptions<InstanceType<T>> = {},
@@ -57,19 +61,19 @@ export function TableView<T extends ControllerClass>(
   const { endpoints } = GetMetadata(controller, DataAPIMeta);
   warnIfTabsLackCountBatch(
     controller,
-    config.location,
+    controller.location,
     declaresCounters(options),
     endpoints,
   );
 
   warnIfSummaryLacksRoute(
     controller,
-    config.location,
+    controller.location,
     options.footer,
     endpoints,
   );
 
-  stampAttachmentFields(meta, config.location);
+  stampAttachmentFields(meta, controller.location);
 
   const isExportEnabled = Object.keys(TableViewRoutes.ExportRoutes).every(
     (key) => !!endpoints[key],
@@ -144,14 +148,13 @@ export function TableView<T extends ControllerClass>(
       name: options.caption || "TableView",
       icon: "i-ph-table",
     })
-    .onCreated((parentPage: PageMetadata) => {
+    .onCreated((parentPage) => {
       tableViewCreated(
         {
           controller,
           options,
           meta,
           builder,
-          config,
           isWriting,
           forms,
           isPageMode,

@@ -1,109 +1,12 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { byCodeUnit, ROLES, MEMBERS, PAGES_API, EXPORT_PERMISSION, PLAYGROUND_ONLY, TOTAL_PERMISSIONS, LONG_NAME, createRole, storedRoles, listMembers, openRoles, newRole, selectRole, signupLink, invite, acceptInvitation, joinedMember, previewHidden } from "./settings-roles/steps.mjs";
+import { roleDeletionJourneys } from "./settings-roles/deletion.mjs";
+import { isRoleOverviewRow, listIn } from "../rows.mjs";
 
-/** Orders strings by UTF-16 code unit, the order `sort()` uses with no comparator. */
-function byCodeUnit(left, right) {
-  if (left < right) return -1;
-  return left > right ? 1 : 0;
-}
-
-const ROLES = "/settings/workspace/roles";
-const MEMBERS = "/settings/workspace/members";
-const INVITATIONS = "/settings/workspace/invites";
-const PAGES_API = "/dms/pages/settings/workspace";
-const SIGNUP_LINK = /\/auth\/signup\?token=/;
-const SIGNED_IN = /^\/(?!auth)/;
-const ON_INVITATIONS = new RegExp(`^${INVITATIONS}$`);
-const EXPORT_PERMISSION = "playground.reports.export";
-const PLAYGROUND_ONLY = ["settings", "settings.workspace", "settings.workspace.playground", "settings.workspace.playground.form"];
-const TOTAL_PERMISSIONS = /1259/;
-const LONG_NAME = "x".repeat(81);
-
-async function createRole(ctx, name, permissions = [EXPORT_PERMISSION]) {
-  const answer = await ctx.api(`create the role ${name}`, {
-    method: "POST",
-    path: `${PAGES_API}/roles/create`,
-    body: { name, description: "", permissions },
-  });
-  await ctx.verify(`the role ${name} exists`, [ctx.status(answer, 200)], { critical: true });
-  return answer.body.id;
-}
-
-async function storedRoles(ctx, label) {
-  const answer = await ctx.api(label, { method: "GET", path: "/api/tables/roles/list" });
-  return answer.body?.results ?? [];
-}
-
-async function listMembers(ctx, label) {
-  const answer = await ctx.api(label, { method: "GET", path: "/api/tables/members/list" });
-  return answer.body?.results ?? [];
-}
-
-async function openRoles(tab) {
-  await tab.goto(ROLES);
-  await tab.visible({ role: "heading", name: "Roles", exact: true });
-}
-
-async function newRole(tab, name, ...permissionLabels) {
-  await tab.click({ role: "button", name: "New role" });
-  await tab.fill({ role: "textbox", name: "Role name*" }, name);
-  for (const label of permissionLabels) await tab.click({ role: "checkbox", name: label, exact: true });
-}
-
-async function selectRole(tab, name) {
-  await tab.click({ role: "option", name });
-}
-
-async function signupLink(ctx, email) {
-  const mail = await ctx.mail(
-    (message) => message.to.some((to) => to.includes(email)) && message.links.some((link) => SIGNUP_LINK.test(link)),
-  );
-  await ctx.verify(`the invitation email reaches ${email}`, [
-    ctx.holds("an email with a signup link arrived", mail.match, `${mail.messages.length} messages captured`),
-  ], { critical: true });
-  return mail.match.links.findLast((link) => SIGNUP_LINK.test(link));
-}
-
-async function invite(tab, email, roleName) {
-  await tab.goto(MEMBERS);
-  await tab.click({ role: "button", name: "Invite members" });
-  await tab.fill({ role: "textbox", name: "Email addresses" }, email);
-  await tab.press("Enter", { role: "textbox", name: "Email addresses" });
-  await tab.click({ role: "combobox", name: "Team" });
-  await tab.click({ role: "option", name: "Sales" });
-  await tab.click({ role: "button", name: roleName, exact: true, within: { role: "group", name: "Roles" } });
-  await tab.click({ role: "button", name: "Send invitations" });
-  await tab.at(ON_INVITATIONS);
-}
-
-async function acceptInvitation(ctx, link, name, password) {
-  const tab = await ctx.tab("anon", "invitee");
-  await tab.goto(link);
-  await tab.fill({ role: "textbox", name: "First and last name" }, name);
-  await tab.fill({ role: "textbox", name: "Password" }, password);
-  await tab.click({ role: "button", name: "Create my account" });
-  await ctx.verify(`${name} is signed in after accepting`, [tab.at(SIGNED_IN)], { critical: true });
-  return tab;
-}
-
-/** Invites a member with `roleName` and returns them signed in on their own tab. */
-async function joinedMember(ctx, admin, firstName, roleName) {
-  const email = ctx.email(firstName.toLowerCase());
-  const password = ctx.password();
-  await invite(admin, email, roleName);
-  const tab = await acceptInvitation(ctx, await signupLink(ctx, email), firstName, password);
-  ctx.addAccount(firstName.toLowerCase(), { email, password });
-  return { email, password, tab };
-}
-
-async function previewHidden(ctx, label, permissions, path) {
-  const answer = await ctx.api(label, {
-    method: "POST",
-    path: `${PAGES_API}/roles/preview`,
-    body: { permissions, path },
-  });
-  return { answer, hidden: answer.body?.hiddenEntries ?? [] };
-}
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ */
 
 /** Roles and permissions: the editor, the role list, and what a role changes for its members. */
 export const journeys = [
@@ -111,7 +14,7 @@ export const journeys = [
     id: "roles-empty-state",
     title: "a workspace with no role shows only the locked Owner, and the invite dialog says there is no role yet",
     entryPoint: "Settings > Roles on a fresh workspace, Invite members > Roles",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await openRoles(tab);
@@ -137,7 +40,7 @@ export const journeys = [
     id: "create-role-persists",
     title: "a new role with a permission is listed, survives a reload and is stored with exactly that permission",
     entryPoint: "Settings > Roles > New role, POST /dms/pages/settings/workspace/roles/create",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const name = ctx.unique("Support");
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
@@ -184,7 +87,7 @@ export const journeys = [
     id: "role-validation-errors",
     title: "a role without a name is refused in the form and by the API, and a discarded draft leaves nothing behind",
     entryPoint: "Settings > Roles > New role > Save changes, POST /dms/pages/settings/workspace/roles/create",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await openRoles(tab);
@@ -225,7 +128,7 @@ export const journeys = [
     id: "role-search-no-match",
     title: "searching the roles for nothing says so, keeps the Owner, and clearing restores the list",
     entryPoint: "Settings > Roles > Search roles",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const name = ctx.unique("Support");
       await createRole(ctx, name);
       const tab = await ctx.tab("admin");
@@ -248,7 +151,7 @@ export const journeys = [
     id: "role-assigned-through-invitation",
     title: "a role chosen on an invitation counts as a pending invite, then as a member once the invitation is accepted",
     entryPoint: "Invite members > Roles, Settings > Roles member counts",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const name = ctx.unique("Support");
       const roleId = await createRole(ctx, name);
       const admin = await ctx.tab("admin");
@@ -258,7 +161,7 @@ export const journeys = [
       await openRoles(admin);
       await ctx.verify("the role shows one pending invite", [admin.shows(/1 invite/)]);
       const overview = await ctx.api("read the roles overview", { method: "GET", path: `${PAGES_API}/roles/overview` });
-      const role = overview.body?.roles?.find((entry) => entry._id === roleId);
+      const role = listIn(overview.body, "roles", isRoleOverviewRow).find((entry) => entry._id === roleId);
       await ctx.verify("the API counts one invite and no member", [
         ctx.equal("inviteCount", role?.inviteCount, 1),
         ctx.equal("memberCount", role?.memberCount, 0),
@@ -283,7 +186,7 @@ export const journeys = [
     id: "role-edit-changes-access",
     title: "a member whose role lacks a permission is refused the page it guards until the role gains it (Exposure: who can see what, before and after)",
     entryPoint: "Settings > Roles editor, a guarded settings page opened by a member, POST .../roles/preview",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const name = ctx.unique("Viewer");
       const roleId = await createRole(ctx, name, PLAYGROUND_ONLY);
       const admin = await ctx.tab("admin");
@@ -344,7 +247,7 @@ export const journeys = [
     id: "role-preview-opens-tab",
     title: "Preview as role opens a new tab that shows the dashboard as that role sees it",
     entryPoint: "Settings > Roles > Preview as <role>",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const name = ctx.unique("Viewer");
       await createRole(ctx, name, PLAYGROUND_ONLY);
       const tab = await ctx.tab("admin");
@@ -382,7 +285,7 @@ export const journeys = [
     id: "role-duplicate",
     title: "duplicating a role stores a copy with the same permissions under a new name",
     entryPoint: "Settings > Roles > More role actions > Duplicate role",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const name = ctx.unique("Support");
       await createRole(ctx, name);
       const tab = await ctx.tab("admin");
@@ -404,78 +307,5 @@ export const journeys = [
       ]);
     },
   },
-  {
-    id: "role-delete-unused",
-    title: "deleting a role nobody holds asks for confirmation, then removes it from the list and the API",
-    entryPoint: "Settings > Roles > More role actions > Delete role",
-    async run(ctx) {
-      const name = ctx.unique("Temp");
-      await createRole(ctx, name);
-      const tab = await ctx.tab("admin");
-      await tab.signIn("admin");
-      await openRoles(tab);
-      await selectRole(tab, new RegExp(`^${name}`));
-      await tab.click({ role: "button", name: "More role actions" });
-      await tab.click({ role: "menuitem", name: "Delete role" });
-      await ctx.verify("the dialog says nobody holds the role", [
-        tab.visible({ role: "dialog", name: `Delete ${name}?` }),
-        tab.shows(/Nobody holds this role/),
-      ]);
-      await tab.click({ role: "button", name: "Cancel" });
-      await tab.reload();
-      await ctx.verify("cancelling keeps the role", [
-        tab.visible({ role: "option", name: new RegExp(`^${name}`) }),
-        ctx.equal("roles stored", (await storedRoles(ctx, "list after cancel")).length, 1),
-      ]);
-      await selectRole(tab, new RegExp(`^${name}`));
-      await tab.click({ role: "button", name: "More role actions" });
-      await tab.click({ role: "menuitem", name: "Delete role" });
-      await tab.click({ role: "button", name: "Delete role", within: { role: "dialog" } });
-      await ctx.verify("the role is deleted", [tab.shows(/Role deleted/)]);
-      await tab.reload();
-      await ctx.verify("it is gone after a reload and from the API", [
-        tab.visible({ role: "option", name: new RegExp(`^${name}`) }, { hidden: true }),
-        ctx.equal("roles stored", (await storedRoles(ctx, "list the roles")).length, 0),
-      ]);
-    },
-  },
-  {
-    id: "role-delete-in-use-moves-members",
-    title: "deleting a role members still hold says how many, and moves them to the chosen role (containment of what they lose)",
-    entryPoint: "Settings > Roles > Delete role > Move them to",
-    async run(ctx) {
-      const doomed = ctx.unique("Doomed");
-      const heir = ctx.unique("Heir");
-      await createRole(ctx, doomed, PLAYGROUND_ONLY);
-      const heirId = await createRole(ctx, heir, [EXPORT_PERMISSION]);
-      const admin = await ctx.tab("admin");
-      await admin.signIn("admin");
-      const noa = await joinedMember(ctx, admin, "Noa", doomed);
-      await noa.tab.goto("/settings/workspace/playground");
-      await ctx.verify("before: the member reaches the page the doomed role grants", [
-        noa.tab.visible({ role: "heading", name: "Playground", exact: true }),
-      ]);
-      await openRoles(admin);
-      await selectRole(admin, new RegExp(`^${doomed}`));
-      await admin.click({ role: "button", name: "More role actions" });
-      await admin.click({ role: "menuitem", name: "Delete role" });
-      await ctx.verify("the dialog says one member still holds the role", [
-        admin.visible({ role: "dialog", name: `Delete ${doomed}?` }),
-        admin.shows(/1 member or pending invite still holds this role/),
-        admin.visible({ role: "combobox", name: "Move them to" }),
-      ]);
-      await admin.click({ role: "combobox", name: "Move them to" });
-      await admin.click({ role: "option", name: heir });
-      await admin.click({ role: "button", name: "Delete role", within: { role: "dialog" } });
-      await ctx.verify("the role is deleted", [admin.shows(/Role deleted/)]);
-      const stored = await storedRoles(ctx, "list the roles");
-      const member = (await listMembers(ctx, "list the members")).find((entry) => entry.email === noa.email);
-      await noa.tab.goto("/settings/workspace/playground");
-      await ctx.verify("the role is gone, the member holds the heir, and the page is refused", [
-        ctx.equal("roles", stored.map((role) => role._id), [heirId]),
-        ctx.equal("member roles", member?.roleIds?.map((role) => role._id), [heirId]),
-        noa.tab.visible({ role: "heading", name: "Forbidden" }),
-      ]);
-    },
-  },
+  ...roleDeletionJourneys,
 ];

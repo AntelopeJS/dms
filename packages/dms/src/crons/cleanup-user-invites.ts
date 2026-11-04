@@ -83,7 +83,7 @@ export async function runCleanupUserInvites(): Promise<void> {
 /** Schedules replayable invitation work on every process, without fleet ownership. */
 export function scheduleCleanupUserInvites(): ScheduledTask {
   return cron.schedule(CLEANUP_USER_INVITES_SCHEDULE, () => {
-    void runCleanupUserInvites().catch((error) => {
+    void runCleanupUserInvites().catch((error: unknown) => {
       Logging.Error(`Cron '${CLEANUP_USER_INVITES_CRON_NAME}' failed:`, error);
     });
   });

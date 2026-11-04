@@ -38,6 +38,7 @@ export async function readAttachment(
   storage?: string,
 ) {
   const attachment = await loadAttachment(key, storage);
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- attachments.claimsJson is a stored column whose only writer is createAttachmentUpload (attachments/uploads.ts), JSON.stringify of an UploadTokenClaims, and stored rows are never parsed on read.
   const claims: UploadTokenClaims = JSON.parse(attachment.claimsJson);
   const principal = await assertNativeFileAccess(context, claims, false);
   if (attachment.tenantId !== principal.tenantId) denyAttachment();

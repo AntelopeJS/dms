@@ -18,5 +18,6 @@
     "useDefineForClassFields": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true
-  }
+  },
+  "references": [{ "path": "./tsconfig.tools.json" }]
 }

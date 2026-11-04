@@ -39,7 +39,7 @@ const OPEN_POLICY: OAuthPolicy = {
   linkByVerifiedEmail: true,
 };
 
-function expectRefusal<T>(run: () => T, expectedMessage: string): void {
+function expectRefusal(run: () => void, expectedMessage: string): void {
   try {
     run();
   } catch (error: unknown) {

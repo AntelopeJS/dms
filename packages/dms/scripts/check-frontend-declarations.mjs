@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { optionalText, readJsonRecord } from "./helpers/json-record.mjs";
 
 const FRONTEND_SOURCE_DIR = "frontend-vue";
 const DECLARATION_FIELD = "dmsFrontend";
@@ -13,11 +14,13 @@ const packageRoot = path.resolve(
   "..",
 );
 
+/**
+ * @param {string} directory
+ * @returns {Record<string, unknown> | undefined}
+ */
 function readManifest(directory) {
   const file = path.join(directory, "package.json");
-  return fs.existsSync(file)
-    ? JSON.parse(fs.readFileSync(file, "utf8"))
-    : undefined;
+  return fs.existsSync(file) ? readJsonRecord(file) : undefined;
 }
 
 /** This package and the packages directly under it, such as the playground. */
@@ -33,7 +36,11 @@ function packageDirectories() {
   );
 }
 
-/** The TypeScript source a `dist/<file>.js` declaration is compiled from. */
+/**
+ * The TypeScript source a `dist/<file>.js` declaration is compiled from.
+ * @param {string} declaration
+ * @returns {string}
+ */
 function sourceOf(declaration) {
   return declaration.replace(/^dist\//, "src/").replace(/\.js$/, ".ts");
 }
@@ -45,11 +52,14 @@ function sourceOf(declaration) {
  * warning, a package that ships `frontend-vue/` without one. This lists the
  * packages that ship `frontend-vue/` and declare no file exporting
  * `frontendModule`.
+ * @param {string} directory
+ * @returns {string[]}
  */
 function problemsOf(directory) {
   if (!fs.existsSync(path.join(directory, FRONTEND_SOURCE_DIR))) return [];
   const name = path.relative(packageRoot, directory) || ".";
-  const declaration = readManifest(directory)[DECLARATION_FIELD];
+  const manifest = readManifest(directory);
+  const declaration = manifest && optionalText(manifest, DECLARATION_FIELD);
   if (!declaration) {
     return [
       `${name} ships ${FRONTEND_SOURCE_DIR}/ but its package.json declares no ${DECLARATION_FIELD}: ajs dms dev, build and start leave its pages' components out`,

@@ -33,5 +33,6 @@ import "./permissions";
 
 /** Registers the playground's Vue frontend extensions. */
 export async function start() {
-  await AddFrontendModule(frontendModule());
+  const registration = frontendModule(undefined, { dev: false });
+  if (registration) await AddFrontendModule(registration);
 }

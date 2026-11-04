@@ -1,7 +1,12 @@
+import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
+import type { JsonValue } from "@antelopejs/interface-dms/base/types";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
+import type { InvoiceBulkController } from "../attachment-host/capabilities";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { countRawDocuments, resetDatabase } from "../helpers/db";
+import { parseBody } from "../helpers/parse-body";
 
 const LOCATION = "/api/capabilities/invoices";
 const BULK_LOCATION = "/api/capabilities/invoice-bulk";
@@ -25,10 +30,54 @@ interface Invoice {
   status: string;
 }
 
-interface FooterSummary {
-  id: string;
-  label: string;
-}
+type BulkIds = Awaited<ReturnType<InvoiceBulkController["matching"]>>;
+
+const CountBody = z.object({ total: z.number() });
+
+const CountsBody = z.record(z.string(), z.number());
+
+const BulkIdsBody = z.object({
+  ids: z.array(z.string()),
+}) satisfies z.ZodType<BulkIds>;
+
+const FooterBody = z.object({
+  legend: z.string().optional(),
+  summary: z
+    .array(
+      z
+        .object({
+          id: z.string(),
+          label: z.string(),
+          op: z.enum(["sum", "count"]),
+          field: z.string().optional(),
+        })
+        .strict(),
+    )
+    .optional(),
+});
+
+const TableLayoutBody = z.object({
+  components: z.object({
+    content: z.object({
+      options: z
+        .object({
+          tableId: z.string().optional(),
+          isSoleTableView: z.boolean().optional(),
+          footer: FooterBody.optional(),
+        })
+        .optional(),
+    }),
+  }),
+}) satisfies z.ZodType<{
+  components: {
+    content: {
+      options?: Pick<
+        TableViewOptionsSerialized,
+        "tableId" | "isSoleTableView" | "footer"
+      >;
+    };
+  };
+}>;
 
 async function seed(client: AxiosInstance, ownerId: string): Promise<void> {
   const rows = [
@@ -87,11 +136,12 @@ describe("[integration] table view capabilities", () => {
       params: { slug: SLUG },
     });
     expect(layout.status, JSON.stringify(layout.data)).to.equal(HTTP_OK);
-    const options = layout.data.components.content.options;
+    const { options } = parseBody(TableLayoutBody, layout).components.content;
+    if (!options?.footer?.summary) throw new Error(`No footer on ${SLUG}`);
     expect(options.tableId).to.equal("content");
     expect(options.isSoleTableView).to.equal(true);
     expect(options.footer.legend).to.equal("status");
-    const summaries: FooterSummary[] = options.footer.summary;
+    const { summary: summaries } = options.footer;
     expect(summaries.map((summary) => summary.label)).to.deep.equal([
       "Total",
       "Open",
@@ -124,7 +174,7 @@ describe("[integration] table view capabilities", () => {
 
   it("stores the dates an edit sends as text as dates, and keeps what it leaves out", async () => {
     const [invoice] = await list(client, "&filter_number=is:INV-3");
-    const edit = async (body: Parameters<AxiosInstance["put"]>[1]) => {
+    const edit = async (body: JsonValue) => {
       const response = await client.put(`${LOCATION}/edit`, body, {
         params: { id: invoice!._id },
       });
@@ -252,7 +302,7 @@ describe("[integration] table view capabilities", () => {
     );
     expect(counts.status).to.equal(HTTP_OK);
     expect(counts.data).to.deep.equal({
-      [id]: single.data.total,
+      [id]: parseBody(CountBody, single).total,
       "": 5,
       duplicate: 5,
     });
@@ -264,7 +314,9 @@ describe("[integration] table view capabilities", () => {
     const fifty = Array.from({ length: 50 }, (_, index) => `${index}?`);
     const accepted = await client.get(batchUrl(LOCATION, fifty));
     expect(accepted.status).to.equal(HTTP_OK);
-    expect(Object.values(accepted.data)).to.deep.equal(Array(50).fill(5));
+    expect(Object.values(parseBody(CountsBody, accepted))).to.deep.equal(
+      Array(50).fill(5),
+    );
     for (const entries of [[...fifty, "extra?"], ["missing"], ["%GG?"]]) {
       const refused = await client.get(batchUrl(LOCATION, entries));
       expect(refused.status, JSON.stringify(entries)).to.equal(
@@ -343,13 +395,13 @@ describe("[integration] table view capabilities", () => {
     const selected = await client.post(
       `${LOCATION}/mark-paid?ids=${first!._id}`,
     );
-    expect(selected.data.ids).to.deep.equal([first!._id]);
+    expect(parseBody(BulkIdsBody, selected).ids).to.deep.equal([first!._id]);
 
     const matching = await client.post(
       `${LOCATION}/mark-paid?allMatching=true&filter_status=is:open&search=INV`,
     );
     expect(matching.status, JSON.stringify(matching.data)).to.equal(HTTP_OK);
-    expect(matching.data.ids).to.have.length(2);
+    expect(parseBody(BulkIdsBody, matching).ids).to.have.length(2);
     expect(await list(client, "&filter_status=is:open")).to.deep.equal([]);
   });
 
@@ -378,12 +430,14 @@ describe("[integration] table view capabilities", () => {
       `${BULK_LOCATION}/matching?allMatching=true&filter_ownerId=is:${userId}`,
     );
     expect(matching.status, JSON.stringify(matching.data)).to.equal(HTTP_OK);
-    expect(sorted(matching.data.ids)).to.deep.equal(sorted(mine.map(idOf)));
+    expect(sorted(parseBody(BulkIdsBody, matching).ids)).to.deep.equal(
+      sorted(mine.map(idOf)),
+    );
 
     const selected = await client.post(
       `${BULK_LOCATION}/matching?ids=${mine[0]!._id}`,
     );
-    expect(selected.data.ids).to.deep.equal([mine[0]!._id]);
+    expect(parseBody(BulkIdsBody, selected).ids).to.deep.equal([mine[0]!._id]);
 
     const member = await registerUser();
     const refused = await authorizedClient(member.accessToken).post(

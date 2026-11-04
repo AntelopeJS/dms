@@ -18,8 +18,9 @@ export async function startHeartbeat(
   const key = heartbeatKey(instanceId);
   await kv.setex(key, HEARTBEAT_TTL_SECONDS, HEARTBEAT_VALUE);
   const timer = setInterval(() => {
-    kv.setex(key, HEARTBEAT_TTL_SECONDS, HEARTBEAT_VALUE).catch((error) =>
-      Logging.Warn("Realtime: heartbeat refresh failed", error),
+    kv.setex(key, HEARTBEAT_TTL_SECONDS, HEARTBEAT_VALUE).catch(
+      (error: unknown) =>
+        Logging.Warn("Realtime: heartbeat refresh failed", error),
     );
   }, HEARTBEAT_REFRESH_MS);
   timer.unref?.();

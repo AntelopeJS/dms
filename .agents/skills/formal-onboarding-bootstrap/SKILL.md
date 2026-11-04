@@ -16,7 +16,7 @@ The model treats each database round trip as one step, and TLC checks every orde
 
 ## Run it
 
-From the repository root, with Node 24:
+From the repository root, with Node 24 and `pnpm install` done (the runner comes from `@antelopejs/tooling-configs/formal`):
 
 ```sh
 node .agents/skills/formal-onboarding-bootstrap/check.mjs          # CI configuration

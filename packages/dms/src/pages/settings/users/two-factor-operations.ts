@@ -1,4 +1,4 @@
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { generateGoogleQR, generateUrl } from "2fa";
 import {
@@ -96,14 +96,13 @@ function renderQrCode(user: User, secret: string): Promise<string> {
   });
 }
 
+type AddMethodBody = ReturnType<typeof securitySchema.addTwoFactorMethod.parse>;
+
 async function assertMayAddMethod(
   user: User,
-  body: Parameters<typeof securitySchema.addTwoFactorMethod.parse>[0],
+  { currentPassword }: AddMethodBody,
   userModel: UserModel,
 ): Promise<void> {
-  const { currentPassword } = assertValidation(body ?? {}, (value) =>
-    securitySchema.addTwoFactorMethod.parse(value),
-  );
   await assertCurrentPasswordIfSet(userModel, user, currentPassword);
 }
 
@@ -117,7 +116,7 @@ async function assertMayAddMethod(
  */
 export async function startTotpSetup(
   user: User,
-  body: Parameters<typeof assertMayAddMethod>[1],
+  body: AddMethodBody,
   userModel: UserModel,
 ): Promise<TotpSetup> {
   await assertMayAddMethod(user, body, userModel);
@@ -163,12 +162,10 @@ function enableMethod(
  */
 export async function confirmTotpSetup(
   user: User,
-  body: Parameters<typeof authSchema.confirmTotp.parse>[0],
+  body: ReturnType<typeof authSchema.confirmTotp.parse>,
   userModel: UserModel,
 ): Promise<MethodEnabledResult> {
-  const { code } = assertValidation(body, (value) =>
-    authSchema.confirmTotp.parse(value),
-  );
+  const { code } = body;
   assert(user.twoFactorPendingSecret, HTTP_BAD_REQUEST, "error.totp_not_setup");
   assert(
     await acceptTotpCode(userModel, user, user.twoFactorPendingSecret, code),
@@ -201,7 +198,7 @@ const isEmailSetupPending = (user: User): boolean =>
  */
 export async function startEmailSetup(
   user: User,
-  body: Parameters<typeof assertMayAddMethod>[1],
+  body: AddMethodBody,
   userModel: UserModel,
 ): Promise<SuccessResult> {
   const needsCode = !isEmailSetupPending(user) || isEmailCodeExpired(user);
@@ -220,12 +217,10 @@ export async function startEmailSetup(
  */
 export async function confirmEmailSetup(
   user: User,
-  body: Parameters<typeof authSchema.confirmEmailMethod.parse>[0],
+  body: ReturnType<typeof authSchema.confirmEmailMethod.parse>,
   userModel: UserModel,
 ): Promise<MethodEnabledResult> {
-  const { code } = assertValidation(body, (value) =>
-    authSchema.confirmEmailMethod.parse(value),
-  );
+  const { code } = body;
   assert(
     user.twoFactorEmailCode && !isEmailCodeExpired(user),
     HTTP_BAD_REQUEST,
@@ -263,12 +258,10 @@ function clearTwoFactorLeftovers(user: User): void {
  */
 export async function disableTwoFactorMethod(
   user: User,
-  body: Parameters<typeof authSchema.disableTwoFactor.parse>[0],
+  body: ReturnType<typeof authSchema.disableTwoFactor.parse>,
   userModel: UserModel,
 ): Promise<SuccessResult> {
-  const { method, code } = assertValidation(body, (value) =>
-    authSchema.disableTwoFactor.parse(value),
-  );
+  const { method, code } = body;
   assert(
     await verifyTwoFactorCode(userModel, user, method, code),
     HTTP_UNAUTHORIZED,
@@ -308,12 +301,10 @@ async function isValidCodeForAnyMethod(
  */
 export async function regenerateBackupCodes(
   user: User,
-  body: Parameters<typeof authSchema.regenerateBackup.parse>[0],
+  body: ReturnType<typeof authSchema.regenerateBackup.parse>,
   userModel: UserModel,
 ): Promise<BackupCodesResult> {
-  const { code } = assertValidation(body, (value) =>
-    authSchema.regenerateBackup.parse(value),
-  );
+  const { code } = body;
   assert(methodsOf(user).length > 0, HTTP_BAD_REQUEST, "error.2fa_not_enabled");
   assert(
     await isValidCodeForAnyMethod(userModel, user, code),

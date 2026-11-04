@@ -23,16 +23,12 @@ interface ScopeSlice {
   access: string;
 }
 
-interface RecordedUpdate {
-  payload: unknown;
-  previous: unknown;
-  context: InviteExtensionContext;
-}
+const StoredExtensions = z.record(z.record(z.string())).nullish();
 
-function plain(
-  value: Parameters<typeof JSON.stringify>[0],
-): ReturnType<typeof JSON.parse> {
-  return JSON.parse(JSON.stringify(value));
+interface RecordedUpdate {
+  payload: ScopeSlice;
+  previous: ScopeSlice | undefined;
+  context: InviteExtensionContext;
 }
 
 describe("Pending invite edit with extension payloads (MongoDB adapter)", () => {
@@ -42,7 +38,7 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
   const disposers: Array<() => void> = [];
 
   async function storedExtensions() {
-    return plain((await invites.get(INVITE_ID))?.extensions);
+    return StoredExtensions.parse((await invites.get(INVITE_ID))?.extensions);
   }
 
   beforeEach(async () => {
@@ -57,11 +53,7 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
         placement: { side: "end", order: 0 },
         onAccept: () => undefined,
         onUpdate: (payload, previous, context) => {
-          updates.push({
-            payload: plain(payload),
-            previous: plain(previous),
-            context: plain(context),
-          });
+          updates.push({ payload, previous, context });
         },
       }),
     );

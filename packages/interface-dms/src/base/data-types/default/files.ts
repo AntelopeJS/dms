@@ -9,7 +9,13 @@ import { FormComponents } from "../../form-schema";
 import { DataType, RegisterDataType } from "../core";
 import { DefaultDataCompareTypes } from "../compare-types";
 import { RichTextTypeOptions, StringTimeTypeOptions } from "./options";
+import type { ImageValue } from "../../../types";
 
+/**
+ * The `rich_text` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("rich_text")
 export class RichTextType extends DataType {
   constructor(public readonly options: RichTextTypeOptions = {}) {
@@ -27,6 +33,11 @@ export class RichTextType extends DataType {
   }
 }
 
+/**
+ * The `string_time` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("string_time")
 export class StringTimeType extends DataType {
   constructor(public readonly options: StringTimeTypeOptions = {}) {
@@ -116,7 +127,7 @@ function createFileValidationSchema(
         ? GetAttachmentValidationMetadata
         : GetFileMetadata;
       const metadata = await getMetadata(resourceKey, storage).catch(
-        (error) => {
+        (error: unknown) => {
           if (isMissingFileError(error)) return null;
           throw error;
         },
@@ -145,6 +156,11 @@ function createFileValidationSchema(
   );
 }
 
+/**
+ * The `file` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("file")
 export class FileType extends DataType {
   constructor(public readonly options: FileTypeOptions = {}) {
@@ -179,11 +195,7 @@ export class FileType extends DataType {
   }
 }
 
-export interface ImageValue {
-  key: string;
-  alt?: string;
-  principal?: boolean;
-}
+export type { ImageValue };
 
 export interface ImageTypeOptions extends Record<string, unknown> {
   multiple?: boolean;
@@ -225,6 +237,11 @@ function hasAtMostOnePrincipal(images: ImageValue[]): boolean {
   return images.filter((image) => image.principal).length <= 1;
 }
 
+/**
+ * The `image` data type.
+ *
+ * @docsApi
+ */
 @RegisterDataType("image")
 export class ImageType extends DataType {
   constructor(public readonly options: ImageTypeOptions = {}) {

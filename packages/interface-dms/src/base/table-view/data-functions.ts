@@ -3,6 +3,7 @@ import { InterfaceFunction } from "@antelopejs/interface-core";
 import type {
   DataControllerCallback,
   DataControllerCallbackWithOptions,
+  DataControllerInstance,
 } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "../../auth/db";
@@ -14,22 +15,30 @@ import type {
   RowBulkOperationParams,
 } from "./internal/data-functions";
 
+/**
+ * The page of rows a table view's list answers: the listable fields of each
+ * row, read through a guard, and where the page sits among every row the
+ * filters and search match.
+ */
+export interface TableViewListPage {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The listable fields of each row of whichever table the list serves, as Query.ReadProperties answers them: interface-data-api's RowFields.
+  results: Record<string, unknown>[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
 /** @internal */
-export const listWithSearch = InterfaceFunction<
-  (
-    thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
-    ctx: RequestContext,
-    listParams: Parameters.ListParameters,
-    user?: User,
-    permissions?: Set<string>,
-  ) => Promise<{
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The runtime proxy returns module-defined rows; its published result cannot name a single module's row schema.
-    results: Record<string, unknown>[];
-    total: number;
-    offset: number;
-    limit: number;
-  }>
->();
+export const listWithSearch =
+  InterfaceFunction<
+    (
+      thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+      ctx: RequestContext,
+      listParams: Parameters.ListParameters,
+      user?: User,
+      permissions?: Set<string>,
+    ) => Promise<TableViewListPage>
+  >();
 
 /** @internal */
 export const countWithSearch =
@@ -87,8 +96,7 @@ export interface BulkRowSource {
 export const resolveBulkRowIds = InterfaceFunction<
   (
     /** `this` of a data controller, or a `BulkRowSource`. */
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The runtime proxy accepts controller instances or BulkRowSource; replacing its published unknown input would narrow existing callers.
-    table: unknown,
+    table: DataControllerInstance | BulkRowSource,
     ctx: RequestContext,
     user: User,
   ) => Promise<string[]>

@@ -95,7 +95,6 @@ const buildActor = (user: User): PresenceActor => ({
   displayName: user.name || user.email,
 });
 
-/* oxlint-disable anti-slop/no-runtime-typeof -- This HTTP boundary checks the three presence routing strings before use. */
 const isValidPresenceBody = (
   body: unknown,
 ): body is { pageId: string; topic: string; key: string } => {
@@ -107,7 +106,6 @@ const isValidPresenceBody = (
     typeof candidate.key === "string"
   );
 };
-/* oxlint-enable anti-slop/no-runtime-typeof */
 
 export const menuTopicsFor = (
   tenantId: string | undefined,
@@ -183,12 +181,6 @@ const cleanupSession = async (sessionId: string): Promise<void> => {
   await getPresenceTracker().releaseAllForSession(sessionId);
 };
 
-const warnUnlessClosed =
-  (sessionId: string) => (error: Parameters<typeof Logging.Warn>[1]) => {
-    if (!getSessionInfo(sessionId)) return;
-    Logging.Warn("Realtime: applySessionTopics failed", error);
-  };
-
 const isSessionOf = (
   info: SessionInfo,
   requester: RealtimeRequester,
@@ -256,7 +248,7 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       const sessionIds = unregisterConnection(connectionId);
       await Promise.all(
         sessionIds.map((sessionId) =>
-          cleanupSession(sessionId).catch((error) =>
+          cleanupSession(sessionId).catch((error: unknown) =>
             Logging.Warn("Realtime: cleanupSession failed", error),
           ),
         ),
@@ -298,7 +290,10 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
         await cleanupSession(sessionId);
       },
     });
-    void applySessionTopics(sessionId).catch(warnUnlessClosed(sessionId));
+    void applySessionTopics(sessionId).catch((error: unknown) => {
+      if (!getSessionInfo(sessionId)) return;
+      Logging.Warn("Realtime: applySessionTopics failed", error);
+    });
     return {
       ok: true,
       sessionId,
@@ -382,7 +377,6 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, body, session, tenant models, and user through decorators.
   async acquire(
     @Context() ctx: RequestContext,
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Raw JSON must reach isValidPresenceBody so malformed bodies still receive the existing negative acknowledgement.
     @JSONBody() body: unknown,
     @Parameter(SESSION_HEADER, "header") sessionId: string,
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
@@ -420,7 +414,6 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, body, session, tenant models, and user through decorators.
   async release(
     @Context() ctx: RequestContext,
-    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Raw JSON must reach isValidPresenceBody so malformed bodies still receive the existing negative acknowledgement.
     @JSONBody() body: unknown,
     @Parameter(SESSION_HEADER, "header") sessionId: string,
     @TenantScopedModel(RoleModel) roleModel: RoleModel,

@@ -2,15 +2,15 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/dark.svg">
-  <img alt="Antelope DMS" src="https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/light.svg" height="72">
+  <img alt="Antelope DMS" src="https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/frontend-vue/layers/dms-layout/public/images/antelope-logo/light.svg" data-illustration height="72">
 </picture>
 
-# @antelopejs/dms
+# `@antelopejs/dms`
 
-<a href="https://www.npmjs.com/package/@antelopejs/dms"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a>
-<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a>
-<a href="https://dms.antelopejs.com/docs"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
+<a href="https://www.npmjs.com/package/@antelopejs/dms"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
+<a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
+<a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
+<a href="https://dms.antelopejs.com/docs"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
 
 **Admin dashboards for AntelopeJS, declared in TypeScript on the backend.**
 
@@ -18,7 +18,7 @@
 
 </div>
 
-![A DMS dashboard: a period selector, KPI cards, a sales chart and ranked products](https://raw.githubusercontent.com/AntelopeJS/dms/main/packages/dms/docs/images/template-dashboard.png)
+![The Helio dashboard of the demo template: KPI cards, a revenue chart and the period selector](./docs/images/captures/helio-dashboard.webp)
 
 ## What it does
 
@@ -43,16 +43,21 @@ The DMS also needs an API module, a module implementing the database interface, 
 
 ## Quick start
 
-The [DMS Demo](https://github.com/AntelopeJS/template-dms-demo) template loads the DMS, its companions and a seeded demo application. You need Node.js 22 or later, Git, pnpm (`corepack enable` installs it) and a MongoDB on `localhost:27017`.
+Create a project from the `template-dms-demo` template, which loads the DMS, its companion modules and Helio, a demo back office for a solar installer. It needs the Node.js and pnpm releases the template pins, and a MongoDB on `localhost:27017`.
 
 ```bash
 npx @antelopejs/core project init my-app --template dms-demo
 cd my-app
 pnpm dev            # backend on http://localhost:5010
-pnpm frontend:dev   # dashboard on http://localhost:3001, in a second terminal
 ```
 
-The backend prints `[DMS] No owner exists yet. To create it, open http://localhost:3001/onboarding?token=…`. Open that address and create the administrator account. A page is a class whose static fields are blocks:
+When the backend answers, start the dashboard in a second terminal, from the same folder:
+
+```bash
+pnpm frontend:dev   # dashboard on http://localhost:3001
+```
+
+Open the address that the backend logs after `No owner exists yet`, and create the first administrator. The [Quickstart](https://dms.antelopejs.com/docs/getting-started/quickstart) walks through each step. A page is a class whose static fields are blocks:
 
 ```ts
 import { PageController, RegisterPage, pagesCategory } from "@antelopejs/interface-dms/page";
@@ -70,14 +75,26 @@ export class SalesPage extends PageController("sales", {
 
 ## Compatibility
 
-| `@antelopejs/dms` | `@antelopejs/interface-dms` | `@antelopejs/dms-frontend` (renderer) |
-| --- | --- | --- |
-| 0.9 | 0.7 | `>=0.6.1 <0.7.0` |
-| 0.8 | 0.6 | `>=0.5.2 <0.6.0` |
+<!-- antelopejs-docs-compat:start -->
 
-**Embedded / AdonisJS 6**: tested with `@antelopejs/core` 1.15.2, `@antelopejs/dms` 0.9.2 and `@antelopejs/dms-frontend` 0.6.1 in an AdonisJS 6 application (see [Run the DMS inside AdonisJS](https://dms.antelopejs.com/docs/getting-started/adonisjs)).
+| Package                                     | Supported                                                                  | Tested with                                                          |
+| ------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `@antelopejs/core`                          | `>=1.17.0 <2`                                                              | `1.17.0`                                                             |
+| `@antelopejs/interface-api`                 | `>=0.2.0 <1.0.0`                                                           | `0.2.0`                                                              |
+| `@antelopejs/interface-api-util`            | `>=0.3.0 <1.0.0`                                                           | `0.3.0`                                                              |
+| `@antelopejs/interface-core`                | `>=0.4.0 <1.0.0`                                                           | `0.4.0`                                                              |
+| `@antelopejs/interface-data-api`            | `>=0.6.0 <1.0.0`                                                           | `0.6.0`                                                              |
+| `@antelopejs/interface-database`            | `>=0.3.0 <1.0.0`                                                           | `0.3.0`                                                              |
+| `@antelopejs/interface-database-decorators` | `>=0.2.0 <1.0.0`                                                           | `0.2.0`                                                              |
+| `@antelopejs/interface-dms`                 | `>=0.12.0 <0.13.0`                                                         | `0.12.0`                                                             |
+| `@antelopejs/interface-dms-automation`      | `file:../../.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz` | `file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz` |
+| `@antelopejs/interface-email`               | `>=0.0.6 <1.0.0`                                                           | `0.0.6`                                                              |
+| `@antelopejs/interface-file-storage`        | `>=0.1.4 <1.0.0`                                                           | `0.1.4`                                                              |
+| `@antelopejs/interface-redis`               | `>=0.0.9 <1.0.0`                                                           | `0.0.9`                                                              |
 
-`@antelopejs/dms` 0.9.2 needs `@antelopejs/core` `>=1.15.2 <2` (its peer dependency). Every renderer release is listed in the frontend's [compatibility table](https://dms.antelopejs.com/docs/frontend/introduction#compatibility).
+<!-- antelopejs-docs-compat:end -->
+
+Each DMS release declares the renderer releases it runs on in `engines["@antelopejs/dms-frontend"]` of its frontend module, and the frontend's [compatibility table](https://dms.antelopejs.com/docs/frontend/introduction#compatibility) lists the renderer release line of each DMS release it covers. The DMS also runs embedded in an AdonisJS application: see [Run the DMS inside AdonisJS](https://dms.antelopejs.com/docs/getting-started/adonisjs).
 
 ## Documentation
 

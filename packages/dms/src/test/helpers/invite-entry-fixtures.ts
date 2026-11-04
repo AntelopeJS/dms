@@ -21,6 +21,8 @@ import { generateAccessToken } from "@antelopejs/interface-dms/auth";
 
 export const TENANT = DEFAULT_TENANT_ID;
 
+const InviteRow = z.record(z.string(), z.unknown());
+
 async function requestContext(admin: User) {
   const { token } = await generateAccessToken(TENANT, admin);
   const rawRequest = new IncomingMessage(new Socket());
@@ -89,8 +91,8 @@ export async function pendingInvite(extensions: UserInvite["extensions"]) {
 export async function readPendingInvite(id: string, admin: User) {
   const ctx = await requestContext(admin);
   const route = registeredInviteRoute("get", "/api/tables/admin-invites/get");
-  const controller = await GetControllerInstance(route.proto.constructor, ctx);
-  return route.callback.call(
+  const controller = await GetControllerInstance(route.controller, ctx);
+  const row: unknown = await route.callback.call(
     controller,
     ctx,
     { id },
@@ -100,6 +102,7 @@ export async function readPendingInvite(id: string, admin: User) {
     undefined,
     admin,
   );
+  return InviteRow.parse(row);
 }
 
 function registeredInviteRoute(method: string, location: string) {
@@ -117,15 +120,15 @@ function registeredInviteRoute(method: string, location: string) {
   return matches[0].handler;
 }
 
-export async function editPendingInvite<T extends object>(
+export async function editPendingInvite(
   id: string,
-  fields: T,
+  fields: InviteFields,
   admin: User,
 ) {
   const ctx = await requestContext(admin);
   const route = registeredInviteRoute("put", "/api/tables/admin-invites/edit");
-  const controller = await GetControllerInstance(route.proto.constructor, ctx);
-  return route.callback.call(
+  const controller = await GetControllerInstance(route.controller, ctx);
+  await route.callback.call(
     controller,
     ctx,
     { id },
@@ -137,13 +140,13 @@ export async function editPendingInvite<T extends object>(
   );
 }
 
-export async function submitInvite<T extends object>(fields: T, admin: User) {
+export async function submitInvite(fields: InviteFields, admin: User) {
   const ctx = await requestContext(admin);
   const route = registeredInviteRoute(
     "post",
     "/dms/pages/settings/workspace/members/invite",
   );
-  const controller = await GetControllerInstance(route.proto.constructor, ctx);
+  const controller = await GetControllerInstance(route.controller, ctx);
   const response: unknown = await route.callback.call(controller, ctx, admin, {
     emails: [`${randomUUID()}@acme.dev`],
     language: "en",
@@ -154,3 +157,6 @@ export async function submitInvite<T extends object>(fields: T, admin: User) {
     .object({ results: z.array(z.object({ email: z.string() })) })
     .parse(response);
 }
+
+/** The flat fields an invitation form submits: strings and lists of strings. */
+type InviteFields = Record<string, string | string[]>;

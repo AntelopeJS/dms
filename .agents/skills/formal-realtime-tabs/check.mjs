@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Model-checks RealtimeTabs.tla with TLC through the shared runner, once per
- * consumer of the record: the page's `useApiData` read (`View = "page"`),
- * then the table view's row (`View = "table"`).
+ * Model-checks RealtimeTabs.tla with TLC through the shared runner of
+ * @antelopejs/tooling-configs, once per consumer of the record: the page's
+ * `useApiData` read (`View = "page"`), then the table view's row
+ * (`View = "table"`).
  *
  * With no argument it runs the CI configurations (`RealtimeTabs<View>.ci.cfg`);
  * with `--full` it runs the full ones (`RealtimeTabs<View>.cfg`). Exits 0 when
@@ -13,7 +14,7 @@
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkSpec, EXIT } from "../../formal/tlc.mjs";
+import { checkSpec, EXIT } from "@antelopejs/tooling-configs/formal";
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 

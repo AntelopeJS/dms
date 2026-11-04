@@ -21,6 +21,7 @@ import { expect } from "chai";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
+import { assertRowRule } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
 import {
   Column,
   TableView,
@@ -74,6 +75,16 @@ class PaymentAPI extends DataController(
 type PaymentOptions = NonNullable<
   Parameters<typeof TableView<typeof PaymentAPI>>[1]
 >;
+
+type FooterRule = NonNullable<
+  NonNullable<NonNullable<PaymentOptions["footer"]>["summary"]>[number]["where"]
+>;
+
+const nestedNot = (depth: number): FooterRule => {
+  let rule: FooterRule = { field: "amount", equals: 1 };
+  for (let level = 0; level < depth; level += 1) rule = { not: rule };
+  return rule;
+};
 
 const READ_ONLY = { add: false, duplicate: false, edit: false, delete: false };
 
@@ -141,22 +152,54 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
     );
   });
 
-  it("refuses a malformed where rule at declaration instead of failing a request later", () => {
-    const declare = (json: string) =>
-      optionsOf({
-        footer: {
-          summary: [{ label: "Bad", op: "count", where: JSON.parse(json) }],
-        },
-      });
-    expect(() => declare('{"field":"amount","equals":41,"and":123}')).to.throw(
-      /footer summary "Bad".*where\.and must be an array of rules/,
-    );
-    expect(() => declare('{"field":"amount","notIn":[41],"in":123}')).to.throw(
-      /footer summary "Bad".*where\.in must be an array/,
+  it("refuses a malformed where rule with the row-rule check its declaration runs", () => {
+    const subject = "Bad has a malformed rule";
+    expect(() =>
+      assertRowRule(
+        { field: "amount", equals: 41, and: 123 },
+        subject,
+        "where",
+      ),
+    ).to.throw(/where\.and must be an array of rules/);
+    expect(() =>
+      assertRowRule(
+        { field: "amount", notIn: [41], in: 123 },
+        subject,
+        "where",
+      ),
+    ).to.throw(/where\.in must be an array/);
+    expect(() =>
+      assertRowRule(
+        { not: { or: [{ field: "amount", in: "x" }] } },
+        subject,
+        "where",
+      ),
+    ).to.throw(/where\.not\.or\[0\]\.in must be an array/);
+    expect(() => assertRowRule({ field: "amount" }, subject, "where")).to.throw(
+      /where must name an operator/,
     );
     expect(() =>
-      declare('{"not":{"or":[{"field":"amount","in":"x"}]}}'),
-    ).to.throw(/where\.not\.or\[0\]\.in must be an array/);
+      assertRowRule({ and: [{ equals: 1 }] }, subject, "where"),
+    ).to.throw(/where\.and\[0\]\.field must be a string/);
+  });
+
+  it("refuses a where rule nested deeper than 64 levels at declaration", () => {
+    const declare = (depth: number) =>
+      optionsOf({
+        footer: {
+          summary: [
+            {
+              label: "Deep",
+              op: "count",
+              where: nestedNot(depth),
+            },
+          ],
+        },
+      });
+    expect(() => declare(65)).to.throw(
+      /footer summary "Deep".*where(\.not)+ nests rules deeper than 64 levels/,
+    );
+    expect(() => declare(64)).not.to.throw();
   });
 
   it("serializes the empty states, a component included", () => {

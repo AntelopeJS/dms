@@ -1,8 +1,14 @@
+import { isMemberRow, listOf, stringIn } from "../rows.mjs";
+
+/**
+ * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ */
+
 const GATE = "/api/playground/gate-demo";
 const TENANCY = "/tenancy";
 const GATED_PAGE = "/settings/workspace/members";
 
-async function refreshToken(ctx) {
+async function refreshToken(/** @type {Ctx} */ ctx) {
   const admin = ctx.adminCredentials();
   const login = await ctx.api("sign in for a refresh token", {
     method: "POST",
@@ -10,10 +16,10 @@ async function refreshToken(ctx) {
     as: "anon",
     body: { email: admin.email, password: admin.password },
   });
-  return login.body?.refresh_token ?? "";
+  return stringIn(login.body, "refresh_token") ?? "";
 }
 
-function switchTenant(ctx, label, token, tenantId) {
+function switchTenant(/** @type {Ctx} */ ctx, /** @type {string} */ label, /** @type {string} */ token, /** @type {string} */ tenantId) {
   return ctx.api(label, { method: "POST", path: "/api/auth/switch-tenant", as: "anon", body: { refreshToken: token, tenantId } });
 }
 
@@ -23,9 +29,9 @@ export const journeys = [
     id: "default-workspace-membership",
     title: "onboarding makes the owner a member of the default workspace, and switching to a workspace it is not in answers 403",
     entryPoint: "POST /api/auth/switch-tenant, /api/tables/members/list",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const members = await ctx.api("list the default workspace's members", { method: "GET", path: "/api/tables/members/list" });
-      const rows = members.body?.results ?? [];
+      const rows = listOf(members.body, isMemberRow);
       await ctx.verify("the owner is the default workspace's only member", [
         ctx.equal("member ids", rows.map((row) => row._id.split(":")[0]), ["default"]),
         ctx.equal("owner", rows.map((row) => row.isTenantOwner), [true]),
@@ -37,7 +43,7 @@ export const journeys = [
         ctx.status(foreign, 403),
         ctx.equal("error", foreign.body, "error.not_a_member"),
         ctx.status(home, 200),
-        ctx.holds("new tokens for the default workspace", home.body?.access_token, Object.keys(home.body ?? {}).join(", ")),
+        ctx.holds("new tokens for the default workspace", stringIn(home.body, "access_token"), JSON.stringify(home.body)),
       ]);
     },
   },
@@ -45,7 +51,7 @@ export const journeys = [
     id: "suspended-workspace-gate",
     title: "suspending the workspace makes gated pages refuse the owner while the recovery page still answers, and restoring it reopens them",
     entryPoint: "/tenancy header action, RegisterTenantAccessGate",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const tab = await ctx.tab("admin");
       await tab.signIn("admin");
       await tab.goto(TENANCY);
@@ -78,7 +84,7 @@ export const journeys = [
     id: "tenant-routes-refuse-visitors",
     title: "tenant-scoped routes refuse a caller without a session",
     entryPoint: "AuthTenantMember guards",
-    async run(ctx) {
+    async run(/** @type {Ctx} */ ctx) {
       const members = await ctx.api("list members anonymously", { method: "GET", path: "/api/tables/members/list", as: "anon" });
       const gate = await ctx.api("read the gate status anonymously", { method: "GET", path: `${GATE}/status`, as: "anon" });
       const toggle = await ctx.api("toggle the gate anonymously", { method: "POST", path: `${GATE}/toggle`, as: "anon" });

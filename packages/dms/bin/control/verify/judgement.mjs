@@ -1,5 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
+import { decodeRawJudgement } from "./decode.mjs";
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {string | undefined} value The kind a judgement names
+ * @param {string} label Where the kind was read
+ * @returns {string} The kind
+ */
 function doorKind(skill, value, label) {
   if (!Object.hasOwn(skill.config.doors, value)) {
     throw new Error(
@@ -9,6 +16,11 @@ function doorKind(skill, value, label) {
   return value;
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("./types.mjs").RawJudgement} raw The judgement file
+ * @returns {import("./types.mjs").DoorRow[]} The door rows
+ */
 function parseRows(skill, raw) {
   return (raw.doors?.rows ?? []).map((row, index) => {
     if (!row.kind || !row.location || !row.irreversible || !row.containment) {
@@ -24,6 +36,11 @@ function parseRows(skill, raw) {
   });
 }
 
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {import("./types.mjs").RawJudgement} raw The judgement file
+ * @returns {import("./types.mjs").FalsePositive[]} The dismissed doors
+ */
 function parseFalsePositives(skill, raw) {
   return (raw.doors?.falsePositives ?? []).map((entry, index) => {
     if (!entry.location || !entry.reason?.trim()) {
@@ -43,9 +60,9 @@ function parseFalsePositives(skill, raw) {
  * verdict without a One-way doors section is void, and one that does not
  * name its verifier is refused, so both throw.
  *
- * @param {Record<string, any>} skill The skill
+ * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} file The judgement file
- * @returns {{ notVerified: string[], attention: string[], docs: { page: string, matches: boolean, note: string }[], doorsNone: string | null, doors: Record<string, string>[], falsePositives: Record<string, string>[], verifier: string }} The judgement
+ * @returns {import("./types.mjs").Judgement} The judgement
  */
 export function readJudgement(skill, file) {
   if (!existsSync(file)) {
@@ -53,7 +70,9 @@ export function readJudgement(skill, file) {
       `${file} is missing: write the verifier's judgement before rendering the verdict`,
     );
   }
-  const raw = JSON.parse(readFileSync(file, "utf8"));
+  /** @type {unknown} */
+  const stored = JSON.parse(readFileSync(file, "utf8"));
+  const raw = decodeRawJudgement(stored, file);
   const rows = parseRows(skill, raw);
   const none = raw.doors?.none?.trim() || null;
   if (!none && rows.length === 0) {

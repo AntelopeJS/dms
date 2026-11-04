@@ -1,3 +1,4 @@
+import { ownValue } from "./own-value";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -57,16 +58,8 @@ const EXPORT_TMP_PREFIX = "dms-export-";
 const EXPORT_STORAGE_PREFIX = "table-view-exports";
 const READ_URL_EXPIRES_IN_SEC = 60 * 60;
 
-const ARRAY_JOIN_SEPARATOR = ";";
 const FILENAME_ILLEGAL_CHARS = /[^a-zA-Z0-9._-]/g;
 const FILENAME_REPLACEMENT = "-";
-
-function castCsvValue(
-  value: Parameters<ExportWriter["appendRow"]>[1][string],
-): string {
-  if (Array.isArray(value)) return value.join(ARRAY_JOIN_SEPARATOR);
-  return String(value);
-}
 
 class CsvWriter implements ExportWriter {
   constructor(private readonly filePath: string) {}
@@ -76,16 +69,13 @@ class CsvWriter implements ExportWriter {
     fs.writeFileSync(this.filePath, `﻿${headerLine}`);
   }
 
-  appendRow(
-    headers: string[],
-    row: Parameters<ExportWriter["appendRow"]>[1],
-  ): void {
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- appendRow implements the published ExportWriter.appendRow, whose row is what Query.ReadProperties answered for whichever table is exported (interface-data-api RowFields), keyed by its runtime column ids.
+  appendRow(headers: string[], row: Record<string, unknown>): void {
     const csvRowContent = stringify([row], {
       header: false,
       columns: headers,
       cast: {
         date: (value: Date) => value.toISOString(),
-        string: castCsvValue,
       },
     });
     fs.appendFileSync(this.filePath, csvRowContent);
@@ -108,7 +98,7 @@ const exporters: Record<string, Exporter> = {
 };
 
 export function getExporter(format: string): Exporter {
-  const exporter = exporters[format];
+  const exporter = ownValue(exporters, format);
   assert(exporter, 400, `Unknown export format: ${format}`);
   return exporter;
 }
@@ -139,6 +129,7 @@ export function readJobResult(
   exportRecord: ExportJob,
 ): ExportJobResultSummary | undefined {
   if (!exportRecord.json_result) return undefined;
+  // oxlint-disable-next-line typescript/no-unsafe-return -- exportJobs.json_result is a stored column whose only writer is ExportJobModel.markAsCompleted, JSON.stringify of the result processExportJob passes, and stored rows are never parsed on read.
   return JSON.parse(exportRecord.json_result);
 }
 
@@ -195,7 +186,7 @@ const deliverers: Record<string, Deliverer> = {
 };
 
 export function getDeliverer(delivery: string): Deliverer {
-  const deliverer = deliverers[delivery];
+  const deliverer = ownValue(deliverers, delivery);
   assert(deliverer, 400, `Unknown export delivery: ${delivery}`);
   return deliverer;
 }

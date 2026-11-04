@@ -9,6 +9,7 @@ import {
   type Parameters,
   Validation,
 } from "@antelopejs/interface-data-api/components";
+import type { RowFields } from "@antelopejs/interface-data-api/metadata";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
@@ -43,19 +44,23 @@ async function loadPendingInvite(
   return invite;
 }
 
+function isRow(answer: unknown): answer is RowFields {
+  return typeof answer === "object" && answer !== null;
+}
+
 /** The invitation's row, with its extension payloads as edit-form values. */
 export const inviteGetRoute: DataControllerCallback = {
   ...TableViewRoutes.Get,
   func: async function (
     this: DataControllerInstance,
-    ctx: RequestContext,
-    params: Parameters.GetParameters,
-    ...rest: unknown[]
+    ...args: globalThis.Parameters<typeof TableViewRoutes.Get.func>
   ) {
-    const row = await TableViewRoutes.Get.func.call(this, ctx, params, ...rest);
+    const [ctx, params] = args;
+    const row = await TableViewRoutes.Get.func.apply(this, args);
     const invite = await GetModel(UserInviteModel, getRequestTenantId(ctx)).get(
       String(params.id),
     );
+    assert(isRow(row), 500, "The invitation route answered no row.");
     return {
       ...row,
       ...ReadInviteExtensionFields(invite?.extensions),
@@ -72,9 +77,8 @@ export const inviteGetRoute: DataControllerCallback = {
 export async function editPendingInvite(
   tenantId: string,
   inviteId: string,
-  body: Parameters<typeof CollectInviteExtensionEdits>[0],
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The row callback result is awaited and discarded, matching the data controller's unconstrained result contract.
-  writeRow: () => Promise<unknown>,
+  body: Validation.RequestBody,
+  writeRow: () => Promise<void>,
 ): Promise<void> {
   return changeTenantMembers(tenantId, async () => ({
     changes: [],
@@ -85,8 +89,8 @@ export async function editPendingInvite(
 async function editAdmittedPendingInvite(
   tenantId: string,
   inviteId: string,
-  body: Parameters<typeof CollectInviteExtensionEdits>[0],
-  writeRow: Parameters<typeof editPendingInvite>[3],
+  body: Validation.RequestBody,
+  writeRow: () => Promise<void>,
 ): Promise<void> {
   const edits = CollectInviteExtensionEdits(body);
   const invite = await loadPendingInvite(tenantId, inviteId);
@@ -104,19 +108,21 @@ async function editAdmittedPendingInvite(
   });
 }
 
-const editInviteWithExtensions: DataControllerCallback = {
+const editInviteWithExtensions = {
   ...DefaultRoutes.Edit,
   func: function (
     this: DataControllerInstance,
     ctx: RequestContext,
     params: Parameters.EditParameters,
-    body: Buffer,
+    body: Validation.WrittenBody,
   ) {
     return editAdmittedPendingInvite(
       getRequestTenantId(ctx),
       String(params.id),
       Validation.ParseBody(body),
-      () => DefaultRoutes.Edit.func.call(this, ctx, params, body),
+      async () => {
+        await DefaultRoutes.Edit.func.call(this, ctx, params, body);
+      },
     );
   },
 };
@@ -127,10 +133,10 @@ const guardedInviteEditRoute = TableViewRoutes.EditWith(
 
 export const inviteEditRoute: DataControllerCallback = {
   ...guardedInviteEditRoute,
-  func(...args: Parameters<DataControllerCallback["func"]>) {
+  func(...args: globalThis.Parameters<typeof guardedInviteEditRoute.func>) {
     return changeTenantMembers(getRequestTenantId(args[0]), async () => ({
       changes: [],
-      write: () => guardedInviteEditRoute.func.apply(this, args),
+      write: async () => guardedInviteEditRoute.func.apply(this, args),
     }));
   },
 };

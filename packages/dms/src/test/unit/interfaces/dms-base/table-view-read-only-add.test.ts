@@ -18,6 +18,7 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import { z } from "zod";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
@@ -25,7 +26,6 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import {
   Column,
   TableView,
-  type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
@@ -74,17 +74,30 @@ class WritableAPI extends DataController(
   declare name: string;
 }
 
+const ServedRowAction = z.union([z.boolean(), z.object({}).passthrough()]);
+
+const ServedOptions = z.object({
+  rowActions: z
+    .object({
+      add: ServedRowAction.optional(),
+      duplicate: ServedRowAction.optional(),
+    })
+    .optional(),
+});
+
 async function servedOptions(
   controller: typeof ReadOnlyAPI | typeof WritableAPI,
-): Promise<TableViewOptionsSerialized> {
+) {
   const builder = TableView(controller, { realtime: false });
   const { options } = builder.serializeSync();
   const filter = builder.onFilterCallback;
   if (!filter || !options) throw new Error("table view without a filter");
-  return filter(new Set(["*"]), options, PERMISSION_ID, {
-    tenantId: "read-only-tenant",
-    user: undefined,
-  });
+  return ServedOptions.parse(
+    await filter(new Set(["*"]), options, PERMISSION_ID, {
+      tenantId: "read-only-tenant",
+      user: undefined,
+    }),
+  );
 }
 
 describe("[unit] interfaces/dms-base/table-view: no add without a new route", () => {

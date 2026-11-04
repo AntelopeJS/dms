@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { z } from "zod";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
 import {
   PAGE_TOOLBAR_LIVE_DEFAULTS,
@@ -101,8 +102,13 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
   });
 
   it("offers the comparisons in a menu only when there is a choice", () => {
+    const PeriodOptions = z
+      .object({ comparisonControl: z.string() })
+      .passthrough();
     const periodOf = (period: PageToolbarOptions["period"]) =>
-      childOf(pageToolbar({ period }).serializeSync(), "period")?.options;
+      PeriodOptions.parse(
+        childOf(pageToolbar({ period }).serializeSync(), "period")?.options,
+      );
 
     expect(
       periodOf({ comparisons: ["previous-period", "previous-year", "none"] }),
@@ -138,7 +144,7 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     ).to.deep.include({ comparisonControl: "toggle" });
   });
 
-  it("places each control under the id and roles-editor metadata a page gives it", () => {
+  it("places each control under the id and roles-editor metadata a page gives it", async () => {
     const toolbar = pageToolbar({
       live: {
         childId: "toggle",
@@ -163,12 +169,12 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     expect(period).to.include({ id: "my-scope" });
     expect(period).to.not.have.any.keys("childId", "meta");
 
-    const children = toolbar["_children"];
-    expect(children[0]?.component.metadata).to.deep.include({
+    const { children } = await toolbar.componentInfo;
+    expect(children?.[0]?.component.metadata).to.deep.include({
       name: "$my.permissions.live.name",
       icon: "i-ph-broadcast",
     });
-    expect(children[1]?.component.metadata).to.deep.include({
+    expect(children?.[1]?.component.metadata).to.deep.include({
       name: "$my.permissions.period.name",
     });
   });

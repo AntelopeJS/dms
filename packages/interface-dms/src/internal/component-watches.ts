@@ -64,8 +64,7 @@ export function buildWatchAction<F extends string>(
     functionId,
   };
   if (opts?.params !== undefined) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Consumer declaration merging can supply watch parameter interfaces without dictionary index signatures; transport preserves those values without parsing.
-    watch.params = opts.params as WatchAction["params"];
+    watch.params = opts.params;
   }
   if (opts?.onParam !== undefined) watch.onParam = opts.onParam;
   if (opts?.requirePermission !== undefined) {

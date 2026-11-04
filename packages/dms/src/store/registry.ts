@@ -34,7 +34,8 @@ export async function npmView(
   spec: string,
   fields: readonly string[],
   projectPath: string,
-) {
+  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Answers the JSON npm view --json prints for the fields asked, read as npm prints it, and each caller reads its own fields (the antelopejs#367 package.ts class).
+): Promise<unknown> {
   try {
     const { stdout } = await execFileAsync(
       "npm",

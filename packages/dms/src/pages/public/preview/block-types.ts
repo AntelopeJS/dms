@@ -8,7 +8,8 @@ import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
  */
 export interface PreviewBlockType {
   componentName: string;
-  fixedOptions?: ReturnType<typeof ListBlockTypes>[number]["fixedOptions"];
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The fixed options of whichever registered block type, each typed by its block's own option schema, as the published BlockTypeDefinition.fixedOptions declares them.
+  fixedOptions?: Record<string, unknown>;
   needsController?: boolean;
 }
 

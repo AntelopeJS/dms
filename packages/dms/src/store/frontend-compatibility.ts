@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { coerce, maxSatisfying, satisfies, validRange } from "semver";
+import { z } from "zod";
 import { GetFrontendModules } from "./internal/frontend/frontend-modules";
 import { getFrontendAcknowledgement } from "./internal/frontend/frontend-ready";
 import { createLookupCache } from "./cache";
@@ -25,11 +26,17 @@ const FAILED_LOOKUP_MS = 5 * 60 * 1000;
 const RELEASE_RANGE_LIFETIMES = { found: Infinity, failed: FAILED_LOOKUP_MS };
 const VERSIONS_LIFETIMES = { found: HOUR_MS, failed: FAILED_LOOKUP_MS };
 
-interface PackageManifest {
-  version?: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Package manifests may contain malformed engine values; engineRange checks the selected value before use.
-  engines?: Record<string, unknown>;
-}
+const PackageManifestSchema = z
+  .object({
+    version: z.string().optional().catch(undefined),
+    engines: z
+      .object({ [FRONTEND_PACKAGE]: z.string().optional().catch(undefined) })
+      .optional()
+      .catch(undefined),
+  })
+  .catch({});
+
+type PackageManifest = z.infer<typeof PackageManifestSchema>;
 
 /** The dms-frontend version that runs, and where the store read it. */
 export interface RunningFrontend {
@@ -45,7 +52,7 @@ const publishedVersions = createLookupCache<string[]>(VERSIONS_LIFETIMES);
 
 function readManifest(file: string): PackageManifest | undefined {
   try {
-    return JSON.parse(readFileSync(file, "utf-8"));
+    return PackageManifestSchema.parse(JSON.parse(readFileSync(file, "utf-8")));
   } catch {
     return undefined;
   }
@@ -53,8 +60,7 @@ function readManifest(file: string): PackageManifest | undefined {
 
 function engineRange(manifest: PackageManifest | undefined): DeclaredRange {
   const range = manifest?.engines?.[FRONTEND_PACKAGE];
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Engine values are external package metadata and only valid string ranges are accepted.
-  return typeof range === "string" && validRange(range) ? range : null;
+  return range !== undefined && validRange(range) ? range : null;
 }
 
 /**
@@ -73,7 +79,9 @@ export function releaseFrontendRange(
       LAYER_MANIFEST,
     ]);
     const manifest = files.get(LAYER_MANIFEST);
-    return manifest ? engineRange(JSON.parse(manifest)) : null;
+    return manifest
+      ? engineRange(PackageManifestSchema.parse(JSON.parse(manifest)))
+      : null;
   });
 }
 

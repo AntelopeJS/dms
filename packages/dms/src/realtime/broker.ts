@@ -71,7 +71,7 @@ export class InMemoryBroker implements RealtimeBroker {
       try {
         const result: unknown = handler(event);
         if (result instanceof Promise) {
-          result.catch((error) =>
+          result.catch((error: unknown) =>
             Logging.Error("Realtime: subscriber handler rejected", error),
           );
         }

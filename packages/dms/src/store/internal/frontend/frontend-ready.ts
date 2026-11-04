@@ -115,16 +115,17 @@ const frontendReadySchema = z.object({
  * serves with their package versions. Gated like the manifest, since it comes
  * from the same tool.
  */
-export function acknowledgeFrontendReady(
-  body: Parameters<typeof frontendReadySchema.parse>[0],
+export function assertFrontendReadyAllowed(
   bootstrapHeader: string | undefined,
 ): void {
   const outcome = resolveBootstrapOutcome(bootstrapHeader);
   if (decideLayerAccess(outcome) === "refuse") {
     assertFrontendBootstrap(outcome);
   }
-  const { modules, version } = assertValidation(body, (value) =>
-    frontendReadySchema.parse(value),
-  );
-  recordFrontendReady(modules, version);
+}
+
+export function parseFrontendReady(
+  body: unknown,
+): ReturnType<typeof frontendReadySchema.parse> {
+  return assertValidation(body, (value) => frontendReadySchema.parse(value));
 }

@@ -7,6 +7,7 @@ import { setTimeout } from "node:timers/promises";
 
 const MODULE_ROOT = resolve(__dirname, "../../..");
 const PROVIDERS = join(MODULE_ROOT, ".antelope/cache/@antelopejs");
+const INSTALLED_API = join(MODULE_ROOT, "node_modules/@antelopejs/api");
 const SECRET = "replica-test-secret";
 const READY_POLL_MS = 250;
 
@@ -63,7 +64,7 @@ function projectConfig(database: string, port: number, directory: string) {
       },
       "auth-jwt": { ...provider("auth-jwt"), config: { secret: SECRET } },
       api: {
-        ...provider("api"),
+        source: { type: "local", path: INSTALLED_API },
         config: {
           publicBaseUrl: baseUrl,
           servers: [{ protocol: "http", host: "127.0.0.1", port }],

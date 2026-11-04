@@ -1,4 +1,11 @@
-import { isBoolean, isDate, isNull, isNumber, isString } from "./type-check";
+import {
+  isBoolean,
+  isDate,
+  isNull,
+  isNumber,
+  isObject,
+  isString,
+} from "./type-check";
 
 /** @internal */
 export type Primitive =
@@ -21,6 +28,25 @@ const KEYWORD_VALUES = {
 
 const KEYWORD_LOOKUP = new Map(Object.entries(KEYWORD_VALUES));
 
+/** What `JSON.parse` answers, read as the value it holds. */
+function parseJsonText(text: string): Primitive {
+  const parsed: unknown = JSON.parse(text);
+  if (
+    isString(parsed) ||
+    isNumber(parsed) ||
+    isBoolean(parsed) ||
+    isNull(parsed)
+  ) {
+    return parsed;
+  }
+  if (Array.isArray(parsed)) {
+    const items: unknown[] = parsed;
+    return items;
+  }
+  if (isObject(parsed)) return Object.fromEntries(Object.entries(parsed));
+  throw new TypeError("JSON text parsed to a value JSON cannot hold");
+}
+
 const STRING_TYPE_PARSERS = [
   {
     test: isStringKeyword,
@@ -36,7 +62,7 @@ const STRING_TYPE_PARSERS = [
   },
   {
     test: isStringJSON,
-    parse: (value: string) => JSON.parse(value),
+    parse: parseJsonText,
   },
 ];
 
@@ -166,13 +192,13 @@ const PRIMITIVE_TYPE_VALIDATORS = [
   isNull,
 ];
 /** @internal */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published assertion validates arbitrary comparison operands and throws for unsupported values.
-export const assertPrimitiveValue = (value: unknown): void => {
+export function assertPrimitiveValue(
+  value: unknown,
+): asserts value is string | number | boolean | Date | null {
   if (PRIMITIVE_TYPE_VALIDATORS.some((test) => test(value))) {
     return;
   }
   throw new Error(
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The error reports the rejected operand's JavaScript tag without changing its validation contract.
     `Value must be a string, number, boolean, or Date for is comparison. Got: ${typeof value}`,
   );
-};
+}

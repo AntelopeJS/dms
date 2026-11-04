@@ -1,4 +1,5 @@
-import { Controller } from "@antelopejs/interface-api";
+import { Controller, type RequestContext } from "@antelopejs/interface-api";
+import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   type AsyncProxy,
   GetMetadata,
@@ -59,19 +60,32 @@ const deliveries: string[] = [];
 
 const editRoute = withRealtimeMutation(
   { eventType: "updated", extractIds: extractSingleParamId },
-  { method: "post", args: [], func: async () => ({ ok: true }) },
+  {
+    method: "post",
+    args: [],
+    func: async (
+      _ctx: RequestContext,
+      _params: { id: string },
+      _body: Buffer,
+      _user: User,
+    ) => ({ ok: true }),
+  },
 );
 const getRoute = withPresenceAcquire({
   method: "get",
   args: [],
-  func: async () => ({ ok: true }),
+  func: async (_ctx: RequestContext, _params: { id: string }, _user: User) => ({
+    ok: true,
+  }),
 });
 
 function edit(id: string): ReturnType<typeof editRoute.func> {
   return editRoute.func.call(
     controller,
-    undefined,
+    REQUEST_CONTEXT,
     { id },
+    Buffer.from("{}"),
+    USER,
     REQUEST_CONTEXT,
     SESSION,
     USER,
@@ -81,8 +95,9 @@ function edit(id: string): ReturnType<typeof editRoute.func> {
 function open(id: string): ReturnType<typeof getRoute.func> {
   return getRoute.func.call(
     controller,
-    undefined,
+    REQUEST_CONTEXT,
     { id },
+    USER,
     REQUEST_CONTEXT,
     SESSION,
     PRESENCE_ACQUIRE,

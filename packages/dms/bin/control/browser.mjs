@@ -1,8 +1,21 @@
 import { writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
+import { isBrowserRequest } from "./browser-wire.mjs";
+import { describeFailure } from "./failure.mjs";
+import { decode } from "./json.mjs";
 import { importFrom } from "./mongo.mjs";
 import { loadRun } from "./run-state.mjs";
+
+/**
+ * @typedef {import("playwright-core").Browser} Browser
+ * @typedef {import("playwright-core").BrowserContext} BrowserContext
+ * @typedef {import("playwright-core").Locator} Locator
+ * @typedef {import("playwright-core").Page} Page
+ * @typedef {{ ok: boolean, url: string, error: string | null, aria: string }} Outcome
+ * @typedef {{ do: string, baseUrl: string, target?: Target, value?: string, key?: string, path?: string, state?: "attached" | "detached" | "visible" | "hidden", timeoutMs?: number }} Action
+ * @typedef {Omit<Action, "baseUrl"> & { account: string, tab: string, folder: string }} BrowserRequest
+ */
 
 const ACTION_TIMEOUT_MS = 15_000;
 const NAVIGATION_TIMEOUT_MS = 60_000;
@@ -13,9 +26,11 @@ const VIEWPORT = { width: 1280, height: 900 };
  * Launches the headless Chromium that playwright-core pins.
  *
  * @param {string[]} from Folders to resolve playwright-core from
- * @returns {Promise<any>} The Playwright browser
+ * @returns {Promise<Browser>} The Playwright browser
  */
 export async function launchBrowser(from) {
+  /** @type {typeof import("playwright-core")} */
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- importFrom resolves playwright-core by path from the project under test at run time and answers its namespace as any, which the JSDoc type binds to Playwright's own declarations.
   const { chromium } = await importFrom("playwright-core", from);
   return chromium.launch({ headless: true });
 }
@@ -24,8 +39,8 @@ export async function launchBrowser(from) {
  * A new browser context: one per account, so cookies never leak between
  * the users a journey plays.
  *
- * @param {any} browser The Playwright browser
- * @returns {Promise<any>} The context
+ * @param {Browser} browser The Playwright browser
+ * @returns {Promise<BrowserContext>} The context
  */
 export function newContext(browser) {
   return browser.newContext({
@@ -39,15 +54,15 @@ export function newContext(browser) {
  * What an action targets: an ARIA role and accessible name, optionally
  * inside another one (`within`), or the n-th of several matches.
  *
- * @typedef {{ role: string, name?: string, exact?: boolean, nth?: number, within?: { role: string, name?: string } }} Target
+ * @typedef {{ role: string, name?: string | RegExp, exact?: boolean, nth?: number, within?: { role: string, name?: string | RegExp, exact?: boolean } }} Target
  */
 
 /**
  * The locator of a target, by role and accessible name, as a user finds it.
  *
- * @param {any} page The Playwright page
+ * @param {Page} page The Playwright page
  * @param {Target} target What to find
- * @returns {any} The locator
+ * @returns {Locator} The locator
  */
 export function locate(page, target) {
   const scope = target.within
@@ -76,6 +91,7 @@ export function describeTarget(target) {
   return target.within ? `${own} in ${describeTarget(target.within)}` : own;
 }
 
+/** @type {Record<string, (page: Page, action: Action) => Promise<unknown> | undefined>} */
 const ACTIONS = {
   goto: (page, action) =>
     page.goto(new URL(action.path, action.baseUrl).href, {
@@ -123,7 +139,7 @@ export const ACTION_NAMES = Object.keys(ACTIONS);
  * Writes what the page shows into `folder`: `url.txt`, `aria.yml` (the ARIA
  * snapshot of the body) and `screenshot.png`.
  *
- * @param {any} page The Playwright page
+ * @param {Page} page The Playwright page
  * @param {string} folder The evidence folder
  * @returns {Promise<string>} The ARIA snapshot
  */
@@ -132,7 +148,10 @@ export async function capture(page, folder) {
   const aria = await page
     .locator("body")
     .ariaSnapshot({ timeout: ACTION_TIMEOUT_MS })
-    .catch((error) => `snapshot failed: ${error.message}`);
+    .catch(
+      (/** @type {unknown} */ error) =>
+        `snapshot failed: ${describeFailure(error)}`,
+    );
   writeFileSync(join(folder, "aria.yml"), `${aria}\n`);
   await page
     .screenshot({
@@ -148,10 +167,10 @@ export async function capture(page, folder) {
  * Runs one action on a page, then captures the page into `folder`. A target
  * that is missing, hidden or disabled past the timeout fails the action.
  *
- * @param {any} page The Playwright page
- * @param {{ do: string, baseUrl: string, target?: Target, value?: string, key?: string, path?: string, state?: string, timeoutMs?: number }} action What to do
+ * @param {Page} page The Playwright page
+ * @param {Action} action What to do
  * @param {string} folder The evidence folder
- * @returns {Promise<{ ok: boolean, url: string, error: string | null, aria: string }>} The outcome
+ * @returns {Promise<Outcome>} The outcome
  */
 export async function perform(page, action, folder) {
   const run = ACTIONS[action.do];
@@ -171,7 +190,7 @@ export async function perform(page, action, folder) {
       .catch(() => undefined);
     await page.waitForTimeout(SETTLE_MS);
   } catch (failure) {
-    error = String(failure?.message ?? failure).split("\n")[0];
+    error = describeFailure(failure).split("\n")[0];
   }
   const aria = await capture(page, folder);
   return { ok: error === null, url: page.url(), error, aria };
@@ -180,10 +199,10 @@ export async function perform(page, action, folder) {
 /**
  * Signs an account in through the sign-in form, the way a user does.
  *
- * @param {any} page The Playwright page
+ * @param {Page} page The Playwright page
  * @param {{ email: string, password: string }} credentials The account
  * @param {{ baseUrl: string, folder: (label: string) => string }} options Where the frontend is and where evidence goes
- * @returns {Promise<{ ok: boolean, url: string, error: string | null, aria: string }>} The outcome of the last step
+ * @returns {Promise<Outcome>} The outcome of the last step
  */
 export async function signInThroughForm(page, credentials, options) {
   const steps = [
@@ -222,6 +241,35 @@ export async function signInThroughForm(page, credentials, options) {
 }
 
 /**
+ * @param {unknown} error What the action threw
+ * @returns {Outcome} The failed outcome
+ */
+function failedOutcome(error) {
+  return { ok: false, url: "", error: describeFailure(error), aria: "" };
+}
+
+/**
+ * Decodes a posted request and answers it. A body that is no valid request
+ * is answered as a failed action, like any action that throws.
+ *
+ * @param {string} body What the client posted
+ * @param {(request: BrowserRequest) => Promise<Outcome>} handle Runs one action
+ * @returns {Promise<string>} The outcome as JSON
+ */
+export function answerRequest(body, handle) {
+  return Promise.resolve()
+    .then(() => {
+      /** @type {unknown} */
+      const posted = JSON.parse(body);
+      return handle(
+        decode(isBrowserRequest, posted, "browser request", "a browser action"),
+      );
+    })
+    .catch(failedOutcome)
+    .then((outcome) => JSON.stringify(outcome));
+}
+
+/**
  * Serves the run's browser for `dms-control browser`: one context per
  * account and one page per tab name, kept between commands, driven by JSON
  * posted to a loopback port. A GET answers 200 once it listens. It exits
@@ -235,8 +283,15 @@ export async function signInThroughForm(page, credentials, options) {
 export async function serveBrowser(dir, from, port) {
   const browser = await launchBrowser(from);
   browser.on("disconnected", () => process.exit(0));
+  /** @type {Map<string, BrowserContext>} */
   const contexts = new Map();
+  /** @type {Map<string, Page>} */
   const pages = new Map();
+  /**
+   * @param {string} account The account
+   * @param {string} tab The tab name
+   * @returns {Promise<Page>} The tab's page
+   */
   const pageFor = async (account, tab) => {
     const key = `${account}/${tab}`;
     if (!pages.has(key)) {
@@ -246,6 +301,10 @@ export async function serveBrowser(dir, from, port) {
     }
     return pages.get(key);
   };
+  /**
+   * @param {BrowserRequest} request What the client posted
+   * @returns {Promise<Outcome>} The outcome
+   */
   const handle = async (request) => {
     const state = loadRun(dir);
     const page = await pageFor(request.account, request.tab);
@@ -270,21 +329,13 @@ export async function serveBrowser(dir, from, port) {
       outgoing.end("ok");
       return;
     }
+    /** @type {Buffer[]} */
     const chunks = [];
-    incoming.on("data", (chunk) => chunks.push(chunk));
+    incoming.on("data", (/** @type {Buffer} */ chunk) => chunks.push(chunk));
     incoming.on("end", () => {
-      handle(JSON.parse(Buffer.concat(chunks).toString("utf8")))
-        .then((result) => outgoing.end(JSON.stringify(result)))
-        .catch((error) =>
-          outgoing.end(
-            JSON.stringify({
-              ok: false,
-              url: "",
-              error: String(error?.message ?? error),
-              aria: "",
-            }),
-          ),
-        );
+      answerRequest(Buffer.concat(chunks).toString("utf8"), handle)
+        .then((answer) => outgoing.end(answer))
+        .catch(() => outgoing.destroy());
     });
   });
   await new Promise((resolve) => server.listen(port, "127.0.0.1", resolve));

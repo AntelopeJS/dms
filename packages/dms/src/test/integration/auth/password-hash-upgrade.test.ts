@@ -1,6 +1,6 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { SessionModel, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { login, upgradePasswordHash } from "../../../routes/authentication";
 import { registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
@@ -147,7 +147,7 @@ describe("[integration] auth/login password hash upgrade", function () {
   it("still signs in when the upgrade cannot be saved", async () => {
     const { email, userId } = await accountWithOlderHash();
     const userModel = GetModel(UserModel);
-    const refusingWrites = Object.create(userModel, {
+    const refusingWrites: unknown = Object.create(userModel, {
       getByEmail: { value: userModel.getByEmail.bind(userModel) },
       table: {
         value: {
@@ -157,6 +157,7 @@ describe("[integration] auth/login password hash upgrade", function () {
         },
       },
     });
+    assert.instanceOf(refusingWrites, UserModel);
 
     const outcome = await login(
       refusingWrites,

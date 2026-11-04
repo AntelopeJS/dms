@@ -43,18 +43,13 @@ interface SendNotificationInput {
   idempotencyKey?: string;
 }
 
-interface SendNotificationOutput {
+type SendNotificationOutput = {
   ok: boolean;
-}
+};
 
 interface Recipients {
   userIds: string[];
   roleIds: string[];
-}
-
-function isPlainObject(value: SendNotificationInput["params"]) {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing object-not-array check at the automation input boundary.
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isNotificationTone(value: string): value is NotificationTone {
@@ -68,11 +63,13 @@ function isNotificationTone(value: string): value is NotificationTone {
  * and a nested value, which no message could print, is dropped with a warning.
  */
 function toNotificationParams(
-  params: SendNotificationInput["params"],
+  input: SendNotificationInput,
   ctx: ExecutionCtx,
 ): NotificationParams | undefined {
+  const { params } = input;
   if (params === undefined || params === null) return undefined;
-  if (!isPlainObject(params)) {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing object-not-array check at the automation input boundary.
+  if (typeof params !== "object" || Array.isArray(params)) {
     throw new Error(
       `${SEND_NOTIFICATION_ACTION_ID}: params must be an object of strings and numbers`,
     );
@@ -129,7 +126,7 @@ function buildNotification(
   input: SendNotificationInput,
   ctx: ExecutionCtx,
 ): SendableNotification {
-  const params = toNotificationParams(input.params, ctx);
+  const params = toNotificationParams(input, ctx);
   const tone = toTone(input.tone);
   const linkTo = input.linkTo?.trim();
   const data: NotificationData = {

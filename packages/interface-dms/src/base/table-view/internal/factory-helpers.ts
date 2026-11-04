@@ -23,6 +23,7 @@ import {
   type GroupedOptions,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
+  type KanbanOptionsSerialized,
   type QueryParamFilters,
   type RouteParamFilters,
   type TableViewCardOptions,
@@ -103,7 +104,7 @@ export function serializeCustomButtons(
  *
  * @internal
  */
-export function serializeRowActions<T extends Record<string, unknown>>(
+export function serializeRowActions<T extends object>(
   rowActions: TableViewRowActionOptions<T>,
 ): TableViewRowActionOptionsSerialized {
   return {
@@ -280,17 +281,23 @@ export interface TableViewDisplaySources {
 type BuiltinDisplayOptions = (
   sources: TableViewDisplaySources,
   card: TableViewCardOptionsSerialized | undefined,
-) => TableViewDisplayOptionSerialized["options"];
+) =>
+  | { card: TableViewCardOptionsSerialized }
+  | KanbanOptionsSerialized
+  | GroupedOptions
+  | undefined;
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- The registry accepts arbitrary display ids and optional lookups; its callbacks share the published serialized display option contract.
-const BUILTIN_DISPLAY_OPTIONS: Record<string, BuiltinDisplayOptions> = {
-  [CARDS_DISPLAY_ID]: (_sources, card) => (card ? { card } : undefined),
-  [KANBAN_DISPLAY_ID]: ({ kanban }, card) => {
-    if (!kanban) return undefined;
-    return { ...kanban, card };
-  },
-  [GROUPED_DISPLAY_ID]: ({ grouped }) => (grouped ? { ...grouped } : undefined),
-};
+const BUILTIN_DISPLAY_OPTIONS = new Map<string, BuiltinDisplayOptions>([
+  [CARDS_DISPLAY_ID, (_sources, card) => (card ? { card } : undefined)],
+  [
+    KANBAN_DISPLAY_ID,
+    ({ kanban }, card) => {
+      if (!kanban) return undefined;
+      return { ...kanban, card };
+    },
+  ],
+  [GROUPED_DISPLAY_ID, ({ grouped }) => (grouped ? { ...grouped } : undefined)],
+]);
 
 /**
  * The `kanban` and `grouped` options are transported to the frontend as
@@ -306,7 +313,7 @@ export function serializeTableViewDisplays(
 ): TableViewDisplayOptionSerialized[] {
   const card = serializeCard(sources);
   return offeredDisplays(sources).map((display) => {
-    const builtin = BUILTIN_DISPLAY_OPTIONS[display.id]?.(sources, card);
+    const builtin = BUILTIN_DISPLAY_OPTIONS.get(display.id)?.(sources, card);
     return {
       ...display,
       options: builtin ? { ...display.options, ...builtin } : display.options,
@@ -521,14 +528,15 @@ export interface FormRouteFrame {
  * @internal
  */
 export function buildFormRedirectUrl(frame: FormRouteFrame): string {
-  const seen: Record<string, number> = {};
+  const seen = new Map<string, number>();
   return frame.pageSlug
     .split("/")
     .map((segment) => {
       if (!segment.startsWith(":")) return segment;
       const name = segment.substring(1);
-      seen[name] = (seen[name] ?? 0) + 1;
-      return pageParamToken(name, frame, seen[name]);
+      const occurrence = (seen.get(name) ?? 0) + 1;
+      seen.set(name, occurrence);
+      return pageParamToken(name, frame, occurrence);
     })
     .join("/");
 }

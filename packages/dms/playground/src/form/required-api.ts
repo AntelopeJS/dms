@@ -4,6 +4,7 @@ import {
   JSONBody,
   Put,
 } from "@antelopejs/interface-api";
+import { z } from "zod";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { formSchema } from "@antelopejs/interface-dms/base/form";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
@@ -18,22 +19,26 @@ const USERNAME_TAKEN_KEY = "$demo.form_pages.username_taken";
 const ADDRESS_FIELD = "address";
 const POSTAL_CODE_PART = "postalCode";
 
-function refuseTakenUsername(username: DemoRecord["username"]): void {
-  if (username !== TAKEN_USERNAME) return;
+const AddressBody = z.object({ postalCode: z.string() });
+
+function refuseTakenUsername(body: DemoRecord): void {
+  if (body.username !== TAKEN_USERNAME) return;
   throw new HTTPResult(
     HTTP_CONFLICT,
     JSON.stringify({
       field: "username",
       message: USERNAME_TAKEN_KEY,
-      params: { name: username },
+      params: { name: TAKEN_USERNAME },
     }),
     JSON_TYPE,
   );
 }
 
-function refuseUnknownPostalCode(address: DemoRecord["address"]): void {
-  const postalCode = address?.postalCode;
-  if (postalCode !== UNKNOWN_POSTAL_CODE) return;
+function refuseUnknownPostalCode(body: DemoRecord): void {
+  const address = AddressBody.safeParse(body[ADDRESS_FIELD]);
+  if (!address.success || address.data.postalCode !== UNKNOWN_POSTAL_CODE) {
+    return;
+  }
   throw new HTTPResult(
     HTTP_BAD_REQUEST,
     JSON.stringify([
@@ -59,8 +64,8 @@ export class FormRequiredAPIController extends Controller(
 
   @Put("submit")
   async submit(@JSONBody() body: DemoRecord) {
-    refuseTakenUsername(body.username);
-    refuseUnknownPostalCode(body[ADDRESS_FIELD]);
+    refuseTakenUsername(body);
+    refuseUnknownPostalCode(body);
     const parsed = await formSchema(PageFormRequired.form).safeParseAsync(body);
     if (!parsed.success) {
       throw new HTTPResult(

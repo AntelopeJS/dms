@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": false,
+    "types": ["node"]
+  },
+  "include": ["./**/*.cjs", "./runtime-declarations.d.ts"]
+}

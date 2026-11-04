@@ -5,6 +5,7 @@ import type { ComponentBuilder } from "../../../component";
 import { GetPermissionId, PageMetadata } from "../../../page";
 import { claimFormPageRoute } from "../../../page/internal/form-page-routes";
 import { resolveInheritedLayout } from "../../../page/internal/categories";
+import type { CreatedPage } from "../../../types";
 import { fireAndForget } from "../../../utils/fire-and-forget";
 import type { FormBuilder } from "../../form-types";
 import { FormPageLayout } from "../../layouts";
@@ -36,7 +37,6 @@ interface CreationState<T extends ControllerClass> {
   options: TableViewOptions<InstanceType<T>>;
   meta: TableViewMeta;
   builder: ComponentBuilder<TableViewOptionsSerialized>;
-  config: TableViewMeta["config"];
   isWriting: boolean;
   forms: Record<FormPageKind, FormBuilder | undefined>;
   isPageMode: boolean;
@@ -45,22 +45,14 @@ interface CreationState<T extends ControllerClass> {
 /** @internal */
 export function tableViewCreated<T extends ControllerClass>(
   state: CreationState<T>,
-  parentPage: PageMetadata,
+  parentPage: CreatedPage,
 ): void {
-  const {
-    controller,
-    options,
-    meta,
-    builder,
-    config,
-    isWriting,
-    forms,
-    isPageMode,
-  } = state;
-  const parentInfo = parentPage.pageInfo;
-  if (!parentInfo) {
+  const { controller, options, meta, builder, isWriting, forms, isPageMode } =
+    state;
+  if (!(parentPage instanceof PageMetadata) || !parentPage.pageInfo) {
     throw new Error("Parent page info not found");
   }
+  const parentInfo = parentPage.pageInfo;
 
   const customPages =
     options.formContainer?.type === "page"
@@ -77,7 +69,7 @@ export function tableViewCreated<T extends ControllerClass>(
   }
 
   if (options.realtime !== false) {
-    registerTableViewPageTopics(parentInfo.fullId, config.location);
+    registerTableViewPageTopics(parentInfo.fullId, controller.location);
   }
   registerTableViewCustomTopics(parentInfo.fullId, options.realtimeTopic);
 
@@ -155,7 +147,10 @@ export function tableViewCreated<T extends ControllerClass>(
     fireAndForget(formMeta.Register(), "table view form registration");
 
     if (options.realtime === false) return;
-    registerTableViewPageTopics(`${parentInfo.fullId}.${id}`, config.location);
+    registerTableViewPageTopics(
+      `${parentInfo.fullId}.${id}`,
+      controller.location,
+    );
   };
 
   for (const kind of FORM_PAGE_KINDS) {

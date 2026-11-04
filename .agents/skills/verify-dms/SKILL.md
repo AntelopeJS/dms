@@ -30,6 +30,33 @@ RUN=$($C up --prepare)   # installs, builds, starts; prints the run folder
 
 `--base <ref>` (default `origin/main`) names the version the plan diffs against and the base-version journey starts. `--runs <dir>` (or `DMS_CONTROL_RUNS`) moves the runs out of the temporary folder.
 
+## Serving a renderer checkout
+
+`@antelopejs/dms-frontend` is the dashboard a run serves, and its repository (AntelopeJS/dms-frontend) has no playground or backend of its own. A skill living there drives the dms playground with its own checkout as the dashboard.
+
+```bash
+$C up --playground ~/code/dms/packages/dms/playground --renderer ~/code/dms-frontend
+```
+
+- `--renderer <dir>` is a checkout of `@antelopejs/dms-frontend` that is installed and built (`dist/index.js` exists). `up` refuses any other folder before it starts anything.
+- After the playground copy is laid out, the run's `node_modules` is the playground's with one change: `@antelopejs/dms-frontend` is the checkout. `ajs dms build` and `ajs dms start` run from `<checkout>/dist/index.js`, and the checkout resolves its own dependencies from its own `node_modules`. The playground, its modules and its installed `dms-frontend` are not touched.
+- The run records `renderer`. `headSha` and the HEAD that `doctor` and `verdict` compare are the renderer checkout's, since that is the code under test. `doctor` also fails a renderer `dist` older than its `src`, and `versions` prints the checkout's version.
+- The base-version backend (`withBaseBackend`, the Format containment journey) is the playground's repository at `--base`, which a renderer run does not verify, so it refuses to start with `--renderer`.
+
+A skill in the renderer's repository names both in `verify.config.ts`, and `up`, `seeded` and `journey` need no flag:
+
+```ts
+const config: VerifyConfig = {
+  playground: process.env.DMS_PLAYGROUND ?? `${process.env.HOME}/code/dms/packages/dms/playground`,
+  renderer: ".",
+  prepare: [["pnpm", "install", "--frozen-lockfile"], ["pnpm", "build"]],
+};
+```
+
+- `playground` may be absolute. An external playground is built beforehand (`pnpm install` and the module and playground builds in its checkout); `prepare` runs in the skill's repository, the renderer's.
+- `renderer` is relative to the skill's repository. `--playground` and `--renderer` on the command line win over the config.
+- `seeded` makes its control and patched worktrees from the skill's repository, which is the renderer checkout, runs `prepare` there, and starts each run with `--renderer <worktree>/<renderer>`. A seeded break therefore patches the renderer and the playground stays the same in both runs. `doors <patch>` and the seeded doors already read and apply their patches in the skill's repository, so they need no option.
+
 ## Doctor
 
 ```bash
@@ -157,6 +184,17 @@ $C doors .agents/skills/verify-dms/seeded-doors/data.patch
 - Each journey restarts the backend on a fresh database: in-memory state (rate limits, the playground's tenant gate) resets with it.
 - `up` and the frontend build install from the npm registry. A package published minutes earlier can answer 404 until the registry propagates it; `up` then fails on its `frontend-build` or `project-build` log. Run `up` again a few minutes later.
 - Writing a journey: a check (`tab.visible`, `tab.shows`, `tab.at`, `ctx.equal`…) only counts inside `ctx.verify`. Uppercase styling changes `innerText`, so match such text case-insensitively. `ctx.api` signs the account in again on a 401; pass `token` to observe a refused token. The raw Playwright page is `tab.page`, for popups, downloads and visually hidden inputs.
+
+## Component probes
+
+`antelopejs-api-diff <base-ref> --probe <file.cjs>` captures one file, so the `interface-dms` component coverage in `.agents/probes/` is four standalone scripts. Pass the ones whose keys your change reaches, one api-diff run each.
+
+| Probe | Keys it prints |
+|---|---|
+| `interface-components-builder.cjs` | `sync`, `serialized`, `filtered`, `shadowedCall`, `ownKeys`, `positional`, `permission`, `uploadConstraintReads`, `defaultTypesFresh`, `dataTypesAndHints` |
+| `interface-components-routes.cjs` | `routes`, `factoryHelpers`, `metadata`, `lifecycle` |
+| `interface-components-read-order.cjs` | `typeBoundaries`, `pageInfoPrecedence`, `extractedPageCalls`, `evaluationOrder` |
+| `interface-components-owner-order.cjs` | `ownerAccessorOrder`, `publicWatchFilterOrder`, `publicPageScheduling` |
 
 ## Feature map
 

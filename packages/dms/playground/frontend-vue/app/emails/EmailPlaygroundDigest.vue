@@ -20,25 +20,28 @@ interface DigestTexts {
 
 const DEFAULT_LOCALE = "en";
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- The locale prop is an open string; unrecognized keys intentionally select DEFAULT_LOCALE.
-const TEXTS: Record<string, DigestTexts> = {
-  en: {
+const ENGLISH: DigestTexts = {
     title: "Your playground digest",
     preheader: (count) => `${count} things happened in the playground`,
     greeting: (name) => `Hello ${name},`,
     body: (count) =>
       `${count} things happened in the playground since your last visit.`,
     footer: "Sent by the DMS playground's emails demo.",
-  },
-  fr: {
+};
+
+const FRENCH: DigestTexts = {
     title: "Votre résumé du playground",
     preheader: (count) => `${count} nouveautés dans le playground`,
     greeting: (name) => `Bonjour ${name},`,
     body: (count) =>
       `${count} choses se sont passées dans le playground depuis votre dernière visite.`,
     footer: "Envoyé par la démo des emails du playground DMS.",
-  },
 };
+
+const TEXTS = new Map([
+  [DEFAULT_LOCALE, ENGLISH],
+  ["fr", FRENCH],
+]);
 
 const props = defineProps<{
   userName: string;
@@ -47,9 +50,9 @@ const props = defineProps<{
 }>();
 
 const lang = computed(() =>
-  props.locale && TEXTS[props.locale] ? props.locale : DEFAULT_LOCALE,
+  props.locale && TEXTS.has(props.locale) ? props.locale : DEFAULT_LOCALE,
 );
-const texts = computed(() => TEXTS[lang.value] ?? TEXTS[DEFAULT_LOCALE]);
+const texts = computed(() => TEXTS.get(lang.value) ?? ENGLISH);
 </script>
 
 <template>

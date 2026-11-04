@@ -2,20 +2,27 @@ import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { z } from "zod";
 
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
-const manifest = JSON.parse(
-  fs.readFileSync(path.join(packageRoot, "package.json"), "utf8"),
-);
+const manifest = z
+  .object({ name: z.string(), exports: z.record(z.string(), z.unknown()) })
+  .parse(
+    JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8")),
+  );
 const distRoot = path.join(packageRoot, "dist");
 
 if (!fs.existsSync(distRoot)) {
   throw new Error("dist is missing: run `pnpm run build` first.");
 }
 
+/**
+ * @param {string} directory
+ * @returns {string[]}
+ */
 function listFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(directory, entry.name);
@@ -23,6 +30,10 @@ function listFiles(directory) {
   });
 }
 
+/**
+ * @param {string} file
+ * @returns {string}
+ */
 function toSubpath(file) {
   const relative = path
     .relative(distRoot, file)
@@ -32,6 +43,11 @@ function toSubpath(file) {
   return relative === "index" ? "." : `./${relative.replace(/\/index$/, "")}`;
 }
 
+/**
+ * @param {string} subpath
+ * @param {string} pattern
+ * @returns {boolean}
+ */
 function matches(subpath, pattern) {
   if (!pattern.includes("*")) return subpath === pattern;
   const [prefix, suffix = ""] = pattern.split("*");

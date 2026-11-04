@@ -1,6 +1,6 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import {
   announceSetupToken,
   SetupTokenModel,
@@ -159,10 +159,11 @@ describe("[integration] setup token at start", () => {
     process.env.DMS_SETUP_TOKEN = "short";
     const failure = await announceSetupToken().then(
       () => undefined,
-      (error: Error) => error,
+      (error: unknown) => error,
     );
 
-    expect(failure?.message).to.contain("DMS_SETUP_TOKEN");
+    assert.instanceOf(failure, Error);
+    expect(failure.message).to.contain("DMS_SETUP_TOKEN");
   });
 
   it("drops the token once an owner exists", async () => {

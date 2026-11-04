@@ -36,8 +36,14 @@ export function resolveFilterValueTokens(
   value: string,
   context: FilterTokenContext,
 ): string {
-  return value.replace(TOKEN, (_match, name: string, sign, days) =>
-    resolveToken(context, name, sign, days),
+  return value.replace(
+    TOKEN,
+    (
+      _match,
+      name: string,
+      sign: string | undefined,
+      days: string | undefined,
+    ) => resolveToken(context, name, sign, days),
   );
 }
 

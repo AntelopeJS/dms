@@ -1,21 +1,21 @@
 import type { TriggerType } from "@antelopejs/interface-dms-automation";
 
-export interface MemberAddedEvent {
+export type MemberAddedEvent = {
   tenantId: string;
   userId: string;
   isTenantOwner: boolean;
   /** Stable invite delivery identity; this best-effort event can repeat. */
   deliveryId?: string;
   at: string;
-}
+};
 
-export interface MemberRemovedEvent {
+export type MemberRemovedEvent = {
   tenantId: string;
   userIds: string[];
   at: string;
-}
+};
 
-export interface InviteCreatedEvent {
+export type InviteCreatedEvent = {
   tenantId: string;
   inviteId: string;
   email: string;
@@ -24,24 +24,24 @@ export interface InviteCreatedEvent {
   /** Stable replacement identity; this best-effort event can repeat. */
   deliveryId?: string;
   at: string;
-}
+};
 
-export interface UserRegisteredEvent {
+export type UserRegisteredEvent = {
   tenantId: string;
   userId: string;
   email: string;
   name: string;
   at: string;
-}
+};
 
-export interface RecordMutationEvent {
+export type RecordMutationEvent = {
   /** Data controller location of the mutated table, e.g. "/api/tables/members". */
   location: string;
   ids: string[];
   actorId?: string;
   actorName?: string;
   at: string;
-}
+};
 
 interface AutomationEventPayloads {
   "dms.member-added": MemberAddedEvent;

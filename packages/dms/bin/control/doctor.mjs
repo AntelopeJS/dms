@@ -3,8 +3,11 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { descendantsOf, isAlive, listenersOf, probe } from "./processes.mjs";
 import { checkoutOf } from "./git.mjs";
+import { stringField } from "./json.mjs";
 import { apiRequest } from "./session.mjs";
 import { packageVersion } from "./stack.mjs";
+
+/** @typedef {import("./run-state.mjs").RunState} RunState */
 
 const SKIPPED = new Set([
   "node_modules",
@@ -16,6 +19,10 @@ const SKIPPED = new Set([
   ".output",
 ]);
 
+/**
+ * @param {string} folder
+ * @returns {number}
+ */
 function newestMtime(folder) {
   if (!existsSync(folder)) return 0;
   let newest = 0;
@@ -30,14 +37,25 @@ function newestMtime(folder) {
   return newest;
 }
 
+/**
+ * @param {string} file
+ * @returns {number}
+ */
 function mtime(file) {
   return existsSync(file) ? statSync(file).mtimeMs : 0;
 }
 
+/**
+ * @param {string} check
+ * @param {boolean} ok
+ * @param {string} detail
+ * @returns {{ check: string, ok: boolean, detail: string }}
+ */
 function line(check, ok, detail) {
   return { check, ok, detail };
 }
 
+/** @param {RunState} state */
 function processLines(state) {
   const family = new Set([
     ...state.processes.map((record) => record.pid),
@@ -71,6 +89,10 @@ function processLines(state) {
   });
 }
 
+/**
+ * @param {RunState} state
+ * @returns {string}
+ */
 function frontendBackendUrl(state) {
   const frontend = state.processes.find((record) => record.name === "frontend");
   if (!frontend) return "no frontend recorded";
@@ -88,8 +110,13 @@ function frontendBackendUrl(state) {
   return args[args.indexOf("-b") + 1] ?? "no -b";
 }
 
+/** @param {RunState} state */
 function versions(state) {
   const require = createRequire(join(state.playground, "package.json"));
+  /**
+   * @param {string} name
+   * @returns {string}
+   */
   const version = (name) => {
     try {
       return packageVersion(require.resolve(`${name}/package.json`));
@@ -100,10 +127,13 @@ function versions(state) {
   return {
     module: `${packageVersion(join(state.moduleRoot, "package.json"))} (${state.moduleRoot})`,
     core: version("@antelopejs/core"),
-    dmsFrontend: version("@antelopejs/dms-frontend"),
+    dmsFrontend: state.renderer
+      ? packageVersion(join(state.renderer, "package.json"))
+      : version("@antelopejs/dms-frontend"),
   };
 }
 
+/** @param {RunState} state */
 function freshnessLines(state) {
   const moduleDist = join(state.moduleRoot, "dist");
   const playgroundDist = join(state.playground, "dist");
@@ -116,7 +146,18 @@ function freshnessLines(state) {
     newestMtime(join(state.moduleRoot, "frontend-vue")),
     newestMtime(join(state.playground, "frontend-vue")),
   );
+  const renderer = state.renderer
+    ? [
+        line(
+          "renderer build newer than src",
+          newestMtime(join(state.renderer, "dist")) >=
+            newestMtime(join(state.renderer, "src")),
+          state.renderer,
+        ),
+      ]
+    : [];
   return [
+    ...renderer,
     line(
       "module dist newer than src",
       !existsSync(join(state.moduleRoot, "src")) ||
@@ -138,8 +179,10 @@ function freshnessLines(state) {
   ];
 }
 
+/** @param {RunState} state */
 function headLine(state) {
-  const now = state.repo ? checkoutOf(state.repo).head : null;
+  const verified = state.renderer ?? state.repo;
+  const now = verified ? checkoutOf(verified).head : null;
   return line(
     "checkout HEAD unchanged since up",
     now === state.headSha,
@@ -147,6 +190,7 @@ function headLine(state) {
   );
 }
 
+/** @param {RunState} state */
 async function sessionLine(state) {
   if (!state.accounts?.admin)
     return line("admin session", true, "not onboarded yet");
@@ -158,7 +202,8 @@ async function sessionLine(state) {
   });
   return line(
     "admin session valid",
-    me.status === 200 && me.body?.email === state.accounts.admin.email,
+    me.status === 200 &&
+      stringField(me.body, "email") === state.accounts.admin.email,
     `GET /api/auth/me ${me.status}`,
   );
 }
@@ -169,7 +214,7 @@ async function sessionLine(state) {
  * backend, the builds are newer than their sources, the database is the
  * run's own, and the admin session (once onboarded) is valid.
  *
- * @param {Record<string, any>} state The run
+ * @param {import("./run-state.mjs").RunState} state The run
  * @returns {Promise<{ check: string, ok: boolean, detail: string }[]>} One line per check
  */
 export async function doctor(state) {

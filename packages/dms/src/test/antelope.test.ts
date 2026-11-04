@@ -22,6 +22,10 @@ const LOCAL_MONGODB_PATH = process.env.DMS_TEST_MONGODB_PATH;
 const LOCAL_STORAGE_PATH = process.env.DMS_TEST_STORAGE_PATH;
 
 const LOCAL_INSTALL_COMMAND = process.env.DMS_PREBUILT ? [] : ["pnpm build"];
+const INSTALLED_API = {
+  type: "local" as const,
+  path: "node_modules/@antelopejs/api",
+};
 
 function providerSource(
   path: string | undefined,
@@ -101,7 +105,7 @@ export default defineConfig({
       source: providerSource(
         LOCAL_MONGODB_PATH,
         "@antelopejs/mongodb",
-        "1.5.0",
+        "1.6.2",
       ),
     },
     "auth-jwt": {
@@ -115,7 +119,9 @@ export default defineConfig({
       },
     },
     api: {
-      source: providerSource(LOCAL_API_PATH, "@antelopejs/api", ">=1.5.0 <2"),
+      source: LOCAL_API_PATH
+        ? providerSource(LOCAL_API_PATH, "@antelopejs/api", ">=1.5.0 <2")
+        : INSTALLED_API,
       config: {
         publicBaseUrl: UNUSED_PUBLIC_BASE_URL,
         servers: [{ protocol: "http", host: "127.0.0.1", port: ANY_FREE_PORT }],
