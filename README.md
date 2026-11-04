@@ -18,11 +18,15 @@ Open source under Apache-2.0. Self-hosted today.
 
 [Docs](https://dms.antelopejs.com/docs) · [Quick start](https://dms.antelopejs.com/docs/getting-started/quickstart) · [Discord](https://discord.gg/g4pFt6eXqu)
 
+If the DMS saves you a back office, a ⭐ helps other developers find it.
+
 </div>
 
-![Screen recording of the AntelopeJS DMS Builder. The Connect form is filled from a postgres:// URL under the caption Paste the URL. Press Connect. Four steps run, the Builder reports 11 tables detected, then a Music Overview dashboard with four count cards appears under the caption First pass done in 10:50.](./docs/media/hero-connect.gif)
+![Screen recording from the Meet AntelopeJS DMS film. A PostgreSQL connection string is pasted into the Connect a database form under the caption Name it. Pick the engine. Paste the connection string. Connect is pressed, four steps run under the caption Done. There's your ERP. Three databases, two PostgreSQL and one MongoDB, then appear in one list under the caption Three databases, one back office, and an Overview dashboard with revenue, open deals and orders from all three appears under the caption One dashboard. Everything in one place.](./docs/media/hero-connect.gif)
 
-[Watch the full Meet AntelopeJS DMS video (72 seconds)](./docs/media/meet.mp4)
+**Meet AntelopeJS DMS (4:44).** A company connects its ERP, its CRM and its shop, and gets one back office and one dashboard.
+
+VIDEO:meet-calm-16x9
 
 ## Try it in one command
 
@@ -63,19 +67,19 @@ Open the onboarding address that the `dms` service prints after `No owner exists
 
 Each table you keep gets a typed table definition and a page, written into your repository next to your code. You read it, change it, and review it like any other change to your product.
 
-<img src="./docs/media/code.gif" alt="Screen recording of the generated Invoice page, public-invoice/page.ts, open in a code editor under the caption Or write it yourself. Same TypeScript. The RegisterPage line and then the TableView line are highlighted. A diagram follows where Builder clicks, AI prompts, and your own code all lead into the same page.ts file, which passes typecheck, under the caption The code stays yours. In your repo." width="720">
+<img src="./docs/media/code.gif" alt="Screen recording of dashboard/page.ts, a page class with a KpiCard, a ChartDonut and a TableView, drawn next to the dashboard it produces under the caption A page is a TypeScript class. The TableView line then grows into a full table with search, filters, a New project form and its GET, POST, PUT and DELETE routes, under the captions One block. A full CRUD screen. and You declared one thing." width="720">
 
 ### Read-only by default, roles for the rest
 
 A generated page lists, shows, and exports rows. It gets no create, edit, or delete route until you switch on **Rows can be edited** for that table. Roles and permissions then decide who sees and edits what, down to each block.
 
-<img src="./docs/media/roles-readonly.gif" alt="Screen recording of the role permission tree, where the Invoice and Music Overview pages are ticked for a role under the caption Roles, down to each page. A second panel then shows settings toggles under the lines Connects to PostgreSQL, MongoDB or RethinkDB and Generated pages are read-only until you switch editing on." width="720">
+<img src="./docs/media/roles-readonly.gif" alt="Screen recording of the Support role's permission tree, with the dashboard's Revenue, Sales and Projects blocks and the Create, Edit and Delete actions switched one by one, under the caption Roles come from your pages, down to each action. The dashboard is then previewed as Support under the caption Preview as any role, and the same request returns 200 for Admin and 403 for Support under the caption Hidden on the page. Refused by the server." width="720">
 
 ### The Builder turns clicks into code
 
 Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript, and the Builder writes files only when the whole project still compiles.
 
-<img src="./docs/media/builder.gif" alt="Screen recording of the Builder editing the Music Overview page under the caption Click. The Builder writes the code. A KPI card is retitled Artists in the catalog, given the description Distinct artists across all albums, and saved." width="720">
+<img src="./docs/media/builder.gif" alt="Screen recording of Ctrl B opening the Builder on a dashboard, where a TableView block is added from the block list under the caption Ctrl B. Edit it on the page. The block is saved, the whole project is typechecked, and the new TableView line appears in dashboard/page.ts under the caption Every save becomes TypeScript." width="720">
 
 ### And more
 
@@ -87,6 +91,10 @@ Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript,
 - **Agent skills in the packages.** They teach coding agents how to build DMS pages the way the DMS expects.
 - **Embedding.** Run the DMS inside an AdonisJS 6 backend.
 - **Installable modules.** Page builder, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics, and a media library.
+
+**A tour of the whole DMS (3:47).** Pages and blocks, people and roles, modules, and the three ways to build.
+
+VIDEO:antelope-dms-180s
 
 ---
 
