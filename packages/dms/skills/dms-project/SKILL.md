@@ -18,7 +18,7 @@ the **ajs-cli** skill; full walkthrough: `docs/02.building/01.project-setup.md`.
 ## Starting a new application
 
 Use [template-dms-demo](https://github.com/AntelopeJS/template-dms-demo) for the default
-CLI-owned backend and Nuxt dashboard: `npx @antelopejs/core project init <dir> --template dms-demo`.
+CLI-owned backend and Nuxt dashboard: `npx @antelopejs/core project init <dir> --template dms-demo` (needs Git on `PATH`).
 Follow `docs/01.getting-started/03.quickstart.md` through first-admin setup (the onboarding
 address with the setup token that the backend prints) before adding pages. Use
 [template-dms-adonis](https://github.com/AntelopeJS/template-dms-adonis) only when

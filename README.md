@@ -28,7 +28,7 @@ Open source under Apache-2.0. Self-hosted today.
 
 ### Try it on a sample database
 
-You need Node.js and Docker with Compose v2.
+You need Node.js, Git and Docker with Compose v2.
 
 ```bash
 npx @antelopejs/core project init dms-connect-demo --template dms-connect-demo
@@ -103,7 +103,7 @@ The DMS also needs an API module, a module implementing the database interface, 
 
 ## Run the demo application
 
-The [DMS Demo](https://github.com/AntelopeJS/template-dms-demo) template loads the DMS, its companions and a seeded demo application. You need Node.js 22 or later, pnpm (`corepack enable` installs it) and a MongoDB on `localhost:27017`.
+The [DMS Demo](https://github.com/AntelopeJS/template-dms-demo) template loads the DMS, its companions and a seeded demo application. You need Node.js 22 or later, Git, pnpm (`corepack enable` installs it) and a MongoDB on `localhost:27017`.
 
 ```bash
 npx @antelopejs/core project init my-app --template dms-demo
