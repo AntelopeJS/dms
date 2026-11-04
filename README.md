@@ -28,7 +28,7 @@ Open source under Apache-2.0. Self-hosted today.
 
 ### Try it on a sample database
 
-You need Node.js, Git and Docker with Compose v2.
+You need Node.js, Git, pnpm (`corepack enable` installs it) and Docker with Compose v2.
 
 ```bash
 npx @antelopejs/core project init dms-connect-demo --template dms-connect-demo
