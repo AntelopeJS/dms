@@ -40,7 +40,7 @@ cd dms-connect-demo
 docker compose up
 ```
 
-[`template-dms-connect-demo`](https://github.com/AntelopeJS/template-dms-connect-demo) is a demo for trying the Connect flow. The stack starts the DMS, a MongoDB for the DMS's own data, and a PostgreSQL database filled with the Chinook sample (a music store with 11 tables). The command chooses the sample database. To get the same data in MongoDB or RethinkDB, run `docker compose --profile mongodb up` or `docker compose --profile rethinkdb up` instead. On one Linux machine the dashboard was ready after about 2 minutes from a cold start and after about 1 minute with the images and packages cached.
+[`template-dms-connect-demo`](https://github.com/AntelopeJS/template-dms-connect-demo) is a demo for trying the Connect flow. The stack starts the DMS, a MongoDB for the DMS's own data, and a PostgreSQL database filled with the online orders of a coffee brand (12 tables). The command chooses the sample database. To get the same data in MongoDB or RethinkDB, run `docker compose --profile mongodb up` or `docker compose --profile rethinkdb up` instead. On one Linux machine the dashboard was ready after about 2 minutes from a cold start and after about 1 minute with the images and packages cached.
 
 The demo uses placeholder secrets, so keep its ports on your own machine.
 
