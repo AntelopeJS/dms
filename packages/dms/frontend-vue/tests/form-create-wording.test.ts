@@ -58,6 +58,7 @@ it("rejects Cancel that fails to return to the app page or navigates before disc
 it("rejects Cancel that leaves the app instead of using backTo for an external entry", async () => {
   window.history.replaceState({ back: 42 }, "", "/edit");
   await mountForm({ backTo: "/list" });
+  await typeName();
   button("Cancel").click();
   expect(router.push).toHaveBeenCalledWith("/list");
   expect(router.back).not.toHaveBeenCalled();
@@ -67,6 +68,7 @@ it("rejects Cancel that navigates instead of closing its container", async () =>
   const close = vi.fn(async () => {});
   window.history.replaceState({ back: "/list" }, "", "/edit");
   await mountForm({}, close);
+  await typeName();
   button("Cancel").click();
   await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
   expect(router.back).not.toHaveBeenCalled();
