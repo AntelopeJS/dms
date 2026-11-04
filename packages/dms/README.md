@@ -77,20 +77,20 @@ export class SalesPage extends PageController("sales", {
 
 <!-- antelopejs-docs-compat:start -->
 
-| Package                                     | Supported                                                                  | Tested with                                                          |
-| ------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `@antelopejs/core`                          | `>=1.17.0 <2`                                                              | `1.17.0`                                                             |
-| `@antelopejs/interface-api`                 | `>=0.2.0 <1.0.0`                                                           | `0.2.0`                                                              |
-| `@antelopejs/interface-api-util`            | `>=0.3.0 <1.0.0`                                                           | `0.3.0`                                                              |
-| `@antelopejs/interface-core`                | `>=0.4.0 <1.0.0`                                                           | `0.4.0`                                                              |
-| `@antelopejs/interface-data-api`            | `>=0.6.0 <1.0.0`                                                           | `0.6.0`                                                              |
-| `@antelopejs/interface-database`            | `>=0.3.0 <1.0.0`                                                           | `0.3.0`                                                              |
-| `@antelopejs/interface-database-decorators` | `>=0.2.0 <1.0.0`                                                           | `0.2.0`                                                              |
-| `@antelopejs/interface-dms`                 | `>=0.12.0 <0.13.0`                                                         | `0.12.0`                                                             |
-| `@antelopejs/interface-dms-automation`      | `file:../../.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz` | `file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz` |
-| `@antelopejs/interface-email`               | `>=0.0.6 <1.0.0`                                                           | `0.0.6`                                                              |
-| `@antelopejs/interface-file-storage`        | `>=0.1.4 <1.0.0`                                                           | `0.1.4`                                                              |
-| `@antelopejs/interface-redis`               | `>=0.0.9 <1.0.0`                                                           | `0.0.9`                                                              |
+| Package                                     | Supported          | Tested with |
+| ------------------------------------------- | ------------------ | ----------- |
+| `@antelopejs/core`                          | `>=1.17.0 <2`      | `1.17.0`    |
+| `@antelopejs/interface-api`                 | `>=0.2.0 <1.0.0`   | `0.2.0`     |
+| `@antelopejs/interface-api-util`            | `>=0.3.0 <1.0.0`   | `0.3.0`     |
+| `@antelopejs/interface-core`                | `>=0.4.0 <1.0.0`   | `0.4.0`     |
+| `@antelopejs/interface-data-api`            | `>=0.6.0 <1.0.0`   | `0.6.0`     |
+| `@antelopejs/interface-database`            | `>=0.3.0 <1.0.0`   | `0.3.0`     |
+| `@antelopejs/interface-database-decorators` | `>=0.2.0 <1.0.0`   | `0.2.0`     |
+| `@antelopejs/interface-dms`                 | `>=0.12.0 <0.13.0` | `0.12.0`    |
+| `@antelopejs/interface-dms-automation`      | `>=0.6.0 <1.0.0`   | `0.6.0`     |
+| `@antelopejs/interface-email`               | `>=0.0.6 <1.0.0`   | `0.0.6`     |
+| `@antelopejs/interface-file-storage`        | `>=0.1.4 <1.0.0`   | `0.1.4`     |
+| `@antelopejs/interface-redis`               | `>=0.0.9 <1.0.0`   | `0.0.9`     |
 
 <!-- antelopejs-docs-compat:end -->
 
