@@ -7,16 +7,17 @@ import {
 } from "vue";
 import { GITHUB_REPOSITORY_URL } from "../../utils/github-repository";
 
-const STORAGE_PREFIX = "dms-github-star-prompt:";
+/** The prefix of the star prompt's `localStorage` keys. */
+export const GITHUB_STAR_PROMPT_KEY_PREFIX = "dms-github-star-prompt:";
 
 /** `localStorage` keys of the star prompt, per browser. */
 export const GITHUB_STAR_PROMPT_KEYS = {
   /** Visible time spent on signed-in dashboard pages, in milliseconds. */
-  activeMs: `${STORAGE_PREFIX}active-ms`,
+  activeMs: `${GITHUB_STAR_PROMPT_KEY_PREFIX}active-ms`,
   /** Epoch milliseconds until which "Later" keeps the prompt hidden. */
-  snoozedUntil: `${STORAGE_PREFIX}snoozed-until`,
+  snoozedUntil: `${GITHUB_STAR_PROMPT_KEY_PREFIX}snoozed-until`,
   /** Set once the prompt is starred or closed: it never shows again. */
-  dismissed: `${STORAGE_PREFIX}dismissed`,
+  dismissed: `${GITHUB_STAR_PROMPT_KEY_PREFIX}dismissed`,
 } as const;
 
 /** Active dashboard time before the prompt first shows. */

@@ -1,0 +1,77 @@
+{
+  "page": {
+    "settings": {
+      "appearance": {
+        "theme_title": "Thème de l'interface",
+        "theme_description": "Adapter votre thème de couleur pour votre DMS Antelope",
+        "system": "Système",
+        "light": "Clair",
+        "dark": "Sombre",
+        "scale_title": "Densité de l'interface",
+        "scale_description": "Agrandissez ou réduisez l'ensemble de l'interface en conservant les proportions. Petite pour afficher plus de données, Grande pour plus de confort sur grands écrans",
+        "scale_small": "Petite",
+        "scale_normal": "Normale",
+        "scale_large": "Grande",
+        "scale_small_hint": "Compact · plus de données",
+        "scale_normal_hint": "Par défaut",
+        "scale_large_hint": "Spacieux · grands écrans",
+        "css_variables": "Variables CSS",
+        "css_variables_description": "Liste de toutes les variables CSS utilisées dans le design system",
+        "system_hint": "Suit le réglage de votre système",
+        "light_hint": "Surfaces claires",
+        "dark_hint": "Repose les yeux",
+        "sidebar_title": "Barre latérale",
+        "sidebar_description": "Vous pouvez aussi la replier à tout moment avec le bouton à côté du fil d'Ariane.",
+        "sidebar_start_collapsed": "Démarrer avec la barre latérale repliée",
+        "sidebar_start_collapsed_hint": "Affiche seulement les icônes, avec les libellés au survol. Pratique sur les petits écrans.",
+        "developer_title": "Développeur",
+        "developer_description": "Les variables de design utilisées par l'interface, pour créer des modules assortis.",
+        "css_vars": {
+          "count": "{count} variables",
+          "filter_placeholder": "Filtrer les variables",
+          "category_label": "Groupe de variables",
+          "theme_hint": "Valeurs du thème actuel",
+          "copy": "Copier",
+          "copied": "Copié",
+          "showing": "{shown} sur {total} affichées",
+          "export": "Exporter en CSS",
+          "no_results": "Aucune variable ne correspond à ce filtre.",
+          "categories": {
+            "all": "Toutes",
+            "colors": "Couleurs",
+            "text": "Texte",
+            "background": "Fond",
+            "border": "Bordure",
+            "radius": "Rayon",
+            "shadow": "Ombre",
+            "other": "Autres"
+          }
+        },
+        "accessibility": {
+          "title": "Accessibilité",
+          "description": "Des écrans plus calmes, plus nets et plus lisibles sur cet appareil. La densité ci-dessus agrandit le texte.",
+          "reduce_motion": "Réduire les animations",
+          "reduce_motion_hint": "Désactive les animations et transitions, les pulsations en direct et l'animation des graphiques. Automatique suit le réglage de votre système.",
+          "motion_auto": "Automatique",
+          "motion_on": "Activé",
+          "motion_off": "Désactivé",
+          "increase_contrast": "Augmenter le contraste",
+          "increase_contrast_hint": "Texte secondaire plus foncé et bordures plus marquées, en thème clair comme sombre.",
+          "underline_links": "Toujours souligner les liens",
+          "underline_links_hint": "Souligne les liens du contenu et des tableaux, pour ne pas compter que sur la couleur. Les menus et boutons ne changent pas."
+        },
+        "reset": {
+          "title": "Réinitialisation",
+          "description": "Remet tout ce que le DMS mémorise sur cet appareil comme lors d’une première visite.",
+          "label": "Réinitialiser les préférences de cet appareil",
+          "hint": "Tableaux (tri, filtres, colonnes, vues), périodes, tailles des tiroirs, de la barre latérale et des panneaux, apparence, bannières et astuces masquées, modules récents, pages en direct mises en pause. Votre session, vos pages favorites, votre langue et votre fuseau horaire restent tels quels.",
+          "button": "Réinitialiser",
+          "confirm_title": "Réinitialiser les préférences de cet appareil ?",
+          "confirm_description": "Les tableaux, périodes, tailles, l’apparence et les bannières masquées reviennent à leurs valeurs par défaut sur cet appareil, et la page se recharge. Votre session et vos pages favorites sont conservées.",
+          "confirm": "Réinitialiser",
+          "cancel": "Annuler"
+        }
+      }
+    }
+  }
+}

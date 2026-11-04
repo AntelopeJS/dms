@@ -61,6 +61,13 @@ export class AppearanceSettingsController extends PageController("appearance", {
     component: "DmsAppearanceSidebar",
   });
 
+  static resetComponent = appearanceGroup({
+    title: `${TEXTS}.reset.title`,
+    description: `${TEXTS}.reset.description`,
+    icon: "i-ph-arrow-counter-clockwise",
+    component: "DmsAppearanceReset",
+  });
+
   static developerComponent = appearanceGroup({
     title: `${TEXTS}.developer_title`,
     description: `${TEXTS}.developer_description`,

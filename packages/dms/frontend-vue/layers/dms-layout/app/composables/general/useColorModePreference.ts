@@ -1,6 +1,11 @@
 import type { ColorModePreference } from "./types";
 
 export const COLOR_MODE_COOKIE = "dms-color-mode";
+/**
+ * vueuse's default key. Nuxt UI's `useDark()`, installed with the app, and its
+ * color-mode components (`UDashboardSearch`'s theme group…) all read it.
+ */
+export const COLOR_SCHEME_STORAGE_KEY = "vueuse-color-scheme";
 const COLOR_MODE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const DEFAULT_COLOR_MODE_PREFERENCE: ColorModePreference = "system";
 

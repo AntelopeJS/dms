@@ -1,4 +1,5 @@
-const STORAGE_KEY_PREFIX = "dms.live.paused:";
+/** The prefix of the `localStorage` keys of the paused pages. */
+export const LIVE_PAUSE_KEY_PREFIX = "dms.live.paused:";
 const REMEMBER_KEY_PREFIX = "key:";
 const PAUSED_VALUE = "1";
 
@@ -19,7 +20,7 @@ function liveStorage(): Storage | undefined {
  */
 export function liveStorageKey(pageId: string, rememberKey?: string): string {
   return (
-    STORAGE_KEY_PREFIX +
+    LIVE_PAUSE_KEY_PREFIX +
     (rememberKey ? REMEMBER_KEY_PREFIX + rememberKey : pageId)
   );
 }
