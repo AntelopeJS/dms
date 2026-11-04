@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.16.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.15.1...v0.16.0)
+
+### 📖 Documentation
+
+- **readme:** Start the demos with npx @antelopejs/core ([#753](https://github.com/AntelopeJS/dms/pull/753))
+- **readme:** Show the Meet and DMS films, with new GIFs ([1e3f7694](https://github.com/AntelopeJS/dms/commit/1e3f7694))
+- **readme:** Link the read-only live demo ([#665](https://github.com/AntelopeJS/dms/pull/665))
+
+### 🏡 Chore
+
+- Land the cleanup campaign on main ([#761](https://github.com/AntelopeJS/dms/pull/761))
+- **release:** @antelopejs/interface-dms v0.12.0 ([0e6b850d](https://github.com/AntelopeJS/dms/commit/0e6b850d))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.15.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.15.0...v0.15.1)
