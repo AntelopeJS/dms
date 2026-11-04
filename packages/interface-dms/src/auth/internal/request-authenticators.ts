@@ -6,6 +6,7 @@ import type {
 } from "../request-authenticators";
 
 const HTTP_UNAUTHORIZED = 401;
+const BEARER_SCHEME = /^Bearer\s+(\S+)$/i;
 
 interface RequestIdentity {
   userId: string;
@@ -15,16 +16,15 @@ interface RequestIdentity {
 interface RequestAuthenticationState {
   authorization: string | undefined;
   principal?: RequestIdentity;
+  /** Read as anonymous for its tenant: no identity binds to it afterwards. */
+  anonymous?: true;
 }
 
 const requestPrincipals = new WeakMap<
   IncomingMessage,
   RequestAuthenticationState
 >();
-const pendingAuthentications = new WeakMap<
-  IncomingMessage,
-  Promise<RequestPrincipal>
->();
+const pendingAuthentications = new WeakMap<IncomingMessage, Promise<unknown>>();
 
 function unauthorized(): HTTPResult {
   return new HTTPResult(HTTP_UNAUTHORIZED, "Unauthorized");
@@ -36,17 +36,16 @@ export function getAuthenticatedRequestTenantId(
 ): string | undefined {
   const state = requestPrincipals.get(ctx.rawRequest);
   if (!state) return undefined;
-  if (
-    !state.principal ||
-    state.authorization !== ctx.rawRequest.headers.authorization
-  ) {
+  if (state.authorization !== ctx.rawRequest.headers.authorization) {
     throw unauthorized();
   }
+  if (state.anonymous) return undefined;
+  if (!state.principal) throw unauthorized();
   return state.principal.tenantId;
 }
 
 function readBearerToken(authorization: string | undefined): string {
-  const match = authorization?.match(/^Bearer\s+(\S+)$/i);
+  const match = authorization?.match(BEARER_SCHEME);
   if (!match) throw unauthorized();
   return match[1];
 }
@@ -74,25 +73,69 @@ function assertPrincipal(
   }
 }
 
+/**
+ * Runs `step` once the request's authentications already in flight have
+ * settled, and holds back the ones started after it until it settles.
+ */
+async function serialized<T>(
+  request: IncomingMessage,
+  step: () => Promise<T>,
+): Promise<T> {
+  const pending = pendingAuthentications.get(request) ?? Promise.resolve();
+  const result = pending.then(step);
+  pendingAuthentications.set(request, result);
+  try {
+    return await result;
+  } finally {
+    if (pendingAuthentications.get(request) === result) {
+      pendingAuthentications.delete(request);
+    }
+  }
+}
+
 /** @internal Revalidate on every call; failures poison tenant resolution for this request. */
 export async function resolveRequestPrincipal(
   ctx: RequestContext,
   authenticators: readonly RequestAuthenticator[],
   authenticateJwt: (token: string) => Promise<RequestPrincipal>,
 ): Promise<RequestPrincipal> {
-  const pending =
-    pendingAuthentications.get(ctx.rawRequest) ?? Promise.resolve();
-  const result = pending.then(() =>
+  return serialized(ctx.rawRequest, () =>
     verifyRequestPrincipal(ctx, authenticators, authenticateJwt),
   );
-  pendingAuthentications.set(ctx.rawRequest, result);
-  try {
-    return await result;
-  } finally {
-    if (pendingAuthentications.get(ctx.rawRequest) === result) {
-      pendingAuthentications.delete(ctx.rawRequest);
+}
+
+/**
+ * @internal The tenant of the request's credential, for a provider resolved
+ * alongside the route's guards. It waits for the authentications the
+ * request's other providers start in the same pass, then answers the tenant
+ * they bound. Without one it verifies the bearer token with `verifyToken` and
+ * binds its identity; a token it cannot verify reads as anonymous, and any
+ * identity bound to the request afterwards is refused.
+ *
+ * @throws HTTPResult 401 when the request's authentication failed, its
+ * credential changed, or a verified identity conflicts with the bound one
+ */
+export async function resolveRequestTenant(
+  ctx: RequestContext,
+  verifyToken: (token: string) => Promise<RequestIdentity | undefined>,
+): Promise<string | undefined> {
+  await Promise.resolve();
+  return serialized(ctx.rawRequest, async () => {
+    const request = ctx.rawRequest;
+    if (requestPrincipals.has(request)) {
+      return getAuthenticatedRequestTenantId(ctx);
     }
-  }
+    const authorization = request.headers.authorization;
+    const token = authorization?.match(BEARER_SCHEME)?.[1];
+    const identity = token ? await verifyToken(token) : undefined;
+    if (identity) {
+      bindVerifiedRequestPrincipal(ctx, identity);
+      return identity.tenantId;
+    }
+    if (requestPrincipals.has(request)) throw unauthorized();
+    requestPrincipals.set(request, { authorization, anonymous: true });
+    return undefined;
+  });
 }
 
 async function verifyRequestPrincipal(
