@@ -26,7 +26,7 @@ If the DMS saves you a back office, a ⭐ helps other developers find it.
 
 **Meet AntelopeJS DMS (4:44).** A company connects its ERP, its CRM and its shop, and gets one back office and one dashboard.
 
-VIDEO:meet-calm-16x9
+https://github.com/user-attachments/assets/1c0b9396-d468-48b4-b504-3e5b9e50eeb4
 
 ## Try it in one command
 
@@ -94,7 +94,7 @@ Edit pages, tables, and charts from the dashboard. Each edit becomes TypeScript,
 
 **A tour of the whole DMS (3:47).** Pages and blocks, people and roles, modules, and the three ways to build.
 
-VIDEO:antelope-dms-180s
+https://github.com/user-attachments/assets/ba552792-f0d4-4fcf-8b0e-81029a5a2582
 
 ---
 
