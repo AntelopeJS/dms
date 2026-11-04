@@ -1,6 +1,7 @@
 import { BLOCKS_FEATURES } from "./blocks";
 import { FORM_FEATURES } from "./form";
 import { FRONTEND_FEATURES } from "./frontend";
+import { MATRIX_FEATURES } from "./matrix";
 import { PAGES_FEATURES } from "./pages";
 import { TABLE_VIEW_FEATURES } from "./table-view";
 import type { PlaygroundFeature } from "./types";
@@ -9,6 +10,7 @@ import type { PlaygroundFeature } from "./types";
 export const PLAYGROUND_FEATURES: PlaygroundFeature[] = [
   ...BLOCKS_FEATURES,
   ...TABLE_VIEW_FEATURES,
+  ...MATRIX_FEATURES,
   ...FORM_FEATURES,
   ...PAGES_FEATURES,
   ...FRONTEND_FEATURES,

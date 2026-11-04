@@ -10323,6 +10323,494 @@
       }
     },
     {
+      "type": "Matrix",
+      "componentName": "dms-matrix-block",
+      "meta": {
+        "name": "Matrix",
+        "icon": "i-ph-grid-nine",
+        "description": "A grid of rows by columns edited in place: records, translations, quantities by size and store.",
+        "group": "data"
+      },
+      "config": {
+        "title": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Title",
+            "group": "content"
+          }
+        },
+        "description": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Description",
+            "group": "content"
+          }
+        },
+        "fetchUrl": {
+          "type": "string",
+          "optional": true,
+          "description": "Where the rows are read from.",
+          "ui": {
+            "label": "Data source",
+            "group": "data",
+            "widget": "dataSource"
+          }
+        },
+        "fetchUrlMethod": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "PATCH",
+            "HEAD",
+            "OPTIONS"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "HTTP method",
+            "group": "advanced",
+            "widget": "select"
+          }
+        },
+        "realtimeTopic": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Topics whose events make the block read its data again.",
+          "ui": {
+            "label": "Realtime topics",
+            "group": "data",
+            "advanced": true
+          }
+        },
+        "staticData": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Static data",
+            "group": "advanced",
+            "widget": "json"
+          }
+        },
+        "saveUrl": {
+          "type": "string",
+          "optional": true,
+          "description": "Where edits are written.",
+          "ui": {
+            "label": "Save route",
+            "group": "data",
+            "widget": "url"
+          }
+        },
+        "saveUrlMethod": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "PATCH",
+            "HEAD",
+            "OPTIONS"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Save method",
+            "group": "advanced",
+            "widget": "select"
+          }
+        },
+        "columns": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Columns",
+            "group": "data",
+            "widget": "json"
+          }
+        },
+        "rowHeader": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Row header",
+            "group": "appearance",
+            "widget": "json"
+          }
+        },
+        "editable": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Editable",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "typeToEdit": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Type to edit",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "saveMode": {
+          "type": "string",
+          "enum": [
+            "immediate",
+            "staged"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Save mode",
+            "group": "behavior",
+            "widget": "segmented"
+          }
+        },
+        "review": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Review before saving",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "undoSeconds": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Undo window (s)",
+            "group": "behavior",
+            "widget": "number",
+            "min": 0
+          }
+        },
+        "conflicts": {
+          "type": "string",
+          "enum": [
+            "overwrite",
+            "detect"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Conflicts",
+            "group": "behavior",
+            "widget": "segmented"
+          }
+        },
+        "enterMove": {
+          "type": "string",
+          "enum": [
+            "down",
+            "right",
+            "stay"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Enter moves",
+            "group": "behavior",
+            "widget": "segmented"
+          }
+        },
+        "rowPanel": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Row drawer",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "cellAction": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Cell action",
+            "group": "behavior",
+            "widget": "json"
+          }
+        },
+        "rowActions": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Row actions",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "selectable": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Row checkboxes",
+            "group": "features",
+            "widget": "switch"
+          }
+        },
+        "fillActions": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Fill actions",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "pagination": {
+          "type": "string",
+          "enum": [
+            "none",
+            "pages",
+            "infinite"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Pagination",
+            "group": "data",
+            "widget": "segmented"
+          }
+        },
+        "pageSize": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Page size",
+            "group": "data",
+            "widget": "number",
+            "min": 1
+          }
+        },
+        "pageSizes": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "optional": true,
+          "ui": {
+            "label": "Page sizes",
+            "group": "data",
+            "widget": "json"
+          }
+        },
+        "search": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Search",
+            "group": "features",
+            "widget": "switch"
+          }
+        },
+        "statusFilters": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Status filters",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "facets": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Facets",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "sortable": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Sortable",
+            "group": "features",
+            "widget": "switch"
+          }
+        },
+        "columnFilters": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Column filters",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "urlState": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Keep state in the URL",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "grouping": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Grouping",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "totals": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Totals",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "targets": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Targets",
+            "group": "features",
+            "widget": "json"
+          }
+        },
+        "crossHighlight": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Cross highlight",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
+        "columnsMenu": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Columns menu",
+            "group": "features",
+            "widget": "switch"
+          }
+        },
+        "resizableColumns": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Resizable columns",
+            "group": "features",
+            "widget": "switch"
+          }
+        },
+        "jumpToEmpty": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Jump to empty cells",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "keepEditedRows": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "Keep edited rows",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
+        "exportCsv": {
+          "type": "boolean",
+          "optional": true,
+          "ui": {
+            "label": "CSV export",
+            "group": "features",
+            "widget": "switch"
+          }
+        },
+        "legend": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Legend",
+            "group": "appearance",
+            "widget": "json"
+          }
+        },
+        "emptyLabel": {
+          "type": "unknown",
+          "optional": true,
+          "ui": {
+            "label": "Empty message",
+            "group": "content"
+          }
+        },
+        "maxHeight": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "Maximum height",
+            "group": "appearance"
+          }
+        },
+        "density": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "comfortable"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Density",
+            "group": "appearance",
+            "widget": "segmented"
+          }
+        }
+      },
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "editable",
+          "typeToEdit",
+          "saveMode",
+          "review",
+          "undoSeconds",
+          "conflicts",
+          "enterMove",
+          "selectable",
+          "search",
+          "sortable",
+          "urlState",
+          "crossHighlight",
+          "columnsMenu",
+          "resizableColumns",
+          "jumpToEmpty",
+          "keepEditedRows",
+          "exportCsv",
+          "maxHeight",
+          "density"
+        ]
+      }
+    },
+    {
       "type": "Meter",
       "componentName": "dms-meter-block",
       "meta": {
@@ -13053,14 +13541,59 @@
           "type": "string",
           "enum": [
             "single",
-            "double"
+            "double",
+            "none"
           ],
           "optional": true,
-          "description": "Whether a row opens with one click or two.",
+          "description": "Whether a row opens with one click, two, or not at all.",
           "ui": {
             "label": "Row click",
             "group": "features",
             "widget": "segmented"
+          }
+        },
+        "inlineEdit": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "columns": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "optional": true,
+                  "ui": {
+                    "label": "Columns",
+                    "widget": "field",
+                    "fieldAspect": "listable"
+                  }
+                },
+                "inputs": {
+                  "type": "string",
+                  "enum": [
+                    "hover",
+                    "always"
+                  ],
+                  "optional": true,
+                  "ui": {
+                    "label": "Inputs",
+                    "widget": "segmented"
+                  }
+                }
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Edit a row's simple values in the grid, each saved at once; `{ columns }` names the ones edited.",
+          "ui": {
+            "label": "Edit in the grid",
+            "group": "features",
+            "widget": "switch"
           }
         },
         "expandable": {

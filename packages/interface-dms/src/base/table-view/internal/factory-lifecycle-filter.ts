@@ -89,6 +89,7 @@ export async function filterTableViewOptions<T extends Record<string, unknown>>(
     ...options,
     enableTableExport: options.enableTableExport && grants.export,
     formComponents: adaptedFormComponents,
+    inlineEdit: grants.edit ? options.inlineEdit : undefined,
     rowActions: adaptedRowActions,
     customButtons: adaptedCustomButtons,
     tabs: adaptedTabs,

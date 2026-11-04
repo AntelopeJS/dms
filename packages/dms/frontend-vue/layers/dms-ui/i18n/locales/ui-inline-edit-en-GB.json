@@ -1,0 +1,14 @@
+{
+  "dms": {
+    "table": {
+      "inline_edit": {
+        "cell": "{column} of {row}",
+        "start": "Edit {cell}",
+        "hint": "Click to edit",
+        "saving": "Saving…",
+        "not_saved": "Not saved: click to try again",
+        "error": "The change could not be saved"
+      }
+    }
+  }
+}

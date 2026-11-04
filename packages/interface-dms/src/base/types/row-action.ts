@@ -113,7 +113,7 @@ export interface CustomRowAction<
    * Makes this action the target of a row click, ahead of the built-in
    * `edit`/`details` fallbacks. The first flagged action whose `rule` accepts
    * the row wins. A double-click by default; a single click on a table view
-   * declaring `rowClick: "single"`.
+   * declaring `rowClick: "single"`; never with `rowClick: "none"`.
    */
   isDefault?: boolean;
   /**

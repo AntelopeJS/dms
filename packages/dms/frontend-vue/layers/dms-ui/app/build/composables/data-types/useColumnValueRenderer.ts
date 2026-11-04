@@ -33,8 +33,10 @@ const NUMERIC_CELL_CLASS =
 const DETAIL_NUMERIC_CELL_CLASS = "block text-right tabular-nums";
 const NUMERIC_EMPTY_CELL_CLASS = "block text-right text-dimmed";
 const DATE_CELL_CLASS = "font-mono text-xs text-muted tabular-nums";
-const DEFAULT_FALLBACK = "-";
-const DETAIL_FALLBACK = "—";
+/** What an empty grid cell reads, unless its column names a `fallback`. */
+export const DEFAULT_FALLBACK = "-";
+/** What an empty value reads where a record is read (the detail surface). */
+export const DETAIL_FALLBACK = "—";
 
 /** Where a value is drawn: a grid cell gets the `cell` formatter first. */
 export type ColumnValueSurface = "cell" | "detail";

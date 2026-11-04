@@ -254,10 +254,33 @@ export const TableViewSchema = z.object({
   ),
   rowClick: ui(
     z
-      .enum(["single", "double"])
+      .enum(["single", "double", "none"])
       .optional()
-      .describe("Whether a row opens with one click or two."),
+      .describe("Whether a row opens with one click, two, or not at all."),
     { label: "Row click", group: "features", widget: "segmented" },
+  ),
+  inlineEdit: ui(
+    z
+      .union([
+        z.boolean(),
+        z.object({
+          columns: ui(z.array(z.string()).optional(), {
+            label: "Columns",
+            widget: "field",
+            /** Only a listed column has a cell to edit. */
+            fieldAspect: "listable",
+          }),
+          inputs: ui(z.enum(["hover", "always"]).optional(), {
+            label: "Inputs",
+            widget: "segmented",
+          }),
+        }),
+      ])
+      .optional()
+      .describe(
+        "Edit a row's simple values in the grid, each saved at once; `{ columns }` names the ones edited.",
+      ),
+    { label: "Edit in the grid", group: "features", widget: "switch" },
   ),
   expandable: ui(
     expandableSchema
