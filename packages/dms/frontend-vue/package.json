@@ -77,7 +77,7 @@
   },
   "devDependencies": {
     "@antelopejs/core": ">=1.16.0 <2",
-    "@antelopejs/dms-frontend": "file:../../../.campaign/tgz/antelopejs-dms-frontend-e07a04a.tgz",
+    "@antelopejs/dms-frontend": ">=0.10.0 <0.11.0",
     "@eslint/js": "^8.57.0",
     "@inertiajs/vue3": "^3.7.0",
     "@nuxt/ui": "4.10.0",
