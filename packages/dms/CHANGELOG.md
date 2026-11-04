@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.16.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.16.0...v0.16.1)
+
+### 🏡 Chore
+
+- Land the cleanup campaign on main ([#764](https://github.com/AntelopeJS/dms/pull/764))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.16.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.15.1...v0.16.0)
