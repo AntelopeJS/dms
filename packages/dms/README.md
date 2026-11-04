@@ -83,7 +83,7 @@ export class SalesPage extends PageController("sales", {
 | `@antelopejs/interface-api`                 | `>=0.2.0 <1.0.0`                                                           | `0.2.0`                                                              |
 | `@antelopejs/interface-api-util`            | `>=0.3.0 <1.0.0`                                                           | `0.3.0`                                                              |
 | `@antelopejs/interface-core`                | `>=0.4.0 <1.0.0`                                                           | `0.4.0`                                                              |
-| `@antelopejs/interface-data-api`            | `file:../../.campaign/tgz/antelopejs-interface-data-api-bca1ca6.tgz`       | `file:.campaign/tgz/antelopejs-interface-data-api-bca1ca6.tgz`       |
+| `@antelopejs/interface-data-api`            | `>=0.6.0 <1.0.0`                                                           | `0.6.0`                                                              |
 | `@antelopejs/interface-database`            | `>=0.3.0 <1.0.0`                                                           | `0.3.0`                                                              |
 | `@antelopejs/interface-database-decorators` | `>=0.2.0 <1.0.0`                                                           | `0.2.0`                                                              |
 | `@antelopejs/interface-dms`                 | `>=0.12.0 <0.13.0`                                                         | `0.12.0`                                                             |

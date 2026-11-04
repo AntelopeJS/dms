@@ -14,7 +14,6 @@ onlyBuiltDependencies:
   - puppeteer
   - vue-demi
 overrides:
-  "@antelopejs/interface-data-api": "file:.campaign/tgz/antelopejs-interface-data-api-bca1ca6.tgz"
   "@antelopejs/interface-api": "0.2.0"
   "@antelopejs/interface-api-util": "0.3.0"
   "@antelopejs/interface-dms-automation": "file:.campaign/tgz/antelopejs-interface-dms-automation-b4bc5d2.tgz"
