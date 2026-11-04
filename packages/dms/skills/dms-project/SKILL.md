@@ -18,10 +18,11 @@ the **ajs-cli** skill; full walkthrough: `docs/02.building/01.project-setup.md`.
 ## Starting a new application
 
 Use [template-dms-demo](https://github.com/AntelopeJS/template-dms-demo) for the default
-CLI-owned backend and Nuxt dashboard. Follow `docs/01.getting-started/03.quickstart.md`
-through first-admin setup before adding pages. Use
+CLI-owned backend and Nuxt dashboard: `npx @antelopejs/core project init <dir> --template dms-demo`.
+Follow `docs/01.getting-started/03.quickstart.md` through first-admin setup (the onboarding
+address with the setup token that the backend prints) before adding pages. Use
 [template-dms-adonis](https://github.com/AntelopeJS/template-dms-adonis) only when
-AdonisJS must own the process (**embedded** mode, below; walkthrough:
+AdonisJS must own the process (`--template dms-adonis`; **embedded** mode, below; walkthrough:
 `docs/01.getting-started/07.adonisjs.md`). Evaluate these existing templates before proposing another.
 
 Preserve the package names declared by the template. Both templates ship `.claude/settings.json`, which makes Claude Code offer the
