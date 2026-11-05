@@ -4,6 +4,7 @@ import type {
   SwitchAccountResponse,
   ValidateAccountResponse,
 } from "../../types/auth";
+import { uniqueAccounts, withAccount } from "../../build/utils/storedAccounts";
 
 const STORAGE_KEY = "antelopejs-accounts";
 const SWITCH_ACCOUNT_ENDPOINT = "/auth/switch-account";
@@ -34,6 +35,8 @@ function useAccountsStorage(): AccountsRef {
   const storage = effectScope(true).run(() =>
     useStorage<StoredAccount[]>(STORAGE_KEY, [], undefined),
   ) as AccountsRef;
+  const unique = uniqueAccounts(storage.value);
+  if (unique.length < storage.value.length) storage.value = unique;
   accountsStorageByApp.set(dmsApp, storage);
   return storage;
 }
@@ -88,20 +91,13 @@ function upsertAccount(
   user: MinimalUser,
   accountId: string,
 ) {
-  const existingIndex = accounts.value.findIndex((a) => a.userId === user._id);
-  const account: StoredAccount = {
+  accounts.value = withAccount(accounts.value, {
     accountId,
     userId: user._id,
     email: user.email,
     name: user.name,
     lastUsed: new Date(),
-  };
-
-  if (existingIndex >= 0) {
-    accounts.value[existingIndex] = account;
-  } else {
-    accounts.value.push(account);
-  }
+  });
 }
 
 async function requestAccountSwitch(account: StoredAccount) {

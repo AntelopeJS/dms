@@ -4,6 +4,7 @@ import {
   TILE_ROW_INTERACTIVE_CLASS,
 } from "#dms-ui/app/entries/utils/tileRow";
 import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
+import { isSameAccount } from "#dms-core/app/build/utils/storedAccounts";
 
 const ACCOUNT_SKELETON_ROWS = 2;
 
@@ -26,7 +27,9 @@ const activeAccount = computed(() => getActiveAccount());
 
 const sortedAccounts = computed(() => {
   const active = activeAccount.value;
-  const inactive = accounts.value.filter((a) => a.userId !== active?.userId);
+  const inactive = accounts.value.filter(
+    (a) => !active || !isSameAccount(a, active),
+  );
 
   return active ? [active, ...inactive] : inactive;
 });
