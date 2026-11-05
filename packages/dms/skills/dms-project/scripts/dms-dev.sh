@@ -1,45 +1,39 @@
 #!/usr/bin/env bash
 # dms-dev — start / stop / restart the AntelopeJS DMS dev servers of ONE project.
 # Run from the DMS backend package dir (DMS_BACK_DIR). By default it invokes that project's
-# `pnpm dev` / `pnpm frontend:dev` scripts — a convention our playground projects adopt, which
-# expand to `ajs project dev …` (the AntelopeJS backend; `ajs project run` is the legacy
-# alias) and `ajs dms dev` (the Inertia frontend loader — it auto-discovers the backend, -b optional).
-# Those script names aren't shipped by the DMS, so override the actual commands with
-# DMS_BACK_CMD / DMS_FRONT_CMD when a project starts its servers differently.
+# `pnpm dev` / `pnpm frontend:dev` scripts (`ajs project dev …` and `ajs dms dev`, which
+# auto-discovers the backend). Those script names aren't shipped by the DMS: override the
+# commands with DMS_BACK_CMD / DMS_FRONT_CMD when a project starts its servers differently.
 #
-# Scope: the script only signals the processes of DMS_BACK_DIR. The pids it starts are
-# recorded in DMS_BACK_DIR/.antelope/dms-dev.pid; without that file it falls back to the dev
-# processes whose working directory or command line lies under DMS_BACK_DIR. Other projects'
-# dev servers on the same machine are never touched.
+# Scope: it only signals the processes of DMS_BACK_DIR. The pids it starts are recorded in
+# DMS_BACK_DIR/.antelope/dms-dev.pid; without that file it falls back to the dev processes
+# whose working directory or command line lies under DMS_BACK_DIR.
 #
-# Windows (Git Bash, MSYS2, Cygwin): their ps lists only their own processes and takes no -o,
-# while the dev servers run as native node.exe processes. There the script reads the Windows
-# process table (PowerShell's Get-CimInstance Win32_Process), works in Windows pids, and stops
-# a server's whole tree with taskkill /T /F.
+# Windows (Git Bash, MSYS2, Cygwin): ps lists only their own processes, while the servers run
+# as native node.exe. There it reads the Windows process table (Get-CimInstance
+# Win32_Process), works in Windows pids, and stops a server's tree with taskkill /T /F.
 
 set -uo pipefail
 
 DMS_BACK_DIR="${DMS_BACK_DIR:-}"
 BACK_CMD="${DMS_BACK_CMD:-pnpm dev}"
 FRONT_CMD="${DMS_FRONT_CMD:-pnpm frontend:dev}"
-BACK_LOG="${DMS_BACK_LOG:-/tmp/dms-back.log}"
-FRONT_LOG="${DMS_FRONT_LOG:-/tmp/dms-front.log}"
-BACK_READY_PATTERN='Server started, listening'
+BACK_LOG="${DMS_BACK_LOG:-}"
+FRONT_LOG="${DMS_FRONT_LOG:-}"
+BACK_READY_PATTERN='Server started, listening|Port [0-9]+ in use, listening on'
 FRONT_READY_PATTERN='Server ready on|Local:.*localhost:'
-# Patterns that indicate a fatal startup error — detecting any of these aborts
-# the wait immediately instead of burning the full timeout.
+# A match of these aborts the wait at once instead of burning the full timeout.
 BACK_ERROR_PATTERN='Failed to load module|Module load failed|Error loading module|UnhandledPromiseRejection|Cannot find module|ENOENT.*package\.json|TypeError:.*at .*ajs|FATAL'
 FRONT_ERROR_PATTERN='Cannot find module|Failed to compile|Vite error|ENOENT.*package\.json|EADDRINUSE'
 WAIT_TIMEOUT="${DMS_DEV_TIMEOUT:-180}"
 STOP_GRACE="${DMS_DEV_STOP_GRACE:-10}"
 DEV_JSON_WAIT=5
-DEFAULT_BACK_URL='http://localhost:5010'
-DEFAULT_FRONT_URL='http://localhost:3001'
+DEFAULT_BACK_URL="http://localhost:${DMS_BACK_PORT:-5010}"
+DEFAULT_FRONT_URL="http://localhost:${DMS_FRONT_PORT:-3001}"
 
-# Only picks candidates when no pid file exists, and is always combined with the
-# DMS_BACK_DIR scope check: on its own it would match every project on the machine.
+# Candidates when no pid file exists; always combined with the DMS_BACK_DIR scope check.
 PROC_PATTERN='antelope-runner|ajs project (run|dev)|(^|[[:space:]/])(ajs dms|ajs-dms) dev|dms-frontend/dist/index\.js dev|pnpm( run)? (dev|frontend:dev)'
-# The same, split per server, for the commands that restart only one of them.
+# The same, per server, for restarting only one.
 BACK_PROC_PATTERN='antelope-runner|ajs project (run|dev)|pnpm( run)? dev'
 FRONT_PROC_PATTERN='(^|[[:space:]/])(ajs dms|ajs-dms) dev|dms-frontend/dist/index\.js dev|pnpm( run)? frontend:dev'
 
@@ -48,8 +42,8 @@ case "$(uname -s 2>/dev/null)" in
   *) IS_WINDOWS="" ;;
 esac
 
-# One line per process: "pid<TAB>ppid<TAB>created<TAB>command line". The creation time, a
-# fixed-width UTC timestamp, tells a child from an older process holding a dead parent's pid.
+# One line per process: "pid<TAB>ppid<TAB>created<TAB>command line"; the fixed-width UTC
+# creation time tells a child from an older process holding a dead parent's pid.
 # shellcheck disable=SC2016  # PowerShell code, not shell expansions
 WIN_PROCESS_QUERY='[Console]::OutputEncoding = [Text.Encoding]::UTF8
 $tab = [char]9
@@ -62,8 +56,7 @@ Get-CimInstance Win32_Process | ForEach-Object {
 PROJECT_ROOT=""
 PID_FILE=""
 LAUNCHED_PID=""
-# Windows only: the process table (see refresh_process_table) and the project root as a
-# lowercase Windows path with forward slashes, the form command lines are compared in.
+# Windows only: the process table and the project root as a lowercase forward-slash path.
 WIN_TABLE=""
 WIN_ROOT=""
 
@@ -85,13 +78,15 @@ require_dms_back_dir() {
   fi
   PROJECT_ROOT="$(cd "$DMS_BACK_DIR" && pwd -P)"
   PID_FILE="$PROJECT_ROOT/.antelope/dms-dev.pid"
+  BACK_LOG="${BACK_LOG:-$PROJECT_ROOT/.antelope/logs/back.log}"
+  FRONT_LOG="${FRONT_LOG:-$PROJECT_ROOT/.antelope/logs/front.log}"
   [ -z "$IS_WINDOWS" ] || WIN_ROOT="$(cygpath -m "$PROJECT_ROOT" | tr '[:upper:]' '[:lower:]')"
 }
 
 is_alive() { [ -n "$1" ] && kill -0 "$1" 2>/dev/null; }
 
-# Reads the Windows process table once for the lookups that follow; nothing elsewhere.
-# Call it in the shell that runs them: a command substitution's copy is lost with it.
+# Reads the Windows process table for the lookups that follow; call it in the shell that
+# runs them, since a command substitution's copy is lost with it.
 refresh_process_table() {
   [ -n "$IS_WINDOWS" ] || return 0
   WIN_TABLE="$(powershell.exe -NoProfile -NonInteractive -EncodedCommand \
@@ -108,7 +103,7 @@ win_alive() {
 
 win_args() { printf '%s\n' "$WIN_TABLE" | awk -F'\t' -v pid="$1" '$1 == pid { print $4; exit }'; }
 
-# A native process exposes no working directory: only its command line can name the project.
+# A native process has no working directory: only its command line names the project.
 win_in_project() {
   local args
   # shellcheck disable=SC1003  # tr's escaped backslash, not a quote
@@ -117,8 +112,7 @@ win_in_project() {
   return 1
 }
 
-# The given Windows pids plus every process whose parent chain leads to one (Windows has no
-# process groups), each child created after its parent.
+# The given Windows pids plus their descendants, each child created after its parent.
 win_expand_tree() {
   printf '%s\n' "$WIN_TABLE" | awk -F'\t' -v roots="$*" '
     BEGIN { n = split(roots, r, " "); for (i = 1; i <= n; i++) keep[r[i]] = 1 }
@@ -155,7 +149,7 @@ is_in_project() {
   return 1
 }
 
-# The given roots plus every process whose parent chain or process group leads to one.
+# The given roots plus their descendants and process-group members.
 expand_tree() {
   ps -A -o pid=,ppid=,pgid= | awk -v roots="$*" '
     BEGIN { n = split(roots, r, " "); for (i = 1; i <= n; i++) keep[r[i]] = 1 }
@@ -170,8 +164,7 @@ expand_tree() {
     }'
 }
 
-# The live pids the pid file records, of every server or only of the one named; on Windows,
-# as Windows pids.
+# The live pids the pid file records, of every server or the one named (Windows pids on Windows).
 pid_file_roots() {
   [ -f "$PID_FILE" ] || return 0
   local only="${1:-}" name pid
@@ -212,8 +205,7 @@ server_pattern() {
   esac
 }
 
-# Every process of this project's servers, or of the one named (backend or frontend). On
-# Windows they are Windows pids, read from the table refresh_process_table last read.
+# Every process of this project's servers, or of the one named (Windows pids on Windows).
 project_pids() {
   local name="${1:-}" roots
   roots="$(pid_file_roots "$name")"
@@ -248,7 +240,7 @@ self_ancestors() {
   done
 }
 
-# An agent spawned by the backend (e.g. the dms-ai sidecar) would take its own host down.
+# An agent spawned by the backend (e.g. dms-ai) would take its own host down.
 refuse_if_hosting_self() {
   local hosting
   hosting="$(printf '%s\n' "$@" | grep -Fx -f <(self_ancestors) | head -1)"
@@ -284,7 +276,7 @@ signal_and_wait() {
   return 1
 }
 
-# Windows has no SIGTERM a console node process would handle: each tree is ended at once.
+# A console node process handles no SIGTERM on Windows: each tree is ended at once.
 win_kill_and_wait() {
   local pid survivors
   for pid in "$@"; do taskkill //T //F //PID "$pid" >/dev/null 2>&1; done
@@ -334,22 +326,22 @@ stop_servers() {
   log "stopped."
 }
 
-# Detaches the command into its own session so it survives this shell, and records its
-# pid. `exec` keeps that pid stable through setsid/nohup down to the command itself.
+# Runs in a launch subshell: a non-empty port becomes that child's PORT alone.
+enter_project() { cd "$PROJECT_ROOT" && { [ -z "$1" ] || export PORT="$1"; }; }
+
+# Detaches the command into its own session and records its pid; `exec` keeps the pid stable.
 launch_detached() {
-  local name="$1" cmd="$2" log_file="$3"
+  local name="$1" cmd="$2" log_file="$3" port="${4:-}"
+  local -a detach=(nohup)
   if command -v setsid >/dev/null 2>&1; then
-    # shellcheck disable=SC2086  # word-splitting of the command is intentional
-    (cd "$PROJECT_ROOT" && exec setsid nohup $cmd >> "$log_file" 2>&1 < /dev/null) &
+    detach=(setsid nohup)
   elif command -v perl >/dev/null 2>&1; then
     # macOS ships no setsid(1); perl's POSIX::setsid does the same before exec.
-    # shellcheck disable=SC2086
-    (cd "$PROJECT_ROOT" && exec perl -MPOSIX -e 'POSIX::setsid(); exec { $ARGV[0] } @ARGV or die "exec $ARGV[0]: $!\n"' \
-      nohup $cmd >> "$log_file" 2>&1 < /dev/null) &
-  else
-    # shellcheck disable=SC2086
-    (cd "$PROJECT_ROOT" && exec nohup $cmd >> "$log_file" 2>&1 < /dev/null) &
+    detach=(perl -MPOSIX -e 'POSIX::setsid(); exec { $ARGV[0] } @ARGV or die "exec $ARGV[0]: $!\n"' nohup)
   fi
+  mkdir -p "$(dirname "$log_file")" && : > "$log_file"
+  # shellcheck disable=SC2086  # word-splitting of the command is intentional
+  (enter_project "$port" && exec "${detach[@]}" $cmd >> "$log_file" 2>&1 < /dev/null) &
   LAUNCHED_PID=$!
   mkdir -p "$(dirname "$PID_FILE")"
   echo "$name $LAUNCHED_PID" >> "$PID_FILE"
@@ -361,16 +353,18 @@ fail_start() {
   tail -40 "$log_file" | sed 's/^/  /'
 }
 
+fatal_in() {
+  grep -qE "$3" "$2" 2>/dev/null || return 1
+  log "fatal error detected in $2:"
+  grep -nE "$3" "$2" | head -5 | sed 's/^/  /'
+  fail_start "$1" "$2" "fatal error"
+}
+
 wait_for() {
   local log_file="$1" pattern="$2" label="$3" error_pattern="$4" pid="$5" started
   started=$(date +%s)
   while ! grep -qE "$pattern" "$log_file" 2>/dev/null; do
-    if grep -qE "$error_pattern" "$log_file" 2>/dev/null; then
-      log "fatal error detected in $log_file:"
-      grep -nE "$error_pattern" "$log_file" | head -5 | sed 's/^/  /'
-      fail_start "$label" "$log_file" "fatal error"
-      return 1
-    fi
+    fatal_in "$label" "$log_file" "$error_pattern" && return 1
     if ! is_alive "$pid"; then
       fail_start "$label" "$log_file" "process $pid exited before becoming ready"
       return 1
@@ -398,8 +392,8 @@ read_dev_json() {
   ' "$1" 2>/dev/null
 }
 
-# The project may live in DMS_BACK_DIR or one level below (`ajs project dev -p playground`).
-# A dev.json outlives its backend, so only one whose writer is alive and ours is trusted.
+# The project may live in DMS_BACK_DIR or one level below; only a dev.json whose writer is
+# alive and ours is trusted, since it outlives its backend.
 dev_json_url() {
   local file pid url
   for file in "$PROJECT_ROOT/.antelope/dev.json" "$PROJECT_ROOT"/*/.antelope/dev.json; do
@@ -412,8 +406,7 @@ dev_json_url() {
   done
 }
 
-# Whether a pid a server wrote down itself (node's own, a Windows pid on Windows) is alive
-# and one of this project's.
+# Whether a pid a server wrote down itself is alive and one of this project's.
 is_project_process() {
   if [ -z "$IS_WINDOWS" ]; then
     is_alive "$1" && is_in_project "$1"
@@ -432,7 +425,7 @@ backend_url() {
     sleep 1
     url="$(dev_json_url)"
   done
-  [ -n "$url" ] || url="$(grep -oE "$BACK_READY_PATTERN on https?://[^ /]+" "$BACK_LOG" | tail -1 | awk '{print $NF}')"
+  [ -n "$url" ] || url="$(grep -oE "listening on https?://[^ /]+" "$BACK_LOG" | tail -1 | awk '{print $NF}')"
   echo "${url:-$DEFAULT_BACK_URL (assumed: no .antelope/dev.json found)}"
 }
 
@@ -442,24 +435,42 @@ frontend_url() {
   echo "${url:-$DEFAULT_FRONT_URL (assumed: no ready line with a URL)}"
 }
 
+# The ready line can precede the module load; waits until the dashboard's first request
+# succeeds (401/403 count: it sends the credential). Direct, like the dashboard's fetch.
+# No curl, or nothing accepting connections (a stub): skips.
+wait_for_manifest() {
+  local url="$1/dms/frontend?renderer=vue&rendererVersion=3" pid="$2" code rc
+  command -v curl >/dev/null 2>&1 || return 0
+  while :; do
+    code="$(curl -s --noproxy '*' -o /dev/null -m 5 -w '%{http_code}' "$url")"; rc=$?
+    case "$rc:$code" in 7:* | *:200 | *:401 | *:403) return 0 ;; esac
+    fatal_in backend "$BACK_LOG" "$BACK_ERROR_PATTERN" && return 1
+    is_alive "$pid" || { fail_start backend "$BACK_LOG" "process $pid exited before serving $url"; return 1; }
+    [ $(($(date +%s) - BACK_STARTED)) -le "$WAIT_TIMEOUT" ] ||
+      { fail_start backend "$BACK_LOG" "$url still answered ${code} after ${WAIT_TIMEOUT}s"; return 1; }
+    sleep 1
+  done
+}
+
 start_backend() {
+  local url
   log "starting backend in $PROJECT_ROOT (logs → $BACK_LOG)…"
-  : > "$BACK_LOG"
-  launch_detached backend "$BACK_CMD" "$BACK_LOG"
+  BACK_STARTED=$(date +%s)
+  launch_detached backend "$BACK_CMD" "$BACK_LOG" "${DMS_BACK_PORT:-}"
   wait_for "$BACK_LOG" "$BACK_READY_PATTERN" "backend" "$BACK_ERROR_PATTERN" "$LAUNCHED_PID" || return 1
-  log "backend ready on $(backend_url)."
+  url="$(backend_url)"
+  case "$url" in *" "*) ;; *) wait_for_manifest "$url" "$LAUNCHED_PID" || return 1 ;; esac
+  log "backend ready on $url."
 }
 
 start_frontend() {
   log "starting frontend in $PROJECT_ROOT (logs → $FRONT_LOG)…"
-  : > "$FRONT_LOG"
-  launch_detached frontend "$FRONT_CMD" "$FRONT_LOG"
+  launch_detached frontend "$FRONT_CMD" "$FRONT_LOG" "${DMS_FRONT_PORT:-}"
   wait_for "$FRONT_LOG" "$FRONT_READY_PATTERN" "frontend" "$FRONT_ERROR_PATTERN" "$LAUNCHED_PID" || return 1
   log "frontend ready on $(frontend_url)."
 }
 
-# Stops the server named (backend or frontend) if it runs, and starts it again: the other
-# one keeps running.
+# Restarts the server named (backend or frontend); the other keeps running.
 restart_server() {
   local name="$1"
   stop_servers "$name" || true
@@ -484,7 +495,7 @@ start_servers() {
 
 status() {
   require_dms_back_dir status
-  log "dev processes of $PROJECT_ROOT:"
+  log "dev processes of $PROJECT_ROOT (logs: $BACK_LOG, $FRONT_LOG):"
   local targets
   refresh_process_table
   targets="$(project_pids)"
@@ -541,12 +552,14 @@ case "$cmd" in
     status
     ;;
   back-log)
+    [ -n "$BACK_LOG" ] || require_dms_back_dir back-log
     tail -n "${2:-60}" "$BACK_LOG"
     ;;
   ""|-h|--help|help)
     usage
     ;;
   front-log)
+    [ -n "$FRONT_LOG" ] || require_dms_back_dir front-log
     tail -n "${2:-60}" "$FRONT_LOG"
     ;;
   *)

@@ -52,6 +52,35 @@ the processes of that server alone that the scan below finds. The other server k
 
 Run one `start` or `restart` at a time: a second concurrent call hits a port or lock conflict.
 
+## Several worktrees side by side
+
+Each project keeps its own pid file and logs, so projects only collide on ports, MongoDB and
+temporary files. `antelopejs-lease` (in the project's tooling-configs) hands a command its own set
+of those. Prefix the script with it:
+
+```sh
+DMS_BACK_DIR=<resolved-path> pnpm exec antelopejs-lease run -- bash "<skill-base-dir>/scripts/dms-dev.sh" start
+```
+
+The lease sets `DMS_BACK_PORT` and `DMS_FRONT_PORT`, never `PORT`. The script turns each into
+`PORT` for its own process only, because `ajs dms dev` and the DMS playground's
+`antelope.config.ts` read `PORT` and would otherwise share one port. Without the variables nothing
+changes: no `PORT` is set and the reported URLs default to `5010` and `3001`; with them, to those
+ports.
+
+Pass `DMS_BACK_CMD` / `DMS_FRONT_CMD` overrides through the environment, not as arguments of a wrapper command (`antelopejs-lease run -- env DMS_BACK_CMD=… bash dms-dev.sh start`): the script's process search can otherwise match the wrapper's command line.
+
+After the backend's ready line, `start` also waits (within `DMS_DEV_TIMEOUT`) until `GET /dms/frontend?renderer=vue&rendererVersion=3`, the request the dashboard makes first, answers 200, 401 or 403. The ready line can print before the modules have loaded, and the manifest answers 503 until they have, which made the dashboard exit when several backends started at once. The wait is skipped without `curl`, without a `.antelope/dev.json`, or when nothing accepts connections on the recorded port.
+
+A config that hard-codes the api port (most DMS repos pin `5010`) ignores `PORT`. Two such projects
+still start side by side: in dev mode the second backend listens on the next free port and logs
+`Port <n> in use, listening on <url> instead.`, and the script treats that line as ready. The
+backend URL it reports comes from `.antelope/dev.json`, which records the port actually bound, and
+the dashboard finds the backend through that same file.
+
+Logs default to `<DMS_BACK_DIR>/.antelope/logs/back.log` and `front.log` (ignored by git with the
+rest of `.antelope`); `status` prints both paths. `DMS_BACK_LOG` / `DMS_FRONT_LOG` override them.
+
 ## Windows
 
 The script runs in Git Bash, MSYS2 or Cygwin. Their `ps` lists only their own processes and takes
