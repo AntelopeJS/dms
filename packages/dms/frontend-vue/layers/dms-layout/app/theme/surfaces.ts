@@ -191,10 +191,20 @@ const toastTheme = {
  * floating bar, a drawer's footer band): the bar sets how far it reaches
  * (`--dms-toaster-clearance`, see `toasterClearance.ts`), so a toast never
  * covers its buttons, and the stack drops back once the bar hides.
+ *
+ * reka-ui 2.11 writes its own `data-expanded` on each toast over Nuxt UI's
+ * `true`/`false`, from its own hover and focus state, so Nuxt UI's collapsed
+ * rules on the toast (`data-[expanded=false]`) never match. The viewport keeps
+ * Nuxt UI's attribute, and `in-data-[expanded=false]` restates those rules from
+ * it: a toast behind the front one takes the front one's height and hides its
+ * content, and when it closes it fades out where it sits. Without that, it ran
+ * the expanded exit, which moves it to its expanded slot, well above the
+ * collapsed stack.
  */
 const toasterTheme = {
   slots: {
     viewport: "w-[calc(100%-2.5rem)] sm:w-[380px]",
+    base: "in-data-[expanded=false]:data-[front=false]:h-(--front-height) in-data-[expanded=false]:data-[front=false]:*:opacity-0 data-[state=closed]:in-data-[expanded=false]:data-[front=false]:animate-[fade-out_200ms_ease-in-out]",
   },
   variants: {
     position: {

@@ -1,4 +1,5 @@
 import { isNotificationRow, numberIn, rowsOf } from "../rows.mjs";
+import { burstToasts, collapsedStackChecks, recordToasts } from "../toasts.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -7,6 +8,7 @@ import { isNotificationRow, numberIn, rowsOf } from "../rows.mjs";
 const HOME = "/examples/overview";
 const FEATURES = "/examples/features";
 const NOTIFICATIONS = "/dms/pages/settings/user/notifications";
+const READ_ONLY = "Read-only demo, changes are not saved";
 
 async function signedIn(/** @type {Ctx} */ ctx) {
   const tab = await ctx.tab("admin");
@@ -120,6 +122,33 @@ export const journeys = [
       ]);
       await tab.click({ role: "button", name: "Go to home" });
       await ctx.verify("Go to home opens the homepage", [tab.at(new RegExp(`^${HOME}$`))]);
+    },
+  },
+  {
+    id: "toast-burst-stays-stacked",
+    title: "a burst of warning toasts with Retry stays one stack while they expire",
+    entryPoint: "the toaster, many refused saves at once",
+    async run(/** @type {Ctx} */ ctx) {
+      const tab = await signedIn(ctx);
+      const page = tab.page;
+      await page.mouse.move(5, 5);
+      await recordToasts(page);
+      await burstToasts(page, 6, READ_ONLY);
+      await page.waitForTimeout(1200);
+      await burstToasts(page, 3, READ_ONLY);
+      await page.waitForTimeout(600);
+      await page.getByRole("button", { name: "Retry" }).last().click();
+      await page.mouse.move(5, 5);
+      await page.waitForTimeout(7000);
+      await burstToasts(page, 5, READ_ONLY);
+      await page.waitForTimeout(400);
+      await page.getByText(READ_ONLY, { exact: true }).last().click();
+      await page.mouse.move(5, 5);
+      await page.waitForTimeout(600);
+      await page.getByRole("button", { name: "Close" }).first().focus();
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(600);
+      await ctx.verify("no toast leaves the collapsed stack while the burst expires", await collapsedStackChecks(ctx, page));
     },
   },
 ];

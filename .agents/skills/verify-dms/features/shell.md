@@ -72,6 +72,7 @@ The dashboard around every page: the sidebar and breadcrumb, the command palette
 - `command-palette-no-match`: empty path: a search that matches nothing shows "No matching data" and Enter goes nowhere.
 - `favorites-persist`: Add to favorites puts the page in the sidebar's Favorites; a reload and another tab of the same browser keep it; Remove from favorites empties it.
 - `sign-in-notification`: a sign-in from a new device puts "New sign-in from …" behind the bell; View all opens the notification settings; the notifications API holds it unread, linking to Security.
+- `toast-burst-stays-stacked`: a burst of "Read-only demo, changes are not saved" warning toasts with Retry, appended to Nuxt UI's toast list one per tick, plus one Retry, then a second burst where a click leaves focus in the toaster and a back toast is closed from the keyboard: while the stack is collapsed, no toast, open or closing, rises more than five stack steps above the bottom of the stack.
 - `unknown-page-404`: error path: an unknown path shows "Page not found" and Go to home returns to the homepage.
 
 ## How to get to it (user POV)
