@@ -24,7 +24,7 @@ BACK_CMD="${DMS_BACK_CMD:-pnpm dev}"
 FRONT_CMD="${DMS_FRONT_CMD:-pnpm frontend:dev}"
 BACK_LOG="${DMS_BACK_LOG:-}"
 FRONT_LOG="${DMS_FRONT_LOG:-}"
-BACK_READY_PATTERN='Server started, listening'
+BACK_READY_PATTERN='Server started, listening|Port [0-9]+ in use, listening on'
 FRONT_READY_PATTERN='Server ready on|Local:.*localhost:'
 # Patterns that indicate a fatal startup error — detecting any of these aborts
 # the wait immediately instead of burning the full timeout.
@@ -435,7 +435,7 @@ backend_url() {
     sleep 1
     url="$(dev_json_url)"
   done
-  [ -n "$url" ] || url="$(grep -oE "$BACK_READY_PATTERN on https?://[^ /]+" "$BACK_LOG" | tail -1 | awk '{print $NF}')"
+  [ -n "$url" ] || url="$(grep -oE "listening on https?://[^ /]+" "$BACK_LOG" | tail -1 | awk '{print $NF}')"
   echo "${url:-$DEFAULT_BACK_URL (assumed: no .antelope/dev.json found)}"
 }
 

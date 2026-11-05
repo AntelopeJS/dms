@@ -28,7 +28,12 @@ if (role === "back" && process.env.PORT) {
     servers: { api: { endpoints: [{ host: "localhost", port: process.env.PORT }] } },
   }));
 }
-console.log(role === "back" ? "Server started, listening" : "Server ready on");
+const READY = {
+  back: "Server started, listening",
+  fallback: "[WARN] Port 24401 in use, listening on http://127.0.0.1:24402 instead. Set strictPort: true in the server config to fail instead of falling back.",
+  front: "Server ready on",
+};
+console.log(READY[role]);
 console.log("PORT=" + port);
 console.log("PROJECT=" + process.cwd());
 setInterval(() => {}, 1_000_000);
@@ -200,4 +205,17 @@ await test("DMS_FRONT_LOG overrides the per-project default log (fails a default
     `Server ready on\nPORT=unset\nPROJECT=${root}\n`,
   );
   assert.ok((await dmsDev(root, env, ["status"])).includes(custom));
+});
+
+await test("a backend that fell back to another port is ready and reported there (fails a ready pattern without the fallback line)", async (t) => {
+  const { stub, project } = fixture(t);
+  const root = project();
+  const env = scriptEnv(stub, root, {
+    DMS_BACK_CMD: `${process.execPath} ${stub} fallback`,
+  });
+
+  const started = await dmsDev(root, env, ["start"]);
+
+  assert.match(started, /backend ready on http:\/\/127\.0\.0\.1:24402\./);
+  assert.match(started, /frontend ready on/);
 });
