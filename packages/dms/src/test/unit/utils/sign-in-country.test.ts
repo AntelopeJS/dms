@@ -63,28 +63,40 @@ describe("[unit] utils/sign-in-country", () => {
     expect(lookupCountry("not-an-ip", throwing)).to.equal(undefined);
   });
 
-  it("reads the configured proxy header first", () => {
-    getAuthConfig().signInCountry = {
-      header: "CF-IPCountry",
-      database: MISSING_DATABASE,
-    };
+  it("reads CF-IPCountry while no header is configured", () => {
+    getAuthConfig().signInCountry = undefined;
     expect(
       resolveClientOrigin(PUBLIC_IP, { "cf-ipcountry": "de" }),
     ).to.deep.equal({ ip: PUBLIC_IP, country: "DE" });
   });
 
-  it("ignores the header while no name is configured", () => {
-    getAuthConfig().signInCountry = { database: false };
+  it("reads the configured header instead of CF-IPCountry", () => {
+    getAuthConfig().signInCountry = { header: "X-Country" };
+    expect(
+      resolveClientOrigin(PUBLIC_IP, {
+        "x-country": "it",
+        "cf-ipcountry": "DE",
+      }).country,
+    ).to.equal("IT");
+  });
+
+  it("reads no header once it is turned off", () => {
+    getAuthConfig().signInCountry = { header: false };
     expect(
       resolveClientOrigin(PUBLIC_IP, { "cf-ipcountry": "DE" }).country,
     ).to.equal(undefined);
   });
 
+  it("tells no country without a header or a database", () => {
+    getAuthConfig().signInCountry = undefined;
+    expect(resolveClientOrigin(PUBLIC_IP, {})).to.deep.equal({
+      ip: PUBLIC_IP,
+      country: undefined,
+    });
+  });
+
   it("tells no country when neither the header nor a database knows it", () => {
-    getAuthConfig().signInCountry = {
-      header: "CF-IPCountry",
-      database: MISSING_DATABASE,
-    };
+    getAuthConfig().signInCountry = { database: MISSING_DATABASE };
     expect(
       resolveClientOrigin(PUBLIC_IP, { "cf-ipcountry": "XX" }).country,
     ).to.equal(undefined);

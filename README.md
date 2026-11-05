@@ -251,4 +251,4 @@ pnpm --dir packages/dms realtime:tabs-check --email <email> --password <password
 
 ## License
 
-[Apache-2.0](./LICENSE). The runtime package ships the DB-IP IP to Country Lite database under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): see [`packages/dms`](./packages/dms#third-party-data).
+[Apache-2.0](./LICENSE)
