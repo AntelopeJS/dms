@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.17.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.16.2...v0.17.0)
+
+### 🏡 Chore
+
+- **dms-control:** Remove seeded runs and containment journeys from verification ([#774](https://github.com/AntelopeJS/dms/pull/774))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.16.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.16.1...v0.16.2)
