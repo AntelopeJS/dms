@@ -16,6 +16,7 @@ type AccountsRef = ReturnType<typeof useStorage<StoredAccount[]>>;
 const accountsStorageByApp = new WeakMap<object, AccountsRef>();
 
 function dropDuplicates(accounts: AccountsRef) {
+  if (!Array.isArray(accounts.value)) return;
   const unique = uniqueAccounts(accounts.value);
   if (unique.length < accounts.value.length) accounts.value = unique;
 }

@@ -156,4 +156,10 @@ describe("useMultiAccount account identity", () => {
     ]);
     expect(storedUserIds()).toEqual(["user-new"]);
   });
+
+  it("leaves a stored value that is not a list to the pages that read it", () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ broken: true }));
+
+    expect(() => useMultiAccount()).not.toThrow();
+  });
 });
