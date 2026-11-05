@@ -36,10 +36,7 @@ overwrite the memory.
 
 ## Choose the process manager
 
-The script is for local shells. In an Amp orb, use the repository's `.amp/services.yaml` with
-`amp orb services ensure`, or `amp orb service start` for a one-off service; check readiness with
-service logs and HTTP checks and share the returned portal URL. Processes the script detaches do
-not survive orb updates.
+The script is for local shells.
 
 ## What `stop` and `restart` touch
 
