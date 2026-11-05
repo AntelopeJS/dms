@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.16.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.16.1...v0.16.2)
+
+### 🚀 Enhancements
+
+- **header:** Let a header action draw a module component as its icon ([#772](https://github.com/AntelopeJS/dms/pull/772))
+
+### 🔥 Performance
+
+- **store:** Let the modules listing read stale registry answers ([#768](https://github.com/AntelopeJS/dms/pull/768))
+
+### 🩹 Fixes
+
+- **layout:** Keep the platform title in the document title after sign-in ([#767](https://github.com/AntelopeJS/dms/pull/767))
+- **layout:** Keep a closing toast inside the collapsed stack ([#771](https://github.com/AntelopeJS/dms/pull/771))
+- **auth:** List each person once in the account switcher ([#770](https://github.com/AntelopeJS/dms/pull/770))
+- **dms-dev:** Run dev servers side by side across worktrees ([#769](https://github.com/AntelopeJS/dms/pull/769))
+
+### 📦 Build
+
+- **deps:** Move to @antelopejs/core 1.20 and drop the interface-core override ([#765](https://github.com/AntelopeJS/dms/pull/765))
+
+### 🏡 Chore
+
+- Remove the .amp directory ([#766](https://github.com/AntelopeJS/dms/pull/766))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.16.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.16.0...v0.16.1)
