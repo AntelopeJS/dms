@@ -3,6 +3,7 @@ import {
   computed,
   createApp,
   createSSRApp,
+  defineAsyncComponent,
   defineComponent,
   h,
   nextTick,
@@ -66,6 +67,15 @@ const ButtonStub = defineComponent({
         },
         slots.leading?.() ?? [h("i", { "data-icon": props.icon })],
       ),
+});
+
+const IconStub = defineComponent({
+  inheritAttrs: false,
+  props: { name: String },
+  setup:
+    (props, { attrs }) =>
+    () =>
+      h("i", { "data-icon": props.name, class: attrs.class }),
 });
 
 const AnimatedIcon: FunctionalComponent = () =>
@@ -132,6 +142,7 @@ function createHeaderApp(create: typeof createApp): App {
   const header = create(DashboardHeader);
   header.config.globalProperties.$t = String;
   header.component("UButton", ButtonStub);
+  header.component("UIcon", IconStub);
   ["UDashboardNavbar", "UTooltip", "UBreadcrumb", "UDropdownMenu"].forEach(
     (name) => header.component(name, SlotsStub),
   );
@@ -165,6 +176,10 @@ function hydrationWarnings(spies: ReturnType<typeof vi.spyOn>[]): string[] {
   return spies
     .flatMap((spy) => spy.mock.calls.map((call) => String(call[0])))
     .filter((message) => message.includes("Hydration"));
+}
+
+function settle(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 function button(host: HTMLElement, label: string): HTMLButtonElement | null {
@@ -322,6 +337,81 @@ describe("header action icon component", () => {
   });
 });
 
+describe("header action async icon component", () => {
+  function registerAsyncIcon(
+    loader: () => Promise<Component>,
+    extra: Partial<HeaderAction> = {},
+  ): void {
+    registeredComponents.Slow = defineAsyncComponent(loader);
+    registerHeaderAction(
+      action("slow", {
+        sidePanelId: PANEL_ID,
+        iconComponent: "Slow",
+        ...extra,
+      }),
+    );
+  }
+
+  it("draws icon until the component arrives, not an empty button", async () => {
+    let arrive: (component: Component) => void = () => undefined;
+    registerAsyncIcon(
+      () => new Promise<Component>((resolve) => (arrive = resolve)),
+    );
+    const host = await mountHeader();
+    await settle();
+    const slow = button(host, "slow");
+    expect(slow?.querySelector("[data-icon]")?.getAttribute("data-icon")).toBe(
+      "i-ph-star",
+    );
+    expect(slow?.querySelector("[data-animated-icon]")).toBeNull();
+    arrive(AnimatedIcon);
+    await settle();
+    expect(slow?.querySelector("[data-animated-icon]")).not.toBeNull();
+    expect(slow?.querySelector("[data-icon]")).toBeNull();
+  });
+
+  it("draws icon on the builder button until its component arrives", async () => {
+    let arrive: (component: Component) => void = () => undefined;
+    registerAsyncIcon(
+      () => new Promise<Component>((resolve) => (arrive = resolve)),
+      { id: BUILDER_ACTION_ID, icon: "i-ph-hammer", label: "Edit" },
+    );
+    const host = await mountHeader();
+    await settle();
+    expect(
+      button(host, "Edit")?.querySelector("[data-icon]")?.getAttribute("data-icon"),
+    ).toBe("i-ph-hammer");
+    arrive(AnimatedIcon);
+    await settle();
+    expect(
+      button(host, "Edit")?.querySelector("[data-animated-icon]"),
+    ).not.toBeNull();
+  });
+
+  it("keeps drawing icon when the component fails to load, without an unhandled error", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    registerAsyncIcon(() => Promise.reject(new Error("chunk failed")));
+    const host = await mountHeader();
+    await settle();
+    const slow = button(host, "slow");
+    expect(slow?.querySelector("[data-icon]")?.getAttribute("data-icon")).toBe(
+      "i-ph-star",
+    );
+    expect(slow?.querySelector("[data-animated-icon]")).toBeNull();
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
+
+  it("keeps the icon at the size of the regular leading icon", async () => {
+    registerAsyncIcon(() => new Promise<Component>(() => undefined));
+    const host = await mountHeader();
+    await settle();
+    expect(button(host, "slow")?.querySelector("[data-icon]")?.className).toBe(
+      "size-[18px] shrink-0",
+    );
+  });
+});
+
 describe("header action hydration", () => {
   it("hydrates a server-rendered icon component without a mismatch", async () => {
     const spies = [
@@ -335,6 +425,25 @@ describe("header action hydration", () => {
     expect(
       button(host, "state")?.querySelector("[data-animated-icon]"),
     ).not.toBeNull();
+    expect(hydrationWarnings(spies)).toEqual([]);
+    spies.forEach((spy) => spy.mockRestore());
+  });
+
+  it("hydrates a server-rendered async icon component without a mismatch or a lost icon", async () => {
+    const spies = [
+      vi.spyOn(console, "warn").mockImplementation(() => undefined),
+      vi.spyOn(console, "error").mockImplementation(() => undefined),
+    ];
+    registeredComponents.Slow = defineAsyncComponent(async () => AnimatedIcon);
+    registerHeaderAction(
+      action("slow", { sidePanelId: PANEL_ID, iconComponent: "Slow" }),
+    );
+    const host = await hydrateHeader(() => undefined);
+    await settle();
+    expect(
+      button(host, "slow")?.querySelector("[data-animated-icon]"),
+    ).not.toBeNull();
+    expect(button(host, "slow")?.querySelector("[data-icon]")).toBeNull();
     expect(hydrationWarnings(spies)).toEqual([]);
     spies.forEach((spy) => spy.mockRestore());
   });

@@ -2,6 +2,7 @@
 import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
 import { onMounted, ref } from "vue";
 import NotificationPopover from "../notification/NotificationPopover.vue";
+import HeaderActionIcon from "./HeaderActionIcon.vue";
 import QuickActionsPopover from "./QuickActionsPopover.vue";
 import { useSidebarState } from "./sidebarState";
 import {
@@ -24,8 +25,7 @@ const MOBILE_ELLIPSIS_SLOT = "ellipsis";
 /** v2 toolbar buttons: muted until hovered or open. */
 const TOOLBAR_BUTTON_CLASS =
   "text-muted hover:text-highlighted data-[state=open]:text-highlighted";
-/** An `iconComponent` fills the box of the `leadingIcon` it replaces. */
-const ICON_COMPONENT_CLASS = "size-[18px] shrink-0";
+const BUILDER_FALLBACK_ICON = "i-ph-hammer-light";
 /** The crumb naming a row keeps the row's own case (crumbs capitalize). */
 const RECORD_CRUMB_LABEL_CLASS = "first-letter:normal-case";
 
@@ -303,7 +303,7 @@ const mobileBreadcrumb = computed(
           :content="TOOLTIP_CONTENT"
         >
           <UButton
-            :icon="builderAction.icon || 'i-ph-hammer-light'"
+            :icon="builderAction.icon || BUILDER_FALLBACK_ICON"
             variant="ghost"
             :color="isActionActive(builderAction) ? 'primary' : 'neutral'"
             :class="
@@ -319,9 +319,9 @@ const mobileBreadcrumb = computed(
             @click="selectAction(builderAction)"
           >
             <template v-if="iconComponents.has(builderAction.id)" #leading>
-              <component
-                :is="iconComponents.get(builderAction.id)"
-                :class="ICON_COMPONENT_CLASS"
+              <HeaderActionIcon
+                :component="iconComponents.get(builderAction.id)!"
+                :icon="builderAction.icon || BUILDER_FALLBACK_ICON"
               />
             </template>
           </UButton>
@@ -346,9 +346,9 @@ const mobileBreadcrumb = computed(
             @click="selectAction(action)"
           >
             <template v-if="iconComponents.has(action.id)" #leading>
-              <component
-                :is="iconComponents.get(action.id)"
-                :class="ICON_COMPONENT_CLASS"
+              <HeaderActionIcon
+                :component="iconComponents.get(action.id)!"
+                :icon="action.icon"
               />
             </template>
           </UButton>
