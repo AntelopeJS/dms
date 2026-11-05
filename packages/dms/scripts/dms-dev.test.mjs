@@ -39,14 +39,45 @@ console.log("PROJECT=" + process.cwd());
 setInterval(() => {}, 1_000_000);
 `;
 
+const LOADING_STUB = `import { createServer } from "node:http";
+import { mkdirSync, writeFileSync } from "node:fs";
+const [role, refusals] = [process.argv[2], Number(process.argv[3])];
+if (role === "front") {
+  const state = await fetch("http://localhost:" + process.env.DMS_BACK_PORT + "/state");
+  console.log("Server ready on");
+  console.log("manifest " + (await state.text()));
+} else {
+  let requests = 0;
+  const manifest = "/dms/frontend?renderer=vue&rendererVersion=3";
+  createServer((req, res) => {
+    const served = req.url === manifest && ++requests > refusals;
+    if (req.url === "/state") res.end(requests > refusals ? "served" : "loading");
+    else {
+      res.statusCode = served ? 200 : req.url === manifest ? 503 : 404;
+      res.end("{}");
+    }
+  }).listen(Number(process.env.PORT), () => {
+    mkdirSync(".antelope", { recursive: true });
+    writeFileSync(".antelope/dev.json", JSON.stringify({
+      pid: process.pid,
+      servers: { api: { endpoints: [{ host: "localhost", port: process.env.PORT }] } },
+    }));
+    console.log("Server started, listening");
+  });
+}
+setInterval(() => {}, 1_000_000);
+`;
+
 /**
  * @param {import("node:test").TestContext} t
- * @returns {{ stub: string, project: () => string }} A stub server and a factory for throwaway projects that `stop` and delete themselves
+ * @returns {{ stub: string, loading: string, project: () => string }} Stub servers and a factory for throwaway projects that `stop` and delete themselves
  */
 function fixture(t) {
   const base = realpathSync(mkdtempSync(join(tmpdir(), "dms-dev-test-")));
   const stub = join(base, "stub.mjs");
   writeFileSync(stub, STUB);
+  const loading = join(base, "loading.mjs");
+  writeFileSync(loading, LOADING_STUB);
   /** @type {string[]} */
   const projects = [];
   t.after(() => {
@@ -59,6 +90,7 @@ function fixture(t) {
   });
   return {
     stub,
+    loading,
     project() {
       const root = join(base, `project-${projects.length}`);
       mkdirSync(root);
@@ -218,4 +250,34 @@ await test("a backend that fell back to another port is ready and reported there
 
   assert.match(started, /backend ready on http:\/\/127\.0\.0\.1:24402\./);
   assert.match(started, /frontend ready on/);
+});
+
+await test("the dashboard starts only once the backend serves its manifest (fails starting it on the first ready line)", async (t) => {
+  const { loading, project } = fixture(t);
+  const root = project();
+  const env = scriptEnv(loading, root, {
+    DMS_BACK_PORT: "24601",
+    DMS_BACK_CMD: `${process.execPath} ${loading} back 2`,
+    DMS_FRONT_CMD: `${process.execPath} ${loading} front`,
+  });
+
+  await dmsDev(root, env, ["start"]);
+
+  assert.match(await dmsDev(root, env, ["front-log"]), /^manifest served$/m);
+});
+
+await test("a backend that never serves its manifest fails the start and leaves the dashboard off (fails starting it anyway)", async (t) => {
+  const { loading, project } = fixture(t);
+  const root = project();
+  const env = scriptEnv(loading, root, {
+    DMS_BACK_PORT: "24602",
+    DMS_DEV_TIMEOUT: "2",
+    DMS_BACK_CMD: `${process.execPath} ${loading} back 1000000`,
+    DMS_FRONT_CMD: `${process.execPath} ${loading} front`,
+  });
+
+  await assert.rejects(dmsDev(root, env, ["start"]), {
+    stdout:
+      /^(?![\s\S]*starting frontend)[\s\S]*FAILED TO START: backend — .*\/dms\/frontend\?renderer=vue&rendererVersion=3 still answered 503 after 2s[\s\S]*Server started, listening/,
+  });
 });

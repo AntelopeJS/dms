@@ -68,6 +68,10 @@ The lease sets `DMS_BACK_PORT` and `DMS_FRONT_PORT`, never `PORT`. The script tu
 changes: no `PORT` is set and the reported URLs default to `5010` and `3001`; with them, to those
 ports.
 
+Pass `DMS_BACK_CMD` / `DMS_FRONT_CMD` overrides through the environment, not as arguments of a wrapper command (`antelopejs-lease run -- env DMS_BACK_CMD=… bash dms-dev.sh start`): the script's process search can otherwise match the wrapper's command line.
+
+After the backend's ready line, `start` also waits (within `DMS_DEV_TIMEOUT`) until `GET /dms/frontend?renderer=vue&rendererVersion=3`, the request the dashboard makes first, answers 200, 401 or 403. The ready line can print before the modules have loaded, and the manifest answers 503 until they have, which made the dashboard exit when several backends started at once. The wait is skipped without `curl`, without a `.antelope/dev.json`, or when nothing accepts connections on the recorded port.
+
 A config that hard-codes the api port (most DMS repos pin `5010`) ignores `PORT`. Two such projects
 still start side by side: in dev mode the second backend listens on the next free port and logs
 `Port <n> in use, listening on <url> instead.`, and the script treats that line as ready. The
