@@ -13,5 +13,3 @@ onlyBuiltDependencies:
   - esbuild
   - puppeteer
   - vue-demi
-overrides:
-  "@antelopejs/interface-core": "0.4.0"
