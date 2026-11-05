@@ -1,8 +1,22 @@
 import type { StoredAccount } from "../../types/auth";
 
+function lastUsedTime(account: StoredAccount): number {
+  return new Date(account.lastUsed).getTime();
+}
+
+function isRefused(account: StoredAccount): boolean {
+  return account.isExpired === true;
+}
+
+/** Whether `account` is the better of two entries: live first, then newest. */
+function isPreferred(account: StoredAccount, other: StoredAccount): boolean {
+  if (isRefused(account) !== isRefused(other)) return isRefused(other);
+  return lastUsedTime(account) > lastUsedTime(other);
+}
+
 /**
  * Whether `stale` is an entry a recreated user record left behind: the
- * backend refused its token, and a live entry holds its email under another
+ * backend refused its token, and a better entry holds its email under another
  * user id. A live entry is never one, since a stored email can be out of date
  * and name another person.
  */
@@ -10,8 +24,8 @@ function isRecreatedAs(stale: StoredAccount, current: StoredAccount): boolean {
   return (
     stale.userId !== current.userId &&
     stale.email === current.email &&
-    stale.isExpired === true &&
-    current.isExpired !== true
+    isRefused(stale) &&
+    isPreferred(current, stale)
   );
 }
 
@@ -30,22 +44,19 @@ export function withAccount(
   return [...others.slice(0, index), account, ...others.slice(index)];
 }
 
-function lastUsedTime(account: StoredAccount): number {
-  return new Date(account.lastUsed).getTime();
-}
-
 /**
- * One entry per user, the most recently used one, without the expired entries
- * of user records recreated under the same email.
+ * One entry per user, the preferred one, without the refused entries of user
+ * records recreated under the same email.
  */
 export function uniqueAccounts(accounts: StoredAccount[]): StoredAccount[] {
-  const latest = accounts.reduce<StoredAccount[]>((kept, account) => {
-    const previous = kept.find((stored) => stored.userId === account.userId);
-    return previous && lastUsedTime(previous) >= lastUsedTime(account)
-      ? kept
-      : withAccount(kept, account);
-  }, []);
-  return latest.filter(
-    (account) => !latest.some((other) => isRecreatedAs(account, other)),
+  const byUser = new Map<string, StoredAccount>();
+  for (const account of accounts) {
+    const kept = byUser.get(account.userId);
+    if (!kept || isPreferred(account, kept))
+      byUser.set(account.userId, account);
+  }
+  const perUser = [...byUser.values()];
+  return perUser.filter(
+    (account) => !perUser.some((other) => isRecreatedAs(account, other)),
   );
 }

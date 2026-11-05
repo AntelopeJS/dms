@@ -162,4 +162,23 @@ describe("useMultiAccount account identity", () => {
 
     expect(() => useMultiAccount()).not.toThrow();
   });
+
+  it("keeps the newer of two refused entries for one email", async () => {
+    seed(
+      seeded({ userId: "user-old", accountId: "account-old", isExpired: true }),
+      seeded({
+        userId: "user-newer",
+        accountId: "account-newer",
+        lastUsed: "2026-05-01T00:00:00.000Z",
+        isExpired: true,
+      }),
+    );
+
+    const { accounts } = useMultiAccount();
+    await nextTick();
+
+    expect(accounts.value.map((account) => account.userId)).toEqual([
+      "user-newer",
+    ]);
+  });
 });
