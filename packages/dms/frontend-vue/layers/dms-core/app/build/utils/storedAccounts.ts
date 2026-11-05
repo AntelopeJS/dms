@@ -1,27 +1,31 @@
 import type { StoredAccount } from "../../types/auth";
 
-type AccountIdentity = Pick<StoredAccount, "userId" | "email">;
-
 /**
- * Whether two entries are one person: the same user record, or the same
- * email. The backend holds one user per email, so a second entry with that
- * email is a user record that was deleted and recreated, whose entry the
- * browser kept.
+ * Whether `stale` is an entry a recreated user record left behind: the
+ * backend refused its token, and a live entry holds its email under another
+ * user id. A live entry is never one, since a stored email can be out of date
+ * and name another person.
  */
-export function isSameAccount(
-  left: AccountIdentity,
-  right: AccountIdentity,
-): boolean {
-  return left.userId === right.userId || left.email === right.email;
+function isRecreatedAs(stale: StoredAccount, current: StoredAccount): boolean {
+  return (
+    stale.userId !== current.userId &&
+    stale.email === current.email &&
+    stale.isExpired === true &&
+    current.isExpired !== true
+  );
 }
 
-/** `accounts` with `account` in place of every entry of the same person. */
+function isReplacedBy(stored: StoredAccount, account: StoredAccount): boolean {
+  return stored.userId === account.userId || isRecreatedAs(stored, account);
+}
+
+/** `accounts` with `account` in place of every entry it replaces. */
 export function withAccount(
   accounts: StoredAccount[],
   account: StoredAccount,
 ): StoredAccount[] {
-  const index = accounts.findIndex((stored) => isSameAccount(stored, account));
-  const others = accounts.filter((stored) => !isSameAccount(stored, account));
+  const index = accounts.findIndex((stored) => isReplacedBy(stored, account));
+  const others = accounts.filter((stored) => !isReplacedBy(stored, account));
   if (index < 0) return [...others, account];
   return [...others.slice(0, index), account, ...others.slice(index)];
 }
@@ -30,12 +34,18 @@ function lastUsedTime(account: StoredAccount): number {
   return new Date(account.lastUsed).getTime();
 }
 
-/** One entry per person, the most recently used one. */
+/**
+ * One entry per user, the most recently used one, without the expired entries
+ * of user records recreated under the same email.
+ */
 export function uniqueAccounts(accounts: StoredAccount[]): StoredAccount[] {
-  return accounts.reduce<StoredAccount[]>((kept, account) => {
-    const previous = kept.find((stored) => isSameAccount(stored, account));
+  const latest = accounts.reduce<StoredAccount[]>((kept, account) => {
+    const previous = kept.find((stored) => stored.userId === account.userId);
     return previous && lastUsedTime(previous) >= lastUsedTime(account)
       ? kept
       : withAccount(kept, account);
   }, []);
+  return latest.filter(
+    (account) => !latest.some((other) => isRecreatedAs(account, other)),
+  );
 }

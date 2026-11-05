@@ -15,6 +15,11 @@ type AccountsRef = ReturnType<typeof useStorage<StoredAccount[]>>;
 
 const accountsStorageByApp = new WeakMap<object, AccountsRef>();
 
+function dropDuplicates(accounts: AccountsRef) {
+  const unique = uniqueAccounts(accounts.value);
+  if (unique.length < accounts.value.length) accounts.value = unique;
+}
+
 /**
  * The stored accounts, on a ref whose persistence outlives any component.
  *
@@ -35,8 +40,7 @@ function useAccountsStorage(): AccountsRef {
   const storage = effectScope(true).run(() =>
     useStorage<StoredAccount[]>(STORAGE_KEY, [], undefined),
   ) as AccountsRef;
-  const unique = uniqueAccounts(storage.value);
-  if (unique.length < storage.value.length) storage.value = unique;
+  dropDuplicates(storage);
   accountsStorageByApp.set(dmsApp, storage);
   return storage;
 }
@@ -183,6 +187,7 @@ function createValidateAllAccounts(
         .filter((a) => a.userId !== currentUserId)
         .map((account) => validateAccount(account)),
     );
+    dropDuplicates(accounts);
   };
 }
 

@@ -59,6 +59,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  Reflect.deleteProperty(globalThis, "$fetch");
 });
 
 describe("useMultiAccount account identity", () => {
@@ -75,12 +76,13 @@ describe("useMultiAccount account identity", () => {
     expect(storedUserIds()).toEqual(["user-new"]);
   });
 
-  it("collapses entries already stored twice for one person, keeping the most recently used", async () => {
+  it("collapses entries already stored twice for one person, keeping the most recently used live one", async () => {
     seed(
       seeded({
         userId: "user-a",
         accountId: "account-a",
         lastUsed: "2026-01-01T00:00:00.000Z",
+        isExpired: true,
       }),
       seeded({
         userId: "user-b",
@@ -90,7 +92,8 @@ describe("useMultiAccount account identity", () => {
       seeded({
         userId: "user-c",
         accountId: "account-c",
-        lastUsed: "2026-02-01T00:00:00.000Z",
+        lastUsed: "2026-04-01T00:00:00.000Z",
+        isExpired: true,
       }),
       seeded({
         userId: "user-b",
@@ -119,5 +122,38 @@ describe("useMultiAccount account identity", () => {
       "user-other",
       "user-new",
     ]);
+  });
+
+  it("keeps a live account whose stored email now names another user", async () => {
+    seed(seeded({ userId: "user-moved" }));
+    const { accounts, addCurrentAccount } = useMultiAccount();
+
+    addCurrentAccount();
+    await nextTick();
+
+    expect(accounts.value.map((account) => account.userId)).toEqual([
+      "user-moved",
+      "user-new",
+    ]);
+  });
+
+  it("drops the leftover of a recreated user record once validation finds it refused", async () => {
+    seed(seeded({}));
+    Reflect.set(
+      globalThis,
+      "$fetch",
+      vi.fn(async () => ({ valid: false })),
+    );
+    const { accounts, addCurrentAccount, validateAllAccounts } =
+      useMultiAccount();
+    addCurrentAccount();
+
+    await validateAllAccounts();
+    await nextTick();
+
+    expect(accounts.value.map((account) => account.userId)).toEqual([
+      "user-new",
+    ]);
+    expect(storedUserIds()).toEqual(["user-new"]);
   });
 });
