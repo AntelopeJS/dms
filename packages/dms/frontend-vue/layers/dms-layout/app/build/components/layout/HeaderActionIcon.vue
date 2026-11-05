@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { onErrorCaptured, onMounted, ref, watch, type Component } from "vue";
+import {
+  getCurrentInstance,
+  onErrorCaptured,
+  onMounted,
+  ref,
+  watch,
+  type Component,
+  type ComponentInternalInstance,
+} from "vue";
 
 /**
  * Draws a header action's `iconComponent` in the leading slot of its button.
@@ -28,7 +36,20 @@ watch(
     failed.value = false;
   },
 );
-onErrorCaptured((error) => {
+const self = getCurrentInstance();
+
+/** The component drawn here that `source` belongs to: its ancestor whose parent is this one. */
+function drawnComponentOf(
+  source: ComponentInternalInstance | null,
+): ComponentInternalInstance | null {
+  let current = source;
+  while (current && current.parent !== self) current = current.parent;
+  return current;
+}
+
+onErrorCaptured((error, instance) => {
+  if (drawnComponentOf(instance?.$ ?? null)?.type !== props.component)
+    return false;
   failed.value = true;
   if (import.meta.env.DEV)
     console.warn(

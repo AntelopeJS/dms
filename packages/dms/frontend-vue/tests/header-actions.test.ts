@@ -428,6 +428,30 @@ describe("header action async icon component", () => {
     warn.mockRestore();
   });
 
+  it("keeps a re-registration's component when the load it replaced fails late, instead of drawing icon", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    let fail: (reason: Error) => void = () => undefined;
+    registerAsyncIcon(
+      () =>
+        new Promise<Component>((_, reject) => {
+          fail = reject;
+        }),
+    );
+    const host = await mountHeader();
+    await settle();
+    registerHeaderAction(
+      action("slow", { sidePanelId: PANEL_ID, iconComponent: "StateIcon" }),
+    );
+    await settle();
+    fail(new Error("replaced chunk failed"));
+    await settle();
+    expect(
+      button(host, "slow")?.querySelector("[data-animated-icon]"),
+    ).not.toBeNull();
+    expect(button(host, "slow")?.querySelector("[data-icon]")).toBeNull();
+    warn.mockRestore();
+  });
+
   it("reports a failed load in development instead of swallowing it", async () => {
     const error = vi
       .spyOn(console, "error")
