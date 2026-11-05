@@ -271,33 +271,36 @@ describe("[unit] store/boundaries — interfaces registry", () => {
       },
       new Set(),
       project,
+      "cached",
     );
 
   it("lists the npm modules of an interface", async () => {
-    expect(await findImplementations("@acme/interface-listed")).to.deep.equal([
-      LISTED,
-    ]);
+    expect(
+      await findImplementations("@acme/interface-listed", "cached"),
+    ).to.deep.equal([LISTED]);
   });
 
   it("does not list a module whose package is not a string", async () => {
-    expect(await findImplementations("@acme/interface-mixed")).to.deep.equal([
-      LISTED,
-    ]);
+    expect(
+      await findImplementations("@acme/interface-mixed", "cached"),
+    ).to.deep.equal([LISTED]);
   });
 
   it("lists no module when the module list holds a null", async () => {
-    expect(await findImplementations("@acme/interface-nulled")).to.deep.equal(
-      [],
-    );
+    expect(
+      await findImplementations("@acme/interface-nulled", "cached"),
+    ).to.deep.equal([]);
   });
 
   it("lists no module when the module list holds a non-object", async () => {
-    expect(await findImplementations("@acme/interface-junk")).to.deep.equal([]);
+    expect(
+      await findImplementations("@acme/interface-junk", "cached"),
+    ).to.deep.equal([]);
   });
 
   it("looks in no folder when the registry names a folder that is not a string", async () => {
     expect(
-      await findImplementations("@acme/interface-badfolder"),
+      await findImplementations("@acme/interface-badfolder", "cached"),
     ).to.deep.equal([]);
   });
 

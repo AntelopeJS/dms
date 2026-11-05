@@ -22,8 +22,8 @@ const processPins = {
     'const { stdout } = await execFileAsync(\n      "npm",\n      ["view", packageName, "version"],\n      { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS, signal },\n    );',
   "src/store/registry.ts:1": 'import { execFile } from "node:child_process";',
   "src/store/registry.ts:2": 'import { promisify } from "node:util";',
-  "src/store/registry.ts:5": "const execFileAsync = promisify(execFile);",
-  "src/store/registry.ts:40":
+  "src/store/registry.ts:6": "const execFileAsync = promisify(execFile);",
+  "src/store/registry.ts:33":
     'const { stdout } = await execFileAsync(\n      "npm",\n      ["view", spec, ...fields, "--json"],\n      { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS },\n    );',
   "src/store/tarball.ts:1": 'import { execFile } from "node:child_process";',
   "src/store/tarball.ts:5": 'import { promisify } from "node:util";',
@@ -71,9 +71,9 @@ const processPins = {
   "dist/store/registry.js:6":
     'const node_child_process_1 = require("node:child_process");',
   "dist/store/registry.js:7": 'const node_util_1 = require("node:util");',
-  "dist/store/registry.js:8":
+  "dist/store/registry.js:9":
     "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
-  "dist/store/registry.js:18":
+  "dist/store/registry.js:17":
     'const { stdout } = await execFileAsync("npm", ["view", spec, ...fields, "--json"], { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS });',
   "dist/store/tarball.js:8":
     'const node_child_process_1 = require("node:child_process");',

@@ -148,7 +148,11 @@ async function resolveTargetRelease(
 ): Promise<PackageRelease> {
   setStep("resolve");
   const { package: packageName } = context.catalogEntry;
-  const release = await latestRelease(packageName, context.projectPath, true);
+  const release = await latestRelease(
+    packageName,
+    context.projectPath,
+    "fresh",
+  );
   if (!release) {
     throw new Error(
       `The npm registry has no release of ${packageName} this platform can read`,
