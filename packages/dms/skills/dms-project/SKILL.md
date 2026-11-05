@@ -217,7 +217,8 @@ Git Bash, MSYS2 or Cygwin on Windows ([DEV-SERVERS.md](DEV-SERVERS.md#windows)).
 Several worktrees or repos run side by side when each call gets its own ports: prefix the script
 with `pnpm exec antelopejs-lease run --` where the project's tooling-configs has it. The script
 hands `DMS_BACK_PORT` / `DMS_FRONT_PORT` to the backend / frontend process as its `PORT`, and
-logs under the project's own `.antelope/logs/`
+logs under the project's own `.antelope/logs/`. A backend whose config pins the api port still
+starts: it falls back to the next free port and the script reports that one
 ([DEV-SERVERS.md](DEV-SERVERS.md#several-worktrees-side-by-side)).
 
 When you hand off for manual testing, run `restart` yourself, wait for both ready lines, then tell

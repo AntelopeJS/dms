@@ -63,9 +63,16 @@ DMS_BACK_DIR=<resolved-path> pnpm exec antelopejs-lease run -- bash "<skill-base
 ```
 
 The lease sets `DMS_BACK_PORT` and `DMS_FRONT_PORT`, never `PORT`. The script turns each into
-`PORT` for its own process only, because the backend (`antelope.config.ts`) and `ajs dms dev` both
-read `PORT` and would otherwise share one port. Without the variables nothing changes: no `PORT`
-is set and the reported URLs default to `5010` and `3001`; with them, to those ports.
+`PORT` for its own process only, because `ajs dms dev` and the DMS playground's
+`antelope.config.ts` read `PORT` and would otherwise share one port. Without the variables nothing
+changes: no `PORT` is set and the reported URLs default to `5010` and `3001`; with them, to those
+ports.
+
+A config that hard-codes the api port (most DMS repos pin `5010`) ignores `PORT`. Two such projects
+still start side by side: in dev mode the second backend listens on the next free port and logs
+`Port <n> in use, listening on <url> instead.`, and the script treats that line as ready. The
+backend URL it reports comes from `.antelope/dev.json`, which records the port actually bound, and
+the dashboard finds the backend through that same file.
 
 Logs default to `<DMS_BACK_DIR>/.antelope/logs/back.log` and `front.log` (ignored by git with the
 rest of `.antelope`); `status` prints both paths. `DMS_BACK_LOG` / `DMS_FRONT_LOG` override them.
