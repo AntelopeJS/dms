@@ -35,6 +35,7 @@ const PANEL_ID = "demo:panel";
 
 let sharedState: Map<string, Ref<unknown>>;
 let app: App | undefined;
+let serverHtml = "";
 
 interface CookieOptions {
   // oxlint-disable-next-line anti-slop/no-unknown-returns -- The cookie stub stores heterogeneous defaults and has no single value schema.
@@ -164,7 +165,8 @@ async function mountHeader(): Promise<HTMLElement> {
  */
 async function hydrateHeader(runOnClient: () => void): Promise<HTMLElement> {
   const host = document.createElement("div");
-  host.innerHTML = await renderToString(createHeaderApp(createSSRApp));
+  serverHtml = await renderToString(createHeaderApp(createSSRApp));
+  host.innerHTML = serverHtml;
   document.body.append(host);
   runOnClient();
   app = createHeaderApp(createSSRApp);
@@ -379,7 +381,9 @@ describe("header action async icon component", () => {
     const host = await mountHeader();
     await settle();
     expect(
-      button(host, "Edit")?.querySelector("[data-icon]")?.getAttribute("data-icon"),
+      button(host, "Edit")
+        ?.querySelector("[data-icon]")
+        ?.getAttribute("data-icon"),
     ).toBe("i-ph-hammer");
     arrive(AnimatedIcon);
     await settle();
@@ -389,7 +393,9 @@ describe("header action async icon component", () => {
   });
 
   it("keeps drawing icon when the component fails to load, without an unhandled error", async () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     registerAsyncIcon(() => Promise.reject(new Error("chunk failed")));
     const host = await mountHeader();
     await settle();
@@ -400,6 +406,42 @@ describe("header action async icon component", () => {
     expect(slow?.querySelector("[data-animated-icon]")).toBeNull();
     expect(error).not.toHaveBeenCalled();
     error.mockRestore();
+  });
+
+  it("draws the component of a re-registration after the first one failed to load", async () => {
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    registerAsyncIcon(() => Promise.reject(new Error("chunk failed")));
+    const host = await mountHeader();
+    await settle();
+    registerHeaderAction(
+      action("slow", { sidePanelId: PANEL_ID, iconComponent: "StateIcon" }),
+    );
+    await settle();
+    expect(
+      button(host, "slow")?.querySelector("[data-animated-icon]"),
+    ).not.toBeNull();
+    expect(button(host, "slow")?.querySelector("[data-icon]")).toBeNull();
+    error.mockRestore();
+    warn.mockRestore();
+  });
+
+  it("reports a failed load in development instead of swallowing it", async () => {
+    const error = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    registerAsyncIcon(() => Promise.reject(new Error("chunk failed")));
+    await mountHeader();
+    await settle();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("header action icon component"),
+      expect.objectContaining({ message: "chunk failed" }),
+    );
+    error.mockRestore();
+    warn.mockRestore();
   });
 
   it("keeps the icon at the size of the regular leading icon", async () => {
@@ -422,6 +464,60 @@ describe("header action hydration", () => {
       action("state", { sidePanelId: PANEL_ID, iconComponent: "StateIcon" }),
     );
     const host = await hydrateHeader(() => undefined);
+    expect(serverHtml).toContain('data-icon="i-ph-star"');
+    expect(serverHtml).not.toContain("<svg");
+    await nextTick();
+    expect(
+      button(host, "state")?.querySelector("[data-animated-icon]"),
+    ).not.toBeNull();
+    expect(button(host, "state")?.querySelector("[data-icon]")).toBeNull();
+    expect(hydrationWarnings(spies)).toEqual([]);
+    spies.forEach((spy) => spy.mockRestore());
+  });
+
+  it("leaves exactly one icon when the client chunk of a server-rendered component rejects", async () => {
+    const spies = [
+      vi.spyOn(console, "warn").mockImplementation(() => undefined),
+      vi.spyOn(console, "error").mockImplementation(() => undefined),
+    ];
+    registeredComponents.Slow = defineAsyncComponent(async () => AnimatedIcon);
+    registerHeaderAction(
+      action("slow", { sidePanelId: PANEL_ID, iconComponent: "Slow" }),
+    );
+    const host = await hydrateHeader(() => {
+      registeredComponents.Slow = defineAsyncComponent(() =>
+        Promise.reject(new Error("chunk failed")),
+      );
+    });
+    await settle();
+    const slow = button(host, "slow");
+    expect(slow?.querySelectorAll("[data-icon]")).toHaveLength(1);
+    expect(slow?.querySelector("svg")).toBeNull();
+    expect(hydrationWarnings(spies)).toEqual([]);
+    spies.forEach((spy) => spy.mockRestore());
+  });
+
+  it("draws icon on the server and hydrates cleanly a component that throws only there", async () => {
+    const spies = [
+      vi.spyOn(console, "warn").mockImplementation(() => undefined),
+      vi.spyOn(console, "error").mockImplementation(() => undefined),
+    ];
+    let onServer = true;
+    registeredComponents.ServerOnlyFailure = () => {
+      if (onServer) throw new Error("window is not defined");
+      return h("svg", { "data-animated-icon": "" });
+    };
+    registerHeaderAction(
+      action("state", {
+        sidePanelId: PANEL_ID,
+        iconComponent: "ServerOnlyFailure",
+      }),
+    );
+    const host = await hydrateHeader(() => {
+      onServer = false;
+    });
+    expect(serverHtml).toContain('data-icon="i-ph-star"');
+    await nextTick();
     expect(
       button(host, "state")?.querySelector("[data-animated-icon]"),
     ).not.toBeNull();

@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { onErrorCaptured, ref, type Component } from "vue";
+import { onErrorCaptured, onMounted, ref, watch, type Component } from "vue";
 
 /**
  * Draws a header action's `iconComponent` in the leading slot of its button.
  * `icon` stands in, at the size of the button's own leading icon, while there
- * is no component, until it has rendered, and when it fails to load.
+ * is no component, on the server and the hydration pass, until the component
+ * has rendered, and when it fails to load. A new `component` gets its own
+ * attempt after a failed one.
  */
-defineProps<{
+const props = defineProps<{
   component?: Component;
   icon: string;
 }>();
@@ -14,15 +16,35 @@ defineProps<{
 /** The box of the `leadingIcon` this replaces, whichever of the two draws. */
 const ICON_CLASS = "size-[18px] shrink-0";
 
+const mounted = ref(false);
+onMounted(() => {
+  mounted.value = true;
+});
+
 const failed = ref(false);
-onErrorCaptured(() => {
+watch(
+  () => props.component,
+  () => {
+    failed.value = false;
+  },
+);
+onErrorCaptured((error) => {
   failed.value = true;
+  if (import.meta.env.DEV)
+    console.warn(
+      "[dms] header action icon component failed to load; drawing icon instead",
+      error,
+    );
   return false;
 });
 </script>
 
 <template>
-  <UIcon v-if="failed || !component" :name="icon" :class="ICON_CLASS" />
+  <UIcon
+    v-if="!mounted || failed || !component"
+    :name="icon"
+    :class="ICON_CLASS"
+  />
   <Suspense v-else>
     <component :is="component" :class="ICON_CLASS" />
     <template #fallback>
