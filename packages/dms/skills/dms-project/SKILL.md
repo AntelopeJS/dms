@@ -205,7 +205,7 @@ DMS_BACK_DIR=<resolved-path> bash "<skill-base-dir>/scripts/dms-dev.sh" restart
 | `start` | Nothing is running (fresh shell, after `stop`). |
 | `stop` | Before walking away, before destructive operations, on session cleanup. |
 | `status` | The user asks whether the DMS is running. |
-| `back-log [N]` / `front-log [N]` | A boot fails: read the last N (default 60) lines of `/tmp/dms-back.log` / `/tmp/dms-front.log`. |
+| `back-log [N]` / `front-log [N]` | A boot fails: read the last N (default 60) lines of `<DMS_BACK_DIR>/.antelope/logs/back.log` / `front.log`. |
 
 The call returns once both servers print their ready line and reports the URLs they listen on; it
 fails fast when a server exits early, otherwise after 180 s per server (`DMS_DEV_TIMEOUT`). The
@@ -213,6 +213,12 @@ servers keep running detached. By default the script runs the project's `pnpm de
 `pnpm frontend:dev` scripts (a project convention that expands to the two commands above);
 override them with `DMS_BACK_CMD` / `DMS_FRONT_CMD`. It runs in bash on Linux and macOS, and in
 Git Bash, MSYS2 or Cygwin on Windows ([DEV-SERVERS.md](DEV-SERVERS.md#windows)).
+
+Several worktrees or repos run side by side when each call gets its own ports: prefix the script
+with `pnpm exec antelopejs-lease run --` where the project's tooling-configs has it. The script
+hands `DMS_BACK_PORT` / `DMS_FRONT_PORT` to the backend / frontend process as its `PORT`, and
+logs under the project's own `.antelope/logs/`
+([DEV-SERVERS.md](DEV-SERVERS.md#several-worktrees-side-by-side)).
 
 When you hand off for manual testing, run `restart` yourself, wait for both ready lines, then tell
 the user what to click. Boot failures, stale frontends, a refused credential (401), stop scope and
