@@ -57,10 +57,13 @@ Signing in and out, the sign-in redirect of protected pages, and password recove
 - `logout-ends-session`: account menu > Logout returns to sign-in, and the settings page asks to sign in again.
 - `forgot-password-resets`: the emailed 6-character code opens the new password form; the new password signs in and the old one answers 401.
 - `forgot-password-wrong-code`: error path: a wrong code says it is invalid and the old password still signs in.
+- `switcher-lists-each-account-once`: two accounts signed in through "Add an account" in one browser stay one row and one stored entry each across re-logins of both, switches both ways, a reload and a second tab.
+- `switcher-replaces-recreated-account`: an entry a previous user record of the same person left (same email, another user id, expired) is planted in `localStorage`; a reload and a new sign-in each leave one row.
 - `base-written-data-upgrade`: Format containment: the base ref's backend (built once per commit under `~/.cache/dms-control/base/`) onboards the owner, writes a record and opens a session on the journey's database; this version then accepts the base access token, refreshes the base refresh token, signs the owner in and lists the record.
 
 ## How to get to it (user POV)
 
+- The accounts switcher at `/auth/accounts` (account menu > Switch account), and its "Add an account" button.
 - The sign-in page at `/auth`, its "Forgot password?" link, and the account menu (the button with the user's name) > Logout.
 
 ## Driving it with dms-control
@@ -74,4 +77,5 @@ Evidence is under `$RUN/evidence/auth/<journey>/`; the reset email is in the ste
 ## Gotchas
 
 - Typing the sixth character of the code submits it; there is no click on Continue.
-- OAuth providers, two-factor sign-in and the accounts switcher are not driven: the playground configures no provider and no account has a second factor. Report them under Not verified when their code changes.
+- The switcher journeys read `localStorage` key `antelopejs-accounts`, the browser's list of signed-in accounts.
+- OAuth providers and two-factor sign-in are not driven: the playground configures no provider and no account has a second factor. Report them under Not verified when their code changes.

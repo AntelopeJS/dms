@@ -4,6 +4,7 @@ import type {
   SwitchAccountResponse,
   ValidateAccountResponse,
 } from "../../types/auth";
+import { uniqueAccounts, withAccount } from "../../build/utils/storedAccounts";
 
 const STORAGE_KEY = "antelopejs-accounts";
 const SWITCH_ACCOUNT_ENDPOINT = "/auth/switch-account";
@@ -13,6 +14,12 @@ const HTTP_POST = "POST" as const;
 type AccountsRef = ReturnType<typeof useStorage<StoredAccount[]>>;
 
 const accountsStorageByApp = new WeakMap<object, AccountsRef>();
+
+function dropDuplicates(accounts: AccountsRef) {
+  if (!Array.isArray(accounts.value)) return;
+  const unique = uniqueAccounts(accounts.value);
+  if (unique.length < accounts.value.length) accounts.value = unique;
+}
 
 /**
  * The stored accounts, on a ref whose persistence outlives any component.
@@ -34,6 +41,7 @@ function useAccountsStorage(): AccountsRef {
   const storage = effectScope(true).run(() =>
     useStorage<StoredAccount[]>(STORAGE_KEY, [], undefined),
   ) as AccountsRef;
+  dropDuplicates(storage);
   accountsStorageByApp.set(dmsApp, storage);
   return storage;
 }
@@ -88,20 +96,13 @@ function upsertAccount(
   user: MinimalUser,
   accountId: string,
 ) {
-  const existingIndex = accounts.value.findIndex((a) => a.userId === user._id);
-  const account: StoredAccount = {
+  accounts.value = withAccount(accounts.value, {
     accountId,
     userId: user._id,
     email: user.email,
     name: user.name,
     lastUsed: new Date(),
-  };
-
-  if (existingIndex >= 0) {
-    accounts.value[existingIndex] = account;
-  } else {
-    accounts.value.push(account);
-  }
+  });
 }
 
 async function requestAccountSwitch(account: StoredAccount) {
@@ -168,6 +169,7 @@ function createSwitchAccount(
     } catch (error) {
       if (isTokenRejection(error)) {
         account.isExpired = true;
+        dropDuplicates(accounts);
       }
       throw error;
     }
@@ -187,6 +189,7 @@ function createValidateAllAccounts(
         .filter((a) => a.userId !== currentUserId)
         .map((account) => validateAccount(account)),
     );
+    dropDuplicates(accounts);
   };
 }
 
