@@ -320,7 +320,7 @@ const mobileBreadcrumb = computed(
           >
             <template v-if="iconComponents.has(builderAction.id)" #leading>
               <HeaderActionIcon
-                :component="iconComponents.get(builderAction.id)!"
+                :component="iconComponents.get(builderAction.id)"
                 :icon="builderAction.icon || BUILDER_FALLBACK_ICON"
               />
             </template>
@@ -347,7 +347,7 @@ const mobileBreadcrumb = computed(
           >
             <template v-if="iconComponents.has(action.id)" #leading>
               <HeaderActionIcon
-                :component="iconComponents.get(action.id)!"
+                :component="iconComponents.get(action.id)"
                 :icon="action.icon"
               />
             </template>

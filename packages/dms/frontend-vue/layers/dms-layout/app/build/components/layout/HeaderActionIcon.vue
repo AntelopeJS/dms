@@ -3,11 +3,11 @@ import { onErrorCaptured, ref, type Component } from "vue";
 
 /**
  * Draws a header action's `iconComponent` in the leading slot of its button.
- * `icon` stands in, at the size of the button's own leading icon, until the
- * component has rendered, and stays when it fails to load.
+ * `icon` stands in, at the size of the button's own leading icon, while there
+ * is no component, until it has rendered, and when it fails to load.
  */
 defineProps<{
-  component: Component;
+  component?: Component;
   icon: string;
 }>();
 
@@ -22,7 +22,7 @@ onErrorCaptured(() => {
 </script>
 
 <template>
-  <UIcon v-if="failed" :name="icon" :class="ICON_CLASS" />
+  <UIcon v-if="failed || !component" :name="icon" :class="ICON_CLASS" />
   <Suspense v-else>
     <component :is="component" :class="ICON_CLASS" />
     <template #fallback>

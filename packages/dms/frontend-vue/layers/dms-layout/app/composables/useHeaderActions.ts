@@ -13,7 +13,8 @@ export interface HeaderAction {
    * A component drawn in place of `icon`, by the name `registerComponent` gave
    * it (resolved as a side panel's `component` is), for an icon that animates
    * or follows a state. `icon` stays required: it is drawn while the name does
-   * not resolve, while an async component loads, and when it fails to load. The name is plain data, so a server still renders the action.
+   * not resolve, while an async component loads, and when it fails to load.
+   * The name is plain data, so a server still renders the action.
    */
   iconComponent?: string;
   /** Tooltip and accessible name: a plain literal, or an i18n key when prefixed with "$". */
