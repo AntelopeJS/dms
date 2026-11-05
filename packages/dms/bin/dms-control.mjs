@@ -28,7 +28,6 @@ Verify a change (the .agents/skills/verify-* folder of the checkout, or --skill 
   map                               check the feature map covers every user-facing file
   plan [--base <ref>]               map the diff to features; list unmapped surfaces
   journey <run> <feature> [ids...]  run a feature's journeys and record evidence
-  seeded <feature...>               run each feature unpatched and with its seeded break
   doors [patch] [--base <ref>]      print the One-way-door line for a patch, or for the diff
   formal <run> [--all]              run the formal checks that cover the diff (or every one)
   verdict <run> --pr <n>            render evidence/verdict.md from the results and evidence/judgement.json

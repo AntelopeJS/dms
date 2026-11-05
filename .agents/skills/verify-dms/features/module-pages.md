@@ -67,7 +67,7 @@ What a module's pages are made of: table views with their forms, row actions and
 - `form-required-fields`: error path: Create on an empty form lists the fields that need attention and stores nothing.
 - `table-search-empty`: empty path: a search that matches nothing hides every row; clearing it lists them again.
 - `table-edit-record`: row menu > Edit renames a user; the table and the API show the new name.
-- `table-delete-record`: Data containment: row menu > Delete asks "Delete this item?" first (the dry run a user sees), then the row is gone after a reload and from the API.
+- `table-delete-record`: row menu > Delete asks "Delete this item?" first (the dry run a user sees), then the row is gone after a reload and from the API.
 - `realtime-row-reaches-other-tab`: a user created in one tab appears in another tab on the same table without a reload. It is the end-to-end side of `formal-realtime-tabs`.
 - `record-not-found`: error path: the edit page of a missing record says "This entry does not exist, or no longer does" and shows no form.
 

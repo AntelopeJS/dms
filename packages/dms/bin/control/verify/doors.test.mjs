@@ -1,40 +1,85 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { flaggedDoors, patchFiles } from "./doors.mjs";
-import { loadSkill } from "./skill.mjs";
+import { doorLine, flaggedDoors, patchFiles } from "./doors.mjs";
 
-const skill = await loadSkill(undefined, import.meta.dirname);
-const kinds = Object.entries(skill.config.doors)
-  .filter(
-    ([kind, rule]) =>
-      rule && existsSync(join(skill.seededDoorsDir, `${kind}.patch`)),
-  )
-  .map(([kind]) => kind);
+/** @type {import("./skill.mjs").Skill} */
+const skill = {
+  dir: "/repo/.agents/skills/verify-x",
+  name: "verify-x",
+  repo: "/repo",
+  featuresDir: "",
+  journeysDir: "",
+  config: {
+    playground: "playground",
+    prepare: [],
+    userFacing: [],
+    notUserFacing: [],
+    smoke: "smoke",
+    smokeJourney: "",
+    formal: [],
+    doors: {
+      data: { globs: ["src/crons/**"], funnels: [], why: "deletes rows" },
+      outbound: {
+        globs: ["src/utils/*-mail.ts"],
+        funnels: ["src/emails.ts"],
+        why: "sends mail",
+      },
+      publish: null,
+    },
+  },
+};
 
-for (const kind of kinds) {
-  const patch = join(skill.seededDoorsDir, `${kind}.patch`);
+await test("flaggedDoors names each kind a file hits, with its files, through globs and funnels", () => {
+  assert.deepEqual(
+    flaggedDoors(skill, [
+      "src/crons/purge.ts",
+      "src/emails.ts",
+      "src/utils/invite-mail.ts",
+      "src/pages/home.ts",
+    ]),
+    [
+      { kind: "data", files: ["src/crons/purge.ts"] },
+      {
+        kind: "outbound",
+        files: ["src/emails.ts", "src/utils/invite-mail.ts"],
+      },
+    ],
+  );
+});
 
-  await test(`the ${kind} seeded door applies to the current tree`, () => {
-    assert.doesNotThrow(
-      () =>
-        execFileSync("git", ["apply", "--check", patch], {
-          cwd: skill.repo,
-          stdio: "pipe",
-        }),
-      `${kind}.patch no longer applies; refresh it against the current source`,
-    );
-  });
+await test("flaggedDoors flags nothing for files outside every rule, a null rule included", () => {
+  assert.deepEqual(
+    flaggedDoors(skill, ["package.json", "src/pages/home.ts"]),
+    [],
+  );
+});
 
-  await test(`the ${kind} seeded door flags the ${kind} door`, () => {
-    const flagged = flaggedDoors(skill, patchFiles(patch)).map(
-      (door) => door.kind,
-    );
-    assert.ok(
-      flagged.includes(kind),
-      `${kind}.patch flags ${flagged.join(", ") || "nothing"}`,
-    );
-  });
-}
+await test("patchFiles reads the new paths of a unified diff, not the old ones", (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "dms-control-doors-test-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const patch = join(dir, "change.patch");
+  writeFileSync(
+    patch,
+    [
+      "diff --git a/src/old.ts b/src/crons/purge.ts",
+      "--- a/src/old.ts",
+      "+++ b/src/crons/purge.ts",
+      "@@ -1 +1 @@",
+      "-a",
+      "+b",
+      "",
+    ].join("\n"),
+  );
+  assert.deepEqual(patchFiles(patch), ["src/crons/purge.ts"]);
+});
+
+await test("doorLine lists the flagged kinds, and is empty when none is", () => {
+  assert.equal(
+    doorLine([{ kind: "data" }, { kind: "outbound" }]),
+    "One-way-door: data, outbound",
+  );
+  assert.equal(doorLine([]), "");
+});

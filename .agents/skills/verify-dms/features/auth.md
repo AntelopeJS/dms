@@ -59,7 +59,7 @@ Signing in and out, the sign-in redirect of protected pages, and password recove
 - `forgot-password-wrong-code`: error path: a wrong code says it is invalid and the old password still signs in.
 - `switcher-lists-each-account-once`: two accounts signed in through "Add an account" in one browser stay one row and one stored entry each across re-logins of both, switches both ways, a reload and a second tab.
 - `switcher-replaces-recreated-account`: an entry a previous user record of the same person left (same email, another user id, expired) is planted in `localStorage`; a reload and a new sign-in each leave one row.
-- `base-written-data-upgrade`: Format containment: the base ref's backend (built once per commit under `~/.cache/dms-control/base/`) onboards the owner, writes a record and opens a session on the journey's database; this version then accepts the base access token, refreshes the base refresh token, signs the owner in and lists the record.
+- `base-written-data-upgrade`: upgrade path: the base ref's backend (built once per commit under `~/.cache/dms-control/base/`) onboards the owner, writes a record and opens a session on the journey's database; this version then accepts the base access token, refreshes the base refresh token, signs the owner in and lists the record.
 
 ## How to get to it (user POV)
 

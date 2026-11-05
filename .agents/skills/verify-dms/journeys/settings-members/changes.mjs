@@ -9,7 +9,7 @@ import { booleanIn, isRoleRow, listOf, stringIn, stringsIn } from "../../rows.mj
 export const memberChangeJourneys = [
   {
     id: "remove-member-shows-impact",
-    title: "removing a member first shows what it takes away, then the member is gone from the list and the API and loses access (Data door containment)",
+    title: "removing a member first shows what it takes away, then the member is gone from the list and the API and loses access",
     entryPoint: "Members > row menu > Remove from workspace",
     async run(/** @type {Ctx} */ ctx) {
       const roleName = ctx.unique("Viewer");

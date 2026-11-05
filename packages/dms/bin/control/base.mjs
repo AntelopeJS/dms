@@ -43,9 +43,9 @@ function baseCheckout(state, skill) {
 
 /**
  * Runs `action` while the backend is the base version's, on the run's
- * current database, then starts the run's own backend again. A Format
- * containment journey writes data with the base version inside `action`
- * and reads it back with the head version after it.
+ * current database, then starts the run's own backend again. An upgrade
+ * journey writes data with the base version inside `action` and reads it
+ * back with the head version after it.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {import("./verify/skill.mjs").Skill} skill The skill, whose `prepare` builds the base

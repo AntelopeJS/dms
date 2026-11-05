@@ -12,8 +12,6 @@ import {
 import { planFor } from "./map.mjs";
 import { journeysFile } from "./skill.mjs";
 
-const CONTAINED_KINDS = new Set(["data", "format"]);
-
 /**
  * The GitHub `owner/repo` of the checkout's origin remote.
  *
@@ -58,15 +56,13 @@ function readResults(state, feature) {
  * @param {import("../run-state.mjs").RunState} state The run
  * @param {import("./types.mjs").Plan} plan The plan
  * @param {(path: string) => string} link The evidence link of a path
- * @returns {Promise<{ rows: string[], reasons: string[], byJourney: Map<string, import("./types.mjs").FeatureResult> }>} The table rows and why the verdict fails
+ * @returns {Promise<{ rows: string[], reasons: string[] }>} The table rows and why the verdict fails
  */
 async function journeyRows(skill, state, plan, link) {
   /** @type {string[]} */
   const rows = [];
   /** @type {string[]} */
   const reasons = [];
-  /** @type {Map<string, import("./types.mjs").FeatureResult>} */
-  const byJourney = new Map();
   for (const feature of plan.run) {
     const results = readResults(state, feature);
     const file = journeysFile(skill, feature);
@@ -85,56 +81,24 @@ async function journeyRows(skill, state, plan, link) {
         );
       if (result.status === "FAIL")
         reasons.push(`${feature}/${result.journey} failed`);
-      byJourney.set(`${feature}/${result.journey}`, result);
       const outcome = result.status === "PASS" ? "pass" : "**fail**";
       rows.push(
         `| ${feature} | \`${result.journey}\`: ${result.entryPoint} | ${outcome}: ${result.title} | [${result.folder}](${link(result.folder)}) |`,
       );
     }
   }
-  return { rows, reasons, byJourney };
-}
-
-/**
- * @param {import("../run-state.mjs").RunState} state The run
- * @param {Map<string, import("./types.mjs").FeatureResult>} byJourney The results of this verdict's journeys
- * @param {string} id The containment journey, as `feature/journey`
- * @returns {import("./types.mjs").FeatureResult | undefined} Its result
- */
-function containmentResult(state, byJourney, id) {
-  const [feature, journey] = id.split("/");
-  return (
-    byJourney.get(id) ??
-    readResults(state, feature).find((result) => result.journey === journey)
-  );
+  return { rows, reasons };
 }
 
 /**
  * @param {import("./skill.mjs").Skill} skill The skill
- * @param {import("../run-state.mjs").RunState} state The run
  * @param {import("./types.mjs").Judgement} judgement The verifier's judgement
- * @param {Map<string, import("./types.mjs").FeatureResult>} byJourney The results of this verdict's journeys
  * @param {import("./types.mjs").Plan} plan The plan
  * @returns {string[]} Why the doors fail the verdict
  */
-function doorReasons(skill, state, judgement, byJourney, plan) {
+function doorReasons(skill, judgement, plan) {
   /** @type {string[]} */
   const reasons = [];
-  for (const row of judgement.doors.filter((door) =>
-    CONTAINED_KINDS.has(door.kind),
-  )) {
-    const allowed = skill.config.doors[row.kind]?.containments ?? [];
-    const journey = containmentResult(state, byJourney, row.containmentJourney);
-    if (!allowed.includes(row.containmentJourney)) {
-      reasons.push(
-        `${row.kind} door at ${row.location} names ${row.containmentJourney || "no journey"}; its containment must be one of ${allowed.join(", ")}`,
-      );
-    } else if (journey?.status !== "PASS") {
-      reasons.push(
-        `${row.kind} door at ${row.location}: containment journey ${row.containmentJourney} did not pass in this run`,
-      );
-    }
-  }
   for (const door of flaggedDoors(skill, plan.changed)) {
     for (const file of door.files) {
       const listed = judgement.doors.some(
@@ -168,12 +132,10 @@ function doorsSection(judgement) {
     ...dismissed,
     "| Kind | Location | What cannot be undone | Containment |",
     "|---|---|---|---|",
-    ...judgement.doors.map((door) => {
-      const journey = door.containmentJourney
-        ? ` (journey \`${door.containmentJourney}\`)`
-        : "";
-      return `| ${door.kind} | \`${door.location}\` | ${door.irreversible} | ${door.containment}${journey} |`;
-    }),
+    ...judgement.doors.map(
+      (door) =>
+        `| ${door.kind} | \`${door.location}\` | ${door.irreversible} | ${door.containment} |`,
+    ),
   ];
 }
 
@@ -266,11 +228,6 @@ function markdown(skill, verdict, parts) {
     "### Touched features",
     ...bullets(touched, "none"),
     `- ${skill.config.smoke}: ${skill.config.smokeJourney}`,
-    ...(plan.containments.length > 0
-      ? [
-          `- containment journeys of the Data and Format doors: ${plan.containments.map((feature) => `\`${feature}\``).join(", ")}`,
-        ]
-      : []),
     "",
     ...(plan.unmapped.length > 0
       ? [
@@ -344,7 +301,7 @@ export async function renderVerdict(skill, state, pr, judgement) {
     ...journeys.reasons,
     ...plan.unmapped.map((file) => `unmapped surface ${file}`),
     ...docsReasons(judgement, plan),
-    ...doorReasons(skill, state, judgement, journeys.byJourney, plan),
+    ...doorReasons(skill, judgement, plan),
     ...formal.reasons,
   );
   const attention = judgement.attention;

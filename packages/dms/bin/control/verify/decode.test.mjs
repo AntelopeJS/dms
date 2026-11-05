@@ -124,7 +124,7 @@ const CONFIG = `export default {
   userFacing: ["src/**"],
   smoke: "smoke",
   smokeJourney: "onboard",
-  doors: { data: { globs: ["src/**"], funnels: [], containments: [], why: "rows" }, format: null },
+  doors: { data: { globs: ["src/**"], funnels: [], why: "rows" }, format: null },
   formal: [],
 };
 `;

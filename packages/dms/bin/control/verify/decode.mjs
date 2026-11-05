@@ -98,7 +98,6 @@ export const isRawJudgement = objectOf(
               location: isString,
               irreversible: isString,
               containment: isString,
-              containmentJourney: isString,
             },
           ),
         ),
@@ -141,7 +140,6 @@ const isFormalCheck = objectOf(
 const isDoorRule = objectOf({
   globs: strings,
   funnels: strings,
-  containments: strings,
   why: isString,
 });
 

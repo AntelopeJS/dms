@@ -163,7 +163,7 @@ export const journeys = [
   },
   {
     id: "base-written-data-upgrade",
-    title: "an owner, a session and a record written by the base version are read by this version (Format containment)",
+    title: "an owner, a session and a record written by the base version are read by this version",
     entryPoint: "the base ref's backend, then this one, on the same database",
     onboard: false,
     async run(/** @type {Ctx} */ ctx) {

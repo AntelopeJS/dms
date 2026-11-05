@@ -1,11 +1,10 @@
 /** A kind of one-way door. */
 export type DoorKind = "data" | "format" | "contract" | "outbound" | "exposure" | "publish";
 
-/** Path rules for one door kind: globs, declared funnel modules, and the journeys, as `feature/journey`, that contain it. */
+/** Path rules for one door kind: globs and declared funnel modules. */
 export interface DoorRule {
   globs: string[];
   funnels: string[];
-  containments: string[];
   why: string;
 }
 
@@ -84,7 +83,6 @@ const config: VerifyConfig = {
         "packages/interface-dms/src/tenant-lifecycle.ts",
       ],
       funnels: [],
-      containments: ["settings-members/remove-member-shows-impact", "module-pages/table-delete-record"],
       why: "these delete members, accounts, invitations, sessions, exports or workspace rows, which a revert does not bring back",
     },
     format: {
@@ -99,7 +97,6 @@ const config: VerifyConfig = {
         "packages/dms/frontend-vue/layers/dms-core/app/build/composables/user/preferencesCookie.ts",
       ],
       funnels: [],
-      containments: ["auth/base-written-data-upgrade"],
       why: "stored documents, JWT claims and the session cookie must stay readable by the next version",
     },
     contract: {
@@ -113,7 +110,6 @@ const config: VerifyConfig = {
         "packages/dms/frontend-vue/layers/*/app/entries/**",
       ],
       funnels: [],
-      containments: [],
       why: "module authors import the interface, call the HTTP routes and set the config keys and env vars; dms-* repositories run dms-control",
     },
     outbound: {
@@ -131,7 +127,6 @@ const config: VerifyConfig = {
         "packages/dms/frontend-vue/layers/dms-layout/app/emails/**",
       ],
       funnels: ["packages/dms/src/implementations/dms-auth/account-emails.ts"],
-      containments: [],
       why: "these send email to people, call OAuth providers or the npm registry, and install packages",
     },
     exposure: {
@@ -154,7 +149,6 @@ const config: VerifyConfig = {
         "packages/interface-dms/src/data-controllers/**",
       ],
       funnels: [],
-      containments: [],
       why: "roles, guards, tenancy checks and API responses decide who sees which data",
     },
     publish: {
@@ -166,7 +160,6 @@ const config: VerifyConfig = {
         "checks/release-range.mjs",
       ],
       funnels: [],
-      containments: [],
       why: "the package names, their files, their interface range and the release workflows claim names in the npm registry",
     },
   },
