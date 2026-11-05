@@ -1,6 +1,6 @@
 ---
 name: verify-dms
-description: "Drive the AntelopeJS DMS (@antelopejs/dms backend and its Vue dashboard) the way an administrator does, on an isolated playground with free ports, its own MongoDB database and a mail sink, and post a verdict with evidence. Use to prove a change to AntelopeJS/dms works before merge, to verify a PR, or to check that a seeded break or a seeded one-way door is caught."
+description: "Drive the AntelopeJS DMS (@antelopejs/dms backend and its Vue dashboard) the way an administrator does, on an isolated playground with free ports, its own MongoDB database and a mail sink, and post a verdict with evidence. Use to prove a change to AntelopeJS/dms works before merge, or to verify a PR."
 ---
 
 # Verify dms
@@ -41,9 +41,9 @@ $C up --playground ~/code/dms/packages/dms/playground --renderer ~/code/dms-fron
 - `--renderer <dir>` is a checkout of `@antelopejs/dms-frontend` that is installed and built (`dist/index.js` exists). `up` refuses any other folder before it starts anything.
 - After the playground copy is laid out, the run's `node_modules` is the playground's with one change: `@antelopejs/dms-frontend` is the checkout. `ajs dms build` and `ajs dms start` run from `<checkout>/dist/index.js`, and the checkout resolves its own dependencies from its own `node_modules`. The playground, its modules and its installed `dms-frontend` are not touched.
 - The run records `renderer`. `headSha` and the HEAD that `doctor` and `verdict` compare are the renderer checkout's, since that is the code under test. `doctor` also fails a renderer `dist` older than its `src`, and `versions` prints the checkout's version.
-- The base-version backend (`withBaseBackend`, the Format containment journey) is the playground's repository at `--base`, which a renderer run does not verify, so it refuses to start with `--renderer`.
+- The base-version backend (`withBaseBackend`, used by the `auth/base-written-data-upgrade` journey) is the playground's repository at `--base`, which a renderer run does not verify, so it refuses to start with `--renderer`.
 
-A skill in the renderer's repository names both in `verify.config.ts`, and `up`, `seeded` and `journey` need no flag:
+A skill in the renderer's repository names both in `verify.config.ts`, and `up` and `journey` need no flag:
 
 ```ts
 const config: VerifyConfig = {
@@ -55,7 +55,7 @@ const config: VerifyConfig = {
 
 - `playground` may be absolute. An external playground is built beforehand (`pnpm install` and the module and playground builds in its checkout); `prepare` runs in the skill's repository, the renderer's.
 - `renderer` is relative to the skill's repository. `--playground` and `--renderer` on the command line win over the config.
-- `seeded` makes its control and patched worktrees from the skill's repository, which is the renderer checkout, runs `prepare` there, and starts each run with `--renderer <worktree>/<renderer>`. A seeded break therefore patches the renderer and the playground stays the same in both runs. `doors <patch>` and the seeded doors already read and apply their patches in the skill's repository, so they need no option.
+- `doors <patch>` reads its patch in the skill's repository, so it needs no option.
 
 ## Doctor
 
@@ -115,7 +115,7 @@ $C down "$RUN"
 ## Verdict rules
 
 1. **Run every feature whose `covers:` globs the diff touches, plus the smoke journey** (onboard → login → invite a member → reload). `plan` prints that list as `run`.
-2. **Unmapped surface fails the verdict.** User-facing code is `packages/dms/src/**`, `packages/dms/frontend-vue/**` and `packages/interface-dms/src/**`, tests and tool configs excluded (`verify.config.ts`). A changed file there that no feature glob covers is an unmapped surface: the PR adds it to a feature with its journeys and its seeded break. `map` checks the whole tree, and CI runs it.
+2. **Unmapped surface fails the verdict.** User-facing code is `packages/dms/src/**`, `packages/dms/frontend-vue/**` and `packages/interface-dms/src/**`, tests and tool configs excluded (`verify.config.ts`). A changed file there that no feature glob covers is an unmapped surface: the PR adds it to a feature with its journeys. `map` checks the whole tree, and CI runs it.
 3. **Every registered journey of a feature in `run` must have run and passed.** A missing journey fails as "not run", so run whole features. Known findings stay as failing journeys (see the feature files' Gotchas): they fail a verdict only when the diff touches their feature.
 4. **Docs.** Each touched feature lists its `docs:` pages. Judge every page against what the journeys showed. A page that no longer matches fails the verdict.
 5. **Formal checks.** `verify.config.ts` lists each formal check with the files it covers and its own files. Run `$C formal "$RUN"` before the verdict: it runs the full configuration of every check whose covered files or own files the diff touches and records it under `evidence/formal/<name>/`. For each such check it also decides, without judgement, whether the diff changed what the covered code does:
@@ -128,7 +128,7 @@ $C down "$RUN"
    - when the covered behaviour changed, or the diff changed the check's own files, `formal` also runs the check on the base. A rule the base broke counts as fixed only when HEAD reports it passing; a rule the base broke that HEAD does not report at all fails the verdict. A fix that leaves no violated rule passes.
 
    `--all` runs the checks that do not cover the diff too, without gating.
-6. **One-way doors.** The section comes right after the result line and is mandatory; a verdict without it is void. It holds `None` with a reason, or one row per door: kind, location, what cannot be undone, containment. `$C doors` prints the `One-way-door:` line for the diff from the path rules in `verify.config.ts`. Every file they flag needs a row, or a `falsePositives` entry saying why it is not a door. A Data or Format door is contained only by one of that kind's `containments` journeys passing in this run: `module-pages/table-delete-record` or `settings-members/remove-member-shows-impact` for Data, `auth/base-written-data-upgrade` for Format. `plan` lists them as `containments` when the diff opens such a door; run the one you name (`$C journey "$RUN" <feature> <journey>`). The verdict reads its result from this run whether or not its feature is in `run`.
+6. **One-way doors.** The section comes right after the result line and is mandatory; a verdict without it is void. It holds `None` with a reason, or one row per door: kind, location, what cannot be undone, containment. `$C doors` prints the `One-way-door:` line for the diff from the path rules in `verify.config.ts`. Every file they flag needs a row, or a `falsePositives` entry saying why it is not a door.
 7. **Result.** FAIL if any of rules 1 to 6 fail. PASS+NOTES when something is not verified or needs the owner's attention. PASS otherwise.
 
 Write your judgement to `$RUN/evidence/judgement.json`:
@@ -147,7 +147,7 @@ Write your judgement to `$RUN/evidence/judgement.json`:
 }
 ```
 
-A door row is `{ "kind", "location", "irreversible", "containment", "containmentJourney" }`, where `kind` is a `doors` key of `verify.config.ts`. `verifier` is required.
+A door row is `{ "kind", "location", "irreversible", "containment" }`, where `kind` is a `doors` key of `verify.config.ts`. `verifier` is required.
 
 Then render and publish:
 
@@ -164,16 +164,7 @@ Post a verdict only from a thread that did not write the change, and name it in 
 
 ## Trust
 
-The skill is not Trusted yet. It becomes Trusted when it catches every seeded break and flags every seeded door, passes a shadow run of 10 consecutive agent PRs, and its last maintain pass (`maintain-verification-skill`, run by the gardener) is newer than the last change to the repository or its `@antelopejs` dependencies and at most 30 days old. The verdict header says `not trusted yet` until then.
-
-## Seeded breaks and doors
-
-```bash
-$C seeded smoke onboarding auth
-$C doors .agents/skills/verify-dms/seeded-doors/data.patch
-```
-
-`seeded-breaks/<feature>.patch` is one minimal product bug per feature. `seeded` builds an unpatched control worktree and a patched one with the config's `prepare` commands, runs `up`, the feature's journeys and `down` in each, and prints `CAUGHT` with the journeys that caught it, or `MISSED`. A break counts only when a journey that passes in the control fails one of its checks with the patch; journeys that fail without it, and failures with no failing check, do not count. It exits 0 only when every break is caught. `seeded-doors/<kind>.patch` holds one change per door kind, and `doors <patch>` must name its kind.
+The skill is not Trusted yet. It becomes Trusted when it passes a shadow run of 10 consecutive agent PRs, and its last maintain pass (`maintain-verification-skill`, run by the gardener) is newer than the last change to the repository or its `@antelopejs` dependencies and at most 30 days old. The verdict header says `not trusted yet` until then.
 
 ## Gotchas
 

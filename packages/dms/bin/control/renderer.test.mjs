@@ -15,7 +15,6 @@ import { targetOf } from "./commands-stack.mjs";
 import { git } from "./git.mjs";
 import { resolveRenderer } from "./renderer.mjs";
 import { decodeSkillConfig } from "./verify/decode.mjs";
-import { upArguments } from "./verify/seeded.mjs";
 import { cliPaths, layOutCopy } from "./stack.mjs";
 
 /**
@@ -264,61 +263,5 @@ await test("a run with a renderer has no base backend", async () => {
   await assert.rejects(
     withBaseBackend({ renderer: "/ui" }, {}, async () => {}),
     /no base backend/,
-  );
-});
-
-/**
- * @param {Partial<import("./verify/skill.mjs").SkillConfig>} config What differs from a skill with a playground in its repository
- * @returns {import("./verify/skill.mjs").Skill} The skill
- */
-function skillWith(config) {
-  return {
-    dir: "/repo/.agents/skills/verify-x",
-    name: "verify-x",
-    repo: "/repo",
-    config: { ...decodeSkillConfig(CONFIG, "verify.config.ts"), ...config },
-    featuresDir: "",
-    journeysDir: "",
-    seededBreaksDir: "",
-    seededDoorsDir: "",
-  };
-}
-
-await test("seeded starts each run on the worktree's renderer and an external playground as it is", () => {
-  const prepared = {
-    worktree: "/work/seeded-auth-1",
-    skill: "/work/seeded-auth-1/skill",
-  };
-  assert.deepEqual(
-    upArguments(
-      skillWith({ playground: "/dms/playground", renderer: "." }),
-      prepared,
-    ),
-    [
-      "up",
-      "--playground",
-      "/dms/playground",
-      "--renderer",
-      "/work/seeded-auth-1",
-      "--skill",
-      "/work/seeded-auth-1/skill",
-    ],
-  );
-});
-
-await test("seeded without a renderer starts the worktree's own playground", () => {
-  const prepared = {
-    worktree: "/work/seeded-auth-1",
-    skill: "/work/seeded-auth-1/skill",
-  };
-  assert.deepEqual(
-    upArguments(skillWith({ playground: "packages/dms/playground" }), prepared),
-    [
-      "up",
-      "--playground",
-      "/work/seeded-auth-1/packages/dms/playground",
-      "--skill",
-      "/work/seeded-auth-1/skill",
-    ],
   );
 });

@@ -31,7 +31,6 @@ function parseRows(skill, raw) {
     return {
       ...row,
       kind: doorKind(skill, row.kind, `doors.rows[${index}].kind`),
-      containmentJourney: row.containmentJourney ?? "",
     };
   });
 }

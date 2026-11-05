@@ -60,7 +60,7 @@ The signed-in person's own pages under Settings > Account, plus the Settings ove
 - `two-factor-email-enroll`: Add method > Email verification shows ten backup codes, a new sign-in stops at "Two-factor verification" and the emailed code completes it, and removing the last method restores plain sign-in.
 - `export-my-data`: Export my data downloads a JSON file with the email and name and without the password.
 - `delete-account-last-owner-refused`: error path: the last owner is told the account cannot be deleted yet and keeps it.
-- `delete-account-member`: containment path: the dialog counts what goes (workspaces left, devices signed out, notifications deleted); without the typed address it refuses; then the member lands on sign-in, cannot sign in, and leaves the Members list.
+- `delete-account-member`: the dialog counts what goes (workspaces left, devices signed out, notifications deleted); without the typed address it refuses; then the member lands on sign-in, cannot sign in, and leaves the Members list.
 - `settings-overview-and-search`: the overview shows the name, email, role and recent activity and links every page; Search settings filters the menu and says when nothing matches.
 - `shortcuts-layout-and-search`: macOS relabels the keys; the shortcut search filters and says when nothing matches.
 

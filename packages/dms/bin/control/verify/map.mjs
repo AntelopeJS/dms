@@ -1,7 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, matchesGlob } from "node:path";
 import { git } from "../git.mjs";
-import { flaggedDoors, patchFiles } from "./doors.mjs";
 import { loadJourneys } from "../journey.mjs";
 import { journeysFile, readFeatures } from "./skill.mjs";
 
@@ -82,20 +81,6 @@ async function featureProblems(skill, feature, tracked) {
       problems.push(`${feature.file}: docs path ${doc} does not exist`);
     }
   }
-  const patch = join(skill.seededBreaksDir, `${feature.name}.patch`);
-  if (!existsSync(patch)) {
-    problems.push(
-      `${feature.file}: seeded-breaks/${feature.name}.patch is missing`,
-    );
-  }
-  const always = feature.name === skill.config.smoke;
-  for (const file of existsSync(patch) && !always ? patchFiles(patch) : []) {
-    if (!matches(file, feature.covers)) {
-      problems.push(
-        `${feature.file}: its seeded break edits ${file}, which its covers globs miss, so plan would not run it`,
-      );
-    }
-  }
   return problems;
 }
 
@@ -108,11 +93,6 @@ function doorProblems(skill, tracked) {
   const problems = [];
   for (const [kind, rule] of Object.entries(skill.config.doors)) {
     if (!rule) continue;
-    if (!existsSync(join(skill.seededDoorsDir, `${kind}.patch`))) {
-      problems.push(
-        `seeded-doors/${kind}.patch is missing for the ${kind} door rule`,
-      );
-    }
     for (const glob of [...rule.globs, ...rule.funnels]) {
       if (!tracked.some((path) => matchesGlob(path, glob))) {
         problems.push(
@@ -126,11 +106,9 @@ function doorProblems(skill, tracked) {
 
 /**
  * Checks the map against the repository: every user-facing file is
- * covered, every feature has journeys, each described in its file, a
- * seeded break that edits only files its own globs cover (the smoke
- * feature runs on every verdict and is exempt), existing docs
- * pages, every feature and door glob
- * matches a tracked file, and every door rule has a seeded door.
+ * covered, every feature has journeys, each described in its file,
+ * existing docs pages, and every feature and door glob matches a tracked
+ * file.
  *
  * @param {import("./skill.mjs").Skill} skill The skill
  * @returns {Promise<string[]>} One line per problem
@@ -159,33 +137,10 @@ export async function checkMap(skill) {
   return [...problems, ...doorProblems(skill, tracked)];
 }
 
-const CONTAINED_KINDS = ["data", "format"];
-
-/**
- * The containment journeys, as `feature/journey`, of the Data and Format
- * doors a set of changed files opens: a door row must name one of them,
- * passing in the run.
- *
- * @param {import("./skill.mjs").Skill} skill The skill
- * @param {string[]} changed Repository paths
- * @returns {string[]} The journeys, each once
- */
-function containmentJourneys(skill, changed) {
-  const kinds = flaggedDoors(skill, changed)
-    .map((door) => door.kind)
-    .filter((kind) => CONTAINED_KINDS.includes(kind));
-  return [
-    ...new Set(
-      kinds.flatMap((kind) => skill.config.doors[kind]?.containments ?? []),
-    ),
-  ];
-}
-
 /**
  * Maps the diff from the merge base of `baseRef` to HEAD onto features:
  * every touched feature plus the smoke feature runs, a user-facing file
- * outside every glob is an unmapped surface, and `containments` lists the
- * journeys that can contain each Data or Format door the diff opens.
+ * outside every glob is an unmapped surface.
  *
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} baseRef The base, such as `origin/main`
@@ -216,7 +171,6 @@ export function planFor(skill, baseRef) {
     ),
   ];
   const smoke = skill.config.smoke;
-  const containments = containmentJourneys(skill, changed);
   return {
     baseRef,
     baseSha,
@@ -225,7 +179,6 @@ export function planFor(skill, baseRef) {
     touched,
     unmapped,
     docs,
-    containments,
     run: [smoke, ...[...touchedNames].filter((name) => name !== smoke)],
   };
 }

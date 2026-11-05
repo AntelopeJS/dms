@@ -43,7 +43,7 @@ export const roleDeletionJourneys = [
   },
   {
     id: "role-delete-in-use-moves-members",
-    title: "deleting a role members still hold says how many, and moves them to the chosen role (containment of what they lose)",
+    title: "deleting a role members still hold says how many, and moves them to the chosen role",
     entryPoint: "Settings > Roles > Delete role > Move them to",
     async run(/** @type {Ctx} */ ctx) {
       const doomed = ctx.unique("Doomed");

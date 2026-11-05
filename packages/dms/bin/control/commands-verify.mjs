@@ -16,7 +16,6 @@ import {
   readStatus,
   setStatus,
 } from "./verify/publish.mjs";
-import { runSeededBreaks } from "./verify/seeded.mjs";
 import { journeysFile, loadSkill } from "./verify/skill.mjs";
 import { renderVerdict } from "./verify/verdict.mjs";
 
@@ -84,31 +83,6 @@ async function commandJourney(dir, feature, ids, values) {
     if (result.error) print(`    ${result.error.split("\n")[0]}`);
   }
   return results.every((result) => result.status === "PASS") ? 0 : 1;
-}
-
-/**
- * @param {string[]} features The features whose seeded breaks run
- * @param {Values} values The options of the command line
- * @returns {Promise<number>} The exit code
- */
-async function commandSeeded(features, values) {
-  const skill = await skillOf(values);
-  const outcomes = runSeededBreaks(skill, features);
-  for (const outcome of outcomes) {
-    print(
-      `${outcome.caught ? "CAUGHT" : "MISSED"} ${outcome.feature} by ${outcome.caughtBy.join(", ") || "no journey"} (evidence ${outcome.run}/evidence/${outcome.feature}, control ${outcome.controlRun}/evidence/${outcome.feature})`,
-    );
-    if (outcome.failingInControl.length > 0)
-      print(
-        `    already failing without the patch, not counted: ${outcome.failingInControl.join(", ")}`,
-      );
-    if (outcome.harnessErrors.length > 0)
-      print(
-        `    failed without a failing check (harness error), not counted: ${outcome.harnessErrors.join(", ")}`,
-      );
-    if (!outcome.caught) print(outcome.output.replace(/^/gm, "    "));
-  }
-  return outcomes.every((outcome) => outcome.caught) ? 0 : 1;
 }
 
 /**
@@ -201,7 +175,7 @@ async function commandJudge(command, dir, values) {
 
 /**
  * Runs a command of the verification harness: `map`, `plan`, `journey`,
- * `seeded`, `doors`, `formal`, `verdict` and `publish`.
+ * `doors`, `formal`, `verdict` and `publish`.
  *
  * @param {string} command The command
  * @param {string[]} rest Its positional arguments
@@ -216,8 +190,6 @@ export function runVerifyCommand(command, rest, values) {
       return commandPlan(values);
     case "journey":
       return commandJourney(rest[0], rest[1], rest.slice(2), values);
-    case "seeded":
-      return commandSeeded(rest, values);
     case "doors":
       return commandDoors(rest[0], values);
     case "formal":

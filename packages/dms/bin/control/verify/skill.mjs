@@ -10,8 +10,8 @@ const CONFIG_FILE = "verify.config.ts";
 const OUTPUT_LIMIT = 64 * 1024 * 1024;
 
 /**
- * @typedef {{ dir: string, name: string, repo: string, config: SkillConfig, featuresDir: string, journeysDir: string, seededBreaksDir: string, seededDoorsDir: string }} Skill
- * @typedef {{ playground: string, renderer?: string, prepare: string[][], userFacing: string[], notUserFacing: string[], smoke: string, smokeJourney: string, doors: Record<string, { globs: string[], funnels: string[], containments: string[], why: string } | null>, formal: import("./types.mjs").FormalCheck[] }} SkillConfig
+ * @typedef {{ dir: string, name: string, repo: string, config: SkillConfig, featuresDir: string, journeysDir: string }} Skill
+ * @typedef {{ playground: string, renderer?: string, prepare: string[][], userFacing: string[], notUserFacing: string[], smoke: string, smokeJourney: string, doors: Record<string, { globs: string[], funnels: string[], why: string } | null>, formal: import("./types.mjs").FormalCheck[] }} SkillConfig
  */
 
 /**
@@ -60,8 +60,8 @@ function discover(cwd) {
 
 /**
  * Loads a verification skill: its `verify.config.ts` (imported with Node's
- * TypeScript type stripping), its feature files and where its journeys,
- * seeded breaks and seeded doors live. Without `--skill`, the one
+ * TypeScript type stripping), its feature files and where its journeys
+ * live. Without `--skill`, the one
  * `.agents/skills/verify-*` folder of the checkout holding `cwd`.
  *
  * @param {string | undefined} option The `--skill` folder
@@ -86,8 +86,6 @@ export async function loadSkill(option, cwd) {
     config,
     featuresDir: join(dir, "features"),
     journeysDir: join(dir, "journeys"),
-    seededBreaksDir: join(dir, "seeded-breaks"),
-    seededDoorsDir: join(dir, "seeded-doors"),
   };
 }
 
