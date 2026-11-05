@@ -181,4 +181,23 @@ describe("useMultiAccount account identity", () => {
       "user-newer",
     ]);
   });
+
+  it("drops the leftover of a recreated user record once switching to it is refused", async () => {
+    seed(seeded({}));
+    Reflect.set(
+      globalThis,
+      "$fetch",
+      vi.fn(async () => {
+        throw Object.assign(new Error("refused"), { statusCode: 401 });
+      }),
+    );
+    const { accounts, switchAccount } = useMultiAccount();
+
+    await expect(switchAccount("user-old")).rejects.toThrow("refused");
+    await nextTick();
+
+    expect(accounts.value.map((account) => account.userId)).toEqual([
+      "user-new",
+    ]);
+  });
 });

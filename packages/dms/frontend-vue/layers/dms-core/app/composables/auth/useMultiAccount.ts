@@ -169,6 +169,7 @@ function createSwitchAccount(
     } catch (error) {
       if (isTokenRejection(error)) {
         account.isExpired = true;
+        dropDuplicates(accounts);
       }
       throw error;
     }

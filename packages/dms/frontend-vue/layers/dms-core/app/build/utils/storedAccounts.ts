@@ -15,10 +15,10 @@ function isPreferred(account: StoredAccount, other: StoredAccount): boolean {
 }
 
 /**
- * Whether `stale` is an entry a recreated user record left behind: the
- * backend refused its token, and a better entry holds its email under another
- * user id. A live entry is never one, since a stored email can be out of date
- * and name another person.
+ * Whether `stale` is an entry a recreated user record left behind: it can no
+ * longer sign in from this browser (marked expired), and a better entry holds
+ * its email under another user id. A live entry is never one, since a stored
+ * email can be out of date and name another person.
  */
 function isRecreatedAs(stale: StoredAccount, current: StoredAccount): boolean {
   return (
