@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { createLookupCache } from "./cache";
+import { createLookupCache, type Freshness } from "./cache";
 import { npmView } from "./registry";
 import type {
   InterfaceImplementation,
@@ -74,23 +74,31 @@ type InterfaceKind = "required" | "standalone" | "library";
 async function fetchRegistryDocument<Document>(
   file: string,
   schema: z.ZodType<Document, z.ZodTypeDef, unknown>,
+  freshness: Freshness,
 ): Promise<Document | undefined> {
-  const document = await registryDocuments.get(file, async () => {
-    const response = await fetch(`${INTERFACES_REGISTRY_URL}/${file}`, {
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
-    if (!response.ok) return undefined;
-    const body: unknown = await response.json();
-    return body;
-  });
+  const document = await registryDocuments.get(
+    file,
+    async () => {
+      const response = await fetch(`${INTERFACES_REGISTRY_URL}/${file}`, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!response.ok) return undefined;
+      const body: unknown = await response.json();
+      return body;
+    },
+    { freshness },
+  );
   const parsed = schema.safeParse(document);
   return parsed.success ? parsed.data : undefined;
 }
 
-async function registryFolders(): Promise<Record<string, string>> {
+async function registryFolders(
+  freshness: Freshness,
+): Promise<Record<string, string>> {
   const manifest = await fetchRegistryDocument(
     MANIFEST_FILE,
     RegistryManifestSchema,
+    freshness,
   );
   return manifest?.interfaces ?? {};
 }
@@ -110,12 +118,14 @@ function asImplementation(
  */
 export async function findImplementations(
   interfacePackage: string,
+  freshness: Freshness,
 ): Promise<InterfaceImplementation[]> {
-  const folder = (await registryFolders())[interfacePackage];
+  const folder = (await registryFolders(freshness))[interfacePackage];
   if (!folder) return [];
   const manifest = await fetchRegistryDocument(
     `interfaces/${folder}/${MANIFEST_FILE}`,
     InterfaceManifestSchema,
+    freshness,
   );
   return (manifest?.modules ?? []).flatMap((module) => {
     const implementation = asImplementation(module);
@@ -144,22 +154,29 @@ async function interfaceKind(
   dependency: string,
   range: string,
   projectPath: string,
+  freshness: Freshness,
 ): Promise<InterfaceKind> {
   const looksLikeInterface =
     INTERFACE_NAME_PATTERN.test(dependency) ||
-    dependency in (await registryFolders());
+    dependency in (await registryFolders(freshness));
   if (!looksLikeInterface) return "library";
-  const kind = await interfaceKinds.get(`${dependency}@${range}`, async () => {
-    const view = await npmView(
-      `${dependency}@${range}`,
-      ["antelopeJs"],
-      projectPath,
-    );
-    const antelopeJs = AntelopeManifestSchema.safeParse(
-      Array.isArray(view) ? view.at(-1) : view,
-    );
-    return antelopeJs.success ? kindOf(dependency, antelopeJs.data) : "library";
-  });
+  const kind = await interfaceKinds.get(
+    `${dependency}@${range}`,
+    async () => {
+      const view = await npmView(
+        `${dependency}@${range}`,
+        ["antelopeJs"],
+        projectPath,
+      );
+      const antelopeJs = AntelopeManifestSchema.safeParse(
+        Array.isArray(view) ? view.at(-1) : view,
+      );
+      return antelopeJs.success
+        ? kindOf(dependency, antelopeJs.data)
+        : "library";
+    },
+    { freshness },
+  );
   return kind ?? "library";
 }
 
@@ -201,13 +218,16 @@ export async function findMissingInterfaces(
   release: PackageRelease,
   implemented: ReadonlySet<string>,
   projectPath: string,
+  freshness: Freshness,
 ): Promise<MissingInterface[]> {
   const ownInterfaces = new Set(release.implements ?? []);
   const unresolved = Object.entries(release.dependencies ?? {}).filter(
     ([name]) => !implemented.has(name) && !ownInterfaces.has(name),
   );
   const kinds = await Promise.all(
-    unresolved.map(([name, range]) => interfaceKind(name, range, projectPath)),
+    unresolved.map(([name, range]) =>
+      interfaceKind(name, range, projectPath, freshness),
+    ),
   );
   const missing = unresolved
     .filter((_, index) => kinds[index] === "required")
@@ -215,7 +235,9 @@ export async function findMissingInterfaces(
   return Promise.all(
     missing.map(async (interfacePackage) => ({
       interfacePackage,
-      candidates: await findImplementations(interfacePackage).catch(() => []),
+      candidates: await findImplementations(interfacePackage, freshness).catch(
+        () => [],
+      ),
     })),
   );
 }

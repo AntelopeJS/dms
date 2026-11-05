@@ -1,3 +1,4 @@
+export * from "./cache";
 export * from "./catalog";
 export * from "./compatibility";
 export * from "./declarations";

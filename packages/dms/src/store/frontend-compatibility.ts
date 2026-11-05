@@ -4,7 +4,7 @@ import { coerce, maxSatisfying, satisfies, validRange } from "semver";
 import { z } from "zod";
 import { GetFrontendModules } from "./internal/frontend/frontend-modules";
 import { getFrontendAcknowledgement } from "./internal/frontend/frontend-ready";
-import { createLookupCache } from "./cache";
+import { createLookupCache, type Freshness } from "./cache";
 import { npmView } from "./registry";
 import { readPublishedFiles } from "./tarball";
 import type {
@@ -73,16 +73,24 @@ export function releaseFrontendRange(
   packageName: string,
   version: string,
   projectPath: string,
+  freshness: Freshness,
 ): Promise<DeclaredRange | undefined> {
-  return releaseRanges.get(`${packageName}@${version}`, async () => {
-    const files = await readPublishedFiles(packageName, version, projectPath, [
-      LAYER_MANIFEST,
-    ]);
-    const manifest = files.get(LAYER_MANIFEST);
-    return manifest
-      ? engineRange(PackageManifestSchema.parse(JSON.parse(manifest)))
-      : null;
-  });
+  return releaseRanges.get(
+    `${packageName}@${version}`,
+    async () => {
+      const files = await readPublishedFiles(
+        packageName,
+        version,
+        projectPath,
+        [LAYER_MANIFEST],
+      );
+      const manifest = files.get(LAYER_MANIFEST);
+      return manifest
+        ? engineRange(PackageManifestSchema.parse(JSON.parse(manifest)))
+        : null;
+    },
+    { freshness },
+  );
 }
 
 /**
@@ -112,11 +120,20 @@ export function supportsFrontend(range: string, version: string): boolean {
 
 function listPublishedVersions(
   projectPath: string,
+  freshness: Freshness,
 ): Promise<string[] | undefined> {
-  return publishedVersions.get(FRONTEND_PACKAGE, async () => {
-    const versions = await npmView(FRONTEND_PACKAGE, ["versions"], projectPath);
-    return Array.isArray(versions) ? versions.map(String) : undefined;
-  });
+  return publishedVersions.get(
+    FRONTEND_PACKAGE,
+    async () => {
+      const versions = await npmView(
+        FRONTEND_PACKAGE,
+        ["versions"],
+        projectPath,
+      );
+      return Array.isArray(versions) ? versions.map(String) : undefined;
+    },
+    { freshness },
+  );
 }
 
 /**
@@ -149,6 +166,7 @@ export interface FrontendRequirementInput {
   projectPath: string;
   /** Folder of the installed copy the release replaces, on an update. */
   replacedFolder?: string;
+  freshness: Freshness;
 }
 
 /**
@@ -160,7 +178,8 @@ export async function frontendRequirement(
   input: FrontendRequirementInput,
 ): Promise<FrontendRequirement | undefined> {
   if (supportsFrontend(input.range, input.running)) return undefined;
-  const versions = (await listPublishedVersions(input.projectPath)) ?? [];
+  const versions =
+    (await listPublishedVersions(input.projectPath, input.freshness)) ?? [];
   const target = maxSatisfying(versions, input.range) ?? undefined;
   return {
     range: input.range,
