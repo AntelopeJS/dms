@@ -12,6 +12,8 @@ import {
   ref,
   watch,
   type App,
+  type Component,
+  type FunctionalComponent,
   type Ref,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
@@ -50,17 +52,26 @@ function useDmsCookie<T>(name: string, options: CookieOptions = {}): Ref<T> {
 
 const ButtonStub = defineComponent({
   inheritAttrs: false,
-  props: { color: String, onClick: Function },
+  props: { color: String, icon: String, onClick: Function },
   setup:
-    (props, { attrs }) =>
+    (props, { attrs, slots }) =>
     () =>
-      h("button", {
-        "aria-label": attrs["aria-label"],
-        "aria-pressed": attrs["aria-pressed"],
-        "data-color": props.color,
-        onClick: () => props.onClick?.(),
-      }),
+      h(
+        "button",
+        {
+          "aria-label": attrs["aria-label"],
+          "aria-pressed": attrs["aria-pressed"],
+          "data-color": props.color,
+          onClick: () => props.onClick?.(),
+        },
+        slots.leading?.() ?? [h("i", { "data-icon": props.icon })],
+      ),
 });
+
+const AnimatedIcon: FunctionalComponent = () =>
+  h("svg", { "data-animated-icon": "" });
+
+let registeredComponents: Record<string, Component>;
 
 const SlotsStub = defineComponent({
   setup:
@@ -103,6 +114,8 @@ function installRuntime(): void {
     useDmsState,
     useFavoritePages: () => ({ isFavorite: () => false }),
     useHeaderActions,
+    resolveDmsComponent: (name?: string) =>
+      name === undefined ? undefined : registeredComponents[name],
     useHomepage: () => "/",
     useI18n: () => ({ t: (key: string) => key }),
     useSiteLayout: () => ({ findMatchingRoute: () => null }),
@@ -164,6 +177,7 @@ function action(id: string, extra: Partial<HeaderAction> = {}): HeaderAction {
 
 beforeEach(() => {
   sharedState = new Map();
+  registeredComponents = { StateIcon: AnimatedIcon };
   installRuntime();
 });
 
@@ -235,7 +249,96 @@ describe("header action buttons", () => {
   });
 });
 
+describe("header action icon component", () => {
+  it("draws the registered component inside the button instead of the icon", async () => {
+    registerHeaderAction(
+      action("state", { sidePanelId: PANEL_ID, iconComponent: "StateIcon" }),
+    );
+    const host = await mountHeader();
+    const state = button(host, "state");
+    expect(state?.querySelector("[data-animated-icon]")).not.toBeNull();
+    expect(state?.querySelector("[data-icon]")).toBeNull();
+  });
+
+  it("draws icon while the name resolves to no component", async () => {
+    registerHeaderAction(
+      action("state", { sidePanelId: PANEL_ID, iconComponent: "Missing" }),
+    );
+    const host = await mountHeader();
+    const state = button(host, "state");
+    expect(state?.querySelector("[data-icon]")?.getAttribute("data-icon")).toBe(
+      "i-ph-star",
+    );
+    expect(state?.querySelector("[data-animated-icon]")).toBeNull();
+  });
+
+  it("draws icon for an action that names no component", async () => {
+    registerHeaderAction(action("plain", { sidePanelId: PANEL_ID }));
+    const host = await mountHeader();
+    expect(button(host, "plain")?.querySelector("[data-icon]")).not.toBeNull();
+  });
+
+  it("gives only the action naming a component its component", async () => {
+    registerHeaderAction(
+      action("state", { sidePanelId: PANEL_ID, iconComponent: "StateIcon" }),
+    );
+    registerHeaderAction(action("plain", { onSelect: vi.fn() }));
+    const host = await mountHeader();
+    expect(button(host, "plain")?.querySelector("[data-icon]")).not.toBeNull();
+    expect(
+      button(host, "plain")?.querySelector("[data-animated-icon]"),
+    ).toBeNull();
+  });
+
+  it("draws the component on the builder button too", async () => {
+    registerHeaderAction(
+      action(BUILDER_ACTION_ID, {
+        label: "Edit",
+        onSelect: vi.fn(),
+        iconComponent: "StateIcon",
+      }),
+    );
+    const host = await mountHeader();
+    expect(
+      button(host, "Edit")?.querySelector("[data-animated-icon]"),
+    ).not.toBeNull();
+  });
+
+  it("keeps the click, label and pressed state of the button", async () => {
+    registerHeaderAction(
+      action("state", {
+        label: "$state.toggle",
+        sidePanelId: PANEL_ID,
+        iconComponent: "StateIcon",
+      }),
+    );
+    const host = await mountHeader();
+    const state = button(host, "t:state.toggle");
+    state?.click();
+    await nextTick();
+    expect(useSidePanel(PANEL_ID).isOpen.value).toBe(true);
+    expect(state?.getAttribute("aria-pressed")).toBe("true");
+    expect(state?.dataset.color).toBe(ACTIVE_COLOR);
+  });
+});
+
 describe("header action hydration", () => {
+  it("hydrates a server-rendered icon component without a mismatch", async () => {
+    const spies = [
+      vi.spyOn(console, "warn").mockImplementation(() => undefined),
+      vi.spyOn(console, "error").mockImplementation(() => undefined),
+    ];
+    registerHeaderAction(
+      action("state", { sidePanelId: PANEL_ID, iconComponent: "StateIcon" }),
+    );
+    const host = await hydrateHeader(() => undefined);
+    expect(
+      button(host, "state")?.querySelector("[data-animated-icon]"),
+    ).not.toBeNull();
+    expect(hydrationWarnings(spies)).toEqual([]);
+    spies.forEach((spy) => spy.mockRestore());
+  });
+
   it("draws a client-only action once mounted, not over the server markup", async () => {
     const spies = [
       vi.spyOn(console, "warn").mockImplementation(() => undefined),

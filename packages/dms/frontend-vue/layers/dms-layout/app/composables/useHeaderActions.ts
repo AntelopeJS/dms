@@ -9,6 +9,13 @@ import { isFunction, isString } from "#dms-core/app/utils/type-check";
 export interface HeaderAction {
   id: string;
   icon: string;
+  /**
+   * A component drawn in place of `icon`, by the name `registerComponent` gave
+   * it (resolved as a side panel's `component` is), for an icon that animates
+   * or follows a state. `icon` stays required: it is drawn while the name does
+   * not resolve. The name is plain data, so a server still renders the action.
+   */
+  iconComponent?: string;
   /** Tooltip and accessible name: a plain literal, or an i18n key when prefixed with "$". */
   label: string;
   /** Run on click. Required unless `sidePanelId` is set, which it overrides. */

@@ -24,6 +24,8 @@ const MOBILE_ELLIPSIS_SLOT = "ellipsis";
 /** v2 toolbar buttons: muted until hovered or open. */
 const TOOLBAR_BUTTON_CLASS =
   "text-muted hover:text-highlighted data-[state=open]:text-highlighted";
+/** An `iconComponent` fills the box of the `leadingIcon` it replaces. */
+const ICON_COMPONENT_CLASS = "size-[18px] shrink-0";
 /** The crumb naming a row keeps the row's own case (crumbs capitalize). */
 const RECORD_CRUMB_LABEL_CLASS = "first-letter:normal-case";
 
@@ -48,6 +50,17 @@ const registeredActions = computed(() =>
   isMounted.value
     ? visibleActions.value
     : visibleActions.value.filter(isPlainDataHeaderAction),
+);
+
+/** The component of each action whose `iconComponent` resolves, by action id. */
+const iconComponents = computed(
+  () =>
+    new Map(
+      registeredActions.value.flatMap((action) => {
+        const component = resolveDmsComponent(action.iconComponent);
+        return component ? [[action.id, component] as const] : [];
+      }),
+    ),
 );
 
 const builderAction = computed(() =>
@@ -304,7 +317,14 @@ const mobileBreadcrumb = computed(
             "
             :ui="{ leadingIcon: 'size-[18px]' }"
             @click="selectAction(builderAction)"
-          />
+          >
+            <template v-if="iconComponents.has(builderAction.id)" #leading>
+              <component
+                :is="iconComponents.get(builderAction.id)"
+                :class="ICON_COMPONENT_CLASS"
+              />
+            </template>
+          </UButton>
         </UTooltip>
 
         <UTooltip
@@ -324,7 +344,14 @@ const mobileBreadcrumb = computed(
             "
             :ui="{ leadingIcon: 'size-[18px]' }"
             @click="selectAction(action)"
-          />
+          >
+            <template v-if="iconComponents.has(action.id)" #leading>
+              <component
+                :is="iconComponents.get(action.id)"
+                :class="ICON_COMPONENT_CLASS"
+              />
+            </template>
+          </UButton>
         </UTooltip>
 
         <QuickActionsPopover />
