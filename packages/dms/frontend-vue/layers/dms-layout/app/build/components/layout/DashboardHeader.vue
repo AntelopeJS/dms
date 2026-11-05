@@ -2,6 +2,7 @@
 import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
 import { onMounted, ref } from "vue";
 import NotificationPopover from "../notification/NotificationPopover.vue";
+import HeaderActionIcon from "./HeaderActionIcon.vue";
 import QuickActionsPopover from "./QuickActionsPopover.vue";
 import { useSidebarState } from "./sidebarState";
 import {
@@ -24,6 +25,7 @@ const MOBILE_ELLIPSIS_SLOT = "ellipsis";
 /** v2 toolbar buttons: muted until hovered or open. */
 const TOOLBAR_BUTTON_CLASS =
   "text-muted hover:text-highlighted data-[state=open]:text-highlighted";
+const BUILDER_FALLBACK_ICON = "i-ph-hammer-light";
 /** The crumb naming a row keeps the row's own case (crumbs capitalize). */
 const RECORD_CRUMB_LABEL_CLASS = "first-letter:normal-case";
 
@@ -48,6 +50,17 @@ const registeredActions = computed(() =>
   isMounted.value
     ? visibleActions.value
     : visibleActions.value.filter(isPlainDataHeaderAction),
+);
+
+/** The component of each action whose `iconComponent` resolves, by action id. */
+const iconComponents = computed(
+  () =>
+    new Map(
+      registeredActions.value.flatMap((action) => {
+        const component = resolveDmsComponent(action.iconComponent);
+        return component ? [[action.id, component] as const] : [];
+      }),
+    ),
 );
 
 const builderAction = computed(() =>
@@ -290,7 +303,7 @@ const mobileBreadcrumb = computed(
           :content="TOOLTIP_CONTENT"
         >
           <UButton
-            :icon="builderAction.icon || 'i-ph-hammer-light'"
+            :icon="builderAction.icon || BUILDER_FALLBACK_ICON"
             variant="ghost"
             :color="isActionActive(builderAction) ? 'primary' : 'neutral'"
             :class="
@@ -304,7 +317,14 @@ const mobileBreadcrumb = computed(
             "
             :ui="{ leadingIcon: 'size-[18px]' }"
             @click="selectAction(builderAction)"
-          />
+          >
+            <template v-if="iconComponents.has(builderAction.id)" #leading>
+              <HeaderActionIcon
+                :component="iconComponents.get(builderAction.id)"
+                :icon="builderAction.icon || BUILDER_FALLBACK_ICON"
+              />
+            </template>
+          </UButton>
         </UTooltip>
 
         <UTooltip
@@ -324,7 +344,14 @@ const mobileBreadcrumb = computed(
             "
             :ui="{ leadingIcon: 'size-[18px]' }"
             @click="selectAction(action)"
-          />
+          >
+            <template v-if="iconComponents.has(action.id)" #leading>
+              <HeaderActionIcon
+                :component="iconComponents.get(action.id)"
+                :icon="action.icon"
+              />
+            </template>
+          </UButton>
         </UTooltip>
 
         <QuickActionsPopover />

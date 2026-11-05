@@ -75,6 +75,25 @@ usePageHeaderActions(
     </ShowcaseSection>
 
     <ShowcaseSection
+      id="header-action-icon-component"
+      title="A component as the icon"
+      description="icon is a static name. iconComponent names a registered component that the button draws in its place, 18px wide, for an icon that follows a state. The name is plain data, so a universal plugin may register it. icon stays required: it is drawn while the name does not resolve."
+    >
+      <ShowcaseDemo label="What to try">
+        <p class="text-muted text-[13px]">
+          Open the side panel of the dashboard header: its sidebar icon fills
+          and grows while the panel is open, drawn by SidePanelDemoIcon.
+        </p>
+      </ShowcaseDemo>
+      <ShowcaseDemo
+        label="registerHeaderAction({ icon, iconComponent, sidePanelId })"
+        wide
+      >
+        <SourceSnippet path="plugins/side-panel-demo.ts" />
+      </ShowcaseDemo>
+    </ShowcaseSection>
+
+    <ShowcaseSection
       id="page-header-action"
       title="A button in the page header, from a component"
       description="A block puts its own buttons in the header of the page it sits on, for as long as it is mounted. Call usePageHeaderActions before the setup's first await, so the server renders the button with the page."
