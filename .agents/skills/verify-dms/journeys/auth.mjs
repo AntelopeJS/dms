@@ -1,4 +1,5 @@
 import { isUserRow, listOf, stringIn } from "../rows.mjs";
+import { accountJourneys } from "./auth/accounts.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -200,4 +201,5 @@ export const journeys = [
       await ctx.verify("the owner signs in through the form", [tab.visible({ role: "button", name: "Verify Admin" })]);
     },
   },
+  ...accountJourneys,
 ];
