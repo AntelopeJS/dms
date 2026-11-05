@@ -22,8 +22,8 @@ set -uo pipefail
 DMS_BACK_DIR="${DMS_BACK_DIR:-}"
 BACK_CMD="${DMS_BACK_CMD:-pnpm dev}"
 FRONT_CMD="${DMS_FRONT_CMD:-pnpm frontend:dev}"
-BACK_LOG="${DMS_BACK_LOG:-/tmp/dms-back.log}"
-FRONT_LOG="${DMS_FRONT_LOG:-/tmp/dms-front.log}"
+BACK_LOG="${DMS_BACK_LOG:-}"
+FRONT_LOG="${DMS_FRONT_LOG:-}"
 BACK_READY_PATTERN='Server started, listening'
 FRONT_READY_PATTERN='Server ready on|Local:.*localhost:'
 # Patterns that indicate a fatal startup error — detecting any of these aborts
@@ -33,8 +33,8 @@ FRONT_ERROR_PATTERN='Cannot find module|Failed to compile|Vite error|ENOENT.*pac
 WAIT_TIMEOUT="${DMS_DEV_TIMEOUT:-180}"
 STOP_GRACE="${DMS_DEV_STOP_GRACE:-10}"
 DEV_JSON_WAIT=5
-DEFAULT_BACK_URL='http://localhost:5010'
-DEFAULT_FRONT_URL='http://localhost:3001'
+DEFAULT_BACK_URL="http://localhost:${DMS_BACK_PORT:-5010}"
+DEFAULT_FRONT_URL="http://localhost:${DMS_FRONT_PORT:-3001}"
 
 # Only picks candidates when no pid file exists, and is always combined with the
 # DMS_BACK_DIR scope check: on its own it would match every project on the machine.
@@ -85,6 +85,8 @@ require_dms_back_dir() {
   fi
   PROJECT_ROOT="$(cd "$DMS_BACK_DIR" && pwd -P)"
   PID_FILE="$PROJECT_ROOT/.antelope/dms-dev.pid"
+  BACK_LOG="${BACK_LOG:-$PROJECT_ROOT/.antelope/logs/back.log}"
+  FRONT_LOG="${FRONT_LOG:-$PROJECT_ROOT/.antelope/logs/front.log}"
   [ -z "$IS_WINDOWS" ] || WIN_ROOT="$(cygpath -m "$PROJECT_ROOT" | tr '[:upper:]' '[:lower:]')"
 }
 
@@ -334,22 +336,23 @@ stop_servers() {
   log "stopped."
 }
 
+# Runs in a launch subshell: a non-empty port becomes that child's PORT alone.
+enter_project() { cd "$PROJECT_ROOT" && { [ -z "$1" ] || export PORT="$1"; }; }
+
 # Detaches the command into its own session so it survives this shell, and records its
 # pid. `exec` keeps that pid stable through setsid/nohup down to the command itself.
 launch_detached() {
-  local name="$1" cmd="$2" log_file="$3"
+  local name="$1" cmd="$2" log_file="$3" port="${4:-}"
+  local -a detach=(nohup)
   if command -v setsid >/dev/null 2>&1; then
-    # shellcheck disable=SC2086  # word-splitting of the command is intentional
-    (cd "$PROJECT_ROOT" && exec setsid nohup $cmd >> "$log_file" 2>&1 < /dev/null) &
+    detach=(setsid nohup)
   elif command -v perl >/dev/null 2>&1; then
     # macOS ships no setsid(1); perl's POSIX::setsid does the same before exec.
-    # shellcheck disable=SC2086
-    (cd "$PROJECT_ROOT" && exec perl -MPOSIX -e 'POSIX::setsid(); exec { $ARGV[0] } @ARGV or die "exec $ARGV[0]: $!\n"' \
-      nohup $cmd >> "$log_file" 2>&1 < /dev/null) &
-  else
-    # shellcheck disable=SC2086
-    (cd "$PROJECT_ROOT" && exec nohup $cmd >> "$log_file" 2>&1 < /dev/null) &
+    detach=(perl -MPOSIX -e 'POSIX::setsid(); exec { $ARGV[0] } @ARGV or die "exec $ARGV[0]: $!\n"' nohup)
   fi
+  mkdir -p "$(dirname "$log_file")" && : > "$log_file"
+  # shellcheck disable=SC2086  # word-splitting of the command is intentional
+  (enter_project "$port" && exec "${detach[@]}" $cmd >> "$log_file" 2>&1 < /dev/null) &
   LAUNCHED_PID=$!
   mkdir -p "$(dirname "$PID_FILE")"
   echo "$name $LAUNCHED_PID" >> "$PID_FILE"
@@ -444,16 +447,14 @@ frontend_url() {
 
 start_backend() {
   log "starting backend in $PROJECT_ROOT (logs → $BACK_LOG)…"
-  : > "$BACK_LOG"
-  launch_detached backend "$BACK_CMD" "$BACK_LOG"
+  launch_detached backend "$BACK_CMD" "$BACK_LOG" "${DMS_BACK_PORT:-}"
   wait_for "$BACK_LOG" "$BACK_READY_PATTERN" "backend" "$BACK_ERROR_PATTERN" "$LAUNCHED_PID" || return 1
   log "backend ready on $(backend_url)."
 }
 
 start_frontend() {
   log "starting frontend in $PROJECT_ROOT (logs → $FRONT_LOG)…"
-  : > "$FRONT_LOG"
-  launch_detached frontend "$FRONT_CMD" "$FRONT_LOG"
+  launch_detached frontend "$FRONT_CMD" "$FRONT_LOG" "${DMS_FRONT_PORT:-}"
   wait_for "$FRONT_LOG" "$FRONT_READY_PATTERN" "frontend" "$FRONT_ERROR_PATTERN" "$LAUNCHED_PID" || return 1
   log "frontend ready on $(frontend_url)."
 }
@@ -484,7 +485,7 @@ start_servers() {
 
 status() {
   require_dms_back_dir status
-  log "dev processes of $PROJECT_ROOT:"
+  log "dev processes of $PROJECT_ROOT (logs: $BACK_LOG, $FRONT_LOG):"
   local targets
   refresh_process_table
   targets="$(project_pids)"
@@ -541,12 +542,14 @@ case "$cmd" in
     status
     ;;
   back-log)
+    [ -n "$BACK_LOG" ] || require_dms_back_dir back-log
     tail -n "${2:-60}" "$BACK_LOG"
     ;;
   ""|-h|--help|help)
     usage
     ;;
   front-log)
+    [ -n "$FRONT_LOG" ] || require_dms_back_dir front-log
     tail -n "${2:-60}" "$FRONT_LOG"
     ;;
   *)
