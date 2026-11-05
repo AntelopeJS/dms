@@ -7,6 +7,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -63,6 +64,7 @@ if (role === "front") {
       servers: { api: { endpoints: [{ host: "localhost", port: process.env.PORT }] } },
     }));
     console.log("Server started, listening");
+    if (process.argv[4] === "broken") console.log("Failed to load module @x/broken");
   });
 }
 setInterval(() => {}, 1_000_000);
@@ -280,4 +282,45 @@ await test("a backend that never serves its manifest fails the start and leaves 
     stdout:
       /^(?![\s\S]*starting frontend)[\s\S]*FAILED TO START: backend — .*\/dms\/frontend\?renderer=vue&rendererVersion=3 still answered 503 after 2s[\s\S]*Server started, listening/,
   });
+});
+
+await test("the manifest probe goes direct like the dashboard's fetch (fails a probe that goes through http_proxy)", async (t) => {
+  const { loading, project } = fixture(t);
+  const proxy = createServer((_req, res) => {
+    res.statusCode = 502;
+    res.end();
+  });
+  await new Promise((resolve) =>
+    proxy.listen(24699, "127.0.0.1", () => resolve(undefined)),
+  );
+  t.after(() => proxy.close());
+  const proxyUrl = "http://127.0.0.1:24699";
+  const root = project();
+  const env = scriptEnv(loading, root, {
+    DMS_BACK_PORT: "24603",
+    DMS_BACK_CMD: `${process.execPath} ${loading} back 0`,
+    DMS_FRONT_CMD: `${process.execPath} ${loading} front`,
+    http_proxy: proxyUrl,
+    HTTP_PROXY: proxyUrl,
+    ALL_PROXY: proxyUrl,
+  });
+
+  assert.match(await dmsDev(root, env, ["start"]), /frontend ready on/);
+});
+
+await test("a fatal error logged after the ready line fails the start at once (fails a manifest wait that ignores the error pattern)", async (t) => {
+  const { loading, project } = fixture(t);
+  const root = project();
+  const env = scriptEnv(loading, root, {
+    DMS_BACK_PORT: "24604",
+    DMS_DEV_TIMEOUT: "30",
+    DMS_BACK_CMD: `${process.execPath} ${loading} back 1000000 broken`,
+    DMS_FRONT_CMD: `${process.execPath} ${loading} front`,
+  });
+  const started = Date.now();
+
+  await assert.rejects(dmsDev(root, env, ["start"]), {
+    stdout: /fatal error detected[\s\S]*Failed to load module @x\/broken/,
+  });
+  assert.ok(Date.now() - started < 15_000, "failed before the 30 s timeout");
 });

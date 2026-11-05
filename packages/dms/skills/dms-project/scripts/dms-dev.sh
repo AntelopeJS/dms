@@ -9,10 +9,9 @@
 # DMS_BACK_DIR/.antelope/dms-dev.pid; without that file it falls back to the dev processes
 # whose working directory or command line lies under DMS_BACK_DIR.
 #
-# Windows (Git Bash, MSYS2, Cygwin): their ps lists only their own processes and takes no -o,
-# while the dev servers run as native node.exe processes. There the script reads the Windows
-# process table (PowerShell's Get-CimInstance Win32_Process), works in Windows pids, and stops
-# a server's whole tree with taskkill /T /F.
+# Windows (Git Bash, MSYS2, Cygwin): ps lists only their own processes, while the servers run
+# as native node.exe. There it reads the Windows process table (Get-CimInstance
+# Win32_Process), works in Windows pids, and stops a server's tree with taskkill /T /F.
 
 set -uo pipefail
 
@@ -354,16 +353,18 @@ fail_start() {
   tail -40 "$log_file" | sed 's/^/  /'
 }
 
+fatal_in() {
+  grep -qE "$3" "$2" 2>/dev/null || return 1
+  log "fatal error detected in $2:"
+  grep -nE "$3" "$2" | head -5 | sed 's/^/  /'
+  fail_start "$1" "$2" "fatal error"
+}
+
 wait_for() {
   local log_file="$1" pattern="$2" label="$3" error_pattern="$4" pid="$5" started
   started=$(date +%s)
   while ! grep -qE "$pattern" "$log_file" 2>/dev/null; do
-    if grep -qE "$error_pattern" "$log_file" 2>/dev/null; then
-      log "fatal error detected in $log_file:"
-      grep -nE "$error_pattern" "$log_file" | head -5 | sed 's/^/  /'
-      fail_start "$label" "$log_file" "fatal error"
-      return 1
-    fi
+    fatal_in "$label" "$log_file" "$error_pattern" && return 1
     if ! is_alive "$pid"; then
       fail_start "$label" "$log_file" "process $pid exited before becoming ready"
       return 1
@@ -434,15 +435,16 @@ frontend_url() {
   echo "${url:-$DEFAULT_FRONT_URL (assumed: no ready line with a URL)}"
 }
 
-# The ready line can precede the module load, and the manifest the dashboard fetches first
-# answers 503 until then. Waits for the same request to succeed (401/403: served, the
-# dashboard sends the credential). No curl, or nothing accepting connections (a stub): skips.
+# The ready line can precede the module load; waits until the dashboard's first request
+# succeeds (401/403 count: it sends the credential). Direct, like the dashboard's fetch.
+# No curl, or nothing accepting connections (a stub): skips.
 wait_for_manifest() {
   local url="$1/dms/frontend?renderer=vue&rendererVersion=3" pid="$2" code rc
   command -v curl >/dev/null 2>&1 || return 0
   while :; do
-    code="$(curl -s -o /dev/null -m 5 -w '%{http_code}' "$url")"; rc=$?
+    code="$(curl -s --noproxy '*' -o /dev/null -m 5 -w '%{http_code}' "$url")"; rc=$?
     case "$rc:$code" in 7:* | *:200 | *:401 | *:403) return 0 ;; esac
+    fatal_in backend "$BACK_LOG" "$BACK_ERROR_PATTERN" && return 1
     is_alive "$pid" || { fail_start backend "$BACK_LOG" "process $pid exited before serving $url"; return 1; }
     [ $(($(date +%s) - BACK_STARTED)) -le "$WAIT_TIMEOUT" ] ||
       { fail_start backend "$BACK_LOG" "$url still answered ${code} after ${WAIT_TIMEOUT}s"; return 1; }
