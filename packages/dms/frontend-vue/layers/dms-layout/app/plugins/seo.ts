@@ -1,3 +1,5 @@
+import { watch } from "vue";
+
 export default defineDmsPlugin(async () => {
   const { metaTitle, metaDescription, refresh } = useSystemState();
 
@@ -24,6 +26,11 @@ export default defineDmsPlugin(async () => {
       },
     ],
   });
+
+  if (typeof window !== "undefined")
+    watch(metaTitle, (title) => {
+      if (!title) void refresh();
+    });
 
   if (!metaTitle.value) await refresh();
 });
