@@ -1,5 +1,9 @@
 import { expect } from "chai";
-import { StartModule, StopModule } from "@antelopejs/interface-core/modules";
+import {
+  Events,
+  StartModule,
+  StopModule,
+} from "@antelopejs/interface-core/modules";
 import { createClient } from "../helpers/http";
 
 const HTTP_SERVICE_UNAVAILABLE = 503;
@@ -19,25 +23,42 @@ async function expectStarting(): Promise<void> {
   }
 }
 
+async function expectOpen(): Promise<void> {
+  const client = createClient();
+  for (const path of GATED_PATHS) {
+    const response = await client.get(path);
+    expect(response.status, path).to.not.equal(HTTP_SERVICE_UNAVAILABLE);
+  }
+}
+
 describe("[integration] the startup gate", () => {
   it("lets requests through once every module has started", async () => {
-    const response = await createClient().get(GATED_PATHS[1]);
-
-    expect(response.status).to.not.equal(HTTP_SERVICE_UNAVAILABLE);
+    await expectOpen();
   });
 
-  it("answers 503 on every route from the moment the DMS stops, until it started again", async function () {
+  it("answers 503 on every route from the moment the project stops, until its modules started again", async function () {
     this.timeout(30_000);
-    await StopModule(DMS_MODULE);
+    Events.ModulesStopping.emit();
     try {
       await expectStarting();
       const live = await createClient().get("/_live");
       expect(live.status).to.equal(200);
     } finally {
+      Events.ModulesStarted.emit();
+    }
+
+    await expectOpen();
+  });
+
+  it("stays open while the DMS module alone stops and starts again", async function () {
+    this.timeout(30_000);
+    await StopModule(DMS_MODULE);
+    try {
+      await expectOpen();
+    } finally {
       await StartModule(DMS_MODULE);
     }
 
-    const response = await createClient().get(GATED_PATHS[1]);
-    expect(response.status).to.not.equal(HTTP_SERVICE_UNAVAILABLE);
+    await expectOpen();
   });
 });
