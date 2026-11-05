@@ -139,6 +139,25 @@ try {
   assert.equal(autoResult.status, 1, autoResult.stderr);
   assert.match(autoResult.stderr, /useHigher/);
   console.log("PASS reject generated auto-import owner");
+  rmSync(join(pkg, "layers"), { recursive: true, force: true });
+  mkdirSync(join(pkg, app), { recursive: true });
+  write(
+    "layers/dms-ui/app/composables/useShared.ts",
+    "export const useShared = () => 1;",
+  );
+  write(
+    "layers/dms-layout/app/composables/useShared.ts",
+    'export * from "../../../dms-ui/app/composables/useShared";',
+  );
+  assert.equal(run().status, 0, "relative star re-export resolves");
+  write(
+    "layers/dms-layout/app/composables/useShared.ts",
+    'export * from "#dms-ui/app/composables/useShared";',
+  );
+  const aliasResult = run();
+  assert.equal(aliasResult.status, 1, aliasResult.stderr);
+  assert.match(aliasResult.stderr, /FAIL auto-import scan .*#dms-ui/);
+  console.log("PASS reject unresolvable star re-export");
 } finally {
   rmSync(scratch, { recursive: true, force: true });
 }

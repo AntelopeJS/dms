@@ -1,1 +1,1 @@
-export * from "#dms-ui/app/composables/layout/usePageHeaderActions";
+export * from "../../../../dms-ui/app/composables/layout/usePageHeaderActions";

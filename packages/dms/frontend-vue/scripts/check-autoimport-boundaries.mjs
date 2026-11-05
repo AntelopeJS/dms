@@ -71,8 +71,24 @@ function own(name, file, registry = owners) {
   entries.add(file);
   registry.set(name, entries);
 }
-for (const item of await scanDirExports(globs))
-  own(item.as ?? item.name, item.from);
+const unresolved = [];
+const warn = console.warn;
+console.warn = (...args) => {
+  const message = args.join(" ");
+  if (message.startsWith("[unimport]")) unresolved.push(message);
+  else warn(...args);
+};
+let scanned;
+try {
+  scanned = await scanDirExports(globs);
+} finally {
+  console.warn = warn;
+}
+for (const message of unresolved) {
+  console.error(`FAIL auto-import scan ${message}`);
+  process.exitCode = 1;
+}
+for (const item of scanned) own(item.as ?? item.name, item.from);
 const registry = ts.createSourceFile(
   "registry.ts",
   readFileSync(join(frontend, "dms.frontend.ts"), "utf8"),
@@ -271,7 +287,7 @@ for (const file of program.getSourceFiles()) {
   visit(file);
 }
 if (failures) process.exitCode = 1;
-else
+else if (!unresolved.length)
   console.log(
     `PASS frontend generated auto-import and template owners (${owners.size} providers)`,
   );
