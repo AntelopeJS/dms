@@ -39,6 +39,7 @@ jobs:
         pnpm --dir packages/dms docs:catalog:check
         pnpm --dir packages/dms check:frontend-declarations
       renovate-sync: false
+      test-job: true
     permissions:
       contents: read
 
@@ -160,11 +161,9 @@ jobs:
       fail-fast: false
       matrix:
         check:
-          [
-            formal-onboarding-bootstrap,
-            formal-realtime-tabs,
-            formal-tenant-lifecycle,
-          ]
+          - formal-onboarding-bootstrap
+          - formal-realtime-tabs
+          - formal-tenant-lifecycle
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
