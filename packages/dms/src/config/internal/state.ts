@@ -57,19 +57,18 @@ export interface OAuthConfig {
 /** Where the "New sign-in" alert reads the country a sign-in came from. */
 export interface SignInCountryConfig {
   /**
-   * Request header a trusted reverse proxy fills with the client's ISO 3166-1
-   * alpha-2 country code, such as `CF-IPCountry` behind Cloudflare. Unset by
-   * default: any caller can write a header, so it is read only once named
-   * here, and the proxy must overwrite it on every request. Wins over the
-   * database lookup.
+   * Request header the reverse proxy fills with the client's ISO 3166-1
+   * alpha-2 country code. Defaults to `CF-IPCountry`, the header Cloudflare
+   * sets, when no `database` is configured; `false` stops reading one. Any caller can write a header, so the
+   * proxy must overwrite it on every request. Wins over the database lookup.
    */
-  header?: string;
+  header?: string | false;
   /**
-   * Path of a MaxMind-format country database (`.mmdb`) the client address is
-   * looked up in when the header gives nothing. Defaults to the DB-IP Country
-   * Lite database shipped with the package; `false` turns the lookup off.
+   * Path of a MaxMind-format country database (`.mmdb`), supplied by the
+   * operator, the client address is looked up in when the header gives
+   * nothing. Unset by default: the package ships no database.
    */
-  database?: string | false;
+  database?: string;
 }
 
 export interface AuthConfig {

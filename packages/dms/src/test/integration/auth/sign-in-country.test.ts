@@ -10,6 +10,8 @@ import { pageRoutePath } from "@antelopejs/interface-dms/page";
 const COUNTRY_HEADER = "CF-IPCountry";
 const CHROME_ON_WINDOWS =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
+const FIREFOX_ON_LINUX =
+  "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0";
 const NEW_LOGIN_TITLE =
   "$dms.notifications.messages.new_login.title_browser_os";
 const HTTP_OK = 200;
@@ -30,16 +32,14 @@ describe("[integration] auth/sign-in country", () => {
   let password: string;
   let owner: AxiosInstance;
 
-  const signIn = async (country: string) => {
+  const signIn = async (country?: string, userAgent = CHROME_ON_WINDOWS) => {
+    const headers = country
+      ? { "user-agent": userAgent, [COUNTRY_HEADER]: country }
+      : { "user-agent": userAgent };
     const response = await createClient().post(
       "/api/auth/login",
       { email, password },
-      {
-        headers: {
-          "user-agent": CHROME_ON_WINDOWS,
-          [COUNTRY_HEADER]: country,
-        },
-      },
+      { headers },
     );
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
   };
@@ -65,7 +65,7 @@ describe("[integration] auth/sign-in country", () => {
 
   before(async () => {
     previous = getAuthConfig().signInCountry;
-    getAuthConfig().signInCountry = { header: COUNTRY_HEADER, database: false };
+    getAuthConfig().signInCountry = undefined;
     resetCountryLookup();
     await resetDatabase();
     const user = await registerUser({ owner: true });
@@ -98,5 +98,12 @@ describe("[integration] auth/sign-in country", () => {
     expect(notices.map((notice) => notice.params?.country)).to.include(
       "Brazil",
     );
+  });
+
+  it("still alerts a new device when no country is known", async () => {
+    await signIn(undefined, FIREFOX_ON_LINUX);
+    const notices = await waitForNotices(3);
+    expect(notices).to.have.length(3);
+    expect(notices.some((notice) => !notice.params?.country)).to.equal(true);
   });
 });

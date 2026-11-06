@@ -114,10 +114,6 @@ The package ships the core Claude Code skills (`dms`, `dms-auth`, `dms-best-prac
 
 This package lives in the [`AntelopeJS/dms`](https://github.com/AntelopeJS/dms) pnpm workspace, next to `@antelopejs/interface-dms`. Read [CONTRIBUTING.md](https://github.com/AntelopeJS/dms/blob/main/CONTRIBUTING.md) and the [repository README](https://github.com/AntelopeJS/dms#contributing) for the development commands.
 
-## Third-party data
-
-The package ships the DB-IP IP to Country Lite database (`data/`) to tell which country a sign-in came from. It is licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/): IP Geolocation by [DB-IP](https://db-ip.com). `pnpm country-database` downloads the current edition; packing the package for a release runs it.
-
 ## License
 
 [Apache-2.0](./LICENSE)

@@ -29,7 +29,6 @@ export default defineConfig({
         },
         auth: {
           jwtSecret: process.env.DMS_JWT_SECRET ?? "dev",
-          signInCountry: { database: false },
         },
         htmlRender: {
           serviceSecret: process.env.DMS_HTML_RENDER_SECRET ?? "dev",
