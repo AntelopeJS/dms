@@ -79,15 +79,15 @@ export class SalesPage extends PageController("sales", {
 
 | Package                                     | Supported          | Tested with |
 | ------------------------------------------- | ------------------ | ----------- |
-| `@antelopejs/core`                          | `>=1.20.0 <2`      | `1.20.0`    |
+| `@antelopejs/core`                          | `>=1.21.0 <2`      | `1.21.0`    |
 | `@antelopejs/interface-api`                 | `>=0.2.0 <1.0.0`   | `0.2.0`     |
 | `@antelopejs/interface-api-util`            | `>=0.3.0 <1.0.0`   | `0.3.0`     |
 | `@antelopejs/interface-core`                | `>=0.4.0 <1.0.0`   | `0.4.0`     |
 | `@antelopejs/interface-data-api`            | `>=0.6.0 <1.0.0`   | `0.6.0`     |
-| `@antelopejs/interface-database`            | `>=0.3.0 <1.0.0`   | `0.3.0`     |
-| `@antelopejs/interface-database-decorators` | `>=0.2.0 <1.0.0`   | `0.2.0`     |
+| `@antelopejs/interface-database`            | `>=0.3.1 <1.0.0`   | `0.3.1`     |
+| `@antelopejs/interface-database-decorators` | `>=0.2.1 <1.0.0`   | `0.2.1`     |
 | `@antelopejs/interface-dms`                 | `>=0.12.0 <0.13.0` | `0.12.0`    |
-| `@antelopejs/interface-dms-automation`      | `>=0.6.0 <1.0.0`   | `0.6.0`     |
+| `@antelopejs/interface-dms-automation`      | `>=0.6.1 <1.0.0`   | `0.6.1`     |
 | `@antelopejs/interface-email`               | `>=0.0.6 <1.0.0`   | `0.0.6`     |
 | `@antelopejs/interface-file-storage`        | `>=0.1.4 <1.0.0`   | `0.1.4`     |
 | `@antelopejs/interface-redis`               | `>=0.0.9 <1.0.0`   | `0.0.9`     |

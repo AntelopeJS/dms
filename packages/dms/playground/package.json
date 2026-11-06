@@ -14,7 +14,7 @@
     "frontend:start": "ajs dms start -b http://127.0.0.1:5010"
   },
   "devDependencies": {
-    "@antelopejs/core": ">=1.20.0 <2",
+    "@antelopejs/core": ">=1.21.0 <2",
     "@antelopejs/dms-frontend": ">=0.10.0 <0.11.0",
     "@types/node": "^24.19.2",
     "prettier": "^3.9.10",
@@ -34,8 +34,8 @@
     "@antelopejs/interface-api-util": ">=0.3.0 <1.0.0",
     "@antelopejs/interface-core": ">=0.4.0 <1.0.0",
     "@antelopejs/interface-data-api": ">=0.6.0 <1.0.0",
-    "@antelopejs/interface-database": ">=0.3.0 <1.0.0",
-    "@antelopejs/interface-database-decorators": ">=0.2.0 <1.0.0",
+    "@antelopejs/interface-database": ">=0.3.1 <1.0.0",
+    "@antelopejs/interface-database-decorators": ">=0.2.1 <1.0.0",
     "@antelopejs/interface-dms": "workspace:*",
     "zod": "~3.24.4"
   }
