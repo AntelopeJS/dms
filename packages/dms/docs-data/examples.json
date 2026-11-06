@@ -6672,6 +6672,7 @@
   },
   "table-load-more": {
     "type": "TableView",
+    "factory": "TableView.fromSource",
     "options": {
       "location": "/docs-fixtures/events",
       "columns": [
@@ -7008,6 +7009,7 @@
   },
   "table-infinite": {
     "type": "TableView",
+    "factory": "TableView.fromSource",
     "options": {
       "location": "/docs-fixtures/events",
       "columns": [
@@ -7322,6 +7324,7 @@
   },
   "table-source-route": {
     "type": "TableView",
+    "factory": "TableView.fromSource",
     "options": {
       "location": "/docs-fixtures/events",
       "columns": [
@@ -7634,6 +7637,7 @@
   },
   "table-source-error": {
     "type": "TableView",
+    "factory": "TableView.fromSource",
     "options": {
       "location": "/docs-fixtures/unavailable",
       "columns": [
