@@ -56,13 +56,14 @@ jobs:
       - uses: ./.github/actions/setup
 
       # The MongoDB binary the harness downloads and the provider modules it
-      # installs into its cache folder are both pinned in antelope.test.ts.
+      # installs into its cache folder are pinned in antelope.test.ts, and the
+      # modules install from the locks in antelope-lock/.
       - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/mongodb-binaries
             packages/dms/.antelope/cache
-          key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts') }}
+          key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts', 'packages/dms/antelope-lock/**') }}
 
       # Also the compile gate: the separate `build` step this job replaces
       # had nothing else to check.
