@@ -127,7 +127,7 @@ When the backend answers, start the dashboard in a second terminal, from the sam
 pnpm frontend:dev   # dashboard on http://localhost:3001
 ```
 
-Open the address that the backend logs after `No owner exists yet`, and create the first administrator. The [Quickstart](https://dms.antelopejs.com/docs/getting-started/quickstart) walks through each step. A page is a class whose static fields are blocks:
+Open the address that the backend logs after `No owner exists yet`, and create the first administrator. [Start your project](https://dms.antelopejs.com/docs/getting-started/quickstart#create-your-administrator) walks through the onboarding. A page is a class whose static fields are blocks:
 
 ```ts
 import { PageController, RegisterPage, pagesCategory } from "@antelopejs/interface-dms/page";
