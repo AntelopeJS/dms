@@ -17,10 +17,13 @@ the **ajs-cli** skill; full walkthrough: `docs/02.building/01.project-setup.md`.
 
 ## Starting a new application
 
-Use [template-dms-demo](https://github.com/AntelopeJS/template-dms-demo) for the default
-CLI-owned backend and Nuxt dashboard: `npx @antelopejs/core project init <dir> --template dms-demo` (needs Git on `PATH`).
+Use [template-dms](https://github.com/AntelopeJS/template-dms) for a new project: the DMS, the
+Builder and the AI assistant with no sample data, run with Docker Compose:
+`npx @antelopejs/core project init <dir> --template dms-starter` (needs Git on `PATH`).
 Follow `docs/01.getting-started/03.quickstart.md` through first-admin setup (the onboarding
-address with the setup token that the backend prints) before adding pages. Use
+address with the setup token that the `dms` log prints) before adding pages. Use
+[template-dms-demo](https://github.com/AntelopeJS/template-dms-demo) (`--template dms-demo`)
+to explore Helio and every module; the tutorial in `docs/01.getting-started/04.tutorial.md` runs it. Use
 [template-dms-adonis](https://github.com/AntelopeJS/template-dms-adonis) only when
 AdonisJS must own the process (`--template dms-adonis`; **embedded** mode, below; walkthrough:
 `docs/01.getting-started/07.adonisjs.md`). Evaluate these existing templates before proposing another.

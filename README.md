@@ -102,7 +102,7 @@ https://github.com/user-attachments/assets/ba552792-f0d4-4fcf-8b0e-81029a5a2582
 
 ## Add the DMS to an existing project
 
-For a new application, start from the demo application below. To add the DMS to an existing AntelopeJS project, add the module and the dashboard's frontend loader:
+For a new application, start from the starter template in [Start your project](#start-your-project). To add the DMS to an existing AntelopeJS project, add the module and the dashboard's frontend loader:
 
 ```bash
 ajs project modules add @antelopejs/dms
@@ -116,8 +116,8 @@ The DMS also needs an API module, a module implementing the database interface, 
 Create a project from the `template-dms-demo` template, which loads the DMS, its companion modules and Helio, a demo back office for a solar installer. It needs the Node.js and pnpm releases the template pins, and a MongoDB on `localhost:27017`.
 
 ```bash
-npx @antelopejs/core project init my-app --template dms-demo
-cd my-app
+npx @antelopejs/core project init dms-demo --template dms-demo
+cd dms-demo
 pnpm dev            # backend on http://localhost:5010
 ```
 
@@ -127,7 +127,7 @@ When the backend answers, start the dashboard in a second terminal, from the sam
 pnpm frontend:dev   # dashboard on http://localhost:3001
 ```
 
-Open the address that the backend logs after `No owner exists yet`, and create the first administrator. The [Quickstart](https://dms.antelopejs.com/docs/getting-started/quickstart) walks through each step. A page is a class whose static fields are blocks:
+Open the address that the backend logs after `No owner exists yet`, and create the first administrator. [Start your project](https://dms.antelopejs.com/docs/getting-started/quickstart#create-your-administrator) walks through the onboarding. A page is a class whose static fields are blocks:
 
 ```ts
 import { PageController, RegisterPage, pagesCategory } from "@antelopejs/interface-dms/page";
