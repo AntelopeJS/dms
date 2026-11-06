@@ -87,6 +87,13 @@ describe("[unit] utils/sign-in-country", () => {
     ).to.equal(undefined);
   });
 
+  it("reads no default header once a database is configured", () => {
+    getAuthConfig().signInCountry = { database: MISSING_DATABASE };
+    expect(
+      resolveClientOrigin(PUBLIC_IP, { "cf-ipcountry": "FR" }).country,
+    ).to.equal(undefined);
+  });
+
   it("tells no country without a header or a database", () => {
     getAuthConfig().signInCountry = undefined;
     expect(resolveClientOrigin(PUBLIC_IP, {})).to.deep.equal({

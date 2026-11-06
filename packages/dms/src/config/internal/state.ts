@@ -59,7 +59,7 @@ export interface SignInCountryConfig {
   /**
    * Request header the reverse proxy fills with the client's ISO 3166-1
    * alpha-2 country code. Defaults to `CF-IPCountry`, the header Cloudflare
-   * sets; `false` stops reading one. Any caller can write a header, so the
+   * sets, when no `database` is configured; `false` stops reading one. Any caller can write a header, so the
    * proxy must overwrite it on every request. Wins over the database lookup.
    */
   header?: string | false;

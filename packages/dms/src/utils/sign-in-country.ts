@@ -9,7 +9,10 @@ const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/;
 
 const NON_COUNTRY_CODES: ReadonlySet<string> = new Set(["XX", "T1"]);
 
-/** The header read for the country while `auth.signInCountry.header` is unset. */
+/**
+ * The header read for the country while neither `auth.signInCountry.header`
+ * nor a database is configured.
+ */
 const DEFAULT_COUNTRY_HEADER = "CF-IPCountry";
 
 /** Finds the country record of an address. */
@@ -87,14 +90,16 @@ export type RequestHeaders = Record<string, string | string[] | undefined>;
 
 /**
  * The origin of a request: its client address and the country it came from —
- * the configured proxy header first, then the database.
+ * the configured proxy header first, then the database. `CF-IPCountry` is read
+ * by default only without a database, so a forged header cannot override it.
  */
 export function resolveClientOrigin(
   ip: string,
   headers: RequestHeaders,
 ): ClientOrigin {
+  const config = getAuthConfig().signInCountry;
   const header =
-    getAuthConfig().signInCountry?.header ?? DEFAULT_COUNTRY_HEADER;
+    config?.header ?? (config?.database ? undefined : DEFAULT_COUNTRY_HEADER);
   const country =
     (header
       ? normalizeCountryCode(ownValue(headers, header.toLowerCase()))
