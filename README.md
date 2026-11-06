@@ -102,7 +102,7 @@ https://github.com/user-attachments/assets/ba552792-f0d4-4fcf-8b0e-81029a5a2582
 
 ## Add the DMS to an existing project
 
-For a new application, start from the demo application below. To add the DMS to an existing AntelopeJS project, add the module and the dashboard's frontend loader:
+For a new application, start from the starter template in [Start your project](#start-your-project). To add the DMS to an existing AntelopeJS project, add the module and the dashboard's frontend loader:
 
 ```bash
 ajs project modules add @antelopejs/dms
