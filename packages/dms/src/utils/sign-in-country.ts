@@ -1,6 +1,5 @@
 import { ownValue } from "./own-value";
 import { readFileSync } from "node:fs";
-import path from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { type CountryResponse, Reader } from "mmdb-lib";
 import { getAuthConfig } from "../config";
@@ -9,17 +8,12 @@ const FALLBACK_LANGUAGE = "en";
 const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/;
 
 const NON_COUNTRY_CODES: ReadonlySet<string> = new Set(["XX", "T1"]);
+
 /**
- * The DB-IP Country Lite database the release ships (see
- * `scripts/fetch-country-database.mjs`), at the package root next to `dist`.
+ * The header read for the country while neither `auth.signInCountry.header`
+ * nor a database is configured.
  */
-export const BUNDLED_COUNTRY_DATABASE = path.join(
-  __dirname,
-  "..",
-  "..",
-  "data",
-  "dbip-country-lite.mmdb",
-);
+const DEFAULT_COUNTRY_HEADER = "CF-IPCountry";
 
 /** Finds the country record of an address. */
 export interface CountryLookup {
@@ -36,18 +30,12 @@ export interface ClientOrigin {
 
 let cachedLookup: CountryLookup | null | undefined;
 
-function databasePath(): string | undefined {
-  const configured = getAuthConfig().signInCountry?.database;
-  if (configured === false) return undefined;
-  return configured ?? BUNDLED_COUNTRY_DATABASE;
-}
-
 function openDatabase(file: string): CountryLookup | null {
   try {
     return new Reader<CountryResponse>(readFileSync(file));
   } catch (error) {
     Logging.Warn(
-      `[DMS] No sign-in country database at "${file}": sign-ins are told apart by device only. Run \`pnpm run country-database\` in the DMS package to fetch it, or set \`auth.signInCountry.database: false\` to turn the lookup off (${String(error)})`,
+      `[DMS] Cannot read the sign-in country database \`auth.signInCountry.database\` names ("${file}"): without the header, sign-ins are told apart by device only (${String(error)})`,
     );
     return null;
   }
@@ -56,7 +44,7 @@ function openDatabase(file: string): CountryLookup | null {
 /** The configured country database, opened once; `null` when there is none. */
 function countryLookup(): CountryLookup | null {
   if (cachedLookup !== undefined) return cachedLookup;
-  const file = databasePath();
+  const file = getAuthConfig().signInCountry?.database;
   cachedLookup = file ? openDatabase(file) : null;
   return cachedLookup;
 }
@@ -102,16 +90,19 @@ export type RequestHeaders = Record<string, string | string[] | undefined>;
 
 /**
  * The origin of a request: its client address and the country it came from —
- * the configured proxy header first, then the database.
+ * the configured proxy header first, then the database. `CF-IPCountry` is read
+ * by default only without a database, so a forged header cannot override it.
  */
 export function resolveClientOrigin(
   ip: string,
   headers: RequestHeaders,
 ): ClientOrigin {
-  const headerName = getAuthConfig().signInCountry?.header?.toLowerCase();
+  const config = getAuthConfig().signInCountry;
+  const header =
+    config?.header ?? (config?.database ? undefined : DEFAULT_COUNTRY_HEADER);
   const country =
-    (headerName
-      ? normalizeCountryCode(ownValue(headers, headerName))
+    (header
+      ? normalizeCountryCode(ownValue(headers, header.toLowerCase()))
       : undefined) ?? lookupCountry(ip);
   return { ip, country };
 }
