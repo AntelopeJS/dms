@@ -1873,6 +1873,7 @@
   "ResourceForm": {
     "type": "ResourceForm",
     "options": {
+      "mode": "edit",
       "title": "Workspace record",
       "description": "A serialized resource form populated by a fixed demonstration record. Changes are not saved.",
       "fetchUrl": "/api/block-preview/fixtures/workspace",
