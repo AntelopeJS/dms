@@ -116,8 +116,8 @@ The DMS also needs an API module, a module implementing the database interface, 
 Create a project from the `template-dms-demo` template, which loads the DMS, its companion modules and Helio, a demo back office for a solar installer. It needs the Node.js and pnpm releases the template pins, and a MongoDB on `localhost:27017`.
 
 ```bash
-npx @antelopejs/core project init my-app --template dms-demo
-cd my-app
+npx @antelopejs/core project init dms-demo --template dms-demo
+cd dms-demo
 pnpm dev            # backend on http://localhost:5010
 ```
 
