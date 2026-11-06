@@ -53,6 +53,7 @@
     "!frontend-vue/pnpm-workspace.yaml",
     "skills",
     "data",
+    "!data/*.mmdb",
     "package.json",
     "README.md",
     "CHANGELOG.md",
