@@ -112,8 +112,8 @@ importers:
         specifier: '>=1.20.0 <2'
         version: 1.20.0
       '@antelopejs/tooling-configs':
-        specifier: 0.2.18
-        version: 0.2.18(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)
+        specifier: ^0.3.1
+        version: 0.3.1(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)
       '@types/archiver':
         specifier: ^6.0.4
         version: 6.0.4
@@ -610,40 +610,6 @@ packages:
     resolution: {integrity: sha512-lI1zcm2J13tP4D/QKmsdKFBRIzjZ/GdG4z27uaOp/3yKPA3RkH5YgpzFm9pgBa353UIhgZDuVkozFJcFkqewUA==}
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
-
-  '@antelopejs/tooling-configs@0.2.18':
-    resolution: {integrity: sha512-bLZ5u4GQUdatgN0+9tJjwv2WXUBApPslgBKb3h98GYK34U1Potxrv5VVldLwmx54+Ldu8EPOp4PShLZqw+SkJw==}
-    engines: {node: '>=22.18.0'}
-    hasBin: true
-    peerDependencies:
-      '@nuxt/eslint-config': '>=1.2.0'
-      eslint-plugin-perfectionist: '>=5.0.0'
-      knip: '>=6.0.0'
-      mongodb-memory-server: '>=10.0.0'
-      oxfmt: ^0.66.0
-      oxlint: 1.81.0
-      pixelmatch: '>=7.0.0'
-      playwright-core: '>=1.56.0'
-      sharp: '>=0.34.0'
-    peerDependenciesMeta:
-      '@nuxt/eslint-config':
-        optional: true
-      eslint-plugin-perfectionist:
-        optional: true
-      knip:
-        optional: true
-      mongodb-memory-server:
-        optional: true
-      oxfmt:
-        optional: true
-      oxlint:
-        optional: true
-      pixelmatch:
-        optional: true
-      playwright-core:
-        optional: true
-      sharp:
-        optional: true
 
   '@antelopejs/tooling-configs@0.3.1':
     resolution: {integrity: sha512-4pi0841CHC7FF+0M+iWLPgBtRVaM2hNAMsu177plCHfjH0d12iyM5GVajZi8OTw0ryAQkF8fywSI9hr1ypfKrw==}
@@ -6643,18 +6609,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
     optional: true
-
-  '@antelopejs/tooling-configs@0.2.18(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)':
-    dependencies:
-      '@oxlint/plugins': 1.81.0
-      dts-bundle-generator: 9.5.1
-      typescript: 5.9.3
-      yaml: 2.9.1
-    optionalDependencies:
-      knip: 6.34.0
-      oxfmt: 0.66.0
-      oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)
-      playwright-core: 1.56.1
 
   '@antelopejs/tooling-configs@0.3.1(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(playwright-core@1.56.1)':
     dependencies:
