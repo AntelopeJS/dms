@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.18.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.17.0...v0.18.0)
+
+### 🚀 Enhancements
+
+- **dms:** Read the sign-in country without a bundled database ([#776](https://github.com/AntelopeJS/dms/pull/776))
+
+### 🩹 Fixes
+
+- **dms-layout:** Re-export usePageHeaderActions by relative path so unimport scans it ([#777](https://github.com/AntelopeJS/dms/pull/777))
+
+### 📖 Documentation
+
+- **dms:** Explain what the AntelopeJS agent plugin unlocks, External database included ([#773](https://github.com/AntelopeJS/dms/pull/773))
+- **dms:** Mark the ResourceForm mode and the source tables in the docs examples ([#780](https://github.com/AntelopeJS/dms/pull/780))
+
+### 📦 Build
+
+- **deps:** Bump @antelopejs packages to the 2026-11-06 releases ([#781](https://github.com/AntelopeJS/dms/pull/781))
+
+### 🏡 Chore
+
+- **dms:** Commit the module locks the test runs record ([#775](https://github.com/AntelopeJS/dms/pull/775))
+- **ci:** Remove the weekly mutation caller ([#778](https://github.com/AntelopeJS/dms/pull/778))
+
+### 🤖 CI
+
+- Call ci-node.yml@v1 ([#779](https://github.com/AntelopeJS/dms/pull/779))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.17.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.16.2...v0.17.0)
