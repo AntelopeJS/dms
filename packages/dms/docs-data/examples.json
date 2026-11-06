@@ -1873,6 +1873,7 @@
   "ResourceForm": {
     "type": "ResourceForm",
     "options": {
+      "mode": "edit",
       "title": "Workspace record",
       "description": "A serialized resource form populated by a fixed demonstration record. Changes are not saved.",
       "fetchUrl": "/api/block-preview/fixtures/workspace",
@@ -6671,6 +6672,7 @@
   },
   "table-load-more": {
     "type": "TableView",
+    "factory": "TableView.fromSource",
     "options": {
       "location": "/docs-fixtures/events",
       "columns": [
@@ -7007,6 +7009,7 @@
   },
   "table-infinite": {
     "type": "TableView",
+    "factory": "TableView.fromSource",
     "options": {
       "location": "/docs-fixtures/events",
       "columns": [
@@ -7321,6 +7324,7 @@
   },
   "table-source-route": {
     "type": "TableView",
+    "factory": "TableView.fromSource",
     "options": {
       "location": "/docs-fixtures/events",
       "columns": [
@@ -7633,6 +7637,7 @@
   },
   "table-source-error": {
     "type": "TableView",
+    "factory": "TableView.fromSource",
     "options": {
       "location": "/docs-fixtures/unavailable",
       "columns": [
