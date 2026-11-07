@@ -12,8 +12,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { setTimeout as sleep } from "node:timers/promises";
 import { isDeepStrictEqual, promisify } from "node:util";
 import { KEPT_BUILDS, restoreBuild, storeBuild } from "./build-cache.mjs";
+import { buildChangedSince, existingBuildRoots } from "./build-inputs.mjs";
 import { write } from "./helpers/repo.mjs";
 import { namesIn, treeOf } from "./helpers/tree.mjs";
 
@@ -21,6 +23,7 @@ const exec = promisify(execFile);
 const FILES_PER_STORE = 400;
 const START_DELAY_MS = 500;
 const UNTOUCHABLE = "/proc/version";
+const CLOCK_STEP_MS = 20;
 
 const SOURCES = { "main.ts": "mount();\n" };
 const BUILT = {
@@ -79,6 +82,37 @@ await test("a stored build restores beside another run's sources, and outlives t
     restoreBuild(cache, "k1", prepared("again")),
     true,
     "restoring by moving the entry leaves nothing for the next run",
+  );
+});
+
+await test("a restore into a run's workspace is no change to the build its backends load; a rebuild after it still is", async (t) => {
+  const { dir, cache, build } = fixture(t);
+  assert.equal(storeBuild(cache, "k1", {}, build), null);
+  const moduleRoot = join(dir, "module");
+  const playground = join(moduleRoot, "playground");
+  write(join(moduleRoot, "dist", "index.js"), "serve();\n");
+  mkdirSync(join(playground, "node_modules"), { recursive: true });
+  const runPlayground = join(dir, "run", "playground");
+  write(join(runPlayground, "dist", "index.js"), "project();\n");
+  write(join(runPlayground, ".antelope", "build", "build.json"), "{}\n");
+  const workspace = join(runPlayground, ".dms-frontend");
+  write(join(workspace, "main.ts"), SOURCES["main.ts"]);
+  const run = { moduleRoot, playground, runPlayground, buildRoots: [""] };
+  run.buildRoots = existingBuildRoots(run);
+  await sleep(CLOCK_STEP_MS);
+  const standbyStartedAt = new Date().toISOString();
+  await sleep(CLOCK_STEP_MS);
+  assert.equal(restoreBuild(cache, "k1", workspace), true);
+  assert.equal(
+    buildChangedSince(run, standbyStartedAt),
+    null,
+    "a staleness check that reads the run's frontend workspace takes every restore for a rebuild, and no standby is ever promoted",
+  );
+  write(join(moduleRoot, "dist", "index.js"), "rebuilt();\n");
+  assert.equal(
+    buildChangedSince(run, standbyStartedAt),
+    `${join(moduleRoot, "dist", "index.js")} changed`,
+    "a hit that resets what the check compares against hides the module's rebuild, and the standby serves the old code",
   );
 });
 

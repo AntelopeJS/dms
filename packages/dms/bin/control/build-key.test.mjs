@@ -1,88 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import { buildInputs, buildKey, sourceNames } from "./build-key.mjs";
 import { setEnv } from "./helpers/env.mjs";
+import { fixture, keyOf } from "./helpers/key-fixture.mjs";
 import { write } from "./helpers/repo.mjs";
-
-/**
- * An installed dms-frontend, a checkout whose playground pnpm installed
- * (its `node_modules` links into the checkout root's store, whose lockfile
- * and install records sit beside it), and a project whose workspace a run
- * set up at `<run>/.dms-frontend` with its own web URL: a template, a
- * module's copied page, the registry the setup generated (which names the
- * workspace's folder and the run's URL), the install record, the lockfile
- * and the installed modules. The project's `node_modules` links to the
- * playground's, as the run's copy does.
- *
- * @param {import("node:test").TestContext} t The test
- */
-function fixture(t) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-build-key-test-"));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
-  const frontend = join(dir, "dms-frontend");
-  write(join(frontend, "package.json"), '{"version":"0.10.0"}');
-  write(join(frontend, "dist", "index.js"), "build();\n");
-  write(join(frontend, "templates", "vue", "main.ts"), "mount();\n");
-  const checkout = join(dir, "checkout");
-  write(join(checkout, "pnpm-lock.yaml"), "zod: 3.24.4\n");
-  write(join(checkout, "node_modules", ".pnpm", "lock.yaml"), "zod: 3.24.4\n");
-  write(
-    join(checkout, "node_modules", ".modules.yaml"),
-    "hoistedDependencies: {}\npendingBuilds:\n  - .\nprunedAt: Sat, 07 Nov 2026 01:24:21 GMT\nlayoutVersion: 5\n",
-  );
-  const modules = join(checkout, "playground", "node_modules");
-  write(join(modules, ".bin", "tsc"), "tsc\n");
-  write(join(modules, "@types", ".keep"), "");
-  symlinkSync(
-    "../../node_modules/.pnpm/zod@3.24.4/node_modules/zod",
-    join(modules, "zod"),
-  );
-  /**
-   * @param {string} name
-   * @param {number} port
-   */
-  const prepare = (name, port) => {
-    const project = join(dir, name);
-    const workspace = join(project, ".dms-frontend");
-    const webUrl = `http://127.0.0.1:${port}`;
-    write(join(project, "package.json"), "{}");
-    symlinkSync(modules, join(project, "node_modules"));
-    write(join(workspace, "main.ts"), "mount();\n");
-    write(
-      join(workspace, "frontend-modules", "layer", "page.vue"),
-      "<template>one</template>\n",
-    );
-    write(
-      join(workspace, "generated-frontend-modules.json"),
-      JSON.stringify({ root: join(workspace, "frontend-modules"), webUrl }),
-    );
-    write(join(workspace, ".deps-hash"), "a\n");
-    write(join(workspace, "pnpm-lock.yaml"), "vue: 3.5.0\n");
-    write(join(workspace, "node_modules", "vue", "index.js"), "vue();\n");
-    const run = { environment: "docs", extraEnv: {}, webUrl };
-    /** @type {import("./build-key.mjs").PreparedWorkspace} */
-    const prepared = {
-      project,
-      workspace,
-      names: sourceNames(workspace),
-      installed: workspace,
-    };
-    return { project, workspace, run, prepared };
-  };
-  return { dir, frontend, checkout, modules, prepare };
-}
-
-/**
- * @param {string} frontend
- * @param {{ run: import("./build-key.mjs").KeyedRun, prepared: import("./build-key.mjs").PreparedWorkspace }} side
- * @returns {string}
- */
-function keyOf(frontend, side) {
-  return buildKey(buildInputs(side.run, frontend, side.prepared));
-}
 
 await test("two runs that set up the same sources share a key, whatever their folders and web URLs", (t) => {
   const { frontend, prepare } = fixture(t);
@@ -391,9 +313,14 @@ await test("a linked workspace package is keyed by its files, without its instal
     "../../node_modules/.pnpm/vue@3.5.0/node_modules/vue",
     join(modules, "vue"),
   );
+  write(join(shared, "node_modules", ".bin", "vue"), "vue\n");
+  symlinkSync(
+    "../../../node_modules/.pnpm/vue@3.5.0/node_modules/vue",
+    join(shared, "node_modules", "vue"),
+  );
   const linked = keyOf(frontend, side);
   for (const path of [
-    join("node_modules", "dep", "index.js"),
+    join("node_modules", ".bin", "vue"),
     join(".git", "HEAD"),
     join(".antelope", "build", "build.json"),
     join(".dms-frontend", "dist", "index.html"),

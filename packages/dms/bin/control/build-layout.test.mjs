@@ -223,6 +223,31 @@ await test("without the cache, or when the workspace cannot be prepared, the run
   assert.equal(unprepared.served, "edited");
 });
 
+await test("an install record the key cannot read is a miss that builds as ajs dms build does, stores nothing and says why", async (t) => {
+  const { dir, up } = fixture(t);
+  const record = join(dir, "node_modules", ".modules.yaml");
+  write(record, "hoistPattern:\n  - '*'\nlayoutVersion: 5\n");
+  await up();
+  assert.equal((await up()).frontendBuild?.cached, true);
+  write(record, `${JSON.stringify({ hoistPattern: [], layoutVersion: 5 })}\n`);
+  const unread = await up();
+  assert.deepEqual(
+    unread.builds,
+    [false],
+    "a key that skips a record it cannot read restores the build of another layout",
+  );
+  assert.deepEqual(unread.frontendBuild, {
+    key: null,
+    cached: false,
+    reason: `its inputs could not be keyed (${record} is not the YAML layout the build cache reads (line 1))`,
+  });
+  assert.equal(
+    namesIn(join(dir, "xdg", "dms-control", "frontend")).length,
+    1,
+    "a build whose inputs were not all keyed is stored under no key",
+  );
+});
+
 await test("a build that refuses its prepared workspace builds again as ajs dms build does; a failing build fails the run once", async (t) => {
   const { dir, up } = fixture(t);
   const refused = await up({

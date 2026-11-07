@@ -256,6 +256,12 @@ export function storeBuild(cache, key, inputs, build) {
 async function prepareBuild(state, frontendPackage, steps, workspace) {
   try {
     await steps.prepare(workspace);
+  } catch (error) {
+    return {
+      reason: `its workspace could not be prepared (${describeFailure(error)})`,
+    };
+  }
+  try {
     /** @type {import("./build-key.mjs").PreparedWorkspace} */
     const prepared = {
       project: state.runPlayground ?? "",
@@ -267,7 +273,7 @@ async function prepareBuild(state, frontendPackage, steps, workspace) {
     return { prepared, inputs, key: buildKey(inputs) };
   } catch (error) {
     return {
-      reason: `its workspace could not be prepared (${describeFailure(error)})`,
+      reason: `its inputs could not be keyed (${describeFailure(error)})`,
     };
   }
 }
@@ -342,8 +348,9 @@ async function buildAsItIs(state, steps, workspace, reason) {
  * from the checkout later. The build is stored when the workspace's sources
  * still hash to the key once it is done. Without `useCache`, when the
  * workspace cannot be prepared, or when the build refuses it (it exits with
- * `PREPARED_WORKSPACE_REFUSED`), `steps.build(false)` runs `ajs dms build`
- * as it is and nothing is stored; any other failure of the build fails the
+ * `PREPARED_WORKSPACE_REFUSED`), or when its inputs cannot all be keyed
+ * (see `buildInputs`), `steps.build(false)` runs `ajs dms build` as it is
+ * and nothing is stored; any other failure of the build fails the
  * layout. Records the key, where the build came from and why the cache was
  * not used or filled in `state.frontendBuild`.
  *

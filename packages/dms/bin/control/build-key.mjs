@@ -7,14 +7,15 @@ import {
   readlinkSync,
   realpathSync,
 } from "node:fs";
-import { basename, dirname, join, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, sep } from "node:path";
 
 /**
  * @typedef {{ format: number, node: string, frontend: string, environment: string, env: string[], envFiles: string, sources: string, installed: string, outside: string }} BuildInputs Everything a frontend build reads, with the run's own values left out: the code of the dms-frontend that builds, the variables Vite bakes in, the project's `.env` files, the sources the workspace setup wrote, the versions its install resolved and the installs above the workspace a bare import can resolve from
  * @typedef {Pick<import("./run-state.mjs").RunState, "environment" | "extraEnv" | "webUrl" | "bakedEnv">} KeyedRun The fields of a run its build inputs depend on
  * @typedef {{ project: string, workspace: string, names: string[], installed: string }} PreparedWorkspace A workspace set up for a build: the project it was set up from, its folder, the entries the setup wrote there (see {@link sourceNames}) and the workspace whose install the build uses
  * @typedef {ReadonlyMap<string, (content: Buffer) => Buffer>} Rewrites What a file is keyed as instead of its content, by path
- * @typedef {{ rewrites: Rewrites, skipped: ReadonlySet<string> }} Walk How a folder is keyed: what its files are keyed as (see {@link Rewrites}) and the entry names left out at every depth
+ * @typedef {{ rewrites: Rewrites, skipped: ReadonlySet<string>, links?: string[], installs?: string[] }} Walk How a folder is keyed: what its files are keyed as (see {@link Rewrites}), the entry names left out at every depth, and, for a package above the workspace, where to collect the links it holds and the `node_modules` folders it leaves out
+ * @typedef {{ linked: Map<string, string>, links: string[], installs: string[] }} Outside What keying the installs above a workspace read: the content hash of each linked folder by its real path, the links met inside a linked or copied package, and the `node_modules` folders of linked packages, which the key does not read file by file
  */
 
 const FORMAT = 5;
@@ -51,6 +52,7 @@ const LAYOUT_FIELDS = new Set([
   "virtualStoreDirMaxLength",
 ]);
 const TOP_LEVEL_FIELD = /^[^\s-]/u;
+const FIELD_LINE = /^[A-Za-z][\w-]*:(?: |$)/u;
 
 /** The folder `ajs dms build` builds in, in the project. */
 export const WORKSPACE_FOLDER = ".dms-frontend";
@@ -118,6 +120,7 @@ function hashEntry(hash, path, walk) {
   if (!stat) {
     hash.update("missing\0");
   } else if (stat.isSymbolicLink()) {
+    walk.links?.push(path);
     const link = Buffer.from(readlinkSync(path));
     hash.update(`link ${link.length}\0`).update(link);
   } else if (stat.isDirectory()) {
@@ -139,7 +142,10 @@ function hashEntry(hash, path, walk) {
  */
 function hashNames(hash, folder, names, walk) {
   for (const name of [...names].sort()) {
-    if (walk.skipped.has(name)) continue;
+    if (walk.skipped.has(name)) {
+      if (name === MODULES_FOLDER) walk.installs?.push(join(folder, name));
+      continue;
+    }
     hash.update(`${name}\0`);
     hashEntry(hash, join(folder, name), walk);
   }
@@ -168,31 +174,116 @@ function hashFolder(folder, names, walk = SOURCES) {
  *
  * @param {import("node:crypto").Hash} hash
  * @param {string} path The entry
- * @param {Map<string, string>} linked The content hash of each linked folder read so far, by its real path
+ * @param {Outside} outside What keying the installs above the workspace read so far
  */
-function hashInstalled(hash, path, linked) {
+function hashInstalled(hash, path, outside) {
   const stat = lstatSync(path, { throwIfNoEntry: false });
   if (stat?.isDirectory() && basename(path).startsWith("@")) {
     hash.update("scope\0");
     for (const name of readdirSync(path).sort()) {
       hash.update(`${name}\0`);
-      hashInstalled(hash, join(path, name), linked);
+      hashInstalled(hash, join(path, name), outside);
     }
     hash.update("end\0");
     return;
   }
+  if (!stat?.isSymbolicLink()) {
+    hashEntry(hash, path, { ...COPIED_PACKAGE, links: outside.links });
+    return;
+  }
   hashEntry(hash, path, COPIED_PACKAGE);
-  if (!stat?.isSymbolicLink() || !existsSync(path)) return;
+  if (!existsSync(path)) return;
   const target = realpathSync(path);
-  if (target.split(sep).includes(VIRTUAL_STORE)) return;
-  let digest = linked.get(target);
+  if (inVirtualStore(target)) return;
+  let digest = outside.linked.get(target);
   if (digest === undefined) {
     const content = createHash("sha256");
-    hashEntry(content, target, LINKED_PACKAGE);
+    hashEntry(content, target, { ...LINKED_PACKAGE, ...outside });
     digest = content.digest("hex");
-    linked.set(target, digest);
+    outside.linked.set(target, digest);
   }
   hash.update(`linked ${digest}\0`);
+}
+
+/**
+ * @param {string} path A real path
+ * @returns {boolean}
+ */
+function inVirtualStore(path) {
+  return path.split(sep).includes(VIRTUAL_STORE);
+}
+
+/**
+ * The packages at the top of a `node_modules` and in its scope folders, dot
+ * entries such as `.bin` left out.
+ *
+ * @param {string} modules A `node_modules` folder
+ * @returns {string[]} Their paths
+ */
+function packagesIn(modules) {
+  return readdirSync(modules)
+    .filter((name) => !name.startsWith("."))
+    .flatMap((name) => {
+      const path = join(modules, name);
+      return name.startsWith("@") && lstatSync(path).isDirectory()
+        ? readdirSync(path).map((scoped) => join(path, scoped))
+        : [path];
+    });
+}
+
+/**
+ * Whether the key reads what `target` holds: a package of pnpm's virtual
+ * store, which the install records cover, or a file or folder inside a
+ * linked folder the key hashed, outside the entries it leaves out there.
+ *
+ * @param {string} target A real path
+ * @param {Iterable<string>} linked The linked folders the key hashed
+ * @returns {boolean}
+ */
+function isKeyed(target, linked) {
+  if (inVirtualStore(target)) return true;
+  for (const folder of linked) {
+    const inside = relative(folder, target);
+    if (isAbsolute(inside) || inside.split(sep)[0] === "..") continue;
+    if (!inside.split(sep).some((name) => LINKED_PACKAGE.skipped.has(name))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Refuses installs above the workspace that a build can resolve through
+ * while the key does not read them: a package copied by hand into the
+ * `node_modules` of a linked package, and a link, inside a linked or copied
+ * package or in a linked package's `node_modules`, to a folder the key does
+ * not hash (a workspace package linked only from inside a linked one, or a
+ * file outside every keyed package). A dangling link resolves nothing.
+ *
+ * @param {Outside} outside What keying the installs read
+ * @throws When the build can resolve through such an entry, naming it
+ */
+function assertKeyed(outside) {
+  const links = [...outside.links];
+  for (const modules of outside.installs) {
+    for (const path of packagesIn(modules)) {
+      if (!lstatSync(path).isSymbolicLink()) {
+        throw new Error(
+          `${path} is a package copied into a linked package's node_modules, which the build cache does not key`,
+        );
+      }
+      links.push(path);
+    }
+  }
+  for (const link of links) {
+    if (!existsSync(link)) continue;
+    const target = realpathSync(link);
+    if (!isKeyed(target, outside.linked.keys())) {
+      throw new Error(
+        `${link} links to ${target}, which the build cache does not key`,
+      );
+    }
+  }
 }
 
 /**
@@ -210,15 +301,30 @@ function upFrom(folder) {
 }
 
 /**
- * @param {string} path
- * @returns {string}
+ * The content of an install record the key reads. Of `.modules.yaml`, only
+ * the fields that say what pnpm linked where.
+ *
+ * @param {string} path The record
+ * @returns {string} What the key hashes
+ * @throws When `.modules.yaml` is not the YAML of top-level fields pnpm 10 writes (pnpm 12 writes JSON), since its layout fields could not be told apart
  */
 function installRecord(path) {
   const content = readFileSync(path, "utf8");
   if (!path.endsWith(MODULES_RECORD)) return content;
+  const lines = content.split("\n");
+  const unread = lines.findIndex(
+    (line) => TOP_LEVEL_FIELD.test(line) && !FIELD_LINE.test(line),
+  );
+  if (
+    unread !== -1 ||
+    !lines.some((line) => line.startsWith("layoutVersion:"))
+  ) {
+    throw new Error(
+      `${path} is not the YAML layout the build cache reads (${unread === -1 ? "no layoutVersion field" : `line ${unread + 1}`})`,
+    );
+  }
   let layout = false;
-  return content
-    .split("\n")
+  return lines
     .filter((line) => {
       if (TOP_LEVEL_FIELD.test(line)) {
         layout = LAYOUT_FIELDS.has(line.slice(0, line.indexOf(":")));
@@ -236,27 +342,34 @@ function installRecord(path) {
  * (`pnpm-lock.yaml`, `node_modules/.pnpm/lock.yaml`, and the fields of
  * `node_modules/.modules.yaml` that describe what pnpm linked where, not how
  * or when it last installed) of the folder it resolves to and of every
- * folder above that.
+ * folder above that, and of each `node_modules` of a linked package.
  *
  * @param {string} workspace The workspace
  * @returns {string} A sha256, in hex
+ * @throws When the build can resolve through an install the key does not read (see `assertKeyed`), or `.modules.yaml` cannot be read (see `installRecord`)
  */
 function hashOutsideInstalls(workspace) {
   const hash = createHash("sha256");
-  /** @type {Map<string, string>} */
-  const records = new Map();
-  /** @type {Map<string, string>} */
-  const linked = new Map();
+  /** @type {Outside} */
+  const outside = { linked: new Map(), links: [], installs: [] };
+  /** @type {string[]} */
+  const reached = [];
   for (const folder of upFrom(dirname(workspace))) {
     const modules = join(folder, MODULES_FOLDER);
     if (!existsSync(modules)) continue;
+    reached.push(modules);
     hash.update("modules\0");
     for (const name of readdirSync(modules).sort()) {
       if (name.startsWith(".")) continue;
       hash.update(`${name}\0`);
-      hashInstalled(hash, join(modules, name), linked);
+      hashInstalled(hash, join(modules, name), outside);
     }
     hash.update("end\0");
+  }
+  assertKeyed(outside);
+  /** @type {Map<string, string>} */
+  const records = new Map();
+  for (const modules of [...reached, ...outside.installs]) {
     for (const owner of upFrom(dirname(realpathSync(modules)))) {
       for (const name of INSTALL_RECORDS) {
         const record = join(owner, name);
@@ -317,6 +430,7 @@ export function bakedVariables(env) {
  * @param {string} frontendPackage The `@antelopejs/dms-frontend` folder that builds
  * @param {PreparedWorkspace} prepared The workspace, right after its setup
  * @returns {BuildInputs} The inputs
+ * @throws When the build can resolve through an install above the workspace that the key does not read, such as a package copied into a linked package's `node_modules`, or a `.modules.yaml` it cannot read
  */
 export function buildInputs(run, frontendPackage, prepared) {
   const { project, workspace, names, installed } = prepared;
