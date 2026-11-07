@@ -218,13 +218,14 @@ Enable the preview with `docsPreview: true` or `DMS_DOCS_PREVIEW=1`, as the play
 The default frontend URL is `http://localhost:3001`; `DMS_PREVIEW_URL` overrides it.
 
 ```bash
-pnpm --dir packages/dms docs:screenshots [--base-url <url>] [--only <id,...>]
+pnpm --dir packages/dms docs:screenshots [--base-url <url>] [--only <id,...>] [--concurrency <n>]
 ```
 
 | Flag | Meaning | Default |
 | --- | --- | --- |
 | `--base-url` | DMS frontend URL | `DMS_PREVIEW_URL`, then `http://localhost:3001` |
 | `--only` | Comma-separated example IDs | All examples |
+| `--concurrency` | Captures in flight on the one browser, each in its own context | `DMS_SCREENSHOT_CONCURRENCY`, then 4 |
 
 ### Check realtime connections across tabs
 

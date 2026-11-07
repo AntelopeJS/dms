@@ -18,6 +18,7 @@ const DEVICE_SCALE_FACTOR = 2;
 const READY_TIMEOUT_MS = 30_000;
 const SETTLE_MS = 1_500;
 const BYTES_PER_KILOBYTE = 1024;
+const DEFAULT_CONCURRENCY = 4;
 const PREVIEW_SELECTOR = "[data-dms-block-preview]";
 const BLOCK_SELECTOR = "[data-dms-preview-block]";
 const ISSUE_SELECTOR = "[data-dms-preview-issue]";
@@ -33,16 +34,33 @@ const outputDir = join(packageRoot, "docs", "images", "blocks");
 /** @typedef {ReturnType<typeof readExamples>[number]} Entry */
 /** @typedef {{ type: unknown, options: unknown, children: unknown, width: number | undefined }} Example */
 
+/**
+ * @param {string | undefined} value
+ * @returns {number}
+ */
+function readConcurrency(value) {
+  if (value === undefined) return DEFAULT_CONCURRENCY;
+  const concurrency = Number(value);
+  if (!Number.isInteger(concurrency) || concurrency < 1) {
+    throw new RangeError(`concurrency must be a positive integer: ${value}`);
+  }
+  return concurrency;
+}
+
 function readOptions() {
   const { values } = parseArgs({
     options: {
       "base-url": { type: "string" },
+      concurrency: { type: "string" },
       only: { type: "string" },
     },
   });
   return {
     baseUrl:
       values["base-url"] ?? process.env.DMS_PREVIEW_URL ?? DEFAULT_BASE_URL,
+    concurrency: readConcurrency(
+      values.concurrency ?? process.env.DMS_SCREENSHOT_CONCURRENCY,
+    ),
     only: values.only ? new Set(values.only.split(",")) : undefined,
   };
 }
@@ -141,6 +159,9 @@ function report(path) {
 }
 
 /**
+ * Captures the examples with up to `options.concurrency` captures in flight
+ * on the one browser. Each capture keeps its own context, so a worker shares
+ * nothing with the others but the queue.
  * @param {Browser} browser
  * @param {Options} options
  * @param {Entry[]} examples
@@ -148,13 +169,18 @@ function report(path) {
 async function captureAll(browser, options, examples) {
   /** @type {string[]} */
   const failures = [];
-  for (const entry of examples) {
-    try {
-      report(await capture(browser, options.baseUrl, entry));
-    } catch (error) {
-      failures.push(`${entry[0]}: ${error.message}`);
+  const queue = examples.values();
+  const worker = async () => {
+    for (const entry of queue) {
+      try {
+        report(await capture(browser, options.baseUrl, entry));
+      } catch (error) {
+        failures.push(`${entry[0]}: ${error.message}`);
+      }
     }
-  }
+  };
+  const workers = Math.min(options.concurrency, examples.length);
+  await Promise.all(Array.from({ length: workers }, worker));
   return failures;
 }
 

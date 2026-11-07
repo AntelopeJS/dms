@@ -1,9 +1,11 @@
 import { appendFileSync, writeFileSync } from "node:fs";
+import { setTimeout } from "node:timers/promises";
 
 const LOG = "fake-browser.log";
+const PAGE_LOAD_MS = 20;
 
 /**
- * @param {{ width: number } | { url: string }} entry
+ * @param {{ width: number } | { url: string } | { peak: number }} entry
  * @returns {void}
  */
 function record(entry) {
@@ -18,10 +20,14 @@ const locator = {
   },
 };
 
+let open = 0;
+let peak = 0;
+
 const page = {
   /** @param {string} url */
   goto: async (url) => {
     record({ url });
+    await setTimeout(PAGE_LOAD_MS);
   },
   waitForSelector: async () => {},
   waitForFunction: async () => {},
@@ -32,13 +38,18 @@ const page = {
 
 const context = {
   newPage: async () => page,
-  close: async () => {},
+  close: async () => {
+    open -= 1;
+    record({ peak });
+  },
 };
 
 const browser = {
   /** @param {{ viewport: { width: number } }} options */
   newContext: async ({ viewport }) => {
     record({ width: viewport.width });
+    open += 1;
+    peak = Math.max(peak, open);
     return context;
   },
   close: async () => {},
