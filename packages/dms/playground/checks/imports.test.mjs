@@ -4,13 +4,18 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import nodePath from "node:path";
 import { test } from "node:test";
-import { checkFixture, fixturePath, root } from "./fixtures.mjs";
+import {
+  assertAccepted,
+  assertRejected,
+  fixturePath,
+  root,
+} from "./fixtures.mjs";
 
 const scanner = nodePath.join(import.meta.dirname, "aliases.cjs");
 
+/** @typedef {[path: string, source: string, failures?: number | null]} Fixture */
+
 await test("checks resolved import targets regardless of expression spelling or Vue source form", (t) => {
-  const baseline = spawnSync(process.execPath, [scanner], { encoding: "utf8" });
-  assert.equal(baseline.status, 0, baseline.stderr);
   const id = `__import_guard_${randomUUID().replaceAll("-", "")}`;
   const hidden = nodePath.join(
     root,
@@ -48,16 +53,15 @@ await test("checks resolved import targets regardless of expression spelling or 
       client: true,
     },
   ];
+  /** @type {Fixture[]} */
+  const rejected = [];
+  /** @type {Fixture[]} */
+  const accepted = [];
   for (const context of contexts) {
-    const path = nodePath.join(
-      root,
-      context.path,
-      `${id}.${context.extension}`,
-    );
     const ownDist = context.client ? `../../dist/${id}` : `../dist/${id}`;
     const backend = context.client ? "../../../src/index" : "../../src/index";
-    checkFixture(
-      path,
+    rejected.push([
+      fixturePath(context.path, context.extension),
       context.wrap(
         [
           `require((${JSON.stringify(ownDist)} satisfies string));`,
@@ -68,161 +72,149 @@ await test("checks resolved import targets regardless of expression spelling or 
           "import(unknownSpecifier);",
         ].join("\n"),
       ),
-      false,
       6,
-    );
+    ]);
     const control = context.client
       ? 'require(("#dms-core/app/utils/http-status" satisfies string));'
       : 'require(("./sections" satisfies string));';
-    checkFixture(
-      path,
+    accepted.push([
+      fixturePath(context.path, context.extension),
       context.wrap(control + '\nimport "@antelopejs/interface-dms/page";'),
-      true,
-    );
+    ]);
     if (!context.client) {
-      checkFixture(
-        path,
+      rejected.push([
+        fixturePath(context.path, context.extension),
         'require(("#dms-core/app/utils/http-status" satisfies string));',
-        false,
-      );
+      ]);
     }
   }
-  const vue = nodePath.join(root, "frontend-vue/app", `${id}.vue`);
-  checkFixture(
-    vue,
-    '<script lang="ts" src="#dms-core/../../../src/index"></script>',
-    false,
+  rejected.push(
+    [
+      fixturePath("frontend-vue/app", "vue"),
+      '<script lang="ts" src="#dms-core/../../../src/index"></script>',
+    ],
+    [
+      fixturePath("frontend-vue/app", "vue"),
+      '<script lang="ts" src="#dms-core/app/utils/http-status"></script>',
+    ],
   );
-  checkFixture(
-    vue,
-    '<script lang="ts" src="#dms-core/app/utils/http-status"></script>',
-    false,
-  );
+  assertRejected(rejected);
+  assertAccepted(accepted);
 });
 
 await test("rejects client import.meta.glob access to backend and interface sources", () => {
-  const path = fixturePath("frontend-vue/app");
-  for (const pattern of [
-    "../../../src/**/*.ts",
-    "../../../../interface-dms/src/**/*.ts",
-  ]) {
-    const result = checkFixture(
-      path,
-      `import.meta.glob(${JSON.stringify(pattern)});`,
-      false,
-      null,
-    );
-    assert.equal(result.status, 1);
-  }
-  checkFixture(
-    path,
-    [
-      'import "#dms-core/app/utils/http-status";',
-      'import "@antelopejs/interface-dms/page";',
-      'import "./composables/usePageSetupLog";',
-      'import.meta.glob("./composables/*.ts");',
-    ].join("\n"),
-    true,
+  assertRejected(
+    ["../../../src/**/*.ts", "../../../../interface-dms/src/**/*.ts"].map(
+      (pattern) => [
+        fixturePath("frontend-vue/app"),
+        `import.meta.glob(${JSON.stringify(pattern)});`,
+        null,
+      ],
+    ),
   );
+  assertAccepted([
+    [
+      fixturePath("frontend-vue/app"),
+      [
+        'import "#dms-core/app/utils/http-status";',
+        'import "@antelopejs/interface-dms/page";',
+        'import "./composables/usePageSetupLog";',
+        'import.meta.glob("./composables/*.ts");',
+      ].join("\n"),
+    ],
+  ]);
 });
 
 await test("rejects client new URL access to backend source through import.meta.url", () => {
-  const result = checkFixture(
-    fixturePath("frontend-vue/app"),
-    'new URL("../../../src/index.ts", import.meta.url);',
-    false,
-    null,
-  );
-  assert.equal(result.status, 1);
+  assertRejected([
+    [
+      fixturePath("frontend-vue/app"),
+      'new URL("../../../src/index.ts", import.meta.url);',
+      null,
+    ],
+  ]);
 });
 
 await test("rejects wrapped client relative dynamic imports into shared Vue layers", () => {
-  const result = checkFixture(
-    fixturePath("frontend-vue/app"),
-    'import(("../../../frontend-vue/layers/dms-core/app/utils/http-status" satisfies string));',
-    false,
-    null,
-  );
-  assert.equal(result.status, 1);
+  assertRejected([
+    [
+      fixturePath("frontend-vue/app"),
+      'import(("../../../frontend-vue/layers/dms-core/app/utils/http-status" satisfies string));',
+      null,
+    ],
+  ]);
 });
 
 await test("rejects server module.require and require.resolve access to own dist", (t) => {
-  const path = fixturePath("src");
   const id = `__import_guard_${randomUUID().replaceAll("-", "")}`;
   const dist = nodePath.join(root, "dist", `${id}.js`);
   mkdirSync(nodePath.dirname(dist), { recursive: true });
   writeFileSync(dist, "module.exports = 1;\n");
   t.after(() => rmSync(dist));
-  for (const loader of ["module.require", "require.resolve"]) {
-    const result = checkFixture(
-      path,
-      `${loader}("../dist/${id}.js");`,
-      false,
-      null,
-    );
-    assert.equal(result.status, 1);
-  }
-  for (const source of [
-    `const load = require; load("../dist/${id}.js");`,
-    `const key = "require"; globalThis[key]("../dist/${id}.js");`,
-    `import.meta.resolve("../dist/${id}.js");`,
-    `const glob = import.meta.glob; glob("../dist/*.js");`,
-  ]) {
-    checkFixture(path, source, false, null);
-  }
+  assertRejected(
+    [
+      `module.require("../dist/${id}.js");`,
+      `require.resolve("../dist/${id}.js");`,
+      `const load = require; load("../dist/${id}.js");`,
+      `const key = "require"; globalThis[key]("../dist/${id}.js");`,
+      `import.meta.resolve("../dist/${id}.js");`,
+      `const glob = import.meta.glob; glob("../dist/*.js");`,
+    ].map((source) => [fixturePath("src"), source, null]),
+  );
 });
 
 await test("rejects same-tier and upward chart imports through wrapped require", () => {
-  const path = fixturePath("src/chart");
-  for (const target of ["../quick-actions", "../index"]) {
-    const result = checkFixture(
-      path,
-      `require((${JSON.stringify(target)} satisfies string));`,
-      false,
-      null,
-    );
-    assert.equal(result.status, 1);
-    checkFixture(path, `(0, require)(${JSON.stringify(target)});`, false, null);
-  }
-  checkFixture(path, 'require(("./category" satisfies string));', true);
+  assertRejected(
+    ["../quick-actions", "../index"].flatMap((target) => [
+      [
+        fixturePath("src/chart"),
+        `require((${JSON.stringify(target)} satisfies string));`,
+        null,
+      ],
+      [
+        fixturePath("src/chart"),
+        `(0, require)(${JSON.stringify(target)});`,
+        null,
+      ],
+    ]),
+  );
+  assertAccepted([
+    [fixturePath("src/chart"), 'require(("./category" satisfies string));'],
+  ]);
 });
 
 await test("rejects server type imports from the client frontend-module package", () => {
-  const result = checkFixture(
-    fixturePath("src"),
-    'import type * as FrontendModule from "@antelopejs/dms-frontend/templates/vue/frontend-module.ts";',
-    false,
-    null,
-  );
-  assert.equal(result.status, 1);
+  assertRejected([
+    [
+      fixturePath("src"),
+      'import type * as FrontendModule from "@antelopejs/dms-frontend/templates/vue/frontend-module.ts";',
+      null,
+    ],
+  ]);
 });
 
 await test("rejects backend loaders in Vue templates rather than scanning only scripts", () => {
-  const path = fixturePath("frontend-vue/app").replace(/\.ts$/, ".vue");
-  for (const source of [
-    `<template><button @click="() => import('../../../src/index.ts')">Load</button></template>`,
-    `<template><div>{{ require('../../../src/index.ts') }}</div></template>`,
-    `<template><div v-if="require('../../../src/index.ts')">Load</div></template>`,
-    `<template><div :title="import('../../../src/index.ts')">Load</div></template>`,
-    '<template src="../../../src/index.ts"></template>',
-  ]) {
-    const result = checkFixture(path, source, false, null);
-    assert.equal(result.status, 1);
-  }
-  for (const target of [
-    "./composables/usePageSetupLog",
-    "#dms-core/app/utils/http-status",
-  ]) {
-    checkFixture(
-      path,
-      `<template>
+  assertRejected(
+    [
+      `<template><button @click="() => import('../../../src/index.ts')">Load</button></template>`,
+      `<template><div>{{ require('../../../src/index.ts') }}</div></template>`,
+      `<template><div v-if="require('../../../src/index.ts')">Load</div></template>`,
+      `<template><div :title="import('../../../src/index.ts')">Load</div></template>`,
+      '<template src="../../../src/index.ts"></template>',
+    ].map((source) => [fixturePath("frontend-vue/app", "vue"), source, null]),
+  );
+  assertAccepted(
+    ["./composables/usePageSetupLog", "#dms-core/app/utils/http-status"].map(
+      (target) => [
+        fixturePath("frontend-vue/app", "vue"),
+        `<template>
         <button @click="() => import('${target}')">Load</button>
         <div>{{ require('${target}') }}</div>
         <div v-if="require('${target}')" :title="import('${target}')">Load</div>
       </template>`,
-      true,
-    );
-  }
+      ],
+    ),
+  );
 });
 
 await test("rejects scanned file symlinks instead of canonicalizing chart imports into quick-actions", (t) => {
@@ -244,44 +236,48 @@ await test("rejects scanned file symlinks instead of canonicalizing chart import
 });
 
 await test("rejects external Vue scripts rather than accepting uninspected contents", (t) => {
-  const vue = fixturePath("frontend-vue/app").replace(/\.ts$/, ".vue");
+  const vue = fixturePath("frontend-vue/app", "vue");
   const script = vue.replace(/\.vue$/, ".inc");
   t.after(() => rmSync(script, { force: true }));
   writeFileSync(script, 'import "../../../src/index.ts"; export default {};\n');
-  const result = checkFixture(
-    vue,
-    `<script lang="js" src="./${script.split("/").at(-1)}"></script><template><div>Probe</div></template>`,
-    false,
-    null,
-  );
-  assert.equal(result.status, 1);
+  assertRejected([
+    [
+      vue,
+      `<script lang="js" src="./${script.split("/").at(-1)}"></script><template><div>Probe</div></template>`,
+      null,
+    ],
+  ]);
 });
 
 await test("rejects source edges into every directory skipped by the scanner", (t) => {
-  const path = fixturePath("frontend-vue/app");
-  const directory = path.replace(/\.ts$/, "");
+  const directory = fixturePath("frontend-vue/app").replace(/\.ts$/, "");
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  for (const skipped of [".nuxt", ".output", "dist", "node_modules"]) {
-    const hidden = nodePath.join(directory, skipped, "hidden.ts");
-    mkdirSync(nodePath.dirname(hidden), { recursive: true });
-    writeFileSync(hidden, 'import "../../../../../src/index.ts";\n');
-    const result = checkFixture(
-      path,
-      `import "./${directory.split("/").at(-1)}/${skipped}/hidden.ts";`,
-      false,
-      null,
-    );
-    assert.equal(result.status, 1);
-  }
-  checkFixture(path, 'import "./composables/usePageSetupLog";', true);
+  assertRejected(
+    [".nuxt", ".output", "dist", "node_modules"].map((skipped) => {
+      const hidden = nodePath.join(directory, skipped, "hidden.ts");
+      mkdirSync(nodePath.dirname(hidden), { recursive: true });
+      writeFileSync(hidden, 'import "../../../../../src/index.ts";\n');
+      return [
+        fixturePath("frontend-vue/app"),
+        `import "./${directory.split("/").at(-1)}/${skipped}/hidden.ts";`,
+        null,
+      ];
+    }),
+  );
+  assertAccepted([
+    [
+      fixturePath("frontend-vue/app"),
+      'import "./composables/usePageSetupLog";',
+    ],
+  ]);
 });
 
 await test("checks JSX loaders with the declared script kind and rejects parse recovery", () => {
+  /** @type {Fixture[]} */
+  const rejected = [];
+  /** @type {Fixture[]} */
+  const accepted = [];
   for (const extension of ["tsx", "jsx"]) {
-    const path = fixturePath("frontend-vue/app").replace(
-      /\.ts$/,
-      `.${extension}`,
-    );
     const specifiers = [
       '("../../../src/index.ts")',
       '"../../../src/" + "index.ts"',
@@ -290,39 +286,39 @@ await test("checks JSX loaders with the declared script kind and rejects parse r
       specifiers.push('("../../../src/index.ts" satisfies string)');
     for (const specifier of specifiers) {
       const source = `export const value = <div>{import(${specifier})}</div>;`;
-      const result = checkFixture(path, source, false, null);
-      assert.equal(result.status, 1);
-      checkFixture(
-        path.replace(/\.[jt]sx$/, ".vue"),
-        `<script lang="${extension}">${source}</script>`,
-        false,
-        null,
+      rejected.push(
+        [fixturePath("frontend-vue/app", extension), source, null],
+        [
+          fixturePath("frontend-vue/app", "vue"),
+          `<script lang="${extension}">${source}</script>`,
+          null,
+        ],
       );
     }
-    checkFixture(
-      path,
-      'export const value = <div>{import("./composables/usePageSetupLog")}</div>;',
-      true,
-    );
-    checkFixture(
-      path.replace(/\.[jt]sx$/, ".vue"),
-      `<script lang="${extension}">export const value = <div>{import("./composables/usePageSetupLog")}</div>;</script>`,
-      true,
+    const source =
+      'export const value = <div>{import("./composables/usePageSetupLog")}</div>;';
+    accepted.push(
+      [fixturePath("frontend-vue/app", extension), source],
+      [
+        fixturePath("frontend-vue/app", "vue"),
+        `<script lang="${extension}">${source}</script>`,
+      ],
     );
   }
-  const path = fixturePath("frontend-vue/app");
-  checkFixture(path, "export const incomplete = ;", false, null);
-  checkFixture(
-    path.replace(/\.ts$/, ".vue"),
-    '<script lang="ts">export const incomplete = ;</script>',
-    false,
-    null,
-  );
+  assertRejected(rejected);
+  assertAccepted(accepted);
+  assertRejected([
+    [fixturePath("frontend-vue/app"), "export const incomplete = ;", null],
+    [
+      fixturePath("frontend-vue/app", "vue"),
+      '<script lang="ts">export const incomplete = ;</script>',
+      null,
+    ],
+  ]);
 });
 
 await test("rejects uninspected Vite inc targets even beside a TypeScript shadow", (t) => {
-  const path = fixturePath("frontend-vue/app");
-  const bridge = path.replace(/\.ts$/, ".inc");
+  const bridge = fixturePath("frontend-vue/app", "inc");
   const shadow = `${bridge}.ts`;
   const fragment = `${bridge}#shadow.ts`;
   const encoded = `${bridge}%23shadow.ts`;
@@ -339,51 +335,40 @@ await test("rejects uninspected Vite inc targets even beside a TypeScript shadow
   writeFileSync(shadow, "export {};\n");
   writeFileSync(fragment, "export {};\n");
   writeFileSync(encoded, "export {};\n");
-  const result = checkFixture(
-    path,
-    `export * from "./${bridge.split("/").at(-1)}";`,
-    false,
+  assertRejected(
+    [bridge, fragment, encoded].map((target) => [
+      fixturePath("frontend-vue/app"),
+      `export * from "./${target.split("/").at(-1)}";`,
+    ]),
   );
-  assert.equal(result.status, 1);
-  for (const target of [fragment, encoded])
-    checkFixture(path, `export * from "./${target.split("/").at(-1)}";`, false);
 });
 
 await test("rejects uninspected Node inc targets that can execute backend code", (t) => {
-  const path = fixturePath("src").replace(/\.ts$/, ".cjs");
-  const bridge = path.replace(/\.cjs$/, ".inc");
+  const bridge = fixturePath("src", "inc");
   t.after(() => rmSync(bridge, { force: true }));
   writeFileSync(
     bridge,
     'module.exports = require("../../src/utils/run-in-batches.ts");',
   );
-  const result = checkFixture(
-    path,
-    `require("./${bridge.split("/").at(-1)}");`,
-    false,
-  );
-  assert.equal(result.status, 1);
+  assertRejected([
+    [fixturePath("src", "cjs"), `require("./${bridge.split("/").at(-1)}");`],
+  ]);
 });
 
 await test("rejects extensionless executable targets rather than trusting their local path", (t) => {
-  const path = fixturePath("src").replace(/\.ts$/, ".cjs");
-  const bridge = path.replace(/\.cjs$/, "");
+  const bridge = fixturePath("src").replace(/\.ts$/, "");
   t.after(() => rmSync(bridge, { force: true }));
   writeFileSync(
     bridge,
     'module.exports = require("../../src/utils/run-in-batches.ts");',
   );
-  const result = checkFixture(
-    path,
-    `require("./${bridge.split("/").at(-1)}");`,
-    false,
-  );
-  assert.equal(result.status, 1);
+  assertRejected([
+    [fixturePath("src", "cjs"), `require("./${bridge.split("/").at(-1)}");`],
+  ]);
 });
 
 await test("permits inert target kinds without treating Node require as a Vite asset loader", (t) => {
-  const path = fixturePath("frontend-vue/app");
-  const prefix = path.replace(/\.ts$/, "");
+  const prefix = fixturePath("frontend-vue/app").replace(/\.ts$/, "");
   const sources = new Map([
     [".json", '{"ok":true}'],
     [".inc", 'require("../../../src/utils/run-in-batches.ts");'],
@@ -395,25 +380,22 @@ await test("permits inert target kinds without treating Node require as a Vite a
   for (const [suffix, source] of sources)
     writeFileSync(prefix + suffix, source);
   const name = prefix.split("/").at(-1);
-  const result = checkFixture(
-    path,
-    `import "./${name}.json"; import "./${name}.inc?raw"; import "./${name}.inc?url"; require("./${name}.json");`,
-    true,
+  assertAccepted(
+    [
+      `import "./${name}.json"; import "./${name}.inc?raw"; import "./${name}.inc?url"; require("./${name}.json");`,
+      `import.meta.glob("./${name}.inc", { query: "?raw" });`,
+    ].map((source) => [fixturePath("frontend-vue/app"), source]),
   );
-  assert.equal(result.status, 0);
-  checkFixture(
-    path,
-    `import.meta.glob("./${name}.inc", { query: "?raw" });`,
-    true,
+  assertRejected(
+    [
+      `import "./${name}.inc?raw&unmodeled";`,
+      'import "../../../src/utils/run-in-batches.ts?raw";',
+      ...[".css", ".inc?raw", ".inc?url"].map(
+        (suffix) => `require("./${name}${suffix}");`,
+      ),
+      `import asset = require("./${name}.css");`,
+    ].map((source) => [fixturePath("frontend-vue/app"), source]),
   );
-  for (const specifier of [
-    `./${name}.inc?raw&unmodeled`,
-    "../../../src/utils/run-in-batches.ts?raw",
-  ])
-    checkFixture(path, `import "${specifier}";`, false);
-  for (const suffix of [".css", ".inc?raw", ".inc?url"])
-    checkFixture(path, `require("./${name}${suffix}");`, false);
-  checkFixture(path, `import asset = require("./${name}.css");`, false);
 });
 
 await test("rejects scanned directory symlinks instead of silently skipping own-dist imports", (t) => {
@@ -477,28 +459,22 @@ for (const { name, metadata, request } of [
       nodePath.join(directory, "probe.cjs"),
       `require(${JSON.stringify(request)});`,
     );
-    assert.equal(
-      checkFixture(
-        nodePath.join(directory, "package.json"),
-        JSON.stringify(metadata),
-        false,
-      ).status,
-      1,
-    );
+    assertRejected([
+      [nodePath.join(directory, "package.json"), JSON.stringify(metadata)],
+    ]);
   });
 }
 
 await test("rejects hidden/nested package.json across walked roots", (t) => {
-  for (const area of ["src", "frontend-vue", "frontend-vue/app"]) {
-    const directory = fixturePath(area).replace(/\.ts$/, "");
-    const nested = nodePath.join(directory, ".hidden", "nested");
-    mkdirSync(nested, { recursive: true });
-    t.after(() => rmSync(directory, { recursive: true, force: true }));
-    assert.equal(
-      checkFixture(nodePath.join(nested, "package.json"), "{}", false).status,
-      1,
-    );
-  }
+  assertRejected(
+    ["src", "frontend-vue", "frontend-vue/app"].map((area) => {
+      const directory = fixturePath(area).replace(/\.ts$/, "");
+      const nested = nodePath.join(directory, ".hidden", "nested");
+      mkdirSync(nested, { recursive: true });
+      t.after(() => rmSync(directory, { recursive: true, force: true }));
+      return [nodePath.join(nested, "package.json"), "{}"];
+    }),
+  );
 });
 
 await import("./manifest.test.mjs");
