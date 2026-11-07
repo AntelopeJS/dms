@@ -20,7 +20,7 @@ import {
   isAlive,
   runToEnd,
   startDetached,
-  stopAll,
+  stopRecorded,
   waitForOk,
   waitForOwnPort,
 } from "./processes.mjs";
@@ -430,7 +430,7 @@ export async function up(options) {
   } catch (error) {
     state.error = String(error?.message ?? error);
     saveRun(state);
-    await stopAll(state.processes.map((entry) => entry.pid));
+    await stopRecorded(state.processes.map((entry) => entry.pid));
     throw error;
   }
   state.ready = true;
@@ -449,7 +449,7 @@ export async function up(options) {
  */
 export async function restartBackend(state, build) {
   const backend = state.processes.find((entry) => entry.name === "backend");
-  if (backend) await stopAll([backend.pid]);
+  if (backend) await stopRecorded([backend.pid]);
   await startBackend(state, build);
 }
 
@@ -489,7 +489,7 @@ export async function down(state) {
   const app = state.processes
     .filter((entry) => entry.name !== "mongod")
     .map((entry) => entry.pid);
-  const lines = await stopAll([...app, ...browser]);
+  const lines = await stopRecorded([...app, ...browser]);
   const mongod = state.processes.find((entry) => entry.name === "mongod");
   if (mongod && !isAlive(mongod.pid)) {
     lines.push(`mongod already stopped; its data goes with ${state.mongo}`);
@@ -503,7 +503,9 @@ export async function down(state) {
     ]);
     lines.push(...dropped);
   }
-  lines.push(...(await stopAll(state.processes.map((entry) => entry.pid))));
+  lines.push(
+    ...(await stopRecorded(state.processes.map((entry) => entry.pid))),
+  );
   for (const folder of [
     state.root,
     state.home,
@@ -532,7 +534,7 @@ export async function down(state) {
     stoppedAt: new Date().toISOString(),
   });
   saveRun(state);
-  return lines;
+  return [...new Set(lines)];
 }
 
 /**

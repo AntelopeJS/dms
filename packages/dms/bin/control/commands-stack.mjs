@@ -185,7 +185,9 @@ async function commandApi(dir, method, path, values) {
 async function commandDown(dir) {
   const state = loadRun(dir);
   const lines = await down(state);
-  for (const line of lines.filter((entry) => entry.startsWith("could not")))
+  for (const line of lines.filter(
+    (entry) => entry.startsWith("could not") || entry.startsWith("skipped"),
+  ))
     print(line);
   print(state.evidence);
   return 0;
