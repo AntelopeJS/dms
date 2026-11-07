@@ -108,16 +108,18 @@ export function runToEnd(spec) {
   });
 }
 
+const MAX_PID = 2 ** 31 - 1;
+
 /**
  * Whether `pid` names one process a signal may target: a whole number above
- * 1. `kill(-1)` reaches every process of the user, `kill(0)` the caller's own
+ * 1 that fits a signed 32-bit process id. `kill(-1)` reaches every process of the user, `kill(0)` the caller's own
  * process group, and `kill(-pid)` on 1 is `kill(-1)`.
  *
  * @param {unknown} pid The value to check
  * @returns {pid is number} True for a whole number above 1
  */
 function isSignalable(pid) {
-  return Number.isInteger(pid) && Number(pid) > 1;
+  return Number.isInteger(pid) && Number(pid) > 1 && Number(pid) <= MAX_PID;
 }
 
 /**
@@ -354,6 +356,22 @@ function signalGroup(pid, signal) {
       return;
     }
   }
+}
+
+/**
+ * Stops the processes a run recorded, as {@link stopAll} does, after leaving
+ * out every recorded PID that is not a whole number above 1: a corrupt or
+ * missing record is reported, never signalled, and the rest still stop.
+ *
+ * @param {unknown[]} pids The PIDs the run recorded
+ * @returns {Promise<string[]>} One line per process signalled or skipped
+ */
+export async function stopRecorded(pids) {
+  const skipped = pids
+    .filter((pid) => !isSignalable(pid))
+    .map((pid) => `skipped pid ${String(pid)}: not a process id above 1`);
+  const stopped = await stopAll(pids.filter(isSignalable));
+  return [...skipped, ...stopped];
 }
 
 /**

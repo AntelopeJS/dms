@@ -1,8 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assertSignalable, isAlive, stopAll } from "./processes.mjs";
+import { spawn } from "node:child_process";
+import {
+  assertSignalable,
+  isAlive,
+  stopAll,
+  stopRecorded,
+} from "./processes.mjs";
 
-const UNSAFE = [-1, 0, 1, undefined, Number.NaN, 2.5, "1234", null];
+const UNSAFE = [
+  -1,
+  0,
+  1,
+  undefined,
+  Number.NaN,
+  2.5,
+  "1234",
+  null,
+  2 ** 31,
+  2 ** 32 + 1,
+];
 
 /**
  * Replaces `process.kill` with a recorder for the test, so a regression in
@@ -46,4 +63,33 @@ await test("isAlive answers false for those values without probing; probing kill
     assert.equal(isAlive(pid), false, String(pid));
   }
   assert.deepEqual(calls, []);
+});
+
+await test("stopRecorded skips and reports the bad pids a run recorded and still stops the good ones; refusing the whole run leaves its real processes running", async (t) => {
+  const child = spawn("sleep", ["60"], { stdio: "ignore", detached: true });
+  const own = child.pid;
+  if (own === undefined) throw new Error("sleep did not start");
+  t.after(() => {
+    if (child.exitCode === null && child.signalCode === null) child.kill();
+  });
+  /** @type {unknown[][]} */
+  const calls = [];
+  const original = process.kill.bind(process);
+  process.kill = (pid, signal) => {
+    calls.push([pid, signal]);
+    if (pid !== own && pid !== -own) return true;
+    return original(pid, signal);
+  };
+  t.after(() => {
+    process.kill = original;
+  });
+  const lines = await stopRecorded([-1, own, 0]);
+  assert.deepEqual(
+    calls.filter(([pid]) => pid !== own && pid !== -own),
+    [],
+  );
+  assert.ok(lines.includes("skipped pid -1: not a process id above 1"));
+  assert.ok(lines.includes("skipped pid 0: not a process id above 1"));
+  assert.ok(lines.some((line) => line.startsWith(`stopped pid ${own}`)));
+  assert.equal(isAlive(own), false);
 });
