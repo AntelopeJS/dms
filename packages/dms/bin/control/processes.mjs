@@ -12,6 +12,8 @@ import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const POLL_MS = 500;
+const READY_POLL_MS = 100;
+const KILL_POLL_MS = 10;
 const STOP_GRACE_MS = 10_000;
 const PROBE_TIMEOUT_MS = 3_000;
 const LISTEN_STATE = "0A";
@@ -187,7 +189,7 @@ export async function waitForOk(url, record, timeoutMs) {
     if (!isAlive(record.pid)) {
       throw new Error(`${url}: the process exited first; see ${record.log}`);
     }
-    await sleep(POLL_MS);
+    await sleep(READY_POLL_MS);
   }
   throw new Error(
     `${url} did not answer 200 in ${timeoutMs} ms; see ${record.log}`,
@@ -375,6 +377,48 @@ export async function stopRecorded(pids) {
 }
 
 /**
+ * Kills recorded processes and every descendant with SIGKILL at once, and
+ * resolves once they are gone and their sockets closed. Nothing flushes or
+ * shuts down, so use it only where the process's state is thrown away.
+ *
+ * @param {number[]} pids The recorded PIDs
+ * @returns {Promise<string[]>} One line per process killed
+ * @throws {TypeError} When a pid is not a whole number above 1, before any signal
+ * @throws When a process is still there after the grace period
+ */
+export async function killAll(pids) {
+  for (const pid of pids) assertSignalable(pid);
+  const targets = [...pids, ...descendantsOf(pids)].filter(isAlive);
+  for (const pid of targets) signalGroup(pid, "SIGKILL");
+  const deadline = Date.now() + STOP_GRACE_MS;
+  while (targets.some(isAlive)) {
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `pid ${targets.filter(isAlive).join(", ")} survived SIGKILL`,
+      );
+    }
+    await sleep(KILL_POLL_MS);
+  }
+  return targets.map((pid) => `killed pid ${pid}`);
+}
+
+/**
+ * Kills the processes a run recorded, as {@link killAll} does, after leaving
+ * out every recorded PID that is not a whole number above 1: a corrupt or
+ * missing record is reported, never signalled, and the rest are killed.
+ *
+ * @param {unknown[]} pids The PIDs the run recorded
+ * @returns {Promise<string[]>} One line per process killed or skipped
+ */
+export async function killRecorded(pids) {
+  const skipped = pids
+    .filter((pid) => !isSignalable(pid))
+    .map((pid) => `skipped pid ${String(pid)}: not a process id above 1`);
+  const killed = await killAll(pids.filter(isSignalable));
+  return [...skipped, ...killed];
+}
+
+/**
  * Stops recorded processes and every descendant: SIGTERM to each process
  * group, then SIGKILL to whatever outlives the grace period. A PID that is
  * not a whole number above 1 throws before any signal is sent.
@@ -387,7 +431,9 @@ export async function stopAll(pids) {
   const targets = [...pids, ...descendantsOf(pids)].filter(isAlive);
   for (const pid of targets) signalGroup(pid, "SIGTERM");
   const deadline = Date.now() + STOP_GRACE_MS;
-  while (targets.some(isAlive) && Date.now() < deadline) await sleep(POLL_MS);
+  while (targets.some(isAlive) && Date.now() < deadline) {
+    await sleep(READY_POLL_MS);
+  }
   const stubborn = targets.filter(isAlive);
   for (const pid of stubborn) signalGroup(pid, "SIGKILL");
   return targets.map(
