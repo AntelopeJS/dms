@@ -135,6 +135,15 @@ await test("a shared file next to a covered one keeps touched and shared apart; 
   assert.deepEqual(plan.touched, [{ feature: "b", files: ["src/b/y.ts"] }]);
 });
 
+await test("a shared file renamed out of its shared path still runs every feature; a diff with rename detection lists only the new path and runs smoke alone", (t) => {
+  const { repo, skill, base } = fixture(t, { "README.md": "x\n" });
+  git(repo, "mv", "pnpm-lock.yaml", "moved-lock.txt");
+  commit(repo, {});
+  const plan = planFor(skill, base);
+  assert.deepEqual(plan.run, ["smoke", "a", "b"]);
+  assert.deepEqual(plan.shared, ["pnpm-lock.yaml"]);
+});
+
 await test("a fixture manifest under notShared stays on smoke; a planner that ignores notShared escalates on test fixtures", (t) => {
   const { skill, base } = fixture(t, {
     "fixtures/host/package.json": '{ "name": "host" }\n',

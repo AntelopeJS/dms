@@ -190,7 +190,10 @@ export async function checkMap(skill) {
 export function planFor(skill, baseRef, all = false) {
   const features = readFeatures(skill);
   const baseSha = git(["merge-base", baseRef, "HEAD"], skill.repo);
-  const changed = git(["diff", "--name-only", `${baseSha}...HEAD`], skill.repo)
+  const changed = git(
+    ["diff", "--name-only", "--no-renames", `${baseSha}...HEAD`],
+    skill.repo,
+  )
     .split("\n")
     .filter(Boolean);
   const touched = features
