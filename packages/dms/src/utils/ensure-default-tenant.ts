@@ -89,7 +89,11 @@ interface HeldLease {
   stopRenewing(): Promise<string | undefined>;
 }
 
-function holdLease(claimed: string, renewEveryMs: number): HeldLease {
+function holdLease(
+  claimed: string,
+  renewEveryMs: number,
+  signal: AbortSignal,
+): HeldLease {
   let token: string | undefined = claimed;
   let renewal: Promise<void> = Promise.resolve();
 
@@ -113,6 +117,9 @@ function holdLease(claimed: string, renewEveryMs: number): HeldLease {
   const timer = setInterval(() => {
     renewal = renewal.then(renew);
   }, renewEveryMs);
+  const stopTimer = () => clearInterval(timer);
+  if (signal.aborted) stopTimer();
+  else signal.addEventListener("abort", stopTimer, { once: true });
 
   return {
     async stopRenewing() {
@@ -133,8 +140,9 @@ function holdLease(claimed: string, renewEveryMs: number): HeldLease {
 async function provisionUnderLease(
   claimed: string,
   renewEveryMs: number,
+  signal: AbortSignal,
 ): Promise<boolean> {
-  const lease = holdLease(claimed, renewEveryMs);
+  const lease = holdLease(claimed, renewEveryMs, signal);
   let failure: { error: unknown } | undefined;
   try {
     await ProvisionTenant({ tenantId: DEFAULT_TENANT_ID, extras: {} });
@@ -186,6 +194,7 @@ function createStaleWatch(staleAfterMs: number) {
 async function advanceLease(
   watch: ReturnType<typeof createStaleWatch>,
   renewEveryMs: number,
+  signal: AbortSignal,
 ): Promise<boolean> {
   const tenant = await GetModel(TenantModel).get(DEFAULT_TENANT_ID);
   if (!tenant?.provisioningPending) return true;
@@ -194,7 +203,9 @@ async function advanceLease(
   const claimed = await swapLease(tenant.provisioningRevision ?? NO_REVISION, {
     provisioningHolder: holderName(),
   });
-  return claimed !== undefined && provisionUnderLease(claimed, renewEveryMs);
+  return (
+    claimed !== undefined && provisionUnderLease(claimed, renewEveryMs, signal)
+  );
 }
 
 function holderName(): string {
@@ -212,7 +223,7 @@ function holderName(): string {
  * waiting replica, and leaves the row pending for the next attempt. Legacy rows
  * with no marker are already provisioned and are not run again.
  *
- * @param signal Ends a wait for another replica's provisioning. A run in progress finishes.
+ * @param signal Ends a wait for another replica's provisioning and stops renewing the lease. A run in progress finishes.
  * @param lease How often to renew and poll, and when a holder counts as stopped
  */
 export async function provisionDefaultTenant(
@@ -223,7 +234,7 @@ export async function provisionDefaultTenant(
   const watch = createStaleWatch(staleAfterMs);
   while (!signal.aborted) {
     try {
-      if (await advanceLease(watch, renewEveryMs)) return;
+      if (await advanceLease(watch, renewEveryMs, signal)) return;
     } catch (error) {
       watch.forget();
       Logging.Warn(

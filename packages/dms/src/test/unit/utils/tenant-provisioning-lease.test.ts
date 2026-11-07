@@ -27,6 +27,11 @@ async function pending(): Promise<boolean | undefined> {
   return tenant?.provisioningPending;
 }
 
+async function revision(): Promise<string | undefined> {
+  const tenant = await GetModel(TenantModel).get(DEFAULT_TENANT_ID);
+  return tenant?.provisioningRevision;
+}
+
 async function seedLeftBehindLease(): Promise<void> {
   await GetModel(TenantModel)
     .table.insert({
@@ -126,6 +131,28 @@ describe("[unit] default tenant provisioning across replicas", () => {
 
     expect(calls).to.equal(0);
     expect(await pending()).to.equal(true);
+  });
+
+  it("stops renewing the lease of a run in progress once aborted", async () => {
+    await ensureDefaultTenantExists();
+    const stopping = new AbortController();
+    let release: (() => void) | undefined;
+    body = () =>
+      new Promise((resolve) => {
+        release = resolve;
+      });
+    const running = provisionDefaultTenant(stopping.signal, LEASE);
+    while (!release) await setTimeout(LEASE.renewEveryMs);
+
+    stopping.abort();
+    await setTimeout(4 * LEASE.renewEveryMs);
+    const atStop = await revision();
+    await setTimeout(8 * LEASE.renewEveryMs);
+    const later = await revision();
+    release();
+    await running;
+
+    expect(later).to.equal(atStop);
   });
 
   it("frees the lease after a failure, so a waiting replica retries without the stale wait", async () => {

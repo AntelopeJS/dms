@@ -165,6 +165,24 @@ export class ReplicaProcess {
     }
   }
 
+  /**
+   * Asks the process to shut down as an operator's Ctrl+C would, and waits up to
+   * `withinMs` for it to exit before killing it.
+   *
+   * @returns How long the process took to exit, or `withinMs` when it did not
+   */
+  async stop(withinMs: number): Promise<number> {
+    const pollMs = 50;
+    const started = performance.now();
+    this.child.kill("SIGTERM");
+    while (this.running && performance.now() - started < withinMs) {
+      await setTimeout(pollMs);
+    }
+    const elapsed = performance.now() - started;
+    await this.kill();
+    return Math.min(elapsed, withinMs);
+  }
+
   /** Ends the process without any shutdown running. */
   async kill(): Promise<void> {
     if (this.running) this.child.kill("SIGKILL");

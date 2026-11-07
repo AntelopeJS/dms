@@ -5,6 +5,7 @@ import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { RegisterSchema } from "@antelopejs/interface-database-decorators";
 import {
   CORE_SCHEMA_NAME,
+  DEFAULT_TENANT_ID,
   TENANT_SCHEMA_NAME,
 } from "@antelopejs/interface-dms/constants";
 import { announceSetupToken } from "./db";
@@ -86,6 +87,13 @@ let cronTasks: ScheduledTask[] = [];
 let staleExportsSweep: Promise<void> = Promise.resolve();
 let defaultTenantProvisioning: Promise<void> | undefined;
 let provisioningWait = new AbortController();
+
+/**
+ * How long `stop()` waits for a provisioning run after the abort. Long enough for
+ * a handler that only writes a few rows, and short enough to leave most of the
+ * 10 s core gives the modules to stop.
+ */
+const PROVISIONING_STOP_GRACE_MS = 2000;
 
 let globalRealtimeConfig: RealtimeConfig | undefined;
 
@@ -257,6 +265,28 @@ export function destroy(): void {
   closeDevReloadStreams();
 }
 
+/**
+ * Waits for a provisioning run for at most the grace period, then lets it go, so
+ * a hook that never resolves cannot hold the shutdown. The tenant stays pending
+ * for a later start.
+ */
+async function settleProvisioning(): Promise<void> {
+  const provisioning = defaultTenantProvisioning;
+  if (!provisioning) return;
+  let timer: NodeJS.Timeout | undefined;
+  const settled = await Promise.race([
+    provisioning.then(() => true),
+    new Promise<false>((resolve) => {
+      timer = setTimeout(resolve, PROVISIONING_STOP_GRACE_MS, false);
+    }),
+  ]).finally(() => clearTimeout(timer));
+  if (!settled) {
+    Logging.Warn(
+      `[DMS] Abandoned the provisioning of tenant '${DEFAULT_TENANT_ID}', still running ${PROVISIONING_STOP_GRACE_MS} ms after stop. The tenant stays pending, and a later start provisions it.`,
+    );
+  }
+}
+
 function onModulesStarted(): void {
   if (defaultTenantProvisioning) return;
   provisioningWait = new AbortController();
@@ -294,7 +324,7 @@ export async function start(): Promise<void> {
 export async function stop(): Promise<void> {
   Events.ModulesStarted.unregister(onModulesStarted);
   provisioningWait.abort();
-  await defaultTenantProvisioning;
+  await settleProvisioning();
   await staleExportsSweep;
   UnsettleHook(Hook.DATABASE_INITIALIZED);
   stopPendingExtensionReport();
