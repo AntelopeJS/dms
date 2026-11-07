@@ -34,14 +34,52 @@ export function assertAccepted(fixtures) {
 }
 
 /**
- * Asserts that each fixture fails the scan on its own path. A diagnostic names
- * the file that holds the import, so each fixture proves its own rejection and
- * the fixtures can share one scan.
+ * The scanner's diagnostic kinds, each the message prefix of one failure site.
+ * A kind that prints without failing the scan leaves the exit status at 0 only
+ * when no other kind shares the scan, so a rejected batch holds one kind set.
+ */
+const kinds = /** @type {const} */ ({
+  static: "playground import must be a static constant string",
+  forbidden: "forbidden playground import ",
+  loader: "unsupported playground loader ",
+  parse: "invalid playground script: ",
+  extStyle: "external playground styles are forbidden",
+  inlineStyle: "unsupported playground inline style",
+  customBlock: "playground custom block ",
+  extScript: "external playground scripts are forbidden",
+  metadata: "additional playground package metadata is forbidden",
+});
+
+/** @typedef {keyof typeof kinds} Kind */
+
+/**
+ * @param {string} line
+ * @param {string} path
+ * @returns {Kind | undefined}
+ */
+function kindOf(line, path) {
+  const message = line.slice(path.length + 2);
+  return /** @type {Kind[]} */ (Object.keys(kinds)).find((kind) =>
+    message.startsWith(kinds[kind]),
+  );
+}
+
+/**
+ * Asserts that each fixture fails the scan on its own path with exactly the
+ * given kinds. A diagnostic names the file that holds the import, so each
+ * fixture proves its own rejection, and the fixtures share one scan because
+ * they share one kind set: a kind that stops failing the scan turns the exit
+ * status to 0 here, where a sibling of another kind could hide it.
  *
+ * @param {Kind | readonly Kind[]} expected the kinds every fixture reports
  * @param {readonly (readonly [path: string, source: string, failures?: number | null])[]} fixtures
  *   `failures` is the diagnostic count expected on `path`, 1 by default; null accepts any non-empty set.
  */
-export function assertRejected(fixtures) {
+export function assertRejected(expected, fixtures) {
+  const want = [expected].flat().sort();
+  assert.ok(fixtures.length > 0, "a rejected batch needs a fixture");
+  for (const [path, , failures = 1] of fixtures)
+    assert.notEqual(failures, 0, `${path} expects no diagnostic`);
   const result = scan(fixtures);
   assert.equal(result.status, 1, result.stdout + result.stderr);
   const lines = result.stderr.split("\n");
@@ -52,6 +90,10 @@ export function assertRejected(fixtures) {
     } else {
       assert.equal(diagnostics.length, failures, `${path}\n${result.stderr}`);
     }
+    const found = [
+      ...new Set(diagnostics.map((line) => kindOf(line, path) ?? line)),
+    ].sort();
+    assert.deepEqual(found, want, `${path}\n${result.stderr}`);
   }
 }
 
