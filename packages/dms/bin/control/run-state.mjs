@@ -1,7 +1,16 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { describeFailure } from "./failure.mjs";
 import {
   arrayOf,
   decode,
@@ -19,10 +28,11 @@ const ID_BYTES = 3;
 const TIMESTAMP_LENGTH = 15;
 
 /**
- * @typedef {{ name: string, pid: number, command: string, cwd: string, log: string, startedAt: string, port?: number }} ProcessRecord
+ * @typedef {{ name: string, pid: number, startTime?: number | null, command: string, cwd: string, log: string, startedAt: string, port?: number }} ProcessRecord A process the run started. `startTime` is when the kernel started it, in clock ticks since boot: `null` where /proc could not tell, absent in a record an earlier dms-control wrote. Without it, `startedAt` tells the process apart.
  * @typedef {ProcessRecord & { port: number }} ServerRecord
+ * @typedef {ServerRecord & { database: string }} BackendRecord A backend the run started, with the database it serves
  * @typedef {{ email: string, password: string, userId?: string | null }} Account
- * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, renderer?: string, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number }} RunState
+ * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, renderer?: string, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], noStandby?: boolean, buildRoots?: string[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number }} RunState
  */
 
 /**
@@ -102,27 +112,31 @@ export function createRunFolders(dir) {
 
 const isStrings = recordOf(isString);
 
-const isProcessRecord = objectOf(
-  {
-    name: isString,
-    pid: isNumber,
-    command: isString,
-    cwd: isString,
-    log: isString,
-    startedAt: isString,
-  },
-  { port: isNumber },
-);
-
-const isServerRecord = objectOf({
+const PROCESS_FIELDS = {
   name: isString,
   pid: isNumber,
   command: isString,
   cwd: isString,
   log: isString,
   startedAt: isString,
+};
+
+const START_TIME = { startTime: nullable(isNumber) };
+
+const isProcessRecord = objectOf(PROCESS_FIELDS, {
   port: isNumber,
+  ...START_TIME,
 });
+
+const isServerRecord = objectOf(
+  { ...PROCESS_FIELDS, port: isNumber },
+  START_TIME,
+);
+
+const isBackendRecord = objectOf(
+  { ...PROCESS_FIELDS, port: isNumber, database: isString },
+  START_TIME,
+);
 
 const isAccount = objectOf(
   { email: isString },
@@ -168,6 +182,8 @@ const isStoredRun = objectOf(
   },
   {
     browser: either(isString, isServerRecord),
+    noStandby: isBoolean,
+    buildRoots: arrayOf(isString),
     error: isString,
     renderer: isString,
     runPlayground: isString,
@@ -221,4 +237,101 @@ export function saveRun(state) {
     `${JSON.stringify(state, null, 2)}\n`,
     { mode: 0o600 },
   );
+}
+
+/**
+ * The folder that holds one file per backend the run started.
+ *
+ * @param {string} dir The run root
+ * @returns {string} The folder
+ */
+export function backendsFolder(dir) {
+  return join(dir, "backends");
+}
+
+/**
+ * Records a backend the run started in a file of its own,
+ * `backends/<pid>.json`. No other write of the run replaces that file, so
+ * `down` finds the backend even after a command saved a run.json it had
+ * loaded before the backend started.
+ *
+ * @param {string} dir The run root
+ * @param {BackendRecord} backend The backend
+ */
+export function recordBackend(dir, backend) {
+  const folder = backendsFolder(dir);
+  mkdirSync(folder, { recursive: true });
+  const file = join(folder, `${backend.pid}.json`);
+  writeFileSync(`${file}.next`, `${JSON.stringify(backend)}\n`);
+  renameSync(`${file}.next`, file);
+}
+
+/**
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+function isMissing(error) {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+
+/**
+ * @param {string} folder
+ * @returns {string[]}
+ */
+function namesIn(folder) {
+  try {
+    return readdirSync(folder);
+  } catch (error) {
+    if (isMissing(error)) return [];
+    throw error;
+  }
+}
+
+/** @type {Set<string>} The records already named on stderr, so a command names each once. */
+const reported = new Set();
+
+/**
+ * @param {string} file
+ * @returns {BackendRecord[]}
+ */
+function readBackend(file) {
+  try {
+    /** @type {unknown} */
+    const parsed = JSON.parse(readFileSync(file, "utf8"));
+    return [decode(isBackendRecord, parsed, file, "a backend record")];
+  } catch (error) {
+    if (!isMissing(error) && !reported.has(file)) {
+      reported.add(file);
+      process.stderr.write(
+        `dms-control: skipped ${file}, which holds no backend record: ${describeFailure(error)}\n`,
+      );
+    }
+    return [];
+  }
+}
+
+/**
+ * Every backend the run recorded, whether or not it still runs. A record
+ * removed while the folder is read is gone. A file that holds no backend
+ * record, such as a truncated one, is skipped and named on stderr, so it
+ * stops no command.
+ *
+ * @param {string} dir The run root
+ * @returns {BackendRecord[]} The backends
+ */
+export function recordedBackends(dir) {
+  const folder = backendsFolder(dir);
+  return namesIn(folder)
+    .filter((name) => name.endsWith(".json"))
+    .flatMap((name) => readBackend(join(folder, name)));
+}
+
+/**
+ * Removes the record of a backend that no longer runs.
+ *
+ * @param {string} dir The run root
+ * @param {number} pid Its process id
+ */
+export function forgetBackend(dir, pid) {
+  rmSync(join(backendsFolder(dir), `${pid}.json`), { force: true });
 }

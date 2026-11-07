@@ -3,6 +3,7 @@
  */
 export const OPTIONS = /** @type {const} */ ({
   prepare: { type: "boolean" },
+  "no-standby": { type: "boolean" },
   playground: { type: "string" },
   renderer: { type: "string" },
   runs: { type: "string" },

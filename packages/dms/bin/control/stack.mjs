@@ -11,14 +11,15 @@ import {
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { existingBuildRoots } from "./build-inputs.mjs";
 import { describeFailure } from "./failure.mjs";
 import { checkoutOf } from "./git.mjs";
 import { stringField } from "./json.mjs";
-import { dropDatabase, dropRunDatabases, startMongod } from "./mongo.mjs";
+import { apiTargetFile, writeTarget } from "./forwarder.mjs";
+import { isSameProcess } from "./identity.mjs";
+import { dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
   freePort,
-  isAlive,
-  killRecorded,
   runToEnd,
   startDetached,
   stopRecorded,
@@ -26,9 +27,13 @@ import {
   waitForOwnPort,
 } from "./processes.mjs";
 import {
+  backendsFolder,
   createRunFolders,
   databaseName,
+  forgetBackend,
   newRunId,
+  recordBackend,
+  recordedBackends,
   runsRoot,
   saveRun,
 } from "./run-state.mjs";
@@ -38,7 +43,7 @@ import { appendTiming, recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
  * @typedef {import("./run-state.mjs").RunState} RunState
- * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string, prepared?: import("./timing.mjs").TimingEntry[] }} UpOptions Where the playground and the runs are, and the `prepare` entries to record once the run exists
+ * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string, prepared?: import("./timing.mjs").TimingEntry[], noStandby?: boolean }} UpOptions Where the playground and the runs are, the `prepare` entries to record once the run exists, and whether fresh databases start their backend on the spot
  */
 
 const READY_TIMEOUT_MS = 180_000;
@@ -269,6 +274,7 @@ async function initialState(options) {
     ready: false,
   };
   if (renderer) state.renderer = renderer;
+  if (options.noStandby) state.noStandby = true;
   return state;
 }
 
@@ -295,15 +301,38 @@ export function spec(state, name, script, args, cwd = state.runPlayground) {
 }
 
 /**
- * @param {RunState} state
- * @param {import("./run-state.mjs").ProcessRecord} processRecord
+ * Records a process of the run, in place of the one of the same name.
+ *
+ * @param {RunState} state The run
+ * @param {import("./run-state.mjs").ProcessRecord} processRecord The process
  */
-function record(state, processRecord) {
+export function record(state, processRecord) {
   state.processes = [
     ...state.processes.filter((entry) => entry.name !== processRecord.name),
     processRecord,
   ];
   saveRun(state);
+}
+
+/**
+ * @param {RunState} state
+ * @param {"mail" | "api"} name
+ * @param {number} port
+ * @returns {Promise<void>}
+ */
+async function ensureService(state, name, port) {
+  const running = state.processes.find((entry) => entry.name === name);
+  if (running && isSameProcess(running)) return;
+  const service = startDetached({
+    name,
+    program: process.execPath,
+    args: [CONTROL_BIN, `serve-${name}`, state.dir],
+    cwd: state.dir,
+    env: process.env,
+    logs: state.logs,
+  });
+  record(state, { ...service, port });
+  await waitForOwnPort(port, service, READY_TIMEOUT_MS);
 }
 
 /**
@@ -313,19 +342,20 @@ function record(state, processRecord) {
  * @param {import("./run-state.mjs").RunState} state The run
  * @returns {Promise<void>} Resolves once it listens
  */
-export async function ensureMail(state) {
-  const running = state.processes.find((entry) => entry.name === "mail");
-  if (running && isAlive(running.pid)) return;
-  const mail = startDetached({
-    name: "mail",
-    program: process.execPath,
-    args: [CONTROL_BIN, "serve-mail", state.dir],
-    cwd: state.dir,
-    env: process.env,
-    logs: state.logs,
-  });
-  record(state, { ...mail, port: state.smtpPort });
-  await waitForOwnPort(state.smtpPort, mail, READY_TIMEOUT_MS);
+export function ensureMail(state) {
+  return ensureService(state, "mail", state.smtpPort);
+}
+
+/**
+ * Starts the run's API forwarder unless it already runs, and waits until it
+ * is the process listening on the run's API port. The dashboard, the
+ * journeys and `DMS_API_BASE_URL` reach the backend through it.
+ *
+ * @param {import("./run-state.mjs").RunState} state The run
+ * @returns {Promise<void>} Resolves once it listens
+ */
+export function ensureApi(state) {
+  return ensureService(state, "api", state.apiPort);
 }
 
 /**
@@ -345,27 +375,78 @@ async function startFirstMail(state) {
 }
 
 /**
- * @param {RunState} state
- * @param {{ playground?: string, cwd?: string }} [build]
- * @returns {Promise<void>}
+ * Starts a backend of the run on `database` and a free loopback port of its
+ * own, from the run's build or `build`, without waiting for it, and records
+ * it in a file of its own. Its log is named after its database,
+ * `backend_<suffix>.log`, so two backends that run at once write apart; the
+ * first database's is `backend.log`.
+ *
+ * @param {RunState} state The run
+ * @param {string} database The database it serves
+ * @param {{ playground?: string, cwd?: string }} [build] Another build to start
+ * @returns {Promise<import("./run-state.mjs").BackendRecord>} Its record
  */
-async function startBackend(state, build) {
+export async function launchBackend(state, database, build) {
   const { ajs } = cliPaths(build?.playground ?? state.playground);
-  const backend = startDetached(
-    spec(
-      state,
-      "backend",
-      ajs,
-      ["project", "start", "-e", ENVIRONMENT, "--refresh-config"],
-      build?.cwd,
-    ),
+  const port = await freePort();
+  const launch = spec(
+    state,
+    `backend${database.slice(state.databasePrefix.length)}`,
+    ajs,
+    ["project", "start", "-e", ENVIRONMENT, "--refresh-config"],
+    build?.cwd,
   );
-  record(state, { ...backend, port: state.apiPort });
-  await waitForOk(
-    `${state.apiUrl}/api/onboarding/informations`,
+  launch.env = { ...launch.env, PORT: String(port), MONGO_DATABASE: database };
+  const backend = { ...startDetached(launch), name: "backend", port, database };
+  recordBackend(state.dir, backend);
+  return backend;
+}
+
+/**
+ * The backends the run started that still run. A record whose pid no longer
+ * runs the process the run started is forgotten: the backend exited, and
+ * the pid may be another process's now.
+ *
+ * @param {RunState} state The run
+ * @returns {import("./run-state.mjs").BackendRecord[]} The backends
+ */
+export function liveBackends(state) {
+  return recordedBackends(state.dir).filter((backend) => {
+    if (isSameProcess(backend)) return true;
+    forgetBackend(state.dir, backend.pid);
+    return false;
+  });
+}
+
+/**
+ * Waits until a backend answers `/api/onboarding/informations` on its own port.
+ *
+ * @param {import("./run-state.mjs").ServerRecord} backend The backend
+ * @returns {Promise<void>} Resolves once it answers 200
+ * @throws When it exits first or the timeout passes, naming its log
+ */
+export function waitForBackend(backend) {
+  return waitForOk(
+    `http://127.0.0.1:${backend.port}/api/onboarding/informations`,
     backend,
     READY_TIMEOUT_MS,
   );
+}
+
+/**
+ * Starts the run's backend on `state.database`, from the run's build or
+ * `build`, and points the API at it once it answers.
+ *
+ * @param {RunState} state The run
+ * @param {{ playground?: string, cwd?: string }} [build] Another build to start
+ * @returns {Promise<void>} Resolves once the API reaches it
+ */
+export async function startBackend(state, build) {
+  await ensureApi(state);
+  const backend = await launchBackend(state, state.database, build);
+  record(state, backend);
+  await waitForBackend(backend);
+  writeTarget(apiTargetFile(state.dir), backend.port);
 }
 
 /**
@@ -405,6 +486,7 @@ async function buildAndStart(state) {
       spec(state, "frontend-build", clis.dms, ["build", "-e", ENVIRONMENT]),
     ),
   );
+  state.buildRoots = existingBuildRoots(state);
   await timed(state, "backend-start", () => startBackend(state));
   await timed(state, "frontend-start", async () => {
     const frontend = startDetached(
@@ -426,7 +508,8 @@ async function buildAndStart(state) {
 /**
  * Starts an isolated DMS from a playground: a copy of it in a run folder,
  * free ports, the `docs` environment, a `verify_<run>` database on a mongod
- * the run owns (or `--mongo-url`), fresh secrets and a mail sink. With
+ * the run owns (or `--mongo-url`), fresh secrets, a mail sink, and a
+ * forwarder on the API port to a backend on a port of its own. With
  * `renderer`, the dashboard is that built dms-frontend checkout. Ready once
  * `/api/onboarding/informations` and `/dms-preview` answer 200. On failure
  * it stops what it started and keeps the logs.
@@ -444,7 +527,7 @@ export async function up(options) {
   } catch (error) {
     state.error = String(error?.message ?? error);
     saveRun(state);
-    await stopRecorded(state.processes.map((entry) => entry.pid));
+    await stopRecorded(state.processes);
     recordTiming(state, "up", stop(), false);
     throw error;
   }
@@ -455,70 +538,25 @@ export async function up(options) {
 }
 
 /**
- * Stops the backend and starts it again on `state.database`, as a deploy or
- * a crash would, from the run's build or another one (`build`, the base
- * version's). The frontend keeps serving and proxies to the same port.
- *
- * @param {import("./run-state.mjs").RunState} state The run
- * @param {{ playground: string, cwd: string }} [build] Another build to start
- * @returns {Promise<void>} Resolves once the backend answers again
- */
-export async function restartBackend(state, build) {
-  await replaceBackend(state, stopRecorded, build);
-}
-
-/**
- * @param {import("./run-state.mjs").RunState} state The run
- * @param {(pids: number[]) => Promise<string[]>} stop How the running backend ends
- * @param {{ playground: string, cwd: string }} [build] Another build to start
- * @returns {Promise<void>} Resolves once the new backend answers
- */
-async function replaceBackend(state, stop, build) {
-  const backend = state.processes.find((entry) => entry.name === "backend");
-  if (backend) await timed(state, "backend-stop", () => stop([backend.pid]));
-  await timed(state, "backend-start", () => startBackend(state, build));
-}
-
-/**
- * Restarts the backend on another database of the run, so a journey starts
- * from an empty one: not onboarded, no user, no session. The previous
- * journey database is dropped, so a long run does not exhaust mongod's
- * file handles; its evidence stays. The previous backend is killed, not shut
- * down: what it would flush belongs to the database being dropped.
- *
- * @param {import("./run-state.mjs").RunState} state The run
- * @param {string} suffix What tells the database apart, such as `j03`
- * @returns {Promise<string>} The database now in use
- */
-export async function freshDatabase(state, suffix) {
-  const previous = state.database;
-  state.database = `${state.databasePrefix}_${suffix}`;
-  state.tokens = {};
-  state.accounts = {};
-  saveRun(state);
-  await replaceBackend(state, killRecorded);
-  if (previous !== state.databasePrefix && previous !== state.database) {
-    await dropDatabase(state.mongoUrl, previous, resolutionFolders(state));
-  }
-  return state.database;
-}
-
-/**
- * Stops every process the run recorded and their descendants, drops the
- * run's databases, and removes everything but `evidence/`, `logs/` and
- * `run.json`, from which the secrets and passwords are removed.
+ * Stops every process the run recorded, every backend it started and their
+ * descendants, each only while its pid still runs the process the run
+ * started, drops the run's databases, and removes everything but
+ * `evidence/`, `logs/` and `run.json`, from which the secrets and passwords
+ * are removed.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @returns {Promise<string[]>} One line per action
  */
 export async function down(state) {
-  const browser = state.browser ? [state.browser.pid] : [];
-  const app = state.processes
-    .filter((entry) => entry.name !== "mongod")
-    .map((entry) => entry.pid);
-  const lines = await stopRecorded([...app, ...browser]);
+  const browser = state.browser ? [state.browser] : [];
+  const app = state.processes.filter((entry) => entry.name !== "mongod");
+  const lines = await stopRecorded([
+    ...app,
+    ...browser,
+    ...liveBackends(state),
+  ]);
   const mongod = state.processes.find((entry) => entry.name === "mongod");
-  if (mongod && !isAlive(mongod.pid)) {
+  if (mongod && !isSameProcess(mongod)) {
     lines.push(`mongod already stopped; its data goes with ${state.mongo}`);
   } else if (state.mongoUrl) {
     const dropped = await dropRunDatabases(
@@ -530,15 +568,15 @@ export async function down(state) {
     ]);
     lines.push(...dropped);
   }
-  lines.push(
-    ...(await stopRecorded(state.processes.map((entry) => entry.pid))),
-  );
+  lines.push(...(await stopRecorded(state.processes)));
   for (const folder of [
     state.root,
     state.home,
     state.mongo,
     state.baseRoot,
     state.cache,
+    apiTargetFile(state.dir),
+    backendsFolder(state.dir),
   ]) {
     if (folder && existsSync(folder)) {
       rmSync(folder, { recursive: true, force: true });

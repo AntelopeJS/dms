@@ -1,7 +1,8 @@
 import { isOutcome } from "./browser-wire.mjs";
 import { decode } from "./json.mjs";
 import { CONTROL_BIN } from "./stack.mjs";
-import { freePort, isAlive, startDetached, waitForOk } from "./processes.mjs";
+import { isSameProcess } from "./identity.mjs";
+import { freePort, startDetached, waitForOk } from "./processes.mjs";
 import { saveRun } from "./run-state.mjs";
 import { nextFolder } from "./session.mjs";
 
@@ -12,7 +13,7 @@ const READY_TIMEOUT_MS = 60_000;
  * @returns {Promise<import("./run-state.mjs").ServerRecord>} Its running browser server, started if it was not
  */
 async function browserServer(state) {
-  if (state.browser && isAlive(state.browser.pid)) return state.browser;
+  if (state.browser && isSameProcess(state.browser)) return state.browser;
   const port = await freePort();
   const started = startDetached({
     name: "browser",

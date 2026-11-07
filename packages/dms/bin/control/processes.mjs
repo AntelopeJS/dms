@@ -10,6 +10,14 @@ import {
 import { createConnection, createServer } from "node:net";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import {
+  assertOwnProc,
+  assertSignalable,
+  isAlive,
+  isSameProcess,
+  isSignalable,
+  startTimeOf,
+} from "./identity.mjs";
 
 const POLL_MS = 500;
 const READY_POLL_MS = 100;
@@ -51,12 +59,16 @@ export function freePort() {
 
 /**
  * Starts a long-running program in its own process group, its output going
- * straight to `<logs>/<name>.log` so it survives the caller.
+ * straight to `<logs>/<name>.log` so it survives the caller. The record
+ * holds the kernel's start time of the process, which tells it apart from
+ * a later process given the same pid.
  *
  * @param {{ name: string, program: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, logs: string }} spec What to start and where its log goes
- * @returns {{ name: string, pid: number, command: string, cwd: string, log: string, startedAt: string }} The process record
+ * @returns {{ name: string, pid: number, startTime: number | null, command: string, cwd: string, log: string, startedAt: string }} The process record
+ * @throws When /proc is not this PID namespace's, before it starts anything
  */
 export function startDetached(spec) {
+  assertOwnProc();
   const log = join(spec.logs, `${spec.name}.log`);
   const output = openSync(log, "a");
   const child = spawn(spec.program, spec.args, {
@@ -73,6 +85,7 @@ export function startDetached(spec) {
   return {
     name: spec.name,
     pid: child.pid,
+    startTime: startTimeOf(child.pid),
     command: [spec.program, ...spec.args].join(" "),
     cwd: spec.cwd,
     log,
@@ -108,72 +121,6 @@ export function runToEnd(spec) {
       );
     });
   });
-}
-
-const MAX_PID = 2 ** 31 - 1;
-
-/**
- * Whether `pid` names one process a signal may target: a whole number above
- * 1 that fits a signed 32-bit process id. `kill(-1)` reaches every process of the user, `kill(0)` the caller's own
- * process group, and `kill(-pid)` on 1 is `kill(-1)`.
- *
- * @param {unknown} pid The value to check
- * @returns {pid is number} True for a whole number above 1
- */
-function isSignalable(pid) {
-  return Number.isInteger(pid) && Number(pid) > 1 && Number(pid) <= MAX_PID;
-}
-
-/**
- * Throws unless `pid` names one process a signal may target, so no caller
- * can turn a missing or corrupt PID into a signal to every process.
- *
- * @param {unknown} pid The value to check
- * @throws {TypeError} When it is not a whole number above 1
- */
-export function assertSignalable(pid) {
-  if (!isSignalable(pid)) {
-    throw new TypeError(
-      `refusing to signal pid ${String(pid)}: not a process id above 1`,
-    );
-  }
-}
-
-/**
- * Whether a process with this PID exists.
- *
- * @param {number} pid The process id
- * @returns {boolean} True while it runs
- */
-export function isAlive(pid) {
-  if (!isSignalable(pid)) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Whether a process with this PID runs: it exists and is not a finished
- * zombie. A killed process that nothing reaps stays a zombie; once its last
- * thread has exited it holds no socket and runs no code. Its main thread
- * shows as a zombie while other threads still exit and still hold its
- * sockets, so that one still runs. Without `/proc`, existing is running.
- *
- * @param {number} pid The process id
- * @returns {boolean} True while it runs
- */
-export function isRunning(pid) {
-  if (!isAlive(pid)) return false;
-  try {
-    const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
-    const zombie = stat.slice(stat.lastIndexOf(")") + 2).split(" ")[0] === "Z";
-    return !zombie || readdirSync(`/proc/${pid}/task`).length > 1;
-  } catch {
-    return isAlive(pid);
-  }
 }
 
 /**
@@ -381,83 +328,93 @@ function signalGroup(pid, signal) {
   }
 }
 
+/** @typedef {{ pid: number, startTime?: number | null, startedAt?: string }} RecordedProcess A process a run recorded, as {@link isSameProcess} tells it apart */
+
 /**
- * Stops the processes a run recorded, as {@link stopAll} does, after leaving
- * out every recorded PID that is not a whole number above 1: a corrupt or
- * missing record is reported, never signalled, and the rest still stop.
+ * The recorded processes that still run as the run started them, and their
+ * descendants, each with the start time that tells it apart from a later
+ * process given its pid. A record whose pid another process holds now, or
+ * whose pid is not a whole number above 1, is left out, so no descendant of
+ * 0 or 1 is ever looked up.
  *
- * @param {unknown[]} pids The PIDs the run recorded
- * @returns {Promise<string[]>} One line per process signalled or skipped
+ * @param {RecordedProcess[]} records The recorded processes
+ * @returns {{ pid: number, startTime: number | null }[]} One entry per process
  */
-export async function stopRecorded(pids) {
-  const skipped = pids
-    .filter((pid) => !isSignalable(pid))
-    .map((pid) => `skipped pid ${String(pid)}: not a process id above 1`);
-  const stopped = await stopAll(pids.filter(isSignalable));
-  return [...skipped, ...stopped];
+function ownProcesses(records) {
+  const roots = records.filter(isSameProcess).map((record) => record.pid);
+  const pids = [...new Set([...roots, ...descendantsOf(roots)])];
+  return pids.map((pid) => ({ pid, startTime: startTimeOf(pid) }));
 }
 
 /**
- * Kills recorded processes and every descendant with SIGKILL at once, and
- * resolves once they are gone and their sockets closed. Nothing flushes or
- * shuts down, so use it only where the process's state is thrown away.
- *
- * @param {number[]} pids The recorded PIDs
- * @returns {Promise<string[]>} One line per process killed
- * @throws {TypeError} When a pid is not a whole number above 1, before any signal
- * @throws When a process is still there after the grace period
+ * @param {RecordedProcess[]} records
+ * @returns {string[]} One line per record whose pid is not a whole number above 1
  */
-export async function killAll(pids) {
-  for (const pid of pids) assertSignalable(pid);
-  const targets = [...pids, ...descendantsOf(pids)].filter(isAlive);
-  for (const pid of targets) signalGroup(pid, "SIGKILL");
+function skippedRecords(records) {
+  return records
+    .filter((record) => !isSignalable(record.pid))
+    .map(
+      (record) => `skipped pid ${String(record.pid)}: not a process id above 1`,
+    );
+}
+
+/**
+ * Stops the processes a run recorded and every descendant: SIGTERM to each
+ * process group, then SIGKILL to whatever outlives the grace period. Each is
+ * signalled only while its pid still runs the process recorded, checked
+ * right before each signal. A record whose pid is not a whole number above
+ * 1 is reported, never signalled, and the rest still stop.
+ *
+ * @param {RecordedProcess[]} records The recorded processes
+ * @returns {Promise<string[]>} One line per record skipped and per process signalled
+ * @throws When /proc is not this PID namespace's, before it signals anything
+ */
+export async function stopRecorded(records) {
+  const targets = ownProcesses(records);
+  for (const target of targets) signalGroup(target.pid, "SIGTERM");
   const deadline = Date.now() + STOP_GRACE_MS;
-  while (targets.some(isRunning)) {
+  while (targets.some(isSameProcess) && Date.now() < deadline) {
+    await sleep(READY_POLL_MS);
+  }
+  const stubborn = targets.filter(isSameProcess);
+  for (const target of stubborn) signalGroup(target.pid, "SIGKILL");
+  return [
+    ...skippedRecords(records),
+    ...targets.map(
+      ({ pid }) =>
+        `stopped pid ${pid}${stubborn.some((target) => target.pid === pid) ? " (SIGKILL)" : ""}`,
+    ),
+  ];
+}
+
+/**
+ * Kills the processes a run recorded and every descendant with SIGKILL at
+ * once, for a backend whose database goes next, and resolves once none of
+ * them runs. Nothing flushes or shuts down. A zombie whose threads have all
+ * exited no longer runs, so one that nothing reaps does not hold the wait.
+ * Each is signalled only while its pid still runs the process recorded,
+ * checked right before the signal, so a pid another process took while the
+ * caller waited is left alone. A record whose pid is not a whole number
+ * above 1 is reported, never signalled, and the rest are still killed.
+ *
+ * @param {RecordedProcess[]} records The recorded processes
+ * @returns {Promise<string[]>} One line per record skipped and per process killed
+ * @throws When /proc is not this PID namespace's, before it signals anything
+ * @throws When a process still runs after the grace period
+ */
+export async function killRecorded(records) {
+  const targets = ownProcesses(records);
+  for (const target of targets) signalGroup(target.pid, "SIGKILL");
+  const deadline = Date.now() + STOP_GRACE_MS;
+  while (targets.some(isSameProcess)) {
     if (Date.now() >= deadline) {
-      throw new Error(
-        `pid ${targets.filter(isRunning).join(", ")} survived SIGKILL`,
-      );
+      const left = targets.filter(isSameProcess).map(({ pid }) => pid);
+      throw new Error(`pid ${left.join(", ")} survived SIGKILL`);
     }
     await sleep(KILL_POLL_MS);
   }
-  return targets.map((pid) => `killed pid ${pid}`);
-}
-
-/**
- * Kills the processes a run recorded, as {@link killAll} does, after leaving
- * out every recorded PID that is not a whole number above 1: a corrupt or
- * missing record is reported, never signalled, and the rest are killed.
- *
- * @param {unknown[]} pids The PIDs the run recorded
- * @returns {Promise<string[]>} One line per process killed or skipped
- */
-export async function killRecorded(pids) {
-  const skipped = pids
-    .filter((pid) => !isSignalable(pid))
-    .map((pid) => `skipped pid ${String(pid)}: not a process id above 1`);
-  const killed = await killAll(pids.filter(isSignalable));
-  return [...skipped, ...killed];
-}
-
-/**
- * Stops recorded processes and every descendant: SIGTERM to each process
- * group, then SIGKILL to whatever outlives the grace period. A PID that is
- * not a whole number above 1 throws before any signal is sent.
- *
- * @param {number[]} pids The recorded PIDs
- * @returns {Promise<string[]>} One line per process signalled
- */
-export async function stopAll(pids) {
-  for (const pid of pids) assertSignalable(pid);
-  const targets = [...pids, ...descendantsOf(pids)].filter(isAlive);
-  for (const pid of targets) signalGroup(pid, "SIGTERM");
-  const deadline = Date.now() + STOP_GRACE_MS;
-  while (targets.some(isAlive) && Date.now() < deadline) {
-    await sleep(READY_POLL_MS);
-  }
-  const stubborn = targets.filter(isAlive);
-  for (const pid of stubborn) signalGroup(pid, "SIGKILL");
-  return targets.map(
-    (pid) => `stopped pid ${pid}${stubborn.includes(pid) ? " (SIGKILL)" : ""}`,
-  );
+  return [
+    ...skippedRecords(records),
+    ...targets.map(({ pid }) => `killed pid ${pid}`),
+  ];
 }

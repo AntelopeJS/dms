@@ -14,12 +14,12 @@ import {
   onboard,
   recordedRequest,
 } from "./session.mjs";
+import { ensureMail, resolutionFolders } from "./stack.mjs";
 import {
-  ensureMail,
+  assertForwardedRun,
   freshDatabase,
-  resolutionFolders,
   restartBackend,
-} from "./stack.mjs";
+} from "./backend.mjs";
 import { Tab } from "./tab.mjs";
 import { recordTiming, stopwatch, timed } from "./timing.mjs";
 
@@ -522,6 +522,7 @@ export async function loadJourneys(file) {
  * @returns {Promise<FeatureResult[]>} The results of this run
  */
 export async function runJourneyFile(state, request) {
+  assertForwardedRun(state);
   const journeys = await loadJourneys(request.file);
   const unknown = request.ids.filter(
     (id) => !journeys.some((journey) => journey.id === id),
