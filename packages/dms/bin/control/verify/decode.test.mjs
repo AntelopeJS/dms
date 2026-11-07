@@ -166,6 +166,34 @@ await test("a config without the optional list of non-user-facing paths loads wi
   assert.equal(skill.config.doors.format, null);
 });
 
+await test("a config loads its shared globs, and none when it lists none; a loader that drops the fields escalates nothing", async (t) => {
+  const bare = await loadSkill(skillFolder(t, CONFIG), tmpdir());
+  assert.deepEqual([bare.config.shared, bare.config.notShared], [[], []]);
+  const listed = await loadSkill(
+    skillFolder(
+      t,
+      CONFIG.replace(
+        "  smoke:",
+        '  shared: ["**/package.json"],\n  notShared: ["hosts/**"],\n  smoke:',
+      ),
+    ),
+    tmpdir(),
+  );
+  assert.deepEqual(listed.config.shared, ["**/package.json"]);
+  assert.deepEqual(listed.config.notShared, ["hosts/**"]);
+});
+
+await test("a config whose shared globs are not strings is refused", async (t) => {
+  const dir = skillFolder(
+    t,
+    CONFIG.replace("  smoke:", '  shared: "**/package.json",\n  smoke:'),
+  );
+  await assert.rejects(
+    loadSkill(dir, tmpdir()),
+    /verify\.config\.ts is malformed: expected a verification skill config/,
+  );
+});
+
 await test("a config missing a field is refused where the skill loads", async (t) => {
   const dir = skillFolder(t, CONFIG.replace('smoke: "smoke",\n', ""));
   await assert.rejects(

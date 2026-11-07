@@ -33,6 +33,7 @@ covers:
   - packages/dms/frontend-vue/layers/dms-core/app/composables/live/**
   - packages/dms/frontend-vue/layers/dms-core/app/composables/realtime/**
   - packages/dms/frontend-vue/layers/dms-core/app/composables/page/**
+  - packages/dms/frontend-vue/layers/dms-core/app/composables/period/**
   - packages/dms/frontend-vue/layers/dms-layout/app/emails/EmailExportReady.vue
   - packages/interface-dms/src/base/**
   - packages/interface-dms/src/page/**

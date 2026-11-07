@@ -51,7 +51,7 @@ async function commandMap(values) {
  * @returns {Promise<number>} The exit code
  */
 async function commandPlan(values) {
-  const plan = planFor(await skillOf(values), values.base);
+  const plan = planFor(await skillOf(values), values.base, values.all);
   print(JSON.stringify(plan, null, 2));
   return plan.unmapped.length === 0 ? 0 : 1;
 }
@@ -158,6 +158,7 @@ async function commandJudge(command, dir, values) {
     state,
     pr,
     readJudgement(skill, join(state.evidence, "judgement.json")),
+    values.all,
   );
   print(verdict.markdown);
   if (command !== "publish") return verdict.result === "FAIL" ? 1 : 0;

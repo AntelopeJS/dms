@@ -44,6 +44,10 @@ export interface VerifyConfig {
   prepare: string[][];
   userFacing: string[];
   notUserFacing: string[];
+  /** Globs of the files every feature depends on: manifests, lockfiles, the interface contract and the config. A diff that changes one runs every feature, not only the ones whose `covers:` it touches. */
+  shared: string[];
+  /** Globs of files under `shared` that no feature depends on, such as tests and fixtures. */
+  notShared: string[];
   smoke: string;
   smokeJourney: string;
   doors: Record<DoorKind, DoorRule | null>;
@@ -68,6 +72,22 @@ const config: VerifyConfig = {
     "packages/dms/frontend-vue/pnpm-*.yaml",
     "packages/interface-dms/src/**/*.test.ts",
   ],
+  shared: [
+    "**/package.json",
+    "**/pnpm-*.yaml",
+    "**/.npmrc",
+    ".nvmrc",
+    "tsconfig.json",
+    "packages/dms/tsconfig.json",
+    "packages/interface-dms/tsconfig.json",
+    "packages/dms/playground/tsconfig.json",
+    "packages/dms/playground/frontend-vue/tsconfig.json",
+    "packages/dms/playground/antelope.config.ts",
+    "packages/dms/src/config/**",
+    "packages/interface-dms/src/**",
+    ".agents/skills/verify-dms/verify.config.ts",
+  ],
+  notShared: ["packages/dms/test-hosts/**", "packages/interface-dms/src/**/*.test.ts"],
   smoke: "smoke",
   smokeJourney: "onboard → login → invite a member → reload",
   doors: {

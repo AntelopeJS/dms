@@ -68,11 +68,13 @@ It checks that every recorded process is alive and holds its port, both servers 
 ## Drive
 
 ```bash
-$C plan                                  # the diff mapped to features; unmapped surfaces
+$C plan                                  # the diff mapped to features; shared files; unmapped surfaces
+$C plan --all                            # every feature, for a release
 $C journey "$RUN" smoke
 $C journey "$RUN" settings-members [journey-id...]
 ```
 
+- `run` is the smoke feature and the features the diff touches. When the diff changes a shared file (the `shared` globs of `verify.config.ts`: package.json files, lockfiles, pnpm workspace files, the interface contract and the config), `run` is the smoke feature and then every feature, and `shared` lists the files that forced it. Before a release run `plan --all` and pass `--all` to `verdict` and `publish` too, so the verdict requires every feature.
 - Each feature file in [features/](features/README.md) lists its source globs (`covers:`), its docs pages (`docs:`) and its journeys; the journeys are in `journeys/<feature>.mjs`.
 - A journey starts on an empty database of the run (the backend restarts on it) with the administrator onboarded, unless it says otherwise. It drives the dashboard by ARIA role and name through playwright-core, one browser context per account, and reads every mutation back through a second view: a reload, the API, another account's tab, the captured mail, or a backend restart.
 - To look at the product yourself, use these commands, each a single step on the run's long-lived browser or API:
@@ -114,9 +116,9 @@ $C down "$RUN"
 
 ## Verdict rules
 
-1. **Run every feature whose `covers:` globs the diff touches, plus the smoke journey** (onboard → login → invite a member → reload). `plan` prints that list as `run`.
+1. **Run every feature whose `covers:` globs the diff touches, plus the smoke journey** (onboard → login → invite a member → reload). `plan` prints that list as `run`. A diff that changes a shared file runs every feature, and so does a release (`--all`); the verdict fails any journey of those features that did not run.
 2. **Unmapped surface fails the verdict.** User-facing code is `packages/dms/src/**`, `packages/dms/frontend-vue/**` and `packages/interface-dms/src/**`, tests and tool configs excluded (`verify.config.ts`). A changed file there that no feature glob covers is an unmapped surface: the PR adds it to a feature with its journeys. `map` checks the whole tree, and CI runs it.
-3. **Every registered journey of a feature in `run` must have run and passed.** A missing journey fails as "not run", so run whole features. Known findings stay as failing journeys (see the feature files' Gotchas): they fail a verdict only when the diff touches their feature.
+3. **Every registered journey of a feature in `run` must have run and passed.** A missing journey fails as "not run", so run whole features. Known findings stay as failing journeys (see the feature files' Gotchas): they fail a verdict only when `run` includes their feature, which a shared file or `--all` makes every feature.
 4. **Docs.** Each touched feature lists its `docs:` pages. Judge every page against what the journeys showed. A page that no longer matches fails the verdict.
 5. **Formal checks.** `verify.config.ts` lists each formal check with the files it covers and its own files. Run `$C formal "$RUN"` before the verdict: it runs the full configuration of every check whose covered files or own files the diff touches and records it under `evidence/formal/<name>/`. For each such check it also decides, without judgement, whether the diff changed what the covered code does:
    - `emit` compares the structure of the covered files' JavaScript on the base and on HEAD: node kinds, names and literal values, with types, comments, formatting, parentheses and export keywords left out. Each use of an imported binding stands for its origin (the resolved module and the imported name), so an import retargeted to another module or alias counts as changed; a function declaration of a covered module is its name alone, and any other binding of a covered module is keyed by module and name. A function declaration refers to the top-level variables and classes of its own file by file and name, so moving it next to a different variable of the same name counts as changed. Exports are keyed by the origin they export, so a re-export or an export alias retargeted counts as changed. Each file must keep its top-level statements and side-effect imports in order; function declarations, which are hoisted, may move between covered files with their imports. So a type-only edit, a reformat or moving a function declaration counts as unchanged, while reordering statements or moving any other statement counts as changed. `emit` judges behaviour, not the public surface: exports are the api-diff's job;
