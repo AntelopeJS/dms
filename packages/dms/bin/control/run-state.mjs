@@ -33,7 +33,8 @@ const TIMESTAMP_LENGTH = 15;
  * @typedef {ProcessRecord & { port: number }} ServerRecord
  * @typedef {ServerRecord & { database: string }} BackendRecord A backend the run started, with the database it serves
  * @typedef {{ email: string, password: string, userId?: string | null }} Account
- * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, renderer?: string, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], namespaces?: import("./identity.mjs").Namespaces, noStandby?: boolean, buildRoots?: string[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number }} RunState
+ * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, renderer?: string, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], namespaces?: import("./identity.mjs").Namespaces, noStandby?: boolean, buildRoots?: string[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number, frontendBuild?: FrontendBuild, bakedEnv?: Record<string, string> }} RunState
+ * @typedef {{ key: string | null, cached: boolean, reason?: string }} FrontendBuild The key of the inputs of the run's frontend build (null when it was not keyed), whether the build came from the build cache, and why the cache was not used or not filled when it should have been
  */
 
 /**
@@ -192,6 +193,11 @@ const isStoredRun = objectOf(
     baseRoot: isString,
     resetCount: isNumber,
     journeyCount: isNumber,
+    frontendBuild: objectOf(
+      { key: nullable(isString), cached: isBoolean },
+      { reason: isString },
+    ),
+    bakedEnv: isStrings,
   },
 );
 

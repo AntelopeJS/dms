@@ -5,7 +5,8 @@ import { git } from "./git.mjs";
 import { runToEnd } from "./processes.mjs";
 import { saveRun } from "./run-state.mjs";
 import { runPrepare } from "./verify/skill.mjs";
-import { cliPaths, ENVIRONMENT, layOutCopy, spec } from "./stack.mjs";
+import { layOutCopy } from "./run-copy.mjs";
+import { cliPaths, ENVIRONMENT, spec } from "./stack.mjs";
 import { restartBackend } from "./backend.mjs";
 
 const READY_MARK = ".dms-control-ready";
