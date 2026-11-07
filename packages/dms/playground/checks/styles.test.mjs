@@ -4,6 +4,7 @@ import { assertAccepted, assertRejected, fixturePath } from "./fixtures.mjs";
 
 await test("rejects inline and external Vue custom blocks", () => {
   assertRejected(
+    "customBlock",
     [
       '<i18n>{"message":"hello"}</i18n>',
       '<docs src="../../../src/index.ts"></docs>',
@@ -19,6 +20,7 @@ await test("rejects CSS module imports and CSS @import files", (t) => {
   t.after(() => rmSync(style, { force: true }));
   writeFileSync(style, '@import "../../../src/index.ts";');
   assertRejected(
+    "forbidden",
     ["", "?raw", "?url"].map((suffix) => [
       fixturePath("frontend-vue/app"),
       `import "./${style.split("/").at(-1)}${suffix}";`,
@@ -29,6 +31,7 @@ await test("rejects CSS module imports and CSS @import files", (t) => {
 
 await test("rejects Vue style-src including safe targets", () => {
   assertRejected(
+    "extStyle",
     ["./composables/usePageSetupLog.ts", "../../../src/index.ts"].map(
       (source) => [
         fixturePath("frontend-vue/app", "vue"),
@@ -40,6 +43,7 @@ await test("rejects Vue style-src including safe targets", () => {
 
 await test("rejects inline CSS @import/url, escapes, and unknown syntax", () => {
   assertRejected(
+    "inlineStyle",
     [
       '@import "../../../src/index.ts";',
       '.probe { background: url("../../../src/index.ts"); }',

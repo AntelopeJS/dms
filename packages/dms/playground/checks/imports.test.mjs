@@ -54,13 +54,15 @@ await test("checks resolved import targets regardless of expression spelling or 
     },
   ];
   /** @type {Fixture[]} */
-  const rejected = [];
+  const mixed = [];
+  /** @type {Fixture[]} */
+  const forbidden = [];
   /** @type {Fixture[]} */
   const accepted = [];
   for (const context of contexts) {
     const ownDist = context.client ? `../../dist/${id}` : `../dist/${id}`;
     const backend = context.client ? "../../../src/index" : "../../src/index";
-    rejected.push([
+    mixed.push([
       fixturePath(context.path, context.extension),
       context.wrap(
         [
@@ -82,13 +84,15 @@ await test("checks resolved import targets regardless of expression spelling or 
       context.wrap(control + '\nimport "@antelopejs/interface-dms/page";'),
     ]);
     if (!context.client) {
-      rejected.push([
+      forbidden.push([
         fixturePath(context.path, context.extension),
         'require(("#dms-core/app/utils/http-status" satisfies string));',
       ]);
     }
   }
-  rejected.push(
+  assertRejected(["forbidden", "static"], mixed);
+  assertRejected("forbidden", forbidden);
+  assertRejected("extScript", [
     [
       fixturePath("frontend-vue/app", "vue"),
       '<script lang="ts" src="#dms-core/../../../src/index"></script>',
@@ -97,13 +101,13 @@ await test("checks resolved import targets regardless of expression spelling or 
       fixturePath("frontend-vue/app", "vue"),
       '<script lang="ts" src="#dms-core/app/utils/http-status"></script>',
     ],
-  );
-  assertRejected(rejected);
+  ]);
   assertAccepted(accepted);
 });
 
 await test("rejects client import.meta.glob access to backend and interface sources", () => {
   assertRejected(
+    "forbidden",
     ["../../../src/**/*.ts", "../../../../interface-dms/src/**/*.ts"].map(
       (pattern) => [
         fixturePath("frontend-vue/app"),
@@ -126,7 +130,7 @@ await test("rejects client import.meta.glob access to backend and interface sour
 });
 
 await test("rejects client new URL access to backend source through import.meta.url", () => {
-  assertRejected([
+  assertRejected("loader", [
     [
       fixturePath("frontend-vue/app"),
       'new URL("../../../src/index.ts", import.meta.url);',
@@ -136,7 +140,7 @@ await test("rejects client new URL access to backend source through import.meta.
 });
 
 await test("rejects wrapped client relative dynamic imports into shared Vue layers", () => {
-  assertRejected([
+  assertRejected("forbidden", [
     [
       fixturePath("frontend-vue/app"),
       'import(("../../../frontend-vue/layers/dms-core/app/utils/http-status" satisfies string));',
@@ -152,6 +156,7 @@ await test("rejects server module.require and require.resolve access to own dist
   writeFileSync(dist, "module.exports = 1;\n");
   t.after(() => rmSync(dist));
   assertRejected(
+    "loader",
     [
       `module.require("../dist/${id}.js");`,
       `require.resolve("../dist/${id}.js");`,
@@ -164,18 +169,21 @@ await test("rejects server module.require and require.resolve access to own dist
 });
 
 await test("rejects same-tier and upward chart imports through wrapped require", () => {
+  const targets = ["../quick-actions", "../index"];
   assertRejected(
-    ["../quick-actions", "../index"].flatMap((target) => [
-      [
-        fixturePath("src/chart"),
-        `require((${JSON.stringify(target)} satisfies string));`,
-        null,
-      ],
-      [
-        fixturePath("src/chart"),
-        `(0, require)(${JSON.stringify(target)});`,
-        null,
-      ],
+    "forbidden",
+    targets.map((target) => [
+      fixturePath("src/chart"),
+      `require((${JSON.stringify(target)} satisfies string));`,
+      null,
+    ]),
+  );
+  assertRejected(
+    "loader",
+    targets.map((target) => [
+      fixturePath("src/chart"),
+      `(0, require)(${JSON.stringify(target)});`,
+      null,
     ]),
   );
   assertAccepted([
@@ -184,7 +192,7 @@ await test("rejects same-tier and upward chart imports through wrapped require",
 });
 
 await test("rejects server type imports from the client frontend-module package", () => {
-  assertRejected([
+  assertRejected("forbidden", [
     [
       fixturePath("src"),
       'import type * as FrontendModule from "@antelopejs/dms-frontend/templates/vue/frontend-module.ts";',
@@ -195,6 +203,7 @@ await test("rejects server type imports from the client frontend-module package"
 
 await test("rejects backend loaders in Vue templates rather than scanning only scripts", () => {
   assertRejected(
+    "forbidden",
     [
       `<template><button @click="() => import('../../../src/index.ts')">Load</button></template>`,
       `<template><div>{{ require('../../../src/index.ts') }}</div></template>`,
@@ -240,7 +249,7 @@ await test("rejects external Vue scripts rather than accepting uninspected conte
   const script = vue.replace(/\.vue$/, ".inc");
   t.after(() => rmSync(script, { force: true }));
   writeFileSync(script, 'import "../../../src/index.ts"; export default {};\n');
-  assertRejected([
+  assertRejected("extScript", [
     [
       vue,
       `<script lang="js" src="./${script.split("/").at(-1)}"></script><template><div>Probe</div></template>`,
@@ -253,6 +262,7 @@ await test("rejects source edges into every directory skipped by the scanner", (
   const directory = fixturePath("frontend-vue/app").replace(/\.ts$/, "");
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   assertRejected(
+    "forbidden",
     [".nuxt", ".output", "dist", "node_modules"].map((skipped) => {
       const hidden = nodePath.join(directory, skipped, "hidden.ts");
       mkdirSync(nodePath.dirname(hidden), { recursive: true });
@@ -305,9 +315,9 @@ await test("checks JSX loaders with the declared script kind and rejects parse r
       ],
     );
   }
-  assertRejected(rejected);
+  assertRejected("forbidden", rejected);
   assertAccepted(accepted);
-  assertRejected([
+  assertRejected("parse", [
     [fixturePath("frontend-vue/app"), "export const incomplete = ;", null],
     [
       fixturePath("frontend-vue/app", "vue"),
@@ -336,6 +346,7 @@ await test("rejects uninspected Vite inc targets even beside a TypeScript shadow
   writeFileSync(fragment, "export {};\n");
   writeFileSync(encoded, "export {};\n");
   assertRejected(
+    "forbidden",
     [bridge, fragment, encoded].map((target) => [
       fixturePath("frontend-vue/app"),
       `export * from "./${target.split("/").at(-1)}";`,
@@ -350,7 +361,7 @@ await test("rejects uninspected Node inc targets that can execute backend code",
     bridge,
     'module.exports = require("../../src/utils/run-in-batches.ts");',
   );
-  assertRejected([
+  assertRejected("forbidden", [
     [fixturePath("src", "cjs"), `require("./${bridge.split("/").at(-1)}");`],
   ]);
 });
@@ -362,7 +373,7 @@ await test("rejects extensionless executable targets rather than trusting their 
     bridge,
     'module.exports = require("../../src/utils/run-in-batches.ts");',
   );
-  assertRejected([
+  assertRejected("forbidden", [
     [fixturePath("src", "cjs"), `require("./${bridge.split("/").at(-1)}");`],
   ]);
 });
@@ -387,6 +398,7 @@ await test("permits inert target kinds without treating Node require as a Vite a
     ].map((source) => [fixturePath("frontend-vue/app"), source]),
   );
   assertRejected(
+    "forbidden",
     [
       `import "./${name}.inc?raw&unmodeled";`,
       'import "../../../src/utils/run-in-batches.ts?raw";',
@@ -459,7 +471,7 @@ for (const { name, metadata, request } of [
       nodePath.join(directory, "probe.cjs"),
       `require(${JSON.stringify(request)});`,
     );
-    assertRejected([
+    assertRejected("metadata", [
       [nodePath.join(directory, "package.json"), JSON.stringify(metadata)],
     ]);
   });
@@ -467,6 +479,7 @@ for (const { name, metadata, request } of [
 
 await test("rejects hidden/nested package.json across walked roots", (t) => {
   assertRejected(
+    "metadata",
     ["src", "frontend-vue", "frontend-vue/app"].map((area) => {
       const directory = fixturePath(area).replace(/\.ts$/, "");
       const nested = nodePath.join(directory, ".hidden", "nested");
@@ -479,3 +492,4 @@ await test("rejects hidden/nested package.json across walked roots", (t) => {
 
 await import("./manifest.test.mjs");
 await import("./styles.test.mjs");
+await import("./fixtures.test.mjs");
