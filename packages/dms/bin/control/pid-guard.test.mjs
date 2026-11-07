@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createRunFolders, saveRun } from "./run-state.mjs";
 import {
   assertSignalable,
   isAlive,
@@ -92,4 +96,56 @@ await test("stopRecorded skips and reports the bad pids a run recorded and still
   assert.ok(lines.includes("skipped pid 0: not a process id above 1"));
   assert.ok(lines.some((line) => line.startsWith(`stopped pid ${own}`)));
   assert.equal(isAlive(own), false);
+});
+
+const CONTROL = join(import.meta.dirname, "..", "dms-control.mjs");
+const NO_UNSAFE_KILL = `data:text/javascript,const k=process.kill.bind(process);process.kill=(p,s)=>{if(!(Number.isInteger(p)&&Math.abs(p)>1))throw new Error("unsafe kill "+p);return k(p,s);};`;
+
+await test("dms-control down prints the recorded pid it skipped; dropping the line leaves the operator unaware a record was corrupt", (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "dms-control-pid-guard-down-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  saveRun({
+    ...createRunFolders(dir),
+    id: "20261107T000000-abc123",
+    createdAt: "2026-11-07T00:00:00.000Z",
+    environment: "docs",
+    playground: dir,
+    moduleRoot: dir,
+    repo: null,
+    headSha: null,
+    baseRef: "origin/main",
+    skill: null,
+    apiPort: 5010,
+    webPort: 5011,
+    smtpPort: 5012,
+    mail: join(dir, "evidence", "mail"),
+    apiUrl: "http://127.0.0.1:5010",
+    webUrl: "http://127.0.0.1:5011",
+    databasePrefix: "verify_x",
+    database: "verify_x",
+    mongoUrl: "",
+    ownsMongo: false,
+    secrets: {},
+    adminPassword: "",
+    extraEnv: {},
+    processes: [
+      {
+        name: "bogus",
+        pid: -1,
+        command: "node bogus",
+        cwd: dir,
+        log: join(dir, "logs", "bogus.log"),
+        startedAt: "2026-11-07T00:00:00.000Z",
+      },
+    ],
+    accounts: {},
+    tokens: {},
+    ready: false,
+  });
+  const out = execFileSync(
+    process.execPath,
+    ["--import", NO_UNSAFE_KILL, CONTROL, "down", dir],
+    { encoding: "utf8" },
+  );
+  assert.match(out, /^skipped pid -1: not a process id above 1$/m);
 });
