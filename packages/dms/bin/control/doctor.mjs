@@ -8,6 +8,8 @@ import { apiTargetFile, readTarget } from "./forwarder.mjs";
 import { checkoutOf } from "./git.mjs";
 import { stringField } from "./json.mjs";
 import { apiRequest } from "./session.mjs";
+import { describeFailure } from "./failure.mjs";
+import { currentFrontendBuildKey } from "./frontend-check.mjs";
 
 /** @typedef {import("./run-state.mjs").RunState} RunState */
 
@@ -150,8 +152,11 @@ function versions(state) {
   };
 }
 
-/** @param {RunState} state */
-function freshnessLines(state) {
+/**
+ * @param {RunState} state
+ * @returns {Promise<{ check: string, ok: boolean, detail: string }[]>}
+ */
+async function freshnessLines(state) {
   const moduleDist = join(state.moduleRoot, "dist");
   const playgroundDist = join(state.playground, "dist");
   const frontendBuild = join(
@@ -188,12 +193,32 @@ function freshnessLines(state) {
           newestMtime(join(state.playground, "src")),
       playgroundDist,
     ),
-    line(
+    await frontendBuildLine(state, frontendBuild, frontendSources),
+  ];
+}
+
+/**
+ * @param {RunState} state
+ * @param {string} frontendBuild
+ * @param {number} frontendSources
+ */
+async function frontendBuildLine(state, frontendBuild, frontendSources) {
+  const recorded = state.frontendBuild;
+  if (!recorded?.key) {
+    return line(
       "frontend build newer than frontend-vue",
       mtime(frontendBuild) >= frontendSources,
       frontendBuild,
-    ),
-  ];
+    );
+  }
+  const now = await currentFrontendBuildKey(state).catch(
+    (/** @type {unknown} */ error) => `unreadable (${describeFailure(error)})`,
+  );
+  return line(
+    "frontend build is of the current sources",
+    now === recorded.key,
+    `${recorded.cached ? "from the build cache" : "built by up"}, inputs ${recorded.key.slice(0, 12)} at up, ${now.slice(0, 12)} now`,
+  );
 }
 
 /** @param {RunState} state */
@@ -253,9 +278,10 @@ async function sessionLine(state) {
  * Answers whether a run is worth driving: every recorded process is alive
  * and holds its port, both servers answer, the API port forwards to the
  * run's backend, the frontend serves this run's backend, the builds are
- * newer than their sources, the backend started after the last build, the
- * database is the run's own, and the admin session (once onboarded) is
- * valid.
+ * newer than their sources (the frontend build is keyed as a fresh `up`
+ * would key it now, when it recorded a key), the backend started after the
+ * last build, the database is the run's own, and the admin session (once
+ * onboarded) is valid.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @returns {Promise<{ check: string, ok: boolean, detail: string }[]>} One line per check
@@ -287,7 +313,7 @@ export async function doctor(state) {
       found.core !== "missing" && found.dmsFrontend !== "missing",
       `module ${found.module}, @antelopejs/core ${found.core}, @antelopejs/dms-frontend ${found.dmsFrontend}`,
     ),
-    ...freshnessLines(state),
+    ...(await freshnessLines(state)),
     buildLine(state),
     line(
       "database is the run's",

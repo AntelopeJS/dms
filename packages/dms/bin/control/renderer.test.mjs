@@ -15,7 +15,8 @@ import { targetOf } from "./commands-stack.mjs";
 import { git } from "./git.mjs";
 import { resolveRenderer } from "./renderer.mjs";
 import { decodeSkillConfig } from "./verify/decode.mjs";
-import { cliPaths, layOutCopy } from "./stack.mjs";
+import { layOutCopy } from "./run-copy.mjs";
+import { cliPaths } from "./stack.mjs";
 
 /**
  * @param {import("node:test").TestContext} t The test

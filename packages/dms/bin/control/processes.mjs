@@ -93,12 +93,25 @@ export function startDetached(spec) {
   };
 }
 
+/** A program that ran to its end and exited with another code than 0. */
+export class ExitError extends Error {
+  /**
+   * @param {string} message What exited, how, and where its log is
+   * @param {number | null} exitCode Its exit code, or null when a signal ended it
+   */
+  constructor(message, exitCode) {
+    super(message);
+    /** Its exit code, or null when a signal ended it. */
+    this.exitCode = exitCode;
+  }
+}
+
 /**
  * Runs a program to completion, its output appended to `<logs>/<name>.log`.
  *
  * @param {{ name: string, program: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, logs: string }} spec What to run
  * @returns {Promise<void>} Resolves on exit code 0
- * @throws When the program exits otherwise, naming its log
+ * @throws {ExitError} When the program exits otherwise, naming its log
  */
 export function runToEnd(spec) {
   const log = join(spec.logs, `${spec.name}.log`);
@@ -117,7 +130,10 @@ export function runToEnd(spec) {
         return;
       }
       reject(
-        new Error(`${spec.name} exited with ${code ?? signal}; see ${log}`),
+        new ExitError(
+          `${spec.name} exited with ${code ?? signal}; see ${log}`,
+          code,
+        ),
       );
     });
   });

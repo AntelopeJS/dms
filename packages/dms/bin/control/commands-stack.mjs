@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { browserCommand } from "./browser-client.mjs";
 import { ACTION_NAMES, describeTarget, serveBrowser } from "./browser.mjs";
 import { doctor } from "./doctor.mjs";
+import { setUpFrontendWorkspace } from "./frontend-workspace.mjs";
 import { capturedMail, serveMail } from "./mail.mjs";
 import { loadRun } from "./run-state.mjs";
 import { apiRequest, isOk, onboard } from "./session.mjs";
@@ -70,7 +71,13 @@ async function commandUp(values) {
     noStandby:
       values["no-standby"] === true ||
       process.env.DMS_CONTROL_NO_STANDBY === "1",
+    buildCache: !values["no-build-cache"],
   });
+  if (state.frontendBuild?.reason) {
+    process.stderr.write(
+      `dms-control: the frontend build was not cached: ${state.frontendBuild.reason}\n`,
+    );
+  }
   print(state.dir);
   return 0;
 }
@@ -209,7 +216,8 @@ async function commandDown(dir) {
 
 /**
  * Runs a command that drives the product: `up`, `doctor`, `onboard`,
- * `browser`, `api`, `mail`, `down`, `timings`, and the three services `up` starts.
+ * `browser`, `api`, `mail`, `down`, `timings`, the three services `up`
+ * starts, and the frontend workspace setup it runs (`prepare-frontend`).
  *
  * @param {string | undefined} command The command
  * @param {string[]} rest Its positional arguments
@@ -242,6 +250,14 @@ export async function runStackCommand(command, rest, values) {
       print(await freshDatabase(state, `r${state.resetCount}`));
       return 0;
     }
+    case "prepare-frontend":
+      await setUpFrontendWorkspace(
+        rest[0] ?? "",
+        rest[1] ?? "",
+        rest[2] ?? "",
+        rest[3] === "install",
+      );
+      return 0;
     case "serve-mail": {
       const state = loadRun(rest[0]);
       await serveMail(state.mail, state.smtpPort);

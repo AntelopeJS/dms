@@ -1,15 +1,9 @@
 import { randomBytes } from "node:crypto";
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  rmSync,
-  symlinkSync,
-} from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { layOutFrontendBuild } from "./build-cache.mjs";
 import { existingBuildRoots } from "./build-inputs.mjs";
 import { describeFailure } from "./failure.mjs";
 import { checkoutOf } from "./git.mjs";
@@ -36,19 +30,20 @@ import {
   saveRun,
 } from "./run-state.mjs";
 import { RENDERER_CLI, resolveRenderer } from "./renderer.mjs";
+import { layOutCopy } from "./run-copy.mjs";
 import { newPassword } from "./session.mjs";
 import { appendTiming, recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
  * @typedef {import("./run-state.mjs").RunState} RunState
- * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string, prepared?: import("./timing.mjs").TimingEntry[], noStandby?: boolean }} UpOptions Where the playground and the runs are, the `prepare` entries to record once the run exists, and whether fresh databases start their backend on the spot
+ * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string, prepared?: import("./timing.mjs").TimingEntry[], noStandby?: boolean, buildCache?: boolean }} UpOptions Where the playground and the runs are, the `prepare` entries to record once the run exists, whether fresh databases start their backend on the spot, and whether the frontend build may come from the build cache (it may unless `buildCache` is false)
  */
 
 const READY_TIMEOUT_MS = 180_000;
 const SECRET_BYTES = 32;
+const PREPARED_WORKSPACE = new URL("prepared-workspace.mjs", import.meta.url)
+  .href;
 const MAIL_PORT_ATTEMPTS = 3;
-const COPY_SKIPPED = new Set(["node_modules", ".antelope", ".dms-frontend"]);
-const SHADOW_SKIPPED = new Set([".antelope", ".dms-frontend", ".git"]);
 const SECRET_NAMES = [
   "DMS_JWT_SECRET",
   "AUTH_JWT_SECRET",
@@ -90,78 +85,26 @@ export function resolutionFolders(state) {
 export function cliPaths(playground, renderer) {
   const require = createRequire(join(playground, "package.json"));
   const core = dirname(require.resolve("@antelopejs/core/package.json"));
-  const frontend =
-    renderer ??
-    dirname(require.resolve("@antelopejs/dms-frontend/package.json"));
   return {
     ajs: join(core, "dist", "core", "cli", "index.js"),
-    dms: join(frontend, RENDERER_CLI),
+    dms: join(frontendPackage(playground, renderer), RENDERER_CLI),
   };
 }
 
 /**
- * @param {string} real
- * @param {string} shadow
- * @param {string} keep
- */
-function shadowLevel(real, shadow, keep) {
-  mkdirSync(shadow, { recursive: true });
-  for (const entry of readdirSync(real)) {
-    if (entry === keep || SHADOW_SKIPPED.has(entry)) continue;
-    symlinkSync(join(real, entry), join(shadow, entry));
-  }
-}
-
-/**
- * A `node_modules` that is `modules` with `@antelopejs/dms-frontend` replaced
- * by the renderer checkout, every other entry linked to the original.
- *
- * @param {string} modules The playground's installed modules
- * @param {string} shadow The run's `node_modules`
- * @param {string} renderer The renderer checkout
- */
-export function linkRenderer(modules, shadow, renderer) {
-  const scope = "@antelopejs";
-  shadowLevel(modules, shadow, scope);
-  const scoped = join(modules, scope);
-  const shadowScope = join(shadow, scope);
-  if (existsSync(scoped)) shadowLevel(scoped, shadowScope, "dms-frontend");
-  else mkdirSync(shadowScope);
-  symlinkSync(renderer, join(shadowScope, "dms-frontend"));
-}
-
-/**
- * Lays out the run's copy of the checkout: from the checkout root down to
- * the playground, every sibling is linked, so relative paths such as a
- * tsconfig `extends` resolve as in the checkout. The playground itself is
- * copied without its installed modules and build, so `.antelope/` and the
- * frontend build belong to the run. Its `node_modules` is the playground's,
- * except that `@antelopejs/dms-frontend` is the `renderer` checkout when
- * there is one.
+ * The `@antelopejs/dms-frontend` that builds and serves the run's dashboard:
+ * the renderer checkout, else the one the playground installs.
  *
  * @param {string} playground The playground folder
- * @param {string} checkout The checkout root, or the module folder outside one
- * @param {string} root The run's copy of the checkout
  * @param {string} [renderer] The renderer checkout the run serves
- * @returns {string} The run's playground folder
+ * @returns {string} Its folder
  */
-export function layOutCopy(playground, checkout, root, renderer) {
-  const segments = relative(checkout, playground).split(sep);
-  let real = checkout;
-  let shadow = root;
-  for (const segment of segments) {
-    shadowLevel(real, shadow, segment);
-    real = join(real, segment);
-    shadow = join(shadow, segment);
-  }
-  cpSync(playground, shadow, {
-    recursive: true,
-    filter: (source) => !COPY_SKIPPED.has(basename(source)),
-  });
-  const modules = join(playground, "node_modules");
-  if (renderer) linkRenderer(modules, join(shadow, "node_modules"), renderer);
-  else symlinkSync(modules, join(shadow, "node_modules"));
-  return shadow;
+export function frontendPackage(playground, renderer) {
+  const require = createRequire(join(playground, "package.json"));
+  return (
+    renderer ??
+    dirname(require.resolve("@antelopejs/dms-frontend/package.json"))
+  );
 }
 
 function inheritedEnv() {
@@ -449,10 +392,41 @@ export async function startBackend(state, build) {
 }
 
 /**
+ * How the run sets up a frontend workspace from the project in `project`
+ * as `ajs dms build` does before it builds (see `setUpFrontendWorkspace`),
+ * in a process with the run's environment and its own log.
+ *
+ * @param {RunState} state The run, after its project build
+ * @param {string} name The log name
+ * @param {string} project The project folder
+ * @param {boolean} install Whether to install the workspace's dependencies
+ * @returns {(workspace: string) => Promise<void>} Sets up the workspace folder it is given
+ */
+export function workspaceSetup(state, name, project, install) {
+  return (workspace) =>
+    runToEnd(
+      spec(
+        state,
+        name,
+        CONTROL_BIN,
+        [
+          "prepare-frontend",
+          frontendPackage(state.playground, state.renderer),
+          workspace,
+          ENVIRONMENT,
+          install ? "install" : "sources",
+        ],
+        project,
+      ),
+    );
+}
+
+/**
  * @param {RunState} state
+ * @param {boolean} useCache
  * @returns {Promise<void>}
  */
-async function buildAndStart(state) {
+async function buildAndStart(state, useCache) {
   const clis = cliPaths(state.playground, state.renderer);
   state.runPlayground = await timed(state, "layout", () =>
     layOutCopy(
@@ -481,11 +455,34 @@ async function buildAndStart(state) {
     ),
   );
   await timed(state, "frontend-build", () =>
-    runToEnd(
-      spec(state, "frontend-build", clis.dms, ["build", "-e", ENVIRONMENT]),
+    layOutFrontendBuild(
+      state,
+      frontendPackage(state.playground, state.renderer),
+      {
+        prepare: (workspace) =>
+          timed(state, "frontend-prepare", () =>
+            workspaceSetup(
+              state,
+              "frontend-prepare",
+              state.runPlayground ?? "",
+              true,
+            )(workspace),
+          ),
+        build: (prepared) => {
+          const build = spec(state, "frontend-build", clis.dms, [
+            "build",
+            "-e",
+            ENVIRONMENT,
+          ]);
+          if (prepared) build.args.unshift("--import", PREPARED_WORKSPACE);
+          return runToEnd(build);
+        },
+      },
+      useCache,
     ),
   );
   state.buildRoots = existingBuildRoots(state);
+  saveRun(state);
   await timed(state, "backend-start", () => startBackend(state));
   await timed(state, "frontend-start", async () => {
     const frontend = startDetached(
@@ -510,7 +507,9 @@ async function buildAndStart(state) {
  * the run owns (or `--mongo-url`), fresh secrets, a mail sink, and a
  * forwarder on the API port to a backend on a port of its own. With
  * `renderer`, the dashboard is that built dms-frontend checkout. Ready once
- * `/api/onboarding/informations` and `/dms-preview` answer 200. On failure
+ * `/api/onboarding/informations` and `/dms-preview` answer 200. The frontend
+ * build comes from the build cache when an earlier run built the same inputs
+ * (see `buildInputs`), unless `buildCache` is false. On failure
  * it stops what it started and keeps the logs.
  *
  * @param {UpOptions} options Where the playground and the runs are
@@ -522,7 +521,7 @@ export async function up(options) {
   saveRun(state);
   for (const entry of options.prepared ?? []) appendTiming(state, entry);
   try {
-    await buildAndStart(state);
+    await buildAndStart(state, options.buildCache !== false);
   } catch (error) {
     state.error = String(error?.message ?? error);
     saveRun(state);
