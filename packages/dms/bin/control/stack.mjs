@@ -18,6 +18,7 @@ import { dropDatabase, dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
   freePort,
   isAlive,
+  killRecorded,
   runToEnd,
   startDetached,
   stopRecorded,
@@ -448,8 +449,18 @@ export async function up(options) {
  * @returns {Promise<void>} Resolves once the backend answers again
  */
 export async function restartBackend(state, build) {
+  await replaceBackend(state, stopRecorded, build);
+}
+
+/**
+ * @param {import("./run-state.mjs").RunState} state The run
+ * @param {(pids: number[]) => Promise<string[]>} stop How the running backend ends
+ * @param {{ playground: string, cwd: string }} [build] Another build to start
+ * @returns {Promise<void>} Resolves once the new backend answers
+ */
+async function replaceBackend(state, stop, build) {
   const backend = state.processes.find((entry) => entry.name === "backend");
-  if (backend) await stopRecorded([backend.pid]);
+  if (backend) await stop([backend.pid]);
   await startBackend(state, build);
 }
 
@@ -457,7 +468,8 @@ export async function restartBackend(state, build) {
  * Restarts the backend on another database of the run, so a journey starts
  * from an empty one: not onboarded, no user, no session. The previous
  * journey database is dropped, so a long run does not exhaust mongod's
- * file handles; its evidence stays.
+ * file handles; its evidence stays. The previous backend is killed, not shut
+ * down: what it would flush belongs to the database being dropped.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} suffix What tells the database apart, such as `j03`
@@ -469,7 +481,7 @@ export async function freshDatabase(state, suffix) {
   state.tokens = {};
   state.accounts = {};
   saveRun(state);
-  await restartBackend(state);
+  await replaceBackend(state, killRecorded);
   if (previous !== state.databasePrefix && previous !== state.database) {
     await dropDatabase(state.mongoUrl, previous, resolutionFolders(state));
   }

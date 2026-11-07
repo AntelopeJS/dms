@@ -8,6 +8,8 @@ import { createRunFolders, saveRun } from "./run-state.mjs";
 import {
   assertSignalable,
   isAlive,
+  killAll,
+  killRecorded,
   stopAll,
   stopRecorded,
 } from "./processes.mjs";
@@ -96,6 +98,42 @@ await test("stopRecorded skips and reports the bad pids a run recorded and still
   assert.ok(lines.includes("skipped pid 0: not a process id above 1"));
   assert.ok(lines.some((line) => line.startsWith(`stopped pid ${own}`)));
   assert.equal(isAlive(own), false);
+});
+
+await test("killAll throws on a pid that is not a whole number above 1 before sending any signal; a hard kill without the guard sends SIGKILL to every process of the user", async (t) => {
+  const calls = recordKills(t);
+  for (const pid of UNSAFE) {
+    await assert.rejects(killAll([pid]), TypeError, String(pid));
+  }
+  assert.deepEqual(calls, []);
+});
+
+await test("killRecorded skips and reports the bad pids a run recorded and still kills the good ones; passing them to killAll throws and leaves the real backend running", async (t) => {
+  const child = spawn("sleep", ["60"], { stdio: "ignore", detached: true });
+  const own = child.pid;
+  if (own === undefined) throw new Error("sleep did not start");
+  t.after(() => {
+    if (child.exitCode === null && child.signalCode === null) child.kill();
+  });
+  /** @type {unknown[][]} */
+  const calls = [];
+  const original = process.kill.bind(process);
+  process.kill = (pid, signal) => {
+    calls.push([pid, signal]);
+    if (pid !== own && pid !== -own) return true;
+    return original(pid, signal);
+  };
+  t.after(() => {
+    process.kill = original;
+  });
+  const lines = await killRecorded([-1, own, 0]);
+  assert.deepEqual(
+    calls.filter(([pid]) => pid !== own && pid !== -own),
+    [],
+  );
+  assert.ok(lines.includes("skipped pid -1: not a process id above 1"));
+  assert.ok(lines.includes("skipped pid 0: not a process id above 1"));
+  assert.ok(lines.includes(`killed pid ${own}`));
 });
 
 const CONTROL = join(import.meta.dirname, "..", "dms-control.mjs");
