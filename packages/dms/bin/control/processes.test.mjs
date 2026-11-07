@@ -7,7 +7,8 @@ import test from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
   freePort,
-  isAlive,
+  descendantsOf,
+  isRunning,
   killAll,
   listenersOf,
   startDetached,
@@ -81,11 +82,46 @@ await test("killAll ends a SIGTERM-proof tree at once and frees every port", asy
     Date.now() - started < SLOW_STOP_MS,
     "a SIGTERM and a grace period take ten seconds on this tree",
   );
-  assert.equal(isAlive(leader), false);
+  assert.equal(isRunning(leader), false);
   assert.equal(lines.length, 3);
   for (const port of ports) assert.equal(await bind(port), true);
 });
 
 await test("killAll resolves for a process that is already gone", async () => {
   assert.deepEqual(await killAll([2 ** 22 + 1]), []);
+});
+
+await test("killAll returns once a killed process is a zombie nothing reaps; waiting for the pid to vanish throws after the grace period", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "dms-control-zombie-"));
+  const parent = startDetached({
+    name: "zombie-parent",
+    program: "sh",
+    args: ["-c", "sleep 60 & exec sleep 60"],
+    cwd: dir,
+    env: process.env,
+    logs: dir,
+  });
+  t.after(() => {
+    try {
+      process.kill(-parent.pid, "SIGKILL");
+    } catch {
+      return;
+    }
+    rmSync(dir, { recursive: true, force: true });
+  });
+  let children = descendantsOf([parent.pid]);
+  for (
+    let waited = 0;
+    children.length === 0 && waited < SLOW_STOP_MS;
+    waited += POLL_MS
+  ) {
+    await sleep(POLL_MS);
+    children = descendantsOf([parent.pid]);
+  }
+  assert.equal(children.length, 1);
+  const outcome = await Promise.race([
+    killAll(children).then(() => "returned"),
+    sleep(3_000).then(() => "still waiting"),
+  ]);
+  assert.equal(outcome, "returned");
 });

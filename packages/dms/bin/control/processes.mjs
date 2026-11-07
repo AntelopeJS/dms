@@ -156,6 +156,24 @@ export function isAlive(pid) {
 }
 
 /**
+ * Whether a process with this PID runs: it exists and is not a zombie. A
+ * killed process that nothing reaps stays a zombie, which holds no socket
+ * and runs no code. Without `/proc`, existing is running.
+ *
+ * @param {number} pid The process id
+ * @returns {boolean} True while it runs
+ */
+export function isRunning(pid) {
+  if (!isAlive(pid)) return false;
+  try {
+    const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+    return stat.slice(stat.lastIndexOf(")") + 2).split(" ")[0] !== "Z";
+  } catch {
+    return isAlive(pid);
+  }
+}
+
+/**
  * The status of one GET, or `null` when nothing answered.
  *
  * @param {string} url The URL
@@ -391,10 +409,10 @@ export async function killAll(pids) {
   const targets = [...pids, ...descendantsOf(pids)].filter(isAlive);
   for (const pid of targets) signalGroup(pid, "SIGKILL");
   const deadline = Date.now() + STOP_GRACE_MS;
-  while (targets.some(isAlive)) {
+  while (targets.some(isRunning)) {
     if (Date.now() >= deadline) {
       throw new Error(
-        `pid ${targets.filter(isAlive).join(", ")} survived SIGKILL`,
+        `pid ${targets.filter(isRunning).join(", ")} survived SIGKILL`,
       );
     }
     await sleep(KILL_POLL_MS);
