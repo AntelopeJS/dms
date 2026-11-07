@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { loadJourneys } from "./journey.mjs";
+import { loadJourneys, runJourney } from "./journey.mjs";
+import { readTimings } from "./timing.mjs";
 
 const JOURNEY = '{ id: "smoke", title: "t", entryPoint: "e", async run() {} }';
 
@@ -58,4 +59,39 @@ await test("a journey missing a field a run reads is refused", async (t) => {
       journey,
     );
   }
+});
+
+await test("a journey whose browser fails to launch still records its journey entry, failed; recording it only after a normal return leaves the run's total blind to it", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "dms-control-journey-timing-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const evidence = join(dir, "evidence");
+  mkdirSync(evidence);
+  const previous = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  process.env.PLAYWRIGHT_BROWSERS_PATH = join(dir, "no-browsers");
+  t.after(() => {
+    if (previous === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH;
+    else process.env.PLAYWRIGHT_BROWSERS_PATH = previous;
+  });
+  const state = {
+    dir,
+    evidence,
+    playground: dir,
+    moduleRoot: dir,
+    accounts: {},
+  };
+  const journey = {
+    id: "j1",
+    title: "t",
+    entryPoint: "e",
+    database: "shared",
+    onboard: false,
+    async run() {},
+  };
+  await assert.rejects(runJourney(state, "feat", journey, {}));
+  const entry = readTimings(evidence).find((line) => line.phase === "journey");
+  assert.deepEqual(entry && [entry.ok, entry.feature, entry.journey], [
+    false,
+    "feat",
+    "j1",
+  ]);
 });

@@ -409,6 +409,31 @@ async function prepare(state, feature, journey, context) {
 export async function runJourney(state, feature, journey, skill) {
   const stop = stopwatch();
   const detail = { feature, journey: journey.id };
+  /** @type {Omit<FeatureResult, "ms"> | undefined} */
+  let result;
+  let lap = { ms: 0, startedAt: "" };
+  try {
+    result = await driveJourney(state, feature, journey, skill);
+  } finally {
+    lap = stop();
+    recordTiming(state, "journey", lap, result?.status === "PASS", detail);
+  }
+  const timedResult = { ...result, ms: lap.ms };
+  writeJson(join(state.evidence, result.folder, "result.json"), timedResult);
+  return timedResult;
+}
+
+/**
+ * Drives one journey from its browser launch to its closed contexts.
+ *
+ * @param {import("./run-state.mjs").RunState} state The run
+ * @param {string} feature The feature it belongs to
+ * @param {Journey} journey The journey
+ * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
+ * @returns {Promise<Omit<FeatureResult, "ms">>} The result, without its duration
+ */
+async function driveJourney(state, feature, journey, skill) {
+  const detail = { feature, journey: journey.id };
   const browser = await timed(
     state,
     "browser-launch",
@@ -438,8 +463,7 @@ export async function runJourney(state, feature, journey, skill) {
   const failed =
     error !== null ||
     context.steps.some((step) => step.checks.some((check) => !check.pass));
-  const lap = stop();
-  const result = {
+  return {
     feature,
     journey: journey.id,
     title: journey.title,
@@ -449,11 +473,7 @@ export async function runJourney(state, feature, journey, skill) {
     steps: context.steps,
     error,
     folder: relative(state.evidence, context.folder),
-    ms: lap.ms,
   };
-  writeJson(join(context.folder, "result.json"), result);
-  recordTiming(state, "journey", lap, !failed, detail);
-  return result;
 }
 
 /**
