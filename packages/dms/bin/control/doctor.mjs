@@ -8,9 +8,24 @@ import { apiTargetFile, readTarget } from "./forwarder.mjs";
 import { checkoutOf } from "./git.mjs";
 import { stringField } from "./json.mjs";
 import { apiRequest } from "./session.mjs";
-import { packageVersion } from "./stack.mjs";
 
 /** @typedef {import("./run-state.mjs").RunState} RunState */
+
+/**
+ * The version a package.json declares, or `missing`.
+ *
+ * @param {string} file The package.json
+ * @returns {string} The version
+ */
+function packageVersion(file) {
+  try {
+    /** @type {unknown} */
+    const manifest = JSON.parse(readFileSync(file, "utf8"));
+    return stringField(manifest, "version") ?? "missing";
+  } catch {
+    return "missing";
+  }
+}
 
 const SKIPPED = new Set([
   "node_modules",

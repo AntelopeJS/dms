@@ -4,7 +4,6 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  readFileSync,
   rmSync,
   symlinkSync,
 } from "node:fs";
@@ -14,9 +13,8 @@ import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { existingBuildRoots } from "./build-inputs.mjs";
 import { describeFailure } from "./failure.mjs";
 import { checkoutOf } from "./git.mjs";
-import { stringField } from "./json.mjs";
 import { apiTargetFile, writeTarget } from "./forwarder.mjs";
-import { isSameProcess } from "./identity.mjs";
+import { currentNamespaces, isSameProcess } from "./identity.mjs";
 import { dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
   freePort,
@@ -269,6 +267,7 @@ async function initialState(options) {
     adminPassword: newPassword(),
     extraEnv: parseExtraEnv(options.env ?? []),
     processes: [],
+    namespaces: currentNamespaces(),
     accounts: {},
     tokens: {},
     ready: false,
@@ -600,20 +599,4 @@ export async function down(state) {
   });
   saveRun(state);
   return [...new Set(lines)];
-}
-
-/**
- * The version a package.json declares, or `missing`.
- *
- * @param {string} file The package.json
- * @returns {string} The version
- */
-export function packageVersion(file) {
-  try {
-    /** @type {unknown} */
-    const manifest = JSON.parse(readFileSync(file, "utf8"));
-    return stringField(manifest, "version") ?? "missing";
-  } catch {
-    return "missing";
-  }
 }

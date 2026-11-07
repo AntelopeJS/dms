@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describeFailure } from "./failure.mjs";
+import { assertSameNamespaces } from "./identity.mjs";
 import {
   arrayOf,
   decode,
@@ -32,7 +33,7 @@ const TIMESTAMP_LENGTH = 15;
  * @typedef {ProcessRecord & { port: number }} ServerRecord
  * @typedef {ServerRecord & { database: string }} BackendRecord A backend the run started, with the database it serves
  * @typedef {{ email: string, password: string, userId?: string | null }} Account
- * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, renderer?: string, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], noStandby?: boolean, buildRoots?: string[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number }} RunState
+ * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, renderer?: string, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], namespaces?: import("./identity.mjs").Namespaces, noStandby?: boolean, buildRoots?: string[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number }} RunState
  */
 
 /**
@@ -182,6 +183,7 @@ const isStoredRun = objectOf(
   },
   {
     browser: either(isString, isServerRecord),
+    namespaces: objectOf({}, { pid: isString, time: isString }),
     noStandby: isBoolean,
     buildRoots: arrayOf(isString),
     error: isString,
@@ -197,10 +199,14 @@ const isStoredRun = objectOf(
  * Reads the state `up` recorded for a run. A folder an earlier release stored
  * in `browser` is dropped, since nothing creates or reads that folder. An
  * account that `down` left without its `password` reads with an empty one.
+ * Every command opens its run here, so a command run outside the PID or
+ * time namespace `up` ran in refuses before it reads a process or changes
+ * anything.
  *
  * @param {string} dir The run root, as `up` printed it
  * @returns {RunState} The run state
  * @throws When the folder holds no run.json
+ * @throws When the run was started in another PID or time namespace
  */
 export function loadRun(dir) {
   const file = join(resolve(dir), RUN_FILE);
@@ -212,6 +218,7 @@ export function loadRun(dir) {
   /** @type {unknown} */
   const parsed = JSON.parse(readFileSync(file, "utf8"));
   const stored = decode(isStoredRun, parsed, file, "a run state");
+  assertSameNamespaces(stored.namespaces);
   const { browser, accounts, ...rest } = stored;
   const run = {
     ...rest,

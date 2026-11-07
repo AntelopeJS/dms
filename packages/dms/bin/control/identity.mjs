@@ -1,6 +1,11 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, readlinkSync } from "node:fs";
 
 const MAX_PID = 2 ** 31 - 1;
+
+/** @type {("pid" | "time")[]} The namespaces a recorded pid and start time hold in: the PID namespace numbers a process, and the time namespace offsets its start time. */
+const NAMESPACE_KINDS = ["pid", "time"];
+
+/** @typedef {{ pid?: string, time?: string }} Namespaces The namespaces a process runs in, as `/proc/self/ns` names them, such as `pid:[4026531836]` */
 
 /** The index of the start time, field 22 of `/proc/<pid>/stat`, among the fields after the command name, which start at field 3. */
 const START_TIME_FIELD = 19;
@@ -137,6 +142,53 @@ export function assertOwnProc() {
       : `/proc shows this process as pid ${shown}, not ${process.pid}`;
   throw new Error(
     `${seen}: /proc is not this PID namespace's, so no process the run recorded can be told from another that holds its pid now; nothing was started or signalled. Run dms-control where /proc belongs to its PID namespace, such as under unshare --mount-proc`,
+  );
+}
+
+/**
+ * @param {"pid" | "time"} kind
+ * @returns {string | undefined}
+ */
+function namespaceOf(kind) {
+  try {
+    return readlinkSync(`/proc/self/ns/${kind}`);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The PID and time namespaces this process runs in. A kind the kernel does
+ * not have, or a system with no /proc, leaves its field out.
+ *
+ * @returns {Namespaces} The namespaces
+ */
+export function currentNamespaces() {
+  return { pid: namespaceOf("pid"), time: namespaceOf("time") };
+}
+
+/**
+ * Throws unless this process runs in every namespace a run recorded when it
+ * started. Each pid and start time the run recorded names a process only in
+ * those namespaces: elsewhere every record would look gone, and a command
+ * would forget processes that still run. A run that recorded none, as an
+ * earlier dms-control or a system with no /proc wrote it, passes.
+ *
+ * @param {Namespaces | undefined} recorded The namespaces the run was started in
+ * @throws When one of them is not this process's
+ */
+export function assertSameNamespaces(recorded) {
+  const current = currentNamespaces();
+  const differ = NAMESPACE_KINDS.filter(
+    (kind) =>
+      recorded?.[kind] !== undefined && recorded[kind] !== current[kind],
+  );
+  if (recorded === undefined || differ.length === 0) return;
+  const kinds = differ.map((kind) => (kind === "pid" ? "PID" : kind));
+  const run = differ.map((kind) => recorded[kind]).join(", ");
+  const here = differ.map((kind) => current[kind] ?? "unknown").join(", ");
+  throw new Error(
+    `this run was started in another ${kinds.join(" and ")} namespace (run: ${run}; here: ${here}); run this command there`,
   );
 }
 

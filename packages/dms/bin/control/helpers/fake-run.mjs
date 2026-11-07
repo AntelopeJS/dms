@@ -277,3 +277,14 @@ export function withoutStartTimes(state) {
   }
   return rewritten;
 }
+
+/**
+ * The run's `run.json` as the file holds it, so a test can tell whether a
+ * command changed it.
+ *
+ * @param {string} dir The run root
+ * @returns {string} The file's text
+ */
+export function storedRun(dir) {
+  return readFileSync(join(dir, "run.json"), "utf8");
+}
