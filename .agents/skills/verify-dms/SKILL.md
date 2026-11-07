@@ -103,6 +103,7 @@ Everything goes under `$RUN/evidence/`:
 
 - `<feature>/<journey>/NN-<step>/`: `action.json`, `url.txt` and `aria.yml` for a browser step; `request.json` and `response.json` for an API step; `mail.json` for a mail read; `checks.json` for every step that checks something;
 - `screenshot.png` is written by a step that checks something (`ctx.verify`), once, of the tab the journey drove last and whatever the checks' outcome, and by a browser step that failed or that records the page on purpose (`tab.snapshot`, the `screenshot` action). A passing click, fill or navigation leaves no screenshot: its `aria.yml` is the evidence, and the next checking step shows the page. A checking step before any tab was driven has none;
+- `network-changed.txt` in a `goto` or `reload` step whose page a change of the host's network broke (Chromium aborted its requests with `net::ERR_NETWORK_CHANGED` and the page never hydrated): the step loaded the page once more. Every browser action waits until the dashboard has hydrated, before it acts and once the page it leads to has loaded;
 - `<feature>/<journey>/result.json` and `<feature>/feature.json` (journeys merge, so a partial run keeps earlier results);
 - `mail/NNN.eml` and `NNN.json` (recipients, subject, links, readable text) for every message the sink received;
 - `browser/`, `api/`, `onboard/`, `auth/` for the interactive commands, and `doctor.json`;

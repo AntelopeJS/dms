@@ -22,6 +22,7 @@ const ACTION_TIMEOUT_MS = 15_000;
 const NAVIGATION_TIMEOUT_MS = 60_000;
 const SETTLE_MS = 400;
 const HYDRATION_POLL_MS = 50;
+const NETWORK_CHANGED = "net::ERR_NETWORK_CHANGED";
 const VIEWPORT = { width: 1280, height: 900 };
 
 /**
@@ -146,6 +147,9 @@ const ACTIONS = {
 /** The action names `perform` accepts. */
 export const ACTION_NAMES = Object.keys(ACTIONS);
 
+/** The actions that only load a page, so running one again repeats no input. */
+const LOADS = new Set(["goto", "reload"]);
+
 /**
  * Writes a full-page `screenshot.png` of the page into `folder`, timed as a
  * `screenshot` phase. A page that cannot be captured, such as a closed one,
@@ -180,15 +184,48 @@ export async function screenshot(page, folder, state) {
  * own.
  *
  * @param {Page} page The Playwright page
- * @returns {Promise<void>} Resolves once hydrated or given up
+ * @returns {Promise<boolean>} Whether it hydrated before the timeout
  */
-async function hydrated(page) {
-  await page
+function hydrated(page) {
+  return page
     .waitForFunction(HYDRATED, undefined, {
       polling: HYDRATION_POLL_MS,
       timeout: ACTION_TIMEOUT_MS,
     })
-    .catch(() => undefined);
+    .then(
+      () => true,
+      () => false,
+    );
+}
+
+/**
+ * Runs an action, then waits until the page it leads to has loaded and
+ * hydrated, and `SETTLE_MS` more: a client-side visit, such as the one
+ * signing in starts, renders its page within the document that already
+ * hydrated.
+ *
+ * @param {Page} page The Playwright page
+ * @param {() => Promise<unknown> | undefined} act The action
+ * @returns {Promise<boolean>} Whether a change of the host's network broke the page: Chromium aborted one of its requests with `net::ERR_NETWORK_CHANGED`, and the page, missing a module it needs, never hydrated
+ */
+async function settle(page, act) {
+  let networkChanged = false;
+  /** @param {import("playwright-core").Request} request The request that failed */
+  const onFailed = (request) => {
+    networkChanged ||= request.failure()?.errorText === NETWORK_CHANGED;
+  };
+  page.on("requestfailed", onFailed);
+  try {
+    await act();
+    await page
+      .waitForLoadState("load", { timeout: NAVIGATION_TIMEOUT_MS })
+      .catch(() => undefined);
+    const hydratedInTime = await hydrated(page);
+    await page.waitForTimeout(SETTLE_MS);
+    return !hydratedInTime && networkChanged;
+  } finally {
+    page.off("requestfailed", onFailed);
+  }
 }
 
 /**
@@ -225,8 +262,9 @@ export async function capture(page, folder, state) {
  * action, the URL and the ARIA snapshot always, a screenshot only when the
  * action failed, is the `screenshot` action or is asked for. The action
  * starts once the page has hydrated, and ends once the page it leads to has.
- * A target that is missing, hidden or disabled past the timeout fails the
- * action.
+ * A `goto` or `reload` whose page a change of the host's network broke runs
+ * once more, and leaves `network-changed.txt`. A target that is missing,
+ * hidden or disabled past the timeout fails the action.
  *
  * @param {Page} page The Playwright page
  * @param {Action} action What to do
@@ -248,12 +286,14 @@ export async function perform(page, action, folder, state, options = {}) {
   let error = null;
   try {
     await hydrated(page);
-    await run(page, action);
-    await page
-      .waitForLoadState("load", { timeout: NAVIGATION_TIMEOUT_MS })
-      .catch(() => undefined);
-    await hydrated(page);
-    await page.waitForTimeout(SETTLE_MS);
+    const broken = await settle(page, () => run(page, action));
+    if (broken && LOADS.has(action.do)) {
+      writeFileSync(
+        join(folder, "network-changed.txt"),
+        `A change of the host's network aborted requests of this page (${NETWORK_CHANGED}) and it never hydrated, so it was loaded again.\n`,
+      );
+      await settle(page, () => run(page, action));
+    }
   } catch (failure) {
     error = describeFailure(failure).split("\n")[0];
   }

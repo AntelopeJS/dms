@@ -129,17 +129,29 @@ await test("a run whose backend holds the API port itself is refused before its 
  * A page whose documents the server rendered for a Vue app, which hydrates
  * each one `now` (on load), `later` (parsed a few milliseconds after load,
  * mounted a few more after that) or `never`; with `none` its documents have
- * no server-rendered root, as a JSON answer. A `waitForFunction` whose
- * expression cannot come to hold gives up at once, as Playwright does once
- * its timeout passes.
+ * no server-rendered root, as a JSON answer. The first `networkChanges`
+ * loads, and every click with `networkChangeOnClick`, see a request fail
+ * with `net::ERR_NETWORK_CHANGED` and leave a page that never hydrates. A
+ * `waitForFunction` whose expression cannot come to hold gives up at once, as
+ * Playwright does once its timeout passes.
  *
  * @param {string} url The URL the page reports
- * @param {{ failGoto?: boolean, hydration?: "now" | "later" | "never" | "none" }} [options] Whether navigation throws, and how the page hydrates
- * @returns {{ page: object, shots: string[], inputs: { input: string, hydrated: boolean }[], load: () => void, hydrated: () => boolean, giveUps: () => number }} The page, the paths it was asked to screenshot, the input it received and whether it had hydrated then, a way to load a new document into it, whether its document has hydrated, and how many waits ran into their timeout
+ * @param {{ failGoto?: boolean, hydration?: "now" | "later" | "never" | "none", networkChanges?: number, networkChangeOnClick?: boolean }} [options] Whether navigation throws, how the page hydrates, and which loads and clicks a network change disturbs
+ * @returns {{ page: object, shots: string[], inputs: { input: string, hydrated: boolean }[], load: () => void, loads: () => number, hydrated: () => boolean, giveUps: () => number }} The page, the paths it was asked to screenshot, the input it received and whether it had hydrated then, a way to load a new document into it, how many documents it loaded, whether its document has hydrated, and how many waits ran into their timeout
  */
 function fakePage(url, options = {}) {
   const hydration = options.hydration ?? "now";
   let giveUps = 0;
+  let loads = 0;
+  let networkChanges = options.networkChanges ?? 0;
+  /** @type {((request: object) => void)[]} */
+  let listeners = [];
+  const networkChange = () => {
+    const request = {
+      failure: () => ({ errorText: "net::ERR_NETWORK_CHANGED" }),
+    };
+    for (const listener of listeners) listener(request);
+  };
   /** @type {string[]} */
   const shots = [];
   /** @type {{ input: string, hydrated: boolean }[]} */
@@ -151,9 +163,16 @@ function fakePage(url, options = {}) {
   const mounted = () =>
     readyState !== "loading" && roots.every((root) => "__vue_app__" in root);
   const load = () => {
+    loads += 1;
     if (hydration === "none") return;
     /** @type {{ __vue_app__?: object }} */
     const root = {};
+    if (networkChanges > 0) {
+      networkChanges -= 1;
+      roots = [root];
+      networkChange();
+      return;
+    }
     if (hydration !== "later") {
       roots = [root];
       if (hydration === "now") root.__vue_app__ = {};
@@ -175,6 +194,9 @@ function fakePage(url, options = {}) {
   /** @param {string} input The input */
   const receive = (input) => async () => {
     inputs.push({ input, hydrated: mounted() });
+    if (input !== "click" || !options.networkChangeOnClick) return;
+    roots = [{}];
+    networkChange();
   };
   const control = {
     fill: receive("fill"),
@@ -188,6 +210,18 @@ function fakePage(url, options = {}) {
       load();
     },
     getByRole: () => control,
+    on: (
+      /** @type {string} */ _event,
+      /** @type {(request: object) => void} */ listener,
+    ) => {
+      listeners.push(listener);
+    },
+    off: (
+      /** @type {string} */ _event,
+      /** @type {(request: object) => void} */ listener,
+    ) => {
+      listeners = listeners.filter((other) => other !== listener);
+    },
     waitForURL: done,
     waitForLoadState: done,
     waitForTimeout: done,
@@ -219,6 +253,7 @@ function fakePage(url, options = {}) {
     shots,
     inputs,
     load,
+    loads: () => loads,
     hydrated: mounted,
     giveUps: () => giveUps,
   };
@@ -384,4 +419,32 @@ await test("a sign-in that stays on /auth writes a screenshot into its last step
     stepOf(context, fake.shots[0]),
     /\/\d+-admin-sign-in-click-login$/,
   );
+});
+
+await test("a page load that a network change left unhydrated is loaded once more", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/members", { networkChanges: 1 });
+  const tab = new Tab(context, fake.page, "admin");
+  await tab.goto("/members");
+  await tab.click({ role: "button", name: "Invite members" });
+  assert.equal(fake.loads(), 2);
+  assert.deepEqual(fake.inputs, [{ input: "click", hydrated: true }]);
+});
+
+await test("a page load that network changes keep breaking is loaded twice at most, then left to its action", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/members", { networkChanges: 3 });
+  const outcome = await new Tab(context, fake.page, "admin").goto("/members");
+  assert.equal(outcome.ok, true);
+  assert.equal(fake.loads(), 2);
+});
+
+await test("a click is never repeated, whatever a network change did meanwhile", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/members", { networkChangeOnClick: true });
+  const tab = new Tab(context, fake.page, "admin");
+  await tab.goto("/members");
+  fake.load();
+  await tab.click({ role: "button", name: "Send invitations" });
+  assert.equal(fake.inputs.length, 1);
 });
