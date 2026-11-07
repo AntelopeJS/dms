@@ -83,6 +83,8 @@ const config: VerifyConfig = {
     "packages/dms/playground/tsconfig.json",
     "packages/dms/playground/frontend-vue/tsconfig.json",
     "packages/dms/playground/antelope.config.ts",
+    "packages/dms/frontend-vue/dms.*.ts",
+    "packages/dms/playground/frontend-vue/dms.*.ts",
     "packages/dms/src/config/**",
     "packages/interface-dms/src/**",
     ".agents/skills/verify-dms/verify.config.ts",
