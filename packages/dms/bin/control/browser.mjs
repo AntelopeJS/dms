@@ -21,7 +21,7 @@ import { timed } from "./timing.mjs";
 const ACTION_TIMEOUT_MS = 15_000;
 const NAVIGATION_TIMEOUT_MS = 60_000;
 const SETTLE_MS = 400;
-const HYDRATION_POLL_MS = 50;
+const POLL_MS = 50;
 const NETWORK_CHANGED = "net::ERR_NETWORK_CHANGED";
 const VIEWPORT = { width: 1280, height: 900 };
 
@@ -29,10 +29,21 @@ const VIEWPORT = { width: 1280, height: 900 };
  * Holds in a page once its document is parsed and every root the server
  * rendered for a Vue app has mounted. Inertia marks such a root
  * `data-server-rendered`, and Vue sets `__vue_app__` on it when `app.mount()`
- * returns, hydration included. A parsed page with no such root, such as a
+ * returns, hydration included. Before that the markup shows but takes no
+ * input: a click does nothing, a submit posts the form natively and
+ * hydration resets a typed value. A parsed page with no such root, such as a
  * JSON answer or a page rendered in the browser only, holds at once.
  */
 const HYDRATED = `document.readyState !== "loading" && [...document.querySelectorAll("[data-server-rendered]")].every((root) => "__vue_app__" in root)`;
+
+/**
+ * Holds in a hydrated page that has left `/auth` and rendered the content of
+ * the page it landed on. Signing in ends with a client-side visit: the URL
+ * changes first, and the layout and the page render once their chunks have
+ * loaded. Every layout of the dashboard, the error page's included, marks
+ * the region that holds the page `data-dms-page-content`.
+ */
+const LANDED = `${HYDRATED} && !location.pathname.startsWith("/auth") && document.querySelector("[data-dms-page-content]")?.childElementCount > 0`;
 
 /**
  * Launches the headless Chromium that playwright-core pins.
@@ -177,19 +188,18 @@ export async function screenshot(page, folder, state) {
 }
 
 /**
- * Waits until the page's server-rendered Vue app has hydrated, at most
- * `ACTION_TIMEOUT_MS`. Before that its markup shows but takes no input: a
- * click does nothing, a submit posts the form natively and hydration resets
- * a typed value. A page that never hydrates leaves the action to fail on its
+ * Waits until a condition holds in the page, at most `ACTION_TIMEOUT_MS`. A
+ * page where it never holds leaves what follows to succeed or fail on its
  * own.
  *
  * @param {Page} page The Playwright page
- * @returns {Promise<boolean>} Whether it hydrated before the timeout
+ * @param {string} condition An expression evaluated in the page, such as `HYDRATED`
+ * @returns {Promise<boolean>} Whether it held before the timeout
  */
-function hydrated(page) {
+function reached(page, condition) {
   return page
-    .waitForFunction(HYDRATED, undefined, {
-      polling: HYDRATION_POLL_MS,
+    .waitForFunction(condition, undefined, {
+      polling: POLL_MS,
       timeout: ACTION_TIMEOUT_MS,
     })
     .then(
@@ -206,13 +216,15 @@ function hydrated(page) {
  *
  * @param {Page} page The Playwright page
  * @param {() => Promise<unknown> | undefined} act The action
- * @returns {Promise<boolean>} Whether a change of the host's network broke the page: Chromium aborted one of its requests with `net::ERR_NETWORK_CHANGED`, and the page, missing a module it needs, never hydrated
+ * @returns {Promise<string[]>} When the page did not hydrate in time, the URLs of its requests that failed with `net::ERR_NETWORK_CHANGED`; none otherwise
  */
 async function settle(page, act) {
-  let networkChanged = false;
+  /** @type {string[]} */
+  const networkChanged = [];
   /** @param {import("playwright-core").Request} request The request that failed */
   const onFailed = (request) => {
-    networkChanged ||= request.failure()?.errorText === NETWORK_CHANGED;
+    if (request.failure()?.errorText === NETWORK_CHANGED)
+      networkChanged.push(request.url());
   };
   page.on("requestfailed", onFailed);
   try {
@@ -221,10 +233,10 @@ async function settle(page, act) {
       .waitForLoadState("load", { timeout: NAVIGATION_TIMEOUT_MS })
       .catch(() => undefined);
     const [hydratedInTime] = await Promise.all([
-      hydrated(page),
+      reached(page, HYDRATED),
       page.waitForTimeout(SETTLE_MS),
     ]);
-    return !hydratedInTime && networkChanged;
+    return hydratedInTime ? [] : networkChanged;
   } finally {
     page.off("requestfailed", onFailed);
   }
@@ -263,10 +275,12 @@ export async function capture(page, folder, state) {
  * Runs one action on a page, then captures the page into `folder`: the
  * action, the URL and the ARIA snapshot always, a screenshot only when the
  * action failed, is the `screenshot` action or is asked for. The action
- * starts once the page has hydrated, and ends once the page it leads to has.
- * A `goto` or `reload` whose page a change of the host's network broke runs
- * once more, and leaves `network-changed.txt`. A target that is missing,
- * hidden or disabled past the timeout fails the action.
+ * ends once the page it leads to has hydrated, and starts once the current
+ * page has, except a `goto` or `reload`, which replaces it. A `goto` or
+ * `reload` whose page did not hydrate after a request failed with
+ * `net::ERR_NETWORK_CHANGED` runs once more, and leaves
+ * `network-changed.txt`. A target that is missing, hidden or disabled past
+ * the timeout fails the action.
  *
  * @param {Page} page The Playwright page
  * @param {Action} action What to do
@@ -285,14 +299,15 @@ export async function perform(page, action, folder, state, options = {}) {
     join(folder, "action.json"),
     `${JSON.stringify({ ...action, target: action.target && describeTarget(action.target) }, null, 2)}\n`,
   );
+  const loads = LOADS.has(action.do);
   let error = null;
   try {
-    await hydrated(page);
-    const broken = await settle(page, () => run(page, action));
-    if (broken && LOADS.has(action.do)) {
+    if (!loads) await reached(page, HYDRATED);
+    const failed = await settle(page, () => run(page, action));
+    if (loads && failed.length > 0) {
       writeFileSync(
         join(folder, "network-changed.txt"),
-        `A change of the host's network aborted requests of this page (${NETWORK_CHANGED}) and it never hydrated, so it was loaded again.\n`,
+        `The page had not hydrated ${ACTION_TIMEOUT_MS / 1000} s after it loaded. It was loaded again. These requests failed with ${NETWORK_CHANGED} meanwhile:\n${failed.map((url) => `${url}\n`).join("")}`,
       );
       await settle(page, () => run(page, action));
     }
@@ -306,9 +321,10 @@ export async function perform(page, action, folder, state, options = {}) {
 }
 
 /**
- * Signs an account in through the sign-in form, the way a user does. When
- * the page stays on `/auth`, a screenshot of it goes into the last step's
- * folder.
+ * Signs an account in through the sign-in form, the way a user does, and
+ * returns once the page it lands on has rendered its content (`LANDED`), or
+ * the timeout passed. When the page stays on `/auth`, a screenshot of it
+ * goes into the last step's folder.
  *
  * @param {Page} page The Playwright page
  * @param {{ email: string, password: string }} credentials The account
@@ -350,7 +366,8 @@ export async function signInThroughForm(page, credentials, options) {
     })
     .catch(() => undefined);
   const ok = !new URL(page.url()).pathname.startsWith("/auth");
-  if (!ok) await screenshot(page, folder, options.state);
+  if (ok) await reached(page, LANDED);
+  else await screenshot(page, folder, options.state);
   return { ...outcome, url: page.url(), ok };
 }
 

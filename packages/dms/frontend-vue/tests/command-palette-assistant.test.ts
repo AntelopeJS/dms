@@ -221,6 +221,17 @@ describe("command palette without an assistant", () => {
     expect(items("dms-assistant-ask")).toEqual([]);
     expect(host.querySelector('[data-slot="assistantToggle"]')).toBeNull();
   });
+
+  it("marks the document only while it is mounted, its shortcut listening", () => {
+    const marked = (): boolean =>
+      document.documentElement.hasAttribute("data-dms-command-palette");
+    expect(marked()).toBe(false);
+    mountPalette();
+    expect(marked()).toBe(true);
+    app?.unmount();
+    app = undefined;
+    expect(marked()).toBe(false);
+  });
 });
 
 describe("command palette assistant mode", () => {

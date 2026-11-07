@@ -3,9 +3,11 @@ import { burstToasts, collapsedStackChecks, recordToasts } from "../toasts.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
+ * @typedef {import("../../../../packages/dms/bin/control/tab.mjs").Tab} Tab
  */
 
 const HOME = "/examples/overview";
+const PALETTE_TIMEOUT_MS = 15_000;
 const FEATURES = "/examples/features";
 const NOTIFICATIONS = "/dms/pages/settings/user/notifications";
 const READ_ONLY = "Read-only demo, changes are not saved";
@@ -14,6 +16,19 @@ async function signedIn(/** @type {Ctx} */ ctx) {
   const tab = await ctx.tab("admin");
   await tab.signIn("admin");
   return tab;
+}
+
+/**
+ * Waits until the command palette listens for Ctrl K. It loads after the
+ * dashboard around it and shows nothing until opened, so the dashboard marks
+ * `<html>` once it has mounted. A palette that never mounts leaves the next
+ * check to fail.
+ */
+async function paletteListens(/** @type {Tab} */ tab) {
+  await tab.page
+    .locator("html[data-dms-command-palette]")
+    .waitFor({ state: "attached", timeout: PALETTE_TIMEOUT_MS })
+    .catch(() => undefined);
 }
 
 /** The dashboard around every page: sidebar, header, command palette, favorites, notifications, error pages. */
@@ -40,6 +55,7 @@ export const journeys = [
     entryPoint: "command palette (Ctrl K)",
     async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
+      await paletteListens(tab);
       await tab.press("Control+k");
       await ctx.verify("the palette opens", [tab.visible({ role: "dialog", name: "Search" })]);
       await tab.fill({ role: "textbox", name: "Type a command or search…" }, "Member invitations");
@@ -56,6 +72,7 @@ export const journeys = [
     entryPoint: "command palette (Ctrl K), empty result",
     async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
+      await paletteListens(tab);
       await tab.press("Control+k");
       await tab.fill({ role: "textbox", name: "Type a command or search…" }, "qqxzjjwv");
       await ctx.verify("no option matches", [tab.count({ role: "option" }, 0), tab.shows(/No matching data/)]);

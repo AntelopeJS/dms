@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
+import { evidenceText } from "./helpers/evidence.mjs";
 import {
   JourneyContext,
   loadJourneys,
@@ -126,18 +127,56 @@ await test("a run whose backend holds the API port itself is refused before its 
 });
 
 /**
+ * Tells each listener that two requests failed: one with
+ * `net::ERR_NETWORK_CHANGED`, one with `net::ERR_ABORTED`.
+ *
+ * @param {((request: object) => void)[]} listeners The `requestfailed` listeners
+ */
+function failRequests(listeners) {
+  for (const [errorText, failed] of [
+    ["net::ERR_ABORTED", "http://web/assets/aborted.js"],
+    ["net::ERR_NETWORK_CHANGED", "http://web/assets/changed.js"],
+  ]) {
+    const request = { failure: () => ({ errorText }), url: () => failed };
+    for (const listener of listeners) listener(request);
+  }
+}
+
+/**
+ * Evaluates an expression the way `page.waitForFunction` does, every
+ * `polling` milliseconds until it holds. It gives up at once when nothing on
+ * the page is still on its way, as Playwright does once its timeout passes.
+ *
+ * @param {string} expression The expression
+ * @param {number} polling How often to evaluate it
+ * @param {() => object} globals The globals it reads, as they are now
+ * @param {() => boolean} changing Whether something on the page is still on its way
+ * @returns {Promise<boolean>} Whether it came to hold
+ */
+async function cameToHold(expression, polling, globals, changing) {
+  while (!runInNewContext(expression, globals())) {
+    if (!changing()) return false;
+    await new Promise((resolve) => setTimeout(resolve, polling));
+  }
+  return true;
+}
+
+/**
  * A page whose documents the server rendered for a Vue app, which hydrates
  * each one `now` (on load), `later` (parsed a few milliseconds after load,
  * mounted a few more after that) or `never`; with `none` its documents have
  * no server-rendered root, as a JSON answer. The first `networkChanges`
  * loads, and every click with `networkChangeOnClick`, see a request fail
- * with `net::ERR_NETWORK_CHANGED` and leave a page that never hydrates. A
- * `waitForFunction` whose expression cannot come to hold gives up at once, as
- * Playwright does once its timeout passes.
+ * with `net::ERR_NETWORK_CHANGED` and another with `net::ERR_ABORTED`, and
+ * leave a page that never hydrates. Its page content region holds the page
+ * from the start, or with `landing` fills a few milliseconds after a click
+ * (`later`) or stays empty (`never`). A `waitForFunction` whose expression
+ * cannot come to hold gives up at once, as Playwright does once its timeout
+ * passes.
  *
  * @param {string} url The URL the page reports
- * @param {{ failGoto?: boolean, hydration?: "now" | "later" | "never" | "none", networkChanges?: number, networkChangeOnClick?: boolean }} [options] Whether navigation throws, how the page hydrates, and which loads and clicks a network change disturbs
- * @returns {{ page: object, shots: string[], inputs: { input: string, hydrated: boolean }[], load: () => void, loads: () => number, hydrated: () => boolean, giveUps: () => number }} The page, the paths it was asked to screenshot, the input it received and whether it had hydrated then, a way to load a new document into it, how many documents it loaded, whether its document has hydrated, and how many waits ran into their timeout
+ * @param {{ failGoto?: boolean, hydration?: "now" | "later" | "never" | "none", networkChanges?: number, networkChangeOnClick?: boolean, landing?: "later" | "never" }} [options] Whether navigation throws, how the page hydrates, which loads and clicks a network change disturbs, and when a click renders the page it leads to
+ * @returns {{ page: object, shots: string[], inputs: { input: string, hydrated: boolean }[], load: () => void, loads: () => number, hydrated: () => boolean, landed: () => boolean, giveUps: () => number }} The page, the paths it was asked to screenshot, the input it received and whether it had hydrated then, a way to load a new document into it, how many documents it loaded, whether its document has hydrated, whether its page content region holds a page, and how many waits ran into their timeout
  */
 function fakePage(url, options = {}) {
   const hydration = options.hydration ?? "now";
@@ -146,12 +185,7 @@ function fakePage(url, options = {}) {
   let networkChanges = options.networkChanges ?? 0;
   /** @type {((request: object) => void)[]} */
   let listeners = [];
-  const networkChange = () => {
-    const request = {
-      failure: () => ({ errorText: "net::ERR_NETWORK_CHANGED" }),
-    };
-    for (const listener of listeners) listener(request);
-  };
+  const networkChange = () => failRequests(listeners);
   /** @type {string[]} */
   const shots = [];
   /** @type {{ input: string, hydrated: boolean }[]} */
@@ -159,7 +193,8 @@ function fakePage(url, options = {}) {
   let readyState = "complete";
   /** @type {{ __vue_app__?: object }[]} */
   let roots = [];
-  let pending = false;
+  let pending = 0;
+  const region = { childElementCount: options.landing ? 0 : 1 };
   const mounted = () =>
     readyState !== "loading" && roots.every((root) => "__vue_app__" in root);
   const load = () => {
@@ -180,21 +215,29 @@ function fakePage(url, options = {}) {
     }
     readyState = "loading";
     roots = [];
-    pending = true;
+    pending += 1;
     setTimeout(() => {
       readyState = "interactive";
       roots = [root];
     }, 5);
     setTimeout(() => {
       root.__vue_app__ = {};
-      pending = false;
+      pending -= 1;
     }, 25);
   };
   const done = async () => undefined;
   /** @param {string} input The input */
   const receive = (input) => async () => {
     inputs.push({ input, hydrated: mounted() });
-    if (input !== "click" || !options.networkChangeOnClick) return;
+    if (input !== "click") return;
+    if (options.landing === "later") {
+      pending += 1;
+      setTimeout(() => {
+        region.childElementCount = 1;
+        pending -= 1;
+      }, 25);
+    }
+    if (!options.networkChangeOnClick) return;
     roots = [{}];
     networkChange();
   };
@@ -209,6 +252,7 @@ function fakePage(url, options = {}) {
       if (options.failGoto) throw new Error("net::ERR_CONNECTION_REFUSED");
       load();
     },
+    reload: async () => load(),
     getByRole: () => control,
     on: (
       /** @type {string} */ _event,
@@ -234,14 +278,14 @@ function fakePage(url, options = {}) {
         readyState,
         querySelectorAll: (/** @type {string} */ selector) =>
           selector === "[data-server-rendered]" ? roots : [{}, ...roots],
+        querySelector: (/** @type {string} */ selector) =>
+          selector === "[data-dms-page-content]" ? region : null,
       });
-      while (!runInNewContext(expression, { document: document() })) {
-        if (!pending) {
-          giveUps += 1;
-          throw new Error("page.waitForFunction: Timeout");
-        }
-        await new Promise((resolve) => setTimeout(resolve, polling));
-      }
+      const globals = () => ({ document: document(), location: new URL(url) });
+      if (await cameToHold(expression, polling, globals, () => pending > 0))
+        return;
+      giveUps += 1;
+      throw new Error("page.waitForFunction: Timeout");
     },
     locator: () => ({ ariaSnapshot: async () => "- document" }),
     screenshot: async (/** @type {{ path: string }} */ { path }) => {
@@ -255,6 +299,7 @@ function fakePage(url, options = {}) {
     load,
     loads: () => loads,
     hydrated: mounted,
+    landed: () => region.childElementCount > 0,
     giveUps: () => giveUps,
   };
 }
@@ -407,6 +452,34 @@ await test("a page that never hydrates still gets the action, which succeeds or 
   assert.deepEqual(fake.inputs, [{ input: "click", hydrated: false }]);
 });
 
+await test("a goto or reload starts at once from a page that never hydrates, and waits only for the page it loads", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/members", { hydration: "never" });
+  const tab = new Tab(context, fake.page, "admin");
+  await tab.goto("/members");
+  const before = fake.giveUps();
+  await tab.goto("/other");
+  await tab.reload();
+  assert.equal(fake.loads(), 3);
+  assert.equal(fake.giveUps() - before, 2, "one wait per page loaded");
+});
+
+await test("signing in returns once the page it lands on has rendered its content", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/home", { landing: "later" });
+  const outcome = await new Tab(context, fake.page, "admin").signIn("admin");
+  assert.equal(outcome.ok, true);
+  assert.equal(fake.landed(), true);
+});
+
+await test("a landing page that never renders its content leaves the sign-in to succeed after one wait", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/home", { landing: "never" });
+  const outcome = await new Tab(context, fake.page, "admin").signIn("admin");
+  assert.equal(outcome.ok, true);
+  assert.equal(fake.giveUps(), 1);
+});
+
 await test("a sign-in that stays on /auth writes a screenshot into its last step folder", async (t) => {
   const context = journeyContext(t);
   const fake = fakePage("http://web/auth");
@@ -429,6 +502,17 @@ await test("a page load that a network change left unhydrated is loaded once mor
   await tab.click({ role: "button", name: "Invite members" });
   assert.equal(fake.loads(), 2);
   assert.deepEqual(fake.inputs, [{ input: "click", hydrated: true }]);
+});
+
+await test("a page loaded again after a network change notes what was seen: the page not hydrated and the requests that failed with it", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/members", { networkChanges: 1 });
+  const outcome = await new Tab(context, fake.page, "admin").goto("/members");
+  const note = evidenceText(outcome.folder, "network-changed.txt");
+  assert.match(note, /not hydrated/);
+  assert.match(note, /net::ERR_NETWORK_CHANGED/);
+  assert.match(note, /^http:\/\/web\/assets\/changed\.js$/m);
+  assert.doesNotMatch(note, /aborted\.js/);
 });
 
 await test("a page load that network changes keep breaking is loaded twice at most, then left to its action", async (t) => {
