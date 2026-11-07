@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.18.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.18.0...v0.18.1)
+
+### 🚀 Enhancements
+
+- **verify-dms:** Run every feature when a shared file changes ([#783](https://github.com/AntelopeJS/dms/pull/783))
+- **dms-control:** Record per-phase timings of a verify run ([#784](https://github.com/AntelopeJS/dms/pull/784))
+
+### 🔥 Performance
+
+- **dms-control:** Stop the previous journey's backend at once ([#785](https://github.com/AntelopeJS/dms/pull/785))
+- **ci:** Scan the playground import fixtures together ([#791](https://github.com/AntelopeJS/dms/pull/791))
+- **dms-control:** Start the next journey's backend while the current one runs ([#788](https://github.com/AntelopeJS/dms/pull/788))
+- **docs:** Capture the documentation screenshots in parallel ([#792](https://github.com/AntelopeJS/dms/pull/792))
+- **dms-control:** Reuse the frontend build of unchanged sources ([#787](https://github.com/AntelopeJS/dms/pull/787))
+- **dms-control:** Take screenshots on checks and failures only ([#786](https://github.com/AntelopeJS/dms/pull/786))
+
+### 🩹 Fixes
+
+- **dms-control:** Refuse to signal a pid that is not a whole number above 1 ([#789](https://github.com/AntelopeJS/dms/pull/789))
+- **ci:** Check the scanner exit status per diagnostic kind in the import test ([#793](https://github.com/AntelopeJS/dms/pull/793))
+
+### 📖 Documentation
+
+- **dms:** Start the quickstart with the dms-starter template ([#782](https://github.com/AntelopeJS/dms/pull/782))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.18.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.17.0...v0.18.0)
