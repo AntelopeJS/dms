@@ -21,7 +21,17 @@ import { timed } from "./timing.mjs";
 const ACTION_TIMEOUT_MS = 15_000;
 const NAVIGATION_TIMEOUT_MS = 60_000;
 const SETTLE_MS = 400;
+const HYDRATION_POLL_MS = 50;
 const VIEWPORT = { width: 1280, height: 900 };
+
+/**
+ * Holds in a page once every root the server rendered for a Vue app has
+ * mounted. Inertia marks such a root `data-server-rendered`, and Vue sets
+ * `__vue_app__` on it when `app.mount()` returns, hydration included. A page
+ * with no such root, such as a JSON answer or a page rendered in the browser
+ * only, holds at once.
+ */
+const HYDRATED = `[...document.querySelectorAll("[data-server-rendered]")].every((root) => "__vue_app__" in root)`;
 
 /**
  * Launches the headless Chromium that playwright-core pins.
@@ -163,6 +173,25 @@ export async function screenshot(page, folder, state) {
 }
 
 /**
+ * Waits until the page's server-rendered Vue app has hydrated, at most
+ * `ACTION_TIMEOUT_MS`. Before that its markup shows but takes no input: a
+ * click does nothing, a submit posts the form natively and hydration resets
+ * a typed value. A page that never hydrates leaves the action to fail on its
+ * own.
+ *
+ * @param {Page} page The Playwright page
+ * @returns {Promise<void>} Resolves once hydrated or given up
+ */
+async function hydrated(page) {
+  await page
+    .waitForFunction(HYDRATED, undefined, {
+      polling: HYDRATION_POLL_MS,
+      timeout: ACTION_TIMEOUT_MS,
+    })
+    .catch(() => undefined);
+}
+
+/**
  * Writes what the page shows into `folder`: `url.txt` and `aria.yml` (the
  * ARIA snapshot of the body).
  *
@@ -194,8 +223,10 @@ export async function capture(page, folder, state) {
 /**
  * Runs one action on a page, then captures the page into `folder`: the
  * action, the URL and the ARIA snapshot always, a screenshot only when the
- * action failed, is the `screenshot` action or is asked for. A target that
- * is missing, hidden or disabled past the timeout fails the action.
+ * action failed, is the `screenshot` action or is asked for. The action
+ * starts once the page has hydrated, and ends once the page it leads to has.
+ * A target that is missing, hidden or disabled past the timeout fails the
+ * action.
  *
  * @param {Page} page The Playwright page
  * @param {Action} action What to do
@@ -216,10 +247,12 @@ export async function perform(page, action, folder, state, options = {}) {
   );
   let error = null;
   try {
+    await hydrated(page);
     await run(page, action);
     await page
       .waitForLoadState("load", { timeout: NAVIGATION_TIMEOUT_MS })
       .catch(() => undefined);
+    await hydrated(page);
     await page.waitForTimeout(SETTLE_MS);
   } catch (failure) {
     error = describeFailure(failure).split("\n")[0];
@@ -231,7 +264,9 @@ export async function perform(page, action, folder, state, options = {}) {
 }
 
 /**
- * Signs an account in through the sign-in form, the way a user does.
+ * Signs an account in through the sign-in form, the way a user does. When
+ * the page stays on `/auth`, a screenshot of it goes into the last step's
+ * folder.
  *
  * @param {Page} page The Playwright page
  * @param {{ email: string, password: string }} credentials The account
@@ -254,11 +289,15 @@ export async function signInThroughForm(page, credentials, options) {
     { do: "click", target: { role: "button", name: "Login", exact: true } },
   ];
   let outcome = { ok: true, url: page.url(), error: null, aria: "" };
+  let folder = "";
   for (const step of steps) {
+    folder = options.folder(
+      `sign in ${step.do} ${step.target?.name ?? step.path}`,
+    );
     outcome = await perform(
       page,
       { ...step, baseUrl: options.baseUrl },
-      options.folder(`sign in ${step.do} ${step.target?.name ?? step.path}`),
+      folder,
       options.state,
     );
     if (!outcome.ok) return outcome;
@@ -268,11 +307,9 @@ export async function signInThroughForm(page, credentials, options) {
       timeout: NAVIGATION_TIMEOUT_MS,
     })
     .catch(() => undefined);
-  return {
-    ...outcome,
-    url: page.url(),
-    ok: !new URL(page.url()).pathname.startsWith("/auth"),
-  };
+  const ok = !new URL(page.url()).pathname.startsWith("/auth");
+  if (!ok) await screenshot(page, folder, options.state);
+  return { ...outcome, url: page.url(), ok };
 }
 
 /**

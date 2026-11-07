@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 import {
   JourneyContext,
   loadJourneys,
@@ -125,30 +126,90 @@ await test("a run whose backend holds the API port itself is refused before its 
 });
 
 /**
+ * A page whose documents the server rendered for a Vue app, which hydrates
+ * each one `now` (on load), `later` (a few milliseconds after load) or
+ * `never`; with `none` its documents have no server-rendered root, as a JSON
+ * answer. A `waitForFunction` whose expression cannot come to hold gives up
+ * at once, as Playwright does once its timeout passes.
+ *
  * @param {string} url The URL the page reports
- * @param {{ failGoto?: boolean }} [options] Whether navigation throws
- * @returns {{ page: object, shots: string[] }} A page answering as a loaded one, and the paths it was asked to screenshot
+ * @param {{ failGoto?: boolean, hydration?: "now" | "later" | "never" | "none" }} [options] Whether navigation throws, and how the page hydrates
+ * @returns {{ page: object, shots: string[], inputs: { input: string, hydrated: boolean }[], load: () => void, hydrated: () => boolean, giveUps: () => number }} The page, the paths it was asked to screenshot, the input it received and whether it had hydrated then, a way to load a new document into it, whether its document has hydrated, and how many waits ran into their timeout
  */
 function fakePage(url, options = {}) {
+  const hydration = options.hydration ?? "now";
+  let giveUps = 0;
   /** @type {string[]} */
   const shots = [];
+  /** @type {{ input: string, hydrated: boolean }[]} */
+  const inputs = [];
+  /** @type {{ __vue_app__?: object }[]} */
+  let roots = [];
+  let mounting = false;
+  const mounted = () => roots.every((root) => "__vue_app__" in root);
+  const load = () => {
+    if (hydration === "none") return;
+    /** @type {{ __vue_app__?: object }} */
+    const root = {};
+    roots = [root];
+    if (hydration === "now") root.__vue_app__ = {};
+    if (hydration !== "later") return;
+    mounting = true;
+    setTimeout(() => {
+      root.__vue_app__ = {};
+      mounting = false;
+    }, 20);
+  };
   const done = async () => undefined;
-  const control = { fill: done, click: done, waitFor: done };
+  /** @param {string} input The input */
+  const receive = (input) => async () => {
+    inputs.push({ input, hydrated: mounted() });
+  };
+  const control = {
+    fill: receive("fill"),
+    click: receive("click"),
+    waitFor: done,
+  };
   const page = {
     url: () => url,
     goto: async () => {
       if (options.failGoto) throw new Error("net::ERR_CONNECTION_REFUSED");
+      load();
     },
     getByRole: () => control,
     waitForURL: done,
     waitForLoadState: done,
     waitForTimeout: done,
+    waitForFunction: async (
+      /** @type {string} */ expression,
+      /** @type {unknown} */ _arg,
+      /** @type {{ polling: number }} */ { polling },
+    ) => {
+      const document = {
+        querySelectorAll: (/** @type {string} */ selector) =>
+          selector === "[data-server-rendered]" ? roots : [{}, ...roots],
+      };
+      while (!runInNewContext(expression, { document })) {
+        if (!mounting) {
+          giveUps += 1;
+          throw new Error("page.waitForFunction: Timeout");
+        }
+        await new Promise((resolve) => setTimeout(resolve, polling));
+      }
+    },
     locator: () => ({ ariaSnapshot: async () => "- document" }),
     screenshot: async (/** @type {{ path: string }} */ { path }) => {
       shots.push(path);
     },
   };
-  return { page, shots };
+  return {
+    page,
+    shots,
+    inputs,
+    load,
+    hydrated: mounted,
+    giveUps: () => giveUps,
+  };
 }
 
 /**
@@ -255,4 +316,60 @@ await test("signing in writes no screenshot and makes its tab the one a verify s
   await context.verify("signed in", [context.holds("true", true, "")]);
   assert.equal(admin.shots.length, 1);
   assert.deepEqual(other.shots, []);
+});
+
+await test("input reaches a page only once it has hydrated, a document loaded after the previous action included", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/members", { hydration: "later" });
+  const tab = new Tab(context, fake.page, "admin");
+  await tab.goto("/members");
+  assert.equal(
+    fake.hydrated(),
+    true,
+    "a navigation ends once its page has hydrated",
+  );
+  await tab.click({ role: "button", name: "Invite members" });
+  fake.load();
+  await tab.fill(
+    { role: "textbox", name: "Email addresses" },
+    "a@verify.local",
+  );
+  assert.deepEqual(fake.inputs, [
+    { input: "click", hydrated: true },
+    { input: "fill", hydrated: true },
+  ]);
+});
+
+await test("a page with no server-rendered root takes input without waiting for a hydration", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/api/unknown", { hydration: "none" });
+  const tab = new Tab(context, fake.page, "admin");
+  await tab.goto("/api/unknown");
+  await tab.click({ role: "button", name: "Retry" });
+  assert.equal(fake.inputs.length, 1);
+  assert.equal(fake.giveUps(), 0);
+});
+
+await test("a page that never hydrates still gets the action, which succeeds or fails on its own", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/members", { hydration: "never" });
+  const tab = new Tab(context, fake.page, "admin");
+  await tab.goto("/members");
+  const outcome = await tab.click({ role: "button", name: "Invite members" });
+  assert.equal(outcome.ok, true);
+  assert.deepEqual(fake.inputs, [{ input: "click", hydrated: false }]);
+});
+
+await test("a sign-in that stays on /auth writes a screenshot into its last step folder", async (t) => {
+  const context = journeyContext(t);
+  const fake = fakePage("http://web/auth");
+  await assert.rejects(
+    new Tab(context, fake.page, "admin").signIn("admin"),
+    /critical step .*signed-in-as-admin failed/,
+  );
+  assert.equal(fake.shots.length, 1);
+  assert.match(
+    stepOf(context, fake.shots[0]),
+    /\/\d+-admin-sign-in-click-login$/,
+  );
 });
