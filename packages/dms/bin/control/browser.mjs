@@ -137,12 +137,38 @@ const ACTIONS = {
 export const ACTION_NAMES = Object.keys(ACTIONS);
 
 /**
- * Writes what the page shows into `folder`: `url.txt`, `aria.yml` (the ARIA
- * snapshot of the body) and `screenshot.png`.
+ * Writes a full-page `screenshot.png` of the page into `folder`, timed as a
+ * `screenshot` phase. A page that cannot be captured, such as a closed one,
+ * leaves no file.
  *
  * @param {Page} page The Playwright page
  * @param {string} folder The evidence folder
- * @param {{ evidence: string }} state The run, whose timings record the two captures
+ * @param {{ evidence: string }} state The run, whose timings record the screenshot
+ * @returns {Promise<void>} Resolves once the screenshot is written or given up
+ */
+export async function screenshot(page, folder, state) {
+  await timed(
+    state,
+    "screenshot",
+    () =>
+      page
+        .screenshot({
+          path: join(folder, "screenshot.png"),
+          fullPage: true,
+          timeout: ACTION_TIMEOUT_MS,
+        })
+        .catch(() => undefined),
+    { step: relative(state.evidence, folder) },
+  );
+}
+
+/**
+ * Writes what the page shows into `folder`: `url.txt` and `aria.yml` (the
+ * ARIA snapshot of the body).
+ *
+ * @param {Page} page The Playwright page
+ * @param {string} folder The evidence folder
+ * @param {{ evidence: string }} state The run, whose timings record the capture
  * @returns {Promise<string>} The ARIA snapshot
  */
 export async function capture(page, folder, state) {
@@ -162,33 +188,23 @@ export async function capture(page, folder, state) {
     { step },
   );
   writeFileSync(join(folder, "aria.yml"), `${aria}\n`);
-  await timed(
-    state,
-    "screenshot",
-    () =>
-      page
-        .screenshot({
-          path: join(folder, "screenshot.png"),
-          fullPage: true,
-          timeout: ACTION_TIMEOUT_MS,
-        })
-        .catch(() => undefined),
-    { step },
-  );
   return aria;
 }
 
 /**
- * Runs one action on a page, then captures the page into `folder`. A target
- * that is missing, hidden or disabled past the timeout fails the action.
+ * Runs one action on a page, then captures the page into `folder`: the
+ * action, the URL and the ARIA snapshot always, a screenshot only when the
+ * action failed, is the `screenshot` action or is asked for. A target that
+ * is missing, hidden or disabled past the timeout fails the action.
  *
  * @param {Page} page The Playwright page
  * @param {Action} action What to do
  * @param {string} folder The evidence folder
- * @param {{ evidence: string }} state The run, whose timings record the capture
+ * @param {{ evidence: string }} state The run, whose timings record the capture and the screenshot
+ * @param {{ screenshot?: boolean }} [options] Whether to write a screenshot whatever the outcome
  * @returns {Promise<Outcome>} The outcome
  */
-export async function perform(page, action, folder, state) {
+export async function perform(page, action, folder, state, options = {}) {
   const run = ACTIONS[action.do];
   if (!run)
     throw new Error(
@@ -209,6 +225,8 @@ export async function perform(page, action, folder, state) {
     error = describeFailure(failure).split("\n")[0];
   }
   const aria = await capture(page, folder, state);
+  if (error !== null || action.do === "screenshot" || options.screenshot)
+    await screenshot(page, folder, state);
   return { ok: error === null, url: page.url(), error, aria };
 }
 

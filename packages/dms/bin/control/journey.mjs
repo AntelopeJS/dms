@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { withBaseBackend } from "./base.mjs";
-import { launchBrowser, newContext } from "./browser.mjs";
+import { launchBrowser, newContext, screenshot } from "./browser.mjs";
 import { capturedMail } from "./mail.mjs";
 import { isRecord, isString, readRecordList } from "./json.mjs";
 import { saveRun } from "./run-state.mjs";
@@ -128,6 +128,8 @@ export class JourneyContext {
     /** @type {Map<string, import("playwright-core").BrowserContext>} */
     this.contexts = new Map();
     this.index = 0;
+    /** @type {Tab | undefined} */
+    this.lastTab = undefined;
     this.startedAt = new Date().toISOString();
     this.equal = equal;
     this.status = status;
@@ -176,7 +178,9 @@ export class JourneyContext {
 
   /**
    * Records a step of checks, which may be promises (`tab.visible(...)`).
-   * With `{ critical: true }` a failure ends the journey.
+   * With `{ critical: true }` a failure ends the journey. Writes one
+   * `screenshot.png` of the tab driven last into the step folder, whatever
+   * the checks' outcome; before any tab was driven it writes none.
    *
    * @param {string} label What the step verifies
    * @param {(Check | Promise<Check>)[]} checks The checks, or promises of them
@@ -184,11 +188,12 @@ export class JourneyContext {
    * @returns {Promise<boolean>} Whether every check passed
    */
   async verify(label, checks, options = {}) {
-    return this.record(
-      this.step(label),
-      await Promise.all(checks.map((check) => Promise.resolve(check))),
-      options,
+    const folder = this.step(label);
+    const settled = await Promise.all(
+      checks.map((check) => Promise.resolve(check)),
     );
+    if (this.lastTab) await screenshot(this.lastTab.page, folder, this.state);
+    return this.record(folder, settled, options);
   }
 
   /**

@@ -2,9 +2,15 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import test from "node:test";
-import { loadJourneys, runJourney, runJourneyFile } from "./journey.mjs";
+import {
+  JourneyContext,
+  loadJourneys,
+  runJourney,
+  runJourneyFile,
+} from "./journey.mjs";
+import { Tab } from "./tab.mjs";
 import { readTimings } from "./timing.mjs";
 
 const JOURNEY = '{ id: "smoke", title: "t", entryPoint: "e", async run() {} }';
@@ -116,4 +122,137 @@ await test("a run whose backend holds the API port itself is refused before its 
     }),
     { message: "this run was started by an older dms-control; run `up` again" },
   );
+});
+
+/**
+ * @param {string} url The URL the page reports
+ * @param {{ failGoto?: boolean }} [options] Whether navigation throws
+ * @returns {{ page: object, shots: string[] }} A page answering as a loaded one, and the paths it was asked to screenshot
+ */
+function fakePage(url, options = {}) {
+  /** @type {string[]} */
+  const shots = [];
+  const done = async () => undefined;
+  const control = { fill: done, click: done, waitFor: done };
+  const page = {
+    url: () => url,
+    goto: async () => {
+      if (options.failGoto) throw new Error("net::ERR_CONNECTION_REFUSED");
+    },
+    getByRole: () => control,
+    waitForURL: done,
+    waitForLoadState: done,
+    waitForTimeout: done,
+    locator: () => ({ ariaSnapshot: async () => "- document" }),
+    screenshot: async (/** @type {{ path: string }} */ { path }) => {
+      shots.push(path);
+    },
+  };
+  return { page, shots };
+}
+
+/**
+ * @param {import("node:test").TestContext} t The test
+ * @returns {JourneyContext} A journey context over a scratch evidence folder, with an `admin` account
+ */
+function journeyContext(t) {
+  const dir = mkdtempSync(join(tmpdir(), "dms-control-evidence-test-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  return new JourneyContext(
+    {
+      evidence: dir,
+      webUrl: "http://web",
+      accounts: { admin: { email: "a@verify.local", password: "pw" } },
+    },
+    "feature",
+    "journey",
+    null,
+    null,
+  );
+}
+
+/**
+ * @param {JourneyContext} context The journey
+ * @param {string} shot A screenshot path
+ * @returns {string} The step folder the screenshot is in, relative to the evidence
+ */
+function stepOf(context, shot) {
+  return relative(context.state.evidence, dirname(shot));
+}
+
+await test("a succeeding action writes no screenshot", async (t) => {
+  const context = journeyContext(t);
+  const { page, shots } = fakePage("http://web/");
+  const outcome = await new Tab(context, page, "admin").goto("/");
+  assert.equal(outcome.ok, true);
+  assert.deepEqual(shots, []);
+});
+
+await test("a failing action writes a screenshot into its own step folder", async (t) => {
+  const context = journeyContext(t);
+  const { page, shots } = fakePage("http://web/", { failGoto: true });
+  await assert.rejects(
+    new Tab(context, page, "admin").goto("/"),
+    /critical step/,
+  );
+  assert.deepEqual(
+    shots.map((shot) => stepOf(context, shot)),
+    [context.steps[0].folder],
+  );
+});
+
+await test("a snapshot step and the screenshot action write one screenshot each", async (t) => {
+  const context = journeyContext(t);
+  const { page, shots } = fakePage("http://web/");
+  const tab = new Tab(context, page, "admin");
+  const snapshot = await tab.snapshot("record the page");
+  const explicit = await tab.act({ do: "screenshot" }, "look");
+  assert.deepEqual(
+    shots.map((shot) => stepOf(context, shot)),
+    [snapshot, explicit].map((outcome) =>
+      relative(context.state.evidence, outcome.folder),
+    ),
+  );
+});
+
+await test("a verify step writes one screenshot of the tab driven last, whatever the checks say", async (t) => {
+  const context = journeyContext(t);
+  const first = fakePage("http://web/first");
+  const second = fakePage("http://web/second");
+  const firstTab = new Tab(context, first.page, "first");
+  await firstTab.goto("/first");
+  await new Tab(context, second.page, "second").goto("/second");
+  await context.verify("passes", [context.holds("true", true, "")]);
+  await context.verify("fails", [context.holds("false", false, "")]);
+  assert.deepEqual(first.shots, []);
+  assert.deepEqual(
+    second.shots.map((shot) => stepOf(context, shot)),
+    context.steps.slice(2).map((step) => step.folder),
+  );
+  await firstTab.goto("/again");
+  await context.verify("back on the first tab", []);
+  assert.equal(first.shots.length, 1);
+  assert.equal(second.shots.length, 2);
+});
+
+await test("a verify step before any tab was driven writes no screenshot and still records", async (t) => {
+  const context = journeyContext(t);
+  const passed = await context.verify("api only", [
+    context.holds("true", true, ""),
+  ]);
+  assert.equal(passed, true);
+  assert.equal(context.steps.length, 1);
+});
+
+await test("signing in writes no screenshot and makes its tab the one a verify step shows", async (t) => {
+  const context = journeyContext(t);
+  const other = fakePage("http://web/other");
+  await new Tab(context, other.page, "other").goto("/other");
+  const admin = fakePage("http://web/home");
+  const outcome = await new Tab(context, admin.page, "admin").signIn("admin");
+  assert.equal(outcome.ok, true);
+  assert.deepEqual(admin.shots, []);
+  await context.verify("signed in", [context.holds("true", true, "")]);
+  assert.equal(admin.shots.length, 1);
+  assert.deepEqual(other.shots, []);
 });
