@@ -60,6 +60,6 @@ Roles are created through `POST /dms/pages/settings/workspace/roles/create` as s
 - The playground's invite extension makes Team required; the journeys pick `Sales`. Without a role the dialog needs the Owner switch, so roles are created first.
 - Signing up from the link signs the new member in at once; the first page is the first one their role can open, or a public page.
 - Several journeys end on `tab.at(...)` of the signed-in landing page; the destination varies with the role, so they only require leaving `/auth`.
-- `removed-member-lands-on-a-page` fails on `main`: `login.vue` navigates to `/auth/no-workspace`, and no page registers that path. A verdict on a diff touching sign-in or removal fails until the product is fixed.
+- `removed-member-lands-on-a-page` fails on `main`: `login.vue` navigates to `/auth/no-workspace`, and no page registers that path. A verdict on a diff touching sign-in or removal, or a shared file, fails until the product is fixed.
 - A removed member's open browser still loads account pages (`/settings/user/profile`); only workspace pages and data are refused.
 - Not driven: Resend verification email and Mark as verified (the playground's members have verified addresses), the SaaS-mode ownership paths, and Copy link (a clipboard write).

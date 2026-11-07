@@ -29,6 +29,21 @@ export function isUserFacing(skill, file) {
 }
 
 /**
+ * Whether a repository path is shared: matched by the config's `shared`
+ * globs and by none of its `notShared` globs. A change to it can alter any
+ * feature, so the plan runs them all.
+ *
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {string} file A repository path
+ * @returns {boolean} True when the file forces the full set
+ */
+export function isShared(skill, file) {
+  return (
+    matches(file, skill.config.shared) && !matches(file, skill.config.notShared)
+  );
+}
+
+/**
  * The features whose `covers:` globs match a file.
  *
  * @param {string} file A repository path
@@ -89,6 +104,25 @@ async function featureProblems(skill, feature, tracked) {
  * @param {string[]} tracked The tracked paths
  * @returns {string[]} One line per problem
  */
+function sharedProblems(skill, tracked) {
+  return skill.config.shared
+    .filter(
+      (glob) =>
+        !tracked.some(
+          (path) =>
+            matchesGlob(path, glob) && !matches(path, skill.config.notShared),
+        ),
+    )
+    .map(
+      (glob) => `verify.config.ts: shared glob ${glob} matches no tracked file`,
+    );
+}
+
+/**
+ * @param {import("./skill.mjs").Skill} skill The skill
+ * @param {string[]} tracked The tracked paths
+ * @returns {string[]} One line per problem
+ */
 function doorProblems(skill, tracked) {
   const problems = [];
   for (const [kind, rule] of Object.entries(skill.config.doors)) {
@@ -107,8 +141,8 @@ function doorProblems(skill, tracked) {
 /**
  * Checks the map against the repository: every user-facing file is
  * covered, every feature has journeys, each described in its file,
- * existing docs pages, and every feature and door glob matches a tracked
- * file.
+ * existing docs pages, and every feature, shared and door glob matches a
+ * tracked file.
  *
  * @param {import("./skill.mjs").Skill} skill The skill
  * @returns {Promise<string[]>} One line per problem
@@ -134,22 +168,32 @@ export async function checkMap(skill) {
       }
     }
   }
-  return [...problems, ...doorProblems(skill, tracked)];
+  return [
+    ...problems,
+    ...sharedProblems(skill, tracked),
+    ...doorProblems(skill, tracked),
+  ];
 }
 
 /**
  * Maps the diff from the merge base of `baseRef` to HEAD onto features:
  * every touched feature plus the smoke feature runs, a user-facing file
- * outside every glob is an unmapped surface.
+ * outside every glob is an unmapped surface. A changed shared file, or
+ * `all`, runs the smoke feature and then every feature; `shared` lists the
+ * changed files that forced it.
  *
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {string} baseRef The base, such as `origin/main`
+ * @param {boolean} [all] Run every feature whatever the diff, for a release
  * @returns {import("./types.mjs").Plan} The plan
  */
-export function planFor(skill, baseRef) {
+export function planFor(skill, baseRef, all = false) {
   const features = readFeatures(skill);
   const baseSha = git(["merge-base", baseRef, "HEAD"], skill.repo);
-  const changed = git(["diff", "--name-only", `${baseSha}...HEAD`], skill.repo)
+  const changed = git(
+    ["diff", "--name-only", "--no-renames", `${baseSha}...HEAD`],
+    skill.repo,
+  )
     .split("\n")
     .filter(Boolean);
   const touched = features
@@ -170,15 +214,21 @@ export function planFor(skill, baseRef) {
         .flatMap((feature) => feature.docs),
     ),
   ];
+  const shared = changed.filter((file) => isShared(skill, file));
   const smoke = skill.config.smoke;
+  const names =
+    all || shared.length > 0
+      ? features.map((feature) => feature.name)
+      : [...touchedNames];
   return {
     baseRef,
     baseSha,
     headSha: git(["rev-parse", "HEAD"], skill.repo),
     changed,
     touched,
+    shared,
     unmapped,
     docs,
-    run: [smoke, ...[...touchedNames].filter((name) => name !== smoke)],
+    run: [smoke, ...names.filter((name) => name !== smoke)],
   };
 }

@@ -17,6 +17,8 @@ const skill = {
     prepare: [],
     userFacing: [],
     notUserFacing: [],
+    shared: [],
+    notShared: [],
     smoke: "smoke",
     smokeJourney: "",
     formal: [],

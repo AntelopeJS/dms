@@ -10,7 +10,7 @@
  * @typedef {{ exitCode: number | null, violated: string[], passing: string[] }} Rules
  * @typedef {{ name: string, exitCode: number | null, violated: string[], passing: string[], folder: string, commits?: Commits, behaviour?: BehaviourChange, checkChanged?: boolean, base?: Rules | null, fixed?: string[], missing?: string[] }} FormalResult
  * @typedef {{ feature: string, files: string[] }} TouchedFeature
- * @typedef {{ baseRef: string, baseSha: string, headSha: string, changed: string[], touched: TouchedFeature[], unmapped: string[], docs: string[], run: string[] }} Plan
+ * @typedef {{ baseRef: string, baseSha: string, headSha: string, changed: string[], touched: TouchedFeature[], shared: string[], unmapped: string[], docs: string[], run: string[] }} Plan
  * @typedef {{ kind?: string, location?: string, irreversible?: string, containment?: string }} RawDoorRow
  * @typedef {{ kind?: string, location?: string, reason?: string }} RawFalsePositive
  * @typedef {{ page: string, matches?: boolean, note?: string }} RawDocsJudgement

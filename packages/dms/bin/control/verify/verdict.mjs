@@ -229,6 +229,14 @@ function markdown(skill, verdict, parts) {
     ...bullets(touched, "none"),
     `- ${skill.config.smoke}: ${skill.config.smokeJourney}`,
     "",
+    ...(plan.shared.length > 0
+      ? [
+          "### Shared files",
+          `Every feature runs (${plan.run.length}), because the diff changes:`,
+          ...plan.shared.map((file) => `- \`${file}\``),
+          "",
+        ]
+      : []),
     ...(plan.unmapped.length > 0
       ? [
           "### Unmapped surfaces",
@@ -273,10 +281,11 @@ function markdown(skill, verdict, parts) {
  * @param {import("../run-state.mjs").RunState} state The run
  * @param {number} pr The pull request
  * @param {import("./types.mjs").Judgement} judgement The verifier's judgement
+ * @param {boolean} [all] Require every feature, as `plan --all` does for a release
  * @returns {Promise<import("./types.mjs").Verdict>} The verdict
  */
-export async function renderVerdict(skill, state, pr, judgement) {
-  const plan = planFor(skill, state.baseRef);
+export async function renderVerdict(skill, state, pr, judgement, all = false) {
+  const plan = planFor(skill, state.baseRef, all);
   const skillSha =
     git(
       ["log", "-1", "--format=%H", "--", relative(skill.repo, skill.dir)],
