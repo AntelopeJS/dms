@@ -26,12 +26,14 @@ Drive an isolated DMS (run from the repository, or pass --playground):
 
 Verify a change (the .agents/skills/verify-* folder of the checkout, or --skill <dir>):
   map                               check the feature map covers every user-facing file
-  plan [--base <ref>]               map the diff to features; list unmapped surfaces
+  plan [--base <ref>] [--all]       map the diff to features; list shared files and unmapped surfaces
+                       (a shared file, or --all for a release, runs every feature)
   journey <run> <feature> [ids...]  run a feature's journeys and record evidence
   doors [patch] [--base <ref>]      print the One-way-door line for a patch, or for the diff
   formal <run> [--all]              run the formal checks that cover the diff (or every one)
-  verdict <run> --pr <n>            render evidence/verdict.md from the results and evidence/judgement.json
-  publish <run> --pr <n>            push the evidence, comment the verdict, set the verify status
+  verdict <run> --pr <n> [--all]    render evidence/verdict.md from the results and evidence/judgement.json
+                       (--all requires every feature, for a release)
+  publish <run> --pr <n> [--all]    push the evidence, comment the verdict, set the verify status
 `;
 
 /**
