@@ -7,6 +7,7 @@ import { capturedMail, serveMail } from "./mail.mjs";
 import { loadRun } from "./run-state.mjs";
 import { apiRequest, isOk, onboard } from "./session.mjs";
 import { down, freshDatabase, resolutionFolders, up } from "./stack.mjs";
+import { formatTimings, readTimings, summarize, timed } from "./timing.mjs";
 import { loadSkill, runPrepare } from "./verify/skill.mjs";
 
 /** @typedef {import("./options.mjs").Values} Values */
@@ -50,9 +51,11 @@ export async function targetOf(values, cwd) {
  */
 async function commandUp(values) {
   const skill = values.skill ? resolve(values.skill) : undefined;
+  /** @type {import("./timing.mjs").TimingEntry[]} */
+  let prepared = [];
   if (values.prepare) {
     const loaded = await loadSkill(skill, process.cwd());
-    runPrepare(loaded, loaded.repo);
+    prepared = runPrepare(loaded, loaded.repo);
   }
   const state = await up({
     ...(await targetOf(values, process.cwd())),
@@ -61,6 +64,7 @@ async function commandUp(values) {
     env: values.env,
     base: values.base,
     skill,
+    prepared,
   });
   print(state.dir);
   return 0;
@@ -144,7 +148,12 @@ async function commandBrowser(dir, action, values) {
     path: values.path,
   };
   const label = `${values.tab ?? "main"} ${action} ${target ? describeTarget(target) : (values.path ?? "")}`;
-  const outcome = await browserCommand(state, request, label);
+  const outcome = await timed(
+    state,
+    "browser-command",
+    () => browserCommand(state, request, label),
+    { action },
+  );
   if (!outcome.ok) {
     print(
       `FAIL ${label}: ${outcome.error} (at ${outcome.url}; evidence ${outcome.folder})`,
@@ -195,7 +204,7 @@ async function commandDown(dir) {
 
 /**
  * Runs a command that drives the product: `up`, `doctor`, `onboard`,
- * `browser`, `api`, `mail`, `down`, and the two services `up` starts.
+ * `browser`, `api`, `mail`, `down`, `timings`, and the two services `up` starts.
  *
  * @param {string | undefined} command The command
  * @param {string[]} rest Its positional arguments
@@ -219,6 +228,9 @@ export async function runStackCommand(command, rest, values) {
       return 0;
     case "down":
       return commandDown(rest[0]);
+    case "timings":
+      print(formatTimings(summarize(readTimings(loadRun(rest[0]).evidence))));
+      return 0;
     case "reset": {
       const state = loadRun(rest[0]);
       state.resetCount = (state.resetCount ?? 0) + 1;

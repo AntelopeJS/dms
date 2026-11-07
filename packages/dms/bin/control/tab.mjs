@@ -59,6 +59,7 @@ export class Tab {
       this.page,
       { ...action, baseUrl: this.context.state.webUrl },
       folder,
+      this.context.state,
     );
     this.context.record(
       folder,
@@ -171,6 +172,7 @@ export class Tab {
       ? await signInThroughForm(this.page, credentials, {
           baseUrl: this.context.state.webUrl,
           folder: (label) => this.context.step(`${this.label} ${label}`),
+          state: this.context.state,
         })
       : { ok: false, url: "", error: `no account ${account}` };
     const folder = this.context.step(`${this.label} signed in as ${account}`);

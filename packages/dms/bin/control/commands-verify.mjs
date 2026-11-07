@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { print } from "./commands-stack.mjs";
 import { runJourneyFile } from "./journey.mjs";
 import { loadRun } from "./run-state.mjs";
+import { timed } from "./timing.mjs";
 import { doorLine, flaggedDoors, patchFiles } from "./verify/doors.mjs";
 import {
   formalGate,
@@ -120,7 +121,12 @@ async function commandFormal(dir, values) {
   };
   for (const check of checks) {
     const gate = touched.includes(check);
-    const result = runFormalCheck(skill, state, check, gate ? diff : null);
+    const result = await timed(
+      state,
+      "formal",
+      () => runFormalCheck(skill, state, check, gate ? diff : null),
+      { check: check.name },
+    );
     const weight = formalGate(result);
     const outcome = gate
       ? weight.fails

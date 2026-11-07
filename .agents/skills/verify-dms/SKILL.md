@@ -92,6 +92,7 @@ $C journey "$RUN" settings-members [journey-id...]
 | `$C api "$RUN" <method> <path>` | an authenticated API call; `--as anon`, `--body '<json>'` |
 | `$C mail "$RUN"` | the messages the sink captured |
 | `$C reset "$RUN"` | restarts the backend on an empty database |
+| `$C timings "$RUN"` | prints how long each phase of the run took |
 
 `--as <account>` and `--tab <name>` pick another account's browser context or another tab. Each command writes its evidence under `$RUN/evidence/`.
 
@@ -102,7 +103,10 @@ Everything goes under `$RUN/evidence/`:
 - `<feature>/<journey>/NN-<step>/`: `action.json`, `url.txt`, `aria.yml`, `screenshot.png` for a browser step; `request.json` and `response.json` for an API step; `mail.json` for a mail read; `checks.json` for every step that checks something;
 - `<feature>/<journey>/result.json` and `<feature>/feature.json` (journeys merge, so a partial run keeps earlier results);
 - `mail/NNN.eml` and `NNN.json` (recipients, subject, links, readable text) for every message the sink received;
-- `browser/`, `api/`, `onboard/`, `auth/` for the interactive commands, and `doctor.json`.
+- `browser/`, `api/`, `onboard/`, `auth/` for the interactive commands, and `doctor.json`;
+- `timings.jsonl`: one JSON object per measured phase, appended by `up`, `journey`, `formal` and `browser` as they run: `{ "phase", "ms", "startedAt", "ok" }` plus `feature`, `journey`, `step`, `command`, `action` or `check` where they apply. `ok` is false when the phase threw, and for a `journey` entry when the journey failed. A `journey` that throws, from its browser launch on, still writes its entry. A `prepare` command that fails writes nothing: `up` has not created the run yet. `ok` says whether the phase completed, not whether a browser action or a check inside it passed. The phases are `prepare` (one per command of the config), `up` (the whole of it) with `layout`, `mongod`, `mail`, `project-build`, `frontend-build`, `backend-start` and `frontend-start` inside it, `journey` (one whole journey) with `browser-launch`, `fresh-database`, `onboard` and `journey-run` inside it, `backend-stop` and `backend-start` (each backend the run stops and starts: a journey's fresh database, a restart inside a journey, `reset`, and the first start inside `up`), `aria` and `screenshot` (each browser step, `step` being its folder under `evidence/`), `formal` (one per check) and `browser-command` (one interactive `browser` round trip).
+
+`$C timings "$RUN"` reads `timings.jsonl` and prints one row per phase (each journey under its own name) with the count, the total in seconds, the median and the maximum in milliseconds, then `total`: the sum of `prepare`, `up`, the journeys and `formal`, the phases that contain the others. The verdict carries the same table in its `Timing` section, and its journeys table a `Time` column. A run from an earlier release has no `timings.jsonl`, and `timings` prints an empty table for it.
 
 Read the evidence before you judge a PASS: a check passing proves only what it asserts.
 

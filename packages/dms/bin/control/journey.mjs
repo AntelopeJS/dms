@@ -21,6 +21,7 @@ import {
   restartBackend,
 } from "./stack.mjs";
 import { Tab } from "./tab.mjs";
+import { recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
  * @typedef {{ name: string, pass: boolean, detail: string }} Check
@@ -352,18 +353,29 @@ export class JourneyContext {
  * @param {JourneyContext} context The journey's context
  */
 async function prepare(state, feature, journey, context) {
+  const detail = { feature, journey: journey.id };
   await ensureMail(state);
   if (journey.database !== "shared") {
     const index = String((state.journeyCount ?? 0) + 1).padStart(3, "0");
     state.journeyCount = Number(index);
-    await freshDatabase(state, `j${index}`);
+    await timed(
+      state,
+      "fresh-database",
+      () => freshDatabase(state, `j${index}`),
+      detail,
+    );
     writeJson(join(context.step("fresh database"), "database.json"), {
       database: state.database,
     });
   }
   if (journey.onboard === false || state.accounts?.admin) return;
   const folder = context.step("onboard the administrator");
-  const answer = await onboard(state, {});
+  const answer = await timed(
+    state,
+    "onboard",
+    () => onboard(state, {}),
+    detail,
+  );
   context.record(
     folder,
     [
@@ -395,7 +407,39 @@ async function prepare(state, feature, journey, context) {
  * @returns {Promise<FeatureResult>} The result
  */
 export async function runJourney(state, feature, journey, skill) {
-  const browser = await launchBrowser(resolutionFolders(state));
+  const stop = stopwatch();
+  const detail = { feature, journey: journey.id };
+  /** @type {Omit<FeatureResult, "ms"> | undefined} */
+  let result;
+  let lap = { ms: 0, startedAt: "" };
+  try {
+    result = await driveJourney(state, feature, journey, skill);
+  } finally {
+    lap = stop();
+    recordTiming(state, "journey", lap, result?.status === "PASS", detail);
+  }
+  const timedResult = { ...result, ms: lap.ms };
+  writeJson(join(state.evidence, result.folder, "result.json"), timedResult);
+  return timedResult;
+}
+
+/**
+ * Drives one journey from its browser launch to its closed contexts.
+ *
+ * @param {import("./run-state.mjs").RunState} state The run
+ * @param {string} feature The feature it belongs to
+ * @param {Journey} journey The journey
+ * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
+ * @returns {Promise<Omit<FeatureResult, "ms">>} The result, without its duration
+ */
+async function driveJourney(state, feature, journey, skill) {
+  const detail = { feature, journey: journey.id };
+  const browser = await timed(
+    state,
+    "browser-launch",
+    () => launchBrowser(resolutionFolders(state)),
+    detail,
+  );
   const context = new JourneyContext(
     state,
     feature,
@@ -406,7 +450,7 @@ export async function runJourney(state, feature, journey, skill) {
   let error = null;
   try {
     await prepare(state, feature, journey, context);
-    await journey.run(context);
+    await timed(state, "journey-run", () => journey.run(context), detail);
   } catch (failure) {
     error =
       failure instanceof JourneyAbort
@@ -419,7 +463,7 @@ export async function runJourney(state, feature, journey, skill) {
   const failed =
     error !== null ||
     context.steps.some((step) => step.checks.some((check) => !check.pass));
-  const result = {
+  return {
     feature,
     journey: journey.id,
     title: journey.title,
@@ -430,8 +474,6 @@ export async function runJourney(state, feature, journey, skill) {
     error,
     folder: relative(state.evidence, context.folder),
   };
-  writeJson(join(context.folder, "result.json"), result);
-  return result;
 }
 
 /**
