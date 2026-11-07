@@ -6,7 +6,9 @@ import { doctor } from "./doctor.mjs";
 import { capturedMail, serveMail } from "./mail.mjs";
 import { loadRun } from "./run-state.mjs";
 import { apiRequest, isOk, onboard } from "./session.mjs";
-import { down, freshDatabase, resolutionFolders, up } from "./stack.mjs";
+import { down, resolutionFolders, up } from "./stack.mjs";
+import { freshDatabase } from "./backend.mjs";
+import { apiTargetFile, serveForwarder } from "./forwarder.mjs";
 import { formatTimings, readTimings, summarize, timed } from "./timing.mjs";
 import { loadSkill, runPrepare } from "./verify/skill.mjs";
 
@@ -65,6 +67,9 @@ async function commandUp(values) {
     base: values.base,
     skill,
     prepared,
+    noStandby:
+      values["no-standby"] === true ||
+      process.env.DMS_CONTROL_NO_STANDBY === "1",
   });
   print(state.dir);
   return 0;
@@ -204,12 +209,12 @@ async function commandDown(dir) {
 
 /**
  * Runs a command that drives the product: `up`, `doctor`, `onboard`,
- * `browser`, `api`, `mail`, `down`, `timings`, and the two services `up` starts.
+ * `browser`, `api`, `mail`, `down`, `timings`, and the three services `up` starts.
  *
  * @param {string | undefined} command The command
  * @param {string[]} rest Its positional arguments
  * @param {Values} values Its options
- * @returns {Promise<number | undefined>} The exit code, or undefined for a command it does not own; the two services keep the process alive
+ * @returns {Promise<number | undefined>} The exit code, or undefined for a command it does not own; the three services keep the process alive
  */
 export async function runStackCommand(command, rest, values) {
   switch (command) {
@@ -240,6 +245,11 @@ export async function runStackCommand(command, rest, values) {
     case "serve-mail": {
       const state = loadRun(rest[0]);
       await serveMail(state.mail, state.smtpPort);
+      return 0;
+    }
+    case "serve-api": {
+      const state = loadRun(rest[0]);
+      await serveForwarder(state.apiPort, apiTargetFile(state.dir));
       return 0;
     }
     case "serve-browser":

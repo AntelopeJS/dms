@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { loadJourneys, runJourney } from "./journey.mjs";
+import { loadJourneys, runJourney, runJourneyFile } from "./journey.mjs";
 import { readTimings } from "./timing.mjs";
 
 const JOURNEY = '{ id: "smoke", title: "t", entryPoint: "e", async run() {} }';
@@ -94,4 +95,25 @@ await test("a journey whose browser fails to launch still records its journey en
     "feat",
     "j1",
   ]);
+});
+
+await test("a run whose backend holds the API port itself is refused before its journeys load", async (t) => {
+  const old = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+    stdio: "ignore",
+  });
+  t.after(() => old.kill());
+  assert.ok(old.pid !== undefined && old.pid > 1, "the old backend started");
+  const state = {
+    apiPort: 5010,
+    processes: [{ name: "backend", pid: old.pid, port: 5010 }],
+  };
+  await assert.rejects(
+    runJourneyFile(state, {
+      file: journeysModule(t, `export const journeys = [${JOURNEY}];`),
+      feature: "smoke",
+      ids: [],
+      skill: { config: {} },
+    }),
+    { message: "this run was started by an older dms-control; run `up` again" },
+  );
 });

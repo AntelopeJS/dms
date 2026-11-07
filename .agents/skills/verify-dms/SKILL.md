@@ -7,7 +7,7 @@ description: "Drive the AntelopeJS DMS (@antelopejs/dms backend and its Vue dash
 
 Every deterministic step is a `dms-control` command. You choose which journeys to run and judge what they show; you never write a multi-step shell recipe. When a journey you need does not exist, add it to `journeys/<feature>.mjs`, describe it in its feature file, and run it.
 
-`dms-control` is the bin of `@antelopejs/dms` (`packages/dms/bin/dms-control.mjs`). Run it from the repository root with Node 24.
+`dms-control` is the bin of `@antelopejs/dms` (`packages/dms/bin/dms-control.mjs`). Run it from the repository root with Node 24. On Linux it tells each process it started from a later one given the same pid by the start time `/proc` records, so it needs the `/proc` of its own PID namespace: under `unshare --pid` without `--mount-proc` it refuses to start or stop any process. On a system with no `/proc` at all, such as macOS, it tells processes apart by pid alone, as it always did. `up` records its PID and time namespaces in `run.json`, and every other command on the run refuses, before it changes anything, when it runs in another one: run it where `up` ran.
 
 ```bash
 C="node packages/dms/bin/dms-control.mjs"
@@ -25,10 +25,10 @@ RUN=$($C up --prepare)   # installs, builds, starts; prints the run folder
 - the checkout is laid out again under `$RUN/root`, every sibling linked, and the playground copied without `node_modules`, `.antelope` and `.dms-frontend`, so the run's build and `.antelope/` are its own;
 - the API, the dashboard and the mail sink get free ports from the kernel, and `HOME` is `$RUN/home`;
 - a `mongod` the run owns (from `PATH`, `DMS_CONTROL_MONGOD`, or the binary mongodb-memory-server-core caches) serves `verify_<run>` databases; `--mongo-url` uses another server;
-- the backend runs `ajs project start -e docs` and the dashboard `ajs dms start -e docs -b <api>`; ready means `/api/onboarding/informations` and `/dms-preview` answer 200;
+- the backend runs `ajs project start -e docs` on a port of its own, behind a forwarder that holds the API port, and the dashboard `ajs dms start -e docs -b <api>`; ready means `/api/onboarding/informations` and `/dms-preview` answer 200;
 - fresh secrets, `DMS_CLIENT_BASE_URL` set to the dashboard and the `docs` mail pointed at the sink.
 
-`--base <ref>` (default `origin/main`) names the version the plan diffs against and the base-version journey starts. `--runs <dir>` (or `DMS_CONTROL_RUNS`) moves the runs out of the temporary folder.
+`--base <ref>` (default `origin/main`) names the version the plan diffs against and the base-version journey starts. `--runs <dir>` (or `DMS_CONTROL_RUNS`) moves the runs out of the temporary folder. `--no-standby` (or `DMS_CONTROL_NO_STANDBY=1`) starts each fresh database's backend when it is needed instead of one ahead, for a host short of memory: about 160 MB less per run while journeys run, about 5 s more per journey.
 
 ## Serving a renderer checkout
 
@@ -63,7 +63,7 @@ const config: VerifyConfig = {
 $C doctor "$RUN"          # prints only failing checks; --verbose prints all
 ```
 
-It checks that every recorded process is alive and holds its port, both servers answer, the dashboard serves this run's API (`-b`), the module and playground builds are newer than their sources, the frontend build is newer than `frontend-vue`, the database is the run's, HEAD has not moved since `up`, and the admin session (once onboarded) is valid. Do not drive a run that fails doctor.
+It checks that every recorded process is alive and holds its port, both servers answer, the API port forwards to the run's backend, the dashboard serves this run's API (`-b`), the module and playground builds are newer than their sources, the frontend build is newer than `frontend-vue`, the backend started after the last build of the module, the interface and the playground, the database is the run's, HEAD has not moved since `up`, and the admin session (once onboarded) is valid. Do not drive a run that fails doctor. While a build runs, one of those build folders can be missing: `doctor` then fails, and `reset` and each journey refuse to start until the build is done.
 
 ## Drive
 
@@ -76,7 +76,7 @@ $C journey "$RUN" settings-members [journey-id...]
 
 - `run` is the smoke feature and the features the diff touches. When the diff changes a shared file (the `shared` globs of `verify.config.ts`: package.json files, lockfiles, pnpm workspace files, the interface contract and the config), `run` is the smoke feature and then every feature, and `shared` lists the files that forced it. Before a release run `plan --all` and pass `--all` to `verdict` and `publish` too, so the verdict requires every feature.
 - Each feature file in [features/](features/README.md) lists its source globs (`covers:`), its docs pages (`docs:`) and its journeys; the journeys are in `journeys/<feature>.mjs`.
-- A journey starts on an empty database of the run (the backend restarts on it) with the administrator onboarded, unless it says otherwise. It drives the dashboard by ARIA role and name through playwright-core, one browser context per account, and reads every mutation back through a second view: a reload, the API, another account's tab, the captured mail, or a backend restart.
+- A journey starts on an empty database of the run, served by a backend that has served nothing else, with the administrator onboarded, unless it says otherwise. It drives the dashboard by ARIA role and name through playwright-core, one browser context per account, and reads every mutation back through a second view: a reload, the API, another account's tab, the captured mail, or a backend restart.
 - To look at the product yourself, use these commands, each a single step on the run's long-lived browser or API:
 
 | Command | What it does |
@@ -91,7 +91,7 @@ $C journey "$RUN" settings-members [journey-id...]
 | `$C browser "$RUN" screenshot` | prints the path of a screenshot |
 | `$C api "$RUN" <method> <path>` | an authenticated API call; `--as anon`, `--body '<json>'` |
 | `$C mail "$RUN"` | the messages the sink captured |
-| `$C reset "$RUN"` | restarts the backend on an empty database |
+| `$C reset "$RUN"` | moves the run onto an empty database and a backend that has served nothing |
 | `$C timings "$RUN"` | prints how long each phase of the run took |
 
 `--as <account>` and `--tab <name>` pick another account's browser context or another tab. Each command writes its evidence under `$RUN/evidence/`.
@@ -104,7 +104,7 @@ Everything goes under `$RUN/evidence/`:
 - `<feature>/<journey>/result.json` and `<feature>/feature.json` (journeys merge, so a partial run keeps earlier results);
 - `mail/NNN.eml` and `NNN.json` (recipients, subject, links, readable text) for every message the sink received;
 - `browser/`, `api/`, `onboard/`, `auth/` for the interactive commands, and `doctor.json`;
-- `timings.jsonl`: one JSON object per measured phase, appended by `up`, `journey`, `formal` and `browser` as they run: `{ "phase", "ms", "startedAt", "ok" }` plus `feature`, `journey`, `step`, `command`, `action` or `check` where they apply. `ok` is false when the phase threw, and for a `journey` entry when the journey failed. A `journey` that throws, from its browser launch on, still writes its entry. A `prepare` command that fails writes nothing: `up` has not created the run yet. `ok` says whether the phase completed, not whether a browser action or a check inside it passed. The phases are `prepare` (one per command of the config), `up` (the whole of it) with `layout`, `mongod`, `mail`, `project-build`, `frontend-build`, `backend-start` and `frontend-start` inside it, `journey` (one whole journey) with `browser-launch`, `fresh-database`, `onboard` and `journey-run` inside it, `backend-stop` and `backend-start` (each backend the run stops and starts: a journey's fresh database, a restart inside a journey, `reset`, and the first start inside `up`), `aria` and `screenshot` (each browser step, `step` being its folder under `evidence/`), `formal` (one per check) and `browser-command` (one interactive `browser` round trip).
+- `timings.jsonl`: one JSON object per measured phase, appended by `up`, `journey`, `formal` and `browser` as they run: `{ "phase", "ms", "startedAt", "ok" }` plus `feature`, `journey`, `step`, `command`, `action` or `check` where they apply. `ok` is false when the phase threw, and for a `journey` entry when the journey failed. A `journey` that throws, from its browser launch on, still writes its entry. A `prepare` command that fails writes nothing: `up` has not created the run yet. `ok` says whether the phase completed, not whether a browser action or a check inside it passed. The phases are `prepare` (one per command of the config), `up` (the whole of it) with `layout`, `mongod`, `mail`, `project-build`, `frontend-build`, `backend-start` and `frontend-start` inside it, `journey` (one whole journey) with `browser-launch`, `fresh-database`, `onboard` and `journey-run` inside it, `backend-stop` (each time the run stops backends: those a fresh database or `reset` replaces, and a restart inside a journey), `backend-start` (each backend the run starts and waits for: the first inside `up`, a restart inside a journey, and a fresh database or `reset` with no standby to take), `standby-promote` (a fresh database or `reset` waiting for its standby to answer and checking the build; `ok` is false when the standby is not taken and a backend starts on the spot instead), `standby-start` (the launch of the next database's standby, which then boots in the background; not counted in `total`), `aria` and `screenshot` (each browser step, `step` being its folder under `evidence/`), `formal` (one per check) and `browser-command` (one interactive `browser` round trip).
 
 `$C timings "$RUN"` reads `timings.jsonl` and prints one row per phase (each journey under its own name) with the count, the total in seconds, the median and the maximum in milliseconds, then `total`: the sum of `prepare`, `up`, the journeys and `formal`, the phases that contain the others. The verdict carries the same table in its `Timing` section, and its journeys table a `Time` column. A run from an earlier release has no `timings.jsonl`, and `timings` prints an empty table for it.
 
@@ -178,7 +178,7 @@ The skill is not Trusted yet. It becomes Trusted when it passes a shadow run of 
 - Until the playground declares its frontend (dms#441), the playground's own translations are missing from the run's dashboard, so some headings show their keys. Journeys target labels that are not playground keys.
 - The base-version journey builds the base ref once per commit under `~/.cache/dms-control/base/<sha>`, a git worktree of this checkout; the first run takes a few minutes.
 - The module store reads its catalog from the npm registry; `up` installs the playground's package modules from it too.
-- Each journey restarts the backend on a fresh database: in-memory state (rate limits, the playground's tenant gate) resets with it.
+- Each journey gets a backend process that has served nothing else, on a fresh database: in-memory state (rate limits, the playground's tenant gate) starts empty. While a journey runs, the next journey's backend starts on the next database, so the swap between journeys takes a fraction of a second; the old backend is killed and its database dropped. A backend started before the last build (the module's or the interface's `dist`, the playground's) is never used: the next fresh database starts one from the new build, and `doctor` fails until then.
 - `up` and the frontend build install from the npm registry. A package published minutes earlier can answer 404 until the registry propagates it; `up` then fails on its `frontend-build` or `project-build` log. Run `up` again a few minutes later.
 - Writing a journey: a check (`tab.visible`, `tab.shows`, `tab.at`, `ctx.equal`…) only counts inside `ctx.verify`. Uppercase styling changes `innerText`, so match such text case-insensitively. `ctx.api` signs the account in again on a 401; pass `token` to observe a refused token. The raw Playwright page is `tab.page`, for popups, downloads and visually hidden inputs.
 

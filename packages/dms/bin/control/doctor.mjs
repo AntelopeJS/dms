@@ -1,13 +1,31 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { descendantsOf, isAlive, listenersOf, probe } from "./processes.mjs";
+import { isSameProcess } from "./identity.mjs";
+import { descendantsOf, listenersOf, probe } from "./processes.mjs";
+import { buildChangedSince } from "./build-inputs.mjs";
+import { apiTargetFile, readTarget } from "./forwarder.mjs";
 import { checkoutOf } from "./git.mjs";
 import { stringField } from "./json.mjs";
 import { apiRequest } from "./session.mjs";
-import { packageVersion } from "./stack.mjs";
 
 /** @typedef {import("./run-state.mjs").RunState} RunState */
+
+/**
+ * The version a package.json declares, or `missing`.
+ *
+ * @param {string} file The package.json
+ * @returns {string} The version
+ */
+function packageVersion(file) {
+  try {
+    /** @type {unknown} */
+    const manifest = JSON.parse(readFileSync(file, "utf8"));
+    return stringField(manifest, "version") ?? "missing";
+  } catch {
+    return "missing";
+  }
+}
 
 const SKIPPED = new Set([
   "node_modules",
@@ -57,15 +75,14 @@ function line(check, ok, detail) {
 
 /** @param {RunState} state */
 function processLines(state) {
-  const family = new Set([
-    ...state.processes.map((record) => record.pid),
-    ...descendantsOf(state.processes.map((record) => record.pid)),
-  ]);
+  const own = state.processes.filter(isSameProcess);
+  const pids = own.map((record) => record.pid);
+  const family = new Set([...pids, ...descendantsOf(pids)]);
   return state.processes.flatMap((record) => {
     const lines = [
       line(
         `${record.name} pid ${record.pid} alive`,
-        isAlive(record.pid),
+        own.includes(record),
         record.command,
       ),
     ];
@@ -180,6 +197,30 @@ function freshnessLines(state) {
 }
 
 /** @param {RunState} state */
+function forwardLine(state) {
+  const target = readTarget(apiTargetFile(state.dir));
+  const backend = state.processes.find((record) => record.name === "backend");
+  return line(
+    "API port forwards to the backend",
+    target !== null && target === backend?.port,
+    `${state.apiUrl} to port ${target ?? "none"}, backend on ${backend?.port ?? "none"}`,
+  );
+}
+
+/** @param {RunState} state */
+function buildLine(state) {
+  const backend = state.processes.find((record) => record.name === "backend");
+  const changed = backend ? buildChangedSince(state, backend.startedAt) : null;
+  return line(
+    "backend started after the last build",
+    backend !== undefined && changed === null,
+    changed === null
+      ? `backend started ${backend?.startedAt ?? "never"}`
+      : `${changed} since the backend started at ${backend?.startedAt}; once the build is done, reset or run a journey to start one from it`,
+  );
+}
+
+/** @param {RunState} state */
 function headLine(state) {
   const verified = state.renderer ?? state.repo;
   const now = verified ? checkoutOf(verified).head : null;
@@ -210,9 +251,11 @@ async function sessionLine(state) {
 
 /**
  * Answers whether a run is worth driving: every recorded process is alive
- * and holds its port, both servers answer, the frontend serves this run's
- * backend, the builds are newer than their sources, the database is the
- * run's own, and the admin session (once onboarded) is valid.
+ * and holds its port, both servers answer, the API port forwards to the
+ * run's backend, the frontend serves this run's backend, the builds are
+ * newer than their sources, the backend started after the last build, the
+ * database is the run's own, and the admin session (once onboarded) is
+ * valid.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @returns {Promise<{ check: string, ok: boolean, detail: string }[]>} One line per check
@@ -228,6 +271,7 @@ export async function doctor(state) {
       (await probe(`${state.apiUrl}/api/onboarding/informations`)) === 200,
       `${state.apiUrl}/api/onboarding/informations`,
     ),
+    forwardLine(state),
     line(
       "frontend answers",
       (await probe(`${state.webUrl}/dms-preview`)) === 200,
@@ -244,6 +288,7 @@ export async function doctor(state) {
       `module ${found.module}, @antelopejs/core ${found.core}, @antelopejs/dms-frontend ${found.dmsFrontend}`,
     ),
     ...freshnessLines(state),
+    buildLine(state),
     line(
       "database is the run's",
       state.database.startsWith(state.databasePrefix),

@@ -8,11 +8,10 @@ import { createRunFolders, saveRun } from "./run-state.mjs";
 import {
   assertSignalable,
   isAlive,
-  killAll,
-  killRecorded,
-  stopAll,
-  stopRecorded,
-} from "./processes.mjs";
+  isRunning,
+  startTimeOf,
+} from "./identity.mjs";
+import { killRecorded, stopRecorded } from "./processes.mjs";
 
 const UNSAFE = [
   -1,
@@ -48,10 +47,13 @@ function recordKills(t) {
   return calls;
 }
 
-await test("stopAll throws on a pid that is not a whole number above 1 before sending any signal; a guard after the first kill lets kill(-1) reach every process of the user", async (t) => {
+/** @param {unknown} pid */
+const skipped = (pid) => `skipped pid ${String(pid)}: not a process id above 1`;
+
+await test("stopRecorded skips and reports every record whose pid is not a whole number above 1 and sends no signal; a guard after the first kill lets kill(-1) reach every process of the user", async (t) => {
   const calls = recordKills(t);
   for (const pid of UNSAFE) {
-    await assert.rejects(stopAll([pid]), TypeError, String(pid));
+    assert.deepEqual(await stopRecorded([{ pid }]), [skipped(pid)]);
   }
   assert.deepEqual(calls, []);
 });
@@ -89,7 +91,11 @@ await test("stopRecorded skips and reports the bad pids a run recorded and still
   t.after(() => {
     process.kill = original;
   });
-  const lines = await stopRecorded([-1, own, 0]);
+  const lines = await stopRecorded([
+    { pid: -1 },
+    { pid: own, startTime: startTimeOf(own) },
+    { pid: 0 },
+  ]);
   assert.deepEqual(
     calls.filter(([pid]) => pid !== own && pid !== -own),
     [],
@@ -97,18 +103,18 @@ await test("stopRecorded skips and reports the bad pids a run recorded and still
   assert.ok(lines.includes("skipped pid -1: not a process id above 1"));
   assert.ok(lines.includes("skipped pid 0: not a process id above 1"));
   assert.ok(lines.some((line) => line.startsWith(`stopped pid ${own}`)));
-  assert.equal(isAlive(own), false);
+  assert.equal(isRunning(own), false);
 });
 
-await test("killAll throws on a pid that is not a whole number above 1 before sending any signal; a hard kill without the guard sends SIGKILL to every process of the user", async (t) => {
+await test("killRecorded skips and reports every record whose pid is not a whole number above 1 and sends no signal; a hard kill without the guard sends SIGKILL to every process of the user", async (t) => {
   const calls = recordKills(t);
   for (const pid of UNSAFE) {
-    await assert.rejects(killAll([pid]), TypeError, String(pid));
+    assert.deepEqual(await killRecorded([{ pid }]), [skipped(pid)]);
   }
   assert.deepEqual(calls, []);
 });
 
-await test("killRecorded skips and reports the bad pids a run recorded and still kills the good ones; passing them to killAll throws and leaves the real backend running", async (t) => {
+await test("killRecorded skips and reports the bad pids a run recorded and still kills the good ones; refusing the whole list leaves the real backend running", async (t) => {
   const child = spawn("sleep", ["60"], { stdio: "ignore", detached: true });
   const own = child.pid;
   if (own === undefined) throw new Error("sleep did not start");
@@ -126,7 +132,11 @@ await test("killRecorded skips and reports the bad pids a run recorded and still
   t.after(() => {
     process.kill = original;
   });
-  const lines = await killRecorded([-1, own, 0]);
+  const lines = await killRecorded([
+    { pid: -1 },
+    { pid: own, startTime: startTimeOf(own) },
+    { pid: 0 },
+  ]);
   assert.deepEqual(
     calls.filter(([pid]) => pid !== own && pid !== -own),
     [],
