@@ -147,5 +147,8 @@ await test("dms-control down prints the recorded pid it skipped; dropping the li
     ["--import", NO_UNSAFE_KILL, CONTROL, "down", dir],
     { encoding: "utf8" },
   );
-  assert.match(out, /^skipped pid -1: not a process id above 1$/m);
+  assert.deepEqual(
+    out.split("\n").filter((line) => line.startsWith("skipped")),
+    ["skipped pid -1: not a process id above 1"],
+  );
 });

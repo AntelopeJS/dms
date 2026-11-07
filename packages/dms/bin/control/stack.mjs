@@ -534,7 +534,7 @@ export async function down(state) {
     stoppedAt: new Date().toISOString(),
   });
   saveRun(state);
-  return lines;
+  return [...new Set(lines)];
 }
 
 /**
