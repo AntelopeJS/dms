@@ -203,3 +203,86 @@ await test("docs-screenshots: refuses an examples file that is not an object or 
     assert.deepEqual(shots, [], examples);
   }
 });
+
+const sixBlocks = `{ ${["a", "b", "c", "d", "e", "f"].map((id) => `"${id}": ${block}`).join(", ")} }`;
+const sixIds = "a,b,c,d,e,f";
+
+await test("docs-screenshots: captures every example with at most as many contexts open as the concurrency", () => {
+  for (const concurrency of [1, 2, 4]) {
+    const { status, shots, peak } = captureExamples(sixBlocks, sixIds, [
+      "--concurrency",
+      String(concurrency),
+    ]);
+    assert.equal(status, 0, `concurrency ${concurrency}`);
+    assert.equal(shots.length, 6, `concurrency ${concurrency}`);
+    assert.equal(peak, concurrency, `concurrency ${concurrency}`);
+  }
+});
+
+await test("docs-screenshots: reads the concurrency from the environment and lets the option win", () => {
+  const fromEnvironment = captureExamples(sixBlocks, sixIds, [], {
+    DMS_SCREENSHOT_CONCURRENCY: "3",
+  });
+  assert.equal(fromEnvironment.peak, 3);
+  const overridden = captureExamples(
+    sixBlocks,
+    sixIds,
+    ["--concurrency", "2"],
+    {
+      DMS_SCREENSHOT_CONCURRENCY: "3",
+    },
+  );
+  assert.equal(overridden.peak, 2);
+});
+
+await test("docs-screenshots: runs four captures at once by default", () => {
+  const { status, peak } = captureExamples(sixBlocks, sixIds);
+  assert.equal(status, 0);
+  assert.equal(peak, 4);
+});
+
+await test("docs-screenshots: a failed example does not stop the pool", () => {
+  const { status, shots } = captureExamples(
+    `{ "a": null, "b": ${block}, "c": null, "d": ${block}, "e": ${block} }`,
+    "a,b,c,d,e",
+    ["--concurrency", "2"],
+  );
+  assert.notEqual(status, 0);
+  assert.deepEqual(shots, ["b.dark.png", "d.dark.png", "e.dark.png"]);
+});
+
+await test("docs-screenshots: refuses a concurrency that is not a positive integer", () => {
+  for (const concurrency of ["0", "-1", "1.5", "many", ""]) {
+    const { status, stderr, shots } = captureExamples(sixBlocks, sixIds, [
+      `--concurrency=${concurrency}`,
+    ]);
+    assert.notEqual(status, 0, concurrency);
+    assert.match(stderr, /concurrency must be a positive integer/, concurrency);
+    assert.deepEqual(shots, [], concurrency);
+  }
+});
+
+await test("docs-screenshots: refuses a concurrency from the environment that is not a positive integer", () => {
+  for (const concurrency of ["0", "-1", "1.5", "many", ""]) {
+    const { status, stderr, shots } = captureExamples(sixBlocks, sixIds, [], {
+      DMS_SCREENSHOT_CONCURRENCY: concurrency,
+    });
+    assert.notEqual(status, 0, concurrency);
+    assert.match(stderr, /concurrency must be a positive integer/, concurrency);
+    assert.deepEqual(shots, [], concurrency);
+  }
+});
+
+await test("docs-screenshots: fixes every page to one clock before it loads, at any concurrency", () => {
+  const instants = new Set();
+  for (const concurrency of [1, 4]) {
+    const { status, clocks } = captureExamples(sixBlocks, sixIds, [
+      `--concurrency=${concurrency}`,
+    ]);
+    assert.equal(status, 0, `concurrency ${concurrency}`);
+    assert.equal(clocks.length, 6, `concurrency ${concurrency}`);
+    for (const clock of clocks) instants.add(clock);
+  }
+  assert.equal(instants.size, 1);
+  assert.match([...instants].join(), /T08:30:00\.000Z$/);
+});

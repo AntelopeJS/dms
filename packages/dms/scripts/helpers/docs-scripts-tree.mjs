@@ -62,9 +62,14 @@ function scratchRoot(script, linked) {
 /**
  * @param {string} root
  * @param {readonly string[]} args
+ * @param {Record<string, string>} [env] set on top of the process environment
  */
-function run(root, args) {
-  return spawnSync(process.execPath, args, { cwd: root, encoding: "utf8" });
+function run(root, args, env = {}) {
+  return spawnSync(process.execPath, args, {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, DMS_SCREENSHOT_CONCURRENCY: undefined, ...env },
+  });
 }
 
 /**
@@ -184,12 +189,16 @@ export function generateCatalog(edit) {
 /**
  * Run docs-screenshots.mjs on `examples` (JSON text) for the ids in `only`,
  * against a browser whose preview page renders every block. Reports the exit
- * status, the files written and the viewport widths the script asked for.
+ * status, what it printed on stderr, the files written, the viewport widths the
+ * script asked for, the instant each page's clock was fixed to when it
+ * navigated (`null` when it was not fixed yet) and the most contexts the
+ * browser had open at once.
  * @param {string} examples
  * @param {string} only
  * @param {readonly string[]} [extra] more arguments for the script
+ * @param {Record<string, string>} [env] set on top of the process environment
  */
-export function captureExamples(examples, only, extra = []) {
+export function captureExamples(examples, only, extra = [], env = {}) {
   const root = scratchRoot("docs-screenshots.mjs", []);
   try {
     const playwright = nodePath.join(root, "node_modules", "playwright-core");
@@ -207,14 +216,18 @@ export function captureExamples(examples, only, extra = []) {
       nodePath.join(playwright, "index.js"),
     );
     writeFileSync(nodePath.join(root, "docs-data", "examples.json"), examples);
-    const { status } = run(root, [
-      "scripts/docs-screenshots.mjs",
-      "--base-url",
-      "http://preview.invalid",
-      "--only",
-      only,
-      ...extra,
-    ]);
+    const { status, stderr } = run(
+      root,
+      [
+        "scripts/docs-screenshots.mjs",
+        "--base-url",
+        "http://preview.invalid",
+        "--only",
+        only,
+        ...extra,
+      ],
+      env,
+    );
     const shotsDir = nodePath.join(root, "docs", "images", "blocks");
     const logPath = nodePath.join(root, "fake-browser.log");
     const entries = existsSync(logPath)
@@ -225,8 +238,14 @@ export function captureExamples(examples, only, extra = []) {
       : [];
     return {
       status,
+      stderr,
       shots: existsSync(shotsDir) ? readdirSync(shotsDir).sort() : [],
       widths: entries.flatMap(({ width }) => (isWidth(width) ? [width] : [])),
+      clocks: entries.flatMap((entry) => ("url" in entry ? [entry.clock] : [])),
+      peak: Math.max(
+        0,
+        ...entries.flatMap(({ peak }) => (isWidth(peak) ? [peak] : [])),
+      ),
     };
   } finally {
     rmSync(root, { recursive: true, force: true });
