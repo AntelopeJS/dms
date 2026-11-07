@@ -199,10 +199,10 @@ function hydrated(page) {
 }
 
 /**
- * Runs an action, then waits until the page it leads to has loaded and
- * hydrated, and `SETTLE_MS` more: a client-side visit, such as the one
- * signing in starts, renders its page within the document that already
- * hydrated.
+ * Runs an action, then waits until the page it leads to has loaded, and
+ * then both until it has hydrated and `SETTLE_MS`: a client-side visit, such
+ * as the one signing in starts, renders its page within the document that
+ * already hydrated.
  *
  * @param {Page} page The Playwright page
  * @param {() => Promise<unknown> | undefined} act The action
@@ -220,8 +220,10 @@ async function settle(page, act) {
     await page
       .waitForLoadState("load", { timeout: NAVIGATION_TIMEOUT_MS })
       .catch(() => undefined);
-    const hydratedInTime = await hydrated(page);
-    await page.waitForTimeout(SETTLE_MS);
+    const [hydratedInTime] = await Promise.all([
+      hydrated(page),
+      page.waitForTimeout(SETTLE_MS),
+    ]);
     return !hydratedInTime && networkChanged;
   } finally {
     page.off("requestfailed", onFailed);
