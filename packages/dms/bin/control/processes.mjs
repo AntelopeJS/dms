@@ -109,12 +109,40 @@ export function runToEnd(spec) {
 }
 
 /**
+ * Whether `pid` names one process a signal may target: a whole number above
+ * 1. `kill(-1)` reaches every process of the user, `kill(0)` the caller's own
+ * process group, and `kill(-pid)` on 1 is `kill(-1)`.
+ *
+ * @param {unknown} pid The value to check
+ * @returns {pid is number} True for a whole number above 1
+ */
+function isSignalable(pid) {
+  return Number.isInteger(pid) && Number(pid) > 1;
+}
+
+/**
+ * Throws unless `pid` names one process a signal may target, so no caller
+ * can turn a missing or corrupt PID into a signal to every process.
+ *
+ * @param {unknown} pid The value to check
+ * @throws {TypeError} When it is not a whole number above 1
+ */
+export function assertSignalable(pid) {
+  if (!isSignalable(pid)) {
+    throw new TypeError(
+      `refusing to signal pid ${String(pid)}: not a process id above 1`,
+    );
+  }
+}
+
+/**
  * Whether a process with this PID exists.
  *
  * @param {number} pid The process id
  * @returns {boolean} True while it runs
  */
 export function isAlive(pid) {
+  if (!isSignalable(pid)) return false;
   try {
     process.kill(pid, 0);
     return true;
@@ -316,6 +344,7 @@ export function listenersOf(port) {
  * @param {NodeJS.Signals} signal
  */
 function signalGroup(pid, signal) {
+  assertSignalable(pid);
   try {
     process.kill(-pid, signal);
   } catch {
@@ -329,12 +358,14 @@ function signalGroup(pid, signal) {
 
 /**
  * Stops recorded processes and every descendant: SIGTERM to each process
- * group, then SIGKILL to whatever outlives the grace period.
+ * group, then SIGKILL to whatever outlives the grace period. A PID that is
+ * not a whole number above 1 throws before any signal is sent.
  *
  * @param {number[]} pids The recorded PIDs
  * @returns {Promise<string[]>} One line per process signalled
  */
 export async function stopAll(pids) {
+  for (const pid of pids) assertSignalable(pid);
   const targets = [...pids, ...descendantsOf(pids)].filter(isAlive);
   for (const pid of targets) signalGroup(pid, "SIGTERM");
   const deadline = Date.now() + STOP_GRACE_MS;
