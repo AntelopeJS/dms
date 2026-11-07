@@ -127,10 +127,11 @@ await test("a run whose backend holds the API port itself is refused before its 
 
 /**
  * A page whose documents the server rendered for a Vue app, which hydrates
- * each one `now` (on load), `later` (a few milliseconds after load) or
- * `never`; with `none` its documents have no server-rendered root, as a JSON
- * answer. A `waitForFunction` whose expression cannot come to hold gives up
- * at once, as Playwright does once its timeout passes.
+ * each one `now` (on load), `later` (parsed a few milliseconds after load,
+ * mounted a few more after that) or `never`; with `none` its documents have
+ * no server-rendered root, as a JSON answer. A `waitForFunction` whose
+ * expression cannot come to hold gives up at once, as Playwright does once
+ * its timeout passes.
  *
  * @param {string} url The URL the page reports
  * @param {{ failGoto?: boolean, hydration?: "now" | "later" | "never" | "none" }} [options] Whether navigation throws, and how the page hydrates
@@ -143,22 +144,32 @@ function fakePage(url, options = {}) {
   const shots = [];
   /** @type {{ input: string, hydrated: boolean }[]} */
   const inputs = [];
+  let readyState = "complete";
   /** @type {{ __vue_app__?: object }[]} */
   let roots = [];
-  let mounting = false;
-  const mounted = () => roots.every((root) => "__vue_app__" in root);
+  let pending = false;
+  const mounted = () =>
+    readyState !== "loading" && roots.every((root) => "__vue_app__" in root);
   const load = () => {
     if (hydration === "none") return;
     /** @type {{ __vue_app__?: object }} */
     const root = {};
-    roots = [root];
-    if (hydration === "now") root.__vue_app__ = {};
-    if (hydration !== "later") return;
-    mounting = true;
+    if (hydration !== "later") {
+      roots = [root];
+      if (hydration === "now") root.__vue_app__ = {};
+      return;
+    }
+    readyState = "loading";
+    roots = [];
+    pending = true;
+    setTimeout(() => {
+      readyState = "interactive";
+      roots = [root];
+    }, 5);
     setTimeout(() => {
       root.__vue_app__ = {};
-      mounting = false;
-    }, 20);
+      pending = false;
+    }, 25);
   };
   const done = async () => undefined;
   /** @param {string} input The input */
@@ -185,12 +196,13 @@ function fakePage(url, options = {}) {
       /** @type {unknown} */ _arg,
       /** @type {{ polling: number }} */ { polling },
     ) => {
-      const document = {
+      const document = () => ({
+        readyState,
         querySelectorAll: (/** @type {string} */ selector) =>
           selector === "[data-server-rendered]" ? roots : [{}, ...roots],
-      };
-      while (!runInNewContext(expression, { document })) {
-        if (!mounting) {
+      });
+      while (!runInNewContext(expression, { document: document() })) {
+        if (!pending) {
           giveUps += 1;
           throw new Error("page.waitForFunction: Timeout");
         }
@@ -318,7 +330,7 @@ await test("signing in writes no screenshot and makes its tab the one a verify s
   assert.deepEqual(other.shots, []);
 });
 
-await test("input reaches a page only once it has hydrated, a document loaded after the previous action included", async (t) => {
+await test("input reaches a page only once it has parsed and hydrated, a document that starts loading after the previous action included", async (t) => {
   const context = journeyContext(t);
   const fake = fakePage("http://web/members", { hydration: "later" });
   const tab = new Tab(context, fake.page, "admin");

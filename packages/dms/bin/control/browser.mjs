@@ -25,13 +25,13 @@ const HYDRATION_POLL_MS = 50;
 const VIEWPORT = { width: 1280, height: 900 };
 
 /**
- * Holds in a page once every root the server rendered for a Vue app has
- * mounted. Inertia marks such a root `data-server-rendered`, and Vue sets
- * `__vue_app__` on it when `app.mount()` returns, hydration included. A page
- * with no such root, such as a JSON answer or a page rendered in the browser
- * only, holds at once.
+ * Holds in a page once its document is parsed and every root the server
+ * rendered for a Vue app has mounted. Inertia marks such a root
+ * `data-server-rendered`, and Vue sets `__vue_app__` on it when `app.mount()`
+ * returns, hydration included. A parsed page with no such root, such as a
+ * JSON answer or a page rendered in the browser only, holds at once.
  */
-const HYDRATED = `[...document.querySelectorAll("[data-server-rendered]")].every((root) => "__vue_app__" in root)`;
+const HYDRATED = `document.readyState !== "loading" && [...document.querySelectorAll("[data-server-rendered]")].every((root) => "__vue_app__" in root)`;
 
 /**
  * Launches the headless Chromium that playwright-core pins.
