@@ -32,8 +32,9 @@ async function browserServer(state) {
 /**
  * Runs one browser action in the run's long-lived browser, starting it on
  * first use. Each account has its own context and each tab name its own
- * page, both kept between commands. The action, the URL, the ARIA snapshot
- * and a screenshot go to `<run>/evidence/browser/NN-<label>/`.
+ * page, both kept between commands. The action, the URL and the ARIA
+ * snapshot go to `<run>/evidence/browser/NN-<label>/`, with a screenshot when
+ * the action failed or is `screenshot`.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {Omit<import("./browser.mjs").BrowserRequest, "folder">} request The action: `do`, `account`, `tab`, and the action's target, value, key or path

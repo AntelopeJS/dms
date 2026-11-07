@@ -30,9 +30,10 @@ function flatten(text) {
 
 /**
  * A browser tab a journey drives, as one account. Each action writes a
- * numbered step folder with the action, the URL, the ARIA snapshot and a
- * screenshot. An action whose target is missing, hidden or disabled fails
- * the step and ends the journey.
+ * numbered step folder with the action, the URL and the ARIA snapshot, and a
+ * screenshot when the action failed. An action whose target is missing,
+ * hidden or disabled fails the step and ends the journey. The journey's
+ * `verify` steps take the screenshots of the tab driven last.
  */
 export class Tab {
   /**
@@ -51,15 +52,18 @@ export class Tab {
    *
    * @param {Omit<Action, "baseUrl">} action The action, as `perform` takes it
    * @param {string} label What the step does
+   * @param {{ screenshot?: boolean }} [options] Whether to write a screenshot though the action succeeds
    * @returns {Promise<Outcome & { folder: string }>} The outcome
    */
-  async act(action, label) {
+  async act(action, label, options = {}) {
     const folder = this.context.step(`${this.label} ${label}`);
+    this.context.lastTab = this;
     const outcome = await perform(
       this.page,
       { ...action, baseUrl: this.context.state.webUrl },
       folder,
       this.context.state,
+      options,
     );
     this.context.record(
       folder,
@@ -151,13 +155,13 @@ export class Tab {
   }
 
   /**
-   * Records the page as it is now.
+   * Records the page as it is now, screenshot included.
    *
    * @param {string} label What the step records
    * @returns {Promise<Outcome & { folder: string }>} The outcome
    */
   snapshot(label) {
-    return this.act({ do: "snapshot" }, label);
+    return this.act({ do: "snapshot" }, label, { screenshot: true });
   }
 
   /**
@@ -168,6 +172,7 @@ export class Tab {
    */
   async signIn(account) {
     const credentials = this.context.state.accounts?.[account];
+    this.context.lastTab = this;
     const outcome = credentials
       ? await signInThroughForm(this.page, credentials, {
           baseUrl: this.context.state.webUrl,
