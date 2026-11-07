@@ -1,11 +1,12 @@
 import { writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { isBrowserRequest } from "./browser-wire.mjs";
 import { describeFailure } from "./failure.mjs";
 import { decode } from "./json.mjs";
 import { importFrom } from "./mongo.mjs";
 import { loadRun } from "./run-state.mjs";
+import { timed } from "./timing.mjs";
 
 /**
  * @typedef {import("playwright-core").Browser} Browser
@@ -141,25 +142,39 @@ export const ACTION_NAMES = Object.keys(ACTIONS);
  *
  * @param {Page} page The Playwright page
  * @param {string} folder The evidence folder
+ * @param {{ evidence: string }} state The run, whose timings record the two captures
  * @returns {Promise<string>} The ARIA snapshot
  */
-export async function capture(page, folder) {
+export async function capture(page, folder, state) {
+  const step = relative(state.evidence, folder);
   writeFileSync(join(folder, "url.txt"), `${page.url()}\n`);
-  const aria = await page
-    .locator("body")
-    .ariaSnapshot({ timeout: ACTION_TIMEOUT_MS })
-    .catch(
-      (/** @type {unknown} */ error) =>
-        `snapshot failed: ${describeFailure(error)}`,
-    );
+  const aria = await timed(
+    state,
+    "aria",
+    () =>
+      page
+        .locator("body")
+        .ariaSnapshot({ timeout: ACTION_TIMEOUT_MS })
+        .catch(
+          (/** @type {unknown} */ error) =>
+            `snapshot failed: ${describeFailure(error)}`,
+        ),
+    { step },
+  );
   writeFileSync(join(folder, "aria.yml"), `${aria}\n`);
-  await page
-    .screenshot({
-      path: join(folder, "screenshot.png"),
-      fullPage: true,
-      timeout: ACTION_TIMEOUT_MS,
-    })
-    .catch(() => undefined);
+  await timed(
+    state,
+    "screenshot",
+    () =>
+      page
+        .screenshot({
+          path: join(folder, "screenshot.png"),
+          fullPage: true,
+          timeout: ACTION_TIMEOUT_MS,
+        })
+        .catch(() => undefined),
+    { step },
+  );
   return aria;
 }
 
@@ -170,9 +185,10 @@ export async function capture(page, folder) {
  * @param {Page} page The Playwright page
  * @param {Action} action What to do
  * @param {string} folder The evidence folder
+ * @param {{ evidence: string }} state The run, whose timings record the capture
  * @returns {Promise<Outcome>} The outcome
  */
-export async function perform(page, action, folder) {
+export async function perform(page, action, folder, state) {
   const run = ACTIONS[action.do];
   if (!run)
     throw new Error(
@@ -192,7 +208,7 @@ export async function perform(page, action, folder) {
   } catch (failure) {
     error = describeFailure(failure).split("\n")[0];
   }
-  const aria = await capture(page, folder);
+  const aria = await capture(page, folder, state);
   return { ok: error === null, url: page.url(), error, aria };
 }
 
@@ -201,7 +217,7 @@ export async function perform(page, action, folder) {
  *
  * @param {Page} page The Playwright page
  * @param {{ email: string, password: string }} credentials The account
- * @param {{ baseUrl: string, folder: (label: string) => string }} options Where the frontend is and where evidence goes
+ * @param {{ baseUrl: string, folder: (label: string) => string, state: { evidence: string } }} options Where the frontend is, where evidence goes and the run whose timings record the captures
  * @returns {Promise<Outcome>} The outcome of the last step
  */
 export async function signInThroughForm(page, credentials, options) {
@@ -225,6 +241,7 @@ export async function signInThroughForm(page, credentials, options) {
       page,
       { ...step, baseUrl: options.baseUrl },
       options.folder(`sign in ${step.do} ${step.target?.name ?? step.path}`),
+      options.state,
     );
     if (!outcome.ok) return outcome;
   }
@@ -320,9 +337,15 @@ export async function serveBrowser(dir, from, port) {
       return signInThroughForm(page, credentials, {
         baseUrl: state.webUrl,
         folder: () => request.folder,
+        state,
       });
     }
-    return perform(page, { ...request, baseUrl: state.webUrl }, request.folder);
+    return perform(
+      page,
+      { ...request, baseUrl: state.webUrl },
+      request.folder,
+      state,
+    );
   };
   const server = createServer((incoming, outgoing) => {
     if (incoming.method !== "POST") {

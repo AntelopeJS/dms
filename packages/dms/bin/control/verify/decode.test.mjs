@@ -84,6 +84,17 @@ await test("journey results are read as recorded and none when absent", (t) => {
   assert.deepEqual(readFeatureResults(join(dir, "feature.json")), [RESULT]);
 });
 
+await test("a journey result keeps its duration, and one whose duration is no number is refused", (t) => {
+  const dir = scratch(t);
+  writeJson(join(dir, "feature.json"), [{ ...RESULT, ms: 4200 }]);
+  assert.equal(readFeatureResults(join(dir, "feature.json"))[0].ms, 4200);
+  writeJson(join(dir, "feature.json"), [{ ...RESULT, ms: "4.2s" }]);
+  assert.throws(
+    () => readFeatureResults(join(dir, "feature.json")),
+    /malformed: expected a list of journey results/,
+  );
+});
+
 await test("a journey result with a status that is neither PASS nor FAIL is refused", (t) => {
   const dir = scratch(t);
   writeJson(join(dir, "feature.json"), [{ ...RESULT, status: "PASSED" }]);

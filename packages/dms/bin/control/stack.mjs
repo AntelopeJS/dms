@@ -34,10 +34,11 @@ import {
 } from "./run-state.mjs";
 import { RENDERER_CLI, resolveRenderer } from "./renderer.mjs";
 import { newPassword } from "./session.mjs";
+import { appendTiming, recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
  * @typedef {import("./run-state.mjs").RunState} RunState
- * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string }} UpOptions Where the playground and the runs are
+ * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string, prepared?: import("./timing.mjs").TimingEntry[] }} UpOptions Where the playground and the runs are, and the `prepare` entries to record once the run exists
  */
 
 const READY_TIMEOUT_MS = 180_000;
@@ -373,43 +374,53 @@ async function startBackend(state, build) {
  */
 async function buildAndStart(state) {
   const clis = cliPaths(state.playground, state.renderer);
-  state.runPlayground = layOutCopy(
-    state.playground,
-    state.repo ?? state.moduleRoot,
-    state.root,
-    state.renderer,
+  state.runPlayground = await timed(state, "layout", () =>
+    layOutCopy(
+      state.playground,
+      state.repo ?? state.moduleRoot,
+      state.root,
+      state.renderer,
+    ),
   );
   if (state.ownsMongo) {
-    const mongo = await startMongod(state, resolutionFolders(state));
+    const mongo = await timed(state, "mongod", () =>
+      startMongod(state, resolutionFolders(state)),
+    );
     state.mongoUrl = mongo.url;
     record(state, mongo.record);
   }
-  await startFirstMail(state);
-  await runToEnd(
-    spec(state, "project-build", clis.ajs, [
-      "project",
-      "build",
-      "-e",
-      ENVIRONMENT,
-    ]),
+  await timed(state, "mail", () => startFirstMail(state));
+  await timed(state, "project-build", () =>
+    runToEnd(
+      spec(state, "project-build", clis.ajs, [
+        "project",
+        "build",
+        "-e",
+        ENVIRONMENT,
+      ]),
+    ),
   );
-  await runToEnd(
-    spec(state, "frontend-build", clis.dms, ["build", "-e", ENVIRONMENT]),
+  await timed(state, "frontend-build", () =>
+    runToEnd(
+      spec(state, "frontend-build", clis.dms, ["build", "-e", ENVIRONMENT]),
+    ),
   );
-  await startBackend(state);
-  const frontend = startDetached(
-    spec(state, "frontend", clis.dms, [
-      "start",
-      "-e",
-      ENVIRONMENT,
-      "-b",
-      state.apiUrl,
-      "-p",
-      String(state.webPort),
-    ]),
-  );
-  record(state, { ...frontend, port: state.webPort });
-  await waitForOk(`${state.webUrl}/dms-preview`, frontend, READY_TIMEOUT_MS);
+  await timed(state, "backend-start", () => startBackend(state));
+  await timed(state, "frontend-start", async () => {
+    const frontend = startDetached(
+      spec(state, "frontend", clis.dms, [
+        "start",
+        "-e",
+        ENVIRONMENT,
+        "-b",
+        state.apiUrl,
+        "-p",
+        String(state.webPort),
+      ]),
+    );
+    record(state, { ...frontend, port: state.webPort });
+    await waitForOk(`${state.webUrl}/dms-preview`, frontend, READY_TIMEOUT_MS);
+  });
 }
 
 /**
@@ -424,18 +435,22 @@ async function buildAndStart(state) {
  * @returns {Promise<import("./run-state.mjs").RunState>} The ready run
  */
 export async function up(options) {
+  const stop = stopwatch();
   const state = await initialState(options);
   saveRun(state);
+  for (const entry of options.prepared ?? []) appendTiming(state, entry);
   try {
     await buildAndStart(state);
   } catch (error) {
     state.error = String(error?.message ?? error);
     saveRun(state);
     await stopRecorded(state.processes.map((entry) => entry.pid));
+    recordTiming(state, "up", stop(), false);
     throw error;
   }
   state.ready = true;
   saveRun(state);
+  recordTiming(state, "up", stop(), true);
   return state;
 }
 
@@ -460,8 +475,8 @@ export async function restartBackend(state, build) {
  */
 async function replaceBackend(state, stop, build) {
   const backend = state.processes.find((entry) => entry.name === "backend");
-  if (backend) await stop([backend.pid]);
-  await startBackend(state, build);
+  if (backend) await timed(state, "backend-stop", () => stop([backend.pid]));
+  await timed(state, "backend-start", () => startBackend(state, build));
 }
 
 /**

@@ -20,7 +20,7 @@
  * @typedef {{ page: string, matches: boolean, note: string }} DocsJudgement
  * @typedef {{ notVerified: string[], attention: string[], docs: DocsJudgement[], doorsNone: string | null, doors: DoorRow[], falsePositives: FalsePositive[], verifier: string }} Judgement
  * @typedef {{ name: string, pass: boolean, detail: string }} JourneyCheck
- * @typedef {{ feature: string, journey: string, title: string, entryPoint: string, status: "PASS" | "FAIL", database: string, steps: { name: string, checks: JourneyCheck[] }[], error: string | null, folder: string }} FeatureResult
+ * @typedef {{ feature: string, journey: string, title: string, entryPoint: string, status: "PASS" | "FAIL", database: string, steps: { name: string, checks: JourneyCheck[] }[], error: string | null, folder: string, ms?: number }} FeatureResult
  * @typedef {{ result: string, headSha: string, skillSha: string, pr: number, reasons: string[] }} VerdictCore
  * @typedef {VerdictCore & { markdown: string }} Verdict
  */

@@ -4,6 +4,7 @@ import { basename, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { checkoutOf } from "../git.mjs";
 import { isRecord } from "../json.mjs";
+import { stopwatch } from "../timing.mjs";
 import { decodeSkillConfig } from "./decode.mjs";
 
 const CONFIG_FILE = "verify.config.ts";
@@ -130,10 +131,12 @@ export function journeysFile(skill, feature) {
  *
  * @param {Skill} skill The skill
  * @param {string} cwd The checkout
+ * @returns {import("../timing.mjs").TimingEntry[]} One timing entry per command, for the run folder that does not exist yet
  * @throws When a command fails, with its output
  */
 export function runPrepare(skill, cwd) {
-  for (const [program, ...args] of skill.config.prepare) {
+  return skill.config.prepare.map(([program, ...args]) => {
+    const stop = stopwatch();
     const result = spawnSync(program, args, {
       cwd,
       encoding: "utf8",
@@ -145,5 +148,11 @@ export function runPrepare(skill, cwd) {
         `${program} ${args.join(" ")} failed in ${cwd}:\n${result.stdout}${result.stderr}`,
       );
     }
-  }
+    return {
+      phase: "prepare",
+      ...stop(),
+      ok: true,
+      command: [program, ...args].join(" "),
+    };
+  });
 }

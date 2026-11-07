@@ -2,6 +2,12 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { git } from "../git.mjs";
 import { loadJourneys } from "../journey.mjs";
+import {
+  formatSeconds,
+  markdownTimings,
+  readTimings,
+  summarize,
+} from "../timing.mjs";
 import { readFeatureResults } from "./decode.mjs";
 import { flaggedDoors } from "./doors.mjs";
 import {
@@ -82,8 +88,10 @@ async function journeyRows(skill, state, plan, link) {
       if (result.status === "FAIL")
         reasons.push(`${feature}/${result.journey} failed`);
       const outcome = result.status === "PASS" ? "pass" : "**fail**";
+      const time =
+        result.ms === undefined ? "-" : `${formatSeconds(result.ms)} s`;
       rows.push(
-        `| ${feature} | \`${result.journey}\`: ${result.entryPoint} | ${outcome}: ${result.title} | [${result.folder}](${link(result.folder)}) |`,
+        `| ${feature} | \`${result.journey}\`: ${result.entryPoint} | ${outcome}: ${result.title} | ${time} | [${result.folder}](${link(result.folder)}) |`,
       );
     }
   }
@@ -204,11 +212,20 @@ function docsReasons(judgement, plan) {
 /**
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {import("./types.mjs").VerdictCore} verdict The verdict
- * @param {{ plan: import("./types.mjs").Plan, judgement: import("./types.mjs").Judgement, journeys: Awaited<ReturnType<typeof journeyRows>>, formal: ReturnType<typeof formalSection>, reasons: string[], attention: string[], link: (path: string) => string }} parts What the verdict is rendered from
+ * @param {{ plan: import("./types.mjs").Plan, judgement: import("./types.mjs").Judgement, journeys: Awaited<ReturnType<typeof journeyRows>>, formal: ReturnType<typeof formalSection>, timing: import("../timing.mjs").TimingSummary, reasons: string[], attention: string[], link: (path: string) => string }} parts What the verdict is rendered from
  * @returns {string} The verdict as Markdown
  */
 function markdown(skill, verdict, parts) {
-  const { plan, judgement, journeys, formal, reasons, attention, link } = parts;
+  const {
+    plan,
+    judgement,
+    journeys,
+    formal,
+    timing,
+    reasons,
+    attention,
+    link,
+  } = parts;
   const touched = plan.touched.map(
     (entry) =>
       `\`${entry.feature}\` (diff: ${entry.files.map((file) => `\`${file}\``).join(", ")})`,
@@ -251,9 +268,12 @@ function markdown(skill, verdict, parts) {
       ? ["### Why it fails", ...reasons.map((reason) => `- ${reason}`), ""]
       : []),
     "### Journeys",
-    "| Feature | Entry point | Result | Evidence |",
-    "|---|---|---|---|",
+    "| Feature | Entry point | Result | Time | Evidence |",
+    "|---|---|---|---|---|",
     ...journeys.rows,
+    "",
+    "### Timing",
+    ...(timing.rows.length > 0 ? markdownTimings(timing) : ["None recorded."]),
     "",
     "### Formal checks",
     ...bullets(formal.lines, "None ran."),
@@ -322,6 +342,7 @@ export async function renderVerdict(skill, state, pr, judgement, all = false) {
     judgement,
     journeys,
     formal,
+    timing: summarize(readTimings(state.evidence)),
     reasons,
     attention,
     link,

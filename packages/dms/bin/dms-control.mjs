@@ -23,6 +23,7 @@ Drive an isolated DMS (run from the repository, or pass --playground):
   mail <run>                        the messages the run's mail sink captured
   reset <run>                       restart the backend on an empty database of the run
   down <run>                        stop the run, drop its databases, keep its evidence
+  timings <run>                     the time each phase of the run took, from evidence/timings.jsonl
 
 Verify a change (the .agents/skills/verify-* folder of the checkout, or --skill <dir>):
   map                               check the feature map covers every user-facing file

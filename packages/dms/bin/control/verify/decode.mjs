@@ -56,24 +56,27 @@ export const isFormalResult = objectOf(
 
 /** @type {import("../json.mjs").Guard<import("./types.mjs").FeatureResult[]>} The journey results a run records in `<feature>/feature.json` */
 const isFeatureResults = arrayOf(
-  objectOf({
-    feature: isString,
-    journey: isString,
-    title: isString,
-    entryPoint: isString,
-    status: oneOf(["PASS", "FAIL"]),
-    database: isString,
-    steps: arrayOf(
-      objectOf({
-        name: isString,
-        checks: arrayOf(
-          objectOf({ name: isString, pass: isBoolean, detail: isString }),
-        ),
-      }),
-    ),
-    error: nullable(isString),
-    folder: isString,
-  }),
+  objectOf(
+    {
+      feature: isString,
+      journey: isString,
+      title: isString,
+      entryPoint: isString,
+      status: oneOf(["PASS", "FAIL"]),
+      database: isString,
+      steps: arrayOf(
+        objectOf({
+          name: isString,
+          checks: arrayOf(
+            objectOf({ name: isString, pass: isBoolean, detail: isString }),
+          ),
+        }),
+      ),
+      error: nullable(isString),
+      folder: isString,
+    },
+    { ms: isNumber },
+  ),
 );
 
 /** @type {import("../json.mjs").Guard<import("./types.mjs").RawJudgement>} The verifier's `judgement.json` */
