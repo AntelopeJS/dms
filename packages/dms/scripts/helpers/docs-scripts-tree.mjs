@@ -189,8 +189,10 @@ export function generateCatalog(edit) {
 /**
  * Run docs-screenshots.mjs on `examples` (JSON text) for the ids in `only`,
  * against a browser whose preview page renders every block. Reports the exit
- * status, the files written, the viewport widths the script asked for and the
- * most contexts the browser had open at once.
+ * status, what it printed on stderr, the files written, the viewport widths the
+ * script asked for, the instant each page's clock was fixed to when it
+ * navigated (`null` when it was not fixed yet) and the most contexts the
+ * browser had open at once.
  * @param {string} examples
  * @param {string} only
  * @param {readonly string[]} [extra] more arguments for the script
@@ -214,7 +216,7 @@ export function captureExamples(examples, only, extra = [], env = {}) {
       nodePath.join(playwright, "index.js"),
     );
     writeFileSync(nodePath.join(root, "docs-data", "examples.json"), examples);
-    const { status } = run(
+    const { status, stderr } = run(
       root,
       [
         "scripts/docs-screenshots.mjs",
@@ -236,8 +238,10 @@ export function captureExamples(examples, only, extra = [], env = {}) {
       : [];
     return {
       status,
+      stderr,
       shots: existsSync(shotsDir) ? readdirSync(shotsDir).sort() : [],
       widths: entries.flatMap(({ width }) => (isWidth(width) ? [width] : [])),
+      clocks: entries.flatMap((entry) => ("url" in entry ? [entry.clock] : [])),
       peak: Math.max(
         0,
         ...entries.flatMap(({ peak }) => (isWidth(peak) ? [peak] : [])),

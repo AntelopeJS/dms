@@ -19,6 +19,8 @@ const READY_TIMEOUT_MS = 30_000;
 const SETTLE_MS = 1_500;
 const BYTES_PER_KILOBYTE = 1024;
 const DEFAULT_CONCURRENCY = 4;
+const CLOCK_UTC_HOUR = 8;
+const CLOCK_UTC_MINUTE = 30;
 const PREVIEW_SELECTOR = "[data-dms-block-preview]";
 const BLOCK_SELECTOR = "[data-dms-preview-block]";
 const ISSUE_SELECTOR = "[data-dms-preview-issue]";
@@ -121,6 +123,25 @@ async function waitForBlocks(page) {
 }
 
 /**
+ * The instant every page reads as now: half an hour after the 08:00 UTC of
+ * today that the playground's Helio fixtures count their rows from. The labels
+ * that count from now ("Updated 3 s ago", a relative date cell) then read the
+ * same in every capture, however long the page took to load.
+ * @param {Date} [now]
+ */
+function pageClock(now = new Date()) {
+  return new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      CLOCK_UTC_HOUR,
+      CLOCK_UTC_MINUTE,
+    ),
+  );
+}
+
+/**
  * @param {Browser} browser
  * @param {string} baseUrl
  * @param {Entry} entry
@@ -136,6 +157,7 @@ async function capture(browser, baseUrl, [id, value]) {
     colorScheme: THEME,
   });
   try {
+    await context.clock.setFixedTime(pageClock());
     const page = await context.newPage();
     await page.goto(previewUrl(baseUrl, example), { waitUntil: "load" });
     await waitForBlocks(page);

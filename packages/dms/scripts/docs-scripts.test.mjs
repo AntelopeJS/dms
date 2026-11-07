@@ -253,11 +253,36 @@ await test("docs-screenshots: a failed example does not stop the pool", () => {
 
 await test("docs-screenshots: refuses a concurrency that is not a positive integer", () => {
   for (const concurrency of ["0", "-1", "1.5", "many", ""]) {
-    const { status, shots } = captureExamples(sixBlocks, sixIds, [
-      "--concurrency",
-      concurrency,
+    const { status, stderr, shots } = captureExamples(sixBlocks, sixIds, [
+      `--concurrency=${concurrency}`,
     ]);
     assert.notEqual(status, 0, concurrency);
+    assert.match(stderr, /concurrency must be a positive integer/, concurrency);
     assert.deepEqual(shots, [], concurrency);
   }
+});
+
+await test("docs-screenshots: refuses a concurrency from the environment that is not a positive integer", () => {
+  for (const concurrency of ["0", "-1", "1.5", "many", ""]) {
+    const { status, stderr, shots } = captureExamples(sixBlocks, sixIds, [], {
+      DMS_SCREENSHOT_CONCURRENCY: concurrency,
+    });
+    assert.notEqual(status, 0, concurrency);
+    assert.match(stderr, /concurrency must be a positive integer/, concurrency);
+    assert.deepEqual(shots, [], concurrency);
+  }
+});
+
+await test("docs-screenshots: fixes every page to one clock before it loads, at any concurrency", () => {
+  const instants = new Set();
+  for (const concurrency of [1, 4]) {
+    const { status, clocks } = captureExamples(sixBlocks, sixIds, [
+      `--concurrency=${concurrency}`,
+    ]);
+    assert.equal(status, 0, `concurrency ${concurrency}`);
+    assert.equal(clocks.length, 6, `concurrency ${concurrency}`);
+    for (const clock of clocks) instants.add(clock);
+  }
+  assert.equal(instants.size, 1);
+  assert.match([...instants].join(), /T08:30:00\.000Z$/);
 });

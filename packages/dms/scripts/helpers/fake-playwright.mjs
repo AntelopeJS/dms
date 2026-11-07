@@ -5,7 +5,7 @@ const LOG = "fake-browser.log";
 const PAGE_LOAD_MS = 20;
 
 /**
- * @param {{ width: number } | { url: string } | { peak: number }} entry
+ * @param {{ width: number } | { url: string, clock: string | null } | { peak: number }} entry
  * @returns {void}
  */
 function record(entry) {
@@ -23,26 +23,39 @@ const locator = {
 let open = 0;
 let peak = 0;
 
-const page = {
-  /** @param {string} url */
-  goto: async (url) => {
-    record({ url });
-    await setTimeout(PAGE_LOAD_MS);
-  },
-  waitForSelector: async () => {},
-  waitForFunction: async () => {},
-  evaluate: async () => {},
-  waitForTimeout: async () => {},
-  locator: () => locator,
-};
+/** @param {{ fixed: string | null }} state */
+function newPage(state) {
+  return {
+    /** @param {string} url */
+    goto: async (url) => {
+      record({ url, clock: state.fixed });
+      await setTimeout(PAGE_LOAD_MS);
+    },
+    waitForSelector: async () => {},
+    waitForFunction: async () => {},
+    evaluate: async () => {},
+    waitForTimeout: async () => {},
+    locator: () => locator,
+  };
+}
 
-const context = {
-  newPage: async () => page,
-  close: async () => {
-    open -= 1;
-    record({ peak });
-  },
-};
+function newContext() {
+  /** @type {{ fixed: string | null }} */
+  const state = { fixed: null };
+  return {
+    clock: {
+      /** @param {Date} time */
+      setFixedTime: async (time) => {
+        state.fixed = time.toISOString();
+      },
+    },
+    newPage: async () => newPage(state),
+    close: async () => {
+      open -= 1;
+      record({ peak });
+    },
+  };
+}
 
 const browser = {
   /** @param {{ viewport: { width: number } }} options */
@@ -50,7 +63,7 @@ const browser = {
     record({ width: viewport.width });
     open += 1;
     peak = Math.max(peak, open);
-    return context;
+    return newContext();
   },
   close: async () => {},
 };
