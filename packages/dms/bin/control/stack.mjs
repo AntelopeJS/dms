@@ -30,6 +30,7 @@ import {
   saveRun,
 } from "./run-state.mjs";
 import { RENDERER_CLI, resolveRenderer } from "./renderer.mjs";
+import { moduleRootOf } from "./module-root.mjs";
 import { layOutCopy } from "./run-copy.mjs";
 import { newPassword } from "./session.mjs";
 import { appendTiming, recordTiming, stopwatch, timed } from "./timing.mjs";
@@ -186,7 +187,7 @@ async function initialState(options) {
     createdAt: new Date().toISOString(),
     environment: ENVIRONMENT,
     playground,
-    moduleRoot: dirname(playground),
+    moduleRoot: moduleRootOf(playground),
     repo: checkout.root,
     headSha: verified.head,
     baseRef: options.base ?? "origin/main",
