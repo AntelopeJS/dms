@@ -17,8 +17,6 @@ import {
   type ZodOptionalDef,
   type ZodPipelineDef,
   type ZodPromiseDef,
-  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Zod owns the imported public type name.
-  type ZodRawShape,
   type ZodReadonlyDef,
   type ZodRecordDef,
   type ZodTupleDef,
@@ -399,8 +397,7 @@ export function describeSchema(
 }
 
 function describeProperties(
-  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Zod owns the imported schema-property type name.
-  properties: ZodRawShape,
+  properties: Record<string, ZodTypeAny>,
   depth: number,
 ): BlockTypeDescriptor["config"] {
   const described: Record<string, BlockOptionSchema> = {};
