@@ -7,12 +7,15 @@ import {
   UserExternalIdentityModel,
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
+import { SystemStateModel } from "../../../db";
 import { generateAuthKey } from "../../../utils";
 import type { OAuthPolicy } from "./config";
 import { decideOAuthResolution, type OAuthResolution } from "./linking-policy";
 import type { ProviderIdentity } from "./providers";
 
+const HTTP_FORBIDDEN = 403;
 const HTTP_INTERNAL_ERROR = 500;
+const PLATFORM_NOT_ONBOARDED_MESSAGE = "error.oauth.platform_not_onboarded";
 const USER_NOT_CREATED_MESSAGE = "error.oauth.user_not_created";
 const RESOLUTION_MISMATCH_MESSAGE = "error.oauth.resolution_mismatch";
 
@@ -106,12 +109,29 @@ export async function claimUnvalidatedAccount(
   return user;
 }
 
+/**
+ * Whether the platform has its owner: the onboarding register marked it
+ * onboarded, or an owner row exists. The register creates the owner only while
+ * no user exists, so an account created before it would leave the platform
+ * with no owner.
+ */
+async function hasPlatformOwner(userModel: UserModel): Promise<boolean> {
+  const systemState = await GetModel(SystemStateModel).getConfig();
+  if (systemState?.has_onboarded) return true;
+  return (await userModel.countOwnersExcluding([])) > 0;
+}
+
 async function createOAuthUser(
   userModel: UserModel,
   email: string,
   identity: ProviderIdentity,
   language: string,
 ): Promise<User> {
+  assert(
+    await hasPlatformOwner(userModel),
+    HTTP_FORBIDDEN,
+    PLATFORM_NOT_ONBOARDED_MESSAGE,
+  );
   const now = new Date();
   const ids = await userModel.insert({
     createdAt: now,

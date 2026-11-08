@@ -91,4 +91,20 @@ describe("[integration] OAuth sign-up before onboarding", () => {
     expect(visitor?.owner).to.equal(false);
     expect(await ownerEmails()).to.deep.equal([admin.email]);
   });
+
+  it("creates the account when an owner exists before the platform is marked onboarded", async () => {
+    await GetModel(UserModel).insert({
+      email: admin.email,
+      name: "Alice Admin",
+      authKey: "seeded-owner-key",
+      isValidated: true,
+      language: "en",
+      password: null,
+      owner: true,
+    });
+    const refusal = await signUpWithOAuth();
+
+    expect(refusal).to.equal(undefined);
+    expect(await ownerEmails()).to.deep.equal([admin.email]);
+  });
 });

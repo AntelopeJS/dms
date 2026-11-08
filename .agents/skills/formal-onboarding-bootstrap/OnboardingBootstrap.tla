@@ -22,7 +22,8 @@ VARIABLES
   rpc,       \* where each register is
   answer,    \* the status each register answered
   ppc,       \* where each status poll is
-  oauth      \* "off": no OAuth sign-up; "idle": one may come; "done": its row exists
+  oauth      \* "off": no OAuth sign-up; "idle": one may come; "create": it found the
+             \* platform onboarded or an owner; "refused": it found onboarding open; "done": its row exists
 
 vars == <<tokenRow, ownerRows, onboarded, rpc, answer, ppc, oauth>>
 
@@ -37,7 +38,7 @@ TypeOK ==
   /\ rpc \in [Registers -> RegisterSteps]
   /\ answer \in [Registers -> Answers]
   /\ ppc \in [Polls -> PollSteps]
-  /\ oauth \in {"off", "idle", "done"}
+  /\ oauth \in {"off", "idle", "create", "refused", "done"}
 
 (* What `userModel.table.slice(0, 1).run()` finds: no users row at all. *)
 NoUsers == ownerRows = {} /\ oauth /= "done"
@@ -155,18 +156,27 @@ PollWrite(p) ==
 (* ---------------------------- OAuth sign-in ---------------------------- *)
 
 (* An unknown provider identity signs in: oauthCallback calls             *)
-(* resolveOAuthUser (callback.ts:84-90), which creates its account with   *)
-(* owner: false. Nothing on that path reads has_onboarded.                *)
-OAuthCreatesUser ==
+(* resolveOAuthUser (callback.ts:84-90). Before it creates an account it   *)
+(* reads has_onboarded, then counts owners when the flag is false, and     *)
+(* refuses while neither shows an owner.                                    *)
+OAuthReadState ==
   /\ oauth = "idle"
-  /\ oauth' = "done"                  \* linking-policy.ts:115-119, identity-resolution.ts:116-126
+  /\ oauth' = IF onboarded \/ ownerRows /= {}      \* identity-resolution.ts:118-121
+              THEN "create"
+              ELSE "refused"                       \* identity-resolution.ts:130-134
+  /\ UNCHANGED <<ownerRows, onboarded, rpc, answer, ppc, tokenRow>>
+
+(* It creates the account with owner: false. *)
+OAuthCreatesUser ==
+  /\ oauth = "create"
+  /\ oauth' = "done"                  \* identity-resolution.ts:136-145
   /\ UNCHANGED <<ownerRows, onboarded, rpc, answer, ppc, tokenRow>>
 
 (* Every request has answered. *)
 Settled ==
   /\ \A r \in Registers : rpc[r] = "done"
   /\ \A p \in Polls : ppc[p] = "done"
-  /\ oauth /= "idle"
+  /\ oauth \notin {"idle", "create"}
   /\ UNCHANGED vars
 
 Next ==
@@ -174,7 +184,7 @@ Next ==
        \/ RegReadUsers(r) \/ RegClaim(r) \/ RegInsert(r) \/ RegTenant(r)
        \/ RegReadState(r) \/ RegWriteState(r) \/ RegFails(r)
   \/ \E p \in Polls : PollReadState(p) \/ PollReadUsers(p) \/ PollWrite(p)
-  \/ OAuthCreatesUser
+  \/ OAuthReadState \/ OAuthCreatesUser
   \/ Settled
 
 Spec == Init /\ [][Next]_vars

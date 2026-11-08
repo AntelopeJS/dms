@@ -445,6 +445,7 @@
       "linking_disabled": "An account already exists with this e-mail address. Sign in with your password.",
       "account_not_validated": "An account already exists with this e-mail address but is not validated. Validate it before linking this provider.",
       "registration_disabled": "No account matches this identity and provider sign-up is disabled.",
+      "platform_not_onboarded": "Sign-up opens once the platform administrator has finished setting up this instance.",
       "identity_already_linked": "This provider account is already linked to another user.",
       "user_not_created": "Account creation failed.",
       "jwt_secret_missing": "Provider sign-in is not configured on this instance.",

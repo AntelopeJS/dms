@@ -445,6 +445,7 @@
       "linking_disabled": "Un compte existe déjà avec cette adresse e-mail. Connectez-vous avec votre mot de passe.",
       "account_not_validated": "Un compte existe déjà avec cette adresse e-mail mais n'est pas validé. Validez-le avant de lier ce fournisseur.",
       "registration_disabled": "Aucun compte n'est associé à cette identité et l'inscription par fournisseur est désactivée.",
+      "platform_not_onboarded": "L'inscription ouvrira quand l'administrateur de la plateforme aura terminé la configuration de cette instance.",
       "identity_already_linked": "Ce compte fournisseur est déjà lié à un autre utilisateur.",
       "user_not_created": "La création du compte a échoué.",
       "jwt_secret_missing": "La connexion par fournisseur n'est pas configurée sur cette instance.",
