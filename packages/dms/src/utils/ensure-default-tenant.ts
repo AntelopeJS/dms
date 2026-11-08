@@ -197,6 +197,26 @@ async function advanceLease(
   return claimed !== undefined && provisionUnderLease(claimed, renewEveryMs);
 }
 
+/**
+ * Settles with `work`, or with `false` once `signal` aborts. `work` keeps
+ * running, and what it settles with after the abort is dropped.
+ */
+async function untilAborted(
+  work: Promise<boolean>,
+  signal: AbortSignal,
+): Promise<boolean> {
+  let onAbort = (): void => undefined;
+  const aborted = new Promise<boolean>((resolve) => {
+    onAbort = () => resolve(false);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([work, aborted]);
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
+}
+
 function holderName(): string {
   return `${hostname()}:${process.pid}`;
 }
@@ -212,7 +232,10 @@ function holderName(): string {
  * waiting replica, and leaves the row pending for the next attempt. Legacy rows
  * with no marker are already provisioned and are not run again.
  *
- * @param signal Ends a wait for another replica's provisioning. A run in progress finishes.
+ * @param signal Ends the call: a wait for another replica's provisioning, or
+ * the wait for this replica's own run. A run in progress is not cancelled: it
+ * keeps its lease until its handlers settle, then records its outcome when it
+ * still can, and a run cut short by shutdown is taken over once stale.
  * @param lease How often to renew and poll, and when a holder counts as stopped
  */
 export async function provisionDefaultTenant(
@@ -223,7 +246,7 @@ export async function provisionDefaultTenant(
   const watch = createStaleWatch(staleAfterMs);
   while (!signal.aborted) {
     try {
-      if (await advanceLease(watch, renewEveryMs)) return;
+      if (await untilAborted(advanceLease(watch, renewEveryMs), signal)) return;
     } catch (error) {
       watch.forget();
       Logging.Warn(

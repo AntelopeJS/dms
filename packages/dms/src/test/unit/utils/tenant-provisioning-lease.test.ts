@@ -128,6 +128,42 @@ describe("[unit] default tenant provisioning across replicas", () => {
     expect(await pending()).to.equal(true);
   });
 
+  it("stops waiting for a run in progress once aborted, and the run still records its outcome", async () => {
+    await ensureDefaultTenantExists();
+    const stopping = new AbortController();
+    let finishRun: () => void = () => undefined;
+    const runFinished = new Promise<void>((resolve) => {
+      finishRun = resolve;
+    });
+    let runStarted: () => void = () => undefined;
+    const started = new Promise<void>((resolve) => {
+      runStarted = resolve;
+    });
+    body = () => {
+      runStarted();
+      return runFinished;
+    };
+    const provisioning = provisionDefaultTenant(stopping.signal, LEASE);
+    await started;
+
+    stopping.abort();
+    const returned = await Promise.race([
+      provisioning.then(() => "returned"),
+      setTimeout(OUTLASTS_STALE_WINDOW_MS, "still waiting"),
+    ]);
+    expect(returned).to.equal("returned");
+    expect(await pending()).to.equal(true);
+
+    finishRun();
+    let settled = await pending();
+    for (let poll = 0; poll < 40 && settled !== false; poll += 1) {
+      await setTimeout(LEASE.pollEveryMs);
+      settled = await pending();
+    }
+    expect(calls).to.equal(1);
+    expect(settled).to.equal(false);
+  });
+
   it("frees the lease after a failure, so a waiting replica retries without the stale wait", async () => {
     await ensureDefaultTenantExists();
     body = () => Promise.reject(new Error("step failed"));
