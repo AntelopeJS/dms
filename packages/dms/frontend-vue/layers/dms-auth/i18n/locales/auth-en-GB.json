@@ -97,6 +97,11 @@
       "account_removed": "Account removed",
       "remove_account": "Remove {name} from this list"
     },
+    "no_workspace": {
+      "title": "No workspace for this account",
+      "description": "You signed in, but your account is not a member of any workspace. Ask a workspace owner to invite you, then sign in again.",
+      "back_to_sign_in": "Back to sign in"
+    },
     "settings": {
       "sessions": {
         "title": "Sessions",

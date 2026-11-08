@@ -19,8 +19,12 @@ covers:
   - packages/interface-dms/src/tenant-members.ts
   - packages/interface-dms/src/invite-extensions.ts
   - packages/interface-dms/src/invite-extension-payloads.ts
+  - packages/dms/src/pages/public/auth/not-a-member.ts
+  - packages/dms/frontend-vue/layers/dms-auth/app/custom-pages/auth/not-a-member.vue
+  - packages/dms/frontend-vue/layers/dms-auth/app/build/utils/noWorkspaceRoute.ts
 docs:
   - packages/dms/docs/03.auth-and-tenancy/02.auth-and-permissions.md
+  - packages/dms/docs/03.auth-and-tenancy/01.authentication.md
 ---
 
 # Members and invitations
@@ -36,7 +40,7 @@ The people of the workspace and how they join: Settings > Workspace > Members li
 - `invite-edit-changes-roles`: Edit invitation swaps the role and sets the name; the list and the API hold the new role after a reload; the resent link prefills the edited name.
 - `members-search-empty-state`: empty path: no invitation shows an empty table and "Invitations 0"; a members search without a match shows "No results" and Clear search brings the row back.
 - `remove-member-shows-impact`: the removal dialog names the roles removed and that records stay before anything changes (the API `removal-impact` says the same); Cancel removes nobody; Remove member drops the member from the list and the API; the removed member's token and open browser lose what the role granted, sign-in yields no workspace session, and the role stays.
-- `removed-member-lands-on-a-page`: error path: a removed member who signs in again is sent to `/auth/no-workspace`, which has no page and shows "Page not found". It is a known finding and fails until the product has that page.
+- `removed-member-lands-on-a-page`: error path: a removed member who signs in again lands on `/auth/not-a-member`, which says the account belongs to no workspace, not on "Page not found".
 - `remove-last-owner-refused`: error path: the only owner cannot drop the owner role or be removed, in the UI or through `DELETE /api/tables/members/delete` (409).
 - `make-owner-and-back`: Make owner and Remove owner role confirm first, the API flips `isTenantOwner`, and the member's access to the Roles page follows in both directions.
 - `change-member-roles`: Change roles swaps a member's role; the list and the API show only the new one.
@@ -60,6 +64,5 @@ Roles are created through `POST /dms/pages/settings/workspace/roles/create` as s
 - The playground's invite extension makes Team required; the journeys pick `Sales`. Without a role the dialog needs the Owner switch, so roles are created first.
 - Signing up from the link signs the new member in at once; the first page is the first one their role can open, or a public page.
 - Several journeys end on `tab.at(...)` of the signed-in landing page; the destination varies with the role, so they only require leaving `/auth`.
-- `removed-member-lands-on-a-page` fails on `main`: `login.vue` navigates to `/auth/no-workspace`, and no page registers that path. A verdict on a diff touching sign-in or removal, or a shared file, fails until the product is fixed.
 - A removed member's open browser still loads account pages (`/settings/user/profile`); only workspace pages and data are refused.
 - Not driven: Resend verification email and Mark as verified (the playground's members have verified addresses), the SaaS-mode ownership paths, and Copy link (a clipboard write).

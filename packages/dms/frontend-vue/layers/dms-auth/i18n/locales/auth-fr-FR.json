@@ -97,6 +97,11 @@
       "account_removed": "Compte supprimé",
       "remove_account": "Retirer {name} de cette liste"
     },
+    "no_workspace": {
+      "title": "Aucun espace de travail pour ce compte",
+      "description": "Vous êtes connecté, mais votre compte n'est membre d'aucun espace de travail. Demandez au propriétaire d'un espace de travail de vous inviter, puis reconnectez-vous.",
+      "back_to_sign_in": "Retour à la connexion"
+    },
     "settings": {
       "sessions": {
         "title": "Sessions",
