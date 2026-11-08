@@ -219,18 +219,13 @@ export function formalGate(result) {
         : "tool error";
     return { fails: true, outcome: `${what}, exit ${result.exitCode}` };
   }
-  if (result.missing?.length > 0) {
-    return {
-      fails: true,
-      outcome: `rules the base broke are absent at HEAD: ${result.missing.join(", ")}`,
-    };
-  }
-  if (result.dropped?.length > 0) {
-    return {
-      fails: true,
-      outcome: `findings the base broke are gone at HEAD, though the covered behaviour is unchanged (${result.behaviour?.method}): ${result.dropped.join(", ")}`,
-    };
-  }
+  const gone = [
+    result.missing?.length > 0 &&
+      `rules the base broke are absent at HEAD: ${result.missing.join(", ")}`,
+    result.dropped?.length > 0 &&
+      `findings the base broke are gone at HEAD, though the covered behaviour is unchanged (${result.behaviour?.method}): ${result.dropped.join(", ")}`,
+  ].filter(Boolean);
+  if (gone.length > 0) return { fails: true, outcome: gone.join("; ") };
   const fixed =
     result.fixed?.length > 0 ? `; fixed: ${result.fixed.join(", ")}` : "";
   if (!result.behaviour) {
