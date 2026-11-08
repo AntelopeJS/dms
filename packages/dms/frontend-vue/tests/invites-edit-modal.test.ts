@@ -15,6 +15,11 @@ import { isObject } from "../layers/dms-core/app/utils/type-check";
 import type { ModalOptions } from "../layers/dms-ui/app/composables/containers/types";
 import { FormContainerType } from "../layers/dms-ui/app/entries/composables/table-view/types";
 
+vi.stubGlobal("shallowRef", shallowRef);
+const { useTableRowActions } = await import(
+  "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
+);
+
 interface Messages {
   [key: string]: string | Messages;
 }
@@ -51,10 +56,7 @@ const refresh = vi.fn();
  * serializes it: the edit form opens in a medium modal under the
  * "Edit invitation" texts, and no form page URL is handed down.
  */
-async function invitesRowActions() {
-  const { useTableRowActions } = await import(
-    "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
-  );
+function invitesRowActions() {
   return useTableRowActions({
     api: unusedApi(),
     location: "/api/tables/admin-invites",
