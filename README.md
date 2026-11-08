@@ -14,7 +14,9 @@ Your coding agent builds the admin pages and a dashboard, as TypeScript in your 
 
 </div>
 
-<img src="./docs/media/hero-connect.gif" width="100%" data-illustration alt="A PostgreSQL connection string is pasted into the Connect a database form. Three databases, two PostgreSQL and one MongoDB, then appear in one list under the caption Three databases, one back office, followed by one dashboard with revenue, open deals and orders from all three.">
+<a href="https://dms-demo.antelopejs.com"><img src="./docs/media/helio-tour.gif" width="100%" data-illustration alt="A tour of Helio, a back office for a solar installer built with AntelopeJS DMS: a dashboard with cumulative revenue, product mix, installations and top sales reps, then the sales pipeline, quotes, customers, invoices and fleet monitoring pages."></a>
+
+**Everything in this tour is built with AntelopeJS DMS.** Helio is a back office for a solar installer: dashboards, a sales pipeline, quotes, invoices and fleet monitoring. [Click through it live](https://dms-demo.antelopejs.com), no install needed.
 
 ## Why
 
@@ -29,6 +31,12 @@ AntelopeJS DMS gives you the back office from the database you already have. It 
 - **Existing product?** Connect its database. You get a page for every table you keep, plus a dashboard.
 - **New product?** Start from the template and build the whole app on AntelopeJS.
 
+## Connect your database
+
+<img src="./docs/media/hero-connect.gif" width="100%" data-illustration alt="A PostgreSQL connection string is pasted into the Connect a database form. Three databases, two PostgreSQL and one MongoDB, then appear in one list under the caption Three databases, one back office, followed by one dashboard with revenue, open deals and orders from all three.">
+
+Paste a connection string and press **Connect**. The Builder reads the schema, proposes a page for each table, and writes the pages you keep as TypeScript in your repo. Connect your ERP, your CRM and your shop, and every database lands in the same back office. Your coding agent then builds the dashboard on top of your data.
+
 ## What you get
 
 - **A page for every table.** Search, filters, sort, export and forms, generated from your schema.
@@ -39,8 +47,6 @@ AntelopeJS DMS gives you the back office from the database you already have. It 
 - **A dashboard from your coding agent.** Claude Code or Codex builds it on your own account. The DMS ships no AI model.
 - **Sign-in, members and multi-tenancy** built in, with a SaaS mode.
 - **Installable modules.** Automations, mailing, translations, media library, SaaS billing and more.
-
-**[Click through the live demo](https://dms-demo.antelopejs.com)**, no install needed.
 
 ## Quick start
 
@@ -278,7 +284,9 @@ pnpm --dir packages/dms realtime:tabs-check --email <email> --password <password
 
 ### Run the demo application
 
-Create a project from the `template-dms-demo` template, which loads the DMS, its companion modules and Helio, a demo back office for a solar installer. It needs the Node.js and pnpm releases the template pins, and a MongoDB on `localhost:27017`.
+To click through Helio without installing anything, open the [live demo](https://dms-demo.antelopejs.com).
+
+To run it yourself, create a project from the `template-dms-demo` template, which loads the DMS, its companion modules and Helio, a demo back office for a solar installer. It needs the Node.js and pnpm releases the template pins, and a MongoDB on `localhost:27017`.
 
 ```bash
 npx @antelopejs/core project init dms-demo --template dms-demo
