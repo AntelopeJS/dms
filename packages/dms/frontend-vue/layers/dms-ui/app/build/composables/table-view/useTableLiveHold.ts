@@ -124,14 +124,15 @@ function useLocalHold(
     const target = tableElement();
     return target instanceof HTMLElement ? target : null;
   };
+  const holdsOnScreen = !!holdOptions && holdOptions.whileOnScreen !== false;
   const isScrolled = useScrolledPastTop(element, !!holdOptions?.whileScrolled);
-  const isReached = useTableReached(element, !!holdOptions);
+  const isReached = useTableReached(element, holdsOnScreen);
   const reasons: Array<[LocalHoldReason, boolean, () => boolean]> = [
     ["rowOpen", !!holdOptions?.whileRowOpen, signals.isRowOpen ?? NEVER],
     ["searching", !!holdOptions?.whileSearching, signals.isSearching ?? NEVER],
     ["sorted", !!holdOptions?.whileSorted, signals.isSorted ?? NEVER],
     ["scrolled", !!holdOptions?.whileScrolled, () => isScrolled.value],
-    ["reading", !!holdOptions, () => isReached.value],
+    ["reading", holdsOnScreen, () => isReached.value],
   ];
   return computed(
     () =>
@@ -143,7 +144,7 @@ function useLocalHold(
 /**
  * The `liveHold` of a table view: while its live page is paused, while its
  * rows are on screen or scrolled past (rows landing at the top would move
- * them) — or, with `whileRowOpen` / `whileSearching` / `whileSorted` /
+ * them; not with `whileOnScreen: false`) — or, with `whileRowOpen` / `whileSearching` / `whileSorted` /
  * `whileScrolled`, saying so, while the user reads a row, searches, sorts or
  * scrolled down — the table keeps its rows: the gate requests nothing on its events and counts them, and a
  * source route is told the moment they were frozen, so the user's own

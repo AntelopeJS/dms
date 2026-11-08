@@ -115,6 +115,14 @@ export interface TableViewOptionsSerialized extends Omit<
  * the rows once again when the hold ends, if it missed any.
  */
 export interface TableViewLiveHoldOptions {
+  /**
+   * While its rows are on screen or scrolled past: a new row landing at the
+   * top would push down the rows the user reads, so the new ones wait behind
+   * the "N new · Show" pill. `false` lets the table follow its feed while its
+   * page is in Direct, holding only while paused or for a reason it names.
+   * Defaults to true.
+   */
+  whileOnScreen?: boolean;
   /** While one of its rows is open in the side panel. Defaults to false. */
   whileRowOpen?: boolean;
   /** While the user has scrolled its first row out of view. Defaults to false. */
