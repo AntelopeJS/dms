@@ -1,6 +1,9 @@
 /** @internal */
 import type { ComponentInfoSerialized } from "../../component";
-import type { NativeUploadFieldRegistration } from "../../internal/uploads";
+import {
+  type NativeUploadFieldRegistration,
+  readUploadFieldOptions,
+} from "../../internal/uploads";
 import { internal as uploadInternal, SignUploadToken } from "../../uploads";
 import type { PageMetadata } from "../metadata";
 import { metadataOwner } from "./metadata-owner";
@@ -35,8 +38,7 @@ export function prepareUploadRegistration(
   const owner = metadataOwner(page);
   const mount = owner.componentMap.get(componentId);
   if (owner.detached || mount?.access !== "own") return;
-  const options = node.component.options ?? {};
-  node.component.options = options;
+  const options = readUploadFieldOptions(node);
   const registration: NativeUploadFieldRegistration = {
     pageId: page.pageInfo?.fullId ?? "",
     componentId,
