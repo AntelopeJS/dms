@@ -63,7 +63,7 @@ DeadSession == [conn |-> 0, tab |-> NoTab, alive |-> FALSE, page |-> FALSE]
 UnopenedTab == [st |-> "unopened", conn |-> 0, sid |-> 0, ask |-> NoAsk,
               timer |-> 0, applied |-> FALSE, topics |-> FALSE, sub |-> NoSub,
               reconcile |-> FALSE, run |-> NoRun, burst |-> FALSE,
-              gets |-> [w \in Writes |-> NoRun], loaded |-> FALSE,
+              gets |-> [w \in Writes |-> NoRun], patched |-> 0, loaded |-> FALSE,
               shown |-> 0, best |-> 0, followed |-> FALSE, owed |-> 0, missed |-> FALSE]
 \* The page mounts: its data read leaves (useApiData, or the table's list),
 \* and setPage(P) finds no session yet (usePageRealtime.ts:55-63).
@@ -126,9 +126,9 @@ OnData(r, w) ==
   \* timer through the live gate, which a page without `live` passes
   \* (usePageDataRefresh.ts:37-38, currentPageLive.ts:129-133).
   THEN IF r.topics THEN [r EXCEPT !.burst = TRUE] ELSE r
-  \* The row topic handler is on from mount (tableViewRealtime.ts:137-150);
+  \* The row topic handler is on from mount (tableViewRealtime.ts:143-156);
   \* patchRowLocal skips a table whose list has not answered yet
-  \* (tableViewRealtime.ts:55), else reads the row (tableViewRealtime.ts:59).
+  \* (tableViewRealtime.ts:58), else reads the row (tableViewRealtime.ts:61-64).
   ELSE IF r.loaded THEN [r EXCEPT !.gets[w] = RunSent] ELSE r
 
 (* A relayed frame: the tab's listener keeps frames of the connection it   *)
@@ -188,4 +188,5 @@ TypeOK ==
   /\ \A c \in Conns : \A i \in DOMAIN conn[c].q : conn[c].q[i] \in Frames
   /\ \A t \in Tabs : \A i \in DOMAIN chan[t] : chan[t][i] \in Msgs
   /\ \A t \in Tabs : {tab[t].shown, tab[t].best, tab[t].owed} \subseteq Versions /\ tab[t].missed \in BOOLEAN
+  /\ \A t \in Tabs : tab[t].patched \in 0..MaxWrites
 =============================================================================

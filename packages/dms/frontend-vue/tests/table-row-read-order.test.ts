@@ -17,6 +17,7 @@ import { CONTENT_LANGUAGE_HEADER } from "../layers/dms-core/app/composables/auth
 interface HeldRowRead {
   name: string;
   answer: () => void;
+  fail: () => void;
 }
 
 const apps: Array<{ unmount: () => void }> = [];
@@ -27,8 +28,12 @@ const row = (name: string) => ({ _id: "r1", name });
 
 const holdRowRead = () => {
   const name = storedName;
-  return new Promise((resolve) => {
-    rowReads.push({ name, answer: () => resolve(row(name)) });
+  return new Promise((resolve, reject) => {
+    rowReads.push({
+      name,
+      answer: () => resolve(row(name)),
+      fail: () => reject(new Error("network")),
+    });
   });
 };
 
@@ -41,10 +46,22 @@ const save = async (name: string) => {
   await settleTable();
 };
 
+const settleRead = async () => {
+  await settleTable();
+  await settleTable();
+};
+
 const answer = async (read: HeldRowRead | undefined) => {
   read?.answer();
-  await settleTable();
-  await settleTable();
+  await settleRead();
+};
+
+const mountOrders = async () => {
+  const { app, container } = await mountTableView();
+  apps.push(app);
+  await settleRead();
+  expect(container.textContent).toContain("Order v0");
+  return container;
 };
 
 beforeEach(async () => {
@@ -68,11 +85,7 @@ afterEach(async () => {
 });
 
 it("keeps the newer row version when the older row read answers last", async () => {
-  const { app, container } = await mountTableView();
-  apps.push(app);
-  await settleTable();
-  await settleTable();
-  expect(container.textContent).toContain("Order v0");
+  const container = await mountOrders();
 
   await save("Order v1");
   await save("Order v2");
@@ -84,4 +97,17 @@ it("keeps the newer row version when the older row read answers last", async () 
 
   expect(container.textContent).toContain("Order v2");
   expect(container.textContent).not.toContain("Order v1");
+});
+
+it("shows the older row version when the newer row read fails", async () => {
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  const container = await mountOrders();
+
+  await save("Order v1");
+  await save("Order v2");
+  rowReads[1]?.fail();
+  await settleRead();
+  await answer(rowReads[0]);
+
+  expect(container.textContent).toContain("Order v1");
 });

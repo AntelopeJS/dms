@@ -311,13 +311,16 @@ GetReads(t, w) ==
   /\ tab' = [tab EXCEPT ![t].gets[w] = [ph |-> "read", v |-> stored]]
   /\ UNCHANGED <<stored, drops, closes, nconn, conn, nsess, sess, lead, chan>>
 
-(* Its answer replaces the row, whatever answered before                  *)
-(* (tableViewRealtime.ts:59-63).                                           *)
+(* Its answer replaces the row unless the answer of a read that started   *)
+(* later already did; events arrive in write order, so w orders the reads *)
+(* (tableViewRealtime.ts:61-69).                                           *)
 GetAnswers(t, w) ==
   /\ IsOpen(t)
   /\ tab[t].gets[w].ph = "read"
-  /\ LET r == tab[t] IN
-     tab' = [tab EXCEPT ![t] = Mark(Show([r EXCEPT !.gets[w] = NoRun], r.gets[w].v), sess)]
+  /\ LET r == [tab[t] EXCEPT !.gets[w] = NoRun] IN
+     tab' = [tab EXCEPT ![t] = IF w > tab[t].patched
+                               THEN Mark(Show([r EXCEPT !.patched = w], tab[t].gets[w].v), sess)
+                               ELSE r]
   /\ UNCHANGED <<stored, drops, closes, nconn, conn, nsess, sess, lead, chan>>
 
 (***************************************************************************)

@@ -51,13 +51,19 @@ export function useTableViewRowRealtime<T extends Data>(
     data.value = { ...data.value, results: next };
   };
 
+  let rowReadCount = 0;
+  const appliedRowReads = new Map<string, number>();
+
   const patchRowLocal = async (id: string) => {
     if (!data.value?.results) return;
     const idx = data.value.results.findIndex((row) => getRowId(row) === id);
     if (idx === -1) return;
+    rowReadCount += 1;
+    const read = rowReadCount;
     try {
       const fresh = await tableRows.getRow(id);
-      if (!fresh) return;
+      if (!fresh || read < (appliedRowReads.get(id) ?? 0)) return;
+      appliedRowReads.set(id, read);
       const next = [...data.value.results];
       next[idx] = fresh;
       data.value = { ...data.value, results: next };

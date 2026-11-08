@@ -28,8 +28,8 @@ const VIEWS = {
     full: { ShowsLatest: 11, ReconnectCatchesUp: 20 },
   },
   RealtimeTabsTable: {
-    ci: { ShowsLatest: 11, ReconnectCatchesUp: 20, NeverGoesBack: 17 },
-    full: { ShowsLatest: 11, ReconnectCatchesUp: 20, NeverGoesBack: 17 },
+    ci: { ShowsLatest: 11, ReconnectCatchesUp: 20 },
+    full: { ShowsLatest: 11, ReconnectCatchesUp: 20 },
   },
 };
 
