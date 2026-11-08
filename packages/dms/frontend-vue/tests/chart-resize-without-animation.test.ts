@@ -33,7 +33,7 @@ class ControlledResizeObserver implements ResizeObserver {
   disconnect() {}
 }
 
-async function mountDonut() {
+async function mountDonut(redrawOnWindowResize = true) {
   const root = document.createElement("div");
   document.body.append(root);
   app = createApp(() =>
@@ -43,6 +43,7 @@ async function mountDonut() {
       options: {
         chart: {
           animations: { enabled: false },
+          redrawOnWindowResize,
           events: { mounted, updated },
         },
         labels: ["Panels", "Batteries", "Inverters"],
@@ -101,6 +102,13 @@ it("redraws nothing when only the donut's host height changes", async () => {
 it("redraws an unanimated chart drawn at another width than its host", async () => {
   drawnWidth = STALE_WIDTH;
   await mountDonut();
+  deliverResizes(1);
+  await vi.waitFor(() => expect(updated).toHaveBeenCalled(), { timeout: 3000 });
+});
+
+it("redraws a chart that opts out of window resizes when its host's width changes", async () => {
+  drawnWidth = STALE_WIDTH;
+  await mountDonut(false);
   deliverResizes(1);
   await vi.waitFor(() => expect(updated).toHaveBeenCalled(), { timeout: 3000 });
 });

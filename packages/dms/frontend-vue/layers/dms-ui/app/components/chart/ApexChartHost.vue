@@ -30,8 +30,12 @@ interface Emits {
 
 /** The ApexCharts instance the wrapper exposes as `chart`. */
 interface ApexCore {
-  /** Apex's own (debounced) window resize handler: redraws at the container width. */
-  windowResizeHandler: () => void;
+  /**
+   * Apex's (debounced) redraw at the container width, the one its parent
+   * resize observer starts. Unlike its window resize handler it does not
+   * read `chart.redrawOnWindowResize`, which only opts out of window resizes.
+   */
+  _windowResize: () => void;
   /** Apex's state: `animationEnded` is false while the chart is animating. */
   w: { globals: { animationEnded: boolean } };
 }
@@ -188,7 +192,7 @@ function redrawIfResizedWhileAnimating() {
   const host = hostRef.value;
   const chart = chartRef.value?.chart;
   if (!host || !chart || !isDrawnAtStaleWidth(host)) return;
-  chart.windowResizeHandler();
+  chart._windowResize();
 }
 
 /**
