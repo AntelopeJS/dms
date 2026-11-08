@@ -146,6 +146,7 @@ describe("route-sourced blocks", () => {
     });
     for (const changed of [
       { ...options, fetchUrl: undefined },
+      { ...options, fetchUrl: 123 },
       { ...options, submitUrl: "/api/private/workspace" },
       { ...options, fields: undefined },
     ]) {
