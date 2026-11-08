@@ -65,8 +65,10 @@ export async function readPageRecord(
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!options?.record) return undefined;
   try {
-    const record = (await options.record(context)) ?? undefined;
-    return record ? { record, status: "found" } : { status: "missing" };
+    const record: unknown = await options.record(context);
+    return isRecordNode(record)
+      ? { record, status: "found" }
+      : { status: "missing" };
   } catch (error) {
     Logging.Error("[dms] the record of the page could not be read:", error);
     return { status: "error" };
