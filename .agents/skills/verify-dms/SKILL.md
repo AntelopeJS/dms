@@ -1,6 +1,6 @@
 ---
 name: verify-dms
-description: "Drive the AntelopeJS DMS (@antelopejs/dms backend and its Vue dashboard) the way an administrator does, on an isolated playground with free ports, its own MongoDB database and a mail sink, and post a verdict with evidence. Use to prove a change to AntelopeJS/dms works before merge, or to verify a PR."
+description: "Drive the AntelopeJS DMS (@antelopejs/dms backend and its Vue dashboard) the way an administrator does, on an isolated playground with free ports, its own MongoDB database and a mail sink, and report a verdict with evidence. Use to prove a change to AntelopeJS/dms works before merge, or to verify a PR."
 ---
 
 # Verify dms
@@ -75,7 +75,7 @@ $C journey "$RUN" smoke
 $C journey "$RUN" settings-members [journey-id...]
 ```
 
-- `run` is the smoke feature and the features the diff touches. When the diff changes a shared file (the `shared` globs of `verify.config.ts`: package.json files, lockfiles, pnpm workspace files, the interface contract and the config), `run` is the smoke feature and then every feature, and `shared` lists the files that forced it. Before a release run `plan --all` and pass `--all` to `verdict` and `publish` too, so the verdict requires every feature.
+- `run` is the smoke feature and the features the diff touches. When the diff changes a shared file (the `shared` globs of `verify.config.ts`: package.json files, lockfiles, pnpm workspace files, the interface contract and the config), `run` is the smoke feature and then every feature, and `shared` lists the files that forced it. Before a release run `plan --all` and pass `--all` to `verdict` too, so the verdict requires every feature.
 - Each feature file in [features/](features/README.md) lists its source globs (`covers:`), its docs pages (`docs:`) and its journeys; the journeys are in `journeys/<feature>.mjs`.
 - A journey starts on an empty database of the run, served by a backend that has served nothing else, with the administrator onboarded, unless it says otherwise. It drives the dashboard by ARIA role and name through playwright-core, one browser context per account, and reads every mutation back through a second view: a reload, the API, another account's tab, the captured mail, or a backend restart.
 - To look at the product yourself, use these commands, each a single step on the run's long-lived browser or API:
@@ -158,18 +158,17 @@ Write your judgement to `$RUN/evidence/judgement.json`:
 
 A door row is `{ "kind", "location", "irreversible", "containment" }`, where `kind` is a `doors` key of `verify.config.ts`. `verifier` is required.
 
-Then render and publish:
+Then render the verdict:
 
 ```bash
 $C verdict "$RUN" --pr <n>      # writes evidence/verdict.md; exit 1 on FAIL
-$C publish "$RUN" --pr <n>
 ```
 
 - `verdict` computes the result from `feature.json`, the plan, the formal results and the judgement, in the shape of the outer-loop sample verdict.
-- `publish` commits `evidence/` to the orphan branch `verify-evidence` under `pr-<n>/<sha>/` from a temporary worktree, posts the verdict with `gh pr comment`, sets the commit status `verify` on the head SHA (`success` for PASS and PASS+NOTES, `failure` for FAIL) and reads it back. When GitHub refuses the status it prints the error and exits 1.
-- A new push voids the status: verify again on the new head.
+- A new push voids the verdict: verify again on the new head.
+- Report the verdict and what the verifier saw in your own reply. Nothing is posted to GitHub.
 
-Post a verdict only from a thread that did not write the change, and name it in `verifier`.
+Give a verdict only from a thread that did not write the change, and name it in `verifier`.
 
 ## Trust
 

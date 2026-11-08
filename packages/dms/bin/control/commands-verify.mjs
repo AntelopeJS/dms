@@ -11,12 +11,6 @@ import {
 } from "./verify/formal.mjs";
 import { readJudgement } from "./verify/judgement.mjs";
 import { checkMap, planFor } from "./verify/map.mjs";
-import {
-  postComment,
-  pushEvidence,
-  readStatus,
-  setStatus,
-} from "./verify/publish.mjs";
 import { journeysFile, loadSkill } from "./verify/skill.mjs";
 import { renderVerdict } from "./verify/verdict.mjs";
 
@@ -146,15 +140,14 @@ async function commandFormal(dir, values) {
 }
 
 /**
- * @param {string} command `verdict` or `publish`
  * @param {string} dir The run root
  * @param {Values} values The options of the command line
  * @returns {Promise<number>} The exit code
  */
-async function commandJudge(command, dir, values) {
+async function commandVerdict(dir, values) {
   const pr = Number(values.pr);
   if (!Number.isInteger(pr) || pr <= 0) {
-    print(`${command} needs --pr <number>`);
+    print("verdict needs --pr <number>");
     return 2;
   }
   const state = loadRun(dir);
@@ -167,22 +160,12 @@ async function commandJudge(command, dir, values) {
     values.all,
   );
   print(verdict.markdown);
-  if (command !== "publish") return verdict.result === "FAIL" ? 1 : 0;
-  print(`evidence commit ${pushEvidence(skill, state, verdict)}`);
-  const comment = postComment(skill, verdict);
-  print(`comment ${comment}`);
-  const error = setStatus(skill, verdict, comment);
-  if (error)
-    print(`FAIL status verify on ${verdict.headSha} not set: ${error}`);
-  print(
-    `status verify on ${verdict.headSha}: ${readStatus(skill, verdict.headSha)}`,
-  );
-  return error || verdict.result === "FAIL" ? 1 : 0;
+  return verdict.result === "FAIL" ? 1 : 0;
 }
 
 /**
  * Runs a command of the verification harness: `map`, `plan`, `journey`,
- * `doors`, `formal`, `verdict` and `publish`.
+ * `doors`, `formal` and `verdict`.
  *
  * @param {string} command The command
  * @param {string[]} rest Its positional arguments
@@ -202,8 +185,7 @@ export function runVerifyCommand(command, rest, values) {
     case "formal":
       return commandFormal(rest[0], values);
     case "verdict":
-    case "publish":
-      return commandJudge(command, rest[0], values);
+      return commandVerdict(rest[0], values);
     default:
       return Promise.resolve(undefined);
   }
