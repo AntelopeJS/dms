@@ -130,6 +130,21 @@ await test("a diff that touches only a check's own files runs the check and gate
   });
 });
 
+await test("a finding that only an edit to the check turns passing is dropped, not fixed, and fails the gate", (t) => {
+  const result = gated(
+    formalRepo(t, {
+      ".agents/skills/formal-add/check.mjs": CHECK_FIXED,
+    }),
+  );
+  assert.deepEqual(result.fixed, []);
+  assert.deepEqual(result.dropped, ["NegativeZero"]);
+  assert.deepEqual(formalGate(result), {
+    fails: true,
+    outcome:
+      "findings the base broke are gone at HEAD, though the covered behaviour is unchanged (emit): NegativeZero",
+  });
+});
+
 await test("a diff that touches neither the covered files nor the check's files does not touch the check", (t) => {
   const { skill, diff } = formalRepo(t, { "README.md": "# Demo\n" });
   assert.deepEqual(touchedFormalChecks(skill, diff.changed), []);
