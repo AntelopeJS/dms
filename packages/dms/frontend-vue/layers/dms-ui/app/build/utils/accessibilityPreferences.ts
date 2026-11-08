@@ -3,11 +3,7 @@
  * `auto` follows the operating system's `prefers-reduced-motion`; `on` and
  * `off` pin the choice whatever the system says.
  */
-import {
-  isObject,
-  isString,
-  isFunction,
-} from "../../../../dms-core/app/utils/type-check";
+import { isObject, isString } from "../../../../dms-core/app/utils/type-check";
 export type ReduceMotionPreference = "auto" | "on" | "off";
 
 export interface AccessibilityPreferences {
@@ -123,20 +119,4 @@ export function reduceMotionFromClasses(
   if (classList.contains(ACCESSIBILITY_HTML_CLASSES.reduceMotion)) return "on";
   if (classList.contains(ACCESSIBILITY_HTML_CLASSES.fullMotion)) return "off";
   return "auto";
-}
-
-/**
- * Whether the page should skip JavaScript-driven motion right now: the
- * `<html>` class when the user pinned a choice, the system otherwise. Always
- * false on the server, which renders no animation.
- */
-export function isReducedMotionActive(): boolean {
-  const classList = globalThis.document?.documentElement?.classList;
-  if (!classList) return false;
-  const systemPrefersReduced =
-    isFunction(matchMedia) && matchMedia(REDUCED_MOTION_QUERY).matches;
-  return resolveReducedMotion(
-    reduceMotionFromClasses(classList),
-    systemPrefersReduced,
-  );
 }

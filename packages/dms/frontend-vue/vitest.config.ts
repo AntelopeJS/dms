@@ -28,6 +28,11 @@ export default defineConfig({
         "node_modules/@antelopejs/dms-frontend/templates/vue/frontend-module.ts",
       ),
 
+      "#dms/frontend-build": resolve(
+        __dirname,
+        "node_modules/@antelopejs/dms-frontend/templates/vue/frontend-build.ts",
+      ),
+
       "#dms/server": resolve(
         __dirname,
         "node_modules/@antelopejs/dms-frontend/templates/vue/server-module.ts",

@@ -16,12 +16,12 @@ import { sectionIn } from "./fixtures/axisCallbacks";
 import { dmsAppContext } from "./fixtures/dmsAppContext";
 import {
   accessibilityHtmlClasses,
-  isReducedMotionActive,
   parseAccessibilityPreferences,
   reduceMotionFromClasses,
   resolveReducedMotion,
   type AccessibilityPreferences,
 } from "../layers/dms-ui/app/entries/utils/accessibilityPreferences";
+import { isReducedMotionActive } from "../layers/dms-ui/app/utils/reducedMotion";
 
 interface CookieOptions {
   default: () => AccessibilityPreferences;

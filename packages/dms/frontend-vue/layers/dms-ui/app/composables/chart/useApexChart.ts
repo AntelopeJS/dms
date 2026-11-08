@@ -33,7 +33,7 @@ import {
   toBucketSeries,
   type DatetimeBuckets,
 } from "./apexDatetimeBuckets";
-import { isReducedMotionActive } from "../../build/utils/accessibilityPreferences";
+import { isReducedMotionActive } from "../../utils/reducedMotion";
 import {
   buildDataLabels,
   dataLabelOffset,
