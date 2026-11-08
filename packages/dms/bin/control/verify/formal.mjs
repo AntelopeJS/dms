@@ -125,22 +125,31 @@ function baseRules(skill, check, baseSha, folder) {
  * @param {{ baseSha: string, headSha: string, changed: string[] }} diff The diff
  * @param {string} folder The evidence folder
  * @param {import("./types.mjs").Rules} head The rules at HEAD
- * @returns {Pick<import("./types.mjs").FormalResult, "behaviour" | "checkChanged" | "base" | "fixed" | "missing">} The gate fields
+ * @returns {Pick<import("./types.mjs").FormalResult, "behaviour" | "checkChanged" | "base" | "fixed" | "dropped" | "missing">} The gate fields
  */
 function gateFields(skill, check, diff, folder, head) {
   const behaviour = behaviourChange(skill, check, diff);
   const checkChanged = changesCheckFiles(check, diff.changed);
   if (!behaviour.changed && !checkChanged)
-    return { behaviour, checkChanged, base: null, fixed: [], missing: [] };
+    return {
+      behaviour,
+      checkChanged,
+      base: null,
+      fixed: [],
+      dropped: [],
+      missing: [],
+    };
   const base = baseRules(skill, check, diff.baseSha, folder);
   const atHead = new Set([...head.violated, ...head.passing]);
+  const passingNow = base.violated.filter(
+    (rule) => head.passing.includes(rule) && !head.violated.includes(rule),
+  );
   return {
     behaviour,
     checkChanged,
     base,
-    fixed: base.violated.filter(
-      (rule) => head.passing.includes(rule) && !head.violated.includes(rule),
-    ),
+    fixed: behaviour.changed ? passingNow : [],
+    dropped: behaviour.changed ? [] : passingNow,
     missing: base.violated.filter((rule) => !atHead.has(rule)),
   };
 }
@@ -151,8 +160,10 @@ function gateFields(skill, check, diff, folder, head) {
  * When the diff touches the check (`diff` given), it also records whether
  * the diff changed the behaviour of the covered code. When it did, or when
  * the diff changed the check's own `files`, it runs the check on the base:
- * `fixed` lists the rules the base broke that HEAD reports passing, and
- * `missing` the rules the base broke that HEAD reports neither failing nor passing.
+ * `fixed` lists the rules the base broke that HEAD reports passing when the
+ * covered behaviour changed, `dropped` the same rules when it did not (only
+ * the edit to the check removed them), and `missing` the rules the base
+ * broke that HEAD reports neither failing nor passing.
  *
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {import("../run-state.mjs").RunState} state The run
@@ -193,7 +204,9 @@ export function runFormalCheck(skill, state, check, diff) {
  * non-zero exit (a tool error, or a check that no longer matches its
  * record) fails; recorded findings fail only when the diff changed the
  * covered code's behaviour; a rule the base reported and HEAD no longer
- * reports fails; rules the base broke that HEAD reports passing are fixed.
+ * reports fails; a rule the base broke that HEAD reports passing though the
+ * covered behaviour is unchanged fails; rules the base broke that HEAD
+ * reports passing after a behaviour change are fixed.
  *
  * @param {import("./types.mjs").FormalResult} result The recorded result
  * @returns {{ fails: boolean, outcome: string }} The weight and its wording
@@ -210,6 +223,12 @@ export function formalGate(result) {
     return {
       fails: true,
       outcome: `rules the base broke are absent at HEAD: ${result.missing.join(", ")}`,
+    };
+  }
+  if (result.dropped?.length > 0) {
+    return {
+      fails: true,
+      outcome: `findings the base broke are gone at HEAD, though the covered behaviour is unchanged (${result.behaviour?.method}): ${result.dropped.join(", ")}`,
     };
   }
   const fixed =

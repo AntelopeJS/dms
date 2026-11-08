@@ -134,7 +134,7 @@ $C down "$RUN"
    Then:
    - a covered check that did not run, or exits non-zero (a tool error, or a check that no longer matches its record), fails the verdict;
    - recorded findings fail the verdict only when the covered behaviour changed; when it did not, the verdict reports them as known findings;
-   - when the covered behaviour changed, or the diff changed the check's own files, `formal` also runs the check on the base. A rule the base broke counts as fixed only when HEAD reports it passing; a rule the base broke that HEAD does not report at all fails the verdict. A fix that leaves no violated rule passes.
+   - when the covered behaviour changed, or the diff changed the check's own files, `formal` also runs the check on the base. A rule the base broke counts as fixed only when HEAD reports it passing and the covered behaviour changed; one HEAD reports passing though the covered behaviour is unchanged was dropped by the edit to the check, and fails the verdict. A rule the base broke that HEAD does not report at all fails the verdict. A fix that leaves no violated rule passes.
 
    `--all` runs the checks that do not cover the diff too, without gating.
 6. **One-way doors.** The section comes right after the result line and is mandatory; a verdict without it is void. It holds `None` with a reason, or one row per door: kind, location, what cannot be undone, containment. `$C doors` prints the `One-way-door:` line for the diff from the path rules in `verify.config.ts`. Every file they flag needs a row, or a `falsePositives` entry saying why it is not a door.
