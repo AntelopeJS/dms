@@ -20,9 +20,9 @@ export class TenantLifecycleModel extends BasicDataModel(
 ) {
   /** Initializes once; an existing closed row is never replaced or reopened. */
   async state(tenantId: string): Promise<TenantLifecycle> {
-    const id = `${LIFECYCLE_ID}:${tenantId}`;
-    const existing = (await this.get(id)) ?? (await this.get(LIFECYCLE_ID));
+    const existing = await this.existing(tenantId);
     if (existing) return existing;
+    const id = `${LIFECYCLE_ID}:${tenantId}`;
     let failure: unknown;
     try {
       await this.insert({
@@ -105,15 +105,19 @@ export class TenantLifecycleModel extends BasicDataModel(
     }
   }
 
-  /** Called only by the invocation that has finished every awaited producer effect. */
-  async finish(tenantId: string, attemptId: string): Promise<void> {
+  /**
+   * Called only by the invocation that has finished every awaited producer
+   * effect, or by an operator who knows its effects are over. False when no
+   * row holds the attempt; it never initializes a row.
+   */
+  async finish(tenantId: string, attemptId: string): Promise<boolean> {
     while (true) {
-      const state = await this.state(tenantId);
-      if (!state.activeAttemptIds.includes(attemptId)) return;
+      const state = await this.existing(tenantId);
+      if (!state?.activeAttemptIds.includes(attemptId)) return false;
       const activeAttemptIds = state.activeAttemptIds.filter(
         (id) => id !== attemptId,
       );
-      if (await this.transition(state, { activeAttemptIds })) return;
+      if (await this.transition(state, { activeAttemptIds })) return true;
     }
   }
 
@@ -132,5 +136,15 @@ export class TenantLifecycleModel extends BasicDataModel(
       }
       return;
     }
+  }
+
+  /** The tenant's row, or the legacy shared row, without initializing one. */
+  private async existing(
+    tenantId: string,
+  ): Promise<TenantLifecycle | undefined> {
+    return (
+      (await this.get(`${LIFECYCLE_ID}:${tenantId}`)) ??
+      (await this.get(LIFECYCLE_ID))
+    );
   }
 }

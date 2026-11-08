@@ -134,14 +134,16 @@ export async function runTenantLifecycleOperation<T>(
  * because its effects may be indeterminate: retire it only after confirming
  * that its work left no write in flight, since deletion may then overtake it.
  *
- * Idempotent: an attempt that holds no admission resolves without a write.
- * Never call it from a `runTenantLifecycleOperation` callback or on a timer.
+ * Resolves true when it retired the admission. Resolves false, and writes
+ * nothing, when the tenant holds no such admission: the attempt was already
+ * retired, or an id is wrong. Never call it from a
+ * `runTenantLifecycleOperation` callback or on a timer.
  */
 export async function releaseTenantLifecycleAttempt(
   tenantId: string,
   attemptId: string,
-): Promise<void> {
-  await GetModel(TenantLifecycleModel, tenantId).finish(tenantId, attemptId);
+): Promise<boolean> {
+  return GetModel(TenantLifecycleModel, tenantId).finish(tenantId, attemptId);
 }
 
 /**

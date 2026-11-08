@@ -175,8 +175,28 @@ describe("Tenant lifecycle release of a finished or refused invocation (MongoDB 
       }
       const releaseFailure = releaseFailureOf(ending, outcome);
       await assert.rejects(closeTenantLifecycleAdmission(TENANT), /blocked/);
-      await releaseTenantLifecycleAttempt(TENANT, releaseFailure.attemptId);
-      await releaseTenantLifecycleAttempt(TENANT, releaseFailure.attemptId);
+      const unknownTenant = `${TENANT}-mistyped`;
+      assert.equal(
+        await releaseTenantLifecycleAttempt(
+          unknownTenant,
+          releaseFailure.attemptId,
+        ),
+        false,
+      );
+      assert.equal(
+        await GetModel(TenantLifecycleModel, unknownTenant).get(
+          `membership-and-invites:${unknownTenant}`,
+        ),
+        undefined,
+      );
+      assert.equal(
+        await releaseTenantLifecycleAttempt(TENANT, releaseFailure.attemptId),
+        true,
+      );
+      assert.equal(
+        await releaseTenantLifecycleAttempt(TENANT, releaseFailure.attemptId),
+        false,
+      );
       assert.deepEqual(
         (await observeTenantLifecycle(TENANT)).activeAttemptIds,
         [],

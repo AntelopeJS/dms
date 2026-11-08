@@ -192,7 +192,7 @@ WorkFails(a) ==
   /\ UNCHANGED <<row, snap, faults, pausedAdmit, owed>>
   /\ AttemptOthersKeep
 
-(* model.finish (model.ts:109-118). Each caller runs it from its own steps. *)
+(* model.finish (model.ts:113-122). Each caller runs it from its own steps. *)
 ReadRow(a, cas, end) ==
   /\ IF a \in row.active
        THEN MoveAttempt(a, cas) /\ Remember(a)
@@ -397,7 +397,7 @@ CloseStart ==
   /\ UNCHANGED <<row, snap, faults>>
   /\ DeleterOthersKeep
 
-(* model.ts:123-124: an already closed row skips the write. *)
+(* model.ts:127-128: an already closed row skips the write. *)
 CloseRead ==
   /\ deleter = "closeRead"
   /\ IF row.closed
@@ -415,7 +415,7 @@ CloseApplied ==
   /\ UNCHANGED <<closes, faults>>
   /\ DeleterOthersKeep
 
-(* The `continue` of model.ts:125. *)
+(* The `continue` of model.ts:129. *)
 CloseStale ==
   /\ deleter = "closeCas"
   /\ ~Applies("deleter")
@@ -424,7 +424,7 @@ CloseStale ==
   /\ UNCHANGED <<row, closes, faults>>
   /\ DeleterOthersKeep
 
-(* model.ts:127-133: quiescence is tested on a fresh read after closing. A
+(* model.ts:131-137: quiescence is tested on a fresh read after closing. A
    resolved close lets cleanupTenantData delete (deleted.ts:21-25), a rejected
    one preserves the data. *)
 CloseReread ==
