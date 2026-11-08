@@ -16,6 +16,11 @@ export const EXTERNAL_LINK_ATTRIBUTES = {
   rel: "noopener noreferrer",
 } as const;
 
+function pathOnThisSite(to: string): string {
+  const url = new URL(to, window.location.href);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 function isPlainClick(event: MouseEvent): boolean {
   return !(
     event.defaultPrevented ||
@@ -31,8 +36,9 @@ function isPlainClick(event: MouseEvent): boolean {
  * Props for a `UButton` (or `ULink`) following `to`, its page tokens
  * (`{{params.X}}`, `{{query.X}}`) filled: an external target opens in a new
  * tab, the others navigate in place. A DMS route keeps its `href` for a new
- * tab, but a plain click goes through `navigateDms`, so a link that changes
- * only the query stays in the browser: Nuxt UI's Inertia link, which
+ * tab, but a plain click goes through `navigateDms`, read against the page
+ * on screen, so a link that changes only the query (`?status=pending` or a
+ * full path) stays in the browser: Nuxt UI's Inertia link, which
  * `external` turns off, would ask the server for the page.
  */
 export function buttonLinkProps(declared: string | undefined) {
@@ -48,7 +54,7 @@ export function buttonLinkProps(declared: string | undefined) {
     onClick: (event: MouseEvent) => {
       if (!isPlainClick(event)) return;
       event.preventDefault();
-      void navigateDms(to);
+      void navigateDms(pathOnThisSite(to));
     },
   };
 }

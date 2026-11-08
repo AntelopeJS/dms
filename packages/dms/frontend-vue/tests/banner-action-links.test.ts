@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
 /**
  * A banner link navigates the way `navigateDms` does: a link that changes
- * only the query of the page on screen stays in the browser, a link to
+ * only the query of the page on screen, written as a path or as a bare
+ * query, stays in the browser, a link to
  * another page loads it, and a modified click (new tab, new window) is left
  * to the browser.
  */
@@ -82,6 +83,16 @@ it("keeps a link that changes only the query in the browser", async () => {
   expect(link.getAttribute("href")).toBe(PENDING);
 
   link.click();
+  await settle();
+
+  expect(serverVisit).not.toHaveBeenCalled();
+  expect(browserVisit).toHaveBeenCalledWith(
+    expect.objectContaining({ url: PENDING }),
+  );
+});
+
+it("keeps a link written as a bare query in the browser", async () => {
+  mountBanner("?status=pending").click();
   await settle();
 
   expect(serverVisit).not.toHaveBeenCalled();
