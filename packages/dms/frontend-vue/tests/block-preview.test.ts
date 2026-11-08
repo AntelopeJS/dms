@@ -119,10 +119,10 @@ describe("preview allowlist", () => {
 });
 
 describe("route-sourced blocks", () => {
-  it("renders a serialized resource form only against the read-only demo record", () => {
+  it("renders a serialized resource form that reads any path of the site", () => {
     const options = {
       fields: [{ id: "name", component: { componentName: "dms-input-text" } }],
-      fetchUrl: "/api/block-preview/fixtures/workspace",
+      fetchUrl: "/docs-fixtures/projects/get?id=project-04",
     };
     const [node] = resolvePreviewTree(
       { type: "ResourceForm", options },
@@ -131,8 +131,21 @@ describe("route-sourced blocks", () => {
     expect(node.issue).toBeUndefined();
     expect(node.componentName).toBe("dms-form");
     expect(node.options).toEqual(options);
+    expect(
+      resolvePreviewTree(
+        {
+          type: "ResourceForm",
+          options: { ...options, fetchUrl: "https://evil.example/record" },
+        },
+        BLOCK_TYPES,
+      )[0].issue,
+    ).toEqual({
+      key: "unsafe_url",
+      name: "ResourceForm",
+      value: "https://evil.example/record",
+    });
     for (const changed of [
-      { ...options, fetchUrl: "/api/private/workspace" },
+      { ...options, fetchUrl: undefined },
       { ...options, submitUrl: "/api/private/workspace" },
       { ...options, fields: undefined },
     ]) {
