@@ -5,7 +5,7 @@ description: TLA+ model of the first-admin bootstrap of @antelopejs/dms (POST /a
 
 # Formal check: first-admin bootstrap
 
-A fresh platform has no users, `system_state.has_onboarded` false and a row in `setup_token`. The onboarding wizard sends `POST /api/onboarding/register` with that token, which spends the token with one database delete, creates the first admin as platform owner (`users.owner: true`, every permission) and marks the platform onboarded. Every page load of the dashboard asks `GET /api/onboarding/informations`, which also marks the platform onboarded once it sees a user. When the instance sets `auth.oauth.allowAccountCreation`, an OAuth sign-in can create an account too, but only once the platform has its owner.
+A fresh platform has no users, `system_state.has_onboarded` false and a row in `setup_token`. The onboarding wizard sends `POST /api/onboarding/register` with that token, which spends the token with one database delete, creates the first admin as platform owner (`users.owner: true`, every permission) and marks the platform onboarded. Every page load of the dashboard asks `GET /api/onboarding/informations`, which answers that the platform is onboarded once it sees a user, and writes nothing. When the instance sets `auth.oauth.allowAccountCreation`, an OAuth sign-in can create an account too, but only once the platform has its owner.
 
 The model treats each database round trip as one step, and TLC checks every order of those steps across concurrent requests within the bounds below. The promise it checks is that concurrent onboarding never leaves two platform owners or none.
 
@@ -27,10 +27,10 @@ Java 11 or later comes from `$JAVA`, else `java` on PATH, else the `eclipse-temu
 
 | Configuration | Registers, page loads | States (invite-only, OAuth) | Wall time |
 | --- | --- | --- | --- |
-| CI (`<spec>.ci.cfg`) | 2, 2 | 1,321, 6,263 | about 8 s |
-| Full (`<spec>.cfg`) | 3, 3 | 40,386, 196,908 | about 9 s |
+| CI (`<spec>.ci.cfg`) | 2, 2 | 971, 4,513 | about 8 s |
+| Full (`<spec>.cfg`) | 3, 3 | 26,511, 127,533 | about 9 s |
 
-The times are three runs each in Docker Java 21 on 32 cores. The run that checks the rules that hold uses every core, and each finding runs on one worker. Most of the time is container and JVM start-up, about 1 s for each of the 8 TLC runs.
+The times are three runs each in Docker Java 21 on 32 cores, measured before the dms#533 fix shrank the state space. The run that checks the rules that hold uses every core, and each finding runs on one worker. Most of the time is container and JVM start-up, about 1 s for each of the 8 TLC runs.
 
 - Exit 0 means every rule that held still holds, and each finding still breaks with its recorded counterexample length.
 - Exit 1 means a rule changed. `BROKEN` names a rule that held and now breaks. `CHANGED` names a finding whose shortest counterexample changed length. `HOLDS` names a finding that no longer breaks. The script keeps TLC's output in a temporary folder and prints its path. The run stops at the first spec that changed, so a change in the invite-only spec skips the OAuth one.
@@ -47,19 +47,19 @@ Run `--full` when a change touches a file in the coverage record below, or this 
 | Rule | Plain sentence | Harm when it breaks | On main, invite-only | On main, OAuth sign-up on |
 | --- | --- | --- | --- | --- |
 | `AtMostOneOwner` | At most one user is a platform owner. | A second person holds every permission. | holds | holds |
-| `RefusedRegisterCreatedNoUser` | A register that answers 400, 403 or 412 created no user. | The admin sees an error for an account that exists, and the platform name and language from the wizard are lost. | finding F2 | finding F2 |
-| `OnboardedHasOwner` | Once the platform is marked onboarded, a platform owner exists. | The wizard is gone and nobody administers the platform. | holds | holds (F3 fixed) |
+| `RefusedRegisterCreatedNoUser` | A register that answers 400, 403 or 412 created no user. | The admin sees an error for an account that exists, and the platform name and language from the wizard are lost. | holds (F2 fixed) | holds (F2 fixed) |
+| `OnboardedHasOwner` | Once the platform is marked onboarded, or a page load answers that it is, a platform owner exists. | The wizard is gone and nobody administers the platform. | holds | holds (F3 fixed) |
 | `OwnerlessStaysOpen` | While no platform owner exists, the platform is not onboarded and has no user, so a register can still create the owner. | The first admin can never register. | holds | holds (F4 fixed) |
 
-`TypeOK` holds too. It also says that every register answers 200, 400, 403, 412 or 500. `check.mjs` records each finding's counterexample length for each configuration. Today both configurations have the same length: F2 9 states.
+`TypeOK` holds too. It also says that every register answers 200, 400, 403, 412 or 500. `check.mjs` records each finding's counterexample length for each configuration. Today no rule breaks in either configuration.
 
 ## Findings on main
 
 Each finding was replayed against the real code at the sync commit with the integration harness of `packages/dms/TESTING.md`. The replays were scratch tests and are not committed. They ran before the setup token existed; F2 to F4 do not depend on it. The harness boots the module against an in-memory MongoDB, and each replay seeded a `system_state` row with `has_onboarded: false` on an empty database.
 
 - **F1, two owners (`AtMostOneOwner`), fixed.** `postRegister` used to read one users row, refuse on a row, then insert the admin in separate round trips, and nothing made the insert fail for a second caller. Two concurrent `POST /api/onboarding/register` stored two owners on almost every attempt. Registering now spends the `setup_token` row first: the one `delete` that removes it (`SetupTokenModel.claim`) goes on, and any other caller answers `403 error.invalid_setup_token` without creating a user. `AtMostOneOwner` holds in every configuration, and the integration test `onboarding-setup-token.test.ts` races four registrations and finds one owner.
-- **F2, refused after creating the owner (`RefusedRegisterCreatedNoUser`).** `getInformations` marks the platform onboarded when it sees any users row (lines 39-45). `postRegister` reads `system_state` only after `applyTenantOwnership`, and refuses with 412 when it is already onboarded (line 111). In TLC's counterexample, the register finds no user, claims the token, inserts the owner and makes them tenant owner. A page load finds onboarding open, finds a user and marks onboarding done. The register then finds onboarding done and answers 412. In the replay, a `Hook.MEMBER_BEING_ADDED` handler held the register inside `applyTenantOwnership`, and `GET /api/onboarding/informations` answered `{ has_onboarded: true }`. The register then answered `412 error.onboarding_already_completed`. Alice was the one owner, `platform_name` and `default_language` were unset, and a retry answered `400 error.admin_already_set`. Without the page load, the same register answered 200 and stored `Platform alice` and `fr`.
-- **F3, onboarded with no owner (`OnboardedHasOwner`, OAuth sign-up on), fixed.** `createOAuthUser` inserted the account with `owner: false`, and nothing on the OAuth path read `has_onboarded`, so `getInformations` counted that account as the admin. In TLC's counterexample, a page load found onboarding open, a visitor signed up with OAuth, and the page load found a user and marked onboarding done. `createOAuthUser` now refuses with `403 error.oauth.platform_not_onboarded` unless `has_onboarded` is true or an owner row exists (identity-resolution.ts:118-134). The model reads both in one step: neither goes back once set. The rule holds in every configuration, and the integration test `onboarding-oauth-sign-up.test.ts` replays the sign-up before and after the register.
+- **F2, refused after creating the owner (`RefusedRegisterCreatedNoUser`), fixed (dms#533).** `getInformations` used to mark the platform onboarded when it saw any users row, and `postRegister` reads `system_state` only after `applyTenantOwnership`, refusing with 412 when it is already onboarded. In TLC's counterexample, the register found no user, claimed the token, inserted the owner and made them tenant owner. A page load found onboarding open, found a user and marked onboarding done. The register then found onboarding done and answered 412, with `platform_name` and `default_language` unset and a retry answering `400 error.admin_already_set`. `getInformations` now answers from the users row without writing, so `completeOnboarding` is the one writer of `has_onboarded`. The integration test `onboarding-page-load.test.ts` holds the register in a `Hook.MEMBER_BEING_ADDED` handler, sends `GET /api/onboarding/informations`, which answers `{ has_onboarded: true }`, and finds the register answering 200 with the platform name and language stored.
+- **F3, onboarded with no owner (`OnboardedHasOwner`, OAuth sign-up on), fixed.** `createOAuthUser` inserted the account with `owner: false`, and nothing on the OAuth path read `has_onboarded`, so `getInformations` counted that account as the admin. In TLC's counterexample, a page load found onboarding open, a visitor signed up with OAuth, and the page load found a user and marked onboarding done. Since dms#533 the page load answers without writing, and `OnboardedHasOwner` also covers that answer. `createOAuthUser` now refuses with `403 error.oauth.platform_not_onboarded` unless `has_onboarded` is true or an owner row exists (identity-resolution.ts:118-134). The model reads both in one step: neither goes back once set. The rule holds in every configuration, and the integration test `onboarding-oauth-sign-up.test.ts` replays the sign-up before and after the register.
 - **F4, the wizard closes with no owner (`OwnerlessStaysOpen`, OAuth sign-up on), fixed.** `postRegister` refuses on any users row, owner or not, so an OAuth account created before onboarding made it answer `400 error.admin_already_set` with no owner. The same refusal keeps that account from existing: in the replay, the sign-up answered 403, the register answered 200, and `getOwners()` returned the admin alone.
 
 ## Read every result with /statechart
@@ -88,18 +88,18 @@ Assert only what a user observes: HTTP answers, `UserModel.getOwners()`, and `ha
 | Model action | Code |
 | --- | --- |
 | `Init` | the `system_state` fixture with `has_onboarded: false` (packages/dms/src/db/tables/systemState.table.ts:12-18) |
-| `RegReadUsers` | `postRegister` reads one users row and asserts `error.admin_already_set` (packages/dms/src/routes/onboarding.ts:59-61) |
-| `RegClaim` | `claim` deletes the one `setup_token` row and goes on only when it removed it (onboarding.ts:63-64; packages/dms/src/db/models/setupToken.model.ts). `announceSetupToken` creates the row at start (packages/dms/src/db/setup-token.ts) |
-| `RegInsert` | `createOwner` inserts the admin with `owner: true` (onboarding.ts:85-95); `users.email` has a plain `@Index()` (packages/interface-dms/src/auth/db/tables/users.table.ts:40-42) |
-| `RegTenant` | `applyTenantOwnership` (onboarding.ts:100-103; packages/interface-dms/src/tenant-ownership.ts), `applyAdmittedTenantOwnership` and `mirrorPlatformOwner` (packages/interface-dms/src/internal/tenant-ownership.ts) |
-| `RegReadState`, `RegWriteState` | `completeOnboarding` (onboarding.ts:107-120), the answer (line 69), `getConfig` and `updateConfig` (packages/dms/src/db/models/systemState.model.ts) |
-| `RegFails` | any await of `postRegister` after the claim that throws, and the `error.user_creation_failed` assert (onboarding.ts:98); `restoreUnusedToken` (onboarding.ts:70-79) puts the token back when no user exists |
-| `PollReadState`, `PollReadUsers`, `PollWrite` | `getInformations` (onboarding.ts:29-48) |
+| `RegReadUsers` | `postRegister` reads one users row and asserts `error.admin_already_set` (packages/dms/src/routes/onboarding.ts:53-55) |
+| `RegClaim` | `claim` deletes the one `setup_token` row and goes on only when it removed it (onboarding.ts:57-58; packages/dms/src/db/models/setupToken.model.ts). `announceSetupToken` creates the row at start (packages/dms/src/db/setup-token.ts) |
+| `RegInsert` | `createOwner` inserts the admin with `owner: true` (onboarding.ts:79-89); `users.email` has a plain `@Index()` (packages/interface-dms/src/auth/db/tables/users.table.ts:40-42) |
+| `RegTenant` | `applyTenantOwnership` (onboarding.ts:94-97; packages/interface-dms/src/tenant-ownership.ts), `applyAdmittedTenantOwnership` and `mirrorPlatformOwner` (packages/interface-dms/src/internal/tenant-ownership.ts) |
+| `RegReadState`, `RegWriteState` | `completeOnboarding` (onboarding.ts:101-114), the answer (line 63), `getConfig` and `updateConfig` (packages/dms/src/db/models/systemState.model.ts) |
+| `RegFails` | any await of `postRegister` after the claim that throws, and the `error.user_creation_failed` assert (onboarding.ts:92); `restoreUnusedToken` (onboarding.ts:64-73) puts the token back when no user exists |
+| `PollReadState`, `PollReadUsers` | `getInformations` (onboarding.ts:29-42) |
 | `OAuthReadState` | `oauthCallback` calls `resolveOAuthUser` (packages/dms/src/routes/auth/oauth/callback.ts:84-90); `decideOAuthResolution` allows creation (linking-policy.ts:115-119), `allowAccountCreation` defaults to `false` (config.ts:16, 45-46); `createOAuthUser` reads `has_onboarded`, counts owners when it is false, and refuses without an owner (identity-resolution.ts:118-134) |
 | `OAuthCreatesUser` | `createOAuthUser` inserts `owner: false` (identity-resolution.ts:136-145) |
 | no action | `signup` (packages/dms/src/routes/auth/signup.ts) creates a user only with a valid invitation, which needs an existing member, so it adds no user before onboarding |
 
-The sync commit is `4c96f61d` on AntelopeJS/dms `main`.
+The sync commit is the one that fixed dms#533 on AntelopeJS/dms `main`.
 
 ## Bounds and what is left out
 
@@ -107,7 +107,7 @@ The CI configuration runs 2 registers and 2 page loads, and the full one 3 and 3
 
 The model leaves out:
 
-- the values of `platform_name` and `default_language`. A page load writes back the `system_state` it read, and the model assumes that copy changes only `has_onboarded`.
+- the values of `platform_name` and `default_language`. Only `completeOnboarding` writes `system_state`, so no modeled request overwrites them.
 - tenant membership rows. `applyTenantOwnership` is one step because no modeled request reads them. A register that fails after its insert leaves an owner without a membership, and the model counts that user as an owner.
 - SaaS mode, where `mirrorPlatformOwner` does nothing. The register still writes `owner: true`.
 - a missing `system_state` row (`error.settings_not_found`), which the fixture prevents, and validation errors, which answer before any read.
@@ -116,15 +116,13 @@ The model leaves out:
 
 ## Confirm the check can fail
 
-On a scratch copy of this folder, apply one model edit at a time and run `check.mjs` with and without `--full`. Each edit mirrors the code change in the first column. These ran with the setup token change.
+On a scratch copy of this folder, apply one model edit at a time and run `check.mjs` with and without `--full`. Each edit mirrors the code change in the first column. These ran with the dms#533 fix.
 
 | Scratch change in the code, and the model edit | CI configuration | Full configuration |
 | --- | --- | --- |
-| `claim` stops spending the token (the delete removes nothing): `RegClaim` keeps `tokenRow` | `BROKEN AtMostOneOwner: Initial -> RegReadUsers -> RegReadUsers -> RegClaim -> RegInsert -> RegClaim -> RegInsert` | `BROKEN AtMostOneOwner: Initial -> RegReadUsers -> RegClaim -> RegReadUsers -> RegClaim -> RegInsert -> RegInsert` |
-| Drop the users read and its assert (onboarding.ts:59-61): `RegReadUsers` is disabled, `RegClaim` starts from `idle` | `CHANGED RefusedRegisterCreatedNoUser: 8 states` | same |
-| `getInformations` marks onboarding done without users (drop `if (hasUsers)`, line 42): `PollReadUsers` always goes to `write` | `BROKEN OnboardedHasOwner: Initial -> RegReadUsers -> PollReadState -> PollReadUsers -> PollWrite` | same |
-| A unique email index makes the losing insert answer 409: `RegFails` answers `"409"` | `BROKEN TypeOK: Initial -> RegReadUsers -> RegClaim -> RegFails` | same |
-| Fix candidate: `getInformations` never writes (drop lines 42-45): `PollReadUsers` always goes to `done` | `HOLDS RefusedRegisterCreatedNoUser` (621 states) | same (12,636 states) |
-| Drop the owner gate on OAuth creation (identity-resolution.ts:130-134): `OAuthReadState` always goes to `create` | invite-only unchanged; `BROKEN OwnerlessStaysOpen: Initial -> OAuthReadState -> OAuthCreatesUser` | same |
+| `claim` stops spending the token (the delete removes nothing): `RegClaim` keeps `tokenRow` | `BROKEN AtMostOneOwner` | same |
+| `getInformations` answers onboarded without users (answer `true` at line 41): `PollReadUsers` always goes to `onboarded` | `BROKEN OnboardedHasOwner` | same |
+| A unique email index makes the losing insert answer 409: `RegFails` answers `"409"` | `BROKEN TypeOK` | same |
+| Drop the owner gate on OAuth creation (identity-resolution.ts:130-134): `OAuthReadState` always goes to `create` | invite-only unchanged; `BROKEN OwnerlessStaysOpen` | same |
 
-Every scratch run exited 1. With the edits dropped, both configurations exit 0.
+A `BROKEN` line also prints a counterexample, which comes from the run that checks every core and can differ from run to run, so the table records only the rule. Every scratch run exited 1. With the edits dropped, both configurations exit 0. Dropping the register's users read (onboarding.ts:53-55) changes no rule: the spent setup token refuses every later register, and an OAuth account cannot exist before the owner, so the read only turns a 403 into a 400.

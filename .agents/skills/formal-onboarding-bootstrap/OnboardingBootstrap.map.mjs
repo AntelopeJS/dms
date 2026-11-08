@@ -45,8 +45,8 @@ const ANSWER = new Map([
 const POLL = new Map([
   ["idle", "Not sent"],
   ["readUsers", "Found onboarding open"],
-  ["write", "Found a user"],
-  ["done", "Answered"],
+  ["open", "Answered onboarding open"],
+  ["onboarded", "Answered onboarding done"],
 ]);
 
 const OWNERS = ["no owner", "one owner", "two owners", "three owners"];
@@ -96,8 +96,7 @@ const STEPS = {
   RegFails: (who) => `a database call of ${who} fails`,
   PollReadState: (who, to) =>
     to === "readUsers" ? `${who} finds onboarding open` : `${who} finds onboarding done`,
-  PollReadUsers: (who, to) => (to === "write" ? `${who} finds a user` : `${who} finds no user`),
-  PollWrite: (who) => `${who} marks onboarding done`,
+  PollReadUsers: (who, to) => (to === "onboarded" ? `${who} finds a user` : `${who} finds no user`),
   OAuthReadState: (_who, to) =>
     to === "create" ? "a visitor's OAuth sign-up finds onboarding done" : "a visitor's OAuth sign-up is refused",
   OAuthCreatesUser: () => "a visitor signs up with OAuth",

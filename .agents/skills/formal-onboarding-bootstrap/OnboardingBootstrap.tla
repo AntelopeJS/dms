@@ -28,7 +28,7 @@ VARIABLES
 vars == <<tokenRow, ownerRows, onboarded, rpc, answer, ppc, oauth>>
 
 RegisterSteps == {"idle", "claim", "insert", "tenant", "readState", "writeState", "done"}
-PollSteps == {"idle", "readUsers", "write", "done"}
+PollSteps == {"idle", "readUsers", "open", "onboarded"}
 Answers == {"none", "200", "400", "403", "412", "500"}
 
 TypeOK ==
@@ -57,7 +57,7 @@ Init ==
 (* postRegister reads one users row and refuses when it finds one. *)
 RegReadUsers(r) ==
   /\ rpc[r] = "idle"
-  /\ IF NoUsers                                      \* onboarding.ts:59-61
+  /\ IF NoUsers                                      \* onboarding.ts:53-55
      THEN /\ rpc' = [rpc EXCEPT ![r] = "claim"]
           /\ UNCHANGED answer
      ELSE /\ rpc' = [rpc EXCEPT ![r] = "done"]
@@ -70,7 +70,7 @@ RegReadUsers(r) ==
 (* delete removes nothing is refused with 403 and creates no user.        *)
 RegClaim(r) ==
   /\ rpc[r] = "claim"
-  /\ IF tokenRow                                     \* onboarding.ts:63-64
+  /\ IF tokenRow                                     \* onboarding.ts:57-58
      THEN /\ tokenRow' = FALSE
           /\ rpc' = [rpc EXCEPT ![r] = "insert"]
           /\ UNCHANGED answer
@@ -84,7 +84,7 @@ RegClaim(r) ==
 (* so no existing row refuses it.                                           *)
 RegInsert(r) ==
   /\ rpc[r] = "insert"
-  /\ ownerRows' = ownerRows \cup {r}                 \* onboarding.ts:85-95
+  /\ ownerRows' = ownerRows \cup {r}                 \* onboarding.ts:79-89
   /\ rpc' = [rpc EXCEPT ![r] = "tenant"]
   /\ UNCHANGED <<onboarded, answer, ppc, oauth, tokenRow>>
 
@@ -93,13 +93,13 @@ RegInsert(r) ==
 (* finds owner already true, so its awaits are one step here.             *)
 RegTenant(r) ==
   /\ rpc[r] = "tenant"
-  /\ rpc' = [rpc EXCEPT ![r] = "readState"]          \* onboarding.ts:100-103
+  /\ rpc' = [rpc EXCEPT ![r] = "readState"]          \* onboarding.ts:94-97
   /\ UNCHANGED <<ownerRows, onboarded, answer, ppc, oauth, tokenRow>>
 
 (* completeOnboarding reads system_state and refuses when it is onboarded. *)
 RegReadState(r) ==
   /\ rpc[r] = "readState"
-  /\ IF onboarded                                    \* onboarding.ts:108-111
+  /\ IF onboarded                                    \* onboarding.ts:102-105
      THEN /\ rpc' = [rpc EXCEPT ![r] = "done"]
           /\ answer' = [answer EXCEPT ![r] = "412"]  \* error.onboarding_already_completed
      ELSE /\ rpc' = [rpc EXCEPT ![r] = "writeState"]
@@ -110,9 +110,9 @@ RegReadState(r) ==
 (* the inserted ids.                                                       *)
 RegWriteState(r) ==
   /\ rpc[r] = "writeState"
-  /\ onboarded' = TRUE                               \* onboarding.ts:113-119
+  /\ onboarded' = TRUE                               \* onboarding.ts:107-113
   /\ rpc' = [rpc EXCEPT ![r] = "done"]
-  /\ answer' = [answer EXCEPT ![r] = "200"]          \* onboarding.ts:69
+  /\ answer' = [answer EXCEPT ![r] = "200"]          \* onboarding.ts:63
   /\ UNCHANGED <<ownerRows, ppc, oauth, tokenRow>>
 
 (* A database call after the claim throws: the insert, a write of         *)
@@ -126,32 +126,25 @@ RegFails(r) ==
   /\ rpc[r] \in {"insert", "tenant", "readState", "writeState"}
   /\ rpc' = [rpc EXCEPT ![r] = "done"]
   /\ answer' = [answer EXCEPT ![r] = "500"]
-  /\ tokenRow' = (tokenRow \/ NoUsers)             \* onboarding.ts:70-79
+  /\ tokenRow' = (tokenRow \/ NoUsers)             \* onboarding.ts:64-73
   /\ UNCHANGED <<ownerRows, onboarded, ppc, oauth>>
 
 (* --------------------- GET /api/onboarding/informations ---------------- *)
 
 (* getInformations reads system_state and answers at once when onboarded. *)
+(* A poll that answered is "open" or "onboarded", as the wizard reads it.  *)
 PollReadState(p) ==
   /\ ppc[p] = "idle"
-  /\ ppc' = [ppc EXCEPT ![p] = IF onboarded THEN "done" ELSE "readUsers"] \* onboarding.ts:31-37
+  /\ ppc' = [ppc EXCEPT ![p] = IF onboarded THEN "onboarded" ELSE "readUsers"] \* onboarding.ts:31-37
   /\ UNCHANGED <<ownerRows, onboarded, rpc, answer, oauth, tokenRow>>
 
-(* It reads one users row, whoever owns it, and goes on to write when it  *)
-(* finds one.                                                              *)
+(* It reads one users row, whoever owns it, and answers onboarded when it *)
+(* finds one. It writes nothing: completeOnboarding is the one writer of   *)
+(* has_onboarded.                                                           *)
 PollReadUsers(p) ==
   /\ ppc[p] = "readUsers"
-  /\ ppc' = [ppc EXCEPT ![p] = IF NoUsers THEN "done" ELSE "write"]       \* onboarding.ts:39-42
+  /\ ppc' = [ppc EXCEPT ![p] = IF NoUsers THEN "open" ELSE "onboarded"]  \* onboarding.ts:39-41
   /\ UNCHANGED <<ownerRows, onboarded, rpc, answer, oauth, tokenRow>>
-
-(* updateConfig writes back the settings read at line 31 with             *)
-(* has_onboarded: true. That read found has_onboarded false, so it held   *)
-(* no platform_name: only has_onboarded changes.                          *)
-PollWrite(p) ==
-  /\ ppc[p] = "write"
-  /\ onboarded' = TRUE                               \* onboarding.ts:44
-  /\ ppc' = [ppc EXCEPT ![p] = "done"]
-  /\ UNCHANGED <<ownerRows, rpc, answer, oauth, tokenRow>>
 
 (* ---------------------------- OAuth sign-in ---------------------------- *)
 
@@ -175,7 +168,7 @@ OAuthCreatesUser ==
 (* Every request has answered. *)
 Settled ==
   /\ \A r \in Registers : rpc[r] = "done"
-  /\ \A p \in Polls : ppc[p] = "done"
+  /\ \A p \in Polls : ppc[p] \in {"open", "onboarded"}
   /\ oauth \notin {"idle", "create"}
   /\ UNCHANGED vars
 
@@ -183,7 +176,7 @@ Next ==
   \/ \E r \in Registers :
        \/ RegReadUsers(r) \/ RegClaim(r) \/ RegInsert(r) \/ RegTenant(r)
        \/ RegReadState(r) \/ RegWriteState(r) \/ RegFails(r)
-  \/ \E p \in Polls : PollReadState(p) \/ PollReadUsers(p) \/ PollWrite(p)
+  \/ \E p \in Polls : PollReadState(p) \/ PollReadUsers(p)
   \/ OAuthReadState \/ OAuthCreatesUser
   \/ Settled
 
@@ -194,8 +187,10 @@ Spec == Init /\ [][Next]_vars
 (* At most one user is a platform owner. *)
 AtMostOneOwner == Cardinality(ownerRows) <= 1
 
-(* Once the platform is onboarded, a platform owner exists. *)
-OnboardedHasOwner == onboarded => ownerRows /= {}
+(* Once the platform is onboarded, or a page load answered that it is, a  *)
+(* platform owner exists.                                                   *)
+OnboardedHasOwner ==
+  (onboarded \/ \E p \in Polls : ppc[p] = "onboarded") => ownerRows /= {}
 
 (* While no platform owner exists, a register can still create one: the   *)
 (* platform is not onboarded and has no users row.                         *)
