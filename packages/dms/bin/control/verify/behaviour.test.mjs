@@ -459,3 +459,14 @@ for (const [kind, expression] of EXPRESSION_SPECIFIERS) {
     );
   });
 }
+
+await test("reformatting a module specifier that is an expression is unchanged", (t) => {
+  assert.equal(
+    changed(
+      t,
+      { "src/a.ts": "import x from a('1');\nx();\n" },
+      { "src/a.ts": 'import x from (a( "1" ));\nx();\n' },
+    ),
+    false,
+  );
+});
