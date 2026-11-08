@@ -16,6 +16,7 @@ import {
 import { usePageLiveRefresh } from "../layers/dms-ui/app/composables/live/usePageLiveRefresh";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
 import { CONTENT_LANGUAGE_HEADER } from "../layers/dms-core/app/composables/auth/useAuthFetch";
+import { useUserRealtime } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 import type { TableCountQuery } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 import type {
   TableViewConfig,
@@ -206,6 +207,32 @@ it.each(["table", "kanban"])(
     expect(host.textContent).toContain("2");
   },
 );
+
+it("reads the list again once the session subscribes to the page", async () => {
+  await mount({ ...boardConfig, defaultDisplay: "table" });
+  requests.length = 0;
+  try {
+    await useUserRealtime().setPage("orders");
+    await settleTable();
+    expect(requests).toContain("/api/orders/list");
+  } finally {
+    await useUserRealtime().setPage(null);
+  }
+});
+
+it("reads the list again on a row update that arrives while it loads", async () => {
+  holdList = true;
+  await mount({ ...boardConfig, defaultDisplay: "table" });
+  requests.length = 0;
+  await publishTableEvent("tableview:row:/api/orders", false, {
+    type: "updated",
+    payload: { ids: ["r1"] },
+  });
+  await settleTable();
+  expect(requests).toContain("/api/orders/list");
+  releaseList();
+  await settleTable();
+});
 
 const ActionDisplay: FunctionalComponent<{
   context: TableViewDisplayContext;
