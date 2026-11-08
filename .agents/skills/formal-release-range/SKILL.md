@@ -17,28 +17,26 @@ Use Node 24 from `.nvmrc` and the pinned lockfile install. From the repository r
 FC_SEED=20261029 node --test --test-reporter=spec checks/release-range.test.mjs
 ```
 
-Expect exit code 0, `pass 9`, `fail 0` and `todo 2`. The same file runs in `pnpm test`, so `pnpm run checks` and the required CI `checks` job run it.
+Expect exit code 0, `pass 6` and `fail 0`. The same file runs in `pnpm test`, so `pnpm run checks` and the required CI `checks` job run it.
 Change `FC_SEED` to explore another sample. Keep the failing seed and the printed counterexample when reporting a failure. The same seed reproduces the same generation and shrinking with the pinned fast-check version.
 
-Exit 1 means a property failed. The `todo` lines are the strict properties that fail on the recorded findings. Their failure output is the shrunk counterexample for the finding, and it does not fail the run.
+Exit 1 means a property failed. Its output is the shrunk counterexample.
 
 ## Judge the result
 
 The oracle is `semver.satisfies(version, range)` with default options. It is the check `@antelopejs/core` applies to an interface copy at startup, and a consumer's install resolves with it too. `includePrerelease` is not the promise. It admits `0.10.0-next.0` under `<0.10.0`, which is a prerelease of the breaking minor that the cap exists to keep out. The last test pins the three readings side by side.
 
-1. **Range.** For every mutated range, the rule accepts the semver floor exactly when `semver` parses the range as one `>=0.M.p` and one `<0.(M+1).0` comparator and the text is `>=0.M.p <0.(M+1).0`. It catches a cap that is not the next minor, a loose operator, a union, a prerelease bound and a missing end anchor.
+1. **Range.** For every mutated range, the rule accepts the semver floor exactly when `semver` parses the range as one `>=0.M.p` and one `<0.(M+1).0` comparator and the text is `>=0.M.p <0.(M+1).0`. It catches a cap that is not the next minor, a loose operator, a union, a prerelease bound, a leading zero and a missing end anchor.
 2. **Membership.** For every stable version, the rule and `semver.satisfies` agree. It catches string comparison, an inclusive cap, an exclusive floor, a dropped patch compare, and a dropped major.
 3. **Cap.** No version in the next minor or any later release is accepted, prereleases and build metadata included.
-4. **Prerelease and build metadata.** Outside the recorded classes the rule and `semver.satisfies` agree.
-5. **Findings.** Each recorded class still disagrees exactly as recorded.
+4. **Prerelease and build metadata.** For every version, prereleases and build metadata included, the rule and `semver.satisfies` agree.
 
 On failure, rebuild the counterexample as a pair of `iface.version` and `pkg.dependencies['@antelopejs/interface-dms']`. Check these facts before calling it a product bug.
 
 - The version is valid semver and the range is the text printed in the counterexample.
 - The oracle call uses default options, with no normalised range.
-- The class a failing input falls in (`findingOf`, or the leading-zero mutations) is the one the recorded table names.
 
-A malformed generator is a modelling error. A mismatch after those checks is a finding. Keep the property, record it in `FINDINGS` with its class in `findingOf`, add it below, and leave `checks/release-range.mjs` unchanged unless the user asks for a fix.
+A malformed generator is a modelling error. A mismatch after those checks is a finding. Keep the property, report the counterexample, and leave `checks/release-range.mjs` unchanged unless the user asks for a fix.
 
 ## Behaviour probe
 
@@ -48,16 +46,11 @@ A malformed generator is a modelling error. A mismatch after those checks is a f
 node .agents/skills/formal-release-range/probe.mjs <checkout>
 ```
 
-`dms-control formal` runs it on the base and on HEAD of a diff that touches the coverage record. The same output means the diff kept the covered behaviour, so the recorded findings are reported as known and do not fail the verdict (`verify-dms` verdict rule 5). A changed line fails it.
+`dms-control formal` runs it on the base and on HEAD of a diff that touches the coverage record. The same output means the diff kept the covered behaviour (`verify-dms` verdict rule 5). A changed line fails it.
 
 ## Findings on main
 
-The rule accepts a floor-tuple prerelease and an inside prerelease that `semver.satisfies` rejects, rejects a stable build-metadata version that `semver` accepts, and accepts a range with a leading zero that `semver` cannot parse. The real `validate` step, extracted from the workflow and run on Node 22 and 24 against the range `>=0.9.1 <0.10.0` that `packages/dms/package.json` declares today, exits 0 for `iface.version` `0.9.1-next.0` and `0.9.5-rc.1` and exits 1 for `0.9.5+b`.
-
-- **F1, prerelease of the floor (`0.9.1-next.0` against `>=0.9.1 <0.10.0`).** The rule drops the prerelease and sees `0.9.1`, but `0.9.1-next.0` sorts below `0.9.1`, so the floor release is not the one in the tree. `validate` passes and `npm view @antelopejs/interface-dms@0.9.1-next.0` finds the prerelease, so the module is published with a floor that may not exist yet. Rule true, `semver.satisfies` false, and `includePrerelease` false.
-- **F2, prerelease inside the range (`0.9.5-rc.1`).** The rule accepts it. `semver.satisfies` with default options rejects it, which is what core applies to a copy at startup. Rule true, default false, `includePrerelease` true.
-- **F3, build metadata (`0.9.5+build.0`).** The patch field reads `5+build.0`, `Number` returns `NaN`, and the comparison is false, so the rule rejects a version inside the range. It also rejects it at the floor. Rule false, `semver.satisfies` true. A version below the floor or in another minor is decided before the patch and is unaffected.
-- **F4, leading zero (`>=0.09.1 <0.10.0`, also `>=0.9.01 <0.10.0` and `<0.010.0`).** `\d+` accepts the zero and `Number` ignores it, so the rule accepts a range that `semver` throws on ("Invalid comparator"). The published manifest would carry a range no installer parses.
+None. The four disagreements recorded before #538 are fixed, and the strict properties now hold. F1 was a prerelease of the floor (`0.9.1-next.0`), F2 a prerelease inside the range (`0.9.5-rc.1`), F3 build metadata (`0.9.5+build.0`), and F4 a leading zero in a range field (`>=0.09.1 <0.10.0`). The rule now rejects every prerelease version, because neither bound carries one, ignores build metadata, and refuses a number with a leading zero.
 
 ## Bounds and exclusions
 
@@ -76,13 +69,13 @@ Last synchronized product commit is `4c96f61dfea37ed62104af8a13b0869ba6f927e9`.
 
 | File | What it covers |
 | --- | --- |
-| `checks/release-range.mjs` | `satisfiesImplementedRange` and its `compare` helper |
-| `checks/release-range.test.mjs` | The properties, the generators, the recorded findings and the oracle table |
+| `checks/release-range.mjs` | `satisfiesImplementedRange` and the version and range patterns it reads |
+| `checks/release-range.test.mjs` | The properties, the generators and the oracle table |
 | `.github/workflows/release.yml` | The `validate` job step that imports the module, with `actions/setup-node` before it |
 | `package.json` | The root `test` script that runs the check, and the `fast-check` and `semver` dev dependencies |
 
 Compare changes since the sync commit against this table before trusting an old pass.
-After an intended change to the rule or the range shape, update the oracle, generators, `FINDINGS` and this record together.
+After an intended change to the rule or the range shape, update the oracle, generators and this record together.
 Move the sync commit forward only after confirming the properties still describe the changed code and rerunning them, including a scratch break.
 
 ## Confirm the check can fail
@@ -91,15 +84,13 @@ In a scratch copy of `checks/release-range.mjs` and `checks/release-range.test.m
 
 | Scratch break | Failing observation |
 | --- | --- |
-| `compare` orders versions as strings | Membership fails for floor `0.9.3`. Range, cap and the findings fail too. |
-| `< 0` to `<= 0` on the cap | Membership fails for floor `0.10.1`, version `0.11.0`. Cap fails. |
-| `>= 0` to `> 0` on the floor | Membership fails for floor `0.11.1` at the floor itself. |
+| Numbers compared as strings | Range fails for floor `0.11.1`. Membership, prerelease and the oracle table fail too. |
+| `minor === floorMinor` to `>=` | Cap fails for floor `0.0.1`, version `0.1.1`. Membership fails too. |
+| `>=` to `>` on the floor patch | Range fails for floor `0.11.1` at the floor itself. Membership fails too. |
 | Drop the patch comparison | Membership fails for floor `0.9.3`, version `0.9.0`. |
-| Drop `Number(match[4]) !== Number(match[2]) + 1` | Range fails for `>=0.2.2 <0.4.0` ("cap skips a minor"). |
-| Accept a prerelease of the cap release | Cap fails for floor `0.2.1`, version `0.3.0-next.0`. |
-| Drop the `$` of the range pattern | Range fails for `>=0.0.1 <0.1.0 \|\| >=0.20.0 <0.21.0`. |
+| Drop `capMinor === floorMinor + 1` | Range fails for `>=0.2.2 <0.4.0` ("cap skips a minor"). |
 | Ignore the major | Membership and cap fail for floor `0.2.2`, version `1.2.2`. |
-| Strip build metadata (F3 fixed) | Finding F3 fails: it no longer disagrees. Move it out of `FINDINGS`. |
-| Floor-tuple prerelease sorts below the floor (F1 fixed) | Finding F1 fails: it no longer disagrees. |
-| Numeric fields without leading zeros (F4 fixed) | The F4 example test fails: the rule rejects the range. |
-| Reject every prerelease | Findings F1 and F2 fail, because they no longer accept. |
+| Drop the `$` of the range pattern | Range fails for `>=0.0.1 <0.1.0 \|\| >=0.20.0 <0.21.0`. |
+| Accept a prerelease | Prerelease fails for floor `0.0.0`, version `0.0.0-next.0`. The oracle table fails too. |
+| Refuse build metadata | Prerelease fails for floor `0.8.2`, version `0.8.2+build.0`. The oracle table fails too. |
+| Accept a leading zero (`\d+`) | Range fails for `>=0.0.00 <0.1.0`. The leading-zero test fails too. |

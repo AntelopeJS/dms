@@ -113,44 +113,6 @@ const cases = (suffixes) =>
 const stableCases = cases(false);
 const suffixedCases = cases(true);
 
-/**
- * The recorded findings, as classes of (floor, version) inputs on which the
- * rule and `semver.satisfies` with default options disagree. A class names
- * where, not how often: every member must disagree, and no input outside a
- * class may.
- * @param {{ floor: Floor, version: VersionParts }} input
- * @returns {string | undefined}
- */
-const findingOf = ({ floor, version }) => {
-  if (version.major !== 0 || version.minor !== floor.minor) return undefined;
-  if (version.pre !== undefined && version.patch === floor.patch) return "F1";
-  if (version.pre !== undefined && version.patch > floor.patch) return "F2";
-  if (version.build !== undefined && version.patch >= floor.patch) return "F3";
-  return undefined;
-};
-
-/** @type {Record<string, { version: string, range: string, rule: boolean, semver: boolean }>} */
-const FINDINGS = {
-  F1: {
-    version: "0.9.1-next.0",
-    range: ">=0.9.1 <0.10.0",
-    rule: true,
-    semver: false,
-  },
-  F2: {
-    version: "0.9.5-rc.1",
-    range: ">=0.9.1 <0.10.0",
-    rule: true,
-    semver: false,
-  },
-  F3: {
-    version: "0.9.5+build.0",
-    range: ">=0.9.1 <0.10.0",
-    rule: false,
-    semver: true,
-  },
-};
-
 /** @type {[string, (floor: Floor) => string | undefined][]} */
 const mutations = [
   ["canonical", (f) => canonicalRange(f)],
@@ -257,39 +219,19 @@ const acceptsOnlyCanonical = ({ floor, range }) => {
     (parsed !== undefined && range === canonicalRange(parsed))
   );
 };
-/**
- * @param {{ name: string }} input
- * @returns {boolean}
- */
-const isLeadingZero = ({ name }) => name.startsWith("leading zero");
-
-await test(
-  "range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range (strict, F4 recorded)",
-  {
-    todo: "F4: a leading zero in a range field is accepted though semver cannot parse it",
-  },
-  () => {
-    assertProperty(candidates, acceptsOnlyCanonical);
-  },
-);
-
-await test("range: every mutated range other than the leading-zero ones is judged like semver (catches a cap that is not the next minor, a loose operator or a union)", () => {
-  assertProperty(
-    candidates.filter((candidate) => !isLeadingZero(candidate)),
-    acceptsOnlyCanonical,
-  );
+await test("range: the rule accepts exactly the canonical >=0.M.p <0.(M+1).0 range semver parses (catches a cap that is not the next minor, a loose operator, a union or a leading zero)", () => {
+  assertProperty(candidates, acceptsOnlyCanonical);
 });
 
-await test("range F4: a leading zero in the floor or cap is accepted though semver rejects the range (fails once the rule rejects it)", () => {
-  const example = { version: "0.9.1", range: ">=0.09.1 <0.10.0" };
-  assert.equal(rule(example.version, example.range), true);
-  assert.equal(semver.validRange(example.range), null);
-  assertProperty(candidates.filter(isLeadingZero), ({ floor, range }) => {
-    return (
-      rule(`0.${floor.minor}.${floor.patch}`, range) &&
-      semver.validRange(range) === null
-    );
-  });
+await test("range: a leading zero in the floor or cap is rejected like semver rejects the range", () => {
+  for (const range of [
+    ">=0.09.1 <0.10.0",
+    ">=0.9.01 <0.10.0",
+    ">=0.9.1 <0.010.0",
+  ]) {
+    assert.equal(semver.validRange(range), null);
+    assert.equal(rule("0.9.1", range), false);
+  }
 });
 
 await test("membership: stable versions agree with semver.satisfies on every canonical range (catches string comparison, an inclusive cap, an exclusive floor, a missing patch compare)", () => {
@@ -308,36 +250,12 @@ await test("cap: no version of the next minor or any later release is accepted, 
   );
 });
 
-await test(
-  "prerelease and build metadata: the rule agrees with semver.satisfies (strict, F1 F2 F3 recorded)",
-  { todo: "F1, F2 and F3 are recorded in FINDINGS" },
-  () => {
-    assertProperty(
-      suffixedCases,
-      ({ range, text }) => rule(text, range) === oracle(text, range),
-    );
-  },
-);
-
-await test("prerelease and build metadata: outside the recorded classes the rule agrees with semver.satisfies (catches a new disagreement)", () => {
+await test("prerelease and build metadata: the rule agrees with semver.satisfies (catches a dropped prerelease or a build suffix read as part of the patch)", () => {
   assertProperty(
-    suffixedCases.filter((input) => findingOf(input) === undefined),
+    suffixedCases,
     ({ range, text }) => rule(text, range) === oracle(text, range),
   );
 });
-
-for (const [id, finding] of Object.entries(FINDINGS)) {
-  await test(`finding ${id}: ${finding.version} against ${finding.range} still disagrees as recorded (fails once the rule is fixed)`, () => {
-    assert.equal(rule(finding.version, finding.range), finding.rule);
-    assert.equal(oracle(finding.version, finding.range), finding.semver);
-    assertProperty(
-      suffixedCases.filter((input) => findingOf(input) === id),
-      ({ range, text }) =>
-        rule(text, range) === finding.rule &&
-        oracle(text, range) === finding.semver,
-    );
-  });
-}
 
 await test("oracle choice: only the default options state the promise, includePrerelease admits the breaking minor's prerelease", () => {
   const range = ">=0.9.1 <0.10.0";
@@ -359,9 +277,9 @@ await test("oracle choice: only the default options state the promise, includePr
     ["0.9.1", true, true, true],
     ["0.9.5", true, true, true],
     ["0.10.0", false, false, false],
-    ["0.9.1-next.0", true, false, false],
-    ["0.9.5-rc.1", true, false, true],
+    ["0.9.1-next.0", false, false, false],
+    ["0.9.5-rc.1", false, false, true],
     ["0.10.0-next.0", false, false, true],
-    ["0.9.5+build.0", false, true, true],
+    ["0.9.5+build.0", true, true, true],
   ]);
 });
