@@ -257,6 +257,24 @@ await test("prerelease and build metadata: the rule agrees with semver.satisfies
   );
 });
 
+await test("malformed versions: the rule agrees with semver.satisfies (catches a leading zero, an empty or foreign build suffix, or no length cap in the version)", () => {
+  const range = ">=0.9.1 <0.10.0";
+  for (const version of [
+    "0.09.5",
+    "00.9.5",
+    "0.9.05",
+    "0.9.5+",
+    "0.9.5+a_b",
+    "0.9.5+a..b",
+    "0.9.5-",
+    "0.9.5+build-1.x",
+    `0.9.5+${"a".repeat(250)}`,
+    `0.9.5+${"a".repeat(251)}`,
+  ]) {
+    assert.equal(rule(version, range), oracle(version, range), version);
+  }
+});
+
 await test("oracle choice: only the default options state the promise, includePrerelease admits the breaking minor's prerelease", () => {
   const range = ">=0.9.1 <0.10.0";
   const observed = [

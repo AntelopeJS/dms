@@ -1,3 +1,4 @@
+const MAX_VERSION_LENGTH = 256;
 const NUMBER = String.raw`(0|[1-9]\d*)`;
 const RANGE = new RegExp(
   String.raw`^>=0\.${NUMBER}\.${NUMBER} <0\.${NUMBER}\.0$`,
@@ -17,7 +18,8 @@ const RELEASE = new RegExp(
  *
  * Neither bound carries a prerelease, so `semver` admits no prerelease version,
  * and it ignores build metadata. A number with a leading zero is not semver, in
- * the range or in the version.
+ * the range or in the version, and `semver` refuses a version longer than 256
+ * characters.
  *
  * The release workflow runs this before any install, so it imports nothing.
  *
@@ -27,7 +29,8 @@ const RELEASE = new RegExp(
  */
 export const satisfiesImplementedRange = (version, range) => {
   const bounds = RANGE.exec(range ?? "");
-  const release = RELEASE.exec(version);
+  const release =
+    version.length <= MAX_VERSION_LENGTH ? RELEASE.exec(version) : null;
   if (!bounds || !release) return false;
   const [floorMinor, floorPatch, capMinor] = bounds.slice(1).map(Number);
   const [major, minor, patch] = release.slice(1).map(Number);
