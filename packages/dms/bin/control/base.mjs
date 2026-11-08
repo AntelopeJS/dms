@@ -1,11 +1,11 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, relative } from "node:path";
+import { basename, join, relative } from "node:path";
 import { git } from "./git.mjs";
 import { runToEnd } from "./processes.mjs";
 import { saveRun } from "./run-state.mjs";
 import { runPrepare } from "./verify/skill.mjs";
-import { layOutCopy } from "./run-copy.mjs";
+import { COPY_SKIPPED, layOutCopy } from "./run-copy.mjs";
 import { cliPaths, ENVIRONMENT, spec } from "./stack.mjs";
 import { restartBackend } from "./backend.mjs";
 
@@ -19,22 +19,33 @@ function baseCache() {
 /**
  * A prepared worktree of the run's base ref, built once per commit under
  * `~/.cache/dms-control/base/<sha>` with the skill's `prepare` commands.
+ * When the base ref has no playground folder, as in the change that adds
+ * it, the worktree gets a copy of the run's playground before `prepare`.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {import("./verify/skill.mjs").Skill} skill The skill
- * @returns {{ sha: string, dir: string }} The base commit and its worktree
+ * @returns {{ sha: string, dir: string, playground: string }} The base commit, its worktree and its playground
  */
-function baseCheckout(state, skill) {
+export function baseCheckout(state, skill) {
   const sha = git(["rev-parse", `${state.baseRef}^{commit}`], state.repo);
   const dir = join(baseCache(), sha);
-  if (existsSync(join(dir, READY_MARK))) return { sha, dir };
+  const playground = join(dir, relative(state.repo, state.playground));
+  if (existsSync(join(dir, READY_MARK)) && existsSync(playground)) {
+    return { sha, dir, playground };
+  }
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(baseCache(), { recursive: true });
   git(["worktree", "prune"], state.repo);
   git(["worktree", "add", "--detach", "--force", dir, sha], state.repo);
+  if (!existsSync(playground)) {
+    cpSync(state.playground, playground, {
+      recursive: true,
+      filter: (source) => !COPY_SKIPPED.has(basename(source)),
+    });
+  }
   runPrepare(skill, dir);
   writeFileSync(join(dir, READY_MARK), `${sha}\n`);
-  return { sha, dir };
+  return { sha, dir, playground };
 }
 
 /**
@@ -55,7 +66,7 @@ export async function withBaseBackend(state, skill, action) {
     );
   }
   const base = baseCheckout(state, skill);
-  const playground = join(base.dir, relative(state.repo, state.playground));
+  const { playground } = base;
   state.baseRoot = join(state.dir, "base-root");
   rmSync(state.baseRoot, { recursive: true, force: true });
   const cwd = layOutCopy(playground, base.dir, state.baseRoot);

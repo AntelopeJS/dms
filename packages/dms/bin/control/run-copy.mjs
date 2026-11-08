@@ -8,7 +8,12 @@ import {
 import { basename, join, relative, sep } from "node:path";
 import { WORKSPACE_FOLDER } from "./build-key.mjs";
 
-const COPY_SKIPPED = new Set(["node_modules", ".antelope", WORKSPACE_FOLDER]);
+/** The playground entries a copy leaves out: installed modules and builds. */
+export const COPY_SKIPPED = new Set([
+  "node_modules",
+  ".antelope",
+  WORKSPACE_FOLDER,
+]);
 const SHADOW_SKIPPED = new Set([".antelope", WORKSPACE_FOLDER, ".git"]);
 
 /**
