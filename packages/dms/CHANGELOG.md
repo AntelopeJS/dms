@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.18.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.18.1...v0.18.2)
+
+### 💅 Refactors
+
+- **dms-control:** Remove publish, its evidence branch, comment and status ([#838](https://github.com/AntelopeJS/dms/pull/838))
+
+### 📖 Documentation
+
+- **readme:** Lead with the problem and add animated section banners ([#833](https://github.com/AntelopeJS/dms/pull/833))
+- **readme:** Open on the Helio tour and explain the Connect flow ([#834](https://github.com/AntelopeJS/dms/pull/834))
+- **getting-started:** Title the starter guide "Quickstart" ([#837](https://github.com/AntelopeJS/dms/pull/837))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.18.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.18.0...v0.18.1)
