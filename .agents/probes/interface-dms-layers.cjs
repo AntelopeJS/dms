@@ -521,10 +521,11 @@ function observeExports(distRoot) {
 function observeIdentity(distRoot) {
   clearCache();
   loadDist(distRoot, "index.js");
-  const all = listEntries(distRoot).map((entry) => /** @type {const} */ ([
+  /** @type {[string, Record<string, unknown>][]} */
+  const all = listEntries(distRoot).map((entry) => [
     entry,
     loadDist(distRoot, entry),
-  ]));
+  ]);
   /** @type {{ old: string, type: string, aliases: string[], newPathSameObject: boolean }[]} */
   const result = [];
   for (const [oldEntry, names, newEntry] of MOVED) {

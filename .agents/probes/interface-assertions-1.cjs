@@ -213,10 +213,12 @@ function describeBattery(describeSchema, describeOptions) {
     const before = { ...counts, receivers: counts.receivers.length };
     /** @type {Record<string, unknown>} */
     const record = {};
-    for (const [mode, run] of /** @type {const} */ ([
+    /** @type {[string, () => unknown][]} */
+    const modes = [
       ["schema", () => describeSchema(schema)],
       ["options", () => describeOptions(schema)],
-    ])) {
+    ];
+    for (const [mode, run] of modes) {
       try {
         record[mode] = run();
       } catch (error) {
@@ -411,11 +413,14 @@ async function observeReceivers() {
   tenantAccess.AssertTenantAccess = async () => {
     throw new Error("tenant gate reached");
   };
+  const { User } = require("../../packages/interface-dms/dist/auth/db/tables/users.table.js");
+  const user = new User();
+  user._id = "u";
   const outcomes = [];
   try {
     for (const target of [receiver, {}, { constructor: Controller }, null, undefined, 1, "text"]) {
       try {
-        await authorizeAction(target, "list", { _id: "u" }, "tenant");
+        await authorizeAction(target, "list", user, "tenant");
         outcomes.push("returned");
       } catch (error) {
         const failure = asError(error);

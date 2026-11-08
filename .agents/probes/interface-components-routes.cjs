@@ -16,8 +16,35 @@ function messageOf(error) {
 const {
   ComponentBuilder,
 } = require("../../packages/interface-dms/dist/component.js");
+const { IncomingMessage, ServerResponse } = require("node:http");
+const { Socket } = require("node:net");
+const { HTTPResult } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
+const { User } = require("../../packages/interface-dms/dist/auth/db/tables/users.table.js");
 
-/** @typedef {import("../../packages/interface-dms/node_modules/@antelopejs/interface-data-api").DataControllerCallback} Route */
+/**
+ * A request context over an unconnected socket, with no headers.
+ * @returns {import("../../packages/interface-dms/node_modules/@antelopejs/interface-api").RequestContext}
+ */
+function requestContext() {
+  const rawRequest = new IncomingMessage(new Socket());
+  rawRequest.headers = {};
+  return {
+    rawRequest,
+    rawResponse: new ServerResponse(rawRequest),
+    url: new URL("http://probe/"),
+    routeParameters: {},
+    response: new HTTPResult(),
+  };
+}
+
+/**
+ * @param {string} id
+ */
+function probeUser(id) {
+  const user = new User();
+  user._id = id;
+  return user;
+}
 
 /**
  * @param {{ CheckTenantAccess: typeof import("../../packages/interface-dms/dist/tenant-access.js").CheckTenantAccess }} tenantAccess
@@ -80,7 +107,7 @@ async function observeRoutes() {
   meta.options.realtime = false;
   /** @type {unknown[]} */
   const calls = [];
-  const context = { rawRequest: { headers: {} } };
+  const context = requestContext();
   const params = { id: "row-31" };
   const body = Buffer.from('{"count":17,"discard":true}');
   const sentinel = { returned: 43 };
@@ -101,12 +128,10 @@ async function observeRoutes() {
       return sentinel;
     },
   };
-  /** @type {Route} */
   const mutation = withRealtimeMutation(
     { eventType: "updated", extractIds: () => [] },
     base,
   );
-  /** @type {Route} */
   const presence = withPresenceAcquire(base);
   /** @type {unknown} */
   const mutationResult = await mutation.func.call(
@@ -117,7 +142,7 @@ async function observeRoutes() {
     47,
     context,
     "session-1",
-    { _id: "user-1" },
+    probeUser("user-1"),
   );
   /** @type {unknown} */
   const presenceResult = await presence.func.call(
@@ -128,27 +153,25 @@ async function observeRoutes() {
     context,
     "session-2",
     "1",
-    { _id: "user-2" },
+    probeUser("user-2"),
   );
   const gate = openTenantGate(tenantAccess);
   /** @type {unknown} */
   let authResult;
   try {
-    /** @type {Route} */
     const checked = withActionCheck("probe", base);
     authResult = await checked.func.call(
       receiver,
       context,
       params,
       "auth",
-      { _id: "user-3" },
+      probeUser("user-3"),
     );
   } finally {
     gate.restore();
   }
   const { events, guards } = bodyRewritingGuards(receiver);
   meta.setControllerGuards(guards);
-  /** @type {Route} */
   const guarded = createGuardedWriteRoute(
     {
       ...base,
@@ -170,7 +193,6 @@ async function observeRoutes() {
   meta.setControllerGuards({});
   /** @type {boolean | undefined} */
   let untouched;
-  /** @type {Route} */
   const unguarded = createGuardedWriteRoute(
     {
       ...base,
@@ -278,8 +300,12 @@ function observePageAndTableMetadata() {
     },
     { componentName: "child-layout" },
   );
-  const first = new ComponentBuilder("first").options({ marker: 11 });
-  const second = new ComponentBuilder("second").options({ marker: 23 });
+  /** @type {ComponentBuilder<import("../../packages/interface-dms/dist/base/table-view.js").TableViewOptionsSerialized>} */
+  const first = new ComponentBuilder("first");
+  first.options({ enableTableExport: false, searchable: false, formComponents: {} });
+  /** @type {ComponentBuilder<import("../../packages/interface-dms/dist/base/table-view.js").TableViewOptionsSerialized>} */
+  const second = new ComponentBuilder("second");
+  second.options({ enableTableExport: true, searchable: true, formComponents: {} });
   parent.SetComponent("first", first);
   child.SetComponent("second", second);
   child.inherit(parent);

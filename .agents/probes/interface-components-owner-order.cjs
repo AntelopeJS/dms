@@ -9,7 +9,6 @@ const assert = require("node:assert/strict");
 
 /** @typedef {import("../../packages/interface-dms/dist/component.js").ComponentBuilder<{ marker: string }>} ComponentBuilderInstance */
 /** @typedef {import("../../packages/interface-dms/dist/page/metadata.js").PageMetadata} Page */
-/** @typedef {{ get(key: string): unknown[] | undefined; set(key: string, value: unknown[]): unknown; delete(key: string): unknown }} ExtensionRegistry */
 
 /**
  * @param {unknown} value
@@ -52,14 +51,16 @@ const { Controller } = require("../../packages/interface-dms/node_modules/@antel
 
 /**
  * @param {typeof import("../../packages/interface-dms/dist/page/metadata.js")["PageMetadata"]} PageMetadata
- * @param {ExtensionRegistry} pageExtensions
+ * @param {typeof import("../../packages/interface-dms/dist/page/internal/registry.js")["pageExtensions"]} pageExtensions
  * @param {boolean} throws
  */
 async function ownerExtensionComponent(PageMetadata, pageExtensions, throws) {
   const page = new PageMetadata(class ExtensionOwnerAccessorProbe extends Controller("/probe") {});
   const before = new ComponentBuilder("before").options({ marker: "before" });
   const after = new ComponentBuilder("after").options({ marker: "after" });
-  const contribution = { key: "child", component: before };
+  /** @type {import("../../packages/interface-dms/dist/page/types.js").PageExtensionComponent} */
+  const contribution = { key: "child", component: before, side: "end", order: 0 };
+  /** @type {import("../../packages/interface-dms/dist/page/types.js").PageExtensionInfo} */
   const info = {
     extensionName: "owner-accessor-probe",
     targetFullId: `owner-accessor-probe-${throws}`,
@@ -94,7 +95,7 @@ async function ownerExtensionComponent(PageMetadata, pageExtensions, throws) {
 
 /**
  * @param {typeof import("../../packages/interface-dms/dist/page/metadata.js")["PageMetadata"]} PageMetadata
- * @param {ExtensionRegistry} pageExtensions
+ * @param {typeof import("../../packages/interface-dms/dist/page/internal/registry.js")["pageExtensions"]} pageExtensions
  */
 function ownerAccessorCases(PageMetadata, pageExtensions) {
   return {
@@ -255,17 +256,14 @@ async function observePublicWatchFilterOrder() {
   const { TableView } = require("../../packages/interface-dms/dist/base/table-view/factory.js");
   const results = [];
   for (let trial = 0; trial < 3; trial++) {
-    class Controller {}
+    class TableController extends Controller("/probe") {}
     class Table {}
-    Controller.location = "/probe";
-    GetMetadata(Controller, DataAPIMeta).tableClass = Table;
+    GetMetadata(TableController, DataAPIMeta).tableClass = Table;
     let expired = false;
     let reads = 0;
     /** @type {unknown[]} */
     const trace = [];
-    /** @type {{ run(controller: new () => object, options: Parameters<typeof TableView>[1]): ReturnType<typeof TableView> }["run"]} */
-    const tableView = TableView;
-    const builder = tableView(Controller, {
+    const builder = TableView(TableController, {
       realtime: false,
       formContainer: { type: "drawer" },
     })
@@ -287,11 +285,10 @@ async function observePublicWatchFilterOrder() {
         return false;
       },
     });
-    /** @type {{ run(permissions: Set<string>, options: unknown, permissionId: string, context: object): unknown }["run"] | undefined} */
     const filter = builder.onFilterCallback;
     assert.ok(filter);
     /** @type {unknown} */
-    const result = await filter.call(builder, new Set(["*"]), options, "page.table", {});
+    const result = await filter.call(builder, new Set(["*"]), options, "page.table", { tenantId: "tenant", user: undefined });
     results.push({ trace, watches: watchCount(result) });
   }
   assert.deepEqual(results, Array.from({ length: 3 }, () => ({
@@ -305,6 +302,11 @@ async function observePublicPageScheduling() {
   const { ImplementInterface } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
   const { PageMetadata, GetPageLayoutBySlug } = require("../../packages/interface-dms/dist/page.js");
   const { SignUploadToken } = require("../../packages/interface-dms/dist/uploads.js");
+  const { Schema } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-database/dist/schema.js");
+  const { RoleModel, TenantMemberModel } = require("../../packages/interface-dms/dist/db/index.js");
+  const database = new Schema("public-scheduling-probe", {}).instance("probe");
+  const memberModel = new TenantMemberModel(database);
+  const roleModel = new RoleModel(database);
   ImplementInterface({ SignUploadToken }, { SignUploadToken: async () => "timing-token" });
   /** @type {unknown[]} */
   const trace = [];
@@ -338,10 +340,9 @@ async function observePublicPageScheduling() {
     trace.push(["registered", ticks]);
     await page.SyncExtensions();
     trace.push(["synced", ticks]);
-    /** @type {{ run(request: object): Promise<import("../../packages/interface-dms/dist/page/types.js").PageLayout> }["run"] | undefined} */
     const layout = GetPageLayoutBySlug("/public-scheduling-probe");
     assert.ok(layout);
-    const result = await layout({});
+    const result = await layout({ user: undefined, memberModel, roleModel, tenantId: "tenant" });
     trace.push(["layout", ticks]);
     assert.deepEqual(Object.keys(result.components), ["first", "second"]);
     active = false;
@@ -349,7 +350,14 @@ async function observePublicPageScheduling() {
     /** @type {Promise<unknown> | undefined} */
     let rejected;
     assert.doesNotThrow(() => {
-      rejected = layout({ get query() { throw failure; } });
+      rejected = layout({
+        user: undefined,
+        memberModel,
+        roleModel,
+        tenantId: "tenant",
+        /** @returns {never} */
+        get query() { throw failure; },
+      });
     });
     assert.ok(rejected);
     await assert.rejects(rejected, (/** @type {unknown} */ error) => error === failure);

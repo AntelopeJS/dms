@@ -23,12 +23,13 @@ execFileSync("pnpm", ["--dir", playground, "exec", "tsc"], {
   stdio: "pipe",
 });
 
-/** @type {new (...args: (number | string | Date)[]) => Date} */
 const NativeDate = Date;
 Reflect.set(global, "Date", class extends NativeDate {
-  /** @param {(number | string | Date)[]} args */
+  /** @param {[] | [value: number | string | Date] | [year: number, monthIndex: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number]} args */
   constructor(...args) {
-    super(...(args.length ? args : ["2026-10-26T12:00:00.000Z"]));
+    if (args.length === 0) super("2026-10-26T12:00:00.000Z");
+    else if (args.length === 1) super(args[0]);
+    else super(...args);
   }
   static now() {
     return new NativeDate("2026-10-26T12:00:00.000Z").getTime();
@@ -47,6 +48,14 @@ Math.random = () => {
  */
 function isFunction(value) {
   return typeof value === "function";
+}
+
+/**
+ * @param {import("../../packages/dms/playground/node_modules/@antelopejs/interface-core/dist/decorators").Class<object>} value
+ * @returns {value is ConstructorParameters<typeof import("../../packages/dms/playground/node_modules/@antelopejs/interface-dms/dist/page.js").PageMetadata>[0]}
+ */
+function isControllerClass(value) {
+  return "location" in value && typeof value.location === "string" && "extend" in value && isFunction(value.extend);
 }
 
 /**
@@ -243,7 +252,8 @@ Module._load = function (request, parent, main) {
       ...result,
       RegisterPage:
         (/** @type {Parameters<typeof result.RegisterPage>} */ ...args) =>
-        (/** @type {ConstructorParameters<typeof result.PageMetadata>[0]} */ target) => {
+        (/** @type {Parameters<ReturnType<typeof result.RegisterPage>>[0]} */ target) => {
+          if (!isControllerClass(target)) throw new TypeError(`${target.name} is not a controller class`);
           registrations.push([
             "page",
             target.name,

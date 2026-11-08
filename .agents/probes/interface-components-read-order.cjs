@@ -6,6 +6,9 @@ const root = process.argv[2];
 module.filename = path.join(root, ".agents/probes/interface-components-read-order.cjs");
 
 const assert = require("node:assert/strict");
+const { IncomingMessage, ServerResponse } = require("node:http");
+const { Socket } = require("node:net");
+const { Controller, HTTPResult } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
 
 /** @typedef {InstanceType<typeof import("../../packages/interface-dms/dist/page/metadata.js")["PageMetadata"]>} Page */
 /** @typedef {import("../../packages/interface-dms/node_modules/@antelopejs/interface-api/dist/route-registry").RouteHandler} Route */
@@ -37,6 +40,22 @@ function asMap(value) {
 function forwardRead(target, key, receiver) {
   // oxlint-disable-next-line anti-slop/no-reflect-get -- The get trap forwards the read with the trap's receiver, which only Reflect.get takes, so a getter on the proxied object keeps the proxy as this.
   return Reflect.get(target, key, receiver);
+}
+
+/**
+ * @param {import("node:http").IncomingHttpHeaders} headers
+ * @returns {import("../../packages/interface-dms/node_modules/@antelopejs/interface-api").RequestContext}
+ */
+function requestContext(headers) {
+  const rawRequest = new IncomingMessage(new Socket());
+  rawRequest.headers = headers;
+  return {
+    rawRequest,
+    rawResponse: new ServerResponse(rawRequest),
+    url: new URL("http://probe/"),
+    routeParameters: {},
+    response: new HTTPResult(),
+  };
 }
 
 /**
@@ -75,7 +94,7 @@ async function observeTypeBoundaries() {
         validator: async () => value,
       });
       decorate()({}, "user");
-      const ctx = { rawRequest: { headers: { authorization: "Bearer token" } } };
+      const ctx = requestContext({ authorization: "Bearer token" });
       assert.ok(provider);
       const result = await provider(ctx);
       authenticated.push({
@@ -126,18 +145,17 @@ function observePageInfoPrecedence() {
     const explicit = { componentName: "explicit-layout" };
     const menuLayout = { componentName: "menu-layout" };
     const ancestorLayout = { componentName: "ancestor-layout" };
-    const ancestor = { fullId: "root", fullSlug: "/root", layout: ancestorLayout };
+    /** @type {import("../../packages/interface-dms/dist/page/types").CategoryInfo} */
+    const ancestor = { id: "root", displayName: "Root", fullId: "root", fullSlug: "/root", category: undefined, layout: ancestorLayout };
+    /** @type {import("../../packages/interface-dms/dist/page/types").PageInfo} */
+    const categoryInfo = {
+      id: "category", displayName: "Category", fullId: "root.category", fullSlug: "/category", layoutUrl: "/category/pagelayout",
+      category: ancestor, hidden: true, publicAccess: true, authOnly: true,
+      memberAccess: mode === "menu" ? "self" : true,
+      bypassTenantAccessGate: true,
+    };
     const category = new Proxy(
-      {
-        fullId: "root.category",
-        fullSlug: "/category",
-        category: ancestor,
-        hidden: true,
-        publicAccess: true,
-        authOnly: true,
-        memberAccess: mode === "menu" ? "self" : true,
-        bypassTenantAccessGate: true,
-      },
+      categoryInfo,
       {
         get(target, key, receiver) {
           trace.push(`category.${String(key)}`);
@@ -145,9 +163,11 @@ function observePageInfoPrecedence() {
         },
       },
     );
-    class CategoryController {}
+    class CategoryController extends Controller("/probe") {}
     GetMetadata(CategoryController, PageMetadata).pageInfo = category;
-    /** @type {Omit<import("../../packages/interface-dms/dist/page/types").MenuOptions, "category" | "parent"> & { category?: object, parent: object }} */
+    class ParentController extends Controller("/probe") {}
+    GetMetadata(ParentController, PageMetadata).pageInfo = { id: "other", displayName: "Other", fullId: "other", fullSlug: "/parent-only", layoutUrl: "/parent-only/pagelayout", category: undefined };
+    /** @type {import("../../packages/interface-dms/dist/page/types").MenuOptions} */
     const options = {
       displayName: "Asymmetric page",
       hidden: false,
@@ -155,7 +175,7 @@ function observePageInfoPrecedence() {
       authOnly: false,
       memberAccess: mode === "explicit" ? "self" : false,
       bypassTenantAccessGate: false,
-      parent: { fullId: "other", fullSlug: "/parent-only" },
+      parent: ParentController,
     };
     if (mode !== "default") {
       options.category = mode === "controller" ? CategoryController : category;
@@ -167,8 +187,8 @@ function observePageInfoPrecedence() {
         return forwardRead(target, key, receiver);
       },
     });
-    class Controller {}
-    const page = new PageMetadata(Controller);
+    class PageController extends Controller("/probe") {}
+    const page = new PageMetadata(PageController);
     const receiver = new Proxy(page, {
       set(target, key, value, owner) {
         trace.push(`write.${String(key)}`);
@@ -218,7 +238,7 @@ async function observeExtractedPageCalls() {
   let route;
   /** @type {unknown[]} */
   const calls = [];
-  const page = new PageMetadata(class ForwardingProbe {});
+  const page = new PageMetadata(class ForwardingProbe extends Controller("/probe") {});
   api.RegisterRoute = (value) => {
     route = value;
     return 17;
@@ -244,7 +264,15 @@ async function observeExtractedPageCalls() {
     });
     const handler = pageLayoutHandlers.get("/extraction-probe");
     assert.ok(handler);
-    await handler({ tenantId: "tenant" });
+    const { Schema } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-database/dist/schema.js");
+    const { RoleModel, TenantMemberModel } = require("../../packages/interface-dms/dist/db/index.js");
+    const database = new Schema("read-order-probe", {}).instance();
+    await handler({
+      user: undefined,
+      memberModel: new TenantMemberModel(database),
+      roleModel: new RoleModel(database),
+      tenantId: "tenant",
+    });
     page.Dispose();
   } finally {
     api.RegisterRoute = priorRegister;
@@ -255,7 +283,7 @@ async function observeExtractedPageCalls() {
   /** @type {unknown} */
   let layout;
   try {
-    const owner = new PageMetadata(class LazyReadProbe {});
+    const owner = new PageMetadata(class LazyReadProbe extends Controller("/probe") {});
     owner["layoutRef"] = {
       layout: { componentName: "probe" },
       components: { secret: { componentName: "secret", options: { marker: 31 } } },
@@ -275,7 +303,7 @@ async function observeExtractedPageCalls() {
     permissions.HasPermission = priorPermission;
   }
   let recursiveMethodReads = 0;
-  const receiver = new Proxy(new PageMetadata(class RecursionProbe {}), {
+  const receiver = new Proxy(new PageMetadata(class RecursionProbe extends Controller("/probe") {}), {
     get(target, key, owner) {
       if (key === "bindUploadOptions") recursiveMethodReads++;
       return forwardRead(target, key, owner);
@@ -393,7 +421,7 @@ function takenKeysOrder(fresh) {
 
 async function observeEvaluationOrder() {
   const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
-  const fresh = () => new PageMetadata(class EvaluationOrderProbe {});
+  const fresh = () => new PageMetadata(class EvaluationOrderProbe extends Controller("/probe") {});
   /** @type {Record<string, unknown>} */
   const results = {};
   results.publish = publishOrder(fresh);
