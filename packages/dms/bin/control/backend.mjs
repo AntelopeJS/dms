@@ -1,13 +1,13 @@
 import { buildChangedSince, missingBuildRoot } from "./build-inputs.mjs";
 import { apiTargetFile, readTarget, writeTarget } from "./forwarder.mjs";
 import { dropDatabase } from "./mongo.mjs";
+import { resolutionFolders } from "./launch.mjs";
 import { killRecorded, stopRecorded } from "./processes.mjs";
 import {
   ensureApi,
   launchBackend,
   liveBackends,
   record,
-  resolutionFolders,
   startBackend,
   waitForBackend,
 } from "./stack.mjs";

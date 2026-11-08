@@ -2,7 +2,8 @@ import { apiTargetFile, readTarget } from "./forwarder.mjs";
 import { isSameProcess } from "./identity.mjs";
 import { startMongod } from "./mongo.mjs";
 import { killRecorded, stopRecorded } from "./processes.mjs";
-import { liveBackends, record, resolutionFolders } from "./stack.mjs";
+import { resolutionFolders } from "./launch.mjs";
+import { liveBackends, record } from "./stack.mjs";
 
 /** @typedef {import("./run-state.mjs").RunState} RunState */
 

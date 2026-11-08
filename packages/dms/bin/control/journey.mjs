@@ -15,7 +15,8 @@ import {
   onboard,
   recordedRequest,
 } from "./session.mjs";
-import { ensureMail, resolutionFolders } from "./stack.mjs";
+import { resolutionFolders } from "./launch.mjs";
+import { ensureMail } from "./stack.mjs";
 import {
   assertForwardedRun,
   freshDatabase,

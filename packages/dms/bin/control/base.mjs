@@ -6,7 +6,7 @@ import { runToEnd } from "./processes.mjs";
 import { saveRun } from "./run-state.mjs";
 import { runPrepare } from "./verify/skill.mjs";
 import { COPY_SKIPPED, layOutCopy } from "./run-copy.mjs";
-import { cliPaths, ENVIRONMENT, spec } from "./stack.mjs";
+import { cliPaths, ENVIRONMENT, spec } from "./launch.mjs";
 import { restartBackend } from "./backend.mjs";
 
 const READY_MARK = ".dms-control-ready";
