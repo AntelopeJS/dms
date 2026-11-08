@@ -14,6 +14,7 @@ import {
   type Ref,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { setupFrontendModules } from "#dms/frontend-module";
 import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePostLoginRedirect";
 import { usePageLayout } from "../layers/dms-layout/app/composables/page/usePageLayout";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
@@ -141,7 +142,29 @@ async function respond(url: string) {
   return url === SITE_LAYOUT_URL ? siteResponse : completionLayout;
 }
 
-beforeEach(() => {
+async function serveModulePages(paths: string[]): Promise<void> {
+  await setupFrontendModules([
+    {
+      name: "workspace-signup",
+      options: {},
+      module: {
+        setup(sdk) {
+          for (const path of paths)
+            sdk.registerPage(path, defineComponent({ render: () => null }));
+        },
+      },
+    },
+  ]);
+}
+
+const NO_WORKSPACE_HANDOFF = {
+  kind: "no-workspace",
+  token: "assignment-token",
+  provider: "google",
+};
+
+beforeEach(async () => {
+  await setupFrontendModules([]);
   state.clear();
   mounts = 0;
 
@@ -210,4 +233,31 @@ it("completes again on a later visit, once the previous one settled", async () =
   await settle();
 
   expect(fetchHandoff).toHaveBeenCalledTimes(2);
+});
+
+it("sends an account with no workspace to the core screen, without its token, when no module serves /auth/no-workspace", async () => {
+  await serveModulePages(["auth/pricing"]);
+  fetchHandoff.mockResolvedValue(NO_WORKSPACE_HANDOFF);
+  mountCompletionPage();
+  await vi.waitFor(() => expect(navigate).toHaveBeenCalled());
+
+  expect(navigate).toHaveBeenCalledExactlyOnceWith(
+    { path: "/auth/not-a-member" },
+    { replace: true },
+  );
+});
+
+it("hands an account with no workspace to the module page, with its token, when a module serves /auth/no-workspace", async () => {
+  await serveModulePages(["auth/no-workspace"]);
+  fetchHandoff.mockResolvedValue(NO_WORKSPACE_HANDOFF);
+  mountCompletionPage();
+  await vi.waitFor(() => expect(navigate).toHaveBeenCalled());
+
+  expect(navigate).toHaveBeenCalledExactlyOnceWith(
+    {
+      path: "/auth/no-workspace",
+      query: { token: "assignment-token", provider: "google" },
+    },
+    { replace: true },
+  );
 });
