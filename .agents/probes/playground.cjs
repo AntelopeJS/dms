@@ -23,16 +23,17 @@ execFileSync("pnpm", ["--dir", playground, "exec", "tsc"], {
   stdio: "pipe",
 });
 
+/** @type {new (...args: (number | string | Date)[]) => Date} */
 const NativeDate = Date;
-global.Date = class extends NativeDate {
-  /** @param {ConstructorParameters<typeof Date>} args */
+Reflect.set(global, "Date", class extends NativeDate {
+  /** @param {(number | string | Date)[]} args */
   constructor(...args) {
     super(...(args.length ? args : ["2026-10-26T12:00:00.000Z"]));
   }
   static now() {
     return new NativeDate("2026-10-26T12:00:00.000Z").getTime();
   }
-};
+});
 
 let randomState = 1;
 Math.random = () => {
@@ -176,13 +177,13 @@ const leaves = {
 /** @type {Record<string, Record<string, unknown>>} */
 const virtualLeaves = {};
 const capture = Symbol.for("playground-probe.capture");
-global[capture] = (/** @type {string} */ name, /** @type {[string, unknown][]} */ entries) => {
+Reflect.set(global, capture, (/** @type {string} */ name, /** @type {[string, unknown][]} */ entries) => {
   /** @type {Record<string, unknown>} */
   const exports = {};
   Object.defineProperty(exports, "__esModule", { value: true });
   for (const [key, value] of entries) exports[key] = value;
   virtualLeaves[name] = exports;
-};
+});
 
 const extension = Module._extensions[".js"];
 Module._extensions[".js"] = (module, filename) => {
@@ -242,7 +243,7 @@ Module._load = function (request, parent, main) {
       ...result,
       RegisterPage:
         (/** @type {Parameters<typeof result.RegisterPage>} */ ...args) =>
-        (/** @type {Parameters<ReturnType<typeof result.RegisterPage>>[0]} */ target) => {
+        (/** @type {ConstructorParameters<typeof result.PageMetadata>[0]} */ target) => {
           registrations.push([
             "page",
             target.name,
@@ -277,6 +278,7 @@ const dataModules = [
   "feature-index/table-view",
   "table-view/defaultValues",
 ];
+/** @type {Record<string, unknown>} */
 const data = Object.fromEntries(
   dataModules.map((name) => {
     const exports = loadBuilt(name + ".js");

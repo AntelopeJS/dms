@@ -8,6 +8,7 @@ module.filename = path.join(root, ".agents/probes/interface-components-read-orde
 const assert = require("node:assert/strict");
 
 /** @typedef {InstanceType<typeof import("../../packages/interface-dms/dist/page/metadata.js")["PageMetadata"]>} Page */
+/** @typedef {import("../../packages/interface-dms/node_modules/@antelopejs/interface-api/dist/route-registry").RouteHandler} Route */
 
 /**
  * @param {unknown} error
@@ -66,6 +67,7 @@ async function observeTypeBoundaries() {
   api.SetParameterProvider = (_target, _key, _index, value) => { provider = value; };
   try {
     for (const value of [null, false, 17, "plain", {}, { _id: 23 }, inherit({
+      /** @this {{ marker?: number }} */
       get _id() { reads.push(this.marker === 31); return "user-31"; },
     }, { marker: 31 })]) {
       const decorate = CreateJwtAuthDecorator({
@@ -74,6 +76,7 @@ async function observeTypeBoundaries() {
       });
       decorate()({}, "user");
       const ctx = { rawRequest: { headers: { authorization: "Bearer token" } } };
+      assert.ok(provider);
       const result = await provider(ctx);
       authenticated.push({
         identity: result === value,
@@ -144,6 +147,7 @@ function observePageInfoPrecedence() {
     );
     class CategoryController {}
     GetMetadata(CategoryController, PageMetadata).pageInfo = category;
+    /** @type {Omit<import("../../packages/interface-dms/dist/page/types").MenuOptions, "category" | "parent"> & { category?: object, parent: object }} */
     const options = {
       displayName: "Asymmetric page",
       hidden: false,
@@ -178,7 +182,8 @@ function observePageInfoPrecedence() {
       mode === "explicit" ? explicit : undefined,
     );
     const info = page.pageInfo;
-    const pageCategory = info?.category;
+    assert.ok(info);
+    const pageCategory = info.category;
     const snapshot = {
       ...info,
       category: pageCategory && "fullId" in pageCategory ? pageCategory.fullId : undefined,
@@ -209,17 +214,18 @@ async function observeExtractedPageCalls() {
   const priorRegister = api.RegisterRoute;
   const priorUnregister = api.UnregisterRoute;
   const priorPermission = permissions.HasPermission;
+  /** @type {Route | undefined} */
   let route;
   /** @type {unknown[]} */
   const calls = [];
   const page = new PageMetadata(class ForwardingProbe {});
   api.RegisterRoute = (value) => {
     route = value;
-    return "extraction-probe";
+    return 17;
   };
   api.UnregisterRoute = () => {};
   try {
-    page.resolvePageLayout = /** @this {Page} @param {unknown[]} args */ function (...args) {
+    page["resolvePageLayout"] = /** @this {Page} @param {unknown[]} args */ function (...args) {
       calls.push({
         receiver: this === page,
         argc: args.length,
@@ -227,15 +233,18 @@ async function observeExtractedPageCalls() {
       });
       return Promise.resolve({ marker: 17 });
     };
-    page.registerLayoutRoute({
+    page["registerLayoutRoute"]({
       fullSlug: "/extraction-probe",
       layoutUrl: "/extraction-probe/layout",
     });
+    assert.ok(route);
     await route.callback.call({
       pageQuery: { q: "17" },
       pageParams: { id: "31" },
     });
-    await pageLayoutHandlers.get("/extraction-probe")({ tenantId: "tenant" });
+    const handler = pageLayoutHandlers.get("/extraction-probe");
+    assert.ok(handler);
+    await handler({ tenantId: "tenant" });
     page.Dispose();
   } finally {
     api.RegisterRoute = priorRegister;
@@ -247,11 +256,11 @@ async function observeExtractedPageCalls() {
   let layout;
   try {
     const owner = new PageMetadata(class LazyReadProbe {});
-    owner.layoutRef = {
+    owner["layoutRef"] = {
       layout: { componentName: "probe" },
       components: { secret: { componentName: "secret", options: { marker: 31 } } },
     };
-    owner.pagePermissionId = "page";
+    owner["pagePermissionId"] = "page";
     const receiver = new Proxy(owner, {
       get(target, key, receiver) {
         if (key === "pageInfo") {
@@ -261,7 +270,7 @@ async function observeExtractedPageCalls() {
         return forwardRead(target, key, receiver);
       },
     });
-    layout = await receiver.resolvePageLayout({ tenantId: "tenant" });
+    layout = await receiver["resolvePageLayout"]({ tenantId: "tenant" });
   } finally {
     permissions.HasPermission = priorPermission;
   }
@@ -272,7 +281,7 @@ async function observeExtractedPageCalls() {
       return forwardRead(target, key, owner);
     },
   });
-  await receiver.bindUploadOptions({ a: { b: 17 } }, "probe", "page.probe", []);
+  await receiver["bindUploadOptions"]({ a: { b: 17 } }, "probe", "page.probe", []);
   return { calls, pageInfoReads, layout, recursiveMethodReads };
 }
 
@@ -288,22 +297,22 @@ function publishOrder(fresh) {
       fullId: `order-publish-${readAuthOnly}`,
       isModuleRoot: true,
       get noComponentPermissions() {
-        trace.push(["noComponentPermissions", page.moduleScoped, this === info]);
+        trace.push(["noComponentPermissions", page["moduleScoped"], this === info]);
         if (!readAuthOnly) throw new Error("order-stop");
         return false;
       },
       get authOnly() {
-        trace.push(["authOnly", page.moduleScoped, this === info]);
+        trace.push(["authOnly", page["moduleScoped"], this === info]);
         throw new Error("order-stop");
       },
     };
     try {
-      page.publish(info);
+      page["publish"](info);
     } catch (error) {
       if (messageOf(error) !== "order-stop") throw error;
     }
     /** @type {unknown} */
-    const moduleScoped = page.moduleScoped;
+    const moduleScoped = page["moduleScoped"];
     const state = { trace, moduleScoped };
     page.Dispose();
     return state;
@@ -340,7 +349,7 @@ function notifyOrder(fresh) {
         };
       },
     };
-    page.notifyPageCreated({ component, depth: 0, permissionId: "order.component" });
+    page["notifyPageCreated"]({ component, depth: 0, permissionId: "order.component" });
     return { mode, trace, calls, firstContains: first.has(component), secondContains: second.has(component) };
   });
 }
@@ -374,7 +383,7 @@ function takenKeysOrder(fresh) {
     /** @type {unknown[] | undefined} */
     let keys;
     try {
-      keys = [...asMap(page.takenComponentKeys())];
+      keys = [...asMap(page["takenComponentKeys"]())];
     } catch (error) {
       if (!throws || messageOf(error) !== "order-stop") throw error;
     }
@@ -385,14 +394,15 @@ function takenKeysOrder(fresh) {
 async function observeEvaluationOrder() {
   const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
   const fresh = () => new PageMetadata(class EvaluationOrderProbe {});
+  /** @type {Record<string, unknown>} */
   const results = {};
   results.publish = publishOrder(fresh);
   const api = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
   const register = api.RegisterRoute;
   const unregister = api.UnregisterRoute;
-  /** @type {Parameters<typeof api.RegisterRoute>[0] | undefined} */
+  /** @type {Route | undefined} */
   let route;
-  api.RegisterRoute = (value) => { route = value; return "order-route"; };
+  api.RegisterRoute = (value) => { route = value; return 31; };
   api.UnregisterRoute = () => {};
   try {
     class First {}
@@ -409,10 +419,11 @@ async function observeEvaluationOrder() {
         return forwardRead(target, key, owner);
       },
     });
-    receiver.registerLayoutRoute({
+    receiver["registerLayoutRoute"]({
       fullSlug: "/order-route",
       get layoutUrl() { trace.push(["layoutUrl"]); return "/order-route/layout"; },
     });
+    assert.ok(route);
     results.layoutRoute = { trace: [...trace], secondController: route.controller === Second };
     receiver.Dispose();
   } finally {
@@ -420,11 +431,13 @@ async function observeEvaluationOrder() {
     api.UnregisterRoute = unregister;
   }
   results.notify = notifyOrder(fresh);
-  results.addExtension = [];
+  /** @type {unknown[]} */
+  const addExtension = [];
+  results.addExtension = addExtension;
   for (const throws of [false, true]) {
     const page = fresh();
-    page.takenComponentKeys = () => new Map();
-    const stale = asMap(page.extensionEntries);
+    page["takenComponentKeys"] = () => new Map();
+    const stale = asMap(page["extensionEntries"]);
     const replacement = new Map();
     /** @type {unknown[]} */
     const trace = [];
@@ -443,11 +456,11 @@ async function observeEvaluationOrder() {
       },
     };
     try {
-      await page.addExtension(info);
+      await page["addExtension"](info);
     } catch (error) {
       if (!throws || messageOf(error) !== "order-stop") throw error;
     }
-    results.addExtension.push({ throws, trace, liveContains: replacement.has(info), staleContains: stale.has(info) });
+    addExtension.push({ throws, trace, liveContains: replacement.has(info), staleContains: stale.has(info) });
   }
   results.takenKeys = takenKeysOrder(fresh);
   assert.deepEqual(results, {

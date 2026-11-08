@@ -251,7 +251,7 @@ function isFunction(value) {
  * @returns {T}
  */
 function defined(value) {
-  if (value === undefined) throw new TypeError("Expected a method of the prototype");
+  if (value === undefined) throw new TypeError("Expected a defined value");
   return value;
 }
 
@@ -369,14 +369,17 @@ function record(container, key, isNew) {
   }
 }
 
+/** @param {unknown} key @param {unknown} value */
 Map.prototype.set = function set(key, value) {
   record(this, key, !originalMapHas.call(this, key));
   return originalMapSet.call(this, key, value);
 };
+/** @param {WeakKey} key @param {unknown} value */
 WeakMap.prototype.set = function set(key, value) {
   record(this, key, !originalWeakMapHas.call(this, key));
   return originalWeakMapSet.call(this, key, value);
 };
+/** @param {unknown} value */
 Set.prototype.add = function add(value) {
   record(this, value, !originalSetHas.call(this, value));
   return originalSetAdd.call(this, value);
@@ -432,7 +435,7 @@ function loadAlone(distRoot, entry) {
   try {
     loadDist(distRoot, entry);
   } catch (caught) {
-    error = String(caught && caught.message);
+    error = String(caught && (isObject(caught) ? caught.message : undefined));
   }
   const { inserts } = recording;
   recording = undefined;
@@ -464,7 +467,7 @@ function loadAlone(distRoot, entry) {
  */
 function describeExports(exportsObject) {
   return Reflect.ownKeys(exportsObject).map((key) => {
-    const d = Object.getOwnPropertyDescriptor(exportsObject, key);
+    const d = defined(Object.getOwnPropertyDescriptor(exportsObject, key));
     const flags = `${d.enumerable ? "e" : "-"}${d.configurable ? "c" : "-"}`;
     if (!("value" in d)) return `${String(key)} accessor ${flags}`;
     /** @type {unknown} */

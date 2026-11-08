@@ -31,14 +31,16 @@ const {
 
 async function observeUploadConstraintReads() {
   const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
+  const { Controller } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
+  /** @type {{ SignUploadToken: typeof import("../../packages/interface-dms/dist/uploads.js").SignUploadToken }} */
   const uploads = require("../../packages/interface-dms/dist/uploads.js");
   const priorSigner = uploads.SignUploadToken;
   const observed = [];
   try {
     for (const mode of ["undefined", "null", "false", "number", "string", "array", "proxy"]) {
-      const page = new PageMetadata(class ConstraintReadProbe {});
-      page.skipComponentPermissions = true;
-      page.componentMap.set("constraint.component", { access: "own" });
+      const page = new PageMetadata(class ConstraintReadProbe extends Controller("") {});
+      page["skipComponentPermissions"] = true;
+      page["componentMap"].set("constraint.component", { access: "own" });
       /** @type {unknown[]} */
       const trace = [];
       let maxReads = 0;
@@ -57,12 +59,12 @@ async function observeUploadConstraintReads() {
       };
       /** @type {unknown} */
       let constraints;
-      uploads.SignUploadToken = async (/** @type {{ constraints?: unknown }} */ registration) => {
-        constraints = registration.constraints;
-        page.detached = true;
+      uploads.SignUploadToken = async (registration) => {
+        constraints = "constraints" in registration ? registration.constraints : undefined;
+        page["detached"] = true;
         return "constraint-probe-token";
       };
-      await page.registerNativeUploadField({ disabled: true, component: { options } }, "probe", "constraint.component", []);
+      await page["registerNativeUploadField"]({ disabled: true, component: { options } }, "probe", "constraint.component", []);
       observed.push({ mode, trace, constraints: constraints ?? null });
     }
   } finally {
@@ -135,10 +137,16 @@ function observeDataTypesAndHints() {
     constructor() {
       registrations.push("empty");
     }
+    filter() {
+      return false;
+    }
   }
   class KeptMode {
     constructor() {
       registrations.push("kept");
+    }
+    filter() {
+      return false;
     }
   }
   RegisterDataCompareMode("")(EmptyMode);
@@ -150,17 +158,24 @@ function observeDataTypesAndHints() {
     defaultInputComponent() {
       return { componentName: "probe", options: {} };
     }
+    /** @returns {never} */
+    getValidation() {
+      throw new TypeError("ProbeType has no validation");
+    }
   }
   RegisterDataType("probe-type")(ProbeType);
-  const hints = [
+  /** @type {[string | undefined, import("../../packages/interface-dms/dist/base/block-registry/types.js").BlockResponseShape | undefined][]} */
+  const sources = [
     [undefined, undefined],
     ["period", undefined],
     ["period", "series"],
     ["", "series"],
-  ].map(([period, response]) => {
+  ];
+  const hints = sources.map(([period, response]) => {
     const value = getUiHints(
       blockFetchUrlOption("probe source", period, response),
     );
+    assert.ok(value, "getUiHints describes a fetch url option");
     return { value, keys: Object.keys(value) };
   });
   return { hints, registrations, type: serializeType(new ProbeType()) };
@@ -168,7 +183,9 @@ function observeDataTypesAndHints() {
 
 async function observe() {
   const child = new ComponentBuilder("child").options({ label: "nested" });
-  const builder = new ComponentBuilder("parent")
+  /** @type {ComponentBuilder<Record<string, unknown>>} */
+  const builder = new ComponentBuilder("parent");
+  builder
     .options({ label: "original", watchActions: [{ forged: true }] })
     .mergeOptions({ label: "merged", marker: 17 })
     .child("nested", child, { slot: "aside", weight: 3 })
@@ -181,7 +198,7 @@ async function observe() {
   const sync = view.serializeSync();
   const serialized = await view.serialize();
   /** @type {unknown} */
-  const filtered = await view.onFilterCallback(
+  const filtered = await view.onFilterCallback?.(
     new Set(["page.component.refresh"]),
     serialized.options,
     "page.component",
@@ -194,15 +211,17 @@ async function observe() {
     },
     { call: undefined },
   );
-  const shadowedCallBuilder = new ComponentBuilder("probe")
+  /** @type {ComponentBuilder<Record<string, unknown>>} */
+  const shadowedCallBuilder = new ComponentBuilder("probe");
+  shadowedCallBuilder
     .options({ x: 17 })
     .onFilter(shadowedCallFilter);
   /** @type {unknown} */
-  const shadowedCall = await shadowedCallBuilder.onFilterCallback(
+  const shadowedCall = await shadowedCallBuilder.onFilterCallback?.(
     new Set(),
     { x: 17 },
     "page.probe",
-    {},
+    { tenantId: "tenant", user: undefined },
   );
   const plain = new Component(
     { componentName: "positional", options: { x: 31 } },

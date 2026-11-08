@@ -17,8 +17,10 @@ const {
   ComponentBuilder,
 } = require("../../packages/interface-dms/dist/component.js");
 
+/** @typedef {import("../../packages/interface-dms/node_modules/@antelopejs/interface-data-api").DataControllerCallback} Route */
+
 /**
- * @param {typeof import("../../packages/interface-dms/dist/tenant-access.js")} tenantAccess
+ * @param {{ CheckTenantAccess: typeof import("../../packages/interface-dms/dist/tenant-access.js").CheckTenantAccess }} tenantAccess
  */
 function openTenantGate(tenantAccess) {
   const previousGate = tenantAccess.CheckTenantAccess;
@@ -48,13 +50,18 @@ function bodyRewritingGuards(receiver) {
       /**
        * @this {object}
        * @param {unknown} _context
-       * @param {{ body: { count: number, discard?: unknown } }} request
+       * @param {{ body: { count?: number, discard?: unknown } }} request
        */
-      new: function (_context, { body: value }) {
+      new: function (_context, request) {
+        const value = request.body;
         events.push({ guardReceiver: this === receiver });
-        value.count += 7;
+        const { count } = value;
+        if (count === undefined) throw new TypeError("The guarded body has no count");
+        value.count = count + 7;
         delete value.discard;
-        return () => events.push("after");
+        return () => {
+          events.push("after");
+        };
       },
     },
   };
@@ -94,10 +101,12 @@ async function observeRoutes() {
       return sentinel;
     },
   };
+  /** @type {Route} */
   const mutation = withRealtimeMutation(
     { eventType: "updated", extractIds: () => [] },
     base,
   );
+  /** @type {Route} */
   const presence = withPresenceAcquire(base);
   /** @type {unknown} */
   const mutationResult = await mutation.func.call(
@@ -125,7 +134,9 @@ async function observeRoutes() {
   /** @type {unknown} */
   let authResult;
   try {
-    authResult = await withActionCheck("probe", base).func.call(
+    /** @type {Route} */
+    const checked = withActionCheck("probe", base);
+    authResult = await checked.func.call(
       receiver,
       context,
       params,
@@ -137,6 +148,7 @@ async function observeRoutes() {
   }
   const { events, guards } = bodyRewritingGuards(receiver);
   meta.setControllerGuards(guards);
+  /** @type {Route} */
   const guarded = createGuardedWriteRoute(
     {
       ...base,
@@ -158,7 +170,8 @@ async function observeRoutes() {
   meta.setControllerGuards({});
   /** @type {boolean | undefined} */
   let untouched;
-  await createGuardedWriteRoute(
+  /** @type {Route} */
+  const unguarded = createGuardedWriteRoute(
     {
       ...base,
       func: async (_context, _params, value) => {
@@ -166,7 +179,8 @@ async function observeRoutes() {
       },
     },
     "new",
-  ).func.call(receiver, context, params, body);
+  );
+  await unguarded.func.call(receiver, context, params, body);
   return {
     calls,
     events,
@@ -181,19 +195,17 @@ async function observeRoutes() {
 
 function observeFactoryHelpers() {
   const helpers = require("../../packages/interface-dms/dist/base/table-view/internal/factory-helpers.js");
-  const flags = [
-    "hasNewForm",
-    "hasEditForm",
-    "hasViewForm",
-    "hasDeleteEndpoint",
-    "archiveMode",
-    "isExportEnabled",
-    "formsArePages",
-  ];
   const actions = Array.from({ length: 128 }, (_, mask) => {
-    const capabilities = Object.fromEntries(
-      flags.map((flag, index) => [flag, !!(mask & (1 << index))]),
-    );
+    const bit = (/** @type {number} */ index) => !!(mask & (1 << index));
+    const capabilities = {
+      hasNewForm: bit(0),
+      hasEditForm: bit(1),
+      hasViewForm: bit(2),
+      hasDeleteEndpoint: bit(3),
+      archiveMode: bit(4),
+      isExportEnabled: bit(5),
+      formsArePages: bit(6),
+    };
     const builder = new ComponentBuilder("capabilities").options({});
     helpers.registerTableViewActions(builder, capabilities);
     return Object.entries(builder.actions).map(([id, action]) => [
@@ -243,8 +255,9 @@ function observeFactoryHelpers() {
 function observePageAndTableMetadata() {
   const { PageMetadata } = require("../../packages/interface-dms/dist/page/metadata.js");
   const { TableViewMeta } = require("../../packages/interface-dms/dist/base/table-view/meta.js");
-  class ParentController {}
-  class ChildController {}
+  const { Controller } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
+  class ParentController extends Controller("") {}
+  class ChildController extends Controller("") {}
   const parent = new PageMetadata(ParentController);
   parent.SetInfo(
     "parent",
@@ -309,6 +322,7 @@ async function observeTableViewLifecycle() {
   const permissions = require("../../packages/interface-dms/dist/permissions.js");
   const { GetMetadata } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-core");
   const { DataAPIMeta } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-data-api/dist/metadata.js");
+  const { Controller: ApiController } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
   const previous = permissions.HasPermission;
   /** @type {unknown[]} */
   const calls = [];
@@ -318,8 +332,10 @@ async function observeTableViewLifecycle() {
   };
   try {
     const results = [];
-    for (const type of ["drawer", "page"]) {
-      class Controller {}
+    /** @type {import("../../packages/interface-dms/dist/base/table-view.js").FormContainer["type"][]} */
+    const containers = ["drawer", "page"];
+    for (const type of containers) {
+      class Controller extends ApiController("") {}
       class Table {}
       Controller.location = "/probe";
       GetMetadata(Controller, DataAPIMeta).tableClass = Table;
@@ -331,7 +347,7 @@ async function observeTableViewLifecycle() {
         rowIdKey: "identity",
       });
       const receiver = new Proxy(builder, {});
-      const parent = new PageMetadata(class PageController {});
+      const parent = new PageMetadata(class PageController extends ApiController("") {});
       parent.SetInfo(
         "page",
         "/work/:id",
@@ -342,19 +358,19 @@ async function observeTableViewLifecycle() {
       );
       permissionMap.set(builder, "page.table");
       permissionMap.set(parent.target, "page");
-      receiver.onPageCreated(parent);
+      receiver.onPageCreated?.(parent);
       const serialized = receiver.serializeSync();
       /** @type {unknown} */
-      const filtered = await receiver.onFilterCallback(
+      const filtered = await receiver.onFilterCallback?.(
         new Set(["page.table.edit", "page.table.view"]),
         serialized.options,
         "page.table",
-        { tenantId: "tenant" },
+        { tenantId: "tenant", user: undefined },
       );
       /** @type {string | undefined} */
       let missingPage;
       try {
-        receiver.onPageCreated(new PageMetadata(class EmptyPage {}));
+        receiver.onPageCreated?.(new PageMetadata(class EmptyPage extends ApiController("") {}));
       } catch (error) {
         missingPage = messageOf(error);
       }
@@ -362,7 +378,7 @@ async function observeTableViewLifecycle() {
         serialized,
         filtered,
         missingPage,
-        optionKeys: Object.keys(serialized.options),
+        optionKeys: Object.keys(serialized.options ?? {}),
         actions: Object.keys(builder.actions),
       });
       permissionMap.delete(builder);

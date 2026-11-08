@@ -38,6 +38,23 @@ function asObject(value) {
 }
 
 /**
+ * @param {unknown} error
+ * @returns {Error}
+ */
+function asError(error) {
+  if (error instanceof Error) return error;
+  throw error;
+}
+
+/**
+ * @template {object} T
+ * @param {boolean | import("../../packages/interface-dms/dist/base/table-view.js").RowActionConfig<T> | undefined} action
+ */
+function ruleOf(action) {
+  return action instanceof Object ? action.rule : undefined;
+}
+
+/**
  * @param {unknown} value
  * @returns {unknown[]}
  */
@@ -96,7 +113,7 @@ function observeDefReads(describeSchema) {
     try {
       describeSchema(recordDefReads(schema, reads, name));
     } catch (error) {
-      reads.push(`threw ${error.message}`);
+      reads.push(`threw ${asError(error).message}`);
     }
     observed[`reads:${name}`] = reads;
   }
@@ -124,6 +141,7 @@ function describeBattery(describeSchema, describeOptions) {
     return factory();
   };
   const deep = (() => {
+    /** @type {import("../../packages/interface-dms/node_modules/zod").ZodTypeAny} */
     let schema = z.object({ leaf: z.string() });
     for (let i = 0; i < 9; i += 1) schema = z.object({ next: schema });
     return schema;
@@ -202,7 +220,7 @@ function describeBattery(describeSchema, describeOptions) {
       try {
         record[mode] = run();
       } catch (error) {
-        record[mode] = { thrown: String(error.message) };
+        record[mode] = { thrown: String(asError(error).message) };
       }
     }
     record.calls = {
@@ -281,17 +299,19 @@ function observeArchiveRules() {
   for (const [name, rowActions] of Object.entries(cases)) {
     const result = applyArchiveModeDefaultRules(rowActions, "archived");
     const configured = userEditRule(rowActions);
+    const editRule = ruleOf(result?.edit);
     observed[name] = {
       keys: result === undefined ? null : Object.keys(result),
       json: JSON.stringify(result ?? "__undefined"),
       composedKeepsUserRule:
-        result?.edit?.rule?.and?.[1] === configured && configured !== undefined,
+        (editRule !== undefined && "and" in editRule ? editRule.and[1] : undefined) === configured && configured !== undefined,
     };
   }
   const first = applyArchiveModeDefaultRules({}, "archived");
   const second = applyArchiveModeDefaultRules({}, "archived");
-  observed.freshRulePerCall = first.edit.rule !== second.edit.rule;
-  observed.distinctRulePerAction = first.edit.rule !== first.duplicate.rule;
+  assert.ok(first && second, "applyArchiveModeDefaultRules returns the row actions");
+  observed.freshRulePerCall = ruleOf(first.edit) !== ruleOf(second.edit);
+  observed.distinctRulePerAction = ruleOf(first.edit) !== ruleOf(first.duplicate);
   return observed;
 }
 
@@ -312,7 +332,7 @@ function observeChoices() {
       try {
         entries.push(JSON.stringify(type.getValidation().parse(input)) ?? "__undefined");
       } catch (error) {
-        entries.push(`rejected:${error.constructor.name}`);
+        entries.push(`rejected:${asError(error).constructor.name}`);
       }
     }
     observed[name] = entries;
@@ -348,6 +368,7 @@ async function observeFormPages() {
   const { resolveTableViewGrants } = require("../../packages/interface-dms/dist/base/table-view/internal/request-filter.js");
   const permissions = require("../../packages/interface-dms/dist/permissions.js");
   const original = permissions.HasPermission;
+  /** @type {string[]} */
   const asked = [];
   permissions.HasPermission = async (granted, id) => {
     asked.push(`${id}:start`);
@@ -397,7 +418,8 @@ async function observeReceivers() {
         await authorizeAction(target, "list", { _id: "u" }, "tenant");
         outcomes.push("returned");
       } catch (error) {
-        outcomes.push(`${error.constructor.name}:${String(error.message).slice(0, 60)}`);
+        const failure = asError(error);
+        outcomes.push(`${failure.constructor.name}:${String(failure.message).slice(0, 60)}`);
       }
     }
   } finally {
@@ -412,7 +434,8 @@ async function observeReceivers() {
       ArchiveField()(Archiving.prototype, key);
       archived.push(`ok:${String(key)}`);
     } catch (error) {
-      archived.push(`${error.constructor.name}:${String(error.message).slice(0, 60)}`);
+      const failure = asError(error);
+      archived.push(`${failure.constructor.name}:${String(failure.message).slice(0, 60)}`);
     }
   }
   observed.archiveField = archived;
