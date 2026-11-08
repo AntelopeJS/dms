@@ -39,7 +39,6 @@ Verify a change (the .agents/skills/verify-* folder of the checkout, or --skill 
   formal <run> [--all]              run the formal checks that cover the diff (or every one)
   verdict <run> --pr <n> [--all]    render evidence/verdict.md from the results and evidence/judgement.json
                        (--all requires every feature, for a release)
-  publish <run> --pr <n> [--all]    push the evidence, comment the verdict, set the verify status
 `;
 
 /**

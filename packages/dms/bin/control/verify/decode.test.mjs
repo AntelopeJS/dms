@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { decodeCommitStatuses, readFeatureResults } from "./decode.mjs";
+import { readFeatureResults } from "./decode.mjs";
 import { readFormalResult } from "./formal.mjs";
 import { readJudgement } from "./judgement.mjs";
 import { loadSkill } from "./skill.mjs";
@@ -113,19 +113,6 @@ await test("a journey result whose check does not say pass or fail is refused", 
   assert.throws(
     () => readFeatureResults(join(dir, "feature.json")),
     /malformed: expected a list of journey results/,
-  );
-});
-
-await test("a status list without a context and state is refused", () => {
-  const statuses = [{ context: "verify", state: "success", id: 1 }];
-  assert.deepEqual(decodeCommitStatuses(statuses, "gh"), statuses);
-  assert.throws(
-    () => decodeCommitStatuses({ message: "Not Found" }, "gh api statuses"),
-    /gh api statuses is malformed/,
-  );
-  assert.throws(
-    () => decodeCommitStatuses([{ context: "verify" }], "gh"),
-    /malformed: expected a list of commit statuses/,
   );
 });
 

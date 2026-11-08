@@ -115,11 +115,6 @@ export const isRawJudgement = objectOf(
   },
 );
 
-/** What `gh api repos/<repo>/commits/<sha>/statuses` answers, as far as the harness reads it. */
-export const isCommitStatuses = arrayOf(
-  objectOf({ context: isString, state: isString }),
-);
-
 const isRegexOrNull = nullable(instanceOf(RegExp));
 
 const isFormalCheck = objectOf(
@@ -204,16 +199,6 @@ export function decodeFormalResult(stored, source) {
  */
 export function decodeRawJudgement(stored, source) {
   return decode(isRawJudgement, stored, source, "a verifier's judgement");
-}
-
-/**
- * @param {unknown} answer What `gh api` printed, parsed
- * @param {string} source The command
- * @returns {{ context: string, state: string }[]} The statuses
- * @throws When the value is not a list of statuses
- */
-export function decodeCommitStatuses(answer, source) {
-  return decode(isCommitStatuses, answer, source, "a list of commit statuses");
 }
 
 /**

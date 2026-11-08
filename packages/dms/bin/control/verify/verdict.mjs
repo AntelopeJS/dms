@@ -19,19 +19,6 @@ import { planFor } from "./map.mjs";
 import { journeysFile } from "./skill.mjs";
 
 /**
- * The GitHub `owner/repo` of the checkout's origin remote.
- *
- * @param {string} repo The checkout
- * @returns {string} The repository
- */
-export function originRepository(repo) {
-  const url = git(["remote", "get-url", "origin"], repo);
-  const match = /github\.com[:/](.+?)(?:\.git)?$/.exec(url);
-  if (!match) throw new Error(`origin ${url} is not a GitHub repository`);
-  return match[1];
-}
-
-/**
  * @param {string} sha A commit
  * @returns {string} Its first seven characters
  */
@@ -61,10 +48,9 @@ function readResults(state, feature) {
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {import("../run-state.mjs").RunState} state The run
  * @param {import("./types.mjs").Plan} plan The plan
- * @param {(path: string) => string} link The evidence link of a path
  * @returns {Promise<{ rows: string[], reasons: string[] }>} The table rows and why the verdict fails
  */
-async function journeyRows(skill, state, plan, link) {
+async function journeyRows(skill, state, plan) {
   /** @type {string[]} */
   const rows = [];
   /** @type {string[]} */
@@ -91,7 +77,7 @@ async function journeyRows(skill, state, plan, link) {
       const time =
         result.ms === undefined ? "-" : `${formatSeconds(result.ms)} s`;
       rows.push(
-        `| ${feature} | \`${result.journey}\`: ${result.entryPoint} | ${outcome}: ${result.title} | ${time} | [${result.folder}](${link(result.folder)}) |`,
+        `| ${feature} | \`${result.journey}\`: ${result.entryPoint} | ${outcome}: ${result.title} | ${time} | \`${result.folder}\` |`,
       );
     }
   }
@@ -151,10 +137,9 @@ function doorsSection(judgement) {
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {import("../run-state.mjs").RunState} state The run
  * @param {import("./types.mjs").Plan} plan The plan
- * @param {(path: string) => string} link The evidence link of a path
  * @returns {{ reasons: string[], lines: string[] }} Why the formal checks fail the verdict, and their lines
  */
-function formalSection(skill, state, plan, link) {
+function formalSection(skill, state, plan) {
   const reasons = [];
   const lines = [];
   const touched = touchedFormalChecks(skill, plan.changed).map(
@@ -187,7 +172,7 @@ function formalSection(skill, state, plan, link) {
       ? "covers the diff, gates the verdict"
       : "does not cover the diff, informational";
     lines.push(
-      `\`${check.name}\` (${role}): ${summary}. [evidence](${link(result.folder)})`,
+      `\`${check.name}\` (${role}): ${summary}. Evidence: \`${result.folder}\``,
     );
   }
   return { reasons, lines };
@@ -212,20 +197,12 @@ function docsReasons(judgement, plan) {
 /**
  * @param {import("./skill.mjs").Skill} skill The skill
  * @param {import("./types.mjs").VerdictCore} verdict The verdict
- * @param {{ plan: import("./types.mjs").Plan, judgement: import("./types.mjs").Judgement, journeys: Awaited<ReturnType<typeof journeyRows>>, formal: ReturnType<typeof formalSection>, timing: import("../timing.mjs").TimingSummary, reasons: string[], attention: string[], link: (path: string) => string }} parts What the verdict is rendered from
+ * @param {{ plan: import("./types.mjs").Plan, judgement: import("./types.mjs").Judgement, journeys: Awaited<ReturnType<typeof journeyRows>>, formal: ReturnType<typeof formalSection>, timing: import("../timing.mjs").TimingSummary, reasons: string[], attention: string[] }} parts What the verdict is rendered from
  * @returns {string} The verdict as Markdown
  */
 function markdown(skill, verdict, parts) {
-  const {
-    plan,
-    judgement,
-    journeys,
-    formal,
-    timing,
-    reasons,
-    attention,
-    link,
-  } = parts;
+  const { plan, judgement, journeys, formal, timing, reasons, attention } =
+    parts;
   const touched = plan.touched.map(
     (entry) =>
       `\`${entry.feature}\` (diff: ${entry.files.map((file) => `\`${file}\``).join(", ")})`,
@@ -287,8 +264,6 @@ function markdown(skill, verdict, parts) {
     "### Attention",
     ...bullets(attention, "Nothing."),
     "",
-    `Evidence: \`verify-evidence\` branch, [\`pr-${verdict.pr}/${plan.headSha}/\`](${link("")})`,
-    "",
   ].join("\n");
 }
 
@@ -311,21 +286,14 @@ export async function renderVerdict(skill, state, pr, judgement, all = false) {
       ["log", "-1", "--format=%H", "--", relative(skill.repo, skill.dir)],
       skill.repo,
     ) || plan.headSha;
-  const repository = originRepository(skill.repo);
-  /**
-   * @param {string} path A path under the run's evidence
-   * @returns {string} Its link on the evidence branch
-   */
-  const link = (path) =>
-    `https://github.com/${repository}/tree/verify-evidence/pr-${pr}/${plan.headSha}/${path}`;
   const reasons = [];
   if (plan.headSha !== state.headSha) {
     reasons.push(
       `the run was created at ${short(state.headSha ?? "unknown")} but HEAD is ${short(plan.headSha)}`,
     );
   }
-  const journeys = await journeyRows(skill, state, plan, link);
-  const formal = formalSection(skill, state, plan, link);
+  const journeys = await journeyRows(skill, state, plan);
+  const formal = formalSection(skill, state, plan);
   reasons.push(
     ...journeys.reasons,
     ...plan.unmapped.map((file) => `unmapped surface ${file}`),
@@ -345,7 +313,6 @@ export async function renderVerdict(skill, state, pr, judgement, all = false) {
     timing: summarize(readTimings(state.evidence)),
     reasons,
     attention,
-    link,
   });
   writeFileSync(join(state.evidence, "verdict.md"), text);
   writeFileSync(
