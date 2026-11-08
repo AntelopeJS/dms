@@ -84,17 +84,53 @@ describe("[unit] user notifications — inbox filters, counts and undo", () => {
 
   it("undoes mark-all-read past 500 notifications", async () => {
     const count = 501;
-    await Promise.all(
-      Array.from({ length: count }, (_, index) =>
-        seed(USER_ID, `bulk ${index}`),
-      ),
-    );
+    const now = new Date();
+    await model.table
+      .insert(
+        Array.from({ length: count }, (_, index) => ({
+          userId: USER_ID,
+          icon: "i-ph-bell",
+          title: `bulk ${index}`,
+          description: "",
+          categoryId: CATEGORY_ID,
+          subjectId: SUBJECT_ID,
+          isRead: false,
+          groupId: null,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      )
+      .run();
 
     const { batchId } = await model.markAllAsRead(USER_ID);
     expect(await model.countUnread(USER_ID)).to.equal(0);
     const reopened = await model.undoMarkAllAsRead(USER_ID, batchId!);
     expect(reopened).to.have.length(count);
     expect(await model.countUnread(USER_ID)).to.equal(count);
+  });
+
+  it("undoes mark-all-read for every copy of a shared notification", async () => {
+    const groupId = "notification-inbox-group";
+    const shared = (userId: string) =>
+      model.create({
+        userId,
+        icon: "i-ph-bell",
+        title: "shared",
+        description: "",
+        categoryId: CATEGORY_ID,
+        subjectId: SUBJECT_ID,
+        groupId,
+      });
+    const own = await shared(USER_ID);
+    const copy = await shared(OTHER_USER_ID);
+
+    const { batchId } = await model.markAllAsRead(USER_ID);
+    expect((await model.get(copy._id))?.isRead).to.equal(true);
+
+    expect(await model.undoMarkAllAsRead(USER_ID, batchId!)).to.deep.equal([
+      own._id,
+    ]);
+    expect((await model.get(copy._id))?.isRead).to.equal(false);
   });
 
   it("leaves out of the undo a notification changed since", async () => {
