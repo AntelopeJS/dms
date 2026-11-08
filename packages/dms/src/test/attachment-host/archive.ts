@@ -83,5 +83,10 @@ export class ArchiveNotesPage extends RootPageController("archive-notes", {
     realtime: false,
     archiveMode: true,
     rowActions: { add: true },
+    guards: {
+      delete: () => undefined,
+      archive: () => undefined,
+      restore: () => undefined,
+    },
   });
 }

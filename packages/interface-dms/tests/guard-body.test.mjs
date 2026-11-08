@@ -81,15 +81,29 @@ await test("a body that is already decoded, or absent, keeps its answers", () =>
   assert.deepEqual(parseGuardBody(null), {});
 });
 
-await test("malformed JSON is still refused", () => {
-  assert.throws(() => parseGuardBody("{"), SyntaxError);
-  assert.throws(() => parseGuardBody(Buffer.from("{")), SyntaxError);
+/**
+ * A check that an error is the HTTP 400 refusal `Validation.ParseBody` answers
+ * a write with, for `assert.throws` and `assert.rejects`.
+ *
+ * @param {string} message
+ */
+const badRequest = (message) => (/** @type {unknown} */ error) =>
+  error instanceof HTTPResult &&
+  error.getStatus() === 400 &&
+  error.getBody() === message;
+
+const INVALID_JSON = badRequest("Invalid JSON body.");
+const NOT_AN_OBJECT = badRequest("The request body must be a JSON object.");
+
+await test("malformed JSON is refused with 400", () => {
+  assert.throws(() => parseGuardBody("{"), INVALID_JSON);
+  assert.throws(() => parseGuardBody(Buffer.from("{")), INVALID_JSON);
 });
 
-await test("a JSON body that is not an object is refused, as text or bytes", () => {
+await test("a JSON body that is not an object is refused with 400, as text or bytes", () => {
   for (const body of NOT_OBJECTS) {
-    assert.throws(() => parseGuardBody(body), TypeError, body);
-    assert.throws(() => parseGuardBody(Buffer.from(body)), TypeError, body);
+    assert.throws(() => parseGuardBody(body), NOT_AN_OBJECT, body);
+    assert.throws(() => parseGuardBody(Buffer.from(body)), NOT_AN_OBJECT, body);
   }
 });
 
@@ -111,7 +125,7 @@ await test("a confirmation body that is not an object is refused before the guar
         { id: ["row-1"] },
         Buffer.from(body),
       ),
-      TypeError,
+      NOT_AN_OBJECT,
       body,
     );
   }
