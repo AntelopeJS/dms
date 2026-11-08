@@ -113,6 +113,7 @@ function holdLease(claimed: string, renewEveryMs: number): HeldLease {
   const timer = setInterval(() => {
     renewal = renewal.then(renew);
   }, renewEveryMs);
+  timer.unref();
 
   return {
     async stopRenewing() {
@@ -245,8 +246,9 @@ function holderName(): string {
  *
  * @param signal Ends the call: a wait for another replica's provisioning, or
  * the wait for this replica's own run. A run in progress is not cancelled: it
- * keeps its lease until its handlers settle, then records its outcome when it
- * still can, and a run cut short by shutdown is taken over once stale.
+ * renews its lease while this module stays loaded and records its outcome when
+ * it settles. Once the module is torn down its renewals stop, and the run is
+ * taken over once stale, even if its handlers are still running.
  * @param lease How often to renew and poll, and when a holder counts as stopped
  */
 export async function provisionDefaultTenant(
