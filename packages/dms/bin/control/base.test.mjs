@@ -61,3 +61,28 @@ await test("a base ref without the playground prepares a copy of the run's playg
   assert.equal(base.playground, join(base.dir, PLAYGROUND));
   assert.equal(existsSync(join(base.playground, "node_modules")), false);
 });
+
+await test("a copied base playground follows the run's playground from one run to the next", (t) => {
+  const { repo, playground } = repoWithNewPlayground(t);
+  const state = { repo, playground, baseRef: "base" };
+  baseCheckout(state, { config: { prepare: [] } });
+  write(join(playground, "antelope.config.ts"), "edited\n");
+  const base = baseCheckout(state, {
+    config: {
+      prepare: [
+        ["grep", "-qx", "edited", join(PLAYGROUND, "antelope.config.ts")],
+        ["touch", "prepared"],
+      ],
+    },
+  });
+  assert.equal(existsSync(join(base.dir, "prepared")), true);
+});
+
+await test("a base ref that has the playground is built once", (t) => {
+  const { repo, playground } = repoWithNewPlayground(t);
+  const state = { repo, playground, baseRef: "HEAD" };
+  const first = baseCheckout(state, { config: { prepare: [] } });
+  write(join(first.playground, "prepared"), "");
+  const second = baseCheckout(state, { config: { prepare: [["false"]] } });
+  assert.equal(existsSync(join(second.playground, "prepared")), true);
+});

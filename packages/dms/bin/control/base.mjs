@@ -20,7 +20,8 @@ function baseCache() {
  * A prepared worktree of the run's base ref, built once per commit under
  * `~/.cache/dms-control/base/<sha>` with the skill's `prepare` commands.
  * When the base ref has no playground folder, as in the change that adds
- * it, the worktree gets a copy of the run's playground before `prepare`.
+ * it, the worktree gets a copy of the run's playground before `prepare`,
+ * and is built again on every call so the copy follows the run's.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {import("./verify/skill.mjs").Skill} skill The skill
@@ -29,15 +30,18 @@ function baseCache() {
 export function baseCheckout(state, skill) {
   const sha = git(["rev-parse", `${state.baseRef}^{commit}`], state.repo);
   const dir = join(baseCache(), sha);
-  const playground = join(dir, relative(state.repo, state.playground));
-  if (existsSync(join(dir, READY_MARK)) && existsSync(playground)) {
+  const path = relative(state.repo, state.playground);
+  const playground = join(dir, path);
+  const copied =
+    git(["ls-tree", "-d", "--name-only", sha, "--", path], state.repo) === "";
+  if (!copied && existsSync(join(dir, READY_MARK))) {
     return { sha, dir, playground };
   }
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(baseCache(), { recursive: true });
   git(["worktree", "prune"], state.repo);
   git(["worktree", "add", "--detach", "--force", dir, sha], state.repo);
-  if (!existsSync(playground)) {
+  if (copied) {
     cpSync(state.playground, playground, {
       recursive: true,
       filter: (source) => !COPY_SKIPPED.has(basename(source)),
