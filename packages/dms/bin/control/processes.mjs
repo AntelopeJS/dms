@@ -365,9 +365,12 @@ function signalGroup(pid, signal) {
  * descendants, each with the start time that tells it apart from a later
  * process given its pid. Each process is found and identified by one read
  * of its stat, so a pid another process takes while the tree is read never
- * joins it with the newcomer's start time. A record whose pid another
- * process holds now, or whose pid is not a whole number above 1, is left
- * out, so no descendant of 0 or 1 is ever looked up.
+ * joins it with the newcomer's start time. Once the tree is read, a process
+ * whose start time changed is left out with everything found below it, so
+ * a child of a process that took a parent's pid during the walk never joins
+ * it. A record whose pid another process holds now, or whose pid is not a
+ * whole number above 1, is left out, so no descendant of 0 or 1 is ever
+ * looked up.
  *
  * @param {RecordedProcess[]} records The recorded processes
  * @returns {{ pid: number, startTime: number | null }[]} One entry per process
@@ -382,22 +385,35 @@ function ownProcesses(records) {
       return stat !== undefined && startedAs(record, stat.startTime);
     })
     .map(({ pid }) => pid);
-  return [...familyOf(roots, table)].flatMap((pid) => {
+  /** @type {ProcessTable} */
+  const unchanged = new Map();
+  for (const pid of familyOf(roots, table)) {
     const stat = table.get(pid);
+    if (stat && startTimeOf(pid) === stat.startTime) unchanged.set(pid, stat);
+  }
+  const kept = roots.filter((pid) => unchanged.has(pid));
+  return [...familyOf(kept, unchanged)].flatMap((pid) => {
+    const stat = unchanged.get(pid);
     return stat ? [{ pid, startTime: stat.startTime }] : [];
   });
 }
 
 /**
- * Signals the group of `target` only while its pid still runs that process,
- * checked right before the signal.
+ * Signals the group of `target` only while its pid still names that
+ * process, checked by its start time right before the signal. A zombie
+ * still has its start time, and its pid cannot be reused until it is
+ * reaped, so a group whose leader exited unreaped still gets the signal.
  *
  * @param {{ pid: number, startTime: number | null }} target A process of {@link ownProcesses}
  * @param {NodeJS.Signals} signal The signal
  * @returns {boolean} True when the signal was sent
  */
 function signalIfSame(target, signal) {
-  if (!isSameProcess(target)) return false;
+  const same =
+    target.startTime === null
+      ? isSameProcess(target)
+      : startTimeOf(target.pid) === target.startTime;
+  if (!same) return false;
   signalGroup(target.pid, signal);
   return true;
 }
@@ -432,7 +448,9 @@ export async function stopRecorded(records) {
   while (targets.some(isSameProcess) && Date.now() < deadline) {
     await sleep(READY_POLL_MS);
   }
-  const stubborn = targets.filter((target) => signalIfSame(target, "SIGKILL"));
+  const stubborn = targets
+    .filter(isSameProcess)
+    .filter((target) => signalIfSame(target, "SIGKILL"));
   return [
     ...skippedRecords(records),
     ...targets.map(
