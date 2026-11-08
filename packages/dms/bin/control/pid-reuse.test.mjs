@@ -137,6 +137,24 @@ console.log(JSON.stringify({ zombie, running: isRunning(member) }));
 process.exit(0);
 `;
 
+/**
+ * Runs where /proc is hidden behind an empty mount, as on a system with no
+ * /proc: the run records one group leader twice, as two records with its
+ * pid.
+ */
+const TWICE_WITHOUT_PROC = `${PRELUDE}
+const { child } = await run("echo $$; exec sleep 60");
+const signals = [];
+process.kill = (pid, signal) => {
+  if (Math.abs(pid) === child && signal !== 0) signals.push(signal);
+  return realKill(pid, signal);
+};
+const startedAt = new Date().toISOString();
+const lines = await killRecorded([{ pid: child, startedAt }, { pid: child, startedAt }]);
+console.log(JSON.stringify({ lines: lines.length, signals: signals.length }));
+process.exit(0);
+`;
+
 const isTakeReport = objectOf({
   taken: isBoolean,
   signals: isNumber,
@@ -146,6 +164,8 @@ const isTakeReport = objectOf({
 const isLinkReport = objectOf({ linked: isBoolean, signals: isNumber });
 
 const isZombieReport = objectOf({ zombie: isBoolean, running: isBoolean });
+
+const isTwiceReport = objectOf({ lines: isNumber, signals: isNumber });
 
 /** @returns {boolean} True where the test may make a user and PID namespace */
 function canUnshare() {
@@ -158,7 +178,7 @@ function canUnshare() {
 /**
  * Runs a nested script as pid 1 of a PID namespace of its own, so the pid
  * it frees is the next one the kernel gives, and decodes the one line it
- * prints.
+ * prints. In mode `no-proc`, /proc is hidden behind an empty mount instead.
  *
  * @template T
  * @param {string} script The script
@@ -167,13 +187,17 @@ function canUnshare() {
  * @returns {T} Its report
  */
 function nested(script, mode, guard) {
+  const namespace =
+    mode === "no-proc"
+      ? ["--mount", "sh", "-c", 'mount -t tmpfs none /proc && exec "$@"', "sh"]
+      : ["--mount-proc"];
   const result = spawnSync(
     "unshare",
     [
       "-Ur",
       "--fork",
       "--pid",
-      "--mount-proc",
+      ...namespace,
       process.execPath,
       "--input-type=module",
       "-e",
@@ -241,3 +265,14 @@ for (const mode of ["kill", "stop"]) {
     },
   );
 }
+
+await test(
+  "on a system with no /proc, killRecorded signals and reports a process recorded twice once; a version that keeps one target per record signals it twice",
+  options,
+  () => {
+    assert.deepEqual(nested(TWICE_WITHOUT_PROC, "no-proc", isTwiceReport), {
+      lines: 1,
+      signals: 1,
+    });
+  },
+);

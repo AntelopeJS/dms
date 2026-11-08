@@ -377,7 +377,12 @@ function signalGroup(pid, signal) {
  */
 function ownProcesses(records) {
   const live = records.filter(isSameProcess);
-  if (!hasProc()) return live.map(({ pid }) => ({ pid, startTime: null }));
+  if (!hasProc()) {
+    return [...new Set(live.map(({ pid }) => pid))].map((pid) => ({
+      pid,
+      startTime: null,
+    }));
+  }
   const table = processTable();
   const roots = live
     .filter((record) => {
