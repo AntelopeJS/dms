@@ -53,6 +53,11 @@
       "back_to_2fa": "Back to verification",
       "verify": "Verify"
     },
+    "no_membership": {
+      "title": "No workspace for this account",
+      "description": "This account is not a member of any workspace. Ask a workspace administrator to invite you, then sign in again.",
+      "sign_in_button": "Sign in with another account"
+    },
     "backup": {
       "title": "Use a backup code",
       "description": "Enter one of your backup recovery codes to sign in.",

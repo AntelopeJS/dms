@@ -16,6 +16,7 @@ import {
   useLocalizedSchema,
 } from "#dms-core/app/composables/useFormValidation";
 import { ACCOUNTS_LIST_ROUTE } from "../../utils/accountsFlow";
+import { tenantAssignmentLocation } from "../../build/utils/tenantAssignment";
 import { isObject } from "#dms-core/app/utils/type-check";
 
 const route = useDmsRoute();
@@ -71,12 +72,9 @@ async function handleTwoFactorRedirect(response: TwoFactorRequiredResponse) {
 async function handleTenantAssignmentRedirect(
   response: TenantAssignmentRequiredResponse,
 ) {
-  await navigateDms({
-    path: "/auth/no-workspace",
-    query: {
-      token: response.tenant_assignment_token,
-    },
-  });
+  await navigateDms(
+    tenantAssignmentLocation({ token: response.tenant_assignment_token }),
+  );
 }
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { type OAuthHandoff, sanitizeRedirectPath } from "../../../shared/oauth";
+import { tenantAssignmentLocation } from "../../build/utils/tenantAssignment";
 
 const OAUTH_FAILED_KEY = "error.oauth.failed";
 const IN_FLIGHT_COMPLETION_KEY = "__dmsInFlightOAuthCompletion";
@@ -35,10 +36,10 @@ const HANDOFF_ACTIONS: HandoffActions = {
     ),
   "no-workspace": (handoff) =>
     navigateDms(
-      {
-        path: "/auth/no-workspace",
-        query: { token: handoff.token, provider: handoff.provider },
-      },
+      tenantAssignmentLocation({
+        token: handoff.token,
+        provider: handoff.provider,
+      }),
       REPLACE,
     ),
   none: () => usePostLoginRedirect(redirect.value, REPLACE),

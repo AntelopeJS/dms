@@ -96,8 +96,11 @@ export const memberChangeJourneys = [
       await again.click({ role: "button", name: "Login", exact: true });
       await ctx.verify("the person is not shown a missing page", [
         again.visible({ role: "heading", name: "Page not found" }, { hidden: true, timeoutMs: 5_000 }),
-        again.shows(/workspace/i),
+        again.visible({ role: "heading", name: "No workspace for this account" }),
+        again.shows(/Ask a workspace administrator to invite you/),
       ]);
+      await again.click({ role: "link", name: "Sign in with another account" });
+      await ctx.verify("the page leads back to sign-in", [again.visible({ role: "button", name: "Login", exact: true })]);
     },
   },
   {

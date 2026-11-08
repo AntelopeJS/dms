@@ -53,6 +53,11 @@
       "back_to_2fa": "Retour à la vérification",
       "verify": "Vérifier"
     },
+    "no_membership": {
+      "title": "Aucun espace de travail pour ce compte",
+      "description": "Ce compte n'est membre d'aucun espace de travail. Demandez à un administrateur de l'espace de vous inviter, puis reconnectez-vous.",
+      "sign_in_button": "Se connecter avec un autre compte"
+    },
     "backup": {
       "title": "Utiliser un code de secours",
       "description": "Entrez l'un de vos codes de récupération pour vous connecter.",

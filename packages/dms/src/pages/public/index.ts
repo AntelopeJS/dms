@@ -9,5 +9,6 @@ import "./auth/recover-success";
 import "./auth/backup";
 import "./auth/accounts";
 import "./auth/oauth-complete";
+import "./auth/no-membership";
 
 import "./onboarding";
