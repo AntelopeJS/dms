@@ -182,10 +182,16 @@ function createStaleWatch(staleAfterMs: number) {
   };
 }
 
-/** @returns Whether this replica has nothing left to do */
+/**
+ * A claim that lands after `signal` aborted gives the lease back unused, so no
+ * handler starts once the caller has stopped waiting.
+ *
+ * @returns Whether this replica has nothing left to do
+ */
 async function advanceLease(
   watch: ReturnType<typeof createStaleWatch>,
   renewEveryMs: number,
+  signal: AbortSignal,
 ): Promise<boolean> {
   const tenant = await GetModel(TenantModel).get(DEFAULT_TENANT_ID);
   if (!tenant?.provisioningPending) return true;
@@ -194,7 +200,12 @@ async function advanceLease(
   const claimed = await swapLease(tenant.provisioningRevision ?? NO_REVISION, {
     provisioningHolder: holderName(),
   });
-  return claimed !== undefined && provisionUnderLease(claimed, renewEveryMs);
+  if (claimed === undefined) return false;
+  if (signal.aborted) {
+    await swapLease(claimed, { provisioningHolder: null });
+    return true;
+  }
+  return provisionUnderLease(claimed, renewEveryMs);
 }
 
 /**
@@ -246,7 +257,8 @@ export async function provisionDefaultTenant(
   const watch = createStaleWatch(staleAfterMs);
   while (!signal.aborted) {
     try {
-      if (await untilAborted(advanceLease(watch, renewEveryMs), signal)) return;
+      if (await untilAborted(advanceLease(watch, renewEveryMs, signal), signal))
+        return;
     } catch (error) {
       watch.forget();
       Logging.Warn(

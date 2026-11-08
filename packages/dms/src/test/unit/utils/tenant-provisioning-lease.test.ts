@@ -164,6 +164,20 @@ describe("[unit] default tenant provisioning across replicas", () => {
     expect(settled).to.equal(false);
   });
 
+  it("starts no handler when aborted before its claim applies, and gives the lease back", async () => {
+    await ensureDefaultTenantExists();
+    const stopping = new AbortController();
+    const provisioning = provisionDefaultTenant(stopping.signal, LEASE);
+    stopping.abort();
+    await provisioning;
+    await setTimeout(OUTLASTS_STALE_WINDOW_MS);
+
+    const tenant = await GetModel(TenantModel).get(DEFAULT_TENANT_ID);
+    expect(calls).to.equal(0);
+    expect(tenant?.provisioningPending).to.equal(true);
+    expect(tenant?.provisioningHolder ?? null).to.equal(null);
+  });
+
   it("frees the lease after a failure, so a waiting replica retries without the stale wait", async () => {
     await ensureDefaultTenantExists();
     body = () => Promise.reject(new Error("step failed"));
