@@ -13,10 +13,13 @@ import { setTimeout as sleep } from "node:timers/promises";
 import {
   assertOwnProc,
   assertSignalable,
+  hasProc,
   isAlive,
   isSameProcess,
   isSignalable,
+  startedAs,
   startTimeOf,
+  statOf,
 } from "./identity.mjs";
 
 const POLL_MS = 500;
@@ -244,14 +247,37 @@ function procEntries() {
   }
 }
 
-/** @param {string} pid */
-function parentOf(pid) {
-  try {
-    const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
-    return Number(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[1]);
-  } catch {
-    return -1;
+/** @typedef {Map<number, { parent: number, startTime: number }>} ProcessTable Each process /proc lists, with its parent and start time from one read of its stat */
+
+/** @returns {ProcessTable} */
+function processTable() {
+  /** @type {ProcessTable} */
+  const table = new Map();
+  for (const pid of procEntries().map(Number)) {
+    const stat = statOf(pid);
+    if (stat) table.set(pid, stat);
   }
+  return table;
+}
+
+/**
+ * @param {number[]} roots
+ * @param {ProcessTable} table
+ * @returns {Set<number>} The roots and every process of `table` below one of them
+ */
+function familyOf(roots, table) {
+  const found = new Set(roots);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const [pid, { parent }] of table) {
+      if (!found.has(pid) && found.has(parent)) {
+        found.add(pid);
+        grew = true;
+      }
+    }
+  }
+  return found;
 }
 
 /**
@@ -262,21 +288,9 @@ function parentOf(pid) {
  * @returns {number[]} The descendants, roots excluded
  */
 export function descendantsOf(pids) {
-  const parents = new Map(
-    procEntries().map((entry) => [Number(entry), parentOf(entry)]),
+  return [...familyOf(pids, processTable())].filter(
+    (pid) => !pids.includes(pid),
   );
-  const found = new Set(pids);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const [pid, parent] of parents) {
-      if (!found.has(pid) && found.has(parent)) {
-        found.add(pid);
-        grew = true;
-      }
-    }
-  }
-  return [...found].filter((pid) => !pids.includes(pid));
 }
 
 /** @param {number} port */
@@ -349,17 +363,43 @@ function signalGroup(pid, signal) {
 /**
  * The recorded processes that still run as the run started them, and their
  * descendants, each with the start time that tells it apart from a later
- * process given its pid. A record whose pid another process holds now, or
- * whose pid is not a whole number above 1, is left out, so no descendant of
- * 0 or 1 is ever looked up.
+ * process given its pid. Each process is found and identified by one read
+ * of its stat, so a pid another process takes while the tree is read never
+ * joins it with the newcomer's start time. A record whose pid another
+ * process holds now, or whose pid is not a whole number above 1, is left
+ * out, so no descendant of 0 or 1 is ever looked up.
  *
  * @param {RecordedProcess[]} records The recorded processes
  * @returns {{ pid: number, startTime: number | null }[]} One entry per process
  */
 function ownProcesses(records) {
-  const roots = records.filter(isSameProcess).map((record) => record.pid);
-  const pids = [...new Set([...roots, ...descendantsOf(roots)])];
-  return pids.map((pid) => ({ pid, startTime: startTimeOf(pid) }));
+  const live = records.filter(isSameProcess);
+  if (!hasProc()) return live.map(({ pid }) => ({ pid, startTime: null }));
+  const table = processTable();
+  const roots = live
+    .filter((record) => {
+      const stat = table.get(record.pid);
+      return stat !== undefined && startedAs(record, stat.startTime);
+    })
+    .map(({ pid }) => pid);
+  return [...familyOf(roots, table)].flatMap((pid) => {
+    const stat = table.get(pid);
+    return stat ? [{ pid, startTime: stat.startTime }] : [];
+  });
+}
+
+/**
+ * Signals the group of `target` only while its pid still runs that process,
+ * checked right before the signal.
+ *
+ * @param {{ pid: number, startTime: number | null }} target A process of {@link ownProcesses}
+ * @param {NodeJS.Signals} signal The signal
+ * @returns {boolean} True when the signal was sent
+ */
+function signalIfSame(target, signal) {
+  if (!isSameProcess(target)) return false;
+  signalGroup(target.pid, signal);
+  return true;
 }
 
 /**
@@ -387,13 +427,12 @@ function skippedRecords(records) {
  */
 export async function stopRecorded(records) {
   const targets = ownProcesses(records);
-  for (const target of targets) signalGroup(target.pid, "SIGTERM");
+  for (const target of targets) signalIfSame(target, "SIGTERM");
   const deadline = Date.now() + STOP_GRACE_MS;
   while (targets.some(isSameProcess) && Date.now() < deadline) {
     await sleep(READY_POLL_MS);
   }
-  const stubborn = targets.filter(isSameProcess);
-  for (const target of stubborn) signalGroup(target.pid, "SIGKILL");
+  const stubborn = targets.filter((target) => signalIfSame(target, "SIGKILL"));
   return [
     ...skippedRecords(records),
     ...targets.map(
@@ -420,7 +459,7 @@ export async function stopRecorded(records) {
  */
 export async function killRecorded(records) {
   const targets = ownProcesses(records);
-  for (const target of targets) signalGroup(target.pid, "SIGKILL");
+  for (const target of targets) signalIfSame(target, "SIGKILL");
   const deadline = Date.now() + STOP_GRACE_MS;
   while (targets.some(isSameProcess)) {
     if (Date.now() >= deadline) {
