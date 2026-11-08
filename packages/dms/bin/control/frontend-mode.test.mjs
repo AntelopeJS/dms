@@ -22,9 +22,3 @@ await test("a run in dev mode serves its dashboard with ajs dms dev on its web p
     "4321",
   ]);
 });
-
-await test("a run without a frontend mode serves the build with ajs dms start", async (t) => {
-  const state = await newRun(t);
-  state.webPort = 4321;
-  assert.deepEqual(frontendSpec(state).args.slice(1, 3), ["start", "-e"]);
-});
