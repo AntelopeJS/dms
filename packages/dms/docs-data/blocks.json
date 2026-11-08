@@ -14202,6 +14202,10 @@
             {
               "type": "object",
               "properties": {
+                "whileOnScreen": {
+                  "type": "boolean",
+                  "optional": true
+                },
                 "whileRowOpen": {
                   "type": "boolean",
                   "optional": true
@@ -14226,7 +14230,7 @@
             }
           ],
           "optional": true,
-          "description": "On a live page, keeps the rows while paused or on screen and shows what is new over them; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
+          "description": "On a live page, keeps the rows while paused or on screen and shows what is new over them; `whileOnScreen: false` lets them follow the feed while on screen, `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
           "ui": {
             "label": "Hold rows while paused",
             "group": "data",
