@@ -11,6 +11,7 @@ import {
   isRecord,
   isString,
   objectOf,
+  recordOf,
 } from "./json.mjs";
 import {
   freePort,
@@ -164,7 +165,7 @@ function withDefaultExports(namespace) {
  * @param {string} name The package name
  * @param {string[]} from Folders to resolve from, in order
  * @returns {Promise<Record<string, unknown>>} The module namespace
- * @throws When no folder resolves it, saying which devDependency to add
+ * @throws When no folder resolves it, saying how to install it
  */
 async function importNamespace(name, from) {
   for (const folder of from) {
@@ -179,9 +180,28 @@ async function importNamespace(name, from) {
       continue;
     }
   }
-  throw new Error(
-    `dms-control needs ${name}: add it to the playground's devDependencies.`,
+  throw new Error(missingPackage(name));
+}
+
+/**
+ * What to do about a package no folder resolves. A package that
+ * `@antelopejs/dms` declares optional was skipped by the install, so the
+ * message names the command that adds it at the declared range.
+ *
+ * @param {string} name The package name
+ * @returns {string} The error message
+ */
+function missingPackage(name) {
+  const { optionalDependencies } = decode(
+    objectOf({ optionalDependencies: recordOf(isString) }),
+    createRequire(import.meta.url)("../../package.json"),
+    "@antelopejs/dms package.json",
+    "optionalDependencies of version ranges",
   );
+  if (!Object.hasOwn(optionalDependencies, name))
+    return `dms-control needs ${name}: add it to the playground's devDependencies.`;
+  const spec = `${name}@${optionalDependencies[name]}`;
+  return `dms-control needs ${name}, an optional dependency of @antelopejs/dms that this install skipped: run \`npm install --save-dev ${spec}\` (or \`pnpm add --save-dev ${spec}\`) in the module that runs dms-control.`;
 }
 
 /**
@@ -192,7 +212,7 @@ async function importNamespace(name, from) {
  * @param {string} name The package name
  * @param {string[]} from Folders to resolve from, in order
  * @returns {Promise<any>} The module namespace
- * @throws When no folder resolves it, saying which devDependency to add
+ * @throws When no folder resolves it, saying how to install it
  */
 export async function importFrom(name, from) {
   return importNamespace(name, from);
