@@ -68,16 +68,22 @@ export const journeys = [
   },
   {
     id: "command-palette-no-match",
-    title: "a palette search that matches nothing shows no option and opens nothing",
+    title: "a palette search that matches nothing offers only the assistant, and Enter asks it without leaving the page",
     entryPoint: "command palette (Ctrl K), empty result",
     async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await paletteListens(tab);
       await tab.press("Control+k");
       await tab.fill({ role: "textbox", name: "Type a command or search…" }, "qqxzjjwv");
-      await ctx.verify("no option matches", [tab.count({ role: "option" }, 0), tab.shows(/No matching data/)]);
+      await ctx.verify("no page or action matches, so the only option asks the assistant", [
+        tab.visible({ role: "option", name: /^Ask the assistant “qqxzjjwv”/, within: { role: "listbox" } }),
+        tab.count({ role: "option" }, 1),
+      ]);
       await tab.press("Enter");
-      await ctx.verify("Enter leaves the page where it was", [tab.at(new RegExp(`^${HOME}$`))]);
+      await ctx.verify("Enter asks the assistant and leaves the page where it was", [
+        tab.shows(/You asked: “qqxzjjwv”/),
+        tab.at(new RegExp(`^${HOME}$`)),
+      ]);
     },
   },
   {
