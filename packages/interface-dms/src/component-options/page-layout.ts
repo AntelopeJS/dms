@@ -1,5 +1,4 @@
 import type { ComponentFilterContext, ComponentInfo } from "../component";
-import type { MaybePromise } from "../types";
 import { serializeActionConfirm } from "./internal/confirm-dialog";
 import { serializeActionTarget } from "./internal/action-target";
 import type { CustomButton } from "./button";
@@ -37,8 +36,7 @@ export interface PageHeaderButton extends CustomButton {
  */
 export type PageRecordLoader = (
   context: ComponentFilterContext,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published page loaders return application-defined records; a fixed value schema would narrow the extension contract.
-) => MaybePromise<Record<string, unknown> | undefined>;
+) => (object & { then?: never }) | undefined | PromiseLike<object | undefined>;
 
 export interface DefaultLayoutOptions {
   /**
