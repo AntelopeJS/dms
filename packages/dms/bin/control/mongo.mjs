@@ -2,9 +2,22 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
-import { arrayOf, decode, isRecord, isString, objectOf } from "./json.mjs";
-import { freePort, startDetached, waitForOwnPort } from "./processes.mjs";
+import {
+  arrayOf,
+  decode,
+  isBoolean,
+  isRecord,
+  isString,
+  objectOf,
+} from "./json.mjs";
+import {
+  freePort,
+  startDetached,
+  stopRecorded,
+  waitForOwnPort,
+} from "./processes.mjs";
 
 /**
  * @typedef {(...args: unknown[]) => unknown} Callable A function whose result is read as `unknown`
@@ -12,11 +25,19 @@ import { freePort, startDetached, waitForOwnPort } from "./processes.mjs";
  * @typedef {{ connect: Callable, close: Callable, db: Callable }} Client The calls made on a driver client
  * @typedef {{ admin: Callable, dropDatabase: Callable }} Database The calls made on a driver database
  * @typedef {{ listDatabases: Callable }} Admin The call made on a driver's admin handle
+ * @typedef {{ command: Callable }} Commander The call that runs a server command on a driver's admin handle
  */
 
 /** The server version the backend test harness pins, already cached by it. */
 const MONGO_VERSION = "8.0.8";
 const READY_TIMEOUT_MS = 30_000;
+const PRIMARY_POLL_MS = 100;
+
+/** The code mongod answers `replSetInitiate` with when its data folder already holds the set, as on a restart. */
+const ALREADY_INITIALIZED = 23;
+
+/** The single-node replica set the run's mongod serves, so change streams work on it. */
+const REPLICA_SET = "dms-control";
 
 /**
  * @param {unknown} value
@@ -100,9 +121,29 @@ function isAdmin(value) {
   );
 }
 
+/**
+ * @param {unknown} value
+ * @returns {value is Commander} True for an object with a `command` function
+ */
+function isCommander(value) {
+  return isObjectLike(value) && "command" in value && isCallable(value.command);
+}
+
 const isDatabaseList = objectOf({
   databases: arrayOf(objectOf({ name: isString })),
 });
+
+const isHello = objectOf({ isWritablePrimary: isBoolean });
+
+/**
+ * @param {unknown} error
+ * @returns {boolean} True for the answer of a mongod whose replica set is already initiated
+ */
+function isAlreadyInitialized(error) {
+  return (
+    isObjectLike(error) && "code" in error && error.code === ALREADY_INITIALIZED
+  );
+}
 
 /**
  * @param {unknown} namespace A module namespace
@@ -189,7 +230,9 @@ export async function mongodBinary(from) {
 
 /**
  * Starts a mongod owned by the run, on `port` or a free one, with its data
- * under the run folder.
+ * under the run folder, as the only member of a replica set, so change
+ * streams work. A mongod that does not become primary is stopped before the
+ * error is thrown.
  *
  * @param {{ mongo: string, logs: string }} paths The run's folders
  * @param {string[]} from Folders to resolve mongodb-memory-server-core from
@@ -210,12 +253,20 @@ export async function startMongod(paths, from, port) {
       String(port),
       "--bind_ip",
       "127.0.0.1",
+      "--replSet",
+      REPLICA_SET,
     ],
     cwd: paths.mongo,
     env: process.env,
     logs: paths.logs,
   });
-  await waitForOwnPort(port, record, READY_TIMEOUT_MS);
+  try {
+    await waitForOwnPort(port, record, READY_TIMEOUT_MS);
+    await initiateReplicaSet(port, from);
+  } catch (error) {
+    await stopRecorded([record]);
+    throw error;
+  }
   return { url: `mongodb://127.0.0.1:${port}`, record: { ...record, port } };
 }
 
@@ -287,6 +338,47 @@ async function withClient(url, from, use) {
   } finally {
     await client.close();
   }
+}
+
+/**
+ * Makes the mongod on `port` the only member of the replica set, unless its
+ * data folder already holds the set, and waits until it accepts writes.
+ *
+ * @param {number} port The port of the mongod
+ * @param {string[]} from Folders to resolve the driver from
+ * @returns {Promise<void>} Resolves once the member is primary
+ * @throws When it is not primary within the startup timeout
+ */
+function initiateReplicaSet(port, from) {
+  const url = `mongodb://127.0.0.1:${port}/?directConnection=true`;
+  return withClient(url, from, async (client) => {
+    /** @type {unknown} */
+    const admin = databaseOf(client, "admin").admin();
+    if (!isCommander(admin))
+      throw new TypeError("The admin handle of the driver has no command");
+    try {
+      await admin.command({
+        replSetInitiate: {
+          _id: REPLICA_SET,
+          members: [{ _id: 0, host: `127.0.0.1:${port}` }],
+        },
+      });
+    } catch (error) {
+      if (!isAlreadyInitialized(error)) throw error;
+    }
+    const deadline = Date.now() + READY_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      const hello = decode(
+        isHello,
+        await admin.command({ hello: 1 }),
+        "hello",
+        "the state of a replica set member",
+      );
+      if (hello.isWritablePrimary) return;
+      await sleep(PRIMARY_POLL_MS);
+    }
+    throw new Error(`mongod on ${port} did not become primary`);
+  });
 }
 
 /**

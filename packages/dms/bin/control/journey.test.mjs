@@ -145,6 +145,21 @@ writeFileSync(starts, String(before + 1));
 require("node:net").createServer((socket) => socket.end(String(before + 1))).listen(Number(option("--port")), "127.0.0.1");
 `;
 
+/** A driver whose server takes the replica-set setup the run's mongod gets and answers that it accepts writes. */
+const FAKE_DRIVER = `
+class MongoClient {
+  async connect() {}
+  async close() {}
+  db() {
+    return {
+      admin: () => ({ command: async () => ({ ok: 1, isWritablePrimary: true }) }),
+      dropDatabase: async () => {},
+    };
+  }
+}
+module.exports = { MongoClient };
+`;
+
 /**
  * @param {number} port The port
  * @returns {Promise<boolean>} Whether something accepts a connection on it
@@ -187,6 +202,15 @@ async function runOwningMongod(t) {
   const binary = join(dir, "mongod");
   writeFileSync(binary, FAKE_MONGOD);
   chmodSync(binary, 0o755);
+  for (const [name, source] of [
+    ["mongodb", FAKE_DRIVER],
+    ["mongodb-memory-server-core", "module.exports = {};"],
+  ]) {
+    const root = join(dir, "node_modules", name);
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, "package.json"), `{"name":"${name}"}`);
+    writeFileSync(join(root, "index.js"), source);
+  }
   const previous = process.env.DMS_CONTROL_MONGOD;
   process.env.DMS_CONTROL_MONGOD = binary;
   const paths = { mongo: join(dir, "mongo"), logs: dir };
