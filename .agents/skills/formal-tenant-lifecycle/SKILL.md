@@ -58,7 +58,7 @@ Run `--full` when a change touches a file in the coverage record below, or this 
 
 `TypeOK` holds too. The numbers in brackets are the states of TLC's shortest counterexample, which `check.mjs` records per configuration.
 
-`FailureRetains` differs from the plan, which said a failed attempt blocks "until it is replayed". A replay is a new attempt with a new id, and no API retires the failed one (`tenant-lifecycle.test.ts`, "retains failed invocations even when a separate replay succeeds"; `5.tenancy.md`, "There is no automatic expiry or reconciliation API"). So a failed attempt blocks deletion for good, by design.
+`FailureRetains` differs from the plan, which said a failed attempt blocks "until it is replayed". A replay is a new attempt with a new id, and no other attempt retires the failed one (`tenant-lifecycle.test.ts`, "retains failed invocations even when a separate replay succeeds"). So a failed attempt blocks deletion until an operator retires it with `releaseTenantLifecycleAttempt`, by design. The model has no operator, so `FailureRetains` holds for every attempt the operator leaves alone.
 
 `ResumeAdmits` is a liveness rule stated as an invariant, because the shared runner checks invariants only. Under weak fairness every behaviour ends in a state where no step changes anything (`Quiescent`), and the rule asks for admission there, so an admission loop that spins breaks it too. It is not listed under `Faults`, where a database error may rightly refuse an attempt. `Init` starts some behaviours with no deletion to come, so closure cannot excuse a stuck attempt.
 
@@ -75,7 +75,7 @@ On the final model, TLC reports no error with 125,786 distinct states. It report
 F1 was replayed against the real code at the sync commit with the integration harness of `packages/dms/TESTING.md`, on the in-memory MongoDB. The replay was a scratch test and is not committed. F1 is fixed (AntelopeJS/dms#653); the committed tests are in `packages/dms/src/test/integration/tenant-lifecycle-refusal.test.ts`.
 
 - **F1, a refused attempt keeps its admission when the release fails (`RefusalReleases`). Fixed, AntelopeJS/dms#653.** A 4xx refusal released with `model.finish(...).catch(() => undefined)`, so a failed release was swallowed and never tried again. In TLC's counterexample, the attempt asks for admission, reads the row, writes its admission, the work refuses with a 4xx, and the release read throws. In the replay, `model.get` threw from inside the work: the call answered 402, `activeAttemptIds` kept 1 entry and `closeTenantLifecycleAdmission` rejected with `Tenant lifecycle deletion blocked by active or indeterminate attempts`. The same happened when the release's compare-and-set answered `unknown` without landing.
-- **F2, a finished attempt keeps its admission when the release fails (`SuccessReleases`). Fixed, AntelopeJS/dms#653.** A success propagated a failed `finish` but did not try again, so one transient fault blocked the tenant's deletion for good. The fix is the same as for F1: `releaseAttempt` (lifecycle.ts:35-52) tries `finish` `RELEASE_ATTEMPTS` (3) times, which is safe because `finish` is idempotent. If every try fails, the admission stays and the call rejects with the release failure (after a refusal, an `AggregateError` of the refusal and the release failure), so the blocked deletion is reported. The model assumes `MaxFaults < ReleaseAttempts`; the exhausted state equals a failed attempt, which `FailureRetains` covers.
+- **F2, a finished attempt keeps its admission when the release fails (`SuccessReleases`). Fixed, AntelopeJS/dms#653.** A success propagated a failed `finish` but did not try again, so one transient fault blocked the tenant's deletion for good. The fix is the same as for F1: `releaseAttempt` (lifecycle.ts:53-71) tries `finish` `RELEASE_ATTEMPTS` (3) times, which is safe because `finish` is idempotent. If every try fails, the admission stays and the call rejects with a `TenantLifecycleReleaseError` that names the tenant and the attempt (after a refusal, an `AggregateError` of the refusal and that error), so the blocked deletion is reported. The model assumes `MaxFaults < ReleaseAttempts`; the exhausted state equals a failed attempt, which `FailureRetains` covers. `check.mjs` reads `RELEASE_ATTEMPTS` from lifecycle.ts and `ReleaseAttempts` from the model before TLC runs, and exits 1 with `BROKEN ReleaseAttempts` when they differ (AntelopeJS/dms#667).
 
 ## Read every result with /statechart
 
@@ -102,14 +102,14 @@ Assert only what a caller observes: the answer, `observeTenantLifecycle`, and wh
 | Model action | Code |
 | --- | --- |
 | `Init` | `state()` initializes the row once (`packages/interface-dms/src/db/internal/tenantLifecycle.model.ts:22-43`). A loser of the insert reads the winner's row, so the model starts with the row. A legacy row reads the same way. |
-| `Start`, `AdmitRead`, `AdmitApplied`, `AdmitStale` and their faults | `model.admit` (model.ts:64-80), `transition` (model.ts:45-61), called at `runTenantLifecycleOperation` (`packages/interface-dms/src/tenant-lifecycle.ts:41-43`) |
-| `WorkSucceeds`, `WorkRefuses`, `WorkFails` | lifecycle.ts:76-92, `isDeliberateRefusal` (lifecycle.ts:20-27), `changeTenantMembers` as the work (`packages/interface-dms/src/tenant-members.ts:29-40`) |
-| `FinishRead`, `FinishApplied`, `FinishStale` and their faults | `model.finish` (model.ts:109-118), called through `releaseAttempt` (lifecycle.ts:35-52) after a success, where a fault is tried again |
+| `Start`, `AdmitRead`, `AdmitApplied`, `AdmitStale` and their faults | `model.admit` (model.ts:64-80), `transition` (model.ts:45-61), called at `runTenantLifecycleOperation` (`packages/interface-dms/src/tenant-lifecycle.ts:97-99`) |
+| `WorkSucceeds`, `WorkRefuses`, `WorkFails` | lifecycle.ts:101-120, `isClientErrorStatus` (lifecycle.ts:21-23), `changeTenantMembers` as the work (`packages/interface-dms/src/tenant-members.ts:29-40`) |
+| `FinishRead`, `FinishApplied`, `FinishStale` and their faults | `model.finish` (model.ts:113-122), called through `releaseAttempt` (lifecycle.ts:53-71) after a success, where a fault is tried again |
 | `ReleaseRead`, `ReleaseApplied`, `ReleaseStale` and their faults | `model.finish`, called through `releaseAttempt` after a refusal, where a fault is tried again |
-| `Observe` | `observeTenantLifecycle` (lifecycle.ts:114-123) |
+| `Observe` | `observeTenantLifecycle` (lifecycle.ts:168-178) |
 | `PauseRead`, `PauseApplied`, `PauseStale` and their faults | `model.pause` (model.ts:83-94) |
 | `ResumeStart`, `ResumeRead`, `ResumeApplied`, `ResumeStale` and their faults | `model.resume` (model.ts:97-106) |
-| `CloseStart`, `CloseRead`, `CloseApplied`, `CloseStale`, `CloseReread` and their faults | `model.close` (model.ts:121-135), retried by a new call of `closeTenantLifecycleAdmission` (lifecycle.ts:99-103) |
+| `CloseStart`, `CloseRead`, `CloseApplied`, `CloseStale`, `CloseReread` and their faults | `model.close` (model.ts:125-139), retried by a new call of `closeTenantLifecycleAdmission` (lifecycle.ts:153-157) |
 | `deleter = "deleting"` | `cleanupTenantData` deletes after the close resolves (`packages/dms/src/hooks/tenant-deleted.ts:20-26`) |
 
 The sync commit is `0a3efc0f` on AntelopeJS/dms `campaign/integration`.
@@ -125,7 +125,9 @@ The model leaves out:
 - the atomicity of `atomicMutation`. The model takes it from the database adapter, and the integration test "arbitrates simultaneous closure and admission on one revision" exercises it on MongoDB.
 - a process that dies. For these rules, that is an actor that stalls forever, which the model already allows.
 - a dropped `tenant_lifecycle` row. A new row would be open, and the docs forbid dropping it. `cleanupTenantData` leaves it in place.
-- the status boundary of `isDeliberateRefusal` (lifecycle.ts:25). `WorkRefuses` and `WorkFails` are free choices; only the verdict gate sees such a change.
+- the status boundary of `isClientErrorStatus` (lifecycle.ts:22). `WorkRefuses` and `WorkFails` are free choices; only the verdict gate sees such a change.
+- the operator. `releaseTenantLifecycleAttempt` (lifecycle.ts:142-147) retires an admission on the operator's word, which no rule can check. The model never calls it.
+- the pause between release tries (lifecycle.ts:60). Time is not modeled; a pause is a stall, which the model already allows.
 - nested calls. The docstring of `runTenantLifecycleOperation` says each call takes its own admission, as `changeTenantMembers` says. Each model attempt is one top-level call.
 
 ## Confirm the check can fail
@@ -134,14 +136,14 @@ On a scratch copy of this folder, inside the repository so the runner resolves, 
 
 | Scratch change in the code, and the model edit | Rule | CI configuration | Full configuration |
 | --- | --- | --- | --- |
-| `close-skips-quiescence`: `close` drops `current.activeAttemptIds.length` (model.ts:128): `CloseReread` ignores `row.active` | `NoWriterDuringDeletion` | `BROKEN NoWriterDuringDeletion` | same |
-| `close-without-closing`: `close` tests quiescence without writing `closed` (model.ts:124-128): `CloseRead` skips the write, `CloseReread` tests only `row.active` | `NoWriterDuringDeletion` | `BROKEN NoWriterDuringDeletion` | same |
+| `close-skips-quiescence`: `close` drops `current.activeAttemptIds.length` (model.ts:132): `CloseReread` ignores `row.active` | `NoWriterDuringDeletion` | `BROKEN NoWriterDuringDeletion` | same |
+| `close-without-closing`: `close` tests quiescence without writing `closed` (model.ts:128-132): `CloseRead` skips the write, `CloseReread` tests only `row.active` | `NoWriterDuringDeletion` | `BROKEN NoWriterDuringDeletion` | same |
 | `admit-ignores-closed`: `admit` drops the closed throw (model.ts:67): `AdmitRead` drops that branch | `NoWriterDuringDeletion` | `BROKEN NoWriterDuringDeletion` | same |
 | `admit-ignores-barrier`: `admit` drops the 409 (model.ts:68-72): `AdmitRead` drops that branch | `PauseBlocksAdmission` | `BROKEN PauseBlocksAdmission` | same |
 | `admit-without-revision`: the admission write drops `expectedRevision` (model.ts:53): `AdmitApplied` drops `Applies`, `AdmitStale` is disabled | `PauseBlocksAdmission` | `BROKEN PauseBlocksAdmission` | `BROKEN PauseBlocksAdmission` or `BROKEN FailureRetains`, by run |
-| `refusal-keeps-admission`: drop the release (lifecycle.ts:79-89): `WorkRefuses` goes straight to `refused` | `RefusalReleases` | `BROKEN RefusalReleases` | same |
-| `any-throw-releases`: `isDeliberateRefusal` always answers true (lifecycle.ts:20-27): `WorkFails` removes the admission | `FailureRetains` | `BROKEN FailureRetains` | same |
-| `finish-retires-every-attempt`: `finish` writes an empty list (model.ts:113-116): `Removed` writes `{}` | `FailureRetains` | `BROKEN FailureRetains` | same |
+| `refusal-keeps-admission`: drop the release (lifecycle.ts:111-117): `WorkRefuses` goes straight to `refused` | `RefusalReleases` | `BROKEN RefusalReleases` | same |
+| `any-throw-releases`: `isClientErrorStatus` always answers true (lifecycle.ts:21-23): `WorkFails` removes the admission | `FailureRetains` | `BROKEN FailureRetains` | same |
+| `finish-retires-every-attempt`: `finish` writes an empty list (model.ts:117-120): `Removed` writes `{}` | `FailureRetains` | `BROKEN FailureRetains` | same |
 | `finish-without-revision`: the release write drops `expectedRevision` (model.ts:53): `RemoveLands` drops `Applies`, `RemoveConflicts` is disabled | `FailureRetains` | `BROKEN FailureRetains` | same |
 | `resume-keeps-barrier`: `resume` drops `barrierId: null` (model.ts:104): `ResumeApplied` keeps `row.barrier` | `ResumeAdmits` | `BROKEN ResumeAdmits` | same |
 | `admit-gives-up-on-conflict`: `admit` throws instead of looping (model.ts:65, 73-78): `AdmitStale` goes to `admitFailed` | `ResumeAdmits` | `BROKEN ResumeAdmits` | same |

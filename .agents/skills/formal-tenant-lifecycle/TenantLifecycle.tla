@@ -20,7 +20,8 @@ CONSTANTS
   MaxFaults, \* database calls that throw, or answer "unknown"
   NoBarrier  \* barrierId null
 
-(* RELEASE_ATTEMPTS of lifecycle.ts:7. Every release tries `finish` this often. *)
+(* RELEASE_ATTEMPTS of lifecycle.ts:9. Every release tries `finish` this often.
+   check.mjs fails with BROKEN ReleaseAttempts when the two differ. *)
 ReleaseAttempts == 3
 
 ASSUME MaxFaults < ReleaseAttempts
@@ -97,7 +98,7 @@ AllResumed ==
   /\ \A o \in Owners : resuming[o] \in {"resumed", "resumeRefused"}
   /\ \E o \in Owners : resuming[o] = "resumed"
 
-(* ---- runTenantLifecycleOperation (lifecycle.ts:68-93) and model.admit ---- *)
+(* ---- runTenantLifecycleOperation (lifecycle.ts:93-124) and model.admit ---- *)
 
 MoveAttempt(a, to) == attempt' = [attempt EXCEPT ![a] = to]
 
@@ -132,7 +133,7 @@ Admitted(a) ==
   /\ row' = Patch(row, "active", snap[a].active \cup {a})
   /\ pausedAdmit' = (pausedAdmit \/ row.barrier # NoBarrier)
 
-(* model.ts:73-78, then lifecycle.ts:77 calls work. *)
+(* model.ts:73-78, then lifecycle.ts:102 calls work. *)
 AdmitApplied(a) ==
   /\ attempt[a] = "admitCas"
   /\ Applies(a)
@@ -170,28 +171,28 @@ AdmitUnknownLost(a) ==
   /\ UNCHANGED <<row, pausedAdmit, owed>>
   /\ AttemptOthersKeep
 
-(* lifecycle.ts:77 resolves, and lifecycle.ts:90-91 finishes. *)
+(* lifecycle.ts:102 resolves, and lifecycle.ts:121-122 finishes. *)
 WorkSucceeds(a) ==
   /\ attempt[a] = "work"
   /\ MoveAttempt(a, "finishRead")
   /\ UNCHANGED <<row, snap, faults, pausedAdmit, owed>>
   /\ AttemptOthersKeep
 
-(* lifecycle.ts:79-89: a 4xx, by isDeliberateRefusal (lifecycle.ts:20-27). *)
+(* lifecycle.ts:106-118: a 4xx, by isClientErrorStatus (lifecycle.ts:21-23). *)
 WorkRefuses(a) ==
   /\ attempt[a] = "work"
   /\ MoveAttempt(a, "releaseRead")
   /\ UNCHANGED <<row, snap, faults, pausedAdmit, owed>>
   /\ AttemptOthersKeep
 
-(* lifecycle.ts:78-92: any other throw keeps the admission. *)
+(* lifecycle.ts:103-119: any other throw keeps the admission. *)
 WorkFails(a) ==
   /\ attempt[a] = "work"
   /\ MoveAttempt(a, "failed")
   /\ UNCHANGED <<row, snap, faults, pausedAdmit, owed>>
   /\ AttemptOthersKeep
 
-(* model.finish (model.ts:109-118). Each caller runs it from its own steps. *)
+(* model.finish (model.ts:113-122). Each caller runs it from its own steps. *)
 ReadRow(a, cas, end) ==
   /\ IF a \in row.active
        THEN MoveAttempt(a, cas) /\ Remember(a)
@@ -241,7 +242,7 @@ UnknownIsLost(a, end) ==
 FinishRead(a) == attempt[a] = "finishRead" /\ ReadRow(a, "finishCas", "done")
 FinishApplied(a) == attempt[a] = "finishCas" /\ RemoveLands(a, "done")
 FinishStale(a) == attempt[a] = "finishCas" /\ RemoveConflicts(a, "finishRead")
-(* releaseAttempt (lifecycle.ts:35-52) tries `finish` RELEASE_ATTEMPTS times
+(* releaseAttempt (lifecycle.ts:53-71) tries `finish` RELEASE_ATTEMPTS times
    and finish is idempotent, so a throw or an unknown answer reads the row
    again. The attempts run out only after RELEASE_ATTEMPTS faults, which the
    assumption above rules out. *)
@@ -396,7 +397,7 @@ CloseStart ==
   /\ UNCHANGED <<row, snap, faults>>
   /\ DeleterOthersKeep
 
-(* model.ts:123-124: an already closed row skips the write. *)
+(* model.ts:127-128: an already closed row skips the write. *)
 CloseRead ==
   /\ deleter = "closeRead"
   /\ IF row.closed
@@ -414,7 +415,7 @@ CloseApplied ==
   /\ UNCHANGED <<closes, faults>>
   /\ DeleterOthersKeep
 
-(* The `continue` of model.ts:125. *)
+(* The `continue` of model.ts:129. *)
 CloseStale ==
   /\ deleter = "closeCas"
   /\ ~Applies("deleter")
@@ -423,7 +424,7 @@ CloseStale ==
   /\ UNCHANGED <<row, closes, faults>>
   /\ DeleterOthersKeep
 
-(* model.ts:127-133: quiescence is tested on a fresh read after closing. A
+(* model.ts:131-137: quiescence is tested on a fresh read after closing. A
    resolved close lets cleanupTenantData delete (deleted.ts:21-25), a rejected
    one preserves the data. *)
 CloseReread ==
