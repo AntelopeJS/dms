@@ -85,14 +85,24 @@ const copyJsonFields = (entries: [string, unknown][]) => {
 /**
  * The fields of a JSON object sent as text.
  *
- * @throws SyntaxError when `text` is not JSON, TypeError when it is JSON but
- * not an object, and an HTTP 400 result when it nests arrays and objects more
- * than {@link MAX_BODY_DEPTH} levels deep.
+ * @throws An HTTP 400 result when `text` is not JSON, when it is JSON but not
+ * an object, and when it nests arrays and objects more than
+ * {@link MAX_BODY_DEPTH} levels deep. The first two carry the messages
+ * `Validation.ParseBody` answers a write with.
  */
 const parseJsonObject = (text: string) => {
-  const json: unknown = JSON.parse(text);
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throwHttpAssert(false, 400, "Invalid JSON body.");
+  }
   const fields = JSON_FIELDS.safeParse(json);
-  if (!fields.success) throw new TypeError("The JSON body is not an object");
+  throwHttpAssert(
+    fields.success,
+    400,
+    "The request body must be a JSON object.",
+  );
   throwHttpAssert(
     !nestsDeeperThan(Object.values(fields.data), MAX_BODY_DEPTH),
     400,
