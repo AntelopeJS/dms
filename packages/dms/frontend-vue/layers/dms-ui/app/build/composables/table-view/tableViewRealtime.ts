@@ -1,5 +1,8 @@
 import { usePageLive } from "../../../composables/live/usePageLive";
-import type { RealtimeTopicHandler } from "#dms-core/app/composables/realtime/useUserRealtime";
+import {
+  useUserRealtime,
+  type RealtimeTopicHandler,
+} from "#dms-core/app/composables/realtime/useUserRealtime";
 import type { RealtimePresenceMap } from "./tableViewTypes";
 import type { TableViewScope } from "./tableViewScope";
 
@@ -87,6 +90,7 @@ export function useTableViewRowEvents<T extends Data>(
   scope: Pick<
     TableViewScope<T>,
     | "configuration"
+    | "listState"
     | "rowRealtime"
     | "rowCommands"
     | "refresh"
@@ -95,6 +99,7 @@ export function useTableViewRowEvents<T extends Data>(
   >,
 ) {
   const { REALTIME_EVENT_TYPE } = scope.configuration;
+  const { isListLoading } = scope.listState;
   const { removeRowsLocal, patchRowLocal, realtimeRowTopic } =
     scope.rowRealtime;
   const { deselectRows } = scope.rowCommands;
@@ -119,6 +124,10 @@ export function useTableViewRowEvents<T extends Data>(
           activeDisplayRef.value?.refresh?.(),
           refreshCounts(),
         ]);
+        return;
+      }
+      if (isListLoading.value) {
+        await refreshAll();
         return;
       }
       await Promise.all([
@@ -153,6 +162,10 @@ export function useTableViewRowEvents<T extends Data>(
       return;
     }
     void handler(ids);
+  });
+
+  watch(useUserRealtime().pageTopics, (topics) => {
+    if (realtimeRowTopic.value && topics.length > 0) liveGate.owe();
   });
   return {};
 }

@@ -44,9 +44,10 @@ export function usePageDataRefresh(source: PageDataRefreshSource): void {
   };
   watch(
     source.pageTopics,
-    (topics) => {
+    (topics, previous) => {
       unsubscribeAll();
       unsubscribes = topics.map((topic) => source.subscribe(topic, onEvent));
+      if (previous && topics.length > 0) gate.owe();
     },
     { immediate: true },
   );

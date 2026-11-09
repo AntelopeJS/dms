@@ -72,6 +72,8 @@ export interface LiveGate {
   lastReadAt: ComputedRef<number>;
   /** Refetches now and forgets what was missed. */
   catchUp(): void;
+  /** The block may be stale with no event for it (see LiveSubscription). */
+  owe(): void;
   /** Records a read the caller makes itself (see LiveSubscription). */
   acknowledge(): void;
   /**
@@ -136,6 +138,11 @@ export function useLiveGate(refresh: () => void): LiveGate {
     catchUp: () => {
       const subscription = resolve();
       if (subscription) subscription.catchUp();
+      else refreshUngated();
+    },
+    owe: () => {
+      const subscription = resolve();
+      if (subscription) subscription.owe();
       else refreshUngated();
     },
     acknowledge: () => resolve()?.acknowledge(),

@@ -264,15 +264,22 @@ SubscribeServed(t) ==
 
 (* The tab reads the answer: for its current session it marks P applied  *)
 (* and takes the topics, none on `ok: false`; the page refresh then       *)
-(* listens to them (useUserRealtime.ts:390, 401-405).                     *)
+(* listens to them (useUserRealtime.ts:390, 401-405). Taking P's topics   *)
+(* reads the record again, since a save made before them sent no event:   *)
+(* through the live gate, which a page without `live` passes, the page    *)
+(* arms its burst (usePageDataRefresh.ts:45-53) and the table reads its   *)
+(* list again (tableViewRealtime.ts:167-169, tableViewLive.ts:114-122).   *)
+CatchUp(r) ==
+  IF View = "page" THEN [r EXCEPT !.burst = TRUE] ELSE [r EXCEPT !.run = RunSent]
 SubscribeAnswered(t) ==
   /\ IsOpen(t)
   /\ tab[t].sub.ph = "answered"
-  /\ LET r == tab[t] IN
-     tab' = [tab EXCEPT ![t] =
-       IF r.sub.s = r.sid
-       THEN Mark([r EXCEPT !.sub = NoSub, !.applied = TRUE, !.topics = r.sub.ok], sess)
-       ELSE [r EXCEPT !.sub = NoSub]]
+  /\ LET r == tab[t]
+         taken == [r EXCEPT !.sub = NoSub, !.applied = TRUE, !.topics = r.sub.ok]
+     IN tab' = [tab EXCEPT ![t] =
+          IF r.sub.s = r.sid
+          THEN Mark(IF r.sub.ok THEN CatchUp(taken) ELSE taken, sess)
+          ELSE [r EXCEPT !.sub = NoSub]]
   /\ UNCHANGED <<stored, drops, closes, nconn, conn, nsess, sess, lead, chan>>
 
 (***************************************************************************)
@@ -280,7 +287,7 @@ SubscribeAnswered(t) ==
 (***************************************************************************)
 
 (* The burst timer fires: refreshDmsPageData starts a new read, which     *)
-(* aborts the one in flight (usePageDataRefresh.ts:87-89; dms-frontend    *)
+(* aborts the one in flight (usePageDataRefresh.ts:88-90; dms-frontend    *)
 (* frontend-module.ts:1486-1488, 1593-1600).                              *)
 BurstFires(t) ==
   /\ IsOpen(t)
@@ -313,7 +320,7 @@ GetReads(t, w) ==
 
 (* Its answer replaces the row unless the answer of a read that started   *)
 (* later already did; events arrive in write order, so w orders the reads *)
-(* (tableViewRealtime.ts:61-69).                                           *)
+(* (tableViewRealtime.ts:64-72).                                           *)
 GetAnswers(t, w) ==
   /\ IsOpen(t)
   /\ tab[t].gets[w].ph = "read"

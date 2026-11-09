@@ -24,12 +24,12 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
  */
 const VIEWS = {
   RealtimeTabsPage: {
-    ci: { ShowsLatest: 11, ReconnectCatchesUp: 20 },
-    full: { ShowsLatest: 11, ReconnectCatchesUp: 20 },
+    ci: {},
+    full: {},
   },
   RealtimeTabsTable: {
-    ci: { ShowsLatest: 11, ReconnectCatchesUp: 20 },
-    full: { ShowsLatest: 11, ReconnectCatchesUp: 20 },
+    ci: { ShowsLatest: 18, NeverGoesBack: 17 },
+    full: { ShowsLatest: 18, NeverGoesBack: 17 },
   },
 };
 
