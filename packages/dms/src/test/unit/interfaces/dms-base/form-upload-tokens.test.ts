@@ -144,6 +144,22 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     ).to.equal(undefined);
   });
 
+  it("refuses an image field whose component options are not an object", async () => {
+    const options = {
+      fields: [{ type: "image", component: { options: 5 } }],
+    };
+
+    let failure: unknown;
+    await StampUploadFieldTokens(options).catch((error: unknown) => {
+      failure = error;
+    });
+
+    expect(failure)
+      .to.be.instanceOf(TypeError)
+      .with.property("message")
+      .that.matches(/image field's component options must be an object/);
+  });
+
   it("returns options without upload fields untouched", async () => {
     const fields: Array<{ id: string }> = [];
     const options = {

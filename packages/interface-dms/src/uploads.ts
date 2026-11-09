@@ -2,9 +2,10 @@ import {
   InterfaceFunction,
   RegisteringProxy,
 } from "@antelopejs/interface-core";
-import type {
-  NativeUploadFieldRegistration,
-  UploadTokenClaims,
+import {
+  type NativeUploadFieldRegistration,
+  readUploadFieldOptions,
+  type UploadTokenClaims,
 } from "./internal/uploads";
 
 /** @internal */
@@ -27,8 +28,7 @@ export const SignUploadToken =
 
 interface UploadFieldNode {
   type: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Serialized component options carry consumer-defined fields alongside upload settings.
-  component: { options?: Record<string, unknown> };
+  component: { options?: unknown };
 }
 
 function isTraversable(value: unknown): value is object {
@@ -57,12 +57,7 @@ function uploadFieldNodes(node: unknown): UploadFieldNode[] {
 }
 
 async function stampNode(node: UploadFieldNode): Promise<void> {
-  const component = node.component;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The existing serialized-node check does not validate options; non-object options are replaced before stamping.
-  if (!component.options || typeof component.options !== "object") {
-    component.options = {};
-  }
-  const options = component.options;
+  const options = readUploadFieldOptions(node);
   options.uploadToken = await SignUploadToken({
     pageId: "",
     componentId: "",

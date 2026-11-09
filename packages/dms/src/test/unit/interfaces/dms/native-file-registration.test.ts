@@ -16,7 +16,7 @@ import * as uploads from "@antelopejs/interface-dms/uploads";
 function fileComponent(
   type = "file",
   name = "dms-table-view",
-  options: Record<string, never> | number | null = {},
+  options: Record<string, never> | number | readonly never[] | null = {},
 ) {
   return new ComponentBuilder(name)
     .options({
@@ -121,15 +121,27 @@ describe("[unit] native file registration lifetime", () => {
     expect(declarations).to.have.length(0);
   });
 
-  it("leaves a file field whose component options are not an object unregistered", async () => {
-    const page = pageMetadata(
-      "native-bad-options",
-      fileComponent("file", "dms-table-view", 5),
-    );
-    pages.push(page);
-    await page.Register();
-    expect(declarations).to.have.length(0);
-  });
+  for (const [label, options] of [
+    ["a number", 5],
+    ["an array", []],
+  ] as const) {
+    it(`refuses a page whose file field options are ${label}`, async () => {
+      const page = pageMetadata(
+        "native-bad-options",
+        fileComponent("file", "dms-table-view", options),
+      );
+      pages.push(page);
+      let failure: unknown;
+      await page.Register().catch((error: unknown) => {
+        failure = error;
+      });
+      expect(failure)
+        .to.be.instanceOf(TypeError)
+        .with.property("message")
+        .that.matches(/file field's component options must be an object/);
+      expect(declarations).to.have.length(0);
+    });
+  }
 
   it("registers a file field whose component options are null", async () => {
     const page = pageMetadata(

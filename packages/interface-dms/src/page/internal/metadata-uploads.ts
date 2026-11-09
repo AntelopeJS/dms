@@ -1,29 +1,15 @@
 /** @internal */
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 import type { Component } from "../../component";
+import type { UploadFieldOptions } from "../../internal/uploads";
 
 const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
-
-/**
- * The keys of a native upload field's options that registration reads, and
- * the token it writes back. The options carry more keys than these.
- *
- * @internal
- */
-export interface UploadFieldOptions {
-  storage?: unknown;
-  path?: unknown;
-  attachmentField?: unknown;
-  visibility?: unknown;
-  constraints?: unknown;
-  uploadToken?: string;
-}
 
 /** @internal */
 export interface UploadFieldNode {
   type: string;
   disabled?: unknown;
-  component: { options?: UploadFieldOptions | null };
+  component: { options?: unknown };
 }
 
 /** @internal */
@@ -35,9 +21,7 @@ export function isNativeUploadField(value: unknown): value is UploadFieldNode {
     !NATIVE_UPLOAD_FIELD_TYPES.has(node.type)
   )
     return false;
-  if (!node.component || typeof node.component !== "object") return false;
-  const component: { options?: unknown } = node.component;
-  return component.options == null || typeof component.options === "object";
+  return !!node.component && typeof node.component === "object";
 }
 
 /** @internal */
