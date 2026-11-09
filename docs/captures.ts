@@ -2,7 +2,8 @@ import { defineScenes } from "@antelopejs/tooling-configs/capture";
 
 /**
  * The screenshots of the DMS docs, taken on the Helio demo. The onboarding
- * runs first and creates the administrator every other scene signs in as.
+ * runs first and creates the administrator every other scene signs in as,
+ * except the signed-out sign-in page.
  */
 export default defineScenes([
   {
@@ -175,11 +176,8 @@ export default defineScenes([
   {
     id: "sign-in",
     route: "/helio/dashboard",
-    steps: [
-      { action: "click", selector: 'button[aria-label="Sophie Lambert"]' },
-      { action: "click", selector: 'text="Logout"' },
-      { action: "wait", selector: 'input[name="email"]' },
-    ],
+    signedOut: true,
+    steps: [{ action: "wait", selector: 'input[name="email"]' }],
     output: "packages/dms/docs/images/captures/sign-in.webp",
   },
   {
