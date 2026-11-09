@@ -10,6 +10,9 @@ const NAMESPACE_KINDS = ["pid", "time"];
 /** The index of the start time, field 22 of `/proc/<pid>/stat`, among the fields after the command name, which start at field 3. */
 const START_TIME_FIELD = 19;
 
+/** The index of the parent pid, field 4 of `/proc/<pid>/stat`, among the fields after the command name. */
+const PARENT_FIELD = 1;
+
 /** The length of a clock tick in /proc: USER_HZ is 100 on every architecture Node runs on. */
 const MS_PER_TICK = 10;
 
@@ -84,6 +87,27 @@ export function isRunning(pid) {
 }
 
 /**
+ * The parent of `pid` and when the kernel started it, in clock ticks since
+ * boot (fields 4 and 22 of `/proc/<pid>/stat`), both from one read, or
+ * `null` when no such process exists.
+ *
+ * @param {number} pid The process id
+ * @returns {{ parent: number, startTime: number } | null} Its parent and start time
+ */
+export function statOf(pid) {
+  try {
+    const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+    const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+    const ticks = Number(fields[START_TIME_FIELD]);
+    return Number.isSafeInteger(ticks)
+      ? { parent: Number(fields[PARENT_FIELD]), startTime: ticks }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * When the kernel started `pid`, in clock ticks since boot (field 22 of
  * `/proc/<pid>/stat`), or `null` when no such process exists.
  *
@@ -91,14 +115,7 @@ export function isRunning(pid) {
  * @returns {number | null} Its start time
  */
 export function startTimeOf(pid) {
-  try {
-    const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
-    const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
-    const ticks = Number(fields[START_TIME_FIELD]);
-    return Number.isSafeInteger(ticks) ? ticks : null;
-  } catch {
-    return null;
-  }
+  return statOf(pid)?.startTime ?? null;
 }
 
 /** @returns {number | null} The pid `/proc/self/stat` gives this process, or `null` without one */
@@ -118,7 +135,7 @@ function pidInProc() {
  *
  * @returns {boolean} True when `/proc/self` exists
  */
-function hasProc() {
+export function hasProc() {
   return existsSync("/proc/self");
 }
 
@@ -213,12 +230,28 @@ function startedAround(ticks, startedAt) {
 }
 
 /**
+ * Whether a process the kernel started `ticks` after boot is the one
+ * `record` names: the start time recorded with it, or, for a record with no
+ * start time, as an earlier dms-control wrote, a start within a few seconds
+ * of the record's `startedAt`.
+ *
+ * @param {{ startTime?: number | null, startedAt?: string }} record A process the run recorded
+ * @param {number} ticks The kernel start time of the process its pid names
+ * @returns {boolean} True when they are the same process
+ */
+export function startedAs(record, ticks) {
+  const recorded = record.startTime ?? null;
+  return recorded === null
+    ? startedAround(ticks, record.startedAt)
+    : ticks === recorded;
+}
+
+/**
  * Whether `record` still names the process the run started: its pid runs,
- * and the kernel started that process at the time recorded with it, so a
- * pid the system has since given to another process is not taken for it. A
- * record with no start time, as an earlier dms-control wrote, names the
- * process only while the kernel started it within a few seconds of the
- * record's `startedAt`. On a system with no /proc, a running pid names it.
+ * and the kernel started that process at the time recorded with it (see
+ * {@link startedAs}), so a pid the system has since given to another
+ * process is not taken for it. On a system with no /proc, a running pid
+ * names it.
  *
  * @param {{ pid: number, startTime?: number | null, startedAt?: string }} record A process the run recorded
  * @returns {boolean} True while that process runs
@@ -230,9 +263,5 @@ export function isSameProcess(record) {
   if (!hasProc()) return isAlive(record.pid);
   if (!isRunning(record.pid)) return false;
   const ticks = startTimeOf(record.pid);
-  const recorded = record.startTime ?? null;
-  if (ticks === null) return false;
-  return recorded === null
-    ? startedAround(ticks, record.startedAt)
-    : ticks === recorded;
+  return ticks !== null && startedAs(record, ticks);
 }
