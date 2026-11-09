@@ -161,7 +161,10 @@ const hasSparkline = computed(
   () => props.showSparkline && sparkline.value.length > 0,
 );
 
+const caption = computed(() => data.value?.caption);
+
 const footnote = computed(() => {
+  if (caption.value) return caption.value;
   const isComparing = delta.value !== null;
   const text = (isComparing && props.compareLabel) || props.description;
   if (text) return processI18n(text);
