@@ -306,7 +306,8 @@ export class JourneyContext {
   /**
    * Runs `action` against the base version's backend on the same database,
    * then the run's own backend again: data written inside `action` is data
-   * the previous release wrote. Records the base commit as a step.
+   * the previous release wrote. Records the base commit as a step. A base
+   * that has no playground yet runs on a copy of the run's playground.
    *
    * @param {(sha: string) => Promise<void>} action What to do against the base backend
    * @returns {Promise<string>} The base commit
