@@ -29,8 +29,8 @@ Java 11 or later comes from `$JAVA`, else `java` on PATH, else the `eclipse-temu
 
 | Configuration | Bounds | States (page, table) | Wall time, 4 cores | Wall time, Docker Java 21 |
 | --- | --- | --- | --- | --- |
-| CI (`.ci.cfg`) | page: two tabs, 1 save, 1 drop while one tab is open, 1 tab close. table: one tab, 2 saves, 1 drop | 45,786, 2,415 | 9.4 to 9.5 s | 10.4 to 10.8 s |
-| Full (`.cfg`) | two tabs, 2 saves, 1 drop, 1 tab close, for each view | 11,227,092, 13,267,999 | 5 min 3 s on 8 cores | 3 min 3 s |
+| CI (`.ci.cfg`) | page: two tabs, 1 save, 1 drop while one tab is open, 1 tab close. table: one tab, 2 saves, 1 drop | 45,786, 2,596 | 9.4 to 9.5 s | 10.4 to 10.8 s |
+| Full (`.cfg`) | two tabs, 2 saves, 1 drop, 1 tab close, for each view | 11,227,092, 15,683,072 | 5 min 3 s on 8 cores | 3 min 3 s |
 
 The run that checks the rules that hold uses every core it sees, and each finding runs on one worker. The 4- and 8-core times are Java 25 pinned to those cores with `taskset`; the Docker times saw 32 cores. All ran on a shared machine with a load average of 20 to 35. A CI run is mostly the start-up of its 7 TLC runs.
 
@@ -52,19 +52,19 @@ Run `--full` when a change touches a file in the coverage record below, or this 
 | --- | --- | --- | --- | --- |
 | `FollowsPage` | Once settled, every open tab has a live session subscribed to P, and listens to P's topics. | The tab silently stops receiving updates. | holds | holds |
 | `ShowsFollowedWrites` | Once settled, every save made while a tab followed P has reached that tab's screen, unless the stream lost its event. | A connected tab misses an update. | holds | holds |
-| `NeverGoesBack` | A tab never shows an older version of the record after a newer one. | The user sees a save revert. | holds | finding F3 |
+| `NeverGoesBack` | A tab never shows an older version of the record after a newer one. | The user sees a save revert. | holds | holds |
 | `ShowsLatest` | Once settled, every open tab shows the record as stored. | A tab shows stale data with no sign of it. | finding F1 | finding F1 |
 | `ReconnectCatchesUp` | Once settled, a tab that has followed P shows every save made since, through stream drops and leader-tab handovers. | After a network blip or closing the first tab, the other tabs stay stale. | finding F2 | finding F2 |
 
-`TypeOK` holds too. A tab follows P when its session is live and subscribed to P and its consumer acts on P's events: the page has P's topics, or the table's list has answered. The ghost fields `best`, `followed`, `owed` and `missed` in each tab's record track what a tab has shown and the saves it is owed; no code has them. `check.mjs` records each finding's counterexample length for each configuration. Both configurations have the same lengths: F1 11 states, F2 20, F3 17.
+`TypeOK` holds too. A tab follows P when its session is live and subscribed to P and its consumer acts on P's events: the page has P's topics, or the table's list has answered. The ghost fields `best`, `followed`, `owed` and `missed` in each tab's record track what a tab has shown and the saves it is owed; no code has them. `check.mjs` records each finding's counterexample length for each configuration. Both configurations have the same lengths: F1 11 states, F2 20.
 
 ## Findings on main
 
 Each finding was replayed against the real code at the sync commit with a scratch vitest file in `packages/dms/frontend-vue/tests`, run with `pnpm --dir packages/dms/frontend-vue exec vitest run <file>`. It drove the real `useUserRealtime` over the `fakeBrowser` and `realtimeServer` fixtures, the page renderer's `usePageRealtime` + `usePageDataRefresh` + `useApiData` on the real data engine (`fixtures/dataEngine.ts`), and the table view's `useTableViewRowRealtime` + `useTableViewRowEvents`. A save bumped the record and published an `updated` event to the sessions whose last page call was P, as `routes/realtime.ts` does. Each replay also showed the path working once in place: a later save reached the screen, or the newer row read showed first. The replays were not committed.
 
-- **F1, a save during the first subscription is lost (`ShowsLatest`).** The tab takes the stream, learns its connection, opens its session and asks to follow P. Its first read reaches the database and shows v0. Another user saves v1. No session is on P yet, so `applySessionTopics` sends nothing. Then the backend subscribes the session, and the tab takes P's topics. Nothing reads the page again: the tab shows v0 and the database holds v1. The table view breaks the same way, and also when the event arrives before the list answered, since `patchRowLocal` skips a table with no list (tableViewRealtime.ts:55). Replayed for both views: the page and the row stayed at v0.
+- **F1, a save during the first subscription is lost (`ShowsLatest`).** The tab takes the stream, learns its connection, opens its session and asks to follow P. Its first read reaches the database and shows v0. Another user saves v1. No session is on P yet, so `applySessionTopics` sends nothing. Then the backend subscribes the session, and the tab takes P's topics. Nothing reads the page again: the tab shows v0 and the database holds v1. The table view breaks the same way, and also when the event arrives before the list answered, since `patchRowLocal` skips a table with no list (tableViewRealtime.ts:58). Replayed for both views: the page and the row stayed at v0.
 - **F2, a save during a reconnect is lost (`ReconnectCatchesUp`).** The tab follows P and shows v0. A save of v1 puts its event on the stream, and the stream drops before the leader reads it. The leader retires the stream (publishes null, `resetSession`), reconnects after its backoff, and the tab opens and subscribes a new session. The tab shows v0. With two tabs the leader tab closing does the same to the other tab (21 states). A save made while the stream is down or during the handover is lost the same way. Replayed three ways: the leader tab closing with the event on its stream, a save during the handover, and a save while the stream was down; the page stayed at v0 each time. `watchRealtimeReconnects` (dms-menu-sync.client.ts:13-23) resyncs the menu for this reason, and nothing does it for page data or table rows.
-- **F3, a row goes back (`NeverGoesBack`, table).** The list shows v0 and the session follows P. Saves of v1 and v2 each send an `updated` event, and each event's `getRow` reaches the database (v1, then v2). The v2 read answers, then the v1 read answers, and `patchRowLocal` writes it over the row (tableViewRealtime.ts:59-63). The row shows v1, the database holds v2. Replayed by releasing the two row reads in reverse order: the row went from v2 to v1.
+F3, a row going back (`NeverGoesBack`, table), is fixed: `patchRowLocal` numbers each row read and drops an answer when a later read of that row already answered (tableViewRealtime.ts:61-69). `tests/table-row-read-order.test.ts` replays it on a mounted table view by releasing two row reads in reverse order, and checks that the older answer still shows when the newer read fails.
 
 ## Read every result with /statechart
 
@@ -127,7 +127,8 @@ Each break was made in a scratch copy of this folder, never in the repo, as the 
 | `applyDesiredPage` drops its session check after the await (useUserRealtime.ts:403) | `SubscribeAnswered` applies any answer | `BROKEN FollowsPage` |
 | the page refresh subscribes to the topics it had at setup only (usePageDataRefresh.ts:45-50) | page `OnData` ignores events | `BROKEN ShowsFollowedWrites` |
 | every refresh's answer goes on screen (frontend-module.ts:1503) | page `OnData` starts a read that is never aborted | `BROKEN NeverGoesBack` |
-| an `updated` event refreshes the counts only (tableViewRealtime.ts:118-121) | table `OnData` ignores events | `BROKEN ShowsFollowedWrites` (table) |
+| an `updated` event refreshes the counts only (tableViewRealtime.ts:124-127) | table `OnData` ignores events | `BROKEN ShowsFollowedWrites` (table) |
+| every row read's answer goes on screen (tableViewRealtime.ts:65) | table `GetAnswers` shows any answer | `BROKEN NeverGoesBack` (table) |
 | `ensureSessionOnPage` answers ok without subscribing P's topics (routes/realtime.ts:207-225) | `SubscribeServed` leaves the session off P | `BROKEN FollowsPage` |
 | `electLeader` asks with `ifAvailable`, so a waiting tab never leads (crossTab.ts:103-113) | only tab 1 can `TakeLead` | `BROKEN FollowsPage` |
 | the leader retires an ended stream without a reconnect (sharedRealtimeConnection.ts:197-204) | `LeaderSeesDrop` sets no retry | `BROKEN FollowsPage` |
