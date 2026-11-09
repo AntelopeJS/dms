@@ -11,10 +11,26 @@ const assert = require("node:assert/strict");
 
 /**
  * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isObject(value) {
+  return Object(value) === value;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Function}
+ */
+function isFunction(value) {
+  return typeof value === "function";
+}
+
+/**
+ * @param {unknown} value
  * @returns {number}
  */
 function watchCount(value) {
-  assert.ok(value instanceof Object && "watchActions" in value && Array.isArray(value.watchActions), "Expected watch actions");
+  assert.ok(isObject(value) && "watchActions" in value && Array.isArray(value.watchActions), "Expected watch actions");
   return value.watchActions.length;
 }
 
@@ -23,7 +39,7 @@ function watchCount(value) {
  * @returns {Function}
  */
 function ownMethod(value) {
-  assert.ok(value instanceof Function, "Expected a function");
+  assert.ok(isFunction(value), "Expected a function");
   return value;
 }
 

@@ -12,13 +12,62 @@ import { formSchema } from "@antelopejs/interface-dms/base/form";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import type { DemoRecord } from "./demo-record-api";
 import { PageFormFieldTypes } from "./field-types/page";
+import { z } from "zod";
 
 const HTTP_BAD_REQUEST = 400;
 const JSON_TYPE = "application/json";
 const SECRET_BYTES = 16;
 
+/** The values the "Field types" form saves, as its form schema parses them. */
+const ValuesSchema = z.object({
+  plan: z.enum(["starter", "pro", "enterprise"]),
+  addons: z.array(z.enum(["starter", "pro", "enterprise"])).nullable(),
+  thinking: z.enum(["off", "low", "medium", "high"]).nullable(),
+  effort: z.enum(["off", "low", "medium", "high"]).nullable(),
+  taskStatus: z
+    .enum(["pending", "in_progress", "completed", "cancelled"])
+    .nullable(),
+  online: z.boolean().nullable(),
+  region: z.enum(["eu", "us"]).nullable(),
+  auditLog: z.boolean().nullable(),
+  terms: z.literal(true),
+  owner: z.boolean().nullable(),
+  categories: z
+    .array(
+      z.object({
+        name: z.string(),
+        templates: z.number().nullable().optional(),
+      }),
+    )
+    .nullable(),
+  headers: z
+    .record(
+      z.string(),
+      z.object({ value: z.string().nullable(), enabled: z.boolean() }),
+    )
+    .nullable(),
+  quotas: z.record(z.string(), z.number().nullable()).nullable(),
+  links: z
+    .array(z.object({ url: z.string().nullable().optional() }))
+    .nullable(),
+  recipients: z.array(z.string()).nullable(),
+  webhookUrl: z.string().nullable(),
+  webhookSecret: z.string().nullable(),
+  deployToken: z.string().nullable().optional(),
+  adminPassword: z.string().nullable().optional(),
+  payload: z.string().nullable(),
+  query: z.string().nullable(),
+  banner: z.string().nullable(),
+  hook: z.string().nullable(),
+  reviewers: z.array(z.string()).nullable(),
+  team: z.string().nullable().optional(),
+  maintenanceWindow: z.number().nullable(),
+  retention: z.number().nullable(),
+  billingEmail: z.string().nullable(),
+});
+
 /** The demo's values, kept in memory: a restart puts them back. */
-const values = {
+const values: z.infer<typeof ValuesSchema> = {
   plan: "pro",
   addons: ["enterprise"],
   thinking: "medium",
@@ -92,7 +141,7 @@ export class FormFieldTypesAPIController extends Controller(
         JSON_TYPE,
       );
     }
-    Object.assign(values, parsed.data);
+    Object.assign(values, ValuesSchema.partial().parse(parsed.data));
     return values;
   }
 }

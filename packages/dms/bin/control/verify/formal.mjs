@@ -260,7 +260,7 @@ export function formalGate(result) {
 /**
  * The recorded result of a formal check in a run, if it ran.
  *
- * @param {import("../run-state.mjs").RunState} state The run
+ * @param {Pick<import("../run-state.mjs").RunState, "evidence">} state The run
  * @param {string} name The check
  * @returns {import("./types.mjs").FormalResult | undefined} The result
  */

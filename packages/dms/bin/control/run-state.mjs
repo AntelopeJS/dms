@@ -111,7 +111,7 @@ export function createRunFolders(dir) {
 }
 
 /**
- * @typedef {Omit<RunState, "browser" | "accounts"> & { browser?: string | ServerRecord, accounts: Record<string, Omit<Account, "password"> & { password?: string }> }} StoredRunState The state as a file may hold it. A run saved by an earlier release holds the browser's folder in `browser` until the browser starts, and `down` leaves an account without its `password`.
+ * @typedef {Omit<RunState, "browser" | "accounts"> & { browser?: string | ServerRecord, accounts: Record<string, Omit<Account, "password"> & { password?: string }>, stoppedAt?: string }} StoredRunState The state as a file may hold it. A run saved by an earlier release holds the browser's folder in `browser` until the browser starts, and `down` leaves an account without its `password` and records when it stopped in `stoppedAt`.
  */
 
 const isStrings = recordOf(isString);
@@ -245,7 +245,7 @@ export function loadRun(dir) {
  * Writes the run state, readable by its owner only since it holds the run's
  * secrets and the admin password.
  *
- * @param {RunState} state The run state
+ * @param {StoredRunState} state The run state
  */
 export function saveRun(state) {
   writeFileSync(

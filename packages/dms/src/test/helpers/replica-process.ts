@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { setTimeout } from "node:timers/promises";
 
 const MODULE_ROOT = resolve(__dirname, "../../..");
@@ -24,7 +25,8 @@ function freePort(): Promise<number> {
     server.once("error", fail);
     server.listen(0, "127.0.0.1", () => {
       const address = server.address();
-      const port = address instanceof Object ? address.port : undefined;
+      const port =
+        address !== null && !isString(address) ? address.port : undefined;
       server.close(() =>
         port ? done(port) : fail(new Error("No free port was assigned")),
       );

@@ -13,6 +13,10 @@ import type {
 } from "@antelopejs/interface-dms/attachments";
 import type { UploadTokenClaims } from "../utils";
 import { assertNativeFileAccess } from "./access";
+import {
+  isNull,
+  isObject,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 import { findConstraintViolation } from "./constraints";
 import {
   type AttachmentReference,
@@ -184,7 +188,7 @@ function assertBodyDepth(request: AttachmentSaveRequest): void {
     depth: 2,
   }));
   for (let node = pending.pop(); node; node = pending.pop()) {
-    if (!(node.value instanceof Object)) continue;
+    if (!isObject(node.value) || isNull(node.value)) continue;
     if (node.depth > MAX_BODY_DEPTH)
       throw new HTTPResult(
         BAD_REQUEST,

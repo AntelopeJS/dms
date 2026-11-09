@@ -9,6 +9,19 @@ import manifest from "../../package.json" with { type: "json" };
 import { PACKAGE_ROOT } from "./launch.mjs";
 
 /**
+ * The environment of a consumer's shell: this process's, without the
+ * `NODE_PATH` a package manager's bin shim exports, which would resolve
+ * packages the consumer never installed.
+ *
+ * @returns {NodeJS.ProcessEnv} The environment
+ */
+function consumerEnv() {
+  return Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => name !== "NODE_PATH"),
+  );
+}
+
+/**
  * A module repository that depends on `@antelopejs/dms` and declares nothing
  * else: the installed copy gets the `bin` folder it publishes and, beside it,
  * the dependencies an install of that kind gives a dependency.
@@ -44,7 +57,7 @@ try {
   process.stdout.write(error.message);
 }`,
     ],
-    { cwd: moduleRoot, encoding: "utf8" },
+    { cwd: moduleRoot, encoding: "utf8", env: consumerEnv() },
   );
   return run.stdout;
 }

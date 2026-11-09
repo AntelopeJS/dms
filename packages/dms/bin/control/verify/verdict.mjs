@@ -36,7 +36,7 @@ function bullets(entries, empty) {
 }
 
 /**
- * @param {import("../run-state.mjs").RunState} state The run
+ * @param {Pick<import("../run-state.mjs").RunState, "evidence">} state The run
  * @param {string} feature The feature
  * @returns {import("./types.mjs").FeatureResult[]} The journey results the run recorded
  */
@@ -46,7 +46,7 @@ function readResults(state, feature) {
 
 /**
  * @param {import("./skill.mjs").Skill} skill The skill
- * @param {import("../run-state.mjs").RunState} state The run
+ * @param {Pick<import("../run-state.mjs").RunState, "evidence">} state The run
  * @param {import("./types.mjs").Plan} plan The plan
  * @returns {Promise<{ rows: string[], reasons: string[] }>} The table rows and why the verdict fails
  */
@@ -135,7 +135,7 @@ function doorsSection(judgement) {
 
 /**
  * @param {import("./skill.mjs").Skill} skill The skill
- * @param {import("../run-state.mjs").RunState} state The run
+ * @param {Pick<import("../run-state.mjs").RunState, "evidence">} state The run
  * @param {import("./types.mjs").Plan} plan The plan
  * @returns {{ reasons: string[], lines: string[] }} Why the formal checks fail the verdict, and their lines
  */
@@ -273,7 +273,7 @@ function markdown(skill, verdict, parts) {
  * verdict.md, verdict.json and plan.json into the evidence folder.
  *
  * @param {import("./skill.mjs").Skill} skill The skill
- * @param {import("../run-state.mjs").RunState} state The run
+ * @param {Pick<import("../run-state.mjs").RunState, "baseRef" | "headSha" | "evidence">} state The run
  * @param {number} pr The pull request
  * @param {import("./types.mjs").Judgement} judgement The verifier's judgement
  * @param {boolean} [all] Require every feature, as `plan --all` does for a release

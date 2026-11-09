@@ -228,9 +228,7 @@ await test("the verdict fails a run that skipped features the shared-file plan r
   const { skill, base, head } = fixture(t, { "pnpm-lock.yaml": "lock: 2\n" });
   const evidence = mkdtempSync(join(tmpdir(), "dms-control-evidence-test-"));
   t.after(() => rmSync(evidence, { recursive: true, force: true }));
-  const state = /** @type {import("../run-state.mjs").RunState} */ (
-    /** @type {unknown} */ ({ baseRef: base, headSha: head, evidence })
-  );
+  const state = { baseRef: base, headSha: head, evidence };
   recordPassing(evidence, ["smoke"]);
   const skipped = await renderVerdict(skill, state, 1, JUDGEMENT);
   assert.equal(skipped.result, "FAIL");
@@ -251,9 +249,7 @@ await test("the verdict of a covered-only diff needs the other features only whe
   });
   const evidence = mkdtempSync(join(tmpdir(), "dms-control-evidence-test-"));
   t.after(() => rmSync(evidence, { recursive: true, force: true }));
-  const state = /** @type {import("../run-state.mjs").RunState} */ (
-    /** @type {unknown} */ ({ baseRef: base, headSha: head, evidence })
-  );
+  const state = { baseRef: base, headSha: head, evidence };
   recordPassing(evidence, ["smoke", "a"]);
   assert.equal(
     (await renderVerdict(skill, state, 1, JUDGEMENT)).result,

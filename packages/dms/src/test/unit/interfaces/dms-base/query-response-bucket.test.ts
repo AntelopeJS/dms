@@ -5,6 +5,10 @@ import {
   type SeriesBucket,
   type SeriesOptions,
 } from "@antelopejs/interface-dms/base/query-response";
+import {
+  isNull,
+  isObject,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 import type { ChartSeries } from "@antelopejs/interface-dms/base/chart";
 
 const MONTHS = [
@@ -16,7 +20,7 @@ const BY_MONTH: SeriesOptions = { measure: "sum", bucket: "month" };
 
 function xOf(series: ChartSeries[] | undefined): Array<number | string | Date> {
   return (series?.[0]?.data ?? []).flatMap((point) =>
-    point instanceof Object && "x" in point ? [point.x] : [],
+    isObject(point) && !isNull(point) && "x" in point ? [point.x] : [],
   );
 }
 
