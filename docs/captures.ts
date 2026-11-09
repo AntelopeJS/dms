@@ -7,7 +7,7 @@ import { defineScenes } from "@antelopejs/tooling-configs/capture";
 export default defineScenes([
   {
     id: "onboarding",
-    route: "/onboarding",
+    route: "/onboarding?token=helio-capture-setup-token",
     setup: true,
     steps: [
       { action: "fill", selector: 'input[name="name"]', value: "Helio" },
@@ -34,6 +34,7 @@ export default defineScenes([
       },
       { action: "wait", selector: 'button:has-text("Open the dashboard")' },
       { action: "click", selector: 'button:has-text("Open the dashboard")' },
+      { action: "click", selector: 'button:has-text("Not now")' },
     ],
   },
   {
