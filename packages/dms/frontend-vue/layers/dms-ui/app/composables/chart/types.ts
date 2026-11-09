@@ -101,6 +101,8 @@ export interface KpiCardResponse {
   delta?: number;
   previousValue?: number;
   sparkline?: number[];
+  /** Shown in place of the description and the comparison label when non-empty. */
+  caption?: string;
 }
 
 export interface TopListItem {
