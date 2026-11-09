@@ -5,7 +5,7 @@ import {
   readOnlyFailure,
   installReadOnlyRefusal,
 } from "./helpers/read-only-refusal";
-import { ref } from "vue";
+import { ref, shallowRef } from "vue";
 import { createI18n } from "vue-i18n";
 import { Color } from "../layers/dms-core/app/types/color";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
@@ -21,6 +21,11 @@ import {
 } from "../layers/dms-ui/app/composables/confirm/types";
 import core from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
 import ui from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
+
+vi.stubGlobal("shallowRef", shallowRef);
+const { useTableRowActions } = await import(
+  "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
+);
 
 type Messages = { [key: string]: string | Messages };
 const merge = (target: Messages, source: Messages): Messages => {
@@ -81,9 +86,7 @@ const shownRows = [
 
 const getRow = vi.fn();
 
-async function rowActions() {
-  const { useTableRowActions } =
-    await import("../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions");
+function rowActions() {
   return useTableRowActions({
     api,
     location: "/api/task",
