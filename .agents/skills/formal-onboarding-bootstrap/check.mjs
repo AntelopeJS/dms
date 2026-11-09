@@ -17,20 +17,15 @@ import { checkSpec, EXIT } from "@antelopejs/tooling-configs/formal";
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
-/** Rules main breaks on every instance, with the states in TLC's shortest counterexample. */
-const RACE_FINDINGS = {
-  RefusedRegisterCreatedNoUser: 9,
-};
-
-/** The findings of each spec under each configuration, in run order. */
+/** The findings of each spec under each configuration, in run order: none breaks on main. */
 const SPECS = {
   OnboardingBootstrapInviteOnly: {
-    ci: RACE_FINDINGS,
-    full: RACE_FINDINGS,
+    ci: {},
+    full: {},
   },
   OnboardingBootstrap: {
-    ci: RACE_FINDINGS,
-    full: RACE_FINDINGS,
+    ci: {},
+    full: {},
   },
 };
 

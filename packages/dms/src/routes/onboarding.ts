@@ -37,14 +37,8 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     }
 
     const users = await userModel.table.slice(0, 1).run();
-    const hasUsers = users.length > 0;
 
-    if (hasUsers) {
-      // oxlint-disable-next-line typescript/no-misused-spread -- Persist the settings instance's own database fields alongside the onboarding flag, not its prototype methods.
-      await this.model.updateConfig({ ...settings, has_onboarded: true });
-    }
-
-    return { has_onboarded: hasUsers };
+    return { has_onboarded: users.length > 0 };
   }
 
   @Post("/register")
