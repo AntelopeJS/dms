@@ -139,6 +139,7 @@ async function observeRoutes() {
     context,
     params,
     "left",
+    // @ts-expect-error a numeric sentinel in the user slot proves the wrapper forwards the base route's arguments unchanged
     47,
     context,
     "session-1",
@@ -149,6 +150,7 @@ async function observeRoutes() {
     receiver,
     context,
     params,
+    // @ts-expect-error a string sentinel in the user slot proves the wrapper forwards the base route's arguments unchanged
     "right",
     context,
     "session-2",
@@ -186,6 +188,7 @@ async function observeRoutes() {
   const guardResult = await guarded.func.call(
     receiver,
     context,
+    // @ts-expect-error every route shares one params object so each base call can check it receives that exact object
     params,
     body,
     "trailing",
@@ -202,6 +205,7 @@ async function observeRoutes() {
     },
     "new",
   );
+  // @ts-expect-error every route shares one params object so each base call can check it receives that exact object
   await unguarded.func.call(receiver, context, params, body);
   return {
     calls,
@@ -260,7 +264,9 @@ function observeFactoryHelpers() {
   ].map((pages) => helpers.buildFormPageUrls("/work/:id/", "items", pages));
   const displays = helpers.serializeTableViewDisplays({
     displays: [{ id: "cards" }, { id: "kanban", options: { marker: 9 } }],
+    // @ts-expect-error numeric card widths record that serializeTableViewDisplays passes them through untouched
     card: { fields: ["name"], minWidth: 317, skeletonHeight: 91 },
+    // @ts-expect-error an unknown kanban key records that serializeTableViewDisplays passes it through untouched
     kanban: { groupBy: "status" },
   });
   const rowActions = helpers.serializeRowActions({
@@ -268,6 +274,7 @@ function observeFactoryHelpers() {
     edit: true,
     delete: { rule: { field: "status", equals: "draft" } },
     custom: [
+      // @ts-expect-error an unknown target type records that the action target passes through untouched
       { id: "open", label: "Open", target: { type: "url", url: "/open" } },
     ],
   });

@@ -51,7 +51,7 @@ function asError(error) {
  * @param {boolean | import("../../packages/interface-dms/dist/base/table-view.js").RowActionConfig<T> | undefined} action
  */
 function ruleOf(action) {
-  return action instanceof Object ? action.rule : undefined;
+  return action === undefined || action === true || action === false ? undefined : action.rule;
 }
 
 /**
@@ -242,6 +242,7 @@ function describeBattery(describeSchema, describeOptions) {
 
 function observeDescribe() {
   return describeBattery(
+    // @ts-expect-error the battery feeds describeSchema fake zod schemas and _def proxies on purpose to record how it reads and rejects them
     describeModule.describeSchema,
     describeModule.describeOptions,
   );
@@ -329,6 +330,7 @@ function observeChoices() {
   })) {
     /** @type {string[]} */
     const entries = [];
+    // @ts-expect-error one option set carries a boolean value on purpose to record how SelectType parses it
     const type = new SelectType(options);
     for (const input of ["a", "2", 2, "true", ["a"], ["a", "b"], [], undefined]) {
       try {
@@ -465,7 +467,9 @@ function negativeControls() {
   controls.parserDetectsChangedKeyword = !sameJson(real, mutated);
 
   const reordered = describeBattery(
+    // @ts-expect-error the negative-control rerun feeds describeSchema the same fake schemas as the battery
     (schema) => describeModule.describeSchema(schema),
+    // @ts-expect-error the negative-control rerun feeds describeOptions the same fake schemas as the battery
     (schema) => describeModule.describeOptions(schema),
   );
   const twiceLazy = asObject(parseJson(JSON.stringify(reordered)));
