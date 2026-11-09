@@ -253,11 +253,10 @@ Module._load = function (request, parent, main) {
       RegisterPage:
         (/** @type {Parameters<typeof result.RegisterPage>} */ ...args) =>
         (/** @type {Parameters<ReturnType<typeof result.RegisterPage>>[0]} */ target) => {
-          if (!isControllerClass(target)) throw new TypeError(`${target.name} is not a controller class`);
           registrations.push([
             "page",
             target.name,
-            core.GetMetadata(target, result.PageMetadata).pageInfo,
+            isControllerClass(target) ? core.GetMetadata(target, result.PageMetadata).pageInfo : null,
             Object.entries(target).map(([key, value]) => [key, serializedWhenAble(value)]),
           ]);
           result.RegisterPage(...args)(target);

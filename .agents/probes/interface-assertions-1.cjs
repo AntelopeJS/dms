@@ -37,13 +37,17 @@ function asObject(value) {
   throw new TypeError("Expected a JSON object");
 }
 
+const { HTTPResult } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
+
 /**
+ * Names a thrown value without rethrowing it: an `Error` or an `HTTPResult` by its class and message, anything else by its string form.
  * @param {unknown} error
- * @returns {Error}
+ * @returns {{ name: string, message: string }}
  */
-function asError(error) {
-  if (error instanceof Error) return error;
-  throw error;
+function thrownOf(error) {
+  if (error instanceof Error) return { name: error.constructor.name, message: String(error.message) };
+  if (error instanceof HTTPResult) return { name: error.constructor.name, message: "undefined" };
+  return { name: "thrown", message: String(error) };
 }
 
 /**
@@ -113,7 +117,7 @@ function observeDefReads(describeSchema) {
     try {
       describeSchema(recordDefReads(schema, reads, name));
     } catch (error) {
-      reads.push(`threw ${asError(error).message}`);
+      reads.push(`threw ${thrownOf(error).message}`);
     }
     observed[`reads:${name}`] = reads;
   }
@@ -222,7 +226,7 @@ function describeBattery(describeSchema, describeOptions) {
       try {
         record[mode] = run();
       } catch (error) {
-        record[mode] = { thrown: String(asError(error).message) };
+        record[mode] = { thrown: thrownOf(error).message };
       }
     }
     record.calls = {
@@ -336,7 +340,7 @@ function observeChoices() {
       try {
         entries.push(JSON.stringify(type.getValidation().parse(input)) ?? "__undefined");
       } catch (error) {
-        entries.push(`rejected:${asError(error).constructor.name}`);
+        entries.push(`rejected:${thrownOf(error).name}`);
       }
     }
     observed[name] = entries;
@@ -425,8 +429,8 @@ async function observeReceivers() {
         await authorizeAction(target, "list", user, "tenant");
         outcomes.push("returned");
       } catch (error) {
-        const failure = asError(error);
-        outcomes.push(`${failure.constructor.name}:${String(failure.message).slice(0, 60)}`);
+        const failure = thrownOf(error);
+        outcomes.push(`${failure.name}:${failure.message.slice(0, 60)}`);
       }
     }
   } finally {
@@ -441,8 +445,8 @@ async function observeReceivers() {
       ArchiveField()(Archiving.prototype, key);
       archived.push(`ok:${String(key)}`);
     } catch (error) {
-      const failure = asError(error);
-      archived.push(`${failure.constructor.name}:${String(failure.message).slice(0, 60)}`);
+      const failure = thrownOf(error);
+      archived.push(`${failure.name}:${failure.message.slice(0, 60)}`);
     }
   }
   observed.archiveField = archived;
