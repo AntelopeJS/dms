@@ -4,6 +4,7 @@ import {
   computed,
   defineAsyncComponent,
   markRaw,
+  onBeforeUnmount,
   onMounted,
   ref,
   shallowRef,
@@ -29,8 +30,14 @@ interface Emits {
 
 /** The ApexCharts instance the wrapper exposes as `chart`. */
 interface ApexCore {
-  /** Apex's own (debounced) window resize handler: redraws at the container width. */
-  windowResizeHandler: () => void;
+  /**
+   * Apex's (debounced) redraw at the container width, the one its parent
+   * resize observer starts. Unlike its window resize handler it does not
+   * read `chart.redrawOnWindowResize`, which only opts out of window resizes.
+   */
+  _windowResize: () => void;
+  /** Apex's state: `animationEnded` is false while the chart is animating. */
+  w: { globals: { animationEnded: boolean } };
 }
 
 interface ApexChartInstance {
@@ -57,12 +64,20 @@ const ApexChart = defineAsyncComponent<Component>(async () => {
   return mod.default ?? mod;
 });
 
-onMounted(() => {
-  void ensureApexLocale(locale.value).catch(() => undefined);
-});
-
 const hostRef = ref<HTMLElement | null>(null);
 const chartRef = ref<ApexChartInstance | null>(null);
+let hostResizes: ResizeObserver | undefined;
+
+onMounted(() => {
+  void ensureApexLocale(locale.value).catch(() => undefined);
+  if (!hostRef.value) return;
+  hostResizes = new ResizeObserver(redrawIfResizedWhileIdle);
+  hostResizes.observe(hostRef.value);
+});
+
+onBeforeUnmount(() => {
+  hostResizes?.disconnect();
+});
 
 /**
  * A plain, non-reactive copy of a value handed to Apex. Apex writes into the
@@ -96,7 +111,24 @@ function rawApexInput<T extends object>(value: T): T {
 
 const apexSeries = computed(() => rawApexInput(props.series ?? []));
 
-const pinnedOptions = shallowRef<Props["options"]>(rawApexInput(props.options));
+/**
+ * The options handed to Apex, its parent resize observer off. That observer
+ * redraws on any change of the host's size, height included, and a circular
+ * chart changes the height itself: Apex draws it at its configured height,
+ * then fits its box to the ring and legend, and the redraw that resize starts
+ * draws it at the configured height again. The donut redraws every 150ms or
+ * so for as long as the page is open, and a screenshot taken mid-redraw
+ * shows the ring off centre. The host redraws on width changes instead.
+ */
+function apexOptions(options: Props["options"]): Props["options"] {
+  const chart = isObject(options.chart) ? options.chart : {};
+  return rawApexInput({
+    ...options,
+    chart: { ...chart, redrawOnParentResize: false },
+  });
+}
+
+const pinnedOptions = shallowRef<Props["options"]>(apexOptions(props.options));
 
 function pushOptionsWithoutGroupBroadcast(
   instance: ApexChartInstance,
@@ -104,7 +136,7 @@ function pushOptionsWithoutGroupBroadcast(
 ): void {
   void instance
     .updateOptions(
-      rawApexInput(next),
+      apexOptions(next),
       REDRAW_PATHS,
       ANIMATE,
       UPDATE_SYNCED_CHARTS,
@@ -131,7 +163,7 @@ watch(
   (next, previous) => {
     const instance = chartRef.value;
     if (!instance || axisTypeOf(next) !== axisTypeOf(previous)) {
-      pinnedOptions.value = rawApexInput(next);
+      pinnedOptions.value = apexOptions(next);
       return;
     }
     pushOptionsWithoutGroupBroadcast(instance, next);
@@ -160,7 +192,18 @@ function redrawIfResizedWhileAnimating() {
   const host = hostRef.value;
   const chart = chartRef.value?.chart;
   if (!host || !chart || !isDrawnAtStaleWidth(host)) return;
-  chart.windowResizeHandler();
+  chart._windowResize();
+}
+
+/**
+ * The host's own resize observer, in place of Apex's: a chart drawn at
+ * another width than its host redraws, and a change of height alone, such as
+ * the one a circular chart makes when it fits its box, redraws nothing. While
+ * an animation runs the redraw waits for its end.
+ */
+function redrawIfResizedWhileIdle() {
+  if (chartRef.value?.chart?.w.globals.animationEnded !== true) return;
+  redrawIfResizedWhileAnimating();
 }
 </script>
 
