@@ -138,7 +138,7 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   an editor reads the default children from the block type's `initialChildren`.
   A component may draw `<DmsPageToolbarBlock>` and `<DmsLiveToggleBlock>` itself, around controls
   of its own: neither needs a `componentId` or `pageId` there.
-- `liveHold: true` keeps a table's rows while paused, and in Direct while they are on screen (new
+- `liveHold: true` keeps a table's rows while paused, and in Direct while they are on screen unless `whileOnScreen: false` (new
   rows wait behind a "N new · Show" pill over the rows, counting the rows the table's query matches now beyond those held, through its count route); `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
   Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a module may batch

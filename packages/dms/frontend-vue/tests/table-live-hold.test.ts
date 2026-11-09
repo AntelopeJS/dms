@@ -250,25 +250,59 @@ function placedTable(tableTop: number, rowBottom: number) {
   return { element, scroll };
 }
 
-it("holds the rows on screen still, the page staying live, without a reason", async () => {
-  const { element, scroll } = placedTable(80, 160);
+it.each<boolean | TableViewLiveHoldOptions>([true, { whileOnScreen: true }])(
+  "holds the rows on screen still, the page staying live, without a reason (liveHold %o)",
+  async (liveHold) => {
+    const { element, scroll } = placedTable(80, 160);
+    const { refresh, hold } = mountTable({
+      liveHold,
+      signals: { tableElement: () => element },
+    });
+    await nextTick();
+    await publish();
+    await publish();
+    expect(live.isPaused.value).toBe(false);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(hold.isHolding.value).toBe(true);
+    expect(hold.newCount.value).toBe(2);
+    expect(hold.reason.value).toBe(null);
+
+    await scroll(1200, 1280);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    await publish();
+    expect(refresh).toHaveBeenCalledTimes(2);
+    element.remove();
+  },
+);
+
+it("follows the feed on screen with whileOnScreen false, still holding while paused or for a reason", async () => {
+  const { element } = placedTable(80, 160);
+  const isRowOpen = ref(false);
   const { refresh, hold } = mountTable({
-    liveHold: true,
-    signals: { tableElement: () => element },
+    liveHold: { whileOnScreen: false, whileRowOpen: true },
+    signals: { tableElement: () => element, isRowOpen: () => isRowOpen.value },
   });
   await nextTick();
   await publish();
-  await publish();
-  expect(live.isPaused.value).toBe(false);
-  expect(refresh).not.toHaveBeenCalled();
-  expect(hold.isHolding.value).toBe(true);
-  expect(hold.newCount.value).toBe(2);
-  expect(hold.reason.value).toBe(null);
-
-  await scroll(1200, 1280);
   expect(refresh).toHaveBeenCalledTimes(1);
+  expect(hold.isHolding.value).toBe(false);
+  expect(hold.newCount.value).toBe(0);
+
+  isRowOpen.value = true;
+  await nextTick();
+  await publish();
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(hold.reason.value).toBe("rowOpen");
+  isRowOpen.value = false;
+  await nextTick();
+  expect(refresh).toHaveBeenCalledTimes(2);
+
+  live.pause();
+  await nextTick();
   await publish();
   expect(refresh).toHaveBeenCalledTimes(2);
+  expect(hold.isHolding.value).toBe(true);
+  expect(hold.newCount.value).toBe(1);
   element.remove();
 });
 

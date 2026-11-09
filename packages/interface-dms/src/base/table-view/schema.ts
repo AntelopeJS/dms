@@ -413,6 +413,7 @@ export const TableViewSchema = z.object({
       .union([
         z.boolean(),
         z.object({
+          whileOnScreen: z.boolean().optional(),
           whileRowOpen: z.boolean().optional(),
           whileScrolled: z.boolean().optional(),
           whileSearching: z.boolean().optional(),
@@ -422,7 +423,7 @@ export const TableViewSchema = z.object({
       ])
       .optional()
       .describe(
-        "On a live page, keeps the rows while paused or on screen and shows what is new over them; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
+        "On a live page, keeps the rows while paused or on screen and shows what is new over them; `whileOnScreen: false` lets them follow the feed while on screen, `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
       ),
     {
       label: "Hold rows while paused",
