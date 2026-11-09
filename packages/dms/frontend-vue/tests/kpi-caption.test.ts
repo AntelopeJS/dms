@@ -63,6 +63,12 @@ describe("a KPI card whose data carries a caption", () => {
     expect(html).toContain(DESCRIPTION);
   });
 
+  it("shows the caption as written, not as a translation key", async () => {
+    response.value = { value: 1200, caption: "$1,200 / $2,000 · 60%" };
+    const html = await render();
+    expect(html).toContain("$1,200 / $2,000 · 60%");
+  });
+
   it("shows the caption over the comparison label while comparing", async () => {
     response.value = {
       value: 4,
