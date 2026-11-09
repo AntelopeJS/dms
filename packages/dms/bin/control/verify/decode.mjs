@@ -50,6 +50,7 @@ export const isFormalResult = objectOf(
     checkChanged: isBoolean,
     base: nullable(rules),
     fixed: strings,
+    dropped: strings,
     missing: strings,
   },
 );
