@@ -5,48 +5,80 @@
 # AntelopeJS DMS
 
 **The open-source back office for your product.**<br>
-Connect your PostgreSQL, MongoDB or RethinkDB database.<br>
-Your coding agent builds the admin pages and a dashboard, as TypeScript in your repo.
+Paste your PostgreSQL, MongoDB or RethinkDB connection string.<br>
+One run of your coding agent later, you have the admin pages and dashboards, as TypeScript in your repo.
 
-[Live demo](https://dms-demo.antelopejs.com) · [Quick start](#quick-start) · [Docs](https://dms.antelopejs.com/docs) · [Discord](https://discord.gg/g4pFt6eXqu)
+[Live demo](https://dms-demo.antelopejs.com) · [Quick start](#quick-start) · [Docs](https://dms.antelopejs.com/docs) · [Agent skills](https://github.com/AntelopeJS/agent-skills) · [Discord](https://discord.gg/g4pFt6eXqu)
 
 <a href="https://github.com/AntelopeJS/dms/stargazers"><img data-illustration alt="GitHub stars" src="https://img.shields.io/github/stars/AntelopeJS/dms?style=for-the-badge&labelColor=000000&color=000000&logo=github"></a> <a href="https://www.npmjs.com/package/@antelopejs/dms"><img data-illustration alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a> <a href="./LICENSE"><img data-illustration alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a> <a href="https://discord.gg/g4pFt6eXqu"><img data-illustration alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a> <a href="https://dms.antelopejs.com/docs"><img data-illustration alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
 
 </div>
 
+## One connection string, one agent run
+
+<img src="./docs/media/hero-one-run.gif" width="100%" data-illustration alt="The Builder connects a shop database and proposes its 12 tables as 7 pages, 4 for statistics and 2 questions. The assistant then builds two dashboards, an orders table, a kanban board of tickets and shipments by week.">
+
+We ran it on the connect demo, a sample coffee shop on PostgreSQL.
+
+1. Paste the connection string into the Builder and press **Connect**.
+2. Press **Let the assistant finish**. It runs Claude Code or Codex on your own account.
+3. Approve its plan. We approved it as written and changed nothing after that.
+
+| What     | Result                                                     |
+| -------- | ---------------------------------------------------------- |
+| Database | 12 tables, about 3,100 orders                              |
+| Pages    | 2 dashboards and 10 table pages                            |
+| Code     | About 3,400 lines of TypeScript in 54 files, in one module |
+| Result   | The project typechecks                                     |
+
+**What it got wrong.** Saved views that filter on a list of statuses, such as "Awaiting shipment", came back empty. Charts that need a second relation, such as revenue by product, were skipped, and the assistant said so in its report. That was one run with no follow-up prompt. [Run it yourself](#quick-start).
+
+### A finished back office
+
 <a href="https://dms-demo.antelopejs.com"><img src="./docs/media/helio-tour.gif" width="100%" data-illustration alt="A tour of Helio, a back office for a solar installer built with AntelopeJS DMS: a dashboard with cumulative revenue, product mix, installations and top sales reps, then the sales pipeline, quotes, customers, invoices and fleet monitoring pages."></a>
 
-**Everything in this tour is built with AntelopeJS DMS.** Helio is a back office for a solar installer: dashboards, a sales pipeline, quotes, invoices and fleet monitoring. [Click through it live](https://dms-demo.antelopejs.com), no install needed.
+**Everything in this tour is built with AntelopeJS DMS.** Helio is a back office for a solar installer. [Click through it live](https://dms-demo.antelopejs.com), no install needed.
 
 ## Why
 
 <img data-illustration src="./docs/media/readme/why.svg" width="100%" alt="A list of back office chores is crossed out line by line and each one is marked generated. Caption: Stop hand-building admin screens.">
 
-Every product ends up needing a back office. Support needs to find a customer. Ops needs to fix an order. The founder wants the numbers.
+We run a service company. Almost every client project came with a back office, no two alike, so we rebuilt it each time and carried every permission fix by hand. Admin generators gave us a list screen fast, then got stuck the day a client asked for something they hadn't planned.
 
-Building it by hand eats weeks you'd rather spend on the product. Hosted admin tools charge per seat and keep your screens outside your code.
+AntelopeJS DMS is the base we built instead, and we start every client project from it. It covers the standard screens with no frontend code, and you replace any piece without forking it.
 
-AntelopeJS DMS gives you the back office from the database you already have. It lives in your repo, you own every line, and it's free.
+- **Existing product?** Connect its database. You get a page for every table you keep, plus dashboards.
+- **New product?** Start from the template and build the tables and pages from nothing.
 
-- **Existing product?** Connect its database. You get a page for every table you keep, plus a dashboard.
-- **New product?** Start from the template and build the whole app on AntelopeJS.
+### Why not ask a coding agent for the whole thing?
 
-## Connect your database
+On an empty repo, an agent has to invent sign-in, server-side roles, paginated lists, validated forms, charts and the layout in one go. The result looks finished. The gaps sit where a demo doesn't look:
 
-<img src="./docs/media/hero-connect.gif" width="100%" data-illustration alt="A PostgreSQL connection string is pasted into the Connect a database form. Three databases, two PostgreSQL and one MongoDB, then appear in one list under the caption Three databases, one back office, followed by one dashboard with revenue, open deals and orders from all three.">
+- a route that skips the permission check,
+- a list that loads every row,
+- a form validated only in the browser.
 
-Paste a connection string and press **Connect**. The Builder reads the schema, proposes a page for each table, and writes the pages you keep as TypeScript in your repo. Connect your ERP, your CRM and your shop, and every database lands in the same back office. Your coding agent then builds the dashboard on top of your data.
+With AntelopeJS DMS those pieces exist, and the agent picks blocks and fills in their options:
+
+- The agent skills ship inside the npm packages and teach it the API of the version you run.
+- Every block option has a type, so a wrong option fails the build.
+- Through the Builder, nothing is written unless the whole project still compiles.
 
 ## What you get
 
-- **A page for every table.** Search, filters, sort, export and forms, generated from your schema.
+- **A page for every table.** Search, filters, saved views, totals and export, shown as a grid, cards, a kanban board or a grouped list.
+- **14 API routes per table.** List, get, create, edit, delete, archive, counts and export, each checked against one of the table's permissions.
 - **41 building blocks.** Tables, forms, KPI cards and 13 chart types. Standard screens need no frontend code.
 - **TypeScript in your repo.** Every page is a class you read, review and change like the rest of your code.
 - **Read-only by default.** A table gets create, edit and delete only when you switch it on.
 - **Roles down to each action.** Hidden on the page and refused by the server.
-- **A dashboard from your coding agent.** Claude Code or Codex builds it on your own account. The DMS ships no AI model.
-- **Sign-in, members and multi-tenancy** built in, with a SaaS mode.
-- **Installable modules.** Automations, mailing, translations, media library, SaaS billing and more.
+- **Accounts from the first start.** Sign-in, members, invitations, roles, two-factor authentication, signed-in devices and multi-tenancy, with a SaaS mode.
+- **Your coding agent, not ours.** Claude Code or Codex on your own account. AntelopeJS DMS ships no AI model.
+- **Installable modules.** See [Modules](#modules).
+
+The roles editor already lists a permission for every page, block and action, so a Support role takes a few clicks.
+
+<img src="./docs/media/settings.gif" width="100%" data-illustration alt="The settings pages one by one, from Profile and Security to Members and Roles, then a new Support role and its permissions.">
 
 ## Quick start
 
@@ -61,7 +93,7 @@ npx @antelopejs/core project init demo --template dms-connect-demo
 cd demo && docker compose up
 ```
 
-**Start your own project.** Same DMS, no sample data. Connect your database from the Builder.
+**Start your own project.** Same DMS, no sample data. Connect your database from the Builder, or build the tables from nothing.
 
 ```bash
 npx @antelopejs/core project init my-app --template dms-starter
@@ -90,15 +122,69 @@ It also needs an API module, a database module and an authentication module. See
 
 </details>
 
+## Three ways to build
+
+Mix them on the same project. The assistant is a development tool and does not run in production.
+
+### Click in the Builder
+
+Press <kbd>Ctrl</kbd>+<kbd>B</kbd> on any page. Add a table, its fields and its routes, or a block on a page. The Builder writes the TypeScript and saves only if the whole project still compiles.
+
+<img data-illustration src="./docs/media/builder.gif" width="100%" alt="Ctrl B opens the Builder on a dashboard. A TableView block is added, the project is typechecked, and its line appears in dashboard/page.ts.">
+
+<img src="./docs/media/builder-new-table.gif" width="100%" data-illustration alt="The Builder's Tables tab creates a suppliers table, then shows its fields grid with ticks for Shown, Search, Sort, Filter, In export and Required, and the field types.">
+
+### Ask the assistant
+
+Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> in the dashboard and describe what you want. With the Builder installed, chats start in Safe mode, which changes pages, tables and queries through the Builder only. Code mode can also edit any file and run commands.
+
+<img src="./docs/media/ai-from-scratch.gif" width="100%" data-illustration alt="In Safe mode, the assistant chat builds a Roasting batches table and a page with a tab per roast level, and the page then lists sample batches.">
+
+The sample rows took a second request in Code mode, because Safe mode has no tool that writes seed data.
+
+### Use your own coding agent
+
+Run Claude Code or Codex in the project folder. Install the `antelopejs` plugin once to link the skills your packages ship, at the version you run.
+
+```bash
+# Claude Code
+claude plugin marketplace add AntelopeJS/agent-skills
+claude plugin install antelopejs@antelopejs
+
+# Codex
+codex plugin marketplace add AntelopeJS/agent-skills
+codex plugin add antelopejs@antelopejs
+```
+
+Then run `ajs project dev` once. It adds a `dms-ai` server to the project's `.mcp.json`, so Claude Code gets the Builder tools, the database tools and the typecheck the chat uses.
+
 ## See it in action
 
-**One line of TypeScript, a full CRUD screen.**
+**One field, one full screen.** From the [docs tutorial](https://dms.antelopejs.com/docs/getting-started/tutorial).
+
+```ts fragment
+@RegisterPage()
+export class SuppliersPage extends PageController("suppliers", {
+  displayName: "Suppliers",
+  icon: "i-ph-factory",
+  category: purchasing,
+}) {
+  static table = TableView(supplierDataAPI, {
+    caption: "Suppliers",
+    labelKey: "name",
+    formContainer: { type: "drawer" },
+    rowActions: { add: true, edit: true, delete: true, hasSelection: true },
+  });
+}
+```
+
+The columns come from the data controller. The field also brings 14 API routes with their permissions, updates when someone saves a row through the table, and a row lock while someone edits it.
 
 <img data-illustration src="./docs/media/code.gif" width="100%" alt="dashboard/page.ts, a page class with a KpiCard, a ChartDonut and a TableView, next to the dashboard it produces. The TableView line grows into a full table with search, filters, a New project form and its GET, POST, PUT and DELETE routes.">
 
-**Click on the page, get code.** The Builder writes TypeScript and saves only when the whole project still compiles.
+**Several ways to look at the same rows.** A grid, cards, a kanban board where dragging a card writes the value back, and a grouped list.
 
-<img data-illustration src="./docs/media/builder.gif" width="100%" alt="Ctrl B opens the Builder on a dashboard. A TableView block is added from the block list, the project is typechecked, and the new TableView line appears in dashboard/page.ts.">
+<img src="./docs/media/table-views-displays.gif" width="100%" data-illustration alt="Helio's installation projects: the Late view with totals in the footer, then the same rows grouped by week, then a kanban board by status.">
 
 <img data-illustration src="./docs/media/readme/roles.svg" width="100%" alt="Admin and Support side by side. The same request, DELETE /orders/42, returns 200 OK for Admin and 403 Forbidden for Support. Caption: Down to each action.">
 
@@ -127,28 +213,56 @@ Tables, forms, KPI cards, activity feeds and 13 chart types. Each one is a line 
 
 <a href="https://dms.antelopejs.com/docs/components/overview"><img data-illustration src="./docs/media/blocks-mosaic.png" width="100%" alt="Eight DMS blocks in dark theme: a monthly revenue KPI card, an area chart, a projects table with status badges, a donut chart, a customer form, an hourly heatmap, a recent activity feed and a bar chart."></a>
 
-```ts
-import { PageController, RegisterPage, pagesCategory } from "@antelopejs/interface-dms/page";
-import { KpiCard } from "@antelopejs/interface-dms/base/kpi-card";
+[Browse every block with a live preview](https://dms.antelopejs.com/docs/components/overview)
 
-@RegisterPage()
-export class SalesPage extends PageController("sales", {
-  displayName: "Sales",
-  icon: "i-ph-chart-line",
-  category: pagesCategory,
-}) {
-  static revenue = KpiCard({ title: "Revenue", fetchUrl: "/api/sales/revenue" });
-}
+## When the blocks aren't enough
+
+This is the part we cared most about, because it's where the tools we used before let us down.
+
+**Write your own block.** On the backend it's a field like any other, and on the frontend a Vue component registered under that name. It gets its own permission in the roles editor.
+
+```ts fragment
+static graph = CustomComponent("ApiRouteGraph")
+  .options({ fetchUrl: "/api/routes/graph", periodScope: "api" })
+  .meta({ name: "$api.routes.graph.name", icon: "i-ph-graph" });
 ```
 
-[Browse every block with a live preview](https://dms.antelopejs.com/docs/components/overview)
+**Replace a built-in component.** Register yours under the same name from a higher-priority module, and the DMS renders it everywhere.
+
+```ts fragment
+sdk.registerComponent("DmsFoo", MyFoo, { prefix: false });
+```
+
+**In between**, add a column type, a table display, content in a form slot, routes on a page class, whole pages written by hand, or lifecycle hooks. Services such as file storage sit behind AntelopeJS contracts, so changing provider means installing another module.
+
+## Modules
+
+The core keeps to pages, data, sign-in and roles. The rest installs into the same dashboard, behind the same login.
+
+<!-- antelopejs-dms-modules:start -->
+
+| Module                                                           | What it adds                                                                             |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| [`dms-builder`](https://github.com/AntelopeJS/dms-builder)       | Edit pages, tables and data sources by clicking, as TypeScript that compiles             |
+| [`dms-ai`](https://github.com/AntelopeJS/dms-ai)                 | An assistant chat in the dashboard, on your own Claude Code or Codex                     |
+| [`dms-database`](https://github.com/AntelopeJS/dms-database)     | Schemas, relation diagrams, a data browser and a query console                           |
+| [`dms-api`](https://github.com/AntelopeJS/dms-api)               | API health, request logs, per-route statistics and a request tester                      |
+| [`dms-automation`](https://github.com/AntelopeJS/dms-automation) | Node-graph automations on schedules, webhooks and DMS events, with a trace for every run |
+| [`dms-mailing`](https://github.com/AntelopeJS/dms-mailing)       | E-mail templates in a block editor, versions, a send log and delivery metrics            |
+| [`dms-lang`](https://github.com/AntelopeJS/dms-lang)             | Translation coverage, a translation matrix and a translation queue                       |
+| [`dms-media`](https://github.com/AntelopeJS/dms-media)           | A media library with folders, per-folder permissions, image sizes and light editing      |
+| [`dms-saas`](https://github.com/AntelopeJS/dms-saas)             | Self-service sign-up, plans that gate features, and Stripe billing                       |
+| [`dms-marketing`](https://github.com/AntelopeJS/dms-marketing)   | Traffic, conversion funnels with A/B splits and click heatmaps, without cookies          |
+| [`dms-frontend`](https://github.com/AntelopeJS/dms-frontend)     | The `ajs dms` CLI, the Vue renderer and the SDK every frontend module builds on          |
+
+<!-- antelopejs-dms-modules:end -->
+
+<img src="./docs/media/helio-modules.png" width="100%" data-illustration alt="Helio's Modules page with 10 installed modules, each card showing its status, version and category.">
 
 ## Built for
 
 - **Developers and CTOs** with a product on PostgreSQL, MongoDB or RethinkDB who need a back office and dashboards without building them by hand.
 - **Founders and ops people** who'd rather click than code. Once a developer has installed it, the Builder and the assistant do the rest.
-
-We built the DMS for our own client work, where every client needed a different back office. It's the base we now use for all of them.
 
 [How it compares to other admin tools](https://dms.antelopejs.com/compare)
 
@@ -164,7 +278,14 @@ Yes. Apache-2.0, no per-seat price, nothing gated. Self-host it for as many user
 <details>
 <summary><b>Does my data go to an AI model?</b></summary>
 
-Table pages need no AI at all. Dashboards are built by your own Claude Code or Codex, on your own account. The agent works from your schema.
+Table pages need no AI. The assistant runs your own Claude Code or Codex. Its database tools read the schema and aggregates of a connected database, never individual rows.
+
+</details>
+
+<details>
+<summary><b>Does the assistant run in production?</b></summary>
+
+No. With `NODE_ENV=production` the assistant starts no agent, and the route your own coding agent would use serves nothing.
 
 </details>
 
@@ -300,21 +421,7 @@ When the backend answers, start the dashboard in a second terminal, from the sam
 pnpm frontend:dev   # dashboard on http://localhost:3001
 ```
 
-Open the address that the backend logs after `No owner exists yet`, and create the first administrator. [Quickstart](https://dms.antelopejs.com/docs/getting-started/quickstart#create-your-administrator) walks through the onboarding. A page is a class whose static fields are blocks:
-
-```ts
-import { PageController, RegisterPage, pagesCategory } from "@antelopejs/interface-dms/page";
-import { KpiCard } from "@antelopejs/interface-dms/base/kpi-card";
-
-@RegisterPage()
-export class SalesPage extends PageController("sales", {
-  displayName: "Sales",
-  icon: "i-ph-chart-line",
-  category: pagesCategory,
-}) {
-  static revenue = KpiCard({ title: "Revenue", fetchUrl: "/api/sales/revenue" });
-}
-```
+Open the address that the backend logs after `No owner exists yet`, and create the first administrator. [Quickstart](https://dms.antelopejs.com/docs/getting-started/quickstart#create-your-administrator) walks through the onboarding.
 
 ### Compatibility
 
