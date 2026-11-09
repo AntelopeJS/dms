@@ -4,6 +4,7 @@ import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { withBaseBackend } from "./base.mjs";
 import { launchBrowser, newContext, screenshot } from "./browser.mjs";
+import { startDatabase, stopDatabase } from "./database.mjs";
 import { capturedMail } from "./mail.mjs";
 import { isRecord, isString, readRecordList } from "./json.mjs";
 import { saveRun } from "./run-state.mjs";
@@ -130,6 +131,7 @@ export class JourneyContext {
     this.index = 0;
     /** @type {Tab | undefined} */
     this.lastTab = undefined;
+    this.databaseStopped = false;
     this.startedAt = new Date().toISOString();
     this.equal = equal;
     this.status = status;
@@ -324,6 +326,24 @@ export class JourneyContext {
   }
 
   /**
+   * Stops the run's mongod, so the backend loses its database until
+   * {@link JourneyContext.startDatabase}. When the journey ends with it
+   * stopped, it starts again before the next journey.
+   *
+   * @throws When the run uses `--mongo-url`, whose server it does not own
+   */
+  async stopDatabase() {
+    await stopDatabase(this.state);
+    this.databaseStopped = true;
+  }
+
+  /** Starts the run's mongod again, at the same URL and with the same data. */
+  async startDatabase() {
+    await startDatabase(this.state);
+    this.databaseStopped = false;
+  }
+
+  /**
    * The mail the sink captured since the journey started, waiting until
    * `accept` matches one or the timeout passes; `match` is the latest match.
    *
@@ -348,6 +368,7 @@ export class JourneyContext {
     for (const context of this.contexts.values()) {
       await context.close().catch(() => undefined);
     }
+    if (this.databaseStopped) await this.startDatabase();
   }
 }
 
@@ -462,7 +483,12 @@ async function driveJourney(state, feature, journey, skill) {
         ? failure.message
         : String(failure?.stack ?? failure);
   } finally {
-    await context.close();
+    try {
+      await context.close();
+    } catch (failure) {
+      const closing = `closing the journey failed: ${String(failure?.stack ?? failure)}`;
+      error = error === null ? closing : `${error}\n${closing}`;
+    }
     await browser.close();
   }
   const failed =

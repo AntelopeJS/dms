@@ -1,10 +1,28 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { loadJourneys, runJourney, runJourneyFile } from "./journey.mjs";
+import { isSameProcess } from "./identity.mjs";
+import {
+  JourneyContext,
+  loadJourneys,
+  runJourney,
+  runJourneyFile,
+} from "./journey.mjs";
+import { apiTargetFile, writeTarget } from "./forwarder.mjs";
+import { startMongod } from "./mongo.mjs";
+import { startDetached, stopRecorded, waitForPort } from "./processes.mjs";
+import { recordBackend } from "./run-state.mjs";
+import { liveBackends } from "./stack.mjs";
 import { readTimings } from "./timing.mjs";
 
 const JOURNEY = '{ id: "smoke", title: "t", entryPoint: "e", async run() {} }';
@@ -116,4 +134,167 @@ await test("a run whose backend holds the API port itself is refused before its 
     }),
     { message: "this run was started by an older dms-control; run `up` again" },
   );
+});
+
+const FAKE_MONGOD = `#!/usr/bin/env node
+const { existsSync, readFileSync, writeFileSync } = require("node:fs");
+const option = (name) => process.argv[process.argv.indexOf(name) + 1];
+const starts = require("node:path").join(option("--dbpath"), "starts");
+const before = existsSync(starts) ? Number(readFileSync(starts, "utf8")) : 0;
+writeFileSync(starts, String(before + 1));
+require("node:net").createServer((socket) => socket.end(String(before + 1))).listen(Number(option("--port")), "127.0.0.1");
+`;
+
+/**
+ * @param {number} port The port
+ * @returns {Promise<boolean>} Whether something accepts a connection on it
+ */
+function accepts(port) {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host: "127.0.0.1", port });
+    socket.once("connect", () => {
+      socket.end();
+      resolve(true);
+    });
+    socket.once("error", () => resolve(false));
+  });
+}
+
+/**
+ * @param {number} port The port of a fake mongod
+ * @returns {Promise<string>} What it says on a connection: how many times it started on its data folder
+ */
+function starts(port) {
+  return new Promise((resolve, reject) => {
+    const socket = createConnection({ host: "127.0.0.1", port });
+    let text = "";
+    socket.on("data", (chunk) => {
+      text += String(chunk);
+    });
+    socket.once("end", () => resolve(text));
+    socket.once("error", reject);
+  });
+}
+
+/**
+ * A run that owns a mongod, a fake one that listens on the port it is given.
+ *
+ * @param {import("node:test").TestContext} t The test
+ * @returns {Promise<{ state: { dir: string, logs: string, mongo: string, processes: import("./run-state.mjs").ProcessRecord[], ownsMongo: boolean }, context: JourneyContext, port: number }>} The run, a journey's context and the mongod's port
+ */
+async function runOwningMongod(t) {
+  const dir = mkdtempSync(join(tmpdir(), "dms-control-journey-mongod-"));
+  const binary = join(dir, "mongod");
+  writeFileSync(binary, FAKE_MONGOD);
+  chmodSync(binary, 0o755);
+  const previous = process.env.DMS_CONTROL_MONGOD;
+  process.env.DMS_CONTROL_MONGOD = binary;
+  const paths = { mongo: join(dir, "mongo"), logs: dir };
+  const mongod = await startMongod(paths, [dir]);
+  const state = {
+    ...paths,
+    dir,
+    evidence: join(dir, "evidence"),
+    playground: dir,
+    moduleRoot: dir,
+    mongoUrl: mongod.url,
+    ownsMongo: true,
+    processes: [mongod.record],
+  };
+  t.after(async () => {
+    await stopRecorded(state.processes);
+    if (previous === undefined) delete process.env.DMS_CONTROL_MONGOD;
+    else process.env.DMS_CONTROL_MONGOD = previous;
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const context = new JourneyContext(state, "feat", "j1", undefined, undefined);
+  return { state, context, port: mongod.record.port };
+}
+
+await test("a journey stops the run's mongod and starts it again on the same port and data folder; a mongod left running, or started on a new port or folder, fails it", async (t) => {
+  const { state, context, port } = await runOwningMongod(t);
+  await context.stopDatabase();
+  assert.equal(await accepts(port), false, "nothing listens once stopped");
+  await context.startDatabase();
+  assert.equal(await accepts(port), true, "mongod listens again");
+  assert.equal(await starts(port), "2");
+  assert.ok(
+    state.processes.some(
+      (entry) => entry.name === "mongod" && isSameProcess(entry),
+    ),
+    "the run records the mongod that runs now",
+  );
+});
+
+await test("starting a mongod that runs keeps it; spawning another fails on its taken port", async (t) => {
+  const { state, context } = await runOwningMongod(t);
+  const [before] = state.processes;
+  await context.startDatabase();
+  assert.deepEqual(state.processes, [before]);
+});
+
+await test("a journey that ends with mongod stopped leaves it running for the next one, which a fresh database needs", async (t) => {
+  const { context, port } = await runOwningMongod(t);
+  await context.stopDatabase();
+  await context.close();
+  assert.equal(await accepts(port), true);
+});
+
+await test("a run on --mongo-url refuses to stop a mongod it does not own, the server keeps answering, and the journey still closes without trying to start it", async (t) => {
+  const { state, context, port } = await runOwningMongod(t);
+  state.ownsMongo = false;
+  await assert.rejects(context.stopDatabase(), /--mongo-url/);
+  await context.close();
+  assert.equal(await accepts(port), true);
+});
+
+/**
+ * @param {{ dir: string, logs: string }} state The run
+ * @param {number} port The port it is recorded on
+ * @returns {import("./run-state.mjs").BackendRecord} A backend the run recorded, a process that waits
+ */
+function recordedBackend(state, port) {
+  const started = startDetached({
+    name: `backend-${port}`,
+    program: process.execPath,
+    args: ["-e", "setInterval(() => {}, 1000)"],
+    cwd: state.dir,
+    env: process.env,
+    logs: state.logs,
+  });
+  const backend = { ...started, port, database: `verify_x_${port}` };
+  recordBackend(state.dir, backend);
+  return backend;
+}
+
+await test("stopping the database kills the standby, which would boot without its database and be promoted, and keeps the backend the API forwards to", async (t) => {
+  const { state, context } = await runOwningMongod(t);
+  const serving = recordedBackend(state, 41001);
+  const standby = recordedBackend(state, 41002);
+  t.after(() => stopRecorded([serving, standby]));
+  writeTarget(apiTargetFile(state.dir), serving.port);
+  await context.stopDatabase();
+  assert.deepEqual(
+    liveBackends(state).map((backend) => backend.port),
+    [serving.port],
+  );
+});
+
+await test("a mongod that cannot take its port while another program holds it fails to start, instead of the run trusting that program", async (t) => {
+  const { state, context, port } = await runOwningMongod(t);
+  await context.stopDatabase();
+  const squatter = startDetached({
+    name: "squatter",
+    program: process.execPath,
+    args: [
+      "-e",
+      `require("node:net").createServer((s) => s.end()).listen(${port}, "127.0.0.1")`,
+    ],
+    cwd: state.dir,
+    env: process.env,
+    logs: state.logs,
+  });
+  t.after(() => stopRecorded([squatter]));
+  await waitForPort(port, squatter, 5_000);
+  await assert.rejects(context.startDatabase(), /does not listen on/);
 });

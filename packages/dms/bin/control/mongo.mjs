@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { arrayOf, decode, isRecord, isString, objectOf } from "./json.mjs";
-import { freePort, startDetached, waitForPort } from "./processes.mjs";
+import { freePort, startDetached, waitForOwnPort } from "./processes.mjs";
 
 /**
  * @typedef {(...args: unknown[]) => unknown} Callable A function whose result is read as `unknown`
@@ -188,16 +188,17 @@ export async function mongodBinary(from) {
 }
 
 /**
- * Starts a mongod owned by the run, on a free port, with its data under the
- * run folder.
+ * Starts a mongod owned by the run, on `port` or a free one, with its data
+ * under the run folder.
  *
  * @param {{ mongo: string, logs: string }} paths The run's folders
  * @param {string[]} from Folders to resolve mongodb-memory-server-core from
- * @returns {Promise<{ url: string, record: ReturnType<typeof startDetached> }>} Its URL and process record
+ * @param {number} [port] The port, which a restart keeps so the backend's URL still reaches it
+ * @returns {Promise<{ url: string, record: ReturnType<typeof startDetached> & { port: number } }>} Its URL and process record
  */
-export async function startMongod(paths, from) {
+export async function startMongod(paths, from, port) {
   const binary = await mongodBinary(from);
-  const port = await freePort();
+  port ??= await freePort();
   mkdirSync(paths.mongo, { recursive: true });
   const record = startDetached({
     name: "mongod",
@@ -214,7 +215,7 @@ export async function startMongod(paths, from) {
     env: process.env,
     logs: paths.logs,
   });
-  await waitForPort(port, record, READY_TIMEOUT_MS);
+  await waitForOwnPort(port, record, READY_TIMEOUT_MS);
   return { url: `mongodb://127.0.0.1:${port}`, record: { ...record, port } };
 }
 
