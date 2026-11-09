@@ -384,6 +384,12 @@ const NON_LITERAL_SPECIFIERS = [
     "export { a } from foo;\n",
     "export { a } from bar;\n",
   ],
+  ["a call", "import x from a();\nx();\n", "import x from b();\nx();\n"],
+  [
+    "a template with substitutions",
+    "import x from `./${a}`;\nx();\n",
+    "import x from `./${b}`;\nx();\n",
+  ],
 ];
 
 for (const [kind, base, head] of NON_LITERAL_SPECIFIERS) {
@@ -427,33 +433,40 @@ const SAME_TEXT_SPECIFIERS = [
 ];
 
 for (const [kind, base, head] of SAME_TEXT_SPECIFIERS) {
-  await test(`${kind} is unchanged`, (t) => {
-    assert.equal(changed(t, { "src/a.ts": base }, { "src/a.ts": head }), false);
+  await test(`${kind} is changed`, (t) => {
+    assert.equal(changed(t, { "src/a.ts": base }, { "src/a.ts": head }), true);
   });
 }
 
-await test("a module specifier that is a call expression throws on either commit", (t) => {
-  const call = "import x from a();\nx();\n";
-  const valid = 'import x from "./a";\nx();\n';
-  assert.throws(() => changed(t, { "src/a.ts": valid }, { "src/a.ts": call }), {
-    name: "TypeError",
-    message: /found CallExpression/,
-  });
-  assert.throws(() => changed(t, { "src/a.ts": call }, { "src/a.ts": valid }), {
-    name: "TypeError",
-    message: /found CallExpression/,
-  });
-});
+const EXPRESSION_SPECIFIERS = [
+  ["a call expression", "import x from a();\nx();\n"],
+  [
+    "a template literal with substitutions",
+    "import x from `./${name}`;\nx();\n",
+  ],
+];
 
-await test("a module specifier that is a template literal with substitutions throws the named error on either commit", (t) => {
-  const template = "import x from `./${name}`;\nx();\n";
-  const valid = 'import x from "./a";\nx();\n';
-  assert.throws(
-    () => changed(t, { "src/a.ts": valid }, { "src/a.ts": template }),
-    { name: "TypeError", message: /found TemplateExpression/ },
-  );
-  assert.throws(
-    () => changed(t, { "src/a.ts": template }, { "src/a.ts": valid }),
-    { name: "TypeError", message: /found TemplateExpression/ },
+for (const [kind, expression] of EXPRESSION_SPECIFIERS) {
+  await test(`a module specifier that is ${kind} is changed against a string on either commit`, (t) => {
+    const valid = 'import x from "./a";\nx();\n';
+    assert.equal(
+      changed(t, { "src/a.ts": valid }, { "src/a.ts": expression }),
+      true,
+    );
+    assert.equal(
+      changed(t, { "src/a.ts": expression }, { "src/a.ts": valid }),
+      true,
+    );
+  });
+}
+
+await test("reformatting a module specifier that is an expression is unchanged", (t) => {
+  assert.equal(
+    changed(
+      t,
+      { "src/a.ts": "import x from a('1');\nx();\n" },
+      { "src/a.ts": 'import x from (a( "1" ));\nx();\n' },
+    ),
+    false,
   );
 });
