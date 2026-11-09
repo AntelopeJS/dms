@@ -209,3 +209,29 @@ await test("a run that recorded no namespaces, as an earlier dms-control wrote i
   assert.equal(down.status, 0, down.stderr);
   assert.equal(isRunning(pid), false);
 });
+
+await test("mail and timings read a run started in another PID namespace; down on that run still refuses and leaves run.json as it was; a version that checks the namespace for every command fails mail and timings", async (t) => {
+  const state = await newRun(t);
+  state.namespaces = { ...currentNamespaces(), pid: "pid:[1]" };
+  saveRun(state);
+  const recorded = storedRun(state.dir);
+  /** @param {string} command */
+  const run = (command) =>
+    spawnSync(process.execPath, [CONTROL_BIN, command, state.dir], {
+      encoding: "utf8",
+    });
+
+  const mail = run("mail");
+  assert.equal(mail.status, 0, mail.stderr);
+  assert.deepEqual(JSON.parse(mail.stdout), []);
+  const timings = run("timings");
+  assert.equal(timings.status, 0, timings.stderr);
+
+  const down = run("down");
+  assert.equal(down.status, 1, down.stderr);
+  assert.match(
+    down.stderr,
+    /this run was started in another PID namespace \(run: pid:\[1\]; here: pid:\[\d+\]\); run this command there/,
+  );
+  assert.equal(storedRun(state.dir), recorded);
+});

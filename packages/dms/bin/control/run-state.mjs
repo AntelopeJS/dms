@@ -205,19 +205,19 @@ const isStoredRun = objectOf(
 );
 
 /**
- * Reads the state `up` recorded for a run. A folder an earlier release stored
- * in `browser` is dropped, since nothing creates or reads that folder. An
- * account that `down` left without its `password` reads with an empty one.
- * Every command opens its run here, so a command run outside the PID or
- * time namespace `up` ran in refuses before it reads a process or changes
- * anything.
+ * Reads the state `up` recorded for a run, from any PID or time namespace.
+ * A folder an earlier release stored in `browser` is dropped, since nothing
+ * creates or reads that folder. An account that `down` left without its
+ * `password` reads with an empty one. Only a command that never reads,
+ * starts, signals or forgets a process the run recorded opens its run here,
+ * such as `mail`, `timings`, `api` and `verdict`; every other command opens
+ * it with {@link loadRun}.
  *
  * @param {string} dir The run root, as `up` printed it
  * @returns {RunState} The run state
  * @throws When the folder holds no run.json
- * @throws When the run was started in another PID or time namespace
  */
-export function loadRun(dir) {
+export function readRun(dir) {
   const file = join(resolve(dir), RUN_FILE);
   if (!existsSync(file)) {
     throw new Error(
@@ -227,7 +227,6 @@ export function loadRun(dir) {
   /** @type {unknown} */
   const parsed = JSON.parse(readFileSync(file, "utf8"));
   const stored = decode(isStoredRun, parsed, file, "a run state");
-  assertSameNamespaces(stored.namespaces);
   const { browser, accounts, ...rest } = stored;
   const run = {
     ...rest,
@@ -239,6 +238,23 @@ export function loadRun(dir) {
     ),
   };
   return browser === undefined || isString(browser) ? run : { ...run, browser };
+}
+
+/**
+ * Reads the state `up` recorded for a run, as {@link readRun} does, for a
+ * command that reads, starts, signals or forgets a process the run
+ * recorded. Run outside the PID or time namespace `up` ran in, it refuses
+ * before the command reads a process or changes anything.
+ *
+ * @param {string} dir The run root, as `up` printed it
+ * @returns {RunState} The run state
+ * @throws When the folder holds no run.json
+ * @throws When the run was started in another PID or time namespace
+ */
+export function loadRun(dir) {
+  const run = readRun(dir);
+  assertSameNamespaces(run.namespaces);
+  return run;
 }
 
 /**

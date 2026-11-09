@@ -5,7 +5,7 @@ import { ACTION_NAMES, describeTarget, serveBrowser } from "./browser.mjs";
 import { doctor } from "./doctor.mjs";
 import { setUpFrontendWorkspace } from "./frontend-workspace.mjs";
 import { capturedMail, serveMail } from "./mail.mjs";
-import { loadRun } from "./run-state.mjs";
+import { loadRun, readRun } from "./run-state.mjs";
 import { apiRequest, isOk, onboard } from "./session.mjs";
 import { resolutionFolders } from "./launch.mjs";
 import { down, up } from "./stack.mjs";
@@ -187,7 +187,7 @@ async function commandBrowser(dir, action, values) {
  * @returns {Promise<number>}
  */
 async function commandApi(dir, method, path, values) {
-  const state = loadRun(dir);
+  const state = readRun(dir);
   /** @type {unknown} */
   const body = values.body === undefined ? undefined : JSON.parse(values.body);
   const answer = await apiRequest(state, {
@@ -239,12 +239,12 @@ export async function runStackCommand(command, rest, values) {
     case "api":
       return commandApi(rest[0], rest[1], rest[2], values);
     case "mail":
-      print(JSON.stringify(capturedMail(loadRun(rest[0]).mail), null, 2));
+      print(JSON.stringify(capturedMail(readRun(rest[0]).mail), null, 2));
       return 0;
     case "down":
       return commandDown(rest[0]);
     case "timings":
-      print(formatTimings(summarize(readTimings(loadRun(rest[0]).evidence))));
+      print(formatTimings(summarize(readTimings(readRun(rest[0]).evidence))));
       return 0;
     case "reset": {
       const state = loadRun(rest[0]);
