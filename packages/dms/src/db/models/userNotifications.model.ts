@@ -379,16 +379,27 @@ export class UserNotificationsModel extends BasicDataModel(
    * Returns the ids of the user's rows reopened.
    */
   async undoMarkAllAsRead(userId: string, batchId: string): Promise<string[]> {
-    const rows = await this.visibleFeed(userId)
-      .filter((row) => row.key("readBatchId").eq(batchId))
-      .filter((row) => row.key("isRead").eq(true))
+    const batch = () =>
+      this.visibleFeed(userId)
+        .filter((row) => row.key("readBatchId").eq(batchId))
+        .filter((row) => row.key("isRead").eq(true));
+    const rows = await batch().run();
+    if (rows.length === 0) return [];
+
+    await batch()
+      .update({ isRead: false, readBatchId: null, updatedAt: new Date() })
       .run();
-    const reopened: string[] = [];
-    await runInBatches(rows, SHARED_GROUP_UPDATE_BATCH_SIZE, async (row) => {
-      await this.markAsUnread(row._id);
-      reopened.push(row._id);
-    });
-    return reopened;
+    const groupIds = [
+      ...new Set(
+        rows
+          .map((row) => row.groupId)
+          .filter((id): id is string => id !== null && id !== undefined),
+      ),
+    ];
+    await runInBatches(groupIds, SHARED_GROUP_UPDATE_BATCH_SIZE, (groupId) =>
+      this.setSharedGroupReadState(groupId, false),
+    );
+    return rows.map((row) => row._id);
   }
 
   /**
