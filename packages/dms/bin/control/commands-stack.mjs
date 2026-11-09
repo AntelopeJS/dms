@@ -108,7 +108,7 @@ async function commandDoctor(dir, values) {
  * @returns {Promise<number>}
  */
 async function commandOnboard(dir, values) {
-  const state = loadRun(dir);
+  const state = readRun(dir);
   const answer = await onboard(state, {
     platformName: values["platform-name"],
   });

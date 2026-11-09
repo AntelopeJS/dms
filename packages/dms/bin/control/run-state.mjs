@@ -209,9 +209,9 @@ const isStoredRun = objectOf(
  * A folder an earlier release stored in `browser` is dropped, since nothing
  * creates or reads that folder. An account that `down` left without its
  * `password` reads with an empty one. Only a command that never reads,
- * starts, signals or forgets a process the run recorded opens its run here,
- * such as `mail`, `timings`, `api` and `verdict`; every other command opens
- * it with {@link loadRun}.
+ * starts, signals or forgets a process the run recorded opens its run here:
+ * `mail`, `timings`, `api`, `onboard` and `verdict`. Every other command
+ * opens it with {@link loadRun}.
  *
  * @param {string} dir The run root, as `up` printed it
  * @returns {RunState} The run state
@@ -241,10 +241,10 @@ export function readRun(dir) {
 }
 
 /**
- * Reads the state `up` recorded for a run, as {@link readRun} does, for a
- * command that reads, starts, signals or forgets a process the run
- * recorded. Run outside the PID or time namespace `up` ran in, it refuses
- * before the command reads a process or changes anything.
+ * Reads the state `up` recorded for a run, as {@link readRun} does, for
+ * every command that {@link readRun} does not name. Run outside the PID or
+ * time namespace `up` ran in, it refuses before the command reads a process
+ * or changes anything.
  *
  * @param {string} dir The run root, as `up` printed it
  * @returns {RunState} The run state
