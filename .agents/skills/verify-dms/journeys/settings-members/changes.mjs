@@ -94,9 +94,10 @@ export const memberChangeJourneys = [
       await again.fill({ role: "textbox", name: "Email address" }, iris.email);
       await again.fill({ role: "textbox", name: "Password", exact: true }, iris.password);
       await again.click({ role: "button", name: "Login", exact: true });
-      await ctx.verify("the person is not shown a missing page", [
+      await ctx.verify("the person is told their account belongs to no workspace, not shown a missing page", [
+        again.at(/^\/auth\/not-a-member$/),
+        again.visible({ role: "heading", name: "No workspace for this account" }),
         again.visible({ role: "heading", name: "Page not found" }, { hidden: true, timeoutMs: 5_000 }),
-        again.shows(/workspace/i),
       ]);
     },
   },
