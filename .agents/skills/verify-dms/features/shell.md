@@ -69,7 +69,7 @@ The dashboard around every page: the sidebar and breadcrumb, the command palette
 
 - `sidebar-navigation`: signing in lands on the configured homepage; a sidebar link opens its page with its breadcrumb; a reload stays on it (persistence).
 - `command-palette-navigates`: Ctrl K, a search for "Member invitations", Enter opens the settings page.
-- `command-palette-no-match`: empty path: a search that matches nothing shows "No matching data" and Enter goes nowhere.
+- `command-palette-no-match`: empty path: a search that matches nothing lists only the playground assistant's "Ask the assistant “…”" option; Enter asks it, the demo answer echoes the question, and the page stays where it was.
 - `favorites-persist`: Add to favorites puts the page in the sidebar's Favorites; a reload and another tab of the same browser keep it; Remove from favorites empties it.
 - `sign-in-notification`: a sign-in from a new device puts "New sign-in from …" behind the bell; View all opens the notification settings; the notifications API holds it unread, linking to Security.
 - `toast-burst-stays-stacked`: a burst of "Read-only demo, changes are not saved" warning toasts with Retry, appended to Nuxt UI's toast list one per tick, plus one Retry, then a second burst where a click leaves focus in the toaster and a back toast is closed from the keyboard: while the stack is collapsed, no toast, open or closing, rises more than five stack steps above the bottom of the stack.
