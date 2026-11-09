@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { getCurrentInstance, type AppContext, type Component } from "vue";
+import {
+  getCurrentInstance,
+  toRaw,
+  type AppContext,
+  type Component,
+} from "vue";
 import {
   formBusInjectionKey,
   formErrorsInjectionKey,
@@ -60,7 +65,8 @@ interface DynamicDrawerProps {
   color?: ContainerColor;
   /**
    * What the component that opened the drawer provides (`useDrawer` passes
-   * it): the drawer and its body inject it as if rendered in its tree.
+   * it): the drawer and its body inject it as if rendered in its tree, the
+   * values as provided, not the reactive wrappers the overlay passes.
    */
   callerProvides?: object;
 }
@@ -98,7 +104,7 @@ const drawerInstance = getCurrentInstance() as {
   provides: AppContext["provides"];
 } | null;
 if (drawerInstance && props.callerProvides) {
-  drawerInstance.provides = Object.create(props.callerProvides);
+  drawerInstance.provides = Object.create(toRaw(props.callerProvides));
 
   for (const key of NUXT_UI_FORM_KEYS) provide(key, undefined);
 }
