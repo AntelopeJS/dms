@@ -26,9 +26,9 @@ We ran it on the connect demo, a sample coffee shop on PostgreSQL.
 
 | What     | Result                                                     |
 | -------- | ---------------------------------------------------------- |
-| Database | 12 tables, about 3,100 orders                              |
+| Database | 12 tables, about 3,000 orders                              |
 | Pages    | 2 dashboards and 10 table pages                            |
-| Code     | About 3,400 lines of TypeScript in 54 files, in one module |
+| Code     | About 3,000 lines of TypeScript in 50 files, in one module |
 | Result   | The project typechecks                                     |
 
 **What it got wrong.** Saved views that filter on a list of statuses, such as "Awaiting shipment", came back empty. Charts that need a second relation, such as revenue by product, were skipped, and the assistant said so in its report. That was one run with no follow-up prompt. [Run it yourself](#quick-start).
