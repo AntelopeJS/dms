@@ -53,15 +53,23 @@ const kinds = /** @type {const} */ ({
 /** @typedef {keyof typeof kinds} Kind */
 
 /**
+ * @param {string} key
+ * @returns {key is Kind}
+ */
+function isKind(key) {
+  return Object.hasOwn(kinds, key);
+}
+
+/**
  * @param {string} line
  * @param {string} path
  * @returns {Kind | undefined}
  */
 function kindOf(line, path) {
   const message = line.slice(path.length + 2);
-  return /** @type {Kind[]} */ (Object.keys(kinds)).find((kind) =>
-    message.startsWith(kinds[kind]),
-  );
+  return Object.keys(kinds)
+    .filter(isKind)
+    .find((kind) => message.startsWith(kinds[kind]));
 }
 
 /**

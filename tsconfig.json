@@ -4,6 +4,7 @@
     "target": "esnext",
     "module": "commonjs",
     "lib": ["esnext", "dom"],
+    "types": ["node"],
     "incremental": true,
     "strict": true,
     "noImplicitAny": true,

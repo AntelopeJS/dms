@@ -18,6 +18,7 @@ import { fetchRowForGuard } from "../data-functions";
 import { TableViewMeta } from "../meta";
 import { DEFAULT_ROW_ID_FIELD } from "../options";
 import { getTableViewMetaFor } from "./meta";
+import { isNull, isObject } from "../../../utils/internal/type-check";
 import { normalizeToArray } from "./row-rules";
 
 type GuardedActionName = "edit" | "delete" | "archive" | "restore" | "new";
@@ -42,7 +43,7 @@ const nestsDeeperThan = (members: unknown[], limit: number) => {
     const below: unknown[][] = [];
     for (const values of level) {
       for (const value of values) {
-        if (value instanceof Object) below.push(Object.values(value));
+        if (isObject(value) && !isNull(value)) below.push(Object.values(value));
       }
     }
     level = below;
@@ -69,7 +70,7 @@ const copyJsonFields = (entries: [string, unknown][]) => {
       if (Array.isArray(child)) {
         value = [];
         pending.push([Object.entries(child), value]);
-      } else if (child instanceof Object) {
+      } else if (isObject(child) && !isNull(child)) {
         value = {};
         pending.push([Object.entries(child), value]);
       } else {

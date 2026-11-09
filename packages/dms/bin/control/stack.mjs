@@ -494,21 +494,21 @@ export async function down(state) {
       lines.push(`removed ${folder}`);
     }
   }
-  Object.assign(state, {
-    processes: [],
-    browser: undefined,
-    secrets: {},
-    adminPassword: "",
-    tokens: {},
+  state.processes = [];
+  state.browser = undefined;
+  state.secrets = {};
+  state.adminPassword = "";
+  state.tokens = {};
+  state.ready = false;
+  saveRun({
+    ...state,
     accounts: Object.fromEntries(
       Object.entries(state.accounts ?? {}).map(([name, account]) => [
         name,
         { email: account.email },
       ]),
     ),
-    ready: false,
     stoppedAt: new Date().toISOString(),
   });
-  saveRun(state);
   return [...new Set(lines)];
 }

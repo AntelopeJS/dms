@@ -247,11 +247,19 @@ function observeParser() {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isObject(value) {
+  return Object(value) === value;
+}
+
+/**
  * @param {unknown} rowActions
  * @returns {unknown}
  */
 function userEditRule(rowActions) {
-  if (!(rowActions instanceof Object) || !("edit" in rowActions) || !(rowActions.edit instanceof Object)) return undefined;
+  if (!isObject(rowActions) || !("edit" in rowActions) || !isObject(rowActions.edit)) return undefined;
   return "rule" in rowActions.edit ? rowActions.edit.rule : undefined;
 }
 

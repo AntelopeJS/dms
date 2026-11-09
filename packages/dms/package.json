@@ -67,7 +67,7 @@
     "frontend:dev": "pnpm --dir playground frontend:dev",
     "frontend:build": "pnpm --dir playground frontend:build",
     "frontend:start": "pnpm --dir playground frontend:start",
-    "typecheck": "node scripts/unless-prebuilt.mjs pnpm --filter @antelopejs/interface-dms build && tsc --noEmit",
+    "typecheck": "node scripts/unless-prebuilt.mjs pnpm --filter @antelopejs/interface-dms exec tsc && tsc --noEmit",
     "test": "node scripts/unless-prebuilt.mjs pnpm run build && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
     "test:unit": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/backend-checks.cjs && node scripts/backend-checks.test.mjs && node scripts/docs-scripts.test.mjs && node scripts/json-record.test.mjs && DMS_TEST_DIR=dist/test/unit NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
     "test:integration": "node scripts/unless-prebuilt.mjs pnpm run build && DMS_TEST_DIR=dist/test/integration NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
@@ -117,7 +117,7 @@
   },
   "devDependencies": {
     "@antelopejs/core": ">=1.21.0 <2",
-    "@antelopejs/tooling-configs": "^0.3.3",
+    "@antelopejs/tooling-configs": "^0.5.0",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
     "@types/jsonwebtoken": "^9.0.10",

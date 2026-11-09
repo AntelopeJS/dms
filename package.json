@@ -5,15 +5,19 @@
   "packageManager": "pnpm@10.2.0",
   "devDependencies": {
     "@antelopejs/core": ">=1.21.0 <2",
-    "@antelopejs/tooling-configs": "^0.3.3",
+    "@antelopejs/tooling-configs": "^0.5.0",
     "dependency-cruiser": "^18.7.0",
     "fast-check": "^4.10.2",
     "knip": "^6.34.0",
     "lefthook": "^2.2.2",
+    "mongodb-memory-server": "^11.3.0",
     "oxfmt": "^0.66.0",
     "oxlint": "1.81.0",
     "oxlint-tsgolint": "^7.0.2001",
-    "semver": "^7.7.2"
+    "pixelmatch": "^8.0.0",
+    "playwright-core": "^1.56.1",
+    "semver": "^7.7.2",
+    "sharp": "^0.35.5"
   },
   "scripts": {
     "dev": "pnpm --dir packages/dms dev",
@@ -25,8 +29,9 @@
     "format": "oxfmt . && pnpm --dir packages/dms/frontend-vue format",
     "knip": "pnpm --dir packages/interface-dms knip && pnpm --dir packages/dms knip",
     "test": "pnpm --dir packages/interface-dms test && pnpm --dir packages/dms/playground test && node --test checks/release-range.test.mjs .agents/formal/maps.test.mjs .agents/skills/formal-release-range/manifest.test.mjs .agents/skills/verify-dms/rows.test.mjs packages/dms/bin/control/backend-records.test.mjs packages/dms/bin/control/base.test.mjs packages/dms/bin/control/backend.test.mjs packages/dms/bin/control/browser-wire.test.mjs packages/dms/bin/control/build-cache.test.mjs packages/dms/bin/control/build-key-refusals.test.mjs packages/dms/bin/control/build-key.test.mjs packages/dms/bin/control/build-layout.test.mjs packages/dms/bin/control/consumer-install.test.mjs packages/dms/bin/control/forwarder.test.mjs packages/dms/bin/control/frontend-mode.test.mjs packages/dms/bin/control/frontend-workspace.test.mjs packages/dms/bin/control/identity.test.mjs packages/dms/bin/control/journey.test.mjs packages/dms/bin/control/json.test.mjs packages/dms/bin/control/mail.test.mjs packages/dms/bin/control/module-root.test.mjs packages/dms/bin/control/mongo-server.test.mjs packages/dms/bin/control/mongo.test.mjs packages/dms/bin/control/namespaces.test.mjs packages/dms/bin/control/pid-guard.test.mjs packages/dms/bin/control/pid-reuse.test.mjs packages/dms/bin/control/processes.test.mjs packages/dms/bin/control/renderer.test.mjs packages/dms/bin/control/run-state.test.mjs packages/dms/bin/control/tab.test.mjs packages/dms/bin/control/timing.test.mjs packages/dms/bin/control/verify/behaviour.test.mjs packages/dms/bin/control/verify/decode.test.mjs packages/dms/bin/control/verify/doors.test.mjs packages/dms/bin/control/verify/formal.test.mjs packages/dms/bin/control/verify/map.test.mjs packages/dms/scripts/backend-automation.test.mjs packages/dms/scripts/dms-dev.test.mjs packages/dms/scripts/playground-api.test.mjs",
-    "prepare": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && command -v lefthook >/dev/null 2>&1; then lefthook install; fi",
+    "prepare": "if [ -e .git ] && command -v git >/dev/null 2>&1 && command -v lefthook >/dev/null 2>&1 && GIT_DIR=.git GIT_WORK_TREE=. git rev-parse --git-dir >/dev/null 2>&1; then GIT_DIR=.git GIT_WORK_TREE=. lefthook install; fi",
     "checks": "antelopejs-checks",
+    "checks:prepare": "pnpm --filter @antelopejs/interface-dms build",
     "size": "antelopejs-check-size",
     "sync": "antelopejs-sync",
     "sync:check": "antelopejs-sync --check",

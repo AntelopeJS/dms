@@ -221,7 +221,7 @@ const { RunWithModuleContext } = require("../../packages/dms/playground/node_mod
  * @returns {unknown}
  */
 function serializedWhenAble(value) {
-  if (value instanceof Object && "serializeSync" in value && isFunction(value.serializeSync)) {
+  if (isObject(value) && "serializeSync" in value && isFunction(value.serializeSync)) {
     return value.serializeSync() ?? value;
   }
   return value;
