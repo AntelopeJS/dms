@@ -120,7 +120,7 @@ export default defineConfig({
     },
     api: {
       source: LOCAL_API_PATH
-        ? providerSource(LOCAL_API_PATH, "@antelopejs/api", ">=1.5.0 <2")
+        ? providerSource(LOCAL_API_PATH, "@antelopejs/api", "^1.7.0")
         : INSTALLED_API,
       config: {
         publicBaseUrl: UNUSED_PUBLIC_BASE_URL,
