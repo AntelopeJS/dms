@@ -22,12 +22,6 @@ const RACE_FINDINGS = {
   RefusedRegisterCreatedNoUser: 9,
 };
 
-/** Rules main breaks only when auth.oauth.allowAccountCreation is on. */
-const OAUTH_FINDINGS = {
-  OnboardedHasOwner: 5,
-  OwnerlessStaysOpen: 2,
-};
-
 /** The findings of each spec under each configuration, in run order. */
 const SPECS = {
   OnboardingBootstrapInviteOnly: {
@@ -35,8 +29,8 @@ const SPECS = {
     full: RACE_FINDINGS,
   },
   OnboardingBootstrap: {
-    ci: { ...RACE_FINDINGS, ...OAUTH_FINDINGS },
-    full: { ...RACE_FINDINGS, ...OAUTH_FINDINGS },
+    ci: RACE_FINDINGS,
+    full: RACE_FINDINGS,
   },
 };
 

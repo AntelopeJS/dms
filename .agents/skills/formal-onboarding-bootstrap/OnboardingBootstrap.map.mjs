@@ -98,6 +98,8 @@ const STEPS = {
     to === "readUsers" ? `${who} finds onboarding open` : `${who} finds onboarding done`,
   PollReadUsers: (who, to) => (to === "write" ? `${who} finds a user` : `${who} finds no user`),
   PollWrite: (who) => `${who} marks onboarding done`,
+  OAuthReadState: (_who, to) =>
+    to === "create" ? "a visitor's OAuth sign-up finds onboarding done" : "a visitor's OAuth sign-up is refused",
   OAuthCreatesUser: () => "a visitor signs up with OAuth",
 };
 
@@ -111,6 +113,7 @@ const STEPS = {
 export function step(action, from, to) {
   const label = STEPS[action];
   if (!label) return null;
+  if (action.startsWith("OAuth")) return label(undefined, to.oauth);
   const field = action.startsWith("Poll") ? "ppc" : "rpc";
   const key = moved(from, to, field);
   return key ? label(REQUEST_NAMES.get(key), new Map(Object.entries(to[field])).get(key)) : label();
