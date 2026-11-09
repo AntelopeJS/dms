@@ -122,14 +122,15 @@ OnConnection(r, next) ==
 OnData(r, w) ==
   IF View = "page"
   \* The page refresh listens to P's topics only once the subscription
-  \* answered them (usePageDataRefresh.ts:45-50); then it arms the burst
+  \* answered them (usePageDataRefresh.ts:45-53); then it arms the burst
   \* timer through the live gate, which a page without `live` passes
-  \* (usePageDataRefresh.ts:37-38, currentPageLive.ts:129-133).
+  \* (usePageDataRefresh.ts:37-38, currentPageLive.ts:131-135).
   THEN IF r.topics THEN [r EXCEPT !.burst = TRUE] ELSE r
-  \* The row topic handler is on from mount (tableViewRealtime.ts:143-156);
-  \* patchRowLocal skips a table whose list has not answered yet
-  \* (tableViewRealtime.ts:58), else reads the row (tableViewRealtime.ts:61-64).
-  ELSE IF r.loaded THEN [r EXCEPT !.gets[w] = RunSent] ELSE r
+  \* The row topic handler is on from mount (tableViewRealtime.ts:152-165);
+  \* a table whose list is loading, not answered yet or read again, reads
+  \* its list again, which aborts the read in flight (tableViewRealtime.ts:129-132,
+  \* tableViewListing.ts:131-133), else it reads the row (tableViewRealtime.ts:133-134, 67).
+  ELSE IF r.loaded /\ r.run = NoRun THEN [r EXCEPT !.gets[w] = RunSent] ELSE [r EXCEPT !.run = RunSent]
 
 (* A relayed frame: the tab's listener keeps frames of the connection it   *)
 (* knows (sharedRealtimeConnection.ts:384-386), onFrame those of its own   *)
