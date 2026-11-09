@@ -113,6 +113,7 @@ function holdLease(claimed: string, renewEveryMs: number): HeldLease {
   const timer = setInterval(() => {
     renewal = renewal.then(renew);
   }, renewEveryMs);
+  timer.unref();
 
   return {
     async stopRenewing() {
@@ -182,10 +183,16 @@ function createStaleWatch(staleAfterMs: number) {
   };
 }
 
-/** @returns Whether this replica has nothing left to do */
+/**
+ * A claim that lands after `signal` aborted gives the lease back unused, so no
+ * handler starts once the caller has stopped waiting.
+ *
+ * @returns Whether this replica has nothing left to do
+ */
 async function advanceLease(
   watch: ReturnType<typeof createStaleWatch>,
   renewEveryMs: number,
+  signal: AbortSignal,
 ): Promise<boolean> {
   const tenant = await GetModel(TenantModel).get(DEFAULT_TENANT_ID);
   if (!tenant?.provisioningPending) return true;
@@ -194,7 +201,32 @@ async function advanceLease(
   const claimed = await swapLease(tenant.provisioningRevision ?? NO_REVISION, {
     provisioningHolder: holderName(),
   });
-  return claimed !== undefined && provisionUnderLease(claimed, renewEveryMs);
+  if (claimed === undefined) return false;
+  if (signal.aborted) {
+    await swapLease(claimed, { provisioningHolder: null });
+    return true;
+  }
+  return provisionUnderLease(claimed, renewEveryMs);
+}
+
+/**
+ * Settles with `work`, or with `false` once `signal` aborts. `work` keeps
+ * running, and what it settles with after the abort is dropped.
+ */
+async function untilAborted(
+  work: Promise<boolean>,
+  signal: AbortSignal,
+): Promise<boolean> {
+  let onAbort = (): void => undefined;
+  const aborted = new Promise<boolean>((resolve) => {
+    onAbort = () => resolve(false);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([work, aborted]);
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
 }
 
 function holderName(): string {
@@ -212,7 +244,11 @@ function holderName(): string {
  * waiting replica, and leaves the row pending for the next attempt. Legacy rows
  * with no marker are already provisioned and are not run again.
  *
- * @param signal Ends a wait for another replica's provisioning. A run in progress finishes.
+ * @param signal Ends the call: a wait for another replica's provisioning, or
+ * the wait for this replica's own run. A run in progress is not cancelled: it
+ * renews its lease while this module stays loaded and records its outcome when
+ * it settles. Once the module is torn down its renewals stop, and the run is
+ * taken over once stale, even if its handlers are still running.
  * @param lease How often to renew and poll, and when a holder counts as stopped
  */
 export async function provisionDefaultTenant(
@@ -223,7 +259,8 @@ export async function provisionDefaultTenant(
   const watch = createStaleWatch(staleAfterMs);
   while (!signal.aborted) {
     try {
-      if (await advanceLease(watch, renewEveryMs)) return;
+      if (await untilAborted(advanceLease(watch, renewEveryMs, signal), signal))
+        return;
     } catch (error) {
       watch.forget();
       Logging.Warn(
