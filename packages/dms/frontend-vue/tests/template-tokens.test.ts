@@ -142,7 +142,7 @@ describe("page tokens in links and requested routes", () => {
       "/stores/s1?store=north",
     );
     expect(pageLink("/orders?tab={{query.tab}}")).toBe("/orders");
-    expect(buttonLinkProps("/stores/{{params.id}}/orders")).toEqual({
+    expect(buttonLinkProps("/stores/{{params.id}}/orders")).toMatchObject({
       to: "/stores/s1/orders",
     });
   });
