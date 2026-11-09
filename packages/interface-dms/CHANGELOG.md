@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.13.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.13.0...v0.13.1)
+
+### 🚀 Enhancements
+
+- **dms-ui:** Show a KPI payload's caption as the card's footnote ([#844](https://github.com/AntelopeJS/dms/pull/844))
+
+### 🩹 Fixes
+
+- **docs:** Open the sign-in capture signed out so later scenes keep the session ([#836](https://github.com/AntelopeJS/dms/pull/836))
+- **dms-control:** Let read-only commands read a run from another PID namespace ([#843](https://github.com/AntelopeJS/dms/pull/843))
+- **agents:** Type-check the probes' JSDoc with checkJs ([#842](https://github.com/AntelopeJS/dms/pull/842))
+
+### 📖 Documentation
+
+- **readme:** Tell the one-run story from the X article ([#841](https://github.com/AntelopeJS/dms/pull/841))
+
+### 📦 Build
+
+- **deps:** Take tooling-configs 0.5.0 ([#840](https://github.com/AntelopeJS/dms/pull/840))
+
+### 🏡 Chore
+
+- **dms:** Depend on @antelopejs/interface-dms 0.13 ([#839](https://github.com/AntelopeJS/dms/pull/839))
+- **release:** @antelopejs/dms v0.19.0 ([f1b73262](https://github.com/AntelopeJS/dms/commit/f1b73262))
+- **release:** @antelopejs/dms v0.19.1 ([1fb6093f](https://github.com/AntelopeJS/dms/commit/1fb6093f))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.13.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.12.0...v0.13.0)
