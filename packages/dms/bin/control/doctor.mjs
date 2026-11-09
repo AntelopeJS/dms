@@ -203,6 +203,13 @@ async function freshnessLines(state) {
  * @param {number} frontendSources
  */
 async function frontendBuildLine(state, frontendBuild, frontendSources) {
+  if (state.frontendMode === "dev") {
+    return line(
+      "frontend serves the sources with ajs dms dev",
+      true,
+      "no build to compare",
+    );
+  }
   const recorded = state.frontendBuild;
   if (!recorded?.key) {
     return line(

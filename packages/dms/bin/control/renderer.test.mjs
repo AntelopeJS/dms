@@ -16,7 +16,7 @@ import { git } from "./git.mjs";
 import { resolveRenderer } from "./renderer.mjs";
 import { decodeSkillConfig } from "./verify/decode.mjs";
 import { layOutCopy } from "./run-copy.mjs";
-import { cliPaths } from "./stack.mjs";
+import { cliPaths } from "./launch.mjs";
 
 /**
  * @param {import("node:test").TestContext} t The test

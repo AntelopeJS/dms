@@ -7,7 +7,7 @@ import { runVerifyCommand } from "./control/commands-verify.mjs";
 const USAGE = `Usage: dms-control <command>
 
 Drive an isolated DMS (run from the repository, or pass --playground):
-  up [--prepare] [--playground <dir>] [--renderer <dir>] [--runs <dir>] [--mongo-url <url>] [--env KEY=VALUE]... [--base <ref>] [--skill <dir>] [--no-standby] [--no-build-cache]
+  up [--prepare] [--playground <dir>] [--renderer <dir>] [--runs <dir>] [--mongo-url <url>] [--env KEY=VALUE]... [--base <ref>] [--skill <dir>] [--no-standby] [--no-build-cache] [--dev-frontend]
                        build and start a playground copy on free ports; print the run folder
                        (--prepare first runs the skill's install and build commands;
                        --renderer serves that built @antelopejs/dms-frontend checkout;
@@ -15,7 +15,9 @@ Drive an isolated DMS (run from the repository, or pass --playground):
                        backend when it is needed instead of one ahead: about 160 MB less while
                        journeys run, about 5 s more per journey;
                        the frontend build of the same inputs comes from $XDG_CACHE_HOME/dms-control/frontend,
-                       --no-build-cache runs ajs dms build as it is)
+                       --no-build-cache runs ajs dms build as it is;
+                       --dev-frontend serves the sources with ajs dms dev instead of a build,
+                       which shows the module UI a production frontend leaves out)
   doctor <run> [--verbose]          check the run is worth driving; print the failing checks
   onboard <run> [--platform-name <name>]
                        create the run's administrator through POST /api/onboarding/register

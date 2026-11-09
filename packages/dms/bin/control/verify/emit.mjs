@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, extname, join, posix } from "node:path";
-import { PACKAGE_ROOT } from "../stack.mjs";
+import { PACKAGE_ROOT } from "../launch.mjs";
 
 /** @typedef {typeof import("typescript")} TypeScript */
 /** @typedef {import("typescript").Node} Node */

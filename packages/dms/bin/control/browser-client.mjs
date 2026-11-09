@@ -1,6 +1,6 @@
 import { isOutcome } from "./browser-wire.mjs";
 import { decode } from "./json.mjs";
-import { CONTROL_BIN } from "./stack.mjs";
+import { CONTROL_BIN } from "./launch.mjs";
 import { isSameProcess } from "./identity.mjs";
 import { freePort, startDetached, waitForOk } from "./processes.mjs";
 import { saveRun } from "./run-state.mjs";

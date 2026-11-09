@@ -7,7 +7,8 @@ import { setUpFrontendWorkspace } from "./frontend-workspace.mjs";
 import { capturedMail, serveMail } from "./mail.mjs";
 import { loadRun } from "./run-state.mjs";
 import { apiRequest, isOk, onboard } from "./session.mjs";
-import { down, resolutionFolders, up } from "./stack.mjs";
+import { resolutionFolders } from "./launch.mjs";
+import { down, up } from "./stack.mjs";
 import { freshDatabase } from "./backend.mjs";
 import { apiTargetFile, serveForwarder } from "./forwarder.mjs";
 import { formatTimings, readTimings, summarize, timed } from "./timing.mjs";
@@ -72,6 +73,7 @@ async function commandUp(values) {
       values["no-standby"] === true ||
       process.env.DMS_CONTROL_NO_STANDBY === "1",
     buildCache: !values["no-build-cache"],
+    frontendMode: values["dev-frontend"] ? "dev" : "build",
   });
   if (state.frontendBuild?.reason) {
     process.stderr.write(

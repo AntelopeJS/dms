@@ -1,8 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, rmSync } from "node:fs";
-import { createRequire } from "node:module";
-import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { layOutFrontendBuild } from "./build-cache.mjs";
 import { existingBuildRoots } from "./build-inputs.mjs";
 import { describeFailure } from "./failure.mjs";
@@ -29,15 +27,23 @@ import {
   runsRoot,
   saveRun,
 } from "./run-state.mjs";
-import { RENDERER_CLI, resolveRenderer } from "./renderer.mjs";
+import { resolveRenderer } from "./renderer.mjs";
 import { moduleRootOf } from "./module-root.mjs";
+import {
+  cliPaths,
+  CONTROL_BIN,
+  ENVIRONMENT,
+  frontendPackage,
+  resolutionFolders,
+  spec,
+} from "./launch.mjs";
 import { layOutCopy } from "./run-copy.mjs";
 import { newPassword } from "./session.mjs";
 import { appendTiming, recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
  * @typedef {import("./run-state.mjs").RunState} RunState
- * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string, prepared?: import("./timing.mjs").TimingEntry[], noStandby?: boolean, buildCache?: boolean }} UpOptions Where the playground and the runs are, the `prepare` entries to record once the run exists, whether fresh databases start their backend on the spot, and whether the frontend build may come from the build cache (it may unless `buildCache` is false)
+ * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string, prepared?: import("./timing.mjs").TimingEntry[], noStandby?: boolean, buildCache?: boolean, frontendMode?: import("./run-state.mjs").FrontendMode }} UpOptions Where the playground and the runs are, the `prepare` entries to record once the run exists, whether fresh databases start their backend on the spot, whether the frontend build may come from the build cache (it may unless `buildCache` is false), and how the dashboard is served (a build unless `frontendMode` is `dev`)
  */
 
 const READY_TIMEOUT_MS = 180_000;
@@ -53,103 +59,6 @@ const SECRET_NAMES = [
   "DMS_SESSION_SECRET",
   "DMS_SETUP_TOKEN",
 ];
-const DROPPED_PREFIXES = ["ANTELOPEJS_", "npm_", "PNPM_", "DMS_", "MONGO_"];
-
-/** This package's root, which resolves dms-control's own dependencies. */
-export const PACKAGE_ROOT = resolve(import.meta.dirname, "..", "..");
-
-/** The dms-control entry, which also serves the mail sink and the browser. */
-export const CONTROL_BIN = join(PACKAGE_ROOT, "bin", "dms-control.mjs");
-
-/** The AntelopeJS environment every run builds and starts. */
-export const ENVIRONMENT = "docs";
-
-/**
- * The folders the project's dependencies resolve from: the playground, the
- * module it belongs to, then this package.
- *
- * @param {{ playground: string, moduleRoot: string }} state The run
- * @returns {string[]} The folders, in order
- */
-export function resolutionFolders(state) {
-  return [state.playground, state.moduleRoot, PACKAGE_ROOT];
-}
-
-/**
- * The `ajs` and `ajs dms` entry points the playground installs, `ajs dms`
- * being the renderer checkout's when the run serves one.
- *
- * @param {string} playground The playground folder
- * @param {string} [renderer] The renderer checkout the run serves
- * @returns {{ ajs: string, dms: string }} Their scripts
- */
-export function cliPaths(playground, renderer) {
-  const require = createRequire(join(playground, "package.json"));
-  const core = dirname(require.resolve("@antelopejs/core/package.json"));
-  return {
-    ajs: join(core, "dist", "core", "cli", "index.js"),
-    dms: join(frontendPackage(playground, renderer), RENDERER_CLI),
-  };
-}
-
-/**
- * The `@antelopejs/dms-frontend` that builds and serves the run's dashboard:
- * the renderer checkout, else the one the playground installs.
- *
- * @param {string} playground The playground folder
- * @param {string} [renderer] The renderer checkout the run serves
- * @returns {string} Its folder
- */
-export function frontendPackage(playground, renderer) {
-  const require = createRequire(join(playground, "package.json"));
-  return (
-    renderer ??
-    dirname(require.resolve("@antelopejs/dms-frontend/package.json"))
-  );
-}
-
-function inheritedEnv() {
-  return Object.fromEntries(
-    Object.entries(process.env).filter(
-      ([key]) => !DROPPED_PREFIXES.some((prefix) => key.startsWith(prefix)),
-    ),
-  );
-}
-
-/**
- * The environment of every process a run starts: its own HOME, ports,
- * database, origin and secrets, an npm cache and a pnpm store shared by
- * every run, no update checks and no colors. Extra `KEY=VALUE` pairs from `--env` come last.
- *
- * @param {import("./run-state.mjs").RunState} state The run
- * @returns {NodeJS.ProcessEnv} The environment
- */
-export function runEnv(state) {
-  const cacheHome = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
-  return {
-    ...inheritedEnv(),
-    HOME: state.home,
-    USERPROFILE: state.home,
-    CI: "1",
-    NO_COLOR: "1",
-    AJS_NO_UPDATE_CHECK: "1",
-    NO_UPDATE_NOTIFIER: "1",
-    COREPACK_HOME:
-      process.env.COREPACK_HOME ?? join(cacheHome, "node", "corepack"),
-    npm_config_cache: join(cacheHome, "dms-control", "npm"),
-    npm_config_store_dir: join(cacheHome, "dms-control", "pnpm-store"),
-    PORT: String(state.apiPort),
-    DMS_CLIENT_BASE_URL: state.webUrl,
-    DMS_API_BASE_URL: state.apiUrl,
-    DMS_PREBUILT: "1",
-    DMS_SMTP_PORT: String(state.smtpPort),
-    MONGO_URL: state.mongoUrl,
-    MONGO_DATABASE: state.database,
-    ...state.secrets,
-    ...state.extraEnv,
-  };
-}
-
 /**
  * @param {string[]} pairs
  * @returns {Record<string, string>}
@@ -218,29 +127,8 @@ async function initialState(options) {
   };
   if (renderer) state.renderer = renderer;
   if (options.noStandby) state.noStandby = true;
+  if (options.frontendMode === "dev") state.frontendMode = "dev";
   return state;
-}
-
-/**
- * How to run one of the playground's CLIs for the run: its own log, the
- * run's environment, from the run's playground copy or `cwd`.
- *
- * @param {import("./run-state.mjs").RunState} state The run
- * @param {string} name The log name
- * @param {string} script The CLI script
- * @param {string[]} args Its arguments
- * @param {string} [cwd] Where to run it
- * @returns {{ name: string, program: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, logs: string }} The process spec
- */
-export function spec(state, name, script, args, cwd = state.runPlayground) {
-  return {
-    name,
-    program: process.execPath,
-    args: [script, ...args],
-    cwd,
-    env: runEnv(state),
-    logs: state.logs,
-  };
 }
 
 /**
@@ -423,12 +311,70 @@ export function workspaceSetup(state, name, project, install) {
 }
 
 /**
+ * Builds the run's dashboard as `ajs dms build` does, in a prepared
+ * workspace, or lays out the build of the same inputs from the build cache.
+ *
+ * @param {RunState} state The run, after its project build
+ * @param {boolean} useCache Whether the build may come from the build cache
+ * @returns {Promise<void>} Resolves once the build is in the run's workspace
+ */
+function buildFrontend(state, useCache) {
+  const { dms } = cliPaths(state.playground, state.renderer);
+  return layOutFrontendBuild(
+    state,
+    frontendPackage(state.playground, state.renderer),
+    {
+      prepare: (workspace) =>
+        timed(state, "frontend-prepare", () =>
+          workspaceSetup(
+            state,
+            "frontend-prepare",
+            state.runPlayground ?? "",
+            true,
+          )(workspace),
+        ),
+      build: (prepared) => {
+        const build = spec(state, "frontend-build", dms, [
+          "build",
+          "-e",
+          ENVIRONMENT,
+        ]);
+        if (prepared) build.args.unshift("--import", PREPARED_WORKSPACE);
+        return runToEnd(build);
+      },
+    },
+    useCache,
+  );
+}
+
+/**
+ * How the run serves its dashboard on its web port against its API:
+ * `ajs dms start` on the build `up` made, or `ajs dms dev` on the sources
+ * when the run's `frontendMode` is `dev`.
+ *
+ * @param {RunState} state The run
+ * @returns {ReturnType<typeof spec>} The frontend's process spec
+ */
+export function frontendSpec(state) {
+  const { dms } = cliPaths(state.playground, state.renderer);
+  return spec(state, "frontend", dms, [
+    state.frontendMode === "dev" ? "dev" : "start",
+    "-e",
+    ENVIRONMENT,
+    "-b",
+    state.apiUrl,
+    "-p",
+    String(state.webPort),
+  ]);
+}
+
+/**
  * @param {RunState} state
  * @param {boolean} useCache
  * @returns {Promise<void>}
  */
 async function buildAndStart(state, useCache) {
-  const clis = cliPaths(state.playground, state.renderer);
+  const { ajs } = cliPaths(state.playground, state.renderer);
   state.runPlayground = await timed(state, "layout", () =>
     layOutCopy(
       state.playground,
@@ -447,7 +393,7 @@ async function buildAndStart(state, useCache) {
   await timed(state, "mail", () => startFirstMail(state));
   await timed(state, "project-build", () =>
     runToEnd(
-      spec(state, "project-build", clis.ajs, [
+      spec(state, "project-build", ajs, [
         "project",
         "build",
         "-e",
@@ -455,48 +401,14 @@ async function buildAndStart(state, useCache) {
       ]),
     ),
   );
-  await timed(state, "frontend-build", () =>
-    layOutFrontendBuild(
-      state,
-      frontendPackage(state.playground, state.renderer),
-      {
-        prepare: (workspace) =>
-          timed(state, "frontend-prepare", () =>
-            workspaceSetup(
-              state,
-              "frontend-prepare",
-              state.runPlayground ?? "",
-              true,
-            )(workspace),
-          ),
-        build: (prepared) => {
-          const build = spec(state, "frontend-build", clis.dms, [
-            "build",
-            "-e",
-            ENVIRONMENT,
-          ]);
-          if (prepared) build.args.unshift("--import", PREPARED_WORKSPACE);
-          return runToEnd(build);
-        },
-      },
-      useCache,
-    ),
-  );
+  if (state.frontendMode !== "dev") {
+    await timed(state, "frontend-build", () => buildFrontend(state, useCache));
+  }
   state.buildRoots = existingBuildRoots(state);
   saveRun(state);
   await timed(state, "backend-start", () => startBackend(state));
   await timed(state, "frontend-start", async () => {
-    const frontend = startDetached(
-      spec(state, "frontend", clis.dms, [
-        "start",
-        "-e",
-        ENVIRONMENT,
-        "-b",
-        state.apiUrl,
-        "-p",
-        String(state.webPort),
-      ]),
-    );
+    const frontend = startDetached(frontendSpec(state));
     record(state, { ...frontend, port: state.webPort });
     await waitForOk(`${state.webUrl}/dms-preview`, frontend, READY_TIMEOUT_MS);
   });

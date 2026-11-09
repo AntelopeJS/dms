@@ -8,7 +8,8 @@ import {
   WORKSPACE_FOLDER,
 } from "./build-key.mjs";
 import { layOutCopy } from "./run-copy.mjs";
-import { frontendPackage, workspaceSetup } from "./stack.mjs";
+import { frontendPackage } from "./launch.mjs";
+import { workspaceSetup } from "./stack.mjs";
 
 const SUFFIX_BYTES = 4;
 
