@@ -1,5 +1,65 @@
 # Changelog
 
+## v0.19.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.18.2...v0.19.0)
+
+### 🚀 Enhancements
+
+- **dms-control:** Serve the dashboard with ajs dms dev under up --dev-frontend ([#829](https://github.com/AntelopeJS/dms/pull/829))
+- **table-view:** Add liveHold.whileOnScreen to let a live table follow its feed on screen ([#808](https://github.com/AntelopeJS/dms/pull/808))
+
+### 🩹 Fixes
+
+- **verify-dms:** Expect the assistant ask item in the palette no-match journey ([#799](https://github.com/AntelopeJS/dms/pull/799))
+- **notifications:** Undo mark-all-read in one bulk update ([#826](https://github.com/AntelopeJS/dms/pull/826))
+- **dms:** Auto-import isReducedMotionActive for frontend modules ([#823](https://github.com/AntelopeJS/dms/pull/823))
+- **dms-control:** Resolve moduleRoot to the module above a skill playground ([#827](https://github.com/AntelopeJS/dms/pull/827))
+- **preview:** Draw a serialized resource form that reads any path of the site ([#820](https://github.com/AntelopeJS/dms/pull/820))
+- **dms-control:** Key a non-literal module specifier by its structure in the emit fingerprint ([#816](https://github.com/AntelopeJS/dms/pull/816))
+- **dms:** Keep the newest row read when two table row updates answer out of order ([#812](https://github.com/AntelopeJS/dms/pull/812))
+- **dms-ui:** Keep query-only block action links in the browser ([#832](https://github.com/AntelopeJS/dms/pull/832))
+- **chart:** Stop a donut redrawing itself through its parent resize observer ([#835](https://github.com/AntelopeJS/dms/pull/835))
+- **release:** Decide the interface range check as semver does ([#813](https://github.com/AntelopeJS/dms/pull/813))
+- **dms-control:** Let journeys stop and restart the run's mongod ([#831](https://github.com/AntelopeJS/dms/pull/831))
+- **dms-control:** Start the base backend when the base ref has no playground ([#818](https://github.com/AntelopeJS/dms/pull/818))
+- **dms-control:** Start the run's mongod as a single-node replica set ([#830](https://github.com/AntelopeJS/dms/pull/830))
+- **realtime:** Read a page's data again once its subscription is in place ([#810](https://github.com/AntelopeJS/dms/pull/810))
+- **dms-control:** Ship playwright-core as an optional dependency of @antelopejs/dms ([#817](https://github.com/AntelopeJS/dms/pull/817))
+- **auth:** Show a no-workspace screen when no module serves /auth/no-workspace ([#800](https://github.com/AntelopeJS/dms/pull/800))
+- **dms-control:** Fail a formal finding dropped by a check edit instead of counting it fixed ([#821](https://github.com/AntelopeJS/dms/pull/821))
+- **playground:** Load an api that reads RouteHandler.controller ([#819](https://github.com/AntelopeJS/dms/pull/819))
+- **dms-ui:** Build a module drawer's provides from the raw caller provides ([#809](https://github.com/AntelopeJS/dms/pull/809))
+- **dms-control:** Identify each process from the read that finds it, and check it again before each signal ([#801](https://github.com/AntelopeJS/dms/pull/801))
+- **interface-dms:** Answer 400 to a guarded confirmation body that is not a JSON object ([#828](https://github.com/AntelopeJS/dms/pull/828))
+- **interface-dms:** Accept a model row or a PromiseLike from PageRecordLoader ([#815](https://github.com/AntelopeJS/dms/pull/815))
+- **interface-dms:** Refuse upload field options that are not an object ([#825](https://github.com/AntelopeJS/dms/pull/825))
+- **oauth:** Create no account before the platform has its owner ([#807](https://github.com/AntelopeJS/dms/pull/807))
+- **dms:** Stop without waiting for a default tenant provisioning run in progress ([#804](https://github.com/AntelopeJS/dms/pull/804))
+- **tenant-lifecycle:** Name a blocked release and give operators a way to retire it ([#822](https://github.com/AntelopeJS/dms/pull/822))
+- **onboarding:** Keep the register as the one writer of has_onboarded ([#806](https://github.com/AntelopeJS/dms/pull/806))
+
+### 💅 Refactors
+
+- **iface:** Drop the shape-name suppressions in block-registry describe ([#803](https://github.com/AntelopeJS/dms/pull/803))
+
+### 📖 Documentation
+
+- Refresh the stale block screenshots ([#802](https://github.com/AntelopeJS/dms/pull/802))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.13.0 ([187e2598](https://github.com/AntelopeJS/dms/commit/187e2598))
+- **dms:** Depend on @antelopejs/interface-dms 0.13 ([#839](https://github.com/AntelopeJS/dms/pull/839))
+
+### ✅ Tests
+
+- **frontend:** Import the table row actions subject at file load ([#805](https://github.com/AntelopeJS/dms/pull/805))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.18.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.18.1...v0.18.2)
