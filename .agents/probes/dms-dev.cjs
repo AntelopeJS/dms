@@ -22,6 +22,7 @@ const backendLog = path.join(fixture, "backend.log");
 const frontendLog = path.join(fixture, "frontend.log");
 writeFileSync(backendLog, Array.from({ length: 67 }, (_, i) => `back-${i}\n`).join(""));
 writeFileSync(frontendLog, Array.from({ length: 63 }, (_, i) => `front-${i}\n`).join(""));
+/** @type {{ args: string[]; relative: boolean; executable: string | null; status: number | null; stdout: string; stderr: string }[]} */
 const observations = [];
 /**
  * @param {string[]} args

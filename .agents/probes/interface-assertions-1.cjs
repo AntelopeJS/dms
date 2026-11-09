@@ -37,6 +37,27 @@ function asObject(value) {
   throw new TypeError("Expected a JSON object");
 }
 
+const { HTTPResult } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
+
+/**
+ * Names a thrown value without rethrowing it: an `Error` or an `HTTPResult` by its class and message, anything else by its string form.
+ * @param {unknown} error
+ * @returns {{ name: string, message: string }}
+ */
+function thrownOf(error) {
+  if (error instanceof Error) return { name: error.constructor.name, message: String(error.message) };
+  if (error instanceof HTTPResult) return { name: error.constructor.name, message: "undefined" };
+  return { name: "thrown", message: String(error) };
+}
+
+/**
+ * @template {object} T
+ * @param {boolean | import("../../packages/interface-dms/dist/base/table-view.js").RowActionConfig<T> | undefined} action
+ */
+function ruleOf(action) {
+  return action === undefined || action === true || action === false ? undefined : action.rule;
+}
+
 /**
  * @param {unknown} value
  * @returns {unknown[]}
@@ -96,7 +117,7 @@ function observeDefReads(describeSchema) {
     try {
       describeSchema(recordDefReads(schema, reads, name));
     } catch (error) {
-      reads.push(`threw ${error.message}`);
+      reads.push(`threw ${thrownOf(error).message}`);
     }
     observed[`reads:${name}`] = reads;
   }
@@ -124,6 +145,7 @@ function describeBattery(describeSchema, describeOptions) {
     return factory();
   };
   const deep = (() => {
+    /** @type {import("../../packages/interface-dms/node_modules/zod").ZodTypeAny} */
     let schema = z.object({ leaf: z.string() });
     for (let i = 0; i < 9; i += 1) schema = z.object({ next: schema });
     return schema;
@@ -195,14 +217,16 @@ function describeBattery(describeSchema, describeOptions) {
     const before = { ...counts, receivers: counts.receivers.length };
     /** @type {Record<string, unknown>} */
     const record = {};
-    for (const [mode, run] of /** @type {const} */ ([
+    /** @type {[string, () => unknown][]} */
+    const modes = [
       ["schema", () => describeSchema(schema)],
       ["options", () => describeOptions(schema)],
-    ])) {
+    ];
+    for (const [mode, run] of modes) {
       try {
         record[mode] = run();
       } catch (error) {
-        record[mode] = { thrown: String(error.message) };
+        record[mode] = { thrown: thrownOf(error).message };
       }
     }
     record.calls = {
@@ -222,6 +246,7 @@ function describeBattery(describeSchema, describeOptions) {
 
 function observeDescribe() {
   return describeBattery(
+    // @ts-expect-error the battery feeds describeSchema fake zod schemas and _def proxies on purpose to record how it reads and rejects them
     describeModule.describeSchema,
     describeModule.describeOptions,
   );
@@ -281,17 +306,19 @@ function observeArchiveRules() {
   for (const [name, rowActions] of Object.entries(cases)) {
     const result = applyArchiveModeDefaultRules(rowActions, "archived");
     const configured = userEditRule(rowActions);
+    const editRule = ruleOf(result?.edit);
     observed[name] = {
       keys: result === undefined ? null : Object.keys(result),
       json: JSON.stringify(result ?? "__undefined"),
       composedKeepsUserRule:
-        result?.edit?.rule?.and?.[1] === configured && configured !== undefined,
+        (editRule !== undefined && "and" in editRule ? editRule.and[1] : undefined) === configured && configured !== undefined,
     };
   }
   const first = applyArchiveModeDefaultRules({}, "archived");
   const second = applyArchiveModeDefaultRules({}, "archived");
-  observed.freshRulePerCall = first.edit.rule !== second.edit.rule;
-  observed.distinctRulePerAction = first.edit.rule !== first.duplicate.rule;
+  assert.ok(first && second, "applyArchiveModeDefaultRules returns the row actions");
+  observed.freshRulePerCall = ruleOf(first.edit) !== ruleOf(second.edit);
+  observed.distinctRulePerAction = ruleOf(first.edit) !== ruleOf(first.duplicate);
   return observed;
 }
 
@@ -307,12 +334,13 @@ function observeChoices() {
   })) {
     /** @type {string[]} */
     const entries = [];
+    // @ts-expect-error one option set carries a boolean value on purpose to record how SelectType parses it
     const type = new SelectType(options);
     for (const input of ["a", "2", 2, "true", ["a"], ["a", "b"], [], undefined]) {
       try {
         entries.push(JSON.stringify(type.getValidation().parse(input)) ?? "__undefined");
       } catch (error) {
-        entries.push(`rejected:${error.constructor.name}`);
+        entries.push(`rejected:${thrownOf(error).name}`);
       }
     }
     observed[name] = entries;
@@ -348,6 +376,7 @@ async function observeFormPages() {
   const { resolveTableViewGrants } = require("../../packages/interface-dms/dist/base/table-view/internal/request-filter.js");
   const permissions = require("../../packages/interface-dms/dist/permissions.js");
   const original = permissions.HasPermission;
+  /** @type {string[]} */
   const asked = [];
   permissions.HasPermission = async (granted, id) => {
     asked.push(`${id}:start`);
@@ -390,14 +419,18 @@ async function observeReceivers() {
   tenantAccess.AssertTenantAccess = async () => {
     throw new Error("tenant gate reached");
   };
+  const { User } = require("../../packages/interface-dms/dist/auth/db/tables/users.table.js");
+  const user = new User();
+  user._id = "u";
   const outcomes = [];
   try {
     for (const target of [receiver, {}, { constructor: Controller }, null, undefined, 1, "text"]) {
       try {
-        await authorizeAction(target, "list", { _id: "u" }, "tenant");
+        await authorizeAction(target, "list", user, "tenant");
         outcomes.push("returned");
       } catch (error) {
-        outcomes.push(`${error.constructor.name}:${String(error.message).slice(0, 60)}`);
+        const failure = thrownOf(error);
+        outcomes.push(`${failure.name}:${failure.message.slice(0, 60)}`);
       }
     }
   } finally {
@@ -412,7 +445,8 @@ async function observeReceivers() {
       ArchiveField()(Archiving.prototype, key);
       archived.push(`ok:${String(key)}`);
     } catch (error) {
-      archived.push(`${error.constructor.name}:${String(error.message).slice(0, 60)}`);
+      const failure = thrownOf(error);
+      archived.push(`${failure.name}:${failure.message.slice(0, 60)}`);
     }
   }
   observed.archiveField = archived;
@@ -437,7 +471,9 @@ function negativeControls() {
   controls.parserDetectsChangedKeyword = !sameJson(real, mutated);
 
   const reordered = describeBattery(
+    // @ts-expect-error the negative-control rerun feeds describeSchema the same fake schemas as the battery
     (schema) => describeModule.describeSchema(schema),
+    // @ts-expect-error the negative-control rerun feeds describeOptions the same fake schemas as the battery
     (schema) => describeModule.describeOptions(schema),
   );
   const twiceLazy = asObject(parseJson(JSON.stringify(reordered)));

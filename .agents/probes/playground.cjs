@@ -24,15 +24,17 @@ execFileSync("pnpm", ["--dir", playground, "exec", "tsc"], {
 });
 
 const NativeDate = Date;
-global.Date = class extends NativeDate {
-  /** @param {ConstructorParameters<typeof Date>} args */
+Reflect.set(global, "Date", class extends NativeDate {
+  /** @param {[] | [value: number | string | Date] | [year: number, monthIndex: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number]} args */
   constructor(...args) {
-    super(...(args.length ? args : ["2026-10-26T12:00:00.000Z"]));
+    if (args.length === 0) super("2026-10-26T12:00:00.000Z");
+    else if (args.length === 1) super(args[0]);
+    else super(...args);
   }
   static now() {
     return new NativeDate("2026-10-26T12:00:00.000Z").getTime();
   }
-};
+});
 
 let randomState = 1;
 Math.random = () => {
@@ -46,6 +48,14 @@ Math.random = () => {
  */
 function isFunction(value) {
   return typeof value === "function";
+}
+
+/**
+ * @param {import("../../packages/dms/playground/node_modules/@antelopejs/interface-core/dist/decorators").Class<object>} value
+ * @returns {value is ConstructorParameters<typeof import("../../packages/dms/playground/node_modules/@antelopejs/interface-dms/dist/page.js").PageMetadata>[0]}
+ */
+function isControllerClass(value) {
+  return "location" in value && typeof value.location === "string" && "extend" in value && isFunction(value.extend);
 }
 
 /**
@@ -176,13 +186,13 @@ const leaves = {
 /** @type {Record<string, Record<string, unknown>>} */
 const virtualLeaves = {};
 const capture = Symbol.for("playground-probe.capture");
-global[capture] = (/** @type {string} */ name, /** @type {[string, unknown][]} */ entries) => {
+Reflect.set(global, capture, (/** @type {string} */ name, /** @type {[string, unknown][]} */ entries) => {
   /** @type {Record<string, unknown>} */
   const exports = {};
   Object.defineProperty(exports, "__esModule", { value: true });
   for (const [key, value] of entries) exports[key] = value;
   virtualLeaves[name] = exports;
-};
+});
 
 const extension = Module._extensions[".js"];
 Module._extensions[".js"] = (module, filename) => {
@@ -246,7 +256,7 @@ Module._load = function (request, parent, main) {
           registrations.push([
             "page",
             target.name,
-            core.GetMetadata(target, result.PageMetadata).pageInfo,
+            isControllerClass(target) ? core.GetMetadata(target, result.PageMetadata).pageInfo : null,
             Object.entries(target).map(([key, value]) => [key, serializedWhenAble(value)]),
           ]);
           result.RegisterPage(...args)(target);
@@ -277,6 +287,7 @@ const dataModules = [
   "feature-index/table-view",
   "table-view/defaultValues",
 ];
+/** @type {Record<string, unknown>} */
 const data = Object.fromEntries(
   dataModules.map((name) => {
     const exports = loadBuilt(name + ".js");
