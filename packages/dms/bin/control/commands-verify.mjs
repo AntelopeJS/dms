@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { print } from "./commands-stack.mjs";
 import { runJourneyFile } from "./journey.mjs";
-import { loadRun } from "./run-state.mjs";
+import { loadRun, readRun } from "./run-state.mjs";
 import { timed } from "./timing.mjs";
 import { doorLine, flaggedDoors, patchFiles } from "./verify/doors.mjs";
 import {
@@ -150,7 +150,7 @@ async function commandVerdict(dir, values) {
     print("verdict needs --pr <number>");
     return 2;
   }
-  const state = loadRun(dir);
+  const state = readRun(dir);
   const skill = await skillOf(values, state);
   const verdict = await renderVerdict(
     skill,
