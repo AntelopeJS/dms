@@ -369,14 +369,18 @@ function readsRouteSource(options: Record<string, unknown>): boolean {
   return isRecord(source) && isString(source.fetchUrl);
 }
 
-/** Serialized resource fields may read the preview's immutable demo record. */
-function readsFixtureForm(
+/**
+ * Whether a resource form was serialized with its fields and the URL of the
+ * record it reads, and saves nowhere: drawn like a `Form`, its `fetchUrl`
+ * checked by {@link OPTION_RULES} like any other block's URL.
+ */
+function readsSerializedForm(
   blockType: PreviewBlockType,
   options: Record<string, unknown>,
 ): boolean {
   return (
     blockType.componentName === "dms-form" &&
-    options.fetchUrl === "/api/block-preview/fixtures/workspace" &&
+    isString(options.fetchUrl) &&
     Array.isArray(options.fields) &&
     !options.submitUrl
   );
@@ -396,7 +400,7 @@ function issueFor(
   if (
     match.blockType.needsController &&
     !readsRouteSource(options) &&
-    !readsFixtureForm(match.blockType, options)
+    !readsSerializedForm(match.blockType, options)
   ) {
     return { key: "needs_backend", name: match.name };
   }
