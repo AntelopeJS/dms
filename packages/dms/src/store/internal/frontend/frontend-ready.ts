@@ -1,4 +1,4 @@
-import { assertValidation } from "@antelopejs/interface-api-util";
+import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { z } from "zod";
 import {
@@ -96,6 +96,7 @@ export function getFrontendAcknowledgement():
 
 const MAX_REPORTED_MODULES = 500;
 const MAX_VERSION_LENGTH = 64;
+const HTTP_BAD_REQUEST = 400;
 const MAX_NAME_LENGTH = 214;
 
 const frontendReadySchema = z.object({
@@ -127,5 +128,7 @@ export function assertFrontendReadyAllowed(
 export function parseFrontendReady(
   body: unknown,
 ): ReturnType<typeof frontendReadySchema.parse> {
-  return assertValidation(body, (value) => frontendReadySchema.parse(value));
+  const parsed = frontendReadySchema.safeParse(body);
+  if (parsed.success) return parsed.data;
+  throw new HTTPResult(HTTP_BAD_REQUEST, String(parsed.error));
 }

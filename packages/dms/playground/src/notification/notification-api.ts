@@ -37,12 +37,10 @@ const customNotificationSchema = z.object({
   linkTo: z.string().trim().nullish(),
 });
 
-function parseBody<T>(schema: z.ZodType<T>, rawBody: unknown): T {
-  const parsed = schema.safeParse(rawBody);
-  if (parsed.success) return parsed.data;
-  throw new HTTPResult(
+function badRequest(error: z.ZodError): HTTPResult {
+  return new HTTPResult(
     HTTP_BAD_REQUEST,
-    JSON.stringify(parsed.error.issues),
+    JSON.stringify(error.issues),
     JSON_TYPE,
   );
 }
@@ -168,7 +166,9 @@ export class NotificationAPIController extends Controller("/api/notification") {
     @AuthRawUser() user: User,
     @JSONBody() rawBody: unknown,
   ) {
-    const body = parseBody(customNotificationSchema, rawBody ?? {});
+    const parsed = customNotificationSchema.safeParse(rawBody ?? {});
+    if (!parsed.success) throw badRequest(parsed.error);
+    const body = parsed.data;
     const notification = Notification()
       .icon(body.icon || "i-ph-bell")
       .title(body.title)
@@ -190,7 +190,9 @@ export class NotificationAPIController extends Controller("/api/notification") {
     @AuthRawUser() user: User,
     @JSONBody() rawBody: unknown,
   ) {
-    const { preset } = parseBody(presetSchema, rawBody ?? {});
+    const parsed = presetSchema.safeParse(rawBody ?? {});
+    if (!parsed.success) throw badRequest(parsed.error);
+    const { preset } = parsed.data;
     await PRESET_SENDERS[preset](user, ctx);
     return { success: true };
   }
