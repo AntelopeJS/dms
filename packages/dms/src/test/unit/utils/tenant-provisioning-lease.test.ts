@@ -194,6 +194,67 @@ describe("[unit] default tenant provisioning across replicas", () => {
     expect(await pending()).to.equal(false);
   });
 
+  it("provisions after a takeover in which each run refuses a step the other one holds", async () => {
+    await ensureDefaultTenantExists();
+    const done = [false, false];
+    const owner: (number | undefined)[] = [undefined, undefined];
+    let runs = 0;
+    let firstStepEntered: () => void = () => undefined;
+    const firstRunHolding = new Promise<void>((resolve) => {
+      firstStepEntered = resolve;
+    });
+    let finishFirstStep: () => void = () => undefined;
+    const firstStepHeld = new Promise<void>((resolve) => {
+      finishFirstStep = resolve;
+    });
+    let firstRunRefused: () => void = () => undefined;
+    const refusedByFirstRun = new Promise<void>((resolve) => {
+      firstRunRefused = resolve;
+    });
+    const hold = (run: number, step: number): Promise<void> => {
+      if (run === 1 && step === 0) {
+        firstStepEntered();
+        return firstStepHeld;
+      }
+      if (run === 2 && step === 1) {
+        finishFirstStep();
+        return refusedByFirstRun;
+      }
+      return Promise.resolve();
+    };
+    body = async () => {
+      runs += 1;
+      const run = runs;
+      let refused = false;
+      for (const step of [0, 1]) {
+        if (done[step]) continue;
+        if (owner[step] !== undefined) {
+          refused = true;
+          if (run === 1) firstRunRefused();
+          continue;
+        }
+        owner[step] = run;
+        await hold(run, step);
+        done[step] = true;
+        owner[step] = undefined;
+      }
+      if (refused) throw new Error("another run owns a step");
+    };
+
+    const stalled = provisionDefaultTenant(neverAborted(), {
+      ...LEASE,
+      renewEveryMs: 60_000,
+      staleAfterMs: 60_000,
+    });
+    await firstRunHolding;
+    await Promise.all([stalled, provisionDefaultTenant(neverAborted(), LEASE)]);
+
+    const tenant = await GetModel(TenantModel).get(DEFAULT_TENANT_ID);
+    expect(done).to.deep.equal([true, true]);
+    expect(tenant?.provisioningPending).to.equal(false);
+    expect(tenant?.provisioningHolder ?? null).to.equal(null);
+  });
+
   it("does not let a holder that lost the lease mark the tenant provisioned", async () => {
     await ensureDefaultTenantExists();
     const stopping = new AbortController();
