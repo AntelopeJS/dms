@@ -29,7 +29,7 @@ Java 11 or later comes from `$JAVA`, else `java` on PATH, else the `eclipse-temu
 
 | Configuration | Processes, kills, stalls, renewals, thrown inserts, thrown steps | States (healthy, faults) | Wall time |
 | --- | --- | --- | --- |
-| CI (`<config>.ci.cfg`) | 3, 1, 1, 1, 1, 0 for healthy; 2, 1, 1, 1, 1, 1 for faults | 282,264, 100,172 | 30 s |
+| CI (`<config>.ci.cfg`) | 3, 1, 1, 1, 1, 0 for healthy; 2, 1, 1, 1, 1, 1 for faults | 282,264, 100,172 | 13 s |
 | Full (`<config>.cfg`) | 3, 2, 1, 2, 1, 0 for healthy; 2, 2, 1, 1, 1, 1 for faults | 4,942,009, 460,917 | 160 s |
 | `history.mjs` | 2, 1, 0 or 1, 0 or 1, 0, 0 | 268 to 15,080 per configuration | 25 s |
 
@@ -142,6 +142,17 @@ The model leaves out:
 
 On a scratch copy of this folder, inside the repository so the runner resolves, apply one model edit at a time and run `check.mjs` with and without `--full`. Each edit mirrors the code change in the first column. These ran at the sync commit. A `BROKEN` line is the rule, and the recorded F1 also prints `CHANGED` when the edit changes its length.
 
-SCRATCH_TABLE
+| Scratch change in the code, and the model edit | Rule | CI configuration | Full configuration |
+| --- | --- | --- | --- |
+| `takeover-without-stale`: `advanceLease` claims whatever the stale watch says (ensure.ts:200): `PollClaimable` drops `row.holder = None \/ Stale` | `SingleHolder` | `BROKEN SingleHolder` | same |
+| `claim-without-revision`: the claim does not expect the revision it read (ensure.ts:201): `Claim` drops `row.rev = seen[r]` | `SingleHolder` | `BROKEN SingleHolder` | same |
+| `release-without-token`: the final write ignores the lease token (ensure.ts:152-157): `Release` always lands | `SingleHolder` | `BROKEN SingleHolder` | same |
+| `renew-ignores-revision`: a renewal lands on a lease another process took over (ensure.ts:99): `Renew` drops `row.rev = token[r]` | `SingleHolder` | `BROKEN SingleHolder` | same |
+| `release-clears-on-failure`: the final write sends `provisioningPending: false` after a failed run (ensure.ts:156): `Release` writes `pending = FALSE` | `PendingUntilComplete` | `BROKEN PendingUntilComplete` | same |
+| `insert-not-pending`: `buildDefaultTenant` drops `provisioningPending: true` (ensure.ts:27): `NewRow` is not pending | `PendingUntilComplete` | `BROKEN PendingUntilComplete` | same |
+| `refusal-resolves`: a handler resolves after a failed or refused step, as before template-dms-demo#133: `Flag` leaves `failed` alone | `PendingUntilComplete` | `BROKEN PendingUntilComplete` | same |
+| `no-read-back`: a thrown insert rejects without reading the row back (ensure.ts:50-54): `InsertThrew` goes to `exited` | `NoDuplicateTenant` | `BROKEN NoDuplicateTenant` | same |
+
+Every scratch run exited 1, once per configuration. `release-without-token` needs three processes: with two, the process that frees a lease it lost is the only one that could claim it.
 
 With the edits dropped, both configurations exit 0.
