@@ -72,7 +72,7 @@ importers:
         specifier: '>=0.3.0 <1.0.0'
         version: 0.3.1(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-database-decorators':
-        specifier: ^0.3.0
+        specifier: '>=0.3.0 <1.0.0'
         version: 0.3.0(@antelopejs/interface-api@0.2.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)(@antelopejs/interface-database@0.3.1(@antelopejs/interface-core@0.4.0))
       '@antelopejs/interface-dms':
         specifier: '>=0.13.0 <0.14.0'
