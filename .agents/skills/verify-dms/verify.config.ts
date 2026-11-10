@@ -227,6 +227,21 @@ const config: VerifyConfig = {
       behaviour: { kind: "emit" },
     },
     {
+      name: "formal-default-tenant-provisioning",
+      covers: [
+        "packages/dms/src/utils/ensure-default-tenant.ts",
+        "packages/dms/src/index.ts",
+        "packages/interface-dms/src/tenant-provisioning.ts",
+        "packages/interface-dms/src/db/tables/tenants.table.ts",
+      ],
+      files: [".agents/skills/formal-default-tenant-provisioning/**"],
+      command: ["node", ".agents/skills/formal-default-tenant-provisioning/check.mjs", "--full"],
+      baseCommand: ["node", ".agents/skills/formal-default-tenant-provisioning/check.mjs"],
+      violation: /^(?:finding|BROKEN|CHANGED|HOLDS) +(\w+)/gm,
+      passing: /(?<=^holds +(?:\w+, )*)(\w+)(?=,| \()/gm,
+      behaviour: { kind: "emit" },
+    },
+    {
       name: "formal-realtime-tabs",
       covers: [
         "packages/dms/src/routes/realtime.ts",
