@@ -159,7 +159,7 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
           data-reorder-item
           :data-reorder-drop="dropSide(index)"
           @dragover="dragOver(index, $event)"
-          @drop="drop(index)"
+          @drop="drop(index, $event)"
         >
           <component
             :is="cardComponent"
@@ -202,7 +202,7 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
         @click="openItem(item)"
         @keydown.enter.self="openItem(item)"
         @dragover="dragOver(index, $event)"
-        @drop="drop(index)"
+        @drop="drop(index, $event)"
       >
         <header class="flex items-center gap-2.5">
           <button
@@ -267,7 +267,7 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
 </template>
 
 <style>
-[data-reorder-drop]:not(.contents),
+article[data-reorder-drop],
 .contents[data-reorder-drop] > * {
   outline: 2px dashed var(--ui-primary);
   outline-offset: 3px;

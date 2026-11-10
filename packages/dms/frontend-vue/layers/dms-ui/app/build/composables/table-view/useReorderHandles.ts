@@ -65,7 +65,8 @@ export function useReorderHandles(options: ReorderHandlesOptions) {
     if (draggedIndex.value !== undefined) endDrag();
   });
 
-  const drop = (index: number) => {
+  const drop = (index: number, event?: DragEvent) => {
+    event?.preventDefault();
     const from = draggedIndex.value;
     endDrag();
     if (from !== undefined && isEnabled()) options.reorder()!.move(from, index);

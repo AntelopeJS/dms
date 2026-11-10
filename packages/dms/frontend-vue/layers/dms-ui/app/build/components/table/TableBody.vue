@@ -120,7 +120,7 @@ const emptyStates = computed(() => props.context.emptyStates);
             @mouseenter="handleRowHover(row)"
             @mouseleave="handleRowLeave"
             @dragover="reorderHandles.dragOver(row.index, $event)"
-            @drop="reorderHandles.drop(row.index)"
+            @drop="reorderHandles.drop(row.index, $event)"
           >
             <td
               v-if="hasPresenceRail"
