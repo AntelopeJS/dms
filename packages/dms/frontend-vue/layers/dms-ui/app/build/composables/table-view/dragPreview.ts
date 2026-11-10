@@ -1,6 +1,6 @@
 /** The look of the copy that follows the pointer while a row or card moves. */
 const PREVIEW_CLASS =
-  "pointer-events-none fixed top-0 left-0 z-[1000] overflow-hidden rounded-lg bg-default opacity-95 shadow-lg ring-1 ring-primary rotate-[-1deg]";
+  "pointer-events-none fixed top-0 left-0 z-[1000] overflow-hidden rounded-lg bg-default shadow-lg ring-1 ring-primary rotate-[-1deg]";
 
 /** Marks the element a drag copy is made from and the box it is measured on. */
 export const REORDER_ITEM_ATTRIBUTE = "data-reorder-item";
