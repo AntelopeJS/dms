@@ -19,7 +19,7 @@ export async function upgradePasswordHash(
 ): Promise<void> {
   if (!user.isHashOutdated("password")) return;
   const testedHash = user.password;
-  user.password = password;
+  await user.setHashAsync("password", password);
   const { _internal } = UserModel.toDatabase(user);
   const storedHashes: ReturnType<typeof UserModel.toDatabase> = { _internal };
   await userModel.table

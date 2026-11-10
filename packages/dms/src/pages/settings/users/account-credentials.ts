@@ -212,7 +212,7 @@ export async function changePassword(
   const { currentPassword, password } = body;
   await assertCurrentPasswordIfSet(context.userModel, user, currentPassword);
   const passwordChangedAt = new Date();
-  user.password = password;
+  await user.setHashAsync("password", password);
   user.passwordChangedAt = passwordChangedAt;
   const revoked = await revokeOtherSessions(user, context);
   fireAndForget(

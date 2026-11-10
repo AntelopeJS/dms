@@ -46,8 +46,7 @@ interface Harness {
 }
 
 function buildUser(password: string | null): User {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The credential fixture implements only user fields and hashing behavior exercised here, not the full database instance.
-  return {
+  const user = {
     _id: USER_ID,
     email: OWN_EMAIL,
     password,
@@ -58,7 +57,12 @@ function buildUser(password: string | null): User {
 
     testHashAsync: async (_field: string, candidate: string) =>
       candidate === CURRENT_PASSWORD,
-  } as unknown as User;
+    setHashAsync: async (_field: string, value: string): Promise<void> => {
+      user.password = value;
+    },
+  };
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The credential fixture implements only user fields and hashing behavior exercised here, not the full database instance.
+  return user as unknown as User;
 }
 
 function session(id: string, lastActiveAt: number): Session {

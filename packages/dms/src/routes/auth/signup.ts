@@ -6,9 +6,9 @@ import {
   type UserInvite,
 } from "@antelopejs/interface-dms/db";
 import { announceRegistration } from "@antelopejs/interface-dms/auth";
-import type {
-  SessionModel,
-  User,
+import {
+  type SessionModel,
+  type User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { generateAuthKey } from "../../utils";
@@ -60,53 +60,45 @@ interface SignupAccount {
   invite: UserInvite;
 }
 
-async function createNewUser(
-  userModel: UserModel,
-  { name, email, password, lang, invite }: SignupAccount,
-) {
-  const result = await userModel.insert({
+/**
+ * The row a signup writes, its password already hashed off the event loop.
+ * Hashing comes before the e-mail check, so that check and the write stay
+ * back to back and a second signup for the same address still finds the row.
+ */
+async function signupRow({
+  name,
+  email,
+  password,
+  lang,
+  invite,
+}: SignupAccount): Promise<User> {
+  const row = UserModel.fromPlainData({
     createdAt: new Date(),
     updatedAt: new Date(),
     name,
     email: email.toLowerCase(),
-    password,
     authKey: generateAuthKey(),
     ...INVITE_SIGNUP_VALIDATION,
-    owner: false,
     language: signupLanguage(lang, invite),
   });
-  return result?.[0];
-}
-
-async function overwriteUnvalidatedUser(
-  userModel: UserModel,
-  existingUser: NonNullable<Awaited<ReturnType<UserModel["get"]>>>,
-  { name, email, password, lang, invite }: SignupAccount,
-) {
-  existingUser.createdAt = new Date();
-  existingUser.updatedAt = new Date();
-  existingUser.name = name;
-  existingUser.email = email.toLowerCase();
-  existingUser.password = password;
-  existingUser.authKey = generateAuthKey();
-  existingUser.isValidated = INVITE_SIGNUP_VALIDATION.isValidated;
-  existingUser.validationToken = INVITE_SIGNUP_VALIDATION.validationToken;
-  existingUser.validationRequestedAt =
-    INVITE_SIGNUP_VALIDATION.validationRequestedAt;
-  existingUser.language = signupLanguage(lang, invite);
-
-  await userModel.update(existingUser);
-  return existingUser._id;
+  await row.setHashAsync("password", password);
+  return row;
 }
 
 async function upsertSignupUser(
   userModel: UserModel,
   existingUser: Awaited<ReturnType<UserModel["getByEmail"]>>,
-  account: SignupAccount,
+  row: User,
 ): Promise<NonNullable<Awaited<ReturnType<UserModel["get"]>>>> {
-  const userId = existingUser
-    ? await overwriteUnvalidatedUser(userModel, existingUser, account)
-    : await createNewUser(userModel, account);
+  let userId: string | undefined;
+  if (existingUser) {
+    row._id = existingUser._id;
+    await userModel.update(row);
+    userId = row._id;
+  } else {
+    row.owner = false;
+    userId = (await userModel.insert(row))[0];
+  }
 
   assert(userId, 500, `New user not created : \n`);
 
@@ -166,15 +158,15 @@ export async function signup(
   const resolvedInvite = await resolveValidInvite(token, email);
   const { invite: existingInvite, tenantId } = resolvedInvite;
 
-  const existingUser = await resolveOverwritableAccount(userModel, email);
-
-  const user = await upsertSignupUser(userModel, existingUser, {
+  const row = await signupRow({
     name,
     email,
     password,
     lang,
     invite: existingInvite,
   });
+  const existingUser = await resolveOverwritableAccount(userModel, email);
+  const user = await upsertSignupUser(userModel, existingUser, row);
 
   await consumeInvite(userModel, user._id, resolvedInvite);
 

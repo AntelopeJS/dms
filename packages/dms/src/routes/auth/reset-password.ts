@@ -22,7 +22,7 @@ export async function resetPassword(
 
   user.forgotPasswordToken = null;
   user.forgotPasswordRequestedAt = null;
-  user.password = password;
+  await user.setHashAsync("password", password);
   user.passwordChangedAt = new Date();
   await revokeAllSessions(user, sessionModel, userModel);
 

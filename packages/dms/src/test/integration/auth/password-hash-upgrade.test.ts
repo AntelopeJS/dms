@@ -4,6 +4,7 @@ import { assert, expect } from "chai";
 import { login, upgradePasswordHash } from "../../../routes/authentication";
 import { registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
+import { expectNoStall, loopStallDuring } from "../../helpers/event-loop";
 import { createClient } from "../../helpers/http";
 
 const HTTP_OK = 200;
@@ -75,11 +76,17 @@ describe("[integration] auth/login password hash upgrade", function () {
     const before = await reload(userId);
     expect(before.isHashOutdated("password")).to.equal(true);
 
-    expect(await signIn(email, OLDER_PASSWORD)).to.equal(HTTP_OK);
-    await waitForUpgrade(userId);
+    const { stallMs } = await loopStallDuring(async () => {
+      expect(await signIn(email, OLDER_PASSWORD)).to.equal(HTTP_OK);
+      await waitForUpgrade(userId);
+    });
 
+    expectNoStall(stallMs);
     const after = await reload(userId);
     expect(after.password).to.match(/^\$scrypt\$/);
+    expect(await after.testHashAsync("password", OLDER_PASSWORD)).to.equal(
+      true,
+    );
     expect(after.authKey).to.equal(before.authKey);
     expect(after.updatedAt).to.deep.equal(before.updatedAt);
     expect(after.passwordChangedAt).to.deep.equal(before.passwordChangedAt);
