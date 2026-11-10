@@ -127,9 +127,12 @@ function holdLease(claimed: string, renewEveryMs: number): HeldLease {
 /**
  * Runs the provisioning under a claimed lease. Clearing the marker and giving
  * the lease back are one write, which fails for a holder that lost the lease:
- * it cannot declare the tenant provisioned for whoever took over.
+ * it cannot declare the tenant provisioned for whoever took over. Such a
+ * holder polls again even when its run failed, since the run may have failed
+ * only on a step that the replica which took over was running.
  *
- * @returns Whether this replica is done: provisioned, or failed its one attempt
+ * @returns Whether this replica is done: its write landed, provisioned or left
+ * pending after a failed attempt
  */
 async function provisionUnderLease(
   claimed: string,
@@ -160,7 +163,7 @@ async function provisionUnderLease(
       `Default tenant '${DEFAULT_TENANT_ID}' provisioning lease was lost; another replica took over.`,
     );
   }
-  return finished !== undefined || failure !== undefined;
+  return finished !== undefined;
 }
 
 /**
