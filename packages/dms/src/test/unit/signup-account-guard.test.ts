@@ -101,6 +101,13 @@ async function attemptSignup(
   return { error: undefined, updatedUsers };
 }
 
+/** The row the signup wrote over `draft`. */
+function writtenDraft(attempt: SignupAttempt, draft: User): User {
+  const written = attempt.updatedUsers.find((user) => user._id === draft._id);
+  if (!written) expect.fail(`signup wrote nothing over ${draft._id}`);
+  return written;
+}
+
 function expectRefusal(attempt: SignupAttempt, message: string): void {
   const refusal = attempt.error;
   if (!(refusal instanceof HTTPResult)) {
@@ -173,7 +180,7 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
     expect(attempt.updatedUsers.map((user) => user.name)).to.include(
       INVITEE_NAME,
     );
-    expect(draft.authKey).to.not.equal(HOLDER_AUTH_KEY);
+    expect(writtenDraft(attempt, draft).authKey).to.not.equal(HOLDER_AUTH_KEY);
   });
 
   it("stores the taken-over draft under the canonical address", async () => {
@@ -184,9 +191,9 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
     );
     const { token } = await seedUserInvite({ email: draft.email });
 
-    await attemptSignup(draft, token, "Draft-Case@Acme.dev");
+    const attempt = await attemptSignup(draft, token, "Draft-Case@Acme.dev");
 
-    expect(draft.email).to.equal("draft-case@acme.dev");
+    expect(writtenDraft(attempt, draft).email).to.equal("draft-case@acme.dev");
   });
 
   it("takes over a draft in the invitation's language when none is chosen", async () => {
@@ -200,9 +207,9 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
       language: "fr",
     });
 
-    await attemptSignup(draft, token);
+    const attempt = await attemptSignup(draft, token);
 
-    expect(draft.language).to.equal("fr");
+    expect(writtenDraft(attempt, draft).language).to.equal("fr");
   });
 
   it("keeps the language the invitee chose over the invitation's", async () => {
@@ -216,9 +223,9 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
       language: "fr",
     });
 
-    await attemptSignup(draft, token, draft.email, "en");
+    const attempt = await attemptSignup(draft, token, draft.email, "en");
 
-    expect(draft.language).to.equal("en");
+    expect(writtenDraft(attempt, draft).language).to.equal("en");
   });
 
   it("settles the invitation before disclosing that the address is taken", async () => {

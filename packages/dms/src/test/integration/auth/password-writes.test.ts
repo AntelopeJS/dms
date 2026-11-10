@@ -12,6 +12,8 @@ import { createClient } from "../../helpers/http";
 
 const HTTP_OK = 200;
 const HTTP_MULTIPLE_CHOICES = 300;
+const HTTP_BAD_REQUEST = 400;
+const SECOND_SIGNUP_DELAY_MS = 60;
 const SECURITY = pageRoutePath("/settings/user/security");
 const SETUP_TOKEN = "a-setup-token-of-24-chars";
 const FIRST_PASSWORD = "FirstPassw0rd!";
@@ -104,6 +106,27 @@ describe("[integration] auth/password writes off the event loop", function () {
     expectNoStall(stallMs);
     await expectStoredPassword(draftId, NEXT_PASSWORD, FIRST_PASSWORD);
     await loginUser(email, NEXT_PASSWORD);
+  });
+
+  it("refuses a second signup for the address while the first one hashes", async () => {
+    const email = `twice-${Date.now()}@test.local`;
+    const { token } = await seedUserInvite({ email });
+    const body = {
+      name: "Invitee",
+      email,
+      password: FIRST_PASSWORD,
+      lang: "en",
+      token,
+    };
+
+    const first = createClient().post("/api/auth/signup", body);
+    await new Promise((resolve) => setTimeout(resolve, SECOND_SIGNUP_DELAY_MS));
+    const second = createClient().post("/api/auth/signup", body);
+    const statuses = (await Promise.all([first, second])).map((r) => r.status);
+
+    expect(statuses).to.deep.equal([HTTP_OK, HTTP_BAD_REQUEST]);
+    const rows = await GetModel(UserModel).getBy("email", email);
+    expect(rows).to.have.length(1);
   });
 
   it("password reset stores a hash of the new password", async () => {
