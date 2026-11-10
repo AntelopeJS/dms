@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { type KeyObject, randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -102,7 +102,7 @@ interface DecodedAuthPayload {
 
 function verifySessionToken(
   token: string,
-  secret: string,
+  secret: KeyObject,
   purpose: string,
 ): DecodedAuthPayload {
   const payload = verify(token, secret, { algorithms: ["HS256"] });

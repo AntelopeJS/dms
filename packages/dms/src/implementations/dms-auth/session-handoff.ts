@@ -1,3 +1,4 @@
+import type { KeyObject } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -39,7 +40,7 @@ function refuse(): never {
   throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_HANDOFF_ERROR);
 }
 
-function readClaims(token: string, secret: string) {
+function readClaims(token: string, secret: KeyObject) {
   try {
     const payload = verify(token, secret, { algorithms: ["HS256"] });
     return isJwtClaims(payload) ? payload : refuse();

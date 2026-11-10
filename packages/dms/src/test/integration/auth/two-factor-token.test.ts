@@ -1,3 +1,4 @@
+import type { KeyObject } from "node:crypto";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
@@ -35,7 +36,7 @@ function attempt(route: string, token: string) {
   return post(route, { token, code: TOTP_CODE, method: "totp" });
 }
 
-async function userSecret(userId: string): Promise<string> {
+async function userSecret(userId: string): Promise<KeyObject> {
   const stored = await GetModel(UserModel).get(userId);
   if (!stored) throw new Error(`No user ${userId}`);
   return generateSecret(stored.authKey);
