@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import * as provisioning from "../skills/formal-default-tenant-provisioning/DefaultTenantProvisioning.map.mjs";
 import * as onboarding from "../skills/formal-onboarding-bootstrap/OnboardingBootstrap.map.mjs";
 import * as realtime from "../skills/formal-realtime-tabs/RealtimeTabs.map.mjs";
 import * as lifecycle from "../skills/formal-tenant-lifecycle/TenantLifecycle.map.mjs";
@@ -151,5 +152,30 @@ await test("every step of the tenant lifecycle has words, and the tenant names i
   for (const action of lifecycleTla.matchAll(/^([A-Z]\w+)\([ao]\) ==$/gm)) {
     if (action[1]?.match(/^(?:Admitted|AttemptStep|OwnerStep)$/)) continue;
     assert.notEqual(lifecycle.step(action[1] ?? ""), null, `the action ${action[1]}`);
+  }
+});
+
+await test("every phase and action of the default tenant's provisioning has words", () => {
+  const provisioningTla = readModule(
+    "formal-default-tenant-provisioning",
+    "DefaultTenantProvisioning.tla",
+  );
+  const base = {
+    row: { exists: true, pending: true, holder: "r2" },
+    done: { 1: true, 2: false },
+    pc: { r1: "get" },
+    stalled: { r1: true },
+  };
+  assert.equal(
+    provisioning.state(base).Tenant,
+    "pending, lease named r2, one step done",
+  );
+  for (const phase of setOf(provisioningTla, "Phases")) {
+    const regions = provisioning.state({ ...base, pc: { r1: phase } });
+    assert.match(regions["Process r1"] ?? "", /, stalled$/, `a process at ${phase}`);
+  }
+  for (const action of provisioningTla.matchAll(/^([A-Z]\w+)\(r\) ==$/gm)) {
+    if (action[1]?.match(/^(?:Inserted|ExitsBesideRow|Progress)$/)) continue;
+    assert.notEqual(provisioning.step(action[1] ?? ""), null, `the action ${action[1]}`);
   }
 });

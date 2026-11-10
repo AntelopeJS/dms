@@ -161,6 +161,7 @@ jobs:
       fail-fast: false
       matrix:
         check:
+          - formal-default-tenant-provisioning
           - formal-onboarding-bootstrap
           - formal-realtime-tabs
           - formal-tenant-lifecycle
@@ -180,6 +181,8 @@ jobs:
           path: ~/.cache/antelopejs-formal
           key: tla2tools-1.7.4
       - run: node .agents/skills/${{ matrix.check }}/check.mjs
+      - if: matrix.check == 'formal-default-tenant-provisioning'
+        run: node .agents/skills/formal-default-tenant-provisioning/history.mjs
 
   # The one check branch protection requires was the single job's name, so it
   # stays: green only when every job above is. docs-playground may be skipped
