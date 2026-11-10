@@ -107,10 +107,12 @@ const rowActionsFor = (id: string): Component => {
   return component;
 };
 
-const { draggedIndex, handleFor, drop, allowDrop } = useReorderHandles({
-  reorder: () => props.context.reorder,
-  count: () => props.context.items.length,
-});
+const { draggedIndex, dropSide, handleFor, drop, dragOver } = useReorderHandles(
+  {
+    reorder: () => props.context.reorder,
+    count: () => props.context.items.length,
+  },
+);
 
 const cardReorder = (index: number): TableViewCardReorder | undefined =>
   props.context.reorder
@@ -154,7 +156,9 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
           v-for="(item, index) in props.context.items"
           :key="rowId(item)"
           class="contents"
-          @dragover="allowDrop"
+          data-reorder-item
+          :data-reorder-drop="dropSide(index)"
+          @dragover="dragOver(index, $event)"
           @drop="drop(index)"
         >
           <component
@@ -193,9 +197,11 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
           'opacity-50': draggedIndex === index,
         }"
         tabindex="0"
+        data-reorder-item
+        :data-reorder-drop="dropSide(index)"
         @click="openItem(item)"
         @keydown.enter.self="openItem(item)"
-        @dragover="allowDrop"
+        @dragover="dragOver(index, $event)"
         @drop="drop(index)"
       >
         <header class="flex items-center gap-2.5">
@@ -259,3 +265,11 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
     <TablePagination />
   </div>
 </template>
+
+<style>
+[data-reorder-drop]:not(.contents),
+.contents[data-reorder-drop] > * {
+  outline: 2px dashed var(--ui-primary);
+  outline-offset: 3px;
+}
+</style>

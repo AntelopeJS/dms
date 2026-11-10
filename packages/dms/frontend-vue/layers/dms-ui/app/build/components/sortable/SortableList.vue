@@ -33,7 +33,10 @@ const props = defineProps<{
   filter?: string;
   /** Class of the slot the dragged item will land in. */
   ghostClass?: string;
-  /** Class of the item while it follows the pointer. */
+  /**
+   * Class of the copy of the item that follows the pointer: a page element,
+   * not the browser's drag image, so the page's styles apply to it.
+   */
   dragClass?: string;
 }>();
 
@@ -81,6 +84,9 @@ const { option } = useSortable(root, list, {
   filter: props.filter,
 
   preventOnFilter: false,
+  forceFallback: true,
+  fallbackOnBody: true,
+  fallbackTolerance: 4,
   ghostClass: props.ghostClass,
   dragClass: props.dragClass,
   onStart: (event: SortableEvent) => {

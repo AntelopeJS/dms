@@ -1,4 +1,9 @@
-import { nextTick, ref } from "vue";
+import { nextTick, onScopeDispose, ref } from "vue";
+import {
+  REORDER_ITEM_ATTRIBUTE,
+  startDragPreview,
+  type DragPreview,
+} from "./dragPreview";
 import type {
   TableViewDisplayReorder,
   TableViewReorderHandle,
@@ -23,25 +28,60 @@ export interface ReorderHandlesOptions {
   count: () => number;
 }
 
+/** Where the dragged row lands next to the row under the pointer. */
+export type DropSide = "before" | "after";
+
 /**
  * The move handles of a hand-ordered display, the grid's and the cards'
  * alike: the row dragged by its handle is dropped on another row, and the
  * arrow keys on a handle move its row by one, keeping the focus on it.
+ *
+ * While a row moves, a copy of it follows the pointer and `dropSide` names
+ * the row it would take the place of. Bind `REORDER_ITEM_ATTRIBUTE` on each
+ * row's element: the copy is made from it.
  */
 export function useReorderHandles(options: ReorderHandlesOptions) {
   const { t } = useI18n();
   const draggedIndex = ref<number | undefined>();
+  const overIndex = ref<number | undefined>();
+  let preview: DragPreview | undefined;
 
   const isEnabled = () => !!options.reorder()?.enabled;
 
+  const follow = (event: DragEvent) => {
+    overIndex.value = undefined;
+    preview?.move(event.clientX, event.clientY);
+  };
+
+  const endDrag = () => {
+    draggedIndex.value = undefined;
+    overIndex.value = undefined;
+    preview?.remove();
+    preview = undefined;
+    document.removeEventListener("dragover", follow, true);
+  };
+
+  onScopeDispose(() => {
+    if (draggedIndex.value !== undefined) endDrag();
+  });
+
   const drop = (index: number) => {
     const from = draggedIndex.value;
-    draggedIndex.value = undefined;
+    endDrag();
     if (from !== undefined && isEnabled()) options.reorder()!.move(from, index);
   };
 
-  const allowDrop = (event: DragEvent) => {
-    if (isEnabled()) event.preventDefault();
+  const dragOver = (index: number, event: DragEvent) => {
+    if (!isEnabled()) return;
+    event.preventDefault();
+    if (draggedIndex.value !== undefined) overIndex.value = index;
+  };
+
+  const dropSide = (index: number): DropSide | undefined => {
+    const from = draggedIndex.value;
+    if (from === undefined || overIndex.value !== index || from === index)
+      return undefined;
+    return index > from ? "after" : "before";
   };
 
   const step = (index: number, delta: number) => {
@@ -52,7 +92,15 @@ export function useReorderHandles(options: ReorderHandlesOptions) {
   };
 
   const startDrag = (index: number, event: DragEvent) => {
+    endDrag();
     draggedIndex.value = index;
+    const handle = event.currentTarget;
+    const item =
+      handle instanceof Element
+        ? handle.closest<HTMLElement>(`[${REORDER_ITEM_ATTRIBUTE}]`)
+        : null;
+    if (item) preview = startDragPreview(item, event);
+    document.addEventListener("dragover", follow, true);
 
     event.dataTransfer?.setData("text/plain", String(index));
     if (event.dataTransfer) event.dataTransfer.effectAllowed = DRAG_EFFECT;
@@ -79,12 +127,10 @@ export function useReorderHandles(options: ReorderHandlesOptions) {
         : t("dms.table.reorder.disabled"),
       onClick: (event) => event.stopPropagation(),
       onDragstart: (event) => startDrag(index, event),
-      onDragend: () => {
-        draggedIndex.value = undefined;
-      },
+      onDragend: endDrag,
       onKeydown: (event) => stepByKey(index, event),
     };
   };
 
-  return { draggedIndex, handleFor, drop, allowDrop };
+  return { draggedIndex, dropSide, handleFor, drop, dragOver };
 }
