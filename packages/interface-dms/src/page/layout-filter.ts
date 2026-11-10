@@ -43,10 +43,12 @@ async function filterComponentInfo(
     );
   }
 
-  filtered.options = await filterRequiredPermissionWatches(
-    filtered.options,
-    permissions,
-  );
+  if (holdsWatchActions(filtered.options)) {
+    filtered.options = await filterRequiredPermissionWatches(
+      filtered.options,
+      permissions,
+    );
+  }
 
   return filtered;
 }
@@ -69,6 +71,15 @@ const isPlainObject = (
   typeof value === "object" &&
   (Object.getPrototypeOf(value) === Object.prototype ||
     Object.getPrototypeOf(value) === null);
+
+/** Whether `value` or anything nested in it carries `watchActions`. */
+function holdsWatchActions(value: ComponentInfoSerialized["options"]): boolean {
+  if (Array.isArray(value)) return value.some(holdsWatchActions);
+  return (
+    isPlainObject(value) &&
+    ("watchActions" in value || Object.values(value).some(holdsWatchActions))
+  );
+}
 
 /**
  * The watch actions the caller may run: one gated by `requirePermission` is
