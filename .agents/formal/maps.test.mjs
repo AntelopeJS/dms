@@ -175,7 +175,7 @@ await test("every phase and action of the default tenant's provisioning has word
     assert.match(regions["Process r1"] ?? "", /, stalled$/, `a process at ${phase}`);
   }
   for (const action of provisioningTla.matchAll(/^([A-Z]\w+)\(r\) ==$/gm)) {
-    if (action[1]?.match(/^(?:Inserted|Progress)$/)) continue;
+    if (action[1]?.match(/^(?:Inserted|ExitsBesideRow|Progress)$/)) continue;
     assert.notEqual(provisioning.step(action[1] ?? ""), null, `the action ${action[1]}`);
   }
 });

@@ -30,7 +30,7 @@ Java 11 or later comes from `$JAVA`, else `java` on PATH, else the `eclipse-temu
 | Configuration | Processes, kills, stalls, renewals, thrown inserts, thrown steps | States (healthy, faults) | Wall time |
 | --- | --- | --- | --- |
 | CI (`<config>.ci.cfg`) | 3, 1, 1, 1, 1, 0 for healthy; 2, 1, 1, 1, 1, 1 for faults | 282,264, 100,172 | 13 s |
-| Full (`<config>.cfg`) | 3, 2, 1, 2, 1, 0 for healthy; 2, 2, 1, 1, 1, 1 for faults | 4,942,009, 460,917 | 160 s |
+| Full (`<config>.cfg`) | 3, 2, 1, 2, 1, 0 for healthy; 2, 2, 1, 1, 1, 1 for faults | 4,942,009, 460,917 | 140 s |
 | `history.mjs` | 2, 1, 0 or 1, 0 or 1, 0, 0 | 268 to 15,080 per configuration | 25 s |
 
 One run each, Docker Java 21. Every configuration runs 2 provisioning steps. Healthy runs use `SYMMETRY`, so TLC checks one order of the process names. Most of the full run is the one-worker rerun that finds the shortest trace of F1.
@@ -72,7 +72,7 @@ On the final model, TLC reports no error with 43,212 distinct states. `Eventuall
 
 F1 was replayed against the real code at the sync commit with the unit harness of `packages/dms/TESTING.md`, on the in-memory MongoDB. The replay was a scratch test and is not committed.
 
-- **F1, both runs give up after a takeover, and the tenant stays pending until a restart (`EventuallyProvisioned`). Not fixed.** In TLC's counterexample, r1 inserts the row and claims the lease. r1 stalls, so its renewals stop landing. r2 starts, sees the same token for the stale window and takes the lease over. r2 meets step 1, which r1 still runs, so the step answers that another run owns it. r2 goes on to step 2 and claims it. r1 comes back, finishes step 1 and meets step 2, which r2 owns. Both handler runs reject, since template-dms-demo#133 makes a hook reject when any step failed. r1's release finds the lease lost, and its run failed, so r1 stops (ensure.ts:163). r2's release lands with `provisioningPending: true` and frees the lease, and r2 stops. Every step's effect is in the database, but nothing provisions again until a process restarts. With three processes, the third one claims the freed lease and meets the same refusal (27 states). In the replay, two `provisionDefaultTenant` calls ran with their own lease config: the first renewed every 60 s, so it looked stalled, and the second judged a 400 ms window. A hook with two gated steps answered "another run owns it" when the other call held a step, and rejected after running every step. Both calls returned, both steps were done, and the row read `provisioningPending: true` with `provisioningHolder: null`.
+- **F1, both runs give up after a takeover, and the tenant stays pending until a restart (`EventuallyProvisioned`). Not fixed.** In TLC's recorded counterexample (27 states, three processes), r1 inserts the row, claims the lease and stalls before its first step. r2 starts, sees r1's token unchanged for the stale window and claims the lease; r1's renewals come back too late to stop that claim. r2 starts step 1. r1 meets step 1, which r2 owns, so the step answers that another run owns it, and r1 starts step 2. r2 finishes step 1 and meets step 2, which r1 owns. r2's hook rejects, since template-dms-demo#133 makes a hook reject when any step failed, and r2's release lands with `provisioningPending: true`, frees the lease, and r2 stops after its one attempt (ensure.ts:163). r3 starts, claims the free lease, skips step 1 and meets step 2, which r1 still owns. r1 finishes step 2, its hook rejects for step 1, and its release finds the lease lost, so r1 stops. r3's hook rejects and its release lands pending. Every step's effect is in the database, but nothing provisions again until a process restarts. With two processes the shortest path has 20 states and the same shape: r1 stalls inside step 1, r2 takes over and meets step 1, r2 claims step 2, and r1 meets step 2 (`chart-stall.cfg` draws it). In the replay, two `provisionDefaultTenant` calls ran with their own lease config: the first renewed every 60 s, so it looked stalled, and the second judged a 400 ms window. A hook with two gated steps answered "another run owns it" when the other call held a step, and rejected after running every step. Both calls returned, both steps were done, and the row read `provisioningPending: true` with `provisioningHolder: null`.
 
 The cost is one start: the next start of any process runs the steps again, skips the done ones and clears the marker. A fix belongs in `provisionUnderLease`, for example by letting a process whose run failed only on another run's claim poll again instead of stopping. Record the fix here and drop F1 from `CONFIGS` only once a replay confirms it.
 
@@ -82,13 +82,15 @@ The cost is one start: the next start of any process runs the steps again, skips
 
 | Configuration | Code it replays | Rules it breaks (states) | TLC's shortest story |
 | --- | --- | --- | --- |
-| `Pre613` | dms before 54d7ca6d: no marker, provisioning inside `start()` by the process that inserted the row, a rollback that deletes the row on failure | `PendingUntilComplete` (3), `NoDuplicateTenant` (5), `EventuallyProvisioned` (7) | r1 inserts the row, which reads provisioned since it has no marker. r1 is killed before any step, as the 120 s start deadline did. r1 restarts, finds the row and skips provisioning, so the tenant stays empty for good. |
+| `Pre613` | dms before 54d7ca6d: no marker, a lost insert that throws, and provisioning inside `start()` by the process that inserted the row. Its rollback of a rejected run never ran, because the hook of that time resolved after a failed step. | `NoDuplicateTenant` (5), `EventuallyProvisioned` (7) | r1 inserts the row, which reads provisioned since it has no marker. r1 is killed before any step, as the 120 s start deadline did. r1 restarts, finds the row and skips provisioning, so the tenant stays empty for good. |
 | `Pre657` | dms before 3e029b06: a lost insert throws, and every started process provisions a pending row with no lease, then clears the marker with a plain update; the hook of that time resolves after a failed or refused step | `SingleHolder` (6), `PendingUntilComplete` (12), `NoDuplicateTenant` (5), `EventuallyProvisioned` (16) | r1 inserts and starts step 1. r2 reads the pending row and provisions beside it. r2 meets step 1 owned by r1, resolves anyway, runs step 2 and clears the marker while r1 is still in step 1. Killing r1 then leaves step 1 undone for good. |
 | `Pre133` | dms at the sync commit, with Helio's hook before template-dms-demo 59f5697806: a failed or refused step resolves | `PendingUntilComplete` (15), `EventuallyProvisioned` (19) | r1 holds the lease and stalls inside step 1. r2 takes over, meets step 1 owned by r1, resolves anyway, runs step 2 and clears the marker. Killing r1 leaves step 1 undone. |
 
+`Pre613.cfg` leaves out `PendingUntilComplete`. Before 54d7ca6d the row had no marker, so that rule judges every new row provisioned from its insert, with or without the bug.
+
 ## Read every result with /statechart
 
-Read each TLC result with the pstack `/statechart` skill, on a scratch copy outside the repo (it writes next to its input). Use `DefaultTenantProvisioning.map.mjs` as the view: one region for the tenant, one per process. `chart-takeover.cfg` (two processes, one step, one kill, no stall) has 410 states and every rule holds. `chart-stall.cfg` (two processes, two steps, one stall, no kill) has 662 states and draws the path to F1. The CI and full configurations are too large to chart.
+Read each TLC result with the pstack `/statechart` skill, on a scratch copy outside the repo (it writes next to its input). Use `DefaultTenantProvisioning.map.mjs` as the view: one region for the tenant, one per process. `chart-takeover.cfg` (two processes, one step, one kill, no stall) has 410 states and every rule holds. `chart-stall.cfg` (two processes, two steps, one stall, no kill) has 702 states and draws the 20-state path to F1. The CI and full configurations are too large to chart.
 
 ## Real bug or modeling error
 
@@ -120,7 +122,7 @@ Assert only what a caller observes: what each call returns, the row's `provision
 | `Release` | `provisionUnderLease` (ensure.ts:134-164): `stopRenewing`, then the one compare-and-set that clears the marker and frees the lease |
 | `Renew`, `Stall`, `Unstall` | `holdLease` (ensure.ts:92-125). A stall is a holder whose renewals do not land: a blocked event loop, a slow database, or a module torn down while its run goes on (index.ts:294-297). |
 | `ReadPending`, `Clear` | `provisionDefaultTenant` at 3e029b06^, for `Pre657` only |
-| `Rollback` and `Inserted` under `Pre613` | `provisionDefaultTenant` and `start()` at 54d7ca6d^, for `Pre613` only |
+| `Inserted` under `Pre613` | `start()` at 54d7ca6d^ (index.ts:262-266), for `Pre613` only |
 
 The sync commit is `91951f70` on AntelopeJS/dms `main`.
 
@@ -152,6 +154,7 @@ On a scratch copy of this folder, inside the repository so the runner resolves, 
 | `insert-not-pending`: `buildDefaultTenant` drops `provisioningPending: true` (ensure.ts:27): `NewRow` is not pending | `PendingUntilComplete` | `BROKEN PendingUntilComplete` | same |
 | `refusal-resolves`: a handler resolves after a failed or refused step, as before template-dms-demo#133: `Flag` leaves `failed` alone | `PendingUntilComplete` | `BROKEN PendingUntilComplete` | same |
 | `no-read-back`: a thrown insert rejects without reading the row back (ensure.ts:50-54): `InsertThrew` goes to `exited` | `NoDuplicateTenant` | `BROKEN NoDuplicateTenant` | same |
+| `read-back-rethrows`: the read-back rethrows even when it finds the row (ensure.ts:51): `ReadBack` goes to `exited` | `NoDuplicateTenant` | `BROKEN NoDuplicateTenant` | same |
 
 Every scratch run exited 1, once per configuration. `release-without-token` needs three processes: with two, the process that frees a lease it lost is the only one that could claim it.
 

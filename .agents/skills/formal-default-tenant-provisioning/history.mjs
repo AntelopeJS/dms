@@ -16,7 +16,7 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 
 /** The rules each pre-fix configuration breaks, with the states in TLC's shortest counterexample. */
 const CONFIGS = {
-  Pre613: { PendingUntilComplete: 3, NoDuplicateTenant: 5, EventuallyProvisioned: 7 },
+  Pre613: { NoDuplicateTenant: 5, EventuallyProvisioned: 7 },
   Pre657: {
     SingleHolder: 6,
     PendingUntilComplete: 12,

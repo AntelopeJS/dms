@@ -62,8 +62,7 @@ vars == <<row, done, claim, pc, seen, token, next, failed, stalled, overran,
 
 Phases == {
   "get", "insert", "readBack", "exited", "down",
-  "poll", "claim", "read", "run", "step", "release", "clear", "rollback",
-  "settled"}
+  "poll", "claim", "read", "run", "step", "release", "clear", "settled"}
 HolderPhases == {"run", "step", "release"}
 Running == {"run", "step"}
 
@@ -150,6 +149,11 @@ Inserted(r) ==
     ELSE /\ Move(r, AfterStart)
          /\ UNCHANGED <<next, failed>>
 
+(* A start that fails although the row is there: it lost the insert to
+   another process and took that for an error. *)
+ExitsBesideRow(r) ==
+  lostInsertExit' = (lostInsertExit \/ (pc'[r] = "exited" /\ row.exists))
+
 (* A thrown insert: since 3e029b06 the process reads the row back
    (ensure.ts:50-54); before it, start() rejected. *)
 InsertThrew(r) == Move(r, IF Lease THEN "readBack" ELSE "exited")
@@ -158,7 +162,7 @@ Insert(r) ==
   /\ pc[r] = "insert"
   /\ IF row.exists
        THEN /\ InsertThrew(r)
-            /\ lostInsertExit' = (lostInsertExit \/ pc'[r] = "exited")
+            /\ ExitsBesideRow(r)
             /\ UNCHANGED <<row, next, failed>>
        ELSE /\ row' = NewRow
             /\ Inserted(r)
@@ -180,7 +184,8 @@ InsertFaults(r) ==
 ReadBack(r) ==
   /\ pc[r] = "readBack"
   /\ Move(r, IF row.exists THEN AfterStart ELSE "exited")
-  /\ UNCHANGED <<row, Counters, lostInsertExit>>
+  /\ ExitsBesideRow(r)
+  /\ UNCHANGED <<row, Counters>>
   /\ StartOthersKeep
 
 (* The platform restarts a process that exited or was killed. *)
@@ -289,13 +294,15 @@ StepFails(r) ==
 
 (* ProvisionTenant settled. With the lease, the holder stops renewing and
    gives the lease back (ensure.ts:145-157). Before 3e029b06 a resolved run
-   cleared the marker. Before 54d7ca6d a rejected run deleted the row. *)
+   cleared the marker. Before 54d7ca6d start() resolved after the run; its
+   rollback of a rejected run never ran, since the hook of that time resolved
+   after a failed step. *)
 RunEnds(r) ==
   /\ pc[r] = "run"
   /\ Step(r) = StepCount + 1
   /\ Move(r, CASE Lease -> "release"
                [] Rules = "pre657" -> IF failed[r] THEN "settled" ELSE "clear"
-               [] OTHER -> IF failed[r] THEN "rollback" ELSE "settled")
+               [] OTHER -> "settled")
   /\ UNCHANGED <<done, claim, next, failed, stepFaults>>
   /\ RunOthersKeep
 
@@ -317,13 +324,6 @@ Clear(r) ==
   /\ pc[r] = "clear"
   /\ row' = [row EXCEPT !.pending = FALSE]
   /\ Move(r, "settled")
-  /\ UNCHANGED <<done, claim, seen, token, next, failed, stalled, overran, Counters, lostInsertExit>>
-
-(* Before 54d7ca6d: the failed run deleted the row and start() rejected. *)
-Rollback(r) ==
-  /\ pc[r] = "rollback"
-  /\ row' = [row EXCEPT !.exists = FALSE]
-  /\ Move(r, "exited")
   /\ UNCHANGED <<done, claim, seen, token, next, failed, stalled, overran, Counters, lostInsertExit>>
 
 (* ---- the holder's renewal (ensure.ts:92-125) ----------------------------- *)
@@ -381,7 +381,7 @@ Progress(r) ==
   \/ Get(r) \/ Insert(r) \/ InsertFaults(r) \/ ReadBack(r) \/ Restart(r)
   \/ PollSettled(r) \/ PollClaimable(r) \/ Claim(r) \/ ReadPending(r)
   \/ StepStart(r) \/ StepSucceeds(r) \/ StepFails(r) \/ RunEnds(r)
-  \/ Release(r) \/ Clear(r) \/ Rollback(r) \/ Renew(r) \/ Unstall(r)
+  \/ Release(r) \/ Clear(r) \/ Renew(r) \/ Unstall(r)
 
 Fault(r) == Kill(r) \/ Stall(r)
 

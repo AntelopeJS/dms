@@ -25,7 +25,6 @@ const PROCESS = new Map([
   ["step", "Provisioning, running a step"],
   ["release", "Provisioned, giving the lease back"],
   ["clear", "Provisioned, clearing the marker"],
-  ["rollback", "Provisioning failed, deleting the tenant"],
   ["settled", "Started, nothing left to do"],
 ]);
 
@@ -68,7 +67,6 @@ const STEPS = {
   RunEnds: "the handlers settle",
   Release: "it clears the marker and frees the lease, or finds the lease lost",
   Clear: "it clears the marker",
-  Rollback: "it deletes the tenant",
   Renew: "the holder renews its lease",
   Kill: "the process is killed",
   Stall: "the holder's renewals stop landing",
