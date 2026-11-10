@@ -294,9 +294,10 @@ StepFails(r) ==
 
 (* ProvisionTenant settled. With the lease, the holder stops renewing and
    gives the lease back (ensure.ts:145-157). Before 3e029b06 a resolved run
-   cleared the marker. Before 54d7ca6d start() resolved after the run; its
-   rollback of a rejected run never ran, since the hook of that time resolved
-   after a failed step. *)
+   cleared the marker. Before 54d7ca6d start() resolved after the run. The
+   model leaves out its rollback of a rejected run: Helio's hook of that time
+   resolved after a failed step (template-dms-demo#133), and the bug needs
+   only a kill. *)
 RunEnds(r) ==
   /\ pc[r] = "run"
   /\ Step(r) = StepCount + 1
