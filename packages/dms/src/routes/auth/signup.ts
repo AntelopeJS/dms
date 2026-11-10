@@ -6,9 +6,9 @@ import {
   type UserInvite,
 } from "@antelopejs/interface-dms/db";
 import { announceRegistration } from "@antelopejs/interface-dms/auth";
-import type {
-  SessionModel,
-  User,
+import {
+  type SessionModel,
+  type User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { generateAuthKey } from "../../utils";
@@ -64,17 +64,18 @@ async function createNewUser(
   userModel: UserModel,
   { name, email, password, lang, invite }: SignupAccount,
 ) {
-  const result = await userModel.insert({
+  const user = UserModel.fromPlainData({
     createdAt: new Date(),
     updatedAt: new Date(),
     name,
     email: email.toLowerCase(),
-    password,
     authKey: generateAuthKey(),
     ...INVITE_SIGNUP_VALIDATION,
     owner: false,
     language: signupLanguage(lang, invite),
   });
+  await user.setHashAsync("password", password);
+  const result = await userModel.insert(user);
   return result?.[0];
 }
 
@@ -87,7 +88,7 @@ async function overwriteUnvalidatedUser(
   existingUser.updatedAt = new Date();
   existingUser.name = name;
   existingUser.email = email.toLowerCase();
-  existingUser.password = password;
+  await existingUser.setHashAsync("password", password);
   existingUser.authKey = generateAuthKey();
   existingUser.isValidated = INVITE_SIGNUP_VALIDATION.isValidated;
   existingUser.validationToken = INVITE_SIGNUP_VALIDATION.validationToken;

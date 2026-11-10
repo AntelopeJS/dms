@@ -76,10 +76,9 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     userModel: UserModel,
     data: OnboardingRegisterAdmin,
   ): Promise<string[]> {
-    const insertedIds = await userModel.insert({
+    const owner = UserModel.fromPlainData({
       name: data.name,
       email: normalizeEmail(data.email),
-      password: data.password,
       createdAt: new Date(),
       updatedAt: new Date(),
       isValidated: true,
@@ -87,6 +86,8 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
       owner: true,
       language: data.language ?? DEFAULT_ADMIN_LANGUAGE,
     });
+    await owner.setHashAsync("password", data.password);
+    const insertedIds = await userModel.insert(owner);
 
     const newUserId = insertedIds[0];
     assert(newUserId, 500, "error.user_creation_failed");

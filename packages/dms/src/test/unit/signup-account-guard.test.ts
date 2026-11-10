@@ -9,6 +9,7 @@ import type {
 } from "@antelopejs/interface-dms/auth/db";
 import { signup } from "../../routes/authentication";
 import { seedUserInvite } from "../helpers/fixtures";
+import { userFixture } from "../helpers/user-fixture";
 
 const HTTP_BAD_REQUEST = 400;
 const EMAIL_TAKEN = "error.email_already_used";
@@ -30,8 +31,7 @@ interface SignupAttempt {
 }
 
 function buildAccount(id: string, email: string, isValidated: boolean): User {
-  // SAFETY: Signup's account guard and draft takeover read or replace these plain fields; the fixture does not implement persisted-row methods.
-  return {
+  return userFixture({
     _id: id,
     email,
     name: HOLDER_NAME,
@@ -39,7 +39,7 @@ function buildAccount(id: string, email: string, isValidated: boolean): User {
     authKey: HOLDER_AUTH_KEY,
     isValidated,
     language: "en",
-  } as User;
+  });
 }
 
 async function joinWorkspace(userId: string): Promise<void> {
@@ -117,6 +117,7 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
       "provisioned@acme.dev",
       false,
     );
+    const heldPassword = provisioned.password;
     await joinWorkspace(provisioned._id);
     const { token } = await seedUserInvite({ email: provisioned.email });
 
@@ -125,7 +126,7 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
     expectRefusal(attempt, EMAIL_TAKEN);
     expect(attempt.updatedUsers).to.deep.equal([]);
     expect(provisioned.name).to.equal(HOLDER_NAME);
-    expect(provisioned.password).to.equal(HOLDER_PASSWORD);
+    expect(provisioned.password).to.equal(heldPassword);
     expect(provisioned.authKey).to.equal(HOLDER_AUTH_KEY);
   });
 
