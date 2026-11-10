@@ -1,8 +1,6 @@
-import { monitorEventLoopDelay } from "node:perf_hooks";
 import { expect } from "chai";
 
-const NANOSECONDS_PER_MILLISECOND = 1e6;
-const RESOLUTION_MS = 5;
+const TICK_MS = 1;
 
 /**
  * Longest the event loop may stall while a password is written. One scrypt
@@ -10,17 +8,26 @@ const RESOLUTION_MS = 5;
  */
 const MAX_LOOP_STALL_MS = 60;
 
-/** Runs `work` and returns the longest stall of the event loop meanwhile. */
+/**
+ * Runs `work` and returns the longest gap between two ticks of a 1 ms
+ * interval meanwhile: how long the event loop stalled at most.
+ */
 export async function loopStallDuring<T>(
   work: () => Promise<T>,
 ): Promise<{ result: T; stallMs: number }> {
-  const histogram = monitorEventLoopDelay({ resolution: RESOLUTION_MS });
-  histogram.enable();
+  let last = performance.now();
+  let stallMs = 0;
+  const ticker = setInterval(() => {
+    const now = performance.now();
+    stallMs = Math.max(stallMs, now - last);
+    last = now;
+  }, TICK_MS);
   try {
     const result = await work();
-    return { result, stallMs: histogram.max / NANOSECONDS_PER_MILLISECOND };
+    stallMs = Math.max(stallMs, performance.now() - last);
+    return { result, stallMs };
   } finally {
-    histogram.disable();
+    clearInterval(ticker);
   }
 }
 
