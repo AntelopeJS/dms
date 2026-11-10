@@ -137,6 +137,30 @@ describe("the cards display of a hand-ordered table", () => {
     expect(items.value.map((row) => row._id)).toEqual(["t2", "t0", "t1"]);
   });
 
+  it("shows a copy of the dragged card under the pointer and marks where it lands", async () => {
+    const { context } = createContext();
+    mount(context);
+    const pointer = (type: string, x: number, y: number) =>
+      new MouseEvent(type, { bubbles: true, clientX: x, clientY: y });
+    const preview = () =>
+      [...document.body.children].find(
+        (child) => child !== container && child.querySelector("article"),
+      );
+    const marks = () => cards().map((card) => card.dataset.reorderDrop);
+
+    handles()[2]!.dispatchEvent(pointer("dragstart", 10, 10));
+    cards()[0]!.dispatchEvent(pointer("dragover", 40, 30));
+    await nextTick();
+    expect(preview()?.textContent).toContain("Task t2");
+    expect(preview()?.getAttribute("style")).toContain("translate: 30px 20px");
+    expect(marks()).toEqual(["before", undefined, undefined]);
+
+    cards()[0]!.dispatchEvent(pointer("drop", 40, 30));
+    await nextTick();
+    expect(preview()).toBe(undefined);
+    expect(marks()).toEqual([undefined, undefined, undefined]);
+  });
+
   it("moves a card by one with the arrow keys and keeps the focus on its handle", async () => {
     const { context, moves, items } = createContext();
     mount(context);

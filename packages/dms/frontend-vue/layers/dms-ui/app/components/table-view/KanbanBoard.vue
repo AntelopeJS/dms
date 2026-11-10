@@ -593,7 +593,11 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
 .dms-kanban-ghost > * {
   visibility: hidden;
 }
-/* The card being dragged tilts and lifts on an accent ring. */
+/* The card being dragged tilts and lifts on an accent ring, opaque over the
+   cards it passes. */
+.dms-kanban-drag {
+  opacity: 1 !important;
+}
 .dms-kanban-drag > * {
   transform: rotate(-2deg);
   border-color: var(--ui-primary);
