@@ -22,11 +22,6 @@ const ERROR_UNAUTHORIZED = "error.unauthorized";
 
 type StoreOperationBody = ReturnType<typeof storeOperationSchema.parse>;
 
-/** The module an operation names; a body that names none answers 400. */
-function parseStoreOperation(body: unknown): StoreOperationBody {
-  return assertValidation(body, (value) => storeOperationSchema.parse(value));
-}
-
 /**
  * The module store, platform owners only: the listing, and one route per
  * operation. An operation answers once accepted, with the listing showing it
@@ -82,30 +77,45 @@ export class ModuleStoreController extends Controller("/dms/store") {
   @Post("/update")
   async update(@JSONBody() body: unknown): Promise<StoreListing> {
     await this.assertOwner();
-    return this.run("update", parseStoreOperation(body));
+    return this.run(
+      "update",
+      assertValidation(body, (value) => storeOperationSchema.parse(value)),
+    );
   }
 
   @Post("/enable")
   async enable(@JSONBody() body: unknown): Promise<StoreListing> {
     await this.assertOwner();
-    return this.run("enable", parseStoreOperation(body));
+    return this.run(
+      "enable",
+      assertValidation(body, (value) => storeOperationSchema.parse(value)),
+    );
   }
 
   @Post("/disable")
   async disable(@JSONBody() body: unknown): Promise<StoreListing> {
     await this.assertOwner();
-    return this.run("disable", parseStoreOperation(body));
+    return this.run(
+      "disable",
+      assertValidation(body, (value) => storeOperationSchema.parse(value)),
+    );
   }
 
   @Post("/uninstall")
   async uninstall(@JSONBody() body: unknown): Promise<StoreListing> {
     await this.assertOwner();
-    return this.run("uninstall", parseStoreOperation(body));
+    return this.run(
+      "uninstall",
+      assertValidation(body, (value) => storeOperationSchema.parse(value)),
+    );
   }
 
   @Post("/apply")
   async apply(@JSONBody() body: unknown): Promise<StoreListing> {
     await this.assertOwner();
-    return this.run("apply", parseStoreOperation(body));
+    return this.run(
+      "apply",
+      assertValidation(body, (value) => storeOperationSchema.parse(value)),
+    );
   }
 }

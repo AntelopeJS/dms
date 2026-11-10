@@ -258,9 +258,7 @@ export class DateType extends DataType {
   ): ValueProxyOrValue<boolean> {
     const parsed = parseValue(value);
     if (!(parsed instanceof Date)) {
-      throw new Error(
-        `Date filter expects a date value. Got: ${typeof parsed}`,
-      );
+      throw new Error(`Date filter expects a date value. Got: ${value}`);
     }
     const dayStart = this.startOfUtcDay(parsed);
     const dayEnd = this.nextUtcDay(parsed);
