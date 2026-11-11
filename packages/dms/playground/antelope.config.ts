@@ -118,6 +118,12 @@ export default defineConfig({
     docs: {
       logging: { channelFilter: { "*": "warn" } },
       modules: {
+        dms: {
+          config: {
+            mcp: { enabled: true },
+            builder: { enabled: true },
+          },
+        },
         nodemailer: {
           config: {
             ethereal: false,
