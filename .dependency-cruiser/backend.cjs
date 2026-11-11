@@ -1,6 +1,6 @@
 const root = "^packages/dms/src/";
 const tiers = [
-  ["routes", "dev", "page-extensions"],
+  ["routes", "dev", "page-extensions", "mockup"],
   ["pages"],
   ["implementations"],
   ["store", "attachments", "realtime", "automation", "crons", "hooks"],

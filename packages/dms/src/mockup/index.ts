@@ -8,9 +8,11 @@ import {
 import { MockupStore } from "./store";
 
 export * from "./annotations";
-export { compileSpec, parseSpec } from "./compile";
-export { buildMockupSchema } from "./json-schema";
+export * from "./compile";
+export * from "./json-schema";
 export * from "./model";
+export * from "./routes";
+export * from "./store";
 
 let engine: MockupEngine | undefined;
 
