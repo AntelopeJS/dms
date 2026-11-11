@@ -10,7 +10,7 @@ One run of your coding agent later, you have the admin pages and dashboards, as 
 
 [Live demo](https://dms-demo.antelopejs.com) · [Quick start](#quick-start) · [Docs](https://dms.antelopejs.com/docs) · [Agent skills](https://github.com/AntelopeJS/agent-skills) · [Discord](https://discord.gg/g4pFt6eXqu)
 
-<a href="https://github.com/AntelopeJS/dms/stargazers"><img data-illustration alt="GitHub stars" src="https://img.shields.io/github/stars/AntelopeJS/dms?style=for-the-badge&labelColor=000000&color=000000&logo=github"></a> <a href="https://www.npmjs.com/package/@antelopejs/dms"><img data-illustration alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a> <a href="./LICENSE"><img data-illustration alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a> <a href="https://discord.gg/g4pFt6eXqu"><img data-illustration alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a> <a href="https://dms.antelopejs.com/docs"><img data-illustration alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
+<img data-illustration alt="GitHub stars" src="https://img.shields.io/github/stars/AntelopeJS/dms?style=for-the-badge&labelColor=000000&color=000000&logo=github"> <a href="https://www.npmjs.com/package/@antelopejs/dms"><img data-illustration alt="npm" src="https://img.shields.io/npm/v/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a> <a href="./LICENSE"><img data-illustration alt="License" src="https://img.shields.io/npm/l/@antelopejs/dms?style=for-the-badge&labelColor=000000&color=000000"></a> <a href="https://discord.gg/g4pFt6eXqu"><img data-illustration alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000"></a> <a href="https://dms.antelopejs.com/docs"><img data-illustration alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000"></a>
 
 </div>
 
@@ -191,19 +191,6 @@ The columns come from the data controller. The field also brings 14 API routes w
 **Roles down to each block and action.** Preview the app as any role.
 
 <img data-illustration src="./docs/media/roles-readonly.gif" width="100%" alt="The Support role's permission tree, with dashboard blocks and the Create, Edit and Delete actions switched one by one. The dashboard is previewed as Support, and the same request returns 200 for Admin and 403 for Support.">
-
-<details>
-<summary><b>Watch the films</b>: Meet AntelopeJS DMS, and a tour of the whole DMS</summary>
-
-**Meet AntelopeJS DMS.** A company connects its ERP, its CRM and its shop, and gets one back office and one dashboard.
-
-https://github.com/user-attachments/assets/1c0b9396-d468-48b4-b504-3e5b9e50eeb4
-
-**A tour of the whole DMS.** Pages and blocks, people and roles, modules, and the three ways to build.
-
-https://github.com/user-attachments/assets/ba552792-f0d4-4fcf-8b0e-81029a5a2582
-
-</details>
 
 ## 41 blocks, ready to use
 
