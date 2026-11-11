@@ -43,6 +43,7 @@ import {
   RemoveField,
 } from "./resources";
 import { ConfigureTableView } from "./table-view";
+import { CreateThemeLayer, GetTheme, SetTheme } from "./theme";
 
 /**
  * Every operation of the builder, by the name it is exported under.
@@ -71,6 +72,7 @@ export const Operations = {
   CreateLocalModule,
   CreatePage,
   CreateResource,
+  CreateThemeLayer,
   DeleteCategory,
   DeletePage,
   DeleteResource,
@@ -79,6 +81,7 @@ export const Operations = {
   GetMapping,
   GetPageStructure,
   GetResourceStructure,
+  GetTheme,
   ListCategories,
   ListDataSources,
   ListPages,
@@ -94,6 +97,7 @@ export const Operations = {
   RemoveField,
   RemoveQuery,
   SetPageBlocks,
+  SetTheme,
 };
 
 /** The name of one operation in `Operations`. */
