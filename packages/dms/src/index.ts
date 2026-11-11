@@ -67,6 +67,7 @@ import {
   stopPendingExtensionReport,
 } from "./page-extensions";
 import { registerDocsPreviewPage } from "./pages/public/preview";
+import { startMockupEngine, stopMockupEngine } from "./mockup";
 import { deriveOAuthRelaySecret } from "./routes/oauth";
 import { frontendModule } from "./frontend-module";
 import {
@@ -110,6 +111,9 @@ export async function construct(config: Config): Promise<void> {
 
   if (isDocsPreviewEnabled(dev)) {
     registerDocsPreviewPage();
+  }
+  if (dev) {
+    startMockupEngine();
   }
 }
 
@@ -255,6 +259,7 @@ function cancelDeferredNotifications(): void {
 export function destroy(): void {
   cancelDeferredNotifications();
   closeDevReloadStreams();
+  stopMockupEngine();
 }
 
 function onModulesStarted(): void {
@@ -314,5 +319,6 @@ export async function stop(): Promise<void> {
     await stopRealtime();
     cancelDeferredNotifications();
     closeDevReloadStreams();
+    stopMockupEngine();
   }
 }

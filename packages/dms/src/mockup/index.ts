@@ -1,0 +1,36 @@
+import { defaultMockupsDir } from "./files";
+import { registerMockupPage } from "./page";
+import {
+  closeMockupStreams,
+  type MockupEngine,
+  registerMockupRoutes,
+} from "./routes";
+import { MockupStore } from "./store";
+
+export * from "./annotations";
+export { compileSpec, parseSpec } from "./compile";
+export { buildMockupSchema } from "./json-schema";
+export * from "./model";
+
+let engine: MockupEngine | undefined;
+
+/**
+ * Serves the mockups of `mockupsDir` (`<project root>/mockups` by default):
+ * the `/api/mockup` routes and the `/mockup` page. Development only.
+ */
+export function startMockupEngine(mockupsDir = defaultMockupsDir()): void {
+  if (engine) return;
+  engine = { store: new MockupStore(mockupsDir), streams: new Set() };
+  registerMockupRoutes(engine);
+  registerMockupPage();
+}
+
+/**
+ * Ends the event streams and stops watching. The routes stay registered: a
+ * new subscriber watches again.
+ */
+export function stopMockupEngine(): void {
+  if (!engine) return;
+  closeMockupStreams(engine);
+  engine.store.close();
+}
