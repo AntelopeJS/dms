@@ -4,6 +4,7 @@ covers:
   - packages/dms/data/mockup-example/**
   - packages/dms/data/mockup-spec.schema.json
   - packages/dms/scripts/mockup-schema.mjs
+  - packages/dms/src/mcp/tools/mockup*.ts
 docs:
   - packages/dms/docs/08.ai-and-claude-code/9.mockups.md
 ---
