@@ -38,6 +38,15 @@ const RequestIdSchema = z.object({
   id: z.union([z.string(), z.number()]),
 });
 
+const JsonRpcErrorAnswerSchema = z.object({
+  jsonrpc: z.literal("2.0"),
+  id: z.union([z.string(), z.number(), z.null()]),
+  error: z.object({ code: z.number(), message: z.string() }),
+});
+
+/** The `id` of a failure answer: `null` for a line that is not JSON, as JSON-RPC 2.0 requires. */
+type FailureId = string | number | null;
+
 interface RelayAnswer {
   status: number;
   text: string;
@@ -80,15 +89,28 @@ function post(config: BridgeConfig, body: string): Promise<RelayAnswer> {
   });
 }
 
-function requestIdOf(line: string): string | number | undefined {
+/** `undefined` for a notification, which gets no answer; `null` for a line that is not JSON. */
+function requestIdOf(line: string): FailureId | undefined {
+  let message: unknown;
   try {
-    return RequestIdSchema.safeParse(JSON.parse(line)).data?.id;
+    message = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  return RequestIdSchema.safeParse(message).data?.id;
+}
+
+function relayedJsonRpcError(text: string): string | undefined {
+  try {
+    return JsonRpcErrorAnswerSchema.safeParse(JSON.parse(text)).success
+      ? text
+      : undefined;
   } catch {
     return undefined;
   }
 }
 
-function failure(id: string | number, message: string): string {
+function failure(id: FailureId, message: string): string {
   return JSON.stringify({
     jsonrpc: "2.0",
     id,
@@ -101,11 +123,13 @@ async function relay(configPath: string, line: string): Promise<RelayAnswer> {
 }
 
 function answerLine(
-  id: string | number | undefined,
+  id: FailureId | undefined,
   answer: RelayAnswer,
 ): string | undefined {
   if (answer.status === HTTP_ACCEPTED) return undefined;
   if (answer.status >= 200 && answer.status < 300) return answer.text;
+  const relayed = relayedJsonRpcError(answer.text);
+  if (relayed !== undefined) return relayed;
   if (id === undefined) return undefined;
   const refusal =
     REFUSALS.get(answer.status) ??

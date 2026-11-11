@@ -23,7 +23,7 @@ const EchoAnswerSchema = z.object({
   result: z.object({ method: z.string() }),
 });
 const FailureSchema = z.object({
-  id: z.union([z.string(), z.number()]),
+  id: z.union([z.string(), z.number(), z.null()]),
   error: z.object({ code: z.number(), message: z.string() }),
 });
 
@@ -215,6 +215,27 @@ describe("[unit] mcp stdio bridge", () => {
     expect(failure.error.message).to.equal(
       "The DMS backend refused the bridge's credential. Restart the project with ajs project dev, then retry.",
     );
+  });
+
+  it("relays the backend's JSON-RPC parse error for a line it cannot read, whatever the HTTP status", async () => {
+    const parseError =
+      '{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}';
+    await serve(() => ({ status: 400, body: parseError }));
+    input.write("{not json\n");
+    await until(() => lines().length === 1);
+    expect(lines()).to.deep.equal([parseError]);
+  });
+
+  it("answers a line it cannot read with id null when the backend is down, since a notification is the only line left unanswered", async () => {
+    await useConfig(await closedPortUrl());
+    input.write("{not json\n");
+    input.write('{"jsonrpc":"2.0","method":"notifications/initialized"}\n');
+    await until(() => lines().length === 1);
+    await delay(50);
+    const failure = FailureSchema.parse(JSON.parse(lines()[0] ?? ""));
+    expect(lines()).to.have.lengthOf(1);
+    expect(failure.id).to.equal(null);
+    expect(failure.error.code).to.equal(-32603);
   });
 
   it("reads the credential per message, so a restarted backend is reached without a reconnect", async () => {
