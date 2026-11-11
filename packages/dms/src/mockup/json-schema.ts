@@ -12,6 +12,7 @@ import {
   SKETCH_MIN_HEIGHT,
   SKETCH_TYPE,
 } from "./sketch";
+import { previewOptionsOf } from "./validate";
 
 const DRAFT = "https://json-schema.org/draft/2020-12/schema";
 const NODE_REF: JsonObject = { $ref: "#/$defs/node" };
@@ -39,7 +40,8 @@ const OPTION_TYPES: Record<BlockOptionSchema["type"], Describe> = {
     }),
     ...(option.keys?.enum && { propertyNames: { enum: option.keys.enum } }),
   }),
-  union: (option) => ({ anyOf: (option.oneOf ?? []).map(describeOption) }),
+  union: (option): JsonObject =>
+    option.oneOf?.length ? { anyOf: option.oneOf.map(describeOption) } : {},
 };
 
 function annotations(option: BlockOptionSchema): JsonObject {
@@ -108,7 +110,9 @@ function blockNode(type: string, options: JsonObject): JsonObject {
 
 /** The options a spec writes for a block type, or undefined if none can be. */
 function blockOptions(descriptor: BlockTypeDescriptor): JsonObject | undefined {
-  if (!descriptor.controllerArg) return objectSchema(descriptor.config);
+  if (!descriptor.controllerArg) {
+    return objectSchema(previewOptionsOf(descriptor));
+  }
   const block = CONTROLLER_BLOCKS.get(descriptor.type);
   return block ? objectSchema(block.options(descriptor)) : undefined;
 }

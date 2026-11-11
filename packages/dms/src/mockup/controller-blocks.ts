@@ -22,7 +22,7 @@ import {
 } from "./fixtures";
 import type { JsonObject, MockupNode } from "./model";
 import { jsonObjectSchema, zodIssues } from "./model";
-import { validateBlockOptions } from "./validate";
+import { previewOptionsOf, validateBlockOptions } from "./validate";
 
 /**
  * How a mockup builds a block whose factory takes a controller class: what
@@ -231,7 +231,10 @@ const FORM_TYPE = "Form";
  * preview draws it as a `Form`, so it is checked as one.
  */
 const resourceForm: ControllerBlock = {
-  options: () => GetBlockType(FORM_TYPE)?.config ?? {},
+  options() {
+    const form = GetBlockType(FORM_TYPE);
+    return form ? previewOptionsOf(form) : {};
+  },
   compile(node, pointer, scope) {
     const optionsAt = `${pointer}/options`;
     const written = node.options ?? {};

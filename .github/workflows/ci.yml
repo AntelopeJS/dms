@@ -37,6 +37,7 @@ jobs:
         pnpm --dir packages/interface-dms check:exports
         pnpm --dir packages/interface-dms check:proxies
         pnpm --dir packages/dms docs:catalog:check
+        pnpm --dir packages/dms mockup:schema:check
         pnpm --dir packages/dms check:frontend-declarations
       renovate-sync: false
       test-job: true
