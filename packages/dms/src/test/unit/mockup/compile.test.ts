@@ -212,6 +212,48 @@ describe("[unit] mockup compiler", () => {
     );
   });
 
+  it("refuses remote images and escaped at-rules in a sketch's CSS", () => {
+    const styles = [
+      'div{background:image-set("https://example.com/x" 1x)}',
+      "div{background:image('https://example.com/x')}",
+      "@\\69mport 'https://example.com/x';",
+    ];
+    const { issues } = compile(
+      onePage(
+        styles.map((css) => ({
+          type: "sketch",
+          options: { html: "<p>x</p>", css },
+        })),
+      ),
+    );
+
+    expect(issues.map((issue) => issue.path)).to.deep.equal(
+      styles.map((_, index) => `/pages/0/tree/${index}/options/css`),
+    );
+  });
+
+  it("reports a child id its siblings already use, at the second", () => {
+    const card = { type: "KpiCard", options: { title: "Revenue" } };
+    const { issues } = compile(
+      onePage([
+        {
+          type: "VStack",
+          children: [
+            { ...card, id: "kpi" },
+            { ...card, id: "kpi" },
+          ],
+        },
+      ]),
+    );
+
+    expect(issues).to.deep.equal([
+      {
+        path: "/pages/0/tree/0/children/1/id",
+        message: 'another child of this block already has the id "kpi"',
+      },
+    ]);
+  });
+
   it("refuses a spec nested past the depth limit instead of overflowing the stack", () => {
     let node: Json = { type: "KpiCard", options: { title: "leaf" } };
     for (let level = 0; level < MAX_JSON_DEPTH; level += 1) {

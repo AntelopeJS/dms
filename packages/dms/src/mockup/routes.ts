@@ -127,11 +127,8 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @WriteStream(SSE_CONTENT_TYPE) out: PassThrough,
       @Context() context: RequestContext,
     ): Promise<void> {
-      const name = parseMockupName(rawName);
-      if (!name) {
-        out.end();
-        return;
-      }
+      const name = nameOf(rawName);
+      if (!(await store.state(name))) throw notFound("mockup");
       let unsubscribe: (() => void) | undefined;
       let open = true;
       const drop = () => {
@@ -174,12 +171,26 @@ export function registerMockupRoutes(engine: MockupEngine) {
       return listRows(rows, parseRowsQuery(context.url.searchParams));
     }
   }
-  registerAnnotationRoutes(store.mockupsDir);
+  registerAnnotationRoutes(store);
   return MockupController;
 }
 
-/** The annotation routes over the mockups of `mockupsDir`. */
-function registerAnnotationRoutes(mockupsDir: string) {
+/** Whether `path` names a node of the page `pageId` of the mockup now. */
+async function namesNode(
+  store: MockupStore,
+  name: MockupName,
+  pageId: string,
+  path: string,
+): Promise<boolean> {
+  const page = (await store.state(name))?.pages.find(
+    (candidate) => candidate.id === pageId,
+  );
+  return !!page && Object.values(page.paths).includes(path);
+}
+
+/** The annotation routes over the mockups of `store`. */
+function registerAnnotationRoutes(store: MockupStore) {
+  const { mockupsDir } = store;
   class MockupAnnotationController extends Controller(MOCKUP_API) {
     @Get(":name/annotations")
     async annotations(
@@ -201,6 +212,10 @@ function registerAnnotationRoutes(mockupsDir: string) {
         throw new HTTPResult(HTTP_BAD_REQUEST, {
           message: draft.error.message,
         });
+      }
+      const { page, path } = draft.data;
+      if (!(await namesNode(store, name, page, path))) {
+        throw notFound("node at this page and path");
       }
       const created = await createAnnotation(name, draft.data, mockupsDir);
       if (!created) throw notFound("mockup");

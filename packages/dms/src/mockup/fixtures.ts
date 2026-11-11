@@ -133,16 +133,38 @@ function matches(row: JsonObject, search: string): boolean {
 
 const numberSchema = z.number();
 
-/** Numbers by value, everything else by its text; missing values last. */
-function compareValues(left: Json | undefined, right: Json | undefined) {
-  if (left === undefined || left === null) return right == null ? 0 : 1;
-  if (right === undefined || right === null) return -1;
+const stringSchema = z.string();
+
+/** Numbers by value, text as people read it, anything else by its JSON text. */
+function compareValues(left: Json, right: Json): number {
   const leftNumber = numberSchema.safeParse(left);
   const rightNumber = numberSchema.safeParse(right);
   if (leftNumber.success && rightNumber.success) {
     return leftNumber.data - rightNumber.data;
   }
-  return JSON.stringify(left).localeCompare(JSON.stringify(right));
+  const leftText = stringSchema.safeParse(left);
+  const rightText = stringSchema.safeParse(right);
+  return (
+    leftText.success ? leftText.data : JSON.stringify(left)
+  ).localeCompare(
+    rightText.success ? rightText.data : JSON.stringify(right),
+    undefined,
+    { numeric: true, sensitivity: "base" },
+  );
+}
+
+/** Sorts in `direction`, rows missing the value last either way. */
+function compareRows(
+  left: Json | undefined,
+  right: Json | undefined,
+  direction: number,
+): number {
+  const leftMissing = left === undefined || left === null;
+  const rightMissing = right === undefined || right === null;
+  if (leftMissing || rightMissing) {
+    return Number(leftMissing) - Number(rightMissing);
+  }
+  return compareValues(left, right) * direction;
 }
 
 /** Searches, sorts and pages `rows` as the list query asks. */
@@ -155,7 +177,7 @@ export function listRows(rows: JsonObject[], query: RowsQuery): RowsPage {
     const direction = query.sortDirection === "desc" ? -1 : 1;
     const valueOf = (row: JsonObject) =>
       Object.hasOwn(row, sortKey) ? row[sortKey] : undefined;
-    found.sort((a, b) => compareValues(valueOf(a), valueOf(b)) * direction);
+    found.sort((a, b) => compareRows(valueOf(a), valueOf(b), direction));
   }
   const end =
     query.limit === undefined ? undefined : query.offset + query.limit;

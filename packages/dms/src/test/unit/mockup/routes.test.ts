@@ -27,13 +27,21 @@ const ORDERS = [
   { _id: "o5", customer: "Evergreen", total: 220 },
 ];
 
+const PEOPLE = [
+  { _id: "a", name: "banana" },
+  { _id: "b", name: "apple" },
+  { _id: "c", name: "Cherry" },
+  { _id: "d", name: "apple pie" },
+  { _id: "e" },
+];
+
 const SPEC = JSON.stringify({
   version: 1,
   pages: [
     {
       id: "home",
       title: "Home",
-      fixtures: { orders: ORDERS, revenue: { value: 9 } },
+      fixtures: { orders: ORDERS, revenue: { value: 9 }, people: PEOPLE },
       tree: [{ type: "KpiCard", options: { title: "Revenue" } }],
     },
   ],
@@ -123,6 +131,37 @@ describe("[unit] mockup routes", () => {
 
     expect(fixture.data).to.deep.equal({ value: 9 });
     expect(rows.status).to.equal(404);
+  });
+
+  it("sorts text as people read it and keeps rows missing the value last", async () => {
+    const rows = `${BASE}/desk/pages/home/fixtures/people/rows?sortKey=name`;
+    const ascending = await client.get(rows);
+    const descending = await client.get(`${rows}&sortDirection=desc`);
+
+    expect(ids(ascending.data)).to.deep.equal(["b", "d", "a", "c", "e"]);
+    expect(ids(descending.data)).to.deep.equal(["c", "a", "d", "b", "e"]);
+  });
+
+  it("answers 404 for the events of a mockup that does not exist", async () => {
+    const missing = await client.get(`${BASE}/nope/events`);
+
+    expect(missing.status).to.equal(404);
+  });
+
+  it("refuses an annotation on a page or node the spec does not have", async () => {
+    const note = { text: "Somewhere" };
+    const ghostPage = await client.post(`${BASE}/desk/annotations`, {
+      ...note,
+      page: "ghost",
+      path: "/pages/0/tree/0",
+    });
+    const ghostNode = await client.post(`${BASE}/desk/annotations`, {
+      ...note,
+      page: "home",
+      path: "/pages/9/tree/9",
+    });
+
+    expect([ghostPage.status, ghostNode.status]).to.deep.equal([404, 404]);
   });
 
   it("creates an annotation, then resolves it with PATCH", async () => {

@@ -79,14 +79,17 @@ function compileChildren(
   scope: PageScope,
 ): MockupNode {
   if (!node.children) return node;
-  const children = node.children.map((child, index) =>
-    compileNode(
-      child,
-      `${pointer}/children/${index}`,
-      `${layoutPath}.${child.id ?? index}`,
-      scope,
-    ),
-  );
+  const children = node.children.map((child, index) => {
+    const childPointer = `${pointer}/children/${index}`;
+    const childPath = `${layoutPath}.${child.id ?? index}`;
+    if (Object.hasOwn(scope.paths, childPath)) {
+      scope.issues.push({
+        path: child.id === undefined ? childPointer : `${childPointer}/id`,
+        message: `another child of this block already has the id "${child.id ?? index}"`,
+      });
+    }
+    return compileNode(child, childPointer, childPath, scope);
+  });
   return { ...node, children };
 }
 
