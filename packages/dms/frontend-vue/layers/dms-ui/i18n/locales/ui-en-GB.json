@@ -805,6 +805,7 @@
       "waiting": "Waiting for the spec…",
       "frame_title": "Mockup preview",
       "not_in_spec": "That block is not a node of the spec, so it cannot be annotated.",
+      "target_changed": "The block you picked changed in the spec. Pick it again to leave your note.",
       "request_failed": "The request failed. Try again.",
       "note_placeholder": "What should change here?",
       "save": "Save note",

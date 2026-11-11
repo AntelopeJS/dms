@@ -805,6 +805,7 @@
       "waiting": "En attente du spec…",
       "frame_title": "Aperçu de la maquette",
       "not_in_spec": "Ce bloc n’est pas un nœud du spec, il ne peut pas être annoté.",
+      "target_changed": "Le bloc choisi a changé dans le spec. Choisissez-le à nouveau pour laisser votre note.",
       "request_failed": "La requête a échoué. Réessayez.",
       "note_placeholder": "Qu’est-ce qui doit changer ici ?",
       "save": "Enregistrer la note",

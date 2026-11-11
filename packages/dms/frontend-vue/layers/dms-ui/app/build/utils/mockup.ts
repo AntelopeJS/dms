@@ -225,6 +225,28 @@ export function specPointerFor(
     : undefined;
 }
 
+const ROOT_LAYOUT_PREFIX = "block-";
+
+/**
+ * The compiled node the preview calls `layoutPath`, as JSON text: root `i` is
+ * `block-<i>`, then each child by its id or index. Undefined when the tree
+ * has none. Two reads that differ mean the node at that place changed.
+ */
+export function nodeTextAt(
+  page: Pick<MockupPageState, "tree">,
+  layoutPath: string,
+): string | undefined {
+  const [root, ...steps] = layoutPath.split(".");
+  if (!root?.startsWith(ROOT_LAYOUT_PREFIX)) return undefined;
+  let node = page.tree[Number(root.slice(ROOT_LAYOUT_PREFIX.length))];
+  for (const step of steps) {
+    node = node?.children?.find(
+      (child, index) => (child.id ?? String(index)) === step,
+    );
+  }
+  return node ? JSON.stringify(node) : undefined;
+}
+
 /** `annotation` with the answer of a `PATCH` or `POST` merged into `list`, newest last. */
 export function upsertAnnotation(
   list: readonly MockupAnnotation[],
