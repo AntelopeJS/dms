@@ -51,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [unit, integration]
+        suite: [unit, integration, "builder:1", "builder:2"]
     env:
       DMS_PREBUILT: "1"
     steps:
