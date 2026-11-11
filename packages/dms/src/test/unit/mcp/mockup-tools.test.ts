@@ -13,10 +13,10 @@ import { mockupResolveAnnotationTool } from "../../../mcp/tools/mockup-resolve-a
 import { mockupWriteSpecTool } from "../../../mcp/tools/mockup-write-spec";
 import {
   createAnnotation,
+  mockupNameSchema,
+  parseSpec,
   updateAnnotation,
-} from "../../../mockup/annotations";
-import { parseSpec } from "../../../mockup/compile";
-import { mockupNameSchema } from "../../../mockup/model";
+} from "../../../mockup";
 
 const NAME = "desk";
 const MOCKUP = mockupNameSchema.parse(NAME);

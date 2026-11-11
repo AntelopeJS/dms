@@ -9,6 +9,7 @@ import { MockupStore } from "./store";
 
 export * from "./annotations";
 export * from "./compile";
+export * from "./files";
 export * from "./json-schema";
 export * from "./model";
 export * from "./routes";

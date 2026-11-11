@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { defaultMockupsDir } from "../../mockup/files";
+import { defaultMockupsDir } from "../../mockup";
 import { defineTool, type McpTool } from "../tool";
 import {
   mockupArgument,

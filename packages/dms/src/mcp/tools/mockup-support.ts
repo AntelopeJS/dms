@@ -2,13 +2,15 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
-import { compileSpec, parseSpec } from "../../mockup/compile";
 import {
+  compileSpec,
+  type MockupName,
   mockupDirectory,
+  parseMockupName,
+  parseSpec,
   SPEC_FILE,
   writeAtomically,
-} from "../../mockup/files";
-import { type MockupName, parseMockupName } from "../../mockup/model";
+} from "../../mockup";
 import { JsonObjectSchema } from "../json";
 import { jsonResult, type McpToolResult, textResult } from "../tool";
 

@@ -4,11 +4,11 @@ import { z } from "zod";
 import {
   defaultMockupsDir,
   MISSING_FILE,
+  type MockupName,
   mockupDirectory,
   parseFsError,
   SPEC_FILE,
-} from "../../mockup/files";
-import type { MockupName } from "../../mockup/model";
+} from "../../mockup";
 import { type JsonObject, JsonObjectSchema } from "../json";
 import { defineTool, type McpTool, textResult } from "../tool";
 import { applyPatch, patchOperationSchema } from "./json-patch";

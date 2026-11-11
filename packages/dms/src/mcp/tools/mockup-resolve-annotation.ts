@@ -1,6 +1,9 @@
 import { z } from "zod";
-import { listAnnotations, updateAnnotation } from "../../mockup/annotations";
-import { defaultMockupsDir } from "../../mockup/files";
+import {
+  defaultMockupsDir,
+  listAnnotations,
+  updateAnnotation,
+} from "../../mockup";
 import { defineTool, jsonResult, type McpTool, textResult } from "../tool";
 import {
   mockupArgument,
