@@ -242,6 +242,7 @@ describe("[unit] mockup compiler", () => {
       "<p style=\"background:image-set('https://example.com/x' 1x)\">x</p>",
       "<style>p{background:\\75rl(http://example.com/x)}</style><p>x</p>",
       '<p style="background:url&#40;https://example.com/x)">x</p>',
+      '<p style="background:image-set(&quot;https://example.com/x&quot; 1x)">x</p>',
     ];
     const { issues } = compile(
       onePage(sketches.map((html) => ({ type: "sketch", options: { html } }))),
@@ -258,7 +259,12 @@ describe("[unit] mockup compiler", () => {
         {
           type: "sketch",
           options: {
-            html: '<a href="#steps" title="see: notes">Steps</a><p>a &gt; b</p>',
+            html: [
+              '<a href="#steps" title="see: notes">Steps</a><p>a &gt; b</p>',
+              '<p style="font-family:&quot;Inter&quot;, sans-serif">x</p>',
+              "<p style=\"content:'a &amp; b'\">x</p>",
+              '<p>write style="a&amp;b" in the docs</p>',
+            ].join(""),
             css: 'p::before{content:"\\2014 Step: 1"}p{background:image-set("data:image/png;base64,AAAA" 1x)}',
           },
         },
