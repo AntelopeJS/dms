@@ -28,6 +28,8 @@ export interface BlockPreviewEmbed {
   revision: Ref<number>;
   /** Whether the page leaves its background to the embedding page. */
   transparent: Ref<boolean>;
+  /** Whether the blocks are padded off the edges, when `?state=` or a `render` said so. */
+  padding: Ref<boolean | undefined>;
   /** Whether a click picks a block for the embedding page instead of reaching it. */
   inspecting: Ref<boolean>;
   /** Tells the embedding page what went wrong. */
@@ -75,6 +77,7 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   const theme = ref(options.initialState?.theme);
   const locale = ref(options.initialState?.locale);
   const transparent = ref(options.initialState?.transparent ?? false);
+  const padding = ref(options.initialState?.padding);
   const revision = ref(0);
   const inspecting = ref(false);
   let observer: ResizeObserver | undefined;
@@ -94,6 +97,7 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
       theme.value = message.theme ?? theme.value;
       locale.value = message.locale ?? locale.value;
       transparent.value = message.transparent ?? transparent.value;
+      padding.value = message.padding ?? padding.value;
       revision.value += 1;
     },
     theme: (message) => {
@@ -130,6 +134,7 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
     tree,
     revision,
     transparent,
+    padding,
     inspecting,
     reportError: (message) => postToParent(previewErrorMessage(message)),
   };

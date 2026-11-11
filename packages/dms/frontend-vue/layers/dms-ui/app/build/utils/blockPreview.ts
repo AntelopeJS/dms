@@ -114,6 +114,8 @@ export interface PreviewRenderMessage {
   locale?: string;
   /** Paints no background; kept from the previous state when absent. */
   transparent?: boolean;
+  /** Pads the blocks off the frame's edges; kept from the previous state when absent. */
+  padding?: boolean;
 }
 
 /** Parent → iframe: switch the color mode. */
@@ -267,7 +269,8 @@ const INBOUND_VALIDATORS: Record<
     isPreviewTree(data.tree) &&
     (data.theme === undefined || isPreviewTheme(data.theme)) &&
     isOptionalString(data.locale) &&
-    isOptionalBoolean(data.transparent),
+    isOptionalBoolean(data.transparent) &&
+    isOptionalBoolean(data.padding),
   theme: (data) => isPreviewTheme(data.theme),
   inspect: (data) => isBoolean(data.enabled),
 };

@@ -70,6 +70,7 @@ function syncPreview(): void {
         ? page.options.theme
         : currentSketchScheme(),
       locale: page.options.locale,
+      padding: page.options.padding ?? true,
     }),
   );
   bridge.post(previewInspectMessage(isAnnotating.value));

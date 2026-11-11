@@ -78,6 +78,22 @@ describe("live render", () => {
     expect(src).toBe("/dms-preview");
   });
 
+  it("sends each page's padding, padded when the page says nothing", async () => {
+    viewer = await mountViewer();
+    const { posted, publish, say } = viewer;
+    await say({ type: "ready" });
+    await publish(
+      "state",
+      mockupState({
+        pages: [mockupPage({ options: { theme: "dark", padding: false } })],
+      }),
+    );
+    expect(rendered(posted).at(-1)?.padding).toBe(false);
+
+    await publish("state", mockupState({ revision: 2, pages: [mockupPage()] }));
+    expect(rendered(posted).at(-1)?.padding).toBe(true);
+  });
+
   it("holds a state that arrives before the preview is ready, then draws it", async () => {
     viewer = await mountViewer();
     await viewer.publish("state", mockupState());

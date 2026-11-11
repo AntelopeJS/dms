@@ -121,6 +121,34 @@ describe("embedded block preview", () => {
     expect(embed.transparent.value).toBe(false);
   });
 
+  it("takes the padding a render names and keeps it while renders omit it", async () => {
+    mount({ tree: { type: "KpiCard" } });
+    expect(embed.padding.value).toBe(undefined);
+    postFromParent({
+      channel: PREVIEW_CHANNEL,
+      type: "render",
+      tree: [],
+      padding: false,
+    });
+    await nextTick();
+    expect(embed.padding.value).toBe(false);
+    postFromParent({ channel: PREVIEW_CHANNEL, type: "render", tree: [] });
+    await nextTick();
+    expect(embed.padding.value).toBe(false);
+  });
+
+  it("ignores a render whose padding is not a boolean", async () => {
+    mount({ tree: { type: "KpiCard" } });
+    postFromParent({
+      channel: PREVIEW_CHANNEL,
+      type: "render",
+      tree: [{ type: "Banner" }],
+      padding: "no",
+    });
+    await nextTick();
+    expect(embed.revision.value).toBe(0);
+  });
+
   it("switches the theme on a theme message", async () => {
     mount({ tree: { type: "KpiCard" }, theme: "dark" });
     postFromParent({ channel: PREVIEW_CHANNEL, type: "theme", theme: "light" });

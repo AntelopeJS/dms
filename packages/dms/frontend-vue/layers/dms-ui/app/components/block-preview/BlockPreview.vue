@@ -80,7 +80,7 @@ const tree = computed(() => (embed ? embed.tree.value : props.tree));
 const revision = computed(() => embed?.revision.value ?? 0);
 const isTransparent = computed(() => embed?.transparent.value ?? false);
 const isPadded = computed(
-  () => initialState?.padding ?? (props.embed || props.padding),
+  () => embed?.padding.value ?? (props.embed || props.padding),
 );
 
 const resolved = computed<PreviewResolvedNode[]>(() =>
