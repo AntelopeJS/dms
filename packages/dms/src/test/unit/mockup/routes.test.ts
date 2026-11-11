@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { type ClientRequest, get, type IncomingMessage } from "node:http";
 import { join } from "node:path";
-import { PassThrough } from "node:stream";
 import { expect } from "chai";
 import {
   getRegisteredRoutes,
@@ -14,7 +14,7 @@ import {
   MockupStore,
   registerMockupRoutes,
 } from "../../../mockup";
-import { createClient } from "../../helpers/http";
+import { createClient, getBaseUrl } from "../../helpers/http";
 
 const BASE = "/api/mockup";
 const client = createClient();
@@ -27,13 +27,21 @@ const ORDERS = [
   { _id: "o5", customer: "Evergreen", total: 220 },
 ];
 
+const PEOPLE = [
+  { _id: "a", name: "banana" },
+  { _id: "b", name: "apple" },
+  { _id: "c", name: "Cherry" },
+  { _id: "d", name: "apple pie" },
+  { _id: "e" },
+];
+
 const SPEC = JSON.stringify({
   version: 1,
   pages: [
     {
       id: "home",
       title: "Home",
-      fixtures: { orders: ORDERS, revenue: { value: 9 } },
+      fixtures: { orders: ORDERS, revenue: { value: 9 }, people: PEOPLE },
       tree: [{ type: "KpiCard", options: { title: "Revenue" } }],
     },
   ],
@@ -62,7 +70,6 @@ function ids(data: unknown): string[] {
 describe("[unit] mockup routes", () => {
   let base: string;
   let engine: MockupEngine;
-  let controller: ReturnType<typeof registerMockupRoutes>;
   const routeIds: number[] = [];
 
   before(async () => {
@@ -76,7 +83,7 @@ describe("[unit] mockup routes", () => {
       store: new MockupStore(join(base, "mockups")),
       streams: new Set(),
     };
-    controller = registerMockupRoutes(engine);
+    registerMockupRoutes(engine);
     routeIds.push(
       ...getRegisteredRoutes()
         .filter((route) => route.location.startsWith(BASE))
@@ -126,6 +133,37 @@ describe("[unit] mockup routes", () => {
     expect(rows.status).to.equal(404);
   });
 
+  it("sorts text as people read it and keeps rows missing the value last", async () => {
+    const rows = `${BASE}/desk/pages/home/fixtures/people/rows?sortKey=name`;
+    const ascending = await client.get(rows);
+    const descending = await client.get(`${rows}&sortDirection=desc`);
+
+    expect(ids(ascending.data)).to.deep.equal(["b", "d", "a", "c", "e"]);
+    expect(ids(descending.data)).to.deep.equal(["c", "a", "d", "b", "e"]);
+  });
+
+  it("answers 404 for the events of a mockup that does not exist", async () => {
+    const missing = await client.get(`${BASE}/nope/events`);
+
+    expect(missing.status).to.equal(404);
+  });
+
+  it("refuses an annotation on a page or node the spec does not have", async () => {
+    const note = { text: "Somewhere" };
+    const ghostPage = await client.post(`${BASE}/desk/annotations`, {
+      ...note,
+      page: "ghost",
+      path: "/pages/0/tree/0",
+    });
+    const ghostNode = await client.post(`${BASE}/desk/annotations`, {
+      ...note,
+      page: "home",
+      path: "/pages/9/tree/9",
+    });
+
+    expect([ghostPage.status, ghostNode.status]).to.deep.equal([404, 404]);
+  });
+
   it("creates an annotation, then resolves it with PATCH", async () => {
     const created = await client.post(`${BASE}/desk/annotations`, {
       page: "home",
@@ -150,18 +188,63 @@ describe("[unit] mockup routes", () => {
   });
 
   it("streams the state on connect and ends the stream when the engine stops", async () => {
-    const stream = new PassThrough();
+    const { response, firstChunk } = await openEvents("desk");
     const ended = new Promise<void>((resolve) => {
-      stream.once("end", resolve);
+      response.once("end", resolve);
     });
-    await new controller().events("desk", stream);
-    const frames = String(stream.read() ?? "");
 
     closeMockupStreams(engine);
-    stream.resume();
+    response.resume();
     await ended;
 
-    expect(frames).to.contain("event: state\ndata: ");
+    expect(firstChunk).to.contain("event: state\ndata: ");
     expect(engine.streams.size).to.equal(0);
   });
+
+  it("releases a stream and its watch once the client goes away", async () => {
+    const clients = await Promise.all([openEvents("desk"), openEvents("desk")]);
+    expect(engine.streams.size).to.equal(2);
+
+    clients.forEach(({ request }) => request.destroy());
+    const released = await waitFor(() => engine.streams.size === 0);
+    await writeFile(join(base, "mockups", "desk", "spec.json"), SPEC);
+
+    expect(released).to.equal(true);
+    expect(engine.store.isWatching()).to.equal(false);
+  });
 });
+
+interface OpenEvents {
+  request: ClientRequest;
+  response: IncomingMessage;
+  firstChunk: string;
+}
+
+/** Opens a mockup's event stream over HTTP and reads its first frame. */
+function openEvents(name: string): Promise<OpenEvents> {
+  return new Promise((resolve, reject) => {
+    const request = get(
+      `${getBaseUrl()}${BASE}/${name}/events`,
+      { headers: { "x-antelopejs-namespace": "default" } },
+      (response) => {
+        response.once("data", (chunk: Buffer) => {
+          response.pause();
+          resolve({ request, response, firstChunk: chunk.toString("utf8") });
+        });
+      },
+    );
+    request.once("error", reject);
+  });
+}
+
+const RELEASE_POLL_MS = 20;
+const RELEASE_BUDGET_MS = 1000;
+
+/** Whether `condition` holds within a second. */
+async function waitFor(condition: () => boolean): Promise<boolean> {
+  const deadline = Date.now() + RELEASE_BUDGET_MS;
+  while (!condition() && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, RELEASE_POLL_MS));
+  }
+  return condition();
+}

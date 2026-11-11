@@ -9,6 +9,7 @@ import {
   type CompiledSpec,
   compileSpec,
   type Json,
+  MAX_JSON_DEPTH,
   mockupNameSchema,
   MockupStore,
   parseSpec,
@@ -189,6 +190,92 @@ describe("[unit] mockup compiler", () => {
       html: "<p>fine</p>",
       height: 120,
     });
+  });
+
+  it("refuses a remote href or src however the attribute is separated", () => {
+    const sketches = [
+      '<a/href="https://example.com/x">x</a>',
+      "<a/href=https://example.com/x>x</a>",
+      '<img/src="https://example.com/x.png">',
+      '<a title="t"href="https://example.com/x">x</a>',
+      '<svg><a/xlink:href="https://example.com/x"><text>t</text></a></svg>',
+    ];
+    const { issues, pages } = compile(
+      onePage(sketches.map((html) => ({ type: "sketch", options: { html } }))),
+    );
+
+    expect(issues.map((issue) => issue.path)).to.deep.equal(
+      sketches.map((_, index) => `/pages/0/tree/${index}/options/html`),
+    );
+    expect(pages[0].tree.map((node) => node.options?.html)).to.deep.equal(
+      sketches.map(() => ""),
+    );
+  });
+
+  it("refuses remote images and escaped at-rules in a sketch's CSS", () => {
+    const styles = [
+      'div{background:image-set("https://example.com/x" 1x)}',
+      "div{background:image('https://example.com/x')}",
+      "@\\69mport 'https://example.com/x';",
+    ];
+    const { issues } = compile(
+      onePage(
+        styles.map((css) => ({
+          type: "sketch",
+          options: { html: "<p>x</p>", css },
+        })),
+      ),
+    );
+
+    expect(issues.map((issue) => issue.path)).to.deep.equal(
+      styles.map((_, index) => `/pages/0/tree/${index}/options/css`),
+    );
+  });
+
+  it("reports a child id its siblings already use, at the second", () => {
+    const card = { type: "KpiCard", options: { title: "Revenue" } };
+    const { issues } = compile(
+      onePage([
+        {
+          type: "VStack",
+          children: [
+            { ...card, id: "kpi" },
+            { ...card, id: "kpi" },
+          ],
+        },
+      ]),
+    );
+
+    expect(issues).to.deep.equal([
+      {
+        path: "/pages/0/tree/0/children/1/id",
+        message: 'another child of this block already has the id "kpi"',
+      },
+    ]);
+  });
+
+  it("refuses a spec nested past the depth limit instead of overflowing the stack", () => {
+    let node: Json = { type: "KpiCard", options: { title: "leaf" } };
+    for (let level = 0; level < MAX_JSON_DEPTH; level += 1) {
+      node = { type: "VStack", children: [node] };
+    }
+    const read = parseSpec(JSON.stringify(onePage([node])));
+
+    const brackets = "[".repeat(MAX_JSON_DEPTH);
+    const quoted = parseSpec(
+      JSON.stringify(
+        onePage([{ type: "KpiCard", options: { title: `\\"${brackets}` } }]),
+      ),
+    );
+
+    expect(quoted.ok).to.equal(true);
+    expect(read.ok).to.equal(false);
+    expect(read.ok ? [] : read.issues).to.deep.equal([
+      {
+        path: "",
+        message: `the spec nests deeper than ${MAX_JSON_DEPTH} levels`,
+      },
+    ]);
   });
 
   it("validates a block type a module registers at runtime", () => {

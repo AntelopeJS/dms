@@ -40,9 +40,14 @@ export const SKETCH_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
   [/<[^>]*[\s/"']on[a-z]+\s*=/i, "an on* event handler attribute"],
   [/(?:java|vb)script\s*:/i, "a javascript: URL"],
   [/@import\b/i, "a CSS @import"],
+  [/@[\w-]*\\/, "an at-rule written with an escape"],
   [/url\(\s*(?!['"]?\s*data:)/i, "a url() that is not a data: URL"],
   [
-    /<[^>]*\s(?:src|srcset|href|xlink:href|poster|action|formaction|background|data|ping)\s*=\s*(?!['"]?\s*(?:data:|#))/i,
+    /(?:image|image-set|-webkit-image-set|cross-fade)\(\s*['"]\s*(?!data:)/i,
+    "an image() or image-set() of a URL that is not a data: URL",
+  ],
+  [
+    /<[^>]*[\s/"'](?:src|srcset|href|xlink:href|poster|action|formaction|background|data|ping)\s*=\s*(?!['"]?\s*(?:data:|#))/i,
     "a src, href or similar attribute that is not a data: URL or an #anchor",
   ],
 ];

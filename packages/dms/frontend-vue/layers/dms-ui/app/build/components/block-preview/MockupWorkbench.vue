@@ -93,6 +93,14 @@ const bridge = usePreviewFrame({
 });
 
 watch([state, () => currentPage.value?.id], syncPreview);
+watch(state, () => {
+  const target = pending.value;
+  if (!target) return;
+  const page = pages.value.find((entry) => entry.id === target.page);
+  if (page && Object.values(page.paths).includes(target.path)) return;
+  pending.value = undefined;
+  isSelectionUnknown.value = true;
+});
 watch(isAnnotating, (enabled) => {
   bridge.post(previewInspectMessage(enabled));
   pending.value = undefined;
