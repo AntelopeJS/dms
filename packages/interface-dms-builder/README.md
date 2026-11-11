@@ -19,7 +19,7 @@ The AntelopeJS interface that edits the pages, blocks, resources and queries of 
 - Reports every block type and DataType the builder can write, with a schema for its options (`GetCatalog`).
 - Returns every mutation as an `OpResult`. It holds the files changed on success, and a typed error otherwise.
 
-Every operation is an `InterfaceFunction` routed to [`@antelopejs/dms-builder`](https://www.npmjs.com/package/@antelopejs/dms-builder). That module parses the project, applies the edit as an AST rewrite, and writes only if the project still typechecks.
+Every operation is an `InterfaceFunction` that [`@antelopejs/dms`](https://www.npmjs.com/package/@antelopejs/dms) implements in development. The DMS parses the project, applies the edit as an AST rewrite, and writes only if the project still typechecks.
 
 ## Install
 
@@ -69,7 +69,7 @@ The interface declares this peer dependency:
 
 <!-- antelopejs-docs-compat:end -->
 
-The `@antelopejs/dms` module implements this interface, and so does the `@antelopejs/dms-builder` module. The `@antelopejs/interface-dms-builder` entry in the `dependencies` of `@antelopejs/dms` gives the interface range each `@antelopejs/dms` release implements. The implementation is not a peer dependency of the interface package. It runs in development only, unless the [`builder.enabled`](https://dms.antelopejs.com/docs/modules/builder/configuration) option of `@antelopejs/dms` turns it on.
+The `@antelopejs/dms` module implements this interface, and so does the `@antelopejs/dms-builder` module. The `@antelopejs/interface-dms-builder` entry in the `dependencies` of `@antelopejs/dms` gives the interface range each `@antelopejs/dms` release implements. The implementation is not a peer dependency of the interface package. It runs in development only, unless the [`builder.enabled`](https://dms.antelopejs.com/docs/building/configuration) option of `@antelopejs/dms` turns it on.
 
 ## Documentation
 

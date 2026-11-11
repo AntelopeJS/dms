@@ -2,7 +2,7 @@
 covers:
   - packages/dms/src/mcp/**
 docs:
-  - packages/dms/docs/08.ai-and-claude-code/9.mcp-server.md
+  - packages/dms/docs/08.ai-and-claude-code/10.mcp-server.md
 ---
 
 # MCP server
