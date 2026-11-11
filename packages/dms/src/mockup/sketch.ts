@@ -33,6 +33,17 @@ const sketchOptionsSchema = z
 /** The inside of a tag up to a point, skipping quoted attribute values. */
 const IN_TAG = String.raw`<(?:[^>"']|"[^"]*"|'[^']*')*?`;
 const ATTRIBUTE_START = String.raw`(?<=[\s/"'])`;
+/** The character references a style value may hold: the five HTML always escapes. */
+const PLAIN_REFERENCES = new Map([
+  ["quot", '"'],
+  ["apos", "'"],
+  ["amp", "&"],
+  ["lt", "<"],
+  ["gt", ">"],
+]);
+/** A character reference other than the plain ones, which could spell CSS syntax unseen. */
+const HIDDEN_REFERENCE = String.raw`&(?:#|(?!(?:quot|apos|amp|lt|gt);)[a-z])`;
+const PLAIN_REFERENCE = /&(quot|apos|amp|lt|gt);/gi;
 const URL_ATTRIBUTES =
   "src|srcset|href|xlink:href|poster|action|formaction|background|data|ping";
 
@@ -52,8 +63,11 @@ export const SKETCH_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
   ],
   [/(?:java|vb)script\s*:/i, "a javascript: URL"],
   [
-    /[\s/"']style\s*=\s*(?:"[^"]*&[#a-z]|'[^']*&[#a-z]|[^\s>"']*&[#a-z])/i,
-    "a style attribute written with character references (&#40;)",
+    new RegExp(
+      `${IN_TAG}${ATTRIBUTE_START}style\\s*=\\s*(?:"[^"]*${HIDDEN_REFERENCE}|'[^']*${HIDDEN_REFERENCE}|[^\\s>"']*${HIDDEN_REFERENCE})`,
+      "i",
+    ),
+    "a style attribute written with character references other than &quot; &apos; &amp; &lt; &gt; (&#40;)",
   ],
   [/@import\b/i, "a CSS @import"],
   [/url\(\s*(?!['"]?\s*data:)/i, "a url() that is not a data: URL"],
@@ -100,8 +114,11 @@ function cssInHtml(html: string): string {
   const elements = [...html.matchAll(STYLE_ELEMENT)].map(
     (match) => match[1] ?? "",
   );
-  const attributes = [...html.matchAll(STYLE_ATTRIBUTE)].map(
-    (match) => match[1] ?? match[2] ?? match[3] ?? "",
+  const attributes = [...html.matchAll(STYLE_ATTRIBUTE)].map((match) =>
+    (match[1] ?? match[2] ?? match[3] ?? "").replace(
+      PLAIN_REFERENCE,
+      (_, name: string) => PLAIN_REFERENCES.get(name.toLowerCase()) ?? "",
+    ),
   );
   return [...elements, ...attributes].join("\n");
 }
