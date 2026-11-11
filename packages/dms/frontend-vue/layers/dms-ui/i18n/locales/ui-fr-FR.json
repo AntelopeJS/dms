@@ -784,7 +784,37 @@
       "unsafe_url": "{name} n’a pas été affiché : « {value} » n’est pas un chemin de ce site.",
       "invalid_state": "L’état de l’aperçu est illisible.",
       "empty": "Rien à prévisualiser pour l’instant.",
-      "unsafe_method": "{name} n’a pas été affiché : un aperçu ne fait que lire ses données, et {value} écrit."
+      "unsafe_method": "{name} n’a pas été affiché : un aperçu ne fait que lire ses données, et {value} écrit.",
+      "invalid_sketch": "Une maquette libre n’a pas été affichée : ses options doivent contenir une chaîne html.",
+      "sketch_label": "Sur mesure"
+    },
+    "mockup": {
+      "list_title": "Maquettes",
+      "list_empty": "Aucune maquette pour l’instant. Ajoutez un dossier avec un spec.json sous mockups/ dans le projet.",
+      "list_failed": "Impossible de charger les maquettes.",
+      "pages_count": "{count} pages",
+      "pages": "Pages",
+      "width": "Largeur de l’aperçu",
+      "width_desktop": "Bureau",
+      "width_mobile": "Mobile",
+      "annotate": "Annoter",
+      "annotate_hint": "Cliquez sur un bloc de l’aperçu pour lui laisser une note.",
+      "issues": "Problèmes : {count}",
+      "issues_none": "Le spec ne contient aucun problème.",
+      "disconnected": "Déconnecté. Reconnexion…",
+      "waiting": "En attente du spec…",
+      "frame_title": "Aperçu de la maquette",
+      "not_in_spec": "Ce bloc n’est pas un nœud du spec, il ne peut pas être annoté.",
+      "request_failed": "La requête a échoué. Réessayez.",
+      "note_placeholder": "Qu’est-ce qui doit changer ici ?",
+      "save": "Enregistrer la note",
+      "cancel": "Annuler",
+      "annotations": "Annotations",
+      "annotations_empty": "Aucune annotation pour l’instant.",
+      "status_open": "Ouvertes",
+      "status_resolved": "Résolues",
+      "resolve": "Résoudre",
+      "reopen": "Rouvrir"
     },
     "drawer": {
       "resize": "Redimensionner le tiroir"
