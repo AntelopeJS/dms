@@ -16,6 +16,7 @@ import {
 } from "../../../mcp/tools/mockup";
 import {
   createAnnotation,
+  MAX_JSON_DEPTH,
   mockupNameSchema,
   parseSpec,
   updateAnnotation,
@@ -301,6 +302,59 @@ describe("[unit] mockup MCP tools", () => {
             "ENOENT",
           ),
       );
+    });
+
+    it("refuses a duplicate sibling id at the second sibling, leaving the old file byte-identical", async () => {
+      await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
+      const before = await specBytes();
+      const card = { type: "KpiCard", options: { title: "Revenue" } };
+
+      const result = await answer(
+        write,
+        {
+          mockup: NAME,
+          spec: spec({
+            type: "VStack",
+            children: [
+              { ...card, id: "kpi" },
+              { ...card, id: "kpi" },
+            ],
+          }),
+        },
+        writeAnswerSchema,
+      );
+
+      expect(result.ok).to.equal(false);
+      expect(result.errors.map((error) => error.path)).to.deep.equal([
+        "/pages/0/tree/0/children/1/id",
+      ]);
+      expect(await specBytes()).to.equal(before);
+    });
+
+    it("refuses a spec nested past the depth limit, leaving the old file byte-identical", async () => {
+      await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
+      const before = await specBytes();
+      let node: JsonValue = { type: "KpiCard", options: { title: "leaf" } };
+      for (let level = 0; level < MAX_JSON_DEPTH; level += 1) {
+        node = { type: "VStack", children: [node] };
+      }
+
+      const result = await answer(
+        write,
+        { mockup: NAME, spec: spec(node) },
+        writeAnswerSchema,
+      );
+
+      expect(result).to.deep.equal({
+        ok: false,
+        errors: [
+          {
+            path: "",
+            message: `the spec nests deeper than ${MAX_JSON_DEPTH} levels`,
+          },
+        ],
+      });
+      expect(await specBytes()).to.equal(before);
     });
 
     it("refuses a spec that is not a JSON object", async () => {
