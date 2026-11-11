@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.13.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.13.1...v0.13.2)
+
+### 🔥 Performance
+
+- **interface-dms:** Skip the watch-action walk when options hold none ([#846](https://github.com/AntelopeJS/dms/pull/846))
+- **dms-auth:** Sign and verify tokens with a secret KeyObject ([#847](https://github.com/AntelopeJS/dms/pull/847))
+- **auth:** Hash passwords off the event loop with setHashAsync ([#852](https://github.com/AntelopeJS/dms/pull/852))
+
+### 🩹 Fixes
+
+- **dms-ui:** Show the dragged row or card under the pointer in the table view ([#845](https://github.com/AntelopeJS/dms/pull/845))
+- **dms:** Retry default-tenant provisioning when a failed run lost its lease ([#849](https://github.com/AntelopeJS/dms/pull/849))
+
+### 📖 Documentation
+
+- **ai:** List the sync search order the code uses ([#850](https://github.com/AntelopeJS/dms/pull/850))
+- **readme:** Remove the links that 404 for signed-out visitors ([#853](https://github.com/AntelopeJS/dms/pull/853))
+
+### 📦 Build
+
+- Adopt @antelopejs/tooling-configs 0.5.1 ([#851](https://github.com/AntelopeJS/dms/pull/851))
+
+### ✅ Tests
+
+- **formal:** Model the default tenant's provisioning lease with TLA+ ([#848](https://github.com/AntelopeJS/dms/pull/848))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.13.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.13.0...v0.13.1)
