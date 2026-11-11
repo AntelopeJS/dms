@@ -119,7 +119,7 @@
     "ts-morph": "^23.0.0",
     "ua-parser-js": "^2.0.9",
     "zod": "~3.24.2",
-    "zod-to-json-schema": "^3.24.6"
+    "zod-to-json-schema": "~3.24.6"
   },
   "devDependencies": {
     "@antelopejs/api": "^1.7.0",
