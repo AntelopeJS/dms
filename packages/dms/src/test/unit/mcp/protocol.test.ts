@@ -226,6 +226,14 @@ describe("[unit] mcp protocol", () => {
     expect(full).to.have.lengthOf(safe.length + 2);
   });
 
+  it("serves the theme tools under safe access, since they edit through the builder", async () => {
+    expect(await listed("safe", MCP_TOOLS)).to.include.members([
+      "builder_get_theme",
+      "builder_set_theme",
+      "builder_create_theme_layer",
+    ]);
+  });
+
   it("names every tool once, so a call never reaches the wrong one", async () => {
     const names = await listed("full", MCP_TOOLS);
     expect(new Set(names).size).to.equal(names.length);

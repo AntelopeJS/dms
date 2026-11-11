@@ -6,6 +6,7 @@ import { BUILDER_PROJECT_TOOLS } from "./builder-project";
 import { BUILDER_QUERY_TOOLS } from "./builder-queries";
 import { BUILDER_RESOURCE_TOOLS } from "./builder-resources";
 import { builderTableViewTool } from "./builder-table-view";
+import { BUILDER_THEME_TOOLS } from "./builder-theme";
 import { DATABASE_TOOLS } from "./database";
 import { PAGE_TOOLS } from "./pages";
 import { previewBlocksTool } from "./preview-blocks";
@@ -26,6 +27,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
   ...BUILDER_RESOURCE_TOOLS,
   ...BUILDER_QUERY_TOOLS,
   ...BUILDER_PROJECT_TOOLS,
+  ...BUILDER_THEME_TOOLS,
   ...PAGE_TOOLS,
   previewBlocksTool,
   typecheckTool,
