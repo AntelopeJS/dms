@@ -192,19 +192,6 @@ The columns come from the data controller. The field also brings 14 API routes w
 
 <img data-illustration src="./docs/media/roles-readonly.gif" width="100%" alt="The Support role's permission tree, with dashboard blocks and the Create, Edit and Delete actions switched one by one. The dashboard is previewed as Support, and the same request returns 200 for Admin and 403 for Support.">
 
-<details>
-<summary><b>Watch the films</b>: Meet AntelopeJS DMS, and a tour of the whole DMS</summary>
-
-**Meet AntelopeJS DMS.** A company connects its ERP, its CRM and its shop, and gets one back office and one dashboard.
-
-https://github.com/user-attachments/assets/1c0b9396-d468-48b4-b504-3e5b9e50eeb4
-
-**A tour of the whole DMS.** Pages and blocks, people and roles, modules, and the three ways to build.
-
-https://github.com/user-attachments/assets/ba552792-f0d4-4fcf-8b0e-81029a5a2582
-
-</details>
-
 ## 41 blocks, ready to use
 
 <img data-illustration src="./docs/media/readme/blocks.svg" width="100%" alt="41 DMS building blocks appear one by one on a grid while a counter climbs to 41. Caption: 41 blocks. One line of TypeScript each.">
