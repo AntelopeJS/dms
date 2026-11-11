@@ -211,41 +211,63 @@ function formatterIndentation(rootDir: string): IndentationText | undefined {
   return undefined;
 }
 
-function detectIndentation(rootDir: string): IndentationText {
-  const configured = formatterIndentation(rootDir);
-  if (configured !== undefined) {
-    return configured;
-  }
+function editorconfigIndentation(rootDir: string): IndentationText | undefined {
   const editorconfig = findUpwards(rootDir, [".editorconfig"]);
-  if (editorconfig) {
-    const settings = editorconfigSettings(
-      fs.readFileSync(editorconfig, "utf8"),
-    );
-    const style = settings.get("indent_style")?.toLowerCase();
-    if (style === "tab") {
-      return IndentationText.Tab;
-    }
-    if (style === "space") {
-      return settings.get("indent_size") === "4"
-        ? IndentationText.FourSpaces
-        : IndentationText.TwoSpaces;
-    }
+  if (!editorconfig) {
+    return undefined;
+  }
+  const settings = editorconfigSettings(fs.readFileSync(editorconfig, "utf8"));
+  const style = settings.get("indent_style")?.toLowerCase();
+  if (style === "tab") {
+    return IndentationText.Tab;
+  }
+  if (style === "space") {
+    return settings.get("indent_size") === "4"
+      ? IndentationText.FourSpaces
+      : IndentationText.TwoSpaces;
+  }
+  return undefined;
+}
+
+/**
+ * From a Biome or Prettier config, else an `.editorconfig`, searched from
+ * `rootDir` up to the repository root.
+ */
+export function configuredIndentation(
+  rootDir: string,
+): IndentationText | undefined {
+  return formatterIndentation(rootDir) ?? editorconfigIndentation(rootDir);
+}
+
+/** The indentation of a file's first indented line, if it has one. */
+export function sampledIndentation(text: string): IndentationText | undefined {
+  const firstIndentedLine = text
+    .slice(0, INDENT_SAMPLE_BYTES)
+    .split("\n")
+    .find((line) => /^[\t ]+\S/.test(line));
+  if (!firstIndentedLine) {
+    return undefined;
+  }
+  if (firstIndentedLine.startsWith("\t")) {
+    return IndentationText.Tab;
+  }
+  return firstIndentedLine.startsWith("    ")
+    ? IndentationText.FourSpaces
+    : IndentationText.TwoSpaces;
+}
+
+function detectIndentation(rootDir: string): IndentationText {
+  const configuredIndent = configuredIndentation(rootDir);
+  if (configuredIndent !== undefined) {
+    return configuredIndent;
   }
   const entry = path.join(rootDir, "src/index.ts");
   if (!fs.existsSync(entry)) {
     return IndentationText.Tab;
   }
-  const sample = fs.readFileSync(entry, "utf8").slice(0, INDENT_SAMPLE_BYTES);
-  const indented = sample.split("\n").find((line) => /^[\t ]+\S/.test(line));
-  if (!indented) {
-    return IndentationText.Tab;
-  }
-  if (indented.startsWith("\t")) {
-    return IndentationText.Tab;
-  }
-  return indented.startsWith("    ")
-    ? IndentationText.FourSpaces
-    : IndentationText.TwoSpaces;
+  return (
+    sampledIndentation(fs.readFileSync(entry, "utf8")) ?? IndentationText.Tab
+  );
 }
 
 export function createProject(rootDir: string): Project {

@@ -204,6 +204,16 @@ export interface ProvisioningLeaseConfig {
   pollEveryMs: number;
 }
 
+/** Where the theme operations write the project's theme. */
+export interface BuilderThemeConfig {
+  /**
+   * Relative to `builder.projectRoot`, or absolute. When unset, the theme goes
+   * in the highest-priority frontend module registered from inside the
+   * project root.
+   */
+  layerPath?: string;
+}
+
 /**
  * The builder engine, which edits the pages, blocks, resources and queries of
  * the project's sources through `@antelopejs/interface-dms-builder`.
@@ -223,6 +233,7 @@ export interface BuilderConfig {
    * path resolves against the working directory, which is also the default.
    */
   projectRoot?: string;
+  theme?: BuilderThemeConfig;
 }
 
 export interface Config {

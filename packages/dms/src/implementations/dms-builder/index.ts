@@ -56,6 +56,9 @@ import type {
   ResourceRef,
   ResourceStructure,
   ResourceSummary,
+  ThemeDraft,
+  ThemeLayer,
+  ThemeStructure,
 } from "@antelopejs/interface-dms-builder";
 import { analysisState, startAnalysis } from "./engine/analysis-job";
 import { mapResources, previewMapResources } from "./engine/map-resources";
@@ -98,6 +101,8 @@ import {
   removeField,
 } from "./engine/resource-ops-delete";
 import { buildResourceStructure } from "./engine/resource-structure";
+import { getTheme, setTheme } from "./engine/theme";
+import { createThemeLayer } from "./engine/theme-scaffold";
 import {
   invalidateSourceIndex,
   listCategorySummaries,
@@ -391,6 +396,21 @@ export async function ComposePage(
   return composePage(input, opts);
 }
 
+export async function GetTheme(): Promise<OpResult<ThemeStructure>> {
+  return getTheme();
+}
+
+export async function SetTheme(
+  draft: ThemeDraft,
+  opts?: MutationOpts,
+): Promise<OpResult<{ version: string }>> {
+  return setTheme(draft, opts);
+}
+
+export async function CreateThemeLayer(): Promise<OpResult<ThemeLayer>> {
+  return createThemeLayer();
+}
+
 /**
  * The map the interface declares next to its flat exports. The core attaches an implementation to every
  * path of the declaration, so each operation is answered here as well, by the same function.
@@ -415,6 +435,7 @@ export const Operations = {
   CreateLocalModule,
   CreatePage,
   CreateResource,
+  CreateThemeLayer,
   DeleteCategory,
   DeletePage,
   DeleteResource,
@@ -423,6 +444,7 @@ export const Operations = {
   GetMapping,
   GetPageStructure,
   GetResourceStructure,
+  GetTheme,
   ListCategories,
   ListDataSources,
   ListPages,
@@ -438,4 +460,5 @@ export const Operations = {
   RemoveField,
   RemoveQuery,
   SetPageBlocks,
+  SetTheme,
 } satisfies typeof BuilderOperations;
