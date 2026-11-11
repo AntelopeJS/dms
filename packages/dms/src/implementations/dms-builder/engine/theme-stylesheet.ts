@@ -41,7 +41,8 @@ const RULE = /^\s*([^{}]+?)\s*\{([^{}]*)\}/;
  * `!important`. A theme value is a color, a length, a font stack or a shadow,
  * none of which needs any of these.
  */
-const UNSAFE_VALUE = /[;{}<>\\]|\/\*|\*\/|url\(|@import|!important/i;
+const UNSAFE_VALUE =
+  /[;{}<>\\]|\/\*|\*\/|(?:url|src|image|image-set|cross-fade|element)\(|@import|!\s*important/i;
 const MAX_VALUE_LENGTH = 512;
 const INDENT = "  ";
 const QUOTES = new Set(['"', "'"]);

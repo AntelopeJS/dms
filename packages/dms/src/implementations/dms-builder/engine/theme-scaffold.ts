@@ -16,12 +16,13 @@ import { commit, unsupported } from "./ops";
 import { resolveProjectRoot } from "./project";
 import { isString } from "./scalar-guards";
 import { isPlainObject } from "./value";
-import { scaffoldEntrySource } from "./theme-entry";
+import { ENTRY_FILE, scaffoldEntrySource } from "./theme-entry";
 import {
   emptyLayersDetail,
   proposedLayerPath,
   resolveThemeLayer,
   resolveThemeRoot,
+  SCAFFOLD_LAYER_DIRECTORY,
   themeFiles,
 } from "./theme-layer";
 import {
@@ -221,12 +222,25 @@ function isLayerRegistered(
     );
 }
 
+/** Whether `start` can return before a statement added at the end of its body runs. */
+function returnsBeforeItsEnd(start: FunctionDeclaration): boolean {
+  return start
+    .getDescendantsOfKind(SyntaxKind.ReturnStatement)
+    .some(
+      (statement) =>
+        statement.getFirstAncestor((node) =>
+          Node.isFunctionLikeDeclaration(node),
+        ) === start,
+    );
+}
+
 /**
  * Register the layer from the project's `start()`, which runs once the DMS is
  * connected, as the builder registers its own frontend. Returns false when
- * the entry has no exported `start()` with a body, or when `node:path` cannot
- * be bound (imported without a default or namespace name, or `path` already
- * names something else).
+ * the entry has no exported `start()` with a body, when that `start()` can
+ * return before its end, or when `node:path` cannot be bound (imported
+ * without a default or namespace name, or `path` already names something
+ * else).
  */
 function registerLayer(
   barrel: SourceFile,
@@ -245,6 +259,9 @@ function registerLayer(
   }
   if (isLayerRegistered(start, layerRelativePath)) {
     return true;
+  }
+  if (returnsBeforeItsEnd(start)) {
+    return false;
   }
   ensureRegisterFunctionImport(barrel);
   start.addStatements((writer) => {
@@ -345,7 +362,7 @@ export function scaffoldThemeLayer(): OpResult<ThemeLayer> {
   if (!registerLayer(barrel, root, layerDirectory, layerName)) {
     transaction.rollback();
     return unsupported(
-      `${path.relative(root, barrel.getFilePath())} has no exported start() function the builder can register the layer from`,
+      `${path.relative(root, barrel.getFilePath())} has no exported start() function the builder can register the layer at the end of: add one, or move its return statements so it runs to its end`,
     );
   }
   const errors = transaction.typecheckErrors();
@@ -366,7 +383,14 @@ export function scaffoldThemeLayer(): OpResult<ThemeLayer> {
 /** A project that already has a layer keeps it, and nothing is written. */
 export async function createThemeLayer(): Promise<OpResult<ThemeLayer>> {
   const existing = await resolveThemeLayer();
-  return existing
-    ? { ok: true, data: existing, changes: [] }
-    : scaffoldThemeLayer();
+  if (!existing) {
+    return scaffoldThemeLayer();
+  }
+  const entry = path.join(existing.sourcePath, ENTRY_FILE);
+  if (!fs.statSync(entry, { throwIfNoEntry: false })?.isFile()) {
+    return unsupported(
+      `the layer at ${existing.sourcePath} has no ${ENTRY_FILE}: create the layer there, or remove the module config's theme.layerPath for the builder to create ${SCAFFOLD_LAYER_DIRECTORY}/`,
+    );
+  }
+  return { ok: true, data: existing, changes: [] };
 }

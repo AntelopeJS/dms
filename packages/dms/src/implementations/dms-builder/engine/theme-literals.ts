@@ -13,7 +13,8 @@ function objectOf(node: Node | undefined): ObjectLiteralExpression | undefined {
     return node;
   }
   if (Node.isCallExpression(node)) {
-    return objectOf(node.getArguments()[0]);
+    const [config, ...rest] = node.getArguments();
+    return rest.length === 0 ? objectOf(config) : undefined;
   }
   if (
     Node.isAsExpression(node) ||

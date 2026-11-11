@@ -187,6 +187,24 @@ describe("theme fonts, saved", function () {
     expect(fs.existsSync(layerPath(STYLESHEET))).to.equal(false);
   });
 
+  it("answers stale when the app config changes while a font downloads, and keeps that change", async () => {
+    const edited = `export default defineDmsAppConfig({ ui: { colors: { primary: "teal" } } });\n`;
+    serveFonts((url) => {
+      writeLayerFile("app/app.config.ts", edited);
+      return new Response(
+        url.endsWith("/LICENSE") ? LICENSE : new Uint8Array(WOFF2),
+      );
+    });
+    const theme = expectOk(await GetTheme(), "GetTheme");
+    const result = await SetTheme(
+      draft({ variables: withFont('"Inter", sans-serif') }),
+      { expectedVersion: theme.version },
+    );
+    expect(!result.ok && result.error.code).to.equal("stale");
+    expect(readLayerFile("app/app.config.ts")).to.equal(edited);
+    expect(fs.existsSync(layerPath(STYLESHEET))).to.equal(false);
+  });
+
   it("refuses a download that is not a font, or a license that is not the OFL", async () => {
     serveFonts(() => new Response("<html>not found</html>"));
     const notAFont = await SetTheme(
