@@ -1,9 +1,11 @@
 import { once } from "node:events";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { createServer, type Server } from "node:http";
+import http, { createServer, type Server } from "node:http";
+import https from "node:https";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
+import { mock } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect } from "chai";
 import { z } from "zod";
@@ -215,6 +217,36 @@ describe("[unit] mcp stdio bridge", () => {
     expect(failure.error.message).to.equal(
       "The DMS backend refused the bridge's credential. Restart the project with ajs project dev, then retry.",
     );
+  });
+
+  it("refuses a URL that is not on this machine without opening a connection, and names mcp.backendUrl", async () => {
+    const refuse = () => {
+      throw new Error("no connection in this test");
+    };
+    const httpRequest = mock.method(http, "request", refuse);
+    const httpsRequest = mock.method(https, "request", refuse);
+    try {
+      const urls = [
+        "https://api.test.example.com/dms/mcp",
+        "http://127.0.0.1.evil.example.com:5010/dms/mcp",
+        "http://192.168.1.20:5010/dms/mcp",
+        "http://[::ffff:10.0.0.1]:5010/dms/mcp",
+        "not a url",
+      ];
+      for (const [index, url] of urls.entries()) {
+        await useConfig(url);
+        input.write(`{"jsonrpc":"2.0","id":${index},"method":"ping"}\n`);
+        await until(() => lines().length === index + 1);
+        expect(httpRequest.mock.callCount(), url).to.equal(0);
+        expect(httpsRequest.mock.callCount(), url).to.equal(0);
+        const failure = FailureSchema.parse(JSON.parse(lines()[index] ?? ""));
+        expect(failure.id, url).to.equal(index);
+        expect(failure.error.message, url).to.contain("mcp.backendUrl");
+      }
+    } finally {
+      httpRequest.mock.restore();
+      httpsRequest.mock.restore();
+    }
   });
 
   it("relays the backend's JSON-RPC parse error for a line it cannot read, whatever the HTTP status", async () => {

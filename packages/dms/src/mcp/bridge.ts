@@ -3,6 +3,7 @@ import http from "node:http";
 import https from "node:https";
 import type { Readable, Writable } from "node:stream";
 import { z } from "zod";
+import { BACKEND_URL_HINT, isLoopbackUrl } from "./backend-url";
 
 const HTTP_ACCEPTED = 202;
 const JSON_RPC_INTERNAL_ERROR = -32603;
@@ -17,7 +18,7 @@ const REFUSALS: ReadonlyMap<number, string> = new Map([
   ],
   [
     403,
-    "The DMS backend refused a caller that is not on its machine. Set the dms apiBaseUrl to a loopback address such as http://127.0.0.1:5010.",
+    `The DMS backend refused a request that did not come straight from its own machine. ${BACKEND_URL_HINT}`,
   ],
   [
     404,
@@ -52,6 +53,15 @@ interface RelayAnswer {
   text: string;
 }
 
+/** The bridge's credential is bound for a host that is not this machine, so no request was sent. */
+class NonLoopbackBackendError extends Error {
+  constructor() {
+    super(
+      `The bridge refused to send its credential to a backend that is not on this machine. ${BACKEND_URL_HINT}`,
+    );
+  }
+}
+
 async function readConfig(configPath: string): Promise<BridgeConfig> {
   return BridgeConfigSchema.parse(
     JSON.parse(await readFile(configPath, "utf8")),
@@ -59,6 +69,9 @@ async function readConfig(configPath: string): Promise<BridgeConfig> {
 }
 
 function post(config: BridgeConfig, body: string): Promise<RelayAnswer> {
+  if (!isLoopbackUrl(config.url)) {
+    return Promise.reject(new NonLoopbackBackendError());
+  }
   const url = new URL(config.url);
   const transport = url.protocol === "https:" ? https : http;
   return new Promise((resolve, reject) => {
@@ -167,10 +180,13 @@ export function runBridge(
     relay(configPath, line).then(
       (answer) => write(answerLine(id, answer)),
       (error: unknown) => {
-        const reason = error instanceof Error ? error.message : String(error);
-        if (id !== undefined) {
-          write(failure(id, `${BACKEND_UNREACHABLE} (${reason})`));
+        if (id === undefined) return;
+        if (error instanceof NonLoopbackBackendError) {
+          write(failure(id, error.message));
+          return;
         }
+        const reason = error instanceof Error ? error.message : String(error);
+        write(failure(id, `${BACKEND_UNREACHABLE} (${reason})`));
       },
     );
   });
