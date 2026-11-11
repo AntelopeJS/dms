@@ -204,6 +204,27 @@ export interface ProvisioningLeaseConfig {
   pollEveryMs: number;
 }
 
+/**
+ * The builder engine, which edits the pages, blocks, resources and queries of
+ * the project's sources through `@antelopejs/interface-dms-builder`.
+ */
+export interface BuilderConfig {
+  /**
+   * Forces the builder on or off. Unset, it follows the project's development
+   * mode: on under `ajs project run` (with or without `-w`), off under
+   * `ajs project start`, which runs a build. `NODE_ENV` is not consulted:
+   * nothing sets it on the way to `ajs project start`. Turn it on in a running
+   * deployment only deliberately, since the builder rewrites TypeScript sources
+   * that exist only in a development checkout.
+   */
+  enabled?: boolean;
+  /**
+   * Absolute path to the app source root where page files live. A relative
+   * path resolves against the working directory, which is also the default.
+   */
+  projectRoot?: string;
+}
+
 export interface Config {
   auth?: AuthConfig;
   htmlRender?: HtmlRenderConfig;
@@ -225,6 +246,7 @@ export interface Config {
    */
   docsPreview?: boolean;
   provisioningLease?: Partial<ProvisioningLeaseConfig>;
+  builder?: BuilderConfig;
 }
 
 const REFRESH_TOKEN_LIFETIME_DAYS = 30;
@@ -316,6 +338,20 @@ export function isDocsPreviewEnabled(dev = false): boolean {
     globalConfig.docsPreview === true ||
     process.env[DOCS_PREVIEW_ENV] === DOCS_PREVIEW_ENV_ENABLED
   );
+}
+
+export function getBuilderConfig(): BuilderConfig {
+  return globalConfig.builder ?? {};
+}
+
+/** Replaces the whole `builder` configuration; `undefined` clears it. */
+export function setBuilderConfig(config: BuilderConfig | undefined): void {
+  globalConfig = { ...globalConfig, builder: config };
+}
+
+/** Whether the builder engine is served, `dev` being the runtime's mode. */
+export function isBuilderEnabled(dev = false): boolean {
+  return globalConfig.builder?.enabled ?? dev;
 }
 
 export function getAuthConfig(): AuthConfig {
