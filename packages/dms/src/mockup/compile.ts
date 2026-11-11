@@ -209,6 +209,36 @@ function compileNode(
 
 const ROOT_LAYOUT_PREFIX = "block-";
 
+/**
+ * How deep a spec's JSON may nest, objects and arrays counted alike: a node
+ * nests two levels under its parent, so a tree of about forty levels fits,
+ * and the compiler's recursion stays far from the stack's limit.
+ */
+export const MAX_JSON_DEPTH = 100;
+
+const OPENERS = new Set(["{", "["]);
+const CLOSERS = new Set(["}", "]"]);
+
+/** How deep the valid JSON `text` nests: its brackets outside strings, counted in one pass. */
+function jsonDepth(text: string): number {
+  let depth = 0;
+  let deepest = 0;
+  let inString = false;
+  let escaped = false;
+  for (const char of text) {
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (OPENERS.has(char)) deepest = Math.max(deepest, ++depth);
+    else if (CLOSERS.has(char)) depth -= 1;
+  }
+  return deepest;
+}
+
 function compilePage(
   name: MockupName,
   page: MockupSpecPage,
@@ -284,6 +314,17 @@ export function parseSpec(text: string): SpecRead {
     return {
       ok: false,
       issues: [{ path: "", message: `invalid JSON: ${message}` }],
+    };
+  }
+  if (jsonDepth(text) > MAX_JSON_DEPTH) {
+    return {
+      ok: false,
+      issues: [
+        {
+          path: "",
+          message: `the spec nests deeper than ${MAX_JSON_DEPTH} levels`,
+        },
+      ],
     };
   }
   const parsed = specSchema.safeParse(raw);

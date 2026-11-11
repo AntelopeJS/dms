@@ -42,7 +42,7 @@ export const SKETCH_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
   [/@import\b/i, "a CSS @import"],
   [/url\(\s*(?!['"]?\s*data:)/i, "a url() that is not a data: URL"],
   [
-    /<[^>]*\s(?:src|srcset|href|xlink:href|poster|action|formaction|background|data|ping)\s*=\s*(?!['"]?\s*(?:data:|#))/i,
+    /<[^>]*[\s/"'](?:src|srcset|href|xlink:href|poster|action|formaction|background|data|ping)\s*=\s*(?!['"]?\s*(?:data:|#))/i,
     "a src, href or similar attribute that is not a data: URL or an #anchor",
   ],
 ];

@@ -94,6 +94,25 @@ describe("[unit] mockup store", () => {
     expect(broken?.revision).to.equal((good?.revision ?? 0) + 1);
   });
 
+  it("keeps following a mockup whose directory is deleted and made again", async () => {
+    const { ready, event } = nextEvent(
+      store,
+      NAME,
+      (received) =>
+        received.event === "state" && received.data.pages[0]?.title === "Again",
+    );
+    const unsubscribe = await ready;
+    await rm(join(root, NAME), { recursive: true });
+    await mkdir(join(root, NAME));
+    await writeFile(join(root, NAME, "spec.json"), spec("Again"));
+    const received = await event;
+    const current = await store.state(NAME);
+    unsubscribe();
+
+    expect(received.event).to.equal("state");
+    expect(current?.pages[0].title).to.equal("Again");
+  });
+
   it("sends a subscriber the new state within a second of a save", async () => {
     const { ready, event } = nextEvent(
       store,

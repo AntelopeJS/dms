@@ -125,6 +125,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
     async events(
       @Parameter("name") rawName: string,
       @WriteStream(SSE_CONTENT_TYPE) out: PassThrough,
+      @Context() context: RequestContext,
     ): Promise<void> {
       const name = parseMockupName(rawName);
       if (!name) {
@@ -134,11 +135,14 @@ export function registerMockupRoutes(engine: MockupEngine) {
       let unsubscribe: (() => void) | undefined;
       let open = true;
       const drop = () => {
+        if (!open) return;
         open = false;
         engine.streams.delete(out);
         unsubscribe?.();
+        out.end();
       };
       engine.streams.add(out);
+      context.rawRequest.on("close", drop);
       out.on("close", drop);
       out.on("error", drop);
       write(out, SSE_HELLO);

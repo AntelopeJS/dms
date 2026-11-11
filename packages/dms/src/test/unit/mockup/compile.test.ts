@@ -9,6 +9,7 @@ import {
   type CompiledSpec,
   compileSpec,
   type Json,
+  MAX_JSON_DEPTH,
   mockupNameSchema,
   MockupStore,
   parseSpec,
@@ -189,6 +190,50 @@ describe("[unit] mockup compiler", () => {
       html: "<p>fine</p>",
       height: 120,
     });
+  });
+
+  it("refuses a remote href or src however the attribute is separated", () => {
+    const sketches = [
+      '<a/href="https://example.com/x">x</a>',
+      "<a/href=https://example.com/x>x</a>",
+      '<img/src="https://example.com/x.png">',
+      '<a title="t"href="https://example.com/x">x</a>',
+      '<svg><a/xlink:href="https://example.com/x"><text>t</text></a></svg>',
+    ];
+    const { issues, pages } = compile(
+      onePage(sketches.map((html) => ({ type: "sketch", options: { html } }))),
+    );
+
+    expect(issues.map((issue) => issue.path)).to.deep.equal(
+      sketches.map((_, index) => `/pages/0/tree/${index}/options/html`),
+    );
+    expect(pages[0].tree.map((node) => node.options?.html)).to.deep.equal(
+      sketches.map(() => ""),
+    );
+  });
+
+  it("refuses a spec nested past the depth limit instead of overflowing the stack", () => {
+    let node: Json = { type: "KpiCard", options: { title: "leaf" } };
+    for (let level = 0; level < MAX_JSON_DEPTH; level += 1) {
+      node = { type: "VStack", children: [node] };
+    }
+    const read = parseSpec(JSON.stringify(onePage([node])));
+
+    const brackets = "[".repeat(MAX_JSON_DEPTH);
+    const quoted = parseSpec(
+      JSON.stringify(
+        onePage([{ type: "KpiCard", options: { title: `\\"${brackets}` } }]),
+      ),
+    );
+
+    expect(quoted.ok).to.equal(true);
+    expect(read.ok).to.equal(false);
+    expect(read.ok ? [] : read.issues).to.deep.equal([
+      {
+        path: "",
+        message: `the spec nests deeper than ${MAX_JSON_DEPTH} levels`,
+      },
+    ]);
   });
 
   it("validates a block type a module registers at runtime", () => {

@@ -1,6 +1,6 @@
 import { type FSWatcher, watch } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { z } from "zod";
 import { listAnnotations, type MockupAnnotation } from "./annotations";
@@ -48,8 +48,8 @@ interface Entry {
   issues: MockupIssue[];
 }
 
+/** A watched mockup: its subscribers, and its reads waiting out a burst. */
 interface Watch {
-  watcher: FSWatcher;
   listeners: Set<MockupListener>;
   timers: Map<string, NodeJS.Timeout>;
 }
@@ -82,11 +82,14 @@ function lastGood(
 /**
  * The mockups of `mockupsDir`, compiled on read. A mockup someone subscribes
  * to is watched: a change of its spec or annotations reaches every
- * subscriber once the writes settle.
+ * subscriber once the writes settle. One recursive watcher covers
+ * `mockupsDir` while anyone subscribes, so a mockup directory deleted and
+ * made again is still seen.
  */
 export class MockupStore {
   private readonly entries = new Map<MockupName, Entry>();
   private readonly watches = new Map<MockupName, Watch>();
+  private watcher: FSWatcher | undefined;
 
   constructor(readonly mockupsDir: string) {}
 
@@ -159,6 +162,11 @@ export class MockupStore {
       watched.listeners.delete(listener);
       if (!watched.listeners.size) this.stopWatch(name);
     };
+  }
+
+  /** Whether a watcher runs: true while anyone is subscribed. */
+  isWatching(): boolean {
+    return this.watcher !== undefined;
   }
 
   /** Stops every watcher and pending read. Subscribing again restarts one. */
@@ -235,17 +243,37 @@ export class MockupStore {
   ]);
 
   private startWatch(name: MockupName): Watch {
-    const watcher = watch(
-      mockupDirectory(this.mockupsDir, name),
-      (_event, filename) => this.changed(name, filename),
-    );
-    const watched: Watch = { watcher, listeners: new Set(), timers: new Map() };
-    watcher.on("error", (error) => {
-      Logging.Warn(`[DMS] mockup "${name}" is no longer watched:`, error);
-      this.stopWatch(name);
-    });
+    this.watcher ??= this.watchMockups();
+    const watched: Watch = { listeners: new Set(), timers: new Map() };
     this.watches.set(name, watched);
     return watched;
+  }
+
+  private watchMockups(): FSWatcher {
+    const watcher = watch(
+      this.mockupsDir,
+      { recursive: true },
+      (_event, filename) => this.routeChange(filename),
+    );
+    watcher.on("error", (error) => {
+      Logging.Warn("[DMS] mockups are no longer watched:", error);
+      this.close();
+    });
+    return watcher;
+  }
+
+  /** `filename` is `<name>/<file>`, or `<name>` when the directory itself changed. */
+  private routeChange(filename: string | null): void {
+    const [directory, file, ...deeper] = filename?.split(sep) ?? [];
+    const name =
+      directory === undefined ? undefined : parseMockupName(directory);
+    if (deeper.length) return;
+    const names = name
+      ? [name]
+      : filename === null
+        ? [...this.watches.keys()]
+        : [];
+    for (const watched of names) this.changed(watched, file ?? null);
   }
 
   private changed(name: MockupName, filename: string | null): void {
@@ -284,6 +312,8 @@ export class MockupStore {
     if (!watched) return;
     this.watches.delete(name);
     for (const timer of watched.timers.values()) clearTimeout(timer);
-    watched.watcher.close();
+    if (this.watches.size) return;
+    this.watcher?.close();
+    this.watcher = undefined;
   }
 }
