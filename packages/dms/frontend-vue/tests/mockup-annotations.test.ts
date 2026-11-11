@@ -124,6 +124,28 @@ describe("annotate mode", () => {
     );
   });
 
+  it("drops the note box when an edit deletes the node it was on", async () => {
+    await annotate();
+    await viewer.say({ type: "select", path: "block-1.kpi" });
+    await type("Too late");
+    await viewer.publish(
+      "state",
+      mockupState({ revision: 2, pages: [mockupPage()] }),
+    );
+    expect(compose()).toBeNull();
+    expect(viewer.host.querySelector("[role=alert]")?.textContent).toBe(
+      "dms.mockup.not_in_spec",
+    );
+    expect(writes()).toEqual([]);
+  });
+
+  it("keeps the note box when an edit leaves its node in place", async () => {
+    await annotate();
+    await viewer.say({ type: "select", path: "block-1.kpi" });
+    await viewer.publish("state", mockupState({ ...STATE, revision: 2 }));
+    expect(compose()?.textContent).toContain(POINTER);
+  });
+
   it("drops the open note box when annotate mode is left", async () => {
     await annotate();
     await viewer.say({ type: "select", path: "block-1.kpi" });
