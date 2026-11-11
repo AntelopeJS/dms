@@ -24,7 +24,16 @@ const BEARER_PREFIX = "Bearer ";
 const LOOPBACK_IPV6 = "::1";
 /** The whole `127.0.0.0/8` range, plain or IPv4-mapped (Debian names the host `127.0.1.1`). */
 const LOOPBACK_IPV4_PREFIXES = ["127.", "::ffff:127."];
-const FORWARDING_HEADERS = ["x-forwarded-for", "forwarded"];
+const FORWARDING_HEADERS = [
+  "x-forwarded-for",
+  "forwarded",
+  "x-forwarded-host",
+  "x-forwarded-proto",
+  "x-real-ip",
+  "via",
+  "true-client-ip",
+  "cf-connecting-ip",
+];
 
 const HTTP_OK = 200;
 const HTTP_ACCEPTED = 202;
