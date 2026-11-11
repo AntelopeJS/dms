@@ -238,7 +238,8 @@ export function nodeTextAt(
 ): string | undefined {
   const [root, ...steps] = layoutPath.split(".");
   if (!root?.startsWith(ROOT_LAYOUT_PREFIX)) return undefined;
-  let node = page.tree[Number(root.slice(ROOT_LAYOUT_PREFIX.length))];
+  let node: PreviewNode | undefined =
+    page.tree[Number(root.slice(ROOT_LAYOUT_PREFIX.length))];
   for (const step of steps) {
     node = node?.children?.find(
       (child, index) => (child.id ?? String(index)) === step,
