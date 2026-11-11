@@ -20,9 +20,19 @@ describe("[integration] mcp route", () => {
   }
 
   it("refuses a request a proxy relayed, even with this start's credential", async () => {
-    for (const header of ["x-forwarded-for", "forwarded"]) {
+    const relayed = {
+      "x-forwarded-for": "203.0.113.7",
+      forwarded: "for=203.0.113.7",
+      "x-real-ip": "203.0.113.7",
+      via: "1.1 proxy.example.com",
+      "x-forwarded-host": "app.example.com",
+      "x-forwarded-proto": "https",
+      "true-client-ip": "203.0.113.7",
+      "cf-connecting-ip": "203.0.113.7",
+    };
+    for (const [header, value] of Object.entries(relayed)) {
       const response = await client.post(ROUTE, ping, {
-        headers: { authorization: bearer(), [header]: "203.0.113.7" },
+        headers: { authorization: bearer(), [header]: value },
       });
       expect(response.status, header).to.equal(403);
     }

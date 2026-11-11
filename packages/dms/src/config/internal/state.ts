@@ -228,6 +228,15 @@ export interface McpConfig {
    * missing. Defaults to `true`; `false` leaves the file alone.
    */
   mcpJson?: boolean;
+  /**
+   * The origin the bridge sends its requests and its per-start credential to,
+   * on the machine that runs the backend. Set it to
+   * `${@api.API_LOCAL_BASE_URL}`, the api module's same-host origin.
+   * When unset, the bridge uses `apiBaseUrl` if its host is loopback. Any
+   * other host is refused, so the credential never leaves the machine, and
+   * the bridge is not written.
+   */
+  backendUrl?: string;
 }
 
 /** Where the theme operations write the project's theme. */

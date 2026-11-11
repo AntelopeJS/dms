@@ -76,7 +76,7 @@ function inputSchemaOf<Fields extends McpInputFields>(
   input: z.ZodObject<Fields>,
 ): McpInputSchema {
   const { $schema: _schema, ...schema } = JsonObjectSchema.parse(
-    zodToJsonSchema(input, { target: "jsonSchema7", $refStrategy: "none" }),
+    zodToJsonSchema(input, { target: "jsonSchema7", $refStrategy: "root" }),
   );
   return schema;
 }

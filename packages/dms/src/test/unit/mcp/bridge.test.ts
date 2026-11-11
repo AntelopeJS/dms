@@ -1,9 +1,11 @@
 import { once } from "node:events";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { createServer, type Server } from "node:http";
+import http, { createServer, type Server } from "node:http";
+import https from "node:https";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
+import { mock } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect } from "chai";
 import { z } from "zod";
@@ -23,7 +25,7 @@ const EchoAnswerSchema = z.object({
   result: z.object({ method: z.string() }),
 });
 const FailureSchema = z.object({
-  id: z.union([z.string(), z.number()]),
+  id: z.union([z.string(), z.number(), z.null()]),
   error: z.object({ code: z.number(), message: z.string() }),
 });
 
@@ -215,6 +217,66 @@ describe("[unit] mcp stdio bridge", () => {
     expect(failure.error.message).to.equal(
       "The DMS backend refused the bridge's credential. Restart the project with ajs project dev, then retry.",
     );
+  });
+
+  it("tells a developer whose request the backend refused as relayed to set mcp.backendUrl, not apiBaseUrl", async () => {
+    await serve(() => ({ status: 403, body: '{"error":"forbidden"}' }));
+    input.write('{"jsonrpc":"2.0","id":1,"method":"ping"}\n');
+    await until(() => lines().length === 1);
+    const { message } = FailureSchema.parse(JSON.parse(lines()[0] ?? "")).error;
+    expect(message).to.contain("mcp.backendUrl");
+    expect(message).to.not.contain("apiBaseUrl");
+  });
+
+  it("refuses a URL that is not on this machine without opening a connection, and names mcp.backendUrl", async () => {
+    const refuse = () => {
+      throw new Error("no connection in this test");
+    };
+    const httpRequest = mock.method(http, "request", refuse);
+    const httpsRequest = mock.method(https, "request", refuse);
+    try {
+      const urls = [
+        "https://api.test.example.com/dms/mcp",
+        "http://127.0.0.1.evil.example.com:5010/dms/mcp",
+        "http://192.168.1.20:5010/dms/mcp",
+        "http://[::ffff:10.0.0.1]:5010/dms/mcp",
+        "not a url",
+      ];
+      for (const [index, url] of urls.entries()) {
+        await useConfig(url);
+        input.write(`{"jsonrpc":"2.0","id":${index},"method":"ping"}\n`);
+        await until(() => lines().length === index + 1);
+        expect(httpRequest.mock.callCount(), url).to.equal(0);
+        expect(httpsRequest.mock.callCount(), url).to.equal(0);
+        const failure = FailureSchema.parse(JSON.parse(lines()[index] ?? ""));
+        expect(failure.id, url).to.equal(index);
+        expect(failure.error.message, url).to.contain("mcp.backendUrl");
+      }
+    } finally {
+      httpRequest.mock.restore();
+      httpsRequest.mock.restore();
+    }
+  });
+
+  it("relays the backend's JSON-RPC parse error for a line it cannot read, whatever the HTTP status", async () => {
+    const parseError =
+      '{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}';
+    await serve(() => ({ status: 400, body: parseError }));
+    input.write("{not json\n");
+    await until(() => lines().length === 1);
+    expect(lines()).to.deep.equal([parseError]);
+  });
+
+  it("answers a line it cannot read with id null when the backend is down, since a notification is the only line left unanswered", async () => {
+    await useConfig(await closedPortUrl());
+    input.write("{not json\n");
+    input.write('{"jsonrpc":"2.0","method":"notifications/initialized"}\n');
+    await until(() => lines().length === 1);
+    await delay(50);
+    const failure = FailureSchema.parse(JSON.parse(lines()[0] ?? ""));
+    expect(lines()).to.have.lengthOf(1);
+    expect(failure.id).to.equal(null);
+    expect(failure.error.code).to.equal(-32603);
   });
 
   it("reads the credential per message, so a restarted backend is reached without a reconnect", async () => {

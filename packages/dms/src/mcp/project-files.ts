@@ -3,6 +3,7 @@ import path from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
+import { resolveBridgeOrigin } from "./backend-url";
 import { JsonObjectSchema } from "./json";
 
 const CACHE_DIR_SEGMENTS = ["node_modules", ".cache", "dms"];
@@ -130,6 +131,42 @@ async function ensureMcpJsonEntry(projectPath: string): Promise<void> {
     },
   };
   await writeFile(filePath, `${formatMcpJson(next)}\n`);
+}
+
+/** What `publishMcpBridge` needs to write the bridge for one start. */
+export interface McpBridgeTarget {
+  projectPath: string;
+  token: string;
+  writeMcpJson: boolean;
+  backendUrl: string | undefined;
+  apiBaseUrl: string;
+  routePath: string;
+}
+
+/**
+ * Writes the bridge files for the backend this start serves, unless that
+ * backend is not on this machine: then it writes nothing, so the credential
+ * stays here, and logs one warning that names `mcp.backendUrl`.
+ */
+export async function publishMcpBridge(target: McpBridgeTarget): Promise<void> {
+  const resolved = resolveBridgeOrigin(target.backendUrl, target.apiBaseUrl);
+  if ("refusal" in resolved) {
+    Logging.Warn(resolved.refusal);
+    return;
+  }
+  try {
+    await publishBridge({
+      projectPath: target.projectPath,
+      url: `${resolved.origin}${target.routePath}`,
+      token: target.token,
+      writeMcpJson: target.writeMcpJson,
+    });
+  } catch (error) {
+    Logging.Error(
+      "[DMS] The MCP bridge files could not be written, so coding agents cannot reach the MCP server:",
+      error,
+    );
+  }
 }
 
 export async function publishBridge(files: BridgeFiles): Promise<void> {

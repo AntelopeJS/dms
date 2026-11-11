@@ -3,15 +3,25 @@ import type * as Catalog from "@antelopejs/interface-database-catalog";
 import { isCallable, isIndexable } from "./guards";
 import { loadModule } from "./module-loader";
 import { CATALOG_INTERFACE } from "./interface-ids";
-import { isNumber } from "./scalar-guards";
 import { ownConnections } from "./own-connections";
 
 function catalogConnections(): InterfaceConnection[] {
   return ownConnections(CATALOG_INTERFACE);
 }
 
-/** The catalog functions of one connection, as its provider answers them. */
-export type CatalogConnection = typeof Catalog;
+/**
+ * The catalog functions of one connection, as its provider answers them. The sample limits are
+ * the interface's constants, not the provider's.
+ */
+export type CatalogConnection = Pick<
+  typeof Catalog,
+  | "Info"
+  | "ListRelations"
+  | "DescribeRelations"
+  | "Profile"
+  | "CheckReference"
+  | "SampleRows"
+>;
 
 type CatalogResolver = (id: string) => CatalogConnection | undefined;
 type ConnectionLister = () => string[];
@@ -35,8 +45,6 @@ const CATALOG_FUNCTIONS = [
 function isCatalogConnection(value: unknown): value is CatalogConnection {
   return (
     isIndexable(value) &&
-    isNumber(value.SAMPLE_ROWS_LIMIT) &&
-    isNumber(value.SAMPLE_TEXT_LENGTH) &&
     CATALOG_FUNCTIONS.every((name) => isCallable(value[name]))
   );
 }
@@ -66,8 +74,6 @@ function unsupplied(name: string): () => never {
 /** A catalog of a spec: the functions it supplied, and a refusal for each it did not. */
 function specCatalog(supplied: Partial<CatalogConnection>): CatalogConnection {
   return {
-    SAMPLE_ROWS_LIMIT: 20,
-    SAMPLE_TEXT_LENGTH: 200,
     Info: unsupplied("Info"),
     ListRelations: unsupplied("ListRelations"),
     DescribeRelations: unsupplied("DescribeRelations"),
