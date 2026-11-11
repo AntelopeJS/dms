@@ -66,6 +66,20 @@ const processPins = {
     "const runProcess = promisify(execFile);",
   "src/test/unit/implementations/dms/permissions-standalone.test.ts:15":
     "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
+  "src/implementations/dms-builder/engine/project-env.ts:1":
+    'import { spawnSync } from "node:child_process";',
+  "dist/implementations/dms-builder/engine/project-env.js:15":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/implementations/dms-builder/engine/project-env.js:63":
+    'const checked = (0, node_child_process_1.spawnSync)("git", ["check-ignore", "-q", file], {\n        cwd: directory,\n    });',
+  "src/test/unit/builder/helpers/processes.ts:1":
+    'import { spawnSync } from "node:child_process";',
+  "dist/test/unit/builder/helpers/processes.js:8":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/test/unit/builder/helpers/processes.js:11":
+    '(0, node_child_process_1.spawnSync)("git", ["init", "-q"], { cwd: directory });',
+  "dist/test/unit/builder/helpers/processes.js:14":
+    'const run = (0, node_child_process_1.spawnSync)(script, {\n        cwd: directory,\n        shell: true,\n        encoding: "utf8",\n        env: {\n            ...process.env,\n            PATH: `${binDirectory}${node_path_1.default.delimiter}${process.env.PATH}`,\n        },\n    });',
   "dist/dev/module-update-notifications.js:8":
     'const node_child_process_1 = require("node:child_process");',
   "dist/dev/module-update-notifications.js:9":
