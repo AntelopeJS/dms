@@ -115,6 +115,8 @@ export async function construct(config: Config): Promise<void> {
   if (dev) {
     startMockupEngine();
   }
+
+  await (await import("./mcp")).startMcp(dev);
 }
 
 async function setupFrontendBootstrap(dev: boolean): Promise<void> {

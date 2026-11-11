@@ -204,6 +204,32 @@ export interface ProvisioningLeaseConfig {
   pollEveryMs: number;
 }
 
+/**
+ * The MCP server a coding agent started in the project reaches through a
+ * stdio bridge: Claude Code launches it from the project's `.mcp.json`,
+ * Codex from a server its `config.toml` declares.
+ */
+export interface McpConfig {
+  /**
+   * Serves the MCP route and writes the bridge files. Defaults to the
+   * runtime's development mode (`ajs project dev`). `true` serves it in any
+   * mode, `false` turns it off in development too.
+   */
+  enabled?: boolean;
+  /**
+   * The tools a session may list and call. `safe` serves only the tools that
+   * read the project or edit it through the builder; `full`, the default, also
+   * serves the tools that change the project's configuration or delete a
+   * resource's data. The server enforces it, whatever the client allows.
+   */
+  access?: "safe" | "full";
+  /**
+   * Adds the `dms` server to the project's `.mcp.json` when the entry is
+   * missing. Defaults to `true`; `false` leaves the file alone.
+   */
+  mcpJson?: boolean;
+}
+
 export interface Config {
   auth?: AuthConfig;
   htmlRender?: HtmlRenderConfig;
@@ -225,6 +251,7 @@ export interface Config {
    */
   docsPreview?: boolean;
   provisioningLease?: Partial<ProvisioningLeaseConfig>;
+  mcp?: McpConfig;
 }
 
 const REFRESH_TOKEN_LIFETIME_DAYS = 30;

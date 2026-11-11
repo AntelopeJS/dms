@@ -30,6 +30,12 @@ const processPins = {
   "src/store/tarball.ts:8": "const execFileAsync = promisify(execFile);",
   "src/store/tarball.ts:80":
     'await execFileAsync(\n    "npm",\n    ["pack", spec, "--pack-destination", destination, "--silent"],\n    { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS },\n  );',
+  "src/mcp/tools/typecheck.ts:1":
+    'import { execFile } from "node:child_process";',
+  "src/mcp/tools/typecheck.ts:4": 'import { promisify } from "node:util";',
+  "src/mcp/tools/typecheck.ts:11": "const execFileAsync = promisify(execFile);",
+  "src/mcp/tools/typecheck.ts:83":
+    'await execFileAsync(TSC_COMMAND, TSC_ARGS, {\n      cwd: root,\n      timeout: TIMEOUT_MS,\n      maxBuffer: MAX_BUFFER_BYTES,\n      encoding: "utf8",\n    });',
   "src/test/helpers/replica-process.ts:1":
     'import { type ChildProcess, spawn } from "node:child_process";',
   "src/test/unit/package-contents.test.ts:1":
@@ -82,6 +88,13 @@ const processPins = {
     "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
   "dist/store/tarball.js:58":
     'await execFileAsync("npm", ["pack", spec, "--pack-destination", destination, "--silent"], { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS });',
+  "dist/mcp/tools/typecheck.js:7":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/mcp/tools/typecheck.js:10": 'const node_util_1 = require("node:util");',
+  "dist/mcp/tools/typecheck.js:16":
+    "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
+  "dist/mcp/tools/typecheck.js:79":
+    'await execFileAsync(TSC_COMMAND, TSC_ARGS, {\n            cwd: root,\n            timeout: TIMEOUT_MS,\n            maxBuffer: MAX_BUFFER_BYTES,\n            encoding: "utf8",\n        });',
   "dist/test/helpers/replica-process.js:4":
     'const node_child_process_1 = require("node:child_process");',
   "dist/test/helpers/replica-process.js:108":

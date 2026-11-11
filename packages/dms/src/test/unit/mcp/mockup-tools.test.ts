@@ -7,10 +7,13 @@ import { z } from "zod";
 import { answerMcpMessage } from "../../../mcp/protocol";
 import { type McpTool } from "../../../mcp/tool";
 import { MCP_TOOLS } from "../../../mcp/tools";
-import { mockupAnnotationsTool } from "../../../mcp/tools/mockup-annotations";
-import { mockupPatchSpecTool } from "../../../mcp/tools/mockup-patch-spec";
-import { mockupResolveAnnotationTool } from "../../../mcp/tools/mockup-resolve-annotation";
-import { mockupWriteSpecTool } from "../../../mcp/tools/mockup-write-spec";
+import {
+  MOCKUP_TOOLS,
+  mockupAnnotationsTool,
+  mockupPatchSpecTool,
+  mockupResolveAnnotationTool,
+  mockupWriteSpecTool,
+} from "../../../mcp/tools/mockup";
 import {
   createAnnotation,
   mockupNameSchema,
@@ -504,6 +507,11 @@ describe("[unit] mockup MCP tools", () => {
         "mockup_write_spec",
         "mockup_patch_spec",
       ]);
+    });
+
+    it("serves the mockup group from MCP_TOOLS, so a group left unspread is caught", () => {
+      expect(MOCKUP_TOOLS).to.have.length(4);
+      for (const tool of MOCKUP_TOOLS) expect(MCP_TOOLS).to.include(tool);
     });
 
     it("keeps the effects the descriptions promise: annotations read, the rest builder", () => {
