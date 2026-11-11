@@ -1,18 +1,20 @@
-import path from "node:path";
 import { expect } from "chai";
+import { z } from "zod";
+import { defineTool, textResult } from "../../../mcp/tool";
 
-const TOOL_MODULES = [
-  path.join(__dirname, "../../../mcp/tool.js"),
-  path.join(__dirname, "../../../mcp/tools") + path.sep,
-];
-
-function forgetToolModules(): void {
-  for (const key of Object.keys(require.cache)) {
-    if (TOOL_MODULES.some((module) => key.startsWith(module))) {
-      delete require.cache[key];
-    }
-  }
+interface TreeNode {
+  type: string;
+  children?: TreeNode[];
+  config?: Record<string, string>;
 }
+
+const TreeNodeSchema: z.ZodType<TreeNode> = z.lazy(() =>
+  z.object({
+    type: z.string(),
+    children: z.array(TreeNodeSchema).optional(),
+    config: z.record(z.string(), z.string()).optional(),
+  }),
+);
 
 describe("[unit] mcp tool schemas", () => {
   const { warn, error } = console;
@@ -33,10 +35,18 @@ describe("[unit] mcp tool schemas", () => {
     console.error = error;
   });
 
-  it("builds every tool's schema without writing to the console, recursive inputs included", async () => {
-    forgetToolModules();
-    const { MCP_TOOLS } = await import("../../../mcp/tools");
-    expect(MCP_TOOLS.length).to.be.greaterThan(0);
+  it("builds the schema of a recursive input without writing to the console, and keeps the recursion as a ref", () => {
+    const tool = defineTool({
+      name: "tree",
+      title: "Tree",
+      description: "Takes a tree.",
+      effect: "read",
+      input: z.object({ root: TreeNodeSchema }),
+      run: async () => textResult("ok"),
+    });
     expect(written).to.deep.equal([]);
+    expect(JSON.stringify(tool.inputSchema)).to.contain(
+      '"$ref":"#/properties/root"',
+    );
   });
 });

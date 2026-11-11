@@ -2,17 +2,28 @@ import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { expect } from "chai";
 import { z } from "zod";
 import type { McpAccess } from "../../../mcp/access";
-import { JsonObjectSchema, JsonValueSchema } from "../../../mcp/json";
 import { answerMcpMessage } from "../../../mcp/protocol";
 import { defineTool, type McpTool, textResult } from "../../../mcp/tool";
 import { MCP_TOOLS } from "../../../mcp/tools";
+
+const SchemaValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(SchemaValueSchema),
+    z.record(z.string(), SchemaValueSchema),
+  ]),
+);
+const SchemaObjectSchema = z.record(z.string(), SchemaValueSchema);
 
 const ListAnswerSchema = z.object({
   result: z.object({
     tools: z.array(
       z.object({
         name: z.string(),
-        inputSchema: JsonObjectSchema,
+        inputSchema: SchemaObjectSchema,
       }),
     ),
   }),
@@ -31,12 +42,12 @@ const ErrorAnswerSchema = z.object({
 });
 
 const RefSchema = z.object({ $ref: z.string() });
-const ListSchema = z.array(JsonValueSchema);
+const ListSchema = z.array(SchemaValueSchema);
 
 function refsOf(node: JsonValue): string[] {
   const list = ListSchema.safeParse(node);
   if (list.success) return list.data.flatMap(refsOf);
-  const fields = JsonObjectSchema.safeParse(node);
+  const fields = SchemaObjectSchema.safeParse(node);
   if (!fields.success) return [];
   const own = RefSchema.safeParse(fields.data);
   return [
@@ -51,7 +62,7 @@ function resolveRef(root: JsonValue, ref: string): JsonValue | undefined {
   for (const segment of ref.slice(1).split("/")) {
     if (segment === "") continue;
     const list = ListSchema.safeParse(node);
-    const fields = JsonObjectSchema.safeParse(node);
+    const fields = SchemaObjectSchema.safeParse(node);
     if (list.success) {
       node = list.data[Number(segment)];
     } else if (fields.success && Object.hasOwn(fields.data, segment)) {
