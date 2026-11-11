@@ -11,6 +11,7 @@
   "hooks": {
     "before:init": [
       "pnpm --dir ../interface-dms run build",
+      "pnpm --dir ../interface-dms-builder run build",
       "pnpm --dir ../.. run lint"
     ],
     "after:bump": [
