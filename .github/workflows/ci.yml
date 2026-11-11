@@ -32,6 +32,8 @@ jobs:
         packages/dms/docs
         packages/interface-dms/README.md
         packages/interface-dms/docs
+        packages/interface-dms-builder/README.md
+        packages/interface-dms-builder/docs
       docs-typescript-project: packages/interface-dms/docs/tsconfig.json
       extra-commands: |
         pnpm --dir packages/interface-dms check:exports

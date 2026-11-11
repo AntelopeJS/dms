@@ -1,7 +1,7 @@
 {
   "git": {
     "commitMessage": "chore(release): @antelopejs/interface-dms-builder v${version}",
-    "tagName": "interface-v${version}",
+    "tagName": "interface-dms-builder-v${version}",
     "requireCommits": true
   },
   "github": {
