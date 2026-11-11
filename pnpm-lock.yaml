@@ -132,7 +132,7 @@ importers:
         specifier: ~3.24.2
         version: 3.24.4
       zod-to-json-schema:
-        specifier: ^3.24.6
+        specifier: ~3.24.6
         version: 3.24.6(zod@3.24.4)
     devDependencies:
       '@antelopejs/api':
