@@ -43,7 +43,6 @@ interface Backend {
   received: Received[];
 }
 
-/** Answers each message with its own method, as `result.method`. */
 function echo(body: string): Reply {
   const { id, method } = MessageSchema.parse(JSON.parse(body));
   return id === undefined
@@ -54,7 +53,9 @@ function echo(body: string): Reply {
       };
 }
 
-async function startBackend(reply: (body: string) => Reply): Promise<Backend> {
+async function startBackend(
+  reply: (body: string) => Reply | Promise<Reply>,
+): Promise<Backend> {
   const received: Received[] = [];
   const server = createServer((request, response) => {
     const chunks: Buffer[] = [];
@@ -62,9 +63,13 @@ async function startBackend(reply: (body: string) => Reply): Promise<Backend> {
     request.on("end", () => {
       const body = Buffer.concat(chunks).toString("utf8");
       received.push({ authorization: request.headers.authorization, body });
-      const answer = reply(body);
-      response.writeHead(answer.status);
-      response.end(answer.body ?? "");
+      Promise.resolve(reply(body)).then(
+        (answer) => {
+          response.writeHead(answer.status);
+          response.end(answer.body ?? "");
+        },
+        () => response.destroy(),
+      );
     });
   });
   server.listen(0, "127.0.0.1");
@@ -99,7 +104,9 @@ describe("[unit] mcp stdio bridge", () => {
     await writeFile(configPath, JSON.stringify({ url, token }));
   }
 
-  async function serve(reply: (body: string) => Reply): Promise<Backend> {
+  async function serve(
+    reply: (body: string) => Reply | Promise<Reply>,
+  ): Promise<Backend> {
     const backend = await startBackend(reply);
     backends.push(backend.server);
     await useConfig(backend.url);
@@ -147,6 +154,25 @@ describe("[unit] mcp stdio bridge", () => {
     expect(
       backend.received.map(({ authorization }) => authorization),
     ).to.deep.equal(["Bearer token-1", "Bearer token-1", "Bearer token-1"]);
+  });
+
+  it("relays the next message while a slow call runs, so a ping is not held behind it", async () => {
+    const slowCall = Promise.withResolvers<void>();
+    await serve(async (body) => {
+      if (MessageSchema.parse(JSON.parse(body)).method === "tools/call") {
+        await slowCall.promise;
+      }
+      return echo(body);
+    });
+    input.write('{"jsonrpc":"2.0","id":1,"method":"tools/call"}\n');
+    input.write('{"jsonrpc":"2.0","id":2,"method":"ping"}\n');
+    await until(() => lines().length === 1);
+    slowCall.resolve();
+    await until(() => lines().length === 2);
+    const order = lines().map(
+      (line) => EchoAnswerSchema.parse(JSON.parse(line)).id,
+    );
+    expect(order).to.deep.equal([2, 1]);
   });
 
   it("keeps a message whole when a string in it holds U+2028, which readline would split", async () => {
