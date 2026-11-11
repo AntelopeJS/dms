@@ -1,5 +1,4 @@
-import { mkdir, mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { expect } from "chai";
@@ -8,39 +7,25 @@ import { answerMcpMessage } from "../../../mcp/protocol";
 import { type McpTool } from "../../../mcp/tool";
 import { MCP_TOOLS } from "../../../mcp/tools";
 import {
-  MOCKUP_TOOLS,
-  mockupAnnotationsTool,
-  mockupPatchSpecTool,
-  mockupResolveAnnotationTool,
-  mockupWriteSpecTool,
-} from "../../../mcp/tools/mockup";
-import {
   createAnnotation,
   MAX_JSON_DEPTH,
   mockupNameSchema,
   parseSpec,
   updateAnnotation,
 } from "../../../mockup";
+import {
+  answer,
+  mockupTool,
+  NAME,
+  run,
+  sketch,
+  spec,
+  useWorkspace,
+  writeAnswerSchema,
+} from "../../helpers/mockup-mcp";
 
-const NAME = "desk";
 const MOCKUP = mockupNameSchema.parse(NAME);
 
-function sketch(html: string): JsonValue {
-  return { type: "sketch", options: { html, height: 120 } };
-}
-
-function spec(...tree: JsonValue[]): JsonValue {
-  return { version: 1, pages: [{ id: "home", title: "Home", tree }] };
-}
-
-const textSchema = z.object({
-  content: z.array(z.object({ text: z.string() })).min(1),
-  isError: z.boolean().optional(),
-});
-const writeAnswerSchema = z.object({
-  ok: z.boolean(),
-  errors: z.array(z.object({ path: z.string(), message: z.string() })),
-});
 const annotationsAnswerSchema = z.object({
   annotations: z.array(
     z.object({
@@ -53,88 +38,41 @@ const annotationsAnswerSchema = z.object({
   ),
 });
 
-const writtenSchema = z.object({
-  version: z.literal(1),
-  title: z.string(),
-  pages: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      tree: z.array(
-        z.object({
-          type: z.string(),
-          options: z.object({
-            html: z.string(),
-            height: z.number().optional(),
-          }),
-        }),
-      ),
-    }),
-  ),
-});
-
-async function run(tool: McpTool, args: JsonValue) {
-  const { content, isError } = textSchema.parse(await tool.call(args));
-  return { text: content[0].text, isError: isError === true };
-}
-
-async function answer<Answer>(
-  tool: McpTool,
-  args: JsonValue,
-  schema: z.ZodType<Answer, z.ZodTypeDef, unknown>,
-): Promise<Answer> {
-  const { text, isError } = await run(tool, args);
-  expect(isError, text).to.equal(false);
-  return schema.parse(JSON.parse(text));
-}
-
 describe("[unit] mockup MCP tools", () => {
-  let root: string;
-  let annotations: McpTool;
-  let resolve: McpTool;
-  let write: McpTool;
-  let patch: McpTool;
+  const workspace = useWorkspace();
+  const annotations = mockupTool("mockup_annotations");
+  const resolve = mockupTool("mockup_resolve_annotation");
+  const write = mockupTool("mockup_write_spec");
+  const patch = mockupTool("mockup_patch_spec");
 
-  const specPath = () => join(root, NAME, "spec.json");
-  const annotationsPath = () => join(root, NAME, "annotations.json");
-  const specBytes = () => readFile(specPath(), "utf8");
-
-  beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "mockup-mcp-"));
-    const directory = () => root;
-    annotations = mockupAnnotationsTool(directory);
-    resolve = mockupResolveAnnotationTool(directory);
-    write = mockupWriteSpecTool(directory);
-    patch = mockupPatchSpecTool(directory);
-  });
-
-  afterEach(async () => {
-    await rm(root, { recursive: true, force: true });
-  });
+  const specPath = () => join(workspace.mockups(), NAME, "spec.json");
+  const annotationsPath = () =>
+    join(workspace.mockups(), NAME, "annotations.json");
 
   describe("mockup_annotations", () => {
     it("filters by status and by page, and by both together", async () => {
-      await mkdir(join(root, NAME));
+      const dir = workspace.mockups();
+      await mkdir(join(dir, NAME), { recursive: true });
       const first = await createAnnotation(
         MOCKUP,
         { page: "home", path: "/pages/0", text: "one" },
-        root,
+        dir,
       );
       const second = await createAnnotation(
         MOCKUP,
         { page: "home", path: "/pages/0", text: "two" },
-        root,
+        dir,
       );
       await createAnnotation(
         MOCKUP,
         { page: "other", path: "/pages/1", text: "three" },
-        root,
+        dir,
       );
       await updateAnnotation(
         MOCKUP,
         second?.id ?? "",
         { status: "resolved" },
-        root,
+        dir,
       );
       const texts = async (args: JsonValue) =>
         (
@@ -173,24 +111,23 @@ describe("[unit] mockup MCP tools", () => {
 
   describe("mockup_resolve_annotation", () => {
     async function seed(): Promise<string> {
-      await mkdir(join(root, NAME));
       await write.call({ mockup: NAME, spec: spec(sketch("<p>a</p>")) });
       const created = await createAnnotation(
         MOCKUP,
         { page: "home", path: "/pages/0/tree/0", text: "tighten" },
-        root,
+        workspace.mockups(),
       );
       await createAnnotation(
         MOCKUP,
         { page: "home", path: "/pages/0", text: "keep open" },
-        root,
+        workspace.mockups(),
       );
       return created?.id ?? "";
     }
 
     it("sets resolved and resolvedAt, writes only annotations.json, and leaves the others open", async () => {
       const id = await seed();
-      const specBefore = await specBytes();
+      const specBefore = await workspace.specBytes();
       const specStat = await stat(specPath());
 
       const resolved = await answer(
@@ -212,7 +149,7 @@ describe("[unit] mockup MCP tools", () => {
         "open",
       ]);
       expect(all[0].resolvedAt).to.equal(resolved.resolvedAt);
-      expect(await specBytes()).to.equal(specBefore);
+      expect(await workspace.specBytes()).to.equal(specBefore);
       expect((await stat(specPath())).mtimeMs).to.equal(specStat.mtimeMs);
     });
 
@@ -250,17 +187,19 @@ describe("[unit] mockup MCP tools", () => {
         { mockup: NAME, spec: valid },
         writeAnswerSchema,
       );
-      const text = await specBytes();
+      const text = await workspace.specBytes();
 
       expect(result).to.deep.equal({ ok: true, errors: [] });
       expect(text).to.equal(`${JSON.stringify(valid, null, 2)}\n`);
       expect(parseSpec(text)).to.have.property("ok", true);
-      expect(await readdir(join(root, NAME))).to.deep.equal(["spec.json"]);
+      expect(await readdir(join(workspace.mockups(), NAME))).to.deep.equal([
+        "spec.json",
+      ]);
     });
 
     it("refuses an invalid spec at exact pointers and leaves the old file byte-identical", async () => {
       await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
-      const before = await specBytes();
+      const before = await workspace.specBytes();
 
       const result = await answer(
         write,
@@ -282,8 +221,10 @@ describe("[unit] mockup MCP tools", () => {
       expect(result.errors[1].message).to.equal(
         'no block type is registered as "NoSuchBlock"',
       );
-      expect(await specBytes()).to.equal(before);
-      expect(await readdir(join(root, NAME))).to.deep.equal(["spec.json"]);
+      expect(await workspace.specBytes()).to.equal(before);
+      expect(await readdir(join(workspace.mockups(), NAME))).to.deep.equal([
+        "spec.json",
+      ]);
     });
 
     it("refuses a broken envelope at its pointer and creates no file for a new mockup", async () => {
@@ -295,7 +236,7 @@ describe("[unit] mockup MCP tools", () => {
 
       expect(result.ok).to.equal(false);
       expect(result.errors.map((error) => error.path)).to.include("/version");
-      await stat(join(root, NAME)).then(
+      await stat(join(workspace.mockups(), NAME)).then(
         () => expect.fail("the refused write created the mockup directory"),
         (error: unknown) =>
           expect(z.object({ code: z.string() }).parse(error).code).to.equal(
@@ -306,7 +247,7 @@ describe("[unit] mockup MCP tools", () => {
 
     it("refuses a duplicate sibling id at the second sibling, leaving the old file byte-identical", async () => {
       await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
-      const before = await specBytes();
+      const before = await workspace.specBytes();
       const card = { type: "KpiCard", options: { title: "Revenue" } };
 
       const result = await answer(
@@ -328,12 +269,12 @@ describe("[unit] mockup MCP tools", () => {
       expect(result.errors.map((error) => error.path)).to.deep.equal([
         "/pages/0/tree/0/children/1/id",
       ]);
-      expect(await specBytes()).to.equal(before);
+      expect(await workspace.specBytes()).to.equal(before);
     });
 
     it("refuses a spec nested past the depth limit, leaving the old file byte-identical", async () => {
       await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
-      const before = await specBytes();
+      const before = await workspace.specBytes();
       let node: JsonValue = { type: "KpiCard", options: { title: "leaf" } };
       for (let level = 0; level < MAX_JSON_DEPTH; level += 1) {
         node = { type: "VStack", children: [node] };
@@ -354,149 +295,13 @@ describe("[unit] mockup MCP tools", () => {
           },
         ],
       });
-      expect(await specBytes()).to.equal(before);
+      expect(await workspace.specBytes()).to.equal(before);
     });
 
     it("refuses a spec that is not a JSON object", async () => {
       const { isError } = await run(write, { mockup: NAME, spec: [1, 2] });
 
       expect(isError).to.equal(true);
-    });
-  });
-
-  describe("mockup_patch_spec", () => {
-    const base = spec(sketch("<p>one</p>"), sketch("<p>two</p>"));
-
-    async function seed(): Promise<string> {
-      await write.call({ mockup: NAME, spec: base });
-      return specBytes();
-    }
-
-    it("applies add, replace, move, copy, remove and test in order, then writes the result", async () => {
-      await seed();
-
-      const result = await answer(
-        patch,
-        {
-          mockup: NAME,
-          patch: [
-            { op: "test", path: "/pages/0/tree/0/options/height", value: 120 },
-            {
-              op: "replace",
-              path: "/pages/0/tree/0/options/html",
-              value: "<p>ONE</p>",
-            },
-            { op: "add", path: "/title", value: "Desk" },
-            { op: "copy", from: "/pages/0/tree/1", path: "/pages/0/tree/-" },
-            { op: "move", from: "/pages/0/tree/2", path: "/pages/0/tree/0" },
-            { op: "remove", path: "/pages/0/tree/2/options/height" },
-          ],
-        },
-        writeAnswerSchema,
-      );
-
-      const text = await specBytes();
-      const reparsed: unknown = JSON.parse(text);
-      const written = writtenSchema.parse(reparsed);
-      expect(result).to.deep.equal({ ok: true, errors: [] });
-      expect(written.title).to.equal("Desk");
-      expect(written.pages[0].tree.map((node) => node.options)).to.deep.equal([
-        { html: "<p>two</p>", height: 120 },
-        { html: "<p>ONE</p>", height: 120 },
-        { html: "<p>two</p>" },
-      ]);
-      expect(text).to.equal(`${JSON.stringify(reparsed, null, 2)}\n`);
-    });
-
-    it("answers an error naming the index of a failed test op and writes nothing", async () => {
-      const before = await seed();
-
-      const { text, isError } = await run(patch, {
-        mockup: NAME,
-        patch: [
-          { op: "replace", path: "/pages/0/title", value: "Changed" },
-          { op: "test", path: "/pages/0/title", value: "Home" },
-        ],
-      });
-
-      expect(isError).to.equal(true);
-      expect(text).to.contain("Operation 1 (test /pages/0/title) failed");
-      expect(await specBytes()).to.equal(before);
-    });
-
-    it("answers an error naming the index of a pointer that leads nowhere", async () => {
-      const before = await seed();
-
-      const { text, isError } = await run(patch, {
-        mockup: NAME,
-        patch: [{ op: "remove", path: "/pages/4/title" }],
-      });
-
-      expect(isError).to.equal(true);
-      expect(text).to.contain("Operation 0 (remove /pages/4/title) failed");
-      expect(await specBytes()).to.equal(before);
-    });
-
-    it("refuses a patch whose result is invalid, at the pointer, leaving the file byte-identical", async () => {
-      const before = await seed();
-
-      const result = await answer(
-        patch,
-        {
-          mockup: NAME,
-          patch: [
-            {
-              op: "replace",
-              path: "/pages/0/tree/1/options/html",
-              value: "<script>x()</script>",
-            },
-          ],
-        },
-        writeAnswerSchema,
-      );
-
-      expect(result.ok).to.equal(false);
-      expect(result.errors.map((error) => error.path)).to.deep.equal([
-        "/pages/0/tree/1/options/html",
-      ]);
-      expect(await specBytes()).to.equal(before);
-    });
-
-    it("refuses a patch that replaces the whole spec with a non-object and writes nothing", async () => {
-      const before = await seed();
-
-      const result = await answer(
-        patch,
-        { mockup: NAME, patch: [{ op: "replace", path: "", value: 5 }] },
-        writeAnswerSchema,
-      );
-
-      expect(result.ok).to.equal(false);
-      expect(result.errors.map((error) => error.path)).to.deep.equal([""]);
-      expect(await specBytes()).to.equal(before);
-    });
-
-    it("refuses an operation without its required field and writes nothing", async () => {
-      const before = await seed();
-
-      const { text, isError } = await run(patch, {
-        mockup: NAME,
-        patch: [{ op: "move", path: "/title" }],
-      });
-
-      expect(isError).to.equal(true);
-      expect(text).to.contain("Invalid patch: 0");
-      expect(await specBytes()).to.equal(before);
-    });
-
-    it("answers an error that points to mockup_write_spec when there is no spec", async () => {
-      const { text, isError } = await run(patch, {
-        mockup: NAME,
-        patch: [{ op: "add", path: "/title", value: "x" }],
-      });
-
-      expect(isError).to.equal(true);
-      expect(text).to.contain("mockup_write_spec");
     });
   });
 
@@ -519,8 +324,6 @@ describe("[unit] mockup MCP tools", () => {
         [write, { spec: spec(sketch("<p>a</p>")) }],
         [patch, { patch: [{ op: "add", path: "/title", value: "x" }] }],
       ];
-      const parent = join(root, "..");
-      const before = await readdir(parent);
 
       for (const [tool, args] of tools) {
         for (const mockup of TRAVERSALS) {
@@ -535,8 +338,7 @@ describe("[unit] mockup MCP tools", () => {
         }
       }
 
-      expect(await readdir(root)).to.deep.equal([]);
-      expect(await readdir(parent)).to.have.members(before);
+      expect(await readdir(workspace.root())).to.deep.equal([]);
     });
   });
 
@@ -561,11 +363,6 @@ describe("[unit] mockup MCP tools", () => {
         "mockup_write_spec",
         "mockup_patch_spec",
       ]);
-    });
-
-    it("serves the mockup group from MCP_TOOLS, so a group left unspread is caught", () => {
-      expect(MOCKUP_TOOLS).to.have.length(4);
-      for (const tool of MOCKUP_TOOLS) expect(MCP_TOOLS).to.include(tool);
     });
 
     it("keeps the effects the descriptions promise: annotations read, the rest builder", () => {

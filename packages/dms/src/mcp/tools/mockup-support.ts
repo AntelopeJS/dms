@@ -16,9 +16,6 @@ import { jsonResult, type McpToolResult, textResult } from "../tool";
 
 const JSON_INDENT = 2;
 
-/** Where a mockup tool reads and writes: the `mockups/` directory, resolved at each call. */
-export type MockupsDirectory = () => string;
-
 /** The `mockup` argument every mockup tool takes. */
 export const mockupArgument = z
   .string()
