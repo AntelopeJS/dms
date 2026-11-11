@@ -1,8 +1,8 @@
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import { isToolAllowed, type McpAccess } from "./access";
-import { JsonObjectSchema } from "./json";
-import type { McpTool } from "./tool";
+import { JsonObjectSchema, JsonValueSchema } from "./json";
+import { type McpTool, type McpToolResult, textResult } from "./tool";
 
 /** The protocol revisions this server speaks, newest first. */
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"] as const;
@@ -20,6 +20,13 @@ const JsonRpcMessageSchema = z.object({
   id: JsonRpcIdSchema.optional(),
   params: JsonObjectSchema.optional(),
 });
+
+const JsonRpcResponseSchema = z.union([
+  z.object({ id: JsonRpcIdSchema.nullable(), result: JsonValueSchema }),
+  z.object({ id: JsonRpcIdSchema.nullable(), error: JsonObjectSchema }),
+]);
+
+const RequestIdSchema = z.object({ id: JsonRpcIdSchema });
 
 const InitializeParamsSchema = z.object({ protocolVersion: z.string() });
 const CallParamsSchema = z.object({
@@ -89,9 +96,19 @@ async function callTool(
       `${tool.name} is not available in Safe mode: it changes the project past what the builder edits.`,
     );
   }
-  const result = await tool.call(parsed.data.arguments ?? {});
+  const result = await runTool(tool, parsed.data.arguments ?? {});
   const content = result.content.map(({ type, text }) => ({ type, text }));
   return result.isError === true ? { content, isError: true } : { content };
+}
+
+/** A tool that throws answers its failure as a result the agent reads, as MCP asks. */
+async function runTool(tool: McpTool, args: JsonValue): Promise<McpToolResult> {
+  try {
+    return await tool.call(args);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return textResult(`${tool.name} failed: ${reason}`, true);
+  }
 }
 
 async function dispatch(
@@ -130,9 +147,9 @@ function errorAnswer(
 
 /**
  * Answers one JSON-RPC message of the MCP protocol, stateless: initialize,
- * ping, tools/list and tools/call. A notification (no id) gets no answer.
- * The session's access is enforced here, on the server, so it holds for every
- * client whatever its own permission settings.
+ * ping, tools/list and tools/call. A notification (no id) and a response the
+ * client sends get no answer. The session's access is enforced here, on the
+ * server, so it holds for every client whatever its own permission settings.
  */
 export async function answerMcpMessage(
   session: McpSession,
@@ -140,7 +157,9 @@ export async function answerMcpMessage(
 ): Promise<JsonValue | undefined> {
   const parsed = JsonRpcMessageSchema.safeParse(message);
   if (!parsed.success) {
-    return errorAnswer(null, JSON_RPC_INVALID_REQUEST, "Invalid request");
+    if (JsonRpcResponseSchema.safeParse(message).success) return undefined;
+    const id = RequestIdSchema.safeParse(message).data?.id ?? null;
+    return errorAnswer(id, JSON_RPC_INVALID_REQUEST, "Invalid request");
   }
   const { id, method } = parsed.data;
   if (id === undefined) return undefined;
