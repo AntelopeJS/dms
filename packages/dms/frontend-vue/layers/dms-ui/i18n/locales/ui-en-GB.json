@@ -788,6 +788,34 @@
       "invalid_sketch": "A sketch was not drawn: its options need an html string.",
       "sketch_label": "Custom"
     },
+    "mockup": {
+      "list_title": "Mockups",
+      "list_empty": "No mockups yet. Add a folder with a spec.json under mockups/ in the project.",
+      "list_failed": "The mockups could not be loaded.",
+      "pages_count": "{count} pages",
+      "pages": "Pages",
+      "width": "Preview width",
+      "width_desktop": "Desktop",
+      "width_mobile": "Mobile",
+      "annotate": "Annotate",
+      "annotate_hint": "Click a block in the preview to leave a note on it.",
+      "issues": "Issues: {count}",
+      "issues_none": "The spec has no issues.",
+      "disconnected": "Disconnected. Reconnecting…",
+      "waiting": "Waiting for the spec…",
+      "frame_title": "Mockup preview",
+      "not_in_spec": "That block is not a node of the spec, so it cannot be annotated.",
+      "request_failed": "The request failed. Try again.",
+      "note_placeholder": "What should change here?",
+      "save": "Save note",
+      "cancel": "Cancel",
+      "annotations": "Annotations",
+      "annotations_empty": "No annotations yet.",
+      "status_open": "Open",
+      "status_resolved": "Resolved",
+      "resolve": "Resolve",
+      "reopen": "Reopen"
+    },
     "drawer": {
       "resize": "Resize the drawer"
     }
