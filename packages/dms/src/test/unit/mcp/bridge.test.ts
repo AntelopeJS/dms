@@ -219,6 +219,15 @@ describe("[unit] mcp stdio bridge", () => {
     );
   });
 
+  it("tells a developer whose request the backend refused as relayed to set mcp.backendUrl, not apiBaseUrl", async () => {
+    await serve(() => ({ status: 403, body: '{"error":"forbidden"}' }));
+    input.write('{"jsonrpc":"2.0","id":1,"method":"ping"}\n');
+    await until(() => lines().length === 1);
+    const { message } = FailureSchema.parse(JSON.parse(lines()[0] ?? "")).error;
+    expect(message).to.contain("mcp.backendUrl");
+    expect(message).to.not.contain("apiBaseUrl");
+  });
+
   it("refuses a URL that is not on this machine without opening a connection, and names mcp.backendUrl", async () => {
     const refuse = () => {
       throw new Error("no connection in this test");

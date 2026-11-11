@@ -25,3 +25,25 @@ export function isLoopbackUrl(url: string): boolean {
     LOOPBACK_IPV4_MAPPED.test(host)
   );
 }
+
+/** Where the bridge sends its requests, or why no credential may be written. */
+export type BridgeOrigin = { origin: string } | { refusal: string };
+
+/**
+ * The origin the bridge targets: `backendUrl` when set, else `apiBaseUrl`,
+ * which is the public backend URL and so counts only when its host is loopback.
+ */
+export function resolveBridgeOrigin(
+  backendUrl: string | undefined,
+  apiBaseUrl: string,
+): BridgeOrigin {
+  const source =
+    backendUrl === undefined
+      ? `apiBaseUrl (${apiBaseUrl})`
+      : `mcp.backendUrl (${backendUrl})`;
+  const origin = (backendUrl ?? apiBaseUrl).replace(/\/+$/, "");
+  if (isLoopbackUrl(origin)) return { origin };
+  return {
+    refusal: `[DMS] The MCP bridge was not written: ${source} is not on this machine, and the bridge sends its credential only to a backend that is. ${BACKEND_URL_HINT}`,
+  };
+}
