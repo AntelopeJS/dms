@@ -12,12 +12,14 @@ import {
   previewErrorMessage,
   previewReadyMessage,
   previewResizeMessage,
+  previewSelectMessage,
   type PreviewInboundMessage,
   type PreviewOutboundMessage,
   type PreviewState,
   type PreviewTheme,
   type PreviewTree,
 } from "../../utils/blockPreview";
+import { useBlockInspector } from "./useBlockInspector";
 
 /** What the embedded preview shows: `?state=` first, then each message. */
 export interface BlockPreviewEmbed {
@@ -26,6 +28,8 @@ export interface BlockPreviewEmbed {
   revision: Ref<number>;
   /** Whether the page leaves its background to the embedding page. */
   transparent: Ref<boolean>;
+  /** Whether a click picks a block for the embedding page instead of reaching it. */
+  inspecting: Ref<boolean>;
   /** Tells the embedding page what went wrong. */
   reportError: (message: string) => void;
 }
@@ -72,7 +76,13 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   const locale = ref(options.initialState?.locale);
   const transparent = ref(options.initialState?.transparent ?? false);
   const revision = ref(0);
+  const inspecting = ref(false);
   let observer: ResizeObserver | undefined;
+
+  useBlockInspector({
+    enabled: inspecting,
+    onSelect: (path) => postToParent(previewSelectMessage(path)),
+  });
 
   const handlers: Record<
     PreviewInboundMessage["type"],
@@ -89,6 +99,10 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
     theme: (message) => {
       if (message.type !== "theme") return;
       theme.value = message.theme;
+    },
+    inspect: (message) => {
+      if (message.type !== "inspect") return;
+      inspecting.value = message.enabled;
     },
   };
 
@@ -116,6 +130,7 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
     tree,
     revision,
     transparent,
+    inspecting,
     reportError: (message) => postToParent(previewErrorMessage(message)),
   };
 }

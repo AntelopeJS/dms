@@ -784,7 +784,9 @@
       "unsafe_url": "{name} n’a pas été affiché : « {value} » n’est pas un chemin de ce site.",
       "invalid_state": "L’état de l’aperçu est illisible.",
       "empty": "Rien à prévisualiser pour l’instant.",
-      "unsafe_method": "{name} n’a pas été affiché : un aperçu ne fait que lire ses données, et {value} écrit."
+      "unsafe_method": "{name} n’a pas été affiché : un aperçu ne fait que lire ses données, et {value} écrit.",
+      "invalid_sketch": "Une maquette libre n’a pas été affichée : ses options doivent contenir une chaîne html.",
+      "sketch_label": "Sur mesure"
     },
     "drawer": {
       "resize": "Redimensionner le tiroir"

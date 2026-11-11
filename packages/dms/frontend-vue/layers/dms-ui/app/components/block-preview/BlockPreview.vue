@@ -2,6 +2,7 @@
 import { isString } from "../../../../dms-core/app/utils/type-check";
 import { markRaw, type Component } from "vue";
 import BlockPreviewIssue from "../../build/components/block-preview/BlockPreviewIssue.vue";
+import BlockPreviewSketch from "../../build/components/block-preview/BlockPreviewSketch.vue";
 import { useBlockPreviewEmbed } from "../../build/composables/block-preview/useBlockPreviewEmbed";
 import {
   collectPreviewIssues,
@@ -88,15 +89,24 @@ const resolved = computed<PreviewResolvedNode[]>(() =>
     : [],
 );
 
+function componentFor(node: PreviewResolvedNode): Component | string {
+  if (node.issue) return markRaw(BlockPreviewIssue);
+  if (node.sketch) return markRaw(BlockPreviewSketch);
+  return resolveDmsComponent(node.componentName) ?? "div";
+}
+
+function optionsFor(node: PreviewResolvedNode): Record<string, unknown> {
+  if (node.issue) return { issue: node.issue };
+  if (node.sketch) return { sketch: node.sketch };
+  return node.options;
+}
+
 function toPageComponent(node: PreviewResolvedNode): ResolvedComponentInfo {
-  const component: Component | string = node.issue
-    ? markRaw(BlockPreviewIssue)
-    : (resolveDmsComponent(node.componentName) ?? "div");
   return {
     id: node.id,
-    component,
+    component: componentFor(node),
     componentName: node.componentName,
-    options: node.issue ? { issue: node.issue } : node.options,
+    options: optionsFor(node),
     children: node.children.map(toPageComponent),
     // oxlint-disable-next-line anti-slop/no-conditional-empty-object-spread -- Omit absent keys without replacing spread's own-property definition semantics with assignment.
     ...(node.slot ? { slot: node.slot } : {}),
@@ -144,6 +154,7 @@ onMounted(async () => {
     ref="root"
     data-dms-block-preview
     :data-dms-preview-transparent="isTransparent || undefined"
+    :data-dms-inspecting="embed?.inspecting.value || undefined"
     :class="{ 'p-4 sm:p-6': isPadded }"
   >
     <UAlert
@@ -176,3 +187,14 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style>
+[data-dms-inspecting] * {
+  cursor: pointer;
+}
+
+[data-dms-inspecting] [data-dms-inspect-target] {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: -2px;
+}
+</style>

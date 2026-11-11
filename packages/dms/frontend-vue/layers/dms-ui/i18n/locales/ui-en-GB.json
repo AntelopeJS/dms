@@ -784,7 +784,9 @@
       "unsafe_url": "{name} was not drawn: “{value}” is not a path of this site.",
       "invalid_state": "The preview state could not be read.",
       "empty": "Nothing to preview yet.",
-      "unsafe_method": "{name} was not drawn: a preview only reads its data, and {value} writes."
+      "unsafe_method": "{name} was not drawn: a preview only reads its data, and {value} writes.",
+      "invalid_sketch": "A sketch was not drawn: its options need an html string.",
+      "sketch_label": "Custom"
     },
     "drawer": {
       "resize": "Resize the drawer"
