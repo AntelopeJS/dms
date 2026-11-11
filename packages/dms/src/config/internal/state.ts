@@ -205,8 +205,9 @@ export interface ProvisioningLeaseConfig {
 }
 
 /**
- * The MCP server a coding agent started in the project (Claude Code, Codex)
- * reaches through the stdio bridge the project's `.mcp.json` launches.
+ * The MCP server a coding agent started in the project reaches through a
+ * stdio bridge: Claude Code launches it from the project's `.mcp.json`,
+ * Codex from a server its `config.toml` declares.
  */
 export interface McpConfig {
   /**
@@ -250,7 +251,6 @@ export interface Config {
    */
   docsPreview?: boolean;
   provisioningLease?: Partial<ProvisioningLeaseConfig>;
-  /** The MCP server for coding agents; on in development only by default. */
   mcp?: McpConfig;
 }
 

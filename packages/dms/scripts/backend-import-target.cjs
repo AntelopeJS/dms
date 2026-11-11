@@ -34,7 +34,7 @@ const processPins = {
     'import { execFile } from "node:child_process";',
   "src/mcp/tools/typecheck.ts:4": 'import { promisify } from "node:util";',
   "src/mcp/tools/typecheck.ts:11": "const execFileAsync = promisify(execFile);",
-  "src/mcp/tools/typecheck.ts:85":
+  "src/mcp/tools/typecheck.ts:83":
     'await execFileAsync(TSC_COMMAND, TSC_ARGS, {\n      cwd: root,\n      timeout: TIMEOUT_MS,\n      maxBuffer: MAX_BUFFER_BYTES,\n      encoding: "utf8",\n    });',
   "src/test/helpers/replica-process.ts:1":
     'import { type ChildProcess, spawn } from "node:child_process";',

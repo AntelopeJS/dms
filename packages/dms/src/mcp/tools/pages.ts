@@ -7,16 +7,11 @@ const DMS_MODULE_ID = "dms";
 const SUGGESTION_LIMIT = 20;
 const PARAM_PREFIX = ":";
 
-/**
- * A route as the registry stores it: no query or hash, one leading slash and
- * no trailing one, so a loosely typed agent path matches its page.
- */
 function normalizeRoute(path: string): string {
   const pathOnly = path.split(/[?#]/, 1)[0] ?? path;
   return `/${pathOnly.replace(/^\/+|\/+$/g, "")}`;
 }
 
-/** Whether `path` is served by the page registered at `slug`, whose `:name` segments match any one segment. */
 function servesRoute(slug: string, path: string): boolean {
   const slugSegments = normalizeRoute(slug).split("/");
   const pathSegments = path.split("/");
@@ -86,5 +81,4 @@ const navigateToPage = defineTool({
   },
 });
 
-/** The tools that list the registered pages and resolve one to its dashboard URL. */
 export const PAGE_TOOLS = [listPages, navigateToPage];

@@ -36,6 +36,7 @@ const faces = new Map(
       "access",
       "bridge",
       "confirmation-gate",
+      "log-buffer",
       "project-files",
       "protocol",
       "route",

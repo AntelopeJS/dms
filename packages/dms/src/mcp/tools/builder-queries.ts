@@ -12,7 +12,7 @@ import { defineTool } from "../tool";
 import {
   containsExprSentinel,
   exprRefusal,
-  note,
+  withEscalationNote,
   opResult,
 } from "./builder-shared";
 
@@ -44,12 +44,10 @@ const QUERY_COMPARE = z
     "Also answer the preceding period so a card shows a delta. Only meaningful when the query binds its period with `$param` `from` and `to`.",
   );
 
-/** The values a query's route would receive, for a preview. */
 export const QUERY_ARGS = JsonObjectSchema.describe(
   'The values the route would receive, by the name it exposes them under, e.g. `{ "from": "2026-01-01", "to": "2026-03-31" }` for a query binding `$param` `from` and `to`. With `compare`, also `compareFrom` and `compareTo`.',
 );
 
-/** The fields of one query, as builder_add_query and builder_compose_page take them. */
 export const QUERY_FIELDS = {
   name: z
     .string()
@@ -69,7 +67,7 @@ export const QUERY_FIELDS = {
 const queryTemplates = defineTool({
   name: "builder_query_templates",
   title: "Query templates",
-  description: note(
+  description: withEscalationNote(
     "Lists the query templates builder_add_query can compile, each with its id, what it computes, its `output` kind, and the JSON Schema for its `params`. Call this before adding a query — the schema is the reference for every parameter and value shape.",
   ),
   effect: "read",
@@ -88,7 +86,7 @@ const queryTemplates = defineTool({
 const addQuery = defineTool({
   name: "builder_add_query",
   title: "Add query",
-  description: note(
+  description: withEscalationNote(
     "Adds a query — a page-hosted GET route serving a computed number, or one per group, that the DataAPI cannot give you. Compiles the template into a method on the resource's model and a route on the page, atomically. Returns `{ query, route }`; `route` is the full URL to pass as the reading block's `fetchUrl`. A `count` or `aggregate` route serves `{ \"value\": <number> }`; a `series` route serves the arrangement `response` names. Add `compare: true` to a query that binds its period with `$param` `from` and `to` so a card shows a delta. Run builder_preview_query first to see what the route would answer.",
   ),
   effect: "builder",
@@ -109,7 +107,7 @@ const addQuery = defineTool({
 const previewQuery = defineTool({
   name: "builder_preview_query",
   title: "Preview query",
-  description: note(
+  description: withEscalationNote(
     "Runs a query that is not saved and answers what its route would, as `{ body, truncated }`, writing nothing. Takes builder_add_query's query fields (no page) and `args`. An empty `series` or `items` in `body` means the block reading it renders empty: fix the query before wiring its route.",
   ),
   effect: "read",
@@ -125,7 +123,7 @@ const previewQuery = defineTool({
 const configureQuery = defineTool({
   name: "builder_configure_query",
   title: "Configure query",
-  description: note(
+  description: withEscalationNote(
     "Recompiles a query, replacing both its route and its chain. Only the keys you pass change; the rest are re-read from the query. A query builder_page_structure reports as `opaque` is refused with opaque_target, leaving the hand-edit intact. Renaming is not supported — remove and re-add. Never affects another page's query, even one sharing the same model method.",
   ),
   effect: "builder",
@@ -149,7 +147,7 @@ const configureQuery = defineTool({
 const removeQuery = defineTool({
   name: "builder_remove_query",
   title: "Remove query",
-  description: note(
+  description: withEscalationNote(
     "Removes a query's route from the page, and its model method too once no route on any page still calls it. Works on an opaque query as well — the builder can always remove what it cannot edit. Does not detect blocks whose fetchUrl points at the removed route: fix those in the same turn.",
   ),
   effect: "builder",
@@ -159,7 +157,6 @@ const removeQuery = defineTool({
     opResult(await RemoveQuery(args.query)),
 });
 
-/** The builder tools that list, add, preview, reconfigure and remove a page's queries. */
 export const BUILDER_QUERY_TOOLS = [
   queryTemplates,
   addQuery,

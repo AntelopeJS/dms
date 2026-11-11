@@ -22,7 +22,7 @@ import {
   BLOCK_PATH_FORMAT,
   containsExprSentinel,
   exprRefusal,
-  note,
+  withEscalationNote,
   opResult,
   PARENT_PATH,
   TARGET_MODULE,
@@ -31,7 +31,7 @@ import {
 const listPages = defineTool({
   name: "builder_list_pages",
   title: "List Builder pages",
-  description: note(
+  description: withEscalationNote(
     "Lists all builder-editable pages (route, id, category, file).",
   ),
   effect: "read",
@@ -42,7 +42,7 @@ const listPages = defineTool({
 const pageStructure = defineTool({
   name: "builder_page_structure",
   title: "Builder page structure",
-  description: note(
+  description: withEscalationNote(
     `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT}`,
   ),
   effect: "read",
@@ -53,7 +53,7 @@ const pageStructure = defineTool({
 const createPage = defineTool({
   name: "builder_create_page",
   title: "Create page",
-  description: note(
+  description: withEscalationNote(
     "Creates a new page under an existing category and wires it into the barrel so it registers.",
   ),
   effect: "builder",
@@ -83,7 +83,7 @@ const createPage = defineTool({
 const configurePage = defineTool({
   name: "builder_configure_page",
   title: "Configure page",
-  description: note(
+  description: withEscalationNote(
     "Updates a page's metadata: displayName, icon, order (lowest first, then by title; a dashboard takes 0, mapped table pages 100), description. Works on pages builder_map_resources wrote too.",
   ),
   effect: "builder",
@@ -97,7 +97,9 @@ const configurePage = defineTool({
 const deletePage = defineTool({
   name: "builder_delete_page",
   title: "Delete page",
-  description: note("Deletes a page file and removes its barrel import."),
+  description: withEscalationNote(
+    "Deletes a page file and removes its barrel import.",
+  ),
   effect: "builder",
   input: z.object({ pageRef: z.string() }),
   run: async (args) =>
@@ -108,7 +110,7 @@ const deletePage = defineTool({
 const addBlock = defineTool({
   name: "builder_add_block",
   title: "Add block",
-  description: note(
+  description: withEscalationNote(
     "Adds a block. Omit `parent` for a top-level block, or pass a container block's path to nest. `type` and `config` must match the catalog. Block types the catalog marks `controllerArg: true` (e.g. `TableView`) bind to a data resource: pass `controller` = the resource `ref` from builder_list_resources (its DataAPI class becomes the block's leading argument) and put the display options in `config`.",
   ),
   effect: "builder",
@@ -136,7 +138,7 @@ const addBlock = defineTool({
 const configureBlock = defineTool({
   name: "builder_configure_block",
   title: "Configure block",
-  description: note(
+  description: withEscalationNote(
     "Merges (or replaces, with replace:true) options into a block's config. Children are managed with Add/Move/Remove, not here.",
   ),
   effect: "builder",
@@ -154,7 +156,7 @@ const configureBlock = defineTool({
 const moveBlock = defineTool({
   name: "builder_move_block",
   title: "Move block",
-  description: note(
+  description: withEscalationNote(
     "Moves a child block to a new position within a container.",
   ),
   effect: "builder",
@@ -171,7 +173,7 @@ const moveBlock = defineTool({
 const removeBlock = defineTool({
   name: "builder_remove_block",
   title: "Remove block",
-  description: note("Removes a block and its whole subtree."),
+  description: withEscalationNote("Removes a block and its whole subtree."),
   effect: "builder",
   input: z.object({ path: BLOCK_PATH }),
   run: async ({ path }) => opResult(await RemoveBlock(path)),
@@ -180,7 +182,7 @@ const removeBlock = defineTool({
 const createCategory = defineTool({
   name: "builder_create_category",
   title: "Create category",
-  description: note(
+  description: withEscalationNote(
     "Creates a navigation category (optionally under a parent category).",
   ),
   effect: "builder",
@@ -198,7 +200,7 @@ const createCategory = defineTool({
 const configureCategory = defineTool({
   name: "builder_configure_category",
   title: "Configure category",
-  description: note(
+  description: withEscalationNote(
     "Updates a category's metadata (displayName, icon, order).",
   ),
   effect: "builder",
@@ -212,7 +214,7 @@ const configureCategory = defineTool({
 const deleteCategory = defineTool({
   name: "builder_delete_category",
   title: "Delete category",
-  description: note(
+  description: withEscalationNote(
     "Deletes a category. Refused with referential_integrity if any page still references it.",
   ),
   effect: "builder",
@@ -225,7 +227,7 @@ const deleteCategory = defineTool({
 const refresh = defineTool({
   name: "builder_refresh",
   title: "Refresh the Builder",
-  description: note(
+  description: withEscalationNote(
     "Reconciles the builder's source index with disk after out-of-band edits (e.g. a Code mode excursion).",
   ),
   effect: "read",
@@ -238,7 +240,6 @@ const refresh = defineTool({
   },
 });
 
-/** The builder tools that read and edit pages, their blocks and the categories they sit in. */
 export const BUILDER_PAGE_TOOLS = [
   listPages,
   pageStructure,

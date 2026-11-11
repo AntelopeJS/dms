@@ -27,7 +27,6 @@ const LocalSourceSchema = z.object({
   path: z.string().min(1),
 });
 
-/** The directories of every loaded module: where its code lives, and the folder a local source watches. */
 async function moduleRoots(): Promise<string[]> {
   const ids = await ListModules();
   const infos = await Promise.all(
@@ -46,7 +45,6 @@ function isWithin(root: string, target: string): boolean {
   return target === root || target.startsWith(`${root}${path.sep}`);
 }
 
-/** The root to check: the project by default, else a known root named by its basename or holding the given path. */
 function resolveTarget(
   target: string | undefined,
   projectPath: string,
@@ -100,7 +98,6 @@ async function runTypecheck(root: string): Promise<string> {
   }
 }
 
-/** typecheck: `tsc --noEmit` on the project or one of its loaded modules. */
 export const typecheckTool = defineTool({
   name: "typecheck",
   title: "Typecheck",

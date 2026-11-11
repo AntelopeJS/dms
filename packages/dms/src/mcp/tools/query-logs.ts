@@ -2,7 +2,6 @@ import { z } from "zod";
 import { queryLogs } from "../log-buffer";
 import { defineTool, textResult } from "../tool";
 
-/** query_logs: the host's recent log entries, from the buffer the server fills. */
 export const queryLogsTool = defineTool({
   name: "query_logs",
   title: "Query logs",

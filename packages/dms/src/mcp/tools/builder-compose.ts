@@ -5,7 +5,7 @@ import { defineTool } from "../tool";
 import {
   containsExprSentinel,
   exprRefusal,
-  note,
+  withEscalationNote,
   opResult,
 } from "./builder-shared";
 import { QUERY_ARGS, QUERY_FIELDS } from "./builder-queries";
@@ -27,7 +27,6 @@ const BLOCK_QUERY = z.object({
   ),
 });
 
-/** One block of a composed page, with its children nested. */
 interface ComposeBlockInput {
   name: string;
   type: string;
@@ -102,11 +101,10 @@ const PLACEMENT = z
     'Put the new blocks next to the block of this name among the siblings already there (e.g. `{ "before": "table" }`). Omit to append.',
   );
 
-/** builder_compose_page: builds or extends a whole page in one call. */
 export const builderComposeTool = defineTool({
   name: "builder_compose_page",
   title: "Compose page",
-  description: note(DESCRIPTION),
+  description: withEscalationNote(DESCRIPTION),
   effect: "builder",
   input: z.object({
     pageRef: z

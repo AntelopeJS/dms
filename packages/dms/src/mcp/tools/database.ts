@@ -17,11 +17,9 @@ const CATALOG_INTERFACE = "@antelopejs/interface-database-catalog";
  */
 const OWN_MODULE = GetResponsibleModule();
 
-/** A catalog connection the project declares for the DMS, by its id. */
 interface NamedConnection {
   id: string;
-  /** Whether the DMS's plain import of the catalog reaches it. */
-  selected: boolean;
+  reachable: boolean;
 }
 
 function catalogConnections(): NamedConnection[] {
@@ -31,7 +29,7 @@ function catalogConnections(): NamedConnection[] {
       ? lookup()
       : RunWithResponsibleModule(OWN_MODULE, lookup);
   return connections.flatMap(({ id, selected }) =>
-    id === undefined || id.length === 0 ? [] : [{ id, selected }],
+    id === undefined || id.length === 0 ? [] : [{ id, reachable: selected }],
   );
 }
 
@@ -39,12 +37,6 @@ function failed(error: { [key: string]: string | string[] }): McpToolResult {
   return textResult(JSON.stringify({ ok: false, error }), true);
 }
 
-/**
- * Runs `work` on the catalog of `connection`, answering a refusal the agent
- * reads when the connection is unknown or not the one the DMS reaches. The
- * DMS loads modules from literal specifiers only, so it reaches the catalog
- * through the connection its plain import selects.
- */
 async function onCatalog(
   connection: string,
   work: (catalog: typeof Catalog) => Promise<string>,
@@ -58,14 +50,14 @@ async function onCatalog(
       known: connections.map(({ id }) => id),
     });
   }
-  if (!target.selected) {
+  if (!target.reachable) {
     return failed({
       code: "unreachable_connection",
       connection,
       detail:
         "The DMS reaches only the catalog connection its import of @antelopejs/interface-database-catalog selects.",
-      reachable: connections.flatMap(({ id, selected }) =>
-        selected ? [id] : [],
+      reachable: connections.flatMap(({ id, reachable }) =>
+        reachable ? [id] : [],
       ),
     });
   }
@@ -89,8 +81,8 @@ const RELATION = z
   .describe('A relation named `"schema.name"`, e.g. `sales.accounts`.');
 const COLUMN_REFERENCE = z.object({ relation: RELATION, column: z.string() });
 
-async function describeConnection({ id, selected }: NamedConnection) {
-  if (!selected) return { connection: id, reachable: false };
+async function describeConnection({ id, reachable }: NamedConnection) {
+  if (!reachable) return { connection: id, reachable: false };
   try {
     const catalog = await import("@antelopejs/interface-database-catalog");
     return { connection: id, reachable: true, ...(await catalog.Info()) };
@@ -178,5 +170,4 @@ const profile = defineTool({
     ),
 });
 
-/** The catalog tools: they read the connected database's catalog and aggregates, never its rows. */
 export const DATABASE_TOOLS = [connections, relations, describe, profile];

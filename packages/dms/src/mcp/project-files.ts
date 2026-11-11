@@ -21,30 +21,22 @@ const ZERO_WIDTH = /^[\p{M}\p{Cc}​-‏⁠﻿]$/u;
 const DOUBLE_WIDTH =
   /^[\p{Extended_Pictographic}ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦\u{20000}-\u{3FFFD}]$/u;
 
-/** The launcher's path from the project root, in `/` form so `.mcp.json` reads the same on every OS. */
-const LAUNCHER_FROM_ROOT = [
+const LAUNCHER_FROM_ROOT = path.posix.join(
   ...CACHE_DIR_SEGMENTS,
   BRIDGE_LAUNCHER_FILE_NAME,
-].join("/");
+);
 
-/** The compiled bridge of this build, which the launcher loads. */
 const BRIDGE_MODULE_PATH = path.join(__dirname, "bridge.js");
 
-/** What a start hands the bridge, and whether it may touch `.mcp.json`. */
 export interface BridgeFiles {
-  /** The project root: `.mcp.json` and `node_modules/.cache/dms` sit under it. */
   projectPath: string;
-  /** The MCP route's full URL. */
   url: string;
-  /** This start's credential. */
   token: string;
-  /** Whether to add the `dms` server to `.mcp.json`; the cache files are written either way. */
   writeMcpJson: boolean;
 }
 
 type JsonObject = { [key: string]: JsonValue };
 
-/** The columns a formatter gives a line: wide and emoji characters take two, combining marks none. */
 function displayWidth(text: string): number {
   let width = 0;
   for (const char of text) {
@@ -54,11 +46,7 @@ function displayWidth(text: string): number {
   return width;
 }
 
-/**
- * Serializes `.mcp.json` the way oxfmt and Prettier print it: two-space
- * indent, and an array of plain values on one line when that line fits the
- * print width, so the written file passes the project's format check.
- */
+/** Serializes `.mcp.json` the way oxfmt and Prettier print JSON with their default options. */
 export function formatMcpJson(value: JsonValue): string {
   const expanded = JSON.stringify(value, null, JSON_INDENT);
   return expanded.replace(
@@ -85,8 +73,10 @@ function launcherSource(): string {
   return `require(${JSON.stringify(BRIDGE_MODULE_PATH)}).runBridge(require("node:path").join(__dirname, ${JSON.stringify(BRIDGE_CONFIG_FILE_NAME)}), process.stdin, process.stdout);\n`;
 }
 
-/** Written beside the target and renamed over it, so a bridge never reads a half-written file. */
-async function writePrivate(filePath: string, content: string): Promise<void> {
+async function writePrivateAtomically(
+  filePath: string,
+  content: string,
+): Promise<void> {
   const temp = `${filePath}.${process.pid}.tmp`;
   await writeFile(temp, content, { mode: PRIVATE_FILE_MODE });
   await chmod(temp, PRIVATE_FILE_MODE);
@@ -96,13 +86,11 @@ async function writePrivate(filePath: string, content: string): Promise<void> {
 const MissingFileSchema = z.object({ code: z.literal("ENOENT") });
 const McpJsonSchema = z.object({ mcpServers: JsonObjectSchema.optional() });
 
-/** A `.mcp.json` the DMS can extend: the whole file, and its servers. */
 interface McpJsonFile {
   file: JsonObject;
   servers: JsonObject;
 }
 
-/** The file as read; empty when there is none, `undefined` when it is not a `.mcp.json` the DMS can extend. */
 async function readMcpJson(filePath: string): Promise<McpJsonFile | undefined> {
   let raw: string;
   try {
@@ -123,11 +111,6 @@ async function readMcpJson(filePath: string): Promise<McpJsonFile | undefined> {
   }
 }
 
-/**
- * Adds the `dms` server to the project's `.mcp.json` when it is not there,
- * keeping every other server. An entry already present stays as its author
- * wrote it, and a file that is not a JSON object of servers is not touched.
- */
 async function ensureMcpJsonEntry(projectPath: string): Promise<void> {
   const filePath = path.join(projectPath, PROJECT_MCP_JSON_FILE_NAME);
   const current = await readMcpJson(filePath);
@@ -149,16 +132,10 @@ async function ensureMcpJsonEntry(projectPath: string): Promise<void> {
   await writeFile(filePath, `${formatMcpJson(next)}\n`);
 }
 
-/**
- * Hands this start's route and credential to the bridge: `mcp.json`, readable
- * by the project's user alone, and beside it a launcher of this build's
- * bridge, both under `node_modules/.cache/dms`. Then points `.mcp.json` at the
- * launcher, when allowed.
- */
 export async function publishBridge(files: BridgeFiles): Promise<void> {
   const cacheDir = path.join(files.projectPath, ...CACHE_DIR_SEGMENTS);
   await mkdir(cacheDir, { recursive: true, mode: PRIVATE_DIRECTORY_MODE });
-  await writePrivate(
+  await writePrivateAtomically(
     path.join(cacheDir, BRIDGE_CONFIG_FILE_NAME),
     JSON.stringify({ url: files.url, token: files.token }),
   );

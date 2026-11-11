@@ -17,7 +17,6 @@ import { defineTool, type McpToolResult, textResult } from "../tool";
 import { opResult, refusalResult } from "./builder-shared";
 import { TABLE_VIEW_SETTINGS } from "./builder-table-view";
 
-/** How long builder_analyse_database waits for the analysis before answering its progress. */
 const ANALYSIS_WAIT_MS = 60_000;
 const ANALYSIS_POLL_MS = 1_000;
 const UNAPPROVED_PAGES_PREFIX = "pages not approved for removal";
@@ -206,7 +205,6 @@ const configureProject = defineTool({
   },
 });
 
-/** The write's refusal for pages no one approved, as the plain text the agent reads. */
 function unapprovedPagesRefusal(
   written: OpResult<MapResourcesResult>,
 ): McpToolResult | undefined {
@@ -283,7 +281,6 @@ const AnalyseDatabaseInputSchema = z.object({
 
 type AnalyseDatabaseArgs = z.infer<typeof AnalyseDatabaseInputSchema>;
 
-/** Reads the given job, or starts an analysis of the given connection and module. */
 async function startOrRead(
   args: AnalyseDatabaseArgs,
 ): Promise<OpResult<AnalysisState> | undefined> {
@@ -337,7 +334,6 @@ const mapping = defineTool({
     opResult(await GetMapping(connection, module)),
 });
 
-/** The builder tools that configure the project and map a connected database into it. */
 export const BUILDER_PROJECT_TOOLS = [
   configureProject,
   mapResources,

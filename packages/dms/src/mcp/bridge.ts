@@ -7,11 +7,9 @@ import { z } from "zod";
 const HTTP_ACCEPTED = 202;
 const JSON_RPC_INTERNAL_ERROR = -32603;
 
-/** The bridge's answer when the backend does not answer at all. */
 const BACKEND_UNREACHABLE =
   "The DMS backend is not running. Start the project with ajs project dev, then retry.";
 
-/** The bridge's answer to each refusal of the route, by HTTP status. */
 const REFUSALS: ReadonlyMap<number, string> = new Map([
   [
     401,
@@ -27,16 +25,14 @@ const REFUSALS: ReadonlyMap<number, string> = new Map([
   ],
   [
     413,
-    "The request is over the 1 MiB the DMS MCP server reads. Split it into smaller calls.",
+    "The request is larger than the DMS MCP server reads. Split it into smaller calls.",
   ],
 ]);
 
-/** What the DMS publishes for the bridge: the route and its credential. */
 const BridgeConfigSchema = z.object({ url: z.string(), token: z.string() });
 
 type BridgeConfig = z.infer<typeof BridgeConfigSchema>;
 
-/** A request's id, so a failure can answer it. A notification has none. */
 const RequestIdSchema = z.object({
   method: z.string(),
   id: z.union([z.string(), z.number()]),
@@ -53,7 +49,6 @@ async function readConfig(configPath: string): Promise<BridgeConfig> {
   );
 }
 
-/** No timeout: a mapping of many tables runs for minutes before it answers. */
 function post(config: BridgeConfig, body: string): Promise<RelayAnswer> {
   const url = new URL(config.url);
   const transport = url.protocol === "https:" ? https : http;
@@ -105,7 +100,6 @@ async function relay(configPath: string, line: string): Promise<RelayAnswer> {
   return post(await readConfig(configPath), line);
 }
 
-/** The line to write back for the backend's answer; none for a notification or an accepted one. */
 function answerLine(
   id: string | number | undefined,
   answer: RelayAnswer,
@@ -134,13 +128,7 @@ function onLines(input: Readable, onLine: (line: string) => void): void {
   });
 }
 
-/**
- * The stdio MCP server a coding agent launches from the project's
- * `.mcp.json`. It relays each JSON-RPC line to the DMS backend's MCP route
- * and writes back the answer. The config is read per message, so a restarted
- * backend (a new credential) is picked up without a reconnect. Messages are
- * relayed concurrently: a long tool call does not hold a ping.
- */
+/** The stdio MCP server a coding agent launches from the project's `.mcp.json`. */
 export function runBridge(
   configPath: string,
   input: Readable,

@@ -15,7 +15,7 @@ import {
   BUILDER_REF_NOTE,
   containsExprSentinel,
   exprRefusal,
-  note,
+  withEscalationNote,
   opResult,
   TARGET_MODULE,
 } from "./builder-shared";
@@ -104,7 +104,7 @@ const RESOURCE_ROUTE = z
 const listResources = defineTool({
   name: "builder_list_resources",
   title: "List resources",
-  description: note(
+  description: withEscalationNote(
     "Lists every data resource (its ref, class/table names, /api route, field count, files). A resource is a Database Table+Model paired with a DataAPI controller.",
   ),
   effect: "read",
@@ -115,7 +115,7 @@ const listResources = defineTool({
 const resourceStructure = defineTool({
   name: "builder_resource_structure",
   title: "Resource structure",
-  description: note(
+  description: withEscalationNote(
     "Returns a resource's fields with their semantic aspects, its `routes` (absent when it serves the full set), and a version hash for optimistic concurrency. Hand-edited or relation fields come back marked `opaque` — safe mode cannot reconfigure those.",
   ),
   effect: "read",
@@ -126,7 +126,7 @@ const resourceStructure = defineTool({
 const createResource = defineTool({
   name: "builder_create_resource",
   title: "Create resource",
-  description: note(
+  description: withEscalationNote(
     "Creates a data resource — a Database Table+Model plus a matching DataAPI controller at /api/<name> — as a folder wired into the nearest barrel. Every resource auto-manages its own `_id`. When you limit `routes`, keep the view in sync: drop the TableView rowActions whose routes you left out, or bind a Form instead.",
   ),
   effect: "builder",
@@ -149,7 +149,7 @@ const createResource = defineTool({
 const deleteResource = defineTool({
   name: "builder_delete_resource",
   title: "Delete resource",
-  description: note(
+  description: withEscalationNote(
     "Deletes a resource: removes its database.ts/data-api.ts/index.ts files, unwires the barrel export, and (by default) clears the resource's database table so a later resource reusing the name re-seeds cleanly instead of inheriting stale rows. Pass keepData: true to leave the table data in place. Does not detect pages whose TableView references its /api route.",
   ),
   effect: "project",
@@ -167,7 +167,7 @@ const deleteResource = defineTool({
 const addField = defineTool({
   name: "builder_add_field",
   title: "Add field",
-  description: note(
+  description: withEscalationNote(
     "Adds a field to a resource, editing the Table and DataAPI classes together in one atomic op.",
   ),
   effect: "builder",
@@ -181,7 +181,7 @@ const addField = defineTool({
 const configureField = defineTool({
   name: "builder_configure_field",
   title: "Configure field",
-  description: note(
+  description: withEscalationNote(
     "Reconfigures a field by merging the patch over its current aspects and re-deriving the whole decorator stack on both classes (no drift). Field name is immutable — rename via builder_remove_field + builder_add_field.",
   ),
   effect: "builder",
@@ -195,7 +195,7 @@ const configureField = defineTool({
 const removeField = defineTool({
   name: "builder_remove_field",
   title: "Remove field",
-  description: note(
+  description: withEscalationNote(
     "Removes a field from a resource's Table and DataAPI classes in one atomic op. Leaves seed rows untouched.",
   ),
   effect: "builder",
@@ -205,7 +205,6 @@ const removeField = defineTool({
     opResult(await RemoveField(args.path)),
 });
 
-/** The builder tools that read, create and delete resources and their fields. */
 export const BUILDER_RESOURCE_TOOLS = [
   listResources,
   resourceStructure,

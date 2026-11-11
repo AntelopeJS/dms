@@ -4,7 +4,7 @@ import { defineTool } from "../tool";
 import {
   containsExprSentinel,
   exprRefusal,
-  note,
+  withEscalationNote,
   opResult,
 } from "./builder-shared";
 
@@ -125,7 +125,6 @@ const FOOTER_SUMMARY = z.object({
     ),
 });
 
-/** What the builder sets on a table page; shared by builder_configure_table_view and the mapping's `tableOptions`. */
 export const TABLE_VIEW_SETTINGS = {
   kanban: KANBAN.nullable()
     .optional()
@@ -156,11 +155,10 @@ export const TABLE_VIEW_SETTINGS = {
 const DESCRIPTION =
   "Sets displays, named views and footer figures on a table page's TableView, checking every choice against the columns of the table first: a kanban needs a single-choice column, a sum a number or price column, a view's filters filterable columns and its sort sortable ones, the default display one the table offers. A key left out stays as the page has it; `null` removes it. A footer figure also mounts the controller's summary route. Nothing is written when a choice is refused or the page would not typecheck. Read the column names and types with builder_resource_structure first. For the page's title, icon, description and order use builder_configure_page.";
 
-/** builder_configure_table_view. */
 export const builderTableViewTool = defineTool({
   name: "builder_configure_table_view",
   title: "Configure table view",
-  description: note(DESCRIPTION),
+  description: withEscalationNote(DESCRIPTION),
   effect: "builder",
   input: z.object({
     pageRef: z.string(),

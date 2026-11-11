@@ -6,7 +6,7 @@ import {
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
 import { defineTool, textResult } from "../tool";
-import { note } from "./builder-shared";
+import { withEscalationNote } from "./builder-shared";
 
 const DETAIL_HINT =
   'This is the index. Call builder_catalog again with `blocks: ["<type>", …]` and/or `dataTypes: ["<id>", …]` for the full config schema of the entries you will use.';
@@ -52,7 +52,6 @@ function catalogIndex(catalog: BlockCatalog) {
   };
 }
 
-/** The entries named in `names`, and the names no entry answers to. */
 function pick<Entry>(
   entries: Entry[],
   names: string[] | undefined,
@@ -88,15 +87,10 @@ function hasSelection(selection: CatalogSelection): boolean {
   );
 }
 
-/**
- * builder_catalog. The full catalog is far too large for one tool result, so
- * it answers a compact index unless the agent names the block types and
- * DataTypes whose full schemas it needs.
- */
 export const builderCatalogTool = defineTool({
   name: "builder_catalog",
   title: "Builder catalog",
-  description: note(
+  description: withEscalationNote(
     "The block types and DataTypes the page builder can emit. Without arguments it returns a compact index: each block type with a one-line description, its group, whether it is a `container` and whether it binds a resource (`controllerArg`); each DataType id with its config keys; and `reservedFieldNames`. Then pass `blocks` and/or `dataTypes` with the names you will use to get their full config schemas — always do so before adding or configuring a block of that type. For a config field whose schema is marked `x-dataType` (e.g. a Form field's `type`), pass a DataType value `{ $dataType: \"<id>\", config: {…} }` using an id and config from this catalog's `dataTypes` — never a raw `$expr`.",
   ),
   effect: "read",

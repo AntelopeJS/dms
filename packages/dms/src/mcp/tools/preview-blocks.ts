@@ -3,7 +3,6 @@ import { listPreviewBlockTypes } from "../../pages/public/preview";
 import { JsonObjectSchema } from "../json";
 import { defineTool, type McpToolResult, textResult } from "../tool";
 
-/** Bounds of one preview, so a runaway tree cannot flood the transcript. */
 const MAX_DEPTH = 8;
 const MAX_NODES = 200;
 const MAX_VARIANTS = 4;
@@ -13,23 +12,18 @@ const MAX_LABEL_CHARS = 60;
 const MAX_DESCRIPTION_CHARS = 2_000;
 const MAX_CAPTION_CHARS = 200;
 const MAX_URL_CHARS = 2_048;
-const MAX_JSON_BYTES = 64 * 1024;
+const BYTES_PER_KIBIBYTE = 1024;
+const MAX_JSON_BYTES = 64 * BYTES_PER_KIBIBYTE;
 const SKETCH_MIN_HEIGHT_PX = 80;
 const SKETCH_DEFAULT_HEIGHT_PX = 320;
 const SKETCH_MAX_HEIGHT_PX = 1_200;
 
-/** Only a same-origin path is loaded; anything else is shown as a link. */
 const SAME_ORIGIN_PATH = /^\/(?![/\\])/;
 const REMOTE_URL = /^https?:\/\//i;
-/** Option keys the DMS loads from: they must name a path of the site. */
 const URL_OPTION_KEY = /(?:Url|^location)$/;
 const OptionUrlSchema = z.string();
 
-/**
- * Markup a sketch may not hold. A sketch is drawn in a sandboxed frame with
- * no scripts and a CSP that loads nothing but `data:` images and fonts; these
- * checks turn a sketch that would break there into a clear error.
- */
+/** Markup the dms-ai sketch frame would block, refused here with a clear error; the frame, not this list, is the guard. */
 const SKETCH_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
   [/<\s*script\b/i, "a <script> element"],
   [
@@ -47,7 +41,6 @@ const SKETCH_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
   ],
 ];
 
-/** One node of a block tree, as `DmsBlockPreview` draws it. */
 interface PreviewNode {
   type?: string;
   componentName?: string;
@@ -205,13 +198,11 @@ class PreviewInputError extends Error {
   }
 }
 
-/** What the preview holds once every check passed. */
 interface PreviewTally {
   nodes: number;
   blockTypes: Set<string>;
 }
 
-/** The registered block types, by factory name and by component name. */
 interface KnownBlocks {
   types: ReadonlySet<string>;
   componentNames: ReadonlyMap<string, string>;
@@ -348,12 +339,13 @@ function validated(input: z.infer<typeof PreviewInputSchema>): McpToolResult {
   );
 }
 
-/** preview_blocks: checks a block preview against the registered blocks and the preview's limits. */
 export const previewBlocksTool = defineTool({
   name: "preview_blocks",
   title: "Preview blocks",
   description:
-    "Checks a preview of DMS blocks before you build it: a block tree, each node a registered block `type` from builder_catalog (or its `componentName`) with its options and children, beside the person's mockup when you pass it as `reference`, with one tab per variant. A view may carry a `sketch` instead of (or beside) its `tree`: static HTML and CSS of a custom component you propose, labelled as not a DMS block. It validates every node against the block types the DMS registers and the preview's limits (8 levels, 200 nodes, 4 variants, 64 KiB), and answers what it validated: the views, the node count and the block types used. It renders nothing and changes nothing in the project.",
+    "Checks a preview of DMS blocks before you build it: a block tree, each node a registered block `type` from builder_catalog (or its `componentName`) with its options and children, beside the person's mockup when you pass it as `reference`, with one tab per variant. A view may carry a `sketch` instead of (or beside) its `tree`: static HTML and CSS of a custom component you propose, labelled as not a DMS block. It validates every node against the block types the DMS registers and the preview's limits " +
+    `(${MAX_DEPTH} levels, ${MAX_NODES} nodes, ${MAX_VARIANTS} variants, ${MAX_JSON_BYTES / BYTES_PER_KIBIBYTE} KiB)` +
+    ", and answers what it validated: the views, the node count and the block types used. It renders nothing and changes nothing in the project.",
   effect: "read",
   input: PreviewInputSchema,
   async run(input) {

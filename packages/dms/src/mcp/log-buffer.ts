@@ -7,7 +7,6 @@ const BUFFER_CAP = 500;
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 500;
 
-/** One log entry as `query_logs` answers it, its arguments joined into one line. */
 export interface BufferedLog {
   time: number;
   channel: string;
@@ -15,7 +14,6 @@ export interface BufferedLog {
   message: string;
 }
 
-/** The filters `query_logs` takes; every one is optional. */
 export interface LogQuery {
   sinceMs?: number;
   level?: number;
@@ -53,10 +51,7 @@ function capture(log: Log): void {
     entries.splice(0, entries.length - BUFFER_CAP);
 }
 
-/**
- * Keeps the last 500 log entries of every module from now on. The runtime
- * drops the listener when the module unloads.
- */
+/** Keeps the newest log entries of every module from now on. interface-core's EventProxy unregisters the listener when the DMS unloads. */
 export function startLogCapture(): void {
   if (isCapturing) return;
   isCapturing = true;
@@ -69,7 +64,7 @@ function matches(entry: BufferedLog, query: LogQuery): boolean {
   return query.channel === undefined || entry.channel === query.channel;
 }
 
-/** The captured entries that match, newest first, at most `limit` (100 by default, 500 at most). */
+/** The captured entries that match, newest first. */
 export function queryLogs(query: LogQuery): BufferedLog[] {
   const limit =
     query.limit === undefined || query.limit <= 0

@@ -1,6 +1,6 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import { z } from "zod";
-import { getConfig } from "../config";
+import { getConfig, type McpConfig } from "../config";
 import type { McpSettings } from "./server";
 
 const McpConfigSchema = z
@@ -10,13 +10,8 @@ const McpConfigSchema = z
     mcpJson: z.boolean().optional(),
   })
   .strict()
-  .optional();
+  .optional() satisfies z.ZodType<McpConfig | undefined>;
 
-/**
- * The settings of this start, or nothing when MCP is off. A config the schema
- * refuses turns MCP off rather than guessing an access the integrator did not
- * write.
- */
 function settingsOf(dev: boolean): McpSettings | undefined {
   const parsed = McpConfigSchema.safeParse(getConfig().mcp);
   if (!parsed.success) {
@@ -33,11 +28,6 @@ function settingsOf(dev: boolean): McpSettings | undefined {
   };
 }
 
-/**
- * Serves the MCP server for coding agents when it is enabled: in development
- * (`ajs project dev`), or wherever `mcp.enabled` is `true`. Off, it loads
- * nothing of the server: no route, no tool, no file written.
- */
 export async function startMcp(dev: boolean): Promise<void> {
   const settings = settingsOf(dev);
   if (settings === undefined) return;

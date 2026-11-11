@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import {
   Context,
@@ -16,16 +16,14 @@ import { answerMcpMessage, type McpSession } from "./protocol";
 const CONTROLLER_LOCATION = "/dms";
 const HANDLER_LOCATION = "mcp";
 
-/** Where the bridge posts each JSON-RPC message, under the backend's origin. */
 export const MCP_ROUTE_PATH = `${CONTROLLER_LOCATION}/${HANDLER_LOCATION}`;
 
-/** The largest message the route reads, so a page composed in one call fits. */
 const MAX_BODY_BYTES = 1024 * 1024;
+const TOKEN_BYTES = 32;
 const BEARER_PREFIX = "Bearer ";
 const LOOPBACK_IPV6 = "::1";
 /** The whole `127.0.0.0/8` range, plain or IPv4-mapped (Debian names the host `127.0.1.1`). */
 const LOOPBACK_IPV4_PREFIXES = ["127.", "::ffff:127."];
-/** Headers a proxy adds, the DMS frontend server included; the bridge sends none. */
 const FORWARDING_HEADERS = ["x-forwarded-for", "forwarded"];
 
 const HTTP_OK = 200;
@@ -42,15 +40,12 @@ interface ServedSession {
 
 let served: ServedSession | undefined;
 
-/**
- * Serves `session` to the callers that present `token`. A new start replaces
- * the previous one, so a bridge holding an old credential is refused.
- */
-export function serveMcpSession(session: McpSession, token: string): void {
+export function serveMcpSession(session: McpSession): string {
+  const token = randomBytes(TOKEN_BYTES).toString("hex");
   served = { session, token: Buffer.from(token) };
+  return token;
 }
 
-/** A caller on this machine that came straight to the backend, not through a proxy. */
 function isDirectLocalCall(request: IncomingMessage): boolean {
   if (FORWARDING_HEADERS.some((name) => request.headers[name] !== undefined)) {
     return false;
@@ -82,11 +77,6 @@ const PARSE_ERROR = {
   error: { code: JSON_RPC_PARSE_ERROR, message: "Parse error" },
 };
 
-/**
- * The MCP server of the project, one JSON-RPC message per request, as the
- * stdio bridge relays it. Only a direct caller on this machine holding this
- * start's credential gets through. A body past 1 MiB answers 413.
- */
 export class McpController extends Controller(CONTROLLER_LOCATION) {
   @Post(HANDLER_LOCATION)
   async answer(
