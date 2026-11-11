@@ -27,15 +27,28 @@
    Variable files cover weights 100–900 and keep builds deterministic offline.
    Geist has no narrow no-break space (U+202F), which French and a few other
    locales group digits with: a fallback face drew it a fraction of a digit
-   wide, so "1 234" read as "1234". Each file here maps U+202F to its no-break
-   space glyph (fontTools: cmap[0x202F] = cmap[0xA0]); keep that mapping when
-   updating them. */
+   wide, so "1 234" read as "1234". Each file without -Extended maps U+202F
+   to its no-break space glyph (fontTools: cmap[0x202F] = cmap[0xA0]); keep
+   that mapping when updating them. */
 @font-face {
   font-family: "Geist";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
   src: url("../fonts/Geist-Variable.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+2000-24FF, U+25A0-27FF, U+3000-303F,
+    U+F8FF, U+FB00-FB06, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/Geist-Variable-Extended.woff2") format("woff2");
+  unicode-range:
+    U+0100-0130, U+0132-0151, U+0154-052F, U+0E3F, U+1E00-1EFF, U+2500-259F,
+    U+A720-A7FF;
 }
 @font-face {
   font-family: "Geist";
@@ -43,6 +56,19 @@
   font-weight: 100 900;
   font-display: swap;
   src: url("../fonts/Geist-Italic-Variable.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+2000-24FF, U+25A0-27FF, U+3000-303F,
+    U+F8FF, U+FB00-FB06, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Geist";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/Geist-Italic-Variable-Extended.woff2") format("woff2");
+  unicode-range:
+    U+0100-0130, U+0132-0151, U+0154-052F, U+0E3F, U+1E00-1EFF, U+2500-259F,
+    U+A720-A7FF;
 }
 @font-face {
   font-family: "Geist Mono";
@@ -50,6 +76,19 @@
   font-weight: 100 900;
   font-display: swap;
   src: url("../fonts/GeistMono-Variable.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+2000-24FF, U+25A0-27FF, U+3000-303F,
+    U+F8FF, U+FB00-FB06, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Geist Mono";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/GeistMono-Variable-Extended.woff2") format("woff2");
+  unicode-range:
+    U+0100-0130, U+0132-0151, U+0154-052F, U+0E3F, U+1E00-1EFF, U+2500-259F,
+    U+A720-A7FF;
 }
 @font-face {
   font-family: "Geist Mono";
@@ -57,6 +96,19 @@
   font-weight: 100 900;
   font-display: swap;
   src: url("../fonts/GeistMono-Italic-Variable.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+2000-24FF, U+25A0-27FF, U+3000-303F,
+    U+F8FF, U+FB00-FB06, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Geist Mono";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/GeistMono-Italic-Variable-Extended.woff2") format("woff2");
+  unicode-range:
+    U+0100-0130, U+0132-0151, U+0154-052F, U+0E3F, U+1E00-1EFF, U+2500-259F,
+    U+A720-A7FF;
 }
 
 /* Interface scale: Nuxt UI / Tailwind sizing is rem-based, so scaling the
