@@ -12,8 +12,8 @@ importers:
         specifier: '>=1.21.0 <2'
         version: 1.21.0
       '@antelopejs/tooling-configs':
-        specifier: ^0.5.1
-        version: 0.5.1(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.56.1)(sharp@0.35.5)
+        specifier: ^0.5.3
+        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.56.1)(sharp@0.35.5)
       dependency-cruiser:
         specifier: ^18.7.0
         version: 18.7.0
@@ -124,8 +124,8 @@ importers:
         specifier: '>=1.21.0 <2'
         version: 1.21.0
       '@antelopejs/tooling-configs':
-        specifier: ^0.5.1
-        version: 0.5.1(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.56.1)(sharp@0.35.5)
+        specifier: ^0.5.3
+        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.56.1)(sharp@0.35.5)
       '@types/archiver':
         specifier: ^6.0.4
         version: 6.0.4
@@ -623,8 +623,8 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/tooling-configs@0.5.1':
-    resolution: {integrity: sha512-Q1JWAsMIDy8f6KaTFPAakT+ChWDhQCzJjdszFFam/pUFqBVMgY+Lp1I7bc8SwcWL3CMdHBzgUUEId2od2cB7hQ==}
+  '@antelopejs/tooling-configs@0.5.3':
+    resolution: {integrity: sha512-FDvEVT6JSf8EFlcRjc8d2ckJ2sdDwAkdSgvJ4bq6Ab9IEjFJ/mM4k8Q87Op4v0ahUgx3L6B8Qt/LcZIapF+O1A==}
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -6838,7 +6838,7 @@ snapshots:
       - supports-color
     optional: true
 
-  '@antelopejs/tooling-configs@0.5.1(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.56.1)(sharp@0.35.5)':
+  '@antelopejs/tooling-configs@0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.56.1)(sharp@0.35.5)':
     dependencies:
       '@oxlint/plugins': 1.81.0
       dts-bundle-generator: 9.5.1
