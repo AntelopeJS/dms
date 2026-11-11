@@ -2,6 +2,7 @@ import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { expect } from "chai";
 import { z } from "zod";
 import type { McpAccess } from "../../../mcp/access";
+import { JsonObjectSchema, JsonValueSchema } from "../../../mcp/json";
 import { answerMcpMessage } from "../../../mcp/protocol";
 import { defineTool, type McpTool, textResult } from "../../../mcp/tool";
 import { MCP_TOOLS } from "../../../mcp/tools";
@@ -11,9 +12,7 @@ const ListAnswerSchema = z.object({
     tools: z.array(
       z.object({
         name: z.string(),
-        inputSchema: z.object({
-          properties: z.record(z.string(), z.unknown()),
-        }),
+        inputSchema: JsonObjectSchema,
       }),
     ),
   }),
@@ -30,6 +29,39 @@ const ErrorAnswerSchema = z.object({
   id: z.union([z.string(), z.number(), z.null()]),
   error: z.object({ code: z.number(), message: z.string() }),
 });
+
+const RefSchema = z.object({ $ref: z.string() });
+const ListSchema = z.array(JsonValueSchema);
+
+function refsOf(node: JsonValue): string[] {
+  const list = ListSchema.safeParse(node);
+  if (list.success) return list.data.flatMap(refsOf);
+  const fields = JsonObjectSchema.safeParse(node);
+  if (!fields.success) return [];
+  const own = RefSchema.safeParse(fields.data);
+  return [
+    ...(own.success ? [own.data.$ref] : []),
+    ...Object.values(fields.data).flatMap(refsOf),
+  ];
+}
+
+function resolveRef(root: JsonValue, ref: string): JsonValue | undefined {
+  if (!ref.startsWith("#")) return undefined;
+  let node: JsonValue | undefined = root;
+  for (const segment of ref.slice(1).split("/")) {
+    if (segment === "") continue;
+    const list = ListSchema.safeParse(node);
+    const fields = JsonObjectSchema.safeParse(node);
+    if (list.success) {
+      node = list.data[Number(segment)];
+    } else if (fields.success && Object.hasOwn(fields.data, segment)) {
+      node = fields.data[segment];
+    } else {
+      return undefined;
+    }
+  }
+  return node;
+}
 
 const calls = { project: 0, echo: 0 };
 
@@ -239,7 +271,7 @@ describe("[unit] mcp protocol", () => {
     expect(new Set(names).size).to.equal(names.length);
   });
 
-  it("hands out the arguments of a recursive input, the composed page's blocks", async () => {
+  it("hands out the arguments of a recursive input, with its recursion reachable through a $ref that resolves inside the schema", async () => {
     const reply = await answerMcpMessage(
       { access: "full", tools: MCP_TOOLS },
       request(1, "tools/list"),
@@ -247,10 +279,12 @@ describe("[unit] mcp protocol", () => {
     const compose = ListAnswerSchema.parse(reply).result.tools.find(
       ({ name }) => name === "builder_compose_page",
     );
-    expect(compose?.inputSchema.properties).to.include.keys([
-      "pageRef",
-      "blocks",
-      "preview",
-    ]);
+    const schema = compose?.inputSchema ?? {};
+    expect(schema.properties).to.include.keys(["pageRef", "blocks", "preview"]);
+    const refs = refsOf(schema);
+    expect(refs).to.include("#/properties/blocks/items");
+    for (const ref of refs) {
+      expect(resolveRef(schema, ref), ref).to.be.an("object");
+    }
   });
 });
