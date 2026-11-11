@@ -51,6 +51,10 @@ export const SKETCH_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
     "an on* event handler attribute",
   ],
   [/(?:java|vb)script\s*:/i, "a javascript: URL"],
+  [
+    /[\s/"']style\s*=\s*(?:"[^"]*&[#a-z]|'[^']*&[#a-z]|[^\s>"']*&[#a-z])/i,
+    "a style attribute written with character references (&#40;)",
+  ],
   [/@import\b/i, "a CSS @import"],
   [/url\(\s*(?!['"]?\s*data:)/i, "a url() that is not a data: URL"],
   [

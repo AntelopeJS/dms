@@ -1,6 +1,6 @@
 import { type FSWatcher, watch } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { join, sep } from "node:path";
+import { join } from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { z } from "zod";
 import { listAnnotations, type MockupAnnotation } from "./annotations";
@@ -48,10 +48,11 @@ interface Entry {
   issues: MockupIssue[];
 }
 
-/** A watched mockup: its subscribers, and its reads waiting out a burst. */
+/** A watched mockup: its subscribers, its directory's watcher, and its reads waiting out a burst. */
 interface Watch {
   listeners: Set<MockupListener>;
   timers: Map<string, NodeJS.Timeout>;
+  watcher?: FSWatcher;
 }
 
 const summarySchema = z.object({
@@ -82,9 +83,9 @@ function lastGood(
 /**
  * The mockups of `mockupsDir`, compiled on read. A mockup someone subscribes
  * to is watched: a change of its spec or annotations reaches every
- * subscriber once the writes settle. One recursive watcher covers
- * `mockupsDir` while anyone subscribes, so a mockup directory deleted and
- * made again is still seen.
+ * subscriber once the writes settle. While anyone subscribes, `mockupsDir`'s
+ * own entries are watched too, so a mockup directory deleted and made again
+ * is watched again; a sibling directory is never read.
  */
 export class MockupStore {
   private readonly entries = new Map<MockupName, Entry>();
@@ -243,37 +244,62 @@ export class MockupStore {
   ]);
 
   private startWatch(name: MockupName): Watch {
-    this.watcher ??= this.watchMockups();
+    this.watcher ??= this.watchDirectory(this.mockupsDir, (filename) =>
+      this.directoryChanged(filename),
+    );
     const watched: Watch = { listeners: new Set(), timers: new Map() };
     this.watches.set(name, watched);
+    this.armMockup(name, watched);
     return watched;
   }
 
-  private watchMockups(): FSWatcher {
-    const watcher = watch(
-      this.mockupsDir,
-      { recursive: true },
-      (_event, filename) => this.routeChange(filename),
-    );
-    watcher.on("error", (error) => {
-      Logging.Warn("[DMS] mockups are no longer watched:", error);
-      this.close();
-    });
-    return watcher;
+  /**
+   * Watches one directory, its own entries only: a sibling mockup it cannot
+   * read never stops another from being followed. Undefined when it cannot
+   * be watched now; the mockups directory watch arms it again later.
+   */
+  private watchDirectory(
+    directory: string,
+    onChange: (filename: string | null) => void,
+  ): FSWatcher | undefined {
+    try {
+      const watcher = watch(directory, (_event, filename) =>
+        onChange(filename),
+      );
+      watcher.on("error", (error) => {
+        Logging.Warn(`[DMS] ${directory} is no longer watched:`, error);
+        watcher.close();
+      });
+      return watcher;
+    } catch (error) {
+      Logging.Warn(`[DMS] ${directory} cannot be watched:`, error);
+      return undefined;
+    }
   }
 
-  /** `filename` is `<name>/<file>`, or `<name>` when the directory itself changed. */
-  private routeChange(filename: string | null): void {
-    const [directory, file, ...deeper] = filename?.split(sep) ?? [];
-    const name =
-      directory === undefined ? undefined : parseMockupName(directory);
-    if (deeper.length) return;
+  /** Watches a mockup's own directory again: after it was deleted and made anew. */
+  private armMockup(name: MockupName, watched: Watch): void {
+    watched.watcher?.close();
+    watched.watcher = this.watchDirectory(
+      mockupDirectory(this.mockupsDir, name),
+      (filename) => this.changed(name, filename),
+    );
+  }
+
+  /** An entry of the mockups directory changed: a mockup directory came or went. */
+  private directoryChanged(filename: string | null): void {
+    const name = filename === null ? undefined : parseMockupName(filename);
     const names = name
       ? [name]
       : filename === null
         ? [...this.watches.keys()]
         : [];
-    for (const watched of names) this.changed(watched, file ?? null);
+    for (const changed of names) {
+      const watched = this.watches.get(changed);
+      if (!watched) continue;
+      this.armMockup(changed, watched);
+      this.changed(changed, null);
+    }
   }
 
   private changed(name: MockupName, filename: string | null): void {
@@ -312,6 +338,7 @@ export class MockupStore {
     if (!watched) return;
     this.watches.delete(name);
     for (const timer of watched.timers.values()) clearTimeout(timer);
+    watched.watcher?.close();
     if (this.watches.size) return;
     this.watcher?.close();
     this.watcher = undefined;

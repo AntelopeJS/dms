@@ -241,6 +241,7 @@ describe("[unit] mockup compiler", () => {
       '<a title=">" onclick=alert(1)>x</a>',
       "<p style=\"background:image-set('https://example.com/x' 1x)\">x</p>",
       "<style>p{background:\\75rl(http://example.com/x)}</style><p>x</p>",
+      '<p style="background:url&#40;https://example.com/x)">x</p>',
     ];
     const { issues } = compile(
       onePage(sketches.map((html) => ({ type: "sketch", options: { html } }))),
