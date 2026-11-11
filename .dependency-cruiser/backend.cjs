@@ -42,8 +42,6 @@ const faces = new Map(
       "protocol",
       "route",
       "tool",
-      "tools/json-patch",
-      "tools/mockup",
     ],
     pages: ["account", "members", "permissions", "preview"],
     implementations: [
