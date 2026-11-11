@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.19.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.19.2...v0.19.3)
+
+### 🔥 Performance
+
+- **layout:** Split the Geist fonts so the first paint loads only Latin ([#854](https://github.com/AntelopeJS/dms/pull/854))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.19.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.19.1...v0.19.2)
