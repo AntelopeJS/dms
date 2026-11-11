@@ -40,6 +40,8 @@ export function isLiteralObject(value: LiteralValue): value is LiteralObject {
 }
 
 /** Whether a value can be called. */
-export function isCallable(value: unknown): value is Function {
+export function isCallable(
+  value: unknown,
+): value is (...args: never[]) => void {
   return typeof value === "function";
 }

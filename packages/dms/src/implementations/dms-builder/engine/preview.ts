@@ -26,6 +26,7 @@ import { resolveProjectRoot } from "./project";
 import { findResourceRecord } from "./resource-index";
 import { findPageRecord } from "./source-index";
 import { isCallable, isIndexable, isLiteralObject } from "./guards";
+import { loadedModules, loadModule } from "./module-loader";
 import { isString } from "./scalar-guards";
 import { isPlainObject } from "./value";
 
@@ -132,7 +133,7 @@ function isTableViewModule(value: unknown): value is TableViewModule {
 }
 
 function tableViewModule(): TableViewModule {
-  const loaded: unknown = require(TABLE_VIEW_MODULE);
+  const loaded = loadModule(TABLE_VIEW_MODULE);
   if (!isTableViewModule(loaded)) {
     throw new DegradedBlockError(
       `${TABLE_VIEW_MODULE} does not export the table view functions`,
@@ -173,7 +174,7 @@ function isBlockFactory(value: unknown): value is BlockFactory {
 }
 
 function factoryFor(type: string): BlockFactory {
-  const factory: unknown = require(BASE_MODULE)[type];
+  const factory: unknown = loadModule(BASE_MODULE)[type];
   if (!isBlockFactory(factory)) {
     throw new DegradedBlockError(`no runtime factory for block type "${type}"`);
   }
@@ -208,11 +209,11 @@ function loadedController(
   }
   const root = `${resolveProjectRoot()}${path.sep}`;
   const dependencies = `${path.sep}node_modules${path.sep}`;
-  for (const [file, entry] of Object.entries(require.cache)) {
+  for (const [file, exports] of loadedModules()) {
     if (!file.startsWith(root) || file.includes(dependencies)) {
       continue;
     }
-    const exported: unknown = entry?.exports?.[record.apiName];
+    const exported: unknown = exports[record.apiName];
     if (!isControllerClass(exported)) {
       continue;
     }
@@ -237,7 +238,7 @@ function instantiateDataType(value: DataTypeSentinel): DataType {
     .split(".")
     .reduce<unknown>(
       (current, part) => (isPlainObject(current) ? current[part] : undefined),
-      require(descriptor.import.module),
+      loadModule(descriptor.import.module),
     );
   if (!isDataTypeClass(exported)) {
     throw new DegradedBlockError(`dataType "${id}" is not constructible`);

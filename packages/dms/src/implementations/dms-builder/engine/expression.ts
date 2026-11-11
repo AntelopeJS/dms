@@ -1,4 +1,5 @@
 import { isIndexable } from "./guards";
+import { loadModule } from "./module-loader";
 import {
   Node,
   type PropertyAccessExpression,
@@ -23,7 +24,7 @@ const exportsOf = new Map<string, unknown>();
 function loadExports(module: string): void {
   if (exportsOf.has(module)) return;
   try {
-    exportsOf.set(module, require(module));
+    exportsOf.set(module, loadModule(module));
   } catch {
     exportsOf.set(module, undefined);
   }

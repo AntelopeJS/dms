@@ -1,6 +1,6 @@
-import { createRequire } from "node:module";
 import type { Schema } from "@antelopejs/interface-database";
 import { DATABASE_INTERFACE } from "./interface-ids";
+import { loadModuleFrom } from "./module-loader";
 import type { ResourceRecord } from "./resource-index";
 
 /** The part of an `interface-database` instance a resource's table is found through. */
@@ -28,9 +28,7 @@ function isSchemaRegistry(value: unknown): value is SchemaRegistry {
  * resolved from the resource's own file, the way the generated model resolves it.
  */
 export function resourceSchema(record: ResourceRecord): Schema | undefined {
-  const database: unknown = createRequire(record.databaseFile)(
-    DATABASE_INTERFACE,
-  );
+  const database = loadModuleFrom(record.databaseFile, DATABASE_INTERFACE);
   return isSchemaRegistry(database)
     ? database.Schema.get(record.schema)
     : undefined;

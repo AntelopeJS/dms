@@ -105,7 +105,12 @@ module.exports = {
     ...tiers.flat().map((name) => ({
       name: `backend-${name}-entry-only`,
       severity: "error",
-      from: { pathNot: `${root}${name}/` },
+      from: {
+        pathNot:
+          name === "implementations"
+            ? [`${root}${name}/`, `${root}test/unit/builder/`]
+            : `${root}${name}/`,
+      },
       to: {
         path: `${root}${name}/`,
         pathNot: [

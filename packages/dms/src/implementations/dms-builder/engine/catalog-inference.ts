@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { resolveModule } from "./module-loader";
 import path from "node:path";
 import type {
   BlockTypeDescriptor,
@@ -56,7 +57,7 @@ function hasDeclarations(dir: string): boolean {
 function resolveDmsBaseDir(): string {
   let entry: string;
   try {
-    entry = require.resolve(BASE_MODULE);
+    entry = resolveModule(BASE_MODULE);
   } catch (error) {
     throw new Error(
       `Cannot resolve "${BASE_MODULE}". The builder reads the block factories and DataTypes off its declarations: ${error instanceof Error ? error.message : String(error)}`,

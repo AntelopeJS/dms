@@ -1,6 +1,7 @@
 import type { InterfaceConnection } from "@antelopejs/interface-core";
 import type * as Catalog from "@antelopejs/interface-database-catalog";
 import { isCallable, isIndexable } from "./guards";
+import { loadModule } from "./module-loader";
 import { CATALOG_INTERFACE } from "./interface-ids";
 import { isNumber } from "./scalar-guards";
 import { ownConnections } from "./own-connections";
@@ -47,7 +48,7 @@ function declaredCatalog(id: string): CatalogConnection | undefined {
   if (!connection) {
     return undefined;
   }
-  const loaded: unknown = require(connection.path);
+  const loaded = loadModule(connection.path);
   if (!isCatalogConnection(loaded)) {
     throw new TypeError(
       `the provider of catalog connection "${id}" does not export the catalog functions`,

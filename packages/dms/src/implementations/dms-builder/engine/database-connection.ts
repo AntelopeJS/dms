@@ -311,8 +311,8 @@ export function connectionDetails(
     return invalidConfig<ConnectionDetails>(read.message);
   }
   const { url } = read;
-  const { [PASSWORD_PARAMETER]: _password, ...options } = Object.fromEntries(
-    url.searchParams,
+  const options = Object.fromEntries(
+    [...url.searchParams].filter(([name]) => name !== PASSWORD_PARAMETER),
   );
   return {
     ok: true,

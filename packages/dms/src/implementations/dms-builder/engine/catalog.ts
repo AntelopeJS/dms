@@ -16,6 +16,7 @@ import {
   invalidateInference,
 } from "./catalog-inference";
 import { isIndexable } from "./guards";
+import { loadModule } from "./module-loader";
 import { RESERVED_FIELD_NAMES } from "./reserved-names";
 
 const BASE_MODULE = "@antelopejs/interface-dms/base";
@@ -58,7 +59,7 @@ function isBlockTypesModule(value: unknown): value is BlockTypesModule {
 }
 
 function blockTypesModule(): BlockTypesModule {
-  const loaded: unknown = require(BLOCK_TYPES_MODULE);
+  const loaded = loadModule(BLOCK_TYPES_MODULE);
   if (!isBlockTypesModule(loaded)) {
     throw new TypeError(
       `${BLOCK_TYPES_MODULE} does not export ListBlockTypes and ListDataSources`,
