@@ -130,6 +130,11 @@ describe("[unit] mockup store", () => {
     expect(parseMockupName("desk")).to.equal(NAME);
   });
 
+  it("refuses a name the static schema route answers in its place", () => {
+    expect(parseMockupName("schema")).to.equal(undefined);
+    expect(parseMockupName("schemas")).to.equal("schemas");
+  });
+
   it("round-trips annotations and keeps every one of concurrent creates", async () => {
     const created = await Promise.all(
       Array.from({ length: CONCURRENT_CREATES }, (_, index) =>

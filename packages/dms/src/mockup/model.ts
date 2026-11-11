@@ -30,8 +30,20 @@ export const KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 /** How many pages a spec holds at most. */
 export const MAX_PAGES = 50;
 
-/** A mockup's directory name under `mockups/`: never a path of its own. */
-export const mockupNameSchema = z.string().regex(SLUG_PATTERN).brand("Mockup");
+/** The names `/api/mockup/<segment>` routes take before a mockup's own. */
+export const RESERVED_MOCKUP_NAMES: readonly string[] = ["schema"];
+
+/**
+ * A mockup's directory name under `mockups/`: never a path of its own, nor a
+ * name a static route answers in its place.
+ */
+export const mockupNameSchema = z
+  .string()
+  .regex(SLUG_PATTERN)
+  .refine((name) => !RESERVED_MOCKUP_NAMES.includes(name), {
+    message: "is reserved by the mockup API",
+  })
+  .brand("Mockup");
 export type MockupName = z.infer<typeof mockupNameSchema>;
 
 /** A page id, unique within its spec. */

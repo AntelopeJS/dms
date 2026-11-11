@@ -91,6 +91,15 @@ describe("[unit] mockup routes", () => {
     await rm(base, { recursive: true, force: true });
   });
 
+  it("lists the mockups at the API root", async () => {
+    const listed = await client.get(BASE);
+
+    expect(listed.status).to.equal(200);
+    expect(listed.data).to.deep.equal({
+      mockups: [{ name: "desk", pages: 1 }],
+    });
+  });
+
   it("sorts, searches and pages an array fixture's rows", async () => {
     const rows = `${BASE}/desk/pages/home/fixtures/orders/rows`;
     const sorted = await client.get(

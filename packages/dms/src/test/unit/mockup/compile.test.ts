@@ -76,8 +76,7 @@ describe("[unit] mockup compiler", () => {
     const { issues, pages } = compile(
       onePage([
         {
-          type: "Grid",
-          options: { gap: "1rem", minColumnWidth: "200px" },
+          type: "HStack",
           children: [
             { id: "a", type: "KpiCard", options: { title: "Fine" } },
             { id: "b", type: "KpiCard", options: kpi },
@@ -90,6 +89,36 @@ describe("[unit] mockup compiler", () => {
       "/pages/0/tree/0/children/1/options/valueFormat",
     ]);
     expect(pages[0].tree[0].children?.[1].options).to.deep.equal(kpi);
+  });
+
+  it("reports a child its parent block does not accept, at the child", () => {
+    const card = { type: "KpiCard", options: { title: "Revenue" } };
+    const { issues, pages } = compile(
+      onePage([
+        {
+          type: "Grid",
+          children: [card, { type: "GridRow", children: [card] }],
+        },
+        { type: "KpiCard", options: { title: "Orders" }, children: [card] },
+        {
+          type: "ChartCard",
+          options: { title: "Sales" },
+          children: [{ id: "chart", type: "ChartArea" }],
+        },
+      ]),
+    );
+
+    expect(issues).to.deep.equal([
+      {
+        path: "/pages/0/tree/0/children/0",
+        message: "Grid accepts only GridRow as children",
+      },
+      {
+        path: "/pages/0/tree/1/children/0",
+        message: "KpiCard takes no children",
+      },
+    ]);
+    expect(pages[0].tree[0].children).to.have.length(2);
   });
 
   it("reports an unknown block type and still emits it as written", () => {

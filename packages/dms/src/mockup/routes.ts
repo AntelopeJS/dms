@@ -104,7 +104,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
   }
 
   class MockupController extends Controller(MOCKUP_API) {
-    @Get()
+    @Get("/")
     async list(): Promise<{ mockups: MockupSummary[] }> {
       return { mockups: await store.list() };
     }

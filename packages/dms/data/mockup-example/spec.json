@@ -70,39 +70,45 @@
           "options": { "gap": "1rem", "minColumnWidth": "220px" },
           "children": [
             {
-              "id": "revenue",
-              "type": "KpiCard",
-              "options": {
-                "title": "Revenue",
-                "icon": "i-ph-currency-eur",
-                "staticValue": 48210,
-                "staticDelta": 12.4,
-                "valueFormat": "currency",
-                "currencyCode": "EUR"
-              }
-            },
-            {
-              "id": "orders",
-              "type": "KpiCard",
-              "options": {
-                "title": "Orders",
-                "icon": "i-ph-shopping-cart",
-                "staticValue": 312,
-                "staticDelta": 4.1,
-                "valueFormat": "number"
-              }
-            },
-            {
-              "id": "refunds",
-              "type": "KpiCard",
-              "options": {
-                "title": "Refund rate",
-                "icon": "i-ph-arrow-counter-clockwise",
-                "staticValue": 0.018,
-                "staticDelta": -0.3,
-                "valueFormat": "percent",
-                "invert": true
-              }
+              "id": "kpis",
+              "type": "GridRow",
+              "children": [
+                {
+                  "id": "revenue",
+                  "type": "KpiCard",
+                  "options": {
+                    "title": "Revenue",
+                    "icon": "i-ph-currency-eur",
+                    "staticValue": 48210,
+                    "staticDelta": 12.4,
+                    "valueFormat": "currency",
+                    "currencyCode": "EUR"
+                  }
+                },
+                {
+                  "id": "orders",
+                  "type": "KpiCard",
+                  "options": {
+                    "title": "Orders",
+                    "icon": "i-ph-shopping-cart",
+                    "staticValue": 312,
+                    "staticDelta": 4.1,
+                    "valueFormat": "number"
+                  }
+                },
+                {
+                  "id": "refunds",
+                  "type": "KpiCard",
+                  "options": {
+                    "title": "Refund rate",
+                    "icon": "i-ph-arrow-counter-clockwise",
+                    "staticValue": 1.8,
+                    "staticDelta": -0.3,
+                    "valueFormat": "percent",
+                    "invert": true
+                  }
+                }
+              ]
             }
           ]
         },

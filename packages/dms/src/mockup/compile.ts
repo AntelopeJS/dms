@@ -16,7 +16,7 @@ import type {
 } from "./model";
 import { specSchema, zodIssues } from "./model";
 import { compileSketch, SKETCH_TYPE } from "./sketch";
-import { validateBlockOptions } from "./validate";
+import { validateBlockChildren, validateBlockOptions } from "./validate";
 
 /** The registered block types, looked up as `DmsBlockPreview` does. */
 interface Catalog {
@@ -144,6 +144,13 @@ const blockKind: NodeKind = {
         compiled.options,
         `${pointer}/options`,
         scope.issues,
+      );
+      validateBlockChildren(
+        descriptor,
+        node,
+        pointer,
+        scope.issues,
+        (child) => descriptorOf(child, scope.catalog)?.type ?? child.type,
       );
       return compileChildren(compiled, pointer, layoutPath, scope);
     };

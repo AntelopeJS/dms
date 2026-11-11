@@ -153,6 +153,44 @@ export function previewOptionsOf(
   );
 }
 
+function childIssue(
+  descriptor: BlockTypeDescriptor,
+  child: MockupNode,
+  childType: string | undefined,
+): string | undefined {
+  if (descriptor.container) {
+    const allowed = descriptor.allowedChildren;
+    if (!allowed || (childType !== undefined && allowed.includes(childType))) {
+      return undefined;
+    }
+    return `${descriptor.type} accepts only ${allowed.join(", ")} as children`;
+  }
+  const slots = blockOptionKeys(descriptor.config);
+  if (child.id !== undefined && slots.includes(child.id)) return undefined;
+  return slots.length
+    ? `${descriptor.type} takes no children but the ${slots.join(", ")} block`
+    : `${descriptor.type} takes no children`;
+}
+
+/**
+ * Checks the children of a block node against its registered type: a
+ * container's `allowedChildren`, and a block that is no container takes only
+ * the children its block options name (`ChartCard`'s `chart`). `typeOf`
+ * answers the registered type a child resolves to.
+ */
+export function validateBlockChildren(
+  descriptor: BlockTypeDescriptor,
+  node: MockupNode,
+  pointer: string,
+  issues: MockupIssue[],
+  typeOf: (child: MockupNode) => string | undefined,
+): void {
+  (node.children ?? []).forEach((child, index) => {
+    const message = childIssue(descriptor, child, typeOf(child));
+    if (message) issues.push({ path: `${pointer}/children/${index}`, message });
+  });
+}
+
 /**
  * Checks the options of a block node against its registered schema, each
  * issue at its pointer into the spec (`pointer` is the node's options).
