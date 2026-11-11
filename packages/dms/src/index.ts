@@ -111,6 +111,8 @@ export async function construct(config: Config): Promise<void> {
   if (isDocsPreviewEnabled(dev)) {
     registerDocsPreviewPage();
   }
+
+  await (await import("./mcp")).startMcp(dev);
 }
 
 async function setupFrontendBootstrap(dev: boolean): Promise<void> {
