@@ -30,32 +30,98 @@ const sketchOptionsSchema = z
  * but `data:` URLs; these checks turn a sketch that would break there into an
  * issue instead.
  */
+/** The inside of a tag up to a point, skipping quoted attribute values. */
+const IN_TAG = String.raw`<(?:[^>"']|"[^"]*"|'[^']*')*?`;
+const ATTRIBUTE_START = String.raw`(?<=[\s/"'])`;
+const URL_ATTRIBUTES =
+  "src|srcset|href|xlink:href|poster|action|formaction|background|data|ping";
+
 export const SKETCH_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
   [/<\s*script\b/i, "a <script> element"],
   [
     /<\s*(?:iframe|frame|frameset|object|embed|applet|portal|link|base)\b/i,
     "an embedding or linking element (iframe, object, embed, link, base)",
   ],
-  [/<\s*meta\b[^>]*http-equiv/i, "a <meta http-equiv>"],
-  [/<[^>]*[\s/"']on[a-z]+\s*=/i, "an on* event handler attribute"],
-  [/(?:java|vb)script\s*:/i, "a javascript: URL"],
-  [/@import\b/i, "a CSS @import"],
-  [/@[\w-]*\\/, "an at-rule written with an escape"],
-  [/url\(\s*(?!['"]?\s*data:)/i, "a url() that is not a data: URL"],
   [
-    /(?:image|image-set|-webkit-image-set|cross-fade)\(\s*['"]\s*(?!data:)/i,
-    "an image() or image-set() of a URL that is not a data: URL",
+    new RegExp(`<\\s*meta\\b${IN_TAG.slice(1)}http-equiv`, "i"),
+    "a <meta http-equiv>",
   ],
   [
-    /<[^>]*[\s/"'](?:src|srcset|href|xlink:href|poster|action|formaction|background|data|ping)\s*=\s*(?!['"]?\s*(?:data:|#))/i,
+    new RegExp(`${IN_TAG}${ATTRIBUTE_START}on[a-z]+\\s*=`, "i"),
+    "an on* event handler attribute",
+  ],
+  [/(?:java|vb)script\s*:/i, "a javascript: URL"],
+  [
+    /[\s/"']style\s*=\s*(?:"[^"]*&[#a-z]|'[^']*&[#a-z]|[^\s>"']*&[#a-z])/i,
+    "a style attribute written with character references (&#40;)",
+  ],
+  [/@import\b/i, "a CSS @import"],
+  [/url\(\s*(?!['"]?\s*data:)/i, "a url() that is not a data: URL"],
+  [
+    new RegExp(
+      `${IN_TAG}${ATTRIBUTE_START}(?:${URL_ATTRIBUTES})\\s*=\\s*(?!['"]?\\s*(?:data:|#))`,
+      "i",
+    ),
     "a src, href or similar attribute that is not a data: URL or an #anchor",
   ],
 ];
 
-function forbiddenIn(markup: string): string[] {
-  return SKETCH_FORBIDDEN.filter(([pattern]) => pattern.test(markup)).map(
-    ([, what]) => what,
+/** What CSS may not hold beyond {@link SKETCH_FORBIDDEN}, read with its escapes decoded. */
+const CSS_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
+  [
+    /['"]\s*(?:(?:https?|ftp|wss?|file):|\/\/)/i,
+    "a quoted URL that is not a data: URL (in image(), image-set() or anywhere else)",
+  ],
+];
+
+const CSS_ESCAPE = /\\([0-9a-f]{1,6})\s?|\\([^\n0-9a-f])/gi;
+const MAX_CODE_POINT = 0x10ffff;
+const REPLACEMENT_CHARACTER = "�";
+const STYLE_ELEMENT = /<style\b[^>]*>([\s\S]*?)(?:<\/style\s*>|$)/gi;
+const STYLE_ATTRIBUTE =
+  /[\s/"']style\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
+
+/** `css` with its escapes decoded, as a CSS parser reads it. */
+function decodeCssEscapes(css: string): string {
+  return css.replace(
+    CSS_ESCAPE,
+    (_, hex: string | undefined, char: string | undefined) => {
+      if (hex === undefined) return char ?? "";
+      const codePoint = Number.parseInt(hex, 16);
+      return codePoint > 0 && codePoint <= MAX_CODE_POINT
+        ? String.fromCodePoint(codePoint)
+        : REPLACEMENT_CHARACTER;
+    },
   );
+}
+
+/** The CSS an HTML sketch holds: its `<style>` elements and `style` attributes. */
+function cssInHtml(html: string): string {
+  const elements = [...html.matchAll(STYLE_ELEMENT)].map(
+    (match) => match[1] ?? "",
+  );
+  const attributes = [...html.matchAll(STYLE_ATTRIBUTE)].map(
+    (match) => match[1] ?? match[2] ?? match[3] ?? "",
+  );
+  return [...elements, ...attributes].join("\n");
+}
+
+function matching(
+  rules: ReadonlyArray<readonly [RegExp, string]>,
+  texts: string[],
+): string[] {
+  return rules
+    .filter(([pattern]) => texts.some((text) => pattern.test(text)))
+    .map(([, what]) => what);
+}
+
+/** What `markup` holds that a sketch may not, its CSS read with escapes decoded. */
+function forbiddenIn(markup: string, css: string): string[] {
+  const decoded = decodeCssEscapes(css);
+  return [
+    ...matching(SKETCH_FORBIDDEN, [markup, decoded]),
+    ...matching(CSS_FORBIDDEN, [decoded]),
+  ];
 }
 
 /**
@@ -81,8 +147,14 @@ export function compileSketch(
   }
   const { html, css, height, caption } = parsed.data;
   const refusals = [
-    ...forbiddenIn(html).map((what) => ({ field: "html", what })),
-    ...forbiddenIn(css ?? "").map((what) => ({ field: "css", what })),
+    ...forbiddenIn(html, cssInHtml(html)).map((what) => ({
+      field: "html",
+      what,
+    })),
+    ...forbiddenIn(css ?? "", css ?? "").map((what) => ({
+      field: "css",
+      what,
+    })),
   ];
   for (const { field, what } of refusals) {
     issues.push({

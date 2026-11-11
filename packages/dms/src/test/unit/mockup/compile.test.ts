@@ -217,6 +217,9 @@ describe("[unit] mockup compiler", () => {
       'div{background:image-set("https://example.com/x" 1x)}',
       "div{background:image('https://example.com/x')}",
       "@\\69mport 'https://example.com/x';",
+      'p{background:image-set("data:image/png;base64,AAAA" 1x, "http://example.com/x.png" 2x)}',
+      "p{background:\\75rl(http://example.com/x.png)}",
+      'p{background:u\\72l("http://example.com/x.png")}',
     ];
     const { issues } = compile(
       onePage(
@@ -227,9 +230,42 @@ describe("[unit] mockup compiler", () => {
       ),
     );
 
-    expect(issues.map((issue) => issue.path)).to.deep.equal(
+    expect([...new Set(issues.map((issue) => issue.path))]).to.deep.equal(
       styles.map((_, index) => `/pages/0/tree/${index}/options/css`),
     );
+  });
+
+  it("refuses a handler or remote URL behind a quoted '>' and in inline styles", () => {
+    const sketches = [
+      '<a title=">" href="http://example.com">x</a>',
+      '<a title=">" onclick=alert(1)>x</a>',
+      "<p style=\"background:image-set('https://example.com/x' 1x)\">x</p>",
+      "<style>p{background:\\75rl(http://example.com/x)}</style><p>x</p>",
+      '<p style="background:url&#40;https://example.com/x)">x</p>',
+    ];
+    const { issues } = compile(
+      onePage(sketches.map((html) => ({ type: "sketch", options: { html } }))),
+    );
+
+    expect(issues.map((issue) => issue.path)).to.deep.equal(
+      sketches.map((_, index) => `/pages/0/tree/${index}/options/html`),
+    );
+  });
+
+  it("keeps a sketch whose CSS escapes, data images and anchors stay local", () => {
+    const { issues } = compile(
+      onePage([
+        {
+          type: "sketch",
+          options: {
+            html: '<a href="#steps" title="see: notes">Steps</a><p>a &gt; b</p>',
+            css: 'p::before{content:"\\2014 Step: 1"}p{background:image-set("data:image/png;base64,AAAA" 1x)}',
+          },
+        },
+      ]),
+    );
+
+    expect(issues).to.deep.equal([]);
   });
 
   it("reports a child id its siblings already use, at the second", () => {

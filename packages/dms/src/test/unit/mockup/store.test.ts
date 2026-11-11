@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect } from "chai";
@@ -92,6 +92,29 @@ describe("[unit] mockup store", () => {
     expect(broken?.issues).to.have.length(1);
     expect(broken?.issues[0].path).to.equal("");
     expect(broken?.revision).to.equal((good?.revision ?? 0) + 1);
+  });
+
+  it("follows a mockup whatever an unreadable sibling directory holds", async () => {
+    const locked = join(root, "locked");
+    await mkdir(locked);
+    await chmod(locked, 0);
+    try {
+      const { ready, event } = nextEvent(
+        store,
+        NAME,
+        (received) =>
+          received.event === "state" &&
+          received.data.pages[0]?.title === "Beside",
+      );
+      const unsubscribe = await ready;
+      await writeFile(join(root, NAME, "spec.json"), spec("Beside"));
+      const received = await event;
+      unsubscribe();
+
+      expect(received.event).to.equal("state");
+    } finally {
+      await chmod(locked, 0o700);
+    }
   });
 
   it("keeps following a mockup whose directory is deleted and made again", async () => {

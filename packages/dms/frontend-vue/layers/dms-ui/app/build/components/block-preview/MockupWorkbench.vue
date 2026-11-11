@@ -10,6 +10,7 @@ import {
 import {
   MOCKUP_WIDTH_OPTIONS,
   MOCKUP_WIDTHS,
+  nodeTextAt,
   specPointerFor,
   type MockupWidth,
 } from "../../utils/mockup";
@@ -49,8 +50,19 @@ const requestedPage = ref(props.initialPage);
 const width = ref<MockupWidth>(props.initialWidth ?? "desktop");
 const isAnnotating = ref(false);
 const note = ref("");
-const pending = ref<{ page: string; path: string }>();
-const isSelectionUnknown = ref(false);
+/** The block a note is being written on, and what it was when picked. */
+interface PendingNote {
+  page: string;
+  path: string;
+  layoutPath: string;
+  nodeText: string | undefined;
+}
+
+/** Why a pick opened no note box, or why its box was closed. */
+type SelectionNotice = "not_in_spec" | "target_changed";
+
+const pending = ref<PendingNote>();
+const selectionNotice = ref<SelectionNotice>();
 
 const pages = computed(() => state.value?.pages ?? []);
 const issues = computed(() => state.value?.issues ?? []);
@@ -80,10 +92,15 @@ function openNote(layoutPath: string): void {
   const page = currentPage.value;
   if (!isAnnotating.value || !page) return;
   const path = specPointerFor(page, layoutPath);
-  isSelectionUnknown.value = path === undefined;
+  selectionNotice.value = path === undefined ? "not_in_spec" : undefined;
   if (path === undefined) return;
   note.value = "";
-  pending.value = { page: page.id, path };
+  pending.value = {
+    page: page.id,
+    path,
+    layoutPath,
+    nodeText: nodeTextAt(page, layoutPath),
+  };
 }
 
 const bridge = usePreviewFrame({
@@ -97,21 +114,25 @@ watch(state, () => {
   const target = pending.value;
   if (!target) return;
   const page = pages.value.find((entry) => entry.id === target.page);
-  if (page && Object.values(page.paths).includes(target.path)) return;
+  const isSameNode =
+    !!page &&
+    specPointerFor(page, target.layoutPath) === target.path &&
+    nodeTextAt(page, target.layoutPath) === target.nodeText;
+  if (isSameNode) return;
   pending.value = undefined;
-  isSelectionUnknown.value = true;
+  selectionNotice.value = "target_changed";
 });
 watch(isAnnotating, (enabled) => {
   bridge.post(previewInspectMessage(enabled));
   pending.value = undefined;
-  isSelectionUnknown.value = false;
+  selectionNotice.value = undefined;
 });
 
 async function saveNote(): Promise<void> {
   const target = pending.value;
   const text = note.value.trim();
   if (!target || !text) return;
-  await session.addAnnotation({ ...target, text });
+  await session.addAnnotation({ page: target.page, path: target.path, text });
   if (!hasRequestFailed.value) pending.value = undefined;
 }
 
@@ -188,11 +209,11 @@ const previewStyle = computed(() => ({
     </header>
 
     <UAlert
-      v-if="isSelectionUnknown"
+      v-if="selectionNotice"
       color="warning"
       variant="subtle"
       icon="i-ph-warning"
-      :title="t('dms.mockup.not_in_spec')"
+      :title="t(`dms.mockup.${selectionNotice}`)"
     />
     <UAlert
       v-if="hasRequestFailed"

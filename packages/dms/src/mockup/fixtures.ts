@@ -135,22 +135,39 @@ const numberSchema = z.number();
 
 const stringSchema = z.string();
 
-/** Numbers by value, text as people read it, anything else by its JSON text. */
+/**
+ * Where a value sorts: numbers, and text that reads as one, by value; other
+ * text as people read it; anything else by its JSON text. Each class sorts
+ * before the next, so the order is total over mixed values.
+ */
+type SortKey =
+  | { rank: 0; value: number }
+  | { rank: 1; text: string }
+  | { rank: 2; text: string };
+
+function sortKeyOf(value: Json): SortKey {
+  const number = numberSchema.safeParse(value);
+  if (number.success) return { rank: 0, value: number.data };
+  const text = stringSchema.safeParse(value);
+  if (!text.success) return { rank: 2, text: JSON.stringify(value) };
+  const numeric = Number(text.data);
+  return text.data.trim() !== "" && Number.isFinite(numeric)
+    ? { rank: 0, value: numeric }
+    : { rank: 1, text: text.data };
+}
+
+const TEXT_ORDER = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
 function compareValues(left: Json, right: Json): number {
-  const leftNumber = numberSchema.safeParse(left);
-  const rightNumber = numberSchema.safeParse(right);
-  if (leftNumber.success && rightNumber.success) {
-    return leftNumber.data - rightNumber.data;
-  }
-  const leftText = stringSchema.safeParse(left);
-  const rightText = stringSchema.safeParse(right);
-  return (
-    leftText.success ? leftText.data : JSON.stringify(left)
-  ).localeCompare(
-    rightText.success ? rightText.data : JSON.stringify(right),
-    undefined,
-    { numeric: true, sensitivity: "base" },
-  );
+  const a = sortKeyOf(left);
+  const b = sortKeyOf(right);
+  if (a.rank !== b.rank) return a.rank - b.rank;
+  if (a.rank === 0 && b.rank === 0) return a.value - b.value;
+  if (a.rank !== 0 && b.rank !== 0) return TEXT_ORDER.compare(a.text, b.text);
+  return 0;
 }
 
 /** Sorts in `direction`, rows missing the value last either way. */

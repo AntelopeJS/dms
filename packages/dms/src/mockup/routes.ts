@@ -128,9 +128,8 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @Context() context: RequestContext,
     ): Promise<void> {
       const name = nameOf(rawName);
-      if (!(await store.state(name))) throw notFound("mockup");
       let unsubscribe: (() => void) | undefined;
-      let open = true;
+      let open = !context.rawRequest.socket.destroyed;
       const drop = () => {
         if (!open) return;
         open = false;
@@ -138,10 +137,19 @@ export function registerMockupRoutes(engine: MockupEngine) {
         unsubscribe?.();
         out.end();
       };
-      engine.streams.add(out);
-      context.rawRequest.on("close", drop);
+      context.rawRequest.once("close", drop);
       out.on("close", drop);
       out.on("error", drop);
+      const exists = await store.state(name);
+      if (!exists) {
+        context.rawRequest.off("close", drop);
+        throw notFound("mockup");
+      }
+      if (!open) {
+        out.end();
+        return;
+      }
+      engine.streams.add(out);
       write(out, SSE_HELLO);
       unsubscribe = await store.subscribe(name, (event) =>
         write(out, formatEvent(event)),

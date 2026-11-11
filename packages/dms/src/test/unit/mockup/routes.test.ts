@@ -35,13 +35,28 @@ const PEOPLE = [
   { _id: "e" },
 ];
 
+const MIXED = [
+  { _id: "n1", v: -1 },
+  { _id: "d15", v: "1.5" },
+  { _id: "s3", v: "-3" },
+  { _id: "n5", v: -5 },
+  { _id: "d125", v: "1.25" },
+];
+
 const SPEC = JSON.stringify({
   version: 1,
   pages: [
     {
       id: "home",
       title: "Home",
-      fixtures: { orders: ORDERS, revenue: { value: 9 }, people: PEOPLE },
+      fixtures: {
+        orders: ORDERS,
+        revenue: { value: 9 },
+        people: PEOPLE,
+        mixed: MIXED,
+        mixedReversed: [...MIXED].reverse(),
+        mixedRotated: [...MIXED.slice(2), ...MIXED.slice(0, 2)],
+      },
       tree: [{ type: "KpiCard", options: { title: "Revenue" } }],
     },
   ],
@@ -140,6 +155,26 @@ describe("[unit] mockup routes", () => {
 
     expect(ids(ascending.data)).to.deep.equal(["b", "d", "a", "c", "e"]);
     expect(ids(descending.data)).to.deep.equal(["c", "a", "d", "b", "e"]);
+  });
+
+  it("sorts numbers and numeric text by value in one order, whatever the rows' order", async () => {
+    const orders = await Promise.all(
+      ["mixed", "mixedReversed", "mixedRotated"].map(async (key) =>
+        ids(
+          (
+            await client.get(
+              `${BASE}/desk/pages/home/fixtures/${key}/rows?sortKey=v`,
+            )
+          ).data,
+        ),
+      ),
+    );
+
+    expect(orders).to.deep.equal([
+      ["n5", "s3", "n1", "d125", "d15"],
+      ["n5", "s3", "n1", "d125", "d15"],
+      ["n5", "s3", "n1", "d125", "d15"],
+    ]);
   });
 
   it("answers 404 for the events of a mockup that does not exist", async () => {

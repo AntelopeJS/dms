@@ -134,7 +134,39 @@ describe("annotate mode", () => {
     );
     expect(compose()).toBeNull();
     expect(viewer.host.querySelector("[role=alert]")?.textContent).toBe(
-      "dms.mockup.not_in_spec",
+      "dms.mockup.target_changed",
+    );
+    expect(writes()).toEqual([]);
+  });
+
+  it("drops the note box when a sibling's removal moves another node into its place", async () => {
+    const card = (title: string) => ({ type: "KpiCard", options: { title } });
+    const shifting = (titles: string[]) =>
+      mockupPage({
+        tree: titles.map(card),
+        paths: Object.fromEntries(
+          titles.map((_, index) => [
+            `block-${index}`,
+            `/pages/0/tree/${index}`,
+          ]),
+        ),
+      });
+    await viewer.publish(
+      "state",
+      mockupState({ revision: 2, pages: [shifting(["A", "B", "C"])] }),
+    );
+    await annotate();
+    await viewer.say({ type: "select", path: "block-1" });
+    expect(compose()?.textContent).toContain("/pages/0/tree/1");
+
+    await viewer.publish(
+      "state",
+      mockupState({ revision: 3, pages: [shifting(["A", "C"])] }),
+    );
+
+    expect(compose()).toBeNull();
+    expect(viewer.host.querySelector("[role=alert]")?.textContent).toBe(
+      "dms.mockup.target_changed",
     );
     expect(writes()).toEqual([]);
   });
