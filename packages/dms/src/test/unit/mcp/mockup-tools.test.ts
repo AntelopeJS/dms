@@ -15,6 +15,7 @@ import {
 } from "../../../mockup";
 import {
   answer,
+  listing,
   mockupTool,
   NAME,
   run,
@@ -25,6 +26,7 @@ import {
 } from "../../helpers/mockup-mcp";
 
 const MOCKUP = mockupNameSchema.parse(NAME);
+const MISSING = `${NAME}-missing`;
 
 const annotationsAnswerSchema = z.object({
   annotations: z.array(
@@ -102,10 +104,10 @@ describe("[unit] mockup MCP tools", () => {
     });
 
     it("answers an error that says the mockup does not exist", async () => {
-      const { text, isError } = await run(annotations, { mockup: "ghost" });
+      const { text, isError } = await run(annotations, { mockup: MISSING });
 
       expect(isError).to.equal(true);
-      expect(text).to.contain('Mockup "ghost" does not exist');
+      expect(text).to.contain(`Mockup "${MISSING}" does not exist`);
     });
   });
 
@@ -169,12 +171,12 @@ describe("[unit] mockup MCP tools", () => {
 
     it("answers an error that says the mockup does not exist", async () => {
       const { text, isError } = await run(resolve, {
-        mockup: "ghost",
+        mockup: MISSING,
         id: "x",
       });
 
       expect(isError).to.equal(true);
-      expect(text).to.contain('Mockup "ghost" does not exist');
+      expect(text).to.contain(`Mockup "${MISSING}" does not exist`);
     });
   });
 
@@ -325,6 +327,9 @@ describe("[unit] mockup MCP tools", () => {
         [patch, { patch: [{ op: "add", path: "/title", value: "x" }] }],
       ];
 
+      const rootBefore = await listing(workspace.root());
+      const mockupsBefore = await listing(workspace.mockups());
+
       for (const [tool, args] of tools) {
         for (const mockup of TRAVERSALS) {
           const { text, isError } = await run(tool, {
@@ -338,7 +343,8 @@ describe("[unit] mockup MCP tools", () => {
         }
       }
 
-      expect(await readdir(workspace.root())).to.deep.equal([]);
+      expect(await listing(workspace.root())).to.have.members(rootBefore);
+      expect(await listing(workspace.mockups())).to.have.members(mockupsBefore);
     });
   });
 

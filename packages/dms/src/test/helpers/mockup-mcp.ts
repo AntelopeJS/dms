@@ -1,14 +1,17 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { randomBytes } from "node:crypto";
+import { readdir, readFile, rm, rmdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { expect } from "chai";
 import { z } from "zod";
 import type { McpTool } from "../../mcp/tool";
 import { MCP_TOOLS } from "../../mcp/tools";
+import { defaultMockupsDir, MISSING_FILE, parseFsError } from "../../mockup";
 
-/** The mockup every test works on. */
-export const NAME = "desk";
+const NAME_BYTES = 4;
+
+/** The mockup every test works on: unique to this process, so no real mockup is touched. */
+export const NAME = `mcp-test-${randomBytes(NAME_BYTES).toString("hex")}`;
 
 /** A `sketch` node: valid with no block registered. */
 export function sketch(html: string): JsonValue {
@@ -58,36 +61,47 @@ export async function answer<Answer>(
   return schema.parse(JSON.parse(text));
 }
 
-/** The temporary project a test runs in. */
+/** The names in `directory`, or none when it does not exist. */
+export async function listing(directory: string): Promise<string[]> {
+  try {
+    return await readdir(directory);
+  } catch (error) {
+    if (parseFsError(error).code === MISSING_FILE) return [];
+    throw error;
+  }
+}
+
+/** Where the tools read and write, and the mockup the tests own there. */
 export interface Workspace {
-  /** The project root: the working directory while the test runs. */
+  /** The working directory, where `mockups/` lives. */
   root(): string;
-  /** `mockups/` under the project root, where the tools read and write. */
+  /** `mockups/` under the working directory. */
   mockups(): string;
   /** The text of `mockups/<NAME>/spec.json`. */
   specBytes(): Promise<string>;
 }
 
+async function clear(): Promise<void> {
+  await rm(join(defaultMockupsDir(), NAME), { recursive: true, force: true });
+  if ((await listing(defaultMockupsDir())).length === 0) {
+    await rmdir(defaultMockupsDir()).catch((error: unknown) => {
+      if (parseFsError(error).code !== MISSING_FILE) throw error;
+    });
+  }
+}
+
 /**
- * Runs each test in an empty temporary directory as the working directory,
- * which is where the tools resolve `mockups/`, and restores it afterwards.
+ * The tools resolve `mockups/` under the working directory, so a test works
+ * on the mockup named `NAME` there. Each test starts and ends without it, and
+ * without `mockups/` itself when it was left empty.
  */
 export function useWorkspace(): Workspace {
-  let previous = "";
-  let root = "";
-  beforeEach(async () => {
-    previous = process.cwd();
-    root = await mkdtemp(join(tmpdir(), "mockup-mcp-"));
-    process.chdir(root);
-  });
-  afterEach(async () => {
-    process.chdir(previous);
-    await rm(root, { recursive: true, force: true });
-  });
-  const mockups = () => join(root, "mockups");
+  beforeEach(clear);
+  afterEach(clear);
   return {
-    root: () => root,
-    mockups,
-    specBytes: () => readFile(join(mockups(), NAME, "spec.json"), "utf8"),
+    root: () => process.cwd(),
+    mockups: defaultMockupsDir,
+    specBytes: () =>
+      readFile(join(defaultMockupsDir(), NAME, "spec.json"), "utf8"),
   };
 }
