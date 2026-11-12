@@ -1,3 +1,5 @@
+import type { StoreDependencyConfig } from "../validation/store.schema";
+
 /** One official module the store offers, as the catalog lists it. */
 export interface StoreCatalogEntry {
   /** Catalog id, the join key with the module registry. */
@@ -242,6 +244,5 @@ export interface StoreDependencyChoice {
   /** npm package, never a git or local source. */
   package: string;
   /** Config written to its antelope.config.ts entry. */
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Modules own their configuration schemas; the store transports these values without imposing a DMS schema.
-  config?: Record<string, unknown>;
+  config?: StoreDependencyConfig;
 }

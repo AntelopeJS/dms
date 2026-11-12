@@ -128,8 +128,7 @@ async function remapObjectValues(
   value: object,
   mapKey: KeyMapper,
   remap: ValueRemapper,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Rebuilds an object node of that column value with Object.fromEntries, so its entries hold whatever the node held.
-): Promise<Record<string, unknown>> {
+) {
   const entries = await Promise.all(
     Object.entries(value).map(
       async ([key, item]) => [key, await remap(item, mapKey)] as const,

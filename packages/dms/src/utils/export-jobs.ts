@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { assert } from "@antelopejs/interface-api-util";
+import type { RowFields } from "@antelopejs/interface-data-api/metadata";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { Send } from "@antelopejs/interface-email";
 import {
@@ -69,8 +70,7 @@ class CsvWriter implements ExportWriter {
     fs.writeFileSync(this.filePath, `﻿${headerLine}`);
   }
 
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- appendRow implements the published ExportWriter.appendRow, whose row is what Query.ReadProperties answered for whichever table is exported (interface-data-api RowFields), keyed by its runtime column ids.
-  appendRow(headers: string[], row: Record<string, unknown>): void {
+  appendRow(headers: string[], row: RowFields): void {
     const csvRowContent = stringify([row], {
       header: false,
       columns: headers,

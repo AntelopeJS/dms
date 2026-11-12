@@ -9,6 +9,7 @@ import { SendableNotification } from "@antelopejs/interface-dms/notifications/se
 import type {
   ActionType,
   ExecutionCtx,
+  JsonValue,
 } from "@antelopejs/interface-dms-automation";
 import { fieldHint, nodeText, titledProperties } from "./i18n";
 
@@ -35,8 +36,7 @@ interface SendNotificationInput {
   tenantId?: string;
   title: string;
   description?: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Wired automation params are arbitrary JSON until toNotificationParams converts supported scalars and drops nested values.
-  params?: Record<string, unknown>;
+  params?: JsonValue;
   tone?: string;
   icon?: string;
   linkTo?: string;

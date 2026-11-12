@@ -390,10 +390,7 @@ const BUILTIN_SENSITIVE_USER_KEYS: string[] = [
   "twoFactorEmailCodeRequestedAt",
 ];
 
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- User's owner type cannot describe arbitrary nested configured paths; the traversal must preserve dynamic property access rather than validate or reject those paths.
-type PropertyBag = Record<string, unknown>;
-
-function isPropertyBag(value: unknown): value is PropertyBag {
+function isPropertyBag(value: unknown): value is Record<string, unknown> {
   return isObject(value) && value !== null;
 }
 

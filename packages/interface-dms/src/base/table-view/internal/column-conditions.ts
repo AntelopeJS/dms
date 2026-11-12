@@ -3,7 +3,10 @@ import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import { Validation } from "@antelopejs/interface-data-api/components";
-import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
+import {
+  DataAPIMeta,
+  type RowFields,
+} from "@antelopejs/interface-data-api/metadata";
 import type { FieldCondition } from "../../form-types";
 import { fetchRowForGuard } from "../data-functions";
 import type { ColumnOptions } from "../meta";
@@ -20,8 +23,7 @@ interface ColumnWriteParameters {
 
 /** The value `row` holds under `key`; a key it does not hold itself reads as absent, whatever `Object.prototype` answers. */
 const ownValue = (
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The stored row merged with the request body holds whichever table's module-defined fields, read by the column names its conditions declare.
-  row: Readonly<Record<string, unknown>>,
+  row: Readonly<RowFields>,
   key: string,
   // oxlint-disable-next-line anti-slop/no-unknown-returns -- Answers the own value of a column a condition names, which holds whatever that table's module declares for it.
 ): unknown => (Object.hasOwn(row, key) ? row[key] : undefined);
@@ -29,15 +31,13 @@ const ownValue = (
 /** Whether `row` meets `condition`: a field it lacks counts as empty. */
 const meetsFieldCondition = (
   condition: FieldCondition,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The stored row merged with the request body holds whichever table's module-defined fields, read by the column names its conditions declare.
-  row: Readonly<Record<string, unknown>>,
+  row: Readonly<RowFields>,
 ): boolean => condition.in.includes(ownValue(row, condition.field) ?? null);
 
 /** The columns whose form field `row` hides or disables. */
 function inactiveColumns(
   columns: Readonly<Record<string, ColumnOptions>>,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The stored row merged with the request body holds whichever table's module-defined fields, read by the column names its conditions declare.
-  row: Readonly<Record<string, unknown>>,
+  row: Readonly<RowFields>,
 ) {
   const entries = Object.entries(columns);
   return {
@@ -107,10 +107,8 @@ export const withColumnConditions = <
     }
 
     const body = Validation.ParseBody(rawBody);
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The request body, merged below with the stored row of an edit, holds whichever table's module-defined fields, read by the column names its conditions declare.
-    let row: Record<string, unknown> = body;
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The stored row fetchRowForGuard reads for an edit holds whichever table's module-defined fields, read by the column names its conditions declare.
-    let current: Record<string, unknown> | undefined;
+    let row: RowFields = body;
+    let current: RowFields | undefined;
     if (mode === "edit") {
       current = await fetchRowForGuard(
         this,
@@ -118,7 +116,6 @@ export const withColumnConditions = <
         tableMeta.options.rowIdKey || DEFAULT_ROW_ID_FIELD,
       );
       throwHttpAssert(current, 404, "Not Found");
-      // oxlint-disable-next-line anti-slop/no-known-value-widening -- The stored row merged with the request body widens into the open row the conditions read, whose fields hold whatever that table's module declares.
       row = { ...current, ...body };
     }
 
