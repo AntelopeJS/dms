@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { type CountryResponse, Reader } from "mmdb-lib";
 import { getAuthConfig } from "../config";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const FALLBACK_LANGUAGE = "en";
 const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/;
@@ -58,8 +59,7 @@ export function resetCountryLookup(): void {
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Country normalization is a parser for proxy headers and lookup values; malformed inputs must still yield undefined.
 export function normalizeCountryCode(value: unknown): string | undefined {
   const candidate: unknown = Array.isArray(value) ? value[0] : value;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string country codes are normalized; numeric and object inputs are ignored.
-  if (typeof candidate !== "string") return undefined;
+  if (!isString(candidate)) return undefined;
   const code = candidate.trim().toUpperCase();
   if (!COUNTRY_CODE_PATTERN.test(code) || NON_COUNTRY_CODES.has(code)) {
     return undefined;

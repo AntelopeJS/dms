@@ -37,6 +37,7 @@ import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { tableViewAccess } from "@antelopejs/interface-dms/base/table-view/internal/writer";
 import { httpRejectionOf } from "../../../helpers/http-rejection";
 import { requestContextFixture } from "../../../helpers/request-context";
+import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const SCHEMA = "writer-row-rules-test";
 const TABLE = "tasks";
@@ -175,8 +176,7 @@ function listContext(query: string): Parameters<typeof applyArchiveFilter>[1] {
 
 function ruleOf(action: "archive" | "restore" | "delete" | "edit") {
   const config = meta.controllerRowActionRules?.[action];
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The owner contract is a boolean-or-rule union; this branch extracts the rule variant and retains the existing missing-rule failure.
-  if (typeof config !== "object" || !config?.rule) {
+  if (!isObject(config) || !config?.rule) {
     throw new Error(`no ${action} rule`);
   }
   return config.rule;

@@ -3,6 +3,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantLifecycleModel } from "./db/internal/tenantLifecycle.model";
+import { isFunction } from "./utils/internal/type-check";
 
 const HTTP_CLIENT_ERROR_MIN = 400;
 const HTTP_SERVER_ERROR_MIN = 500;
@@ -103,11 +104,7 @@ export async function runTenantLifecycleOperation<T>(
   } catch (error) {
     // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Legacy refusal detection reads getStatus from any thrown value without validating its shape; adding validation would change proxy and getter behavior.
     const getStatus = (error as Partial<StatusCarrier> | null)?.getStatus;
-    if (
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Refusals can originate in another copy of the API; the existing callable shape check intentionally avoids instanceof.
-      typeof getStatus === "function" &&
-      isClientErrorStatus(getStatus.call(error))
-    ) {
+    if (isFunction(getStatus) && isClientErrorStatus(getStatus.call(error))) {
       const releaseFailure = await releaseAttempt(model, tenantId, attemptId);
       if (releaseFailure) {
         throw new AggregateError(

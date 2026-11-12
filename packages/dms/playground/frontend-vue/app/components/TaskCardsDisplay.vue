@@ -52,6 +52,11 @@ const MAX_CARD_FIELDS = 4;
 const INITIALS_LENGTH = 2;
 const EMPTY_VALUE = "—";
 
+/** Whether a formatter rendered plain text rather than a node. */
+function isPlainText(rendered: unknown): rendered is string | number {
+  return typeof rendered === "string" || typeof rendered === "number";
+}
+
 const { locale } = useI18n();
 const { processI18n } = useTranslation();
 const { getDataType } = useDataTypes();
@@ -114,8 +119,7 @@ const FieldValue = (fieldProps: {
         fieldProps.column.type?.inputComponent?.options,
       )
     : value;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Formatter results are unknown in the owning DataTypeFormatter contract; retain the existing primitive rendering branch.
-  if (typeof rendered === "string" || typeof rendered === "number") {
+  if (isPlainText(rendered)) {
     return h("span", { class: "truncate" }, String(rendered));
   }
   return rendered;

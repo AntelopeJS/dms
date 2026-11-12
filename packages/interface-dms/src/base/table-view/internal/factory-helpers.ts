@@ -44,6 +44,7 @@ import {
 } from "./factory-private-actions";
 import { serializeCard } from "./factory-private-displays";
 import { pageParamToken, toFormPageUrl } from "./factory-private-urls";
+import { isString } from "../../../utils/internal/type-check";
 
 /** @internal */
 export type FormPageKind = keyof TableViewFormPageUrls;
@@ -253,8 +254,7 @@ export function serializeExpandable(
     );
   }
   const fields = expandable.fields.map((field) =>
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Expandable fields declare a string shorthand or a configured field; this normalizes that declared union.
-    typeof field === "string" ? { key: field } : field,
+    isString(field) ? { key: field } : field,
   );
   assertKnownColumns(
     controllerName,

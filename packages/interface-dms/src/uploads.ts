@@ -7,6 +7,7 @@ import {
   readUploadFieldOptions,
   type UploadTokenClaims,
 } from "./internal/uploads";
+import { isString } from "./utils/internal/type-check";
 
 /** @internal */
 export namespace internal {
@@ -61,16 +62,11 @@ async function stampNode(node: UploadFieldNode): Promise<void> {
   options.uploadToken = await SignUploadToken({
     pageId: "",
     componentId: "",
-    storage:
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized consumer storage values contribute to claims only when strings.
-      typeof options.storage === "string" ? options.storage : undefined,
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a string serialized path is copied into upload claims.
-    path: typeof options.path === "string" ? options.path : undefined,
-    field:
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a string attachmentField identifies the server-declared upload field.
-      typeof options.attachmentField === "string"
-        ? options.attachmentField
-        : undefined,
+    storage: isString(options.storage) ? options.storage : undefined,
+    path: isString(options.path) ? options.path : undefined,
+    field: isString(options.attachmentField)
+      ? options.attachmentField
+      : undefined,
     visibility: options.visibility === "public" ? "public" : "private",
   });
 }

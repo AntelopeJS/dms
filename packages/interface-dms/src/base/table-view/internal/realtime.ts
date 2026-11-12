@@ -21,6 +21,7 @@ import {
   tableViewPresenceTopic,
   tableViewRowTopic,
 } from "../realtime";
+import { isNumber, isString } from "../../../utils/internal/type-check";
 
 const REALTIME_SESSION_HEADER = "x-realtime-session";
 /** @internal */
@@ -100,8 +101,7 @@ export const extractFromResult: IdExtractor<unknown> = (
 ) => {
   if (!isFieldBag(result)) return [];
   const value = result[idKey];
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Callback results are deliberately untyped in the published extractor; an id is emitted only for the string variant.
-  return typeof value === "string" ? [value] : [];
+  return isString(value) ? [value] : [];
 };
 
 /** @internal */
@@ -160,8 +160,7 @@ const CHANGED_COUNT_KEYS: ["deleted", "archivedCount", "restoredCount"] = [
 /** @internal */
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published predicate accepts heterogeneous callback results; restricting it to a row or count schema would change its accepted inputs.
 export const reportsNoChange = (result: unknown): boolean => {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published predicate recognizes the numeric count convention alongside object count results.
-  if (typeof result === "number") return result === 0;
+  if (isNumber(result)) return result === 0;
   if (!isFieldBag(result)) return false;
   const counts = CHANGED_COUNT_KEYS.map((key) => result[key]).filter(
     (value): value is number => typeof value === "number",

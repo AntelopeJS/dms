@@ -5,6 +5,7 @@ import type {
   AccountActivityEvent,
   AccountActivityType,
 } from "./account-activity";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 /** Settings pages the activity rows and "View all" lead to. */
 export const ACTIVITY_PAGE_IDS = {
@@ -229,8 +230,7 @@ function textsOf(event: AccountActivityType, source: AccountActivityEvent) {
   );
   const params = { ...title.params };
   const meta = entries.map((entry) => {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Activity metadata intentionally mixes literal text and translation descriptors; this discriminates those existing variants.
-    if (typeof entry === "string") return entry;
+    if (isString(entry)) return entry;
     Object.assign(params, entry.params);
     return entry.key;
   });

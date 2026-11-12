@@ -5,6 +5,7 @@ import type {
   PageRecordStatus,
 } from "../../component-options/internal/page-layout";
 import type { ComponentFilterContext, ComponentInfo } from "../../component";
+import { isNumber, isString } from "../../utils/internal/type-check";
 
 const RECORD_TOKEN = /\{\{\s*record\.([\w.-]+)\s*\}\}/g;
 const NAMES_RECORD = /\{\{\s*record\./;
@@ -16,8 +17,7 @@ const targetUrl = (
     | undefined,
 ): string | undefined => {
   const url = target?.url;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string URL properties participate in record interpolation; other target variants remain untouched.
-  return typeof url === "string" ? url : undefined;
+  return isString(url) ? url : undefined;
 };
 
 const isRecordNode = (value: unknown): value is Record<string, unknown> =>
@@ -33,10 +33,7 @@ function leafAt(
       (current, key) => (isRecordNode(current) ? current[key] : undefined),
       record,
     );
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The record loader owns its schema; the URL interpolation contract encodes only string and number leaves.
-  return typeof value === "string" || typeof value === "number"
-    ? value
-    : undefined;
+  return isString(value) || isNumber(value) ? value : undefined;
 }
 
 export type { PageRecordStatus } from "../../component-options/internal/page-layout";

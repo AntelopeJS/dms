@@ -17,6 +17,7 @@ import {
   holdsPermissionGate,
   isPermissionGated,
 } from "../../internal/permission-gate";
+import { isObject } from "../../utils/internal/type-check";
 
 async function serveHeaderButton(
   declared: PageHeaderButtonDeclared,
@@ -128,8 +129,7 @@ function componentHeaderButtons(
       }),
     );
   const add = options.rowActions?.add;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The declared add-action union uses a boolean or button options; only the object variant can declare header placement.
-  if (typeof add === "object" && add.placement === HEADER_PLACEMENT) {
+  if (isObject(add) && add.placement === HEADER_PLACEMENT) {
     if (add.isEnabled === false) return buttons;
     buttons.push({
       id: `${componentId}:add`,

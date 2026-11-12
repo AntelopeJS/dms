@@ -73,10 +73,13 @@ export function buildWatchAction<F extends string>(
   return watch;
 }
 
+/** Whether builder options are an object, which alone can carry `watchActions`. */
+const isObjectOption = <O>(opts: O): opts is O & object =>
+  typeof opts === "object" && opts !== null;
+
 /** @internal */
 export function stripWatchActions<O>(opts: O): O {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Options can be primitives; only object options can carry caller-supplied watchActions to strip.
-  if (!opts || typeof opts !== "object" || !("watchActions" in opts)) {
+  if (!opts || !isObjectOption(opts) || !("watchActions" in opts)) {
     return opts;
   }
   const { watchActions: _ignored, ...rest } = opts;

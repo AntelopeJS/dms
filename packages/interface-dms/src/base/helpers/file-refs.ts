@@ -1,4 +1,5 @@
 import { type DataType, getDataTypeId } from "../data-types";
+import { isObject, isString } from "../../utils/internal/type-check";
 
 export interface FileRef {
   key: string;
@@ -23,15 +24,13 @@ const collectImageKeys: KeyExtractor = (value) => {
   const keys: string[] = [];
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Visits that column value node by node, so a node is a key, an image object, a list or object of them, or any other leaf it skips.
   const visit = (node: unknown): void => {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This is the field-value inspection boundary; parsing objects would reject previously ignored leaves.
-    if (!node || typeof node !== "object") return;
+    if (!node || !isObject(node)) return;
     if (Array.isArray(node)) {
       node.forEach(visit);
       return;
     }
     const { key: candidate }: KeyedNode = node;
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string keys identify stored files; the enclosing object otherwise remains arbitrary application data.
-    if (typeof candidate === "string") {
+    if (isString(candidate)) {
       keys.push(candidate);
       return;
     }
@@ -45,13 +44,11 @@ const collectFileKeys: KeyExtractor = (value) => {
   const keys: string[] = [];
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Visits that column value node by node, so a node is a key, an image object, a list or object of them, or any other leaf it skips.
   const visit = (node: unknown): void => {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String leaves identify file keys in this legacy field representation.
-    if (typeof node === "string") {
+    if (isString(node)) {
       keys.push(node);
       return;
     }
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Ignore unsupported leaves without changing accepted application field values.
-    if (!node || typeof node !== "object") return;
+    if (!node || !isObject(node)) return;
     (Array.isArray(node) ? node : Object.values(node)).forEach(visit);
   };
   visit(value);
@@ -65,8 +62,7 @@ const KEY_EXTRACTORS = new Map<string, KeyExtractor>([
 
 function resolveStorage(type: DataType): string | undefined {
   const options = type.options;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published open options contract permits non-string storage values, which this helper ignores.
-  return typeof options?.storage === "string" ? options.storage : undefined;
+  return isString(options?.storage) ? options.storage : undefined;
 }
 
 function refIdentity(ref: FileRef): string {
@@ -138,27 +134,23 @@ async function remapObjectValues(
 }
 
 const remapImageValue: ValueRemapper = async (value, mapKey) => {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve unsupported application leaves instead of validating the whole image field.
-  if (!value || typeof value !== "object") return value;
+  if (!value || !isObject(value)) return value;
   if (Array.isArray(value)) {
     return Promise.all(value.map((item) => remapImageValue(item, mapKey)));
   }
   const { key: candidate }: KeyedNode = value;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string keys are remapped; all other object members retain their existing traversal behavior.
-  if (typeof candidate === "string") {
+  if (isString(candidate)) {
     return { ...value, key: await mapKey(candidate) };
   }
   return remapObjectValues(value, mapKey, remapImageValue);
 };
 
 const remapFileValue: ValueRemapper = async (value, mapKey) => {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String leaves are file keys in this field representation; other application leaves pass through.
-  if (typeof value === "string") return mapKey(value);
+  if (isString(value)) return mapKey(value);
   if (Array.isArray(value)) {
     return Promise.all(value.map((item) => remapFileValue(item, mapKey)));
   }
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve unsupported application leaves without introducing validation or coercion.
-  if (!value || typeof value !== "object") return value;
+  if (!value || !isObject(value)) return value;
   return remapObjectValues(value, mapKey, remapFileValue);
 };
 

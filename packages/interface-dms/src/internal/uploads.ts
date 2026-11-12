@@ -1,4 +1,5 @@
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
+import { isObject } from "../utils/internal/type-check";
 
 /** @internal */
 export interface UploadTokenClaims {
@@ -50,8 +51,7 @@ export function readUploadFieldOptions(field: {
   component: { options?: unknown };
 }): UploadFieldOptions {
   const options = field.component.options ?? {};
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Field options are erased contributor values; a primitive or an array cannot carry the upload token.
-  if (typeof options !== "object" || Array.isArray(options)) {
+  if (!isObject(options) || Array.isArray(options)) {
     throw new TypeError(
       `A ${field.type} field's component options must be an object, got ${JSON.stringify(options)}`,
     );

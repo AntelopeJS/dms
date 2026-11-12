@@ -7,6 +7,7 @@ import type {
 import {
   isNull,
   isObject,
+  isString,
 } from "@antelopejs/interface-dms/utils/internal/type-check";
 import type { RegionalPreferencesInput } from "../../../validation";
 
@@ -108,7 +109,6 @@ function isFieldBag(body: unknown): body is Record<string, unknown> {
  * becomes null and the first day of the week a number. Anything else is
  * left for the schema to judge.
  */
-/* oxlint-disable anti-slop/no-runtime-typeof -- This pre-schema adapter preserves malformed input for regionalPreferencesSchema to reject, while translating only automatic and week-start representations. */
 // oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns -- The raw body stays unparsed in and out: a non-object comes back as given, an object with its automatic and week-start values mapped, for regionalPreferencesSchema to judge in the route.
 export function fromRegionFormValues(body: unknown): unknown {
   if (!isFieldBag(body)) return body;
@@ -117,10 +117,9 @@ export function fromRegionFormValues(body: unknown): unknown {
     if (values[key] === AUTOMATIC_PREFERENCE) values[key] = null;
   }
 
-  if (typeof values.weekStart === "string") {
+  if (isString(values.weekStart)) {
     values.weekStart = Number(values.weekStart);
   }
   // oxlint-disable-next-line anti-slop/no-known-value-widening -- The mapped copy of the raw body goes back unparsed, for regionalPreferencesSchema to judge in the route.
   return values;
 }
-/* oxlint-enable anti-slop/no-runtime-typeof */

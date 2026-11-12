@@ -8,9 +8,23 @@ import {
   parseValue,
   type Primitive,
 } from "../../utils/internal/value-parser";
-import { isNumber } from "../../utils/internal/type-check";
+import {
+  isBoolean,
+  isNumber,
+  isString,
+  isUndefined,
+} from "../../utils/internal/type-check";
 import { whenValueSet } from "./internal/compare-types";
 import { type DataCompareMode, RegisterDataCompareMode } from "./core";
+
+/** The kind of a parsed filter value an error message names, spelled as `typeof` spells it. */
+function primitiveKind(value: Primitive): string {
+  if (isString(value)) return "string";
+  if (isNumber(value)) return "number";
+  if (isBoolean(value)) return "boolean";
+  if (isUndefined(value)) return "undefined";
+  return "object";
+}
 
 export namespace DefaultDataCompareTypes {
   @RegisterDataCompareMode("is")
@@ -67,8 +81,7 @@ export namespace DefaultDataCompareTypes {
 
       if (!isNumber(parsedValue) && !(parsedValue instanceof Date)) {
         throw new Error(
-          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing diagnostic representation for rejected parsed filter values.
-          `Value must be a number or Date for greater than comparison. Got: ${typeof parsedValue}`,
+          `Value must be a number or Date for greater than comparison. Got: ${primitiveKind(parsedValue)}`,
         );
       }
 
@@ -93,8 +106,7 @@ export namespace DefaultDataCompareTypes {
 
       if (!isNumber(parsedValue) && !(parsedValue instanceof Date)) {
         throw new Error(
-          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing diagnostic representation for rejected parsed filter values.
-          `Value must be a number or Date for less than comparison. Got: ${typeof parsedValue}`,
+          `Value must be a number or Date for less than comparison. Got: ${primitiveKind(parsedValue)}`,
         );
       }
 
@@ -119,8 +131,7 @@ export namespace DefaultDataCompareTypes {
 
       if (!isNumber(parsedValue) && !(parsedValue instanceof Date)) {
         throw new Error(
-          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing diagnostic representation for rejected parsed filter values.
-          `Value must be a number or Date for greater than or equal to comparison. Got: ${typeof parsedValue}`,
+          `Value must be a number or Date for greater than or equal to comparison. Got: ${primitiveKind(parsedValue)}`,
         );
       }
 
@@ -145,8 +156,7 @@ export namespace DefaultDataCompareTypes {
 
       if (!isNumber(parsedValue) && !(parsedValue instanceof Date)) {
         throw new Error(
-          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing diagnostic representation for rejected parsed filter values.
-          `Value must be a number or Date for less than or equal to comparison. Got: ${typeof parsedValue}`,
+          `Value must be a number or Date for less than or equal to comparison. Got: ${primitiveKind(parsedValue)}`,
         );
       }
 
