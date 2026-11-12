@@ -28,8 +28,8 @@ export interface TablePreferences {
   set: <T>(field: TableField, value: T, defaultValue: T) => void;
   /**
    * Sets `state` to the local field's stored value once the table is
-   * mounted, unless `isValid` refuses it: the server and the hydrating
-   * client render the default, so no mismatch.
+   * mounted, unless `isValid` refuses it or `state` already holds it: the
+   * server and the hydrating client render the default, so no mismatch.
    */
   restore: <T>(
     field: LocalTableField,
@@ -140,7 +140,11 @@ export function useTablePreferences(
         apply: (value) => {
           // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Storage returns arbitrary preference values, while restore accepts caller-selected T and an optional boolean validator. Neither owner proves T; adding mandatory validation would change restoration behavior.
           const restored = value as typeof state.value;
-          if (!isValid || isValid(restored)) state.value = restored;
+          const isUnchanged =
+            JSON.stringify(restored) === JSON.stringify(state.value);
+          if (!isUnchanged && (!isValid || isValid(restored))) {
+            state.value = restored;
+          }
         },
       });
     },
