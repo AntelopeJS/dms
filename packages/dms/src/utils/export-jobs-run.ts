@@ -212,7 +212,7 @@ export async function runExportJob<TContext = unknown>(
       maxExecutionTimeMs:
         opts.maxExecutionTimeMs ?? DEFAULT_MAX_EXECUTION_TIME_MS,
     },
-    // SAFETY: RunExportJobOptions declares context optional while ExportJobGenerateContext declares it as a TContext, so a job started without one hands generate undefined; both are published contracts, and defaulting the value would change what generate receives.
+    // SAFETY: Bug in the published contract: RunExportJobOptions makes context optional while ExportJobGenerateContext promises a TContext. The value is a TContext exactly when the caller passed context; without it, generate receives undefined.
     opts.context as TContext,
     opts.generate,
   ).catch((error: unknown) => {

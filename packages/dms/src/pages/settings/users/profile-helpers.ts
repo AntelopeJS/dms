@@ -13,9 +13,11 @@ import {
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { generateKey } from "2fa";
 import { decode } from "jsonwebtoken";
 import randomstring from "randomstring";
+import { isJwtClaims } from "../../../utils";
 
 export const BACKUP_CODE_COUNT = 10;
 const BACKUP_CODE_LENGTH = 8;
@@ -179,8 +181,12 @@ export interface SessionClaims {
 export function extractSessionClaims(authorization: string): SessionClaims {
   const token = authorization?.split(" ")[1];
   if (!token) return {};
-  // SAFETY: decode types its result as JwtPayload, text or null and checks no claim; the route verifies the token's authenticity, not the types of the optional session claims, so the decoded value is returned whole and unchecked.
-  return (decode(token) as SessionClaims | null) ?? {};
+  const claims = decode(token);
+  if (!isJwtClaims(claims)) return {};
+  return {
+    sessionId: isString(claims.sessionId) ? claims.sessionId : undefined,
+    tenantId: isString(claims.tenantId) ? claims.tenantId : undefined,
+  };
 }
 
 export function extractSessionId(authorization: string): string | undefined {

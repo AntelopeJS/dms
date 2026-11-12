@@ -57,7 +57,7 @@ function collectStaticComponents(cl: object): StaticComponentField[] {
 }
 
 export const RegisterPage = MakeClassDecorator((cl) => {
-  // SAFETY: RegisterPage decorates page controllers, which are controller classes; the decorator factory types its class parameter as the base Class, and a runtime check would reject classes that this decorator accepts today.
+  // SAFETY: RegisterPage decorates the classes that extend PageController, which are ControllerClasses.
   const meta = GetMetadata(cl as ControllerClass, PageMetadata);
 
   for (const { key, component } of collectStaticComponents(cl)) {

@@ -92,7 +92,7 @@ const CARD_SUPPLIED_CHART_OPTIONS = [
 export function ChartCard(
   options?: ChartCardBuilderOptions,
 ): ComponentBuilder<ChartCardProps> {
-  // SAFETY: `ChartCard()` with no options is a legal call while a page is authored; the empty object stands for options whose required title is not set yet, and the builder reads every field of it through optional access (`rest.title || ...`).
+  // SAFETY: Bug in the published ChartCardBuilderOptions, which requires a title while ChartCard() may be called without options. The empty object is a ChartCardBuilderOptions only once the author sets a title on the builder; until then the options lack it.
   const { chart, ...rest } = options ?? ({} as ChartCardBuilderOptions);
   const builder = new ComponentBuilder<ChartCardProps>(
     CHART_CARD_COMPONENT_NAME,

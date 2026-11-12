@@ -68,7 +68,7 @@ export async function filterLayoutHeaderActions<T>(
   pagePermissionId: string | undefined,
   recordStatus?: PageRecordStatus,
 ): Promise<ComponentInfo<T> | undefined> {
-  // SAFETY: T is the layout's options type, unconstrained in the published signature; the layout this helper filters is the page layout, whose options are DefaultLayoutSerializedOptions, and a runtime check would change what it returns for options of another shape.
+  // SAFETY: The layout filtered here is a page's layout, built by DefaultLayout, FormPageLayout or SettingsLayout through dashboardLayout, or by EmptyLayout as an empty object, so its options are DefaultLayoutSerializedOptions.
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!layout || !options) return layout;
   const { record: _record, headerActions: buttons = [], ...frame } = options;
@@ -97,7 +97,7 @@ export async function filterLayoutHeaderActions<T>(
     servedOptions.headerActionsParams = context.params ?? {};
   }
   if (declaresRecord) servedOptions.recordStatus = recordStatus;
-  // SAFETY: The served options are the layout's own options minus its record loader, with its header buttons and the page-query fields replaced, so they remain the layout's options object; TypeScript cannot relate a rebuilt object to an unconstrained T.
+  // SAFETY: T is a page layout's DefaultLayoutSerializedOptions, and the served options are those options without the optional record and with only fields DefaultLayoutSerializedOptions declares set, so they are still a T.
   return { ...layout, options: servedOptions as T };
 }
 
@@ -182,7 +182,7 @@ export function withComponentHeaderButtons<T>(
   } = layout.options ?? {};
   return {
     ...layout,
-    // SAFETY: The options keep every key of the layout's own options and only gain header buttons, so they stay the layout's T; TypeScript cannot relate a spread with an added key to an unconstrained T.
+    // SAFETY: T is a page layout's DefaultLayoutSerializedOptions, and these options are those options with headerActions, a field it declares, extended, so they are still a T.
     options: {
       ...options,
       headerActions: [...(options.headerActions ?? []), ...placed],

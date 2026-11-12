@@ -85,7 +85,7 @@ export function KpiCard(
   return attachRealtimeTopicsHook(
     new ComponentBuilder<KpiCardProps>(KPI_CARD_COMPONENT_NAME)
       .options(
-        // SAFETY: `KpiCard()` with no options is a legal call while a page is authored, so the options may lack the required title; the builder serializes whatever the options hold and reads the title through optional access (`options?.title || ...`).
+        // SAFETY: Bug in the published builder typing, which requires KpiCardProps' title while KpiCard() may be called without options. The spread is a KpiCardProps exactly when the caller passed options with a title; a bare KpiCard() yields options without one.
         { ...options } as KpiCardProps,
       )
       .meta({

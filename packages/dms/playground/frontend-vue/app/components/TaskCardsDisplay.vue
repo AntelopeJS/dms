@@ -57,6 +57,11 @@ function isPlainText(rendered: unknown): rendered is string | number {
   return typeof rendered === "string" || typeof rendered === "number";
 }
 
+/** Whether a step of a dotted path landed on a value with fields to read. */
+function hasFields(value: DisplayValue): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 const { locale } = useI18n();
 const { processI18n } = useTranslation();
 const { getDataType } = useDataTypes();
@@ -65,9 +70,7 @@ const getValue = (item: DisplayRow, path: string): DisplayValue =>
   path
     .split(".")
     .reduce<DisplayValue>(
-      (acc, key) =>
-        // SAFETY: acc is neither null nor undefined here, so the keyed read cannot throw; the walk follows the dotted path an author configured through the row's nested values, which DisplayValue does not type as rows, and a step onto a primitive reads that primitive's property.
-        acc == null ? undefined : (acc as DisplayRow)[key],
+      (acc, key) => (hasFields(acc) ? acc[key] : undefined),
       item,
     );
 

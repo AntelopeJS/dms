@@ -41,7 +41,7 @@ async function serializeChild(
 export function serializeInfoSync<T>(
   info: ComponentInfoPromise<T>,
 ): ComponentInfoSerialized<T> {
-  // SAFETY: serializeSync is only meaningful for a component whose info is not a promise, and it reads that info without awaiting it; the promise branch of ComponentInfoPromise has no fields to read and no synchronous result to give in its place.
+  // SAFETY: Every Component is a ComponentBuilder, whose componentInfo getter answers the synchronous ComponentInfo builderInfo builds; the package constructs no Component from a promise.
   const componentInfo = info as ComponentInfo<T>;
   if (componentInfo.children) {
     const serializedChildren = componentInfo.children.map((child) => {

@@ -67,7 +67,7 @@ async function countRows(
     GetDataControllerMeta(instance),
   );
   const { total } = await countWithSearch(
-    // SAFETY: The published countWithSearch types its receiver as DataControllerCallback, the route descriptor of a data controller, while it runs on a controller instance; GetControllerInstance returns that instance typed as `object`, and it is the `this` the list route's handlers receive.
+    // SAFETY: Bug in the published countWithSearch, which types its receiver as DataControllerCallback, a route descriptor, while its implementation reads the controller instance a route runs on. GetControllerInstance returns that instance, so the receiver is right for the implementation and wrong only as the published type.
     instance as DataControllerCallback,
     queryContext,
     { filters },

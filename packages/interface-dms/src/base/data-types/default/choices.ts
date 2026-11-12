@@ -96,7 +96,7 @@ export class SelectType extends DataType {
   }
 
   getValidation() {
-    // SAFETY: `z.enum` types its values as a non-empty tuple but accepts an empty array at runtime, where the schema rejects every value; an empty `items` list is the default of this type, and a guard that branches on it would build a different schema.
+    // SAFETY: z.enum is typed to take a non-empty tuple, while a select's items default to []. The values form a non-empty tuple exactly when the select declares at least one item; with none, z.enum receives [] and its schema rejects every value.
     const validValues = this.options.items.map((item) =>
       String(item.value),
     ) as [string, ...string[]];

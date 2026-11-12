@@ -6,6 +6,7 @@ import {
   type AutomationEventListener,
   type AutomationEventName,
   listenersFor,
+  type RecordEventName,
   type RecordMutationEvent,
 } from "./events";
 import { fieldHint, nodeText, titledProperties } from "./i18n";
@@ -20,7 +21,7 @@ const removeListener = (
   event: AutomationEventName,
 ): TriggerType["deactivate"] =>
   async function deactivate(handle) {
-    const listeners = listenersFor(event);
+    const listeners: Set<unknown> = listenersFor(event);
     for (const listener of listeners) {
       if (listener === handle) listeners.delete(listener);
     }
@@ -68,7 +69,7 @@ interface RecordTriggerConfig {
 }
 
 interface RecordTriggerSpec {
-  event: AutomationEventName;
+  event: RecordEventName;
   /** Its texts under `dms.automation.triggers.<texts>` in the locales. */
   texts: string;
   icon: string;
@@ -104,10 +105,8 @@ function createRecordTrigger(
     },
     async activate(config, emit) {
       const location = config?.location?.trim();
-      const listener: AutomationEventListener = (payload) => {
-        // SAFETY: Record triggers listen on the record events, whose payload is a RecordMutationEvent; the shared listener registry types the payload as the union of all event payloads, so the location is read unchecked.
-        if (location && (payload as RecordMutationEvent).location !== location)
-          return;
+      const listener = (payload: RecordMutationEvent) => {
+        if (location && payload.location !== location) return;
         emit(payload);
       };
       listenersFor(spec.event).add(listener);

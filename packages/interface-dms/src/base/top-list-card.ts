@@ -131,7 +131,7 @@ export function TopListCard(
   return attachRealtimeTopicsHook(
     new ComponentBuilder<TopListCardProps>(TOP_LIST_CARD_COMPONENT_NAME)
       .options(
-        // SAFETY: `TopListCard()` with no options is a legal call while a page is authored, so the options may lack the required title; the builder serializes whatever the options hold and reads the title through optional access (`options?.title || ...`).
+        // SAFETY: Bug in the published builder typing, which requires TopListCardProps' title while TopListCard() may be called without options. The spread is a TopListCardProps exactly when the caller passed options with a title; a bare TopListCard() yields options without one.
         { ...options } as TopListCardProps,
       )
       .meta({

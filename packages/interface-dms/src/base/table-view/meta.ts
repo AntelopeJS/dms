@@ -496,7 +496,7 @@ export function ColumnGroup(id: string, config: ColumnGroupConfig) {
 }
 
 export const ArchiveField = MakeMethodAndPropertyDecorator((target, key) => {
-  // SAFETY: The decorator signature types the key as PropertyKey, but the archive field, the filters and the field map are keyed by the string names of the decorated members; a symbol-named member would pass through as before, neither rejected nor converted.
+  // SAFETY: The archive field is a class member named by an identifier, which a member decorator receives as a string key.
   const fieldName = key as string;
   const owner = decoratedClass(target);
   GetMetadata(owner, TableViewMeta).setArchiveField(fieldName);

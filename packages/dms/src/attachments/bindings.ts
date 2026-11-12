@@ -1,6 +1,7 @@
 import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
 import { getDataTypeId } from "@antelopejs/interface-dms/base/data-types";
 import type { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 export function tableAttachmentFields(
   meta: TableViewMeta,
@@ -15,13 +16,12 @@ export function tableAttachmentFields(
         id: `${scope}#${key}`,
         key,
         kind,
-        // SAFETY: A file or image data type declares storage as a string in FileTypeOptions and ImageTypeOptions; DataType erases its options to unknown values and getDataTypeId names the type by registered id, so no guard on the instance narrows them.
-        storage: options?.storage as string | undefined,
+        storage: isString(options?.storage) ? options.storage : undefined,
         visibility:
           options?.visibility === "public"
             ? ("public" as const)
             : ("private" as const),
-        // SAFETY: A file or image data type declares constraints as UploadConstraints in FileTypeOptions and ImageTypeOptions; DataType erases its options to unknown values and getDataTypeId names the type by registered id, so no guard on the instance narrows them.
+        // SAFETY: The registry ids file and image name FileType and ImageType, whose options are FileTypeOptions or ImageTypeOptions, where constraints is the UploadConstraints AttachmentField declares.
         constraints: options?.constraints as AttachmentField["constraints"],
       },
     ];

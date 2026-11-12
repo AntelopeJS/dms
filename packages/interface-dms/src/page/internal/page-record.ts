@@ -57,7 +57,7 @@ export async function readPageRecord(
   layout: ComponentInfo | undefined,
   context: ComponentFilterContext,
 ): Promise<PageRecordRead | undefined> {
-  // SAFETY: ComponentInfo types its options `unknown`; the layout read here is the page layout, whose options are DefaultLayoutSerializedOptions, and a runtime check would change what the helper answers for options of another shape.
+  // SAFETY: The layout read here is a page's layout, built by DefaultLayout, FormPageLayout or SettingsLayout through dashboardLayout, or by EmptyLayout as an empty object, so its options are DefaultLayoutSerializedOptions.
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!options?.record) return undefined;
   try {

@@ -107,7 +107,7 @@ export const Tab = (options?: TabProps): ComponentBuilder<TabProps> => {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<TabProps>(TAB_COMPONENT_NAME)
       .options(
-        // SAFETY: `Tab()` with no options is a legal call while a page is authored, so the options may lack the required items; the builder serializes whatever the options hold and reads only `realtimeTopic`, through optional access.
+        // SAFETY: Bug in the published builder typing, which requires TabProps' items while Tab() may be called without options. The spread is a TabProps exactly when the caller passed options with items; a bare Tab() yields options without them.
         { ...options } as TabProps,
       )
       .meta({

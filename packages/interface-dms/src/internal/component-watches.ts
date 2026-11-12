@@ -83,7 +83,7 @@ export function stripWatchActions<O>(opts: O): O {
     return opts;
   }
   const { watchActions: _ignored, ...rest } = opts;
-  // SAFETY: O is the caller's options type, and the rest of an object destructured over a generic is not provably an O; it keeps every key of the options except watchActions, which the builder owns and strips from caller-supplied options.
+  // SAFETY: No component options type requires watchActions, the transport key the builder owns (SlotFormOptions declares it optional), so the options without it are still an O.
   return rest as O;
 }
 
@@ -100,7 +100,7 @@ export function mergeWatchesIntoOptions<T>(
   } = options ?? {};
   const existing = optionsObj.watchActions ?? [];
   const merged = [...existing, ...watches];
-  // SAFETY: T is the caller's options type, and a spread of a generic with one added key is not provably a T; the result keeps every key of the options and adds only watchActions, the key the builder owns for its serialized options.
+  // SAFETY: The options plus watchActions, a key no options type requires, are still a T; options are absent only on a builder made without them, such as CustomComponent's ComponentBuilder<unknown>, whose T the bare object satisfies.
   return { ...optionsObj, watchActions: merged } as T;
 }
 

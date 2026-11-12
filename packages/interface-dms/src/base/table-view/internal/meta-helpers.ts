@@ -66,7 +66,7 @@ export function decorateColumn(
   options: ColumnOptions,
   meta: TableViewMeta,
 ) {
-  // SAFETY: The decorator signature types the key as PropertyKey, but the column registry, the localization lookup and the field metadata are keyed by the string names of the decorated members; a symbol-named member would pass through as before, neither rejected nor converted.
+  // SAFETY: TableView columns are class members named by identifiers, which a member decorator receives as string keys.
   const columnKey = key as string;
   meta.setColumn(columnKey, options);
 

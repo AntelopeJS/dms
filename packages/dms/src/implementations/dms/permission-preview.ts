@@ -10,7 +10,7 @@ export interface ServedQuickActions {
 export function readHeaderActions(
   layout: { options?: unknown } | undefined,
 ): PageHeaderButtonSerialized[] {
-  // SAFETY: A resolved layout's options are unknown; DefaultLayout serializes headerActions as PageHeaderButtonSerialized[] (DefaultLayoutSerializedOptions), and no guard checks every member of that button type.
+  // SAFETY: A page layout is built by DefaultLayout, FormPageLayout, SettingsLayout or EmptyLayout, so its options are DefaultLayoutSerializedOptions, whose headerActions hold PageHeaderButtonDeclared, a PageHeaderButtonSerialized.
   const options = layout?.options as
     | { headerActions?: PageHeaderButtonSerialized[] }
     | undefined;

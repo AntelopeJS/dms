@@ -134,7 +134,7 @@ export namespace internal {
     if (!data) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, NO_JWT_TOKEN_ERROR);
     }
-    // SAFETY: decode types its result as JwtPayload, text or null and checks no claim; AuthUserValidator re-verifies rawToken against the user's key and checks its id and tenantId claims in verifySessionToken, so this authenticator forwards the decoded claims for it to judge.
+    // SAFETY: The session tokens the DMS signs (access, refresh, two-factor) decode to id and tenantId strings and an optional sessionId string; AuthUserValidator refuses every other token in verifySessionToken and, before it, reads the decoded id and sessionId only as lookup keys.
     const result = decode(data) as DecodedAuthPayload;
     return {
       ...result,
@@ -147,7 +147,7 @@ export namespace internal {
       return undefined;
     }
     try {
-      // SAFETY: decode types its result as JwtPayload, text or null and checks no claim; IfAuthUserValidator re-verifies rawToken against the user's key and checks its id and tenantId claims in verifySessionToken, so this authenticator forwards the decoded claims for it to judge.
+      // SAFETY: The session tokens the DMS signs (access, refresh, two-factor) decode to id and tenantId strings and an optional sessionId string; IfAuthUserValidator refuses every other token in verifySessionToken and, before it, reads the decoded id and sessionId only as lookup keys.
       const result = decode(data) as DecodedAuthPayload;
       return {
         ...result,
@@ -320,13 +320,21 @@ interface PurposeTokenClaims {
   purpose: string;
 }
 
-interface TwoFactorClaims extends PurposeTokenClaims {
-  tenantId: string;
+interface VerifiedPurposeToken {
+  claims: JwtPayload & PurposeTokenClaims;
+  user: User;
 }
 
-interface VerifiedPurposeToken<T extends PurposeTokenClaims> {
-  claims: T;
-  user: User;
+function isPurposeClaims(
+  claims: ReturnType<typeof decode>,
+  purpose: string,
+): claims is JwtPayload & PurposeTokenClaims {
+  return (
+    claims !== null &&
+    !isString(claims) &&
+    claims.purpose === purpose &&
+    isString(claims.id)
+  );
 }
 
 function isSignedFor(token: string, user: User): boolean {
@@ -338,26 +346,20 @@ function isSignedFor(token: string, user: User): boolean {
   }
 }
 
-async function verifyPurposeToken<T extends PurposeTokenClaims>(
+async function verifyPurposeToken(
   token: string,
   purpose: string,
   refusal: string,
-): Promise<VerifiedPurposeToken<T>> {
+): Promise<VerifiedPurposeToken> {
   const claims = decode(token);
-  if (
-    !claims ||
-    isString(claims) ||
-    claims.purpose !== purpose ||
-    !isString(claims.id)
-  ) {
+  if (!isPurposeClaims(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
   const user = await GetModel(UserModel).get(claims.id);
   if (!user || !isSignedFor(token, user)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
-  // SAFETY: The checks above establish id and purpose, the claims PurposeTokenClaims declares, and isSignedFor verifies the signature; the claims T adds (the two-factor token's tenantId) are written by that token's issuer and decode types them as any.
-  return { claims: claims as T, user };
+  return { claims, user };
 }
 
 export async function validateTenantAssignmentToken(token: string) {
@@ -370,12 +372,15 @@ export async function validateTenantAssignmentToken(token: string) {
 }
 
 export async function validateTwoFactorToken(token: string) {
-  const { claims, user } = await verifyPurposeToken<TwoFactorClaims>(
+  const { claims, user } = await verifyPurposeToken(
     token,
     TWO_FACTOR_TOKEN_PURPOSE,
     INVALID_TWO_FACTOR_TOKEN_ERROR,
   );
-  return { ...claims, user };
+  if (!isString(claims.tenantId)) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_TWO_FACTOR_TOKEN_ERROR);
+  }
+  return { ...claims, tenantId: claims.tenantId, user };
 }
 
 const BUILTIN_SENSITIVE_USER_KEYS: string[] = [

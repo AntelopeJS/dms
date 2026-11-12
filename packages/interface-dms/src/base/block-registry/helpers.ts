@@ -7,10 +7,9 @@ import { UI_HINTS } from "./internal/ui";
  * template-literal union such as a colour value, or a branded id. The schema
  * still validates as a string, so a builder UI keeps a text control.
  */
-export function narrowString<T extends string>(): ZodType<T, ZodTypeDef, T> {
-  const schema: ZodType<string, ZodTypeDef, string> = z.string();
-  // SAFETY: The schema is a plain string schema, so every string passes at runtime; T is the narrower type the caller declares for the option, which a schema over `string` cannot check.
-  return schema as ZodType<T, ZodTypeDef, T>;
+export function narrowString<T extends string>(): ZodType<T, ZodTypeDef, T>;
+export function narrowString(): ZodType<string, ZodTypeDef, string> {
+  return z.string();
 }
 
 /**

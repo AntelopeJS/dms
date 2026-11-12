@@ -15,7 +15,7 @@ export function applyArchiveModeDefaultRules<T extends object>(
 ): TableViewRowActionOptions<T> | undefined {
   const result: TableViewRowActionOptions<T> = { ...rowActions };
 
-  // SAFETY: A field rule names a key of the row type T, and `archiveField` is the plain string the table view declares as its archive flag; TypeScript cannot relate that string to the keys of the caller's T, and the flag is a boolean on the row.
+  // SAFETY: archiveField is the row member ArchiveField decorated on the table view whose rows are T, and that member holds the boolean archive flag the rules compare with true.
   const rules = [
     ["edit", { field: archiveField, notEquals: true }],
     ["duplicate", { field: archiveField, notEquals: true }],

@@ -119,7 +119,7 @@ interface DeleteDocumentsRequest extends TableViewAttachmentSaveRequest {
 async function deleteDocuments(request: DeleteDocumentsRequest) {
   const { controller, route, context, params, args, fields, componentIds } =
     request;
-  // SAFETY: Delete mode runs the delete route, whose params are Parameters.DeleteParameters; the wrapper's contract erases that link, so the ids are read unchecked, as one id or a list, and the lookup below stringifies whatever it finds.
+  // SAFETY: Delete mode comes only from withFilePromotion(DefaultRoutes.Delete, "delete") in the table-view routes, so params are the delete route's Parameters.DeleteParameters.
   const ids = (params as Parameters.DeleteParameters).id;
   const rows = await Promise.all(
     (Array.isArray(ids) ? ids : [ids]).map((id) =>
