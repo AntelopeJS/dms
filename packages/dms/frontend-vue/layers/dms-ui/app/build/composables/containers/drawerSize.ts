@@ -73,7 +73,6 @@ function emptyPreferences(): DrawerSizePreferences {
   return { widths: {}, heights: {} };
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This cookie decoder accepts malformed persisted values and filters them here.
 function readSizes(value: unknown): Record<string, number> {
   if (!isObject(value) || value === null) return {};
   const entries: [string, unknown][] = Object.entries(value);
@@ -92,7 +91,6 @@ function readSizes(value: unknown): Record<string, number> {
  * @internal
  */
 export function readDrawerSizePreferences(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The persisted cookie is decoded here, not trusted as DrawerSizePreferences.
   value: unknown,
 ): DrawerSizePreferences {
   if (!isObject(value) || value === null) return emptyPreferences();
@@ -168,7 +166,6 @@ const ASYNC_WRAPPER_NAME = "AsyncComponentWrapper";
  * @internal
  */
 export function componentSizeKey(component: Component): string | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Component's constructor branch does not constrain these metadata fields; retain unchecked name selection and interpolation.
   const named = component as Pick<ComponentOptions, "name" | "__name">;
   const { name, __name } = named;
   const componentName = [name, __name].find(

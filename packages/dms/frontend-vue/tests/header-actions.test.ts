@@ -38,7 +38,6 @@ let app: App | undefined;
 let serverHtml = "";
 
 interface CookieOptions {
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The cookie stub stores heterogeneous defaults and has no single value schema.
   default?: () => unknown;
 }
 

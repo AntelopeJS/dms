@@ -45,9 +45,7 @@ export interface UseExportJobLabels {
 export interface RunExportJobOptions {
   startUrl: string;
   startMethod?: "GET" | "POST";
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Export endpoints own query values; the fetch owner's broader query type would widen this existing object contract.
   startQuery?: Record<string, unknown>;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Export endpoints own body values; the fetch owner's body type also admits non-object payloads excluded by this contract.
   startBody?: Record<string, unknown>;
   /** Function from jobId → URL. Defaults to `${startBase}/status/${jobId}`. */
   statusUrl?: (ticket: ExportJobTicket) => string;
@@ -320,7 +318,6 @@ async function readExportStream(
     );
   }
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reader chunks are not checked for SharedArrayBuffer backing; preserve Blob's existing rejection rather than copy or validate the bytes.
   return new Blob(chunks as BlobPart[]);
 }
 

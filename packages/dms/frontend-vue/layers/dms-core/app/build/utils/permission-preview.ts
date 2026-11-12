@@ -220,7 +220,6 @@ export function applyPreviewEntryStates<T extends PreviewLockableEntry>(
   return items.map((item) => {
     const children = item.children
       ? applyPreviewEntryStates(
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The existing recursive API assumes children share T, but its public object[] contract does not prove this. Strengthening that contract would be a separate breaking change.
           item.children as readonly T[],
           stateOf,
           decorate,

@@ -33,7 +33,6 @@ export interface UseChartFetchOptions<T> {
   fetchUrlMethod?: string;
   periodScope?: string;
   realtimeTopic?: string | string[];
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- This source is only JSON-stringified for equality; inference has no value and Vue WatchSource's generic owner deliberately permits any result.
   watchSource?: () => unknown;
   staticData?: T | null | (() => T | null);
 }
@@ -260,7 +259,6 @@ export function useChartFetch<T>(
 function useStaticChartData<T>(
   options: UseChartFetchOptions<T>,
 ): UseChartFetchReturn<T> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Vue deeply unwraps static data, which need not remain T; retain the existing public ref contract and reactive behavior.
   const data = ref<T | null>(
     readStaticData(options.staticData),
   ) as Ref<T | null>;

@@ -244,7 +244,6 @@ function forwardEmit(event: EmitEvent, value: EmitValue): void {
       const endIso = value.end?.toString();
       emits("update:modelValue", { start: startIso, end: endIso });
     } else {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The declared model emit excludes this unchecked passthrough branch's arbitrary values; inference and the emit owner cannot establish a valid string here.
       emits("update:modelValue", value as string | null | undefined);
     }
   } else {

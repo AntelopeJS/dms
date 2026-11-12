@@ -9,7 +9,6 @@ function getValueByPath(
   let current: unknown = obj;
   for (const key of keys) {
     if (current === null || current === undefined) return undefined;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- Event data has no common schema; this unchecked access intentionally retains primitive boxing and arbitrary nested property traversal rather than rejecting non-record values.
     current = (current as Record<string, unknown>)[key];
   }
   return current;

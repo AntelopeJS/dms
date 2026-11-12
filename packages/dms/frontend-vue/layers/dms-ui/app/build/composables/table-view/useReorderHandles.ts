@@ -111,7 +111,6 @@ export function useReorderHandles(options: ReorderHandlesOptions) {
     const delta = STEP_BY_KEY[event.key];
     if (delta === undefined) return;
     event.preventDefault();
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- EventTarget has no focus method, and the DOM event owner does not narrow currentTarget to the handle. A runtime HTMLElement check would change behavior for other focusable targets.
     const handle = event.currentTarget as HTMLElement | null;
     if (step(index, delta)) void nextTick(() => handle?.focus());
   };

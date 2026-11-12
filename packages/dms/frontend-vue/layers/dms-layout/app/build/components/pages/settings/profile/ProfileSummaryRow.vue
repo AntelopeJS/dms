@@ -46,7 +46,6 @@ const placeholderText = computed(() =>
 
 defineSlots<{
   /** The summary, after the lead. */
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Vue's Slot return type narrows this existing consumer-provided slot contract; preserve the unrestricted return annotation.
   default?: () => unknown;
 }>();
 

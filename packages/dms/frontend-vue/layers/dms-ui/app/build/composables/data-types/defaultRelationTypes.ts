@@ -94,7 +94,6 @@ function renderRelationBadges(
 }
 
 function renderRelation(value: CellValue, options: CellOptions) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Relation options cross the erased plugin boundary; multiple and keyMapping retain unchecked reads.
   const opts = options as RelationOptions | undefined;
   const labelKey = opts?.keyMapping?.label || DEFAULT_RELATION_LABEL_KEY;
   const valueKey = opts?.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
@@ -124,7 +123,6 @@ function renderRelation(value: CellValue, options: CellOptions) {
 }
 
 function renderCascaderRelation(value: CellValue, options: CellOptions) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter erases cascader options; preserve their unchecked handoff to CascaderPath.
   const opts = options as CascaderRelationOptions | undefined;
 
   if (!value) return value;

@@ -137,7 +137,6 @@ function localized(series: ChartSeries[]): ChartSeries[] {
 const staticSeries = computed<ChartSeries[]>(() => {
   if (isCircular.value) return [];
   if (!props.staticDataset) return [];
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The prop permits either dataset independently of chart type. This legacy non-circular handoff assumes series without validating or transforming mismatched datasets.
   return localized(props.staticDataset as ChartSeries[]);
 });
 
@@ -145,7 +144,6 @@ const staticDonut = computed<DonutRecord[]>(() => {
   if (!isCircular.value) return [];
   if (!props.staticDataset) return [];
   return localizeDonutRecords(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The prop permits either dataset independently of chart type. This legacy circular handoff assumes donut records without validating or transforming mismatched datasets.
     props.staticDataset as DonutRecord[],
     processI18n,
   );
@@ -214,7 +212,6 @@ function buildXyClickPayload(opts: {
   const point = series?.data[dataPointIndex];
   const pointValue = readPointValue(point);
   const label =
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens this owner union's label to unknown; typeof preserves the ChartSeries field without a cast or changed payload validation.
     typeof point === "object" && point !== null && "label" in point
       ? point.label
       : undefined;

@@ -143,7 +143,6 @@ const RANGE_AREA_APEX_TYPE = "rangeArea";
 function resolveApexType(
   input: UseApexChartInput,
 ): NonNullable<NonNullable<ApexOptions["chart"]>["type"]> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public configuration accepts arbitrary chart strings; inference and ApexOptions reject that existing unchecked Apex boundary.
   const baseType = APEX_TYPE_CONFIGS[input.type].apexType as NonNullable<
     NonNullable<ApexOptions["chart"]>["type"]
   >;

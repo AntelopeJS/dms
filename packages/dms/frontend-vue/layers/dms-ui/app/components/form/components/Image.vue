@@ -296,7 +296,6 @@ const onDrop = (event: DragEvent) => {
 };
 
 const isEditableTarget = (target: EventTarget | null): boolean => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- EventTarget does not establish an HTMLElement. This legacy projection preserves optional property reads on null and non-element targets without validating them.
   const element = target as HTMLElement | null;
   return (
     element?.tagName === "INPUT" ||

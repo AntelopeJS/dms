@@ -71,15 +71,12 @@ export function useSecurityFormat() {
    * @param error What `$authFetch` threw
    * @param fallbackKey Message used when the error carries no known code
    */
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript throws arbitrary values. FetchError-derived parameters would reject the boundary inputs this formatter already handles.
   const errorMessage = (error: unknown, fallbackKey: string): string => {
     return resolveError(error, { fallbackKey })?.message ?? "";
   };
 
   /** @returns The error code (`error.xxx`) the API answered with, if any */
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript throws arbitrary values; a FetchError parameter would narrow this public error boundary.
   const errorCode = (error: unknown): string | undefined => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This historical projection is deliberately unchecked, including nullish and primitive errors; inference cannot project data from unknown without changing the boundary.
     const code = (error as FetchErrorLike | undefined)?.data;
     return isString(code) ? code : undefined;
   };

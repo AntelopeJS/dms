@@ -16,9 +16,7 @@ interface ProbedOptions {
   chart: {
     events?: {
       dataPointSelection?: (
-        // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The vendor event argument is opaque and unused; preserve the callback's raw input contract.
         event: unknown,
-        // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The vendor chart context is opaque and unused by point selection.
         context: unknown,
         opts: { seriesIndex: number; dataPointIndex: number },
       ) => void;

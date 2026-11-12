@@ -13,7 +13,6 @@ export function validateRequiredQueryParams(
 }
 
 export interface ValidationRouteContext {
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Custom validators own the interpretation of these unparsed values; a router-only value type would narrow the published validation context.
   query: Record<string, unknown>;
   params: ValidationRouteContext["query"];
 }

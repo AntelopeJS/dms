@@ -32,7 +32,6 @@ export function fieldSavedMarker(targets: FieldSavedTargets): MarkFieldSaved {
     if (!targets.hasField(id)) return;
     targets.initialValues.value = {
       ...targets.initialValues.value,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Field-saved values are arbitrary form payloads; JSON cloning does not establish FormFieldValue.
       [id]: cloneFormValue(value as FormFieldValue) as FormFieldValue,
     };
     targets.dirty.markClean({ ...targets.dirty.baseline.value, [id]: value });

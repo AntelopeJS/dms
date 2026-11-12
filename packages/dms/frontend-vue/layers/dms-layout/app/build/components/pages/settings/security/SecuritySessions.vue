@@ -58,7 +58,6 @@ const { formatDate, formatRelative } = useSecurityFormat();
 
 const list = useApiData<SessionsRead>(SESSIONS_URL, {
   transform: (sessions) => ({
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- useApiData exposes transform input as unknown. The endpoint supplies SessionInfo[] by convention; SessionsRead["sessions"] cannot prove that unchecked response shape without new validation.
     sessions: sessions as SessionInfo[],
     readAt: Date.now(),
   }),

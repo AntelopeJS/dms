@@ -78,7 +78,6 @@ export const usePreferences = () => {
 
   const getPreference = <T = unknown>(keyPath: string, defaultValue?: T): T => {
     const value = readAt(tree.value, keyPath.split("."));
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The stored tree does not validate caller-selected T. Returning the tree value type would change the public generic contract; retain existing unchecked reads.
     return (value === undefined ? defaultValue : value) as T;
   };
 
