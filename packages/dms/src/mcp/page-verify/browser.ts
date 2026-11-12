@@ -38,7 +38,7 @@ function cliPath(): string {
 
 async function installChromium(): Promise<void> {
   Logging.Info(
-    "[DMS] page_verify: installing the headless Chromium Playwright pins (first use only, about 100 MB)…",
+    "[DMS] page_verify: installing the headless Chromium Playwright pins (first use only, about 330 MB in Playwright's browser cache)…",
   );
   try {
     await execFileAsync(process.execPath, [cliPath(), ...INSTALL_ARGS], {

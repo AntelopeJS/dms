@@ -12,7 +12,9 @@ import type {
 
 const PREVIEW_PATH = "/dms-preview";
 const FRAME_TIMEOUT_MS = 20_000;
-const POLL_MS = 250;
+const POLL_MS = 500;
+/** The custom component `/dms-preview` draws the previewed tree in. */
+const PREVIEW_HOST = "DmsBlockPreview";
 const HTTP_NOT_FOUND = 404;
 
 /** The mockup page a run compares the page with. */
@@ -30,19 +32,34 @@ function viewerUrl(origin: string, target: MockupTarget): string {
   return url.href;
 }
 
+/** The blocks of the preview frame, the frame's own host component left out. */
+async function previewBlocks(frame: Frame): Promise<ProbedBlock[]> {
+  const probe = await probePage(frame).catch(() => undefined);
+  return (probe?.blocks ?? []).filter(
+    (block) => block.componentName !== PREVIEW_HOST,
+  );
+}
+
+/**
+ * Waits until the preview frame draws the mockup and its blocks stop
+ * changing: nested blocks mount after their parents, once their own
+ * components have loaded.
+ */
 async function drawnPreview(
   page: Page,
 ): Promise<{ frame: Frame; blocks: ProbedBlock[] } | undefined> {
   const deadline = Date.now() + FRAME_TIMEOUT_MS;
+  let previous = "";
   while (Date.now() < deadline) {
     const frame = page
       .frames()
       .find((candidate) => candidate.url().includes(PREVIEW_PATH));
-    const probe = frame
-      ? await probePage(frame).catch(() => undefined)
-      : undefined;
-    if (frame && probe && probe.blocks.length > 0)
-      return { frame, blocks: probe.blocks };
+    const blocks = frame ? await previewBlocks(frame) : [];
+    const drawn = blocks.map((block) => block.path).join(" ");
+    if (frame && blocks.length > 0 && drawn === previous) {
+      return { frame, blocks };
+    }
+    previous = drawn;
     await page.waitForTimeout(POLL_MS);
   }
   return undefined;
@@ -53,7 +70,7 @@ async function drawnPreview(
  * path drawing the same component, else the first unpaired one drawing it,
  * in page order.
  */
-function pairBlocks(
+export function pairBlocks(
   mockupBlocks: ProbedBlock[],
   pageBlocks: RenderedBlock[],
 ): Map<string, RenderedBlock> {

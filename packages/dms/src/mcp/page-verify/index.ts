@@ -45,6 +45,13 @@ import type {
 } from "./report";
 import { knownRoutes, type PageTarget, resolvePage } from "./targets";
 
+export * from "./failures";
+export * from "./mockup";
+export * from "./render";
+export * from "./page-probe";
+export * from "./report";
+export * from "./targets";
+
 const ESTABLISH_PATH = "/auth/establish";
 const RUNS_FOLDER = [".antelope", "page-verify"];
 const SUGGESTED_ROUTES = 20;

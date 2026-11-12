@@ -23,6 +23,8 @@ const SETTLE_TIMEOUT_MS = 20_000;
 const SETTLE_PAUSE_MS = 500;
 const BLOCK_SHOT_TIMEOUT_MS = 5_000;
 const MAX_BLOCK_SHOTS = 40;
+const PROBE_ATTEMPTS = 10;
+const PROBE_INTERVAL_MS = 500;
 const EDGE_TOLERANCE_PX = 1;
 const ABORTED = "net::ERR_ABORTED";
 const RESOURCE_LOAD_ERROR = "Failed to load resource";
@@ -67,17 +69,18 @@ export function fileSegment(value: string): string {
   return value.replace(/^\/+/, "").replace(/[^A-Za-z0-9_.-]+/g, "_") || "root";
 }
 
+/** A component of a served layout: its children each sit under an id. */
 interface LayoutNode {
   componentName?: string;
-  id?: string;
-  children?: LayoutNode[];
+  children?: { id: string; component: LayoutNode }[];
 }
 
 const LayoutNodeSchema: z.ZodType<LayoutNode> = z.lazy(() =>
   z.object({
     componentName: z.string().optional(),
-    id: z.string().optional(),
-    children: z.array(LayoutNodeSchema).optional(),
+    children: z
+      .array(z.object({ id: z.string(), component: LayoutNodeSchema }))
+      .optional(),
   }),
 );
 
@@ -96,9 +99,7 @@ function collectBlocks(
 ): void {
   into.push({ path: blockPath, component: node.componentName ?? "" });
   for (const child of node.children ?? []) {
-    if (child.id !== undefined) {
-      collectBlocks(child, `${blockPath}.${child.id}`, into);
-    }
+    collectBlocks(child.component, `${blockPath}.${child.id}`, into);
   }
 }
 
@@ -313,6 +314,25 @@ async function shootBlocks(
   return blocks;
 }
 
+/**
+ * Probes the page until it draws every block the layout serves, or the
+ * attempts run out: a block mounts after hydration once its component has
+ * loaded, so the first probe of a fresh page can come early.
+ */
+async function probeUntilDrawn(
+  page: Page,
+  expected: ExpectedBlock[],
+): Promise<PageProbe> {
+  let probe = await probePage(page);
+  for (let attempt = 1; attempt < PROBE_ATTEMPTS; attempt += 1) {
+    const drawn = new Set(probe.blocks.map((block) => block.path));
+    if (expected.every((block) => drawn.has(block.path))) break;
+    await page.waitForTimeout(PROBE_INTERVAL_MS);
+    probe = await probePage(page);
+  }
+  return probe;
+}
+
 /** Draws the page at one viewport: full and per-block screenshots, layout and data. */
 export async function renderAtViewport(
   page: Page,
@@ -326,7 +346,7 @@ export async function renderAtViewport(
     height: viewport.height,
   });
   await openPage(page, url);
-  const probe = await probePage(page);
+  const probe = await probeUntilDrawn(page, expected);
   const folder = [
     fileSegment(new URL(url).pathname),
     fileSegment(viewport.name),
