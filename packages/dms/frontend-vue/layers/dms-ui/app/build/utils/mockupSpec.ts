@@ -173,6 +173,29 @@ export function pageIndexOf(spec: MockupSpecDocument, id: string): number {
   return spec.pages.findIndex((page) => page.id === id);
 }
 
+/**
+ * The layout path the preview gives the node at `pointer`, as the compiler
+ * names it: `block-<root index>`, then each child's id, or its index.
+ */
+export function layoutPathOf(
+  spec: MockupSpecDocument,
+  pointer: string,
+): string | undefined {
+  const address = parseNodePointer(pointer);
+  const page = address && spec.pages[address.page];
+  if (!address || !page) return undefined;
+  const [root, ...deeper] = address.steps;
+  let nodes: MockupSpecNode[] | undefined = page.tree[root ?? -1]?.children;
+  let path = `block-${root}`;
+  for (const step of deeper) {
+    const node = nodes?.[step];
+    if (!node) return undefined;
+    path += `.${node.id ?? step}`;
+    nodes = node.children;
+  }
+  return page.tree[root ?? -1] ? path : undefined;
+}
+
 /** The pointer of each node from the page root down to `pointer`, itself included. */
 export function ancestorPointers(pointer: string): string[] {
   const address = parseNodePointer(pointer);

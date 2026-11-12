@@ -69,6 +69,15 @@ export interface MockupSummary {
 
 export type MockupWidth = "desktop" | "mobile";
 
+/** The editor's mode: leave notes for the AI, or edit the spec yourself. */
+export type MockupMode = "comment" | "edit";
+
+export const MOCKUP_MODES: readonly MockupMode[] = ["comment", "edit"];
+
+export function isMockupMode(value: string | undefined): value is MockupMode {
+  return MOCKUP_MODES.some((mode) => mode === value);
+}
+
 export const MOCKUP_WIDTH_OPTIONS: readonly MockupWidth[] = [
   "desktop",
   "mobile",
@@ -223,6 +232,14 @@ export function specPointerFor(
   return Object.hasOwn(page.paths, layoutPath)
     ? page.paths[layoutPath]
     : undefined;
+}
+
+/** The layout path the preview gives the node at spec `pointer`, or undefined when it draws none. */
+export function layoutPathFor(
+  page: Pick<MockupPageState, "paths">,
+  pointer: string,
+): string | undefined {
+  return Object.entries(page.paths).find(([, at]) => at === pointer)?.[0];
 }
 
 const ROOT_LAYOUT_PREFIX = "block-";

@@ -40,7 +40,7 @@ type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
 export type MockupSpecNotice =
   | { kind: "adopted" }
   | { kind: "refused"; issue: MockupIssue }
-  | { kind: "failed" };
+  | { kind: "failed"; error: unknown };
 
 interface MockupSpecOptions {
   name: string;
@@ -141,8 +141,8 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   async function read(): Promise<SpecSource | undefined> {
     try {
       return parseSource(await options.authFetch(endpoint));
-    } catch {
-      options.onNotice({ kind: "failed" });
+    } catch (error) {
+      options.onNotice({ kind: "failed", error });
       return undefined;
     }
   }
@@ -188,7 +188,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
 
   async function onWriteError(error: unknown): Promise<void> {
     if (statusOf(error) !== HTTP_CONFLICT) {
-      options.onNotice({ kind: "failed" });
+      options.onNotice({ kind: "failed", error });
       return;
     }
     const source = await read();
