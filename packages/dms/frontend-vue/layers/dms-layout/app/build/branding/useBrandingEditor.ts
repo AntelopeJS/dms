@@ -133,7 +133,7 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
     const result = await api.readTheme();
     if (!result.ok) return refuse(result.error);
     const saved = savedThemeOf(result.data);
-    const stored = storedDraft();
+    const stored = storedDraft(saved.layer);
     setEdit(stored ? await restoreDraft(stored, saved) : editOf(saved));
   }
 
@@ -221,7 +221,7 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
     const current = edit.value;
     if (!current) return;
     if (changeCount(current) > 0) void storeDraft(current);
-    else void forgetDraft();
+    else void forgetDraft(current.saved.layer);
   }
 
   watch(load, () => {

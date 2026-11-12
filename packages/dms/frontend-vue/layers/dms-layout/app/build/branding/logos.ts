@@ -107,8 +107,13 @@ export function logoContentType(file: PickedFile): string | undefined {
 /** Why a file cannot be a logo, as an i18n key, before it is sent. */
 export function logoRefusal(
   file: PickedFile,
-): "branding.logo.wrong_type" | "branding.logo.too_large" | undefined {
+):
+  | "branding.logo.wrong_type"
+  | "branding.logo.empty"
+  | "branding.logo.too_large"
+  | undefined {
   if (!logoContentType(file)) return "branding.logo.wrong_type";
+  if (file.size === 0) return "branding.logo.empty";
   return file.size > MAX_LOGO_BYTES ? "branding.logo.too_large" : undefined;
 }
 

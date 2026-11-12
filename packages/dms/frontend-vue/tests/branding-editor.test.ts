@@ -173,7 +173,11 @@ describe("the draft kept on the device", () => {
       "../layers/dms-layout/app/entries/branding/model"
     );
     const kept = setColor(
-      editOf({ theme: files("v0"), version: "v0" }),
+      editOf({
+        theme: files("v0"),
+        version: "v0",
+        layer: "/project/frontend-vue",
+      }),
       "primary",
       "violet",
     );
@@ -192,6 +196,61 @@ describe("the draft kept on the device", () => {
       expectedVersion: "v1",
       draft: { colors: { primary: "violet", info: "sky" } },
     });
+  });
+});
+
+describe("the draft kept on the device, across projects and lost logos", () => {
+  it("does not open on another project, and keeps the draft for its own", async () => {
+    const { storeDraft, storedDraft, editOf, setColor } = await import(
+      "../layers/dms-layout/app/entries/branding/model"
+    );
+    await storeDraft(
+      setColor(
+        editOf({ theme: files("a1"), version: "a1", layer: "/work/a" }),
+        "primary",
+        "violet",
+      ),
+    );
+
+    const { host, calls } = await openEditor(() => ok(files("b1")));
+    expect(changeCountText(host)).toBe("No changes");
+    expect(puts(calls)).toEqual([]);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(storedDraft("/work/a")?.draft.colors.primary).toBe("violet");
+  });
+
+  it("keeps the saved logo when a picked logo's bytes did not come back", async () => {
+    const { storeDraft, editOf, placeLogos } = await import(
+      "../layers/dms-layout/app/entries/branding/model"
+    );
+    const savedLogo = "/branding/default-light-0a1b2c3d.svg";
+    const withLogo = {
+      ...files("v1"),
+      logos: { default: { light: savedLogo } },
+    };
+    await storeDraft(
+      placeLogos(
+        editOf({
+          theme: withLogo,
+          version: "v1",
+          layer: "/project/frontend-vue",
+        }),
+        [
+          {
+            slot: "default",
+            mode: "light",
+            logo: {
+              contentType: "image/png",
+              fileName: "new.png",
+              base64Content: "iVBORw0KGgo=",
+            },
+          },
+        ],
+      ),
+    );
+
+    const { host } = await openEditor(() => ok(withLogo));
+    expect(changeCountText(host)).toBe("No changes");
   });
 });
 

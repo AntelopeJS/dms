@@ -30,10 +30,12 @@ import type {
 } from "./theme-types";
 import { THEME_MODES, VARIABLE_SET_NAMES } from "./theme-types";
 
-/** The theme files as `GetTheme` last read them. */
+/** The theme files as `GetTheme` last read them, and the layer that holds them. */
 export interface SavedTheme {
   theme: ThemeDraft;
   version: string;
+  /** The layer's source directory: a draft made on one project never opens on another. */
+  layer: string;
 }
 
 /** An open edit: the saved theme, the whole theme as Save would write it, and the logos picked for it. */
@@ -68,7 +70,11 @@ export function cloneTheme(theme: ThemeDraft): ThemeDraft {
 }
 
 export function savedThemeOf(structure: ThemeStructure): SavedTheme {
-  return { theme: cloneTheme(structure), version: structure.version };
+  return {
+    theme: cloneTheme(structure),
+    version: structure.version,
+    layer: structure.layer.sourcePath,
+  };
 }
 
 export function editOf(saved: SavedTheme): ThemeEdit {

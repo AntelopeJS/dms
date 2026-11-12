@@ -5,7 +5,7 @@ import {
   type PendingLogos,
 } from "./logos";
 import { rebaseEdit, type SavedTheme, type ThemeEdit } from "./model";
-import type { ThemeDraft } from "./theme-types";
+import type { LogoSlot, ThemeDraft, ThemeMode } from "./theme-types";
 
 /**
  * The unsaved theme kept on this device, so a reload or a closed tab loses
@@ -80,6 +80,7 @@ function isStoredDraft(value: unknown): value is StoredDraft {
     isRecord(value.saved) &&
     isTheme(value.saved.theme) &&
     typeof value.saved.version === "string" &&
+    typeof value.saved.layer === "string" &&
     isRecord(value.pendingLogos) &&
     Object.values(value.pendingLogos).every(isStoredLogo) &&
     typeof value.at === "number"
@@ -168,8 +169,13 @@ export async function storeDraft(
   return isDraftStored && writes.every(Boolean);
 }
 
-/** Forgets the stored draft and every stored logo. */
-export async function forgetDraft(): Promise<void> {
+/**
+ * Forgets the draft stored for `layer`, and every stored logo. A draft another
+ * project left is kept for when that project comes back.
+ */
+export async function forgetDraft(layer: string): Promise<void> {
+  const stored = readStoredDraft();
+  if (stored && stored.saved.layer !== layer) return;
   try {
     storage()?.removeItem(DRAFT_KEY);
   } catch {
@@ -178,8 +184,19 @@ export async function forgetDraft(): Promise<void> {
   await run("readwrite", (store) => store.clear());
 }
 
-/** The stored draft, unless there is none, it is malformed, or older than {@link KEEP_DRAFT_MS}. */
-export function storedDraft(now = Date.now()): StoredDraft | undefined {
+/**
+ * The draft stored for `layer`, unless there is none, it is malformed, older
+ * than {@link KEEP_DRAFT_MS}, or made on another project.
+ */
+export function storedDraft(
+  layer: string,
+  now = Date.now(),
+): StoredDraft | undefined {
+  const stored = readStoredDraft(now);
+  return stored?.saved.layer === layer ? stored : undefined;
+}
+
+function readStoredDraft(now = Date.now()): StoredDraft | undefined {
   let raw: string | null | undefined;
   try {
     raw = storage()?.getItem(DRAFT_KEY);
@@ -205,32 +222,52 @@ async function storedBlob(name: string): Promise<string | undefined> {
   return typeof value === "string" ? value : undefined;
 }
 
+/** The draft with a slot showing in a mode what the saved theme holds there. */
+function withSavedLogo(
+  draft: ThemeDraft,
+  saved: ThemeDraft,
+  slot: LogoSlot,
+  mode: ThemeMode,
+): ThemeDraft {
+  const path = saved.logos[slot]?.[mode];
+  if (path === undefined) return draft;
+  return {
+    ...draft,
+    logos: { ...draft.logos, [slot]: { ...draft.logos[slot], [mode]: path } },
+  };
+}
+
 /**
  * The stored draft applied on top of the files as they are now: rebased when
- * they moved on since, its logos read back (a logo whose bytes are gone is
- * left out).
+ * they moved on since, its logos read back. A logo whose bytes are gone is
+ * given up, so its slot keeps the saved logo rather than lose it on Save.
  */
 export async function restoreDraft(
   stored: StoredDraft,
   current: SavedTheme,
 ): Promise<ThemeEdit> {
   const pendingLogos: PendingLogos = {};
+  let draft = stored.draft;
   for (const [key, logo] of Object.entries(stored.pendingLogos)) {
     const parsed = parseLogoKey(key);
+    if (!parsed) continue;
     const base64Content = await storedBlob(logo.blobName);
-    if (parsed && base64Content) {
+    if (base64Content) {
       pendingLogos[logoKey(parsed.slot, parsed.mode)] = {
         contentType: logo.contentType,
         fileName: logo.fileName,
         base64Content,
       };
+    } else {
+      draft = withSavedLogo(
+        draft,
+        stored.saved.theme,
+        parsed.slot,
+        parsed.mode,
+      );
     }
   }
-  const edit: ThemeEdit = {
-    saved: stored.saved,
-    draft: stored.draft,
-    pendingLogos,
-  };
+  const edit: ThemeEdit = { saved: stored.saved, draft, pendingLogos };
   return stored.saved.version === current.version
     ? edit
     : rebaseEdit(edit, current);

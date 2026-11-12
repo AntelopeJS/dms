@@ -1144,7 +1144,8 @@
         "collapsed": "Logo replié",
         "email": "Logo des e-mails",
         "favicon": "Favicon"
-      }
+      },
+      "empty": "Ce fichier est vide."
     },
     "group": {
       "surfaces": "Fonds",
@@ -1201,6 +1202,7 @@
     "problem": {
       "too_long": "dépasse 512 caractères",
       "unsafe": "ne peut contenir ; {'{'} {'}'} < > \\, un commentaire, url(), {'@'}import ou !important",
+      "unbalanced": "laisse une parenthèse, un crochet ou un guillemet ouvert",
       "not_color": "n'est pas une couleur",
       "not_radius": "n'est pas une longueur comme 0.5rem",
       "not_font": "n'est pas une liste de polices comme \"Inter\", sans-serif",

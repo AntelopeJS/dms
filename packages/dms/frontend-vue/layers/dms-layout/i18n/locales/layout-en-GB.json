@@ -1144,7 +1144,8 @@
         "collapsed": "Collapsed logo",
         "email": "Email logo",
         "favicon": "Favicon"
-      }
+      },
+      "empty": "This file is empty."
     },
     "group": {
       "surfaces": "Backgrounds",
@@ -1201,6 +1202,7 @@
     "problem": {
       "too_long": "holds more than 512 characters",
       "unsafe": "cannot hold ; {'{'} {'}'} < > \\, a comment, url(), {'@'}import or !important",
+      "unbalanced": "leaves a parenthesis, a bracket or a quote open",
       "not_color": "is not a color",
       "not_radius": "is not a length such as 0.5rem",
       "not_font": "is not a list of fonts such as \"Inter\", sans-serif",

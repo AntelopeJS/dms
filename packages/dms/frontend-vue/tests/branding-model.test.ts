@@ -29,7 +29,7 @@ function theme(partial: Partial<Theme> = {}): Theme {
 }
 
 function saved(partial: Partial<Theme> = {}, version = "v1"): SavedTheme {
-  return { theme: theme(partial), version };
+  return { theme: theme(partial), version, layer: "/project/frontend-vue" };
 }
 
 const LOGO: PendingLogo = {
@@ -200,5 +200,30 @@ describe("settleSave", () => {
     expect(settled.pendingLogos).toEqual({});
     expect(settled.draft.logos).toEqual(onDisk.theme.logos);
     expect(changeCount(settled)).toBe(1);
+  });
+});
+
+describe("the module's value refusals, checked before Save", () => {
+  it("refuses what the module refuses: open brackets, fetched images, a spaced !important", async () => {
+    const { valueProblem } = await import(
+      "../layers/dms-layout/app/entries/branding/model"
+    );
+    expect(valueProblem("calc(1rem")).toBe("unbalanced");
+    expect(valueProblem('"Inter')).toBe("unbalanced");
+    expect(valueProblem('image-set("a.png" 1x)')).toBe("unsafe");
+    expect(valueProblem("src(foo)")).toBe("unsafe");
+    expect(valueProblem("#fff ! important")).toBe("unsafe");
+    expect(
+      valueProblem('calc(1rem + 2px) "Inter", sans-serif'),
+    ).toBeUndefined();
+  });
+
+  it("refuses an empty logo file", async () => {
+    const { logoRefusal } = await import(
+      "../layers/dms-layout/app/entries/branding/model"
+    );
+    expect(logoRefusal({ name: "a.png", type: "image/png", size: 0 })).toBe(
+      "branding.logo.empty",
+    );
   });
 });
