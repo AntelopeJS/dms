@@ -140,13 +140,15 @@ describe("inspectorFields", () => {
     ]);
   });
 
-  it("puts appearance, layout and features on Style, each with its control and choice labels (fails on a raw enum value as label)", () => {
+  it("puts appearance, layout and features on Style, each with its control, its choice labels and the default it shows unset (fails on a raw enum value as label or a lost default)", () => {
     const fields = inspectorFields(KPI, "style");
     expect(fields.map((field) => [field.key, field.control])).toEqual([
       ["icon", "icon"],
       ["variant", "segmented"],
       ["compact", "switch"],
     ]);
+    expect(fields[1]?.fallback).toBe("card");
+    expect(fields[0]?.fallback).toBeUndefined();
     expect(fields[1]?.choices).toEqual([
       { value: "card", label: "card" },
       { value: "stat", label: "Stat" },

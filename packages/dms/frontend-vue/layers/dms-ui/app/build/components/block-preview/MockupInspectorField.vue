@@ -27,7 +27,7 @@ const text = computed(() =>
   isString(props.value) || isNumber(props.value) ? String(props.value) : "",
 );
 const isOptional = computed(() => !!props.field.option.optional);
-const fallback = computed(() => props.field.option.default);
+const fallback = computed(() => props.field.fallback);
 const shown = computed(() => props.value ?? fallback.value);
 
 function inputValue(event: Event): string {
@@ -128,8 +128,8 @@ const color = computed(() =>
         v-for="choice in field.choices"
         :key="String(choice.value)"
         size="xs"
-        color="neutral"
-        :variant="choice.value === shown ? 'soft' : 'outline'"
+        :color="choice.value === shown ? 'primary' : 'neutral'"
+        :variant="choice.value === shown ? 'subtle' : 'outline'"
         :aria-pressed="choice.value === shown"
         @click="emit('update', choice.value)"
       >

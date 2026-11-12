@@ -24,6 +24,8 @@ export interface MockupInspectorField {
   label: string;
   control: MockupInspectorControl;
   option: MockupOptionSchema;
+  /** What the block shows while the option is unset: the factory's default. */
+  fallback: unknown;
   /** The values a `select` or `segmented` control offers, with their labels. */
   choices: Array<{ value: string | number | boolean; label: string }>;
 }
@@ -97,6 +99,9 @@ export function inspectorFields(
       label: option.ui?.label ?? key,
       control,
       option,
+      fallback: Object.hasOwn(block.defaults, key)
+        ? block.defaults[key]
+        : option.default,
       choices: choicesOf(option),
     };
     return [field];

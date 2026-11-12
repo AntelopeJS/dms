@@ -46,7 +46,7 @@ const tab = ref<PanelTab>("add");
         :key="entry"
         type="button"
         role="tab"
-        class="-mb-px flex-1 border-b-2 px-2 py-2 text-sm"
+        class="focus-visible:ring-primary -mb-px flex-1 border-b-2 px-2 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
         :class="
           entry === tab
             ? 'border-primary text-highlighted'

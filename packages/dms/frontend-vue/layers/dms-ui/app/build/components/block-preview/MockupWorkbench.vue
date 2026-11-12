@@ -350,7 +350,7 @@ const stageStyle = computed(() => ({
       <main
         ref="canvas"
         tabindex="-1"
-        class="bg-elevated/40 min-h-0 overflow-auto p-6 outline-none"
+        class="bg-muted min-h-0 overflow-auto p-6 outline-none"
         data-dms-mockup-canvas
       >
         <p v-if="!pages.length" class="text-muted text-sm">
