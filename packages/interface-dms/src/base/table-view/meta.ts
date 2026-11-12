@@ -496,7 +496,7 @@ export function ColumnGroup(id: string, config: ColumnGroupConfig) {
 }
 
 export const ArchiveField = MakeMethodAndPropertyDecorator((target, key) => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published decorator accepts PropertyKey while archive fields, filters and the field map are keyed by strings; this adapter does not reject symbol or number keys.
+  // SAFETY: The decorator signature types the key as PropertyKey, but the archive field, the filters and the field map are keyed by the string names of the decorated members; a symbol-named member would pass through as before, neither rejected nor converted.
   const fieldName = key as string;
   const owner = decoratedClass(target);
   GetMetadata(owner, TableViewMeta).setArchiveField(fieldName);

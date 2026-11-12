@@ -76,12 +76,10 @@ async function listPackageModuleSources(): Promise<PackageModuleSource[]> {
   const infos = await Promise.all(
     moduleIds.map((moduleId) => GetModuleInfo(moduleId)),
   );
-  return (
-    infos
-      .filter((info) => info.source.type === PACKAGE_SOURCE_TYPE)
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The core exposes erased source fields; filtering type selects package sources, but package and version are still trusted rather than schema-validated here.
-      .map((info) => info.source as PackageModuleSource)
-  );
+  // SAFETY: The filter keeps the sources whose type is the package type, and the core records a package and a version on each of them; the core types its source fields as erased values, so they are read unchecked.
+  return infos
+    .filter((info) => info.source.type === PACKAGE_SOURCE_TYPE)
+    .map((info) => info.source as PackageModuleSource);
 }
 
 async function fetchLatestVersion(

@@ -83,7 +83,7 @@ export function stripWatchActions<O>(opts: O): O {
     return opts;
   }
   const { watchActions: _ignored, ...rest } = opts;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published builder preserves O while intentionally stripping watchActions, even if a consumer includes that key in O.
+  // SAFETY: O is the caller's options type, and the rest of an object destructured over a generic is not provably an O; it keeps every key of the options except watchActions, which the builder owns and strips from caller-supplied options.
   return rest as O;
 }
 
@@ -100,7 +100,7 @@ export function mergeWatchesIntoOptions<T>(
   } = options ?? {};
   const existing = optionsObj.watchActions ?? [];
   const merged = [...existing, ...watches];
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The builder's published T is preserved while watchActions is added to its serialized transport.
+  // SAFETY: T is the caller's options type, and a spread of a generic with one added key is not provably a T; the result keeps every key of the options and adds only watchActions, the key the builder owns for its serialized options.
   return { ...optionsObj, watchActions: merged } as T;
 }
 

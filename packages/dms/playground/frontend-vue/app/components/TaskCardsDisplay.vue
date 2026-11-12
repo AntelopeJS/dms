@@ -66,7 +66,7 @@ const getValue = (item: DisplayRow, path: string): DisplayValue =>
     .split(".")
     .reduce<DisplayValue>(
       (acc, key) =>
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Configured dotted paths traverse unvalidated row values; preserving the existing unchecked property access.
+        // SAFETY: acc is neither null nor undefined here, so the keyed read cannot throw; the walk follows the dotted path an author configured through the row's nested values, which DisplayValue does not type as rows, and a step onto a primitive reads that primitive's property.
         acc == null ? undefined : (acc as DisplayRow)[key],
       item,
     );

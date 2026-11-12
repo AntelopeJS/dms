@@ -29,6 +29,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import * as tenantAccess from "@antelopejs/interface-dms/tenant-access";
+import { isFunction } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { userFixture } from "../../../helpers/user-fixture";
 import { requestContextFixture } from "../../../helpers/request-context";
 
@@ -220,7 +221,7 @@ describe("[unit] TableView bulk operations", () => {
     meta.setArchiveField(ARCHIVE_FIELD);
 
     Query.Delete = (_table, id) =>
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This double supplies the awaited delete count, not the database query builder's unexercised chaining API.
+      // SAFETY: A Query is staged by a database provider this unit boots without; the double supplies the awaited delete count, the only part the code under test reads.
       createTable(rows)
         .getAll(Array.isArray(id) ? id : [id])
         .delete() as never;
@@ -243,12 +244,13 @@ describe("[unit] TableView bulk operations", () => {
 
   it("reads every id of the repeated query key", async () => {
     class Probe extends Controller("/probe") {}
-    type ArgDecorator = (target: Probe, key: string, index: number) => void;
     for (const route of ["archive", "restore"] as const) {
       const callback =
         TableViewRoutes[route === "archive" ? "Archive" : "Restore"];
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Callback args permit decorator arrays, but these two route definitions put a single ids decorator at this index; changing the call would alter the fixture's route-contract test.
-      const decorate = callback.args[IDS_ARG_INDEX] as ArgDecorator;
+      const decorate = callback.args[IDS_ARG_INDEX];
+      if (!isFunction(decorate)) {
+        throw new Error(`${route} has no single ids decorator`);
+      }
       decorate(Probe.prototype, route, IDS_ARG_INDEX);
       const parameter = GetMetadata(Probe, ControllerMeta).getParameterArray(
         route,

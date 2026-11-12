@@ -17,6 +17,8 @@ import {
   markBackupCodesSaved,
 } from "../../../../pages/account";
 import { sessionFixture } from "../../../helpers/table-fixtures";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
+import { plainPasswordUserFixture } from "../../../helpers/user-fixture";
 import { securitySchema } from "../../../../validation";
 
 const HTTP_BAD_REQUEST = 400;
@@ -46,7 +48,7 @@ interface Harness {
 }
 
 function buildUser(password: string | null): User {
-  const user = {
+  const user = plainPasswordUserFixture({
     _id: USER_ID,
     email: OWN_EMAIL,
     password,
@@ -54,15 +56,18 @@ function buildUser(password: string | null): User {
     createdAt: new Date(0),
     twoFactorMethods: [],
     twoFactorBackupCodes: [],
-
-    testHashAsync: async (_field: string, candidate: string) =>
-      candidate === CURRENT_PASSWORD,
-    setHashAsync: async (_field: string, value: string): Promise<void> => {
-      user.password = value;
+    testHashAsync: async <This extends {}, F extends keyof This>(
+      _field: F,
+      candidate: This[F],
+    ) => candidate === CURRENT_PASSWORD,
+    setHashAsync: async <This extends object, F extends keyof This>(
+      _field: F,
+      value: This[F],
+    ): Promise<void> => {
+      if (isString(value)) user.password = value;
     },
-  };
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The credential fixture implements only user fields and hashing behavior exercised here, not the full database instance.
-  return user as unknown as User;
+  });
+  return user;
 }
 
 function session(id: string, lastActiveAt: number): Session {

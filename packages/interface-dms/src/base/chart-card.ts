@@ -92,7 +92,7 @@ const CARD_SUPPLIED_CHART_OPTIONS = [
 export function ChartCard(
   options?: ChartCardBuilderOptions,
 ): ComponentBuilder<ChartCardProps> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders accept omitted options while pages are authored, even though ChartCardBuilderOptions requires a title.
+  // SAFETY: `ChartCard()` with no options is a legal call while a page is authored; the empty object stands for options whose required title is not set yet, and the builder reads every field of it through optional access (`rest.title || ...`).
   const { chart, ...rest } = options ?? ({} as ChartCardBuilderOptions);
   const builder = new ComponentBuilder<ChartCardProps>(
     CHART_CARD_COMPONENT_NAME,

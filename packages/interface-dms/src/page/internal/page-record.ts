@@ -57,7 +57,7 @@ export async function readPageRecord(
   layout: ComponentInfo | undefined,
   context: ComponentFilterContext,
 ): Promise<PageRecordRead | undefined> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ComponentInfo erases layout-specific options; this published helper trusts the layout's optional record loader without validating unrelated layout shapes.
+  // SAFETY: ComponentInfo types its options `unknown`; the layout read here is the page layout, whose options are DefaultLayoutSerializedOptions, and a runtime check would change what the helper answers for options of another shape.
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!options?.record) return undefined;
   try {
@@ -111,12 +111,10 @@ export function withPageRecord(
   if (!record) return undefined;
   const url = targetUrl(button.target);
   if (!url) return button;
+  const { target } = button;
+  if (!target || !("url" in target)) return button;
   return {
     ...button,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- targetUrl checked only the URL property, not the entire action-target union; keep the existing target spread and URL replacement without changing that public union.
-    target: {
-      ...button.target,
-      url: fillRecordTokens(url, record),
-    } as PageHeaderButtonDeclared["target"],
+    target: { ...target, url: fillRecordTokens(url, record) },
   };
 }

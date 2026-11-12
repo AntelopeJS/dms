@@ -41,7 +41,7 @@ async function serializeChild(
 export function serializeInfoSync<T>(
   info: ComponentInfoPromise<T>,
 ): ComponentInfoSerialized<T> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The synchronous API intentionally reads componentInfo without awaiting it; rejecting asynchronous input would change its existing behavior.
+  // SAFETY: serializeSync is only meaningful for a component whose info is not a promise, and it reads that info without awaiting it; the promise branch of ComponentInfoPromise has no fields to read and no synchronous result to give in its place.
   const componentInfo = info as ComponentInfo<T>;
   if (componentInfo.children) {
     const serializedChildren = componentInfo.children.map((child) => {

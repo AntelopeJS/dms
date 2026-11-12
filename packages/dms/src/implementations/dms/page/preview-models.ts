@@ -11,14 +11,15 @@ export function previewMemberModels(previewPermissions: Set<string>) {
     { _id: PREVIEW_ROLE_ID, permissions: [...previewPermissions] },
   ];
 
-  // oxlint-disable anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- PageLayoutHandler requires full models; inference and Pick expose only these preview lookup methods.
-  return {
-    memberModel: {
-      getByUser: async () => ({ roleIds }),
-    } as unknown as TenantMemberModel,
-    roleModel: { getBy: async () => roles } as unknown as RoleModel,
-  };
-  // oxlint-enable anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion
+  // oxlint-disable anti-slop/no-chained-type-assertions -- PageLayoutHandler requires full models; inference and Pick expose only these preview lookup methods.
+  // SAFETY: PageLayoutRequest is published with whole models; the layout resolver reads only getByUser from the member model (metadata-layout-response.ts), the one method given.
+  const memberModel = {
+    getByUser: async () => ({ roleIds }),
+  } as unknown as TenantMemberModel;
+  // SAFETY: PageLayoutRequest is published with whole models; the layout resolver reads only getBy from the role model (permissions.ts), the one method given.
+  const roleModel = { getBy: async () => roles } as unknown as RoleModel;
+  // oxlint-enable anti-slop/no-chained-type-assertions
+  return { memberModel, roleModel };
 }
 
 export function memoizeViewerModels(
@@ -37,20 +38,19 @@ export function memoizeViewerModels(
     return pending;
   };
 
-  // oxlint-disable anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- Layout callbacks require full models; inference and Pick expose only the cached lookup methods.
-  return {
-    memberModel: {
-      getByUser: (userId: string) =>
-        remember(`member:${userId}`, () => memberModel.getByUser(userId)),
-    } as TenantMemberModel,
-    roleModel: {
-      getBy: (...args: Parameters<RoleModel["getBy"]>) =>
-        remember(`roles:${JSON.stringify(args)}`, () =>
-          roleModel.getBy(...args),
-        ),
-    } as unknown as RoleModel,
-  };
-  // oxlint-enable anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion
+  // oxlint-disable anti-slop/no-chained-type-assertions -- Layout callbacks require full models; inference and Pick expose only the cached lookup methods.
+  // SAFETY: PageLayoutRequest is published with whole models; the layout resolver reads only getByUser from the member model (metadata-layout-response.ts), the one method cached here.
+  const cachedMemberModel = {
+    getByUser: (userId: string) =>
+      remember(`member:${userId}`, () => memberModel.getByUser(userId)),
+  } as TenantMemberModel;
+  // SAFETY: PageLayoutRequest is published with whole models; the layout resolver reads only getBy from the role model (permissions.ts), the one method cached here.
+  const cachedRoleModel = {
+    getBy: (...args: Parameters<RoleModel["getBy"]>) =>
+      remember(`roles:${JSON.stringify(args)}`, () => roleModel.getBy(...args)),
+  } as unknown as RoleModel;
+  // oxlint-enable anti-slop/no-chained-type-assertions
+  return { memberModel: cachedMemberModel, roleModel: cachedRoleModel };
 }
 
 export const PREVIEW_ROLE_ID = "dms-permission-preview";

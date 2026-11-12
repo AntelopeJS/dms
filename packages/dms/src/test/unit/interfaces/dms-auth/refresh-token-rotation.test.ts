@@ -21,10 +21,6 @@ interface FakeModelState {
 
 type FakeModel = SessionModel & FakeModelState;
 
-interface FakeTableHolder {
-  table: FakeTable;
-}
-
 interface FakeTable {
   getAll: (sessionId: string) => FakeQuery;
 }
@@ -65,9 +61,7 @@ function createModel(): FakeModel {
   }
   const model: FakeModel = bare;
   let update: RotationUpdate;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The fake replaces the database query builder with its CAS simulation; it deliberately does not implement the full database table contract.
-  const tableHolder = model as unknown as FakeTableHolder;
-  tableHolder.table = {
+  const table: FakeTable = {
     getAll: () => {
       const query: FakeQuery = {
         filter: () => query,
@@ -89,6 +83,12 @@ function createModel(): FakeModel {
       return query;
     },
   };
+  Object.defineProperty(model, "table", {
+    value: table,
+    configurable: true,
+    enumerable: true,
+    writable: true,
+  });
   model.get = async () => model.currentSession;
   return model;
 }

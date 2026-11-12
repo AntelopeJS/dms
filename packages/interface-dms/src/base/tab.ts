@@ -106,8 +106,10 @@ const TAB_COMPONENT_NAME = "dms-tab";
 export const Tab = (options?: TabProps): ComponentBuilder<TabProps> => {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<TabProps>(TAB_COMPONENT_NAME)
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders allow omitted options while pages are authored; required tab items need not exist yet.
-      .options({ ...options } as TabProps)
+      .options(
+        // SAFETY: `Tab()` with no options is a legal call while a page is authored, so the options may lack the required items; the builder serializes whatever the options hold and reads only `realtimeTopic`, through optional access.
+        { ...options } as TabProps,
+      )
       .meta({
         name: "Tabs",
         icon: "i-ph-tabs",

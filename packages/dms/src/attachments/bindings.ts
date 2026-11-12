@@ -15,13 +15,13 @@ export function tableAttachmentFields(
         id: `${scope}#${key}`,
         key,
         kind,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Data type options erase storage's type; file/image registration supplies it, but options are not runtime-validated here.
+        // SAFETY: A file or image data type declares storage as a string in FileTypeOptions and ImageTypeOptions; DataType erases its options to unknown values and getDataTypeId names the type by registered id, so no guard on the instance narrows them.
         storage: options?.storage as string | undefined,
         visibility:
           options?.visibility === "public"
             ? ("public" as const)
             : ("private" as const),
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- File/image options carry this attachment contract through an erased generic; validation of arbitrary registrations would change behavior.
+        // SAFETY: A file or image data type declares constraints as UploadConstraints in FileTypeOptions and ImageTypeOptions; DataType erases its options to unknown values and getDataTypeId names the type by registered id, so no guard on the instance narrows them.
         constraints: options?.constraints as AttachmentField["constraints"],
       },
     ];

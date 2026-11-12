@@ -105,7 +105,7 @@ function createRecordTrigger(
     async activate(config, emit) {
       const location = config?.location?.trim();
       const listener: AutomationEventListener = (payload) => {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Record trigger subscriptions receive RecordMutationEvent from emitAutomationEvent; the shared listener registry erases the per-event payload type.
+        // SAFETY: Record triggers listen on the record events, whose payload is a RecordMutationEvent; the shared listener registry types the payload as the union of all event payloads, so the location is read unchecked.
         if (location && (payload as RecordMutationEvent).location !== location)
           return;
         emit(payload);

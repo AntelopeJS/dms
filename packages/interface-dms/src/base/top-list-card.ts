@@ -130,8 +130,10 @@ export function TopListCard(
 ): ComponentBuilder<TopListCardProps> {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<TopListCardProps>(TOP_LIST_CARD_COMPONENT_NAME)
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders allow omitted options while pages are authored; a required title need not exist yet.
-      .options({ ...options } as TopListCardProps)
+      .options(
+        // SAFETY: `TopListCard()` with no options is a legal call while a page is authored, so the options may lack the required title; the builder serializes whatever the options hold and reads the title through optional access (`options?.title || ...`).
+        { ...options } as TopListCardProps,
+      )
       .meta({
         name: options?.title || "Top list",
         icon: DEFAULT_ICON,

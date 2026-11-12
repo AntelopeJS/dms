@@ -325,7 +325,7 @@ function createChartBuilder<TType extends ChartType>(type: TType) {
     options?: Omit<TProps, "type"> | TProps,
   ): ComponentBuilder<TProps> => {
     const meta = CHART_META_BY_TYPE[type];
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public chart builders permit omitted options while pages are being authored; TProps may require fields not present yet.
+    // SAFETY: TProps is a caller-chosen subtype of the chart props for this type, and TypeScript cannot show that `Omit<TProps, "type">` plus the literal type is a TProps; the options may also be omitted while a page is authored, so required fields may be absent, and the builder reads them through optional access.
     const merged = { ...options, type } as TProps;
     const builder = new ComponentBuilder<TProps>(CHART_COMPONENT_NAME)
       .options(merged)

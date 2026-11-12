@@ -46,7 +46,7 @@ async function viewLatest(
   packageName: string,
   projectPath: string,
 ): Promise<PackageRelease | undefined> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The selected npm fields are historically trusted without schema validation; preserve malformed-registry behavior.
+  // SAFETY: npm view --json answers the requested fields, the version and dependencies as strings and antelopeJs as the package's own field; a malformed registry answer is read unchecked and surfaces as a missing version or odd fields in the release.
   const view = (await npmView(
     `${packageName}@${LATEST_TAG}`,
     ["version", "dependencies", "antelopeJs"],

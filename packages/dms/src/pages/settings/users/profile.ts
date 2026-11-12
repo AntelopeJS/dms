@@ -222,7 +222,7 @@ export class ProfileSettingsController extends PageController("profile", {
             promoted,
           );
         if (!parsed.success) throw profileRefusal(parsed.error);
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The dynamic form schema erases field-specific output types; its runtime fields match UpdateProfileInput, but the generic schema cannot establish that statically.
+        // SAFETY: updateProfileSchema is formSchema(profileFields) extended with language, so its parsed output holds the name, email, language and avatar fields UpdateProfileInput names; formSchema's generic output type erases them to {}.
         await this.writeProfile(parsed.data as UpdateProfileInput, userModel);
         const user = await userModel.get(this.user._id);
         if (!user) throw new Error("Updated profile was not found");

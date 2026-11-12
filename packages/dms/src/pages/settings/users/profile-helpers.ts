@@ -179,7 +179,7 @@ export interface SessionClaims {
 export function extractSessionClaims(authorization: string): SessionClaims {
   const token = authorization?.split(" ")[1];
   if (!token) return {};
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This helper decodes without schema validation today; the route verifies authenticity, not the optional claims' types.
+  // SAFETY: decode types its result as JwtPayload, text or null and checks no claim; the route verifies the token's authenticity, not the types of the optional session claims, so the decoded value is returned whole and unchecked.
   return (decode(token) as SessionClaims | null) ?? {};
 }
 

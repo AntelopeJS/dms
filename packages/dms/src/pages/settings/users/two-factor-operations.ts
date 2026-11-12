@@ -284,7 +284,7 @@ async function isValidCodeForAnyMethod(
   user: User,
   code: string,
 ): Promise<boolean> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- User.twoFactorMethods and methodsOf both expose string[] rather than the verifier's literal union; rejecting persisted unknown method names would alter the existing verification loop.
+  // SAFETY: Only enableMethod stores a method, and it takes a TwoFactorMethod; disableTwoFactorMethod only removes one and the OAuth sign-up stores none, but the User column is typed string[]; a stored name the verifier does not know is passed on unchecked and makes it throw a TypeError, where a guard that skipped it would let the loop pass over it silently.
   for (const method of methodsOf(user) as TwoFactorMethod[]) {
     if (await verifyTwoFactorCode(userModel, user, method, code)) return true;
   }

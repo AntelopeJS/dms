@@ -84,8 +84,10 @@ export function KpiCard(
 ): ComponentBuilder<KpiCardProps> {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<KpiCardProps>(KPI_CARD_COMPONENT_NAME)
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public builders allow omitted options while pages are authored; a required title need not exist yet.
-      .options({ ...options } as KpiCardProps)
+      .options(
+        // SAFETY: `KpiCard()` with no options is a legal call while a page is authored, so the options may lack the required title; the builder serializes whatever the options hold and reads the title through optional access (`options?.title || ...`).
+        { ...options } as KpiCardProps,
+      )
       .meta({
         name: options?.title || "KPI card",
         icon: options?.icon || "i-ph-trend-up",

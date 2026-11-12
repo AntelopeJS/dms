@@ -18,7 +18,7 @@ const processPins = {
     'import { promisify } from "node:util";',
   "src/dev/module-update-notifications.ts:38":
     "const execFileAsync = promisify(execFile);",
-  "src/dev/module-update-notifications.ts:93":
+  "src/dev/module-update-notifications.ts:91":
     'const { stdout } = await execFileAsync(\n      "npm",\n      ["view", packageName, "version"],\n      { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS, signal },\n    );',
   "src/store/registry.ts:1": 'import { execFile } from "node:child_process";',
   "src/store/registry.ts:2": 'import { promisify } from "node:util";',

@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { z } from "zod";
-import { listenersFor, type MemberAddedEvent } from "../../automation";
+import { listenersFor } from "../../automation";
 import { runCleanupUserInvites } from "../../crons";
 import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import type { InviteResolution } from "@antelopejs/interface-dms/db/tables/inviteResolutions.table";
@@ -31,13 +31,24 @@ import { resetDatabase } from "../helpers/db";
 
 const TENANT = "invite-resolution-tenant";
 
-/** The shape the test's invite extension stores and expects back. */
-interface InviteExtensionSlice {
-  value: string;
-}
 const USER = "invite-resolution-user";
 const FUTURE_MS = 60_000;
 const CLEANUP_SCAN_TEST_TIMEOUT_MS = 10_000;
+
+type ListenerPayload = Parameters<
+  Parameters<ReturnType<typeof listenersFor>["add"]>[0]
+>[0];
+
+function hasDeliveryId(
+  value: ListenerPayload,
+): value is ListenerPayload & { deliveryId: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "deliveryId" in value &&
+    typeof value.deliveryId === "string"
+  );
+}
 
 function inviteFixture(source: UserInvite): UserInvite {
   return {
@@ -100,11 +111,7 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
         if (failAccept) throw new Error("accept effect acknowledgement lost");
       },
       onCleanup: (payload, context) => {
-        assert.equal(
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The extension callback erases its payload type; this test assumes the registered slice schema.
-          (payload as InviteExtensionSlice | undefined)?.value,
-          "snapshot",
-        );
+        assert.equal(payload?.value, "snapshot");
         assert.equal(context.tenantId, TENANT);
         assert.ok(context.deliveryId);
         cleaned.add(context.deliveryId);
@@ -398,13 +405,8 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
 
   it("keeps automation best-effort and exposes replay identity without promising deduplication", async () => {
     const observed: string[] = [];
-    const listener = (
-      payload: Parameters<
-        Parameters<ReturnType<typeof listenersFor>["add"]>[0]
-      >[0],
-    ) => {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The automation listener contract erases event payloads; this test assumes the member-added event shape.
-      observed.push((payload as MemberAddedEvent).deliveryId ?? "missing");
+    const listener = (payload: ListenerPayload) => {
+      observed.push(hasDeliveryId(payload) ? payload.deliveryId : "missing");
       throw new Error("best-effort observer failed");
     };
     listenersFor("dms.member-added").add(listener);

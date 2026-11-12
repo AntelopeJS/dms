@@ -18,7 +18,10 @@ import { tableAttachmentFields } from "./bindings";
 import { collectAttachments } from "./fields";
 import { denyAttachment } from "./registry";
 import { SaveComponentFiles } from "./save";
-import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 /** A table instance read by field name, through its own fields and its modifiers' accessors. */
 function isFieldHolder(row: unknown): row is Record<string, unknown> {
@@ -66,8 +69,10 @@ export async function SaveTableViewAttachments(
     getTableViewMetaFor(controller),
     getControllerLocation(controller),
   );
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Route params are erased by the wrapper contract; preserve the existing optional edit-id probe before dispatch.
-  const documentId = (params as Partial<Parameters.EditParameters>)?.id;
+  const documentId =
+    isObject(params) && params !== null && "id" in params && isString(params.id)
+      ? params.id
+      : undefined;
   if (mode === "delete") {
     return deleteDocuments({ ...request, fields });
   }
@@ -114,7 +119,7 @@ interface DeleteDocumentsRequest extends TableViewAttachmentSaveRequest {
 async function deleteDocuments(request: DeleteDocumentsRequest) {
   const { controller, route, context, params, args, fields, componentIds } =
     request;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Delete mode selects delete-route params, but the wrapper's external contract erases that correlation.
+  // SAFETY: Delete mode runs the delete route, whose params are Parameters.DeleteParameters; the wrapper's contract erases that link, so the ids are read unchecked, as one id or a list, and the lookup below stringifies whatever it finds.
   const ids = (params as Parameters.DeleteParameters).id;
   const rows = await Promise.all(
     (Array.isArray(ids) ? ids : [ids]).map((id) =>

@@ -150,11 +150,12 @@ describe("[unit] TableView Get guard", () => {
     events.length = 0;
     denied = false;
     meta.setControllerGuards({ get: guard });
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Parameters erases the query function's generic correlation; this wrapper forwards every argument and returns the original result unchanged.
-    Query.Joined = ((...args: Parameters<typeof originalJoined>) => {
-      events.push("load");
-      return originalJoined(...args);
-    }) as typeof originalJoined;
+    Query.Joined = new Proxy(originalJoined, {
+      apply: (target, _thisArg, args: Parameters<typeof originalJoined>) => {
+        events.push("load");
+        return target(...args);
+      },
+    });
   });
   afterEach(() => {
     Query.Joined = originalJoined;

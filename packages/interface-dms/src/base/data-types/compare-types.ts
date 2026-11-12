@@ -228,7 +228,7 @@ export namespace DefaultDataCompareTypes {
   }
 
   function arrayOrEmpty(proxy: ValueProxy<unknown>): ValueProxy<unknown[]> {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public unknown proxy does not establish an array field; inclusion modes delegate that assumption to the database.
+    // SAFETY: The published comparator contract types the proxy `unknown`; the include and exclude modes are only registered by data types over array values (multiple relations and choices), and the array operators of ValueProxy need that element type.
     return (proxy as ValueProxy<unknown[]>).default([]);
   }
 
@@ -314,7 +314,7 @@ export namespace DefaultDataCompareTypes {
       // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public unknown proxy does not establish string elements; the existing mode delegates array matching to the database.
+      // SAFETY: The published comparator contract types the proxy `unknown`; this mode is only registered by the tags data type, whose value is an array of strings, and the array operators of ValueProxy need that element type.
       const dbVal = proxy as ValueProxy<string[]>;
       const escapedValue = escapeRegex(value);
 

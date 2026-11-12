@@ -9,7 +9,7 @@ import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
 import { GenerateHtml } from "@antelopejs/interface-dms/html-render";
 export * from "./account-emails";
 import { AdminInviteTemplate } from "./email-templates";
-import { decode, sign, verify } from "jsonwebtoken";
+import { decode, type JwtPayload, sign, verify } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
   type AdminInviteEmailNames,
@@ -103,24 +103,30 @@ interface DecodedAuthPayload {
   sessionId?: string;
 }
 
+function isSessionPayload(
+  payload: string | JwtPayload,
+  purpose: string,
+): payload is JwtPayload & Pick<DecodedAuthPayload, "id" | "tenantId"> {
+  return (
+    !isString(payload) &&
+    payload.purpose === purpose &&
+    isString(payload.id) &&
+    !!payload.id &&
+    isString(payload.tenantId) &&
+    !!payload.tenantId
+  );
+}
+
 function verifySessionToken(
   token: string,
   secret: KeyObject,
   purpose: string,
 ): DecodedAuthPayload {
   const payload = verify(token, secret, { algorithms: ["HS256"] });
-  if (
-    isString(payload) ||
-    payload.purpose !== purpose ||
-    !isString(payload.id) ||
-    !payload.id ||
-    !isString(payload.tenantId) ||
-    !payload.tenantId
-  ) {
+  if (!isSessionPayload(payload, purpose)) {
     throw new Error(INVALID_SESSION_TOKEN_ERROR);
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and JwtPayload leave sessionId unchecked; downstream session validation currently assumes DecodedAuthPayload, and checking or rejecting another claim here would change token acceptance.
-  return payload as DecodedAuthPayload;
+  return payload;
 }
 
 export namespace internal {
@@ -128,7 +134,7 @@ export namespace internal {
     if (!data) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, NO_JWT_TOKEN_ERROR);
     }
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode's inferred JwtPayload|string|null and JWT owner types cannot establish the claims consumed by AuthUserValidator; this authenticator forwards them without checking so rejection stays in the validator.
+    // SAFETY: decode types its result as JwtPayload, text or null and checks no claim; AuthUserValidator re-verifies rawToken against the user's key and checks its id and tenantId claims in verifySessionToken, so this authenticator forwards the decoded claims for it to judge.
     const result = decode(data) as DecodedAuthPayload;
     return {
       ...result,
@@ -141,7 +147,7 @@ export namespace internal {
       return undefined;
     }
     try {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode and its owner return JwtPayload|string|null rather than the claims IfAuthUserValidator consumes; retaining this unchecked forwarding avoids adding new authenticator rejections.
+      // SAFETY: decode types its result as JwtPayload, text or null and checks no claim; IfAuthUserValidator re-verifies rawToken against the user's key and checks its id and tenantId claims in verifySessionToken, so this authenticator forwards the decoded claims for it to judge.
       const result = decode(data) as DecodedAuthPayload;
       return {
         ...result,
@@ -350,7 +356,7 @@ async function verifyPurposeToken<T extends PurposeTokenClaims>(
   if (!user || !isSignedFor(token, user)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and JwtPayload cannot establish generic T's extra claims; the legacy two-factor return assumes tenantId without checking it, which this refactor must not start rejecting.
+  // SAFETY: The checks above establish id and purpose, the claims PurposeTokenClaims declares, and isSignedFor verifies the signature; the claims T adds (the two-factor token's tenantId) are written by that token's issuer and decode types them as any.
   return { claims: claims as T, user };
 }
 

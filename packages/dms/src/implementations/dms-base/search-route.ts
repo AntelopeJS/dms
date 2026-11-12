@@ -187,7 +187,8 @@ async function canViewArchived(
 export function archiveFilter(
   archived: boolean,
 ): NonNullable<Parameters.ListParameters["filters"]>[string] {
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- FilterValue's owner declares string but archive filters intentionally send boolean true; inference and indexed access retain the mismatch, and converting the value would change database comparisons.
+  // SAFETY: The filters type declares the value as a string, but the archive comparison needs the boolean true the database stores; converting it to a string would change which rows match.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- FilterValue's owner declares string but archive filters intentionally send boolean true; inference and indexed access retain the mismatch, and converting the value would change database comparisons.
   return [true as unknown as string, archived ? "eq" : "ne"];
 }
 

@@ -68,7 +68,7 @@ export async function filterLayoutHeaderActions<T>(
   pagePermissionId: string | undefined,
   recordStatus?: PageRecordStatus,
 ): Promise<ComponentInfo<T> | undefined> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published generic helper trusts layout options to carry optional header actions; validating or constraining T would change its current contract.
+  // SAFETY: T is the layout's options type, unconstrained in the published signature; the layout this helper filters is the page layout, whose options are DefaultLayoutSerializedOptions, and a runtime check would change what it returns for options of another shape.
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!layout || !options) return layout;
   const { record: _record, headerActions: buttons = [], ...frame } = options;
@@ -97,7 +97,7 @@ export async function filterLayoutHeaderActions<T>(
     servedOptions.headerActionsParams = context.params ?? {};
   }
   if (declaresRecord) servedOptions.recordStatus = recordStatus;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Filtering rebuilds layout options with transport-only fields; the public generic return promises T although arbitrary T is not runtime-validated.
+  // SAFETY: The served options are the layout's own options minus its record loader, with its header buttons and the page-query fields replaced, so they remain the layout's options object; TypeScript cannot relate a rebuilt object to an unconstrained T.
   return { ...layout, options: servedOptions as T };
 }
 
@@ -182,7 +182,7 @@ export function withComponentHeaderButtons<T>(
   } = layout.options ?? {};
   return {
     ...layout,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published generic return retains T after adding header actions, even though arbitrary layout T is not validated at this augmentation boundary.
+    // SAFETY: The options keep every key of the layout's own options and only gain header buttons, so they stay the layout's T; TypeScript cannot relate a spread with an added key to an unconstrained T.
     options: {
       ...options,
       headerActions: [...(options.headerActions ?? []), ...placed],

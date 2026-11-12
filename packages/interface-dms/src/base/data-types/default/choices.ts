@@ -96,7 +96,7 @@ export class SelectType extends DataType {
   }
 
   getValidation() {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Items may be empty; preserve the existing Zod enum call.
+    // SAFETY: `z.enum` types its values as a non-empty tuple but accepts an empty array at runtime, where the schema rejects every value; an empty `items` list is the default of this type, and a guard that branches on it would build a different schema.
     const validValues = this.options.items.map((item) =>
       String(item.value),
     ) as [string, ...string[]];

@@ -67,7 +67,7 @@ async function countRows(
     GetDataControllerMeta(instance),
   );
   const { total } = await countWithSearch(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- GetControllerInstance returns an instance, while the published runtime proxy accepts DataControllerCallback as its receiver type; that mismatch is not validated here.
+    // SAFETY: The published countWithSearch types its receiver as DataControllerCallback, the route descriptor of a data controller, while it runs on a controller instance; GetControllerInstance returns that instance typed as `object`, and it is the `this` the list route's handlers receive.
     instance as DataControllerCallback,
     queryContext,
     { filters },

@@ -66,7 +66,7 @@ export function decorateColumn(
   options: ColumnOptions,
   meta: TableViewMeta,
 ) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator accepts PropertyKey while the column registry, the localization lookup and Filter take string keys; symbol and number inputs are not rejected or converted here.
+  // SAFETY: The decorator signature types the key as PropertyKey, but the column registry, the localization lookup and the field metadata are keyed by the string names of the decorated members; a symbol-named member would pass through as before, neither rejected nor converted.
   const columnKey = key as string;
   meta.setColumn(columnKey, options);
 

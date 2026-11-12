@@ -1,5 +1,9 @@
 import type { ModuleSourcePackage } from "@antelopejs/interface-core/config";
 import * as coreModules from "@antelopejs/interface-core/modules";
+import type {
+  ModuleDeclaration,
+  ModuleDeclarationChanges,
+} from "@antelopejs/interface-core/modules";
 import type { StoreCatalogEntry, StoreDeclaration } from "./types";
 
 const PACKAGE_SOURCE_TYPE = "package" as const;
@@ -15,15 +19,6 @@ const DECLARATIONS_TIMEOUT_MS = 5000;
  * no such export, and the store then stays read-only rather than failing to
  * load. Mirrors their declarations there.
  */
-interface ModuleDeclaration {
-  source?: unknown;
-  config?: unknown;
-  disabled?: boolean;
-  optional?: boolean;
-}
-
-type ModuleDeclarationChanges = Partial<ModuleDeclaration>;
-
 interface DeclarationFunctions {
   ListModuleDeclarations: () => Promise<Record<string, ModuleDeclaration>>;
   SaveModuleDeclaration: (
@@ -66,12 +61,9 @@ function declarationFunctions(): DeclarationFunctions {
   if (!functions.every(isFunction)) {
     throw new DeclarationsUnavailableError();
   }
-  const save =
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The compatibility wrapper historically accepts untyped declaration fields; tightening it to current core config types would change its API.
-    exported.SaveModuleDeclaration as DeclarationFunctions["SaveModuleDeclaration"];
   return {
     ListModuleDeclarations: exported.ListModuleDeclarations,
-    SaveModuleDeclaration: save,
+    SaveModuleDeclaration: exported.SaveModuleDeclaration,
     RemoveModuleDeclaration: exported.RemoveModuleDeclaration,
   };
 }
@@ -91,8 +83,7 @@ function withTimeout<T>(call: Promise<T>): Promise<T> {
 function packageSource(
   declaration: ModuleDeclaration,
 ): PackageSource | undefined {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only source.type is checked historically; preserving legacy declarations rules out adding schema rejection here.
-  const source = declaration.source as PackageSource | undefined;
+  const { source } = declaration;
   return source?.type === PACKAGE_SOURCE_TYPE ? source : undefined;
 }
 

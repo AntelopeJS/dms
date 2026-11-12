@@ -9,7 +9,7 @@ import { UI_HINTS } from "./internal/ui";
  */
 export function narrowString<T extends string>(): ZodType<T, ZodTypeDef, T> {
   const schema: ZodType<string, ZodTypeDef, string> = z.string();
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published helper intentionally accepts every string at runtime; T is a caller-supplied compile-time restriction, not validated membership.
+  // SAFETY: The schema is a plain string schema, so every string passes at runtime; T is the narrower type the caller declares for the option, which a schema over `string` cannot check.
   return schema as ZodType<T, ZodTypeDef, T>;
 }
 
