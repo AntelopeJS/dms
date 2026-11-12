@@ -1,13 +1,13 @@
 const constructorExemptions = {
-  "implementations/dms-base/search-route.ts:404":
+  "implementations/dms-base/search-route.ts:400":
     "      const entryInstance = model.constructor.fromDatabase(entry);",
-  "implementations/dms-base/table-view.ts:80":
+  "implementations/dms-base/table-view.ts:83":
     "      const stored = model.constructor.fromDatabase(entry);",
-  "implementations/dms-base/table-view.ts:117":
+  "implementations/dms-base/table-view.ts:120":
     "    controller.constructor as ConstructorParameters<typeof TableViewMeta>[0],",
-  "implementations/dms-base/table-view.ts:182":
+  "implementations/dms-base/table-view.ts:184":
     "  const owner = controller.constructor;",
-  "implementations/dms-base/table-view.ts:386":
+  "implementations/dms-base/table-view.ts:385":
     "    const stored = model.constructor.fromDatabase(row);",
   "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:76":
     "    const meta = GetMetadata(instance.constructor, TableViewMeta);",
