@@ -13,7 +13,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AppWidgetsDock from "../layers/dms-layout/app/components/AppWidgetsDock.vue";
 import {
   type AppWidget,
-  selectAppWidget,
   useAppWidgets,
 } from "../layers/dms-layout/app/composables/useAppWidgets";
 
@@ -43,7 +42,6 @@ beforeEach(() => {
   const runtime = {
     computed,
     useAppWidgets,
-    selectAppWidget,
     useDmsState,
     useI18n: () => ({ t: translate }),
     useTranslation: () => ({ processI18n: (value: string) => value }),
@@ -103,25 +101,27 @@ describe("app widget dock", () => {
 
   it("writes no state for a widget without a click action", async () => {
     const host = await mountDock([widget()]);
+    const keysBefore = [...sharedState.keys()];
 
     chip(host, "Assistant").click();
 
-    expect(sharedState.has(SELECT_KEY)).toBe(false);
+    expect([...sharedState.keys()]).toEqual(keysBefore);
   });
 
-  it("keeps the hover card body on a clickable widget", async () => {
+  it("moves focus off the chip so its card folds after the click", async () => {
     const host = await mountDock([widget({ onSelectEvent: SELECT_KEY })]);
+    const target = chip(host, "Assistant");
+    target.focus();
 
-    chip(host, "Assistant").click();
-    await nextTick();
+    target.click();
 
-    expect(host.querySelectorAll("[data-widget-body]")).toHaveLength(1);
+    expect(document.activeElement).not.toBe(target);
   });
 
   it("draws the dot and names it in the chip label", async () => {
     const host = await mountDock([widget({ badge: "dot" })]);
 
-    expect(host.querySelectorAll("[data-widget-dot]")).toHaveLength(1);
+    expect(host.querySelectorAll('[data-widget-dot="chip"]')).toHaveLength(1);
     expect(
       chip(host, "widgets_dock.attention(Assistant)").getAttribute("title"),
     ).toBe("Assistant");
@@ -133,12 +133,25 @@ describe("app widget dock", () => {
     expect(host.querySelector("[data-widget-dot]")).toBeNull();
   });
 
-  it("carries a folded widget's dot onto the launcher", async () => {
+  it("carries a folded widget's dot onto the launcher and its label", async () => {
     const host = await mountDock([
       widget({ badge: "dot" }),
       widget({ id: "other", label: "Other" }),
     ]);
 
-    expect(host.querySelectorAll("[data-widget-dot]")).toHaveLength(2);
+    expect(host.querySelectorAll('[data-widget-dot="launcher"]')).toHaveLength(
+      1,
+    );
+    chip(host, "widgets_dock.attention(widgets_dock.show)");
+  });
+
+  it("leaves the launcher plain when no folded widget has a dot", async () => {
+    const host = await mountDock([
+      widget(),
+      widget({ id: "other", label: "Other" }),
+    ]);
+
+    expect(host.querySelector("[data-widget-dot]")).toBeNull();
+    expect(chip(host, "widgets_dock.show").tagName).toBe("BUTTON");
   });
 });

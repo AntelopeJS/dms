@@ -38,19 +38,7 @@ export interface AppWidget {
    * Draws a dot on the chip corner, and on the launcher when the dock folds,
    * to say the widget needs attention. The chip's accessible name says so too.
    */
-  badge?: AppWidgetBadge;
-}
-
-/** The marks a widget chip can carry. See {@link AppWidget.badge}. */
-export type AppWidgetBadge = "dot";
-
-/**
- * Counts one click on a widget whose {@link AppWidget.onSelectEvent} names
- * `key`. Called by the dock.
- */
-export function selectAppWidget(key: string): void {
-  const clicks = useDmsState<number>(key, () => 0);
-  clicks.value = typeof clicks.value === "number" ? clicks.value + 1 : 1;
+  badge?: "dot";
 }
 
 interface UseAppWidgetsReturn {

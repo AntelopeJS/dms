@@ -30,14 +30,23 @@ const launcherDotted = computed(() =>
   widgets.value.some((widget) => widget.badge === "dot"),
 );
 
-function chipLabel(widget: AppWidget): string {
-  const label = processI18n(widget.label);
-  if (widget.badge !== "dot") return label;
-  return t("widgets_dock.attention", { label });
+function withAttention(label: string, dotted: boolean): string {
+  return dotted ? t("widgets_dock.attention", { label }) : label;
 }
 
-function select(widget: AppWidget): void {
-  if (widget.onSelectEvent) selectAppWidget(widget.onSelectEvent);
+function chipLabel(widget: AppWidget): string {
+  return withAttention(processI18n(widget.label), widget.badge === "dot");
+}
+
+const launcherLabel = computed(() =>
+  withAttention(t("widgets_dock.show"), launcherDotted.value),
+);
+
+function select(widget: AppWidget, event: MouseEvent): void {
+  if (!widget.onSelectEvent) return;
+  const clicks = useDmsState<number>(widget.onSelectEvent, () => 0);
+  clicks.value = typeof clicks.value === "number" ? clicks.value + 1 : 1;
+  if (event.currentTarget instanceof HTMLElement) event.currentTarget.blur();
 }
 </script>
 
@@ -49,7 +58,7 @@ function select(widget: AppWidget): void {
     <button
       v-if="folds"
       type="button"
-      :aria-label="t('widgets_dock.show')"
+      :aria-label="launcherLabel"
       :title="t('widgets_dock.show')"
       class="border-accented bg-default text-muted focus-visible:ring-primary group-hover/dock:text-highlighted group-focus-within/dock:text-highlighted pointer-events-auto flex size-10 items-center justify-center rounded-[10px] border opacity-50 shadow-lg transition-all duration-200 group-focus-within/dock:opacity-100 group-hover/dock:opacity-100 focus:outline-none focus-visible:ring-2 motion-reduce:transition-none xl:hidden"
     >
@@ -57,7 +66,7 @@ function select(widget: AppWidget): void {
     </button>
     <span
       v-if="folds && launcherDotted"
-      data-widget-dot
+      data-widget-dot="launcher"
       class="bg-primary pointer-events-none absolute bottom-8.5 left-8.5 size-2 rounded-full ring-2 ring-(--ui-bg) xl:hidden"
     />
 
@@ -82,13 +91,13 @@ function select(widget: AppWidget): void {
           :title="processI18n(widget.label)"
           class="border-accented bg-default text-muted focus-visible:ring-primary group-hover/widget:text-highlighted group-focus-within/widget:text-highlighted flex size-10 items-center justify-center rounded-[10px] border opacity-50 shadow-lg transition-all duration-200 group-focus-within/widget:scale-105 group-focus-within/widget:opacity-100 group-hover/widget:scale-105 group-hover/widget:opacity-100 focus:outline-none focus-visible:ring-2 motion-reduce:transition-none"
           :class="widget.onSelectEvent ? 'cursor-pointer' : 'cursor-default'"
-          @click="select(widget)"
+          @click="select(widget, $event)"
         >
           <UIcon :name="widget.icon" class="size-5" />
         </button>
         <span
           v-if="widget.badge === 'dot'"
-          data-widget-dot
+          data-widget-dot="chip"
           class="bg-primary pointer-events-none absolute -top-0.5 left-8.5 size-2 rounded-full ring-2 ring-(--ui-bg)"
         />
 
