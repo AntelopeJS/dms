@@ -9,7 +9,7 @@ import {
   parsePreviewOutboundMessage,
   type PreviewInboundMessage,
   type PreviewOutboundMessage,
-} from "../../utils/blockPreview";
+} from "../../utils/blockPreviewMessages";
 
 interface PreviewFrameOptions {
   frame: Readonly<ShallowRef<HTMLIFrameElement | null>>;

@@ -2,11 +2,11 @@
 import { computed, ref, useTemplateRef, watch } from "vue";
 import { usePreviewFrame } from "../../composables/block-preview/usePreviewFrame";
 import { useMockupSession } from "../../composables/block-preview/useMockupSession";
+import { isPreviewTheme } from "../../utils/blockPreview";
 import {
-  isPreviewTheme,
   previewInspectMessage,
   previewRenderMessage,
-} from "../../utils/blockPreview";
+} from "../../utils/blockPreviewMessages";
 import {
   MOCKUP_WIDTH_OPTIONS,
   MOCKUP_WIDTHS,

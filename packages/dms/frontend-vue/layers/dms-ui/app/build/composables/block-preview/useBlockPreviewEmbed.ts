@@ -8,6 +8,11 @@ import {
 } from "vue";
 import {
   PREVIEW_THEMES,
+  type PreviewState,
+  type PreviewTheme,
+  type PreviewTree,
+} from "../../utils/blockPreview";
+import {
   parsePreviewMessage,
   previewErrorMessage,
   previewReadyMessage,
@@ -15,10 +20,7 @@ import {
   previewSelectMessage,
   type PreviewInboundMessage,
   type PreviewOutboundMessage,
-  type PreviewState,
-  type PreviewTheme,
-  type PreviewTree,
-} from "../../utils/blockPreview";
+} from "../../utils/blockPreviewMessages";
 import { useBlockInspector } from "./useBlockInspector";
 
 /** What the embedded preview shows: `?state=` first, then each message. */
