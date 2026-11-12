@@ -121,6 +121,16 @@ export interface Page extends Frame {
 
 const LaunchableSchema = z.object({ launch: z.function() });
 
+/** Installs browsers into Playwright's cache; `false` when the environment forbids downloads. */
+type InstallBrowsers = (browsers: string[]) => Promise<false | undefined>;
+
+/** Playwright's registry module, holding the installer its `install` command runs. */
+export const BrowserInstallerSchema = z.object({
+  installBrowsersForNpmInstall: z.custom<InstallBrowsers>(
+    (installer) => z.function().safeParse(installer).success,
+  ),
+});
+
 /**
  * Reads the Chromium launcher of a loaded Playwright module. The launcher
  * passes through as loaded: a parsed copy of a function would call it on
