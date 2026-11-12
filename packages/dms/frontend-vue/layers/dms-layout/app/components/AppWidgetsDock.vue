@@ -26,6 +26,19 @@ const { t } = useI18n();
 const { processI18n } = useTranslation();
 
 const folds = computed(() => widgets.value.length > 1);
+const launcherDotted = computed(() =>
+  widgets.value.some((widget) => widget.badge === "dot"),
+);
+
+function chipLabel(widget: AppWidget): string {
+  const label = processI18n(widget.label);
+  if (widget.badge !== "dot") return label;
+  return t("widgets_dock.attention", { label });
+}
+
+function select(widget: AppWidget): void {
+  if (widget.onSelectEvent) selectAppWidget(widget.onSelectEvent);
+}
 </script>
 
 <template>
@@ -42,6 +55,11 @@ const folds = computed(() => widgets.value.length > 1);
     >
       <UIcon :name="LAUNCHER_ICON" class="size-5" />
     </button>
+    <span
+      v-if="folds && launcherDotted"
+      data-widget-dot
+      class="bg-primary pointer-events-none absolute bottom-8.5 left-8.5 size-2 rounded-full ring-2 ring-(--ui-bg) xl:hidden"
+    />
 
     <!-- The stack's own bottom padding (not a gap) bridges it to the
          launcher, so the pointer never crosses a dead strip that would fold
@@ -60,12 +78,19 @@ const folds = computed(() => widgets.value.length > 1);
       >
         <button
           type="button"
-          :aria-label="processI18n(widget.label)"
+          :aria-label="chipLabel(widget)"
           :title="processI18n(widget.label)"
           class="border-accented bg-default text-muted focus-visible:ring-primary group-hover/widget:text-highlighted group-focus-within/widget:text-highlighted flex size-10 items-center justify-center rounded-[10px] border opacity-50 shadow-lg transition-all duration-200 group-focus-within/widget:scale-105 group-focus-within/widget:opacity-100 group-hover/widget:scale-105 group-hover/widget:opacity-100 focus:outline-none focus-visible:ring-2 motion-reduce:transition-none"
+          :class="widget.onSelectEvent ? 'cursor-pointer' : 'cursor-default'"
+          @click="select(widget)"
         >
           <UIcon :name="widget.icon" class="size-5" />
         </button>
+        <span
+          v-if="widget.badge === 'dot'"
+          data-widget-dot
+          class="bg-primary pointer-events-none absolute -top-0.5 left-8.5 size-2 rounded-full ring-2 ring-(--ui-bg)"
+        />
 
         <div
           class="pointer-events-none invisible absolute bottom-0 left-full z-10 -translate-x-2 pl-2 opacity-0 transition-all duration-200 ease-out group-focus-within/widget:pointer-events-auto group-focus-within/widget:visible group-focus-within/widget:translate-x-0 group-focus-within/widget:opacity-100 group-hover/widget:pointer-events-auto group-hover/widget:visible group-hover/widget:translate-x-0 group-hover/widget:opacity-100 motion-reduce:transition-none"

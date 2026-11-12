@@ -1056,7 +1056,8 @@
     }
   },
   "widgets_dock": {
-    "show": "Afficher les widgets"
+    "show": "Afficher les widgets",
+    "attention": "{label}, demande votre attention"
   },
   "github_star_prompt": {
     "title": "Vous appréciez AntelopeJS DMS ?",

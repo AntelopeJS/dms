@@ -27,6 +27,30 @@ export interface AppWidget {
    * the same effective order preserve registration order.
    */
   order?: number;
+  /**
+   * Makes the chip clickable. The value is a `useDmsState` key: each click
+   * adds one to the number stored there (starting from `0`), so the module
+   * opens its own UI by watching that state. Hover and focus still unfold
+   * `body`.
+   */
+  onSelectEvent?: string;
+  /**
+   * Draws a dot on the chip corner, and on the launcher when the dock folds,
+   * to say the widget needs attention. The chip's accessible name says so too.
+   */
+  badge?: AppWidgetBadge;
+}
+
+/** The marks a widget chip can carry. See {@link AppWidget.badge}. */
+export type AppWidgetBadge = "dot";
+
+/**
+ * Counts one click on a widget whose {@link AppWidget.onSelectEvent} names
+ * `key`. Called by the dock.
+ */
+export function selectAppWidget(key: string): void {
+  const clicks = useDmsState<number>(key, () => 0);
+  clicks.value = typeof clicks.value === "number" ? clicks.value + 1 : 1;
 }
 
 interface UseAppWidgetsReturn {

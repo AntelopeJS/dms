@@ -1056,7 +1056,8 @@
     }
   },
   "widgets_dock": {
-    "show": "Show the widgets"
+    "show": "Show the widgets",
+    "attention": "{label}, needs your attention"
   },
   "github_star_prompt": {
     "title": "Enjoying the AntelopeJS DMS?",
