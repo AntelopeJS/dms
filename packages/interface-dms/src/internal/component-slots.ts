@@ -65,7 +65,7 @@ function isSlotFormOptions(options: unknown): options is SlotFormTarget {
  * form declares `slotId`, and it always serializes a `fields` array, so a node
  * that is anything else is left alone, whatever its options say.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and typeof before reading it.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and isObject before reading it.
 function slotFormOptionsOf(node: unknown): SlotFormTarget | undefined {
   if (!node || !isObject(node) || Array.isArray(node)) {
     return undefined;
@@ -80,7 +80,7 @@ function slotFormOptionsOf(node: unknown): SlotFormTarget | undefined {
   return isSlotFormOptions(options) ? options : undefined;
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and typeof before reading it.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and isObject before reading it.
 function hasResolvableSlot(node: unknown): boolean {
   if (Array.isArray(node)) {
     return node.some(hasResolvableSlot);
@@ -99,7 +99,7 @@ function hasResolvableSlot(node: unknown): boolean {
  * what a resolver contributes is never walked again, which would let a
  * contribution declaring the slot it was contributed to loop forever.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and typeof before reading it.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and isObject before reading it.
 async function resolveNode(node: unknown): Promise<void> {
   if (Array.isArray(node)) {
     for (const item of node) await resolveNode(item);

@@ -1,4 +1,5 @@
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
+
 /**
  * A notification without a title renders as an empty row in the inbox. The
  * builder's types require one, but a caller passing a request body straight
