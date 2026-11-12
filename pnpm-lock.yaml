@@ -13,7 +13,7 @@ importers:
         version: 1.21.0
       '@antelopejs/tooling-configs':
         specifier: ^0.5.3
-        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.56.1)(sharp@0.35.5)
+        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
       dependency-cruiser:
         specifier: ^18.7.0
         version: 18.7.0
@@ -42,8 +42,8 @@ importers:
         specifier: ^8.0.0
         version: 8.0.0
       playwright-core:
-        specifier: ^1.56.1
-        version: 1.56.1
+        specifier: ^1.65.0
+        version: 1.65.0
       semver:
         specifier: ^7.7.2
         version: 7.8.5
@@ -125,7 +125,7 @@ importers:
         version: 1.21.0
       '@antelopejs/tooling-configs':
         specifier: ^0.5.3
-        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.56.1)(sharp@0.35.5)
+        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
       '@types/archiver':
         specifier: ^6.0.4
         version: 6.0.4
@@ -200,8 +200,8 @@ importers:
         specifier: '>=0.0.9 <1.0.0'
         version: 0.0.9(@antelopejs/interface-core@0.4.0)
       playwright-core:
-        specifier: ~1.56.1
-        version: 1.56.1
+        specifier: ~1.65.0
+        version: 1.65.0
 
   packages/dms/frontend-vue:
     dependencies:
@@ -5396,9 +5396,9 @@ packages:
   pkg-types@2.3.1:
     resolution: {integrity: sha512-y+ichcgc2LrADuhLNAx8DFjVfgz91pRxfZdI3UDhxHvcVEZsenLO+7XaU5vOp0u/7V/wZ+plyuQxtrDlZJ+yeg==}
 
-  playwright-core@1.56.1:
-    resolution: {integrity: sha512-hutraynyn31F+Bifme+Ps9Vq59hKuUCz7H1kDOcBs+2oGguKkWTU50bBWrtz34OUWmIwpBTWDxaRPXrIXkgvmQ==}
-    engines: {node: '>=18'}
+  playwright-core@1.65.0:
+    resolution: {integrity: sha512-vNSKgH6YqtN7cdT/L334zo0a+YwkrpicyrHJlWWPIm/Q+Nn2SWInil01oT0mbu96U4GgoRtCYQD9CzJQgju+lA==}
+    engines: {node: '>=20'}
     hasBin: true
 
   plimit-lit@1.6.1:
@@ -6838,7 +6838,7 @@ snapshots:
       - supports-color
     optional: true
 
-  '@antelopejs/tooling-configs@0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.56.1)(sharp@0.35.5)':
+  '@antelopejs/tooling-configs@0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)':
     dependencies:
       '@oxlint/plugins': 1.81.0
       dts-bundle-generator: 9.5.1
@@ -6851,7 +6851,7 @@ snapshots:
       oxfmt: 0.66.0
       oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)
       pixelmatch: 8.0.0
-      playwright-core: 1.56.1
+      playwright-core: 1.65.0
       sharp: 0.35.5(@types/node@24.13.3)
 
   '@antfu/install-pkg@1.1.0':
@@ -11570,7 +11570,7 @@ snapshots:
       exsolve: 1.1.1
       pathe: 2.0.3
 
-  playwright-core@1.56.1: {}
+  playwright-core@1.65.0: {}
 
   plimit-lit@1.6.1:
     dependencies:
