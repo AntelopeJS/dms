@@ -1,6 +1,7 @@
 import {
   CLICK_TIMEOUT_MS,
   CONTENT,
+  contentText,
   NAME_CHARS,
   nameOf,
   REACTION_TIMEOUT_MS,
@@ -116,14 +117,6 @@ async function checkTabs(
     });
   }
   return results;
-}
-
-async function contentText(page: Page): Promise<string> {
-  return page
-    .locator(CONTENT)
-    .first()
-    .innerText({ timeout: 1_000 })
-    .catch(() => "");
 }
 
 async function firstRowText(page: Page): Promise<string> {

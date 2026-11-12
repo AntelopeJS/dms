@@ -53,6 +53,7 @@ export * from "./targets";
 const ESTABLISH_PATH = "/auth/establish";
 const RUNS_FOLDER = [".antelope", "page-verify"];
 const SUGGESTED_ROUTES = 20;
+const MODULE_LOAD_FAILURE = "Failed to fetch dynamically imported module";
 
 /** What `page_verify` was asked. */
 export interface VerifyRequest {
@@ -326,6 +327,29 @@ async function verifyPage(
   }
 }
 
+/**
+ * Verifies the page, and once more when the browser failed to load one of
+ * the dashboard's modules: a development server still preparing its
+ * dependencies answers so on its first loads. A page that fails the same way
+ * twice keeps its report.
+ */
+async function verifyOnce(
+  run: PageRun,
+  target: PageTarget,
+  request: VerifyRequest,
+  notes: string[],
+): Promise<PageReport> {
+  const report = await verifyPage(run, target, request);
+  const unloaded = report.errors.console.some((error) =>
+    error.text.includes(MODULE_LOAD_FAILURE),
+  );
+  if (!unloaded) return report;
+  notes.push(
+    `${target.route}: the browser failed to load a dashboard module, so the page was verified again; this report is the second run.`,
+  );
+  return verifyPage(run, target, request);
+}
+
 async function pickAccount(
   workspace: Workspace,
   role: string | undefined,
@@ -381,7 +405,7 @@ export async function verifyPages(
           ? emptyReport(name, undefined, [
               `not a registered page route; some known routes: ${knownRoutes(SUGGESTED_ROUTES).join(", ")}`,
             ])
-          : await verifyPage(run, target, request),
+          : await verifyOnce(run, target, request, notes),
       );
     }
     if (guard.writes.length > 0) {

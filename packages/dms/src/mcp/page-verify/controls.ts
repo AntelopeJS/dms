@@ -1,4 +1,4 @@
-import type { BrowserContext, Locator, Route } from "./playwright";
+import type { BrowserContext, Locator, Page, Route } from "./playwright";
 
 /** The region every dashboard layout draws the page in. */
 export const CONTENT = "[data-dms-page-content]";
@@ -56,4 +56,13 @@ export async function firstVisible(
       return candidate;
   }
   return undefined;
+}
+
+/** The text the page content shows, to tell whether an action changed it. */
+export async function contentText(page: Page): Promise<string> {
+  return page
+    .locator(CONTENT)
+    .first()
+    .innerText({ timeout: 1_000 })
+    .catch(() => "");
 }

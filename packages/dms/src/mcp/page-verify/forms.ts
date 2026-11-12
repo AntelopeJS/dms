@@ -1,6 +1,7 @@
 import {
   CLICK_TIMEOUT_MS,
   CONTENT,
+  contentText,
   firstVisible,
   nameOf,
   REACTION_TIMEOUT_MS,
@@ -195,7 +196,7 @@ async function trySubmit(
 
 async function openers(page: Page): Promise<Locator[]> {
   const candidates = page.locator(
-    `[data-dms-page-header-actions] button, ${CONTENT} button, ${CONTENT} a[role=button]`,
+    `[data-dms-page-header-actions] button, ${CONTENT} button:not(form *), ${CONTENT} a[role=button]:not(form *)`,
   );
   const found: Locator[] = [];
   const count = await candidates.count();
@@ -232,6 +233,35 @@ async function openedEditor(
     : undefined;
 }
 
+/**
+ * A button named like an opener that opened no editor: it acts directly
+ * when it sends a write or changes the page, and does nothing otherwise.
+ */
+async function withoutEditor(
+  page: Page,
+  guard: WriteGuard,
+  writesBefore: number,
+  textBefore: string,
+): Promise<FormOutcome> {
+  if (guard.writes.length > writesBefore) {
+    return {
+      ok: true,
+      detail: writeDetail(guard, "no form; the click sent a write"),
+    };
+  }
+  if ((await contentText(page)) !== textBefore) {
+    return {
+      ok: true,
+      detail: "not checked: no form opened, but the click changed the page",
+    };
+  }
+  return {
+    ok: false,
+    detail:
+      "nothing happened on click: no form, no write, no change on the page",
+  };
+}
+
 async function checkOpenedForm(
   page: Page,
   url: string,
@@ -240,16 +270,15 @@ async function checkOpenedForm(
 ): Promise<Interaction> {
   const name = await nameOf(opener);
   const fieldsBefore = await page.locator(`${CONTENT} ${EDITABLE}`).count();
+  const writesBefore = guard.writes.length;
+  const textBefore = await contentText(page);
   await opener.click({ timeout: CLICK_TIMEOUT_MS });
   await waitSettled(page);
   const form = await openedEditor(page, fieldsBefore);
   if (form === undefined) {
-    return {
-      kind: "form",
-      target: `button "${name}"`,
-      ok: false,
-      detail: "no form opened on click",
-    };
+    const outcome = await withoutEditor(page, guard, writesBefore, textBefore);
+    await openPage(page, url);
+    return { kind: "form", target: `button "${name}"`, ...outcome };
   }
   const submitted = await trySubmit(page, form, guard);
   await openPage(page, url);
