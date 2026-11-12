@@ -56,9 +56,10 @@ export function resetCountryLookup(): void {
 }
 
 /** An upper-case country code, or `undefined` for anything that is not one. */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Country normalization is a parser for proxy headers and lookup values; malformed inputs must still yield undefined.
-export function normalizeCountryCode(value: unknown): string | undefined {
-  const candidate: unknown = Array.isArray(value) ? value[0] : value;
+export function normalizeCountryCode(
+  value: RequestHeaders[string],
+): string | undefined {
+  const candidate = Array.isArray(value) ? value[0] : value;
   if (!isString(candidate)) return undefined;
   const code = candidate.trim().toUpperCase();
   if (!COUNTRY_CODE_PATTERN.test(code) || NON_COUNTRY_CODES.has(code)) {
