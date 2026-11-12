@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.19.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.19.3...v0.19.4)
+
+### 🔥 Performance
+
+- **table:** Stop re-rendering every row after the table mounts ([#860](https://github.com/AntelopeJS/dms/pull/860))
+
+### 🩹 Fixes
+
+- **release:** Regenerate the dms README table when interface-dms bumps ([#855](https://github.com/AntelopeJS/dms/pull/855))
+
+### 📦 Build
+
+- **deps:** Take tooling-configs 0.5.3 so checks orders typecheck before lint ([#856](https://github.com/AntelopeJS/dms/pull/856))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.19.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.19.2...v0.19.3)
