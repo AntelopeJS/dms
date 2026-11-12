@@ -23,6 +23,12 @@ const SESSION_USER_AGENT = "DMS page_verify (headless Chromium)";
 const SESSION_ADDRESS = "127.0.0.1";
 const OWNER_ROLE = "owner";
 
+/** What picking a member to sign in as reads of a membership. */
+export type MemberRoles = Pick<
+  TenantMember,
+  "userId" | "roleIds" | "isTenantOwner"
+>;
+
 /** Who a browser context signs in as. */
 export interface VerifyAccount {
   user: User;
@@ -36,7 +42,7 @@ export interface Workspace {
   owner: User;
   roles: Role[];
   /** A member holding only the role, by role id, for each role that has one. */
-  memberByRole: Map<string, TenantMember>;
+  memberByRole: Map<string, MemberRoles>;
 }
 
 /** What the browser posts to `/auth/establish` to open a session. */
@@ -78,11 +84,11 @@ async function ownerTenantId(owner: User): Promise<string> {
  * A member holding `roleId` and nothing more: any other role, or owning the
  * workspace or the platform, could open what the role alone does not.
  */
-function pickMember(
-  members: TenantMember[],
+export function pickMember(
+  members: readonly MemberRoles[],
   roleId: string,
   ownerIds: ReadonlySet<string>,
-): TenantMember | undefined {
+): MemberRoles | undefined {
   return members.find(
     (member) =>
       member.roleIds.length === 1 &&
@@ -102,7 +108,7 @@ export async function loadWorkspace(): Promise<Workspace> {
     GetModel(UserModel).getOwners(),
   ]);
   const ownerIds = new Set(owners.map((user) => user._id));
-  const memberByRole = new Map<string, TenantMember>();
+  const memberByRole = new Map<string, MemberRoles>();
   for (const role of roles) {
     const member = pickMember(members, role._id, ownerIds);
     if (member !== undefined) memberByRole.set(role._id, member);

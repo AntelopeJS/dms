@@ -17,11 +17,8 @@ import {
 } from "./accounts";
 import { launchBrowser } from "./browser";
 import { listFailures } from "./failures";
-import {
-  checkInteractions,
-  guardWrites,
-  type WriteGuard,
-} from "./interactions";
+import { guardWrites, type WriteGuard } from "./controls";
+import { checkInteractions } from "./interactions";
 import { compareWithMockup, type MockupTarget } from "./mockup";
 import { probePage } from "./page-probe";
 import {
@@ -45,6 +42,7 @@ import type {
 } from "./report";
 import { knownRoutes, type PageTarget, resolvePage } from "./targets";
 
+export * from "./accounts";
 export * from "./failures";
 export * from "./mockup";
 export * from "./render";
@@ -211,6 +209,21 @@ async function checkPermissions(
   return results;
 }
 
+/** The render with each block a tab drew counted present, as drawn once its tab is selected. */
+function withTabBlocks(
+  render: ViewportRender,
+  revealed: ReadonlySet<string>,
+): ViewportRender {
+  return {
+    ...render,
+    blocks: render.blocks.map((block) =>
+      !block.present && revealed.has(block.path)
+        ? { ...block, present: true, visible: true, inTab: true }
+        : block,
+    ),
+  };
+}
+
 function refusedPage(
   target: PageTarget,
   run: PageRun,
@@ -274,14 +287,20 @@ async function verifyPage(
     const [first] = request.viewports;
     if (first)
       await page.setViewportSize({ width: first.width, height: first.height });
-    const interactions = await checkInteractions(page, url, origin, run.guard);
+    const { interactions, revealed } = await checkInteractions(
+      page,
+      url,
+      origin,
+      run.guard,
+    );
+    const rendered = viewports.map((render) => withTabBlocks(render, revealed));
     const mockup =
-      request.mockup && first && viewports[0]
+      request.mockup && first && rendered[0]
         ? await compareWithMockup(
             context,
             origin,
             request.mockup,
-            viewports[0].blocks,
+            rendered[0].blocks,
             {
               store: run.store,
               viewport: first,
@@ -291,7 +310,7 @@ async function verifyPage(
     const report = {
       page: target.route,
       fullId: target.info.fullId,
-      render: { viewports, ...(mockup && { mockup }) },
+      render: { viewports: rendered, ...(mockup && { mockup }) },
       data,
       errors: {
         console: errors.console,

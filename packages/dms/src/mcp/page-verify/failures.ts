@@ -5,9 +5,9 @@ function renderFailures(render: ViewportRender): string[] {
   const blocks = render.blocks.flatMap((block) => {
     if (!block.present)
       return [`${at} block ${block.path} (${block.component}) is missing`];
-    if (!block.visible)
+    if (!block.visible && block.drewNothing !== true)
       return [
-        `${at} block ${block.path} (${block.component}) is not drawn inside the page width`,
+        `${at} block ${block.path} (${block.component}) reaches outside the page width`,
       ];
     return [];
   });

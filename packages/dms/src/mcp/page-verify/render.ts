@@ -335,6 +335,8 @@ async function shootBlocks(
       ...block,
       present,
       visible,
+      ...(present &&
+        (rect === undefined || rect === null) && { drewNothing: true }),
       ...(screenshot && { screenshot }),
     });
   }

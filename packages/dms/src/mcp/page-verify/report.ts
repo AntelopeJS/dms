@@ -29,6 +29,10 @@ export interface RenderedBlock {
   present: boolean;
   /** Present and drawn with a non-empty box inside the page width. */
   visible: boolean;
+  /** Present but drew no box, as a block with nothing to show does, such as a banner its route answered empty. */
+  drewNothing?: boolean;
+  /** Not drawn on load, but once the tab holding it was selected. */
+  inTab?: boolean;
   /** Project-relative path of the block's screenshot, when it was visible. */
   screenshot?: string;
 }

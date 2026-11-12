@@ -3,6 +3,8 @@ import { expect } from "chai";
 import { isToolAllowed } from "../../../mcp/access";
 import {
   listFailures,
+  type MemberRoles,
+  pickMember,
   type PageProbe,
   type PageReport,
   pairBlocks,
@@ -112,6 +114,25 @@ describe("[unit] mcp page_verify", () => {
     expect(paired.has("block-1")).to.equal(false);
   });
 
+  it("checks a role only through a member holding that role alone, never through an owner or a member with more roles", () => {
+    const member = (
+      userId: string,
+      roleIds: string[],
+      isTenantOwner = false,
+    ): MemberRoles => ({ userId, roleIds, isTenantOwner });
+    const members = [
+      member("both", ["nobody", "viewer"]),
+      member("owner", ["viewer"], true),
+      member("platform", ["viewer"]),
+      member("viewer-only", ["viewer"]),
+    ];
+    const owners = new Set(["platform"]);
+    expect(pickMember(members, "nobody", owners)).to.equal(undefined);
+    expect(pickMember(members, "viewer", owners)?.userId).to.equal(
+      "viewer-only",
+    );
+  });
+
   it("lists one line per failed check and none for the checks that passed", () => {
     const report = emptyReport();
     report.render.viewports.push({
@@ -122,6 +143,12 @@ describe("[unit] mcp page_verify", () => {
       blocks: [
         block("total", "dms-kpi-card"),
         { ...block("chart", "dms-chart-card"), present: false },
+        {
+          ...block("status", "dms-banner-block"),
+          visible: false,
+          drewNothing: true,
+        },
+        { ...block("wide", "dms-grid"), visible: false },
       ],
       layout: {
         horizontalOverflow: true,
@@ -153,6 +180,7 @@ describe("[unit] mcp page_verify", () => {
     );
     expect(listFailures(report)).to.deep.equal([
       "mobile: block chart (dms-chart-card) is missing",
+      "mobile: block wide (dms-grid) reaches outside the page width",
       "mobile: the page scrolls sideways",
       "data: TableView at orders is empty",
       'form: form "New order": no form opened on click',
