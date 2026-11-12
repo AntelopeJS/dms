@@ -97,6 +97,8 @@ export interface DataBlock {
   type: string;
   state: DataState;
   viewport: string;
+  /** The URL the block reads, from its options: where a failed answer came from. */
+  source?: string;
 }
 
 export interface ConsoleError {

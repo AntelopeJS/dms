@@ -281,7 +281,7 @@ async function verifyPage(
         run.store,
       );
       viewports.push(outcome.render);
-      data.push(...readDataBlocks(outcome.probe, viewport.name));
+      data.push(...readDataBlocks(outcome.probe, viewport.name, layout.blocks));
     }
     errors.viewport = "interactions";
     const [first] = request.viewports;

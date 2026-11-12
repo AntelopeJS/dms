@@ -78,12 +78,14 @@ export function fileSegment(value: string): string {
 /** A component of a served layout: its children each sit under an id. */
 interface LayoutNode {
   componentName?: string;
+  options?: { fetchUrl?: string };
   children?: { id: string; component: LayoutNode }[];
 }
 
 const LayoutNodeSchema: z.ZodType<LayoutNode> = z.lazy(() =>
   z.object({
     componentName: z.string().optional(),
+    options: z.object({ fetchUrl: z.string().optional() }).optional(),
     children: z
       .array(z.object({ id: z.string(), component: LayoutNodeSchema }))
       .optional(),
@@ -96,6 +98,8 @@ const LayoutSchema = z.object({ components: z.record(LayoutNodeSchema) });
 export interface ExpectedBlock {
   path: string;
   component: string;
+  /** The URL the block reads its data from, when its options name one. */
+  source?: string;
 }
 
 function collectBlocks(
@@ -103,7 +107,12 @@ function collectBlocks(
   blockPath: string,
   into: ExpectedBlock[],
 ): void {
-  into.push({ path: blockPath, component: node.componentName ?? "" });
+  const source = node.options?.fetchUrl;
+  into.push({
+    path: blockPath,
+    component: node.componentName ?? "",
+    ...(source !== undefined && { source }),
+  });
   for (const child of node.children ?? []) {
     collectBlocks(child.component, `${blockPath}.${child.id}`, into);
   }
@@ -277,13 +286,20 @@ function issueStateOf(issue: string): DataState {
 export function readDataBlocks(
   probe: PageProbe,
   viewport: string,
+  expected: readonly ExpectedBlock[] = [],
 ): DataBlock[] {
-  const reported = probe.dataBlocks.map((block) => ({
-    path: block.path,
-    type: block.type,
-    state: dataStateOf(block.state),
-    viewport,
-  }));
+  const reported = probe.dataBlocks.map((block) => {
+    const source = expected.find(
+      (served) => served.path === block.path,
+    )?.source;
+    return {
+      path: block.path,
+      type: block.type,
+      state: dataStateOf(block.state),
+      viewport,
+      ...(source !== undefined && { source }),
+    };
+  });
   const notices = probe.blocks.flatMap((block) =>
     block.issue === undefined
       ? []
@@ -332,7 +348,8 @@ async function shootBlocks(
           )
         : undefined;
     blocks.push({
-      ...block,
+      path: block.path,
+      component: block.component,
       present,
       visible,
       ...(present &&

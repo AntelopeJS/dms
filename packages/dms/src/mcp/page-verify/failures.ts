@@ -1,4 +1,4 @@
-import type { PageReport, ViewportRender } from "./report";
+import type { DataBlock, PageReport, ViewportRender } from "./report";
 
 function renderFailures(render: ViewportRender): string[] {
   const at = `${render.viewport}:`;
@@ -21,6 +21,29 @@ function renderFailures(render: ViewportRender): string[] {
   ];
 }
 
+/**
+ * A line per block whose data did not load, its source named when its
+ * options give one. A block inside one that failed is left out: it fails
+ * because its parent did.
+ */
+function dataFailures(data: readonly DataBlock[]): string[] {
+  const failed = data.filter((block) => block.state !== "ok");
+  return failed
+    .filter(
+      (block) =>
+        !failed.some(
+          (outer) =>
+            outer.viewport === block.viewport &&
+            outer.path !== "" &&
+            block.path.startsWith(`${outer.path}.`),
+        ),
+    )
+    .map(
+      (block) =>
+        `data: ${block.type || "block"} at ${block.path || "?"} is ${block.state}${block.source === undefined ? "" : ` (reads ${block.source})`}`,
+    );
+}
+
 function unique(lines: string[]): string[] {
   return [...new Set(lines)];
 }
@@ -39,12 +62,7 @@ export function listFailures(
         (block) =>
           `mockup: block ${block.mockupPath} (${block.type}) has no counterpart on the page`,
       ),
-    ...report.data
-      .filter((block) => block.state !== "ok")
-      .map(
-        (block) =>
-          `data: ${block.type || "block"} at ${block.path || "?"} is ${block.state}`,
-      ),
+    ...dataFailures(report.data),
     ...report.errors.console.map((error) => `console: ${error.text}`),
     ...report.errors.failedRequests.map(
       (request) =>
