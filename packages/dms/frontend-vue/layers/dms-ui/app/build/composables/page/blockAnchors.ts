@@ -93,3 +93,12 @@ export function blockAnchorAt(target: EventTarget | null): string | undefined {
   }
   return innermost;
 }
+
+/**
+ * The anchor of every block on screen now, in the order they registered.
+ *
+ * @internal
+ */
+export function blockAnchorPaths(): string[] {
+  return [...blocks.keys()];
+}

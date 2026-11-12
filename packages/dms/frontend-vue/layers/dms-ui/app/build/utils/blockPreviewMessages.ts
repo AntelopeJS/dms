@@ -19,6 +19,40 @@ import {
 
 export const PREVIEW_CHANNEL = "dms-preview";
 
+/** One entry of the sidebar the preview draws around the blocks. */
+export interface PreviewNavigationItem {
+  id: string;
+  label: string;
+  icon?: string;
+}
+
+/** The sidebar the preview draws around the blocks, as a dashboard does. */
+export interface PreviewNavigation {
+  title?: string;
+  items: PreviewNavigationItem[];
+  /** The id of the entry drawn as the current one. */
+  active?: string;
+}
+
+/** A box in the preview's document, in CSS pixels from its top-left corner. */
+export interface PreviewRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** How a text is drawn, so an input laid over it reads the same. */
+export interface PreviewFont {
+  family: string;
+  size: string;
+  weight: string;
+  lineHeight: string;
+  letterSpacing: string;
+  color: string;
+  align: string;
+}
+
 /** Parent → iframe: draw this tree. */
 export interface PreviewRenderMessage {
   channel: typeof PREVIEW_CHANNEL;
@@ -30,6 +64,8 @@ export interface PreviewRenderMessage {
   transparent?: boolean;
   /** Pads the blocks off the frame's edges; kept from the previous state when absent. */
   padding?: boolean;
+  /** Draws the blocks inside this sidebar; none when absent. */
+  navigation?: PreviewNavigation;
 }
 
 /** Parent → iframe: switch the color mode. */
@@ -82,16 +118,118 @@ export interface PreviewSelectMessage {
   path: string;
 }
 
+/** Where one block of the preview sits. */
+export interface PreviewBlockRect {
+  /** Layout path of the block, as `select` names it. */
+  path: string;
+  rect: PreviewRect;
+}
+
+/**
+ * Iframe → parent, while inspecting: where each block sits, after each render
+ * and each change of size. The iframe is sized to its content, so the parent
+ * lays its own drawing over these boxes as they are.
+ */
+export interface PreviewLayoutMessage {
+  channel: typeof PREVIEW_CHANNEL;
+  type: "layout";
+  blocks: PreviewBlockRect[];
+}
+
+/** Iframe → parent, while inspecting: a text of a block was double-clicked. */
+export interface PreviewTextMessage {
+  channel: typeof PREVIEW_CHANNEL;
+  type: "text";
+  path: string;
+  text: string;
+  rect: PreviewRect;
+  font: PreviewFont;
+}
+
+/** Iframe → parent: an entry of the sidebar was clicked. */
+export interface PreviewNavigateMessage {
+  channel: typeof PREVIEW_CHANNEL;
+  type: "navigate";
+  id: string;
+}
+
 export type PreviewOutboundMessage =
   | PreviewReadyMessage
   | PreviewResizeMessage
   | PreviewErrorMessage
-  | PreviewSelectMessage;
+  | PreviewSelectMessage
+  | PreviewLayoutMessage
+  | PreviewTextMessage
+  | PreviewNavigateMessage;
 
 function isRecord(
   value: Parameters<typeof isObject>[0],
 ): value is Record<string, unknown> {
   return isObject(value) && value !== null && !Array.isArray(value);
+}
+
+function isNavigationItem(value: unknown): value is PreviewNavigationItem {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isString(value.label) &&
+    isOptionalString(value.icon)
+  );
+}
+
+/** Whether `value` is a sidebar a `render` may carry, every entry checked. */
+export function isPreviewNavigation(
+  value: unknown,
+): value is PreviewNavigation {
+  return (
+    isRecord(value) &&
+    isOptionalString(value.title) &&
+    isOptionalString(value.active) &&
+    Array.isArray(value.items) &&
+    value.items.every(isNavigationItem)
+  );
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return isNumber(value) && Number.isFinite(value);
+}
+
+function parseRect(value: unknown): PreviewRect | undefined {
+  if (!isRecord(value)) return undefined;
+  const { x, y, width, height } = value;
+  return isFiniteNumber(x) &&
+    isFiniteNumber(y) &&
+    isFiniteNumber(width) &&
+    isFiniteNumber(height)
+    ? { x, y, width, height }
+    : undefined;
+}
+
+function parseFont(value: unknown): PreviewFont | undefined {
+  if (!isRecord(value)) return undefined;
+  const { family, size, weight, lineHeight, letterSpacing, color, align } =
+    value;
+  return isString(family) &&
+    isString(size) &&
+    isString(weight) &&
+    isString(lineHeight) &&
+    isString(letterSpacing) &&
+    isString(color) &&
+    isString(align)
+    ? { family, size, weight, lineHeight, letterSpacing, color, align }
+    : undefined;
+}
+
+function parseBlockRect(value: unknown): PreviewBlockRect | undefined {
+  if (!isRecord(value) || !isString(value.path)) return undefined;
+  const rect = parseRect(value.rect);
+  return rect ? { path: value.path, rect } : undefined;
+}
+
+function parseBlockRects(value: unknown): PreviewBlockRect[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const blocks = value.map(parseBlockRect);
+  return blocks.every((block) => block !== undefined) ? blocks : undefined;
 }
 
 function isOptionalString(value: Parameters<typeof isString>[0]): boolean {
@@ -111,7 +249,8 @@ const INBOUND_VALIDATORS: Record<
     (data.theme === undefined || isPreviewTheme(data.theme)) &&
     isOptionalString(data.locale) &&
     isOptionalBoolean(data.transparent) &&
-    isOptionalBoolean(data.padding),
+    isOptionalBoolean(data.padding) &&
+    (data.navigation === undefined || isPreviewNavigation(data.navigation)),
   theme: (data) => isPreviewTheme(data.theme),
   inspect: (data) => isBoolean(data.enabled),
 };
@@ -155,6 +294,22 @@ export function previewSelectMessage(path: string): PreviewSelectMessage {
   return { channel: PREVIEW_CHANNEL, type: "select", path };
 }
 
+export function previewLayoutMessage(
+  blocks: PreviewBlockRect[],
+): PreviewLayoutMessage {
+  return { channel: PREVIEW_CHANNEL, type: "layout", blocks };
+}
+
+export function previewTextMessage(
+  text: Omit<PreviewTextMessage, "channel" | "type">,
+): PreviewTextMessage {
+  return { channel: PREVIEW_CHANNEL, type: "text", ...text };
+}
+
+export function previewNavigateMessage(id: string): PreviewNavigateMessage {
+  return { channel: PREVIEW_CHANNEL, type: "navigate", id };
+}
+
 /** Parent → iframe constructors, for the page that embeds the preview. */
 export function previewRenderMessage(
   state: Omit<PreviewRenderMessage, "channel" | "type">,
@@ -179,6 +334,18 @@ const OUTBOUND_PARSERS: Record<
     isString(message) ? previewErrorMessage(message) : undefined,
   select: ({ path }) =>
     isString(path) ? previewSelectMessage(path) : undefined,
+  layout: ({ blocks }) => {
+    const parsed = parseBlockRects(blocks);
+    return parsed ? previewLayoutMessage(parsed) : undefined;
+  },
+  text: ({ path, text, rect, font }) => {
+    const box = parseRect(rect);
+    const style = parseFont(font);
+    return isString(path) && isString(text) && box && style
+      ? previewTextMessage({ path, text, rect: box, font: style })
+      : undefined;
+  },
+  navigate: ({ id }) => (isString(id) ? previewNavigateMessage(id) : undefined),
 };
 
 /**

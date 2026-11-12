@@ -7,8 +7,10 @@ import {
 } from "vue";
 import {
   parsePreviewOutboundMessage,
+  type PreviewBlockRect,
   type PreviewInboundMessage,
   type PreviewOutboundMessage,
+  type PreviewTextMessage,
 } from "../../utils/blockPreviewMessages";
 
 interface PreviewFrameOptions {
@@ -17,6 +19,12 @@ interface PreviewFrameOptions {
   onReady: () => void;
   /** A block of the preview was picked, by its layout path. */
   onSelect: (path: string) => void;
+  /** Where each block now sits, while inspecting. */
+  onLayout?: (blocks: PreviewBlockRect[]) => void;
+  /** A text of a block was double-clicked, while inspecting. */
+  onText?: (text: PreviewTextMessage) => void;
+  /** An entry of the preview's sidebar was picked, by its id. */
+  onNavigate?: (id: string) => void;
 }
 
 /** The embedding side of `/dms-preview`'s `postMessage` protocol. */
@@ -50,6 +58,15 @@ export function usePreviewFrame(options: PreviewFrameOptions): PreviewFrame {
     error: () => {},
     select: (message) => {
       if (message.type === "select") options.onSelect(message.path);
+    },
+    layout: (message) => {
+      if (message.type === "layout") options.onLayout?.(message.blocks);
+    },
+    text: (message) => {
+      if (message.type === "text") options.onText?.(message);
+    },
+    navigate: (message) => {
+      if (message.type === "navigate") options.onNavigate?.(message.id);
     },
   };
 
