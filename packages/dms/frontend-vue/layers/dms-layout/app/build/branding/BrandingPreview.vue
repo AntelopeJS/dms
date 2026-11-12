@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { logoDataUrl } from "./logos";
 import { logoView, type ThemeEdit } from "./model";
 import { previewStyle, type DmsTokens } from "./preview-style";
@@ -33,6 +33,39 @@ const logoSource = computed(() => {
   return view.kind === "pending" ? logoDataUrl(view.logo) : view.path;
 });
 
+/**
+ * A logo the save has just written can be asked for before the dev server
+ * serves it, and an image never asks twice: a failed path is asked again a
+ * few times, each later than the last.
+ */
+const LOGO_RETRIES = 5;
+const LOGO_RETRY_MS = 250;
+const logoAttempt = ref(0);
+let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
+const shownLogo = computed(() => {
+  const source = logoSource.value;
+  if (!source || logoAttempt.value === 0 || source.startsWith("data:")) {
+    return source;
+  }
+  return `${source}?attempt=${logoAttempt.value}`;
+});
+
+watch(logoSource, () => {
+  clearTimeout(retryTimer);
+  logoAttempt.value = 0;
+});
+
+function retryLogo(): void {
+  if (logoAttempt.value >= LOGO_RETRIES) return;
+  const delay = LOGO_RETRY_MS * 2 ** logoAttempt.value;
+  retryTimer = setTimeout(() => {
+    logoAttempt.value += 1;
+  }, delay);
+}
+
+onBeforeUnmount(() => clearTimeout(retryTimer));
+
 const NAV = ["dashboard", "bikes", "rentals"] as const;
 const STATS = [
   { key: "revenue", value: "€6,240" },
@@ -55,9 +88,10 @@ const STATS = [
         <img
           v-if="logoSource"
           data-preview-logo
-          :src="logoSource"
+          :src="shownLogo"
           :alt="t('branding.preview.sample.name')"
           class="h-5 max-w-full object-contain object-left"
+          @error="retryLogo"
         />
       </div>
       <span

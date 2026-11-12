@@ -214,3 +214,22 @@ describe("Access", () => {
     expect(banner?.textContent).toContain("403 Forbidden");
   });
 });
+
+describe("Preview logo", () => {
+  it("asks again for a saved logo the dev server did not serve yet", async () => {
+    const { host } = await openEditor(() =>
+      ok({
+        ...files("v1"),
+        logos: { default: { light: "/branding/logo-1.svg" } },
+      }),
+    );
+    const logo = host.querySelector("[data-preview-logo]");
+    expect(logo?.getAttribute("src")).toBe("/branding/logo-1.svg");
+    logo?.dispatchEvent(new Event("error"));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await settle();
+    expect(host.querySelector("[data-preview-logo]")?.getAttribute("src")).toBe(
+      "/branding/logo-1.svg?attempt=1",
+    );
+  });
+});
