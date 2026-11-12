@@ -21,14 +21,27 @@ type Answer = (call: BrandingCall) => unknown;
 
 /**
  * Stubs the editor's auto-imports: a real i18n composer, the confirm dialog,
- * the DMS defaults, and `$authFetch` answered by `answer`.
+ * the DMS defaults, the viewer's ownership of the platform, the error page,
+ * and `$authFetch` answered by `answer` (which may throw, as a refused request
+ * does).
  */
-export function installBrandingRuntime(answer: Answer): {
+export function installBrandingRuntime(
+  answer: Answer,
+  { owner = true }: { owner?: boolean } = {},
+): {
   calls: BrandingCall[];
   confirm: ReturnType<typeof vi.fn>;
+  showDmsError: ReturnType<typeof vi.fn>;
 } {
   const calls: BrandingCall[] = [];
   const confirm = vi.fn(async () => true);
+  const showDmsError = vi.fn();
+  vi.stubGlobal("useSiteLayout", () => ({
+    siteLayout: { value: {} },
+    loadSiteLayout: async () => undefined,
+  }));
+  vi.stubGlobal("useIsOwner", () => ({ value: owner }));
+  vi.stubGlobal("showDmsError", showDmsError);
   const i18n = createI18n({
     legacy: false,
     locale: "en",
@@ -56,7 +69,7 @@ export function installBrandingRuntime(answer: Answer): {
       return structuredClone(answer(call));
     },
   }));
-  return { calls, confirm };
+  return { calls, confirm, showDmsError };
 }
 
 const passthrough =

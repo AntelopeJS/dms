@@ -28,7 +28,19 @@ const isMounted = ref(false);
 const tokens = shallowRef<DmsTokens>({ light: {}, dark: {} });
 let removeFonts: (() => void) | undefined;
 
-onMounted(() => {
+const HTTP_FORBIDDEN = 403;
+const siteLayout = useSiteLayout();
+const isOwner = useIsOwner();
+
+onMounted(async () => {
+  if (!siteLayout.siteLayout.value) await siteLayout.loadSiteLayout();
+  if (!isOwner.value) {
+    showDmsError({
+      statusCode: HTTP_FORBIDDEN,
+      statusMessage: "Access denied",
+    });
+    return;
+  }
   isMounted.value = true;
   tokens.value = readDmsTokens(Array.from(document.styleSheets));
   removeFonts = declareCatalogFonts();

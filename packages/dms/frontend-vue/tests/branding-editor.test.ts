@@ -33,8 +33,11 @@ const ok = (data: unknown) => ({ ok: true, data });
 
 let app: App | undefined;
 
-async function openEditor(answer: (call: BrandingCall) => unknown) {
-  const runtime = installBrandingRuntime(answer);
+async function openEditor(
+  answer: (call: BrandingCall) => unknown,
+  viewer: { owner?: boolean } = {},
+) {
+  const runtime = installBrandingRuntime(answer, viewer);
   const { default: BrandingEditor } = await import(
     "../layers/dms-layout/app/entries/branding/BrandingEditor"
   );
@@ -189,5 +192,25 @@ describe("the draft kept on the device", () => {
       expectedVersion: "v1",
       draft: { colors: { primary: "violet", info: "sky" } },
     });
+  });
+});
+
+describe("Access", () => {
+  it("shows a viewer who does not own the platform the access-denied page, and reads nothing", async () => {
+    const { calls, showDmsError } = await openEditor(() => ok(files("v1")), {
+      owner: false,
+    });
+    expect(showDmsError).toHaveBeenCalledWith(
+      expect.objectContaining({ statusCode: 403 }),
+    );
+    expect(calls).toEqual([]);
+  });
+
+  it("shows a refused read as a banner instead of loading forever", async () => {
+    const { host } = await openEditor(() => {
+      throw new Error("403 Forbidden");
+    });
+    const banner = host.querySelector("[data-refused]");
+    expect(banner?.textContent).toContain("403 Forbidden");
   });
 });

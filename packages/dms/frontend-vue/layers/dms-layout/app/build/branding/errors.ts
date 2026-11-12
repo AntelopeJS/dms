@@ -1,9 +1,10 @@
-import type { BuilderError } from "./theme-types";
+import type { ThemeRefusal } from "./theme-types";
 
 /** The builder's own words for a refusal, shown under the banner title. */
-export function errorDetail(error: BuilderError): string {
+export function errorDetail(error: ThemeRefusal): string {
   switch (error.code) {
     case "unsupported":
+    case "request_failed":
       return error.detail;
     case "invalid_config":
       return error.issues

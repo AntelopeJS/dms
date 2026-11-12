@@ -16,7 +16,7 @@ import {
   type PendingLogos,
 } from "./logos";
 import type {
-  BuilderError,
+  ThemeRefusal,
   LogoSlot,
   SetThemeDraft,
   ThemeColorRole,
@@ -46,7 +46,7 @@ export interface ThemeEdit {
 export type BrandingLoad =
   | { status: "loading" }
   | { status: "no-layer"; ref: string; created: ThemeLayer | null }
-  | { status: "refused"; error: BuilderError }
+  | { status: "refused"; error: ThemeRefusal }
   | ({ status: "ready" } & ThemeEdit);
 
 export type EditorMode = "simple" | "developer";

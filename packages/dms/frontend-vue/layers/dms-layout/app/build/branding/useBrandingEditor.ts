@@ -32,7 +32,7 @@ import {
 } from "./model";
 import { isMailable, rasterizeForEmail } from "./raster";
 import type {
-  BuilderError,
+  ThemeRefusal,
   LogoSlot,
   OpWarning,
   ThemeMode,
@@ -42,7 +42,7 @@ import { draftIssues, type DraftIssue } from "./values";
 /** What the bar shows after a Save the module did not take. */
 export type SaveNotice =
   | { kind: "stale" }
-  | { kind: "refused"; error: BuilderError }
+  | { kind: "refused"; error: ThemeRefusal }
   | { kind: "invalid"; issues: DraftIssue[] };
 
 export type SaveOutcome =
@@ -121,7 +121,7 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
     if (edit.value) setEdit(change(edit.value));
   }
 
-  function refuse(error: BuilderError): void {
+  function refuse(error: ThemeRefusal): void {
     load.value =
       error.code === "not_found"
         ? { status: "no-layer", ref: error.ref, created: null }

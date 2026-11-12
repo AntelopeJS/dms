@@ -78,6 +78,15 @@ export type BuilderError =
       diagnostics: { file: string; line: number; message: string }[];
     };
 
+/** A request to `/api/branding` that got no answer from the builder: signed out, refused or offline. */
+export interface RequestFailure {
+  code: "request_failed";
+  detail: string;
+}
+
+/** Why a theme operation came back without its data. */
+export type ThemeRefusal = BuilderError | RequestFailure;
+
 export interface OpWarning {
   code: string;
   message: string;
@@ -85,7 +94,7 @@ export interface OpWarning {
 
 export type OpResult<T> =
   | { ok: true; data: T; warnings?: OpWarning[] }
-  | { ok: false; error: BuilderError };
+  | { ok: false; error: ThemeRefusal };
 
 export const THEME_MODES: readonly ThemeMode[] = ["light", "dark"];
 
