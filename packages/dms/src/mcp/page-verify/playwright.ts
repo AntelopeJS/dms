@@ -75,6 +75,7 @@ export interface Locator {
   getAttribute(name: string): Promise<string | null>;
   innerText(options?: { timeout: number }): Promise<string>;
   isVisible(): Promise<boolean>;
+  isEnabled(): Promise<boolean>;
   screenshot(options: { path: string; timeout?: number }): Promise<Buffer>;
   evaluateAll<R>(fn: (elements: Element[]) => R): Promise<R>;
   page(): Page;
@@ -112,7 +113,10 @@ export interface Page extends Frame {
     event: "request" | "requestfailed",
     listener: (request: Request) => void,
   ): void;
-  off(event: "request", listener: (request: Request) => void): void;
+  off(
+    event: "request" | "requestfailed",
+    listener: (request: Request) => void,
+  ): void;
 }
 
 const LaunchableSchema = z.object({ launch: z.function() });

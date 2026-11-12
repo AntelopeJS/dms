@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import type { BrowserContext, Frame, Page } from "./playwright";
+import type { BrowserContext, Frame, Page, Request } from "./playwright";
 import { z } from "zod";
 import {
   blockSelector,
@@ -27,10 +27,12 @@ const PROBE_ATTEMPTS = 10;
 const PROBE_INTERVAL_MS = 500;
 const EDGE_TOLERANCE_PX = 1;
 /** Failures that are no fault of the page: a navigation cancelling its requests, and a write the run held back. */
-const EXPECTED_FAILURES: ReadonlySet<string> = new Set([
+const NETWORK_CHANGED = "net::ERR_NETWORK_CHANGED";
+const EXPECTED_FAILURES = [
   "net::ERR_ABORTED",
   "net::ERR_BLOCKED_BY_CLIENT",
-]);
+  NETWORK_CHANGED,
+];
 const RESOURCE_LOAD_ERROR = "Failed to load resource";
 const HTTP_ERROR_STATUS = 400;
 
@@ -169,7 +171,8 @@ export function captureErrors(
   });
   page.on("requestfailed", (request) => {
     const failure = request.failure()?.errorText ?? "failed";
-    if (EXPECTED_FAILURES.has(failure)) return;
+    if (EXPECTED_FAILURES.some((expected) => failure.startsWith(expected)))
+      return;
     sink.failedRequests.push({
       viewport: sink.viewport,
       method: request.method(),
@@ -183,6 +186,26 @@ export function captureErrors(
 export async function openPage(page: Page | Frame, url: string): Promise<void> {
   await page.goto(url, { waitUntil: "load", timeout: NAVIGATION_TIMEOUT_MS });
   await waitSettled(page);
+}
+
+/**
+ * Opens `url`, and once more when the machine's network changed while it
+ * loaded: Chromium then fails the requests in flight, so the page misses
+ * modules it needs through no fault of its own.
+ */
+async function openSteadily(page: Page, url: string): Promise<void> {
+  let changed = false;
+  const listener = (request: Request): void => {
+    if (request.failure()?.errorText.startsWith(NETWORK_CHANGED))
+      changed = true;
+  };
+  page.on("requestfailed", listener);
+  try {
+    await openPage(page, url);
+  } finally {
+    page.off("requestfailed", listener);
+  }
+  if (changed) await openPage(page, url);
 }
 
 /** Waits until the page shows content and no block is loading, or gives up quietly. */
@@ -349,7 +372,7 @@ export async function renderAtViewport(
     width: viewport.width,
     height: viewport.height,
   });
-  await openPage(page, url);
+  await openSteadily(page, url);
   const probe = await probeUntilDrawn(page, expected);
   const folder = [
     fileSegment(new URL(url).pathname),

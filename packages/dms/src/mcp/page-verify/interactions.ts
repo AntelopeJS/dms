@@ -11,6 +11,7 @@ const MAX_TABS = 6;
 const MAX_SORTS = 2;
 const MAX_FILTERS = 2;
 const MAX_FORM_OPENERS = 4;
+const MAX_INLINE_FORMS = 3;
 const REACTION_TIMEOUT_MS = 3_000;
 const CLICK_TIMEOUT_MS = 5_000;
 const NAME_CHARS = 80;
@@ -20,11 +21,13 @@ const OPENER_NAME = /^\s*(new|add|create|edit)\b/i;
 const SAMPLE_TEXT = "page_verify";
 const SAMPLE_EMAIL = "page-verify@example.com";
 const SAMPLE_NUMBER = "1";
+const SAMPLE_URL = "https://example.com/";
 
 /** The writes a run held back, and whether forms may submit. */
 export interface WriteGuard {
   submit: boolean;
-  blocked: string[];
+  /** Each write the page tried, as `METHOD /path`, whether held back or let through. */
+  writes: string[];
 }
 
 /**
@@ -39,14 +42,11 @@ export async function guardWrites(
   await context.route("**/*", async (route: Route) => {
     const request = route.request();
     const harmless =
-      guard.submit ||
       SAFE_METHODS.has(request.method()) ||
       HARMLESS_WRITES.some((pattern) => pattern.test(request.url()));
     if (harmless) return route.continue();
-    guard.blocked.push(
-      `${request.method()} ${new URL(request.url()).pathname}`,
-    );
-    return route.abort("blockedbyclient");
+    guard.writes.push(`${request.method()} ${new URL(request.url()).pathname}`);
+    return guard.submit ? route.continue() : route.abort("blockedbyclient");
   });
 }
 
@@ -142,6 +142,14 @@ async function checkTabs(page: Page): Promise<Interaction[]> {
   return results;
 }
 
+async function contentText(page: Page): Promise<string> {
+  return page
+    .locator(CONTENT)
+    .first()
+    .innerText({ timeout: 1_000 })
+    .catch(() => "");
+}
+
 async function firstRowText(page: Page): Promise<string> {
   return page
     .locator(`${CONTENT} tbody tr`)
@@ -216,9 +224,9 @@ async function checkFilters(page: Page): Promise<Interaction[]> {
     const input = inputs.nth(index);
     const name =
       (await input.getAttribute("placeholder")) ?? (await nameOf(input));
-    const rowBefore = await firstRowText(page);
+    const before = await contentText(page);
     const requests = await requestsDuring(page, () => input.fill(FILTER_PROBE));
-    const ok = requests > 0 || rowBefore !== (await firstRowText(page));
+    const ok = requests > 0 || before !== (await contentText(page));
     await input.fill("").catch(() => undefined);
     results.push({
       kind: "filter",
@@ -238,66 +246,173 @@ async function invalidCount(form: Locator): Promise<number> {
   return form.locator(INVALID).count();
 }
 
-/** Fills each field the form flagged invalid with a sample value its type accepts. */
+/**
+ * Fills each field the form flagged invalid with a sample value its type
+ * accepts. A filled field leaves the invalid set, so each round takes the
+ * first one still in it.
+ */
 async function fillInvalid(form: Locator): Promise<void> {
   const fields = form.locator(`input${INVALID}, textarea${INVALID}`);
   const count = await fields.count();
-  for (let index = 0; index < count; index += 1) {
-    const field = fields.nth(index);
-    const type = await field.getAttribute("type");
-    const value =
-      type === "email"
-        ? SAMPLE_EMAIL
-        : type === "number"
-          ? SAMPLE_NUMBER
-          : SAMPLE_TEXT;
-    await field.fill(value).catch(() => undefined);
+  for (let round = 0; round < count; round += 1) {
+    if ((await fields.count()) === 0) return;
+    const field = fields.first();
+    await field.fill(await sampleFor(field)).catch(() => undefined);
   }
 }
 
-async function clickSubmit(page: Page, form: Locator): Promise<void> {
-  await form
-    .locator("[type=submit]")
-    .first()
-    .click({ timeout: CLICK_TIMEOUT_MS })
-    .catch(() => undefined);
+/**
+ * A value the field accepts, read from what it says it takes: its type,
+ * input mode, name and placeholder, since a DMS email or URL field can be a
+ * plain text input.
+ */
+async function sampleFor(field: Locator): Promise<string> {
+  const hints = await Promise.all(
+    ["type", "inputmode", "name", "placeholder", "aria-label"].map((name) =>
+      field.getAttribute(name).catch(() => null),
+    ),
+  );
+  const said = hints.join(" ").toLowerCase();
+  if (said.includes("email")) return SAMPLE_EMAIL;
+  if (said.includes("url")) return SAMPLE_URL;
+  if (said.includes("number") || said.includes("numeric")) return SAMPLE_NUMBER;
+  return SAMPLE_TEXT;
+}
+
+/** How a form answered being submitted. */
+type FormOutcome = Pick<Interaction, "ok" | "detail">;
+
+const EDITABLE =
+  "input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]):not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly])";
+const SUBMIT_NAME = /^\s*(save|create|submit|send|update)\b/i;
+
+async function firstVisible(
+  candidates: Locator,
+  named?: RegExp,
+): Promise<Locator | undefined> {
+  const count = await candidates.count();
+  for (let index = 0; index < count; index += 1) {
+    const candidate = candidates.nth(index);
+    if (!(await candidate.isVisible().catch(() => false))) continue;
+    if (named === undefined || named.test(await nameOf(candidate)))
+      return candidate;
+  }
+  return undefined;
+}
+
+/**
+ * The control that submits the form: its own submit button, else a save
+ * button of the page, such as a floating save bar drawn outside the form.
+ */
+async function submitControl(
+  page: Page,
+  form: Locator,
+): Promise<Locator | undefined> {
+  return (
+    (await firstVisible(form.locator("[type=submit]"))) ??
+    (await firstVisible(page.locator(`${CONTENT} button`), SUBMIT_NAME))
+  );
+}
+
+async function enabledSubmit(
+  page: Page,
+  form: Locator,
+): Promise<Locator | undefined> {
+  const control = await submitControl(page, form);
+  return control !== undefined && (await control.isEnabled().catch(() => false))
+    ? control
+    : undefined;
+}
+
+/** Changes the first text field of the form, as a person editing it does. */
+async function changeAField(form: Locator): Promise<boolean> {
+  const field = await firstVisible(form.locator(EDITABLE));
+  if (field === undefined) return false;
+  await field.fill(await sampleFor(field)).catch(() => undefined);
+  return true;
+}
+
+async function clickAndWait(page: Page, control: Locator): Promise<void> {
+  await control.click({ timeout: CLICK_TIMEOUT_MS }).catch(() => undefined);
   await page.waitForTimeout(REACTION_TIMEOUT_MS / 2);
+}
+
+function writeDetail(guard: WriteGuard, what: string): string {
+  return guard.submit
+    ? `${what}; the write went through (submit: true)`
+    : `${what}; the write was held back (submit: false)`;
+}
+
+/** A form with no enabled submit control, even once a field changed: an auto-saving one writes on change. */
+function withoutSubmit(
+  changed: boolean,
+  wrote: boolean,
+  guard: WriteGuard,
+): FormOutcome {
+  if (wrote) return { ok: true, detail: writeDetail(guard, "saved on change") };
+  return {
+    ok: true,
+    detail: changed
+      ? "not checked: no submit control appeared and changing a text field saved nothing; the form may save from other controls"
+      : "not checked: no enabled submit control and no text field to change",
+  };
 }
 
 async function submitDetail(
   page: Page,
   form: Locator,
   guard: WriteGuard,
-): Promise<{ ok: boolean; detail: string }> {
-  const blockedBefore = guard.blocked.length;
+): Promise<FormOutcome> {
+  const writesBefore = guard.writes.length;
+  const wrote = (): boolean => guard.writes.length > writesBefore;
+  let control = await enabledSubmit(page, form);
+  let changed = false;
+  if (control === undefined) {
+    changed = await changeAField(form);
+    await page.waitForTimeout(REACTION_TIMEOUT_MS / 2);
+    control = await enabledSubmit(page, form);
+  }
+  if (control === undefined) return withoutSubmit(changed, wrote(), guard);
   const invalidBefore = await invalidCount(form);
-  await clickSubmit(page, form);
+  await clickAndWait(page, control);
   const validated = (await invalidCount(form)) > invalidBefore;
   if (guard.submit && validated) {
     await fillInvalid(form);
-    await clickSubmit(page, form);
+    await clickAndWait(page, control);
     const left = await invalidCount(form);
-    return {
-      ok: left === 0,
-      detail:
-        left === 0
-          ? "validation shown on an empty submit; submitted with sample values (submit: true)"
-          : `validation shown on an empty submit; ${left} fields still invalid after filling sample values`,
-    };
+    return left === 0
+      ? {
+          ok: true,
+          detail: writeDetail(
+            guard,
+            "validation shown; submitted with sample values",
+          ),
+        }
+      : {
+          ok: true,
+          detail: `validation shown; ${left} fields refused the sample values, so nothing was submitted`,
+        };
   }
   if (validated)
-    return { ok: true, detail: "validation shown on an empty submit" };
-  if (guard.blocked.length > blockedBefore) {
     return {
       ok: true,
-      detail: guard.submit
-        ? "submitted (submit: true)"
-        : "no field is required: the empty submit was sent and held back (submit: false)",
+      detail: changed
+        ? "validation shown on submit"
+        : "validation shown on an empty submit",
     };
-  }
+  if (wrote())
+    return {
+      ok: true,
+      detail: writeDetail(
+        guard,
+        changed
+          ? "submitted after a field changed"
+          : "no field is required: submitted empty",
+      ),
+    };
   return {
-    ok: guard.submit,
-    detail: "neither validation nor a submit on clicking submit",
+    ok: false,
+    detail: "submit was clicked, but neither validation nor a write followed",
   };
 }
 
@@ -358,15 +473,36 @@ async function checkOpenedForm(
   return { ...submitted, target: `${submitted.target} opened by "${name}"` };
 }
 
+/**
+ * How many of the page's forms to check, first ones first: those holding
+ * their own submit control, else the first form alone, which a page-level
+ * save bar submits.
+ */
+async function inlineForms(page: Page): Promise<number[]> {
+  const forms = page.locator(`${CONTENT} form`);
+  const count = await forms.count();
+  const own: number[] = [];
+  for (
+    let index = 0;
+    index < count && own.length < MAX_INLINE_FORMS;
+    index += 1
+  ) {
+    if ((await forms.nth(index).locator("[type=submit]").count()) > 0)
+      own.push(index);
+  }
+  return own.length > 0 || count === 0 ? own : [0];
+}
+
 async function checkForms(
   page: Page,
   url: string,
   guard: WriteGuard,
 ): Promise<Interaction[]> {
   const results: Interaction[] = [];
-  const inline = page.locator(`${CONTENT} form`);
-  if ((await inline.count()) > 0) {
-    results.push(await trySubmit(page, inline.first(), guard));
+  for (const index of await inlineForms(page)) {
+    results.push(
+      await trySubmit(page, page.locator(`${CONTENT} form`).nth(index), guard),
+    );
     await openPage(page, url);
   }
   const count = (await openers(page)).length;

@@ -349,7 +349,7 @@ export async function verifyPages(
     projectPath: request.projectPath,
     dir: runFolder(request.projectPath),
   };
-  const guard: WriteGuard = { submit: request.submit, blocked: [] };
+  const guard: WriteGuard = { submit: request.submit, writes: [] };
   const browser = await launchBrowser();
   const sessions = new Sessions(browser, request.origin);
   const run: PageRun = { sessions, workspace, account, guard, store };
@@ -365,9 +365,12 @@ export async function verifyPages(
           : await verifyPage(run, target, request),
       );
     }
-    if (guard.blocked.length > 0) {
+    if (guard.writes.length > 0) {
+      const writes = [...new Set(guard.writes)].join(", ");
       notes.push(
-        `Writes held back (submit: false): ${[...new Set(guard.blocked)].join(", ")}`,
+        request.submit
+          ? `Writes let through (submit: true): ${writes}`
+          : `Writes held back (submit: false): ${writes}`,
       );
     }
     return {
