@@ -141,6 +141,15 @@ function forbiddenIn(markup: string, css: string): string[] {
   ];
 }
 
+/** `sketch` where `node` sat: its id, slot and span, which its layout path and its parent read. */
+function placed(node: MockupNode, sketch: MockupNode): MockupNode {
+  const result: MockupNode = { ...sketch };
+  if (node.id !== undefined) result.id = node.id;
+  if (node.slot !== undefined) result.slot = node.slot;
+  if (node.colSpan !== undefined) result.colSpan = node.colSpan;
+  return result;
+}
+
 /**
  * The sketch the viewer draws for `node`, with its issues. A sketch holding
  * forbidden markup is refused: it is emitted empty, so none of it reaches the
@@ -160,7 +169,7 @@ export function compileSketch(
   const parsed = sketchOptionsSchema.safeParse(node.options ?? {});
   if (!parsed.success) {
     issues.push(...zodIssues(`${pointer}/options`, parsed.error));
-    return { type: SKETCH_TYPE, options: { html: "" } };
+    return placed(node, { type: SKETCH_TYPE, options: { html: "" } });
   }
   const { html, css, height, caption } = parsed.data;
   const refusals = [
@@ -185,5 +194,5 @@ export function compileSketch(
   };
   if (css !== undefined && !refusals.length) options.css = css;
   if (caption !== undefined) options.caption = caption;
-  return { type: SKETCH_TYPE, options };
+  return placed(node, { type: SKETCH_TYPE, options });
 }
