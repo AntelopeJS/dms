@@ -1,14 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { z } from "zod";
-import {
-  defaultMockupsDir,
-  MISSING_FILE,
-  type MockupName,
-  mockupDirectory,
-  parseFsError,
-  SPEC_FILE,
-} from "../../mockup";
+import { defaultMockupsDir, readSpecText } from "../../mockup";
 import { type JsonObject, JsonObjectSchema } from "../json";
 import { defineTool, textResult } from "../tool";
 import { applyPatch, patchOperationSchema } from "./json-patch";
@@ -34,21 +25,6 @@ const operationInput = z.object({
     .optional()
     .describe("The JSON value an add, replace or test takes."),
 });
-
-async function readSpecText(
-  mockupsDir: string,
-  name: MockupName,
-): Promise<string | undefined> {
-  try {
-    return await readFile(
-      join(mockupDirectory(mockupsDir, name), SPEC_FILE),
-      "utf8",
-    );
-  } catch (error) {
-    if (parseFsError(error).code === MISSING_FILE) return undefined;
-    throw error;
-  }
-}
 
 function parseSpecObject(text: string): JsonObject | undefined {
   try {
