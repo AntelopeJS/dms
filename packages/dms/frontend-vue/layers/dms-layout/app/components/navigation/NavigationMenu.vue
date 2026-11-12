@@ -9,6 +9,7 @@ import {
   applyPreviewEntryStates,
   type PreviewEntryState,
 } from "#dms-core/app/entries/utils/permission-preview";
+import { useMenuLocks } from "../../composables/useMenuLocks";
 
 interface Props {
   items: NavigationMenuItem[] | NavigationMenuItem[][];
@@ -167,6 +168,51 @@ function drawPreviewEntry(
   return result;
 }
 
+const MENU_LOCK_LINK_CLASSES = "text-muted dms-hatch-locked";
+const MENU_LOCK_TONE = "text-muted";
+
+const { locks } = useMenuLocks();
+const { processI18n } = useTranslation();
+const lockReasons = computed(
+  () =>
+    new Map(
+      locks.value.map((entry) => [entry.fullId, processI18n(entry.reason)]),
+    ),
+);
+
+function drawLockedEntry(item: DmsMenuItem, reason: string): DmsMenuItem {
+  return {
+    ...item,
+    to: undefined,
+    children: undefined,
+    badge: undefined,
+    lockReason: reason,
+    class: [item.class, MENU_LOCK_LINK_CLASSES],
+    title: reason,
+    "aria-label": `${String(item.label ?? "")} · ${reason}`,
+    "aria-disabled": true,
+    trailingIcon: PREVIEW_LOCK_ICON,
+    ui: {
+      ...UNSET_MENU_ITEM_UI,
+      ...item.ui,
+      linkTrailingIcon: `size-3.5 ${MENU_LOCK_TONE}`,
+    },
+  };
+}
+
+function entryStateOf(fullId: string | undefined): PreviewEntryState | null {
+  if (fullId !== undefined && lockReasons.value.has(fullId)) return "hidden";
+  return preview.entryState(fullId);
+}
+
+function drawEntry(item: DmsMenuItem, state: PreviewEntryState): DmsMenuItem {
+  const reason =
+    item.fullId === undefined ? undefined : lockReasons.value.get(item.fullId);
+  return reason === undefined
+    ? drawPreviewEntry(item, state)
+    : drawLockedEntry(item, reason);
+}
+
 const { badges: navBadges } = useNavBadges();
 
 function badgeOf(item: DmsMenuItem): DmsMenuItem["badge"] {
@@ -205,8 +251,8 @@ const groupedItems = computed((): NavigationMenuItem[][] => {
   return groups.map((group) =>
     applyPreviewEntryStates(
       group.map(decorateMenuItem),
-      preview.entryState,
-      drawPreviewEntry,
+      entryStateOf,
+      drawEntry,
     ),
   );
 });
