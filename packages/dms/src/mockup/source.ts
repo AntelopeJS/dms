@@ -72,27 +72,65 @@ export async function readSpecSource(
   return { spec: parseObject(text), digest: digestOf(text) };
 }
 
+/** Writes `spec` as {@link writeSpec} does, inside {@link withSpecLock}. */
+export type SpecWriter = (spec: Json) => Promise<SpecWriteResult>;
+
+const writeTails = new Map<string, Promise<void>>();
+
+/**
+ * Runs `run` once every earlier call for the same mockup has settled, so a
+ * read of `spec.json` and the write based on it cannot interleave with
+ * another writer of this process. `run` receives the writer to use: calling
+ * {@link writeSpec} from inside would wait on itself.
+ */
+export async function withSpecLock<Result>(
+  mockupsDir: string,
+  name: MockupName,
+  run: (write: SpecWriter) => Promise<Result>,
+): Promise<Result> {
+  const key = mockupDirectory(mockupsDir, name);
+  const previous = writeTails.get(key) ?? Promise.resolve();
+  const turn = previous.then(() => run(writeNow(mockupsDir, name)));
+  const tail = turn.then(
+    () => undefined,
+    () => undefined,
+  );
+  writeTails.set(key, tail);
+  try {
+    return await turn;
+  } finally {
+    if (writeTails.get(key) === tail) writeTails.delete(key);
+  }
+}
+
+function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
+  return async (spec) => {
+    const read = parseSpec(JSON.stringify(spec));
+    const issues = read.ok ? compileSpec(name, read.spec).issues : read.issues;
+    if (issues.length) {
+      return {
+        ok: false,
+        errors: issues.map(({ path, message }) => ({ path, message })),
+      };
+    }
+    const directory = mockupDirectory(mockupsDir, name);
+    const text = `${JSON.stringify(spec, null, JSON_INDENT)}\n`;
+    await mkdir(directory, { recursive: true });
+    await writeAtomically(join(directory, SPEC_FILE), text);
+    return { ok: true, digest: digestOf(text) };
+  };
+}
+
 /**
  * Checks `spec` as the watcher does (`parseSpec` on its JSON text, then
  * `compileSpec`) and writes `mockups/<name>/spec.json` only when nothing is
- * wrong. A refused spec leaves the file as it was.
+ * wrong. A refused spec leaves the file as it was. Writes to one mockup run
+ * one after the other.
  */
-export async function writeSpec(
+export function writeSpec(
   mockupsDir: string,
   name: MockupName,
   spec: Json,
 ): Promise<SpecWriteResult> {
-  const read = parseSpec(JSON.stringify(spec));
-  const issues = read.ok ? compileSpec(name, read.spec).issues : read.issues;
-  if (issues.length) {
-    return {
-      ok: false,
-      errors: issues.map(({ path, message }) => ({ path, message })),
-    };
-  }
-  const directory = mockupDirectory(mockupsDir, name);
-  const text = `${JSON.stringify(spec, null, JSON_INDENT)}\n`;
-  await mkdir(directory, { recursive: true });
-  await writeAtomically(join(directory, SPEC_FILE), text);
-  return { ok: true, digest: digestOf(text) };
+  return withSpecLock(mockupsDir, name, (write) => write(spec));
 }

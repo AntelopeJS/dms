@@ -17,7 +17,7 @@ import {
   readSpecSource,
   type SpecDigest,
   type SpecWriteResult,
-  writeSpec,
+  withSpecLock,
 } from "./source";
 
 const HTTP_BAD_REQUEST = 400;
@@ -93,16 +93,18 @@ export function registerSpecRoutes(mockupsDir: string) {
         });
       }
       const { spec, digest } = parsed.data;
-      if (digest !== undefined) {
-        const current = await readSpecSource(mockupsDir, name);
-        if (current && current.digest !== digest) {
-          throw new HTTPResult(HTTP_CONFLICT, {
-            message: "spec.json changed since it was read",
-            digest: current.digest,
-          });
+      return withSpecLock(mockupsDir, name, async (write) => {
+        if (digest !== undefined) {
+          const current = await readSpecSource(mockupsDir, name);
+          if (current && current.digest !== digest) {
+            throw new HTTPResult(HTTP_CONFLICT, {
+              message: "spec.json changed since it was read",
+              digest: current.digest,
+            });
+          }
         }
-      }
-      return writeSpec(mockupsDir, name, spec);
+        return write(spec);
+      });
     }
   }
   return MockupSourceController;
