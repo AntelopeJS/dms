@@ -1,5 +1,3 @@
-import { installBrandingMessages } from "./messages";
-
 export const BRANDING_ACTION_ID = "dms-branding";
 export const BRANDING_PATH = "/branding";
 
@@ -7,8 +5,7 @@ export const BRANDING_PATH = "/branding";
  * Dev only: the header icon that opens the Branding editor, shown to the
  * platform owner alone, the one the `/api/branding` routes answer.
  */
-export default defineDmsPlugin(({ $i18n }) => {
-  installBrandingMessages($i18n);
+export default defineDmsPlugin(() => {
   const isOwner = useIsOwner();
   const router = useDmsRouter();
   registerHeaderAction({

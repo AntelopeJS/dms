@@ -7,15 +7,12 @@ import BrandingSimplePanel from "./BrandingSimplePanel.vue";
 import { useBrandingApi } from "./api";
 import { errorDetail } from "./errors";
 import { declareCatalogFonts } from "./fonts";
-import { installBrandingMessages } from "./messages";
 import type { EditorMode } from "./model";
 import { previewStyle, readDmsTokens, type DmsTokens } from "./preview-style";
 import { THEME_MODES, type ThemeMode } from "./theme-types";
 import { useBrandingEditor } from "./useBrandingEditor";
 
-const i18n = useI18n();
-installBrandingMessages(i18n);
-const { t } = i18n;
+const { t } = useI18n();
 const toast = useToast();
 const { confirm } = useConfirm();
 const editor = useBrandingEditor(useBrandingApi());

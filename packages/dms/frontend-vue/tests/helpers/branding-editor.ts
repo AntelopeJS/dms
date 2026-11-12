@@ -8,6 +8,7 @@ import {
 } from "vue";
 import { createI18n } from "vue-i18n";
 import { vi } from "vitest";
+import en from "../../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
 
 /** What the fake `/api/branding` routes received. */
 export interface BrandingCall {
@@ -33,7 +34,7 @@ export function installBrandingRuntime(answer: Answer): {
     locale: "en",
     missingWarn: false,
     fallbackWarn: false,
-    messages: { en: {} },
+    messages: { en },
   });
   vi.stubGlobal("useI18n", () => i18n.global);
   vi.stubGlobal("useConfirm", () => ({ confirm }));

@@ -5,6 +5,7 @@
 import { computed, ref, type Ref } from "vue";
 import { createI18n } from "vue-i18n";
 import { beforeEach, expect, it, vi } from "vitest";
+import fr from "../layers/dms-layout/app/entries/i18n/locales/layout-fr-FR.json";
 
 let actions: Ref<unknown> | undefined;
 const isOwner = ref(false);
@@ -28,12 +29,12 @@ const { default: plugin } = await import(
   "../layers/dms-layout/app/entries/branding/header-action"
 );
 
-const i18n = createI18n({ legacy: false, locale: "fr", messages: { fr: {} } });
+const i18n = createI18n({ legacy: false, locale: "fr", messages: { fr } });
 
 beforeEach(() => {
   actions = undefined;
   isOwner.value = false;
-  plugin({ $i18n: i18n.global });
+  plugin();
 });
 
 const brandingAction = () =>
