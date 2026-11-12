@@ -1,4 +1,4 @@
-import type { StoreDependencyConfig } from "../validation/store.schema";
+import type { StoreDependencyConfig } from "../validation";
 
 /** One official module the store offers, as the catalog lists it. */
 export interface StoreCatalogEntry {
