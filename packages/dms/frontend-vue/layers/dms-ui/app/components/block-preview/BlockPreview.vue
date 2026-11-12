@@ -193,6 +193,10 @@ onMounted(async () => {
   cursor: pointer;
 }
 
+[data-dms-inspecting] iframe {
+  pointer-events: none;
+}
+
 [data-dms-inspecting] [data-dms-inspect-target] {
   outline: 2px solid var(--ui-primary);
   outline-offset: -2px;

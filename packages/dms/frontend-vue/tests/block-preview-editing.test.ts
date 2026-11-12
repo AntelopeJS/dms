@@ -24,6 +24,7 @@ import {
   PREVIEW_NAVIGATION_ATTRIBUTE,
   previewNavigation,
 } from "../layers/dms-ui/app/entries/composables/block-preview/previewNavigation";
+import { registerBlockAnchor } from "../layers/dms-ui/app/entries/composables/page/blockAnchors";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 
 const BLOCK_TYPES: PreviewBlockTypes = {
@@ -60,7 +61,14 @@ class FakeResizeObserver {
 const Probe: FunctionalComponent = () =>
   h("button", { class: "probe", onClick: clicked }, "Revenue");
 const Frame: FunctionalComponent = (_props, { slots }) =>
-  h("section", { class: "frame" }, slots.default?.());
+  h("section", { class: "frame" }, [
+    h(
+      "h2",
+      { ref: (element) => registerBlockAnchor("content", element) },
+      "Caption",
+    ),
+    slots.default?.(),
+  ]);
 const BLOCKS: Record<string, Component> = {
   "dms-probe": Probe,
   "dms-frame": Frame,
@@ -265,6 +273,24 @@ describe("an inspected preview reports what the editor draws over it", () => {
     expect(picked).toHaveBeenCalledTimes(1);
     host.querySelector<HTMLElement>(".probe")?.click();
     expect(clicked).not.toHaveBeenCalled();
+  });
+
+  it("picks the preview's own block, not a sub-block a block registers under another anchor (fails on `content` as the path)", async () => {
+    await mountPreview();
+    postFromParent({ type: "inspect", enabled: true });
+    const caption = host.querySelector("h2");
+    caption?.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
+    caption?.dispatchEvent(
+      new MouseEvent("dblclick", { bubbles: true, cancelable: true }),
+    );
+    expect(posted("select").map((message) => message.path)).toEqual([
+      "block-1",
+    ]);
+    expect(posted("text")).toEqual([
+      expect.objectContaining({ path: "block-1", text: "Caption" }),
+    ]);
   });
 
   it("forgets the sidebar when a render carries none (fails when a docs embed keeps a mockup's sidebar)", async () => {

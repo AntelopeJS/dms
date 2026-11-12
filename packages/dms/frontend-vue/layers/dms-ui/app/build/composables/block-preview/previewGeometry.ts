@@ -1,4 +1,5 @@
 import { blockAnchorElements, blockAnchorPaths } from "../page/blockAnchors";
+import { PREVIEW_ROOT_ID_PREFIX } from "../../utils/blockPreview";
 import type {
   PreviewBlockRect,
   PreviewFont,
@@ -31,7 +32,7 @@ function unionRect(elements: readonly Element[]): PreviewRect | undefined {
 
 /** Where each block on screen sits, by layout path; hidden blocks left out. */
 export function blockRects(): PreviewBlockRect[] {
-  return blockAnchorPaths().flatMap((path) => {
+  return blockAnchorPaths(PREVIEW_ROOT_ID_PREFIX).flatMap((path) => {
     const rect = unionRect(blockAnchorElements(path));
     return rect ? [{ path, rect }] : [];
   });

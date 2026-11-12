@@ -1,5 +1,6 @@
 import { onBeforeUnmount, watch, type Ref } from "vue";
 import { blockAnchorAt, blockAnchorElements } from "../page/blockAnchors";
+import { PREVIEW_ROOT_ID_PREFIX } from "../../utils/blockPreview";
 import { PREVIEW_NAVIGATION_ATTRIBUTE } from "./previewNavigation";
 
 /** Attribute the hovered block's elements carry while inspecting, for the outline. */
@@ -63,7 +64,7 @@ export function useBlockInspector(options: InspectorOptions): void {
   }
 
   function onPointerOver(event: Event): void {
-    outline(blockAnchorAt(event.target));
+    outline(blockAnchorAt(event.target, PREVIEW_ROOT_ID_PREFIX));
   }
 
   function onPointerLeave(): void {
@@ -74,7 +75,7 @@ export function useBlockInspector(options: InspectorOptions): void {
     if (isInNavigation(event.target)) return;
     event.preventDefault();
     event.stopPropagation();
-    const path = blockAnchorAt(event.target);
+    const path = blockAnchorAt(event.target, PREVIEW_ROOT_ID_PREFIX);
     if (!path) return;
     if (event.type === "click") options.onSelect(path);
     const { target } = event;

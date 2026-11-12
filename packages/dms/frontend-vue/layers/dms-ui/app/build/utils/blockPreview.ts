@@ -103,7 +103,8 @@ export interface PreviewResolvedNode {
 
 export const PREVIEW_THEMES: readonly PreviewTheme[] = ["light", "dark"];
 
-const ROOT_ID_PREFIX = "block-";
+/** What every layout path of a preview tree starts with: `block-<root index>`. */
+export const PREVIEW_ROOT_ID_PREFIX = "block-";
 const RELATIVE_PATH_PATTERN = /^\/(?![/\\])/;
 const SAFE_METHODS = new Set(["GET", "HEAD"]);
 const ROUTE_SOURCE_OPTION = "source";
@@ -421,7 +422,7 @@ export function resolvePreviewTree(
 ): PreviewResolvedNode[] {
   const roots = Array.isArray(tree) ? tree : [tree];
   return roots.map((root, index) =>
-    resolveNode(root, `${ROOT_ID_PREFIX}${index}`, blockTypes),
+    resolveNode(root, `${PREVIEW_ROOT_ID_PREFIX}${index}`, blockTypes),
   );
 }
 
