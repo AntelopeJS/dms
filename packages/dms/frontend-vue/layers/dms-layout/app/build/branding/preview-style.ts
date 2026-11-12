@@ -13,45 +13,113 @@ export interface DmsTokens {
 /** The project's theme stylesheet, which the preview replaces with the draft. */
 const THEME_STYLESHEET = "/app/assets/css/theme.css";
 
-const ROOT_SELECTORS: Record<string, keyof DmsTokens> = {
-  ":root": "light",
-  ".dark": "dark",
-};
+/**
+ * The parts of a CSSOM rule the reader looks at. A style rule has a
+ * `selectorText`; the declarations a browser splits off a nested rule
+ * (`CSSNestedDeclarations`) have a `style` and no selector; `@media`,
+ * `@supports` and `@layer` blocks have `cssRules`.
+ */
+interface ReadableRule {
+  cssText: string;
+  selectorText?: string;
+  style?: CSSStyleDeclaration;
+  cssRules?: ArrayLike<ReadableRule>;
+  media?: { mediaText: string };
+  conditionText?: string;
+}
 
-function sheetSource(sheet: CSSStyleSheet): string {
+/** A stylesheet as the reader sees it: where it comes from, and its rules. */
+export interface ReadableSheet {
+  href: string | null;
+  ownerNode: Element | ProcessingInstruction | null;
+  cssRules: ArrayLike<ReadableRule>;
+}
+
+function sheetSource(sheet: ReadableSheet): string {
   const owner = sheet.ownerNode;
   const devId =
     owner instanceof Element ? owner.getAttribute("data-vite-dev-id") : null;
   return `${sheet.href ?? ""} ${devId ?? ""}`;
 }
 
-function readRules(rules: CSSRuleList, tokens: DmsTokens): void {
-  for (const rule of Array.from(rules)) {
-    if (rule instanceof CSSStyleRule) {
-      const selector = rule.selectorText.trim();
-      const target = Object.hasOwn(ROOT_SELECTORS, selector)
-        ? ROOT_SELECTORS[selector]
-        : undefined;
-      if (target) {
-        for (const name of Array.from(rule.style)) {
-          if (name.startsWith("--")) {
-            tokens[target][name] = rule.style.getPropertyValue(name).trim();
-          }
-        }
-      }
+/** `.dark` for dark; `:root` alone or in a list (`.light, :host, :root`) for light. */
+function modeOf(selectorText: string): keyof DmsTokens | undefined {
+  const selectors = selectorText.split(",").map((part) => part.trim());
+  if (selectors.includes(".dark")) return "dark";
+  return selectors.includes(":root") ? "light" : undefined;
+}
+
+/** Whether a block's `@media` or `@supports` condition holds in this browser. */
+function holds(rule: ReadableRule): boolean {
+  if (rule.media) {
+    return (
+      typeof matchMedia !== "function" ||
+      matchMedia(rule.media.mediaText).matches
+    );
+  }
+  if (rule.conditionText !== undefined) {
+    return typeof CSS === "undefined" || CSS.supports(rule.conditionText);
+  }
+  return true;
+}
+
+function readDeclarations(
+  style: CSSStyleDeclaration,
+  into: Record<string, string>,
+): void {
+  for (const name of Array.from(style)) {
+    if (name.startsWith("--")) {
+      into[name] = style.getPropertyValue(name).trim();
     }
-    if ("cssRules" in rule && rule.cssRules instanceof CSSRuleList) {
+  }
+}
+
+/**
+ * The custom properties of a `:root` or `.dark` rule, in source order: its own
+ * declarations, those the browser split off behind a nested `@supports` (as
+ * Tailwind writes its `color-mix` fallbacks), and the nested blocks whose
+ * condition holds. A nested rule with a selector of its own is not the root.
+ */
+function readRootRule(rule: ReadableRule, into: Record<string, string>): void {
+  if (rule.style) readDeclarations(rule.style, into);
+  for (const child of Array.from(rule.cssRules ?? [])) {
+    if (child.selectorText !== undefined) continue;
+    if (child.cssRules) {
+      if (holds(child)) {
+        readRootRule(
+          { cssText: child.cssText, cssRules: child.cssRules },
+          into,
+        );
+      }
+    } else if (child.style) {
+      readDeclarations(child.style, into);
+    }
+  }
+}
+
+function readRules(rules: ArrayLike<ReadableRule>, tokens: DmsTokens): void {
+  for (const rule of Array.from(rules)) {
+    const mode =
+      rule.selectorText === undefined ? undefined : modeOf(rule.selectorText);
+    if (mode) {
+      readRootRule(rule, tokens[mode]);
+    } else if (
+      rule.selectorText === undefined &&
+      rule.cssRules &&
+      holds(rule)
+    ) {
       readRules(rule.cssRules, tokens);
     }
   }
 }
 
 /**
- * The DMS's tokens, read from the CSSOM: every rule whose selector is exactly
- * `:root` or `.dark`, inside `@layer` and `@media` blocks too, skipping the
- * project's theme stylesheet. A later rule wins, as in the cascade.
+ * The DMS's tokens, read from the CSSOM: every rule whose selector list holds
+ * `:root` (light) or `.dark` (dark), inside the `@layer`, `@media` and
+ * `@supports` blocks that apply, skipping the project's theme stylesheet. A
+ * later rule wins, as in the cascade.
  */
-export function readDmsTokens(sheets: Iterable<CSSStyleSheet>): DmsTokens {
+export function readDmsTokens(sheets: Iterable<ReadableSheet>): DmsTokens {
   const tokens: DmsTokens = { light: {}, dark: {} };
   for (const sheet of sheets) {
     if (sheetSource(sheet).includes(THEME_STYLESHEET)) continue;

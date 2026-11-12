@@ -51,6 +51,68 @@ describe("readDmsTokens", () => {
   });
 });
 
+/** A style declaration as the CSSOM lists one: iterable names, values by name. */
+function declarations(values: Record<string, string>) {
+  return Object.assign(Object.keys(values), {
+    getPropertyValue: (name: string) => values[name] ?? "",
+  });
+}
+
+describe("readDmsTokens on a browser's nested CSSOM", () => {
+  it("reads the declarations a browser splits off a :root holding Tailwind's @supports fallbacks", () => {
+    const sheet = {
+      href: null,
+      ownerNode: null,
+      cssRules: [
+        {
+          cssText: "@layer theme",
+          cssRules: [
+            {
+              cssText: ".light, :host, :root",
+              selectorText: ".light, :host, :root",
+              style: declarations({ "--ui-bg": "#fff" }),
+            },
+          ],
+        },
+        {
+          cssText: "@layer dms",
+          cssRules: [
+            {
+              cssText: ":root",
+              selectorText: ":root",
+              style: declarations({ "--font-sans": "Geist" }),
+              cssRules: [
+                {
+                  cssText: "@supports",
+                  conditionText: "(color: red)",
+                  cssRules: [
+                    { cssText: "", style: declarations({ "--dms-tint": "a" }) },
+                  ],
+                },
+                {
+                  cssText: "",
+                  style: declarations({ "--dms-bg-sidebar": "#fafbfb" }),
+                },
+                {
+                  cssText: "&:hover",
+                  selectorText: "&:hover",
+                  style: declarations({ "--dms-hover": "x" }),
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(readDmsTokens([sheet]).light).toEqual({
+      "--ui-bg": "#fff",
+      "--font-sans": "Geist",
+      "--dms-tint": "a",
+      "--dms-bg-sidebar": "#fafbfb",
+    });
+  });
+});
+
 describe("previewStyle", () => {
   it("keeps a dark-only draft value out of the light preview", () => {
     const draft = {
