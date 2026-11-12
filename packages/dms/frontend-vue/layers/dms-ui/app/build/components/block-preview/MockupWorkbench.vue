@@ -78,6 +78,7 @@ const session = useMockupSession({
 const { state, annotations, isConnected, hasRequestFailed } = session;
 
 function notify(notice: MockupSpecNotice): void {
+  editing.settle();
   if (notice.kind === "adopted") {
     toast.add({ color: "info", title: t("dms.mockup.adopted") });
   } else if (notice.kind === "refused") {
@@ -132,6 +133,7 @@ const editing = useMockupEditing({
   page: currentPage,
   pageIndex,
   openPage: (id) => (requestedPage.value = id),
+  revision: computed(() => state.value?.revision),
 });
 const comments = useMockupComments({ session, page: currentPage, pages });
 
@@ -183,7 +185,7 @@ const bridge = usePreviewFrame({
   frame: previewElement,
   onReady: syncPreview,
   onSelect,
-  onLayout: (blocks) => (editing.rects.value = blocks),
+  onLayout: (blocks) => editing.setLayout(blocks),
   onText: (message) => {
     if (mode.value === "edit") editing.openText(message);
   },
@@ -238,6 +240,18 @@ function pickReplacement(type: string): void {
 }
 
 /** Whether a key pressed on `target` belongs to it: a field, or a dialog over the editor. */
+function undo(): void {
+  if (!editor.canUndo.value) return;
+  editor.undo();
+  editing.markMoved();
+}
+
+function redo(): void {
+  if (!editor.canRedo.value) return;
+  editor.redo();
+  editing.markMoved();
+}
+
 function isEditable(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLElement &&
@@ -253,8 +267,8 @@ function onKeydown(event: KeyboardEvent): void {
   const isCommand = event.metaKey || event.ctrlKey;
   if (isCommand && (key === "z" || key === "y")) {
     event.preventDefault();
-    if (key === "y" || event.shiftKey) editor.redo();
-    else editor.undo();
+    if (key === "y" || event.shiftKey) redo();
+    else undo();
     return;
   }
   if (mode.value !== "edit" || !editing.selection.value) return;
@@ -306,8 +320,8 @@ const stageStyle = computed(() => ({
       :can-redo="editor.canRedo.value"
       :issue-count="issues.length"
       :is-connected="isConnected"
-      @undo="editor.undo"
-      @redo="editor.redo"
+      @undo="undo"
+      @redo="redo"
       @build="handoff.request({ source: 'build' })"
     />
     <UAlert

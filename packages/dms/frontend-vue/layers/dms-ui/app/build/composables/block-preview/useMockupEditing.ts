@@ -55,6 +55,8 @@ interface EditingOptions {
   pageIndex: ComputedRef<number>;
   /** Opens another page, after a page edit. */
   openPage: (id: string) => void;
+  /** The revision of the compiled state the preview draws. */
+  revision: ComputedRef<number | undefined>;
 }
 
 /** Edit mode's state: what is selected, dragged and edited in place, and the actions on it. */
@@ -64,10 +66,17 @@ export interface MockupEditing {
   drag: Ref<MockupDrag | undefined>;
   drop: Ref<MockupDropTarget | undefined>;
   text: Ref<MockupInlineText | undefined>;
+  /** Where the selected block is drawn; undefined until the preview draws the edited spec. */
   selected: ComputedRef<{ rect: PreviewRect; label: string } | undefined>;
   canMoveUp: ComputedRef<boolean>;
   canMoveDown: ComputedRef<boolean>;
   edit: (edit: MockupEdit, coalesceKey?: string) => void;
+  /** Takes the boxes the preview reports for the state it draws now. */
+  setLayout: (blocks: PreviewBlockRect[]) => void;
+  /** Marks the drawn boxes stale until the next state: after an undo or a redo. */
+  markMoved: () => void;
+  /** Trusts the drawn boxes again: a write that changes nothing on screen. */
+  settle: () => void;
   selectPath: (layoutPath: string) => void;
   moveBy: (delta: number) => void;
   duplicate: () => void;
@@ -88,6 +97,8 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
   const drag = ref<MockupDrag>();
   const drop = ref<MockupDropTarget>();
   const text = ref<MockupInlineText>();
+  /** The revision drawn when nodes last moved, until a newer one is laid out. */
+  const movedAt = ref<number>();
 
   const spec = editor.spec;
   const selectedNode = computed(() =>
@@ -111,9 +122,22 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     }
   });
 
+  function markMoved(): void {
+    movedAt.value = options.revision.value ?? -1;
+  }
+
+  function setLayout(blocks: PreviewBlockRect[]): void {
+    rects.value = blocks;
+    const drawn = options.revision.value ?? -1;
+    if (movedAt.value !== undefined && drawn > movedAt.value) {
+      movedAt.value = undefined;
+    }
+  }
+
   function edit(next: MockupEdit, coalesceKey?: string): void {
     const result = editor.apply(next, coalesceKey);
     if (!result) return;
+    if (next.kind !== "setOption" && next.kind !== "setText") markMoved();
     if (result.page !== undefined) {
       options.openPage(result.page);
       selection.value = undefined;
@@ -224,6 +248,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
   }
 
   const selected = computed(() => {
+    if (movedAt.value !== undefined) return undefined;
     const page = options.page.value;
     const path =
       page && selection.value
@@ -248,6 +273,9 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
       return !!at && at.index < at.count - 1;
     }),
     edit,
+    setLayout,
+    markMoved,
+    settle: () => (movedAt.value = undefined),
     selectPath,
     moveBy,
     duplicate: () => {

@@ -166,6 +166,16 @@ describe("edit mode", () => {
     ]);
   });
 
+  it("hides the selection outline after a structural edit until the preview draws it (fails when the outline lands on the block that sat there before)", async () => {
+    await pick("block-0");
+    expect(find("[data-dms-mockup-selection]")).not.toBeNull();
+    await click("[data-dms-mockup-duplicate]");
+    await viewer.say({ type: "layout", blocks: RECTS });
+    expect(find("[data-dms-mockup-selection]")).toBeNull();
+    await written();
+    expect(find("[data-dms-mockup-selection]")).not.toBeNull();
+  });
+
   it("edits a double-clicked text in place: Enter keeps it, Escape drops it (fails when the option is not found by its text)", async () => {
     const font = {
       family: "Geist",
