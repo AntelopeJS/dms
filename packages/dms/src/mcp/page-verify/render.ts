@@ -29,11 +29,18 @@ const RESOURCE_LOAD_ERROR = "Failed to load resource";
 const HTTP_ERROR_STATUS = 400;
 
 /**
- * Holds once the page drew its content and no data block still waits for
- * its first answer. Every dashboard layout marks the region holding the
- * page `data-dms-page-content`.
+ * Holds once the page has hydrated, drawn its content, and no data block
+ * still waits for its first answer. Inertia marks a root the server
+ * rendered `data-server-rendered`, and Vue sets `__vue_app__` on it once
+ * mounted: before that the markup shows but no component is reachable.
+ * Every dashboard layout marks the region holding the page
+ * `data-dms-page-content`.
  */
-const SETTLED = `!!document.querySelector("[data-dms-page-content]")?.childElementCount && !document.querySelector("[data-dms-block-state=loading]")`;
+const SETTLED = [
+  `[...document.querySelectorAll("[data-server-rendered]")].every((root) => "__vue_app__" in root)`,
+  `!!document.querySelector("[data-dms-page-content]")?.childElementCount`,
+  `!document.querySelector("[data-dms-block-state=loading]")`,
+].join(" && ");
 
 /** Where a run writes its screenshots, and how a written file reads in the report. */
 export interface ShotStore {

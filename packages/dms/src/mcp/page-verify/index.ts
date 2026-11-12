@@ -1,3 +1,4 @@
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import type { Role } from "@antelopejs/interface-dms/db";
 import type { Browser, BrowserContext } from "./playwright";
@@ -29,8 +30,10 @@ import {
   openPage,
   readDataBlocks,
   readLayout,
+  fileSegment,
   renderAtViewport,
   type ShotStore,
+  shotFile,
 } from "./render";
 import type {
   DataBlock,
@@ -120,21 +123,44 @@ interface PageRun {
   store: ShotStore;
 }
 
+/** What the browser saw of a page signed in as a role's member, and why. */
+interface Observation {
+  observed: RoleAccess["observed"];
+  note?: string;
+}
+
 async function observedAccess(
   run: PageRun,
   target: PageTarget,
   account: VerifyAccount,
-): Promise<RoleAccess["observed"]> {
+): Promise<Observation> {
   const context = await run.sessions.contextFor(account, run.guard);
+  const origin = run.sessions.origin;
   const layout = await readLayout(
     context,
-    new URL(target.layoutPath, run.sessions.origin).href,
+    new URL(target.layoutPath, origin).href,
   );
-  if (layout.status === "refused") return "refused";
+  if (layout.status === "refused") {
+    return {
+      observed: "refused",
+      note: `the layout answered ${layout.httpStatus}`,
+    };
+  }
   const page = await context.newPage();
   try {
-    await openPage(page, new URL(target.route, run.sessions.origin).href);
-    return (await probePage(page)).blocks.length > 0 ? "rendered" : "refused";
+    await openPage(page, new URL(target.route, origin).href);
+    const drawn = (await probePage(page)).blocks.length;
+    if (drawn > 0) return { observed: "rendered" };
+    const shot = shotFile(run.store, [
+      "access",
+      `${fileSegment(target.route)}-${fileSegment(account.user.email)}.png`,
+    ]);
+    await mkdir(path.dirname(shot.file), { recursive: true });
+    await page.screenshot({ path: shot.file, fullPage: true });
+    return {
+      observed: "refused",
+      note: `the layout was served, but ${page.url()} drew no block: see ${shot.relative}`,
+    };
   } finally {
     await page.close();
   }
@@ -158,8 +184,9 @@ async function roleAccess(
       ok: true,
     };
   }
-  const observed = await observedAccess(run, target, member);
+  const { observed, note } = await observedAccess(run, target, member);
   return {
+    ...(note !== undefined && { note }),
     role: role.name,
     expected,
     observed,
