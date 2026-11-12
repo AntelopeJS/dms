@@ -19,7 +19,7 @@ import {
   specPointerFor,
   type MockupPageState,
 } from "../../utils/mockup";
-import { newBlockNode } from "../../utils/mockupCatalog";
+import { newBlock, type MockupNewBlock } from "../../utils/mockupCatalog";
 import {
   dropEdit,
   dropTarget,
@@ -30,6 +30,7 @@ import {
 import type { MockupEdit } from "../../utils/mockupEdit";
 import {
   nodeAt,
+  pageFixtures,
   parentPointer,
   parseNodePointer,
   siblingsAt,
@@ -160,9 +161,12 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     edit({ kind: "moveNode", from, parent, index: at.index + delta });
   }
 
-  function newNode(type: string) {
+  function newNode(type: string): MockupNewBlock {
     const block = catalog.byType.value.get(type);
-    return block ? newBlockNode(block, catalog.byType.value) : { type };
+    const page = spec.value?.pages[options.pageIndex.value];
+    return block
+      ? newBlock(block, catalog.byType.value, page ? pageFixtures(page) : {})
+      : { node: { type }, fixtures: {} };
   }
 
   function pageId(): string | undefined {
@@ -179,7 +183,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
       type,
       catalog.byType.value,
     );
-    edit({ kind: "insertNode", page, ...at, node: newNode(type) });
+    edit({ kind: "insertNode", page, ...at, ...newNode(type) });
   }
 
   function dropContext() {
@@ -289,7 +293,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     },
     addBlock,
     replaceWith: (pointer, type) =>
-      edit({ kind: "replaceNode", pointer, node: newNode(type) }),
+      edit({ kind: "replaceNode", pointer, ...newNode(type) }),
     dragOver,
     dropAt,
     openText,

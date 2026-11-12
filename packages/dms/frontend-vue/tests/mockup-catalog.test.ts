@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   acceptsChild,
   catalogSections,
-  newBlockNode,
+  newBlock,
   parseBlockCatalog,
   type MockupBlockType,
 } from "../layers/dms-ui/app/entries/utils/mockupCatalog";
@@ -195,9 +195,9 @@ describe("the catalog", () => {
   });
 });
 
-describe("newBlockNode", () => {
+describe("newBlock", () => {
   it("starts from the defaults and fills a required title with the block's name (fails when the backend would refuse the node)", () => {
-    expect(newBlockNode(KPI, CATALOG)).toEqual({
+    expect(newBlock(KPI, CATALOG).node).toEqual({
       id: "kpi-card",
       type: "KpiCard",
       options: { variant: "card", title: "KPI card" },
@@ -205,7 +205,7 @@ describe("newBlockNode", () => {
   });
 
   it("places a required block option as its child and its first enum value (fails when ChartCard starts without its chart)", () => {
-    expect(newBlockNode(CHART_CARD, CATALOG)).toEqual({
+    expect(newBlock(CHART_CARD, CATALOG).node).toEqual({
       id: "chart-card",
       type: "ChartCard",
       options: { title: "Chart card", period: "day" },
@@ -214,7 +214,7 @@ describe("newBlockNode", () => {
   });
 
   it("starts with the initial children the descriptor lists (fails when an editor keeps its own copy)", () => {
-    expect(newBlockNode(TOOLBAR, CATALOG).children).toEqual([
+    expect(newBlock(TOOLBAR, CATALOG).node.children).toEqual([
       { id: "live", type: "LiveToggle", options: { paused: false } },
     ]);
   });

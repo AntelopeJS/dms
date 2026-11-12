@@ -65,6 +65,11 @@ function isOptional<Value>(
   return value === undefined || guard(value);
 }
 
+/** The fixtures a page holds, keyed as written; none when it holds no object of them. */
+export function pageFixtures(page: MockupSpecPage): Record<string, unknown> {
+  return isRecord(page.fixtures) ? page.fixtures : {};
+}
+
 /** Whether `value` is a node whose known fields have their types, at every depth. */
 export function isMockupSpecNode(value: unknown): value is MockupSpecNode {
   if (!isRecord(value)) return false;
