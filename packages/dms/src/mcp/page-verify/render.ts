@@ -82,14 +82,18 @@ interface LayoutNode {
   children?: { id: string; component: LayoutNode }[];
 }
 
-const LayoutNodeSchema: z.ZodType<LayoutNode> = z.lazy(() =>
-  z.object({
-    componentName: z.string().optional(),
-    options: z.object({ fetchUrl: z.string().optional() }).optional(),
-    children: z
-      .array(z.object({ id: z.string(), component: LayoutNodeSchema }))
-      .optional(),
-  }),
+const LayoutNodeSchema: z.ZodType<LayoutNode, z.ZodTypeDef, unknown> = z.lazy(
+  () =>
+    z.object({
+      componentName: z.string().optional(),
+      options: z
+        .object({ fetchUrl: z.string().optional().catch(undefined) })
+        .optional()
+        .catch(undefined),
+      children: z
+        .array(z.object({ id: z.string(), component: LayoutNodeSchema }))
+        .optional(),
+    }),
 );
 
 const LayoutSchema = z.object({ components: z.record(LayoutNodeSchema) });
@@ -128,7 +132,7 @@ export type LayoutAnswer =
  * dashboard as the page itself does: the blocks it holds, or the refusal.
  */
 export async function readLayout(
-  context: BrowserContext,
+  context: Pick<BrowserContext, "request">,
   url: string,
 ): Promise<LayoutAnswer> {
   const response = await context.request.get(url);

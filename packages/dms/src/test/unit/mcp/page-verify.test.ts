@@ -9,6 +9,7 @@ import {
   type PageReport,
   pairBlocks,
   readDataBlocks,
+  readLayout,
   type RenderedBlock,
   resolvePage,
 } from "../../../mcp/page-verify";
@@ -112,6 +113,37 @@ describe("[unit] mcp page_verify", () => {
     expect(paired.get("kpis.revenue")?.path).to.equal("kpis.revenue");
     expect(paired.get("block-0")?.path).to.equal("kpis.orders");
     expect(paired.has("block-1")).to.equal(false);
+  });
+
+  it("reads a layout whose block options are null or name no string fetchUrl", async () => {
+    const layout = {
+      components: {
+        banner: { componentName: "dms-banner-block", options: null },
+        chart: { componentName: "dms-chart-card", options: { fetchUrl: 42 } },
+        kpi: {
+          componentName: "dms-kpi-card",
+          options: { fetchUrl: "/api/kpi" },
+        },
+      },
+    };
+    const answered = {
+      ok: () => true,
+      status: () => 200,
+      json: async () => layout,
+      text: async () => JSON.stringify(layout),
+    };
+    const context = {
+      request: { get: async () => answered, post: async () => answered },
+    };
+    const answer = await readLayout(context, "/dms/pages/x/pagelayout");
+    expect(answer).to.deep.equal({
+      status: "served",
+      blocks: [
+        { path: "banner", component: "dms-banner-block" },
+        { path: "chart", component: "dms-chart-card" },
+        { path: "kpi", component: "dms-kpi-card", source: "/api/kpi" },
+      ],
+    });
   });
 
   it("checks a role only through a member holding that role alone, never through an owner or a member with more roles", () => {
