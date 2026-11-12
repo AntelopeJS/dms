@@ -324,7 +324,7 @@ async function pickAccount(
   const member = await memberAccount(workspace, found);
   if (member !== undefined) return member;
   notes.push(
-    `No member holds the role "${found.name}", so the pages were opened as the platform owner; invite a member with only that role to check the page as they see it. The permissions section still applies the role's grants.`,
+    `No member holds only the role "${found.name}", so the pages were opened as the platform owner; invite a member with only that role to check the page as they see it. The permissions section still applies the role's grants.`,
   );
   return ownerAccount(workspace);
 }

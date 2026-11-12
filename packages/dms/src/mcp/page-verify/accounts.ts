@@ -35,7 +35,7 @@ export interface Workspace {
   tenantId: string;
   owner: User;
   roles: Role[];
-  /** A member holding the role, by role id: one holding only it when there is one. */
+  /** A member holding only the role, by role id, for each role that has one. */
   memberByRole: Map<string, TenantMember>;
 }
 
@@ -74,18 +74,22 @@ async function ownerTenantId(owner: User): Promise<string> {
   return oldest.tenantId;
 }
 
+/**
+ * A member holding `roleId` and nothing more: any other role, or owning the
+ * workspace or the platform, could open what the role alone does not.
+ */
 function pickMember(
   members: TenantMember[],
   roleId: string,
   ownerIds: ReadonlySet<string>,
 ): TenantMember | undefined {
-  const holders = members.filter(
+  return members.find(
     (member) =>
-      member.roleIds.includes(roleId) &&
+      member.roleIds.length === 1 &&
+      member.roleIds[0] === roleId &&
       !member.isTenantOwner &&
       !ownerIds.has(member.userId),
   );
-  return holders.find((member) => member.roleIds.length === 1) ?? holders[0];
 }
 
 /** The owner's workspace, its roles, and a member to sign in as for each role. */

@@ -26,7 +26,11 @@ const MAX_BLOCK_SHOTS = 40;
 const PROBE_ATTEMPTS = 10;
 const PROBE_INTERVAL_MS = 500;
 const EDGE_TOLERANCE_PX = 1;
-const ABORTED = "net::ERR_ABORTED";
+/** Failures that are no fault of the page: a navigation cancelling its requests, and a write the run held back. */
+const EXPECTED_FAILURES: ReadonlySet<string> = new Set([
+  "net::ERR_ABORTED",
+  "net::ERR_BLOCKED_BY_CLIENT",
+]);
 const RESOURCE_LOAD_ERROR = "Failed to load resource";
 const HTTP_ERROR_STATUS = 400;
 
@@ -165,7 +169,7 @@ export function captureErrors(
   });
   page.on("requestfailed", (request) => {
     const failure = request.failure()?.errorText ?? "failed";
-    if (failure === ABORTED) return;
+    if (EXPECTED_FAILURES.has(failure)) return;
     sink.failedRequests.push({
       viewport: sink.viewport,
       method: request.method(),
