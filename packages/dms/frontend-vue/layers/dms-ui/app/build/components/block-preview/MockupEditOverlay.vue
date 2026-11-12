@@ -25,6 +25,8 @@ const props = defineProps<{
   isDragging: boolean;
   dropLine?: PreviewRect;
   text?: InlineText;
+  /** How much the frame is shrunk on screen: a pointer's offset is divided by it. */
+  scale?: number;
 }>();
 const emit = defineEmits<{
   moveUp: [];
@@ -40,7 +42,7 @@ const emit = defineEmits<{
   textCancel: [];
 }>();
 
-const TOOLBAR_HEIGHT_PX = 30;
+const TOOLBAR_GAP_PX = 4;
 
 const { t } = useI18n();
 const draft = ref("");
@@ -68,13 +70,15 @@ function box(rect: PreviewRect): Record<string, string> {
   };
 }
 
+/** Above the block, kept at its true size however much the frame is shrunk. */
 const toolbarStyle = computed(() => {
   const rect = props.selected?.rect;
   if (!rect) return {};
-  const above = rect.y >= TOOLBAR_HEIGHT_PX;
   return {
     left: `${rect.x}px`,
-    top: `${above ? rect.y - TOOLBAR_HEIGHT_PX : rect.y + 2}px`,
+    top: `${rect.y - TOOLBAR_GAP_PX}px`,
+    transform: `translateY(-100%) scale(${1 / (props.scale || 1)})`,
+    transformOrigin: "bottom left",
   };
 });
 
@@ -100,7 +104,11 @@ function pointOf(event: DragEvent): { x: number; y: number } {
     target instanceof Element
       ? target.getBoundingClientRect()
       : { left: 0, top: 0 };
-  return { x: event.clientX - origin.left, y: event.clientY - origin.top };
+  const scale = props.scale || 1;
+  return {
+    x: (event.clientX - origin.left) / scale,
+    y: (event.clientY - origin.top) / scale,
+  };
 }
 
 function onDragOver(event: DragEvent): void {
@@ -144,14 +152,18 @@ function settle(commit: boolean): void {
       :style="box(dropLine)"
       data-dms-mockup-drop-line
     />
-    <template v-if="selected && !isDragging">
+    <template v-if="selected">
       <div
+        v-show="!isDragging"
         class="outline-primary pointer-events-none absolute rounded-md outline-2"
         :style="box(selected.rect)"
         data-dms-mockup-selection
       />
       <div
-        class="border-primary/50 bg-default text-default pointer-events-auto absolute z-10 flex h-7 items-center gap-0.5 rounded-md border px-1 shadow-sm"
+        class="border-primary/50 bg-default text-default absolute z-10 flex h-7 items-center gap-0.5 rounded-md border px-1 shadow-sm"
+        :class="
+          isDragging ? 'pointer-events-none opacity-0' : 'pointer-events-auto'
+        "
         :style="toolbarStyle"
         role="toolbar"
         :aria-label="t('dms.mockup.toolbar')"

@@ -7,6 +7,7 @@ import {
   useTemplateRef,
   watch,
 } from "vue";
+import { useResizeObserver } from "@vueuse/core";
 import { useMockupCatalog } from "../../composables/block-preview/useMockupCatalog";
 import { useMockupComments } from "../../composables/block-preview/useMockupComments";
 import { useMockupEditing } from "../../composables/block-preview/useMockupEditing";
@@ -236,10 +237,13 @@ function pickReplacement(type: string): void {
   if (pointer) editing.replaceWith(pointer, type);
 }
 
+/** Whether a key pressed on `target` belongs to it: a field, or a dialog over the editor. */
 function isEditable(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLElement &&
-    (target.isContentEditable || EDITABLE_TAGS.has(target.tagName))
+    (target.isContentEditable ||
+      EDITABLE_TAGS.has(target.tagName) ||
+      target.closest("[role=dialog]") !== null)
   );
 }
 
@@ -265,10 +269,30 @@ function onKeydown(event: KeyboardEvent): void {
 onMounted(() => window.addEventListener("keydown", onKeydown));
 onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 
+const canvasWidth = ref(0);
+useResizeObserver(canvasElement, ([entry]) => {
+  canvasWidth.value = entry?.contentRect.width ?? 0;
+});
+const frameWidth = computed(() => MOCKUP_WIDTHS[width.value]);
+const frameHeight = computed(() =>
+  Math.max(bridge.height.value ?? 0, FRAME_MIN_HEIGHT_PX),
+);
+/** Draws the frame at its true width, shrunk to fit the canvas: the page lays out as on that screen. */
+const scale = computed(() =>
+  canvasWidth.value > 0 ? Math.min(1, canvasWidth.value / frameWidth.value) : 1,
+);
 const previewStyle = computed(() => ({
-  width: `${MOCKUP_WIDTHS[width.value]}px`,
-  maxWidth: "100%",
-  height: `${Math.max(bridge.height.value ?? 0, FRAME_MIN_HEIGHT_PX)}px`,
+  width: `${frameWidth.value}px`,
+  height: `${frameHeight.value}px`,
+}));
+const boxStyle = computed(() => ({
+  width: `${frameWidth.value * scale.value}px`,
+  height: `${frameHeight.value * scale.value}px`,
+}));
+const stageStyle = computed(() => ({
+  ...previewStyle.value,
+  transform: `scale(${scale.value})`,
+  transformOrigin: "top left",
 }));
 </script>
 
@@ -332,42 +356,45 @@ const previewStyle = computed(() => ({
         <p v-if="!pages.length" class="text-muted text-sm">
           {{ t("dms.mockup.waiting") }}
         </p>
-        <div v-show="pages.length" class="relative mx-auto w-fit max-w-full">
-          <iframe
-            ref="preview"
-            class="bg-default ring-default block rounded-md ring-1"
-            :src="PREVIEW_PATH"
-            :title="t('dms.mockup.frame_title')"
-            :style="previewStyle"
-          />
-          <MockupEditOverlay
-            v-if="isEditing"
-            :selected="editing.selected.value"
-            :can-move-up="editing.canMoveUp.value"
-            :can-move-down="editing.canMoveDown.value"
-            :is-dragging="!!editing.drag.value"
-            :drop-line="editing.drop.value?.line"
-            :text="editing.text.value"
-            @move-up="editing.moveBy(-1)"
-            @move-down="editing.moveBy(1)"
-            @duplicate="editing.duplicate"
-            @remove="editing.remove"
-            @drag-start="
-              editing.drag.value = editing.selection.value
-                ? {
-                    kind: 'move',
-                    pointer: editing.selection.value,
-                    type: editing.selected.value?.label ?? '',
-                  }
-                : undefined
-            "
-            @drag-end="editing.drag.value = undefined"
-            @drag-over="editing.dragOver"
-            @drag-leave="editing.drop.value = undefined"
-            @drop="editing.dropAt"
-            @text-commit="editing.commitText"
-            @text-cancel="editing.text.value = undefined"
-          />
+        <div v-show="pages.length" class="mx-auto" :style="boxStyle">
+          <div class="relative" :style="stageStyle">
+            <iframe
+              ref="preview"
+              class="bg-default ring-default block rounded-md ring-1"
+              :src="PREVIEW_PATH"
+              :title="t('dms.mockup.frame_title')"
+              :style="previewStyle"
+            />
+            <MockupEditOverlay
+              v-if="isEditing"
+              :selected="editing.selected.value"
+              :can-move-up="editing.canMoveUp.value"
+              :can-move-down="editing.canMoveDown.value"
+              :is-dragging="!!editing.drag.value"
+              :drop-line="editing.drop.value?.line"
+              :text="editing.text.value"
+              :scale="scale"
+              @move-up="editing.moveBy(-1)"
+              @move-down="editing.moveBy(1)"
+              @duplicate="editing.duplicate"
+              @remove="editing.remove"
+              @drag-start="
+                editing.drag.value = editing.selection.value
+                  ? {
+                      kind: 'move',
+                      pointer: editing.selection.value,
+                      type: editing.selected.value?.label ?? '',
+                    }
+                  : undefined
+              "
+              @drag-end="editing.drag.value = undefined"
+              @drag-over="editing.dragOver"
+              @drag-leave="editing.drop.value = undefined"
+              @drop="editing.dropAt"
+              @text-commit="editing.commitText"
+              @text-cancel="editing.text.value = undefined"
+            />
+          </div>
         </div>
       </main>
       <MockupInspector
