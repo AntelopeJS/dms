@@ -200,14 +200,29 @@ function drawLockedEntry(item: DmsMenuItem, reason: string): DmsMenuItem {
   };
 }
 
+/**
+ * The reason of the nearest locked entry among `fullId` and its ancestors: a
+ * page under a locked category is locked too, label categories included,
+ * whose pages the menu lists as siblings rather than children.
+ */
+function lockReasonOf(fullId: string | undefined): string | undefined {
+  let path = fullId;
+  while (path) {
+    const reason = lockReasons.value.get(path);
+    if (reason !== undefined) return reason;
+    const parentEnd = path.lastIndexOf(".");
+    path = parentEnd === -1 ? undefined : path.slice(0, parentEnd);
+  }
+  return undefined;
+}
+
 function entryStateOf(fullId: string | undefined): PreviewEntryState | null {
-  if (fullId !== undefined && lockReasons.value.has(fullId)) return "hidden";
+  if (lockReasonOf(fullId) !== undefined) return "hidden";
   return preview.entryState(fullId);
 }
 
 function drawEntry(item: DmsMenuItem, state: PreviewEntryState): DmsMenuItem {
-  const reason =
-    item.fullId === undefined ? undefined : lockReasons.value.get(item.fullId);
+  const reason = lockReasonOf(item.fullId);
   return reason === undefined
     ? drawPreviewEntry(item, state)
     : drawLockedEntry(item, reason);

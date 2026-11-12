@@ -1,10 +1,13 @@
 /**
  * A sidebar entry a module keeps visible but closed: the sidebar draws it
  * muted, hatched and locked, shows `reason` as its tooltip, and drops its link.
- * Serializable, so a lock can be set from a regular (SSR-safe) plugin.
+ * Set it from a plugin to have it in the server-rendered sidebar.
  */
 export interface MenuLock {
-  /** `fullId` of the locked page or category, as registered. */
+  /**
+   * `fullId` of the locked page or category, as registered. Locking a
+   * category locks every page under it.
+   */
   fullId: string;
   /**
    * Why the entry is closed, shown as its tooltip. A `$`-prefixed value

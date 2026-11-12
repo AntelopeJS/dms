@@ -81,8 +81,8 @@ const MenuStub = defineComponent(
   { props: ["items"] },
 );
 
-function mountMenu(): void {
-  app = createApp(NavigationMenu, { items: ITEMS });
+function mountMenu(items: NavigationMenuItem[] = ITEMS): void {
+  app = createApp(NavigationMenu, { items });
   app.component("UNavigationMenu", MenuStub);
   app.mount(host);
 }
@@ -118,6 +118,21 @@ describe("useMenuLocks in the sidebar menu", () => {
     expect(unlocked.dataset.to).toBe("/modules/database/diagram");
     expect(unlocked.title).toBe("");
     expect(unlocked.dataset.badge).toBe("2");
+  });
+
+  it("locks the pages a locked label category lists after it", async () => {
+    mountMenu([
+      { label: "External", fullId: "database.external", type: "label" },
+      { label: "Schema", fullId: "database.external.schema", to: "/schema" },
+      { label: "Tables", fullId: "database.tables", to: "/tables" },
+    ]);
+    useMenuLocks().lock({ fullId: "database.external", reason: REASON });
+    await nextTick();
+
+    const schema = entry("database.external.schema");
+    expect(schema.dataset.to).toBeUndefined();
+    expect(schema.title).toBe(REASON);
+    expect(entry("database.tables").dataset.to).toBe("/tables");
   });
 
   it("translates a $-prefixed reason", async () => {
