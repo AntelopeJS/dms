@@ -65,15 +65,19 @@ const ITEMS = [
 ] satisfies NavigationMenuItem[];
 
 const renderMenuItem = (item: NavigationMenuItem): VNode =>
-  h("div", {
-    "data-entry": item.fullId,
-    "data-to": item.to,
-    "data-badge": item.badge?.label,
-    "data-trailing-icon": item.trailingIcon,
-    title: item.title,
-    class: item.class,
-    "aria-disabled": item["aria-disabled"],
-  });
+  h(
+    "div",
+    {
+      "data-entry": item.fullId,
+      "data-to": item.to,
+      "data-badge": item.badge?.label,
+      "data-trailing-icon": item.trailingIcon,
+      title: item.title,
+      class: item.class,
+      "aria-disabled": item["aria-disabled"],
+    },
+    item.children?.map(renderMenuItem),
+  );
 
 const MenuStub = defineComponent(
   (props: { items: NavigationMenuItem[][] }) => () =>
@@ -102,6 +106,7 @@ describe("useMenuLocks in the sidebar menu", () => {
     expect(locked.dataset.badge).toBeUndefined();
     expect(locked.dataset.trailingIcon).toBe("i-ph-lock-simple");
     expect(locked.className).toContain("text-muted");
+    expect(locked.className).toContain("dms-hatch-locked");
     expect(locked.getAttribute("aria-disabled")).toBe("true");
     expect(entry("database.tables").dataset.to).toBe("/modules/database");
   });
@@ -135,6 +140,25 @@ describe("useMenuLocks in the sidebar menu", () => {
     expect(entry("database.tables").dataset.to).toBe("/tables");
   });
 
+  it("hides the pages of a locked collapsible category", async () => {
+    mountMenu([
+      {
+        label: "External",
+        fullId: "database.external",
+        children: [
+          { label: "Schema", fullId: "database.external.schema", to: "/s" },
+        ],
+      },
+    ]);
+    useMenuLocks().lock({ fullId: "database.external", reason: REASON });
+    await nextTick();
+
+    expect(entry("database.external").title).toBe(REASON);
+    expect(
+      host.querySelector('[data-entry="database.external.schema"]'),
+    ).toBeNull();
+  });
+
   it("translates a $-prefixed reason", async () => {
     mountMenu();
     useMenuLocks().lock({ fullId: DIAGRAM, reason: "$database.locked" });
@@ -151,6 +175,16 @@ describe("useMenuLocks in the sidebar menu", () => {
     unlock("database.unknown");
 
     expect(locks.value).toEqual([{ fullId: DIAGRAM, reason: REASON }]);
+  });
+
+  it("leaves the registry untouched when a call changes nothing", () => {
+    const { locks, lock, unlock } = useMenuLocks();
+    lock({ fullId: DIAGRAM, reason: REASON });
+    const settled = locks.value;
+    lock({ fullId: DIAGRAM, reason: REASON });
+    unlock("database.unknown");
+
+    expect(locks.value).toBe(settled);
   });
 });
 
