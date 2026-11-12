@@ -343,11 +343,17 @@ describe("A site layout that fails to load", () => {
       siteLayout: { value: undefined },
       loadSiteLayout: () => Promise.reject(new Error("site layout 500")),
     }));
+    const reported = vi.fn();
+    const warn = vi.spyOn(console, "warn").mockImplementation(reported);
+    const error = vi.spyOn(console, "error").mockImplementation(reported);
     const { default: BrandingEditor } = await import(
       "../layers/dms-layout/app/entries/branding/BrandingEditor"
     );
     app = (await mountEditor(BrandingEditor)).app;
+    warn.mockRestore();
+    error.mockRestore();
     expect(calls).toEqual([]);
     expect(showDmsError).not.toHaveBeenCalled();
+    expect(reported).not.toHaveBeenCalled();
   });
 });
