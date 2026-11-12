@@ -66,10 +66,11 @@ export function valueProblem(
   value: string,
   kind?: ThemeValueKind,
 ): ValueProblem | undefined {
-  if (value.length > MAX_VALUE_LENGTH) return "too_long";
-  if (UNSAFE_VALUE.test(value)) return "unsafe";
-  if (!isBalanced(value)) return "unbalanced";
-  return kind && !isOfKind(value, kind) ? KIND_PROBLEMS[kind] : undefined;
+  const sent = value.trim();
+  if (sent.length > MAX_VALUE_LENGTH) return "too_long";
+  if (UNSAFE_VALUE.test(sent)) return "unsafe";
+  if (!isBalanced(sent)) return "unbalanced";
+  return kind && !isOfKind(sent, kind) ? KIND_PROBLEMS[kind] : undefined;
 }
 
 export function variableProblem(

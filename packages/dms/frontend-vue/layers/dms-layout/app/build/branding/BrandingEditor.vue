@@ -32,9 +32,29 @@ const HTTP_FORBIDDEN = 403;
 const siteLayout = useSiteLayout();
 const isOwner = useIsOwner();
 
+let isUnmounted = false;
+
+/**
+ * Whether the viewer owns the platform, once the site layout says so. A
+ * layout that fails to load shows its own error page, so it counts as no.
+ */
+async function viewerOwnsPlatform(): Promise<
+  "owner" | "not-owner" | "unknown"
+> {
+  if (!siteLayout.siteLayout.value) {
+    try {
+      await siteLayout.loadSiteLayout();
+    } catch {
+      return "unknown";
+    }
+  }
+  return isOwner.value ? "owner" : "not-owner";
+}
+
 onMounted(async () => {
-  if (!siteLayout.siteLayout.value) await siteLayout.loadSiteLayout();
-  if (!isOwner.value) {
+  const viewer = await viewerOwnsPlatform();
+  if (isUnmounted || viewer === "unknown") return;
+  if (viewer === "not-owner") {
     showDmsError({
       statusCode: HTTP_FORBIDDEN,
       statusMessage: "Access denied",
@@ -47,7 +67,10 @@ onMounted(async () => {
   void editor.open();
 });
 
-onBeforeUnmount(() => removeFonts?.());
+onBeforeUnmount(() => {
+  isUnmounted = true;
+  removeFonts?.();
+});
 
 const styles = computed(() => {
   const draft = edit.value?.draft;

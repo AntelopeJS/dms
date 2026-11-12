@@ -12,7 +12,7 @@ import type { LogoSlot, ThemeDraft, ThemeMode } from "./theme-types";
  * none of it: the draft and the files it was made on in `localStorage`, the
  * picked logos' bytes in IndexedDB, where a few of them still fit.
  */
-const DRAFT_KEY = "dms:branding:draft";
+const DRAFT_KEY_PREFIX = "dms:branding:draft:";
 const DATABASE_NAME = "dms-branding";
 const STORE_NAME = "logos";
 /** How long a draft nobody came back to is kept. */
@@ -132,7 +132,21 @@ async function run<T>(
   });
 }
 
-/** Stores the edit; resolves to whether the draft and every logo were stored. */
+/** Each project's draft has a key of its own, by its layer's source directory. */
+function draftKeyOf(layer: string): string {
+  return `${DRAFT_KEY_PREFIX}${layer}`;
+}
+
+/** Each project's logo bytes sit under its layer, so forgetting one draft keeps another's. */
+function blobKeyOf(layer: string, blobName: string): string {
+  return `${layer}\n${blobName}`;
+}
+
+function blobKeysOf(layer: string): IDBKeyRange {
+  return IDBKeyRange.bound(`${layer}\n`, `${layer}\n\uffff`);
+}
+
+/** Stores the edit for its project; resolves to whether the draft and every logo were stored. */
 export async function storeDraft(
   edit: ThemeEdit,
   now = Date.now(),
@@ -156,32 +170,29 @@ export async function storeDraft(
   };
   let isDraftStored = false;
   try {
-    storage()?.setItem(DRAFT_KEY, JSON.stringify(stored));
+    storage()?.setItem(draftKeyOf(edit.saved.layer), JSON.stringify(stored));
     isDraftStored = storage() !== undefined;
   } catch {
     isDraftStored = false;
   }
   const writes = await Promise.all(
     [...blobs].map(([name, content]) =>
-      run("readwrite", (store) => store.put(content, name)),
+      run("readwrite", (store) =>
+        store.put(content, blobKeyOf(edit.saved.layer, name)),
+      ),
     ),
   );
   return isDraftStored && writes.every(Boolean);
 }
 
-/**
- * Forgets the draft stored for `layer`, and every stored logo. A draft another
- * project left is kept for when that project comes back.
- */
+/** Forgets the draft stored for `layer` and its logos; other projects' drafts stay. */
 export async function forgetDraft(layer: string): Promise<void> {
-  const stored = readStoredDraft();
-  if (stored && stored.saved.layer !== layer) return;
   try {
-    storage()?.removeItem(DRAFT_KEY);
+    storage()?.removeItem(draftKeyOf(layer));
   } catch {
     return;
   }
-  await run("readwrite", (store) => store.clear());
+  await run("readwrite", (store) => store.delete(blobKeysOf(layer)));
 }
 
 /**
@@ -192,32 +203,37 @@ export function storedDraft(
   layer: string,
   now = Date.now(),
 ): StoredDraft | undefined {
-  const stored = readStoredDraft(now);
-  return stored?.saved.layer === layer ? stored : undefined;
-}
-
-function readStoredDraft(now = Date.now()): StoredDraft | undefined {
+  const key = draftKeyOf(layer);
   let raw: string | null | undefined;
   try {
-    raw = storage()?.getItem(DRAFT_KEY);
+    raw = storage()?.getItem(key);
   } catch {
     return undefined;
   }
   if (!raw) return undefined;
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (isStoredDraft(parsed) && now - parsed.at <= KEEP_DRAFT_MS)
+    if (
+      isStoredDraft(parsed) &&
+      parsed.saved.layer === layer &&
+      now - parsed.at <= KEEP_DRAFT_MS
+    )
       return parsed;
   } catch {
-    storage()?.removeItem(DRAFT_KEY);
+    storage()?.removeItem(key);
     return undefined;
   }
-  storage()?.removeItem(DRAFT_KEY);
+  storage()?.removeItem(key);
   return undefined;
 }
 
-async function storedBlob(name: string): Promise<string | undefined> {
-  const found = await run("readonly", (store) => store.get(name));
+async function storedBlob(
+  layer: string,
+  name: string,
+): Promise<string | undefined> {
+  const found = await run("readonly", (store) =>
+    store.get(blobKeyOf(layer, name)),
+  );
   const value: unknown = found?.result;
   return typeof value === "string" ? value : undefined;
 }
@@ -251,7 +267,7 @@ export async function restoreDraft(
   for (const [key, logo] of Object.entries(stored.pendingLogos)) {
     const parsed = parseLogoKey(key);
     if (!parsed) continue;
-    const base64Content = await storedBlob(logo.blobName);
+    const base64Content = await storedBlob(stored.saved.layer, logo.blobName);
     if (base64Content) {
       pendingLogos[logoKey(parsed.slot, parsed.mode)] = {
         contentType: logo.contentType,

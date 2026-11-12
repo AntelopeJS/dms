@@ -254,6 +254,24 @@ describe("the draft kept on the device, across projects and lost logos", () => {
   });
 });
 
+describe("the drafts of two projects on one device", () => {
+  it("keeps project A's draft when project B stores one of its own", async () => {
+    const { storeDraft, storedDraft, editOf, setColor } = await import(
+      "../layers/dms-layout/app/entries/branding/model"
+    );
+    const on = (layer: string, palette: string) =>
+      setColor(
+        editOf({ theme: files("v1"), version: "v1", layer }),
+        "primary",
+        palette,
+      );
+    await storeDraft(on("/work/a", "violet"));
+    await storeDraft(on("/work/b", "sky"));
+    expect(storedDraft("/work/a")?.draft.colors.primary).toBe("violet");
+    expect(storedDraft("/work/b")?.draft.colors.primary).toBe("sky");
+  });
+});
+
 describe("Access", () => {
   it("shows a viewer who does not own the platform the access-denied page, and reads nothing", async () => {
     const { calls, showDmsError } = await openEditor(() => ok(files("v1")), {
@@ -290,5 +308,46 @@ describe("Preview logo", () => {
     expect(host.querySelector("[data-preview-logo]")?.getAttribute("src")).toBe(
       "/branding/logo-1.svg?attempt=1",
     );
+  });
+});
+
+describe("Leaving while the site layout loads", () => {
+  it("reads no theme and leaves no font rules once the editor is gone", async () => {
+    let release: () => void = () => undefined;
+    const { calls } = installBrandingRuntime(() => ok(files("v1")));
+    vi.stubGlobal("useSiteLayout", () => ({
+      siteLayout: { value: undefined },
+      loadSiteLayout: () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    }));
+    const { default: BrandingEditor } = await import(
+      "../layers/dms-layout/app/entries/branding/BrandingEditor"
+    );
+    const mounted = await mountEditor(BrandingEditor);
+    mounted.app.unmount();
+    release();
+    await settle();
+    expect(calls).toEqual([]);
+    expect(document.getElementById("dms-branding-fonts")).toBeNull();
+  });
+});
+
+describe("A site layout that fails to load", () => {
+  it("leaves the error to the layout's own page: no theme read, no access-denied page", async () => {
+    const { calls, showDmsError } = installBrandingRuntime(() =>
+      ok(files("v1")),
+    );
+    vi.stubGlobal("useSiteLayout", () => ({
+      siteLayout: { value: undefined },
+      loadSiteLayout: () => Promise.reject(new Error("site layout 500")),
+    }));
+    const { default: BrandingEditor } = await import(
+      "../layers/dms-layout/app/entries/branding/BrandingEditor"
+    );
+    app = (await mountEditor(BrandingEditor)).app;
+    expect(calls).toEqual([]);
+    expect(showDmsError).not.toHaveBeenCalled();
   });
 });

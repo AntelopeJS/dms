@@ -218,6 +218,16 @@ describe("the module's value refusals, checked before Save", () => {
     ).toBeUndefined();
   });
 
+  it("measures a value as Save sends it, without the spaces around it", async () => {
+    const { valueProblem, MAX_VALUE_LENGTH } = await import(
+      "../layers/dms-layout/app/entries/branding/model"
+    );
+    expect(
+      valueProblem(`#ffffff${" ".repeat(MAX_VALUE_LENGTH)}`),
+    ).toBeUndefined();
+    expect(valueProblem("a".repeat(MAX_VALUE_LENGTH + 1))).toBe("too_long");
+  });
+
   it("refuses an empty logo file", async () => {
     const { logoRefusal } = await import(
       "../layers/dms-layout/app/entries/branding/model"
