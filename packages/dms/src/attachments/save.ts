@@ -206,7 +206,7 @@ function assertBodyDepth(request: AttachmentSaveRequest): void {
 export async function SaveComponentFiles<T>(
   request: AttachmentSaveRequest,
   save: (
-    document: AttachmentSaveResult<T>["document"],
+    promoted: AttachmentSaveRequest["submitted"],
   ) => Promise<AttachmentSaveResult<T>>,
 ): Promise<T> {
   assertBodyDepth(request);
