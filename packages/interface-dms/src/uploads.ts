@@ -7,7 +7,6 @@ import {
   readUploadFieldOptions,
   type UploadTokenClaims,
 } from "./internal/uploads";
-import { isString } from "./utils/internal/type-check";
 
 /** @internal */
 export namespace internal {
@@ -36,6 +35,11 @@ function isTraversable(value: unknown): value is object {
   return !!value && typeof value === "object";
 }
 
+/** Whether an upload option holds text, the only value a claim copies. */
+function isClaimText(value: unknown): value is string {
+  return typeof value === "string";
+}
+
 function isUploadFieldNode(node: unknown): node is UploadFieldNode {
   return (
     isTraversable(node) &&
@@ -62,9 +66,9 @@ async function stampNode(node: UploadFieldNode): Promise<void> {
   options.uploadToken = await SignUploadToken({
     pageId: "",
     componentId: "",
-    storage: isString(options.storage) ? options.storage : undefined,
-    path: isString(options.path) ? options.path : undefined,
-    field: isString(options.attachmentField)
+    storage: isClaimText(options.storage) ? options.storage : undefined,
+    path: isClaimText(options.path) ? options.path : undefined,
+    field: isClaimText(options.attachmentField)
       ? options.attachmentField
       : undefined,
     visibility: options.visibility === "public" ? "public" : "private",
