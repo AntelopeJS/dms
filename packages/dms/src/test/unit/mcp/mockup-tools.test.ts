@@ -381,6 +381,7 @@ function describesSafeMode(): void {
           await answerMcpMessage(
             { access: "safe", tools: MCP_TOOLS },
             { jsonrpc: "2.0", id: 1, method: "tools/list" },
+            undefined,
           ),
         );
 

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { expect } from "chai";
 import { z } from "zod";
 import { createClient } from "../helpers/http";
@@ -5,6 +6,13 @@ import { readBridgeConfig } from "../helpers/mcp";
 
 const ROUTE = "/dms/mcp";
 const OVER_ONE_MEBIBYTE = 1024 * 1024 + 1;
+
+const CallAnswerSchema = z.object({
+  result: z.object({ content: z.array(z.object({ text: z.string() })) }),
+});
+const HELD = /^builder_delete_page was not run: no one has confirmed it yet\./;
+const SESSIONLESS =
+  /^builder_delete_page was not run: the MCP client sent no session/;
 
 const ToolsAnswerSchema = z.object({
   id: z.number(),
@@ -105,5 +113,57 @@ describe("[integration] mcp route", () => {
     });
     expect(response.status).to.equal(400);
     expect(response.data).to.have.nested.property("error.code", -32700);
+  });
+});
+
+describe("[integration] mcp route sessions", () => {
+  const client = createClient();
+
+  async function deletePage(
+    pageRef: string,
+    sessionHeader: { "mcp-session-id"?: string },
+  ): Promise<string> {
+    const response = await client.post(
+      ROUTE,
+      {
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "builder_delete_page", arguments: { pageRef } },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${readBridgeConfig().token}`,
+          ...sessionHeader,
+        },
+      },
+    );
+    return CallAnswerSchema.parse(response.data).result.content[0]?.text ?? "";
+  }
+
+  it("holds a deletion for the session its mcp-session-id header names, and again for another session", async () => {
+    const pageRef = `/route-hold-${randomUUID()}`;
+    expect(
+      await deletePage(pageRef, { "mcp-session-id": "route-session-a" }),
+    ).to.match(HELD);
+    expect(
+      await deletePage(pageRef, { "mcp-session-id": "route-session-b" }),
+    ).to.match(HELD);
+  });
+
+  it("refuses a deletion sent with no session header every time, so no repeat of it runs", async () => {
+    const pageRef = `/route-hold-${randomUUID()}`;
+    expect(await deletePage(pageRef, {})).to.match(SESSIONLESS);
+    expect(await deletePage(pageRef, {})).to.match(SESSIONLESS);
+  });
+
+  it("refuses a deletion sent with an empty session header every time, as one with none", async () => {
+    const pageRef = `/route-hold-${randomUUID()}`;
+    expect(await deletePage(pageRef, { "mcp-session-id": "" })).to.match(
+      SESSIONLESS,
+    );
+    expect(await deletePage(pageRef, { "mcp-session-id": "" })).to.match(
+      SESSIONLESS,
+    );
   });
 });

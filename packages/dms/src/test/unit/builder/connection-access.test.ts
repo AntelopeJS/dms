@@ -110,6 +110,7 @@ describe("[unit] builder_map_resources through the MCP server follows the access
         method: "tools/call",
         params: { name, arguments: args },
       },
+      "test-session",
     );
     return ToolAnswerSchema.parse(reply).result;
   }

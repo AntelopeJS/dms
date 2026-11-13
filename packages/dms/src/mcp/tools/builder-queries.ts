@@ -152,8 +152,8 @@ const removeQuery = defineTool({
   ),
   effect: "builder",
   input: z.object({ query: QUERY_REF }),
-  run: async (args) =>
-    repeatConfirmation.hold("builder_remove_query", args) ??
+  run: async (args, sessionId) =>
+    repeatConfirmation.hold(sessionId, "builder_remove_query", args) ??
     opResult(await RemoveQuery(args.query)),
 });
 
