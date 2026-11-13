@@ -4,7 +4,16 @@ import type {
 } from "@antelopejs/interface-dms/base/block-types";
 import { CONTROLLER_BLOCKS } from "./controller-blocks";
 import type { Json, JsonObject } from "./model";
-import { jsonSchema, KEY_PATTERN, MAX_PAGES, SLUG_PATTERN } from "./model";
+import {
+  DASHBOARD_PATH_PATTERN,
+  jsonSchema,
+  KEY_PATTERN,
+  MAX_DASHBOARD_PATH,
+  MAX_PAGES,
+  MOCKUP_SOURCES,
+  RELATIVE_ROUTE_PATTERN,
+  SLUG_PATTERN,
+} from "./model";
 import {
   SKETCH_DEFAULT_HEIGHT,
   SKETCH_MAX_CAPTION,
@@ -174,6 +183,34 @@ function pageDefinition(): JsonObject {
           padding: { type: "boolean", default: true },
         },
       },
+      livePage: {
+        type: "object",
+        required: ["ref", "version"],
+        additionalProperties: false,
+        description:
+          "The live page this page was converted from (Edit as mockup). Build it updates that page instead of creating a new one.",
+        properties: {
+          ref: {
+            type: "string",
+            minLength: 1,
+            description: "Its builder ref.",
+          },
+          version: {
+            type: "string",
+            description: "Its source file's version at the conversion.",
+          },
+        },
+      },
+      liveRoutes: {
+        type: "object",
+        propertyNames: { pattern: KEY_PATTERN.source },
+        additionalProperties: {
+          type: "string",
+          pattern: RELATIVE_ROUTE_PATTERN.source,
+        },
+        description:
+          'The live route a fixture key stands for: with Real data on, an option "fixture:<key>" reads it instead of the fixture.',
+      },
       fixtures: {
         type: "object",
         propertyNames: { pattern: KEY_PATTERN.source },
@@ -181,6 +218,48 @@ function pageDefinition(): JsonObject {
           'Data a block reads: an option "fixture:<key>" is served from here.',
       },
       tree: { type: "array", items: NODE_REF },
+    },
+  };
+}
+
+function builtDefinition(): JsonObject {
+  return {
+    type: "object",
+    required: ["at", "pages"],
+    additionalProperties: false,
+    description:
+      "Written when the mockup is built into real pages. Leave it out while the mockup is a draft: the Mockups page lists a mockup with it as Built and links each page.",
+    properties: {
+      at: {
+        type: "string",
+        format: "date-time",
+        description:
+          "When the build finished, an ISO 8601 date and time, e.g. 2026-11-13T10:00:00Z.",
+      },
+      pages: {
+        type: "array",
+        minItems: 1,
+        maxItems: MAX_PAGES,
+        items: {
+          type: "object",
+          required: ["path"],
+          additionalProperties: false,
+          properties: {
+            path: {
+              type: "string",
+              pattern: DASHBOARD_PATH_PATTERN.source,
+              maxLength: MAX_DASHBOARD_PATH,
+              description:
+                'A path of the dashboard, such as "/orders": it starts with one "/", never "//", and holds no space.',
+            },
+            title: {
+              type: "string",
+              description:
+                "The link's text. The path is shown when it is absent.",
+            },
+          },
+        },
+      },
     },
   };
 }
@@ -209,6 +288,12 @@ export function buildMockupSchema(
       $schema: { type: "string" },
       version: { const: 1 },
       title: { type: "string" },
+      source: {
+        enum: [...MOCKUP_SOURCES],
+        description:
+          "Who wrote this mockup: chat (the dashboard chat), claude-code or codex. Set it when you create the spec.",
+      },
+      built: builtDefinition(),
       pages: {
         type: "array",
         minItems: 1,

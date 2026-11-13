@@ -168,25 +168,7 @@ async function analysed(): Promise<AnalysisState> {
   return finished(started.data);
 }
 
-describe("an analysis job", function () {
-  this.timeout(OP_TIMEOUT);
-
-  beforeEach(() => {
-    calls.length = 0;
-  });
-
-  before(() => {
-    app = createFixture({ modules: [MODULE] });
-    setCatalogConnectionsForTests({ erp: catalogOver(RELATIONS) });
-    setModuleReloadForTests(reloadedAtOnce);
-  });
-
-  after(() => {
-    setCatalogConnectionsForTests();
-    setModuleReloadForTests();
-    destroyFixture();
-  });
-
+function proposesWhatIsMappable(): void {
   it("answers its job at once, then a proposal that writes nothing", async () => {
     const state = await analysed();
     expect(state.status).to.equal("done");
@@ -256,7 +238,9 @@ describe("an analysis job", function () {
     const own = await AnalyseDatabase({ connection: "erp", module: "nope" });
     expect(own.ok).to.equal(false);
   });
+}
 
+function keepsOneJobPerConnection(): void {
   it("answers a connection's latest job: the running one on a second start, then the next once it finished", async () => {
     const first = jobOf(
       await AnalyseDatabase({ connection: "erp", module: MODULE }),
@@ -301,4 +285,27 @@ describe("an analysis job", function () {
       setCatalogConnectionsForTests({ erp: catalogOver(RELATIONS) });
     }
   });
+}
+
+describe("an analysis job", function () {
+  this.timeout(OP_TIMEOUT);
+
+  beforeEach(() => {
+    calls.length = 0;
+  });
+
+  before(() => {
+    app = createFixture({ modules: [MODULE] });
+    setCatalogConnectionsForTests({ erp: catalogOver(RELATIONS) });
+    setModuleReloadForTests(reloadedAtOnce);
+  });
+
+  after(() => {
+    setCatalogConnectionsForTests();
+    setModuleReloadForTests();
+    destroyFixture();
+  });
+
+  proposesWhatIsMappable();
+  keepsOneJobPerConnection();
 });

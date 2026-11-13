@@ -5,8 +5,13 @@ import {
   type ObjectLiteralExpression,
   Project,
   type SourceFile,
+  ts,
 } from "ts-morph";
-import { createProject, resolveProjectRoot } from "./project";
+import {
+  createProject,
+  projectSourcePaths,
+  resolveProjectRoot,
+} from "./project";
 
 const CONFIG_FILES = ["antelope.config.ts", "antelope.config.mts"];
 const MODULE_ENTRY = path.join("src", "index.ts");
@@ -223,6 +228,37 @@ export function createModulesProject(): Project {
     project.addSourceFilesAtPaths(path.join(module.root, "src", "**", "*.ts"));
   }
   return project;
+}
+
+/**
+ * Add each source a fresh {@link createModulesProject} loads that the project
+ * does not hold yet. A file created since the project was built then joins
+ * it, so a refresh keeps it current instead of the copy an import first
+ * resolved. Each file is listed from the disk and added on its own: a glob
+ * through the project's file system fails on a directory deleted since.
+ */
+export function addModuleSources(project: Project): void {
+  const held = new Set<string>(
+    project.getSourceFiles().map((file) => file.getFilePath()),
+  );
+  const listed = [
+    ...projectSourcePaths(resolveProjectRoot()),
+    ...projectModules()
+      .filter((module) => !module.isProject)
+      .flatMap((module) =>
+        ts.sys.readDirectory(
+          path.join(module.root, "src"),
+          [".ts"],
+          undefined,
+          ["**/*"],
+        ),
+      ),
+  ];
+  for (const filePath of listed) {
+    if (!held.has(filePath)) {
+      project.addSourceFileAtPathIfExists(filePath);
+    }
+  }
 }
 
 /**

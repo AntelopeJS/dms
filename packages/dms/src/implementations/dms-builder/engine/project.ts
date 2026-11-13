@@ -62,6 +62,25 @@ function findTsConfig(rootDir: string): string | undefined {
   }
 }
 
+/**
+ * The app's own sources as {@link createProject} loads them, listed from the
+ * disk: what its tsconfig includes, or every checked `.ts` file under it
+ * without one.
+ */
+export function projectSourcePaths(rootDir: string): string[] {
+  const tsConfigFilePath = findTsConfig(rootDir);
+  if (!tsConfigFilePath) {
+    return ts.sys.readDirectory(rootDir, [".ts"], UNCHECKED_PATTERNS, ["**/*"]);
+  }
+  return (
+    ts.getParsedCommandLineOfConfigFile(
+      tsConfigFilePath,
+      {},
+      { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined },
+    )?.fileNames ?? []
+  );
+}
+
 const INDENT_SAMPLE_BYTES = 8192;
 
 /**

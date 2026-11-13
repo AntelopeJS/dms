@@ -2,6 +2,7 @@ import {
   Node,
   type PropertyAssignment,
   type ShorthandPropertyAssignment,
+  type SourceFile,
   SyntaxKind,
   VariableDeclarationKind,
 } from "ts-morph";
@@ -42,6 +43,7 @@ function isConstantValue(value: LiteralValue): value is ConstantValue {
 export interface NamedConstant {
   /** The keys and indexes leading to it from the top of the value read. */
   path: (string | number)[];
+  /** The source text the value was written as: a constant's name, or a template literal of constants. */
   name: string;
   value: ConstantValue;
 }
@@ -172,15 +174,40 @@ function resourceRef(node: Node): LiteralResult | undefined {
 }
 
 /**
- * The value of a `const` declared in the same file with a plain value —
- * `id: PERIOD_SCOPE` — or `undefined` for anything else.
+ * The value of a `const` declared with a plain value, in the same file or
+ * imported — `id: PERIOD_SCOPE` — or `undefined` for anything else.
  *
  * Only a plain value: an object held in a constant is one instance shared by
- * every reader, and writing it back as a copy would quietly split it. And only
- * the same file, so the name the writer puts back never depends on an import it
- * does not manage.
+ * every reader, and writing it back as a copy would quietly split it. Only a
+ * named import from another file: the writer prunes a named import once an
+ * edit replaces the name with a value, and leaves a default import behind.
  */
 const readingConstants = new Set<Node>();
+
+function importedByName(node: Node): boolean {
+  return (
+    node.getSymbol()?.getDeclarations().some(Node.isImportSpecifier) ?? false
+  );
+}
+
+/**
+ * The value of each constant a file imports by name, so a page's version
+ * moves when one of them changes in the file that declares it.
+ */
+export function importedConstants(
+  sourceFile: SourceFile,
+): [string, ConstantValue][] {
+  return sourceFile
+    .getImportDeclarations()
+    .flatMap((declaration) => declaration.getNamedImports())
+    .flatMap((specifier) => {
+      const binding = specifier.getAliasNode() ?? specifier.getNameNode();
+      const constant = Node.isIdentifier(binding)
+        ? constantValue(binding)
+        : undefined;
+      return constant ? [[binding.getText(), constant.value]] : [];
+    });
+}
 
 function constantValue(node: Node): { value: ConstantValue } | undefined {
   if (!Node.isIdentifier(node)) {
@@ -200,7 +227,8 @@ function constantValue(node: Node): { value: ConstantValue } | undefined {
     definitions.length !== 1 ||
     !definition ||
     !Node.isVariableDeclaration(definition) ||
-    definition.getSourceFile() !== node.getSourceFile() ||
+    (definition.getSourceFile() !== node.getSourceFile() &&
+      !importedByName(node)) ||
     definition.getVariableStatement()?.getDeclarationKind() !==
       VariableDeclarationKind.Const
   ) {
@@ -232,6 +260,31 @@ function constantRef(node: Node): LiteralResult | undefined {
     return undefined;
   }
   const { value } = constant;
+  return {
+    value,
+    fullyLiteral: true,
+    constants: [{ path: [], name: node.getText(), value }],
+  };
+}
+
+/**
+ * A template literal whose every substitution is a plain constant —
+ * `` `${API}/users` `` — read as the string it builds, so a route built from a
+ * base URL does not lock its block. It is reported with its source text, and
+ * the page writer puts the template back while the string is unchanged.
+ */
+function templateRef(node: Node): LiteralResult | undefined {
+  if (!Node.isTemplateExpression(node)) {
+    return undefined;
+  }
+  let value = node.getHead().getLiteralText();
+  for (const span of node.getTemplateSpans()) {
+    const part = constantValue(unwrapExpression(span.getExpression()));
+    if (!part) {
+      return undefined;
+    }
+    value += String(part.value) + span.getLiteral().getLiteralText();
+  }
   return {
     value,
     fullyLiteral: true,
@@ -300,6 +353,7 @@ function literalToValue(node: Node | undefined): LiteralResult {
     blockCall(node) ??
     resourceRef(node) ??
     constantRef(node) ??
+    templateRef(node) ??
     opaqueExpr(node)
   );
 }

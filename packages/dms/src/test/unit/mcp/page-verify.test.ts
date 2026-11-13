@@ -44,11 +44,7 @@ function emptyReport(): Omit<PageReport, "ok" | "failures"> {
   };
 }
 
-describe("[unit] mcp page_verify", () => {
-  afterEach(() => {
-    delete pagesBySlug[ORDER_SLUG];
-  });
-
+function findsPages(): void {
   it("is served in Safe mode, since it only reads", () => {
     const tool = MCP_TOOLS.find(
       (candidate) => candidate.name === "page_verify",
@@ -71,7 +67,9 @@ describe("[unit] mcp page_verify", () => {
     expect(resolvePage("sales.order")?.info.fullSlug).to.equal(ORDER_SLUG);
     expect(resolvePage("/sales/invoices/42")).to.equal(undefined);
   });
+}
 
+function readsPageBlocks(): void {
   it("reads a preview notice as the block's data state, and an unknown state as an error", () => {
     const probe: PageProbe = {
       blocks: [
@@ -145,7 +143,9 @@ describe("[unit] mcp page_verify", () => {
       ],
     });
   });
+}
 
+function checksRolesAndListsFailures(): void {
   it("checks a role only through a member holding that role alone, never through an owner or a member with more roles", () => {
     const member = (
       userId: string,
@@ -231,4 +231,14 @@ describe("[unit] mcp page_verify", () => {
       "permissions: role Support should be refused but the page rendered",
     ]);
   });
+}
+
+describe("[unit] mcp page_verify", () => {
+  afterEach(() => {
+    delete pagesBySlug[ORDER_SLUG];
+  });
+
+  findsPages();
+  readsPageBlocks();
+  checksRolesAndListsFailures();
 });

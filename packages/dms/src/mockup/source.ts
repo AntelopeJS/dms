@@ -10,7 +10,13 @@ import {
   SPEC_FILE,
   writeAtomically,
 } from "./files";
-import type { Json, JsonObject, MockupIssue, MockupName } from "./model";
+import type {
+  Json,
+  JsonObject,
+  MockupIssue,
+  MockupName,
+  MockupSpec,
+} from "./model";
 import { jsonObjectSchema } from "./model";
 
 const JSON_INDENT = 2;
@@ -79,7 +85,7 @@ export async function readSpecSource(
 }
 
 /** Writes `spec` as {@link writeSpec} does, inside {@link withSpecLock}. */
-export type SpecWriter = (spec: Json) => Promise<SpecWriteResult>;
+export type SpecWriter = (spec: Json | MockupSpec) => Promise<SpecWriteResult>;
 
 /**
  * Writes `text`, the `spec.json` read inside {@link withSpecLock}, with each
@@ -210,7 +216,7 @@ function stampNow(mockupsDir: string, name: MockupName): SpecStamper {
 export function writeSpec(
   mockupsDir: string,
   name: MockupName,
-  spec: Json,
+  spec: Json | MockupSpec,
 ): Promise<SpecWriteResult> {
   return withSpecLock(mockupsDir, name, (write) => write(spec));
 }

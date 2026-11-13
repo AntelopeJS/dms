@@ -37,6 +37,7 @@ import {
   pageIdSchema,
   parseMockupName,
 } from "./model";
+import { registerFromPageRoute } from "./from-page-routes";
 import type { MockupEvent, MockupStore, MockupSummary } from "./store";
 import { registerSpecRoutes } from "./source-routes";
 
@@ -108,8 +109,9 @@ export function registerMockupRoutes(engine: MockupEngine) {
 
   class MockupController extends Controller(MOCKUP_API) {
     @Get("/")
-    async list(): Promise<{ mockups: MockupSummary[] }> {
-      return { mockups: await store.list() };
+    async list(): Promise<{ results: MockupSummary[]; total: number }> {
+      const results = await store.list();
+      return { results, total: results.length };
     }
 
     @Get("schema")
@@ -184,6 +186,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
   }
   registerAnnotationRoutes(store);
   registerSpecRoutes(store.mockupsDir);
+  registerFromPageRoute(store.mockupsDir);
   return MockupController;
 }
 

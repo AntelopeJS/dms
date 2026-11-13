@@ -155,20 +155,7 @@ async function pageFile(id: string): Promise<string> {
   return page ? fileText(page.filepath) : "";
 }
 
-describe("composing a page in one call", function () {
-  this.timeout(OP_TIMEOUT * 4);
-
-  before(installShopCatalog);
-  after(removeShopCatalog);
-
-  beforeEach(async () => {
-    await freshMappedApp();
-    ORDERS =
-      (await ListResources()).find((entry) => entry.tableName === "orders")
-        ?.ref ?? "";
-    expect(ORDERS, "the orders resource").to.not.equal("");
-  });
-
+function composesANewPage(): void {
   it("builds an analytics page with one typecheck, and is faster than block by block", async () => {
     const composed = await countTypechecks(() =>
       ComposePage(analytics("analytics")),
@@ -235,7 +222,9 @@ describe("composing a page in one call", function () {
     expect(text).to.include("/blocks/3/children/0/query/params");
     expect(await pageFile("analytics"), "the page is not created").to.equal("");
   });
+}
 
+function extendsAPageAndPreviewsQueries(): void {
   it("puts a KPI row above a mapped table and survives a remap", async () => {
     const [row] = [
       {
@@ -296,6 +285,24 @@ describe("composing a page in one call", function () {
     expect(answerStatus({ value: 4, sparkline: [] })).to.equal("ok");
     expect(answerStatus({ series: [{ x: "a", y: 3 }] })).to.equal("ok");
   });
+}
+
+describe("composing a page in one call", function () {
+  this.timeout(OP_TIMEOUT * 4);
+
+  before(installShopCatalog);
+  after(removeShopCatalog);
+
+  beforeEach(async () => {
+    await freshMappedApp();
+    ORDERS =
+      (await ListResources()).find((entry) => entry.tableName === "orders")
+        ?.ref ?? "";
+    expect(ORDERS, "the orders resource").to.not.equal("");
+  });
+
+  composesANewPage();
+  extendsAPageAndPreviewsQueries();
 });
 
 /** The same page through the single-block operations, as an agent builds it today. */

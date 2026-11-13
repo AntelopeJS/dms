@@ -100,11 +100,33 @@ const pageOptionsSchema = z
 /** How a page is drawn: its color mode, its language and its padding. */
 export type MockupPageOptions = z.infer<typeof pageOptionsSchema>;
 
+/**
+ * A path of the site the dashboard runs on, as the preview lets a block
+ * fetch it: one leading `/`, no host (`//host`, `/\host`), and no control
+ * character (Unicode `Cc`), which a URL parser drops: `/<tab>/host` reads
+ * `//host`. A `u` pattern, as JSON Schema validators compile it.
+ */
+export const RELATIVE_ROUTE_PATTERN = /^\/(?![/\\])\P{Cc}*$/u;
+
+/**
+ * The live page a spec page was converted from: its builder ref, and the
+ * version of its source file at the conversion.
+ */
+const livePageSchema = z
+  .object({ ref: z.string().min(1), version: z.string() })
+  .strict();
+
+export type MockupLivePage = z.infer<typeof livePageSchema>;
+
 const pageSchema = z
   .object({
     id: pageIdSchema,
     title: z.string(),
     options: pageOptionsSchema.optional(),
+    livePage: livePageSchema.optional(),
+    liveRoutes: z
+      .record(fixtureKeySchema, z.string().regex(RELATIVE_ROUTE_PATTERN))
+      .optional(),
     fixtures: z.record(fixtureKeySchema, jsonSchema).optional(),
     tree: z.array(nodeSchema),
   })
@@ -113,12 +135,50 @@ const pageSchema = z
 /** One page of a spec, as written. */
 export type MockupSpecPage = z.infer<typeof pageSchema>;
 
+/** Who writes a mockup: the dashboard chat, Claude Code or Codex. */
+export const MOCKUP_SOURCES = ["chat", "claude-code", "codex"] as const;
+export type MockupSource = (typeof MOCKUP_SOURCES)[number];
+
+/** Decodes a {@link MockupSource}. */
+export const mockupSourceSchema = z.enum(MOCKUP_SOURCES);
+
+/**
+ * A path of the dashboard: one `/`, then no whitespace. A second `/` or a
+ * backslash would make browsers read an external host, and a scheme never
+ * starts with `/`.
+ */
+export const DASHBOARD_PATH_PATTERN = /^\/(?![/\\])\S*$/;
+/** How long a dashboard path is at most. */
+export const MAX_DASHBOARD_PATH = 2048;
+
+const dashboardPathSchema = z
+  .string()
+  .max(MAX_DASHBOARD_PATH)
+  .regex(DASHBOARD_PATH_PATTERN);
+
+/** Decodes what the build step wrote of a mockup: when, and the pages it made. */
+export const mockupBuiltSchema = z
+  .object({
+    at: z.string().datetime({ offset: true }),
+    pages: z
+      .array(
+        z
+          .object({ path: dashboardPathSchema, title: z.string().optional() })
+          .strict(),
+      )
+      .min(1)
+      .max(MAX_PAGES),
+  })
+  .strict();
+
 /** `mockups/<name>/spec.json`, as written. */
 export const specSchema = z
   .object({
     $schema: z.string().optional(),
     version: z.literal(1),
     title: z.string().optional(),
+    source: mockupSourceSchema.optional(),
+    built: mockupBuiltSchema.optional(),
     pages: z.array(pageSchema).min(1).max(MAX_PAGES),
   })
   .strict()
@@ -152,6 +212,13 @@ export interface MockupPageState {
   options: MockupPageOptions;
   /** Fixture references rewritten, controller blocks compiled. */
   tree: MockupNode[];
+  /**
+   * `tree` with each fixture named in the page's `liveRoutes` read from its
+   * live route instead: what the viewer draws with Real data on. Present
+   * only when the page has `liveRoutes`; its layout paths are `tree`'s.
+   */
+  realTree?: MockupNode[];
+  livePage?: Pick<MockupLivePage, "ref">;
   /** The spec pointer of each node, keyed by its `DmsBlockPreview` layout path. */
   paths: Record<string, string>;
 }

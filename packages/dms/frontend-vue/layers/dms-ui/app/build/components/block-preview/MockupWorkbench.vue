@@ -26,6 +26,7 @@ import {
 } from "../../utils/blockPreviewMessages";
 import {
   MOCKUP_WIDTHS,
+  type MockupDataMode,
   type MockupMode,
   type MockupWidth,
 } from "../../utils/mockup";
@@ -46,13 +47,16 @@ import MockupTopBar from "./MockupTopBar.vue";
  * and restyle blocks, edit pages, each edit written to `spec.json` at once,
  * with undo and redo. The page is drawn by the real block preview in an
  * iframe, inside the sidebar of the mockup's pages; data wiring is never
- * edited here, but handed to the AI.
+ * edited here, but handed to the AI. A page converted from a live page reads
+ * its live routes while Real data is on, which it is unless the developer
+ * turns it off; any other page reads its fixtures alone.
  */
 const props = defineProps<{
   name: string;
   initialPage?: string;
   initialWidth?: MockupWidth;
   initialMode?: MockupMode;
+  initialData?: MockupDataMode;
 }>();
 
 const PREVIEW_PATH = "/dms-preview";
@@ -104,7 +108,10 @@ const editor = useMockupSpec({
 const catalog = useMockupCatalog($authFetch);
 const handoff = useMockupHandoff({
   mockup: props.name,
-  buildCommand: (name) => t("dms.mockup.prompt_build", { name }),
+  buildCommand: (name, target) =>
+    target
+      ? t("dms.mockup.prompt_build_page", { name, ref: target.pageRef })
+      : t("dms.mockup.prompt_build", { name }),
 });
 
 const previewElement = useTemplateRef<HTMLIFrameElement>("preview");
@@ -112,6 +119,7 @@ const canvasElement = useTemplateRef<HTMLElement>("canvas");
 const requestedPage = ref(props.initialPage);
 const width = ref<MockupWidth>(props.initialWidth ?? "desktop");
 const mode = ref<MockupMode>(props.initialMode ?? "edit");
+const dataChoice = ref<MockupDataMode | undefined>(props.initialData);
 const replacing = ref<string>();
 
 const pages = computed(() => state.value?.pages ?? []);
@@ -129,6 +137,18 @@ const pageIndex = computed(() =>
   ),
 );
 const title = computed(() => state.value?.title || props.name);
+const hasRealData = computed(() => currentPage.value?.realTree !== undefined);
+/** On by default for a page converted from a live page; the developer's choice wins. */
+const realData = computed({
+  get: () =>
+    hasRealData.value &&
+    (dataChoice.value
+      ? dataChoice.value === "real"
+      : currentPage.value?.livePage !== undefined),
+  set: (isOn: boolean) => {
+    dataChoice.value = isOn ? "real" : "sample";
+  },
+});
 
 const editing = useMockupEditing({
   editor,
@@ -163,7 +183,7 @@ function syncPreview(): void {
   if (!page) return;
   bridge.post(
     previewRenderMessage({
-      tree: page.tree,
+      tree: realData.value && page.realTree ? page.realTree : page.tree,
       theme: isPreviewTheme(page.options.theme)
         ? page.options.theme
         : currentSketchScheme(),
@@ -195,7 +215,7 @@ const bridge = usePreviewFrame({
   onNavigate: (id) => (requestedPage.value = id),
 });
 
-watch([state, () => currentPage.value?.id], syncPreview);
+watch([state, () => currentPage.value?.id, realData], syncPreview);
 watch(mode, () => {
   comments.close();
   editing.text.value = undefined;
@@ -230,6 +250,14 @@ function handOff(
 ): void {
   const request = blockOf(pointer, source);
   if (request) handoff.request(request);
+}
+
+function build(): void {
+  const livePage = currentPage.value?.livePage;
+  handoff.request({
+    source: "build",
+    ...(livePage && { target: { pageRef: livePage.ref } }),
+  });
 }
 
 function closeReplacement(open: boolean): void {
@@ -318,6 +346,8 @@ const stageStyle = computed(() => ({
     <MockupTopBar
       v-model:width="width"
       v-model:mode="mode"
+      v-model:real-data="realData"
+      :has-real-data="hasRealData"
       :title="title"
       :can-undo="editor.canUndo.value"
       :can-redo="editor.canRedo.value"
@@ -325,7 +355,7 @@ const stageStyle = computed(() => ({
       :is-connected="isConnected"
       @undo="undo"
       @redo="redo"
-      @build="handoff.request({ source: 'build' })"
+      @build="build"
     />
     <UAlert
       v-if="comments.notice.value"

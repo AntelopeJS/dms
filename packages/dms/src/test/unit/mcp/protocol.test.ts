@@ -147,12 +147,7 @@ async function call(access: McpAccess, name: string, args: JsonValue) {
   return answer(access, request(2, "tools/call", { name, arguments: args }));
 }
 
-describe("[unit] mcp protocol", () => {
-  beforeEach(() => {
-    calls.project = 0;
-    calls.echo = 0;
-  });
-
+function answersProtocolMessages(): void {
   it("answers initialize in the client's protocol version when it speaks it, else in its newest", async () => {
     const known = await answer(
       "full",
@@ -202,7 +197,9 @@ describe("[unit] mcp protocol", () => {
     expect(reply.id).to.equal(3);
     expect(reply.error.code).to.equal(-32600);
   });
+}
 
+function gatesToolsByAccess(): void {
   it("lists the read and builder tools under safe access, and every tool under full", async () => {
     expect(await listed("safe")).to.deep.equal(["echo", "build", "failing"]);
     expect(await listed("full")).to.deep.equal([
@@ -246,7 +243,9 @@ describe("[unit] mcp protocol", () => {
     expect(reply.result.isError).to.equal(true);
     expect(reply.result.content[0]?.text).to.equal("failing failed: disk full");
   });
+}
 
+function servesTheRealTools(): void {
   it("serves the builder tools under safe access and keeps the project configuration and resource deletion out", async () => {
     const safe = await listed("safe", MCP_TOOLS);
     const full = await listed("full", MCP_TOOLS);
@@ -298,4 +297,15 @@ describe("[unit] mcp protocol", () => {
       expect(resolveRef(schema, ref), ref).to.be.an("object");
     }
   });
+}
+
+describe("[unit] mcp protocol", () => {
+  beforeEach(() => {
+    calls.project = 0;
+    calls.echo = 0;
+  });
+
+  answersProtocolMessages();
+  gatesToolsByAccess();
+  servesTheRealTools();
 });

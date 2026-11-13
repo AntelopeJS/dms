@@ -243,33 +243,105 @@ function jsonDepth(text: string): number {
   return deepest;
 }
 
+function compileTree(
+  page: MockupSpecPage,
+  pointer: string,
+  scope: PageScope,
+): MockupNode[] {
+  return page.tree.map((node, index) =>
+    compileNode(
+      node,
+      `${pointer}/tree/${index}`,
+      `${ROOT_LAYOUT_PREFIX}${index}`,
+      scope,
+    ),
+  );
+}
+
+/**
+ * The page's tree on its fixtures, and on its live routes when it has some.
+ * The issues are the fixture side's alone: both sides share every node.
+ */
 function compilePage(
   name: MockupName,
   page: MockupSpecPage,
   pointer: string,
   scope: Pick<PageScope, "catalog" | "issues">,
 ): MockupPageState {
-  const pageScope: PageScope = {
-    ...scope,
-    name,
-    pageId: page.id,
-    fixtures: page.fixtures ?? {},
-    paths: {},
-  };
-  const tree = page.tree.map((node, index) =>
-    compileNode(
-      node,
-      `${pointer}/tree/${index}`,
-      `${ROOT_LAYOUT_PREFIX}${index}`,
-      pageScope,
-    ),
-  );
-  return {
+  const onPage = { name, pageId: page.id, fixtures: page.fixtures ?? {} };
+  const pageScope: PageScope = { ...scope, ...onPage, paths: {} };
+  const state: MockupPageState = {
     id: page.id,
     title: page.title,
     options: page.options ?? {},
-    tree,
+    tree: compileTree(page, pointer, pageScope),
     paths: pageScope.paths,
+  };
+  if (page.liveRoutes) {
+    state.realTree = compileTree(page, pointer, {
+      catalog: scope.catalog,
+      ...onPage,
+      issues: [],
+      paths: {},
+      routes: page.liveRoutes,
+    });
+  }
+  if (page.livePage) state.livePage = { ref: page.livePage.ref };
+  return state;
+}
+
+export type BlockTypeKind = "unknown" | "block" | "controller";
+
+const STYLE_GROUPS: ReadonlySet<string | undefined> = new Set([
+  "appearance",
+  "layout",
+]);
+
+/**
+ * The compiler, asked about one node at a time: the converter's only source
+ * of what a mockup can express.
+ */
+export interface NodeOracle {
+  kindOf(type: string): BlockTypeKind;
+  /**
+   * Whether option `key` of block type `type` is one a block draws the same
+   * without it: its schema files it under a style group. An option the type
+   * does not declare, or files under no group, is not.
+   */
+  isStyleOption(type: string, key: string): boolean;
+  /**
+   * The issues of `node` as the first node of a page holding `fixtures`,
+   * each at a pointer relative to the node.
+   */
+  issuesOf(node: MockupNode, fixtures: JsonObject): MockupIssue[];
+}
+
+export function openOracle(name: MockupName, pageId: string): NodeOracle {
+  const catalog = readCatalog();
+  return {
+    kindOf(type) {
+      const descriptor = catalog.byType.get(type);
+      if (!descriptor) return "unknown";
+      return descriptor.controllerArg ? "controller" : "block";
+    },
+    isStyleOption(type, key) {
+      const config = catalog.byType.get(type)?.config;
+      const option =
+        config && Object.hasOwn(config, key) ? config[key] : undefined;
+      return STYLE_GROUPS.has(option?.ui?.group);
+    },
+    issuesOf(node, fixtures) {
+      const scope: PageScope = {
+        catalog,
+        issues: [],
+        name,
+        pageId,
+        fixtures,
+        paths: {},
+      };
+      compileNode(node, "", `${ROOT_LAYOUT_PREFIX}0`, scope);
+      return scope.issues;
+    },
   };
 }
 

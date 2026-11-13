@@ -22,6 +22,7 @@ import {
   sketch,
   spec,
   useWorkspace,
+  type Workspace,
   writeAnswerSchema,
 } from "../../helpers/mockup-mcp";
 
@@ -40,17 +41,17 @@ const annotationsAnswerSchema = z.object({
   ),
 });
 
-describe("[unit] mockup MCP tools", () => {
-  const workspace = useWorkspace();
-  const annotations = mockupTool("mockup_annotations");
-  const resolve = mockupTool("mockup_resolve_annotation");
-  const write = mockupTool("mockup_write_spec");
-  const patch = mockupTool("mockup_patch_spec");
+let workspace: Workspace;
+const annotations = mockupTool("mockup_annotations");
+const resolve = mockupTool("mockup_resolve_annotation");
+const write = mockupTool("mockup_write_spec");
+const patch = mockupTool("mockup_patch_spec");
 
-  const specPath = () => join(workspace.mockups(), NAME, "spec.json");
-  const annotationsPath = () =>
-    join(workspace.mockups(), NAME, "annotations.json");
+const specPath = () => join(workspace.mockups(), NAME, "spec.json");
+const annotationsPath = () =>
+  join(workspace.mockups(), NAME, "annotations.json");
 
+function describesAnnotationsTool(): void {
   describe("mockup_annotations", () => {
     it("filters by status and by page, and by both together", async () => {
       const dir = workspace.mockups();
@@ -119,7 +120,9 @@ describe("[unit] mockup MCP tools", () => {
       expect(text).to.contain(`Mockup "${MISSING}" does not exist`);
     });
   });
+}
 
+function describesResolveAnnotationTool(): void {
   describe("mockup_resolve_annotation", () => {
     async function seed(): Promise<string> {
       await write.call({
@@ -191,134 +194,138 @@ describe("[unit] mockup MCP tools", () => {
       expect(text).to.contain(`Mockup "${MISSING}" does not exist`);
     });
   });
+}
 
-  describe("mockup_write_spec", () => {
-    it("creates the mockup and writes the spec pretty-printed with a trailing newline", async () => {
-      const valid = spec(sketch("<p>hello</p>"));
+function writesOrRefusesSpecs(): void {
+  it("creates the mockup and writes the spec pretty-printed with a trailing newline", async () => {
+    const valid = spec(sketch("<p>hello</p>"));
 
-      const result = await answer(
-        write,
-        { mockup: NAME, spec: valid },
-        writeAnswerSchema,
-      );
-      const text = await workspace.specBytes();
+    const result = await answer(
+      write,
+      { mockup: NAME, spec: valid },
+      writeAnswerSchema,
+    );
+    const text = await workspace.specBytes();
 
-      expect(result).to.deep.equal({ ok: true, errors: [] });
-      expect(text).to.equal(`${JSON.stringify(valid, null, 2)}\n`);
-      expect(parseSpec(text)).to.have.property("ok", true);
-      expect(await readdir(join(workspace.mockups(), NAME))).to.deep.equal([
-        "spec.json",
-      ]);
-    });
-
-    it("refuses an invalid spec at exact pointers and leaves the old file byte-identical", async () => {
-      await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
-      const before = await workspace.specBytes();
-
-      const result = await answer(
-        write,
-        {
-          mockup: NAME,
-          spec: spec(sketch("<p>ok</p><script>alert(1)</script>"), {
-            type: "NoSuchBlock",
-            options: {},
-          }),
-        },
-        writeAnswerSchema,
-      );
-
-      expect(result.ok).to.equal(false);
-      expect(result.errors.map((error) => error.path)).to.deep.equal([
-        "/pages/0/tree/0/options/html",
-        "/pages/0/tree/1/type",
-      ]);
-      expect(result.errors[1].message).to.equal(
-        'no block type is registered as "NoSuchBlock"',
-      );
-      expect(await workspace.specBytes()).to.equal(before);
-      expect(await readdir(join(workspace.mockups(), NAME))).to.deep.equal([
-        "spec.json",
-      ]);
-    });
-
-    it("refuses a broken envelope at its pointer and creates no file for a new mockup", async () => {
-      const result = await answer(
-        write,
-        { mockup: NAME, spec: { version: 2, pages: [] } },
-        writeAnswerSchema,
-      );
-
-      expect(result.ok).to.equal(false);
-      expect(result.errors.map((error) => error.path)).to.include("/version");
-      await stat(join(workspace.mockups(), NAME)).then(
-        () => expect.fail("the refused write created the mockup directory"),
-        (error: unknown) =>
-          expect(z.object({ code: z.string() }).parse(error).code).to.equal(
-            "ENOENT",
-          ),
-      );
-    });
-
-    it("refuses a duplicate sibling id at the second sibling, leaving the old file byte-identical", async () => {
-      await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
-      const before = await workspace.specBytes();
-      const card = { type: "KpiCard", options: { title: "Revenue" } };
-
-      const result = await answer(
-        write,
-        {
-          mockup: NAME,
-          spec: spec({
-            type: "VStack",
-            children: [
-              { ...card, id: "kpi" },
-              { ...card, id: "kpi" },
-            ],
-          }),
-        },
-        writeAnswerSchema,
-      );
-
-      expect(result.ok).to.equal(false);
-      expect(result.errors.map((error) => error.path)).to.deep.equal([
-        "/pages/0/tree/0/children/1/id",
-      ]);
-      expect(await workspace.specBytes()).to.equal(before);
-    });
-
-    it("refuses a spec nested past the depth limit, leaving the old file byte-identical", async () => {
-      await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
-      const before = await workspace.specBytes();
-      let node: JsonValue = { type: "KpiCard", options: { title: "leaf" } };
-      for (let level = 0; level < MAX_JSON_DEPTH; level += 1) {
-        node = { type: "VStack", children: [node] };
-      }
-
-      const result = await answer(
-        write,
-        { mockup: NAME, spec: spec(node) },
-        writeAnswerSchema,
-      );
-
-      expect(result).to.deep.equal({
-        ok: false,
-        errors: [
-          {
-            path: "",
-            message: `the spec nests deeper than ${MAX_JSON_DEPTH} levels`,
-          },
-        ],
-      });
-      expect(await workspace.specBytes()).to.equal(before);
-    });
-
-    it("refuses a spec that is not a JSON object", async () => {
-      const { isError } = await run(write, { mockup: NAME, spec: [1, 2] });
-
-      expect(isError).to.equal(true);
-    });
+    expect(result).to.deep.equal({ ok: true, errors: [] });
+    expect(text).to.equal(`${JSON.stringify(valid, null, 2)}\n`);
+    expect(parseSpec(text)).to.have.property("ok", true);
+    expect(await readdir(join(workspace.mockups(), NAME))).to.deep.equal([
+      "spec.json",
+    ]);
   });
 
+  it("refuses an invalid spec at exact pointers and leaves the old file byte-identical", async () => {
+    await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
+    const before = await workspace.specBytes();
+
+    const result = await answer(
+      write,
+      {
+        mockup: NAME,
+        spec: spec(sketch("<p>ok</p><script>alert(1)</script>"), {
+          type: "NoSuchBlock",
+          options: {},
+        }),
+      },
+      writeAnswerSchema,
+    );
+
+    expect(result.ok).to.equal(false);
+    expect(result.errors.map((error) => error.path)).to.deep.equal([
+      "/pages/0/tree/0/options/html",
+      "/pages/0/tree/1/type",
+    ]);
+    expect(result.errors[1].message).to.equal(
+      'no block type is registered as "NoSuchBlock"',
+    );
+    expect(await workspace.specBytes()).to.equal(before);
+    expect(await readdir(join(workspace.mockups(), NAME))).to.deep.equal([
+      "spec.json",
+    ]);
+  });
+
+  it("refuses a broken envelope at its pointer and creates no file for a new mockup", async () => {
+    const result = await answer(
+      write,
+      { mockup: NAME, spec: { version: 2, pages: [] } },
+      writeAnswerSchema,
+    );
+
+    expect(result.ok).to.equal(false);
+    expect(result.errors.map((error) => error.path)).to.include("/version");
+    await stat(join(workspace.mockups(), NAME)).then(
+      () => expect.fail("the refused write created the mockup directory"),
+      (error: unknown) =>
+        expect(z.object({ code: z.string() }).parse(error).code).to.equal(
+          "ENOENT",
+        ),
+    );
+  });
+}
+
+function refusesMalformedSpecs(): void {
+  it("refuses a duplicate sibling id at the second sibling, leaving the old file byte-identical", async () => {
+    await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
+    const before = await workspace.specBytes();
+    const card = { type: "KpiCard", options: { title: "Revenue" } };
+
+    const result = await answer(
+      write,
+      {
+        mockup: NAME,
+        spec: spec({
+          type: "VStack",
+          children: [
+            { ...card, id: "kpi" },
+            { ...card, id: "kpi" },
+          ],
+        }),
+      },
+      writeAnswerSchema,
+    );
+
+    expect(result.ok).to.equal(false);
+    expect(result.errors.map((error) => error.path)).to.deep.equal([
+      "/pages/0/tree/0/children/1/id",
+    ]);
+    expect(await workspace.specBytes()).to.equal(before);
+  });
+
+  it("refuses a spec nested past the depth limit, leaving the old file byte-identical", async () => {
+    await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
+    const before = await workspace.specBytes();
+    let node: JsonValue = { type: "KpiCard", options: { title: "leaf" } };
+    for (let level = 0; level < MAX_JSON_DEPTH; level += 1) {
+      node = { type: "VStack", children: [node] };
+    }
+
+    const result = await answer(
+      write,
+      { mockup: NAME, spec: spec(node) },
+      writeAnswerSchema,
+    );
+
+    expect(result).to.deep.equal({
+      ok: false,
+      errors: [
+        {
+          path: "",
+          message: `the spec nests deeper than ${MAX_JSON_DEPTH} levels`,
+        },
+      ],
+    });
+    expect(await workspace.specBytes()).to.equal(before);
+  });
+
+  it("refuses a spec that is not a JSON object", async () => {
+    const { isError } = await run(write, { mockup: NAME, spec: [1, 2] });
+
+    expect(isError).to.equal(true);
+  });
+}
+
+function describesNameChecks(): void {
   describe("names", () => {
     const TRAVERSALS = [
       "../escape",
@@ -359,7 +366,9 @@ describe("[unit] mockup MCP tools", () => {
       expect(await listing(workspace.mockups())).to.have.members(mockupsBefore);
     });
   });
+}
 
+function describesSafeMode(): void {
   describe("Safe mode", () => {
     it("lists all four tools, because none changes the project past what the builder edits", async () => {
       const listed = z
@@ -395,7 +404,29 @@ describe("[unit] mockup MCP tools", () => {
         mockup_resolve_annotation: "builder",
         mockup_write_spec: "builder",
         mockup_patch_spec: "builder",
+        mockup_from_page: "builder",
       });
     });
+
+    it("refuses mockup_from_page while no mockup engine runs, so a production MCP server converts nothing", async () => {
+      const { isError } = await run(mockupTool("mockup_from_page"), {
+        pageRef: "/books",
+      });
+
+      expect(isError).to.equal(true);
+      expect(await listing(workspace.mockups())).to.deep.equal([]);
+    });
   });
+}
+
+describe("[unit] mockup MCP tools", () => {
+  workspace = useWorkspace();
+  describesAnnotationsTool();
+  describesResolveAnnotationTool();
+  describe("mockup_write_spec", () => {
+    writesOrRefusesSpecs();
+    refusesMalformedSpecs();
+  });
+  describesNameChecks();
+  describesSafeMode();
 });

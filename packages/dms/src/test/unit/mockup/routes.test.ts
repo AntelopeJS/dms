@@ -92,44 +92,47 @@ function ids(data: unknown): string[] {
   return idsSchema.parse(data);
 }
 
+let base: string;
+let engine: MockupEngine;
+const routeIds: number[] = [];
+
+/** Serves the mockup routes over one mockup, `desk`, in a fresh directory. */
+async function startEngine(): Promise<void> {
+  expect(
+    getRegisteredRoutes().filter((route) => route.location.startsWith(BASE)),
+  ).to.deep.equal([]);
+  base = await mkdtemp(join(tmpdir(), "dms-mockup-routes-"));
+  await mkdir(join(base, "mockups", "desk"), { recursive: true });
+  await writeFile(join(base, "mockups", "desk", "spec.json"), SPEC);
+  engine = {
+    store: new MockupStore(join(base, "mockups")),
+    streams: new Set(),
+  };
+  registerMockupRoutes(engine);
+  routeIds.push(
+    ...getRegisteredRoutes()
+      .filter((route) => route.location.startsWith(BASE))
+      .map((route) => Number(route.id)),
+  );
+}
+
+async function stopEngine(): Promise<void> {
+  routeIds.forEach(UnregisterRoute);
+  closeMockupStreams(engine);
+  engine.store.close();
+  await rm(base, { recursive: true, force: true });
+}
+
 describe("[unit] mockup routes", () => {
-  let base: string;
-  let engine: MockupEngine;
-  const routeIds: number[] = [];
+  before(startEngine);
+  after(stopEngine);
 
-  before(async () => {
-    expect(
-      getRegisteredRoutes().filter((route) => route.location.startsWith(BASE)),
-    ).to.deep.equal([]);
-    base = await mkdtemp(join(tmpdir(), "dms-mockup-routes-"));
-    await mkdir(join(base, "mockups", "desk"), { recursive: true });
-    await writeFile(join(base, "mockups", "desk", "spec.json"), SPEC);
-    engine = {
-      store: new MockupStore(join(base, "mockups")),
-      streams: new Set(),
-    };
-    registerMockupRoutes(engine);
-    routeIds.push(
-      ...getRegisteredRoutes()
-        .filter((route) => route.location.startsWith(BASE))
-        .map((route) => Number(route.id)),
-    );
-  });
-
-  after(async () => {
-    routeIds.forEach(UnregisterRoute);
-    closeMockupStreams(engine);
-    engine.store.close();
-    await rm(base, { recursive: true, force: true });
-  });
-
-  it("lists the mockups at the API root", async () => {
+  it("lists the mockups at the API root as the rows of a source table", async () => {
     const listed = await client.get(BASE);
 
     expect(listed.status).to.equal(200);
-    expect(listed.data).to.deep.equal({
-      mockups: [{ name: "desk", pages: 1 }],
-    });
+    expect(listed.data).to.have.property("total", 1);
+    expect(listed.data).to.have.nested.property("results[0].name", "desk");
   });
 
   it("sorts, searches and pages an array fixture's rows", async () => {
@@ -192,6 +195,11 @@ describe("[unit] mockup routes", () => {
 
     expect(missing.status).to.equal(404);
   });
+});
+
+describe("[unit] mockup routes: annotations", () => {
+  before(startEngine);
+  after(stopEngine);
 
   it("refuses an annotation on a page or node the spec does not have", async () => {
     const note = { text: "Somewhere" };
@@ -279,6 +287,11 @@ describe("[unit] mockup routes", () => {
     ).to.deep.equal(["/pages/0/tree/2"]);
     expect(refused.status).to.equal(409);
   });
+});
+
+describe("[unit] mockup routes: events", () => {
+  before(startEngine);
+  after(stopEngine);
 
   it("streams the state on connect and ends the stream when the engine stops", async () => {
     const { response, firstChunk } = await openEvents("desk");

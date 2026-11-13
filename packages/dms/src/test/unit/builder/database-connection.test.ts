@@ -78,25 +78,7 @@ function connect(connection: string, tables: ProjectConfigStep): void {
   );
 }
 
-/** A connection whose details are edited, then taken out of the project with its tables module. */
-describe("a database connection after it was made", function () {
-  this.timeout(OP_TIMEOUT);
-
-  before(() => {
-    app = createFixture({ modules: ["dms-builder", "dms-ai"] });
-    gitInit(app.root);
-    fs.writeFileSync(path.join(app.root, ".gitignore"), ".env\n");
-    connect("erp", {
-      op: "CreateLocalModule",
-      id: "erp-tables",
-      path: "modules/erp-tables",
-      entry: tablesEntry("erp"),
-      connection: "erp",
-    });
-  });
-
-  after(destroyFixture);
-
+function editsTheConnectionUrl(): void {
   it("answers what the connection wired, and its details without the password", () => {
     const wiring = connectionWiring("erp");
     expect(wiring).to.deep.equal({
@@ -181,7 +163,9 @@ describe("a database connection after it was made", function () {
     );
     expect(projectVariable("BUILDER_DB_ERP_URL")).to.match(/^postgres:/);
   });
+}
 
+function keepsThePasswordHoweverTheUrlGivesIt(): void {
   it("keeps a password the URL gives as a parameter, and never answers it", () => {
     expectOk(
       setConnectionUrl(
@@ -268,7 +252,9 @@ describe("a database connection after it was made", function () {
     expect(projectVariable("BUILDER_DB_ERP_URL")).to.include(PASSWORD);
     expectOk(setConnectionUrl("erp", URL), "setConnectionUrl");
   });
+}
 
+function keepsADriverOthersReadThrough(): void {
   it("keeps a driver another module of the project reads through, with its URL", async () => {
     expectOk(
       await ConfigureProject([
@@ -336,7 +322,9 @@ describe("a database connection after it was made", function () {
     );
     expect(connectionWiring("erp")?.ownsDriver).to.equal(true);
   });
+}
 
+function readsTheWiringOfAConfigWrittenByHand(): void {
   it("reads the wiring past a module written as a version", async () => {
     await withFileEdited(
       app.root,
@@ -417,7 +405,9 @@ describe("a database connection after it was made", function () {
       },
     );
   });
+}
 
+function removesTheConnection(): void {
   it("answers what a removal would change, without the URL, and changes nothing on a dry run", () => {
     const planned = removeDatabaseConnection("erp", { dryRun: true });
     const { files } = expectOk(planned, "removeDatabaseConnection dry run");
@@ -463,4 +453,30 @@ describe("a database connection after it was made", function () {
     expect(after).to.not.include("builder-db-erp");
     expect(projectFile(app.root, ".env.example")).to.equal("OTHER=1\n");
   });
+}
+
+/** A connection whose details are edited, then taken out of the project with its tables module. */
+describe("a database connection after it was made", function () {
+  this.timeout(OP_TIMEOUT);
+
+  before(() => {
+    app = createFixture({ modules: ["dms-builder", "dms-ai"] });
+    gitInit(app.root);
+    fs.writeFileSync(path.join(app.root, ".gitignore"), ".env\n");
+    connect("erp", {
+      op: "CreateLocalModule",
+      id: "erp-tables",
+      path: "modules/erp-tables",
+      entry: tablesEntry("erp"),
+      connection: "erp",
+    });
+  });
+
+  after(destroyFixture);
+
+  editsTheConnectionUrl();
+  keepsThePasswordHoweverTheUrlGivesIt();
+  keepsADriverOthersReadThrough();
+  readsTheWiringOfAConfigWrittenByHand();
+  removesTheConnection();
 });
