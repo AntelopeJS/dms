@@ -36,6 +36,10 @@ class FakeSpecFile {
   failures = 0;
   /** How many of the next writes land, then answer a server error. */
   lostAnswers = 0;
+  /** How many of the next reads fail with a server error. */
+  readFailures = 0;
+  /** Holds the answer of the next write that lands until it settles. */
+  answerGate: Promise<void> | undefined;
   readonly writes: Array<{ spec: MockupSpecDocument; digest?: string }> = [];
 
   get digest(): string {
@@ -57,6 +61,10 @@ class FakeSpecFile {
     ) => {
       if (url !== ENDPOINT) throw new Error(`unexpected ${url}`);
       if (init?.method !== "PUT" || !init.body) {
+        if (this.readFailures > 0) {
+          this.readFailures -= 1;
+          throw Object.assign(new Error("unavailable"), { status: 503 });
+        }
         return { spec: structuredClone(this.spec), digest: this.digest };
       }
       if (this.failures > 0) {
@@ -70,6 +78,9 @@ class FakeSpecFile {
       if (this.refuse) return { ok: false, errors: [this.refuse] };
       this.spec = structuredClone(init.body.spec);
       this.version += 1;
+      const gate = this.answerGate;
+      this.answerGate = undefined;
+      if (gate) await gate;
       if (this.lostAnswers > 0) {
         this.lostAnswers -= 1;
         throw Object.assign(new Error("bad gateway"), { status: 502 });
@@ -386,19 +397,68 @@ describe("a write whose answer was lost", () => {
   });
 });
 
+describe("several writes whose answers were lost", () => {
+  it("counts the file as its own write when it holds any of them, then writes the spec shown (fails when only the last one sent is remembered)", async () => {
+    file.lostAnswers = 1;
+    await mountEditor();
+    retitle("A");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    file.failures = 1;
+    retitle("AB");
+
+    await settle(MOCKUP_RETRY_DELAY_MS * 8);
+
+    expect(titleOf(file.spec)).toBe("AB");
+    expect(editor.canUndo.value).toBe(true);
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+
+  it("writes the spec an undo went back to, even when it matches the last answered write (fails when the file keeps the undone edit)", async () => {
+    file.lostAnswers = 1;
+    await mountEditor();
+    retitle("A");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    editor.undo();
+    await settle(MOCKUP_RETRY_DELAY_MS * 4);
+
+    expect(titleOf(file.spec)).toBe("Revenue");
+    expect(titleOf(editor.spec.value)).toBe("Revenue");
+    expect(editor.hasFailed.value).toBe(false);
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+});
+
+describe("a conflict whose file cannot be read", () => {
+  it("backs off like any failed write instead of writing again at once (fails on a write every few milliseconds)", async () => {
+    await mountEditor();
+    file.writeFromOutside(initialSpec());
+    file.readFailures = Number.POSITIVE_INFINITY;
+    retitle("Mine");
+
+    await settle(5000);
+
+    expect(file.writes.length).toBeLessThanOrEqual(5);
+    expect(editor.hasFailed.value).toBe(true);
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+});
+
 describe("the notice of a failed write", () => {
-  it("goes once an undo brings the spec back to the one in the file (fails when the retry banner outlives every pending edit)", async () => {
+  it("goes once the spec an undo went back to is confirmed, when the server answers again (fails when the retry banner outlives every pending edit)", async () => {
     file.failures = Number.POSITIVE_INFINITY;
     await mountEditor();
     retitle("Mine");
     await settle(MOCKUP_WRITE_DELAY_MS);
     expect(editor.hasFailed.value).toBe(true);
-
     editor.undo();
     await settle(MOCKUP_WRITE_DELAY_MS);
 
+    file.failures = 0;
+    await settle(MOCKUP_RETRY_DELAY_MS * 16);
+
+    expect(titleOf(file.spec)).toBe("Revenue");
     expect(editor.hasFailed.value).toBe(false);
-    expect(editor.isPending.value).toBe(false);
   });
 });
 
@@ -412,6 +472,23 @@ describe("a write that landed", () => {
 
     await streamSaysTheFileChanged();
 
+    expect(editor.isPending.value).toBe(false);
+  });
+
+  it("is not pending when the stream sent its state before the write's answer came (fails when clicks stay ignored until the next edit)", async () => {
+    let release = (): void => undefined;
+    file.answerGate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await mountEditor();
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    await streamSaysTheFileChanged();
+
+    release();
+    await settle(MOCKUP_RETRY_DELAY_MS);
+
+    expect(titleOf(file.spec)).toBe("Mine");
     expect(editor.isPending.value).toBe(false);
   });
 });

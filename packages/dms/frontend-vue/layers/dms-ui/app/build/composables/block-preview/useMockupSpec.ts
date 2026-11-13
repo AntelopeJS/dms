@@ -157,8 +157,9 @@ function sameSpec(
  * takes the editor back to the last spec it wrote, with the history steps and
  * the later edits that refusal undoes dropped. A write that fails otherwise
  * is retried, after a growing delay, at the next stream state or with the next
- * edit, whichever comes first, until it lands; when the file already holds
- * what it sent, the answer was lost and it counts as landed.
+ * edit, whichever comes first, until it lands. A file holding the spec shown,
+ * or any spec sent whose answer was lost, is the editor's own write, never an
+ * outside change.
  */
 export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   const endpoint = mockupEndpoint(options.name, "/spec");
@@ -171,19 +172,27 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   let failures = 0;
-  let unconfirmed: MockupSpecDocument | undefined;
+  /** Specs sent whose answer never came: the file may hold any of them. */
+  let unconfirmed: MockupSpecDocument[] = [];
   let isWriting = false;
   let isCheckDue = false;
   let isClosed = false;
 
-  async function read(): Promise<SpecSource | undefined> {
+  async function read(
+    onError: (error: unknown) => void,
+  ): Promise<SpecSource | undefined> {
     try {
-      return parseSource(await options.authFetch(endpoint));
+      const source = parseSource(await options.authFetch(endpoint));
+      if (!source) onError(new Error("spec.json could not be read"));
+      return source;
     } catch (error) {
-      options.onNotice({ kind: "failed", error });
+      onError(error);
       return undefined;
     }
   }
+
+  const notifyFailure = (error: unknown) =>
+    options.onNotice({ kind: "failed", error });
 
   function stopTimers(): void {
     if (timer !== undefined) clearTimeout(timer);
@@ -194,8 +203,23 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
 
   function landed(): void {
     failures = 0;
-    unconfirmed = undefined;
+    unconfirmed = [];
     hasFailed.value = false;
+  }
+
+  /**
+   * Takes the file as the editor's own write when it holds the spec shown or
+   * one sent without an answer; false when someone else wrote it.
+   */
+  function claim(source: SpecSource): boolean {
+    const own = [history.value?.present, ...unconfirmed].find(
+      (spec) => spec !== undefined && sameSpec(source.spec, spec),
+    );
+    if (!own) return false;
+    digest = source.digest;
+    written.value = own;
+    landed();
+    return true;
   }
 
   function adopt(source: SpecSource, isNews: boolean): void {
@@ -219,7 +243,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
       isCheckDue = true;
       return;
     }
-    const source = await read();
+    const source = await read(notifyFailure);
     const present = history.value?.present;
     if (!source || isClosed) return;
     if (source.digest === digest) {
@@ -230,14 +254,12 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
       isCheckDue = true;
       return;
     }
-    if (present && sameSpec(source.spec, present)) {
-      digest = source.digest;
-      written.value = present;
-      stopTimers();
-      landed();
+    if (!claim(source)) {
+      adopt(source, present !== undefined);
       return;
     }
-    adopt(source, present !== undefined);
+    stopTimers();
+    if (history.value?.present !== written.value) schedule();
   }
 
   function revert(issue: MockupIssue, sent: MockupSpecDocument): void {
@@ -262,27 +284,28 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     retryTimer = setTimeout(() => void write(), delay);
   }
 
+  function failed(error: unknown): void {
+    if (!hasFailed.value) notifyFailure(error);
+    hasFailed.value = true;
+    retryLater();
+  }
+
   async function onWriteError(
     error: unknown,
     sent: MockupSpecDocument,
   ): Promise<void> {
     if (statusOf(error) !== HTTP_CONFLICT) {
-      if (!hasFailed.value) options.onNotice({ kind: "failed", error });
-      hasFailed.value = true;
-      unconfirmed = sent;
-      retryLater();
+      if (!unconfirmed.includes(sent)) unconfirmed.push(sent);
+      failed(error);
       return;
     }
-    const source = await read();
-    if (!source || isClosed) return;
-    if (unconfirmed && sameSpec(source.spec, unconfirmed)) {
-      digest = source.digest;
-      written.value = unconfirmed;
-      isAwaitingState.value = true;
-      landed();
-      return;
-    }
-    adopt(source, true);
+    let readError: unknown;
+    const source = await read((cause) => {
+      readError = cause;
+    });
+    if (isClosed) return;
+    if (!source) failed(readError);
+    else if (!claim(source)) adopt(source, true);
   }
 
   async function write(): Promise<void> {
@@ -291,10 +314,11 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     retryTimer = undefined;
     const spec = history.value?.present;
     if (!spec || isWriting || isClosed) return;
-    if (spec === written.value) {
+    if (spec === written.value && !unconfirmed.length) {
       landed();
       return;
     }
+    const sentAt = options.state.value?.revision;
     isWriting = true;
     try {
       const answer = parseWriteAnswer(
@@ -306,7 +330,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
       if (answer?.ok) {
         digest = answer.digest;
         written.value = spec;
-        isAwaitingState.value = true;
+        isAwaitingState.value = options.state.value?.revision === sentAt;
         landed();
       } else if (answer) {
         revert(answer.issue, spec);
@@ -349,7 +373,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   }
 
   onMounted(async () => {
-    const source = await read();
+    const source = await read(notifyFailure);
     if (source && !isClosed && !history.value) adopt(source, false);
   });
   watch(
