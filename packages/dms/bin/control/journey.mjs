@@ -392,8 +392,10 @@ async function prepare(state, feature, journey, context) {
       () => freshDatabase(state, `j${index}`, journey.backend),
       detail,
     );
+    const backend = state.processes.find((entry) => entry.name === "backend");
     writeJson(join(context.step("fresh database"), "database.json"), {
       database: state.database,
+      backendMode: backend?.mode ?? "production",
     });
   }
   if (journey.onboard === false || state.accounts?.admin) return;
@@ -543,7 +545,7 @@ export async function loadJourneys(file) {
   const journeys = entries.filter(isJourney);
   if (journeys.length !== entries.length)
     throw new Error(
-      `${file} exports a journey without an id, title, entry point or run function, or with a backend mode on a shared database`,
+      `${file} exports a journey without an id, title, entry point or run function, or pins a backend on a shared database`,
     );
   return journeys;
 }

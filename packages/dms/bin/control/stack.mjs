@@ -219,13 +219,14 @@ export function runBackendMode(state) {
 
 /**
  * The `ajs` arguments that start a backend in `mode`: `project start` on the
- * build, or `project dev` without watching, so a dev backend runs the same
- * build in the runtime's development mode.
+ * build, or `project dev` without watching, which resolves
+ * `antelope.config.ts` and loads the same module builds in the runtime's
+ * development mode, without the module-set check of `--refresh-config`.
  *
  * @param {BackendMode} mode How it runs
  * @returns {string[]} The arguments after the `ajs` script
  */
-export function backendArgs(mode) {
+function backendArgs(mode) {
   return mode === "dev"
     ? ["project", "dev", "-e", ENVIRONMENT]
     : ["project", "start", "-e", ENVIRONMENT, "--refresh-config"];
