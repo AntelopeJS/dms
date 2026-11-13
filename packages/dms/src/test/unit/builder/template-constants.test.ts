@@ -15,7 +15,7 @@ import {
 
 const PAGE = "/shop/board";
 const PAGE_FILE = "board/page.ts";
-const API_FILE = "board/api.ts";
+const API_FILE = "shop-api.ts";
 const OP_TIMEOUT = 60_000;
 
 let app: Fixture;
@@ -25,6 +25,13 @@ async function revenueKpi(): Promise<BlockNode> {
   const [block] = blocks;
   expect(block?.name).to.equal("revenueKpi");
   return block;
+}
+
+function writeApi(shopApi: string): void {
+  app.write(
+    API_FILE,
+    `export const SHOP_API = ${JSON.stringify(shopApi)};\nconst DEFAULT_API = "/api/default";\nexport default DEFAULT_API;\n`,
+  );
 }
 
 /** Write the block's options by hand, the way its author would. */
@@ -65,6 +72,7 @@ describe("a block option built as a template of constants", () => {
   before(async function () {
     this.timeout(120_000);
     app = createFixture();
+    writeApi("/api/shop");
     expectOk(
       await CreateCategory({ name: "shop", displayName: "Shop" }),
       "CreateCategory",
@@ -85,13 +93,12 @@ describe("a block option built as a template of constants", () => {
       }),
       "SetPageBlocks",
     );
-    app.write(API_FILE, 'export const SHOP_API = "/api/shop";\n');
     const page = app
       .read(PAGE_FILE)
       .replace(
         "@RegisterPage(",
         [
-          'import { SHOP_API } from "./api";',
+          'import ShopDefault, { SHOP_API } from "../shop-api";',
           "",
           'const STATS = "stats";',
           "const LIMIT = 20;",
@@ -134,6 +141,44 @@ describe("a block option built as a template of constants", () => {
     expect(written).to.contain("fetchUrl: SHOP_API");
   });
 
+  it("refuses a save as stale once an imported constant changed since the read", async function () {
+    this.timeout(OP_TIMEOUT);
+    handWrite('title: "Revenue", fetchUrl: SHOP_API');
+    const { version } = expectOk(
+      await GetPageStructure(PAGE),
+      "GetPageStructure",
+    );
+    writeApi("/api/shop-v2");
+    try {
+      const result = await SetPageBlocks(
+        PAGE,
+        {
+          blocks: [
+            {
+              name: "revenueKpi",
+              type: "KpiCard",
+              config: { title: "Revenue", fetchUrl: "/api/shop" },
+            },
+          ],
+        },
+        { expectedVersion: version },
+      );
+
+      expect(result.ok ? "saved" : result.error.code).to.equal("stale");
+      expect(app.read(PAGE_FILE)).to.contain("fetchUrl: SHOP_API");
+    } finally {
+      writeApi("/api/shop");
+    }
+  });
+
+  it("locks a template that reads a default import, which a save would leave behind", async function () {
+    this.timeout(OP_TIMEOUT);
+    handWrite('title: "Revenue", fetchUrl: `${ShopDefault}/k`');
+    const block = await revenueKpi();
+
+    expect(block.lockedOptions).to.have.property("fetchUrl");
+  });
+
   it("follows a constant that is itself a template of constants", async function () {
     this.timeout(OP_TIMEOUT);
     handWrite('title: "Revenue", fetchUrl: `${BASE}/totals`');
@@ -152,7 +197,7 @@ describe("a block option built as a template of constants", () => {
 
     expect(written).to.contain("fetchUrl: `${SHOP_API}/${STATS}`");
     expect(written, "the import the template reads stays").to.contain(
-      'import { SHOP_API } from "./api";',
+      'import ShopDefault, { SHOP_API } from "../shop-api";',
     );
   });
 

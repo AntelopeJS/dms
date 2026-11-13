@@ -2,6 +2,7 @@ import {
   Node,
   type PropertyAssignment,
   type ShorthandPropertyAssignment,
+  type SourceFile,
   SyntaxKind,
   VariableDeclarationKind,
 } from "ts-morph";
@@ -177,11 +178,36 @@ function resourceRef(node: Node): LiteralResult | undefined {
  * imported — `id: PERIOD_SCOPE` — or `undefined` for anything else.
  *
  * Only a plain value: an object held in a constant is one instance shared by
- * every reader, and writing it back as a copy would quietly split it. An
- * imported name keeps its import while the writer puts the name back, and
- * loses it once an edit replaces the name with a value.
+ * every reader, and writing it back as a copy would quietly split it. Only a
+ * named import from another file: the writer prunes a named import once an
+ * edit replaces the name with a value, and leaves a default import behind.
  */
 const readingConstants = new Set<Node>();
+
+function importedByName(node: Node): boolean {
+  return (
+    node.getSymbol()?.getDeclarations().some(Node.isImportSpecifier) ?? false
+  );
+}
+
+/**
+ * The value of each constant a file imports by name, so a page's version
+ * moves when one of them changes in the file that declares it.
+ */
+export function importedConstants(
+  sourceFile: SourceFile,
+): [string, ConstantValue][] {
+  return sourceFile
+    .getImportDeclarations()
+    .flatMap((declaration) => declaration.getNamedImports())
+    .flatMap((specifier) => {
+      const binding = specifier.getAliasNode() ?? specifier.getNameNode();
+      const constant = Node.isIdentifier(binding)
+        ? constantValue(binding)
+        : undefined;
+      return constant ? [[binding.getText(), constant.value]] : [];
+    });
+}
 
 function constantValue(node: Node): { value: ConstantValue } | undefined {
   if (!Node.isIdentifier(node)) {
@@ -201,6 +227,8 @@ function constantValue(node: Node): { value: ConstantValue } | undefined {
     definitions.length !== 1 ||
     !definition ||
     !Node.isVariableDeclaration(definition) ||
+    (definition.getSourceFile() !== node.getSourceFile() &&
+      !importedByName(node)) ||
     definition.getVariableStatement()?.getDeclarationKind() !==
       VariableDeclarationKind.Const
   ) {
