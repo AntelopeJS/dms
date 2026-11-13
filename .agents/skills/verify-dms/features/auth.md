@@ -59,6 +59,7 @@ Signing in and out, the sign-in redirect of protected pages, and password recove
 - `forgot-password-wrong-code`: error path: a wrong code says it is invalid and the old password still signs in.
 - `switcher-lists-each-account-once`: two accounts signed in through "Add an account" in one browser stay one row and one stored entry each across re-logins of both, switches both ways, a reload and a second tab.
 - `switcher-replaces-recreated-account`: an entry a previous user record of the same person left (same email, another user id, expired) is planted in `localStorage`; a reload and a new sign-in each leave one row.
+- `stored-account-refused-after-logout`: error path: a renewal (`POST /api/_auth/session`) answers with its cookies, the account menu > Logout ends the session, and the renewal's cookies are put back in the browser, as when the renewal answers last. Through a second view, `POST /auth/switch-account` answers 401 and clears the `dms_account_<id>` cookie, and on a fresh restore of those cookies a `POST /api/_auth/session` runs signed out and clears both the session cookie and the stored account.
 - `base-written-data-upgrade`: upgrade path: the base ref's backend (built once per commit under `~/.cache/dms-control/base/`) onboards the owner, writes a record and opens a session on the journey's database; this version then accepts the base access token, refreshes the base refresh token, signs the owner in and lists the record.
 
 ## How to get to it (user POV)
