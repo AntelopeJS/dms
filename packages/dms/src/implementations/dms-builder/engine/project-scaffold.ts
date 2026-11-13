@@ -12,7 +12,7 @@ const INTERFACE_PACKAGE = /^@antelopejs\/interface-/;
  * restart that follows has installed them. The project's own range wins for one it declares.
  */
 export const BUILDER_CODE_INTERFACES = {
-  "@antelopejs/interface-api": ">=0.3.2 <0.4.0",
+  "@antelopejs/interface-api": ">=0.3.2 <1.0.0",
   "@antelopejs/interface-core": ">=0.4.0 <1.0.0",
   "@antelopejs/interface-data-api": ">=0.6.1 <1.0.0",
   "@antelopejs/interface-database": ">=0.3.0 <1.0.0",

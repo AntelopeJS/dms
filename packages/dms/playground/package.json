@@ -30,7 +30,7 @@
     }
   },
   "dependencies": {
-    "@antelopejs/interface-api": ">=0.3.2 <0.4.0",
+    "@antelopejs/interface-api": ">=0.3.2 <1.0.0",
     "@antelopejs/interface-api-util": ">=0.3.0 <1.0.0",
     "@antelopejs/interface-core": ">=0.4.0 <1.0.0",
     "@antelopejs/interface-data-api": ">=0.6.0 <1.0.0",
