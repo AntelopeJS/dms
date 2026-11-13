@@ -125,8 +125,8 @@ const processPins = {
     'await execFileAsync(TSC_COMMAND, TSC_ARGS, {\n            cwd: root,\n            timeout: TIMEOUT_MS,\n            maxBuffer: MAX_BUFFER_BYTES,\n            encoding: "utf8",\n        });',
   "dist/test/helpers/replica-process.js:4":
     'const node_child_process_1 = require("node:child_process");',
-  "dist/test/helpers/replica-process.js:108":
-    'const child = (0, node_child_process_1.spawn)((0, node_path_1.join)(MODULE_ROOT, "node_modules/.bin/ajs"), ["project", "run", "--project", directory], {\n            cwd: directory,\n            env: { ...process.env, REPLICA_HOST_HOLD_MS: String(holdMs) },\n        });',
+  "dist/test/helpers/replica-process.js:110":
+    'const child = (0, node_child_process_1.spawn)(process.execPath, [AJS, "project", "run", "--project", directory], {\n            cwd: directory,\n            env: { ...process.env, REPLICA_HOST_HOLD_MS: String(holdMs) },\n        });',
   "dist/test/unit/package-contents.test.js:3":
     'const node_child_process_1 = require("node:child_process");',
   "dist/test/unit/package-contents.test.js:33":

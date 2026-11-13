@@ -7,7 +7,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { build, type Plugin } from "vite";
+import { build, normalizePath, type Plugin } from "vite";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { backendBoundary } from "../build/backend-boundary.ts";
 
@@ -44,7 +44,9 @@ it("fails on an import of the backend source and names both files", async () => 
   const failing = bundle(
     'import { api } from "../backend/src/api";\nexport default api;\n',
   );
-  await expect(failing).rejects.toThrow(join(root, "frontend/entry.ts"));
+  await expect(failing).rejects.toThrow(
+    normalizePath(join(root, "frontend/entry.ts")),
+  );
   await expect(failing).rejects.toThrow(join(root, "backend/src/api.ts"));
 });
 

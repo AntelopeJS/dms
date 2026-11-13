@@ -1,6 +1,6 @@
 import { readFileSync, globSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join, relative, resolve, basename } from "node:path";
+import { dirname, join, relative, resolve, basename, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { parse } from "vue/compiler-sfc";
@@ -8,6 +8,7 @@ import { parse } from "vue/compiler-sfc";
 const frontend = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const root = resolve(frontend, "../../..");
 const require = createRequire(import.meta.url);
+const posixPath = (path) => path.split(sep).join("/");
 const rules = require("../../../../.dependency-cruiser/frontend.cjs").forbidden;
 const importer = createRequire(require.resolve("unplugin-auto-import"));
 const { scanDirExports } = importer("unimport");
@@ -210,7 +211,7 @@ for (const file of globSync(
     text = [descriptor.script?.content, descriptor.scriptSetup?.content]
       .filter(Boolean)
       .join("\n");
-    templateOffsets.set(file + ".audit.ts", text.length);
+    templateOffsets.set(posixPath(file) + ".audit.ts", text.length);
     text +=
       "\n" +
       tags
@@ -227,7 +228,7 @@ for (const file of globSync(
         )
         .join("\n");
   }
-  sources.set(file + ".audit.ts", text + "\nexport {};");
+  sources.set(posixPath(file) + ".audit.ts", text + "\nexport {};");
 }
 const options = { noLib: true, noResolve: true };
 const host = ts.createCompilerHost(options);
@@ -245,21 +246,24 @@ function matches(condition, path) {
 }
 let failures = 0;
 function checkOwner(caller, name, owner) {
+  const target = posixPath(relative(root, owner));
   for (const rule of rules) {
     if (
       rule.to.dependencyTypes?.includes("local") ||
       !matches(rule.from, caller) ||
-      !matches(rule.to, relative(root, owner))
+      !matches(rule.to, target)
     )
       continue;
     console.error(
-      `FAIL auto-import boundary ${caller} ${rule.name} ${name} -> ${relative(root, owner)}`,
+      `FAIL auto-import boundary ${caller} ${rule.name} ${name} -> ${target}`,
     );
     failures++;
   }
 }
 for (const file of program.getSourceFiles()) {
-  const caller = relative(root, file.fileName.replace(/\.audit\.ts$/, ""));
+  const caller = posixPath(
+    relative(root, file.fileName.replace(/\.audit\.ts$/, "")),
+  );
   const visit = (node) => {
     const registry =
       node.pos >= (templateOffsets.get(file.fileName) ?? Infinity)
