@@ -21,8 +21,8 @@ import { isString } from "../../utils/internal/type-check";
 import { decoratedClass } from "../../utils/internal/decorated-class";
 import type { ColumnDisplay } from "./column-display";
 import { buildTableConfig, decorateColumn } from "./internal/meta-helpers";
-// oxlint-disable-next-line import/no-cycle -- The barrel evaluates built-in data-type decorators; serializeType needs the registry they populate.
 import { DataType, serializeType } from "../data-types";
+import { installTableViewMeta } from "../data-types/internal/table-view-meta-slot";
 import {
   type FieldCondition,
   type FieldGroup,
@@ -164,6 +164,10 @@ const WRITE_ACTION_IDS = new Set([
 
 export class TableViewMeta {
   public static key = Symbol();
+
+  static {
+    installTableViewMeta(TableViewMeta);
+  }
 
   constructor(public readonly target: Class) {}
 
