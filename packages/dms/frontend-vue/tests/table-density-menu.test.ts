@@ -15,7 +15,6 @@ import TableMenuDensity from "../layers/dms-ui/app/entries/components/table/Menu
 import TableMenuRoot from "../layers/dms-ui/app/entries/components/table/MenuRoot";
 
 /** The global name `@nuxt/icon` registers and the sources resolve. */
-const NUXT_ICON = "Icon";
 
 describe("table density menu", () => {
   let app: App | undefined;
@@ -32,7 +31,7 @@ describe("table density menu", () => {
     });
     app = createApp(Host);
     app.component(
-      NUXT_ICON,
+      "Icon",
       defineComponent({
         props: { name: String },
         setup: (props) => () => h("i", { "data-icon": props.name }),

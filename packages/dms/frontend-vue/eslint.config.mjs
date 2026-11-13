@@ -54,6 +54,7 @@ export default [
         "error",
         {
           ignores: [
+            "Icon",
             "2fa",
             "accounts",
             "backup",

@@ -20,7 +20,6 @@ import {
 const TECHNICAL_MESSAGE = "DMS backend request failed";
 
 /** The global name `@nuxt/icon` registers and the sources resolve. */
-const NUXT_ICON = "Icon";
 
 let app: App;
 let host: HTMLDivElement;
@@ -67,7 +66,7 @@ function mountError(statusCode: number, message = TECHNICAL_MESSAGE) {
   app.config.globalProperties.$t = (key: string) => key;
   app.component("DmsAppLogo", Passthrough);
   app.component("DmsCardPanel", Passthrough);
-  app.component(NUXT_ICON, Passthrough);
+  app.component("Icon", Passthrough);
   app.component("UIcon", Passthrough);
   app.component("UButton", Passthrough);
   app.mount(host);
