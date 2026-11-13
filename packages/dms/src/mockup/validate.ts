@@ -4,21 +4,22 @@ import {
   ValidateBlockOptions,
 } from "@antelopejs/interface-dms/base/block-types";
 import { z } from "zod";
-import type { JsonObject, MockupIssue, MockupNode } from "./model";
-import { jsonObjectSchema } from "./model";
+import type { Json, JsonObject, MockupIssue, MockupNode } from "./model";
+import { jsonObjectSchema, jsonSchema } from "./model";
 
 type OptionsDescription = Record<string, BlockOptionSchema>;
 
 /**
- * Where the options a block's component receives, which a spec writes,
- * differ from the options its factory takes, which the registry describes
- * and `ValidateBlockOptions` checks. Most blocks take the same; each adapter
- * covers a factory that serializes its input into another layout, both ways:
- * back to the factory's input for validation, and over its description for
- * the JSON Schema.
+ * Where the options a block's component receives differ from the options its
+ * factory takes, which the registry describes and `ValidateBlockOptions`
+ * checks. A spec may write either. Most blocks take the same; each adapter
+ * covers a factory that serializes its input into another layout: back to the
+ * factory's input for validation, forward to the component's layout for the
+ * preview, and over its description for the JSON Schema.
  */
 interface PreviewAdapter {
   applies(descriptor: BlockTypeDescriptor): boolean;
+  toComponentOptions(options: JsonObject): JsonObject;
   toFactoryInput(
     descriptor: BlockTypeDescriptor,
     options: JsonObject,
@@ -45,6 +46,7 @@ function blockOptionKeys(config: OptionsDescription): string[] {
  */
 const blockChildren: PreviewAdapter = {
   applies: (descriptor) => blockOptionKeys(descriptor.config).length > 0,
+  toComponentOptions: (options) => options,
   toFactoryInput(descriptor, options, node) {
     const supplied = blockOptionKeys(descriptor.config).filter(
       (key) =>
@@ -69,13 +71,38 @@ const FORM_COMPONENT = "dms-form";
 const serializedSectionSchema = z.object({ fieldIds: z.array(z.string()) });
 const fieldIdSchema = z.object({ id: z.string() });
 
-function topLevelFieldIds(options: JsonObject): Set<string> {
-  const fields = z.array(z.unknown()).safeParse(options.fields);
-  const ids = (fields.success ? fields.data : []).flatMap((field) => {
-    const parsed = fieldIdSchema.safeParse(field);
+const entriesSchema = z.array(jsonSchema);
+
+function entryIds(entries: readonly Json[]): string[] {
+  return entries.flatMap((entry) => {
+    const parsed = fieldIdSchema.safeParse(entry);
     return parsed.success ? [parsed.data.id] : [];
   });
-  return new Set(ids);
+}
+
+function topLevelFieldIds(options: JsonObject): Set<string> {
+  const fields = entriesSchema.safeParse(options.fields);
+  return new Set(entryIds(fields.success ? fields.data : []));
+}
+
+/**
+ * The form as its factory serializes it: each section's own `fields` move,
+ * in order, after the form's, and the section names them by id.
+ */
+function serializeSections(options: JsonObject): JsonObject {
+  const sections = z.array(jsonObjectSchema).safeParse(options.sections);
+  if (!sections.success) return options;
+  const own = entriesSchema.safeParse(options.fields);
+  if (!own.success && options.fields !== undefined) return options;
+  const fields: Json[] = own.success ? [...own.data] : [];
+  const serialized = sections.data.map((section) => {
+    const { fields: held, ...rest } = section;
+    const entries = entriesSchema.safeParse(held);
+    if (!entries.success) return section;
+    fields.push(...entries.data);
+    return { ...rest, fieldIds: entryIds(entries.data) };
+  });
+  return { ...options, fields, sections: serialized };
 }
 
 const FIELD_IDS: BlockOptionSchema = {
@@ -91,6 +118,7 @@ const FIELD_IDS: BlockOptionSchema = {
  */
 const formSections: PreviewAdapter = {
   applies: (descriptor) => descriptor.componentName === FORM_COMPONENT,
+  toComponentOptions: serializeSections,
   toFactoryInput(_descriptor, options, _node, pointer, issues) {
     const sections = z.array(jsonObjectSchema).safeParse(options.sections);
     if (!sections.success) return options;
@@ -150,6 +178,20 @@ export function previewOptionsOf(
   return adaptersOf(descriptor).reduce(
     (config, adapter) => adapter.describe(config),
     descriptor.config,
+  );
+}
+
+/**
+ * The options the component of `descriptor` receives for the options a spec
+ * writes: the layout its factory serializes them into.
+ */
+export function componentOptionsOf(
+  descriptor: BlockTypeDescriptor,
+  options: JsonObject,
+): JsonObject {
+  return adaptersOf(descriptor).reduce(
+    (current, adapter) => adapter.toComponentOptions(current),
+    options,
   );
 }
 
