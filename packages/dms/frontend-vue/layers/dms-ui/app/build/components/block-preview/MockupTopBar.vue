@@ -12,8 +12,9 @@ const WIDTH_ICONS: Record<MockupWidth, string> = {
 };
 
 /**
- * The `/mockup` toolbar: the mockup's title, undo and redo, the frame width,
- * the Comment and Edit modes, and "Build it".
+ * The `/mockup` toolbar: the mockup's title, undo and redo, Real data when
+ * the page names live routes, the frame width, the Comment and Edit modes,
+ * and "Build it".
  */
 defineProps<{
   title: string;
@@ -21,9 +22,12 @@ defineProps<{
   canRedo: boolean;
   issueCount: number;
   isConnected: boolean;
+  /** Whether the page has live routes to read: the Real data switch shows only then. */
+  hasRealData: boolean;
 }>();
 const width = defineModel<MockupWidth>("width", { required: true });
 const mode = defineModel<MockupMode>("mode", { required: true });
+const realData = defineModel<boolean>("realData", { required: true });
 const emit = defineEmits<{ undo: []; redo: []; build: [] }>();
 
 const { t } = useI18n();
@@ -76,6 +80,14 @@ const { t } = useI18n();
           @click="emit('redo')"
         />
       </div>
+      <USwitch
+        v-if="hasRealData"
+        v-model="realData"
+        size="sm"
+        :label="t('dms.mockup.real_data')"
+        :title="t('dms.mockup.real_data_hint')"
+        data-dms-mockup-real-data
+      />
       <div
         class="border-default flex gap-0.5 rounded-md border p-0.5"
         role="group"

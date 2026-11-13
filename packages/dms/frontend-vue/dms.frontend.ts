@@ -202,6 +202,13 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
         () => import("./layers/dms-layout/app/entries/branding/BrandingEditor"),
       ),
     );
+
+    sdk.registerPlugin(
+      lazyPlugin(
+        () => import("./layers/dms-layout/app/entries/mockup/header-action"),
+      ),
+      clientOnly,
+    );
   }
 
   sdk.registerPlugin(asyncDataScopePlugin, { enforce: "pre" });

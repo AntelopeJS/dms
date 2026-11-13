@@ -36,6 +36,7 @@ import {
   pageIdSchema,
   parseMockupName,
 } from "./model";
+import { registerFromPageRoute } from "./from-page-routes";
 import type { MockupEvent, MockupStore, MockupSummary } from "./store";
 import { registerSpecRoutes } from "./source-routes";
 
@@ -183,6 +184,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
   }
   registerAnnotationRoutes(store);
   registerSpecRoutes(store.mockupsDir);
+  registerFromPageRoute(store.mockupsDir);
   return MockupController;
 }
 

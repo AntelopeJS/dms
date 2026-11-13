@@ -100,11 +100,33 @@ const pageOptionsSchema = z
 /** How a page is drawn: its color mode, its language and its padding. */
 export type MockupPageOptions = z.infer<typeof pageOptionsSchema>;
 
+/**
+ * A path of the site the dashboard runs on, as the preview lets a block
+ * fetch it: one leading `/`, no host (`//host`, `/\host`), and no control
+ * character (Unicode `Cc`), which a URL parser drops: `/<tab>/host` reads
+ * `//host`. A `u` pattern, as JSON Schema validators compile it.
+ */
+export const RELATIVE_ROUTE_PATTERN = /^\/(?![/\\])\P{Cc}*$/u;
+
+/**
+ * The live page a spec page was converted from: its builder ref, and the
+ * version of its source file at the conversion.
+ */
+const livePageSchema = z
+  .object({ ref: z.string().min(1), version: z.string() })
+  .strict();
+
+export type MockupLivePage = z.infer<typeof livePageSchema>;
+
 const pageSchema = z
   .object({
     id: pageIdSchema,
     title: z.string(),
     options: pageOptionsSchema.optional(),
+    livePage: livePageSchema.optional(),
+    liveRoutes: z
+      .record(fixtureKeySchema, z.string().regex(RELATIVE_ROUTE_PATTERN))
+      .optional(),
     fixtures: z.record(fixtureKeySchema, jsonSchema).optional(),
     tree: z.array(nodeSchema),
   })
@@ -190,6 +212,13 @@ export interface MockupPageState {
   options: MockupPageOptions;
   /** Fixture references rewritten, controller blocks compiled. */
   tree: MockupNode[];
+  /**
+   * `tree` with each fixture named in the page's `liveRoutes` read from its
+   * live route instead: what the viewer draws with Real data on. Present
+   * only when the page has `liveRoutes`; its layout paths are `tree`'s.
+   */
+  realTree?: MockupNode[];
+  livePage?: Pick<MockupLivePage, "ref">;
   /** The spec pointer of each node, keyed by its `DmsBlockPreview` layout path. */
   paths: Record<string, string>;
 }

@@ -893,6 +893,9 @@
       "prompt_connect_data": "Dans la maquette {mockup}, page « {page} » : connecter le bloc {block} « {label} » à de vraies données.",
       "prompt_custom_zone": "Dans la maquette {mockup}, page « {page} » : modifier la zone personnalisée « {label} ».",
       "prompt_build": "Construire la maquette {name} avec le skill dms-mockup-build.",
+      "prompt_build_page": "Construire la maquette {name} dans la page existante {ref} avec le skill dms-mockup-build. Mettre à jour cette page, ne pas en créer une nouvelle.",
+      "real_data": "Données réelles",
+      "real_data_hint": "Lire les données réelles des routes de la page dont cette maquette est issue, au lieu de ses données d’exemple.",
       "copy": "Copier",
       "copied": "Copié",
       "close": "Fermer"

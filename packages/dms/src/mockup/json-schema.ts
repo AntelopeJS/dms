@@ -11,6 +11,7 @@ import {
   MAX_DASHBOARD_PATH,
   MAX_PAGES,
   MOCKUP_SOURCES,
+  RELATIVE_ROUTE_PATTERN,
   SLUG_PATTERN,
 } from "./model";
 import {
@@ -181,6 +182,34 @@ function pageDefinition(): JsonObject {
           locale: { type: "string" },
           padding: { type: "boolean", default: true },
         },
+      },
+      livePage: {
+        type: "object",
+        required: ["ref", "version"],
+        additionalProperties: false,
+        description:
+          "The live page this page was converted from (Edit as mockup). Build it updates that page instead of creating a new one.",
+        properties: {
+          ref: {
+            type: "string",
+            minLength: 1,
+            description: "Its builder ref.",
+          },
+          version: {
+            type: "string",
+            description: "Its source file's version at the conversion.",
+          },
+        },
+      },
+      liveRoutes: {
+        type: "object",
+        propertyNames: { pattern: KEY_PATTERN.source },
+        additionalProperties: {
+          type: "string",
+          pattern: RELATIVE_ROUTE_PATTERN.source,
+        },
+        description:
+          'The live route a fixture key stands for: with Real data on, an option "fixture:<key>" reads it instead of the fixture.',
       },
       fixtures: {
         type: "object",

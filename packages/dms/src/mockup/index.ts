@@ -10,7 +10,10 @@ import { MockupStore } from "./store";
 export * from "./annotations";
 export * from "./compile";
 export * from "./files";
+export * from "./from-page";
+export * from "./from-page-sketch";
 export * from "./json-schema";
+export * from "./live-page";
 export * from "./model";
 export * from "./routes";
 export * from "./source";
@@ -28,6 +31,10 @@ export function startMockupEngine(mockupsDir = defaultMockupsDir()): void {
   engine = { store: new MockupStore(mockupsDir), streams: new Set() };
   registerMockupRoutes(engine);
   registerMockupPage();
+}
+
+export function mockupEngineRunning(): boolean {
+  return engine !== undefined;
 }
 
 /**

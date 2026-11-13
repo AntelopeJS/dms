@@ -39,6 +39,11 @@ export interface MockupAssistantPromptBlock {
   type?: string;
 }
 
+export interface MockupAssistantPromptTarget {
+  /** The page's builder ref: build into that page, never a new one. */
+  pageRef: string;
+}
+
 /** The `detail` of a {@link MOCKUP_ASSISTANT_PROMPT_EVENT} event. */
 export interface MockupAssistantPrompt {
   /**
@@ -48,5 +53,7 @@ export interface MockupAssistantPrompt {
   prompt: string;
   /** The block the request is about; absent for `build`. */
   block?: MockupAssistantPromptBlock;
+  /** The live page a `build` updates; absent for a mockup made by hand. */
+  target?: MockupAssistantPromptTarget;
   source: MockupAssistantPromptSource;
 }

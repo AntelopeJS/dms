@@ -893,6 +893,9 @@
       "prompt_connect_data": "In mockup {mockup}, page \"{page}\": connect the {block} \"{label}\" to real data.",
       "prompt_custom_zone": "In mockup {mockup}, page \"{page}\": change the custom zone \"{label}\".",
       "prompt_build": "Build mockup {name} with the dms-mockup-build skill.",
+      "prompt_build_page": "Build mockup {name} into the existing page {ref} with the dms-mockup-build skill. Update that page; do not create a new one.",
+      "real_data": "Real data",
+      "real_data_hint": "Read live data from the routes of the page this mockup was made from, instead of its sample fixtures.",
       "copy": "Copy",
       "copied": "Copied",
       "close": "Close"
