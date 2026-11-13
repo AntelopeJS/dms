@@ -101,14 +101,7 @@ const MONTHLY = {
 /** The same source, arranged for the card that reads it. */
 const MONTHLY_CARD = { ...MONTHLY, response: "card" as const };
 
-/**
- * What a block is shown for a source that has not been written. The calculation
- * itself is covered elsewhere; this is about what the preview says back — its
- * shape, where it stops, and how it refuses.
- */
-describe("previewing a query", () => {
-  before(() => registerBuiltinQueryTemplates());
-
+function answersAsTheRouteWould(): void {
   it("answers a number for a scalar query", async () => {
     const result = await runPlanPreview(
       tableAnswering(42),
@@ -207,7 +200,9 @@ describe("previewing a query", () => {
       }
     });
   }
+}
 
+function answersThePeriodBeforeAndStopsAtItsLimit(): void {
   it("answers the period before too, when the card compares against it", async () => {
     const rows = [
       { x: 202601, y: 150 },
@@ -274,7 +269,9 @@ describe("previewing a query", () => {
       expect(result.data.truncated).to.equal(true);
     }
   });
+}
 
+function refusesWhatItCannotRun(): void {
   it("refuses parameters the calculation could not run, before touching the table", async () => {
     const result = await runPlanPreview(
       tableAnswering(0),
@@ -337,6 +334,19 @@ describe("previewing a query", () => {
       );
     }
   });
+}
+
+/**
+ * What a block is shown for a source that has not been written. The calculation
+ * itself is covered elsewhere; this is about what the preview says back — its
+ * shape, where it stops, and how it refuses.
+ */
+describe("previewing a query", () => {
+  before(() => registerBuiltinQueryTemplates());
+
+  answersAsTheRouteWould();
+  answersThePeriodBeforeAndStopsAtItsLimit();
+  refusesWhatItCannotRun();
 
   it("reads the instance the saved route's model would", () => {
     expect(previewInstance("dms-tenant", "acme")).to.equal("acme");

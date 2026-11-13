@@ -38,6 +38,201 @@ async function queryNamed(name: string): Promise<QueryStructure> {
   return found;
 }
 
+function writesAQuery(): void {
+  it("emits a model method and a route, and answers with both addresses", async function () {
+    this.timeout(OP_TIMEOUT);
+    const added = expectOk(
+      await AddQuery(PAGE, {
+        name: "paidRevenue",
+        resource: "order",
+        template: "aggregate",
+        params: {
+          op: "sum",
+          field: "amount",
+          where: [{ field: "status", op: "eq", value: "paid" }],
+        },
+      }),
+      "AddQuery",
+    );
+
+    expect(added.query).to.equal(`${PAGE}@paidRevenue`);
+    expect(added.route).to.equal(`/dms/pages${PAGE}/stats/paid-revenue`);
+    expect(app.read(MODEL_FILE)).to.contain(
+      'return this.table\n      .filter((row) => row.key("status").eq("paid"))' +
+        '\n      .sum("amount");',
+    );
+
+    const page = app.read(PAGE_FILE);
+    expect(page).to.contain('@Get("/stats/paid-revenue")');
+    expect(page).to.contain("return { value: await model.paidRevenue() };");
+  });
+
+  it("guards the route with the page's own permission", async () => {
+    const page = app.read(PAGE_FILE);
+
+    expect(page).to.contain("@AuthUserWithPermission(OrdersPage) _user: User,");
+    expect(page).to.contain(
+      'import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";',
+    );
+  });
+
+  it("counts rows with no filter at all", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await AddQuery(PAGE, {
+        name: "orderCount",
+        resource: "order",
+        template: "count",
+      }),
+      "AddQuery",
+    );
+    expect(app.read(MODEL_FILE)).to.contain("return this.table.count();");
+  });
+
+  it("binds a filter value to a route parameter instead of baking it in", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await AddQuery(PAGE, {
+        name: "cheaperThan",
+        resource: "order",
+        template: "count",
+        params: {
+          where: [
+            {
+              field: "amount",
+              op: "lt",
+              value: { $param: { name: "maxAmount" } },
+            },
+          ],
+        },
+      }),
+      "AddQuery",
+    );
+
+    const page = app.read(PAGE_FILE);
+    expect(page).to.contain('@Parameter("maxAmount", "query")');
+    expect(page, "the route coerces before calling the model").to.contain(
+      "Number(maxAmount)",
+    );
+  });
+
+  it("gives a second query its own model method, even for an identical chain", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await AddQuery(PAGE, {
+        name: "totalOrders",
+        resource: "order",
+        template: "count",
+      }),
+      "AddQuery",
+    );
+
+    const model = app.read(MODEL_FILE);
+    const occurrences = model.split("return this.table.count();").length - 1;
+    expect(
+      occurrences,
+      "each query carries its own copy of the chain",
+    ).to.equal(2);
+  });
+
+  it("refuses a raw expression in a query's parameters", async function () {
+    this.timeout(OP_TIMEOUT);
+    const result = await AddQuery(PAGE, {
+      name: "injected",
+      resource: "order",
+      template: "count",
+      params: {
+        where: [
+          {
+            field: "amount",
+            op: "gt",
+            value: { $expr: "process.env.SECRET" },
+          },
+        ],
+      },
+    });
+
+    expect(result.ok).to.equal(false);
+    if (!result.ok) {
+      expect(result.error.code).to.equal("invalid_config");
+    }
+    expect(app.read(MODEL_FILE)).to.not.contain("process.env");
+  });
+}
+
+function readsAWrittenQueryBack(): void {
+  it("reports the parameters that produced it", async () => {
+    const query = await queryNamed("paidRevenue");
+    expect(
+      query.opaque,
+      "a query the builder wrote is never opaque",
+    ).to.not.equal(true);
+    expect(query.template).to.equal("aggregate");
+    expect(query.resource).to.equal("order");
+    expect(query.output).to.equal("scalar");
+    expect(query.endpoint).to.equal("/stats/paid-revenue");
+    expect(query.params).to.deep.equal({
+      op: "sum",
+      field: "amount",
+      where: [{ field: "status", op: "eq", value: "paid" }],
+    });
+  });
+
+  it("reports an empty parameter set for an unfiltered count", async () => {
+    const query = await queryNamed("orderCount");
+    expect(query.template).to.equal("count");
+    expect(query.params).to.deep.equal({});
+    expect(query.modelMethod).to.equal("orderCount");
+  });
+
+  it("resolves a bound value against the route that supplies it", async () => {
+    const query = await queryNamed("cheaperThan");
+    expect(query.routeParams).to.deep.equal([
+      { name: "maxAmount", in: "query" },
+    ]);
+    expect(query.params).to.deep.equal({
+      where: [
+        {
+          field: "amount",
+          op: "lt",
+          value: { $param: { name: "maxAmount", in: "query" } },
+        },
+      ],
+    });
+  });
+
+  it("recompiles a query in place when its parameters change", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await ConfigureQuery(`${PAGE}@paidRevenue`, {
+        params: {
+          op: "avg",
+          field: "amount",
+          where: [{ field: "status", op: "eq", value: "paid" }],
+        },
+      }),
+      "ConfigureQuery",
+    );
+
+    expect(app.read(MODEL_FILE)).to.contain('.avg("amount");');
+    expect((await queryNamed("paidRevenue")).params).to.include({
+      op: "avg",
+      field: "amount",
+    });
+  });
+
+  it("drops the route and the method it called when a query is removed", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(await RemoveQuery(`${PAGE}@cheaperThan`), "RemoveQuery");
+
+    expect(app.read(PAGE_FILE)).to.not.contain("cheaperThan");
+    expect(app.read(MODEL_FILE)).to.not.contain("cheaperThan");
+    expect((await queries()).map((query) => query.name)).to.not.include(
+      "cheaperThan",
+    );
+  });
+}
+
 /**
  * What the engine guarantees today about the queries it writes, pinned before the
  * calculation model is refactored: emission and read-back are inverse, and a
@@ -83,199 +278,10 @@ describe("the query engine", () => {
   after(() => destroyFixture());
 
   describe("writing a query", () => {
-    it("emits a model method and a route, and answers with both addresses", async function () {
-      this.timeout(OP_TIMEOUT);
-      const added = expectOk(
-        await AddQuery(PAGE, {
-          name: "paidRevenue",
-          resource: "order",
-          template: "aggregate",
-          params: {
-            op: "sum",
-            field: "amount",
-            where: [{ field: "status", op: "eq", value: "paid" }],
-          },
-        }),
-        "AddQuery",
-      );
-
-      expect(added.query).to.equal(`${PAGE}@paidRevenue`);
-      expect(added.route).to.equal(`/dms/pages${PAGE}/stats/paid-revenue`);
-      expect(app.read(MODEL_FILE)).to.contain(
-        'return this.table\n      .filter((row) => row.key("status").eq("paid"))' +
-          '\n      .sum("amount");',
-      );
-
-      const page = app.read(PAGE_FILE);
-      expect(page).to.contain('@Get("/stats/paid-revenue")');
-      expect(page).to.contain("return { value: await model.paidRevenue() };");
-    });
-
-    it("guards the route with the page's own permission", async () => {
-      const page = app.read(PAGE_FILE);
-
-      expect(page).to.contain(
-        "@AuthUserWithPermission(OrdersPage) _user: User,",
-      );
-      expect(page).to.contain(
-        'import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";',
-      );
-    });
-
-    it("counts rows with no filter at all", async function () {
-      this.timeout(OP_TIMEOUT);
-      expectOk(
-        await AddQuery(PAGE, {
-          name: "orderCount",
-          resource: "order",
-          template: "count",
-        }),
-        "AddQuery",
-      );
-      expect(app.read(MODEL_FILE)).to.contain("return this.table.count();");
-    });
-
-    it("binds a filter value to a route parameter instead of baking it in", async function () {
-      this.timeout(OP_TIMEOUT);
-      expectOk(
-        await AddQuery(PAGE, {
-          name: "cheaperThan",
-          resource: "order",
-          template: "count",
-          params: {
-            where: [
-              {
-                field: "amount",
-                op: "lt",
-                value: { $param: { name: "maxAmount" } },
-              },
-            ],
-          },
-        }),
-        "AddQuery",
-      );
-
-      const page = app.read(PAGE_FILE);
-      expect(page).to.contain('@Parameter("maxAmount", "query")');
-      expect(page, "the route coerces before calling the model").to.contain(
-        "Number(maxAmount)",
-      );
-    });
-
-    it("gives a second query its own model method, even for an identical chain", async function () {
-      this.timeout(OP_TIMEOUT);
-      expectOk(
-        await AddQuery(PAGE, {
-          name: "totalOrders",
-          resource: "order",
-          template: "count",
-        }),
-        "AddQuery",
-      );
-
-      const model = app.read(MODEL_FILE);
-      const occurrences = model.split("return this.table.count();").length - 1;
-      expect(
-        occurrences,
-        "each query carries its own copy of the chain",
-      ).to.equal(2);
-    });
-
-    it("refuses a raw expression in a query's parameters", async function () {
-      this.timeout(OP_TIMEOUT);
-      const result = await AddQuery(PAGE, {
-        name: "injected",
-        resource: "order",
-        template: "count",
-        params: {
-          where: [
-            {
-              field: "amount",
-              op: "gt",
-              value: { $expr: "process.env.SECRET" },
-            },
-          ],
-        },
-      });
-
-      expect(result.ok).to.equal(false);
-      if (!result.ok) {
-        expect(result.error.code).to.equal("invalid_config");
-      }
-      expect(app.read(MODEL_FILE)).to.not.contain("process.env");
-    });
+    writesAQuery();
   });
 
   describe("reading a written query back", () => {
-    it("reports the parameters that produced it", async () => {
-      const query = await queryNamed("paidRevenue");
-      expect(
-        query.opaque,
-        "a query the builder wrote is never opaque",
-      ).to.not.equal(true);
-      expect(query.template).to.equal("aggregate");
-      expect(query.resource).to.equal("order");
-      expect(query.output).to.equal("scalar");
-      expect(query.endpoint).to.equal("/stats/paid-revenue");
-      expect(query.params).to.deep.equal({
-        op: "sum",
-        field: "amount",
-        where: [{ field: "status", op: "eq", value: "paid" }],
-      });
-    });
-
-    it("reports an empty parameter set for an unfiltered count", async () => {
-      const query = await queryNamed("orderCount");
-      expect(query.template).to.equal("count");
-      expect(query.params).to.deep.equal({});
-      expect(query.modelMethod).to.equal("orderCount");
-    });
-
-    it("resolves a bound value against the route that supplies it", async () => {
-      const query = await queryNamed("cheaperThan");
-      expect(query.routeParams).to.deep.equal([
-        { name: "maxAmount", in: "query" },
-      ]);
-      expect(query.params).to.deep.equal({
-        where: [
-          {
-            field: "amount",
-            op: "lt",
-            value: { $param: { name: "maxAmount", in: "query" } },
-          },
-        ],
-      });
-    });
-
-    it("recompiles a query in place when its parameters change", async function () {
-      this.timeout(OP_TIMEOUT);
-      expectOk(
-        await ConfigureQuery(`${PAGE}@paidRevenue`, {
-          params: {
-            op: "avg",
-            field: "amount",
-            where: [{ field: "status", op: "eq", value: "paid" }],
-          },
-        }),
-        "ConfigureQuery",
-      );
-
-      expect(app.read(MODEL_FILE)).to.contain('.avg("amount");');
-      expect((await queryNamed("paidRevenue")).params).to.include({
-        op: "avg",
-        field: "amount",
-      });
-    });
-
-    it("drops the route and the method it called when a query is removed", async function () {
-      this.timeout(OP_TIMEOUT);
-      expectOk(await RemoveQuery(`${PAGE}@cheaperThan`), "RemoveQuery");
-
-      expect(app.read(PAGE_FILE)).to.not.contain("cheaperThan");
-      expect(app.read(MODEL_FILE)).to.not.contain("cheaperThan");
-      expect((await queries()).map((query) => query.name)).to.not.include(
-        "cheaperThan",
-      );
-    });
+    readsAWrittenQueryBack();
   });
 });

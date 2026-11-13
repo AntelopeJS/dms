@@ -109,6 +109,12 @@ describe("mapping columns with a display and a TableView with tabs", function ()
     destroyFixture();
   });
 
+  writesEachDisplay();
+  writesTheTabsAndReadsThemBack();
+  keepsTheTabsAPersonEdited();
+});
+
+function writesEachDisplay(): void {
   it("writes a badge as a select of toned items, a price as the price DataType, and the relation under its label", async () => {
     expectOk(await MapResources(ordersInput()), "MapResources");
     const orders = moduleFile("shop/orders/data-api.ts");
@@ -157,7 +163,9 @@ describe("mapping columns with a display and a TableView with tabs", function ()
     ).to.include("display_dropped");
     expect(moduleFile("shop/orders/data-api.ts")).to.not.include("currency:");
   });
+}
 
+function writesTheTabsAndReadsThemBack(): void {
   it("writes the tabs: All, then a tab per value in the badge's order, in its tone", async () => {
     expectOk(await MapResources(ordersInput()), "MapResources");
     const page = (await pageText()).replace(/\s+/g, " ");
@@ -195,7 +203,9 @@ describe("mapping columns with a display and a TableView with tabs", function ()
       "new DefaultDataTypes.SelectType({",
     );
   });
+}
 
+function keepsTheTabsAPersonEdited(): void {
   it("keeps the tabs a person edited on the page when a remap sends the mapping back", async () => {
     await handEditedTabs();
     const read = await ordersMapped();
@@ -236,4 +246,4 @@ describe("mapping columns with a display and a TableView with tabs", function ()
     expect(orders).to.not.include("PriceType");
     expect(await pageText()).to.include('label: "Everything"');
   });
-});
+}

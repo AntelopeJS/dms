@@ -29,17 +29,7 @@ function pointers(result: OpResult<unknown>): string[] {
   return issues(result).map(([pointer]) => pointer);
 }
 
-describe("theme logo files", function () {
-  this.timeout(OP_TIMEOUT);
-
-  beforeEach(() => {
-    createThemeFixture();
-  });
-
-  afterEach(() => {
-    destroyFixture();
-  });
-
+function checksUploadedFileTypes(): void {
   it("writes a JPEG, for the email as for any other slot", async () => {
     expectOk(
       await SetTheme(
@@ -89,7 +79,9 @@ describe("theme logo files", function () {
     ]);
     expect(brandingFiles()).to.deep.equal([]);
   });
+}
 
+function keepsEmailLogoFiles(): void {
   it("never deletes an email logo, which emails already sent still show", async () => {
     expectOk(
       await SetTheme(
@@ -155,7 +147,9 @@ describe("theme logo files", function () {
       "email",
     ]);
   });
+}
 
+function writesOneFileOrNothing(): void {
   it("writes only the last of two uploads for one slot and mode", async () => {
     expectOk(
       await SetTheme(
@@ -187,6 +181,22 @@ describe("theme logo files", function () {
       false,
     );
   });
+}
+
+describe("theme logo files", function () {
+  this.timeout(OP_TIMEOUT);
+
+  beforeEach(() => {
+    createThemeFixture();
+  });
+
+  afterEach(() => {
+    destroyFixture();
+  });
+
+  checksUploadedFileTypes();
+  keepsEmailLogoFiles();
+  writesOneFileOrNothing();
 });
 
 describe("theme draft shape", function () {

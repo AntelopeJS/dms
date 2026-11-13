@@ -77,17 +77,7 @@ describe("theme stylesheet", () => {
   });
 });
 
-describe("theme", function () {
-  this.timeout(OP_TIMEOUT);
-
-  beforeEach(() => {
-    app = createThemeFixture();
-  });
-
-  afterEach(() => {
-    destroyFixture();
-  });
-
+function writesStylesheetAndPalettes(): void {
   it("reads a layer that has no theme yet", async () => {
     const theme = expectOk(await GetTheme(), "GetTheme");
     expect(theme.variables).to.deep.equal({ shared: {}, light: {}, dark: {} });
@@ -158,7 +148,9 @@ describe("theme", function () {
     );
     expect(!result.ok && result.error.code).to.equal("invalid_config");
   });
+}
 
+function writesSanitizedLogos(): void {
   it("writes a logo under public/branding and points the app config at it", async () => {
     const result = await SetTheme(
       draft({
@@ -218,7 +210,9 @@ describe("theme", function () {
     expect(!result.ok && result.error.code).to.equal("invalid_config");
     expect(pathExists(layerPath("app/assets/css/theme.css"))).to.equal(false);
   });
+}
 
+function sharesAndCleansUpLogoFiles(): void {
   it("writes one file for a logo sent for several slots", async () => {
     expectOk(
       await SetTheme(
@@ -279,7 +273,9 @@ describe("theme", function () {
     );
     expect(readLayerFile("app/app.config.ts")).not.to.contain("branding");
   });
+}
 
+function refusesUnsafeOrStaleWrites(): void {
   it("refuses a value that would end the declaration", async () => {
     const result = await SetTheme(
       draft({
@@ -311,6 +307,23 @@ describe("theme", function () {
       "body { margin: 0; }\n",
     );
   });
+}
+
+describe("theme", function () {
+  this.timeout(OP_TIMEOUT);
+
+  beforeEach(() => {
+    app = createThemeFixture();
+  });
+
+  afterEach(() => {
+    destroyFixture();
+  });
+
+  writesStylesheetAndPalettes();
+  writesSanitizedLogos();
+  sharesAndCleansUpLogoFiles();
+  refusesUnsafeOrStaleWrites();
 });
 
 describe("the project's layer", () => {

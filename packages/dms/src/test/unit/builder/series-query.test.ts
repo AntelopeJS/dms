@@ -39,55 +39,7 @@ const MONTHLY_REVENUE = {
   },
 };
 
-/**
- * The reference journey's calculation, written into a real project: a chart's
- * worth of data — a measure per month, filtered — generated from parameters
- * rather than from a route someone had to write.
- */
-describe("a series query", () => {
-  before(async function () {
-    this.timeout(120_000);
-    app = createFixture();
-    expectOk(
-      await CreateCategory({ name: "shop", displayName: "Shop" }),
-      "CreateCategory",
-    );
-    expectOk(
-      await CreateResource({
-        name: "order",
-        displayName: "Order",
-        fields: [
-          {
-            name: "amount",
-            label: "Amount",
-            dataType: { $dataType: "number" },
-          },
-          {
-            name: "status",
-            label: "Status",
-            dataType: { $dataType: "string" },
-          },
-          {
-            name: "createdAt",
-            label: "Created",
-            dataType: { $dataType: "date" },
-          },
-        ],
-      }),
-      "CreateResource",
-    );
-    expectOk(
-      await CreatePage({
-        name: "dashboard",
-        displayName: "Dashboard",
-        category: "pages.shop",
-      }),
-      "CreatePage",
-    );
-  });
-
-  after(() => destroyFixture());
-
+function writesSeriesQueries(): void {
   it("is offered as a template, and announces the shape it answers with", async () => {
     const templates = await ListQueryTemplates("database-table");
     const series = templates.find((template) => template.id === "series");
@@ -147,7 +99,9 @@ describe("a series query", () => {
       '.map((row) => ({ bucket: row.key("status")',
     );
   });
+}
 
+function readsBackAndEditsSeriesQueries(): void {
   it("reads back as the parameters that produced it", async () => {
     const structure = expectOk(
       await GetPageStructure(PAGE),
@@ -214,7 +168,9 @@ describe("a series query", () => {
     expect(app.read(PAGE_FILE)).to.not.contain("topStatuses");
     expect(app.read(MODEL_FILE)).to.not.contain("topStatuses");
   });
+}
 
+function refusesUncomputableSeries(): void {
   describe("refuses what the database could not compute", () => {
     async function rejected(
       name: string,
@@ -289,4 +245,58 @@ describe("a series query", () => {
       expect(app.read(MODEL_FILE)).to.not.contain("process.env");
     });
   });
+}
+
+/**
+ * The reference journey's calculation, written into a real project: a chart's
+ * worth of data — a measure per month, filtered — generated from parameters
+ * rather than from a route someone had to write.
+ */
+describe("a series query", () => {
+  before(async function () {
+    this.timeout(120_000);
+    app = createFixture();
+    expectOk(
+      await CreateCategory({ name: "shop", displayName: "Shop" }),
+      "CreateCategory",
+    );
+    expectOk(
+      await CreateResource({
+        name: "order",
+        displayName: "Order",
+        fields: [
+          {
+            name: "amount",
+            label: "Amount",
+            dataType: { $dataType: "number" },
+          },
+          {
+            name: "status",
+            label: "Status",
+            dataType: { $dataType: "string" },
+          },
+          {
+            name: "createdAt",
+            label: "Created",
+            dataType: { $dataType: "date" },
+          },
+        ],
+      }),
+      "CreateResource",
+    );
+    expectOk(
+      await CreatePage({
+        name: "dashboard",
+        displayName: "Dashboard",
+        category: "pages.shop",
+      }),
+      "CreatePage",
+    );
+  });
+
+  after(() => destroyFixture());
+
+  writesSeriesQueries();
+  readsBackAndEditsSeriesQueries();
+  refusesUncomputableSeries();
 });

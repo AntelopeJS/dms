@@ -89,7 +89,7 @@ function badgeOf(field: ProposedField): BadgeItem[] {
 
 const STATUS = Column("status", "string");
 
-describe("the display of a column (D1, D2, D3)", () => {
+function badgesEnumLikeStrings(): void {
   it("makes a string column whose categories cover every row a badge, one item per value by rows, toned by its word (D1)", () => {
     const orders = propose([STATUS], {
       status: {
@@ -189,7 +189,9 @@ describe("the display of a column (D1, D2, D3)", () => {
     expect(fieldOf(orders, "status").display).to.equal(undefined);
     expect(fieldOf(orders, "level").display).to.equal(undefined);
   });
+}
 
+function pricesMoneyColumns(): void {
   it("makes a number column named like money a price, whatever the spelling (D2)", () => {
     const names = [
       "total",
@@ -283,7 +285,9 @@ describe("the display of a column (D1, D2, D3)", () => {
       expect(fieldOf(orders, name).display, name).to.equal(undefined);
     }
   });
+}
 
+function labelsRelationColumns(): void {
   it("labels a relation column with the target's title in singular, not the column's name (D3)", () => {
     const orders = propose([], {});
     const customer = fieldOf(orders, "customer_id");
@@ -322,6 +326,12 @@ describe("the display of a column (D1, D2, D3)", () => {
     )!;
     expect(fieldOf(found, "customer_id").label.value).to.equal("Buyer");
   });
+}
+
+describe("the display of a column (D1, D2, D3)", () => {
+  badgesEnumLikeStrings();
+  pricesMoneyColumns();
+  labelsRelationColumns();
 });
 
 describe("the tabs of a TableView (T1)", () => {

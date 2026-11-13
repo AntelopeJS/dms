@@ -154,21 +154,7 @@ function readConfig(): string {
   return projectFile(app.root, "antelope.config.ts");
 }
 
-/**
- * Wiring a project to another database touches several entries of `antelope.config.ts` at once,
- * and a wrong pin there binds a module to the wrong database. The builder writes them on a draft,
- * refuses what contradicts the configuration, and never writes a secret's value.
- */
-describe("project-config operations", function () {
-  this.timeout(OP_TIMEOUT);
-
-  beforeEach(() => {
-    app = createFixture();
-    fs.writeFileSync(configPath(), PROJECT_CONFIG);
-  });
-
-  after(destroyFixture);
-
+function writesModuleEntries(): void {
   it("writes the skill's connect batch as the configuration it expects", async () => {
     expectOk(await ConfigureProject(CONNECT_STEPS), "ConfigureProject");
     expect(readConfig()).to.equal(CONNECTED_CONFIG);
@@ -259,7 +245,9 @@ describe("project-config operations", function () {
     );
     expect(ledger?.sourceModule).to.equal("erp-tables");
   });
+}
 
+function writesWholeBatchesInTheProjectsStyle(): void {
   it("scaffolds a local module from a tsconfig.json with comments and trailing commas", async () => {
     fs.writeFileSync(
       path.join(app.root, "tsconfig.json"),
@@ -327,7 +315,9 @@ describe("project-config operations", function () {
       "MONGODB_URL=\nERP_DATABASE_URL=\n",
     );
   });
+}
 
+function loadsEnvBesideTheConfigurationsOwnCode(): void {
   it("loads .env beside a namespace import of node:path, which it leaves as it is", async () => {
     const namespace = 'import * as path from "node:path";\n';
     fs.writeFileSync(configPath(), namespace + PROJECT_CONFIG);
@@ -387,7 +377,9 @@ describe("project-config operations", function () {
       .and.to.include('const projectEnvFile2 = join(__dirname, ".env");')
       .and.to.include("process.loadEnvFile(projectEnvFile2);");
   });
+}
 
+function refusesWhatItCannotRewrite(): void {
   it("refuses to add an override where writing the others again would lose one, and writes nothing", async () => {
     for (const overrides of [
       '[{ interface: "@antelopejs/interface-x", source: X_SOURCE }]',
@@ -443,4 +435,25 @@ describe("project-config operations", function () {
     );
     expect(readConfig()).to.include("postgres-erp").and.to.include("reports");
   });
+}
+
+/**
+ * Wiring a project to another database touches several entries of `antelope.config.ts` at once,
+ * and a wrong pin there binds a module to the wrong database. The builder writes them on a draft,
+ * refuses what contradicts the configuration, and never writes a secret's value.
+ */
+describe("project-config operations", function () {
+  this.timeout(OP_TIMEOUT);
+
+  beforeEach(() => {
+    app = createFixture();
+    fs.writeFileSync(configPath(), PROJECT_CONFIG);
+  });
+
+  after(destroyFixture);
+
+  writesModuleEntries();
+  writesWholeBatchesInTheProjectsStyle();
+  loadsEnvBesideTheConfigurationsOwnCode();
+  refusesWhatItCannotRewrite();
 });

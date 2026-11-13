@@ -80,24 +80,26 @@ async function pageIds(): Promise<string[]> {
     .sort((a, b) => a.localeCompare(b));
 }
 
+function connectTheShopCatalog(): void {
+  setCatalogConnectionsForTests({
+    shop: {
+      async ListRelations() {
+        return DESCRIPTIONS;
+      },
+      async DescribeRelations(relations: string[]) {
+        return DESCRIPTIONS.filter((description) =>
+          relations.includes(`${description.schema}.${description.name}`),
+        );
+      },
+    },
+  });
+  setModuleReloadForTests(reloadedAtOnce);
+}
+
 describe("a mapping forgives what is clear and harmless, and keeps the other relations", function () {
   this.timeout(OP_TIMEOUT);
 
-  before(() => {
-    setCatalogConnectionsForTests({
-      shop: {
-        async ListRelations() {
-          return DESCRIPTIONS;
-        },
-        async DescribeRelations(relations: string[]) {
-          return DESCRIPTIONS.filter((description) =>
-            relations.includes(`${description.schema}.${description.name}`),
-          );
-        },
-      },
-    });
-    setModuleReloadForTests(reloadedAtOnce);
-  });
+  before(connectTheShopCatalog);
 
   beforeEach(freshApp);
 
