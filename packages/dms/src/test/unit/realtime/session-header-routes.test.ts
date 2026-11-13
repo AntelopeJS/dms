@@ -47,7 +47,7 @@ class SessionHeaderPage extends PageController("session-header-page", {
 }) {}
 
 const controller = RealtimeController.prototype;
-const { memberModel, roleModel } = stubPageAccessModels(["*"]);
+const { memberModel, roleModel } = stubPageAccessModels([PAGE_ID]);
 
 /**
  * A request in the tenant, naming `sessionId` in `x-realtime-session` when

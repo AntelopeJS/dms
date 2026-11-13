@@ -70,7 +70,8 @@ export const GetPermissions =
 
 /**
  * Compute the user's BASE permission set from role grants (or `*` for
- * platform owners). This set does not account for registered permissions
+ * platform owners). Only `user.owner` yields `*`: a role that stores `*` grants
+ * nothing through it. This set does not account for registered permissions
  * resolvers (e.g. plan gating): authorization surfaces must use
  * {@link GetEffectiveUserPermissions} instead so that every surface (guards,
  * menus, table views, search) agrees on the same effective set.
@@ -87,7 +88,11 @@ export async function GetUserPermissions(
     return new Set();
   }
   const roles = await roleModel.getBy("_id", ...roleIds);
-  return new Set(roles.flatMap((role: Role) => role.permissions));
+  return new Set(
+    roles
+      .flatMap((role: Role) => role.permissions)
+      .filter((permissionId) => permissionId !== "*"),
+  );
 }
 
 /**

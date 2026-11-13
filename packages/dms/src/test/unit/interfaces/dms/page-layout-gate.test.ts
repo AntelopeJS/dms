@@ -34,7 +34,7 @@ const gateInfo = denyingTenantGate(
   SUSPENDED_CODE,
 );
 
-const models = stubPageAccessModels(["*"]);
+const models = stubPageAccessModels(["pages.lg-product", "pages.lg-recovery"]);
 
 async function loadLayout(slug: string, tenantId: string) {
   const handler = GetPageLayoutBySlug(slug);

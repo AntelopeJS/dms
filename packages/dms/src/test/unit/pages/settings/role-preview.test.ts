@@ -76,11 +76,8 @@ function registerPreviewLookupCases(): void {
       ]).to.deep.equal(["a", "b"]);
     });
 
-    it("keeps the wildcard of a role granting everything", () => {
-      expect([...sanitizePreviewPermissions(["*", "a"])]).to.deep.equal([
-        "*",
-        "a",
-      ]);
+    it("leaves out the wildcard a role lists", () => {
+      expect([...sanitizePreviewPermissions(["*", "a"])]).to.deep.equal(["a"]);
     });
 
     it("previews the ids a permission sits under, as saving stores them", () => {

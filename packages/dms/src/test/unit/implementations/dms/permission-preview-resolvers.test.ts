@@ -277,11 +277,15 @@ describe("[unit] implementations/dms/page — role preview through permission re
       expect(outcome.hiddenHeaderActions).to.have.lengthOf(0);
     });
 
-    it("hides nothing for a role holding the wildcard", async () => {
+    it("grants nothing through a wildcard the role lists", async () => {
       const outcome = await preview(VIEWERS[0], PLAN_TENANT, ["*"]);
-      expect(outcome.hiddenEntries).to.have.lengthOf(0);
-      expect(outcome.pageHidden).to.equal(false);
-      expect(outcome.hiddenHeaderActions).to.have.lengthOf(0);
+      expect(outcome.hiddenEntries).to.have.members([
+        HOME,
+        INVOICES,
+        ROLES,
+        BILLING,
+      ]);
+      expect(outcome.pageHidden).to.equal(true);
     });
   });
 });
@@ -346,12 +350,15 @@ describe("[unit] implementations/dms/page — role preview through permission re
           expect(outcome.hiddenHeaderActions).to.deep.equal(["export"]);
         });
 
-        it("hides nothing for a role holding the wildcard", async () => {
+        it("grants nothing through a wildcard the role lists", async () => {
           setPlan(...EVERY_GRANT);
           const outcome = await preview(viewer, PLAN_TENANT, ["*"]);
-          expect(outcome.hiddenEntries).to.have.lengthOf(0);
-          expect(outcome.pageHidden).to.equal(false);
-          expect(outcome.hiddenHeaderActions).to.have.lengthOf(0);
+          expect(outcome.hiddenEntries).to.include.members([
+            HOME,
+            INVOICES,
+            ROLES,
+          ]);
+          expect(outcome.pageHidden).to.equal(true);
         });
       });
     }

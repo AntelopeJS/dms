@@ -27,17 +27,20 @@ import { userFixture } from "../../../helpers/user-fixture";
 
 const TENANT = "missing-category-tenant";
 const MEMBER = userFixture({ _id: "missing-category-member" });
-const OWNER_PERMISSIONS = ["*"];
+const OWNER = userFixture({ _id: "missing-category-owner", owner: true });
 const PLACEHOLDER_LABEL = "none";
 
 type SiteLayoutTree = Awaited<
   ReturnType<typeof buildSiteLayoutPayload>
 >["siteLayoutTree"];
 
-async function pagesLevel(permissions: string[]): Promise<SiteLayoutTree> {
+async function pagesLevel(
+  permissions: string[],
+  user = MEMBER,
+): Promise<SiteLayoutTree> {
   const { memberModel, roleModel } = stubPageAccessModels(permissions);
   const payload = await buildSiteLayoutPayload(
-    MEMBER,
+    user,
     memberModel,
     roleModel,
     TENANT,
@@ -87,7 +90,7 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
 
     try {
       reports.cleanup();
-      const pages = await pagesLevel(OWNER_PERMISSIONS);
+      const pages = await pagesLevel([], OWNER);
 
       expect(pages.children["missing-reports"]).to.equal(undefined);
       expect(pages.children["missing-reports-sales"]?.fullId).to.equal(
@@ -122,7 +125,7 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
           category: unregisteredCategory("missing-ghost"),
         }),
       );
-      const pages = await pagesLevel(OWNER_PERMISSIONS);
+      const pages = await pagesLevel([], OWNER);
 
       expect(pages.children["missing-ghost"]).to.equal(undefined);
       expect(pages.children["missing-ghost-sales"]?.fullId).to.equal(
@@ -223,7 +226,7 @@ describe("[unit] implementations/dms/page — entries of a missing category, reg
           category: unregisteredCategory("missing-clash-parent"),
         }),
       );
-      const pages = await pagesLevel(OWNER_PERMISSIONS);
+      const pages = await pagesLevel([], OWNER);
 
       expect(pages.children["missing-clash"]?.displayName).to.equal(
         "Registered sibling",
