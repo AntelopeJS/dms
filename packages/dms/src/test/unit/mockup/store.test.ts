@@ -259,11 +259,13 @@ describe("[unit] mockup store names and annotations", () => {
       root,
     );
     const listed = (await listAnnotations(NAME, root)) ?? [];
-
-    expect(new Set(listed.map((annotation) => annotation.id)).size).to.equal(
-      CONCURRENT_CREATES,
+    const createdIds = created.map((creation) =>
+      creation.kind === "created" ? creation.annotation.id : creation.kind,
     );
-    expect(listed.map((annotation) => annotation.text).sort()).to.have.members([
+    const listedIds = listed.map(({ id }) => id);
+
+    expect(listedIds).to.have.members([...new Set(createdIds)]);
+    expect(listed.map((annotation) => annotation.text)).to.have.members([
       "again",
       ...Array.from(
         { length: CONCURRENT_CREATES - 1 },
@@ -273,7 +275,9 @@ describe("[unit] mockup store names and annotations", () => {
     expect(resolved?.status).to.equal("resolved");
     expect(resolved?.resolvedAt).to.be.a("string");
     expect(reopened).to.not.have.property("resolvedAt");
-    expect(listed[0]).to.deep.equal(reopened);
+    expect(listed[listedIds.indexOf(first.annotation.id)]).to.deep.equal(
+      reopened,
+    );
   });
 
   it("answers nothing for the annotations of a mockup that does not exist", async () => {
