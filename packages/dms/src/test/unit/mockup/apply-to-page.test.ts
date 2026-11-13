@@ -12,6 +12,7 @@ import {
   applyMockupToPage,
   editPageAsMockup,
   type LivePageWriter,
+  type MockupNode,
   mockupNameSchema,
   specSchema,
 } from "../../../mockup";
@@ -84,14 +85,19 @@ function useConvertedMockup() {
     specText,
     apply: (builder: LivePageWriter) =>
       applyMockupToPage(state.dir, NAME, "books", builder),
-    /** Retitles the KPI in the spec, and answers the spec's text. */
-    async editTitle(title: string): Promise<string> {
+    /** Edits the spec's tree, and answers the spec's text. */
+    async editTree(edit: (tree: MockupNode[]) => void): Promise<string> {
       const spec = specSchema.parse(JSON.parse(await specText()));
-      const [revenue] = spec.pages[0].tree;
-      revenue.options = { ...revenue.options, title };
+      edit(spec.pages[0].tree);
       const text = `${JSON.stringify(spec, null, 2)}\n`;
       await writeFile(specFile(), text);
       return text;
+    },
+    /** Retitles the KPI in the spec, and answers the spec's text. */
+    editTitle(title: string): Promise<string> {
+      return this.editTree(([revenue]) => {
+        revenue.options = { ...revenue.options, title };
+      });
     },
   };
 }
@@ -133,6 +139,40 @@ describe("[unit] mockup apply to its live page, written", () => {
       },
     ]);
     expect(await t.specText()).to.equal(before.replace(CONVERTED, WRITTEN));
+  });
+
+  it("records the name of each new block with no id as its node's id, and keeps an id a node took during the write (fails an apply that leaves the next apply nothing to pair the block by, or renames a node)", async () => {
+    await t.editTree((tree) => {
+      tree.push(
+        { type: "KpiCard", options: { title: "A" } },
+        { type: "KpiCard", options: { title: "B" } },
+      );
+    });
+    const builder = builderOver(
+      [structureOf("/books", BLOCKS, CONVERTED)],
+      async () => {
+        await t.editTree((tree) => {
+          tree[3].id = "mine";
+        });
+        return { ok: true, data: { version: WRITTEN }, changes: [] };
+      },
+    );
+
+    const answer = await t.apply(builder);
+
+    expect(answer).to.deep.include({
+      ok: true,
+      stamped: true,
+      added: ["/books#kpiCard", "/books#kpiCard2"],
+    });
+    const spec = specSchema.parse(JSON.parse(await t.specText()));
+    expect(spec.pages[0].livePage?.version).to.equal(WRITTEN);
+    expect(spec.pages[0].tree.map(({ id }) => id)).to.deep.equal([
+      "revenue",
+      "custom",
+      "kpiCard",
+      "mine",
+    ]);
   });
 
   it("answers stale and writes nothing when the page changed since the conversion (fails an apply that writes over a newer page)", async () => {

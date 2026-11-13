@@ -12,29 +12,32 @@ import {
   fateOf,
   isAnchored,
   isMoveRoot,
+  type NodeStamp,
   note,
   placed,
   type Placement,
   preservedDraft,
   type Planner,
-  type Writable,
   type Written,
 } from "./apply-fate";
 import {
   type BlockEntry,
+  blocksAt,
   isSketch,
   matchTree,
   type Place,
 } from "./apply-match";
-import type { WiringNote } from "./apply-notes";
+import { namePlaces } from "./apply-names";
+import type { WiringNote, WiringReason } from "./apply-notes";
 import { liveOptionsOf, metaOf } from "./apply-options";
 import type { NodeOracle } from "./compile";
 import type { MockupNode, MockupSpecPage } from "./model";
 
-/** The draft a mockup page writes to its live page, and what it leaves to build by hand. */
+/** The draft a mockup page writes to its live page, what it leaves to build by hand, and the ids it gives nodes that had none. */
 export interface ApplyPlan {
   draft: PageDraft;
   wiring: WiringNote[];
+  stamps: NodeStamp[];
 }
 
 export interface PlanContext {
@@ -51,11 +54,12 @@ export type DraftSummary = {
   removed: string[];
 };
 
-const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
-const FALLBACK_NAME = "block";
+/** A node no live block stands for, as a block written new and its name, or why it cannot be. */
+type Fresh =
+  | { ok: true; name: string; block: Written }
+  | { ok: false; reason: WiringReason };
 
-/** A node no live block stands for, as a block written new, or why it cannot be. */
-function newBlockOf(p: Planner, node: MockupNode): Writable {
+function newBlockOf(p: Planner, node: MockupNode): Fresh {
   if (isSketch(node)) return { ok: false, reason: "custom-component" };
   const kind = node.type === undefined ? "unknown" : p.oracle.kindOf(node.type);
   if (node.type === undefined || kind === "unknown") {
@@ -69,7 +73,13 @@ function newBlockOf(p: Planner, node: MockupNode): Writable {
     undefined,
   );
   if (!options.ok) return options;
-  return { ok: true, block: { type: node.type, config: options.config } };
+  const name = p.names.get(node);
+  if (name === undefined) return { ok: false, reason: "name" };
+  return {
+    ok: true,
+    name,
+    block: { type: node.type, config: options.config },
+  };
 }
 
 /** Where a block sits among its siblings; a top-level block has no slot. */
@@ -107,13 +117,13 @@ function keptInside(p: Planner, entry: BlockEntry): boolean {
   return false;
 }
 
-/** The outermost block around each stuck one that leaves its place: kept there as it is. */
-function staysOf(p: Planner): Set<BlockEntry> {
-  const stays = new Set<BlockEntry>();
+/** The outermost block around each stuck one that leaves its place, kept there as it is, with the first stuck block inside. */
+function staysOf(p: Planner): Map<BlockEntry, BlockEntry> {
+  const stays = new Map<BlockEntry, BlockEntry>();
   for (const entry of p.stuck) {
     let top = entry;
     while (top.parent && !isAnchored(p, top.parent)) top = top.parent;
-    stays.add(top);
+    if (!stays.has(top)) stays.set(top, entry);
   }
   return stays;
 }
@@ -138,57 +148,45 @@ function settle(p: Planner): void {
   );
   for (;;) {
     p.stays = staysOf(p);
-    const stuck = moved
+    const more = moved
       .filter(({ entry, node }) => {
         const parent = p.matching.parents.get(node);
         return (
-          p.stuck.has(entry) ||
-          (parent !== undefined && !isWritten(p, parent)) ||
-          keptInside(p, entry)
+          !p.stuck.has(entry) &&
+          ((parent !== undefined && !isWritten(p, parent)) ||
+            keptInside(p, entry))
         );
       })
       .map(({ entry }) => entry);
-    if (stuck.length === p.stuck.size) return;
-    p.stuck = new Set(stuck);
+    if (more.length === 0) return;
+    p.stuck = new Set([...p.stuck, ...more]);
   }
 }
 
-function freshName(
-  preferred: string | undefined,
-  type: string,
-  taken: Set<string>,
-): string {
-  const typed = `${type.charAt(0).toLowerCase()}${type.slice(1)}`;
-  const base =
-    [preferred, typed].find(
-      (name) => name !== undefined && IDENTIFIER.test(name),
-    ) ?? FALLBACK_NAME;
-  let name = base;
-  for (let suffix = 2; taken.has(name); suffix += 1) name = `${base}${suffix}`;
-  taken.add(name);
-  return name;
-}
-
-function liveChildren(p: Planner, place: Place): BlockEntry[] {
-  if (place === "fresh") return [];
-  return place === "root" ? p.matching.roots : place.children;
-}
-
-/** `drafts` with each block kept at this place for a stuck block inside put back after the sibling it followed. */
+/**
+ * `drafts` with each block kept at this place for a stuck block inside put
+ * back after the sibling it followed. A kept block the mockup removed is
+ * noted at the stuck block's node, since no node of its own stands for it.
+ */
 function withStays(
   p: Planner,
   drafts: BlockDraft[],
   place: Place,
 ): BlockDraft[] {
-  const siblings = liveChildren(p, place);
+  const siblings = blocksAt(place, p.matching.roots);
   const result = [...drafts];
   siblings.forEach((entry, index) => {
-    if (!p.stays.has(entry)) return;
+    const inside = p.stays.get(entry);
+    if (inside === undefined) return;
     const before = new Set(siblings.slice(0, index).map((s) => s.block.name));
     const after = result.findLastIndex((draft) => before.has(draft.name));
     const { block } = entry;
     const placement = placementAt(place, block.slot, block.meta);
     result.splice(after + 1, 0, preservedDraft(block, placement));
+    const stuck = p.matching.byEntry.get(inside);
+    if (stuck && !p.matching.byEntry.has(entry)) {
+      note(p, stuck.node, stuck.pointer, "parent", block.path);
+    }
   });
   return result;
 }
@@ -263,7 +261,6 @@ function anchoredDraft(
 function emitNode(
   p: Planner,
   at: { node: MockupNode; pointer: string; place: Place },
-  taken: Set<string>,
 ): BlockDraft[] {
   const { node, pointer } = at;
   const entry = p.matching.byNode.get(node);
@@ -274,8 +271,10 @@ function emitNode(
       note(p, node, pointer, made.reason);
       return [];
     }
-    const name = freshName(node.id, made.block.type, taken);
-    return [freshDraft(p, name, made.block, at)];
+    if (node.id === undefined) {
+      p.stamps.push({ path: pointer, id: made.name, type: made.block.type });
+    }
+    return [freshDraft(p, made.name, made.block, at)];
   }
   if (isAnchored(p, entry)) return [anchoredDraft(p, entry, at)];
   const copy = p.stuck.has(entry) ? undefined : copyOf(p, entry, node);
@@ -289,24 +288,28 @@ function emitNode(
     );
     return [];
   }
-  return [
-    freshDraft(p, freshName(entry.block.name, copy.type, taken), copy, at),
-  ];
+  return [freshDraft(p, copy.name, copy, at)];
 }
 
-/** The drafts of `nodes`, the children of one place, in the mockup's order. */
+/**
+ * The drafts of `nodes`, the children of one place, in the mockup's order. A
+ * top-level block written takes no slot or span: one its node sets is noted.
+ */
 function emitList(
   p: Planner,
   nodes: readonly MockupNode[],
   pointer: string,
   place: Place,
 ): BlockDraft[] {
-  const taken = new Set(
-    liveChildren(p, place).map((entry) => entry.block.name),
-  );
-  const drafts = nodes.flatMap((node, index) =>
-    emitNode(p, { node, pointer: `${pointer}/${index}`, place }, taken),
-  );
+  const drafts = nodes.flatMap((node, index) => {
+    const at = { node, pointer: `${pointer}/${index}`, place };
+    const made = emitNode(p, at);
+    const placedAt = node.slot !== undefined || node.colSpan !== undefined;
+    if (place === "root" && placedAt && made.length > 0) {
+      note(p, node, at.pointer, "placement");
+    }
+    return made;
+  });
   return withStays(p, drafts, place);
 }
 
@@ -318,7 +321,9 @@ function emitList(
  * is a sketch standing for it, or when its change needs code or data the
  * mockup does not hold; such a change is listed in `wiring`. Option, order,
  * slot and span edits are written, blocks no node stands for are removed,
- * and new nodes of the builder's own types are added.
+ * and new nodes of the builder's own types are added, each under a name the
+ * next apply pairs it with again: its id's block name, or, for a node with no
+ * id, a name listed in `stamps` for the caller to record as its id.
  */
 export function planApply(
   page: MockupSpecPage,
@@ -333,13 +338,16 @@ export function planApply(
     oracle: context.oracle,
     fates: new Map(),
     anchored: new Map(),
+    names: new Map(),
     stuck: new Set(),
-    stays: new Set(),
+    stays: new Map(),
     wiring: [],
+    stamps: [],
   };
+  namePlaces(p, page.tree, "root");
   settle(p);
   const blocks = emitList(p, page.tree, pointer, "root");
-  return { draft: { blocks }, wiring: p.wiring };
+  return { draft: { blocks }, wiring: p.wiring, stamps: p.stamps };
 }
 
 function summarizeList(

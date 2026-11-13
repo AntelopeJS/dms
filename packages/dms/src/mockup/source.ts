@@ -49,7 +49,8 @@ function digestOf(text: string): SpecDigest {
     .slice(0, DIGEST_LENGTH);
 }
 
-function parseObject(text: string): JsonObject | undefined {
+/** The JSON object `text` holds, or undefined when it holds none. */
+export function parseSpecObject(text: string): JsonObject | undefined {
   try {
     const parsed = jsonObjectSchema.safeParse(JSON.parse(text));
     return parsed.success ? parsed.data : undefined;
@@ -81,7 +82,7 @@ export async function readSpecSource(
 ): Promise<SpecSource | undefined> {
   const text = await readSpecText(mockupsDir, name);
   if (text === undefined) return undefined;
-  return { spec: parseObject(text), digest: digestOf(text) };
+  return { spec: parseSpecObject(text), digest: digestOf(text) };
 }
 
 /** Writes `spec` as {@link writeSpec} does, inside {@link withSpecLock}. */
@@ -212,7 +213,8 @@ function isJsonObject(value: Json | undefined): value is JsonObject {
   return value instanceof Object && !Array.isArray(value);
 }
 
-function valueAt(value: Json, pointer: string): Json | undefined {
+/** The value at JSON pointer `pointer` of `value`, or undefined when it names none. */
+export function specValueAt(value: Json, pointer: string): Json | undefined {
   return pointer
     .split("/")
     .slice(1)
@@ -228,7 +230,7 @@ function setNow(mockupsDir: string, name: MockupName): SpecSetter {
   return async (text, values) => {
     const spec = jsonObjectSchema.parse(JSON.parse(text));
     for (const { path, key, value } of values) {
-      const object = valueAt(spec, path);
+      const object = specValueAt(spec, path);
       if (!isJsonObject(object)) {
         throw new Error(`${path} names no node of mockups/${name}/spec.json`);
       }

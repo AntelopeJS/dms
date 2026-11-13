@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import type { MockupNode, MockupSpecPage } from "../../../mockup";
 import type { BlockDraft } from "../../helpers/live-page";
 import { nodeAt, planEdited, takeNode } from "../../helpers/mockup-apply";
 
@@ -68,6 +69,49 @@ describe("[unit] mockup apply: a block moved to another parent", () => {
     ).to.deep.equal([
       { id: "a", reason: "move", kept: "/books#stack/a" },
       { id: "custom", reason: "move", kept: "/books#stack/custom" },
+      { id: "custom", reason: "parent", kept: "/books#stack" },
+    ]);
+  });
+
+  it("lists the removed parent it keeps for a block that could not move out of it into another (fails a plan that keeps a removed block without a note)", () => {
+    const plan = planEdited(
+      [
+        {
+          name: "a",
+          type: "VStack",
+          children: [
+            { name: "custom", type: null },
+            { name: "k", type: "KpiCard", config: { title: "K" } },
+          ],
+        },
+        {
+          name: "b",
+          type: "VStack",
+          children: [{ name: "other", type: "KpiCard", config: {} }],
+        },
+      ],
+      (page) => {
+        nodeAt(page, "b").children?.push(takeNode(page.tree, "custom"));
+        takeNode(page.tree, "a");
+      },
+    );
+
+    expect(plan.draft.blocks[0]).to.deep.equal({ name: "a", preserve: true });
+    expect(plan.wiring).to.deep.equal([
+      {
+        pointer: "/pages/0/tree/0/children/1",
+        id: "custom",
+        type: "sketch",
+        reason: "move",
+        kept: "/books#a/custom",
+      },
+      {
+        pointer: "/pages/0/tree/0/children/1",
+        id: "custom",
+        type: "sketch",
+        reason: "parent",
+        kept: "/books#a",
+      },
     ]);
   });
 
@@ -95,6 +139,54 @@ describe("[unit] mockup apply: a block moved to another parent", () => {
       { name: "b", preserve: undefined },
     ]);
     expect(plan.summary.removed).to.deep.equal(["/books#stack"]);
+  });
+});
+
+const SAME_NAMES: BlockDraft[] = [
+  { name: "widget", type: "KpiCard", config: { title: "W" } },
+  {
+    name: "s1",
+    type: "VStack",
+    children: [
+      { name: "widget", type: null },
+      { name: "k1", type: "KpiCard", config: { title: "K1" } },
+    ],
+  },
+  { name: "s2", type: "VStack", children: [{ name: "widget", type: null }] },
+];
+const CUSTOM_PATHS = ["/books#s1/widget", "/books#s2/widget"];
+const PLACES = [[], ["s1"], ["s2"]];
+
+function listAt(page: MockupSpecPage, ids: string[]): MockupNode[] {
+  if (ids.length === 0) return page.tree;
+  const node = nodeAt(page, ...ids);
+  node.children ??= [];
+  return node.children;
+}
+
+describe("[unit] mockup apply: blocks of one name", () => {
+  it("never removes a custom component while a sketch of its name is left, wherever the mockup puts the sketches and whether it keeps a block of their name (fails a matcher that pairs a sketch with a block of the builder's own, or drops a move it cannot tell apart)", () => {
+    const removed = [true, false].flatMap((keepBlock) =>
+      PLACES.flatMap((first) =>
+        PLACES.flatMap((second) => {
+          const plan = planEdited(SAME_NAMES, (page) => {
+            const one = takeNode(listAt(page, ["s1"]), "widget");
+            const two = takeNode(listAt(page, ["s2"]), "widget");
+            if (!keepBlock) takeNode(page.tree, "widget");
+            listAt(page, first).push(one);
+            listAt(page, second).push(two);
+          });
+          return plan.summary.removed
+            .filter((path) => CUSTOM_PATHS.includes(path))
+            .map(
+              (path) =>
+                `${path}, sketches in /${first.join("/")} and /${second.join("/")}, block ${keepBlock ? "kept" : "removed"}`,
+            );
+        }),
+      ),
+    );
+
+    expect(removed).to.deep.equal([]);
   });
 });
 

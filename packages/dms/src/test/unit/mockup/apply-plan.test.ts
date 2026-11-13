@@ -124,7 +124,7 @@ describe("[unit] mockup apply: edits it writes", () => {
     expect(plan.summary.removed).to.deep.equal(["/books#revenue"]);
   });
 
-  it("adds a new block of a builder type, named after its id when it is one (fails a plan that drops it or names it after a sibling)", () => {
+  it("adds a new block of a builder type, named after its id, or a name made from it the next apply derives again (fails a plan that drops it or names it after its type)", () => {
     const plan = planEdited(PAGE, (page) => {
       page.tree.push(
         { id: "orders", type: "KpiCard", options: { title: "Orders" } },
@@ -134,15 +134,13 @@ describe("[unit] mockup apply: edits it writes", () => {
 
     expect(plan.draft.blocks.slice(3)).to.deep.equal([
       { name: "orders", type: "KpiCard", config: { title: "Orders" } },
-      { name: "kpiCard", type: "KpiCard", config: { title: "Other" } },
+      { name: "n_1", type: "KpiCard", config: { title: "Other" } },
     ]);
-    expect(plan.summary.added).to.deep.equal([
-      "/books#orders",
-      "/books#kpiCard",
-    ]);
+    expect(plan.summary.added).to.deep.equal(["/books#orders", "/books#n_1"]);
+    expect(plan.stamps).to.deep.equal([]);
   });
 
-  it("names a new block anew when its name is a removed block's, so it never writes over that block's source (fails a plan that reuses a live name)", () => {
+  it("names a new block with no id anew when its name is a removed block's, and gives the node that name as its id (fails a plan that reuses a live name, or leaves the next apply nothing to pair it by)", () => {
     const plan = planEdited(
       [{ name: "kpiCard", type: "KpiCard", config: { title: "Old" } }],
       (page) => {
@@ -154,10 +152,61 @@ describe("[unit] mockup apply: edits it writes", () => {
       { name: "kpiCard2", type: "KpiCard", config: { title: "New" } },
     ]);
     expect(plan.summary.removed).to.deep.equal(["/books#kpiCard"]);
+    expect(plan.stamps).to.deep.equal([
+      { path: "/pages/0/tree/0", id: "kpiCard2", type: "KpiCard" },
+    ]);
   });
 });
 
 describe("[unit] mockup apply: what it leaves for wiring", () => {
+  it("lists a slot or span set on a top-level block, which the builder lays out in order only (fails a plan that drops it without a note)", () => {
+    const plan = planEdited(PAGE, (page) => {
+      nodeAt(page, "revenue").slot = "side";
+      nodeAt(page, "rows").colSpan = 2;
+    });
+
+    expect(
+      plan.draft.blocks.map(({ name, slot, meta }) => ({ name, slot, meta })),
+    ).to.deep.equal([
+      { name: "revenue", slot: undefined, meta: undefined },
+      { name: "custom", slot: undefined, meta: undefined },
+      { name: "rows", slot: undefined, meta: undefined },
+    ]);
+    expect(plan.wiring).to.deep.equal([
+      {
+        pointer: "/pages/0/tree/0",
+        id: "revenue",
+        type: "KpiCard",
+        reason: "placement",
+      },
+      {
+        pointer: "/pages/0/tree/2",
+        id: "rows",
+        type: "Grid",
+        reason: "placement",
+      },
+    ]);
+  });
+
+  it("lists a new block whose id gives the block name of another at its place, and writes it under no other name (fails a plan that renames it, which the next apply removes again)", () => {
+    const plan = planEdited(PAGE, (page) => {
+      page.tree.push(
+        { id: "orders_2", type: "KpiCard", options: { title: "Orders" } },
+        { id: "orders-2", type: "KpiCard", options: { title: "Orders" } },
+      );
+    });
+
+    expect(plan.summary.added).to.deep.equal(["/books#orders_2"]);
+    expect(plan.wiring).to.deep.equal([
+      {
+        pointer: "/pages/0/tree/4",
+        id: "orders-2",
+        type: "KpiCard",
+        reason: "name",
+      },
+    ]);
+  });
+
   it("lists a new block reading a fixture that stands for no live route, and writes nothing of it (fails a plan that writes the fixture: reference)", () => {
     const plan = planEdited(PAGE, (page) => {
       page.tree.push({

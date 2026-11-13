@@ -7,12 +7,14 @@ import {
   SetPageBlocks,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
+import type { NodeStamp } from "./apply-fate";
 import type { WiringNote } from "./apply-notes";
 import { type DraftSummary, planApply, summarize } from "./apply-plan";
 import { openOracle } from "./compile";
 import { collectControllers, convertPage } from "./from-page";
 import { BUILDER_PAGES, type LivePages, readResources } from "./live-page";
 import type {
+  JsonObject,
   MockupIssue,
   MockupLivePage,
   MockupName,
@@ -20,7 +22,13 @@ import type {
 } from "./model";
 import { specSchema, zodIssues } from "./model";
 import { queued } from "./queue";
-import { readSpecSource, readSpecText, withSpecLock } from "./source";
+import {
+  parseSpecObject,
+  readSpecSource,
+  readSpecText,
+  specValueAt,
+  withSpecLock,
+} from "./source";
 
 /** The builder, as an apply reads the live page and writes it. */
 export interface LivePageWriter extends LivePages {
@@ -153,44 +161,48 @@ function refused(
   }
 }
 
-const pagesSchema = z.object({ pages: z.array(z.unknown()) });
-const refSchema = z.object({ livePage: z.object({ ref: z.string() }) });
+const unnamedSchema = z.object({ id: z.undefined(), type: z.string() });
 
-/** The live page ref that page `index` of `text` records, read loosely. */
-function refAt(text: string, index: number): string | undefined {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-  const pages = pagesSchema.safeParse(raw);
-  const page = pages.success
-    ? refSchema.safeParse(pages.data.pages[index])
-    : undefined;
-  return page?.success ? page.data.livePage.ref : undefined;
+/** Whether the node a stamp names still has no id and the type it was written as. */
+function stillUnnamed(spec: JsonObject, stamp: NodeStamp): boolean {
+  const node = unnamedSchema.safeParse(specValueAt(spec, stamp.path));
+  return node.success && node.data.type === stamp.type;
 }
 
 /**
- * Records the version the write left the page at in `livePage`, unless the
- * spec no longer links page `index` to it.
+ * Records the version the write left the page at in `livePage`, and the name
+ * each node in `stamps` was written under as its id, unless the spec no
+ * longer links page `index` to the page. A node that took an id or another
+ * type meanwhile keeps it.
  */
-function stampVersion(
+function stampSpec(
   mockupsDir: string,
   name: MockupName,
   index: number,
   livePage: MockupLivePage,
+  stamps: readonly NodeStamp[],
 ): Promise<Stamp> {
   return withSpecLock(mockupsDir, name, async (_write, _stamp, set) => {
     const text = await readSpecText(mockupsDir, name);
-    if (text === undefined || refAt(text, index) !== livePage.ref) {
+    const spec = text === undefined ? undefined : parseSpecObject(text);
+    const page = `/pages/${index}/livePage`;
+    if (
+      text === undefined ||
+      spec === undefined ||
+      specValueAt(spec, `${page}/ref`) !== livePage.ref
+    ) {
       return {
         stamped: false,
         message: `spec.json changed during the write: /pages/${index} no longer records ${livePage.ref}, so its livePage.version was left as it was`,
       };
     }
-    const path = `/pages/${index}/livePage`;
-    await set(text, [{ path, key: "version", value: livePage.version }]);
+    const ids = stamps
+      .filter((stamp) => stillUnnamed(spec, stamp))
+      .map(({ path, id }) => ({ path, key: "id", value: id }));
+    await set(text, [
+      { path: page, key: "version", value: livePage.version },
+      ...ids,
+    ]);
     return { stamped: true };
   });
 }
@@ -236,7 +248,7 @@ async function applyNow(
     ok: true,
     outcome: "applied",
     livePage: written,
-    ...(await stampVersion(mockupsDir, name, index, written)),
+    ...(await stampSpec(mockupsDir, name, index, written, plan.stamps)),
     ...summarize(plan.draft, structure),
     wiring: plan.wiring,
   };

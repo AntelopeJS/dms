@@ -52,12 +52,72 @@ export interface Matching {
   parents: Map<MockupNode, MockupNode | undefined>;
 }
 
+/** A name the page reader lists a top-level block under: it skips a static that starts with `_`. */
+const LISTED_NAME = /^[A-Za-z$][\w$]*$/;
+const NOT_NAME_CHARACTERS = /[^\w$]+/g;
+/** The statics every class has: a block declared under one does not typecheck. */
+const FUNCTION_MEMBERS = new Set([
+  "arguments",
+  "caller",
+  "length",
+  "name",
+  "prototype",
+]);
+
+function isListed(name: string): boolean {
+  return LISTED_NAME.test(name) && !FUNCTION_MEMBERS.has(name);
+}
+
+/**
+ * The name a block written for a node with id `id` takes: the id itself when
+ * the builder writes and lists a block under it at any place, else one made
+ * from it that it does, so the next apply finds the block again. `b-1a2b3c4d`
+ * gives `b_1a2b3c4d`; `_draft` gives `block_draft`; `name` gives `block_name`.
+ */
+export function blockNameOf(id: string): string {
+  if (isListed(id)) return id;
+  const word = id.replaceAll(NOT_NAME_CHARACTERS, "_");
+  if (isListed(word)) return word;
+  return `block${word.startsWith("_") ? "" : "_"}${word}`;
+}
+
 export function isSketch(node: MockupNode): boolean {
   return node.type === SKETCH_TYPE;
 }
 
 function nameOf(entry: LiveEntry): string {
   return entry.kind === "block" ? entry.block.name : entry.name;
+}
+
+/**
+ * Whether `node` can stand for `entry`: a Custom sketch stands only for a
+ * block the page draws as one, whose source the builder cannot write again.
+ */
+function canStandFor(node: MockupNode, entry: LiveEntry): boolean {
+  return !isSketch(node) || isSketch(entry.node);
+}
+
+/**
+ * The entry of `entries` that `node` stands for: one named its id, else its
+ * id's block name; of those, one drawn as the node is (a sketch or not)
+ * first, then the first.
+ */
+function pick(
+  entries: readonly LiveEntry[],
+  node: MockupNode,
+  id: string,
+  free: (entry: LiveEntry) => boolean,
+): LiveEntry | undefined {
+  const fits = entries.filter(
+    (entry) => free(entry) && canStandFor(node, entry),
+  );
+  const named =
+    [id, blockNameOf(id)]
+      .map((name) => fits.filter((entry) => nameOf(entry) === name))
+      .find((found) => found.length > 0) ?? [];
+  return (
+    named.find((entry) => isSketch(entry.node) === isSketch(node)) ?? named[0]
+  );
 }
 
 function entryOf(
@@ -100,18 +160,27 @@ function entriesOf(
   );
 }
 
+/** The live blocks at a place, held ones aside. */
+export function blocksAt(place: Place, roots: BlockEntry[]): BlockEntry[] {
+  if (place === "fresh") return [];
+  return place === "root" ? roots : place.children;
+}
+
 /** The live entries one place offers its nodes, held blocks first. */
 function candidatesAt(place: Place, roots: BlockEntry[]): LiveEntry[] {
-  if (place === "fresh") return [];
-  if (place === "root") return roots;
-  return [...place.held, ...place.children];
+  const held = place === "fresh" || place === "root" ? [] : place.held;
+  return [...held, ...blocksAt(place, roots)];
 }
 
 function everyBlock(entries: readonly BlockEntry[]): BlockEntry[] {
   return entries.flatMap((entry) => [entry, ...everyBlock(entry.children)]);
 }
 
-type Finder = (node: MockupNode, place: Place) => LiveEntry | undefined;
+type Finder = (
+  node: MockupNode,
+  id: string,
+  place: Place,
+) => LiveEntry | undefined;
 
 /** Visits the spec tree parents first, each node with the place its parent's claim gives it. */
 function claimTree(
@@ -126,7 +195,7 @@ function claimTree(
     const at = `${pointer}/${index}`;
     matching.parents.set(node, parent);
     if (!matching.byNode.has(node) && node.id !== undefined) {
-      const entry = find(node, place);
+      const entry = find(node, node.id, place);
       if (entry) {
         matching.byNode.set(node, entry);
         matching.byEntry.set(entry, { entry, node, pointer: at, parent });
@@ -147,12 +216,16 @@ export function placeUnder(
 }
 
 /**
- * Pairs each node of `tree` with the live block it stands for, by
- * `node.id === block.name`: first among the children of the block its
- * parent stands for, over the whole tree; then, for a node left over, the
- * one free block of that name anywhere on the page, which the mockup moved.
- * `reconverted` is the page converted now, one node per block: it pairs each
- * block with the node it would be had the mockup left it alone.
+ * Pairs each node of `tree` with the live block it stands for, named its id
+ * or its id's block name ({@link blockNameOf}): first among the children of
+ * the block its parent stands for, over the whole tree; then, for a node left
+ * over, a free block of that name anywhere on the page, which the mockup
+ * moved, one drawn as the node is first, then in page order. A Custom sketch
+ * stands only for a block the page draws as one, so a block the builder
+ * cannot write again is left without a node only when no sketch of its name
+ * is left without a block. `reconverted` is the page converted now, one node
+ * per block: it pairs each block with the node it would be had the mockup
+ * left it alone.
  */
 export function matchTree(
   blocks: readonly BlockNode[],
@@ -168,20 +241,18 @@ export function matchTree(
     parents: new Map(),
   };
   const free = (entry: LiveEntry) => !matching.byEntry.has(entry);
-  const inPlace: Finder = (node, place) =>
-    candidatesAt(place, roots).find(
-      (entry) => free(entry) && nameOf(entry) === node.id,
-    );
+  const inPlace: Finder = (node, id, place) =>
+    pick(candidatesAt(place, roots), node, id, free);
   claimTree(tree, pointer, undefined, matching, inPlace);
-  const named = everyBlock(roots);
-  claimTree(tree, pointer, undefined, matching, (node, place) => {
-    const here = inPlace(node, place);
-    if (here) return here;
-    const moved = named.filter(
-      (entry) => free(entry) && entry.block.name === node.id,
-    );
-    return moved.length === 1 ? moved[0] : undefined;
-  });
+  const anywhere = everyBlock(roots);
+  claimTree(
+    tree,
+    pointer,
+    undefined,
+    matching,
+    (node, id, place) =>
+      inPlace(node, id, place) ?? pick(anywhere, node, id, free),
+  );
   return matching;
 }
 

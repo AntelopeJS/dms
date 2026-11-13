@@ -3,6 +3,7 @@ import type {
   BlockNode,
   ConfigObject,
 } from "@antelopejs/interface-dms-builder";
+import type { IdStamp } from "./anchor";
 import type { WiringNote, WiringReason } from "./apply-notes";
 import {
   type BlockEntry,
@@ -39,6 +40,9 @@ export type Writable =
 
 export type Placement = Pick<BlockDraft, "slot" | "meta">;
 
+/** A node written new that had no id, the name it was written under as its id, and its type. */
+export type NodeStamp = IdStamp & { type: string };
+
 /** What a plan reads, and what it has decided so far. */
 export interface Planner {
   readonly matching: Matching;
@@ -46,11 +50,17 @@ export interface Planner {
   readonly oracle: NodeOracle;
   readonly fates: Map<BlockEntry, Fate>;
   readonly anchored: Map<BlockEntry, boolean>;
+  /**
+   * The name each node written new would take at its place. A node missing
+   * from it, with an id, has the name of another block there: see `namePlaces`.
+   */
+  readonly names: Map<MockupNode, string>;
   /** The moved blocks that stay where they were, their nodes not written. */
   stuck: ReadonlySet<BlockEntry>;
-  /** The outermost blocks kept as they were at their place, for a stuck block inside. */
-  stays: ReadonlySet<BlockEntry>;
+  /** The outermost blocks kept as they were at their place, each with a stuck block inside. */
+  stays: ReadonlyMap<BlockEntry, BlockEntry>;
   readonly wiring: WiringNote[];
+  readonly stamps: NodeStamp[];
 }
 
 export function placed(
@@ -221,17 +231,21 @@ export function changedHeld(p: Planner, entry: BlockEntry): BlockEntry["held"] {
   });
 }
 
-/** A moved block as a new block at its new place, when the builder can write all of it there. */
+/**
+ * A moved block as a new block at its new place, and its name there, when
+ * the builder can write all of it there under a name no other block has.
+ */
 export function copyOf(
   p: Planner,
   entry: BlockEntry,
   node: MockupNode,
-): Written | undefined {
+): (Written & { name: string }) | undefined {
   const { block } = entry;
+  const name = p.names.get(node);
   if (entry.whole || isSketch(node) || !block.editable) return undefined;
   if (block.lockedOptions || changedHeld(p, entry).length > 0) return undefined;
   const write = written(p, entry, node);
-  return write.ok ? write.block : undefined;
+  return write.ok && name !== undefined ? { ...write.block, name } : undefined;
 }
 
 /** Whether a moved block and every child it took along can be written new. */
