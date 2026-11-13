@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { type ClientRequest, get, type IncomingMessage } from "node:http";
 import { join } from "node:path";
@@ -113,13 +113,43 @@ describe("[unit] mockup routes", () => {
     await rm(base, { recursive: true, force: true });
   });
 
-  it("lists the mockups at the API root", async () => {
-    const listed = await client.get(BASE);
+  it("lists the mockups at the API root as the rows of a source table, the one changed last first", async () => {
+    const newer = join(base, "mockups", "newer");
+    await mkdir(newer);
+    await writeFile(join(newer, "spec.json"), SPEC);
+    await utimes(
+      join(base, "mockups", "desk", "spec.json"),
+      new Date("2026-01-01T00:00:00Z"),
+      new Date("2026-01-01T00:00:00Z"),
+    );
+    try {
+      const listed = await client.get(BASE);
 
-    expect(listed.status).to.equal(200);
-    expect(listed.data).to.deep.equal({
-      mockups: [{ name: "desk", pages: 1 }],
-    });
+      expect(listed.status).to.equal(200);
+      expect(listed.data).to.deep.equal({
+        results: [
+          {
+            name: "newer",
+            pages: 1,
+            openComments: 0,
+            status: "draft",
+            updatedAt: (
+              await stat(join(newer, "spec.json"))
+            ).mtime.toISOString(),
+          },
+          {
+            name: "desk",
+            pages: 1,
+            openComments: 0,
+            status: "draft",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+        total: 2,
+      });
+    } finally {
+      await rm(newer, { recursive: true, force: true });
+    }
   });
 
   it("sorts, searches and pages an array fixture's rows", async () => {
