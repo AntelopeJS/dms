@@ -11,7 +11,9 @@ import { connectionAccess } from "./connection-access-config";
 import { mappedConnectionOfFile, recordedConnection } from "./mapped-modules";
 import { RoutesOf } from "./mapped-routes";
 import { targetModule } from "./modules";
-import { stringOf } from "./project-config";
+import { objectLiteralToValue } from "./config-literal";
+import type { LiteralValue } from "./guards";
+import { isString } from "./scalar-guards";
 import {
   findResourceRecord,
   listResourceRecords,
@@ -118,10 +120,24 @@ function servesWrites(record: ResourceRecord): boolean {
   );
 }
 
-type RowWritingForm = (typeof ROW_WRITING_FORMS)[number];
+interface RowWritingForm {
+  verb: string;
+}
 
+/** A mode the builder cannot read as `"new"`, `"edit"` or `"view"` may be either writing mode. */
+const UNREAD_MODE: RowWritingForm = { verb: "may create or edit" };
+
+/** The rows a ResourceForm in this mode writes: none for `"view"` or no mode, any for a mode it cannot read. */
 function rowWritingForm(mode: string | undefined): RowWritingForm | undefined {
-  return ROW_WRITING_FORMS.find((form) => form.mode === mode);
+  if (mode === undefined || mode === "view") {
+    return undefined;
+  }
+  return ROW_WRITING_FORMS.find((form) => form.mode === mode) ?? UNREAD_MODE;
+}
+
+/** A mode as text: the string it is, or the JSON of a value that is not one, such as `{ $expr }`. */
+function modeText(mode: LiteralValue | undefined): string | undefined {
+  return isString(mode) ? mode : JSON.stringify(mode);
 }
 
 /** What a block bound to a resource asks to write, completing "refused to …", if anything. */
@@ -169,30 +185,28 @@ export function assertBlockAccess({
   controller,
   config,
 }: Pick<AddBlockInput, "type" | "controller" | "config">): void {
-  const mode = config.mode;
   assertBound(
     type,
     controller === undefined ? undefined : findResourceRecord(controller),
-    ROW_WRITING_FORMS.find((form) => form.mode === mode),
+    rowWritingForm(modeText(config.mode)),
   );
 }
 
-/** A ResourceForm's mode as its call holds it, when it is a literal; nothing for another block. */
+/**
+ * A ResourceForm's mode as the page reader reads its call, named constants resolved, as text; the
+ * text of the whole options when they are not an object literal; nothing for another block.
+ */
 function formMode({
   type,
   controllerArg,
   factoryCall,
 }: BlockTarget): string | undefined {
-  if (type !== RESOURCE_FORM || !controllerArg) {
+  const options = factoryCall.getArguments()[1];
+  if (type !== RESOURCE_FORM || !controllerArg || options === undefined) {
     return undefined;
   }
-  const options = factoryCall.getArguments()[1];
-  const property = Node.isObjectLiteralExpression(options)
-    ? options.getProperty("mode")
-    : undefined;
-  return Node.isPropertyAssignment(property)
-    ? stringOf(property.getInitializer())
-    : undefined;
+  const { value } = objectLiteralToValue(options);
+  return modeText(Object.hasOwn(value, "$expr") ? value : value.mode);
 }
 
 function assertFormAccess(

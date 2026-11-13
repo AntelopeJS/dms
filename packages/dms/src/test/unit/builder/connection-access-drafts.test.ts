@@ -73,7 +73,7 @@ const COUNTRIES_TABLE = {
 
 describe("[unit] a page draft over a mapped table follows its connection's access", function () {
   this.timeout(OP_TIMEOUT);
-  useErpFixture();
+  const erp = useErpFixture();
   let page: string;
 
   before(async () => {
@@ -130,6 +130,28 @@ describe("[unit] a page draft over a mapped table follows its connection's acces
       refusalOf(await saveWith(page, "noteForm", { controller: COUNTRIES })),
     ).to.include(
       `refused to add a form that edits rows of "${COUNTRIES}": ${READ_ONLY}`,
+    );
+  });
+
+  it("is refused when it moves a form whose mode is a named constant onto the mapped table", async () => {
+    const pageFile = "../modules/erp-tables/src/sales-countries/page.ts";
+    const named = erp
+      .app()
+      .read(pageFile)
+      .replace(
+        /(static noteForm = ResourceForm\(\w+, \{ mode: )"edit"/,
+        "$1EDIT_MODE",
+      )
+      .replace(/^@RegisterPage\(\)/m, 'const EDIT_MODE = "edit";\n\n$&');
+    expect(named).to.include("mode: EDIT_MODE");
+    erp.app().write(pageFile, named);
+    expect(
+      refusalOf(await saveWith(page, "noteForm", { controller: COUNTRIES })),
+    ).to.include(
+      `refused to add a form that edits rows of "${COUNTRIES}": ${READ_ONLY}`,
+    );
+    expect(erp.app().read(pageFile)).to.include(
+      "static noteForm = ResourceForm(noteDataAPI, { mode: EDIT_MODE })",
     );
   });
 
