@@ -3,6 +3,12 @@ name: Release DMS interface
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: Interface package to release
+        required: true
+        default: interface-dms
+        type: choice
+        options: [interface-dms, interface-dms-builder]
       channel:
         description: npm distribution channel
         required: true
@@ -27,6 +33,7 @@ jobs:
       - name: Validate release source and package metadata
         env:
           CHANNEL: ${{ inputs.channel }}
+          PACKAGE: ${{ inputs.package }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           case "$CHANNEL" in
@@ -36,9 +43,9 @@ jobs:
           esac
           test "$GITHUB_REF" = "refs/heads/$release_branch"
           node <<'NODE'
-          const pkg = require('./packages/interface-dms/package.json')
+          const pkg = require(`./packages/${process.env.PACKAGE}/package.json`)
           if (
-            pkg.name !== '@antelopejs/interface-dms' ||
+            pkg.name !== `@antelopejs/${process.env.PACKAGE}` ||
             pkg.private === true ||
             pkg.license !== 'Apache-2.0' ||
             pkg.repository.url !== 'git+https://github.com/AntelopeJS/dms.git' ||
@@ -54,6 +61,6 @@ jobs:
     with:
       channel: ${{ inputs.channel }}
       release-version: ${{ inputs.release-version }}
-      package-directory: packages/interface-dms
+      package-directory: packages/${{ inputs.package }}
     secrets:
       RELEASE_GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}

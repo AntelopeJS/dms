@@ -32,11 +32,14 @@ jobs:
         packages/dms/docs
         packages/interface-dms/README.md
         packages/interface-dms/docs
+        packages/interface-dms-builder/README.md
+        packages/interface-dms-builder/docs
       docs-typescript-project: packages/interface-dms/docs/tsconfig.json
       extra-commands: |
         pnpm --dir packages/interface-dms check:exports
         pnpm --dir packages/interface-dms check:proxies
         pnpm --dir packages/dms docs:catalog:check
+        pnpm --dir packages/dms mockup:schema:check
         pnpm --dir packages/dms check:frontend-declarations
       renovate-sync: false
       test-job: true
@@ -49,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [unit, integration]
+        suite: [unit, integration, "builder:1", "builder:2"]
     env:
       DMS_PREBUILT: "1"
     steps:

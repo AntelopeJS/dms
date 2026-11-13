@@ -29,13 +29,17 @@ Every command below runs from `packages/dms`.
 
 ```bash
 pnpm test               # build + run every test under src/test
-pnpm test:unit          # build + run only src/test/unit/**
+pnpm test:unit          # build + run src/test/unit/** but the builder specs
 pnpm test:integration   # build + run only src/test/integration/**
+pnpm test:builder       # build + run only src/test/unit/builder/**
 ```
 
-`test:unit` / `test:integration` narrow the runner's recursive discovery to a
-subdirectory by setting `DMS_TEST_DIR` (read by `antelope.test.ts`'s
-`test.folder`); both still boot the full harness. The readiness gate lives in
+`test:integration` and `test:builder` narrow the runner's recursive discovery
+to a subdirectory by setting `DMS_TEST_DIR` (read by `antelope.test.ts`'s
+`test.folder`). `test:unit` hands the runner its files with
+`scripts/test-files.mjs`, which leaves out `unit/builder/`: the builder specs
+take about as long as the rest of the unit suite, so CI runs them in two jobs,
+`test:builder:1` and `test:builder:2`, each every other spec file. Each still boots the full harness. The readiness gate lives in
 `integration/setup.test.ts` because only the HTTP tests race startup — unit
 tests are pure logic and don't touch the runtime. `[unit]` / `[integration]`
 tags in the `describe` titles are for readability.

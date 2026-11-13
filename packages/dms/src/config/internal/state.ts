@@ -204,6 +204,73 @@ export interface ProvisioningLeaseConfig {
   pollEveryMs: number;
 }
 
+/**
+ * The MCP server a coding agent started in the project reaches through a
+ * stdio bridge: Claude Code launches it from the project's `.mcp.json`,
+ * Codex from a server its `config.toml` declares.
+ */
+export interface McpConfig {
+  /**
+   * Serves the MCP route and writes the bridge files. Defaults to the
+   * runtime's development mode (`ajs project dev`). `true` serves it in any
+   * mode, `false` turns it off in development too.
+   */
+  enabled?: boolean;
+  /**
+   * The tools a session may list and call. `safe` serves only the tools that
+   * read the project or edit it through the builder; `full`, the default, also
+   * serves the tools that change the project's configuration or delete a
+   * resource's data. The server enforces it, whatever the client allows.
+   */
+  access?: "safe" | "full";
+  /**
+   * Adds the `dms` server to the project's `.mcp.json` when the entry is
+   * missing. Defaults to `true`; `false` leaves the file alone.
+   */
+  mcpJson?: boolean;
+  /**
+   * The origin the bridge sends its requests and its per-start credential to,
+   * on the machine that runs the backend. Set it to
+   * `${@api.API_LOCAL_BASE_URL}`, the api module's same-host origin.
+   * When unset, the bridge uses `apiBaseUrl` if its host is loopback. Any
+   * other host is refused, so the credential never leaves the machine, and
+   * the bridge is not written.
+   */
+  backendUrl?: string;
+}
+
+/** Where the theme operations write the project's theme. */
+export interface BuilderThemeConfig {
+  /**
+   * Relative to `builder.projectRoot`, or absolute. When unset, the theme goes
+   * in the highest-priority frontend module registered from inside the
+   * project root.
+   */
+  layerPath?: string;
+}
+
+/**
+ * The builder engine, which edits the pages, blocks, resources and queries of
+ * the project's sources through `@antelopejs/interface-dms-builder`.
+ */
+export interface BuilderConfig {
+  /**
+   * Forces the builder on or off. Unset, it follows the project's development
+   * mode: on under `ajs project run` (with or without `-w`), off under
+   * `ajs project start`, which runs a build. `NODE_ENV` is not consulted:
+   * nothing sets it on the way to `ajs project start`. Turn it on in a running
+   * deployment only deliberately, since the builder rewrites TypeScript sources
+   * that exist only in a development checkout.
+   */
+  enabled?: boolean;
+  /**
+   * Absolute path to the app source root where page files live. A relative
+   * path resolves against the working directory, which is also the default.
+   */
+  projectRoot?: string;
+  theme?: BuilderThemeConfig;
+}
+
 export interface Config {
   auth?: AuthConfig;
   htmlRender?: HtmlRenderConfig;
@@ -225,6 +292,8 @@ export interface Config {
    */
   docsPreview?: boolean;
   provisioningLease?: Partial<ProvisioningLeaseConfig>;
+  mcp?: McpConfig;
+  builder?: BuilderConfig;
 }
 
 const REFRESH_TOKEN_LIFETIME_DAYS = 30;
@@ -316,6 +385,20 @@ export function isDocsPreviewEnabled(dev = false): boolean {
     globalConfig.docsPreview === true ||
     process.env[DOCS_PREVIEW_ENV] === DOCS_PREVIEW_ENV_ENABLED
   );
+}
+
+export function getBuilderConfig(): BuilderConfig {
+  return globalConfig.builder ?? {};
+}
+
+/** Replaces the whole `builder` configuration; `undefined` clears it. */
+export function setBuilderConfig(config: BuilderConfig | undefined): void {
+  globalConfig = { ...globalConfig, builder: config };
+}
+
+/** Whether the builder engine is served, `dev` being the runtime's mode. */
+export function isBuilderEnabled(dev = false): boolean {
+  return globalConfig.builder?.enabled ?? dev;
 }
 
 export function getAuthConfig(): AuthConfig {

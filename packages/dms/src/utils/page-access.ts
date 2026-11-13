@@ -66,6 +66,17 @@ export async function userCanAccessPage(
     roleIds,
     roleModel,
   );
+  return permissionsOpenPage(info, permissions);
+}
+
+/**
+ * Whether a signed-in member holding `permissions` opens the page, once the
+ * tenant gate let them through: the rule {@link userCanAccessPage} ends on.
+ */
+export async function permissionsOpenPage(
+  info: PageInfo,
+  permissions: Set<string>,
+): Promise<boolean> {
   if (permissions.has(WILDCARD_PERMISSION)) return true;
   if (isOwnerOnly(info)) return false;
   if (info.authOnly) return true;

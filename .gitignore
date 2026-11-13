@@ -37,3 +37,6 @@ i18n-registry.generated.ts
 # Design reference mockup (local only, not versioned)
 Antelopejs-DMS-Dashboard v1.1/
 
+
+# The throwaway apps the builder specs rewrite
+.test-app-*/
