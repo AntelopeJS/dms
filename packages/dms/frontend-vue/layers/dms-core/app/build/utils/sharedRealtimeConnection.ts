@@ -231,7 +231,6 @@ const connectWithBackoff = (
 const readConnectionId = (
   data: Parameters<SseEventHandler>[1],
 ): string | null => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- SSE decoding returns arbitrary values; inference cannot read this optional property. Keep the existing unchecked property read and subsequent string guard rather than asserting that decoding validated a frame.
   const connectionId = (data as { connectionId?: unknown } | null)
     ?.connectionId;
   return isString(connectionId) ? connectionId : null;
@@ -305,7 +304,6 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
   };
 
   const unlisten = bus.listen((raw) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TabBus transports unknown browser messages, not validated HubMessages. Neither inference nor its owner proves this union; preserve the existing unchecked dispatch, including malformed-message behavior.
     const message = raw as HubMessage;
     if (message.kind === "query")
       bus.post({ kind: "connection", connectionId });
@@ -328,7 +326,6 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
         bus.post({ kind: "frame", connectionId, event: eventName, data });
         return;
       }
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The SSE owner exposes unparsed data; this is only an unchecked view for the two existing string checks, not proof of a complete SessionFrame.
       const frame = data as SessionFrame | null;
       if (!isString(frame?.sessionId)) return;
       if (!isString(frame.event)) return;
@@ -372,7 +369,6 @@ export function joinSharedRealtimeConnection(
   let connectionId: string | undefined;
 
   const unlisten = bus.listen((raw) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TabBus does not validate its payload. Narrowing its owner to HubMessage or adding validation here would change the current acceptance and failure behavior of malformed messages.
     const message = raw as HubMessage;
     if (message.kind === "connection") {
       const next = message.connectionId ?? undefined;

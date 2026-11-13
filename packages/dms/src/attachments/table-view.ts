@@ -1,5 +1,4 @@
 import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
-import type { Parameters } from "@antelopejs/interface-data-api/components";
 import {
   fromPlainData,
   LocalizationModifier,
@@ -18,6 +17,10 @@ import { tableAttachmentFields } from "./bindings";
 import { collectAttachments } from "./fields";
 import { denyAttachment } from "./registry";
 import { SaveComponentFiles } from "./save";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 /** A table instance read by field name, through its own fields and its modifiers' accessors. */
 function isFieldHolder(row: unknown): row is Record<string, unknown> {
@@ -65,8 +68,10 @@ export async function SaveTableViewAttachments(
     getTableViewMetaFor(controller),
     getControllerLocation(controller),
   );
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Route params are erased by the wrapper contract; preserve the existing optional edit-id probe before dispatch.
-  const documentId = (params as Partial<Parameters.EditParameters>)?.id;
+  const documentId =
+    isObject(params) && params !== null && "id" in params && isString(params.id)
+      ? params.id
+      : undefined;
   if (mode === "delete") {
     return deleteDocuments({ ...request, fields });
   }
@@ -98,8 +103,7 @@ export async function SaveTableViewAttachments(
       );
 
       const id = documentId || (isSavedRow(result) ? result._id : undefined);
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a nonempty string id may be used to reload the saved document.
-      if (typeof id !== "string" || !id) denyAttachment();
+      if (!isString(id) || !id) denyAttachment();
       const document = await loadDocument(controller, fields, id);
       if (!document) denyAttachment();
       return { id, document, result: undefined };
@@ -114,12 +118,16 @@ interface DeleteDocumentsRequest extends TableViewAttachmentSaveRequest {
 async function deleteDocuments(request: DeleteDocumentsRequest) {
   const { controller, route, context, params, args, fields, componentIds } =
     request;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Delete mode selects delete-route params, but the wrapper's external contract erases that correlation.
-  const ids = (params as Parameters.DeleteParameters).id;
+  const ids =
+    isObject(params) && params !== null && "id" in params
+      ? params.id
+      : undefined;
+  const deleted: unknown[] = Array.isArray(ids) ? ids : [ids];
+  if (!deleted.every(isString)) {
+    throw new TypeError("A delete request's parameters name no string ids");
+  }
   const rows = await Promise.all(
-    (Array.isArray(ids) ? ids : [ids]).map((id) =>
-      loadDocument(controller, fields, String(id)),
-    ),
+    deleted.map((id) => loadDocument(controller, fields, id)),
   );
   const before = Object.fromEntries(
     fields.map((field) => [

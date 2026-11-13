@@ -15,7 +15,8 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import { fetchClient } from "./fixtures/fetchClient";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
@@ -35,17 +36,13 @@ const { registerPeriodScope } = await import(
 
 const SCOPE = "report";
 const FETCH_URL = "/api/report";
-// SAFETY: This source-list fixture only needs the column id and accessor key; it does not render columns or construct a form.
-const COLUMNS = [{ id: "name", accessorKey: "name" }] as TableViewColumn[];
-
-type Api = Parameters<typeof useTableRows>[0]["api"];
+const COLUMNS = [tableViewColumn("name")];
 
 const requests: string[] = [];
-// SAFETY: This source only reads the list response below via the callable fetch interface.
-const api = (async (url: string) => {
+const api = fetchClient(async (url: string) => {
   requests.push(url);
   return { results: [{ _id: "a", name: "row" }], total: 1 };
-}) as Api;
+});
 
 const mounted: App[] = [];
 const cleanups: Array<() => void> = [];

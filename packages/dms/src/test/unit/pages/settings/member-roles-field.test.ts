@@ -4,7 +4,6 @@ import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
 import { withMemberRolePicker } from "../../../../pages/members";
 import type { FormFieldOrGroupSerialized } from "@antelopejs/interface-dms/base/form";
-import type { EditRolePickerOptions } from "../../../../pages/members";
 
 const plainField = (id: string) => ({
   id,
@@ -54,10 +53,7 @@ describe("[unit] pages/settings/members — the roles field", () => {
     expect(roles.component).to.deep.include({
       componentName: "DmsMemberRolePicker",
     });
-    // SAFETY: The roleIds field is replaced by editRolePicker, whose serialized component options include the rolesUrl and ownerField contract.
-    expect(
-      (roles.component as { options: EditRolePickerOptions }).options,
-    ).to.include({
+    expect(roles.component.options).to.include({
       rolesUrl: "/dms/pages/settings/workspace/members/role-options",
       ownerField: "isTenantOwner",
     });

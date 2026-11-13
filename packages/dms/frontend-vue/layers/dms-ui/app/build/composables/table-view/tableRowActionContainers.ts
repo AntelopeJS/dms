@@ -234,7 +234,6 @@ export const createTableRowFormContainer = <T extends Data>(
       return handler?.(resolved, { fetchUrl, submitDefaults });
     }
     if (handler == null) return;
-    // oxlint-disable-next-line anti-slop/no-reflect-apply -- Malformed container types can name inherited Object.prototype methods. Preserve their original unbound positional call rather than passing the normal form request.
     return Reflect.apply(handler, undefined, [
       resolved.title,
       resolved.description,

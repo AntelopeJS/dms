@@ -66,7 +66,6 @@ const subtitleOf = (item: T): string | undefined =>
 
 const card = computed(
   () =>
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Display options are supplied by backend configuration; retain the existing unchecked card shape.
     (props.context.options as { card?: TableViewCardConfig } | undefined)?.card,
 );
 
@@ -96,7 +95,6 @@ const rowActionsFor = (id: string): Component => {
         name: "CardRowActionsOf",
         render: () =>
           h(CardRowActions, {
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dynamic h erases the row generic; retain the existing unchecked table handoff without asserting that TanStack's row types are covariant.
             table: props.context.table as TableViewDisplayContext["table"],
             rowId: id,
           }),

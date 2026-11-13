@@ -106,8 +106,17 @@ const {
 const formErrors = inject(formErrorsInjectionKey, null);
 const formInputs = inject(formInputsInjectionKey, null);
 
-// SAFETY: defaultAddress is the local literal above, contains only AddressValue keys and is never assigned extra properties.
-const PARTS = Object.keys(defaultAddress) as Array<keyof AddressValue>;
+const ADDRESS_PART_NAMES = {
+  streetName: "streetName",
+  houseNumber: "houseNumber",
+  boxNumber: "boxNumber",
+  addressLine2: "addressLine2",
+  postalCode: "postalCode",
+  city: "city",
+  countrySubdivision: "countrySubdivision",
+  countryCode: "countryCode",
+} satisfies { [Part in keyof AddressValue]-?: Part };
+const PARTS = Object.values(ADDRESS_PART_NAMES);
 const FIRST_PART: keyof AddressValue = "streetName";
 
 /**
@@ -525,9 +534,9 @@ const streetPlaceholder = computed(() => {
   <div ref="root" class="grid gap-3" @focusout="onFocusOut">
     <div class="relative grid gap-1.5">
       <UInput
-        v-model="streetModel"
         v-bind="partState('streetName')"
         :id="partId('streetName')"
+        v-model="streetModel"
         :icon="autocompleteEnabled ? 'i-ph-magnifying-glass' : undefined"
         :placeholder="streetPlaceholder"
         :disabled="props.disabled"
@@ -556,9 +565,9 @@ const streetPlaceholder = computed(() => {
     <div class="grid grid-cols-2 gap-3">
       <div class="grid gap-1.5">
         <UInput
-          :model-value="safeModelValue.houseNumber"
           v-bind="partState('houseNumber')"
           :id="partId('houseNumber')"
+          :model-value="safeModelValue.houseNumber"
           :placeholder="placeholders.houseNumber"
           :disabled="props.disabled"
           @update:model-value="updateField('houseNumber', $event)"
@@ -566,9 +575,9 @@ const streetPlaceholder = computed(() => {
       </div>
       <div class="grid gap-1.5">
         <UInput
-          :model-value="safeModelValue.boxNumber"
           v-bind="partState('boxNumber')"
           :id="partId('boxNumber')"
+          :model-value="safeModelValue.boxNumber"
           :placeholder="placeholders.boxNumber"
           :disabled="props.disabled"
           @update:model-value="updateField('boxNumber', $event)"
@@ -578,9 +587,9 @@ const streetPlaceholder = computed(() => {
 
     <div class="grid gap-1.5">
       <UInput
-        :model-value="safeModelValue.addressLine2"
         v-bind="partState('addressLine2')"
         :id="partId('addressLine2')"
+        :model-value="safeModelValue.addressLine2"
         :placeholder="placeholders.addressLine2"
         :disabled="props.disabled"
         @update:model-value="updateField('addressLine2', $event)"
@@ -590,9 +599,9 @@ const streetPlaceholder = computed(() => {
     <div class="grid grid-cols-2 gap-3">
       <div class="grid gap-1.5">
         <UInput
-          :model-value="safeModelValue.postalCode"
           v-bind="partState('postalCode')"
           :id="partId('postalCode')"
+          :model-value="safeModelValue.postalCode"
           :placeholder="placeholders.postalCode"
           :disabled="props.disabled"
           @update:model-value="updateField('postalCode', $event)"
@@ -600,9 +609,9 @@ const streetPlaceholder = computed(() => {
       </div>
       <div class="grid gap-1.5">
         <UInput
-          :model-value="safeModelValue.city"
           v-bind="partState('city')"
           :id="partId('city')"
+          :model-value="safeModelValue.city"
           :placeholder="placeholders.city"
           :disabled="props.disabled"
           @update:model-value="updateField('city', $event)"
@@ -612,9 +621,9 @@ const streetPlaceholder = computed(() => {
 
     <div class="grid gap-1.5">
       <UInput
-        :model-value="safeModelValue.countrySubdivision"
         v-bind="partState('countrySubdivision')"
         :id="partId('countrySubdivision')"
+        :model-value="safeModelValue.countrySubdivision"
         :placeholder="placeholders.countrySubdivision"
         :disabled="props.disabled"
         @update:model-value="updateField('countrySubdivision', $event)"
@@ -623,10 +632,10 @@ const streetPlaceholder = computed(() => {
 
     <div class="grid gap-1.5">
       <USelectMenu
-        v-model:search-term="countrySearchTerm"
-        :model-value="safeModelValue.countryCode"
         v-bind="partState('countryCode')"
         :id="partId('countryCode')"
+        v-model:search-term="countrySearchTerm"
+        :model-value="safeModelValue.countryCode"
         :items="countryOptions"
         :placeholder="placeholders.countryCode"
         :disabled="props.disabled"

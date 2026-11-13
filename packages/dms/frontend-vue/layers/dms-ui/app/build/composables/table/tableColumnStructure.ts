@@ -37,7 +37,6 @@ export const processColumn = <T extends Data>(
   const { isNumericColumn } = context;
 
   if (!col.id && "accessorKey" in col) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TanStack permits generic keyof T accessors but requires a string id. Inference and its owner types cannot prove this legacy assignment; coercion would change numeric-key behavior.
     col.id = col.accessorKey as string;
   }
 

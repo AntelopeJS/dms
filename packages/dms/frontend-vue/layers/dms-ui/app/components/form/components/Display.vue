@@ -51,8 +51,8 @@ const isNumeric = computed(() => NUMERIC_TYPE_IDS.has(props.type ?? ""));
 
 <template>
   <USkeleton
-    :aria-label="t('dms.a11y.loading')"
     v-if="loading"
+    :aria-label="t('dms.a11y.loading')"
     class="h-9 w-full"
   />
 

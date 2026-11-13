@@ -14,6 +14,7 @@ import {
   resolveInviteeNameParts,
   uniqueInviteEmails,
 } from "../../../validation";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 /** What happened to one address of an invite request. */
 export type InviteOutcome = "invited" | "added" | "already_member" | "failed";
@@ -43,8 +44,7 @@ const INVITE_EMAILS_FIELD = "emails";
 function failureMessage(error: HTTPResult): string {
   if (error.getStatus() >= HTTP_INTERNAL_ERROR) return INVITE_FAILED_MESSAGE;
   const body: unknown = error.getBody();
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- HTTP bodies can be structured; only nonempty strings are suitable failure messages.
-  return typeof body === "string" && body ? body : INVITE_FAILED_MESSAGE;
+  return isString(body) && body ? body : INVITE_FAILED_MESSAGE;
 }
 
 async function isAlreadyMember(

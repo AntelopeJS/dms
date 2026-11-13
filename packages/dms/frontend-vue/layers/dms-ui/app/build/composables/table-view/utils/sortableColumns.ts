@@ -175,7 +175,6 @@ export const sortDirectionLabelKey = (
   desc: boolean,
 ): string => `dms.sort.direction.${kind}.${desc ? "desc" : "asc"}`;
 
-/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- This error parser accepts arbitrary thrown values, including non-ofetch objects and inherited fields. No common error schema owns these values; validating a FetchError would change which errors match. */
 const isObject = (
   value: Parameters<typeof isUnsortableFieldError>[0],
 ): value is Record<string, unknown> => hasObjectType(value) && value !== null;
@@ -201,7 +200,6 @@ const messagesOf = (error: Record<string, unknown>): string[] => {
  * not sortable.`): a sort the route never accepted, or a column whose
  * `@Sortable()` was removed since the page was loaded.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Any JavaScript value may be thrown. FetchError is not the owner of every rejection; inference cannot narrow the input without excluding existing false-result cases.
 export const isUnsortableFieldError = (error: unknown): boolean => {
   if (!isObject(error)) return false;
   const status = statusOf(error);
@@ -210,4 +208,3 @@ export const isUnsortableFieldError = (error: unknown): boolean => {
     UNSORTABLE_FIELD_PATTERN.test(message),
   );
 };
-/* oxlint-enable anti-slop/no-unsafe-dictionary-type */

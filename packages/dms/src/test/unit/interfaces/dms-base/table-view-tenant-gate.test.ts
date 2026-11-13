@@ -7,7 +7,6 @@ import { expect } from "chai";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { TENANT_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
@@ -21,10 +20,10 @@ import {
 import {
   TableViewMeta,
   type TableViewOptions,
-  type TableViewOptionsSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
 import { denyingTenantGate } from "../../../helpers/page-access";
 import { httpRejectionOf } from "../../../helpers/http-rejection";
+import { StampedTableViewBuilder } from "../../../helpers/stamped-table-view-builder";
 import { userFixture } from "../../../helpers/user-fixture";
 
 const DENIED_TENANT = "tv-gate-denied-tenant";
@@ -53,10 +52,16 @@ function tableViewController(options: TableViewOptions, permissionId?: string) {
     meta.setBypassTenantAccessGate();
   }
   if (permissionId) {
-    // SAFETY: Authorization calls only getAction on this deliberately partial builder; constructing a real builder would register unrelated components.
-    meta.addComponentBuilder({
-      getAction: () => ({ permissionId }),
-    } as unknown as ComponentBuilder<TableViewOptionsSerialized>);
+    meta.addComponentBuilder(
+      new StampedTableViewBuilder(
+        Object.fromEntries(
+          [LIST_ACTION, ...READ_ACTIONS, ...WRITE_ACTIONS].map((actionId) => [
+            actionId,
+            permissionId,
+          ]),
+        ),
+      ),
+    );
   }
   return Controller;
 }
@@ -65,23 +70,7 @@ function tableViewInstance(options: TableViewOptions, permissionId?: string) {
   return new (tableViewController(options, permissionId))();
 }
 
-describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () => {
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-
-    await RegisterSchema(TENANT_SCHEMA_NAME);
-
-    tenantAccessInterface.RegisterTenantAccessGate(gateInfo);
-  });
-
-  after(() => {
-    tenantAccessInterface.internal.RegisterTenantAccessGate.unregister(
-      gateInfo,
-    );
-  });
-
+function registerFlaggedActionCases(): void {
   it("keeps refusing an unflagged table view while the gate denies the tenant", async () => {
     const error = await httpRejectionOf(
       authorizeAction(
@@ -140,7 +129,9 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
       ),
     ).to.equal(undefined);
   });
+}
 
+function registerFlaggedAccessCases(): void {
   for (const writeAction of WRITE_ACTIONS) {
     it(`re-gates the "${writeAction}" action of a flagged table view`, async () => {
       const error = await httpRejectionOf(
@@ -190,7 +181,9 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
       ),
     ).to.equal(undefined);
   });
+}
 
+function registerBypassCases(): void {
   it("still refuses a caller missing the action permission under bypass", async () => {
     const error = await httpRejectionOf(
       authorizeAction(
@@ -287,4 +280,26 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
 
     expect(meta.hasMixedGateBypassRegistrations).to.equal(true);
   });
+}
+
+describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () => {
+  before(async () => {
+    ImplementInterface(permissionsInterface, permissionsImpl);
+    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+
+    await RegisterSchema(TENANT_SCHEMA_NAME);
+
+    tenantAccessInterface.RegisterTenantAccessGate(gateInfo);
+  });
+
+  after(() => {
+    tenantAccessInterface.internal.RegisterTenantAccessGate.unregister(
+      gateInfo,
+    );
+  });
+
+  registerFlaggedActionCases();
+  registerFlaggedAccessCases();
+  registerBypassCases();
 });

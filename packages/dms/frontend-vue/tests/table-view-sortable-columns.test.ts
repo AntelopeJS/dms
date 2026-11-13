@@ -294,7 +294,6 @@ describe("sort direction labels", () => {
     type Message = string | { [key: string]: Message };
     const lookup = (messages: Message, key: string) =>
       key.split(".").reduce<Message | undefined>((node, part) => {
-        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Locale messages are recursive branches or string leaves; only branches can be traversed.
         return typeof node === "object" ? node[part] : undefined;
       }, messages);
     for (const kind of ["number", "date", "text"] as const) {

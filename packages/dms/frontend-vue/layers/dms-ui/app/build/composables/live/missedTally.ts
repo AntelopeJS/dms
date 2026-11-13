@@ -40,7 +40,6 @@ export class MissedTally {
   /** The rows and events counted since the last reset. */
   readonly total: Readonly<Ref<number>> = readonly(this.count);
 
-  // oxlint-disable-next-line anti-slop/no-object-parameters -- Any object is an event identity, including events without payload fields; narrowing to a transport shape would reject supported callers.
   add(event: object | undefined): void {
     if (event) {
       if (this.events.has(event)) return;

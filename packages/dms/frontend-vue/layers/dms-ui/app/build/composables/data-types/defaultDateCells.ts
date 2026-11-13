@@ -57,7 +57,6 @@ export function renderRelativeDate(
 ) {
   const { processI18n } = getAppTranslation();
   const opts: RelativeDateOptions = options ?? {};
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The string assertion does not validate the input; Date retains its existing native coercion and exceptions for plugin values.
   const date = new Date(value as string);
   if (Number.isNaN(date.getTime())) return String(value);
 

@@ -7,12 +7,14 @@ const DMS_MODULE_ID = "dms";
 const SUGGESTION_LIMIT = 20;
 const PARAM_PREFIX = ":";
 
-function normalizeRoute(path: string): string {
+/** A route as `/a/b`: no query, no hash, one leading slash, no trailing one. */
+export function normalizeRoute(path: string): string {
   const pathOnly = path.split(/[?#]/, 1)[0] ?? path;
   return `/${pathOnly.replace(/^\/+|\/+$/g, "")}`;
 }
 
-function servesRoute(slug: string, path: string): boolean {
+/** Whether a page registered at `slug` (`:name` segments included) serves `path`. */
+export function servesRoute(slug: string, path: string): boolean {
   const slugSegments = normalizeRoute(slug).split("/");
   const pathSegments = path.split("/");
   return (

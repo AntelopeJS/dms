@@ -33,39 +33,28 @@ export const toValueArray = (
 
 /** Stored display properties stay live against shared file metadata. */
 export const storedImageItems = (files: ReturnType<typeof useFileMetadata>) => {
-  // SAFETY: the descriptors complete the GalleryItem with live metadata getters.
-  const createItemFromValue = (value: ImageItemValue): GalleryItem =>
-    Object.defineProperties(
-      {
-        id: crypto.randomUUID(),
-        key: value.key,
-        file: null,
-        width: null,
-        height: null,
-        alt: value.alt ?? "",
-        principal: value.principal ?? false,
-        progress: 100,
-      },
-      {
-        url: {
-          get: () => files.metadata(value.key)?.url ?? "",
-          enumerable: true,
-        },
-        filename: {
-          get: () => files.lastRead(value.key)?.filename ?? value.key,
-          enumerable: true,
-        },
-        size: {
-          get: () => files.lastRead(value.key)?.size ?? null,
-          enumerable: true,
-        },
-        status: {
-          get: (): ItemStatus =>
-            files.isUnavailable(value.key) ? "unavailable" : "done",
-          enumerable: true,
-        },
-      },
-    ) as GalleryItem;
+  const createItemFromValue = (value: ImageItemValue): GalleryItem => ({
+    id: crypto.randomUUID(),
+    key: value.key,
+    file: null,
+    width: null,
+    height: null,
+    alt: value.alt ?? "",
+    principal: value.principal ?? false,
+    progress: 100,
+    get url() {
+      return files.metadata(value.key)?.url ?? "";
+    },
+    get filename() {
+      return files.lastRead(value.key)?.filename ?? value.key;
+    },
+    get size() {
+      return files.lastRead(value.key)?.size ?? null;
+    },
+    get status(): ItemStatus {
+      return files.isUnavailable(value.key) ? "unavailable" : "done";
+    },
+  });
   return createItemFromValue;
 };
 

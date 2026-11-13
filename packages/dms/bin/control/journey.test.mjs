@@ -69,6 +69,8 @@ await test("a journey missing a field a run reads is refused", async (t) => {
     '{ id: "x", title: "t", entryPoint: "e" }',
     '{ id: "x", title: "t", entryPoint: "e", database: 3, async run() {} }',
     '{ id: "x", title: "t", entryPoint: "e", onboard: "yes", async run() {} }',
+    '{ id: "x", title: "t", entryPoint: "e", backend: "development", async run() {} }',
+    '{ id: "x", title: "t", entryPoint: "e", database: "shared", backend: "dev", async run() {} }',
     "null",
   ];
   for (const journey of broken) {

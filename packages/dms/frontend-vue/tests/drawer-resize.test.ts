@@ -47,7 +47,9 @@ const SIZE_VARIABLE = "--dms-drawer-size";
 
 let app: App | undefined;
 let host: HTMLDivElement;
-let cookies: Map<string, Ref<unknown>>;
+type DrawerSizeCookie = Ref<ReturnType<typeof readDrawerSizePreferences>>;
+
+let cookies: Map<string, DrawerSizeCookie>;
 
 let renderedRect = { width: 600, height: 320 };
 
@@ -71,13 +73,16 @@ const rendered = reactive<{
   dismissible?: boolean;
 }>({});
 
-function useDmsCookie<T>(
+function useDmsCookie(
   name: string,
-  options: { default?: () => T } = {},
-): Ref<T> {
-  if (!cookies.has(name)) cookies.set(name, ref(options.default?.() ?? null));
-  // SAFETY: The only caller, useDrawerSizePreferences, reads the drawer size cookie as DrawerSizePreferences with a default, so the ref stored under that name holds that type.
-  return cookies.get(name) as Ref<T>;
+  options: { default: () => DrawerSizeCookie["value"] },
+): DrawerSizeCookie {
+  let cookie = cookies.get(name);
+  if (!cookie) {
+    cookie = ref(options.default());
+    cookies.set(name, cookie);
+  }
+  return cookie;
 }
 
 const storedSizes = () =>
@@ -479,7 +484,6 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
         const drawer = useDrawer();
         provide(EXPLORER_KEY, "library-1");
         provide(DMS_CONTAINER_KEY, { id: "outer", close: () => {} });
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This deliberately malformed outer form field must never reach the drawer body; it is not a computed Nuxt form-field context.
         provide(formFieldInjectionKey, { name: "outer-field" } as never);
         drawer.open(
           wrap({

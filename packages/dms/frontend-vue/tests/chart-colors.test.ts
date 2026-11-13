@@ -184,14 +184,11 @@ function registerChartRenderingTests() {
       getImageData: () => ({ data: [92, 76, 200, 255] }),
     };
     vi.mocked(document.createElement).mockReturnValueOnce(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The DOM probe intentionally implements only the style member used by the color resolver. Inference cannot satisfy createElement's HTMLElement owner without unrelated DOM behavior.
       probe as HTMLDivElement,
     );
-    // oxlint-disable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions -- The canvas double intentionally implements only getContext and its consumed members. Inference and the full HTMLCanvasElement owner cannot describe its partial rendering context and plain pixel array without the existing unchecked boundary.
     vi.mocked(document.createElement).mockReturnValueOnce({
       getContext: () => context,
     } as unknown as HTMLCanvasElement);
-    // oxlint-enable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions
     expect(resolveChartColor("primary-500")).toBe("rgb(92, 76, 200)");
     expect(context.fillStyle).toBe(computedColor);
   });

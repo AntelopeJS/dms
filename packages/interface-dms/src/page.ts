@@ -19,7 +19,7 @@
  * (`extension-assembly`), extension validation, component targets and trees,
  * form page route claims and the registration identities.
  */
-export { internal, isInsideModule } from "./page/categories";
+export { internal, isInsideModule, isOwnerOnly } from "./page/categories";
 export {
   AddFrontendModule,
   type AddFrontendModuleOptions,

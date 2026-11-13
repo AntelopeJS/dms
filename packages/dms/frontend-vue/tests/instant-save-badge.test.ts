@@ -9,11 +9,12 @@ type Messages = typeof uiEn | typeof uiFr;
 
 const translator = (messages: Messages) => (key: string) =>
   String(
-    key.split(".").reduce<unknown>(
-      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type, anti-slop/require-safety-comment-for-type-assertion -- A dotted translation path walks nested JSON nodes before reaching a string. Inference and the concrete locale owners cannot index arbitrary path segments; this preserves the existing optional lookup without prevalidating it.
-      (node, part) => (node as Record<string, unknown> | undefined)?.[part],
-      messages,
-    ) ?? key,
+    key
+      .split(".")
+      .reduce<unknown>(
+        (node, part) => (node as Record<string, unknown> | undefined)?.[part],
+        messages,
+      ) ?? key,
   );
 
 const IconStub = defineComponent({

@@ -44,25 +44,23 @@ const SORTABLE_FIELDS: SortableField[] = [
   "durationMs",
   "at",
 ];
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- HTTP classes are computed numbers, not a closed key union supplied by the request-log contract.
-const STATUS_TONES: Record<number, Tone> = {
+const STATUS_TONES = {
   2: "success",
   3: "info",
   4: "warning",
   5: "error",
-};
+} satisfies Record<number, Tone>;
 
 type FilterMode = (
   value: RequestLogEntry[SortableField],
   expected: string,
 ) => boolean;
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Filter modes arrive as arbitrary query strings; inference would remove the string index signature used for missing modes.
-const FILTER_MODES: Record<string, FilterMode> = {
+const FILTER_MODES = {
   is: (value, expected) => String(value) === expected,
   greater_than_or_equal_to: (value, expected) =>
     Number(value) >= Number(expected),
-};
+} satisfies Record<string, FilterMode>;
 
 function columnFilter(field: SortableField): QueryFilter {
   return (query) => {
@@ -139,7 +137,7 @@ function serve(entry: RequestLogEntry): ServedRequest {
   return {
     ...fields,
     requestId: _id,
-    statusTone: STATUS_TONES[statusClass] ?? "neutral",
+    statusTone: ownEntry(STATUS_TONES, String(statusClass)) ?? "neutral",
     durationTone: entry.durationMs >= SLOW_REQUEST_MS ? "warning" : undefined,
     previousId: previousOnRoute(entry),
   };

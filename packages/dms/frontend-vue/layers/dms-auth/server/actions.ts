@@ -195,7 +195,6 @@ export async function switchAccount(event: DmsServerEvent) {
     const descriptor = persistAccountSession(
       event,
       session,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- readAccount gates a prior accountId read, not this later property access. Preserve unchecked forwarding and repeated getter calls without claiming the current value is validated.
       input.accountId as string,
     );
     return { success: true, user, account: descriptor };
@@ -252,7 +251,6 @@ export async function validateAccount(event: DmsServerEvent) {
       method: "POST",
       body: { token: account.refreshToken },
     });
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- readAccount gates a prior accountId read, not this later property access. Preserve unchecked forwarding and repeated getter calls without claiming the current value is validated.
     storeValidatedAccount(event, account, input.accountId as string, tokens);
     return { valid: true };
   } catch (error) {

@@ -104,10 +104,7 @@ const listParams: Parameters.ListParameters = {
 async function exportAll(ids?: string[]): Promise<Collected> {
   const { writer, collected } = collectingWriter();
   await generateTableViewExport({
-    // SAFETY: ExportRun types its receiver as a callback descriptor, but the implementation reads controller metadata and the model from this real decorated InvoiceAPI instance.
-    controller: controller as unknown as globalThis.Parameters<
-      typeof generateTableViewExport
-    >[0]["controller"],
+    controller,
     ctx,
     listParams,
     writer,

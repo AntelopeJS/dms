@@ -92,7 +92,6 @@ const theme = tv({
   },
 });
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
 const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableTabs: Partial<typeof theme> };
 };
@@ -193,8 +192,8 @@ const countFormat = computed(() => readableNumberFormat(locale.value));
         {{ tab.label }}
       </span>
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-if="tab.countPending"
+        :aria-label="t('dms.a11y.loading')"
         aria-hidden="true"
         :class="ui.countPlaceholder()"
       />

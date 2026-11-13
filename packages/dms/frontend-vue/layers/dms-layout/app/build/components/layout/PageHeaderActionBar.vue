@@ -128,7 +128,6 @@ type LinkTarget = Extract<ActionTarget, { type: "page" | "external" }>;
 type UrlTarget = Extract<ActionTarget, { url: string }>;
 
 const hasTargetUrl = (target: ActionTarget): target is UrlTarget =>
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ActionTarget variants without url are still probed for it at runtime, including malformed variants. A discriminant-only guard would change that behavior.
   isString((target as Partial<UrlTarget>).url);
 
 const pageUrlValues = computed(() => ({
@@ -167,7 +166,6 @@ const LINK_TARGETS: Partial<
 function linkProps(action: LayoutHeaderAction): ButtonProps | undefined {
   const { target } = action;
   if (action.confirm || !target) return undefined;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The dispatch table correlates its page/external keys with LinkTarget, which indexed access cannot infer. A discriminant rewrite would alter the existing prototype-key lookup for malformed types.
   return LINK_TARGETS[target.type]?.(target as LinkTarget);
 }
 
@@ -187,8 +185,7 @@ function resolveQuickActionButton(
       label: base.label || processI18n(quickAction.displayName),
       onClick: () =>
         action.confirm
-          ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- LayoutHeaderAction permits missing label and wider color/variant values than CustomButton. The existing action executor receives the original object; synthesizing a valid CustomButton would change malformed input behavior.
-            handleCustomButton(action as CustomButton)
+          ? handleCustomButton(action as CustomButton)
           : dispatchQuickActionTarget(quickAction.target),
     },
   };
@@ -225,7 +222,6 @@ function resolveAction(
     button: {
       ...base,
       ...(linkProps(action) ?? {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The layout action's optional label and ButtonProps styling do not satisfy CustomButton. This unchecked existing handoff preserves the original object instead of inventing defaults or narrowing the public prop.
         onClick: () => handleCustomButton(action as CustomButton),
       }),
     },

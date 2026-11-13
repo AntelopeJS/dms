@@ -1,5 +1,6 @@
 import { assert } from "@antelopejs/interface-api-util";
 import { z } from "zod";
+import { isNumber } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const HTTP_BAD_GATEWAY = 502;
 const PROVIDER_UNREACHABLE_MESSAGE = "error.oauth.provider_unreachable";
@@ -88,9 +89,7 @@ function isNonEmptyString(
  */
 function requireAccountId(value: number | string | undefined): string {
   const isUsable =
-    isNonEmptyString(value) ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Provider account ids accept both finite numbers and nonempty strings; the branch must preserve that existing wire-format distinction.
-    (typeof value === "number" && Number.isFinite(value));
+    isNonEmptyString(value) || (isNumber(value) && Number.isFinite(value));
   assert(isUsable, HTTP_BAD_GATEWAY, IDENTITY_MALFORMED_MESSAGE);
   return String(value);
 }
@@ -181,8 +180,7 @@ async function fetchGoogleIdentity(
  * Login providers shipped with the DMS. A provider only becomes available once
  * the instance configuration supplies its credentials.
  */
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- The exported registry's string index is consumed by configured provider ids; inference would narrow its published keys to the two built-in providers.
-export const OAUTH_PROVIDERS: Record<string, OAuthProvider> = {
+export const OAUTH_PROVIDERS = {
   github: {
     displayName: "GitHub",
     icon: "i-ph-github-logo",
@@ -199,4 +197,4 @@ export const OAUTH_PROVIDERS: Record<string, OAuthProvider> = {
     defaultScopes: ["openid", "email", "profile"],
     fetchIdentity: fetchGoogleIdentity,
   },
-};
+} satisfies Record<string, OAuthProvider>;

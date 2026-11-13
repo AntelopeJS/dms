@@ -210,11 +210,11 @@ const modalContent = computed(() =>
   props.initialFocus
     ? {
         onOpenAutoFocus: (event: Event) => {
-          const button =
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reka supplies the dialog target; preserve the existing unchecked querySelector call and malformed-target behavior.
-            (event.target as HTMLElement | null)?.querySelector<HTMLElement>(
-              `[data-confirm-action="${props.initialFocus}"]`,
-            );
+          const button = (
+            event.target as HTMLElement | null
+          )?.querySelector<HTMLElement>(
+            `[data-confirm-action="${props.initialFocus}"]`,
+          );
           if (!button) return;
           event.preventDefault();
           button.focus();

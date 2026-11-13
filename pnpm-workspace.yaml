@@ -13,3 +13,5 @@ onlyBuiltDependencies:
   - esbuild
   - puppeteer
   - vue-demi
+allowBuilds:
+  lefthook: false

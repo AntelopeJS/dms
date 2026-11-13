@@ -36,24 +36,29 @@ interface Row {
 }
 
 let sharedState: Map<string, Ref<unknown>>;
-let cookies: Map<string, Ref<unknown>>;
+type SidePanelCookie = Ref<ReturnType<typeof readSidePanelPreferences> | null>;
+
+let cookies: Map<string, SidePanelCookie>;
 let app: App | undefined;
 let panelMounts: number;
 let refreshes: number;
 
 function useDmsState<T>(key: string, init?: () => T): Ref<T> {
   if (!sharedState.has(key)) sharedState.set(key, ref(init?.()));
-  // SAFETY: Each state key is initialized and subsequently consumed with the same composable-owned type.
+  // SAFETY: The keys served here (the dms-permission-preview-session, -result, -loading and -failed states, dms:side-panel-drag-width and dms:side-panels) are each requested through useDmsState<T> with the one T their owning composable declares, so the ref stored under a key holds that T.
   return sharedState.get(key) as Ref<T>;
 }
 
-function useDmsCookie<T>(
+function useDmsCookie(
   name: string,
-  options: { default?: () => T } = {},
-): Ref<T> {
-  if (!cookies.has(name)) cookies.set(name, ref(options.default?.() ?? null));
-  // SAFETY: Each cookie name is read with the same owner type; null is the unset cookie value handled by its parser.
-  return cookies.get(name) as Ref<T>;
+  options: { default?: () => ReturnType<typeof readSidePanelPreferences> } = {},
+): SidePanelCookie {
+  let cookie = cookies.get(name);
+  if (!cookie) {
+    cookie = ref(options.default?.() ?? null);
+    cookies.set(name, cookie);
+  }
+  return cookie;
 }
 
 const openPanelId = () =>

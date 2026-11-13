@@ -93,7 +93,9 @@ describe("[unit] mockup conversion guarantees", () => {
 
     expect(convert(blocks)).to.deep.equal(convert(blocks));
   });
+});
 
+describe("[unit] mockup conversion guarantees on routes", () => {
   it("gives two routes that slug alike two fixtures, and one route read twice one fixture", () => {
     const { page } = convert([
       {
@@ -186,7 +188,9 @@ describe("[unit] mockup conversion guarantees", () => {
       "callbackUrl=/api/books/hook",
     ]);
   });
+});
 
+describe("[unit] mockup conversion guarantees on routes it cannot keep", () => {
   it("sketches a block whose *Url option leaves the site, never one whose route is templated", () => {
     const converted = convert([
       {

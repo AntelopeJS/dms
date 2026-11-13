@@ -21,6 +21,7 @@ import {
 } from "./types";
 // oxlint-disable-next-line import/no-cycle -- Category proxies are read after evaluation.
 import * as metadata from "./internal/metadata-lifecycle";
+import { isObject } from "../utils/internal/type-check";
 
 export class PageMetadata {
   public static key = Symbol();
@@ -461,8 +462,7 @@ export class PageMetadata {
     id: string,
     path: string[],
   ) {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized options may be primitives; recurse only through objects.
-    if (!value || typeof value !== "object") return;
+    if (!value || !isObject(value)) return;
     if (metadata.isNativeUploadField(value)) {
       await this.registerNativeUploadField(value, name, id, path);
     }

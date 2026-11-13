@@ -113,22 +113,23 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
   });
 });
 
-describe("[unit] interfaces/dms/page — header buttons served per caller", () => {
-  const link = (id: string, permission?: string) => ({
-    id,
-    label: id,
-    target: { type: "page" as const, url: `/${id}` },
-    permission,
-  });
-  const layout = DefaultLayout({
-    headerActions: [
-      link("open"),
-      link("audit", "audit"),
-      link("export", "export"),
-      { ...link("ledger"), permissionId: "pages.ledger.view" },
-    ],
-  });
+const link = (id: string, permission?: string) => ({
+  id,
+  label: id,
+  target: { type: "page" as const, url: `/${id}` },
+  permission,
+});
 
+const layout = DefaultLayout({
+  headerActions: [
+    link("open"),
+    link("audit", "audit"),
+    link("export", "export"),
+    { ...link("ledger"), permissionId: "pages.ledger.view" },
+  ],
+});
+
+describe("[unit] interfaces/dms/page — header buttons served per caller", () => {
   it("leaves out the buttons whose permission the caller lacks, an action of the page by name", async () => {
     const filtered = await filterLayoutHeaderActions(
       layout,
@@ -225,7 +226,9 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
     ]);
     expect(own.headerActions[1]).to.not.have.property("disabled");
   });
+});
 
+describe("[unit] interfaces/dms/page — header buttons served per caller, availability queries", () => {
   it("hands availability the page query, and says which query it served", async () => {
     const queue = DefaultLayout({
       headerActions: [

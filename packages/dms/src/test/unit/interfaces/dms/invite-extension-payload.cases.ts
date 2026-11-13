@@ -28,7 +28,7 @@ import { admin, register } from "./invite-extension.helpers";
 
 const HTTP_BAD_REQUEST = 400;
 
-export function registerInviteExtensionPayloadCases(): void {
+function registerPayloadEditCases(): void {
   describe("payload edited on a pending invitation", () => {
     it("tells an extension its payload changed, parsed, with the previous one", async () => {
       const updates: unknown[][] = [];
@@ -103,7 +103,9 @@ export function registerInviteExtensionPayloadCases(): void {
       expect(seen).to.deep.equal(["CC-43"]);
     });
   });
+}
 
+function registerPayloadSubmitCases(): void {
   describe("payload collected at submit", () => {
     it("splits each extension's slice out of the submitted body", async () => {
       register(recordingExtension("billing", "costCenter").options);
@@ -180,7 +182,9 @@ export function registerInviteExtensionPayloadCases(): void {
       expect(stored?.extensions).to.deep.equal({});
     });
   });
+}
 
+function registerDirectAddCases(): void {
   describe("delivery on direct add", () => {
     it("hands each extension its own payload and the new member", async () => {
       const billing = recordingExtension("billing", "costCenter");
@@ -244,7 +248,9 @@ export function registerInviteExtensionPayloadCases(): void {
       expect(billing.recorded.accepted).to.have.length(1);
     });
   });
+}
 
+function registerPrototypeKeyCases(): void {
   describe("an extension keyed like an Object.prototype member", () => {
     const seen: unknown[] = [];
 
@@ -307,7 +313,9 @@ export function registerInviteExtensionPayloadCases(): void {
       expect(errors.messages).to.deep.equal([]);
     });
   });
+}
 
+function registerPayloadTypingAndCleanupCases(): void {
   describe("payload typing", () => {
     it("stores a payload built from read-only arrays", async () => {
       const access: readonly string[] = ["prj-1", "prj-2"];
@@ -397,4 +405,12 @@ export function registerInviteExtensionPayloadCases(): void {
       ]);
     });
   });
+}
+
+export function registerInviteExtensionPayloadCases(): void {
+  registerPayloadEditCases();
+  registerPayloadSubmitCases();
+  registerDirectAddCases();
+  registerPrototypeKeyCases();
+  registerPayloadTypingAndCleanupCases();
 }
