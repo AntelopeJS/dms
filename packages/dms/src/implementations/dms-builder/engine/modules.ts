@@ -7,6 +7,7 @@ import {
   type SourceFile,
   ts,
 } from "ts-morph";
+import { isInsideFolder } from "./file-paths";
 import {
   createProject,
   projectSourcePaths,
@@ -110,10 +111,6 @@ function localRoot(
     : path.resolve(projectRoot, relative);
 }
 
-function isInside(root: string, candidate: string): boolean {
-  return candidate === root || candidate.startsWith(root + path.sep);
-}
-
 /**
  * The project's local modules the builder may write into: each configured with a literal local
  * path inside the project's folder and an `src/index.ts`. Modules from packages, and local modules
@@ -163,7 +160,7 @@ function readModules(
     const root = localRoot(property.getInitializer(), projectRoot);
     if (
       !root ||
-      !isInside(projectRoot, root) ||
+      !isInsideFolder(projectRoot, root) ||
       !fs.existsSync(path.join(root, MODULE_ENTRY))
     ) {
       continue;
@@ -206,7 +203,7 @@ export function targetModule(id?: string): ModuleRoot | undefined {
 /** The module a source file belongs to: the innermost module root that contains it. */
 export function moduleOfFile(filepath: string): ModuleRoot | undefined {
   return projectModules()
-    .filter((module) => isInside(module.root, filepath))
+    .filter((module) => isInsideFolder(module.root, filepath))
     .sort((left, right) => right.root.length - left.root.length)[0];
 }
 
