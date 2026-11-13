@@ -12,6 +12,9 @@ import {
   inject,
   nextTick,
   ref,
+  shallowRef,
+  Suspense,
+  watch,
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -77,6 +80,8 @@ describe("a disabled relation field", () => {
     shown = [];
     vi.stubGlobal("computed", computed);
     vi.stubGlobal("inject", inject);
+    vi.stubGlobal("shallowRef", shallowRef);
+    vi.stubGlobal("watch", watch);
     vi.stubGlobal("useI18n", () => ({ t: String, locale: ref("en-GB") }));
     vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
     vi.stubGlobal("useDataTypes", () => ({
@@ -104,7 +109,7 @@ describe("a disabled relation field", () => {
     };
     app = createApp({
       setup() {
-        return () => h(FormFieldControl, { field });
+        return () => h(Suspense, null, () => h(FormFieldControl, { field }));
       },
     });
     app.provide(FORM_ENTRY_CONTEXT_KEY, {
@@ -135,6 +140,7 @@ describe("a disabled relation field", () => {
       }),
     );
     app.mount(document.createElement("div"));
+    await new Promise((resolve) => setTimeout(resolve));
     await nextTick();
     expect(shown.at(-1)).toEqual(customer);
   });
