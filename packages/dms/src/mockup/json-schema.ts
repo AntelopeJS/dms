@@ -5,7 +5,6 @@ import type {
 import { CONTROLLER_BLOCKS } from "./controller-blocks";
 import type { Json, JsonObject } from "./model";
 import {
-  DASHBOARD_PATH_PATTERN,
   jsonSchema,
   KEY_PATTERN,
   MAX_DASHBOARD_PATH,
@@ -247,10 +246,10 @@ function builtDefinition(): JsonObject {
           properties: {
             path: {
               type: "string",
-              pattern: DASHBOARD_PATH_PATTERN.source,
+              pattern: RELATIVE_ROUTE_PATTERN.source,
               maxLength: MAX_DASHBOARD_PATH,
               description:
-                'A path of the dashboard, such as "/orders": it starts with one "/", never "//", and holds no space.',
+                'A path of the dashboard, such as "/orders": it starts with one "/", never "//" or "/\\", and holds no whitespace or control character.',
             },
             title: {
               type: "string",

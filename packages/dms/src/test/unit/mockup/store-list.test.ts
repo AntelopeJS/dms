@@ -10,6 +10,7 @@ import {
   specSchema,
   updateAnnotation,
 } from "../../../mockup";
+import { ACCEPTED_ROUTES, REFUSED_ROUTES } from "../../helpers/relative-routes";
 
 const NAME = mockupNameSchema.parse("desk");
 
@@ -215,13 +216,12 @@ describe("[unit] mockup spec source and built", () => {
         built: { at: "2026-11-13T10:00:00Z", pages: [{ path }] },
       }).success;
 
-    expect(written("//evil.com")).to.equal(false);
-    expect(written("/\\evil.com")).to.equal(false);
-    expect(written("javascript:x")).to.equal(false);
-    expect(written("https://evil.com")).to.equal(false);
-    expect(written("/a b")).to.equal(false);
-    expect(written("")).to.equal(false);
-    expect(written("/orders?tab=open#top")).to.equal(true);
+    for (const path of REFUSED_ROUTES) {
+      expect(written(path), JSON.stringify(path)).to.equal(false);
+    }
+    for (const path of ACCEPTED_ROUTES) {
+      expect(written(path), JSON.stringify(path)).to.equal(true);
+    }
     expect(
       specSchema.safeParse({
         ...specObject("Built"),

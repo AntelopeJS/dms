@@ -52,9 +52,9 @@
             "properties": {
               "path": {
                 "type": "string",
-                "pattern": "^\\/(?![/\\\\])\\S*$",
+                "pattern": "^\\/(?![/\\\\])[^\\s\\p{Cc}]*$",
                 "maxLength": 2048,
-                "description": "A path of the dashboard, such as \"/orders\": it starts with one \"/\", never \"//\", and holds no space."
+                "description": "A path of the dashboard, such as \"/orders\": it starts with one \"/\", never \"//\" or \"/\\\", and holds no whitespace or control character."
               },
               "title": {
                 "type": "string",
@@ -137,7 +137,7 @@
           },
           "additionalProperties": {
             "type": "string",
-            "pattern": "^\\/(?![/\\\\])\\P{Cc}*$"
+            "pattern": "^\\/(?![/\\\\])[^\\s\\p{Cc}]*$"
           },
           "description": "The live route a fixture key stands for: with Real data on, an option \"fixture:<key>\" reads it instead of the fixture."
         },

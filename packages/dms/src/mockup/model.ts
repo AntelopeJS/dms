@@ -101,12 +101,13 @@ const pageOptionsSchema = z
 export type MockupPageOptions = z.infer<typeof pageOptionsSchema>;
 
 /**
- * A path of the site the dashboard runs on, as the preview lets a block
- * fetch it: one leading `/`, no host (`//host`, `/\host`), and no control
- * character (Unicode `Cc`), which a URL parser drops: `/<tab>/host` reads
- * `//host`. A `u` pattern, as JSON Schema validators compile it.
+ * A path of the site the dashboard runs on, for a built page's link and a
+ * live route a block fetches alike: one leading `/`, no host (`//host`,
+ * `/\host`), no whitespace, and no control character (Unicode `Cc`), which a
+ * URL parser drops: `/<tab>/host` reads `//host`. A scheme never starts with
+ * `/`. A `u` pattern, as JSON Schema validators compile it.
  */
-export const RELATIVE_ROUTE_PATTERN = /^\/(?![/\\])\P{Cc}*$/u;
+export const RELATIVE_ROUTE_PATTERN = /^\/(?![/\\])[^\s\p{Cc}]*$/u;
 
 /**
  * The live page a spec page was converted from: its builder ref, and the
@@ -142,19 +143,13 @@ export type MockupSource = (typeof MOCKUP_SOURCES)[number];
 /** Decodes a {@link MockupSource}. */
 export const mockupSourceSchema = z.enum(MOCKUP_SOURCES);
 
-/**
- * A path of the dashboard: one `/`, then no whitespace. A second `/` or a
- * backslash would make browsers read an external host, and a scheme never
- * starts with `/`.
- */
-export const DASHBOARD_PATH_PATTERN = /^\/(?![/\\])\S*$/;
 /** How long a dashboard path is at most. */
 export const MAX_DASHBOARD_PATH = 2048;
 
 const dashboardPathSchema = z
   .string()
   .max(MAX_DASHBOARD_PATH)
-  .regex(DASHBOARD_PATH_PATTERN);
+  .regex(RELATIVE_ROUTE_PATTERN);
 
 /** Decodes what the build step wrote of a mockup: when, and the pages it made. */
 export const mockupBuiltSchema = z
