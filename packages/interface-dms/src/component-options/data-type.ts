@@ -1,5 +1,6 @@
 import assert from "node:assert";
 import type { RequestContext } from "@antelopejs/interface-api";
+import type { FilterValue } from "@antelopejs/interface-data-api/metadata";
 import {
   type Class,
   type DecoratorTarget,
@@ -61,14 +62,14 @@ export abstract class DataType {
     context: RequestContext,
     proxy: ValueProxy<unknown>,
     key: string,
-    value: string,
+    value: FilterValue[0],
     mode: string,
     // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator rows belong to application schemas, not a fixed interface model.
     row: ValueProxy<Record<string, unknown>>,
   ): ValueProxyOrValue<boolean> {
     const compareMode = dataCompareModes.get(mode);
     if (!compareMode || !listsCompareMode(this, mode)) return false;
-    return compareMode.filter(context, proxy, key, value, row);
+    return compareMode.filter(context, proxy, key, String(value), row);
   }
 
   /**
