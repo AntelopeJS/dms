@@ -101,21 +101,7 @@ function flattenPermissionNodes(
   ]);
 }
 
-describe("[unit] interfaces/dms/page — children of a page component", () => {
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(pageInterface, pageImpl);
-
-    RegisterPage()(ChildrenPage);
-    await settle();
-  });
-
-  after(() => {
-    const { pageInfo } = GetMetadata(ChildrenPage, PageMetadata);
-    if (pageInfo) pageInterface.internal.RegisterPage.unregister(pageInfo);
-  });
-
+function registerChildRegistrationCases(): void {
   it("registers every declared child in the grantable permission tree", async () => {
     expect(
       await permissionsInterface.GetPermission(CARD_PERMISSION),
@@ -191,7 +177,9 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
       });
     }
   });
+}
 
+function registerChildFilteringCases(): void {
   it("resolves an exact child target independently of component identity", () => {
     expect(GetPermissionId(card.targetChild("table"))).to.equal(
       TABLE_PERMISSION,
@@ -270,6 +258,25 @@ describe("[unit] interfaces/dms/page — children of a page component", () => {
     expect(GetPermissionId(leaf)).to.equal(undefined);
     expect(GetPermissionId(card)).to.equal(undefined);
   });
+}
+
+describe("[unit] interfaces/dms/page — children of a page component", () => {
+  before(async () => {
+    ImplementInterface(permissionsInterface, permissionsImpl);
+    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+    ImplementInterface(pageInterface, pageImpl);
+
+    RegisterPage()(ChildrenPage);
+    await settle();
+  });
+
+  after(() => {
+    const { pageInfo } = GetMetadata(ChildrenPage, PageMetadata);
+    if (pageInfo) pageInterface.internal.RegisterPage.unregister(pageInfo);
+  });
+
+  registerChildRegistrationCases();
+  registerChildFilteringCases();
 });
 
 const SHARED_PAGE_ID = "cc-shared";

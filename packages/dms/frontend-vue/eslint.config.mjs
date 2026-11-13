@@ -1,4 +1,3 @@
-// oxlint-disable-next-line antelopejs/no-comments -- @ts-check enables TypeScript checking of this JavaScript config.
 // @ts-check
 import { TEST_FILE_GLOBS } from "@antelopejs/tooling-configs/oxc/guardrails";
 import eslint from "@eslint/js";
@@ -32,7 +31,6 @@ export default [
       "no-redeclare": "off",
       "no-undef": "off",
       "no-unused-vars": "off",
-      "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -41,9 +39,9 @@ export default [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
-      "vue/attributes-order": "off",
       "vue/html-indent": "off",
-      "vue/html-self-closing": "off",
+      "vue/attributes-order": "error",
+      "vue/html-self-closing": ["error", { html: { void: "always" } }],
       "vue/max-attributes-per-line": "off",
       "vue/multi-word-component-names": "off",
       "vue/require-default-prop": "off",

@@ -4,12 +4,11 @@ import { ownEntry } from "../../own-entry";
 
 const MINUTE_MS = 60 * 1000;
 const SPARKLINE_LENGTH = 8;
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary preset query strings require the existing indexed lookup and fallback.
-const PRESET_SLOWDOWN: Record<string, number> = {
+const PRESET_SLOWDOWN = {
   "this-month": 1,
   "last-month": 1.2,
   "this-quarter": 1.4,
-};
+} satisfies Record<string, number>;
 
 interface RouteTiming {
   route: string;

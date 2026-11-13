@@ -50,6 +50,7 @@ import {
   HTTP_BAD_REQUEST,
   type UpdateProfileInput,
 } from "./profile-helpers";
+import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const PROFILE_URL = pageRoutePath("/settings/user/profile");
 const IMAGE_FIELD_TYPE = "image";
@@ -84,6 +85,20 @@ const profileFields = [
   { id: "name", type: new DefaultDataTypes.StringType(), required: true },
   { id: "email", type: new DefaultDataTypes.EmailType() },
 ];
+
+/** What the profile writes, read off the output `profileFields` validated. */
+const updateProfileInput = z.object({
+  name: z.string(),
+  email: z.string().nullish(),
+  language: z.string().nullish(),
+  avatar: z
+    .object({
+      key: z.string(),
+      alt: z.string().optional(),
+      principal: z.boolean().optional(),
+    })
+    .nullish(),
+});
 
 const PROFILE_TEXTS = "$page.settings.profile";
 
@@ -198,8 +213,7 @@ export class ProfileSettingsController extends PageController("profile", {
     @Model(UserModel) userModel: UserModel,
   ): Promise<Partial<User>> {
     assert(
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the route's object-only bad-request check before inspecting forbidden fields.
-      body && typeof body === "object" && !Array.isArray(body),
+      body && isObject(body) && !Array.isArray(body),
       HTTP_BAD_REQUEST,
       "Invalid profile",
     );
@@ -222,8 +236,9 @@ export class ProfileSettingsController extends PageController("profile", {
             promoted,
           );
         if (!parsed.success) throw profileRefusal(parsed.error);
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The dynamic form schema erases field-specific output types; its runtime fields match UpdateProfileInput, but the generic schema cannot establish that statically.
-        await this.writeProfile(parsed.data as UpdateProfileInput, userModel);
+        const input = updateProfileInput.safeParse(parsed.data);
+        if (!input.success) throw profileRefusal(input.error);
+        await this.writeProfile(input.data, userModel);
         const user = await userModel.get(this.user._id);
         if (!user) throw new Error("Updated profile was not found");
         return {

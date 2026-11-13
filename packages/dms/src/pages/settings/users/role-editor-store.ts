@@ -1,5 +1,8 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import type { AfterWrite } from "@antelopejs/interface-dms/base/types/guards";
+import type {
+  AfterWrite,
+  DeleteGuardArgs,
+} from "@antelopejs/interface-dms/base/types/guards";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -335,8 +338,7 @@ export async function loadRoleDeleteConfirm(
 export async function prepareRoleDeletion(
   tenantId: string,
   roleIds: string[],
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Delete-dialog fields are unparsed until roleDeleteSchema runs below; no values means the distinct bare-delete contract.
-  values: Record<string, unknown> | undefined,
+  values: DeleteGuardArgs["values"],
 ): Promise<AfterWrite | undefined> {
   if (!values) {
     for (const roleId of roleIds) await assertRoleUnused(tenantId, roleId);

@@ -31,6 +31,7 @@ import type {
   PageExtensionInfo,
 } from "./types";
 import { fireAndForget } from "../utils/fire-and-forget";
+import { isControllerClass } from "../utils/internal/controller-class";
 
 interface StaticComponentField {
   key: string;
@@ -57,8 +58,12 @@ function collectStaticComponents(cl: object): StaticComponentField[] {
 }
 
 export const RegisterPage = MakeClassDecorator((cl) => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator accepts any class and trusts callers to apply it to a page controller; checking inheritance would change the published decorator's behavior.
-  const meta = GetMetadata(cl as ControllerClass, PageMetadata);
+  if (!isControllerClass(cl)) {
+    throw new TypeError(
+      "@RegisterPage decorates a class that extends PageController",
+    );
+  }
+  const meta = GetMetadata(cl satisfies ControllerClass, PageMetadata);
 
   for (const { key, component } of collectStaticComponents(cl)) {
     meta.SetComponent(key, component);

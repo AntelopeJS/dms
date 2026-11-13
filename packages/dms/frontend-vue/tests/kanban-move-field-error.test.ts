@@ -12,9 +12,9 @@ import {
   readOnlyFailure,
   installReadOnlyRefusal,
 } from "./helpers/read-only-refusal";
+import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
 import {
   type App,
-  type Component,
   Suspense,
   computed,
   createApp,
@@ -30,11 +30,15 @@ const flushPromises = () => new Promise((resolve) => setTimeout(resolve));
 
 const DEAL = { _id: "d1", stage: "lead", lostReason: null };
 
-const STAGE_COLUMN = {
+const STAGE_COLUMN: TableViewColumn = {
+  id: "stage",
   accessorKey: "stage",
   header: "Stage",
+  listable: true,
   type: {
     id: "select",
+    compareModes: [],
+    filterComponents: {},
     inputComponent: {
       options: {
         items: [
@@ -45,10 +49,17 @@ const STAGE_COLUMN = {
     },
   },
 };
-const LOST_REASON_COLUMN = {
+const LOST_REASON_COLUMN: TableViewColumn = {
+  id: "lostReason",
   accessorKey: "lostReason",
   header: "Loss reason",
-  type: { id: "select" },
+  listable: true,
+  type: {
+    id: "select",
+    compareModes: [],
+    filterComponents: {},
+    inputComponent: {},
+  },
 };
 
 const refusal = Object.assign(
@@ -124,9 +135,8 @@ async function mountBoard() {
   app = createApp({
     render: () =>
       h(Suspense, null, {
-        // SAFETY: The imported SFC is a Vue component; mounting it does not require preserving its generic row signature.
         default: () =>
-          h(KanbanBoard as Component, {
+          h(KanbanBoard, {
             groupByField: "stage",
             location: "/deals",
             columns: [STAGE_COLUMN, LOST_REASON_COLUMN],
@@ -155,14 +165,10 @@ describe("a card dropped on a column the server refuses", () => {
       expect(lists).toHaveLength(2);
       const [source, target] = lists;
       const item = source!.el.children[0]!;
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Sortable's full event requires browser drag fields; this synthetic callback fixture supplies only the fields consumed by the board.
       source!.option("onStart")!({ item, oldIndex: 0 } as never);
       target!.el.append(item);
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
       target!.option("onAdd")!({ item, newIndex: 0 } as never);
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This callback fixture intentionally omits Sortable browser drag fields unused by the board.
       source!.option("onRemove")!({ item, oldIndex: 0 } as never);
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The board's end callback consumes no event fields; constructing a browser drag event would add irrelevant fixture state.
       source!.option("onEnd")!({} as never);
       await flushPromises();
       await flushPromises();

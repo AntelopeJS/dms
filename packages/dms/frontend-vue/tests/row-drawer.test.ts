@@ -2,6 +2,7 @@
 import { h, nextTick, type Component } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
+import { isFunction } from "../layers/dms-core/app/utils/type-check";
 import RowHeader from "../layers/dms-ui/app/entries/components/containers/row/RowHeader";
 import RowNotFound from "../layers/dms-ui/app/entries/components/containers/row/RowNotFound";
 import {
@@ -254,8 +255,11 @@ describe("a row drawer's not-found state", () => {
       description: "$orders.gone_text",
     });
     expect(window.location.search).toBe("?record=r9");
-    // SAFETY: handleMissingRow supplies the RowNotFound component's onClose callback in componentOptions.
-    (drawer.options.componentOptions as { onClose: () => void }).onClose();
+    const onClose = drawer.options.componentOptions?.onClose;
+    if (!isFunction(onClose)) {
+      throw new Error("The not-found state received no onClose callback");
+    }
+    onClose();
     await vi.waitFor(() => expect(window.location.search).toBe(""));
   });
 

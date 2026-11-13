@@ -18,6 +18,18 @@ import { resetDatabase } from "../../helpers/db";
 const LEASE = { renewEveryMs: 25, staleAfterMs: 400, pollEveryMs: 25 };
 const OUTLASTS_STALE_WINDOW_MS = 1200;
 
+let calls: number;
+let body: () => Promise<void>;
+const handler: HookHandler<Hook.TENANT_BEING_PROVISIONED> = async ({
+  tenantId,
+}) => {
+  if (tenantId === DEFAULT_TENANT_ID) {
+    calls += 1;
+    await body();
+  }
+  return undefined;
+};
+
 function neverAborted(): AbortSignal {
   return new AbortController().signal;
 }
@@ -38,31 +50,7 @@ async function seedLeftBehindLease(): Promise<void> {
     .run();
 }
 
-describe("[unit] default tenant provisioning across replicas", () => {
-  let calls: number;
-  let body: () => Promise<void>;
-  const handler: HookHandler<Hook.TENANT_BEING_PROVISIONED> = async ({
-    tenantId,
-  }) => {
-    if (tenantId === DEFAULT_TENANT_ID) {
-      calls += 1;
-      await body();
-    }
-    return undefined;
-  };
-
-  beforeEach(async () => {
-    await resetDatabase();
-    calls = 0;
-    body = () => Promise.resolve();
-    RegisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
-  });
-
-  afterEach(async () => {
-    UnregisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
-    await resetDatabase();
-  });
-
+function registerLeaseClaimCases(): void {
   it("creates one row when two replicas insert it at once", async () => {
     const created = await Promise.all([
       ensureDefaultTenantExists(),
@@ -111,7 +99,9 @@ describe("[unit] default tenant provisioning across replicas", () => {
     expect(waited).to.be.at.least(LEASE.staleAfterMs);
     expect(await pending()).to.equal(false);
   });
+}
 
+function registerAbortCases(): void {
   it("does not wait for a stopped holder past its abort signal", async () => {
     await seedLeftBehindLease();
     const stopping = new AbortController();
@@ -193,7 +183,9 @@ describe("[unit] default tenant provisioning across replicas", () => {
     expect(calls).to.equal(2);
     expect(await pending()).to.equal(false);
   });
+}
 
+function registerLeaseLossCases(): void {
   it("provisions after a takeover in which each run refuses a step the other one holds", async () => {
     await ensureDefaultTenantExists();
     const done = [false, false];
@@ -282,4 +274,22 @@ describe("[unit] default tenant provisioning across replicas", () => {
     expect(tenant?.provisioningPending).to.equal(true);
     expect(tenant?.provisioningHolder).to.equal("other-host:2");
   });
+}
+
+describe("[unit] default tenant provisioning across replicas", () => {
+  beforeEach(async () => {
+    await resetDatabase();
+    calls = 0;
+    body = () => Promise.resolve();
+    RegisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
+  });
+
+  afterEach(async () => {
+    UnregisterHook(Hook.TENANT_BEING_PROVISIONED, handler);
+    await resetDatabase();
+  });
+
+  registerLeaseClaimCases();
+  registerAbortCases();
+  registerLeaseLossCases();
 });

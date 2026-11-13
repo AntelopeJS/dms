@@ -13,10 +13,14 @@ function refuse(status: number, message: string, field?: string): HTTPResult {
   return new HTTPResult(status, JSON.stringify({ message, field }), JSON_TYPE);
 }
 
+/** Whether a submitted name is text; any other value is left for form validation. */
+function isSubmittedText(name: Task["name"] | undefined): name is string {
+  return typeof name === "string";
+}
+
 /** `edit` and `new`: a name too short is refused under the name field. */
 export function assertNameLength(name: Task["name"] | undefined): void {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This pre-schema guard refuses short strings and leaves every other submitted value for form validation.
-  if (typeof name === "string" && name.trim().length < MIN_NAME_LENGTH) {
+  if (isSubmittedText(name) && name.trim().length < MIN_NAME_LENGTH) {
     throw refuse(
       HTTP_BAD_REQUEST,
       `A name takes at least ${MIN_NAME_LENGTH} characters`,

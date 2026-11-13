@@ -5,8 +5,29 @@ import {
 } from "../layers/dms-ui/app/composables/chart/apexCategoryLabels";
 import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChart";
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
+import { isFunction, isString } from "../layers/dms-core/app/utils/type-check";
+import { sectionIn } from "./fixtures/axisCallbacks";
 
 type LabelFormatter = ReturnType<typeof thinnedCategoryFormatter>;
+
+function labelFormatterIn(
+  options: ReturnType<typeof useApexChart>["options"]["value"],
+): LabelFormatter | undefined {
+  const formatter = sectionIn(sectionIn(options, "xaxis"), "labels").formatter;
+  if (formatter === undefined) return undefined;
+  if (!isFunction(formatter)) {
+    throw new Error(
+      "The x axis labels hold a formatter that is not a function",
+    );
+  }
+  return (value, timestamp, opts) => {
+    const label = formatter(value, timestamp, opts);
+    if (!isString(label)) {
+      throw new Error(`The label formatter answered ${String(label)}`);
+    }
+    return label;
+  };
+}
 
 const HOURS = Array.from(
   { length: 24 },
@@ -18,15 +39,13 @@ const DESKTOP_GRID_WIDTH = 1200;
 function heatmapFormatter(
   input: Partial<UseApexChartInput> = {},
 ): LabelFormatter | undefined {
-  const options = useApexChart(() => ({
-    type: "heatmap",
-    series: [{ name: "Mon", data: HOURS.map((x) => ({ x, y: 1 })) }],
-    ...input,
-  })).options.value;
-  // SAFETY: useApexChart creates xaxis.labels for these axis chart fixtures, and any formatter is the thinnedCategoryFormatter callback.
-  const labels = (options.xaxis as { labels: { formatter?: LabelFormatter } })
-    .labels;
-  return labels.formatter;
+  return labelFormatterIn(
+    useApexChart(() => ({
+      type: "heatmap",
+      series: [{ name: "Mon", data: HOURS.map((x) => ({ x, y: 1 })) }],
+      ...input,
+    })).options.value,
+  );
 }
 
 function drawnLabels(formatter: LabelFormatter, gridWidth: number): string[] {
@@ -95,14 +114,13 @@ function categoryFormatter(
   labels: string[],
   input: Partial<UseApexChartInput> = {},
 ): LabelFormatter | undefined {
-  const options = useApexChart(() => ({
-    type: "line",
-    series: [{ name: "A", data: labels.map((x, y) => ({ x, y })) }],
-    ...input,
-  })).options.value;
-  // SAFETY: useApexChart creates xaxis.labels for these axis chart fixtures, and any formatter is the thinnedCategoryFormatter callback.
-  return (options.xaxis as { labels: { formatter?: LabelFormatter } }).labels
-    .formatter;
+  return labelFormatterIn(
+    useApexChart(() => ({
+      type: "line",
+      series: [{ name: "A", data: labels.map((x, y) => ({ x, y })) }],
+      ...input,
+    })).options.value,
+  );
 }
 
 function drawn(

@@ -41,6 +41,13 @@ export interface DataCompareMode {
   ): ValueProxyOrValue<boolean>;
 }
 
+/** Whether a data type lists the compare mode registered under `mode`. */
+function listsCompareMode(type: DataType, mode: string): boolean {
+  return type.compareModes.some(
+    (modeClass) => dataCompareModesMetadata.get(modeClass)?.id === mode,
+  );
+}
+
 export abstract class DataType {
   constructor(
     public readonly compareModes: Class<DataCompareMode>[] = [],
@@ -60,7 +67,7 @@ export abstract class DataType {
     row: ValueProxy<Record<string, unknown>>,
   ): ValueProxyOrValue<boolean> {
     const compareMode = dataCompareModes.get(mode);
-    if (!compareMode) return false;
+    if (!compareMode || !listsCompareMode(this, mode)) return false;
     return compareMode.filter(context, proxy, key, value, row);
   }
 

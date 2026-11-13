@@ -6,6 +6,10 @@ import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/
 import type { createAttachmentUpload, readAttachment } from "../../attachments";
 import { signUploadToken, type UploadTokenClaims } from "../../utils";
 import { type BodyResponse, parseBody } from "./parse-body";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const PRESIGN_URL = "/api/files/presign";
 const HTTP_OK = 200;
@@ -144,14 +148,12 @@ export function findUploadToken(
   value: unknown,
   field: string,
 ): string | undefined {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Layout children include primitive leaves; owner-derived component types cannot narrow recursively mixed JSON.
-  if (!value || typeof value !== "object") return undefined;
+  if (!value || !isObject(value)) return undefined;
   if (
     "attachmentField" in value &&
     value.attachmentField === field &&
     "uploadToken" in value &&
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The upload token comes from layout JSON; the property existence checks alone do not establish a string.
-    typeof value.uploadToken === "string"
+    isString(value.uploadToken)
   )
     return value.uploadToken;
   return Object.values(value)

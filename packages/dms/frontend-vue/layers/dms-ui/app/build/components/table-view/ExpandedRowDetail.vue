@@ -94,9 +94,9 @@ const FieldValue = (fieldProps: { item: KeyValueItem }) =>
     aria-busy="true"
   >
     <USkeleton
-      :aria-label="t('dms.a11y.loading')"
       v-for="line in SKELETON_LINE_COUNT"
       :key="line"
+      :aria-label="t('dms.a11y.loading')"
       class="h-4 w-full max-w-md"
     />
   </div>

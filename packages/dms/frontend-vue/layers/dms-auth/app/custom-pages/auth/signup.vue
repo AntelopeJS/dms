@@ -112,8 +112,7 @@ const invitationState = computed<InvitationState>(() => {
 });
 const closedInvitation = computed(() =>
   invitationState.value in CLOSED_INVITATION_NOTICES
-    ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The existing in lookup includes inherited keys; stronger own-key validation would change malformed error-code handling, and TypeScript does not narrow the key here.
-      CLOSED_INVITATION_NOTICES[invitationState.value as ClosedInvitation]
+    ? CLOSED_INVITATION_NOTICES[invitationState.value as ClosedInvitation]
     : undefined,
 );
 

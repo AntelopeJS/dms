@@ -202,7 +202,6 @@ describe("command palette assistant registry", () => {
 
   it("ignores an entry whose suggestions were stripped by the SSR payload", () => {
     type Suggestions = CommandPaletteAssistant["suggestions"];
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- SSR strips function values; deliberately model that invalid hydrated registry entry without claiming it is a valid callback.
     const suggestions = undefined as unknown as Suggestions;
     registerCommandPaletteAssistant({
       ...ASSISTANT,

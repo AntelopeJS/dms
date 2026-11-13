@@ -66,7 +66,6 @@ const theme = tv({
   },
 });
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
 const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableViews: Partial<typeof theme> };
 };
@@ -240,8 +239,8 @@ const openTab = (id: string) => emit("open", id);
         />
         {{ view.label }}
         <USkeleton
-          :aria-label="t('dms.a11y.loading')"
           v-if="view.countPending"
+          :aria-label="t('dms.a11y.loading')"
           aria-hidden="true"
           class="h-3 w-4 rounded-[3px]"
         />

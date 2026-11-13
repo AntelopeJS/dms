@@ -143,7 +143,6 @@ const RANGE_AREA_APEX_TYPE = "rangeArea";
 function resolveApexType(
   input: UseApexChartInput,
 ): NonNullable<NonNullable<ApexOptions["chart"]>["type"]> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public configuration accepts arbitrary chart strings; inference and ApexOptions reject that existing unchecked Apex boundary.
   const baseType = APEX_TYPE_CONFIGS[input.type].apexType as NonNullable<
     NonNullable<ApexOptions["chart"]>["type"]
   >;
@@ -286,16 +285,11 @@ function applyDatetimeBuckets(
     labels: { ...labels, formatter: bucketFormatter },
   };
   const tooltip = options.tooltip;
+  const bucketTooltip = bucketTooltipFormatter(buckets, input);
   options.tooltip = {
     ...tooltip,
     x: {
-      // SAFETY: The public formatter stringifies its input before reading it, so Apex's numeric input follows the same conversion without widening the public callback contract.
-      formatter: bucketTooltipFormatter(buckets, input) as ReturnType<
-        typeof bucketTooltipFormatter
-      > &
-        NonNullable<
-          NonNullable<NonNullable<ApexOptions["tooltip"]>["x"]>["formatter"]
-        >,
+      formatter: (value: unknown) => bucketTooltip(String(value ?? "")),
     },
   };
 }

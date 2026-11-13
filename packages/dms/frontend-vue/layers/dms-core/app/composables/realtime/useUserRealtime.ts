@@ -31,7 +31,6 @@ type RealtimeFrameData = Parameters<
 export interface RealtimeEvent {
   topic: string;
   type: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Backend realtime/broker.ts owns the same arbitrary payload contract; topic-specific schemas cannot narrow this public event interface.
   payload?: Record<string, unknown>;
   actorId?: string;
   ts: number;

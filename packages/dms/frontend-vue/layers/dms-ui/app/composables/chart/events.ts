@@ -37,7 +37,6 @@ export function readPointValue(
   point: Parameters<typeof isNumber>[0],
 ): ClickPointValue {
   if (isNumber(point)) return { value: point };
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Keep the public unknown input and its existing unchecked optional property read, including getters and primitive boxing.
   const y = (point as { y?: Parameters<typeof isNumber>[0] } | null | undefined)
     ?.y;
   if (Array.isArray(y)) return { value: null, values: y };

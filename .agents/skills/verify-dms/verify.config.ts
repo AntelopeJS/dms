@@ -66,6 +66,7 @@ const config: VerifyConfig = {
     "packages/dms/src/test/**",
     "packages/dms/frontend-vue/tests/**",
     "packages/dms/frontend-vue/eslint*.mjs",
+    "packages/dms/frontend-vue/eslint*.d.mts",
     "packages/dms/frontend-vue/vitest.config.ts",
     "packages/dms/frontend-vue/.*",
     "packages/dms/frontend-vue/.vscode/**",

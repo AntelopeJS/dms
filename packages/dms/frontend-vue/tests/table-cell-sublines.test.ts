@@ -12,7 +12,7 @@ import type {
   DataType,
   DataTypeFormatter,
 } from "../layers/dms-core/app/composables/data-types/useDataType";
-import { isString } from "../layers/dms-core/app/utils/type-check";
+import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regional";
 import { readSubline } from "../layers/dms-ui/app/entries/composables/data-types/cellHelpers";
 import { registerMetricCellTypes } from "../layers/dms-ui/app/entries/composables/data-types/metricCells";
@@ -67,14 +67,27 @@ register({
     default: (value) => `€${Number(value).toFixed(2)}`,
   },
 });
+interface SelectItem {
+  value: string;
+  label: string;
+}
+
+const isSelectItem = (item: unknown): item is SelectItem =>
+  isObject(item) &&
+  item !== null &&
+  isString(item.value) &&
+  isString(item.label);
+
+const selectItems = (options: unknown): SelectItem[] =>
+  isObject(options) && options !== null && Array.isArray(options.items)
+    ? options.items.filter(isSelectItem)
+    : [];
+
 register({
   id: "select",
   formatter: {
-    // SAFETY: The select stub is called only with the items option declared in the status-pill fixture below.
     default: (value, _locale, options) =>
-      (
-        options as { items: Array<{ value: string; label: string }> }
-      ).items.find((item) => item.value === value)?.label,
+      selectItems(options).find((item) => item.value === value)?.label,
   },
 });
 

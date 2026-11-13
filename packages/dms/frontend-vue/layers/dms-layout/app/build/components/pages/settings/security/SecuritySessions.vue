@@ -58,7 +58,6 @@ const { formatDate, formatRelative } = useSecurityFormat();
 
 const list = useApiData<SessionsRead>(SESSIONS_URL, {
   transform: (sessions) => ({
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- useApiData exposes transform input as unknown. The endpoint supplies SessionInfo[] by convention; SessionsRead["sessions"] cannot prove that unchecked response shape without new validation.
     sessions: sessions as SessionInfo[],
     readAt: Date.now(),
   }),
@@ -193,9 +192,9 @@ const retryActions = computed(() => [
 
     <div v-if="isLoading" class="grid gap-3 px-[18px] py-4">
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-for="index in SKELETON_COUNT"
         :key="index"
+        :aria-label="t('dms.a11y.loading')"
         class="h-10 w-full"
       />
     </div>

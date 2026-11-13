@@ -8,6 +8,7 @@ import type {
 } from "@antelopejs/interface-dms/auth/request-authenticators";
 import { resolveRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 import { requestContextFixture } from "../helpers/request-context";
+import { storedUserFixture } from "../helpers/user-fixture";
 
 const UNAUTHORIZED = 401;
 const TENANT = "credential-tenant";
@@ -18,8 +19,7 @@ function context(authorization = "Bearer opaque.secret"): RequestContext {
 }
 
 function principal(tenantId = TENANT, userId = USER_ID): RequestPrincipal {
-  // SAFETY: Principal validation and identity snapshots access only user._id; the owner-derived user type also requires unrelated profile and authentication fields.
-  return { tenantId, user: { _id: userId } as RequestPrincipal["user"] };
+  return { tenantId, user: storedUserFixture({ _id: userId }) };
 }
 
 function handler(authenticate = async () => principal()): RequestAuthenticator {
@@ -36,16 +36,13 @@ async function expectUnauthorized<T>(action: () => Promise<T>): Promise<void> {
   }
 }
 
-describe("[unit] request authenticators", () => {
-  let jwtCalls = 0;
-  const jwt = async () => {
-    jwtCalls++;
-    return principal("jwt-tenant");
-  };
-  beforeEach(() => {
-    jwtCalls = 0;
-  });
+let jwtCalls = 0;
+const jwt = async () => {
+  jwtCalls++;
+  return principal("jwt-tenant");
+};
 
+function registerResolutionCases(): void {
   it("binds tenant to the verified credential across context wrappers", async () => {
     const ctx = context();
     const result = await resolveRequestPrincipal(ctx, [handler()], jwt);
@@ -114,7 +111,9 @@ describe("[unit] request authenticators", () => {
     expect(attempts).to.equal(0);
     expect(jwtCalls).to.equal(0);
   });
+}
 
+function registerRejectionCases(): void {
   for (const authorization of [
     "",
     "Basic opaque.secret",
@@ -181,4 +180,13 @@ describe("[unit] request authenticators", () => {
     await expectUnauthorized(() => resolveRequestPrincipal(ctx, [], jwt));
     expect(jwtCalls).to.equal(1);
   });
+}
+
+describe("[unit] request authenticators", () => {
+  beforeEach(() => {
+    jwtCalls = 0;
+  });
+
+  registerResolutionCases();
+  registerRejectionCases();
 });

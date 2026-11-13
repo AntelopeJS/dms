@@ -220,7 +220,6 @@ const relayHeaders = (
  * renderer's backend proxy.
  */
 export function installRealtimeFetch(server: FakeRealtimeServer): void {
-  // oxlint-disable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions -- This fetch double exposes only the response members realtime code consumes. Inference cannot assign partial responses to fetch and the Response owner requires unrelated browser methods; the boundary remains intentionally incomplete.
   globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
     const headers = relayHeaders(server, init);
     if (url === CONNECTION_URL) {
@@ -248,5 +247,4 @@ export function installRealtimeFetch(server: FakeRealtimeServer): void {
     }
     return json({}, HTTP_NOT_FOUND);
   }) as unknown as typeof fetch;
-  // oxlint-enable anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-chained-type-assertions
 }

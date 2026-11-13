@@ -10,7 +10,6 @@ import {
   ref,
   watch,
   type App,
-  type PropType,
 } from "vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
@@ -28,9 +27,8 @@ const EmptyState = defineComponent({
   props: {
     title: String,
     variant: String,
-    // SAFETY: SecuritySessions supplies action labels and click handlers to its empty state.
     actions: {
-      type: Array as PropType<{ label: string; onClick: () => void }[]>,
+      type: Array<{ label: string; onClick: () => void }>,
       default: () => [],
     },
   },

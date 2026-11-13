@@ -28,12 +28,12 @@ interface Row {
 
 const ROWS: Row[] = [{ id: "r1" }, { id: "r2" }];
 const SCOPE = { tableId: "sends", isSoleTableView: true };
-// SAFETY: Record-link resolution reads only the deep-link flag and target kind; no drawer is instantiated here.
-const DRAWER = {
+const DRAWER: CustomRowAction = {
   id: "details",
+  label: "Details",
   deepLink: true,
-  target: { type: "drawer" },
-} as CustomRowAction;
+  target: { type: "drawer", component: { componentName: "Details" } },
+};
 
 const mounted: Array<{ unmount: () => void }> = [];
 

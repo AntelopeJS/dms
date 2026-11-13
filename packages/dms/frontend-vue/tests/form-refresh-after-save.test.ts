@@ -34,7 +34,6 @@ const STORED = {
 
 const authFetch = vi.fn();
 let scope: EffectScope;
-// oxlint-disable-next-line anti-slop/no-unknown-returns -- Submit responses deliberately include records, unrelated objects, arrays and undefined; no parsed record owner describes this transport double before useForm handles the response.
 let answer: () => unknown;
 
 function setupForm(

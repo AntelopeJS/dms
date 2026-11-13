@@ -52,6 +52,10 @@ import {
   copyBackendProxies,
   resolveBackendProxies,
 } from "./frontend-backend-proxies";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 interface FrontendModule {
   name: string;
@@ -180,9 +184,7 @@ function resolveAuthEstablishEndpoints(
 ): string[] {
   const declared = config.authEstablishEndpoints ?? [];
   const invalid = declared.filter(
-    (endpoint) =>
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JavaScript modules can register nonstring endpoints; retain the boundary's existing rejection instead of regex coercion.
-      typeof endpoint !== "string" || !BACKEND_API_PATH.test(endpoint),
+    (endpoint) => !isString(endpoint) || !BACKEND_API_PATH.test(endpoint),
   );
   if (invalid.length > 0) {
     throw new Error(
@@ -287,8 +289,7 @@ export function removeFrontendModulesUnder(folder: string): string[] {
 }
 
 function copyFrontendValue(value: FrontendModuleValue): FrontendModuleValue {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- FrontendModuleValue is a recursive JSON union; this existing branch leaves scalars intact and only copies containers.
-  if (value === null || typeof value !== "object") return value;
+  if (value === null || !isObject(value)) return value;
   if (Array.isArray(value)) return value.map(copyFrontendValue);
   return copyFrontendOptions(value);
 }
