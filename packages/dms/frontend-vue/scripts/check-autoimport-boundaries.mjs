@@ -65,7 +65,8 @@ const globs = autoImportDirectories(
 );
 const owners = new Map();
 const components = new Map();
-function own(name, file, registry = owners) {
+function own(name, path, registry = owners) {
+  const file = posixPath(path);
   const layer = /\/layers\/dms-([^/]+)\//.exec(file)?.[1];
   if (!layer) return;
   const entries = registry.get(name) ?? new Set();

@@ -252,7 +252,7 @@ await test("rejects external Vue scripts rather than accepting uninspected conte
   assertRejected("extScript", [
     [
       vue,
-      `<script lang="js" src="./${script.split("/").at(-1)}"></script><template><div>Probe</div></template>`,
+      `<script lang="js" src="./${nodePath.basename(script)}"></script><template><div>Probe</div></template>`,
       null,
     ],
   ]);
@@ -269,7 +269,7 @@ await test("rejects source edges into every directory skipped by the scanner", (
       writeFileSync(hidden, 'import "../../../../../src/index.ts";\n');
       return [
         fixturePath("frontend-vue/app"),
-        `import "./${directory.split("/").at(-1)}/${skipped}/hidden.ts";`,
+        `import "./${nodePath.basename(directory)}/${skipped}/hidden.ts";`,
         null,
       ];
     }),
@@ -349,7 +349,7 @@ await test("rejects uninspected Vite inc targets even beside a TypeScript shadow
     "forbidden",
     [bridge, fragment, encoded].map((target) => [
       fixturePath("frontend-vue/app"),
-      `export * from "./${target.split("/").at(-1)}";`,
+      `export * from "./${nodePath.basename(target)}";`,
     ]),
   );
 });
@@ -362,7 +362,7 @@ await test("rejects uninspected Node inc targets that can execute backend code",
     'module.exports = require("../../src/utils/run-in-batches.ts");',
   );
   assertRejected("forbidden", [
-    [fixturePath("src", "cjs"), `require("./${bridge.split("/").at(-1)}");`],
+    [fixturePath("src", "cjs"), `require("./${nodePath.basename(bridge)}");`],
   ]);
 });
 
@@ -374,7 +374,7 @@ await test("rejects extensionless executable targets rather than trusting their 
     'module.exports = require("../../src/utils/run-in-batches.ts");',
   );
   assertRejected("forbidden", [
-    [fixturePath("src", "cjs"), `require("./${bridge.split("/").at(-1)}");`],
+    [fixturePath("src", "cjs"), `require("./${nodePath.basename(bridge)}");`],
   ]);
 });
 
@@ -390,7 +390,7 @@ await test("permits inert target kinds without treating Node require as a Vite a
   });
   for (const [suffix, source] of sources)
     writeFileSync(prefix + suffix, source);
-  const name = prefix.split("/").at(-1);
+  const name = nodePath.basename(prefix);
   assertAccepted(
     [
       `import "./${name}.json"; import "./${name}.inc?raw"; import "./${name}.inc?url"; require("./${name}.json");`,
