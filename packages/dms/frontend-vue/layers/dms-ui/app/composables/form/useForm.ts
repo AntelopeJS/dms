@@ -212,7 +212,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
       processBeforeStateMappers(
         // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reset intentionally carries undefined for initially absent fields. The mapper's nominal FormData contract omits undefined, but no validation or dropping of those fields is intended.
         restored as FormData,
-        props.fields,
+        props.fields ?? [],
         getDataType,
       ),
     );
@@ -266,7 +266,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
       ...JSON.parse(JSON.stringify(record)),
     };
     await applyStoredRecord(
-      processBeforeStateMappers(record, props.fields, getDataType),
+      processBeforeStateMappers(record, props.fields ?? [], getDataType),
     );
   };
 

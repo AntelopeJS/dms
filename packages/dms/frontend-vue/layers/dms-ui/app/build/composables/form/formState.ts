@@ -60,7 +60,7 @@ function createFormState(props: FormProps) {
   const initialValues = ref<FormData>({});
   const submitSucceeded = ref(false);
 
-  const allFields = computed(() => flattenFields(props.fields));
+  const allFields = computed(() => flattenFields(props.fields ?? []));
 
   const isStartingValue = (
     fieldId: string,
@@ -147,7 +147,7 @@ export function createFormFields(props: FormProps) {
   } = context;
 
   const fields = computed<FormFieldOrGroup[]>(() =>
-    orderFormEntries(props.fields).map((item) => {
+    orderFormEntries(props.fields ?? []).map((item) => {
       if (isFieldGroup(item)) {
         return {
           ...item,
@@ -189,7 +189,11 @@ export function createFormFields(props: FormProps) {
       ...initialValues.value,
       ...JSON.parse(JSON.stringify(fetchedData)),
     };
-    return processBeforeStateMappers(fetchedData, props.fields, getDataType);
+    return processBeforeStateMappers(
+      fetchedData,
+      props.fields ?? [],
+      getDataType,
+    );
   };
 
   const fetchData = async () => {

@@ -319,6 +319,23 @@ const CONTROLLER_STARTERS = new Map<
   ],
 ]);
 
+/**
+ * The options a new block starts with beyond its defaults, for a block that
+ * draws nothing without them: a form with no fields shows an empty card.
+ */
+const STARTER_OPTIONS = new Map<string, Record<string, unknown>>([
+  [
+    "Form",
+    {
+      title: "Form",
+      fields: [
+        formField("name", "Name", "dms-input-text"),
+        formField("email", "Email", "dms-input-text"),
+      ],
+    },
+  ],
+]);
+
 /** `wanted`, or the first `<wanted>-<n>` the page has no fixture under. */
 function freshKey(fixtures: Record<string, unknown>, wanted: string): string {
   let key = wanted;
@@ -336,7 +353,10 @@ function startingNode(
   const controller = CONTROLLER_STARTERS.get(block.type);
   if (!controller) {
     const node: MockupSpecNode = { id, type: block.type };
-    const options = startingOptions(block);
+    const options = {
+      ...startingOptions(block),
+      ...STARTER_OPTIONS.get(block.type),
+    };
     if (Object.keys(options).length) node.options = options;
     return node;
   }

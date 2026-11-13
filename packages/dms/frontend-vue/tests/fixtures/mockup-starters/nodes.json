@@ -19,7 +19,7 @@
 "CodeBlock":{"node":{"id":"code-block","type":"CodeBlock","options":{"language":"text","copy":true}},"fixtures":{}},
 "EmptyState":{"node":{"id":"empty-state","type":"EmptyState","options":{"variant":"no-data","size":"md","card":true,"title":"Nothing here yet"}},"fixtures":{}},
 "FieldRow":{"node":{"id":"field-row","type":"FieldRow"},"fixtures":{}},
-"Form":{"node":{"id":"form","type":"Form"},"fixtures":{}},
+"Form":{"node":{"id":"form","type":"Form","options":{"title":"Form","fields":[{"id":"name","label":"Name","type":"string","component":{"componentName":"dms-input-text","options":{},"children":[]}},{"id":"email","label":"Email","type":"string","component":{"componentName":"dms-input-text","options":{},"children":[]}}]}},"fixtures":{}},
 "Grid":{"node":{"id":"grid","type":"Grid","options":{"gap":"1rem","minColumnWidth":"240px"}},"fixtures":{}},
 "GridRow":{"node":{"id":"grid-row","type":"GridRow"},"fixtures":{}},
 "Guard":{"node":{"id":"guard","type":"Guard","options":{"when":"empty","fetchUrl":"Data source"}},"fixtures":{}},
