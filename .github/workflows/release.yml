@@ -43,7 +43,14 @@ jobs:
           import { satisfiesImplementedRange } from './checks/release-range.mjs'
           const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'))
           const pkg = readJson('./packages/dms/package.json')
-          const iface = readJson('./packages/interface-dms/package.json')
+          // The interface packages of this repository the runtime may provide, by manifest.
+          const implementable = new Map([
+            ['@antelopejs/interface-dms', './packages/interface-dms/package.json'],
+            ['@antelopejs/interface-dms-builder', './packages/interface-dms-builder/package.json'],
+          ])
+          const implementsInTree = (name) =>
+            implementable.has(name) &&
+            satisfiesImplementedRange(readJson(implementable.get(name)).version, pkg.dependencies[name])
           if (
             pkg.name !== '@antelopejs/dms' ||
             pkg.private === true ||
@@ -52,21 +59,22 @@ jobs:
             pkg.publishConfig.registry !== 'https://registry.npmjs.org/' ||
             pkg.publishConfig.access !== 'public' ||
             pkg.publishConfig.provenance !== true ||
-            !satisfiesImplementedRange(iface.version, pkg.dependencies['@antelopejs/interface-dms']) ||
-            // The runtime provides the interface package and nothing else.
+            // The runtime provides interface-dms, and otherwise only interface packages of this
+            // repository, each at a range its version in the tree satisfies.
             !pkg.antelopeJs.implements.includes('@antelopejs/interface-dms') ||
-            pkg.antelopeJs.implements.some((name) => name !== '@antelopejs/interface-dms')
+            !pkg.antelopeJs.implements.every(implementsInTree)
           ) process.exit(1)
           NODE
-      # The module depends on the interface through `>=<floor> <0.<minor+1>.0`,
-      # so a module released against an unpublished interface installs broken. The
-      # interface is released by its own workflow; this one only refuses to run
-      # before it has landed.
-      - name: Verify the interface release it will point at
+      # The module depends on each interface it implements through
+      # `>=<floor> <0.<minor+1>.0`, so a module released against an unpublished
+      # interface installs broken. The interfaces are released by their own
+      # workflow; this one only refuses to run before they have landed.
+      - name: Verify the interface releases it will point at
         run: |
-          version=$(node -p "require('./packages/interface-dms/package.json').version")
-          npm view "@antelopejs/interface-dms@$version" version \
-            --registry=https://registry.npmjs.org/
+          for name in $(node -p "require('./packages/dms/package.json').antelopeJs.implements.join(' ')"); do
+            version=$(node -p "require('./packages/${name#@antelopejs/}/package.json').version")
+            npm view "$name@$version" version --registry=https://registry.npmjs.org/
+          done
   release:
     needs: validate
     uses: AntelopeJS/.github/.github/workflows/release-npm-public.yml@492c1f55e32fa1b7bd2c5a65a1714498930d9e20
