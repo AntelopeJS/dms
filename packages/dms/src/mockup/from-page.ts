@@ -49,7 +49,7 @@ interface Conversion {
 
 /** The keys an object holds when it stands for a value written in code, not data. */
 const SENTINEL_KEYS = ["$ref", "$expr", "$dataType", "$block"];
-const FETCH_URL = "fetchUrl";
+const ROUTE_KEY_SUFFIX = "Url";
 const TEMPLATE_OPENER = "{{";
 const TABLE_TYPE = "TableView";
 const HOME = "home";
@@ -163,7 +163,9 @@ function routeData(value: Json, c: Conversion): Routed<Json> {
 function routeObject(value: JsonObject, c: Conversion): Routed<JsonObject> {
   const result: JsonObject = {};
   for (const [key, entry] of Object.entries(value)) {
-    const route = key === FETCH_URL ? routeSchema.safeParse(entry) : undefined;
+    const route = key.endsWith(ROUTE_KEY_SUFFIX)
+      ? routeSchema.safeParse(entry)
+      : undefined;
     if (route?.success) {
       const issue = routeIssue(route.data);
       if (issue) return { ok: false, reason: issue };
@@ -345,9 +347,9 @@ function only<Value>(
 /**
  * The mockup page of a live page: one node per top-level block, children
  * under their parent, each block the compiler refuses drawn as a sketch.
- * Every `fetchUrl` reads a fixture: `null` for a block's own route, sample
- * rows for a table, never the page's real data. `liveRoutes` maps each to
- * the route it stands for, which Real data reads.
+ * Every option named `*Url` reads a fixture: `null` for a block's own route,
+ * sample rows for a table, never the page's real data. `liveRoutes` maps each
+ * to the route it stands for, which Real data reads.
  */
 export function convertPage(
   structure: PageStructure,

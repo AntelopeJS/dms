@@ -7,6 +7,7 @@ import {
   type Json,
   type MockupNode,
   mockupNameSchema,
+  jsonObjectSchema,
   openOracle,
   parseSpec,
   slugOf,
@@ -34,11 +35,17 @@ function compiled(converted: ConvertedPage) {
   return compileSpec(NAME, read.spec);
 }
 
-function fetchUrlsIn(value: Json | readonly MockupNode[]): string[] {
-  return JSON.stringify(value)
-    .split('"fetchUrl":"')
-    .slice(1)
-    .map((rest) => rest.slice(0, rest.indexOf('"')));
+/** Every string option named `*Url`, at any depth, as `key=value`. */
+function urlOptionsIn(value: Json | readonly MockupNode[]): string[] {
+  if (Array.isArray(value)) return value.flatMap(urlOptionsIn);
+  const object = jsonObjectSchema.safeParse(value);
+  if (!object.success) return [];
+  return Object.entries(object.data).flatMap(([key, entry]) => {
+    const route = z.string().safeParse(entry);
+    return key.endsWith("Url") && route.success
+      ? [`${key}=${route.data}`]
+      : urlOptionsIn(entry);
+  });
 }
 
 const HOSTILE_NAMES = [
@@ -117,7 +124,7 @@ describe("[unit] mockup conversion guarantees", () => {
     });
   });
 
-  it("calls no live route with Real data off: every fetchUrl of the sample tree is a mockup fixture", () => {
+  it("calls no live route with Real data off: every *Url option of the sample tree is a mockup fixture", () => {
     const state = compiled(
       convert([
         {
@@ -135,20 +142,74 @@ describe("[unit] mockup conversion guarantees", () => {
             chart: { $block: { type: "ChartLine", config: {} } },
           },
         },
+        {
+          name: "tabs",
+          type: "Tab",
+          config: {
+            badgesUrl: "/api/books/counts",
+            items: [{ slot: "a", label: "A" }],
+          },
+        },
+        {
+          name: "form",
+          type: "Form",
+          config: {
+            title: "New book",
+            fetchUrl: "/api/books/get",
+            submitUrl: "/api/books/create",
+            saveMode: "instant",
+            submitDefaults: { hooks: [{ callbackUrl: "/api/books/hook" }] },
+          },
+        },
       ]),
     );
     const [page] = state.pages;
+    const fixture = "/api/mockup/books/pages/books/fixtures";
 
-    expect(fetchUrlsIn(page.tree)).to.deep.equal([
-      "/api/mockup/books/pages/books/fixtures/api-kpi",
-      "/api/mockup/books/pages/books/fixtures/rows-api-book-list/rows",
-      "/api/mockup/books/pages/books/fixtures/api-card",
+    expect(state.issues).to.deep.equal([]);
+    expect(urlOptionsIn(page.tree)).to.deep.equal([
+      `fetchUrl=${fixture}/api-kpi`,
+      `fetchUrl=${fixture}/rows-api-book-list/rows`,
+      `fetchUrl=${fixture}/api-card`,
+      `badgesUrl=${fixture}/api-books-counts`,
+      `fetchUrl=${fixture}/api-books-get`,
+      `submitUrl=${fixture}/api-books-create`,
+      `callbackUrl=${fixture}/api-books-hook`,
     ]);
-    expect(fetchUrlsIn(page.realTree ?? [])).to.deep.equal([
-      "/api/kpi",
-      "/api/book/list",
-      "/api/card",
+    expect(urlOptionsIn(page.realTree ?? [])).to.deep.equal([
+      "fetchUrl=/api/kpi",
+      "fetchUrl=/api/book/list",
+      "fetchUrl=/api/card",
+      "badgesUrl=/api/books/counts",
+      "fetchUrl=/api/books/get",
+      "submitUrl=/api/books/create",
+      "callbackUrl=/api/books/hook",
     ]);
+  });
+
+  it("sketches a block whose *Url option is templated or leaves the site", () => {
+    const converted = convert([
+      {
+        name: "tabs",
+        type: "Tab",
+        config: {
+          badgesUrl: "/api/counts?status={{query.status}}",
+          items: [{ slot: "a", label: "A" }],
+        },
+      },
+      {
+        name: "form",
+        type: "Form",
+        config: { title: "F", submitUrl: "https://example.com/create" },
+      },
+    ]);
+
+    expect(converted.sketches).to.deep.equal([
+      { path: "/books#tabs", reason: "templated-route" },
+      { path: "/books#form", reason: "remote-route" },
+    ]);
+    expect(converted.page).not.to.have.property("liveRoutes");
+    expect(compiled(converted).issues).to.deep.equal([]);
   });
 
   it("keeps no fixture nor live route of a block that ended up inside a sketch", () => {
