@@ -144,6 +144,23 @@ export default defineConfig({
 });
 `;
 
+const ARCHIVE_CONNECTION = `        {
+          interface: "${DATABASE}",
+          source: "postgres-erp",
+          id: "archive",
+        },`;
+
+function dmsDatabaseConfig(entry: string): string {
+  return PROJECT_CONFIG.replace(
+    "    mongodb: {",
+    `    "dms-database": {
+      source: { type: "package", package: "@antelopejs/dms-database", version: "0.1.0" },
+${entry}
+    },
+    mongodb: {`,
+  );
+}
+
 let app: Fixture;
 
 function configPath(): string {
@@ -234,6 +251,55 @@ describe("project-config operations", function () {
     expect(JSON.stringify(result))
       .to.include("mongodb")
       .and.to.include("postgres-erp");
+  });
+
+  it("writes a plain pin ahead of a connection that has an id", async () => {
+    fs.writeFileSync(
+      configPath(),
+      dmsDatabaseConfig(
+        `      importOverrides: [\n${ARCHIVE_CONNECTION}\n      ],`,
+      ),
+    );
+    expectOk(
+      await ConfigureModule("dms-database", {
+        importOverrides: [{ interface: DATABASE, source: "mongodb" }],
+      }),
+      "pin dms-database",
+    );
+    expect(readConfig()).to.equal(
+      dmsDatabaseConfig(`      importOverrides: [
+        {
+          interface: "${DATABASE}",
+          source: "mongodb",
+        },
+${ARCHIVE_CONNECTION}
+      ],`),
+    );
+  });
+
+  it("adds a nested config key beside the ones the module already has", async () => {
+    const archive = `          archive: {
+            access: "read-write",
+          },`;
+    const configWith = (connections: string) =>
+      dmsDatabaseConfig(`      config: {
+        externalConnections: {
+${connections}
+        },
+      },`);
+    fs.writeFileSync(configPath(), configWith(archive));
+    expectOk(
+      await ConfigureModule("dms-database", {
+        config: { externalConnections: { erp: { access: "read" } } },
+      }),
+      "register erp",
+    );
+    expect(readConfig()).to.equal(
+      configWith(`${archive}
+          erp: {
+            access: "read",
+          },`),
+    );
   });
 
   it("scaffolds a local module the builder then writes into", async () => {

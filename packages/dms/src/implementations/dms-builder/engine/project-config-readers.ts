@@ -2,16 +2,34 @@ import type { ImportOverrideInput } from "@antelopejs/interface-dms-builder";
 import { Node } from "ts-morph";
 import { CATALOG_INTERFACE, DATABASE_INTERFACE } from "./interface-ids";
 import { hides } from "./literal-overrides";
-import { propertyKey } from "./modules";
+import { findConfigFile, propertyKey } from "./modules";
 import {
   type ConfigDraft,
   IMPORT_OVERRIDES,
   MODULES,
   objectAt,
+  openDraft,
   overrideOf,
   propertyNamed,
+  StepRefusal,
   stringOf,
 } from "./project-config";
+
+/** The configuration opened for reading; nothing when the project has none or it is not a literal. */
+export function readableConfig(): ConfigDraft | undefined {
+  const configPath = findConfigFile();
+  if (!configPath) {
+    return undefined;
+  }
+  try {
+    return openDraft(configPath);
+  } catch (error) {
+    if (error instanceof StepRefusal) {
+      return undefined;
+    }
+    throw error;
+  }
+}
 
 /** Every module of the configuration, by id, with its entry as written, whatever its form. */
 export function writtenModules(
