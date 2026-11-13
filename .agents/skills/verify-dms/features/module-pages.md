@@ -18,6 +18,7 @@ covers:
   - packages/dms/src/db/models/attachments.model.ts
   - packages/dms/src/db/tables/attachments.table.ts
   - packages/dms/src/db/guard-row.ts
+  - packages/dms/src/db/row-id.ts
   - packages/dms/src/db/index.ts
   - packages/dms/src/validation/file.schema.ts
   - packages/dms/src/utils/export-jobs*.ts
