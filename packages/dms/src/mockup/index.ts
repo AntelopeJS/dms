@@ -13,6 +13,8 @@ export * from "./files";
 export * from "./json-schema";
 export * from "./model";
 export * from "./routes";
+export * from "./source";
+export * from "./source-routes";
 export * from "./store";
 
 let engine: MockupEngine | undefined;

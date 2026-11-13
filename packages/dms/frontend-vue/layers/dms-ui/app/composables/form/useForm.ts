@@ -210,7 +210,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
       state.value,
       processBeforeStateMappers(
         restored as FormData,
-        props.fields,
+        props.fields ?? [],
         getDataType,
       ),
     );
@@ -263,7 +263,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
       ...JSON.parse(JSON.stringify(record)),
     };
     await applyStoredRecord(
-      processBeforeStateMappers(record, props.fields, getDataType),
+      processBeforeStateMappers(record, props.fields ?? [], getDataType),
     );
   };
 

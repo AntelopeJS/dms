@@ -1,20 +1,13 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import {
-  compileSpec,
   type MockupName,
-  mockupDirectory,
   parseMockupName,
-  parseSpec,
-  SPEC_FILE,
-  writeAtomically,
+  type SpecWriteResult,
+  writeSpec,
 } from "../../mockup";
 import { JsonObjectSchema } from "../json";
 import { jsonResult, type McpToolResult, textResult } from "../tool";
-
-const JSON_INDENT = 2;
 
 /** The `mockup` argument every mockup tool takes. */
 export const mockupArgument = z
@@ -61,27 +54,24 @@ export function withMockup(
   );
 }
 
+/** Answers `{ ok, errors }` for a write's outcome. */
+export function reportWrite(written: SpecWriteResult): McpToolResult {
+  if (written.ok) return jsonResult({ ok: true, errors: [] });
+  const errors = written.errors.map(({ path, message }) => ({
+    path,
+    message,
+  }));
+  return jsonResult({ ok: false, errors });
+}
+
 /**
- * Validates `spec` as the watcher does (`parseSpec` on its JSON text, then
- * `compileSpec`) and writes `mockups/<name>/spec.json` only when nothing is
- * wrong. A refused spec leaves the file as it was.
+ * Writes `mockups/<name>/spec.json` through {@link writeSpec}, answering
+ * `{ ok, errors }`. A refused spec leaves the file as it was.
  */
 export async function saveSpec(
   mockupsDir: string,
   name: MockupName,
   spec: JsonValue,
 ): Promise<McpToolResult> {
-  const read = parseSpec(JSON.stringify(spec));
-  const issues = read.ok ? compileSpec(name, read.spec).issues : read.issues;
-  if (issues.length) {
-    const errors = issues.map(({ path, message }) => ({ path, message }));
-    return jsonResult({ ok: false, errors });
-  }
-  const directory = mockupDirectory(mockupsDir, name);
-  await mkdir(directory, { recursive: true });
-  await writeAtomically(
-    join(directory, SPEC_FILE),
-    `${JSON.stringify(spec, null, JSON_INDENT)}\n`,
-  );
-  return jsonResult({ ok: true, errors: [] });
+  return reportWrite(await writeSpec(mockupsDir, name, spec));
 }

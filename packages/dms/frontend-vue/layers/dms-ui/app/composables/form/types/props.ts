@@ -16,8 +16,8 @@ interface FormComponentProps {
 export interface FormProps extends FormComponentProps {
   title?: string;
   description?: string;
-  /** Every entry of the form, the sections' included. */
-  fields: FormFieldOrGroup[];
+  /** Every entry of the form, the sections' included; none when absent. */
+  fields?: FormFieldOrGroup[];
   /**
    * Titled cards splitting the fields, reached from a navigation that marks
    * the ones holding unsaved changes or errors. Entries in no section come

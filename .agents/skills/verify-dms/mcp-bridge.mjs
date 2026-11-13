@@ -20,7 +20,7 @@ const CREDENTIAL_ATTEMPTS = 3;
  * @param {unknown} value
  * @returns {value is Record<string, unknown>} Whether it is a JSON object, not an array, a primitive or `null`
  */
-function isRecord(value) {
+export function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

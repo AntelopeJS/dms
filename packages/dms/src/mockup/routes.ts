@@ -37,6 +37,7 @@ import {
   parseMockupName,
 } from "./model";
 import type { MockupEvent, MockupStore, MockupSummary } from "./store";
+import { registerSpecRoutes } from "./source-routes";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
@@ -180,6 +181,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
     }
   }
   registerAnnotationRoutes(store);
+  registerSpecRoutes(store.mockupsDir);
   return MockupController;
 }
 

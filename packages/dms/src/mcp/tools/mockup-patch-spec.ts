@@ -1,18 +1,9 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { z } from "zod";
-import {
-  defaultMockupsDir,
-  MISSING_FILE,
-  type MockupName,
-  mockupDirectory,
-  parseFsError,
-  SPEC_FILE,
-} from "../../mockup";
+import { defaultMockupsDir, readSpecText, withSpecLock } from "../../mockup";
 import { type JsonObject, JsonObjectSchema } from "../json";
 import { defineTool, textResult } from "../tool";
 import { applyPatch, patchOperationSchema } from "./json-patch";
-import { mockupArgument, saveSpec, withMockup } from "./mockup-support";
+import { mockupArgument, reportWrite, withMockup } from "./mockup-support";
 
 const POINTER = z
   .string()
@@ -34,21 +25,6 @@ const operationInput = z.object({
     .optional()
     .describe("The JSON value an add, replace or test takes."),
 });
-
-async function readSpecText(
-  mockupsDir: string,
-  name: MockupName,
-): Promise<string | undefined> {
-  try {
-    return await readFile(
-      join(mockupDirectory(mockupsDir, name), SPEC_FILE),
-      "utf8",
-    );
-  } catch (error) {
-    if (parseFsError(error).code === MISSING_FILE) return undefined;
-    throw error;
-  }
-}
 
 function parseSpecObject(text: string): JsonObject | undefined {
   try {
@@ -82,29 +58,31 @@ export const mockupPatchSpecTool = defineTool({
       }
       const patch = parsed.data;
       const directory = defaultMockupsDir();
-      const text = await readSpecText(directory, name);
-      if (text === undefined) {
-        return textResult(
-          `Mockup "${name}" has no spec.json to patch. Call mockup_write_spec to create it.`,
-          true,
-        );
-      }
-      const current = parseSpecObject(text);
-      if (!current) {
-        return textResult(
-          `mockups/${name}/spec.json is not a JSON object, so it cannot be patched. Call mockup_write_spec to replace it.`,
-          true,
-        );
-      }
-      const patched = applyPatch(current, patch);
-      if (!patched.ok) {
-        const { index, message } = patched;
-        const operation = patch[index];
-        return textResult(
-          `Operation ${index} (${operation.op} ${operation.path}) failed: ${message}. Nothing was written.`,
-          true,
-        );
-      }
-      return saveSpec(directory, name, patched.document);
+      return withSpecLock(directory, name, async (write) => {
+        const text = await readSpecText(directory, name);
+        if (text === undefined) {
+          return textResult(
+            `Mockup "${name}" has no spec.json to patch. Call mockup_write_spec to create it.`,
+            true,
+          );
+        }
+        const current = parseSpecObject(text);
+        if (!current) {
+          return textResult(
+            `mockups/${name}/spec.json is not a JSON object, so it cannot be patched. Call mockup_write_spec to replace it.`,
+            true,
+          );
+        }
+        const patched = applyPatch(current, patch);
+        if (!patched.ok) {
+          const { index, message } = patched;
+          const operation = patch[index];
+          return textResult(
+            `Operation ${index} (${operation.op} ${operation.path}) failed: ${message}. Nothing was written.`,
+            true,
+          );
+        }
+        return reportWrite(await write(patched.document));
+      });
     }),
 });
