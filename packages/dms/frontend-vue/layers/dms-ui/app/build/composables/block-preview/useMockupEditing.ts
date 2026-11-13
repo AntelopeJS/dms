@@ -36,7 +36,7 @@ import {
   siblingsAt,
 } from "../../utils/mockupSpec";
 import type { MockupCatalog } from "./useMockupCatalog";
-import type { MockupSpecEditor } from "./useMockupSpec";
+import type { MockupAdoption, MockupSpecEditor } from "./useMockupSpec";
 
 /** A text of a block being edited in place, and the option it is. */
 export interface MockupInlineText {
@@ -90,6 +90,15 @@ export interface MockupEditing {
   commitText: (value: string) => void;
 }
 
+/** Whether `pointer` names the same node, by id and type, in the spec the editor dropped and in the one it took. */
+function isSameNode(adopted: MockupAdoption, pointer: string): boolean {
+  const before = adopted.previous && nodeAt(adopted.previous, pointer);
+  const after = nodeAt(adopted.next, pointer);
+  return (
+    !!before && !!after && before.id === after.id && before.type === after.type
+  );
+}
+
 /** Wires edit mode: every action becomes one reducer edit, whose result picks the selection. */
 export function useMockupEditing(options: EditingOptions): MockupEditing {
   const { editor, catalog } = options;
@@ -121,6 +130,12 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     if (address && address.page !== options.pageIndex.value) {
       selection.value = undefined;
     }
+  });
+  watch(editor.adoption, (adopted) => {
+    text.value = undefined;
+    const pointer = selection.value;
+    if (!adopted || !pointer) return;
+    if (!isSameNode(adopted, pointer)) selection.value = undefined;
   });
 
   function markMoved(): void {

@@ -348,3 +348,29 @@ describe("a write that fails", () => {
     expect(editor.hasFailed.value).toBe(false);
   });
 });
+
+describe("adopting a change from outside", () => {
+  it("reports the spec it dropped and the one it took, for a stream state and for a 409, and not for its own write (fails when an editing session cannot tell)", async () => {
+    await mountEditor();
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    await streamSaysTheFileChanged();
+    expect(editor.adoption.value).toBeUndefined();
+
+    const theirs = initialSpec();
+    theirs.title = "From the AI";
+    file.writeFromOutside(theirs);
+    await streamSaysTheFileChanged();
+    expect(titleOf(editor.adoption.value?.previous)).toBe("Mine");
+    expect(editor.adoption.value?.next).toEqual(theirs);
+
+    const first = editor.adoption.value;
+    const later = initialSpec();
+    later.title = "Again";
+    file.writeFromOutside(later);
+    retitle("Conflicting");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(editor.adoption.value).not.toBe(first);
+    expect(editor.adoption.value?.next).toEqual(later);
+  });
+});

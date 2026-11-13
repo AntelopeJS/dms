@@ -262,6 +262,36 @@ describe("edit mode", () => {
   });
 });
 
+const FONT = {
+  family: "Geist",
+  size: "14px",
+  weight: "600",
+  lineHeight: "20px",
+  letterSpacing: "normal",
+  color: "rgb(0, 0, 0)",
+  align: "start",
+};
+
+/** The file as the AI leaves it: a block of the same type above the two. */
+function withKpiAbove(): MockupSpecDocument {
+  const theirs = spec();
+  theirs.pages[0]?.tree.unshift({
+    id: "kpi-new",
+    type: "KpiCard",
+    options: { title: "New" },
+  });
+  return theirs;
+}
+
+async function theAIWrites(theirs: MockupSpecDocument): Promise<void> {
+  runtime.file.spec = theirs;
+  runtime.file.version += 1;
+  await viewer.publish(
+    "state",
+    mockupState({ revision: 50, pages: STATE.pages }),
+  );
+}
+
 describe("a write still pending", () => {
   it("ignores a click on the preview, whose paths are those of the spec before the edit (fails when the click selects the block that sat there)", async () => {
     await pick("block-0");
@@ -279,5 +309,52 @@ describe("a write still pending", () => {
     const field = find("[data-dms-mockup-field=title] input");
     expect(field).toBeInstanceOf(HTMLInputElement);
     expect((field as HTMLInputElement).value).toBe("Revenue");
+  });
+});
+
+describe("a change from outside while the editor is open", () => {
+  it("closes the text being edited in place without writing it (fails when the typed text lands on the AI's file)", async () => {
+    await viewer.say({
+      type: "text",
+      path: "block-1",
+      text: "Orders",
+      rect: { x: 8, y: 48, width: 120, height: 20 },
+      font: FONT,
+    });
+    const input = find("[data-dms-mockup-inline-text]");
+    if (!(input instanceof HTMLInputElement))
+      throw new Error("no inline input");
+    input.value = "Sales";
+    input.dispatchEvent(new Event("input"));
+
+    await theAIWrites(withKpiAbove());
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    await flush();
+
+    expect(find("[data-dms-mockup-inline-text]")).toBeNull();
+    await new Promise((resolve) =>
+      setTimeout(resolve, MOCKUP_WRITE_DELAY_MS + 50),
+    );
+    expect(runtime.file.spec).toEqual(withKpiAbove());
+  });
+
+  it("clears the selection when its pointer now names another node (fails when the editor stays on the block that moved away)", async () => {
+    await pick("block-0");
+    expect(find("[data-dms-mockup-field=title]")).not.toBeNull();
+
+    await theAIWrites(withKpiAbove());
+
+    expect(find("[data-dms-mockup-field=title]")).toBeNull();
+  });
+
+  it("keeps the selection when its pointer still names the same node (fails when every outside change drops the selection)", async () => {
+    await pick("block-0");
+    const theirs = spec();
+    const second = theirs.pages[0]?.tree[1];
+    if (second?.options) second.options.title = "Sales";
+
+    await theAIWrites(theirs);
+
+    expect(find("[data-dms-mockup-field=title]")).not.toBeNull();
   });
 });

@@ -48,6 +48,12 @@ export type MockupSpecNotice =
     }
   | { kind: "failed"; error: unknown };
 
+/** An outside change the editor took in place of the spec it held. */
+export interface MockupAdoption {
+  previous: MockupSpecDocument | undefined;
+  next: MockupSpecDocument;
+}
+
 interface MockupSpecOptions {
   name: string;
   authFetch: AuthFetch;
@@ -62,6 +68,8 @@ export interface MockupSpecEditor {
   spec: ComputedRef<MockupSpecDocument | undefined>;
   canUndo: ComputedRef<boolean>;
   canRedo: ComputedRef<boolean>;
+  /** The last change from outside the editor took over its own spec. */
+  adoption: Readonly<ShallowRef<MockupAdoption | undefined>>;
   /** Whether the last write failed and is being retried: true until one lands. */
   hasFailed: ComputedRef<boolean>;
   /**
@@ -154,6 +162,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   const endpoint = mockupEndpoint(options.name, "/spec");
   const history = shallowRef<MockupHistory<MockupSpecDocument>>();
   const written = shallowRef<MockupSpecDocument>();
+  const adoption = shallowRef<MockupAdoption>();
   const hasFailed = shallowRef(false);
   let digest: string | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -185,12 +194,15 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   }
 
   function adopt(source: SpecSource, isNews: boolean): void {
+    const previous = history.value?.present;
     stopTimers();
     landed();
     digest = source.digest;
     written.value = source.spec;
     history.value = reset(source.spec);
-    if (isNews) options.onNotice({ kind: "adopted" });
+    if (!isNews) return;
+    adoption.value = { previous, next: source.spec };
+    options.onNotice({ kind: "adopted" });
   }
 
   function isBusy(): boolean {
@@ -333,6 +345,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     spec: computed(() => history.value?.present),
     canUndo: computed(() => !!history.value?.past.length),
     canRedo: computed(() => !!history.value?.future.length),
+    adoption,
     hasFailed: computed(() => hasFailed.value),
     isPending: computed(
       () => !!history.value && history.value.present !== written.value,
