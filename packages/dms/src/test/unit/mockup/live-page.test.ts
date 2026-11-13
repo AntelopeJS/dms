@@ -192,6 +192,28 @@ describe("[unit] mockup of a live page, opened twice", () => {
     expect(await specText("books")).to.equal(saved);
   });
 
+  it("refuses to write over a mockup another writer creates under the free name while the page converts", async () => {
+    const withTable: BlockDraft[] = [
+      ...BLOCKS,
+      { name: "books", type: "TableView", controller: "book" },
+    ];
+    const handMade = JSON.stringify(HAND_MADE);
+    const pages = stubPages([structureOf("/books", withTable)]);
+    const creatingPages: LivePages = {
+      ...pages,
+      resourceStructure: async (ref) => {
+        await mkdir(join(mockupsDir, "books"), { recursive: true });
+        await writeFile(join(mockupsDir, "books", "spec.json"), handMade);
+        return pages.resourceStructure(ref);
+      },
+    };
+
+    const answer = await open({ pageRef: "/books" }, creatingPages);
+
+    expect(answer).to.deep.include({ ok: false, error: "conflict" });
+    expect(await specText("books")).to.equal(handMade);
+  });
+
   describe("after a hand edit that breaks the schema", () => {
     const name = mockupNameSchema.parse("books");
 
