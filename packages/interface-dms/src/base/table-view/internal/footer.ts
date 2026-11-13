@@ -39,27 +39,29 @@ function operandRules<T extends object>(
   return Array.isArray(operand) ? operand : [operand];
 }
 
-function assertSummary<T extends object>(
+function checkedSummary<T extends object>(
   controllerName: string,
   meta: TableViewMeta,
   summary: TableViewFooterSummary<T>,
-): void {
-  const where = `TableView footer summary "${summary.label}" on ${controllerName}`;
-  if (summary.op === "sum" && !summary.field) {
-    throw new Error(`${where} sums no field: give it a field`);
+): TableViewFooterSummary {
+  const { where, ...figure } = summary;
+  const subject = `TableView footer summary "${figure.label}" on ${controllerName}`;
+  if (figure.op === "sum" && !figure.field) {
+    throw new Error(`${subject} sums no field: give it a field`);
   }
-  if (summary.where) {
-    assertRowRule(summary.where, `${where} has a malformed rule`, "where");
+  if (where) {
+    assertRowRule(where, `${subject} has a malformed rule`, "where");
   }
   const fields = [
-    ...(summary.field ? [summary.field] : []),
-    ...(summary.where ? ruleFields(summary.where) : []),
+    ...(figure.field ? [figure.field] : []),
+    ...(where ? ruleFields(where) : []),
   ];
   for (const field of fields) {
     if (!meta.columns[field]) {
-      throw new Error(`${where} references unknown column "${field}"`);
+      throw new Error(`${subject} references unknown column "${field}"`);
     }
   }
+  return where ? { ...figure, where } : figure;
 }
 
 /**
@@ -86,11 +88,13 @@ export function serializeFooter<T extends object>(
     );
   }
   if (!summary) return texts;
-  for (const entry of summary) assertSummary(controllerName, meta, entry);
-  const ids = meta.registerFooterSummaries(summary);
+  const checked = summary.map((entry) =>
+    checkedSummary(controllerName, meta, entry),
+  );
+  const ids = meta.registerFooterSummaries(checked);
   return {
     ...texts,
-    summary: summary.map(({ where: _where, ...entry }, index) => ({
+    summary: checked.map(({ where: _where, ...entry }, index) => ({
       ...entry,
       id: ids[index],
     })),

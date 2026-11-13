@@ -2,6 +2,33 @@
 
 Each section is the upgrade-notes block of one `@antelopejs/interface-dms` release. Paste it into the GitHub release body and under the release's heading in `CHANGELOG.md`. The changelog generator writes only commit subjects.
 
+## Unreleased
+
+Each type below said something the runtime does not do, and now says what it does. HTTP routes, their answers and stored rows are unchanged.
+
+### Table views
+
+- **The table-view data functions take the data controller instance.** `listWithSearch`, `countWithSearch`, `summarizeWithSearch`, `startExport`, `getExportStatus`, `downloadExport`, `validateRowsAgainstRule`, `fetchRowForGuard`, and `archiveRows` and `restoreRows` through `RowBulkOperationParams`, typed their first parameter `DataControllerCallback | DataControllerCallbackWithOptions`, a route descriptor. The runtime reads the controller instance the route runs on, which is what every route passes as `this`. The parameter is now `DataControllerInstance` (`object`). A call that passes a controller instance, such as the one `GetControllerInstance` answers, compiles without a cast, where it failed with TS2345. Code that assigns the parameter type to the old union (`const route: DataControllerCallback | DataControllerCallbackWithOptions = receiver`, with `receiver` typed `Parameters<typeof countWithSearch>[0]`) fails with TS2322: type it `DataControllerInstance`. Reading a route member off the parameter type (`.method`, `.func`) failed with TS2339 before and still does.
+- **`TableViewRoutes.ExportRoutes` is typed by its routes.** It was declared `Record<string, DataControllerCallback | DataControllerCallbackWithOptions>`, which hid its keys. It is now the object of its three routes, `exportStart`, `exportStatus` and `exportDownload`, each typed by its arguments and answer, and `TableViewRoutes.All` carries them. A data controller built from `TableViewRoutes.All` or `...TableViewRoutes.ExportRoutes` now has these three members, where reading one failed with TS2339. These stop compiling: indexing `ExportRoutes` with another key (`ExportRoutes["exportCancel"]`, TS7053), assigning a `Record<string, DataControllerCallback>` to `typeof TableViewRoutes.ExportRoutes` (TS2739), and a subclass of such a controller that declares its own `exportStart`, `exportStatus` or `exportDownload` of another type (TS2416) or as a method (TS2425). Rename that member, or build the controller from the routes it keeps.
+- **`TableViewMeta.footerSummary(id)` answers `TableViewFooterSummary | undefined`** instead of `TableViewFooterSummary<any> | undefined`: the summary as `TableView` checked it when it was declared, its `where` rule decoded. `registerFooterSummaries` takes those checked summaries, `TableViewFooterSummary[]`, and no type argument. These stop compiling: assigning `footerSummary(id)` to a `TableViewFooterSummary<Row>` (TS2322), `registerFooterSummaries<Row>(summaries)` (TS2558), and passing `registerFooterSummaries` the summaries of a row type, concrete or generic (TS2345), because a row rule over `Row` is not a row rule over `Record<string, unknown>`. Read the summary as `TableViewFooterSummary`, and declare summaries in a table view's `footer.summary`, which registers them. Summaries compute and answer as before.
+
+### Export jobs
+
+- **`ExportJobGenerateContext.context` is `TContext | undefined`.** It was `TContext`, while `RunExportJobOptions.context` is optional: a job started without a context handed `generate` `undefined`. A generator that reads its context without a check fails with TS18048 (`'context' is possibly 'undefined'`). Check it, or read the value you passed as `context` from the enclosing scope.
+- **An `isOwnedBy` check comes with the schema its context is read back through.** `ExportJobOwnership<TContext>` is now either an `ExportJobContextCheck<TContext>`, the pair `contextSchema` (a zod `ZodType<TContext, ZodTypeDef, unknown>`) and `isOwnedBy`, or neither of them. `ExportJobAccessOptions<TContext>` is that plus `scope`. Both are type aliases instead of interfaces. Before, `isOwnedBy` received the stored JSON typed as `TContext` without a check: a `Date` came back as a string, and a job started without a context as `null`. Now the stored JSON goes through `contextSchema` first, and a context the schema refuses answers 403 without calling `isOwnedBy`. These stop compiling: access options or an `ExportJobOwnership` value that set `isOwnedBy` alone (TS2345 as an argument, TS2322 as a typed value), and an `interface` that extends `ExportJobAccessOptions` (TS2312: use an intersection type). Options that set only `scope` compile and behave as before. The `@internal` proxies `getExportJobStatusProxy` and `downloadExportJobProxy` receive the pair folded into one `isOwnedBy(record, user)`.
+
+  ```ts
+  // Before
+  getExportJobStatus<{ year: number }>(ctx, user, jobId, {
+    isOwnedBy: (_record, context) => context.year === 2026,
+  });
+  // After
+  getExportJobStatus(ctx, user, jobId, {
+    contextSchema: z.object({ year: z.number() }),
+    isOwnedBy: (_record, context) => context.year === 2026,
+  });
+  ```
+
 ## v0.12.0
 
 ### Hooks

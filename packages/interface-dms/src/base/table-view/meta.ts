@@ -454,11 +454,11 @@ export class TableViewMeta {
     this.groups[id] = config;
   }
 
-  private readonly footerSummaries: TableViewFooterSummary<any>[] = [];
+  private readonly footerSummaries: TableViewFooterSummary[] = [];
 
   /** Records footer summaries; the ids the `summary` route knows them by. */
-  public registerFooterSummaries<T extends object>(
-    summaries: TableViewFooterSummary<T>[],
+  public registerFooterSummaries(
+    summaries: TableViewFooterSummary[],
   ): string[] {
     return summaries.map((summary) => {
       this.footerSummaries.push(summary);
@@ -467,7 +467,7 @@ export class TableViewMeta {
   }
 
   /** A footer summary by the id `registerFooterSummaries` gave it. */
-  public footerSummary(id: string): TableViewFooterSummary<any> | undefined {
+  public footerSummary(id: string): TableViewFooterSummary | undefined {
     return FOOTER_SUMMARY_ID.test(id)
       ? this.footerSummaries[Number(id)]
       : undefined;

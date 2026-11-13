@@ -27,19 +27,13 @@ interface CascaderProps {
   searchUrl: string;
   keyMapping?: Partial<CascaderKeyMapping>;
   modelValue?: string | string[] | null;
-  initialValue?: unknown;
   multiple?: boolean;
   deselectable?: boolean;
   leafOnly?: boolean;
   maxDepth?: number;
   placeholder?: string;
-  fallback?: string;
   disabled?: boolean;
-  loading?: boolean;
   id?: string;
-  componentId?: string;
-  pageId?: string;
-  routeParams?: Record<string, string>;
 }
 
 const props = withDefaults(defineProps<CascaderProps>(), {

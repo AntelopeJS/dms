@@ -11,10 +11,10 @@ import { ExportStatus } from "@antelopejs/interface-dms/base/types";
 import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import type { ExportJob } from "@antelopejs/interface-dms/db/tables/exportJobs.table";
 import type {
-  ExportJobAccessOptions,
   ExportJobStatus,
   ExportJobSummary,
   ExportJobTicket,
+  getExportJobStatusProxy,
   ListExportJobsOptions,
   RunExportJobOptions,
 } from "@antelopejs/interface-dms/base/export-jobs";
@@ -46,33 +46,29 @@ const DEFAULT_MAX_EXECUTION_TIME_MS = 10 * 60 * 1000;
 const MIN_PROGRESS = 0;
 const MAX_IN_PROGRESS = 99;
 
-interface LoadedExportJob<TContext> {
+/**
+ * The access checks of a status or download call, the caller's own check
+ * already folded into one on the context as the job stored it.
+ */
+export type ExportJobAccess = Parameters<typeof getExportJobStatusProxy>[3];
+
+interface LoadedExportJob {
   model: ExportJobModel;
   record: ExportJob;
-  context: TContext;
 }
 
-function assertOwnership<TContext>(
+function assertOwnership(
   record: ExportJob,
   user: User,
-  access?: ExportJobAccessOptions<TContext>,
-): TContext {
+  access: ExportJobAccess,
+): void {
   assert(record.userId === user._id, 403, "Export not accessible");
   if (access?.scope !== undefined) {
     assert(record.scope === access.scope, 403, "Export not accessible");
   }
-  // oxlint-disable-next-line typescript/no-unsafe-assignment -- exportJobs.json_context is a stored column whose only writer is ExportJobModel.createNewJob, JSON.stringify of the context runExportJob passes, and stored rows are never parsed on read.
-  const context: TContext = record.json_context
-    ? JSON.parse(record.json_context)
-    : null;
   if (access?.isOwnedBy) {
-    assert(
-      access.isOwnedBy(record, context, user),
-      403,
-      "Export not accessible",
-    );
+    assert(access.isOwnedBy(record, user), 403, "Export not accessible");
   }
-  return context;
 }
 
 interface ProcessedExportJob {
@@ -100,7 +96,7 @@ async function deliverExportJob(
 async function processExportJob<TContext>(
   model: ExportJobModel,
   job: ProcessedExportJob,
-  context: TContext,
+  context: TContext | undefined,
   generate: RunExportJobOptions<TContext>["generate"],
 ): Promise<void> {
   const localPath = getExportLocalScratchPath(job.jobId, job.extension);
@@ -212,8 +208,7 @@ export async function runExportJob<TContext = unknown>(
       maxExecutionTimeMs:
         opts.maxExecutionTimeMs ?? DEFAULT_MAX_EXECUTION_TIME_MS,
     },
-    // SAFETY: Bug in the published contract: RunExportJobOptions makes context optional while ExportJobGenerateContext promises a TContext. The value is a TContext exactly when the caller passed context or TContext admits undefined, as the default unknown does; otherwise generate receives undefined typed as a TContext.
-    opts.context as TContext,
+    opts.context,
     opts.generate,
   ).catch((error: unknown) => {
     Logging.Error(`Export job ${jobId} failed:`, error);
@@ -222,19 +217,19 @@ export async function runExportJob<TContext = unknown>(
   return { jobId, extension: opts.extension, filename: opts.filename };
 }
 
-export async function loadExportJobForUser<TContext>(
+export async function loadExportJobForUser(
   ctx: RequestContext,
   user: User,
   jobId: string,
-  access?: ExportJobAccessOptions<TContext>,
-): Promise<LoadedExportJob<TContext>> {
+  access?: ExportJobAccess,
+): Promise<LoadedExportJob> {
   assert(user, 401, "Authentication required");
   const tenantId = getRequestTenantId(ctx);
   const model = GetModel(ExportJobModel, tenantId);
   const record = await model.get(jobId);
   assert(record, 404, "Export not found");
-  const context = assertOwnership(record, user, access);
-  return { model, record, context };
+  assertOwnership(record, user, access);
+  return { model, record };
 }
 
 /** Moment the stale export sweep drops the record and its stored file. */
@@ -254,11 +249,11 @@ function toExportJobStatus(record: ExportJob): ExportJobStatus {
   };
 }
 
-export async function getExportJobStatus<TContext = unknown>(
+export async function getExportJobStatus(
   ctx: RequestContext,
   user: User,
   jobId: string,
-  access?: ExportJobAccessOptions<TContext>,
+  access?: ExportJobAccess,
 ): Promise<ExportJobStatus> {
   const { record } = await loadExportJobForUser(ctx, user, jobId, access);
   return toExportJobStatus(record);
@@ -297,11 +292,11 @@ export async function listExportJobs(
  * the stream's `close` event, covering both successful delivery and errors,
  * unless the job is retained until expiry.
  */
-export async function downloadExportJob<TContext = unknown>(
+export async function downloadExportJob(
   ctx: RequestContext,
   user: User,
   jobId: string,
-  access?: ExportJobAccessOptions<TContext>,
+  access?: ExportJobAccess,
 ): Promise<void> {
   const { model, record } = await loadExportJobForUser(
     ctx,

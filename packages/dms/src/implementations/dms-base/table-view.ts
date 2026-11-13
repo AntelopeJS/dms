@@ -18,11 +18,12 @@ import type {
 import type { Stream, ValueProxy } from "@antelopejs/interface-database";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DEFAULT_ROW_ID_FIELD } from "@antelopejs/interface-dms/base/table-view";
+import { readExportJobContext } from "@antelopejs/interface-dms/base/internal/export-jobs";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import {
   DEFAULT_EXPORT_FORMAT,
   downloadExportJob,
-  type ExportJobAccessOptions,
+  type ExportJobAccess,
   type ExportWriter,
   getExporter,
   getExportJobStatus,
@@ -41,15 +42,16 @@ import {
 } from "./search-route";
 import { fetchRowForGuard as fetchRowForGuardHelper } from "../../db";
 import { isNumber } from "@antelopejs/interface-dms/utils/internal/type-check";
+import { z } from "zod";
 
 /** Rows read from the database per export page. */
 export const EXPORT_BATCH_SIZE = 100;
 
 const TABLE_VIEW_EXPORT_SCOPE = "table-view";
 
-interface TableViewExportContext {
-  controllerKey: string;
-}
+const TableViewExportContextSchema = z.object({ controllerKey: z.string() });
+
+type TableViewExportContext = z.infer<typeof TableViewExportContextSchema>;
 
 /** One page of rows on its way to the export writer. */
 interface ExportBatch {
@@ -179,11 +181,13 @@ function getControllerKey(controller: DataControllerInstance): string {
 
 function buildTableViewAccessForController(
   controller: DataControllerInstance,
-): ExportJobAccessOptions<TableViewExportContext> {
+): ExportJobAccess {
   const controllerKey = getControllerKey(controller);
   return {
     scope: TABLE_VIEW_EXPORT_SCOPE,
-    isOwnedBy: (_record, context) => context?.controllerKey === controllerKey,
+    isOwnedBy: (record) =>
+      readExportJobContext(record, TableViewExportContextSchema).data
+        ?.controllerKey === controllerKey,
   };
 }
 
