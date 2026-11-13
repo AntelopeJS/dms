@@ -33,7 +33,7 @@ const TIMESTAMP_LENGTH = 15;
  * @typedef {{ name: string, pid: number, startTime?: number | null, command: string, cwd: string, log: string, startedAt: string, port?: number, mode?: BackendMode }} ProcessRecord A process the run started. `startTime` is when the kernel started it, in clock ticks since boot: `null` where /proc could not tell, absent in a record an earlier dms-control wrote. Without it, `startedAt` tells the process apart. `mode` is a backend's, absent for production.
  * @typedef {ProcessRecord & { port: number }} ServerRecord
  * @typedef {ServerRecord & { database: string }} BackendRecord A backend the run started, with the database it serves
- * @typedef {"production" | "dev"} BackendMode How a backend runs: `production` runs `ajs project start` on the build, `dev` runs `ajs project dev`, the runtime's development mode, which serves what only development serves. A run or a record without one runs production.
+ * @typedef {"production" | "dev" | "watch"} BackendMode How a backend runs: `production` runs `ajs project start` on the build, `dev` runs `ajs project dev`, the runtime's development mode, which serves what only development serves, and `watch` runs `ajs project dev -w`, which also reloads a local module when its source changes. A run or a record without one runs production.
  * @typedef {{ email: string, password: string, userId?: string | null }} Account
  * @typedef {{ dir: string, root: string, home: string, logs: string, mongo: string, browser?: ServerRecord, evidence: string, cache: string, id: string, createdAt: string, environment: string, playground: string, moduleRoot: string, repo: string | null, headSha: string | null, renderer?: string, baseRef: string, skill: string | null, apiPort: number, webPort: number, smtpPort: number, mail: string, apiUrl: string, webUrl: string, databasePrefix: string, database: string, mongoUrl: string, ownsMongo: boolean, secrets: Record<string, string>, adminPassword: string, extraEnv: Record<string, string>, processes: ProcessRecord[], namespaces?: import("./identity.mjs").Namespaces, noStandby?: boolean, frontendMode?: FrontendMode, backendMode?: BackendMode, buildRoots?: string[], accounts: Record<string, Account>, tokens: Record<string, string>, ready: boolean, error?: string, runPlayground?: string, baseRoot?: string, resetCount?: number, journeyCount?: number, frontendBuild?: FrontendBuild, bakedEnv?: Record<string, string> }} RunState
  * @typedef {"build" | "dev"} FrontendMode How the run serves its dashboard: `build` runs `ajs dms build` then `ajs dms start`, `dev` runs `ajs dms dev` on the sources. A run without one serves a build.
@@ -129,7 +129,7 @@ const PROCESS_FIELDS = {
 const START_TIME = { startTime: nullable(isNumber) };
 
 /** Whether a value names a backend mode. */
-export const isBackendMode = oneOf(["production", "dev"]);
+export const isBackendMode = oneOf(["production", "dev", "watch"]);
 
 const isProcessRecord = objectOf(PROCESS_FIELDS, {
   port: isNumber,

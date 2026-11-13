@@ -1,11 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { fieldOf, isRecord, itemsOf, parseJson, textOf, toolText, withBridge } from "../mcp-bridge.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
- * @typedef {{ ref: string, id: string, filepath: string }} ListedPage
+ * @typedef {{ ref: string, id: string, filepath: string, category: string }} ListedPage
  */
 
 /**
@@ -18,6 +20,7 @@ async function listedPages(session) {
     ref: textOf(fieldOf(page, "ref")),
     id: textOf(fieldOf(page, "id")),
     filepath: textOf(fieldOf(page, "filepath")),
+    category: textOf(fieldOf(page, "category")),
   }));
 }
 
@@ -28,6 +31,31 @@ async function listedPages(session) {
 function required(page) {
   if (page === undefined) throw new Error("the builder lists no page");
   return page;
+}
+
+const RELOAD_TIMEOUT_MS = 180_000;
+const OWN_RELOAD_TIMEOUT_MS = 30_000;
+const RELOAD_POLL_MS = 1_000;
+
+/**
+ * Polls `list_pages`, which reads the runtime's page registry and not the
+ * builder, until the page at `route` is registered or not, as `registered`
+ * asks. Only a reload of the module that declares it changes that.
+ *
+ * @param {import("../mcp-bridge.mjs").Session} session
+ * @param {string} route The page's route
+ * @param {boolean} registered Whether to wait for it to be registered or to be gone
+ * @param {number} [timeoutMs] How long to wait
+ * @returns {Promise<boolean>} Whether the registry reached that state in time
+ */
+async function untilRegistered(session, route, registered, timeoutMs = RELOAD_TIMEOUT_MS) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const pages = itemsOf(parseJson(toolText(await session.call("list_pages")).text));
+    if (pages.some((page) => fieldOf(page, "path") === route) === registered) return true;
+    await sleep(RELOAD_POLL_MS);
+  }
+  return false;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -226,6 +254,40 @@ export const journeys = [
         ctx.equal("the previous value is 260 + 180 + 90", [fieldOf(compared.body, "previousValue"), seriesTotal(compared.body, "comparisonSeries")], [530, 530]),
         ctx.holds("the delta is the change in percent", Math.abs(Number(fieldOf(compared.body, "delta")) - 33.0189) < 0.001, JSON.stringify(compared.body).slice(0, 400)),
       ]);
+    },
+  },
+  {
+    id: "builder-survives-the-reload-its-write-triggers",
+    title: "under ajs project dev -w, the page builder_create_page writes reloads the playground, and builder_delete_page still reaches the builder after that reload",
+    entryPoint: "MCP tools builder_create_page, list_pages, builder_delete_page",
+    backend: "watch",
+    async run(/** @type {Ctx} */ ctx) {
+      await withBridge(ctx, async (session) => {
+        const name = `reload-${randomBytes(4).toString("hex")}`;
+        const { category } = required((await listedPages(session))[0]);
+        const created = toolText(await session.call("builder_create_page", { name, displayName: "Reload probe", category }));
+        const written = fieldOf(parseJson(created.text), "data");
+        const route = textOf(fieldOf(written, "ref"));
+        await ctx.verify("the first write creates the page", [
+          ctx.equal("the tool reports no failure", created.isError, false),
+          ctx.holds("the builder names the new page", route !== "", created.text.slice(0, 300)),
+        ], { critical: true });
+        const reloaded = await untilRegistered(session, route, true, OWN_RELOAD_TIMEOUT_MS);
+        if (!reloaded) appendFileSync(textOf(fieldOf(written, "filepath")), "\n");
+        const registered = reloaded || (await untilRegistered(session, route, true));
+        await ctx.verify("the reload the write triggers registers the page", [
+          ctx.holds("list_pages serves the new page", registered, reloaded ? route : `${route}, after the page file was saved again: the write's own reload did not register it in ${OWN_RELOAD_TIMEOUT_MS} ms`),
+        ], { critical: true });
+        await session.call("builder_delete_page", { pageRef: route });
+        const deleted = toolText(await session.call("builder_delete_page", { pageRef: route }));
+        await ctx.verify("the second write, after the reload, still reaches the builder", [
+          ctx.equal("the tool reports no failure", deleted.isError, false),
+          ctx.holds("the builder interface has its provider", !deleted.text.includes("has no provider"), deleted.text.slice(0, 300)),
+        ], { critical: true });
+        await ctx.verify("the reload the delete triggers unregisters the page", [
+          ctx.holds("list_pages no longer serves it", await untilRegistered(session, route, false), route),
+        ]);
+      });
     },
   },
 ];

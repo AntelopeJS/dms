@@ -243,19 +243,20 @@ export function runBackendMode(state) {
 }
 
 /**
- * The `ajs` arguments that start a backend in `mode`: `project start` on the
- * build, or `project dev` without watching, which resolves
- * `antelope.config.ts` and loads the same module builds in the runtime's
- * development mode, without the module-set check of `--refresh-config`.
+ * The `ajs` arguments that start a backend in each mode: `project start` on
+ * the build, `project dev`, which resolves `antelope.config.ts` and loads the
+ * same module builds in the runtime's development mode, without the
+ * module-set check of `--refresh-config`, and `project dev -w`, which also
+ * rebuilds and reloads a local module when a file of its watched folders
+ * changes, as a developer's `pnpm dev` does.
  *
- * @param {BackendMode} mode How it runs
- * @returns {string[]} The arguments after the `ajs` script
+ * @type {Readonly<Record<BackendMode, readonly string[]>>}
  */
-function backendArgs(mode) {
-  return mode === "dev"
-    ? ["project", "dev", "-e", ENVIRONMENT]
-    : ["project", "start", "-e", ENVIRONMENT, "--refresh-config"];
-}
+const BACKEND_ARGS = {
+  production: ["project", "start", "-e", ENVIRONMENT, "--refresh-config"],
+  dev: ["project", "dev", "-e", ENVIRONMENT],
+  watch: ["project", "dev", "-w", "-e", ENVIRONMENT],
+};
 
 /**
  * Starts a backend of the run on `database` and a free loopback port of its
@@ -282,7 +283,7 @@ export async function launchBackend(
     state,
     `backend${database.slice(state.databasePrefix.length)}`,
     ajs,
-    backendArgs(mode),
+    [...BACKEND_ARGS[mode]],
     build?.cwd,
   );
   launch.env = { ...launch.env, PORT: String(port), MONGO_DATABASE: database };
