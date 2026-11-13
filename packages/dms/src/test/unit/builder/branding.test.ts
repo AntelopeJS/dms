@@ -70,7 +70,7 @@ describe("[unit] branding", function () {
   describe("on a production start", () => {
     it("serves no route and no page even with builder.enabled set, so a deployed platform has no editor", async () => {
       setBuilderConfig({ ...getBuilderConfig(), enabled: true });
-      await startBuilder(false);
+      await startBuilder(false, "default");
       expect(brandingRouteIds()).to.deep.equal([]);
       expect(GetPageLayoutBySlug(PAGE_SLUG)).to.equal(undefined);
       expect((await anonymous.get(THEME)).status).to.equal(404);
@@ -80,7 +80,7 @@ describe("[unit] branding", function () {
 
   describe("on a development start", () => {
     before(async () => {
-      await startBuilder(true);
+      await startBuilder(true, "default");
     });
 
     after(() => {

@@ -61,6 +61,7 @@ import type {
   ThemeStructure,
 } from "@antelopejs/interface-dms-builder";
 import { analysisState, startAnalysis } from "./engine/analysis-job";
+import { resolveConnectionAccess } from "./engine/connection-access-config";
 import { mapResources, previewMapResources } from "./engine/map-resources";
 import { mappedChoices } from "./engine/mapped-choices";
 import { configureProject } from "./engine/project-config-ops";
@@ -205,6 +206,7 @@ export async function AddBlock(
   input: AddBlockInput,
   opts?: MutationOpts,
 ): Promise<OpResult<{ path: BlockPath }>> {
+  await resolveConnectionAccess();
   return addBlock(input, opts);
 }
 
@@ -213,6 +215,7 @@ export async function ConfigureBlock(
   patch: Parameters<typeof ConfigureBlockContract>[1],
   opts?: ConfigureBlockOpts,
 ): Promise<OpResult> {
+  await resolveConnectionAccess();
   return configureBlock(path, patch, opts);
 }
 
@@ -234,12 +237,14 @@ export async function RemoveBlock(
 export async function MapResources(
   input: MapResourcesInput,
 ): Promise<OpResult<MapResourcesResult>> {
+  await resolveConnectionAccess();
   return mapResources(input);
 }
 
 export async function PreviewMapResources(
   input: MapResourcesInput,
 ): Promise<OpResult<MapResourcesPreview>> {
+  await resolveConnectionAccess();
   return previewMapResources(input);
 }
 
@@ -317,6 +322,7 @@ export async function ConfigureResource(
   patch: EditableResourceMeta,
   opts?: MutationOpts,
 ): Promise<OpResult> {
+  await resolveConnectionAccess();
   return configureResource(ref, patch, opts);
 }
 
@@ -393,6 +399,7 @@ export async function ComposePage(
   input: ComposePageInput,
   opts?: MutationOpts,
 ): Promise<OpResult<ComposePageData>> {
+  await resolveConnectionAccess();
   return composePage(input, opts);
 }
 

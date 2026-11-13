@@ -209,20 +209,20 @@ function controllerRecords(node: Node | undefined): ResourceRecord[] {
   if (!Node.isIdentifier(node)) {
     return [];
   }
-  const name = node.getText();
-  const target = node
+  const local = node.getText();
+  const specifier = node
     .getSourceFile()
     .getImportDeclarations()
-    .find((declaration) =>
-      declaration
-        .getNamedImports()
-        .some(
-          (specifier) =>
-            (specifier.getAliasNode() ?? specifier.getNameNode()).getText() ===
-            name,
-        ),
-    )
-    ?.getModuleSpecifierSourceFile()
+    .flatMap((declaration) => declaration.getNamedImports())
+    .find(
+      (candidate) =>
+        (candidate.getAliasNode() ?? candidate.getNameNode()).getText() ===
+        local,
+    );
+  const name = specifier?.getNameNode().getText() ?? local;
+  const target = specifier
+    ?.getImportDeclaration()
+    .getModuleSpecifierSourceFile()
     ?.getFilePath();
   const named = listResourceRecords().filter(
     (record) => record.apiName === name,
