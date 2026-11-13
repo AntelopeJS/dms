@@ -1,3 +1,4 @@
+/** @internal */
 import type { SafeParseReturnType, ZodType, ZodTypeDef } from "zod";
 import type { ExportJob } from "../../db/tables/exportJobs.table";
 
