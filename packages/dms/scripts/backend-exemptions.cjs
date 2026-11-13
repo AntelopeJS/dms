@@ -1,5 +1,5 @@
 const constructorExemptions = {
-  "implementations/dms-base/search-route.ts:402":
+  "implementations/dms-base/search-route.ts:405":
     "      const entryInstance = model.constructor.fromDatabase(entry);",
   "implementations/dms-base/table-view.ts:75":
     "      const stored = model.constructor.fromDatabase(entry);",
