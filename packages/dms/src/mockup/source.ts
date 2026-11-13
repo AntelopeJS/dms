@@ -79,7 +79,7 @@ export async function readSpecSource(
 }
 
 /** Writes `spec` as {@link writeSpec} does, inside {@link withSpecLock}. */
-export type SpecWriter = (spec: Json) => Promise<SpecWriteResult>;
+export type SpecWriter = (spec: Json | MockupSpec) => Promise<SpecWriteResult>;
 
 const writeTails = new Map<string, Promise<void>>();
 

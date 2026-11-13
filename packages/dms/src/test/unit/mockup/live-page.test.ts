@@ -157,6 +157,41 @@ describe("[unit] mockup of a live page, opened twice", () => {
     expect(await specText("books")).to.equal(before);
   });
 
+  it("refuses a replace when the editor saves the spec while the page converts, keeping that save", async () => {
+    const withTable: BlockDraft[] = [
+      ...BLOCKS,
+      { name: "books", type: "TableView", controller: "book" },
+    ];
+    await open(
+      { pageRef: "/books" },
+      stubPages([structureOf("/books", withTable)]),
+    );
+    const name = mockupNameSchema.parse("books");
+    const read = await readSpecSource(mockupsDir, name);
+    const saved = JSON.stringify({
+      ...(await specOf("books")),
+      title: "Saved",
+    });
+    const pages = stubPages([
+      structureOf("/books", withTable, "fedcba9876543210"),
+    ]);
+    const savingPages: LivePages = {
+      ...pages,
+      resourceStructure: async (ref) => {
+        await writeFile(join(mockupsDir, "books", "spec.json"), saved);
+        return pages.resourceStructure(ref);
+      },
+    };
+
+    const answer = await open({ pageRef: "/books" }, savingPages, {
+      replace: true,
+      digest: read?.digest,
+    });
+
+    expect(answer).to.deep.include({ ok: false, error: "conflict" });
+    expect(await specText("books")).to.equal(saved);
+  });
+
   describe("after a hand edit that breaks the schema", () => {
     const name = mockupNameSchema.parse("books");
 

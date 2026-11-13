@@ -24,7 +24,7 @@ import type {
   MockupSpecPage,
 } from "./model";
 import { parseMockupName, specSchema } from "./model";
-import { readSpecSource, type SpecDigest, writeSpec } from "./source";
+import { readSpecSource, type SpecDigest, withSpecLock } from "./source";
 
 export interface LivePages {
   listPages(): Promise<readonly PageSummary[]>;
@@ -338,7 +338,14 @@ async function convertLivePage(
     resources,
   });
   const spec = specWith(replaced, structure, converted.page);
-  const written = await writeSpec(mockupsDir, slot.name, spec);
+  const read = slot.kind === "linked" ? slot.digest : undefined;
+  const written = await withSpecLock(mockupsDir, slot.name, async (write) => {
+    const current = await readSpecSource(mockupsDir, slot.name);
+    return current?.digest === read ? write(spec) : undefined;
+  });
+  if (!written) {
+    return failure("conflict", "spec.json changed since it was read");
+  }
   if (!written.ok) {
     return failure("invalid", "the converted spec has issues", written.errors);
   }
