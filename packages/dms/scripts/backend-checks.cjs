@@ -12,6 +12,7 @@ const {
   constructorExemptions,
   builtinExemptions,
   requireResolveExemptions,
+  loaderExemptions,
 } = require("./backend-exemptions.cjs");
 
 const root = nodePath.resolve(__dirname, "..");
@@ -331,6 +332,56 @@ function pinnedRequireResolve(node, source, path) {
 }
 
 /**
+ * @param {string} name
+ * @returns {boolean}
+ */
+function sensitiveName(name) {
+  return [
+    "require",
+    "createRequire",
+    "mainModule",
+    "eval",
+    "Function",
+  ].includes(name);
+}
+/**
+ * @param {ts.Node} node
+ * @returns {boolean}
+ */
+function computedReceiver(node) {
+  while (
+    ts.isParenthesizedExpression(node) ||
+    ts.isAsExpression(node) ||
+    ts.isSatisfiesExpression(node) ||
+    ts.isNonNullExpression(node) ||
+    ts.isTypeAssertionExpression(node)
+  )
+    node = node.expression;
+  return (
+    ts.isIdentifier(node) &&
+    ["module", "process", "globalThis", "global"].includes(node.text)
+  );
+}
+/**
+ * @param {ts.Identifier} node
+ * @param {ts.SourceFile} source
+ * @param {string} path
+ * @returns {boolean}
+ */
+function pinnedLoader(node, source, path) {
+  const line =
+    source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+  const location = `${nodePath.relative(root, path).split(sep).join("/")}:${line}`;
+  if (!Object.hasOwn(loaderExemptions, location)) return false;
+  assert.equal(
+    source.text.split(/\r?\n/)[line - 1],
+    loaderExemptions[location],
+    `${location} loader exemption moved or changed`,
+  );
+  return true;
+}
+
+/**
  * @param {ts.SourceFile} source
  * @param {string} path
  * @param {string} boundary
@@ -376,40 +427,13 @@ function checkSource(source, path, boundary, compiled) {
       )
     );
   }
-  /**
-   * @param {string} name
-   * @returns {boolean}
-   */
-  function sensitiveName(name) {
-    return [
-      "require",
-      "createRequire",
-      "mainModule",
-      "eval",
-      "Function",
-    ].includes(name);
-  }
-  /**
-   * @param {ts.Node} node
-   * @returns {boolean}
-   */
-  function computedReceiver(node) {
-    while (
-      ts.isParenthesizedExpression(node) ||
-      ts.isAsExpression(node) ||
-      ts.isSatisfiesExpression(node) ||
-      ts.isNonNullExpression(node) ||
-      ts.isTypeAssertionExpression(node)
-    )
-      node = node.expression;
-    return (
-      ts.isIdentifier(node) &&
-      ["module", "process", "globalThis", "global"].includes(node.text)
-    );
-  }
   /** @param {ts.Identifier} node */
   function checkIdentifier(node) {
-    if (node.text === "require" && !pinnedRequireResolve(node, source, path)) {
+    if (
+      node.text === "require" &&
+      !pinnedRequireResolve(node, source, path) &&
+      !pinnedLoader(node, source, path)
+    ) {
       assert.ok(
         ts.isCallExpression(node.parent) &&
           node.parent.expression === node &&
@@ -422,7 +446,8 @@ function checkSource(source, path, boundary, compiled) {
       !["createRequire", "mainModule", "eval", "Function"].includes(
         node.text,
       ) ||
-        (node.text === "Function" && metadataType(node)),
+        (node.text === "Function" && metadataType(node)) ||
+        (node.text === "createRequire" && pinnedLoader(node, source, path)),
       `${path} loader construction or dynamic evaluation is forbidden: ${node.text}`,
     );
   }

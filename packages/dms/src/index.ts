@@ -25,6 +25,7 @@ import {
   registerAutomationNodes,
   unregisterAutomationNodes,
 } from "./automation";
+import { startBuilder } from "./builder";
 import {
   applyConfig,
   type Config,
@@ -106,11 +107,14 @@ export async function construct(config: Config): Promise<void> {
   registerWorkspaceNotifications();
 
   await implementInterfaces();
+  await startBuilder(dev);
   await registerDmsFrontend(dev);
 
   if (isDocsPreviewEnabled(dev)) {
     registerDocsPreviewPage();
   }
+
+  await (await import("./mcp")).startMcp(dev);
 }
 
 async function setupFrontendBootstrap(dev: boolean): Promise<void> {
