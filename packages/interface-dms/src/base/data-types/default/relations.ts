@@ -61,7 +61,6 @@ export class RelationType<T extends ControllerClass> extends DataType {
         avatar?: keyof InstanceType<T> & string;
         disabled?: keyof InstanceType<T> & string;
       };
-      fallback?: string;
       /**
        * Use the relation purely as a native FILTER, without resolving the
        * related row into the `/list` output.
