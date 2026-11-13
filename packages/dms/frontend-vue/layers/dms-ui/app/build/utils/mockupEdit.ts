@@ -73,6 +73,8 @@ const PAGE_ID_FALLBACK = "page";
 /** Leaves room for a `-<n>` suffix under the 64 characters a page id has. */
 const PAGE_ID_MAX_BASE = 60;
 const ID_SUFFIX = /-\d+$/;
+/** The id the backend stamps on a block a note is on: a copy keeps none. */
+const STAMPED_ID = /^b-[a-z0-9]{8}$/;
 
 function updateList(
   list: MockupSpecNode[],
@@ -288,6 +290,15 @@ function moveNode(
   return insertNode(removed, from.address.page, target, edit.index, from.node);
 }
 
+/** `node` and its children without the ids the backend stamped, so their notes stay on the original. */
+function withoutStamps(node: MockupSpecNode): MockupSpecNode {
+  const { id, ...rest } = node;
+  const copy: MockupSpecNode =
+    id !== undefined && STAMPED_ID.test(id) ? rest : { ...node };
+  if (node.children) copy.children = node.children.map(withoutStamps);
+  return copy;
+}
+
 function duplicateNode(
   spec: MockupSpecDocument,
   pointer: string,
@@ -299,7 +310,7 @@ function duplicateNode(
     from.address.page,
     from.parentSteps,
     from.index + 1,
-    structuredClone(from.node),
+    withoutStamps(structuredClone(from.node)),
   );
 }
 

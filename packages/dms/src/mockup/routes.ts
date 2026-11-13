@@ -14,6 +14,7 @@ import {
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
 import type { z } from "zod";
 import {
+  type AnnotationCreation,
   annotationDraftSchema,
   annotationPatchSchema,
   createAnnotation,
@@ -43,6 +44,7 @@ import { registerSpecRoutes } from "./source-routes";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
+const HTTP_CONFLICT = 409;
 const SSE_CONTENT_TYPE = "text/event-stream";
 const SSE_RECONNECT_MS = 1000;
 const SSE_HELLO = `retry: ${SSE_RECONNECT_MS}\n: connected\n\n`;
@@ -196,17 +198,27 @@ export function registerMockupRoutes(engine: MockupEngine) {
   return MockupController;
 }
 
-/** Whether `path` names a node of the page `pageId` of the mockup now. */
-async function namesNode(
-  store: MockupStore,
-  name: MockupName,
-  pageId: string,
-  path: string,
-): Promise<boolean> {
-  const page = (await store.state(name))?.pages.find(
-    (candidate) => candidate.id === pageId,
-  );
-  return !!page && Object.values(page.paths).includes(path);
+/** The refusal a creation that made no annotation answers with. */
+function refusal(
+  created: Exclude<AnnotationCreation, { kind: "created" }>,
+): HTTPResult {
+  switch (created.kind) {
+    case "no_mockup":
+      return notFound("mockup");
+    case "no_node":
+      return notFound("node at this page and path");
+    case "ambiguous":
+      return new HTTPResult(HTTP_CONFLICT, {
+        message:
+          "another block has the same ids as this one, so a note cannot tell them apart: give one of them another id",
+      });
+    case "spec_invalid":
+      return new HTTPResult(HTTP_CONFLICT, {
+        message:
+          "spec.json is not a valid spec, so the note's block cannot get an id",
+        errors: created.errors.map(({ path, message }) => ({ path, message })),
+      });
+  }
 }
 
 /** The annotation routes over the mockups of `store`. */
@@ -239,13 +251,9 @@ function registerAnnotationRoutes(store: MockupStore) {
           message: draft.error.message,
         });
       }
-      const { page, path } = draft.data;
-      if (!(await namesNode(store, name, page, path))) {
-        throw notFound("node at this page and path");
-      }
       const created = await createAnnotation(name, draft.data, mockupsDir);
-      if (!created) throw notFound("mockup");
-      return created;
+      if (created.kind !== "created") throw refusal(created);
+      return created.annotation;
     }
 
     @Route("handler", "patch", ":name/annotations/:id")

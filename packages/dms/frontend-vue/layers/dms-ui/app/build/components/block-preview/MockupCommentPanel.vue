@@ -3,6 +3,7 @@ import type {
   MockupAnnotation,
   MockupAnnotationStatus,
   MockupIssue,
+  MockupPageState,
 } from "../../utils/mockup";
 import MockupAnnotations from "./MockupAnnotations.vue";
 import MockupIssues from "./MockupIssues.vue";
@@ -15,6 +16,7 @@ defineProps<{
   /** The spec pointer of the block a note is being written on. */
   pending: string | undefined;
   annotations: MockupAnnotation[];
+  pages: MockupPageState[];
   issues: MockupIssue[];
 }>();
 const note = defineModel<string>("note", { required: true });
@@ -76,6 +78,7 @@ const { t } = useI18n();
     <MockupIssues :issues="issues" />
     <MockupAnnotations
       :annotations="annotations"
+      :pages="pages"
       @status="(id, status) => emit('status', id, status)"
     />
   </aside>

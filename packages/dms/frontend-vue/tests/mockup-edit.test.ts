@@ -247,6 +247,29 @@ describe("inserting, duplicating, replacing", () => {
     expect(copy?.options).not.toBe(nodeAt(next, REVENUE)?.options);
   });
 
+  it("duplicates a node without the stamped ids it and its children carry, keeping the others (fails when the copy keeps an id a note is anchored on)", () => {
+    const stamped = {
+      id: "b-k3j9x0qz",
+      type: "ChartCard",
+      children: [
+        { id: "chart", type: "ChartArea" },
+        { id: "b-q8w2e4r6", type: "Banner" },
+      ],
+    };
+    const from = apply({ kind: "replaceNode", pointer: CHART, node: stamped });
+
+    const { spec: next } = apply(
+      { kind: "duplicateNode", pointer: CHART },
+      from.spec,
+    );
+
+    expect(nodeAt(next, CHART)).toEqual(stamped);
+    expect(nodeAt(next, "/pages/0/tree/2")).toEqual({
+      type: "ChartCard",
+      children: [{ id: "chart", type: "ChartArea" }, { type: "Banner" }],
+    });
+  });
+
   it("replaces a node with another type, keeping its id and placement (fails when the id is lost)", () => {
     const placed = apply({
       kind: "setOption",
