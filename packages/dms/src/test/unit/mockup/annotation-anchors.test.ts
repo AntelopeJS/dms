@@ -424,6 +424,22 @@ describe("[unit] mockup annotation anchors", () => {
     expect(after).to.contain(note.anchor?.block);
   });
 
+  it("stamps the id on the node alone, keeping the key order and the indentation of spec.json (fails when the stamp rewrites the file from the parsed spec)", async () => {
+    const node = { options: { height: 120, html: "<p>a</p>" }, type: "sketch" };
+    const file = (tree: JsonValue[]) =>
+      `${JSON.stringify({ version: 1, pages: [{ title: "Home", id: "home", tree }] }, null, 4)}\n`;
+    await put(sketch("<p>a</p>"));
+    await writeFile(join(directory(), NAME, "spec.json"), file([node]));
+
+    const id = await annotate("home", "/pages/0/tree/0");
+    const block = (await served(id)).anchor?.block ?? "";
+
+    expect(block).to.match(STAMPED_ID);
+    expect(await workspace.specBytes()).to.equal(
+      file([{ ...node, id: block }]),
+    );
+  });
+
   it("answers why when the spec does not parse, and stamps nothing (fails when the note is created on a spec that cannot take an id)", async () => {
     await put(sketch("<p>a</p>"));
     await writeFile(join(directory(), NAME, "spec.json"), "{ not json");
