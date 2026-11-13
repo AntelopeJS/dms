@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.19.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.19.5...v0.19.6)
+
+### 🩹 Fixes
+
+- **auth:** Answer one 401 for every token refused before its signature checks out ([#882](https://github.com/AntelopeJS/dms/pull/882))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.19.5
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.19.4...v0.19.5)
