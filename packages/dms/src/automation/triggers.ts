@@ -6,9 +6,11 @@ import {
   type AutomationEventListener,
   type AutomationEventName,
   listenersFor,
+  type RecordEventName,
   type RecordMutationEvent,
 } from "./events";
 import { fieldHint, nodeText, titledProperties } from "./i18n";
+import { isFunction } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const EMPTY_CONFIG_SCHEMA: JsonSchema = { type: "object", properties: {} };
 
@@ -20,10 +22,7 @@ const removeListener = (
   event: AutomationEventName,
 ): TriggerType["deactivate"] =>
   async function deactivate(handle) {
-    const listeners = listenersFor(event);
-    for (const listener of listeners) {
-      if (listener === handle) listeners.delete(listener);
-    }
+    if (isFunction(handle)) listenersFor(event).delete(handle);
   };
 
 interface DmsEventTriggerSpec {
@@ -68,7 +67,7 @@ interface RecordTriggerConfig {
 }
 
 interface RecordTriggerSpec {
-  event: AutomationEventName;
+  event: RecordEventName;
   /** Its texts under `dms.automation.triggers.<texts>` in the locales. */
   texts: string;
   icon: string;
@@ -104,10 +103,8 @@ function createRecordTrigger(
     },
     async activate(config, emit) {
       const location = config?.location?.trim();
-      const listener: AutomationEventListener = (payload) => {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Record trigger subscriptions receive RecordMutationEvent from emitAutomationEvent; the shared listener registry erases the per-event payload type.
-        if (location && (payload as RecordMutationEvent).location !== location)
-          return;
+      const listener = (payload: RecordMutationEvent) => {
+        if (location && payload.location !== location) return;
         emit(payload);
       };
       listenersFor(spec.event).add(listener);

@@ -179,7 +179,6 @@ const defaultTimeFormatterOptions: Intl.DateTimeFormatOptions = {
 };
 
 export function formatDate(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Public formatter accepts arbitrary values for Date coercion; Date constructor types exclude supported runtime inputs such as booleans.
   date: unknown,
   locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions,
@@ -195,7 +194,6 @@ export function formatDate(
     if (date instanceof Date) {
       validDate = date;
     } else {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This is deliberately unchecked Date coercion inside the existing catch; narrowing to constructor parameter types would change accepted inputs.
       validDate = new Date(date as string | number);
     }
 

@@ -43,31 +43,35 @@ async function buildLayout(): Promise<void> {
   await buildSiteLayoutPayload(MEMBER, memberModel, roleModel, TENANT);
 }
 
+const cleanups: Array<() => void> = [];
+
+function runCleanups() {
+  for (const cleanup of cleanups.splice(0)) {
+    cleanup();
+  }
+}
+
+async function registerTarget() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+
+  cleanups.push(
+    await registerTestPage(
+      PageController("warn-once-target", {
+        displayName: "Target",
+        category: pagesCategory,
+        publicAccess: true,
+      }),
+    ),
+  );
+}
+
 describe("[unit] implementations/dms/page — warning cadence", () => {
-  const cleanups: Array<() => void> = [];
+  after(runCleanups);
 
-  after(() => {
-    for (const cleanup of cleanups.splice(0)) {
-      cleanup();
-    }
-  });
-
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-
-    cleanups.push(
-      await registerTestPage(
-        PageController("warn-once-target", {
-          displayName: "Target",
-          category: pagesCategory,
-          publicAccess: true,
-        }),
-      ),
-    );
-  });
+  before(registerTarget);
 
   it("reports one warning per reason, whatever the resolver returns", async () => {
     const captured = captureWarnings();

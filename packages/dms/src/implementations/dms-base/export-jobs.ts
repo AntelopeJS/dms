@@ -22,6 +22,6 @@ type ErasedRunExportJobOptions = Parameters<typeof RunExportJobDeclaration>[0];
 export function runExportJobProxy(
   options: ErasedRunExportJobOptions,
 ): Promise<ExportJobTicket> {
-  // SAFETY: The proxy narrows generate's context to never while carrying options.context as unknown; runExportJob passes that same captured context to generate without substituting another value.
+  // SAFETY: Holds when options come through the interface's runExportJob<TContext>, whose RunExportJobOptions<TContext> types context and generate's context with one TContext; runExportJob hands generate options.context unchanged.
   return runExportJob(options as RunExportJobOptions);
 }

@@ -18,8 +18,15 @@ function lookupOf(records: Record<string, string>): CountryLookup {
   return {
     get: (ip: string): CountryResponse | null => {
       const isoCode = isoCodes.get(ip);
-      // SAFETY: lookupCountry only reads country.iso_code; this fixture intentionally omits MaxMind's other country metadata and never exposes it to other consumers.
-      return isoCode ? { country: { iso_code: isoCode } as never } : null;
+      return isoCode
+        ? {
+            country: {
+              geoname_id: 0,
+              iso_code: isoCode,
+              names: { en: isoCode },
+            },
+          }
+        : null;
     },
   };
 }

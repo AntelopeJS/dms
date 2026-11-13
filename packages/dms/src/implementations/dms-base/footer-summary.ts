@@ -4,7 +4,10 @@ import {
   type Parameters,
   Validation,
 } from "@antelopejs/interface-data-api/components";
-import type { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
+import type {
+  DataAPIMeta,
+  RowFields,
+} from "@antelopejs/interface-data-api/metadata";
 import type {
   Datum,
   Stream,
@@ -24,8 +27,7 @@ import { isRuleOperand, type RuleOperand } from "./row-rule-operand";
 import { buildFilteredQuery } from "./search-route";
 
 type SummaryReceiver = globalThis.Parameters<typeof SummarizeDeclaration>[0];
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The rows of whichever data controller's table the footer summarizes, interface-data-api's RowFields, read by the field a summary or its where rule names at run time.
-type Row = ValueProxy<Record<string, unknown>>;
+type Row = ValueProxy<RowFields>;
 type Condition = ValueProxyOrValue<boolean>;
 type FieldReader = (field: string) => ValueProxy<unknown>;
 
@@ -119,8 +121,7 @@ export function compileRowRule(
 }
 
 type SummaryReader = (
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The rows of whichever data controller's table the footer summarizes, interface-data-api's RowFields, read by the field a summary or its where rule names at run time.
-  rows: Stream<Record<string, unknown>>,
+  rows: Stream<RowFields>,
   field: string | undefined,
 ) => Datum<number>;
 
@@ -135,13 +136,7 @@ function fieldReader(
   row: Row,
 ): FieldReader {
   return (field) =>
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- UnlockRequest's K extends keyof T needs the string index of interface-data-api's RowFields to take the field name a summary declares at run time.
-    Validation.UnlockRequest<Record<string, unknown>, string>(
-      thisObj,
-      meta,
-      row,
-      field,
-    );
+    Validation.UnlockRequest<RowFields, string>(thisObj, meta, row, field);
 }
 
 /**

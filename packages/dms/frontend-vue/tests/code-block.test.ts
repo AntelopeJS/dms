@@ -5,7 +5,6 @@ import { isFunction } from "../layers/dms-core/app/utils/type-check";
 import { browserRuntime } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 
-// oxlint-disable-next-line anti-slop/no-unknown-returns -- The transport double passes unparsed responses to the block's real boundary; a CodeBlock-only return type would misrepresent the shared network helper.
 const authFetch = vi.fn<(...args: unknown[]) => Promise<unknown>>();
 
 let app: App | undefined;

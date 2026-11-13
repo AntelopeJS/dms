@@ -2,9 +2,11 @@ import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
-import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { OAuthPolicy, ProviderIdentity } from "../../routes/oauth";
 import { resolveOAuthUser } from "../../routes/oauth";
+import { SingleAccountUserModel } from "../helpers/recording-user-model";
+import { plainPasswordUserFixture } from "../helpers/user-fixture";
 
 const HTTP_FORBIDDEN = 403;
 const ACCOUNT_NOT_VALIDATED = "error.oauth.account_not_validated";
@@ -21,8 +23,7 @@ const CLOSED_POLICY: OAuthPolicy = {
 };
 
 function buildUnvalidatedAccount(id: string, email: string): User {
-  // SAFETY: The resolution paths under test read these account fields and rewrite credentials; they do not call persisted-row methods.
-  return {
+  return plainPasswordUserFixture({
     _id: id,
     email,
     name: HOLDER_NAME,
@@ -30,7 +31,7 @@ function buildUnvalidatedAccount(id: string, email: string): User {
     authKey: HOLDER_AUTH_KEY,
     isValidated: false,
     language: "en",
-  } as User;
+  });
 }
 
 function buildIdentity(email: string): ProviderIdentity {
@@ -65,19 +66,8 @@ interface ResolveAttempt {
  * through `update`, so a recorded write is what tells the claim went through.
  */
 async function attemptResolve(existingUser: User): Promise<ResolveAttempt> {
-  const updatedUsers: User[] = [];
-  // SAFETY: These resolution paths only perform the supplied lookups and writes; insert explicitly fails to detect unwanted account creation.
-  const userModel = {
-    getByEmail: async (lookup: string) =>
-      lookup === existingUser.email ? existingUser : undefined,
-    get: async () => existingUser,
-    update: async (user: User) => {
-      updatedUsers.push(user);
-    },
-    insert: async () => {
-      throw new Error("resolution must not create a second account");
-    },
-  } as unknown as UserModel;
+  const userModel = new SingleAccountUserModel(existingUser);
+  const { updated: updatedUsers } = userModel;
 
   try {
     const result = await resolveOAuthUser(userModel, {

@@ -95,7 +95,7 @@ const optionsOf = (options: PaymentOptions) =>
     ...options,
   }).serializeSync().options!;
 
-describe("[unit] interfaces/dms-base — table view footer and empty states", () => {
+function registerSummaryCases(): void {
   it("serves the summaries by id, keeping their rule on the server", () => {
     const options = optionsOf({
       footer: {
@@ -201,7 +201,9 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
     );
     expect(() => declare(64)).not.to.throw();
   });
+}
 
+function registerEmptyStateCases(): void {
   it("serializes the empty states, a component included", () => {
     const options = optionsOf({
       emptyStates: {
@@ -251,4 +253,9 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
     expect(refund?.bulk).to.deep.equal({ allMatching: true });
     expect(details?.deepLink).to.equal(true);
   });
+}
+
+describe("[unit] interfaces/dms-base — table view footer and empty states", () => {
+  registerSummaryCases();
+  registerEmptyStateCases();
 });

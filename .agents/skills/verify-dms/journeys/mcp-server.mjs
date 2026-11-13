@@ -11,6 +11,7 @@ const OWNER_ONLY_MODE = 0o600;
 const PERMISSION_BITS = 0o777;
 const METHOD_NOT_FOUND = -32601;
 const INVALID_PARAMS = -32602;
+const USERS_PAGE = "/table-view/table-view-users";
 
 /** The MCP server the DMS serves in development, reached through its stdio bridge. */
 export const journeys = [
@@ -88,6 +89,34 @@ export const journeys = [
         ctx.status(wrong, 401),
         ctx.equal("wrong credential error", wrong.body, { error: "unauthorized" }),
       ]);
+    },
+  },
+  {
+    id: "page-verify-reports-a-page",
+    title: "page_verify opens a page in a headless Chromium as the owner and reports its blocks, data, form validation and screenshots, and fails a route no page serves",
+    entryPoint: `node ${BRIDGE_LAUNCHER}, tools/call page_verify`,
+    async run(/** @type {Ctx} */ ctx) {
+      const root = ctx.state.runPlayground ?? ctx.state.playground;
+      await withBridge(ctx, async (session) => {
+        const { text, isError } = toolText(
+          await session.call("page_verify", { page: [USERS_PAGE, "/no-such-page"], viewports: ["desktop"] }),
+        );
+        const report = parseJson(text);
+        const [users, missing] = itemsOf(fieldOf(report, "pages"));
+        const [desktop] = itemsOf(fieldOf(fieldOf(users, "render"), "viewports"));
+        const table = itemsOf(fieldOf(users, "data")).find((block) => fieldOf(block, "type") === "TableView");
+        const form = itemsOf(fieldOf(users, "interactions")).find((entry) => fieldOf(entry, "kind") === "form");
+        const screenshot = textOf(fieldOf(desktop, "screenshot"));
+        await ctx.verify("the users page passes and the unknown route fails", [
+          ctx.equal("the answer flags the failing page", isError, true),
+          ctx.equal("signed in as the owner", fieldOf(fieldOf(report, "account"), "kind"), "owner"),
+          ctx.holds("users page passes", fieldOf(users, "ok") === true, JSON.stringify(fieldOf(users, "failures"))),
+          ctx.equal("the table loaded rows", fieldOf(table, "state"), "ok"),
+          ctx.holds("the New entry form showed validation", fieldOf(form, "ok") === true, JSON.stringify(form)),
+          ctx.holds("the page screenshot is written under the project", screenshot.startsWith(".antelope/page-verify/") && statSync(join(root, screenshot)).size > 0, screenshot),
+          ctx.holds("the unknown route names its failure", textOf(itemsOf(fieldOf(missing, "failures"))[0]).startsWith("not a registered page route"), JSON.stringify(missing)),
+        ]);
+      });
     },
   },
   {

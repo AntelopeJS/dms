@@ -33,7 +33,7 @@ describe("[unit] utils/user-activity", () => {
     });
 
     it("reads a stored value serialized as a string", () => {
-      // SAFETY: This intentionally supplies an ISO string to the Date-typed legacy-row boundary to verify runtime coercion; it is not a Date instance.
+      // SAFETY: isActivityWriteDue uses lastActiveAt only in a truthiness test and as the argument of new Date(...), which reads an ISO string as the instant it names, so the string stands in for a Date there.
       const recent = msBefore(NOW, 1).toISOString() as unknown as Date;
       expect(isActivityWriteDue(recent, NOW)).to.equal(false);
     });

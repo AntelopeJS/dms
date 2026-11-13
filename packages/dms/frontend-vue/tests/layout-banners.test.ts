@@ -138,7 +138,6 @@ describe("resolveLayoutBannerPresentation", () => {
 
   it("renders an unknown variant as info rather than unstyled", () => {
     const presentation = resolveLayoutBannerPresentation(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Deliberately inject an unsupported server variant to test the fallback, not a valid variant.
       banner({ variant: "success" as LayoutBannerVariant }),
     );
     expect(presentation).toEqual(

@@ -30,7 +30,6 @@ export interface TableLiveHoldSignals {
    * The table's element: whether it is on screen, and where its first row
    * stands for `whileScrolled`.
    */
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- The resolver may return unparsed or missing element refs. useLocalHold accepts only HTMLElement instances and treats other values as absent; an HTMLElement-only contract would exclude those existing fallback cases.
   tableElement?: () => unknown;
 }
 

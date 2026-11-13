@@ -1,8 +1,7 @@
 import { assert } from "chai";
-import type {
-  RoleModel,
-  TenantMemberModel,
-} from "@antelopejs/interface-dms/db";
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
+import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
   GetPageLayoutBySlug,
   type PageLayout,
@@ -17,11 +16,75 @@ export interface LayoutCaller {
   roleModel: RoleModel;
 }
 
-// SAFETY: Anonymous layout access queries neither memberships nor roles, so the empty models are never called.
+function refuse(what: string): never {
+  throw new Error(`Anonymous layout access queried ${what}`);
+}
+
+class UnqueriedMemberModel extends TenantMemberModel {
+  override async get(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async getBy(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async getAll(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async getByUser(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async existsByUser(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async listAll(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async listOwners(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async countOwnersExcluding(): Promise<never> {
+    return refuse("memberships");
+  }
+}
+
+class UnqueriedRoleModel extends RoleModel {
+  override async get(): Promise<never> {
+    return refuse("roles");
+  }
+
+  override async getBy(): Promise<never> {
+    return refuse("roles");
+  }
+
+  override async getAll(): Promise<never> {
+    return refuse("roles");
+  }
+
+  override async getByName(): Promise<never> {
+    return refuse("roles");
+  }
+}
+
+/**
+ * A caller with no user. Its real models reject every lookup method of the
+ * membership and role models, because anonymous layout access queries
+ * neither.
+ */
 export const ANONYMOUS: LayoutCaller = {
   user: undefined,
-  memberModel: {} as TenantMemberModel,
-  roleModel: {} as RoleModel,
+  memberModel: new UnqueriedMemberModel(
+    GetModel(TenantMemberModel, DEFAULT_TENANT_ID).database,
+  ),
+  roleModel: new UnqueriedRoleModel(
+    GetModel(RoleModel, DEFAULT_TENANT_ID).database,
+  ),
 };
 
 export function grantedTo(permissions: string[]): LayoutCaller {

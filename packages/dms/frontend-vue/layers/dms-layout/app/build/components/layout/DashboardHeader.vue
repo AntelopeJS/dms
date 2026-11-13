@@ -29,10 +29,15 @@ const BUILDER_FALLBACK_ICON = "i-ph-hammer-light";
 /** The crumb naming a row keeps the row's own case (crumbs capitalize). */
 const RECORD_CRUMB_LABEL_CLASS = "first-letter:normal-case";
 
-// SAFETY: UBreadcrumb reads each item.ui slot optionally; its Pick type requires slots the renderer permits omitting.
-const RECORD_CRUMB_UI = {
+const RECORD_CRUMB_UI: NonNullable<BreadcrumbItem["ui"]> = {
+  item: undefined,
+  link: undefined,
+  linkLeadingIcon: undefined,
+  linkLeadingAvatar: undefined,
   linkLabel: RECORD_CRUMB_LABEL_CLASS,
-} as NonNullable<BreadcrumbItem["ui"]>;
+  separator: undefined,
+  separatorIcon: undefined,
+};
 /** v2: every icon-only toolbar button names itself in a tooltip below it. */
 const TOOLTIP_CONTENT = { side: "bottom", sideOffset: 6 } as const;
 

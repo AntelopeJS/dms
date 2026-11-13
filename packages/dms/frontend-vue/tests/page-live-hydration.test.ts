@@ -10,20 +10,16 @@
  * dms-api's health hero on a page reloaded paused) unless it waited for its
  * own mount, as the live toggle and dms-api's live traffic do.
  */
-import {
-  computed,
-  defineComponent,
-  h,
-  nextTick,
-  shallowRef,
-  type Component,
-} from "vue";
+import { defineComponent, h, nextTick, type Component } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   provideServerPageLive,
   setCurrentPageLive,
 } from "../layers/dms-ui/app/entries/composables/live/currentPageLive";
-import type { PageLiveController } from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
+import {
+  createPageLiveController,
+  type PageLiveController,
+} from "../layers/dms-ui/app/entries/composables/live/pageLiveController";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 import {
   engine,
@@ -52,18 +48,22 @@ const ServerLivePage = defineComponent({
   },
 });
 
+const MS_PER_SECOND = 1000;
+const controllers: PageLiveController[] = [];
+
 /** A page's controller as the browser has it once the page has read once. */
 function pollingController(): PageLiveController {
-  const value = <T>(initial: T) => computed(() => shallowRef(initial).value);
-  // SAFETY: usePageLive only reads these six controller state refs; controller actions are not invoked by this hydration fixture.
-  return {
-    isPaused: value(false),
-    pauseReason: value(null),
-    lastUpdatedAt: value(Date.now()),
-    missedCount: value(0),
-    missedDetail: value(null),
-    isPolling: value(true),
-  } as PageLiveController;
+  const controller = createPageLiveController(
+    "shop.orders",
+    { maxRate: 1 },
+    { poll: () => undefined },
+  );
+  controllers.push(controller);
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  controller.setStreamConnected(false);
+  vi.advanceTimersByTime(MS_PER_SECOND);
+  vi.useRealTimers();
+  return controller;
 }
 
 let warn: ReturnType<typeof vi.spyOn>;
@@ -76,6 +76,7 @@ beforeEach(() => {
 
 afterEach(() => {
   setCurrentPageLive(null);
+  for (const controller of controllers.splice(0)) controller.dispose();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   document.body.replaceChildren();

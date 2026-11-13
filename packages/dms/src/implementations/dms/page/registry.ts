@@ -12,7 +12,7 @@ import {
 import {
   type CategoryInfo,
   type PageInfo,
-  isInsideModule,
+  isOwnerOnly,
   ClearPageLayoutBySlug,
   type ModuleInfo,
   type DynamicMenuProviderInfo,
@@ -325,7 +325,7 @@ export namespace internal {
         notifyStructureChanged();
       }
 
-      if (isInsideModule(categoryInfo)) {
+      if (isOwnerOnly(categoryInfo)) {
         UnmarkModuleScopedPermission(categoryOwnPermissionId(categoryInfo));
       }
     },
@@ -351,7 +351,7 @@ export namespace internal {
         removeFromTree(pageInfo.fullId);
         notifyStructureChanged();
       }
-      if (isInsideModule(pageInfo)) {
+      if (isOwnerOnly(pageInfo)) {
         UnmarkModuleScopedPermission(
           resolvePagePermissionId(pageInfo.permission, pageInfo.fullId),
         );

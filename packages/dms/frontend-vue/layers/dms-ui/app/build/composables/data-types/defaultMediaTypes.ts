@@ -45,14 +45,12 @@ function renderImage(value: CellValue, options: CellOptions) {
   const images = toImageList(value);
   if (!images.length) return "";
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter erases image options; storage is forwarded without validation.
   const opts = options as ImageOptions | undefined;
   return h(ImagePreview, { images, storage: opts?.storage });
 }
 
 function renderFile(value: CellValue, options: CellOptions) {
   const { t } = getAppTranslation();
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- File options are erased by the plugin contract; multiple and storage retain their existing unchecked behavior.
   const opts = options as FileOptions | undefined;
 
   if (opts?.multiple && Array.isArray(value)) {

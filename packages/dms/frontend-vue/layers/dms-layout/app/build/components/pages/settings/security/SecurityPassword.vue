@@ -249,9 +249,9 @@ async function submit(): Promise<void> {
       >
         <template #default="{ describedby, invalid }">
           <DmsPasswordInput
-            has-lock-icon
             :id="CURRENT_FIELD_ID"
             v-model="currentPassword"
+            has-lock-icon
             autocomplete="current-password"
             :invalid="invalid"
             :aria-describedby="describedby"
@@ -273,9 +273,9 @@ async function submit(): Promise<void> {
       >
         <template #default="{ describedby, invalid }">
           <DmsPasswordInput
-            has-lock-icon
             :id="NEW_FIELD_ID"
             v-model="newPassword"
+            has-lock-icon
             autocomplete="new-password"
             :invalid="invalid"
             :aria-describedby="describedby"
@@ -290,16 +290,16 @@ async function submit(): Promise<void> {
       >
         <template #default="{ describedby, invalid }">
           <DmsPasswordInput
-            has-lock-icon
             :id="CONFIRM_FIELD_ID"
             v-model="confirmPassword"
-            @blur="isConfirmTouched = true"
+            has-lock-icon
             autocomplete="new-password"
             :placeholder="
               t('page.settings.security.password.confirm_placeholder')
             "
             :invalid="invalid"
             :aria-describedby="describedby"
+            @blur="isConfirmTouched = true"
           />
         </template>
       </SecurityPanelField>

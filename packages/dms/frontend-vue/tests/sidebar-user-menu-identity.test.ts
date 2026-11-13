@@ -10,7 +10,6 @@ import {
   ref,
   watch,
   type App,
-  type PropType,
 } from "vue";
 import SidebarUserMenu from "../layers/dms-layout/app/entries/components/layout/SidebarUserMenu";
 import type { User } from "../layers/dms-core/app/types/user";
@@ -73,9 +72,8 @@ function mount(): void {
   app.component(
     "UDropdownMenu",
     defineComponent({
-      // SAFETY: The mounted menu supplies groups of items with destinations and selection handlers.
       props: {
-        items: { type: Array as PropType<MenuItemStub[][]>, required: true },
+        items: { type: Array<MenuItemStub[]>, required: true },
       },
       setup:
         (props, { slots }) =>

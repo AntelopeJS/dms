@@ -45,7 +45,6 @@ function renderEmptyFallback(
   isNumeric: boolean,
 ): VNodeChild {
   const fallback =
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Plugin options have no fallback schema; this preserves the unchecked value rather than coercing or rejecting malformed inputs.
     (options?.fallback as string) ??
     (surface === "detail" ? DETAIL_FALLBACK : DEFAULT_FALLBACK);
   return isNumeric
@@ -94,7 +93,6 @@ export function useColumnValueRenderer() {
 
     if (value === null || value === undefined) {
       if (formatter?.empty) {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter returns unknown for plugin extensions; the existing render boundary forwards it without VNodeChild validation.
         return formatter.empty(value, locale.value, options, row) as VNodeChild;
       }
       return renderEmptyFallback(options, surface, isNumeric);
@@ -107,7 +105,6 @@ export function useColumnValueRenderer() {
       : value;
 
     if (!isString(formatted) && !isNumber(formatted)) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Excluding strings and numbers does not validate a VNodeChild; preserve the existing unchecked plugin result handoff.
       return formatted as VNodeChild;
     }
     if (isNumeric) {

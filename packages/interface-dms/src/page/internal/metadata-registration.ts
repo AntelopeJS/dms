@@ -76,7 +76,7 @@ export function applyAuthDecorators(
   };
   const authDecorator = authOnly
     ? AuthUser()
-    : isModulePage
+    : isModulePage || pageInfo.ownerOnly === true
       ? AuthOwnerOnly()
       : AuthUserWithPermission(page.target, page.guardOptions);
   authDecorator(prototypeOf(page.target), "user");
