@@ -171,7 +171,7 @@ function annotationsPath(mockupsDir: string, name: MockupName): string {
   return join(mockupDirectory(mockupsDir, name), ANNOTATIONS_FILE);
 }
 
-/** What a writer of a mockup's annotations holds: both locks, and the paths they guard. */
+/** What a writer of a mockup's annotations holds while it runs: the mockup, its annotations path and the stamp writer of its spec lock. */
 interface Held {
   mockupsDir: string;
   name: MockupName;

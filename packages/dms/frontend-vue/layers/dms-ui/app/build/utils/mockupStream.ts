@@ -71,7 +71,8 @@ function open(state: StreamState): void {
 /**
  * Keeps one stream open to a mockup's `/events` endpoint: its compiled state
  * on connect and after each save of the spec, its annotations after each
- * change of the notes or of the spec, which moves the notes' blocks. The browser reconnects a dropped connection by itself; this reopens
+ * change of the notes or of the spec, which moves the notes' blocks. The
+ * browser reconnects a dropped connection by itself; this reopens
  * one the server closed (a restart), and ignores events that are not valid.
  */
 export function openMockupStream(

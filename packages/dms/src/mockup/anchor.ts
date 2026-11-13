@@ -18,7 +18,7 @@ export interface NodeSite {
   path: string;
 }
 
-/** The part of a node anchoring reads: its id and its children, a slot kept for each one. */
+/** The part of a node anchoring reads: its id and its children. A child that is no node leaves an empty slot, so indexes stay the spec's. */
 interface TreeNode {
   id?: string;
   children?: ReadonlyArray<TreeNode | undefined>;
@@ -53,9 +53,9 @@ const treeViewSchema = z.object({
 });
 
 /**
- * What `spec` holds of a spec, however wrong the rest of it is: a value that
- * is no node, or an id that is no string, is a slot with nothing in it.
- * Undefined when there is no spec object.
+ * The tree of `spec` as anchoring reads it, however wrong the rest of the
+ * spec is: a node that is no object, or an id that is no string, leaves an
+ * empty slot. Undefined when there is no spec.
  */
 export function viewOf(spec: JsonObject | undefined): BlockTree | undefined {
   const parsed = treeViewSchema.safeParse(spec);
