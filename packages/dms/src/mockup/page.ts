@@ -41,8 +41,8 @@ const TEXTS = "$dms.mockup";
 
 /**
  * `/mockups`: every mockup of the project as a card, from `GET /api/mockup`.
- * Hidden from the menu, and opened from a header icon only the platform
- * owner sees. A role reaches it only once granted its page permission.
+ * Hidden from the menu, opened from a header icon only the platform owner
+ * sees, and out of every role's reach but the owner's.
  */
 export class MockupsPage extends PageController(
   "mockups",
@@ -51,6 +51,7 @@ export class MockupsPage extends PageController(
     urlSlug: "mockups",
     icon: "i-ph-frame-corners-light",
     hidden: true,
+    ownerOnly: true,
     noComponentPermissions: true,
     category: pagesCategory,
   },
