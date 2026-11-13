@@ -7,6 +7,7 @@ import { ImplementInterface } from "@antelopejs/interface-core";
 import { z } from "zod";
 import { User } from "../dist/auth/db/index.js";
 import {
+  downloadExportJob,
   getExportJobStatus,
   getExportJobStatusProxy,
 } from "../dist/base/export-jobs.js";
@@ -78,4 +79,19 @@ await test("a stored context the schema refuses refuses the job without asking i
     false,
   );
   assert.equal(asked, false);
+});
+
+await test("isOwnedBy without the contextSchema it reads through throws at the call", () => {
+  const handed = handedToModule.length;
+  const isOwnedBy = () => true;
+
+  assert.throws(
+    () => getExportJobStatus(REQUEST, OWNER, "job-1", { isOwnedBy }),
+    /isOwnedBy without the contextSchema/,
+  );
+  assert.throws(
+    () => downloadExportJob(REQUEST, OWNER, "job-1", { isOwnedBy }),
+    /isOwnedBy without the contextSchema/,
+  );
+  assert.equal(handedToModule.length, handed);
 });

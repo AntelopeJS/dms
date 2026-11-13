@@ -114,9 +114,10 @@ export interface RunExportJobOptions<TContext = unknown> {
  */
 export interface ExportJobContextCheck<TContext> {
   /**
-   * Reads back the `context` the job was started with, from the JSON it was
-   * stored as: `null` for a job started without one, a `Date` as its ISO
-   * string. A stored context the schema refuses refuses the job.
+   * A zod 3 schema that reads back the `context` the job was started with,
+   * from the JSON it was stored as: `null` for a job started without one, a
+   * `Date` as its ISO string. A stored context the schema refuses refuses the
+   * job.
    */
   contextSchema: ZodType<TContext, ZodTypeDef, unknown>;
   /** Extra ACL beyond the userId check, on the context `contextSchema` read. */
@@ -168,23 +169,6 @@ export const getDeliverer =
   InterfaceFunction<(delivery: string) => Deliverer>();
 
 /**
- * A proxy carries no type parameter of its own, so the generic entry points
- * below erase the caller's context type on the way in. The engine never reads
- * `context`: it carries it back to `generate` untouched, which is why the
- * erased shape widens the value and narrows the callback -- that way every
- * `TContext` fits it without an assertion.
- */
-interface ErasedRunExportJobOptions extends Omit<
-  RunExportJobOptions,
-  "context" | "generate"
-> {
-  context?: unknown;
-  generate: (
-    ctx: ExportJobGenerateContext<never>,
-  ) => Promise<ExportJobResultSummary | void>;
-}
-
-/**
  * The access options a proxy takes: the caller's
  * {@link ExportJobContextCheck} folded into one check that reads the job's
  * context itself, so no context type crosses the proxy.
@@ -199,6 +183,11 @@ function eraseAccess<TContext>(
 ): ErasedExportJobAccessOptions | undefined {
   if (!access?.isOwnedBy) return access;
   const { contextSchema, isOwnedBy } = access;
+  if (!contextSchema) {
+    throw new TypeError(
+      "An export job access check gives isOwnedBy without the contextSchema it reads the job's context through",
+    );
+  }
   return {
     scope: access.scope,
     isOwnedBy: (record, user) => {
@@ -217,7 +206,7 @@ function eraseAccess<TContext>(
  * @internal
  */
 export const runExportJobProxy =
-  InterfaceFunction<(options: ErasedRunExportJobOptions) => ExportJobTicket>();
+  InterfaceFunction<(options: RunExportJobOptions) => ExportJobTicket>();
 
 /** @internal */
 export const getExportJobStatusProxy =
@@ -241,11 +230,21 @@ export const downloadExportJobProxy =
     ) => void
   >();
 
-/** Starts an export job and returns the ticket its caller polls. */
+/**
+ * Starts an export job and returns the ticket its caller polls.
+ *
+ * A proxy carries no type parameter of its own, so the context type is erased
+ * on the way in: `generate` closes over the caller's own `context` and the
+ * engine stores it only.
+ */
 export function runExportJob<TContext = unknown>(
   options: RunExportJobOptions<TContext>,
 ): Promise<ExportJobTicket> {
-  return runExportJobProxy(options);
+  const { context, generate } = options;
+  return runExportJobProxy({
+    ...options,
+    generate: (job) => generate({ ...job, context }),
+  });
 }
 
 export function getExportJobStatus<TContext = unknown>(
