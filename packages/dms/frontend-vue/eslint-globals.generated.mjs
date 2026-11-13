@@ -305,6 +305,7 @@ export default Object.freeze({
   MockupAssistantPrompt: "readonly",
   MockupAssistantPromptBlock: "readonly",
   MockupAssistantPromptSource: "readonly",
+  MockupAssistantPromptTarget: "readonly",
   ModalOptions: "readonly",
   ModalSize: "readonly",
   ModuleCatalogEntry: "readonly",
