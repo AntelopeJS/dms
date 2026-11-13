@@ -28,4 +28,4 @@ Evidence is under `$RUN/evidence/branding/<journey>/`.
 
 ## Gotchas
 
-- A run's backend is `ajs project start` on a build, so it is not in development and the editor itself cannot be driven there; only its absence is.
+- `branding-absent-outside-dev` sets `backend: "production"`, so it passes in any run. To drive the editor by hand, run `dms-control up --dev-backend` and sign the browser in as the administrator first: the page refuses anyone else.
