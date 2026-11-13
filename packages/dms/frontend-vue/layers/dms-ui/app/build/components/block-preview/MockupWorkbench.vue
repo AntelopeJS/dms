@@ -439,6 +439,7 @@ const stageStyle = computed(() => ({
         v-model:note="comments.note.value"
         :pending="comments.pending.value?.path"
         :annotations="annotations"
+        :pages="pages"
         :issues="issues"
         @save="comments.save"
         @cancel="comments.pending.value = undefined"

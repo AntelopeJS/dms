@@ -810,6 +810,7 @@
       "cancel": "Cancel",
       "annotations": "Annotations",
       "annotations_empty": "No annotations yet.",
+      "block_removed": "Block removed",
       "status_open": "Open",
       "status_resolved": "Resolved",
       "resolve": "Resolve",

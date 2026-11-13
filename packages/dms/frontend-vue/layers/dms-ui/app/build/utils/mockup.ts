@@ -43,11 +43,19 @@ export interface MockupState {
 
 export type MockupAnnotationStatus = "open" | "resolved";
 
+/** The block a note is about: the node whose id is `block`, then the children whose ids are `steps`. */
+export interface MockupBlockAnchor {
+  block: string;
+  steps: string[];
+}
+
 export interface MockupAnnotation {
   id: string;
-  page: string;
-  /** Spec JSON pointer of the node the note is about. */
-  path: string;
+  anchor?: MockupBlockAnchor;
+  /** The page the note's block is on now. Absent when the block was removed. */
+  page?: string;
+  /** Spec JSON pointer of the note's block now. Absent when the block was removed. */
+  path?: string;
   text: string;
   status: MockupAnnotationStatus;
   createdAt: string;
@@ -165,14 +173,27 @@ export function parseMockupState(
   return isMockupState(value) ? value : undefined;
 }
 
+function isAnchor(
+  value: Parameters<typeof isObject>[0],
+): value is MockupBlockAnchor {
+  return (
+    value === undefined ||
+    (isRecord(value) &&
+      isString(value.block) &&
+      Array.isArray(value.steps) &&
+      value.steps.every((step) => isString(step)))
+  );
+}
+
 function isAnnotation(
   value: Parameters<typeof isObject>[0],
 ): value is MockupAnnotation {
   return (
     isRecord(value) &&
     isString(value.id) &&
-    isString(value.page) &&
-    isString(value.path) &&
+    isAnchor(value.anchor) &&
+    isOptionalString(value.page) &&
+    isOptionalString(value.path) &&
     isString(value.text) &&
     (value.status === "open" || value.status === "resolved") &&
     isString(value.createdAt) &&
@@ -244,15 +265,10 @@ export function layoutPathFor(
 
 const ROOT_LAYOUT_PREFIX = "block-";
 
-/**
- * The compiled node the preview calls `layoutPath`, as JSON text: root `i` is
- * `block-<i>`, then each child by its id or index. Undefined when the tree
- * has none. Two reads that differ mean the node at that place changed.
- */
-export function nodeTextAt(
+function nodeAt(
   page: Pick<MockupPageState, "tree">,
   layoutPath: string,
-): string | undefined {
+): PreviewNode | undefined {
   const [root, ...steps] = layoutPath.split(".");
   if (!root?.startsWith(ROOT_LAYOUT_PREFIX)) return undefined;
   let node: PreviewNode | undefined =
@@ -262,7 +278,37 @@ export function nodeTextAt(
       (child, index) => (child.id ?? String(index)) === step,
     );
   }
+  return node;
+}
+
+/**
+ * The compiled node the preview calls `layoutPath`, as JSON text: root `i` is
+ * `block-<i>`, then each child by its id or index. Undefined when the tree
+ * has none. Two reads that differ mean the node at that place changed.
+ */
+export function nodeTextAt(
+  page: Pick<MockupPageState, "tree">,
+  layoutPath: string,
+): string | undefined {
+  const node = nodeAt(page, layoutPath);
   return node ? JSON.stringify(node) : undefined;
+}
+
+/**
+ * The name of the block a note is about, as the preview resolves it: its
+ * `type`, else its `componentName`. Undefined when the note has no location
+ * or the pages draw no node there.
+ */
+export function annotationBlockName(
+  pages: readonly MockupPageState[],
+  annotation: Pick<MockupAnnotation, "page" | "path">,
+): string | undefined {
+  const { page: pageId, path } = annotation;
+  const page = pages.find((entry) => entry.id === pageId);
+  const layoutPath =
+    page && path !== undefined ? layoutPathFor(page, path) : undefined;
+  const node = page && layoutPath ? nodeAt(page, layoutPath) : undefined;
+  return node?.type ?? node?.componentName;
 }
 
 /** `annotation` with the answer of a `PATCH` or `POST` merged into `list`, newest last. */

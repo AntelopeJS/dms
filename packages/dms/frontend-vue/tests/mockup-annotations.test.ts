@@ -234,6 +234,56 @@ describe("annotations panel", () => {
     expect(entries()).toEqual([["open", "Too tight"]]);
   });
 
+  const location = () =>
+    viewer.host
+      .querySelector("[data-dms-mockup-annotation] code")
+      ?.textContent?.replace(/\s+/g, " ")
+      .trim();
+
+  it("names a note's block and where it is now, and follows the stream when the block moves (fails when the label shows the pointer alone or is fixed when first drawn)", async () => {
+    await viewer.publish(
+      "state",
+      mockupState({
+        revision: 2,
+        pages: [
+          mockupPage({
+            tree: [
+              { type: "KpiCard", options: { title: "Revenue" } },
+              { type: "ChartCard", options: { title: "Sales" } },
+            ],
+            paths: {
+              "block-0": "/pages/0/tree/0",
+              "block-1": "/pages/0/tree/1",
+            },
+          }),
+        ],
+      }),
+    );
+
+    await viewer.publish("annotations", { annotations: [OPEN] });
+    expect(location()).toBe("KpiCard orders /pages/0/tree/0");
+
+    await viewer.publish("annotations", {
+      annotations: [{ ...OPEN, path: "/pages/0/tree/1" }],
+    });
+    expect(location()).toBe("ChartCard orders /pages/0/tree/1");
+  });
+
+  it("says the block was removed for a note the stream sends with no location, and keeps its text (fails when the note is dropped or shows an empty pointer)", async () => {
+    const { page: _page, path: _path, ...removed } = OPEN;
+
+    await viewer.publish("annotations", { annotations: [removed] });
+
+    expect(entries()).toEqual([["open", "Too tight"]]);
+    expect(
+      viewer.host.querySelector("[data-dms-mockup-annotation-removed]")
+        ?.textContent,
+    ).toContain("dms.mockup.block_removed");
+    expect(viewer.host.querySelector("[data-dms-mockup-annotation] code")).toBe(
+      null,
+    );
+  });
+
   it("resolves an open note with a PATCH, and reopens a resolved one", async () => {
     runtime.notes.push(OPEN, DONE);
     await viewer.publish("annotations", { annotations: [OPEN, DONE] });
