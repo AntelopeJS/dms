@@ -13,7 +13,7 @@ import {
 } from "@antelopejs/interface-data-api/components";
 import type {
   DataAPIMeta,
-  RowFields,
+  StoredRow,
 } from "@antelopejs/interface-data-api/metadata";
 import type {
   Stream,
@@ -73,7 +73,7 @@ function resolveSearchFilter(
 }
 
 function applySearchFilter(
-  row: ValueProxy<RowFields>,
+  row: ValueProxy<StoredRow>,
   field: string,
   compareMode: string,
   target: SearchTarget,
@@ -86,7 +86,7 @@ function applySearchFilter(
   }
 
   const contextWithThis = Object.assign({}, context, { this: thisObj });
-  const unlockedValue = Validation.UnlockRequest<RowFields, string>(
+  const unlockedValue = Validation.UnlockRequest<StoredRow, string>(
     thisObj,
     meta,
     row,
@@ -109,17 +109,17 @@ function either(a: Condition, b: Condition): Condition {
 }
 
 function applyGlobalSearch(
-  query: Stream<RowFields>,
+  query: Stream<StoredRow>,
   searchableFields: Record<string, string>,
   target: SearchTarget,
-): Stream<RowFields> {
+): Stream<StoredRow> {
   const fieldEntries = Object.entries(searchableFields);
 
   if (fieldEntries.length === 0) {
     return query;
   }
 
-  return query.filter((row: ValueProxy<RowFields>) =>
+  return query.filter((row: ValueProxy<StoredRow>) =>
     fieldEntries
       .map(([field, mode]) => applySearchFilter(row, field, mode, target))
       .reduce(either, false),
@@ -253,11 +253,11 @@ function resolveIdsField(
  * still apply: it only narrows what the caller may already read.
  */
 function applyIdsRestriction(
-  query: Stream<RowFields>,
+  query: Stream<StoredRow>,
   ids: string[],
   field: string,
-): Stream<RowFields> {
-  return query.filter((row: ValueProxy<RowFields>) =>
+): Stream<StoredRow> {
+  return query.filter((row: ValueProxy<StoredRow>) =>
     ids.map((id): Condition => row.key(field).eq(id)).reduce(either, false),
   );
 }
@@ -349,7 +349,7 @@ export async function listWithSearch(
   user?: User,
   permissions?: Set<string>,
 ): Promise<{
-  results: RowFields[];
+  results: StoredRow[];
   total: number;
   offset: number;
   limit: number;

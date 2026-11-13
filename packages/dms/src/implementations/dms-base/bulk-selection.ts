@@ -8,6 +8,7 @@ import {
 import { Parameters } from "@antelopejs/interface-data-api/components";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { rowIdText } from "../../db";
 import {
   authorizeAction,
   LIST_ACTION,
@@ -121,5 +122,5 @@ export async function resolveBulkRowIds(
     HTTP_PAYLOAD_TOO_LARGE,
     `More than ${MAX_BULK_MATCHING_ROWS} rows match: narrow the filters.`,
   );
-  return matching.map((row) => String(row[idField]));
+  return matching.map((row) => rowIdText(row[idField]));
 }

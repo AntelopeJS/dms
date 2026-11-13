@@ -13,7 +13,7 @@ import {
 } from "@antelopejs/interface-data-api/components";
 import type {
   DataAPIMeta,
-  RowFields,
+  StoredRow,
 } from "@antelopejs/interface-data-api/metadata";
 import type { Stream, ValueProxy } from "@antelopejs/interface-database";
 import type { User } from "@antelopejs/interface-dms/auth/db";
@@ -40,7 +40,10 @@ import {
   countWithSearch as countWithSearchFunc,
   listWithSearch as listWithSearchFunc,
 } from "./search-route";
-import { fetchRowForGuard as fetchRowForGuardHelper } from "../../db";
+import {
+  fetchRowForGuard as fetchRowForGuardHelper,
+  rowIdText,
+} from "../../db";
 import { isNumber } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { z } from "zod";
 
@@ -126,7 +129,7 @@ async function buildIdsExportQuery(
     const archiveConstraint = filtersWithArchive?.[archiveField];
     if (archiveConstraint) {
       const isNotEqual = archiveConstraint[1] === "ne";
-      query = query.filter((row: ValueProxy<RowFields>) =>
+      query = query.filter((row: ValueProxy<StoredRow>) =>
         isNotEqual
           ? row.key(archiveField).ne(true)
           : row.key(archiveField).eq(true),
@@ -361,7 +364,7 @@ export async function fetchRowForGuard(
   controller: DataControllerInstance,
   id: string,
   idField: string,
-): Promise<RowFields | undefined> {
+): Promise<StoredRow | undefined> {
   return fetchRowForGuardHelper(controller, id, idField);
 }
 
@@ -369,8 +372,8 @@ async function readRuleRow(
   controller: DataControllerInstance,
   controllerMetadata: DataAPIMeta,
   model: ReturnType<typeof Query.GetModel>,
-  row: RowFields,
-): Promise<RowFields> {
+  row: StoredRow,
+): Promise<StoredRow> {
   try {
     const stored = model.constructor.fromDatabase(row);
     assert(stored, 500, "The database answered an empty row.");
@@ -411,7 +414,7 @@ export async function validateRowsAgainstRule(
       model,
       row,
     );
-    const rowId = String(rowData[idField]);
+    const rowId = rowIdText(rowData[idField]);
 
     if (evaluateRowActionRule(rule, rowData)) {
       eligibleIds.push(rowId);
