@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": false,
+    "types": ["node"]
+  },
+  "files": [
+    "./interface-assertions-1.cjs",
+    "./interface-assertions-1.d.cts",
+    "./interface-components-routes.cjs",
+    "./interface-components-routes.d.cts"
+  ]
+}

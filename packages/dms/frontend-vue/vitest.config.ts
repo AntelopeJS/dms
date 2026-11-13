@@ -48,6 +48,6 @@ export default defineConfig({
   },
   test: {
     setupFiles: ["./tests/setup.ts"],
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "tests/**/*.untyped.test.js"],
   },
 });

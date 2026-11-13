@@ -9,7 +9,7 @@ const assert = require("node:assert/strict");
 
 const { z } = require("../../packages/interface-dms/node_modules/zod");
 
-const describeModule = require("../../packages/interface-dms/dist/base/block-registry/internal/describe.js");
+const untyped = require("./untyped/interface-assertions-1.cjs");
 
 /**
  * The one place this probe decodes serialized observations: JSON text holds values of no declared shape.
@@ -97,7 +97,7 @@ function recordDefReads(schema, log, label) {
 }
 
 /**
- * @param {(schema: unknown) => unknown} describeSchema
+ * @param {import("./untyped/interface-assertions-1.cjs").Describer} describeSchema
  * @returns {Record<string, string[]>}
  */
 function observeDefReads(describeSchema) {
@@ -125,8 +125,8 @@ function observeDefReads(describeSchema) {
 }
 
 /**
- * @param {(schema: unknown) => unknown} describeSchema
- * @param {(schema: unknown) => unknown} describeOptions
+ * @param {import("./untyped/interface-assertions-1.cjs").Describer} describeSchema
+ * @param {import("./untyped/interface-assertions-1.cjs").Describer} describeOptions
  * @returns {unknown}
  */
 function describeBattery(describeSchema, describeOptions) {
@@ -245,11 +245,7 @@ function describeBattery(describeSchema, describeOptions) {
 }
 
 function observeDescribe() {
-  return describeBattery(
-    // @ts-expect-error the battery feeds describeSchema fake zod schemas and _def proxies on purpose to record how it reads and rejects them
-    describeModule.describeSchema,
-    describeModule.describeOptions,
-  );
+  return describeBattery(untyped.describeSchema, untyped.describeOptions);
 }
 
 function observeParser() {
@@ -323,7 +319,6 @@ function observeArchiveRules() {
 }
 
 function observeChoices() {
-  const { SelectType } = require("../../packages/interface-dms/dist/base/data-types/default/choices.js");
   /** @type {Record<string, unknown>} */
   const observed = {};
   for (const [name, options] of Object.entries({
@@ -334,8 +329,7 @@ function observeChoices() {
   })) {
     /** @type {string[]} */
     const entries = [];
-    // @ts-expect-error one option set carries a boolean value on purpose to record how SelectType parses it
-    const type = new SelectType(options);
+    const type = untyped.selectTypeOf(options);
     for (const input of ["a", "2", 2, "true", ["a"], ["a", "b"], [], undefined]) {
       try {
         entries.push(JSON.stringify(type.getValidation().parse(input)) ?? "__undefined");
@@ -471,10 +465,8 @@ function negativeControls() {
   controls.parserDetectsChangedKeyword = !sameJson(real, mutated);
 
   const reordered = describeBattery(
-    // @ts-expect-error the negative-control rerun feeds describeSchema the same fake schemas as the battery
-    (schema) => describeModule.describeSchema(schema),
-    // @ts-expect-error the negative-control rerun feeds describeOptions the same fake schemas as the battery
-    (schema) => describeModule.describeOptions(schema),
+    untyped.rerunDescribeSchema,
+    untyped.rerunDescribeOptions,
   );
   const twiceLazy = asObject(parseJson(JSON.stringify(reordered)));
   const lazyCalls = asObject(asObject(twiceLazy.lazy).calls);
