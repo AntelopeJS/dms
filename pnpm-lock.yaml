@@ -13,7 +13,7 @@ importers:
         version: 1.21.0
       '@antelopejs/tooling-configs':
         specifier: ^0.5.3
-        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5(@types/node@24.13.3))
+        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
       dependency-cruiser:
         specifier: ^18.7.0
         version: 18.7.0
@@ -143,7 +143,7 @@ importers:
         version: 1.21.0
       '@antelopejs/tooling-configs':
         specifier: ^0.5.3
-        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5(@types/node@24.13.3))
+        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
       '@types/archiver':
         specifier: ^6.0.4
         version: 6.0.4
@@ -396,8 +396,8 @@ importers:
         specifier: '>=1.21.0 <2'
         version: 1.21.0
       '@antelopejs/dms-frontend':
-        specifier: '>=0.10.0 <0.11.0'
-        version: 0.10.0(@antelopejs/core@1.21.0)
+        specifier: '>=0.10.4 <0.11.0'
+        version: 0.10.6(@antelopejs/core@1.21.0)
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -614,6 +614,13 @@ packages:
 
   '@antelopejs/dms-frontend@0.10.0':
     resolution: {integrity: sha512-zNsYW0NUPHoJNj3tNUDxubXQUH0171Ga/avp8ka0VK253eQD7KDgImq8Fc3tmG5GD+oBzhUlO4RMun5BapqfYQ==}
+    engines: {node: '>=20.19.0'}
+    hasBin: true
+    peerDependencies:
+      '@antelopejs/core': '>=1.16.0 <2'
+
+  '@antelopejs/dms-frontend@0.10.6':
+    resolution: {integrity: sha512-hP4lE+38wKYwDMoKQwuLFxyDFyhOW8atUIVGYnHUgMGZfkIlWyzJg5cuj47NxnWUH1K++augdWLg3JQzDGuqng==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -6853,6 +6860,22 @@ snapshots:
       '@oxc-parser/binding-linux-x64-gnu': 0.95.0
       '@oxc-parser/binding-win32-x64-msvc': 0.95.0
 
+  '@antelopejs/dms-frontend@0.10.6(@antelopejs/core@1.21.0)':
+    dependencies:
+      '@antelopejs/core': 1.21.0
+      '@intlify/message-compiler': 11.4.8
+      chokidar: 4.0.3
+      commander: 13.1.0
+      ignore: 7.0.12
+      semver: 7.8.5
+      yaml: 2.9.1
+    optionalDependencies:
+      '@oxc-parser/binding-darwin-arm64': 0.95.0
+      '@oxc-parser/binding-darwin-x64': 0.95.0
+      '@oxc-parser/binding-linux-arm64-gnu': 0.95.0
+      '@oxc-parser/binding-linux-x64-gnu': 0.95.0
+      '@oxc-parser/binding-win32-x64-msvc': 0.95.0
+
   '@antelopejs/interface-api-util@0.3.0(@antelopejs/interface-api@0.2.0(@antelopejs/interface-core@0.4.0))(@antelopejs/interface-core@0.4.0)':
     dependencies:
       '@antelopejs/interface-api': 0.2.0(@antelopejs/interface-core@0.4.0)
@@ -6912,7 +6935,7 @@ snapshots:
       - supports-color
     optional: true
 
-  '@antelopejs/tooling-configs@0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5(@types/node@24.13.3))':
+  '@antelopejs/tooling-configs@0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)':
     dependencies:
       '@oxlint/plugins': 1.81.0
       dts-bundle-generator: 9.5.1
@@ -9354,7 +9377,7 @@ snapshots:
 
   axios@1.18.0:
     dependencies:
-      follow-redirects: 1.16.0
+      follow-redirects: 1.16.0(debug@4.4.3)
       form-data: 4.0.6
       https-proxy-agent: 5.0.1
       proxy-from-env: 2.1.0
@@ -10246,8 +10269,6 @@ snapshots:
   focus-trap@7.8.0:
     dependencies:
       tabbable: 6.4.0
-
-  follow-redirects@1.16.0: {}
 
   follow-redirects@1.16.0(debug@4.4.3):
     optionalDependencies:

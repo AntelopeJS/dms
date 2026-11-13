@@ -1,10 +1,12 @@
 // @ts-check
+import rendererGlobals from "@antelopejs/dms-frontend/eslint-globals";
 import { TEST_FILE_GLOBS } from "@antelopejs/tooling-configs/oxc/guardrails";
 import eslint from "@eslint/js";
 import typescript from "@typescript-eslint/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
 import vue from "eslint-plugin-vue";
 import globals from "globals";
+import dmsGlobals from "./eslint-globals.generated.mjs";
 import testQuality from "./eslint-test-quality.mjs";
 
 const sourceFiles = ["**/*.{js,mjs,cjs,ts,vue}"];
@@ -20,16 +22,21 @@ export default [
   {
     files: sourceFiles,
     languageOptions: {
-      globals: { ...globals.browser, ...globals.node },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...rendererGlobals,
+        ...dmsGlobals,
+      },
       parserOptions: {
         parser: typescriptParser,
         sourceType: "module",
+        lib: ["esnext", "dom", "dom.iterable"],
       },
     },
     plugins: { "@typescript-eslint": typescript },
     rules: {
       "no-redeclare": "off",
-      "no-undef": "off",
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
