@@ -237,6 +237,48 @@ describe("another writer", () => {
   });
 });
 
+describe("an id a note stamped on the file", () => {
+  const STAMP = "b-k3j9x0qz";
+
+  function stamped(spec: MockupSpecDocument): MockupSpecDocument {
+    const [page] = spec.pages;
+    const [node] = page?.tree ?? [];
+    return page && node
+      ? { ...spec, pages: [{ ...page, tree: [{ ...node, id: STAMP }] }] }
+      : spec;
+  }
+
+  it("keeps the history and says nothing, and the spec shown takes the id (fails when a stamp counts as another writer's change)", async () => {
+    await mountEditor();
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    file.writeFromOutside(stamped(file.spec));
+    await streamSaysTheFileChanged();
+
+    expect(editor.canUndo.value).toBe(true);
+    expect(notices).toEqual([]);
+    expect(editor.spec.value).toEqual(file.spec);
+    expect(file.spec.pages[0]?.tree[0]?.id).toBe(STAMP);
+  });
+
+  it("writes an edit typed after the stamp over the stamped file, keeping the id (fails when the conflict drops the edit or the id)", async () => {
+    await mountEditor();
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    file.writeFromOutside(stamped(file.spec));
+    retitle("Mine, again");
+    await settle(MOCKUP_WRITE_DELAY_MS * 4);
+
+    expect(titleOf(file.spec)).toBe("Mine, again");
+    expect(file.spec.pages[0]?.tree[0]?.id).toBe(STAMP);
+    expect(editor.spec.value).toEqual(file.spec);
+    expect(editor.canUndo.value).toBe(true);
+    expect(notices).toEqual([]);
+  });
+});
+
 describe("a refused write", () => {
   it("shows the first error and goes back to the spec it last wrote (fails when the refused spec stays on screen)", async () => {
     await mountEditor();
