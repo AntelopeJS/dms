@@ -101,8 +101,7 @@ export function dispose(page: PageMetadata): void {
   const owner = metadataOwner(page);
   owner.detached = true;
   owner.releaseGate();
-  // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before drop deletes entries from the same map.
-  for (const info of [...owner.extensionEntries.keys()]) owner.drop(info);
+  for (const info of owner.extensionEntries.keys()) owner.drop(info);
   owner.rebuild();
   owner.ownComponents = {};
   owner.registration.dispose();

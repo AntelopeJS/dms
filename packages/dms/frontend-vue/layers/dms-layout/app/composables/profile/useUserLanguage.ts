@@ -12,6 +12,11 @@ export function useUserLanguage() {
   const { $authFetch } = useAuthFetch();
   const { user, fetch: refreshUser } = useDmsUserSession();
 
+  /**
+   * Switches the interface to `language`, then stores it on the profile and
+   * reads the session again. A failed profile write or session read stays
+   * silent: the interface has already switched.
+   */
   async function changeLanguage(language: string): Promise<void> {
     await dmsApp.$i18n.setLocale(language);
 

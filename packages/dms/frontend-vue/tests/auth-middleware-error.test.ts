@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsMiddleware, DmsRoute } from "#dms/frontend-module";
 
@@ -43,6 +44,30 @@ describe("auth middleware", () => {
     const middleware = await loadMiddleware();
 
     await expect(middleware(privateRoute, privateRoute)).resolves.toBe(false);
+    expect(navigateDms).not.toHaveBeenCalled();
+  });
+
+  it("shows a failed permission load and still lets the signed-in user through", async () => {
+    const toast = { add: vi.fn(() => ({ id: "failure" })), remove: vi.fn() };
+    vi.stubGlobal("useToast", () => toast);
+    vi.stubGlobal("useDmsRuntimeConfig", () => ({ public: { dms: {} } }));
+    vi.stubGlobal("useDmsUserSession", () => ({
+      loggedIn: { value: true },
+      user: { value: { isValidated: true } },
+    }));
+    vi.stubGlobal("usePermissions", () => ({
+      loadPermissions: () => Promise.reject(new Error("unreachable")),
+    }));
+    const middleware = await loadMiddleware();
+
+    await expect(
+      middleware(privateRoute, privateRoute),
+    ).resolves.toBeUndefined();
+
+    expect(toast.add).toHaveBeenCalledTimes(1);
+    expect(toast.add).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "error.500.description" }),
+    );
     expect(navigateDms).not.toHaveBeenCalled();
   });
 

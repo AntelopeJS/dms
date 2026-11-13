@@ -44,6 +44,7 @@ export function useGroupedRows(options: GroupedRowsOptions) {
   const { isActive, columns, rows } = options;
   const { t, locale } = useI18n();
   const { renderColumnValue } = useColumnValueRenderer();
+  const { presentError } = useApiErrorPresenter();
   const grouped = computed(() => toValue(options.grouped));
   const by = computed(() => grouped.value?.by ?? "value");
   const field = computed(() => grouped.value?.groupByField ?? "");
@@ -91,11 +92,10 @@ export function useGroupedRows(options: GroupedRowsOptions) {
   const refreshCounts = async () => {
     const queries = countQueries.value;
     if (import.meta.env.SSR || queries.length === 0) return;
-    // prettier-ignore
     try {
       counts.value = await options.countBatch(queries);
-    } catch {
-      // eslint-disable-line no-empty -- A failed count request leaves the group rows readable.
+    } catch (error: unknown) {
+      presentError(error, { fallbackKey: "dms.table.load_error_title" });
     }
   };
 

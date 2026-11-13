@@ -21,6 +21,7 @@ export function useTableViewQuickFilters<T extends Data>(
   const { t } = scope.tabs;
   const { props } = scope;
   const { getDataType } = useDataTypes();
+  const { presentError } = useApiErrorPresenter();
   const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
 
   const relationQuickFiltersLoaded = ref(false);
@@ -44,20 +45,24 @@ export function useTableViewQuickFilters<T extends Data>(
       quickFilterDefinitions
         .filter((definition) => !definition.items && definition.source)
         .map(async ({ filter, source }) => {
-          // prettier-ignore
           try {
-          const response = await $authFetch<
-            TableViewListResponse<Parameters<typeof relationQuickFilterItems>[0][number]>
-          >(source!.searchUrl, {
-            query: { limit: RELATION_QUICK_FILTER_LIMIT },
-          });
-          relationQuickFilterValues.value = {
-            ...relationQuickFilterValues.value,
-            [filter.field]: relationQuickFilterItems(response.results, source!),
-          };
-        } catch {
-          // eslint-disable-line no-empty -- Failed loads retain prior choices.
-        }
+            const response = await $authFetch<
+              TableViewListResponse<
+                Parameters<typeof relationQuickFilterItems>[0][number]
+              >
+            >(source!.searchUrl, {
+              query: { limit: RELATION_QUICK_FILTER_LIMIT },
+            });
+            relationQuickFilterValues.value = {
+              ...relationQuickFilterValues.value,
+              [filter.field]: relationQuickFilterItems(
+                response.results,
+                source!,
+              ),
+            };
+          } catch (error: unknown) {
+            presentError(error, { fallbackKey: "dms.table.load_error_title" });
+          }
         }),
     );
     relationQuickFiltersLoaded.value = true;

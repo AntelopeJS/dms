@@ -119,14 +119,13 @@ type ScopedKeyMapper = (key: string, storage?: string) => Promise<string>;
 // oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unknown-returns -- Takes and answers the value of one file or image column of the row a module passes to the published remapRecordFileKeys, keeping every leaf it does not remap.
 type ValueRemapper = (value: unknown, mapKey: KeyMapper) => Promise<unknown>;
 
-async function remapObjectValues(
-  // oxlint-disable-next-line anti-slop/no-object-parameters -- Object.entries walks arbitrary object values and remaps them without requiring a dictionary index signature.
-  value: object,
+async function remapEntries(
+  source: ReadonlyArray<readonly [string, unknown]>,
   mapKey: KeyMapper,
   remap: ValueRemapper,
 ) {
   const entries = await Promise.all(
-    Object.entries(value).map(
+    source.map(
       async ([key, item]) => [key, await remap(item, mapKey)] as const,
     ),
   );
@@ -142,7 +141,7 @@ const remapImageValue: ValueRemapper = async (value, mapKey) => {
   if (isString(candidate)) {
     return { ...value, key: await mapKey(candidate) };
   }
-  return remapObjectValues(value, mapKey, remapImageValue);
+  return remapEntries(Object.entries(value), mapKey, remapImageValue);
 };
 
 const remapFileValue: ValueRemapper = async (value, mapKey) => {
@@ -151,7 +150,7 @@ const remapFileValue: ValueRemapper = async (value, mapKey) => {
     return Promise.all(value.map((item) => remapFileValue(item, mapKey)));
   }
   if (!value || !isObject(value)) return value;
-  return remapObjectValues(value, mapKey, remapFileValue);
+  return remapEntries(Object.entries(value), mapKey, remapFileValue);
 };
 
 const VALUE_REMAPPERS = new Map<string, ValueRemapper>([

@@ -81,6 +81,10 @@ export function useWatch(
 
   const requiredEvents = new Set<string>(actions.map((action) => action.event));
 
+  /**
+   * Runs each matching action in turn. A synchronous action failure does not
+   * stop the actions after it.
+   */
   function runMatchingActions(
     matchingActions: WatchAction[],
     event: WatchEvent,

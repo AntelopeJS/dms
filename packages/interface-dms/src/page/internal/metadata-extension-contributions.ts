@@ -15,8 +15,7 @@ export function removeStaleExtensions(
 ): void {
   const owner = metadataOwner(page);
   const desired = new Set(infos);
-  // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before drop deletes entries from the same map.
-  for (const info of [...owner.extensionEntries.keys()]) {
+  for (const info of owner.extensionEntries.keys()) {
     if (!desired.has(info)) owner.drop(info);
   }
 }

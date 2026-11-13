@@ -76,8 +76,9 @@ export function decorateColumn(
   meta.setColumn(columnKey, options);
 
   if (options.validate !== false) {
-    // oxlint-disable-next-line typescript/unbound-method -- This assertion checks method presence without calling it; getValidation is called through options.type below.
-    assert(options.type.getValidation, "Type has no getValidation method");
+    if (!options.type.getValidation) {
+      assert.fail("Type has no getValidation method");
+    }
 
     const dataMeta = GetMetadata(decoratedClass(target), DataAPIMeta);
     const localizedFields = getModifiedFields(

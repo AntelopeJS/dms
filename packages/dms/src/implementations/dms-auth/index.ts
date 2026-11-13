@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
-import { GetModel } from "@antelopejs/interface-database-decorators";
+import {
+  GetModel,
+  toDatabase,
+} from "@antelopejs/interface-database-decorators";
 import { Send } from "@antelopejs/interface-email";
 import type { AdminInviteEmailContext } from "@antelopejs/interface-dms/auth";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -422,8 +425,7 @@ export function sanitizeUser(user: User): Partial<User> {
     ...config.userSensitiveKeys,
   ];
 
-  // oxlint-disable-next-line typescript/no-misused-spread -- Sanitization intentionally copies only the User instance's own enumerable database fields, not prototype methods.
-  const result = { ...user };
+  const result = toDatabase(user);
 
   for (const key of sensitiveKeys) {
     if (key.includes(".")) {

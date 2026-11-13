@@ -294,6 +294,10 @@ async function runPageSetup() {
   }
 }
 
+/**
+ * Runs the cleanup the page setup returned, then every cleanup it registered.
+ * One failed cleanup does not prevent the remaining cleanups.
+ */
 function tearDownPageSetup() {
   if (isFunction(pageSetupReturned)) {
     try {

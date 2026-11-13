@@ -105,12 +105,9 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     assert(settings, 428, "error.settings_not_found");
     assert(!settings.has_onboarded, 412, "error.onboarding_already_completed");
 
-    await this.model.updateConfig({
-      // oxlint-disable-next-line typescript/no-misused-spread -- Copy the settings instance's own persisted fields before overriding onboarding details; its prototype methods are not configuration.
-      ...settings,
-      has_onboarded: true,
-      platform_name: details.platformName ?? settings.platform_name,
-      default_language: details.language ?? settings.default_language,
-    });
+    settings.has_onboarded = true;
+    settings.platform_name = details.platformName ?? settings.platform_name;
+    settings.default_language = details.language ?? settings.default_language;
+    await this.model.updateConfig(settings);
   }
 }
