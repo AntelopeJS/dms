@@ -12,6 +12,7 @@ const RELAY_SECRET = "relay-secret-for-tests-only";
 const RENDER_SECRET = "render-secret-for-tests-only";
 const ESTABLISH_ENDPOINT = "/api/saas/register/finalize";
 const REVOKED_EMAIL = "revoked@example.test";
+const EXPIRED_EMAIL = "expired@example.test";
 const UUID =
   /[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}/g;
 
@@ -41,10 +42,22 @@ const USER = {
 /** Answers a test puts in place of the backend's own, by path. */
 const answerOverrides = new Map<string, { status: number; body: unknown }>();
 
+function signedIn(serial: string, refreshToken: string) {
+  return {
+    status: 200,
+    body: {
+      access_token: accessToken("t1", serial),
+      refresh_token: refreshToken,
+      user: USER,
+    },
+  };
+}
+
 /** What the backend answers each path with. */
 function backendAnswer(
   path: string,
   body: { password?: string; email?: string; token?: string },
+  authorization?: string,
 ) {
   const override = answerOverrides.get(path);
   if (override) return override;
@@ -60,14 +73,14 @@ function backendAnswer(
       },
     };
   if (path === "/api/auth/login" && body.email === REVOKED_EMAIL)
-    return {
-      status: 200,
-      body: {
-        access_token: accessToken("t1", "login"),
-        refresh_token: "revoked",
-        user: USER,
-      },
-    };
+    return signedIn("login", "revoked");
+  if (path === "/api/auth/login" && body.email === EXPIRED_EMAIL)
+    return signedIn("expired", "refresh-1");
+  if (
+    path === "/api/auth/logout" &&
+    authorization === `Bearer ${accessToken("t1", "expired")}`
+  )
+    return { status: 401, body: { message: "Invalid session token" } };
   if (
     [
       "/api/auth/login",
@@ -259,6 +272,7 @@ export {
   RENDER_SECRET,
   ESTABLISH_ENDPOINT,
   REVOKED_EMAIL,
+  EXPIRED_EMAIL,
   USER,
   answerOverrides,
   backendAnswer,

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createServerRoutesFixture } from "./helpers/server-routes-fixture";
-import { REVOKED_EMAIL, cookiesOf } from "./helpers/server-routes-fixtures";
+import {
+  EXPIRED_EMAIL,
+  REVOKED_EMAIL,
+  cookiesOf,
+} from "./helpers/server-routes-fixtures";
 
 type Answer = Awaited<
   ReturnType<ReturnType<typeof createServerRoutesFixture>["askDms"]>
@@ -56,5 +60,25 @@ describe("a stored account whose session the backend revoked", () => {
     const validated = await use("validate-account");
     expect(validated.body).toEqual({ valid: false });
     expect(storedAccounts(validated)).toEqual(FORGOTTEN);
+  });
+});
+
+describe("a sign-out with an expired access token", () => {
+  const fixture = createServerRoutesFixture();
+
+  it("renews it and revokes the backend session all the same", async () => {
+    const ended = await fixture.askDms("/api/_auth/session", async (base) => ({
+      method: "DELETE",
+      cookie: await cookiesOf(base, "/auth/login", {
+        body: { email: EXPIRED_EMAIL, password: "secret" },
+      }),
+    }));
+    expect(ended.calls.map((call) => call.path)).toEqual([
+      "/api/auth/logout",
+      "/api/auth/refresh",
+      "/api/auth/logout",
+    ]);
+    expect(ended.calls[2].authorization).not.toBe(ended.calls[0].authorization);
+    expect(storedAccounts(ended)).toEqual(FORGOTTEN);
   });
 });
