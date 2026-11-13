@@ -182,21 +182,22 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   let isCheckDue = false;
   let isClosed = false;
 
+  /**
+   * Reads the file; undefined when it cannot be read or holds no valid spec.
+   * `onError` hears why, and only a write that needed the read reports it.
+   */
   async function read(
-    onError: (error: unknown) => void,
+    onError?: (error: unknown) => void,
   ): Promise<SpecSource | undefined> {
     try {
       const source = parseSource(await options.authFetch(endpoint));
-      if (!source) onError(new Error("spec.json could not be read"));
+      if (!source) onError?.(new Error("spec.json could not be read"));
       return source;
     } catch (error) {
-      onError(error);
+      onError?.(error);
       return undefined;
     }
   }
-
-  const notifyFailure = (error: unknown) =>
-    options.onNotice({ kind: "failed", error });
 
   function stopTimers(): void {
     if (timer !== undefined) clearTimeout(timer);
@@ -263,7 +264,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
       isCheckDue = true;
       return;
     }
-    const source = await read(notifyFailure);
+    const source = await read();
     const present = history.value?.present;
     if (!source || isClosed) return;
     if (source.digest === digest) {
@@ -305,7 +306,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   }
 
   function failed(error: unknown): void {
-    if (!hasFailed.value) notifyFailure(error);
+    if (!hasFailed.value) options.onNotice({ kind: "failed", error });
     hasFailed.value = true;
     retryLater();
   }
@@ -393,7 +394,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   }
 
   onMounted(async () => {
-    const source = await read(notifyFailure);
+    const source = await read();
     if (source && !isClosed && !history.value) adopt(source, false);
   });
   watch(
