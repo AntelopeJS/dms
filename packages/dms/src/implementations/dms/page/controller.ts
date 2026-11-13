@@ -28,7 +28,7 @@ import {
   GetPageLayoutBySlug,
 } from "@antelopejs/interface-dms/page";
 import { assertPageSessionAccepted } from "../stale-session";
-import { queryText } from "../../../utils/query-text";
+import { queryText } from "../../../utils";
 import { resolveUserPermissions, buildAccessContext } from "./access";
 import type {
   SiteLayoutPayload,

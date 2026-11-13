@@ -5,7 +5,7 @@ import {
   CreateCategory,
   CreatePage,
 } from "../../../implementations/dms-builder";
-import { DEFAULT_COMPILER_OPTIONS } from "../../../implementations/dms-builder/engine/project";
+import { DEFAULT_COMPILER_OPTIONS } from "../../../implementations/dms-builder/engine";
 import {
   createFixture,
   destroyFixture,
