@@ -43,16 +43,21 @@ jobs:
         pnpm --dir packages/dms check:frontend-declarations
       renovate-sync: false
       test-job: true
+      windows: true
     permissions:
       contents: read
 
   backend:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         suite: [unit, integration, "builder:1", "builder:2"]
+    defaults:
+      run:
+        shell: bash
     env:
       DMS_PREBUILT: "1"
     steps:
@@ -77,12 +82,16 @@ jobs:
       - run: pnpm --dir packages/dms test:${{ matrix.suite }}
 
   frontend-test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         shard: [1, 2]
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       # Some tests import the interface's chart helpers at runtime.
@@ -95,8 +104,15 @@ jobs:
       - run: pnpm --dir packages/dms/frontend-vue test --shard=${{ matrix.shard }}/2
 
   frontend-verify:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -148,8 +164,15 @@ jobs:
           exit 1
 
   verify-map:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

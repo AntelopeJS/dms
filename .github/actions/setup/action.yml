@@ -11,6 +11,13 @@ inputs:
 runs:
   using: composite
   steps:
+    - if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        bash_path=$(cygpath -w /usr/bin/bash)
+        echo "npm_config_script_shell=${bash_path}" >> "$GITHUB_ENV"
+        echo "pnpm_config_script_shell=${bash_path}" >> "$GITHUB_ENV"
+
     # Before setup-node, which needs pnpm on PATH to resolve the store it
     # caches. The version comes from the root `packageManager` field.
     - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
