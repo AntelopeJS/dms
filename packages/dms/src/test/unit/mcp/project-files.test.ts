@@ -1,5 +1,5 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { platform, tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect } from "chai";
 import { formatMcpJson, publishBridge } from "../../../mcp/project-files";
@@ -10,7 +10,7 @@ import {
 } from "../../helpers/mcp";
 
 const URL = "http://127.0.0.1:5010/dms/mcp";
-const itWithPosixModes = process.platform === "win32" ? it.skip : it;
+const itWithPosixModes = platform() === "win32" ? it.skip : it;
 const TOKEN = "first-token";
 
 const WRITTEN_FOR_EMPTY_PROJECT = `{
