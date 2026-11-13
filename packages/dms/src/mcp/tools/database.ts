@@ -1,37 +1,8 @@
-import {
-  GetInterfaceInstances,
-  GetResponsibleModule,
-  type InterfaceConnection,
-  RunWithResponsibleModule,
-} from "@antelopejs/interface-core";
-import type * as Catalog from "@antelopejs/interface-database-catalog";
 import { z } from "zod";
+import type { CatalogConnection } from "../../implementations/dms-builder/engine";
 import { defineTool, type McpToolResult, textResult } from "../tool";
 
-const CATALOG_INTERFACE = "@antelopejs/interface-database-catalog";
-
-/**
- * The module this file belongs to, read while the module evaluates it. A tool
- * runs in the context of the module serving HTTP, so a lookup made there would
- * answer that module's connections, not the DMS's.
- */
-const OWN_MODULE = GetResponsibleModule();
-
-interface NamedConnection {
-  id: string;
-  reachable: boolean;
-}
-
-function catalogConnections(): NamedConnection[] {
-  const lookup = () => GetInterfaceInstances(CATALOG_INTERFACE);
-  const connections: InterfaceConnection[] =
-    OWN_MODULE === undefined
-      ? lookup()
-      : RunWithResponsibleModule(OWN_MODULE, lookup);
-  return connections.flatMap(({ id, selected }) =>
-    id === undefined || id.length === 0 ? [] : [{ id, reachable: selected }],
-  );
-}
+const engine = () => import("../../implementations/dms-builder/engine");
 
 function failed(error: { [key: string]: string | string[] }): McpToolResult {
   return textResult(JSON.stringify({ ok: false, error }), true);
@@ -39,32 +10,19 @@ function failed(error: { [key: string]: string | string[] }): McpToolResult {
 
 async function onCatalog(
   connection: string,
-  work: (catalog: typeof Catalog) => Promise<string>,
+  work: (catalog: CatalogConnection) => Promise<string>,
 ): Promise<McpToolResult> {
-  const connections = catalogConnections();
-  const target = connections.find(({ id }) => id === connection);
-  if (target === undefined) {
-    return failed({
-      code: "unknown_connection",
-      connection,
-      known: connections.map(({ id }) => id),
-    });
-  }
-  if (!target.reachable) {
-    return failed({
-      code: "unreachable_connection",
-      connection,
-      detail:
-        "The DMS reaches only the catalog connection its import of @antelopejs/interface-database-catalog selects.",
-      reachable: connections.flatMap(({ id, reachable }) =>
-        reachable ? [id] : [],
-      ),
-    });
-  }
+  const { catalogOf, listCatalogConnections } = await engine();
   try {
-    return textResult(
-      await work(await import("@antelopejs/interface-database-catalog")),
-    );
+    const catalog = catalogOf(connection);
+    if (catalog === undefined) {
+      return failed({
+        code: "unknown_connection",
+        connection,
+        known: listCatalogConnections(),
+      });
+    }
+    return textResult(await work(catalog));
   } catch (error) {
     return failed({
       code: "catalog_failed",
@@ -81,15 +39,13 @@ const RELATION = z
   .describe('A relation named `"schema.name"`, e.g. `sales.accounts`.');
 const COLUMN_REFERENCE = z.object({ relation: RELATION, column: z.string() });
 
-async function describeConnection({ id, reachable }: NamedConnection) {
-  if (!reachable) return { connection: id, reachable: false };
+async function describeConnection(connection: string) {
+  const { catalogOf } = await engine();
   try {
-    const catalog = await import("@antelopejs/interface-database-catalog");
-    return { connection: id, reachable: true, ...(await catalog.Info()) };
+    return { connection, ...(await catalogOf(connection)?.Info()) };
   } catch (error) {
     return {
-      connection: id,
-      reachable: true,
+      connection,
       error: error instanceof Error ? error.message : String(error),
     };
   }
@@ -99,15 +55,17 @@ const connections = defineTool({
   name: "database_connections",
   title: "List database connections",
   description:
-    "Lists the databases the project connects the DMS to, each with its engine, version, database and role, and whether the DMS reaches it (`reachable`): the tools read the one connection the DMS's catalog import selects. Configuration declares them; when none is listed, connect one first with builder_configure_project.",
+    "Lists the databases the project connects the DMS to, each with its engine, version, database and role, or `error` when its provider does not answer. Configuration declares them; when none is listed, connect one first with builder_configure_project.",
   effect: "read",
   input: z.object({}),
-  run: async () =>
-    textResult(
+  run: async () => {
+    const { listCatalogConnections } = await engine();
+    return textResult(
       JSON.stringify(
-        await Promise.all(catalogConnections().map(describeConnection)),
+        await Promise.all(listCatalogConnections().map(describeConnection)),
       ),
-    ),
+    );
+  },
 });
 
 const relations = defineTool({
