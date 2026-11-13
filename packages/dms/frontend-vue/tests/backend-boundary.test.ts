@@ -1,6 +1,7 @@
 import {
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -13,7 +14,7 @@ import { backendBoundary } from "../build/backend-boundary.ts";
 
 let root: string;
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "dms-boundary-"));
+  root = realpathSync.native(mkdtempSync(join(tmpdir(), "dms-boundary-")));
   mkdirSync(join(root, "backend/src"), { recursive: true });
   mkdirSync(join(root, "backend/dist"), { recursive: true });
   mkdirSync(join(root, "frontend"), { recursive: true });
