@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { type ClientRequest, get, type IncomingMessage } from "node:http";
 import { join } from "node:path";
 import { expect } from "chai";
@@ -157,12 +157,9 @@ describe("[unit] mockup routes: listing and fixtures", () => {
 describe("[unit] mockup routes: annotations and events", () => {
   const served = serveMockupRoutes(SPEC);
   let owner: AxiosInstance;
-  let ownerToken: string;
-  let engine: MockupEngine;
-  let base: string;
 
   before(() => {
-    ({ owner, ownerToken, engine, dir: base } = served());
+    ({ owner } = served());
   });
 
   it("answers 404 for the events of a mockup that does not exist", async () => {
@@ -173,8 +170,13 @@ describe("[unit] mockup routes: annotations and events", () => {
 });
 
 describe("[unit] mockup routes: annotations", () => {
-  before(startEngine);
-  after(stopEngine);
+  const served = serveMockupRoutes(SPEC);
+  let owner: AxiosInstance;
+  let base: string;
+
+  before(() => {
+    ({ owner, dir: base } = served());
+  });
 
   it("refuses an annotation on a page or node the spec does not have", async () => {
     const note = { text: "Somewhere" };
@@ -230,22 +232,22 @@ describe("[unit] mockup routes: annotations", () => {
       JSON.stringify(shelf(sketch("a"), sketch("b"))),
     );
 
-    const posted = await client.post(`${BASE}/shelf/annotations`, {
+    const posted = await owner.post(`${BASE}/shelf/annotations`, {
       page: "home",
       path: "/pages/0/tree/1",
       text: "About b",
     });
     const source = specSourceSchema.parse(
-      (await client.get(`${BASE}/shelf/spec`)).data,
+      (await owner.get(`${BASE}/shelf/spec`)).data,
     );
     const [first, second] = source.spec.pages[0].tree;
-    const written = await client.put(`${BASE}/shelf/spec`, {
+    const written = await owner.put(`${BASE}/shelf/spec`, {
       spec: shelf(sketch("new"), first, second),
       digest: source.digest,
     });
-    const listed = await client.get(`${BASE}/shelf/annotations`);
+    const listed = await owner.get(`${BASE}/shelf/annotations`);
     await writeFile(join(base, "mockups", "shelf", "spec.json"), "{ not json");
-    const refused = await client.post(`${BASE}/shelf/annotations`, {
+    const refused = await owner.post(`${BASE}/shelf/annotations`, {
       page: "home",
       path: "/pages/0/tree/0",
       text: "Anywhere",
@@ -265,8 +267,14 @@ describe("[unit] mockup routes: annotations", () => {
 });
 
 describe("[unit] mockup routes: events", () => {
-  before(startEngine);
-  after(stopEngine);
+  const served = serveMockupRoutes(SPEC);
+  let ownerToken: string;
+  let engine: MockupEngine;
+  let base: string;
+
+  before(() => {
+    ({ ownerToken, engine, dir: base } = served());
+  });
 
   it("streams the state on connect and ends the stream when the engine stops", async () => {
     const { response, firstChunk } = await openEvents("desk", ownerToken);
