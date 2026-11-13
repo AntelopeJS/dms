@@ -232,6 +232,9 @@ function createPermissionPreviewPartialFixture() {
       t: (key: string, values?: { role?: string }) =>
         values?.role ? `${key}(${values.role})` : key,
     }));
+    vi.stubGlobal("useTranslation", () => ({
+      processI18n: (value: string) => value,
+    }));
     vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
       if (!state.has(key)) state.set(key, ref(initial()));
       return state.get(key);

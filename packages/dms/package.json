@@ -183,7 +183,7 @@
     "@antelopejs/interface-database-catalog": ">=0.0.3 <1.0.0",
     "@antelopejs/interface-dms-automation": ">=0.6.0 <1.0.0",
     "@antelopejs/interface-redis": ">=0.0.9 <1.0.0",
-    "playwright-core": "~1.56.1"
+    "playwright-core": "~1.65.0"
   },
   "peerDependencies": {
     "@antelopejs/core": ">=1.21.0 <2"
