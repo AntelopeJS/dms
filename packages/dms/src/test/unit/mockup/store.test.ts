@@ -165,6 +165,50 @@ describe("[unit] mockup store", () => {
 describe("[unit] mockup store names and annotations", () => {
   withMockupsDirectory();
 
+  it("sends the annotations again, placed where their blocks moved to, when only the spec changed (fails when a spec change sends the state alone)", async () => {
+    const block = {
+      type: "KpiCard",
+      options: { title: "Mark", staticValue: 1 },
+    };
+    const page = (...tree: unknown[]) =>
+      JSON.stringify({ version: 1, pages: [{ id: "home", title: "T", tree }] });
+    await writeFile(
+      join(root, NAME, "spec.json"),
+      page({ ...block, id: "mark" }),
+    );
+    await writeFile(
+      join(root, NAME, "annotations.json"),
+      JSON.stringify({
+        version: 2,
+        annotations: [
+          {
+            id: "n1",
+            anchor: { block: "mark", steps: [] },
+            text: "x",
+            status: "open",
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      }),
+    );
+    const { ready, event } = nextEvent(
+      store,
+      NAME,
+      (received) =>
+        received.event === "annotations" &&
+        received.data.annotations[0]?.path === "/pages/0/tree/1",
+    );
+    const unsubscribe = await ready;
+    await writeFile(
+      join(root, NAME, "spec.json"),
+      page(block, { ...block, id: "mark" }),
+    );
+    const received = await event;
+    unsubscribe();
+
+    expect(received.event).to.equal("annotations");
+  });
+
   it("lists only directories with a spec, under a valid name", async () => {
     await mkdir(join(root, "no-spec"));
     await mkdir(join(root, "Bad Name"));
@@ -201,16 +245,16 @@ describe("[unit] mockup store names and annotations", () => {
       ),
     );
     const first = created[0];
-    if (!first) throw new Error("the mockup does not exist");
+    if (first.kind !== "created") throw new Error(`not created: ${first.kind}`);
     const resolved = await updateAnnotation(
       NAME,
-      first.id,
+      first.annotation.id,
       { status: "resolved" },
       root,
     );
     const reopened = await updateAnnotation(
       NAME,
-      first.id,
+      first.annotation.id,
       { status: "open", text: "again" },
       root,
     );
@@ -242,6 +286,6 @@ describe("[unit] mockup store names and annotations", () => {
         { page: "home", path: "", text: "x" },
         root,
       ),
-    ).to.equal(undefined);
+    ).to.deep.equal({ kind: "no_mockup" });
   });
 });

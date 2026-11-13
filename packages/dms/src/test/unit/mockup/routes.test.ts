@@ -66,6 +66,16 @@ const annotationSchema = z.object({
   resolvedAt: z.string().optional(),
 });
 
+const placeSchema = z.object({ page: z.string(), path: z.string() });
+const placesSchema = z.object({ annotations: z.array(placeSchema) });
+
+const specSourceSchema = z.object({
+  digest: z.string(),
+  spec: z.object({
+    pages: z.array(z.object({ tree: z.array(z.unknown()) })),
+  }),
+});
+
 const idsSchema = rowsSchema.transform((page) =>
   page.results.map((row) => row._id),
 );
@@ -160,6 +170,11 @@ describe("[unit] mockup routes: annotations and events", () => {
 
     expect(missing.status).to.equal(404);
   });
+});
+
+describe("[unit] mockup routes: annotations", () => {
+  before(startEngine);
+  after(stopEngine);
 
   it("refuses an annotation on a page or node the spec does not have", async () => {
     const note = { text: "Somewhere" };
@@ -199,6 +214,59 @@ describe("[unit] mockup routes: annotations and events", () => {
     expect(refused.status).to.equal(400);
     expect(listed.data).to.deep.equal({ annotations: [resolved.data] });
   });
+
+  it("serves a note where its block is after a whole-spec write moved it, and answers a spec that does not parse with 409 (fails when notes keep the pointer they were posted with)", async () => {
+    const sketch = (html: string) => ({
+      type: "sketch",
+      options: { html, height: 80 },
+    });
+    const shelf = (...tree: unknown[]) => ({
+      version: 1,
+      pages: [{ id: "home", title: "Home", tree }],
+    });
+    await mkdir(join(base, "mockups", "shelf"), { recursive: true });
+    await writeFile(
+      join(base, "mockups", "shelf", "spec.json"),
+      JSON.stringify(shelf(sketch("a"), sketch("b"))),
+    );
+
+    const posted = await client.post(`${BASE}/shelf/annotations`, {
+      page: "home",
+      path: "/pages/0/tree/1",
+      text: "About b",
+    });
+    const source = specSourceSchema.parse(
+      (await client.get(`${BASE}/shelf/spec`)).data,
+    );
+    const [first, second] = source.spec.pages[0].tree;
+    const written = await client.put(`${BASE}/shelf/spec`, {
+      spec: shelf(sketch("new"), first, second),
+      digest: source.digest,
+    });
+    const listed = await client.get(`${BASE}/shelf/annotations`);
+    await writeFile(join(base, "mockups", "shelf", "spec.json"), "{ not json");
+    const refused = await client.post(`${BASE}/shelf/annotations`, {
+      page: "home",
+      path: "/pages/0/tree/0",
+      text: "Anywhere",
+    });
+
+    expect(posted.status).to.equal(200);
+    expect(placeSchema.parse(posted.data)).to.deep.equal({
+      page: "home",
+      path: "/pages/0/tree/1",
+    });
+    expect(written.status).to.equal(200);
+    expect(
+      placesSchema.parse(listed.data).annotations.map(({ path }) => path),
+    ).to.deep.equal(["/pages/0/tree/2"]);
+    expect(refused.status).to.equal(409);
+  });
+});
+
+describe("[unit] mockup routes: events", () => {
+  before(startEngine);
+  after(stopEngine);
 
   it("streams the state on connect and ends the stream when the engine stops", async () => {
     const { response, firstChunk } = await openEvents("desk", ownerToken);

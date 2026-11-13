@@ -1,10 +1,9 @@
-import type { KeyObject } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { sign, verify } from "jsonwebtoken";
+import { sign } from "jsonwebtoken";
 import { decodeUnverified, isJwtClaims } from "../../utils";
-import { generateSecret } from "./token-secret";
+import { generateSecret, verifyTokenFor } from "./token-secret";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const HTTP_UNAUTHORIZED = 401;
@@ -41,15 +40,6 @@ function refuse(): never {
   throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_HANDOFF_ERROR);
 }
 
-function readClaims(token: string, secret: KeyObject) {
-  try {
-    const payload = verify(token, secret, { algorithms: ["HS256"] });
-    return isJwtClaims(payload) ? payload : refuse();
-  } catch {
-    return refuse();
-  }
-}
-
 /**
  * Checks a session handoff token against its user's current key.
  *
@@ -61,9 +51,10 @@ export async function validateSessionHandoffToken(
   const unverified = decodeUnverified(token);
   if (!isJwtClaims(unverified) || !isString(unverified.id)) refuse();
   const user = await GetModel(UserModel).get(unverified.id);
-  if (!user) refuse();
-  const claims = readClaims(token, generateSecret(user.authKey));
+  const claims = verifyTokenFor(token, user);
   if (
+    !user ||
+    !isJwtClaims(claims) ||
     claims.purpose !== SESSION_HANDOFF_PURPOSE ||
     !isString(claims.tenantId) ||
     !isString(claims.sessionId)

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { IdStamp } from "./anchor";
 import { compileSpec, parseSpec } from "./compile";
 import {
   MISSING_FILE,
@@ -19,6 +20,11 @@ import type {
 import { jsonObjectSchema } from "./model";
 
 const JSON_INDENT = 2;
+const FIRST_INDENT = /^[ \t]+(?=\S)/m;
+const TAB = "\t";
+const LEADING_TABS = /^\t+/gm;
+const LF = "\n";
+const CRLF = "\r\n";
 const DIGEST_LENGTH = 16;
 
 /** Names one content of `spec.json`: equal digests, equal files. */
@@ -81,22 +87,41 @@ export async function readSpecSource(
 /** Writes `spec` as {@link writeSpec} does, inside {@link withSpecLock}. */
 export type SpecWriter = (spec: Json | MockupSpec) => Promise<SpecWriteResult>;
 
+/**
+ * Writes `text`, the `spec.json` read inside {@link withSpecLock}, with each
+ * stamp's id added as the last key of the node its pointer names. The file
+ * keeps its layout: one line when it was one line, else the indentation of
+ * its first indented line; CRLF line endings when it had any; a final line
+ * ending when it had one. Everything else is written as `JSON.stringify`
+ * writes the parsed file: keys keep their order, except that keys which are
+ * whole numbers, such as `"2024"`, move first in their object, and spacing
+ * within a line, number spellings and string escapes take its form. It does
+ * not compile the spec: a stamp cannot add an issue, so a spec that has
+ * issues still takes one.
+ */
+export type SpecStamper = (
+  text: string,
+  stamps: readonly IdStamp[],
+) => Promise<void>;
+
 const writeTails = new Map<string, Promise<void>>();
 
 /**
  * Runs `run` once every earlier call for the same mockup has settled, so a
  * read of `spec.json` and the write based on it cannot interleave with
- * another writer of this process. `run` receives the writer to use: calling
+ * another writer of this process. `run` receives the writers to use: calling
  * {@link writeSpec} from inside would wait on itself.
  */
 export async function withSpecLock<Result>(
   mockupsDir: string,
   name: MockupName,
-  run: (write: SpecWriter) => Promise<Result>,
+  run: (write: SpecWriter, stamp: SpecStamper) => Promise<Result>,
 ): Promise<Result> {
   const key = mockupDirectory(mockupsDir, name);
   const previous = writeTails.get(key) ?? Promise.resolve();
-  const turn = previous.then(() => run(writeNow(mockupsDir, name)));
+  const turn = previous.then(() =>
+    run(writeNow(mockupsDir, name), stampNow(mockupsDir, name)),
+  );
   const tail = turn.then(
     () => undefined,
     () => undefined,
@@ -109,6 +134,34 @@ export async function withSpecLock<Result>(
   }
 }
 
+async function persist(
+  mockupsDir: string,
+  name: MockupName,
+  text: string,
+): Promise<SpecDigest> {
+  const directory = mockupDirectory(mockupsDir, name);
+  await mkdir(directory, { recursive: true });
+  await writeAtomically(join(directory, SPEC_FILE), text);
+  return digestOf(text);
+}
+
+/** `spec` as JSON text laid out as `text` is: see {@link SpecStamper}. */
+function laidOutAs(text: string, spec: Json): string {
+  const body = text.trimEnd();
+  const indent = body.includes(LF)
+    ? (FIRST_INDENT.exec(body)?.[0] ?? " ".repeat(JSON_INDENT))
+    : undefined;
+  const eol = text.includes(CRLF) ? CRLF : LF;
+  const json = (
+    indent === undefined
+      ? JSON.stringify(spec)
+      : JSON.stringify(spec, null, TAB).replaceAll(LEADING_TABS, (tabs) =>
+          indent.repeat(tabs.length),
+        )
+  ).replaceAll(LF, eol);
+  return text.endsWith(LF) ? `${json}${eol}` : json;
+}
+
 function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
   return async (spec) => {
     const read = parseSpec(JSON.stringify(spec));
@@ -119,11 +172,38 @@ function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
         errors: issues.map(({ path, message }) => ({ path, message })),
       };
     }
-    const directory = mockupDirectory(mockupsDir, name);
-    const text = `${JSON.stringify(spec, null, JSON_INDENT)}\n`;
-    await mkdir(directory, { recursive: true });
-    await writeAtomically(join(directory, SPEC_FILE), text);
-    return { ok: true, digest: digestOf(text) };
+    const text = `${JSON.stringify(spec, null, JSON_INDENT)}${LF}`;
+    return { ok: true, digest: await persist(mockupsDir, name, text) };
+  };
+}
+
+function isJsonObject(value: Json | undefined): value is JsonObject {
+  return value instanceof Object && !Array.isArray(value);
+}
+
+function valueAt(value: Json, pointer: string): Json | undefined {
+  return pointer
+    .split("/")
+    .slice(1)
+    .reduce<Json | undefined>((at, segment) => {
+      if (Array.isArray(at)) return at[Number(segment)];
+      return isJsonObject(at) && Object.hasOwn(at, segment)
+        ? at[segment]
+        : undefined;
+    }, value);
+}
+
+function stampNow(mockupsDir: string, name: MockupName): SpecStamper {
+  return async (text, stamps) => {
+    const spec = jsonObjectSchema.parse(JSON.parse(text));
+    for (const { path, id } of stamps) {
+      const node = valueAt(spec, path);
+      if (!isJsonObject(node)) {
+        throw new Error(`${path} names no node of mockups/${name}/spec.json`);
+      }
+      node.id = id;
+    }
+    await persist(mockupsDir, name, laidOutAs(text, spec));
   };
 }
 

@@ -1,151 +1,24 @@
 /** @vitest-environment jsdom */
-import { createApp, defineComponent, shallowRef, type App } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   MOCKUP_RETRY_DELAY_MS,
   MOCKUP_WRITE_DELAY_MS,
-  useMockupSpec,
-  type MockupSpecEditor,
-  type MockupSpecNotice,
 } from "../layers/dms-ui/app/entries/composables/block-preview/useMockupSpec";
-import type { MockupSpecDocument } from "../layers/dms-ui/app/entries/utils/mockupSpec";
-import { mockupState } from "./helpers/mockup-runtime";
+import { initialSpec } from "./helpers/mockup-spec-file";
+import {
+  TITLE,
+  editor,
+  file,
+  mountEditor,
+  notices,
+  retitle,
+  settle,
+  streamSaysTheFileChanged,
+  titleOf,
+  useSpecEditor,
+} from "./helpers/mockup-spec-editor";
 
-const ENDPOINT = "/api/mockup/demo/spec";
-const TITLE = "/pages/0/tree/0";
-
-function initialSpec(): MockupSpecDocument {
-  return {
-    version: 1,
-    pages: [
-      {
-        id: "orders",
-        title: "Orders",
-        tree: [{ type: "KpiCard", options: { title: "Revenue" } }],
-      },
-    ],
-  };
-}
-
-/** The backend's `spec.json`: its content, its digest, and the writes it took. */
-class FakeSpecFile {
-  spec = initialSpec();
-  version = 1;
-  refuse: { path: string; message: string } | undefined;
-  /** How many of the next writes fail with a server error before one lands. */
-  failures = 0;
-  /** How many of the next writes land, then answer a server error. */
-  lostAnswers = 0;
-  /** How many of the next reads fail with a server error. */
-  readFailures = 0;
-  /** Holds the answer of the next write that lands until it settles. */
-  answerGate: Promise<void> | undefined;
-  readonly writes: Array<{ spec: MockupSpecDocument; digest?: string }> = [];
-
-  get digest(): string {
-    return `d${this.version}`;
-  }
-
-  writeFromOutside(spec: MockupSpecDocument): void {
-    this.spec = spec;
-    this.version += 1;
-  }
-
-  readonly fetch = vi.fn(
-    async (
-      url: string,
-      init?: {
-        method?: string;
-        body?: { spec: MockupSpecDocument; digest?: string };
-      },
-    ) => {
-      if (url !== ENDPOINT) throw new Error(`unexpected ${url}`);
-      if (init?.method !== "PUT" || !init.body) {
-        if (this.readFailures > 0) {
-          this.readFailures -= 1;
-          throw Object.assign(new Error("unavailable"), { status: 503 });
-        }
-        return { spec: structuredClone(this.spec), digest: this.digest };
-      }
-      if (this.failures > 0) {
-        this.failures -= 1;
-        throw Object.assign(new Error("boom"), { status: 500 });
-      }
-      this.writes.push(structuredClone(init.body));
-      if (init.body.digest !== this.digest) {
-        throw Object.assign(new Error("conflict"), { status: 409 });
-      }
-      if (this.refuse) return { ok: false, errors: [this.refuse] };
-      this.spec = structuredClone(init.body.spec);
-      this.version += 1;
-      const gate = this.answerGate;
-      this.answerGate = undefined;
-      if (gate) await gate;
-      if (this.lostAnswers > 0) {
-        this.lostAnswers -= 1;
-        throw Object.assign(new Error("bad gateway"), { status: 502 });
-      }
-      return { ok: true, digest: this.digest };
-    },
-  );
-}
-
-let file: FakeSpecFile;
-let app: App | undefined;
-let editor: MockupSpecEditor;
-let notices: MockupSpecNotice[];
-const state = shallowRef(mockupState());
-
-async function settle(ms = 0): Promise<void> {
-  await vi.advanceTimersByTimeAsync(ms);
-}
-
-async function mountEditor(): Promise<void> {
-  const host = document.createElement("div");
-  app = createApp(
-    defineComponent({
-      setup() {
-        editor = useMockupSpec({
-          name: "demo",
-          authFetch: file.fetch,
-          state,
-          onNotice: (notice) => notices.push(notice),
-        });
-        return () => null;
-      },
-    }),
-  );
-  app.mount(host);
-  await settle();
-}
-
-function retitle(title: string): void {
-  editor.apply(
-    { kind: "setOption", pointer: TITLE, key: "title", value: title },
-    `${TITLE}:title`,
-  );
-}
-
-function titleOf(spec: MockupSpecDocument | undefined): unknown {
-  return spec?.pages[0]?.tree[0]?.options?.title;
-}
-
-async function streamSaysTheFileChanged(): Promise<void> {
-  state.value = mockupState({ revision: state.value.revision + 1 });
-  await settle();
-}
-
-beforeEach(() => {
-  vi.useFakeTimers();
-  file = new FakeSpecFile();
-  notices = [];
-});
-
-afterEach(() => {
-  app?.unmount();
-  app = undefined;
-  vi.useRealTimers();
-});
+useSpecEditor();
 
 describe("writing the spec", () => {
   it("writes one burst of typing once, the latest spec winning, with the digest it read (fails on a write per keystroke or a stale spec)", async () => {
