@@ -1,3 +1,4 @@
+export * from "./access-grant";
 export * from "./analysis";
 export * from "./analysis-input";
 export * from "./analysis-job";
@@ -5,6 +6,7 @@ export * from "./catalog";
 export * from "./catalog-connection";
 export * from "./catalog-inference";
 export * from "./compose-page";
+export * from "./connection-access-config";
 export * from "./database-connection";
 export * from "./database-connection-remove";
 export * from "./database-pin";

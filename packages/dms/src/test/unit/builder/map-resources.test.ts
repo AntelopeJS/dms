@@ -23,7 +23,13 @@ import {
   type Fixture,
 } from "./harness";
 import { projectFile } from "./helpers/project-files";
-import { FAKE_CATALOG, INPUT, MODULE, OP_TIMEOUT } from "./mapped-database";
+import {
+  ERP_WRITES,
+  FAKE_CATALOG,
+  INPUT,
+  MODULE,
+  OP_TIMEOUT,
+} from "./mapped-database";
 import { reloadedAtOnce } from "./reload-stub";
 
 let app: Fixture;
@@ -241,7 +247,7 @@ describe("mapping a database the project does not own", function () {
   this.timeout(OP_TIMEOUT);
 
   before(async () => {
-    app = createFixture({ modules: [MODULE] });
+    app = createFixture({ modules: [MODULE], connectionAccess: ERP_WRITES });
     setCatalogConnectionsForTests({ erp: FAKE_CATALOG });
     setModuleReloadForTests(reloadedAtOnce);
     result = await MapResources(INPUT);

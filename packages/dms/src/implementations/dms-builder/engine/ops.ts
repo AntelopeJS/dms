@@ -20,6 +20,7 @@ import {
 } from "ts-morph";
 import { type BlockTarget, resolveBlockTarget } from "./block-target";
 import { buildCatalog } from "./catalog";
+import { assertBlockAccess, formGuard } from "./connection-access";
 import { applyImportRef, blockCallText, childArgText } from "./emit";
 import { stringLiteralValue } from "./literals";
 import { contentVersion, pageVersion } from "./page-structure";
@@ -372,6 +373,7 @@ export function configureBlock(
   const { ctx, imports } = createImportCollector({
     resolveRef: resourceRefResolver(),
   });
+  const checkForm = formGuard(resolved.target);
   try {
     applyPatch(
       ensureOptionsObject(resolved.target),
@@ -387,6 +389,7 @@ export function configureBlock(
       }
       applyPatch(metaObject, opts.meta, false, ctx);
     }
+    checkForm();
   } catch (error) {
     transaction.rollback();
     if (error instanceof InvalidValueError) {
@@ -494,6 +497,7 @@ export function stageBlock(
   let valueText: string;
   let childText: string | undefined;
   try {
+    assertBlockAccess(input);
     const controllerText = input.controller
       ? serializeValue({ $ref: { resource: input.controller } }, ctx)
       : undefined;

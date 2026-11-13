@@ -9,9 +9,14 @@ import { isBuilderEnabled } from "./config";
  * never does, `builder.enabled` or not.
  *
  * @param dev Whether the runtime is in development mode.
+ * @param env The configuration environment core launched with, which decides
+ * the access of each external connection.
  */
-export async function startBuilder(dev: boolean): Promise<void> {
+export async function startBuilder(dev: boolean, env: string): Promise<void> {
   if (!isBuilderEnabled(dev)) return;
+  const { recordLaunchEnvironment } =
+    await import("./implementations/dms-builder/engine");
+  recordLaunchEnvironment(env);
   void ImplementInterface(
     await import("@antelopejs/interface-dms-builder"),
     await import("./implementations/dms-builder"),
