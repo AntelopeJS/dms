@@ -12,6 +12,7 @@ import { expect } from "chai";
 import {
   type EditAsMockupAnswer,
   editPageAsMockup,
+  type LivePages,
   type LivePageTarget,
   readSpecSource,
   mockupNameSchema,
@@ -56,7 +57,7 @@ describe("[unit] mockup of a live page, opened twice", () => {
 
   function open(
     target: LivePageTarget,
-    pages = stubPages([structureOf("/books", BLOCKS)]),
+    pages: LivePages = stubPages([structureOf("/books", BLOCKS)]),
     options: Parameters<typeof editPageAsMockup>[2] = {},
   ): Promise<EditAsMockupAnswer> {
     return editPageAsMockup(mockupsDir, target, options, pages);
@@ -248,6 +249,48 @@ describe("[unit] mockup of a live page, opened twice", () => {
     expect(
       [first, second].map((answer) => answer.ok && answer.mockup),
     ).to.deep.equal(["a-b", "a-b-2"]);
+  });
+
+  describe("when two pages are converted at once", () => {
+    it("keeps both mockups: the pages that slug alike end up under two names", async () => {
+      const pages = stubPages([
+        structureOf("/a-b", []),
+        structureOf("/a/b", []),
+      ]);
+
+      const answers = await Promise.all([
+        open({ pageRef: "/a-b" }, pages),
+        open({ pageRef: "/a/b" }, pages),
+      ]);
+
+      expect(
+        answers.map((answer) => answer.ok && [answer.outcome, answer.mockup]),
+      ).to.deep.equal([
+        ["created", "a-b"],
+        ["created", "a-b-2"],
+      ]);
+      expect((await specOf("a-b")).pages[0]?.livePage?.ref).to.equal("/a-b");
+      expect((await specOf("a-b-2")).pages[0]?.livePage?.ref).to.equal("/a/b");
+    });
+
+    it("runs the next conversion after one that failed", async () => {
+      const working = stubPages([structureOf("/books", BLOCKS)]);
+      const failing: LivePages = {
+        ...working,
+        pageStructure: () => Promise.reject(new Error("the builder is down")),
+      };
+
+      const [first, second] = await Promise.allSettled([
+        open({ pageRef: "/books" }, failing),
+        open({ pageRef: "/books" }, working),
+      ]);
+
+      expect(first.status).to.equal("rejected");
+      expect(second.status === "fulfilled" && second.value).to.deep.include({
+        ok: true,
+        outcome: "created",
+      });
+    });
   });
 
   it("finds the page a dashboard path shows, a page with parameters included", async () => {

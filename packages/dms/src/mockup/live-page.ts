@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import {
   GetPageStructure,
   GetResourceStructure,
@@ -259,17 +260,53 @@ async function readStructure(
       );
 }
 
+const queues = new Map<string, Promise<void>>();
+
+/**
+ * Runs `task` after every task already queued under `key`, whether those
+ * succeeded or failed: one failure never holds the queue.
+ */
+async function queued<Result>(
+  key: string,
+  task: () => Promise<Result>,
+): Promise<Result> {
+  const run = (queues.get(key) ?? Promise.resolve()).then(task);
+  const tail = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  queues.set(key, tail);
+  try {
+    return await run;
+  } finally {
+    if (queues.get(key) === tail) queues.delete(key);
+  }
+}
+
 /**
  * Converts a live page into a mockup page and writes it, or opens the mockup
  * it already has. The same page always reaches the same mockup: a second
  * call writes nothing and says whether the page changed since, unless it
- * asks to `replace` it, which converts again over that page alone.
+ * asks to `replace` it, which converts again over that page alone. Calls on
+ * one mockups directory run one after the other, so two pages whose names
+ * slug alike never pick the same free name.
  */
-export async function editPageAsMockup(
+export function editPageAsMockup(
   mockupsDir: string,
   target: LivePageTarget,
   options: EditAsMockupOptions = {},
   pages: LivePages = BUILDER_PAGES,
+): Promise<EditAsMockupAnswer> {
+  return queued(resolve(mockupsDir), () =>
+    convertLivePage(mockupsDir, target, options, pages),
+  );
+}
+
+async function convertLivePage(
+  mockupsDir: string,
+  target: LivePageTarget,
+  options: EditAsMockupOptions,
+  pages: LivePages,
 ): Promise<EditAsMockupAnswer> {
   const structure = await readStructure(target, pages);
   if ("ok" in structure) return structure;
