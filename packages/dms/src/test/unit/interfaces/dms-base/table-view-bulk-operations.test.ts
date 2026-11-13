@@ -162,49 +162,53 @@ async function archivedIds(): Promise<string[]> {
     .sort();
 }
 
-describe("[unit] TableView bulk operations", () => {
-  before(async () => {
-    await RegisterSchema(SCHEMA);
-    const schema = Schema.get(SCHEMA);
-    if (!schema) throw new Error("Missing test schema");
-    controller.model = new TaskModel(schema.instance());
-    void ImplementInterface(tenantAccess, tenantAccessImpl);
-    tenantAccess.RegisterTenantAccessGate(gate);
-    ImplementInterface(
-      { archiveRows, restoreRows, validateRowsAgainstRule },
-      {
-        archiveRows: tableViewImpl.archiveRows,
-        restoreRows: tableViewImpl.restoreRows,
-        validateRowsAgainstRule: tableViewImpl.validateRowsAgainstRule,
-      },
-    );
-    ImplementInterface(
-      { internal: tableViewInternal },
-      {
-        internal: {
-          PublishMutation: async ({ ids }: RealtimeMutationContext) => {
-            published.push(ids);
-          },
-          AcquirePresence: async () => undefined,
+async function registerHarness() {
+  await RegisterSchema(SCHEMA);
+  const schema = Schema.get(SCHEMA);
+  if (!schema) throw new Error("Missing test schema");
+  controller.model = new TaskModel(schema.instance());
+  void ImplementInterface(tenantAccess, tenantAccessImpl);
+  tenantAccess.RegisterTenantAccessGate(gate);
+  ImplementInterface(
+    { archiveRows, restoreRows, validateRowsAgainstRule },
+    {
+      archiveRows: tableViewImpl.archiveRows,
+      restoreRows: tableViewImpl.restoreRows,
+      validateRowsAgainstRule: tableViewImpl.validateRowsAgainstRule,
+    },
+  );
+  ImplementInterface(
+    { internal: tableViewInternal },
+    {
+      internal: {
+        PublishMutation: async ({ ids }: RealtimeMutationContext) => {
+          published.push(ids);
         },
+        AcquirePresence: async () => undefined,
       },
-    );
-    meta.setArchiveField(ARCHIVE_FIELD);
-  });
+    },
+  );
+  meta.setArchiveField(ARCHIVE_FIELD);
+}
+
+function restoreHarness() {
+  meta.controllerRowActionRules = undefined;
+  tenantAccess.internal.RegisterTenantAccessGate.unregister(gate);
+  ImplementInterface(
+    { internal: tableViewInternal },
+    { internal: tableViewImpl.internal },
+  );
+}
+
+describe("[unit] TableView bulk operations", () => {
+  before(registerHarness);
 
   beforeEach(() => {
     published.length = 0;
     meta.controllerRowActionRules = undefined;
   });
 
-  after(() => {
-    meta.controllerRowActionRules = undefined;
-    tenantAccess.internal.RegisterTenantAccessGate.unregister(gate);
-    ImplementInterface(
-      { internal: tableViewInternal },
-      { internal: tableViewImpl.internal },
-    );
-  });
+  after(restoreHarness);
 
   it("reads every id of the repeated query key", async () => {
     class Probe extends Controller("/probe") {}

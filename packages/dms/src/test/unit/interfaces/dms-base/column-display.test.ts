@@ -100,7 +100,9 @@ describe("[unit] interfaces/dms-base — column displays", () => {
     ] = [true, false, true, false, true, false];
     expect(answers).to.deep.equal([true, false, true, false, true, false]);
   });
+});
 
+describe("[unit] interfaces/dms-base — column displays, metric displays", () => {
   it("serializes the metric displays to the cell types drawing them", () => {
     const cases: Array<[ColumnDisplay<object>, object]> = [
       [
@@ -189,7 +191,9 @@ describe("[unit] interfaces/dms-base — column displays", () => {
     expect(locales).to.have.length(3);
     expect(answers).to.deep.equal([true, false, true, false]);
   });
+});
 
+describe("[unit] interfaces/dms-base — column displays, sub-lines", () => {
   it("serializes the composed sub-line options, the two-line display and an empty identity", () => {
     const cases: Array<[ColumnDisplay<object>, object]> = [
       [

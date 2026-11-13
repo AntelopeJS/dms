@@ -121,7 +121,9 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(type.getValidation().safeParse(1).success).to.equal(false);
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("EmailType", () => {
     it("accepts a valid email", () => {
       const type = new DefaultDataTypes.EmailType();
@@ -212,7 +214,9 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       );
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("AddressType", () => {
     it("accepts a full valid address object", () => {
       const type = new DefaultDataTypes.AddressType();
@@ -268,7 +272,9 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(type.getValidation().safeParse(1.01).success).to.equal(false);
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("RelationType filterOnly", () => {
     class UnregisteredController extends Controller("/unregistered-relation") {
       declare name: string;
@@ -341,7 +347,9 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       ).to.throw();
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("RelationType filterBy", () => {
     class SiteController extends Controller("/relation-filter-site") {
       declare customer: string;
