@@ -15,6 +15,7 @@ import {
   type AdminInviteEmailNames,
   buildAdminInviteSignupLink,
   buildAdminInviteSubject,
+  decodeUnverified,
   resolveAdminInviteLanguage,
   recordUserActivity,
 } from "../../utils";
@@ -136,18 +137,6 @@ function isDecodedAuthPayload(
 function decodedClaims(token: string): DecodedAuthPayload | undefined {
   const claims = decodeUnverified(token);
   return isDecodedAuthPayload(claims) ? claims : undefined;
-}
-
-/**
- * `decode`, which throws on a `typ: "JWT"` token whose payload is not JSON,
- * answering `null` for it as for any other token it cannot read.
- */
-function decodeUnverified(token: string): ReturnType<typeof decode> {
-  try {
-    return decode(token);
-  } catch {
-    return null;
-  }
 }
 
 /**
