@@ -29,6 +29,11 @@ Each type below said something the runtime does not do, and now says what it doe
   });
   ```
 
+### Data types
+
+- **`@antelopejs/interface-dms/base/data-types/default-types`, loaded alone, no longer registers the `status` type.** It used to, only because its import of `base/table-view/meta` pulled in the data-types barrel. That import is gone with the table-view / data-types cycle. `CreateDataType("status")` then throws "Unknown type status" unless `base/data-types` (the barrel) or any table-view entry has loaded. Each of those still registers every built-in. Import the barrel, as the docs show.
+- **Loading order of the table-view and data-types entries.** `base/index`, `data-controllers/*` and the `@antelopejs/dms` runtime now load `table-view/meta` inside `table-view/factory` instead of inside `default-types`, so `status` registers after the other built-ins instead of before. When `table-view/meta` finishes loading, every built-in data type is now registered; before, most were not yet. Types, runtime exports and the registry after load are unchanged.
+
 ## v0.12.0
 
 ### Hooks
