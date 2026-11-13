@@ -10,6 +10,7 @@ import { isString } from "../../../utils/internal/type-check";
 import { FormComponents } from "../../form-schema";
 import { DataType, RegisterDataType } from "../core";
 import { whenValueSet } from "../internal/compare-types";
+import { ownEntry } from "../../../internal/own-entry";
 import { DefaultDataCompareTypes } from "../compare-types";
 import {
   NumberTypeOptions,
@@ -144,18 +145,17 @@ const INSTANT_COMPARISONS: typeof DAY_COMPARISONS = {
  * Before or after a whole day, as `is` and `is_between` read a day:
  * "greater than" starts at the next day, "less than" ends before it.
  */
-const DAY_COMPARISONS: Record<
-  string,
-  (stored: ValueProxy<unknown>, dayStart: Date) => ValueProxyOrValue<boolean>
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- Dynamic modes.
-> = {
+const DAY_COMPARISONS = {
   greater_than: (stored, dayStart) => {
     const nextDay = new Date(dayStart);
     nextDay.setUTCDate(nextDay.getUTCDate() + 1);
     return stored.ge(nextDay);
   },
   less_than: (stored, dayStart) => stored.lt(dayStart),
-};
+} satisfies Record<
+  string,
+  (stored: ValueProxy<unknown>, dayStart: Date) => ValueProxyOrValue<boolean>
+>;
 
 /** A calendar day as the date picker sends it, without a time. */
 const CALENDAR_DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -229,14 +229,12 @@ export class DateType extends DataType {
   ): ValueProxyOrValue<boolean> | undefined {
     const calendarDay = CALENDAR_DAY.test(value.trim());
     const comparisons = calendarDay ? DAY_COMPARISONS : INSTANT_COMPARISONS;
-    if (!Object.hasOwn(comparisons, mode)) {
+    const compare = ownEntry(comparisons, mode);
+    if (!compare) {
       return undefined;
     }
     const instant = this.instant(value);
-    return comparisons[mode](
-      stored,
-      calendarDay ? this.startOfUtcDay(instant) : instant,
-    );
+    return compare(stored, calendarDay ? this.startOfUtcDay(instant) : instant);
   }
 
   private startOfUtcDay(date: Date): Date {

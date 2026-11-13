@@ -91,10 +91,9 @@ const csvExporter: Exporter = {
   },
 };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Format names are open HTTP inputs; missing registry keys retain the existing unknown-format error.
-const exporters: Record<string, Exporter> = {
+const exporters = {
   csv: csvExporter,
-};
+} satisfies Record<string, Exporter>;
 
 export function getExporter(format: string): Exporter {
   const exporter = ownValue(exporters, format);
@@ -178,11 +177,10 @@ const emailDeliverer: Deliverer = {
   },
 };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Delivery names are open inputs; missing registry keys retain the existing unknown-delivery error.
-const deliverers: Record<string, Deliverer> = {
+const deliverers = {
   download: downloadDeliverer,
   email: emailDeliverer,
-};
+} satisfies Record<string, Deliverer>;
 
 export function getDeliverer(delivery: string): Deliverer {
   const deliverer = ownValue(deliverers, delivery);

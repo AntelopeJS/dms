@@ -5,7 +5,7 @@
     "antelopejs/no-comments": 0,
     "anti-slop/no-chained-type-assertions": 1,
     "anti-slop/no-conditional-empty-object-spread": 0,
-    "anti-slop/no-known-value-widening": 34,
+    "anti-slop/no-known-value-widening": 1,
     "anti-slop/no-object-parameters": 4,
     "anti-slop/no-reflect-apply": 1,
     "anti-slop/no-reflect-get": 3,

@@ -207,8 +207,7 @@ const SAMPLE_LABELS = [
   "Dec",
 ];
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Preset query strings are arbitrary; the lookup must retain its string index signature and fallback.
-const PRESET_SEED_OFFSETS: Record<string, number> = {
+const PRESET_SEED_OFFSETS = {
   "this-month": 0,
   "last-month": 100,
   "this-quarter": 200,
@@ -221,7 +220,7 @@ const PRESET_SEED_OFFSETS: Record<string, number> = {
   "last-hour": 900,
   "last-24h": 1000,
   "last-90-days": 1100,
-};
+} satisfies Record<string, number>;
 
 function hashKey(input: string): number {
   let hash = 0;
@@ -495,18 +494,14 @@ function latencyKpi(period: PeriodRequest): KpiCardPayload {
   return { value: current, ...comparedTo(current, previous), sparkline };
 }
 
-type KpiBuilder = (period: PeriodRequest) => KpiCardPayload;
-
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Metric route parameters are arbitrary strings; builders include dynamically generated daily metrics and a fallback.
-const KPI_BUILDERS: Record<string, KpiBuilder> = {
-  latency: latencyKpi,
-  ...Object.fromEntries(
-    Object.entries(DAILY_METRICS).map(([key, metric]) => [
-      key,
-      (period: PeriodRequest) => dailyKpi(metric, period),
-    ]),
-  ),
-};
+/** The KPI of a metric: latency, a daily metric, or revenue for an unknown one. */
+function kpiOf(metric: string, period: PeriodRequest): KpiCardPayload {
+  if (metric === "latency") return latencyKpi(period);
+  return dailyKpi(
+    ownEntry(DAILY_METRICS, metric) ?? DAILY_METRICS.revenue,
+    period,
+  );
+}
 
 const CHANNEL_LABELS = [
   "Direct",
@@ -578,8 +573,7 @@ export class DashboardApiController extends Controller("/api/dashboard") {
     @Parameter("to", "query") to?: string,
     @Parameter("comparison", "query") comparison?: string,
   ): KpiCardPayload {
-    const build = ownEntry(KPI_BUILDERS, metric) ?? KPI_BUILDERS.revenue;
-    return build({ preset, from, to, comparison });
+    return kpiOf(metric, { preset, from, to, comparison });
   }
 
   @Get("series")
