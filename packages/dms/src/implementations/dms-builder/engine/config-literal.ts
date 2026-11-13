@@ -200,16 +200,27 @@ function importedByName(node: Node): boolean {
 }
 
 /**
- * The value of each constant a file imports by name, so a page's version
- * moves when one of them changes in the file that declares it.
+ * The value of each constant a file imports by name, and of each member of an
+ * enum it declares, so a page's version moves when one of them changes in
+ * another file: an enum member's value can be read through any import.
  */
 export function importedConstants(
   sourceFile: SourceFile,
 ): [string, ConstantValue][] {
-  return sourceFile
+  const localEnums = sourceFile
+    .getDescendantsOfKind(SyntaxKind.EnumDeclaration)
+    .flatMap((declaration) =>
+      declaration
+        .getMembers()
+        .map((member): [string, ConstantValue] => [
+          `${declaration.getName()}.${member.getName()}`,
+          member.getValue() ?? null,
+        ]),
+    );
+  const imported = sourceFile
     .getImportDeclarations()
     .flatMap((declaration) => declaration.getNamedImports())
-    .flatMap((specifier) => {
+    .flatMap((specifier): [string, ConstantValue][] => {
       const binding = specifier.getAliasNode() ?? specifier.getNameNode();
       if (!Node.isIdentifier(binding)) return [];
       const constant = constantValue(binding);
@@ -218,6 +229,14 @@ export function importedConstants(
         ({ name, value }): [string, ConstantValue] => [name, value],
       );
     });
+  return [...imported, ...localEnums];
+}
+
+/** Whether a member's value reaches the builder unchanged through JSON: not `NaN` or an infinity. */
+function survivesJson(
+  value: string | number | undefined,
+): value is string | number {
+  return value !== undefined && JSON.stringify(value) !== "null";
 }
 
 /**
@@ -241,7 +260,7 @@ function enumMembers(owner: Node): ValueName[] | undefined {
   }
   return definition.getMembers().flatMap((member) => {
     const value = member.getValue();
-    return value !== undefined && Node.isIdentifier(member.getNameNode())
+    return survivesJson(value) && Node.isIdentifier(member.getNameNode())
       ? [{ name: `${owner.getText()}.${member.getName()}`, value }]
       : [];
   });

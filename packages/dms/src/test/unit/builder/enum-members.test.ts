@@ -15,6 +15,7 @@ import {
 
 const PAGE = "/shop/board";
 const PAGE_FILE = "board/page.ts";
+const REMOTE_FILE = "shop-remote.ts";
 const OP_TIMEOUT = 60_000;
 
 let app: Fixture;
@@ -55,10 +56,18 @@ async function save(
   return app.read(PAGE_FILE);
 }
 
+function writeRemote(stats: string): void {
+  app.write(
+    REMOTE_FILE,
+    `export enum RemoteApi { stats = ${JSON.stringify(stats)} }\n`,
+  );
+}
+
 /** A board page holding the enums the tests read, in a fresh app. */
 async function createBoard(this: Mocha.Context): Promise<void> {
   this.timeout(120_000);
   app = createFixture();
+  writeRemote("/api/remote");
   expectOk(
     await CreateCategory({ name: "shop", displayName: "Shop" }),
     "CreateCategory",
@@ -85,9 +94,12 @@ async function createBoard(this: Mocha.Context): Promise<void> {
       "@RegisterPage(",
       [
         'import { HttpMethod } from "@antelopejs/interface-dms/base/types";',
+        'import * as Remote from "../shop-remote";',
         "",
         'const enum ShopApi { stats = "/api/shop/stats", orders = "/api/shop/orders" }',
         "enum Drawn { seed = Math.random() }",
+        "enum Huge { far = 1 / 0 }",
+        "enum Routed { remote = Remote.RemoteApi.stats }",
         "",
         "@RegisterPage(",
       ].join("\n"),
@@ -135,6 +147,44 @@ describe("a block option set from an enum member", () => {
     const block = await revenueKpi();
 
     expect(block.lockedOptions).to.have.property("fetchUrl");
+  });
+
+  it("locks a member whose value JSON cannot carry", async function () {
+    this.timeout(OP_TIMEOUT);
+    handWrite('title: "Revenue", fetchUrl: Huge.far');
+    const block = await revenueKpi();
+
+    expect(block.lockedOptions).to.have.property("fetchUrl");
+  });
+
+  it("refuses a save as stale once a member read through a namespace import changed", async function () {
+    this.timeout(OP_TIMEOUT);
+    handWrite('title: "Revenue", fetchUrl: Routed.remote');
+    const { version } = expectOk(
+      await GetPageStructure(PAGE),
+      "GetPageStructure",
+    );
+    writeRemote("/api/remote-v2");
+    try {
+      const result = await SetPageBlocks(
+        PAGE,
+        {
+          blocks: [
+            {
+              name: "revenueKpi",
+              type: "KpiCard",
+              config: { title: "Revenue", fetchUrl: "/api/remote" },
+            },
+          ],
+        },
+        { expectedVersion: version },
+      );
+
+      expect(result.ok ? "saved" : result.error.code).to.equal("stale");
+      expect(app.read(PAGE_FILE)).to.contain("fetchUrl: Routed.remote");
+    } finally {
+      writeRemote("/api/remote");
+    }
   });
 
   it("keeps the member through a save that did not change its value", async function () {
