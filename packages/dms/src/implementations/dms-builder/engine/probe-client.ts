@@ -1,9 +1,9 @@
-import { createRequire } from "node:module";
 import path from "node:path";
 import type * as Mongodb from "mongodb";
 import type * as Mysql2 from "mysql2";
 import type * as Pg from "pg";
 import { z } from "zod";
+import { requireFrom } from "./module-loader";
 import { resolveProjectRoot } from "./project";
 import type { RethinkdbClient } from "./rethinkdb-client";
 
@@ -30,8 +30,8 @@ const NotInstalled = z.object({
   message: z.string(),
 });
 
-function requireFrom(file: string): ClientRequire {
-  return createRequire(file);
+function clientRequireFrom(file: string): ClientRequire {
+  return requireFrom(file);
 }
 
 /**
@@ -39,13 +39,13 @@ function requireFrom(file: string): ClientRequire {
  * dependencies first, then from the project's. `undefined` when neither installs it. A package
  * that is installed but fails to load throws.
  */
-export function loadClient<Name extends ClientName>(
+function installedClient<Name extends ClientName>(
   name: Name,
 ): ClientModules[Name] | undefined {
   const bases = [__filename, path.join(resolveProjectRoot(), "package.json")];
   for (const base of bases) {
     try {
-      return requireFrom(base)(name);
+      return clientRequireFrom(base)(name);
     } catch (error) {
       const failure = NotInstalled.safeParse(error);
       if (!failure.success || !failure.data.message.includes(`'${name}'`)) {
@@ -54,4 +54,22 @@ export function loadClient<Name extends ClientName>(
     }
   }
   return undefined;
+}
+
+type ClientLoader = <Name extends ClientName>(
+  name: Name,
+) => ClientModules[Name] | undefined;
+
+let clientLoader: ClientLoader = installedClient;
+
+/** The client package `name` the probes open a database with, as `installedClient` finds it. */
+export function loadClient<Name extends ClientName>(
+  name: Name,
+): ClientModules[Name] | undefined {
+  return clientLoader(name);
+}
+
+/** Replaces how the probes find a client, for specs; with no loader, the installed clients again. */
+export function setClientLoaderForTests(loader?: ClientLoader): void {
+  clientLoader = loader ?? installedClient;
 }

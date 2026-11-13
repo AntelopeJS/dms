@@ -1,72 +1,41 @@
-import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import path from "node:path";
+import type {
+  DatabaseAccess,
+  DatabaseEngine,
+} from "@antelopejs/interface-dms-builder";
 import { expect } from "chai";
-import { z } from "zod";
 import {
   CLOSE_GRACE_MS,
+  DATABASE_ENGINES,
   noAnswerReason,
+  type Probe,
   redact,
+  checkDatabase as runCheck,
   serverRefusal,
+  setClientLoaderForTests,
   signedIn,
 } from "../../../implementations/dms-builder/engine";
-import { loadModule } from "./helpers/load-module";
-
-const CHECK_FILE = path.resolve(
-  __dirname,
-  "../../../implementations/dms-builder/engine/database-check.js",
-);
 
 const SAMPLE_SECRET = `${randomBytes(4).toString("hex")}@/x`;
 const ENCODED = encodeURIComponent(SAMPLE_SECRET);
 const CHECKED_URL = `postgres://${["app", ENCODED].join(":")}@db.example.com:5432/shop`;
 
-interface Connections {
-  add: (close: () => Promise<void>, destroy?: () => void) => void;
-}
-
-type Probe = (
-  url: string,
-  timeoutMs: number,
-  connections: Connections,
-) => Promise<object>;
-
-interface Answer {
-  reachable: boolean;
-  reason?: string;
-}
+/** What a probe of these specs answers when it reaches a database. */
+const ANSWERED: DatabaseAccess = {
+  reachable: true,
+  canRead: true,
+  canWrite: false,
+};
 
 type Check = (
-  engine: string,
+  engine: DatabaseEngine,
   url: string,
   timeoutMs: number,
-) => Promise<Answer>;
+) => Promise<DatabaseAccess>;
 
-const FunctionValue = z.instanceof(Function);
-
-const CheckExports = z.object({
-  checkDatabase: z.custom<Check>(
-    (exported) => FunctionValue.safeParse(exported).success,
-  ),
-});
-
-/** The check with its three probes answered by the given ones. */
-function loadCheck(probes: {
-  postgres: Probe;
-  mysql: Probe;
-  mongodb: Probe;
-  rethinkdb: Probe;
-}): Check {
-  return loadModule(
-    CHECK_FILE,
-    new Map([
-      ["./probe-postgres", { probePostgres: probes.postgres }],
-      ["./probe-mysql", { probeMysql: probes.mysql }],
-      ["./probe-mongodb", { probeMongodb: probes.mongodb }],
-      ["./probe-rethinkdb", { probeRethinkdb: probes.rethinkdb }],
-    ]),
-    CheckExports,
-  ).checkDatabase;
+/** The check with each engine's probe answered by the given one. */
+function loadCheck(probes: Record<DatabaseEngine, Probe>): Check {
+  return (engine, url, timeoutMs) => runCheck(engine, url, timeoutMs, probes);
 }
 
 function loadCheckWith(probe: Probe): Check {
@@ -180,7 +149,7 @@ describe("the probe a database check runs and the deadline it keeps", () => {
       (engine: string): Probe =>
       async (url, timeoutMs) => {
         asked.push(`${engine} ${url} ${timeoutMs}`);
-        return { engine };
+        return { ...ANSWERED, user: engine };
       };
     const checkDatabase = loadCheck({
       postgres: probe("postgres"),
@@ -188,15 +157,15 @@ describe("the probe a database check runs and the deadline it keeps", () => {
       mongodb: probe("mongodb"),
       rethinkdb: probe("rethinkdb"),
     });
-    const answers: object[] = [];
-    for (const engine of ["postgres", "mysql", "mongodb", "rethinkdb"]) {
-      answers.push(await checkDatabase(engine, `${engine}://h/db`, 50));
+    const answers: (string | undefined)[] = [];
+    for (const engine of DATABASE_ENGINES) {
+      answers.push((await checkDatabase(engine, `${engine}://h/db`, 50)).user);
     }
     expect(answers).to.deep.equal([
-      { engine: "postgres" },
-      { engine: "mysql" },
-      { engine: "mongodb" },
-      { engine: "rethinkdb" },
+      "postgres",
+      "mysql",
+      "mongodb",
+      "rethinkdb",
     ]);
     expect(asked).to.deep.equal([
       "postgres postgres://h/db 50",
@@ -237,31 +206,26 @@ describe("the probe a database check runs and the deadline it keeps", () => {
     expect(events).to.deep.equal(["closed", "answered"]);
   });
 
-  /** Fails on an implementation that requires the four clients when it loads, or the other engines' when it checks one. */
-  it("a client is required only when its engine is checked", () => {
-    const script = `
-    const Module = require("node:module");
-    const clients = ["pg", "mysql2", "mongodb", "rethinkdb-ts"];
-    const asked = [];
-    const original = Module.prototype.require;
-    Module.prototype.require = function (request) {
-      if (clients.includes(request)) asked.push(request);
-      return original.apply(this, arguments);
-    };
-    const { checkDatabase } = require(process.argv[1]);
-    const afterLoad = [...asked];
-    checkDatabase("postgres", "postgres://u@127.0.0.1:1/db", 500).then((answer) => {
-      process.stdout.write(JSON.stringify({ afterLoad, asked, reachable: answer.reachable }));
+  /** Fails on an implementation that asks for another engine's client, or for none, when it checks one. */
+  it("a client is required only when its engine is checked", async () => {
+    const asked: string[] = [];
+    setClientLoaderForTests((name) => {
+      asked.push(name);
+      return undefined;
     });
-  `;
-    const output = execFileSync(process.execPath, ["-e", script, CHECK_FILE], {
-      encoding: "utf8",
-    });
-    expect(JSON.parse(output)).to.deep.equal({
-      afterLoad: [],
-      asked: ["pg"],
-      reachable: false,
-    });
+    try {
+      const answer = await runCheck(
+        "postgres",
+        "postgres://u@127.0.0.1:1/db",
+        500,
+      );
+      expect(asked).to.deep.equal(["pg"]);
+      expect(answer.reason).to.equal(
+        "Install pg to connect a PostgreSQL database.",
+      );
+    } finally {
+      setClientLoaderForTests();
+    }
   });
 });
 
@@ -275,12 +239,12 @@ describe("the connections a database check closes", () => {
         await pause(20);
         events.push("closed");
       });
-      return { reachable: true };
+      return ANSWERED;
     };
     const checkDatabase = loadCheckWith(answering);
     const answer = await checkDatabase("mongodb", CHECKED_URL, 100);
     events.push("answered");
-    expect(answer).to.deep.equal({ reachable: true });
+    expect(answer).to.deep.equal(ANSWERED);
     expect(events).to.deep.equal(["closing", "answered"]);
     await pause(400);
     expect(events).to.deep.equal(["closing", "answered", "closed"]);
@@ -290,12 +254,12 @@ describe("the connections a database check closes", () => {
   it("the answer is the probe's own when a connection never finishes closing", async () => {
     const stuck: Probe = async (_url, _timeoutMs, connections) => {
       connections.add(() => new Promise(() => undefined));
-      return { reachable: true };
+      return ANSWERED;
     };
     const checkDatabase = loadCheckWith(stuck);
-    expect(await checkDatabase("postgres", CHECKED_URL, 40)).to.deep.equal({
-      reachable: true,
-    });
+    expect(await checkDatabase("postgres", CHECKED_URL, 40)).to.deep.equal(
+      ANSWERED,
+    );
   }).timeout(3000);
 
   /** Fails on an implementation that never shuts a socket its library leaves open, that shuts it before the grace, or that shuts one that closed. */
@@ -323,12 +287,12 @@ describe("the connections a database check closes", () => {
       connections.add(never, () => {
         throw new Error("destroy threw");
       });
-      return { reachable: true };
+      return ANSWERED;
     };
     const checkDatabase = loadCheckWith(probe);
-    expect(await checkDatabase("postgres", CHECKED_URL, 40)).to.deep.equal({
-      reachable: true,
-    });
+    expect(await checkDatabase("postgres", CHECKED_URL, 40)).to.deep.equal(
+      ANSWERED,
+    );
     expect(shut, "nothing is shut before the grace").to.deep.equal([]);
     await pause(CLOSE_GRACE_MS + 200);
     expect(shut).to.have.length(2);
@@ -343,7 +307,7 @@ describe("the connections a database check closes", () => {
       connections.add(async () => {
         closed.push("late");
       });
-      return { reachable: true };
+      return ANSWERED;
     };
     const checkDatabase = loadCheckWith(late);
     const answer = await checkDatabase("postgres", CHECKED_URL, 40);
@@ -361,12 +325,12 @@ describe("the connections a database check closes", () => {
       connections.add(() => {
         throw new Error("close threw");
       });
-      return { reachable: true };
+      return ANSWERED;
     };
     const checkDatabase = loadCheckWith(stubborn);
-    expect(await checkDatabase("postgres", CHECKED_URL, 40)).to.deep.equal({
-      reachable: true,
-    });
+    expect(await checkDatabase("postgres", CHECKED_URL, 40)).to.deep.equal(
+      ANSWERED,
+    );
   });
 
   /** Fails on an implementation that lets a probe's error out, or that answers its message with the password in it. */

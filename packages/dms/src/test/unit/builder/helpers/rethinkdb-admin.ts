@@ -1,4 +1,4 @@
-import { createRequire } from "node:module";
+import { requireFrom } from "../../../../implementations/dms-builder/engine";
 
 /**
  * The part of `rethinkdb-ts` that sets a server up for a test: its databases, tables, accounts and
@@ -49,7 +49,7 @@ interface Admin {
 
 type RequireAdmin = (name: "rethinkdb-ts") => { r: Admin };
 
-const requireAdmin: RequireAdmin = createRequire(__filename);
+const requireAdmin: RequireAdmin = requireFrom(__filename);
 const { r } = requireAdmin("rethinkdb-ts");
 
 /** An account, and what it may do to the shop database. */

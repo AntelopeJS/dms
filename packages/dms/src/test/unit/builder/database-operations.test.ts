@@ -15,6 +15,7 @@ import {
   checkConnection,
   parseCheckInput,
   setCatalogConnectionsForTests,
+  setClientLoaderForTests,
 } from "../../../implementations/dms-builder/engine";
 import {
   DATABASE_ENGINE_SCHEMES,
@@ -28,7 +29,6 @@ import {
   type Fixture,
 } from "./harness";
 import { gitInit } from "./helpers/processes";
-import { uninstallPackages } from "./helpers/uninstalled-packages";
 import { projectFile } from "./helpers/project-files";
 
 const OP_TIMEOUT = 60_000;
@@ -112,12 +112,7 @@ describe("checking a database connection", () => {
 /** Fails on a check that sends an input to another engine's probe, or answers a missing client with the driver's error. */
 describe("checking a database whose client is not installed", () => {
   it("answers, for every scheme of every engine, the sentence that installs that engine's client", async () => {
-    const reinstall = uninstallPackages([
-      "pg",
-      "mysql2",
-      "mongodb",
-      "rethinkdb-ts",
-    ]);
+    setClientLoaderForTests(() => undefined);
     const sentences: Record<DatabaseEngine, string> = {
       postgres: "Install pg to connect a PostgreSQL database.",
       mysql: "Install mysql2 to connect a MySQL or MariaDB database.",
@@ -146,7 +141,7 @@ describe("checking a database whose client is not installed", () => {
         }
       }
     } finally {
-      reinstall();
+      setClientLoaderForTests();
     }
   });
 });

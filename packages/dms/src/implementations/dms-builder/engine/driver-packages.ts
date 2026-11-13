@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import path from "node:path";
 import type {
   DatabaseEngine,
@@ -7,6 +6,7 @@ import type {
 import semver from "semver";
 import { z } from "zod";
 import { DATABASE_ENGINES } from "./database-access";
+import { loadModuleFrom } from "./module-loader";
 import { resolveProjectRoot } from "./project";
 
 /** The releases of a driver from `from` until the next segment's, and the interface range they need. */
@@ -72,7 +72,7 @@ export function resolvedInterfaceDatabase(): string | undefined {
   for (const base of bases) {
     try {
       return Manifest.parse(
-        createRequire(base)("@antelopejs/interface-database/package.json"),
+        loadModuleFrom(base, "@antelopejs/interface-database/package.json"),
       ).version;
     } catch {
       continue;

@@ -30,6 +30,7 @@ export * from "./ops";
 export * from "./own-connections";
 export * from "./page-access";
 export * from "./page-structure";
+export * from "./probe-client";
 export * from "./probe-connections";
 export { StepRefusal } from "./project-config";
 export * from "./project-env";

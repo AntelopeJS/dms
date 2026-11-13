@@ -41,6 +41,7 @@ export async function checkDatabase(
   engine: DatabaseEngine,
   url: string,
   timeoutMs: number = CONNECT_TIMEOUT_MS,
+  probes: Readonly<Record<DatabaseEngine, Probe>> = PROBES,
 ): Promise<DatabaseAccess> {
   const connections = new ProbeConnections();
   let timer: NodeJS.Timeout | undefined;
@@ -52,7 +53,7 @@ export async function checkDatabase(
   });
   try {
     return await Promise.race([
-      PROBES[engine](url, timeoutMs, connections).catch((error: unknown) =>
+      probes[engine](url, timeoutMs, connections).catch((error: unknown) =>
         unanswered(noAnswerReason(failureMessage(error), url)),
       ),
       deadline,
