@@ -104,6 +104,24 @@ export type SpecStamper = (
   stamps: readonly IdStamp[],
 ) => Promise<void>;
 
+/** A value to write into `spec.json`: member `key` of the object at JSON pointer `path`. */
+interface SpecValue {
+  path: string;
+  key: string;
+  value: Json;
+}
+
+/**
+ * Writes `text`, the `spec.json` read inside {@link withSpecLock}, with each
+ * value set at its place, laid out as a {@link SpecStamper} writes. A new
+ * member goes last in its object; an existing one keeps its place. It does
+ * not compile the spec.
+ */
+export type SpecSetter = (
+  text: string,
+  values: readonly SpecValue[],
+) => Promise<void>;
+
 const writeTails = new Map<string, Promise<void>>();
 
 /**
@@ -115,12 +133,25 @@ const writeTails = new Map<string, Promise<void>>();
 export async function withSpecLock<Result>(
   mockupsDir: string,
   name: MockupName,
-  run: (write: SpecWriter, stamp: SpecStamper) => Promise<Result>,
+  run: (
+    write: SpecWriter,
+    stamp: SpecStamper,
+    set: SpecSetter,
+  ) => Promise<Result>,
 ): Promise<Result> {
   const key = mockupDirectory(mockupsDir, name);
   const previous = writeTails.get(key) ?? Promise.resolve();
+  const set = setNow(mockupsDir, name);
   const turn = previous.then(() =>
-    run(writeNow(mockupsDir, name), stampNow(mockupsDir, name)),
+    run(
+      writeNow(mockupsDir, name),
+      (text, stamps) =>
+        set(
+          text,
+          stamps.map(({ path, id }) => ({ path, key: "id", value: id })),
+        ),
+      set,
+    ),
   );
   const tail = turn.then(
     () => undefined,
@@ -193,15 +224,15 @@ function valueAt(value: Json, pointer: string): Json | undefined {
     }, value);
 }
 
-function stampNow(mockupsDir: string, name: MockupName): SpecStamper {
-  return async (text, stamps) => {
+function setNow(mockupsDir: string, name: MockupName): SpecSetter {
+  return async (text, values) => {
     const spec = jsonObjectSchema.parse(JSON.parse(text));
-    for (const { path, id } of stamps) {
-      const node = valueAt(spec, path);
-      if (!isJsonObject(node)) {
+    for (const { path, key, value } of values) {
+      const object = valueAt(spec, path);
+      if (!isJsonObject(object)) {
         throw new Error(`${path} names no node of mockups/${name}/spec.json`);
       }
-      node.id = id;
+      object[key] = value;
     }
     await persist(mockupsDir, name, laidOutAs(text, spec));
   };

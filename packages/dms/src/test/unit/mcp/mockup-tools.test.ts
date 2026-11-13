@@ -406,7 +406,20 @@ function describesSafeMode(): void {
         mockup_write_spec: "builder",
         mockup_patch_spec: "builder",
         mockup_from_page: "builder",
+        mockup_apply_to_page: "builder",
       });
+    });
+
+    it("refuses mockup_apply_to_page while no mockup engine runs, so a production MCP server writes no page (fails a tool that reads the spec first)", async () => {
+      const { isError, text } = await run(mockupTool("mockup_apply_to_page"), {
+        mockup: NAME,
+        page: "home",
+      });
+
+      expect(isError).to.equal(true);
+      expect(text).to.contain(
+        "runs only while the project runs in development",
+      );
     });
 
     it("refuses mockup_from_page while no mockup engine runs, so a production MCP server converts nothing", async () => {
