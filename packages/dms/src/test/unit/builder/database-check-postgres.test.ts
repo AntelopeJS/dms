@@ -104,6 +104,20 @@ function rolePrivilegeCases() {
     expect(answer).to.not.have.property("reason");
   });
 
+  /** Fails on an engine table that lists a scheme the probe cannot connect with. */
+  it("connects the same way through a postgresql:// URL", async () => {
+    const answer = await checkDatabase(
+      "postgres",
+      urlOf("reader").replace(/^postgres:/, "postgresql:"),
+      TIMEOUT_MS,
+    );
+    expect(answer).to.include({
+      reachable: true,
+      user: "reader",
+      canRead: true,
+    });
+  });
+
   it("answers write access to a role that may write", async () => {
     const answer = await checkDatabase("postgres", urlOf("writer"), TIMEOUT_MS);
     expect(answer).to.include({
