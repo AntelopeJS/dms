@@ -1,5 +1,10 @@
-import type { RequestContext } from "@antelopejs/interface-api";
+import type {
+  ControllerClass,
+  RequestContext,
+} from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
+import { GetMetadata } from "@antelopejs/interface-core";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type {
   ValueProxy,
   ValueProxyOrValue,
@@ -40,4 +45,28 @@ export function filterArchiveField(
     `Filter the archive field with eq or ne, not "${mode}".`,
   );
   return mode === "eq" ? proxy.eq(archived) : proxy.ne(archived);
+}
+
+/**
+ * Refuses a controller whose archive field another filter serves, such as a
+ * `Filter()` declared above `@ArchiveField`. The archive filter is sent as
+ * text, so a filter that does not read it would list archived rows as active.
+ *
+ * @throws Error when the archive field's filter is not {@link filterArchiveField}
+ * @internal
+ */
+export function assertArchiveFieldFilter(
+  controller: ControllerClass,
+  archiveField: string | undefined,
+): void {
+  if (archiveField === undefined) return;
+  const { filters } = GetMetadata(controller, DataAPIMeta);
+  const filter = Object.hasOwn(filters, archiveField)
+    ? filters[archiveField]
+    : undefined;
+  if (filter !== filterArchiveField) {
+    throw new Error(
+      `The archive field "${archiveField}" of ${controller.name} declares its own Filter, which replaces the one @ArchiveField registers: remove that Filter.`,
+    );
+  }
 }
