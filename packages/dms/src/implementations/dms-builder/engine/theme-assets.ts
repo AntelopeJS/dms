@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
 import type {
-  LogoSlot,
   LogoUpload,
   ThemeLogos,
   ValidationIssue,
@@ -14,12 +13,6 @@ import { sanitizeSvg } from "./theme-svg";
 export const LOGO_UPLOAD_DIRECTORY = "branding";
 /** Served as static files by the frontend; relative to the theme root. */
 export const PUBLIC_DIRECTORY = "public";
-
-/**
- * Email logo files are never deleted: sent emails link to them by absolute
- * URL and would lose their header image.
- */
-const EMAIL_SLOT: LogoSlot = "email";
 
 const MAX_LOGO_BYTES = 512 * 1024;
 const HASH_LENGTH = 8;
@@ -83,18 +76,13 @@ const LOGO_EXTENSIONS = [
 ];
 
 /**
- * Matches the paths the builder gives its uploads for `slots`. Only matching
- * files are ever deleted: a file the author put in `public/` by hand is not
- * the builder's to remove.
+ * Matches the paths the builder gives its uploads. Only matching files are
+ * ever deleted: a file the author put in `public/` by hand is not the
+ * builder's to remove.
  */
-function ownedAssetPattern(slots: readonly string[]): RegExp {
-  return new RegExp(
-    `^/${LOGO_UPLOAD_DIRECTORY}/(?:${slots.join("|")})-(?:${THEME_MODES.join("|")})-[0-9a-f]{${HASH_LENGTH}}\\.(?:${LOGO_EXTENSIONS.join("|")})$`,
-  );
-}
-
-const OWNED_ASSET = ownedAssetPattern(LOGO_SLOTS);
-const OWNED_EMAIL_ASSET = ownedAssetPattern([EMAIL_SLOT]);
+const OWNED_ASSET = new RegExp(
+  `^/${LOGO_UPLOAD_DIRECTORY}/(?:${LOGO_SLOTS.join("|")})-(?:${THEME_MODES.join("|")})-[0-9a-f]{${HASH_LENGTH}}\\.(?:${LOGO_EXTENSIONS.join("|")})$`,
+);
 
 /** A logo file checked and named, ready to be written. */
 export interface StagedLogo {
@@ -178,17 +166,14 @@ function stageLogo(
 /**
  * The first staged logo with the same bytes and extension, whose file a later
  * upload reuses instead of writing a copy (the simple editor puts one logo in
- * every slot). An email logo only matches another email logo: email files are
- * never deleted, other slots' files are once unused.
+ * every slot).
  */
 function findIdenticalStagedLogo(
   stagedLogos: StagedLogo[],
   logo: StagedLogo,
 ): StagedLogo | undefined {
-  const forEmail = logo.upload.slot === EMAIL_SLOT;
   return stagedLogos.find(
     (other) =>
-      (other.upload.slot === EMAIL_SLOT) === forEmail &&
       path.extname(other.filePath) === path.extname(logo.filePath) &&
       other.bytes.equals(logo.bytes),
   );
@@ -265,24 +250,18 @@ export function withUploads(
 
 /**
  * Absolute paths of builder-named logo files the previous logos used and the
- * next ones do not. Email logo files are kept (builder-named ones and any
- * file the email slot pointed at): sent emails still show them.
+ * next ones do not.
  */
 export function orphanedAssets(
   publicDirectory: string,
   previousLogos: ThemeLogos,
   nextLogos: ThemeLogos,
 ): string[] {
-  const keptPaths = new Set([
-    ...logoPaths(nextLogos),
-    ...logoPaths({ [EMAIL_SLOT]: previousLogos[EMAIL_SLOT] }),
-  ]);
+  const keptPaths = new Set(logoPaths(nextLogos));
   return [...new Set(logoPaths(previousLogos))]
     .filter(
       (publicPath) =>
-        OWNED_ASSET.test(publicPath) &&
-        !OWNED_EMAIL_ASSET.test(publicPath) &&
-        !keptPaths.has(publicPath),
+        OWNED_ASSET.test(publicPath) && !keptPaths.has(publicPath),
     )
     .map((publicPath) => path.join(publicDirectory, publicPath));
 }
