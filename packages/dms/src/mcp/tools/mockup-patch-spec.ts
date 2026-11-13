@@ -39,7 +39,7 @@ export const mockupPatchSpecTool = defineTool({
   name: "mockup_patch_spec",
   title: "Patch a mockup spec",
   description:
-    "Edits the existing mockups/<mockup>/spec.json with an RFC 6902 JSON Patch: an array of { op, path, value?, from? } where op is add, remove, replace, move, copy or test, and path is a JSON pointer into the spec, such as /pages/0/tree/2/options/title. The patch applies in order to the current spec, then the result is checked and written exactly as mockup_write_spec does. Answers { ok, errors: [{ path, message }] }; on ok: false nothing is written. A failed test op or a pointer that leads nowhere is an error naming the operation's index, and nothing is written. Needs a spec: for a new mockup call mockup_write_spec first. On ok: true the dev-only /mockup page re-renders by itself.",
+    "Edits the existing mockups/<mockup>/spec.json with an RFC 6902 JSON Patch: an array of { op, path, value?, from? } where op is add, remove, replace, move, copy or test, and path is a JSON pointer into the spec, such as /pages/0/tree/2/options/title. The patch applies in order to the current spec, then the result is checked and written exactly as mockup_write_spec does. Answers { ok, errors: [{ path, message }] }; on ok: false nothing is written. A failed test op or a pointer that leads nowhere is an error naming the operation's index, and nothing is written. Needs a spec: for a new mockup call mockup_write_spec first. A block's id anchors the reviewer notes on it, so keep it when you move or rewrite the block. On ok: true the dev-only /mockup page re-renders by itself.",
   effect: "builder",
   input: z.object({
     mockup: mockupArgument,
