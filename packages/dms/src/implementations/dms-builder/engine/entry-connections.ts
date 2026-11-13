@@ -2,13 +2,18 @@ import type {
   EntryConnection,
   OpResult,
 } from "@antelopejs/interface-dms-builder";
-import { Node, type ObjectLiteralExpression } from "ts-morph";
+import {
+  Node,
+  type ObjectLiteralElementLike,
+  type ObjectLiteralExpression,
+} from "ts-morph";
 import { connectionAccess } from "./connection-access-config";
 import { CATALOG_INTERFACE, DATABASE_INTERFACE } from "./interface-ids";
 import {
   hasUnreadableMember,
   hides,
   isPlainObjectLiteral,
+  readableTail,
 } from "./literal-overrides";
 import { findConfigFile, propertyKey } from "./modules";
 import { invalidConfig, notFound, unsupported } from "./ops";
@@ -108,6 +113,17 @@ function bindingsOf(module: string, entry: Node | undefined): Binding[] {
     : refuseOverrides(module);
 }
 
+/** The name a member of `modules` is read under; nothing for one whose name the builder cannot read. */
+function memberName(member: ObjectLiteralElementLike): string | undefined {
+  if (Node.isShorthandPropertyAssignment(member)) {
+    return member.getName();
+  }
+  return Node.isPropertyAssignment(member) &&
+    !Node.isComputedPropertyName(member.getNameNode())
+    ? propertyKey(member.getNameNode())
+    : undefined;
+}
+
 /** A binding with the access dms-database grants its connection, as core resolves it. */
 function withAccess(binding: Binding): EntryConnection {
   return binding.id === undefined
@@ -118,7 +134,8 @@ function withAccess(binding: Binding): EntryConnection {
 /**
  * The `interface-database` and `interface-database-catalog` bindings of the entry `module`, as
  * `antelope.config.ts` writes them, whether or not core loads that module. The last entry written
- * under that id is the one core reads. Runs inside `withConnectionAccess`, which resolves each
+ * under that id is the one core reads, so a member of `modules` written after it under a name the
+ * builder cannot read, which may be that id, refuses the call. Runs inside `withConnectionAccess`, which resolves each
  * connection's access as dms-database receives it.
  */
 export function entryConnections(module: string): OpResult<EntryConnection[]> {
@@ -130,14 +147,18 @@ export function entryConnections(module: string): OpResult<EntryConnection[]> {
   }
   try {
     const draft = openDraft(configPath);
+    const modules = objectAt(draft, [MODULES]);
+    if (
+      modules &&
+      hasUnreadableMember(modules) &&
+      !readableTail(modules).some((member) => memberName(member) === module)
+    ) {
+      refuseUnreadable([], MODULES);
+    }
     const written = writtenModules(draft)
       .filter(([id]) => id === module)
       .at(-1);
     if (!written) {
-      const modules = objectAt(draft, [MODULES]);
-      if (modules && hasUnreadableMember(modules)) {
-        refuseUnreadable([], MODULES);
-      }
       return notFound<EntryConnection[]>(module);
     }
     return {

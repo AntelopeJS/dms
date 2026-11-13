@@ -223,4 +223,18 @@ describe("reading a module entry's bindings exactly as written", function () {
       { interface: CATALOG, source: "pg", id: "erp", access: "read-write" },
     ]);
   });
+
+  it("refuses an entry a later member of modules may override, and reads one written after it", async () => {
+    const plain = `    "dms-builder": { ${BUILDER_SOURCE}, importOverrides: [{ interface: "${DATABASE}", source: "first" }] },`;
+    const computed = `    [K]: { ${BUILDER_SOURCE}, importOverrides: [{ interface: "${CATALOG}", source: "pg", id: "erp" }] },`;
+    writeConfig('const K = "dms-builder";', `${plain}\n${computed}`);
+    expect(refusalOf(await ListEntryConnections("dms-builder"))).to.include(
+      '"modules" in the configuration is held in a way the builder cannot read',
+    );
+    writeConfig('const K = "dms-builder";', `${computed}\n${plain}`);
+    const listed = await ListEntryConnections("dms-builder");
+    expect(listed.ok && listed.data).to.deep.equal([
+      { interface: DATABASE, source: "first" },
+    ]);
+  });
 });
