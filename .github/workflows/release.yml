@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -57,6 +59,17 @@ jobs:
             !pkg.antelopeJs.implements.includes('@antelopejs/interface-dms') ||
             pkg.antelopeJs.implements.some((name) => name !== '@antelopejs/interface-dms')
           ) process.exit(1)
+          NODE
+      # A module released while an interface it depends on has unreleased source
+      # points at a published interface that lacks what the module calls. Release
+      # the interface first.
+      - name: Refuse unreleased interface source
+        run: |
+          node --input-type=module <<'NODE'
+          import { unreleasedInterfaces } from './checks/unreleased-interfaces.mjs'
+          const unreleased = unreleasedInterfaces('.')
+          for (const { name, reason } of unreleased) console.error(`${name}: ${reason}`)
+          if (unreleased.length > 0) process.exit(1)
           NODE
       # The module depends on the interface through `>=<floor> <0.<minor+1>.0`,
       # so a module released against an unpublished interface installs broken. The
