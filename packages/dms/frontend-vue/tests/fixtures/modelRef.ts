@@ -4,16 +4,13 @@ import { createApp, defineComponent, useModel, type ModelRef } from "vue";
 export function modelRef<T>(initial: T): ModelRef<T> {
   let model: ModelRef<T> | undefined;
   createApp(
-    defineComponent({
-      props: { modelValue: { type: null, default: undefined } },
-      setup: (props) => {
-        model = useModel<string, { modelValue: T }, "modelValue">(
-          props,
-          "modelValue",
-        );
+    defineComponent(
+      (props: { modelValue: T }) => {
+        model = useModel(props, "modelValue");
         return () => null;
       },
-    }),
+      { props: ["modelValue"] },
+    ),
     { modelValue: initial },
   ).mount(document.createElement("div"));
   if (!model) throw new Error("useModel did not run");

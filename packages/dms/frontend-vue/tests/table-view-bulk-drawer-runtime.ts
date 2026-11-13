@@ -29,7 +29,7 @@ interface DrawerBody {
 }
 
 function drawerBody(options: DrawerOptions["componentOptions"]): DrawerBody {
-  // SAFETY: holds when a drawer was opened or patched and options is the componentOptions useActionTargets passed for a row or bulk drawer target: it sets only DrawerBody's members (rowData, selection, navigation, showRow, fetchUrl, submitUrl, fetchRowUrl, rowActions, title, targetTree), each with the type declared above.
+  // SAFETY: Holds when options is the componentOptions useActionTargets built for a row or bulk drawer target: each DrawerBody member it sets (rowData, selection, navigation, showRow, fetchUrl, submitUrl, fetchRowUrl, rowActions, title, targetTree) has the type declared above; its other members (pageId, componentId, containerId, onSuccessCallback) are not read through DrawerBody.
   return options as DrawerBody;
 }
 

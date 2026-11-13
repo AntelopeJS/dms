@@ -16,21 +16,66 @@ export interface LayoutCaller {
   roleModel: RoleModel;
 }
 
+function refuse(what: string): never {
+  throw new Error(`Anonymous layout access queried ${what}`);
+}
+
 class UnqueriedMemberModel extends TenantMemberModel {
+  override async get(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async getBy(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async getAll(): Promise<never> {
+    return refuse("memberships");
+  }
+
   override async getByUser(): Promise<never> {
-    throw new Error("Anonymous layout access queried memberships");
+    return refuse("memberships");
+  }
+
+  override async existsByUser(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async listAll(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async listOwners(): Promise<never> {
+    return refuse("memberships");
+  }
+
+  override async countOwnersExcluding(): Promise<never> {
+    return refuse("memberships");
   }
 }
 
 class UnqueriedRoleModel extends RoleModel {
+  override async get(): Promise<never> {
+    return refuse("roles");
+  }
+
   override async getBy(): Promise<never> {
-    throw new Error("Anonymous layout access queried roles");
+    return refuse("roles");
+  }
+
+  override async getAll(): Promise<never> {
+    return refuse("roles");
+  }
+
+  override async getByName(): Promise<never> {
+    return refuse("roles");
   }
 }
 
 /**
- * A caller with no user. Its real models reject every membership and role
- * lookup, because anonymous layout access queries neither.
+ * A caller with no user. Its real models reject every lookup method of the
+ * membership and role models, because anonymous layout access queries
+ * neither.
  */
 export const ANONYMOUS: LayoutCaller = {
   user: undefined,

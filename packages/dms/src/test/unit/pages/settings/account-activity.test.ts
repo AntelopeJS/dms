@@ -346,7 +346,8 @@ describe("account activity", () => {
   it("leaves out events without a valid date", () => {
     const events = buildAccountActivity(
       sources({
-        user: user({ createdAt: undefined }),
+        // SAFETY: buildAccountActivity reads user.createdAt only behind `if (user.createdAt)`, so this undefined, as a row stored without the field holds, adds no account_created event and never reaches new Date.
+        user: user({ createdAt: undefined as unknown as Date }),
         sessions: [session("bad", "not a date")],
       }),
     );
