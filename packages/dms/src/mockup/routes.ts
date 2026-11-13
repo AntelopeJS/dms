@@ -11,13 +11,8 @@ import {
   Route,
   WriteStream,
 } from "@antelopejs/interface-api";
-import { IfAuthUser } from "@antelopejs/interface-dms/auth";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
-import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
-import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import type { z } from "zod";
-import { assertPlatformOwner } from "../implementations/dms/page";
 import {
   annotationDraftSchema,
   annotationPatchSchema,
@@ -35,6 +30,7 @@ import {
 } from "./fixtures";
 import { buildMockupSchema } from "./json-schema";
 import type { Json, JsonObject, MockupName, MockupState } from "./model";
+import { MockupOwnerController } from "./owner-controller";
 import {
   annotationIdSchema,
   fixtureKeySchema,
@@ -111,34 +107,22 @@ export function registerMockupRoutes(engine: MockupEngine) {
     return fixture;
   }
 
-  class MockupController extends Controller(MOCKUP_API) {
-    @Context()
-    declare requestContext: RequestContext;
-
-    @TenantScopedModel(RoleModel)
-    declare roleModel: RoleModel;
-
-    @TenantScopedModel(TenantMemberModel)
-    declare memberModel: TenantMemberModel;
-
-    @IfAuthUser()
-    declare user: User | undefined;
-
+  class MockupController extends Controller(MOCKUP_API, MockupOwnerController) {
     @Get("/")
     async list(): Promise<{ mockups: MockupSummary[] }> {
-      await assertPlatformOwner(this);
+      await this.assertOwner();
       return { mockups: await store.list() };
     }
 
     @Get("schema")
     async schema(): Promise<JsonObject> {
-      await assertPlatformOwner(this);
+      await this.assertOwner();
       return buildMockupSchema(ListBlockTypes());
     }
 
     @Get(":name")
     async state(@Parameter("name") rawName: string): Promise<MockupState> {
-      await assertPlatformOwner(this);
+      await this.assertOwner();
       const state = await store.state(nameOf(rawName));
       if (!state) throw notFound("mockup");
       return state;
@@ -150,7 +134,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @WriteStream(SSE_CONTENT_TYPE) out: PassThrough,
       @Context() context: RequestContext,
     ): Promise<void> {
-      await assertPlatformOwner(this);
+      await this.assertOwner();
       const name = nameOf(rawName);
       let unsubscribe: (() => void) | undefined;
       let open = !context.rawRequest.socket.destroyed;
@@ -188,7 +172,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @Parameter("page") rawPage: string,
       @Parameter("key") rawKey: string,
     ): Promise<Json> {
-      await assertPlatformOwner(this);
+      await this.assertOwner();
       return fixtureOf(rawName, rawPage, rawKey);
     }
 
@@ -199,7 +183,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @Parameter("key") rawKey: string,
       @Context() context: RequestContext,
     ): Promise<RowsPage> {
-      await assertPlatformOwner(this);
+      await this.assertOwner();
       const rows = parseRows(await fixtureOf(rawName, rawPage, rawKey));
       if (!rows) throw notFound("array of rows");
       return listRows(rows, parseRowsQuery(context.url.searchParams));
@@ -227,24 +211,15 @@ async function namesNode(
 /** The annotation routes over the mockups of `store`. */
 function registerAnnotationRoutes(store: MockupStore) {
   const { mockupsDir } = store;
-  class MockupAnnotationController extends Controller(MOCKUP_API) {
-    @Context()
-    declare requestContext: RequestContext;
-
-    @TenantScopedModel(RoleModel)
-    declare roleModel: RoleModel;
-
-    @TenantScopedModel(TenantMemberModel)
-    declare memberModel: TenantMemberModel;
-
-    @IfAuthUser()
-    declare user: User | undefined;
-
+  class MockupAnnotationController extends Controller(
+    MOCKUP_API,
+    MockupOwnerController,
+  ) {
     @Get(":name/annotations")
     async annotations(
       @Parameter("name") rawName: string,
     ): Promise<{ annotations: MockupAnnotation[] }> {
-      await assertPlatformOwner(this);
+      await this.assertOwner();
       const annotations = await listAnnotations(nameOf(rawName), mockupsDir);
       if (!annotations) throw notFound("mockup");
       return { annotations };
@@ -255,7 +230,7 @@ function registerAnnotationRoutes(store: MockupStore) {
       @Parameter("name") rawName: string,
       @JSONBody() body: unknown,
     ): Promise<MockupAnnotation> {
-      await assertPlatformOwner(this);
+      await this.assertOwner();
       const name = nameOf(rawName);
       const draft = annotationDraftSchema.safeParse(body);
       if (!draft.success) {
@@ -278,7 +253,7 @@ function registerAnnotationRoutes(store: MockupStore) {
       @Parameter("id") rawId: string,
       @JSONBody() body: unknown,
     ): Promise<MockupAnnotation> {
-      await assertPlatformOwner(this);
+      await this.assertOwner();
       const name = nameOf(rawName);
       const id = annotationIdSchema.safeParse(rawId);
       if (!id.success) throw notFound("annotation");

@@ -1,3 +1,4 @@
+import { computed, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HeaderAction } from "../layers/dms-layout/app/composables/useHeaderActions";
 
@@ -23,7 +24,10 @@ const MATCHED = new Set([
   "/branding",
 ]);
 
+const isOwner = ref(true);
+
 vi.stubGlobal("defineDmsPlugin", <Setup>(setup: Setup) => setup);
+vi.stubGlobal("useIsOwner", () => computed(() => isOwner.value));
 vi.stubGlobal("registerHeaderAction", (action: HeaderAction) =>
   registered.push(action),
 );
@@ -72,6 +76,7 @@ beforeEach(() => {
     },
   }));
   route.path = "/books";
+  isOwner.value = true;
   pushed.length = 0;
   posted.length = 0;
   toasts.length = 0;
@@ -109,6 +114,13 @@ describe("Edit as mockup header action", () => {
     ]) {
       expect(visibleOn(path), path).toBe(false);
     }
+  });
+
+  it("hides from a viewer who is not the platform owner, whom the mockup API refuses (fails when a member is offered a conversion that answers 403)", () => {
+    const { isVisible } = action();
+    isOwner.value = false;
+
+    expect(isVisible?.()).toBe(false);
   });
 
   it("posts the path on screen and opens the URL the backend answers (fails when the frontend builds its own URL or sends a ref)", async () => {

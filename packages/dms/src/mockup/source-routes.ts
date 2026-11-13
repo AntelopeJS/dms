@@ -13,6 +13,7 @@ import {
 import { z } from "zod";
 import { MOCKUP_API } from "./fixtures";
 import { jsonObjectSchema, type JsonObject, parseMockupName } from "./model";
+import { MockupOwnerController } from "./owner-controller";
 import {
   readSpecSource,
   type SpecDigest,
@@ -46,8 +47,8 @@ export interface SpecSourceAnswer {
 /**
  * The routes the `/mockup` editor writes through: the spec as written, a
  * whole-spec write checked exactly as `mockup_write_spec` checks it, and the
- * block catalog its inspector reads. Development only, and unauthenticated,
- * like the rest of the mockup API.
+ * block catalog its inspector reads. Development only, and platform owners
+ * only, like the rest of the mockup API.
  */
 export function registerSpecRoutes(mockupsDir: string) {
   function nameOf(raw: string) {
@@ -58,9 +59,13 @@ export function registerSpecRoutes(mockupsDir: string) {
     return name;
   }
 
-  class MockupSourceController extends Controller(MOCKUP_API) {
+  class MockupSourceController extends Controller(
+    MOCKUP_API,
+    MockupOwnerController,
+  ) {
     @Get("schema/blocks")
-    blocks(): BlockCatalogAnswer {
+    async blocks(): Promise<BlockCatalogAnswer> {
+      await this.assertOwner();
       return { blocks: ListBlockTypes() };
     }
 
@@ -68,6 +73,7 @@ export function registerSpecRoutes(mockupsDir: string) {
     async source(
       @Parameter("name") rawName: string,
     ): Promise<SpecSourceAnswer> {
+      await this.assertOwner();
       const source = await readSpecSource(mockupsDir, nameOf(rawName));
       if (!source) {
         throw new HTTPResult(HTTP_NOT_FOUND, { message: "mockup not found" });
@@ -85,6 +91,7 @@ export function registerSpecRoutes(mockupsDir: string) {
       @Parameter("name") rawName: string,
       @JSONBody() body: unknown,
     ): Promise<SpecWriteResult> {
+      await this.assertOwner();
       const name = nameOf(rawName);
       const parsed = writeBodySchema.safeParse(body);
       if (!parsed.success) {
