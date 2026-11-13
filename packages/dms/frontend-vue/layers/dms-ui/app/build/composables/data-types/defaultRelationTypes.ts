@@ -113,8 +113,7 @@ function renderRelation(value: CellValue, options: CellOptions) {
 
   return h("span", { class: "inline-flex items-center gap-2" }, [
     h(UAvatar, {
-      // @ts-expect-error A truthy relation avatar field is still an unvalidated plugin value, wider than UAvatar's src contract; forward it unchanged.
-      src: valueObject[avatarKey],
+      src: String(valueObject[avatarKey]),
       alt: String(label),
       size: Size.tiny,
     }),
