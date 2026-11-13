@@ -70,7 +70,8 @@ export interface RepeatConfirmationGate {
    * The refusal to answer for `call`, or `undefined` when `sessionId` made the
    * same call and was refused within the window; that repeat runs once. A
    * hold belongs to the session it refused, so another session's identical
-   * call is refused in turn, and a call with no session is always refused.
+   * call is refused in turn, and a call with no session, or a blank one, is
+   * always refused.
    */
   hold(
     sessionId: string | undefined,
@@ -85,7 +86,9 @@ export function createRepeatConfirmationGate(
   const pending = new Map<string, number>();
   return {
     hold(sessionId, toolName, call) {
-      if (sessionId === undefined) return sessionlessRefusal(toolName);
+      if (sessionId === undefined || sessionId.trim() === "") {
+        return sessionlessRefusal(toolName);
+      }
       const details = canonical(call);
       const key = JSON.stringify([sessionId, toolName, details]);
       const at = now();

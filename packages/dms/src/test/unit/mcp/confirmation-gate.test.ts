@@ -129,6 +129,13 @@ describe("[unit] mcp repeat-confirmation gate", () => {
     expect(repeat?.content[0]?.text).to.include("sent no session");
     expect(codeOf(repeat?.content)).to.equal(undefined);
   });
+
+  it("never runs a call whose session is blank, as one that names none", () => {
+    gate.hold(" ", DELETE_PAGE, { pageRef: "/orders" });
+    expect(
+      gate.hold(" ", DELETE_PAGE, { pageRef: "/orders" })?.content[0]?.text,
+    ).to.include("sent no session");
+  });
 });
 
 async function deleteThroughMcp(
