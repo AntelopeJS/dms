@@ -84,7 +84,7 @@ function withIds(
   });
 }
 
-/** The pointer of each stamp's node in `spec`, when exactly one node without an id equals it. */
+/** Each stamp's id, keyed by the pointer of the one node of `spec` without an id that equals the stamp's node, when there is exactly one. */
 function matchedIds(
   spec: MockupSpecDocument,
   stamps: readonly Stamp[],

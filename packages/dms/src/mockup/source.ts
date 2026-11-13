@@ -145,12 +145,10 @@ function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
   };
 }
 
-/** Whether `value` is a JSON object, not an array. */
 function isJsonObject(value: Json | undefined): value is JsonObject {
   return value instanceof Object && !Array.isArray(value);
 }
 
-/** The value `pointer`, whose segments need no unescaping, names in `value`. */
 function valueAt(value: Json, pointer: string): Json | undefined {
   return pointer
     .split("/")
