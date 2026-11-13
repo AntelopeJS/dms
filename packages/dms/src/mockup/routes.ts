@@ -30,6 +30,7 @@ import {
 } from "./fixtures";
 import { buildMockupSchema } from "./json-schema";
 import type { Json, JsonObject, MockupName, MockupState } from "./model";
+import { MockupOwnerController } from "./owner-controller";
 import {
   annotationIdSchema,
   fixtureKeySchema,
@@ -86,8 +87,9 @@ function write(out: PassThrough, payload: string): void {
 }
 
 /**
- * Registers the mockup API under `/api/mockup`. Development only, and
- * unauthenticated: it serves the files of the project it runs in.
+ * Registers the mockup API under `/api/mockup`. Development only, and platform
+ * owners only: it serves the files of the project it runs in. The MCP mockup
+ * tools read the files directly, not through these routes.
  */
 export function registerMockupRoutes(engine: MockupEngine) {
   const { store } = engine;
@@ -105,20 +107,23 @@ export function registerMockupRoutes(engine: MockupEngine) {
     return fixture;
   }
 
-  class MockupController extends Controller(MOCKUP_API) {
+  class MockupController extends Controller(MOCKUP_API, MockupOwnerController) {
     @Get("/")
     async list(): Promise<{ results: MockupSummary[]; total: number }> {
+      await this.assertOwner();
       const results = await store.list();
       return { results, total: results.length };
     }
 
     @Get("schema")
-    schema(): JsonObject {
+    async schema(): Promise<JsonObject> {
+      await this.assertOwner();
       return buildMockupSchema(ListBlockTypes());
     }
 
     @Get(":name")
     async state(@Parameter("name") rawName: string): Promise<MockupState> {
+      await this.assertOwner();
       const state = await store.state(nameOf(rawName));
       if (!state) throw notFound("mockup");
       return state;
@@ -130,6 +135,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @WriteStream(SSE_CONTENT_TYPE) out: PassThrough,
       @Context() context: RequestContext,
     ): Promise<void> {
+      await this.assertOwner();
       const name = nameOf(rawName);
       let unsubscribe: (() => void) | undefined;
       let open = !context.rawRequest.socket.destroyed;
@@ -162,11 +168,12 @@ export function registerMockupRoutes(engine: MockupEngine) {
     }
 
     @Get(":name/pages/:page/fixtures/:key")
-    fixture(
+    async fixture(
       @Parameter("name") rawName: string,
       @Parameter("page") rawPage: string,
       @Parameter("key") rawKey: string,
     ): Promise<Json> {
+      await this.assertOwner();
       return fixtureOf(rawName, rawPage, rawKey);
     }
 
@@ -177,6 +184,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @Parameter("key") rawKey: string,
       @Context() context: RequestContext,
     ): Promise<RowsPage> {
+      await this.assertOwner();
       const rows = parseRows(await fixtureOf(rawName, rawPage, rawKey));
       if (!rows) throw notFound("array of rows");
       return listRows(rows, parseRowsQuery(context.url.searchParams));
@@ -204,11 +212,15 @@ async function namesNode(
 /** The annotation routes over the mockups of `store`. */
 function registerAnnotationRoutes(store: MockupStore) {
   const { mockupsDir } = store;
-  class MockupAnnotationController extends Controller(MOCKUP_API) {
+  class MockupAnnotationController extends Controller(
+    MOCKUP_API,
+    MockupOwnerController,
+  ) {
     @Get(":name/annotations")
     async annotations(
       @Parameter("name") rawName: string,
     ): Promise<{ annotations: MockupAnnotation[] }> {
+      await this.assertOwner();
       const annotations = await listAnnotations(nameOf(rawName), mockupsDir);
       if (!annotations) throw notFound("mockup");
       return { annotations };
@@ -219,6 +231,7 @@ function registerAnnotationRoutes(store: MockupStore) {
       @Parameter("name") rawName: string,
       @JSONBody() body: unknown,
     ): Promise<MockupAnnotation> {
+      await this.assertOwner();
       const name = nameOf(rawName);
       const draft = annotationDraftSchema.safeParse(body);
       if (!draft.success) {
@@ -241,6 +254,7 @@ function registerAnnotationRoutes(store: MockupStore) {
       @Parameter("id") rawId: string,
       @JSONBody() body: unknown,
     ): Promise<MockupAnnotation> {
+      await this.assertOwner();
       const name = nameOf(rawName);
       const id = annotationIdSchema.safeParse(rawId);
       if (!id.success) throw notFound("annotation");

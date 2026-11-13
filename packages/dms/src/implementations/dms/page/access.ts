@@ -6,8 +6,11 @@ import {
   isPlatformPage as isPlatformPageHelper,
   userCanAccessPage as userCanAccessPageHelper,
 } from "../../../utils";
+import type { RequestContext } from "@antelopejs/interface-api";
+import { assert } from "@antelopejs/interface-api-util";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { TenantMemberModel, RoleModel } from "@antelopejs/interface-dms/db";
+import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import {
   GetEffectiveUserPermissions,
   HasPermission,
@@ -21,6 +24,11 @@ import type {
   AccessContext,
   NavigationEntry,
 } from "./types";
+
+const HTTP_UNAUTHORIZED = 401;
+const HTTP_FORBIDDEN = 403;
+const ERROR_UNAUTHENTICATED = "Authentication required";
+const ERROR_UNAUTHORIZED = "error.unauthorized";
 
 /**
  * Whether `fullId` is a platform page: a module's, owner-only, listing the
@@ -140,6 +148,34 @@ export async function isPlatformOwner(
     tenantId,
   );
   return context.gated.isOwner;
+}
+
+/** What a controller holds to tell whether its caller is the platform owner. */
+export interface PlatformOwnerCheck {
+  requestContext: RequestContext;
+  roleModel: RoleModel;
+  memberModel: TenantMemberModel;
+  user: User | undefined;
+}
+
+/**
+ * Refuses a request that is not the platform owner's: 401 when it carries no
+ * session, 403 when its user is not flagged `owner` or the tenant access gate
+ * denies them. A role that lists `*` does not make its holder the owner here.
+ */
+export async function assertPlatformOwner(
+  request: PlatformOwnerCheck,
+): Promise<void> {
+  assert(request.user, HTTP_UNAUTHORIZED, ERROR_UNAUTHENTICATED);
+  const isOwner =
+    request.user.owner === true &&
+    (await isPlatformOwner(
+      request.user,
+      request.memberModel,
+      request.roleModel,
+      getRequestTenantId(request.requestContext),
+    ));
+  assert(isOwner, HTTP_FORBIDDEN, ERROR_UNAUTHORIZED);
 }
 
 export async function buildAccessContext(
