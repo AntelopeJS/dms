@@ -43,10 +43,14 @@ export interface MockupState {
 
 export type MockupAnnotationStatus = "open" | "resolved";
 
-/** The block a note is about: the node whose id is `block`, then the children whose ids are `steps`. */
+/**
+ * The block a note is about: the node whose id is `block`, on the page `page`
+ * when set, then the children whose ids are `steps`.
+ */
 export interface MockupBlockAnchor {
   block: string;
   steps: string[];
+  page?: string;
 }
 
 export interface MockupAnnotation {
@@ -181,7 +185,8 @@ function isAnchor(
     (isRecord(value) &&
       isString(value.block) &&
       Array.isArray(value.steps) &&
-      value.steps.every((step) => isString(step)))
+      value.steps.every((step) => isString(step)) &&
+      isOptionalString(value.page))
   );
 }
 

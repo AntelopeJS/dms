@@ -1,14 +1,20 @@
 import { randomInt } from "node:crypto";
 import { z } from "zod";
 import type { JsonObject, MockupNode, MockupSpec } from "./model";
-import { jsonPointer } from "./model";
+import { jsonPointer, pageIdSchema } from "./model";
 
 /**
  * The block a note is about: the node whose id is `block`, then down through
- * the children whose ids are `steps`.
+ * the children whose ids are `steps`. `page` is set when a node of another
+ * page had the id `block` first: the block is then the first node with that
+ * id on the page `page`, or, once no page has that id, in the spec.
  */
 export const blockAnchorSchema = z
-  .object({ block: z.string(), steps: z.array(z.string()) })
+  .object({
+    block: z.string(),
+    steps: z.array(z.string()),
+    page: pageIdSchema.optional(),
+  })
   .strict();
 export type BlockAnchor = z.infer<typeof blockAnchorSchema>;
 
@@ -129,7 +135,14 @@ function childWithId(from: Visit, id: string): Visit | undefined {
 }
 
 function findBlock(tree: BlockTree, anchor: BlockAnchor): Visit | undefined {
-  const first = visitsOf(tree).find(({ node }) => node.id === anchor.block);
+  const page = tree.pages.some((entry) => entry?.id === anchor.page)
+    ? anchor.page
+    : undefined;
+  const first = visitsOf(tree).find(
+    ({ node, address }) =>
+      node.id === anchor.block &&
+      (page === undefined || tree.pages[address.page]?.id === page),
+  );
   return anchor.steps.reduce<Visit | undefined>(
     (visit, step) => visit && childWithId(visit, step),
     first,
@@ -150,8 +163,8 @@ function pointerOf({ page, indexes }: NodeAddress): string {
 
 /**
  * Where the block `anchor` names is in `tree` now: the first node with its
- * id in document order, then the children its steps name. Undefined when the
- * block is gone.
+ * id in document order, on its page when it names one that exists, then the
+ * children its steps name. Undefined when the block is gone.
  */
 export function locateBlock(
   tree: BlockTree,
@@ -220,8 +233,9 @@ function stampNode(spec: MockupSpec, address: NodeAddress, id: string): void {
  * no id gets a fresh one, stamped on `spec` in place, and anchors there. A
  * node whose id already leads back to the target anchors there. Any other id
  * joins the steps and the walk goes to the parent: no existing id is ever
- * renamed. A root whose id leads elsewhere anchors anyway, so it names the
- * first node with that id. Undefined when `site` names no node of `spec`.
+ * renamed. A root whose id leads elsewhere anchors anyway, with its page, so
+ * it names the first node with that id on its page. Undefined when `site`
+ * names no node of `spec`.
  */
 export function anchorSite(
   spec: MockupSpec,
@@ -246,8 +260,11 @@ export function anchorSite(
     }
     const anchor = { block: id, steps };
     const found = findBlock(spec, anchor);
-    if (depth === 0 || (found && pointerOf(found.address) === target)) {
+    if (found && pointerOf(found.address) === target) {
       return { anchor, stamped: false };
+    }
+    if (depth === 0) {
+      return { anchor: { ...anchor, page: site.page }, stamped: false };
     }
     steps = [id, ...steps];
   }

@@ -225,6 +225,17 @@ describe("annotations panel", () => {
     expect(entries()).toEqual([["open", "Too tight"]]);
   });
 
+  it("shows a note whose anchor names its page, and ignores one whose anchor's page is no string (fails when the guard refuses the page the backend sends or lets a wrong one through)", async () => {
+    const anchor = { block: "header", steps: [], page: "orders" };
+    await viewer.publish("annotations", {
+      annotations: [{ ...OPEN, anchor }],
+    });
+    await viewer.publish("annotations", {
+      annotations: [{ ...DONE, anchor: { ...anchor, page: 3 } }],
+    });
+    expect(entries()).toEqual([["open", "Too tight"]]);
+  });
+
   it("loads the notes the backend already holds", async () => {
     viewer.unmount();
     runtime = stubMockupRuntime();
