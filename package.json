@@ -48,7 +48,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@antelopejs/interface-data-api": "file:.tgz-deps/antelopejs-interface-data-api-d70049c.tgz"
+      "@antelopejs/interface-data-api": "file:.tgz-deps/antelopejs-interface-data-api-2def09c.tgz"
     }
   }
 }
