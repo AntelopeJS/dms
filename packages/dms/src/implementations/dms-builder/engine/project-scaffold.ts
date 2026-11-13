@@ -136,7 +136,8 @@ function rebasedSpec(spec: string, from: string, to: string): string {
   const local = PATH_SPEC.exec(spec)?.groups;
   if (
     local === undefined ||
-    local.target.startsWith("~") ||
+    local.target === "~" ||
+    local.target.startsWith("~/") ||
     path.isAbsolute(local.target)
   ) {
     return spec;

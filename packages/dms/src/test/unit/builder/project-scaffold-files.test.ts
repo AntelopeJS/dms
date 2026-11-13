@@ -147,6 +147,18 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
     });
   }
 
+  it("rebases a relative spec whose folder name starts with ~", () => {
+    const text = fileOf(
+      {
+        "package.json": `{"dependencies": {"@antelopejs/interface-api": "file:~vendor/api"}}`,
+      },
+      "package.json",
+    );
+    expect(text).to.contain(
+      `"@antelopejs/interface-api": "file:../../~vendor/api"`,
+    );
+  });
+
   it("refuses a dependency whose range is not a string", () => {
     expect(() =>
       scaffoldWith({ "package.json": '{"dependencies": {"a": null}}' }),
