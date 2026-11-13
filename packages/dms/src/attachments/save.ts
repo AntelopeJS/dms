@@ -11,7 +11,6 @@ import type {
   AttachmentSaveRequest,
   AttachmentSaveResult,
 } from "@antelopejs/interface-dms/attachments";
-import type { UploadTokenClaims } from "../utils";
 import { assertNativeFileAccess } from "./access";
 import {
   isNull,
@@ -25,6 +24,7 @@ import {
   containsAttachment,
 } from "./fields";
 import { denyAttachment, findAttachment, loadAttachment } from "./registry";
+import { readStoredClaims } from "./stored-claims";
 
 const BAD_REQUEST = 400;
 
@@ -65,8 +65,7 @@ async function validateReference(
   ref: AttachmentReference,
 ): Promise<void> {
   const attachment = await loadAttachment(ref.key, ref.field.storage);
-  // oxlint-disable-next-line typescript/no-unsafe-assignment -- attachments.claimsJson is a stored column whose only writer is createAttachmentUpload (attachments/uploads.ts), JSON.stringify of an UploadTokenClaims, and stored rows are never parsed on read.
-  const owner: UploadTokenClaims = JSON.parse(attachment.claimsJson);
+  const owner = readStoredClaims(attachment.claimsJson);
   const principal = await assertNativeFileAccess(request.context, owner, false);
   if (
     principal.tenantId !== attachment.tenantId ||

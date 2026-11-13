@@ -35,34 +35,45 @@ function readStorage(storage: Storage, key: string): string | null {
   }
 }
 
-function writeStorage(storage: Storage, key: string, value: string): void {
-  // prettier-ignore
+/**
+ * Stores `value` under `key`. Answers `false` when the storage refuses it
+ * (denied or full): the preview then loses its sharing across tabs or its
+ * survival across a reload, not the editor's state.
+ */
+function writeStorage(storage: Storage, key: string, value: string): boolean {
   try {
     storage.setItem(key, value);
+    return true;
   } catch {
-    // eslint-disable-line no-empty -- Failed storage writes lose preview session sharing or reload persistence, not the editor's state.
+    return false;
   }
 }
 
-function removeStorage(storage: Storage, key: string): void {
-  // prettier-ignore
+/** Removes `key`. Answers `false` when the storage refuses it. */
+function removeStorage(storage: Storage, key: string): boolean {
   try {
     storage.removeItem(key);
+    return true;
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage does not interrupt preview cleanup.
+    return false;
   }
 }
 
-function removeSessions(isRemoved: (key: string) => boolean): void {
-  // prettier-ignore
+/**
+ * Removes the stored preview sessions `isRemoved` picks. Answers `false` when
+ * the storage cannot be walked: the sessions stay, and the preview closes
+ * anyway.
+ */
+function removeSessions(isRemoved: (key: string) => boolean): boolean {
   try {
     for (let index = localStorage.length - 1; index >= 0; index--) {
       const key = localStorage.key(index);
       if (!key?.startsWith(PERMISSION_PREVIEW_STORAGE_PREFIX)) continue;
       if (isRemoved(key)) removeStorage(localStorage, key);
     }
+    return true;
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage does not interrupt preview cleanup.
+    return false;
   }
 }
 

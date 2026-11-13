@@ -40,6 +40,11 @@ interface ServedHeaderActionsOptions {
  * form) asks again too: it may have changed the record the buttons read, or
  * what their availability checks. Buttons without an availability, on a page
  * reading no record, never cause a request.
+ *
+ * A request that fails keeps the last buttons too, and the failure is shown
+ * to the user unless a later request replaced it. A button's availability is
+ * not authorization, so the operations the buttons target must enforce their
+ * own access checks.
  */
 export function useServedHeaderActions({
   actions,
@@ -48,6 +53,7 @@ export function useServedHeaderActions({
 }: ServedHeaderActionsOptions): ComputedRef<LayoutHeaderAction[]> {
   const route = useDmsRoute();
   const siteLayout = useSiteLayout();
+  const { presentError } = useApiErrorPresenter();
   const refreshed = shallowRef<LayoutHeaderAction[] | null>(null);
   let latestRequest = 0;
 
@@ -56,7 +62,6 @@ export function useServedHeaderActions({
   async function askFor(url: string, query: Record<string, string>) {
     const request = ++latestRequest;
     const { $authFetch } = useAuthFetch();
-    // prettier-ignore
     try {
       const layout = await $authFetch<PageLayout>(
         layoutUrlWithQuery(url, query),
@@ -65,8 +70,10 @@ export function useServedHeaderActions({
       const options: { headerActions?: LayoutHeaderAction[] } | undefined =
         layout.layout.options;
       refreshed.value = options?.headerActions ?? [];
-    } catch {
-      // eslint-disable-line no-empty -- A failed refresh retains prior buttons; availability is not authorization, so target operations must enforce their own access checks.
+    } catch (error: unknown) {
+      if (request === latestRequest) {
+        presentError(error, { fallbackKey: "error.500.description" });
+      }
     }
   }
 

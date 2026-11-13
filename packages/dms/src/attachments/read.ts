@@ -4,13 +4,13 @@ import {
   FileNotFoundError,
   GetFileMetadata,
 } from "@antelopejs/interface-file-storage";
-import type { UploadTokenClaims } from "../utils";
 import { assertNativeFileAccess } from "./access";
 import {
   denyAttachment,
   loadAttachment,
   PRIVATE_LINK_TTL_SECONDS,
 } from "./registry";
+import { readStoredClaims } from "./stored-claims";
 
 const SIGNING_MARGIN_SECONDS = 1;
 const MILLISECONDS_PER_SECOND = 1000;
@@ -38,8 +38,7 @@ export async function readAttachment(
   storage?: string,
 ) {
   const attachment = await loadAttachment(key, storage);
-  // oxlint-disable-next-line typescript/no-unsafe-assignment -- attachments.claimsJson is a stored column whose only writer is createAttachmentUpload (attachments/uploads.ts), JSON.stringify of an UploadTokenClaims, and stored rows are never parsed on read.
-  const claims: UploadTokenClaims = JSON.parse(attachment.claimsJson);
+  const claims = readStoredClaims(attachment.claimsJson);
   const principal = await assertNativeFileAccess(context, claims, false);
   if (attachment.tenantId !== principal.tenantId) denyAttachment();
   const deadline =

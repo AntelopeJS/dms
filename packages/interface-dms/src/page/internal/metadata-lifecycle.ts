@@ -1,8 +1,6 @@
 /** @internal */
 export { installMetadataOwner } from "./metadata-owner";
-// oxlint-disable-next-line import/no-cycle -- Category resolution reads metadata only inside functions after initialization.
 export { setPageInfo } from "./metadata-info";
-// oxlint-disable-next-line import/no-cycle -- Publication reads category proxies only after metadata initialization.
 import { mergeMetadata, publish as publishMetadata } from "./metadata-publish";
 import type { Component } from "../../component";
 import type { ComponentTreeNode } from "../component-tree";
@@ -101,8 +99,7 @@ export function dispose(page: PageMetadata): void {
   const owner = metadataOwner(page);
   owner.detached = true;
   owner.releaseGate();
-  // oxlint-disable-next-line unicorn/no-useless-spread -- Snapshot the keys before drop deletes entries from the same map.
-  for (const info of [...owner.extensionEntries.keys()]) owner.drop(info);
+  for (const info of owner.extensionEntries.keys()) owner.drop(info);
   owner.rebuild();
   owner.ownComponents = {};
   owner.registration.dispose();

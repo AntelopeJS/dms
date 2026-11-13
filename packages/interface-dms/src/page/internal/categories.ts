@@ -1,5 +1,4 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
-import { GetMetadata } from "@antelopejs/interface-core";
 import { Action, type ComponentInfo } from "../../component";
 import {
   MarkModuleScopedPermission,
@@ -7,8 +6,7 @@ import {
   RegisterPermission,
   UnmarkModuleScopedPermission,
 } from "../../permissions";
-// oxlint-disable-next-line import/no-cycle -- Category resolution reads PageMetadata inside functions; page registration uses the proxies declared in categories.
-import { PageMetadata } from "../metadata";
+import * as resolution from "./category-resolution";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { fireAndForget } from "../../utils/fire-and-forget";
 import {
@@ -30,13 +28,7 @@ import type {
 import { categoryOwnPermissionId } from "./category-permission";
 import { opensToMembers } from "./member-access";
 import { ROOT_SLUG } from "./types";
-// oxlint-disable-next-line import/no-cycle -- Category proxies and isOwnerOnly are read inside functions, after module evaluation.
 import { internal, isOwnerOnly } from "../categories";
-
-/** Whether a category names its controller class rather than its CategoryInfo. */
-const isControllerClass = (
-  category: CategoryInfo | ControllerClass | undefined,
-): category is ControllerClass => typeof category === "function";
 
 /**
  * Resolve a category to CategoryInfo
@@ -48,19 +40,7 @@ const isControllerClass = (
 export function resolveCategoryInfo(
   category: CategoryInfo | ControllerClass | undefined,
 ): CategoryInfo | undefined {
-  if (!category) {
-    return undefined;
-  }
-
-  if (isControllerClass(category)) {
-    const meta = GetMetadata(category, PageMetadata);
-    if (!meta.pageInfo) {
-      throw new Error(`PageMetadata not initialized for controller class.`);
-    }
-    return meta.pageInfo;
-  }
-
-  return category;
+  return resolution.resolveCategoryInfo(category);
 }
 
 /**
@@ -75,19 +55,7 @@ export function resolveCategoryInfo(
 export function resolveInheritedLayout(
   category: CategoryInfo | ControllerClass | undefined,
 ): ComponentInfo | undefined {
-  let current = findCategoryInfo(category);
-  while (current) {
-    if (current.layout) return current.layout;
-    current = findCategoryInfo(current.category);
-  }
-  return undefined;
-}
-
-function findCategoryInfo(
-  category: CategoryInfo | ControllerClass | undefined,
-): CategoryInfo | undefined {
-  if (!isControllerClass(category)) return category;
-  return GetMetadata(category, PageMetadata).pageInfo;
+  return resolution.resolveInheritedLayout(category);
 }
 
 /**

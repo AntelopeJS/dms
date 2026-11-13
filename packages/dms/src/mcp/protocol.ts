@@ -2,7 +2,12 @@ import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import { isToolAllowed, type McpAccess } from "./access";
 import { JsonObjectSchema, JsonValueSchema } from "./json";
-import { type McpTool, type McpToolResult, textResult } from "./tool";
+import {
+  type McpTool,
+  type McpToolResult,
+  ThrownReasonSchema,
+  thrownResult,
+} from "./tool";
 
 /** The protocol revisions this server speaks, newest first. */
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"] as const;
@@ -111,8 +116,7 @@ async function runTool(
   try {
     return await tool.call(args, sessionId);
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return textResult(`${tool.name} failed: ${reason}`, true);
+    return thrownResult(tool.name, ThrownReasonSchema.parse(error));
   }
 }
 

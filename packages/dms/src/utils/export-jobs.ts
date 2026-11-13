@@ -20,6 +20,7 @@ import {
   RegisterHtmlTemplate,
 } from "@antelopejs/interface-dms/html-render";
 import { stringify } from "csv-stringify/sync";
+import { z } from "zod";
 import { getClientBaseUrl } from "../config";
 import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import type { ExportJob } from "@antelopejs/interface-dms/db/tables/exportJobs.table";
@@ -123,12 +124,29 @@ function buildDeliveryLink(exportRecord: ExportJob): string {
   return `${baseUrl}${exportRecord.deliveryPath}?${EXPORT_JOB_QUERY_PARAM}=${exportRecord._id}`;
 }
 
+const ExportJobResultSummarySchema = z
+  .object({
+    partial: z.boolean().default(false),
+    failures: z
+      .array(z.object({ source: z.string(), error: z.string() }).passthrough())
+      .default([]),
+  })
+  .passthrough();
+
+/**
+ * The summary `markAsCompleted` stored for the job, as the `generate` of its
+ * export returned it. A summary that omits `partial` reads as complete, and
+ * one that omits `failures` as naming none. `undefined` when the job stored
+ * none, or stored a value that is not a summary.
+ */
 export function readJobResult(
   exportRecord: ExportJob,
 ): ExportJobResultSummary | undefined {
   if (!exportRecord.json_result) return undefined;
-  // oxlint-disable-next-line typescript/no-unsafe-return -- exportJobs.json_result is a stored column whose only writer is ExportJobModel.markAsCompleted, JSON.stringify of the result processExportJob passes, and stored rows are never parsed on read.
-  return JSON.parse(exportRecord.json_result);
+  const parsed = ExportJobResultSummarySchema.safeParse(
+    JSON.parse(exportRecord.json_result),
+  );
+  return parsed.success ? parsed.data : undefined;
 }
 
 function exportReadyEmailData(

@@ -155,12 +155,19 @@ const deleteResource = defineTool({
   effect: "project",
   input: z.object({ ref: z.string(), keepData: z.boolean().optional() }),
   run: async (args, sessionId) =>
-    repeatConfirmation.hold(sessionId, "builder_delete_resource", args) ??
-    opResult(
-      await DeleteResource(
-        args.ref,
-        args.keepData === undefined ? undefined : { keepData: args.keepData },
-      ),
+    repeatConfirmation.run(
+      sessionId,
+      "builder_delete_resource",
+      args,
+      async () =>
+        opResult(
+          await DeleteResource(
+            args.ref,
+            args.keepData === undefined
+              ? undefined
+              : { keepData: args.keepData },
+          ),
+        ),
     ),
 });
 
@@ -201,8 +208,9 @@ const removeField = defineTool({
   effect: "builder",
   input: z.object({ path: FIELD_PATH }),
   run: async (args, sessionId) =>
-    repeatConfirmation.hold(sessionId, "builder_remove_field", args) ??
-    opResult(await RemoveField(args.path)),
+    repeatConfirmation.run(sessionId, "builder_remove_field", args, async () =>
+      opResult(await RemoveField(args.path)),
+    ),
 });
 
 export const BUILDER_RESOURCE_TOOLS = [

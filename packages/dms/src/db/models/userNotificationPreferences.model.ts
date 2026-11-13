@@ -130,8 +130,8 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
       const defaultPreferences = buildDefaultPreferences();
       await this.updatePreferences(userId, defaultPreferences);
 
-      // oxlint-disable-next-line typescript/no-misused-spread -- Preserve the existing repaired row's own persisted fields and replacement preferences without introducing prototype methods into its return value.
-      return { ...existing, preferences: defaultPreferences };
+      existing.preferences = defaultPreferences;
+      return existing;
     }
 
     return await this.createDefault(userId);

@@ -56,6 +56,16 @@ const SESSION_HEADER = "x-realtime-session";
 /** The browser connection a tab opens its session on. */
 const CONNECTION_HEADER = "x-realtime-connection";
 
+/**
+ * The tab's session named in the `x-realtime-session` header, read as
+ * `@Parameter(SESSION_HEADER, "header")` reads it: the first value of a
+ * repeated header.
+ */
+const sessionHeader = (ctx: RequestContext): string | undefined => {
+  const value = ctx.rawRequest.headers[SESSION_HEADER];
+  return Array.isArray(value) ? value[0] : value;
+};
+
 type RealtimeAck = { ok: boolean };
 
 /** A tab's session opened on its browser's connection. */
@@ -325,16 +335,14 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/subscribe/:pageId")
-
-  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, page, session, tenant models, and user through decorators.
   async subscribePage(
     @Context() ctx: RequestContext,
     @Parameter("pageId", "param") pageId: string,
-    @Parameter(SESSION_HEADER, "header") sessionId: string,
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @AuthRawUser() user: User,
   ): Promise<PageSubscriptionAck> {
+    const sessionId = sessionHeader(ctx);
     if (!sessionId || !getSessionInfo(sessionId)) {
       return { ok: false, topics: [] };
     }
@@ -373,16 +381,14 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/acquire")
-
-  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, body, session, tenant models, and user through decorators.
   async acquire(
     @Context() ctx: RequestContext,
     @JSONBody() body: unknown,
-    @Parameter(SESSION_HEADER, "header") sessionId: string,
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @AuthRawUser() user: User,
   ): Promise<RealtimeAck> {
+    const sessionId = sessionHeader(ctx);
     if (!sessionId || !isValidPresenceBody(body)) return { ok: false };
     if (!getPageTopics(body.pageId).has(body.topic)) return { ok: false };
     const tenantId = getRequestTenantId(ctx);
@@ -410,16 +416,14 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   }
 
   @Post("/release")
-
-  // oxlint-disable-next-line eslint/max-params -- Six positional parameters receive request context, body, session, tenant models, and user through decorators.
   async release(
     @Context() ctx: RequestContext,
     @JSONBody() body: unknown,
-    @Parameter(SESSION_HEADER, "header") sessionId: string,
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @AuthRawUser() user: User,
   ): Promise<RealtimeAck> {
+    const sessionId = sessionHeader(ctx);
     if (!sessionId || !isValidPresenceBody(body)) return { ok: false };
     if (!getPageTopics(body.pageId).has(body.topic)) return { ok: false };
     const canAccess = await userCanAccessPage(

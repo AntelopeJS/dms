@@ -202,11 +202,11 @@ const configureProject = defineTool({
       kind,
       diff,
     }));
-    return (
-      repeatConfirmation.hold(sessionId, "builder_configure_project", {
-        steps,
-        plannedChanges,
-      }) ?? opResult(await ConfigureProject(steps))
+    return repeatConfirmation.run(
+      sessionId,
+      "builder_configure_project",
+      { steps, plannedChanges },
+      async () => opResult(await ConfigureProject(steps)),
     );
   },
 });
@@ -244,19 +244,21 @@ const mapResources = defineTool({
     const preview = await PreviewMapResources(input);
     if (!preview.ok) return opResult(preview);
     const { pagesToRemove } = preview.data;
-    const held =
-      pagesToRemove.length === 0
-        ? undefined
-        : repeatConfirmation.hold(sessionId, "builder_map_resources", {
-            ...input,
-            pagesToRemove,
-          });
-    if (held !== undefined) return held;
-    const written = await MapResources({
-      ...input,
-      approvedPageRemovals: pagesToRemove,
-    });
-    return unapprovedPagesRefusal(written) ?? opResult(written);
+    const write = async () => {
+      const written = await MapResources({
+        ...input,
+        approvedPageRemovals: pagesToRemove,
+      });
+      return unapprovedPagesRefusal(written) ?? opResult(written);
+    };
+    return pagesToRemove.length === 0
+      ? write()
+      : repeatConfirmation.run(
+          sessionId,
+          "builder_map_resources",
+          { ...input, pagesToRemove },
+          write,
+        );
   },
 });
 

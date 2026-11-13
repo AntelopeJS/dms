@@ -42,14 +42,16 @@ interface StaticComponentField {
  * Static component fields of a class, in declaration order. Underscore-prefixed
  * fields are skipped, so a class can keep private static state.
  */
-// oxlint-disable-next-line anti-slop/no-object-parameters -- Decorated classes expose static component fields known only at runtime.
-function collectStaticComponents(cl: object): StaticComponentField[] {
+function collectStaticComponents(
+  cl: import("@antelopejs/interface-core/decorators").Class,
+): StaticComponentField[] {
   const fields: StaticComponentField[] = [];
   for (const key of Object.getOwnPropertyNames(cl)) {
     if (key.startsWith("_")) continue;
-
-    // oxlint-disable-next-line anti-slop/no-reflect-get -- The static field name comes from Object.getOwnPropertyNames; its value is narrowed with instanceof Component.
-    const value: unknown = Reflect.get(cl, key);
+    const descriptor = Object.getOwnPropertyDescriptor(cl, key);
+    const value: unknown = descriptor?.get
+      ? descriptor.get.call(cl)
+      : descriptor?.value;
     if (value instanceof Component) {
       fields.push({ key, component: value });
     }
@@ -73,8 +75,7 @@ export const RegisterPage = MakeClassDecorator((cl) => {
 });
 
 function buildExtensionComponents(
-  // oxlint-disable-next-line anti-slop/no-object-parameters -- Extension components are collected from the decorated class static fields at runtime.
-  extensionClass: object,
+  extensionClass: import("@antelopejs/interface-core/decorators").Class,
 ): PageExtensionComponent[] {
   return collectStaticComponents(extensionClass).map(({ key, component }) => {
     const placement = component.placement ?? DEFAULT_PLACEMENT;
