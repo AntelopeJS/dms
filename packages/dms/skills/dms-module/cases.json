@@ -18,7 +18,7 @@
     },
     {
       "id": "ai-ship-module-skills",
-      "area": "dms-assistant",
+      "area": "dms-ai",
       "style": "clean",
       "prompt": "Make our module ship its own skill so dms-assistant loads it.",
       "expect": {
