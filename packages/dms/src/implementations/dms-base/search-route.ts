@@ -340,7 +340,7 @@ export async function countWithSearch(
     user,
     permissions,
   );
-  const total = await queryTotal;
+  const total = await queryTotal.run();
   return { total };
 }
 
@@ -395,7 +395,10 @@ export async function listWithSearch(
     deferredJoined,
   });
 
-  const [dbResult, dbTotal] = await Promise.all([queryPaged, queryTotal]);
+  const [dbResult, dbTotal] = await Promise.all([
+    queryPaged.run(),
+    queryTotal.run(),
+  ]);
 
   const results = await Promise.all(
     dbResult.map((entry) => {

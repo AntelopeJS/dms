@@ -69,7 +69,7 @@ async function processBatch({
   writer,
   headers,
 }: ExportBatch): Promise<void> {
-  const dbResult = await pendingRecordBatch;
+  const dbResult = await pendingRecordBatch.run();
   const results = await Promise.all(
     dbResult.map((entry) => {
       const stored = model.constructor.fromDatabase(entry);
@@ -226,7 +226,7 @@ export async function generateTableViewExport({
     user,
   });
 
-  const totalRecordsCount = await queryTotal;
+  const totalRecordsCount = await queryTotal.run();
 
   for (let i = 0; i < totalRecordsCount; i += EXPORT_BATCH_SIZE) {
     const pendingRecordBatch = Query.ListPage(
@@ -397,7 +397,7 @@ export async function validateRowsAgainstRule(
   const controllerMetadata = GetDataControllerMeta(controller);
   const model = Query.GetModel(controller, controllerMetadata);
 
-  const rows = await model.table.getAll(ids, idField);
+  const rows = await model.table.getAll(ids, idField).run();
 
   const eligibleIds: string[] = [];
   const rejectedIds: string[] = [];
@@ -454,9 +454,12 @@ export async function archiveRows(
     return { success: true, archivedCount: 0 };
   }
 
-  const updated = await model.table.getAll(idArray, idField).update({
-    [archiveField]: true,
-  });
+  const updated = await model.table
+    .getAll(idArray, idField)
+    .update({
+      [archiveField]: true,
+    })
+    .run();
 
   return { success: true, archivedCount: updatedRowCount(updated, idArray) };
 }
@@ -483,9 +486,12 @@ export async function restoreRows(
     return { success: true, restoredCount: 0 };
   }
 
-  const updated = await model.table.getAll(idArray, idField).update({
-    [archiveField]: false,
-  });
+  const updated = await model.table
+    .getAll(idArray, idField)
+    .update({
+      [archiveField]: false,
+    })
+    .run();
 
   return { success: true, restoredCount: updatedRowCount(updated, idArray) };
 }
