@@ -4,7 +4,6 @@ import type { ComponentInfo } from "../../component";
 import type { PageMetadata } from "../metadata";
 import { pageRoutePath } from "../page-routes";
 import type { CategoryInfo, MenuOptions, PageInfo } from "../types";
-// oxlint-disable-next-line import/no-cycle -- Category resolution reads PageMetadata inside functions, after metadata initialization.
 import { resolveCategoryInfo, resolveInheritedLayout } from "./categories";
 import { inheritedMemberAccess } from "./member-access";
 

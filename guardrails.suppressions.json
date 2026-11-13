@@ -16,7 +16,7 @@
     "anti-slop/no-unsafe-dictionary-type": 79,
     "anti-slop/require-safety-comment-for-type-assertion": 0,
     "eslint/max-params": 6,
-    "import/no-cycle": 11,
+    "import/no-cycle": 3,
     "import/no-duplicates": 0,
     "no-empty": 3,
     "promise/no-callback-in-promise": 0,

@@ -1,8 +1,6 @@
 /** @internal */
 export { installMetadataOwner } from "./metadata-owner";
-// oxlint-disable-next-line import/no-cycle -- Category resolution reads metadata only inside functions after initialization.
 export { setPageInfo } from "./metadata-info";
-// oxlint-disable-next-line import/no-cycle -- Publication reads category proxies only after metadata initialization.
 import { mergeMetadata, publish as publishMetadata } from "./metadata-publish";
 import type { Component } from "../../component";
 import type { ComponentTreeNode } from "../component-tree";
