@@ -6,6 +6,7 @@ import type {
   DatabaseCheckInput,
   DatabaseConnection,
   DatabaseProject,
+  EntryConnection,
   OpResult,
   ProjectConfigOpts,
   ProjectConfigResult,
@@ -28,6 +29,7 @@ import { removeDatabaseConnection } from "./engine/database-connection-remove";
 import { databasePins } from "./engine/database-pin";
 import { repairDatabaseConnections } from "./engine/database-repair";
 import { dmsDatabaseId } from "./engine/dms-database";
+import { entryConnections } from "./engine/entry-connections";
 import {
   driverPackages,
   resolvedInterfaceDatabase,
@@ -162,4 +164,10 @@ export async function SampleDatabaseRows(
       error instanceof Error ? error.message : String(error),
     );
   }
+}
+
+export async function ListEntryConnections(
+  module: string,
+): Promise<OpResult<EntryConnection[]>> {
+  return entryConnections(module);
 }

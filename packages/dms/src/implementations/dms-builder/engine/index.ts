@@ -20,6 +20,7 @@ export * from "./database-repair";
 export * from "./dms-database";
 export * from "./driver-packages";
 export * from "./emit";
+export * from "./entry-connections";
 export * from "./env-lines";
 export * from "./file-batch";
 export * from "./guards";
