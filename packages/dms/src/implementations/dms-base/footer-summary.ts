@@ -169,7 +169,10 @@ export async function summarizeWithSearch(
             compileRowRule(where, fieldReader(thisObj, meta, row)),
           )
         : query;
-      const value = await SUMMARY_OPERATIONS[summary.op](rows, summary.field);
+      const value = await SUMMARY_OPERATIONS[summary.op](
+        rows,
+        summary.field,
+      ).run();
       return [id, Number(value) || 0] as const;
     }),
   );

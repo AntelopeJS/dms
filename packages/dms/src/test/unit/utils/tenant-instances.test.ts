@@ -35,7 +35,7 @@ const PROVISIONING_USER = "instances-user";
 async function listTenantInstances(): Promise<string[]> {
   const schema = Schema.get(TENANT_SCHEMA_NAME);
   if (!schema) throw new Error(`Schema '${TENANT_SCHEMA_NAME}' is missing`);
-  return schema.listInstances();
+  return schema.listInstances().run();
 }
 
 function registerInstanceRegistrationCases(): void {

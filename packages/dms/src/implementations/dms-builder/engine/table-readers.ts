@@ -123,7 +123,7 @@ export async function tableRowCounts(
         tenant && isPerTenantSchema(record.schema)
           ? schema.instance(tenant)
           : schema.instance();
-      const rows = await instance.table(record.tableName).count();
+      const rows = await instance.table(record.tableName).count().run();
       if (isNumber(rows)) {
         counts[record.ref] = rows;
       }

@@ -114,7 +114,8 @@ export async function resolveBulkRowIds(
     getTableViewMetaFor(thisObj).options.rowIdKey ?? DEFAULT_ROW_ID_FIELD;
   const matching = await rows
     .slice(0, MAX_BULK_MATCHING_ROWS + 1)
-    .pluck(idField);
+    .pluck(idField)
+    .run();
   assert(
     matching.length <= MAX_BULK_MATCHING_ROWS,
     HTTP_PAYLOAD_TOO_LARGE,

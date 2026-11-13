@@ -23,11 +23,11 @@ function getTenantSchema(): Schema {
  * @param tenantId Tenant whose instance to register
  */
 export async function registerTenantInstance(tenantId: string): Promise<void> {
-  await getTenantSchema().createInstance(tenantId);
+  await getTenantSchema().createInstance(tenantId).run();
 }
 
 async function listTenantIds(): Promise<string[]> {
-  const rows = await GetModel(TenantModel).table.pluck(TENANT_ID_FIELD);
+  const rows = await GetModel(TenantModel).table.pluck(TENANT_ID_FIELD).run();
   return rows.map((row) => row._id);
 }
 
@@ -39,7 +39,7 @@ async function listTenantIds(): Promise<string[]> {
 export async function registerExistingTenantInstances(): Promise<void> {
   const [tenantIds, instances] = await Promise.all([
     listTenantIds(),
-    getTenantSchema().listInstances(),
+    getTenantSchema().listInstances().run(),
   ]);
   const registered = new Set(instances);
   const missing = tenantIds.filter((tenantId) => !registered.has(tenantId));
