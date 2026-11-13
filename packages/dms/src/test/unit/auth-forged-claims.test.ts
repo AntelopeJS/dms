@@ -4,7 +4,13 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assert, expect } from "chai";
 import { type JwtPayload, sign } from "jsonwebtoken";
-import { internal, validateRefreshToken } from "../../implementations/dms-auth";
+import {
+  internal,
+  validateRefreshToken,
+  validateTenantAssignmentToken,
+  validateTwoFactorToken,
+} from "../../implementations/dms-auth";
+import { generateSecret } from "../../implementations/dms-auth/services";
 
 const TENANT_ID = "forged-claims-tenant";
 const HTTP_UNAUTHORIZED = 401;
@@ -25,8 +31,23 @@ async function refusalOf<T>(run: () => Promise<T>): Promise<Refusal> {
   return expect.fail("Expected authentication to reject the token");
 }
 
+const MALFORMED_PAYLOAD_TOKEN = [
+  Buffer.from('{"alg":"HS256","typ":"JWT"}').toString("base64url"),
+  Buffer.from("not json{").toString("base64url"),
+  Buffer.from("signature").toString("base64url"),
+].join(".");
+
+const EXPIRED = { exp: Math.floor(Date.now() / 1000) - 60 };
+
 function forge(claims: JwtPayload): string {
   return sign({ tenantId: TENANT_ID, ...claims }, "forged-secret");
+}
+
+function signFor(user: User, claims: JwtPayload): string {
+  return sign(
+    { id: user._id, tenantId: TENANT_ID, ...claims },
+    generateSecret(user.authKey),
+  );
 }
 
 describe("[unit] auth forged claims", () => {
@@ -53,17 +74,20 @@ describe("[unit] auth forged claims", () => {
     if (user) await GetModel(UserModel).delete(user._id);
   });
 
-  it("answers every forged access token the same 401, whether its id names a user or not", async () => {
-    const forged = [
+  it("answers every access token it refuses before trusting its claims the same 401", async () => {
+    const refused = [
       "not-a-jwt",
+      MALFORMED_PAYLOAD_TOKEN,
       forge({ id: { $gt: "" }, purpose: "access" }),
       forge({ id: { $gt: "zzzzzzzz" }, purpose: "access" }),
       forge({ id: UNKNOWN_USER_ID, sessionId: { $gt: "" }, purpose: "access" }),
       forge({ id: user._id, purpose: "access" }),
       forge({ id: UNKNOWN_USER_ID, purpose: "access" }),
+      signFor(user, { purpose: "access", ...EXPIRED }),
+      signFor(user, { purpose: "refresh" }),
     ];
     const refusals = await Promise.all(
-      forged.map((token) =>
+      refused.map((token) =>
         refusalOf(async () =>
           internal.AuthUserValidator(internal.AuthUserAuthenticator(token)),
         ),
@@ -75,15 +99,33 @@ describe("[unit] auth forged claims", () => {
     }
   });
 
-  it("answers a forged refresh token the same 401 whether its id names a user or not", async () => {
-    const [known, unknown] = await Promise.all(
-      [user._id, UNKNOWN_USER_ID].map((id) =>
-        refusalOf(() =>
-          validateRefreshToken(forge({ id, purpose: "refresh" })),
-        ),
-      ),
+  it("refuses a malformed two-factor or tenant-assignment token with its 401", async () => {
+    const [twoFactor, assignment] = await Promise.all([
+      refusalOf(() => validateTwoFactorToken(MALFORMED_PAYLOAD_TOKEN)),
+      refusalOf(() => validateTenantAssignmentToken(MALFORMED_PAYLOAD_TOKEN)),
+    ]);
+    expect(twoFactor).to.deep.equal({
+      status: HTTP_UNAUTHORIZED,
+      body: "error.invalid_2fa_token",
+    });
+    expect(assignment.status).to.equal(HTTP_UNAUTHORIZED);
+  });
+
+  it("answers every refresh token it refuses before trusting its claims the same 401", async () => {
+    const refused = [
+      "not-a-jwt",
+      MALFORMED_PAYLOAD_TOKEN,
+      forge({ id: user._id, purpose: "refresh" }),
+      forge({ id: UNKNOWN_USER_ID, purpose: "refresh" }),
+      signFor(user, { purpose: "refresh", ...EXPIRED }),
+      signFor(user, { purpose: "access" }),
+    ];
+    const refusals = await Promise.all(
+      refused.map((token) => refusalOf(() => validateRefreshToken(token))),
     );
-    expect(known.status).to.equal(HTTP_UNAUTHORIZED);
-    expect(known).to.deep.equal(unknown);
+    expect(refusals[0].status).to.equal(HTTP_UNAUTHORIZED);
+    for (const refusal of refusals) {
+      expect(refusal).to.deep.equal(refusals[0]);
+    }
   });
 });
