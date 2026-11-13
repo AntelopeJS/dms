@@ -9,6 +9,7 @@ import path from "node:path";
 import { Node, type ObjectLiteralExpression } from "ts-morph";
 import { z } from "zod";
 import { findConfigFile, propertyKey } from "./modules";
+import { resolveProjectRoot } from "./project";
 import {
   type ConfigDraft,
   ENV_OVERRIDES,
@@ -185,6 +186,8 @@ function raisedByEnv(
 
 const TEMPLATE = /\$\{([^}]+)\}/g;
 const MODULE_CONFIG_FILE = /^antelope\..+\.json$/;
+const MODULE_CONFIG_DIRECTORY = /^antelope\./;
+const JSON_FILE = /\.json$/;
 const CONFIG_VARIABLE = "@";
 
 function textOf(file: string): string {
@@ -195,44 +198,112 @@ function textOf(file: string): string {
   }
 }
 
-function moduleConfigFiles(directory: string): string[] {
+function filesIn(directory: string, kept: RegExp): string[] {
   try {
-    return readdirSync(directory)
-      .filter((name) => MODULE_CONFIG_FILE.test(name))
-      .map((name) => path.join(directory, name));
+    return readdirSync(directory, { withFileTypes: true }).flatMap((item) => {
+      const at = path.join(directory, item.name);
+      if (item.isDirectory()) {
+        return filesIn(at, JSON_FILE);
+      }
+      return kept.test(item.name) ? [at] : [];
+    });
   } catch {
     return [];
   }
 }
 
 /**
- * The keys the `${key}` templates of antelope.config.ts and the antelope.<id>.json files beside it
- * read. Core resolves them after `envOverrides`, by a key's full path or by its last key alone,
- * from any module, so a template on one connection's access may read a key written anywhere.
+ * The `antelope.<id>.json` files core may merge into a module: `<id>` may hold a `/`, as a scoped
+ * package name does, which puts the file under an `antelope.<scope>` directory.
  */
-function templateKeys(): Set<string> {
+function moduleConfigFiles(root: string): string[] {
+  try {
+    return readdirSync(root, { withFileTypes: true }).flatMap((item) => {
+      const at = path.join(root, item.name);
+      if (item.isDirectory()) {
+        return MODULE_CONFIG_DIRECTORY.test(item.name)
+          ? filesIn(at, JSON_FILE)
+          : [];
+      }
+      return MODULE_CONFIG_FILE.test(item.name) ? [at] : [];
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The strings antelope.config.ts holds, where a core template can sit. A TypeScript template
+ * literal's `${…}` is resolved before core reads the value, so only its literal text counts. A
+ * configuration that cannot be parsed counts whole.
+ */
+function configStrings(
+  draft: ConfigDraft | undefined,
+  configPath: string,
+): string[] {
+  if (!draft) {
+    return [textOf(configPath)];
+  }
+  return draft.file.getDescendants().flatMap((node) => {
+    if (
+      Node.isStringLiteral(node) ||
+      Node.isNoSubstitutionTemplateLiteral(node)
+    ) {
+      return [node.getLiteralValue()];
+    }
+    return Node.isTemplateHead(node) ||
+      Node.isTemplateMiddle(node) ||
+      Node.isTemplateTail(node)
+      ? [node.getLiteralText()]
+      : [];
+  });
+}
+
+/**
+ * The keys the `${key}` templates of antelope.config.ts and the project's antelope.<id>.json files
+ * read. Core resolves them after `envOverrides`, by a key's full path or by a key's own name, from
+ * any module, so a template on one connection's access may read a key written anywhere.
+ */
+function templateKeys(draft: ConfigDraft | undefined): Set<string> {
   const configPath = findConfigFile();
   if (configPath === undefined) {
     return new Set();
   }
-  const files = [configPath, ...moduleConfigFiles(path.dirname(configPath))];
+  const texts = [
+    ...configStrings(draft, configPath),
+    ...moduleConfigFiles(resolveProjectRoot()).map(textOf),
+  ];
   return new Set(
-    files
-      .flatMap((file) => [...textOf(file).matchAll(TEMPLATE)])
+    texts
+      .flatMap((text) => [...text.matchAll(TEMPLATE)])
       .map(([, key]) => key)
       .filter((key) => !key.startsWith(CONFIG_VARIABLE)),
   );
 }
 
-/** The path of every key a value writes below `prefix`, at any depth. */
-function writtenPaths(prefix: string, value: ConfigValue): string[] {
+/** A key a step writes: its full path, and its own name as written, which may hold dots. */
+interface WrittenKey {
+  path: string;
+  key: string;
+}
+
+/** Every key a value writes below `prefix`, at any depth. */
+function writtenKeys(prefix: string, value: ConfigValue): WrittenKey[] {
   if (!isPlainObject(value) && !Array.isArray(value)) {
     return [];
   }
   return Object.entries(value).flatMap(([key, child]) => {
-    const at = `${prefix}.${key}`;
-    return [at, ...writtenPaths(at, child)];
+    const path = `${prefix}.${key}`;
+    return [{ path, key }, ...writtenKeys(path, child)];
   });
+}
+
+/** The key an `env` binding sets: core splits its config path on dots. */
+function boundKey(entryPath: string, configPath: string): WrittenKey {
+  return {
+    path: `${entryPath}.config.${configPath}`,
+    key: configPath.slice(configPath.lastIndexOf(".") + 1),
+  };
 }
 
 /** Why an entry is refused because it writes or binds a key a template reads, or nothing. */
@@ -250,9 +321,11 @@ function readByTemplate(
   };
   const entryPath = `${MODULES}.${module}`;
   const read = [
-    ...writtenPaths(entryPath, written),
-    ...Object.keys(env ?? {}).map((key) => `${entryPath}.config.${key}`),
-  ].find((at) => keys.has(at) || keys.has(at.slice(at.lastIndexOf(".") + 1)));
+    ...writtenKeys(entryPath, written),
+    ...Object.keys(env ?? {}).map((configPath) =>
+      boundKey(entryPath, configPath),
+    ),
+  ].find(({ path, key }) => keys.has(path) || keys.has(key))?.path;
   return (
     read &&
     grantRefusal(
@@ -275,7 +348,7 @@ export function raisedAccessRefusal(
   steps: readonly ProjectConfigStep[],
 ): string | undefined {
   const draft = readDraft();
-  const keys = templateKeys();
+  const keys = templateKeys(draft);
   for (const step of steps) {
     const entry =
       step.op === "RemoveModule" || step.op === "RemoveConnection"

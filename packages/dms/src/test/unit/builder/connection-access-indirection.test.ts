@@ -1,6 +1,8 @@
 import { ImplementInterface } from "@antelopejs/interface-core";
 import * as Builder from "@antelopejs/interface-dms-builder";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
+import fs from "node:fs";
+import path from "node:path";
 import { expect } from "chai";
 import * as implementation from "../../../implementations/dms-builder";
 import {
@@ -104,11 +106,96 @@ describe("[unit] builder_configure_project refuses a key a templated access read
     ).to.include(`write \`modules.${MODULE}.config.erpAccess\``);
   });
 
+  it("refuses an agent writing a key whose own name holds the dot a template reads", async () => {
+    erp.writeModules([
+      dmsDatabase('externalConnections: { erp: { access: "${erp.access}" } }'),
+    ]);
+    expect(
+      await agentStep(MODULE, { config: { "erp.access": "read-write" } }),
+    ).to.include(`write \`modules.${MODULE}.config.erp.access\``);
+    expect(refusalOf(await MapResources(countries(true)))).to.include(
+      READ_ONLY,
+    );
+  });
+
   it("still lets an agent write a key no template reads", async () => {
     erp.writeModules([TEMPLATED]);
     expect(await agentStep(MODULE, { config: { pollSeconds: 5 } })).to.equal(
       "accepted",
     );
+  });
+});
+
+describe("[unit] builder_configure_project finds a template wherever core reads one", function () {
+  this.timeout(OP_TIMEOUT);
+  const erp = useErpFixture();
+
+  before(() => {
+    ImplementInterface(Builder, implementation);
+  });
+
+  it("refuses an agent adding a module whose key is named as the full path a template reads", async () => {
+    erp.writeModules([
+      dmsDatabase(
+        'erpAccess: "read", externalConnections: { erp: { access: "${modules.dms-database.config.erpAccess}" } }',
+      ),
+    ]);
+    const answer = await confirmedCall({
+      steps: [
+        {
+          op: "AddModule",
+          id: "zz-helper",
+          entry: {
+            source: { type: "package", package: "zz-helper", version: "1.0.0" },
+            config: { "modules.dms-database.config.erpAccess": "read-write" },
+          },
+        },
+      ],
+    });
+    expect(answer.isError).to.equal(true);
+    expect(answer.content[0]?.text).to.include(RAISE_REFUSED);
+    expect(refusalOf(await MapResources(countries(true)))).to.include(
+      READ_ONLY,
+    );
+  });
+
+  it("refuses a key a template reads in the JSON file of a scoped module id", async () => {
+    const scope = path.join(erp.app().root, "antelope.@antelopejs");
+    fs.mkdirSync(scope);
+    try {
+      erp.writeModules([
+        `"@antelopejs/dms-database": { ${DMS_DATABASE_SOURCE} },`,
+      ]);
+      erp
+        .app()
+        .write(
+          "../antelope.@antelopejs/dms-database.json",
+          '{ "externalConnections": { "erp": { "access": "${erpAccess}" } } }',
+        );
+      expect(
+        await agentStep(MODULE, { config: { erpAccess: "read-write" } }),
+      ).to.include(`write \`modules.${MODULE}.config.erpAccess\``);
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        READ_ONLY,
+      );
+    } finally {
+      fs.rmSync(scope, { recursive: true, force: true });
+    }
+  });
+
+  it("lets an agent write a key only a TypeScript template literal reads", async () => {
+    erp.writeModules(
+      [
+        dmsDatabase(
+          'url: `mongodb://${host}:27017`, externalConnections: { erp: { access: "read" } }',
+        ),
+      ],
+      [],
+      ['const host = "localhost";'],
+    );
+    expect(
+      await agentStep(MODULE, { config: { host: "db.internal" } }),
+    ).to.equal("accepted");
   });
 });
 
