@@ -21,6 +21,7 @@ import {
   PreviewMapResources,
 } from "../../../implementations/dms-builder";
 import {
+  recordLaunchEnvironment,
   setCatalogConnectionsForTests,
   setModuleReloadForTests,
 } from "../../../implementations/dms-builder/engine";
@@ -34,7 +35,6 @@ import {
 } from "./harness";
 import { FAKE_CATALOG, MODULE, OP_TIMEOUT } from "./mapped-database";
 import { reloadedAtOnce } from "./reload-stub";
-import { recordLaunchEnvironment } from "../../../implementations/dms-builder/engine/connection-access-config";
 import { answerMcpMessage } from "../../../mcp/protocol";
 import { MCP_TOOLS } from "../../../mcp/tools";
 

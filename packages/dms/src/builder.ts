@@ -13,7 +13,7 @@ import { isBuilderEnabled } from "./config";
 export async function startBuilder(dev: boolean, env: string): Promise<void> {
   if (!isBuilderEnabled(dev)) return;
   const { recordLaunchEnvironment } =
-    await import("./implementations/dms-builder/engine/connection-access-config");
+    await import("./implementations/dms-builder/engine");
   recordLaunchEnvironment(env);
   void ImplementInterface(
     await import("@antelopejs/interface-dms-builder"),
