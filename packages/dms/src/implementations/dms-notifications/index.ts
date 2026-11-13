@@ -177,11 +177,6 @@ export async function publishAllNotificationsRead(
 }
 
 export namespace internal {
-  /** Advertises durable per-recipient delivery to newer interface consumers. */
-  export async function SupportsIdempotency(): Promise<boolean> {
-    return true;
-  }
-
   export const RegisterNotificationCategory = {
     register: (info: NotificationCategoryInfo) => {
       const existing = categoryRegistry.get(info.id);

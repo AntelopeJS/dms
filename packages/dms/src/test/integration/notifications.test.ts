@@ -11,7 +11,6 @@ import { internal } from "../../implementations/dms-notifications";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import { internal as notificationInterface } from "@antelopejs/interface-dms/notifications";
 import { SendableNotification } from "@antelopejs/interface-dms/notifications/sendable";
 import type { NotificationData } from "@antelopejs/interface-dms/notifications/types";
 import { buildUserNotificationTopic, getRealtimeBroker } from "../../realtime";
@@ -354,31 +353,5 @@ describe("Notification idempotency (MongoDB adapter), failures and retries", () 
       readScope: "shared",
     });
     assert.equal((await model.getByUserId(USER)).length, 2);
-  });
-
-  it("fails closed for a new sendable with an older implementation", async () => {
-    const original = notificationInterface.SupportsIdempotency;
-    Object.defineProperty(notificationInterface, "SupportsIdempotency", {
-      value: async () => false,
-      configurable: true,
-    });
-    try {
-      const options = { idempotencyKey: EVENT };
-      await assert.rejects(
-        sendable.toUsersIdempotently([USER], EVENT),
-        /unavailable/,
-      );
-      await assert.rejects(sendable.toUser(USER, options), /unavailable/);
-      await assert.rejects(sendable.toUsers([USER], options), /unavailable/);
-      await assert.rejects(sendable.toRoles(["role"], options), /unavailable/);
-      await assert.rejects(sendable.broadcast(options), /unavailable/);
-      assert.equal((await model.getAll()).length, 0);
-      await sendable.toUser(USER);
-      assert.equal((await model.getAll()).length, 1);
-    } finally {
-      Object.defineProperty(notificationInterface, "SupportsIdempotency", {
-        value: original,
-      });
-    }
   });
 });

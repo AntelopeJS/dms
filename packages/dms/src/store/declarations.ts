@@ -1,5 +1,9 @@
 import type { ModuleSourcePackage } from "@antelopejs/interface-core/config";
-import * as coreModules from "@antelopejs/interface-core/modules";
+import {
+  ListModuleDeclarations,
+  RemoveModuleDeclaration,
+  SaveModuleDeclaration,
+} from "@antelopejs/interface-core/modules";
 import type {
   ModuleDeclaration,
   ModuleDeclarationChanges,
@@ -7,77 +11,11 @@ import type {
 import type { StoreCatalogEntry, StoreDeclaration } from "./types";
 
 const PACKAGE_SOURCE_TYPE = "package" as const;
-/**
- * A core that predates the declaration functions never answers them: the
- * store then stays read-only instead of waiting forever.
- */
-const DECLARATIONS_TIMEOUT_MS = 5000;
-
-/**
- * The module declaration functions of `@antelopejs/interface-core/modules`,
- * looked up at call time: an interface-core release that predates them has
- * no such export, and the store then stays read-only rather than failing to
- * load. Mirrors their declarations there.
- */
-interface DeclarationFunctions {
-  ListModuleDeclarations: () => Promise<Record<string, ModuleDeclaration>>;
-  SaveModuleDeclaration: (
-    module: string,
-    changes: ModuleDeclarationChanges,
-  ) => Promise<void>;
-  RemoveModuleDeclaration: (module: string) => Promise<void>;
-}
-
-const DECLARATION_FUNCTIONS: ReadonlyArray<keyof DeclarationFunctions> = [
-  "ListModuleDeclarations",
-  "SaveModuleDeclaration",
-  "RemoveModuleDeclaration",
-];
 
 interface PackageSource {
   type: string;
   package?: string;
   version?: string;
-}
-
-/** The core does not implement the module declaration functions. */
-export class DeclarationsUnavailableError extends Error {
-  constructor() {
-    super(
-      "This @antelopejs/core cannot edit antelope.config.ts: update it to one that implements the module declaration functions",
-    );
-  }
-}
-
-function isFunction(
-  value: unknown,
-): value is DeclarationFunctions[keyof DeclarationFunctions] {
-  return typeof value === "function";
-}
-
-function declarationFunctions(): DeclarationFunctions {
-  const exported = { ...coreModules };
-  const functions = DECLARATION_FUNCTIONS.map((name) => exported[name]);
-  if (!functions.every(isFunction)) {
-    throw new DeclarationsUnavailableError();
-  }
-  return {
-    ListModuleDeclarations: exported.ListModuleDeclarations,
-    SaveModuleDeclaration: exported.SaveModuleDeclaration,
-    RemoveModuleDeclaration: exported.RemoveModuleDeclaration,
-  };
-}
-
-function withTimeout<T>(call: Promise<T>): Promise<T> {
-  let timer: NodeJS.Timeout | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new DeclarationsUnavailableError()),
-      DECLARATIONS_TIMEOUT_MS,
-    );
-    timer.unref();
-  });
-  return Promise.race([call, timeout]).finally(() => clearTimeout(timer));
 }
 
 function packageSource(
@@ -95,9 +33,7 @@ function packageSource(
 export async function listCatalogDeclarations(
   catalog: readonly StoreCatalogEntry[],
 ): Promise<Map<string, StoreDeclaration>> {
-  const declarations = await withTimeout(
-    declarationFunctions().ListModuleDeclarations(),
-  );
+  const declarations = await ListModuleDeclarations();
   const byPackage = new Map(catalog.map((entry) => [entry.package, entry.id]));
   const result = new Map<string, StoreDeclaration>();
   for (const [key, declaration] of Object.entries(declarations)) {
@@ -117,9 +53,7 @@ export async function listCatalogDeclarations(
 
 /** Whether antelope.config.ts has an entry under `key`, whatever its source. */
 export async function hasDeclaration(key: string): Promise<boolean> {
-  const declarations = await withTimeout(
-    declarationFunctions().ListModuleDeclarations(),
-  );
+  const declarations = await ListModuleDeclarations();
   return Object.hasOwn(declarations, key);
 }
 
@@ -127,13 +61,11 @@ export function saveDeclaration(
   key: string,
   changes: ModuleDeclarationChanges,
 ): Promise<void> {
-  return withTimeout(
-    declarationFunctions().SaveModuleDeclaration(key, changes),
-  );
+  return SaveModuleDeclaration(key, changes);
 }
 
 export function removeDeclaration(key: string): Promise<void> {
-  return withTimeout(declarationFunctions().RemoveModuleDeclaration(key));
+  return RemoveModuleDeclaration(key);
 }
 
 /** The source the store writes for `packageName` at version `range`. */
