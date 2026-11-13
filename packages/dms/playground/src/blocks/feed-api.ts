@@ -25,18 +25,16 @@ const QUOTA_STEP = 5_000;
 const QUOTA_MAX = 100_000;
 const DEFAULT_PERIOD = "this-month";
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require the existing indexed lookup and fallback.
-const QUOTA_BY_PERIOD: Record<string, number> = {
+const QUOTA_BY_PERIOD = {
   "this-month": 61_400,
   "last-month": 97_800,
-};
+} satisfies Record<string, number>;
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require the existing indexed lookup and fallback.
-const ATTENTION_COUNT_BY_PERIOD: Record<string, number> = {
+const ATTENTION_COUNT_BY_PERIOD = {
   "last-24h": 9,
   "last-7-days": 31,
   "last-30-days": 112,
-};
+} satisfies Record<string, number>;
 
 let quotaUsedThisMonth = QUOTA_BY_PERIOD[DEFAULT_PERIOD];
 const addedEntries: ActivityFeedItem[] = [];

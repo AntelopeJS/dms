@@ -180,8 +180,7 @@ async function fetchGoogleIdentity(
  * Login providers shipped with the DMS. A provider only becomes available once
  * the instance configuration supplies its credentials.
  */
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- The exported registry's string index is consumed by configured provider ids; inference would narrow its published keys to the two built-in providers.
-export const OAUTH_PROVIDERS: Record<string, OAuthProvider> = {
+export const OAUTH_PROVIDERS = {
   github: {
     displayName: "GitHub",
     icon: "i-ph-github-logo",
@@ -198,4 +197,4 @@ export const OAUTH_PROVIDERS: Record<string, OAuthProvider> = {
     defaultScopes: ["openid", "email", "profile"],
     fetchIdentity: fetchGoogleIdentity,
   },
-};
+} satisfies Record<string, OAuthProvider>;

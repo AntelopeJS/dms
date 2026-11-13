@@ -25,12 +25,11 @@ const BROWSER_VERSION = /\s+[\d.]+$/;
 
 const UNKNOWN_PART = "unknown";
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Device strings from stored sessions are open-ended; an absent lookup must retain the existing fallback icon.
-const DEVICE_ICONS: Record<string, string> = {
+const DEVICE_ICONS = {
   desktop: "i-ph-desktop",
   mobile: "i-ph-device-mobile",
   tablet: "i-ph-device-tablet",
-};
+} satisfies Record<string, string>;
 
 const TWO_FACTOR_METHODS = new Set(["totp", "email"]);
 
