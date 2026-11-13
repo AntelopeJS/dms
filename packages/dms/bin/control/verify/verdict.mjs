@@ -1,7 +1,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { git } from "../git.mjs";
-import { loadJourneys } from "../journey.mjs";
+import { loadJourneys } from "../journey-load.mjs";
 import {
   formatSeconds,
   markdownTimings,

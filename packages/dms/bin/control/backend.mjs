@@ -141,12 +141,12 @@ async function fits(state, standby, { database, mode }) {
 }
 
 /**
- * A backend that answers on `database` in `mode`: the standby when it fits,
- * else one started now. Every other backend the API does not forward to is
- * killed first and its database dropped.
+ * A backend that answers on `database` in `mode`: the standby when it fits
+ * and `standby` allows it, else one started now. Every other backend the API
+ * does not forward to is killed first and its database dropped.
  *
  * @param {RunState} state
- * @param {{ database: string, mode: BackendMode }} wanted
+ * @param {{ database: string, mode: BackendMode, standby: boolean }} wanted
  * @returns {Promise<BackendRecord>}
  */
 async function backendOn(state, wanted) {
@@ -155,7 +155,9 @@ async function backendOn(state, wanted) {
   const spares = liveBackends(state).filter(
     (backend) => backend.port !== target,
   );
-  const standby = spares.find((backend) => backend.database === database);
+  const standby = wanted.standby
+    ? spares.find((backend) => backend.database === database)
+    : undefined;
   if (standby && (await fits(state, standby, wanted))) {
     await retire(
       state,
@@ -181,17 +183,19 @@ async function backendOn(state, wanted) {
  * for the next suffix starts in the run's mode, unless the run was started
  * with `--no-standby`, and the previous journey database is dropped, so a
  * long run does not exhaust mongod's file handles; its evidence stays.
+ * With `standby: false` no standby takes the database and none starts for
+ * the next suffix, so no backend but the one served boots while it is used.
  *
  * @param {RunState} state The run
  * @param {string} suffix What tells the database apart, such as `j003`
- * @param {BackendMode} [mode] How its backend runs, the run's mode by default
+ * @param {{ backend?: BackendMode, standby?: boolean }} [pins] How its backend runs, the run's mode by default, and whether a standby takes it and starts after it, true by default
  * @returns {Promise<string>} The database now in use
  * @throws When an earlier dms-control started the run, or a folder of the run's build is missing (a build runs), before it starts or stops anything
  */
 export async function freshDatabase(
   state,
   suffix,
-  mode = runBackendMode(state),
+  { backend: mode = runBackendMode(state), standby = true } = {},
 ) {
   assertForwardedRun(state);
   const missing = missingBuildRoot(state);
@@ -202,7 +206,7 @@ export async function freshDatabase(
   }
   const previous = state.database;
   const database = `${state.databasePrefix}_${suffix}`;
-  const backend = await backendOn(state, { database, mode });
+  const backend = await backendOn(state, { database, mode, standby });
   await ensureApi(state);
   writeTarget(apiTargetFile(state.dir), backend.port);
   Object.assign(state, { database, tokens: {}, accounts: {} });
@@ -211,7 +215,7 @@ export async function freshDatabase(
     (other) => other.pid !== backend.pid,
   );
   await killBackends(state, replaced);
-  const next = state.noStandby ? null : nextSuffix(suffix);
+  const next = standby && !state.noStandby ? nextSuffix(suffix) : null;
   if (next) {
     await timed(state, "standby-start", () =>
       launchBackend(state, `${state.databasePrefix}_${next}`),

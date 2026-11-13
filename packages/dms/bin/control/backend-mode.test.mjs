@@ -36,7 +36,7 @@ await test("a journey that pins dev in a production run gets a dev backend, not 
   const state = await newRun(t);
   await freshDatabase(state, "j001");
   const standby = await startedOn(`${state.databasePrefix}_j002`);
-  await freshDatabase(state, "j002", "dev");
+  await freshDatabase(state, "j002", { backend: "dev" });
   const pinned = await served(state);
   const next = await startedOn(`${state.databasePrefix}_j003`);
   assert.notEqual(pinned.pid, standby.pid);
@@ -50,7 +50,7 @@ await test("a journey that pins dev in a production run gets a dev backend, not 
 await test("a restart inside a journey that pins production in a dev run keeps production", async (t) => {
   const state = await newRun(t);
   state.backendMode = "dev";
-  await freshDatabase(state, "j001", "production");
+  await freshDatabase(state, "j001", { backend: "production" });
   await restartBackend(state);
   assert.equal(await commandOf((await served(state)).pid), "start");
 });
