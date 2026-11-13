@@ -16,8 +16,10 @@
     ],
     "after:bump": [
       "git add CHANGELOG.md",
+      "node scripts/raise-dms-range.mjs",
+      "pnpm --dir ../.. install --lockfile-only --no-frozen-lockfile",
       "pnpm --dir ../.. run sync",
-      "git add ../dms/README.md"
+      "git add ../dms/package.json ../dms/README.md ../../pnpm-lock.yaml"
     ]
   },
   "plugins": {
