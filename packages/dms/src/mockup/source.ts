@@ -15,6 +15,8 @@ import { jsonObjectSchema } from "./model";
 
 const JSON_INDENT = 2;
 const FIRST_INDENT = /^[ \t]+(?=\S)/m;
+const LF = "\n";
+const CRLF = "\r\n";
 const DIGEST_LENGTH = 16;
 
 /** Names one content of `spec.json`: equal digests, equal files. */
@@ -79,9 +81,15 @@ export type SpecWriter = (spec: Json) => Promise<SpecWriteResult>;
 
 /**
  * Writes `text`, the `spec.json` read inside {@link withSpecLock}, with each
- * stamp's id set on the node its pointer names and nothing else changed: the
- * file keeps its key order and its indentation. It does not compile the spec:
- * a stamp cannot add an issue, so a spec that has issues still takes one.
+ * stamp's id added as the last key of the node its pointer names. The file
+ * keeps its layout: one line when it was one line, else the indentation of
+ * its first indented line; CRLF line endings when it had any; a final line
+ * ending when it had one. Everything else is written as `JSON.stringify`
+ * writes the parsed file: keys keep their order, except that keys which are
+ * whole numbers, such as `"2024"`, move first in their object, and spacing
+ * within a line, number spellings and string escapes take its form. It does
+ * not compile the spec: a stamp cannot add an issue, so a spec that has
+ * issues still takes one.
  */
 export type SpecStamper = (
   text: string,
@@ -121,14 +129,23 @@ export async function withSpecLock<Result>(
 async function persist(
   mockupsDir: string,
   name: MockupName,
-  spec: Json,
-  indent: string | number = JSON_INDENT,
+  text: string,
 ): Promise<SpecDigest> {
   const directory = mockupDirectory(mockupsDir, name);
-  const text = `${JSON.stringify(spec, null, indent)}\n`;
   await mkdir(directory, { recursive: true });
   await writeAtomically(join(directory, SPEC_FILE), text);
   return digestOf(text);
+}
+
+/** `spec` as JSON text laid out as `text` is: see {@link SpecStamper}. */
+function laidOutAs(text: string, spec: Json): string {
+  const body = text.trimEnd();
+  const indent = body.includes(LF)
+    ? (FIRST_INDENT.exec(body)?.[0] ?? JSON_INDENT)
+    : undefined;
+  const eol = text.includes(CRLF) ? CRLF : LF;
+  const json = JSON.stringify(spec, null, indent).replaceAll(LF, eol);
+  return text.endsWith(LF) ? `${json}${eol}` : json;
 }
 
 function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
@@ -141,7 +158,8 @@ function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
         errors: issues.map(({ path, message }) => ({ path, message })),
       };
     }
-    return { ok: true, digest: await persist(mockupsDir, name, spec) };
+    const text = `${JSON.stringify(spec, null, JSON_INDENT)}${LF}`;
+    return { ok: true, digest: await persist(mockupsDir, name, text) };
   };
 }
 
@@ -171,8 +189,7 @@ function stampNow(mockupsDir: string, name: MockupName): SpecStamper {
       }
       node.id = id;
     }
-    const indent = FIRST_INDENT.exec(text)?.[0] ?? JSON_INDENT;
-    await persist(mockupsDir, name, spec, indent);
+    await persist(mockupsDir, name, laidOutAs(text, spec));
   };
 }
 
