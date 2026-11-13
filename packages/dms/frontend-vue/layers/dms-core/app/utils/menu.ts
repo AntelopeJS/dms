@@ -64,7 +64,6 @@ const resolveItemTarget = (
   if (isString(to)) {
     return { path: stripQueryAndHash(to), query: parseLinkQuery(to) };
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Preserve the base's unchecked menu projection without widening its public string query contract to router query arrays.
   const target = to as MenuItemTarget | undefined;
   if (target && isString(target.path)) {
     return { path: target.path, query: target.query };

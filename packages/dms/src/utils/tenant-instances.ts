@@ -9,10 +9,6 @@ import { runInBatches } from "./run-in-batches";
 const TENANT_ID_FIELD = "_id";
 const INSTANCE_REGISTRATION_CONCURRENCY = 8;
 
-interface TenantIdRow {
-  _id: string;
-}
-
 function getTenantSchema(): Schema {
   const schema = Schema.get(TENANT_SCHEMA_NAME);
   assert(schema, `Schema '${TENANT_SCHEMA_NAME}' is not registered`);
@@ -31,10 +27,7 @@ export async function registerTenantInstance(tenantId: string): Promise<void> {
 }
 
 async function listTenantIds(): Promise<string[]> {
-  // SAFETY: This projection selects the tenant table's required string _id field only.
-  const rows = (await GetModel(TenantModel).table.pluck(
-    TENANT_ID_FIELD,
-  )) as TenantIdRow[];
+  const rows = await GetModel(TenantModel).table.pluck(TENANT_ID_FIELD);
   return rows.map((row) => row._id);
 }
 

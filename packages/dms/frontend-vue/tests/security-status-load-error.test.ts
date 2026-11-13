@@ -9,7 +9,6 @@ import {
   onMounted,
   ref,
   type App,
-  type PropType,
 } from "vue";
 import type DmsEmptyState from "../layers/dms-ui/app/components/empty-state/EmptyState.vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
@@ -27,9 +26,10 @@ const EmptyState = defineComponent({
   props: {
     title: String,
     actions: {
-      // SAFETY: Vue validates Array at runtime; DmsEmptyState's caller supplies its declared actions prop.
-      type: Array as PropType<
-        NonNullable<InstanceType<typeof DmsEmptyState>["$props"]["actions"]>
+      type: Array<
+        NonNullable<
+          InstanceType<typeof DmsEmptyState>["$props"]["actions"]
+        >[number]
       >,
       default: () => [],
     },

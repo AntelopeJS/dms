@@ -48,11 +48,9 @@ export function formComponentValidation(source: FormValidationSource) {
       "~standard": {
         version: 1 as const,
         vendor: "dms",
-        // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Standard Schema accepts arbitrary inputs; the form validator retains its existing unchecked object adapter rather than rejecting or coercing malformed data.
         validate: (value: unknown) =>
           validateFormState(
             schema,
-            // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Standard Schema accepts arbitrary inputs; this unchecked adapter forwards them to the object-state validator unchanged.
             value as Parameters<typeof validateFormState>[1],
             {
               fields: validationFields,

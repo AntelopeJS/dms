@@ -92,7 +92,6 @@ const labelledActionsColumnSize = <T extends Data>(
   const { config } = context;
 
   const rows = config.data.value;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The empty-list width calculation intentionally evaluates actions against an empty row. Neither inference nor Data proves caller-selected T; constructing a real row would change this fallback.
   if (rows.length === 0) return shownActionsWidth(context, {} as T);
   return Math.max(...rows.map((value) => shownActionsWidth(context, value)));
 };

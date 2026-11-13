@@ -33,10 +33,8 @@ export function withNumberSuffix(format: NumberFormatter): DataTypeFormatter {
     const formatted = format(
       value,
       locale,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter erases plugin options; Intl still receives the original unvalidated object and controls malformed-input behavior.
       options as Intl.NumberFormatOptions | undefined,
     );
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The suffix option has no runtime schema; preserve its current unchecked read and translation behavior.
     const suffix = (options as NumberSuffixOptions | undefined)?.suffix;
     if (!suffix || !isNumber(value) || !isString(formatted)) {
       return formatted;

@@ -44,7 +44,6 @@ const tableSharedData = computed(() => tableSharedDataRef?.value);
 const { getDataType } = useDataTypes();
 const { t, locale } = useI18n();
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
 const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableMenuFilter: Partial<typeof theme> };
 };

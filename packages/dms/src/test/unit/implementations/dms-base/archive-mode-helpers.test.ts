@@ -37,7 +37,7 @@ describe("[unit] interfaces/dms-base/helpers/archive-mode-helpers", () => {
 
       for (const action of DEFAULT_MANAGED_ACTIONS) {
         const config = getConfig(result, action);
-        expect(config).to.exist;
+        expect(config).to.not.equal(undefined);
         expect(config?.isEnabled).to.equal(true);
       }
     });

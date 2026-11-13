@@ -65,7 +65,6 @@ const combineFilters = (
         ? value
         : [hiddenValue, value];
   }
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The return owner permits collision arrays for arbitrary filter keys; returning the owner-typed accumulator preserves that contract and inherited-key lookups.
   return combined;
 };
 

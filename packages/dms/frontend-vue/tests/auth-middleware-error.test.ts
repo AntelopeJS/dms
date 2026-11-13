@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsMiddleware, DmsRoute } from "#dms/frontend-module";
 
-// SAFETY: The initial value is null, a member of the nullable error state used by these fixtures.
-const pageError = { value: null as { statusCode: number } | null };
+const pageError: { value: { statusCode: number } | null } = { value: null };
 const navigateDms = vi.fn();
 
 beforeEach(() => {

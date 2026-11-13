@@ -139,6 +139,10 @@ describe("[integration] native component file security", () => {
       (await axios.get(metadata.url, { validateStatus: () => true })).status,
     ).to.equal(404);
   });
+});
+
+describe("[integration] native component file security, forged declarations and deletions", () => {
+  beforeEach(resetDatabase);
 
   it("rejects a forged field declaration and a view-only token even for an owner", async () => {
     const { client, token } = await ownerUpload();
@@ -226,6 +230,10 @@ describe("[integration] native component file security", () => {
     expect(denied).to.be.instanceOf(HTTPResult);
     expect(saves).to.equal(0);
   });
+});
+
+describe("[integration] native component file security, failed saves and edits", () => {
+  beforeEach(resetDatabase);
 
   it("retains promoted profile images after a failed save and retries the staged reference", async () => {
     const { client, user } = await ownerUpload();

@@ -1,4 +1,5 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import {
   isCurrentRefreshToken,
@@ -6,139 +7,89 @@ import {
 } from "@antelopejs/interface-dms/auth/db/models/sessions.model";
 import { REFRESH_TOKEN_PREDECESSOR_GRACE_MS } from "@antelopejs/interface-dms/auth/db/internal/sessions.model";
 import type { Session } from "@antelopejs/interface-dms/auth/db/tables/sessions.table";
-import { sessionFixture } from "../../../helpers/table-fixtures";
-
-interface RotationUpdate {
-  refreshTokenHash: string;
-  sealedRefreshToken: string;
-  previousRefreshTokenHash: string;
-  refreshTokenRotatedAt: Date;
-}
-
-interface FakeModelState {
-  currentSession?: Session;
-}
-
-type FakeModel = SessionModel & FakeModelState;
-
-interface FakeTableHolder {
-  table: FakeTable;
-}
-
-interface FakeTable {
-  getAll: (sessionId: string) => FakeQuery;
-}
-
-interface FakeQuery {
-  filter: (
-    predicate: Parameters<SessionModel["table"]["filter"]>[0],
-  ) => FakeQuery;
-  update: (update: RotationUpdate) => FakeQuery;
-  run: () => Promise<number>;
-}
 
 function sha256(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/** A session whose current refresh token is `refreshToken`. */
-function createSession(refreshToken: string): Session {
-  return sessionFixture({
-    _id: "session",
+let model: SessionModel;
+const storedSessionIds: string[] = [];
+
+/** Stores a session whose current refresh token is `refreshToken`. */
+async function storeSession(refreshToken: string): Promise<string> {
+  const now = new Date();
+  const [id] = await model.insert({
+    userId: `rotation-${randomUUID()}`,
     refreshTokenHash: sha256(refreshToken),
+    userAgent: "",
+    ip: "",
+    browser: "Unknown",
+    os: "Unknown",
+    deviceType: "desktop",
+    location: "",
+    createdAt: now,
+    lastActiveAt: now,
   });
+  storedSessionIds.push(id);
+  return id;
 }
 
-/**
- * Mirrors the rotation filter: the row matches when the presented token, whose
- * hash the update records as the predecessor, is the current one.
- */
-function matchesPresented(session: Session, presentedHash: string): boolean {
-  return session.refreshTokenHash === presentedHash;
-}
-
-function createModel(): FakeModel {
-  const bare: FakeModelState = {};
-  Reflect.setPrototypeOf(bare, SessionModel.prototype);
-  if (!(bare instanceof SessionModel)) {
-    throw new Error("The bare model does not inherit from SessionModel");
-  }
-  const model: FakeModel = bare;
-  let update: RotationUpdate;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The fake replaces the database query builder with its CAS simulation; it deliberately does not implement the full database table contract.
-  const tableHolder = model as unknown as FakeTableHolder;
-  tableHolder.table = {
-    getAll: () => {
-      const query: FakeQuery = {
-        filter: () => query,
-        update: (nextUpdate) => {
-          update = nextUpdate;
-          return query;
-        },
-        run: async () => {
-          const session = model.currentSession;
-          if (
-            !session ||
-            !matchesPresented(session, update.previousRefreshTokenHash)
-          )
-            return 0;
-          Object.assign(session, update);
-          return 1;
-        },
-      };
-      return query;
-    },
-  };
-  model.get = async () => model.currentSession;
-  return model;
+async function storedSession(id: string): Promise<Session> {
+  const session = await model.get(id);
+  if (!session) throw new Error(`Session ${id} is not stored`);
+  return session;
 }
 
 describe("refresh token rotation", () => {
   const committedAt = new Date("2026-08-28T12:00:00.000Z");
 
+  before(() => {
+    model = GetModel(SessionModel);
+  });
+
+  afterEach(async () => {
+    for (const id of storedSessionIds.splice(0)) await model.delete(id);
+  });
+
   it("returns the canonical winner to a concurrent CAS loser", async () => {
-    const model = createModel();
-    model.currentSession = createSession("T0");
+    const id = await storeSession("T0");
 
     expect(
-      await model.rotateRefreshToken("session", "T0", "T1", committedAt),
+      await model.rotateRefreshToken(id, "T0", "T1", committedAt),
     ).to.equal("T1");
     expect(
-      await model.rotateRefreshToken("session", "T0", "loser", committedAt),
+      await model.rotateRefreshToken(id, "T0", "loser", committedAt),
     ).to.equal("T1");
   });
 
   it("accepts a loser that began just before the winning commit", async () => {
-    const model = createModel();
-    model.currentSession = createSession("T0");
+    const id = await storeSession("T0");
     const loserStartedAt = new Date(committedAt.getTime() - 1);
-    await model.rotateRefreshToken("session", "T0", "T1", committedAt);
+    await model.rotateRefreshToken(id, "T0", "T1", committedAt);
 
     expect(
-      await model.rotateRefreshToken("session", "T0", "loser", loserStartedAt),
+      await model.rotateRefreshToken(id, "T0", "loser", loserStartedAt),
     ).to.equal("T1");
   });
 
   it("recovers a late duplicate and response-loss retry", async () => {
-    const model = createModel();
-    model.currentSession = createSession("T0");
-    await model.rotateRefreshToken("session", "T0", "T1", committedAt);
+    const id = await storeSession("T0");
+    await model.rotateRefreshToken(id, "T0", "T1", committedAt);
     const retryAt = new Date(committedAt.getTime() + 10_000);
 
     expect(
-      await model.rotateRefreshToken("session", "T0", "discarded", retryAt),
+      await model.rotateRefreshToken(id, "T0", "discarded", retryAt),
     ).to.equal("T1");
-    expect(model.currentSession?.refreshTokenRotatedAt).to.deep.equal(
+    expect((await storedSession(id)).refreshTokenRotatedAt).to.deep.equal(
       committedAt,
     );
   });
 
   it("does not slide predecessor expiry", async () => {
-    const model = createModel();
-    model.currentSession = createSession("T0");
-    await model.rotateRefreshToken("session", "T0", "T1", committedAt);
+    const id = await storeSession("T0");
+    await model.rotateRefreshToken(id, "T0", "T1", committedAt);
     await model.rotateRefreshToken(
-      "session",
+      id,
       "T0",
       "discarded",
       new Date(committedAt.getTime() + 10_000),
@@ -148,54 +99,39 @@ describe("refresh token rotation", () => {
     );
 
     expect(
-      await model.rotateRefreshToken("session", "T0", "discarded", expiredAt),
+      await model.rotateRefreshToken(id, "T0", "discarded", expiredAt),
     ).to.equal(null);
   });
 
   it("rejects other tokens and deleted sessions", async () => {
-    const model = createModel();
-    model.currentSession = createSession("T0");
-    await model.rotateRefreshToken("session", "T0", "T1", committedAt);
+    const id = await storeSession("T0");
+    await model.rotateRefreshToken(id, "T0", "T1", committedAt);
     expect(
-      await model.rotateRefreshToken(
-        "session",
-        "other",
-        "discarded",
-        committedAt,
-      ),
+      await model.rotateRefreshToken(id, "other", "discarded", committedAt),
     ).to.equal(null);
 
-    model.currentSession = undefined;
+    await model.delete(id);
     expect(
-      await model.rotateRefreshToken("session", "T0", "discarded", committedAt),
+      await model.rotateRefreshToken(id, "T0", "discarded", committedAt),
     ).to.equal(null);
   });
 
   it("clears predecessor state on replacement", async () => {
-    const model = createModel();
-    model.currentSession = createSession("T0");
-    await model.rotateRefreshToken("session", "T0", "T1", committedAt);
-    Object.defineProperty(model, "update", {
-      value: async (_id: string, update: Partial<Session>) => {
-        if (!model.currentSession) return 0;
-        Object.assign(model.currentSession, update);
-        return 1;
-      },
-    });
+    const id = await storeSession("T0");
+    await model.rotateRefreshToken(id, "T0", "T1", committedAt);
 
-    await model.replaceRefreshToken("session", "replacement");
+    await model.replaceRefreshToken(id, "replacement");
 
     expect(
-      await model.rotateRefreshToken("session", "T0", "discarded", committedAt),
+      await model.rotateRefreshToken(id, "T0", "discarded", committedAt),
     ).to.equal(null);
   });
 
   it("keeps no refresh token in plaintext once rotated", async () => {
     const rotated = "rotated-refresh-token-in-plaintext";
-    const model = createModel();
-    model.currentSession = createSession("T0");
-    await model.rotateRefreshToken("session", "T0", rotated, committedAt);
-    const session = model.currentSession;
+    const id = await storeSession("T0");
+    await model.rotateRefreshToken(id, "T0", rotated, committedAt);
+    const session = await storedSession(id);
 
     expect(session.refreshTokenHash).to.equal(sha256(rotated));
     expect(session.sealedRefreshToken).to.be.a("string");
@@ -205,42 +141,32 @@ describe("refresh token rotation", () => {
   });
 
   it("hands the sealed successor back to a holder of the predecessor", async () => {
-    const model = createModel();
-    model.currentSession = createSession("T0");
-    await model.rotateRefreshToken("session", "T0", "T1", committedAt);
+    const id = await storeSession("T0");
+    await model.rotateRefreshToken(id, "T0", "T1", committedAt);
     const secondRotation = new Date(committedAt.getTime() + 60_000);
-    await model.rotateRefreshToken("session", "T1", "T2", secondRotation);
+    await model.rotateRefreshToken(id, "T1", "T2", secondRotation);
 
     expect(
-      await model.rotateRefreshToken("session", "T1", "loser", secondRotation),
+      await model.rotateRefreshToken(id, "T1", "loser", secondRotation),
     ).to.equal("T2");
   });
 
   it("opens nothing for a predecessor the successor was not sealed under", async () => {
-    const model = createModel();
-    model.currentSession = createSession("T0");
-    await model.rotateRefreshToken("session", "T0", "T1", committedAt);
+    const id = await storeSession("T0");
+    await model.rotateRefreshToken(id, "T0", "T1", committedAt);
 
-    model.currentSession.previousRefreshTokenHash = sha256("forged");
+    await model.update(id, { previousRefreshTokenHash: sha256("forged") });
 
     expect(
-      await model.rotateRefreshToken("session", "forged", "loser", committedAt),
+      await model.rotateRefreshToken(id, "forged", "loser", committedAt),
     ).to.equal(null);
   });
 
   it("stores only the hash on replacement", async () => {
-    const model = createModel();
-    const stored = createSession("T0");
-    model.currentSession = stored;
-    Object.defineProperty(model, "update", {
-      value: async (_id: string, update: Partial<Session>) => {
-        Object.assign(stored, update);
-        return 1;
-      },
-    });
+    const id = await storeSession("T0");
 
-    await model.replaceRefreshToken("session", "replacement");
-    const session = model.currentSession;
+    await model.replaceRefreshToken(id, "replacement");
+    const session = await storedSession(id);
 
     expect(session.sealedRefreshToken).to.equal(null);
     expect(isCurrentRefreshToken(session, "replacement")).to.equal(true);

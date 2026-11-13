@@ -29,9 +29,9 @@ const { t } = useI18n();
     <div class="dms-card space-y-4 p-[18px]">
       <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3.5 w-40" />
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-for="width in CONTENT_LINE_WIDTHS"
         :key="width"
+        :aria-label="t('dms.a11y.loading')"
         class="h-2.5"
         :style="{ width }"
       />

@@ -59,7 +59,6 @@ watch(
 
 function closeOnLinkClick(event: MouseEvent): void {
   if (!sidebarOpen.value) return;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DOM target is typed EventTarget; keep the existing unchecked closest call, including throws for synthetic non-element targets, instead of adding a filtering guard.
   if ((event.target as Element | null)?.closest("a[href]")) {
     closeMobileSidebar();
   }
@@ -254,9 +253,9 @@ const footerItems = computed((): NavigationMenuItem[] => {
   />
 
   <UDashboardSidebar
+    v-model:collapsed="sidebarCollapsed"
     data-dms-persistent-sidebar
     :open="false"
-    v-model:collapsed="sidebarCollapsed"
     :default-size="SIDEBAR_DEFAULT_WIDTH_PX"
     :min-size="SIDEBAR_MIN_WIDTH_PX"
     :max-size="SIDEBAR_MAX_WIDTH_PX"

@@ -1,6 +1,7 @@
 import { createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
+import { fetchClient } from "./fixtures/fetchClient";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import type {
   DrawerOptions,
@@ -28,18 +29,13 @@ interface DrawerBody {
 }
 
 function drawerBody(options: DrawerOptions["componentOptions"]): DrawerBody {
-  // SAFETY: useActionTargets creates these body props for the specific drawer actions exercised below; ContainerOptions erases their component-specific type.
+  // SAFETY: Holds when options is the componentOptions useActionTargets built for a row or bulk drawer target: each DrawerBody member it sets (rowData, selection, navigation, showRow, fetchUrl, submitUrl, fetchRowUrl, rowActions, title, targetTree) has the type declared above; its other members (pageId, componentId, containerId, onSuccessCallback) are not read through DrawerBody.
   return options as DrawerBody;
 }
 
 let app: App | undefined;
 
-const api = vi.fn(
-  async (
-    _url: string,
-    _options?: { method: string },
-  ): Promise<{ count?: number } | number> => ({}),
-);
+const api = fetchClient(async () => ({}));
 
 const toasts: Array<{ title?: string }> = [];
 
@@ -57,8 +53,7 @@ const mountTargets = (
     defineComponent({
       setup() {
         targets = useActionTargets({
-          // SAFETY: These actions only invoke the callable fetch surface; the mock records URL/options and supplies every response used below.
-          api: api as Parameters<typeof useActionTargets>[0]["api"],
+          api,
           pageId: "runs-page",
           componentId: "runs",
           handleApiError: vi.fn(),

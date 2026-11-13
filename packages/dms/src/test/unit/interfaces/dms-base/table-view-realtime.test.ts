@@ -1,10 +1,6 @@
 import { Controller, type RequestContext } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import {
-  type AsyncProxy,
-  GetMetadata,
-  ImplementInterface,
-} from "@antelopejs/interface-core";
+import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { internal as runtime } from "@antelopejs/interface-core/internal";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { expect } from "chai";
@@ -49,8 +45,19 @@ interface TableViewRealtime {
   internal: typeof dmsTableView;
 }
 
-interface ProxiedFunction {
-  proxy: AsyncProxy;
+interface DetachableFunction {
+  proxy: { detach(): void };
+}
+
+function isDetachableFunction(value: unknown): value is DetachableFunction {
+  return (
+    typeof value === "function" &&
+    "proxy" in value &&
+    typeof value.proxy === "object" &&
+    value.proxy !== null &&
+    "detach" in value.proxy &&
+    typeof value.proxy.detach === "function"
+  );
 }
 
 class RowsAPI extends Controller(LOCATION) {}
@@ -138,8 +145,10 @@ function attach(implementation: TableViewRealtime): void {
 
 function detachGeneration(): void {
   for (const fn of [tableView.PublishMutation, tableView.AcquirePresence]) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- InterfaceFunction's public callable type omits the core proxy handle; this test deliberately detaches that private handle to simulate reload.
-    (fn as unknown as ProxiedFunction).proxy.detach();
+    if (!isDetachableFunction(fn)) {
+      throw new Error("The interface function carries no detachable proxy");
+    }
+    fn.proxy.detach();
   }
 }
 

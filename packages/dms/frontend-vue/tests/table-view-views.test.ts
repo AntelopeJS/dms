@@ -179,12 +179,27 @@ function createTableViewViewsFixture() {
   };
 }
 
+/** A media query that matches, or not, for good. */
+class FixedMediaQuery extends EventTarget implements MediaQueryList {
+  onchange = null;
+
+  constructor(
+    readonly media: string,
+    readonly matches: boolean,
+  ) {
+    super();
+  }
+
+  addListener = () => undefined;
+  removeListener = () => undefined;
+}
+
 function createRestorablePreferences(
   preferences: Map<string, unknown>,
   restores: Array<() => void>,
 ): TablePreferences {
   return {
-    // SAFETY: The preference API's generic read uses the field's stored type; these fixtures preserve that correlation.
+    // SAFETY: holds when the V a caller requests for a field is the type of the value `preferences` stores under it; a field absent from the map returns the caller's fallback, which is a V.
     get: <V>(field: string, fallback: V) =>
       (preferences.has(field) ? preferences.get(field) : fallback) as V,
     set: (field, value) => {
@@ -193,7 +208,7 @@ function createRestorablePreferences(
     restore: (field, state) => {
       restores.push(() => {
         if (preferences.has(field)) {
-          // SAFETY: restore receives the ref for the same preference field stored in this map.
+          // SAFETY: holds when the state ref passed to restore holds the type of the value `preferences` stores under that same field.
           state.value = preferences.get(field) as typeof state.value;
         }
       });
@@ -448,10 +463,8 @@ function registerMobileAndDeclaredViewTests(
 ) {
   describe("on a phone, with a mobileDisplay", () => {
     beforeEach(() => {
-      // SAFETY: useMobileDisplay only reads matches from the MediaQueryList returned by this fixture.
-      window.matchMedia = vi.fn((query: string) => ({
-        matches: query === PHONE_VIEWPORT_QUERY,
-      })) as typeof window.matchMedia;
+      window.matchMedia = (query: string) =>
+        new FixedMediaQuery(query, query === PHONE_VIEWPORT_QUERY);
     });
 
     it("opens the default view on the phone's display when the view sets none", async () => {

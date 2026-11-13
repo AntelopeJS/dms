@@ -1,10 +1,14 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import type {
-  DefaultLayoutSerializedOptions,
   PageHeaderButtonDeclared,
   PageRecordStatus,
 } from "../../component-options/internal/page-layout";
 import type { ComponentFilterContext, ComponentInfo } from "../../component";
+import {
+  isFunction,
+  isNumber,
+  isString,
+} from "../../utils/internal/type-check";
 
 const RECORD_TOKEN = /\{\{\s*record\.([\w.-]+)\s*\}\}/g;
 const NAMES_RECORD = /\{\{\s*record\./;
@@ -16,16 +20,14 @@ const targetUrl = (
     | undefined,
 ): string | undefined => {
   const url = target?.url;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string URL properties participate in record interpolation; other target variants remain untouched.
-  return typeof url === "string" ? url : undefined;
+  return isString(url) ? url : undefined;
 };
 
 const isRecordNode = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object";
 
 function leafAt(
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The record the page's loader read (the published PageRecordLoader and ComponentFilterContext.record), keyed by that page's data and read by the {{record.X}} paths its author writes.
-  record: Readonly<Record<string, unknown>>,
+  record: NonNullable<PageRecordRead["record"]>,
   path: string,
 ): string | number | undefined {
   const value = path
@@ -34,10 +36,7 @@ function leafAt(
       (current, key) => (isRecordNode(current) ? current[key] : undefined),
       record,
     );
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The record loader owns its schema; the URL interpolation contract encodes only string and number leaves.
-  return typeof value === "string" || typeof value === "number"
-    ? value
-    : undefined;
+  return isString(value) || isNumber(value) ? value : undefined;
 }
 
 export type { PageRecordStatus } from "../../component-options/internal/page-layout";
@@ -61,11 +60,11 @@ export async function readPageRecord(
   layout: ComponentInfo | undefined,
   context: ComponentFilterContext,
 ): Promise<PageRecordRead | undefined> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ComponentInfo erases layout-specific options; this published helper trusts the layout's optional record loader without validating unrelated layout shapes.
-  const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
-  if (!options?.record) return undefined;
+  const options = layout?.options;
+  const loader = isRecordNode(options) ? options.record : undefined;
+  if (!isFunction(loader)) return undefined;
   try {
-    const record: unknown = await options.record(context);
+    const record: unknown = await loader(context);
     return isRecordNode(record)
       ? { record, status: "found" }
       : { status: "missing" };
@@ -89,8 +88,7 @@ function isRecordBound(button: PageHeaderButtonDeclared): boolean {
  */
 function fillRecordTokens(
   url: string,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The record the page's loader read (the published PageRecordLoader and ComponentFilterContext.record), keyed by that page's data and read by the {{record.X}} paths its author writes.
-  record: Readonly<Record<string, unknown>>,
+  record: NonNullable<PageRecordRead["record"]>,
 ): string {
   return url.replace(RECORD_TOKEN, (match, path: string) => {
     const value = leafAt(record, path);
@@ -114,14 +112,10 @@ export function withPageRecord(
 ): PageHeaderButtonDeclared | undefined {
   if (!declaresRecord || !isRecordBound(button)) return button;
   if (!record) return undefined;
-  const url = targetUrl(button.target);
-  if (!url) return button;
+  const { target } = button;
+  if (!target || !("url" in target) || !isString(target.url)) return button;
   return {
     ...button,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- targetUrl checked only the URL property, not the entire action-target union; keep the existing target spread and URL replacement without changing that public union.
-    target: {
-      ...button.target,
-      url: fillRecordTokens(url, record),
-    } as PageHeaderButtonDeclared["target"],
+    target: { ...target, url: fillRecordTokens(target.url, record) },
   };
 }

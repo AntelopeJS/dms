@@ -20,9 +20,7 @@ interface RefreshFlight {
 
 const refreshes = new Map<string, RefreshFlight>();
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This rejection boundary handles arbitrary thrown values; a backend error owner type would exclude primitive errors.
 export function isRefusal(error: unknown): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked optional property access intentionally preserves primitive boxing and getter behavior; no owner contract validates thrown values.
   const status = (error as { status?: unknown } | undefined)?.status;
   return isNumber(status) && REFUSED.includes(status);
 }

@@ -65,7 +65,6 @@ const ANSWERS = {
 };
 const asked: string[] = [];
 
-// oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- The URL-dispatched test backend cannot implement the transport's caller-selected generic response type; it returns these two raw endpoint payloads, not arbitrary T.
 const backend = vi.fn(async (url: string) => {
   asked.push(url);
   return Object.entries(ANSWERS).find(([path]) => path === url)?.[1];

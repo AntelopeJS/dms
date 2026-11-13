@@ -3,7 +3,6 @@ import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type { FormBuilder } from "../../form-types";
-import type { RowActionRule } from "../../types/row-action";
 import { hasSearchableFields } from "../../internal/searchable";
 import type { TableViewMeta } from "../meta";
 import type { TableViewOptions, TableViewOptionsSerialized } from "../options";
@@ -14,6 +13,7 @@ import {
   serializeRowActions,
   serializeTableViewDisplays,
 } from "./factory-helpers";
+import { eraseRowType } from "./erase-row-type";
 import { serializeTableViewTabs } from "./tabs";
 import { serializeTableViewViews } from "./views";
 import { serializeEmptyStates, serializeFooter } from "./footer";
@@ -96,8 +96,7 @@ export function serializeTableViewOptions<T extends ControllerClass>(
     archiveMode: options.archiveMode,
     archivedCountLabel: options.archivedCountLabel,
     defaultSort: options.defaultSort,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published serialized table options erase the module row generic; pinned-row rule values are not validated during serialization.
-    pinnedRows: options.pinnedRows as RowActionRule | undefined,
+    pinnedRows: eraseRowType(options.pinnedRows),
     queryParamFilters: options.queryParamFilters,
     routeParamFilters: options.routeParamFilters,
     customButtons: serializedCustomButtons,

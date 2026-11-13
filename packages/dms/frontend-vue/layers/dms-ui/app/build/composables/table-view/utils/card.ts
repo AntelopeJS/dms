@@ -21,7 +21,6 @@ export interface CardShownKeys {
 
 /** The id of a row, read with the table's `rowIdKey`. */
 export function cardRowId<T>(item: T, rowIdKey: string): string {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unconstrained T cannot satisfy Nuxt get's object declaration. Its owner-derived input type preserves the implementation's null and primitive handling without narrowing the public generic.
   return String(get(item as Parameters<typeof get>[0], rowIdKey) ?? "");
 }
 
@@ -132,7 +131,6 @@ export function cardSubtitle<T>(
   identity: CardIdentity,
   shown: CardShownKeys,
 ): Parameters<DataTypeFormatter>[0] {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The row generic has no object constraint. Nuxt get's owner type cannot prove T, and runtime validation would change dynamic field reads on malformed rows.
   const row = item as Parameters<typeof get>[0];
   if (identity.subtitleField) {
     const subtitle: unknown = get(row, identity.subtitleField);
@@ -151,7 +149,6 @@ export function cardAvatar<T>(
 ): { key: string } | string | undefined {
   if (!identity.avatarField) return undefined;
   const avatar: unknown = get(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The row generic has no object constraint. Retain Nuxt get's existing null and primitive lookup behavior rather than validate or narrow T.
     item as Parameters<typeof get>[0],
     identity.avatarField,
   );

@@ -18,7 +18,6 @@ interface KanbanDisplayOptions {
 }
 
 const options = computed(
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Backend display options are not validated here; preserve their current forwarding and fallback behavior.
   () => (props.context.options ?? {}) as KanbanDisplayOptions,
 );
 

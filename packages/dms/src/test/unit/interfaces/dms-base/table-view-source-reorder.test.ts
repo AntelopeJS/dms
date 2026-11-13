@@ -29,6 +29,10 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import { untouchedRequestContext } from "../../../helpers/request-context";
+import {
+  type SerializedColumn,
+  serializedColumnsOf,
+} from "../../../helpers/serialized-columns";
 
 const TABLE = "reorder-features";
 
@@ -85,28 +89,26 @@ type SourceOptions = Parameters<typeof TableView.fromSource>[0];
 
 const STRING = new DefaultDataTypes.StringType();
 
-interface SourceColumnSerialized {
-  id: string;
-  enableSorting: boolean;
-  enableColumnFilter: boolean;
-}
-
 type SourceTableSerialized = TableViewOptionsSerialized & {
-  columns: SourceColumnSerialized[];
+  columns: SerializedColumn[];
 };
 
-// SAFETY: fromSource serializes its declared columns and sorting/filter flags, but TableViewOptionsSerialized omits that runtime columns property.
-const sourceOf = (options: Partial<SourceOptions> = {}) =>
-  TableView.fromSource({
+const sourceOf = (
+  options: Partial<SourceOptions> = {},
+): SourceTableSerialized => {
+  const serialized = TableView.fromSource({
     fetchUrl: "/api/request-log",
     columns: {
       path: { name: "Path", type: STRING, order: 2, sortable: true },
       method: { name: "Method", type: STRING, order: 1, filterable: true },
     },
     ...options,
-  }).serializeSync().options as SourceTableSerialized;
+  }).serializeSync().options;
+  if (!serialized) throw new Error("The source table serialized no options");
+  return { ...serialized, columns: serializedColumnsOf(serialized) };
+};
 
-describe("[unit] interfaces/dms-base — table view sources and reorder", () => {
+function registerSourceServingCases(): void {
   it("serves a source table: its route, its columns in order, no built-in action", () => {
     const options = sourceOf({
       capabilities: { filter: true },
@@ -177,7 +179,9 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     expect(full.searchable).to.equal(true);
     expect(full.columns[1]?.enableSorting).to.equal(true);
   });
+}
 
+function registerSourceCheckCases(): void {
   it("refuses tabs filtering a route that reads no filter, and unknown columns", () => {
     const tabs: SourceOptions["tabs"] = [
       {
@@ -269,7 +273,9 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
       sourceOf({ expandable: { fields: ["path"], lazyLoad: true } }),
     ).to.throw(/lazyLoad: a source has no get route/);
   });
+}
 
+function registerReorderCases(): void {
   it("serves the reorder field and the pagination mode", () => {
     const options = optionsOf({
       reorder: { field: "position" },
@@ -356,4 +362,10 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     });
     expect(reached).to.deep.equal([controller.model]);
   });
+}
+
+describe("[unit] interfaces/dms-base — table view sources and reorder", () => {
+  registerSourceServingCases();
+  registerSourceCheckCases();
+  registerReorderCases();
 });

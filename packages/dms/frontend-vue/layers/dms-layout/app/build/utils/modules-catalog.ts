@@ -39,7 +39,6 @@ export const DEFAULT_MODULE_SORT_MODE: ModuleSortMode = "name";
 const MODULE_SORT_MODES: readonly ModuleSortMode[] = ["name", "recent"];
 
 /** A remembered sort mode, or the default when it is missing or unknown. */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This parser accepts arbitrary persisted values and falls back for invalid ones; ModuleSortMode would remove that public boundary contract.
 export function parseModuleSortMode(value: unknown): ModuleSortMode {
   return (
     MODULE_SORT_MODES.find((mode) => mode === value) ?? DEFAULT_MODULE_SORT_MODE

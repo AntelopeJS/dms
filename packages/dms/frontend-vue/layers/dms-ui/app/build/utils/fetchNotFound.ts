@@ -40,11 +40,9 @@ interface FetchFailure {
   data?: unknown;
 }
 
-/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- This representation guard accepts arbitrary thrown and response values; FetchFailure cannot replace the open property lookup result. */
 const isObject = (
   value: Parameters<typeof isObjectType>[0],
 ): value is Record<string, unknown> => isObjectType(value) && value !== null;
-/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
 
 const statusOf = (error: FetchFailure): number | undefined =>
   error.statusCode ?? error.status ?? error.response?.status;

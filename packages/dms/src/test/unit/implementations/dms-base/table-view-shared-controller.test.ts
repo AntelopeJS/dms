@@ -3,34 +3,24 @@ import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { applyArchiveFilter } from "../../../../implementations/dms-base/services";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
-import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
-import {
-  TableViewMeta,
-  type TableViewOptionsSerialized,
-} from "@antelopejs/interface-dms/base/table-view";
+import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import { requestContextFixture } from "../../../helpers/request-context";
+import { StampedTableViewBuilder } from "../../../helpers/stamped-table-view-builder";
 
 const ARCHIVE_FIELD = "archived";
 const VIEW_ARCHIVED_ACTION = "viewArchived";
 const ARCHIVING_TABLE_PERMISSION = "pages.shared.archiving.table.viewArchived";
 const HTTP_FORBIDDEN = 403;
 
-type TableViewBuilder = ComponentBuilder<TableViewOptionsSerialized>;
+type TableViewBuilder = StampedTableViewBuilder;
 
 /** A builder whose actions are stamped with `permissionIds`, by action id. */
 function stampedBuilder(
   permissionIds: Record<string, string> = {},
 ): TableViewBuilder {
-  const ids = new Map(Object.entries(permissionIds));
-  // SAFETY: TableViewMeta.actionPermissionIds only calls getAction and reads permissionId; no other builder or action members are exercised by this fixture.
-  return {
-    getAction: (actionId: string) => {
-      const permissionId = ids.get(actionId);
-      return permissionId ? { permissionId } : undefined;
-    },
-  } as TableViewBuilder;
+  return new StampedTableViewBuilder(permissionIds);
 }
 
 function requestShowingArchived(): RequestContext {

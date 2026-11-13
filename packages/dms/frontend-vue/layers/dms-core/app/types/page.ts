@@ -142,7 +142,6 @@ export interface LayoutBanner {
   /** Link buttons after the text; the last one leads. */
   actions?: BlockAction[];
   component?: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Banner components accept module-defined serialized props; inference cannot describe them and the frontend has no interface-dms dependency from which to derive the backend contract.
   props?: Record<string, unknown>;
 }
 
@@ -194,7 +193,6 @@ export interface ComponentChild<T = object> {
   id: string;
   component: ComponentInfo<T>;
   slot?: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Component children carry module-defined sibling metadata independently of generic options T; inferring from built-in children would narrow this public extension contract.
   [key: string]: unknown;
 }
 

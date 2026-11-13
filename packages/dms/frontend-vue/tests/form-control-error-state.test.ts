@@ -63,7 +63,6 @@ async function mountInField(
           ariaId: "field-aria",
         })),
       );
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This partial event bus intentionally supplies only emit; the mounted controls never subscribe, reset, or read listeners, so it is not a complete Nuxt event bus.
       provide(formBusInjectionKey, {
         emit: (event: { type: string; name: string }) => formEvents.push(event),
       } as never);

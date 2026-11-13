@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
@@ -14,14 +15,19 @@ import { useTableColumns } from "../layers/dms-ui/app/entries/composables/table/
 import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import * as colors from "../layers/dms-core/app/types/color";
 import { isFunction, isString } from "../layers/dms-core/app/utils/type-check";
+import { modelRef } from "./fixtures/modelRef";
+import { TABLE_STYLE_SLOTS } from "./fixtures/tableStyleSlots";
 
 type Row = { _id: string; status?: boolean };
 
 const PENDING = { field: "status", equals: true };
 const EXPIRED = { field: "status", equals: false };
 
-// SAFETY: Sizing reads labels, visibility, and rules only; these fixture actions are never invoked and need no targets.
-const rowActions = {
+const NEVER_RUN = { type: "page", url: "/never-run" } as const;
+
+const rowActions: NonNullable<
+  Parameters<typeof useTableColumns<Row>>[0]["rowActions"]
+> = {
   add: false,
   copyLink: false,
   delete: false,
@@ -30,11 +36,23 @@ const rowActions = {
   edit: false,
   hasSelection: false,
   custom: [
-    { label: "Resend", isVisible: true, showLabel: true },
-    { label: "Revoke", isVisible: true, showLabel: true, rule: PENDING },
-    { label: "Remove", isVisible: true, showLabel: true, rule: EXPIRED },
+    { label: "Resend", isVisible: true, showLabel: true, target: NEVER_RUN },
+    {
+      label: "Revoke",
+      isVisible: true,
+      showLabel: true,
+      rule: PENDING,
+      target: NEVER_RUN,
+    },
+    {
+      label: "Remove",
+      isVisible: true,
+      showLabel: true,
+      rule: EXPIRED,
+      target: NEVER_RUN,
+    },
   ],
-} as NonNullable<Parameters<typeof useTableColumns<Row>>[0]["rowActions"]>;
+};
 
 beforeEach(() => {
   for (const [name, value] of Object.entries({ ...ruleEvaluator, ...colors })) {
@@ -71,10 +89,7 @@ function actionsColumnSize(rows: Row[]): number | undefined {
     rowIdKey: "_id",
     rowActions,
     emits: () => undefined,
-    // SAFETY: These tests read column widths, never the style slots used by rendered cells.
-    ui: computed(
-      () => ({}) as Parameters<typeof useTableColumns<Row>>[0]["ui"]["value"],
-    ),
+    ui: computed(() => TABLE_STYLE_SLOTS),
   });
   return columns.value.find((column) => column.id === "actions")?.size;
 }
@@ -100,23 +115,19 @@ it("resizes the table's actions column once the rows arrive", async () => {
   const { table } = useTable<Row>({
     tableProps,
     emits: () => undefined,
-    // SAFETY: Only column sizes are read; no cell or header style slot is rendered.
-    ui: computed(
-      () => ({}) as Parameters<typeof useTable<Row>>[0]["ui"]["value"],
-    ),
-    // SAFETY: useTable reads and writes .value on these refs; it does not use ModelRef's tuple metadata.
+    ui: computed(() => TABLE_STYLE_SLOTS),
     states: {
-      globalFilterState: ref(""),
-      columnFiltersState: ref([]),
-      columnOrderState: ref([]),
-      columnVisibilityState: ref({}),
-      columnPinningState: ref({}),
-      columnSizingState: ref({}),
-      rowSelectionState: ref({}),
-      sortingState: ref([]),
-      expandedState: ref({}),
-      paginationState: ref({ pageIndex: 0, pageSize: 10 }),
-    } as Parameters<typeof useTable<Row>>[0]["states"],
+      globalFilterState: modelRef(""),
+      columnFiltersState: modelRef([]),
+      columnOrderState: modelRef([]),
+      columnVisibilityState: modelRef({}),
+      columnPinningState: modelRef({}),
+      columnSizingState: modelRef({}),
+      rowSelectionState: modelRef({}),
+      sortingState: modelRef([]),
+      expandedState: modelRef({}),
+      paginationState: modelRef({ pageIndex: 0, pageSize: 10 }),
+    },
   });
   const emptyWidth = table.getColumn("actions")!.getSize();
 

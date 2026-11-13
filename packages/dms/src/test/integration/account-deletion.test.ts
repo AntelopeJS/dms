@@ -75,12 +75,15 @@ describe("[integration] account deletion", () => {
     await attempts.recordFailure(member.userId, new Date());
     await attempts.claimAlert(member.userId, "burst", new Date());
     const epoch = new Date(0);
-    expect(await devices.listFingerprints(member.userId)).to.not.be.empty;
+    expect(await devices.listFingerprints(member.userId)).to.not.have.lengthOf(
+      0,
+    );
     expect(await attempts.listBurst(member.userId, epoch, 10)).to.have.length(
       2,
     );
-    expect(await GetModel(SessionModel).getByUserId(member.userId)).to.not.be
-      .empty;
+    expect(
+      await GetModel(SessionModel).getByUserId(member.userId),
+    ).to.not.have.lengthOf(0);
 
     const response = await authorizedClient(accessToken).post(
       "/dms/pages/settings/user/profile/account-deletion",

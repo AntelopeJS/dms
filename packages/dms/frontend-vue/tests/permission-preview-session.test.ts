@@ -30,10 +30,15 @@ afterEach(() => {
 
 it("removes the previews of every tab and the session in memory", () => {
   const preview = usePermissionPreview();
-  // SAFETY: purge discards this deliberately partial session without reading its fields.
-  preview.session.value = { id: "a" } as NonNullable<
-    typeof preview.session.value
-  >;
+  preview.session.value = {
+    id: "a",
+    roleId: null,
+    roleName: "Support",
+    permissions: [],
+    unsaved: false,
+    returnTo: "/settings/workspace/roles",
+    updatedAt: Date.now(),
+  };
 
   preview.purge();
 

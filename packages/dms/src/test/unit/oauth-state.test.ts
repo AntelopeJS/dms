@@ -1,7 +1,7 @@
 import { HTTPResult } from "@antelopejs/interface-api";
 import { assert, expect } from "chai";
 import { sign } from "jsonwebtoken";
-import { getAuthConfig } from "../..";
+import { getAuthConfig } from "../../config";
 import { assertValidOAuthState, signOAuthState } from "../../routes/oauth";
 
 const HTTP_BAD_REQUEST = 400;

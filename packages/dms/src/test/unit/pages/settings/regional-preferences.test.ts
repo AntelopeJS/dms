@@ -9,19 +9,19 @@ import {
   regionPreferencesForm,
 } from "../../../../pages/account";
 import { regionalPreferencesSchema } from "../../../../validation";
+import { plainPasswordUserFixture } from "../../../helpers/user-fixture";
 
 const PASSWORD_HASH = "$2b$10$kept-hash";
 
 function storedUser(): User {
-  // SAFETY: The preference helpers read and update regional fields only; password is retained to assert unrelated fields survive, and no persistence methods run.
-  return {
+  return plainPasswordUserFixture({
     _id: "regional-user",
     email: "ada@acme.dev",
     name: "Ada",
     language: "en",
     password: PASSWORD_HASH,
     timeZone: "Asia/Tokyo",
-  } as User;
+  });
 }
 
 describe("[unit] regional preferences — validation", () => {
