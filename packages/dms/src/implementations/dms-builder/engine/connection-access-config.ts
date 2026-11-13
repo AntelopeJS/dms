@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { parseEnv } from "node:util";
@@ -105,30 +105,14 @@ function restoreEnv(before: NodeJS.ProcessEnv): void {
   }
 }
 
-type ConfigLoad = InstanceType<CoreModule["ConfigLoader"]>["load"];
-type ConfigLoading = ReturnType<ConfigLoad>;
-type VariableReader = Parameters<ConfigLoad>[3];
-
-/** Which configuration to load: the launch environment's, or the base entries alone. */
-interface LoadTarget {
-  environment: string;
-  variables?: VariableReader;
-}
-
-/**
- * An environment name no project declares, so core merges no member of `environments` over the
- * base; with a reader that supplies no variable, no `envOverrides` either.
- */
-const BASE_ENVIRONMENT = "\u0000dms-builder-base";
-const BASE: LoadTarget = {
-  environment: BASE_ENVIRONMENT,
-  variables: () => undefined,
-};
+type ConfigLoading = ReturnType<
+  InstanceType<CoreModule["ConfigLoader"]>["load"]
+>;
 
 /** Calls core's loader, putting `process.env` back before anything else runs. */
 function startLoad(
   core: CoreModule,
-  { environment, variables }: LoadTarget,
+  environment: string,
   before: NodeJS.ProcessEnv,
 ): ConfigLoading {
   try {
@@ -136,31 +120,47 @@ function startLoad(
       resolveProjectRoot(),
       environment,
       findConfigFile(),
-      variables,
     );
   } finally {
     restoreEnv(before);
   }
 }
 
-/** The names the project's `.env`, beside its configuration, defines. */
+const ENV_FILE = /^\.env(\..+)?$/;
+
+function envFileNames(file: string): string[] {
+  try {
+    return Object.keys(parseEnv(readFileSync(file, "utf8")));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The names the project's env files define: every `.env`, `.env.<suffix>` beside its
+ * configuration, which the configuration's own loaders (`process.loadEnvFile`, dotenv) read.
+ */
 function projectEnvNames(): Set<string> {
   const configPath = findConfigFile();
   if (configPath === undefined) {
     return new Set();
   }
+  const directory = path.dirname(configPath);
+  let files: string[];
   try {
-    const text = readFileSync(
-      path.join(path.dirname(configPath), ".env"),
-      "utf8",
-    );
-    return new Set(Object.keys(parseEnv(text)));
+    files = readdirSync(directory).filter((name) => ENV_FILE.test(name));
   } catch {
-    return new Set();
+    files = [];
   }
+  return new Set(
+    files.flatMap((name) => envFileNames(path.join(directory, name))),
+  );
 }
 
-/** Removes the project's `.env` variables a load added; another variable set meanwhile stays. */
+/**
+ * Removes the variables a load added that the project's env files define, as the configuration's
+ * own loaders set them; a variable other code sets meanwhile, and none of them defines, stays.
+ */
 function dropAdded(before: NodeJS.ProcessEnv): void {
   for (const name of projectEnvNames()) {
     if (!Object.hasOwn(before, name)) {
@@ -177,9 +177,9 @@ function dropAdded(before: NodeJS.ProcessEnv): void {
  * added are removed too. `loadEnvFile` never overwrites a variable already set, so no other is
  * changed.
  */
-function loadLeavingEnv(core: CoreModule, target: LoadTarget): ConfigLoading {
+function loadLeavingEnv(core: CoreModule, environment: string): ConfigLoading {
   const before = { ...process.env };
-  return startLoad(core, target, before).finally(() => dropAdded(before));
+  return startLoad(core, environment, before).finally(() => dropAdded(before));
 }
 
 function withTimeout<T>(work: Promise<T>): Promise<T> {
@@ -195,7 +195,7 @@ function withTimeout<T>(work: Promise<T>): Promise<T> {
 }
 
 /** Loads the project configuration with core's own `ConfigLoader`, or says why it could not. */
-async function loadResolution(base: boolean): Promise<Resolution> {
+async function loadResolution(): Promise<Resolution> {
   let core: CoreModule;
   try {
     core = await import("@antelopejs/core");
@@ -206,11 +206,8 @@ async function loadResolution(base: boolean): Promise<Resolution> {
       : { kind: "failed", detail: message };
   }
   try {
-    const target = base
-      ? BASE
-      : { environment: launchEnvironment ?? core.DEFAULT_ENV };
-    const environment = base ? "base" : target.environment;
-    const config = await withTimeout(loadLeavingEnv(core, target));
+    const environment = launchEnvironment ?? core.DEFAULT_ENV;
+    const config = await withTimeout(loadLeavingEnv(core, environment));
     const modules = ResolutionSchema.safeParse({
       kind: "loaded",
       environment,
@@ -236,20 +233,7 @@ const operationAccess = new AsyncLocalStorage<Resolution>();
 export async function withConnectionAccess<T>(
   work: () => T | Promise<T>,
 ): Promise<T> {
-  const resolution = await loadResolution(false);
-  return operationAccess.run(resolution, work);
-}
-
-/**
- * Runs `work` with the configuration's base entries alone: core loads it for an environment no
- * project declares and with no variable, so neither `environments` nor `envOverrides` applies.
- * A step that writes an entry's base `config` compares against this, since every environment
- * reads what it writes.
- */
-export async function withBaseConnectionAccess<T>(
-  work: () => T | Promise<T>,
-): Promise<T> {
-  const resolution = await loadResolution(true);
+  const resolution = await loadResolution();
   return operationAccess.run(resolution, work);
 }
 

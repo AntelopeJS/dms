@@ -206,6 +206,100 @@ describe("[unit] builder_configure_project never writes read-write into a base t
   });
 });
 
+const DMS_DATABASE_SOURCE =
+  'source: { type: "package", package: "@antelopejs/dms-database", version: "0.5.0" }';
+
+/** A dms-database entry whose `erp` access is written as `access`, verbatim. */
+function dmsDatabaseWith(access: string): string {
+  return `"dms-database": { ${DMS_DATABASE_SOURCE}, config: { externalConnections: { erp: { access: ${access} } } } },`;
+}
+
+describe("[unit] builder_configure_project reads the access as antelope.config.ts writes it", function () {
+  this.timeout(OP_TIMEOUT);
+  const erp = useErpFixture();
+
+  before(() => {
+    ImplementInterface(Builder, implementation);
+  });
+
+  afterEach(() => {
+    delete process.env.ERP_ACCESS;
+  });
+
+  /** What restating `erp` as `read-write` answers: the refusal, or "accepted". */
+  async function restatement(): Promise<string> {
+    const answer = await confirmedCall(accessSteps({ erp: "read-write" }));
+    return answer.isError === true
+      ? (answer.content[0]?.text ?? "")
+      : "accepted";
+  }
+
+  it("refuses replacing an access read from a variable", async () => {
+    process.env.ERP_ACCESS = "read-write";
+    erp.writeModules([dmsDatabaseWith('process.env.ERP_ACCESS ?? "read"')]);
+    expect(await restatement()).to.include(RAISE_REFUSED);
+  });
+
+  it("refuses replacing an access that branches on the launch environment", async () => {
+    erp.writeModules([
+      dmsDatabaseWith(
+        'process.env.ANTELOPEJS_LAUNCH_ENV === "production" ? "read" : "read-write"',
+      ),
+    ]);
+    expect(await restatement()).to.include(RAISE_REFUSED);
+  });
+
+  it("refuses replacing a template an environment lowers", async () => {
+    erp.writeModules(
+      [
+        `"dms-database": { ${DMS_DATABASE_SOURCE}, config: { erpAccess: "read-write", externalConnections: { erp: { access: "\${erpAccess}" } } } },`,
+      ],
+      [
+        'environments: { production: { modules: { "dms-database": { config: { erpAccess: "read" } } } } },',
+      ],
+    );
+    expect(await restatement()).to.include(RAISE_REFUSED);
+  });
+
+  it("refuses rebinding a variable envOverrides maps to an access, in array form", async () => {
+    erp.writeModules(
+      [dmsDatabaseWith('"read-write"')],
+      [
+        'envOverrides: { ERP_LOCK: ["modules.dms-database.config.externalConnections.erp.access"] },',
+      ],
+    );
+    const answer = await confirmedCall({
+      steps: [
+        {
+          op: "ConfigureModule",
+          id: "dms-database",
+          entry: { env: { pollSeconds: "ERP_LOCK" } },
+        },
+      ],
+    });
+    expect(answer.isError).to.equal(true);
+    expect(answer.content[0]?.text).to.include(
+      `rebind \`ERP_LOCK\`, which \`envOverrides\` maps to a connection's access: ${RAISE_REFUSED}`,
+    );
+  });
+
+  it("leaves no variable bound in array form to be rebound through the interface", async () => {
+    erp.writeModules(
+      [dmsDatabaseWith('"read-write"')],
+      [
+        'envOverrides: { ERP_LOCK: ["modules.dms-database.config.externalConnections.erp.access"] },',
+      ],
+    );
+    expect(
+      refusalOf(
+        await ConfigureModule("dms-database", {
+          env: { pollSeconds: "ERP_LOCK" },
+        }),
+      ),
+    ).to.include("ERP_LOCK already supplies");
+  });
+});
+
 describe("[unit] each operation reads the configuration it loaded", function () {
   this.timeout(OP_TIMEOUT);
   const erp = useErpFixture();
@@ -248,6 +342,23 @@ describe("[unit] each operation reads the configuration it loaded", function () 
       READ_ONLY,
     );
     expect(process.env.ANT_2283_PROBE).to.equal(undefined);
+  });
+
+  it("leaves it as it was when the configuration loads another env file itself", async () => {
+    erp.app().write("../.env.local", "ANT_2283_LOCAL=from-env-local\n");
+    erp.writeModules(
+      [dmsDatabaseWith('"read"')],
+      [],
+      [
+        'import { join } from "node:path";',
+        "",
+        'process.loadEnvFile(join(__dirname, ".env.local"));',
+      ],
+    );
+    expect(refusalOf(await MapResources(countries(true)))).to.include(
+      READ_ONLY,
+    );
+    expect(process.env.ANT_2283_LOCAL).to.equal(undefined);
   });
 
   it("keeps a variable other code sets while a load is in flight", async () => {

@@ -187,13 +187,13 @@ const configureProject = defineTool({
   name: "builder_configure_project",
   title: "Configure project",
   description:
-    "Edits antelope.config.ts in one step: adds modules (AddModule), merges into existing ones (ConfigureModule: config, importOverrides pins and connections, exportPriority, env variable names) and scaffolds local modules (CreateLocalModule). Every step is validated before anything is written, and a refused step writes nothing. The user always approves the change, shown as a diff. A restart is needed before new modules load. It never raises an external connection's access: a step that sets `config.externalConnections.<id>.access` to `read-write` where its base entry does not already hold it (an environment or a variable granting it does not count), to anything else but `read`, or supplies it from a variable, is refused. Keeping, lowering or removing an access works, so restate the connections you do not change. A person grants writes in the Database module's Data browser or the assistant's connect step.",
+    "Edits antelope.config.ts in one step: adds modules (AddModule), merges into existing ones (ConfigureModule: config, importOverrides pins and connections, exportPriority, env variable names) and scaffolds local modules (CreateLocalModule). Every step is validated before anything is written, and a refused step writes nothing. The user always approves the change, shown as a diff. A restart is needed before new modules load. It never raises an external connection's access: a step that sets `config.externalConnections.<id>.access` to `read-write` where the module's entry in antelope.config.ts does not already hold the literal string `read-write`, to anything else but `read`, supplies it from a variable, or rebinds a variable `envOverrides` maps to it, is refused. Keeping, lowering or removing an access works, so restate the connections you do not change. A person grants writes in the Database module's Data browser or the assistant's connect step.",
   effect: "project",
   input: z.object({ steps: z.array(STEP).min(1) }),
   async run({ steps }) {
     const { raisedAccessRefusal } =
       await import("../../implementations/dms-builder/engine");
-    const raised = await raisedAccessRefusal(steps);
+    const raised = raisedAccessRefusal(steps);
     if (raised !== undefined) return refusalResult("invalid_config", raised);
     const planned = await ConfigureProject(steps, { dryRun: true });
     if (!planned.ok) return opResult(planned);
