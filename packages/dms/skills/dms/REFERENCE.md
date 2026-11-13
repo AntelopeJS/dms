@@ -16,7 +16,7 @@ List a section to see its files. Guide paths below are relative to `packages/dms
 | `docs/05.extending-the-dashboard/` | Dashboard chrome, theming, custom DataTypes (frontend side), table-view displays, component events, period filtering |
 | `docs/06.frontend-composables/` | Composables a custom frontend module's Vue calls: auth'd requests, realtime, page context, UI toolkit |
 | `packages/interface-dms/docs/` | The contract reference for `@antelopejs/interface-dms`, one folder per domain: `core`, `auth`, `base`, `notifications`, `html-render` |
-| `docs/08.ai-and-claude-code/` | The skill suite, installing it in Claude Code, dms-ai, best practices, design fidelity, the `/dms-preview` page, shipping a module skill |
+| `docs/08.ai-and-claude-code/` | The skill suite, installing it in Claude Code, dms-assistant, best practices, design fidelity, the `/dms-preview` page, shipping a module skill |
 
 ## Exact interface surfaces: don't memorize, look them up
 

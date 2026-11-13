@@ -34,11 +34,11 @@ export interface HeaderAction {
 }
 
 /**
- * The action id the builder module registers. Core renders it on the existing
- * builder button rather than as one more icon, and falls back to the
- * "coming soon" popover when no module claims it.
+ * The action id of a page editor's header button, such as the one of
+ * `@antelopejs/dms-assistant`. Core renders it on the builder button rather
+ * than as one more icon, and shows no builder button when no module claims it.
  */
-export const BUILDER_ACTION_ID = "dms-builder-edit";
+export const BUILDER_ACTION_ID = "dms-assistant-edit";
 
 const HEADER_ACTIONS_STATE_KEY = "dms:header-actions";
 const DEFAULT_ORDER = 100;

@@ -870,7 +870,7 @@
       "catalog": {
         "ai": {
           "title": "Assistant",
-          "description": "Un agent de code qui inspecte vos modules et modifie le projet, pour le développement."
+          "description": "Un agent de code et un éditeur visuel de pages qui modifient le projet, pour le développement."
         },
         "api": {
           "title": "API",
@@ -879,10 +879,6 @@
         "automation": {
           "title": "Automatisation",
           "description": "Des procédures visuelles faites de déclencheurs, d’actions et de nœuds de données."
-        },
-        "builder": {
-          "title": "Builder",
-          "description": "Modifie les pages, tableaux et formulaires du projet, en n’écrivant que du code qui compile."
         },
         "database": {
           "title": "Base de données",

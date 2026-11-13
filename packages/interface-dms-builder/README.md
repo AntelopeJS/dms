@@ -5,7 +5,7 @@
 <a href="https://www.npmjs.com/package/@antelopejs/interface-dms-builder"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/interface-dms-builder?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
 <a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/interface-dms-builder?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
 <a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
-<a href="https://dms.antelopejs.com/docs/modules/builder/extending"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
+<a href="https://dms.antelopejs.com/docs/modules/assistant/builder/extending"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
 
 The AntelopeJS interface that edits the pages, blocks, resources and queries of a DMS project from code.
 
@@ -73,7 +73,7 @@ The `@antelopejs/dms` module implements this interface, and so does the `@antelo
 
 ## Documentation
 
-- [Extending the builder](https://dms.antelopejs.com/docs/modules/builder/extending) covers the interface and the HTTP API.
+- [Extending the builder](https://dms.antelopejs.com/docs/modules/assistant/builder/extending) covers the interface and the HTTP API.
 - [Interface reference](./docs/1.introduction.md) is the canonical contract. It ships with this package and is published at [/docs/modules/builder/reference](https://dms.antelopejs.com/docs/modules/builder/reference).
 - [A chart without code](./docs/10.a-chart-without-code.md) follows one chart from the choice of a measure to the reopened page.
 

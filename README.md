@@ -156,7 +156,7 @@ codex plugin marketplace add AntelopeJS/agent-skills
 codex plugin add antelopejs@antelopejs
 ```
 
-Then run `ajs project dev` once. It adds a `dms-ai` server to the project's `.mcp.json`, so Claude Code gets the Builder tools, the database tools and the typecheck the chat uses.
+Then run `ajs project dev` once. It adds a `dms` server to the project's `.mcp.json`, so Claude Code gets the builder, database and page tools the dashboard assistant uses. [MCP server](https://dms.antelopejs.com/docs/ai-and-claude-code/mcp-server) shows the Codex setup.
 
 ## See it in action
 

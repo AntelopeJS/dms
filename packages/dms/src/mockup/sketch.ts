@@ -25,7 +25,7 @@ const sketchOptionsSchema = z
   .strict();
 
 /**
- * Markup a sketch may not hold, as dms-ai's `PREVIEW_SKETCH_FORBIDDEN` lists
+ * Markup a sketch may not hold, as dms-assistant's `PREVIEW_SKETCH_FORBIDDEN` lists
  * it. The frame the viewer draws a sketch in runs no script and loads nothing
  * but `data:` URLs; these checks turn a sketch that would break there into an
  * issue instead.

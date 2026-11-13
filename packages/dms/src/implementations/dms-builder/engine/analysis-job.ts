@@ -244,7 +244,7 @@ export function startAnalysis(
   const catalog = catalogOf(input.connection);
   if (!catalog) {
     return invalidConfig<AnalysisState>(
-      `dms-builder has no catalog connection "${input.connection}"; declare one in its importOverrides`,
+      `dms has no catalog connection "${input.connection}"; declare one in its importOverrides`,
     );
   }
   const module = targetModule(input.module);

@@ -23,7 +23,7 @@ const REMOTE_URL = /^https?:\/\//i;
 const URL_OPTION_KEY = /(?:Url|^location)$/;
 const OptionUrlSchema = z.string();
 
-/** Markup the dms-ai sketch frame would block, refused here with a clear error; the frame, not this list, is the guard. */
+/** Markup the dms-assistant sketch frame would block, refused here with a clear error; the frame, not this list, is the guard. */
 const SKETCH_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
   [/<\s*script\b/i, "a <script> element"],
   [
