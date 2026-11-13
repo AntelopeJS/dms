@@ -22,7 +22,7 @@ import { type BlockTarget, resolveBlockTarget } from "./block-target";
 import { buildCatalog } from "./catalog";
 import { applyImportRef, blockCallText, childArgText } from "./emit";
 import { stringLiteralValue } from "./literals";
-import { contentVersion } from "./page-structure";
+import { contentVersion, pageVersion } from "./page-structure";
 import { parseBlockPath, propertyKey } from "./paths";
 import { moduleMismatch } from "./modules";
 import { invalidateResourceIndex, resourceRefResolver } from "./resource-index";
@@ -154,16 +154,16 @@ export function checkVersion(
   if (!opts?.expectedVersion) {
     return undefined;
   }
-  const text = sourceFile.getFullText();
-  return contentVersion(text) === opts.expectedVersion
+  const version = pageVersion(sourceFile);
+  return version === opts.expectedVersion
     ? undefined
-    : stale(sourceFile.getFilePath(), text);
+    : stale(sourceFile.getFilePath(), version);
 }
 
-function stale(ref: string, text: string): OpResult<never> {
+function stale(ref: string, currentVersion: string): OpResult<never> {
   return {
     ok: false,
-    error: { code: "stale", ref, currentVersion: contentVersion(text) },
+    error: { code: "stale", ref, currentVersion },
   };
 }
 
@@ -183,7 +183,7 @@ export function commit<T>(
   const changed = transaction.changedOnDisk();
   if (changed) {
     transaction.rollback();
-    return stale(changed.path, changed.text);
+    return stale(changed.path, contentVersion(changed.text));
   }
   const changes = transaction.flush();
   invalidateSourceIndex();
