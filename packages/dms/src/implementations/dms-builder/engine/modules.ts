@@ -6,7 +6,11 @@ import {
   Project,
   type SourceFile,
 } from "ts-morph";
-import { createProject, resolveProjectRoot } from "./project";
+import {
+  addProjectSources,
+  createProject,
+  resolveProjectRoot,
+} from "./project";
 
 const CONFIG_FILES = ["antelope.config.ts", "antelope.config.mts"];
 const MODULE_ENTRY = path.join("src", "index.ts");
@@ -220,9 +224,27 @@ export function createModulesProject(): Project {
   }
   project.compilerOptions.set({ rootDir: undefined });
   for (const module of others) {
-    project.addSourceFilesAtPaths(path.join(module.root, "src", "**", "*.ts"));
+    project.addSourceFilesAtPaths(moduleSources(module));
   }
   return project;
+}
+
+function moduleSources(module: ModuleRoot): string {
+  return path.join(module.root, "src", "**", "*.ts");
+}
+
+/**
+ * Add every source a fresh {@link createModulesProject} loads. A file created
+ * since the project was built then joins it, so a refresh keeps it current
+ * instead of the copy an import first resolved.
+ */
+export function addModuleSources(project: Project): void {
+  addProjectSources(project, resolveProjectRoot());
+  for (const module of projectModules()) {
+    if (!module.isProject) {
+      project.addSourceFilesAtPaths(moduleSources(module));
+    }
+  }
 }
 
 /**

@@ -171,6 +171,28 @@ describe("a block option built as a template of constants", () => {
     }
   });
 
+  it("saves through a constants file created after the engine loaded, once that file changed", async function () {
+    this.timeout(OP_TIMEOUT);
+    const writeLate = (value: string) =>
+      app.write(
+        "late-api.ts",
+        `export const LATE_API = ${JSON.stringify(value)};\n`,
+      );
+    writeLate("/api/late");
+    app.write(
+      PAGE_FILE,
+      `import { LATE_API } from "../late-api";\n${app.read(PAGE_FILE)}`,
+    );
+    handWrite('title: "Revenue", fetchUrl: `${LATE_API}/k`');
+    await save({ title: "Revenue", fetchUrl: "/api/late/k" });
+    writeLate("/api/late-v2");
+
+    const block = await revenueKpi();
+    expect(block.config?.fetchUrl).to.equal("/api/late-v2/k");
+    const written = await save({ title: "Income", fetchUrl: "/api/late-v2/k" });
+    expect(written).to.contain("fetchUrl: `${LATE_API}/k`");
+  });
+
   it("locks a template that reads a default import, which a save would leave behind", async function () {
     this.timeout(OP_TIMEOUT);
     handWrite('title: "Revenue", fetchUrl: `${ShopDefault}/k`');

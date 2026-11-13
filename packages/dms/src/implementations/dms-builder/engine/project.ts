@@ -286,11 +286,28 @@ export function createProject(rootDir: string): Project {
     compilerOptions: options,
     manipulationSettings,
   });
-  project.addSourceFilesAtPaths([
+  project.addSourceFilesAtPaths(untypedSourcePatterns(rootDir));
+  return project;
+}
+
+function untypedSourcePatterns(rootDir: string): string[] {
+  return [
     path.join(rootDir, "**/*.ts"),
     ...UNCHECKED_PATTERNS.map((pattern) => `!${path.join(rootDir, pattern)}`),
-  ]);
-  return project;
+  ];
+}
+
+/**
+ * Add the app's own sources as {@link createProject} loads them: what its
+ * tsconfig includes, or every checked `.ts` file under it without one.
+ */
+export function addProjectSources(project: Project, rootDir: string): void {
+  const tsConfigFilePath = findTsConfig(rootDir);
+  if (tsConfigFilePath) {
+    project.addSourceFilesFromTsConfig(tsConfigFilePath);
+  } else {
+    project.addSourceFilesAtPaths(untypedSourcePatterns(rootDir));
+  }
 }
 
 /** The indentation a generated block should use, as a string. */
