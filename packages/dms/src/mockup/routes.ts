@@ -196,6 +196,11 @@ function refusal(
       return notFound("mockup");
     case "no_node":
       return notFound("node at this page and path");
+    case "ambiguous":
+      return new HTTPResult(HTTP_CONFLICT, {
+        message:
+          "another block has the same ids as this one, so a note cannot tell them apart: give one of them another id",
+      });
     case "spec_invalid":
       return new HTTPResult(HTTP_CONFLICT, {
         message:

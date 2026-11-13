@@ -15,6 +15,8 @@ import { jsonObjectSchema } from "./model";
 
 const JSON_INDENT = 2;
 const FIRST_INDENT = /^[ \t]+(?=\S)/m;
+const TAB = "\t";
+const LEADING_TABS = /^\t+/gm;
 const LF = "\n";
 const CRLF = "\r\n";
 const DIGEST_LENGTH = 16;
@@ -141,10 +143,16 @@ async function persist(
 function laidOutAs(text: string, spec: Json): string {
   const body = text.trimEnd();
   const indent = body.includes(LF)
-    ? (FIRST_INDENT.exec(body)?.[0] ?? JSON_INDENT)
+    ? (FIRST_INDENT.exec(body)?.[0] ?? " ".repeat(JSON_INDENT))
     : undefined;
   const eol = text.includes(CRLF) ? CRLF : LF;
-  const json = JSON.stringify(spec, null, indent).replaceAll(LF, eol);
+  const json = (
+    indent === undefined
+      ? JSON.stringify(spec)
+      : JSON.stringify(spec, null, TAB).replaceAll(LEADING_TABS, (tabs) =>
+          indent.repeat(tabs.length),
+        )
+  ).replaceAll(LF, eol);
   return text.endsWith(LF) ? `${json}${eol}` : json;
 }
 

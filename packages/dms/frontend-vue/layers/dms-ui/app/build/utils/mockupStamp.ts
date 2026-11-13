@@ -181,6 +181,30 @@ function withIds(
   });
 }
 
+/**
+ * The stamped block in `present` when typing in one of its fields replaced
+ * the step `base` was: the node at the stamp's pointer, of the same type and
+ * component, when putting the stamped node back in its place gives `base`.
+ * Undefined after any other change, so the id goes on no block rather than
+ * on the wrong one.
+ */
+function retyped(
+  stamp: Stamp,
+  base: MockupSpecDocument,
+  present: MockupSpecDocument,
+): Placed | undefined {
+  const node = nodeAt(present, stamp.pointer);
+  if (!node || node.id !== undefined || !isSameKind(node, stamp.node)) {
+    return undefined;
+  }
+  const restored = JSON.stringify(present, (_key, value: unknown) =>
+    value === node ? stamp.node : value,
+  );
+  return restored === JSON.stringify(base)
+    ? { pointer: stamp.pointer, node }
+    : undefined;
+}
+
 function placeStamps(
   history: MockupHistory<MockupSpecDocument>,
   base: MockupSpecDocument,
@@ -188,14 +212,18 @@ function placeStamps(
 ): StampedHistory {
   const specs = [...history.past, history.present, ...history.future];
   const steps = specs.map(pointersOf);
-  const at = specs.indexOf(base);
-  const start = at < 0 ? history.past.length : at;
-  const basePointers = at < 0 ? pointersOf(base) : steps[at];
   const ids = new Map<MockupSpecNode, string>();
   for (const stamp of stamps) {
     ids.set(stamp.node, stamp.id);
+    const held = steps.findIndex((step) => step.has(stamp.node));
+    const start = held < 0 ? history.past.length : held;
     const first =
-      at < 0 ? counterpart(stamp, basePointers, steps[start]) : stamp;
+      held < 0
+        ? retyped(stamp, base, history.present)
+        : {
+            pointer: steps[held].get(stamp.node) ?? stamp.pointer,
+            node: stamp.node,
+          };
     for (const node of first ? followed(steps, start, first) : []) {
       if (!ids.has(node)) ids.set(node, stamp.id);
     }
@@ -219,8 +247,10 @@ function placeStamps(
  * had none; undefined otherwise. Each id goes on its node in the base, then
  * on the node that is the same block in each step of the history, step by
  * step outward from the base both ways, up to a step where the block is
- * not: see {@link counterpart}. A base the history no longer holds, which
- * typing in one field replaced, counts as the step before the present.
+ * not: see {@link counterpart}. The walk starts at a step that holds the
+ * stamped node itself, or at the present when typing in one of its fields
+ * is all that replaced it: see {@link retyped}. Otherwise the id goes on no
+ * step, so the note names no block rather than another one.
  */
 export function stampedHistory(
   history: MockupHistory<MockupSpecDocument>,

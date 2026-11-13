@@ -7,9 +7,9 @@ import { jsonPointer, pageIdSchema } from "./model";
  * The block a note is about: the one node whose id is `block`, then down
  * through the one child whose id is each of `steps`. Without `page`, `block`
  * is an id anchoring stamped, unique in the whole spec, so the block follows
- * a move to another page and a page rename. With `page`, `block` is an id an
- * author wrote, unique only on the page `page`. Several matches name no
- * block, nor does a missing page.
+ * a move to another page and a page rename. With `page`, `block` is the id an
+ * author wrote on a root of the page `page`. Several matches name no block,
+ * nor does a missing page.
  */
 export const blockAnchorSchema = z
   .object({
@@ -157,7 +157,8 @@ function findBlock(tree: BlockTree, anchor: BlockAnchor): Visit | undefined {
       ({ node, address }) =>
         node.id === anchor.block &&
         (anchor.page === undefined ||
-          tree.pages[address.page]?.id === anchor.page),
+          (address.indexes.length === 1 &&
+            tree.pages[address.page]?.id === anchor.page)),
     ),
   );
   return anchor.steps.reduce<Visit | undefined>(
@@ -267,14 +268,28 @@ function stampNode(spec: MockupSpec, address: NodeAddress, id: string): void {
   if (node) node.id = id;
 }
 
-/** Whether a note can anchor on a node with this id: none yet, or one anchoring stamped. */
-function isAnchorable(id: string | undefined): boolean {
-  return id === undefined || STAMPED_ID.test(id);
+/** Whether a note can anchor on a node with this id: none yet, or one anchoring stamped that no other node of the spec carries. */
+function isAnchorable(
+  id: string | undefined,
+  counts: ReadonlyMap<string, number>,
+): boolean {
+  return id === undefined || (STAMPED_ID.test(id) && counts.get(id) === 1);
+}
+
+function idCounts(tree: BlockTree): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const { node } of visitsOf(tree)) {
+    if (node.id !== undefined) {
+      counts.set(node.id, (counts.get(node.id) ?? 0) + 1);
+    }
+  }
+  return counts;
 }
 
 /**
  * Anchors the node `site` names in `spec` on the nearest node, from it up to
- * its root, that has no id or an id anchoring stamped: a node with no id gets
+ * its root, that has no id or an id anchoring stamped that no other node
+ * carries: a node with no id gets
  * a fresh one, stamped on `spec` in place. The ids authors wrote on the nodes
  * below it are the steps: siblings never share one. No id is ever renamed, so
  * when every node down to the target has an id an author wrote, the anchor is
@@ -288,7 +303,8 @@ export function anchorSite(
   const address = addressOfSite(spec, site);
   const chain = address && chainTo(spec, address);
   if (!address || !chain) return undefined;
-  const depth = chain.findLastIndex(({ id }) => isAnchorable(id));
+  const counts = idCounts(spec);
+  const depth = chain.findLastIndex(({ id }) => isAnchorable(id, counts));
   const steps = chain.slice(depth + 1).flatMap(({ id }) => id ?? []);
   if (depth < 0) {
     const [block, ...below] = steps;
@@ -296,7 +312,7 @@ export function anchorSite(
   }
   const id = chain[depth].id;
   if (id !== undefined) return { anchor: { block: id, steps } };
-  const taken = new Set(visitsOf(spec).flatMap(({ node }) => node.id ?? []));
+  const taken = new Set(counts.keys());
   const reached = {
     page: address.page,
     indexes: address.indexes.slice(0, depth + 1),

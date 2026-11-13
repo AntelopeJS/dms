@@ -99,6 +99,7 @@ export type AnnotationCreation =
   | { kind: "created"; annotation: MockupAnnotation }
   | { kind: "no_mockup" }
   | { kind: "no_node" }
+  | { kind: "ambiguous" }
   | { kind: "spec_invalid"; errors: MockupIssue[] };
 
 const MISSING_SPEC: MockupIssue = {
@@ -311,7 +312,6 @@ async function create(
   const { spec } = read;
   const anchored = anchorSite(spec, draft);
   if (!anchored) return { kind: "no_node" };
-  if (anchored.stamp) await held.stamp(read.text, [anchored.stamp]);
   const note: MockupAnnotation = {
     id: randomBytes(ID_BYTES).toString("base64url"),
     anchor: anchored.anchor,
@@ -319,6 +319,8 @@ async function create(
     status: "open",
     createdAt: new Date().toISOString(),
   };
+  if (resolved(note, spec).path !== draft.path) return { kind: "ambiguous" };
+  if (anchored.stamp) await held.stamp(read.text, [anchored.stamp]);
   await writeAnnotationsFile(held.path, {
     version: 2,
     annotations: [...file.annotations, note],
@@ -331,8 +333,8 @@ async function create(
  * the current spec. The note is anchored to that node's block: when the node
  * and its ancestors have no id, a fresh one is stamped on the node in
  * `spec.json`, whatever other issues the spec has. Answers why when it
- * cannot: the mockup does not exist, no node is there, or the spec does not
- * parse. Writes to one mockup run one at a time, so concurrent calls keep
+ * cannot: the mockup does not exist, no node is there, the node's ids cannot
+ * tell it apart from another node, or the spec does not parse. Writes to one mockup run one at a time, so concurrent calls keep
  * every annotation.
  */
 export async function createAnnotation(

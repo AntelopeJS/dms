@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { expect } from "chai";
-import { defaultMockupsDir } from "../../../mockup";
+import { createAnnotation, defaultMockupsDir } from "../../../mockup";
 import {
   annotate,
   block,
@@ -13,6 +13,7 @@ import {
   header,
   headerRow,
   kpi,
+  MOCKUP,
   patchAnswer,
   put,
   putPages,
@@ -271,6 +272,55 @@ describe("[unit] mockup annotation anchors: author ids", () => {
 
     expect(await served(id)).to.include({ page: "page-1" });
     await expectBlockAt(id, "/pages/1/tree/0", "title", "Two");
+  });
+});
+
+describe("[unit] mockup annotation anchors: telling blocks apart", () => {
+  const workspace = useWorkspace();
+
+  it("anchors a note on a child that shares its author id with its root (fails when the page's anchor matches the child as well as the root)", async () => {
+    await putPages([
+      {
+        id: "header",
+        type: "GridRow",
+        children: [{ id: "header", type: "KpiCard", options: { title: "In" } }],
+      },
+    ]);
+
+    const { id } = await annotate("page-0", "/pages/0/tree/0/children/0");
+
+    await expectBlockAt(id, "/pages/0/tree/0/children/0", "title", "In");
+  });
+
+  it("refuses a note on a root whose author id another root of its page shares (fails when the note is created with no location)", async () => {
+    await putPages([header("One"), header("Two")]);
+
+    const created = await createAnnotation(
+      MOCKUP,
+      { page: "page-0", path: "/pages/0/tree/1", text: "note" },
+      defaultMockupsDir(),
+    );
+
+    expect(created.kind).to.equal("ambiguous");
+  });
+
+  it("refuses a note on a copy written straight to spec.json with its original's stamped id, and stamps nothing (fails when the note anchors on the shared id and later moves to the original)", async () => {
+    await put(sketch("<p>original</p>"));
+    const { anchor } = await annotate("home", "/pages/0/tree/0");
+    const stamped = anchor?.block ?? "";
+    const text = JSON.stringify(
+      spec(block("<p>original</p>", stamped), block("<p>copy</p>", stamped)),
+    );
+    await writeFile(join(defaultMockupsDir(), NAME, "spec.json"), text);
+
+    const created = await createAnnotation(
+      MOCKUP,
+      { page: "home", path: "/pages/0/tree/1", text: "on the copy" },
+      defaultMockupsDir(),
+    );
+
+    expect(created.kind).to.equal("ambiguous");
+    expect(await workspace.specBytes()).to.equal(text);
   });
 
   it("gives a note no location when a copy of its block keeps the author id on the same page (fails when the copy takes the note)", async () => {

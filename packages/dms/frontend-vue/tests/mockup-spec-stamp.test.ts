@@ -270,3 +270,48 @@ describe("an id a note stamped while an edit is not written yet", () => {
     expect(notices).toEqual([]);
   });
 });
+
+describe("an id a note stamped on a step the history no longer holds", () => {
+  const insertNew = () =>
+    editor.apply({
+      kind: "insertNode",
+      parent: null,
+      page: "orders",
+      index: 0,
+      node: kpi("New"),
+    });
+
+  it("gives a block inserted after typing replaced the stamped step none of the id (fails when the step before the present stands in for the stamped one)", async () => {
+    await mountEditor();
+    retitle("Mi");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    file.writeFromOutside(stamped(file.spec));
+
+    retitle("Mine");
+    insertNew();
+    await settle(MOCKUP_WRITE_DELAY_MS * 4);
+
+    expect(roots()).toEqual([
+      ["New", undefined],
+      ["Mine", undefined],
+    ]);
+  });
+
+  it("gives a block inserted after an undo of the stamped step none of the id (fails when a new block of the same kind at the old pointer takes it)", async () => {
+    file.spec = onePage(kpi("A"), kpi("B"));
+    await mountEditor();
+    retitle("A2");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    file.writeFromOutside(stamped(file.spec));
+
+    editor.undo();
+    insertNew();
+    await settle(MOCKUP_WRITE_DELAY_MS * 4);
+
+    expect(roots()).toEqual([
+      ["New", undefined],
+      ["A", undefined],
+      ["B", undefined],
+    ]);
+  });
+});

@@ -42,6 +42,11 @@ function unordered(node: JsonValue): JsonValue {
 
 const LAYOUTS: ReadonlyArray<[string, (spec: JsonValue) => string]> = [
   ["four-space indentation", (value) => `${JSON.stringify(value, null, 4)}\n`],
+  [
+    "twelve-space indentation, past the ten JSON.stringify keeps",
+    (value) =>
+      `${JSON.stringify(value, null, "\t").replaceAll(/^\t+/gm, (tabs) => " ".repeat(12 * tabs.length))}\n`,
+  ],
   ["one line", (value) => `${JSON.stringify(value)}\n`],
   [
     "CRLF line endings",
