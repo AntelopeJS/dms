@@ -312,6 +312,31 @@ describe("[unit] mockup annotation anchors", () => {
     await expectBlockAt(id, "/pages/1/tree/0", "title", "Two");
   });
 
+  it("refuses a copy that keeps a stamped id, and keeps the note on the original once the copy drops it (fails when the copy takes the note)", async () => {
+    await put(sketch("<p>original</p>"));
+    const id = await annotate("home", "/pages/0/tree/0");
+    const copy: JsonValue[] = [
+      { op: "copy", from: "/pages/0/tree/0", path: "/pages/0/tree/0" },
+      {
+        op: "replace",
+        path: "/pages/0/tree/0/options/html",
+        value: "<p>copy</p>",
+      },
+    ];
+
+    const refused = await answer(
+      patch,
+      { mockup: NAME, patch: copy },
+      writeAnswerSchema,
+    );
+    await edit(...copy, { op: "remove", path: "/pages/0/tree/0/id" });
+
+    expect(refused.errors.map((error) => error.path)).to.deep.equal([
+      "/pages/0/tree/1/id",
+    ]);
+    await expectBlockAt(id, "/pages/0/tree/1", "html", "<p>original</p>");
+  });
+
   it("migrates a version 1 file by stamping ids, and the notes then follow their blocks (fails when notes keep their pointers or are dropped)", async () => {
     await put(sketch("<p>a</p>"), sketch("<p>b</p>"));
     await writeFile(
