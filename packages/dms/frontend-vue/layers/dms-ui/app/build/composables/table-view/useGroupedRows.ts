@@ -1,5 +1,6 @@
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import { h, toValue, type ComputedRef, type MaybeRefOrGetter } from "vue";
 import type {
   TableViewColumn,
@@ -91,11 +92,10 @@ export function useGroupedRows(options: GroupedRowsOptions) {
   const refreshCounts = async () => {
     const queries = countQueries.value;
     if (import.meta.env.SSR || queries.length === 0) return;
-    // prettier-ignore
     try {
       counts.value = await options.countBatch(queries);
     } catch {
-      // eslint-disable-line no-empty -- A failed count request leaves the group rows readable.
+      ignoreFailure();
     }
   };
 

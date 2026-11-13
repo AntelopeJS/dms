@@ -14,6 +14,7 @@ import {
   resolveActivePreviewBlock,
   resolvePreviewEntryState,
 } from "../../utils/permission-preview";
+import { ignoreFailure } from "../../utils/ignoreFailure";
 
 /** What the roles editor hands over when it opens a preview. */
 export type PermissionPreviewInput = Omit<
@@ -36,25 +37,22 @@ function readStorage(storage: Storage, key: string): string | null {
 }
 
 function writeStorage(storage: Storage, key: string, value: string): void {
-  // prettier-ignore
   try {
     storage.setItem(key, value);
   } catch {
-    // eslint-disable-line no-empty -- Failed storage writes lose preview session sharing or reload persistence, not the editor's state.
+    ignoreFailure();
   }
 }
 
 function removeStorage(storage: Storage, key: string): void {
-  // prettier-ignore
   try {
     storage.removeItem(key);
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage does not interrupt preview cleanup.
+    ignoreFailure();
   }
 }
 
 function removeSessions(isRemoved: (key: string) => boolean): void {
-  // prettier-ignore
   try {
     for (let index = localStorage.length - 1; index >= 0; index--) {
       const key = localStorage.key(index);
@@ -62,7 +60,7 @@ function removeSessions(isRemoved: (key: string) => boolean): void {
       if (isRemoved(key)) removeStorage(localStorage, key);
     }
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage does not interrupt preview cleanup.
+    ignoreFailure();
   }
 }
 

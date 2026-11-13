@@ -1,3 +1,5 @@
+import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
+
 const STORAGE_KEY_PREFIX = "dms.live.paused:";
 const REMEMBER_KEY_PREFIX = "key:";
 const PAUSED_VALUE = "1";
@@ -33,11 +35,10 @@ export function readStoredPause(key: string): boolean {
 export function storePause(key: string, isPaused: boolean): void {
   const storage = liveStorage();
   if (!storage) return;
-  // prettier-ignore
   try {
     if (isPaused) storage.setItem(key, PAUSED_VALUE);
     else storage.removeItem(key);
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage loses only the persisted pause choice.
+    ignoreFailure();
   }
 }

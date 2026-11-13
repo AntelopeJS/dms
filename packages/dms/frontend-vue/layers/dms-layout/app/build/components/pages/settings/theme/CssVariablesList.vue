@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CSSProperties } from "vue";
+import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import { useCopyFeedback } from "#dms-ui/app/entries/composables/clipboard/useCopyFeedback";
 import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 
@@ -88,11 +89,10 @@ function collectNames(rules: CSSRuleList, names: Set<string>): void {
 function readVariables(): CSSVariable[] {
   const names = new Set<string>();
   for (const sheet of Array.from(document.styleSheets)) {
-    // prettier-ignore
     try {
       collectNames(sheet.cssRules, names);
     } catch {
-      // eslint-disable-line no-empty -- Cross-origin stylesheet rules may be inaccessible.
+      ignoreFailure();
     }
   }
   const rootStyles = getComputedStyle(document.documentElement);

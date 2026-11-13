@@ -1,3 +1,5 @@
+import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
+
 /** `localStorage` key prefix of the open or folded state of each preferences group. */
 export const NOTIFICATION_GROUP_STORAGE_PREFIX = "dms-notification-group:";
 
@@ -17,11 +19,10 @@ function readStorage(key: string): string | null {
 }
 
 function writeStorage(key: string, value: string): void {
-  // prettier-ignore
   try {
     localStorage.setItem(key, value);
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage loses only the persisted group choice.
+    ignoreFailure();
   }
 }
 

@@ -1,3 +1,4 @@
+import { ignoreFailure } from "../build/utils/ignoreFailure";
 import { isString } from "./type-check";
 
 /** `h23`: 24-hour clock (14:05); `h12`: 12-hour clock (2:05 PM). */
@@ -312,14 +313,13 @@ type LocaleWithWeekInfo = Intl.Locale & {
  * fr-FR, which both start on Monday.
  */
 export function localeWeekStart(locale: string): number {
-  // prettier-ignore
   try {
     const info: LocaleWithWeekInfo = new Intl.Locale(locale);
     if (!info.region) return MONDAY;
     const weekInfo = info.getWeekInfo?.() ?? info.weekInfo;
     if (weekInfo) return weekInfo.firstDay % DAYS_PER_WEEK;
   } catch {
-    // eslint-disable-line no-empty -- Invalid locale tags fall through to the Monday default.
+    ignoreFailure();
   }
   return MONDAY;
 }

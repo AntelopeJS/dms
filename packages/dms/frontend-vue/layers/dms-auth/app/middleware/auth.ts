@@ -1,3 +1,4 @@
+import { ignoreFailure } from "../../../dms-core/app/entries/utils/ignoreFailure";
 import { isObject } from "../../../dms-core/app/utils/type-check";
 interface AuthMiddlewareOptions {
   navigateAuthenticatedTo?: string;
@@ -13,11 +14,10 @@ function isAuthOptions(value: MiddlewareMeta): value is AuthMiddlewareOptions {
 async function loadPermissionsIfNeeded() {
   const { loadPermissions } = usePermissions();
 
-  // prettier-ignore
   try {
     await loadPermissions();
   } catch {
-    // eslint-disable-line no-empty -- Permission-load failures do not interrupt authentication.
+    ignoreFailure();
   }
 }
 

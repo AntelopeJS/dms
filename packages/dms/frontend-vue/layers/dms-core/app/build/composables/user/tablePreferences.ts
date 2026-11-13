@@ -1,5 +1,6 @@
 import { isBranch, type PreferencesTree } from "./preferencesCookie";
 import { isNumber, isString } from "../../../utils/type-check";
+import { ignoreFailure } from "../../utils/ignoreFailure";
 
 /**
  * @internal
@@ -318,13 +319,12 @@ export const writeLocalTableEntry = (
   id: string,
   entry: PreferencesTree,
 ): void => {
-  // prettier-ignore
   try {
     const storage = browserStorage();
     if (Object.keys(entry).length === 0) storage?.removeItem(localKey(id));
     else storage?.setItem(localKey(id), JSON.stringify(entry));
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage leaves the current in-memory state usable.
+    ignoreFailure();
   }
 };
 

@@ -7,6 +7,7 @@ import { usePageDataRefresh } from "#dms-ui/app/entries/composables/live/usePage
 import { usePageRecordDeletion } from "../composables/page/usePageRecordDeletion";
 import { pageValidationRedirect } from "../build/utils/pageValidationRedirect";
 import { resolveComponentChildren } from "#dms-ui/app/utils/componentTree";
+import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import { isFunction } from "#dms-core/app/utils/type-check";
 import type { ValidationRouteContext } from "#dms-core/app/utils/query-validation";
 
@@ -304,11 +305,10 @@ function tearDownPageSetup() {
     pageSetupReturned = undefined;
   }
   for (const unsubscribe of pageSetupCleanups.splice(0)) {
-    // prettier-ignore
     try {
       unsubscribe();
     } catch {
-      // eslint-disable-line no-empty -- One failed cleanup does not prevent the remaining cleanups.
+      ignoreFailure();
     }
   }
 }

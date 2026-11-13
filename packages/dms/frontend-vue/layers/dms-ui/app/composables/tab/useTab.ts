@@ -51,13 +51,12 @@ export function useTab(
   const updateUrl = async (newTab: string) => {
     if (!props.persistState) return;
 
-    const query = { ...route.query };
-    if (newTab === "0") {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete query[stateKey];
-    } else {
-      query[stateKey] = slots.value[Number(newTab)] || newTab;
-    }
+    const query =
+      newTab === "0"
+        ? Object.fromEntries(
+            Object.entries(route.query).filter(([key]) => key !== stateKey),
+          )
+        : { ...route.query, [stateKey]: slots.value[Number(newTab)] || newTab };
     await router.push({ query });
   };
 

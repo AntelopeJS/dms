@@ -1,3 +1,4 @@
+import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import type { TableViewListResponse } from "../../../composables/table-view/types";
 import {
   type QuickFilterItem,
@@ -44,20 +45,24 @@ export function useTableViewQuickFilters<T extends Data>(
       quickFilterDefinitions
         .filter((definition) => !definition.items && definition.source)
         .map(async ({ filter, source }) => {
-          // prettier-ignore
           try {
-          const response = await $authFetch<
-            TableViewListResponse<Parameters<typeof relationQuickFilterItems>[0][number]>
-          >(source!.searchUrl, {
-            query: { limit: RELATION_QUICK_FILTER_LIMIT },
-          });
-          relationQuickFilterValues.value = {
-            ...relationQuickFilterValues.value,
-            [filter.field]: relationQuickFilterItems(response.results, source!),
-          };
-        } catch {
-          // eslint-disable-line no-empty -- Failed loads retain prior choices.
-        }
+            const response = await $authFetch<
+              TableViewListResponse<
+                Parameters<typeof relationQuickFilterItems>[0][number]
+              >
+            >(source!.searchUrl, {
+              query: { limit: RELATION_QUICK_FILTER_LIMIT },
+            });
+            relationQuickFilterValues.value = {
+              ...relationQuickFilterValues.value,
+              [filter.field]: relationQuickFilterItems(
+                response.results,
+                source!,
+              ),
+            };
+          } catch {
+            ignoreFailure();
+          }
         }),
     );
     relationQuickFiltersLoaded.value = true;

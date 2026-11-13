@@ -6,6 +6,7 @@ import {
   type ComputedRef,
 } from "vue";
 import { onPageBlocksRefresh } from "#dms-ui/app/utils/blockRefresh";
+import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import type { LayoutHeaderAction } from "../../build/components/layout/PageHeaderActionBar.vue";
 import type { PageLayout } from "#dms-core/app/types/page";
 import {
@@ -56,7 +57,6 @@ export function useServedHeaderActions({
   async function askFor(url: string, query: Record<string, string>) {
     const request = ++latestRequest;
     const { $authFetch } = useAuthFetch();
-    // prettier-ignore
     try {
       const layout = await $authFetch<PageLayout>(
         layoutUrlWithQuery(url, query),
@@ -66,7 +66,7 @@ export function useServedHeaderActions({
         layout.layout.options;
       refreshed.value = options?.headerActions ?? [];
     } catch {
-      // eslint-disable-line no-empty -- A failed refresh retains prior buttons; availability is not authorization, so target operations must enforce their own access checks.
+      ignoreFailure();
     }
   }
 

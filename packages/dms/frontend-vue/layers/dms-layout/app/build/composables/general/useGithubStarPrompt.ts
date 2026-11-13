@@ -5,6 +5,7 @@ import {
   ref,
   type ComputedRef,
 } from "vue";
+import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import { GITHUB_REPOSITORY_URL } from "../../utils/github-repository";
 
 const STORAGE_PREFIX = "dms-github-star-prompt:";
@@ -38,11 +39,10 @@ function readStorage(key: string): string | null {
 }
 
 function writeStorage(key: string, value: string): void {
-  // prettier-ignore
   try {
     localStorage.setItem(key, value);
   } catch {
-    // eslint-disable-line no-empty -- Unavailable storage leaves prompt state in memory for this page only.
+    ignoreFailure();
   }
 }
 
