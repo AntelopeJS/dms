@@ -11,6 +11,7 @@ import { isObject, isString } from "../../layers/dms-core/app/utils/type-check";
 const RELAY_SECRET = "relay-secret-for-tests-only";
 const RENDER_SECRET = "render-secret-for-tests-only";
 const ESTABLISH_ENDPOINT = "/api/saas/register/finalize";
+const REVOKED_EMAIL = "revoked@example.test";
 const UUID =
   /[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}/g;
 
@@ -56,6 +57,15 @@ function backendAnswer(
         requires_2fa: true,
         two_factor_token: "challenge-1",
         methods: ["totp"],
+      },
+    };
+  if (path === "/api/auth/login" && body.email === REVOKED_EMAIL)
+    return {
+      status: 200,
+      body: {
+        access_token: accessToken("t1", "login"),
+        refresh_token: "revoked",
+        user: USER,
       },
     };
   if (
@@ -248,6 +258,7 @@ export {
   RELAY_SECRET,
   RENDER_SECRET,
   ESTABLISH_ENDPOINT,
+  REVOKED_EMAIL,
   USER,
   answerOverrides,
   backendAnswer,

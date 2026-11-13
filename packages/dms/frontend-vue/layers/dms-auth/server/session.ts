@@ -84,8 +84,18 @@ function singleFlight(
 }
 
 /**
+ * Signs the browser out of `session`: clears it and forgets its stored
+ * account, whose refresh token would otherwise open it again.
+ */
+function signOut(event: DmsServerEvent, session: DmsSession | undefined) {
+  event.session.clear();
+  if (session?.accountId) removeAccount(event, session.accountId);
+}
+
+/**
  * Renews `session` with its refresh token, writes it and returns it; the rest
- * of the request runs with it. A refused refresh signs the browser out.
+ * of the request runs with it. A refused refresh signs the browser out of that
+ * account, its stored account included.
  * The frontend server calls it when the backend refuses a signed-in page
  * visit, and `POST /api/_auth/session` when the browser asks.
  */
@@ -113,7 +123,7 @@ export async function renewSession(
     event.session.useForRequest(refreshed);
     return refreshed;
   } catch (error) {
-    if (isRefusal(error)) event.session.clear();
+    if (isRefusal(error)) signOut(event, session);
     event.session.useForRequest(undefined);
     return undefined;
   }
@@ -141,8 +151,7 @@ export async function logoutRoute(event: DmsServerEvent) {
         body: { token: session.refreshToken },
       })
       .catch(() => {});
-  event.session.clear();
-  if (session?.accountId) removeAccount(event, session.accountId);
+  signOut(event, session);
   return {};
 }
 
