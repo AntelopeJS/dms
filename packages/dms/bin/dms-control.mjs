@@ -13,7 +13,8 @@ Drive an isolated DMS (run from the repository, or pass --playground):
                        --renderer serves that built @antelopejs/dms-frontend checkout;
                        --no-standby, or DMS_CONTROL_NO_STANDBY=1, starts each fresh database's
                        backend when it is needed instead of one ahead: about 160 MB less while
-                       journeys run, about 5 s more per journey;
+                       journeys run, about 5 s more per journey; a journey's standby: false
+                       does the same for that journey alone;
                        the frontend build of the same inputs comes from $XDG_CACHE_HOME/dms-control/frontend,
                        --no-build-cache runs ajs dms build as it is;
                        --dev-frontend serves the sources with ajs dms dev instead of a build,
