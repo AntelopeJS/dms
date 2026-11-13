@@ -400,6 +400,8 @@ export interface DataApiFileSpec {
   fields: FieldSpec[];
   routes?: ResourceRoute[];
   resolveRef?: EmitContext["resolveRef"];
+  /** The external connection the resource's table is mapped from, which decides its writes. */
+  connection?: string;
 }
 
 export function buildDatabaseFile(spec: DatabaseFileSpec): EmittedFile {
@@ -508,12 +510,17 @@ export function buildDataApiFile(spec: DataApiFileSpec): EmittedFile {
     imports.addRef(ref);
   }
 
+  const decorators = ["@RegisterDataController()"];
+  if (spec.connection !== undefined) {
+    imports.addSymbol("ExternalConnection");
+    decorators.push(`@ExternalConnection(${JSON.stringify(spec.connection)})`);
+  }
   const importBlock = imports.render(DATA_API_MODULE_ORDER, spec.filePath);
   const header = `export class ${names.apiName} extends DataController(${names.className}, ${routeMapExpr(spec.routes)}, Controller(${JSON.stringify(names.route)})) {`;
   const body = [
     importBlock,
     "",
-    "@RegisterDataController()",
+    ...decorators,
     header,
     memberLines.join("\n\n"),
     "}",

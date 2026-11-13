@@ -171,6 +171,10 @@ async function implementInterfaces(): Promise<void> {
     await import("./implementations/dms/tenant-access"),
   );
   void ImplementInterface(
+    await import("@antelopejs/interface-dms/connection-access"),
+    await import("./implementations/dms/connection-access"),
+  );
+  void ImplementInterface(
     await import("@antelopejs/interface-dms/utils/saas-mode"),
     await import("./implementations/dms/saas-mode"),
   );

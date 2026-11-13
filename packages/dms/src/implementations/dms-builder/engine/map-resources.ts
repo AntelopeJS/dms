@@ -109,6 +109,7 @@ function writeResource(
   transaction: Transaction,
   resource: PlannedResource,
   resolveRef: EmitContext["resolveRef"],
+  connection: string,
 ): ResourceFiles {
   const files: ResourceFiles = {
     database: path.join(resource.folder, "database.ts"),
@@ -137,6 +138,7 @@ function writeResource(
     fields: resource.apiFields,
     routes: resource.routes,
     resolveRef,
+    connection,
   });
   writeFile(project, transaction, files.dataApi, dataApi.text);
   writeFile(project, transaction, files.index, FULL_INDEX);
@@ -199,7 +201,13 @@ function writeAll(
   transaction.track(barrel);
   const resolveRef = batchResolver(plan);
   const mapped = plan.resources.map((resource) => {
-    const files = writeResource(project, transaction, resource, resolveRef);
+    const files = writeResource(
+      project,
+      transaction,
+      resource,
+      resolveRef,
+      input.connection,
+    );
     exportOnce(barrel, barrelSpecifier(barrel, resource.folder));
     return {
       relation: resource.relation,

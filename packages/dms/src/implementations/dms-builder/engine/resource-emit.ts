@@ -20,6 +20,7 @@ const CONSTANTS_MODULE = "@antelopejs/interface-dms/constants";
 const GUARDS_MODULE = "@antelopejs/interface-dms/guards";
 const AUTH_DB_MODULE = "@antelopejs/interface-dms/auth/db";
 const TENANT_MODEL_MODULE = "@antelopejs/interface-dms/tenant-scoped-model";
+const CONNECTION_ACCESS_MODULE = "@antelopejs/interface-dms/connection-access";
 export const DATABASE_LOCAL = "./database";
 
 export const RESOURCE_ROUTES: readonly ResourceRoute[] = [
@@ -165,6 +166,7 @@ export const DECORATOR_IMPORTS = {
   Select: TABLE_VIEW_MODULE,
   Exported: TABLE_VIEW_MODULE,
   TableViewRoutes: TABLE_VIEW_MODULE,
+  ExternalConnection: CONNECTION_ACCESS_MODULE,
   [CORE_SCHEMA_IDENTIFIER]: CONSTANTS_MODULE,
 } as const;
 
@@ -179,6 +181,7 @@ export const DATA_API_MODULE_ORDER = [
   DATATYPE_MODULE,
   SEARCHABLE_MODULE,
   TABLE_VIEW_MODULE,
+  CONNECTION_ACCESS_MODULE,
   DATABASE_LOCAL,
 ];
 

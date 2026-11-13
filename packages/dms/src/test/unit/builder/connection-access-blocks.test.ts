@@ -165,4 +165,10 @@ describe("[unit] a table or routes over a mapped table follow its connection's a
     expectOk(await ConfigureResource(COUNTRIES, CREATING), "ConfigureResource");
     expect(erp.moduleFile(COUNTRIES_API)).to.include("TableViewRoutes.New");
   });
+
+  it("marks the controller with its connection, so its write routes follow the access at runtime", () => {
+    expect(erp.moduleFile(COUNTRIES_API)).to.include(
+      '@ExternalConnection("erp")',
+    );
+  });
 });
