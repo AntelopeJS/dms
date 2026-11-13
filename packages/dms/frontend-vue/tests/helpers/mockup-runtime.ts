@@ -230,7 +230,15 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
         body?: Record<string, string> & { spec?: MockupSpecDocument };
       },
     ) => {
-      if (url === "/api/mockup") return { mockups: options.mockups ?? [] };
+      if (url === "/api/mockup") {
+        const results = (options.mockups ?? []).map((mockup) => ({
+          ...mockup,
+          openComments: 0,
+          updatedAt: "2026-11-13T10:00:00.000Z",
+          status: "draft",
+        }));
+        return { results, total: results.length };
+      }
       if (url === CATALOG_URL) return { blocks: options.blocks ?? [] };
       if (url === SPEC_URL && init?.method === "PUT" && init.body?.spec) {
         file.spec = structuredClone(init.body.spec);

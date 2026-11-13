@@ -72,11 +72,38 @@ export interface MockupAnnotationDraft {
   text: string;
 }
 
-export interface MockupSummary {
+/** Who wrote a mockup: the dashboard chat, Claude Code or Codex. */
+export type MockupSource = "chat" | "claude-code" | "codex";
+
+export const MOCKUP_SOURCES: readonly MockupSource[] = [
+  "chat",
+  "claude-code",
+  "codex",
+];
+
+/** A page a built mockup made: a path of the dashboard, and its link's text. */
+export interface MockupBuiltPage {
+  path: string;
+  title: string;
+}
+
+interface MockupSummaryBase {
   name: string;
   title?: string;
   pages: number;
+  /** The annotations still open. */
+  openComments: number;
+  source?: MockupSource;
+  /** When `spec.json` last changed, ISO 8601. */
+  updatedAt: string;
 }
+
+/** One row of `GET /api/mockup`: a draft, or a mockup built into real pages. */
+export type MockupSummary = MockupSummaryBase &
+  (
+    | { status: "draft" }
+    | { status: "built"; builtAt: string; builtPages: MockupBuiltPage[] }
+  );
 
 export type MockupWidth = "desktop" | "mobile";
 
@@ -223,15 +250,59 @@ export function parseAnnotations(
     : undefined;
 }
 
-function isSummary(
+function isSource(
+  value: Parameters<typeof isString>[0],
+): value is MockupSource {
+  return MOCKUP_SOURCES.some((source) => source === value);
+}
+
+/** A path of the dashboard: one `/`, never `//` or `/\`, no space. */
+export function isDashboardPath(
+  value: Parameters<typeof isString>[0],
+): boolean {
+  return isString(value) && /^\/(?![/\\])\S*$/.test(value);
+}
+
+function isBuiltPage(
   value: Parameters<typeof isObject>[0],
-): value is MockupSummary {
+): value is MockupBuiltPage {
+  return (
+    isRecord(value) && isDashboardPath(value.path) && isString(value.title)
+  );
+}
+
+function isSummaryBase(
+  value: Parameters<typeof isObject>[0],
+): value is Record<string, unknown> & MockupSummaryBase {
   return (
     isRecord(value) &&
     isString(value.name) &&
     isOptionalString(value.title) &&
-    isNumber(value.pages)
+    isNumber(value.pages) &&
+    isNumber(value.openComments) &&
+    (value.source === undefined || isSource(value.source)) &&
+    isString(value.updatedAt)
   );
+}
+
+function isSummary(
+  value: Parameters<typeof isObject>[0],
+): value is MockupSummary {
+  if (!isSummaryBase(value)) return false;
+  if (value.status === "draft") return true;
+  return (
+    value.status === "built" &&
+    isString(value.builtAt) &&
+    Array.isArray(value.builtPages) &&
+    value.builtPages.every(isBuiltPage)
+  );
+}
+
+/** The summary a row of `GET /api/mockup` is, or undefined when the row is not one. */
+export function parseMockupSummary(
+  value: Parameters<typeof isObject>[0],
+): MockupSummary | undefined {
+  return isSummary(value) ? value : undefined;
 }
 
 /** The mockups of a `GET /api/mockup` answer, or undefined when it is not one. */
@@ -239,9 +310,9 @@ export function parseMockupList(
   value: Parameters<typeof isObject>[0],
 ): MockupSummary[] | undefined {
   if (!isRecord(value)) return undefined;
-  const { mockups } = value;
-  return Array.isArray(mockups) && mockups.every(isSummary)
-    ? mockups
+  const { results } = value;
+  return Array.isArray(results) && results.every(isSummary)
+    ? results
     : undefined;
 }
 

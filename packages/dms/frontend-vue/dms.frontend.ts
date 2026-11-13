@@ -179,6 +179,19 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
 
     sdk.registerPlugin(
       lazyPlugin(
+        () => import("./layers/dms-layout/app/entries/mockups/header-action"),
+      ),
+      clientOnly,
+    );
+    sdk.registerComponent(
+      "MockupCards",
+      lazyComponent(
+        () => import("./layers/dms-ui/app/entries/mockups/MockupCards"),
+      ),
+    );
+
+    sdk.registerPlugin(
+      lazyPlugin(
         () => import("./layers/dms-layout/app/entries/branding/header-action"),
       ),
       clientOnly,
