@@ -13,8 +13,8 @@ import {
   readLayout,
   type RenderedBlock,
   resolvePage,
+  withoutEditor,
 } from "../../../mcp/page-verify";
-import { withoutEditor } from "../../../mcp/page-verify/forms";
 import { MCP_TOOLS } from "../../../mcp/tools";
 import { pagesBySlug } from "../../../utils";
 
