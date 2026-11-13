@@ -1,17 +1,18 @@
 import type {
   EntryConnection,
-  ImportOverrideInput,
   OpResult,
 } from "@antelopejs/interface-dms-builder";
-import { Node } from "ts-morph";
-import { dmsDatabaseIn } from "./dms-database";
+import { Node, type ObjectLiteralExpression } from "ts-morph";
+import { connectionAccess } from "./connection-access-config";
 import { CATALOG_INTERFACE, DATABASE_INTERFACE } from "./interface-ids";
-import { hasUnreadableMember, isPlainObjectLiteral } from "./literal-overrides";
-import { findConfigFile } from "./modules";
+import {
+  hasUnreadableMember,
+  hides,
+  isPlainObjectLiteral,
+} from "./literal-overrides";
+import { findConfigFile, propertyKey } from "./modules";
 import { invalidConfig, notFound, unsupported } from "./ops";
 import {
-  type ConfigDraft,
-  existingOverrides,
   IMPORT_OVERRIDES,
   MODULES,
   objectAt,
@@ -27,82 +28,98 @@ const DATABASE_INTERFACES: ReadonlySet<string> = new Set([
   DATABASE_INTERFACE,
   CATALOG_INTERFACE,
 ]);
-const CONNECTIONS_PATH = ["config", "externalConnections"];
-const ACCESS = "access";
+const BINDING_KEYS = ["interface", "source", "id"] as const;
 
-/** The overrides of `module`'s entry, refused where one is held in a way the builder cannot read. */
-function entryOverrides(
+type Binding = Pick<EntryConnection, "interface" | "source" | "id">;
+
+/** Refuses the overrides of `module`, which hold a binding the builder cannot read. */
+function refuseOverrides(module: string): never {
+  return refuseUnreadable([MODULES, module], IMPORT_OVERRIDES);
+}
+
+/** The string literal `key` of `element` holds; nothing when absent, refused when not a literal. */
+function literalAt(
+  element: ObjectLiteralExpression,
+  key: string,
   module: string,
-  entry: Node | undefined,
-): ImportOverrideInput[] {
+): string | undefined {
+  const property = propertyNamed(element, key);
+  if (!property) {
+    return undefined;
+  }
+  return stringOf(property.getInitializer()) ?? refuseOverrides(module);
+}
+
+/** One element of an `importOverrides` array, every member of it read as written. */
+function bindingOf(element: Node, module: string): Binding {
+  if (
+    !isPlainObjectLiteral(element) ||
+    BINDING_KEYS.some((key) => hides(element, key))
+  ) {
+    return refuseOverrides(module);
+  }
+  const interfaceId = literalAt(element, "interface", module);
+  const source = literalAt(element, "source", module);
+  if (interfaceId === undefined || source === undefined) {
+    return refuseOverrides(module);
+  }
+  const id = literalAt(element, "id", module);
+  return id === undefined
+    ? { interface: interfaceId, source }
+    : { interface: interfaceId, source, id };
+}
+
+/** The pins of the `{ [interface]: source }` spelling, each key and value read as written. */
+function pinsOf(overrides: ObjectLiteralExpression, module: string): Binding[] {
+  return overrides.getProperties().map((property) => {
+    const source = Node.isPropertyAssignment(property)
+      ? stringOf(property.getInitializer())
+      : undefined;
+    if (!Node.isPropertyAssignment(property) || source === undefined) {
+      return refuseOverrides(module);
+    }
+    return { interface: propertyKey(property.getNameNode()), source };
+  });
+}
+
+/** Every binding of `module`'s entry, refused where one is held in a way the builder cannot read. */
+function bindingsOf(module: string, entry: Node | undefined): Binding[] {
+  if (
+    Node.isStringLiteral(entry) ||
+    Node.isNoSubstitutionTemplateLiteral(entry)
+  ) {
+    return [];
+  }
   if (!isPlainObjectLiteral(entry)) {
     return refuseUnreadable([MODULES], module);
   }
+  if (hides(entry, IMPORT_OVERRIDES)) {
+    return refuseOverrides(module);
+  }
   const overrides = propertyNamed(entry, IMPORT_OVERRIDES)?.getInitializer();
-  if (
-    overrides !== undefined &&
-    !Node.isArrayLiteralExpression(overrides) &&
-    !isPlainObjectLiteral(overrides)
-  ) {
-    return refuseUnreadable([MODULES, module], IMPORT_OVERRIDES);
+  if (overrides === undefined) {
+    return [];
   }
-  const read = existingOverrides(overrides);
-  if (read.some(({ interface: id, source }) => !id || source === undefined)) {
-    return refuseUnreadable([MODULES, module], IMPORT_OVERRIDES);
+  if (Node.isArrayLiteralExpression(overrides)) {
+    return overrides.getElements().map((element) => bindingOf(element, module));
   }
-  return read;
+  return isPlainObjectLiteral(overrides)
+    ? pinsOf(overrides, module)
+    : refuseOverrides(module);
 }
 
-/** The access dms-database reads for connection `id`: `read-write` only when written so. */
-function accessOf(
-  draft: ConfigDraft,
-  dmsDatabase: string | undefined,
-  id: string,
-): "read" | "read-write" {
-  if (dmsDatabase === undefined) {
-    return "read";
-  }
-  const path = [MODULES, dmsDatabase, ...CONNECTIONS_PATH, id];
-  const connection = objectAt(draft, path);
-  const access = connection && propertyNamed(connection, ACCESS);
-  if (!connection || !access) {
-    return "read";
-  }
-  const written = stringOf(access.getInitializer());
-  if (written === "read" || written === "read-write") {
-    return written;
-  }
-  return refuseUnreadable(path, ACCESS);
-}
-
-function connectionsOf(
-  draft: ConfigDraft,
-  module: string,
-  entry: Node | undefined,
-): EntryConnection[] {
-  const dmsDatabase = dmsDatabaseIn(draft);
-  return entryOverrides(module, entry).flatMap(
-    ({ interface: interfaceId, source, id }): EntryConnection[] => {
-      if (!DATABASE_INTERFACES.has(interfaceId) || source === undefined) {
-        return [];
-      }
-      return id === undefined
-        ? [{ interface: interfaceId, source }]
-        : [
-            {
-              interface: interfaceId,
-              source,
-              id,
-              access: accessOf(draft, dmsDatabase, id),
-            },
-          ];
-    },
-  );
+/** A binding with the access dms-database grants its connection, as core resolves it. */
+function withAccess(binding: Binding): EntryConnection {
+  return binding.id === undefined
+    ? binding
+    : { ...binding, access: connectionAccess(binding.id).access };
 }
 
 /**
  * The `interface-database` and `interface-database-catalog` bindings of the entry `module`, as
- * `antelope.config.ts` writes them, whether or not core loads that module.
+ * `antelope.config.ts` writes them, whether or not core loads that module. The last entry written
+ * under that id is the one core reads. Runs inside `withConnectionAccess`, which resolves each
+ * connection's access as dms-database receives it.
  */
 export function entryConnections(module: string): OpResult<EntryConnection[]> {
   const configPath = findConfigFile();
@@ -113,7 +130,9 @@ export function entryConnections(module: string): OpResult<EntryConnection[]> {
   }
   try {
     const draft = openDraft(configPath);
-    const written = writtenModules(draft).find(([id]) => id === module);
+    const written = writtenModules(draft)
+      .filter(([id]) => id === module)
+      .at(-1);
     if (!written) {
       const modules = objectAt(draft, [MODULES]);
       if (modules && hasUnreadableMember(modules)) {
@@ -123,7 +142,9 @@ export function entryConnections(module: string): OpResult<EntryConnection[]> {
     }
     return {
       ok: true,
-      data: connectionsOf(draft, module, written[1]),
+      data: bindingsOf(module, written[1])
+        .filter((binding) => DATABASE_INTERFACES.has(binding.interface))
+        .map(withAccess),
       changes: [],
     };
   } catch (error) {

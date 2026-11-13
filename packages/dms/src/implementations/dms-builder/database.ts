@@ -29,6 +29,7 @@ import { removeDatabaseConnection } from "./engine/database-connection-remove";
 import { databasePins } from "./engine/database-pin";
 import { repairDatabaseConnections } from "./engine/database-repair";
 import { dmsDatabaseId } from "./engine/dms-database";
+import { withConnectionAccess } from "./engine/connection-access-config";
 import { entryConnections } from "./engine/entry-connections";
 import {
   driverPackages,
@@ -169,5 +170,5 @@ export async function SampleDatabaseRows(
 export async function ListEntryConnections(
   module: string,
 ): Promise<OpResult<EntryConnection[]>> {
-  return entryConnections(module);
+  return withConnectionAccess(() => entryConnections(module));
 }

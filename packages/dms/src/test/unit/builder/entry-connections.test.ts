@@ -112,3 +112,115 @@ describe("listing the database connections of a module entry", function () {
     expect(readConfig()).to.equal(PROJECT_CONFIG);
   });
 });
+
+function configWith(declarations: string, modules: string): string {
+  return `import { defineConfig } from "@antelopejs/interface-core/config";
+
+${declarations}
+
+export default defineConfig({
+  name: "app",
+  modules: {
+    dms: { source: { type: "package", package: "@antelopejs/dms", version: "0.1.0" } },
+${modules}
+  },
+});
+`;
+}
+
+const BUILDER_SOURCE =
+  'source: { type: "package", package: "@antelopejs/dms-builder", version: "0.1.0" }';
+
+/** Builder entries whose bindings the builder cannot read, each refused rather than read in part. */
+const UNREADABLE: [string, string, string][] = [
+  [
+    "an id written as a variable",
+    'const ERP = "erp";',
+    `importOverrides: [{ interface: "${CATALOG}", source: "pg", id: ERP }]`,
+  ],
+  [
+    "an id written as a shorthand",
+    'const id = "erp";',
+    `importOverrides: [{ interface: "${CATALOG}", source: "pg", id }]`,
+  ],
+  [
+    "an id under a computed key",
+    'const K = "id";',
+    `importOverrides: [{ interface: "${CATALOG}", source: "pg", [K]: "erp" }]`,
+  ],
+  [
+    "importOverrides written as a shorthand",
+    `const importOverrides = [{ interface: "${CATALOG}", source: "pg", id: "erp" }];`,
+    "importOverrides",
+  ],
+  [
+    "a spread element",
+    `const SHARED = [{ interface: "${CATALOG}", source: "pg", id: "erp" }];`,
+    "importOverrides: [...SHARED]",
+  ],
+];
+
+/**
+ * A migration that reads part of an entry moves part of its connections. A reader that turns an
+ * unreadable id into a plain pin, reads a shorthand as nothing, refuses an entry with no binding,
+ * or reads the access elsewhere than dms-database does, fails these cases.
+ */
+describe("reading a module entry's bindings exactly as written", function () {
+  this.timeout(OP_TIMEOUT);
+
+  function writeConfig(declarations: string, modules: string): void {
+    fs.writeFileSync(
+      path.join(app.root, "antelope.config.ts"),
+      configWith(declarations, modules),
+    );
+  }
+
+  before(() => {
+    app = createFixture();
+  });
+
+  after(destroyFixture);
+
+  it("refuses an entry holding a binding it cannot read, naming its importOverrides", async () => {
+    for (const [label, declarations, overrides] of UNREADABLE) {
+      writeConfig(
+        declarations,
+        `    "dms-builder": { ${BUILDER_SOURCE}, disabled: true, ${overrides} },`,
+      );
+      expect(
+        refusalOf(await ListEntryConnections("dms-builder")),
+        label,
+      ).to.include(
+        'importOverrides of module "dms-builder" is held in a way the builder cannot read',
+      );
+    }
+  });
+
+  it("answers no binding for an entry written as a version, and ignores a dms-database written so", async () => {
+    writeConfig(
+      "",
+      `    "dms-builder": "0.1.0",
+    "@antelopejs/dms-database": "0.1.0",
+    other: { ${BUILDER_SOURCE}, importOverrides: [{ interface: "${DATABASE}", source: "mongodb" }] },`,
+    );
+    const versioned = await ListEntryConnections("dms-builder");
+    expect(versioned.ok && versioned.data).to.deep.equal([]);
+    const pinned = await ListEntryConnections("other");
+    expect(pinned.ok && pinned.data).to.deep.equal([
+      { interface: DATABASE, source: "mongodb" },
+    ]);
+  });
+
+  it("reads the access from a dms-database keyed by its package, and the last entry written under an id", async () => {
+    writeConfig(
+      "",
+      `    "dms-builder": { ${BUILDER_SOURCE}, importOverrides: [{ interface: "${DATABASE}", source: "first" }] },
+    "dms-builder": { ${BUILDER_SOURCE}, disabled: true, importOverrides: [{ interface: "${CATALOG}", source: "pg", id: "erp" }] },
+    "@antelopejs/dms-database": { version: "0.1.0", config: { externalConnections: { erp: { access: "read-write" } } } },`,
+    );
+    const listed = await ListEntryConnections("dms-builder");
+    expect(listed.ok && listed.data).to.deep.equal([
+      { interface: CATALOG, source: "pg", id: "erp", access: "read-write" },
+    ]);
+  });
+});
