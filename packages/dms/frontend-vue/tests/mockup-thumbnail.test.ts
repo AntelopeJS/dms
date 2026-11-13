@@ -77,8 +77,9 @@ it("reads nothing until the band scrolls into view", async () => {
 /**
  * Fails an implementation that draws the frame at the band's width (so the
  * page lays out as on a phone), leaves it clickable or focusable, exposes it
- * to a screen reader, or hands the preview something other than the first
- * page's tree.
+ * to a screen reader, hands the preview something other than the first
+ * page's tree, or posts a reactive proxy that a browser cannot clone into the
+ * frame (a deep `ref` over the mockup state).
  */
 it("draws the first page in an inert /dms-preview frame at desktop width scaled to the band", async () => {
   authFetch.mockResolvedValue(
@@ -98,7 +99,7 @@ it("draws the first page in an inert /dms-preview frame at desktop width scaled 
   const stage = iframe.parentElement;
   const posted: PreviewInboundMessage[] = [];
   vi.spyOn(frameWindow, "postMessage").mockImplementation((message) => {
-    const parsed = parsePreviewMessage(message);
+    const parsed = parsePreviewMessage(structuredClone(message));
     if (parsed) posted.push(parsed);
   });
   window.dispatchEvent(

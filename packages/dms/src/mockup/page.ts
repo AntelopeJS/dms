@@ -49,6 +49,7 @@ export class MockupsPage extends PageController(
   {
     displayName: "Mockups",
     urlSlug: "mockups",
+    icon: "i-ph-frame-corners-light",
     hidden: true,
     noComponentPermissions: true,
     category: pagesCategory,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from "vue";
+import { computed, ref, shallowRef, useTemplateRef, watch } from "vue";
 import { useElementVisibility, useResizeObserver } from "@vueuse/core";
 import { usePreviewFrame } from "../composables/block-preview/usePreviewFrame";
 import { isPreviewTheme } from "../utils/blockPreview";
@@ -34,7 +34,7 @@ const band = useTemplateRef<HTMLElement>("band");
 const frame = useTemplateRef<HTMLIFrameElement>("frame");
 const hasBeenSeen = ref(false);
 const isLoaded = ref(false);
-const state = ref<MockupState>();
+const state = shallowRef<MockupState>();
 const bandWidth = ref(0);
 
 const isInView = useElementVisibility(band);
