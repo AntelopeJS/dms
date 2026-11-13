@@ -4,10 +4,7 @@ export type TogglePermission = "allowed" | "forbidden" | "default";
 
 export type ReadScope = "individual" | "shared";
 
-/**
- * Colour of the icon well a notification is listed with. The former `accent`
- * is still read as `primary` in 0.4, with a warning.
- */
+/** Colour of the icon well a notification is listed with. */
 export type NotificationTone = Extract<
   Tone,
   "neutral" | "primary" | "success" | "warning" | "error"

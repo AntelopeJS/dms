@@ -60,6 +60,24 @@ const SHA256_HEX = /^[0-9a-f]{64}$/;
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+const BASE32_BITS = 5;
+const BYTE_BITS = 8;
+
+/** The key an authenticator app reads from the base32 `manualKey` it is typed. */
+function keyOfManualKey(manualKey: string): string {
+  const bits = Array.from({ length: manualKey.length }, (_, at) =>
+    BASE32_ALPHABET.indexOf(manualKey.charAt(at))
+      .toString(2)
+      .padStart(BASE32_BITS, "0"),
+  ).join("");
+  const bytes: number[] = [];
+  for (let at = 0; at + BYTE_BITS <= bits.length; at += BYTE_BITS) {
+    bytes.push(Number.parseInt(bits.slice(at, at + BYTE_BITS), 2));
+  }
+  return Buffer.from(bytes).toString("utf8");
+}
+
 async function currentTotpCode(secret: string): Promise<string> {
   const leftInStep = TOTP_STEP_MS - (Date.now() % TOTP_STEP_MS);
   if (leftInStep < TOTP_SAFE_MARGIN_MS) {
@@ -78,14 +96,14 @@ async function enableTotp(
   client: AxiosInstance,
   user: RegisteredUser,
 ): Promise<EnabledTotp> {
-  const setup = await client.post<{ secret: string }>(
+  const setup = await client.post<{ manualKey: string }>(
     `${TWO_FACTOR}/enable-totp`,
     {
       currentPassword: user.password,
     },
   );
   expect(setup.status, JSON.stringify(setup.data)).to.equal(HTTP_OK);
-  const { secret } = setup.data;
+  const secret = keyOfManualKey(setup.data.manualKey);
   const code = await currentTotpCode(secret);
   const confirmed = await client.post(`${TWO_FACTOR}/confirm-totp`, { code });
   expect(confirmed.status, JSON.stringify(confirmed.data)).to.equal(HTTP_OK);

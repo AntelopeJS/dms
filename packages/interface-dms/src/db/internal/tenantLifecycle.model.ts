@@ -138,13 +138,10 @@ export class TenantLifecycleModel extends BasicDataModel(
     }
   }
 
-  /** The tenant's row, else the shared `membership-and-invites` row, without initializing one. */
+  /** The tenant's row, without initializing one. */
   private async existing(
     tenantId: string,
   ): Promise<TenantLifecycle | undefined> {
-    return (
-      (await this.get(`${LIFECYCLE_ID}:${tenantId}`)) ??
-      (await this.get(LIFECYCLE_ID))
-    );
+    return this.get(`${LIFECYCLE_ID}:${tenantId}`);
   }
 }

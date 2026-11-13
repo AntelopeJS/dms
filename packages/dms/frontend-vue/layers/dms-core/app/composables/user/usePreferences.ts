@@ -17,13 +17,6 @@ export interface UserPreferences extends PreferencesTree {}
 const COOKIE_MAX_AGE_ONE_YEAR = 60 * 60 * 24 * 365;
 
 /**
- * The cookie the preferences were kept in up to `@antelopejs/dms` 0.7.9, as
- * URI-encoded JSON that grew with every table the user opened. It is not
- * read: the browser deletes it, so that it stops weighing on every request.
- */
-const LEGACY_COOKIE_NAME = "user-preferences";
-
-/**
  * The most the preferences cookie may weigh, name and value together.
  * Browsers drop a cookie over 4 KB, and every request carries it next to the
  * session cookies under the server's 16 KB header limit.
@@ -32,14 +25,6 @@ export const MAX_PREFERENCES_COOKIE_BYTES = 3 * 1024;
 
 const toPlain = <T>(value: T): T =>
   value === undefined ? value : JSON.parse(JSON.stringify(value));
-
-const expireLegacyCookie = (): void => {
-  if (typeof document === "undefined") return;
-  const isPresent = document.cookie
-    .split(/;\s*/)
-    .some((entry) => entry.startsWith(`${LEGACY_COOKIE_NAME}=`));
-  if (isPresent) document.cookie = `${LEGACY_COOKIE_NAME}=; path=/; max-age=0`;
-};
 
 /**
  * The user's preferences, kept in the `dms-preferences` cookie so that a
@@ -55,7 +40,6 @@ export const usePreferences = () => {
     sameSite: "lax",
     secure: true,
   });
-  expireLegacyCookie();
 
   const tree = computed<UserPreferences>(() =>
     isString(preferenceCookie.value)
