@@ -29,6 +29,12 @@ Each type below said something the runtime does not do, and now says what it doe
   });
   ```
 
+  A class that `implements ExportJobOwnership` fails with TS2422 and an interface that `extends` it with TS2312, as for `ExportJobAccessOptions`: declare the object with the type alias instead. The stored context is now read back only when an `isOwnedBy` check runs, so a status or download call without one no longer fails on an unreadable `json_context`. A JavaScript caller that passes `isOwnedBy` without `contextSchema` is refused with a 500 before its check runs.
+
+### Forms
+
+- **`CascaderRelationType` and `FormComponents.InputCascader` take no `fallback`.** The option reached the picker, which never read it. A column or form that sets it fails with TS2353 (object literal may only specify known properties). Delete it.
+
 ### Data types
 
 - **`@antelopejs/interface-dms/base/data-types/default-types`, loaded alone, no longer registers the `status` type.** It used to, only because its import of `base/table-view/meta` pulled in the data-types barrel. That import is gone with the table-view / data-types cycle. `CreateDataType("status")` then throws "Unknown type status" unless `base/data-types` (the barrel) or any table-view entry has loaded. Each of those still registers every built-in. Import the barrel, as the docs show.

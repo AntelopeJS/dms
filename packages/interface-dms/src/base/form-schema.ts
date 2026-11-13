@@ -390,7 +390,6 @@ export namespace FormComponents {
     keyMapping: CascaderRelationKeyMapping;
     maxDepth?: number;
     leafOnly?: boolean;
-    fallback?: string;
   }
 
   export interface SliderOptions {

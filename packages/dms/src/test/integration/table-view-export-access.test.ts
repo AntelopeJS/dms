@@ -47,4 +47,20 @@ describe("[integration] table view export access", () => {
     const other = await client.get(`${OTHER_LOCATION}/export/status/${jobId}`);
     expect(other.status, JSON.stringify(other.data)).to.equal(HTTP_FORBIDDEN);
   });
+
+  it("serves an export's file on the table view that started it, and refuses it on another", async () => {
+    const started = await client.get(`${LOCATION}/export/start`, {
+      params: { format: "csv" },
+    });
+    expect(started.status, JSON.stringify(started.data)).to.equal(HTTP_OK);
+    const { jobId } = parseBody(StartBody, started);
+    expect(await settledStatus(jobId)).to.equal("completed");
+
+    const other = await client.get(
+      `${OTHER_LOCATION}/export/download/${jobId}`,
+    );
+    expect(other.status, JSON.stringify(other.data)).to.equal(HTTP_FORBIDDEN);
+    const own = await client.get(`${LOCATION}/export/download/${jobId}`);
+    expect(own.status, JSON.stringify(own.data)).to.equal(HTTP_OK);
+  });
 });
