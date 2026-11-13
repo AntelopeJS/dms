@@ -25,12 +25,6 @@ export const DEFAULT_COMPILER_OPTIONS = {
   useDefineForClassFields: true,
 } satisfies Record<string, string | boolean | string[]>;
 
-/**
- * ts-morph's TypeScript predates `moduleResolution: "bundler"` with `module: "commonjs"`, which
- * the template's own compiler accepts; `preserve` resolves the same way for a typecheck.
- */
-const CHECKER_MODULE = "preserve";
-
 const UNCHECKED_PATTERNS = [
   "**/node_modules/**",
   ".antelope/**",
@@ -298,7 +292,7 @@ export function createProject(rootDir: string): Project {
     return new Project({ tsConfigFilePath, manipulationSettings });
   }
   const { options } = ts.convertCompilerOptionsFromJson(
-    { ...DEFAULT_COMPILER_OPTIONS, module: CHECKER_MODULE, allowJs: true },
+    { ...DEFAULT_COMPILER_OPTIONS, allowJs: true },
     rootDir,
   );
   const project = new Project({
