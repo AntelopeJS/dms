@@ -103,8 +103,9 @@ const deletePage = defineTool({
   effect: "builder",
   input: z.object({ pageRef: z.string() }),
   run: async (args, sessionId) =>
-    repeatConfirmation.hold(sessionId, "builder_delete_page", args) ??
-    opResult(await DeletePage(args.pageRef)),
+    repeatConfirmation.run(sessionId, "builder_delete_page", args, async () =>
+      opResult(await DeletePage(args.pageRef)),
+    ),
 });
 
 const addBlock = defineTool({
@@ -220,8 +221,12 @@ const deleteCategory = defineTool({
   effect: "builder",
   input: z.object({ ref: z.string() }),
   run: async (args, sessionId) =>
-    repeatConfirmation.hold(sessionId, "builder_delete_category", args) ??
-    opResult(await DeleteCategory(args.ref)),
+    repeatConfirmation.run(
+      sessionId,
+      "builder_delete_category",
+      args,
+      async () => opResult(await DeleteCategory(args.ref)),
+    ),
 });
 
 const refresh = defineTool({

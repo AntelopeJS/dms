@@ -1,5 +1,5 @@
 import type { JsonValue } from "@antelopejs/interface-dms/json";
-import type { z } from "zod";
+import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { JsonObjectSchema } from "./json";
 
@@ -65,6 +65,17 @@ export function textResult(text: string, isError = false): McpToolResult {
   return isError
     ? { content: [{ type: "text", text }], isError }
     : { content: [{ type: "text", text }] };
+}
+
+/** Reads why a tool's run threw from what it threw: an `Error`'s message, or the value as a string. */
+export const ThrownReasonSchema = z.union([
+  z.instanceof(Error).transform((error) => error.message),
+  z.unknown().transform(String),
+]);
+
+/** The answer of a tool whose run threw, with the reason `ThrownReasonSchema` read. */
+export function thrownResult(toolName: string, reason: string): McpToolResult {
+  return textResult(`${toolName} failed: ${reason}`, true);
 }
 
 /** A JSON answer, serialized as one text block. */
