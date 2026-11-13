@@ -1,4 +1,4 @@
-import { type KeyObject, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -29,7 +29,6 @@ import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 const HTTP_FORBIDDEN = 403;
 const HTTP_UNAUTHORIZED = 401;
 const OWNER_ONLY_ERROR_MESSAGE = "Owner-only";
-const INVALID_USER_ERROR = "Invalid user";
 const EMAIL_NOT_VALIDATED_ERROR = "Email not validated";
 const NO_JWT_TOKEN_ERROR = "No jwt token provided";
 const INVALID_TENANT_ASSIGNMENT_TOKEN_ERROR = "Invalid tenant assignment token";
@@ -69,18 +68,17 @@ async function validateUserToken(
     loadTokenSession(data.sessionId),
   ]);
 
-  if (!user) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
+  const claims = verifiedSessionClaims(
+    data.rawToken,
+    user,
+    ACCESS_TOKEN_PURPOSE,
+  );
+  if (!user || !claims) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
 
   try {
-    const secret = generateSecret(user.authKey);
-    const payload = verifySessionToken(
-      data.rawToken,
-      secret,
-      ACCESS_TOKEN_PURPOSE,
-    );
-    assertTokenSessionAlive(payload.sessionId, session, user);
+    assertTokenSessionAlive(claims.sessionId, session, user);
   } catch (error: unknown) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
   }
@@ -140,23 +138,37 @@ function decodedClaims(token: string): DecodedAuthPayload | undefined {
   return isDecodedAuthPayload(claims) ? claims : undefined;
 }
 
-function verifySessionToken(
+/**
+ * The claims of `token` once it is proven to be a `purpose` token signed for
+ * `user`, or `undefined`. Every refusal looks the same, so a caller that
+ * answers it with one message tells no forged token apart from another.
+ */
+function verifiedSessionClaims(
   token: string,
-  secret: KeyObject,
+  user: User | undefined,
   purpose: string,
-): DecodedAuthPayload {
-  const payload = verify(token, secret, { algorithms: ["HS256"] });
-  if (!isSessionPayload(payload, purpose)) {
-    throw new Error(INVALID_SESSION_TOKEN_ERROR);
+): DecodedAuthPayload | undefined {
+  if (!user) {
+    return undefined;
   }
-  return payload;
+  try {
+    const payload = verify(token, generateSecret(user.authKey), {
+      algorithms: ["HS256"],
+    });
+    return isSessionPayload(payload, purpose) ? payload : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export namespace internal {
   export const AuthUserAuthenticator = (data: string | undefined) => {
-    const result = data ? decodedClaims(data) : undefined;
-    if (!data || !result) {
+    if (!data) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, NO_JWT_TOKEN_ERROR);
+    }
+    const result = decodedClaims(data);
+    if (!result) {
+      throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
     }
     return {
       ...result,
@@ -292,19 +304,12 @@ export async function validateRefreshToken(token: string) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
 
-  const userModel = GetModel(UserModel);
-  const user = await userModel.get(result.id);
-
-  if (!user) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
+  const user = await GetModel(UserModel).get(result.id);
+  const claims = verifiedSessionClaims(token, user, REFRESH_TOKEN_PURPOSE);
+  if (!claims) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
-
-  try {
-    const secret = generateSecret(user.authKey);
-    return verifySessionToken(token, secret, REFRESH_TOKEN_PURPOSE);
-  } catch (error: unknown) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
-  }
+  return claims;
 }
 
 const TWO_FACTOR_TOKEN_LIFETIME_MS = 5 * 60 * 1000;
