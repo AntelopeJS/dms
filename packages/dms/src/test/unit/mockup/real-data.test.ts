@@ -126,4 +126,39 @@ describe("[unit] mockup Real data", () => {
     );
     expect(envelope.ok).to.equal(false);
   });
+
+  it("refuses a live route with a control character, which a URL parser drops to leave the site", () => {
+    const routes = [
+      "/\t/evil.example/steal",
+      "/\n/evil.example/steal",
+      "/\r/evil.example/steal",
+      "/api/\u0000books",
+      "/api/books\u007f",
+    ];
+
+    for (const route of routes) {
+      const read = parseSpec(
+        JSON.stringify({
+          version: 1,
+          pages: [linkedPage({ liveRoutes: { k: route } })],
+        }),
+      );
+      expect(read.ok, JSON.stringify(route)).to.equal(false);
+    }
+  });
+
+  it("still takes a live route with a query, an encoded space and a non-ASCII letter", () => {
+    const read = parseSpec(
+      JSON.stringify({
+        version: 1,
+        pages: [
+          linkedPage({
+            liveRoutes: { k: "/api/books?title=a%20b&q=café" },
+          }),
+        ],
+      }),
+    );
+
+    expect(read.ok).to.equal(true);
+  });
 });

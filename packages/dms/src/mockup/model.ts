@@ -102,9 +102,11 @@ export type MockupPageOptions = z.infer<typeof pageOptionsSchema>;
 
 /**
  * A path of the site the dashboard runs on, as the preview lets a block
- * fetch it: one leading `/`, no host (`//host`, `/\host`).
+ * fetch it: one leading `/`, no host (`//host`, `/\host`), and no control
+ * character (Unicode `Cc`), which a URL parser drops: `/<tab>/host` reads
+ * `//host`. A `u` pattern, as JSON Schema validators compile it.
  */
-export const RELATIVE_ROUTE_PATTERN = /^\/(?![/\\])/;
+export const RELATIVE_ROUTE_PATTERN = /^\/(?![/\\])\P{Cc}*$/u;
 
 /**
  * The live page a spec page was converted from: its builder ref, and the

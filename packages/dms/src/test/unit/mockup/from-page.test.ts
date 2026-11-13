@@ -159,6 +159,24 @@ describe("[unit] mockup conversion of a live page", () => {
     expect(convert(EVERY_ROW).sketches).to.deep.equal(expected);
   });
 
+  it("sketches a block whose route hides a host behind a control character, never keeps it as a live route", () => {
+    for (const control of ["\t", "\n", "\r"]) {
+      const converted = convert([
+        {
+          name: "kpi",
+          type: "KpiCard",
+          config: { title: "K", fetchUrl: `/${control}/evil.example/steal` },
+        },
+      ]);
+
+      expect(converted.sketches, JSON.stringify(control)).to.deep.equal([
+        { path: "/books#kpi", reason: "remote-route" },
+      ]);
+      expect(converted.page).not.to.have.property("liveRoutes");
+      expect(issuesOf(converted)).to.deep.equal([]);
+    }
+  });
+
   it("writes no value set in code into the spec", () => {
     const text = JSON.stringify(convert(EVERY_ROW).page);
 
