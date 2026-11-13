@@ -1,8 +1,8 @@
+import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { expect } from "chai";
-import { z } from "zod";
 import {
   createAnnotation,
   defaultMockupsDir,
@@ -10,8 +10,6 @@ import {
 } from "../../../mockup";
 import {
   annotate,
-  edit,
-  expectBlockAt,
   MOCKUP,
   put,
   served,
@@ -20,12 +18,6 @@ import {
 import { NAME, sketch, spec, useWorkspace } from "../../helpers/mockup-mcp";
 
 const CONCURRENT_NOTES = 20;
-
-const stampedSpecSchema = z.object({
-  pages: z.array(
-    z.object({ tree: z.array(z.object({ id: z.string().optional() })) }),
-  ),
-});
 
 function specPath(): string {
   return join(defaultMockupsDir(), NAME, "spec.json");
@@ -141,69 +133,35 @@ describe("[unit] mockup annotation stamps: spec.json", () => {
   });
 });
 
-describe("[unit] mockup annotation stamps: version 1 migration", () => {
-  const workspace = useWorkspace();
+describe("[unit] mockup annotation stamps: stored file", () => {
+  useWorkspace();
 
-  function legacyNote(id: string, path: string) {
-    return {
-      id,
-      page: "home",
-      path,
-      text: id,
-      status: "open",
-      createdAt: "2026-01-01T00:00:00.000Z",
-    };
-  }
-
-  it("migrates a version 1 file by stamping ids, and the notes then follow their blocks (fails when notes keep their pointers or are dropped)", async () => {
-    await put(sketch("<p>a</p>"), sketch("<p>b</p>"));
-    await writeFile(
-      annotationsPath(),
-      JSON.stringify({
+  const note = {
+    id: "old",
+    text: "old",
+    status: "open",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  };
+  const OLD_FILES: ReadonlyArray<[string, JsonValue]> = [
+    [
+      "a version 1 file, whose notes store page and path",
+      {
         version: 1,
-        annotations: ["one", "two"].map((id) =>
-          legacyNote(id, "/pages/0/tree/1"),
-        ),
-      }),
-    );
+        annotations: [{ ...note, page: "home", path: "/pages/0/tree/0" }],
+      },
+    ],
+    ["a note with no anchor", { version: 2, annotations: [note] }],
+  ];
 
-    const migrated = await listAnnotations(MOCKUP, defaultMockupsDir());
-    const stamped = await workspace.specBytes();
-    const [first, second] = stampedSpecSchema.parse(JSON.parse(stamped))
-      .pages[0].tree;
-    const again = await listAnnotations(MOCKUP, defaultMockupsDir());
-    await edit({
-      op: "add",
-      path: "/pages/0/tree/0",
-      value: sketch("<p>new</p>"),
+  for (const [older, file] of OLD_FILES) {
+    it(`refuses ${older} (fails when an older shape of the file is still read)`, async () => {
+      await put(sketch("<p>a</p>"));
+      await writeFile(annotationsPath(), JSON.stringify(file));
+
+      await assert.rejects(
+        listAnnotations(MOCKUP, defaultMockupsDir()),
+        /is not an annotations file/,
+      );
     });
-
-    expect(migrated?.map(({ page, path }) => ({ page, path }))).to.deep.equal([
-      { page: "home", path: "/pages/0/tree/1" },
-      { page: "home", path: "/pages/0/tree/1" },
-    ]);
-    expect(second.id).to.match(STAMPED_ID);
-    expect(first).to.not.have.property("id");
-    expect(again).to.deep.equal(migrated);
-    expect(await workspace.specBytes()).to.not.equal(stamped);
-    await expectBlockAt("one", "/pages/0/tree/2", "html", "<p>b</p>");
-    await expectBlockAt("two", "/pages/0/tree/2", "html", "<p>b</p>");
-  });
-
-  it("migrates a version 1 note whose pointer names no node into a note with no location (fails when it is dropped or anchored elsewhere)", async () => {
-    await put(sketch("<p>a</p>"));
-    await writeFile(
-      annotationsPath(),
-      JSON.stringify({
-        version: 1,
-        annotations: [legacyNote("ghost", "/pages/0/tree/7")],
-      }),
-    );
-
-    const [ghost] = (await listAnnotations(MOCKUP, defaultMockupsDir())) ?? [];
-
-    expect(ghost).to.include({ id: "ghost", text: "ghost" });
-    expect(ghost).to.not.have.property("path");
-    expect(ghost).to.not.have.property("anchor");
-  });
+  }
 });
