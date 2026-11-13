@@ -16,7 +16,7 @@ export type SketchReason =
   | "unknown-type"
   | "invalid-options"
   | "children-not-allowed"
-  | "code-content";
+  | "set-in-code";
 
 /** The only text a fallback sketch shows of why it is one, as its caption, per reason. */
 const SKETCH_REASONS: Readonly<Record<SketchReason, string>> = {
@@ -30,7 +30,7 @@ const SKETCH_REASONS: Readonly<Record<SketchReason, string>> = {
   "unknown-type": "Its block type is not one a mockup draws.",
   "invalid-options": "Its options do not fit its block type.",
   "children-not-allowed": "Holds blocks a mockup cannot draw inside it.",
-  "code-content": "Draws content set in code: edit it in code.",
+  "set-in-code": "Set in code: edit it in code.",
 };
 
 export interface SketchSubject {

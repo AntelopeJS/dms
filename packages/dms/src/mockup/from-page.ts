@@ -279,10 +279,10 @@ function candidateOf(
   const kind = c.env.oracle.kindOf(type);
   if (kind === "unknown") return { ok: false, reason: "unknown-type" };
   if (kind === "controller") return tableOf(block, c);
-  const lockedContent = Object.keys(block.lockedOptions ?? {}).some((key) =>
-    c.env.oracle.holdsContent(type, key),
+  const setInCode = Object.keys(block.lockedOptions ?? {}).some(
+    (key) => !c.env.oracle.isStyleOption(type, key),
   );
-  if (lockedContent) return { ok: false, reason: "code-content" };
+  if (setInCode) return { ok: false, reason: "set-in-code" };
   return blockOf(block, type, depth, c);
 }
 

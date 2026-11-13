@@ -1,5 +1,4 @@
 import {
-  type BlockOptionSchema,
   type BlockTypeDescriptor,
   ListBlockTypes,
 } from "@antelopejs/interface-dms/base/block-types";
@@ -292,29 +291,10 @@ function compilePage(
 
 export type BlockTypeKind = "unknown" | "block" | "controller";
 
-const CONTENT_GROUP = "content";
-
-/** Whether an array's entries are structured: an object, a record, a nested array, or a union holding one. */
-function structuredEntries(entry: BlockOptionSchema): boolean {
-  if (entry.type === "union")
-    return entry.oneOf?.some(structuredEntries) ?? false;
-  return (
-    entry.type === "object" || entry.type === "record" || entry.type === "array"
-  );
-}
-
-/**
- * Whether a block option holds what the block draws, not how it behaves: an
- * option its block type files under `content`, or a list of structured
- * entries (a form's sections, a chart's static data). A callback, a route, a
- * topic or an enum tunes the block and holds none.
- */
-function holdsContent(option: BlockOptionSchema): boolean {
-  if (option.ui?.group === CONTENT_GROUP) return true;
-  return (
-    option.type === "array" && !!option.items && structuredEntries(option.items)
-  );
-}
+const STYLE_GROUPS: ReadonlySet<string | undefined> = new Set([
+  "appearance",
+  "layout",
+]);
 
 /**
  * The compiler, asked about one node at a time: the converter's only source
@@ -322,8 +302,12 @@ function holdsContent(option: BlockOptionSchema): boolean {
  */
 export interface NodeOracle {
   kindOf(type: string): BlockTypeKind;
-  /** Whether option `key` of block type `type`, set in code, holds content the block draws. */
-  holdsContent(type: string, key: string): boolean;
+  /**
+   * Whether option `key` of block type `type` is one a block draws the same
+   * without it: its schema files it under a style group. An option the type
+   * does not declare, or files under no group, is not.
+   */
+  isStyleOption(type: string, key: string): boolean;
   /**
    * The issues of `node` as the first node of a page holding `fixtures`,
    * each at a pointer relative to the node.
@@ -339,11 +323,11 @@ export function openOracle(name: MockupName, pageId: string): NodeOracle {
       if (!descriptor) return "unknown";
       return descriptor.controllerArg ? "controller" : "block";
     },
-    holdsContent(type, key) {
+    isStyleOption(type, key) {
       const config = catalog.byType.get(type)?.config;
       const option =
         config && Object.hasOwn(config, key) ? config[key] : undefined;
-      return option !== undefined && holdsContent(option);
+      return STYLE_GROUPS.has(option?.ui?.group);
     },
     issuesOf(node, fixtures) {
       const scope: PageScope = {

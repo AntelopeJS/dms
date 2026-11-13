@@ -17,6 +17,7 @@ import {
 const NAME = mockupNameSchema.parse("books");
 const REF = "/books";
 const IN_CODE = "Defined by an expression in code; preserved unchanged on save";
+const CAPTION = "Set in code: edit it in code.";
 
 function convert(blocks: BlockDraft[]): ConvertedPage {
   return convertPage(structureOf(REF, blocks), "books", {
@@ -25,11 +26,16 @@ function convert(blocks: BlockDraft[]): ConvertedPage {
   });
 }
 
-function locked(name: string, type: string, ...keys: string[]): BlockDraft {
+function locked(
+  name: string,
+  type: string,
+  config: BlockDraft["config"],
+  ...keys: string[]
+): BlockDraft {
   return {
     name,
     type,
-    config: {},
+    config,
     lockedOptions: Object.fromEntries(keys.map((key) => [key, IN_CODE])),
   };
 }
@@ -41,78 +47,93 @@ function reasonsOf(blocks: BlockDraft[]): Record<string, string> {
 }
 
 describe("[unit] mockup conversion of a block with options set in code", () => {
-  it("sketches a Form whose sections are set in code, naming the reason in the caption", () => {
-    const converted = convert([locked("form", "Form", "sections")]);
+  it("sketches a KpiCard whose staticValue is set in code, not draws it empty (fails a predicate that reads only `content` groups and structured arrays)", () => {
+    expect(
+      reasonsOf([
+        locked("kpi", "KpiCard", { title: "Revenue" }, "staticValue"),
+      ]),
+    ).to.deep.equal({ "/books#kpi": "set-in-code" });
+  });
+
+  it("sketches a Meter whose value is set in code (fails a predicate that files a number under tuning)", () => {
+    expect(
+      reasonsOf([locked("meter", "Meter", { label: "Disk" }, "value")]),
+    ).to.deep.equal({ "/books#meter": "set-in-code" });
+  });
+
+  it("sketches a ChartCard whose chart is set in code as set-in-code, not as invalid options, and says so in the caption (fails a converter that lets the compiler refuse the empty card)", () => {
+    const converted = convert([
+      locked("card", "ChartCard", { title: "Sales" }, "chart"),
+    ]);
     const [node] = converted.page.tree;
 
     expect(converted.sketches).to.deep.equal([
-      { path: "/books#form", reason: "code-content" },
+      { path: "/books#card", reason: "set-in-code" },
     ]);
     expect(node?.type).to.equal("sketch");
-    expect(z.string().parse(node?.options?.caption)).to.equal(
-      "Draws content set in code: edit it in code.",
-    );
+    expect(z.string().parse(node?.options?.caption)).to.equal(CAPTION);
   });
 
-  it("writes a spec the compiler admits for every block it sketched for its content", () => {
-    const converted = convert([
-      locked("form", "Form", "sections"),
-      locked("banner", "Banner", "actions"),
-    ]);
-    const read = parseSpec(
-      JSON.stringify({ version: 1, pages: [converted.page] }),
-    );
-
-    expect(read.ok).to.equal(true);
-    if (read.ok) expect(compileSpec(NAME, read.spec).issues).to.deep.equal([]);
-  });
-
-  it("keeps a block as a block when its locked options only tune how it behaves", () => {
-    const converted = convert([
-      locked("feed", "ActivityFeed", "realtimeTopic", "fetchUrlMethod"),
-      {
-        ...locked("kpi", "KpiCard", "periodScope", "fetchUrlMethod"),
-        config: { title: "Revenue" },
-      },
-      locked("submit", "Form", "submitUrl", "redirectOnSuccess", "slotId"),
-    ]);
-
-    expect(converted.sketches).to.deep.equal([]);
-    expect(converted.page.tree.map((node) => node.type)).to.deep.equal([
-      "ActivityFeed",
-      "KpiCard",
-      "Form",
-    ]);
-  });
-
-  it("reads the block type's own schema: content held as a string, a list or chart data all count", () => {
+  it("sketches a chart whose rawCss is set in code: code the mockup cannot express (fails a predicate that reads an array of key/value objects as styling)", () => {
     expect(
       reasonsOf([
-        locked("title", "KpiCard", "title"),
-        locked("code", "CodeBlock", "code"),
-        locked("points", "ChartLine", "staticDataset"),
-        locked("links", "NavCardGrid", "items"),
-        locked("fields", "Form", "fields"),
+        locked("line", "ChartLine", { title: "Sales" }, "rawCss"),
+        locked("bar", "ChartBar", { title: "Sales" }, "rawOptions"),
       ]),
     ).to.deep.equal({
-      "/books#title": "code-content",
-      "/books#code": "code-content",
-      "/books#points": "code-content",
-      "/books#links": "code-content",
-      "/books#fields": "code-content",
+      "/books#line": "set-in-code",
+      "/books#bar": "set-in-code",
     });
   });
 
-  it("sketches the block when content is locked among options that only tune it", () => {
+  it("sketches a Form whose sections are set in code (fails a converter that ignores locked options)", () => {
     expect(
-      reasonsOf([locked("form", "Form", "submitUrl", "sections", "slotId")]),
-    ).to.deep.equal({ "/books#form": "code-content" });
+      reasonsOf([locked("form", "Form", { title: "Edit" }, "sections")]),
+    ).to.deep.equal({ "/books#form": "set-in-code" });
   });
 
-  it("keeps a table bound to a resource as a table: its columns come from the resource, not from its options", () => {
+  it("keeps a block as a block, drawn with its defaults, when every locked option is a style: appearance or layout (fails a converter that sketches every locked block)", () => {
+    const converted = convert([
+      locked("line", "ChartLine", { title: "Sales" }, "color"),
+      locked("bar", "ChartBar", { title: "Sales" }, "orientation", "stacked"),
+    ]);
+
+    expect(converted.sketches).to.deep.equal([]);
+    expect(
+      converted.page.tree.map(({ type, options }) => [type, options]),
+    ).to.deep.equal([
+      ["ChartLine", { title: "Sales" }],
+      ["ChartBar", { title: "Sales" }],
+    ]);
+  });
+
+  it("sketches the block when a style is locked among options that are not (fails a converter that tests only the first locked option)", () => {
+    expect(
+      reasonsOf([
+        locked("line", "ChartLine", { title: "Sales" }, "color", "rawCss"),
+      ]),
+    ).to.deep.equal({ "/books#line": "set-in-code" });
+  });
+
+  it("sketches a block whose locked option its type does not declare (fails a converter that treats an unknown key as no content)", () => {
+    expect(
+      reasonsOf([
+        locked("grid", "NavCardGrid", { categoryId: "x" }, "undeclared"),
+      ]),
+    ).to.deep.equal({ "/books#grid": "set-in-code" });
+  });
+
+  it("keeps a table bound to a resource as a table whatever its locked options: its columns come from the resource (fails a converter that applies the rule before the table route)", () => {
     const converted = convert([
       {
-        ...locked("table", "TableView", "tabs", "displays", "formContainer"),
+        ...locked(
+          "table",
+          "TableView",
+          {},
+          "tabs",
+          "displays",
+          "formContainer",
+        ),
         controller: "book",
       },
     ]);
@@ -123,9 +144,17 @@ describe("[unit] mockup conversion of a block with options set in code", () => {
     ]);
   });
 
-  it("leaves an option the block type does not declare as it was", () => {
-    expect(
-      reasonsOf([locked("grid", "NavCardGrid", "category", "undeclared")]),
-    ).to.deep.equal({});
+  it("writes a spec the compiler admits for every block it sketched as set in code", () => {
+    const converted = convert([
+      locked("kpi", "KpiCard", { title: "Revenue" }, "staticValue"),
+      locked("card", "ChartCard", { title: "Sales" }, "chart"),
+      locked("form", "Form", { title: "Edit" }, "sections"),
+    ]);
+    const read = parseSpec(
+      JSON.stringify({ version: 1, pages: [converted.page] }),
+    );
+
+    expect(read.ok).to.equal(true);
+    if (read.ok) expect(compileSpec(NAME, read.spec).issues).to.deep.equal([]);
   });
 });
