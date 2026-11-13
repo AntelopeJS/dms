@@ -98,12 +98,10 @@ function bindVariables(
     const overrides =
       objectAt(draft, [ENV_OVERRIDES]) ??
       refuse("could not write envOverrides");
-    const current = stringOf(
-      propertyNamed(overrides, variable)?.getInitializer(),
-    );
-    if (current !== undefined && current !== target) {
+    const current = propertyNamed(overrides, variable)?.getInitializer();
+    if (current !== undefined && stringOf(current) !== target) {
       refuse(
-        `${variable} already supplies ${current}; choose another variable for ${target}`,
+        `${variable} already supplies ${stringOf(current) ?? current.getText()}; choose another variable for ${target}`,
       );
     }
     setProperty(draft, [ENV_OVERRIDES], variable, target);

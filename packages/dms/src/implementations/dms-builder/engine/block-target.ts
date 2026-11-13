@@ -10,6 +10,8 @@ import { type ChainInfo, resolveAndUnwrap } from "./chain";
 import { stringLiteralValue } from "./literals";
 
 export interface BlockTarget {
+  /** The block type its factory names, when the catalog knows it. */
+  type?: string;
   factoryCall: CallExpression;
   childCalls: CallExpression[];
   chainExpr: Expression;
@@ -86,6 +88,7 @@ function toTarget(
       ? optionsArg
       : undefined;
   return {
+    type: chain.factory,
     factoryCall,
     childCalls: chain.childCalls,
     chainExpr,

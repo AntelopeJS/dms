@@ -1,0 +1,208 @@
+import type {
+  ModuleEntryInput,
+  ProjectConfigStep,
+} from "@antelopejs/interface-dms-builder";
+import { Node, type ObjectLiteralExpression } from "ts-morph";
+import { z } from "zod";
+import { findConfigFile, propertyKey } from "./modules";
+import {
+  type ConfigDraft,
+  ENV_OVERRIDES,
+  MODULES,
+  objectAt,
+  openDraft,
+  stringOf,
+} from "./project-config";
+import { isPlainObject } from "./value";
+
+const CONNECTIONS = "externalConnections";
+const ACCESS_PATH = /(^|\.)config\.externalConnections(\.|$)/;
+const UNREADABLE = "unreadable";
+
+function grantRefusal(subject: string): string {
+  return `refused to ${subject}: an agent never raises a connection's access. A person grants it: the Read & write switch at the top of the Database module's Data browser (dms-database's \`PUT /api/database/connections/<id>/access\`), or the assistant's connect step (dms-assistant's \`POST /database/project\`).`;
+}
+
+/** The values an access may be written as; anything else is refused. */
+const WrittenAccessSchema = z
+  .union([z.literal("read"), z.literal("read-write"), z.null()])
+  .optional();
+
+/** The configuration as written, or nothing when it cannot be read as a literal. */
+function readDraft(): ConfigDraft | undefined {
+  const configPath = findConfigFile();
+  if (configPath === undefined) {
+    return undefined;
+  }
+  try {
+    return openDraft(configPath);
+  } catch {
+    return undefined;
+  }
+}
+
+/** The object literal at `path`: absent, or unreadable when it is not a plain literal. */
+function literalAt(
+  draft: ConfigDraft | undefined,
+  path: string[],
+): ObjectLiteralExpression | undefined | typeof UNREADABLE {
+  if (!draft) {
+    return UNREADABLE;
+  }
+  try {
+    return objectAt(draft, path);
+  } catch {
+    return UNREADABLE;
+  }
+}
+
+/**
+ * Whether the module's base entry in `antelope.config.ts` holds the connection's access as the
+ * literal `"read-write"`. An expression, a variable, a template or an absent node does not
+ * count, whatever it resolves to.
+ */
+function holdsReadWrite(
+  draft: ConfigDraft | undefined,
+  module: string,
+  connection: string,
+): boolean {
+  const setting = literalAt(draft, [
+    MODULES,
+    module,
+    "config",
+    CONNECTIONS,
+    connection,
+  ]);
+  if (setting === undefined || setting === UNREADABLE) {
+    return false;
+  }
+  const properties = setting.getProperties();
+  if (
+    properties.some(
+      (property) =>
+        !Node.isPropertyAssignment(property) ||
+        Node.isComputedPropertyName(property.getNameNode()),
+    )
+  ) {
+    return false;
+  }
+  const access = properties
+    .filter(Node.isPropertyAssignment)
+    .findLast((property) => propertyKey(property.getNameNode()) === "access")
+    ?.getInitializer();
+  return stringOf(access) === "read-write";
+}
+
+/**
+ * Whether `envOverrides` maps the variable to a connection's access, in any form; an
+ * `envOverrides` that is not a plain literal may, so it counts.
+ */
+function mapsToAccess(
+  draft: ConfigDraft | undefined,
+  variable: string,
+): boolean {
+  const overrides = literalAt(draft, [ENV_OVERRIDES]);
+  if (overrides === undefined) {
+    return false;
+  }
+  if (overrides === UNREADABLE) {
+    return true;
+  }
+  return overrides.getProperties().some((property) => {
+    if (!Node.isPropertyAssignment(property)) {
+      return true;
+    }
+    if (propertyKey(property.getNameNode()) !== variable) {
+      return false;
+    }
+    const initializer = property.getInitializer();
+    const paths = Node.isArrayLiteralExpression(initializer)
+      ? initializer.getElements().map(stringOf)
+      : [stringOf(initializer)];
+    return paths.some((path) => path === undefined || ACCESS_PATH.test(path));
+  });
+}
+
+/** Why an entry's `config` is refused because it would raise a connection's access, or nothing. */
+function raisedByConfig(
+  draft: ConfigDraft | undefined,
+  module: string,
+  entry: ModuleEntryInput,
+): string | undefined {
+  const connections = entry.config?.[CONNECTIONS];
+  if (connections === undefined || connections === null) {
+    return undefined;
+  }
+  if (!isPlainObject(connections)) {
+    return grantRefusal(
+      `replace \`config.${CONNECTIONS}\` with ${JSON.stringify(connections)}`,
+    );
+  }
+  for (const [connection, setting] of Object.entries(connections)) {
+    if (setting === undefined || setting === null) {
+      continue;
+    }
+    const access = isPlainObject(setting) ? setting.access : setting;
+    const written = WrittenAccessSchema.safeParse(access);
+    if (
+      !isPlainObject(setting) ||
+      !written.success ||
+      (written.data === "read-write" &&
+        !holdsReadWrite(draft, module, connection))
+    ) {
+      return grantRefusal(
+        `set the access of connection "${connection}" to ${JSON.stringify(access)}`,
+      );
+    }
+  }
+  return undefined;
+}
+
+/** Why an entry's `env` is refused because a variable would supply or rebind an access. */
+function raisedByEnv(
+  draft: ConfigDraft | undefined,
+  entry: ModuleEntryInput,
+): string | undefined {
+  for (const [configPath, variable] of Object.entries(entry.env ?? {})) {
+    if (
+      configPath === CONNECTIONS ||
+      configPath.startsWith(`${CONNECTIONS}.`)
+    ) {
+      return grantRefusal(`supply \`config.${configPath}\` from a variable`);
+    }
+    if (mapsToAccess(draft, variable)) {
+      return grantRefusal(
+        `rebind \`${variable}\`, which \`envOverrides\` maps to a connection's access`,
+      );
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Why an agent's configuration steps are refused because one would raise a connection's access:
+ * set `config.externalConnections.<id>.access` to `"read-write"` where the module's base entry in
+ * `antelope.config.ts` does not already hold that literal, write anything else but `"read"`
+ * there, let a variable supply it, or rebind a variable `envOverrides` maps to it. Keeping,
+ * lowering or removing an access passes, so a step may restate the connections it does not
+ * change. Every MCP tool that writes project or module configuration calls this first; the
+ * builder interface does not, since owner-authenticated routes grant through it.
+ */
+export function raisedAccessRefusal(
+  steps: readonly ProjectConfigStep[],
+): string | undefined {
+  const draft = readDraft();
+  for (const step of steps) {
+    const entry =
+      step.op === "RemoveModule" || step.op === "RemoveConnection"
+        ? undefined
+        : step.entry;
+    const refusal =
+      entry &&
+      (raisedByConfig(draft, step.id, entry) ?? raisedByEnv(draft, entry));
+    if (refusal) {
+      return refusal;
+    }
+  }
+  return undefined;
+}

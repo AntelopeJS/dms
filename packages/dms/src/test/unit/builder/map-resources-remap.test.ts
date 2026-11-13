@@ -28,6 +28,7 @@ import { builderRecord, setBuilderRecord } from "./helpers/module-manifest";
 import { projectFile } from "./helpers/project-files";
 import {
   DESCRIPTIONS,
+  ERP_WRITES,
   FAKE_CATALOG,
   INPUT,
   MODULE,
@@ -446,7 +447,7 @@ describe("mapping again a database already mapped", function () {
   this.timeout(OP_TIMEOUT);
 
   before(async () => {
-    app = createFixture({ modules: [MODULE] });
+    app = createFixture({ modules: [MODULE], connectionAccess: ERP_WRITES });
     setCatalogConnectionsForTests({ erp: FAKE_CATALOG });
     setModuleReloadForTests(reloadedAtOnce);
     expectOk(await MapResources(INPUT), "MapResources");

@@ -1,6 +1,7 @@
 /** Deleting a resource, and cleaning up the directories it leaves empty. */
 
 import { mappedConnectionOfFile } from "./mapped-modules";
+import { writeRoutesRefusal } from "./connection-access";
 import fs from "node:fs";
 import path from "node:path";
 import type {
@@ -476,6 +477,10 @@ export function configureResource(
   }
   if (patch.routes.length === 0) {
     return invalidConfig("a resource must expose at least one route");
+  }
+  const readOnly = writeRoutesRefusal(record, patch.routes);
+  if (readOnly) {
+    return invalidConfig(readOnly);
   }
   const extendsCall = getExtendsCall(opened.dataApiClass);
   const routeMap = extendsCall?.getArguments()[1];

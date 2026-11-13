@@ -62,6 +62,7 @@ import type {
   ThemeStructure,
 } from "@antelopejs/interface-dms-builder";
 import { analysisState, startAnalysis } from "./engine/analysis-job";
+import { withConnectionAccess } from "./engine/connection-access-config";
 import { mapResources, previewMapResources } from "./engine/map-resources";
 import { mappedChoices } from "./engine/mapped-choices";
 import { configureProject } from "./engine/project-config-ops";
@@ -220,7 +221,7 @@ export async function AddBlock(
   input: AddBlockInput,
   opts?: MutationOpts,
 ): Promise<OpResult<{ path: BlockPath }>> {
-  return addBlock(input, opts);
+  return withConnectionAccess(() => addBlock(input, opts));
 }
 
 export async function ConfigureBlock(
@@ -228,7 +229,7 @@ export async function ConfigureBlock(
   patch: Parameters<typeof ConfigureBlockContract>[1],
   opts?: ConfigureBlockOpts,
 ): Promise<OpResult> {
-  return configureBlock(path, patch, opts);
+  return withConnectionAccess(() => configureBlock(path, patch, opts));
 }
 
 export async function MoveBlock(
@@ -249,13 +250,13 @@ export async function RemoveBlock(
 export async function MapResources(
   input: MapResourcesInput,
 ): Promise<OpResult<MapResourcesResult>> {
-  return mapResources(input);
+  return withConnectionAccess(() => mapResources(input));
 }
 
 export async function PreviewMapResources(
   input: MapResourcesInput,
 ): Promise<OpResult<MapResourcesPreview>> {
-  return previewMapResources(input);
+  return withConnectionAccess(() => previewMapResources(input));
 }
 
 export async function AnalyseDatabase(
@@ -277,6 +278,14 @@ export async function GetMapping(
   return mappedChoices(connection, module);
 }
 
+/**
+ * Applies configuration steps to `antelope.config.ts`.
+ *
+ * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
+ * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
+ * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this.
+ */
 export async function ConfigureProject(
   steps: ProjectConfigStep[],
   opts: ConfigureProjectOpts = {},
@@ -288,6 +297,14 @@ export async function ConfigureProject(
   return configureProjectWithVariables(steps, variables);
 }
 
+/**
+ * Adds a module entry to `antelope.config.ts`.
+ *
+ * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
+ * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
+ * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this.
+ */
 export async function AddModule(
   id: string,
   entry: ModuleEntryInput,
@@ -296,6 +313,14 @@ export async function AddModule(
   return configureProject([{ op: "AddModule", id, entry }], opts);
 }
 
+/**
+ * Merges into a module entry of `antelope.config.ts`.
+ *
+ * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
+ * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
+ * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this.
+ */
 export async function ConfigureModule(
   id: string,
   entry: ModuleEntryInput,
@@ -304,6 +329,14 @@ export async function ConfigureModule(
   return configureProject([{ op: "ConfigureModule", id, entry }], opts);
 }
 
+/**
+ * Scaffolds a local module and adds its entry to `antelope.config.ts`.
+ *
+ * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
+ * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
+ * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this.
+ */
 export async function CreateLocalModule(
   id: string,
   path: string,
@@ -336,7 +369,7 @@ export async function ConfigureResource(
   patch: EditableResourceMeta,
   opts?: MutationOpts,
 ): Promise<OpResult> {
-  return configureResource(ref, patch, opts);
+  return withConnectionAccess(() => configureResource(ref, patch, opts));
 }
 
 export async function DeleteResource(
@@ -412,7 +445,7 @@ export async function ComposePage(
   input: ComposePageInput,
   opts?: MutationOpts,
 ): Promise<OpResult<ComposePageData>> {
-  return composePage(input, opts);
+  return withConnectionAccess(() => composePage(input, opts));
 }
 
 export async function GetTheme(): Promise<OpResult<ThemeStructure>> {

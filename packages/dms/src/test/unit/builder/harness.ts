@@ -57,7 +57,12 @@ export interface FixtureOptions {
   modules?: string[];
   /** Start from the app {@link snapshotFixture} copied instead of an empty one. */
   fromSnapshot?: boolean;
+  /** Each external connection's access on a `dms-database` entry; no such entry when absent. */
+  connectionAccess?: ConnectionAccessConfig;
 }
+
+/** What dms-database lets the DMS do on each external connection, by connection id. */
+export type ConnectionAccessConfig = Record<string, "read" | "read-write">;
 
 /** The project's id for its own module in a fixture that declares others. */
 export const PROJECT_MODULE = "app";
@@ -66,23 +71,54 @@ function ModuleEntry(id: string, relativePath: string): string {
   return `    ${JSON.stringify(id)}: { source: { type: "local", path: ${JSON.stringify(relativePath)} } },`;
 }
 
+function DmsDatabaseEntry(access: ConnectionAccessConfig): string {
+  const connections = Object.fromEntries(
+    Object.entries(access).map(([id, value]) => [id, { access: value }]),
+  );
+  return `    "dms-database": { source: { type: "package", package: "@antelopejs/dms-database", version: "0.5.0" }, config: { externalConnections: ${JSON.stringify(connections)} } },`;
+}
+
 /** An `antelope.config.ts` naming the project's own module and each extra one, as a project writes it. */
-function ProjectConfig(modules: string[]): string {
+function ProjectConfig(
+  modules: string[],
+  access: ConnectionAccessConfig | undefined,
+  overrides = "",
+): string {
   const entries = [
     ModuleEntry(PROJECT_MODULE, "."),
     ...modules.map((id) => ModuleEntry(id, `modules/${id}`)),
+    ...(access ? [DmsDatabaseEntry(access)] : []),
   ];
-  return `import { defineConfig } from "@antelopejs/interface-core/config";\n\nexport default defineConfig({\n  name: "fixture",\n  modules: {\n${entries.join("\n")}\n  },\n});\n`;
+  return `import { defineConfig } from "@antelopejs/interface-core/config";\n\nexport default defineConfig({\n  name: "fixture",\n  modules: {\n${entries.join("\n")}\n  },\n${overrides}});\n`;
 }
 
-function WriteModules(modules: string[]): void {
+let fixtureModules: string[] = [];
+
+/**
+ * The engine caches the configured modules by the configuration's mtime, and two writes in one
+ * tick share it, so each write here moves the mtime forward by a second.
+ */
+let configStamp = Date.now() / 1000;
+
+function WriteProjectConfig(
+  modules: string[],
+  access: ConnectionAccessConfig | undefined,
+  overrides?: string,
+): void {
+  const file = path.join(FIXTURE_ROOT, "antelope.config.ts");
+  fs.writeFileSync(file, ProjectConfig(modules, access, overrides));
+  configStamp += 1;
+  fs.utimesSync(file, configStamp, configStamp);
+}
+
+function WriteModules(
+  modules: string[],
+  access: ConnectionAccessConfig | undefined,
+): void {
   if (modules.length === 0) {
     return;
   }
-  fs.writeFileSync(
-    path.join(FIXTURE_ROOT, "antelope.config.ts"),
-    ProjectConfig(modules),
-  );
+  WriteProjectConfig(modules, access);
   for (const id of modules) {
     const src = path.join(FIXTURE_ROOT, "modules", id, "src");
     fs.mkdirSync(src, { recursive: true });
@@ -90,7 +126,10 @@ function WriteModules(modules: string[]): void {
   }
 }
 
-function WriteEmptyApp(modules: string[]): void {
+function WriteEmptyApp(
+  modules: string[],
+  access: ConnectionAccessConfig | undefined,
+): void {
   fs.mkdirSync(path.join(FIXTURE_ROOT, "src"), { recursive: true });
   fs.writeFileSync(
     path.join(FIXTURE_ROOT, "tsconfig.json"),
@@ -101,7 +140,7 @@ function WriteEmptyApp(modules: string[]): void {
     path.join(FIXTURE_ROOT, ".editorconfig"),
     "root = true\n\n[*]\nindent_style = space\nindent_size = 2\n",
   );
-  WriteModules(modules);
+  WriteModules(modules, access);
 }
 
 export interface Fixture {
@@ -128,8 +167,9 @@ export function createFixture(options: FixtureOptions = {}): Fixture {
   if (options.fromSnapshot) {
     fs.cpSync(SNAPSHOT_ROOT, FIXTURE_ROOT, { recursive: true });
   } else {
-    WriteEmptyApp(options.modules ?? []);
+    WriteEmptyApp(options.modules ?? [], options.connectionAccess);
   }
+  fixtureModules = options.modules ?? [];
 
   resetWritableProject();
   invalidateSourceIndex();
@@ -147,6 +187,19 @@ export function createFixture(options: FixtureOptions = {}): Fixture {
     write: (relativePath, content) =>
       fs.writeFileSync(path.join(FIXTURE_ROOT, "src", relativePath), content),
   };
+}
+
+/**
+ * Rewrite the fixture's `antelope.config.ts` with these accesses on its `dms-database` entry, as
+ * the Data browser's switch writes them: the modules {@link createFixture} declared stay.
+ *
+ * @param overrides Top-level members written after `modules`, such as `environments`
+ */
+export function setConnectionAccess(
+  access: ConnectionAccessConfig,
+  overrides?: string,
+): void {
+  WriteProjectConfig(fixtureModules, access, overrides);
 }
 
 /**

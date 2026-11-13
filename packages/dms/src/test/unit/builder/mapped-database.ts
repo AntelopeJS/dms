@@ -4,9 +4,13 @@ import type {
 } from "@antelopejs/interface-database-catalog";
 import type { MapResourcesInput } from "@antelopejs/interface-dms-builder";
 import type { CatalogConnection } from "../../../implementations/dms-builder/engine";
+import type { ConnectionAccessConfig } from "./harness";
 
 export const OP_TIMEOUT = 120_000;
 export const MODULE = "erp-tables";
+
+/** The project lets the DMS write to `erp`, as the specs that map writable relations need. */
+export const ERP_WRITES: ConnectionAccessConfig = { erp: "read-write" };
 const SALES = "sales";
 
 const WRITES = { insert: true, update: true, delete: true };

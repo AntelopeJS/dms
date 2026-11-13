@@ -92,7 +92,7 @@ let provisioningWait = new AbortController();
 let globalRealtimeConfig: RealtimeConfig | undefined;
 
 export async function construct(config: Config): Promise<void> {
-  const { dev } = await GetRuntimeInfo();
+  const { dev, env } = await GetRuntimeInfo();
 
   applyConfig({
     ...config,
@@ -108,7 +108,7 @@ export async function construct(config: Config): Promise<void> {
   registerWorkspaceNotifications();
 
   await implementInterfaces();
-  await startBuilder(dev);
+  await startBuilder(dev, env);
   await registerDmsFrontend(dev);
 
   if (isDocsPreviewEnabled(dev)) {

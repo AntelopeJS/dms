@@ -1,3 +1,4 @@
+export * from "./access-grant";
 export * from "./access-mongodb";
 export * from "./access-mysql";
 export * from "./access-postgres";
@@ -8,6 +9,7 @@ export * from "./catalog";
 export * from "./catalog-connection";
 export * from "./catalog-inference";
 export * from "./compose-page";
+export * from "./connection-access-config";
 export * from "./database-access";
 export * from "./database-check";
 export * from "./database-check-input";
