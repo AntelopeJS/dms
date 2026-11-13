@@ -95,49 +95,49 @@ async function until(check: () => boolean): Promise<void> {
   }
 }
 
-describe("[unit] mcp stdio bridge", () => {
-  let directory: string;
-  let configPath: string;
-  let input: PassThrough;
-  let written: string;
-  const backends: Server[] = [];
+let directory: string;
+let configPath: string;
+let input: PassThrough;
+let written: string;
+const backends: Server[] = [];
 
-  async function useConfig(url: string, token = "token-1"): Promise<void> {
-    await writeFile(configPath, JSON.stringify({ url, token }));
-  }
+async function useConfig(url: string, token = "token-1"): Promise<void> {
+  await writeFile(configPath, JSON.stringify({ url, token }));
+}
 
-  async function serve(
-    reply: (body: string) => Reply | Promise<Reply>,
-  ): Promise<Backend> {
-    const backend = await startBackend(reply);
-    backends.push(backend.server);
-    await useConfig(backend.url);
-    return backend;
-  }
+async function serve(
+  reply: (body: string) => Reply | Promise<Reply>,
+): Promise<Backend> {
+  const backend = await startBackend(reply);
+  backends.push(backend.server);
+  await useConfig(backend.url);
+  return backend;
+}
 
-  function lines(): string[] {
-    return written.split("\n").filter((line) => line.length > 0);
-  }
+function lines(): string[] {
+  return written.split("\n").filter((line) => line.length > 0);
+}
 
-  beforeEach(async () => {
-    directory = await mkdtemp(join(tmpdir(), "dms-mcp-bridge-"));
-    configPath = join(directory, "mcp.json");
-    input = new PassThrough();
-    const output = new PassThrough();
-    written = "";
-    output.setEncoding("utf8");
-    output.on("data", (chunk: string) => {
-      written += chunk;
-    });
-    runBridge(configPath, input, output);
+async function startBridge(): Promise<void> {
+  directory = await mkdtemp(join(tmpdir(), "dms-mcp-bridge-"));
+  configPath = join(directory, "mcp.json");
+  input = new PassThrough();
+  const output = new PassThrough();
+  written = "";
+  output.setEncoding("utf8");
+  output.on("data", (chunk: string) => {
+    written += chunk;
   });
+  runBridge(configPath, input, output);
+}
 
-  afterEach(async () => {
-    input.end();
-    for (const server of backends.splice(0)) server.close();
-    await rm(directory, { recursive: true, force: true });
-  });
+async function stopBridge(): Promise<void> {
+  input.end();
+  for (const server of backends.splice(0)) server.close();
+  await rm(directory, { recursive: true, force: true });
+}
 
+function relaysMessages(): void {
   it("relays each newline-framed message, whole or split across chunks, and answers each on its own line", async () => {
     const backend = await serve(echo);
     input.write(
@@ -196,7 +196,9 @@ describe("[unit] mcp stdio bridge", () => {
       '{"jsonrpc":"2.0","id":9,"result":{"method":"ping"}}',
     ]);
   });
+}
 
+function explainsUnreachableBackends(): void {
   it("answers a request with the backend down with how to start it, under the request's id", async () => {
     await useConfig(await closedPortUrl());
     input.write('{"jsonrpc":"2.0","id":"call-1","method":"tools/list"}\n');
@@ -257,7 +259,9 @@ describe("[unit] mcp stdio bridge", () => {
       httpsRequest.mock.restore();
     }
   });
+}
 
+function handlesUnreadableLinesAndNewCredentials(): void {
   it("relays the backend's JSON-RPC parse error for a line it cannot read, whatever the HTTP status", async () => {
     const parseError =
       '{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}';
@@ -290,4 +294,13 @@ describe("[unit] mcp stdio bridge", () => {
       backend.received.map(({ authorization }) => authorization),
     ).to.deep.equal(["Bearer token-1", "Bearer token-2"]);
   });
+}
+
+describe("[unit] mcp stdio bridge", () => {
+  beforeEach(startBridge);
+  afterEach(stopBridge);
+
+  relaysMessages();
+  explainsUnreachableBackends();
+  handlesUnreadableLinesAndNewCredentials();
 });

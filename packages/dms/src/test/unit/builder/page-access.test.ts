@@ -137,6 +137,11 @@ describe("who reaches a page", () => {
 
   after(() => destroyFixture());
 
+  readsAPagesBlocksAndDefaults();
+  readsThePermissionAPageNames();
+});
+
+function readsAPagesBlocksAndDefaults(): void {
   it("names the page's permission after it, and lists its blocks' actions", function () {
     const access = describePageAccess(recordOf("/shop/board"), boardTree(), [
       SUPPORT,
@@ -197,7 +202,9 @@ describe("who reaches a page", () => {
     expect(access.mode).to.equal("unmanaged");
     expect(access.actions).to.deep.equal({});
   });
+}
 
+function readsThePermissionAPageNames(): void {
   for (const name of ["constructor", "toString", "hasOwnProperty", "valueOf"]) {
     it(`leaves a page whose permission is named ${name} unmanaged`, async function () {
       this.timeout(120_000);
@@ -238,4 +245,4 @@ describe("who reaches a page", () => {
     expect(access?.mode).to.equal("unmanaged");
     expect(access?.roles).to.equal(null);
   });
-});
+}

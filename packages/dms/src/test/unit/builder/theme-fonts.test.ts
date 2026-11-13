@@ -93,19 +93,7 @@ describe("theme fonts", () => {
   });
 });
 
-describe("theme fonts, saved", function () {
-  this.timeout(OP_TIMEOUT);
-
-  beforeEach(() => {
-    createThemeFixture();
-    serveFonts();
-  });
-
-  afterEach(() => {
-    globalThis.fetch = realFetch;
-    destroyFixture();
-  });
-
+function downloadsAndReusesFonts(): void {
   it("downloads the font a variable names into the layer and declares it", async () => {
     const saved = expectOk(
       await SetTheme(
@@ -167,7 +155,9 @@ describe("theme fonts, saved", function () {
     expect(brandingFiles(FONT_FILES)).to.deep.equal(["brand.woff2"]);
     expect(readLayerFile(STYLESHEET)).not.to.contain("@font-face");
   });
+}
 
+function refusesFailedOrForeignFonts(): void {
   it("writes nothing when a file cannot be downloaded, and says which", async () => {
     serveFonts((url) =>
       url.endsWith("latin-wght-italic.woff2")
@@ -240,4 +230,21 @@ describe("theme fonts, saved", function () {
       !result.ok && "detail" in result.error && result.error.detail,
     ).to.contain("it holds an @font-face the builder did not write");
   });
+}
+
+describe("theme fonts, saved", function () {
+  this.timeout(OP_TIMEOUT);
+
+  beforeEach(() => {
+    createThemeFixture();
+    serveFonts();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    destroyFixture();
+  });
+
+  downloadsAndReusesFonts();
+  refusesFailedOrForeignFonts();
 });

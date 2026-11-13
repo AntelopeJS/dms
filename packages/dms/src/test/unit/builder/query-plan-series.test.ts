@@ -24,13 +24,7 @@ function body(plan: QueryPlan): string {
 const COUNT = { kind: "count" } as const;
 const SUM_AMOUNT = { kind: "aggregate", op: "sum", field: "amount" } as const;
 
-/**
- * The grouped form of a plan: one point per group, which is what a chart, a KPI
- * with a breakdown and a top N all read. The chain shapes asserted here are the
- * ones checked against a real PostgreSQL and a real MongoDB before being written
- * into the emitter.
- */
-describe("a grouped query plan", () => {
+function projectsAndMeasuresEachGroup(): void {
   it("groups by a field's own value without projecting anything", () => {
     expect(
       body({ filters: [], measure: COUNT, group: { field: "status" } }),
@@ -108,7 +102,9 @@ describe("a grouped query plan", () => {
       '.year().mul(10).add(row.key("createdAt").month().sub(1).div(3).floor().add(1))',
     );
   });
+}
 
+function ordersFiltersAndBindsTheGroups(): void {
   it("orders by the group for a timeline and by the measure for a ranking", () => {
     expect(
       body({
@@ -170,6 +166,17 @@ describe("a grouped query plan", () => {
     ]);
     expect(chain.body).to.contain("minCreatedAt");
   });
+}
+
+/**
+ * The grouped form of a plan: one point per group, which is what a chart, a KPI
+ * with a breakdown and a top N all read. The chain shapes asserted here are the
+ * ones checked against a real PostgreSQL and a real MongoDB before being written
+ * into the emitter.
+ */
+describe("a grouped query plan", () => {
+  projectsAndMeasuresEachGroup();
+  ordersFiltersAndBindsTheGroups();
 });
 
 describe("the week bucket text", () => {

@@ -33,34 +33,13 @@ import {
 import { reloadedAtOnce } from "./reload-stub";
 
 let app: Fixture;
+let result: Awaited<ReturnType<typeof MapResources>>;
 
 function moduleFile(relative: string): string {
   return projectFile(app.root, path.join("modules", MODULE, "src", relative));
 }
 
-/**
- * A client's tables mapped into a module bound to their database: the schema mirrors the catalog
- * verbatim, `_id` exists only where a key does, nothing would create or alter a table, and the
- * pages are generated over what has a key.
- */
-describe("mapping a database the project does not own", function () {
-  this.timeout(OP_TIMEOUT);
-
-  let result: Awaited<ReturnType<typeof MapResources>>;
-
-  before(async () => {
-    app = createFixture({ modules: [MODULE], connectionAccess: ERP_WRITES });
-    setCatalogConnectionsForTests({ erp: FAKE_CATALOG });
-    setModuleReloadForTests(reloadedAtOnce);
-    result = await MapResources(INPUT);
-  });
-
-  after(() => {
-    setCatalogConnectionsForTests();
-    setModuleReloadForTests();
-    destroyFixture();
-  });
-
+function mirrorsTheCatalogIntoTheModule(): void {
   it("writes a module that typechecks, with every TableView page", async () => {
     expectOk(result, "MapResources");
     const refs = (await ListResources()).map((resource) => resource.ref);
@@ -140,7 +119,9 @@ describe("mapping a database the project does not own", function () {
       /declare id:/,
     );
   });
+}
 
+function placesWhatTheCatalogCannotListDirectly(): void {
   it("gives a relation without a key no _id, no route and no page", async () => {
     expect(moduleFile("sales/raw-log/database.ts")).to.not.include("_id");
     expect(moduleFile("sales/raw-log/data-api.ts")).to.include(
@@ -195,7 +176,9 @@ describe("mapping a database the project does not own", function () {
       "sales.accounts.meta",
     ]);
   });
+}
 
+function refusesToChangeTheMappedDatabase(): void {
   it("refuses a declaration the column does not accept, naming the column", async () => {
     const refused = await MapResources({
       ...INPUT,
@@ -253,4 +236,30 @@ describe("mapping a database the project does not own", function () {
     expect(deleted.ok).to.equal(true);
     expect(JSON.stringify(deleted)).to.include("data_kept");
   });
+}
+
+/**
+ * A client's tables mapped into a module bound to their database: the schema mirrors the catalog
+ * verbatim, `_id` exists only where a key does, nothing would create or alter a table, and the
+ * pages are generated over what has a key.
+ */
+describe("mapping a database the project does not own", function () {
+  this.timeout(OP_TIMEOUT);
+
+  before(async () => {
+    app = createFixture({ modules: [MODULE], connectionAccess: ERP_WRITES });
+    setCatalogConnectionsForTests({ erp: FAKE_CATALOG });
+    setModuleReloadForTests(reloadedAtOnce);
+    result = await MapResources(INPUT);
+  });
+
+  after(() => {
+    setCatalogConnectionsForTests();
+    setModuleReloadForTests();
+    destroyFixture();
+  });
+
+  mirrorsTheCatalogIntoTheModule();
+  placesWhatTheCatalogCannotListDirectly();
+  refusesToChangeTheMappedDatabase();
 });
