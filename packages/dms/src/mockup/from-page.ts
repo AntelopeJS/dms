@@ -50,7 +50,6 @@ interface Conversion {
 /** The keys an object holds when it stands for a value written in code, not data. */
 const SENTINEL_KEYS = ["$ref", "$expr", "$dataType", "$block"];
 const ROUTE_KEY_SUFFIX = "Url";
-const TEMPLATE_OPENER = "{{";
 const TABLE_TYPE = "TableView";
 const HOME = "home";
 const MAX_KEY_STEM = 52;
@@ -143,8 +142,7 @@ type Routed<Value> =
   | { ok: false; reason: SketchReason };
 
 function routeIssue(route: string): SketchReason | undefined {
-  if (!RELATIVE_ROUTE_PATTERN.test(route)) return "remote-route";
-  return route.includes(TEMPLATE_OPENER) ? "templated-route" : undefined;
+  return RELATIVE_ROUTE_PATTERN.test(route) ? undefined : "remote-route";
 }
 
 function routeData(value: Json, c: Conversion): Routed<Json> {

@@ -187,15 +187,16 @@ describe("[unit] mockup conversion guarantees", () => {
     ]);
   });
 
-  it("sketches a block whose *Url option is templated or leaves the site", () => {
+  it("sketches a block whose *Url option leaves the site, never one whose route is templated", () => {
     const converted = convert([
       {
         name: "tabs",
         type: "Tab",
         config: {
-          badgesUrl: "/api/counts?status={{query.status}}",
+          badgesUrl: "/api/counts/{{params.id}}",
           items: [{ slot: "a", label: "A" }],
         },
+        children: [{ name: "note", type: "Banner", slot: "a", config: {} }],
       },
       {
         name: "form",
@@ -203,12 +204,21 @@ describe("[unit] mockup conversion guarantees", () => {
         config: { title: "F", submitUrl: "https://example.com/create" },
       },
     ]);
+    const [page] = compiled(converted).pages;
 
     expect(converted.sketches).to.deep.equal([
-      { path: "/books#tabs", reason: "templated-route" },
       { path: "/books#form", reason: "remote-route" },
     ]);
-    expect(converted.page).not.to.have.property("liveRoutes");
+    expect(converted.page.tree.map((node) => node.type)).to.deep.equal([
+      "Tab",
+      "sketch",
+    ]);
+    expect(urlOptionsIn(page.tree)).to.deep.equal([
+      "badgesUrl=/api/mockup/books/pages/books/fixtures/api-counts-params-id",
+    ]);
+    expect(urlOptionsIn(page.realTree ?? [])).to.deep.equal([
+      "badgesUrl=/api/counts/{{params.id}}",
+    ]);
     expect(compiled(converted).issues).to.deep.equal([]);
   });
 

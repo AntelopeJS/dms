@@ -12,7 +12,6 @@ export type SketchReason =
   | "too-deep"
   | "controller"
   | "sentinel"
-  | "templated-route"
   | "remote-route"
   | "unknown-type"
   | "invalid-options"
@@ -26,7 +25,6 @@ const SKETCH_REASONS: Readonly<Record<SketchReason, string>> = {
   controller: "Reads a resource a mockup cannot draw.",
   sentinel:
     "Holds a value set in code: a resource, a data type or an expression.",
-  "templated-route": "Reads a route built from the page's parameters.",
   "remote-route": "Reads its data from outside this site.",
   "unknown-type": "Its block type is not one a mockup draws.",
   "invalid-options": "Its options do not fit its block type.",

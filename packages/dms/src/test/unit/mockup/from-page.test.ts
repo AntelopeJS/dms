@@ -148,7 +148,6 @@ describe("[unit] mockup conversion of a live page", () => {
       { path: "/books#rows/row/b", reason: "custom-component" },
       { path: "/books#unbound", reason: "controller" },
       { path: "/books#form", reason: "controller" },
-      { path: "/books#filtered", reason: "templated-route" },
       { path: "/books#remote", reason: "remote-route" },
       {
         path: "/books#level40/level39/level38/level37/level36/level35/level34/level33/level32/level31/level30/level29/level28/level27/level26/level25/level24/level23/level22/level21/level20/level19/level18/level17/level16/level15/level14/level13/level12/level11/level10/level9",
@@ -229,6 +228,7 @@ describe("[unit] mockup conversion of a live page", () => {
       "api-books-revenue": "/api/books/revenue",
       "api-books-sales": "/api/books/sales",
       "rows-api-book-list": "/api/book/list",
+      "api-feed-status-query-status": "/api/feed?status={{query.status}}",
     });
     expect(page.fixtures?.["api-books-revenue"]).to.equal(null);
     expect(page.fixtures?.["rows-api-book-list"]).to.deep.equal([
