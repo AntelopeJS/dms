@@ -35,7 +35,7 @@ export function verifyTokenFor(
   token: string,
   user: User | undefined,
 ): string | JwtPayload | null {
-  const secret = generateSecret(user?.authKey ?? UNKNOWN_USER_AUTH_KEY);
+  const secret = generateSecret(user ? user.authKey : UNKNOWN_USER_AUTH_KEY);
   try {
     const payload = verify(token, secret, { algorithms: ["HS256"] });
     return user ? payload : null;
