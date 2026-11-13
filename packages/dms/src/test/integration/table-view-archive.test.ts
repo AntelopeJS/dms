@@ -5,6 +5,7 @@ import { resetDatabase } from "../helpers/db";
 
 const LOCATION = "/api/archive/notes";
 const HTTP_OK = 200;
+const HTTP_BAD_REQUEST = 400;
 
 interface Note {
   _id: string;
@@ -62,5 +63,27 @@ describe("[integration] table view archive mode", () => {
     expect(restored.status, JSON.stringify(restored.data)).to.equal(HTTP_OK);
     expect(await titles(ACTIVE)).to.deep.equal(["Draft", "Plan"]);
     expect(await titles(ARCHIVED)).to.deep.equal([]);
+  });
+
+  it("filters the archive field by the boolean a list filter spells", async () => {
+    const plan = (await list()).find((note) => note.title === "Plan");
+    const archived = await client.put(`${LOCATION}/archive?ids=${plan!._id}`);
+    expect(archived.status, JSON.stringify(archived.data)).to.equal(HTTP_OK);
+
+    const filtered = async (filter: string) =>
+      (await list(`&filter_isArchived=${filter}`))
+        .map((note) => note.title)
+        .sort();
+    expect(await filtered("eq:true")).to.deep.equal(["Plan"]);
+    expect(await filtered("ne:true")).to.deep.equal(["Draft"]);
+    expect(await filtered("eq:false")).to.deep.equal(["Draft"]);
+  });
+
+  it("refuses an archive filter that is not true or false", async () => {
+    const response = await client.get(
+      `${LOCATION}/list?filter_isArchived=eq:yes`,
+      { validateStatus: () => true },
+    );
+    expect(response.status).to.equal(HTTP_BAD_REQUEST);
   });
 });

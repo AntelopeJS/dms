@@ -21,6 +21,7 @@ import { isString } from "../../utils/internal/type-check";
 import { decoratedClass } from "../../utils/internal/decorated-class";
 import type { ColumnDisplay } from "./column-display";
 import { buildTableConfig, decorateColumn } from "./internal/meta-helpers";
+import { filterArchiveField } from "./internal/archive-filter";
 import { DataType, serializeType } from "../data-types";
 import { installTableViewMeta } from "../data-types/internal/table-view-meta-slot";
 import {
@@ -509,7 +510,7 @@ export const ArchiveField = MakeMethodAndPropertyDecorator((target, key) => {
   const owner = decoratedClass(target);
   GetMetadata(owner, TableViewMeta).setArchiveField(fieldName);
 
-  Filter()(target, fieldName);
+  Filter(filterArchiveField)(target, fieldName);
   Listable()(target, key);
   const field = GetMetadata(owner, DataAPIMeta).fields[fieldName];
   if (!field?.mode) Access(AccessMode.ReadOnly)(target, key);
