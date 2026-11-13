@@ -10,6 +10,7 @@ import {
 } from "../../helpers/mcp";
 
 const URL = "http://127.0.0.1:5010/dms/mcp";
+const itWithPosixModes = process.platform === "win32" ? it.skip : it;
 const TOKEN = "first-token";
 
 const WRITTEN_FOR_EMPTY_PROJECT = `{
@@ -93,15 +94,22 @@ describe("[unit] mcp project files", () => {
     });
   });
 
-  it("publishes the route and credential readable by the project's user alone", async () => {
+  it("publishes the route and credential", async () => {
     await publish();
-    const configPath = join(projectPath, "node_modules/.cache/dms/mcp.json");
     expect(readBridgeConfig(projectPath)).to.deep.equal({
       url: URL,
       token: TOKEN,
     });
-    expect(fileMode(configPath)).to.equal(0o600);
   });
+
+  itWithPosixModes(
+    "makes the credential readable by the project's user alone",
+    async () => {
+      await publish();
+      const configPath = join(projectPath, "node_modules/.cache/dms/mcp.json");
+      expect(fileMode(configPath)).to.equal(0o600);
+    },
+  );
 
   it("replaces the credential on the next start, so an old one stops working", async () => {
     await publish();
@@ -115,7 +123,7 @@ describe("[unit] mcp project files", () => {
       join(projectPath, "node_modules/.cache/dms/mcp-bridge.cjs"),
     );
     expect(launcher).to.match(
-      /^require\(".*[/\\]mcp[/\\]bridge\.js"\)\.runBridge\(/,
+      /^require\(".*(?:\/|\\\\)mcp(?:\/|\\\\)bridge\.js"\)\.runBridge\(/,
     );
     expect(launcher).to.include('"mcp.json"');
   });
