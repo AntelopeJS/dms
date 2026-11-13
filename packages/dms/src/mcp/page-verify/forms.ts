@@ -233,23 +233,37 @@ async function openedEditor(
     : undefined;
 }
 
+/** What a click on a button named like an opener did, when it opened no editor. */
+export interface ClickEffect {
+  wrote: boolean;
+  /** The items of the menu the click opened, absent when it opened none. */
+  menu?: string[];
+  changedPage: boolean;
+}
+
 /**
  * A button named like an opener that opened no editor: it acts directly
- * when it sends a write or changes the page, and does nothing otherwise.
+ * when it sends a write, opens a menu of choices, or changes the page, and
+ * does nothing otherwise.
  */
-async function withoutEditor(
-  page: Page,
+export function withoutEditor(
+  effect: ClickEffect,
   guard: WriteGuard,
-  writesBefore: number,
-  textBefore: string,
-): Promise<FormOutcome> {
-  if (guard.writes.length > writesBefore) {
+): FormOutcome {
+  if (effect.wrote) {
     return {
       ok: true,
       detail: writeDetail(guard, "no form; the click sent a write"),
     };
   }
-  if ((await contentText(page)) !== textBefore) {
+  if (effect.menu !== undefined) {
+    const items = effect.menu.map((item) => `"${item}"`).join(", ");
+    return {
+      ok: true,
+      detail: `not checked: the click opened a menu${items ? ` of ${items}` : ""}`,
+    };
+  }
+  if (effect.changedPage) {
     return {
       ok: true,
       detail: "not checked: no form opened, but the click changed the page",
@@ -260,6 +274,23 @@ async function withoutEditor(
     detail:
       "nothing happened on click: no form, no write, no change on the page",
   };
+}
+
+/**
+ * The names of the items of the menu a click opened. A dropdown draws its
+ * menu outside the page content, so the content text does not show it.
+ */
+async function openedMenu(page: Page): Promise<string[] | undefined> {
+  const menu = await firstVisible(page.locator("[role=menu]"));
+  if (menu === undefined) return undefined;
+  const items = menu.locator(
+    "[role=menuitem], [role=menuitemcheckbox], [role=menuitemradio]",
+  );
+  const count = await items.count();
+  const names: string[] = [];
+  for (let index = 0; index < count; index += 1)
+    names.push(await nameOf(items.nth(index)));
+  return names.filter((name) => name !== "");
 }
 
 async function checkOpenedForm(
@@ -276,7 +307,15 @@ async function checkOpenedForm(
   await waitSettled(page);
   const form = await openedEditor(page, fieldsBefore);
   if (form === undefined) {
-    const outcome = await withoutEditor(page, guard, writesBefore, textBefore);
+    const menu = await openedMenu(page);
+    const outcome = withoutEditor(
+      {
+        wrote: guard.writes.length > writesBefore,
+        ...(menu !== undefined && { menu }),
+        changedPage: (await contentText(page)) !== textBefore,
+      },
+      guard,
+    );
     await openPage(page, url);
     return { kind: "form", target: `button "${name}"`, ...outcome };
   }

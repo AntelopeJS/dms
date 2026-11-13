@@ -1,3 +1,4 @@
+import type { JsonValue } from "@antelopejs/interface-dms/json";
 import type { PageInfo } from "@antelopejs/interface-dms/page";
 import { expect } from "chai";
 import { isToolAllowed } from "../../../mcp/access";
@@ -13,6 +14,7 @@ import {
   type RenderedBlock,
   resolvePage,
 } from "../../../mcp/page-verify";
+import { withoutEditor } from "../../../mcp/page-verify/forms";
 import { MCP_TOOLS } from "../../../mcp/tools";
 import { pagesBySlug } from "../../../utils";
 
@@ -31,6 +33,16 @@ function orderPage(): PageInfo {
 
 function block(path: string, component: string): RenderedBlock {
   return { path, component, present: true, visible: true };
+}
+
+function servedLayout(layout: JsonValue): Parameters<typeof readLayout>[0] {
+  const answered = {
+    ok: () => true,
+    status: () => 200,
+    json: async () => layout,
+    text: async () => JSON.stringify(layout),
+  };
+  return { request: { get: async () => answered, post: async () => answered } };
 }
 
 function emptyReport(): Omit<PageReport, "ok" | "failures"> {
@@ -124,16 +136,10 @@ function readsPageBlocks(): void {
         },
       },
     };
-    const answered = {
-      ok: () => true,
-      status: () => 200,
-      json: async () => layout,
-      text: async () => JSON.stringify(layout),
-    };
-    const context = {
-      request: { get: async () => answered, post: async () => answered },
-    };
-    const answer = await readLayout(context, "/dms/pages/x/pagelayout");
+    const answer = await readLayout(
+      servedLayout(layout),
+      "/dms/pages/x/pagelayout",
+    );
     expect(answer).to.deep.equal({
       status: "served",
       blocks: [
@@ -142,6 +148,65 @@ function readsPageBlocks(): void {
         { path: "kpi", component: "dms-kpi-card", source: "/api/kpi" },
       ],
     });
+  });
+}
+
+function namesSourcesAndJudgesOpeners(): void {
+  it("names the URL each table view lists from: its source's, else its controller's list route", async () => {
+    const layout = {
+      components: {
+        orders: {
+          componentName: "dms-table-view",
+          options: { location: "/api/orders" },
+        },
+        feed: {
+          componentName: "dms-table-view",
+          options: {
+            location: "/api/feed",
+            source: { fetchUrl: "/api/feed?mine=1" },
+          },
+        },
+      },
+    };
+    const answer = await readLayout(
+      servedLayout(layout),
+      "/dms/pages/x/pagelayout",
+    );
+    expect(answer).to.deep.equal({
+      status: "served",
+      blocks: [
+        {
+          path: "orders",
+          component: "dms-table-view",
+          source: "/api/orders/list",
+        },
+        {
+          path: "feed",
+          component: "dms-table-view",
+          source: "/api/feed?mine=1",
+        },
+      ],
+    });
+  });
+
+  it("reads an opener that opened a dropdown menu as acting, and one with no effect as broken", () => {
+    const guard = { submit: false, writes: [] };
+    const menu = withoutEditor(
+      {
+        wrote: false,
+        menu: ["Blank order", "From template"],
+        changedPage: false,
+      },
+      guard,
+    );
+    expect(menu).to.deep.equal({
+      ok: true,
+      detail:
+        'not checked: the click opened a menu of "Blank order", "From template"',
+    });
+    expect(
+      withoutEditor({ wrote: false, changedPage: false }, guard).ok,
+    ).to.equal(false);
   });
 }
 
@@ -240,5 +305,6 @@ describe("[unit] mcp page_verify", () => {
 
   findsPages();
   readsPageBlocks();
+  namesSourcesAndJudgesOpeners();
   checksRolesAndListsFailures();
 });
