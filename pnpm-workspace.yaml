@@ -15,3 +15,5 @@ onlyBuiltDependencies:
   - vue-demi
 allowBuilds:
   lefthook: false
+overrides:
+  "@antelopejs/interface-data-api": "file:.tgz-deps/antelopejs-interface-data-api-d70049c.tgz"
