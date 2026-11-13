@@ -105,13 +105,25 @@ export function objectAt(
 
 function indentAt(text: string, position: number): string {
   const lineStart = text.lastIndexOf("\n", position - 1) + 1;
-  return /^[\t ]*/.exec(text.slice(lineStart))?.[0] ?? "";
+  return text.slice(lineStart).replace(/[^\t ][\s\S]*$/, "");
+}
+
+/** How much deeper than its object's line the first property on a later line starts, if it does. */
+function nestingStep(text: string, owner: ObjectLiteralExpression) {
+  const base = indentAt(text, owner.getStart());
+  const property = owner
+    .getProperties()
+    .find((each) => each.getStartLineNumber() > owner.getStartLineNumber());
+  const indent = property && indentAt(text, property.getStart());
+  return indent && indent.length > base.length && indent.startsWith(base)
+    ? indent.slice(base.length)
+    : undefined;
 }
 
 /**
- * The indent unit the configuration's own literals use: how much deeper than its object a property
- * on a line of its own starts. Comments and strings say nothing about it. The file's own layout
- * outranks the project's, which may say nothing.
+ * The indent unit the configuration's own object literals use: the smallest step from an object's
+ * line to a property on a later line, so a comment's lines are never measured. The file's own
+ * layout outranks the project's, which may say nothing.
  */
 function configIndent(file: SourceFile): string | undefined {
   const root = configObject(file);
@@ -119,21 +131,19 @@ function configIndent(file: SourceFile): string | undefined {
     return undefined;
   }
   const text = file.getFullText();
-  const owners = [
+  return [
     root,
     ...root.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression),
-  ];
-  for (const owner of owners) {
-    const base = indentAt(text, owner.getStart());
-    const property = owner
-      .getProperties()
-      .find((each) => each.getStartLineNumber() > owner.getStartLineNumber());
-    const indent = property && indentAt(text, property.getStart());
-    if (indent && indent.length > base.length && indent.startsWith(base)) {
-      return indent.slice(base.length);
-    }
-  }
-  return undefined;
+  ]
+    .map((owner) => nestingStep(text, owner))
+    .filter((step) => step !== undefined)
+    .reduce<string | undefined>(
+      (smallest, step) =>
+        smallest === undefined || step.length < smallest.length
+          ? step
+          : smallest,
+      undefined,
+    );
 }
 
 /** Opens the configuration for editing, refusing one the builder cannot edit safely. */
