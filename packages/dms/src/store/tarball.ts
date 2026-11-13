@@ -1,11 +1,8 @@
-import { execFile } from "node:child_process";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 import { gunzipSync } from "node:zlib";
-
-const execFileAsync = promisify(execFile);
+import { runPackageManager } from "../utils/package-manager/index";
 
 const NPM_PACK_TIMEOUT_MS = 60_000;
 const TAR_BLOCK_SIZE = 512;
@@ -77,7 +74,7 @@ async function packRelease(
   projectPath: string,
   destination: string,
 ): Promise<Buffer> {
-  await execFileAsync(
+  await runPackageManager(
     "npm",
     ["pack", spec, "--pack-destination", destination, "--silent"],
     { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS },
