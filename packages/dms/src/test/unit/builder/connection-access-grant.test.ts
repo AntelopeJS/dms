@@ -10,7 +10,10 @@ import {
   MapResources,
   PreviewMapResources,
 } from "../../../implementations/dms-builder";
-import { setCatalogConnectionsForTests } from "../../../implementations/dms-builder/engine";
+import {
+  recordLaunchEnvironment,
+  setCatalogConnectionsForTests,
+} from "../../../implementations/dms-builder/engine";
 import type { McpAccess } from "../../../mcp/access";
 import { answerMcpMessage } from "../../../mcp/protocol";
 import { MCP_TOOLS } from "../../../mcp/tools";
@@ -154,6 +157,55 @@ describe("[unit] builder_configure_project never raises a connection's access", 
   });
 });
 
+describe("[unit] builder_configure_project never writes read-write into a base that does not hold it", function () {
+  this.timeout(OP_TIMEOUT);
+  useErpFixture();
+
+  before(() => {
+    ImplementInterface(Builder, implementation);
+  });
+
+  afterEach(() => {
+    recordLaunchEnvironment(undefined);
+    delete process.env.ERP_ACCESS;
+  });
+
+  it("refuses the restatement when only an environment layer grants read-write", async () => {
+    setConnectionAccess(
+      { erp: "read" },
+      '  environments: { development: { modules: { "dms-database": { config: { externalConnections: { erp: { access: "read-write" } } } } } } },\n',
+    );
+    recordLaunchEnvironment("development");
+    expectOk(await MapResources(countries(true)), "writable in development");
+    const answer = await confirmedCall(accessSteps({ erp: "read-write" }));
+    expect(answer.isError).to.equal(true);
+    expect(answer.content[0]?.text).to.include(RAISE_REFUSED);
+    recordLaunchEnvironment("production");
+    expect(refusalOf(await MapResources(countries(true)))).to.include(
+      READ_ONLY,
+    );
+  });
+
+  it("refuses the restatement when only an envOverrides variable grants read-write", async () => {
+    setConnectionAccess(
+      { erp: "read" },
+      '  envOverrides: { ERP_ACCESS: "modules.dms-database.config.externalConnections.erp.access" },\n',
+    );
+    process.env.ERP_ACCESS = "read-write";
+    expectOk(
+      await MapResources(countries(true)),
+      "writable through the variable",
+    );
+    const answer = await confirmedCall(accessSteps({ erp: "read-write" }));
+    expect(answer.isError).to.equal(true);
+    expect(answer.content[0]?.text).to.include(RAISE_REFUSED);
+    delete process.env.ERP_ACCESS;
+    expect(refusalOf(await MapResources(countries(true)))).to.include(
+      READ_ONLY,
+    );
+  });
+});
+
 describe("[unit] each operation reads the configuration it loaded", function () {
   this.timeout(OP_TIMEOUT);
   const erp = useErpFixture();
@@ -196,6 +248,28 @@ describe("[unit] each operation reads the configuration it loaded", function () 
       READ_ONLY,
     );
     expect(process.env.ANT_2283_PROBE).to.equal(undefined);
+  });
+
+  it("keeps a variable other code sets while a load is in flight", async () => {
+    erp.writeModules(
+      [
+        '"dms-database": { source: { type: "package", package: "@antelopejs/dms-database", version: "0.5.0" }, config: { externalConnections: { erp: { access: "read" } } } },',
+      ],
+      [],
+      [
+        "setImmediate(() => {",
+        '  process.env.ANT_2283_OTHER = "set-by-other-code";',
+        "});",
+      ],
+    );
+    try {
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        READ_ONLY,
+      );
+      expect(process.env.ANT_2283_OTHER).to.equal("set-by-other-code");
+    } finally {
+      delete process.env.ANT_2283_OTHER;
+    }
   });
 
   it("leaves it as it was when the configuration loads the .env itself while it is evaluated", async () => {

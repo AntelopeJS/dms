@@ -14,7 +14,6 @@ import { z } from "zod";
 import { JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
 import { defineTool, type McpToolResult, textResult } from "../tool";
-import { raisedAccessRefusal } from "../../implementations/dms-builder/engine";
 import { opResult, refusalResult } from "./builder-shared";
 import { TABLE_VIEW_SETTINGS } from "./builder-table-view";
 
@@ -188,10 +187,12 @@ const configureProject = defineTool({
   name: "builder_configure_project",
   title: "Configure project",
   description:
-    "Edits antelope.config.ts in one step: adds modules (AddModule), merges into existing ones (ConfigureModule: config, importOverrides pins and connections, exportPriority, env variable names) and scaffolds local modules (CreateLocalModule). Every step is validated before anything is written, and a refused step writes nothing. The user always approves the change, shown as a diff. A restart is needed before new modules load. It never raises an external connection's access: a step that sets `config.externalConnections.<id>.access` to `read-write` where the configuration does not already give it, to anything else but `read`, or supplies it from a variable, is refused. Keeping, lowering or removing an access works, so restate the connections you do not change. A person grants writes in the Database module's Data browser or the assistant's connect step.",
+    "Edits antelope.config.ts in one step: adds modules (AddModule), merges into existing ones (ConfigureModule: config, importOverrides pins and connections, exportPriority, env variable names) and scaffolds local modules (CreateLocalModule). Every step is validated before anything is written, and a refused step writes nothing. The user always approves the change, shown as a diff. A restart is needed before new modules load. It never raises an external connection's access: a step that sets `config.externalConnections.<id>.access` to `read-write` where its base entry does not already hold it (an environment or a variable granting it does not count), to anything else but `read`, or supplies it from a variable, is refused. Keeping, lowering or removing an access works, so restate the connections you do not change. A person grants writes in the Database module's Data browser or the assistant's connect step.",
   effect: "project",
   input: z.object({ steps: z.array(STEP).min(1) }),
   async run({ steps }) {
+    const { raisedAccessRefusal } =
+      await import("../../implementations/dms-builder/engine");
     const raised = await raisedAccessRefusal(steps);
     if (raised !== undefined) return refusalResult("invalid_config", raised);
     const planned = await ConfigureProject(steps, { dryRun: true });

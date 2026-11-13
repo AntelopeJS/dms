@@ -4,7 +4,7 @@ import type {
 } from "@antelopejs/interface-dms-builder";
 import {
   connectionAccess,
-  withConnectionAccess,
+  withBaseConnectionAccess,
 } from "./connection-access-config";
 import { z } from "zod";
 import { isPlainObject } from "./value";
@@ -22,7 +22,7 @@ const WrittenAccessSchema = z
 
 type WrittenAccess = z.infer<typeof WrittenAccessSchema>;
 
-/** Whether writing `access` keeps or lowers what the connection has now. */
+/** Whether writing `access` keeps or lowers what the connection's base entry holds now. */
 function keepsOrLowers(connection: string, access: WrittenAccess): boolean {
   return (
     access !== "read-write" ||
@@ -81,8 +81,9 @@ function raisedByAny(steps: readonly ProjectConfigStep[]): string | undefined {
 
 /**
  * Why an agent's configuration steps are refused because one would raise a connection's access:
- * set `config.externalConnections.<id>.access` to `"read-write"` where the configuration does not
- * already give it, write anything else but `"read"` there, or let a variable supply it. Keeping,
+ * set `config.externalConnections.<id>.access` to `"read-write"` where the base entry does not
+ * already hold it (an environment or a variable granting it does not count, since the step writes
+ * the base every environment reads), write anything else but `"read"` there, or let a variable supply it. Keeping,
  * lowering or removing an access passes, so a step may restate the connections it does not
  * change. Every MCP tool that writes project or module configuration calls this first; the
  * builder interface does not, since owner-authenticated routes grant through it.
@@ -90,5 +91,5 @@ function raisedByAny(steps: readonly ProjectConfigStep[]): string | undefined {
 export function raisedAccessRefusal(
   steps: readonly ProjectConfigStep[],
 ): Promise<string | undefined> {
-  return withConnectionAccess(() => raisedByAny(steps));
+  return withBaseConnectionAccess(() => raisedByAny(steps));
 }
