@@ -3,10 +3,19 @@ import type { ProjectConfigOpts, ProjectConfigResult } from "./project";
 import type { OpResult } from "./results";
 
 /**
- * The engines a database can be checked on, by the name `CheckDatabaseConnection` takes. `mysql`
- * covers MariaDB too: the same client and the same catalog answer both.
+ * The engines a database can be checked on, by the name `CheckDatabaseConnection` takes, each with
+ * the URL schemes it accepts, colon included. `mysql` covers MariaDB too: the same client and the
+ * same catalog answer both.
  */
-export type DatabaseEngine = "postgres" | "mysql" | "mongodb" | "rethinkdb";
+export const DATABASE_ENGINE_SCHEMES = {
+  postgres: ["postgres:", "postgresql:"],
+  mysql: ["mysql:"],
+  mongodb: ["mongodb:"],
+  rethinkdb: ["rethinkdb:"],
+} as const satisfies Readonly<Record<string, readonly string[]>>;
+
+/** An engine of `DATABASE_ENGINE_SCHEMES`. */
+export type DatabaseEngine = keyof typeof DATABASE_ENGINE_SCHEMES;
 
 /** The database to check: its engine, and a URL of that engine's scheme. */
 export interface DatabaseCheckInput {

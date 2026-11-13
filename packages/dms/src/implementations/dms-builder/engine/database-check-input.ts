@@ -1,7 +1,8 @@
-import type {
-  DatabaseAccess,
-  DatabaseEngine,
-  OpResult,
+import {
+  type DatabaseAccess,
+  type DatabaseEngine,
+  DATABASE_ENGINE_SCHEMES,
+  type OpResult,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
 import { DATABASE_ENGINES } from "./database-access";
@@ -10,17 +11,12 @@ import { invalidConfig, unsupported } from "./ops";
 
 const SCHEME = /^([a-z][a-z0-9+.-]*:)\/\//i;
 
-/** The schemes of each engine's URLs. */
-const SCHEMES: Record<DatabaseEngine, readonly string[]> = {
-  postgres: ["postgres:", "postgresql:"],
-  mysql: ["mysql:"],
-  mongodb: ["mongodb:"],
-  rethinkdb: ["rethinkdb:"],
-};
-
 function isUrlOf(engine: DatabaseEngine, url: string): boolean {
   const scheme = SCHEME.exec(url)?.[1]?.toLowerCase();
-  return scheme !== undefined && SCHEMES[engine].includes(scheme);
+  return (
+    scheme !== undefined &&
+    DATABASE_ENGINE_SCHEMES[engine].some((accepted) => accepted === scheme)
+  );
 }
 
 const CheckInputSchema = z

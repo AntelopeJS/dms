@@ -16,7 +16,11 @@ import {
   parseCheckInput,
   setCatalogConnectionsForTests,
 } from "../../../implementations/dms-builder/engine";
-import type { ProjectConfigStep } from "@antelopejs/interface-dms-builder";
+import {
+  DATABASE_ENGINE_SCHEMES,
+  type DatabaseEngine,
+  type ProjectConfigStep,
+} from "@antelopejs/interface-dms-builder";
 import {
   createFixture,
   destroyFixture,
@@ -106,30 +110,39 @@ describe("checking a database connection", () => {
 
 /** Fails on a check that sends an input to another engine's probe, or answers a missing client with the driver's error. */
 describe("checking a database whose client is not installed", () => {
-  it("answers the sentence that installs the client of the engine it names", async () => {
+  it("answers, for every scheme of every engine, the sentence that installs that engine's client", async () => {
     const reinstall = uninstallPackages([
       "pg",
       "mysql2",
       "mongodb",
       "rethinkdb-ts",
     ]);
+    const sentences: Record<DatabaseEngine, string> = {
+      postgres: "Install pg to connect a PostgreSQL database.",
+      mysql: "Install mysql2 to connect a MySQL or MariaDB database.",
+      mongodb: "Install mongodb to connect a MongoDB database.",
+      rethinkdb: "Install rethinkdb-ts to connect a RethinkDB database.",
+    };
     try {
-      const sentences = {
-        postgres: "Install pg to connect a PostgreSQL database.",
-        mysql: "Install mysql2 to connect a MySQL or MariaDB database.",
-        mongodb: "Install mongodb to connect a MongoDB database.",
-        rethinkdb: "Install rethinkdb-ts to connect a RethinkDB database.",
-      };
-      for (const [engine, reason] of Object.entries(sentences)) {
-        const input = { engine, url: `${engine}://u@127.0.0.1:1/db`, extra: 1 };
-        expect(
-          await checkConnection(parseCheckInput(input), true),
-          engine,
-        ).to.deep.equal({
-          ok: true,
-          data: { reachable: false, canRead: false, canWrite: false, reason },
-          changes: [],
-        });
+      for (const [engine, schemes] of Object.entries(DATABASE_ENGINE_SCHEMES)) {
+        for (const scheme of schemes) {
+          const input = {
+            engine,
+            url: `${scheme}//u@127.0.0.1:1/db`,
+            extra: 1,
+          };
+          const reason = Object.entries(sentences).find(
+            ([name]) => name === engine,
+          )?.[1];
+          expect(
+            await checkConnection(parseCheckInput(input), true),
+            scheme,
+          ).to.deep.equal({
+            ok: true,
+            data: { reachable: false, canRead: false, canWrite: false, reason },
+            changes: [],
+          });
+        }
       }
     } finally {
       reinstall();
