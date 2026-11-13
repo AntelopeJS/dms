@@ -4,6 +4,7 @@ import {
   isString,
 } from "../../dms-core/app/utils/type-check";
 import type { DmsBackendRequest, DmsServerEvent } from "#dms/server";
+import { invalidBody, readJsonObject } from "../../../server/request-body";
 import {
   isPersistent,
   persistAccountSession,
@@ -12,7 +13,13 @@ import {
   storeAccount,
   type StoredAccount,
 } from "./accounts";
-import { isRefusal, type SessionTokens, sessionFrom } from "./session";
+import {
+  loginOutcome,
+  type SessionTokens,
+  sessionUser,
+  tokenPair,
+} from "./backend-answers";
+import { isRefusal, sessionFrom } from "./session";
 
 const PENDING_LOGIN = "dms_pending_login";
 const PENDING_LOGIN_PATH = "/auth/verify-2fa";
@@ -20,14 +27,6 @@ const PENDING_LOGIN_LIFETIME_S = 300;
 
 const BACKEND_API_PATH =
   /^\/api\/[A-Za-z0-9][A-Za-z0-9._~-]*(?:\/[A-Za-z0-9][A-Za-z0-9._~-]*)*$/;
-
-type Input = Record<string, DmsBackendRequest["body"]>;
-
-interface EstablishResult extends SessionTokens {
-  requires_2fa?: boolean;
-  requires_tenant_assignment?: boolean;
-  two_factor_token?: string;
-}
 
 interface PendingLogin {
   token: string;
@@ -53,21 +52,21 @@ async function establishWith(
   payload: DmsBackendRequest["body"],
   persistent = true,
 ) {
-  const result = await event.backend<EstablishResult>(endpoint, {
-    method: "POST",
-    body: payload,
-  });
-  if (result.requires_2fa && isString(result.two_factor_token))
+  const outcome = loginOutcome.parse(
+    await event.backend(endpoint, { method: "POST", body: payload }),
+  );
+  if (outcome.kind === "2fa")
     event.cookies.writeSealed(
       PENDING_LOGIN,
-      { token: result.two_factor_token, persistent },
+      { token: outcome.answer.two_factor_token, persistent },
       { maxAge: PENDING_LOGIN_LIFETIME_S, path: PENDING_LOGIN_PATH },
     );
-  if (result.requires_2fa || result.requires_tenant_assignment) return result;
+  if (outcome.kind !== "session") return outcome.answer;
   if (event.cookies.readSealed(PENDING_LOGIN, isPendingLogin))
     event.cookies.clear(PENDING_LOGIN, { path: PENDING_LOGIN_PATH });
-  const account = persistAccountSession(event, sessionFrom(result, persistent));
-  return { user: result.user, account };
+  const { tokens } = outcome;
+  const account = persistAccountSession(event, sessionFrom(tokens, persistent));
+  return { user: tokens.user, account };
 }
 
 /**
@@ -75,7 +74,8 @@ async function establishWith(
  * kept signed in outlives the browser; any other ends when the browser closes.
  */
 export async function login(event: DmsServerEvent) {
-  const input = await event.readJson<Input>();
+  const input = await readJsonObject(event);
+  if (!input) return invalidBody();
   return establishWith(
     event,
     "/api/auth/login",
@@ -95,7 +95,8 @@ export async function signup(event: DmsServerEvent) {
  * for, such as the one an OAuth sign-in hands over, keeps the default.
  */
 export async function verifyTwoFactor(event: DmsServerEvent) {
-  const input = await event.readJson<Input>();
+  const input = await readJsonObject(event);
+  if (!input) return invalidBody();
   const pending = event.cookies.readSealed(PENDING_LOGIN, isPendingLogin);
   const persistent =
     pending !== undefined && pending.token === input.token
@@ -138,7 +139,8 @@ export function isAllowedEstablishEndpoint(
  * names it and a payload, and never carries a token.
  */
 export async function establish(event: DmsServerEvent) {
-  const input = await event.readJson<Input>();
+  const input = await readJsonObject(event);
+  if (!input) return invalidBody();
   if (
     !isAllowedEstablishEndpoint(
       input.endpoint,
@@ -151,7 +153,8 @@ export async function establish(event: DmsServerEvent) {
 
 /** `POST /auth/remove-account`: forgets a stored account. */
 export async function removeStoredAccount(event: DmsServerEvent) {
-  const input = await event.readJson<Input>();
+  const input = await readJsonObject(event);
+  if (!input) return invalidBody();
   removeAccount(event, input.accountId);
   return { success: true };
 }
@@ -159,19 +162,22 @@ export async function removeStoredAccount(event: DmsServerEvent) {
 /** `POST /auth/switch-tenant`: the same account, in another tenant. */
 export async function switchTenant(event: DmsServerEvent) {
   const session = event.session.read();
-  const input = await event.readJson<Input>();
+  const input = await readJsonObject(event);
+  if (!input) return invalidBody();
   if (!session)
     return Response.json({ message: "Not authenticated" }, { status: 401 });
   if (!input.tenantId)
     return Response.json({ message: "tenantId required" }, { status: 400 });
-  const tokens = await event.backend<SessionTokens>("/api/auth/switch-tenant", {
-    method: "POST",
-    token: session.accessToken,
-    body: { refreshToken: session.refreshToken, tenantId: input.tenantId },
-  });
-  const user = await event.backend<SessionTokens["user"]>("/api/auth/me", {
-    token: tokens.access_token,
-  });
+  const tokens = tokenPair.parse(
+    await event.backend("/api/auth/switch-tenant", {
+      method: "POST",
+      token: session.accessToken,
+      body: { refreshToken: session.refreshToken, tenantId: input.tenantId },
+    }),
+  );
+  const user = sessionUser.parse(
+    await event.backend("/api/auth/me", { token: tokens.access_token }),
+  );
   const switched = sessionFrom({ ...tokens, user }, isPersistent(session));
   persistAccountSession(event, switched, session.accountId);
   return { success: true, user };
@@ -179,27 +185,27 @@ export async function switchTenant(event: DmsServerEvent) {
 
 /** `POST /auth/switch-account`: signs in as another stored account. */
 export async function switchAccount(event: DmsServerEvent) {
-  const input = await event.readJson<Input>();
-  const account = readAccount(event, input.accountId);
-  if (!account)
+  const input = await readJsonObject(event);
+  if (!input) return invalidBody();
+  const { accountId } = input;
+  const account = readAccount(event, accountId);
+  if (!account || !isString(accountId))
     return Response.json({ message: "Account expired" }, { status: 401 });
   try {
-    const tokens = await event.backend<SessionTokens>("/api/auth/refresh", {
-      method: "POST",
-      body: { token: account.refreshToken },
-    });
-    const user = await event.backend<SessionTokens["user"]>("/api/auth/me", {
-      token: tokens.access_token,
-    });
-    const session = sessionFrom({ ...tokens, user }, isPersistent(account));
-    const descriptor = persistAccountSession(
-      event,
-      session,
-      input.accountId as string,
+    const tokens = tokenPair.parse(
+      await event.backend("/api/auth/refresh", {
+        method: "POST",
+        body: { token: account.refreshToken },
+      }),
     );
+    const user = sessionUser.parse(
+      await event.backend("/api/auth/me", { token: tokens.access_token }),
+    );
+    const session = sessionFrom({ ...tokens, user }, isPersistent(account));
+    const descriptor = persistAccountSession(event, session, accountId);
     return { success: true, user, account: descriptor };
   } catch (error) {
-    if (isRefusal(error)) removeAccount(event, input.accountId);
+    if (isRefusal(error)) removeAccount(event, accountId);
     throw error;
   }
 }
@@ -243,19 +249,23 @@ function storeValidatedAccount(
  * tell.
  */
 export async function validateAccount(event: DmsServerEvent) {
-  const input = await event.readJson<Input>();
-  const account = readAccount(event, input.accountId);
-  if (!account) return { valid: false };
+  const input = await readJsonObject(event);
+  if (!input) return invalidBody();
+  const { accountId } = input;
+  const account = readAccount(event, accountId);
+  if (!account || !isString(accountId)) return { valid: false };
   try {
-    const tokens = await event.backend<SessionTokens>("/api/auth/refresh", {
-      method: "POST",
-      body: { token: account.refreshToken },
-    });
-    storeValidatedAccount(event, account, input.accountId as string, tokens);
+    const tokens = tokenPair.parse(
+      await event.backend("/api/auth/refresh", {
+        method: "POST",
+        body: { token: account.refreshToken },
+      }),
+    );
+    storeValidatedAccount(event, account, accountId, tokens);
     return { valid: true };
   } catch (error) {
     const rejected = isRefusal(error);
-    if (rejected) removeAccount(event, input.accountId);
+    if (rejected) removeAccount(event, accountId);
     return { valid: rejected ? false : null };
   }
 }

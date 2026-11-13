@@ -37,11 +37,16 @@ const USER = {
   language: "fr",
 };
 
+/** Answers a test puts in place of the backend's own, by path. */
+const answerOverrides = new Map<string, { status: number; body: unknown }>();
+
 /** What the backend answers each path with. */
 function backendAnswer(
   path: string,
   body: { password?: string; email?: string; token?: string },
 ) {
+  const override = answerOverrides.get(path);
+  if (override) return override;
   if (path === "/api/auth/login" && body.password === "wrong")
     return { status: 401, body: { message: "error.auth.invalid_credentials" } };
   if (path === "/api/auth/login" && body.email === "2fa@example.test")
@@ -244,6 +249,7 @@ export {
   RENDER_SECRET,
   ESTABLISH_ENDPOINT,
   USER,
+  answerOverrides,
   backendAnswer,
   calls,
   readBody,

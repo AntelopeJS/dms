@@ -1,17 +1,11 @@
 import { createHash } from "node:crypto";
 import type { DmsPublicSession, DmsServerEvent, DmsSession } from "#dms/server";
 import { isPersistent, persistAccountSession, removeAccount } from "./accounts";
+import { type SessionTokens, sessionUser, tokenPair } from "./backend-answers";
 import { isNumber } from "../../dms-core/app/utils/type-check";
 
 const REFRESH_TTL_MS = 15_000;
 const REFUSED = [400, 401, 403];
-
-/** A backend answer that opens a session: a token pair and the user. */
-export interface SessionTokens {
-  access_token: string;
-  refresh_token?: string;
-  user?: DmsSession["user"];
-}
 
 interface RefreshFlight {
   promise: Promise<SessionTokens>;
@@ -102,16 +96,18 @@ export async function renewSession(
   const refreshToken = session?.refreshToken;
   if (!session || !refreshToken) return undefined;
   try {
-    const tokens = await singleFlight(refreshToken, () =>
-      event.backend<SessionTokens>("/api/auth/refresh", {
-        method: "POST",
-        token: session.accessToken,
-        body: { token: refreshToken },
-      }),
+    const tokens = await singleFlight(refreshToken, async () =>
+      tokenPair.parse(
+        await event.backend("/api/auth/refresh", {
+          method: "POST",
+          token: session.accessToken,
+          body: { token: refreshToken },
+        }),
+      ),
     );
-    const user = await event.backend<DmsSession["user"]>("/api/auth/me", {
-      token: tokens.access_token,
-    });
+    const user = sessionUser.parse(
+      await event.backend("/api/auth/me", { token: tokens.access_token }),
+    );
     const refreshed = sessionFrom({ ...tokens, user }, isPersistent(session));
     persistAccountSession(event, refreshed, session.accountId);
     event.session.useForRequest(refreshed);
