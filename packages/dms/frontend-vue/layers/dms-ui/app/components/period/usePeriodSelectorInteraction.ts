@@ -62,7 +62,6 @@ export function usePeriodSelectorInteraction(
   }
   function updateStart(value: DateValue | null | undefined) {
     if (!value) return;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- UInputDate emits DateValue, not only CalendarDate; preserve unchecked forwarding rather than reject or convert other date variants.
     const start = value as CalendarDate;
     const end = draftCalendar.value.end;
     selectCalendarRange(
@@ -71,7 +70,6 @@ export function usePeriodSelectorInteraction(
   }
   function updateEnd(value: DateValue | null | undefined) {
     if (!value) return;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- UInputDate emits DateValue, not only CalendarDate; preserve unchecked forwarding rather than reject or convert other date variants.
     const end = value as CalendarDate;
     const start = draftCalendar.value.start;
     selectCalendarRange(
@@ -90,7 +88,6 @@ export function usePeriodSelectorInteraction(
   });
   function onSegmentedClick(event: MouseEvent) {
     if (period.preset.value !== CUSTOM_PRESET) return;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- MouseEvent.target does not guarantee closest; retain optional null access and the existing throw for non-element targets instead of adding a guard.
     const segment = (event.target as HTMLElement | null)?.closest(
       "[role='radio']",
     );

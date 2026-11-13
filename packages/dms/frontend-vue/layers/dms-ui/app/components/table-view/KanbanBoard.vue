@@ -350,7 +350,6 @@ const onColumnChange = async (
 
 const customCardProps = (item: T, groupValue: string) => ({
   ...props.cardComponent?.options,
-  // oxlint-disable-next-line anti-slop/no-conditional-empty-object-spread -- Retain spread evaluation order and own-property copying of module card options before context and groupValue.
   ...(props.cardContext ? buildCardProps(item, props.cardContext) : {}),
   groupValue,
 });

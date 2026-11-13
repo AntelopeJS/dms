@@ -118,10 +118,7 @@ const {
   color: fieldColor,
   ariaAttrs,
   emitFormChange,
-} = useFormField(
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The generic form-field parameter extraction excludes Calendar's concrete size and color values; retain the unchecked adapter.
-  props as Parameters<typeof useFormField>[0],
-);
+} = useFormField(props as Parameters<typeof useFormField>[0]);
 const invalid = computed(() => fieldColor.value === "error");
 
 function toBoundDate(value: string | undefined): CalendarDate | undefined {
@@ -133,7 +130,6 @@ const convertedProps = computed(() => {
   return {
     ...calendarProps,
     color: calendarProps.color === "error" ? undefined : calendarProps.color,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- CalendarProps admits date-time and zoned variants outside the local model union; preserve their unchecked conversion passthrough.
     modelValue: convertModelValue(calendarProps.modelValue as DateValue),
   };
 });
@@ -173,7 +169,6 @@ function forwardEmit(
       const endIso = value.end?.toString();
       emits("update:modelValue", { start: startIso, end: endIso });
     } else {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The declared model emit excludes this unchecked passthrough branch's arbitrary values; inference and the emit owner cannot establish a valid string here.
       emits("update:modelValue", value as string | null | undefined);
     }
   } else {

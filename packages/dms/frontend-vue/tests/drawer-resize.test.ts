@@ -479,7 +479,6 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
         const drawer = useDrawer();
         provide(EXPLORER_KEY, "library-1");
         provide(DMS_CONTAINER_KEY, { id: "outer", close: () => {} });
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This deliberately malformed outer form field must never reach the drawer body; it is not a computed Nuxt form-field context.
         provide(formFieldInjectionKey, { name: "outer-field" } as never);
         drawer.open(
           wrap({

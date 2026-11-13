@@ -1,4 +1,3 @@
-/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- Preview messages and arbitrary block options are the boundary being checked here. JSON-only owner types or strict schemas would reject currently accepted objects, inherited fields, and extra options. */
 /**
  * The block preview's contract: the tree a docs site or a chat hands
  * `DmsBlockPreview`, the `?state=` parameter carrying it, the `postMessage`
@@ -239,11 +238,9 @@ export function parsePreviewMessage(
   const isKnownType =
     isString(data.type) && Object.hasOwn(INBOUND_VALIDATORS, data.type);
   const validate = isKnownType
-    ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This legacy lookup rereads an unchecked getter after the string and own-key checks; its value can change, so neither check proves this index is a known protocol name.
-      INBOUND_VALIDATORS[data.type as string]
+    ? INBOUND_VALIDATORS[data.type as string]
     : undefined;
   if (!validate?.(data)) return undefined;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This legacy parser returns the original object unchecked. Repeated type reads can select an inherited validator such as toString, so successful dispatch does not prove the message union.
   return data as PreviewInboundMessage & typeof data;
 }
 
@@ -409,7 +406,6 @@ function issueFor(
     ? { key: refused.issue, name: match.name, value: refused.value }
     : undefined;
 }
-/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
 
 function resolveNode(
   node: PreviewChildNode,

@@ -109,7 +109,6 @@ function isPageValid(
   );
 
   const getValidationFunction = (id: string) =>
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The registry owner erases callback signatures. Metadata selects the validation convention without runtime validation; inference cannot restore its boolean return and adding a check would alter malformed registrations.
     getFunction(id) as ValidationFunction | undefined;
 
   const isCustomValid = runCustomValidation(
@@ -245,7 +244,6 @@ function buildPageSetupContext(
     },
     on(component, event, handler) {
       const listener = (e: Event) => {
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The component bus convention supplies CustomEvent detail, but window can receive unrelated events. The existing component comparison remains the only filter; owner Event inference cannot prove the payload and validation would change behavior.
         const detail = (e as CustomEvent<ComponentEventData>).detail;
         if (!detail || detail.component !== component) {
           return;

@@ -345,14 +345,12 @@ function runtimeDeclaration(expression) {
     });
     const serialize = (value) => {
       if (value === undefined) return { undefined: true };
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- VM evaluation returns runtime props values, not compiler AST nodes; compiler-derived types cannot distinguish function defaults for this JSON observation.
       if (typeof value === "function")
         return {
           function: value.name || null,
           code: value.toString().replace(/\s+/g, " "),
         };
       if (Array.isArray(value)) return Array.from(value, serialize);
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The compiler's expression text has no type for its VM-evaluated objects; this observation must recurse without coercing primitives or functions.
       if (value && typeof value === "object")
         return Object.fromEntries(
           Object.entries(value).map(([key, entry]) => [key, serialize(entry)]),

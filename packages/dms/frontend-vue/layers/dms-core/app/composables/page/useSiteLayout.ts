@@ -212,7 +212,6 @@ const useSiteLayoutRequests = () => {
   const { resolveError } = useApiErrorPresenter();
   const HTTP_INTERNAL_ERROR = 500;
 
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Fetch rejection values have no shared owner schema; an Error-only input would exclude malformed thrown values that intentionally use the fallback message.
   const handleSiteLayoutError = (error: unknown) => {
     const errorMessage = resolveError(error, {
       fallbackKey: "error.500.description",

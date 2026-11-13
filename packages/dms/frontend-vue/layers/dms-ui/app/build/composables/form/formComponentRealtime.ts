@@ -98,7 +98,6 @@ export function formComponentRealtime(source: FormRealtimeSource) {
     (event) => {
       const ctx = realtimeContext.value;
       if (!ctx) return;
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- RealtimeTopicEvent owns an open payload, not a validated ids array; retain the original unchecked topic projection rather than rejecting malformed events.
       const eventTyped = event as {
         type: string;
         payload?: { ids?: string[] };

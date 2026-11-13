@@ -28,9 +28,7 @@ function withRetryHeader(
   return merged;
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This catch boundary accepts arbitrary rejections; ofetch's FetchError owner would exclude supported non-fetch throws.
 function isUnauthorized(error: unknown): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This unchecked optional access preserves primitive boxing and nested getter behavior; a schema guard would change malformed-input behavior.
   const response = (error as { response?: { status?: number } } | undefined)
     ?.response;
   return response?.status === HTTP_UNAUTHORIZED;

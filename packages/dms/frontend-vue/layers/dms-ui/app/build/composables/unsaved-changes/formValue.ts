@@ -8,7 +8,6 @@ import {
  * saved). Typing a value then putting the original back makes it clean again.
  */
 
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Form controls may hold arbitrary plugin values, including non-JSON instances.
 type PlainObject = Record<string, unknown>;
 
 /** Whether a value is a plain object (not a list, a date, a file or an instance). */
@@ -26,7 +25,6 @@ export function isPlainObject(value: unknown): value is PlainObject {
  * filled). A control that empties itself to `""`, `null`, `[]` or `false`
  * leaves its field as clean as one never touched.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Emptiness accepts every value a plugin control can produce without rejecting malformed inputs.
 export function isEmptyFormValue(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (value === "" || value === false) return true;
@@ -42,7 +40,6 @@ export function isEmptyFormValue(value: unknown): boolean {
  * by item (order counts), objects key by key (whatever their order), dates by
  * their time; any two empty values are the same (see {@link isEmptyFormValue}).
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Deep comparison intentionally accepts arbitrary control values on both sides.
 export function sameFormValue(left: unknown, right: unknown): boolean {
   if (Object.is(left, right)) return true;
   const isLeftEmpty = isEmptyFormValue(left);
@@ -77,14 +74,10 @@ export function sameFormValue(left: unknown, right: unknown): boolean {
  */
 export function snapshotFormValue<T>(value: T): T {
   if (Array.isArray(value)) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Preserve the existing generic snapshot contract; array subclasses are not validated here.
     return value.map((item) => snapshotFormValue(item)) as T;
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The existing clone returns a Date even for subclasses; do not claim that it verifies every T refinement.
   if (value instanceof Date) return new Date(value.getTime()) as T;
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The plain-object classifier must accept generic values without restricting plugin control types.
   if (isPlainObject(value)) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Preserve the existing generic clone contract without claiming validation of T refinements.
     return Object.fromEntries(
       Object.entries(value).map(([key, part]) => [
         key,
@@ -97,9 +90,7 @@ export function snapshotFormValue<T>(value: T): T {
 
 /** The keys whose value differs between the current values and the baseline. */
 export function changedFormKeys(
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Field names and values are defined by plugin controls, not a closed schema.
   current: Readonly<Record<string, unknown>>,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The saved baseline holds the same arbitrary control values as current.
   baseline: Readonly<Record<string, unknown>>,
   keys: Iterable<string> = new Set([
     ...Object.keys(current),

@@ -35,7 +35,6 @@ const props = defineProps<Props>();
 
 let anchored: ComponentPublicInstance | null = null;
 function anchorBlock(instance: Element | ComponentPublicInstance | null): void {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Dynamic components can resolve to native elements; preserve the existing unchecked anchor forwarding.
   const block = (instance as ComponentPublicInstance | null) ?? null;
   registerBlockAnchor(props.layoutPath, block, anchored);
   anchored = block;
@@ -73,7 +72,6 @@ function calculateColumnCount(
 ): number {
   if (!children) return 0;
   return children.reduce(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Keep the existing addition behavior even when an unvalidated colSpan is not numeric.
     (sum, child) => sum + ((child.colSpan as number) || 1),
     0,
   );

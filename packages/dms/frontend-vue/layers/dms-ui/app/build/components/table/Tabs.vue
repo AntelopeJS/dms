@@ -92,7 +92,6 @@ const theme = tv({
   },
 });
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
 const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tableTabs: Partial<typeof theme> };
 };
