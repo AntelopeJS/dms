@@ -460,8 +460,8 @@ defineShortcuts({
             {{ caption }}
           </span>
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="isFirstPageLoading"
+            :aria-label="t('dms.a11y.loading')"
             aria-hidden="true"
             :class="uiTable.captionCountPlaceholder()"
           />

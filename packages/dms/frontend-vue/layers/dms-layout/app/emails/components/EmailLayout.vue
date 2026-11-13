@@ -19,7 +19,7 @@ const props = withDefaults(
      */
     publicLogoOnly?: boolean;
   }>(),
-  { divider: true, logoAlt: "Logo", publicLogoOnly: false },
+  { lang: "en", divider: true, logoAlt: "Logo", publicLogoOnly: false },
 );
 
 const appConfig = useDmsAppConfig();
@@ -40,7 +40,7 @@ const darkLogoUrl = darkCandidate === logoUrl ? "" : darkCandidate;
 </script>
 
 <template>
-  <EHtml :lang="lang ?? 'en'">
+  <EHtml :lang="lang">
     <EHead>
       <slot name="head" />
     </EHead>

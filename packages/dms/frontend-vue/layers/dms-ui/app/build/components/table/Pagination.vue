@@ -200,8 +200,8 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
       </span>
       {{ summary.label }}
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-if="summary.value === undefined"
+        :aria-label="t('dms.a11y.loading')"
         aria-hidden="true"
         :class="uiTablePagination.summaryPlaceholder()"
       />

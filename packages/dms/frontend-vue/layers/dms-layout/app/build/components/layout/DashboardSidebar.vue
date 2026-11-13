@@ -253,9 +253,9 @@ const footerItems = computed((): NavigationMenuItem[] => {
   />
 
   <UDashboardSidebar
+    v-model:collapsed="sidebarCollapsed"
     data-dms-persistent-sidebar
     :open="false"
-    v-model:collapsed="sidebarCollapsed"
     :default-size="SIDEBAR_DEFAULT_WIDTH_PX"
     :min-size="SIDEBAR_MIN_WIDTH_PX"
     :max-size="SIDEBAR_MAX_WIDTH_PX"

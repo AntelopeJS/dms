@@ -166,8 +166,8 @@ function toggle(roleId: string) {
 <template>
   <div class="flex flex-col gap-1.5">
     <USkeleton
-      :aria-label="t('dms.a11y.loading')"
       v-if="isLoading"
+      :aria-label="t('dms.a11y.loading')"
       class="h-7 w-48 rounded-full"
     />
     <span

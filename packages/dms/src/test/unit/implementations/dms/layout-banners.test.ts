@@ -56,27 +56,31 @@ async function bannerKeys(tenantId = TENANT): Promise<string[]> {
   return (await bannersFor(tenantId)).map((banner) => banner.key);
 }
 
+const disposers: Array<() => void> = [];
+
+function implementInterfaces() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+  ImplementInterface(layoutBannersInterface, layoutBannersImpl);
+  tenantAccessInterface.RegisterTenantAccessGate(gateInfo);
+}
+
+function restoreInterfaces() {
+  tenantAccessInterface.internal.RegisterTenantAccessGate.unregister(gateInfo);
+}
+
+function disposeBanners() {
+  for (const dispose of disposers.splice(0)) dispose();
+}
+
 describe("[unit] implementations/dms/layout-banners — site layout resolution", () => {
-  const disposers: Array<() => void> = [];
+  before(implementInterfaces);
 
-  before(() => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-    ImplementInterface(layoutBannersInterface, layoutBannersImpl);
-    tenantAccessInterface.RegisterTenantAccessGate(gateInfo);
-  });
+  after(restoreInterfaces);
 
-  after(() => {
-    tenantAccessInterface.internal.RegisterTenantAccessGate.unregister(
-      gateInfo,
-    );
-  });
-
-  afterEach(() => {
-    for (const dispose of disposers.splice(0)) dispose();
-  });
+  afterEach(disposeBanners);
 
   it("serves a banner without a resolver on every request, resolver left out", async () => {
     disposers.push(
@@ -164,6 +168,14 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
     const [banner] = await bannersFor();
     expect(banner?.scope).to.equal(LayoutBannerScope.APP);
   });
+});
+
+describe("[unit] implementations/dms/layout-banners — site layout resolution, scopes and ordering", () => {
+  before(implementInterfaces);
+
+  after(restoreInterfaces);
+
+  afterEach(disposeBanners);
 
   it("takes the scope the same way on a text, a resolved and a component banner", async () => {
     disposers.push(
@@ -263,6 +275,14 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
       isTenantAccessDenied: false,
     });
   });
+});
+
+describe("[unit] implementations/dms/layout-banners — site layout resolution, tenant gate and resolver failures", () => {
+  before(implementInterfaces);
+
+  after(restoreInterfaces);
+
+  afterEach(disposeBanners);
 
   it("keeps the real permissions and flags the gate for a denied tenant", async () => {
     let seen: LayoutBannerContext | undefined;
@@ -333,6 +353,14 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
 
     expect(await bannerKeys()).to.deep.equal([]);
   });
+});
+
+describe("[unit] implementations/dms/layout-banners — site layout resolution, composed and resolved content", () => {
+  before(implementInterfaces);
+
+  after(restoreInterfaces);
+
+  afterEach(disposeBanners);
 
   it("serves a composed text and its buttons as registered", async () => {
     const text = {

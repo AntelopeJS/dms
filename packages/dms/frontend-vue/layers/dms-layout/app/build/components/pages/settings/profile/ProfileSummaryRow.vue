@@ -60,8 +60,8 @@ const { t } = useI18n();
     class="border-muted flex flex-wrap items-center gap-3.5 border-t px-[18px] py-3.5 first:border-t-0"
   >
     <USkeleton
-      :aria-label="t('dms.a11y.loading')"
       v-if="props.loading"
+      :aria-label="t('dms.a11y.loading')"
       aria-hidden="true"
       class="size-8 shrink-0 rounded-[9px]"
     />
@@ -77,8 +77,8 @@ const { t } = useI18n();
       </template>
       <!-- Transparent text on a 12px bar per line it wraps to. -->
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-if="props.loading"
+        :aria-label="t('dms.a11y.loading')"
         as="span"
         aria-hidden="true"
         class="bg-transparent bg-[linear-gradient(var(--dms-skeleton),var(--dms-skeleton))] box-decoration-clone bg-size-[100%_12px] bg-center bg-no-repeat text-transparent select-none"

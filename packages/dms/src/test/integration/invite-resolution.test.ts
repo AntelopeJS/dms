@@ -4,7 +4,6 @@ import { z } from "zod";
 import { listenersFor } from "../../automation";
 import { runCleanupUserInvites } from "../../crons";
 import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
-import type { InviteResolution } from "@antelopejs/interface-dms/db/tables/inviteResolutions.table";
 import {
   TenantMemberModel,
   type UserInvite,
@@ -28,6 +27,12 @@ import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { Form } from "@antelopejs/interface-dms/base/form";
 import { consumeInvite } from "../../routes/authentication";
 import { resetDatabase } from "../helpers/db";
+import {
+  hasDeliveryId,
+  inviteFixture,
+  type ListenerPayload,
+  resolutionFixture,
+} from "../helpers/invite-resolution-fixtures";
 
 const TENANT = "invite-resolution-tenant";
 
@@ -35,107 +40,67 @@ const USER = "invite-resolution-user";
 const FUTURE_MS = 60_000;
 const CLEANUP_SCAN_TEST_TIMEOUT_MS = 10_000;
 
-type ListenerPayload = Parameters<
-  Parameters<ReturnType<typeof listenersFor>["add"]>[0]
->[0];
+let invites: UserInviteModel;
 
-function hasDeliveryId(
-  value: ListenerPayload,
-): value is ListenerPayload & { deliveryId: string } {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "deliveryId" in value &&
-    typeof value.deliveryId === "string"
-  );
-}
+let decisions: InviteResolutionsModel;
 
-function inviteFixture(source: UserInvite): UserInvite {
-  return {
-    _id: source._id,
-    createdAt: source.createdAt,
-    email: source.email,
-    firstname: source.firstname,
-    lastname: source.lastname,
-    roles_ids: source.roles_ids,
-    language: source.language,
-    token: source.token,
-    asTenantOwner: source.asTenantOwner,
-    expiresAt: source.expiresAt,
-    creationResolutionId: source.creationResolutionId,
-    extensions: source.extensions,
-  };
-}
+let invite: UserInvite;
 
-function resolutionFixture(source: InviteResolution): InviteResolution {
-  return {
-    _id: source._id,
-    tenantId: source.tenantId,
-    reason: source.reason,
-    userId: source.userId,
-    invite: source.invite,
-    replacement: source.replacement,
-    extensionKeys: source.extensionKeys,
-    revision: source.revision,
-    membershipPhase: source.membershipPhase,
-    replacementPhase: source.replacementPhase,
-    completed: source.completed,
-    decidedAt: source.decidedAt,
-  };
+let failCleanup: boolean;
+
+let failAccept: boolean;
+
+let cleaned: Set<string>;
+
+let accepted: Set<string>;
+
+let unregisterExtension: () => void;
+
+async function setUpInvite() {
+  await resetDatabase();
+  failCleanup = false;
+  failAccept = false;
+  cleaned = new Set();
+  accepted = new Set();
+  unregisterExtension = RegisterInviteExtension({
+    key: "test",
+    component: Form({ fields: [] }),
+    schema: z.object({ value: z.string() }),
+    placement: { side: "end", order: 0 },
+    onAccept: (_payload, _member, context) => {
+      assert.ok(context.deliveryId);
+      accepted.add(context.deliveryId);
+      if (failAccept) throw new Error("accept effect acknowledgement lost");
+    },
+    onCleanup: (payload, context) => {
+      assert.equal(payload?.value, "snapshot");
+      assert.equal(context.tenantId, TENANT);
+      assert.ok(context.deliveryId);
+      cleaned.add(context.deliveryId);
+      if (failCleanup) throw new Error("cleanup effect acknowledgement lost");
+    },
+  });
+  invites = GetModel(UserInviteModel, TENANT);
+  decisions = GetModel(InviteResolutionsModel, TENANT);
+  await invites.insert({
+    _id: "original-invite",
+    token: "original-token",
+    email: "invite@example.test",
+    firstname: null,
+    lastname: null,
+    language: "en",
+    roles_ids: ["initial-role"],
+    asTenantOwner: false,
+    expiresAt: new Date(Date.now() + FUTURE_MS),
+    extensions: { test: { value: "snapshot" } },
+  });
+  const row = await invites.get("original-invite");
+  assert.ok(row);
+  invite = row;
 }
 
 describe("Invite terminal decisions (MongoDB adapter)", () => {
-  let invites: UserInviteModel;
-  let decisions: InviteResolutionsModel;
-  let invite: UserInvite;
-  let failCleanup: boolean;
-  let failAccept: boolean;
-  let cleaned: Set<string>;
-  let accepted: Set<string>;
-  let unregisterExtension: () => void;
-
-  beforeEach(async () => {
-    await resetDatabase();
-    failCleanup = false;
-    failAccept = false;
-    cleaned = new Set();
-    accepted = new Set();
-    unregisterExtension = RegisterInviteExtension({
-      key: "test",
-      component: Form({ fields: [] }),
-      schema: z.object({ value: z.string() }),
-      placement: { side: "end", order: 0 },
-      onAccept: (_payload, _member, context) => {
-        assert.ok(context.deliveryId);
-        accepted.add(context.deliveryId);
-        if (failAccept) throw new Error("accept effect acknowledgement lost");
-      },
-      onCleanup: (payload, context) => {
-        assert.equal(payload?.value, "snapshot");
-        assert.equal(context.tenantId, TENANT);
-        assert.ok(context.deliveryId);
-        cleaned.add(context.deliveryId);
-        if (failCleanup) throw new Error("cleanup effect acknowledgement lost");
-      },
-    });
-    invites = GetModel(UserInviteModel, TENANT);
-    decisions = GetModel(InviteResolutionsModel, TENANT);
-    await invites.insert({
-      _id: "original-invite",
-      token: "original-token",
-      email: "invite@example.test",
-      firstname: null,
-      lastname: null,
-      language: "en",
-      roles_ids: ["initial-role"],
-      asTenantOwner: false,
-      expiresAt: new Date(Date.now() + FUTURE_MS),
-      extensions: { test: { value: "snapshot" } },
-    });
-    const row = await invites.get("original-invite");
-    assert.ok(row);
-    invite = row;
-  });
+  beforeEach(setUpInvite);
 
   afterEach(() => unregisterExtension());
 
@@ -206,6 +171,12 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
     assert.equal(cleaned.size, 0);
     assert.equal(accepted.size, 1);
   });
+});
+
+describe("Invite terminal decisions (MongoDB adapter), replays and edits", () => {
+  beforeEach(setUpInvite);
+
+  afterEach(() => unregisterExtension());
 
   it("preserves admin edits during a failed acceptance replay", async () => {
     const resolution = await decideInvite({
@@ -268,6 +239,12 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
     );
     assert.equal((await decisions.get(resolution._id))?.completed, false);
   });
+});
+
+describe("Invite terminal decisions (MongoDB adapter), uncertain decisions", () => {
+  beforeEach(setUpInvite);
+
+  afterEach(() => unregisterExtension());
 
   it("recovers an uncertain decision insert without deleting or replacing the winner", async () => {
     const insert = decisions.insert.bind(decisions);
@@ -343,6 +320,12 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
     assert.ok(await invites.get(invite._id));
     assert.equal((await decisions.get(resolution._id))?.completed, false);
   });
+});
+
+describe("Invite terminal decisions (MongoDB adapter), extensions and members", () => {
+  beforeEach(setUpInvite);
+
+  afterEach(() => unregisterExtension());
 
   it("keeps invalid stored extension payloads pending rather than acknowledging skipped effects", async () => {
     const invalidInvite = inviteFixture(invite);
@@ -427,6 +410,12 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
       listenersFor("dms.member-added").delete(listener);
     }
   });
+});
+
+describe("Invite terminal decisions (MongoDB adapter), replacement and cleanup scans", () => {
+  beforeEach(setUpInvite);
+
+  afterEach(() => unregisterExtension());
 
   it("arbitrates replacement against acceptance and cancellation without cross-tenant conflict", async () => {
     const replacement = inviteFixture(invite);

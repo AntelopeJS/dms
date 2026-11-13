@@ -267,25 +267,97 @@ describe("[unit] interfaces/dms/page — header availability reads the route par
   });
 });
 
+const cleanups: Array<() => void> = [];
+type SiteRecord = {
+  address: string;
+  owner?: { id: string };
+  locked?: boolean;
+};
+const SITES = new Map<string, SiteRecord>([
+  ["s1", { address: "1 rue de l'Église, Liège", owner: { id: "u&1" } }],
+  ["locked", { address: "Gare", locked: true }],
+]);
+let pattern = "";
+let notePattern = "";
+
+async function servedLayout(id: string, slug = pattern) {
+  const path = slug.replace(":id", id);
+  const payload = await buildPagePayload(
+    path,
+    MEMBER,
+    models.memberModel,
+    models.roleModel,
+    TENANT,
+    false,
+    requestAt(new URL(`http://dms.test/dms/page?path=${path}&shared=false`)),
+  );
+  return payload.layout.layout;
+}
+
+async function served(id: string) {
+  return headerOptions(await servedLayout(id));
+}
+
+const byId = (options: ServedOptions, id: string) =>
+  options.headerActions.find((action) => action.id === id);
+
+function registerRecordCases(): void {
+  it("fills the buttons acting on the record with its fields, encoded", async () => {
+    const options = await served("s1");
+    expect(options.headerActions.map((action) => action.id)).to.deep.equal([
+      "directions",
+      "edit",
+      "delete",
+      "help",
+    ]);
+    expect(byId(options, "directions")?.target?.url).to.equal(
+      `https://maps.example.com/?q=${encodeURIComponent("1 rue de l'Église, Liège")}&o=u%261&x={{record.none}}`,
+    );
+    expect(byId(options, "edit")).to.not.have.property("requiresRecord");
+    expect(options).to.not.have.property("record");
+    expect(options.headerActionsParams).to.deep.equal({ id: "s1" });
+  });
+
+  it("hands the record to every availability of the page", async () => {
+    const options = await served("locked");
+    expect(byId(options, "delete")).to.include({
+      disabled: true,
+      disabledReason: "$sites.locked",
+    });
+    expect(byId(await served("s1"), "delete")).to.not.have.property("disabled");
+  });
+
+  it("leaves the buttons acting on the record out when there is none", async () => {
+    for (const id of ["missing", "broken"]) {
+      const options = await served(id);
+      expect(options.headerActions.map((action) => action.id)).to.deep.equal([
+        "delete",
+        "help",
+      ]);
+      expect(options.headerActionsParams).to.deep.equal({ id });
+    }
+  });
+
+  it("says whether it found the record, found none, or failed to read it", async () => {
+    expect((await served("s1")).recordStatus).to.equal("found");
+    expect((await served("missing")).recordStatus).to.equal("missing");
+    expect((await served("broken")).recordStatus).to.equal("error");
+  });
+
+  it("says it on a page without header buttons too, with the URL it read", async () => {
+    const options = statusOptions(await servedLayout("gone", notePattern));
+    expect(options).to.include({ recordStatus: "missing" });
+    expect(options.headerActionsParams).to.deep.equal({ id: "gone" });
+    expect(options).to.not.have.property("headerActions");
+  });
+}
+
 /**
  * A detail page reads its record with its layout (`DefaultLayout({ record })`):
  * the header buttons acting on it take its fields as `{{record.X}}`, or are
  * left out without it, and every availability of the page reads it.
  */
 describe("[unit] interfaces/dms/page — the page's record, read with its layout", () => {
-  const cleanups: Array<() => void> = [];
-  type SiteRecord = {
-    address: string;
-    owner?: { id: string };
-    locked?: boolean;
-  };
-  const SITES = new Map<string, SiteRecord>([
-    ["s1", { address: "1 rue de l'Église, Liège", owner: { id: "u&1" } }],
-    ["locked", { address: "Gare", locked: true }],
-  ]);
-  let pattern = "";
-  let notePattern = "";
-
   before(async () => {
     ImplementInterface(permissionsInterface, permissionsImpl);
     ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
@@ -352,73 +424,5 @@ describe("[unit] interfaces/dms/page — the page's record, read with its layout
     for (const cleanup of cleanups.splice(0)) cleanup();
   });
 
-  async function servedLayout(id: string, slug = pattern) {
-    const path = slug.replace(":id", id);
-    const payload = await buildPagePayload(
-      path,
-      MEMBER,
-      models.memberModel,
-      models.roleModel,
-      TENANT,
-      false,
-      requestAt(new URL(`http://dms.test/dms/page?path=${path}&shared=false`)),
-    );
-    return payload.layout.layout;
-  }
-
-  async function served(id: string) {
-    return headerOptions(await servedLayout(id));
-  }
-
-  const byId = (options: ServedOptions, id: string) =>
-    options.headerActions.find((action) => action.id === id);
-
-  it("fills the buttons acting on the record with its fields, encoded", async () => {
-    const options = await served("s1");
-    expect(options.headerActions.map((action) => action.id)).to.deep.equal([
-      "directions",
-      "edit",
-      "delete",
-      "help",
-    ]);
-    expect(byId(options, "directions")?.target?.url).to.equal(
-      `https://maps.example.com/?q=${encodeURIComponent("1 rue de l'Église, Liège")}&o=u%261&x={{record.none}}`,
-    );
-    expect(byId(options, "edit")).to.not.have.property("requiresRecord");
-    expect(options).to.not.have.property("record");
-    expect(options.headerActionsParams).to.deep.equal({ id: "s1" });
-  });
-
-  it("hands the record to every availability of the page", async () => {
-    const options = await served("locked");
-    expect(byId(options, "delete")).to.include({
-      disabled: true,
-      disabledReason: "$sites.locked",
-    });
-    expect(byId(await served("s1"), "delete")).to.not.have.property("disabled");
-  });
-
-  it("leaves the buttons acting on the record out when there is none", async () => {
-    for (const id of ["missing", "broken"]) {
-      const options = await served(id);
-      expect(options.headerActions.map((action) => action.id)).to.deep.equal([
-        "delete",
-        "help",
-      ]);
-      expect(options.headerActionsParams).to.deep.equal({ id });
-    }
-  });
-
-  it("says whether it found the record, found none, or failed to read it", async () => {
-    expect((await served("s1")).recordStatus).to.equal("found");
-    expect((await served("missing")).recordStatus).to.equal("missing");
-    expect((await served("broken")).recordStatus).to.equal("error");
-  });
-
-  it("says it on a page without header buttons too, with the URL it read", async () => {
-    const options = statusOptions(await servedLayout("gone", notePattern));
-    expect(options).to.include({ recordStatus: "missing" });
-    expect(options.headerActionsParams).to.deep.equal({ id: "gone" });
-    expect(options).to.not.have.property("headerActions");
-  });
+  registerRecordCases();
 });

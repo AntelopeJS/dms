@@ -101,7 +101,7 @@ const EMPTY_ICON = "i-ph-chart-line-up";
 
 const props = withDefaults(defineProps<Props>(), {
   height: DEFAULT_CHART_HEIGHT,
-
+  xaxisType: "category",
   showGrid: true,
   roundedCorners: true,
   showTooltip: true,

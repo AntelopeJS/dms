@@ -171,28 +171,31 @@ async function allowNextEmailCode(userId: string): Promise<void> {
   await GetModel(UserModel).update(user);
 }
 
+let user: RegisteredUser;
+
+let client: AxiosInstance;
+
+const methods = async () =>
+  (await client.get<{ methods: string[] }>(TWO_FACTOR)).data.methods;
+
+const startEmailSetup = () =>
+  client.post(`${TWO_FACTOR}/enable-email`, {
+    currentPassword: user.password,
+  });
+
+async function resetTwoFactorUser() {
+  renderedEmails.length = 0;
+  await resetDatabase();
+  user = await registerUser({ owner: true });
+  client = authorizedClient(user.accessToken);
+}
+
 describe("[integration] auth/two-factor codes", function () {
   this.timeout(TEST_TIMEOUT_MS);
 
-  let user: RegisteredUser;
-  let client: AxiosInstance;
-
-  const methods = async () =>
-    (await client.get<{ methods: string[] }>(TWO_FACTOR)).data.methods;
-
-  const startEmailSetup = () =>
-    client.post(`${TWO_FACTOR}/enable-email`, {
-      currentPassword: user.password,
-    });
-
   before(captureEmails);
 
-  beforeEach(async () => {
-    renderedEmails.length = 0;
-    await resetDatabase();
-    user = await registerUser({ owner: true });
-    client = authorizedClient(user.accessToken);
-  });
+  beforeEach(resetTwoFactorUser);
 
   describe("sign-in challenge", () => {
     it("is spent after 5 codes, even before the right one comes", async () => {
@@ -264,7 +267,17 @@ describe("[integration] auth/two-factor codes", function () {
       const next = await verify(await signIn(user), "backup", backupCodes[1]);
       expect(next.status, JSON.stringify(next.data)).to.equal(HTTP_OK);
     });
+  });
+});
 
+describe("[integration] auth/two-factor codes", function () {
+  this.timeout(TEST_TIMEOUT_MS);
+
+  before(captureEmails);
+
+  beforeEach(resetTwoFactorUser);
+
+  describe("sign-in challenge", () => {
     it("sends no more email codes for a spent challenge", async () => {
       await startEmailSetup();
       await client.post(`${TWO_FACTOR}/confirm-email`, {
@@ -310,6 +323,14 @@ describe("[integration] auth/two-factor codes", function () {
       );
     });
   });
+});
+
+describe("[integration] auth/two-factor codes", function () {
+  this.timeout(TEST_TIMEOUT_MS);
+
+  before(captureEmails);
+
+  beforeEach(resetTwoFactorUser);
 
   describe("authenticator codes", () => {
     it("refuses a code already accepted, at sign-in and on the Security page", async () => {
@@ -370,6 +391,14 @@ describe("[integration] auth/two-factor codes", function () {
       expect(outcomes.filter(Boolean)).to.have.length(1);
     });
   });
+});
+
+describe("[integration] auth/two-factor codes", function () {
+  this.timeout(TEST_TIMEOUT_MS);
+
+  before(captureEmails);
+
+  beforeEach(resetTwoFactorUser);
 
   describe("turning email codes on", () => {
     it("waits for the code sent to the account address", async () => {

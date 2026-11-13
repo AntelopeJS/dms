@@ -34,13 +34,7 @@ import {
 } from "./page-extension.helpers";
 import { registerPageExtensionLifecycleCases } from "./page-extension-lifecycle.cases";
 
-describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(pageInterface, pageImpl);
-  });
-
+function registerPlacementCases(): void {
   it("appends an extension component after the page's own components", async () => {
     class Target extends definePage("pe-append") {
       static header = CustomComponent("Header").meta({ name: "Header" });
@@ -132,7 +126,9 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
       "summary",
     ]);
   });
+}
 
+function registerOrderingCases(): void {
   it("keeps the same order whichever module registers first", async () => {
     class TargetA extends definePage("pe-race-a") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -209,7 +205,9 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
       "alphaBlock",
     ]);
   });
+}
 
+function registerRegistrationTimingCases(): void {
   it("applies an extension registered before its target page", async () => {
     class Target extends definePage("pe-deferred") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -302,7 +300,9 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     ]);
     expect(outcome).to.equal("settled");
   });
+}
 
+function registerPermissionTreeCases(): void {
   it("gives an injected component its own node in the target's permission tree", async () => {
     class Target extends definePage("pe-permissions") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -389,6 +389,18 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
       layout.components.block?.children?.map((child) => child.id),
     ).to.deep.equal(["details"]);
   });
+}
 
+describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
+  before(async () => {
+    ImplementInterface(permissionsInterface, permissionsImpl);
+    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+    ImplementInterface(pageInterface, pageImpl);
+  });
+
+  registerPlacementCases();
+  registerOrderingCases();
+  registerRegistrationTimingCases();
+  registerPermissionTreeCases();
   registerPageExtensionLifecycleCases();
 });

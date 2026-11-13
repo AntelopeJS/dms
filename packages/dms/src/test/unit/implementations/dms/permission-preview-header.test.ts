@@ -51,8 +51,9 @@ describe("[unit] implementations/dms/permission-preview — header and quick act
   });
 
   it("changes nothing when the set is served what the viewer is", () => {
-    expect(findHeaderActionsHiddenByPreview(access({}), access({}))).to.be
-      .empty;
+    expect(
+      findHeaderActionsHiddenByPreview(access({}), access({})),
+    ).to.have.lengthOf(0);
   });
 
   it("hides an action left out by its permission", () => {
@@ -79,7 +80,9 @@ describe("[unit] implementations/dms/permission-preview — header and quick act
   it("ignores an action the viewer is not shown either", () => {
     const viewer = access({ quickActions: { actions: {} } });
     const preview = access({ quickActions: { actions: {} } });
-    expect(findHeaderActionsHiddenByPreview(viewer, preview)).to.be.empty;
+    expect(findHeaderActionsHiddenByPreview(viewer, preview)).to.have.lengthOf(
+      0,
+    );
   });
 
   it("lists the quick actions the set is not served", () => {

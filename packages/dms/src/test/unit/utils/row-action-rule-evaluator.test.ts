@@ -16,7 +16,7 @@ const ROW_INACTIVE_USER = {
   profile: { verified: false, country: "BE" },
 };
 
-describe("[unit] utils/row-action-rule-evaluator", () => {
+function registerFieldOperatorCases(): void {
   describe("field operators", () => {
     it("evaluates equals to true when the field matches", () => {
       const rule: RowActionRule = { field: "status", equals: "active" };
@@ -69,7 +69,9 @@ describe("[unit] utils/row-action-rule-evaluator", () => {
       expect(evaluateRowActionRule(rule, ROW_ACTIVE_ADMIN)).to.equal(false);
     });
   });
+}
 
+function registerLogicalOperatorCases(): void {
   describe("logical operators", () => {
     it("evaluates and with all children truthy", () => {
       const rule = {
@@ -145,7 +147,9 @@ describe("[unit] utils/row-action-rule-evaluator", () => {
       expect(evaluateRowActionRule(rule, ROW_ACTIVE_ADMIN)).to.equal(false);
     });
   });
+}
 
+function registerFallbackCases(): void {
   describe("fallback behaviour", () => {
     it("returns false when the rule has no known operator", () => {
       const rule = {};
@@ -159,4 +163,10 @@ describe("[unit] utils/row-action-rule-evaluator", () => {
       expect(evaluateRowActionRule(rule, ROW_ACTIVE_ADMIN)).to.equal(false);
     });
   });
+}
+
+describe("[unit] utils/row-action-rule-evaluator", () => {
+  registerFieldOperatorCases();
+  registerLogicalOperatorCases();
+  registerFallbackCases();
 });
