@@ -126,6 +126,54 @@ function readJson<T>(
   return read.config;
 }
 
+const PATH_SPEC = /^(?<protocol>file|link):(?<target>.*)$/s;
+
+/** A `file:` or `link:` spec relative to `from`, rewritten to name the same target from `to`. */
+function rebasedSpec(spec: string, from: string, to: string): string {
+  const local = PATH_SPEC.exec(spec)?.groups;
+  if (local === undefined || path.isAbsolute(local.target)) {
+    return spec;
+  }
+  const target = path
+    .relative(to, path.resolve(from, local.target))
+    .split(path.sep)
+    .join("/");
+  return `${local.protocol}:${target}`;
+}
+
+function rebasedVersions(
+  versions: Versions | undefined,
+  from: string,
+  to: string,
+): Versions | undefined {
+  if (versions === undefined || versions === null || Array.isArray(versions)) {
+    return versions;
+  }
+  return Object.fromEntries(
+    Object.entries(versions).map(([name, spec]) => [
+      name,
+      rebasedSpec(spec, from, to),
+    ]),
+  );
+}
+
+/** The project's manifest with its path specs resolving from the module's folder `root`. */
+function seenFrom(
+  project: PackageManifest,
+  projectRoot: string,
+  root: string,
+): PackageManifest {
+  return {
+    ...project,
+    dependencies: rebasedVersions(project.dependencies, projectRoot, root),
+    devDependencies: rebasedVersions(
+      project.devDependencies,
+      projectRoot,
+      root,
+    ),
+  };
+}
+
 function picked(
   versions: Record<string, string> | never[] | undefined,
   keep: (name: string) => boolean,
@@ -205,8 +253,11 @@ export function scaffoldLocalModule(
   if (fs.existsSync(root)) {
     throw new ScaffoldRefusal(`module path "${relativePath}" already exists`);
   }
-  const project =
-    readJson(path.join(projectRoot, "package.json"), isPackageManifest) ?? {};
+  const project = seenFrom(
+    readJson(path.join(projectRoot, "package.json"), isPackageManifest) ?? {},
+    projectRoot,
+    root,
+  );
   const tsconfig = readJson(
     path.join(projectRoot, "tsconfig.json"),
     isTsConfig,
