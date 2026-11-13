@@ -1,5 +1,8 @@
 import type { InterfaceConnection } from "@antelopejs/interface-core";
-import type { ImportOverrideInput } from "@antelopejs/interface-dms-builder";
+import type {
+  DatabasePin,
+  ImportOverrideInput,
+} from "@antelopejs/interface-dms-builder";
 import { Node, type ObjectLiteralExpression, SyntaxKind } from "ts-morph";
 import { propertyKey, propertyNamed } from "./modules";
 import { moduleConnections, ownModuleId } from "./own-connections";
@@ -23,16 +26,6 @@ import {
 const DEFAULT_PRIORITY = 0;
 const EXPORT_PRIORITY = "exportPriority";
 const IMPORT_OVERRIDES = "importOverrides";
-
-/**
- * The `interface-database` pin a module needs once a module that uses it pins another database:
- * core passes that pin on to the modules that import it, which would then be reached with two
- * bindings.
- */
-export interface DatabasePin {
-  module: string;
-  provider: string;
-}
 
 /**
  * The project's own database, and the modules that must be pinned to it before a second

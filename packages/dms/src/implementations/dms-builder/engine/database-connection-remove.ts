@@ -1,16 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import type {
+  ConnectionWiring,
   FileChange,
   OpResult,
   ProjectConfigResult,
   ProjectConfigStep,
 } from "@antelopejs/interface-dms-builder";
-import {
-  type ConnectionWiring,
-  connectionWiring,
-  isConnectionRefusal,
-} from "./database-connection";
+import { connectionWiring, isConnectionRefusal } from "./database-connection";
 import { CATALOG_INTERFACE } from "./interface-ids";
 import { invalidConfig, unsupported } from "./ops";
 import { StepRefusal } from "./project-config";

@@ -1,6 +1,8 @@
+import type {
+  DatabaseAccess,
+  DatabaseEngine,
+} from "@antelopejs/interface-dms-builder";
 import {
-  type DatabaseAccess,
-  type DatabaseEngine,
   failureMessage,
   noAnswerReason,
   type Probe,

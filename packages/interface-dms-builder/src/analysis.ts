@@ -217,6 +217,13 @@ export const GetAnalysis =
   InterfaceFunction<(id: string) => Promise<OpResult<AnalysisState>>>();
 
 /**
+ * The latest analysis of a connection: the running one, or else the last to finish. `not_found`
+ * when none ran since the start.
+ */
+export const GetLatestAnalysis =
+  InterfaceFunction<(connection: string) => Promise<OpResult<AnalysisState>>>();
+
+/**
  * A relation a module maps, read back from its code as its current choices, in a proposal's shape:
  * every choice cites the rule `mapped`.
  */

@@ -2,6 +2,7 @@ export * from "./addressing";
 export * from "./analysis";
 export * from "./catalog";
 export * from "./compose";
+export * from "./database";
 export * from "./drafts";
 export * from "./mapping";
 export * from "./operation-map";

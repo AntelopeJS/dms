@@ -7,6 +7,7 @@ import type {
   OpResult,
   ProjectConfigResult,
   ProjectConfigStep,
+  ProjectVariable,
 } from "@antelopejs/interface-dms-builder";
 import {
   assignedName,
@@ -196,12 +197,6 @@ export function setProjectVariable(
     mode: 0o600,
   });
   return file;
-}
-
-/** A variable's development value, sent with the batch that maps it. */
-export interface ProjectVariable {
-  name: string;
-  value: string;
 }
 
 function stepVariables(steps: ProjectConfigStep[]): Set<string> {

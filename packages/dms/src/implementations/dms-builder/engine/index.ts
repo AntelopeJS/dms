@@ -5,6 +5,7 @@ export * from "./catalog";
 export * from "./catalog-connection";
 export * from "./catalog-inference";
 export * from "./compose-page";
+export * from "./database-check-input";
 export * from "./database-connection";
 export * from "./database-connection-remove";
 export * from "./database-pin";

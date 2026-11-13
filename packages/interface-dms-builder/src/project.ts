@@ -98,6 +98,21 @@ export interface CreateLocalModuleOpts extends ProjectConfigOpts {
   connection?: string;
 }
 
+/** A variable's development value, sent with the batch that maps it. */
+export interface ProjectVariable {
+  name: string;
+  value: string;
+}
+
+/** Options for `ConfigureProject`. */
+export interface ConfigureProjectOpts extends ProjectConfigOpts {
+  /**
+   * Development values of variables the steps map in their `env`, written into the project's
+   * `.env` before the configuration. A variable the steps do not map is refused. Ignored on a dry run.
+   */
+  variables?: ProjectVariable[];
+}
+
 /** The files a project-config operation wrote, or would write. */
 export interface ProjectConfigResult {
   files: string[];
@@ -106,13 +121,15 @@ export interface ProjectConfigResult {
 /**
  * Applies steps to `antelope.config.ts` in order, as one edit: every step is validated before
  * anything is written, and none is written if one is refused. The configuration must be a
- * `defineConfig({ … })` (or plain object) literal with a literal `modules`.
+ * `defineConfig({ … })` (or plain object) literal with a literal `modules`. With `variables`,
+ * `.env` is written first, once a dry run accepted the steps, and put back when the configuration
+ * cannot be written.
  */
 export const ConfigureProject =
   InterfaceFunction<
     (
       steps: ProjectConfigStep[],
-      opts?: ProjectConfigOpts,
+      opts?: ConfigureProjectOpts,
     ) => Promise<OpResult<ProjectConfigResult>>
   >();
 

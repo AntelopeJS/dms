@@ -1,7 +1,7 @@
+import type { DatabaseAccess } from "@antelopejs/interface-dms-builder";
 import net from "node:net";
 import { postgresAccess, type PostgresRelationRow } from "./access-postgres";
 import {
-  type DatabaseAccess,
   failureMessage,
   missingClient,
   noAnswerReason,

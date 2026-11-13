@@ -1,3 +1,7 @@
+import type {
+  DatabaseAccess,
+  DatabaseEngine,
+} from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
 import type { ProbeConnections } from "./probe-connections";
 
@@ -5,23 +9,11 @@ import type { ProbeConnections } from "./probe-connections";
  * The engines of the *Connect a database* form, by the name the form sends.
  * Mirrored in `frontend-vue/builder/app/runtime/database-connect.ts`.
  */
-export const DATABASE_ENGINES = ["postgres", "mongodb", "rethinkdb"] as const;
-
-export type DatabaseEngine = (typeof DATABASE_ENGINES)[number];
-
-/** What a live check of a database connection found: the answer of `POST /database/connections/check`. */
-export interface DatabaseAccess {
-  /** Whether a server answered, even to refuse the sign-in. */
-  reachable: boolean;
-  /** The round trip of the first query the signed-in account made. */
-  latencyMs?: number;
-  /** The account the server reports. */
-  user?: string;
-  canRead: boolean;
-  canWrite: boolean;
-  /** A short sentence for the person who connects, whenever the database cannot be read. Never holds the URL, the password or a query. */
-  reason?: string;
-}
+export const DATABASE_ENGINES = [
+  "postgres",
+  "mongodb",
+  "rethinkdb",
+] as const satisfies readonly DatabaseEngine[];
 
 export interface Privileges {
   canRead: boolean;

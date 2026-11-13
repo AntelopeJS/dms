@@ -1,5 +1,8 @@
 import path from "node:path";
 import type {
+  ConnectionDetails,
+  ConnectionModule,
+  ConnectionWiring,
   OpResult,
   ProjectConfigResult,
 } from "@antelopejs/interface-dms-builder";
@@ -43,40 +46,6 @@ const URL_PATH = "config.url";
 const PASSWORD_PARAMETER = "password";
 const USER_PARAMETER = "user";
 
-/** What a connection wired into the configuration, by module id. */
-export interface ConnectionWiring {
-  connection: string;
-  driver: string;
-  /** The local modules holding its tables: read through the driver, their record naming the connection. */
-  modules: LocalModule[];
-  /**
-   * Local modules read through the driver whose record names no connection, as one made before
-   * the record was: shown as the connection's tables module when it has no other, never removed.
-   */
-  unrecorded: LocalModule[];
-  /**
-   * Whether the driver was added for this connection alone, and goes with it: it is not the
-   * project's own database, and no module or connection the removal leaves names it.
-   */
-  ownsDriver: boolean;
-  /** The variable supplying the driver's `url`, when one does. */
-  variable?: string;
-  /** Every variable supplying the driver's configuration, `variable` among them. */
-  variables: string[];
-}
-
-/** A connection's details as its URL holds them, the password left out. */
-export interface ConnectionDetails {
-  scheme: string;
-  host: string;
-  port: string;
-  database: string;
-  user: string;
-  hasPassword: boolean;
-  /** The URL parameters, `sslmode` among them. */
-  options: Record<string, string>;
-}
-
 function localPath(entry: ObjectLiteralExpression): string | undefined {
   const source = propertyNamed(entry, "source")?.getInitializer();
   if (
@@ -108,16 +77,11 @@ function openConfig(): ConfigDraft | undefined {
   return configPath ? openDraft(configPath) : undefined;
 }
 
-interface LocalModule {
-  id: string;
-  path: string;
-}
-
 /** The local modules that read `interface-database` through the driver, with the connection each records. */
 function driverModules(
   entries: [string, ObjectLiteralExpression][],
   driver: string,
-): (LocalModule & { recorded?: string })[] {
+): (ConnectionModule & { recorded?: string })[] {
   const root = resolveProjectRoot();
   return entries
     .filter(([, entry]) =>
