@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { IdStamp } from "./anchor";
 import { compileSpec, parseSpec } from "./compile";
 import {
   MISSING_FILE,
@@ -9,16 +10,11 @@ import {
   SPEC_FILE,
   writeAtomically,
 } from "./files";
-import type {
-  Json,
-  JsonObject,
-  MockupIssue,
-  MockupName,
-  MockupSpec,
-} from "./model";
+import type { Json, JsonObject, MockupIssue, MockupName } from "./model";
 import { jsonObjectSchema } from "./model";
 
 const JSON_INDENT = 2;
+const FIRST_INDENT = /^[ \t]+(?=\S)/m;
 const DIGEST_LENGTH = 16;
 
 /** Names one content of `spec.json`: equal digests, equal files. */
@@ -82,11 +78,15 @@ export async function readSpecSource(
 export type SpecWriter = (spec: Json) => Promise<SpecWriteResult>;
 
 /**
- * Writes a spec that already parsed and differs from `spec.json` only by the
- * ids anchoring stamped, inside {@link withSpecLock}. It does not compile the
- * spec: a stamp cannot add an issue, so a spec that has issues still takes one.
+ * Writes `text`, the `spec.json` read inside {@link withSpecLock}, with each
+ * stamp's id set on the node its pointer names and nothing else changed: the
+ * file keeps its key order and its indentation. It does not compile the spec:
+ * a stamp cannot add an issue, so a spec that has issues still takes one.
  */
-export type SpecStamper = (spec: MockupSpec) => Promise<void>;
+export type SpecStamper = (
+  text: string,
+  stamps: readonly IdStamp[],
+) => Promise<void>;
 
 const writeTails = new Map<string, Promise<void>>();
 
@@ -122,9 +122,10 @@ async function persist(
   mockupsDir: string,
   name: MockupName,
   spec: Json,
+  indent: string | number = JSON_INDENT,
 ): Promise<SpecDigest> {
   const directory = mockupDirectory(mockupsDir, name);
-  const text = `${JSON.stringify(spec, null, JSON_INDENT)}\n`;
+  const text = `${JSON.stringify(spec, null, indent)}\n`;
   await mkdir(directory, { recursive: true });
   await writeAtomically(join(directory, SPEC_FILE), text);
   return digestOf(text);
@@ -144,9 +145,36 @@ function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
   };
 }
 
+/** Whether `value` is a JSON object, not an array. */
+function isJsonObject(value: Json | undefined): value is JsonObject {
+  return value instanceof Object && !Array.isArray(value);
+}
+
+/** The value `pointer`, whose segments need no unescaping, names in `value`. */
+function valueAt(value: Json, pointer: string): Json | undefined {
+  return pointer
+    .split("/")
+    .slice(1)
+    .reduce<Json | undefined>((at, segment) => {
+      if (Array.isArray(at)) return at[Number(segment)];
+      return isJsonObject(at) && Object.hasOwn(at, segment)
+        ? at[segment]
+        : undefined;
+    }, value);
+}
+
 function stampNow(mockupsDir: string, name: MockupName): SpecStamper {
-  return async (spec) => {
-    await persist(mockupsDir, name, jsonObjectSchema.parse(spec));
+  return async (text, stamps) => {
+    const spec = jsonObjectSchema.parse(JSON.parse(text));
+    for (const { path, id } of stamps) {
+      const node = valueAt(spec, path);
+      if (!isJsonObject(node)) {
+        throw new Error(`${path} names no node of mockups/${name}/spec.json`);
+      }
+      node.id = id;
+    }
+    const indent = FIRST_INDENT.exec(text)?.[0] ?? JSON_INDENT;
+    await persist(mockupsDir, name, spec, indent);
   };
 }
 

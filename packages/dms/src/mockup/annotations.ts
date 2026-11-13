@@ -106,9 +106,9 @@ const MISSING_SPEC: MockupIssue = {
   message: "the mockup has no spec.json",
 };
 
-/** The spec of a held mockup, read as it must be to take a stamped id. */
+/** The spec of a held mockup, read as it must be to take a stamped id, and the text it was read from. */
 type StrictSpec =
-  | { kind: "read"; spec: MockupSpec }
+  | { kind: "read"; spec: MockupSpec; text: string }
   | { kind: "missing" }
   | { kind: "invalid"; errors: MockupIssue[] };
 
@@ -200,7 +200,7 @@ async function readStrictSpec(held: Held): Promise<StrictSpec> {
   if (text === undefined) return { kind: "missing" };
   const read = parseSpec(text);
   return read.ok
-    ? { kind: "read", spec: read.spec }
+    ? { kind: "read", spec: read.spec, text }
     : { kind: "invalid", errors: read.issues };
 }
 
@@ -248,9 +248,8 @@ async function currentFile(held: Held): Promise<Current> {
         ? undefined
         : anchorSite(spec, { page: note.page, path: note.path }),
   }));
-  if (anchored.some(({ result }) => result?.stamped)) {
-    await held.stamp(spec);
-  }
+  const stamps = anchored.flatMap(({ result }) => result?.stamp ?? []);
+  if (stamps.length) await held.stamp(read.text, stamps);
   const migrated: AnnotationsFile = {
     version: 2,
     annotations: anchored.map(({ note, result }) =>
@@ -312,7 +311,7 @@ async function create(
   const { spec } = read;
   const anchored = anchorSite(spec, draft);
   if (!anchored) return { kind: "no_node" };
-  if (anchored.stamped) await held.stamp(spec);
+  if (anchored.stamp) await held.stamp(read.text, [anchored.stamp]);
   const note: MockupAnnotation = {
     id: randomBytes(ID_BYTES).toString("base64url"),
     anchor: anchored.anchor,

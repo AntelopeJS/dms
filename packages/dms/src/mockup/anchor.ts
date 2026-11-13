@@ -77,10 +77,16 @@ interface NodeAddress {
   indexes: number[];
 }
 
-/** What anchoring a node answers, and whether it stamped an id on the spec. */
+/** An id anchoring gave a node that had none: the node's spec JSON pointer, and the id. */
+export interface IdStamp {
+  path: string;
+  id: string;
+}
+
+/** What anchoring a node answers, and the id it stamped on the spec, if any. */
 export interface Anchored {
   anchor: BlockAnchor;
-  stamped: boolean;
+  stamp?: IdStamp;
 }
 
 interface Visit {
@@ -280,18 +286,14 @@ export function anchorSite(
       indexes: address.indexes.slice(0, depth + 1),
     };
     if (id === undefined) {
-      const stamp = freshId(taken);
-      stampNode(spec, reached, stamp);
-      return { anchor: { block: stamp, steps }, stamped: true };
+      const stamp = { path: pointerOf(reached), id: freshId(taken) };
+      stampNode(spec, reached, stamp.id);
+      return { anchor: { block: stamp.id, steps }, stamp };
     }
     const anchor = { block: id, steps };
     const found = findBlock(spec, anchor);
-    if (found && pointerOf(found.address) === target) {
-      return { anchor, stamped: false };
-    }
-    if (depth === 0) {
-      return { anchor: { ...anchor, page: site.page }, stamped: false };
-    }
+    if (found && pointerOf(found.address) === target) return { anchor };
+    if (depth === 0) return { anchor: { ...anchor, page: site.page } };
     steps = [id, ...steps];
   }
 }
