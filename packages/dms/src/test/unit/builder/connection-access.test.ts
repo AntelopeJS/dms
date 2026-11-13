@@ -1,15 +1,19 @@
 import { ImplementInterface } from "@antelopejs/interface-core";
 import * as Builder from "@antelopejs/interface-dms-builder";
+import fs from "node:fs";
+import path from "node:path";
 import { expect } from "chai";
 import { z } from "zod";
 import * as implementation from "../../../implementations/dms-builder";
 import type {
   MapResourcesInput,
   OpResult,
+  ResourceRoute,
 } from "@antelopejs/interface-dms-builder";
 import {
   AddBlock,
   ConfigureBlock,
+  ConfigureResource,
   GetPageStructure,
   ListPages,
   MapResources,
@@ -49,8 +53,11 @@ const RefusalSchema = z.object({
 const COUNTRIES = "erp/sales/countries";
 const COUNTRIES_API = "sales/countries/data-api.ts";
 const READ_ONLY = 'connection "erp" is read-only';
+const CREATING = {
+  routes: ["list", "get", "create"],
+} satisfies { routes: ResourceRoute[] };
 
-function countries(writable: boolean) {
+function countries(writable: boolean, tableView = true) {
   return {
     module: MODULE,
     connection: "erp",
@@ -58,7 +65,7 @@ function countries(writable: boolean) {
       {
         relation: "sales.countries",
         label: "name",
-        tableView: true,
+        tableView,
         writable,
         fields: [{ column: "name" }],
       },
@@ -106,7 +113,7 @@ describe("[unit] builder writes on an external connection follow its access", fu
 
   before(() => {
     app = createFixture({ modules: [MODULE] });
-    setCatalogConnectionsForTests({ erp: FAKE_CATALOG });
+    setCatalogConnectionsForTests({ erp: FAKE_CATALOG, other: FAKE_CATALOG });
     setModuleReloadForTests(reloadedAtOnce);
   });
 
@@ -150,6 +157,81 @@ describe("[unit] builder writes on an external connection follow its access", fu
       setConnectionAccess({ erp: "read-write" });
       expectOk(await MapResources(countries(true)), "writable mapping");
       expect(moduleFile(COUNTRIES_API)).to.include("TableViewRoutes.All");
+    });
+
+    it("refuses write routes named under another connection on a module bound to a read one", async () => {
+      setConnectionAccess({ erp: "read", other: "read-write" });
+      expect(
+        refusalOf(
+          await MapResources({ ...countries(true), connection: "other" }),
+        ),
+      ).to.include(READ_ONLY);
+      expect(moduleFile(COUNTRIES_API)).to.include("TableViewRoutes.All");
+    });
+
+    it("maps a stats-only relation sent as writable on a read connection, since it serves no route", async () => {
+      setConnectionAccess({ erp: "read" });
+      const planned = expectOk(
+        await PreviewMapResources(countries(true, false)),
+        "stats-only mapping",
+      );
+      expect(planned.pagesToRemove).to.have.length(1);
+    });
+  });
+
+  describe("an access core overrides at start", () => {
+    const JSON_FILE = "../antelope.dms-database.json";
+    const PATH = "modules.dms-database.config.externalConnections.erp.access";
+
+    afterEach(() => {
+      delete process.env.ERP_ACCESS;
+      fs.rmSync(path.join(app.root, "antelope.dms-database.json"), {
+        force: true,
+      });
+    });
+
+    it("is read-only when an environment sets it to read, naming the environment", async () => {
+      setConnectionAccess(
+        { erp: "read-write" },
+        '  environments: { production: { modules: { "dms-database": { config: { externalConnections: { erp: { access: "read" } } } } } } },\n',
+      );
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        `${READ_ONLY}, since \`environments.production\` of antelope.config.ts sets it to "read"`,
+      );
+    });
+
+    it("is read-only when antelope.dms-database.json sets it to read, naming the file", async () => {
+      setConnectionAccess({ erp: "read-write" });
+      app.write(
+        JSON_FILE,
+        JSON.stringify({ externalConnections: { erp: { access: "read" } } }),
+      );
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        `${READ_ONLY}, since antelope.dms-database.json sets it to "read"`,
+      );
+    });
+
+    it("is read-only when the builder cannot read the configuration, saying so", async () => {
+      app.write(
+        "../antelope.config.ts",
+        'import { defineConfig } from "@antelopejs/interface-core/config";\n\nconst config = defineConfig({ name: "fixture", modules: {} });\n\nexport default config;\n',
+      );
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        `${READ_ONLY}, since the builder cannot read antelope.config.ts as a literal`,
+      );
+    });
+
+    it("follows an envOverrides variable set in the process", async () => {
+      setConnectionAccess(
+        { erp: "read-write" },
+        `  envOverrides: { ERP_ACCESS: "${PATH}" },\n`,
+      );
+      process.env.ERP_ACCESS = "read";
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        "the `ERP_ACCESS` variable of `envOverrides`",
+      );
+      process.env.ERP_ACCESS = "read-write";
+      expectOk(await MapResources(countries(true)), "writable mapping");
     });
   });
 
@@ -222,6 +304,43 @@ describe("[unit] builder writes on an external connection follow its access", fu
         "a form turned into one that edits",
       );
       expect(await formMode(page, "showForm")).to.equal("edit");
+    });
+
+    it("refuses a table over it while it still serves write routes on a read connection, and adds one once it is mapped read-only", async () => {
+      const table = () =>
+        AddBlock({
+          page,
+          name: "countriesTable",
+          type: "TableView",
+          controller: COUNTRIES,
+          config: {},
+        });
+      setConnectionAccess({ erp: "read" });
+      const message = refusalOf(await table());
+      expect(message).to.include(
+        `refused to add a TableView over "${COUNTRIES}", whose table still serves create, edit and delete routes`,
+      );
+      expect(message).to.include(READ_ONLY);
+
+      expectOk(await MapResources(countries(false)), "read-only mapping");
+      expectOk(await table(), "a table over a read-only mapping");
+    });
+
+    it("refuses routes that write on its resource while the access is read, and serves them once it is read-write", async () => {
+      setConnectionAccess({ erp: "read" });
+      expect(
+        refusalOf(await ConfigureResource(COUNTRIES, CREATING)),
+      ).to.include(
+        `refused to serve the create routes on "${COUNTRIES}": ${READ_ONLY}`,
+      );
+      expect(moduleFile(COUNTRIES_API)).to.not.include("TableViewRoutes.New");
+
+      setConnectionAccess({ erp: "read-write" });
+      expectOk(
+        await ConfigureResource(COUNTRIES, CREATING),
+        "ConfigureResource",
+      );
+      expect(moduleFile(COUNTRIES_API)).to.include("TableViewRoutes.New");
     });
   });
 });

@@ -388,7 +388,7 @@ export function configureBlock(
       }
       applyPatch(metaObject, opts.meta, false, ctx);
     }
-    assertBlockAccess(resolved.target);
+    assertFormAccess(resolved.target);
   } catch (error) {
     transaction.rollback();
     if (error instanceof InvalidValueError) {
@@ -496,7 +496,7 @@ export function stageBlock(
   let valueText: string;
   let childText: string | undefined;
   try {
-    assertFormAccess(input);
+    assertBlockAccess(input);
     const controllerText = input.controller
       ? serializeValue({ $ref: { resource: input.controller } }, ctx)
       : undefined;

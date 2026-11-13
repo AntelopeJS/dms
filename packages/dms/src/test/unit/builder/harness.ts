@@ -82,13 +82,14 @@ function DmsDatabaseEntry(access: ConnectionAccessConfig): string {
 function ProjectConfig(
   modules: string[],
   access: ConnectionAccessConfig | undefined,
+  overrides = "",
 ): string {
   const entries = [
     ModuleEntry(PROJECT_MODULE, "."),
     ...modules.map((id) => ModuleEntry(id, `modules/${id}`)),
     ...(access ? [DmsDatabaseEntry(access)] : []),
   ];
-  return `import { defineConfig } from "@antelopejs/interface-core/config";\n\nexport default defineConfig({\n  name: "fixture",\n  modules: {\n${entries.join("\n")}\n  },\n});\n`;
+  return `import { defineConfig } from "@antelopejs/interface-core/config";\n\nexport default defineConfig({\n  name: "fixture",\n  modules: {\n${entries.join("\n")}\n  },\n${overrides}});\n`;
 }
 
 let fixtureModules: string[] = [];
@@ -96,10 +97,11 @@ let fixtureModules: string[] = [];
 function WriteProjectConfig(
   modules: string[],
   access: ConnectionAccessConfig | undefined,
+  overrides?: string,
 ): void {
   fs.writeFileSync(
     path.join(FIXTURE_ROOT, "antelope.config.ts"),
-    ProjectConfig(modules, access),
+    ProjectConfig(modules, access, overrides),
   );
 }
 
@@ -184,9 +186,14 @@ export function createFixture(options: FixtureOptions = {}): Fixture {
 /**
  * Rewrite the fixture's `antelope.config.ts` with these accesses on its `dms-database` entry, as
  * the Data browser's switch writes them: the modules {@link createFixture} declared stay.
+ *
+ * @param overrides Top-level members written after `modules`, such as `environments`
  */
-export function setConnectionAccess(access: ConnectionAccessConfig): void {
-  WriteProjectConfig(fixtureModules, access);
+export function setConnectionAccess(
+  access: ConnectionAccessConfig,
+  overrides?: string,
+): void {
+  WriteProjectConfig(fixtureModules, access, overrides);
 }
 
 /**
