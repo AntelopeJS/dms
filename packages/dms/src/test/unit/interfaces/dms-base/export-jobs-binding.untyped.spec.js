@@ -1,6 +1,4 @@
-import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
-import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   downloadExportJob,
   getExportJobStatus,
@@ -12,13 +10,15 @@ import { untouchedRequestContext } from "../../../helpers/request-context";
 const HTTP_UNAUTHORIZED = 401;
 
 const SETTLE_TIMEOUT_MS = 2000;
-// SAFETY: runExportJob and loadExportJobForUser, which getExportJobStatus and downloadExportJob call first, assert that user is defined with a 401 before they read any member of it, so an undefined user is rejected and never dereferenced.
-const ANONYMOUS_USER = undefined as unknown as User;
+const ANONYMOUS_USER = undefined;
 const UNUSED_CONTEXT = untouchedRequestContext();
 const UNKNOWN_JOB_ID = "unknown-export-job";
 
-async function rejectionOf(call: Promise<unknown>) {
-  const timeout = new Promise<never>((_, reject) => {
+/**
+ * @param {Promise<unknown>} call
+ */
+async function rejectionOf(call) {
+  const timeout = new Promise((_, reject) => {
     setTimeout(
       () => reject(new Error("the call never reached the module")),
       SETTLE_TIMEOUT_MS,
@@ -27,7 +27,10 @@ async function rejectionOf(call: Promise<unknown>) {
   return httpRejectionOf(Promise.race([call, timeout]));
 }
 
-function expectModuleRejection(error: HTTPResult): void {
+/**
+ * @param {{ getStatus(): number }} error
+ */
+function expectModuleRejection(error) {
   expect(error.getStatus()).to.equal(HTTP_UNAUTHORIZED);
 }
 

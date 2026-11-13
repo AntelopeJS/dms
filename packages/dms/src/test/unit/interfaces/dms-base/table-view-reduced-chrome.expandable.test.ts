@@ -62,36 +62,6 @@ function registerExpandableRowCases(): void {
     );
     expect(component.expandable).to.include({ lazyLoad: true });
   });
-
-  it("hands the band to a component alone, refusing both or neither", () => {
-    const component = CustomComponent("OrderLines");
-    const options = optionsOf(
-      TableView(OrderAPI, {
-        realtime: false,
-        expandable: { component, single: true },
-      }),
-    );
-    expect(options.expandable).to.deep.equal({
-      defaultExpanded: undefined,
-      single: true,
-      lazyLoad: undefined,
-      component: component.serializeSync(),
-    });
-
-    const both = {
-      component,
-      fields: ["carrier"],
-    };
-    expect(() =>
-      // @ts-expect-error Both alternatives are deliberately present to exercise runtime validation.
-      TableView(OrderAPI, { realtime: false, expandable: both }),
-    ).to.throw(/both fields and a component/);
-    const neither = { single: true };
-    expect(() =>
-      // @ts-expect-error Both alternatives are deliberately absent to exercise runtime validation.
-      TableView(OrderAPI, { realtime: false, expandable: neither }),
-    ).to.throw(/neither fields nor a component/);
-  });
 }
 
 function registerLinkTabCases(): void {

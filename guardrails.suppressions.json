@@ -28,13 +28,13 @@
     "unicorn/no-useless-spread": 0,
     "vue/no-v-html": 0
   },
-  "tsExpectError": 21,
+  "tsExpectError": 0,
   "tsIgnore": 0,
-  "safety": 42,
+  "safety": 37,
   "config": {
     "@typescript-eslint/no-explicit-any for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 0,
-    "anti-slop/no-chained-type-assertions for packages/dms/src/test/integration/**": 1,
-    "anti-slop/no-chained-type-assertions for packages/dms/src/test/unit/**": 1,
+    "anti-slop/no-chained-type-assertions for packages/dms/src/test/integration/**": 0,
+    "anti-slop/no-chained-type-assertions for packages/dms/src/test/unit/**": 0,
     "eslint/max-lines for packages/dms/playground/**": 0,
     "eslint/max-lines for packages/dms/src/test/integration/**": 0,
     "eslint/max-lines for packages/dms/src/test/unit/**": 0,

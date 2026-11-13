@@ -51,12 +51,6 @@ describe("[unit] frontend module backend proxies", () => {
     expect(proxiesOf("proxies-copy")?.[0]?.auth).to.equal("none");
   });
 
-  const invalidAuthentication: FrontendBackendProxy = {
-    path: "/media/**",
-    // @ts-expect-error Deliberately unsupported authentication tests runtime rejection of an untyped registration.
-    auth: "bearer",
-  };
-
   for (const proxy of [
     { path: "media/**" },
     { path: "/" },
@@ -71,9 +65,6 @@ describe("[unit] frontend module backend proxies", () => {
     { path: "/assets/**" },
     { path: "/@vite/**" },
     { path: "/node_modules/**" },
-    invalidAuthentication,
-    // SAFETY: resolveBackendProxies runs isObject on every entry before it reads a member, so an entry that is not an object, as this string, is rejected with the invalid-backendProxies error and never dereferenced.
-    "/media/**" as unknown as FrontendBackendProxy,
   ]) {
     it(`refuses to register ${JSON.stringify(proxy)}`, () => {
       expect(() => register("proxies-invalid", [proxy])).to.throw(

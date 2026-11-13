@@ -7,5 +7,6 @@
     "incremental": false,
     "types": ["node"]
   },
-  "include": ["./**/*.cjs", "./runtime-declarations.d.ts"]
+  "include": ["./**/*.cjs", "./runtime-declarations.d.ts"],
+  "exclude": ["./untyped/**"]
 }

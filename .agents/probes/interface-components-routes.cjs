@@ -18,6 +18,7 @@ const {
 } = require("../../packages/interface-dms/dist/component.js");
 const { IncomingMessage, ServerResponse } = require("node:http");
 const { Socket } = require("node:net");
+const untyped = require("./untyped/interface-components-routes.cjs");
 const { HTTPResult } = require("../../packages/interface-dms/node_modules/@antelopejs/interface-api");
 const { User } = require("../../packages/interface-dms/dist/auth/db/tables/users.table.js");
 
@@ -138,29 +139,25 @@ async function observeRoutes() {
   );
   const presence = withPresenceAcquire(base);
   /** @type {unknown} */
-  const mutationResult = await mutation.func.call(
-    receiver,
+  const mutationResult = await untyped.callRoute(mutation, receiver, [
     context,
     params,
     "left",
-    // @ts-expect-error a numeric sentinel in the user slot proves the wrapper forwards the base route's arguments unchanged
     47,
     context,
     "session-1",
     probeUser("user-1"),
-  );
+  ]);
   /** @type {unknown} */
-  const presenceResult = await presence.func.call(
-    receiver,
+  const presenceResult = await untyped.callRoute(presence, receiver, [
     context,
     params,
-    // @ts-expect-error a string sentinel in the user slot proves the wrapper forwards the base route's arguments unchanged
     "right",
     context,
     "session-2",
     "1",
     probeUser("user-2"),
-  );
+  ]);
   const gate = openTenantGate(tenantAccess);
   /** @type {unknown} */
   let authResult;
@@ -264,21 +261,16 @@ function observeFactoryHelpers() {
       details: { urlSlug: "nested/:id" },
     },
   ].map((pages) => helpers.buildFormPageUrls("/work/:id/", "items", pages));
-  const displays = helpers.serializeTableViewDisplays({
+  const displays = untyped.serializeTableViewDisplays({
     displays: [{ id: "cards" }, { id: "kanban", options: { marker: 9 } }],
-    // @ts-expect-error numeric card widths record that serializeTableViewDisplays passes them through untouched
     card: { fields: ["name"], minWidth: 317, skeletonHeight: 91 },
-    // @ts-expect-error an unknown kanban key records that serializeTableViewDisplays passes it through untouched
     kanban: { groupBy: "status" },
   });
-  const rowActions = helpers.serializeRowActions({
+  const rowActions = untyped.serializeRowActions({
     add: { confirm: { title: "Add" } },
     edit: true,
     delete: { rule: { field: "status", equals: "draft" } },
-    custom: [
-      // @ts-expect-error an unknown target type records that the action target passes through untouched
-      { id: "open", label: "Open", target: { type: "url", url: "/open" } },
-    ],
+    custom: [{ id: "open", label: "Open", target: { type: "url", url: "/open" } }],
   });
   return { actions, routes, urls, displays, rowActions };
 }

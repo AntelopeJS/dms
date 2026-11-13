@@ -139,14 +139,5 @@ export default defineConfig({
         ],
       },
     },
-    {
-      files: [
-        "packages/dms/src/test/unit/**",
-        "packages/dms/src/test/integration/**",
-      ],
-      rules: {
-        "anti-slop/no-chained-type-assertions": "off",
-      },
-    },
   ],
 });

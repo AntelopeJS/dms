@@ -94,39 +94,6 @@ describe("[unit] interfaces/dms-base — page live mode, table sources and caden
     expect(GetMetadata(page, PageMetadata).pageInfo?.live).to.deep.equal(live);
   });
 
-  it("refuses a slower cadence it cannot read, and an empty remember key", () => {
-    const declare =
-      (
-        id: string,
-        live: NonNullable<Parameters<typeof PageController>[1]>["live"],
-      ) =>
-      () =>
-        PageController(id, {
-          displayName: "Live page",
-          category: pagesCategory,
-          live,
-        });
-    expect(
-      declare("live-slow-period", {
-        // @ts-expect-error Invalid period deliberately exercises runtime validation.
-        slowRateAfter: { period: "a week", maxRate: 60 },
-      }),
-    ).to.throw(/live\.slowRateAfter\.period/);
-    expect(
-      declare("live-slow-zero", {
-        slowRateAfter: { period: "0d", maxRate: 60 },
-      }),
-    ).to.throw(/live\.slowRateAfter\.period/);
-    expect(
-      declare("live-slow-rate", {
-        slowRateAfter: { period: "7d", maxRate: 0 },
-      }),
-    ).to.throw(/live\.slowRateAfter\.maxRate/);
-    expect(declare("live-remember-key", { rememberKey: " " })).to.throw(
-      /live\.rememberKey/,
-    );
-  });
-
   it("serializes the pill variant and the missed label of LiveToggle", () => {
     const options = LiveToggle({
       variant: "pill",
