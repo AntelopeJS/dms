@@ -8,8 +8,8 @@ import {
 
 /**
  * `/branding`: the editor of the platform's theme. Hidden from the menu and
- * out of every role's reach but the platform owner's, who holds every
- * permission; it draws its own top bar, so the layout has no header.
+ * owner-only, so no role can be granted it; it draws its own top bar, so the
+ * layout has no header.
  */
 export class BrandingPage extends PageController(
   "branding",
@@ -17,6 +17,7 @@ export class BrandingPage extends PageController(
     displayName: "Branding",
     urlSlug: "branding",
     hidden: true,
+    ownerOnly: true,
     noComponentPermissions: true,
     category: pagesCategory,
   },

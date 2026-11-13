@@ -8,16 +8,17 @@ import { PREVIEW_LAYOUT } from "../pages/public/preview";
 
 /**
  * `/mockup`: the viewer of `mockups/<name>/spec.json`, drawing each page with
- * `/dms-preview` and redrawing it on every save. Public and hidden, like the
- * preview it embeds; `?name=`, `?page=` and `?width=` pick what it shows.
+ * `/dms-preview` and redrawing it on every save. Hidden and owner-only, like
+ * the `/api/mockup` routes it reads; `?name=`, `?page=` and `?width=` pick what
+ * it shows.
  */
 export class MockupPage extends PageController(
   "mockup",
   {
     displayName: "Mockup",
     urlSlug: "mockup",
-    publicAccess: true,
     hidden: true,
+    ownerOnly: true,
     category: pagesCategory,
 
     live: {},

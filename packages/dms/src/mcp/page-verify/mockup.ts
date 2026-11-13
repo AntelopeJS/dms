@@ -165,7 +165,8 @@ async function compareDrawn(
 /**
  * Draws the mockup page in the dashboard's `/mockup` viewer at the desktop
  * width and pairs its blocks with the page's, each pair screenshotted for a
- * side-by-side look.
+ * side-by-side look. The viewer is owner-only, so `context` is signed in as
+ * the platform owner whatever role the page was opened as.
  */
 export async function compareWithMockup(
   context: BrowserContext,

@@ -298,7 +298,10 @@ async function verifyPage(
     const mockup =
       request.mockup && first && rendered[0]
         ? await compareWithMockup(
-            context,
+            await run.sessions.contextFor(
+              ownerAccount(run.workspace),
+              run.guard,
+            ),
             origin,
             request.mockup,
             rendered[0].blocks,

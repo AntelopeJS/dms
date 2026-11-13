@@ -1,23 +1,15 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { writeFile } from "node:fs/promises";
 import { type ClientRequest, get, type IncomingMessage } from "node:http";
 import { join } from "node:path";
 import { expect } from "chai";
-import {
-  getRegisteredRoutes,
-  UnregisterRoute,
-} from "@antelopejs/interface-api";
+import type { AxiosInstance } from "axios";
 import { z } from "zod";
+import { closeMockupStreams, type MockupEngine } from "../../../mockup";
+import { getBaseUrl } from "../../helpers/http";
 import {
-  closeMockupStreams,
-  type MockupEngine,
-  MockupStore,
-  registerMockupRoutes,
-} from "../../../mockup";
-import { createClient, getBaseUrl } from "../../helpers/http";
-
-const BASE = "/api/mockup";
-const client = createClient();
+  MOCKUP_API as BASE,
+  serveMockupRoutes,
+} from "../../helpers/mockup-routes";
 
 const ORDERS = [
   { _id: "o1", customer: "Acme", total: 120 },
@@ -82,39 +74,16 @@ function ids(data: unknown): string[] {
   return idsSchema.parse(data);
 }
 
-describe("[unit] mockup routes", () => {
-  let base: string;
-  let engine: MockupEngine;
-  const routeIds: number[] = [];
+describe("[unit] mockup routes: listing and fixtures", () => {
+  const served = serveMockupRoutes(SPEC);
+  let owner: AxiosInstance;
 
-  before(async () => {
-    expect(
-      getRegisteredRoutes().filter((route) => route.location.startsWith(BASE)),
-    ).to.deep.equal([]);
-    base = await mkdtemp(join(tmpdir(), "dms-mockup-routes-"));
-    await mkdir(join(base, "mockups", "desk"), { recursive: true });
-    await writeFile(join(base, "mockups", "desk", "spec.json"), SPEC);
-    engine = {
-      store: new MockupStore(join(base, "mockups")),
-      streams: new Set(),
-    };
-    registerMockupRoutes(engine);
-    routeIds.push(
-      ...getRegisteredRoutes()
-        .filter((route) => route.location.startsWith(BASE))
-        .map((route) => Number(route.id)),
-    );
-  });
-
-  after(async () => {
-    routeIds.forEach(UnregisterRoute);
-    closeMockupStreams(engine);
-    engine.store.close();
-    await rm(base, { recursive: true, force: true });
+  before(() => {
+    ({ owner } = served());
   });
 
   it("lists the mockups at the API root", async () => {
-    const listed = await client.get(BASE);
+    const listed = await owner.get(BASE);
 
     expect(listed.status).to.equal(200);
     expect(listed.data).to.deep.equal({
@@ -124,11 +93,11 @@ describe("[unit] mockup routes", () => {
 
   it("sorts, searches and pages an array fixture's rows", async () => {
     const rows = `${BASE}/desk/pages/home/fixtures/orders/rows`;
-    const sorted = await client.get(
+    const sorted = await owner.get(
       `${rows}?sortKey=total&sortDirection=desc&offset=1&limit=2`,
     );
-    const searched = await client.get(`${rows}?search=acme&sortKey=total`);
-    const all = await client.get(rows);
+    const searched = await owner.get(`${rows}?search=acme&sortKey=total`);
+    const all = await owner.get(rows);
 
     expect(ids(sorted.data)).to.deep.equal(["o4", "o5"]);
     expect(rowsSchema.parse(sorted.data).total).to.equal(5);
@@ -137,10 +106,8 @@ describe("[unit] mockup routes", () => {
   });
 
   it("serves a fixture as JSON and refuses rows over one that is not an array", async () => {
-    const fixture = await client.get(
-      `${BASE}/desk/pages/home/fixtures/revenue`,
-    );
-    const rows = await client.get(
+    const fixture = await owner.get(`${BASE}/desk/pages/home/fixtures/revenue`);
+    const rows = await owner.get(
       `${BASE}/desk/pages/home/fixtures/revenue/rows`,
     );
 
@@ -150,8 +117,8 @@ describe("[unit] mockup routes", () => {
 
   it("sorts text as people read it and keeps rows missing the value last", async () => {
     const rows = `${BASE}/desk/pages/home/fixtures/people/rows?sortKey=name`;
-    const ascending = await client.get(rows);
-    const descending = await client.get(`${rows}&sortDirection=desc`);
+    const ascending = await owner.get(rows);
+    const descending = await owner.get(`${rows}&sortDirection=desc`);
 
     expect(ids(ascending.data)).to.deep.equal(["b", "d", "a", "c", "e"]);
     expect(ids(descending.data)).to.deep.equal(["c", "a", "d", "b", "e"]);
@@ -162,7 +129,7 @@ describe("[unit] mockup routes", () => {
       ["mixed", "mixedReversed", "mixedRotated"].map(async (key) =>
         ids(
           (
-            await client.get(
+            await owner.get(
               `${BASE}/desk/pages/home/fixtures/${key}/rows?sortKey=v`,
             )
           ).data,
@@ -176,21 +143,33 @@ describe("[unit] mockup routes", () => {
       ["n5", "s3", "n1", "d125", "d15"],
     ]);
   });
+});
+
+describe("[unit] mockup routes: annotations and events", () => {
+  const served = serveMockupRoutes(SPEC);
+  let owner: AxiosInstance;
+  let ownerToken: string;
+  let engine: MockupEngine;
+  let base: string;
+
+  before(() => {
+    ({ owner, ownerToken, engine, dir: base } = served());
+  });
 
   it("answers 404 for the events of a mockup that does not exist", async () => {
-    const missing = await client.get(`${BASE}/nope/events`);
+    const missing = await owner.get(`${BASE}/nope/events`);
 
     expect(missing.status).to.equal(404);
   });
 
   it("refuses an annotation on a page or node the spec does not have", async () => {
     const note = { text: "Somewhere" };
-    const ghostPage = await client.post(`${BASE}/desk/annotations`, {
+    const ghostPage = await owner.post(`${BASE}/desk/annotations`, {
       ...note,
       page: "ghost",
       path: "/pages/0/tree/0",
     });
-    const ghostNode = await client.post(`${BASE}/desk/annotations`, {
+    const ghostNode = await owner.post(`${BASE}/desk/annotations`, {
       ...note,
       page: "home",
       path: "/pages/9/tree/9",
@@ -200,21 +179,21 @@ describe("[unit] mockup routes", () => {
   });
 
   it("creates an annotation, then resolves it with PATCH", async () => {
-    const created = await client.post(`${BASE}/desk/annotations`, {
+    const created = await owner.post(`${BASE}/desk/annotations`, {
       page: "home",
       path: "/pages/0/tree/0",
       text: "Move the KPI left",
     });
     const { id } = annotationSchema.parse(created.data);
-    const resolved = await client.patch(`${BASE}/desk/annotations/${id}`, {
+    const resolved = await owner.patch(`${BASE}/desk/annotations/${id}`, {
       status: "resolved",
     });
-    const refused = await client.post(`${BASE}/desk/annotations`, {
+    const refused = await owner.post(`${BASE}/desk/annotations`, {
       page: "home",
       path: "no-pointer",
       text: "",
     });
-    const listed = await client.get(`${BASE}/desk/annotations`);
+    const listed = await owner.get(`${BASE}/desk/annotations`);
 
     expect(annotationSchema.parse(resolved.data).status).to.equal("resolved");
     expect(annotationSchema.parse(resolved.data).resolvedAt).to.be.a("string");
@@ -223,7 +202,7 @@ describe("[unit] mockup routes", () => {
   });
 
   it("streams the state on connect and ends the stream when the engine stops", async () => {
-    const { response, firstChunk } = await openEvents("desk");
+    const { response, firstChunk } = await openEvents("desk", ownerToken);
     const ended = new Promise<void>((resolve) => {
       response.once("end", resolve);
     });
@@ -237,7 +216,10 @@ describe("[unit] mockup routes", () => {
   });
 
   it("releases a stream and its watch once the client goes away", async () => {
-    const clients = await Promise.all([openEvents("desk"), openEvents("desk")]);
+    const clients = await Promise.all([
+      openEvents("desk", ownerToken),
+      openEvents("desk", ownerToken),
+    ]);
     expect(engine.streams.size).to.equal(2);
 
     clients.forEach(({ request }) => request.destroy());
@@ -255,12 +237,17 @@ interface OpenEvents {
   firstChunk: string;
 }
 
-/** Opens a mockup's event stream over HTTP and reads its first frame. */
-function openEvents(name: string): Promise<OpenEvents> {
+/** Opens a mockup's event stream over HTTP as `token`'s user and reads its first frame. */
+function openEvents(name: string, token: string): Promise<OpenEvents> {
   return new Promise((resolve, reject) => {
     const request = get(
       `${getBaseUrl()}${BASE}/${name}/events`,
-      { headers: { "x-antelopejs-namespace": "default" } },
+      {
+        headers: {
+          "x-antelopejs-namespace": "default",
+          Authorization: `Bearer ${token}`,
+        },
+      },
       (response) => {
         response.once("data", (chunk: Buffer) => {
           response.pause();
