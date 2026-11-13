@@ -10,7 +10,6 @@ import {
   useTemplateRef,
   watch,
   type App,
-  type PropType,
   type Ref,
   type VNode,
 } from "vue";
@@ -26,11 +25,7 @@ let state: Map<string, Ref<unknown>>;
 let app: App | undefined;
 let host: HTMLDivElement;
 
-// SAFETY: useNavBadges owns this state key and initializes it to the NavBadge dictionary read by these assertions.
-const liveBadges = () =>
-  state.get("dms-nav-badges") as
-    | ReturnType<typeof useNavBadges>["badges"]
-    | undefined;
+const liveBadges = () => useNavBadges().badges.value;
 
 beforeEach(() => {
   vi.stubGlobal("defineShortcuts", () => {});
@@ -118,15 +113,8 @@ describe("the counts a page visit carries", () => {
   });
 });
 
-const MenuStub = defineComponent({
-  props: {
-    items: {
-      // SAFETY: NavigationMenu supplies groups of Nuxt UI navigation items to this array prop.
-      type: Array as PropType<NavigationMenuItem[][]>,
-      required: true,
-    },
-  },
-  setup(props, { slots }) {
+const MenuStub = defineComponent(
+  (props: { items: NavigationMenuItem[][] }, { slots }) => {
     const renderItem = (item: NavigationMenuItem): VNode =>
       h(
         "div",
@@ -149,7 +137,8 @@ const MenuStub = defineComponent({
       );
     return () => h("nav", props.items.flat().map(renderItem));
   },
-});
+  { props: { items: { type: Array, required: true } } },
+);
 
 describe("NavigationMenu badges", () => {
   const ITEMS = [
@@ -352,7 +341,7 @@ describe("SettingsNav badges", () => {
     expect(trailBadge("/settings/user/security").textContent?.trim()).toBe(
       "security",
     );
-    expect(liveBadges()?.value["settings.user.security"]).toEqual({
+    expect(liveBadges()["settings.user.security"]).toEqual({
       label: "",
     });
   });
@@ -383,7 +372,7 @@ describe("Security page badge", () => {
     const overview = scope.run(() => useSecurityOverview())!;
     await overview.refresh();
     scope.stop();
-    expect(liveBadges()?.value["settings.user.security"]).toEqual({
+    expect(liveBadges()["settings.user.security"]).toEqual({
       label: "2",
       tone: "error",
     });

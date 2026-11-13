@@ -1,4 +1,3 @@
-/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- Preview messages and arbitrary block options are the boundary being checked here. JSON-only owner types or strict schemas would reject currently accepted objects, inherited fields, and extra options. */
 /**
  * The block preview's contract: the tree a docs site or a chat hands
  * `DmsBlockPreview`, the `?state=` parameter carrying it, the `postMessage`
@@ -337,7 +336,6 @@ function issueFor(
     ? { key: refused.issue, name: match.name, value: refused.value }
     : undefined;
 }
-/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
 
 function clampSketchHeight(height: unknown): number {
   if (!isNumber(height) || !Number.isFinite(height)) {

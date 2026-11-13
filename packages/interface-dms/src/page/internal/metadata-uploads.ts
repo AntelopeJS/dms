@@ -2,6 +2,7 @@
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 import type { Component } from "../../component";
 import type { UploadFieldOptions } from "../../internal/uploads";
+import { isNumber, isObject, isString } from "../../utils/internal/type-check";
 
 const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
 
@@ -29,17 +30,13 @@ export function readUploadConstraints(
   options: UploadFieldOptions,
 ): UploadConstraints | undefined {
   const raw = options.constraints;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This is the serialized upload-constraints boundary; absent or nonobject constraints are ignored.
-  if (!raw || typeof raw !== "object") return undefined;
+  if (!raw || !isObject(raw)) return undefined;
   const declared: UploadConstraints = raw;
   const constraints: UploadConstraints = {};
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only numeric maxSize values from erased upload options are copied into the file-storage contract.
-  if (typeof declared.maxSize === "number")
-    constraints.maxSize = declared.maxSize;
+  if (isNumber(declared.maxSize)) constraints.maxSize = declared.maxSize;
   if (Array.isArray(declared.allowedMimetypes))
     constraints.allowedMimetypes = declared.allowedMimetypes.filter(
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized mimetype lists may contain arbitrary values; keep the existing string-only constraint projection.
-      (mimetype) => typeof mimetype === "string",
+      (mimetype) => isString(mimetype),
     );
   return constraints;
 }

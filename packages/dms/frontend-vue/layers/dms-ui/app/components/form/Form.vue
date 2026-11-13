@@ -258,7 +258,6 @@ const instantSave = isInstant
       fields: allFields,
       isTouched: () => isTouched,
       isFieldValid,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Instant changes have unknown values while submitChanges accepts FormData. This legacy handoff forwards them without validating or narrowing their contents.
       submit: (changes) => submitChanges(changes as FormData),
       onRefused: reportSubmitError,
     })
@@ -330,7 +329,6 @@ provide(FORM_CONTENT_LANGUAGE_KEY, "*");
 allFields.value.forEach((field) => {
   if (field.defaultValue === undefined) return;
   state.value[field.id] = cloneFormValue(field.defaultValue);
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- cloneFormValue can return undefined, and defaultValue is reread after the check. This legacy baseline assignment does not prove the narrower field value or validate the JSON clone's result.
   initialValues.value[field.id] = cloneFormValue(
     field.defaultValue,
   ) as FormFieldValue;
@@ -340,7 +338,6 @@ for (const [id, value] of Object.entries(
   fieldValuesOfSubmitDefaults(allFields.value, effectiveSubmitDefaults.value),
 )) {
   state.value[id] = cloneFormValue(value);
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- FormData excludes undefined although submit defaults may contain it; inference and the baseline's owner cannot justify this existing unchecked assignment.
   initialValues.value[id] = cloneFormValue(value) as FormFieldValue;
 }
 
@@ -519,8 +516,8 @@ const { showConcurrentEditBanner, handleDiscardAndRefresh, handleKeepEditing } =
       browser bubble from a native required or type="email" control. -->
     <UForm
       :id="formElementId"
-      novalidate
       ref="form"
+      novalidate
       :state
       :schema="localizedSchema"
       :validate="validateServerErrors"

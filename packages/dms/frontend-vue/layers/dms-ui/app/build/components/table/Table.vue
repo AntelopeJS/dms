@@ -23,7 +23,7 @@ import { useRowScrollAnchor } from "../../composables/table/useRowScrollAnchor";
 import type { TableViewDisplayCapabilities } from "../../../composables/table-view/types";
 import { useReorderHandles } from "../../composables/table-view/useReorderHandles";
 import { FlexRender } from "@tanstack/vue-table";
-import { computed, shallowRef, useId, useSlots, watchEffect } from "vue";
+import { computed, h, shallowRef, useId, watchEffect, type Slots } from "vue";
 import { provideLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import TableActions from "./Actions.vue";
@@ -61,7 +61,6 @@ const props = withDefaults(defineProps<TableProps<T>>(), {
 });
 const emits = defineEmits<TableEmits<T>>();
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
 const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { table: Partial<typeof theme> };
 };
@@ -117,7 +116,7 @@ const allMatchingState = defineModel<boolean>("allMatching", {
   default: false,
 });
 
-const slots = useSlots();
+const slots = defineSlots<Slots>();
 
 const isExpandable = !!slots.expanded;
 
@@ -421,6 +420,14 @@ const bodyContext = computed<TableBodyContext<T>>(() => ({
   emptyStates: props.emptyStates,
 }));
 
+/**
+ * The rows, rendered outside this component's own render: the header, the
+ * scroll fades and the measured widths re-render the table, and the rows
+ * follow only when their context changes.
+ */
+const TableBodyOutlet = () =>
+  h(TableBody<T>, { context: bodyContext.value }, slots);
+
 defineShortcuts({
   delete: createTableViewDeleteShortcut(
     hoveredRowId,
@@ -453,8 +460,8 @@ defineShortcuts({
             {{ caption }}
           </span>
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="isFirstPageLoading"
+            :aria-label="t('dms.a11y.loading')"
             aria-hidden="true"
             :class="uiTable.captionCountPlaceholder()"
           />
@@ -633,11 +640,7 @@ defineShortcuts({
                 </tr>
               </thead>
 
-              <TableBody :context="bodyContext">
-                <template v-for="(_, name) in slots" #[name]="slotData">
-                  <slot :name="name" v-bind="slotData" />
-                </template>
-              </TableBody>
+              <TableBodyOutlet />
             </table>
           </div>
         </section>

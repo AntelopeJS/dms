@@ -4,7 +4,6 @@ import { isObject } from "../../utils/type-check";
 /** Receives decoded data and the frame's id (null if absent, empty if reset). */
 export type SseEventHandler = (
   eventName: string,
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The transport forwards arbitrary JSON or raw text. Event consumers own payload parsing; an event-specific schema would narrow this public transport.
   data: unknown,
   id: string | null,
 ) => void;
@@ -18,7 +17,6 @@ export interface SseStreamOptions {
   headers?: () => Record<string, string>;
   onEvent: SseEventHandler;
   onOpen?: () => void;
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Fetch, stream readers, and caller callbacks can all throw arbitrary values. No single Error owner contract covers these failures.
   onError?: (error: unknown) => void;
   /** Called once after cleanup; errors call onError first. Retry on only one callback. */
   onClose?: (reason: SseCloseReason) => void;

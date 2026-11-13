@@ -4,11 +4,10 @@ import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
-import type {
-  TableViewCardConfig,
-  TableViewDisplayContext,
-} from "../layers/dms-ui/app/composables/table-view/types/display";
+import type { TableViewCardConfig } from "../layers/dms-ui/app/composables/table-view/types/display";
 import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
+import { displayContext } from "./fixtures/displayContext";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 type Row = { _id: string; name: string; lead: string; done: number };
 
@@ -16,16 +15,7 @@ const column = (
   accessorKey: string,
   typeId: string,
   display?: TableViewColumn["display"],
-) =>
-  // SAFETY: Card field rendering reads type.id and display, not the omitted input and filter metadata.
-  ({
-    id: accessorKey,
-    accessorKey,
-    header: accessorKey,
-    listable: true,
-    type: { id: typeId },
-    display,
-  }) as TableViewColumn;
+) => tableViewColumn(accessorKey, { display }, typeId);
 
 const formatter = (typeId: string) => ({
   default: (
@@ -46,18 +36,13 @@ const formatter = (typeId: string) => ({
 let app: App | undefined;
 
 function mountCards(columns: TableViewColumn[], card?: TableViewCardConfig) {
-  // SAFETY: This fixture supplies the row, selection, pagination, and open operations consumed by CardsDisplay.
-  const context = {
+  const context = displayContext<Row>({
     items: [{ _id: "team-05", name: "Platform", lead: "ada.png", done: 3 }],
     columns,
-    loading: false,
-    rowIdKey: "_id",
     labelKey: "name",
     options: { card },
-    pagination: { pageIndex: 0, pageSize: 10, total: 1 },
-    selection: { isSelected: () => false, toggle: () => undefined },
-    actions: { canAdd: false, open: () => undefined },
-  } as TableViewDisplayContext<Row>;
+    pagination: { total: 1 },
+  });
   app = createApp({ render: () => h(CardsDisplay, { context }) });
   app.component("UCheckbox", defineComponent({ render: () => h("input") }));
   app.component("UIcon", defineComponent({ render: () => h("i") }));

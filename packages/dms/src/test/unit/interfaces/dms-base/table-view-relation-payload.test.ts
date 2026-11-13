@@ -159,9 +159,39 @@ class OrderAPI extends DataController(
 
 const ADD_FORM_KEY = '"addForm"';
 
+type SerializedColumnType = Pick<
+  DataTypeSerialized,
+  "inputComponent" | "filterComponents"
+>;
+
 interface SerializedColumn {
   id: string;
-  type?: DataTypeSerialized;
+  type?: SerializedColumnType;
+}
+
+function isObjectValue(value: unknown): value is object {
+  return typeof value === "object" && value !== null;
+}
+
+function isSerializedColumnType(value: unknown): value is SerializedColumnType {
+  return (
+    isObjectValue(value) &&
+    "inputComponent" in value &&
+    isObjectValue(value.inputComponent) &&
+    "filterComponents" in value &&
+    isObjectValue(value.filterComponents)
+  );
+}
+
+function isSerializedColumn(value: unknown): value is SerializedColumn {
+  return (
+    isObjectValue(value) &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    (!("type" in value) ||
+      value.type === undefined ||
+      isSerializedColumnType(value.type))
+  );
 }
 
 type TableOptions = TableViewOptionsSerialized & {
@@ -179,9 +209,23 @@ const sizeOf = (value: Weighed): number => JSON.stringify(value ?? null).length;
 const addFormsIn = (value: Weighed): number =>
   JSON.stringify(value ?? null).split(ADD_FORM_KEY).length - 1;
 
+function isTableOptions(
+  value: TableViewOptionsSerialized | undefined,
+): value is TableOptions {
+  return (
+    value !== undefined &&
+    "columns" in value &&
+    Array.isArray(value.columns) &&
+    value.columns.every(isSerializedColumn)
+  );
+}
+
 function tableOptions(): TableOptions {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- TableView's owner type omits dynamically serialized columns; this fixture reads the columns produced from OrderAPI's registered metadata.
-  return TableView(OrderAPI).serializeSync().options as TableOptions;
+  const { options } = TableView(OrderAPI).serializeSync();
+  if (!isTableOptions(options)) {
+    throw new Error("The serialized table view carries no columns");
+  }
+  return options;
 }
 
 function formField(

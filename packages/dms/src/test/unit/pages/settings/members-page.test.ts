@@ -69,7 +69,7 @@ function issuePaths(payload: JsonValue): string[] {
     : result.error.issues.map((issue) => issue.path.join("."));
 }
 
-describe("[unit] pages/settings/users members page", () => {
+function registerInviteInputCases(): void {
   describe("memberInviteSchema", () => {
     it("accepts several addresses and lowercases them", () => {
       const result = memberInviteSchema.safeParse({
@@ -153,7 +153,9 @@ describe("[unit] pages/settings/users members page", () => {
       uniqueInviteEmails(["b@test.local", "a@test.local", "b@test.local"]),
     ).to.deep.equal(["b@test.local", "a@test.local"]);
   });
+}
 
+function registerRoleOptionCases(): void {
   describe("role options", () => {
     it("collects the permissions the roles editor lists", () => {
       expect([...collectGrantablePermissionIds(tree)].sort()).to.deep.equal([
@@ -239,7 +241,9 @@ describe("[unit] pages/settings/users members page", () => {
       });
     });
   });
+}
 
+function registerInviteOutcomeCases(): void {
   describe("invite notice", () => {
     it("says nothing when every address went through", () => {
       expect(
@@ -315,4 +319,10 @@ describe("[unit] pages/settings/users members page", () => {
       expect(confirm.impact).to.equal(undefined);
     });
   });
+}
+
+describe("[unit] pages/settings/users members page", () => {
+  registerInviteInputCases();
+  registerRoleOptionCases();
+  registerInviteOutcomeCases();
 });

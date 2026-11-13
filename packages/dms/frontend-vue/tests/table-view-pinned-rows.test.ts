@@ -3,7 +3,7 @@
  * base language of a languages table stays on top whichever column the user
  * sorts on, and on the first page.
  */
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   processSourceRows,
   useTableRows,
@@ -13,7 +13,8 @@ import {
   pinRowsBySpan,
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/pinnedRows";
 import { rowLocator } from "../layers/dms-ui/app/entries/composables/table-view/utils/locateRow";
-import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import { fetchClient } from "./fixtures/fetchClient";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 interface LanguageRow extends Record<string, unknown> {
   _id: string;
@@ -29,14 +30,9 @@ const LANGUAGES: LanguageRow[] = [
   { _id: "es", name: "Español", coverage: 10, isBase: false },
 ];
 
-const COLUMNS = [
-  { id: "name", accessorKey: "name" },
-  { id: "coverage", accessorKey: "coverage" },
-] satisfies TableViewColumn[];
+const COLUMNS = [tableViewColumn("name"), tableViewColumn("coverage")];
 
 const BASE = { field: "isBase", equals: true };
-
-type Api = Parameters<typeof useTableRows>[0]["api"];
 
 const ids = (rows: LanguageRow[]) => rows.map((row) => row._id);
 
@@ -94,10 +90,9 @@ describe("rows a route sorts", () => {
     const sortedByRoute = [...LANGUAGES].sort(
       (a, b) => a.coverage - b.coverage,
     );
-    const api = vi.fn(async () => ({ results: sortedByRoute, total: 4 }));
+    const api = fetchClient(async () => ({ results: sortedByRoute, total: 4 }));
     const rows = useTableRows<LanguageRow>({
-      // SAFETY: list requests only this fixture's row page; the generic API also describes unrelated endpoints.
-      api: api as Api,
+      api,
       location: "/api/languages",
       source: { fetchUrl: "/api/languages", capabilities: { sort: true } },
       columns: COLUMNS,
@@ -108,7 +103,7 @@ describe("rows a route sorts", () => {
   });
 
   it("pins within the page a controller answers, read on each request", async () => {
-    const api = vi.fn(async () => ({
+    const api = fetchClient(async () => ({
       results: LANGUAGES,
       total: 40,
       offset: 0,
@@ -116,8 +111,7 @@ describe("rows a route sorts", () => {
     }));
     let pinned: typeof BASE | undefined = BASE;
     const rows = useTableRows<LanguageRow>({
-      // SAFETY: list requests only this fixture's row page, not arbitrary generic API responses.
-      api: api as Api,
+      api,
       location: "/api/languages",
       columns: COLUMNS,
       pinnedRows: () => pinned,
@@ -146,7 +140,7 @@ describe("the rows a paging table shows, pinned page by page", () => {
   const idsOf = (rows: { _id: string }[]) => rows.map((row) => row._id);
 
   function controllerRows() {
-    const api = vi.fn(
+    const api = fetchClient(
       async (_url: string, { query }: { query: Record<string, number> }) => ({
         results: ANSWERED.slice(query.offset, query.offset + query.limit),
         total: ANSWERED.length,
@@ -155,8 +149,7 @@ describe("the rows a paging table shows, pinned page by page", () => {
       }),
     );
     const rows = useTableRows({
-      // SAFETY: list requests this fixture's numeric paging query and receives its row page.
-      api: api as Api,
+      api,
       location: "/api/customers",
       columns: COLUMNS,
       pinnedRows: () => VIP,

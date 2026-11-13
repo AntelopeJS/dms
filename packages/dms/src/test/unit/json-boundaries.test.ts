@@ -50,11 +50,7 @@ async function renderFailure(): Promise<string> {
   throw new Error("expected a failure");
 }
 
-describe("[unit] documents read at a boundary", () => {
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-  });
-
+function registerRenderServiceCases(): void {
   describe("render service", () => {
     beforeEach(() => {
       applyConfig({
@@ -106,7 +102,9 @@ describe("[unit] documents read at a boundary", () => {
       expect(await GenerateHtml({ name: "welcome" }, {})).to.equal("<p>Hi</p>");
     });
   });
+}
 
+function registerOAuthBoundaryCases(): void {
   describe("oauth token exchange", () => {
     const exchange = () =>
       exchangeCodeForAccessToken(
@@ -186,4 +184,13 @@ describe("[unit] documents read at a boundary", () => {
       });
     });
   });
+}
+
+describe("[unit] documents read at a boundary", () => {
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  registerRenderServiceCases();
+  registerOAuthBoundaryCases();
 });

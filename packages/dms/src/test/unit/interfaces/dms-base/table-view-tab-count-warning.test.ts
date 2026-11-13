@@ -112,14 +112,14 @@ describe("[unit] interfaces/dms-base/table-view — filter tabs require countBat
     const warnings = countBatchWarnings(() =>
       TableView(BatchAPI, { tabs: TABS, realtime: false }),
     );
-    expect(warnings).to.be.empty;
+    expect(warnings).to.have.lengthOf(0);
   });
 
   it("stays silent when countBatch is mounted under another key", () => {
     const warnings = countBatchWarnings(() =>
       TableView(RenamedBatchAPI, { tabs: TABS, realtime: false }),
     );
-    expect(warnings).to.be.empty;
+    expect(warnings).to.have.lengthOf(0);
   });
 
   it("warns for a POST-only batch route rather than accepting a stale method census", () => {
@@ -135,6 +135,6 @@ describe("[unit] interfaces/dms-base/table-view — filter tabs require countBat
       TableView(NoTabsAPI, { realtime: false });
       TableView(NoTabsAPI, { tabs: [], realtime: false });
     });
-    expect(warnings).to.be.empty;
+    expect(warnings).to.have.lengthOf(0);
   });
 });

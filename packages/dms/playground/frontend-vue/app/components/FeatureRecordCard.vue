@@ -34,11 +34,14 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- FeatureRow.area is an open string; unknown areas intentionally use the template's default icon.
-const AREA_ICONS: Record<string, string> = {
-  Tables: "i-ph-table",
-  Forms: "i-ph-textbox",
-};
+const AREA_ICONS = new Map<string, string>([
+  ["Tables", "i-ph-table"],
+  ["Forms", "i-ph-textbox"],
+]);
+
+const areaIcon = computed(
+  () => AREA_ICONS.get(props.row.area ?? "") ?? "i-ph-sparkle",
+);
 
 const customActions = computed(() =>
   props.actions.customFor(props.row).map((action) => ({
@@ -68,7 +71,7 @@ const cardActions = computed(() => [
 
 <template>
   <DmsRecordCard
-    :icon="AREA_ICONS[props.row.area ?? ''] ?? 'i-ph-sparkle'"
+    :icon="areaIcon"
     :title="props.row.name ?? ''"
     :subtitle="props.row.owner"
     :description="`Requested by ${props.row.votes ?? 0} users, built by ${props.row.owner}.`"

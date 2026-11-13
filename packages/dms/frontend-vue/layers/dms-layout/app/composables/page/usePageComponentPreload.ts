@@ -42,7 +42,6 @@ interface AsyncComponentWithLoader {
 function loadPageLayoutComponents(layout: PageLayout | null | undefined) {
   return Promise.all(
     collectPageLayoutComponentNames(layout).map((name) => {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- resolveDmsComponent exposes Vue's public Component union, not its optional internal loader; the loader's callable type comes from Vue and access remains unchecked for custom components.
       const component = resolveDmsComponent(name) as
         | AsyncComponentWithLoader
         | undefined;

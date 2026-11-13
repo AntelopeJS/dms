@@ -122,7 +122,6 @@ function calendarDayOf(
 }
 
 function pointX(point: ChartSeries["data"][number]) {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens the ChartSeries point's x to unknown; typeof keeps the owner's union without validating or converting its data.
   return typeof point === "object" && point !== null ? point.x : undefined;
 }
 
@@ -257,7 +256,6 @@ export function toBucketSeries(
     ...entry,
     data: buckets.keys.map((key, position) => {
       const point = entry.data[buckets.sourceIndexes[seriesIndex]![position]!];
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard makes this closed point union unspreadable; typeof retains its owner fields without a cast or changed coercion.
       return typeof point === "object"
         ? { ...point, x: key }
         : { x: key, y: null };

@@ -86,22 +86,7 @@ async function registrationHostCommand(userId: string): Promise<void> {
   });
 }
 
-describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", () => {
-  before(async () => {
-    ImplementInterface(
-      { sendAdminInviteEmail },
-      {
-        sendAdminInviteEmail: async () => undefined,
-      },
-    );
-    setAdmin(await createUser());
-  });
-
-  afterEach(async () => {
-    for (const dispose of disposers.splice(0)) dispose();
-    await registrationHostCommand("dispose");
-  });
-
+function registerModalInjectionCases(): void {
   describe("injection into the invite modal", () => {
     it("merges the contributed fields into the form, namespaced by key", async () => {
       register(recordingExtension("billing", "costCenter").options);
@@ -191,7 +176,9 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       ]);
     });
   });
+}
 
+function registerPendingInviteEditCases(): void {
   describe("edit form of a pending invitation", () => {
     function contributedFields(fields: FormFieldOrGroupSerialized[]) {
       return fields
@@ -302,7 +289,9 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       ).to.deep.equal([]);
     });
   });
+}
 
+function registerRegistrationCases(): void {
   registerInviteExtensionPayloadCases();
 
   describe("registration", () => {
@@ -399,4 +388,25 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       expect(second.recorded.accepted).to.have.length(1);
     });
   });
+}
+
+describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", () => {
+  before(async () => {
+    ImplementInterface(
+      { sendAdminInviteEmail },
+      {
+        sendAdminInviteEmail: async () => undefined,
+      },
+    );
+    setAdmin(await createUser());
+  });
+
+  afterEach(async () => {
+    for (const dispose of disposers.splice(0)) dispose();
+    await registrationHostCommand("dispose");
+  });
+
+  registerModalInjectionCases();
+  registerPendingInviteEditCases();
+  registerRegistrationCases();
 });

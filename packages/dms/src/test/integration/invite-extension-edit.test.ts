@@ -31,63 +31,70 @@ interface RecordedUpdate {
   context: InviteExtensionContext;
 }
 
-describe("Pending invite edit with extension payloads (MongoDB adapter)", () => {
-  let invites: UserInviteModel;
-  let updates: RecordedUpdate[];
-  let admin: User;
-  const disposers: Array<() => void> = [];
+let invites: UserInviteModel;
 
-  async function storedExtensions() {
-    return StoredExtensions.parse((await invites.get(INVITE_ID))?.extensions);
-  }
+let updates: RecordedUpdate[];
 
-  beforeEach(async () => {
-    await resetDatabase();
-    admin = await createUser();
-    updates = [];
-    disposers.push(
-      RegisterInviteExtension({
-        key: "scope",
-        component: Form({ fields: [] }),
-        schema: z.object({ access: z.enum(["all", "some"]) }),
-        placement: { side: "end", order: 0 },
-        onAccept: () => undefined,
-        onUpdate: (payload, previous, context) => {
-          updates.push({ payload, previous, context });
-        },
-      }),
-    );
-    disposers.push(
-      RegisterInviteExtension({
-        key: "frozen",
-        component: Form({ fields: [] }),
-        schema: z.object({ value: z.string() }),
-        placement: { side: "end", order: 0 },
-        editable: false,
-        onAccept: () => undefined,
-      }),
-    );
-    invites = GetModel(UserInviteModel, TENANT);
-    await invites.insert({
-      _id: INVITE_ID,
-      token: "pending-token",
-      email: "pending@example.test",
-      firstname: null,
-      lastname: null,
-      language: "en",
-      roles_ids: [],
-      asTenantOwner: false,
-      expiresAt: new Date(Date.now() + FUTURE_MS),
-      extensions: {
-        scope: { access: "all" } satisfies ScopeSlice,
-        frozen: { value: "kept" },
+let admin: User;
+
+const disposers: Array<() => void> = [];
+
+async function storedExtensions() {
+  return StoredExtensions.parse((await invites.get(INVITE_ID))?.extensions);
+}
+
+async function seedPendingInvite() {
+  await resetDatabase();
+  admin = await createUser();
+  updates = [];
+  disposers.push(
+    RegisterInviteExtension({
+      key: "scope",
+      component: Form({ fields: [] }),
+      schema: z.object({ access: z.enum(["all", "some"]) }),
+      placement: { side: "end", order: 0 },
+      onAccept: () => undefined,
+      onUpdate: (payload, previous, context) => {
+        updates.push({ payload, previous, context });
       },
-    });
+    }),
+  );
+  disposers.push(
+    RegisterInviteExtension({
+      key: "frozen",
+      component: Form({ fields: [] }),
+      schema: z.object({ value: z.string() }),
+      placement: { side: "end", order: 0 },
+      editable: false,
+      onAccept: () => undefined,
+    }),
+  );
+  invites = GetModel(UserInviteModel, TENANT);
+  await invites.insert({
+    _id: INVITE_ID,
+    token: "pending-token",
+    email: "pending@example.test",
+    firstname: null,
+    lastname: null,
+    language: "en",
+    roles_ids: [],
+    asTenantOwner: false,
+    expiresAt: new Date(Date.now() + FUTURE_MS),
+    extensions: {
+      scope: { access: "all" } satisfies ScopeSlice,
+      frozen: { value: "kept" },
+    },
   });
+}
 
-  afterEach(() => {
-    for (const dispose of disposers.splice(0)) dispose();
-  });
+function disposeExtensions() {
+  for (const dispose of disposers.splice(0)) dispose();
+}
+
+describe("Pending invite edit with extension payloads (MongoDB adapter)", () => {
+  beforeEach(seedPendingInvite);
+
+  afterEach(disposeExtensions);
 
   it("stores the edited payload and tells its extension", async () => {
     disposers.push(

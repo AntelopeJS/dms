@@ -7,21 +7,20 @@ import type {
   CustomRowAction,
   CustomRowActionSerialized,
   RowActionConfigSerialized,
-  RowActionRule,
 } from "../../types/row-action";
 import { LIST_ACTION, VIEW_ACTION, VIEW_ARCHIVED_ACTION } from "./auth";
 import type { TableViewCapabilities } from "./factory-helpers";
+import { eraseRowType } from "./erase-row-type";
+import { isBoolean } from "../../../utils/internal/type-check";
 
 /** A built-in row action as the options carry it: its confirmation serialized. */
 export function serializeRowActionConfig<T extends object>(
   config: boolean | BulkRowActionConfig<T> | AddRowActionConfig<T> | undefined,
 ): boolean | RowActionConfigSerialized | undefined {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published action union includes boolean shorthand and configured actions; this selects the shorthand.
-  if (config === undefined || typeof config === "boolean") return config;
+  if (config === undefined || isBoolean(config)) return config;
   const { confirm, rule, ...rest } = config;
   const served: RowActionConfigSerialized = rest;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Serialization erases the module row generic into the published untyped rule envelope without checking field values.
-  if (rule) served.rule = rule as RowActionRule;
+  if (rule) served.rule = eraseRowType(rule);
   if (confirm) served.confirm = serializeActionConfirm(confirm);
   return served;
 }
@@ -34,8 +33,7 @@ export function serializeCustomRowAction<T extends object>(
     id: action.id,
     label: action.label,
     icon: action.icon,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published serialized action erases the module row generic; no row-value validation occurs during serialization.
-    rule: action.rule as RowActionRule | undefined,
+    rule: eraseRowType(action.rule),
     target: serializeActionTarget(action.target),
     isVisible: action.isVisible,
     isDefault: action.isDefault,

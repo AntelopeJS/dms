@@ -175,60 +175,66 @@ async function recordResolverCalls(
   return calls;
 }
 
+const cleanups: Array<() => void> = [];
+
+async function registerResolverFixtures() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+  cleanups.push(
+    await registerTestPage(
+      PageController("prr-home", {
+        displayName: "Home",
+        category: pagesCategory,
+      }),
+    ),
+    await registerTestPage(
+      PageController(
+        "prr-invoices",
+        { displayName: "Invoices", category: pagesCategory },
+        DefaultLayout({
+          headerActions: [
+            {
+              id: "export",
+              label: "Export",
+              target: { type: "page", url: "/prr-invoices/export" },
+              permissionId: INVOICES_EXPORT,
+            },
+          ],
+        }),
+      ),
+    ),
+    await registerTestPage(
+      PageController("prr-roles", {
+        displayName: "Roles",
+        category: pagesCategory,
+      }),
+    ),
+    await registerTestPage(
+      PageController("prr-billing", {
+        displayName: "Billing",
+        category: pagesCategory,
+      }),
+    ),
+  );
+}
+
+function runPreviewCleanups() {
+  unregisterResolvers(RESOLVERS);
+  planPermissions = new Set();
+}
+
+function runFixtureCleanups() {
+  for (const cleanup of cleanups.splice(0)) cleanup();
+}
+
 describe("[unit] implementations/dms/page — role preview through permission resolvers", () => {
-  const cleanups: Array<() => void> = [];
+  before(registerResolverFixtures);
 
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-    cleanups.push(
-      await registerTestPage(
-        PageController("prr-home", {
-          displayName: "Home",
-          category: pagesCategory,
-        }),
-      ),
-      await registerTestPage(
-        PageController(
-          "prr-invoices",
-          { displayName: "Invoices", category: pagesCategory },
-          DefaultLayout({
-            headerActions: [
-              {
-                id: "export",
-                label: "Export",
-                target: { type: "page", url: "/prr-invoices/export" },
-                permissionId: INVOICES_EXPORT,
-              },
-            ],
-          }),
-        ),
-      ),
-      await registerTestPage(
-        PageController("prr-roles", {
-          displayName: "Roles",
-          category: pagesCategory,
-        }),
-      ),
-      await registerTestPage(
-        PageController("prr-billing", {
-          displayName: "Billing",
-          category: pagesCategory,
-        }),
-      ),
-    );
-  });
+  afterEach(runPreviewCleanups);
 
-  afterEach(() => {
-    unregisterResolvers(RESOLVERS);
-    planPermissions = new Set();
-  });
-
-  after(() => {
-    for (const cleanup of cleanups.splice(0)) cleanup();
-  });
+  after(runFixtureCleanups);
 
   describe("with a viewer that is not a stored user", () => {
     it("refuses to preview as it", async () => {
@@ -266,18 +272,26 @@ describe("[unit] implementations/dms/page — role preview through permission re
 
     it("hides nothing for a role granting every page", async () => {
       const outcome = await preview(VIEWERS[0], PLAN_TENANT, EVERY_GRANT);
-      expect(outcome.hiddenEntries).to.be.empty;
+      expect(outcome.hiddenEntries).to.have.lengthOf(0);
       expect(outcome.pageHidden).to.equal(false);
-      expect(outcome.hiddenHeaderActions).to.be.empty;
+      expect(outcome.hiddenHeaderActions).to.have.lengthOf(0);
     });
 
     it("hides nothing for a role holding the wildcard", async () => {
       const outcome = await preview(VIEWERS[0], PLAN_TENANT, ["*"]);
-      expect(outcome.hiddenEntries).to.be.empty;
+      expect(outcome.hiddenEntries).to.have.lengthOf(0);
       expect(outcome.pageHidden).to.equal(false);
-      expect(outcome.hiddenHeaderActions).to.be.empty;
+      expect(outcome.hiddenHeaderActions).to.have.lengthOf(0);
     });
   });
+});
+
+describe("[unit] implementations/dms/page — role preview through permission resolvers", () => {
+  before(registerResolverFixtures);
+
+  afterEach(runPreviewCleanups);
+
+  after(runFixtureCleanups);
 
   describe("the resolver context", () => {
     it("tells the resolvers a preview, with the role's set, for the viewer", async () => {
@@ -301,7 +315,7 @@ describe("[unit] implementations/dms/page — role preview through permission re
         preview(VIEWERS[1], PLAN_TENANT, [HOME]),
       );
       const own = calls.filter((call) => !call.context.preview);
-      expect(own).to.not.be.empty;
+      expect(own).to.not.have.lengthOf(0);
       for (const call of own) expect(call.context).to.deep.equal({});
     });
   });
@@ -335,9 +349,9 @@ describe("[unit] implementations/dms/page — role preview through permission re
         it("hides nothing for a role holding the wildcard", async () => {
           setPlan(...EVERY_GRANT);
           const outcome = await preview(viewer, PLAN_TENANT, ["*"]);
-          expect(outcome.hiddenEntries).to.be.empty;
+          expect(outcome.hiddenEntries).to.have.lengthOf(0);
           expect(outcome.pageHidden).to.equal(false);
-          expect(outcome.hiddenHeaderActions).to.be.empty;
+          expect(outcome.hiddenHeaderActions).to.have.lengthOf(0);
         });
       });
     }
@@ -356,7 +370,7 @@ describe("[unit] implementations/dms/page — role preview through permission re
         const outcome = await preview(viewer, PLAN_TENANT, EVERY_GRANT);
         expect(outcome.hiddenEntries).to.deep.equal([BILLING]);
         expect(outcome.pageHidden).to.equal(false);
-        expect(outcome.hiddenHeaderActions).to.be.empty;
+        expect(outcome.hiddenHeaderActions).to.have.lengthOf(0);
       }
     });
 

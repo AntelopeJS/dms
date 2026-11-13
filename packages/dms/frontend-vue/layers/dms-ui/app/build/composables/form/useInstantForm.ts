@@ -46,7 +46,6 @@ export interface InstantFormOptions {
   /** Sends the changed fields, alone (a partial submit). */
   submit: (changes: FormValues) => Promise<void>;
   /** Says why a save was refused, once its values are put back. */
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript promises can reject with any value; the adapter forwards it without narrowing the public callback.
   onRefused: (error: unknown) => void;
 }
 
@@ -61,7 +60,6 @@ export interface InstantForm extends InstantSave<FormValues> {
 }
 
 const clone = (value: FormValues[string]): FormValues[string] =>
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Form state accepts arbitrary compound values; preserve the unchecked clone adapter without claiming FormFieldValue validation.
   cloneFormValue(value as FormFieldValue | undefined);
 
 /**

@@ -64,8 +64,12 @@ export function stampAttachmentFields(
   for (const [columnKey, column] of Object.entries(meta.columns)) {
     const typeId = getDataTypeId(column.type);
     if (typeId === "file" || typeId === "image") {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- Registry ids select attachment types without narrowing DataType.options; this unchecked write preserves the published stamping behavior for module registrations.
-      const typeOptions = column.type.options as Record<string, unknown>;
+      const typeOptions = column.type.options;
+      if (!typeOptions) {
+        throw new TypeError(
+          `The ${typeId} column "${columnKey}" of ${location} has no options to record its attachment in`,
+        );
+      }
       typeOptions.attachmentField = `${location}#${columnKey}`;
     }
   }

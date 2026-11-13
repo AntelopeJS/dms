@@ -75,21 +75,25 @@ function slugCollisionWarnings(messages: string[]): string[] {
   return messages.filter((message) => message.includes(COLLISION_MARKER));
 }
 
+const cleanups: Array<() => void> = [];
+
+async function implementInterfaces() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+}
+
+function runCleanups() {
+  for (const cleanup of cleanups.splice(0)) {
+    cleanup();
+  }
+}
+
 describe("[unit] implementations/dms/page — category slug registry", () => {
-  const cleanups: Array<() => void> = [];
+  before(implementInterfaces);
 
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-  });
-
-  afterEach(() => {
-    for (const cleanup of cleanups.splice(0)) {
-      cleanup();
-    }
-  });
+  afterEach(runCleanups);
 
   it("marks a category sharing its parent's slug as url-transparent", () => {
     const section = registerTransparentSection("transparency-flag");
@@ -119,15 +123,23 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
       cleanups.push(section.cleanup);
     }
 
-    expect(slugCollisionWarnings(captured.messages)).to.be.empty;
+    expect(slugCollisionWarnings(captured.messages)).to.have.lengthOf(0);
 
     const payload = await buildLayout(
       sections.map(({ category }) => category.fullId),
     );
     for (const { category } of sections) {
-      expect(findTreeNode(payload.siteLayoutTree, category.fullId)).to.exist;
+      expect(
+        findTreeNode(payload.siteLayoutTree, category.fullId),
+      ).to.not.equal(undefined);
     }
   });
+});
+
+describe("[unit] implementations/dms/page — category slug registry, unregistering and warnings", () => {
+  before(implementInterfaces);
+
+  afterEach(runCleanups);
 
   it("removes a transparent section from the tree when it unregisters", async () => {
     const dropped = registerTransparentSection("teardown-dropped");
@@ -136,15 +148,19 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
     const granted = [kept.category.fullId, dropped.category.fullId];
 
     const before = await buildLayout(granted);
-    expect(findTreeNode(before.siteLayoutTree, dropped.category.fullId)).to
-      .exist;
+    expect(
+      findTreeNode(before.siteLayoutTree, dropped.category.fullId),
+    ).to.not.equal(undefined);
 
     dropped.cleanup();
 
     const after = await buildLayout(granted);
-    expect(findTreeNode(after.siteLayoutTree, dropped.category.fullId)).to.not
-      .exist;
-    expect(findTreeNode(after.siteLayoutTree, kept.category.fullId)).to.exist;
+    expect(
+      findTreeNode(after.siteLayoutTree, dropped.category.fullId),
+    ).to.equal(undefined);
+    expect(
+      findTreeNode(after.siteLayoutTree, kept.category.fullId),
+    ).to.not.equal(undefined);
   });
 
   it("resolves a dynamic menu provider targeting a shadowed section", async () => {
@@ -168,7 +184,7 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
     const unknown = captured.messages.filter((message) =>
       message.includes(UNKNOWN_CATEGORY_MARKER),
     );
-    expect(unknown).to.be.empty;
+    expect(unknown).to.have.lengthOf(0);
   });
 
   it("still warns when two categories claim one real URL", () => {
@@ -228,7 +244,7 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
       expect(entry).to.not.have.property("category");
     }
     const node = findTreeNode(payload.siteLayoutTree, section.category.fullId);
-    expect(node).to.exist;
+    expect(node).to.not.equal(undefined);
     expect(node).to.not.have.property("category");
   });
 });

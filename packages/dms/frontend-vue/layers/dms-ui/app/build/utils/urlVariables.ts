@@ -19,7 +19,6 @@ const TOKEN_OPENING = "{{";
 export interface ReplaceUrlVariablesContext {
   routeParams?: Record<string, string>;
   routeQuery: MenuRouteState["query"];
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Response bodies retain arbitrary nested values for path lookup; the core JSON contract would exclude existing non-JSON inputs.
   response?: Record<string, unknown>;
 }
 

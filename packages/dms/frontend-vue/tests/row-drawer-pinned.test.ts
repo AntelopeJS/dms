@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import { ref } from "vue";
+import { fetchClient } from "./fixtures/fetchClient";
 import { describe, expect, it, vi } from "vitest";
 import { useTableRows } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 import { rowLocator } from "../layers/dms-ui/app/entries/composables/table-view/utils/locateRow";
@@ -31,14 +32,12 @@ describe("a row drawer on a table with pinned rows", () => {
 
   function secondPage() {
     const rowsRead = useTableRows({
-      // SAFETY: The list client is invoked only with this query shape and consumes only results and total from the reply.
-      api: (async (
-        _url: string,
-        { query }: { query: Record<string, number> },
-      ) => ({
-        results: answered.slice(query.offset, query.offset + query.limit),
-        total: answered.length,
-      })) as Parameters<typeof useTableRows>[0]["api"],
+      api: fetchClient(
+        async (_url: string, { query }: { query: Record<string, number> }) => ({
+          results: answered.slice(query.offset, query.offset + query.limit),
+          total: answered.length,
+        }),
+      ),
       location: "/api/customers",
       columns: [],
       pinnedRows: () => ({ field: "isVip", equals: true }),

@@ -40,10 +40,10 @@ function setReduceMotion(value: string | number | undefined): void {
     >
       <USwitch
         :model-value="preferences.increaseContrast.value"
-        @update:model-value="pick('increaseContrast', $event)"
         :aria-label="
           t('page.settings.appearance.accessibility.increase_contrast')
         "
+        @update:model-value="pick('increaseContrast', $event)"
       />
     </DmsFieldRow>
     <DmsFieldRow
@@ -52,10 +52,10 @@ function setReduceMotion(value: string | number | undefined): void {
     >
       <USwitch
         :model-value="preferences.underlineLinks.value"
-        @update:model-value="pick('underlineLinks', $event)"
         :aria-label="
           t('page.settings.appearance.accessibility.underline_links')
         "
+        @update:model-value="pick('underlineLinks', $event)"
       />
     </DmsFieldRow>
   </div>

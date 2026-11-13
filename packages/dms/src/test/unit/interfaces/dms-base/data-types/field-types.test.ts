@@ -120,16 +120,18 @@ describe("[unit] interfaces/dms-base — ArrayType", () => {
 
   it("validates a list of rows, each an object of its fields", () => {
     const validation = headers().getValidation();
-    expect(validation.safeParse([{ name: "Accept", value: "*/*" }]).success).to
-      .be.true;
-    expect(validation.safeParse([{ name: "", value: "x" }]).success).to.be
-      .false;
-    expect(validation.safeParse([{ value: "x" }]).success).to.be.false;
-    expect(validation.safeParse([]).success).to.be.false;
+    expect(
+      validation.safeParse([{ name: "Accept", value: "*/*" }]).success,
+    ).to.equal(true);
+    expect(validation.safeParse([{ name: "", value: "x" }]).success).to.equal(
+      false,
+    );
+    expect(validation.safeParse([{ value: "x" }]).success).to.equal(false);
+    expect(validation.safeParse([]).success).to.equal(false);
     expect(
       validation.safeParse([{ name: "a" }, { name: "b" }, { name: "c" }])
         .success,
-    ).to.be.false;
+    ).to.equal(false);
   });
 
   it("renders a repeater, a column per field", () => {
@@ -153,10 +155,11 @@ describe("[unit] interfaces/dms-base — ArrayType", () => {
 describe("[unit] interfaces/dms-base — KeyValueType", () => {
   it("validates an object of named values", () => {
     const validation = new DefaultDataTypes.KeyValueType().getValidation();
-    expect(validation.safeParse({ "Content-Type": "application/json" }).success)
-      .to.be.true;
-    expect(validation.safeParse({ "": "x" }).success).to.be.false;
-    expect(validation.safeParse([["a", "b"]]).success).to.be.false;
+    expect(
+      validation.safeParse({ "Content-Type": "application/json" }).success,
+    ).to.equal(true);
+    expect(validation.safeParse({ "": "x" }).success).to.equal(false);
+    expect(validation.safeParse([["a", "b"]]).success).to.equal(false);
   });
 
   it("holds { value, enabled } per key when toggleable", () => {
@@ -166,8 +169,8 @@ describe("[unit] interfaces/dms-base — KeyValueType", () => {
     }).getValidation();
     expect(
       validation.safeParse({ retries: { value: 3, enabled: false } }).success,
-    ).to.be.true;
-    expect(validation.safeParse({ retries: 3 }).success).to.be.false;
+    ).to.equal(true);
+    expect(validation.safeParse({ retries: 3 }).success).to.equal(false);
   });
 });
 
@@ -190,9 +193,9 @@ describe("[unit] interfaces/dms-base — CodeType", () => {
     const validation = new DefaultDataTypes.CodeType({
       language: "json",
     }).getValidation();
-    expect(validation.safeParse('{ "a": 1 }').success).to.be.true;
+    expect(validation.safeParse('{ "a": 1 }').success).to.equal(true);
     const refused = validation.safeParse("{ a: 1 }");
-    expect(refused.success).to.be.false;
+    expect(refused.success).to.equal(false);
     expect(refused.error?.issues[0]?.message).to.equal(
       "$dms.field_errors.invalid_json",
     );
@@ -202,7 +205,7 @@ describe("[unit] interfaces/dms-base — CodeType", () => {
     const validation = new DefaultDataTypes.CodeType({
       language: "sql",
     }).getValidation();
-    expect(validation.safeParse("select * from").success).to.be.true;
+    expect(validation.safeParse("select * from").success).to.equal(true);
   });
 });
 
@@ -212,10 +215,11 @@ describe("[unit] interfaces/dms-base — TagsType", () => {
       itemType: "email",
       max: 2,
     }).getValidation();
-    expect(validation.safeParse(["a@b.co"]).success).to.be.true;
-    expect(validation.safeParse(["nope"]).success).to.be.false;
-    expect(validation.safeParse(["a@b.co", "c@d.co", "e@f.co"]).success).to.be
-      .false;
+    expect(validation.safeParse(["a@b.co"]).success).to.equal(true);
+    expect(validation.safeParse(["nope"]).success).to.equal(false);
+    expect(
+      validation.safeParse(["a@b.co", "c@d.co", "e@f.co"]).success,
+    ).to.equal(false);
   });
 });
 

@@ -1,3 +1,5 @@
+import { isObject } from "../../utils/type-check";
+
 export const CONTENT_LANGUAGE_HEADER = "x-content-language";
 
 const RETRY_HEADER = "x-auth-retry";
@@ -28,12 +30,14 @@ function withRetryHeader(
   return merged;
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This catch boundary accepts arbitrary rejections; ofetch's FetchError owner would exclude supported non-fetch throws.
 function isUnauthorized(error: unknown): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This unchecked optional access preserves primitive boxing and nested getter behavior; a schema guard would change malformed-input behavior.
-  const response = (error as { response?: { status?: number } } | undefined)
-    ?.response;
-  return response?.status === HTTP_UNAUTHORIZED;
+  if (!isObject(error) || error === null) return false;
+  const { response } = error;
+  return (
+    isObject(response) &&
+    response !== null &&
+    response.status === HTTP_UNAUTHORIZED
+  );
 }
 
 export const useAuthFetch = () => {
@@ -126,12 +130,12 @@ export const useAuthFetch = () => {
       ...defaults,
       ...options,
     });
-    // SAFETY: retryingFetch resolves with the response baseFetch gives for the same request, of the same response type, so the wrapper answers as AuthFetch's call signature does; raw, native and create are attached below before it is returned.
+    // SAFETY: For every type argument a caller picks, retryingFetch resolves with what baseFetch resolves for the caller's request and its options merged over defaults, responseType included, a 401 retry resending them with only the retry header added; raw, native and create are assigned by the next three statements, before authFetch is returned.
     const authFetch = ((
       request: AuthFetchArgs[0],
       options?: AuthFetchArgs[1],
     ) => retryingFetch(request, optionsOf(options))) as AuthFetch;
-    // SAFETY: retryingRaw resolves with the response baseFetch.raw gives for the same request, of the same response type, so the wrapper answers as AuthFetch['raw'] does.
+    // SAFETY: For every type argument a caller picks, retryingRaw resolves with what baseFetch.raw resolves for the caller's request and its options merged over defaults, responseType included, a 401 retry resending them with only the retry header added.
     authFetch.raw = ((request: AuthFetchArgs[0], options?: AuthFetchArgs[1]) =>
       retryingRaw(request, optionsOf(options))) as AuthFetch["raw"];
     authFetch.native = baseFetch.native;

@@ -176,6 +176,19 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
       lazyPlugin(() => import("./layers/dms-core/app/plugins/dev-error-log")),
       { ...clientOnly, enforce: "pre" },
     );
+
+    sdk.registerPlugin(
+      lazyPlugin(
+        () => import("./layers/dms-layout/app/entries/branding/header-action"),
+      ),
+      clientOnly,
+    );
+    sdk.registerComponent(
+      "BrandingEditor",
+      lazyComponent(
+        () => import("./layers/dms-layout/app/entries/branding/BrandingEditor"),
+      ),
+    );
   }
 
   sdk.registerPlugin(asyncDataScopePlugin, { enforce: "pre" });

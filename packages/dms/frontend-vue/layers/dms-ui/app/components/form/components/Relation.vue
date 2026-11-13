@@ -307,11 +307,6 @@ const mergedItems = computed<SelectMenuItem[]>(() => {
   return merged;
 });
 
-interface AvatarSourceItem {
-  avatarSource?: unknown;
-  label?: string;
-}
-
 function resolveItemAvatar(item: SelectMenuItem): SelectMenuItem {
   if (typeof item !== "object" || item === null || !("avatarSource" in item)) {
     return item;
@@ -331,8 +326,14 @@ watch(
   mergedItems,
   (items) => {
     for (const item of items) {
-      // SAFETY: Select-menu objects may carry an avatar source; string items yield undefined for this optional property.
-      const source = (item as AvatarSourceItem).avatarSource;
+      if (
+        typeof item !== "object" ||
+        item === null ||
+        !("avatarSource" in item)
+      ) {
+        continue;
+      }
+      const source = item.avatarSource;
       if (isImageRefValue(source)) {
         void resolveAvatarUrl(source.key);
       }

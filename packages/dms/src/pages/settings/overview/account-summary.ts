@@ -12,11 +12,10 @@ export interface BlockItems<T> {
 }
 
 /** The label of a two-factor method the user turned on. */
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Stored authentication method names are extensible; unmapped methods retain their fallback label.
-const METHOD_LABELS: Record<string, string> = {
+const METHOD_LABELS = {
   totp: `${TEXTS}.activity.method.totp`,
   email: `${TEXTS}.activity.method.email`,
-};
+} satisfies Record<string, string>;
 
 /** The user's language, named in itself: "Français", "English". */
 export function languageName(language: string): string {

@@ -71,7 +71,7 @@ type AttachmentSaver = <T>(
  * before any file is touched.
  */
 export const SaveComponentFiles =
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- InterfaceFunction erases the callback/result generic correlation; the published proxy must retain AttachmentSaver's generic call signature.
+  // SAFETY: InterfaceFunction types the proxy from Parameters and Awaited<ReturnType> of AttachmentSaver, which erase its type parameter T to unknown. The proxy forwards the call and the implementing module's answer untouched, so it answers a T exactly when that module answers the result its save callback returned, as packages/dms's SaveComponentFiles does (saved.result).
   InterfaceFunction<AttachmentSaver>() as AttachmentSaver;
 
 /**

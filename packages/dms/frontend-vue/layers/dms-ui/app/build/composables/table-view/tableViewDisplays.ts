@@ -38,11 +38,9 @@ export function useTableViewDisplayOptions<T extends Data>(
   const resolvedDisplay = (id: string): TableViewDisplayConfig | undefined =>
     resolvedDisplays.find((d) => d.id === id);
   const optionsForDisplay = (id: string) => resolvedDisplay(id)?.options;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Display options are not discriminated by id in TableViewDisplayConfig; the existing kanban contract remains unchecked here.
   const kanbanOptions = optionsForDisplay(KANBAN_DISPLAY_ID) as
     | KanbanConfig
     | undefined;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Display options are not discriminated by id in TableViewDisplayConfig; the existing grouped contract remains unchecked here.
   const groupedOptions = optionsForDisplay(GROUPED_DISPLAY_ID) as
     | TableViewGroupedConfig
     | undefined;

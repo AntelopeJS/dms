@@ -1,3 +1,4 @@
+import { Controller } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { expect } from "chai";
@@ -120,7 +121,9 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(type.getValidation().safeParse(1).success).to.equal(false);
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("EmailType", () => {
     it("accepts a valid email", () => {
       const type = new DefaultDataTypes.EmailType();
@@ -211,7 +214,9 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       );
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("AddressType", () => {
     it("accepts a full valid address object", () => {
       const type = new DefaultDataTypes.AddressType();
@@ -267,11 +272,16 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(type.getValidation().safeParse(1.01).success).to.equal(false);
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("RelationType filterOnly", () => {
-    class UnregisteredController {}
-    // SAFETY: RelationType expects a registered ControllerClass; these cases pass a bare class on purpose: none but the Foreign-join case needs the controller's routing API or data-api registration, and that case relies on the missing registration to make decorateField throw.
-    const UNREGISTERED_CONTROLLER = UnregisteredController as never;
+    class UnregisteredController extends Controller("/unregistered-relation") {
+      declare name: string;
+      declare _id: string;
+      declare parentId: string;
+    }
+    const UNREGISTERED_CONTROLLER = UnregisteredController;
 
     it("keeps the relation compare modes whether or not filterOnly is set", () => {
       const filtering = new DefaultDataTypes.RelationType({
@@ -294,6 +304,7 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(crew.compareModes).to.deep.equal([
         DefaultDataCompareTypes.Include,
         DefaultDataCompareTypes.Exclude,
+        DefaultDataCompareTypes.ArrayContainsString,
         DefaultDataCompareTypes.IsEmpty,
         DefaultDataCompareTypes.IsNotEmpty,
       ]);
@@ -336,12 +347,16 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       ).to.throw();
     });
   });
+});
 
+describe("[unit] interfaces/dms-base/data-types/default-types", () => {
   describe("RelationType filterBy", () => {
-    class SiteController {}
+    class SiteController extends Controller("/relation-filter-site") {
+      declare customer: string;
+      declare region: string;
+    }
     GetMetadata(SiteController, DataAPIMeta).filters.customer = () => true;
-    // SAFETY: RelationType expects a ControllerClass; this class carries only data-api filter metadata, which is all these cases read, and none mounts it as a controller.
-    const SITE_CONTROLLER = SiteController as never;
+    const SITE_CONTROLLER = SiteController;
 
     it("accepts a filterBy field the related controller can filter on", () => {
       class Target {}

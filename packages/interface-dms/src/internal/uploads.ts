@@ -36,6 +36,13 @@ export interface UploadFieldOptions {
   uploadToken?: unknown;
 }
 
+/** Whether component options are an object a token can be stamped into; an array is not. */
+function isStampableOptions(options: unknown): options is object {
+  return (
+    typeof options === "object" && options !== null && !Array.isArray(options)
+  );
+}
+
 /**
  * Read the component options of a file or image field before a token is
  * stamped into them. Absent options become an empty object that carries the
@@ -50,8 +57,7 @@ export function readUploadFieldOptions(field: {
   component: { options?: unknown };
 }): UploadFieldOptions {
   const options = field.component.options ?? {};
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Field options are erased contributor values; a primitive or an array cannot carry the upload token.
-  if (typeof options !== "object" || Array.isArray(options)) {
+  if (!isStampableOptions(options)) {
     throw new TypeError(
       `A ${field.type} field's component options must be an object, got ${JSON.stringify(options)}`,
     );

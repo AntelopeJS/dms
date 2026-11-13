@@ -1,8 +1,9 @@
 import { HTTPResult } from "@antelopejs/interface-api";
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import { assert, expect } from "chai";
-import type { UserModel } from "@antelopejs/interface-dms/auth/db";
+import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assertEmailAvailable } from "../../../../pages/account";
-import { userFixture } from "../../../helpers/user-fixture";
+import { storedUserFixture } from "../../../helpers/user-fixture";
 
 const HTTP_CONFLICT = 409;
 const EMAIL_TAKEN = "error.email_already_used";
@@ -12,15 +13,23 @@ const OTHER_EMAIL = "holder@acme.dev";
 const FREE_EMAIL = "free@acme.dev";
 const OWN_EMAIL = "mine@acme.dev";
 
+class HoldingUserModel extends UserModel {
+  private readonly ids: ReadonlyMap<string, string>;
+
+  constructor(accounts: Record<string, string>) {
+    super(GetModel(UserModel).database);
+    this.ids = new Map(Object.entries(accounts));
+  }
+
+  override async getByEmail(lookup: string): Promise<User | undefined> {
+    const email = lookup.trim().toLowerCase();
+    const id = this.ids.get(email);
+    return id ? storedUserFixture({ _id: id, email }) : undefined;
+  }
+}
+
 function modelHolding(accounts: Record<string, string>): UserModel {
-  const ids = new Map(Object.entries(accounts));
-  // SAFETY: assertEmailAvailable calls only getByEmail and reads only the returned _id; omitted model methods and user fields are never used.
-  return {
-    getByEmail: async (lookup: string) => {
-      const id = ids.get(lookup.trim().toLowerCase());
-      return id ? userFixture({ _id: id }) : undefined;
-    },
-  } as UserModel;
+  return new HoldingUserModel(accounts);
 }
 
 async function attempt(

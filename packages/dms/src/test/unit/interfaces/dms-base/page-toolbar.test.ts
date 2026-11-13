@@ -16,12 +16,12 @@ import { Spacer } from "@antelopejs/interface-dms/base/stack";
  * filling it with real `LiveToggle` / `PeriodSelector` blocks over the
  * defaults every module shares.
  */
-describe("[unit] interfaces/dms-base — page toolbar", () => {
-  const childOf = (
-    serialized: ReturnType<ReturnType<typeof pageToolbar>["serializeSync"]>,
-    id: string,
-  ) => serialized.children?.find((child) => child.id === id)?.component;
+const childOf = (
+  serialized: ReturnType<ReturnType<typeof pageToolbar>["serializeSync"]>,
+  id: string,
+) => serialized.children?.find((child) => child.id === id)?.component;
 
+describe("[unit] interfaces/dms-base — page toolbar", () => {
   it("serializes the PageToolbar block under its block component name", () => {
     const serialized = PageToolbar({ size: "md" }).serializeSync();
     expect(serialized.componentName).to.equal("dms-page-toolbar-block");
@@ -100,7 +100,9 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     const liveOnly = pageToolbar({ period: false }).serializeSync();
     expect(liveOnly.children?.map((child) => child.id)).to.deep.equal(["live"]);
   });
+});
 
+describe("[unit] interfaces/dms-base — page toolbar, comparisons and metadata", () => {
   it("offers the comparisons in a menu only when there is a choice", () => {
     const PeriodOptions = z
       .object({ comparisonControl: z.string() })
@@ -178,7 +180,9 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
       name: "$my.permissions.period.name",
     });
   });
+});
 
+describe("[unit] interfaces/dms-base — page toolbar, children and the catalog", () => {
   it("runs a child's transformOptions each time the page registers, over the defaults", async () => {
     let comparisons: Array<"previous-period" | "previous-year" | "none"> = [
       "previous-period",

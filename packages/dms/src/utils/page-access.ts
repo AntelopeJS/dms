@@ -1,6 +1,10 @@
 import { Action } from "@antelopejs/interface-dms/component";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
-import { isInsideModule, type PageInfo } from "@antelopejs/interface-dms/page";
+import {
+  isInsideModule,
+  isOwnerOnly,
+  type PageInfo,
+} from "@antelopejs/interface-dms/page";
 import {
   GetEffectiveUserPermissions,
   HasPermission,
@@ -51,7 +55,7 @@ export async function userCanAccessPage(
   const info = findPageByFullId(fullId);
   if (!info) return false;
 
-  if (!user) return !isInsideModule(info) && info.publicAccess === true;
+  if (!user) return !isOwnerOnly(info) && info.publicAccess === true;
   const access = await CheckTenantAccess(user._id, tenantId);
 
   if (!gateAllowsSurface(info, !access.allowed)) return false;
@@ -62,8 +66,19 @@ export async function userCanAccessPage(
     roleIds,
     roleModel,
   );
+  return permissionsOpenPage(info, permissions);
+}
+
+/**
+ * Whether a signed-in member holding `permissions` opens the page, once the
+ * tenant gate let them through: the rule {@link userCanAccessPage} ends on.
+ */
+export async function permissionsOpenPage(
+  info: PageInfo,
+  permissions: Set<string>,
+): Promise<boolean> {
   if (permissions.has(WILDCARD_PERMISSION)) return true;
-  if (isInsideModule(info)) return false;
+  if (isOwnerOnly(info)) return false;
   if (info.authOnly) return true;
   return HasPermission(
     permissions,
