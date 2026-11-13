@@ -10,10 +10,7 @@ import {
   MapResources,
   PreviewMapResources,
 } from "../../../implementations/dms-builder";
-import {
-  configureProject,
-  setCatalogConnectionsForTests,
-} from "../../../implementations/dms-builder/engine";
+import { setCatalogConnectionsForTests } from "../../../implementations/dms-builder/engine";
 import type { McpAccess } from "../../../mcp/access";
 import { answerMcpMessage } from "../../../mcp/protocol";
 import { MCP_TOOLS } from "../../../mcp/tools";
@@ -27,6 +24,7 @@ import {
 import { FAKE_CATALOG, OP_TIMEOUT } from "./mapped-database";
 
 const RAISE_REFUSED = "an agent never raises a connection's access";
+const CONFIGURE = "builder_configure_project";
 
 const ToolAnswerSchema = z.object({
   result: z.object({
@@ -35,41 +33,45 @@ const ToolAnswerSchema = z.object({
   }),
 });
 
-function erpAccessStep(access: string) {
+const ErrorReplySchema = z.object({
+  error: z.object({ code: z.number(), message: z.string() }),
+});
+
+/** One ConfigureModule step writing these accesses on the dms-database entry. */
+function accessSteps(accesses: Record<string, string>) {
+  const externalConnections = Object.fromEntries(
+    Object.entries(accesses).map(([id, access]) => [id, { access }]),
+  );
   return {
     steps: [
       {
         op: "ConfigureModule",
         id: "dms-database",
-        entry: { config: { externalConnections: { erp: { access } } } },
+        entry: { config: { externalConnections } },
       },
     ],
   } satisfies { steps: ProjectConfigStep[] };
 }
 
-const ErrorReplySchema = z.object({
-  error: z.object({ code: z.number(), message: z.string() }),
-});
-
-function reply(access: McpAccess, name: string, args: JsonValue) {
+function reply(access: McpAccess, args: JsonValue) {
   return answerMcpMessage(
     { access, tools: MCP_TOOLS },
     {
       jsonrpc: "2.0",
       id: 1,
       method: "tools/call",
-      params: { name, arguments: args },
+      params: { name: CONFIGURE, arguments: args },
     },
   );
 }
 
-/** Calls a tool twice, as the repeat-confirmation gate asks, and answers the second call. */
-async function confirmedCall(name: string, args: JsonValue) {
-  await reply("full", name, args);
-  return ToolAnswerSchema.parse(await reply("full", name, args)).result;
+/** Calls the tool twice in full mode, as the repeat-confirmation gate asks; answers the second. */
+async function confirmedCall(args: JsonValue) {
+  await reply("full", args);
+  return ToolAnswerSchema.parse(await reply("full", args)).result;
 }
 
-describe("[unit] an agent never raises a connection's access", function () {
+describe("[unit] builder_configure_project never raises a connection's access", function () {
   this.timeout(OP_TIMEOUT);
   useErpFixture();
 
@@ -77,30 +79,25 @@ describe("[unit] an agent never raises a connection's access", function () {
     ImplementInterface(Builder, implementation);
   });
 
-  it("refuses builder_configure_project raising it in full mode, naming who may grant it", async () => {
+  it("refuses raising it in full mode, naming the two owner routes", async () => {
     setConnectionAccess({ erp: "read" });
-    const answer = await confirmedCall(
-      "builder_configure_project",
-      erpAccessStep("read-write"),
-    );
+    const answer = await confirmedCall(accessSteps({ erp: "read-write" }));
     expect(answer.isError).to.equal(true);
-    expect(answer.content[0]?.text).to.include(
+    const text = answer.content[0]?.text ?? "";
+    expect(text).to.include(
       `set the access of connection \\"erp\\" to \\"read-write\\": ${RAISE_REFUSED}`,
     );
-    expect(answer.content[0]?.text).to.include("the assistant's connect step");
+    expect(text).to.include("PUT /api/database/connections/<id>/access");
+    expect(text).to.include("POST /database/project");
     expect(refusalOf(await MapResources(countries(true)))).to.include(
       READ_ONLY,
     );
   });
 
-  it("refuses builder_configure_project raising it in safe mode", async () => {
+  it("is not served in safe mode", async () => {
     setConnectionAccess({ erp: "read" });
     const { error } = ErrorReplySchema.parse(
-      await reply(
-        "safe",
-        "builder_configure_project",
-        erpAccessStep("read-write"),
-      ),
+      await reply("safe", accessSteps({ erp: "read-write" })),
     );
     expect(error.message).to.include("not available in Safe mode");
     expect(refusalOf(await MapResources(countries(true)))).to.include(
@@ -108,11 +105,19 @@ describe("[unit] an agent never raises a connection's access", function () {
     );
   });
 
-  it("lets builder_configure_project lower it to read", async () => {
+  it("lowers it to read", async () => {
     setConnectionAccess({ erp: "read-write" });
+    const answer = await confirmedCall(accessSteps({ erp: "read" }));
+    expect(answer.isError, answer.content[0]?.text).to.equal(undefined);
+    expect(refusalOf(await MapResources(countries(true)))).to.include(
+      READ_ONLY,
+    );
+  });
+
+  it("lowers one connection while restating another's unchanged read-write", async () => {
+    setConnectionAccess({ erp: "read-write", archive: "read-write" });
     const answer = await confirmedCall(
-      "builder_configure_project",
-      erpAccessStep("read"),
+      accessSteps({ erp: "read", archive: "read-write" }),
     );
     expect(answer.isError, answer.content[0]?.text).to.equal(undefined);
     expect(refusalOf(await MapResources(countries(true)))).to.include(
@@ -122,21 +127,27 @@ describe("[unit] an agent never raises a connection's access", function () {
 
   it("refuses a variable supplying it", async () => {
     setConnectionAccess({ erp: "read" });
-    expect(
-      refusalOf(
-        await ConfigureModule("dms-database", {
-          env: { "externalConnections.erp.access": "ERP_ACCESS" },
-        }),
-      ),
-    ).to.include(
+    const answer = await confirmedCall({
+      steps: [
+        {
+          op: "ConfigureModule",
+          id: "dms-database",
+          entry: { env: { "externalConnections.erp.access": "ERP_ACCESS" } },
+        },
+      ],
+    });
+    expect(answer.isError).to.equal(true);
+    expect(answer.content[0]?.text).to.include(
       `supply \`config.externalConnections.erp.access\` from a variable: ${RAISE_REFUSED}`,
     );
   });
 
-  it("leaves the engine's configureProject, the owner route's entry, able to grant it", async () => {
+  it("leaves the interface, the owner routes' path, able to grant it", async () => {
     setConnectionAccess({ erp: "read" });
     expectOk(
-      configureProject(erpAccessStep("read-write").steps),
+      await ConfigureModule("dms-database", {
+        config: { externalConnections: { erp: { access: "read-write" } } },
+      }),
       "an owner's grant",
     );
     expectOk(await MapResources(countries(true)), "writable mapping");
@@ -185,5 +196,28 @@ describe("[unit] each operation reads the configuration it loaded", function () 
       READ_ONLY,
     );
     expect(process.env.ANT_2283_PROBE).to.equal(undefined);
+  });
+
+  it("leaves it as it was when the configuration loads the .env itself while it is evaluated", async () => {
+    erp.app().write("../.env", "ANT_2283_LOADED=from-dotenv\n");
+    erp.writeModules(
+      [
+        '"dms-database": { source: { type: "package", package: "@antelopejs/dms-database", version: "0.5.0" }, config: { externalConnections: { erp: { access: "read" } } } },',
+      ],
+      [],
+      [
+        'import { existsSync } from "node:fs";',
+        'import { join } from "node:path";',
+        "",
+        'const projectEnvFile = join(__dirname, ".env");',
+        "if (existsSync(projectEnvFile)) {",
+        "  process.loadEnvFile(projectEnvFile);",
+        "}",
+      ],
+    );
+    expect(refusalOf(await MapResources(countries(true)))).to.include(
+      READ_ONLY,
+    );
+    expect(process.env.ANT_2283_LOADED).to.equal(undefined);
   });
 });

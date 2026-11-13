@@ -102,13 +102,16 @@ function restoreEnv(before: NodeJS.ProcessEnv): void {
   }
 }
 
-/**
- * Calls core's loader and puts `process.env` back before anything else runs: core reads the
- * project's `.env` synchronously, before the loader's first `await`, so no other code of the
- * running server ever sees it changed.
- */
-function loadLeavingEnv(core: CoreModule, environment: string) {
-  const before = { ...process.env };
+type ConfigLoading = ReturnType<
+  InstanceType<CoreModule["ConfigLoader"]>["load"]
+>;
+
+/** Calls core's loader, putting `process.env` back before anything else runs. */
+function startLoad(
+  core: CoreModule,
+  environment: string,
+  before: NodeJS.ProcessEnv,
+): ConfigLoading {
   try {
     return new core.ConfigLoader(READ_ONLY_FILE_SYSTEM).load(
       resolveProjectRoot(),
@@ -118,6 +121,27 @@ function loadLeavingEnv(core: CoreModule, environment: string) {
   } finally {
     restoreEnv(before);
   }
+}
+
+function dropAdded(before: NodeJS.ProcessEnv): void {
+  for (const name of Object.keys(process.env)) {
+    if (!Object.hasOwn(before, name)) {
+      delete process.env[name];
+    }
+  }
+}
+
+/**
+ * Loads the configuration and leaves `process.env` as it was. Core reads the project's `.env`
+ * synchronously, before the loader's first `await`, so it is put back before any other code runs.
+ * A configuration may also load a `.env` itself (`process.loadEnvFile`, which the builder writes
+ * when it maps a variable) while it is evaluated, later: once the load settles, the variables it
+ * added are removed too. `loadEnvFile` never overwrites a variable already set, so no other is
+ * changed.
+ */
+function loadLeavingEnv(core: CoreModule, environment: string): ConfigLoading {
+  const before = { ...process.env };
+  return startLoad(core, environment, before).finally(() => dropAdded(before));
 }
 
 function withTimeout<T>(work: Promise<T>): Promise<T> {

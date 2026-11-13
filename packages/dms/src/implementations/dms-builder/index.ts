@@ -61,7 +61,6 @@ import type {
   ThemeStructure,
 } from "@antelopejs/interface-dms-builder";
 import { analysisState, startAnalysis } from "./engine/analysis-job";
-import { accessRaiseRefusal } from "./engine/access-grant";
 import { withConnectionAccess } from "./engine/connection-access-config";
 import { mapResources, previewMapResources } from "./engine/map-resources";
 import { mappedChoices } from "./engine/mapped-choices";
@@ -72,7 +71,7 @@ import {
   listDeclaredDataSources,
 } from "./engine/catalog";
 import { composePage } from "./engine/compose-page";
-import { addBlock, configureBlock, invalidConfig } from "./engine/ops";
+import { addBlock, configureBlock } from "./engine/ops";
 import {
   configureCategory,
   createCategory,
@@ -264,40 +263,61 @@ export async function GetMapping(
   return mappedChoices(connection, module);
 }
 
-/** `configureProject` for a caller of the interface, which never raises a connection's access. */
-function configureAsAgent(
-  steps: ProjectConfigStep[],
-  opts?: ProjectConfigOpts,
-): OpResult<ProjectConfigResult> {
-  const refusal = accessRaiseRefusal(steps);
-  return refusal === undefined
-    ? configureProject(steps, opts)
-    : invalidConfig<ProjectConfigResult>(refusal);
-}
-
+/**
+ * Applies configuration steps to `antelope.config.ts`.
+ *
+ * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
+ * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
+ * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this.
+ */
 export async function ConfigureProject(
   steps: ProjectConfigStep[],
   opts?: ProjectConfigOpts,
 ): Promise<OpResult<ProjectConfigResult>> {
-  return configureAsAgent(steps, opts);
+  return configureProject(steps, opts);
 }
 
+/**
+ * Adds a module entry to `antelope.config.ts`.
+ *
+ * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
+ * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
+ * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this.
+ */
 export async function AddModule(
   id: string,
   entry: ModuleEntryInput,
   opts?: ProjectConfigOpts,
 ): Promise<OpResult<ProjectConfigResult>> {
-  return configureAsAgent([{ op: "AddModule", id, entry }], opts);
+  return configureProject([{ op: "AddModule", id, entry }], opts);
 }
 
+/**
+ * Merges into a module entry of `antelope.config.ts`.
+ *
+ * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
+ * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
+ * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this.
+ */
 export async function ConfigureModule(
   id: string,
   entry: ModuleEntryInput,
   opts?: ProjectConfigOpts,
 ): Promise<OpResult<ProjectConfigResult>> {
-  return configureAsAgent([{ op: "ConfigureModule", id, entry }], opts);
+  return configureProject([{ op: "ConfigureModule", id, entry }], opts);
 }
 
+/**
+ * Scaffolds a local module and adds its entry to `antelope.config.ts`.
+ *
+ * The owner path for a connection's access: owner-authenticated routes grant `read-write` through
+ * it, dms-database's `PUT /api/database/connections/<id>/access` and dms-assistant's
+ * `POST /database/project`. Agents reach it only through the MCP tool `builder_configure_project`,
+ * which refuses a step that raises an access before it calls this.
+ */
 export async function CreateLocalModule(
   id: string,
   path: string,
@@ -305,7 +325,7 @@ export async function CreateLocalModule(
   opts: CreateLocalModuleOpts = {},
 ): Promise<OpResult<ProjectConfigResult>> {
   const { connection, ...configOpts } = opts;
-  return configureAsAgent(
+  return configureProject(
     [{ op: "CreateLocalModule", id, path, entry, connection }],
     configOpts,
   );

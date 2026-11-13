@@ -58,10 +58,14 @@ export interface ErpFixture {
   /** A file of the tables module, relative to its `src`. */
   moduleFile(relative: string): string;
   /**
-   * Rewrites `antelope.config.ts` with these members of `modules` after the fixture's own, and
-   * these top-level members after `modules`.
+   * Rewrites `antelope.config.ts` with these members of `modules` after the fixture's own, these
+   * top-level members after `modules`, and these statements before the export.
    */
-  writeModules(entries: string[], members?: string[]): void;
+  writeModules(
+    entries: string[],
+    members?: string[],
+    preamble?: string[],
+  ): void;
 }
 
 /**
@@ -95,11 +99,12 @@ export function useErpFixture(): ErpFixture {
     app: current,
     moduleFile: (relative) =>
       current().read(`../modules/${MODULE}/src/${relative}`),
-    writeModules: (entries, members = []) =>
+    writeModules: (entries, members = [], preamble = []) =>
       current().write(
         "../antelope.config.ts",
         [
           'import { defineConfig } from "@antelopejs/interface-core/config";',
+          ...preamble,
           "",
           "export default defineConfig({",
           '  name: "fixture",',
