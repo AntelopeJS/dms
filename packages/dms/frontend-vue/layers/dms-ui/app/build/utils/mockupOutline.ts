@@ -3,6 +3,7 @@ import type { MockupBlockType } from "./mockupCatalog";
 import {
   MOCKUP_SKETCH_TYPE,
   ancestorPointers,
+  authoredId,
   nodeAt,
   nodePointer,
   parseNodePointer,
@@ -31,8 +32,7 @@ export function nodeLabel(
     const value = Object.hasOwn(options, key) ? options[key] : undefined;
     if (isString(value) && value.trim()) return value.trim();
   }
-  if (node.id) return node.id;
-  return blockName(node, catalog);
+  return authoredId(node) || blockName(node, catalog);
 }
 
 /** The name of a node's block type, as the palette shows it. */
@@ -85,7 +85,7 @@ export function breadcrumb(
   const page = spec.pages[parseNodePointer(pointer)?.page ?? -1];
   const ancestors = ancestorPointers(pointer).flatMap((at) => {
     const node = nodeAt(spec, at);
-    return node ? [node.id ?? nodeLabel(node, catalog)] : [];
+    return node ? [authoredId(node) ?? nodeLabel(node, catalog)] : [];
   });
   return page ? [page.title, ...ancestors] : ancestors;
 }

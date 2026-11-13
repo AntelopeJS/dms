@@ -1,6 +1,7 @@
 import {
   MOCKUP_MAX_PAGES,
   MOCKUP_PAGE_ID_PATTERN,
+  authoredId,
   isWithinPointer,
   nodeAtAddress,
   nodePointer,
@@ -73,8 +74,6 @@ const PAGE_ID_FALLBACK = "page";
 /** Leaves room for a `-<n>` suffix under the 64 characters a page id has. */
 const PAGE_ID_MAX_BASE = 60;
 const ID_SUFFIX = /-\d+$/;
-/** The id the backend stamps on a block a note is on: a copy keeps none. */
-const STAMPED_ID = /^b-[a-z0-9]{8}$/;
 
 function updateList(
   list: MockupSpecNode[],
@@ -293,8 +292,7 @@ function moveNode(
 /** `node` and its children without the ids the backend stamped, so their notes stay on the original. */
 function withoutStamps(node: MockupSpecNode): MockupSpecNode {
   const { id, ...rest } = node;
-  const copy: MockupSpecNode =
-    id !== undefined && STAMPED_ID.test(id) ? rest : { ...node };
+  const copy: MockupSpecNode = authoredId(node) === id ? { ...node } : rest;
   if (node.children) copy.children = node.children.map(withoutStamps);
   return copy;
 }

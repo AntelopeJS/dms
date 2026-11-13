@@ -53,6 +53,14 @@ export const MOCKUP_PAGE_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 export const MOCKUP_MAX_PAGES = 50;
 
 const POINTER_PATTERN = /^\/pages\/(\d+)\/tree\/(\d+)((?:\/children\/\d+)*)$/;
+const STAMPED_ID = /^b-[a-z0-9]{8}$/;
+
+/** The id an author wrote on `node`; none when its only id is the one the backend stamps on a block a note is on. */
+export function authoredId(node: MockupSpecNode): string | undefined {
+  return node.id !== undefined && STAMPED_ID.test(node.id)
+    ? undefined
+    : node.id;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return isObject(value) && value !== null && !Array.isArray(value);
