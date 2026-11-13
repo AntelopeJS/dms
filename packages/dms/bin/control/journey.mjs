@@ -7,7 +7,7 @@ import { launchBrowser, newContext, screenshot } from "./browser.mjs";
 import { startDatabase, stopDatabase } from "./database.mjs";
 import { capturedMail } from "./mail.mjs";
 import { isRecord, isString, readRecordList } from "./json.mjs";
-import { saveRun } from "./run-state.mjs";
+import { isBackendMode, saveRun } from "./run-state.mjs";
 import {
   adminCredentials,
   apiRequest,
@@ -29,7 +29,7 @@ import { recordTiming, stopwatch, timed } from "./timing.mjs";
  * @typedef {{ name: string, pass: boolean, detail: string }} Check
  * @typedef {ReturnType<typeof capturedMail>[number]} CapturedMail
  * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult
- * @typedef {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, run: (context: JourneyContext) => Promise<void> }} Journey
+ * @typedef {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, backend?: import("./run-state.mjs").BackendMode, run: (context: JourneyContext) => Promise<void> }} Journey `backend` pins how the backend of its fresh database runs, whatever mode `up` gave the run
  * @typedef {{ name: string, folder: string, checks: Check[] }} Step
  */
 
@@ -389,7 +389,7 @@ async function prepare(state, feature, journey, context) {
     await timed(
       state,
       "fresh-database",
-      () => freshDatabase(state, `j${index}`),
+      () => freshDatabase(state, `j${index}`, journey.backend),
       detail,
     );
     writeJson(join(context.step("fresh database"), "database.json"), {
@@ -521,6 +521,8 @@ function isJourney(value) {
     isString(value.entryPoint) &&
     (value.database === undefined || isString(value.database)) &&
     (value.onboard === undefined || typeof value.onboard === "boolean") &&
+    (value.backend === undefined ||
+      (value.database !== "shared" && isBackendMode(value.backend))) &&
     typeof value.run === "function"
   );
 }
@@ -541,7 +543,7 @@ export async function loadJourneys(file) {
   const journeys = entries.filter(isJourney);
   if (journeys.length !== entries.length)
     throw new Error(
-      `${file} exports a journey without an id, title, entry point or run function`,
+      `${file} exports a journey without an id, title, entry point or run function, or with a backend mode on a shared database`,
     );
   return journeys;
 }
