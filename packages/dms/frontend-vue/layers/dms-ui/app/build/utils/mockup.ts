@@ -22,12 +22,23 @@ export interface MockupPageOptions {
   padding?: boolean;
 }
 
+export interface MockupLivePage {
+  /** Its builder ref, the page "Build it" updates. */
+  ref: string;
+}
+
 export interface MockupPageState {
   id: string;
   title: string;
   options: MockupPageOptions;
   /** What `DmsBlockPreview` draws: fixtures resolved, sketch nodes passed through. */
   tree: PreviewNode[];
+  /**
+   * `tree` reading its live routes instead of fixtures, drawn with Real data
+   * on. Present only when the page names live routes.
+   */
+  realTree?: PreviewNode[];
+  livePage?: MockupLivePage;
   /** Spec JSON pointer of each node, keyed by the layout path the preview gives it. */
   paths: Record<string, string>;
 }
@@ -68,6 +79,16 @@ export interface MockupSummary {
 }
 
 export type MockupWidth = "desktop" | "mobile";
+
+export type MockupDataMode = "real" | "sample";
+
+export const MOCKUP_DATA_MODES: readonly MockupDataMode[] = ["real", "sample"];
+
+export function isMockupDataMode(
+  value: string | undefined,
+): value is MockupDataMode {
+  return MOCKUP_DATA_MODES.some((mode) => mode === value);
+}
 
 /** The editor's mode: leave notes for the AI, or edit the spec yourself. */
 export type MockupMode = "comment" | "edit";
@@ -138,6 +159,10 @@ function isPageState(
     isRecord(value.options) &&
     Array.isArray(value.tree) &&
     isPreviewTree(value.tree) &&
+    (value.realTree === undefined ||
+      (Array.isArray(value.realTree) && isPreviewTree(value.realTree))) &&
+    (value.livePage === undefined ||
+      (isRecord(value.livePage) && isString(value.livePage.ref))) &&
     isRecord(value.paths) &&
     Object.values(value.paths).every((pointer) => isString(pointer))
   );

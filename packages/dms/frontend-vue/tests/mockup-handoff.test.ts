@@ -150,4 +150,20 @@ describe("Build it", () => {
     expect(received).toEqual([{ prompt: "demo", source: "build" }]);
     expect(modal()?.textContent?.trim()).toBe("dms.mockup.prompt_build demo");
   });
+
+  it("names the live page a converted mockup page updates, in the event and in the copy (fails on a build that names only the mockup)", async () => {
+    await viewer.publish(
+      "state",
+      mockupState({
+        pages: [{ ...STATE.pages[0], livePage: { ref: "/orders" } }],
+      }),
+    );
+    await click("[data-dms-mockup-build]");
+    expect(received).toEqual([
+      { prompt: "demo", source: "build", target: { pageRef: "/orders" } },
+    ]);
+    expect(modal()?.textContent?.trim()).toBe(
+      "dms.mockup.prompt_build_page demo,/orders",
+    );
+  });
 });

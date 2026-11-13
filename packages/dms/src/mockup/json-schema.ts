@@ -4,7 +4,13 @@ import type {
 } from "@antelopejs/interface-dms/base/block-types";
 import { CONTROLLER_BLOCKS } from "./controller-blocks";
 import type { Json, JsonObject } from "./model";
-import { jsonSchema, KEY_PATTERN, MAX_PAGES, SLUG_PATTERN } from "./model";
+import {
+  jsonSchema,
+  KEY_PATTERN,
+  MAX_PAGES,
+  RELATIVE_ROUTE_PATTERN,
+  SLUG_PATTERN,
+} from "./model";
 import {
   SKETCH_DEFAULT_HEIGHT,
   SKETCH_MAX_CAPTION,
@@ -173,6 +179,34 @@ function pageDefinition(): JsonObject {
           locale: { type: "string" },
           padding: { type: "boolean", default: true },
         },
+      },
+      livePage: {
+        type: "object",
+        required: ["ref", "version"],
+        additionalProperties: false,
+        description:
+          "The live page this page was converted from (Edit as mockup). Build it updates that page instead of creating a new one.",
+        properties: {
+          ref: {
+            type: "string",
+            minLength: 1,
+            description: "Its builder ref.",
+          },
+          version: {
+            type: "string",
+            description: "Its source file's version at the conversion.",
+          },
+        },
+      },
+      liveRoutes: {
+        type: "object",
+        propertyNames: { pattern: KEY_PATTERN.source },
+        additionalProperties: {
+          type: "string",
+          pattern: RELATIVE_ROUTE_PATTERN.source,
+        },
+        description:
+          'The live route a fixture key stands for: with Real data on, an option "fixture:<key>" reads it instead of the fixture.',
       },
       fixtures: {
         type: "object",

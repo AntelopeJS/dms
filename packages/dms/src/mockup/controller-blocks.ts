@@ -15,8 +15,8 @@ import { z } from "zod";
 import type { FixtureScope } from "./fixtures";
 import {
   checkFixture,
+  dataUrl,
   fixtureKeyOf,
-  fixtureUrl,
   parseRows,
   rewriteObject,
 } from "./fixtures";
@@ -57,7 +57,7 @@ const capabilitiesSchema = z
   })
   .strict();
 
-const TABLE_SOURCE_PICKED = {
+export const TABLE_SOURCE_PICKED = {
   caption: true,
   layout: true,
   density: true,
@@ -101,8 +101,6 @@ const tableSourceSchema = TableViewSchema.pick(TABLE_SOURCE_PICKED)
 /** What the rows route does itself: everything but column filters. */
 const ROWS_CAPABILITIES = { search: true, sort: true, paginate: true };
 
-const ROWS_SUFFIX = "/rows";
-
 function rowsUrlOf(
   node: MockupNode,
   pointer: string,
@@ -125,7 +123,7 @@ function rowsUrlOf(
     });
     return undefined;
   }
-  return `${fixtureUrl(scope.name, scope.pageId, key)}${ROWS_SUFFIX}`;
+  return dataUrl(scope, key, "rows");
 }
 
 type TableSource = z.infer<typeof tableSourceSchema>;

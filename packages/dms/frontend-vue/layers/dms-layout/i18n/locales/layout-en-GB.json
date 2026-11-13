@@ -1,4 +1,12 @@
 {
+  "editAsMockup": {
+    "label": "Edit as mockup",
+    "stale": "This page changed since its mockup was made",
+    "staleDescription": "The mockup keeps your edits. Convert again to start over from the page as it is now.",
+    "convertAgain": "Convert again",
+    "failed": "This page could not be opened as a mockup.",
+    "conflict": "The mockup changed while converting. Open it again to see the latest version."
+  },
   "navigation": {
     "goToHomepage": "Go to homepage",
     "goToBrandHomepage": "{name}, go to homepage"
