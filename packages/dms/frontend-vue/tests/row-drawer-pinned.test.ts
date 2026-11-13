@@ -31,7 +31,7 @@ describe("a row drawer on a table with pinned rows", () => {
 
   function secondPage() {
     const rowsRead = useTableRows({
-      // SAFETY: The list client is invoked only with this query shape and consumes only results and total from the reply.
+      // SAFETY: Only listAsShown runs, and it calls api as api(`${location}/list`, { query, signal }) with numeric offset and limit, reading results and total from the reply; raw, native and create are never read.
       api: (async (
         _url: string,
         { query }: { query: Record<string, number> },

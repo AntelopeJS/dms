@@ -1,4 +1,4 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
@@ -33,18 +33,18 @@ interface Probed {
 
 let probed: Probed | null = null;
 
-const PlotProbe = defineComponent({
-  props: {
-    // SAFETY: The chart host supplies the options whose formatter and events this probe exercises.
-    options: { type: Object as PropType<ProbedOptions>, required: true },
-    // SAFETY: The chart host supplies the ChartSeries array captured by this probe.
-    series: { type: Array as PropType<ChartSeries[]>, required: true },
-  },
-  setup: (props) => () => {
+const PlotProbe = defineComponent(
+  (props: { options: ProbedOptions; series: ChartSeries[] }) => () => {
     probed = { options: props.options, series: props.series };
     return h("output");
   },
-});
+  {
+    props: {
+      options: { type: Object, required: true },
+      series: { type: Array, required: true },
+    },
+  },
+);
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>
@@ -85,12 +85,16 @@ async function draw(
   return probed!;
 }
 
+function xCoordinate(point: ChartSeries["data"][number]): string {
+  if (typeof point === "number" || typeof point.x !== "string") {
+    throw new Error("expected a point with a string x coordinate");
+  }
+  return point.x;
+}
+
 function axisLabels(chart: Probed): string[] {
   const format = chart.options.xaxis.labels.formatter!;
-  return chart.series[0]!.data.map((point) =>
-    // SAFETY: stacked() supplies string x coordinates; datetime gap filling also emits string x coordinates.
-    format((point as { x: string }).x),
-  );
+  return chart.series[0]!.data.map((point) => format(xCoordinate(point)));
 }
 
 beforeEach(() => {
@@ -115,10 +119,10 @@ describe("a column chart of calendar buckets on a datetime axis", () => {
       "2026-09-01T00:00:00.000Z",
     ]);
     expect(chart.options.xaxis.type).toBe("category");
-    expect(
-      // SAFETY: stacked() supplies string x coordinates and this case checks their UTC normalization.
-      chart.series[0]!.data.map((point) => (point as { x: string }).x),
-    ).toEqual(["2026-08-01", "2026-09-01"]);
+    expect(chart.series[0]!.data.map(xCoordinate)).toEqual([
+      "2026-08-01",
+      "2026-09-01",
+    ]);
   });
 
   it("draws one column and one label per day", async () => {

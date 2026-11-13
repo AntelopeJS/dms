@@ -23,6 +23,8 @@ import {
   formBusInjectionKey,
   formFieldInjectionKey,
 } from "@nuxt/ui/composables/useFormField";
+import type { FormEvent } from "@nuxt/ui";
+import { useEventBus } from "@vueuse/core";
 import Repeater from "../layers/dms-ui/app/components/form/components/Repeater.vue";
 import { registerDmsComponent } from "#dms/frontend-module";
 
@@ -88,20 +90,12 @@ async function mount(
         "onUpdate:modelValue": (next: typeof rows) => (model.value = next),
       }),
   });
-  // SAFETY: Repeater only emits field events through this bus; no other emitter methods are used.
-  app.provide(formBusInjectionKey, {
-    emit: (event: { type: string }) => events.push(event.type),
-  } as never);
-  // SAFETY: Repeater reads only the field ref's name; this fixture does not require the computed ref's internal metadata.
+  const bus = useEventBus<FormEvent<object>, string>(Symbol("form-bus"));
+  bus.on((event) => events.push(event.type));
+  app.provide(formBusInjectionKey, bus);
   app.provide(
     formFieldInjectionKey,
-    ref({
-      name: "contacts",
-    }) as typeof formFieldInjectionKey extends import("vue").InjectionKey<
-      infer Field
-    >
-      ? Field
-      : never,
+    computed(() => ({ name: "contacts", ariaId: "contacts-field" })),
   );
   app.component("UButton", Button);
   app.component("UIcon", Button);
