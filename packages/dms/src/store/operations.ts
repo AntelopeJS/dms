@@ -27,6 +27,7 @@ import {
   listRuntimeModules,
   loadStoreModule,
   packageRuntimeId,
+  type StoreModuleLoad,
   unloadStoreModule,
 } from "./runtime";
 import type {
@@ -108,8 +109,7 @@ function describeError(error: unknown): string {
 async function load(
   context: OperationContext,
   range: string,
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- A module's own configuration from antelope.config, unknown in interface-core's ModuleDeclaration.config, which the store module it loads parses itself.
-  config?: unknown,
+  config?: StoreModuleLoad["config"],
 ): Promise<void> {
   setStep("load");
   await loadStoreModule(context.key, {

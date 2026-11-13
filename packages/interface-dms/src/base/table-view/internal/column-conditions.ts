@@ -22,11 +22,8 @@ interface ColumnWriteParameters {
 }
 
 /** The value `row` holds under `key`; a key it does not hold itself reads as absent, whatever `Object.prototype` answers. */
-const ownValue = (
-  row: Readonly<RowFields>,
-  key: string,
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Answers the own value of a column a condition names, which holds whatever that table's module declares for it.
-): unknown => (Object.hasOwn(row, key) ? row[key] : undefined);
+const ownValue = (row: Readonly<RowFields>, key: string): RowFields[string] =>
+  Object.hasOwn(row, key) ? row[key] : undefined;
 
 /** Whether `row` meets `condition`: a field it lacks counts as empty. */
 const meetsFieldCondition = (
@@ -54,7 +51,9 @@ function inactiveColumns(
   };
 }
 
-const isEmptyValue = (value: unknown): value is null | undefined | "" | [] =>
+const isEmptyValue = (
+  value: RowFields[string],
+): value is null | undefined | "" | [] =>
   value === undefined ||
   value === null ||
   value === "" ||
