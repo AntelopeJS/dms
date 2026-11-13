@@ -6,6 +6,7 @@
 @source "../../app.config.ts";
 
 @import "./foundation.css";
+@import "./status.css";
 
 /* Defaults beat framework tokens, but not unlayered consumer declarations,
    regardless of stylesheet order. */
@@ -154,7 +155,6 @@
       var(--ui-color-primary-600) 35%,
       transparent
     );
-    --dms-error-tint: rgb(220 38 38 / 0.08);
     --dms-border-top: #c9d1d7;
     --dms-field-border-hover: color-mix(
       in srgb,
@@ -177,13 +177,6 @@
     --dms-sparkline: var(--ui-color-primary-600);
     --dms-skeleton: #e9edf0;
     --dms-neutral-tint: #eef1f3;
-    --dms-success-tint: rgb(22 163 74 / 0.1);
-    --dms-success-line: rgb(22 163 74 / 0.3);
-    --dms-warning-tint: rgb(245 158 11 / 0.13);
-    --dms-warning-line: rgb(217 119 6 / 0.35);
-    --dms-error-line: rgb(220 38 38 / 0.3);
-    --dms-info-tint: rgb(27 162 175 / 0.09);
-    --dms-info-line: rgb(27 162 175 / 0.3);
 
     /* Motion (design --ease-* / --dur-*) */
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -282,7 +275,6 @@
       var(--ui-color-primary-400) 35%,
       transparent
     );
-    --dms-error-tint: rgb(248 113 113 / 0.13);
     --dms-border-top: #3a4550;
     --dms-field-border-hover: color-mix(
       in srgb,
@@ -300,13 +292,6 @@
     --dms-sparkline: var(--ui-color-primary-400);
     --dms-skeleton: #1a2128;
     --dms-neutral-tint: #1a2127;
-    --dms-success-tint: rgb(74 222 128 / 0.12);
-    --dms-success-line: rgb(74 222 128 / 0.4);
-    --dms-warning-tint: rgb(251 191 36 / 0.12);
-    --dms-warning-line: rgb(251 191 36 / 0.4);
-    --dms-error-line: rgb(248 113 113 / 0.4);
-    --dms-info-tint: rgb(77 217 230 / 0.1);
-    --dms-info-line: rgb(77 217 230 / 0.35);
   }
 }
 
@@ -332,10 +317,6 @@
       var(--ui-color-primary-600) 60%,
       transparent
     );
-    --dms-success-line: rgb(22 163 74 / 0.55);
-    --dms-warning-line: rgb(217 119 6 / 0.6);
-    --dms-error-line: rgb(220 38 38 / 0.55);
-    --dms-info-line: rgb(27 162 175 / 0.55);
   }
 
   :root.dms-increase-contrast.dark,
@@ -354,10 +335,6 @@
       var(--ui-color-primary-400) 60%,
       transparent
     );
-    --dms-success-line: rgb(74 222 128 / 0.6);
-    --dms-warning-line: rgb(251 191 36 / 0.6);
-    --dms-error-line: rgb(248 113 113 / 0.6);
-    --dms-info-line: rgb(77 217 230 / 0.6);
   }
 
   /* Reduce motion: animations and transitions run in ~0ms (not `none`, so
