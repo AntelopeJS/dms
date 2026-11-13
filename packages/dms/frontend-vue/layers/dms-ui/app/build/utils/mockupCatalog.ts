@@ -328,9 +328,13 @@ const STARTER_OPTIONS = new Map<string, Record<string, unknown>>([
     "Form",
     {
       title: "Form",
-      fields: [
-        formField("name", "Name", "dms-input-text"),
-        formField("email", "Email", "dms-input-text"),
+      fields: [formField("name", "Name", "dms-input-text")],
+      sections: [
+        {
+          id: "contact",
+          label: "Contact",
+          fields: [formField("email", "Email", "dms-input-text")],
+        },
       ],
     },
   ],
