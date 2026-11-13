@@ -53,20 +53,19 @@ export function configObject(
   return undefined;
 }
 
-/** A property of an object literal, by its name as written: identifier or string literal. */
+/**
+ * The value of a property of an object literal, by its name as written: identifier or string
+ * literal. Of a key written twice, the last copy, which JavaScript keeps.
+ */
 export function propertyNamed(
   object: ObjectLiteralExpression,
   name: string,
 ): Node | undefined {
-  for (const property of object.getProperties()) {
-    if (!Node.isPropertyAssignment(property)) {
-      continue;
-    }
-    if (propertyKey(property.getNameNode()) === name) {
-      return property.getInitializer();
-    }
-  }
-  return undefined;
+  return object
+    .getProperties()
+    .filter(Node.isPropertyAssignment)
+    .findLast((property) => propertyKey(property.getNameNode()) === name)
+    ?.getInitializer();
 }
 
 export function propertyKey(node: Node): string {

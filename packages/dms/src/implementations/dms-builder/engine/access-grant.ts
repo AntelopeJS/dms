@@ -1,7 +1,11 @@
 import type {
+  ConfigObject,
+  ConfigValue,
   ModuleEntryInput,
   ProjectConfigStep,
 } from "@antelopejs/interface-dms-builder";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { Node, type ObjectLiteralExpression } from "ts-morph";
 import { z } from "zod";
 import { findConfigFile, propertyKey } from "./modules";
@@ -179,11 +183,90 @@ function raisedByEnv(
   return undefined;
 }
 
+const TEMPLATE = /\$\{([^}]+)\}/g;
+const MODULE_CONFIG_FILE = /^antelope\..+\.json$/;
+const CONFIG_VARIABLE = "@";
+
+function textOf(file: string): string {
+  try {
+    return readFileSync(file, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+function moduleConfigFiles(directory: string): string[] {
+  try {
+    return readdirSync(directory)
+      .filter((name) => MODULE_CONFIG_FILE.test(name))
+      .map((name) => path.join(directory, name));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The keys the `${key}` templates of antelope.config.ts and the antelope.<id>.json files beside it
+ * read. Core resolves them after `envOverrides`, by a key's full path or by its last key alone,
+ * from any module, so a template on one connection's access may read a key written anywhere.
+ */
+function templateKeys(): Set<string> {
+  const configPath = findConfigFile();
+  if (configPath === undefined) {
+    return new Set();
+  }
+  const files = [configPath, ...moduleConfigFiles(path.dirname(configPath))];
+  return new Set(
+    files
+      .flatMap((file) => [...textOf(file).matchAll(TEMPLATE)])
+      .map(([, key]) => key)
+      .filter((key) => !key.startsWith(CONFIG_VARIABLE)),
+  );
+}
+
+/** The path of every key a value writes below `prefix`, at any depth. */
+function writtenPaths(prefix: string, value: ConfigValue): string[] {
+  if (!isPlainObject(value) && !Array.isArray(value)) {
+    return [];
+  }
+  return Object.entries(value).flatMap(([key, child]) => {
+    const at = `${prefix}.${key}`;
+    return [at, ...writtenPaths(at, child)];
+  });
+}
+
+/** Why an entry is refused because it writes or binds a key a template reads, or nothing. */
+function readByTemplate(
+  keys: ReadonlySet<string>,
+  module: string,
+  { env, importOverrides, ...values }: ModuleEntryInput,
+): string | undefined {
+  if (keys.size === 0) {
+    return undefined;
+  }
+  const written: ConfigObject = {
+    ...values,
+    importOverrides: importOverrides?.map((override) => ({ ...override })),
+  };
+  const entryPath = `${MODULES}.${module}`;
+  const read = [
+    ...writtenPaths(entryPath, written),
+    ...Object.keys(env ?? {}).map((key) => `${entryPath}.config.${key}`),
+  ].find((at) => keys.has(at) || keys.has(at.slice(at.lastIndexOf(".") + 1)));
+  return (
+    read &&
+    grantRefusal(
+      `write \`${read}\`, which a \`\${…}\` template in the configuration reads and may make a connection's access`,
+    )
+  );
+}
+
 /**
  * Why an agent's configuration steps are refused because one would raise a connection's access:
  * set `config.externalConnections.<id>.access` to `"read-write"` where the module's base entry in
  * `antelope.config.ts` does not already hold that literal, write anything else but `"read"`
- * there, let a variable supply it, or rebind a variable `envOverrides` maps to it. Keeping,
+ * there, let a variable supply it, rebind a variable `envOverrides` maps to it, or write or bind a
+ * key a `${key}` template reads, which may make an access. Keeping,
  * lowering or removing an access passes, so a step may restate the connections it does not
  * change. Every MCP tool that writes project or module configuration calls this first; the
  * builder interface does not, since owner-authenticated routes grant through it.
@@ -192,6 +275,7 @@ export function raisedAccessRefusal(
   steps: readonly ProjectConfigStep[],
 ): string | undefined {
   const draft = readDraft();
+  const keys = templateKeys();
   for (const step of steps) {
     const entry =
       step.op === "RemoveModule" || step.op === "RemoveConnection"
@@ -199,7 +283,9 @@ export function raisedAccessRefusal(
         : step.entry;
     const refusal =
       entry &&
-      (raisedByConfig(draft, step.id, entry) ?? raisedByEnv(draft, entry));
+      (raisedByConfig(draft, step.id, entry) ??
+        raisedByEnv(draft, entry) ??
+        readByTemplate(keys, step.id, entry));
     if (refusal) {
       return refusal;
     }
