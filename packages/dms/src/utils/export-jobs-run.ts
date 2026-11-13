@@ -316,6 +316,11 @@ export async function downloadExportJob<TContext = unknown>(
   const filename = buildExportFilename(record.filename, record.extension);
   const resourceKey = record.resultPath;
   const { body, size } = await streamExportFromStorage(resourceKey);
+  assert(
+    body instanceof NodeReadableStream,
+    500,
+    "Export body is not a Node web stream",
+  );
 
   if (size !== undefined) {
     ctx.response.addHeader("Content-Length", size.toString());
@@ -330,11 +335,6 @@ export async function downloadExportJob<TContext = unknown>(
   );
   const writeStream = ctx.response.getWriteStream(record.contentType);
 
-  assert(
-    body instanceof NodeReadableStream,
-    500,
-    "Export body is not a Node web stream",
-  );
   const nodeReadable = Readable.fromWeb(body);
 
   const cleanup = (): void => {

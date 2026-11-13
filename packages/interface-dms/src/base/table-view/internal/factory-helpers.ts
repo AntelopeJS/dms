@@ -409,14 +409,16 @@ export function resolveFormPageTexts(
   };
 }
 
-function isFormPageKind(key: string): key is FormPageKind {
-  return Object.hasOwn(FORM_PAGE_DEFINITIONS, key);
-}
+/** Every form page kind once, keyed by itself, so a new kind cannot be left out of the list. */
+const FORM_PAGE_KIND_NAMES: Record<FormPageKind, FormPageKind> = {
+  new: "new",
+  edit: "edit",
+  view: "view",
+};
 
 /** @internal */
-export const FORM_PAGE_KINDS: FormPageKind[] = Object.keys(
-  FORM_PAGE_DEFINITIONS,
-).filter(isFormPageKind);
+export const FORM_PAGE_KINDS: FormPageKind[] =
+  Object.values(FORM_PAGE_KIND_NAMES);
 
 /**
  * Append a form page slug to the slug of the page carrying the table view.

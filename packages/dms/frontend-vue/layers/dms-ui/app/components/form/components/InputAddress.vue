@@ -106,10 +106,17 @@ const {
 const formErrors = inject(formErrorsInjectionKey, null);
 const formInputs = inject(formInputsInjectionKey, null);
 
-function isAddressPart(key: string): key is keyof AddressValue {
-  return Object.hasOwn(defaultAddress, key);
-}
-const PARTS = Object.keys(defaultAddress).filter(isAddressPart);
+const ADDRESS_PART_NAMES: Record<keyof AddressValue, keyof AddressValue> = {
+  streetName: "streetName",
+  houseNumber: "houseNumber",
+  boxNumber: "boxNumber",
+  addressLine2: "addressLine2",
+  postalCode: "postalCode",
+  city: "city",
+  countrySubdivision: "countrySubdivision",
+  countryCode: "countryCode",
+};
+const PARTS = Object.values(ADDRESS_PART_NAMES);
 const FIRST_PART: keyof AddressValue = "streetName";
 
 /**

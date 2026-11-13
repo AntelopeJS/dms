@@ -247,7 +247,7 @@ function forwardEmit(event: EmitEvent, value: EmitValue): void {
       emits("update:modelValue", value as string | null | undefined);
     }
   } else {
-    // SAFETY: useForwardPropsEmits binds handlers only for the events declared above, so this branch gets update:modelValue with a falsy value, update:placeholder with UCalendar's CalendarDate, or update:startValue with its CalendarDate or undefined, each a payload its declaration accepts.
+    // SAFETY: Holds when the update:placeholder and update:startValue payloads are CalendarDate: UCalendar types them as reka's DateValue, which also admits CalendarDateTime and ZonedDateTime, while this component declares CalendarDate. useForwardPropsEmits binds handlers only for the events this component declares, and update:modelValue reaches this branch only with a falsy value.
     const forwardEvent = emits as (event: string, ...args: unknown[]) => void;
     forwardEvent(event, value);
   }
