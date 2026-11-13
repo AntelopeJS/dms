@@ -60,9 +60,11 @@ function isDevToolPath(path: string): boolean {
  * Dev only: the header icon that turns the page on screen into a mockup and
  * opens it in Edit mode, with Real data on. The backend picks the mockup and
  * builds the URL; a page whose mockup is older than the page offers to
- * convert it again.
+ * convert it again. Shown to the platform owner alone, the one the
+ * `/api/mockup` routes answer.
  */
 export default defineDmsPlugin(() => {
+  const isOwner = useIsOwner();
   const route = useDmsRoute();
   const router = useDmsRouter();
   const siteLayout = useSiteLayout();
@@ -115,6 +117,7 @@ export default defineDmsPlugin(() => {
     label: "$editAsMockup.label",
     order: EDIT_AS_MOCKUP_ORDER,
     isVisible: () =>
+      isOwner.value &&
       !isDevToolPath(route.path) &&
       siteLayout.findMatchingRoute(route.path) !== null,
     onSelect: () => void convert(route.path),

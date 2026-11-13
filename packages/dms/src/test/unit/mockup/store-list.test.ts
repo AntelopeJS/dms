@@ -84,10 +84,15 @@ describe("[unit] mockup list order and comments", () => {
   it("counts the open annotations of a mockup, never the resolved ones", async () => {
     const draft = { page: "home", path: "/pages/0/tree/0" };
     const first = await createAnnotation(NAME, { ...draft, text: "a" }, root);
-    if (!first) throw new Error("the mockup does not exist");
+    if (first.kind !== "created") throw new Error(`not created: ${first.kind}`);
     await createAnnotation(NAME, { ...draft, text: "b" }, root);
     await createAnnotation(NAME, { ...draft, text: "c" }, root);
-    await updateAnnotation(NAME, first.id, { status: "resolved" }, root);
+    await updateAnnotation(
+      NAME,
+      first.annotation.id,
+      { status: "resolved" },
+      root,
+    );
     await mkdir(join(root, "quiet"));
     await writeFile(join(root, "quiet", "spec.json"), spec("Quiet"));
 

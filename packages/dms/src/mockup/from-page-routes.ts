@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import { MOCKUP_API } from "./fixtures";
 import { type EditAsMockupAnswer, editPageAsMockup } from "./live-page";
+import { MockupOwnerController } from "./owner-controller";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
@@ -41,12 +42,16 @@ const fromPageBodySchema = z
  * `POST /api/mockup/from-page`: converts a live page into a mockup, or opens
  * the one it has (see {@link editPageAsMockup}). The dashboard sends the
  * path it shows (`{ path }`); a tool may send a builder ref (`{ pageRef }`).
- * Development only, and unauthenticated, like the rest of the mockup API.
+ * Development only, and platform owners only, like the rest of the mockup API.
  */
 export function registerFromPageRoute(mockupsDir: string) {
-  class MockupFromPageController extends Controller(MOCKUP_API) {
+  class MockupFromPageController extends Controller(
+    MOCKUP_API,
+    MockupOwnerController,
+  ) {
     @Post("from-page")
     async fromPage(@JSONBody() body: unknown): Promise<EditAsMockupAnswer> {
+      await this.assertOwner();
       const parsed = fromPageBodySchema.safeParse(body);
       if (!parsed.success) {
         throw new HTTPResult(HTTP_BAD_REQUEST, {

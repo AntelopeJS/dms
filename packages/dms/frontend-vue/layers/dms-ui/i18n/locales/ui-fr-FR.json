@@ -829,6 +829,7 @@
       "cancel": "Annuler",
       "annotations": "Annotations",
       "annotations_empty": "Aucune annotation pour l’instant.",
+      "block_removed": "Bloc supprimé",
       "status_open": "Ouvertes",
       "status_resolved": "Résolues",
       "resolve": "Résoudre",

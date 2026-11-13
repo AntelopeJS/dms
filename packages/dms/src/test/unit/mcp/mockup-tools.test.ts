@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { expect } from "chai";
@@ -33,7 +33,7 @@ const annotationsAnswerSchema = z.object({
   annotations: z.array(
     z.object({
       id: z.string(),
-      page: z.string(),
+      page: z.string().optional(),
       text: z.string(),
       status: z.string(),
       resolvedAt: z.string().optional(),
@@ -55,25 +55,34 @@ function describesAnnotationsTool(): void {
   describe("mockup_annotations", () => {
     it("filters by status and by page, and by both together", async () => {
       const dir = workspace.mockups();
-      await mkdir(join(dir, NAME), { recursive: true });
+      await write.call({
+        mockup: NAME,
+        spec: {
+          version: 1,
+          pages: [
+            { id: "home", title: "Home", tree: [sketch("<p>a</p>")] },
+            { id: "other", title: "Other", tree: [sketch("<p>b</p>")] },
+          ],
+        },
+      });
       const first = await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0", text: "one" },
+        { page: "home", path: "/pages/0/tree/0", text: "one" },
         dir,
       );
       const second = await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0", text: "two" },
+        { page: "home", path: "/pages/0/tree/0", text: "two" },
         dir,
       );
       await createAnnotation(
         MOCKUP,
-        { page: "other", path: "/pages/1", text: "three" },
+        { page: "other", path: "/pages/1/tree/0", text: "three" },
         dir,
       );
       await updateAnnotation(
         MOCKUP,
-        second?.id ?? "",
+        second.kind === "created" ? second.annotation.id : "",
         { status: "resolved" },
         dir,
       );
@@ -101,7 +110,7 @@ function describesAnnotationsTool(): void {
       expect(
         await texts({ mockup: NAME, status: "open", page: "home" }),
       ).to.deep.equal(["one"]);
-      expect(first?.status).to.equal("open");
+      expect(first.kind).to.equal("created");
     });
 
     it("answers an error that says the mockup does not exist", async () => {
@@ -116,7 +125,10 @@ function describesAnnotationsTool(): void {
 function describesResolveAnnotationTool(): void {
   describe("mockup_resolve_annotation", () => {
     async function seed(): Promise<string> {
-      await write.call({ mockup: NAME, spec: spec(sketch("<p>a</p>")) });
+      await write.call({
+        mockup: NAME,
+        spec: spec(sketch("<p>a</p>"), sketch("<p>b</p>")),
+      });
       const created = await createAnnotation(
         MOCKUP,
         { page: "home", path: "/pages/0/tree/0", text: "tighten" },
@@ -124,10 +136,10 @@ function describesResolveAnnotationTool(): void {
       );
       await createAnnotation(
         MOCKUP,
-        { page: "home", path: "/pages/0", text: "keep open" },
+        { page: "home", path: "/pages/0/tree/1", text: "keep open" },
         workspace.mockups(),
       );
-      return created?.id ?? "";
+      return created.kind === "created" ? created.annotation.id : "";
     }
 
     it("sets resolved and resolvedAt, writes only annotations.json, and leaves the others open", async () => {

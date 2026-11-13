@@ -14,6 +14,7 @@ import {
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
 import type { z } from "zod";
 import {
+  type AnnotationCreation,
   annotationDraftSchema,
   annotationPatchSchema,
   createAnnotation,
@@ -30,6 +31,7 @@ import {
 } from "./fixtures";
 import { buildMockupSchema } from "./json-schema";
 import type { Json, JsonObject, MockupName, MockupState } from "./model";
+import { MockupOwnerController } from "./owner-controller";
 import {
   annotationIdSchema,
   fixtureKeySchema,
@@ -42,6 +44,7 @@ import { registerSpecRoutes } from "./source-routes";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
+const HTTP_CONFLICT = 409;
 const SSE_CONTENT_TYPE = "text/event-stream";
 const SSE_RECONNECT_MS = 1000;
 const SSE_HELLO = `retry: ${SSE_RECONNECT_MS}\n: connected\n\n`;
@@ -86,8 +89,9 @@ function write(out: PassThrough, payload: string): void {
 }
 
 /**
- * Registers the mockup API under `/api/mockup`. Development only, and
- * unauthenticated: it serves the files of the project it runs in.
+ * Registers the mockup API under `/api/mockup`. Development only, and platform
+ * owners only: it serves the files of the project it runs in. The MCP mockup
+ * tools read the files directly, not through these routes.
  */
 export function registerMockupRoutes(engine: MockupEngine) {
   const { store } = engine;
@@ -105,20 +109,23 @@ export function registerMockupRoutes(engine: MockupEngine) {
     return fixture;
   }
 
-  class MockupController extends Controller(MOCKUP_API) {
+  class MockupController extends Controller(MOCKUP_API, MockupOwnerController) {
     @Get("/")
     async list(): Promise<{ results: MockupSummary[]; total: number }> {
+      await this.assertOwner();
       const results = await store.list();
       return { results, total: results.length };
     }
 
     @Get("schema")
-    schema(): JsonObject {
+    async schema(): Promise<JsonObject> {
+      await this.assertOwner();
       return buildMockupSchema(ListBlockTypes());
     }
 
     @Get(":name")
     async state(@Parameter("name") rawName: string): Promise<MockupState> {
+      await this.assertOwner();
       const state = await store.state(nameOf(rawName));
       if (!state) throw notFound("mockup");
       return state;
@@ -130,6 +137,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @WriteStream(SSE_CONTENT_TYPE) out: PassThrough,
       @Context() context: RequestContext,
     ): Promise<void> {
+      await this.assertOwner();
       const name = nameOf(rawName);
       let unsubscribe: (() => void) | undefined;
       let open = !context.rawRequest.socket.destroyed;
@@ -162,11 +170,12 @@ export function registerMockupRoutes(engine: MockupEngine) {
     }
 
     @Get(":name/pages/:page/fixtures/:key")
-    fixture(
+    async fixture(
       @Parameter("name") rawName: string,
       @Parameter("page") rawPage: string,
       @Parameter("key") rawKey: string,
     ): Promise<Json> {
+      await this.assertOwner();
       return fixtureOf(rawName, rawPage, rawKey);
     }
 
@@ -177,6 +186,7 @@ export function registerMockupRoutes(engine: MockupEngine) {
       @Parameter("key") rawKey: string,
       @Context() context: RequestContext,
     ): Promise<RowsPage> {
+      await this.assertOwner();
       const rows = parseRows(await fixtureOf(rawName, rawPage, rawKey));
       if (!rows) throw notFound("array of rows");
       return listRows(rows, parseRowsQuery(context.url.searchParams));
@@ -188,27 +198,41 @@ export function registerMockupRoutes(engine: MockupEngine) {
   return MockupController;
 }
 
-/** Whether `path` names a node of the page `pageId` of the mockup now. */
-async function namesNode(
-  store: MockupStore,
-  name: MockupName,
-  pageId: string,
-  path: string,
-): Promise<boolean> {
-  const page = (await store.state(name))?.pages.find(
-    (candidate) => candidate.id === pageId,
-  );
-  return !!page && Object.values(page.paths).includes(path);
+/** The refusal a creation that made no annotation answers with. */
+function refusal(
+  created: Exclude<AnnotationCreation, { kind: "created" }>,
+): HTTPResult {
+  switch (created.kind) {
+    case "no_mockup":
+      return notFound("mockup");
+    case "no_node":
+      return notFound("node at this page and path");
+    case "ambiguous":
+      return new HTTPResult(HTTP_CONFLICT, {
+        message:
+          "another block has the same ids as this one, so a note cannot tell them apart: give one of them another id",
+      });
+    case "spec_invalid":
+      return new HTTPResult(HTTP_CONFLICT, {
+        message:
+          "spec.json is not a valid spec, so the note's block cannot get an id",
+        errors: created.errors.map(({ path, message }) => ({ path, message })),
+      });
+  }
 }
 
 /** The annotation routes over the mockups of `store`. */
 function registerAnnotationRoutes(store: MockupStore) {
   const { mockupsDir } = store;
-  class MockupAnnotationController extends Controller(MOCKUP_API) {
+  class MockupAnnotationController extends Controller(
+    MOCKUP_API,
+    MockupOwnerController,
+  ) {
     @Get(":name/annotations")
     async annotations(
       @Parameter("name") rawName: string,
     ): Promise<{ annotations: MockupAnnotation[] }> {
+      await this.assertOwner();
       const annotations = await listAnnotations(nameOf(rawName), mockupsDir);
       if (!annotations) throw notFound("mockup");
       return { annotations };
@@ -219,6 +243,7 @@ function registerAnnotationRoutes(store: MockupStore) {
       @Parameter("name") rawName: string,
       @JSONBody() body: unknown,
     ): Promise<MockupAnnotation> {
+      await this.assertOwner();
       const name = nameOf(rawName);
       const draft = annotationDraftSchema.safeParse(body);
       if (!draft.success) {
@@ -226,13 +251,9 @@ function registerAnnotationRoutes(store: MockupStore) {
           message: draft.error.message,
         });
       }
-      const { page, path } = draft.data;
-      if (!(await namesNode(store, name, page, path))) {
-        throw notFound("node at this page and path");
-      }
       const created = await createAnnotation(name, draft.data, mockupsDir);
-      if (!created) throw notFound("mockup");
-      return created;
+      if (created.kind !== "created") throw refusal(created);
+      return created.annotation;
     }
 
     @Route("handler", "patch", ":name/annotations/:id")
@@ -241,6 +262,7 @@ function registerAnnotationRoutes(store: MockupStore) {
       @Parameter("id") rawId: string,
       @JSONBody() body: unknown,
     ): Promise<MockupAnnotation> {
+      await this.assertOwner();
       const name = nameOf(rawName);
       const id = annotationIdSchema.safeParse(rawId);
       if (!id.success) throw notFound("annotation");

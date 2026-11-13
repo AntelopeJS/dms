@@ -4,23 +4,19 @@ import {
   SessionModel,
   type User,
 } from "@antelopejs/interface-dms/auth/db";
-import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const SESSION_EXPIRED_ERROR = "error.session_expired";
 
 /**
- * Read the session an access token claims. The claim is read before the
- * signature is checked, so only a plain string reaches the query.
+ * Read the session an access token claims, once its signature has checked
+ * out, so a forged token never reaches the session query.
  *
- * @param sessionId The token's `sessionId` claim, unverified
+ * @param sessionId The verified token's `sessionId` claim
  */
 export async function loadTokenSession(
   sessionId: Session["_id"] | undefined,
 ): Promise<Session | undefined> {
-  if (!isString(sessionId) || !sessionId) {
-    return undefined;
-  }
-  return GetModel(SessionModel).get(sessionId);
+  return sessionId ? GetModel(SessionModel).get(sessionId) : undefined;
 }
 
 /**

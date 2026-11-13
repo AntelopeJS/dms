@@ -336,6 +336,34 @@ function checksSketchMarkupAndSiblingIds(): void {
   });
 }
 
+function reportsSharedStampedIds(): void {
+  it("reports a stamped id another block already has, on any page and at any depth, at the second, and no other shared id (fails when only siblings are compared, or when any shared id is reported)", () => {
+    const card = (id: string) => ({
+      type: "KpiCard",
+      options: { title: "Revenue" },
+      id,
+    });
+    const { issues } = compile({
+      version: 1,
+      pages: [
+        { id: "a", title: "A", tree: [card("b-k3j9x0qz"), card("header")] },
+        {
+          id: "b",
+          title: "B",
+          tree: [
+            { type: "VStack", children: [card("b-k3j9x0qz")] },
+            card("header"),
+          ],
+        },
+      ],
+    });
+
+    expect(issues.map((issue) => issue.path)).to.deep.equal([
+      "/pages/1/tree/0/children/0/id",
+    ]);
+  });
+}
+
 function validatesDepthAndRuntimeBlocks(): void {
   it("refuses a spec nested past the depth limit instead of overflowing the stack", () => {
     let node: Json = { type: "KpiCard", options: { title: "leaf" } };
@@ -447,6 +475,7 @@ describe("[unit] mockup compiler", () => {
   keepsSketchPlacement();
   refusesRemoteSketchContent();
   checksSketchMarkupAndSiblingIds();
+  reportsSharedStampedIds();
   validatesDepthAndRuntimeBlocks();
   validatesTablesAndPageIds();
 });
