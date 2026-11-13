@@ -2,6 +2,7 @@ import {
   type BlockTypeDescriptor,
   ListBlockTypes,
 } from "@antelopejs/interface-dms/base/block-types";
+import { stampedIdIssues } from "./anchor";
 import { CONTROLLER_BLOCKS } from "./controller-blocks";
 import type { FixtureScope } from "./fixtures";
 import { rewriteObject } from "./fixtures";
@@ -298,7 +299,7 @@ export function compileSpec(name: MockupName, spec: MockupSpec): CompiledSpec {
     title: spec.title,
     pages,
     fixtures: new Map(spec.pages.map((page) => [page.id, page.fixtures ?? {}])),
-    issues: scope.issues,
+    issues: [...scope.issues, ...stampedIdIssues(spec)],
   };
 }
 

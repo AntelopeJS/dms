@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 import { z } from "zod";
-import type { JsonObject, MockupNode, MockupSpec } from "./model";
+import type { JsonObject, MockupIssue, MockupNode, MockupSpec } from "./model";
 import { jsonPointer, pageIdSchema } from "./model";
 
 /**
@@ -97,6 +97,9 @@ const CHILDREN_SEGMENT = "/children/";
 const STAMP_PREFIX = "b-";
 const STAMP_LENGTH = 8;
 const STAMP_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
+const STAMPED_ID = new RegExp(
+  `^${STAMP_PREFIX}[${STAMP_ALPHABET}]{${STAMP_LENGTH}}$`,
+);
 const TRAILING_NUMBER = /-\d+$/;
 
 function subtree(node: TreeNode, address: NodeAddress): Visit[] {
@@ -175,6 +178,29 @@ export function locateBlock(
   return found && page !== undefined
     ? { page, path: pointerOf(found.address) }
     : undefined;
+}
+
+/**
+ * An issue at the `id` of each node whose id has the format anchoring stamps
+ * and is the id of a node before it in document order: a copy of an
+ * annotated block that kept its id, and would take the block's notes.
+ */
+export function stampedIdIssues(tree: BlockTree): MockupIssue[] {
+  const first = new Map<string, string>();
+  const issues: MockupIssue[] = [];
+  for (const { node, address } of visitsOf(tree)) {
+    if (node.id === undefined || !STAMPED_ID.test(node.id)) continue;
+    const pointer = pointerOf(address);
+    const earlier = first.get(node.id);
+    if (earlier === undefined) first.set(node.id, pointer);
+    else {
+      issues.push({
+        path: `${pointer}/id`,
+        message: `another block, at ${earlier}, already has the id "${node.id}", which anchors its notes: give the copy a new id or none`,
+      });
+    }
+  }
+  return issues;
 }
 
 function addressOfSite(
