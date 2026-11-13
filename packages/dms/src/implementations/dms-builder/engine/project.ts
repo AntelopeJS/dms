@@ -275,18 +275,22 @@ export function sampledIndentation(text: string): IndentationText | undefined {
     : IndentationText.TwoSpaces;
 }
 
+/**
+ * The configured indentation, else that of the first of the project's sources
+ * with an indented line: an entry that only imports says nothing.
+ */
 function detectIndentation(rootDir: string): IndentationText {
   const configuredIndent = configuredIndentation(rootDir);
   if (configuredIndent !== undefined) {
     return configuredIndent;
   }
-  const entry = path.join(rootDir, "src/index.ts");
-  if (!fs.existsSync(entry)) {
-    return IndentationText.Tab;
+  for (const source of projectSourcePaths(rootDir)) {
+    const sampled = sampledIndentation(fs.readFileSync(source, "utf8"));
+    if (sampled !== undefined) {
+      return sampled;
+    }
   }
-  return (
-    sampledIndentation(fs.readFileSync(entry, "utf8")) ?? IndentationText.Tab
-  );
+  return IndentationText.Tab;
 }
 
 export function createProject(rootDir: string): Project {
