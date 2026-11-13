@@ -9,7 +9,7 @@ import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
 import { GenerateHtml } from "@antelopejs/interface-dms/html-render";
 export * from "./account-emails";
 import { AdminInviteTemplate } from "./email-templates";
-import { decode, type JwtPayload, sign, verify } from "jsonwebtoken";
+import { type decode, type JwtPayload, sign } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
   type AdminInviteEmailNames,
@@ -23,7 +23,7 @@ import {
   isObject,
   isString,
 } from "@antelopejs/interface-dms/utils/internal/type-check";
-import { generateSecret } from "./token-secret";
+import { generateSecret, verifyTokenFor } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
@@ -64,11 +64,7 @@ async function validateUserToken(
 ): Promise<User> {
   const userModel = GetModel(UserModel);
 
-  const [user, session] = await Promise.all([
-    userModel.get(data.id),
-    loadTokenSession(data.sessionId),
-  ]);
-
+  const user = await userModel.get(data.id);
   const claims = verifiedSessionClaims(
     data.rawToken,
     user,
@@ -78,6 +74,7 @@ async function validateUserToken(
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
 
+  const session = await loadTokenSession(claims.sessionId);
   try {
     assertTokenSessionAlive(claims.sessionId, session, user);
   } catch (error: unknown) {
@@ -149,17 +146,8 @@ function verifiedSessionClaims(
   user: User | undefined,
   purpose: string,
 ): DecodedAuthPayload | undefined {
-  if (!user) {
-    return undefined;
-  }
-  try {
-    const payload = verify(token, generateSecret(user.authKey), {
-      algorithms: ["HS256"],
-    });
-    return isSessionPayload(payload, purpose) ? payload : undefined;
-  } catch {
-    return undefined;
-  }
+  const payload = verifyTokenFor(token, user);
+  return payload && isSessionPayload(payload, purpose) ? payload : undefined;
 }
 
 export namespace internal {
@@ -354,15 +342,6 @@ function isPurposeClaims(
   );
 }
 
-function isSignedFor(token: string, user: User): boolean {
-  try {
-    verify(token, generateSecret(user.authKey));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function verifyPurposeToken(
   token: string,
   purpose: string,
@@ -373,7 +352,7 @@ async function verifyPurposeToken(
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
   const user = await GetModel(UserModel).get(claims.id);
-  if (!user || !isSignedFor(token, user)) {
+  if (!verifyTokenFor(token, user) || !user) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
   return { claims, user };
