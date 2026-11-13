@@ -1,11 +1,14 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import type {
-  DefaultLayoutSerializedOptions,
   PageHeaderButtonDeclared,
   PageRecordStatus,
 } from "../../component-options/internal/page-layout";
 import type { ComponentFilterContext, ComponentInfo } from "../../component";
-import { isNumber, isString } from "../../utils/internal/type-check";
+import {
+  isFunction,
+  isNumber,
+  isString,
+} from "../../utils/internal/type-check";
 
 const RECORD_TOKEN = /\{\{\s*record\.([\w.-]+)\s*\}\}/g;
 const NAMES_RECORD = /\{\{\s*record\./;
@@ -57,11 +60,11 @@ export async function readPageRecord(
   layout: ComponentInfo | undefined,
   context: ComponentFilterContext,
 ): Promise<PageRecordRead | undefined> {
-  // SAFETY: The layout read here is a page's layout, built by DefaultLayout, FormPageLayout or SettingsLayout through dashboardLayout, or by EmptyLayout as an empty object, so its options are DefaultLayoutSerializedOptions.
-  const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
-  if (!options?.record) return undefined;
+  const options = layout?.options;
+  const loader = isRecordNode(options) ? options.record : undefined;
+  if (!isFunction(loader)) return undefined;
   try {
-    const record: unknown = await options.record(context);
+    const record: unknown = await loader(context);
     return isRecordNode(record)
       ? { record, status: "found" }
       : { status: "missing" };

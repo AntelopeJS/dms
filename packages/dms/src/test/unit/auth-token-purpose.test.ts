@@ -94,4 +94,18 @@ describe("[unit] auth token purpose separation", () => {
   it("rejects malformed refresh tokens with 401", async () => {
     await expectUnauthorized(() => validateRefreshToken("not-a-jwt"));
   });
+
+  it("refuses, before any account lookup, claims that name no string user, tenant and session", async () => {
+    const forged = [
+      { id: { $ne: null }, tenantId: TENANT_ID, purpose: "access" },
+      { id: user._id, purpose: "access" },
+      { id: user._id, tenantId: TENANT_ID, sessionId: 1, purpose: "access" },
+    ].map((claims) => sign(claims, "forged-secret"));
+    for (const token of forged) {
+      await expectUnauthorized(async () =>
+        internal.AuthUserAuthenticator(token),
+      );
+      expect(internal.IfAuthUserAuthenticator(token)).to.equal(undefined);
+    }
+  });
 });

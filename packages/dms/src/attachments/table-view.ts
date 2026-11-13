@@ -1,5 +1,4 @@
 import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
-import type { Parameters } from "@antelopejs/interface-data-api/components";
 import {
   fromPlainData,
   LocalizationModifier,
@@ -119,12 +118,16 @@ interface DeleteDocumentsRequest extends TableViewAttachmentSaveRequest {
 async function deleteDocuments(request: DeleteDocumentsRequest) {
   const { controller, route, context, params, args, fields, componentIds } =
     request;
-  // SAFETY: Delete mode comes only from withFilePromotion(DefaultRoutes.Delete, "delete") in the table-view routes, so params are the delete route's Parameters.DeleteParameters.
-  const ids = (params as Parameters.DeleteParameters).id;
+  const ids =
+    isObject(params) && params !== null && "id" in params
+      ? params.id
+      : undefined;
+  const deleted: unknown[] = Array.isArray(ids) ? ids : [ids];
+  if (!deleted.every(isString)) {
+    throw new TypeError("A delete request's parameters name no string ids");
+  }
   const rows = await Promise.all(
-    (Array.isArray(ids) ? ids : [ids]).map((id) =>
-      loadDocument(controller, fields, String(id)),
-    ),
+    deleted.map((id) => loadDocument(controller, fields, id)),
   );
   const before = Object.fromEntries(
     fields.map((field) => [

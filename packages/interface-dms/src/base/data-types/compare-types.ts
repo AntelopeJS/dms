@@ -228,7 +228,7 @@ export namespace DefaultDataCompareTypes {
   }
 
   function arrayOrEmpty(proxy: ValueProxy<unknown>): ValueProxy<unknown[]> {
-    // SAFETY: Only the data types over array values, multiple selects and multiple relations, list the include and exclude modes, so the field their filters read holds an array.
+    // SAFETY: The field holds an array exactly when the data type whose filter runs include or exclude stores arrays. DataType.filter runs a mode only for a type that lists it, and of the types this package registers only multiple selects and multiple relations list these two, both storing arrays; a module's type that lists them over other values, or a direct call of Include or Exclude's filter, breaks this.
     return (proxy as ValueProxy<unknown[]>).default([]);
   }
 
@@ -314,7 +314,7 @@ export namespace DefaultDataCompareTypes {
       // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
-      // SAFETY: Only the tags data type lists array_contains_string, and its value is an array of strings.
+      // SAFETY: The field holds an array of strings exactly when the data type whose filter runs this mode stores one. DataType.filter runs a mode only for a type that lists it, and of the types this package registers only tags lists array_contains_string, storing an array of strings; a module's type that lists it over other values, or a direct call of ArrayContainsString's filter, breaks this.
       const dbVal = proxy as ValueProxy<string[]>;
       const escapedValue = escapeRegex(value);
 

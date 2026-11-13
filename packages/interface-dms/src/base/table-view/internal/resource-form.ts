@@ -64,8 +64,13 @@ export function stampAttachmentFields(
   for (const [columnKey, column] of Object.entries(meta.columns)) {
     const typeId = getDataTypeId(column.type);
     if (typeId === "file" || typeId === "image") {
-      // SAFETY: The registry ids file and image name FileType and ImageType, whose constructors take FileTypeOptions or ImageTypeOptions and default an omitted argument to an empty object, so options is an object.
-      column.type.options!.attachmentField = `${location}#${columnKey}`;
+      const typeOptions = column.type.options;
+      if (!typeOptions) {
+        throw new TypeError(
+          `The ${typeId} column "${columnKey}" of ${location} has no options to record its attachment in`,
+        );
+      }
+      typeOptions.attachmentField = `${location}#${columnKey}`;
     }
   }
 }

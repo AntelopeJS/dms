@@ -78,7 +78,7 @@ export function RegisterInviteExtension<T>(
 ): () => void {
   assertUsableKey(options.key);
 
-  // SAFETY: Registrations of different payload types share one registry, so it holds the handlers with T erased; delivery parses the payload with this same schema before it calls a handler, which the registry type cannot express.
+  // SAFETY: Registrations of different payload types share one registry, so it holds the handlers with T erased. The handlers get a T exactly when every call passes what readPayload parsed with this registration's schema, or undefined where the handler admits it: DeliverInviteExtensions, CleanupInviteExtensions and notifyUpdate, their only callers, do.
   const erased = options as InviteExtensionOptions<unknown>;
   const info: InviteExtensionInfo = {
     key: options.key,

@@ -21,6 +21,10 @@ interface FakeModelState {
 
 type FakeModel = SessionModel & FakeModelState;
 
+interface FakeTableHolder {
+  table: FakeTable;
+}
+
 interface FakeTable {
   getAll: (sessionId: string) => FakeQuery;
 }
@@ -61,7 +65,9 @@ function createModel(): FakeModel {
   }
   const model: FakeModel = bare;
   let update: RotationUpdate;
-  const table: FakeTable = {
+  // SAFETY: The table written here is no database table, though SessionModel declares one: it carries only getAll(...).filter(...).update(...).run(), the one chain rotateRefreshToken reads of the table, and no code this test runs reads another member of it.
+  const tableHolder = model as unknown as FakeTableHolder;
+  tableHolder.table = {
     getAll: () => {
       const query: FakeQuery = {
         filter: () => query,
@@ -83,12 +89,6 @@ function createModel(): FakeModel {
       return query;
     },
   };
-  Object.defineProperty(model, "table", {
-    value: table,
-    configurable: true,
-    enumerable: true,
-    writable: true,
-  });
   model.get = async () => model.currentSession;
   return model;
 }

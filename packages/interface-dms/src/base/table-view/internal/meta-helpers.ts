@@ -18,6 +18,7 @@ import { ReadonlyBehaviorType } from "../../types";
 import type { ColumnOptions, TableViewMeta } from "../meta";
 import { serializeColumnDisplay } from "./column-display";
 import { decoratedClass } from "../../../utils/internal/decorated-class";
+import { isString } from "../../../utils/internal/type-check";
 
 type FieldDecoratorArguments = Parameters<
   Parameters<typeof MakeMethodAndPropertyDecorator>[0]
@@ -66,8 +67,12 @@ export function decorateColumn(
   options: ColumnOptions,
   meta: TableViewMeta,
 ) {
-  // SAFETY: TableView columns are class members named by identifiers, which a member decorator receives as string keys.
-  const columnKey = key as string;
+  if (!isString(key)) {
+    throw new TypeError(
+      `A TableView column must be a member named by a string, not ${String(key)}`,
+    );
+  }
+  const columnKey = key;
   meta.setColumn(columnKey, options);
 
   if (options.validate !== false) {

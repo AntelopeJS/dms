@@ -1,6 +1,7 @@
 import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
 import { getDataTypeId } from "@antelopejs/interface-dms/base/data-types";
 import type { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
+import { readUploadConstraints } from "@antelopejs/interface-dms/page/internal/metadata-uploads";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 export function tableAttachmentFields(
@@ -21,8 +22,7 @@ export function tableAttachmentFields(
           options?.visibility === "public"
             ? ("public" as const)
             : ("private" as const),
-        // SAFETY: The registry ids file and image name FileType and ImageType, whose options are FileTypeOptions or ImageTypeOptions, where constraints is the UploadConstraints AttachmentField declares.
-        constraints: options?.constraints as AttachmentField["constraints"],
+        constraints: readUploadConstraints(options ?? {}),
       },
     ];
   });

@@ -117,6 +117,28 @@ function isSessionPayload(
   );
 }
 
+function isDecodedAuthPayload(
+  claims: ReturnType<typeof decode>,
+): claims is JwtPayload & DecodedAuthPayload {
+  return (
+    claims !== null &&
+    !isString(claims) &&
+    isString(claims.id) &&
+    isString(claims.tenantId) &&
+    (claims.sessionId === undefined || isString(claims.sessionId))
+  );
+}
+
+/**
+ * The claims of a bearer token, read without verifying its signature, or
+ * `undefined` when they do not name a user and a tenant: the validator then
+ * verifies the token they came with.
+ */
+function decodedClaims(token: string): DecodedAuthPayload | undefined {
+  const claims = decode(token);
+  return isDecodedAuthPayload(claims) ? claims : undefined;
+}
+
 function verifySessionToken(
   token: string,
   secret: KeyObject,
@@ -131,11 +153,10 @@ function verifySessionToken(
 
 export namespace internal {
   export const AuthUserAuthenticator = (data: string | undefined) => {
-    if (!data) {
+    const result = data ? decodedClaims(data) : undefined;
+    if (!data || !result) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, NO_JWT_TOKEN_ERROR);
     }
-    // SAFETY: The session tokens the DMS signs (access, refresh, two-factor) decode to id and tenantId strings and an optional sessionId string; AuthUserValidator refuses every other token in verifySessionToken and, before it, reads the decoded id and sessionId only as lookup keys.
-    const result = decode(data) as DecodedAuthPayload;
     return {
       ...result,
       rawToken: data,
@@ -147,8 +168,10 @@ export namespace internal {
       return undefined;
     }
     try {
-      // SAFETY: The session tokens the DMS signs (access, refresh, two-factor) decode to id and tenantId strings and an optional sessionId string; IfAuthUserValidator refuses every other token in verifySessionToken and, before it, reads the decoded id and sessionId only as lookup keys.
-      const result = decode(data) as DecodedAuthPayload;
+      const result = decodedClaims(data);
+      if (!result) {
+        return undefined;
+      }
       return {
         ...result,
         rawToken: data,

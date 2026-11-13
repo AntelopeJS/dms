@@ -68,7 +68,7 @@ export async function filterLayoutHeaderActions<T>(
   pagePermissionId: string | undefined,
   recordStatus?: PageRecordStatus,
 ): Promise<ComponentInfo<T> | undefined> {
-  // SAFETY: The layout filtered here is a page's layout, built by DefaultLayout, FormPageLayout or SettingsLayout through dashboardLayout, or by EmptyLayout as an empty object, so its options are DefaultLayoutSerializedOptions.
+  // SAFETY: The options are DefaultLayoutSerializedOptions exactly when the page's layout is one DefaultLayout, FormPageLayout or SettingsLayout built, EmptyLayout's empty options, or a custom ComponentInfo given to PageController or a category whose options hold each key DefaultLayoutSerializedOptions declares with its declared type. A custom layout whose options use one of those keys otherwise is read as if it were one.
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!layout || !options) return layout;
   const { record: _record, headerActions: buttons = [], ...frame } = options;
@@ -97,7 +97,7 @@ export async function filterLayoutHeaderActions<T>(
     servedOptions.headerActionsParams = context.params ?? {};
   }
   if (declaresRecord) servedOptions.recordStatus = recordStatus;
-  // SAFETY: T is a page layout's DefaultLayoutSerializedOptions, and the served options are those options without the optional record and with only fields DefaultLayoutSerializedOptions declares set, so they are still a T.
+  // SAFETY: The result is a T exactly when T admits these served options, a DefaultLayoutSerializedOptions without its record: so for T unknown, which the one caller instantiates (filterPageHeader passes PageLayout's ComponentInfo), and for T DefaultLayoutSerializedOptions, but not for another T a caller names.
   return { ...layout, options: servedOptions as T };
 }
 
@@ -182,7 +182,7 @@ export function withComponentHeaderButtons<T>(
   } = layout.options ?? {};
   return {
     ...layout,
-    // SAFETY: T is a page layout's DefaultLayoutSerializedOptions, and these options are those options with headerActions, a field it declares, extended, so they are still a T.
+    // SAFETY: The result is a T exactly when T admits the layout's options with headerActions extended by PageHeaderButtonSerialized entries: so for T unknown, which the one caller instantiates (prepareLayoutResponse passes PageLayout's ComponentInfo), and for T DefaultLayoutSerializedOptions, but not for another T a caller names.
     options: {
       ...options,
       headerActions: [...(options.headerActions ?? []), ...placed],

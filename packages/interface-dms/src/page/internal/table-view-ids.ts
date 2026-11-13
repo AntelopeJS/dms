@@ -1,5 +1,6 @@
 import { TABLE_VIEW_COMPONENT_NAME } from "../../component-options/internal/page-layout";
 import type { ChildSerialized, ComponentInfoSerialized } from "../../component";
+import { isObject } from "../../utils/internal/type-check";
 
 /** What a served table view learns of its place in the page. */
 interface TableViewPlacement {
@@ -32,10 +33,9 @@ function placeTableViews(
   const placed = children ? { ...component, children } : component;
   if (!isTableView(component)) return placed;
   const placement: TableViewPlacement = { tableId: id, isSoleTableView };
-  return {
-    ...placed,
-    options: { ...(component.options ?? undefined), ...placement },
-  };
+  const { options } = component;
+  const declared = isObject(options) ? options : undefined;
+  return { ...placed, options: { ...declared, ...placement } };
 }
 
 /**

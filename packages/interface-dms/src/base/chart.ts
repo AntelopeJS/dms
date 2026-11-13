@@ -325,7 +325,7 @@ function createChartBuilder<TType extends ChartType>(type: TType) {
     options?: Omit<TProps, "type"> | TProps,
   ): ComponentBuilder<TProps> => {
     const meta = CHART_META_BY_TYPE[type];
-    // SAFETY: The chart props types of AnyChartProps require only `type`, set here to the literal TProps narrows it to; every other field comes from the options, typed `Omit<TProps, "type">` or TProps.
+    // SAFETY: merged is a TProps exactly when it holds every field TProps requires. `type` is set here to the one literal TProps carries; options, typed `Omit<TProps, "type">` or TProps, hold the rest when given. Without options, merged holds only `type`, which is enough for every member of AnyChartProps, none of which requires another field, but not for a TProps a caller extends with a further required field.
     const merged = { ...options, type } as TProps;
     const builder = new ComponentBuilder<TProps>(CHART_COMPONENT_NAME)
       .options(merged)

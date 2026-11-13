@@ -49,4 +49,8 @@ describe("[integration] table view tags filter", () => {
   it("still keeps the rows with no tag", async () => {
     expect(await titles("is_empty:")).to.deep.equal(["Draft"]);
   });
+
+  it("matches no row through a registered mode the tags type does not list", async () => {
+    expect(await titles("include:solar")).to.deep.equal([]);
+  });
 });

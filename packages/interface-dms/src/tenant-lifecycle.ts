@@ -10,11 +10,6 @@ const HTTP_SERVER_ERROR_MIN = 500;
 const RELEASE_ATTEMPTS = 3;
 const RELEASE_BACKOFF_MS = 200;
 
-/** What a thrown `HTTPResult` exposes, whichever copy of the API built it. */
-interface StatusCarrier {
-  getStatus(): number;
-}
-
 /**
  * Whether a status is an HTTP 4xx: a refusal on purpose, a decision rather
  * than an effect whose outcome is unknown.
@@ -102,10 +97,15 @@ export async function runTenantLifecycleOperation<T>(
   try {
     result = await work();
   } catch (error) {
-    const carrier: Partial<StatusCarrier> | null =
-      isObject(error) || isFunction(error) ? error : null;
-    const getStatus = carrier?.getStatus;
-    if (isFunction(getStatus) && isClientErrorStatus(getStatus.call(error))) {
+    const getStatus =
+      ((isObject(error) && error !== null) || isFunction(error)) &&
+      "getStatus" in error
+        ? error.getStatus
+        : undefined;
+    if (
+      isFunction(getStatus) &&
+      isClientErrorStatus(Number(getStatus.call(error)))
+    ) {
       const releaseFailure = await releaseAttempt(model, tenantId, attemptId);
       if (releaseFailure) {
         throw new AggregateError(

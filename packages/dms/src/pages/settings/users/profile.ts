@@ -86,6 +86,20 @@ const profileFields = [
   { id: "email", type: new DefaultDataTypes.EmailType() },
 ];
 
+/** What the profile writes, read off the output `profileFields` validated. */
+const updateProfileInput = z.object({
+  name: z.string(),
+  email: z.string().nullish(),
+  language: z.string().nullish(),
+  avatar: z
+    .object({
+      key: z.string(),
+      alt: z.string().optional(),
+      principal: z.boolean().optional(),
+    })
+    .nullish(),
+});
+
 const PROFILE_TEXTS = "$page.settings.profile";
 
 const personalInfoForm = CustomComponent("DmsProfilePersonalInfo")
@@ -222,8 +236,9 @@ export class ProfileSettingsController extends PageController("profile", {
             promoted,
           );
         if (!parsed.success) throw profileRefusal(parsed.error);
-        // SAFETY: profileFields declares name as a required string field and email and avatar as optional email and image fields, which formSchema makes nullable, and the schema adds an optional language, so the parsed output is an UpdateProfileInput.
-        await this.writeProfile(parsed.data as UpdateProfileInput, userModel);
+        const input = updateProfileInput.safeParse(parsed.data);
+        if (!input.success) throw profileRefusal(input.error);
+        await this.writeProfile(input.data, userModel);
         const user = await userModel.get(this.user._id);
         if (!user) throw new Error("Updated profile was not found");
         return {

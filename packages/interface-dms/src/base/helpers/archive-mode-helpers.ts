@@ -15,7 +15,7 @@ export function applyArchiveModeDefaultRules<T extends object>(
 ): TableViewRowActionOptions<T> | undefined {
   const result: TableViewRowActionOptions<T> = { ...rowActions };
 
-  // SAFETY: archiveField is the row member ArchiveField decorated on the table view whose rows are T, and that member holds the boolean archive flag the rules compare with true.
+  // SAFETY: The rules are RowActionRule<T> exactly when archiveField names a member of T whose declared type admits true. The table-view factory, the one caller in this package, passes meta.archiveField, the member @ArchiveField decorated, which the archive filter compares with the boolean true; nothing checks that member's declared type, and a module calling this helper with another string breaks the claim.
   const rules = [
     ["edit", { field: archiveField, notEquals: true }],
     ["duplicate", { field: archiveField, notEquals: true }],

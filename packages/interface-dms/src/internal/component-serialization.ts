@@ -2,7 +2,6 @@
 import type {
   ChildSerialized,
   ComponentAnchor,
-  ComponentInfo,
   ComponentInfoPromise,
   ComponentInfoSerialized,
 } from "../component";
@@ -41,8 +40,12 @@ async function serializeChild(
 export function serializeInfoSync<T>(
   info: ComponentInfoPromise<T>,
 ): ComponentInfoSerialized<T> {
-  // SAFETY: Every Component is a ComponentBuilder, whose componentInfo getter answers the synchronous ComponentInfo builderInfo builds; the package constructs no Component from a promise.
-  const componentInfo = info as ComponentInfo<T>;
+  if (info instanceof Promise) {
+    throw new TypeError(
+      "serializeSync() cannot read a component built from a promise: call serialize()",
+    );
+  }
+  const componentInfo = info;
   if (componentInfo.children) {
     const serializedChildren = componentInfo.children.map((child) => {
       const { id, component, ...additionalProps } = child;

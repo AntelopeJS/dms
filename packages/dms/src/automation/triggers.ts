@@ -10,6 +10,7 @@ import {
   type RecordMutationEvent,
 } from "./events";
 import { fieldHint, nodeText, titledProperties } from "./i18n";
+import { isFunction } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const EMPTY_CONFIG_SCHEMA: JsonSchema = { type: "object", properties: {} };
 
@@ -21,10 +22,7 @@ const removeListener = (
   event: AutomationEventName,
 ): TriggerType["deactivate"] =>
   async function deactivate(handle) {
-    const listeners: Set<unknown> = listenersFor(event);
-    for (const listener of listeners) {
-      if (listener === handle) listeners.delete(listener);
-    }
+    if (isFunction(handle)) listenersFor(event).delete(handle);
   };
 
 interface DmsEventTriggerSpec {

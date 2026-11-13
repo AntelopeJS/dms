@@ -92,12 +92,14 @@ const CARD_SUPPLIED_CHART_OPTIONS = [
 export function ChartCard(
   options?: ChartCardBuilderOptions,
 ): ComponentBuilder<ChartCardProps> {
-  // SAFETY: Bug in the published ChartCardBuilderOptions, which requires a title while ChartCard() may be called without options. The empty object is a ChartCardBuilderOptions only once the author sets a title on the builder; until then the options lack it.
-  const { chart, ...rest } = options ?? ({} as ChartCardBuilderOptions);
+  const { chart, ...rest }: Partial<ChartCardBuilderOptions> = options ?? {};
   const builder = new ComponentBuilder<ChartCardProps>(
     CHART_CARD_COMPONENT_NAME,
   )
-    .options(rest)
+    .options(
+      // SAFETY: Bug in the published builder typing, which requires ChartCardProps' title while ChartCard() may be called without options. rest is a ChartCardProps exactly when the caller passed options with a title; a bare ChartCard() yields an empty object, which has none.
+      rest as ChartCardProps,
+    )
     .meta({
       name: rest.title || "Chart card",
       icon: rest.icon || "i-ph-chart-line",

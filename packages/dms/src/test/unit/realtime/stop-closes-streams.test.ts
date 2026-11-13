@@ -54,19 +54,18 @@ const spyOnIntervals = (): TimerSpy => {
   const originalClear = globalThis.clearInterval;
   const started = new Set<unknown>();
   const cleared = new Set<unknown>();
-  globalThis.setInterval = new Proxy(originalSet, {
-    apply: (target, _thisArg, args: Parameters<typeof setInterval>) => {
-      const timer = target(...args);
-      started.add(timer);
-      return timer;
-    },
-  });
-  globalThis.clearInterval = new Proxy(originalClear, {
-    apply: (target, _thisArg, args: Parameters<typeof clearInterval>) => {
-      cleared.add(args[0]);
-      return target(...args);
-    },
-  });
+  // SAFETY: Parameters reads only the last of setInterval's overloads, so the spy's own type names one; at runtime it forwards every argument to the original setInterval and answers its handle unchanged, so each call of any overload behaves as the original's.
+  globalThis.setInterval = ((...args: Parameters<typeof setInterval>) => {
+    const timer = originalSet(...args);
+    started.add(timer);
+    return timer;
+  }) as typeof setInterval;
+  globalThis.clearInterval = (
+    timer: NodeJS.Timeout | string | number | undefined,
+  ) => {
+    cleared.add(timer);
+    originalClear(timer);
+  };
   return {
     started,
     cleared,

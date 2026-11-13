@@ -71,7 +71,7 @@ type AttachmentSaver = <T>(
  * before any file is touched.
  */
 export const SaveComponentFiles =
-  // SAFETY: InterfaceFunction types the proxy from Parameters and Awaited<ReturnType> of AttachmentSaver, which erase its type parameter T to unknown; the proxy forwards the call and the answer of the implementing module untouched, so T flows through at runtime.
+  // SAFETY: InterfaceFunction types the proxy from Parameters and Awaited<ReturnType> of AttachmentSaver, which erase its type parameter T to unknown. The proxy forwards the call and the implementing module's answer untouched, so it answers a T exactly when that module answers the result its save callback returned, as packages/dms's SaveComponentFiles does (saved.result).
   InterfaceFunction<AttachmentSaver>() as AttachmentSaver;
 
 /**

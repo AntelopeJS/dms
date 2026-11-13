@@ -83,7 +83,7 @@ export function stripWatchActions<O>(opts: O): O {
     return opts;
   }
   const { watchActions: _ignored, ...rest } = opts;
-  // SAFETY: No component options type requires watchActions, the transport key the builder owns (SlotFormOptions declares it optional), so the options without it are still an O.
+  // SAFETY: rest is an O exactly when O does not require watchActions and keeps its members as own enumerable fields, since the spread copies those and drops watchActions. Every options type of this package declares watchActions optional (BaseComponentProps, SlotFormOptions); a module's options type that requires it, or reads members through a prototype, is not one.
   return rest as O;
 }
 
@@ -100,7 +100,7 @@ export function mergeWatchesIntoOptions<T>(
   } = options ?? {};
   const existing = optionsObj.watchActions ?? [];
   const merged = [...existing, ...watches];
-  // SAFETY: The options plus watchActions, a key no options type requires, are still a T; options are absent only on a builder made without them, such as CustomComponent's ComponentBuilder<unknown>, whose T the bare object satisfies.
+  // SAFETY: The result is a T exactly when options are a T whose watchActions, where T declares it, holds WatchAction[] as BaseComponentProps declares, or options are absent and T requires no member, as for CustomComponent's ComponentBuilder<unknown>. A builder whose T requires a member and that was never given options gets an object without it.
   return { ...optionsObj, watchActions: merged } as T;
 }
 
