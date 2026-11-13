@@ -12,12 +12,14 @@ const INTERFACES = [
     name: "@antelopejs/interface-dms",
     tag: "interface-v${version}",
     version: "0.13.3",
+    annotated: true,
   },
   {
     dir: "interface-dms-builder",
     name: "@antelopejs/interface-dms-builder",
     tag: "interface-dms-builder-v${version}",
     version: "0.4.1",
+    annotated: false,
   },
 ];
 
@@ -91,9 +93,25 @@ const repository = ({
     write(root, `packages/${dir}/README.md`, "");
   }
   commit(root);
-  for (const { dir, tag, version } of INTERFACES) {
-    if (!untagged.includes(dir))
-      git(root, "tag", tag.replace("${version}", version));
+  for (const { dir, tag, version, annotated } of INTERFACES) {
+    if (untagged.includes(dir)) continue;
+    const name = tag.replace("${version}", version);
+    if (annotated) {
+      git(
+        root,
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@t",
+        "tag",
+        "-a",
+        "-m",
+        "release",
+        name,
+      );
+    } else {
+      git(root, "tag", name);
+    }
   }
   return root;
 };
