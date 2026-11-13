@@ -43,28 +43,45 @@ const ASSIGNMENT = {
 const SIGN_IN = { email: "ada@example.test", password: "secret" };
 
 const NOT_RECORDS = spoiledShapes({}, {}, []);
-const SPOILED_USERS = spoiledShapes(USER, { language: [5, null] }, []);
+const SPOILED_USERS = spoiledShapes(
+  USER,
+  { _id: [5], email: [5], name: [null], language: [5, null] },
+  [],
+);
 const SPOILED_PAIRS = spoiledShapes(
   PAIR,
-  { access_token: [5], refresh_token: [5] },
+  { access_token: [5, ""], refresh_token: [5, ""] },
   ["access_token"],
 );
 const SPOILED_OUTCOMES = [
   ...spoiledShapes(
     TOKENS,
-    { access_token: [5], refresh_token: [5], user: SPOILED_USERS },
+    { access_token: [5, ""], refresh_token: [5, ""], user: SPOILED_USERS },
     ["access_token"],
   ),
   ...spoiledShapes(
     CHALLENGE,
-    { requires_2fa: ["yes"], two_factor_token: [5], methods: ["totp", [5]] },
+    {
+      requires_2fa: ["yes"],
+      two_factor_token: [5, ""],
+      methods: ["totp", [5]],
+    },
     ["two_factor_token", "methods"],
   ),
   ...spoiledShapes(
     ASSIGNMENT,
-    { requires_tenant_assignment: ["yes"], tenant_assignment_token: [5] },
+    {
+      requires_tenant_assignment: ["yes"],
+      tenant_assignment_token: [5, ""],
+    },
     ["tenant_assignment_token"],
   ),
+];
+
+/** Step answers that also carry a token pair, their step malformed: neither is a step, and neither may open a session. */
+const STEPS_WITH_TOKENS = [
+  { ...CHALLENGE, ...PAIR, methods: [5] },
+  { ...ASSIGNMENT, ...PAIR, tenant_assignment_token: 5 },
 ];
 
 const SIGN_IN_ROUTES = [
@@ -84,6 +101,8 @@ const SIGN_IN_ROUTES = [
 
 const BODY_ROUTES = [
   "/auth/login",
+  "/auth/register",
+  "/auth/request-2fa-email",
   "/auth/verify-2fa",
   "/auth/establish",
   "/auth/remove-account",
@@ -169,6 +188,35 @@ describe("the backend answers and request bodies the DMS's server routes read", 
     }
   });
 
+  it("opens no session from a malformed step answer that also carries a token pair, and answers it as a failed backend", async () => {
+    for (const { route, backend, body } of SIGN_IN_ROUTES) {
+      const signIn = (reply: Reply) =>
+        askReplying(route, { [backend]: reply }, { body });
+      const failed = await signIn(FAILED);
+      for (const answer of STEPS_WITH_TOKENS)
+        expect(
+          await signIn(ok(answer)),
+          `${route} ${JSON.stringify(answer)}`,
+        ).toEqual(failed);
+    }
+  });
+
+  it("ends a provider sign-in on a malformed step answer that also carries a token pair as on a failed backend", async () => {
+    const callback = async (reply: Reply) =>
+      seen(
+        await askReplying(
+          "/auth/oauth/github/callback?code=c&state=state-1",
+          { "/api/auth/oauth/github/callback": reply },
+          providerRequest(),
+        ),
+      );
+    const failed = await callback(FAILED);
+    for (const answer of STEPS_WITH_TOKENS)
+      expect(await callback(ok(answer)), JSON.stringify(answer)).toEqual(
+        failed,
+      );
+  });
+
   it("hands the browser a sign-in step whole, as the backend answered it", async () => {
     for (const step of [CHALLENGE, ASSIGNMENT]) {
       const answer = await askReplying(
@@ -228,7 +276,7 @@ describe("the backend answers and request bodies the DMS's server routes read", 
     expect(failed.location).toBe("/auth?oauth_error=error.oauth.failed");
     for (const answer of spoiledShapes(
       { state: "state-1", authorizeUrl: "https://github.example/authorize" },
-      { state: [5], authorizeUrl: [5] },
+      { state: [5, ""], authorizeUrl: [5, ""] },
       ["state", "authorizeUrl"],
     ))
       expect(await start(ok(answer)), JSON.stringify(answer)).toEqual(failed);

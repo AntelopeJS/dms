@@ -1,13 +1,22 @@
 import { z } from "zod";
 
+/** A token, an OAuth state or a URL: text that is never empty. */
+const nonEmptyText = z.string().min(1);
+
 /**
  * The user a backend answer carries (`GET /api/auth/me`, or the `user` of a
  * token pair): the user row as `sanitizeUser` leaves it. The session keeps it
  * whole, so its other fields pass through; the frontend server reads its
- * `language`.
+ * `language`, and a stored account its `_id` or `id`, `email` and `name`.
  */
 export const sessionUser = z
-  .object({ language: z.string().optional() })
+  .object({
+    _id: z.string().optional(),
+    id: z.string().optional(),
+    email: z.string().optional(),
+    name: z.string().optional(),
+    language: z.string().optional(),
+  })
   .passthrough();
 
 /**
@@ -16,11 +25,20 @@ export const sessionUser = z
  * `expires_in`) are not read, and are stripped.
  */
 export const tokenPair = z.object({
-  access_token: z.string(),
-  refresh_token: z.string().optional(),
+  access_token: nonEmptyText,
+  refresh_token: nonEmptyText.optional(),
 });
 
-const sessionTokens = tokenPair.extend({ user: sessionUser.optional() });
+/**
+ * A sign-in answer that opens the session. It names no step: the backend sets
+ * `requires_2fa` or `requires_tenant_assignment` only on a step, so an answer
+ * that sets either is not a session, whatever tokens it also carries.
+ */
+const sessionTokens = tokenPair.extend({
+  user: sessionUser.optional(),
+  requires_2fa: z.literal(false).optional(),
+  requires_tenant_assignment: z.literal(false).optional(),
+});
 
 /** A token pair and the user a sign-in answer adds to it. */
 export type SessionTokens = z.infer<typeof sessionTokens>;
@@ -28,7 +46,7 @@ export type SessionTokens = z.infer<typeof sessionTokens>;
 const twoFactorChallenge = z
   .object({
     requires_2fa: z.literal(true),
-    two_factor_token: z.string(),
+    two_factor_token: nonEmptyText,
     methods: z.array(z.string()),
   })
   .passthrough();
@@ -36,7 +54,7 @@ const twoFactorChallenge = z
 const tenantAssignment = z
   .object({
     requires_tenant_assignment: z.literal(true),
-    tenant_assignment_token: z.string(),
+    tenant_assignment_token: nonEmptyText,
   })
   .passthrough();
 
@@ -72,6 +90,6 @@ export const loginOutcome = z.union([
  * and the state its callback must bring back.
  */
 export const oauthAuthorization = z.object({
-  state: z.string(),
-  authorizeUrl: z.string(),
+  state: nonEmptyText,
+  authorizeUrl: nonEmptyText,
 });

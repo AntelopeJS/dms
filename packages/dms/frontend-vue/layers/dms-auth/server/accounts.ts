@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DmsServerEvent, DmsSession } from "#dms/server";
+import { sessionUser } from "./backend-answers";
 import {
   isBoolean,
   isObject,
@@ -35,13 +36,6 @@ export interface StoredAccount extends AccountDescriptor {
 
 type AccountIndex = Record<string, AccountDescriptor>;
 
-interface SessionUser {
-  _id?: string;
-  id?: string;
-  email?: string;
-  name?: string;
-}
-
 /**
  * Whether a session, or a stored account, outlives the browser: only one a
  * login that ticked "keep me signed in" wrote (`persistent: true`).
@@ -60,7 +54,7 @@ function accountCookieName(accountId: string): string {
 }
 
 function descriptor(session: DmsSession, accountId: string): AccountDescriptor {
-  const user = (session.user ?? {}) as SessionUser;
+  const user = sessionUser.parse(session.user ?? {});
   return {
     accountId,
     userId: user._id ?? user.id,

@@ -86,7 +86,9 @@ export async function login(event: DmsServerEvent) {
 
 /** `POST /auth/register`: the signup page itself is `/auth/signup`. */
 export async function signup(event: DmsServerEvent) {
-  return establishWith(event, "/api/auth/signup", await event.readJson());
+  const input = await readJsonObject(event);
+  if (!input) return invalidBody();
+  return establishWith(event, "/api/auth/signup", input);
 }
 
 /**
@@ -105,11 +107,13 @@ export async function verifyTwoFactor(event: DmsServerEvent) {
   return establishWith(event, "/api/auth/verify-2fa", input, persistent);
 }
 
-/** `POST /auth/request-2fa-email`: relayed to the backend as is. */
+/** `POST /auth/request-2fa-email`: relays a JSON object body to the backend, and its answer back. */
 export async function requestTwoFactorEmail(event: DmsServerEvent) {
+  const input = await readJsonObject(event);
+  if (!input) return invalidBody();
   return event.backend("/api/auth/request-2fa-email", {
     method: "POST",
-    body: await event.readJson(),
+    body: input,
   });
 }
 
@@ -226,7 +230,16 @@ function storeValidatedAccount(
   if (current?.accountId === accountId) {
     persistAccountSession(
       event,
-      sessionFrom({ ...tokens, user: current.user }, isPersistent(current)),
+      sessionFrom(
+        {
+          ...tokens,
+          user:
+            current.user === undefined
+              ? undefined
+              : sessionUser.parse(current.user),
+        },
+        isPersistent(current),
+      ),
       accountId,
     );
     return;
