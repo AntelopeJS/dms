@@ -12,6 +12,7 @@ export interface BlockDraft {
   name: string;
   type: string | null;
   config?: ConfigObject;
+  lockedOptions?: Record<string, string>;
   editable?: boolean;
   controller?: string;
   slot?: string;
