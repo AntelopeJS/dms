@@ -92,9 +92,11 @@ const shownId = computed(() =>
   isDiverged.value ? undefined : props.activeId,
 );
 const canSave = computed(
-  () => isChanged.value && !!activeView.value?.isUserView,
+  () => isModified.value && !!activeView.value?.isUserView,
 );
-const canDelete = computed(() => !!activeView.value?.isUserView);
+const canDelete = computed(
+  () => !isDiverged.value && !!activeView.value?.isUserView,
+);
 
 const tabItems = computed<TableTabItem[]>(() =>
   props.items.map((view) => ({

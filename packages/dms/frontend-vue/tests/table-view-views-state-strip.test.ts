@@ -164,6 +164,19 @@ describe("table views strip", () => {
     expect(emitted).toEqual([["reset"]]);
   });
 
+  it("offers neither Save nor Delete on a user's view the table diverged from", () => {
+    const { container } = mountStrip({
+      items,
+      activeId: "user-1",
+      layout: "strip",
+      change: "diverged",
+    });
+    const labels = [...container.querySelectorAll("button[aria-label]")].map(
+      (button) => button.getAttribute("aria-label"),
+    );
+    expect(labels).toEqual(["dms.table.views.reset"]);
+  });
+
   it("keeps the open view named, with its marker, while the table only narrows it", () => {
     const { container } = mountStrip({
       items,

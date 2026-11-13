@@ -407,6 +407,11 @@ function registerViewDefaultsAndSavingTests(
     state.columnFilters.value = opened;
     state.globalFilter.value = "receipt";
     await nextTick();
+    expect(api.change.value).toBe("diverged");    state.globalFilter.value = "invoice";
+    state.columnFilters.value = opened.map((filter) =>
+      filter.pinned ? { ...filter, value: "closed" } : filter,
+    );
+    await nextTick();
     expect(api.change.value).toBe("diverged");
   });
 
