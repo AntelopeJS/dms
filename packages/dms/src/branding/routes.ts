@@ -7,45 +7,21 @@ import {
   Put,
   type RequestContext,
 } from "@antelopejs/interface-api";
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assertValidation } from "@antelopejs/interface-api-util";
 import { IfAuthUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
-import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import {
   CreateThemeLayer,
   GetTheme,
   SetTheme,
 } from "@antelopejs/interface-dms-builder";
-import { isPlatformOwner } from "../implementations/dms/page";
+import { assertPlatformOwner } from "../implementations/dms/page";
 import { saveThemeBodySchema } from "./theme-schemas";
-
-const HTTP_UNAUTHORIZED = 401;
-const HTTP_FORBIDDEN = 403;
-const ERROR_UNAUTHENTICATED = "Authentication required";
-const ERROR_UNAUTHORIZED = "error.unauthorized";
 
 /** Eight logos of 512 KiB in base64 come to about 5.3 MiB; the rest is the draft. */
 const SAVE_BODY_LIMIT = 7 * 1024 * 1024;
-
-interface OwnerCheck {
-  requestContext: RequestContext;
-  roleModel: RoleModel;
-  memberModel: TenantMemberModel;
-  user: User | undefined;
-}
-
-async function assertOwner(request: OwnerCheck): Promise<void> {
-  assert(request.user, HTTP_UNAUTHORIZED, ERROR_UNAUTHENTICATED);
-  const isOwner = await isPlatformOwner(
-    request.user,
-    request.memberModel,
-    request.roleModel,
-    getRequestTenantId(request.requestContext),
-  );
-  assert(isOwner, HTTP_FORBIDDEN, ERROR_UNAUTHORIZED);
-}
 
 /**
  * Registers `/api/branding`: the project's theme, read and written through the
@@ -69,13 +45,13 @@ export function registerBrandingRoutes() {
 
     @Get("theme")
     async readTheme() {
-      await assertOwner(this);
+      await assertPlatformOwner(this);
       return GetTheme();
     }
 
     @Put("theme")
     async saveTheme(@JSONBody(SAVE_BODY_LIMIT) body: unknown) {
-      await assertOwner(this);
+      await assertPlatformOwner(this);
       const { draft, expectedVersion } = assertValidation(body, (value) =>
         saveThemeBodySchema.parse(value),
       );
@@ -87,7 +63,7 @@ export function registerBrandingRoutes() {
 
     @Post("theme/layer")
     async createLayer() {
-      await assertOwner(this);
+      await assertPlatformOwner(this);
       return CreateThemeLayer();
     }
   }

@@ -20,10 +20,11 @@ import {
   MockupStore,
   registerMockupRoutes,
 } from "../../../mockup";
-import { createClient } from "../../helpers/http";
+import type { AxiosInstance } from "axios";
+import { authorizedClient, registerUser } from "../../helpers/auth";
 
 const BASE = "/api/mockup";
-const client = createClient();
+let client: AxiosInstance;
 
 const SPEC = {
   version: 1,
@@ -62,6 +63,9 @@ describe("[unit] mockup spec source routes", () => {
   const routeIds: number[] = [];
 
   before(async () => {
+    client = authorizedClient(
+      (await registerUser({ owner: true })).accessToken,
+    );
     base = await mkdtemp(join(tmpdir(), "dms-mockup-source-"));
     await mkdir(join(base, "mockups", "desk"), { recursive: true });
     specPath = join(base, "mockups", "desk", "spec.json");

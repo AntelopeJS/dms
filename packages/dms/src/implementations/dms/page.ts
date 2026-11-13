@@ -26,6 +26,7 @@ import {
   filterPermissionsForBypassedSurfaces as filterPermissionsForBypassedSurfacesImplementation,
   resolveUserPermissions as resolveUserPermissionsImplementation,
   isPlatformOwner as isPlatformOwnerImplementation,
+  assertPlatformOwner as assertPlatformOwnerImplementation,
 } from "./page/access";
 
 export { AddFrontendModule, GetFrontendModules } from "../../store/frontend";
@@ -65,3 +66,4 @@ export const resolveUserPermissions = resolveUserPermissionsImplementation;
 export const buildSiteLayoutPayload = buildSiteLayoutPayloadImplementation;
 export const buildNavBadges = buildNavBadgesImplementation;
 export const isPlatformOwner = isPlatformOwnerImplementation;
+export const assertPlatformOwner = assertPlatformOwnerImplementation;

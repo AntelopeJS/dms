@@ -12,7 +12,8 @@ import {
   MockupStore,
   registerMockupRoutes,
 } from "../../../mockup";
-import { createClient } from "../../helpers/http";
+import type { AxiosInstance } from "axios";
+import { authorizedClient, registerUser } from "../../helpers/auth";
 import {
   answer,
   mockupTool,
@@ -24,7 +25,7 @@ import {
 
 const BASE = "/api/mockup";
 const ROUNDS = 30;
-const client = createClient();
+let client: AxiosInstance;
 
 function titled(title: string) {
   return {
@@ -65,6 +66,12 @@ describe("[unit] mockup spec writes are serialized per mockup", () => {
   const workspace = useWorkspace();
   let specPath: string;
   let stop: () => void;
+
+  before(async () => {
+    client = authorizedClient(
+      (await registerUser({ owner: true })).accessToken,
+    );
+  });
 
   beforeEach(async () => {
     await mkdir(join(workspace.mockups(), NAME), { recursive: true });

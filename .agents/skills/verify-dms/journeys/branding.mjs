@@ -15,6 +15,7 @@ export const journeys = [
     id: "branding-absent-outside-dev",
     title: "a backend started from a build serves no branding route",
     entryPoint: "/api/branding/theme",
+    backend: "production",
     async run(/** @type {Ctx} */ ctx) {
       const answers = [];
       for (const request of REQUESTS) {
