@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect } from "chai";
 import { z } from "zod";
 import {
+  CONFIRMATION_REQUIRED_CODE,
   createRepeatConfirmationGate,
   REPEAT_CONFIRMATION_WINDOW_MS,
   type RepeatConfirmationGate,
@@ -18,6 +19,17 @@ const CallAnswerSchema = z.object({
     isError: z.boolean().optional(),
   }),
 });
+const CodeBlockSchema = z.object({ code: z.string() });
+
+/** The `code` of a refusal's last block, or undefined when that block is not a code block. */
+function codeOf(content: readonly { text: string }[] | undefined) {
+  const last = content?.at(-1)?.text ?? "";
+  try {
+    return CodeBlockSchema.safeParse(JSON.parse(last)).data?.code;
+  } catch {
+    return undefined;
+  }
+}
 
 describe("[unit] mcp repeat-confirmation gate", () => {
   let clock: number;
@@ -33,6 +45,14 @@ describe("[unit] mcp repeat-confirmation gate", () => {
     expect(refusal?.isError).to.equal(true);
     expect(refusal?.content[0]?.text).to.include(DELETE_PAGE);
     expect(refusal?.content[0]?.text).to.include('"pageRef":"/orders"');
+  });
+
+  it("ends a hold refusal with a confirmation_required code block, after the prose it keeps first", () => {
+    const refusal = gate.hold(SESSION_A, DELETE_PAGE, { pageRef: "/orders" });
+    expect(refusal?.content[0]?.text).to.match(
+      /^builder_delete_page was not run: no one has confirmed it yet\./,
+    );
+    expect(codeOf(refusal?.content)).to.equal(CONFIRMATION_REQUIRED_CODE);
   });
 
   it("runs the same call repeated within the window, once", () => {
@@ -107,25 +127,28 @@ describe("[unit] mcp repeat-confirmation gate", () => {
     const repeat = gate.hold(undefined, DELETE_PAGE, { pageRef: "/orders" });
     expect(repeat?.isError).to.equal(true);
     expect(repeat?.content[0]?.text).to.include("sent no session");
+    expect(codeOf(repeat?.content)).to.equal(undefined);
   });
+});
 
-  async function deleteThroughMcp(
-    sessionId: string | undefined,
-    pageRef: string,
-  ) {
-    const reply = await answerMcpMessage(
-      { access: "full", tools: MCP_TOOLS },
-      {
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name: DELETE_PAGE, arguments: { pageRef } },
-      },
-      sessionId,
-    );
-    return CallAnswerSchema.parse(reply).result;
-  }
+async function deleteThroughMcp(
+  sessionId: string | undefined,
+  pageRef: string,
+) {
+  const reply = await answerMcpMessage(
+    { access: "full", tools: MCP_TOOLS },
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: DELETE_PAGE, arguments: { pageRef } },
+    },
+    sessionId,
+  );
+  return CallAnswerSchema.parse(reply).result;
+}
 
+describe("[unit] mcp repeat-confirmation gate through the MCP server", () => {
   it("holds a builder deletion called through MCP before it reaches the builder", async () => {
     const result = await deleteThroughMcp(
       SESSION_A,
@@ -135,6 +158,7 @@ describe("[unit] mcp repeat-confirmation gate", () => {
     expect(result.content[0]?.text).to.match(
       /^builder_delete_page was not run: no one has confirmed it yet\./,
     );
+    expect(codeOf(result.content)).to.equal(CONFIRMATION_REQUIRED_CODE);
   });
 
   it("holds the same deletion again for a second MCP session, so the session reaches the gate", async () => {

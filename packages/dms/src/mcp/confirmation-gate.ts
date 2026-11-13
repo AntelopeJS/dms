@@ -30,8 +30,14 @@ function canonical(call: ToolCallValue): string {
   return JSON.stringify(json, sortKeys);
 }
 
+/**
+ * The `code` of the JSON text block a hold refusal ends with, so a client
+ * tells it apart from any other failure without reading the prose before it.
+ */
+export const CONFIRMATION_REQUIRED_CODE = "confirmation_required";
+
 function refusal(toolName: string, details: string): McpToolResult {
-  return textResult(
+  const explained = textResult(
     [
       `${toolName} was not run: no one has confirmed it yet.`,
       `Its arguments, with what the builder previewed: ${details}`,
@@ -39,6 +45,16 @@ function refusal(toolName: string, details: string): McpToolResult {
     ].join("\n"),
     true,
   );
+  return {
+    ...explained,
+    content: [
+      ...explained.content,
+      {
+        type: "text",
+        text: JSON.stringify({ code: CONFIRMATION_REQUIRED_CODE }),
+      },
+    ],
+  };
 }
 
 function sessionlessRefusal(toolName: string): McpToolResult {
