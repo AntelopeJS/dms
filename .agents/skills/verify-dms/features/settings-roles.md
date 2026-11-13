@@ -30,6 +30,7 @@ What each role can see and do, and who holds it. Settings > Workspace > Roles is
 - `role-search-no-match`: empty path: a search without a match shows "No role matches this search." and keeps the Owner; a matching search keeps the role.
 - `role-assigned-through-invitation`: a role chosen on an invitation counts as a pending invite, then as a member once the invitation is accepted, in the editor and in the `overview` API.
 - `role-edit-changes-access`: the **Exposure** journey. A member whose role grants only the Playground page is refused Roles (403 "Forbidden"); the `preview` API, the member's page and the stored role agree before and after the role gains the Roles permission, and again after it loses it; the editor says "applies to <member> on their next page load".
+- `owner-only-page-not-grantable`: the playground's `ownerOnly` page (`/page-access/access-owner-only`) opens for the platform owner; a member whose role stores its id and its block's (created through the role API, since the editor offers neither) gets "Forbidden"; New role lists its sibling "No block permissions" but not "Platform owner only".
 - `role-preview-opens-tab`: Preview as <role> opens a new tab with the Role preview bar, menu entries marked "Hidden for <role>", and the page hidden; Exit preview ends it.
 - `role-duplicate`: Duplicate role stores "<name> (copy)" with the same permissions.
 - `role-delete-unused`: the dialog says nobody holds the role; Cancel keeps it; Delete removes it from the list and the API after a reload.
