@@ -8,7 +8,7 @@ import {
   FormContainerType,
   DEFAULT_FORM_CONTAINER_TYPE,
 } from "./types";
-import DmsForm from "../../../components/form/Form.vue";
+import DmsFormBlock from "../../../components/form/FormBlock.vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import {
   resolveFormContainerTexts,
@@ -101,7 +101,7 @@ const createContainerOpeners = (
       description,
       size,
       containerId,
-      component: DmsForm,
+      component: DmsFormBlock,
       componentOptions: {
         ...processedOptions,
         ...(fetchUrl && { fetchUrl }),
@@ -136,7 +136,7 @@ const createContainerOpeners = (
         title,
         description,
         containerId,
-        component: DmsForm,
+        component: DmsFormBlock,
         componentOptions: {
           ...processedOptions,
           ...(fetchUrl && { fetchUrl }),

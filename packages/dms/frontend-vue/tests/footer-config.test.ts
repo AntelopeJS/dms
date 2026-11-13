@@ -32,7 +32,7 @@ const SelectStub = defineComponent({
 
 async function mountFooter(): Promise<void> {
   const { default: Footer } = await import(
-    "../layers/dms-layout/app/entries/components/layout/Footer"
+    "../layers/dms-layout/app/entries/components/layout/LayoutFooter"
   );
   host = document.createElement("div");
   document.body.append(host);

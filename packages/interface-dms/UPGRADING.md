@@ -40,6 +40,51 @@ Each type below said something the runtime does not do, and now says what it doe
 - **`@antelopejs/interface-dms/base/data-types/default-types`, loaded alone, no longer registers the `status` type.** It used to, only because its import of `base/table-view/meta` pulled in the data-types barrel. That import is gone with the table-view / data-types cycle. `CreateDataType("status")` then throws "Unknown type status" unless `base/data-types` (the barrel) or any table-view entry has loaded. Each of those still registers every built-in. Import the barrel, as the docs show.
 - **Loading order of the table-view and data-types entries.** `base/index`, `data-controllers/*` and the `@antelopejs/dms` runtime now load `table-view/meta` inside `table-view/factory` instead of inside `default-types`, so `status` registers after the other built-ins instead of before. When `table-view/meta` finishes loading, every built-in data type is now registered; before, most were not yet. Types, runtime exports and the registry after load are unchanged.
 
+### Components
+
+- **Every DMS Vue component has a name of two words or more.** Unlike the type corrections above, this changes what runs. The single-word components the DMS layers register are renamed, and a component's registered name is its file name behind the `Dms` prefix, so the registered name changes with it. The strings a backend sends to select a component change too: The `Grid`, `Tab`, `Guard`, `Placeholder`, `Spacer`, `Form` and chart builders, and the field inputs (`InputSelect`, `InputCheckbox`, `InputRepeater`, `InputRelation`, `InputCascader`, `InputSlider`, `InputSwitch`, `InputTextarea`, `InputCalendar`, `InputFile` and `InputImage`), send the new kebab names. The builder functions keep their names and signatures. These stop working with the old name: `CustomComponent("dms-chart")` and `new ComponentBuilder("dms-chart")`, a `componentName` or an `inputComponent` written by hand, a check such as `node.componentName === "dms-form"`, a stored mockup or page draft that holds an old `componentName`, and a frontend template or `resolveComponent("DmsCard")` that names an old `Dms` component. Replace each old name with the one in this table. Nuxt pages, the multi-word components, the CSS classes and the builder function names do not change. Seven `entries/components` files are renamed with their component: `layout/Footer`, `onboarding/steps/ready`, `table/Actions`, `table/Empty`, `table/Pagination`, `table/Table` and `table/Views` become `layout/LayoutFooter`, `onboarding/steps/StepReady`, `table/TableActions`, `table/TableEmpty`, `table/TablePagination`, `table/TableRoot` and `table/TableViews`. The guide [Migrate from 0.13 to 0.14](https://dms.antelopejs.com/docs/building/migration-0-13-to-0-14) shows the code before and after.
+
+| Before | After | Kebab form before | Kebab form after |
+| --- | --- | --- | --- |
+| `DmsContainer` | `DmsLayoutContainer` | `dms-container` | `dms-layout-container` |
+| `DmsFooter` | `DmsLayoutFooter` | `dms-footer` | `dms-layout-footer` |
+| `DmsSpacer` | `DmsStackSpacer` | `dms-spacer` | `dms-stack-spacer` |
+| `DmsPlatform` | `DmsStepPlatform` | `dms-platform` | `dms-step-platform` |
+| `DmsReady` | `DmsStepReady` | `dms-ready` | `dms-step-ready` |
+| `DmsRegister` | `DmsStepRegister` | `dms-register` | `dms-step-register` |
+| `DmsActions` | `DmsTableActions` | `dms-actions` | `dms-table-actions` |
+| `DmsEmpty` | `DmsTableEmpty` | `dms-empty` | `dms-table-empty` |
+| `DmsMenu` | `DmsTableMenu` | `dms-menu` | `dms-table-menu` |
+| `DmsPagination` | `DmsTablePagination` | `dms-pagination` | `dms-table-pagination` |
+| `DmsTable` | `DmsTableRoot` | `dms-table` | `dms-table-root` |
+| `DmsTabs` | `DmsTableTabs` | `dms-tabs` | `dms-table-tabs` |
+| `DmsViews` | `DmsTableViews` | `dms-views` | `dms-table-views` |
+| `DmsPlaceholder` | `DmsPlaceholderBlock` | `dms-placeholder` | `dms-placeholder-block` |
+| `DmsBanner` | `DmsNoticeBanner` | `dms-banner` | `dms-notice-banner` |
+| `DmsCard` | `DmsCardPanel` | `dms-card` | `dms-card-panel` |
+| `DmsChart` | `DmsChartBlock` | `dms-chart` | `dms-chart-block` |
+| `DmsSparkline` | `DmsSparklineChart` | `dms-sparkline` | `dms-sparkline-chart` |
+| `DmsForm` | `DmsFormBlock` | `dms-form` | `dms-form-block` |
+| `DmsCalendar` | `DmsInputCalendar` | `dms-calendar` | `dms-input-calendar` |
+| `DmsCascader` | `DmsInputCascader` | `dms-cascader` | `dms-input-cascader` |
+| `DmsCheckbox` | `DmsInputCheckbox` | `dms-checkbox` | `dms-input-checkbox` |
+| `DmsDisplay` | `DmsDisplayValue` | `dms-display` | `dms-display-value` |
+| `DmsFile` | `DmsInputFile` | `dms-file` | `dms-input-file` |
+| `DmsImage` | `DmsInputImage` | `dms-image` | `dms-input-image` |
+| `DmsRelation` | `DmsInputRelation` | `dms-relation` | `dms-input-relation` |
+| `DmsRepeater` | `DmsInputRepeater` | `dms-repeater` | `dms-input-repeater` |
+| `DmsSelect` | `DmsInputSelect` | `dms-select` | `dms-input-select` |
+| `DmsSlider` | `DmsInputSlider` | `dms-slider` | `dms-input-slider` |
+| `DmsSwitch` | `DmsInputSwitch` | `dms-switch` | `dms-input-switch` |
+| `DmsTextarea` | `DmsInputTextarea` | `dms-textarea` | `dms-input-textarea` |
+| `DmsGrid` | `DmsGridBlock` | `dms-grid` | `dms-grid-block` |
+| `DmsGuard` | `DmsGuardBlock` | `dms-guard` | `dms-guard-block` |
+| `DmsMeter` | `DmsMeterBar` | `dms-meter` | `dms-meter-bar` |
+| `DmsEyebrow` | `DmsEyebrowLabel` | `dms-eyebrow` | `dms-eyebrow-label` |
+| `DmsSection` | `DmsSectionPanel` | `dms-section` | `dms-section-panel` |
+| `DmsSegmented` | `DmsSegmentedControl` | `dms-segmented` | `dms-segmented-control` |
+| `DmsTab` | `DmsTabBlock` | `dms-tab` | `dms-tab-block` |
+
 ## v0.12.0
 
 ### Hooks

@@ -9,7 +9,7 @@ import { useDrawer } from "../../layers/dms-ui/app/composables/containers/useDra
 import { useConfirm } from "../../layers/dms-ui/app/composables/confirm/useConfirm";
 import { useExportJob } from "../../layers/dms-ui/app/composables/useExportJob";
 import { useSiteLayout } from "../../layers/dms-core/app/composables/page/useSiteLayout";
-import Card from "../../layers/dms-ui/app/components/card/Card.vue";
+import Card from "../../layers/dms-ui/app/components/card/CardPanel.vue";
 
 export async function extraRuntime(
   fetch: Parameters<typeof stubBlockRuntime>[0],
@@ -53,7 +53,7 @@ export const TextBoundary = defineComponent({
 });
 
 export function registerTextBoundaries(app: App) {
-  app.component("DmsCard", Card);
+  app.component("DmsCardPanel", Card);
   app.component("DmsLink", engine.DmsLink);
   app.component(
     "UButton",

@@ -86,9 +86,9 @@ function toggleOverlay(): void {
         </div>
       </ShowcaseDemo>
       <ShowcaseDemo label="useAppWidgets().widgets">
-        <DmsCard title="Docked widgets" :count="widgetItems.length">
+        <DmsCardPanel title="Docked widgets" :count="widgetItems.length">
           <DmsKeyValueList :items="widgetItems" dense />
-        </DmsCard>
+        </DmsCardPanel>
       </ShowcaseDemo>
       <ShowcaseDemo label="The two widgets every page shows" wide>
         <SourceSnippet path="plugins/app-widget-demo.ts" />

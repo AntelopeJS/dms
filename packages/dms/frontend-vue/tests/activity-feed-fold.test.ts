@@ -38,7 +38,13 @@ async function mountFeed(props: FeedProps): Promise<HTMLElement> {
       ...props,
     }),
   );
-  for (const name of ["DmsCard", "UIcon", "USkeleton", "UButton", "ULink"]) {
+  for (const name of [
+    "DmsCardPanel",
+    "UIcon",
+    "USkeleton",
+    "UButton",
+    "ULink",
+  ]) {
     app.component(name, Stub);
   }
   await chartRuntime(app);

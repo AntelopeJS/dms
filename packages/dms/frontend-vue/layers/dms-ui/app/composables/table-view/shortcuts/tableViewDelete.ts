@@ -1,4 +1,4 @@
-import type { TableRowActionOptions } from "../../../build/components/table/Table.vue";
+import type { TableRowActionOptions } from "../../../build/components/table/TableRoot.vue";
 
 export const TABLE_VIEW_DELETE_METADATA: ShortcutMetadata = {
   key: ["$keyboard.delete"],

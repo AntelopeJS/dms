@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
-import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
+import DmsSegmentedControl from "#dms-ui/app/components/segmented/SegmentedControl.vue";
 import BrandingDeveloperPanel from "./BrandingDeveloperPanel.vue";
 import BrandingPreview from "./BrandingPreview.vue";
 import BrandingSimplePanel from "./BrandingSimplePanel.vue";
@@ -169,7 +169,7 @@ const noticeBanner = computed(() => {
         {{ t("branding.dev_badge") }}
       </UBadge>
       <div class="ms-auto flex items-center gap-2">
-        <DmsSegmented
+        <DmsSegmentedControl
           :model-value="mode"
           :items="modeItems"
           :aria-label="t('branding.editor_mode')"
@@ -237,7 +237,7 @@ const noticeBanner = computed(() => {
     </div>
 
     <div v-else-if="load.status === 'refused'" class="p-4" data-refused>
-      <DmsBanner
+      <DmsNoticeBanner
         tone="error"
         :title="t('branding.state.refused')"
         :description="errorDetail(load.error)"
@@ -250,7 +250,7 @@ const noticeBanner = computed(() => {
         class="border-default border-b px-4 py-2"
         data-stale
       >
-        <DmsBanner
+        <DmsNoticeBanner
           tone="warning"
           size="sm"
           :title="t('branding.state.stale')"
@@ -261,10 +261,10 @@ const noticeBanner = computed(() => {
               {{ t("branding.state.reload") }}
             </UButton>
           </template>
-        </DmsBanner>
+        </DmsNoticeBanner>
       </div>
       <div v-else-if="noticeBanner" class="border-default border-b px-4 py-2">
-        <DmsBanner
+        <DmsNoticeBanner
           tone="error"
           size="sm"
           :title="noticeBanner.title"
@@ -294,7 +294,7 @@ const noticeBanner = computed(() => {
             <span class="text-muted text-sm">
               {{ t("branding.preview.label") }}
             </span>
-            <DmsSegmented
+            <DmsSegmentedControl
               :model-value="previewMode"
               :items="previewItems"
               :aria-label="t('branding.preview.mode')"

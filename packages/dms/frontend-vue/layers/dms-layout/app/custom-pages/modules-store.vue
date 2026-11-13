@@ -2,7 +2,7 @@
 import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import UButton from "@nuxt/ui/components/Button.vue";
 import DmsEmptyState from "#dms-ui/app/components/empty-state/EmptyState.vue";
-import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
+import DmsSegmentedControl from "#dms-ui/app/components/segmented/SegmentedControl.vue";
 import DmsChipGroup from "#dms-ui/app/entries/components/form/ChipGroup";
 import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 import ModuleStoreTile from "../build/components/pages/modules/ModuleStoreTile.vue";
@@ -176,7 +176,7 @@ const skeletonItems = Array.from(
 
       <!-- Only when nothing is on screen yet: a follow-up read that fails
            while the frontend restarts keeps the tiles and tries again. -->
-      <DmsBanner
+      <DmsNoticeBanner
         v-else-if="moduleStore.loadingError.value && !storeListing"
         :tone="moduleStore.loadingNotice.value?.severity ?? 'error'"
         size="sm"
@@ -192,7 +192,7 @@ const skeletonItems = Array.from(
             @click="moduleStore.load()"
           />
         </template>
-      </DmsBanner>
+      </DmsNoticeBanner>
 
       <template v-else>
         <div :class="TOOLBAR_CLASS">
@@ -204,7 +204,7 @@ const skeletonItems = Array.from(
             shortcut="nav"
             class="w-[300px] max-md:w-full"
           />
-          <DmsSegmented
+          <DmsSegmentedControl
             v-model="storeScope"
             :items="storeScopeItems"
             size="sm"
@@ -218,7 +218,7 @@ const skeletonItems = Array.from(
           />
         </div>
 
-        <DmsCard
+        <DmsCardPanel
           v-if="scopedStoreModules.length === 0 && storeScope === 'available'"
           :padded="false"
         >
@@ -237,9 +237,12 @@ const skeletonItems = Array.from(
               />
             </template>
           </DmsEmptyState>
-        </DmsCard>
+        </DmsCardPanel>
 
-        <DmsCard v-else-if="visibleStoreModules.length === 0" :padded="false">
+        <DmsCardPanel
+          v-else-if="visibleStoreModules.length === 0"
+          :padded="false"
+        >
           <DmsEmptyState
             variant="no-result"
             :title="
@@ -260,7 +263,7 @@ const skeletonItems = Array.from(
               />
             </template>
           </DmsEmptyState>
-        </DmsCard>
+        </DmsCardPanel>
 
         <div v-else :class="MODULE_TILE_GRID_CLASS">
           <ModuleStoreTile

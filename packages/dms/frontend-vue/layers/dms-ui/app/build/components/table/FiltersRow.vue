@@ -9,7 +9,7 @@ import type {
   TableFilter,
   TableSharedData,
   TableUrlFilter,
-} from "./Table.vue";
+} from "./TableRoot.vue";
 import TableMenuFilter from "./MenuFilter.vue";
 import { formatFilterValue } from "../../composables/table/utils/formatFilterValue";
 import { filterEditorValue } from "../../composables/table/utils/filterEditorValue";

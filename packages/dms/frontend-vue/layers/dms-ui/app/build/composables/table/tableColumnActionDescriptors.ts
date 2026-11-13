@@ -1,4 +1,4 @@
-import type { Data } from "../../components/table/Table.vue";
+import type { Data } from "../../components/table/TableRoot.vue";
 import { isObject, isNumber } from "#dms-core/app/utils/type-check";
 import type { DropdownMenuItem } from "@nuxt/ui/components/DropdownMenu.vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";

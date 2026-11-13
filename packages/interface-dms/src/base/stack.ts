@@ -111,7 +111,7 @@ export interface SpacerOptions {
 
 const H_STACK_COMPONENT_NAME = "dms-h-stack";
 const V_STACK_COMPONENT_NAME = "dms-v-stack";
-const SPACER_COMPONENT_NAME = "dms-spacer";
+const SPACER_COMPONENT_NAME = "dms-stack-spacer";
 
 const STACK_DEFAULTS = {
   alignment: "center",

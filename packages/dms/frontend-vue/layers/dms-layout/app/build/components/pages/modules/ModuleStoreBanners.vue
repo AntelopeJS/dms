@@ -14,7 +14,7 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <DmsBanner
+  <DmsNoticeBanner
     v-if="props.listing?.configError"
     class="mb-4"
     tone="error"
@@ -23,7 +23,7 @@ const { t } = useI18n();
     :title="t('modules.store.config_error')"
     :description="props.listing.configError"
   />
-  <DmsBanner
+  <DmsNoticeBanner
     v-else-if="props.listing && !props.listing.enabled"
     class="mb-4"
     tone="info"
@@ -34,7 +34,7 @@ const { t } = useI18n();
   />
 
   <!-- The interface lags behind the backend: say what follows. -->
-  <DmsBanner
+  <DmsNoticeBanner
     v-if="props.frontendNotice"
     class="mb-4"
     :tone="props.frontendNotice.key === 'dev' ? 'info' : 'warning'"
@@ -65,5 +65,5 @@ const { t } = useI18n();
         </template>
       </i18n-t>
     </template>
-  </DmsBanner>
+  </DmsNoticeBanner>
 </template>

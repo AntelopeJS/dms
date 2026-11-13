@@ -18,7 +18,7 @@ function files(dir) {
 function checkInstantSavePages() {
   const settings = "dms-layout/app/custom-pages/settings";
   const parts = "dms-layout/app/build/components/pages/settings";
-  const form = "dms-ui/app/components/form/Form.vue";
+  const form = "dms-ui/app/components/form/FormBlock.vue";
   const instantSave = [
     `${parts}/theme/useAppearanceSave.ts`,
     `${parts}/notification/NotificationPreferencesForm.vue`,

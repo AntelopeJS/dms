@@ -280,7 +280,7 @@ const gridStyle = computed(() => ({
 </script>
 
 <template>
-  <DmsCard
+  <DmsCardPanel
     v-bind="blockAttributes"
     :padded="false"
     class="flex min-w-0 flex-col overflow-hidden"
@@ -404,5 +404,5 @@ const gridStyle = computed(() => ({
         </div>
       </div>
     </div>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

@@ -320,7 +320,7 @@ export function buildValidationSchema(
 }
 
 const ALWAYS_FILLED_FIELD_TYPES = new Set(["boolean"]);
-const ACCEPTANCE_COMPONENTS = new Set(["dms-checkbox"]);
+const ACCEPTANCE_COMPONENTS = new Set(["dms-input-checkbox"]);
 
 /** Whether a field is a required checkbox that only true fills. */
 export function isAcceptanceField(

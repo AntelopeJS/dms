@@ -4,7 +4,7 @@ import { injectLocal, useIntersectionObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import { useTemplateRef, type ShallowRef } from "vue";
 
-import type { TableSharedData, Data } from "./Table.vue";
+import type { TableSharedData, Data } from "./TableRoot.vue";
 import { DEFAULT_PAGE_SIZE } from "../../composables/table/constants";
 import { pageSizeOptions } from "../../composables/table/utils/pageSizeOptions";
 import { toneTextClass } from "../../utils/tone";

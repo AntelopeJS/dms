@@ -217,7 +217,7 @@ export interface BlockTypeDescriptor {
   childMeta?: ConfigSchema;
   /**
    * Options the factory sets itself whatever the caller passes — a chart's
-   * `type`, which is what tells `dms-chart` which chart to draw. Emitting them
+   * `type`, which is what tells `dms-chart-block` which chart to draw. Emitting them
    * is unnecessary; a consumer rendering from the descriptor alone merges them
    * in.
    */

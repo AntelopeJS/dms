@@ -14,12 +14,12 @@ const Slot = defineComponent({
 });
 
 const SLOT_COMPONENTS = [
-  "DmsCard",
+  "DmsCardPanel",
   "DmsClientOnly",
   "UIcon",
   "USkeleton",
   "DmsTrendBadge",
-  "DmsSparkline",
+  "DmsSparklineChart",
   "UBadge",
 ];
 

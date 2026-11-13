@@ -13,10 +13,10 @@ import type {
 import type { RowActionRule } from "#dms-core/app/types/row-action";
 import type { TableViewLiveHoldOptions } from "#dms-core/app/types/live";
 import DmsBlockStatus from "../../build/components/blocks/BlockStatus.vue";
-import UTable from "../../build/components/table/Table.vue";
+import UTable from "../../build/components/table/TableRoot.vue";
 import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDetail.vue";
 import LiveHoldBanner from "../../build/components/table-view/LiveHoldBanner.vue";
-import TableViews from "../../build/components/table/Views.vue";
+import TableViews from "../../build/components/table/TableViews.vue";
 import { useTableViewSetup } from "../../build/composables/table-view/tableViewSetup";
 import {
   resolveBlockState,

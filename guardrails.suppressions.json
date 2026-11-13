@@ -52,7 +52,7 @@
     "vue/html-indent for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
     "vue/html-self-closing for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 0,
     "vue/max-attributes-per-line for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
-    "vue/multi-word-component-names for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
+    "vue/multi-word-component-names for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 0,
     "vue/require-default-prop for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
     "vue/singleline-html-element-content-newline for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1
   },

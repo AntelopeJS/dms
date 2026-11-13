@@ -13,7 +13,7 @@ import {
 } from "../../../composables/table-view/types";
 import { isEligibleKanbanColumn } from "../../../composables/table-view/kanban";
 import { resolveTableChrome } from "./utils/chrome";
-import type { TableViewSwitcherItem } from "../../components/table/Table.vue";
+import type { TableViewSwitcherItem } from "../../components/table/TableRoot.vue";
 import { type Component } from "vue";
 import type { TableViewScope } from "./tableViewScope";
 

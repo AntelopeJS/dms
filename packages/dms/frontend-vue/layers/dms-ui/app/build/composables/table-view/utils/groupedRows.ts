@@ -13,7 +13,7 @@ import type {
   TableViewGroupBy,
   TableViewGroupedConfig,
 } from "../../../../composables/table-view/types";
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import { compareValues } from "./compareValues";
 import { sortValueKind } from "./sortableColumns";
 import { isObject } from "#dms-core/app/utils/type-check";

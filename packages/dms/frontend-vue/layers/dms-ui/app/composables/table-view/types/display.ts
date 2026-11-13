@@ -3,7 +3,7 @@ import type { Table } from "@tanstack/vue-table";
 import type { TableViewColumn } from "./column";
 import type { CustomRowAction } from "../../../types/row-action";
 import type { TableViewPaginationMode } from "./config";
-import type { Data } from "../../../build/components/table/Table.vue";
+import type { Data } from "../../../build/components/table/TableRoot.vue";
 
 /** The built-in grid display id. */
 export const TABLE_DISPLAY_ID = "table";

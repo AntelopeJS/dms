@@ -24,7 +24,7 @@ import type { TableViewViewsConfig } from "../layers/dms-ui/app/composables/tabl
 import type {
   TableDensity,
   TableFilter,
-} from "../layers/dms-ui/app/entries/components/table/Table";
+} from "../layers/dms-ui/app/entries/components/table/TableRoot";
 import type { ConfirmOptions } from "../layers/dms-ui/app/composables/confirm/types";
 import type { ToastProps } from "@nuxt/ui";
 

@@ -1,7 +1,7 @@
 import type {
   TableRowActionOptions,
   Data,
-} from "../../../build/components/table/Table.vue";
+} from "../../../build/components/table/TableRoot.vue";
 import type { RowSelectionState } from "@tanstack/vue-table";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 

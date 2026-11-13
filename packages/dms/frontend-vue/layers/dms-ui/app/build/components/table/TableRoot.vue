@@ -26,11 +26,11 @@ import { FlexRender } from "@tanstack/vue-table";
 import { computed, h, shallowRef, useId, watchEffect, type Slots } from "vue";
 import { provideLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
-import TableActions from "./Actions.vue";
-import TablePagination from "./Pagination.vue";
+import TableActions from "./TableActions.vue";
+import TablePagination from "./TablePagination.vue";
 import TableFiltersRow from "./FiltersRow.vue";
 import TableRowSelection from "./RowSelection.vue";
-import TableTabs from "./Tabs.vue";
+import TableTabs from "./TableTabs.vue";
 import { createTableViewDeleteShortcut } from "../../../composables/table-view/shortcuts/tableViewDelete";
 import { FULL_TABLE_CHROME } from "../../composables/table-view/utils/chrome";
 

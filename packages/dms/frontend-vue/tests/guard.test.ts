@@ -14,7 +14,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Guard from "../layers/dms-ui/app/components/guard/Guard.vue";
+import Guard from "../layers/dms-ui/app/components/guard/GuardBlock.vue";
 import {
   isEmptyValue,
   readFieldPath,

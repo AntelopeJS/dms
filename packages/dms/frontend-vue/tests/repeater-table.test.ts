@@ -27,7 +27,7 @@ const PRODUCT = {
   label: "Product",
   type: "relation",
   component: {
-    componentName: "dms-relation",
+    componentName: "dms-input-relation",
     options: {
       searchUrl: "/products/select",
       keyMapping: { label: "name", value: "_id" },

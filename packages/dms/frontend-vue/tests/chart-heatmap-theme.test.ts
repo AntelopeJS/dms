@@ -2,7 +2,7 @@
 import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import { chartRuntime } from "./helpers/charts-runtime";
 import { clearChartColorCache } from "../layers/dms-ui/app/composables/chart/useChartTheme";
 

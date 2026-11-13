@@ -80,7 +80,7 @@ const hasSections = !!props.sections?.length;
 const FormWrapper =
   inFormContainer || inSection || hasSections
     ? "div"
-    : resolveComponent("DmsCard");
+    : resolveComponent("DmsCardPanel");
 
 const { processI18n, processApiMessage } = useTranslation();
 

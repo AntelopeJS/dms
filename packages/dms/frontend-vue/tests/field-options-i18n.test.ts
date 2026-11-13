@@ -9,7 +9,7 @@ describe("processFieldI18n", () => {
       {
         id: "f",
         component: {
-          componentName: "dms-repeater",
+          componentName: "dms-input-repeater",
           options: {
             placeholder: "$p",
             label: "$l",
@@ -36,14 +36,14 @@ describe("processFieldI18n", () => {
 
   it("translates the fields nested in repeater columns and key-value values", () => {
     const select = (label: string) => ({
-      componentName: "dms-select",
+      componentName: "dms-input-select",
       options: { placeholder: "$pick", items: [{ label, value: "a" }] },
     });
     const field = processFieldI18n(
       {
         id: "f",
         component: {
-          componentName: "dms-repeater",
+          componentName: "dms-input-repeater",
           options: {
             columns: [
               {
@@ -73,7 +73,7 @@ describe("processFieldI18n", () => {
           id: "channel",
           label: "t($channel)",
           component: {
-            componentName: "dms-select",
+            componentName: "dms-input-select",
             options: {
               placeholder: "t($pick)",
               items: [{ label: "t($x.y)", value: "a" }],
@@ -89,7 +89,7 @@ describe("processFieldI18n", () => {
               value: {
                 type: "select",
                 component: {
-                  componentName: "dms-select",
+                  componentName: "dms-input-select",
                   options: {
                     placeholder: "t($pick)",
                     items: [{ label: "t($x.z)", value: "a" }],

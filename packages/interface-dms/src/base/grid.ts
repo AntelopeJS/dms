@@ -2,7 +2,7 @@ import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 
-const GRID_COMPONENT_NAME = "dms-grid";
+const GRID_COMPONENT_NAME = "dms-grid-block";
 const GRID_ROW_COMPONENT_NAME = "dms-grid-row";
 const GRID_DEFAULT_GAP = "1rem";
 const GRID_DEFAULT_MIN_COLUMN_WIDTH = "240px";

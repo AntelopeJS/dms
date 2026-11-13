@@ -76,7 +76,7 @@ const KPI: MockupBlockType = {
 
 const CHART_LINE: MockupBlockType = {
   type: "ChartLine",
-  componentName: "dms-chart",
+  componentName: "dms-chart-block",
   meta: { name: "Line chart", group: "visualization" },
   config: {
     smooth: {
@@ -118,7 +118,7 @@ const TOOLBAR: MockupBlockType = {
 
 const GRID: MockupBlockType = {
   type: "Grid",
-  componentName: "dms-grid",
+  componentName: "dms-grid-block",
   meta: { name: "Grid", group: "layout" },
   container: true,
   config: {},

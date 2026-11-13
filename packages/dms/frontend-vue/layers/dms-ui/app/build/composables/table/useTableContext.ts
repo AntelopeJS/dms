@@ -1,6 +1,9 @@
 import { injectLocal } from "@vueuse/core";
 import type { ShallowRef } from "vue";
-import type { TableSharedData, Data } from "../../components/table/Table.vue";
+import type {
+  TableSharedData,
+  Data,
+} from "../../components/table/TableRoot.vue";
 
 export const useTableContext = <T extends Data>() => {
   const context =

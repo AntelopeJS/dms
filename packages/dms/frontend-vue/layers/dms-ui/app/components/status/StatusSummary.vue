@@ -109,7 +109,7 @@ const cardStyle = computed(() => ({
 </script>
 
 <template>
-  <DmsCard
+  <DmsCardPanel
     :padded="false"
     class="px-4 py-[22px] sm:px-[26px]"
     :style="cardStyle"
@@ -136,7 +136,7 @@ const cardStyle = computed(() => ({
           </span>
         </div>
         <div>
-          <DmsEyebrow v-if="statusLabel" :label="statusLabel" />
+          <DmsEyebrowLabel v-if="statusLabel" :label="statusLabel" />
           <p
             :class="VALUE_TONE[status]"
             class="mt-1.5 text-[28px] leading-none font-[650] tracking-[-0.035em]"
@@ -210,5 +210,5 @@ const cardStyle = computed(() => ({
         </div>
       </div>
     </div>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

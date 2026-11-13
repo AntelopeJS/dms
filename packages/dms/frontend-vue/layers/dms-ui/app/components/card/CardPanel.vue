@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Slot } from "vue";
 
-import DmsEyebrow from "../section-header/Eyebrow.vue";
+import DmsEyebrowLabel from "../section-header/EyebrowLabel.vue";
 
 interface Props {
   as?: string;
@@ -65,7 +65,7 @@ const cardClass = computed(() => [
         <slot name="header">
           <!-- One line on wide screens; wraps on a phone, where the count
                and the actions leave it little room. -->
-          <DmsEyebrow
+          <DmsEyebrowLabel
             as="span"
             tone="muted"
             truncate

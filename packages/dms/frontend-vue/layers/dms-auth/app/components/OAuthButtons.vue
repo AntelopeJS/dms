@@ -55,7 +55,7 @@ function startUrl(providerId: string): string {
     </p>
 
     <USeparator class="mt-3" :ui="{ border: 'border-default' }">
-      <DmsEyebrow as="span" :label="$t('page.auth.oauth.separator')" />
+      <DmsEyebrowLabel as="span" :label="$t('page.auth.oauth.separator')" />
     </USeparator>
   </div>
 </template>

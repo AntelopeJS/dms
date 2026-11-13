@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import DmsBanner from "../banner/Banner.vue";
+import DmsNoticeBanner from "../banner/NoticeBanner.vue";
 import DmsBlockActions, {
   type BlockActionItem,
   type BlockButtonAction,
@@ -160,7 +160,7 @@ function press(action: BlockButtonAction): void {
 </script>
 
 <template>
-  <DmsBanner
+  <DmsNoticeBanner
     v-if="isVisible"
     :title="banner.title ? processText(banner.title) : undefined"
     :description="
@@ -185,5 +185,5 @@ function press(action: BlockButtonAction): void {
         @press="press"
       />
     </template>
-  </DmsBanner>
+  </DmsNoticeBanner>
 </template>

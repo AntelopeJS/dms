@@ -75,13 +75,13 @@ const TILE_HINTS = {
 <template>
   <div v-if="edit" class="flex flex-col gap-5">
     <section class="flex flex-col gap-2">
-      <DmsEyebrow :label="t('branding.section.accent')" />
+      <DmsEyebrowLabel :label="t('branding.section.accent')" />
       <BrandingPaletteSwatches :selected="accent" @select="pickAccent" />
     </section>
 
     <section class="flex flex-col gap-2.5">
       <div class="flex items-center justify-between">
-        <DmsEyebrow :label="t('branding.section.backgrounds')" />
+        <DmsEyebrowLabel :label="t('branding.section.backgrounds')" />
         <UBadge
           color="neutral"
           variant="soft"
@@ -108,7 +108,7 @@ const TILE_HINTS = {
     </section>
 
     <section class="flex flex-col gap-2">
-      <DmsEyebrow :label="t('branding.section.corners')" />
+      <DmsEyebrowLabel :label="t('branding.section.corners')" />
       <div class="flex flex-wrap gap-1.5">
         <UButton
           v-for="preset in CORNER_PRESETS"
@@ -129,7 +129,7 @@ const TILE_HINTS = {
     </section>
 
     <section class="flex flex-col gap-2">
-      <DmsEyebrow :label="t('branding.section.font')" />
+      <DmsEyebrowLabel :label="t('branding.section.font')" />
       <USelect
         :model-value="font"
         :items="fontItems"
@@ -146,7 +146,7 @@ const TILE_HINTS = {
     </section>
 
     <section class="flex flex-col gap-2">
-      <DmsEyebrow :label="t('branding.section.logos')" />
+      <DmsEyebrowLabel :label="t('branding.section.logos')" />
       <p
         v-if="props.editor.logoProblem.value"
         role="alert"

@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends Data">
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import type { Data } from "../../build/components/table/Table.vue";
+import type { Data } from "../../build/components/table/TableRoot.vue";
 import SortableList, {
   type SortableListChange,
 } from "../../build/components/sortable/SortableList.vue";

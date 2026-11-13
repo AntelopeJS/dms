@@ -230,7 +230,7 @@ function previewsADraft(): void {
     );
 
     expect(preview.degraded).to.deep.equal([]);
-    expect(preview.components.signup.componentName).to.equal("dms-form");
+    expect(preview.components.signup.componentName).to.equal("dms-form-block");
     const fields = preview.components.signup.options?.fields;
     if (!isPreviewFieldList(fields)) {
       expect.fail("the form preview lists its fields");

@@ -75,7 +75,7 @@ function mountSignup(query: typeof route.query) {
   browserRuntime(app);
   app.config.globalProperties.$t = (key: string) => key;
   for (const name of [
-    "DmsCard",
+    "DmsCardPanel",
     "UIcon",
     "UForm",
     "UFormField",
@@ -212,7 +212,7 @@ it("renders a refused invitation's notice on the server, and the browser does no
   const register = (application: App) => {
     application.config.globalProperties.$t = (key: string) => key;
     for (const name of [
-      "DmsCard",
+      "DmsCardPanel",
       "UIcon",
       "UForm",
       "UFormField",

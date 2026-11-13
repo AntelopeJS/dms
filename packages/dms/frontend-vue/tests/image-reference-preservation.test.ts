@@ -12,7 +12,7 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
+import Image from "../layers/dms-ui/app/components/form/components/InputImage.vue";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../layers/dms-ui/app/composables/form/types/content-language";
 import {
   mountInBrowser,

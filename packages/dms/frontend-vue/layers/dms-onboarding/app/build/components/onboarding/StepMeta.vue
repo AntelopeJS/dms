@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<StepMetaProps>(), {
   <div
     class="mb-[18px] flex flex-wrap items-center justify-between gap-x-3 gap-y-1"
   >
-    <DmsEyebrow
+    <DmsEyebrowLabel
       as="span"
       tone="primary"
       :label="

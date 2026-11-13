@@ -1,5 +1,5 @@
 import { until } from "@vueuse/core";
-import type { TableAccumulation } from "../../components/table/Table.vue";
+import type { TableAccumulation } from "../../components/table/TableRoot.vue";
 import type { RowStep } from "../actions/rowNavigation";
 import { rowLocator } from "./utils/locateRow";
 import type { TableViewScope } from "./tableViewScope";

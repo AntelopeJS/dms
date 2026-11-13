@@ -46,7 +46,7 @@ function mountCards(columns: TableViewColumn[], card?: TableViewCardConfig) {
   app = createApp({ render: () => h(CardsDisplay, { context }) });
   app.component("UCheckbox", defineComponent({ render: () => h("input") }));
   app.component("UIcon", defineComponent({ render: () => h("i") }));
-  app.component("DmsEyebrow", defineComponent({ render: () => h("dt") }));
+  app.component("DmsEyebrowLabel", defineComponent({ render: () => h("dt") }));
   const container = document.createElement("div");
   app.mount(container);
   return container;

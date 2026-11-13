@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import StepIndicator from "../build/components/onboarding/StepIndicator.vue";
-import Platform from "../build/components/onboarding/steps/platform.vue";
-import Ready from "../build/components/onboarding/steps/ready.vue";
-import Register from "../components/onboarding/steps/register.vue";
+import Platform from "../build/components/onboarding/steps/StepPlatform.vue";
+import Ready from "../build/components/onboarding/steps/StepReady.vue";
+import Register from "../components/onboarding/steps/StepRegister.vue";
 import {
   ONBOARDING_STEPS,
   type OnboardingAdministrator,

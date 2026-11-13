@@ -4,7 +4,7 @@ import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { tv } from "tailwind-variants";
 import type { TableViewViewsLayout } from "../../../composables/table-view/types";
 import { toneTextClass } from "../../utils/tone";
-import TableTabs, { type TableTabItem } from "./Tabs.vue";
+import TableTabs, { type TableTabItem } from "./TableTabs.vue";
 
 /** A view as the strip draws it: its counter already read. */
 export interface TableViewItem {

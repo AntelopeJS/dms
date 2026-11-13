@@ -19,7 +19,7 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableFiltersRow from "../layers/dms-ui/app/entries/components/table/FiltersRow";
-import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/Table";
+import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/TableRoot";
 import { relationSelectSource } from "../layers/dms-ui/app/entries/composables/data-types/relationRows";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 
@@ -29,7 +29,7 @@ const RELATION_TYPE = {
   id: "relation",
   filterComponents: {
     default: {
-      componentName: "dms-relation",
+      componentName: "dms-input-relation",
       options: {
         searchUrl: SEARCH_URL,
         keyMapping: { label: "name", value: "_id" },

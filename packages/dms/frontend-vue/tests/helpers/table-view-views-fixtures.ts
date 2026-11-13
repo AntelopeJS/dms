@@ -1,4 +1,4 @@
-import type { TableFilter } from "../../layers/dms-ui/app/entries/components/table/Table";
+import type { TableFilter } from "../../layers/dms-ui/app/entries/components/table/TableRoot";
 import type { TableStateDefaults } from "../../layers/dms-ui/app/entries/composables/table-view/utils/views";
 const pinnedStatus: TableFilter = {
   accessorKey: "status",

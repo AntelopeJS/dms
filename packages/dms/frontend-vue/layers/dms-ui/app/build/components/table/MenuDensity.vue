@@ -2,7 +2,7 @@
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
-import type { Data, TableDensity, TableSharedData } from "./Table.vue";
+import type { Data, TableDensity, TableSharedData } from "./TableRoot.vue";
 
 const theme = tv({
   slots: {

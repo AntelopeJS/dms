@@ -41,7 +41,7 @@ beforeAll(async () => {
   vi.stubGlobal("watchEffect", watchEffect);
   vi.stubGlobal("onUnmounted", onUnmounted);
   vi.stubGlobal("useId", useId);
-  Grid = (await import("../layers/dms-ui/app/components/grid/Grid.vue"))
+  Grid = (await import("../layers/dms-ui/app/components/grid/GridBlock.vue"))
     .default;
   GridRow = (await import("../layers/dms-ui/app/components/grid/GridRow.vue"))
     .default;

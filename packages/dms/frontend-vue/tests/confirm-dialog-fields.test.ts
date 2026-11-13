@@ -59,7 +59,7 @@ describe("confirmation dialog texts", () => {
             label: "$roles.move_to",
             type: "select",
             component: {
-              componentName: "dms-select",
+              componentName: "dms-input-select",
               options: {
                 placeholder: "$roles.move_to",
                 items: [{ value: "r2", label: "Readers" }],
@@ -170,7 +170,7 @@ function createConfirmDialogFieldsFixture() {
     label: "Move them to",
     type: "select",
     required: true,
-    component: { componentName: "dms-select" },
+    component: { componentName: "dms-input-select" },
   };
 
   async function flush(): Promise<void> {
@@ -216,7 +216,7 @@ function createConfirmDialogFieldsFixture() {
       processApiMessage: (message: string) => `t(${message})`,
     }));
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
-      name === "dms-select" ? Input : undefined,
+      name === "dms-input-select" ? Input : undefined,
     );
     host = document.createElement("div");
     document.body.append(host);

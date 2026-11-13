@@ -162,7 +162,7 @@ const retryActions = computed(() => [
 </script>
 
 <template>
-  <DmsSection
+  <DmsSectionPanel
     id="sessions"
     class="scroll-mt-6"
     title="$page.settings.sessions.title"
@@ -367,5 +367,5 @@ const retryActions = computed(() => [
         </div>
       </template>
     </UModal>
-  </DmsSection>
+  </DmsSectionPanel>
 </template>

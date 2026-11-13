@@ -30,7 +30,7 @@ const componentManifest = {
     "layout/DashboardHeader.vue",
     "layout/DashboardSidePanel.vue",
     "layout/DashboardSidebar.vue",
-    "layout/Footer.vue",
+    "layout/LayoutFooter.vue",
     "layout/PageHeaderActionBar.vue",
     "notification/NotificationPopover.vue",
     "pages/modules/ModuleStoreDependencyPicker.vue",
@@ -60,7 +60,7 @@ const componentManifest = {
   "dms-layout/app/pages/": ["[...slug].vue"],
   "dms-onboarding/app/build/components/": [
     "onboarding/StepIndicator.vue",
-    "onboarding/steps/ready.vue",
+    "onboarding/steps/StepReady.vue",
   ],
   "dms-ui/app/build/components/": [
     "blocks/BlockActions.vue",
@@ -78,9 +78,9 @@ const componentManifest = {
     "table-view/ExpandedRowDetail.vue",
     "table-view/IdentityCell.vue",
     "table-view/LiveHoldBanner.vue",
-    "table/Actions.vue",
+    "table/TableActions.vue",
     "table/FiltersRow.vue",
-    "table/Menu.vue",
+    "table/TableMenu.vue",
     "table/MenuColumns.vue",
     "table/MenuDensity.vue",
     "table/MenuFilter.vue",
@@ -89,46 +89,46 @@ const componentManifest = {
     "table/MenuRoot.vue",
     "table/MenuSort.vue",
     "table/MenuViewMode.vue",
-    "table/Pagination.vue",
+    "table/TablePagination.vue",
     "table/RowSelection.vue",
-    "table/Table.vue",
-    "table/Tabs.vue",
-    "table/Views.vue",
+    "table/TableRoot.vue",
+    "table/TableTabs.vue",
+    "table/TableViews.vue",
   ],
   "dms-ui/app/components/": `
     PasswordStrength.vue RecursiveComponent.vue activity/ActivityItem.vue
-    banner/Banner.vue block-preview/BlockPreview.vue blocks/BannerBlock.vue
+    banner/NoticeBanner.vue block-preview/BlockPreview.vue blocks/BannerBlock.vue
     blocks/CardBlock.vue blocks/KeyValueListBlock.vue blocks/LiveToggleBlock.vue
-    card/Card.vue card/NavCard.vue chart/ApexChartHost.vue chart/Chart.vue
-    chart/internal/Sparkline.vue check-list/CheckList.vue check-list/PasswordRules.vue
+    card/CardPanel.vue card/NavCard.vue chart/ApexChartHost.vue chart/ChartBlock.vue
+    chart/internal/SparklineChart.vue check-list/CheckList.vue check-list/PasswordRules.vue
     code-snippet/CodeSnippet.vue confirm/ConfirmModal.vue empty-state/EmptyState.vue
-    field-row/FieldRow.vue flow-canvas/FlowCanvas.vue form/Form.vue form/LocalizedField.vue
+    field-row/FieldRow.vue flow-canvas/FlowCanvas.vue form/FormBlock.vue form/LocalizedField.vue
     icon-well/IconWell.vue key-value-list/KeyValueList.vue link/AutoLink.vue
-    list-row/ListRow.vue master-detail/MasterDetail.vue meter/Meter.vue meter/MeterBlock.vue
-    period/PeriodSelector.vue record-card/RecordCard.vue section-header/Eyebrow.vue
-    section-header/SectionHeader.vue section/Section.vue segmented/Segmented.vue
-    stat-group/StatGroup.vue status-pill/StatusPill.vue tab/Tab.vue
+    list-row/ListRow.vue master-detail/MasterDetail.vue meter/MeterBar.vue meter/MeterBlock.vue
+    period/PeriodSelector.vue record-card/RecordCard.vue section-header/EyebrowLabel.vue
+    section-header/SectionHeader.vue section/SectionPanel.vue segmented/SegmentedControl.vue
+    stat-group/StatGroup.vue status-pill/StatusPill.vue tab/TabBlock.vue
     table-view/CascaderPath.vue table-view/KanbanBoard.vue table-view/KanbanDisplay.vue
     table-view/TableView.vue top-list/TopListCard.vue
   `
     .trim()
     .split(/\s+/),
   "dms-ui/app/components/form/components/": [
-    "Calendar.vue",
-    "Cascader.vue",
+    "InputCalendar.vue",
+    "InputCascader.vue",
     "ChoiceCards.vue",
     "DatePicker.vue",
     "DatePickerRange.vue",
-    "Display.vue",
-    "File.vue",
-    "Image.vue",
+    "DisplayValue.vue",
+    "InputFile.vue",
+    "InputImage.vue",
     "InputAddress.vue",
     "InputColor.vue",
     "InputNumber.vue",
     "InputPercentage.vue",
     "InputTags.vue",
     "KeyValue.vue",
-    "Repeater.vue",
+    "InputRepeater.vue",
     "RepeaterTable.vue",
     "RichText.vue",
   ],

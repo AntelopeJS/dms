@@ -28,7 +28,7 @@ describe("[unit] interfaces/dms-base — SelectType display", () => {
     const select = (display?: DefaultDataTypes.SelectTypeOptions["display"]) =>
       new DefaultDataTypes.SelectType({ items: ITEMS, display });
 
-    expect(componentOf(select())).to.equal("dms-select");
+    expect(componentOf(select())).to.equal("dms-input-select");
     expect(componentOf(select("cards"))).to.equal("dms-choice-cards");
     expect(componentOf(select("segmented"))).to.equal("dms-segmented-select");
     expect(componentOf(select("radio"))).to.equal("dms-radio-group");
@@ -68,7 +68,7 @@ describe("[unit] interfaces/dms-base — SelectType display", () => {
       display: "cards",
     });
     const filter = select.filterComponents().default;
-    expect(filter.componentName).to.equal("dms-select");
+    expect(filter.componentName).to.equal("dms-input-select");
     expect(filter.options).to.not.have.property("display");
   });
 });
@@ -77,14 +77,14 @@ describe("[unit] interfaces/dms-base — BooleanType display", () => {
   it("renders a switch, a checkbox or a card with its texts", () => {
     const options = { label: "Owner", description: "Holds every permission" };
     expect(componentOf(new DefaultDataTypes.BooleanType())).to.equal(
-      "dms-switch",
+      "dms-input-switch",
     );
     expect(
       new DefaultDataTypes.BooleanType({
         ...options,
         display: "checkbox",
       }).inputComponent().componentName,
-    ).to.equal("dms-checkbox");
+    ).to.equal("dms-input-checkbox");
     const card = new DefaultDataTypes.BooleanType({
       ...options,
       display: "card",
@@ -136,7 +136,7 @@ describe("[unit] interfaces/dms-base — ArrayType", () => {
 
   it("renders a repeater, a column per field", () => {
     const component = headers().inputComponent();
-    expect(component.componentName).to.equal("dms-repeater");
+    expect(component.componentName).to.equal("dms-input-repeater");
     const { options } = component;
     if (!isRepeaterOptions(options)) {
       throw new Error("The component carries no repeater options");
@@ -268,7 +268,7 @@ describe("[unit] interfaces/dms-base — a number's unit and a text's counter", 
       textarea: true,
       showCount: true,
     });
-    expect(notes.inputComponent().componentName).to.equal("dms-textarea");
+    expect(notes.inputComponent().componentName).to.equal("dms-input-textarea");
     expect(notes.inputComponent().options).to.include({ showCount: true });
   });
 

@@ -4,7 +4,7 @@ import type {
   VisibilityState,
 } from "@tanstack/vue-table";
 import { refDebounced } from "@vueuse/core";
-import type { TableUrlFilter } from "../../components/table/Table.vue";
+import type { TableUrlFilter } from "../../components/table/TableRoot.vue";
 import {
   currentQuery,
   visibleUrlFilters,

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import DmsCard from "#dms-ui/app/components/card/Card.vue";
+import DmsCardPanel from "#dms-ui/app/components/card/CardPanel.vue";
 import DmsIconWell from "#dms-ui/app/components/icon-well/IconWell.vue";
-import DmsEyebrow from "#dms-ui/app/components/section-header/Eyebrow.vue";
+import DmsEyebrowLabel from "#dms-ui/app/components/section-header/EyebrowLabel.vue";
 
 /** Card widths of the v2 stage: 420px forms, 560px and 720px wide panels. */
 export type StageCardWidth = "default" | "wide" | "xwide";
@@ -48,7 +48,7 @@ const WIDTH_CLASSES: Record<StageCardWidth, string> = {
 <template>
   <!-- v2 .au-card: the elevated card, alone on the stage, with the stage's
        16px radius. -->
-  <DmsCard
+  <DmsCardPanel
     :as="props.as"
     variant="elevated"
     :padded="false"
@@ -60,7 +60,7 @@ const WIDTH_CLASSES: Record<StageCardWidth, string> = {
     </DmsIconWell>
 
     <slot name="eyebrow">
-      <DmsEyebrow
+      <DmsEyebrowLabel
         v-if="props.eyebrow"
         as="span"
         tone="primary"
@@ -84,5 +84,5 @@ const WIDTH_CLASSES: Record<StageCardWidth, string> = {
     </p>
 
     <slot />
-  </DmsCard>
+  </DmsCardPanel>
 </template>

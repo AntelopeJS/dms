@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import DmsSegmented from "../segmented/Segmented.vue";
+import DmsSegmentedControl from "../segmented/SegmentedControl.vue";
 import { usePageLive } from "../../composables/live/usePageLive";
 import { useUpdatedLabel } from "../../build/composables/live/useUpdatedLabel";
 import { useLiveToggleShortcut } from "../../build/composables/live/useLiveToggleShortcut";
@@ -217,7 +217,7 @@ useLiveToggleShortcut(() => live.toggle());
         {{ t("dms.live.pause") }}
       </button>
     </div>
-    <DmsSegmented
+    <DmsSegmentedControl
       v-else
       v-model="mode"
       :items="items"

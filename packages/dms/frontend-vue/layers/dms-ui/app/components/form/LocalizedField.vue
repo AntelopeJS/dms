@@ -112,7 +112,7 @@ watch(
         :data-field="field.id"
         :help="field.hint ? processI18n(field.hint) : undefined"
       >
-        <DmsDisplay
+        <DmsDisplayValue
           v-if="showDisplay"
           :model-value="localeValues[locale]"
           :type="field.type"
@@ -180,7 +180,7 @@ watch(
                   :name="`${field.id}.${lang.code}`"
                   :data-field="`${field.id}.${lang.code}`"
                 >
-                  <DmsDisplay
+                  <DmsDisplayValue
                     v-if="showDisplay"
                     :model-value="localeValues[lang.code]"
                     :type="field.type"

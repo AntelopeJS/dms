@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import DmsEmpty from "#dms-ui/app/build/components/table/Empty.vue";
-import DmsPagination from "#dms-ui/app/build/components/table/Pagination.vue";
+import DmsTableEmpty from "#dms-ui/app/build/components/table/TableEmpty.vue";
+import DmsTablePagination from "#dms-ui/app/build/components/table/TablePagination.vue";
 import DmsCardGridSkeleton from "#dms-ui/app/build/components/table-view/CardGridSkeleton.vue";
 import type { TableViewDisplayContext } from "#dms-ui/app/composables/table-view/types";
 
@@ -144,7 +144,7 @@ const openItem = (item: DisplayRow) => {
       label-class="text-[10.5px]"
     />
 
-    <DmsEmpty
+    <DmsTableEmpty
       v-else-if="context.items.length === 0"
       :can-add-row="context.actions.canAdd"
     />
@@ -243,6 +243,6 @@ const openItem = (item: DisplayRow) => {
       </article>
     </div>
 
-    <DmsPagination />
+    <DmsTablePagination />
   </div>
 </template>

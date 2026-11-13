@@ -5,7 +5,7 @@ import {
   resolveBlockState,
   useBlockStateAttributes,
 } from "../../build/composables/blocks/blockDataState";
-import DmsEyebrow from "../section-header/Eyebrow.vue";
+import DmsEyebrowLabel from "../section-header/EyebrowLabel.vue";
 
 import DmsTrendBadge from "./internal/TrendBadge.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
@@ -186,14 +186,14 @@ const hasMeta = computed(
 </script>
 
 <template>
-  <DmsCard
+  <DmsCardPanel
     v-bind="blockAttributes"
     :padded="false"
     class="flex min-w-0 flex-col"
   >
     <div class="flex flex-wrap items-start gap-3 px-4 pt-4 pb-1.5 sm:px-[18px]">
       <div class="grid min-w-0 justify-items-start">
-        <DmsEyebrow
+        <DmsEyebrowLabel
           tone="muted"
           truncate
           class="max-w-full max-sm:whitespace-normal"
@@ -268,5 +268,5 @@ const hasMeta = computed(
     <div class="px-3.5 pt-2.5 pb-3.5 sm:pr-[18px]">
       <slot :series="cardSeries" :comparison-series="cardComparisonSeries" />
     </div>
-  </DmsCard>
+  </DmsCardPanel>
 </template>
