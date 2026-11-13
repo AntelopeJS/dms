@@ -109,9 +109,10 @@ export function registerMockupRoutes(engine: MockupEngine) {
 
   class MockupController extends Controller(MOCKUP_API, MockupOwnerController) {
     @Get("/")
-    async list(): Promise<{ mockups: MockupSummary[] }> {
+    async list(): Promise<{ results: MockupSummary[]; total: number }> {
       await this.assertOwner();
-      return { mockups: await store.list() };
+      const results = await store.list();
+      return { results, total: results.length };
     }
 
     @Get("schema")

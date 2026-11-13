@@ -21,6 +21,7 @@ In development, `mockups/<name>/spec.json` is drawn live on `/mockup?name=<name>
 ## How to get to it (user POV)
 
 - Run the project with `ajs project run` (development), write `mockups/<name>/spec.json` in its folder, sign in as the platform owner and open `<dashboard>/mockup?name=<name>`.
+- As the platform owner, click the Mockups icon in the header, or open `<dashboard>/mockups`: one card per mockup, the one changed last first, each with a thumbnail of its first page, its page count, open comments, source and status (Draft, or Built with a link to each page of `built.pages`).
 
 ## Driving it with dms-control
 

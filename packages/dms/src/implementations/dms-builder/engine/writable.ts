@@ -22,7 +22,11 @@ import {
   type VariableDeclaration,
 } from "ts-morph";
 import { getCalleeName, getExtendsCall, stringLiteralValue } from "./literals";
-import { createModulesProject, targetModule } from "./modules";
+import {
+  addModuleSources,
+  createModulesProject,
+  targetModule,
+} from "./modules";
 
 let writable: Project | undefined;
 
@@ -44,12 +48,14 @@ export function resetWritableProject(): void {
 }
 
 /**
- * Bring the project's source files in line with the disk, dropping the ones
- * that are gone. Changed files are reapplied as a text change: ts-morph's own
- * refresh prints them through a writer that normalizes CRLF before the editor
- * can preserve source expressions.
+ * Bring the project's source files in line with the disk, adding the ones
+ * created since and dropping the ones that are gone. Changed files are
+ * reapplied as a text change: ts-morph's own refresh prints them through a
+ * writer that normalizes CRLF before the editor can preserve source
+ * expressions.
  */
 export function refreshFromDisk(project: Project): void {
+  addModuleSources(project);
   for (const sourceFile of project.getSourceFiles()) {
     if (!sourceFile.isInNodeModules()) {
       const filepath = sourceFile.getFilePath();

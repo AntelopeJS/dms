@@ -1243,5 +1243,10 @@
         "new_rental": "New rental"
       }
     }
+  },
+  "mockups": {
+    "header": {
+      "open": "Mockups"
+    }
   }
 }

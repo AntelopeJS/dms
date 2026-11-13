@@ -17,6 +17,54 @@
     "title": {
       "type": "string"
     },
+    "source": {
+      "enum": [
+        "chat",
+        "claude-code",
+        "codex"
+      ],
+      "description": "Who wrote this mockup: chat (the dashboard chat), claude-code or codex. Set it when you create the spec."
+    },
+    "built": {
+      "type": "object",
+      "required": [
+        "at",
+        "pages"
+      ],
+      "additionalProperties": false,
+      "description": "Written when the mockup is built into real pages. Leave it out while the mockup is a draft: the Mockups page lists a mockup with it as Built and links each page.",
+      "properties": {
+        "at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the build finished, an ISO 8601 date and time, e.g. 2026-11-13T10:00:00Z."
+        },
+        "pages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/(?![/\\\\])\\S*$",
+                "maxLength": 2048,
+                "description": "A path of the dashboard, such as \"/orders\": it starts with one \"/\", never \"//\", and holds no space."
+              },
+              "title": {
+                "type": "string",
+                "description": "The link's text. The path is shown when it is absent."
+              }
+            }
+          }
+        }
+      }
+    },
     "pages": {
       "type": "array",
       "minItems": 1,

@@ -135,12 +135,50 @@ const pageSchema = z
 /** One page of a spec, as written. */
 export type MockupSpecPage = z.infer<typeof pageSchema>;
 
+/** Who writes a mockup: the dashboard chat, Claude Code or Codex. */
+export const MOCKUP_SOURCES = ["chat", "claude-code", "codex"] as const;
+export type MockupSource = (typeof MOCKUP_SOURCES)[number];
+
+/** Decodes a {@link MockupSource}. */
+export const mockupSourceSchema = z.enum(MOCKUP_SOURCES);
+
+/**
+ * A path of the dashboard: one `/`, then no whitespace. A second `/` or a
+ * backslash would make browsers read an external host, and a scheme never
+ * starts with `/`.
+ */
+export const DASHBOARD_PATH_PATTERN = /^\/(?![/\\])\S*$/;
+/** How long a dashboard path is at most. */
+export const MAX_DASHBOARD_PATH = 2048;
+
+const dashboardPathSchema = z
+  .string()
+  .max(MAX_DASHBOARD_PATH)
+  .regex(DASHBOARD_PATH_PATTERN);
+
+/** Decodes what the build step wrote of a mockup: when, and the pages it made. */
+export const mockupBuiltSchema = z
+  .object({
+    at: z.string().datetime({ offset: true }),
+    pages: z
+      .array(
+        z
+          .object({ path: dashboardPathSchema, title: z.string().optional() })
+          .strict(),
+      )
+      .min(1)
+      .max(MAX_PAGES),
+  })
+  .strict();
+
 /** `mockups/<name>/spec.json`, as written. */
 export const specSchema = z
   .object({
     $schema: z.string().optional(),
     version: z.literal(1),
     title: z.string().optional(),
+    source: mockupSourceSchema.optional(),
+    built: mockupBuiltSchema.optional(),
     pages: z.array(pageSchema).min(1).max(MAX_PAGES),
   })
   .strict()

@@ -4,13 +4,27 @@ import type {
   PageMeta,
   PageStructure,
 } from "@antelopejs/interface-dms-builder";
+import type { SourceFile } from "ts-morph";
 import { buildPageBlocks } from "./block-tree";
+import { importedConstants } from "./config-literal";
 import { buildQueryStructures } from "./query-structure";
 import type { PageRecord } from "./scan";
 import { findPageRecord } from "./source-index";
 
 export function contentVersion(text: string): string {
   return createHash("sha1").update(text).digest("hex").slice(0, 16);
+}
+
+/**
+ * A page's version: its file, and the value of each constant it imports by
+ * name, since the builder reads those values as the page's own.
+ */
+export function pageVersion(sourceFile: SourceFile): string {
+  const imported = importedConstants(sourceFile);
+  const text = sourceFile.getFullText();
+  return contentVersion(
+    imported.length > 0 ? text + JSON.stringify(imported) : text,
+  );
 }
 
 function toPageMeta(page: PageRecord): PageMeta {
@@ -36,7 +50,7 @@ export function buildPageStructure(ref: string): OpResult<PageStructure> {
   }
   const blocks = buildPageBlocks(page);
   const queries = buildQueryStructures(page.classNode);
-  const version = contentVersion(page.classNode.getSourceFile().getFullText());
+  const version = pageVersion(page.classNode.getSourceFile());
   return {
     ok: true,
     data: { page: toPageMeta(page), blocks, queries, version },

@@ -82,13 +82,12 @@ describe("[unit] mockup routes: listing and fixtures", () => {
     ({ owner } = served());
   });
 
-  it("lists the mockups at the API root", async () => {
+  it("lists the mockups at the API root as the rows of a source table", async () => {
     const listed = await owner.get(BASE);
 
     expect(listed.status).to.equal(200);
-    expect(listed.data).to.deep.equal({
-      mockups: [{ name: "desk", pages: 1 }],
-    });
+    expect(listed.data).to.have.property("total", 1);
+    expect(listed.data).to.have.nested.property("results[0].name", "desk");
   });
 
   it("sorts, searches and pages an array fixture's rows", async () => {

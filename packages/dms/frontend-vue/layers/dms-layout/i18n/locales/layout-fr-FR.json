@@ -1243,5 +1243,10 @@
         "new_rental": "Nouvelle location"
       }
     }
+  },
+  "mockups": {
+    "header": {
+      "open": "Maquettes"
+    }
   }
 }

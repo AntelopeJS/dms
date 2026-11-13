@@ -1,5 +1,5 @@
 import { type FSWatcher, watch } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { z } from "zod";
@@ -18,9 +18,14 @@ import type {
   MockupIssue,
   MockupName,
   MockupPageState,
+  MockupSource,
   MockupState,
 } from "./model";
-import { parseMockupName } from "./model";
+import {
+  mockupBuiltSchema,
+  mockupSourceSchema,
+  parseMockupName,
+} from "./model";
 
 /** How long a burst of writes to one file is waited out before it is read. */
 export const WATCH_DEBOUNCE_MS = 40;
@@ -32,12 +37,29 @@ export type MockupEvent =
 
 export type MockupListener = (event: MockupEvent) => void;
 
-/** One mockup as `GET /api/mockup` lists it. */
-export interface MockupSummary {
+/** What `GET /api/mockup` lists of every mockup, drafts and built ones alike. */
+interface MockupSummaryBase {
   name: MockupName;
   title?: string;
   pages: number;
+  /** The annotations still open. */
+  openComments: number;
+  source?: MockupSource;
+  /** When `spec.json` last changed, ISO 8601. */
+  updatedAt: string;
 }
+
+/** One mockup as `GET /api/mockup` lists it. */
+export type MockupSummary = MockupSummaryBase &
+  (
+    | { status: "draft" }
+    | {
+        status: "built";
+        builtAt: string;
+        /** Each page's dashboard path, titled by the path when it has no title. */
+        builtPages: Array<{ path: string; title: string }>;
+      }
+  );
 
 /** The last read of a spec: what was good, and what is wrong now. */
 interface Entry {
@@ -55,10 +77,25 @@ interface Watch {
   watcher?: FSWatcher;
 }
 
-const summarySchema = z.object({
-  title: z.string().optional().catch(undefined),
-  pages: z.array(z.unknown()).catch([]),
-});
+const summarySchema = z
+  .object({
+    title: z.string().optional().catch(undefined),
+    pages: z.array(z.unknown()).catch([]),
+    source: mockupSourceSchema.optional().catch(undefined),
+    built: mockupBuiltSchema.optional().catch(undefined),
+  })
+  .catch({ pages: [] });
+
+type SummaryFields = z.infer<typeof summarySchema>;
+
+/** What a spec's text reads cleanly of its summary: nothing when it is not JSON. */
+function readSummaryFields(text: string): SummaryFields {
+  try {
+    return summarySchema.parse(JSON.parse(text));
+  } catch {
+    return summarySchema.parse(undefined);
+  }
+}
 
 const MISSING_SPEC: MockupIssue = {
   path: "",
@@ -94,7 +131,10 @@ export class MockupStore {
 
   constructor(readonly mockupsDir: string) {}
 
-  /** Every mockup whose directory holds a spec. */
+  /**
+   * Every mockup whose directory holds a spec, the one changed last first
+   * and by name among those changed at the same time.
+   */
   async list(): Promise<MockupSummary[]> {
     let names: string[];
     try {
@@ -104,30 +144,77 @@ export class MockupStore {
       throw error;
     }
     const summaries = await Promise.all(
-      names.sort().map(async (raw) => {
+      names.map(async (raw) => {
         const name = parseMockupName(raw);
         return name ? this.summary(name) : undefined;
       }),
     );
-    return summaries.flatMap((summary) => summary ?? []);
+    return summaries
+      .flatMap((summary) => summary ?? [])
+      .sort(
+        (left, right) =>
+          right.updatedAt.localeCompare(left.updatedAt) ||
+          left.name.localeCompare(right.name),
+      );
   }
 
+  /**
+   * The summary of a mockup, read as much as it reads cleanly: a spec that is
+   * not JSON, or a `source` or `built` that is invalid, lists with what is left.
+   */
   private async summary(name: MockupName): Promise<MockupSummary | undefined> {
+    const file = await this.specFile(name);
+    if (!file) return undefined;
+    const { title, pages, source, built } = readSummaryFields(file.text);
+    const base: MockupSummaryBase = {
+      name,
+      pages: pages.length,
+      openComments: await this.openComments(name),
+      updatedAt: file.updatedAt,
+    };
+    if (title !== undefined) base.title = title;
+    if (source !== undefined) base.source = source;
+    if (!built) return { ...base, status: "draft" };
+    return {
+      ...base,
+      status: "built",
+      builtAt: built.at,
+      builtPages: built.pages.map((page) => ({
+        path: page.path,
+        title: page.title?.trim() || page.path,
+      })),
+    };
+  }
+
+  /** The annotations of `name` that are open; a file that cannot be read counts none. */
+  private async openComments(name: MockupName): Promise<number> {
+    try {
+      const annotations = await listAnnotations(name, this.mockupsDir);
+      return (
+        annotations?.filter((annotation) => annotation.status === "open")
+          .length ?? 0
+      );
+    } catch (error) {
+      Logging.Warn(`[DMS] mockup "${name}": annotations cannot be read`, error);
+      return 0;
+    }
+  }
+
+  /** The text of a spec and when it changed, or undefined when the spec does not exist. */
+  private async specFile(
+    name: MockupName,
+  ): Promise<{ text: string; updatedAt: string } | undefined> {
     const text = await this.readSpec(name);
     if (text === undefined) return undefined;
-    let raw: unknown;
     try {
-      raw = JSON.parse(text);
-    } catch {
-      return { name, pages: 0 };
+      const { mtime } = await stat(
+        join(mockupDirectory(this.mockupsDir, name), SPEC_FILE),
+      );
+      return { text, updatedAt: mtime.toISOString() };
+    } catch (error) {
+      if (parseFsError(error).code === MISSING_FILE) return undefined;
+      throw error;
     }
-    const parsed = summarySchema.safeParse(raw);
-    const { title, pages } = parsed.success
-      ? parsed.data
-      : { title: undefined, pages: [] };
-    return title === undefined
-      ? { name, pages: pages.length }
-      : { name, title, pages: pages.length };
   }
 
   /** The mockup now, or undefined when its spec does not exist. */

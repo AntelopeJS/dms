@@ -42,7 +42,7 @@ import {
   openPage,
   unsupported,
 } from "./ops";
-import { contentVersion } from "./page-structure";
+import { pageVersion } from "./page-structure";
 import { syncQueries } from "./query-sync";
 import { validateDraft } from "./page-draft-validation";
 import { resourceRefResolver } from "./resource-index";
@@ -595,7 +595,7 @@ export function setPageBlocks(
   pruneUnusedImports(context.sourceFile, referencedNames);
   return commit(
     transaction,
-    { version: contentVersion(context.sourceFile.getFullText()) },
+    { version: pageVersion(context.sourceFile) },
     warnings,
   );
 }
