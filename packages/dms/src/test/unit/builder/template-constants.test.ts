@@ -63,55 +63,57 @@ async function save(
   return app.read(PAGE_FILE);
 }
 
+/** A board page holding the constants the tests read, in a fresh app. */
+async function createBoard(this: Mocha.Context): Promise<void> {
+  this.timeout(120_000);
+  app = createFixture();
+  writeApi("/api/shop");
+  expectOk(
+    await CreateCategory({ name: "shop", displayName: "Shop" }),
+    "CreateCategory",
+  );
+  expectOk(
+    await CreatePage({
+      name: "board",
+      displayName: "Board",
+      category: "pages.shop",
+    }),
+    "CreatePage",
+  );
+  expectOk(
+    await SetPageBlocks(PAGE, {
+      blocks: [
+        { name: "revenueKpi", type: "KpiCard", config: { title: "Revenue" } },
+      ],
+    }),
+    "SetPageBlocks",
+  );
+  const page = app
+    .read(PAGE_FILE)
+    .replace(
+      "@RegisterPage(",
+      [
+        'import ShopDefault, { SHOP_API } from "../shop-api";',
+        "",
+        'const STATS = "stats";',
+        "const LIMIT = 20;",
+        "const BASE = `${SHOP_API}/v1`;",
+        'let live = "live";',
+        "",
+        "@RegisterPage(",
+      ].join("\n"),
+    );
+  expect(page, "the fixture holds the constants").to.contain("const STATS");
+  app.write(PAGE_FILE, page);
+}
+
 /**
  * A route or topic an author builds from named strings, `${API}/stats`, is as
  * fixed as a literal: the builder reads the string it builds and keeps the
  * template while that string is unchanged.
  */
 describe("a block option built as a template of constants", () => {
-  before(async function () {
-    this.timeout(120_000);
-    app = createFixture();
-    writeApi("/api/shop");
-    expectOk(
-      await CreateCategory({ name: "shop", displayName: "Shop" }),
-      "CreateCategory",
-    );
-    expectOk(
-      await CreatePage({
-        name: "board",
-        displayName: "Board",
-        category: "pages.shop",
-      }),
-      "CreatePage",
-    );
-    expectOk(
-      await SetPageBlocks(PAGE, {
-        blocks: [
-          { name: "revenueKpi", type: "KpiCard", config: { title: "Revenue" } },
-        ],
-      }),
-      "SetPageBlocks",
-    );
-    const page = app
-      .read(PAGE_FILE)
-      .replace(
-        "@RegisterPage(",
-        [
-          'import ShopDefault, { SHOP_API } from "../shop-api";',
-          "",
-          'const STATS = "stats";',
-          "const LIMIT = 20;",
-          "const BASE = `${SHOP_API}/v1`;",
-          'let live = "live";',
-          "",
-          "@RegisterPage(",
-        ].join("\n"),
-      );
-    expect(page, "the fixture holds the constants").to.contain("const STATS");
-    app.write(PAGE_FILE, page);
-  });
-
+  before(createBoard);
   after(() => destroyFixture());
 
   it("reads a template of a local and an imported constant as the string it builds", async function () {
@@ -130,6 +132,47 @@ describe("a block option built as a template of constants", () => {
       fetchUrl: "/api/shop/stats?limit=20&range={{query.range}}",
     });
   });
+
+  it("follows a constant that is itself a template of constants", async function () {
+    this.timeout(OP_TIMEOUT);
+    handWrite('title: "Revenue", fetchUrl: `${BASE}/totals`');
+    const block = await revenueKpi();
+
+    expect(block.config?.fetchUrl).to.equal("/api/shop/v1/totals");
+  });
+
+  it("locks a template that reads a default import, which a save would leave behind", async function () {
+    this.timeout(OP_TIMEOUT);
+    handWrite('title: "Revenue", fetchUrl: `${ShopDefault}/k`');
+    const block = await revenueKpi();
+
+    expect(block.lockedOptions).to.have.property("fetchUrl");
+  });
+
+  it("locks a template that reads a variable, and keeps it unchanged on save", async function () {
+    this.timeout(OP_TIMEOUT);
+    handWrite('title: "Revenue", fetchUrl: `/api/${live}`');
+    const block = await revenueKpi();
+
+    expect(block.lockedOptions).to.have.property("fetchUrl");
+    expect(block.config).to.not.have.property("fetchUrl");
+
+    const written = await save({ title: "Income" });
+    expect(written).to.contain("fetchUrl: `/api/${live}`");
+  });
+
+  it("locks a template that calls code", async function () {
+    this.timeout(OP_TIMEOUT);
+    handWrite('title: "Revenue", fetchUrl: `/api/${STATS.toUpperCase()}`');
+    const block = await revenueKpi();
+
+    expect(block.lockedOptions).to.have.property("fetchUrl");
+  });
+});
+
+describe("a template of constants written back on save", () => {
+  before(createBoard);
+  after(() => destroyFixture());
 
   it("reads an imported constant, and keeps its name through a save", async function () {
     this.timeout(OP_TIMEOUT);
@@ -193,22 +236,6 @@ describe("a block option built as a template of constants", () => {
     expect(written).to.contain("fetchUrl: `${LATE_API}/k`");
   });
 
-  it("locks a template that reads a default import, which a save would leave behind", async function () {
-    this.timeout(OP_TIMEOUT);
-    handWrite('title: "Revenue", fetchUrl: `${ShopDefault}/k`');
-    const block = await revenueKpi();
-
-    expect(block.lockedOptions).to.have.property("fetchUrl");
-  });
-
-  it("follows a constant that is itself a template of constants", async function () {
-    this.timeout(OP_TIMEOUT);
-    handWrite('title: "Revenue", fetchUrl: `${BASE}/totals`');
-    const block = await revenueKpi();
-
-    expect(block.config?.fetchUrl).to.equal("/api/shop/v1/totals");
-  });
-
   it("keeps the template through a save that did not change the string", async function () {
     this.timeout(OP_TIMEOUT);
     handWrite('title: "Revenue", fetchUrl: `${SHOP_API}/${STATS}`');
@@ -221,26 +248,6 @@ describe("a block option built as a template of constants", () => {
     expect(written, "the import the template reads stays").to.contain(
       'import ShopDefault, { SHOP_API } from "../shop-api";',
     );
-  });
-
-  it("locks a template that reads a variable, and keeps it unchanged on save", async function () {
-    this.timeout(OP_TIMEOUT);
-    handWrite('title: "Revenue", fetchUrl: `/api/${live}`');
-    const block = await revenueKpi();
-
-    expect(block.lockedOptions).to.have.property("fetchUrl");
-    expect(block.config).to.not.have.property("fetchUrl");
-
-    const written = await save({ title: "Income" });
-    expect(written).to.contain("fetchUrl: `/api/${live}`");
-  });
-
-  it("locks a template that calls code", async function () {
-    this.timeout(OP_TIMEOUT);
-    handWrite('title: "Revenue", fetchUrl: `/api/${STATS.toUpperCase()}`');
-    const block = await revenueKpi();
-
-    expect(block.lockedOptions).to.have.property("fetchUrl");
   });
 
   it("writes the string out once the author changes it", async function () {
