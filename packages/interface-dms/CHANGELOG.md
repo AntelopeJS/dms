@@ -1,5 +1,52 @@
 # Changelog
 
+## v0.13.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.13.2...v0.13.3)
+
+### 🚀 Enhancements
+
+- **frontend:** Publish @antelopejs/dms/eslint-globals for the layer's auto-imports ([#869](https://github.com/AntelopeJS/dms/pull/869))
+
+### 🔥 Performance
+
+- **layout:** Split the Geist fonts so the first paint loads only Latin ([#854](https://github.com/AntelopeJS/dms/pull/854))
+- **table:** Stop re-rendering every row after the table mounts ([#860](https://github.com/AntelopeJS/dms/pull/860))
+
+### 🩹 Fixes
+
+- **release:** Regenerate the dms README table when interface-dms bumps ([#855](https://github.com/AntelopeJS/dms/pull/855))
+
+### 💅 Refactors
+
+- **frontend:** Drop oxlint directives no linter reads ([#862](https://github.com/AntelopeJS/dms/pull/862))
+- Type unpublished dictionaries from their owners ([#863](https://github.com/AntelopeJS/dms/pull/863))
+- Narrow with type guards instead of runtime typeof ([#864](https://github.com/AntelopeJS/dms/pull/864))
+- Type unknown parameters and returns from their owners ([#865](https://github.com/AntelopeJS/dms/pull/865))
+- Remove type assertions or give each a SAFETY reason ([#867](https://github.com/AntelopeJS/dms/pull/867))
+- Remove the type assertions behind existing SAFETY comments ([#874](https://github.com/AntelopeJS/dms/pull/874))
+- Keep lookup tables' known types instead of widening them ([#875](https://github.com/AntelopeJS/dms/pull/875))
+- Replace ts-expect-error with type-level assertions where a type can carry the check ([#876](https://github.com/AntelopeJS/dms/pull/876))
+
+### 📖 Documentation
+
+- Name MySQL and MariaDB as database modules the DMS runs on ([#878](https://github.com/AntelopeJS/dms/pull/878))
+
+### 📦 Build
+
+- **deps:** Take tooling-configs 0.5.3 so checks orders typecheck before lint ([#856](https://github.com/AntelopeJS/dms/pull/856))
+- **lint:** Remove the config rule offs whose findings are fixed ([#877](https://github.com/AntelopeJS/dms/pull/877))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.19.2 ([9e222d8b](https://github.com/AntelopeJS/dms/commit/9e222d8b))
+- **release:** @antelopejs/dms v0.19.3 ([830ed1e5](https://github.com/AntelopeJS/dms/commit/830ed1e5))
+- **release:** @antelopejs/dms v0.19.4 ([55422453](https://github.com/AntelopeJS/dms/commit/55422453))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.13.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.13.1...v0.13.2)
