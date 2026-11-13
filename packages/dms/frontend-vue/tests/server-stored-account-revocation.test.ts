@@ -4,6 +4,7 @@ import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { createServerRoutesFixture } from "./helpers/server-routes-fixture";
 import {
   EXPIRED_EMAIL,
+  GONE_EMAIL,
   REVOKED_EMAIL,
   calls,
 } from "./helpers/server-routes-fixtures";
@@ -136,6 +137,21 @@ describe("a sign-out with an expired access token", () => {
       "/api/auth/logout",
     ]);
     expect(ended.calls[2].authorization).not.toBe(ended.calls[0].authorization);
+    expect(tab.signedIn()).toBe(false);
+    expect(tab.accounts()).toEqual([kept]);
+  });
+
+  it("signs the browser out when the backend session is already gone", async () => {
+    const tab = new Browser(fixture.moduleRoutes.url);
+    await tab.signIn("ada@example.test");
+    await tab.signIn(GONE_EMAIL);
+    const [kept] = tab.accounts();
+    const ended = await tab.ask("/api/_auth/session", { method: "DELETE" });
+    expect(ended.status).toBe(200);
+    expect(ended.calls.map((call) => call.path)).toEqual([
+      "/api/auth/logout",
+      "/api/auth/refresh",
+    ]);
     expect(tab.signedIn()).toBe(false);
     expect(tab.accounts()).toEqual([kept]);
   });

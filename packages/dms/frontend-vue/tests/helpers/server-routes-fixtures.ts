@@ -13,6 +13,7 @@ const RENDER_SECRET = "render-secret-for-tests-only";
 const ESTABLISH_ENDPOINT = "/api/saas/register/finalize";
 const REVOKED_EMAIL = "revoked@example.test";
 const EXPIRED_EMAIL = "expired@example.test";
+const GONE_EMAIL = "gone@example.test";
 const UUID =
   /[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}/g;
 
@@ -76,6 +77,8 @@ function backendAnswer(
     return signedIn("login", "revoked");
   if (path === "/api/auth/login" && body.email === EXPIRED_EMAIL)
     return signedIn("expired", "refresh-1");
+  if (path === "/api/auth/login" && body.email === GONE_EMAIL)
+    return signedIn("expired", "revoked-gone");
   if (
     path === "/api/auth/logout" &&
     authorization === `Bearer ${accessToken("t1", "expired")}`
@@ -98,7 +101,7 @@ function backendAnswer(
         user: USER,
       },
     };
-  if (path === "/api/auth/refresh" && body.token === "revoked")
+  if (path === "/api/auth/refresh" && body.token?.startsWith("revoked"))
     return { status: 401, body: { message: "error.auth.invalid_token" } };
   if (path === "/api/auth/refresh" || path === "/api/auth/switch-tenant")
     return {
@@ -273,6 +276,7 @@ export {
   ESTABLISH_ENDPOINT,
   REVOKED_EMAIL,
   EXPIRED_EMAIL,
+  GONE_EMAIL,
   USER,
   answerOverrides,
   backendAnswer,
