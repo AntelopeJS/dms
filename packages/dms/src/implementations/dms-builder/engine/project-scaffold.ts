@@ -126,19 +126,26 @@ function readJson<T>(
   return read.config;
 }
 
-const PATH_SPEC = /^(?<protocol>file|link):(?<target>.*)$/s;
+const PATH_SPEC = /^(?<protocol>file:|link:|(?=\.\.?\/))(?<target>.*)$/s;
 
-/** A `file:` or `link:` spec relative to `from`, rewritten to name the same target from `to`. */
+/**
+ * A path spec relative to `from` (`file:`, `link:` or a bare `./` or `../` path), rewritten to
+ * name the same target from `to`. An absolute or home-relative (`~`) spec names it from anywhere.
+ */
 function rebasedSpec(spec: string, from: string, to: string): string {
   const local = PATH_SPEC.exec(spec)?.groups;
-  if (local === undefined || path.isAbsolute(local.target)) {
+  if (
+    local === undefined ||
+    local.target.startsWith("~") ||
+    path.isAbsolute(local.target)
+  ) {
     return spec;
   }
   const target = path
     .relative(to, path.resolve(from, local.target))
     .split(path.sep)
     .join("/");
-  return `${local.protocol}:${target}`;
+  return `${local.protocol}${target.startsWith("../") ? "" : "./"}${target}`;
 }
 
 function rebasedVersions(

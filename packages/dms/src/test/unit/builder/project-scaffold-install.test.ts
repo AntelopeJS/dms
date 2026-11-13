@@ -18,14 +18,14 @@ const NAMES = [
 
 let root: string;
 
-function vendorPackage(name: string): string {
+function vendorPackage(name: string, protocol: string): string {
   const folder = path.join("vendor", name.replace("/", "__"));
   fs.mkdirSync(path.join(root, folder), { recursive: true });
   fs.writeFileSync(
     path.join(root, folder, "package.json"),
     JSON.stringify({ name, version: "0.0.0-local" }),
   );
-  return `file:${folder.split(path.sep).join("/")}`;
+  return `${protocol}${folder.split(path.sep).join("/")}`;
 }
 
 function writeScaffold(): string {
@@ -40,12 +40,15 @@ function writeScaffold(): string {
   return scaffold.root;
 }
 
-describe("scaffolding a module from a project with relative file: dependencies", () => {
+describe("scaffolding a module from a project with relative path dependencies", () => {
   before(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "dms-builder-scaffold-"));
     setBuilderConfig({ projectRoot: root });
     const dependencies = Object.fromEntries(
-      NAMES.map((name) => [name, vendorPackage(name)]),
+      NAMES.map((name, index) => [
+        name,
+        vendorPackage(name, index % 2 === 0 ? "file:" : "./"),
+      ]),
     );
     fs.writeFileSync(
       path.join(root, "package.json"),
