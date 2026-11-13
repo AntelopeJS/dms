@@ -65,6 +65,7 @@ function reply(access: McpAccess, args: JsonValue) {
       method: "tools/call",
       params: { name: CONFIGURE, arguments: args },
     },
+    "test-session",
   );
 }
 

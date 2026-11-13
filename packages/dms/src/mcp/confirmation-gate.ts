@@ -41,10 +41,26 @@ function refusal(toolName: string, details: string): McpToolResult {
   );
 }
 
-/** Stands in for a confirmation prompt the route cannot send: a call is refused once and runs when repeated unchanged within the window. */
+function sessionlessRefusal(toolName: string): McpToolResult {
+  return textResult(
+    `${toolName} was not run: the MCP client sent no session, so no repeat of this call can confirm it. Restart the MCP client so it starts the current DMS bridge, then call it again.`,
+    true,
+  );
+}
+
+/** Stands in for a confirmation prompt the route cannot send: a call is refused once and runs when its MCP session repeats it unchanged within the window. */
 export interface RepeatConfirmationGate {
-  /** The refusal to answer for `call`, or `undefined` when the same call was refused within the window; that repeat runs once. */
-  hold(toolName: string, call: ToolCallValue): McpToolResult | undefined;
+  /**
+   * The refusal to answer for `call`, or `undefined` when `sessionId` made the
+   * same call and was refused within the window; that repeat runs once. A
+   * hold belongs to the session it refused, so another session's identical
+   * call is refused in turn, and a call with no session is always refused.
+   */
+  hold(
+    sessionId: string | undefined,
+    toolName: string,
+    call: ToolCallValue,
+  ): McpToolResult | undefined;
 }
 
 export function createRepeatConfirmationGate(
@@ -52,9 +68,10 @@ export function createRepeatConfirmationGate(
 ): RepeatConfirmationGate {
   const pending = new Map<string, number>();
   return {
-    hold(toolName, call) {
+    hold(sessionId, toolName, call) {
+      if (sessionId === undefined) return sessionlessRefusal(toolName);
       const details = canonical(call);
-      const key = `${toolName}\u0000${details}`;
+      const key = JSON.stringify([sessionId, toolName, details]);
       const at = now();
       for (const [held, expiresAt] of pending) {
         if (expiresAt < at) pending.delete(held);

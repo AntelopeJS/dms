@@ -78,6 +78,7 @@ function listTools(session: McpSession): JsonValue {
 async function callTool(
   session: McpSession,
   params: JsonValue | undefined,
+  sessionId: string | undefined,
 ): Promise<JsonValue> {
   const parsed = CallParamsSchema.safeParse(params);
   if (!parsed.success) {
@@ -96,15 +97,19 @@ async function callTool(
       `${tool.name} is not available in Safe mode: it changes the project past what the builder edits.`,
     );
   }
-  const result = await runTool(tool, parsed.data.arguments ?? {});
+  const result = await runTool(tool, parsed.data.arguments ?? {}, sessionId);
   const content = result.content.map(({ type, text }) => ({ type, text }));
   return result.isError === true ? { content, isError: true } : { content };
 }
 
 /** A tool that throws answers its failure as a result the agent reads, as MCP asks. */
-async function runTool(tool: McpTool, args: JsonValue): Promise<McpToolResult> {
+async function runTool(
+  tool: McpTool,
+  args: JsonValue,
+  sessionId: string | undefined,
+): Promise<McpToolResult> {
   try {
-    return await tool.call(args);
+    return await tool.call(args, sessionId);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     return textResult(`${tool.name} failed: ${reason}`, true);
@@ -115,6 +120,7 @@ async function dispatch(
   session: McpSession,
   method: string,
   params: JsonValue | undefined,
+  sessionId: string | undefined,
 ): Promise<JsonValue> {
   switch (method) {
     case "initialize":
@@ -128,7 +134,7 @@ async function dispatch(
     case "tools/list":
       return listTools(session);
     case "tools/call":
-      return callTool(session, params);
+      return callTool(session, params, sessionId);
     default:
       throw new MethodError(
         JSON_RPC_METHOD_NOT_FOUND,
@@ -150,10 +156,14 @@ function errorAnswer(
  * ping, tools/list and tools/call. A notification (no id) and a response the
  * client sends get no answer. The session's access is enforced here, on the
  * server, so it holds for every client whatever its own permission settings.
+ *
+ * @param sessionId The MCP session the message came from, as its bridge
+ * names it; `undefined` when the caller named none.
  */
 export async function answerMcpMessage(
   session: McpSession,
   message: JsonValue,
+  sessionId: string | undefined,
 ): Promise<JsonValue | undefined> {
   const parsed = JsonRpcMessageSchema.safeParse(message);
   if (!parsed.success) {
@@ -168,7 +178,7 @@ export async function answerMcpMessage(
     return {
       jsonrpc: "2.0",
       id,
-      result: await dispatch(session, method, params),
+      result: await dispatch(session, method, params, sessionId),
     };
   } catch (error) {
     if (error instanceof MethodError) {

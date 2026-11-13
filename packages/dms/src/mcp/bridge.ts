@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import http from "node:http";
 import https from "node:https";
@@ -7,6 +8,9 @@ import { BACKEND_URL_HINT, isLoopbackUrl } from "./backend-url";
 
 const HTTP_ACCEPTED = 202;
 const JSON_RPC_INTERNAL_ERROR = -32603;
+
+/** The header that names the MCP session a relayed message belongs to: one bridge process, one coding-agent session. */
+export const MCP_SESSION_HEADER = "mcp-session-id";
 
 const BACKEND_UNREACHABLE =
   "The DMS backend is not running. Start the project with ajs project dev, then retry.";
@@ -68,7 +72,11 @@ async function readConfig(configPath: string): Promise<BridgeConfig> {
   );
 }
 
-function post(config: BridgeConfig, body: string): Promise<RelayAnswer> {
+function post(
+  config: BridgeConfig,
+  body: string,
+  sessionId: string,
+): Promise<RelayAnswer> {
   if (!isLoopbackUrl(config.url)) {
     return Promise.reject(new NonLoopbackBackendError());
   }
@@ -81,6 +89,7 @@ function post(config: BridgeConfig, body: string): Promise<RelayAnswer> {
         method: "POST",
         headers: {
           authorization: `Bearer ${config.token}`,
+          [MCP_SESSION_HEADER]: sessionId,
           "content-type": "application/json",
           "content-length": Buffer.byteLength(body),
         },
@@ -131,8 +140,12 @@ function failure(id: FailureId, message: string): string {
   });
 }
 
-async function relay(configPath: string, line: string): Promise<RelayAnswer> {
-  return post(await readConfig(configPath), line);
+async function relay(
+  configPath: string,
+  line: string,
+  sessionId: string,
+): Promise<RelayAnswer> {
+  return post(await readConfig(configPath), line, sessionId);
 }
 
 function answerLine(
@@ -171,13 +184,14 @@ export function runBridge(
   input: Readable,
   output: Writable,
 ): void {
+  const sessionId = randomUUID();
   const write = (message: string | undefined) => {
     if (message !== undefined) output.write(`${message}\n`);
   };
   onLines(input, (line) => {
     if (line.trim().length === 0) return;
     const id = requestIdOf(line);
-    relay(configPath, line).then(
+    relay(configPath, line, sessionId).then(
       (answer) => write(answerLine(id, answer)),
       (error: unknown) => {
         if (id === undefined) return;

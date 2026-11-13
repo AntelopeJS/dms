@@ -190,7 +190,7 @@ const configureProject = defineTool({
     "Edits antelope.config.ts in one step: adds modules (AddModule), merges into existing ones (ConfigureModule: config, importOverrides pins and connections, exportPriority, env variable names) and scaffolds local modules (CreateLocalModule). Every step is validated before anything is written, and a refused step writes nothing. The user always approves the change, shown as a diff. A restart is needed before new modules load. It never raises an external connection's access: a step that sets `config.externalConnections.<id>.access` to `read-write` where the module's entry in antelope.config.ts does not already hold the literal string `read-write`, to anything else but `read`, supplies it from a variable, or rebinds a variable `envOverrides` maps to it, is refused. Keeping, lowering or removing an access works, so restate the connections you do not change. A person grants writes in the Database module's Data browser or the assistant's connect step.",
   effect: "project",
   input: z.object({ steps: z.array(STEP).min(1) }),
-  async run({ steps }) {
+  async run({ steps }, sessionId) {
     const { raisedAccessRefusal } =
       await import("../../implementations/dms-builder/engine");
     const raised = raisedAccessRefusal(steps);
@@ -203,7 +203,7 @@ const configureProject = defineTool({
       diff,
     }));
     return (
-      repeatConfirmation.hold("builder_configure_project", {
+      repeatConfirmation.hold(sessionId, "builder_configure_project", {
         steps,
         plannedChanges,
       }) ?? opResult(await ConfigureProject(steps))
@@ -240,14 +240,14 @@ const mapResources = defineTool({
       )
       .optional(),
   }),
-  async run(input) {
+  async run(input, sessionId) {
     const preview = await PreviewMapResources(input);
     if (!preview.ok) return opResult(preview);
     const { pagesToRemove } = preview.data;
     const held =
       pagesToRemove.length === 0
         ? undefined
-        : repeatConfirmation.hold("builder_map_resources", {
+        : repeatConfirmation.hold(sessionId, "builder_map_resources", {
             ...input,
             pagesToRemove,
           });
