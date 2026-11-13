@@ -21,14 +21,25 @@ export const BUILDER_CODE_INTERFACES = {
 } satisfies Record<string, string>;
 /**
  * The build tooling a module needs, at these ranges when the project does not declare its own.
- * TypeScript stays at this range for a module given the builder's default compiler options, which
- * an older compiler refuses.
+ * TypeScript always stays at this range: a module compiles `commonjs` with `bundler` resolution,
+ * which an older compiler refuses.
  */
 const DEFAULT_TOOLING = {
   typescript: "^6.0.3",
   rimraf: "^6.1.3",
   "@types/node": "^24.0.0",
 } satisfies Record<string, string>;
+/**
+ * The project's compiler options a module leaves out: each stops the emit, or refuses or breaks it
+ * once the module compiles to CommonJS in `dist`.
+ */
+const NON_EMITTING_OPTIONS = new Set([
+  "noEmit",
+  "emitDeclarationOnly",
+  "outFile",
+  "allowImportingTsExtensions",
+  "verbatimModuleSyntax",
+]);
 const ENTRY_TEXT =
   "export function construct(): void {}\n\nexport async function start(): Promise<void> {}\n";
 
@@ -132,14 +143,11 @@ function manifestText(
   id: string,
   project: PackageManifest,
   connection: string | undefined,
-  defaultOptions: boolean,
 ): string {
   const all = Object.assign({}, project.devDependencies, project.dependencies);
   const tooling = picked(
     all,
-    (name) =>
-      Object.hasOwn(DEFAULT_TOOLING, name) &&
-      !(defaultOptions && name === "typescript"),
+    (name) => Object.hasOwn(DEFAULT_TOOLING, name) && name !== "typescript",
   );
   const manifest = {
     name: id,
@@ -163,12 +171,18 @@ function manifestText(
 }
 
 /**
- * The project's compiler options, so the module compiles as the project does. An incremental
- * build keeps its state in `dist`, which the module's build deletes: state left outside would
- * claim the emit is current once `dist` is gone.
+ * The project's compiler options that do not stop or break a CommonJS emit, so the module compiles
+ * as the project does yet core can load what its build writes, whatever the project compiles to or
+ * whether it emits at all. An incremental build keeps its state in `dist`, which the module's build
+ * deletes: state left outside would claim the emit is current once `dist` is gone.
  */
 function tsconfigText(project: TsConfig): string {
-  const compilerOptions = Object.assign({}, project.compilerOptions, {
+  const kept = Object.entries(project.compilerOptions ?? {}).filter(
+    ([name]) => !NON_EMITTING_OPTIONS.has(name),
+  );
+  const compilerOptions = Object.assign(Object.fromEntries(kept), {
+    module: "commonjs",
+    moduleResolution: "bundler",
     rootDir: "src",
     outDir: "dist",
     tsBuildInfoFile: "dist/.tsbuildinfo",
@@ -193,18 +207,17 @@ export function scaffoldLocalModule(
   }
   const project =
     readJson(path.join(projectRoot, "package.json"), isPackageManifest) ?? {};
-  const own = readJson(path.join(projectRoot, "tsconfig.json"), isTsConfig);
-  const tsconfig = own ?? { compilerOptions: DEFAULT_COMPILER_OPTIONS };
+  const tsconfig = readJson(
+    path.join(projectRoot, "tsconfig.json"),
+    isTsConfig,
+  ) ?? { compilerOptions: DEFAULT_COMPILER_OPTIONS };
   return {
     id,
     root,
     entryFile: path.join(root, "src", "index.ts"),
     entryText: ENTRY_TEXT,
     files: new Map([
-      [
-        path.join(root, "package.json"),
-        manifestText(id, project, connection, own === undefined),
-      ],
+      [path.join(root, "package.json"), manifestText(id, project, connection)],
       [path.join(root, "tsconfig.json"), tsconfigText(tsconfig)],
     ]),
     source: localSource(root),
