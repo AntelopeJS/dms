@@ -12,9 +12,7 @@ import {
   inject,
   nextTick,
   ref,
-  shallowRef,
   Suspense,
-  watch,
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -80,8 +78,6 @@ describe("a disabled relation field", () => {
     shown = [];
     vi.stubGlobal("computed", computed);
     vi.stubGlobal("inject", inject);
-    vi.stubGlobal("shallowRef", shallowRef);
-    vi.stubGlobal("watch", watch);
     vi.stubGlobal("useI18n", () => ({ t: String, locale: ref("en-GB") }));
     vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
     vi.stubGlobal("useDataTypes", () => ({

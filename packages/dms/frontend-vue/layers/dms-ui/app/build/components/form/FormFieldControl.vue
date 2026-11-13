@@ -13,10 +13,7 @@ import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
 import DmsFormErrorText from "./FormErrorText.vue";
 import DmsFormFieldNotes from "./FormFieldNotes.vue";
 import { readonlyFieldValue } from "../../composables/form/readonlyValue";
-import {
-  declaredOffer,
-  loadDeclaredProps,
-} from "../../composables/form/fieldComponentProps";
+import { useDeclaredFieldProps } from "../../composables/form/fieldComponentProps";
 
 interface FormFieldControlProps {
   field: FormField;
@@ -73,27 +70,15 @@ const readonly = computed<FormFieldReadonly>(() =>
 );
 
 const rendered = computed(() => (showsDisplay.value ? null : component.value));
-const declared = shallowRef(await loadDeclaredProps(rendered.value));
-watch(rendered, async (next, _previous, onCleanup) => {
-  let replaced = false;
-  onCleanup(() => {
-    replaced = true;
-  });
-  const loaded = await loadDeclaredProps(next);
-  if (!replaced) declared.value = loaded;
-});
-const isReady = computed(() => declared.value.component === rendered.value);
+const { isReady, offer } = await useDeclaredFieldProps(rendered);
 const offered = computed(() =>
-  declaredOffer(
-    {
-      initialValue: initialValues.value?.[props.field.id],
-      loading: loading.value,
-      componentId: context.componentId,
-      pageId: context.pageId,
-      routeParams: context.routeParams,
-    },
-    declared.value.names,
-  ),
+  offer({
+    initialValue: initialValues.value?.[props.field.id],
+    loading: loading.value,
+    componentId: context.componentId,
+    pageId: context.pageId,
+    routeParams: context.routeParams,
+  }),
 );
 </script>
 
