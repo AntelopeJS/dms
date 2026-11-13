@@ -29,8 +29,8 @@ import type {
 import { categoryOwnPermissionId } from "./category-permission";
 import { opensToMembers } from "./member-access";
 import { ROOT_SLUG } from "./types";
-// oxlint-disable-next-line import/no-cycle -- Category proxies and isInsideModule are read inside functions, after module evaluation.
-import { internal, isInsideModule } from "../categories";
+// oxlint-disable-next-line import/no-cycle -- Category proxies and isOwnerOnly are read inside functions, after module evaluation.
+import { internal, isOwnerOnly } from "../categories";
 
 /** Whether a category names its controller class rather than its CategoryInfo. */
 const isControllerClass = (
@@ -231,6 +231,7 @@ export function createCategoryFunction(
     bypassTenantAccessGate:
       effectiveOptions.bypassTenantAccessGate ||
       resolvedCategory?.bypassTenantAccessGate,
+    ownerOnly: effectiveOptions.ownerOnly || resolvedCategory?.ownerOnly,
   };
 
   internal.RegisterCategory.register(categoryInfo);
@@ -242,7 +243,7 @@ export function createCategoryFunction(
       categoryInfo.publicAccess || opensToMembers(categoryInfo.memberAccess),
     ...ownPermission(categoryInfo.permission),
   };
-  if (isInsideModule(categoryInfo)) {
+  if (isOwnerOnly(categoryInfo)) {
     MarkModuleScopedPermission(categoryOwnPermissionId(categoryInfo));
   } else if (!(categoryInfo.permission instanceof Action)) {
     RegisterPermission(categoryPermission.id, categoryPermission);

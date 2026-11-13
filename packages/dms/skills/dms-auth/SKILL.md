@@ -53,7 +53,8 @@ A page's auth comes from its `PageController` options (see **dms-pages**): `publ
 true` (no auth), `authOnly: true` (login only), `memberAccess: true` (every signed-in member
 holds the page, its components and actions without a role grant), default (login **and** the auto-derived page
 permission), `permission: …` (a specific `Partial<Permission> | Action`),
-`noComponentPermissions: true` (skip per-component permission derivation). Routes under a
+`noComponentPermissions: true` (skip per-component permission derivation), `ownerOnly: true`
+(platform owner only, as a module page: never grantable, absent from Roles). Routes under a
 controller that a page or `DataController` wraps **inherit** its auth — don't re-add login
 checks; only add finer ones (ownership, a specific permission).
 
