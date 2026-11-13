@@ -2,6 +2,7 @@ import { shallowRef, type Ref } from "vue";
 import type {
   MockupAssistantPromptBlock,
   MockupAssistantPromptSource,
+  MockupAssistantPromptTarget,
 } from "../../../utils/mockupAssistant";
 import { dispatchMockupAssistantPrompt } from "../../utils/mockupHandoff";
 
@@ -12,7 +13,7 @@ export type MockupHandoffRequest =
       prompt: string;
       block: MockupAssistantPromptBlock;
     }
-  | { source: "build" };
+  | { source: "build"; target?: MockupAssistantPromptTarget };
 
 /** The request the developer copies when no assistant claimed it. */
 export interface MockupHandoff {
@@ -25,11 +26,15 @@ export interface MockupHandoff {
  * Hands requests to the DMS assistant: each one is dispatched as a
  * `dms:assistant-prompt` event, and when nobody claims it, the copy modal
  * opens with what the developer would type into their own AI tool. A build
- * hands the assistant the mockup's name alone; its copy is the full command.
+ * hands the assistant the mockup's name, and the live page it updates when
+ * the mockup page was converted from one; its copy is the full command.
  */
 export function useMockupHandoff(options: {
   mockup: string;
-  buildCommand: (mockup: string) => string;
+  buildCommand: (
+    mockup: string,
+    target: MockupAssistantPromptTarget | undefined,
+  ) => string;
 }): MockupHandoff {
   const fallback = shallowRef<string>();
 
@@ -39,6 +44,7 @@ export function useMockupHandoff(options: {
         ? dispatchMockupAssistantPrompt({
             prompt: options.mockup,
             source: "build",
+            ...(next.target && { target: next.target }),
           })
         : dispatchMockupAssistantPrompt({
             prompt: next.prompt,
@@ -48,7 +54,7 @@ export function useMockupHandoff(options: {
     if (isClaimed) return;
     fallback.value =
       next.source === "build"
-        ? options.buildCommand(options.mockup)
+        ? options.buildCommand(options.mockup, next.target)
         : next.prompt;
   }
 
