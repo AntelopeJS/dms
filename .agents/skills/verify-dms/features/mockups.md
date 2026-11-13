@@ -7,6 +7,7 @@ covers:
   - packages/dms/src/mcp/tools/mockup*.ts
 docs:
   - packages/dms/docs/08.ai-and-claude-code/9.mockups.md
+  - packages/dms/docs/08.ai-and-claude-code/11.mockup-annotations.md
 ---
 
 # Mockups
