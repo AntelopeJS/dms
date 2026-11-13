@@ -12,6 +12,7 @@ const pushed: string[] = [];
 const posted: Array<Record<string, unknown>> = [];
 const toasts: Toast[] = [];
 const presented: unknown[] = [];
+const fallbackKeys: string[] = [];
 let answers: unknown[] = [];
 
 const MATCHED = new Set([
@@ -65,13 +66,17 @@ beforeEach(() => {
     add: (toast: Toast) => toasts.push(toast),
   }));
   vi.stubGlobal("useApiErrorPresenter", () => ({
-    presentError: (error: unknown) => presented.push(error),
+    presentError: (error: unknown, options: { fallbackKey: string }) => {
+      presented.push(error);
+      fallbackKeys.push(options.fallbackKey);
+    },
   }));
   route.path = "/books";
   pushed.length = 0;
   posted.length = 0;
   toasts.length = 0;
   presented.length = 0;
+  fallbackKeys.length = 0;
   answers = [];
 });
 
@@ -164,6 +169,28 @@ describe("Edit as mockup header action", () => {
     await flush();
 
     expect(presented).toHaveLength(1);
+    expect(pushed).toEqual([]);
+    expect(fallbackKeys).toEqual(["editAsMockup.failed"]);
+  });
+
+  it("says the mockup changed while converting when the backend answers 409, on the plain error and on a response-wrapped one (fails when a conflict reads as could not be opened)", async () => {
+    answers = [
+      Object.assign(new Error("409 conflict"), { statusCode: 409 }),
+      Object.assign(new Error("409 conflict"), { response: { status: 409 } }),
+      Object.assign(new Error("422 invalid"), { statusCode: 422 }),
+    ];
+
+    const attempts = answers.length;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      action().onSelect?.();
+      await flush();
+    }
+
+    expect(fallbackKeys).toEqual([
+      "editAsMockup.conflict",
+      "editAsMockup.conflict",
+      "editAsMockup.failed",
+    ]);
     expect(pushed).toEqual([]);
   });
 });

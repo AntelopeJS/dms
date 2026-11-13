@@ -1,4 +1,9 @@
-import { isBoolean, isObject, isString } from "#dms-core/app/utils/type-check";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "#dms-core/app/utils/type-check";
 
 export const EDIT_AS_MOCKUP_ACTION_ID = "dms-edit-as-mockup";
 
@@ -6,6 +11,7 @@ export const EDIT_AS_MOCKUP_ACTION_ID = "dms-edit-as-mockup";
 export const EDIT_AS_MOCKUP_ORDER = 89;
 
 const FROM_PAGE_ENDPOINT = "/api/mockup/from-page";
+const HTTP_CONFLICT = 409;
 
 /** The stale warning stays until closed: it is the only sign the mockup is behind its page. */
 const STALE_TOAST_DURATION_MS = 60 * 60 * 1000;
@@ -32,6 +38,16 @@ function parseFromPageAnswer(
     stale: isBoolean(stale) && stale,
     digest: isString(digest) ? digest : undefined,
   };
+}
+
+/** Whether the backend refused because the mockup's spec changed since it was read. */
+function isConflict(error: Parameters<typeof isObject>[0]): boolean {
+  if (!isObject(error) || error === null) return false;
+  const response = isObject(error.response) ? error.response : {};
+  return (
+    [error.status, error.statusCode, response.status].find(isNumber) ===
+    HTTP_CONFLICT
+  );
 }
 
 function isDevToolPath(path: string): boolean {
@@ -85,7 +101,11 @@ export default defineDmsPlugin(() => {
         ],
       });
     } catch (error) {
-      presentError(error, { fallbackKey: "editAsMockup.failed" });
+      presentError(error, {
+        fallbackKey: isConflict(error)
+          ? "editAsMockup.conflict"
+          : "editAsMockup.failed",
+      });
     }
   }
 
