@@ -4,7 +4,11 @@ import { type JwtPayload, verify } from "jsonwebtoken";
 import { getAuthConfig } from "../../config";
 
 const SECRET_VERSION = 1;
-const UNKNOWN_USER_AUTH_KEY = "unknown-user";
+/**
+ * The `authKey` {@link verifyTokenFor} verifies against when no user matched.
+ * A token signed with it is still refused, since it names no user.
+ */
+export const UNKNOWN_USER_AUTH_KEY = "unknown-user";
 
 /**
  * The secret a user's tokens are signed with: the instance secret mixed with

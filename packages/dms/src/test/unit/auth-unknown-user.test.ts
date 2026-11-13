@@ -3,6 +3,7 @@ import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
 import {
   internal,
+  validateRefreshToken,
   validateTenantAssignmentToken,
   validateTwoFactorToken,
 } from "../../implementations/dms-auth";
@@ -10,12 +11,50 @@ import { validateSessionHandoffToken } from "../../implementations/dms-auth/serv
 import {
   forge,
   HTTP_UNAUTHORIZED,
+  hmacsDuring,
   insertTokenUser,
   refusalOf,
   sessionLookupsDuring,
   signFor,
+  signForUnknownUser,
   UNKNOWN_USER_ID,
 } from "../helpers/forged-tokens";
+
+const TOKEN_CHECKS: {
+  purpose: string;
+  check: (token: string) => Promise<void>;
+}[] = [
+  {
+    purpose: "access",
+    check: async (token) => {
+      await internal.AuthUserValidator(internal.AuthUserAuthenticator(token));
+    },
+  },
+  {
+    purpose: "refresh",
+    check: async (token) => {
+      await validateRefreshToken(token);
+    },
+  },
+  {
+    purpose: "2fa",
+    check: async (token) => {
+      await validateTwoFactorToken(token);
+    },
+  },
+  {
+    purpose: "tenant-assignment",
+    check: async (token) => {
+      await validateTenantAssignmentToken(token);
+    },
+  },
+  {
+    purpose: "session-handoff",
+    check: async (token) => {
+      await validateSessionHandoffToken(token);
+    },
+  },
+];
 
 describe("[unit] auth tokens naming an unknown user", () => {
   let user: User;
@@ -28,25 +67,40 @@ describe("[unit] auth tokens naming an unknown user", () => {
     if (user) await GetModel(UserModel).delete(user._id);
   });
 
-  it("answers a forged two-factor, tenant-assignment or handoff token the same whether its id names a user or not", async () => {
-    const validators: {
-      purpose: string;
-      validate: (token: string) => Promise<{ user: User }>;
-    }[] = [
-      { purpose: "2fa", validate: validateTwoFactorToken },
-      { purpose: "tenant-assignment", validate: validateTenantAssignmentToken },
-      { purpose: "session-handoff", validate: validateSessionHandoffToken },
-    ];
-    for (const { purpose, validate } of validators) {
-      const [known, unknown] = await Promise.all(
-        [user._id, UNKNOWN_USER_ID].map((id) =>
-          refusalOf(() =>
-            validate(forge({ id, purpose, sessionId: "forged-session" })),
-          ),
-        ),
+  function forgedFor(id: string, purpose: string): string {
+    return forge({ id, purpose, sessionId: "forged-session" });
+  }
+
+  it("answers a forged token of every kind the same whether its id names a user or not", async () => {
+    for (const { purpose, check } of TOKEN_CHECKS) {
+      const known = await refusalOf(() => check(forgedFor(user._id, purpose)));
+      const unknown = await refusalOf(() =>
+        check(forgedFor(UNKNOWN_USER_ID, purpose)),
       );
       expect(known.status, purpose).to.equal(HTTP_UNAUTHORIZED);
       expect(known, purpose).to.deep.equal(unknown);
+    }
+  });
+
+  it("computes as many HMACs refusing a forged token whether its id names a user or not", async () => {
+    for (const { purpose, check } of TOKEN_CHECKS) {
+      const known = await hmacsDuring(async () => {
+        await refusalOf(() => check(forgedFor(user._id, purpose)));
+      });
+      const unknown = await hmacsDuring(async () => {
+        await refusalOf(() => check(forgedFor(UNKNOWN_USER_ID, purpose)));
+      });
+      expect(known, purpose).to.be.above(0);
+      expect(unknown, purpose).to.equal(known);
+    }
+  });
+
+  it("refuses a token of every kind signed with the key verified for an unknown id", async () => {
+    for (const { purpose, check } of TOKEN_CHECKS) {
+      const refusal = await refusalOf(() =>
+        check(signForUnknownUser({ purpose, sessionId: "forged-session" })),
+      );
+      expect(refusal.status, purpose).to.equal(HTTP_UNAUTHORIZED);
     }
   });
 

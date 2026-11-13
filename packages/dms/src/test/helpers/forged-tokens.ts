@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import crypto, { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
@@ -8,7 +8,10 @@ import {
 } from "@antelopejs/interface-dms/auth/db";
 import { assert, expect } from "chai";
 import { type JwtPayload, sign } from "jsonwebtoken";
-import { generateSecret } from "../../implementations/dms-auth/services";
+import {
+  generateSecret,
+  UNKNOWN_USER_AUTH_KEY,
+} from "../../implementations/dms-auth/services";
 
 const TENANT_ID = "forged-claims-tenant";
 
@@ -53,6 +56,14 @@ export function signFor(user: User, claims: JwtPayload): string {
   );
 }
 
+/** A token carrying `claims`, signed with the key verified when no user matched. */
+export function signForUnknownUser(claims: JwtPayload): string {
+  return sign(
+    { id: UNKNOWN_USER_ID, tenantId: TENANT_ID, ...claims },
+    generateSecret(UNKNOWN_USER_AUTH_KEY),
+  );
+}
+
 /** Stores a validated owner for token tests to name. */
 export async function insertTokenUser(): Promise<User> {
   const model = GetModel(UserModel);
@@ -69,6 +80,26 @@ export async function insertTokenUser(): Promise<User> {
   const created = await model.get(id);
   if (!created) throw new Error("Failed to create forged-claims user");
   return created;
+}
+
+/** How many HMACs `run` computed: the work verifying a token costs. */
+export async function hmacsDuring(run: () => Promise<void>): Promise<number> {
+  const createHmac = crypto.createHmac;
+  let count = 0;
+  Reflect.set(
+    crypto,
+    "createHmac",
+    (...args: Parameters<typeof createHmac>) => {
+      count++;
+      return createHmac(...args);
+    },
+  );
+  try {
+    await run();
+  } finally {
+    Reflect.set(crypto, "createHmac", createHmac);
+  }
+  return count;
 }
 
 /** The ids every session lookup asked for while `run` ran. */
