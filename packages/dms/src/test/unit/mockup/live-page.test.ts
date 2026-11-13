@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect } from "chai";
@@ -147,6 +154,74 @@ describe("[unit] mockup of a live page, opened twice", () => {
 
     expect(answer).to.deep.include({ ok: false, error: "conflict" });
     expect(await specText("books")).to.equal(before);
+  });
+
+  describe("after a hand edit that breaks the schema", () => {
+    const name = mockupNameSchema.parse("books");
+
+    async function breakSpec(): Promise<string> {
+      await open({ pageRef: "/books" });
+      const spec = await specOf("books");
+      const unknownKey = {
+        type: "KpiCard",
+        options: { title: "Extra" },
+        note: "work in progress",
+      };
+      await writeFile(
+        join(mockupsDir, "books", "spec.json"),
+        JSON.stringify({
+          ...spec,
+          pages: spec.pages.map((page) => ({
+            ...page,
+            tree: [...page.tree, unknownKey],
+          })),
+        }),
+      );
+      return specText("books");
+    }
+
+    it("reopens the mockup the page is linked to, never a <name>-2 beside it", async () => {
+      const broken = await breakSpec();
+      expect(specSchema.safeParse(JSON.parse(broken)).success).to.equal(false);
+
+      const answer = await open({ pageRef: "/books" });
+
+      expect(answer).to.deep.include({
+        ok: true,
+        outcome: "reopened",
+        mockup: "books",
+        page: "books",
+        stale: false,
+        digest: (await readSpecSource(mockupsDir, name))?.digest,
+      });
+      expect(await readdir(mockupsDir)).to.deep.equal(["books"]);
+      expect(await specText("books")).to.equal(broken);
+    });
+
+    it("still says the page changed, from the version the file records", async () => {
+      await breakSpec();
+      const changed = stubPages([
+        structureOf("/books", BLOCKS, "fedcba9876543210"),
+      ]);
+
+      const answer = await open({ pageRef: "/books" }, changed);
+
+      expect(answer).to.deep.include({ outcome: "reopened", stale: true });
+    });
+
+    it("refuses a replace with invalid, writing nothing, so the hand edit is not lost", async () => {
+      const broken = await breakSpec();
+      const read = await readSpecSource(mockupsDir, name);
+
+      const answer = await open({ pageRef: "/books" }, undefined, {
+        replace: true,
+        digest: read?.digest,
+      });
+
+      expect(answer).to.deep.include({ ok: false, error: "invalid" });
+      expect(await readdir(mockupsDir)).to.deep.equal(["books"]);
+      expect(await specText("books")).to.equal(broken);
+    });
   });
 
   it("never takes a hand-made mockup of that name: it creates <name>-2 and leaves the other alone", async () => {

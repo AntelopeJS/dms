@@ -7,6 +7,7 @@ import {
   type PageSummary,
   type ResourceStructure,
 } from "@antelopejs/interface-dms-builder";
+import { z } from "zod";
 import { openOracle } from "./compile";
 import {
   collectControllers,
@@ -15,6 +16,7 @@ import {
   slugOf,
 } from "./from-page";
 import type {
+  JsonObject,
   MockupIssue,
   MockupName,
   MockupSpec,
@@ -72,17 +74,27 @@ export type EditAsMockupAnswer =
 
 type Failure = Extract<EditAsMockupAnswer, { ok: false }>;
 
-type Slot =
-  | { kind: "free"; name: MockupName }
-  | {
-      kind: "linked";
-      name: MockupName;
-      spec: MockupSpec;
-      index: number;
-      digest: SpecDigest;
-    };
+type LinkedSlot = {
+  kind: "linked";
+  name: MockupName;
+  /** The id and version the page records, read from `spec.json` as written. */
+  page: { id: string; version: string };
+  /** Undefined when `spec.json` no longer passes the schema. */
+  spec: MockupSpec | undefined;
+  /** The page's place in `pages`, in the file and in `spec` alike. */
+  index: number;
+  digest: SpecDigest;
+};
+
+type Slot = { kind: "free"; name: MockupName } | LinkedSlot;
 
 const MAX_SUFFIX = 99;
+
+const specPagesSchema = z.object({ pages: z.array(z.unknown()) });
+const linkedPageSchema = z.object({
+  id: z.string(),
+  livePage: z.object({ ref: z.string(), version: z.string() }),
+});
 
 function failure(
   error: Failure["error"],
@@ -131,9 +143,28 @@ function mockupUrl(name: MockupName, page: string): string {
 }
 
 /**
+ * The page of `spec` converted from `ref`, read loosely: a hand edit that
+ * breaks the schema elsewhere in the file does not unlink it.
+ */
+function linkedPageOf(
+  spec: JsonObject | undefined,
+  ref: string,
+): { index: number; id: string; version: string } | undefined {
+  const read = specPagesSchema.safeParse(spec);
+  if (!read.success) return undefined;
+  for (const [index, entry] of read.data.pages.entries()) {
+    const page = linkedPageSchema.safeParse(entry);
+    if (page.success && page.data.livePage.ref === ref) {
+      return { index, id: page.data.id, version: page.data.livePage.version };
+    }
+  }
+  return undefined;
+}
+
+/**
  * The mockup of `ref`: under its slug, or the first `-2`, `-3`... that is
- * free or already holds a page converted from `ref`. A mockup made by hand,
- * or from another page, is never taken.
+ * free or already holds a page converted from `ref`, valid or not. A mockup
+ * made by hand, or from another page, is never taken.
  */
 async function slotFor(mockupsDir: string, ref: string): Promise<Slot> {
   const base = slugOf(ref);
@@ -142,16 +173,15 @@ async function slotFor(mockupsDir: string, ref: string): Promise<Slot> {
     if (!name) continue;
     const source = await readSpecSource(mockupsDir, name);
     if (!source) return { kind: "free", name };
-    const spec = specSchema.safeParse(source.spec);
-    const index = spec.success
-      ? spec.data.pages.findIndex((page) => page.livePage?.ref === ref)
-      : -1;
-    if (spec.success && index !== -1) {
+    const linked = linkedPageOf(source.spec, ref);
+    if (linked) {
+      const spec = specSchema.safeParse(source.spec);
       return {
         kind: "linked",
         name,
-        spec: spec.data,
-        index,
+        page: { id: linked.id, version: linked.version },
+        spec: spec.success ? spec.data : undefined,
+        index: linked.index,
         digest: source.digest,
       };
     }
@@ -171,18 +201,38 @@ async function readResources(
   );
 }
 
+/** The spec a replace converts over, and the place of the page in it. */
+type Replaced = { spec: MockupSpec; index: number };
+
+/** Whether a replace may write over the linked mockup, or why it may not. */
+function replaceable(
+  slot: LinkedSlot,
+  digest: SpecDigest | undefined,
+): Replaced | Failure {
+  if (!slot.spec) {
+    return failure(
+      "invalid",
+      "spec.json has issues: fix them before converting the page again",
+    );
+  }
+  if (digest !== undefined && digest !== slot.digest) {
+    return failure("conflict", "spec.json changed since it was read");
+  }
+  return { spec: slot.spec, index: slot.index };
+}
+
 function specWith(
-  slot: Slot,
+  replaced: Replaced | undefined,
   structure: PageStructure,
   page: MockupSpecPage,
 ): MockupSpec {
-  if (slot.kind === "free") {
+  if (!replaced) {
     return { version: 1, title: structure.page.displayName, pages: [page] };
   }
-  const pages = slot.spec.pages.map((existing, index) =>
-    index === slot.index ? page : existing,
+  const pages = replaced.spec.pages.map((existing, index) =>
+    index === replaced.index ? page : existing,
   );
-  return { ...slot.spec, pages };
+  return { ...replaced.spec, pages };
 }
 
 async function readStructure(
@@ -224,31 +274,24 @@ export async function editPageAsMockup(
   const structure = await readStructure(target, pages);
   if ("ok" in structure) return structure;
   const slot = await slotFor(mockupsDir, structure.page.ref);
-  const pageId =
-    slot.kind === "linked" ? slot.spec.pages[slot.index].id : slot.name;
+  const pageId = slot.kind === "linked" ? slot.page.id : slot.name;
   const opened = {
     mockup: slot.name,
     page: pageId,
     url: mockupUrl(slot.name, pageId),
   };
   if (slot.kind === "linked" && !options.replace) {
-    const stale =
-      slot.spec.pages[slot.index].livePage?.version !== structure.version;
     return {
       ok: true,
       outcome: "reopened",
-      stale,
+      stale: slot.page.version !== structure.version,
       digest: slot.digest,
       ...opened,
     };
   }
-  if (
-    slot.kind === "linked" &&
-    options.digest !== undefined &&
-    options.digest !== slot.digest
-  ) {
-    return failure("conflict", "spec.json changed since it was read");
-  }
+  const replaced =
+    slot.kind === "linked" ? replaceable(slot, options.digest) : undefined;
+  if (replaced && "ok" in replaced) return replaced;
   const resources = await readResources(
     collectControllers(structure.blocks),
     pages,
@@ -257,7 +300,7 @@ export async function editPageAsMockup(
     oracle: openOracle(slot.name, pageId),
     resources,
   });
-  const spec = specWith(slot, structure, converted.page);
+  const spec = specWith(replaced, structure, converted.page);
   const written = await writeSpec(mockupsDir, slot.name, spec);
   if (!written.ok) {
     return failure("invalid", "the converted spec has issues", written.errors);
