@@ -1,4 +1,7 @@
-import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
+import type {
+  AttachmentField,
+  AttachmentSaveResult,
+} from "@antelopejs/interface-dms/attachments";
 import { ownValue } from "../utils/own-value";
 
 export interface AttachmentReference {
@@ -12,8 +15,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function collectAttachments(
   fields: AttachmentField[],
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published AttachmentSaveRequest.submitted and before and AttachmentSaveResult.document hold whichever table's request body or stored fields, read here by its file column keys.
-  document: Record<string, unknown>,
+  document: AttachmentSaveResult<unknown>["document"],
 ): AttachmentReference[] {
   return fields.flatMap((field) => {
     const keys = new Set<string>();

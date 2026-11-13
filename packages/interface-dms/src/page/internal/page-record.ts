@@ -24,8 +24,7 @@ const isRecordNode = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object";
 
 function leafAt(
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The record the page's loader read (the published PageRecordLoader and ComponentFilterContext.record), keyed by that page's data and read by the {{record.X}} paths its author writes.
-  record: Readonly<Record<string, unknown>>,
+  record: NonNullable<PageRecordRead["record"]>,
   path: string,
 ): string | number | undefined {
   const value = path
@@ -89,8 +88,7 @@ function isRecordBound(button: PageHeaderButtonDeclared): boolean {
  */
 function fillRecordTokens(
   url: string,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The record the page's loader read (the published PageRecordLoader and ComponentFilterContext.record), keyed by that page's data and read by the {{record.X}} paths its author writes.
-  record: Readonly<Record<string, unknown>>,
+  record: NonNullable<PageRecordRead["record"]>,
 ): string {
   return url.replace(RECORD_TOKEN, (match, path: string) => {
     const value = leafAt(record, path);

@@ -154,8 +154,7 @@ async function promoteReferences(
 
 async function cleanRemoved(
   request: AttachmentSaveRequest,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The document the save callback answers, the published AttachmentSaveResult.document, holds whichever table's stored fields, read here by its file column keys.
-  document: Record<string, unknown>,
+  document: AttachmentSaveResult<unknown>["document"],
 ) {
   const after = collectAttachments(request.fields, document);
   for (const ref of collectAttachments(request.fields, request.before)) {
@@ -206,8 +205,9 @@ function assertBodyDepth(request: AttachmentSaveRequest): void {
  */
 export async function SaveComponentFiles<T>(
   request: AttachmentSaveRequest,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- SaveComponentFiles implements the published AttachmentSaver, whose save callback takes the promoted document as Record<string, unknown>: whichever table's request body fields.
-  save: (document: Record<string, unknown>) => Promise<AttachmentSaveResult<T>>,
+  save: (
+    promoted: AttachmentSaveRequest["submitted"],
+  ) => Promise<AttachmentSaveResult<T>>,
 ): Promise<T> {
   assertBodyDepth(request);
   const refs = await prepareReferences(request);
