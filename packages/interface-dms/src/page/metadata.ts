@@ -19,14 +19,15 @@ import {
   type PageLayout,
   type PageLayoutRequest,
 } from "./types";
-// oxlint-disable-next-line import/no-cycle -- Category proxies are read after evaluation.
 import * as metadata from "./internal/metadata-lifecycle";
+import { installPageMetadata } from "./internal/category-resolution";
 import { isObject } from "../utils/internal/type-check";
 
 export class PageMetadata {
   public static key = Symbol();
 
   static {
+    installPageMetadata(PageMetadata);
     metadata.installMetadataOwner((page) => ({
       get registration() {
         return page.registration;

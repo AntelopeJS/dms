@@ -16,8 +16,7 @@ import type {
   PageExtensionInfo,
   PageInfo,
 } from "./types";
-// oxlint-disable-next-line import/no-cycle -- Category creation registers through these proxies; resolveCategoryInfo is called only after module evaluation.
-import { resolveCategoryInfo } from "./internal/categories";
+import { resolveCategoryInfo } from "./internal/category-resolution";
 
 /**
  * A registration proxy that accepts a per-context view of its entries.
