@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createI18n } from "vue-i18n";
 import type { DmsMiddleware, DmsRoute } from "#dms/frontend-module";
 
 const pageError: { value: { statusCode: number } | null } = { value: null };
@@ -22,6 +23,7 @@ afterEach(() => {
   pageError.value = null;
   navigateDms.mockReset();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 async function loadMiddleware(): Promise<DmsMiddleware> {
@@ -68,6 +70,28 @@ describe("auth middleware", () => {
     expect(toast.add).toHaveBeenCalledWith(
       expect.objectContaining({ title: "error.500.description" }),
     );
+    expect(navigateDms).not.toHaveBeenCalled();
+  });
+
+  it("lets the signed-in user through a failed permission load during SSR without a loaded catalog", async () => {
+    vi.stubEnv("SSR", true);
+    vi.stubGlobal("getPluginI18n", () => ({
+      i18n: createI18n({ legacy: false, locale: "en", messages: { en: {} } })
+        .global,
+    }));
+    vi.stubGlobal("useDmsRuntimeConfig", () => ({ public: { dms: {} } }));
+    vi.stubGlobal("useDmsUserSession", () => ({
+      loggedIn: { value: true },
+      user: { value: { isValidated: true } },
+    }));
+    vi.stubGlobal("usePermissions", () => ({
+      loadPermissions: () => Promise.reject(new Error("unreachable")),
+    }));
+    const middleware = await loadMiddleware();
+
+    await expect(
+      middleware(privateRoute, privateRoute),
+    ).resolves.toBeUndefined();
     expect(navigateDms).not.toHaveBeenCalled();
   });
 

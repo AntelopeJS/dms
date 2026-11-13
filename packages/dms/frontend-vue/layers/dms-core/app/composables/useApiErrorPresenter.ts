@@ -117,9 +117,9 @@ export function useApiErrorPresenter(): ApiErrorPresenter {
   }
 
   function presentError(error: unknown, options: PresentApiErrorOptions): void {
+    if (import.meta.env.SSR) return;
     const failure = decodeApiFailure(error);
     const notice = noticeOf(failure, options);
-    if (import.meta.env.SSR) return;
     const replacement = options.replaceToastId;
     const identity = failure.identity;
     if (!notice || (identity && presented.value.has(identity))) {

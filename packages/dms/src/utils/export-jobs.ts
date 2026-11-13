@@ -124,20 +124,32 @@ function buildDeliveryLink(exportRecord: ExportJob): string {
   return `${baseUrl}${exportRecord.deliveryPath}?${EXPORT_JOB_QUERY_PARAM}=${exportRecord._id}`;
 }
 
+const ExportJobFailureSchema = z
+  .object({ source: z.string(), error: z.string().catch("") })
+  .passthrough();
+
 const ExportJobResultSummarySchema = z
   .object({
-    partial: z.boolean().default(false),
-    failures: z
-      .array(z.object({ source: z.string(), error: z.string() }).passthrough())
-      .default([]),
+    partial: z.boolean().catch(false),
+    failures: z.array(z.unknown()).catch([]),
   })
-  .passthrough();
+  .passthrough()
+  .transform(({ partial, failures, ...rest }) => ({
+    ...rest,
+    partial: partial || failures.length > 0,
+    failures: failures.flatMap((failure) => {
+      const parsed = ExportJobFailureSchema.safeParse(failure);
+      return parsed.success ? [parsed.data] : [];
+    }),
+  }));
 
 /**
  * The summary `markAsCompleted` stored for the job, as the `generate` of its
- * export returned it. A summary that omits `partial` reads as complete, and
- * one that omits `failures` as naming none. `undefined` when the job stored
- * none, or stored a value that is not a summary.
+ * export returned it. A summary that names a failure reads as partial, even
+ * when its `partial` is missing or not a boolean; one that names none and
+ * omits `partial` reads as complete. Its `failures` keep each entry with a
+ * string `source`, an `error` that is not a string read as empty. `undefined`
+ * when the job stored none, or stored a value that is not an object.
  */
 export function readJobResult(
   exportRecord: ExportJob,
