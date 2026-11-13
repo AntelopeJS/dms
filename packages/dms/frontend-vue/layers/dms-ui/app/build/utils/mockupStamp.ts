@@ -106,9 +106,9 @@ function matchedIds(
  * The history with the ids `file` adds to `written`, the spec the editor
  * last wrote or read, when `file` differs from it only by ids a note stamped
  * on nodes that had none; undefined otherwise. `file` takes the place of
- * `written` in the history, the present takes each id at its node's pointer,
- * and every other step takes an id where exactly one node without an id
- * equals the stamped node without it.
+ * `written` in the history, and every other step takes an id where exactly
+ * one node without an id equals the stamped node without it. The present
+ * falls back to the stamp's pointer when no node there matches.
  */
 export function stampedHistory(
   history: MockupHistory<MockupSpecDocument>,
@@ -119,12 +119,26 @@ export function stampedHistory(
   if (!stamps) return undefined;
   const step = (spec: MockupSpecDocument) =>
     spec === written ? file : withIds(spec, matchedIds(spec, stamps));
-  const atPointers = new Map(stamps.map(({ pointer, id }) => [pointer, id]));
   return {
     ...history,
     past: history.past.map(step),
     present:
-      history.present === written ? file : withIds(history.present, atPointers),
+      history.present === written
+        ? file
+        : withIds(history.present, presentIds(history.present, stamps)),
     future: history.future.map(step),
   };
+}
+
+/** Each stamp's id at the node of `present` that equals its node, else at its pointer: an edit not written yet may have moved or changed the node. */
+function presentIds(
+  present: MockupSpecDocument,
+  stamps: readonly Stamp[],
+): Map<string, string> {
+  const ids = matchedIds(present, stamps);
+  const placed = new Set(ids.values());
+  for (const { pointer, id } of stamps) {
+    if (!placed.has(id) && !ids.has(pointer)) ids.set(pointer, id);
+  }
+  return ids;
 }

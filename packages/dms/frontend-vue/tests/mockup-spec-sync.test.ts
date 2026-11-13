@@ -235,6 +235,36 @@ describe("an id a note stamped on the file", () => {
     expect(file.spec.pages[0]?.tree[0]?.id).toBe(STAMP);
   });
 
+  it("puts the id on the stamped block when a move not written yet took it from its place (fails when the spec shown takes the id at the block's old pointer)", async () => {
+    const kpi = (title: string) => ({ type: "KpiCard", options: { title } });
+    file.spec = {
+      version: 1,
+      pages: [
+        { id: "orders", title: "Orders", tree: [kpi("A"), kpi("B"), kpi("C")] },
+      ],
+    };
+    await mountEditor();
+
+    editor.apply({
+      kind: "moveNode",
+      from: "/pages/0/tree/0",
+      parent: null,
+      index: 2,
+    });
+    file.writeFromOutside(stamped(file.spec));
+    await streamSaysTheFileChanged();
+    await settle(MOCKUP_WRITE_DELAY_MS * 4);
+
+    expect(
+      file.spec.pages[0]?.tree.map((node) => [node.options?.title, node.id]),
+    ).toEqual([
+      ["B", undefined],
+      ["C", undefined],
+      ["A", STAMP],
+    ]);
+    expect(notices).toEqual([]);
+  });
+
   it("writes an edit typed after the stamp over the stamped file, keeping the id (fails when the conflict drops the edit or the id)", async () => {
     await mountEditor();
     retitle("Mine");
