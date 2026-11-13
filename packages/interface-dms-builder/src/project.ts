@@ -109,6 +109,9 @@ export interface ConfigureProjectOpts extends ProjectConfigOpts {
   /**
    * Development values of variables the steps map in their `env`, written into the project's
    * `.env` before the configuration. A variable the steps do not map is refused. Ignored on a dry run.
+   *
+   * Owner path only: the MCP tool `builder_configure_project` never passes it, so only an
+   * owner-authenticated entry writes `.env` through it.
    */
   variables?: ProjectVariable[];
 }

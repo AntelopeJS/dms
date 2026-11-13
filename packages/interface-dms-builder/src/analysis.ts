@@ -219,6 +219,8 @@ export const GetAnalysis =
 /**
  * The latest analysis of a connection: the running one, or else the last to finish. `not_found`
  * when none ran since the start.
+ *
+ * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
  */
 export const GetLatestAnalysis =
   InterfaceFunction<(connection: string) => Promise<OpResult<AnalysisState>>>();

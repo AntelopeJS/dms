@@ -140,7 +140,11 @@ export interface RowSample {
   sample: { percent: number; rows: number } | null;
 }
 
-/** The builder's catalog connections, each with its provider's `Info()` or why it did not answer. */
+/**
+ * The builder's catalog connections, each with its provider's `Info()` or why it did not answer.
+ *
+ * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
+ */
 export const ListDatabaseConnections =
   InterfaceFunction<() => Promise<CatalogConnectionEntry[]>>();
 
@@ -149,6 +153,8 @@ export const ListDatabaseConnections =
  * connection is written. In development only: elsewhere it fails with `unsupported`. An input that
  * is not an engine and a URL of that engine's scheme fails with `invalid_config`, naming the fields
  * and never their values. The engine's client package must be installed in the project.
+ *
+ * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
  */
 export const CheckDatabaseConnection =
   InterfaceFunction<
@@ -158,17 +164,27 @@ export const CheckDatabaseConnection =
 /**
  * Adds what the configuration of each connection made before the connect flow registered it with
  * dms-database is missing. Succeeds with no file when nothing is.
+ *
+ * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
  */
 export const RepairDatabaseConnections =
   InterfaceFunction<
     (opts?: ProjectConfigOpts) => Promise<OpResult<ProjectConfigResult>>
   >();
 
-/** The project's modules and the database pins connecting another database needs. */
+/**
+ * The project's modules and the database pins connecting another database needs.
+ *
+ * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
+ */
 export const GetDatabaseProject =
   InterfaceFunction<() => Promise<OpResult<DatabaseProject>>>();
 
-/** One connection's wiring and details; `not_found` when no module declares it. */
+/**
+ * One connection's wiring and details; `not_found` when no module declares it.
+ *
+ * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
+ */
 export const GetDatabaseConnection =
   InterfaceFunction<
     (connection: string) => Promise<OpResult<DatabaseConnection>>
@@ -177,6 +193,8 @@ export const GetDatabaseConnection =
 /**
  * Takes a connection out of the configuration: its catalog connections, its tables module and
  * that module's folder, and its driver when it was added for this connection alone.
+ *
+ * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
  */
 export const RemoveDatabaseConnection =
   InterfaceFunction<
@@ -189,13 +207,19 @@ export const RemoveDatabaseConnection =
 /**
  * Writes a connection's URL into the variable that supplies it. A URL with no password keeps the
  * current one. Answers the variable's name.
+ *
+ * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
  */
 export const SetDatabaseConnectionUrl =
   InterfaceFunction<
     (connection: string, url: string) => Promise<OpResult<{ variable: string }>>
   >();
 
-/** Sample rows of a relation of a catalog connection; `not_found` for an unknown connection. */
+/**
+ * Sample rows of a relation of a catalog connection; `not_found` for an unknown connection.
+ *
+ * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
+ */
 export const SampleDatabaseRows =
   InterfaceFunction<
     (
