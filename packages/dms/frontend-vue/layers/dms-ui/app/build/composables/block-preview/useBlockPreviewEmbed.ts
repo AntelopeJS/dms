@@ -12,12 +12,14 @@ import {
   previewErrorMessage,
   previewReadyMessage,
   previewResizeMessage,
+  previewSelectMessage,
   type PreviewInboundMessage,
   type PreviewOutboundMessage,
   type PreviewState,
   type PreviewTheme,
   type PreviewTree,
 } from "../../utils/blockPreview";
+import { useBlockInspector } from "./useBlockInspector";
 
 /** What the embedded preview shows: `?state=` first, then each message. */
 export interface BlockPreviewEmbed {
@@ -26,6 +28,10 @@ export interface BlockPreviewEmbed {
   revision: Ref<number>;
   /** Whether the page leaves its background to the embedding page. */
   transparent: Ref<boolean>;
+  /** Whether the blocks are padded off the edges, when `?state=` or a `render` said so. */
+  padding: Ref<boolean | undefined>;
+  /** Whether a click picks a block for the embedding page instead of reaching it. */
+  inspecting: Ref<boolean>;
   /** Tells the embedding page what went wrong. */
   reportError: (message: string) => void;
 }
@@ -71,8 +77,15 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   const theme = ref(options.initialState?.theme);
   const locale = ref(options.initialState?.locale);
   const transparent = ref(options.initialState?.transparent ?? false);
+  const padding = ref(options.initialState?.padding);
   const revision = ref(0);
+  const inspecting = ref(false);
   let observer: ResizeObserver | undefined;
+
+  useBlockInspector({
+    enabled: inspecting,
+    onSelect: (path) => postToParent(previewSelectMessage(path)),
+  });
 
   const handlers: Record<
     PreviewInboundMessage["type"],
@@ -84,11 +97,16 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
       theme.value = message.theme ?? theme.value;
       locale.value = message.locale ?? locale.value;
       transparent.value = message.transparent ?? transparent.value;
+      padding.value = message.padding ?? padding.value;
       revision.value += 1;
     },
     theme: (message) => {
       if (message.type !== "theme") return;
       theme.value = message.theme;
+    },
+    inspect: (message) => {
+      if (message.type !== "inspect") return;
+      inspecting.value = message.enabled;
     },
   };
 
@@ -116,6 +134,8 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
     tree,
     revision,
     transparent,
+    padding,
+    inspecting,
     reportError: (message) => postToParent(previewErrorMessage(message)),
   };
 }

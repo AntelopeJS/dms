@@ -10,7 +10,7 @@ import { registerPreviewFixtures } from "./fixtures";
 export * from "./block-types";
 
 /** The bare layout of the preview: no logo, header, footer or background. */
-const PREVIEW_LAYOUT = {
+export const PREVIEW_LAYOUT = {
   componentName: "dms-preview-layout",
   options: {},
 };

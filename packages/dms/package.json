@@ -85,6 +85,8 @@
     "knip:all": "knip",
     "docs:catalog": "node scripts/docs-catalog.mjs",
     "docs:catalog:check": "node scripts/docs-catalog.mjs --check",
+    "mockup:schema": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/mockup-schema.mjs",
+    "mockup:schema:check": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/mockup-schema.mjs --check",
     "check:frontend-declarations": "node scripts/check-frontend-declarations.mjs",
     "docs:screenshots": "node scripts/docs-screenshots.mjs",
     "realtime:tabs-check": "node scripts/realtime-tabs-check.mjs"
