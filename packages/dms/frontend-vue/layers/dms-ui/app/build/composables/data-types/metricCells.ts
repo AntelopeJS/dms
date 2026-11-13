@@ -125,7 +125,6 @@ export function progressShares(done: number, failed: number, total: number) {
  * end, and "done / total"; green once every item is done.
  */
 function renderProgress(options: Parameters<DataTypeFormatter>[2], row: Row) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter erases options; field names are consumed without validation in the existing progress formatter.
   const opts = (options ?? {}) as ProgressOptions;
   const done = numberOf(readRowField(row, opts.doneField));
   const total = numberOf(readRowField(row, opts.totalField));
@@ -166,7 +165,6 @@ interface SparklineOptions {
 
 /** `sparkline`: a small line chart of a list of numbers. */
 function renderSparkline(options: Parameters<DataTypeFormatter>[2], row: Row) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The plugin options contract has no sparkline schema; preserve its unchecked field and tone reads.
   const opts = (options ?? {}) as SparklineOptions;
   const series = readRowField(row, opts.field);
   const values = Array.isArray(series)
@@ -315,7 +313,6 @@ export const registerMetricCellTypes = (
       default: (value, _locale, options) =>
         h(MonoCell, {
           value: String(value),
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The open plugin options contract does not validate copy; preserve the existing truthiness conversion.
           copy: !!(options as { copy?: boolean } | undefined)?.copy,
           class: CELL_TEXT_CLASS,
         }),

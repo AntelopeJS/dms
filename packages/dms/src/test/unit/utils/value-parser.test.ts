@@ -33,7 +33,7 @@ const PLAIN_STRING = "hello world";
 const INVALID_DATE_STRING = "2024-13-45";
 const NOT_A_NUMBER_STRING = "abc";
 
-describe("[unit] utils/value-parser", () => {
+function registerStringPredicateCases(): void {
   describe("isStringKeyword", () => {
     it("recognises the four reserved keywords", () => {
       expect(isStringKeyword(KEYWORD_TRUE)).to.equal(true);
@@ -88,7 +88,9 @@ describe("[unit] utils/value-parser", () => {
       expect(isStringJSON("{invalid}")).to.equal(false);
     });
   });
+}
 
+function registerParsingCases(): void {
   describe("parseValue", () => {
     const cases: Array<{ label: string; input: string; expected: unknown }> = [
       { label: "true keyword", input: KEYWORD_TRUE, expected: true },
@@ -191,4 +193,9 @@ describe("[unit] utils/value-parser", () => {
       }
     });
   });
+}
+
+describe("[unit] utils/value-parser", () => {
+  registerStringPredicateCases();
+  registerParsingCases();
 });

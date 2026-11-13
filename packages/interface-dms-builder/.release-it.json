@@ -1,0 +1,22 @@
+{
+  "git": {
+    "commitMessage": "chore(release): @antelopejs/interface-dms-builder v${version}",
+    "tagName": "interface-dms-builder-v${version}",
+    "requireCommits": true
+  },
+  "github": {
+    "release": true,
+    "releaseName": "@antelopejs/interface-dms-builder v${version}"
+  },
+  "hooks": {
+    "after:bump": "git add CHANGELOG.md"
+  },
+  "plugins": {
+    "release-it-changelogen": {
+      "disableVersion": true
+    }
+  },
+  "npm": {
+    "skipChecks": true
+  }
+}

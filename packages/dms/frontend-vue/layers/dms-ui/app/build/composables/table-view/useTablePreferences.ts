@@ -138,7 +138,6 @@ export function useTablePreferences(
       pending.push({
         field,
         apply: (value) => {
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Storage returns arbitrary preference values, while restore accepts caller-selected T and an optional boolean validator. Neither owner proves T; adding mandatory validation would change restoration behavior.
           const restored = value as typeof state.value;
           const isUnchanged =
             JSON.stringify(restored) === JSON.stringify(state.value);

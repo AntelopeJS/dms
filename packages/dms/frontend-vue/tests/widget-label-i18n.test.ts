@@ -1,4 +1,4 @@
-import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
+import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { chartRuntime } from "./helpers/charts-runtime";
@@ -60,8 +60,7 @@ interface ApexClickOptions {
 const SeriesProbe = defineComponent({
   props: {
     options: { type: Object, required: true },
-    // SAFETY: Chart passes its resolved ChartSeries array to this Apex host replacement.
-    series: { type: Array as PropType<ChartSeries[]>, required: true },
+    series: { type: Array<ChartSeries>, required: true },
   },
   setup: (props) => () => {
     const click: ApexClickOptions = { dataPointIndex: 0, seriesIndex: 0 };

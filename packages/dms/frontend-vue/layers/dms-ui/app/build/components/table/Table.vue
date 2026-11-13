@@ -61,7 +61,6 @@ const props = withDefaults(defineProps<TableProps<T>>(), {
 });
 const emits = defineEmits<TableEmits<T>>();
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
 const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { table: Partial<typeof theme> };
 };
@@ -461,8 +460,8 @@ defineShortcuts({
             {{ caption }}
           </span>
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="isFirstPageLoading"
+            :aria-label="t('dms.a11y.loading')"
             aria-hidden="true"
             :class="uiTable.captionCountPlaceholder()"
           />

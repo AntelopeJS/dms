@@ -16,6 +16,7 @@ import {
   logInviteExtensionFailure,
 } from "./registry";
 import type { InviteExtensionInfo, InviteFieldContribution } from "./types";
+import { isObject, isString } from "../../utils/internal/type-check";
 
 /**
  * Slot the DMS invite form opens for `RegisterInviteExtension`.
@@ -73,15 +74,12 @@ function flattenSerializedFields(
 
 function prefixWatchAction(key: string, watch: WatchAction): WatchAction {
   const params = { ...watch.params };
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Watch params are heterogeneous; only a string field reference receives the invitation prefix.
-  if ("targetField" in params && typeof params.targetField === "string") {
+  if ("targetField" in params && isString(params.targetField)) {
     params.targetField = inviteExtensionFieldId(key, params.targetField);
   }
   const conditions = watch.onParam
     ? [watch.onParam].flat().map((condition) =>
-        condition.key === WATCH_FIELD_CONDITION_KEY &&
-        // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Conditions support nonstring operands; remap only string field references without validating unrelated watch values.
-        typeof condition.value === "string"
+        condition.key === WATCH_FIELD_CONDITION_KEY && isString(condition.value)
           ? {
               ...condition,
               value: inviteExtensionFieldId(key, condition.value),
@@ -297,8 +295,7 @@ function mergeSchema(
   own: FormPropsSerialized["schema"],
   contributions: InviteFieldContribution[],
 ) {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This slot leaves nonobject schema representations untouched and only augments object schemas, preserving the opaque form schema contract.
-  if (!own || typeof own !== "object") return own;
+  if (!own || !isObject(own)) return own;
   const source: JsonSchemaObject = own;
 
   return {

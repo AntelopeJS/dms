@@ -208,7 +208,6 @@ describe("useAccessibilityPreferences", () => {
 
 describe("server render", () => {
   async function renderHead(
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Cookies enter the real preference parser as raw values. Inference needs a reusable dictionary and AccessibilityPreferences would exclude malformed cookie inputs from this boundary fixture.
     cookies: Record<string, unknown>,
     colorMode?: string,
   ) {

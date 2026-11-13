@@ -6,6 +6,7 @@ export const OPTIONS = /** @type {const} */ ({
   "no-standby": { type: "boolean" },
   "no-build-cache": { type: "boolean" },
   "dev-frontend": { type: "boolean" },
+  "dev-backend": { type: "boolean" },
   playground: { type: "string" },
   renderer: { type: "string" },
   runs: { type: "string" },

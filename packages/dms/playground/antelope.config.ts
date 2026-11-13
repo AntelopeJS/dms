@@ -36,6 +36,7 @@ export default defineConfig({
         },
         apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
         clientBaseUrl: dmsClientUrl,
+        mcp: { backendUrl: "${@api.API_LOCAL_BASE_URL}" },
         frontend: {
           bootstrapSecret: process.env.DMS_BOOTSTRAP_SECRET,
         },
@@ -118,6 +119,12 @@ export default defineConfig({
     docs: {
       logging: { channelFilter: { "*": "warn" } },
       modules: {
+        dms: {
+          config: {
+            mcp: { enabled: true, backendUrl: "${@api.API_LOCAL_BASE_URL}" },
+            builder: { enabled: true },
+          },
+        },
         nodemailer: {
           config: {
             ethereal: false,

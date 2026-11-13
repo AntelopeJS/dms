@@ -21,6 +21,7 @@ import {
   tableViewPresenceTopic,
   tableViewRowTopic,
 } from "../realtime";
+import { isNumber, isString } from "../../../utils/internal/type-check";
 
 const REALTIME_SESSION_HEADER = "x-realtime-session";
 /** @internal */
@@ -88,19 +89,19 @@ type IdExtractor<P> = (
   idKey: string,
 ) => string[];
 
+/** Whether a route's answer is an object whose fields can be read by name. */
+const isFieldBag = (result: unknown): result is Record<string, unknown> =>
+  !!result && typeof result === "object";
+
 /** @internal */
 export const extractFromResult: IdExtractor<unknown> = (
   _args,
   result,
   idKey,
 ) => {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published extractor accepts arbitrary callback results and only inspects non-null objects for an id.
-  if (!result || typeof result !== "object") return [];
-  // SAFETY: The preceding check establishes a non-null object; indexing reads an unknown value and the next check accepts only strings.
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The published extractor reads a configurable key from module-owned result objects; no shared row schema exists here.
-  const value = (result as Record<string, unknown>)[idKey];
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Callback results are deliberately untyped in the published extractor; an id is emitted only for the string variant.
-  return typeof value === "string" ? [value] : [];
+  if (!isFieldBag(result)) return [];
+  const value = result[idKey];
+  return isString(value) ? [value] : [];
 };
 
 /** @internal */
@@ -159,14 +160,9 @@ const CHANGED_COUNT_KEYS: ["deleted", "archivedCount", "restoredCount"] = [
 /** @internal */
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published predicate accepts heterogeneous callback results; restricting it to a row or count schema would change its accepted inputs.
 export const reportsNoChange = (result: unknown): boolean => {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published predicate recognizes the numeric count convention alongside object count results.
-  if (typeof result === "number") return result === 0;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only non-null object results can carry named mutation counts; other published input variants report no count.
-  if (!result || typeof result !== "object") return false;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Mutation callbacks own these count values; the numeric filter below interprets them without changing the published result contract.
-  const input: Partial<Record<(typeof CHANGED_COUNT_KEYS)[number], unknown>> =
-    result;
-  const counts = CHANGED_COUNT_KEYS.map((key) => input[key]).filter(
+  if (isNumber(result)) return result === 0;
+  if (!isFieldBag(result)) return false;
+  const counts = CHANGED_COUNT_KEYS.map((key) => result[key]).filter(
     (value): value is number => typeof value === "number",
   );
   return counts.length > 0 && counts.every((count) => count === 0);

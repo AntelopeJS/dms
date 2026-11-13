@@ -1,11 +1,8 @@
+import type { RowFields } from "@antelopejs/interface-data-api/metadata";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import { FIELD_OPERATORS } from "@antelopejs/interface-dms/base/types/row-action-operators";
 
-type RuleEvaluator = (
-  rule: RowActionRule,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This exported evaluator accepts arbitrary row fields; no narrower row type fits the rows of every table.
-  row: Record<string, unknown>,
-) => boolean;
+type RuleEvaluator = (rule: RowActionRule, row: RowFields) => boolean;
 
 function isRow(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

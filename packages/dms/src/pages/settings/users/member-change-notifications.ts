@@ -20,9 +20,11 @@ async function requestActor(ctx: RequestContext): Promise<NotificationActor> {
   return { id: user._id, name: user.name || user.email };
 }
 
+type MemberBeforeEdit = Pick<TenantMember, "_id" | "roleIds" | "isTenantOwner">;
+
 async function announceEdit(
   tenantId: string,
-  before: TenantMember,
+  before: MemberBeforeEdit,
   actor: NotificationActor,
 ): Promise<void> {
   const after = await GetModel(TenantMemberModel, tenantId).get(before._id);
@@ -82,7 +84,7 @@ async function announceRemovals(
 export async function announceMemberEdit(
   ctx: RequestContext,
   tenantId: string,
-  before: TenantMember,
+  before: MemberBeforeEdit,
 ): Promise<AfterWrite> {
   const actor = await requestActor(ctx);
   return () => announceEdit(tenantId, before, actor);

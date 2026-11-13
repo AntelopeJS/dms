@@ -35,6 +35,11 @@ function isTraversable(value: unknown): value is object {
   return !!value && typeof value === "object";
 }
 
+/** Whether an upload option holds text, the only value a claim copies. */
+function isClaimText(value: unknown): value is string {
+  return typeof value === "string";
+}
+
 function isUploadFieldNode(node: unknown): node is UploadFieldNode {
   return (
     isTraversable(node) &&
@@ -61,16 +66,11 @@ async function stampNode(node: UploadFieldNode): Promise<void> {
   options.uploadToken = await SignUploadToken({
     pageId: "",
     componentId: "",
-    storage:
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized consumer storage values contribute to claims only when strings.
-      typeof options.storage === "string" ? options.storage : undefined,
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a string serialized path is copied into upload claims.
-    path: typeof options.path === "string" ? options.path : undefined,
-    field:
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a string attachmentField identifies the server-declared upload field.
-      typeof options.attachmentField === "string"
-        ? options.attachmentField
-        : undefined,
+    storage: isClaimText(options.storage) ? options.storage : undefined,
+    path: isClaimText(options.path) ? options.path : undefined,
+    field: isClaimText(options.attachmentField)
+      ? options.attachmentField
+      : undefined,
     visibility: options.visibility === "public" ? "public" : "private",
   });
 }

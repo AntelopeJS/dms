@@ -16,6 +16,7 @@ import { assertNativeFileAccess } from "./access";
 import {
   isNull,
   isObject,
+  isString,
 } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { findConstraintViolation } from "./constraints";
 import {
@@ -110,10 +111,8 @@ function remapValue(value: unknown, map: Map<string, string>): unknown {
     for (const [index, key] of node.keys.entries()) {
       const item = node.values[index];
       let remapped = item;
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only strings can match promoted storage keys.
-      if (typeof item === "string") remapped = map.get(item) ?? item;
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Primitive non-string values are preserved without traversal.
-      else if (item && typeof item === "object") {
+      if (isString(item)) remapped = map.get(item) ?? item;
+      else if (item && isObject(item)) {
         const copy = Array.isArray(item) ? Array.from(item) : {};
         const source = Array.isArray(copy) ? copy : item;
         pending.push({
@@ -154,8 +153,7 @@ async function promoteReferences(
 
 async function cleanRemoved(
   request: AttachmentSaveRequest,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The document the save callback answers, the published AttachmentSaveResult.document, holds whichever table's stored fields, read here by its file column keys.
-  document: Record<string, unknown>,
+  document: AttachmentSaveResult<unknown>["document"],
 ) {
   const after = collectAttachments(request.fields, document);
   for (const ref of collectAttachments(request.fields, request.before)) {
@@ -206,8 +204,9 @@ function assertBodyDepth(request: AttachmentSaveRequest): void {
  */
 export async function SaveComponentFiles<T>(
   request: AttachmentSaveRequest,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- SaveComponentFiles implements the published AttachmentSaver, whose save callback takes the promoted document as Record<string, unknown>: whichever table's request body fields.
-  save: (document: Record<string, unknown>) => Promise<AttachmentSaveResult<T>>,
+  save: (
+    promoted: AttachmentSaveRequest["submitted"],
+  ) => Promise<AttachmentSaveResult<T>>,
 ): Promise<T> {
   assertBodyDepth(request);
   const refs = await prepareReferences(request);

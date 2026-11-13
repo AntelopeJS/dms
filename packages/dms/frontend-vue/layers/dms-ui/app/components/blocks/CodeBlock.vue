@@ -88,9 +88,9 @@ const { t } = useI18n();
     aria-busy="true"
   >
     <USkeleton
-      :aria-label="t('dms.a11y.loading')"
       v-for="width in SKELETON_LINE_WIDTHS"
       :key="width"
+      :aria-label="t('dms.a11y.loading')"
       class="h-3"
       :class="width"
     />

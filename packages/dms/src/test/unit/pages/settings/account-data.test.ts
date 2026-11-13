@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import type { Session, User } from "@antelopejs/interface-dms/auth/db";
-import type { UserInvite } from "@antelopejs/interface-dms/db";
+import { Session, type User } from "@antelopejs/interface-dms/auth/db";
+import { UserInvite } from "@antelopejs/interface-dms/db";
 import {
   ACCOUNT_EXPORT_FORMAT,
   type AccountMembershipSource,
@@ -10,7 +10,11 @@ import {
   isDeletionConfirmed,
   selfDeletionPayload,
 } from "../../../../pages/account";
-import { userFixture } from "../../../helpers/user-fixture";
+import { type StoredRow, storedFixture } from "../../../helpers/stored-row";
+import {
+  plainPasswordUserFixture,
+  userFixture,
+} from "../../../helpers/user-fixture";
 
 const USER_ID = "account-data-user";
 const PASSWORD_HASH = "$2b$10$secret-password-hash";
@@ -43,8 +47,7 @@ const SECRETS = [
 ];
 
 function storedUser(): User {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The export fixture contains persisted user fields, not database instance methods.
-  return {
+  return plainPasswordUserFixture({
     _id: USER_ID,
     createdAt: new Date("2025-03-12T09:00:00Z"),
     updatedAt: new Date("2026-09-30T09:00:00Z"),
@@ -74,7 +77,7 @@ function storedUser(): User {
     twoFactorBackupCodesSavedAt: null,
     twoFactorEmailCode: EMAIL_CODE,
     twoFactorEmailCodeRequestedAt: null,
-  } as User;
+  });
 }
 
 function membership(
@@ -98,7 +101,22 @@ function membership(
 }
 
 function exportOf(user: User) {
-  // SAFETY: The session row deliberately keeps the legacy refreshToken field absent from the current Session contract, and the invite row omits the language and extensions fields the exported snapshot never reads.
+  const legacySession: StoredRow<Session> & { refreshToken: string } = {
+    _id: "s1",
+    userId: USER_ID,
+    refreshToken: REFRESH_TOKEN,
+    refreshTokenHash: REFRESH_HASH,
+    sealedRefreshToken: SEALED_REFRESH,
+    previousRefreshTokenHash: REFRESH_HASH,
+    userAgent: "Mozilla/5.0",
+    ip: "127.0.0.1",
+    browser: "Chrome",
+    os: "Windows",
+    deviceType: "desktop",
+    location: "",
+    createdAt: EXPORTED_AT,
+    lastActiveAt: EXPORTED_AT,
+  };
   return buildAccountExport({
     user,
     notificationPreferences: { "security.sign_in": true },
@@ -121,24 +139,7 @@ function exportOf(user: User) {
         updatedAt: EXPORTED_AT,
       },
     ],
-    sessions: [
-      {
-        _id: "s1",
-        userId: USER_ID,
-        refreshToken: REFRESH_TOKEN,
-        refreshTokenHash: REFRESH_HASH,
-        sealedRefreshToken: SEALED_REFRESH,
-        previousRefreshTokenHash: REFRESH_HASH,
-        userAgent: "Mozilla/5.0",
-        ip: "127.0.0.1",
-        browser: "Chrome",
-        os: "Windows",
-        deviceType: "desktop",
-        location: "",
-        createdAt: EXPORTED_AT,
-        lastActiveAt: EXPORTED_AT,
-      } as Session,
-    ],
+    sessions: [storedFixture(Session, legacySession)],
     identities: [
       {
         _id: "i1",
@@ -154,17 +155,19 @@ function exportOf(user: User) {
       {
         tenantId: "acme",
         roleNames: ["Viewer"],
-        invite: {
+        invite: storedFixture(UserInvite, {
           _id: "inv1",
           email: "new@acme.dev",
           firstname: "Noa",
           lastname: null,
           roles_ids: ["viewer"],
+          language: "en",
           token: INVITE_TOKEN,
           asTenantOwner: false,
           createdAt: EXPORTED_AT,
           expiresAt: new Date("2026-10-08T12:00:00Z"),
-        } as UserInvite,
+          extensions: null,
+        }),
       },
     ],
     exportedAt: EXPORTED_AT,

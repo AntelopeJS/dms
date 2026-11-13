@@ -36,7 +36,6 @@ interface StatusOptions {
 
 function renderStatus(value: CellValue, options: CellOptions) {
   const { processI18n } = getAppTranslation();
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter erases options; status labels and colors remain unchecked rather than rejecting malformed plugin inputs.
   const opts = options as StatusOptions | undefined;
   const isOnline = Boolean(value);
   const onlineLabel = opts?.onlineLabel || "$common.status.online";
@@ -91,7 +90,6 @@ function renderSelectItem(item: SelectItem) {
 }
 
 function renderSelect(value: CellValue, options?: CellOptions) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The formatter contract erases select options; items are consumed without a runtime schema.
   const opts = options as SelectOptions | undefined;
   const formatOne = (val: CellValue) => {
     const item = opts?.items?.find((opt) => opt.value === val);
@@ -107,7 +105,6 @@ function renderSelect(value: CellValue, options?: CellOptions) {
   const children: (VNode | string)[] = [];
   rendered.forEach((part, index) => {
     if (index > 0) children.push(", ");
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- An unmatched select value is still unknown; Vue receives the original unchecked child as before.
     children.push(part as VNode | string);
   });
   return h("span", { class: "inline-flex items-center gap-1" }, children);

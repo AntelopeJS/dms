@@ -135,10 +135,8 @@ function errorRedirect(key: string): Response {
   return redirect(`${SIGN_IN}?oauth_error=${encodeURIComponent(key)}`);
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Catch values have no shared owner schema; an Error-only parameter would exclude existing thrown payloads.
 function failureRedirect(error: unknown): Response {
   const message = error instanceof Error ? error.message : "";
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This unchecked status access preserves existing thrown-value handling, including a TypeError for nullish errors; no validated owner exists.
   const status = (error as { status?: unknown }).status;
   return errorRedirect(
     isNumber(status) && message.startsWith(OAUTH_ERROR) ? message : FAILED,

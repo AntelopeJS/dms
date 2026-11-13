@@ -5,6 +5,7 @@ import {
   resolveRequestTenant,
 } from "./auth/internal/request-authenticators";
 import { DEFAULT_TENANT_ID } from "./constants";
+import { isBoolean } from "./utils/internal/type-check";
 
 /**
  * The tenant of the request's verified credential: the one bound by the DMS
@@ -31,8 +32,7 @@ async function verifyToken(
     const data = await internal.IfAuthUserAuthenticator(token);
     if (!data) return undefined;
     const user = await internal.AuthRawUserValidator(data);
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published validator can return a boolean sentinel rather than an authenticated user.
-    if (!user || typeof user === "boolean") return undefined;
+    if (!user || isBoolean(user)) return undefined;
     return { userId: user._id, tenantId: data.tenantId || DEFAULT_TENANT_ID };
   } catch {
     return undefined;

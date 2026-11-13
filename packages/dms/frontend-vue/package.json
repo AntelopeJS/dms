@@ -16,6 +16,7 @@
   "scripts": {
     "typecheck": "ajs dms verify-source --layer \"$PWD\" --local-package @antelopejs/dms=.. --local-package @antelopejs/interface-dms=../../interface-dms",
     "test": "vitest run",
+    "eslint-globals": "node scripts/eslint-globals.mjs",
     "format": "prettier --write .",
     "lint": "node scripts/check-invariants.mjs && node scripts/check-disable-blocks.mjs && eslint .",
     "lint:fix": "eslint . --fix"
@@ -89,6 +90,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-vue": "^9.0.0",
     "globals": "^15.0.0",
+    "jiti": "2.7.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",

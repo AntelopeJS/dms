@@ -3,7 +3,7 @@ import { SetParameterProvider } from "@antelopejs/interface-api";
 import { MakeParameterAndPropertyAndClassDecorator } from "@antelopejs/interface-core/decorators";
 import { DEFAULT_TENANT_ID } from "../../constants";
 import { prototypeOf } from "../../utils/internal/decorated-class";
-import { isClass } from "../../utils/internal/type-check";
+import { isClass, isString } from "../../utils/internal/type-check";
 import { bindVerifiedRequestPrincipal } from "./request-authenticators";
 
 const CLASS_PROVIDER_DESCRIPTION = "authentication-class-provider";
@@ -17,8 +17,7 @@ type Validator<T, R> = (data: T) => R | Promise<R>;
 
 function bearerToken(ctx: RequestContext): string | undefined {
   const header = ctx.rawRequest?.headers?.authorization;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Incoming HTTP authorization is read before token validation; non-string values supply no bearer token.
-  return typeof header === "string" ? header.split(" ")[1] : undefined;
+  return isString(header) ? header.split(" ")[1] : undefined;
 }
 
 function isVerifiedUser(value: unknown): value is { _id: string } {

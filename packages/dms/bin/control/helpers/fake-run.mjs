@@ -23,7 +23,7 @@ import { down } from "../stack.mjs";
 let runs = 0;
 const REGISTRY_WAIT_MS = 10_000;
 
-/** A backend that answers every request with its pid and the database it was started on, and reports both to the test's registry once it listens. */
+/** A backend that answers every request with its pid and the database it was started on, and reports both to the test's registry once it listens, with the \`ajs project\` command that started it. */
 const FAKE_BACKEND = `
 const http = require("node:http");
 const self = JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE });
@@ -34,7 +34,7 @@ const server = http.createServer((request, response) => {
 server.listen(Number(process.env.PORT), "127.0.0.1", () => {
   const report = http.request(process.env.FAKE_REGISTRY, { method: "POST" });
   report.on("error", () => undefined);
-  report.end(self);
+  report.end(JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE, command: process.argv[3] }));
 });
 `;
 
@@ -66,9 +66,14 @@ const PLAYGROUND_FILES = {
 };
 
 const isServed = objectOf({ pid: isNumber, database: isString });
+const isReported = objectOf({
+  pid: isNumber,
+  database: isString,
+  command: isString,
+});
 const isDropped = arrayOf(isString);
 
-/** @type {{ pid: number, database: string, startTime: number | null }[]} Every fake backend the tests started, in the order they listened, with the start time that tells it from a later process given its pid */
+/** @type {{ pid: number, database: string, command: string, startTime: number | null }[]} Every fake backend the tests started, in the order they listened, with the `ajs project` command that started it and the start time that tells it from a later process given its pid */
 const started = [];
 
 const registry = createServer((request, response) => {
@@ -79,7 +84,12 @@ const registry = createServer((request, response) => {
   request.on("end", () => {
     /** @type {unknown} */
     const parsed = JSON.parse(body);
-    const backend = decode(isServed, parsed, "a report", "a pid and database");
+    const backend = decode(
+      isReported,
+      parsed,
+      "a report",
+      "a pid, database and command",
+    );
     started.push({ ...backend, startTime: startTimeOf(backend.pid) });
     response.end();
   });
@@ -106,6 +116,23 @@ export async function startedOn(database) {
       return backend;
     }
     assert.ok(Date.now() < deadline, `a backend starts on ${database}`);
+    await sleep(20);
+  }
+}
+
+/**
+ * The `ajs project` command that started the backend `pid`, once it
+ * listens: `start` for production, `dev` for development.
+ *
+ * @param {number} pid The backend
+ * @returns {Promise<string>} Its command
+ */
+export async function commandOf(pid) {
+  const deadline = Date.now() + REGISTRY_WAIT_MS;
+  for (;;) {
+    const backend = started.findLast((entry) => entry.pid === pid);
+    if (backend) return backend.command;
+    assert.ok(Date.now() < deadline, `backend ${pid} reports its command`);
     await sleep(20);
   }
 }

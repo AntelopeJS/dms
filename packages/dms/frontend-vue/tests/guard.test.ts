@@ -24,7 +24,6 @@ import { stubBlockRuntime } from "./helpers/block-runtime";
 import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
 import { useApiData } from "../layers/dms-core/app/composables/auth/useApiData";
 
-// oxlint-disable-next-line anti-slop/no-unknown-returns -- The guard parses raw transport responses; the mock must admit all of the tested response shapes and null.
 const authFetch = vi.fn<(...args: unknown[]) => Promise<unknown>>();
 
 const Slot = defineComponent({

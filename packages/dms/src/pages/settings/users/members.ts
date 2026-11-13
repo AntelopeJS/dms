@@ -354,12 +354,10 @@ export const membersTable = TableView(memberSettingDataAPI, {
   ],
   guards: {
     edit: async (ctx, { current, body }) => {
-      // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- memberSettingDataAPI omits TenantMember.invitedBy; existing owner checks treat the database row as TenantMember without validating that field.
-      const currentRow = current as unknown as TenantMember;
       const { isTenantOwner }: { isTenantOwner?: boolean } = body;
       const tenantId = getRequestTenantId(ctx);
-      await prepareOwnerChange(tenantId, currentRow, isTenantOwner);
-      return announceMemberEdit(ctx, tenantId, currentRow);
+      await prepareOwnerChange(tenantId, current, isTenantOwner);
+      return announceMemberEdit(ctx, tenantId, current);
     },
     delete: (ctx, { ids }) =>
       guardMemberRemoval(ctx, getRequestTenantId(ctx), ids),

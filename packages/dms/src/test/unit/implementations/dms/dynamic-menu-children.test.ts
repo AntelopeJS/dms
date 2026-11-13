@@ -54,45 +54,50 @@ async function readMenu() {
   return payload.siteLayoutTree.children.pages?.children;
 }
 
-describe("[unit] dynamic menu children", () => {
-  const suiteCleanups: Array<() => void> = [];
-  const cleanups: Array<() => void> = [];
+const suiteCleanups: Array<() => void> = [];
 
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-    for (const [id, publicAccess] of [
-      ["nested-menu-public", true],
-      ["nested-menu-private", false],
-    ] as const) {
-      suiteCleanups.push(
-        await registerTestPage(
-          PageController(id, {
-            displayName: id,
-            category: pagesCategory,
-            hidden: true,
-            publicAccess,
-          }),
-        ),
-      );
-    }
-  });
+const cleanups: Array<() => void> = [];
 
-  afterEach(() => {
-    for (const cleanup of cleanups.splice(0)) cleanup();
-  });
+function provide(items: DynamicMenuItem[]): void {
+  cleanups.push(RegisterDynamicMenuProvider(pagesCategory.fullId, () => items));
+}
 
-  after(() => {
-    for (const cleanup of suiteCleanups.splice(0)) cleanup();
-  });
-
-  function provide(items: DynamicMenuItem[]): void {
-    cleanups.push(
-      RegisterDynamicMenuProvider(pagesCategory.fullId, () => items),
+async function registerNestedMenuPages() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+  for (const [id, publicAccess] of [
+    ["nested-menu-public", true],
+    ["nested-menu-private", false],
+  ] as const) {
+    suiteCleanups.push(
+      await registerTestPage(
+        PageController(id, {
+          displayName: id,
+          category: pagesCategory,
+          hidden: true,
+          publicAccess,
+        }),
+      ),
     );
   }
+}
+
+function runCleanups() {
+  for (const cleanup of cleanups.splice(0)) cleanup();
+}
+
+function runSuiteCleanups() {
+  for (const cleanup of suiteCleanups.splice(0)) cleanup();
+}
+
+describe("[unit] dynamic menu children", () => {
+  before(registerNestedMenuPages);
+
+  afterEach(runCleanups);
+
+  after(runSuiteCleanups);
 
   it("admits children on their own target and permission, dropping refused subtrees", async () => {
     provide([
@@ -150,6 +155,14 @@ describe("[unit] dynamic menu children", () => {
       "pages.project.early.leaf",
     );
   });
+});
+
+describe("[unit] dynamic menu children, depth and previews", () => {
+  before(registerNestedMenuPages);
+
+  afterEach(runCleanups);
+
+  after(runSuiteCleanups);
 
   it("keeps level three as a leaf and drops level four rather than flattening it", async () => {
     provide([

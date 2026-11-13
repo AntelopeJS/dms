@@ -94,8 +94,9 @@ export function useActionConfirm() {
 }
 
 function withoutUndefined<T extends object>(value: T): Partial<T> {
-  // SAFETY: Filtering Object.entries only removes properties from T; it never changes the values of the retained properties.
-  return Object.fromEntries(
-    Object.entries(value).filter(([, entry]) => entry !== undefined),
-  ) as Partial<T>;
+  const defined: Partial<T> = { ...value };
+  for (const [key, entry] of Object.entries(value)) {
+    if (entry === undefined) Reflect.deleteProperty(defined, key);
+  }
+  return defined;
 }

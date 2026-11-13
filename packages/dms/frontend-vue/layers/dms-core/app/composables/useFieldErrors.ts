@@ -481,7 +481,6 @@ export interface HandleApiErrorOptions {
  * Bind `errors[field]` to the message element (id `errorId(field)`) and
  * `aria(field)` onto the control; call `clear(field)` when its value changes.
  */
-/* oxlint-disable anti-slop/require-safety-comment-for-type-assertion -- Object.keys erases F. The options owner and resolveFieldErrors membership check cannot prove runtime extra keys are F. Filtering would change extra-key behavior. */
 export function useFieldErrors<F extends string>(
   options: UseFieldErrorsOptions<F>,
 ) {
@@ -556,7 +555,6 @@ export function useFieldErrors<F extends string>(
     await focus(fields[0]!.field as F);
     return !hasUnmatched;
   }
-  /* oxlint-enable anti-slop/require-safety-comment-for-type-assertion */
 
   /** The toast of an error that belongs to no field. */
   function toastError(

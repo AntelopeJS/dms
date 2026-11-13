@@ -92,7 +92,9 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     expect(declared("Banner").defaults.tone).to.equal("info");
     expect(declared("Card").defaults.padded).to.equal(true);
   });
+});
 
+describe("[unit] interfaces/dms-base/display blocks — in the catalog, composition", () => {
   it("lets a card hold children in its body, head and foot", () => {
     const card = declared("Card");
 

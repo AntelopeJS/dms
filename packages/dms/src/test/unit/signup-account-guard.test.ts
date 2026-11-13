@@ -2,13 +2,10 @@ import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
-import type {
-  SessionModel,
-  User,
-  UserModel,
-} from "@antelopejs/interface-dms/auth/db";
+import { SessionModel, type User } from "@antelopejs/interface-dms/auth/db";
 import { signup } from "../../routes/authentication";
 import { seedUserInvite } from "../helpers/fixtures";
+import { SingleAccountUserModel } from "../helpers/recording-user-model";
 import { userFixture } from "../helpers/user-fixture";
 
 const HTTP_BAD_REQUEST = 400;
@@ -65,26 +62,13 @@ async function attemptSignup(
   claimedEmail: string = existingUser.email,
   lang?: string,
 ): Promise<SignupAttempt> {
-  const updatedUsers: User[] = [];
-  // SAFETY: The harness implements signup's account lookups and records writes; unsupported downstream token interfaces may fail after those writes and are deliberately captured below.
-  const userModel = {
-    getByEmail: async (lookup: string) =>
-      lookup === existingUser.email ? existingUser : undefined,
-    get: async () => existingUser,
-    getOwners: async () => [],
-    update: async (user: User) => {
-      updatedUsers.push(user);
-    },
-    insert: async () => {
-      throw new Error("signup must not create a second account");
-    },
-  } as unknown as UserModel;
+  const userModel = new SingleAccountUserModel(existingUser);
+  const { updated: updatedUsers } = userModel;
 
   try {
     await signup(
       userModel,
-      // SAFETY: This deliberately unimplemented session model is not a working persistence model; the harness observes guard refusal or earlier user writes and captures downstream failures.
-      {} as SessionModel,
+      GetModel(SessionModel),
       {
         name: INVITEE_NAME,
         email: claimedEmail,

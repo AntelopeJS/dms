@@ -23,10 +23,16 @@ const MESSAGE_PREFIX = "$dms.notifications.messages.module_updates";
 const MODULE_LIST_SEPARATOR = ", ";
 const PACKAGE_SOURCE_TYPE = "package";
 
-interface PackageModuleSource {
-  type: string;
-  package: string;
-  version: string;
+type ModuleInfoSource = Awaited<ReturnType<typeof GetModuleInfo>>["source"];
+
+type PackageModuleSource = ModuleInfoSource & {
+  type: typeof PACKAGE_SOURCE_TYPE;
+};
+
+function isPackageSource(
+  source: ModuleInfoSource,
+): source is PackageModuleSource {
+  return source.type === PACKAGE_SOURCE_TYPE;
 }
 
 export interface OutdatedModule {
@@ -76,19 +82,15 @@ async function listPackageModuleSources(): Promise<PackageModuleSource[]> {
   const infos = await Promise.all(
     moduleIds.map((moduleId) => GetModuleInfo(moduleId)),
   );
-  return (
-    infos
-      .filter((info) => info.source.type === PACKAGE_SOURCE_TYPE)
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The core exposes erased source fields; filtering type selects package sources, but package and version are still trusted rather than schema-validated here.
-      .map((info) => info.source as PackageModuleSource)
-  );
+  return infos.map((info) => info.source).filter(isPackageSource);
 }
 
 async function fetchLatestVersion(
-  packageName: string,
+  packageName: string | undefined,
   projectPath: string,
   signal: AbortSignal,
 ): Promise<string | undefined> {
+  if (packageName === undefined) return undefined;
   try {
     const { stdout } = await execFileAsync(
       "npm",
@@ -113,7 +115,12 @@ async function findOutdatedModules(
   );
   return sources.reduce<OutdatedModule[]>((outdated, source, index) => {
     const latest = latestVersions[index];
-    if (latest && !isUpToDate(source.version, latest)) {
+    if (
+      latest &&
+      source.package !== undefined &&
+      source.version !== undefined &&
+      !isUpToDate(source.version, latest)
+    ) {
       outdated.push({
         package: source.package,
         current: source.version,

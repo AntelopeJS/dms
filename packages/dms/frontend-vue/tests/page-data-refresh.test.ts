@@ -56,10 +56,8 @@ function publish(
   topic: string,
   event: Omit<RealtimeEvent, "ts"> | RealtimeSnapshotEvent,
 ): void {
-  for (const handler of handlers.get(topic) ?? []) {
-    // SAFETY: Page refresh observes the event kind, never its timestamp; these fixtures intentionally omit ts.
-    handler(event as Parameters<RealtimeTopicHandler>[0]);
-  }
+  const delivered = "entries" in event ? event : { ...event, ts: Date.now() };
+  for (const handler of handlers.get(topic) ?? []) handler(delivered);
 }
 
 const mounted: App[] = [];

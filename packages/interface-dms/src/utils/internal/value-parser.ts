@@ -107,12 +107,9 @@ export function parseValue(value: string): Primitive {
 export function parseObject(
   items: Array<{ key: string; value: string }>,
 ): Record<string, Primitive> {
-  const result: Record<string, Primitive> = {};
-  for (const item of items) {
-    result[item.key] = parseValue(item.value);
-  }
-  // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published return type is a dictionary of Primitive values, populated by parseValue above.
-  return result;
+  return Object.fromEntries(
+    items.map((item) => [item.key, parseValue(item.value)]),
+  );
 }
 
 /**

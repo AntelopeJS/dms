@@ -1,0 +1,16 @@
+import type { McpConfig } from "../config";
+import type { McpTool, McpToolEffect } from "./tool";
+
+export type McpAccess = NonNullable<McpConfig["access"]>;
+
+const EFFECTS_BY_ACCESS: Readonly<
+  Record<McpAccess, ReadonlySet<McpToolEffect>>
+> = {
+  safe: new Set<McpToolEffect>(["read", "builder"]),
+  full: new Set<McpToolEffect>(["read", "builder", "project"]),
+};
+
+/** Whether a session with this access may list and call the tool. */
+export function isToolAllowed(tool: McpTool, access: McpAccess): boolean {
+  return EFFECTS_BY_ACCESS[access].has(tool.effect);
+}

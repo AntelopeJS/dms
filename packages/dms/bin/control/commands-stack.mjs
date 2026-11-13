@@ -74,6 +74,7 @@ async function commandUp(values) {
       process.env.DMS_CONTROL_NO_STANDBY === "1",
     buildCache: !values["no-build-cache"],
     frontendMode: values["dev-frontend"] ? "dev" : "build",
+    backendMode: values["dev-backend"] ? "dev" : "production",
   });
   if (state.frontendBuild?.reason) {
     process.stderr.write(
