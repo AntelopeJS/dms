@@ -21,6 +21,7 @@ export * from "./native-kind";
 export * from "./ops";
 export * from "./page-access";
 export * from "./page-structure";
+export * from "./project-config-ops";
 export * from "./project-env";
 export * from "./project-scaffold";
 export * from "./query-chain";

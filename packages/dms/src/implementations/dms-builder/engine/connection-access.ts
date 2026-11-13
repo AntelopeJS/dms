@@ -40,7 +40,14 @@ function readOnlyRefusal(
   if (resolved.access === "read-write") {
     return undefined;
   }
-  return `refused to ${attempt}: connection "${connection}" is read-only, since ${resolved.reason}. Ask the person to allow changes: the Read & write switch at the top of the Database module's Data browser, or \`access: "read-write"\` under \`config.externalConnections.${connection}\` on the dms-database entry of antelope.config.ts.`;
+  switch (resolved.cause) {
+    case "configured":
+      return `refused to ${attempt}: connection "${connection}" is read-only, since ${resolved.reason}. Ask the person to allow changes: the Read & write switch at the top of the Database module's Data browser, or \`access: "read-write"\` under \`config.externalConnections.${connection}\` on the dms-database entry of antelope.config.ts.`;
+    case "unresolved":
+      return `refused to ${attempt}: the access of connection "${connection}" could not be checked, since ${resolved.reason}. Fix antelope.config.ts so core can load it, then try again.`;
+    case "core-missing":
+      return `refused to ${attempt}: the access of connection "${connection}" could not be checked, since ${resolved.reason}. Install @antelopejs/core in the project, then try again.`;
+  }
 }
 
 /** The connection a module's record names, when the builder mapped tables into it. */

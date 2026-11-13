@@ -61,7 +61,8 @@ import type {
   ThemeStructure,
 } from "@antelopejs/interface-dms-builder";
 import { analysisState, startAnalysis } from "./engine/analysis-job";
-import { resolveConnectionAccess } from "./engine/connection-access-config";
+import { accessRaiseRefusal } from "./engine/access-grant";
+import { withConnectionAccess } from "./engine/connection-access-config";
 import { mapResources, previewMapResources } from "./engine/map-resources";
 import { mappedChoices } from "./engine/mapped-choices";
 import { configureProject } from "./engine/project-config-ops";
@@ -71,7 +72,7 @@ import {
   listDeclaredDataSources,
 } from "./engine/catalog";
 import { composePage } from "./engine/compose-page";
-import { addBlock, configureBlock } from "./engine/ops";
+import { addBlock, configureBlock, invalidConfig } from "./engine/ops";
 import {
   configureCategory,
   createCategory,
@@ -206,8 +207,7 @@ export async function AddBlock(
   input: AddBlockInput,
   opts?: MutationOpts,
 ): Promise<OpResult<{ path: BlockPath }>> {
-  await resolveConnectionAccess();
-  return addBlock(input, opts);
+  return withConnectionAccess(() => addBlock(input, opts));
 }
 
 export async function ConfigureBlock(
@@ -215,8 +215,7 @@ export async function ConfigureBlock(
   patch: Parameters<typeof ConfigureBlockContract>[1],
   opts?: ConfigureBlockOpts,
 ): Promise<OpResult> {
-  await resolveConnectionAccess();
-  return configureBlock(path, patch, opts);
+  return withConnectionAccess(() => configureBlock(path, patch, opts));
 }
 
 export async function MoveBlock(
@@ -237,15 +236,13 @@ export async function RemoveBlock(
 export async function MapResources(
   input: MapResourcesInput,
 ): Promise<OpResult<MapResourcesResult>> {
-  await resolveConnectionAccess();
-  return mapResources(input);
+  return withConnectionAccess(() => mapResources(input));
 }
 
 export async function PreviewMapResources(
   input: MapResourcesInput,
 ): Promise<OpResult<MapResourcesPreview>> {
-  await resolveConnectionAccess();
-  return previewMapResources(input);
+  return withConnectionAccess(() => previewMapResources(input));
 }
 
 export async function AnalyseDatabase(
@@ -267,11 +264,22 @@ export async function GetMapping(
   return mappedChoices(connection, module);
 }
 
+/** `configureProject` for a caller of the interface, which never raises a connection's access. */
+function configureAsAgent(
+  steps: ProjectConfigStep[],
+  opts?: ProjectConfigOpts,
+): OpResult<ProjectConfigResult> {
+  const refusal = accessRaiseRefusal(steps);
+  return refusal === undefined
+    ? configureProject(steps, opts)
+    : invalidConfig<ProjectConfigResult>(refusal);
+}
+
 export async function ConfigureProject(
   steps: ProjectConfigStep[],
   opts?: ProjectConfigOpts,
 ): Promise<OpResult<ProjectConfigResult>> {
-  return configureProject(steps, opts);
+  return configureAsAgent(steps, opts);
 }
 
 export async function AddModule(
@@ -279,7 +287,7 @@ export async function AddModule(
   entry: ModuleEntryInput,
   opts?: ProjectConfigOpts,
 ): Promise<OpResult<ProjectConfigResult>> {
-  return configureProject([{ op: "AddModule", id, entry }], opts);
+  return configureAsAgent([{ op: "AddModule", id, entry }], opts);
 }
 
 export async function ConfigureModule(
@@ -287,7 +295,7 @@ export async function ConfigureModule(
   entry: ModuleEntryInput,
   opts?: ProjectConfigOpts,
 ): Promise<OpResult<ProjectConfigResult>> {
-  return configureProject([{ op: "ConfigureModule", id, entry }], opts);
+  return configureAsAgent([{ op: "ConfigureModule", id, entry }], opts);
 }
 
 export async function CreateLocalModule(
@@ -297,7 +305,7 @@ export async function CreateLocalModule(
   opts: CreateLocalModuleOpts = {},
 ): Promise<OpResult<ProjectConfigResult>> {
   const { connection, ...configOpts } = opts;
-  return configureProject(
+  return configureAsAgent(
     [{ op: "CreateLocalModule", id, path, entry, connection }],
     configOpts,
   );
@@ -322,8 +330,7 @@ export async function ConfigureResource(
   patch: EditableResourceMeta,
   opts?: MutationOpts,
 ): Promise<OpResult> {
-  await resolveConnectionAccess();
-  return configureResource(ref, patch, opts);
+  return withConnectionAccess(() => configureResource(ref, patch, opts));
 }
 
 export async function DeleteResource(
@@ -399,8 +406,7 @@ export async function ComposePage(
   input: ComposePageInput,
   opts?: MutationOpts,
 ): Promise<OpResult<ComposePageData>> {
-  await resolveConnectionAccess();
-  return composePage(input, opts);
+  return withConnectionAccess(() => composePage(input, opts));
 }
 
 export async function GetTheme(): Promise<OpResult<ThemeStructure>> {

@@ -1,9 +1,15 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import fs from "node:fs/promises";
 import { z } from "zod";
-import type { ConfigLoader } from "@antelopejs/core";
 import { findConfigFile } from "./modules";
 import { resolveProjectRoot } from "./project";
 import { isString } from "./scalar-guards";
+
+/**
+ * Why a connection may not be written: its access says so (`configured`), the configuration could
+ * not be loaded (`unresolved`), or `@antelopejs/core`, which loads it, is missing (`core-missing`).
+ */
+export type ReadOnlyCause = "configured" | "unresolved" | "core-missing";
 
 /**
  * What the project lets the builder do on an external connection: write, or only read, with why
@@ -11,19 +17,39 @@ import { isString } from "./scalar-guards";
  */
 export type ResolvedAccess =
   | { access: "read-write" }
-  | { access: "read"; reason: string };
+  | { access: "read"; cause: ReadOnlyCause; reason: string };
 
-type LoadedConfig = Awaited<ReturnType<ConfigLoader["load"]>>;
-type FileSystem = ConstructorParameters<typeof ConfigLoader>[0];
+const ResolutionSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("loaded"),
+    environment: z.string(),
+    modules: z.record(z.string(), z.unknown()),
+  }),
+  z.object({ kind: z.literal("core-missing") }),
+  z.object({ kind: z.literal("failed"), detail: z.string() }),
+]);
 
-/** The config as core loads it for an environment, or why it could not be loaded. */
-type Resolution =
-  | { config: LoadedConfig; environment: string }
-  | { failure: string };
+/** The project configuration as core loads it for an operation, or why it could not. */
+type Resolution = z.infer<typeof ResolutionSchema>;
 
 const DMS_DATABASE_ID = "dms-database";
 const DMS_DATABASE_PACKAGE = "@antelopejs/dms-database";
+const CORE_PACKAGE = "@antelopejs/core";
 const LOAD_TIMEOUT_MS = 15_000;
+
+type CoreModule = typeof import("@antelopejs/core");
+type FileSystem = ConstructorParameters<CoreModule["ConfigLoader"]>[0];
+
+/** What the builder reads from a thrown value. */
+const ThrownSchema = z
+  .object({ message: z.string(), code: z.string().optional() })
+  .catch({ message: "an error with no message" });
+
+type Thrown = z.infer<typeof ThrownSchema>;
+
+function thrown(error: unknown): Thrown {
+  return ThrownSchema.parse(error);
+}
 
 function refuseWrite(): Promise<never> {
   return Promise.reject(
@@ -51,9 +77,6 @@ const READ_ONLY_FILE_SYSTEM: FileSystem = {
 };
 
 let launchEnvironment: string | undefined;
-let resolution: Resolution = {
-  failure: "it was not resolved before this operation",
-};
 
 /**
  * Records the environment core launched the project with, so the access is resolved for it.
@@ -63,6 +86,38 @@ let resolution: Resolution = {
  */
 export function recordLaunchEnvironment(environment: string | undefined): void {
   launchEnvironment = environment;
+}
+
+/** Puts `process.env` back as it was: core's loader reads the project's `.env` into it. */
+function restoreEnv(before: NodeJS.ProcessEnv): void {
+  for (const name of Object.keys(process.env)) {
+    if (!Object.hasOwn(before, name)) {
+      delete process.env[name];
+    }
+  }
+  for (const [name, value] of Object.entries(before)) {
+    if (process.env[name] !== value) {
+      process.env[name] = value;
+    }
+  }
+}
+
+/**
+ * Calls core's loader and puts `process.env` back before anything else runs: core reads the
+ * project's `.env` synchronously, before the loader's first `await`, so no other code of the
+ * running server ever sees it changed.
+ */
+function loadLeavingEnv(core: CoreModule, environment: string) {
+  const before = { ...process.env };
+  try {
+    return new core.ConfigLoader(READ_ONLY_FILE_SYSTEM).load(
+      resolveProjectRoot(),
+      environment,
+      findConfigFile(),
+    );
+  } finally {
+    restoreEnv(before);
+  }
 }
 
 function withTimeout<T>(work: Promise<T>): Promise<T> {
@@ -77,30 +132,47 @@ function withTimeout<T>(work: Promise<T>): Promise<T> {
   return Promise.race([work, expired]).finally(() => clearTimeout(timer));
 }
 
-/**
- * Loads the project configuration with core's own `ConfigLoader`, for the launch environment, so
- * the access checks of the operation that follows read what dms-database receives: the entry,
- * that environment's member of `environments`, `antelope.<id>.json`, then `envOverrides`, in
- * core's order. It runs before every guarded operation, so a change applies without a restart.
- * It never throws: a failure is kept as the reason every connection reads as `"read"`.
- */
-export async function resolveConnectionAccess(): Promise<void> {
+/** Loads the project configuration with core's own `ConfigLoader`, or says why it could not. */
+async function loadResolution(): Promise<Resolution> {
+  let core: CoreModule;
   try {
-    const core = await import("@antelopejs/core");
-    const environment = launchEnvironment ?? core.DEFAULT_ENV;
-    const config = await withTimeout(
-      new core.ConfigLoader(READ_ONLY_FILE_SYSTEM).load(
-        resolveProjectRoot(),
-        environment,
-        findConfigFile(),
-      ),
-    );
-    resolution = { config, environment };
+    core = await import("@antelopejs/core");
   } catch (error) {
-    resolution = {
-      failure: error instanceof Error ? error.message : String(error),
-    };
+    const { code, message } = thrown(error);
+    return code === "MODULE_NOT_FOUND" && message.includes(`'${CORE_PACKAGE}'`)
+      ? { kind: "core-missing" }
+      : { kind: "failed", detail: message };
   }
+  try {
+    const environment = launchEnvironment ?? core.DEFAULT_ENV;
+    const config = await withTimeout(loadLeavingEnv(core, environment));
+    const modules = ResolutionSchema.safeParse({
+      kind: "loaded",
+      environment,
+      modules: config.modules ?? {},
+    });
+    return modules.success
+      ? modules.data
+      : { kind: "failed", detail: "its modules are not plain objects" };
+  } catch (error) {
+    return { kind: "failed", detail: thrown(error).message };
+  }
+}
+
+const operationAccess = new AsyncLocalStorage<Resolution>();
+
+/**
+ * Runs an operation with the project configuration core loads for the launch environment, so
+ * its access checks read what dms-database receives: the entry, that environment's member of
+ * `environments`, `antelope.<id>.json`, then `envOverrides`, in core's order. Each operation
+ * loads its own and reads only its own, so a change applies without a restart and concurrent
+ * operations never see each other's.
+ */
+export async function withConnectionAccess<T>(
+  work: () => T | Promise<T>,
+): Promise<T> {
+  const resolution = await loadResolution();
+  return operationAccess.run(resolution, work);
 }
 
 /** The parts of a loaded module entry the access is read from; other members pass through. */
@@ -121,8 +193,6 @@ const ModuleEntrySchema = z
 
 const ConnectionSettingSchema = z.object({ access: z.unknown() }).passthrough();
 
-const ModulesSchema = z.record(z.string(), z.unknown());
-
 type ModuleEntry = z.infer<typeof ModuleEntrySchema>;
 
 function isDmsDatabaseEntry(
@@ -134,6 +204,10 @@ function isDmsDatabaseEntry(
   );
 }
 
+function configured(reason: string): ResolvedAccess {
+  return { access: "read", cause: "configured", reason };
+}
+
 /** What the dms-database entry says about a connection, completing "… for the <env> environment". */
 function accessOf(
   id: string,
@@ -142,63 +216,80 @@ function accessOf(
 ): ResolvedAccess {
   const where = `\`config.externalConnections.${connection}.access\` of the ${id} module`;
   if (!entry) {
-    return { access: "read", reason: `the ${id} module is not a plain object` };
+    return configured(`the ${id} module is not a plain object`);
   }
   const connections = entry.config?.externalConnections ?? {};
   if (!Object.hasOwn(connections, connection)) {
-    return {
-      access: "read",
-      reason: `${where} is not set, and "read" is the default,`,
-    };
+    return configured(`${where} is not set, and "read" is the default,`);
   }
   const setting = ConnectionSettingSchema.safeParse(connections[connection]);
   if (!setting.success) {
-    return { access: "read", reason: `${where} is not under a plain object` };
+    return configured(`${where} is not under a plain object`);
   }
   const { access } = setting.data;
   if (access === "read-write") {
     return { access: "read-write" };
   }
-  return {
-    access: "read",
-    reason: `${where} is ${isString(access) ? JSON.stringify(access) : "not a string"}`,
-  };
+  return configured(
+    `${where} is ${isString(access) ? JSON.stringify(access) : "not a string"}`,
+  );
 }
 
-/**
- * The access the last {@link resolveConnectionAccess} gives a connection:
- * `config.externalConnections.<id>.access` of the loaded dms-database module. Anything but
- * `"read-write"` there, a configuration that could not be resolved included, is `"read"`.
- */
-export function connectionAccess(connection: string): ResolvedAccess {
-  if ("failure" in resolution) {
-    return {
-      access: "read",
-      reason: `the project configuration could not be resolved: ${resolution.failure}`,
-    };
-  }
-  const { config, environment } = resolution;
-  const modules = ModulesSchema.safeParse(config.modules);
-  const entries = modules.success
-    ? Object.entries(modules.data).map(
-        ([id, raw]): [string, ModuleEntry | undefined] => {
-          const parsed = ModuleEntrySchema.safeParse(raw);
-          return [id, parsed.success ? parsed.data : undefined];
-        },
-      )
-    : [];
-  const found = entries.find(([id, entry]) => isDmsDatabaseEntry(id, entry));
+function loadedAccess(
+  modules: Extract<Resolution, { kind: "loaded" }>["modules"],
+  environment: string,
+  connection: string,
+): ResolvedAccess {
+  const found = Object.entries(modules)
+    .map(([id, raw]): [string, ModuleEntry | undefined] => {
+      const parsed = ModuleEntrySchema.safeParse(raw);
+      return [id, parsed.success ? parsed.data : undefined];
+    })
+    .find(([id, entry]) => isDmsDatabaseEntry(id, entry));
   if (!found) {
-    return {
-      access: "read",
-      reason: `no dms-database module is loaded for the "${environment}" environment, and "read" is the default`,
-    };
+    return configured(
+      `no dms-database module is loaded for the "${environment}" environment, and "read" is the default`,
+    );
   }
   const resolved = accessOf(found[0], found[1], connection);
   return resolved.access === "read-write"
     ? resolved
-    : {
+    : configured(`${resolved.reason} for the "${environment}" environment`);
+}
+
+/**
+ * The access the running operation's configuration gives a connection:
+ * `config.externalConnections.<id>.access` of the loaded dms-database module. Anything but
+ * `"read-write"` there, a configuration that could not be loaded included, is `"read"`.
+ */
+export function connectionAccess(connection: string): ResolvedAccess {
+  const resolution = operationAccess.getStore();
+  if (!resolution) {
+    return {
+      access: "read",
+      cause: "unresolved",
+      reason: "the configuration was not loaded for this operation",
+    };
+  }
+  switch (resolution.kind) {
+    case "loaded":
+      return loadedAccess(
+        resolution.modules,
+        resolution.environment,
+        connection,
+      );
+    case "core-missing":
+      return {
         access: "read",
-        reason: `${resolved.reason} for the "${environment}" environment`,
+        cause: "core-missing",
+        reason:
+          "the builder cannot load @antelopejs/core, which resolves the project configuration",
       };
+    case "failed":
+      return {
+        access: "read",
+        cause: "unresolved",
+        reason: `the project configuration could not be loaded: ${resolution.detail}`,
+      };
+  }
 }

@@ -115,7 +115,7 @@ describe("[unit] the access is the one core loads for the launch environment", f
         'throw new Error("a broken configuration");\n',
       );
     expect(refusalOf(await writable())).to.include(
-      `${READ_ONLY}, since the project configuration could not be resolved: a broken configuration`,
+      'the access of connection "erp" could not be checked, since the project configuration could not be loaded: a broken configuration. Fix antelope.config.ts so core can load it',
     );
   });
 });
