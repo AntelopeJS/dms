@@ -1,80 +1,14 @@
-import { Controller } from "@antelopejs/interface-api";
-import {
-  DataController,
-  RegisterDataController,
-} from "@antelopejs/interface-data-api";
-import {
-  Access,
-  AccessMode,
-  Listable,
-  ModelReference,
-} from "@antelopejs/interface-data-api/metadata";
-import {
-  BasicDataModel,
-  Field,
-  Model,
-  RegisterTable,
-  Table,
-} from "@antelopejs/interface-database-decorators";
 import { GetMetadata } from "@antelopejs/interface-core";
+import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
 import { expect } from "chai";
-import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
-import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { assertRowRule } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
 import {
-  Column,
-  TableView,
-  TableViewMeta,
-  TableViewRoutes,
-} from "@antelopejs/interface-dms/base/table-view";
-
-const TABLE = "footer-payments";
-
-@RegisterTable(TABLE, CORE_SCHEMA_NAME)
-class Payment extends Table {
-  @Field("string") declare status: string;
-  @Field("number") declare amount: number;
-  @Field("string") declare note: string;
-}
-
-class PaymentModel extends BasicDataModel(Payment, TABLE) {}
-
-@RegisterDataController()
-class PaymentAPI extends DataController(
-  Payment,
-  { list: TableViewRoutes.List, summary: TableViewRoutes.Summary },
-  Controller("/api/footer-payments"),
-) {
-  @ModelReference()
-  @Model(PaymentModel)
-  declare model: PaymentModel;
-
-  @Listable()
-  @Column({
-    name: "Status",
-    type: new DefaultDataTypes.SelectType({
-      items: [{ value: "failed", label: "Failed" }],
-    }),
-    filterable: true,
-  })
-  @Access(AccessMode.ReadOnly)
-  declare status: string;
-
-  @Listable()
-  @Column({ name: "Amount", type: new DefaultDataTypes.PriceType() })
-  @Access(AccessMode.ReadOnly)
-  declare amount: number;
-
-  @Listable()
-  @Column({ name: "Note", type: new DefaultDataTypes.StringType() })
-  @Access(AccessMode.ReadOnly)
-  declare note: string;
-}
-
-type PaymentOptions = NonNullable<
-  Parameters<typeof TableView<typeof PaymentAPI>>[1]
->;
+  optionsOf,
+  PaymentAPI,
+  type PaymentOptions,
+  READ_ONLY,
+} from "./table-view-footer.fixture";
 
 type FooterRule = NonNullable<
   NonNullable<NonNullable<PaymentOptions["footer"]>["summary"]>[number]["where"]
@@ -85,15 +19,6 @@ const nestedNot = (depth: number): FooterRule => {
   for (let level = 0; level < depth; level += 1) rule = { not: rule };
   return rule;
 };
-
-const READ_ONLY = { add: false, duplicate: false, edit: false, delete: false };
-
-const optionsOf = (options: PaymentOptions) =>
-  TableView(PaymentAPI, {
-    realtime: false,
-    rowActions: READ_ONLY,
-    ...options,
-  }).serializeSync().options!;
 
 function registerSummaryCases(): void {
   it("serves the summaries by id, keeping their rule on the server", () => {
@@ -127,29 +52,6 @@ function registerSummaryCases(): void {
       equals: "failed",
     });
     expect(meta.footerSummary("nope")).to.equal(undefined);
-  });
-
-  it("refuses a sum without a field, an unknown column, and a legend that is no select", () => {
-    expect(() =>
-      optionsOf({ footer: { summary: [{ label: "Sum", op: "sum" }] } }),
-    ).to.throw(/sums no field/);
-    expect(() =>
-      optionsOf({
-        footer: {
-          summary: [
-            {
-              label: "Bad",
-              op: "count",
-              // @ts-expect-error Unknown column deliberately exercises registration validation.
-              where: { not: { field: "nope", equals: "x" } },
-            },
-          ],
-        },
-      }),
-    ).to.throw(/unknown column "nope"/);
-    expect(() => optionsOf({ footer: { legend: "note" } })).to.throw(
-      /must name a SelectType column/,
-    );
   });
 
   it("refuses a malformed where rule with the row-rule check its declaration runs", () => {

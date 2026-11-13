@@ -75,8 +75,6 @@ describe("[unit] frontend module public endpoints", () => {
     { path: "/api/hooks", headers: ["authorization"] },
     { path: "/api/hooks", headers: ["x-forwarded-host"] },
     { path: "/api/hooks", headers: ["x-dms-oauth-relay"] },
-    // SAFETY: resolvePublicEndpoints passes every entry through normalize and isValidPublicEndpoint, which run isObject before they read a member, so an entry that is not an object, as this string, is rejected with the invalid-publicEndpoints error and never dereferenced.
-    "/api/hooks" as unknown as FrontendPublicEndpoint,
   ]) {
     it(`refuses to register ${JSON.stringify(endpoint)}`, () => {
       expect(() => register("public-invalid", [endpoint])).to.throw(

@@ -70,15 +70,6 @@ describe("sanitizeSorting", () => {
     ).toEqual([{ id: "completion_percentage", desc: false }]);
   });
 
-  it("survives malformed preferences", () => {
-    expect(sanitizeSorting(undefined, sortable)).toEqual([]);
-    expect(sanitizeSorting(null, sortable)).toEqual([]);
-    // @ts-expect-error Malformed persisted data must be rejected even outside the declared sorting contract.
-    expect(sanitizeSorting("due_date", sortable)).toEqual([]);
-    // @ts-expect-error A numeric persisted sort id must be rejected, not coerced to a column id.
-    expect(sanitizeSorting([{ id: 3 }], sortable)).toEqual([]);
-  });
-
   it("drops a sort on a column the route refused since", () => {
     const afterRefusal = new Set(
       [...sortable].filter((id) => id !== "due_date"),

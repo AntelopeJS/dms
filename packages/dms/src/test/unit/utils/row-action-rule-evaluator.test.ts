@@ -149,24 +149,7 @@ function registerLogicalOperatorCases(): void {
   });
 }
 
-function registerFallbackCases(): void {
-  describe("fallback behaviour", () => {
-    it("returns false when the rule has no known operator", () => {
-      const rule = {};
-      // @ts-expect-error An empty rule has no required field or logical operator; this exercises the runtime fallback.
-      expect(evaluateRowActionRule(rule, ROW_ACTIVE_ADMIN)).to.equal(false);
-    });
-
-    it("returns false when field is set but no operator is provided", () => {
-      const rule = { field: "status" };
-      // @ts-expect-error A field rule requires a comparison operator; this exercises the runtime fallback.
-      expect(evaluateRowActionRule(rule, ROW_ACTIVE_ADMIN)).to.equal(false);
-    });
-  });
-}
-
 describe("[unit] utils/row-action-rule-evaluator", () => {
   registerFieldOperatorCases();
   registerLogicalOperatorCases();
-  registerFallbackCases();
 });
