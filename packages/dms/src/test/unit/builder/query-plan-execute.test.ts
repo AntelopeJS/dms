@@ -9,6 +9,7 @@ import {
   type PlanArguments,
   type PlanOperand,
   type PlanPoints,
+  type PlanQuery,
   type PlanRow,
   type PlanStream,
   type PlanValue,
@@ -38,8 +39,8 @@ interface Transcript {
 type Rendered =
   | PlanOperand
   | PlanValue
-  | PromiseLike<number>
-  | PromiseLike<number | QueryPoint[]>;
+  | PlanQuery<number>
+  | PlanQuery<number | QueryPoint[]>;
 
 function carriesText(node: Rendered): node is Rendered & Transcript {
   return (
@@ -50,13 +51,13 @@ function carriesText(node: Rendered): node is Rendered & Transcript {
   );
 }
 
-/** What awaiting a transcript answers: it holds the calls, not the rows, so nothing came back. */
-function nothingBack<Result>(answer: Result): Promise<Result> {
-  return Promise.resolve(answer);
+/** What running a transcript answers: it holds the calls, not the rows, so nothing came back. */
+function nothingBack<Result>(answer: Result): PlanQuery<Result> {
+  return { run: () => Promise.resolve(answer) };
 }
 
 /** A measure, written down rather than computed. */
-function measure(text: string): PromiseLike<number> & Transcript {
+function measure(text: string): PlanQuery<number> & Transcript {
   return Object.assign(nothingBack(0), { text });
 }
 
