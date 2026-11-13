@@ -279,8 +279,8 @@ const addFiles = (files: FileList | File[] | null) => {
 };
 
 const onFileInputChange = (event: Event) => {
-  // SAFETY: the template binds this handler to the file input's change event.
-  const input = event.target as HTMLInputElement;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
   addFiles(input.files);
   input.value = "";
 };
@@ -337,8 +337,8 @@ const setPrincipal = (id: string) => {
 };
 
 const onImageLoad = (item: GalleryItem, event: Event) => {
-  // SAFETY: both template bindings attach this handler to an img load event.
-  const image = event.target as HTMLImageElement;
+  const image = event.target;
+  if (!(image instanceof HTMLImageElement)) return;
   item.width = image.naturalWidth;
   item.height = image.naturalHeight;
 };

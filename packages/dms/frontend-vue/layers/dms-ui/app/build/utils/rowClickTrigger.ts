@@ -35,9 +35,8 @@ const isOnRowControl: RowClickGuard = (event) => {
   const target = event.target as Element | null;
   const control = target?.closest?.(ROW_CONTROL_SELECTOR);
   if (!control) return false;
-  // SAFETY: The row listener is attached to the row element; a detached event has a null currentTarget.
-  const row = event.currentTarget as Element | null;
-  return !row || row.contains(control);
+  const row = event.currentTarget;
+  return !(row instanceof Node) || row.contains(control);
 };
 
 const endsTextSelection: RowClickGuard = () => {

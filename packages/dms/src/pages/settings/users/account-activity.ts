@@ -334,8 +334,9 @@ export function buildAccountActivity(
 }
 
 function stripEmpty(event: Draft): Draft {
-  // SAFETY: Draft's required type and date are never undefined, so this filter removes only optional properties and preserves every retained value.
-  return Object.fromEntries(
-    Object.entries(event).filter(([, value]) => value !== undefined),
-  ) as Draft;
+  const stripped = { ...event };
+  for (const [key, value] of Object.entries(event)) {
+    if (value === undefined) Reflect.deleteProperty(stripped, key);
+  }
+  return stripped;
 }

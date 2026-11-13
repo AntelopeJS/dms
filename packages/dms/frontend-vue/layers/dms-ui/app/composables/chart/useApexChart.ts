@@ -285,16 +285,11 @@ function applyDatetimeBuckets(
     labels: { ...labels, formatter: bucketFormatter },
   };
   const tooltip = options.tooltip;
+  const bucketTooltip = bucketTooltipFormatter(buckets, input);
   options.tooltip = {
     ...tooltip,
     x: {
-      // SAFETY: The public formatter stringifies its input before reading it, so Apex's numeric input follows the same conversion without widening the public callback contract.
-      formatter: bucketTooltipFormatter(buckets, input) as ReturnType<
-        typeof bucketTooltipFormatter
-      > &
-        NonNullable<
-          NonNullable<NonNullable<ApexOptions["tooltip"]>["x"]>["formatter"]
-        >,
+      formatter: (value: unknown) => bucketTooltip(String(value ?? "")),
     },
   };
 }

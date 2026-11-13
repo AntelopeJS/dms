@@ -198,6 +198,11 @@ export function getExportLocalScratchPath(
   return path.join(os.tmpdir(), `${EXPORT_TMP_PREFIX}${exportId}.${extension}`);
 }
 
+/** Undici reads `duplex`, required with a stream body; the DOM `RequestInit` omits it. */
+interface StreamingRequestInit extends RequestInit {
+  duplex: "half";
+}
+
 export async function uploadExportToStorage(
   localPath: string,
   tenantId: string,
@@ -214,20 +219,19 @@ export async function uploadExportToStorage(
     path: `${EXPORT_STORAGE_PREFIX}/${tenantId}`,
   });
 
-  const fileStream = fs.createReadStream(localPath);
-  const response = await fetch(
-    presign.uploadUrl,
-    // SAFETY: The literal satisfies RequestInit apart from its body and duplex; Node's web readable stream is accepted by fetch with duplex half, which the DOM RequestInit and ReadableStream declarations omit or type differently.
-    {
-      method: "PUT",
-      headers: presign.headers,
-      body: Readable.toWeb(fileStream),
-      duplex: "half",
-    } satisfies Omit<RequestInit, "body"> & {
-      body: ReturnType<typeof Readable.toWeb>;
-      duplex: "half";
-    } as RequestInit,
+  const body = Readable.toWeb(fs.createReadStream(localPath));
+  assert(
+    body instanceof ReadableStream,
+    500,
+    "Export upload stream is not a fetch body",
   );
+  const init: StreamingRequestInit = {
+    method: "PUT",
+    headers: presign.headers,
+    body,
+    duplex: "half",
+  };
+  const response = await fetch(presign.uploadUrl, init);
 
   if (!response.ok) {
     await response.body?.cancel().catch(() => undefined);

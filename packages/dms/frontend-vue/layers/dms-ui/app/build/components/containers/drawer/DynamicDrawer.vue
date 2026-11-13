@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import {
-  getCurrentInstance,
-  toRaw,
-  type AppContext,
-  type Component,
-} from "vue";
+import { getCurrentInstance, toRaw, type Component } from "vue";
 import {
   formBusInjectionKey,
   formErrorsInjectionKey,
@@ -97,11 +92,8 @@ const NUXT_UI_FORM_KEYS: symbol[] = [
   formLoadingInjectionKey,
   formErrorsInjectionKey,
 ];
-// SAFETY: Vue initializes every component instance's hidden provides from its parent or app context.
-const drawerInstance = getCurrentInstance() as {
-  provides: AppContext["provides"];
-} | null;
-if (drawerInstance && props.callerProvides) {
+const drawerInstance = getCurrentInstance();
+if (drawerInstance && "provides" in drawerInstance && props.callerProvides) {
   drawerInstance.provides = Object.create(toRaw(props.callerProvides));
 
   for (const key of NUXT_UI_FORM_KEYS) provide(key, undefined);
@@ -200,16 +192,19 @@ function renderedSize(handle: Element): number | undefined {
 }
 
 function startHandleDrag(event: PointerEvent): void {
-  // SAFETY: This handler is registered on the drawer's HTMLElement resize grip, and runs synchronously while currentTarget is set.
-  const handle = event.currentTarget as HTMLElement;
+  const handle = event.currentTarget;
+  if (!(handle instanceof Element)) return;
   handle.setPointerCapture?.(event.pointerId);
   const rendered = renderedSize(handle) || resizedSize.value;
   if (rendered) startDrag(event, rendered);
 }
 
 function resizeHandleFromKey(event: KeyboardEvent): void {
-  // SAFETY: This handler is registered on the drawer's HTMLElement resize grip, and runs synchronously while currentTarget is set.
-  resizeFromKey(event, renderedSize(event.currentTarget as HTMLElement));
+  const handle = event.currentTarget;
+  resizeFromKey(
+    event,
+    handle instanceof Element ? renderedSize(handle) : undefined,
+  );
 }
 
 const DESKTOP_HIDDEN_GRIP = "lg:hidden!";

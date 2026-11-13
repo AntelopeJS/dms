@@ -124,12 +124,12 @@ export const useAuthFetch = () => {
       ...defaults,
       ...options,
     });
-    // SAFETY: retryingFetch resolves with the response baseFetch gives for the same request, of the same response type, so the wrapper answers as AuthFetch's call signature does; raw, native and create are attached below before it is returned.
+    // SAFETY: For every type argument a caller picks, retryingFetch resolves with what baseFetch resolves for the caller's request and its options merged over defaults, responseType included, a 401 retry resending them with only the retry header added; raw, native and create are assigned by the next three statements, before authFetch is returned.
     const authFetch = ((
       request: AuthFetchArgs[0],
       options?: AuthFetchArgs[1],
     ) => retryingFetch(request, optionsOf(options))) as AuthFetch;
-    // SAFETY: retryingRaw resolves with the response baseFetch.raw gives for the same request, of the same response type, so the wrapper answers as AuthFetch['raw'] does.
+    // SAFETY: For every type argument a caller picks, retryingRaw resolves with what baseFetch.raw resolves for the caller's request and its options merged over defaults, responseType included, a 401 retry resending them with only the retry header added.
     authFetch.raw = ((request: AuthFetchArgs[0], options?: AuthFetchArgs[1]) =>
       retryingRaw(request, optionsOf(options))) as AuthFetch["raw"];
     authFetch.native = baseFetch.native;

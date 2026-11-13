@@ -14,8 +14,8 @@ function isIdentified<T>(category: T): category is T & IdentifiedCategory {
   return (
     typeof category === "object" &&
     category !== null &&
-    // SAFETY: The preceding checks establish a nonnull object; fullId is read as unknown and narrowed by this existing string test.
-    typeof (category as { fullId?: unknown }).fullId === "string"
+    "fullId" in category &&
+    typeof category.fullId === "string"
   );
 }
 

@@ -409,11 +409,14 @@ export function resolveFormPageTexts(
   };
 }
 
+function isFormPageKind(key: string): key is FormPageKind {
+  return Object.hasOwn(FORM_PAGE_DEFINITIONS, key);
+}
+
 /** @internal */
-// SAFETY: FORM_PAGE_DEFINITIONS declares only the new, edit and view keys that make up FormPageKind.
-export const FORM_PAGE_KINDS = Object.keys(
+export const FORM_PAGE_KINDS: FormPageKind[] = Object.keys(
   FORM_PAGE_DEFINITIONS,
-) as FormPageKind[];
+).filter(isFormPageKind);
 
 /**
  * Append a form page slug to the slug of the page carrying the table view.

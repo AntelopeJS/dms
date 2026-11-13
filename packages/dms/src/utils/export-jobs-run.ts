@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import { Readable } from "node:stream";
+import { ReadableStream as NodeReadableStream } from "node:stream/web";
 import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
@@ -329,10 +330,12 @@ export async function downloadExportJob<TContext = unknown>(
   );
   const writeStream = ctx.response.getWriteStream(record.contentType);
 
-  const nodeReadable = Readable.fromWeb(
-    // SAFETY: The fetch response body is a web readable stream accepted by Node's adapter.
-    body as Parameters<typeof Readable.fromWeb>[0],
+  assert(
+    body instanceof NodeReadableStream,
+    500,
+    "Export body is not a Node web stream",
   );
+  const nodeReadable = Readable.fromWeb(body);
 
   const cleanup = (): void => {
     fireAndForget(

@@ -172,7 +172,7 @@ function forwardEmit(
       emits("update:modelValue", value as string | null | undefined);
     }
   } else {
-    // SAFETY: useForwardPropsEmits forwards event names and arguments unchanged; this widens the call surface without changing the actual emitter.
+    // SAFETY: useForwardPropsEmits binds handlers only for the events declared above, so this branch gets update:modelValue with a falsy value, update:placeholder with UCalendar's CalendarDate, or update:startValue with its CalendarDate or undefined, each a payload its declaration accepts.
     const forwardEvent = emits as (event: string, ...args: unknown[]) => void;
     forwardEvent(event, value);
   }

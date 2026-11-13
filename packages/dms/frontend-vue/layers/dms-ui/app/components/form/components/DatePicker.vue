@@ -247,7 +247,7 @@ function forwardEmit(event: EmitEvent, value: EmitValue): void {
       emits("update:modelValue", value as string | null | undefined);
     }
   } else {
-    // SAFETY: Vue emit forwards event names and payloads at runtime, including the placeholder and start-value events not serialized above.
+    // SAFETY: useForwardPropsEmits binds handlers only for the events declared above, so this branch gets update:modelValue with a falsy value, update:placeholder with UCalendar's CalendarDate, or update:startValue with its CalendarDate or undefined, each a payload its declaration accepts.
     const forwardEvent = emits as (event: string, ...args: unknown[]) => void;
     forwardEvent(event, value);
   }
