@@ -6,15 +6,16 @@ import {
 } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { DataController } from "@antelopejs/interface-data-api";
-import { Query } from "@antelopejs/interface-data-api/components";
 import { ModelReference } from "@antelopejs/interface-data-api/metadata";
 import {
   BasicDataModel,
   Field,
   Model,
+  RegisterSchema,
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
+import { Schema } from "@antelopejs/interface-database";
 import { expect } from "chai";
 import { z } from "zod";
 import * as tableViewImpl from "../../../../implementations/dms-base/table-view";
@@ -72,41 +73,6 @@ class TaskAPI extends DataController(
   declare model: TaskModel;
 }
 
-type Row = { _id: string; priority: string; isArchived: boolean };
-
-function createTable(rows: Map<string, Row>) {
-  return {
-    getAll(ids: string[]) {
-      const found = ids
-        .map((id) => rows.get(id))
-        .filter((row): row is Row => !!row);
-      return Object.assign(Promise.resolve(found), {
-        update: async (patch: Partial<Row>) => {
-          for (const row of found) Object.assign(row, patch);
-          return found.length;
-        },
-        delete: async () => {
-          for (const row of found) rows.delete(row._id);
-          return found.length;
-        },
-      });
-    },
-  };
-}
-
-function createRows(isArchived: boolean): Map<string, Row> {
-  return new Map(
-    ALL_IDS.map((id) => [
-      id,
-      {
-        _id: id,
-        priority: id === RULE_REFUSED_ID ? "high" : "low",
-        isArchived,
-      },
-    ]),
-  );
-}
-
 function context(query: string): RequestContext {
   return requestContextFixture(
     new URL(`http://localhost/api/bulk-operations/archive?${query}`),
@@ -116,13 +82,21 @@ function context(query: string): RequestContext {
 const controller = new TaskAPI();
 const meta = GetMetadata(TaskAPI, TableViewMeta);
 const published: string[][] = [];
-let rows: Map<string, Row>;
 
-function useRows(next: Map<string, Row>) {
-  rows = next;
+/** Replaces the stored tasks with one per id of `ALL_IDS`, all `isArchived`. */
+async function useRows(isArchived: boolean): Promise<void> {
+  await controller.model.table.delete().run();
+  await controller.model.insert(
+    ALL_IDS.map((id) => ({
+      _id: id,
+      priority: id === RULE_REFUSED_ID ? "high" : "low",
+      isArchived,
+    })),
+  );
+}
 
-  // SAFETY: The in-memory fixture implements only getAll/update/delete, not the complete database-backed TaskModel contract.
-  controller.model = modelOver(rows) as never;
+async function storedIds(): Promise<string[]> {
+  return (await controller.model.getAll()).map((row) => row._id).sort();
 }
 
 const ArchiveAnswer = z
@@ -181,22 +155,19 @@ async function remove(ids: string[]) {
   );
 }
 
-const archivedIds = () =>
-  [...rows.values()].filter((row) => row.isArchived).map((row) => row._id);
-
-/** What `Query.GetModel` recognizes as a model, over a table of `rows`. */
-function modelOver(rows: Parameters<typeof createTable>[0]) {
-  return {
-    table: createTable(rows),
-    database: {},
-    constructor: { fromDatabase: () => undefined },
-  };
+async function archivedIds(): Promise<string[]> {
+  return (await controller.model.getAll())
+    .filter((row) => row.isArchived)
+    .map((row) => row._id)
+    .sort();
 }
 
 describe("[unit] TableView bulk operations", () => {
-  const originalDelete = Query.Delete;
-
-  before(() => {
+  before(async () => {
+    await RegisterSchema(SCHEMA);
+    const schema = Schema.get(SCHEMA);
+    if (!schema) throw new Error("Missing test schema");
+    controller.model = new TaskModel(schema.instance());
     void ImplementInterface(tenantAccess, tenantAccessImpl);
     tenantAccess.RegisterTenantAccessGate(gate);
     ImplementInterface(
@@ -219,12 +190,6 @@ describe("[unit] TableView bulk operations", () => {
       },
     );
     meta.setArchiveField(ARCHIVE_FIELD);
-
-    Query.Delete = (_table, id) =>
-      // SAFETY: A Query is staged by a database provider this unit boots without; the double supplies the awaited delete count, the only part the code under test reads.
-      createTable(rows)
-        .getAll(Array.isArray(id) ? id : [id])
-        .delete() as never;
   });
 
   beforeEach(() => {
@@ -233,7 +198,6 @@ describe("[unit] TableView bulk operations", () => {
   });
 
   after(() => {
-    Query.Delete = originalDelete;
     meta.controllerRowActionRules = undefined;
     tenantAccess.internal.RegisterTenantAccessGate.unregister(gate);
     ImplementInterface(
@@ -265,19 +229,19 @@ describe("[unit] TableView bulk operations", () => {
   });
 
   it("archives and restores every selected row", async () => {
-    useRows(createRows(false));
+    await useRows(false);
     expect(await archive(["a", "b", "d"])).to.deep.equal({
       success: true,
       archivedCount: 3,
     });
-    expect(archivedIds()).to.deep.equal(["a", "b", "d"]);
+    expect(await archivedIds()).to.deep.equal(["a", "b", "d"]);
     expect(published).to.deep.equal([["a", "b", "d"]]);
 
     expect(await restore(["a", "b", "d"])).to.deep.equal({
       success: true,
       restoredCount: 3,
     });
-    expect(archivedIds()).to.deep.equal([]);
+    expect(await archivedIds()).to.deep.equal([]);
   });
 
   it("leaves out only the rows the archive and restore rules refuse", async () => {
@@ -285,35 +249,35 @@ describe("[unit] TableView bulk operations", () => {
       archive: { isEnabled: true, rule: NOT_HIGH },
       restore: { isEnabled: true, rule: NOT_HIGH },
     });
-    useRows(createRows(false));
+    await useRows(false);
     expect(await archive(ALL_IDS)).to.deep.equal({
       success: true,
       archivedCount: 3,
     });
-    expect(archivedIds()).to.deep.equal(["a", "b", "d"]);
+    expect(await archivedIds()).to.deep.equal(["a", "b", "d"]);
 
-    useRows(createRows(true));
+    await useRows(true);
     expect(await restore(ALL_IDS)).to.deep.equal({
       success: true,
       restoredCount: 3,
     });
-    expect(archivedIds()).to.deep.equal([RULE_REFUSED_ID]);
+    expect(await archivedIds()).to.deep.equal([RULE_REFUSED_ID]);
   });
 
   it("answers a zero count when the rule refuses every row", async () => {
     meta.setControllerRowActionRules({
       archive: { isEnabled: true, rule: NOT_HIGH },
     });
-    useRows(createRows(false));
+    await useRows(false);
     expect(await archive([RULE_REFUSED_ID])).to.deep.equal({
       success: true,
       archivedCount: 0,
     });
-    expect(archivedIds()).to.deep.equal([]);
+    expect(await archivedIds()).to.deep.equal([]);
   });
 
   it("counts only the rows that exist", async () => {
-    useRows(createRows(false));
+    await useRows(false);
     expect(await archive(["a", "missing"])).to.deep.equal({
       success: true,
       archivedCount: 1,
@@ -321,16 +285,16 @@ describe("[unit] TableView bulk operations", () => {
   });
 
   it("deletes every selected row the delete rule allows", async () => {
-    useRows(createRows(false));
+    await useRows(false);
     expect(await remove(["a", "b", "d"])).to.equal(3);
-    expect([...rows.keys()]).to.deep.equal([RULE_REFUSED_ID]);
+    expect(await storedIds()).to.deep.equal([RULE_REFUSED_ID]);
 
     meta.setControllerRowActionRules({
       delete: { isEnabled: true, rule: NOT_HIGH },
     });
-    useRows(createRows(false));
+    await useRows(false);
     expect(await remove(ALL_IDS)).to.equal(3);
-    expect([...rows.keys()]).to.deep.equal([RULE_REFUSED_ID]);
+    expect(await storedIds()).to.deep.equal([RULE_REFUSED_ID]);
     expect(await remove([RULE_REFUSED_ID])).to.deep.equal({ deleted: 0 });
   });
 });

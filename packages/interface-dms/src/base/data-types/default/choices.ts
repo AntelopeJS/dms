@@ -66,16 +66,20 @@ export class BooleanType extends DataType {
 export class SelectType extends DataType {
   constructor(public readonly options: SelectTypeOptions = { items: [] }) {
     super(
-      [
-        options.multiple
-          ? DefaultDataCompareTypes.Include
-          : DefaultDataCompareTypes.Is,
-        options.multiple
-          ? DefaultDataCompareTypes.Exclude
-          : DefaultDataCompareTypes.IsNot,
-        DefaultDataCompareTypes.IsEmpty,
-        DefaultDataCompareTypes.IsNotEmpty,
-      ],
+      options.multiple
+        ? [
+            DefaultDataCompareTypes.Include,
+            DefaultDataCompareTypes.Exclude,
+            DefaultDataCompareTypes.ArrayContainsString,
+            DefaultDataCompareTypes.IsEmpty,
+            DefaultDataCompareTypes.IsNotEmpty,
+          ]
+        : [
+            DefaultDataCompareTypes.Is,
+            DefaultDataCompareTypes.IsNot,
+            DefaultDataCompareTypes.IsEmpty,
+            DefaultDataCompareTypes.IsNotEmpty,
+          ],
       options.multiple
         ? DefaultDataCompareTypes.Include
         : DefaultDataCompareTypes.Is,

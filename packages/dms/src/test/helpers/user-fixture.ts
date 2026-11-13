@@ -1,3 +1,4 @@
+import { fromDatabase } from "@antelopejs/interface-database-decorators";
 import { User } from "@antelopejs/interface-dms/auth/db";
 
 /**
@@ -9,22 +10,13 @@ export function userFixture(fields: Pick<User, "_id"> & Partial<User>): User {
 }
 
 /**
- * A {@link userFixture} whose `password` holds exactly the given text. The
- * stored field hashes what it is assigned, which would hide a leaked password
- * from a text search and rewrite what a test reads back.
+ * A stored-user instance read from a row of the given fields, so `password`
+ * holds exactly the given text. Assigning the field hashes it, which would
+ * hide a leaked password from a text search and rewrite what a test reads
+ * back.
  */
 export function plainPasswordUserFixture(
   fields: Pick<User, "_id"> & Partial<User>,
 ): User {
-  const { password, ...rest } = fields;
-  const user = userFixture(rest);
-  if (Object.hasOwn(fields, "password")) {
-    Object.defineProperty(user, "password", {
-      value: password,
-      configurable: true,
-      enumerable: true,
-      writable: true,
-    });
-  }
-  return user;
+  return fromDatabase(fields, User);
 }

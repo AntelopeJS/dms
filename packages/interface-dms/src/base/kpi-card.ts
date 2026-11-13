@@ -84,10 +84,7 @@ export function KpiCard(
 ): ComponentBuilder<KpiCardProps> {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<KpiCardProps>(KPI_CARD_COMPONENT_NAME)
-      .options(
-        // SAFETY: Bug in the published builder typing, which requires KpiCardProps' title while KpiCard() may be called without options. The spread is a KpiCardProps exactly when the caller passed options with a title; a bare KpiCard() yields options without one.
-        { ...options } as KpiCardProps,
-      )
+      .options(options && { ...options })
       .meta({
         name: options?.title || "KPI card",
         icon: options?.icon || "i-ph-trend-up",

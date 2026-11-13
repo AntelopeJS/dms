@@ -92,22 +92,26 @@ const CARD_SUPPLIED_CHART_OPTIONS = [
 export function ChartCard(
   options?: ChartCardBuilderOptions,
 ): ComponentBuilder<ChartCardProps> {
-  const { chart, ...rest }: Partial<ChartCardBuilderOptions> = options ?? {};
   const builder = new ComponentBuilder<ChartCardProps>(
     CHART_CARD_COMPONENT_NAME,
   )
-    .options(
-      // SAFETY: Bug in the published builder typing, which requires ChartCardProps' title while ChartCard() may be called without options. rest is a ChartCardProps exactly when the caller passed options with a title; a bare ChartCard() yields an empty object, which has none.
-      rest as ChartCardProps,
-    )
+    .options(options && cardProps(options))
     .meta({
-      name: rest.title || "Chart card",
-      icon: rest.icon || "i-ph-chart-line",
+      name: options?.title || "Chart card",
+      icon: options?.icon || "i-ph-chart-line",
     });
   return attachRealtimeTopicsHook(
-    chart ? builder.child(NESTED_CHART_ID, chart) : builder,
-    rest.realtimeTopic,
+    options?.chart ? builder.child(NESTED_CHART_ID, options.chart) : builder,
+    options?.realtimeTopic,
   );
+}
+
+/** The card's own options: the builder's, without the chart it wraps. */
+function cardProps({
+  chart: _chart,
+  ...props
+}: ChartCardBuilderOptions): ChartCardProps {
+  return props;
 }
 
 /** The options `ChartCard` accepts, including the chart it wraps. */

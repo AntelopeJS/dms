@@ -112,12 +112,10 @@ export function withPageRecord(
 ): PageHeaderButtonDeclared | undefined {
   if (!declaresRecord || !isRecordBound(button)) return button;
   if (!record) return undefined;
-  const url = targetUrl(button.target);
-  if (!url) return button;
   const { target } = button;
-  if (!target || !("url" in target)) return button;
+  if (!target || !("url" in target) || !isString(target.url)) return button;
   return {
     ...button,
-    target: { ...target, url: fillRecordTokens(url, record) },
+    target: { ...target, url: fillRecordTokens(target.url, record) },
   };
 }

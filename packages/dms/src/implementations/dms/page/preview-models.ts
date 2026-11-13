@@ -1,56 +1,85 @@
-import { TenantMemberModel, RoleModel } from "@antelopejs/interface-dms/db";
+import {
+  type Role,
+  RoleModel,
+  type TenantMember,
+  TenantMemberModel,
+} from "@antelopejs/interface-dms/db";
 import {
   type PermissionsResolverContext,
   ApplyPermissionsResolvers,
 } from "@antelopejs/interface-dms/permissions-resolver";
-import type { ViewerModelResult } from "./types";
 
-export function previewMemberModels(previewPermissions: Set<string>) {
-  const roleIds = [PREVIEW_ROLE_ID];
+/**
+ * Models on `database` under which every user is a member holding only the
+ * preview role, which grants `previewPermissions`.
+ */
+export function previewMemberModels(
+  database: TenantMemberModel["database"],
+  previewPermissions: Set<string>,
+) {
+  const member = TenantMemberModel.fromPlainData({
+    roleIds: [PREVIEW_ROLE_ID],
+  });
   const roles = [
-    { _id: PREVIEW_ROLE_ID, permissions: [...previewPermissions] },
+    RoleModel.fromPlainData({
+      _id: PREVIEW_ROLE_ID,
+      permissions: [...previewPermissions],
+    }),
   ];
-
-  // oxlint-disable anti-slop/no-chained-type-assertions -- PageLayoutHandler requires full models; inference and Pick expose only these preview lookup methods.
-  // SAFETY: PageLayoutRequest is published with whole models; the layout resolver reads only getByUser from the member model (metadata-layout-response.ts), the one method given.
-  const memberModel = {
-    getByUser: async () => ({ roleIds }),
-  } as unknown as TenantMemberModel;
-  // SAFETY: PageLayoutRequest is published with whole models; the layout resolver reads only getBy from the role model (permissions.ts), the one method given.
-  const roleModel = { getBy: async () => roles } as unknown as RoleModel;
-  // oxlint-enable anti-slop/no-chained-type-assertions
-  return { memberModel, roleModel };
+  class PreviewMemberModel extends TenantMemberModel {
+    override async getByUser(): Promise<TenantMember> {
+      return member;
+    }
+  }
+  class PreviewRoleModel extends RoleModel {
+    override async getBy(): Promise<Role[]> {
+      return roles;
+    }
+  }
+  return {
+    memberModel: new PreviewMemberModel(database),
+    roleModel: new PreviewRoleModel(database),
+  };
 }
 
+function remember<T>(
+  answers: Map<string, Promise<T>>,
+  key: string,
+  read: () => PromiseLike<T>,
+): Promise<T> {
+  const known = answers.get(key);
+  if (known) return known;
+  const pending = Promise.resolve(read());
+  answers.set(key, pending);
+  return pending;
+}
+
+/**
+ * Models answering each member and role lookup of `memberModel` and
+ * `roleModel` once, then from memory.
+ */
 export function memoizeViewerModels(
   memberModel: TenantMemberModel,
   roleModel: RoleModel,
 ) {
-  const answers = new Map<string, Promise<ViewerModelResult>>();
-  const remember = (
-    key: string,
-    read: () => PromiseLike<ViewerModelResult>,
-  ): Promise<ViewerModelResult> => {
-    const known = answers.get(key);
-    if (known) return known;
-    const pending = Promise.resolve(read());
-    answers.set(key, pending);
-    return pending;
+  const members = new Map<string, Promise<TenantMember | undefined>>();
+  const roleLists = new Map<string, Promise<Role[]>>();
+  class CachedMemberModel extends TenantMemberModel {
+    override getByUser(userId: string): Promise<TenantMember | undefined> {
+      return remember(members, userId, () => memberModel.getByUser(userId));
+    }
+  }
+  class CachedRoleModel extends RoleModel {
+    override getBy(...args: Parameters<RoleModel["getBy"]>): Promise<Role[]> {
+      return remember(roleLists, JSON.stringify(args), () =>
+        roleModel.getBy(...args),
+      );
+    }
+  }
+  return {
+    memberModel: new CachedMemberModel(memberModel.database),
+    roleModel: new CachedRoleModel(roleModel.database),
   };
-
-  // oxlint-disable anti-slop/no-chained-type-assertions -- Layout callbacks require full models; inference and Pick expose only the cached lookup methods.
-  // SAFETY: PageLayoutRequest is published with whole models; the layout resolver reads only getByUser from the member model (metadata-layout-response.ts), the one method cached here.
-  const cachedMemberModel = {
-    getByUser: (userId: string) =>
-      remember(`member:${userId}`, () => memberModel.getByUser(userId)),
-  } as TenantMemberModel;
-  // SAFETY: PageLayoutRequest is published with whole models; the layout resolver reads only getBy from the role model (permissions.ts), the one method cached here.
-  const cachedRoleModel = {
-    getBy: (...args: Parameters<RoleModel["getBy"]>) =>
-      remember(`roles:${JSON.stringify(args)}`, () => roleModel.getBy(...args)),
-  } as unknown as RoleModel;
-  // oxlint-enable anti-slop/no-chained-type-assertions
-  return { memberModel: cachedMemberModel, roleModel: cachedRoleModel };
 }
 
 export const PREVIEW_ROLE_ID = "dms-permission-preview";

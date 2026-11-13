@@ -106,14 +106,15 @@ interface DecodedAuthPayload {
 function isSessionPayload(
   payload: string | JwtPayload,
   purpose: string,
-): payload is JwtPayload & Pick<DecodedAuthPayload, "id" | "tenantId"> {
+): payload is JwtPayload & DecodedAuthPayload {
   return (
     !isString(payload) &&
     payload.purpose === purpose &&
     isString(payload.id) &&
     !!payload.id &&
     isString(payload.tenantId) &&
-    !!payload.tenantId
+    !!payload.tenantId &&
+    (payload.sessionId === undefined || isString(payload.sessionId))
   );
 }
 

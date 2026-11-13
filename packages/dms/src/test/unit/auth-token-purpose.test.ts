@@ -13,6 +13,7 @@ import {
   internal,
   validateRefreshToken,
 } from "../../implementations/dms-auth";
+import { generateSecret } from "../../implementations/dms-auth/services";
 
 const TENANT_ID = "purpose-test-tenant";
 const HTTP_UNAUTHORIZED = 401;
@@ -93,6 +94,14 @@ describe("[unit] auth token purpose separation", () => {
 
   it("rejects malformed refresh tokens with 401", async () => {
     await expectUnauthorized(() => validateRefreshToken("not-a-jwt"));
+  });
+
+  it("rejects a signed refresh token whose session is no string", async () => {
+    const token = sign(
+      { id: user._id, tenantId: TENANT_ID, sessionId: 1, purpose: "refresh" },
+      generateSecret(user.authKey),
+    );
+    await expectUnauthorized(() => validateRefreshToken(token));
   });
 
   it("refuses, before any account lookup, claims that name no string user, tenant and session", async () => {

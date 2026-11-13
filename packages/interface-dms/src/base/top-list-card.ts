@@ -130,10 +130,7 @@ export function TopListCard(
 ): ComponentBuilder<TopListCardProps> {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<TopListCardProps>(TOP_LIST_CARD_COMPONENT_NAME)
-      .options(
-        // SAFETY: Bug in the published builder typing, which requires TopListCardProps' title while TopListCard() may be called without options. The spread is a TopListCardProps exactly when the caller passed options with a title; a bare TopListCard() yields options without one.
-        { ...options } as TopListCardProps,
-      )
+      .options(options && { ...options })
       .meta({
         name: options?.title || "Top list",
         icon: DEFAULT_ICON,

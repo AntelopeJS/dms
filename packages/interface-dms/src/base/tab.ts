@@ -106,10 +106,7 @@ const TAB_COMPONENT_NAME = "dms-tab";
 export const Tab = (options?: TabProps): ComponentBuilder<TabProps> => {
   return attachRealtimeTopicsHook(
     new ComponentBuilder<TabProps>(TAB_COMPONENT_NAME)
-      .options(
-        // SAFETY: Bug in the published builder typing, which requires TabProps' items while Tab() may be called without options. The spread is a TabProps exactly when the caller passed options with items; a bare Tab() yields options without them.
-        { ...options } as TabProps,
-      )
+      .options(options && { ...options })
       .meta({
         name: "Tabs",
         icon: "i-ph-tabs",
