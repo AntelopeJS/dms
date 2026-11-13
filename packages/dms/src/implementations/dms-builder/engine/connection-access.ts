@@ -1,10 +1,12 @@
 import type {
   AddBlockInput,
+  BlockDraft,
   MapResourcesInput,
+  PageDraft,
   ResourceRoute,
 } from "@antelopejs/interface-dms-builder";
-import { Node } from "ts-morph";
-import type { BlockTarget } from "./block-target";
+import { type ClassDeclaration, Node } from "ts-morph";
+import { type BlockTarget, resolveBlockTarget } from "./block-target";
 import { connectionAccess } from "./connection-access-config";
 import { mappedConnectionOfFile, recordedConnection } from "./mapped-modules";
 import { RoutesOf } from "./mapped-routes";
@@ -246,4 +248,89 @@ function controllerRecords(node: Node | undefined): ResourceRecord[] {
 export function formGuard(target: BlockTarget): () => void {
   const before = formMode(target);
   return () => assertFormAccess(target, before);
+}
+
+/** A block as its source holds it: its type, the resources its controller may be, its form mode. */
+interface WrittenBlock {
+  type: string | undefined;
+  records: ResourceRecord[];
+  mode: string | undefined;
+}
+
+/** The path of each block a draft writes; a preserved block keeps its text, children included. */
+function writtenPaths(
+  blocks: readonly BlockDraft[],
+  parent: readonly string[] = [],
+): string[][] {
+  return blocks.flatMap((block) => {
+    if (block.preserve) {
+      return [];
+    }
+    const path = [...parent, block.name];
+    return [path, ...writtenPaths(block.children ?? [], path)];
+  });
+}
+
+function controllerNode(target: BlockTarget): Node | undefined {
+  return target.controllerArg
+    ? target.factoryCall.getArguments()[0]
+    : undefined;
+}
+
+function writtenBlock(
+  cls: ClassDeclaration,
+  path: readonly string[],
+): WrittenBlock | undefined {
+  const resolved = resolveBlockTarget(cls, [...path]);
+  if (!resolved.ok) {
+    return undefined;
+  }
+  const { target } = resolved;
+  return {
+    type: target.type,
+    records: controllerRecords(controllerNode(target)),
+    mode: formMode(target),
+  };
+}
+
+function sameControllers(a: WrittenBlock, b: WrittenBlock): boolean {
+  const refs = (block: WrittenBlock) =>
+    block.records
+      .map((record) => record.ref)
+      .sort()
+      .join("\n");
+  return refs(a) === refs(b);
+}
+
+/**
+ * Reads the blocks a draft rewrites, and returns the check to run on the page class once it is
+ * written. It throws, as AddBlock does, for a block the draft adds, or puts over another
+ * controller, that would write to a table mapped from a read-only connection; and, as
+ * ConfigureBlock does, for a ResourceForm the draft turned into one that creates or edits its
+ * rows. A block whose type, controller and mode stay as they were passes.
+ */
+export function draftGuard(
+  cls: ClassDeclaration,
+  draft: Pick<PageDraft, "blocks">,
+): (written: ClassDeclaration) => void {
+  const paths = writtenPaths(draft.blocks);
+  const before = new Map(
+    paths.map((path) => [path.join("/"), writtenBlock(cls, path)]),
+  );
+  return (written) => {
+    for (const path of paths) {
+      const after = writtenBlock(written, path);
+      if (after?.type === undefined) {
+        continue;
+      }
+      const prior = before.get(path.join("/"));
+      const kept = prior?.type === after.type && sameControllers(prior, after);
+      if (kept && prior.mode === after.mode) {
+        continue;
+      }
+      for (const record of after.records) {
+        assertBound(after.type, record, rowWritingForm(after.mode), !kept);
+      }
+    }
+  };
 }

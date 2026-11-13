@@ -20,6 +20,7 @@ import {
 } from "ts-morph";
 import { blockDescriptor, isControllerLeadingBlock } from "./catalog";
 import { buildPageBlocks } from "./block-tree";
+import { draftGuard } from "./connection-access";
 import { isBlockInitializer, resolveAndUnwrap } from "./chain";
 import { type NamedConstant, objectLiteralToValue } from "./config-literal";
 import { patchSourceOptions } from "./source-options";
@@ -544,6 +545,7 @@ export function setPageBlocks(
   const { ctx, imports } = createImportCollector({
     resolveRef: resourceRefResolver(),
   });
+  const checkAccess = draftGuard(cls, draft);
   try {
     rewriteStatics(cls, draft, originals, ctx);
     if (draft.page) {
@@ -578,13 +580,22 @@ export function setPageBlocks(
   for (const importRef of imports) {
     applyImportRef(context.sourceFile, importRef);
   }
+  const written = findPageClass(context.sourceFile, context.page.id);
+  if (!written) {
+    transaction.rollback();
+    return notFound<{ version: string }>(ref);
+  }
+  try {
+    checkAccess(written);
+  } catch (error) {
+    transaction.rollback();
+    if (error instanceof InvalidValueError) {
+      return invalidValue(error);
+    }
+    throw error;
+  }
   let warnings: OpWarning[] = [];
   if (draft.queries) {
-    const written = findPageClass(context.sourceFile, context.page.id);
-    if (!written) {
-      transaction.rollback();
-      return notFound<{ version: string }>(ref);
-    }
     const synced = syncQueries(
       {
         page: ref,
