@@ -197,6 +197,15 @@ function connectionCases(live: Live): void {
     }
   });
 
+  it("connects to the socket path the URL names, not to its host and port", async () => {
+    const answer = await checkDatabase(
+      "mysql",
+      `${live.url("reader")}?socketPath=/nonexistent/mysqld.sock`,
+      TIMEOUT_MS,
+    );
+    expect(answer).to.include({ reachable: false, canRead: false });
+  });
+
   it("closes its connections once it has answered", async () => {
     const proxy = await relay(live.port());
     try {

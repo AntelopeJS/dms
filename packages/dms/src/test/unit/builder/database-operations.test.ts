@@ -99,6 +99,7 @@ describe("checking a database connection", () => {
           "invalid_config",
         );
         expect(JSON.stringify(result), label).not.to.include(SECRET);
+        expect(JSON.stringify(result), label).not.to.include("undefined");
       }
       await settled();
       expect(server.connections()).to.equal(0);
@@ -150,7 +151,7 @@ describe("checking a database whose client is not installed", () => {
   });
 });
 
-/** Fails on a listing that one failing provider empties, or a sample that throws past its result. */
+/** Fails on a listing that one failing provider empties, or a sample that throws past its result, even when the provider fails to load. */
 describe("the builder's catalog connections", () => {
   const info = {
     engine: "postgresql",
@@ -177,6 +178,11 @@ describe("the builder's catalog connections", () => {
         },
       },
       archive: {},
+      broken: {
+        get Info(): never {
+          throw new TypeError("the provider does not export the catalog");
+        },
+      },
     });
   });
 
@@ -186,7 +192,19 @@ describe("the builder's catalog connections", () => {
     expect(await ListDatabaseConnections()).to.deep.equal([
       { id: "erp", ...info },
       { id: "archive", error: "the spec supplied no Info for this catalog" },
+      { id: "broken", error: "the provider does not export the catalog" },
     ]);
+  });
+
+  it("answers a provider that fails to load as a result, for the list and for a sample", async () => {
+    const sampled = await SampleDatabaseRows("broken", {
+      relation: "sales.orders",
+      limit: 1,
+    });
+    expect(JSON.stringify(sampled)).to.include(
+      "the provider does not export the catalog",
+    );
+    expect(sampled.ok).to.equal(false);
   });
 
   it("samples a relation, and answers a provider's refusal and an unknown connection as results", async () => {

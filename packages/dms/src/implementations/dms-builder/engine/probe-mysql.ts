@@ -71,7 +71,7 @@ const RelationRows = z.array(
 
 /** What `mysql2` passes its stream factory: where to connect, as it read the URL. */
 interface StreamRequest {
-  config: { host: string; port: number };
+  config: { host: string; port: number; socketPath?: string };
 }
 
 /** What `mysql2` throws for an error the server answered, as opposed to one of the network. */
@@ -104,8 +104,10 @@ export const probeMysql: Probe = async (url, timeoutMs, connections) => {
   const connection = mysql.createConnection({
     uri: url,
     connectTimeout: timeoutMs,
-    stream: ({ config: { host, port } }: StreamRequest) => {
-      const socket = net.connect(port, host);
+    stream: ({ config: { host, port, socketPath } }: StreamRequest) => {
+      const socket = socketPath
+        ? net.connect(socketPath)
+        : net.connect(port, host);
       sockets.push(socket);
       return socket;
     },

@@ -53,11 +53,11 @@ function readingConfig<T>(read: () => OpResult<T>): OpResult<T> {
 }
 
 async function connectionEntry(id: string): Promise<CatalogConnectionEntry> {
-  const catalog = catalogOf(id);
-  if (!catalog) {
-    return { id, error: `no provider answers the connection "${id}"` };
-  }
   try {
+    const catalog = catalogOf(id);
+    if (!catalog) {
+      return { id, error: `no provider answers the connection "${id}"` };
+    }
     return { id, ...(await catalog.Info()) };
   } catch (error) {
     return {
@@ -145,11 +145,11 @@ export async function SampleDatabaseRows(
   connection: string,
   request: RowSampleRequest,
 ): Promise<OpResult<RowSample>> {
-  const catalog = catalogOf(connection);
-  if (!catalog) {
-    return notFound<RowSample>(connection);
-  }
   try {
+    const catalog = catalogOf(connection);
+    if (!catalog) {
+      return notFound<RowSample>(connection);
+    }
     return succeeded(
       await catalog.SampleRows({
         relation: request.relation,

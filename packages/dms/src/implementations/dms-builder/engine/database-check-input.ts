@@ -48,7 +48,11 @@ export async function checkConnection(
   }
   if (!parsed.success) {
     const fields = [
-      ...new Set(parsed.error.issues.map(({ path }) => String(path[0]))),
+      ...new Set(
+        parsed.error.issues.flatMap(({ path: [field] }) =>
+          field === undefined ? ["engine", "url"] : [String(field)],
+        ),
+      ),
     ];
     return invalidConfig<DatabaseAccess>(
       `Expected an engine of ${DATABASE_ENGINES.join(", ")} and a URL of that engine; check ${fields.join(", ")}.`,
