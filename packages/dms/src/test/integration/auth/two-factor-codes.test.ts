@@ -26,6 +26,10 @@ import {
 import { createClient } from "../../helpers/http";
 import { parseBody } from "../../helpers/parse-body";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const TWO_FACTOR = pageRoutePath("/settings/user/security", "/two-factor");
 const HTTP_OK = 200;
@@ -93,12 +97,10 @@ async function enableTotp(
 async function lastEmailedCode(): Promise<string> {
   const email = await lastRenderedEmail(TWO_FACTOR_EMAIL_TEMPLATE);
   const props = email?.props;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- GenerateHtml accepts arbitrary generic props; owner-derived types cannot establish a captured object's properties.
-  if (!props || typeof props !== "object" || !("verificationCode" in props))
+  if (!props || !isObject(props) || !("verificationCode" in props))
     throw new Error("No two-factor code was sent");
   const { verificationCode } = props;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- GenerateHtml accepts arbitrary generic props; a template reference carries no runtime schema for the captured value.
-  if (typeof verificationCode !== "string")
+  if (!isString(verificationCode))
     throw new Error("No two-factor code was sent");
   return verificationCode;
 }

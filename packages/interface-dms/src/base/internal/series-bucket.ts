@@ -1,4 +1,5 @@
 import type { SeriesBucket } from "../query-response";
+import { isNumber } from "../../utils/internal/type-check";
 
 const MONTH_NAMES = [
   "Jan",
@@ -93,8 +94,7 @@ export function bucketLabel(
   key: number | string,
   bucket: SeriesBucket,
 ): number | string {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A group key is a number or a text; only a whole number can be a period stamp.
-  if (typeof key !== "number" || !Number.isInteger(key)) {
+  if (!isNumber(key) || !Number.isInteger(key)) {
     return key;
   }
   return LABELS[bucket](key) ?? key;

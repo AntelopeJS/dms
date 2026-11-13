@@ -16,6 +16,7 @@ import { assertNativeFileAccess } from "./access";
 import {
   isNull,
   isObject,
+  isString,
 } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { findConstraintViolation } from "./constraints";
 import {
@@ -110,10 +111,8 @@ function remapValue(value: unknown, map: Map<string, string>): unknown {
     for (const [index, key] of node.keys.entries()) {
       const item = node.values[index];
       let remapped = item;
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only strings can match promoted storage keys.
-      if (typeof item === "string") remapped = map.get(item) ?? item;
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Primitive non-string values are preserved without traversal.
-      else if (item && typeof item === "object") {
+      if (isString(item)) remapped = map.get(item) ?? item;
+      else if (item && isObject(item)) {
         const copy = Array.isArray(item) ? Array.from(item) : {};
         const source = Array.isArray(copy) ? copy : item;
         pending.push({

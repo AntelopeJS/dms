@@ -31,6 +31,12 @@ import type {
   BlockTypeDescriptor,
 } from "../types";
 import { getUiHints, mergeUiHints } from "./ui";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "../../../utils/internal/type-check";
 
 const MAX_DEPTH = 6;
 const MAX_WRAPPERS = 8;
@@ -204,8 +210,7 @@ function unwrap(schema: ZodTypeAny): UnwrapResult {
  * @internal
  */
 export function cloneDefault<T>(value: T): T {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The generic cloning contract accepts every value; only objects need structuredClone and non-cloneable values pass through.
-  if (typeof value !== "object" || value === null) {
+  if (!isObject(value) || value === null) {
     return value;
   }
   try {
@@ -255,19 +260,12 @@ const STRUCTURED_TYPE: Partial<Record<ZodFirstPartyTypeKind, BlockOptionType>> =
 function describeLiteral(
   value: DefOf<ZodFirstPartyTypeKind.ZodLiteral>["value"],
 ): BlockOptionSchema {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Literal descriptors classify representation without coercing the underlying Zod literal.
-  switch (typeof value) {
-    case "string":
-      return { type: "string", enum: [value] };
-    case "boolean":
-      return { type: "boolean", enum: [value] };
-    case "number":
-      return Number.isFinite(value)
-        ? { type: "number", enum: [value] }
-        : { type: "unknown" };
-    default:
-      return { type: "unknown" };
+  if (isString(value)) return { type: "string", enum: [value] };
+  if (isBoolean(value)) return { type: "boolean", enum: [value] };
+  if (isNumber(value) && Number.isFinite(value)) {
+    return { type: "number", enum: [value] };
   }
+  return { type: "unknown" };
 }
 
 /** Collapse a union of single-value enums into one enum, as a picker wants it. */

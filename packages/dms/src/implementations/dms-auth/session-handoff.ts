@@ -5,6 +5,7 @@ import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { decode, sign, verify } from "jsonwebtoken";
 import { isJwtClaims } from "../../utils";
 import { generateSecret } from "./token-secret";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const HTTP_UNAUTHORIZED = 401;
 const INVALID_HANDOFF_ERROR = "error.invalid_token";
@@ -58,17 +59,14 @@ export async function validateSessionHandoffToken(
   token: string,
 ): Promise<SessionHandoffClaims> {
   const unverified = decode(token);
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The unverified JWT id can have any JSON type; its existing string check gates the user query.
-  if (!isJwtClaims(unverified) || typeof unverified.id !== "string") refuse();
+  if (!isJwtClaims(unverified) || !isString(unverified.id)) refuse();
   const user = await GetModel(UserModel).get(unverified.id);
   if (!user) refuse();
   const claims = readClaims(token, generateSecret(user.authKey));
   if (
     claims.purpose !== SESSION_HANDOFF_PURPOSE ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JWT claims remain untyped after signature verification; this check narrows the tenant id without changing accepted tokens.
-    typeof claims.tenantId !== "string" ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JWT signature verification does not establish the session claim's primitive type.
-    typeof claims.sessionId !== "string"
+    !isString(claims.tenantId) ||
+    !isString(claims.sessionId)
   ) {
     refuse();
   }

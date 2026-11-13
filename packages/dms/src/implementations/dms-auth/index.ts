@@ -18,7 +18,10 @@ import {
   resolveAdminInviteLanguage,
   recordUserActivity,
 } from "../../utils";
-import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 import { generateSecret } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
@@ -107,14 +110,11 @@ function verifySessionToken(
 ): DecodedAuthPayload {
   const payload = verify(token, secret, { algorithms: ["HS256"] });
   if (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- jsonwebtoken can return a text payload; only an object carries the claims checked below.
-    typeof payload === "string" ||
+    isString(payload) ||
     payload.purpose !== purpose ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A valid signature does not establish the id claim's JSON type.
-    typeof payload.id !== "string" ||
+    !isString(payload.id) ||
     !payload.id ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A valid signature does not establish the tenant claim's JSON type.
-    typeof payload.tenantId !== "string" ||
+    !isString(payload.tenantId) ||
     !payload.tenantId
   ) {
     throw new Error(INVALID_SESSION_TOKEN_ERROR);
@@ -258,8 +258,7 @@ export function generateRefreshToken(
 
 export async function validateRefreshToken(token: string) {
   const result = decode(token);
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Decoding returns text, an open claims object or null; these existing checks gate the id used for the user query.
-  if (!result || typeof result === "string" || typeof result.id !== "string") {
+  if (!result || isString(result) || !isString(result.id)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
 
@@ -341,11 +340,9 @@ async function verifyPurposeToken<T extends PurposeTokenClaims>(
   const claims = decode(token);
   if (
     !claims ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JWT decode can return a text payload without object claims.
-    typeof claims === "string" ||
+    isString(claims) ||
     claims.purpose !== purpose ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The decoded id is untrusted even when its purpose matches.
-    typeof claims.id !== "string"
+    !isString(claims.id)
   ) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }

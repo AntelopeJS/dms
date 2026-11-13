@@ -17,6 +17,7 @@ import type {
   TableViewRowActionOptionsSerialized,
 } from "../options";
 import { extractRuleFromConfig } from "./row-rules";
+import { isObject } from "../../../utils/internal/type-check";
 
 /** The table view actions whose permission shapes what a request is served. */
 const GRANTED_ACTIONS = [
@@ -168,9 +169,7 @@ export function adaptRowActions({
   }
 
   const editHasNoRules =
-    adapted.edit === true ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published action configuration permits boolean shorthand or a rule object; this branch selects the rule object.
-    (typeof adapted.edit === "object" && !adapted.edit.rule);
+    adapted.edit === true || (isObject(adapted.edit) && !adapted.edit.rule);
   if (editHasNoRules) {
     adapted.details = false;
   }

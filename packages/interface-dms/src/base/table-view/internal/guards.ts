@@ -18,7 +18,7 @@ import { fetchRowForGuard } from "../data-functions";
 import { TableViewMeta } from "../meta";
 import { DEFAULT_ROW_ID_FIELD } from "../options";
 import { getTableViewMetaFor } from "./meta";
-import { isNull, isObject } from "../../../utils/internal/type-check";
+import { isNull, isObject, isString } from "../../../utils/internal/type-check";
 import { normalizeToArray } from "./row-rules";
 
 type GuardedActionName = "edit" | "delete" | "archive" | "restore" | "new";
@@ -123,10 +123,9 @@ const parseConfirmValues = (raw: Buffer) =>
 // oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- The published permissive body decoder accepts transport values and returns module-owned fields without a fixed schema; narrowing either side would change its contract.
 export const parseGuardBody = (raw: unknown): Record<string, unknown> => {
   if (Buffer.isBuffer(raw)) return parseJsonObject(raw.toString());
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- This published decoder distinguishes the string transport representation from already decoded values.
-  if (typeof raw === "string" && raw.length > 0) return parseJsonObject(raw);
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof, anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- The published decoder accepts any non-null object, including arrays, without proving an indexed row contract; preserve that unchecked compatibility behavior.
-  if (raw && typeof raw === "object") return raw as Record<string, unknown>;
+  if (isString(raw) && raw.length > 0) return parseJsonObject(raw);
+  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- The published decoder accepts any non-null object, including arrays, without proving an indexed row contract; preserve that unchecked compatibility behavior.
+  if (raw && isObject(raw)) return raw as Record<string, unknown>;
   return {};
 };
 

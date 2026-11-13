@@ -45,6 +45,7 @@ import {
   listWithSearch as listWithSearchFunc,
 } from "./search-route";
 import { fetchRowForGuard as fetchRowForGuardHelper } from "../../db";
+import { isNumber } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 type DataControllerThis =
   | DataControllerCallback
@@ -442,8 +443,7 @@ export async function validateRowsAgainstRule(
 }
 
 const updatedRowCount = (updated: number, ids: string[]): number =>
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Database adapters historically report either a numeric count or an adapter result; retain the existing selected-id fallback instead of assuming the declared numeric result at runtime.
-  typeof updated === "number" ? updated : ids.length;
+  isNumber(updated) ? updated : ids.length;
 
 export async function archiveRows(
   controller: DataControllerInstance,

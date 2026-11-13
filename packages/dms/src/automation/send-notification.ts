@@ -12,6 +12,12 @@ import type {
   JsonValue,
 } from "@antelopejs/interface-dms-automation";
 import { fieldHint, nodeText, titledProperties } from "./i18n";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 export const SEND_NOTIFICATION_ACTION_ID = "dms.send-notification";
 const SEND_NOTIFICATION_TEXTS = "actions.sendNotification";
@@ -68,8 +74,7 @@ function toNotificationParams(
 ): NotificationParams | undefined {
   const { params } = input;
   if (params === undefined || params === null) return undefined;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the existing object-not-array check at the automation input boundary.
-  if (typeof params !== "object" || Array.isArray(params)) {
+  if (!isObject(params) || Array.isArray(params)) {
     throw new Error(
       `${SEND_NOTIFICATION_ACTION_ID}: params must be an object of strings and numbers`,
     );
@@ -77,11 +82,9 @@ function toNotificationParams(
   const result: NotificationParams = {};
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null) continue;
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- String and numeric interpolation values are retained unchanged.
-    if (typeof value === "string" || typeof value === "number") {
+    if (isString(value) || isNumber(value)) {
       result[key] = value;
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Boolean interpolation values are converted to their existing textual representation.
-    } else if (typeof value === "boolean") {
+    } else if (isBoolean(value)) {
       result[key] = String(value);
     } else {
       ctx.log("warn", `param "${key}" is not a string or a number; dropped`);

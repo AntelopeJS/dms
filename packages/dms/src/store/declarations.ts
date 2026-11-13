@@ -57,7 +57,6 @@ export class DeclarationsUnavailableError extends Error {
 function isFunction(
   value: unknown,
 ): value is DeclarationFunctions[keyof DeclarationFunctions] {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Older interface-core versions omit these optional runtime exports; test callability before invoking them.
   return typeof value === "function";
 }
 

@@ -3,6 +3,7 @@ import type {
   AttachmentSaveResult,
 } from "@antelopejs/interface-dms/attachments";
 import { ownValue } from "../utils/own-value";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 export interface AttachmentReference {
   key: string;
@@ -22,13 +23,11 @@ export function collectAttachments(
     const pending: unknown[] = [ownValue(document, field.key)];
     while (pending.length > 0) {
       const item = pending.pop();
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A file reference is a nonempty string; other submitted values remain ignored.
-      if (field.kind === "file" && typeof item === "string") {
+      if (field.kind === "file" && isString(item)) {
         if (item) keys.add(item);
       } else if (isRecord(item)) {
         if (!Array.isArray(item) && field.kind === "image" && "key" in item) {
-          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Image references require a nonempty string key.
-          if (typeof item.key === "string" && item.key) keys.add(item.key);
+          if (isString(item.key) && item.key) keys.add(item.key);
         } else {
           const children = Object.values(item);
           for (let index = children.length - 1; index >= 0; index -= 1)

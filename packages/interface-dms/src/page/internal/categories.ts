@@ -32,6 +32,11 @@ import { ROOT_SLUG } from "./types";
 // oxlint-disable-next-line import/no-cycle -- Category proxies and isInsideModule are read inside functions, after module evaluation.
 import { internal, isInsideModule } from "../categories";
 
+/** Whether a category names its controller class rather than its CategoryInfo. */
+const isControllerClass = (
+  category: CategoryInfo | ControllerClass | undefined,
+): category is ControllerClass => typeof category === "function";
+
 /**
  * Resolve a category to CategoryInfo
  * @param category A CategoryInfo object or a ControllerClass
@@ -46,8 +51,7 @@ export function resolveCategoryInfo(
     return undefined;
   }
 
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published category union distinguishes controller constructors from CategoryInfo objects by callability.
-  if (typeof category === "function") {
+  if (isControllerClass(category)) {
     const meta = GetMetadata(category, PageMetadata);
     if (!meta.pageInfo) {
       throw new Error(`PageMetadata not initialized for controller class.`);
@@ -81,8 +85,7 @@ export function resolveInheritedLayout(
 function findCategoryInfo(
   category: CategoryInfo | ControllerClass | undefined,
 ): CategoryInfo | undefined {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The category union represents a controller constructor or resolved metadata, not unparsed input.
-  if (typeof category !== "function") return category;
+  if (!isControllerClass(category)) return category;
   return GetMetadata(category, PageMetadata).pageInfo;
 }
 

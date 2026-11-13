@@ -31,6 +31,10 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import { SearchableMeta } from "@antelopejs/interface-dms/base";
 import { DEFAULT_ROW_ID_FIELD } from "@antelopejs/interface-dms/base/table-view";
 import { resolveFilterTokens } from "./filter-tokens";
+import {
+  isBoolean,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const MIN_SEARCH_LENGTH = 2;
 const IDS_KEY = "ids";
@@ -99,10 +103,8 @@ function applySearchFilter(
 }
 
 function either(a: Condition, b: Condition): Condition {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Conditions combine literal booleans and database expression proxies; retain the literal short-circuit before calling proxy methods.
-  if (typeof a === "boolean") return a ? true : b;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The right condition also has a literal boolean branch rather than a query proxy.
-  if (typeof b === "boolean") return b ? true : a;
+  if (isBoolean(a)) return a ? true : b;
+  if (isBoolean(b)) return b ? true : a;
   return a.or(b);
 }
 
@@ -219,8 +221,7 @@ export async function applyArchiveFilter(
     return { ...filters, [archiveField]: archiveFilter(false) };
   }
 
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The request adapter owns searchParams.get; retain its existing string check and unchanged fallback for absent or malformed archive parameters.
-  if (typeof showArchived !== "string") {
+  if (!isString(showArchived)) {
     return filters;
   }
 

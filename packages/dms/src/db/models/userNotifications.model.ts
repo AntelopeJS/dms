@@ -17,6 +17,7 @@ import {
   applyFeedFilter,
   type NotificationFeedFilter,
 } from "./notification-feed-filter";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const SHARED_GROUP_UPDATE_BATCH_SIZE = 10;
 
@@ -225,8 +226,7 @@ export class UserNotificationsModel extends BasicDataModel(
       }),
     );
     const messageKeys = [...new Set([...titles, ...descriptions])]
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Stored notification text can be malformed; only string translation references belong in the message catalog.
-      .filter((value) => typeof value === "string" && value.startsWith("$"))
+      .filter((value) => isString(value) && value.startsWith("$"))
       .map((value) => value.slice(1))
       .sort();
     return { messageKeys, subjects: subjects.flat() };

@@ -18,6 +18,7 @@ import { tableAttachmentFields } from "./bindings";
 import { collectAttachments } from "./fields";
 import { denyAttachment } from "./registry";
 import { SaveComponentFiles } from "./save";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 /** A table instance read by field name, through its own fields and its modifiers' accessors. */
 function isFieldHolder(row: unknown): row is Record<string, unknown> {
@@ -98,8 +99,7 @@ export async function SaveTableViewAttachments(
       );
 
       const id = documentId || (isSavedRow(result) ? result._id : undefined);
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only a nonempty string id may be used to reload the saved document.
-      if (typeof id !== "string" || !id) denyAttachment();
+      if (!isString(id) || !id) denyAttachment();
       const document = await loadDocument(controller, fields, id);
       if (!document) denyAttachment();
       return { id, document, result: undefined };

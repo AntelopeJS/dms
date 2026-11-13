@@ -50,6 +50,7 @@ import {
   HTTP_BAD_REQUEST,
   type UpdateProfileInput,
 } from "./profile-helpers";
+import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const PROFILE_URL = pageRoutePath("/settings/user/profile");
 const IMAGE_FIELD_TYPE = "image";
@@ -198,8 +199,7 @@ export class ProfileSettingsController extends PageController("profile", {
     @Model(UserModel) userModel: UserModel,
   ): Promise<Partial<User>> {
     assert(
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the route's object-only bad-request check before inspecting forbidden fields.
-      body && typeof body === "object" && !Array.isArray(body),
+      body && isObject(body) && !Array.isArray(body),
       HTTP_BAD_REQUEST,
       "Invalid profile",
     );

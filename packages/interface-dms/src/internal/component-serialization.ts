@@ -6,13 +6,13 @@ import type {
   ComponentInfoPromise,
   ComponentInfoSerialized,
 } from "../component";
+import { isString } from "../utils/internal/type-check";
 
 /** @internal */
 export function normalizeComponentAnchor(
   anchor: ComponentAnchor,
 ): readonly string[] {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Published anchors accept either a dotted string or an ordered segment array.
-  return typeof anchor === "string" ? anchor.split(".") : [...anchor];
+  return isString(anchor) ? anchor.split(".") : [...anchor];
 }
 
 /** @internal */

@@ -12,6 +12,7 @@ import {
   resolveWritePermission,
   type UploadFieldNode,
 } from "./metadata-uploads";
+import { isString } from "../../utils/internal/type-check";
 
 /** @internal */
 export function prepareUploadOptions(
@@ -42,16 +43,11 @@ export function prepareUploadRegistration(
   const registration: NativeUploadFieldRegistration = {
     pageId: page.pageInfo?.fullId ?? "",
     componentId,
-    storage:
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Native upload discovery projects only string storage names from erased contributor options.
-      typeof options.storage === "string" ? options.storage : undefined,
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Native upload discovery projects only string paths from erased contributor options.
-    path: typeof options.path === "string" ? options.path : undefined,
-    field:
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The serialized attachment field overrides the discovered path only when it is a string.
-      typeof options.attachmentField === "string"
-        ? options.attachmentField
-        : path.join("/"),
+    storage: isString(options.storage) ? options.storage : undefined,
+    path: isString(options.path) ? options.path : undefined,
+    field: isString(options.attachmentField)
+      ? options.attachmentField
+      : path.join("/"),
     visibility: options.visibility === "public" ? "public" : "private",
     writePermission: node.disabled
       ? "__native_upload_disabled__"

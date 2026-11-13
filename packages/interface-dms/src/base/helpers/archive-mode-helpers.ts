@@ -1,5 +1,6 @@
 import type { TableViewRowActionOptions } from "../table-view";
 import type { RowActionConfig, RowActionRule } from "../types/row-action";
+import { isObject } from "../../utils/internal/type-check";
 
 type ArchiveModeAction =
   | "edit"
@@ -36,8 +37,7 @@ export function applyArchiveModeDefaultRules<T extends object>(
 
     if (
       userConfig === false ||
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the published boolean-or-config input handling, including its existing runtime object distinction.
-      (typeof userConfig === "object" && userConfig.isEnabled === false)
+      (isObject(userConfig) && userConfig.isEnabled === false)
     ) {
       continue;
     }
@@ -50,8 +50,7 @@ export function applyArchiveModeDefaultRules<T extends object>(
       continue;
     }
 
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the published boolean-or-config input handling without introducing schema validation.
-    if (typeof userConfig === "object") {
+    if (isObject(userConfig)) {
       result[actionKey] = {
         ...userConfig,
         rule: userConfig.rule
