@@ -9,8 +9,11 @@ import {
 } from "@antelopejs/interface-dms/constants";
 import { announceSetupToken } from "./db";
 
-// oxlint-disable-next-line import/no-duplicates -- Initialize realtime before page and route side effects; the later named import supplies lifecycle functions without moving this initialization order.
-import "./realtime";
+import {
+  configureRealtime,
+  type RealtimeConfig,
+  stopRealtime,
+} from "./realtime";
 import "./implementations/dms-auth/email-templates";
 import "./pages";
 import "./routes";
@@ -57,11 +60,6 @@ import {
   cancelMissingCategoryCheck,
   cancelPendingMenuNotifications,
 } from "./implementations/dms/page";
-import {
-  configureRealtime,
-  type RealtimeConfig,
-  stopRealtime,
-} from "./realtime";
 import {
   cancelPendingExtensionReport,
   startPendingExtensionReport,

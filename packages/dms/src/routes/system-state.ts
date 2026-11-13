@@ -1,6 +1,6 @@
 import { Controller, Get } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
-import { Model } from "@antelopejs/interface-database-decorators";
+import { Model, toPlainData } from "@antelopejs/interface-database-decorators";
 import { getConfig } from "../config";
 import { SystemStateModel } from "../db";
 
@@ -22,8 +22,7 @@ export class PublicSystemStateController extends Controller(
 
     const meta = getConfig().meta;
     return {
-      // oxlint-disable-next-line typescript/no-misused-spread -- The public response copies the settings row's own persisted fields, not its Table prototype methods.
-      ...state,
+      ...toPlainData(state),
       meta: {
         title: state.platform_name || meta?.title || "",
         description: meta?.description || "",

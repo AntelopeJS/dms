@@ -158,16 +158,19 @@ interface GuardedActionBodies {
 }
 
 interface GuardInvocationConfig<P, B> {
-  // oxlint-disable-next-line eslint/max-params -- Guard adapters share six positional inputs, including the edit adapter configured row-id field.
   invokeGuard: (
     controller: GuardedController,
     ctx: RequestContext,
     params: P,
     body: B,
     guard: GuardFn<any>,
-    idField: string,
   ) => Promise<void | AfterWrite>;
 }
+
+const getIdField = (controller: GuardedController): string => {
+  const meta = GetMetadata(controller.constructor, TableViewMeta);
+  return meta.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
+};
 
 /** The guard adapter of each guarded action. */
 type GuardInvocationConfigs = {
@@ -179,8 +182,8 @@ type GuardInvocationConfigs = {
 
 const ACTION_GUARD_CONFIGS: GuardInvocationConfigs = {
   edit: {
-    // oxlint-disable-next-line eslint/max-params -- The edit adapter consumes the six positional inputs declared by GuardInvocationConfig.
-    invokeGuard: async (controller, ctx, params, body, guard, idField) => {
+    invokeGuard: async (controller, ctx, params, body, guard) => {
+      const idField = getIdField(controller);
       const id = String(params.id);
       const current = await fetchRowForGuard(controller, id, idField);
       throwHttpAssert(current, 404, "Not Found");
@@ -239,11 +242,6 @@ export const guardedGetRoute = DefaultRoutes.WithGetGuard(
   },
 );
 
-const getIdField = (controller: GuardedController): string => {
-  const meta = GetMetadata(controller.constructor, TableViewMeta);
-  return meta.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
-};
-
 async function runAfterWrite(
   afterWrite: AfterWrite,
   actionName: GuardedActionName,
@@ -290,14 +288,7 @@ export const createGuardedConfirmRoute = <
     ) {
       const guard = getGuardForAction(this, actionName);
       const afterWrite = guard
-        ? await config.invokeGuard(
-            this,
-            ctx,
-            params,
-            confirmBody,
-            guard,
-            getIdField(this),
-          )
+        ? await config.invokeGuard(this, ctx, params, confirmBody, guard)
         : undefined;
       const result = await baseRoute.func.call(this, ctx, params);
       if (afterWrite) await runAfterWrite(afterWrite, actionName);
@@ -354,7 +345,6 @@ export const createGuardedWriteRoute = <
         params,
         writtenBody,
         guard,
-        getIdField(this),
       );
       const result = await baseRoute.func.call(
         this,
