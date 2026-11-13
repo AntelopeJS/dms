@@ -12,6 +12,7 @@ import { pagesBySlug } from "../../../utils";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { RequestAccessContext, AccessFlag } from "./types";
 import { moduleRegistry } from "./state";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 export async function buildModuleAccessMap(
   context: RequestAccessContext,
@@ -75,8 +76,7 @@ export async function runModuleStatusHook(
       Promise.resolve(info.status(context)),
       `status of module "${info.id}"`,
     );
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Module hooks are supplied by other modules; the existing boundary rejects non-string runtime results despite their declared return type.
-    if (typeof status === "string" && MODULE_STATUSES.has(status)) {
+    if (isString(status) && MODULE_STATUSES.has(status)) {
       return status;
     }
     warnOnceFor(
@@ -108,7 +108,6 @@ export async function runModuleReadoutHook(
     return lines
       .filter(
         (line): line is ModuleReadoutLine =>
-          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- External module hooks may return malformed readout lines; retain the existing text validation at this boundary.
           !!line && typeof line.text === "string" && line.text.length > 0,
       )
       .slice(0, MODULE_READOUT_MAX_LINES)

@@ -53,7 +53,6 @@ export function registerDefaultFunctions() {
   registerFunction(
     TableViewFunctions.CUSTOM_PAGE_FORM_SUCCESS,
     (event: CustomEvent) => {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- CustomEvent does not declare the function registry's params extension. Its owner supplies no typed event contract; validation would change malformed-event behavior.
       const { params } = event as CustomEvent & { params: FormSuccessParams };
 
       navigateDms(

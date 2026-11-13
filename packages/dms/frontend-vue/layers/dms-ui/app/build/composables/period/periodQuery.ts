@@ -46,7 +46,6 @@ export interface PeriodChoices {
 }
 
 /** A page URL query, or a selection kept in the preferences. */
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- This is the decoding boundary for URL and persisted values, including malformed non-text entries.
 export type PeriodQuery = Record<string, unknown>;
 
 /** A source the halves of a selection are read from, in order. */
@@ -355,7 +354,6 @@ export function isRangeOffered(
  * cookie, which must not grow with every page a user ever opened.
  */
 export function rememberPeriod(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- A malformed stored value is accepted here; only the outer object is required to retain its existing entries.
   store: unknown,
   key: string,
   query: Record<string, string>,

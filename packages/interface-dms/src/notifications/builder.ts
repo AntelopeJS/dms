@@ -26,54 +26,56 @@ function isComplete(data: Partial<NotificationData>): data is NotificationData {
   return missingFields(data).length === 0;
 }
 
+/**
+ * Stores `value` under `field` in `data`, the builder's own data object, and
+ * returns the same builder, now recording `field` as set. `Set` is a phantom
+ * parameter that only `build`'s `this` parameter reads.
+ */
+function filled<Set extends string, Next extends keyof NotificationData>(
+  builder: NotificationBuilder<Set>,
+  data: Partial<NotificationData>,
+  field: Next,
+  value: NotificationData[Next],
+): NotificationBuilder<Set | Next> {
+  data[field] = value;
+  // SAFETY: Holds when data is builder's own data object and Next is the one key field holds, as in each setter, which passes this.data and a literal field Next is inferred from: the line above has just stored value under field in data, and Set appears only in the this parameter of build, so the same instance now has Next set.
+  return builder as NotificationBuilder<Set | Next>;
+}
+
 export class NotificationBuilder<Set extends string = never> {
   private data: Partial<NotificationData> = {};
 
   icon(value: string): NotificationBuilder<Set | "icon"> {
-    this.data.icon = value;
-    // SAFETY: The setter has filled icon on this instance; Set tracks filled fields without changing the runtime instance.
-    return this as NotificationBuilder<Set | "icon">;
+    return filled(this, this.data, "icon", value);
   }
 
   title(value: string): NotificationBuilder<Set | "title"> {
-    this.data.title = value;
-    // SAFETY: The setter has filled title on this instance; Set tracks filled fields without changing the runtime instance.
-    return this as NotificationBuilder<Set | "title">;
+    return filled(this, this.data, "title", value);
   }
 
   description(value: string): NotificationBuilder<Set | "description"> {
-    this.data.description = value;
-    // SAFETY: The setter has filled description on this instance; Set tracks filled fields without changing the runtime instance.
-    return this as NotificationBuilder<Set | "description">;
+    return filled(this, this.data, "description", value);
   }
 
   subject(
     subject: NotificationSubjectInfo,
   ): NotificationBuilder<Set | "subject"> {
-    this.data.subject = subject;
-    // SAFETY: The setter has filled subject on this instance; Set tracks filled fields without changing the runtime instance.
-    return this as NotificationBuilder<Set | "subject">;
+    return filled(this, this.data, "subject", subject);
   }
 
   linkTo(value: string): NotificationBuilder<Set | "linkTo"> {
-    this.data.linkTo = value;
-    // SAFETY: The setter has filled linkTo on this instance; Set tracks filled fields without changing the runtime instance.
-    return this as NotificationBuilder<Set | "linkTo">;
+    return filled(this, this.data, "linkTo", value);
   }
 
   params(
     value: Record<string, string | number>,
   ): NotificationBuilder<Set | "params"> {
-    this.data.params = value;
-    // SAFETY: The setter has filled params on this instance; Set tracks filled fields without changing the runtime instance.
-    return this as NotificationBuilder<Set | "params">;
+    return filled(this, this.data, "params", value);
   }
 
   /** Colours the icon well the notification is listed with. */
   tone(value: NotificationTone): NotificationBuilder<Set | "tone"> {
-    this.data.tone = value;
-    // SAFETY: The setter has filled tone on this instance; Set tracks filled fields without changing the runtime instance.
-    return this as NotificationBuilder<Set | "tone">;
+    return filled(this, this.data, "tone", value);
   }
 
   build(

@@ -12,7 +12,6 @@ interface EventedActionOptions {
 interface ExecuteOptions<TResult> {
   startPayload?: ComponentEventData["data"];
   successPayload?: (result: TResult) => ComponentEventData["data"];
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- JavaScript actions may reject with any value; neither Promise<TResult> nor the component-event owner provides a narrower rejection type.
   errorPayload?: (error: unknown) => ComponentEventData["data"];
 }
 

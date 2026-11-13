@@ -1,4 +1,5 @@
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
+import type { BlockTypeDescriptor } from "@antelopejs/interface-dms/base/block-registry/types";
 
 /**
  * What the block preview needs to know of one registered block type to draw
@@ -8,8 +9,7 @@ import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
  */
 export interface PreviewBlockType {
   componentName: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The fixed options of whichever registered block type, each typed by its block's own option schema, as the published BlockTypeDefinition.fixedOptions declares them.
-  fixedOptions?: Record<string, unknown>;
+  fixedOptions?: BlockTypeDescriptor["fixedOptions"];
   needsController?: boolean;
 }
 

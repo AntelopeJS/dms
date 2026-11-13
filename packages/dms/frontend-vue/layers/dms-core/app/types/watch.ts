@@ -8,7 +8,6 @@ export const ComponentId = {
 export type WatchActionFunction = (
   action: WatchAction,
   eventData: ComponentEventData,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- useWatch owns arbitrary mutable component state and also uses Record<string, unknown>; a JSON-only or one-component type would narrow this public callback contract.
   componentState: Ref<Record<string, unknown>>,
 ) => void;
 

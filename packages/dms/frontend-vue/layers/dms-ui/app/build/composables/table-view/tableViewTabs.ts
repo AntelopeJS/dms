@@ -153,7 +153,6 @@ export function useTableViewNavBadges<T extends Data>(
         if (count === undefined) continue;
         const fullId = source.to ? source.toPage : pageId;
         const tone =
-          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens the navBadge owner's tone to unknown; typeof preserves its public options union without asserting validation.
           typeof source.navBadge === "object"
             ? source.navBadge.tone
             : undefined;

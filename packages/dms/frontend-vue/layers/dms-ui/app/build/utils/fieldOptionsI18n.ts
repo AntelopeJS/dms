@@ -10,7 +10,6 @@ interface FieldWithOptions {
 }
 
 type Translate = (key: string) => string;
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Custom component options are not restricted to the core JSON options contract; untranslated values must survive unchanged.
 type Options = Record<string, unknown>;
 
 const TEXT_OPTIONS = [
@@ -59,7 +58,6 @@ function translateComponent<C extends ComponentWithOptions>(
   component: C,
   processI18n: Translate,
 ): C {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The options owner is object, not an indexed dictionary. This legacy projection reads and spreads arbitrary options without validating their fields.
   const opts = component.options as Options | undefined;
   if (!opts) return component;
 

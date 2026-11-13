@@ -88,7 +88,6 @@ export function openDynamicContainer<Result, Options extends ContainerOptions>(
       } else {
         cancelPendingOpen();
         instance.close(value);
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Closing before open historically resolves undefined when no value is passed, even for a non-optional Result.
         resolveResult(value as Result);
       }
     },

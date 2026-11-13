@@ -1,6 +1,6 @@
 /** @internal */
 import { z } from "zod";
-import { isNull, isObject } from "../../utils/internal/type-check";
+import { isNull, isObject, isString } from "../../utils/internal/type-check";
 import { ComponentBuilder } from "../../component";
 import type {
   adaptFieldValidationSchema,
@@ -52,8 +52,7 @@ const REQUIRED_MESSAGE = "$dms.field_errors.required";
 
 // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes the output of a caller-supplied zod field schema, any on zod 3's ZodTypeAny, then trims text and checks that every other value is present.
 function isFilledText(value: unknown): boolean {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Presence rules trim text but preserve the existing non-null rule for every other field value.
-  return typeof value === "string" ? value.trim() !== "" : value != null;
+  return isString(value) ? value.trim() !== "" : value != null;
 }
 
 function isLocaleMap(value: unknown): value is Record<string, unknown> {

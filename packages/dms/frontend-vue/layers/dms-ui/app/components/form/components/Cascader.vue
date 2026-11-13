@@ -43,6 +43,8 @@ interface CascaderProps {
 }
 
 const props = withDefaults(defineProps<CascaderProps>(), {
+  keyMapping: () => ({}),
+  modelValue: null,
   deselectable: true,
 });
 
@@ -431,9 +433,9 @@ function nodeClasses(node: CascaderNode, isHighlighted: boolean): string[] {
             aria-busy="true"
           >
             <USkeleton
-              :aria-label="t('dms.a11y.loading')"
               v-for="i in 5"
               :key="i"
+              :aria-label="t('dms.a11y.loading')"
               class="h-6 w-full"
             />
           </div>

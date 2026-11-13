@@ -1,5 +1,6 @@
 import type { TableViewRowActionOptions } from "../table-view";
 import type { RowActionConfig, RowActionRule } from "../types/row-action";
+import { isObject } from "../../utils/internal/type-check";
 
 type ArchiveModeAction =
   | "edit"
@@ -14,7 +15,7 @@ export function applyArchiveModeDefaultRules<T extends object>(
 ): TableViewRowActionOptions<T> | undefined {
   const result: TableViewRowActionOptions<T> = { ...rowActions };
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public archiveField is any string, not a proven key of T; preserve the existing generated boolean rule contract.
+  // SAFETY: The rules are RowActionRule<T> exactly when archiveField names a member of T whose declared type admits true. The table-view factory, the one caller in this package, passes meta.archiveField, the member @ArchiveField decorated, which the archive filter compares with the boolean true; nothing checks that member's declared type, and a module calling this helper with another string breaks the claim.
   const rules = [
     ["edit", { field: archiveField, notEquals: true }],
     ["duplicate", { field: archiveField, notEquals: true }],
@@ -36,8 +37,7 @@ export function applyArchiveModeDefaultRules<T extends object>(
 
     if (
       userConfig === false ||
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the published boolean-or-config input handling, including its existing runtime object distinction.
-      (typeof userConfig === "object" && userConfig.isEnabled === false)
+      (isObject(userConfig) && userConfig.isEnabled === false)
     ) {
       continue;
     }
@@ -50,8 +50,7 @@ export function applyArchiveModeDefaultRules<T extends object>(
       continue;
     }
 
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Preserve the published boolean-or-config input handling without introducing schema validation.
-    if (typeof userConfig === "object") {
+    if (isObject(userConfig)) {
       result[actionKey] = {
         ...userConfig,
         rule: userConfig.rule

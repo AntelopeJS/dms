@@ -7,6 +7,7 @@ import {
   notifyTwoFactorEnabled,
   acceptTotpCode,
   assertEmailCodeNotRateLimited,
+  assertTwoFactorMethod,
   consumeEmailCode,
   emailCodeMatches,
   isEmailCodeExpired,
@@ -284,8 +285,8 @@ async function isValidCodeForAnyMethod(
   user: User,
   code: string,
 ): Promise<boolean> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- User.twoFactorMethods and methodsOf both expose string[] rather than the verifier's literal union; rejecting persisted unknown method names would alter the existing verification loop.
-  for (const method of methodsOf(user) as TwoFactorMethod[]) {
+  for (const method of methodsOf(user)) {
+    assertTwoFactorMethod(method);
     if (await verifyTwoFactorCode(userModel, user, method, code)) return true;
   }
   return false;

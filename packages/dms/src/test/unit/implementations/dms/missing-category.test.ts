@@ -61,13 +61,15 @@ function unregisteredCategory(id: string): CategoryInfo {
   };
 }
 
+function implementInterfaces() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+}
+
 describe("[unit] implementations/dms/page — entries of a missing category", () => {
-  before(() => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-  });
+  before(implementInterfaces);
 
   it("lists the pages of an unregistered label category at its parent's level", async () => {
     const reports = registerTestCategory("missing-reports", {
@@ -139,6 +141,10 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
     expect(reported).to.have.lengthOf(1);
     expect(reported[0]).to.include("pages.missing-ghost.missing-ghost-sales");
   });
+});
+
+describe("[unit] implementations/dms/page — entries of a missing category, registration order", () => {
+  before(implementInterfaces);
 
   it("does not warn about a category unregistered just before its pages", async () => {
     const reloaded = registerTestCategory("missing-reloaded", {

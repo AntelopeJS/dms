@@ -67,7 +67,9 @@ describe("[unit] interfaces/dms-base — page live mode", () => {
     ]);
     expect(block?.config.showUpdatedAt?.type).to.equal("boolean");
   });
+});
 
+describe("[unit] interfaces/dms-base — page live mode, table sources and cadence", () => {
   it("hands a source table's liveHold to its renderer", () => {
     const options = TableView.fromSource({
       fetchUrl: "/api/request-log",

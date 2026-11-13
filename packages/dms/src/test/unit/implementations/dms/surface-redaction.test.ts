@@ -67,53 +67,59 @@ async function pageEntry(grantedPermissions: string[]) {
   return payload.siteLayout.pages[SECRET_SLUG];
 }
 
+const cleanups: Array<() => void> = [];
+
+async function registerSecretAndDynamicPages() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+
+  cleanups.push(
+    await registerTestPage(
+      PageController("redaction-secret", {
+        displayName: SECRET_NAME,
+        description: SECRET_DESCRIPTION,
+        icon: "i-ph-eye-slash",
+        category: pagesCategory,
+      }),
+    ),
+  );
+  cleanups.push(
+    await registerTestPage(
+      PageController("redaction-dynamic", {
+        displayName: "Dynamic fixture",
+        category: pagesCategory,
+        urlSlug: "redaction-dynamic/:id/view",
+      }),
+    ),
+  );
+}
+
+async function registerPublicPage() {
+  cleanups.push(
+    await registerTestPage(
+      PageController("redaction-public", {
+        displayName: "Public fixture",
+        category: pagesCategory,
+        publicAccess: true,
+      }),
+    ),
+  );
+}
+
+function runCleanups() {
+  for (const cleanup of cleanups.splice(0)) {
+    cleanup();
+  }
+}
+
 describe("[unit] implementations/dms/page — inaccessible surfaces are redacted", () => {
-  const cleanups: Array<() => void> = [];
+  before(registerSecretAndDynamicPages);
 
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
+  before(registerPublicPage);
 
-    cleanups.push(
-      await registerTestPage(
-        PageController("redaction-secret", {
-          displayName: SECRET_NAME,
-          description: SECRET_DESCRIPTION,
-          icon: "i-ph-eye-slash",
-          category: pagesCategory,
-        }),
-      ),
-    );
-    cleanups.push(
-      await registerTestPage(
-        PageController("redaction-dynamic", {
-          displayName: "Dynamic fixture",
-          category: pagesCategory,
-          urlSlug: "redaction-dynamic/:id/view",
-        }),
-      ),
-    );
-  });
-
-  before(async () => {
-    cleanups.push(
-      await registerTestPage(
-        PageController("redaction-public", {
-          displayName: "Public fixture",
-          category: pagesCategory,
-          publicAccess: true,
-        }),
-      ),
-    );
-  });
-
-  after(() => {
-    for (const cleanup of cleanups.splice(0)) {
-      cleanup();
-    }
-  });
+  after(runCleanups);
 
   it("keeps what the caller may reach untouched", async () => {
     const entry = await pageEntry([SECRET_FULL_ID]);
@@ -193,6 +199,14 @@ describe("[unit] implementations/dms/page — inaccessible surfaces are redacted
       });
     }
   }
+});
+
+describe("[unit] implementations/dms/page — inaccessible surfaces are redacted, dynamic paths and visitors", () => {
+  before(registerSecretAndDynamicPages);
+
+  before(registerPublicPage);
+
+  after(runCleanups);
 
   it("resolves a concrete dynamic path against its registered pattern", async () => {
     const { memberModel, roleModel } = stubPageAccessModels([DYNAMIC_FULL_ID]);

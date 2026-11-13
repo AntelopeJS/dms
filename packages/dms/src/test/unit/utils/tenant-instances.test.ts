@@ -38,11 +38,7 @@ async function listTenantInstances(): Promise<string[]> {
   return schema.listInstances();
 }
 
-describe("[unit] utils/tenant-instances", () => {
-  beforeEach(async () => {
-    await resetDatabase();
-  });
-
+function registerInstanceRegistrationCases(): void {
   it("lists the default tenant's instance once the DMS has started", async () => {
     expect(await listTenantInstances()).to.include(DEFAULT_TENANT_ID);
   });
@@ -99,7 +95,9 @@ describe("[unit] utils/tenant-instances", () => {
     expect(defaults[0].afterDatabaseInitialized).to.equal(true);
     expect(defaults[0].afterStart).to.equal(true);
   });
+}
 
+function registerProvisioningResumeCases(): void {
   it("leaves a legacy default tenant without a pending marker provisioned", async () => {
     await GetModel(TenantModel).table.insert({ _id: DEFAULT_TENANT_ID }).run();
     const calls: string[] = [];
@@ -204,4 +202,13 @@ describe("[unit] utils/tenant-instances", () => {
     ).to.equal(0);
     expect(await tenants.get(DEFAULT_TENANT_ID)).not.to.equal(undefined);
   });
+}
+
+describe("[unit] utils/tenant-instances", () => {
+  beforeEach(async () => {
+    await resetDatabase();
+  });
+
+  registerInstanceRegistrationCases();
+  registerProvisioningResumeCases();
 });

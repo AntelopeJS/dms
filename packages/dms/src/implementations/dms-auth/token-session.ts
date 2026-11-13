@@ -4,6 +4,7 @@ import {
   SessionModel,
   type User,
 } from "@antelopejs/interface-dms/auth/db";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const SESSION_EXPIRED_ERROR = "error.session_expired";
 
@@ -16,8 +17,7 @@ const SESSION_EXPIRED_ERROR = "error.session_expired";
 export async function loadTokenSession(
   sessionId: Session["_id"] | undefined,
 ): Promise<Session | undefined> {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- An unverified JWT claim must be a string before reaching the Session query.
-  if (typeof sessionId !== "string" || !sessionId) {
+  if (!isString(sessionId) || !sessionId) {
     return undefined;
   }
   return GetModel(SessionModel).get(sessionId);

@@ -54,7 +54,6 @@ describe("TopListCard period badge", () => {
       const state = { preset: "last_30_days" };
       registerPeriodScope(
         "dashboard-period",
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This fixture deliberately supplies a legacy preset outside PeriodPreset and omits unused state fields.
         computed(() => state as PeriodState),
       );
     });

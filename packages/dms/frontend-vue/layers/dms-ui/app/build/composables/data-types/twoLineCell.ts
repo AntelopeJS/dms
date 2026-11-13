@@ -46,7 +46,6 @@ function formatColumnValue(
     : undefined;
   const format = formatter?.cell ?? formatter?.default;
   if (!format) return String(value);
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- DataTypeFormatter returns unknown; the existing cell forwards that result to Vue without checking VNodeChild.
   return format(value, locale, opts.typeOptions, row) as VNodeChild;
 }
 
@@ -60,7 +59,6 @@ function readPrimary(
   const { processText } = getAppComposedText();
   if (opts.primaryField) {
     const text = processText(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Row fields are open plugin values; processText receives the same unchecked value rather than a newly filtered or coerced one.
       readRowField(row, opts.primaryField) as ComposableText,
     );
     return text || undefined;

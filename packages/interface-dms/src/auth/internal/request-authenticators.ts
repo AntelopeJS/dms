@@ -4,6 +4,7 @@ import type {
   RequestAuthenticator,
   RequestPrincipal,
 } from "../request-authenticators";
+import { isString } from "../../utils/internal/type-check";
 
 const HTTP_UNAUTHORIZED = 401;
 const BEARER_SCHEME = /^Bearer\s+(\S+)$/i;
@@ -55,11 +56,9 @@ function assertPrincipal(
   previous?: RequestIdentity,
 ): void {
   if (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Custom authenticators cross the credential boundary; typed principal results are still checked before binding request identity.
-    typeof principal?.user?._id !== "string" ||
+    !isString(principal?.user?._id) ||
     !principal?.user?._id ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Reject a malformed tenant returned by a custom credential authenticator before binding it.
-    typeof principal.tenantId !== "string" ||
+    !isString(principal.tenantId) ||
     !principal.tenantId
   ) {
     throw unauthorized();

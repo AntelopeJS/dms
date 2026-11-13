@@ -10,6 +10,7 @@ import {
   computed,
   createApp,
   h,
+  isVNode,
   nextTick,
   ref,
   shallowRef,
@@ -18,6 +19,7 @@ import {
   type VNode,
   type App,
 } from "vue";
+import { createTable, getCoreRowModel } from "@tanstack/vue-table";
 import { useTableColumns } from "../layers/dms-ui/app/entries/composables/table/useTableColumns";
 import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import * as colors from "../layers/dms-core/app/types/color";
@@ -25,6 +27,7 @@ import * as buttons from "../layers/dms-core/app/types/button";
 import * as sizes from "../layers/dms-core/app/types/size";
 import { isFunction, isString } from "../layers/dms-core/app/utils/type-check";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
+import { TABLE_STYLE_SLOTS } from "./fixtures/tableStyleSlots";
 
 type Row = { _id: string; name: string; code: string };
 
@@ -73,15 +76,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-type LabelAction = Omit<CustomRowAction, "target"> & {
-  target: Pick<
-    Extract<CustomRowAction["target"], { type: "api" | "page" }>,
-    "type" | "url"
-  >;
-};
-
 interface ActionsCellOptions {
-  custom: LabelAction[];
+  custom: CustomRowAction[];
   menuLabel?: string;
   labelKey?: string;
 }
@@ -98,26 +94,33 @@ function actionsCell({ custom, menuLabel, labelKey }: ActionsCellOptions) {
       details: false,
       duplicate: false,
       edit: false,
-      // SAFETY: These label/menu tests never select an action; their API targets omit the unused successMessage.
-      custom: custom as CustomRowAction[],
+      custom,
       menuLabel,
     },
     labelKey,
     emits: () => undefined,
-    // SAFETY: This actions-cell probe uses only rowAction; no header or selection cell is rendered.
-    ui: computed(
-      () =>
-        ({ rowAction: () => "" }) as Parameters<
-          typeof useTableColumns<Row>
-        >[0]["ui"]["value"],
-    ),
+    ui: computed(() => TABLE_STYLE_SLOTS),
   });
-  const column = columns.value.find((entry) => entry.id === "actions");
-  // SAFETY: The actions column installs a cell callback that only reads row.original and row.id.
-  const cell = column?.cell as (context: {
-    row: { original: Row; id: string };
-  }) => VNode;
-  return cell({ row: { original: ROW, id: "fr" } });
+  const table = createTable<Row>({
+    data: [ROW],
+    columns: columns.value,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (row) => row._id,
+    state: {},
+    onStateChange: () => undefined,
+    renderFallbackValue: null,
+  });
+  const context = table
+    .getRowModel()
+    .rows[0]?.getAllCells()
+    .find((entry) => entry.column.id === "actions")
+    ?.getContext();
+  const cell = columns.value.find((entry) => entry.id === "actions")?.cell;
+  if (!context || typeof cell !== "function")
+    throw new Error("the table has no actions cell");
+  const rendered = cell(context);
+  if (!isVNode(rendered)) throw new Error("the actions cell is not a VNode");
+  return rendered;
 }
 
 function renderCell(cell: VNode) {
@@ -137,8 +140,8 @@ function menuButtonProps(cell: VNode) {
 
 const MENU_ACTION = {
   label: "Remove",
-  target: { type: "api", url: "/x" },
-} satisfies LabelAction;
+  target: { type: "api", url: "/x", successMessage: "Removed" },
+} satisfies CustomRowAction;
 
 it("names the ⋯ button after the row's label field by default", () => {
   const cell = actionsCell({ custom: [MENU_ACTION], labelKey: "name" });
@@ -180,11 +183,11 @@ it("fills a custom action's label from the row, inline and in the menu", async (
       },
       {
         label: "$dms_lang.languages.remove",
-        target: { type: "api", url: "/x" },
+        target: { type: "api", url: "/x", successMessage: "Removed" },
       },
       {
         label: "Keep {unknown} as written",
-        target: { type: "api", url: "/y" },
+        target: { type: "api", url: "/y", successMessage: "Kept" },
       },
     ],
   });

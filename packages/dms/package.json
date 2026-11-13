@@ -1,7 +1,7 @@
 {
   "name": "@antelopejs/dms",
-  "version": "0.19.2",
-  "description": "AntelopeJS DMS. Plug in your PostgreSQL, MongoDB or RethinkDB database and your coding agent builds a back office and analytics dashboard as typed TypeScript. Real-time updates on the data the DMS manages.",
+  "version": "0.19.6",
+  "description": "AntelopeJS DMS. Plug in your PostgreSQL, MySQL, MariaDB, MongoDB or RethinkDB database and your coding agent builds a back office and analytics dashboard as typed TypeScript. Real-time updates on the data the DMS manages.",
   "keywords": [
     "antelopejs",
     "dms",
@@ -18,6 +18,8 @@
     "postgresql",
     "mongodb",
     "rethinkdb",
+    "mysql",
+    "mariadb",
     "vue",
     "inertia"
   ],
@@ -45,6 +47,8 @@
     "checks",
     "frontend-vue",
     "!frontend-vue/tests",
+    "!frontend-vue/scripts/eslint-globals.mjs",
+    "!frontend-vue/scripts/layer-auto-imports.mjs",
     "!frontend-vue/vitest.config.ts",
     "!frontend-vue/eslint.config.mjs",
     "!frontend-vue/.prettierrc",
@@ -127,7 +131,7 @@
   "devDependencies": {
     "@antelopejs/api": "^1.7.0",
     "@antelopejs/core": ">=1.21.0 <2",
-    "@antelopejs/tooling-configs": "^0.5.1",
+    "@antelopejs/tooling-configs": "^0.5.3",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
     "@types/jsdom": "^28.0.3",
@@ -161,6 +165,10 @@
     "./checks/api-error-presentation": {
       "types": "./checks/api-error-presentation.d.mts",
       "default": "./frontend-vue/scripts/check-api-error-presentation.mjs"
+    },
+    "./eslint-globals": {
+      "types": "./frontend-vue/eslint-globals.generated.d.mts",
+      "default": "./frontend-vue/eslint-globals.generated.mjs"
     },
     "./interfaces/*": null
   },

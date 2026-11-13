@@ -76,6 +76,11 @@ function writeCachedStars(count: number): void {
   }
 }
 
+/** Whether GitHub answered a star count. */
+function isStarCount(count: unknown): count is number {
+  return typeof count === "number";
+}
+
 async function fetchStars(): Promise<number | null> {
   try {
     const response = await fetch(REPOSITORY_API, {
@@ -83,8 +88,7 @@ async function fetchStars(): Promise<number | null> {
     });
     if (!response.ok) return null;
     const { stargazers_count: count } = await response.json();
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The GitHub response is unvalidated; preserve the existing number-only acceptance behavior.
-    return typeof count === "number" ? count : null;
+    return isStarCount(count) ? count : null;
   } catch {
     return null;
   }

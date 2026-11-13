@@ -3,8 +3,6 @@ import { ControllerMeta, type RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
-  type DataControllerCallback,
-  type DataControllerCallbackWithOptions,
   type DataControllerInstance,
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
@@ -13,13 +11,13 @@ import {
   Query,
   Validation,
 } from "@antelopejs/interface-data-api/components";
-import type { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
+import type {
+  DataAPIMeta,
+  RowFields,
+} from "@antelopejs/interface-data-api/metadata";
 import type { Stream, ValueProxy } from "@antelopejs/interface-database";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import {
-  DEFAULT_ROW_ID_FIELD,
-  TableViewMeta,
-} from "@antelopejs/interface-dms/base/table-view";
+import { DEFAULT_ROW_ID_FIELD } from "@antelopejs/interface-dms/base/table-view";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import {
   DEFAULT_EXPORT_FORMAT,
@@ -42,10 +40,7 @@ import {
   listWithSearch as listWithSearchFunc,
 } from "./search-route";
 import { fetchRowForGuard as fetchRowForGuardHelper } from "../../db";
-
-type DataControllerThis =
-  | DataControllerCallback
-  | DataControllerCallbackWithOptions;
+import { isNumber } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 /** Rows read from the database per export page. */
 export const EXPORT_BATCH_SIZE = 100;
@@ -58,7 +53,7 @@ interface TableViewExportContext {
 
 /** One page of rows on its way to the export writer. */
 interface ExportBatch {
-  controller: DataControllerThis;
+  controller: DataControllerInstance;
   controllerMetadata: DataAPIMeta;
   model: ReturnType<typeof Query.GetModel>;
   pendingRecordBatch: Stream<unknown>;
@@ -105,20 +100,16 @@ function getPluckFields(
 }
 
 async function buildIdsExportQuery(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   controllerMetadata: DataAPIMeta,
   ctx: RequestContext,
   ids: string[],
   user: User | undefined,
 ) {
   const model = Query.GetModel(controller, controllerMetadata);
-  const tableViewMetadata = GetMetadata(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Callback descriptor types omit the actual receiver constructor; inference yields Function, while TableViewMeta's owner requires a newable target, a preexisting route-binding assumption.
-    controller.constructor as ConstructorParameters<typeof TableViewMeta>[0],
-    TableViewMeta,
-  );
-  const idField = tableViewMetadata?.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
-  const archiveField = tableViewMetadata?.archiveField;
+  const tableViewMetadata = getTableViewMetaFor(controller);
+  const idField = tableViewMetadata.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
+  const archiveField = tableViewMetadata.archiveField;
 
   let query = model.table.getAll(ids, idField);
 
@@ -135,8 +126,7 @@ async function buildIdsExportQuery(
       const archiveValue = archiveConstraint[0];
 
       const isNotEqual = archiveConstraint[1] === "ne";
-      // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the list serves, interface-data-api's RowFields, read by the archive field its table view names at run time.
-      query = query.filter((row: ValueProxy<Record<string, unknown>>) =>
+      query = query.filter((row: ValueProxy<RowFields>) =>
         isNotEqual
           ? row.key(archiveField).ne(archiveValue)
           : row.key(archiveField).eq(archiveValue),
@@ -149,7 +139,7 @@ async function buildIdsExportQuery(
 
 /** What the export reads from. */
 interface ExportQueryInput {
-  controller: DataControllerThis;
+  controller: DataControllerInstance;
   controllerMetadata: DataAPIMeta;
   ctx: RequestContext;
   listParams: Parameters.ListParameters;
@@ -178,7 +168,7 @@ async function buildExportQuery({
   };
 }
 
-function getControllerKey(controller: DataControllerThis): string {
+function getControllerKey(controller: DataControllerInstance): string {
   const owner = controller.constructor;
   const { location } = GetMetadata(owner, ControllerMeta);
   if (location === undefined) {
@@ -188,7 +178,7 @@ function getControllerKey(controller: DataControllerThis): string {
 }
 
 function buildTableViewAccessForController(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
 ): ExportJobAccessOptions<TableViewExportContext> {
   const controllerKey = getControllerKey(controller);
   return {
@@ -199,7 +189,7 @@ function buildTableViewAccessForController(
 
 /** One export run, end to end. */
 export interface ExportRun {
-  controller: DataControllerThis;
+  controller: DataControllerInstance;
   ctx: RequestContext;
   listParams: Parameters.ListParameters;
   writer: ExportWriter;
@@ -273,7 +263,7 @@ export async function generateTableViewExport({
 
 // oxlint-disable-next-line eslint/max-params -- Export routes bind this positional implementation with controller, request, list options, format, delivery, selected ids and user.
 export async function startExport(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   ctx: RequestContext,
   listParams: Parameters.ListParameters,
   format?: string,
@@ -327,7 +317,7 @@ export async function startExport(
 }
 
 export async function getExportStatus(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   ctx: RequestContext,
   exportId: string,
   user?: User,
@@ -344,7 +334,7 @@ export async function getExportStatus(
 }
 
 export async function downloadExport(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   ctx: RequestContext,
   exportId: string,
   user?: User,
@@ -369,8 +359,7 @@ export async function fetchRowForGuard(
   controller: DataControllerInstance,
   id: string,
   idField: string,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- fetchRowForGuard implements the exported but @internal InterfaceFunction of data-functions.ts, whose row is the stored row of whichever table the guard names, interface-data-api's RowFields.
-): Promise<Record<string, unknown> | undefined> {
+): Promise<RowFields | undefined> {
   return fetchRowForGuardHelper(controller, id, idField);
 }
 
@@ -378,10 +367,8 @@ async function readRuleRow(
   controller: DataControllerInstance,
   controllerMetadata: DataAPIMeta,
   model: ReturnType<typeof Query.GetModel>,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- readRuleRow takes the stored row of whichever table a rule guards, interface-data-api's RowFields, and answers it merged with Query.ReadProperties for the rule's runtime field paths.
-  row: Record<string, unknown>,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- readRuleRow takes the stored row of whichever table a rule guards, interface-data-api's RowFields, and answers it merged with Query.ReadProperties for the rule's runtime field paths.
-): Promise<Record<string, unknown>> {
+  row: RowFields,
+): Promise<RowFields> {
   try {
     const stored = model.constructor.fromDatabase(row);
     assert(stored, 500, "The database answered an empty row.");
@@ -443,8 +430,7 @@ export async function validateRowsAgainstRule(
 }
 
 const updatedRowCount = (updated: number, ids: string[]): number =>
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Database adapters historically report either a numeric count or an adapter result; retain the existing selected-id fallback instead of assuming the declared numeric result at runtime.
-  typeof updated === "number" ? updated : ids.length;
+  isNumber(updated) ? updated : ids.length;
 
 export async function archiveRows(
   controller: DataControllerInstance,

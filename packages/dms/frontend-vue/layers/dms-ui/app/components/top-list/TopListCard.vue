@@ -302,8 +302,8 @@ const gridStyle = computed(() => ({
             {{ badgeLabel }}
           </UBadge>
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-else
+            :aria-label="t('dms.a11y.loading')"
             class="h-5 w-16 rounded-[5px]"
             aria-hidden="true"
           />
@@ -384,8 +384,8 @@ const gridStyle = computed(() => ({
           :class="props.showBar ? 'h-[60px]' : 'h-14'"
         >
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="showRank"
+            :aria-label="t('dms.a11y.loading')"
             class="size-[26px] shrink-0 rounded-[7px]"
           />
           <div class="grid flex-1 gap-1.5">
@@ -397,8 +397,8 @@ const gridStyle = computed(() => ({
           </div>
           <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-14" />
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="showRowDelta"
+            :aria-label="t('dms.a11y.loading')"
             class="h-3 w-[46px]"
           />
         </div>

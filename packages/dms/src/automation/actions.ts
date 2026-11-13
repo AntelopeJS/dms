@@ -14,6 +14,7 @@ import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { ActionType } from "@antelopejs/interface-dms-automation";
 import { fieldHint, nodeText, titledProperties } from "./i18n";
 import { sendNotificationAction } from "./send-notification";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 export const SEND_EMAIL_ACTION_ID = "dms.send-email";
 const SEND_EMAIL_TEXTS = "actions.sendEmail";
@@ -49,8 +50,7 @@ async function bodyTemplate(
 ): Promise<string | undefined> {
   const template = input.template?.trim();
   if (!template) {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Literal HTML is accepted only when the wired input is a string; preserve the missing-template error for other values.
-    if (typeof input.html === "string") return undefined;
+    if (isString(input.html)) return undefined;
     throw new Error(`${SEND_EMAIL_ACTION_ID} requires html or a template`);
   }
   if (!(await GetHtmlTemplate(template))) {
