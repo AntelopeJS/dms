@@ -153,8 +153,7 @@ export type SiteLayout = {
    * `urlTransparent`, by `fullSlug`.
    */
   categories: Record<string, CategoryInfo>;
-  /** Absent when the backend predates layout banners. */
-  banners?: LayoutBanner[];
+  banners: LayoutBanner[];
 };
 
 export interface QuickActionCategoryInfo {

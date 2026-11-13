@@ -47,7 +47,7 @@ const banner = (extra: Partial<LayoutBanner> = {}): LayoutBanner => ({
   ...extra,
 });
 
-function serveBanners(banners: LayoutBanner[] | undefined): void {
+function serveBanners(banners: LayoutBanner[]): void {
   siteLayout.value = { pages: {}, categories: {}, banners };
 }
 
@@ -179,11 +179,6 @@ describe("isLayoutBannerInScope", () => {
 });
 
 describe("useLayoutBanners", () => {
-  it("serves nothing for a backend that predates banners", () => {
-    serveBanners(undefined);
-    expect(useLayoutBanners().banners.value).toEqual([]);
-  });
-
   it("drops a dismissed banner, and remembers the dismissal in the cookie", () => {
     serveBanners([
       banner({ key: "a", dismissible: true }),

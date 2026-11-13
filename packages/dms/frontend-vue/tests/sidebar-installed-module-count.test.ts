@@ -39,6 +39,8 @@ const ASSISTANT = {
   icon: "i-ph-sparkle",
   hasAccess: true,
   landingSlug: "/modules/ai/overview",
+  status: "live" as const,
+  readout: [],
 };
 
 function storeEntry(id: string, state: "active" | "available") {

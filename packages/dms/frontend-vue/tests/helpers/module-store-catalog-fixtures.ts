@@ -106,6 +106,8 @@ export function versionDetailsFixture() {
       icon: "i-ph-image",
       hasAccess: true,
       landingSlug: "/modules/media",
+      status: "live" as const,
+      readout: [],
     },
     {
       id: "api",
@@ -114,6 +116,8 @@ export function versionDetailsFixture() {
       icon: "i-ph-plug",
       hasAccess: true,
       landingSlug: "/modules/api",
+      status: "live" as const,
+      readout: [],
       version: "0.4.1",
       catalogCategory: "$api.category",
     },
@@ -138,6 +142,8 @@ export function categoryInstalledFixture() {
       icon: "i-ph-envelope-simple",
       hasAccess: true,
       landingSlug: "/modules/mailing",
+      status: "live" as const,
+      readout: [],
       catalogCategory: "$dms_mailing.catalog_category",
     },
     {
@@ -147,6 +153,8 @@ export function categoryInstalledFixture() {
       icon: "i-ph-image",
       hasAccess: true,
       landingSlug: "/modules/media",
+      status: "live" as const,
+      readout: [],
     },
   ];
 }
