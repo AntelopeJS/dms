@@ -31,8 +31,8 @@ export const PinInput = defineComponent({
       h("input", {
         "data-testid": "code",
         onInput: (event: Event) => {
-          // SAFETY: This handler is attached only to the input rendered immediately above.
-          const digits = (event.target as HTMLInputElement).value.split("");
+          if (!(event.target instanceof HTMLInputElement)) return;
+          const digits = event.target.value.split("");
           emit("update:modelValue", digits);
           if (digits.length === 6) emit("complete");
         },

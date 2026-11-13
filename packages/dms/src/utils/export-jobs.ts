@@ -2,7 +2,6 @@ import { ownValue } from "./own-value";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Readable } from "node:stream";
 import { assert } from "@antelopejs/interface-api-util";
 import type { RowFields } from "@antelopejs/interface-data-api/metadata";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -214,20 +213,11 @@ export async function uploadExportToStorage(
     path: `${EXPORT_STORAGE_PREFIX}/${tenantId}`,
   });
 
-  const fileStream = fs.createReadStream(localPath);
-  const response = await fetch(
-    presign.uploadUrl,
-    // SAFETY: The literal satisfies RequestInit apart from its body and duplex; Node's web readable stream is accepted by fetch with duplex half, which the DOM RequestInit and ReadableStream declarations omit or type differently.
-    {
-      method: "PUT",
-      headers: presign.headers,
-      body: Readable.toWeb(fileStream),
-      duplex: "half",
-    } satisfies Omit<RequestInit, "body"> & {
-      body: ReturnType<typeof Readable.toWeb>;
-      duplex: "half";
-    } as RequestInit,
-  );
+  const response = await fetch(presign.uploadUrl, {
+    method: "PUT",
+    headers: presign.headers,
+    body: await fs.openAsBlob(localPath),
+  });
 
   if (!response.ok) {
     await response.body?.cancel().catch(() => undefined);

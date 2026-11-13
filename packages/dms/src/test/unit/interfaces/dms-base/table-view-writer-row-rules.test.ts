@@ -6,10 +6,12 @@ import {
   AccessMode,
   ModelReference,
 } from "@antelopejs/interface-data-api/metadata";
+import { Schema } from "@antelopejs/interface-database";
 import {
   BasicDataModel,
   Field,
   Model,
+  RegisterSchema,
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
@@ -71,37 +73,25 @@ class SharedTaskAPI extends DataController(
   declare isArchived: boolean;
 }
 
-type Row = { _id: string; priority: string; isArchived?: boolean };
-
-function createTable(rows: Map<string, Row>) {
-  return {
-    getAll(ids: string[]) {
-      const found = ids
-        .map((id) => rows.get(id))
-        .filter((row): row is Row => !!row);
-      return Object.assign(Promise.resolve(found), {
-        delete: async () => {
-          for (const row of found) rows.delete(row._id);
-          return found.length;
-        },
-      });
-    },
-  };
-}
-
-function createRows(): Map<string, Row> {
-  return new Map<string, Row>([
-    ["low", { _id: "low", priority: "low", isArchived: false }],
-    ["high", { _id: "high", priority: "high", isArchived: false }],
-    ["archived", { _id: "archived", priority: "high", isArchived: true }],
-    ["legacy", { _id: "legacy", priority: "low" }],
-  ]);
-}
-const ALL_IDS = ["low", "high", "archived", "legacy"];
+const ALL_IDS = ["archived", "high", "legacy", "low"];
 
 const controller = new SharedTaskAPI();
 const meta = GetMetadata(SharedTaskAPI, TableViewMeta);
-let rows: Map<string, Row>;
+
+/** Replaces the stored tasks; `legacy` never had its archive field written. */
+async function useRows(): Promise<void> {
+  await controller.model.table.delete().run();
+  await controller.model.insert([
+    { _id: "low", priority: "low", isArchived: false },
+    { _id: "high", priority: "high", isArchived: false },
+    { _id: "archived", priority: "high", isArchived: true },
+    { _id: "legacy", priority: "low" },
+  ]);
+}
+
+async function storedIds(): Promise<string[]> {
+  return (await controller.model.getAll()).map((row) => row._id).sort();
+}
 
 const writer = TableView(SharedTaskAPI, {
   realtime: false,
@@ -117,7 +107,7 @@ const reader = TableView(SharedTaskAPI, {
 const remove = createValidatedRoute(
   {
     func: function (_ctx: RequestContext, params: { id: string[] }) {
-      return createTable(rows).getAll(params.id).delete();
+      return controller.model.table.getAll(params.id).delete().run();
     },
     args: [],
     method: "delete",
@@ -206,17 +196,12 @@ async function served(
   );
 }
 
-/** What `Query.GetModel` recognizes as a model, over a table of `rows`. */
-function modelOver(rows: Parameters<typeof createTable>[0]) {
-  return {
-    table: createTable(rows),
-    database: {},
-    constructor: { fromDatabase: () => undefined },
-  };
-}
-
 describe("[unit] TableView row rules are those of the controller's writing table view", () => {
-  before(() => {
+  before(async () => {
+    await RegisterSchema(SCHEMA);
+    const schema = Schema.get(SCHEMA);
+    if (!schema) throw new Error("Missing test schema");
+    controller.model = new TaskModel(schema.instance());
     ImplementInterface(permissionsInterface, permissionsImpl);
     ImplementInterface(
       { validateRowsAgainstRule },
@@ -226,11 +211,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
     permissionMap.set(reader, KEY_READER);
   });
 
-  beforeEach(() => {
-    rows = createRows();
-    // SAFETY: The route exercises only getAll/delete; this in-memory table intentionally is not a complete TaskModel.
-    controller.model = modelOver(rows) as never;
-  });
+  beforeEach(useRows);
 
   after(() => {
     for (const builder of [writer, reader]) permissionMap.delete(builder);
@@ -254,7 +235,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
 
   it("enforces the archive-mode defaults server-side: only archived rows are deleted for good", async () => {
     expect(await deleteRows(ALL_IDS)).to.equal(1);
-    expect([...rows.keys()]).to.deep.equal(["low", "high", "legacy"]);
+    expect(await storedIds()).to.deep.equal(["high", "legacy", "low"]);
   });
 
   it("answers an empty result when no row passes a bulk action's rule", async () => {
@@ -267,7 +248,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
     expect(await restore.func.call(controller, REQUEST, ["low"])).to.deep.equal(
       { success: true, restoredCount: 0 },
     );
-    expect([...rows.keys()]).to.deep.equal(ALL_IDS);
+    expect(await storedIds()).to.deep.equal(ALL_IDS);
   });
 
   it("refuses an edit the writing table view's rule refuses", async () => {

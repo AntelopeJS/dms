@@ -41,9 +41,14 @@ const gateInfo = denyingTenantGate("of-gate", DENIED_TENANT, "of.suspended");
 type ServedAction = Awaited<
   ReturnType<typeof buildSiteLayoutPayload>
 >["quickActions"]["actions"][string];
-type ServedFormAction = Omit<ServedAction, "target"> & {
-  target: Extract<ServedAction["target"], { type: "openForm" }>;
-};
+
+function openFormComponent(
+  actions: Record<string, ServedAction>,
+  id: string,
+): string | undefined {
+  const target = Object.hasOwn(actions, id) ? actions[id]?.target : undefined;
+  return target?.type === "openForm" ? target.component : undefined;
+}
 
 function formCapableComponent(name: string): ComponentBuilder<unknown> {
   const component = CustomComponent(name).meta({ name });
@@ -85,8 +90,7 @@ async function actionsFor(grantedPermissions: string[], tenantId: string) {
     roleModel,
     tenantId,
   );
-  // SAFETY: Callers inspect only this suite's of-* registrations, all openForm targets; other global actions are not inspected as forms.
-  return payload.quickActions.actions as Record<string, ServedFormAction>;
+  return payload.quickActions.actions;
 }
 
 async function registerPageWithComponents(
@@ -191,7 +195,7 @@ describe("[unit] implementations/dms/quick-actions — openForm targets", () => 
       DENIED_TENANT,
     );
 
-    expect(actions[`${CATEGORY_ID}:of-recovery`]?.target.component).to.equal(
+    expect(openFormComponent(actions, `${CATEGORY_ID}:of-recovery`)).to.equal(
       "invoices",
     );
   });
@@ -221,7 +225,7 @@ describe("[unit] implementations/dms/quick-actions — openForm targets", () => 
       "of-allowed-tenant",
     );
 
-    expect(actions[`${CATEGORY_ID}:of-named`]?.target.component).to.equal(
+    expect(openFormComponent(actions, `${CATEGORY_ID}:of-named`)).to.equal(
       "second",
     );
   });
@@ -232,7 +236,7 @@ describe("[unit] implementations/dms/quick-actions — openForm targets", () => 
       "of-allowed-tenant",
     );
 
-    expect(actions[`${CATEGORY_ID}:of-nested`]?.target.component).to.equal(
+    expect(openFormComponent(actions, `${CATEGORY_ID}:of-nested`)).to.equal(
       "content-child-invoices",
     );
   });

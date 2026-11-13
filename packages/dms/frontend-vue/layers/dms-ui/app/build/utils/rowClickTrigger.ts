@@ -32,12 +32,12 @@ const ROW_CONTROL_SELECTOR = [
 const isRepeatClick: RowClickGuard = (event) => event.detail > 1;
 
 const isOnRowControl: RowClickGuard = (event) => {
-  const target = event.target as Element | null;
-  const control = target?.closest?.(ROW_CONTROL_SELECTOR);
+  const { target } = event;
+  const control =
+    target instanceof Element ? target.closest(ROW_CONTROL_SELECTOR) : null;
   if (!control) return false;
-  // SAFETY: The row listener is attached to the row element; a detached event has a null currentTarget.
-  const row = event.currentTarget as Element | null;
-  return !row || row.contains(control);
+  const row = event.currentTarget;
+  return !(row instanceof Node) || row.contains(control);
 };
 
 const endsTextSelection: RowClickGuard = () => {

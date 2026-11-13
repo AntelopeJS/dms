@@ -142,7 +142,7 @@ describe("linkedArrivalPreferences", () => {
   };
   const written: Array<[string, unknown]> = [];
   const preferences: TablePreferences = {
-    // SAFETY: This fixture implements the preference API's generic read; callers request the value type stored under each field.
+    // SAFETY: holds when the V a caller requests for a field is the type of the value `kept` seeds under it; a field absent from `kept` returns the caller's fallback, which is a V.
     get: <V>(field: string, fallback: V) =>
       (field in kept
         ? new Map(Object.entries(kept)).get(field)
@@ -382,7 +382,7 @@ describe("a link to the kept tab, reloads and the user's pick", () => {
     const kept: Record<string, Parameters<TablePreferences["set"]>[1]> = {};
     return {
       kept,
-      // SAFETY: The preference API correlates a generic read with the value previously stored under that field; these tests keep those field types consistent.
+      // SAFETY: holds when the V a caller requests for a field is the type of the value last stored under it with set; a field never stored returns the caller's fallback, which is a V.
       get: <V>(field: string, fallback: V) =>
         (field in kept ? kept[field] : fallback) as V,
       set: (field, value) => {

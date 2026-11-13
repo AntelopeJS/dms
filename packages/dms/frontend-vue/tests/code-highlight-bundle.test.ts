@@ -55,8 +55,7 @@ const EDITOR_PACKAGES = [
 ];
 
 beforeAll(async () => {
-  // SAFETY: With build.write false and no watch or multiple-output configuration, Vite returns one RollupOutput.
-  const output = (await build({
+  const output = await build({
     configFile: false,
     root: ROOT,
     logLevel: "silent",
@@ -68,7 +67,10 @@ beforeAll(async () => {
         preserveEntrySignatures: "strict",
       },
     },
-  })) as Rollup.RollupOutput;
+  });
+  if (Array.isArray(output) || !("output" in output)) {
+    throw new Error("The highlighter build did not return a single output");
+  }
   const built = output.output.filter(
     (item): item is Chunk => item.type === "chunk",
   );

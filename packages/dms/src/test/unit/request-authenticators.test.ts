@@ -8,6 +8,7 @@ import type {
 } from "@antelopejs/interface-dms/auth/request-authenticators";
 import { resolveRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 import { requestContextFixture } from "../helpers/request-context";
+import { storedUserFixture } from "../helpers/user-fixture";
 
 const UNAUTHORIZED = 401;
 const TENANT = "credential-tenant";
@@ -18,8 +19,7 @@ function context(authorization = "Bearer opaque.secret"): RequestContext {
 }
 
 function principal(tenantId = TENANT, userId = USER_ID): RequestPrincipal {
-  // SAFETY: Principal validation and identity snapshots access only user._id; the owner-derived user type also requires unrelated profile and authentication fields.
-  return { tenantId, user: { _id: userId } as RequestPrincipal["user"] };
+  return { tenantId, user: storedUserFixture({ _id: userId }) };
 }
 
 function handler(authenticate = async () => principal()): RequestAuthenticator {

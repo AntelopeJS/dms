@@ -3,8 +3,6 @@ import { ControllerMeta, type RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
-  type DataControllerCallback,
-  type DataControllerCallbackWithOptions,
   type DataControllerInstance,
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
@@ -44,10 +42,6 @@ import {
 import { fetchRowForGuard as fetchRowForGuardHelper } from "../../db";
 import { isNumber } from "@antelopejs/interface-dms/utils/internal/type-check";
 
-type DataControllerThis =
-  | DataControllerCallback
-  | DataControllerCallbackWithOptions;
-
 /** Rows read from the database per export page. */
 export const EXPORT_BATCH_SIZE = 100;
 
@@ -59,7 +53,7 @@ interface TableViewExportContext {
 
 /** One page of rows on its way to the export writer. */
 interface ExportBatch {
-  controller: DataControllerThis;
+  controller: DataControllerInstance;
   controllerMetadata: DataAPIMeta;
   model: ReturnType<typeof Query.GetModel>;
   pendingRecordBatch: Stream<unknown>;
@@ -106,7 +100,7 @@ function getPluckFields(
 }
 
 async function buildIdsExportQuery(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   controllerMetadata: DataAPIMeta,
   ctx: RequestContext,
   ids: string[],
@@ -145,7 +139,7 @@ async function buildIdsExportQuery(
 
 /** What the export reads from. */
 interface ExportQueryInput {
-  controller: DataControllerThis;
+  controller: DataControllerInstance;
   controllerMetadata: DataAPIMeta;
   ctx: RequestContext;
   listParams: Parameters.ListParameters;
@@ -174,7 +168,7 @@ async function buildExportQuery({
   };
 }
 
-function getControllerKey(controller: DataControllerThis): string {
+function getControllerKey(controller: DataControllerInstance): string {
   const owner = controller.constructor;
   const { location } = GetMetadata(owner, ControllerMeta);
   if (location === undefined) {
@@ -184,7 +178,7 @@ function getControllerKey(controller: DataControllerThis): string {
 }
 
 function buildTableViewAccessForController(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
 ): ExportJobAccessOptions<TableViewExportContext> {
   const controllerKey = getControllerKey(controller);
   return {
@@ -195,7 +189,7 @@ function buildTableViewAccessForController(
 
 /** One export run, end to end. */
 export interface ExportRun {
-  controller: DataControllerThis;
+  controller: DataControllerInstance;
   ctx: RequestContext;
   listParams: Parameters.ListParameters;
   writer: ExportWriter;
@@ -269,7 +263,7 @@ export async function generateTableViewExport({
 
 // oxlint-disable-next-line eslint/max-params -- Export routes bind this positional implementation with controller, request, list options, format, delivery, selected ids and user.
 export async function startExport(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   ctx: RequestContext,
   listParams: Parameters.ListParameters,
   format?: string,
@@ -323,7 +317,7 @@ export async function startExport(
 }
 
 export async function getExportStatus(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   ctx: RequestContext,
   exportId: string,
   user?: User,
@@ -340,7 +334,7 @@ export async function getExportStatus(
 }
 
 export async function downloadExport(
-  controller: DataControllerThis,
+  controller: DataControllerInstance,
   ctx: RequestContext,
   exportId: string,
   user?: User,

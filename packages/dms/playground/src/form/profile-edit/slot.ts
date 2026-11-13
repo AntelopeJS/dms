@@ -13,23 +13,42 @@ export const PROFILE_SOCIAL_SLOT_ID = "playground:profile-social";
 type FormSchemaJson = NonNullable<FormPropsSerialized["schema"]>;
 type ObjectSchemaJson = Extract<FormSchemaJson, { properties: object }>;
 
-// SAFETY: Form sets its serialized options with fields and a schema before returning the builder.
-const contributed = Form({
-  fields: [
-    {
-      id: "mastodonUrl",
-      label: "Mastodon profile",
-      description: "Added through the form's slot by another module",
-      type: new DefaultDataTypes.UrlType({
-        placeholder: "https://mastodon.social/@username",
-      }),
-    },
-  ],
-}).serializeSync().options as FormPropsSerialized;
+function serializedOptions(form: ReturnType<typeof Form>): FormPropsSerialized {
+  const { options } = form.serializeSync();
+  if (!options) throw new Error("The contributed form serialized no options");
+  return options;
+}
+
+function objectSchemaOf(
+  schema: FormSchemaJson | undefined,
+): ObjectSchemaJson | undefined {
+  if (schema && "properties" in schema && schema.type === "object") {
+    return schema;
+  }
+  return undefined;
+}
+
+const contributed = serializedOptions(
+  Form({
+    fields: [
+      {
+        id: "mastodonUrl",
+        label: "Mastodon profile",
+        description: "Added through the form's slot by another module",
+        type: new DefaultDataTypes.UrlType({
+          placeholder: "https://mastodon.social/@username",
+        }),
+      },
+    ],
+  }),
+);
+const contributedSchema = objectSchemaOf(contributed.schema);
+if (!contributedSchema) {
+  throw new Error("The contributed form serialized no object schema");
+}
+const extra = contributedSchema;
 
 function withContributedProperties(base: ObjectSchemaJson): FormSchemaJson {
-  // SAFETY: The contributed Form builds an object schema from its mastodonUrl field.
-  const extra = contributed.schema as ObjectSchemaJson;
   return {
     ...base,
     properties: { ...base.properties, ...extra.properties },
@@ -37,8 +56,8 @@ function withContributedProperties(base: ObjectSchemaJson): FormSchemaJson {
 }
 
 const withContributedFields: ComponentSlotResolver = (options) => {
-  // SAFETY: The profile-social slot is declared only on a Form, whose fields produce an object schema.
-  const base = options.schema as ObjectSchemaJson;
+  const base = objectSchemaOf(options.schema);
+  if (!base) return options;
   return {
     ...options,
     fields: [...options.fields, ...contributed.fields],

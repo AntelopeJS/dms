@@ -37,10 +37,10 @@ function useAccountsStorage(): AccountsRef {
   const existing = accountsStorageByApp.get(dmsApp);
   if (existing) return existing;
 
-  // SAFETY: A newly created effect scope is active, so run synchronously returns this callback's useStorage result.
   const storage = effectScope(true).run(() =>
     useStorage<StoredAccount[]>(STORAGE_KEY, [], undefined),
-  ) as AccountsRef;
+  );
+  if (!storage) throw new Error("The accounts storage scope is inactive");
   dropDuplicates(storage);
   accountsStorageByApp.set(dmsApp, storage);
   return storage;

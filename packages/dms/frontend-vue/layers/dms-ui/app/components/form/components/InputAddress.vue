@@ -106,8 +106,17 @@ const {
 const formErrors = inject(formErrorsInjectionKey, null);
 const formInputs = inject(formInputsInjectionKey, null);
 
-// SAFETY: defaultAddress is the local literal above, contains only AddressValue keys and is never assigned extra properties.
-const PARTS = Object.keys(defaultAddress) as Array<keyof AddressValue>;
+const ADDRESS_PART_NAMES = {
+  streetName: "streetName",
+  houseNumber: "houseNumber",
+  boxNumber: "boxNumber",
+  addressLine2: "addressLine2",
+  postalCode: "postalCode",
+  city: "city",
+  countrySubdivision: "countrySubdivision",
+  countryCode: "countryCode",
+} satisfies { [Part in keyof AddressValue]-?: Part };
+const PARTS = Object.values(ADDRESS_PART_NAMES);
 const FIRST_PART: keyof AddressValue = "streetName";
 
 /**

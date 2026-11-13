@@ -1,5 +1,4 @@
-import { EventEmitter } from "node:events";
-import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
+import { HTTPResult } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
 import { z } from "zod";
@@ -18,6 +17,10 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { RealtimeController } from "../../../routes";
+import {
+  type RecordedSseStream,
+  recordedSseStream,
+} from "../../helpers/recorded-sse-stream";
 import { helloConnectionId, parseFrameData } from "../../helpers/sse-frames";
 import { userFixture } from "../../helpers/user-fixture";
 
@@ -30,11 +33,7 @@ const OTHER_USER = userFixture({
   email: "o@example.com",
 });
 
-interface FakeStream {
-  ctx: RequestContext;
-  frames: string[];
-  isEnded: () => boolean;
-}
+type FakeStream = RecordedSseStream;
 
 const FrameData = z.object({
   connectionId: z.string().optional(),
@@ -59,26 +58,7 @@ interface SessionGreeting {
 
 const BROADCAST_SETTLE_MS = 400;
 
-const createFakeStream = (): FakeStream => {
-  const frames: string[] = [];
-  let isEnded = false;
-  const writer = {
-    write: (frame: string) => {
-      frames.push(frame);
-      return true;
-    },
-    end: () => {
-      isEnded = true;
-    },
-  };
-  const rawRequest = Object.assign(new EventEmitter(), { headers: {} });
-  // SAFETY: The controller methods under test pass ctx only to openSseStream, which calls response.addHeader, response.getWriteStream and rawRequest.on, and to getRequestTenantId, which reads rawRequest and its authorization header; the double supplies each of those, and its writer implements the write and end that openSseStream calls.
-  const ctx = {
-    rawRequest,
-    response: { addHeader: () => {}, getWriteStream: () => writer },
-  } as unknown as RequestContext;
-  return { ctx, frames, isEnded: () => isEnded };
-};
+const createFakeStream = (): FakeStream => recordedSseStream();
 
 const parseFrames = (stream: FakeStream): Frame[] =>
   stream.frames

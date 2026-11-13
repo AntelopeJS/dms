@@ -329,10 +329,7 @@ export async function downloadExportJob<TContext = unknown>(
   );
   const writeStream = ctx.response.getWriteStream(record.contentType);
 
-  const nodeReadable = Readable.fromWeb(
-    // SAFETY: The fetch response body is a web readable stream accepted by Node's adapter.
-    body as Parameters<typeof Readable.fromWeb>[0],
-  );
+  const nodeReadable = Readable.from(body, { objectMode: false });
 
   const cleanup = (): void => {
     fireAndForget(

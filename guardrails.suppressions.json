@@ -30,7 +30,7 @@
   },
   "tsExpectError": 32,
   "tsIgnore": 0,
-  "safety": 217,
+  "safety": 42,
   "config": {
     "@typescript-eslint/no-explicit-any for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 1,
     "anti-slop/no-chained-type-assertions for packages/dms/src/test/integration/**": 1,

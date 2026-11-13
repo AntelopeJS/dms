@@ -21,10 +21,6 @@ declare module "#dms/frontend-module" {
   }
 }
 
-interface MatchRouteOptions {
-  includeCategories: boolean;
-}
-
 const navigableCategoriesByLayout = new WeakMap<
   SiteLayout,
   Map<string, CategoryInfo>
@@ -47,9 +43,9 @@ export function findNavigableCategory(
   return bySlug.get(slug);
 }
 
-interface MatchRouteResult {
+interface MatchRouteResult<Metadata> {
   pattern: string;
-  metadata: PageInfo | CategoryInfo;
+  metadata: Metadata;
   params: Record<string, string>;
 }
 
@@ -330,13 +326,14 @@ const useSiteLayoutRequests = () => {
   };
 };
 
-function matchRoute(
-  path: string,
-  layout: SiteLayout,
-  options: MatchRouteOptions,
-): MatchRouteResult | null {
-  const normalizedPath = withoutTrailingSlash(path) || "/";
+function normalizeRoutePath(path: string): string {
+  return withoutTrailingSlash(path) || "/";
+}
 
+function exactPageRoute(
+  normalizedPath: string,
+  layout: SiteLayout,
+): MatchRouteResult<PageInfo> | null {
   if (layout.pages[normalizedPath]) {
     return {
       pattern: normalizedPath,
@@ -344,14 +341,40 @@ function matchRoute(
       params: {},
     };
   }
+  return null;
+}
 
-  const category = options.includeCategories
-    ? findNavigableCategory(layout, normalizedPath)
-    : undefined;
+function matchPageRoute(
+  path: string,
+  layout: SiteLayout,
+): MatchRouteResult<PageInfo> | null {
+  const normalizedPath = normalizeRoutePath(path);
+  return (
+    exactPageRoute(normalizedPath, layout) ??
+    patternPageRoute(normalizedPath, layout)
+  );
+}
+
+function matchRouteOrCategory(
+  path: string,
+  layout: SiteLayout,
+): MatchRouteResult<PageInfo | CategoryInfo> | null {
+  const normalizedPath = normalizeRoutePath(path);
+  const exact = exactPageRoute(normalizedPath, layout);
+  if (exact) return exact;
+
+  const category = findNavigableCategory(layout, normalizedPath);
   if (category) {
     return { pattern: normalizedPath, metadata: category, params: {} };
   }
 
+  return patternPageRoute(normalizedPath, layout);
+}
+
+function patternPageRoute(
+  normalizedPath: string,
+  layout: SiteLayout,
+): MatchRouteResult<PageInfo> | null {
   for (const [pattern, metadata] of Object.entries(layout.pages)) {
     if (pattern.includes(":")) {
       const params = extractRouteParams(pattern, normalizedPath);
@@ -439,10 +462,7 @@ export const useSiteLayout = () => {
     const layout = siteLayout.value;
     if (!layout) return null;
 
-    // SAFETY: includeCategories false skips the category branch, so every non-null match takes metadata directly from layout.pages.
-    return matchRoute(path, layout, {
-      includeCategories: false,
-    }) as ReturnType<typeof findMatchingRoute>;
+    return matchPageRoute(path, layout);
   };
 
   const findMatchingRouteOrCategory = (
@@ -455,7 +475,7 @@ export const useSiteLayout = () => {
     const layout = siteLayout.value;
     if (!layout) return null;
 
-    return matchRoute(path, layout, { includeCategories: true });
+    return matchRouteOrCategory(path, layout);
   };
 
   const probeAndCommitRoute = async (path: string): Promise<boolean> => {
@@ -464,10 +484,7 @@ export const useSiteLayout = () => {
     try {
       const result = await $authFetch<SiteLayoutResponse>(SITE_LAYOUT_ENDPOINT);
 
-      if (
-        matchRoute(path, result.siteLayout, { includeCategories: false }) ===
-        null
-      ) {
+      if (matchPageRoute(path, result.siteLayout) === null) {
         return false;
       }
       clearPageLayoutCaches();
