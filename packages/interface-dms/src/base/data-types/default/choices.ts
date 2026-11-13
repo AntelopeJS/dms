@@ -100,16 +100,11 @@ export class SelectType extends DataType {
   }
 
   getValidation() {
-    // SAFETY: z.enum is typed to take a non-empty tuple, while a select's items default to []. The values form a non-empty tuple exactly when the select declares at least one item; with none, z.enum receives [] and its schema rejects every value.
-    const validValues = this.options.items.map((item) =>
+    const [first, ...rest] = this.options.items.map((item) =>
       String(item.value),
-    ) as [string, ...string[]];
-
-    if (this.options.multiple) {
-      return z.array(z.enum(validValues));
-    }
-
-    return z.enum(validValues);
+    );
+    const value = first === undefined ? z.never() : z.enum([first, ...rest]);
+    return this.options.multiple ? z.array(value) : value;
   }
 }
 
