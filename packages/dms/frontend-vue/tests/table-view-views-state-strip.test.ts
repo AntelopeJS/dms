@@ -118,7 +118,7 @@ describe("table views strip", () => {
       items,
       activeId: "user-1",
       layout: "strip",
-      modified: true,
+      change: "modified",
       canSaveAs: true,
     });
     const labels = [...container.querySelectorAll("button[aria-label]")].map(
@@ -135,6 +135,45 @@ describe("table views strip", () => {
       )!
       .click();
     expect(emitted).toEqual([["delete", "user-1"]]);
+  });
+
+  it("names no view once the table diverged from the open one, still offering Reset and Save current view", () => {
+    const { container, emitted } = mountStrip({
+      items,
+      activeId: "late",
+      layout: "strip",
+      change: "diverged",
+      canSaveAs: true,
+    });
+    const pressed = container.querySelectorAll('button[aria-pressed="true"]');
+    expect(pressed).toHaveLength(0);
+    expect(container.querySelector('[role="status"]')?.textContent).toContain(
+      "dms.table.views.custom",
+    );
+    const buttons = [...container.querySelectorAll("button")];
+    expect(
+      buttons.some((button) =>
+        button.textContent?.includes("dms.table.views.save_current"),
+      ),
+    ).toBe(true);
+    container
+      .querySelector<HTMLButtonElement>(
+        'button[aria-label="dms.table.views.reset"]',
+      )!
+      .click();
+    expect(emitted).toEqual([["reset"]]);
+  });
+
+  it("keeps the open view named, with its marker, while the table only narrows it", () => {
+    const { container } = mountStrip({
+      items,
+      activeId: "late",
+      layout: "strip",
+      change: "modified",
+    });
+    const pressed = container.querySelector('button[aria-pressed="true"]');
+    expect(pressed?.textContent?.trim()).toBe("Past due 3");
+    expect(container.querySelector('[role="status"]')).toBe(null);
   });
 });
 
