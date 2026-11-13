@@ -171,7 +171,7 @@ function readConfig(): string {
   return projectFile(app.root, "antelope.config.ts");
 }
 
-function connectBatchCases() {
+function writesModuleEntries(): void {
   it("writes the skill's connect batch as the configuration it expects", async () => {
     expectOk(await ConfigureProject(CONNECT_STEPS), "ConfigureProject");
     expect(readConfig()).to.equal(CONNECTED_CONFIG);
@@ -239,6 +239,32 @@ function connectBatchCases() {
       .and.to.include("postgres-erp");
   });
 
+  it("scaffolds a local module the builder then writes into", async () => {
+    expectOk(
+      await CreateLocalModule("erp-tables", "modules/erp-tables"),
+      "CreateLocalModule",
+    );
+    expect(
+      fs.existsSync(path.join(app.root, "modules/erp-tables/src/index.ts")),
+    ).to.equal(true);
+    expectOk(
+      await CreateResource({
+        name: "ledger",
+        module: "erp-tables",
+        fields: [
+          { name: "name", label: "Name", dataType: { $dataType: "string" } },
+        ],
+      }),
+      "CreateResource in the new module",
+    );
+    const ledger = (await ListResources()).find(
+      (resource) => resource.ref === "ledger",
+    );
+    expect(ledger?.sourceModule).to.equal("erp-tables");
+  });
+}
+
+function registersWithDmsDatabase(): void {
   it("writes a plain pin ahead of a connection that has an id", async () => {
     fs.writeFileSync(
       configPath(),
@@ -262,9 +288,7 @@ ${ARCHIVE_CONNECTION}
       ],`),
     );
   });
-}
 
-function moduleEntryCases() {
   it("adds a nested config key beside the ones the module already has", async () => {
     const archive = `          archive: {
             access: "read-write",
@@ -289,31 +313,9 @@ ${connections}
           },`),
     );
   });
+}
 
-  it("scaffolds a local module the builder then writes into", async () => {
-    expectOk(
-      await CreateLocalModule("erp-tables", "modules/erp-tables"),
-      "CreateLocalModule",
-    );
-    expect(
-      fs.existsSync(path.join(app.root, "modules/erp-tables/src/index.ts")),
-    ).to.equal(true);
-    expectOk(
-      await CreateResource({
-        name: "ledger",
-        module: "erp-tables",
-        fields: [
-          { name: "name", label: "Name", dataType: { $dataType: "string" } },
-        ],
-      }),
-      "CreateResource in the new module",
-    );
-    const ledger = (await ListResources()).find(
-      (resource) => resource.ref === "ledger",
-    );
-    expect(ledger?.sourceModule).to.equal("erp-tables");
-  });
-
+function writesWholeBatchesInTheProjectsStyle(): void {
   it("scaffolds a local module from a tsconfig.json with comments and trailing commas", async () => {
     fs.writeFileSync(
       path.join(app.root, "tsconfig.json"),
@@ -361,9 +363,7 @@ ${connections}
       false,
     );
   });
-}
 
-function envLoadingCases() {
   it("writes in the configuration's own indentation, whatever the project's", async () => {
     fs.writeFileSync(
       configPath(),
@@ -383,7 +383,9 @@ function envLoadingCases() {
       "MONGODB_URL=\nERP_DATABASE_URL=\n",
     );
   });
+}
 
+function loadsEnvBesideTheConfigurationsOwnCode(): void {
   it("loads .env beside a namespace import of node:path, which it leaves as it is", async () => {
     const namespace = 'import * as path from "node:path";\n';
     fs.writeFileSync(configPath(), namespace + PROJECT_CONFIG);
@@ -445,7 +447,7 @@ function envLoadingCases() {
   });
 }
 
-function refusalCases() {
+function refusesWhatItCannotRewrite(): void {
   it("refuses to add an override where writing the others again would lose one, and writes nothing", async () => {
     for (const overrides of [
       '[{ interface: "@antelopejs/interface-x", source: X_SOURCE }]',
@@ -518,8 +520,9 @@ describe("project-config operations", function () {
 
   after(destroyFixture);
 
-  connectBatchCases();
-  moduleEntryCases();
-  envLoadingCases();
-  refusalCases();
+  writesModuleEntries();
+  registersWithDmsDatabase();
+  writesWholeBatchesInTheProjectsStyle();
+  loadsEnvBesideTheConfigurationsOwnCode();
+  refusesWhatItCannotRewrite();
 });

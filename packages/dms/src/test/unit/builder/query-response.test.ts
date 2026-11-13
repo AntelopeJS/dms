@@ -49,52 +49,7 @@ async function queryNamed(name: string) {
   return structure.queries.find((query) => query.name === name);
 }
 
-/**
- * One calculation, arranged for whichever block reads it.
- *
- * A chart wants the points, a card wants a figure above them, a ranked list
- * wants entries — and the route stays one expression in every case, which is what
- * keeps it readable back into the parameters that produced it.
- */
-describe("how a query's answer is arranged", () => {
-  before(async function () {
-    this.timeout(120_000);
-    app = createFixture();
-    expectOk(
-      await CreateCategory({ name: "shop", displayName: "Shop" }),
-      "CreateCategory",
-    );
-    expectOk(
-      await CreateResource({
-        name: "order",
-        displayName: "Order",
-        fields: [
-          {
-            name: "amount",
-            label: "Amount",
-            dataType: { $dataType: "number" },
-          },
-          {
-            name: "createdAt",
-            label: "Created",
-            dataType: { $dataType: "date" },
-          },
-        ],
-      }),
-      "CreateResource",
-    );
-    expectOk(
-      await CreatePage({
-        name: "board",
-        displayName: "Board",
-        category: "pages.shop",
-      }),
-      "CreatePage",
-    );
-  });
-
-  after(() => destroyFixture());
-
+function arrangesOneCalculationPerBlock(): void {
   it("answers the points themselves by default", async function () {
     this.timeout(OP_TIMEOUT);
     expectOk(await AddQuery(PAGE, MONTHLY), "AddQuery");
@@ -196,98 +151,150 @@ describe("how a query's answer is arranged", () => {
     ).to.equal("card");
     expect(card?.params).to.include({ op: "sum" });
   });
+}
+
+function comparesAgainstThePeriodBefore(): void {
+  it("asks the same calculation twice, with the bounds the route received", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await AddQuery(PAGE, {
+        ...MONTHLY,
+        name: "revenueTrend",
+        params: { ...MONTHLY.params, where: PERIOD_BOUNDS },
+        response: "card",
+        compare: true,
+      }),
+      "AddQuery",
+    );
+
+    const page = app.read(PAGE_FILE);
+    expect(page, "the preceding period is a parameter, not a guess").to.contain(
+      '@Parameter("compareFrom", "query") compareFrom: string,',
+    );
+    expect(page).to.contain(
+      '@Parameter("compareTo", "query") compareTo: string,',
+    );
+    expect(page).to.contain(
+      "previous: await model.revenueTrend(new Date(compareFrom), new Date(compareTo))",
+    );
+  });
+
+  it("reads the comparison back, so the next save keeps it", async () => {
+    const trend = await queryNamed("revenueTrend");
+    expect(trend?.opaque).to.not.equal(true);
+    expect(trend?.compare).to.equal(true);
+    expect(
+      (await queryNamed("revenueCard"))?.compare,
+      "a card that does not compare says nothing of it",
+    ).to.equal(undefined);
+  });
+
+  it("keeps the arrangement and the comparison when only the parameters change", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await ConfigureQuery(`${PAGE}@revenueTrend`, {
+        params: { ...MONTHLY.params, where: PERIOD_BOUNDS, limit: 12 },
+      }),
+      "ConfigureQuery",
+    );
+
+    const page = app.read(PAGE_FILE);
+    expect(page).to.contain(
+      "chartCardData(await model.revenueTrend(new Date(from), new Date(to))",
+    );
+    expect(page).to.contain(
+      "previous: await model.revenueTrend(new Date(compareFrom), new Date(compareTo))",
+    );
+    const trend = await queryNamed("revenueTrend");
+    expect(trend?.params).to.include({ limit: 12 });
+    expect(trend?.response).to.equal("card");
+    expect(trend?.compare).to.equal(true);
+  });
+
+  it("rearranges a query and drops its comparison when asked to", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await ConfigureQuery(`${PAGE}@revenueTrend`, {
+        response: "items",
+        compare: false,
+      }),
+      "ConfigureQuery",
+    );
+
+    const page = app.read(PAGE_FILE);
+    expect(page).to.contain("topListData(await model.revenueTrend(");
+    expect(page).to.not.contain("previous: await model.revenueTrend");
+    const trend = await queryNamed("revenueTrend");
+    expect(trend?.response).to.equal("items");
+    expect(trend?.compare).to.equal(undefined);
+  });
+
+  it("declines to compare a calculation whose dates are baked in", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await AddQuery(PAGE, {
+        ...MONTHLY,
+        name: "revenueFixed",
+        response: "card",
+        compare: true,
+      }),
+      "AddQuery",
+    );
+    expect(app.read(PAGE_FILE)).to.not.contain(
+      "previous: await model.revenueFixed",
+    );
+  });
+}
+
+/**
+ * One calculation, arranged for whichever block reads it.
+ *
+ * A chart wants the points, a card wants a figure above them, a ranked list
+ * wants entries — and the route stays one expression in every case, which is what
+ * keeps it readable back into the parameters that produced it.
+ */
+describe("how a query's answer is arranged", () => {
+  before(async function () {
+    this.timeout(120_000);
+    app = createFixture();
+    expectOk(
+      await CreateCategory({ name: "shop", displayName: "Shop" }),
+      "CreateCategory",
+    );
+    expectOk(
+      await CreateResource({
+        name: "order",
+        displayName: "Order",
+        fields: [
+          {
+            name: "amount",
+            label: "Amount",
+            dataType: { $dataType: "number" },
+          },
+          {
+            name: "createdAt",
+            label: "Created",
+            dataType: { $dataType: "date" },
+          },
+        ],
+      }),
+      "CreateResource",
+    );
+    expectOk(
+      await CreatePage({
+        name: "board",
+        displayName: "Board",
+        category: "pages.shop",
+      }),
+      "CreatePage",
+    );
+  });
+
+  after(() => destroyFixture());
+
+  arrangesOneCalculationPerBlock();
 
   describe("comparing against the period before", () => {
-    it("asks the same calculation twice, with the bounds the route received", async function () {
-      this.timeout(OP_TIMEOUT);
-      expectOk(
-        await AddQuery(PAGE, {
-          ...MONTHLY,
-          name: "revenueTrend",
-          params: { ...MONTHLY.params, where: PERIOD_BOUNDS },
-          response: "card",
-          compare: true,
-        }),
-        "AddQuery",
-      );
-
-      const page = app.read(PAGE_FILE);
-      expect(
-        page,
-        "the preceding period is a parameter, not a guess",
-      ).to.contain('@Parameter("compareFrom", "query") compareFrom: string,');
-      expect(page).to.contain(
-        '@Parameter("compareTo", "query") compareTo: string,',
-      );
-      expect(page).to.contain(
-        "previous: await model.revenueTrend(new Date(compareFrom), new Date(compareTo))",
-      );
-    });
-
-    it("reads the comparison back, so the next save keeps it", async () => {
-      const trend = await queryNamed("revenueTrend");
-      expect(trend?.opaque).to.not.equal(true);
-      expect(trend?.compare).to.equal(true);
-      expect(
-        (await queryNamed("revenueCard"))?.compare,
-        "a card that does not compare says nothing of it",
-      ).to.equal(undefined);
-    });
-
-    it("keeps the arrangement and the comparison when only the parameters change", async function () {
-      this.timeout(OP_TIMEOUT);
-      expectOk(
-        await ConfigureQuery(`${PAGE}@revenueTrend`, {
-          params: { ...MONTHLY.params, where: PERIOD_BOUNDS, limit: 12 },
-        }),
-        "ConfigureQuery",
-      );
-
-      const page = app.read(PAGE_FILE);
-      expect(page).to.contain(
-        "chartCardData(await model.revenueTrend(new Date(from), new Date(to))",
-      );
-      expect(page).to.contain(
-        "previous: await model.revenueTrend(new Date(compareFrom), new Date(compareTo))",
-      );
-      const trend = await queryNamed("revenueTrend");
-      expect(trend?.params).to.include({ limit: 12 });
-      expect(trend?.response).to.equal("card");
-      expect(trend?.compare).to.equal(true);
-    });
-
-    it("rearranges a query and drops its comparison when asked to", async function () {
-      this.timeout(OP_TIMEOUT);
-      expectOk(
-        await ConfigureQuery(`${PAGE}@revenueTrend`, {
-          response: "items",
-          compare: false,
-        }),
-        "ConfigureQuery",
-      );
-
-      const page = app.read(PAGE_FILE);
-      expect(page).to.contain("topListData(await model.revenueTrend(");
-      expect(page).to.not.contain("previous: await model.revenueTrend");
-      const trend = await queryNamed("revenueTrend");
-      expect(trend?.response).to.equal("items");
-      expect(trend?.compare).to.equal(undefined);
-    });
-
-    it("declines to compare a calculation whose dates are baked in", async function () {
-      this.timeout(OP_TIMEOUT);
-      expectOk(
-        await AddQuery(PAGE, {
-          ...MONTHLY,
-          name: "revenueFixed",
-          response: "card",
-          compare: true,
-        }),
-        "AddQuery",
-      );
-      expect(app.read(PAGE_FILE)).to.not.contain(
-        "previous: await model.revenueFixed",
-      );
-    });
+    comparesAgainstThePeriodBefore();
   });
 });

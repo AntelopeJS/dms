@@ -22,13 +22,7 @@ const FIELDS = [
   field("rating", "unmapped-type"),
 ];
 
-/**
- * The plan is the description three backends share, so what it renders is
- * asserted directly rather than only through a written file: these cases run in
- * milliseconds and cover the shapes a full round-trip would take a typecheck to
- * reach.
- */
-describe("the query plan", () => {
+function rendersTheMeasureAndFilters(): void {
   it("counts every row when nothing is filtered", () => {
     const chain = emitPlan({ filters: [], measure: { kind: "count" } }, FIELDS);
     expect(chain.body).to.equal("{\n  return this.table.count();\n}");
@@ -82,7 +76,9 @@ describe("the query plan", () => {
     );
     expect(chain.body).to.contain('row.key("archived").eq(false)');
   });
+}
 
+function bindsValuesAsParameters(): void {
   it("turns a bound value into a typed method parameter", () => {
     const chain = emitPlan(
       {
@@ -173,7 +169,9 @@ describe("the query plan", () => {
     );
     expect(chain.parameters[0].in).to.equal("param");
   });
+}
 
+function warnsAndReadsTemplateFilters(): void {
   it("warns when a DataType has no mapping instead of guessing silently", () => {
     const chain = emitPlan(
       {
@@ -215,4 +213,16 @@ describe("the query plan", () => {
       ).to.throw(/planned before it was validated/);
     }
   });
+}
+
+/**
+ * The plan is the description three backends share, so what it renders is
+ * asserted directly rather than only through a written file: these cases run in
+ * milliseconds and cover the shapes a full round-trip would take a typecheck to
+ * reach.
+ */
+describe("the query plan", () => {
+  rendersTheMeasureAndFilters();
+  bindsValuesAsParameters();
+  warnsAndReadsTemplateFilters();
 });

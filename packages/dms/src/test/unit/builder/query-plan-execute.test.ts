@@ -169,20 +169,12 @@ function ran(plan: QueryPlan, args: PlanArguments = {}): string {
 const COUNT = { kind: "count" } as const;
 const SUM_AMOUNT = { kind: "aggregate", op: "sum", field: "amount" } as const;
 
-/**
- * Running a plan and writing it are the same calculation twice, and a preview
- * that disagreed with the code it previews would be worse than no preview. Each
- * case asserts the two renderings agree, compared on the calculation rather than
- * on the layout: where the emitter breaks its chain across lines is its own
- * business, and pinning it would make every formatting change look like a
- * divergence between the two backends.
- */
-describe("running a plan", () => {
-  const renderings = (plan: QueryPlan) => ({
-    executed: canonicalBody(ran(plan), []),
-    written: canonicalBody(emitPlan(plan, FIELDS).body, []),
-  });
+const renderings = (plan: QueryPlan) => ({
+  executed: canonicalBody(ran(plan), []),
+  written: canonicalBody(emitPlan(plan, FIELDS).body, []),
+});
 
+function rendersTheSameCalculationBothWays(): void {
   it("counts every row", () => {
     const { executed, written } = renderings({ filters: [], measure: COUNT });
     expect(executed).to.equal(written);
@@ -260,107 +252,123 @@ describe("running a plan", () => {
     });
     expect(executed).to.equal(written);
   });
+}
 
-  describe("values supplied per request", () => {
-    const bound: QueryPlan = {
+function substitutesValuesSuppliedPerRequest(): void {
+  const bound: QueryPlan = {
+    filters: [
+      { field: "createdAt", op: "ge", value: { $param: { name: "from" } } },
+      { field: "amount", op: "lt", value: { $param: { name: "cap" } } },
+    ],
+    measure: COUNT,
+  };
+
+  it("substitutes the argument the route would have passed", () => {
+    const text = ran(bound, {
+      from: "2026-01-01T00:00:00.000Z",
+      cap: 100,
+    });
+    expect(
+      text,
+      "a date argument is coerced, as the route coerces it",
+    ).to.contain(
+      'row.key("createdAt").ge(new Date("2026-01-01T00:00:00.000Z"))',
+    );
+    expect(text).to.contain('row.key("amount").lt(100)');
+  });
+
+  it("takes a Date it was handed as it is", () => {
+    const text = ran(bound, {
+      from: new Date("2026-03-01T00:00:00.000Z"),
+      cap: 1,
+    });
+    expect(text).to.contain('new Date("2026-03-01T00:00:00.000Z")');
+  });
+
+  it("coerces a number the way the route's `Number(x)` does", () => {
+    const text = ran(bound, { from: "2026-01-01T00:00:00.000Z", cap: "100" });
+    expect(text).to.contain('row.key("amount").lt(100)');
+    expect(text).to.not.contain('lt("100")');
+  });
+
+  it('coerces a boolean the way the route\'s `x === "true"` does', () => {
+    const flagged: QueryPlan = {
       filters: [
-        { field: "createdAt", op: "ge", value: { $param: { name: "from" } } },
-        { field: "amount", op: "lt", value: { $param: { name: "cap" } } },
+        {
+          field: "archived",
+          op: "eq",
+          value: { $param: { name: "archived" } },
+        },
       ],
       measure: COUNT,
     };
+    expect(ran(flagged, { archived: "false" })).to.contain(
+      'row.key("archived").eq(false)',
+    );
+    expect(ran(flagged, { archived: "true" })).to.contain(
+      'row.key("archived").eq(true)',
+    );
+  });
 
-    it("substitutes the argument the route would have passed", () => {
-      const text = ran(bound, {
+  it("refuses before building anything, not inside a predicate", () => {
+    const table = stream("this.table");
+    let built = false;
+    const watched = {
+      ...table,
+      filter: () => {
+        built = true;
+        return table;
+      },
+    };
+    expect(() =>
+      executePlan(watched, bound, FIELDS, {
         from: "2026-01-01T00:00:00.000Z",
-        cap: 100,
-      });
-      expect(
-        text,
-        "a date argument is coerced, as the route coerces it",
-      ).to.contain(
-        'row.key("createdAt").ge(new Date("2026-01-01T00:00:00.000Z"))',
-      );
-      expect(text).to.contain('row.key("amount").lt(100)');
-    });
+      }),
+    ).to.throw(/"cap"/);
+    expect(built, "no call was built before it refused").to.equal(false);
+  });
 
-    it("takes a Date it was handed as it is", () => {
-      const text = ran(bound, {
-        from: new Date("2026-03-01T00:00:00.000Z"),
-        cap: 1,
-      });
-      expect(text).to.contain('new Date("2026-03-01T00:00:00.000Z")');
-    });
-
-    it("coerces a number the way the route's `Number(x)` does", () => {
-      const text = ran(bound, { from: "2026-01-01T00:00:00.000Z", cap: "100" });
-      expect(text).to.contain('row.key("amount").lt(100)');
-      expect(text).to.not.contain('lt("100")');
-    });
-
-    it('coerces a boolean the way the route\'s `x === "true"` does', () => {
-      const flagged: QueryPlan = {
-        filters: [
-          {
-            field: "archived",
-            op: "eq",
-            value: { $param: { name: "archived" } },
-          },
-        ],
+  for (const name of [
+    "constructor",
+    "toString",
+    "hasOwnProperty",
+    "valueOf",
+    "__proto__",
+  ]) {
+    it(`refuses a parameter named ${name} the request did not supply`, () => {
+      const named: QueryPlan = {
+        filters: [{ field: "amount", op: "ge", value: { $param: { name } } }],
         measure: COUNT,
       };
-      expect(ran(flagged, { archived: "false" })).to.contain(
-        'row.key("archived").eq(false)',
-      );
-      expect(ran(flagged, { archived: "true" })).to.contain(
-        'row.key("archived").eq(true)',
+      expect(() => ran(named)).to.throw(
+        `no value supplied for the "${name}" parameter`,
       );
     });
 
-    it("refuses before building anything, not inside a predicate", () => {
-      const table = stream("this.table");
-      let built = false;
-      const watched = {
-        ...table,
-        filter: () => {
-          built = true;
-          return table;
-        },
+    it(`takes a parameter named ${name} the request supplied`, () => {
+      const named: QueryPlan = {
+        filters: [{ field: "amount", op: "ge", value: { $param: { name } } }],
+        measure: COUNT,
       };
-      expect(() =>
-        executePlan(watched, bound, FIELDS, {
-          from: "2026-01-01T00:00:00.000Z",
-        }),
-      ).to.throw(/"cap"/);
-      expect(built, "no call was built before it refused").to.equal(false);
+      expect(ran(named, Object.fromEntries([[name, 7]]))).to.contain(
+        'row.key("amount").ge(7)',
+      );
     });
+  }
+}
 
-    for (const name of [
-      "constructor",
-      "toString",
-      "hasOwnProperty",
-      "valueOf",
-      "__proto__",
-    ]) {
-      it(`refuses a parameter named ${name} the request did not supply`, () => {
-        const named: QueryPlan = {
-          filters: [{ field: "amount", op: "ge", value: { $param: { name } } }],
-          measure: COUNT,
-        };
-        expect(() => ran(named)).to.throw(
-          `no value supplied for the "${name}" parameter`,
-        );
-      });
+/**
+ * Running a plan and writing it are the same calculation twice, and a preview
+ * that disagreed with the code it previews would be worse than no preview. Each
+ * case asserts the two renderings agree, compared on the calculation rather than
+ * on the layout: where the emitter breaks its chain across lines is its own
+ * business, and pinning it would make every formatting change look like a
+ * divergence between the two backends.
+ */
+describe("running a plan", () => {
+  rendersTheSameCalculationBothWays();
 
-      it(`takes a parameter named ${name} the request supplied`, () => {
-        const named: QueryPlan = {
-          filters: [{ field: "amount", op: "ge", value: { $param: { name } } }],
-          measure: COUNT,
-        };
-        expect(ran(named, Object.fromEntries([[name, 7]]))).to.contain(
-          'row.key("amount").ge(7)',
-        );
-      });
-    }
+  describe("values supplied per request", () => {
+    substitutesValuesSuppliedPerRequest();
   });
 });

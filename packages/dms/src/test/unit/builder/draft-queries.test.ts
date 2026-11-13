@@ -51,45 +51,7 @@ async function queryNames(): Promise<string[]> {
   return (await structure()).queries.map((query) => query.name).sort();
 }
 
-/**
- * A block and the data it reads are one edit, so they are one write. These cover
- * what that means in practice: the draft carries both, an absent `queries` is not
- * an empty one, and a query a human has taken over survives either way.
- */
-describe("queries in a page draft", () => {
-  before(async function () {
-    this.timeout(120_000);
-    app = createFixture();
-    expectOk(
-      await CreateCategory({ name: "shop", displayName: "Shop" }),
-      "CreateCategory",
-    );
-    expectOk(
-      await CreateResource({
-        name: "order",
-        displayName: "Order",
-        fields: [
-          {
-            name: "amount",
-            label: "Amount",
-            dataType: { $dataType: "number" },
-          },
-        ],
-      }),
-      "CreateResource",
-    );
-    expectOk(
-      await CreatePage({
-        name: "board",
-        displayName: "Board",
-        category: "pages.shop",
-      }),
-      "CreatePage",
-    );
-  });
-
-  after(() => destroyFixture());
-
+function savesBlocksAndQueriesTogether(): void {
   it("writes the blocks and the queries in one save", async function () {
     this.timeout(OP_TIMEOUT);
     const saved = expectOk(
@@ -159,7 +121,9 @@ describe("queries in a page draft", () => {
     expectOk(await SetPageBlocks(PAGE, { blocks: [KPI] }), "SetPageBlocks");
     expect(await queryNames()).to.deep.equal(["revenue"]);
   });
+}
 
+function keepsReadQueriesAndRefusesBadDrafts(): void {
   it("keeps a dropped query a block on the page still reads", async function () {
     this.timeout(OP_TIMEOUT);
     const result = await SetPageBlocks(PAGE, { blocks: [KPI], queries: [] });
@@ -233,7 +197,9 @@ describe("queries in a page draft", () => {
     expect(app.read(PAGE_FILE)).to.equal(before);
     expect(app.read(PAGE_FILE)).to.not.contain("second");
   });
+}
 
+function keepsHandEditedQueries(): void {
   describe("a query edited by hand", () => {
     beforeEach(async function () {
       this.timeout(OP_TIMEOUT);
@@ -292,7 +258,9 @@ describe("queries in a page draft", () => {
       );
     });
   });
+}
 
+function namesBlockDataAfterTheBlock(): void {
   it("names a block's own data after the block, as the editor does", async function () {
     this.timeout(OP_TIMEOUT);
     const card = {
@@ -316,4 +284,49 @@ describe("queries in a page draft", () => {
     expect(page).to.contain('@Get("/stats/orders-card")');
     expect(page).to.contain("async ordersCard(");
   });
+}
+
+/**
+ * A block and the data it reads are one edit, so they are one write. These cover
+ * what that means in practice: the draft carries both, an absent `queries` is not
+ * an empty one, and a query a human has taken over survives either way.
+ */
+describe("queries in a page draft", () => {
+  before(async function () {
+    this.timeout(120_000);
+    app = createFixture();
+    expectOk(
+      await CreateCategory({ name: "shop", displayName: "Shop" }),
+      "CreateCategory",
+    );
+    expectOk(
+      await CreateResource({
+        name: "order",
+        displayName: "Order",
+        fields: [
+          {
+            name: "amount",
+            label: "Amount",
+            dataType: { $dataType: "number" },
+          },
+        ],
+      }),
+      "CreateResource",
+    );
+    expectOk(
+      await CreatePage({
+        name: "board",
+        displayName: "Board",
+        category: "pages.shop",
+      }),
+      "CreatePage",
+    );
+  });
+
+  after(() => destroyFixture());
+
+  savesBlocksAndQueriesTogether();
+  keepsReadQueriesAndRefusesBadDrafts();
+  keepsHandEditedQueries();
+  namesBlockDataAfterTheBlock();
 });
