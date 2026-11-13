@@ -32,6 +32,8 @@ export type MockupEvent =
 
 export type MockupListener = (event: MockupEvent) => void;
 
+type EventReader = (name: MockupName) => Promise<MockupEvent>;
+
 /** One mockup as `GET /api/mockup` lists it. */
 export interface MockupSummary {
   name: MockupName;
@@ -234,13 +236,16 @@ export class MockupStore {
     return { event: "annotations", data: { annotations: annotations ?? [] } };
   }
 
-  /** What each watched file sends its subscribers once it changed. */
-  private readonly fileEvents = new Map<
-    string,
-    (name: MockupName) => Promise<MockupEvent>
-  >([
-    [SPEC_FILE, (name) => this.specEvent(name)],
-    [ANNOTATIONS_FILE, (name) => this.annotationsEvent(name)],
+  /**
+   * What each watched file sends its subscribers once it changed. A spec
+   * change moves where a note's block is, so it sends the annotations too.
+   */
+  private readonly fileEvents = new Map<string, readonly EventReader[]>([
+    [
+      SPEC_FILE,
+      [(name) => this.specEvent(name), (name) => this.annotationsEvent(name)],
+    ],
+    [ANNOTATIONS_FILE, [(name) => this.annotationsEvent(name)]],
   ]);
 
   private startWatch(name: MockupName): Watch {
@@ -307,12 +312,12 @@ export class MockupStore {
     if (!watched) return;
     const files = filename === null ? [...this.fileEvents.keys()] : [filename];
     for (const file of files) {
-      const read = this.fileEvents.get(file);
-      if (!read) continue;
+      const reads = this.fileEvents.get(file);
+      if (!reads) continue;
       clearTimeout(watched.timers.get(file));
       watched.timers.set(
         file,
-        setTimeout(() => void this.flush(name, file, read), WATCH_DEBOUNCE_MS),
+        setTimeout(() => void this.flush(name, file, reads), WATCH_DEBOUNCE_MS),
       );
     }
   }
@@ -320,16 +325,21 @@ export class MockupStore {
   private async flush(
     name: MockupName,
     file: string,
-    read: (name: MockupName) => Promise<MockupEvent>,
+    reads: readonly EventReader[],
   ): Promise<void> {
     this.watches.get(name)?.timers.delete(file);
-    try {
-      const event = await read(name);
-      for (const listener of this.watches.get(name)?.listeners ?? []) {
-        listener(event);
+    for (const read of reads) {
+      try {
+        const event = await read(name);
+        for (const listener of this.watches.get(name)?.listeners ?? []) {
+          listener(event);
+        }
+      } catch (error) {
+        Logging.Warn(
+          `[DMS] mockup "${name}": ${file} could not be read`,
+          error,
+        );
       }
-    } catch (error) {
-      Logging.Warn(`[DMS] mockup "${name}": ${file} could not be read`, error);
     }
   }
 

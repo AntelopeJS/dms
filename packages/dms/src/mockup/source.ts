@@ -9,7 +9,13 @@ import {
   SPEC_FILE,
   writeAtomically,
 } from "./files";
-import type { Json, JsonObject, MockupIssue, MockupName } from "./model";
+import type {
+  Json,
+  JsonObject,
+  MockupIssue,
+  MockupName,
+  MockupSpec,
+} from "./model";
 import { jsonObjectSchema } from "./model";
 
 const JSON_INDENT = 2;
@@ -75,22 +81,31 @@ export async function readSpecSource(
 /** Writes `spec` as {@link writeSpec} does, inside {@link withSpecLock}. */
 export type SpecWriter = (spec: Json) => Promise<SpecWriteResult>;
 
+/**
+ * Writes a spec that already parsed and differs from `spec.json` only by the
+ * ids anchoring stamped, inside {@link withSpecLock}. It does not compile the
+ * spec: a stamp cannot add an issue, so a spec that has issues still takes one.
+ */
+export type SpecStamper = (spec: MockupSpec) => Promise<void>;
+
 const writeTails = new Map<string, Promise<void>>();
 
 /**
  * Runs `run` once every earlier call for the same mockup has settled, so a
  * read of `spec.json` and the write based on it cannot interleave with
- * another writer of this process. `run` receives the writer to use: calling
+ * another writer of this process. `run` receives the writers to use: calling
  * {@link writeSpec} from inside would wait on itself.
  */
 export async function withSpecLock<Result>(
   mockupsDir: string,
   name: MockupName,
-  run: (write: SpecWriter) => Promise<Result>,
+  run: (write: SpecWriter, stamp: SpecStamper) => Promise<Result>,
 ): Promise<Result> {
   const key = mockupDirectory(mockupsDir, name);
   const previous = writeTails.get(key) ?? Promise.resolve();
-  const turn = previous.then(() => run(writeNow(mockupsDir, name)));
+  const turn = previous.then(() =>
+    run(writeNow(mockupsDir, name), stampNow(mockupsDir, name)),
+  );
   const tail = turn.then(
     () => undefined,
     () => undefined,
@@ -103,6 +118,18 @@ export async function withSpecLock<Result>(
   }
 }
 
+async function persist(
+  mockupsDir: string,
+  name: MockupName,
+  spec: Json,
+): Promise<SpecDigest> {
+  const directory = mockupDirectory(mockupsDir, name);
+  const text = `${JSON.stringify(spec, null, JSON_INDENT)}\n`;
+  await mkdir(directory, { recursive: true });
+  await writeAtomically(join(directory, SPEC_FILE), text);
+  return digestOf(text);
+}
+
 function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
   return async (spec) => {
     const read = parseSpec(JSON.stringify(spec));
@@ -113,11 +140,13 @@ function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
         errors: issues.map(({ path, message }) => ({ path, message })),
       };
     }
-    const directory = mockupDirectory(mockupsDir, name);
-    const text = `${JSON.stringify(spec, null, JSON_INDENT)}\n`;
-    await mkdir(directory, { recursive: true });
-    await writeAtomically(join(directory, SPEC_FILE), text);
-    return { ok: true, digest: digestOf(text) };
+    return { ok: true, digest: await persist(mockupsDir, name, spec) };
+  };
+}
+
+function stampNow(mockupsDir: string, name: MockupName): SpecStamper {
+  return async (spec) => {
+    await persist(mockupsDir, name, jsonObjectSchema.parse(spec));
   };
 }
 
