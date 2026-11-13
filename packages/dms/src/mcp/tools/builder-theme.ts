@@ -4,41 +4,9 @@ import {
   SetTheme,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
+import { themeDraftSchema } from "../../branding";
 import { defineTool } from "../tool";
 import { withEscalationNote, opResult } from "./builder-shared";
-
-const VARIABLES = z
-  .record(z.string(), z.string())
-  .describe(
-    'CSS custom properties by name, e.g. `{ "--ui-radius": "0.5rem" }`. A value must not end its declaration (`;`, braces, comments, `url()`, `@import`, `!important`) nor leave a parenthesis, bracket or quote open.',
-  );
-
-const PALETTE = z
-  .string()
-  .optional()
-  .describe(
-    "A palette name: a Tailwind palette (`violet`), or one the project's stylesheets declare (`brand` for `--color-brand-50…950`). Left out, the role keeps the DMS palette.",
-  );
-
-const LOGO_PATHS = z
-  .object({ light: z.string().optional(), dark: z.string().optional() })
-  .optional()
-  .describe(
-    "Public paths per mode, rooted in `public/` as the browser requests them (`/branding/logo.svg`), never `//host/…`. A mode left out keeps the DMS logo.",
-  );
-
-const LOGO_UPLOAD = z.object({
-  slot: z.enum(["default", "collapsed", "email", "favicon"]),
-  mode: z.enum(["light", "dark"]),
-  contentType: z
-    .string()
-    .describe(
-      "`image/svg+xml`, `image/png`, `image/jpeg`, `image/webp` or `image/x-icon`. The `email` slot takes `image/png` or `image/jpeg` only.",
-    ),
-  base64Content: z
-    .string()
-    .describe("The file's bytes in base64, up to 512 KiB decoded."),
-});
 
 const getTheme = defineTool({
   name: "builder_get_theme",
@@ -58,31 +26,7 @@ const setTheme = defineTool({
     'Writes the whole theme in one transaction, replacing the one on disk: what the draft leaves out goes back to the DMS default, so start from builder_get_theme and change only what you mean to. `variables` holds custom properties, `colors` a palette per role, `logos` public paths per slot and mode. An upload sets its slot and mode over `logos`; its file is named after its content, so a new logo is a new URL. SVG is written sanitized, with an `svg_sanitized` warning when anything that runs or fetches was taken out; one that is not a single well-formed `<svg>` is refused with `invalid_config`. A variable whose value starts with a hosted font (`--font-sans: "Inter", sans-serif`; Inter, IBM Plex Sans, Public Sans, DM Sans, Manrope, Plus Jakarta Sans, Figtree, Atkinson Hyperlegible Next, Nunito, Source Serif 4) gets its files downloaded once into the layer; a download that fails writes nothing. A palette or logo path the app config holds as code stays as written when the draft leaves it as read; a draft that changes one is refused with `unsupported`, naming its key path. Pass `expectedVersion` from builder_get_theme: `stale` comes back when the files changed since. The first save that writes a stylesheet adds its import to the layer\'s entry, which reloads the page in development.',
   ),
   effect: "builder",
-  input: z.object({
-    variables: z
-      .object({ shared: VARIABLES, light: VARIABLES, dark: VARIABLES })
-      .describe(
-        "The variables both modes share, then those set for light or dark only. A variable left out keeps the DMS default.",
-      ),
-    colors: z.object({
-      primary: PALETTE,
-      success: PALETTE,
-      warning: PALETTE,
-      error: PALETTE,
-      info: PALETTE,
-    }),
-    logos: z.object({
-      default: LOGO_PATHS,
-      collapsed: LOGO_PATHS,
-      email: LOGO_PATHS,
-      favicon: LOGO_PATHS,
-    }),
-    uploads: z
-      .array(LOGO_UPLOAD)
-      .optional()
-      .describe(
-        "Logo files sent with the save, each for one slot in one mode. Of two for one slot and mode, only the last is written.",
-      ),
+  input: themeDraftSchema.extend({
     expectedVersion: z
       .string()
       .optional()
