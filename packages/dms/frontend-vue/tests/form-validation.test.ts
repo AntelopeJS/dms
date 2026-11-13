@@ -18,7 +18,6 @@ const translate = (key: string) => `t(${key})`;
 
 async function issuesOf(
   schema: z.ZodTypeAny,
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Validation must receive unparsed inputs, including missing fields.
   value: unknown,
 ): Promise<Array<{ message: string; path?: PropertyKey[] }>> {
   const result = await localizeSchema(schema, translate)["~standard"].validate(

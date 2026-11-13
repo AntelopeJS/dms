@@ -69,7 +69,6 @@ export function computeResetState(state: FormState, initialValues: FormData) {
 }
 
 export function snapshotFormState(state: FormState): FormData {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch state is deliberately open to plugin values and undefined entries. Snapshotting clones them without validation, preserving the existing FormData API.
   return computeResetState(state, state as FormData) as FormData;
 }
 
@@ -121,7 +120,6 @@ export function processBeforeStateMappers(
     if (!field.type || result[field.id] === undefined) continue;
     const dataType = getDataType(field.type);
     if (!dataType?.beforeStateMapper) continue;
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Plugin mappers return arbitrary values. Preserve them unchanged rather than imposing FormFieldValue validation at this existing unchecked boundary.
     result[field.id] = dataType.beforeStateMapper(
       result[field.id],
       field.component.options,
@@ -238,7 +236,6 @@ export function collectSubmitData(
     const initial = context.initialValues?.[field.id];
     if (context.onlyChanged && isSameValue(field, value, initial)) continue;
     if (!isClearedField(field, value)) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Submission intentionally passes arbitrary populated plugin values through; validating against FormFieldValue would change accepted payloads.
       fieldData[field.id] = submittedFieldValue(field, value) as FormFieldValue;
       continue;
     }
@@ -247,7 +244,6 @@ export function collectSubmitData(
     fieldData[field.id] = clearedFieldValue(initial);
   }
   return {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Submit defaults are an open prop contract and are merged without validation, including malformed runtime values.
     ...(context.submitDefaults as FormData | undefined),
     ...fieldData,
   };
@@ -278,7 +274,6 @@ export function fieldValuesOfSubmitDefaults(
   if (!submitDefaults) return values;
   for (const { id } of fields) {
     if (id in submitDefaults) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The open submit-default prop is copied unchanged into fields, including values outside the nominal FormFieldValue union.
       values[id] = submitDefaults[id] as FormFieldValue;
     }
   }

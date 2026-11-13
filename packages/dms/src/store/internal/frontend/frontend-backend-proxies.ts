@@ -2,6 +2,10 @@ import type {
   AddFrontendModuleOptions,
   FrontendBackendProxy,
 } from "@antelopejs/interface-dms/page";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 type BackendProxyAuth = Required<FrontendBackendProxy>["auth"];
 
@@ -22,11 +26,9 @@ function isRendererPath(path: string): boolean {
 
 function isValidBackendProxy(proxy: FrontendBackendProxy): boolean {
   return (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Proxy declarations cross the JavaScript module registration boundary, so the existing object rejection remains necessary.
-    typeof proxy === "object" &&
+    isObject(proxy) &&
     proxy !== null &&
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The existing boundary rejects nonstring paths instead of coercing them during regex matching.
-    typeof proxy.path === "string" &&
+    isString(proxy.path) &&
     PROXY_PATH.test(proxy.path) &&
     !isRendererPath(proxy.path) &&
     (proxy.auth === undefined || AUTH_MODES.has(proxy.auth))

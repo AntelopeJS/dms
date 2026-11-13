@@ -1,11 +1,11 @@
-<img data-illustration src="./docs/media/readme/hero.svg" width="100%" alt="PostgreSQL, MongoDB and RethinkDB databases connect into one back office, where pages for Dashboard, Customers, Orders, Products and Invoices appear. Caption: Your database. Your back office.">
+<img data-illustration src="./docs/media/readme/hero.svg" width="100%" alt="PostgreSQL, MySQL or MariaDB, MongoDB and RethinkDB databases connect into one back office, where pages for Dashboard, Customers, Orders, Products and Invoices appear. Caption: Your database. Your back office.">
 
 <div align="center">
 
 # AntelopeJS DMS
 
 **The open-source back office for your product.**<br>
-Paste your PostgreSQL, MongoDB or RethinkDB connection string.<br>
+Paste your PostgreSQL, MySQL, MariaDB, MongoDB or RethinkDB connection string.<br>
 One run of your coding agent later, you have the admin pages and dashboards, as TypeScript in your repo.
 
 [Live demo](https://dms-demo.antelopejs.com) · [Quick start](#quick-start) · [Docs](https://dms.antelopejs.com/docs) · [Agent skills](https://github.com/AntelopeJS/agent-skills) · [Discord](https://discord.gg/g4pFt6eXqu)
@@ -118,7 +118,7 @@ ajs project modules add @antelopejs/dms
 pnpm add -D @antelopejs/dms-frontend
 ```
 
-It also needs an API module, a database module and an authentication module. See [Installation](https://dms.antelopejs.com/docs/getting-started/installation). The DMS also runs [inside an AdonisJS 6 backend](https://dms.antelopejs.com/docs/getting-started/adonisjs).
+It also needs an API module, a database module and an authentication module. The database module is `@antelopejs/mongodb`, or `@antelopejs/mysql` for MySQL and MariaDB. See [Installation](https://dms.antelopejs.com/docs/getting-started/installation). The DMS also runs [inside an AdonisJS 6 backend](https://dms.antelopejs.com/docs/getting-started/adonisjs).
 
 </details>
 
@@ -248,7 +248,7 @@ The core keeps to pages, data, sign-in and roles. The rest installs into the sam
 
 ## Built for
 
-- **Developers and CTOs** with a product on PostgreSQL, MongoDB or RethinkDB who need a back office and dashboards without building them by hand.
+- **Developers and CTOs** with a product on PostgreSQL, MySQL, MariaDB, MongoDB or RethinkDB who need a back office and dashboards without building them by hand.
 - **Founders and ops people** who'd rather click than code. Once a developer has installed it, the Builder and the assistant do the rest.
 
 [How it compares to other admin tools](https://dms.antelopejs.com/compare)
@@ -286,7 +286,7 @@ Generated pages are read-only until you switch on **Rows can be edited** for a t
 <details>
 <summary><b>Which databases?</b></summary>
 
-PostgreSQL, MongoDB and RethinkDB today. The DMS keeps its own accounts, roles and settings in MongoDB, which the templates start for you. Need another database? Tell us on [Discord](https://discord.gg/g4pFt6eXqu).
+**Connect** reads PostgreSQL, MySQL, MariaDB, MongoDB and RethinkDB today. The DMS keeps its own accounts, roles and settings in the database module you load: MongoDB in the templates, or MySQL 8.4 and 9.7 and MariaDB 11.8 and 12.3 with [`@antelopejs/mysql`](https://github.com/AntelopeJS/mysql). Need another database? Tell us on [Discord](https://discord.gg/g4pFt6eXqu).
 
 </details>
 

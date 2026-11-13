@@ -108,6 +108,10 @@ async function observeRoutes() {
   /** @type {unknown[]} */
   const calls = [];
   const context = requestContext();
+  /**
+   * One params object every route receives, so each base call can check it gets that exact object: the row id the edit, delete and mutation routes read, and a valid `new` route parameter, which takes only optional fields.
+   * @type {{ id: string } & import("../../packages/interface-dms/node_modules/@antelopejs/interface-data-api/dist/components").Parameters.NewParameters}
+   */
   const params = { id: "row-31" };
   const body = Buffer.from('{"count":17,"discard":true}');
   const sentinel = { returned: 43 };
@@ -188,7 +192,6 @@ async function observeRoutes() {
   const guardResult = await guarded.func.call(
     receiver,
     context,
-    // @ts-expect-error every route shares one params object so each base call can check it receives that exact object
     params,
     body,
     "trailing",
@@ -205,7 +208,6 @@ async function observeRoutes() {
     },
     "new",
   );
-  // @ts-expect-error every route shares one params object so each base call can check it receives that exact object
   await unguarded.func.call(receiver, context, params, body);
   return {
     calls,

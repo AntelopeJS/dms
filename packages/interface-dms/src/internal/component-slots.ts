@@ -1,6 +1,7 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { MaybePromise } from "../types";
 import type { WatchAction } from "../watch-actions";
+import { isObject } from "../utils/internal/type-check";
 
 /**
  * Property a serialized component's options carry to open an extension point.
@@ -64,10 +65,9 @@ function isSlotFormOptions(options: unknown): options is SlotFormTarget {
  * form declares `slotId`, and it always serializes a `fields` array, so a node
  * that is anything else is left alone, whatever its options say.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and typeof before reading it.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and isObject before reading it.
 function slotFormOptionsOf(node: unknown): SlotFormTarget | undefined {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Serialized option trees contain primitives and arrays as well as slot-bearing objects.
-  if (!node || typeof node !== "object" || Array.isArray(node)) {
+  if (!node || !isObject(node) || Array.isArray(node)) {
     return undefined;
   }
   if (
@@ -80,13 +80,12 @@ function slotFormOptionsOf(node: unknown): SlotFormTarget | undefined {
   return isSlotFormOptions(options) ? options : undefined;
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and typeof before reading it.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and isObject before reading it.
 function hasResolvableSlot(node: unknown): boolean {
   if (Array.isArray(node)) {
     return node.some(hasResolvableSlot);
   }
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Recursion stops at primitive leaves without parsing or changing consumer options.
-  if (!node || typeof node !== "object") {
+  if (!node || !isObject(node)) {
     return false;
   }
   if (slotFormOptionsOf(node)) {
@@ -100,14 +99,13 @@ function hasResolvableSlot(node: unknown): boolean {
  * what a resolver contributes is never walked again, which would let a
  * contribution declaring the slot it was contributed to loop forever.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and typeof before reading it.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Takes one node of the serialized options tree ResolveComponentSlots walks over a page's cached layout, any primitive, array or object, and narrows it with Array.isArray and isObject before reading it.
 async function resolveNode(node: unknown): Promise<void> {
   if (Array.isArray(node)) {
     for (const item of node) await resolveNode(item);
     return;
   }
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only objects in the serialized options tree have children or mutable slot options.
-  if (!node || typeof node !== "object") {
+  if (!node || !isObject(node)) {
     return;
   }
   for (const value of Object.values(node)) await resolveNode(value);

@@ -35,6 +35,10 @@ const automationCtx: ExecutionCtx = {
   log: () => undefined,
 };
 
+let sendEmail: EmailSender;
+let sentCount: number;
+let sentArgs: InviteEmailArgs | undefined;
+
 function inviteThroughMembersRoute() {
   return inviteMembers(
     {
@@ -60,38 +64,7 @@ function pendingInvite() {
   return GetModel(UserInviteModel, WORKSPACE_ID).getByEmail(INVITEE_EMAIL);
 }
 
-describe("[unit] pages/settings — invitation email delivery", () => {
-  let sendEmail: EmailSender;
-  let sentCount: number;
-  let sentArgs: InviteEmailArgs | undefined;
-
-  before(() => {
-    ImplementInterface(
-      { sendAdminInviteEmail },
-      {
-        sendAdminInviteEmail: (...args: InviteEmailArgs) => {
-          sentCount += 1;
-          sentArgs = args;
-          return sendEmail();
-        },
-      },
-    );
-  });
-
-  beforeEach(async () => {
-    await resetDatabase();
-    sendEmail = accept;
-    sentCount = 0;
-    sentArgs = undefined;
-    const now = new Date();
-    await GetModel(TenantModel).insert({
-      _id: WORKSPACE_ID,
-      name: "Delivery",
-      createdAt: now,
-      updatedAt: now,
-    });
-  });
-
+function registerRouteAndResendCases(): void {
   describe("members invite route", () => {
     it("keeps the invitation and tells the inviter when the email fails", async () => {
       sendEmail = refuse;
@@ -101,7 +74,7 @@ describe("[unit] pages/settings — invitation email delivery", () => {
       expect(results).to.deep.equal([
         { email: INVITEE_EMAIL, outcome: "invited", emailDelivery: "failed" },
       ]);
-      expect(await pendingInvite()).to.exist;
+      expect(await pendingInvite()).to.not.be.oneOf([null, undefined]);
       const response = memberInviteResponse(results);
       expect(response).to.deep.equal({
         results,
@@ -137,7 +110,7 @@ describe("[unit] pages/settings — invitation email delivery", () => {
         emailDelivery: "failed",
         warning: INVITE_RESEND_EMAIL_FAILED_WARNING,
       });
-      expect(await pendingInvite()).to.exist;
+      expect(await pendingInvite()).to.not.be.oneOf([null, undefined]);
     });
 
     it("reports a sent email without a warning", async () => {
@@ -149,7 +122,9 @@ describe("[unit] pages/settings — invitation email delivery", () => {
       expect(sentCount).to.equal(1);
     });
   });
+}
 
+function registerNonOptInCases(): void {
   describe("callers that do not opt in", () => {
     it("still send in the background and report no delivery", async () => {
       let releaseEmail: () => void = () => undefined;
@@ -233,4 +208,36 @@ describe("[unit] pages/settings — invitation email delivery", () => {
       });
     });
   });
+}
+
+describe("[unit] pages/settings — invitation email delivery", () => {
+  before(() => {
+    ImplementInterface(
+      { sendAdminInviteEmail },
+      {
+        sendAdminInviteEmail: (...args: InviteEmailArgs) => {
+          sentCount += 1;
+          sentArgs = args;
+          return sendEmail();
+        },
+      },
+    );
+  });
+
+  beforeEach(async () => {
+    await resetDatabase();
+    sendEmail = accept;
+    sentCount = 0;
+    sentArgs = undefined;
+    const now = new Date();
+    await GetModel(TenantModel).insert({
+      _id: WORKSPACE_ID,
+      name: "Delivery",
+      createdAt: now,
+      updatedAt: now,
+    });
+  });
+
+  registerRouteAndResendCases();
+  registerNonOptInCases();
 });

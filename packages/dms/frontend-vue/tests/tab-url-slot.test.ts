@@ -100,8 +100,7 @@ describe("a tab's badge", () => {
   const Tabs = vue.defineComponent({
     props: {
       items: {
-        // SAFETY: Tab passes its normalized items array to this UTabs replacement.
-        type: Array as vue.PropType<TabsItem[]>,
+        type: Array<TabsItem>,
         default: () => [],
       },
     },

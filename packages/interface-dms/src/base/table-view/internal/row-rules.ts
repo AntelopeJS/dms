@@ -8,6 +8,7 @@ import { validateRowsAgainstRule } from "../data-functions";
 import { TableViewMeta } from "../meta";
 import type { TableViewRowActionOptions } from "../options";
 import { DEFAULT_ROW_ID_FIELD } from "../options";
+import { isObject } from "../../../utils/internal/type-check";
 
 type ValidatedActionName = "delete" | "edit" | "archive" | "restore";
 
@@ -107,8 +108,7 @@ export const extractRuleFromConfig = (
   actionName: ValidatedActionName,
 ): RowActionRule | undefined => {
   const actionConfig = controllerRules?.[actionName];
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The action option explicitly permits boolean shorthand or an object rule configuration.
-  if (typeof actionConfig === "object" && actionConfig !== null) {
+  if (isObject(actionConfig) && actionConfig !== null) {
     return actionConfig.rule;
   }
   return undefined;

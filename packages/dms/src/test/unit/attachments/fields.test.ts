@@ -110,7 +110,9 @@ describe("[unit] attachments/fields collectAttachments", () => {
       "deep",
     ]);
   });
+});
 
+describe("[unit] attachments/fields collectAttachments", () => {
   describe("walks a wide body without a size limit of its own", () => {
     it("reads an array of two hundred thousand strings in order", () => {
       const expected = indexedKeys(WIDTH);

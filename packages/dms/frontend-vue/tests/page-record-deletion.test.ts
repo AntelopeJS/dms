@@ -7,7 +7,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { effectScope, nextTick, reactive, ref, type EffectScope } from "vue";
 import { usePageRecordDeletion } from "../layers/dms-layout/app/composables/page/usePageRecordDeletion";
-import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
+import type {
+  RealtimeEvent,
+  RealtimeSnapshotEvent,
+  RealtimeTopicHandler,
+} from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 
 const LAYOUT_URL = "/dms/pages/sites/site/:id/pagelayout";
 const route = reactive<{ path: string; query: Record<string, string> }>({
@@ -45,15 +49,16 @@ function start(served = layoutWith("found")) {
   );
 }
 
+const TOPIC = "tableview:row:/api/sites";
+
+function rowEvent(type: string): RealtimeEvent {
+  return { topic: TOPIC, type, ts: Date.now() };
+}
+
 async function publish(
-  event: { type: string } | { topic: string; sessions: never[] } = {
-    type: "deleted",
-  },
+  event: RealtimeEvent | RealtimeSnapshotEvent = rowEvent("deleted"),
 ) {
-  // SAFETY: This test intentionally supplies only the fields the deletion subscriber reads, including an ignored snapshot-shaped event.
-  handlers.get("tableview:row:/api/sites")?.(
-    event as Parameters<RealtimeTopicHandler>[0],
-  );
+  handlers.get(TOPIC)?.(event);
   await new Promise((resolve) => setTimeout(resolve, 30));
   await nextTick();
 }
@@ -105,7 +110,7 @@ describe("a detail page whose record is deleted", () => {
   it("stays while the record is still there", async () => {
     start();
     authFetch.mockResolvedValue(layoutWith("found"));
-    await publish({ type: "updated" });
+    await publish(rowEvent("updated"));
     expect(toastAdd).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });
@@ -156,7 +161,7 @@ describe("a detail page whose record is deleted", () => {
     await publish();
     scope.stop();
     start();
-    await publish({ topic: "x", sessions: [] });
+    await publish({ topic: TOPIC, entries: [] });
     expect(authFetch).not.toHaveBeenCalled();
   });
 });

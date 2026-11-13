@@ -1,29 +1,11 @@
-import type { ValueProxy } from "@antelopejs/interface-database";
+import { ValueProxy } from "@antelopejs/interface-database";
 import { expect } from "chai";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import { assertRowRule } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
 import { compileRowRule } from "../../../../implementations/dms-base/services";
 
-interface Expression {
-  text: string;
-  and: (other: Expression) => Expression;
-  or: (other: Expression) => Expression;
-  not: () => Expression;
-}
-
-const expression = (text: string): Expression => ({
-  text,
-  and: (other) => expression(`(${text} AND ${other.text})`),
-  or: (other) => expression(`(${text} OR ${other.text})`),
-  not: () => expression(`NOT ${text}`),
-});
-
-const field = (name: string) =>
-  // SAFETY: compileRowRule calls only eq/ne on fields; their expression results implement every and/or/not operation exercised here, not the entire database proxy API.
-  ({
-    eq: (value: string | number) => expression(`${name}=${String(value)}`),
-    ne: (value: string | number) => expression(`${name}!=${String(value)}`),
-  }) as unknown as ValueProxy<unknown>;
+const field = (name: string): ValueProxy<unknown> =>
+  ValueProxy.constant<unknown>(name);
 
 const fromJson = (json: string): RowActionRule => {
   const parsed: unknown = JSON.parse(json);
@@ -31,28 +13,21 @@ const fromJson = (json: string): RowActionRule => {
   return parsed;
 };
 
-const compile = (rule: RowActionRule) => {
-  const condition = compileRowRule(rule, field);
-  // SAFETY: Nonliteral results originate from this fixture's eq/ne and expression combinators, all of which return an Expression with text.
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The owner returns literal booleans or query proxies; preserve the existing distinction before reading the fixture expression's text.
-  return typeof condition === "boolean"
-    ? condition
-    : (condition as unknown as Expression).text;
-};
+const compile = (rule: RowActionRule) => compileRowRule(rule, field);
 
 describe("[unit] dms-base — footer summary rules", () => {
   it("compiles field comparisons", () => {
-    expect(compile({ field: "status", equals: "open" })).to.equal(
-      "status=open",
+    expect(compile({ field: "status", equals: "open" })).to.deep.equal(
+      field("status").eq("open"),
     );
-    expect(compile({ field: "status", notEquals: "open" })).to.equal(
-      "status!=open",
+    expect(compile({ field: "status", notEquals: "open" })).to.deep.equal(
+      field("status").ne("open"),
     );
-    expect(compile({ field: "status", in: ["open", "late"] })).to.equal(
-      "(status=open OR status=late)",
+    expect(compile({ field: "status", in: ["open", "late"] })).to.deep.equal(
+      field("status").eq("open").or(field("status").eq("late")),
     );
-    expect(compile({ field: "status", notIn: ["open"] })).to.equal(
-      "NOT status=open",
+    expect(compile({ field: "status", notIn: ["open"] })).to.deep.equal(
+      field("status").eq("open").not(),
     );
   });
 
@@ -64,7 +39,9 @@ describe("[unit] dms-base — footer summary rules", () => {
           { not: { field: "amount", equals: 0 } },
         ],
       }),
-    ).to.equal("(status=open AND NOT amount=0)");
+    ).to.deep.equal(
+      field("status").eq("open").and(field("amount").eq(0).not()),
+    );
     expect(compile({ field: "status", in: [] })).to.equal(false);
     expect(compile({ field: "status", notIn: [] })).to.equal(true);
     expect(
@@ -74,7 +51,7 @@ describe("[unit] dms-base — footer summary rules", () => {
           { field: "a", equals: 1 },
         ],
       }),
-    ).to.equal("a=1");
+    ).to.deep.equal(field("a").eq(1));
     expect(
       compile({
         and: [
@@ -153,6 +130,6 @@ describe("[unit] dms-base — footer summary rules", () => {
         equals: 41,
         and: [{ field: "a", equals: 1 }],
       }),
-    ).to.equal("a=1");
+    ).to.deep.equal(field("a").eq(1));
   });
 });

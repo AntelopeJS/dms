@@ -10,16 +10,15 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
-import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import {
   TableView,
   TableViewMeta,
-  type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
+import { StampedTableViewBuilder } from "../../../helpers/stamped-table-view-builder";
 
 const TABLE = "shared-controller-rows";
 
@@ -36,32 +35,11 @@ class SharedAPI extends DataController(
 /** A table view as a page leaves it once mounted: its actions stamped. */
 function stampedBuilder(
   actions: Record<string, string | undefined>,
-): ComponentBuilder<TableViewOptionsSerialized> {
-  const ids = new Map(Object.entries(actions));
-  const builder = {
-    getAction: (id: string) =>
-      ids.has(id) ? { permissionId: ids.get(id) } : undefined,
-  } satisfies {
-    getAction: (
-      id: string,
-    ) =>
-      | Pick<
-          NonNullable<
-            ReturnType<
-              ComponentBuilder<TableViewOptionsSerialized>["getAction"]
-            >
-          >,
-          "permissionId"
-        >
-      | undefined;
-  };
-  // SAFETY: actionPermissionIds only calls getAction and reads permissionId; no serialization or other builder methods run in these metadata tests.
-  return builder as ComponentBuilder<TableViewOptionsSerialized>;
+): StampedTableViewBuilder {
+  return new StampedTableViewBuilder(actions);
 }
 
-function metaWith(
-  ...builders: ComponentBuilder<TableViewOptionsSerialized>[]
-): TableViewMeta {
+function metaWith(...builders: StampedTableViewBuilder[]): TableViewMeta {
   class SomeController {}
   const meta = GetMetadata(SomeController, TableViewMeta);
   for (const builder of builders) meta.addComponentBuilder(builder);

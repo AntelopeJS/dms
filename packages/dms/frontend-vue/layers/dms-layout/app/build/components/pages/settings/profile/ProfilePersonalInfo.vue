@@ -292,8 +292,8 @@ async function save(): Promise<void> {
               {{ saved.email }}
             </span>
             <USkeleton
-              :aria-label="t('dms.a11y.loading')"
               v-if="!isProfileLoaded"
+              :aria-label="t('dms.a11y.loading')"
               aria-hidden="true"
               class="h-5 w-[74px] shrink-0 rounded-md"
             />

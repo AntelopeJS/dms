@@ -15,6 +15,7 @@ import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/Car
 import { useTableReorder } from "../layers/dms-ui/app/entries/composables/table-view/useTableReorder";
 import { moveRow } from "../layers/dms-ui/app/entries/composables/table-view/utils/reorder";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
+import { displayContext } from "./fixtures/displayContext";
 
 type Row = { _id: string; name: string };
 type Api = Parameters<typeof useTableReorder>[0]["api"];
@@ -46,27 +47,27 @@ function createContext(enabled = true, componentName?: string) {
       items.value = moveRow(items.value, from, to);
     },
   };
-  // SAFETY: CardsDisplay uses only the capabilities supplied by this fixture; unrelated display operations are not exercised.
-  const context = reactive({
-    items,
-    columns: [],
-    loading: false,
-    rowIdKey: "_id",
-    labelKey: "name",
-    options: componentName ? { card: { component: { componentName } } } : {},
-    pagination: { pageIndex: 0, pageSize: 10, total: 3 },
-    selection: {
-      isSelected: (id: string) => selected.value.includes(id),
-      toggle: (id: string, value?: boolean) => {
-        const on = value ?? !selected.value.includes(id);
-        selected.value = on
-          ? [...selected.value, id]
-          : selected.value.filter((entry) => entry !== id);
+  const context = reactive<TableViewDisplayContext<Row>>({
+    ...displayContext<Row>({
+      labelKey: "name",
+      options: componentName ? { card: { component: { componentName } } } : {},
+      pagination: { total: 3 },
+      selection: {
+        isSelected: (id: string) => selected.value.includes(id),
+        toggle: (id: string, value?: boolean) => {
+          const on = value ?? !selected.value.includes(id);
+          selected.value = on
+            ? [...selected.value, id]
+            : selected.value.filter((entry) => entry !== id);
+        },
       },
+      actions: { open: (item: Row) => opened.push(item) },
+      reorder,
+    }),
+    get items() {
+      return items.value;
     },
-    actions: { canAdd: false, open: (item: Row) => opened.push(item) },
-    reorder,
-  }) as TableViewDisplayContext<Row>;
+  });
   return { context, items, moves, opened, selected };
 }
 

@@ -184,10 +184,6 @@ export interface PermissionPreviewRequest {
   pageLoses?: PreviewPageLossCheck;
 }
 
-export type ViewerModelResult =
-  | Awaited<ReturnType<TenantMemberModel["getByUser"]>>
-  | Awaited<ReturnType<RoleModel["getBy"]>>;
-
 /** How one page of a preview is read, besides the page itself. */
 export interface PreviewPageReading {
   request: PermissionPreviewRequest;

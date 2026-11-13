@@ -145,8 +145,8 @@ const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
           {{ translate(props.label) }}
         </span>
         <USkeleton
-          :aria-label="t('dms.a11y.loading')"
           v-else
+          :aria-label="t('dms.a11y.loading')"
           class="h-3 w-1/3"
         />
         <USkeleton

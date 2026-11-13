@@ -73,14 +73,17 @@ export function buildWatchAction<F extends string>(
   return watch;
 }
 
+/** Whether builder options are an object, which alone can carry `watchActions`. */
+const isObjectOption = <O>(opts: O): opts is O & object =>
+  typeof opts === "object" && opts !== null;
+
 /** @internal */
 export function stripWatchActions<O>(opts: O): O {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Options can be primitives; only object options can carry caller-supplied watchActions to strip.
-  if (!opts || typeof opts !== "object" || !("watchActions" in opts)) {
+  if (!opts || !isObjectOption(opts) || !("watchActions" in opts)) {
     return opts;
   }
   const { watchActions: _ignored, ...rest } = opts;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published builder preserves O while intentionally stripping watchActions, even if a consumer includes that key in O.
+  // SAFETY: rest is an O exactly when O does not require watchActions and keeps its members as own enumerable fields, since the spread copies those and drops watchActions. Every options type of this package declares watchActions optional (BaseComponentProps, SlotFormOptions); a module's options type that requires it, or reads members through a prototype, is not one.
   return rest as O;
 }
 
@@ -97,7 +100,7 @@ export function mergeWatchesIntoOptions<T>(
   } = options ?? {};
   const existing = optionsObj.watchActions ?? [];
   const merged = [...existing, ...watches];
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The builder's published T is preserved while watchActions is added to its serialized transport.
+  // SAFETY: The result is a T exactly when options are a T whose watchActions, where T declares it, holds WatchAction[] as BaseComponentProps declares, or options are absent and T requires no member, as for CustomComponent's ComponentBuilder<unknown>. A builder whose T requires a member and that was never given options gets an object without it.
   return { ...optionsObj, watchActions: merged } as T;
 }
 

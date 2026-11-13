@@ -1,5 +1,6 @@
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
+import { z } from "zod";
 import {
   Category,
   GetPageLayoutBySlug,
@@ -39,6 +40,8 @@ import * as permissionsImpl from "../../../../implementations/dms/permissions";
 const REGISTRATION_TOKEN = Symbol.for(
   "@antelopejs/interface-dms:pageRegistration",
 );
+
+const StampedToken = z.object({ value: z.string() });
 
 function buildPageInfo(fullId: string): PageInfo {
   return {
@@ -144,10 +147,9 @@ describe("[unit] implementations/dms/page — teardown across the boundary", () 
     const pageInfo = await registerPage("pri-unregister-token");
     const bearer = buildPageInfo("pri-unregister-token");
     Object.defineProperty(bearer, REGISTRATION_TOKEN, {
-      // SAFETY: RegistrationIdentity.stamp defines a string under this global symbol on every registered PageInfo, and pageInfo comes from registerPage; the symbol is absent from PageInfo's declaration.
-      value: (pageInfo as unknown as Record<symbol, string>)[
-        REGISTRATION_TOKEN
-      ],
+      value: StampedToken.parse(
+        Object.getOwnPropertyDescriptor(pageInfo, REGISTRATION_TOKEN),
+      ).value,
     });
 
     pageInterfaceInternal.RegisterPage.unregister(bearer);

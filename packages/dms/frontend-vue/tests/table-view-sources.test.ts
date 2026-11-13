@@ -1,11 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { reactive } from "vue";
 import {
   processSourceRows,
   sourceRouteQuery,
   useTableRows,
 } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
-import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import { fetchClient } from "./fixtures/fetchClient";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 interface LogRow extends Record<string, unknown> {
   _id: string;
@@ -19,11 +20,7 @@ const ROWS: LogRow[] = [
   { _id: "c", path: "/api/orders/42", duration: 120 },
 ];
 
-// SAFETY: Source row processing only reads the column id and accessor key in these tests, not the form and display metadata.
-const COLUMNS = [
-  { id: "path", accessorKey: "path" },
-  { id: "duration", accessorKey: "duration" },
-] as TableViewColumn[];
+const COLUMNS = [tableViewColumn("path"), tableViewColumn("duration")];
 
 type Api = Parameters<typeof useTableRows>[0]["api"];
 
@@ -84,10 +81,12 @@ function registerTableSourceQueryTests() {
   });
 
   it("takes a paging route's page and total as they are", async () => {
-    const api = vi.fn(async () => ({ results: ROWS.slice(0, 1), total: 120 }));
+    const api = fetchClient(async () => ({
+      results: ROWS.slice(0, 1),
+      total: 120,
+    }));
     const rows = useTableRows<LogRow>({
-      // SAFETY: This mock only serves the list call below; the fetch client's raw/create methods are not used.
-      api: api as Api,
+      api,
       location: "/api/log",
       source: { fetchUrl: "/api/log", capabilities: { paginate: true } },
       columns: COLUMNS,
@@ -102,10 +101,9 @@ function registerTableSourceQueryTests() {
   });
 
   it("counts a source's tabs one list at a time, and a controller's in one batch", async () => {
-    const sourceApi = vi.fn(async () => ({ results: ROWS, total: 3 }));
+    const sourceApi = fetchClient(async () => ({ results: ROWS, total: 3 }));
     const source = useTableRows<LogRow>({
-      // SAFETY: The source only lists these LogRow fixtures; no other fetch client methods are used.
-      api: sourceApi as Api,
+      api: sourceApi,
       location: "/api/log",
       source: { fetchUrl: "/api/log", capabilities: {} },
       columns: COLUMNS,
@@ -117,10 +115,9 @@ function registerTableSourceQueryTests() {
       ]),
     ).toEqual({ all: 3, orders: 2 });
 
-    const controllerApi = vi.fn(async () => ({ all: 7 }));
+    const controllerApi = fetchClient(async () => ({ all: 7 }));
     const controller = useTableRows<LogRow>({
-      // SAFETY: This controller mock only answers the count/batch call below.
-      api: controllerApi as Api,
+      api: controllerApi,
       location: "/api/runs",
       columns: COLUMNS,
     });
@@ -137,10 +134,12 @@ function registerTableSourceUrlTests() {
     const FETCH_URL = "/api/ws/{{params.id}}/requests?route={{query.route}}";
 
     function sourceRows(route: PageRoute) {
-      const api = vi.fn(async (_url: string) => ({ results: ROWS, total: 3 }));
+      const api = fetchClient(async (_url: string) => ({
+        results: ROWS,
+        total: 3,
+      }));
       const rows = useTableRows<LogRow>({
-        // SAFETY: This source only lists the LogRow fixtures through the callable fetch interface.
-        api: api as Api,
+        api,
         location: FETCH_URL,
         source: { fetchUrl: FETCH_URL, capabilities: {} },
         columns: COLUMNS,
@@ -199,13 +198,9 @@ function registerTableSourceUrlTests() {
     const FETCH_URL = "/api/ws/{{params.ws}}/requests";
     const ROW_URL = "/api/ws/{{params.ws}}/requests/{{row.id}}";
 
-    function rowsWith(
-      api: (url: string) => Promise<LogRow | undefined>,
-      fetchRowUrl?: string,
-    ) {
+    function rowsWith(api: Api, fetchRowUrl?: string) {
       return useTableRows<LogRow>({
-        // SAFETY: These tests only request one LogRow by URL, not the fetch client's other methods.
-        api: api as Api,
+        api,
         location: FETCH_URL,
         source: { fetchUrl: FETCH_URL, fetchRowUrl, capabilities: {} },
         columns: COLUMNS,
@@ -214,14 +209,14 @@ function registerTableSourceUrlTests() {
     }
 
     it("reads a row by id, its id and the page's tokens filled", async () => {
-      const api = vi.fn(async () => ROWS[2]);
+      const api = fetchClient(async () => ROWS[2]);
       const rows = rowsWith(api, ROW_URL);
       expect(await rows.getRow("c/42")).toBe(ROWS[2]);
       expect(api).toHaveBeenCalledWith("/api/ws/ws-1/requests/c%2F42");
     });
 
     it("rejects as the route does on a missing row", async () => {
-      const api = vi.fn(async () => {
+      const api = fetchClient(async () => {
         throw Object.assign(new Error("Not Found"), { statusCode: 404 });
       });
       await expect(rowsWith(api, ROW_URL).getRow("gone")).rejects.toThrow(
@@ -230,7 +225,7 @@ function registerTableSourceUrlTests() {
     });
 
     it("requests nothing without fetchRowUrl", async () => {
-      const api = vi.fn(async () => ROWS[0]);
+      const api = fetchClient(async () => ROWS[0]);
       expect(await rowsWith(api).getRow("a")).toBeUndefined();
       expect(api).not.toHaveBeenCalled();
     });

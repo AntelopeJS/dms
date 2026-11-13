@@ -1,5 +1,9 @@
 import type { IncomingMessage } from "node:http";
 import type { AddFrontendModuleOptions } from "@antelopejs/interface-dms/page";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 type ModuleOptions = NonNullable<AddFrontendModuleOptions["options"]>;
 type ModuleOption = ModuleOptions[string];
@@ -136,12 +140,10 @@ function rewriteValue(
   value: ModuleOption,
   rewrite: OriginRewriter,
 ): ModuleOption {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Open module options include scalar strings; rewriting only these leaves all other scalar values unchanged.
-  if (typeof value === "string") return rewrite(value);
+  if (isString(value)) return rewrite(value);
   if (Array.isArray(value))
     return value.map((item) => rewriteValue(item, rewrite));
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Recursive option rewriting copies containers while preserving scalar values; the existing object branch must not treat numbers or booleans as records.
-  if (value && typeof value === "object") {
+  if (value && isObject(value)) {
     return Object.fromEntries(
       Object.entries(value).map(([key, item]) => [
         key,
@@ -257,12 +259,9 @@ export function listDroppedBackendProxies(
   if (keep.authEstablishEndpoints) return [];
   return modules.flatMap((module) =>
     (module.backendProxies ?? []).map((proxy) => {
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Manifest proxy entries are intentionally opaque; retain the existing fallback for primitive entries.
-      if (!proxy || typeof proxy !== "object")
-        return `${module.name} (no path)`;
+      if (!proxy || !isObject(proxy)) return `${module.name} (no path)`;
       const { path }: { path?: unknown } = proxy;
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Only string proxy paths are included in the diagnostic; arbitrary manifest entries retain their existing no-path fallback.
-      return `${module.name} ${typeof path === "string" ? path : "(no path)"}`;
+      return `${module.name} ${isString(path) ? path : "(no path)"}`;
     }),
   );
 }

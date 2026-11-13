@@ -249,13 +249,11 @@ export interface TableViewDisplayContext<T = Data> {
   /** Data API location (`{location}/list`, `/get`, ...). Needed by self-managed displays. */
   location: string;
   /** Active filters/search/sort query (no limit/offset) — for self-managed fetching. */
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Custom self-managed displays receive module-defined query values beyond the built-in TableQueryParams contract.
   query: Record<string, unknown>;
   /** Stable component/page identifiers, e.g. for per-instance fetch keys. */
   componentId?: string;
   pageId?: string;
   /** Per-instance options declared for this display in the backend config. */
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Registered display implementations own their options; no common options schema exists across module displays.
   options?: Record<string, unknown>;
   /**
    * A self-managed display hands the rows it shows, in the order the user

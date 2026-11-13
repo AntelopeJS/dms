@@ -1,4 +1,4 @@
-import { createServer, type Server } from "node:http";
+import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
 import { afterAll, beforeAll } from "vitest";
 import { serveModuleRoutes } from "@antelopejs/dms-frontend/templates/vue/server/module-testing.mjs";
 import dmsServer from "../../dms.server";
@@ -15,6 +15,10 @@ import {
   ask,
 } from "./server-routes-fixtures";
 
+function headerValue(value: IncomingHttpHeaders[string]): string | undefined {
+  return Array.isArray(value) ? value.join(", ") : value;
+}
+
 export function createServerRoutesFixture() {
   const environment = { ...process.env };
   let backend: Server;
@@ -29,10 +33,8 @@ export function createServerRoutesFixture() {
         path,
         body,
         authorization: request.headers.authorization,
-        // SAFETY: The requests below send one relay header, never a repeated header array.
-        relay: request.headers["x-dms-oauth-relay"] as string | undefined,
-        // SAFETY: The requests below send one forwarded-for header, never a repeated header array.
-        forwardedFor: request.headers["x-forwarded-for"] as string | undefined,
+        relay: headerValue(request.headers["x-dms-oauth-relay"]),
+        forwardedFor: headerValue(request.headers["x-forwarded-for"]),
       });
       const answer = backendAnswer(path, body);
       response.writeHead(answer.status, { "content-type": "application/json" });

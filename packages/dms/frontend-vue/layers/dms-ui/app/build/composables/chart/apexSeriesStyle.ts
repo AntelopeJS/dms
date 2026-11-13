@@ -131,7 +131,6 @@ export function buildStroke(
   surface: string,
 ): NonNullable<ApexOptions["stroke"]> {
   const initialStroke = { ...config.defaultStroke };
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public configuration accepts arbitrary curve strings; inference and ApexStroke reject that existing unchecked Apex boundary.
   const stroke = initialStroke as NonNullable<ApexOptions["stroke"]>;
   if (input.smooth === false && stroke.curve) stroke.curve = "straight";
   if (input.curve) stroke.curve = input.curve;

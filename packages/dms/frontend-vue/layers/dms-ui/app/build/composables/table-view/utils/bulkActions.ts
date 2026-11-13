@@ -97,7 +97,6 @@ const COUNT_KEYS = [
  * The number of rows a bulk route says it changed: a bare number or one of
  * its count keys, `undefined` when it does not say.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Bulk endpoints have heterogeneous response contracts and callers also pass malformed values. No single response owner can narrow this parser without excluding its undefined-result cases.
 export const readBulkCount = (response: unknown): number | undefined => {
   if (isNumber(response)) return response;
   if (!response || !isObject(response)) return undefined;
