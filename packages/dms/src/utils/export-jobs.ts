@@ -2,7 +2,6 @@ import { ownValue } from "./own-value";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Readable } from "node:stream";
 import { assert } from "@antelopejs/interface-api-util";
 import type { RowFields } from "@antelopejs/interface-data-api/metadata";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -198,11 +197,6 @@ export function getExportLocalScratchPath(
   return path.join(os.tmpdir(), `${EXPORT_TMP_PREFIX}${exportId}.${extension}`);
 }
 
-/** Undici reads `duplex`, required with a stream body; the DOM `RequestInit` omits it. */
-interface StreamingRequestInit extends RequestInit {
-  duplex: "half";
-}
-
 export async function uploadExportToStorage(
   localPath: string,
   tenantId: string,
@@ -219,19 +213,11 @@ export async function uploadExportToStorage(
     path: `${EXPORT_STORAGE_PREFIX}/${tenantId}`,
   });
 
-  const body = Readable.toWeb(fs.createReadStream(localPath));
-  assert(
-    body instanceof ReadableStream,
-    500,
-    "Export upload stream is not a fetch body",
-  );
-  const init: StreamingRequestInit = {
+  const response = await fetch(presign.uploadUrl, {
     method: "PUT",
     headers: presign.headers,
-    body,
-    duplex: "half",
-  };
-  const response = await fetch(presign.uploadUrl, init);
+    body: await fs.openAsBlob(localPath),
+  });
 
   if (!response.ok) {
     await response.body?.cancel().catch(() => undefined);

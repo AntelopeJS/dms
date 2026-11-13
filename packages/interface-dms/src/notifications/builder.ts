@@ -27,13 +27,18 @@ function isComplete(data: Partial<NotificationData>): data is NotificationData {
 }
 
 /**
- * The builder a setter returns: the same instance, now recording `Next` as set.
- * `Set` is a phantom parameter that only `build`'s `this` parameter reads.
+ * Stores `value` under `field` in `data`, the builder's own data object, and
+ * returns the same builder, now recording `field` as set. `Set` is a phantom
+ * parameter that only `build`'s `this` parameter reads.
  */
-function filled<Set extends string, Next extends string>(
+function filled<Set extends string, Next extends keyof NotificationData>(
   builder: NotificationBuilder<Set>,
+  data: Partial<NotificationData>,
+  field: Next,
+  value: NotificationData[Next],
 ): NotificationBuilder<Set | Next> {
-  // SAFETY: Holds for every Set and Next: Set appears only in the this parameter of build, so NotificationBuilder<Set | Next> and NotificationBuilder<Set> describe the same instance and the same data object.
+  data[field] = value;
+  // SAFETY: Holds when data is builder's own data object and Next is the one key field holds, as in each setter, which passes this.data and a literal field Next is inferred from: the line above has just stored value under field in data, and Set appears only in the this parameter of build, so the same instance now has Next set.
   return builder as NotificationBuilder<Set | Next>;
 }
 
@@ -41,43 +46,36 @@ export class NotificationBuilder<Set extends string = never> {
   private data: Partial<NotificationData> = {};
 
   icon(value: string): NotificationBuilder<Set | "icon"> {
-    this.data.icon = value;
-    return filled<Set, "icon">(this);
+    return filled(this, this.data, "icon", value);
   }
 
   title(value: string): NotificationBuilder<Set | "title"> {
-    this.data.title = value;
-    return filled<Set, "title">(this);
+    return filled(this, this.data, "title", value);
   }
 
   description(value: string): NotificationBuilder<Set | "description"> {
-    this.data.description = value;
-    return filled<Set, "description">(this);
+    return filled(this, this.data, "description", value);
   }
 
   subject(
     subject: NotificationSubjectInfo,
   ): NotificationBuilder<Set | "subject"> {
-    this.data.subject = subject;
-    return filled<Set, "subject">(this);
+    return filled(this, this.data, "subject", subject);
   }
 
   linkTo(value: string): NotificationBuilder<Set | "linkTo"> {
-    this.data.linkTo = value;
-    return filled<Set, "linkTo">(this);
+    return filled(this, this.data, "linkTo", value);
   }
 
   params(
     value: Record<string, string | number>,
   ): NotificationBuilder<Set | "params"> {
-    this.data.params = value;
-    return filled<Set, "params">(this);
+    return filled(this, this.data, "params", value);
   }
 
   /** Colours the icon well the notification is listed with. */
   tone(value: NotificationTone): NotificationBuilder<Set | "tone"> {
-    this.data.tone = value;
-    return filled<Set, "tone">(this);
+    return filled(this, this.data, "tone", value);
   }
 
   build(

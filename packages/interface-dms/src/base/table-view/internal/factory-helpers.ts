@@ -410,11 +410,11 @@ export function resolveFormPageTexts(
 }
 
 /** Every form page kind once, keyed by itself, so a new kind cannot be left out of the list. */
-const FORM_PAGE_KIND_NAMES: Record<FormPageKind, FormPageKind> = {
+const FORM_PAGE_KIND_NAMES = {
   new: "new",
   edit: "edit",
   view: "view",
-};
+} satisfies { [Kind in FormPageKind]: Kind };
 
 /** @internal */
 export const FORM_PAGE_KINDS: FormPageKind[] =

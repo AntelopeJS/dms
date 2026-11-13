@@ -32,8 +32,9 @@ const ROW_CONTROL_SELECTOR = [
 const isRepeatClick: RowClickGuard = (event) => event.detail > 1;
 
 const isOnRowControl: RowClickGuard = (event) => {
-  const target = event.target as Element | null;
-  const control = target?.closest?.(ROW_CONTROL_SELECTOR);
+  const { target } = event;
+  const control =
+    target instanceof Element ? target.closest(ROW_CONTROL_SELECTOR) : null;
   if (!control) return false;
   const row = event.currentTarget;
   return !(row instanceof Node) || row.contains(control);

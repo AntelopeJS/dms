@@ -21,7 +21,7 @@ import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { RecordingUserModel } from "../../../helpers/recording-user-model";
 import {
   plainPasswordUserFixture,
-  userFixture,
+  storedUserFixture,
 } from "../../../helpers/user-fixture";
 import { securitySchema } from "../../../../validation";
 
@@ -53,7 +53,7 @@ class HeldUserModel extends RecordingUserModel {
 
   override async getByEmail(email: string): Promise<User | undefined> {
     return email === TAKEN_EMAIL
-      ? userFixture({ _id: OTHER_USER_ID })
+      ? storedUserFixture({ _id: OTHER_USER_ID, email: TAKEN_EMAIL })
       : undefined;
   }
 }

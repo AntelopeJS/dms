@@ -7,17 +7,23 @@ import { useForwardPropsEmits } from "reka-ui";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
 import { FIELD_RING_INVALID_CLASS } from "../../../build/utils/fieldTrigger";
+import { toCalendarDay } from "../../../build/utils/calendarDay";
 import { isObject, isString } from "#dms-core/app/utils/type-check";
 import {
   parseDate,
   fromDate,
   toCalendarDate,
   type CalendarDate,
+  type CalendarDateTime,
+  type ZonedDateTime,
 } from "@internationalized/date";
 
+/** A day as the calendar holds it, with or without a time of day. */
+type CalendarValue = CalendarDate | CalendarDateTime | ZonedDateTime;
+
 interface StrictDateRange {
-  start: CalendarDate | undefined;
-  end: CalendarDate | undefined;
+  start: CalendarValue | undefined;
+  end: CalendarValue | undefined;
 }
 
 interface StringDateRange {
@@ -31,10 +37,10 @@ interface NativeDateRange {
 }
 
 type DateValue =
-  | CalendarDate
+  | CalendarValue
   | StrictDateRange
   | string
-  | (string | Date | CalendarDate)[]
+  | (string | Date | CalendarValue)[]
   | null
   | undefined;
 
@@ -67,14 +73,14 @@ function convertIsoStringToCalendarDate(value: string): CalendarDate {
 }
 
 function convertToCalendarDate(
-  value: string | Date | CalendarDate,
-): CalendarDate;
+  value: string | Date | CalendarValue,
+): CalendarValue;
 function convertToCalendarDate(
-  value: string | Date | CalendarDate | undefined,
-): CalendarDate | undefined;
+  value: string | Date | CalendarValue | undefined,
+): CalendarValue | undefined;
 function convertToCalendarDate(
-  value: string | Date | CalendarDate | undefined,
-): CalendarDate | undefined {
+  value: string | Date | CalendarValue | undefined,
+): CalendarValue | undefined {
   if (isString(value)) {
     return convertIsoStringToCalendarDate(value);
   }
@@ -101,7 +107,9 @@ function isDateRangeValue(
   );
 }
 
-function convertModelValue(value: DateValue): DateValue {
+function convertModelValue(
+  value: DmsCalendarProps["modelValue"] | DateValue,
+): DateValue {
   if (isString(value)) {
     return convertIsoStringToCalendarDate(value);
   }
@@ -118,7 +126,7 @@ const {
   color: fieldColor,
   ariaAttrs,
   emitFormChange,
-} = useFormField(props as Parameters<typeof useFormField>[0]);
+} = useFormField<DmsCalendarProps>(props);
 const invalid = computed(() => fieldColor.value === "error");
 
 function toBoundDate(value: string | undefined): CalendarDate | undefined {
@@ -130,7 +138,7 @@ const convertedProps = computed(() => {
   return {
     ...calendarProps,
     color: calendarProps.color === "error" ? undefined : calendarProps.color,
-    modelValue: convertModelValue(calendarProps.modelValue as DateValue),
+    modelValue: convertModelValue(calendarProps.modelValue),
   };
 });
 
@@ -148,33 +156,40 @@ const wrappedEmits = (
   if (event === "update:modelValue") emitFormChange();
 };
 
+function forwardModelValue(value: Parameters<typeof isObject>[0]): void {
+  if (value === null || value === undefined || isString(value)) {
+    emits("update:modelValue", value);
+  } else if (Array.isArray(value)) {
+    const isoStrings = value.map((date) => date.toString());
+    emits("update:modelValue", isoStrings);
+  } else if (
+    isObject(value) &&
+    "year" in value &&
+    "month" in value &&
+    "day" in value
+  ) {
+    const isoString = value.toString();
+    emits("update:modelValue", isoString);
+  } else if (isObject(value) && "start" in value && "end" in value) {
+    const startIso = value.start?.toString();
+    const endIso = value.end?.toString();
+    emits("update:modelValue", { start: startIso, end: endIso });
+  }
+}
+
 function forwardEmit(
   event: EmitEvent,
   value: Parameters<typeof isObject>[0],
 ): void {
-  if (event === "update:modelValue" && value) {
-    if (Array.isArray(value)) {
-      const isoStrings = value.map((date) => date.toString());
-      emits("update:modelValue", isoStrings);
-    } else if (
-      isObject(value) &&
-      "year" in value &&
-      "month" in value &&
-      "day" in value
-    ) {
-      const isoString = value.toString();
-      emits("update:modelValue", isoString);
-    } else if (isObject(value) && "start" in value && "end" in value) {
-      const startIso = value.start?.toString();
-      const endIso = value.end?.toString();
-      emits("update:modelValue", { start: startIso, end: endIso });
-    } else {
-      emits("update:modelValue", value as string | null | undefined);
-    }
-  } else {
-    // SAFETY: Holds when the update:placeholder and update:startValue payloads are CalendarDate: UCalendar types them as reka's DateValue, which also admits CalendarDateTime and ZonedDateTime, while this component declares CalendarDate. useForwardPropsEmits binds handlers only for the events this component declares, and update:modelValue reaches this branch only with a falsy value.
-    const forwardEvent = emits as (event: string, ...args: unknown[]) => void;
-    forwardEvent(event, value);
+  if (event === "update:modelValue") {
+    forwardModelValue(value);
+    return;
+  }
+  const day = toCalendarDay(value);
+  if (event === "update:placeholder" && day) {
+    emits("update:placeholder", day);
+  } else if (event === "update:startValue" && (day || value === undefined)) {
+    emits("update:startValue", day);
   }
 }
 

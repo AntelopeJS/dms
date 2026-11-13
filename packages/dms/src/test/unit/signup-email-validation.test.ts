@@ -9,7 +9,7 @@ import { applyConfig, getAuthConfig } from "../../config";
 import { signup } from "../../routes/authentication";
 import { seedUserInvite } from "../helpers/fixtures";
 import { RecordingUserModel } from "../helpers/recording-user-model";
-import { userFixture } from "../helpers/user-fixture";
+import { storedUserFixture } from "../helpers/user-fixture";
 
 const INVITEE_NAME = "Invitee";
 const INVITEE_PASSWORD = "InviteePassw0rd!";
@@ -26,7 +26,7 @@ interface SignupScenario {
 }
 
 function buildDraft(email: string): User {
-  return userFixture({
+  return storedUserFixture({
     _id: `signup-validation-draft:${email}`,
     email,
     name: "Abandoned draft",

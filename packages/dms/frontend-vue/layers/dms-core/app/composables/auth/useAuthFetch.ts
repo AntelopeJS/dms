@@ -1,3 +1,5 @@
+import { isObject } from "../../utils/type-check";
+
 export const CONTENT_LANGUAGE_HEADER = "x-content-language";
 
 const RETRY_HEADER = "x-auth-retry";
@@ -29,9 +31,13 @@ function withRetryHeader(
 }
 
 function isUnauthorized(error: unknown): boolean {
-  const response = (error as { response?: { status?: number } } | undefined)
-    ?.response;
-  return response?.status === HTTP_UNAUTHORIZED;
+  if (!isObject(error) || error === null) return false;
+  const { response } = error;
+  return (
+    isObject(response) &&
+    response !== null &&
+    response.status === HTTP_UNAUTHORIZED
+  );
 }
 
 export const useAuthFetch = () => {

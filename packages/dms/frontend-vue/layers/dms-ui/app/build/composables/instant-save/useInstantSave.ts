@@ -163,8 +163,10 @@ class InstantSaveQueue<V extends object> {
 
   /** Moves the waiting changes of these keys to a running save. */
   private take(keys: InstantSaveKey<V>[]): Partial<V> {
-    const changes: Partial<V> = {};
-    for (const key of keys) changes[key] = this.pending.get(key);
+    // SAFETY: Holds while put<K>(key, value: V[K] | undefined) stays the only writer of pending, so pending holds under each key K a V[K] or undefined: Object.fromEntries then gives each key of keys its own property holding a V[key] or undefined, which Partial<V> admits.
+    const changes = Object.fromEntries(
+      keys.map((key) => [key, this.pending.get(key)]),
+    ) as Partial<V>;
     for (const key of keys) {
       this.pending.delete(key);
       this.inFlight.add(key);

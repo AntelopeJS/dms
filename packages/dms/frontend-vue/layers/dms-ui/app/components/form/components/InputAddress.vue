@@ -106,7 +106,7 @@ const {
 const formErrors = inject(formErrorsInjectionKey, null);
 const formInputs = inject(formInputsInjectionKey, null);
 
-const ADDRESS_PART_NAMES: Record<keyof AddressValue, keyof AddressValue> = {
+const ADDRESS_PART_NAMES = {
   streetName: "streetName",
   houseNumber: "houseNumber",
   boxNumber: "boxNumber",
@@ -115,7 +115,7 @@ const ADDRESS_PART_NAMES: Record<keyof AddressValue, keyof AddressValue> = {
   city: "city",
   countrySubdivision: "countrySubdivision",
   countryCode: "countryCode",
-};
+} satisfies { [Part in keyof AddressValue]-?: Part };
 const PARTS = Object.values(ADDRESS_PART_NAMES);
 const FIRST_PART: keyof AddressValue = "streetName";
 

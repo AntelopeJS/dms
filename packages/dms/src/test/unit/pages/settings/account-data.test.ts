@@ -1,5 +1,6 @@
 import { expect } from "chai";
-import type { User } from "@antelopejs/interface-dms/auth/db";
+import { Session, type User } from "@antelopejs/interface-dms/auth/db";
+import { UserInvite } from "@antelopejs/interface-dms/db";
 import {
   ACCOUNT_EXPORT_FORMAT,
   type AccountMembershipSource,
@@ -9,7 +10,7 @@ import {
   isDeletionConfirmed,
   selfDeletionPayload,
 } from "../../../../pages/account";
-import { inviteFixture, sessionFixture } from "../../../helpers/table-fixtures";
+import { type StoredRow, storedFixture } from "../../../helpers/stored-row";
 import {
   plainPasswordUserFixture,
   userFixture,
@@ -100,6 +101,22 @@ function membership(
 }
 
 function exportOf(user: User) {
+  const legacySession: StoredRow<Session> & { refreshToken: string } = {
+    _id: "s1",
+    userId: USER_ID,
+    refreshToken: REFRESH_TOKEN,
+    refreshTokenHash: REFRESH_HASH,
+    sealedRefreshToken: SEALED_REFRESH,
+    previousRefreshTokenHash: REFRESH_HASH,
+    userAgent: "Mozilla/5.0",
+    ip: "127.0.0.1",
+    browser: "Chrome",
+    os: "Windows",
+    deviceType: "desktop",
+    location: "",
+    createdAt: EXPORTED_AT,
+    lastActiveAt: EXPORTED_AT,
+  };
   return buildAccountExport({
     user,
     notificationPreferences: { "security.sign_in": true },
@@ -122,26 +139,7 @@ function exportOf(user: User) {
         updatedAt: EXPORTED_AT,
       },
     ],
-    sessions: [
-      Object.assign(
-        sessionFixture({
-          _id: "s1",
-          userId: USER_ID,
-          refreshTokenHash: REFRESH_HASH,
-          sealedRefreshToken: SEALED_REFRESH,
-          previousRefreshTokenHash: REFRESH_HASH,
-          userAgent: "Mozilla/5.0",
-          ip: "127.0.0.1",
-          browser: "Chrome",
-          os: "Windows",
-          deviceType: "desktop",
-          location: "",
-          createdAt: EXPORTED_AT,
-          lastActiveAt: EXPORTED_AT,
-        }),
-        { refreshToken: REFRESH_TOKEN },
-      ),
-    ],
+    sessions: [storedFixture(Session, legacySession)],
     identities: [
       {
         _id: "i1",
@@ -157,16 +155,18 @@ function exportOf(user: User) {
       {
         tenantId: "acme",
         roleNames: ["Viewer"],
-        invite: inviteFixture({
+        invite: storedFixture(UserInvite, {
           _id: "inv1",
           email: "new@acme.dev",
           firstname: "Noa",
           lastname: null,
           roles_ids: ["viewer"],
+          language: "en",
           token: INVITE_TOKEN,
           asTenantOwner: false,
           createdAt: EXPORTED_AT,
           expiresAt: new Date("2026-10-08T12:00:00Z"),
+          extensions: null,
         }),
       },
     ],

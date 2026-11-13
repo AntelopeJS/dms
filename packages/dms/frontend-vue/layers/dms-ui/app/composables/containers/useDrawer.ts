@@ -1,10 +1,11 @@
-import { getCurrentInstance, type ComponentInternalInstance } from "vue";
+import type { AppContext } from "vue";
 import DynamicDrawer from "../../build/components/containers/drawer/DynamicDrawer.vue";
 import DmsRowHeader from "../../build/components/containers/row/RowHeader.vue";
 import { drawerRowHeaderProps } from "../../build/components/containers/row/drawerRowHeader";
 import { listenRowSteps } from "../../build/composables/actions/rowNavigation";
 import { DMS_OWN_DRAWER } from "../../build/composables/containers/context";
 import { componentSizeKey } from "../../build/composables/containers/drawerSize";
+import { currentInstanceProvides } from "../../build/composables/containers/instanceProvides";
 import { openDynamicContainer } from "./openDynamicContainer";
 import type {
   DrawerInstance,
@@ -18,18 +19,7 @@ const DRAWER_ID_PREFIX = "drawer";
 /** What `useDrawer` hands the drawer besides its options. */
 interface DrawerCallerContext {
   /** The provides of the component that called `useDrawer` (see DynamicDrawer). */
-  callerProvides?: object;
-}
-
-/** What `instance` and its ancestors provide, read when the drawer opens. */
-function providesOf(
-  instance: ComponentInternalInstance | null,
-): object | undefined {
-  if (!instance || !("provides" in instance)) return undefined;
-  const { provides } = instance;
-  return typeof provides === "object" && provides !== null
-    ? provides
-    : undefined;
+  callerProvides?: AppContext["provides"];
 }
 
 /**
@@ -40,7 +30,7 @@ function providesOf(
 export function useDrawer() {
   const overlay = useOverlay();
 
-  const caller = getCurrentInstance();
+  const caller = currentInstanceProvides();
 
   function open<Result = unknown>(
     options: DrawerOptions,
@@ -56,8 +46,7 @@ export function useDrawer() {
     >(overlay, DynamicDrawer, DRAWER_ID_PREFIX, {
       ...containerOptions,
 
-      callerProvides:
-        DMS_OWN_DRAWER in options ? undefined : providesOf(caller),
+      callerProvides: DMS_OWN_DRAWER in options ? undefined : caller?.provides,
       ...(rowHeader && {
         headerComponent: DmsRowHeader,
         headerComponentOptions: headerProps(),

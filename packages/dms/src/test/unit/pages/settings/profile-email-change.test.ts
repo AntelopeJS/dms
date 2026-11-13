@@ -3,7 +3,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { assert, expect } from "chai";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assertEmailAvailable } from "../../../../pages/account";
-import { userFixture } from "../../../helpers/user-fixture";
+import { storedUserFixture } from "../../../helpers/user-fixture";
 
 const HTTP_CONFLICT = 409;
 const EMAIL_TAKEN = "error.email_already_used";
@@ -22,8 +22,9 @@ class HoldingUserModel extends UserModel {
   }
 
   override async getByEmail(lookup: string): Promise<User | undefined> {
-    const id = this.ids.get(lookup.trim().toLowerCase());
-    return id ? userFixture({ _id: id }) : undefined;
+    const email = lookup.trim().toLowerCase();
+    const id = this.ids.get(email);
+    return id ? storedUserFixture({ _id: id, email }) : undefined;
   }
 }
 

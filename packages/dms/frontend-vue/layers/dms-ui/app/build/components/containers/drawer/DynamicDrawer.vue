@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getCurrentInstance, toRaw, type Component } from "vue";
+import { toRaw, type Component } from "vue";
 import {
   formBusInjectionKey,
   formErrorsInjectionKey,
@@ -28,6 +28,7 @@ import {
   type ResizeSide,
   useResizableSize,
 } from "../../../composables/containers/useResizableSize";
+import { currentInstanceProvides } from "../../../composables/containers/instanceProvides";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import {
   CLOSING_OVERLAY_CLASS,
@@ -92,8 +93,8 @@ const NUXT_UI_FORM_KEYS: symbol[] = [
   formLoadingInjectionKey,
   formErrorsInjectionKey,
 ];
-const drawerInstance = getCurrentInstance();
-if (drawerInstance && "provides" in drawerInstance && props.callerProvides) {
+const drawerInstance = currentInstanceProvides();
+if (drawerInstance && props.callerProvides) {
   drawerInstance.provides = Object.create(toRaw(props.callerProvides));
 
   for (const key of NUXT_UI_FORM_KEYS) provide(key, undefined);

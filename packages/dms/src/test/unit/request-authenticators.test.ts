@@ -8,7 +8,7 @@ import type {
 } from "@antelopejs/interface-dms/auth/request-authenticators";
 import { resolveRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 import { requestContextFixture } from "../helpers/request-context";
-import { userFixture } from "../helpers/user-fixture";
+import { storedUserFixture } from "../helpers/user-fixture";
 
 const UNAUTHORIZED = 401;
 const TENANT = "credential-tenant";
@@ -19,7 +19,7 @@ function context(authorization = "Bearer opaque.secret"): RequestContext {
 }
 
 function principal(tenantId = TENANT, userId = USER_ID): RequestPrincipal {
-  return { tenantId, user: userFixture({ _id: userId }) };
+  return { tenantId, user: storedUserFixture({ _id: userId }) };
 }
 
 function handler(authenticate = async () => principal()): RequestAuthenticator {

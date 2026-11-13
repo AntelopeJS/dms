@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import { Readable } from "node:stream";
-import { ReadableStream as NodeReadableStream } from "node:stream/web";
 import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
@@ -316,11 +315,6 @@ export async function downloadExportJob<TContext = unknown>(
   const filename = buildExportFilename(record.filename, record.extension);
   const resourceKey = record.resultPath;
   const { body, size } = await streamExportFromStorage(resourceKey);
-  assert(
-    body instanceof NodeReadableStream,
-    500,
-    "Export body is not a Node web stream",
-  );
 
   if (size !== undefined) {
     ctx.response.addHeader("Content-Length", size.toString());
@@ -335,7 +329,7 @@ export async function downloadExportJob<TContext = unknown>(
   );
   const writeStream = ctx.response.getWriteStream(record.contentType);
 
-  const nodeReadable = Readable.fromWeb(body);
+  const nodeReadable = Readable.from(body, { objectMode: false });
 
   const cleanup = (): void => {
     fireAndForget(

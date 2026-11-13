@@ -16,6 +16,7 @@ import {
 import { reactivePick } from "@vueuse/core";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
 import { useControlError } from "../../../composables/form/useControlError";
+import { toCalendarDay } from "../../../build/utils/calendarDay";
 import {
   FIELD_TRIGGER_CLASS,
   FIELD_TRIGGER_INVALID_CLASS,
@@ -226,30 +227,37 @@ const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
   }
 };
 
+function forwardModelValue(value: EmitValue): void {
+  if (value === null || value === undefined || isString(value)) {
+    emits("update:modelValue", value);
+  } else if (Array.isArray(value)) {
+    const isoStrings = value.map((date) => date.toString());
+    emits("update:modelValue", isoStrings);
+  } else if (
+    isObject(value) &&
+    "year" in value &&
+    "month" in value &&
+    "day" in value
+  ) {
+    const isoString = value.toString();
+    emits("update:modelValue", isoString);
+  } else if (isObject(value) && "start" in value && "end" in value) {
+    const startIso = value.start?.toString();
+    const endIso = value.end?.toString();
+    emits("update:modelValue", { start: startIso, end: endIso });
+  }
+}
+
 function forwardEmit(event: EmitEvent, value: EmitValue): void {
-  if (event === "update:modelValue" && value) {
-    if (Array.isArray(value)) {
-      const isoStrings = value.map((date) => date.toString());
-      emits("update:modelValue", isoStrings);
-    } else if (
-      isObject(value) &&
-      "year" in value &&
-      "month" in value &&
-      "day" in value
-    ) {
-      const isoString = value.toString();
-      emits("update:modelValue", isoString);
-    } else if (isObject(value) && "start" in value && "end" in value) {
-      const startIso = value.start?.toString();
-      const endIso = value.end?.toString();
-      emits("update:modelValue", { start: startIso, end: endIso });
-    } else {
-      emits("update:modelValue", value as string | null | undefined);
-    }
-  } else {
-    // SAFETY: Holds when the update:placeholder and update:startValue payloads are CalendarDate: UCalendar types them as reka's DateValue, which also admits CalendarDateTime and ZonedDateTime, while this component declares CalendarDate. useForwardPropsEmits binds handlers only for the events this component declares, and update:modelValue reaches this branch only with a falsy value.
-    const forwardEvent = emits as (event: string, ...args: unknown[]) => void;
-    forwardEvent(event, value);
+  if (event === "update:modelValue") {
+    forwardModelValue(value);
+    return;
+  }
+  const day = toCalendarDay(value);
+  if (event === "update:placeholder" && day) {
+    emits("update:placeholder", day);
+  } else if (event === "update:startValue" && (day || value === undefined)) {
+    emits("update:startValue", day);
   }
 }
 
