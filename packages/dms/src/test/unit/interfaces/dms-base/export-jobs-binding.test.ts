@@ -12,7 +12,7 @@ import { untouchedRequestContext } from "../../../helpers/request-context";
 const HTTP_UNAUTHORIZED = 401;
 
 const SETTLE_TIMEOUT_MS = 2000;
-// SAFETY: The anonymous caller is deliberately undefined although the contract requires a User: the assertion is false on purpose, and the test asserts the runtime rejects it as unauthorized.
+// SAFETY: runExportJob and loadExportJobForUser, which getExportJobStatus and downloadExportJob call first, assert that user is defined with a 401 before they read any member of it, so an undefined user is rejected and never dereferenced.
 const ANONYMOUS_USER = undefined as unknown as User;
 const UNUSED_CONTEXT = untouchedRequestContext();
 const UNKNOWN_JOB_ID = "unknown-export-job";

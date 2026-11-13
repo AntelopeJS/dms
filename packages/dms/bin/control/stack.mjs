@@ -43,7 +43,8 @@ import { appendTiming, recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
  * @typedef {import("./run-state.mjs").RunState} RunState
- * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string, prepared?: import("./timing.mjs").TimingEntry[], noStandby?: boolean, buildCache?: boolean, frontendMode?: import("./run-state.mjs").FrontendMode }} UpOptions Where the playground and the runs are, the `prepare` entries to record once the run exists, whether fresh databases start their backend on the spot, whether the frontend build may come from the build cache (it may unless `buildCache` is false), and how the dashboard is served (a build unless `frontendMode` is `dev`)
+ * @typedef {{ playground: string, renderer?: string, runs?: string, mongoUrl?: string, env?: string[], base?: string, skill?: string, prepared?: import("./timing.mjs").TimingEntry[], noStandby?: boolean, buildCache?: boolean, frontendMode?: import("./run-state.mjs").FrontendMode, backendMode?: BackendMode }} UpOptions Where the playground and the runs are, the `prepare` entries to record once the run exists, whether fresh databases start their backend on the spot, whether the frontend build may come from the build cache (it may unless `buildCache` is false), how the dashboard is served (a build unless `frontendMode` is `dev`), and how the backends run unless a journey says otherwise (production unless `backendMode` is `dev`)
+ * @typedef {import("./run-state.mjs").BackendMode} BackendMode
  */
 
 const READY_TIMEOUT_MS = 180_000;
@@ -128,6 +129,7 @@ async function initialState(options) {
   if (renderer) state.renderer = renderer;
   if (options.noStandby) state.noStandby = true;
   if (options.frontendMode === "dev") state.frontendMode = "dev";
+  if (options.backendMode === "dev") state.backendMode = "dev";
   return state;
 }
 
@@ -206,6 +208,31 @@ async function startFirstMail(state) {
 }
 
 /**
+ * How the run's backends run unless a journey says otherwise.
+ *
+ * @param {RunState} state The run
+ * @returns {BackendMode} `dev` when `up` was given `--dev-backend`
+ */
+export function runBackendMode(state) {
+  return state.backendMode ?? "production";
+}
+
+/**
+ * The `ajs` arguments that start a backend in `mode`: `project start` on the
+ * build, or `project dev` without watching, which resolves
+ * `antelope.config.ts` and loads the same module builds in the runtime's
+ * development mode, without the module-set check of `--refresh-config`.
+ *
+ * @param {BackendMode} mode How it runs
+ * @returns {string[]} The arguments after the `ajs` script
+ */
+function backendArgs(mode) {
+  return mode === "dev"
+    ? ["project", "dev", "-e", ENVIRONMENT]
+    : ["project", "start", "-e", ENVIRONMENT, "--refresh-config"];
+}
+
+/**
  * Starts a backend of the run on `database` and a free loopback port of its
  * own, from the run's build or `build`, without waiting for it, and records
  * it in a file of its own. Its log is named after its database,
@@ -215,20 +242,32 @@ async function startFirstMail(state) {
  * @param {RunState} state The run
  * @param {string} database The database it serves
  * @param {{ playground?: string, cwd?: string }} [build] Another build to start
+ * @param {BackendMode} [mode] How it runs, the run's mode by default
  * @returns {Promise<import("./run-state.mjs").BackendRecord>} Its record
  */
-export async function launchBackend(state, database, build) {
+export async function launchBackend(
+  state,
+  database,
+  build,
+  mode = runBackendMode(state),
+) {
   const { ajs } = cliPaths(build?.playground ?? state.playground);
   const port = await freePort();
   const launch = spec(
     state,
     `backend${database.slice(state.databasePrefix.length)}`,
     ajs,
-    ["project", "start", "-e", ENVIRONMENT, "--refresh-config"],
+    backendArgs(mode),
     build?.cwd,
   );
   launch.env = { ...launch.env, PORT: String(port), MONGO_DATABASE: database };
-  const backend = { ...startDetached(launch), name: "backend", port, database };
+  const backend = {
+    ...startDetached(launch),
+    name: "backend",
+    port,
+    database,
+    mode,
+  };
   recordBackend(state.dir, backend);
   return backend;
 }
@@ -270,11 +309,12 @@ export function waitForBackend(backend) {
  *
  * @param {RunState} state The run
  * @param {{ playground?: string, cwd?: string }} [build] Another build to start
+ * @param {BackendMode} [mode] How it runs, the run's mode by default
  * @returns {Promise<void>} Resolves once the API reaches it
  */
-export async function startBackend(state, build) {
+export async function startBackend(state, build, mode) {
   await ensureApi(state);
-  const backend = await launchBackend(state, state.database, build);
+  const backend = await launchBackend(state, state.database, build, mode);
   record(state, backend);
   await waitForBackend(backend);
   writeTarget(apiTargetFile(state.dir), backend.port);

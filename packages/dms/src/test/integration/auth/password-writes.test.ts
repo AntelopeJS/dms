@@ -152,6 +152,12 @@ describe("[integration] auth/password writes off the event loop", function () {
     await expectStoredPassword(user.userId, NEXT_PASSWORD, FIRST_PASSWORD);
     await loginUser(user.email, NEXT_PASSWORD);
   });
+});
+
+describe("[integration] auth/password writes off the event loop, change and onboarding", function () {
+  this.timeout(TEST_TIMEOUT_MS);
+
+  beforeEach(resetDatabase);
 
   it("password change stores a hash of the new password", async () => {
     const user = await registerUser({ password: FIRST_PASSWORD, owner: true });

@@ -140,28 +140,12 @@ export default defineConfig({
       },
     },
     {
-      files: ["packages/dms/playground/**"],
-      rules: {
-        "eslint/max-lines": "off",
-      },
-    },
-    {
       files: [
         "packages/dms/src/test/unit/**",
         "packages/dms/src/test/integration/**",
       ],
       rules: {
-        "eslint/max-lines": "off",
-        "eslint/max-lines-per-function": "off",
         "anti-slop/no-chained-type-assertions": "off",
-        "eslint/no-unused-expressions": "off",
-        "eslint/no-restricted-imports": "off",
-      },
-    },
-    {
-      files: ["packages/interface-dms/src/index.ts"],
-      rules: {
-        "eslint/no-restricted-imports": "off",
       },
     },
   ],

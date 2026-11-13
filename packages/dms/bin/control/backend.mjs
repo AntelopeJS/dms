@@ -8,6 +8,7 @@ import {
   launchBackend,
   liveBackends,
   record,
+  runBackendMode,
   startBackend,
   waitForBackend,
 } from "./stack.mjs";
@@ -15,6 +16,7 @@ import { recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /** @typedef {import("./run-state.mjs").RunState} RunState */
 /** @typedef {import("./run-state.mjs").BackendRecord} BackendRecord */
+/** @typedef {import("./run-state.mjs").BackendMode} BackendMode */
 
 /**
  * Refuses a run whose backend holds the API port itself: an earlier
@@ -41,7 +43,8 @@ export function assertForwardedRun(state) {
  * a crash would, from the run's build or another one (`build`, the base
  * version's). The API keeps its port and reaches the new backend once it
  * answers. A backend whose pid now runs another process has exited, and
- * nothing is stopped for it.
+ * nothing is stopped for it. The new backend runs in the stopped one's mode,
+ * so a restart inside a journey keeps the mode the journey asked for.
  *
  * @param {RunState} state The run
  * @param {{ playground: string, cwd: string }} [build] Another build to start
@@ -52,7 +55,9 @@ export async function restartBackend(state, build) {
   if (backend) {
     await timed(state, "backend-stop", () => stopRecorded([backend]));
   }
-  await timed(state, "backend-start", () => startBackend(state, build));
+  await timed(state, "backend-start", () =>
+    startBackend(state, build, backend?.mode),
+  );
 }
 
 /**
@@ -112,17 +117,19 @@ function nextSuffix(suffix) {
 }
 
 /**
- * Whether a standby can take over `database`: it was started on it, it
- * answers, and nothing of the run's build changed since it started. The
- * wait is timed as `standby-promote`, failed when the standby is not taken.
+ * Whether a standby can take over `database` in `mode`: it was started on
+ * it in that mode, it answers, and nothing of the run's build changed since
+ * it started. The wait is timed as `standby-promote`, failed when the
+ * standby is not taken.
  *
  * @param {RunState} state
  * @param {BackendRecord} standby
- * @param {string} database
+ * @param {{ database: string, mode: BackendMode }} wanted
  * @returns {Promise<boolean>}
  */
-async function fits(state, standby, database) {
+async function fits(state, standby, { database, mode }) {
   if (standby.database !== database) return false;
+  if ((standby.mode ?? "production") !== mode) return false;
   const stop = stopwatch();
   const answers = await waitForBackend(standby).then(
     () => true,
@@ -134,21 +141,22 @@ async function fits(state, standby, database) {
 }
 
 /**
- * A backend that answers on `database`: the standby when it fits, else one
- * started now. Every other backend the API does not forward to is killed
- * first and its database dropped.
+ * A backend that answers on `database` in `mode`: the standby when it fits,
+ * else one started now. Every other backend the API does not forward to is
+ * killed first and its database dropped.
  *
  * @param {RunState} state
- * @param {string} database
+ * @param {{ database: string, mode: BackendMode }} wanted
  * @returns {Promise<BackendRecord>}
  */
-async function backendOn(state, database) {
+async function backendOn(state, wanted) {
+  const { database, mode } = wanted;
   const target = readTarget(apiTargetFile(state.dir));
   const spares = liveBackends(state).filter(
     (backend) => backend.port !== target,
   );
   const standby = spares.find((backend) => backend.database === database);
-  if (standby && (await fits(state, standby, database))) {
+  if (standby && (await fits(state, standby, wanted))) {
     await retire(
       state,
       spares.filter((backend) => backend !== standby),
@@ -157,7 +165,7 @@ async function backendOn(state, database) {
   }
   await retire(state, spares);
   return timed(state, "backend-start", async () => {
-    const backend = await launchBackend(state, database);
+    const backend = await launchBackend(state, database, undefined, mode);
     await waitForBackend(backend);
     return backend;
   });
@@ -167,19 +175,24 @@ async function backendOn(state, database) {
  * Moves the run onto an empty database of its own, `<prefix>_<suffix>`,
  * served by a backend that has served nothing else: not onboarded, no user,
  * no session, nothing in memory. That backend is the standby the previous
- * call started when it was started on this database, answers, and nothing
- * of the build changed since it started; else one started now. The API
- * points at it before every other backend is killed. Then the standby for
- * the next suffix starts, unless the run was started with `--no-standby`,
- * and the previous journey database is dropped, so a long run does not
- * exhaust mongod's file handles; its evidence stays.
+ * call started when it was started on this database in `mode`, answers, and
+ * nothing of the build changed since it started; else one started now. The
+ * API points at it before every other backend is killed. Then the standby
+ * for the next suffix starts in the run's mode, unless the run was started
+ * with `--no-standby`, and the previous journey database is dropped, so a
+ * long run does not exhaust mongod's file handles; its evidence stays.
  *
  * @param {RunState} state The run
  * @param {string} suffix What tells the database apart, such as `j003`
+ * @param {BackendMode} [mode] How its backend runs, the run's mode by default
  * @returns {Promise<string>} The database now in use
  * @throws When an earlier dms-control started the run, or a folder of the run's build is missing (a build runs), before it starts or stops anything
  */
-export async function freshDatabase(state, suffix) {
+export async function freshDatabase(
+  state,
+  suffix,
+  mode = runBackendMode(state),
+) {
   assertForwardedRun(state);
   const missing = missingBuildRoot(state);
   if (missing) {
@@ -189,7 +202,7 @@ export async function freshDatabase(state, suffix) {
   }
   const previous = state.database;
   const database = `${state.databasePrefix}_${suffix}`;
-  const backend = await backendOn(state, database);
+  const backend = await backendOn(state, { database, mode });
   await ensureApi(state);
   writeTarget(apiTargetFile(state.dir), backend.port);
   Object.assign(state, { database, tokens: {}, accounts: {} });

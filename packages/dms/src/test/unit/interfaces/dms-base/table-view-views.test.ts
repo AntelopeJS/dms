@@ -107,7 +107,7 @@ const tableOptions = (options: TicketOptions): TableViewOptionsSerialized =>
 const register = (options: TicketOptions) => () =>
   TableView(TicketAPI, { realtime: false, rowActions: READ_ONLY, ...options });
 
-describe("[unit] interfaces/dms-base — table view views", () => {
+function registerViewServingCases(): void {
   it("serializes the views without their permission", () => {
     const options = tableOptions({
       views: {
@@ -201,7 +201,9 @@ describe("[unit] interfaces/dms-base — table view views", () => {
       }),
     ).to.throw(/defaults to view "gone"/);
   });
+}
 
+function registerViewRefusalCases(): void {
   it("refuses a view filtering on a column that is not filterable", () => {
     expect(
       register({
@@ -272,6 +274,11 @@ describe("[unit] interfaces/dms-base — table view views", () => {
       register({ grouped: { groupByField: "status", by: "week" } }),
     ).to.throw(/needs a DateType column/);
   });
+}
+
+describe("[unit] interfaces/dms-base — table view views", () => {
+  registerViewServingCases();
+  registerViewRefusalCases();
 });
 
 describe("[unit] interfaces/dms-base — table view links and URL keys", () => {

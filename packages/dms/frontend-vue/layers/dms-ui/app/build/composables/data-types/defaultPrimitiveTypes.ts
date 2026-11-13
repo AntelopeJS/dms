@@ -92,12 +92,10 @@ function renderText(
   if (value === "") return null;
   const tone = readRowTone(
     row,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Text options have no runtime schema; toneField is read from the original plugin input.
     (options as TextOptions | undefined)?.toneField,
   );
   if (!tone) return value;
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- A valid tone does not validate the row value as VNodeChild; preserve the existing unchecked Vue child.
   return h("span", { class: DMS_TONE_TEXT[tone] }, [value as VNodeChild]);
 }
 

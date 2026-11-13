@@ -5,6 +5,7 @@ import type {
   AccountActivityEvent,
   AccountActivityType,
 } from "./account-activity";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 /** Settings pages the activity rows and "View all" lead to. */
 export const ACTIVITY_PAGE_IDS = {
@@ -24,12 +25,11 @@ const BROWSER_VERSION = /\s+[\d.]+$/;
 
 const UNKNOWN_PART = "unknown";
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Device strings from stored sessions are open-ended; an absent lookup must retain the existing fallback icon.
-const DEVICE_ICONS: Record<string, string> = {
+const DEVICE_ICONS = {
   desktop: "i-ph-desktop",
   mobile: "i-ph-device-mobile",
   tablet: "i-ph-device-tablet",
-};
+} satisfies Record<string, string>;
 
 const TWO_FACTOR_METHODS = new Set(["totp", "email"]);
 
@@ -229,8 +229,7 @@ function textsOf(event: AccountActivityType, source: AccountActivityEvent) {
   );
   const params = { ...title.params };
   const meta = entries.map((entry) => {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Activity metadata intentionally mixes literal text and translation descriptors; this discriminates those existing variants.
-    if (typeof entry === "string") return entry;
+    if (isString(entry)) return entry;
     Object.assign(params, entry.params);
     return entry.key;
   });

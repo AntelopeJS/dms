@@ -74,7 +74,6 @@ function invitesRowActions() {
       },
     },
     formComponents: {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This serialized edit-form fixture intentionally omits unrelated required form options.
       edit: {
         componentName: "DmsForm",
         options: {

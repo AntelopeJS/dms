@@ -5,7 +5,6 @@ export type Primitive =
   | Date
   | null
   | undefined
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Primitive is the exported parser contract; JSON objects have arbitrary members and a recursive JSON-only replacement would narrow existing consumers of this union.
   | Record<string, unknown>
   | unknown[];
 

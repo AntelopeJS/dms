@@ -7,14 +7,22 @@ import { reactive, ref, type Ref } from "vue";
 import { beforeEach, expect, it, vi } from "vitest";
 
 const route = reactive({ path: "/modules/api/routes" });
-let sharedState: Map<string, Ref<unknown>>;
+type RecordLabelState = Ref<{ path: string; label: string } | null>;
+
+let sharedState: Map<string, RecordLabelState>;
 
 vi.stubGlobal("useDmsRoute", () => route);
-vi.stubGlobal("useDmsState", <T>(key: string, init?: () => T): Ref<T> => {
-  if (!sharedState.has(key)) sharedState.set(key, ref(init?.()));
-  // SAFETY: Each key is initialized once by the composable and reused with the same state type.
-  return sharedState.get(key) as Ref<T>;
-});
+vi.stubGlobal(
+  "useDmsState",
+  (key: string, init: () => RecordLabelState["value"]): RecordLabelState => {
+    let state = sharedState.get(key);
+    if (!state) {
+      state = ref(init());
+      sharedState.set(key, state);
+    }
+    return state;
+  },
+);
 
 const { usePageRecordLabel } = await import(
   "../layers/dms-core/app/composables/page/usePageRecordLabel"

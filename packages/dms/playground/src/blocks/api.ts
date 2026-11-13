@@ -45,24 +45,22 @@ async function bumpFactsAndPublish(): Promise<void> {
 }
 
 const DEFAULT_PERIOD = "this-month";
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require an indexed lookup with the existing fallback.
-const PERIOD_SCALES: Record<string, number> = {
+const PERIOD_SCALES = {
   "last-7-days": 0.25,
   "last-30-days": 1,
   "this-month": 1,
   "last-month": 1.1,
   "last-90-days": 3,
   "this-quarter": 3,
-};
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary period query strings require an indexed lookup with the existing fallback.
-const PERIOD_LABELS: Record<string, string> = {
+} satisfies Record<string, number>;
+const PERIOD_LABELS = {
   "last-7-days": "Last 7 days",
   "last-30-days": "Last 30 days",
   "this-month": "This month",
   "last-month": "Last month",
   "last-90-days": "Last 90 days",
   "this-quarter": "This quarter",
-};
+} satisfies Record<string, string>;
 const MRR_CENTS = 92200;
 const MRR_RENEWAL = "2026-10-31T09:00:00Z";
 const CONVERSION_RATIO = 0.253;

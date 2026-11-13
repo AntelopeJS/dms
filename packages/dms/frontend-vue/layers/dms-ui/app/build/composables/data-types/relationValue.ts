@@ -27,7 +27,6 @@ export function mapRelationBeforeState(
 ) {
   if (!value) return value;
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- BeforeStateMapper erases plugin options; relation options are consumed without validation so malformed inputs retain their existing behavior.
   const opts = options as RelationValueOptions | undefined;
   const valueKey = opts?.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
 
@@ -71,7 +70,6 @@ export function sameRelationValue(
   right: Parameters<DataTypeValueComparer>[1],
   options: Parameters<DataTypeValueComparer>[2],
 ): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The comparer shares the mapper's erased options contract; this assertion does not validate multiple.
   const isSet = !!(options as RelationValueOptions | undefined)?.multiple;
   const comparable = (value: Parameters<DataTypeValueComparer>[0]) => {
     const ids = relationIds(value, options);

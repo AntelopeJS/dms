@@ -2,6 +2,7 @@
 import { MAX_PAGE_SIZE } from "../../composables/table/constants";
 import {
   CARD_GRID_CLASS,
+  DEFAULT_CARD_MIN_WIDTH,
   cardGridStyle,
 } from "../../composables/table-view/utils/card";
 
@@ -27,6 +28,7 @@ interface CardGridSkeletonProps {
 }
 
 const props = withDefaults(defineProps<CardGridSkeletonProps>(), {
+  minWidth: DEFAULT_CARD_MIN_WIDTH,
   labelClass: "text-[10.5px] leading-[1.2]",
 });
 

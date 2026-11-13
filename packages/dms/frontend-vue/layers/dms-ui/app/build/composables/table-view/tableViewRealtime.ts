@@ -150,7 +150,6 @@ export function useTableViewRowEvents<T extends Data>(
   };
 
   useRealtimeTopic(realtimeRowTopic, (event) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- RealtimeTopicHandler leaves payload values unknown; this existing row-topic consumer trusts server ids without validating them.
     const payload = event as { type: string; payload?: { ids?: string[] } };
     const handler = realtimeEventHandlers[payload.type];
     if (!handler) return;

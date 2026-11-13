@@ -19,12 +19,20 @@ export interface RelationFilterBy<T extends ControllerClass> {
 }
 
 function relationCompareModes(multiple?: boolean) {
-  return [
-    multiple ? DefaultDataCompareTypes.Include : DefaultDataCompareTypes.Is,
-    multiple ? DefaultDataCompareTypes.Exclude : DefaultDataCompareTypes.IsNot,
-    DefaultDataCompareTypes.IsEmpty,
-    DefaultDataCompareTypes.IsNotEmpty,
-  ];
+  return multiple
+    ? [
+        DefaultDataCompareTypes.Include,
+        DefaultDataCompareTypes.Exclude,
+        DefaultDataCompareTypes.ArrayContainsString,
+        DefaultDataCompareTypes.IsEmpty,
+        DefaultDataCompareTypes.IsNotEmpty,
+      ]
+    : [
+        DefaultDataCompareTypes.Is,
+        DefaultDataCompareTypes.IsNot,
+        DefaultDataCompareTypes.IsEmpty,
+        DefaultDataCompareTypes.IsNotEmpty,
+      ];
 }
 
 function relationDefaultCompareMode(multiple?: boolean) {

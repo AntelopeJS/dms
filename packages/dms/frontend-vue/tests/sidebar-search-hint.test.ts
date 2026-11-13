@@ -12,7 +12,6 @@ import {
   ref,
   watch,
   type App,
-  type PropType,
   type Ref,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
@@ -35,21 +34,18 @@ let app: App | undefined;
 let host: HTMLDivElement;
 
 /** Stands in for Nuxt UI's button: its kbds, and its tooltip's while collapsed. */
-const SearchButton = defineComponent({
-  props: {
-    // SAFETY: Sidebar passes the search button's keyboard labels as strings.
-    kbds: { type: Array as PropType<string[]>, default: () => [] },
-    // SAFETY: Sidebar supplies the tooltip's keyboard labels in its kbds property.
-    tooltip: { type: Object as PropType<{ kbds?: string[] }>, default: null },
-  },
-  setup: (props) => () =>
+const SearchButton = defineComponent(
+  (props: { kbds?: string[]; tooltip?: { kbds?: string[] } | null }) => () =>
     h("button", { "data-testid": "search" }, [
-      ...props.kbds.map((kbd) => h("kbd", { "data-slot": "hint" }, kbd)),
+      ...(props.kbds ?? []).map((kbd) =>
+        h("kbd", { "data-slot": "hint" }, kbd),
+      ),
       ...(props.tooltip?.kbds ?? []).map((kbd) =>
         h("kbd", { "data-slot": "tooltip" }, kbd),
       ),
     ]),
-});
+  { props: { kbds: Array, tooltip: Object } },
+);
 
 function installRuntime(initialCookies: Record<string, string>) {
   cookies = new Map(

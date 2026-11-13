@@ -39,7 +39,6 @@ export interface LiveSubscription {
    * reaching several blocks counts once in the page's `missedCount`; its
    * `payload.ids` or `payload.count` say how many rows it stands for.
    */
-  // oxlint-disable-next-line anti-slop/no-object-parameters -- Event identity is any object; payload-less events and arbitrary publisher objects must remain accepted.
   trigger(event?: object): void;
   /** Rows and events the block received while paused or held, not read yet. */
   readonly missed: Readonly<Ref<number>>;

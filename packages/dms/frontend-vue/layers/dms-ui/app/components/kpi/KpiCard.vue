@@ -281,8 +281,8 @@ const isStat = computed(() => props.variant === "stat");
     </div>
     <!-- The value's placeholder takes its 33px line. -->
     <USkeleton
-      :aria-label="t('dms.a11y.loading')"
       v-if="isFirstLoad"
+      :aria-label="t('dms.a11y.loading')"
       class="mt-1 h-[33px] w-32"
     />
     <DmsBlockInlineStatus
@@ -326,8 +326,8 @@ const isStat = computed(() => props.variant === "stat");
         </div>
       </div>
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-if="showSparkline"
+        :aria-label="t('dms.a11y.loading')"
         class="ml-auto h-[34px] w-24"
       />
     </div>

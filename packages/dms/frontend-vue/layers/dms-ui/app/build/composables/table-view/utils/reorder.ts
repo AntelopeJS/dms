@@ -20,7 +20,6 @@ const positionOf = (
   row: Parameters<typeof reorderEdits>[0][number],
   field: string,
 ): number | undefined => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- reorderEdits accepts arbitrary rows. Nuxt get's object declaration cannot describe its null and primitive handling; preserve the unchecked lookup using its owner input type.
   const value = Number(get(row as Parameters<typeof get>[0], field));
   return Number.isFinite(value) ? value : undefined;
 };
@@ -53,7 +52,6 @@ export function reorderEdits(
   rowIdKey: string,
 ): ReorderEdit[] {
   const idOf = (row: (typeof rows)[number]) =>
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Arbitrary rows remain part of reorderEdits' contract. The get owner requires objects but its implementation also reads primitives and missing neighbours.
     String(get(row as Parameters<typeof get>[0], rowIdKey));
   const slot = slotBetween(
     positionOf(rows[movedIndex - 1], field),

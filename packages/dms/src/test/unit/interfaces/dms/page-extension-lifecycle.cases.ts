@@ -22,7 +22,7 @@ import {
   failingComponent,
 } from "./page-extension.helpers";
 
-export function registerPageExtensionLifecycleCases(): void {
+function registerUnregistrationCases(): void {
   it("removes injected components when the extending module unregisters", async () => {
     class Target extends definePage("pe-teardown") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -91,7 +91,9 @@ export function registerPageExtensionLifecycleCases(): void {
       permissionsImpl.GetPermission("pages.pe-page-gone.strandedBlock"),
     ).to.equal(undefined);
   });
+}
 
+function registerFailureIsolationCases(): void {
   it("drops only the component that failed to register", async () => {
     class Target extends definePage("pe-rollback") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -179,7 +181,9 @@ export function registerPageExtensionLifecycleCases(): void {
       permissionsImpl.GetPermission("pages.pe-deferred-failure.badBlock"),
     ).to.equal(undefined);
   });
+}
 
+function registerReloadAndCollisionCases(): void {
   it("keeps injected components across a hot reload of the target page", async () => {
     class Target extends definePage("pe-hot-reload") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -270,7 +274,9 @@ export function registerPageExtensionLifecycleCases(): void {
     expect(captured.messages[0]).to.contain("SiblingExtension");
     expect(captured.messages[0]).to.contain("banner");
   });
+}
 
+function registerKeyAndTargetCases(): void {
   it("skips an extension whose key another extension already injected", async () => {
     class Target extends definePage("pe-collision-ext") {
       static table = CustomComponent("Table").meta({ name: "Table" });
@@ -352,4 +358,11 @@ export function registerPageExtensionLifecycleCases(): void {
       RegisterPageExtension("  ")(Extension);
     }).to.throw(/full id/);
   });
+}
+
+export function registerPageExtensionLifecycleCases(): void {
+  registerUnregistrationCases();
+  registerFailureIsolationCases();
+  registerReloadAndCollisionCases();
+  registerKeyAndTargetCases();
 }

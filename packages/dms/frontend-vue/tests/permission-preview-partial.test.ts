@@ -6,7 +6,6 @@ import {
   h,
   ref,
   type App,
-  type PropType,
   type Ref,
   type VNode,
 } from "vue";
@@ -177,15 +176,8 @@ function createPermissionPreviewPartialFixture() {
   let host: HTMLDivElement;
   let state: Map<string, Ref<unknown>>;
 
-  const MenuStub = defineComponent({
-    props: {
-      items: {
-        // SAFETY: Vue's Array constructor validates the container; every supplied item comes from ITEMS.
-        type: Array as PropType<NavigationMenuItem[][]>,
-        required: true,
-      },
-    },
-    setup(props) {
+  const MenuStub = defineComponent(
+    (props: { items: NavigationMenuItem[][] }) => {
       const renderItem = (item: NavigationMenuItem): VNode =>
         h("div", { "data-entry": item.fullId }, [
           h(
@@ -203,7 +195,8 @@ function createPermissionPreviewPartialFixture() {
         ]);
       return () => h("nav", props.items.flat().map(renderItem));
     },
-  });
+    { props: { items: { type: Array, required: true } } },
+  );
 
   function mount(previewing: boolean) {
     state.set(

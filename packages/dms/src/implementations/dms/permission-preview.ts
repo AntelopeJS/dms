@@ -1,20 +1,66 @@
 import { createHash } from "node:crypto";
-import type { PageHeaderButtonSerialized } from "@antelopejs/interface-dms/base/internal/layouts";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 /** The quick actions served to one permission set, keyed `category:id`. */
 export interface ServedQuickActions {
   actions: Record<string, { id: string }>;
 }
 
-/** Header actions of a served page layout (`DefaultLayout({ headerActions })`). */
+/** What the preview reads of a header button a page layout serves. */
+export interface ServedHeaderAction {
+  id: string;
+  /** Where it goes: the preview reads which quick action it runs, if one. */
+  target?: { type: string; id?: string };
+}
+
+function isServedHeaderTarget(
+  value: unknown,
+): value is NonNullable<ServedHeaderAction["target"]> {
+  return (
+    isObject(value) &&
+    value !== null &&
+    "type" in value &&
+    isString(value.type) &&
+    (!("id" in value) || value.id === undefined || isString(value.id))
+  );
+}
+
+function isServedHeaderAction(value: unknown): value is ServedHeaderAction {
+  return (
+    isObject(value) &&
+    value !== null &&
+    "id" in value &&
+    isString(value.id) &&
+    (!("target" in value) ||
+      value.target === undefined ||
+      isServedHeaderTarget(value.target))
+  );
+}
+
+/**
+ * Header actions of a served page layout (`DefaultLayout({ headerActions })`).
+ *
+ * @throws TypeError when the layout's `headerActions` are not buttons named by
+ * a string id
+ */
 export function readHeaderActions(
   layout: { options?: unknown } | undefined,
-): PageHeaderButtonSerialized[] {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Resolved layout options are opaque; inference and PageHeaderButtonSerialized cannot prove a custom layout follows DefaultLayout's headerActions convention, which this extraction already assumes without checking.
-  const options = layout?.options as
-    | { headerActions?: PageHeaderButtonSerialized[] }
-    | undefined;
-  return options?.headerActions ?? [];
+): ServedHeaderAction[] {
+  const options = layout?.options;
+  const actions =
+    isObject(options) && options !== null && "headerActions" in options
+      ? options.headerActions
+      : undefined;
+  if (actions === undefined) return [];
+  if (!Array.isArray(actions) || !actions.every(isServedHeaderAction)) {
+    throw new TypeError(
+      "A served page layout's headerActions must be buttons, each named by a string id",
+    );
+  }
+  return actions;
 }
 
 function servesQuickAction(served: ServedQuickActions, key: string): boolean {
@@ -26,12 +72,12 @@ function servesQuickAction(served: ServedQuickActions, key: string): boolean {
 
 /** What one permission set is served on a page, for its header actions. */
 export interface HeaderActionAccess {
-  headerActions: PageHeaderButtonSerialized[];
+  headerActions: ServedHeaderAction[];
   quickActions: ServedQuickActions;
 }
 
 function headerActionShown(
-  action: PageHeaderButtonSerialized,
+  action: ServedHeaderAction,
   access: HeaderActionAccess,
 ): boolean {
   if (!access.headerActions.some((served) => served.id === action.id)) {
@@ -39,7 +85,11 @@ function headerActionShown(
   }
 
   if (action.target?.type === "quickAction") {
-    return servesQuickAction(access.quickActions, action.target.id);
+    const quickAction = action.target.id;
+    return (
+      quickAction !== undefined &&
+      servesQuickAction(access.quickActions, quickAction)
+    );
   }
   return true;
 }

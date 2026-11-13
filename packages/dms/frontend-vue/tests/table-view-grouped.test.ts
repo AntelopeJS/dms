@@ -25,6 +25,7 @@ import {
   rowGroupKey,
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/groupedRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 const LABELS = {
   today: "Today",
@@ -279,10 +280,7 @@ describe("useGroupedRows", () => {
           grouped = useGroupedRows({
             grouped: { groupByField: "status", count: true, collapsible: true },
             isActive: computed(() => true),
-            // SAFETY: This fixture only renders the no-value header, which bypasses the column's data-type renderer.
-            columns: [
-              { id: "status", accessorKey: "status", header: "Status" },
-            ] as TableViewColumn[],
+            columns: [tableViewColumn("status", { header: "Status" })],
             rows,
             countQuery: (filter) => ({
               search: "late",

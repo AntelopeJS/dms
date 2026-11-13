@@ -7,7 +7,8 @@
  */
 import { computed, createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
+import { fetchClient } from "./fixtures/fetchClient";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("computed", computed);
@@ -21,8 +22,7 @@ const { useTableCountsData, useTableListData } = await import(
 );
 
 const LOCATION = "/api/orders";
-// SAFETY: The request harness only lists and counts rows; it never renders columns or constructs their form controls.
-const COLUMNS = [{ id: "total", accessorKey: "total" }] as TableViewColumn[];
+const COLUMNS = [tableViewColumn("total")];
 
 interface Call {
   url: string;
@@ -31,13 +31,14 @@ interface Call {
 }
 
 const calls: Call[] = [];
-// SAFETY: The table calls only this fetch function for lists and counts, whose fixture responses match each URL.
-const api = (async (url: string, options: Omit<Call, "url"> = {}) => {
-  calls.push({ url, ...options });
-  return url.endsWith("/count/batch")
-    ? { all: 1 }
-    : { results: [], total: 0, offset: 0, limit: 10 };
-}) as Parameters<typeof useTableRows>[0]["api"];
+const api = fetchClient(
+  async (url: string, options: Omit<Call, "url"> = {}) => {
+    calls.push({ url, ...options });
+    return url.endsWith("/count/batch")
+      ? { all: 1 }
+      : { results: [], total: 0, offset: 0, limit: 10 };
+  },
+);
 
 const unmounts: Array<() => void> = [];
 
@@ -189,12 +190,13 @@ describe("a source table's requests", () => {
   function pendingApi() {
     let answer: () => void = () => undefined;
     const answered = new Promise<void>((resolve) => (answer = resolve));
-    // SAFETY: This source only lists the held fixture response via the callable fetch interface.
-    const held = (async (url: string, options: Omit<Call, "url"> = {}) => {
-      calls.push({ url, ...options });
-      await answered;
-      return { results: [{ total: 1 }], total: 1 };
-    }) as Parameters<typeof useTableRows>[0]["api"];
+    const held = fetchClient(
+      async (url: string, options: Omit<Call, "url"> = {}) => {
+        calls.push({ url, ...options });
+        await answered;
+        return { results: [{ total: 1 }], total: 1 };
+      },
+    );
     return { held, answer };
   }
 

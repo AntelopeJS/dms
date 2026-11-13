@@ -1,5 +1,9 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 import { createLookupCache, type Freshness } from "./cache";
 import type { PackageRelease } from "./types";
 
@@ -10,10 +14,12 @@ const NPM_VIEW_TIMEOUT_MS = 30_000;
 const LATEST_TAG = "latest";
 export const INTERFACE_PACKAGE = "@antelopejs/interface-dms";
 
-interface NpmViewResult {
-  version?: string;
-  dependencies?: Record<string, string>;
-  antelopeJs?: { implements?: unknown };
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return isObject(value) && value !== null;
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return isRecord(value) && Object.values(value).every(isString);
 }
 
 const releases = createLookupCache<PackageRelease>(RELEASE_LIFETIMES);
@@ -46,20 +52,25 @@ async function viewLatest(
   packageName: string,
   projectPath: string,
 ): Promise<PackageRelease | undefined> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The selected npm fields are historically trusted without schema validation; preserve malformed-registry behavior.
-  const view = (await npmView(
+  const view = await npmView(
     `${packageName}@${LATEST_TAG}`,
     ["version", "dependencies", "antelopeJs"],
     projectPath,
-  )) as NpmViewResult | undefined;
-  if (!view?.version) return undefined;
+  );
+  if (!isRecord(view) || !isString(view.version) || !view.version) {
+    return undefined;
+  }
+  const dependencies = isStringRecord(view.dependencies)
+    ? view.dependencies
+    : undefined;
+  const implemented = isRecord(view.antelopeJs)
+    ? view.antelopeJs.implements
+    : undefined;
   return {
     version: view.version,
-    interfaceRange: view.dependencies?.[INTERFACE_PACKAGE],
-    dependencies: view.dependencies ?? {},
-    implements: Array.isArray(view.antelopeJs?.implements)
-      ? view.antelopeJs.implements.map(String)
-      : [],
+    interfaceRange: dependencies?.[INTERFACE_PACKAGE],
+    dependencies: dependencies ?? {},
+    implements: Array.isArray(implemented) ? implemented.map(String) : [],
   };
 }
 

@@ -22,6 +22,7 @@ import {
 import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { buildFilteredQuery } from "./search-route";
+import { isSymbol } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const IDS_KEY = "ids";
 const HTTP_PAYLOAD_TOO_LARGE = 413;
@@ -69,8 +70,7 @@ function sourceReader({ model, tableView }: BulkRowSource) {
   );
   return new Proxy(reader, {
     get(target, key) {
-      // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Proxy get keys are string or symbol; the existing symbol branch lets introspection pass without throwing the missing route-property error.
-      if (typeof key === "symbol" || key in target) return target[key];
+      if (isSymbol(key) || key in target) return target[key];
       throw new Error(
         `resolveBulkRowIds read "${key}" of ${controller.name}, which a BulkRowSource does not carry: resolve the selection from a route of ${controller.name}, with this.`,
       );
