@@ -164,13 +164,62 @@ describe("another writer", () => {
 describe("an id a note stamped on the file", () => {
   const STAMP = "b-k3j9x0qz";
 
-  function stamped(spec: MockupSpecDocument): MockupSpecDocument {
-    const [page] = spec.pages;
-    const [node] = page?.tree ?? [];
-    return page && node
-      ? { ...spec, pages: [{ ...page, tree: [{ ...node, id: STAMP }] }] }
-      : spec;
+  function stamped(
+    spec: MockupSpecDocument,
+    ids = new Map([[0, STAMP]]),
+  ): MockupSpecDocument {
+    const [page, ...rest] = spec.pages;
+    if (!page) return spec;
+    const tree = page.tree.map((node, index) => {
+      const id = ids.get(index);
+      return id === undefined ? node : { ...node, id };
+    });
+    return { ...spec, pages: [{ ...page, tree }, ...rest] };
   }
+
+  it("counts a file that adds an id and changes anything else as another writer's change (fails when any added id passes for a stamp)", async () => {
+    await mountEditor();
+
+    file.writeFromOutside({ ...stamped(file.spec), title: "From the AI" });
+    await streamSaysTheFileChanged();
+
+    expect(notices).toEqual([{ kind: "adopted" }]);
+  });
+
+  it("gives an undone step the id where exactly one node without an id equals the stamped one, and none to twins (fails when an undo writes the block without its id, or puts it on a twin)", async () => {
+    const kpi = (title: string) => ({ type: "KpiCard", options: { title } });
+    file.spec = {
+      version: 1,
+      pages: [
+        { id: "orders", title: "Orders", tree: [kpi("A"), kpi("B"), kpi("B")] },
+      ],
+    };
+    await mountEditor();
+    editor.apply({
+      kind: "insertNode",
+      parent: null,
+      page: "orders",
+      index: 0,
+      node: { type: "Banner" },
+    });
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    const ids = new Map([
+      [1, "b-aaaaaaaa"],
+      [2, STAMP],
+    ]);
+    file.writeFromOutside(stamped(file.spec, ids));
+    await streamSaysTheFileChanged();
+
+    editor.undo();
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    expect(file.spec.pages[0]?.tree.map((node) => node.id)).toEqual([
+      "b-aaaaaaaa",
+      undefined,
+      undefined,
+    ]);
+    expect(notices).toEqual([]);
+  });
 
   it("keeps the history and says nothing, and the spec shown takes the id (fails when a stamp counts as another writer's change)", async () => {
     await mountEditor();
