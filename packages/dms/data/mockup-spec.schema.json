@@ -62,6 +62,37 @@
             }
           }
         },
+        "livePage": {
+          "type": "object",
+          "required": [
+            "ref",
+            "version"
+          ],
+          "additionalProperties": false,
+          "description": "The live page this page was converted from (Edit as mockup). Build it updates that page instead of creating a new one.",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Its builder ref."
+            },
+            "version": {
+              "type": "string",
+              "description": "Its source file's version at the conversion."
+            }
+          }
+        },
+        "liveRoutes": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^\\/(?![/\\\\])"
+          },
+          "description": "The live route a fixture key stands for: with Real data on, an option \"fixture:<key>\" reads it instead of the fixture."
+        },
         "fixtures": {
           "type": "object",
           "propertyNames": {

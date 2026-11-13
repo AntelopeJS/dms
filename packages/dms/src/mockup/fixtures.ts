@@ -28,6 +28,32 @@ export interface FixtureScope {
   pageId: string;
   fixtures: JsonObject;
   issues: MockupIssue[];
+  /**
+   * The live route each fixture key stands for, when the page is compiled
+   * with Real data; undefined compiles it on its fixtures alone.
+   */
+  routes?: Readonly<Record<string, string>>;
+}
+
+/** What a fixture is read as: its value, or the rows a table lists from it. */
+export type DataKind = "fixture" | "rows";
+
+/** The suffix of the route listing a fixture's rows as a table reads them. */
+const ROWS_SUFFIX = "/rows";
+
+/**
+ * The URL a block reads the fixture `key` from: its live route under Real
+ * data, the mockup's fixture route otherwise. The only place the two meet.
+ */
+export function dataUrl(
+  scope: FixtureScope,
+  key: string,
+  kind: DataKind,
+): string {
+  const { routes } = scope;
+  if (routes && Object.hasOwn(routes, key)) return routes[key];
+  const url = fixtureUrl(scope.name, scope.pageId, key);
+  return kind === "rows" ? `${url}${ROWS_SUFFIX}` : url;
 }
 
 /**
@@ -49,8 +75,9 @@ export function checkFixture(
 
 /**
  * `value` with every `fixture:<key>` string, at any depth, rewritten to the
- * route answering that fixture. A key the page lacks is reported and still
- * rewritten, so the block shows the error a missing route gives it.
+ * route answering that fixture ({@link dataUrl}). A key the page lacks is
+ * reported and still rewritten, so the block shows the error a missing route
+ * gives it.
  */
 export function rewriteFixtures(
   value: Json,
@@ -67,7 +94,7 @@ export function rewriteFixtures(
   const key = fixtureKeyOf(value);
   if (key === undefined) return value;
   checkFixture(scope, key, pointer);
-  return fixtureUrl(scope.name, scope.pageId, key);
+  return dataUrl(scope, key, "fixture");
 }
 
 /** {@link rewriteFixtures} over the values of an object. */
