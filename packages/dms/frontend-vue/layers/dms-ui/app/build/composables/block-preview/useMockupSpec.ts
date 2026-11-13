@@ -34,6 +34,7 @@ import {
   parseMockupSpec,
   type MockupSpecDocument,
 } from "../../utils/mockupSpec";
+import { stampedHistory } from "../../utils/mockupStamp";
 
 type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
 
@@ -159,7 +160,9 @@ function sameSpec(
  * is retried, after a growing delay, at the next stream state or with the next
  * edit, whichever comes first, until it lands. A file holding the spec shown,
  * or any spec sent whose answer was lost, is the editor's own write, never an
- * outside change.
+ * outside change. Nor is a file that only adds ids a note stamped on nodes
+ * that had none: the editor keeps its history and any edit not written yet,
+ * and the ids join the spec shown and the steps that hold their nodes.
  */
 export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   const endpoint = mockupEndpoint(options.name, "/spec");
@@ -222,6 +225,20 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     return true;
   }
 
+  /** Takes the file as the spec last written or read with ids a note stamped; false when it changed more. */
+  function takeStamps(source: SpecSource): boolean {
+    const stamped =
+      history.value &&
+      written.value &&
+      stampedHistory(history.value, written.value, source.spec);
+    if (!stamped) return false;
+    history.value = stamped;
+    digest = source.digest;
+    written.value = source.spec;
+    landed();
+    return true;
+  }
+
   function adopt(source: SpecSource, isNews: boolean): void {
     const previous = history.value?.present;
     stopTimers();
@@ -254,7 +271,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
       isCheckDue = true;
       return;
     }
-    if (!claim(source)) {
+    if (!claim(source) && !takeStamps(source)) {
       adopt(source, present !== undefined);
       return;
     }
@@ -305,7 +322,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     });
     if (isClosed) return;
     if (!source) failed(readError);
-    else if (!claim(source)) adopt(source, true);
+    else if (!claim(source) && !takeStamps(source)) adopt(source, true);
   }
 
   async function write(): Promise<void> {
