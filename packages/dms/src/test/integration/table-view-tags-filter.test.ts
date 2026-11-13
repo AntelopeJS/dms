@@ -18,8 +18,12 @@ describe("[integration] table view tags filter", () => {
     const owner = await registerUser({ owner: true });
     client = authorizedClient(owner.accessToken);
     const notes = [
-      { title: "Install", labels: ["battery specialists", "solar"] },
-      { title: "Survey", labels: ["solar"] },
+      {
+        title: "Install",
+        labels: ["battery specialists", "solar"],
+        topics: ["grid", "solar"],
+      },
+      { title: "Survey", labels: ["solar"], topics: ["solar"] },
       { title: "Draft" },
     ];
     for (const note of notes) {
@@ -28,9 +32,9 @@ describe("[integration] table view tags filter", () => {
     }
   });
 
-  async function titles(filter: string): Promise<string[]> {
+  async function titles(filter: string, field = "labels"): Promise<string[]> {
     const response = await client.get<{ results: Note[] }>(`${LOCATION}/list`, {
-      params: { limit: 50, filter_labels: filter },
+      params: { limit: 50, [`filter_${field}`]: filter },
     });
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     return response.data.results.map((note) => note.title).sort();
@@ -48,5 +52,19 @@ describe("[integration] table view tags filter", () => {
 
   it("still keeps the rows with no tag", async () => {
     expect(await titles("is_empty:")).to.deep.equal(["Draft"]);
+  });
+
+  it("matches no row through a registered mode the tags type does not list", async () => {
+    expect(await titles("include:solar")).to.deep.equal([]);
+  });
+
+  it("keeps the rows whose multiple select holds the item a mode-less quick filter picks", async () => {
+    expect(await titles("array_contains_string:grid", "topics")).to.deep.equal([
+      "Install",
+    ]);
+    expect(await titles("include:solar", "topics")).to.deep.equal([
+      "Install",
+      "Survey",
+    ]);
   });
 });

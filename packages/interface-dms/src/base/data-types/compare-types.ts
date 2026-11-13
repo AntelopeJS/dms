@@ -228,7 +228,7 @@ export namespace DefaultDataCompareTypes {
   }
 
   function arrayOrEmpty(proxy: ValueProxy<unknown>): ValueProxy<unknown[]> {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public unknown proxy does not establish an array field; inclusion modes delegate that assumption to the database.
+    // SAFETY: The proxy reads an array or nothing exactly when the column's value is one. DataType.filter runs a mode only for a type that lists it, and of the types this package registers only multiple selects and multiple relations list include and exclude, each validating its value as an array before the data API stores it; a row written past that validation with another value, a module's type that lists them over other values, or a direct call of Include or Exclude's filter, breaks this.
     return (proxy as ValueProxy<unknown[]>).default([]);
   }
 
@@ -314,7 +314,7 @@ export namespace DefaultDataCompareTypes {
       // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published comparator accepts arbitrary application rows, even though this mode does not read them.
       _row: ValueProxy<Record<string, unknown>>,
     ): ValueProxyOrValue<boolean> {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The public unknown proxy does not establish string elements; the existing mode delegates array matching to the database.
+      // SAFETY: The proxy reads an array of strings or nothing exactly when the column's value is one. DataType.filter runs a mode only for a type that lists it, and of the types this package registers only tags, multiple selects and multiple relations list array_contains_string, each validating its value as an array of strings (a select's items as their String() forms) before the data API stores it; a row written past that validation with another value, a module's type that lists it over other values, or a direct call of ArrayContainsString's filter, breaks this.
       const dbVal = proxy as ValueProxy<string[]>;
       const escapedValue = escapeRegex(value);
 

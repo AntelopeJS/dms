@@ -9,7 +9,7 @@ import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
 import { GenerateHtml } from "@antelopejs/interface-dms/html-render";
 export * from "./account-emails";
 import { AdminInviteTemplate } from "./email-templates";
-import { decode, sign, verify } from "jsonwebtoken";
+import { decode, type JwtPayload, sign, verify } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
   type AdminInviteEmailNames,
@@ -103,33 +103,61 @@ interface DecodedAuthPayload {
   sessionId?: string;
 }
 
+function isSessionPayload(
+  payload: string | JwtPayload,
+  purpose: string,
+): payload is JwtPayload & DecodedAuthPayload {
+  return (
+    !isString(payload) &&
+    payload.purpose === purpose &&
+    isString(payload.id) &&
+    !!payload.id &&
+    isString(payload.tenantId) &&
+    !!payload.tenantId &&
+    (payload.sessionId === undefined || isString(payload.sessionId))
+  );
+}
+
+function isDecodedAuthPayload(
+  claims: ReturnType<typeof decode>,
+): claims is JwtPayload & DecodedAuthPayload {
+  return (
+    claims !== null &&
+    !isString(claims) &&
+    isString(claims.id) &&
+    isString(claims.tenantId) &&
+    (claims.sessionId === undefined || isString(claims.sessionId))
+  );
+}
+
+/**
+ * The claims of a bearer token, read without verifying its signature, or
+ * `undefined` when they do not name a user and a tenant: the validator then
+ * verifies the token they came with.
+ */
+function decodedClaims(token: string): DecodedAuthPayload | undefined {
+  const claims = decode(token);
+  return isDecodedAuthPayload(claims) ? claims : undefined;
+}
+
 function verifySessionToken(
   token: string,
   secret: KeyObject,
   purpose: string,
 ): DecodedAuthPayload {
   const payload = verify(token, secret, { algorithms: ["HS256"] });
-  if (
-    isString(payload) ||
-    payload.purpose !== purpose ||
-    !isString(payload.id) ||
-    !payload.id ||
-    !isString(payload.tenantId) ||
-    !payload.tenantId
-  ) {
+  if (!isSessionPayload(payload, purpose)) {
     throw new Error(INVALID_SESSION_TOKEN_ERROR);
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and JwtPayload leave sessionId unchecked; downstream session validation currently assumes DecodedAuthPayload, and checking or rejecting another claim here would change token acceptance.
-  return payload as DecodedAuthPayload;
+  return payload;
 }
 
 export namespace internal {
   export const AuthUserAuthenticator = (data: string | undefined) => {
-    if (!data) {
+    const result = data ? decodedClaims(data) : undefined;
+    if (!data || !result) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, NO_JWT_TOKEN_ERROR);
     }
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode's inferred JwtPayload|string|null and JWT owner types cannot establish the claims consumed by AuthUserValidator; this authenticator forwards them without checking so rejection stays in the validator.
-    const result = decode(data) as DecodedAuthPayload;
     return {
       ...result,
       rawToken: data,
@@ -141,8 +169,10 @@ export namespace internal {
       return undefined;
     }
     try {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode and its owner return JwtPayload|string|null rather than the claims IfAuthUserValidator consumes; retaining this unchecked forwarding avoids adding new authenticator rejections.
-      const result = decode(data) as DecodedAuthPayload;
+      const result = decodedClaims(data);
+      if (!result) {
+        return undefined;
+      }
       return {
         ...result,
         rawToken: data,
@@ -314,13 +344,21 @@ interface PurposeTokenClaims {
   purpose: string;
 }
 
-interface TwoFactorClaims extends PurposeTokenClaims {
-  tenantId: string;
+interface VerifiedPurposeToken {
+  claims: JwtPayload & PurposeTokenClaims;
+  user: User;
 }
 
-interface VerifiedPurposeToken<T extends PurposeTokenClaims> {
-  claims: T;
-  user: User;
+function isPurposeClaims(
+  claims: ReturnType<typeof decode>,
+  purpose: string,
+): claims is JwtPayload & PurposeTokenClaims {
+  return (
+    claims !== null &&
+    !isString(claims) &&
+    claims.purpose === purpose &&
+    isString(claims.id)
+  );
 }
 
 function isSignedFor(token: string, user: User): boolean {
@@ -332,26 +370,20 @@ function isSignedFor(token: string, user: User): boolean {
   }
 }
 
-async function verifyPurposeToken<T extends PurposeTokenClaims>(
+async function verifyPurposeToken(
   token: string,
   purpose: string,
   refusal: string,
-): Promise<VerifiedPurposeToken<T>> {
+): Promise<VerifiedPurposeToken> {
   const claims = decode(token);
-  if (
-    !claims ||
-    isString(claims) ||
-    claims.purpose !== purpose ||
-    !isString(claims.id)
-  ) {
+  if (!isPurposeClaims(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
   const user = await GetModel(UserModel).get(claims.id);
   if (!user || !isSignedFor(token, user)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and JwtPayload cannot establish generic T's extra claims; the legacy two-factor return assumes tenantId without checking it, which this refactor must not start rejecting.
-  return { claims: claims as T, user };
+  return { claims, user };
 }
 
 export async function validateTenantAssignmentToken(token: string) {
@@ -364,12 +396,15 @@ export async function validateTenantAssignmentToken(token: string) {
 }
 
 export async function validateTwoFactorToken(token: string) {
-  const { claims, user } = await verifyPurposeToken<TwoFactorClaims>(
+  const { claims, user } = await verifyPurposeToken(
     token,
     TWO_FACTOR_TOKEN_PURPOSE,
     INVALID_TWO_FACTOR_TOKEN_ERROR,
   );
-  return { ...claims, user };
+  if (!isString(claims.tenantId)) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_TWO_FACTOR_TOKEN_ERROR);
+  }
+  return { ...claims, tenantId: claims.tenantId, user };
 }
 
 const BUILTIN_SENSITIVE_USER_KEYS: string[] = [

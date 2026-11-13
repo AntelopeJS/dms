@@ -54,17 +54,18 @@ const spyOnIntervals = (): TimerSpy => {
   const originalClear = globalThis.clearInterval;
   const started = new Set<unknown>();
   const cleared = new Set<unknown>();
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The forwarding spy covers interval calls only and does not reproduce Node's promisified overload metadata.
+  // SAFETY: Parameters reads only the last of setInterval's overloads, so the spy's own type names one; at runtime it forwards every argument to the original setInterval and answers its handle unchanged, so each call of any overload behaves as the original's.
   globalThis.setInterval = ((...args: Parameters<typeof setInterval>) => {
     const timer = originalSet(...args);
     started.add(timer);
     return timer;
   }) as typeof setInterval;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The fixture observes Node timer handles only; clearInterval also accepts handles outside this test's contract.
-  globalThis.clearInterval = ((timer: NodeJS.Timeout) => {
+  globalThis.clearInterval = (
+    timer: NodeJS.Timeout | string | number | undefined,
+  ) => {
     cleared.add(timer);
     originalClear(timer);
-  }) as typeof clearInterval;
+  };
   return {
     started,
     cleared,

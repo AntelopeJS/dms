@@ -18,6 +18,7 @@ import { ReadonlyBehaviorType } from "../../types";
 import type { ColumnOptions, TableViewMeta } from "../meta";
 import { serializeColumnDisplay } from "./column-display";
 import { decoratedClass } from "../../../utils/internal/decorated-class";
+import { isString } from "../../../utils/internal/type-check";
 
 type FieldDecoratorArguments = Parameters<
   Parameters<typeof MakeMethodAndPropertyDecorator>[0]
@@ -66,8 +67,12 @@ export function decorateColumn(
   options: ColumnOptions,
   meta: TableViewMeta,
 ) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The decorator accepts PropertyKey while the column registry, the localization lookup and Filter take string keys; symbol and number inputs are not rejected or converted here.
-  const columnKey = key as string;
+  if (!isString(key)) {
+    throw new TypeError(
+      `A TableView column must be a member named by a string, not ${String(key)}`,
+    );
+  }
+  const columnKey = key;
   meta.setColumn(columnKey, options);
 
   if (options.validate !== false) {

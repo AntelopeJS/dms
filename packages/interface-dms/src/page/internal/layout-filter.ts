@@ -68,7 +68,7 @@ export async function filterLayoutHeaderActions<T>(
   pagePermissionId: string | undefined,
   recordStatus?: PageRecordStatus,
 ): Promise<ComponentInfo<T> | undefined> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published generic helper trusts layout options to carry optional header actions; validating or constraining T would change its current contract.
+  // SAFETY: The options are DefaultLayoutSerializedOptions exactly when the page's layout is one DefaultLayout, FormPageLayout or SettingsLayout built, EmptyLayout's empty options, or a custom ComponentInfo given to PageController or a category whose options hold each key DefaultLayoutSerializedOptions declares with its declared type. A custom layout whose options use one of those keys otherwise is read as if it were one.
   const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   if (!layout || !options) return layout;
   const { record: _record, headerActions: buttons = [], ...frame } = options;
@@ -97,7 +97,7 @@ export async function filterLayoutHeaderActions<T>(
     servedOptions.headerActionsParams = context.params ?? {};
   }
   if (declaresRecord) servedOptions.recordStatus = recordStatus;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Filtering rebuilds layout options with transport-only fields; the public generic return promises T although arbitrary T is not runtime-validated.
+  // SAFETY: The result is a T exactly when T admits these served options, a DefaultLayoutSerializedOptions without its record: so for T unknown, which the one caller instantiates (filterPageHeader passes PageLayout's ComponentInfo), and for T DefaultLayoutSerializedOptions, but not for another T a caller names.
   return { ...layout, options: servedOptions as T };
 }
 
@@ -182,7 +182,7 @@ export function withComponentHeaderButtons<T>(
   } = layout.options ?? {};
   return {
     ...layout,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published generic return retains T after adding header actions, even though arbitrary layout T is not validated at this augmentation boundary.
+    // SAFETY: The result is a T exactly when T admits the layout's options with headerActions extended by PageHeaderButtonSerialized entries: so for T unknown, which the one caller instantiates (prepareLayoutResponse passes PageLayout's ComponentInfo), and for T DefaultLayoutSerializedOptions, but not for another T a caller names.
     options: {
       ...options,
       headerActions: [...(options.headerActions ?? []), ...placed],

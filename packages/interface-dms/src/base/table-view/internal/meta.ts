@@ -1,18 +1,30 @@
-import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
+import { isControllerClass } from "../../../utils/internal/controller-class";
+import { isClass, isObject } from "../../../utils/internal/type-check";
 import { TableViewMeta } from "../meta";
 
 /** @internal */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published adapter accepts arbitrary controller receivers; the metadata lookup below assumes a registered constructor without validating it.
-export const getTableViewMetaFor = (target: unknown): TableViewMeta =>
-  GetMetadata(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published unknown receiver does not prove ControllerClass; controller route dispatch supplies it and this adapter preserves that unchecked boundary.
-    (target as { constructor: ControllerClass }).constructor,
-    TableViewMeta,
-  );
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published adapter accepts arbitrary controller receivers and refuses one that is no class instance.
+export const getTableViewMetaFor = (target: unknown): TableViewMeta => {
+  const owner =
+    isObject(target) && target !== null ? target.constructor : undefined;
+  if (!isClass(owner)) {
+    throw new TypeError(
+      "A table view's controller receiver must be an instance of a class",
+    );
+  }
+  return GetMetadata(owner, TableViewMeta);
+};
 
 /** @internal */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published metadata adapter accepts arbitrary controller receivers; narrowing its input would change that contract.
-export const getControllerLocation = (target: unknown): string =>
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The published unknown receiver does not verify its constructor; route dispatch remains responsible for supplying a controller instance.
-  (target as { constructor: ControllerClass }).constructor.location;
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This published metadata adapter accepts arbitrary controller receivers and refuses one whose constructor is no Controller class.
+export const getControllerLocation = (target: unknown): string => {
+  const owner =
+    isObject(target) && target !== null ? target.constructor : undefined;
+  if (!isControllerClass(owner)) {
+    throw new TypeError(
+      "A table view's controller receiver must be an instance of a Controller class",
+    );
+  }
+  return owner.location;
+};

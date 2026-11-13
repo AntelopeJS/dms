@@ -11,9 +11,9 @@ import {
   unregisterRealtimeMutationListener,
 } from "@antelopejs/interface-dms/base/table-view";
 import {
-  type AutomationEventName,
   type MemberAddedEvent,
   type InviteCreatedEvent,
+  type RecordEventName,
   emitAutomationEvent,
 } from "./events";
 
@@ -65,12 +65,11 @@ const onUserRegistered: HookHandler<Hook.USER_REGISTERED> = (payload) => {
   return undefined;
 };
 
-const MUTATION_EVENTS: Record<RealtimeMutationEventType, AutomationEventName> =
-  {
-    created: "dms.record-created",
-    updated: "dms.record-updated",
-    deleted: "dms.record-deleted",
-  };
+const MUTATION_EVENTS: Record<RealtimeMutationEventType, RecordEventName> = {
+  created: "dms.record-created",
+  updated: "dms.record-updated",
+  deleted: "dms.record-deleted",
+};
 
 const onRecordMutation = (context: RealtimeMutationContext): void => {
   emitAutomationEvent(MUTATION_EVENTS[context.eventType], {

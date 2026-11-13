@@ -19,10 +19,7 @@ import type {
 } from "@antelopejs/interface-data-api/metadata";
 import type { Stream, ValueProxy } from "@antelopejs/interface-database";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import {
-  DEFAULT_ROW_ID_FIELD,
-  TableViewMeta,
-} from "@antelopejs/interface-dms/base/table-view";
+import { DEFAULT_ROW_ID_FIELD } from "@antelopejs/interface-dms/base/table-view";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import {
   DEFAULT_EXPORT_FORMAT,
@@ -116,13 +113,9 @@ async function buildIdsExportQuery(
   user: User | undefined,
 ) {
   const model = Query.GetModel(controller, controllerMetadata);
-  const tableViewMetadata = GetMetadata(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Callback descriptor types omit the actual receiver constructor; inference yields Function, while TableViewMeta's owner requires a newable target, a preexisting route-binding assumption.
-    controller.constructor as ConstructorParameters<typeof TableViewMeta>[0],
-    TableViewMeta,
-  );
-  const idField = tableViewMetadata?.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
-  const archiveField = tableViewMetadata?.archiveField;
+  const tableViewMetadata = getTableViewMetaFor(controller);
+  const idField = tableViewMetadata.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
+  const archiveField = tableViewMetadata.archiveField;
 
   let query = model.table.getAll(ids, idField);
 

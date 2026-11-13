@@ -19,16 +19,17 @@ function isIdentified<T>(category: T): category is T & IdentifiedCategory {
   );
 }
 
-interface CategorizedTree extends CategorizedEntry {
-  children: Record<string, CategorizedTree>;
+interface CategorizedTree<
+  C extends CategorizedTree<C>,
+> extends CategorizedEntry {
+  children: Record<string, C>;
 }
 
 /** A tree whose every node names its category by id. */
-export type TreeWithCategoryRefs<T extends CategorizedTree> = WithCategoryRef<
-  Omit<T, "children">
-> & {
-  children: Record<string, TreeWithCategoryRefs<T>>;
-};
+export type TreeWithCategoryRefs<T extends CategorizedTree<T>> =
+  WithCategoryRef<Omit<T, "children">> & {
+    children: Record<string, TreeWithCategoryRefs<T>>;
+  };
 
 /** `entry` naming its category by full id. */
 export function withCategoryRef<T extends CategorizedEntry>(
@@ -50,7 +51,7 @@ export function withCategoryRefs<T extends CategorizedEntry>(
 }
 
 /** The tree, each node naming its category by full id, at every level. */
-export function treeWithCategoryRefs<T extends CategorizedTree>(
+export function treeWithCategoryRefs<T extends CategorizedTree<T>>(
   node: T,
 ): TreeWithCategoryRefs<T> {
   const { children, ...rest } = node;
@@ -59,8 +60,7 @@ export function treeWithCategoryRefs<T extends CategorizedTree>(
     children: Object.fromEntries(
       Object.entries(children).map(([key, child]) => [
         key,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and the children owner yield CategorizedTree rather than generic T; the existing recursive return assumes homogeneous descendant fields without checking them, so retain that assumption without adding rejection.
-        treeWithCategoryRefs(child as T),
+        treeWithCategoryRefs(child),
       ]),
     ),
   };

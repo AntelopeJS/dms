@@ -6,7 +6,8 @@ import {
   buildAccountActivity,
   notificationToEvent,
 } from "../../../../pages/account";
-import { inviteFixture } from "../../../helpers/table-fixtures";
+import { inviteFixture, sessionFixture } from "../../../helpers/table-fixtures";
+import { plainPasswordUserFixture } from "../../../helpers/user-fixture";
 
 const USER_ID = "activity-user";
 const OTHER_ID = "someone-else";
@@ -36,8 +37,7 @@ const at = (iso: string) => new Date(iso);
 const SHORT_LIMIT = 6;
 
 function user(overrides: Partial<User> = {}): User {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- This activity fixture omits database instance methods and unrelated user fields.
-  return {
+  return plainPasswordUserFixture({
     _id: USER_ID,
     createdAt: at("2025-03-12T09:00:00Z"),
     email: "camille@acme.dev",
@@ -49,15 +49,13 @@ function user(overrides: Partial<User> = {}): User {
     twoFactorBackupCodes: [BACKUP_CODE_HASH],
     twoFactorBackupCodesGeneratedAt: null,
     ...overrides,
-  } as User;
+  });
 }
 
 function session(id: string, createdAt: string, userId = USER_ID): Session {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The secret-leak fixture deliberately retains the legacy refreshToken field absent from the current Session contract.
-  return {
+  const current = sessionFixture({
     _id: id,
     userId,
-    refreshToken: REFRESH_TOKEN,
     refreshTokenHash: REFRESH_HASH,
     userAgent: USER_AGENT,
     ip: "203.0.113.7",
@@ -67,7 +65,8 @@ function session(id: string, createdAt: string, userId = USER_ID): Session {
     location: "Brussels, BE",
     createdAt: at(createdAt),
     lastActiveAt: at(createdAt),
-  } as Session;
+  });
+  return Object.assign(current, { refreshToken: REFRESH_TOKEN });
 }
 
 function notification(

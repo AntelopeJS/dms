@@ -1,11 +1,14 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import type {
-  DefaultLayoutSerializedOptions,
   PageHeaderButtonDeclared,
   PageRecordStatus,
 } from "../../component-options/internal/page-layout";
 import type { ComponentFilterContext, ComponentInfo } from "../../component";
-import { isNumber, isString } from "../../utils/internal/type-check";
+import {
+  isFunction,
+  isNumber,
+  isString,
+} from "../../utils/internal/type-check";
 
 const RECORD_TOKEN = /\{\{\s*record\.([\w.-]+)\s*\}\}/g;
 const NAMES_RECORD = /\{\{\s*record\./;
@@ -57,11 +60,11 @@ export async function readPageRecord(
   layout: ComponentInfo | undefined,
   context: ComponentFilterContext,
 ): Promise<PageRecordRead | undefined> {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ComponentInfo erases layout-specific options; this published helper trusts the layout's optional record loader without validating unrelated layout shapes.
-  const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
-  if (!options?.record) return undefined;
+  const options = layout?.options;
+  const loader = isRecordNode(options) ? options.record : undefined;
+  if (!isFunction(loader)) return undefined;
   try {
-    const record: unknown = await options.record(context);
+    const record: unknown = await loader(context);
     return isRecordNode(record)
       ? { record, status: "found" }
       : { status: "missing" };
@@ -109,14 +112,10 @@ export function withPageRecord(
 ): PageHeaderButtonDeclared | undefined {
   if (!declaresRecord || !isRecordBound(button)) return button;
   if (!record) return undefined;
-  const url = targetUrl(button.target);
-  if (!url) return button;
+  const { target } = button;
+  if (!target || !("url" in target) || !isString(target.url)) return button;
   return {
     ...button,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- targetUrl checked only the URL property, not the entire action-target union; keep the existing target spread and URL replacement without changing that public union.
-    target: {
-      ...button.target,
-      url: fillRecordTokens(url, record),
-    } as PageHeaderButtonDeclared["target"],
+    target: { ...target, url: fillRecordTokens(target.url, record) },
   };
 }

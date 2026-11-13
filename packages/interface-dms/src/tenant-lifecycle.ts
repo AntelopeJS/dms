@@ -3,17 +3,12 @@ import { setTimeout as delay } from "node:timers/promises";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantLifecycleModel } from "./db/internal/tenantLifecycle.model";
-import { isFunction } from "./utils/internal/type-check";
+import { isFunction, isObject } from "./utils/internal/type-check";
 
 const HTTP_CLIENT_ERROR_MIN = 400;
 const HTTP_SERVER_ERROR_MIN = 500;
 const RELEASE_ATTEMPTS = 3;
 const RELEASE_BACKOFF_MS = 200;
-
-/** What a thrown `HTTPResult` exposes, whichever copy of the API built it. */
-interface StatusCarrier {
-  getStatus(): number;
-}
 
 /**
  * Whether a status is an HTTP 4xx: a refusal on purpose, a decision rather
@@ -102,9 +97,15 @@ export async function runTenantLifecycleOperation<T>(
   try {
     result = await work();
   } catch (error) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Legacy refusal detection reads getStatus from any thrown value without validating its shape; adding validation would change proxy and getter behavior.
-    const getStatus = (error as Partial<StatusCarrier> | null)?.getStatus;
-    if (isFunction(getStatus) && isClientErrorStatus(getStatus.call(error))) {
+    const getStatus =
+      ((isObject(error) && error !== null) || isFunction(error)) &&
+      "getStatus" in error
+        ? error.getStatus
+        : undefined;
+    if (
+      isFunction(getStatus) &&
+      isClientErrorStatus(Number(getStatus.call(error)))
+    ) {
       const releaseFailure = await releaseAttempt(model, tenantId, attemptId);
       if (releaseFailure) {
         throw new AggregateError(

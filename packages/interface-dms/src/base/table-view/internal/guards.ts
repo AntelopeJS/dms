@@ -119,13 +119,15 @@ const parseJsonObject = (text: string) => {
 const parseConfirmValues = (raw: Buffer) =>
   raw.length === 0 ? undefined : parseJsonObject(raw.toString());
 
+const isBodyObject = (raw: unknown): raw is Record<string, unknown> =>
+  !!raw && typeof raw === "object";
+
 /** @internal */
 // oxlint-disable-next-line anti-slop/no-unknown-parameters, anti-slop/no-unsafe-dictionary-type -- The published permissive body decoder accepts transport values and returns module-owned fields without a fixed schema; narrowing either side would change its contract.
 export const parseGuardBody = (raw: unknown): Record<string, unknown> => {
   if (Buffer.isBuffer(raw)) return parseJsonObject(raw.toString());
   if (isString(raw) && raw.length > 0) return parseJsonObject(raw);
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- The published decoder accepts any non-null object, including arrays, without proving an indexed row contract; preserve that unchecked compatibility behavior.
-  if (raw && isObject(raw)) return raw as Record<string, unknown>;
+  if (isBodyObject(raw)) return raw;
   return {};
 };
 

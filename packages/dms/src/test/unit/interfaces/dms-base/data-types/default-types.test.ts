@@ -294,6 +294,7 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
       expect(crew.compareModes).to.deep.equal([
         DefaultDataCompareTypes.Include,
         DefaultDataCompareTypes.Exclude,
+        DefaultDataCompareTypes.ArrayContainsString,
         DefaultDataCompareTypes.IsEmpty,
         DefaultDataCompareTypes.IsNotEmpty,
       ]);

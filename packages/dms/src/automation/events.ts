@@ -55,21 +55,34 @@ interface AutomationEventPayloads {
 
 export type AutomationEventName = keyof AutomationEventPayloads;
 
+/** The events a record mutation fires, each carrying a RecordMutationEvent. */
+export type RecordEventName =
+  | "dms.record-created"
+  | "dms.record-updated"
+  | "dms.record-deleted";
+
 export type AutomationEventListener = Parameters<TriggerType["activate"]>[1];
 
-const eventListeners = new Map<
-  AutomationEventName,
-  Set<AutomationEventListener>
->();
+type AutomationEventListeners = {
+  [E in AutomationEventName]: Set<
+    (payload: AutomationEventPayloads[E]) => void
+  >;
+};
 
-export function listenersFor(
-  event: AutomationEventName,
-): Set<AutomationEventListener> {
-  const existing = eventListeners.get(event);
-  if (existing) return existing;
-  const created = new Set<AutomationEventListener>();
-  eventListeners.set(event, created);
-  return created;
+const eventListeners: AutomationEventListeners = {
+  "dms.member-added": new Set(),
+  "dms.member-removed": new Set(),
+  "dms.invite-created": new Set(),
+  "dms.user-registered": new Set(),
+  "dms.record-created": new Set(),
+  "dms.record-updated": new Set(),
+  "dms.record-deleted": new Set(),
+};
+
+export function listenersFor<E extends AutomationEventName>(
+  event: E,
+): AutomationEventListeners[E] {
+  return eventListeners[event];
 }
 
 /**
