@@ -18,6 +18,8 @@
     "postgresql",
     "mongodb",
     "rethinkdb",
+    "mysql",
+    "mariadb",
     "vue",
     "inertia"
   ],
