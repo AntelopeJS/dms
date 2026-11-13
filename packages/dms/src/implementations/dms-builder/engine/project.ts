@@ -62,6 +62,25 @@ function findTsConfig(rootDir: string): string | undefined {
   }
 }
 
+/**
+ * The app's own sources as {@link createProject} loads them, listed from the
+ * disk: what its tsconfig includes, or every checked `.ts` file under it
+ * without one.
+ */
+export function projectSourcePaths(rootDir: string): string[] {
+  const tsConfigFilePath = findTsConfig(rootDir);
+  if (!tsConfigFilePath) {
+    return ts.sys.readDirectory(rootDir, [".ts"], UNCHECKED_PATTERNS, ["**/*"]);
+  }
+  return (
+    ts.getParsedCommandLineOfConfigFile(
+      tsConfigFilePath,
+      {},
+      { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined },
+    )?.fileNames ?? []
+  );
+}
+
 const INDENT_SAMPLE_BYTES = 8192;
 
 /**
@@ -286,28 +305,11 @@ export function createProject(rootDir: string): Project {
     compilerOptions: options,
     manipulationSettings,
   });
-  project.addSourceFilesAtPaths(untypedSourcePatterns(rootDir));
-  return project;
-}
-
-function untypedSourcePatterns(rootDir: string): string[] {
-  return [
+  project.addSourceFilesAtPaths([
     path.join(rootDir, "**/*.ts"),
     ...UNCHECKED_PATTERNS.map((pattern) => `!${path.join(rootDir, pattern)}`),
-  ];
-}
-
-/**
- * Add the app's own sources as {@link createProject} loads them: what its
- * tsconfig includes, or every checked `.ts` file under it without one.
- */
-export function addProjectSources(project: Project, rootDir: string): void {
-  const tsConfigFilePath = findTsConfig(rootDir);
-  if (tsConfigFilePath) {
-    project.addSourceFilesFromTsConfig(tsConfigFilePath);
-  } else {
-    project.addSourceFilesAtPaths(untypedSourcePatterns(rootDir));
-  }
+  ]);
+  return project;
 }
 
 /** The indentation a generated block should use, as a string. */
