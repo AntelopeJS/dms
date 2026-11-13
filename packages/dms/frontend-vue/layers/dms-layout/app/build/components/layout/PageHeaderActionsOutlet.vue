@@ -3,7 +3,11 @@ import {
   defineAsyncComponent,
   defineComponent,
   h,
+  onMounted,
   onServerPrefetch,
+  shallowRef,
+  type Component,
+  type HydrationStrategy,
 } from "vue";
 import PageHeaderActionBar, {
   type LayoutHeaderAction,
@@ -62,22 +66,29 @@ const ActionsBar = defineComponent({
       : null,
 });
 
+/** Never hydrates, so the server's DOM stays as drawn until it is replaced. */
+const neverHydrate: HydrationStrategy = () => undefined;
+
 /**
- * The buttons. While the browser hydrates the server's page, they hydrate
- * only once the page has set its actions: until then the browser keeps the
- * buttons the server drew, untouched, and hydration then finds the same
- * buttons, so none of them moves. A page the browser draws itself draws them
- * at once.
+ * The buttons. While the browser hydrates the server's page, it keeps the
+ * buttons the server drew, untouched, until the page in the slot has set its
+ * actions, then draws its own buttons in their place: they show the
+ * browser's actions, attributes included, never the server's. A page the
+ * browser draws itself draws them at once.
  */
-const Buttons = isDmsHydrating()
-  ? defineAsyncComponent({
-      loader: async () => ActionsBar,
-      hydrate: (hydrate) => {
-        if (host && !host.isReady.value) void host.whenReady().then(hydrate);
-        else hydrate();
-      },
-    })
-  : ActionsBar;
+const Buttons = shallowRef<Component>(
+  isDmsHydrating()
+    ? defineAsyncComponent({
+        loader: async () => ActionsBar,
+        hydrate: neverHydrate,
+      })
+    : ActionsBar,
+);
+
+onMounted(async () => {
+  await host?.whenReady();
+  Buttons.value = ActionsBar;
+});
 </script>
 
 <template>

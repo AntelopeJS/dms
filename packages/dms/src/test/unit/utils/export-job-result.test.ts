@@ -27,6 +27,15 @@ describe("[unit] utils/export-jobs — the result summary a job stored", () => {
     });
   });
 
+  it("reads a summary that does not say it is partial as complete", () => {
+    const stored = JSON.stringify({ failures: [] });
+
+    expect(readJobResult(jobStoring(stored))).to.deep.equal({
+      partial: false,
+      failures: [],
+    });
+  });
+
   it("reads no summary from a stored value that is not one", () => {
     expect(readJobResult(jobStoring(JSON.stringify("done")))).to.equal(
       undefined,

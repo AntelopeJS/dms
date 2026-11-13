@@ -49,8 +49,11 @@ class SessionHeaderPage extends PageController("session-header-page", {
 const controller = RealtimeController.prototype;
 const { memberModel, roleModel } = stubPageAccessModels(["*"]);
 
-/** A request in the tenant, naming `sessionId` in `x-realtime-session` when given. */
-const tabRequest = (sessionId?: string): RequestContext => {
+/**
+ * A request in the tenant, naming `sessionId` in `x-realtime-session` when
+ * given, as a repeated header when it is a list.
+ */
+const tabRequest = (sessionId?: string | string[]): RequestContext => {
   const { ctx } = recordedSseStream("Bearer session-header");
   bindVerifiedRequestPrincipal(ctx, { userId: USER._id, tenantId: TENANT });
   if (sessionId !== undefined) {
@@ -108,6 +111,22 @@ describe("[unit] realtime — routes read the tab's session from its header", ()
     const ack = await controller.subscribePage.call(
       undefined,
       tabRequest(sessionId),
+      PAGE_ID,
+      roleModel,
+      memberModel,
+      USER,
+    );
+
+    expect(ack).to.deep.equal({ ok: true, topics: [TOPIC] });
+    expect(getSessionInfo(sessionId)?.pageId).to.equal(PAGE_ID);
+  });
+
+  it("subscribes the session a repeated header names first", async () => {
+    const sessionId = await openSession();
+
+    const ack = await controller.subscribePage.call(
+      undefined,
+      tabRequest([sessionId, "other-session"]),
       PAGE_ID,
       roleModel,
       memberModel,
