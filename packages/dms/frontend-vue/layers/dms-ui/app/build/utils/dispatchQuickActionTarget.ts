@@ -55,7 +55,6 @@ const targetHandlers: Record<
  * action's page, `event` dispatches a window `CustomEvent` in place for whoever
  * listens.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-returns -- The public auto-import contract returns unknown; inference and navigateDms-derived returns reject base-compatible implementations.
 export function dispatchQuickActionTarget(target: QuickActionTarget): unknown {
   const handler = targetHandlers[target.type];
   return handler?.(target);

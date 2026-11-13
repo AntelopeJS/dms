@@ -6,6 +6,7 @@ import type { Tone } from "../../tones";
 import { getDeclaredComponentChildren } from "./component-target";
 import { PageMetadata } from "../metadata";
 import { pageMetadataByFullId } from "./registry";
+import { isNumber } from "../../utils/internal/type-check";
 
 /**
  * A page's navigation badge as the menu serves it: the label, and its tone
@@ -65,8 +66,7 @@ export function combineNavBadgeCounts(
   values: Array<number | NavBadgeCount>,
 ): NavBadgeCount {
   const counts = values.map((value) =>
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The public count union uses a number for neutral counts and an object for counts carrying tone.
-    typeof value === "number" ? { count: value } : value,
+    isNumber(value) ? { count: value } : value,
   );
   const nonZero = counts.filter(({ count }) => count > 0);
   const tone = strongestNavBadgeTone(nonZero.map(({ tone }) => tone));

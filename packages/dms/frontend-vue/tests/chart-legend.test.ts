@@ -119,7 +119,6 @@ describe("chart legend", () => {
   it("is drawn in the dashboard's theme", () => {
     const legend = legendOf({});
     expect(legend.show).toBe(true);
-    // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- ApexCharts owns the public marker option named shape; renaming the asserted property would change the legend contract under test.
     expect(legend.markers).toMatchObject({ shape: "square", strokeWidth: 0 });
     expect(legend.labels).toHaveProperty("colors");
   });

@@ -197,7 +197,6 @@ const decodeVisibility: ServerFieldCodec["decode"] = (stored, defaultValue) => {
 };
 
 const encodePagination: ServerFieldCodec["encode"] = (value) => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The codec contract accepts unknown and does not validate pagination. Inference cannot justify this legacy assertion; adding a guard would change malformed-input behavior.
   const { pageIndex, pageSize } = value as PaginationEntry;
   return pageIndex === FIRST_PAGE_INDEX ? pageSize : [pageSize, pageIndex];
 };
@@ -278,7 +277,6 @@ export const decodeServerField = <T>(
   const stored = entry?.[codec.key];
   if (stored === undefined) return defaultValue;
   try {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is caller-selected, not validated by the codec. Deriving its return type would widen the existing generic API; preserve the unchecked contract.
     return codec.decode(stored, defaultValue) as T;
   } catch {
     return defaultValue;

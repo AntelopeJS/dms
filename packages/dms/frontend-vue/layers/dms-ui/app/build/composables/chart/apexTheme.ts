@@ -77,7 +77,6 @@ export function buildLegend(
     labels: { colors: theme.muted },
     markers: {
       size: LEGEND_MARKER_SIZE,
-      // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- ApexOptions owns this literal markers.shape property; renaming it would change the chart configuration.
       shape: "square",
       strokeWidth: 0,
     },
@@ -198,7 +197,6 @@ function pointLabel(
 ) {
   const point =
     context.w.config.series[context.seriesIndex]?.data[context.dataPointIndex];
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens this owner union's label to unknown; typeof retains the ChartSeries point contract without asserting or validating plugin values.
   if (typeof point !== "object" || point === null || !("label" in point)) {
     return value;
   }

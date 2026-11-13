@@ -22,7 +22,6 @@ import CascaderPath from "../layers/dms-ui/app/components/table-view/CascaderPat
 const SEARCH_URL = "/api/categories/select";
 const KEY_MAPPING = { label: "name", value: "_id", parent: "parent" };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- The fake route accepts arbitrary ids including misses; inference cannot index them, and own-key filtering would change inherited-key lookup.
 const ROWS: Record<string, { _id: string; name: string; parent?: string }> = {
   electronics: { _id: "electronics", name: "Electronics" },
   audio: { _id: "audio", name: "Audio", parent: "electronics" },

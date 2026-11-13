@@ -39,7 +39,7 @@ describe("[unit] pages/settings/users — invitation email validation option", (
   it("keeps the name optional, with no rule making it required", () => {
     const name = inviteFormFields().find((field) => field.id === "name");
 
-    expect(name, "the invite form has a name field").to.exist;
+    expect(name, "the invite form has a name field").to.not.equal(undefined);
     expect(name?.required).to.equal(false);
     expect(JSON.stringify(inviteFormOptions())).to.not.include(RETIRED_OPTION);
   });

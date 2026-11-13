@@ -12,7 +12,7 @@ import type {
   ChartSeries,
   ChartXAxis,
 } from "../layers/dms-ui/app/composables/chart/types";
-import type { ApexOptions } from "apexcharts";
+import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
 
 const SERIES: ChartSeries[] = [
   { name: "p50 – p99", data: [{ x: "10:00", y: [12, 48] }] },
@@ -205,62 +205,49 @@ describe("annotations", () => {
     expect(optionsFor({ annotations: [] }).annotations).toBeUndefined();
   });
 
-  it("maps a reference line onto the Y axis", () => {
-    const annotations = sectionIn(
-      optionsFor({ annotations: [CAP] }),
+  function yaxisLineOf(annotation: ChartAnnotation) {
+    const lines = sectionIn(
+      optionsFor({ annotations: [annotation] }),
       "annotations",
-    );
-    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
-    const [line] = annotations.yaxis as NonNullable<
-      NonNullable<ApexOptions["annotations"]>["yaxis"]
-    >;
-    expect(line!.y).toBe(250);
-    expect(line!.borderColor).toBe("#f59e0b");
-    expect(line!.strokeDashArray).toBeGreaterThan(0);
-    expect(line!.label!.text).toBe("spend cap");
+    ).yaxis;
+    if (!Array.isArray(lines)) {
+      throw new Error("The chart annotations hold no yaxis list");
+    }
+    const line: unknown = lines[0];
+    if (!isObject(line) || isNull(line)) {
+      throw new Error("The chart annotations hold no yaxis line");
+    }
+    return line;
+  }
+
+  it("maps a reference line onto the Y axis", () => {
+    const line = yaxisLineOf(CAP);
+    expect(line.y).toBe(250);
+    expect(line.borderColor).toBe("#f59e0b");
+    expect(line.strokeDashArray).toBeGreaterThan(0);
+    expect(sectionIn(line, "label").text).toBe("spend cap");
   });
 
   it("draws a solid line when dashed is false", () => {
-    const annotations = sectionIn(
-      optionsFor({ annotations: [{ ...CAP, dashed: false }] }),
-      "annotations",
-    );
-    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
-    const [line] = annotations.yaxis as NonNullable<
-      NonNullable<ApexOptions["annotations"]>["yaxis"]
-    >;
-    expect(line!.strokeDashArray).toBe(0);
+    const line = yaxisLineOf({ ...CAP, dashed: false });
+    expect(line.strokeDashArray).toBe(0);
   });
 
   it("resolves theme color names to usable CSS colors", () => {
-    const annotations = sectionIn(
-      optionsFor({ annotations: [{ y: 4, label: "cap", color: "warning" }] }),
-      "annotations",
-    );
-    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
-    const [line] = annotations.yaxis as NonNullable<
-      NonNullable<ApexOptions["annotations"]>["yaxis"]
-    >;
-    expect(line!.borderColor).not.toBe("warning");
-    expect(String(line!.borderColor)).toMatch(/^(#|rgb|hsl)/);
-    expect(line!.label!.style).toMatchObject({
-      color: line!.borderColor,
+    const line = yaxisLineOf({ y: 4, label: "cap", color: "warning" });
+    expect(line.borderColor).not.toBe("warning");
+    expect(String(line.borderColor)).toMatch(/^(#|rgb|hsl)/);
+    expect(sectionIn(line, "label").style).toMatchObject({
+      color: line.borderColor,
     });
   });
 
   it("shades a band when y2 is set", () => {
-    const annotations = sectionIn(
-      optionsFor({ annotations: [{ y: 10, y2: 40, color: "#10b981" }] }),
-      "annotations",
-    );
-    // SAFETY: buildAnnotations returns { yaxis: ApexYAxisAnnotation[] } whose entries carry the Apex yaxis annotation fields; the raw option section only erases that type.
-    const [band] = annotations.yaxis as NonNullable<
-      NonNullable<ApexOptions["annotations"]>["yaxis"]
-    >;
-    expect(band!.y2).toBe(40);
-    expect(band!.fillColor).toBe("#10b981");
-    expect(band!.opacity).toBeGreaterThan(0);
-    expect(band!.label).toBeUndefined();
+    const band = yaxisLineOf({ y: 10, y2: 40, color: "#10b981" });
+    expect(band.y2).toBe(40);
+    expect(band.fillColor).toBe("#10b981");
+    expect(band.opacity).toBeGreaterThan(0);
+    expect(band.label).toBeUndefined();
   });
 });
 

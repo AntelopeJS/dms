@@ -30,7 +30,6 @@ const DAY_KEY_LENGTH = 10;
 
 const toDate = (value: Parameters<DataTypeFormatter>[0]): Date | undefined => {
   if (value === null || value === undefined || value === "") return undefined;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Row values have no date schema. Date's constructor declaration excludes coercible objects and booleans that the implementation already accepts; inference cannot preserve that coercion contract.
   const date = new Date(value as string | number | Date);
   return Number.isNaN(date.getTime()) ? undefined : date;
 };
@@ -220,7 +219,6 @@ export function orderGroupedRows<T>(
   const groupOf = new Map<string, number>();
   const entries = rows.map((row, index) => {
     const key = rowGroupKey(
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is unconstrained. Nuxt get's object input declaration cannot prove generic rows or preserve its primitive handling through inference; keep its unchecked lookup.
       get(row as Parameters<typeof get>[0], grouped.groupByField),
       by,
       locale,
@@ -229,7 +227,6 @@ export function orderGroupedRows<T>(
     return { row, index, group: groupOf.get(key)! };
   });
   const direction = sort.desc ? -1 : 1;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- T is unconstrained and Nuxt get's input owner is object-only. A guard or generic constraint would change accepted rows; keep the dynamic lookup.
   const valueOf = (row: T) => get(row as Parameters<typeof get>[0], sort.id);
   return entries
     .sort(

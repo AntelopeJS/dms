@@ -11,7 +11,10 @@ import {
   Query,
   Validation,
 } from "@antelopejs/interface-data-api/components";
-import type { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
+import type {
+  DataAPIMeta,
+  RowFields,
+} from "@antelopejs/interface-data-api/metadata";
 import type {
   Stream,
   ValueProxy,
@@ -28,6 +31,10 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import { SearchableMeta } from "@antelopejs/interface-dms/base";
 import { DEFAULT_ROW_ID_FIELD } from "@antelopejs/interface-dms/base/table-view";
 import { resolveFilterTokens } from "./filter-tokens";
+import {
+  isBoolean,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const MIN_SEARCH_LENGTH = 2;
 const IDS_KEY = "ids";
@@ -66,8 +73,7 @@ function resolveSearchFilter(
 }
 
 function applySearchFilter(
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the search serves, interface-data-api's RowFields, read by field names taken at run time from its searchable fields and the id filter.
-  row: ValueProxy<Record<string, unknown>>,
+  row: ValueProxy<RowFields>,
   field: string,
   compareMode: string,
   target: SearchTarget,
@@ -80,11 +86,12 @@ function applySearchFilter(
   }
 
   const contextWithThis = Object.assign({}, context, { this: thisObj });
-  const unlockedValue = Validation.UnlockRequest<
-    // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the search serves, interface-data-api's RowFields, read by field names taken at run time from its searchable fields and the id filter.
-    Record<string, unknown>,
-    string
-  >(thisObj, meta, row, field);
+  const unlockedValue = Validation.UnlockRequest<RowFields, string>(
+    thisObj,
+    meta,
+    row,
+    field,
+  );
   return filterFunc(
     contextWithThis,
     unlockedValue,
@@ -96,28 +103,23 @@ function applySearchFilter(
 }
 
 function either(a: Condition, b: Condition): Condition {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Conditions combine literal booleans and database expression proxies; retain the literal short-circuit before calling proxy methods.
-  if (typeof a === "boolean") return a ? true : b;
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The right condition also has a literal boolean branch rather than a query proxy.
-  if (typeof b === "boolean") return b ? true : a;
+  if (isBoolean(a)) return a ? true : b;
+  if (isBoolean(b)) return b ? true : a;
   return a.or(b);
 }
 
 function applyGlobalSearch(
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the search serves, interface-data-api's RowFields, read by field names taken at run time from its searchable fields and the id filter.
-  query: Stream<Record<string, unknown>>,
+  query: Stream<RowFields>,
   searchableFields: Record<string, string>,
   target: SearchTarget,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the search serves, interface-data-api's RowFields, read by field names taken at run time from its searchable fields and the id filter.
-): Stream<Record<string, unknown>> {
+): Stream<RowFields> {
   const fieldEntries = Object.entries(searchableFields);
 
   if (fieldEntries.length === 0) {
     return query;
   }
 
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the search serves, interface-data-api's RowFields, read by field names taken at run time from its searchable fields and the id filter.
-  return query.filter((row: ValueProxy<Record<string, unknown>>) =>
+  return query.filter((row: ValueProxy<RowFields>) =>
     fieldEntries
       .map(([field, mode]) => applySearchFilter(row, field, mode, target))
       .reduce(either, false),
@@ -185,7 +187,8 @@ async function canViewArchived(
 export function archiveFilter(
   archived: boolean,
 ): NonNullable<Parameters.ListParameters["filters"]>[string] {
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- FilterValue's owner declares string but archive filters intentionally send boolean true; inference and indexed access retain the mismatch, and converting the value would change database comparisons.
+  // SAFETY: Bug in interface-data-api's published FilterValue, which types a filter value as a string. The archive filter must compare with the boolean true, so the string type is false; the value is right as long as every reader hands it to the database unchanged, as each does: the data-api list runs the field's filter, the default one ArchiveField registers (proxy.eq or proxy.ne), and its index lookup passes it to getAll when the archive field is indexed and the filter is eq; buildIdsExportQuery compares row.key(archiveField) with it. A Filter a module declares above ArchiveField on that field replaces the default and receives the boolean.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The boolean reaches a string-typed slot through unknown; a single assertion cannot cross from boolean to string.
   return [true as unknown as string, archived ? "eq" : "ne"];
 }
 
@@ -219,8 +222,7 @@ export async function applyArchiveFilter(
     return { ...filters, [archiveField]: archiveFilter(false) };
   }
 
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The request adapter owns searchParams.get; retain its existing string check and unchanged fallback for absent or malformed archive parameters.
-  if (typeof showArchived !== "string") {
+  if (!isString(showArchived)) {
     return filters;
   }
 
@@ -253,14 +255,11 @@ function resolveIdsField(
  * still apply: it only narrows what the caller may already read.
  */
 function applyIdsRestriction(
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the search serves, interface-data-api's RowFields, read by field names taken at run time from its searchable fields and the id filter.
-  query: Stream<Record<string, unknown>>,
+  query: Stream<RowFields>,
   ids: string[],
   field: string,
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the search serves, interface-data-api's RowFields, read by field names taken at run time from its searchable fields and the id filter.
-): Stream<Record<string, unknown>> {
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The row of whichever data controller's table the search serves, interface-data-api's RowFields, read by field names taken at run time from its searchable fields and the id filter.
-  return query.filter((row: ValueProxy<Record<string, unknown>>) =>
+): Stream<RowFields> {
+  return query.filter((row: ValueProxy<RowFields>) =>
     ids.map((id): Condition => row.key(field).eq(id)).reduce(either, false),
   );
 }
@@ -352,8 +351,7 @@ export async function listWithSearch(
   user?: User,
   permissions?: Set<string>,
 ): Promise<{
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The rows Query.ReadProperties answers, interface-data-api's RowFields, of whichever data controller's table the list serves.
-  results: Record<string, unknown>[];
+  results: RowFields[];
   total: number;
   offset: number;
   limit: number;

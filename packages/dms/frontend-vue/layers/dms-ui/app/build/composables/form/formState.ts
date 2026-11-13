@@ -95,16 +95,13 @@ function createFormState(props: FormProps) {
 
   const inactiveFields = computed(() =>
     withConditionFields(allFields.value, state.value, {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions own these sets but expose open state. Preserve the existing unchecked iterable behavior for malformed replacements rather than filtering them.
       disabled: state.value.disabledFields as Set<string> | undefined,
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions expose open state; keep malformed hidden-field replacements observable to the existing Set constructor.
       hidden: state.value.hiddenFields as Set<string> | undefined,
     }),
   );
   const disabledFields = computed(() => inactiveFields.value.disabled);
   const hiddenFields = computed(() => inactiveFields.value.hidden);
   const requiredFields = computed(
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Watch actions expose open state; retaining this unchecked field preserves existing size/has behavior for malformed replacements.
     () => state.value.requiredFields as Set<string> | undefined,
   );
 

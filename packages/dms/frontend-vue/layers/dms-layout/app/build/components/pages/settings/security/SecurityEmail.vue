@@ -349,9 +349,9 @@ async function cancelChange(): Promise<void> {
       >
         <template #default="{ describedby, invalid }">
           <DmsPasswordInput
-            has-lock-icon
             :id="CURRENT_FIELD_ID"
             v-model="currentPassword"
+            has-lock-icon
             autocomplete="current-password"
             :invalid="invalid"
             :aria-describedby="describedby"

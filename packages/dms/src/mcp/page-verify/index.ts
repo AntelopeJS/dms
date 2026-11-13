@@ -1,0 +1,432 @@
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
+import type { Role } from "@antelopejs/interface-dms/db";
+import type { Browser, BrowserContext } from "./playwright";
+import {
+  closeSession,
+  findRole,
+  isOwnerRole,
+  loadWorkspace,
+  memberAccount,
+  type OpenedSession,
+  openSession,
+  ownerAccount,
+  roleOpensPage,
+  type VerifyAccount,
+  type Workspace,
+} from "./accounts";
+import { launchBrowser } from "./browser";
+import { listFailures } from "./failures";
+import { guardWrites, type WriteGuard } from "./controls";
+import { checkInteractions } from "./interactions";
+import { compareWithMockup, type MockupTarget } from "./mockup";
+import { probePage } from "./page-probe";
+import {
+  captureErrors,
+  type ErrorSink,
+  openPage,
+  readDataBlocks,
+  readLayout,
+  fileSegment,
+  renderAtViewport,
+  type ShotStore,
+  shotFile,
+} from "./render";
+import type {
+  DataBlock,
+  PageReport,
+  PageVerifyReport,
+  RoleAccess,
+  Viewport,
+  ViewportRender,
+} from "./report";
+import { knownRoutes, type PageTarget, resolvePage } from "./targets";
+
+export * from "./accounts";
+export * from "./failures";
+export * from "./mockup";
+export * from "./render";
+export * from "./page-probe";
+export * from "./report";
+export * from "./targets";
+
+const ESTABLISH_PATH = "/auth/establish";
+const RUNS_FOLDER = [".antelope", "page-verify"];
+const SUGGESTED_ROUTES = 20;
+const MODULE_LOAD_FAILURE = "Failed to fetch dynamically imported module";
+
+/** What `page_verify` was asked. */
+export interface VerifyRequest {
+  pages: string[];
+  role?: string;
+  viewports: readonly Viewport[];
+  mockup?: MockupTarget;
+  submit: boolean;
+  /** The dashboard origin, such as `http://localhost:3001`. */
+  origin: string;
+  projectPath: string;
+}
+
+/** The browser contexts of a run and the sessions they hold, closed together. */
+class Sessions {
+  private readonly opened: OpenedSession[] = [];
+  private readonly contexts = new Map<string, Promise<BrowserContext>>();
+
+  constructor(
+    private readonly browser: Browser,
+    readonly origin: string,
+  ) {}
+
+  /** The context signed in as `account`, opened once per account. */
+  contextFor(
+    account: VerifyAccount,
+    guard: WriteGuard,
+  ): Promise<BrowserContext> {
+    const key = account.user._id;
+    let context = this.contexts.get(key);
+    if (context === undefined) {
+      context = this.signIn(account, guard);
+      this.contexts.set(key, context);
+    }
+    return context;
+  }
+
+  private async signIn(
+    account: VerifyAccount,
+    guard: WriteGuard,
+  ): Promise<BrowserContext> {
+    const session = await openSession(account);
+    this.opened.push(session);
+    const context = await this.browser.newContext({
+      locale: "en-US",
+      colorScheme: "light",
+    });
+    const response = await context.request.post(
+      new URL(ESTABLISH_PATH, this.origin).href,
+      { data: session.ticket, headers: { origin: this.origin } },
+    );
+    if (!response.ok()) {
+      throw new Error(
+        `The dashboard at ${this.origin} refused to sign the browser in as ${account.user.email}: ${ESTABLISH_PATH} answered ${response.status()} ${await response.text()}`,
+      );
+    }
+    await guardWrites(context, guard);
+    return context;
+  }
+
+  async close(): Promise<void> {
+    await Promise.allSettled(
+      [...this.opened].map((session) => closeSession(session)),
+    );
+  }
+}
+
+interface PageRun {
+  sessions: Sessions;
+  workspace: Workspace;
+  account: VerifyAccount;
+  guard: WriteGuard;
+  store: ShotStore;
+}
+
+/** What the browser saw of a page signed in as a role's member, and why. */
+interface Observation {
+  observed: RoleAccess["observed"];
+  note?: string;
+}
+
+async function observedAccess(
+  run: PageRun,
+  target: PageTarget,
+  account: VerifyAccount,
+): Promise<Observation> {
+  const context = await run.sessions.contextFor(account, run.guard);
+  const origin = run.sessions.origin;
+  const layout = await readLayout(
+    context,
+    new URL(target.layoutPath, origin).href,
+  );
+  if (layout.status === "refused") {
+    return {
+      observed: "refused",
+      note: `the layout answered ${layout.httpStatus}`,
+    };
+  }
+  const page = await context.newPage();
+  try {
+    await openPage(page, new URL(target.route, origin).href);
+    const drawn = (await probePage(page)).blocks.length;
+    if (drawn > 0) return { observed: "rendered" };
+    const shot = shotFile(run.store, [
+      "access",
+      `${fileSegment(target.route)}-${fileSegment(account.user.email)}.png`,
+    ]);
+    await mkdir(path.dirname(shot.file), { recursive: true });
+    await page.screenshot({ path: shot.file, fullPage: true });
+    return {
+      observed: "refused",
+      note: `the layout was served, but ${page.url()} drew no block: see ${shot.relative}`,
+    };
+  } finally {
+    await page.close();
+  }
+}
+
+async function roleAccess(
+  run: PageRun,
+  target: PageTarget,
+  role: Role,
+): Promise<RoleAccess> {
+  const expected = (await roleOpensPage(run.workspace, role, target.info))
+    ? "allowed"
+    : "refused";
+  const member = await memberAccount(run.workspace, role);
+  if (member === undefined) {
+    return {
+      role: role.name,
+      expected,
+      observed: "not_checked",
+      note: "no member holds only this role",
+      ok: true,
+    };
+  }
+  const { observed, note } = await observedAccess(run, target, member);
+  return {
+    ...(note !== undefined && { note }),
+    role: role.name,
+    expected,
+    observed,
+    ok: (observed === "rendered") === (expected === "allowed"),
+  };
+}
+
+async function checkPermissions(
+  run: PageRun,
+  target: PageTarget,
+): Promise<RoleAccess[]> {
+  const results: RoleAccess[] = [];
+  for (const role of run.workspace.roles)
+    results.push(await roleAccess(run, target, role));
+  return results;
+}
+
+/** The render with each block a tab drew counted present, as drawn once its tab is selected. */
+function withTabBlocks(
+  render: ViewportRender,
+  revealed: ReadonlySet<string>,
+): ViewportRender {
+  return {
+    ...render,
+    blocks: render.blocks.map((block) =>
+      !block.present && revealed.has(block.path)
+        ? { ...block, present: true, visible: true, inTab: true }
+        : block,
+    ),
+  };
+}
+
+function refusedPage(
+  target: PageTarget,
+  run: PageRun,
+  status: number,
+): PageReport {
+  const failure = `the page refused ${run.account.summary.email}: its layout answered ${status}`;
+  return emptyReport(target.route, target.info.fullId, [failure]);
+}
+
+function emptyReport(
+  page: string,
+  fullId: string | undefined,
+  failures: string[],
+): PageReport {
+  return {
+    page,
+    ...(fullId !== undefined && { fullId }),
+    ok: false,
+    failures,
+    render: { viewports: [] },
+    data: [],
+    errors: { console: [], failedRequests: [] },
+    interactions: [],
+    permissions: [],
+  };
+}
+
+async function verifyPage(
+  run: PageRun,
+  target: PageTarget,
+  request: VerifyRequest,
+): Promise<PageReport> {
+  const context = await run.sessions.contextFor(run.account, run.guard);
+  const origin = run.sessions.origin;
+  const layout = await readLayout(
+    context,
+    new URL(target.layoutPath, origin).href,
+  );
+  if (layout.status === "refused")
+    return refusedPage(target, run, layout.httpStatus);
+  const url = new URL(target.route, origin).href;
+  const page = await context.newPage();
+  const errors: ErrorSink = { viewport: "", console: [], failedRequests: [] };
+  captureErrors(page, origin, errors);
+  const viewports: ViewportRender[] = [];
+  const data: DataBlock[] = [];
+  try {
+    for (const viewport of request.viewports) {
+      errors.viewport = viewport.name;
+      const outcome = await renderAtViewport(
+        page,
+        url,
+        viewport,
+        layout.blocks,
+        run.store,
+      );
+      viewports.push(outcome.render);
+      data.push(...readDataBlocks(outcome.probe, viewport.name, layout.blocks));
+    }
+    errors.viewport = "interactions";
+    const [first] = request.viewports;
+    if (first)
+      await page.setViewportSize({ width: first.width, height: first.height });
+    const { interactions, revealed } = await checkInteractions(
+      page,
+      url,
+      origin,
+      run.guard,
+    );
+    const rendered = viewports.map((render) => withTabBlocks(render, revealed));
+    const mockup =
+      request.mockup && first && rendered[0]
+        ? await compareWithMockup(
+            context,
+            origin,
+            request.mockup,
+            rendered[0].blocks,
+            {
+              store: run.store,
+              viewport: first,
+            },
+          )
+        : undefined;
+    const report = {
+      page: target.route,
+      fullId: target.info.fullId,
+      render: { viewports: rendered, ...(mockup && { mockup }) },
+      data,
+      errors: {
+        console: errors.console,
+        failedRequests: errors.failedRequests,
+      },
+      interactions,
+      permissions: await checkPermissions(run, target),
+    };
+    const failures = listFailures(report);
+    return { ...report, ok: failures.length === 0, failures };
+  } finally {
+    await page.close();
+  }
+}
+
+/**
+ * Verifies the page, and once more when the browser failed to load one of
+ * the dashboard's modules: a development server still preparing its
+ * dependencies answers so on its first loads. A page that fails the same way
+ * twice keeps its report. With `submit`, the first run's writes went
+ * through, so the page is not run again.
+ */
+async function verifyOnce(
+  run: PageRun,
+  target: PageTarget,
+  request: VerifyRequest,
+  notes: string[],
+): Promise<PageReport> {
+  const report = await verifyPage(run, target, request);
+  const unloaded = report.errors.console.some((error) =>
+    error.text.includes(MODULE_LOAD_FAILURE),
+  );
+  if (!unloaded || request.submit) return report;
+  notes.push(
+    `${target.route}: the browser failed to load a dashboard module, so the page was verified again; this report is the second run.`,
+  );
+  return verifyPage(run, target, request);
+}
+
+async function pickAccount(
+  workspace: Workspace,
+  role: string | undefined,
+  notes: string[],
+): Promise<VerifyAccount> {
+  if (role === undefined || isOwnerRole(role)) return ownerAccount(workspace);
+  const found = findRole(workspace, role);
+  if (found === undefined) {
+    const names =
+      workspace.roles.map((known) => known.name).join(", ") || "none";
+    throw new Error(
+      `No role is named "${role}". Roles of the workspace: ${names}. Pass "owner" to verify as the platform owner.`,
+    );
+  }
+  const member = await memberAccount(workspace, found);
+  if (member !== undefined) return member;
+  notes.push(
+    `No member holds only the role "${found.name}", so the pages were opened as the platform owner; invite a member with only that role to check the page as they see it. The permissions section still applies the role's grants.`,
+  );
+  return ownerAccount(workspace);
+}
+
+function runFolder(projectPath: string): string {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  return path.join(projectPath, ...RUNS_FOLDER, stamp);
+}
+
+/**
+ * Opens each page in a headless Chromium signed in as the account `role`
+ * names, and reports what it renders, the data its blocks load, the errors
+ * it raises, how its controls respond and which roles it opens for.
+ */
+export async function verifyPages(
+  request: VerifyRequest,
+): Promise<PageVerifyReport> {
+  const notes: string[] = [];
+  const workspace = await loadWorkspace();
+  const account = await pickAccount(workspace, request.role, notes);
+  const store: ShotStore = {
+    projectPath: request.projectPath,
+    dir: runFolder(request.projectPath),
+  };
+  const guard: WriteGuard = { submit: request.submit, writes: [] };
+  const browser = await launchBrowser();
+  const sessions = new Sessions(browser, request.origin);
+  const run: PageRun = { sessions, workspace, account, guard, store };
+  try {
+    const pages: PageReport[] = [];
+    for (const name of request.pages) {
+      const target = resolvePage(name);
+      pages.push(
+        target === undefined
+          ? emptyReport(name, undefined, [
+              `not a registered page route; some known routes: ${knownRoutes(SUGGESTED_ROUTES).join(", ")}`,
+            ])
+          : await verifyOnce(run, target, request, notes),
+      );
+    }
+    if (guard.writes.length > 0) {
+      const writes = [...new Set(guard.writes)].join(", ");
+      notes.push(
+        request.submit
+          ? `Writes let through (submit: true): ${writes}`
+          : `Writes held back (submit: false): ${writes}`,
+      );
+    }
+    return {
+      ok: pages.every((page) => page.ok),
+      dashboardUrl: request.origin,
+      account: account.summary,
+      screenshots: path.relative(request.projectPath, store.dir),
+      notes,
+      pages,
+    };
+  } finally {
+    await browser.close();
+    await sessions.close();
+  }
+}

@@ -325,7 +325,7 @@ function createChartBuilder<TType extends ChartType>(type: TType) {
     options?: Omit<TProps, "type"> | TProps,
   ): ComponentBuilder<TProps> => {
     const meta = CHART_META_BY_TYPE[type];
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Public chart builders permit omitted options while pages are being authored; TProps may require fields not present yet.
+    // SAFETY: merged is a TProps exactly when it holds every field TProps requires. `type` is set here to the one literal TProps carries; options, typed `Omit<TProps, "type">` or TProps, hold the rest when given. Without options, merged holds only `type`, which is enough for every member of AnyChartProps, none of which requires another field, but not for a TProps a caller extends with a further required field.
     const merged = { ...options, type } as TProps;
     const builder = new ComponentBuilder<TProps>(CHART_COMPONENT_NAME)
       .options(merged)

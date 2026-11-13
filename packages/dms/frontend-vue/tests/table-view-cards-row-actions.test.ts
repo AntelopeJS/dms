@@ -20,6 +20,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
+import { displayContext } from "./fixtures/displayContext";
 
 type Row = { _id: string; name: string };
 
@@ -68,19 +69,16 @@ function createTable(columns: ColumnDef<Row>[]): Table<Row> {
 
 function createContext(table?: Table<Row>, componentName?: string) {
   const opened: Row[] = [];
-  // SAFETY: CardsDisplay uses only the capabilities supplied by this fixture; unrelated display operations are not exercised.
-  const context = reactive({
-    items: rows,
-    columns: [],
-    loading: false,
-    rowIdKey: "_id",
-    labelKey: "name",
-    options: componentName ? { card: { component: { componentName } } } : {},
-    pagination: { pageIndex: 0, pageSize: 10, total: 2 },
-    selection: { isSelected: () => false, toggle: () => {} },
-    actions: { canAdd: false, open: (item: Row) => opened.push(item) },
-    table,
-  }) as TableViewDisplayContext<Row>;
+  const context = reactive<TableViewDisplayContext<Row>>(
+    displayContext<Row>({
+      items: rows,
+      labelKey: "name",
+      options: componentName ? { card: { component: { componentName } } } : {},
+      pagination: { total: 2 },
+      actions: { open: (item: Row) => opened.push(item) },
+      table,
+    }),
+  );
   return { context, opened };
 }
 

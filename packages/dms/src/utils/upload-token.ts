@@ -3,6 +3,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { sign, verify } from "jsonwebtoken";
 import { getAuthConfig } from "../config";
 import { isJwtClaims } from "./jwt-claims";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const UPLOAD_TOKEN_PURPOSE = "file-upload";
 const FALLBACK_SECRET_BYTES = 32;
@@ -84,7 +85,6 @@ export function signUploadToken(claims: Partial<UploadTokenClaims>): string {
  * the token is missing, tampered with, signed with a different secret, or was
  * not minted for uploads. Presign treats a `null` result as a rejection.
  */
-/* oxlint-disable anti-slop/no-runtime-typeof -- Signed JWT claims are still untyped input; string checks preserve omission of malformed optional claims. */
 export function verifyUploadToken(token: string): UploadTokenClaims | null {
   try {
     const payload = verify(token, getUploadTokenSecret(), {
@@ -94,22 +94,19 @@ export function verifyUploadToken(token: string): UploadTokenClaims | null {
       return null;
     }
     const claims: UploadTokenClaims = {
-      storage:
-        typeof payload.storage === "string" ? payload.storage : undefined,
-      path: typeof payload.path === "string" ? payload.path : undefined,
+      storage: isString(payload.storage) ? payload.storage : undefined,
+      path: isString(payload.path) ? payload.path : undefined,
     };
-    if (typeof payload.pageId === "string") claims.pageId = payload.pageId;
-    if (typeof payload.componentId === "string")
-      claims.componentId = payload.componentId;
-    if (typeof payload.field === "string") claims.field = payload.field;
+    if (isString(payload.pageId)) claims.pageId = payload.pageId;
+    if (isString(payload.componentId)) claims.componentId = payload.componentId;
+    if (isString(payload.field)) claims.field = payload.field;
     if (payload.visibility !== undefined)
       claims.visibility =
         payload.visibility === "public" ? "public" : "private";
-    if (typeof payload.writePermission === "string")
+    if (isString(payload.writePermission))
       claims.writePermission = payload.writePermission;
     return claims;
   } catch {
     return null;
   }
 }
-/* oxlint-enable anti-slop/no-runtime-typeof */

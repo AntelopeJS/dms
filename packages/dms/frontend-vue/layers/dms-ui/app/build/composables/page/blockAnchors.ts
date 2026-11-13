@@ -44,3 +44,52 @@ export function blockAnchorElement(anchor: string): Element | null {
   const instance = blocks.get(anchor);
   return instance ? firstElementOf(instance.$.subTree) : null;
 }
+
+function topElementsOf(vnode: VNode | null | undefined): Element[] {
+  if (!vnode) return [];
+  if (vnode.el instanceof Element) return [vnode.el];
+  if (vnode.component) return topElementsOf(vnode.component.subTree);
+  if (!Array.isArray(vnode.children)) return [];
+  return vnode.children.flatMap((child) =>
+    isVNode(child) ? topElementsOf(child) : [],
+  );
+}
+
+function elementsOfBlock(instance: ComponentPublicInstance): Element[] {
+  return instance instanceof Element
+    ? [instance]
+    : topElementsOf(instance.$.subTree);
+}
+
+/**
+ * Every top-level element the block drawn under `anchor` renders: more than
+ * one for a block whose template has several roots. Empty when no such block
+ * is on screen.
+ *
+ * @internal
+ */
+export function blockAnchorElements(anchor: string): Element[] {
+  const instance = blocks.get(anchor);
+  return instance ? elementsOfBlock(instance) : [];
+}
+
+/**
+ * The anchor of the innermost block whose elements hold `target`, `undefined`
+ * when none does. A child's anchor extends its parent's, so the longest
+ * anchor among the blocks holding `target` is the innermost one.
+ *
+ * @internal
+ */
+export function blockAnchorAt(target: EventTarget | null): string | undefined {
+  if (!(target instanceof Node)) return undefined;
+  let innermost: string | undefined;
+  for (const [anchor, instance] of blocks) {
+    const holdsTarget = elementsOfBlock(instance).some((element) =>
+      element.contains(target),
+    );
+    if (holdsTarget && anchor.length > (innermost?.length ?? -1)) {
+      innermost = anchor;
+    }
+  }
+  return innermost;
+}

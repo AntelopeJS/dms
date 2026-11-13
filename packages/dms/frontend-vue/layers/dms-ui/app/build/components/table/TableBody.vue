@@ -218,8 +218,8 @@ const emptyStates = computed(() => props.context.emptyStates);
           :class="uiTable.rowCell()"
         >
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="column.columnDef.meta"
+            :aria-label="t('dms.a11y.loading')"
             :class="uiTable.skeletonCell()"
             :style="{ width: skeletonWidth(rowIndex, columnIndex) }"
           />

@@ -62,6 +62,7 @@ export const journeys = [
     id: "store-read-only-outside-dev",
     title: "outside development the store lists the catalog with Install disabled, and the install API answers 403",
     entryPoint: "/modules/store, POST /dms/store/install",
+    backend: "production",
     async run(/** @type {Ctx} */ ctx) {
       const tab = await signedIn(ctx);
       await tab.goto(STORE);
@@ -77,6 +78,33 @@ export const journeys = [
         ctx.equal("error", install.body, "error.store_disabled"),
         ctx.equal("store enabled", booleanIn(listing.body, "enabled"), false),
         ctx.equal("the API module stays available, not installed", api?.state, "available"),
+      ]);
+    },
+  },
+  {
+    id: "store-open-in-dev",
+    title: "on a development backend the store enables Install, and the install API passes the development gate",
+    entryPoint: "/modules/store, POST /dms/store/install",
+    backend: "dev",
+    async run(/** @type {Ctx} */ ctx) {
+      const tab = await signedIn(ctx);
+      await tab.goto(STORE);
+      await ctx.verify("the store is open and enables Install", [
+        tab.visible({ role: "article", name: "API" }),
+        tab.shows(/The store is read-only here/, { not: true }),
+        tab.enabled({ role: "button", name: "Install", within: { role: "article", name: "API" } }),
+      ]);
+      const install = await ctx.api("install a module the catalog does not hold", {
+        method: "POST",
+        path: "/dms/store/install",
+        body: { id: "no-such-module" },
+      });
+      const listing = await ctx.api("read the store listing", { method: "GET", path: LISTING });
+      await ctx.verify("the route reaches the catalog lookup and installs nothing", [
+        ctx.status(install, 404),
+        ctx.equal("error", install.body, "error.store_module_unknown"),
+        ctx.equal("store enabled", booleanIn(listing.body, "enabled"), true),
+        ctx.equal("nothing runs", booleanIn(listing.body, "busy"), false),
       ]);
     },
   },

@@ -25,7 +25,6 @@ import type { CalendarProps } from "@nuxt/ui/components/Calendar.vue";
 
 let app: App | undefined;
 let host: HTMLDivElement;
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- The calendar stub forwards raw emitted values, including half-picked ranges. Inference needs a callable initializer and the completed DatePicker model contract would exclude those intermediate events.
 let pick: (value: unknown) => void = () => {};
 
 async function flush(): Promise<void> {

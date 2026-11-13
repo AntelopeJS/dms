@@ -5,6 +5,7 @@ import {
 } from "@antelopejs/interface-dms/html-render";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
+import { z } from "zod";
 import {
   authorizedClient,
   type RegisteredUser,
@@ -25,14 +26,14 @@ const TOO_MANY_ATTEMPTS = "error.email_change_too_many_attempts";
 const POLL_INTERVAL_MS = 20;
 const POLL_ATTEMPTS = 50;
 
-interface EmailChangeProps {
-  newEmail: string;
-  code?: string;
-}
+const emailChangeProps = z.object({
+  newEmail: z.string(),
+  code: z.string().optional(),
+});
 
 interface RenderedEmail {
   template: string;
-  props: EmailChangeProps;
+  props: z.infer<typeof emailChangeProps>;
 }
 
 const rendered: RenderedEmail[] = [];
@@ -42,11 +43,10 @@ function captureRenderedEmails(): void {
     { GenerateHtml },
     {
       GenerateHtml: async <T>(template: HtmlTemplateRef<T>, props: T) => {
-        rendered.push({
-          template: template.name,
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The email renderer accepts arbitrary template props; this capture assumes the email-change template contract.
-          props: props as EmailChangeProps,
-        });
+        const parsed = emailChangeProps.safeParse(props);
+        if (parsed.success) {
+          rendered.push({ template: template.name, props: parsed.data });
+        }
         return "<p>email</p>";
       },
     },

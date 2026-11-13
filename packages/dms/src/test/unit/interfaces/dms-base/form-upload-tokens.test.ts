@@ -22,10 +22,12 @@ function leadingField(options: FormPropsSerialized): FormFieldSerialized {
   return entry;
 }
 
+async function implementUploads() {
+  ImplementInterface(uploadsInterface, uploadsImpl);
+}
+
 describe("[unit] interfaces/dms-base/form — the form stamps its own upload fields", () => {
-  before(async () => {
-    ImplementInterface(uploadsInterface, uploadsImpl);
-  });
+  before(implementUploads);
 
   it("bakes a verifiable token into a file field when it serializes", async () => {
     const form = Form({
@@ -101,6 +103,10 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
 
     expect(fieldOptions(field).uploadToken).to.equal(undefined);
   });
+});
+
+describe("[unit] interfaces/dms-base/form — the form stamps its own upload fields, embedded and untouched", () => {
+  before(implementUploads);
 
   it("stamps the fields of a form embedded in another component's options", async () => {
     const uploadOptions: DefaultDataTypes.FileType["options"] & {

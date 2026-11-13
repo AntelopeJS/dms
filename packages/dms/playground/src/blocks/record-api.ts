@@ -77,12 +77,11 @@ const ORDERS: DemoOrder[] = [
   },
 ];
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Order status strings index ActivityFeedItem-owned tones with the existing fallback.
-const ORDER_TONES: Record<string, ActivityFeedItem["tone"]> = {
+const ORDER_TONES = {
   paid: "success",
   open: "warning",
   refunded: "neutral",
-};
+} satisfies Record<string, ActivityFeedItem["tone"]>;
 
 function later<T>(value: T): Promise<T> {
   return new Promise((resolve) =>
