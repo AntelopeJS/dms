@@ -174,6 +174,29 @@ export class NoComponentPermissionsPage extends PageController(
 }
 
 @RegisterPage()
+export class OwnerOnlyAccessPage extends PageController(
+  "access-owner-only",
+  {
+    displayName: "Platform owner only",
+    icon: "i-ph-crown",
+    category: pageAccessCategory,
+    order: 45,
+    ownerOnly: true,
+    description:
+      "Demonstrates: MenuOptions.ownerOnly. Only the platform owner opens it; Roles cannot grant it, and anyone else is refused as on a module page.",
+  },
+  FormPageLayout(),
+) {
+  static explain = accessList([
+    {
+      label: "ownerOnly: true",
+      value: "AuthOwnerOnly()",
+      detail: "Roles lists neither this page nor its blocks.",
+    },
+  ]);
+}
+
+@RegisterPage()
 export class AllHiddenPage extends PageController(
   "access-all-hidden",
   {
