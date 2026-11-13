@@ -8,7 +8,7 @@ type BuilderInterface = typeof import("@antelopejs/interface-dms-builder");
 
 /** What every builder call rejects with when this environment does not serve the builder. */
 export const BUILDER_DISABLED_MESSAGE =
-  "The DMS builder is not enabled in this environment. Run the project with ajs project dev, or set builder.enabled in the dms module's config.";
+  "The DMS builder is not enabled in this environment. Set builder.enabled to true in the dms module's config, or leave it unset and run the project with ajs project dev.";
 
 function refuseBuilderCall(): Promise<never> {
   return Promise.reject(new Error(BUILDER_DISABLED_MESSAGE));
