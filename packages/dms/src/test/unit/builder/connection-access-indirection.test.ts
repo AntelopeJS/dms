@@ -183,6 +183,46 @@ describe("[unit] builder_configure_project finds a template wherever core reads 
     }
   });
 
+  it("refuses a key a template reads in a scoped module's JSON file behind a symbolic link", async () => {
+    const shared = path.join(erp.app().root, "shared-config");
+    const scope = path.join(erp.app().root, "antelope.@antelopejs");
+    fs.mkdirSync(shared);
+    fs.symlinkSync(shared, scope);
+    try {
+      erp.writeModules([
+        `"@antelopejs/dms-database": { ${DMS_DATABASE_SOURCE} },`,
+      ]);
+      erp
+        .app()
+        .write(
+          "../shared-config/dms-database.json",
+          '{ "externalConnections": { "erp": { "access": "${erpAccess}" } } }',
+        );
+      expect(
+        await agentStep(MODULE, { config: { erpAccess: "read-write" } }),
+      ).to.include(`write \`modules.${MODULE}.config.erpAccess\``);
+    } finally {
+      fs.rmSync(scope, { force: true });
+      fs.rmSync(shared, { recursive: true, force: true });
+    }
+  });
+
+  it("reads a template key in a module's JSON file as core decodes it", async () => {
+    const file = path.join(erp.app().root, "antelope.dms-database.json");
+    erp.writeModules([`"dms-database": { ${DMS_DATABASE_SOURCE} },`]);
+    fs.writeFileSync(
+      file,
+      '{ "externalConnections": { "erp": { "access": "${erp\\u0041ccess}" } } }',
+    );
+    try {
+      expect(
+        await agentStep(MODULE, { config: { erpAccess: "read-write" } }),
+      ).to.include(`write \`modules.${MODULE}.config.erpAccess\``);
+    } finally {
+      fs.rmSync(file, { force: true });
+    }
+  });
+
   it("lets an agent write a key only a TypeScript template literal reads", async () => {
     erp.writeModules(
       [

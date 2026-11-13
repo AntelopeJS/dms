@@ -4,7 +4,7 @@ import type {
   ModuleEntryInput,
   ProjectConfigStep,
 } from "@antelopejs/interface-dms-builder";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import { Node, type ObjectLiteralExpression } from "ts-morph";
 import { z } from "zod";
@@ -18,6 +18,7 @@ import {
   openDraft,
   stringOf,
 } from "./project-config";
+import { isString } from "./scalar-guards";
 import { isPlainObject } from "./value";
 
 const CONNECTIONS = "externalConnections";
@@ -188,6 +189,7 @@ const TEMPLATE = /\$\{([^}]+)\}/g;
 const MODULE_CONFIG_FILE = /^antelope\..+\.json$/;
 const MODULE_CONFIG_DIRECTORY = /^antelope\./;
 const JSON_FILE = /\.json$/;
+const ANY = /(?:)/;
 const CONFIG_VARIABLE = "@";
 
 function textOf(file: string): string {
@@ -198,18 +200,43 @@ function textOf(file: string): string {
   }
 }
 
-function filesIn(directory: string, kept: RegExp): string[] {
+function isDirectory(at: string): boolean {
   try {
-    return readdirSync(directory, { withFileTypes: true }).flatMap((item) => {
-      const at = path.join(directory, item.name);
-      if (item.isDirectory()) {
-        return filesIn(at, JSON_FILE);
-      }
-      return kept.test(item.name) ? [at] : [];
-    });
+    return statSync(at).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The files under `directory` whose name `kept` matches, and every JSON file in the directories
+ * `entered` matches, at any depth. Symbolic links are followed, as core follows them, and each
+ * directory is read once.
+ */
+function filesIn(
+  directory: string,
+  kept: RegExp,
+  entered: RegExp,
+  seen: Set<string>,
+): string[] {
+  let names: string[];
+  try {
+    const real = realpathSync(directory);
+    if (seen.has(real)) {
+      return [];
+    }
+    seen.add(real);
+    names = readdirSync(directory);
   } catch {
     return [];
   }
+  return names.flatMap((name) => {
+    const at = path.join(directory, name);
+    if (isDirectory(at)) {
+      return entered.test(name) ? filesIn(at, JSON_FILE, ANY, seen) : [];
+    }
+    return kept.test(name) ? [at] : [];
+  });
 }
 
 /**
@@ -217,19 +244,25 @@ function filesIn(directory: string, kept: RegExp): string[] {
  * package name does, which puts the file under an `antelope.<scope>` directory.
  */
 function moduleConfigFiles(root: string): string[] {
+  return filesIn(root, MODULE_CONFIG_FILE, MODULE_CONFIG_DIRECTORY, new Set());
+}
+
+/** The keys and string values of a JSON file as core parses it, or its text when it is not JSON. */
+function jsonStrings(file: string): string[] {
+  const text = textOf(file);
+  const strings: string[] = [];
   try {
-    return readdirSync(root, { withFileTypes: true }).flatMap((item) => {
-      const at = path.join(root, item.name);
-      if (item.isDirectory()) {
-        return MODULE_CONFIG_DIRECTORY.test(item.name)
-          ? filesIn(at, JSON_FILE)
-          : [];
+    JSON.parse(text, (key: string, value: ConfigValue) => {
+      strings.push(key);
+      if (isString(value)) {
+        strings.push(value);
       }
-      return MODULE_CONFIG_FILE.test(item.name) ? [at] : [];
+      return value;
     });
   } catch {
-    return [];
+    return [text];
   }
+  return strings;
 }
 
 /**
@@ -271,7 +304,7 @@ function templateKeys(draft: ConfigDraft | undefined): Set<string> {
   }
   const texts = [
     ...configStrings(draft, configPath),
-    ...moduleConfigFiles(resolveProjectRoot()).map(textOf),
+    ...moduleConfigFiles(resolveProjectRoot()).flatMap(jsonStrings),
   ];
   return new Set(
     texts
