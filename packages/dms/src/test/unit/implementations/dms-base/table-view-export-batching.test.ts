@@ -104,10 +104,7 @@ const listParams: Parameters.ListParameters = {
 async function exportAll(ids?: string[]): Promise<Collected> {
   const { writer, collected } = collectingWriter();
   await generateTableViewExport({
-    // SAFETY: ExportRun declares controller as a DataControllerCallback descriptor, but generateTableViewExport hands it only to helpers that take a controller instance (GetDataControllerMeta, Query.GetModel, Query.ReadProperties, getTableViewMetaFor, applyArchiveFilter, buildFilteredQuery), and InvoiceAPI is a real instance of a DataController class.
-    controller: controller as unknown as globalThis.Parameters<
-      typeof generateTableViewExport
-    >[0]["controller"],
+    controller,
     ctx,
     listParams,
     writer,
