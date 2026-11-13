@@ -167,6 +167,35 @@ describe("[unit] mockup compiler", () => {
     ]);
   });
 
+  it("keeps a sketch's id, slot and span, so the preview draws it at the layout path its pointer is recorded under", () => {
+    const compiled = compile(
+      onePage([
+        {
+          type: "Grid",
+          children: [
+            {
+              id: "journey",
+              slot: "main",
+              colSpan: 2,
+              type: "sketch",
+              options: { html: "<p>steps</p>" },
+            },
+          ],
+        },
+      ]),
+    );
+
+    expect(compiled.pages[0].tree[0].children?.[0]).to.include({
+      id: "journey",
+      slot: "main",
+      colSpan: 2,
+      type: "sketch",
+    });
+    expect(compiled.pages[0].paths["block-0.journey"]).to.equal(
+      "/pages/0/tree/0/children/0",
+    );
+  });
+
   it("refuses a sketch holding a script or a remote url()", () => {
     const { issues, pages } = compile(
       onePage([

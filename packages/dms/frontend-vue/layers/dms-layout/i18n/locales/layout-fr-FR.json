@@ -1,4 +1,12 @@
 {
+  "editAsMockup": {
+    "label": "Modifier en maquette",
+    "stale": "Cette page a changé depuis la création de sa maquette",
+    "staleDescription": "La maquette garde vos modifications. Convertissez à nouveau pour repartir de la page telle qu’elle est maintenant.",
+    "convertAgain": "Convertir à nouveau",
+    "failed": "Cette page n’a pas pu être ouverte en maquette.",
+    "conflict": "La maquette a changé pendant la conversion. Rouvrez-la pour voir la dernière version."
+  },
   "navigation": {
     "goToHomepage": "Aller à la page d'accueil",
     "goToBrandHomepage": "{name}, aller à la page d'accueil"
@@ -1234,6 +1242,11 @@
         "revenue": "Chiffre d'affaires",
         "new_rental": "Nouvelle location"
       }
+    }
+  },
+  "mockups": {
+    "header": {
+      "open": "Maquettes"
     }
   }
 }

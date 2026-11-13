@@ -25,6 +25,7 @@ The public `/dms-preview` page renders a tree of registered blocks from `?state=
 - `preview-refuses-unknown-and-remote`: error path: an unregistered type and an off-site `fetchUrl` render inline notices, and the page never requests the off-site URL.
 - `preview-empty-and-unreadable`: empty and error path: no state says "Nothing to preview yet", a malformed one "The preview state could not be read."
 - `preview-postmessage-render`: an embedding page receives `ready`, posts `render` on the `dms-preview` channel, and the frame draws the tree and reports its height.
+- `preview-renders-every-starter`: every node the `/mockup` Add tab starts a block as (`frontend-vue/tests/fixtures/mockup-starters/nodes.json`, but those reading a mockup fixture) draws with no page error and no error screen.
 - `block-types-api-members-only`: Exposure: the types API answers a member and refuses a visitor.
 
 ## How to get to it (user POV)

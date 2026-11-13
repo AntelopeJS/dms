@@ -36,7 +36,7 @@ import {
   applyCategoryMove,
   planCategoryMove,
 } from "./page-category-move";
-import { contentVersion } from "./page-structure";
+import { pageVersion } from "./page-structure";
 import { resourceRefResolver } from "./resource-index";
 import { type CategoryRecord, joinSlug } from "./scan";
 import {
@@ -469,7 +469,7 @@ export function configurePage(
   const newRef = move?.newRef ?? ref;
   const result = commit(transaction, {
     ref: newRef,
-    version: contentVersion(written.getFullText()),
+    version: pageVersion(written),
   });
   if (result.ok && newRef !== ref) {
     invalidateSourceIndex();

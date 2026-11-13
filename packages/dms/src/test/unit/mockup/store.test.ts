@@ -63,10 +63,11 @@ function nextEvent(
   return { ready, event };
 }
 
-describe("[unit] mockup store", () => {
-  let root: string;
-  let store: MockupStore;
+let root: string;
+let store: MockupStore;
 
+/** One mockup, `desk`, in a fresh mockups directory for each test. */
+function withMockupsDirectory(): void {
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "dms-mockups-"));
     await mkdir(join(root, NAME));
@@ -78,6 +79,10 @@ describe("[unit] mockup store", () => {
     store.close();
     await rm(root, { recursive: true, force: true });
   });
+}
+
+describe("[unit] mockup store", () => {
+  withMockupsDirectory();
 
   it("keeps the last good pages when spec.json stops being JSON", async () => {
     const good = await store.state(NAME);
@@ -155,13 +160,21 @@ describe("[unit] mockup store", () => {
     expect(elapsed).to.be.below(SAVE_TO_STATE_BUDGET_MS);
     expect(elapsed).to.be.at.least(WATCH_DEBOUNCE_MS);
   });
+});
+
+describe("[unit] mockup store names and annotations", () => {
+  withMockupsDirectory();
 
   it("lists only directories with a spec, under a valid name", async () => {
     await mkdir(join(root, "no-spec"));
     await mkdir(join(root, "Bad Name"));
     await writeFile(join(root, "Bad Name", "spec.json"), spec("Hidden"));
 
-    expect(await store.list()).to.deep.equal([{ name: NAME, pages: 1 }]);
+    const listed = await store.list();
+
+    expect(listed.map(({ name, status }) => [name, status])).to.deep.equal([
+      [NAME, "draft"],
+    ]);
   });
 
   it("refuses a name that would leave the mockups directory", () => {

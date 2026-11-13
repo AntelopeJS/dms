@@ -22,12 +22,23 @@ export interface MockupPageOptions {
   padding?: boolean;
 }
 
+export interface MockupLivePage {
+  /** Its builder ref, the page "Build it" updates. */
+  ref: string;
+}
+
 export interface MockupPageState {
   id: string;
   title: string;
   options: MockupPageOptions;
   /** What `DmsBlockPreview` draws: fixtures resolved, sketch nodes passed through. */
   tree: PreviewNode[];
+  /**
+   * `tree` reading its live routes instead of fixtures, drawn with Real data
+   * on. Present only when the page names live routes.
+   */
+  realTree?: PreviewNode[];
+  livePage?: MockupLivePage;
   /** Spec JSON pointer of each node, keyed by the layout path the preview gives it. */
   paths: Record<string, string>;
 }
@@ -61,13 +72,59 @@ export interface MockupAnnotationDraft {
   text: string;
 }
 
-export interface MockupSummary {
+/** Who wrote a mockup: the dashboard chat, Claude Code or Codex. */
+export type MockupSource = "chat" | "claude-code" | "codex";
+
+export const MOCKUP_SOURCES: readonly MockupSource[] = [
+  "chat",
+  "claude-code",
+  "codex",
+];
+
+/** A page a built mockup made: a path of the dashboard, and its link's text. */
+export interface MockupBuiltPage {
+  path: string;
+  title: string;
+}
+
+interface MockupSummaryBase {
   name: string;
   title?: string;
   pages: number;
+  /** The annotations still open. */
+  openComments: number;
+  source?: MockupSource;
+  /** When `spec.json` last changed, ISO 8601. */
+  updatedAt: string;
 }
 
+/** One row of `GET /api/mockup`: a draft, or a mockup built into real pages. */
+export type MockupSummary = MockupSummaryBase &
+  (
+    | { status: "draft" }
+    | { status: "built"; builtAt: string; builtPages: MockupBuiltPage[] }
+  );
+
 export type MockupWidth = "desktop" | "mobile";
+
+export type MockupDataMode = "real" | "sample";
+
+export const MOCKUP_DATA_MODES: readonly MockupDataMode[] = ["real", "sample"];
+
+export function isMockupDataMode(
+  value: string | undefined,
+): value is MockupDataMode {
+  return MOCKUP_DATA_MODES.some((mode) => mode === value);
+}
+
+/** The editor's mode: leave notes for the AI, or edit the spec yourself. */
+export type MockupMode = "comment" | "edit";
+
+export const MOCKUP_MODES: readonly MockupMode[] = ["comment", "edit"];
+
+export function isMockupMode(value: string | undefined): value is MockupMode {
+  return MOCKUP_MODES.some((mode) => mode === value);
+}
 
 export const MOCKUP_WIDTH_OPTIONS: readonly MockupWidth[] = [
   "desktop",
@@ -129,6 +186,10 @@ function isPageState(
     isRecord(value.options) &&
     Array.isArray(value.tree) &&
     isPreviewTree(value.tree) &&
+    (value.realTree === undefined ||
+      (Array.isArray(value.realTree) && isPreviewTree(value.realTree))) &&
+    (value.livePage === undefined ||
+      (isRecord(value.livePage) && isString(value.livePage.ref))) &&
     isRecord(value.paths) &&
     Object.values(value.paths).every((pointer) => isString(pointer))
   );
@@ -189,15 +250,59 @@ export function parseAnnotations(
     : undefined;
 }
 
-function isSummary(
+function isSource(
+  value: Parameters<typeof isString>[0],
+): value is MockupSource {
+  return MOCKUP_SOURCES.some((source) => source === value);
+}
+
+/** A path of the dashboard: one `/`, never `//` or `/\`, no space. */
+export function isDashboardPath(
+  value: Parameters<typeof isString>[0],
+): boolean {
+  return isString(value) && /^\/(?![/\\])\S*$/.test(value);
+}
+
+function isBuiltPage(
   value: Parameters<typeof isObject>[0],
-): value is MockupSummary {
+): value is MockupBuiltPage {
+  return (
+    isRecord(value) && isDashboardPath(value.path) && isString(value.title)
+  );
+}
+
+function isSummaryBase(
+  value: Parameters<typeof isObject>[0],
+): value is Record<string, unknown> & MockupSummaryBase {
   return (
     isRecord(value) &&
     isString(value.name) &&
     isOptionalString(value.title) &&
-    isNumber(value.pages)
+    isNumber(value.pages) &&
+    isNumber(value.openComments) &&
+    (value.source === undefined || isSource(value.source)) &&
+    isString(value.updatedAt)
   );
+}
+
+function isSummary(
+  value: Parameters<typeof isObject>[0],
+): value is MockupSummary {
+  if (!isSummaryBase(value)) return false;
+  if (value.status === "draft") return true;
+  return (
+    value.status === "built" &&
+    isString(value.builtAt) &&
+    Array.isArray(value.builtPages) &&
+    value.builtPages.every(isBuiltPage)
+  );
+}
+
+/** The summary a row of `GET /api/mockup` is, or undefined when the row is not one. */
+export function parseMockupSummary(
+  value: Parameters<typeof isObject>[0],
+): MockupSummary | undefined {
+  return isSummary(value) ? value : undefined;
 }
 
 /** The mockups of a `GET /api/mockup` answer, or undefined when it is not one. */
@@ -205,9 +310,9 @@ export function parseMockupList(
   value: Parameters<typeof isObject>[0],
 ): MockupSummary[] | undefined {
   if (!isRecord(value)) return undefined;
-  const { mockups } = value;
-  return Array.isArray(mockups) && mockups.every(isSummary)
-    ? mockups
+  const { results } = value;
+  return Array.isArray(results) && results.every(isSummary)
+    ? results
     : undefined;
 }
 
@@ -223,6 +328,14 @@ export function specPointerFor(
   return Object.hasOwn(page.paths, layoutPath)
     ? page.paths[layoutPath]
     : undefined;
+}
+
+/** The layout path the preview gives the node at spec `pointer`, or undefined when it draws none. */
+export function layoutPathFor(
+  page: Pick<MockupPageState, "paths">,
+  pointer: string,
+): string | undefined {
+  return Object.entries(page.paths).find(([, at]) => at === pointer)?.[0];
 }
 
 const ROOT_LAYOUT_PREFIX = "block-";

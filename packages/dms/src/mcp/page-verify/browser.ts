@@ -1,8 +1,8 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import {
   type Browser,
-  BrowserInstallerSchema,
   type Chromium,
+  CoreBundleSchema,
   PlaywrightModuleSchema,
 } from "./playwright";
 
@@ -25,16 +25,18 @@ function requirePlaywright(): ReturnType<
   }
 }
 
-/** Playwright's browser installer, the one its own `install` command runs. */
-function requireInstaller(): ReturnType<
-  typeof BrowserInstallerSchema.safeParse
-> {
+/**
+ * Playwright's browser installer, the one its own `install` command runs. It
+ * is the `registry` of the core bundle, the one internal entry the package
+ * exports.
+ */
+function requireInstaller(): ReturnType<typeof CoreBundleSchema.safeParse> {
   try {
-    return BrowserInstallerSchema.safeParse(
-      require("playwright-core/lib/server/registry/index"),
+    return CoreBundleSchema.safeParse(
+      require("playwright-core/lib/coreBundle"),
     );
   } catch {
-    return BrowserInstallerSchema.safeParse(undefined);
+    return CoreBundleSchema.safeParse(undefined);
   }
 }
 

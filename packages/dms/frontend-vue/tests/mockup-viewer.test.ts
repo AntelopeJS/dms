@@ -116,7 +116,7 @@ describe("live render", () => {
     await viewer.say({ type: "ready" });
     await viewer.publish("state", { name: "demo", revision: 2, pages: "oops" });
     expect(rendered(viewer.posted)).toHaveLength(1);
-    expect(viewer.host.querySelector("[data-dms-mockup-page]")).not.toBeNull();
+    expect(viewer.host.textContent).not.toContain("dms.mockup.waiting");
   });
 
   it("ignores a preview message that does not come from its iframe", async () => {
@@ -142,21 +142,32 @@ describe("live render", () => {
 });
 
 describe("pages, width and size", () => {
-  it("draws the page its tab names, with that page's theme", async () => {
+  it("draws the mockup's pages as the preview's sidebar, home first (fails when the sidebar lists no pages or marks none current)", async () => {
     stubMockupRuntime();
     viewer = await mountViewer();
     await viewer.publish("state", TWO_PAGES);
     await viewer.say({ type: "ready" });
-    const [, settingsTab] = viewer.host.querySelectorAll<HTMLElement>(
-      "[data-dms-mockup-page]",
-    );
-    settingsTab.click();
-    await flush();
+    expect(rendered(viewer.posted).at(-1)?.navigation).toEqual({
+      title: "demo",
+      items: [
+        { id: "orders", label: "Orders", icon: "i-ph-house-light" },
+        { id: "settings", label: "Settings", icon: undefined },
+      ],
+      active: "orders",
+    });
+  });
+
+  it("draws the page the sidebar picks, with that page's theme (fails when a sidebar click switches nothing)", async () => {
+    stubMockupRuntime();
+    viewer = await mountViewer();
+    await viewer.publish("state", TWO_PAGES);
+    await viewer.say({ type: "ready" });
+    await viewer.say({ type: "navigate", id: "settings" });
     expect(rendered(viewer.posted).at(-1)).toMatchObject({
       tree: [MARGIN],
       theme: "light",
+      navigation: { active: "settings" },
     });
-    expect(settingsTab.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("opens the page and the width the URL names", async () => {

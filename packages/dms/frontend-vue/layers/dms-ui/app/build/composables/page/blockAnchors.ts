@@ -76,14 +76,20 @@ export function blockAnchorElements(anchor: string): Element[] {
 /**
  * The anchor of the innermost block whose elements hold `target`, `undefined`
  * when none does. A child's anchor extends its parent's, so the longest
- * anchor among the blocks holding `target` is the innermost one.
+ * anchor among the blocks holding `target` is the innermost one. Only the
+ * anchors starting with `prefix` count, when one is given: a block's own
+ * sub-blocks register anchors that are no node of the tree being inspected.
  *
  * @internal
  */
-export function blockAnchorAt(target: EventTarget | null): string | undefined {
+export function blockAnchorAt(
+  target: EventTarget | null,
+  prefix = "",
+): string | undefined {
   if (!(target instanceof Node)) return undefined;
   let innermost: string | undefined;
   for (const [anchor, instance] of blocks) {
+    if (!anchor.startsWith(prefix)) continue;
     const holdsTarget = elementsOfBlock(instance).some((element) =>
       element.contains(target),
     );
@@ -92,4 +98,14 @@ export function blockAnchorAt(target: EventTarget | null): string | undefined {
     }
   }
   return innermost;
+}
+
+/**
+ * The anchor of every block on screen now, in the order they registered;
+ * only those starting with `prefix` when one is given.
+ *
+ * @internal
+ */
+export function blockAnchorPaths(prefix = ""): string[] {
+  return [...blocks.keys()].filter((anchor) => anchor.startsWith(prefix));
 }

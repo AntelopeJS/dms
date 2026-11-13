@@ -32,14 +32,19 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const annotateToggle = () =>
-  viewer.host.querySelector<HTMLElement>("[data-dms-mockup-annotate]");
+const modeSwitch = (mode: "comment" | "edit") =>
+  viewer.host.querySelector<HTMLElement>(`[data-dms-mockup-mode="${mode}"]`);
 const compose = () => viewer.host.querySelector("[data-dms-mockup-compose]");
 const writes = () =>
   runtime.authFetch.mock.calls.filter(([, init]) => init?.method);
 
 async function annotate(): Promise<void> {
-  annotateToggle()?.click();
+  modeSwitch("comment")?.click();
+  await flush();
+}
+
+async function edit(): Promise<void> {
+  modeSwitch("edit")?.click();
   await flush();
 }
 
@@ -57,20 +62,20 @@ async function save(): Promise<void> {
 }
 
 describe("annotate mode", () => {
-  it("tells the preview to inspect while on, and to stop when off", async () => {
-    await annotate();
+  it("keeps the preview inspecting in both modes, so a click picks a block in each (fails when Edit lets clicks reach the blocks)", async () => {
     expect(viewer.posted.at(-1)).toMatchObject({
       type: "inspect",
       enabled: true,
     });
     await annotate();
+    await viewer.say({ type: "ready" });
     expect(viewer.posted.at(-1)).toMatchObject({
       type: "inspect",
-      enabled: false,
+      enabled: true,
     });
   });
 
-  it("opens no note box for a block picked while it is off", async () => {
+  it("opens no note box for a block picked in Edit mode (fails when Edit picks open notes)", async () => {
     await viewer.say({ type: "select", path: "block-1.kpi" });
     expect(compose()).toBeNull();
     expect(writes()).toEqual([]);
@@ -178,15 +183,18 @@ describe("annotate mode", () => {
     expect(compose()?.textContent).toContain(POINTER);
   });
 
-  it("drops the open note box when annotate mode is left", async () => {
+  it("drops the open note box when Comment mode is left", async () => {
     await annotate();
     await viewer.say({ type: "select", path: "block-1.kpi" });
+    await edit();
     await annotate();
     expect(compose()).toBeNull();
   });
 });
 
 describe("annotations panel", () => {
+  beforeEach(annotate);
+
   const OPEN = annotation({ id: "a1", text: "Too tight" });
   const DONE = annotation({
     id: "a2",
@@ -222,7 +230,7 @@ describe("annotations panel", () => {
     runtime = stubMockupRuntime();
     runtime.notes.push(OPEN);
     viewer = await mountViewer();
-    await flush();
+    await annotate();
     expect(entries()).toEqual([["open", "Too tight"]]);
   });
 
