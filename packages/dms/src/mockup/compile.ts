@@ -289,7 +289,6 @@ function compilePage(
   return state;
 }
 
-/** What the compiler makes of a block type. */
 export type BlockTypeKind = "unknown" | "block" | "controller";
 
 /**
@@ -305,7 +304,6 @@ export interface NodeOracle {
   issuesOf(node: MockupNode, fixtures: JsonObject): MockupIssue[];
 }
 
-/** A {@link NodeOracle} over the block types registered now, for the page `pageId` of `name`. */
 export function openOracle(name: MockupName, pageId: string): NodeOracle {
   const catalog = readCatalog();
   return {

@@ -6,7 +6,6 @@ import {
   SKETCH_TYPE,
 } from "./sketch";
 
-/** Why a block of a live page is drawn as a Custom sketch in its mockup. */
 export type SketchReason =
   | "custom-component"
   | "opaque"
@@ -34,12 +33,10 @@ const SKETCH_REASONS: Readonly<Record<SketchReason, string>> = {
   "children-not-allowed": "Holds blocks a mockup cannot draw inside it.",
 };
 
-/** What a fallback sketch names: the block, and the blocks it stands for with it. */
 export interface SketchSubject {
   name: string;
   /** The block's factory, or null for a custom component. */
   type: string | null;
-  /** The names of the blocks under it, which the sketch stands for too. */
   children: readonly string[];
 }
 
@@ -79,8 +76,9 @@ function heightFor(lines: number): number {
 
 /**
  * The Custom sketch standing for a block a mockup cannot draw; its caller
- * puts it where the block sat. Its caption is the reason's line; it shows the block's name and type and
- * the blocks under it, nothing else: every name is checked against
+ * puts it where the block sat. Its caption is the reason's line. It shows
+ * the block's name and type and the blocks under it, nothing else: every
+ * name is checked against
  * {@link SHOWN_NAME} and every reason comes from {@link SKETCH_REASONS}, so
  * the compiler always admits it.
  */

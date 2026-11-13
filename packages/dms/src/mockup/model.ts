@@ -114,7 +114,6 @@ const livePageSchema = z
   .object({ ref: z.string().min(1), version: z.string() })
   .strict();
 
-/** The live page a spec page stands for. */
 export type MockupLivePage = z.infer<typeof livePageSchema>;
 
 const pageSchema = z
@@ -179,7 +178,6 @@ export interface MockupPageState {
    * only when the page has `liveRoutes`; its layout paths are `tree`'s.
    */
   realTree?: MockupNode[];
-  /** The live page the spec page was converted from. */
   livePage?: Pick<MockupLivePage, "ref">;
   /** The spec pointer of each node, keyed by its `DmsBlockPreview` layout path. */
   paths: Record<string, string>;

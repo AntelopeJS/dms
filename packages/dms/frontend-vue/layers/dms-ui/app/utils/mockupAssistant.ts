@@ -39,7 +39,6 @@ export interface MockupAssistantPromptBlock {
   type?: string;
 }
 
-/** The live page a `build` updates, when the mockup page was converted from one. */
 export interface MockupAssistantPromptTarget {
   /** The page's builder ref: build into that page, never a new one. */
   pageRef: string;

@@ -57,7 +57,6 @@ const capabilitiesSchema = z
   })
   .strict();
 
-/** The `TableView` options a mockup table takes as the factory does. */
 export const TABLE_SOURCE_PICKED = {
   caption: true,
   layout: true,

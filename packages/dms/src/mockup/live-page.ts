@@ -23,24 +23,20 @@ import type {
 import { parseMockupName, specSchema } from "./model";
 import { readSpecSource, type SpecDigest, writeSpec } from "./source";
 
-/** What a conversion reads of the project, through the builder. */
 export interface LivePages {
   listPages(): Promise<readonly PageSummary[]>;
   pageStructure(ref: string): Promise<OpResult<PageStructure>>;
   resourceStructure(ref: string): Promise<OpResult<ResourceStructure>>;
 }
 
-/** The project's pages as the running builder reads them. */
 const BUILDER_PAGES: LivePages = {
   listPages: () => ListPages(),
   pageStructure: (ref) => GetPageStructure(ref),
   resourceStructure: (ref) => GetResourceStructure(ref),
 };
 
-/** The live page to convert: by its builder ref, or by a dashboard path it answers. */
 export type LivePageTarget = { pageRef: string } | { path: string };
 
-/** How a second conversion of the same page behaves. */
 export interface EditAsMockupOptions {
   /** Convert again over the page's existing mockup instead of opening it. */
   replace?: boolean;
@@ -48,10 +44,8 @@ export interface EditAsMockupOptions {
   digest?: SpecDigest;
 }
 
-/** Where a converted page opens, and what is drawn on it. */
 type Opened = { mockup: MockupName; page: string; url: string };
 
-/** What converting a live page into a mockup answers. */
 export type EditAsMockupAnswer =
   | ({
       ok: true;
@@ -78,7 +72,6 @@ export type EditAsMockupAnswer =
 
 type Failure = Extract<EditAsMockupAnswer, { ok: false }>;
 
-/** The mockup the live page `ref` converts into: a name free for it, or the one it already has. */
 type Slot =
   | { kind: "free"; name: MockupName }
   | {
@@ -103,7 +96,6 @@ function trimmedPath(path: string): string {
   return path.replace(/\/+$/, "") || "/";
 }
 
-/** Whether a ref with `:param` segments answers the path split in `segments`. */
 function answers(ref: string, segments: readonly string[]): boolean {
   const pattern = trimmedPath(ref).split("/");
   return (

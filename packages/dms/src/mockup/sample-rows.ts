@@ -1,9 +1,7 @@
 import type { Json, JsonObject } from "./model";
 
-/** How many rows a converted table's sample fixture holds. */
 const SAMPLE_ROW_COUNT = 3;
 
-/** A column of a converted table: the row field it shows, its header and its data type id. */
 export interface SampleColumn {
   field: string;
   label: string;

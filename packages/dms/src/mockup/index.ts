@@ -33,7 +33,6 @@ export function startMockupEngine(mockupsDir = defaultMockupsDir()): void {
   registerMockupPage();
 }
 
-/** Whether the mockup engine serves this process: in development only. */
 export function mockupEngineRunning(): boolean {
   return engine !== undefined;
 }

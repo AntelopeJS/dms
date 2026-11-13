@@ -22,7 +22,6 @@ export interface MockupPageOptions {
   padding?: boolean;
 }
 
-/** The live page a spec page was converted from (Edit as mockup). */
 export interface MockupLivePage {
   /** Its builder ref, the page "Build it" updates. */
   ref: string;
@@ -39,7 +38,6 @@ export interface MockupPageState {
    * on. Present only when the page names live routes.
    */
   realTree?: PreviewNode[];
-  /** Present when the page was converted from a live page. */
   livePage?: MockupLivePage;
   /** Spec JSON pointer of each node, keyed by the layout path the preview gives it. */
   paths: Record<string, string>;
@@ -82,7 +80,6 @@ export interface MockupSummary {
 
 export type MockupWidth = "desktop" | "mobile";
 
-/** What the preview reads: the page's live routes, or its sample fixtures. */
 export type MockupDataMode = "real" | "sample";
 
 export const MOCKUP_DATA_MODES: readonly MockupDataMode[] = ["real", "sample"];

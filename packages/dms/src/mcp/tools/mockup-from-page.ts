@@ -9,7 +9,6 @@ import { defineTool, jsonResult, textResult } from "../tool";
 const DEV_ONLY =
   "mockup_from_page runs only while the project runs in development (ajs project dev): the /mockup page and its API exist nowhere else.";
 
-/** `mockup_from_page`: converts a live page into a mockup the developer edits on `/mockup`. */
 export const mockupFromPageTool = defineTool({
   name: "mockup_from_page",
   title: "Turn a page into a mockup",

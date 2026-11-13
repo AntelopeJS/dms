@@ -34,7 +34,6 @@ function compiled(converted: ConvertedPage) {
   return compileSpec(NAME, read.spec);
 }
 
-/** Every `fetchUrl` string of a compiled tree, at any depth. */
 function fetchUrlsIn(value: Json | readonly MockupNode[]): string[] {
   return JSON.stringify(value)
     .split('"fetchUrl":"')

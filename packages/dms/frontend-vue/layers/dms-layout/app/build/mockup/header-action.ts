@@ -10,14 +10,10 @@ const FROM_PAGE_ENDPOINT = "/api/mockup/from-page";
 /** The stale warning stays until closed: it is the only sign the mockup is behind its page. */
 const STALE_TOAST_DURATION_MS = 60 * 60 * 1000;
 
-/** The dev tool pages: no page of the project, so nothing to convert. */
 const DEV_TOOL_PATHS = ["/mockup", "/mockups", "/dms-preview", "/branding"];
 
-/** What `POST /api/mockup/from-page` answers once the page has its mockup. */
 interface FromPageAnswer {
-  /** The `/mockup` route that opens the page's mockup in Edit mode. */
   url: string;
-  /** Whether the live page changed since its mockup was made. */
   stale: boolean;
   /** The digest of the mockup's spec, which converting again sends back. */
   digest?: string;

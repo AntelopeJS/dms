@@ -19,7 +19,6 @@ import { type SampleColumn, sampleRows } from "./sample-rows";
 /** How deep a converted tree nests before a block becomes a sketch: deep enough for any page, short of the spec's JSON depth limit. */
 const MAX_CONVERT_DEPTH = 30;
 
-/** What a conversion reads besides the page: the compiler, and the resources its tables are bound to. */
 export interface ConvertEnv {
   readonly oracle: NodeOracle;
   /** The structure of each resource a block of the page is bound to, by ref. */
@@ -39,7 +38,6 @@ export interface ConvertedPage {
   sketches: SketchNote[];
 }
 
-/** The page being converted: what its blocks have added to it so far. */
 interface Conversion {
   readonly env: ConvertEnv;
   readonly fixtures: JsonObject;
@@ -81,7 +79,6 @@ function objectIn(value: Json): JsonObject | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 
-/** Whether `value`, at any depth, holds a value written in code. */
 function holdsSentinel(value: Json): boolean {
   if (Array.isArray(value)) return value.some(holdsSentinel);
   const object = objectIn(value);
@@ -90,7 +87,6 @@ function holdsSentinel(value: Json): boolean {
   return Object.values(object).some(holdsSentinel);
 }
 
-/** A block an option holds, `{ $block: { type, config } }`, as the child the spec writes. */
 function heldBlockOf(
   parent: BlockNode,
   key: string,
@@ -146,13 +142,11 @@ type Routed<Value> =
   | { ok: true; value: Value }
   | { ok: false; reason: SketchReason };
 
-/** Whether a page's route is one a mockup can stand a fixture for. */
 function routeIssue(route: string): SketchReason | undefined {
   if (!RELATIVE_ROUTE_PATTERN.test(route)) return "remote-route";
   return route.includes(TEMPLATE_OPENER) ? "templated-route" : undefined;
 }
 
-/** `value` with each `fetchUrl` route, at any depth, read through a fixture standing for it. */
 function routeData(value: Json, c: Conversion): Routed<Json> {
   const object = objectIn(value);
   if (object) return routeObject(object, c);
@@ -191,7 +185,6 @@ function placed(block: BlockNode, node: MockupNode): MockupNode {
   return node;
 }
 
-/** The table a controller-bound `TableView` lists, read from its resource's list route. */
 function tableOf(block: BlockNode, c: Conversion): Routed<MockupNode> {
   const resource =
     block.type === TABLE_TYPE && block.controller !== undefined
@@ -243,7 +236,6 @@ function listedFields(
   });
 }
 
-/** The node a plain block's options and children make, before the compiler admits it. */
 function blockOf(
   block: BlockNode,
   type: string,
@@ -269,7 +261,6 @@ function blockOf(
   return { ok: true, value: node };
 }
 
-/** Why the compiler refuses `node`, or undefined when it admits it. */
 function refusalOf(node: MockupNode, c: Conversion): SketchReason | undefined {
   const issues = c.env.oracle.issuesOf(node, c.fixtures);
   if (!issues.length) return undefined;
@@ -320,7 +311,6 @@ function convertBlock(
   return refusal ? sketched(refusal) : placed(block, candidate.value);
 }
 
-/** The fixture keys `value` reads, at any depth. */
 function keysIn(value: Json, into: Set<string>): void {
   const key = fixtureKeyOf(value);
   if (key !== undefined) into.add(key);

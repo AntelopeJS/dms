@@ -47,7 +47,6 @@ function chain(depth: number): BlockDraft {
     : { name: `level${depth}`, type: "VStack", children: [chain(depth - 1)] };
 }
 
-/** One block of each row of the converter table. */
 const EVERY_ROW: BlockDraft[] = [
   { name: "hero", type: null },
   { name: "legacy", type: "KpiCard", editable: false },

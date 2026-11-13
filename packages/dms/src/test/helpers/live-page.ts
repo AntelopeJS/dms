@@ -35,7 +35,6 @@ function placedBlock(draft: BlockDraft, path: string): BlockNode {
   return node;
 }
 
-/** The structure the builder reads of the page `ref` holding `blocks`. */
 export function structureOf(
   ref: string,
   blocks: BlockDraft[],
@@ -55,7 +54,6 @@ export function structureOf(
   };
 }
 
-/** A resource the stub builder reads, listed at `/api/<ref>`. */
 export const BOOK_RESOURCE: ResourceStructure = {
   ref: "book",
   className: "Book",
@@ -77,7 +75,6 @@ export const BOOK_RESOURCE: ResourceStructure = {
   version: "r1",
 };
 
-/** A {@link LivePages} over fixed structures, recording what it was asked. */
 export interface StubPages extends LivePages {
   structures: Map<string, PageStructure>;
   reads: string[];
@@ -87,7 +84,6 @@ function found<Data>(data: Data): OpResult<Data> {
   return { ok: true, data, changes: [] };
 }
 
-/** A builder that knows `structures` and `resources`, and nothing else. */
 export function stubPages(
   structures: PageStructure[],
   resources: ResourceStructure[] = [BOOK_RESOURCE],

@@ -35,10 +35,8 @@ export interface FixtureScope {
   routes?: Readonly<Record<string, string>>;
 }
 
-/** What a fixture is read as: its value, or the rows a table lists from it. */
 export type DataKind = "fixture" | "rows";
 
-/** The suffix of the route listing a fixture's rows as a table reads them. */
 const ROWS_SUFFIX = "/rows";
 
 /**
