@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { MapResources } from "../../../implementations/dms-builder";
-import { DEFAULT_COMPILER_OPTIONS } from "../../../implementations/dms-builder/engine/project";
 import { expectOk, setConnectionAccess } from "./harness";
 import {
   COUNTRIES_API,
@@ -16,7 +15,18 @@ import { OP_TIMEOUT } from "./mapped-database";
  * TypeScript 5.7 rejects.
  */
 const LIB_CHECKED_TSCONFIG = {
-  compilerOptions: { ...DEFAULT_COMPILER_OPTIONS, rootDir: "src" },
+  compilerOptions: {
+    moduleResolution: "bundler",
+    target: "esnext",
+    module: "commonjs",
+    lib: ["ES2020"],
+    types: ["node"],
+    strict: true,
+    esModuleInterop: true,
+    experimentalDecorators: true,
+    emitDecoratorMetadata: true,
+    rootDir: "src",
+  },
   include: ["src"],
 };
 
