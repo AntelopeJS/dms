@@ -1075,5 +1075,10 @@
       "title": "Cette entrée n'est plus disponible",
       "description": "Elle a été supprimée, ou le lien est erroné."
     }
+  },
+  "mockups": {
+    "header": {
+      "open": "Maquettes"
+    }
   }
 }

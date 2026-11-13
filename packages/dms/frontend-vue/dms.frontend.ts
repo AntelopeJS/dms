@@ -176,6 +176,19 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
       lazyPlugin(() => import("./layers/dms-core/app/plugins/dev-error-log")),
       { ...clientOnly, enforce: "pre" },
     );
+
+    sdk.registerPlugin(
+      lazyPlugin(
+        () => import("./layers/dms-layout/app/entries/mockups/header-action"),
+      ),
+      clientOnly,
+    );
+    sdk.registerComponent(
+      "MockupCards",
+      lazyComponent(
+        () => import("./layers/dms-ui/app/entries/mockups/MockupCards"),
+      ),
+    );
   }
 
   sdk.registerPlugin(asyncDataScopePlugin, { enforce: "pre" });

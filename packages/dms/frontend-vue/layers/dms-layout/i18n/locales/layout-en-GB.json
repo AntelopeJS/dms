@@ -1075,5 +1075,10 @@
       "title": "This entry is no longer available",
       "description": "It was deleted, or the link is wrong."
     }
+  },
+  "mockups": {
+    "header": {
+      "open": "Mockups"
+    }
   }
 }
