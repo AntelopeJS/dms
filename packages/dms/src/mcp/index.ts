@@ -8,6 +8,7 @@ const McpConfigSchema = z
     enabled: z.boolean().optional(),
     access: z.enum(["safe", "full"]).optional(),
     mcpJson: z.boolean().optional(),
+    codexConfig: z.boolean().optional(),
     backendUrl: z.string().optional(),
   })
   .strict()
@@ -26,6 +27,7 @@ function settingsOf(dev: boolean): McpSettings | undefined {
   return {
     access: config.access ?? "full",
     writeMcpJson: config.mcpJson ?? true,
+    writeCodexConfig: config.codexConfig ?? true,
     backendUrl: config.backendUrl,
   };
 }

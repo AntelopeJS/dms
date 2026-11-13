@@ -9,6 +9,7 @@ import { MCP_TOOLS } from "./tools";
 export interface McpSettings {
   access: McpAccess;
   writeMcpJson: boolean;
+  writeCodexConfig: boolean;
   backendUrl: string | undefined;
 }
 
@@ -23,6 +24,7 @@ export async function serveMcp(settings: McpSettings): Promise<void> {
     projectPath,
     token,
     writeMcpJson: settings.writeMcpJson,
+    writeCodexConfig: settings.writeCodexConfig,
     backendUrl: settings.backendUrl,
     apiBaseUrl: getApiBaseUrl() ?? DEFAULT_API_BASE_URL,
     routePath: MCP_ROUTE_PATH,
