@@ -331,9 +331,9 @@ function blockImports(
 /**
  * Patch the page's own options in the same transaction as its blocks, so one
  * call is one typecheck and one write. Returns the failure, or nothing.
- */
-/**
- * Patch the page's own options.
+ *
+ * An option sent back with the value a constant or a template of constants
+ * gives it keeps that source text, as a block's options do.
  *
  * The class is found again rather than passed in: rewriting the blocks removes
  * text from the file, and ts-morph forgets every node in it when that happens.
@@ -365,7 +365,12 @@ function applyPageMeta(
       "page options are not a plain object literal",
     );
   }
-  applyPatch(optionsArg, optionsPatch(scalar), false, ctx);
+  applyPatch(
+    optionsArg,
+    withConstants(optionsPatch(scalar), constantsIn(optionsArg)),
+    false,
+    ctx,
+  );
   return undefined;
 }
 
