@@ -160,18 +160,21 @@ export interface PlatformOwnerCheck {
 
 /**
  * Refuses a request that is not the platform owner's: 401 when it carries no
- * session, 403 when its user is not the owner of the request's tenant.
+ * session, 403 when its user is not flagged `owner` or the tenant access gate
+ * denies them. A role that lists `*` does not make its holder the owner here.
  */
 export async function assertPlatformOwner(
   request: PlatformOwnerCheck,
 ): Promise<void> {
   assert(request.user, HTTP_UNAUTHORIZED, ERROR_UNAUTHENTICATED);
-  const isOwner = await isPlatformOwner(
-    request.user,
-    request.memberModel,
-    request.roleModel,
-    getRequestTenantId(request.requestContext),
-  );
+  const isOwner =
+    request.user.owner === true &&
+    (await isPlatformOwner(
+      request.user,
+      request.memberModel,
+      request.roleModel,
+      getRequestTenantId(request.requestContext),
+    ));
   assert(isOwner, HTTP_FORBIDDEN, ERROR_UNAUTHORIZED);
 }
 

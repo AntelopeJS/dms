@@ -1,4 +1,8 @@
+import { Readable } from "node:stream";
 import { getRegisteredRoutes } from "@antelopejs/interface-api";
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
+import { RoleModel } from "@antelopejs/interface-dms/db";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../../helpers/auth";
@@ -50,7 +54,11 @@ function label(route: RegisteredRoute, status: number): string {
   return `${route.method.toUpperCase()} ${pathOf(route)} ${status}`;
 }
 
-/** Sends one request to `route` and labels it with the status it got. */
+/**
+ * Sends one request to `route` and labels it with the status it got. The body
+ * is dropped unread, so an event stream the route wrongly opens answers 200
+ * instead of hanging the test.
+ */
 async function answerOf(
   client: AxiosInstance,
   route: RegisteredRoute,
@@ -59,8 +67,11 @@ async function answerOf(
   const response = await client.request({
     method: route.method,
     url: pathOf(route),
+    responseType: "stream",
     ...(!isRead && { data: NOTE }),
   });
+  const body: unknown = response.data;
+  if (body instanceof Readable) body.destroy();
   return label(route, response.status);
 }
 
@@ -94,6 +105,18 @@ describe("[unit] mockup routes: platform owners only", () => {
 
   it("answers 403 on every route to a signed-in member who is not the platform owner", async () => {
     expect(await answersOf(member)).to.deep.equal(everyRouteAnswering(403));
+  });
+
+  it("answers 403 on every route to a member whose role lists every permission", async () => {
+    const [role] = await GetModel(RoleModel, DEFAULT_TENANT_ID).insert({
+      name: "Holds *",
+      permissions: ["*"],
+    });
+    const holder = authorizedClient(
+      (await registerUser({ roles_ids: [role] })).accessToken,
+    );
+
+    expect(await answersOf(holder)).to.deep.equal(everyRouteAnswering(403));
   });
 
   it("writes no annotation for a refused caller, and writes the owner's", async () => {
