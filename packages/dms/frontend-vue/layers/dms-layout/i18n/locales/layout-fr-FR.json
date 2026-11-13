@@ -870,7 +870,7 @@
       "catalog": {
         "ai": {
           "title": "Assistant",
-          "description": "Un agent de code et un éditeur visuel de pages qui modifient le projet, pour le développement."
+          "description": "Un agent de code qui inspecte vos modules et modifie le projet, pour le développement."
         },
         "api": {
           "title": "API",

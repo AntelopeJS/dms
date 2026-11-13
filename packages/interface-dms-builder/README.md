@@ -5,7 +5,7 @@
 <a href="https://www.npmjs.com/package/@antelopejs/interface-dms-builder"><img alt="npm" src="https://img.shields.io/npm/v/@antelopejs/interface-dms-builder?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
 <a href="./LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@antelopejs/interface-dms-builder?style=for-the-badge&labelColor=000000&color=000000" data-illustration></a>
 <a href="https://discord.gg/g4pFt6eXqu"><img alt="Discord" src="https://img.shields.io/badge/Discord-18181B?logo=discord&style=for-the-badge&color=000000" data-illustration></a>
-<a href="https://dms.antelopejs.com/docs/modules/assistant/builder/extending"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
+<a href="https://dms.antelopejs.com/docs/modules/builder/reference"><img alt="Documentation" src="https://img.shields.io/badge/Docs-18181B?style=for-the-badge&color=000000" data-illustration></a>
 
 The AntelopeJS interface that edits the pages, blocks, resources and queries of a DMS project from code.
 
@@ -69,11 +69,11 @@ The interface declares this peer dependency:
 
 <!-- antelopejs-docs-compat:end -->
 
-The `@antelopejs/dms` module implements this interface, and so does the `@antelopejs/dms-builder` module. The `@antelopejs/interface-dms-builder` entry in the `dependencies` of `@antelopejs/dms` gives the interface range each `@antelopejs/dms` release implements. The implementation is not a peer dependency of the interface package. It runs in development only, unless the [`builder.enabled`](https://dms.antelopejs.com/docs/building/configuration) option of `@antelopejs/dms` turns it on.
+The `@antelopejs/dms` module implements this interface. The `@antelopejs/interface-dms-builder` entry in the `dependencies` of `@antelopejs/dms` gives the interface range each `@antelopejs/dms` release implements. The implementation is not a peer dependency of the interface package. It runs in development only, unless the [`builder.enabled`](https://dms.antelopejs.com/docs/building/configuration) option of `@antelopejs/dms` turns it on.
 
 ## Documentation
 
-- [Extending the builder](https://dms.antelopejs.com/docs/modules/assistant/builder/extending) covers the interface and the HTTP API.
+- [MCP server](https://dms.antelopejs.com/docs/ai-and-claude-code/mcp-server) covers the builder tools `@antelopejs/dms` serves to coding agents in development.
 - [Interface reference](./docs/1.introduction.md) is the canonical contract. It ships with this package and is published at [/docs/modules/builder/reference](https://dms.antelopejs.com/docs/modules/builder/reference).
 - [A chart without code](./docs/10.a-chart-without-code.md) follows one chart from the choice of a measure to the reopened page.
 
