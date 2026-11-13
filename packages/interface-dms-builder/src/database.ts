@@ -53,6 +53,12 @@ export interface DatabasePin {
   provider: string;
 }
 
+/** A driver module of an engine, and the range of its versions a project can install. */
+export interface DriverPackage {
+  package: string;
+  version: string;
+}
+
 /** What connecting a database needs to know about the project. */
 export interface DatabaseProject {
   /** The modules the project's configuration lists, by id. */
@@ -65,6 +71,13 @@ export interface DatabaseProject {
   databasePins: DatabasePin[];
   /** The id the configuration gives dms-database, when the project has it. */
   dmsDatabase?: string;
+  /** The version of `@antelopejs/interface-database` the project resolves, when it resolves one. */
+  interfaceDatabase?: string;
+  /**
+   * The driver to add for each engine, with a range of only the versions built for
+   * `interfaceDatabase`. An engine with no driver built for it is absent.
+   */
+  drivers: Partial<Record<DatabaseEngine, DriverPackage>>;
 }
 
 /** A local module of the project, by its id in the configuration and its folder. */

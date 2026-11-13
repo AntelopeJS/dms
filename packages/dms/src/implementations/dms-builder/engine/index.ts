@@ -16,6 +16,7 @@ export * from "./database-connection-remove";
 export * from "./database-pin";
 export * from "./database-repair";
 export * from "./dms-database";
+export * from "./driver-packages";
 export * from "./emit";
 export * from "./env-lines";
 export * from "./file-batch";

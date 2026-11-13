@@ -28,6 +28,10 @@ import { removeDatabaseConnection } from "./engine/database-connection-remove";
 import { databasePins } from "./engine/database-pin";
 import { repairDatabaseConnections } from "./engine/database-repair";
 import { dmsDatabaseId } from "./engine/dms-database";
+import {
+  driverPackages,
+  resolvedInterfaceDatabase,
+} from "./engine/driver-packages";
 import { configuredModuleIds } from "./engine/modules";
 import { invalidConfig, notFound } from "./engine/ops";
 import { ownModuleId } from "./engine/own-connections";
@@ -88,12 +92,15 @@ export async function RepairDatabaseConnections(
 export async function GetDatabaseProject(): Promise<OpResult<DatabaseProject>> {
   return readingConfig(() => {
     const { ownDatabase, pins } = databasePins();
+    const interfaceDatabase = resolvedInterfaceDatabase();
     return succeeded({
       modules: configuredModuleIds(),
       self: ownModuleId(),
       ownDatabase,
       databasePins: pins,
       dmsDatabase: dmsDatabaseId(),
+      interfaceDatabase,
+      drivers: driverPackages(interfaceDatabase),
     });
   });
 }
