@@ -258,12 +258,16 @@ export function configuredIndentation(
   return formatterIndentation(rootDir) ?? editorconfigIndentation(rootDir);
 }
 
-/** The indentation of a file's first indented line, if it has one. */
+/**
+ * The indentation of a file's first indented line, if it has one. A block
+ * comment's ` * ` continuation is aligned to its opening, not indented, so it
+ * is not a sample.
+ */
 export function sampledIndentation(text: string): IndentationText | undefined {
   const firstIndentedLine = text
     .slice(0, INDENT_SAMPLE_BYTES)
     .split("\n")
-    .find((line) => /^[\t ]+\S/.test(line));
+    .find((line) => /^[\t ]+[^\s*]/.test(line));
   if (!firstIndentedLine) {
     return undefined;
   }
@@ -277,7 +281,9 @@ export function sampledIndentation(text: string): IndentationText | undefined {
 
 /**
  * The configured indentation, else that of the first of the project's sources
- * with an indented line: an entry that only imports says nothing.
+ * with an indented line: an entry that only imports says nothing. A file the
+ * tsconfig lists that is not on disk yet, such as a generated declaration, is
+ * skipped.
  */
 function detectIndentation(rootDir: string): IndentationText {
   const configuredIndent = configuredIndentation(rootDir);
@@ -285,6 +291,9 @@ function detectIndentation(rootDir: string): IndentationText {
     return configuredIndent;
   }
   for (const source of projectSourcePaths(rootDir)) {
+    if (!fs.existsSync(source)) {
+      continue;
+    }
     const sampled = sampledIndentation(fs.readFileSync(source, "utf8"));
     if (sampled !== undefined) {
       return sampled;
