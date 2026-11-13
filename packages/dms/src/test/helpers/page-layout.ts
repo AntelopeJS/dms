@@ -1,8 +1,7 @@
 import { assert } from "chai";
-import type {
-  RoleModel,
-  TenantMemberModel,
-} from "@antelopejs/interface-dms/db";
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
+import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
   GetPageLayoutBySlug,
   type PageLayout,
@@ -17,11 +16,30 @@ export interface LayoutCaller {
   roleModel: RoleModel;
 }
 
-// SAFETY: Anonymous layout access queries neither memberships nor roles, so the empty models are never called.
+class UnqueriedMemberModel extends TenantMemberModel {
+  override async getByUser(): Promise<never> {
+    throw new Error("Anonymous layout access queried memberships");
+  }
+}
+
+class UnqueriedRoleModel extends RoleModel {
+  override async getBy(): Promise<never> {
+    throw new Error("Anonymous layout access queried roles");
+  }
+}
+
+/**
+ * A caller with no user. Its real models reject every membership and role
+ * lookup, because anonymous layout access queries neither.
+ */
 export const ANONYMOUS: LayoutCaller = {
   user: undefined,
-  memberModel: {} as TenantMemberModel,
-  roleModel: {} as RoleModel,
+  memberModel: new UnqueriedMemberModel(
+    GetModel(TenantMemberModel, DEFAULT_TENANT_ID).database,
+  ),
+  roleModel: new UnqueriedRoleModel(
+    GetModel(RoleModel, DEFAULT_TENANT_ID).database,
+  ),
 };
 
 export function grantedTo(permissions: string[]): LayoutCaller {

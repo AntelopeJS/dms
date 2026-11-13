@@ -72,7 +72,7 @@ describe("[unit] frontend module backend proxies", () => {
     { path: "/@vite/**" },
     { path: "/node_modules/**" },
     invalidAuthentication,
-    // SAFETY: Intentionally pass a string where the registration contract requires an object to exercise runtime rejection.
+    // SAFETY: resolveBackendProxies runs isObject on every entry before it reads a member, so an entry that is not an object, as this string, is rejected with the invalid-backendProxies error and never dereferenced.
     "/media/**" as unknown as FrontendBackendProxy,
   ]) {
     it(`refuses to register ${JSON.stringify(proxy)}`, () => {

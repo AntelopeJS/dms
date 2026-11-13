@@ -1,12 +1,15 @@
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import { assert, expect } from "chai";
-import type {
+import {
   SessionModel,
   User,
-  UserModel,
+  type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { applyConfig, getAuthConfig } from "../../config";
 import { signup } from "../../routes/authentication";
 import { seedUserInvite } from "../helpers/fixtures";
+import { RecordingUserModel } from "../helpers/recording-user-model";
+import { userFixture } from "../helpers/user-fixture";
 
 const INVITEE_NAME = "Invitee";
 const INVITEE_PASSWORD = "InviteePassw0rd!";
@@ -23,8 +26,7 @@ interface SignupScenario {
 }
 
 function buildDraft(email: string): User {
-  // SAFETY: The draft takeover path reads and rewrites plain account fields; this fixture does not implement database-row methods.
-  return {
+  return userFixture({
     _id: `signup-validation-draft:${email}`,
     email,
     name: "Abandoned draft",
@@ -32,7 +34,51 @@ function buildDraft(email: string): User {
     validationToken: "STALE1",
     validationRequestedAt: new Date(),
     language: "en",
-  } as User;
+  });
+}
+
+/** Answers signup's account lookups and keeps the account it last wrote. */
+class CapturingUserModel extends RecordingUserModel {
+  account: User | undefined;
+
+  constructor(
+    private readonly existingDraft: User | undefined,
+    private readonly newUserId: string,
+  ) {
+    super();
+    this.account = existingDraft;
+  }
+
+  override async getByEmail(): Promise<User | undefined> {
+    return this.existingDraft;
+  }
+
+  override async get(): Promise<User | undefined> {
+    return this.account;
+  }
+
+  override async getOwners(): Promise<User[]> {
+    return [];
+  }
+
+  override async insert(
+    ...[row]: Parameters<UserModel["insert"]>
+  ): Promise<string[]> {
+    if (!(row instanceof User)) {
+      throw new Error("signup inserted a row that is not a User");
+    }
+    row._id = this.newUserId;
+    this.account = row;
+    return [this.newUserId];
+  }
+
+  override async update(
+    ...args: Parameters<RecordingUserModel["update"]>
+  ): Promise<number> {
+    const [user] = args;
+    if (user instanceof User) this.account = user;
+    return super.update(...args);
+  }
 }
 
 /**
@@ -41,22 +87,10 @@ function buildDraft(email: string): User {
  * outcome is read from the account, not from its answer.
  */
 async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
-  let account: User | undefined = scenario.existingDraft;
-  const newUserId = `signup-validation:${scenario.email}`;
-  // SAFETY: The harness supplies only signup's account lookups and writes; it records the account before later unserved token interfaces can reject.
-  const userModel = {
-    getByEmail: async () => scenario.existingDraft,
-    get: async () => account,
-    getOwners: async () => [],
-    insert: async (row: Partial<User>) => {
-      // SAFETY: Signup supplies the creation fields inspected below; this plain captured row is not used as a complete database entity with methods.
-      account = { ...row, _id: newUserId } as User;
-      return [newUserId];
-    },
-    update: async (user: User) => {
-      account = user;
-    },
-  } as unknown as UserModel;
+  const userModel = new CapturingUserModel(
+    scenario.existingDraft,
+    `signup-validation:${scenario.email}`,
+  );
 
   const { token } = await seedUserInvite({
     email: scenario.email,
@@ -64,8 +98,7 @@ async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
 
   await signup(
     userModel,
-    // SAFETY: This intentionally empty session model is allowed to fail after account creation; the catch below discards that downstream failure and assertions inspect only the written account.
-    {} as SessionModel,
+    GetModel(SessionModel),
     {
       name: INVITEE_NAME,
       email: scenario.email,
@@ -76,6 +109,7 @@ async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
     { ip: IP },
   ).catch(() => undefined);
 
+  const { account } = userModel;
   assert.isDefined(account, "signup wrote no account");
   return account;
 }

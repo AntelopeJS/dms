@@ -156,7 +156,7 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
         key: "untyped",
         variant: "info",
         text: "a",
-        // SAFETY: Intentionally invalid scope models an untyped module registration so normalization, not the TypeScript union, is tested.
+        // SAFETY: resolveScope serves a banner's scope only when LAYOUT_BANNER_SCOPES holds it and reads any other string as an unset scope, so the value is never used as a LayoutBannerScope member unchecked.
         scope: "somewhere" as LayoutBannerScope,
       }),
     );
@@ -324,7 +324,7 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
   });
 
   it("skips an untyped banner that has no content", async () => {
-    // SAFETY: Intentionally omit text to exercise rejection of an untyped contentless registration; this is not a valid LayoutBannerInfo.
+    // SAFETY: hasContent skips a banner holding none of text, component and resolve before the resolver or visibility callbacks are read, so a banner of only key and variant reaches no member LayoutBannerInfo requires beyond those.
     const contentless = {
       key: "empty",
       variant: "info",

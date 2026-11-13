@@ -1,5 +1,3 @@
-import { EventEmitter } from "node:events";
-import type { RequestContext } from "@antelopejs/interface-api";
 import { expect } from "chai";
 import {
   InMemoryBroker,
@@ -8,6 +6,10 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { RealtimeController } from "../../../routes";
+import {
+  type RecordedSseStream,
+  recordedSseStream,
+} from "../../helpers/recorded-sse-stream";
 import { helloConnectionId } from "../../helpers/sse-frames";
 import { userFixture } from "../../helpers/user-fixture";
 
@@ -16,11 +18,7 @@ const USER = userFixture({
   email: "u@example.com",
 });
 
-interface FakeStream {
-  ctx: RequestContext;
-  frames: string[];
-  isEnded: () => boolean;
-}
+type FakeStream = RecordedSseStream;
 
 interface TimerSpy {
   started: Set<unknown>;
@@ -28,26 +26,7 @@ interface TimerSpy {
   restore: () => void;
 }
 
-const createFakeStream = (): FakeStream => {
-  const frames: string[] = [];
-  let isEnded = false;
-  const writer = {
-    write: (frame: string) => {
-      frames.push(frame);
-      return true;
-    },
-    end: () => {
-      isEnded = true;
-    },
-  };
-  const rawRequest = Object.assign(new EventEmitter(), { headers: {} });
-  // SAFETY: The controller methods under test pass ctx only to openSseStream, which calls response.addHeader, response.getWriteStream and rawRequest.on, and to getRequestTenantId, which reads rawRequest and its authorization header; the double supplies each of those, and its writer implements the write and end that openSseStream calls.
-  const ctx = {
-    rawRequest,
-    response: { addHeader: () => {}, getWriteStream: () => writer },
-  } as unknown as RequestContext;
-  return { ctx, frames, isEnded: () => isEnded };
-};
+const createFakeStream = (): FakeStream => recordedSseStream();
 
 const spyOnIntervals = (): TimerSpy => {
   const originalSet = globalThis.setInterval;

@@ -1,5 +1,3 @@
-import { EventEmitter } from "node:events";
-import type { RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
   PageController,
@@ -23,6 +21,10 @@ import {
   getSessionInfo,
 } from "../../../realtime";
 import { ensureSessionOnPage, RealtimeController } from "../../../routes";
+import {
+  type RecordedSseStream,
+  recordedSseStream,
+} from "../../helpers/recorded-sse-stream";
 import { helloConnectionId, parseFrameData } from "../../helpers/sse-frames";
 import { userFixture } from "../../helpers/user-fixture";
 
@@ -33,35 +35,12 @@ const TENANT_A = "tenant-a";
 const TENANT_B = "tenant-b";
 const EVENT_TYPE = "changed";
 
-interface FakeStream {
-  ctx: RequestContext;
-  frames: string[];
-  isEnded: () => boolean;
-}
+type FakeStream = RecordedSseStream;
 
 const createFakeStream = (tenantId: string): FakeStream => {
-  const frames: string[] = [];
-  let isEnded = false;
-  const writer = {
-    write: (frame: string) => {
-      frames.push(frame);
-      return true;
-    },
-    end: () => {
-      isEnded = true;
-    },
-  };
-  const rawRequest = Object.assign(new EventEmitter(), {
-    headers: { authorization: `Bearer tenant-topics-${tenantId}` },
-  });
-  // SAFETY: The controller methods under test pass ctx only to openSseStream, which calls response.addHeader, response.getWriteStream and rawRequest.on, and to getRequestTenantId, which reads rawRequest and its authorization header; the double supplies each of those, and its writer implements the write and end that openSseStream calls.
-  const ctx = {
-    rawRequest,
-    response: { addHeader: () => {}, getWriteStream: () => writer },
-  } as unknown as RequestContext;
-
-  bindVerifiedRequestPrincipal(ctx, { userId: USER._id, tenantId });
-  return { ctx, frames, isEnded: () => isEnded };
+  const stream = recordedSseStream(`Bearer tenant-topics-${tenantId}`);
+  bindVerifiedRequestPrincipal(stream.ctx, { userId: USER._id, tenantId });
+  return stream;
 };
 
 const SharedFrameSchema = z.object({

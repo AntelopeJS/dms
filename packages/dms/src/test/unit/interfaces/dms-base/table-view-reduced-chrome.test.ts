@@ -31,6 +31,7 @@ import { Searchable } from "@antelopejs/interface-dms/base/searchable";
 import { resolveCustomRowActions } from "@antelopejs/interface-dms/base/table-view/internal/request-filter";
 import { resolveTableViewTabs } from "@antelopejs/interface-dms/base/table-view/internal/tabs";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
+import { serializedColumnsOf } from "../../../helpers/serialized-columns";
 
 const TABLE = "reduced-chrome-orders";
 const LOCATION = "/api/reduced-chrome-orders";
@@ -140,18 +141,7 @@ const optionsOf = (table: ReturnType<typeof TableView>) =>
   table.serializeSync().options!;
 
 const columnsOf = (table: ReturnType<typeof TableView>) =>
-  // SAFETY: TableView writes metadata columns absent from its serialized options type.
-  (
-    optionsOf(table) as unknown as {
-      columns: Array<{
-        id: string;
-        size?: number;
-        display?: unknown;
-        isVisible?: boolean;
-        listable?: boolean;
-      }>;
-    }
-  ).columns;
+  serializedColumnsOf(optionsOf(table));
 
 type DisplayDeclarations = Pick<TableViewOptions, "displays" | "kanban">;
 

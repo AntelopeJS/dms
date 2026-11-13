@@ -1,10 +1,10 @@
 import { HTTPResult } from "@antelopejs/interface-api";
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
-import type {
-  Session,
+import {
+  type Session,
   SessionModel,
-  User,
-  UserModel,
+  type User,
 } from "@antelopejs/interface-dms/auth/db";
 import { sign } from "jsonwebtoken";
 import type { z } from "zod";
@@ -18,7 +18,11 @@ import {
 } from "../../../../pages/account";
 import { sessionFixture } from "../../../helpers/table-fixtures";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
-import { plainPasswordUserFixture } from "../../../helpers/user-fixture";
+import { RecordingUserModel } from "../../../helpers/recording-user-model";
+import {
+  plainPasswordUserFixture,
+  userFixture,
+} from "../../../helpers/user-fixture";
 import { securitySchema } from "../../../../validation";
 
 const HTTP_BAD_REQUEST = 400;
@@ -37,14 +41,50 @@ const TOKEN_SIGNING_KEY = "account-security-test";
 const BACKUP_CODE_TOTAL = 10;
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 
+/** Finds the account under test, and no other but the one holding TAKEN_EMAIL. */
+class HeldUserModel extends RecordingUserModel {
+  constructor(private readonly user: User) {
+    super();
+  }
+
+  override async get(): Promise<User> {
+    return this.user;
+  }
+
+  override async getByEmail(email: string): Promise<User | undefined> {
+    return email === TAKEN_EMAIL
+      ? userFixture({ _id: OTHER_USER_ID })
+      : undefined;
+  }
+}
+
+/** Holds the user's sessions in memory and notes the refresh tokens written. */
+class HeldSessionModel extends SessionModel {
+  /** Refresh tokens written per session id. */
+  readonly refreshTokens = new Map<string, string>();
+
+  constructor(public sessions: Session[]) {
+    super(GetModel(SessionModel).database);
+  }
+
+  override async getByUserId(): Promise<Session[]> {
+    return [...this.sessions];
+  }
+
+  override async delete(id: string): Promise<number> {
+    this.sessions = this.sessions.filter((entry) => entry._id !== id);
+    return 1;
+  }
+
+  override async replaceRefreshToken(id: string, token: string): Promise<void> {
+    this.refreshTokens.set(id, token);
+  }
+}
+
 interface Harness {
   user: User;
-  userModel: UserModel;
-  sessionModel: SessionModel;
-  sessions: Session[];
-  updates: number;
-  /** Refresh tokens written per session id. */
-  refreshTokens: Map<string, string>;
+  userModel: HeldUserModel;
+  sessionModel: HeldSessionModel;
 }
 
 function buildUser(password: string | null): User {
@@ -85,35 +125,16 @@ function session(id: string, lastActiveAt: number): Session {
 }
 
 function buildHarness(password: string | null = "hashed"): Harness {
-  // SAFETY: The user model double implements only lookup and update, and the session model double only listing, deletion and refresh-token replacement; the credential flow calls nothing else on them.
-  const harness: Harness = {
-    user: buildUser(password),
-    sessions: [
+  const user = buildUser(password);
+  return {
+    user,
+    userModel: new HeldUserModel(user),
+    sessionModel: new HeldSessionModel([
       session("session-old", 1),
       session(CURRENT_SESSION, 2),
       session("session-recent", 3),
-    ],
-    updates: 0,
-    refreshTokens: new Map<string, string>(),
-    userModel: {
-      get: async () => harness.user,
-      getByEmail: async (email: string) =>
-        email === TAKEN_EMAIL ? { _id: OTHER_USER_ID } : undefined,
-      update: async () => {
-        harness.updates += 1;
-      },
-    } as unknown as UserModel,
-    sessionModel: {
-      getByUserId: async () => [...harness.sessions],
-      delete: async (id: string) => {
-        harness.sessions = harness.sessions.filter((entry) => entry._id !== id);
-      },
-      replaceRefreshToken: async (id: string, token: string) => {
-        harness.refreshTokens.set(id, token);
-      },
-    } as unknown as SessionModel,
+    ]),
   };
-  return harness;
 }
 
 const authorization = `Bearer ${sign({ sessionId: CURRENT_SESSION, tenantId: TENANT_ID }, TOKEN_SIGNING_KEY)}`;
@@ -149,7 +170,7 @@ describe("[unit] settings/security — password change asks for the current pass
     );
     expect(result.getStatus()).to.equal(HTTP_BAD_REQUEST);
     expect(result.getBody()).to.equal(INVALID_CURRENT_PASSWORD);
-    expect(harness.updates).to.equal(0);
+    expect(harness.userModel.updateCalls).to.equal(0);
   });
 
   it("refuses a missing current password", async () => {
@@ -169,7 +190,7 @@ describe("[unit] settings/security — password change asks for the current pass
     expect(harness.user.password).to.equal(NEW_PASSWORD);
     expect(harness.user.passwordChangedAt).to.be.instanceOf(Date);
     expect(harness.user.authKey).to.not.equal(ORIGINAL_AUTH_KEY);
-    expect(harness.updates).to.equal(1);
+    expect(harness.userModel.updateCalls).to.equal(1);
   });
 
   it("signs out every other session and hands this one back a way in", async () => {
@@ -179,13 +200,13 @@ describe("[unit] settings/security — password change asks for the current pass
       password: NEW_PASSWORD,
     });
     expect(result.signedOutSessions).to.equal(2);
-    expect(harness.sessions.map((entry) => entry._id)).to.deep.equal([
-      CURRENT_SESSION,
-    ]);
+    expect(
+      harness.sessionModel.sessions.map((entry) => entry._id),
+    ).to.deep.equal([CURRENT_SESSION]);
     expect(result.sessionHandoff?.endpoint).to.equal(
       "/api/auth/session-handoff",
     );
-    expect(harness.refreshTokens.get(CURRENT_SESSION)).to.equal(
+    expect(harness.sessionModel.refreshTokens.get(CURRENT_SESSION)).to.equal(
       result.sessionHandoff?.payload.token,
     );
   });
@@ -247,7 +268,7 @@ describe("[unit] settings/security — sessions and backup codes", () => {
       authorization,
     });
     expect(result.count).to.equal(2);
-    expect(harness.sessions).to.have.length(1);
+    expect(harness.sessionModel.sessions).to.have.length(1);
     expect(harness.user.authKey).to.not.equal(ORIGINAL_AUTH_KEY);
     expect(result.sessionHandoff?.payload.token).to.be.a("string");
   });

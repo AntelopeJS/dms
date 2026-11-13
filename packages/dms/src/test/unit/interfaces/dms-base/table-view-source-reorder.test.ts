@@ -29,6 +29,10 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import { untouchedRequestContext } from "../../../helpers/request-context";
+import {
+  type SerializedColumn,
+  serializedColumnsOf,
+} from "../../../helpers/serialized-columns";
 
 const TABLE = "reorder-features";
 
@@ -85,26 +89,24 @@ type SourceOptions = Parameters<typeof TableView.fromSource>[0];
 
 const STRING = new DefaultDataTypes.StringType();
 
-interface SourceColumnSerialized {
-  id: string;
-  enableSorting: boolean;
-  enableColumnFilter: boolean;
-}
-
 type SourceTableSerialized = TableViewOptionsSerialized & {
-  columns: SourceColumnSerialized[];
+  columns: SerializedColumn[];
 };
 
-// SAFETY: fromSource serializes its declared columns and sorting/filter flags, but TableViewOptionsSerialized omits that runtime columns property.
-const sourceOf = (options: Partial<SourceOptions> = {}) =>
-  TableView.fromSource({
+const sourceOf = (
+  options: Partial<SourceOptions> = {},
+): SourceTableSerialized => {
+  const serialized = TableView.fromSource({
     fetchUrl: "/api/request-log",
     columns: {
       path: { name: "Path", type: STRING, order: 2, sortable: true },
       method: { name: "Method", type: STRING, order: 1, filterable: true },
     },
     ...options,
-  }).serializeSync().options as SourceTableSerialized;
+  }).serializeSync().options;
+  if (!serialized) throw new Error("The source table serialized no options");
+  return { ...serialized, columns: serializedColumnsOf(serialized) };
+};
 
 describe("[unit] interfaces/dms-base — table view sources and reorder", () => {
   it("serves a source table: its route, its columns in order, no built-in action", () => {

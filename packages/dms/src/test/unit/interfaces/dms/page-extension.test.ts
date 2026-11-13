@@ -1,4 +1,4 @@
-import type { ControllerClass } from "@antelopejs/interface-api";
+import { Controller } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import * as pageImpl from "../../../../implementations/dms/page";
@@ -269,8 +269,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
   it("settles the syncs of a page whose registration fails before serializing", async () => {
     const brokenCategory: CategoryInfo = {
       ...pagesCategory,
-      // SAFETY: NotAPage deliberately lacks the controller members ControllerClass requires: the assertion is false on purpose, and the test asserts that registration fails on it.
-      category: class NotAPage {} as ControllerClass,
+      category: class NotAPage extends Controller("/pe-not-a-page") {},
     };
     class Target extends PageController("pe-failed-registration", {
       displayName: "Broken parent",

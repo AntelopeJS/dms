@@ -22,9 +22,12 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import {
   Column,
   TableView,
-  type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import {
+  type SerializedColumn,
+  serializedColumnsOf,
+} from "../../../helpers/serialized-columns";
 
 const TABLE = "hidden-columns-invoices";
 const LOCATION = "/api/hidden-columns-invoices";
@@ -78,24 +81,14 @@ type InvoiceOptions = NonNullable<
 
 const READ_ONLY = { add: false, duplicate: false, edit: false, delete: false };
 
-interface SerializedColumn {
-  id: string;
-  isVisible?: boolean;
-  listable: boolean;
-  enableColumnFilter: boolean;
-}
-
 const columnsOf = (options: InvoiceOptions): SerializedColumn[] =>
-  // SAFETY: TableView serializes metadata columns including id and visibility; its public options type omits the runtime columns property.
-  (
+  serializedColumnsOf(
     TableView(InvoiceAPI, {
       realtime: false,
       rowActions: READ_ONLY,
       ...options,
-    }).serializeSync().options as TableViewOptionsSerialized & {
-      columns: SerializedColumn[];
-    }
-  ).columns;
+    }).serializeSync().options,
+  );
 
 const visibility = (columns: SerializedColumn[]) =>
   Object.fromEntries(columns.map((column) => [column.id, column.isVisible]));

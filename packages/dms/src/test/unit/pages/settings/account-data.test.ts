@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import type { Session, User } from "@antelopejs/interface-dms/auth/db";
-import type { UserInvite } from "@antelopejs/interface-dms/db";
+import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   ACCOUNT_EXPORT_FORMAT,
   type AccountMembershipSource,
@@ -10,6 +9,7 @@ import {
   isDeletionConfirmed,
   selfDeletionPayload,
 } from "../../../../pages/account";
+import { inviteFixture, sessionFixture } from "../../../helpers/table-fixtures";
 import {
   plainPasswordUserFixture,
   userFixture,
@@ -100,7 +100,6 @@ function membership(
 }
 
 function exportOf(user: User) {
-  // SAFETY: The session row deliberately keeps the legacy refreshToken field absent from the current Session contract, and the invite row omits the language and extensions fields the exported snapshot never reads.
   return buildAccountExport({
     user,
     notificationPreferences: { "security.sign_in": true },
@@ -124,22 +123,24 @@ function exportOf(user: User) {
       },
     ],
     sessions: [
-      {
-        _id: "s1",
-        userId: USER_ID,
-        refreshToken: REFRESH_TOKEN,
-        refreshTokenHash: REFRESH_HASH,
-        sealedRefreshToken: SEALED_REFRESH,
-        previousRefreshTokenHash: REFRESH_HASH,
-        userAgent: "Mozilla/5.0",
-        ip: "127.0.0.1",
-        browser: "Chrome",
-        os: "Windows",
-        deviceType: "desktop",
-        location: "",
-        createdAt: EXPORTED_AT,
-        lastActiveAt: EXPORTED_AT,
-      } as Session,
+      Object.assign(
+        sessionFixture({
+          _id: "s1",
+          userId: USER_ID,
+          refreshTokenHash: REFRESH_HASH,
+          sealedRefreshToken: SEALED_REFRESH,
+          previousRefreshTokenHash: REFRESH_HASH,
+          userAgent: "Mozilla/5.0",
+          ip: "127.0.0.1",
+          browser: "Chrome",
+          os: "Windows",
+          deviceType: "desktop",
+          location: "",
+          createdAt: EXPORTED_AT,
+          lastActiveAt: EXPORTED_AT,
+        }),
+        { refreshToken: REFRESH_TOKEN },
+      ),
     ],
     identities: [
       {
@@ -156,7 +157,7 @@ function exportOf(user: User) {
       {
         tenantId: "acme",
         roleNames: ["Viewer"],
-        invite: {
+        invite: inviteFixture({
           _id: "inv1",
           email: "new@acme.dev",
           firstname: "Noa",
@@ -166,7 +167,7 @@ function exportOf(user: User) {
           asTenantOwner: false,
           createdAt: EXPORTED_AT,
           expiresAt: new Date("2026-10-08T12:00:00Z"),
-        } as UserInvite,
+        }),
       },
     ],
     exportedAt: EXPORTED_AT,
