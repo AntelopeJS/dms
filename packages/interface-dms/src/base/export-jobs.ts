@@ -247,6 +247,12 @@ export function runExportJob<TContext = unknown>(
   });
 }
 
+/**
+ * The status of an export job its caller may read.
+ *
+ * @throws TypeError, at the call, when `access` gives `isOwnedBy` without
+ * `contextSchema`.
+ */
 export function getExportJobStatus<TContext = unknown>(
   ctx: RequestContext,
   user: User,
@@ -259,6 +265,9 @@ export function getExportJobStatus<TContext = unknown>(
 /**
  * Streams a completed export job to the response. Returns once the pipe is
  * started, not once it has drained.
+ *
+ * @throws TypeError, at the call, when `access` gives `isOwnedBy` without
+ * `contextSchema`.
  */
 export function downloadExportJob<TContext = unknown>(
   ctx: RequestContext,
