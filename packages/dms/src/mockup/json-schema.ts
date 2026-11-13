@@ -205,7 +205,7 @@ function builtDefinition(): JsonObject {
         type: "string",
         format: "date-time",
         description:
-          "When the build finished, in UTC, e.g. 2026-11-13T10:00:00Z.",
+          "When the build finished, an ISO 8601 date and time, e.g. 2026-11-13T10:00:00Z.",
       },
       pages: {
         type: "array",

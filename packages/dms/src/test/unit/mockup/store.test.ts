@@ -236,17 +236,23 @@ describe("[unit] mockup store", () => {
     expect(listed[0].openComments).to.equal(0);
   });
 
-  it("lists the source and the built pages a spec writes, a page titled by its path when it has no title", async () => {
+  /**
+   * Fails a store that keeps a blank title (an unlabelled link on the card),
+   * or a spec reader that refuses a build time with a UTC offset, which the
+   * JSON Schema's `date-time` allows.
+   */
+  it("lists the source and the built pages a spec writes, a page titled by its path when its title is absent or blank", async () => {
     await writeFile(
       join(root, NAME, "spec.json"),
       JSON.stringify({
         ...specObject("Built"),
         source: "claude-code",
         built: {
-          at: "2026-11-13T10:00:00Z",
+          at: "2026-11-13T12:00:00+02:00",
           pages: [
             { path: "/orders", title: "Orders" },
             { path: "/orders/new" },
+            { path: "/stock", title: "   " },
           ],
         },
       }),
@@ -259,11 +265,12 @@ describe("[unit] mockup store", () => {
       name: NAME,
       source: "claude-code",
       status: "built",
-      builtAt: "2026-11-13T10:00:00Z",
+      builtAt: "2026-11-13T12:00:00+02:00",
     });
     expect(summary).to.have.deep.property("builtPages", [
       { path: "/orders", title: "Orders" },
       { path: "/orders/new", title: "/orders/new" },
+      { path: "/stock", title: "/stock" },
     ]);
   });
 

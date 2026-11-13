@@ -137,7 +137,7 @@ const dashboardPathSchema = z
 /** Decodes what the build step wrote of a mockup: when, and the pages it made. */
 export const mockupBuiltSchema = z
   .object({
-    at: z.string().datetime(),
+    at: z.string().datetime({ offset: true }),
     pages: z
       .array(
         z

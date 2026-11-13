@@ -181,7 +181,7 @@ export class MockupStore {
       builtAt: built.at,
       builtPages: built.pages.map((page) => ({
         path: page.path,
-        title: page.title ?? page.path,
+        title: page.title?.trim() || page.path,
       })),
     };
   }
