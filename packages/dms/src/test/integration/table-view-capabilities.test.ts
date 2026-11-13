@@ -121,38 +121,42 @@ async function list(client: AxiosInstance, query = ""): Promise<Invoice[]> {
   return response.data.results;
 }
 
-describe("[integration] table view capabilities", () => {
-  let client: AxiosInstance;
-  let userId: string;
-  let summaryIds: string[];
+let client: AxiosInstance;
 
-  before(async () => {
-    await resetDatabase();
-    const owner = await registerUser({ owner: true });
-    userId = owner.userId;
-    client = authorizedClient(owner.accessToken);
-    await seed(client, userId);
-    const layout = await client.get("/dms/pagelayout", {
-      params: { slug: SLUG },
-    });
-    expect(layout.status, JSON.stringify(layout.data)).to.equal(HTTP_OK);
-    const { options } = parseBody(TableLayoutBody, layout).components.content;
-    if (!options?.footer?.summary) throw new Error(`No footer on ${SLUG}`);
-    expect(options.tableId).to.equal("content");
-    expect(options.isSoleTableView).to.equal(true);
-    expect(options.footer.legend).to.equal("status");
-    const { summary: summaries } = options.footer;
-    expect(summaries.map((summary) => summary.label)).to.deep.equal([
-      "Total",
-      "Open",
-      "Open or large",
-    ]);
-    expect(JSON.stringify(summaries)).not.to.contain("where");
-    summaryIds = summaries.map((summary) => summary.id);
+let userId: string;
+
+let summaryIds: string[];
+
+const summaryQuery = (filters = "") =>
+  `${LOCATION}/summary?${summaryIds.map((id) => `ids=${id}`).join("&")}${filters}`;
+
+async function seedCapabilities() {
+  await resetDatabase();
+  const owner = await registerUser({ owner: true });
+  userId = owner.userId;
+  client = authorizedClient(owner.accessToken);
+  await seed(client, userId);
+  const layout = await client.get("/dms/pagelayout", {
+    params: { slug: SLUG },
   });
+  expect(layout.status, JSON.stringify(layout.data)).to.equal(HTTP_OK);
+  const { options } = parseBody(TableLayoutBody, layout).components.content;
+  if (!options?.footer?.summary) throw new Error(`No footer on ${SLUG}`);
+  expect(options.tableId).to.equal("content");
+  expect(options.isSoleTableView).to.equal(true);
+  expect(options.footer.legend).to.equal("status");
+  const { summary: summaries } = options.footer;
+  expect(summaries.map((summary) => summary.label)).to.deep.equal([
+    "Total",
+    "Open",
+    "Open or large",
+  ]);
+  expect(JSON.stringify(summaries)).not.to.contain("where");
+  summaryIds = summaries.map((summary) => summary.id);
+}
 
-  const summaryQuery = (filters = "") =>
-    `${LOCATION}/summary?${summaryIds.map((id) => `ids=${id}`).join("&")}${filters}`;
+describe("[integration] table view capabilities", () => {
+  before(seedCapabilities);
 
   it("computes the footer summaries over every row the filters list", async () => {
     const all = await client.get(summaryQuery());
@@ -238,6 +242,10 @@ describe("[integration] table view capabilities", () => {
     expect(count.status, JSON.stringify(count.data)).to.equal(HTTP_OK);
     expect(count.data).to.deep.equal({ total: 2 });
   });
+});
+
+describe("[integration] table view capabilities, counters and batches", () => {
+  before(seedCapabilities);
 
   it("resolves {{user.id}} to the caller in lists and counters", async () => {
     const mine = await list(client, "&filter_ownerId=is:{{user.id}}");
@@ -326,6 +334,10 @@ describe("[integration] table view capabilities", () => {
     const post = await client.post(`${LOCATION}/count/batch`, { queries: [] });
     expect(post.status).not.to.equal(HTTP_OK);
   });
+});
+
+describe("[integration] table view capabilities, filters and bulk routes", () => {
+  before(seedCapabilities);
 
   it("bounds the encoded path plus search at 8192 bytes, not the decoded query size", async () => {
     const prefix = `${batchUrl(LOCATION, ["all?"])}&padding=`;

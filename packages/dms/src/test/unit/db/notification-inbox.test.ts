@@ -10,29 +10,30 @@ const CATEGORY_ID = "system";
 const SUBJECT_ID = "general";
 const NOTIFICATION_COUNT = 3;
 
+const model = GetModel(UserNotificationsModel);
+
+async function seed(userId: string, title: string): Promise<string> {
+  const created = await model.create({
+    userId,
+    icon: "i-ph-bell",
+    title,
+    description: "",
+    categoryId: CATEGORY_ID,
+    subjectId: SUBJECT_ID,
+    tone: "warning",
+  });
+  return created._id;
+}
+
+async function clear(): Promise<void> {
+  for (const userId of [USER_ID, OTHER_USER_ID]) {
+    await model.table.getAll(userId, "userId").delete().run();
+  }
+}
+
 describe("[unit] user notifications — inbox filters, counts and undo", () => {
-  const model = GetModel(UserNotificationsModel);
-
-  async function seed(userId: string, title: string): Promise<string> {
-    const created = await model.create({
-      userId,
-      icon: "i-ph-bell",
-      title,
-      description: "",
-      categoryId: CATEGORY_ID,
-      subjectId: SUBJECT_ID,
-      tone: "warning",
-    });
-    return created._id;
-  }
-
-  async function clear(): Promise<void> {
-    for (const userId of [USER_ID, OTHER_USER_ID]) {
-      await model.table.getAll(userId, "userId").delete().run();
-    }
-  }
-
   beforeEach(clear);
+
   after(clear);
 
   it("stores the tone of a notification", async () => {
@@ -74,13 +75,20 @@ describe("[unit] user notifications — inbox filters, counts and undo", () => {
     expect(ids).to.have.members(unreadIds);
     expect(await model.countUnread(USER_ID)).to.equal(0);
 
-    expect(await model.undoMarkAllAsRead(OTHER_USER_ID, batchId!)).to.be.empty;
+    expect(
+      await model.undoMarkAllAsRead(OTHER_USER_ID, batchId!),
+    ).to.have.lengthOf(0);
     const reopened = await model.undoMarkAllAsRead(USER_ID, batchId!);
     expect(reopened).to.have.members(unreadIds);
     expect(await model.countUnread(USER_ID)).to.equal(unreadIds.length);
     expect((await model.get(readId))?.isRead).to.equal(true);
     expect((await model.get(foreignId))?.isRead).to.equal(false);
   });
+});
+
+describe("[unit] user notifications — inbox filters, counts and undo, batches", () => {
+  beforeEach(clear);
+  after(clear);
 
   it("undoes mark-all-read past 500 notifications", async () => {
     const count = 501;
@@ -154,6 +162,11 @@ describe("[unit] user notifications — inbox filters, counts and undo", () => {
       ids: [],
     });
   });
+});
+
+describe("[unit] user notifications — inbox filters, counts and undo, badge", () => {
+  beforeEach(clear);
+  after(clear);
 
   describe("unread badge", () => {
     async function seedToned(

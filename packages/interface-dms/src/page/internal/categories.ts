@@ -5,6 +5,7 @@ import {
   MarkModuleScopedPermission,
   type Permission,
   RegisterPermission,
+  UnmarkModuleScopedPermission,
 } from "../../permissions";
 // oxlint-disable-next-line import/no-cycle -- Category resolution reads PageMetadata inside functions; page registration uses the proxies declared in categories.
 import { PageMetadata } from "../metadata";
@@ -29,8 +30,13 @@ import type {
 import { categoryOwnPermissionId } from "./category-permission";
 import { opensToMembers } from "./member-access";
 import { ROOT_SLUG } from "./types";
-// oxlint-disable-next-line import/no-cycle -- Category proxies and isInsideModule are read inside functions, after module evaluation.
-import { internal, isInsideModule } from "../categories";
+// oxlint-disable-next-line import/no-cycle -- Category proxies and isOwnerOnly are read inside functions, after module evaluation.
+import { internal, isOwnerOnly } from "../categories";
+
+/** Whether a category names its controller class rather than its CategoryInfo. */
+const isControllerClass = (
+  category: CategoryInfo | ControllerClass | undefined,
+): category is ControllerClass => typeof category === "function";
 
 /**
  * Resolve a category to CategoryInfo
@@ -46,8 +52,7 @@ export function resolveCategoryInfo(
     return undefined;
   }
 
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The published category union distinguishes controller constructors from CategoryInfo objects by callability.
-  if (typeof category === "function") {
+  if (isControllerClass(category)) {
     const meta = GetMetadata(category, PageMetadata);
     if (!meta.pageInfo) {
       throw new Error(`PageMetadata not initialized for controller class.`);
@@ -81,8 +86,7 @@ export function resolveInheritedLayout(
 function findCategoryInfo(
   category: CategoryInfo | ControllerClass | undefined,
 ): CategoryInfo | undefined {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The category union represents a controller constructor or resolved metadata, not unparsed input.
-  if (typeof category !== "function") return category;
+  if (!isControllerClass(category)) return category;
   return GetMetadata(category, PageMetadata).pageInfo;
 }
 
@@ -228,6 +232,7 @@ export function createCategoryFunction(
     bypassTenantAccessGate:
       effectiveOptions.bypassTenantAccessGate ||
       resolvedCategory?.bypassTenantAccessGate,
+    ownerOnly: effectiveOptions.ownerOnly || resolvedCategory?.ownerOnly,
   };
 
   internal.RegisterCategory.register(categoryInfo);
@@ -239,9 +244,13 @@ export function createCategoryFunction(
       categoryInfo.publicAccess || opensToMembers(categoryInfo.memberAccess),
     ...ownPermission(categoryInfo.permission),
   };
-  if (isInsideModule(categoryInfo)) {
-    MarkModuleScopedPermission(categoryOwnPermissionId(categoryInfo));
-  } else if (!(categoryInfo.permission instanceof Action)) {
+  const ownPermissionId = categoryOwnPermissionId(categoryInfo);
+  if (isOwnerOnly(categoryInfo)) {
+    MarkModuleScopedPermission(ownPermissionId);
+    return categoryInfo;
+  }
+  UnmarkModuleScopedPermission(ownPermissionId);
+  if (!(categoryInfo.permission instanceof Action)) {
     RegisterPermission(categoryPermission.id, categoryPermission);
   }
 

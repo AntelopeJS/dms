@@ -886,6 +886,8 @@
       "adopted": "The mockup changed on disk. Showing the new version; undo starts over.",
       "refused": "That edit was not saved",
       "save_failed": "The mockup could not be saved.",
+      "refused_discarded": "Edits made while it was being saved were dropped.",
+      "save_retrying": "The mockup is not saved yet. Retrying until it is.",
       "prompt_title": "Ask your AI",
       "prompt_hint": "No assistant took this request here. Copy it into your AI tool.",
       "prompt_connect_data": "In mockup {mockup}, page \"{page}\": connect the {block} \"{label}\" to real data.",

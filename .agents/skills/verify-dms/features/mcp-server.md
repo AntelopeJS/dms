@@ -15,6 +15,7 @@ The MCP server the DMS serves in development, so a coding agent started in the p
 - `bridge-calls-a-read-tool`: `tools/call` through the bridge runs `builder_catalog` and answers the block types, the DataTypes and the reserved field names as text.
 - `bridge-refuses-unknown-tool-and-method`: error path: an unknown tool answers JSON-RPC `-32602` and an unknown method `-32601`.
 - `route-refuses-uncredentialled-callers`: Exposure: `POST /dms/mcp` answers 401 to a caller with no credential and to one with a wrong credential.
+- `page-verify-reports-a-page`: `page_verify` signs a headless Chromium in as the owner through the session handoff, opens the playground's users table, and reports every block present, the table's data loaded, the New entry form validating an empty submit and the screenshot written under `.antelope/page-verify/`; a route no page serves fails with its own line.
 - `bridge-files-published`: the backend writes the credential to `node_modules/.cache/dms/mcp.json` with mode `0600` and adds the `dms` server to the project's `.mcp.json`.
 
 ## How to get to it (user POV)

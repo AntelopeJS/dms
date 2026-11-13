@@ -15,7 +15,6 @@ function failureStatus(
   error: Parameters<typeof apiErrorStatus>[0],
 ): number | undefined {
   if (!error || !isObject(error)) return undefined;
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The error owner leaves status fields unchecked. This numeric projection preserves legacy coercive comparisons and nullish precedence; validating the fields would change malformed-input behavior.
   const { statusCode, status } = error as FetchFailure;
   return statusCode ?? status;
 }

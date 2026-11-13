@@ -1,5 +1,9 @@
 import type { PreviewBlockRect, PreviewRect } from "./blockPreviewMessages";
-import { acceptsChild, type MockupBlockType } from "./mockupCatalog";
+import {
+  acceptsChild,
+  type MockupBlockType,
+  type MockupNewBlock,
+} from "./mockupCatalog";
 import type { MockupEdit } from "./mockupEdit";
 import {
   isWithinPointer,
@@ -7,7 +11,6 @@ import {
   parentPointer,
   parseNodePointer,
   type MockupSpecDocument,
-  type MockupSpecNode,
 } from "./mockupSpec";
 
 /** What is being dragged over the page: a new block of a type, or a node of the page. */
@@ -209,7 +212,7 @@ export function dropEdit(
   drag: MockupDrag,
   target: MockupDropTarget,
   page: string,
-  node: () => MockupSpecNode,
+  newBlock: () => MockupNewBlock,
 ): MockupEdit {
   if (drag.kind === "add") {
     return {
@@ -217,7 +220,7 @@ export function dropEdit(
       parent: target.parent,
       page,
       index: target.index,
-      node: node(),
+      ...newBlock(),
     };
   }
   const from = parseNodePointer(drag.pointer)?.steps.at(-1) ?? 0;

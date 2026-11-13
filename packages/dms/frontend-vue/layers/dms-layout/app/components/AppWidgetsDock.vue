@@ -26,6 +26,28 @@ const { t } = useI18n();
 const { processI18n } = useTranslation();
 
 const folds = computed(() => widgets.value.length > 1);
+const launcherDotted = computed(() =>
+  widgets.value.some((widget) => widget.badge === "dot"),
+);
+
+function withAttention(label: string, dotted: boolean): string {
+  return dotted ? t("widgets_dock.attention", { label }) : label;
+}
+
+function chipLabel(widget: AppWidget): string {
+  return withAttention(processI18n(widget.label), widget.badge === "dot");
+}
+
+const launcherLabel = computed(() =>
+  withAttention(t("widgets_dock.show"), launcherDotted.value),
+);
+
+function select(widget: AppWidget, event: MouseEvent): void {
+  if (!widget.onSelectEvent) return;
+  const clicks = useDmsState<number>(widget.onSelectEvent, () => 0);
+  clicks.value = typeof clicks.value === "number" ? clicks.value + 1 : 1;
+  if (event.currentTarget instanceof HTMLElement) event.currentTarget.blur();
+}
 </script>
 
 <template>
@@ -36,12 +58,17 @@ const folds = computed(() => widgets.value.length > 1);
     <button
       v-if="folds"
       type="button"
-      :aria-label="t('widgets_dock.show')"
+      :aria-label="launcherLabel"
       :title="t('widgets_dock.show')"
       class="border-accented bg-default text-muted focus-visible:ring-primary group-hover/dock:text-highlighted group-focus-within/dock:text-highlighted pointer-events-auto flex size-10 items-center justify-center rounded-[10px] border opacity-50 shadow-lg transition-all duration-200 group-focus-within/dock:opacity-100 group-hover/dock:opacity-100 focus:outline-none focus-visible:ring-2 motion-reduce:transition-none xl:hidden"
     >
       <UIcon :name="LAUNCHER_ICON" class="size-5" />
     </button>
+    <span
+      v-if="folds && launcherDotted"
+      data-widget-dot="launcher"
+      class="bg-primary pointer-events-none absolute bottom-8.5 left-8.5 size-2 rounded-full ring-2 ring-(--ui-bg) xl:hidden"
+    />
 
     <!-- The stack's own bottom padding (not a gap) bridges it to the
          launcher, so the pointer never crosses a dead strip that would fold
@@ -60,12 +87,19 @@ const folds = computed(() => widgets.value.length > 1);
       >
         <button
           type="button"
-          :aria-label="processI18n(widget.label)"
+          :aria-label="chipLabel(widget)"
           :title="processI18n(widget.label)"
           class="border-accented bg-default text-muted focus-visible:ring-primary group-hover/widget:text-highlighted group-focus-within/widget:text-highlighted flex size-10 items-center justify-center rounded-[10px] border opacity-50 shadow-lg transition-all duration-200 group-focus-within/widget:scale-105 group-focus-within/widget:opacity-100 group-hover/widget:scale-105 group-hover/widget:opacity-100 focus:outline-none focus-visible:ring-2 motion-reduce:transition-none"
+          :class="widget.onSelectEvent ? 'cursor-pointer' : 'cursor-default'"
+          @click="select(widget, $event)"
         >
           <UIcon :name="widget.icon" class="size-5" />
         </button>
+        <span
+          v-if="widget.badge === 'dot'"
+          data-widget-dot="chip"
+          class="bg-primary pointer-events-none absolute -top-0.5 left-8.5 size-2 rounded-full ring-2 ring-(--ui-bg)"
+        />
 
         <div
           class="pointer-events-none invisible absolute bottom-0 left-full z-10 -translate-x-2 pl-2 opacity-0 transition-all duration-200 ease-out group-focus-within/widget:pointer-events-auto group-focus-within/widget:visible group-focus-within/widget:translate-x-0 group-focus-within/widget:opacity-100 group-hover/widget:pointer-events-auto group-hover/widget:visible group-hover/widget:translate-x-0 group-hover/widget:opacity-100 motion-reduce:transition-none"

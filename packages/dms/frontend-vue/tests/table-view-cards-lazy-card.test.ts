@@ -18,7 +18,7 @@ import {
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/CardsDisplay";
-import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
+import { displayContext } from "./fixtures/displayContext";
 
 const SiteCard = {
   props: { rowId: String },
@@ -40,19 +40,14 @@ let app: App | undefined;
 let container: HTMLElement;
 
 function mount() {
-  // SAFETY: CardsDisplay only uses the supplied context fields while rendering these lazy cards.
-  const context = reactive({
-    items: [{ _id: "s0" }, { _id: "s1" }],
-    columns: [],
-    loading: false,
-    firstPageLoading: false,
-    rowIdKey: "_id",
-    labelKey: "name",
-    options: { card: { component: { componentName: "SiteCard" } } },
-    pagination: { pageIndex: 0, pageSize: 3, total: 2 },
-    selection: { isSelected: () => false, toggle: () => {} },
-    actions: { canAdd: false, open: () => {} },
-  }) as TableViewDisplayContext;
+  const context = reactive(
+    displayContext<Record<string, unknown>>({
+      items: [{ _id: "s0" }, { _id: "s1" }],
+      labelKey: "name",
+      options: { card: { component: { componentName: "SiteCard" } } },
+      pagination: { pageSize: 3, total: 2 },
+    }),
+  );
   app = createApp({ render: () => h(CardsDisplay, { context }) });
   app.component("USkeleton", {
     render: () => h("span", { "data-test": "skeleton" }),

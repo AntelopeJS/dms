@@ -36,6 +36,23 @@ export function commit<State>(
   return { past, present: state, future: [], coalesceKey };
 }
 
+/**
+ * The history taken back to `state`, the last one the backend took: every
+ * step after it is dropped, so no undo lands on a state that changes
+ * nothing, and nothing can be redone.
+ */
+export function revertTo<State>(
+  history: MockupHistory<State>,
+  state: State,
+): MockupHistory<State> {
+  const index = history.past.lastIndexOf(state);
+  return {
+    past: index === -1 ? history.past : history.past.slice(0, index),
+    present: state,
+    future: [],
+  };
+}
+
 /** The history one step back, or the same history when nothing is left to undo. */
 export function undo<State>(
   history: MockupHistory<State>,

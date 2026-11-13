@@ -4,6 +4,7 @@ import {
   MOCKUP_HISTORY_LIMIT,
   redo,
   reset,
+  revertTo,
   undo,
 } from "../layers/dms-ui/app/entries/utils/mockupHistory";
 
@@ -58,5 +59,20 @@ describe("mockup history", () => {
 
   it("resets to a state with nothing to undo or redo (fails when an adopted file can be undone into)", () => {
     expect(reset("file")).toEqual({ past: [], present: "file", future: [] });
+  });
+
+  it("reverts to the last written state, dropping the steps after it and what could be redone (fails when the next undo lands on the written state itself)", () => {
+    const history = commit(commit(commit(reset("a"), "b"), "c"), "d");
+    const reverted = revertTo(undo(history), "b");
+    expect(reverted).toEqual({ past: ["a"], present: "b", future: [] });
+    expect(undo(reverted).present).toBe("a");
+  });
+
+  it("keeps the whole past when the written state was merged into a later one (fails when the past is emptied)", () => {
+    expect(revertTo(commit(reset("a"), "c"), "b")).toEqual({
+      past: ["a"],
+      present: "b",
+      future: [],
+    });
   });
 });

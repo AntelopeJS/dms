@@ -9,7 +9,6 @@ export const getItemId = (
 };
 
 export const getErrorPayload = (error: unknown) => {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejections may be arbitrary JavaScript values, not EventError instances. Its owner describes only the fields forwarded here; inference cannot prove them, and validation would change primitive and malformed-error payloads.
   const err = error as EventError;
   return err?.data || err?.message;
 };

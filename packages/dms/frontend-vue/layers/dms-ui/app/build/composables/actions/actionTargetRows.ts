@@ -22,7 +22,6 @@ const NOT_FOUND_TITLE_KEY = "side_panel.not_found.title";
 const NOT_FOUND_DESCRIPTION_KEY = "side_panel.not_found.description";
 
 export const resolveTargetComponent = (componentName: string): Component =>
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The resolver still falls back to a string at runtime; Component erases that existing container mismatch and does not validate it.
   (resolveDmsComponent(componentName) || componentName) as Component;
 
 export const targetComponentOf = (

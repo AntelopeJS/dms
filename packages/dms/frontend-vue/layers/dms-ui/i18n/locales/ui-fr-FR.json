@@ -886,6 +886,8 @@
       "adopted": "La maquette a changé sur le disque. La nouvelle version est affichée ; l’historique repart de zéro.",
       "refused": "Cette modification n’a pas été enregistrée",
       "save_failed": "La maquette n’a pas pu être enregistrée.",
+      "refused_discarded": "Les modifications faites pendant l’enregistrement ont été abandonnées.",
+      "save_retrying": "La maquette n’est pas encore enregistrée. Nouvelle tentative en cours.",
       "prompt_title": "Demandez à votre IA",
       "prompt_hint": "Aucun assistant n’a pris cette demande ici. Copiez-la dans votre outil d’IA.",
       "prompt_connect_data": "Dans la maquette {mockup}, page « {page} » : connecter le bloc {block} « {label} » à de vraies données.",

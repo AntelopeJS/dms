@@ -1,4 +1,3 @@
-/* oxlint-disable anti-slop/no-unsafe-dictionary-type -- The decoded cookie has no validated field contract; this open property lookup implements per-field fallback without rejecting the entire cookie or changing inherited-field access. */
 /**
  * `auto` follows the operating system's `prefers-reduced-motion`; `on` and
  * `off` pin the choice whatever the system says.
@@ -44,7 +43,6 @@ function isRecord(
 ): value is Record<string, unknown> {
   return isObject(value) && value !== null && !Array.isArray(value);
 }
-/* oxlint-enable anti-slop/no-unsafe-dictionary-type */
 
 /** The cookie as a value: already parsed, or the raw (URI-encoded) JSON. */
 function decodeCookieValue(

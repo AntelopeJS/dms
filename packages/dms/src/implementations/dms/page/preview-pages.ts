@@ -34,6 +34,7 @@ export async function findPreviewHeaderActions(
   const viewerActions = readHeaderActions(layout.layout);
   if (viewerActions.length === 0) return [];
   const { memberModel, roleModel } = previewMemberModels(
+    request.memberModel.database,
     request.previewPermissions,
   );
 

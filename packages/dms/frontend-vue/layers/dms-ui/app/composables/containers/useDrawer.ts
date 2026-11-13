@@ -1,10 +1,11 @@
-import { getCurrentInstance, type AppContext } from "vue";
+import type { AppContext } from "vue";
 import DynamicDrawer from "../../build/components/containers/drawer/DynamicDrawer.vue";
 import DmsRowHeader from "../../build/components/containers/row/RowHeader.vue";
 import { drawerRowHeaderProps } from "../../build/components/containers/row/drawerRowHeader";
 import { listenRowSteps } from "../../build/composables/actions/rowNavigation";
 import { DMS_OWN_DRAWER } from "../../build/composables/containers/context";
 import { componentSizeKey } from "../../build/composables/containers/drawerSize";
+import { currentInstanceProvides } from "../../build/composables/containers/instanceProvides";
 import { openDynamicContainer } from "./openDynamicContainer";
 import type {
   DrawerInstance,
@@ -21,11 +22,6 @@ interface DrawerCallerContext {
   callerProvides?: AppContext["provides"];
 }
 
-/** The part of a component instance holding what it and its ancestors provide. */
-interface InstanceProvides {
-  provides: AppContext["provides"];
-}
-
 /**
  * Public composable to open a DMS-themed drawer from any module that extends the
  * layer. Wraps the internal DynamicDrawer container; `open` returns a handle
@@ -34,8 +30,7 @@ interface InstanceProvides {
 export function useDrawer() {
   const overlay = useOverlay();
 
-  // SAFETY: Vue initializes every component instance's hidden provides from its parent or app context.
-  const caller = getCurrentInstance() as InstanceProvides | null;
+  const caller = currentInstanceProvides();
 
   function open<Result = unknown>(
     options: DrawerOptions,

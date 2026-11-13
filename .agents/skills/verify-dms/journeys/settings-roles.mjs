@@ -8,6 +8,10 @@ import { isRoleOverviewRow, listIn } from "../rows.mjs";
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  */
 
+const OWNER_ONLY_PAGE = "/page-access/access-owner-only";
+const OWNER_ONLY_ID = "library.pages.page-access.access-owner-only";
+const OWNER_ONLY_GRANT = ["library", "library.pages", "library.pages.page-access", OWNER_ONLY_ID, `${OWNER_ONLY_ID}.explain`];
+
 /** Roles and permissions: the editor, the role list, and what a role changes for its members. */
 export const journeys = [
   {
@@ -240,6 +244,40 @@ export const journeys = [
       await selectRole(admin, new RegExp(`^${name}`));
       await ctx.verify("the editor shows the Roles permission unticked after a reload", [
         ctx.equal("Roles ticked", await admin.page.getByRole("checkbox", { name: "Roles", exact: true }).isChecked(), false),
+      ]);
+    },
+  },
+  {
+    id: "owner-only-page-not-grantable",
+    title: "an ownerOnly page opens for the platform owner only: Roles does not list it, and a member whose role stores its id is refused",
+    entryPoint: `${OWNER_ONLY_PAGE}, Settings > Roles > New role`,
+    async run(/** @type {Ctx} */ ctx) {
+      const name = ctx.unique("Dev pages");
+      await createRole(ctx, name, OWNER_ONLY_GRANT);
+      const admin = await ctx.tab("admin");
+      await admin.signIn("admin");
+      const mia = await joinedMember(ctx, admin, "Mia", name);
+      await admin.goto(OWNER_ONLY_PAGE);
+      await ctx.verify("the platform owner opens the page and its block", [
+        admin.visible({ role: "heading", name: "Platform owner only", exact: true }),
+        admin.shows(/AuthOwnerOnly\(\)/),
+      ]);
+      await mia.tab.goto(OWNER_ONLY_PAGE);
+      await ctx.verify("a member whose role stores the page and its block is refused", [
+        mia.tab.visible({ role: "heading", name: "Forbidden" }),
+        mia.tab.shows(/AuthOwnerOnly\(\)/, { not: true }),
+      ]);
+      await openRoles(admin);
+      await admin.click({ role: "button", name: "New role" });
+      const permissionSearch = { role: "textbox", name: /^Search permissions/ };
+      await admin.fill(permissionSearch, "No block permissions");
+      await ctx.verify("the editor's search finds the sibling page", [
+        admin.visible({ role: "checkbox", name: "No block permissions", exact: true }),
+      ]);
+      await admin.fill(permissionSearch, "Platform owner only");
+      await ctx.verify("the same search finds nothing for the owner-only page", [
+        admin.shows(/No permission matches/),
+        admin.visible({ role: "checkbox", name: "Platform owner only", exact: true }, { hidden: true }),
       ]);
     },
   },

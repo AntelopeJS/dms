@@ -119,7 +119,9 @@ describe("[unit] db/notification-feed-filter", () => {
       ).to.equal(undefined);
     });
   });
+});
 
+describe("[unit] db/notification-feed-filter", () => {
   describe("patterns", () => {
     it("escapes every regex character of the search", () => {
       const tricky = "a.b*c+d?e^f$g{h}i(j)k|l[m]n\\o/p-q";
@@ -160,7 +162,9 @@ describe("[unit] db/notification-feed-filter", () => {
       ).to.deep.equal(["$dms.a.title", "$dms.b.description"]);
     });
   });
+});
 
+describe("[unit] db/notification-feed-filter", () => {
   describe("applyFeedFilter", () => {
     it("adds nothing for the whole feed", () => {
       const feed = new RecordingFeed();

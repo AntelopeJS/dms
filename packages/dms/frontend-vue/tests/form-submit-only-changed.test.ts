@@ -53,7 +53,6 @@ async function editNotes(form: ReturnType<typeof setupForm>) {
 }
 
 /** What the save sent: the record is read back after it. */
-// oxlint-disable-next-line anti-slop/no-unknown-returns -- This spy reads the raw submitted body before assertions check it. Inference would expose the untyped vi.fn call array as any, and the form's parsed output type cannot establish what the captured request actually sent.
 function sentBody(): unknown {
   return authFetch.mock.calls.findLast(
     ([url]) => url === "/api/rows/edit?id=row-1",

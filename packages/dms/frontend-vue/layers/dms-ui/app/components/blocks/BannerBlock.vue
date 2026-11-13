@@ -155,7 +155,6 @@ function dismiss(): void {
 }
 
 function press(action: BlockButtonAction): void {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Block buttons permit Nuxt UI variants wider than CustomButtonVariant; deriving either owner cannot prove the narrower variant, and this dispatcher forwards the original object unchanged.
   handleCustomButton(action as CustomButton);
 }
 </script>

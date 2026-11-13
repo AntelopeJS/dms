@@ -1,6 +1,11 @@
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
-import { type MockupName, parseMockupName, writeSpec } from "../../mockup";
+import {
+  type MockupName,
+  parseMockupName,
+  type SpecWriteResult,
+  writeSpec,
+} from "../../mockup";
 import { JsonObjectSchema } from "../json";
 import { jsonResult, type McpToolResult, textResult } from "../tool";
 
@@ -49,6 +54,16 @@ export function withMockup(
   );
 }
 
+/** Answers `{ ok, errors }` for a write's outcome. */
+export function reportWrite(written: SpecWriteResult): McpToolResult {
+  if (written.ok) return jsonResult({ ok: true, errors: [] });
+  const errors = written.errors.map(({ path, message }) => ({
+    path,
+    message,
+  }));
+  return jsonResult({ ok: false, errors });
+}
+
 /**
  * Writes `mockups/<name>/spec.json` through {@link writeSpec}, answering
  * `{ ok, errors }`. A refused spec leaves the file as it was.
@@ -58,11 +73,5 @@ export async function saveSpec(
   name: MockupName,
   spec: JsonValue,
 ): Promise<McpToolResult> {
-  const written = await writeSpec(mockupsDir, name, spec);
-  if (written.ok) return jsonResult({ ok: true, errors: [] });
-  const errors = written.errors.map(({ path, message }) => ({
-    path,
-    message,
-  }));
-  return jsonResult({ ok: false, errors });
+  return reportWrite(await writeSpec(mockupsDir, name, spec));
 }

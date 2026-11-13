@@ -1,4 +1,4 @@
-import { type KeyObject, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -9,16 +9,20 @@ import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
 import { GenerateHtml } from "@antelopejs/interface-dms/html-render";
 export * from "./account-emails";
 import { AdminInviteTemplate } from "./email-templates";
-import { decode, sign, verify } from "jsonwebtoken";
+import { decode, type JwtPayload, sign, verify } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
   type AdminInviteEmailNames,
   buildAdminInviteSignupLink,
   buildAdminInviteSubject,
+  decodeUnverified,
   resolveAdminInviteLanguage,
   recordUserActivity,
 } from "../../utils";
-import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
+import {
+  isObject,
+  isString,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 import { generateSecret } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
@@ -26,7 +30,6 @@ import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 const HTTP_FORBIDDEN = 403;
 const HTTP_UNAUTHORIZED = 401;
 const OWNER_ONLY_ERROR_MESSAGE = "Owner-only";
-const INVALID_USER_ERROR = "Invalid user";
 const EMAIL_NOT_VALIDATED_ERROR = "Email not validated";
 const NO_JWT_TOKEN_ERROR = "No jwt token provided";
 const INVALID_TENANT_ASSIGNMENT_TOKEN_ERROR = "Invalid tenant assignment token";
@@ -66,18 +69,17 @@ async function validateUserToken(
     loadTokenSession(data.sessionId),
   ]);
 
-  if (!user) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
+  const claims = verifiedSessionClaims(
+    data.rawToken,
+    user,
+    ACCESS_TOKEN_PURPOSE,
+  );
+  if (!user || !claims) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
 
   try {
-    const secret = generateSecret(user.authKey);
-    const payload = verifySessionToken(
-      data.rawToken,
-      secret,
-      ACCESS_TOKEN_PURPOSE,
-    );
-    assertTokenSessionAlive(payload.sessionId, session, user);
+    assertTokenSessionAlive(claims.sessionId, session, user);
   } catch (error: unknown) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
   }
@@ -100,27 +102,64 @@ interface DecodedAuthPayload {
   sessionId?: string;
 }
 
-function verifySessionToken(
-  token: string,
-  secret: KeyObject,
+function isSessionPayload(
+  payload: string | JwtPayload,
   purpose: string,
-): DecodedAuthPayload {
-  const payload = verify(token, secret, { algorithms: ["HS256"] });
-  if (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- jsonwebtoken can return a text payload; only an object carries the claims checked below.
-    typeof payload === "string" ||
-    payload.purpose !== purpose ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A valid signature does not establish the id claim's JSON type.
-    typeof payload.id !== "string" ||
-    !payload.id ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- A valid signature does not establish the tenant claim's JSON type.
-    typeof payload.tenantId !== "string" ||
-    !payload.tenantId
-  ) {
-    throw new Error(INVALID_SESSION_TOKEN_ERROR);
+): payload is JwtPayload & DecodedAuthPayload {
+  return (
+    !isString(payload) &&
+    payload.purpose === purpose &&
+    isString(payload.id) &&
+    !!payload.id &&
+    isString(payload.tenantId) &&
+    !!payload.tenantId &&
+    (payload.sessionId === undefined || isString(payload.sessionId))
+  );
+}
+
+function isDecodedAuthPayload(
+  claims: ReturnType<typeof decode>,
+): claims is JwtPayload & DecodedAuthPayload {
+  return (
+    claims !== null &&
+    !isString(claims) &&
+    isString(claims.id) &&
+    isString(claims.tenantId) &&
+    (claims.sessionId === undefined || isString(claims.sessionId))
+  );
+}
+
+/**
+ * The claims of a bearer token, read without verifying its signature, or
+ * `undefined` when they do not name a user and a tenant: the validator then
+ * verifies the token they came with.
+ */
+function decodedClaims(token: string): DecodedAuthPayload | undefined {
+  const claims = decodeUnverified(token);
+  return isDecodedAuthPayload(claims) ? claims : undefined;
+}
+
+/**
+ * The claims of `token` once it is proven to be a `purpose` token signed for
+ * `user`, or `undefined`. Every refusal looks the same, so a caller that
+ * answers it with one message tells no forged token apart from another.
+ */
+function verifiedSessionClaims(
+  token: string,
+  user: User | undefined,
+  purpose: string,
+): DecodedAuthPayload | undefined {
+  if (!user) {
+    return undefined;
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and JwtPayload leave sessionId unchecked; downstream session validation currently assumes DecodedAuthPayload, and checking or rejecting another claim here would change token acceptance.
-  return payload as DecodedAuthPayload;
+  try {
+    const payload = verify(token, generateSecret(user.authKey), {
+      algorithms: ["HS256"],
+    });
+    return isSessionPayload(payload, purpose) ? payload : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export namespace internal {
@@ -128,8 +167,10 @@ export namespace internal {
     if (!data) {
       throw new HTTPResult(HTTP_UNAUTHORIZED, NO_JWT_TOKEN_ERROR);
     }
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode's inferred JwtPayload|string|null and JWT owner types cannot establish the claims consumed by AuthUserValidator; this authenticator forwards them without checking so rejection stays in the validator.
-    const result = decode(data) as DecodedAuthPayload;
+    const result = decodedClaims(data);
+    if (!result) {
+      throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
+    }
     return {
       ...result,
       rawToken: data,
@@ -137,19 +178,8 @@ export namespace internal {
   };
 
   export const IfAuthUserAuthenticator = (data: string | undefined) => {
-    if (!data) {
-      return undefined;
-    }
-    try {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- decode and its owner return JwtPayload|string|null rather than the claims IfAuthUserValidator consumes; retaining this unchecked forwarding avoids adding new authenticator rejections.
-      const result = decode(data) as DecodedAuthPayload;
-      return {
-        ...result,
-        rawToken: data,
-      };
-    } catch {
-      return undefined;
-    }
+    const result = data ? decodedClaims(data) : undefined;
+    return data && result ? { ...result, rawToken: data } : undefined;
   };
 
   export const AuthRawUserValidator = async (data: TenantTokenInput) => {
@@ -257,25 +287,17 @@ export function generateRefreshToken(
 }
 
 export async function validateRefreshToken(token: string) {
-  const result = decode(token);
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Decoding returns text, an open claims object or null; these existing checks gate the id used for the user query.
-  if (!result || typeof result === "string" || typeof result.id !== "string") {
+  const result = decodeUnverified(token);
+  if (!result || isString(result) || !isString(result.id)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
 
-  const userModel = GetModel(UserModel);
-  const user = await userModel.get(result.id);
-
-  if (!user) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
+  const user = await GetModel(UserModel).get(result.id);
+  const claims = verifiedSessionClaims(token, user, REFRESH_TOKEN_PURPOSE);
+  if (!claims) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
-
-  try {
-    const secret = generateSecret(user.authKey);
-    return verifySessionToken(token, secret, REFRESH_TOKEN_PURPOSE);
-  } catch (error: unknown) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
-  }
+  return claims;
 }
 
 const TWO_FACTOR_TOKEN_LIFETIME_MS = 5 * 60 * 1000;
@@ -315,13 +337,21 @@ interface PurposeTokenClaims {
   purpose: string;
 }
 
-interface TwoFactorClaims extends PurposeTokenClaims {
-  tenantId: string;
+interface VerifiedPurposeToken {
+  claims: JwtPayload & PurposeTokenClaims;
+  user: User;
 }
 
-interface VerifiedPurposeToken<T extends PurposeTokenClaims> {
-  claims: T;
-  user: User;
+function isPurposeClaims(
+  claims: ReturnType<typeof decode>,
+  purpose: string,
+): claims is JwtPayload & PurposeTokenClaims {
+  return (
+    claims !== null &&
+    !isString(claims) &&
+    claims.purpose === purpose &&
+    isString(claims.id)
+  );
 }
 
 function isSignedFor(token: string, user: User): boolean {
@@ -333,28 +363,20 @@ function isSignedFor(token: string, user: User): boolean {
   }
 }
 
-async function verifyPurposeToken<T extends PurposeTokenClaims>(
+async function verifyPurposeToken(
   token: string,
   purpose: string,
   refusal: string,
-): Promise<VerifiedPurposeToken<T>> {
-  const claims = decode(token);
-  if (
-    !claims ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- JWT decode can return a text payload without object claims.
-    typeof claims === "string" ||
-    claims.purpose !== purpose ||
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The decoded id is untrusted even when its purpose matches.
-    typeof claims.id !== "string"
-  ) {
+): Promise<VerifiedPurposeToken> {
+  const claims = decodeUnverified(token);
+  if (!isPurposeClaims(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
   const user = await GetModel(UserModel).get(claims.id);
   if (!user || !isSignedFor(token, user)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Inference and JwtPayload cannot establish generic T's extra claims; the legacy two-factor return assumes tenantId without checking it, which this refactor must not start rejecting.
-  return { claims: claims as T, user };
+  return { claims, user };
 }
 
 export async function validateTenantAssignmentToken(token: string) {
@@ -367,12 +389,15 @@ export async function validateTenantAssignmentToken(token: string) {
 }
 
 export async function validateTwoFactorToken(token: string) {
-  const { claims, user } = await verifyPurposeToken<TwoFactorClaims>(
+  const { claims, user } = await verifyPurposeToken(
     token,
     TWO_FACTOR_TOKEN_PURPOSE,
     INVALID_TWO_FACTOR_TOKEN_ERROR,
   );
-  return { ...claims, user };
+  if (!isString(claims.tenantId)) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_TWO_FACTOR_TOKEN_ERROR);
+  }
+  return { ...claims, tenantId: claims.tenantId, user };
 }
 
 const BUILTIN_SENSITIVE_USER_KEYS: string[] = [
@@ -390,10 +415,7 @@ const BUILTIN_SENSITIVE_USER_KEYS: string[] = [
   "twoFactorEmailCodeRequestedAt",
 ];
 
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- User's owner type cannot describe arbitrary nested configured paths; the traversal must preserve dynamic property access rather than validate or reject those paths.
-type PropertyBag = Record<string, unknown>;
-
-function isPropertyBag(value: unknown): value is PropertyBag {
+function isPropertyBag(value: unknown): value is Record<string, unknown> {
   return isObject(value) && value !== null;
 }
 

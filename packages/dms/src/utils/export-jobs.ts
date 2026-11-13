@@ -2,8 +2,8 @@ import { ownValue } from "./own-value";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Readable } from "node:stream";
 import { assert } from "@antelopejs/interface-api-util";
+import type { RowFields } from "@antelopejs/interface-data-api/metadata";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { Send } from "@antelopejs/interface-email";
 import {
@@ -69,8 +69,7 @@ class CsvWriter implements ExportWriter {
     fs.writeFileSync(this.filePath, `﻿${headerLine}`);
   }
 
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- appendRow implements the published ExportWriter.appendRow, whose row is what Query.ReadProperties answered for whichever table is exported (interface-data-api RowFields), keyed by its runtime column ids.
-  appendRow(headers: string[], row: Record<string, unknown>): void {
+  appendRow(headers: string[], row: RowFields): void {
     const csvRowContent = stringify([row], {
       header: false,
       columns: headers,
@@ -92,10 +91,9 @@ const csvExporter: Exporter = {
   },
 };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Format names are open HTTP inputs; missing registry keys retain the existing unknown-format error.
-const exporters: Record<string, Exporter> = {
+const exporters = {
   csv: csvExporter,
-};
+} satisfies Record<string, Exporter>;
 
 export function getExporter(format: string): Exporter {
   const exporter = ownValue(exporters, format);
@@ -179,11 +177,10 @@ const emailDeliverer: Deliverer = {
   },
 };
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Delivery names are open inputs; missing registry keys retain the existing unknown-delivery error.
-const deliverers: Record<string, Deliverer> = {
+const deliverers = {
   download: downloadDeliverer,
   email: emailDeliverer,
-};
+} satisfies Record<string, Deliverer>;
 
 export function getDeliverer(delivery: string): Deliverer {
   const deliverer = ownValue(deliverers, delivery);
@@ -214,20 +211,11 @@ export async function uploadExportToStorage(
     path: `${EXPORT_STORAGE_PREFIX}/${tenantId}`,
   });
 
-  const fileStream = fs.createReadStream(localPath);
-  const response = await fetch(
-    presign.uploadUrl,
-    // SAFETY: The literal satisfies RequestInit apart from its body and duplex; Node's web readable stream is accepted by fetch with duplex half, which the DOM RequestInit and ReadableStream declarations omit or type differently.
-    {
-      method: "PUT",
-      headers: presign.headers,
-      body: Readable.toWeb(fileStream),
-      duplex: "half",
-    } satisfies Omit<RequestInit, "body"> & {
-      body: ReturnType<typeof Readable.toWeb>;
-      duplex: "half";
-    } as RequestInit,
-  );
+  const response = await fetch(presign.uploadUrl, {
+    method: "PUT",
+    headers: presign.headers,
+    body: await fs.openAsBlob(localPath),
+  });
 
   if (!response.ok) {
     await response.body?.cancel().catch(() => undefined);

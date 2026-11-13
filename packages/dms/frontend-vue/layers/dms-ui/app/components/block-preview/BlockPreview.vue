@@ -108,9 +108,7 @@ function toPageComponent(node: PreviewResolvedNode): ResolvedComponentInfo {
     componentName: node.componentName,
     options: optionsFor(node),
     children: node.children.map(toPageComponent),
-    // oxlint-disable-next-line anti-slop/no-conditional-empty-object-spread -- Omit absent keys without replacing spread's own-property definition semantics with assignment.
     ...(node.slot ? { slot: node.slot } : {}),
-    // oxlint-disable-next-line anti-slop/no-conditional-empty-object-spread -- Preserve omission, property order, and getter evaluation for unvalidated preview nodes.
     ...(node.colSpan === undefined ? {} : { colSpan: node.colSpan }),
   };
 }

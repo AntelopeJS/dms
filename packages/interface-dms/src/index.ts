@@ -105,6 +105,7 @@ export {
   RootCategory,
   RootPageController,
   isInsideModule,
+  isOwnerOnly,
   modulesCategory,
   pageRoutePath,
   pagesCategory,

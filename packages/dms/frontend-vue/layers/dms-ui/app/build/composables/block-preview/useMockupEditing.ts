@@ -19,7 +19,7 @@ import {
   specPointerFor,
   type MockupPageState,
 } from "../../utils/mockup";
-import { newBlockNode } from "../../utils/mockupCatalog";
+import { newBlock, type MockupNewBlock } from "../../utils/mockupCatalog";
 import {
   dropEdit,
   dropTarget,
@@ -30,12 +30,13 @@ import {
 import type { MockupEdit } from "../../utils/mockupEdit";
 import {
   nodeAt,
+  pageFixtures,
   parentPointer,
   parseNodePointer,
   siblingsAt,
 } from "../../utils/mockupSpec";
 import type { MockupCatalog } from "./useMockupCatalog";
-import type { MockupSpecEditor } from "./useMockupSpec";
+import type { MockupAdoption, MockupSpecEditor } from "./useMockupSpec";
 
 /** A text of a block being edited in place, and the option it is. */
 export interface MockupInlineText {
@@ -89,6 +90,19 @@ export interface MockupEditing {
   commitText: (value: string) => void;
 }
 
+/**
+ * Whether `pointer` names the same node before and after an outside change:
+ * the same id and type, or, for a node with no id, the very same node.
+ */
+function isSameNode(adopted: MockupAdoption, pointer: string): boolean {
+  const before = adopted.previous && nodeAt(adopted.previous, pointer);
+  const after = nodeAt(adopted.next, pointer);
+  if (!before || !after || before.type !== after.type) return false;
+  return before.id === undefined || after.id === undefined
+    ? JSON.stringify(before) === JSON.stringify(after)
+    : before.id === after.id;
+}
+
 /** Wires edit mode: every action becomes one reducer edit, whose result picks the selection. */
 export function useMockupEditing(options: EditingOptions): MockupEditing {
   const { editor, catalog } = options;
@@ -121,6 +135,12 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
       selection.value = undefined;
     }
   });
+  watch(editor.adoption, (adopted) => {
+    text.value = undefined;
+    const pointer = selection.value;
+    if (!adopted || !pointer) return;
+    if (!isSameNode(adopted, pointer)) selection.value = undefined;
+  });
 
   function markMoved(): void {
     movedAt.value = options.revision.value ?? -1;
@@ -147,6 +167,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
   }
 
   function selectPath(layoutPath: string): void {
+    if (editor.isPending.value) return;
     const page = options.page.value;
     selection.value = page ? specPointerFor(page, layoutPath) : undefined;
   }
@@ -160,9 +181,12 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     edit({ kind: "moveNode", from, parent, index: at.index + delta });
   }
 
-  function newNode(type: string) {
+  function newNode(type: string): MockupNewBlock {
     const block = catalog.byType.value.get(type);
-    return block ? newBlockNode(block, catalog.byType.value) : { type };
+    const page = spec.value?.pages[options.pageIndex.value];
+    return block
+      ? newBlock(block, catalog.byType.value, page ? pageFixtures(page) : {})
+      : { node: { type }, fixtures: {} };
   }
 
   function pageId(): string | undefined {
@@ -179,7 +203,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
       type,
       catalog.byType.value,
     );
-    edit({ kind: "insertNode", page, ...at, node: newNode(type) });
+    edit({ kind: "insertNode", page, ...at, ...newNode(type) });
   }
 
   function dropContext() {
@@ -215,6 +239,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
   }
 
   function openText(message: PreviewTextMessage): void {
+    if (editor.isPending.value) return;
     const page = options.page.value;
     const pointer = page ? specPointerFor(page, message.path) : undefined;
     const node =
@@ -289,7 +314,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     },
     addBlock,
     replaceWith: (pointer, type) =>
-      edit({ kind: "replaceNode", pointer, node: newNode(type) }),
+      edit({ kind: "replaceNode", pointer, ...newNode(type) }),
     dragOver,
     dropAt,
     openText,

@@ -1056,7 +1056,8 @@
     }
   },
   "widgets_dock": {
-    "show": "Afficher les widgets"
+    "show": "Afficher les widgets",
+    "attention": "{label}, demande votre attention"
   },
   "github_star_prompt": {
     "title": "Vous appréciez AntelopeJS DMS ?",
@@ -1074,6 +1075,165 @@
     "not_found": {
       "title": "Cette entrée n'est plus disponible",
       "description": "Elle a été supprimée, ou le lien est erroné."
+    }
+  },
+  "branding": {
+    "header": {
+      "open": "Image de marque"
+    },
+    "title": "Image de marque",
+    "dev_badge": "Dev",
+    "editor_mode": "Mode de l'éditeur",
+    "mode": {
+      "simple": "Simple",
+      "developer": "Développeur"
+    },
+    "changes": "Aucune modification | {count} modification | {count} modifications",
+    "discard": "Abandonner",
+    "save": "Enregistrer",
+    "discard_confirm": {
+      "title": "Abandonner vos modifications ?",
+      "description": "L'éditeur revient à ce que contiennent les fichiers du thème."
+    },
+    "saved": "Thème enregistré",
+    "svg_sanitized": "Des scripts et des références externes ont été retirés d'un logo SVG.",
+    "section": {
+      "accent": "Accent",
+      "backgrounds": "Fonds",
+      "light_dark": "Clair · Sombre",
+      "corners": "Coins",
+      "font": "Police",
+      "logos": "Logos",
+      "status": "Couleurs d'état",
+      "other_variables": "Autres variables",
+      "logo_slots": "Emplacements de logo"
+    },
+    "accent": {
+      "more": "Plus de palettes",
+      "palette": "Palette {name}"
+    },
+    "background": {
+      "canvas": "Page",
+      "sidebar": "Barre latérale",
+      "cards": "Cartes",
+      "edit": "{name}, {mode}"
+    },
+    "corners": {
+      "sharp": "Nets",
+      "soft": "Doux",
+      "round": "Arrondis",
+      "pill": "Pilule"
+    },
+    "font": {
+      "dms": "Par défaut du DMS (Geist)"
+    },
+    "logo": {
+      "light": "Clair",
+      "dark": "Sombre",
+      "favicon": "Favicon",
+      "favicon_hint": "Icône carrée",
+      "email": "E-mail",
+      "email_hint": "PNG · auto",
+      "dms_default": "Logo du DMS",
+      "pick": "Choisir un fichier pour {name}",
+      "remove": "Revenir au logo du DMS pour {name}",
+      "wrong_type": "Un logo est un fichier SVG, PNG, JPEG, WebP ou ICO.",
+      "too_large": "Un logo pèse au plus 512 Kio.",
+      "not_drawable": "Le navigateur n'a pas pu dessiner ce fichier en PNG pour les e-mails.",
+      "slot": {
+        "default": "Logo",
+        "collapsed": "Logo replié",
+        "email": "Logo des e-mails",
+        "favicon": "Favicon"
+      },
+      "empty": "Ce fichier est vide."
+    },
+    "group": {
+      "surfaces": "Fonds",
+      "text": "Texte",
+      "borders": "Bordures",
+      "accent": "Accent, un par un",
+      "shape": "Forme et typographie"
+    },
+    "token": {
+      "ui_bg_muted": "Page",
+      "ui_bg": "Cartes et panneaux",
+      "dms_bg_sidebar": "Barre latérale",
+      "dms_bg_field": "Champs",
+      "dms_surface_card": "Cadre des cartes",
+      "ui_bg_elevated": "Surélevé",
+      "ui_bg_accented": "Enfoncé",
+      "dms_bg_muted": "Bandeaux",
+      "ui_text_highlighted": "Titres",
+      "ui_text": "Texte courant",
+      "ui_text_toned": "Atténué",
+      "ui_text_muted": "Secondaire",
+      "ui_text_dimmed": "Estompé",
+      "ui_border": "Bordures",
+      "ui_border_muted": "Bordures légères",
+      "ui_border_accented": "Bordures marquées",
+      "dms_border_top": "Bordures les plus marquées",
+      "ui_primary": "Encre d'accent",
+      "dms_accent_fill": "Remplissage d'accent",
+      "dms_accent_fill_hover": "Remplissage d'accent, survolé",
+      "dms_accent_on_fill": "Sur le remplissage d'accent",
+      "ui_radius": "Coins",
+      "dms_radius_card": "Coins des cartes",
+      "font_sans": "Police",
+      "font_mono": "Police à chasse fixe"
+    },
+    "developer": {
+      "light": "Clair",
+      "dark": "Sombre",
+      "both": "Les deux modes",
+      "value": "{name}, {mode}",
+      "variable_name": "--nom-de-variable",
+      "add": "Ajouter",
+      "remove": "Retirer {name}",
+      "dms_palette": "Par défaut du DMS",
+      "reset_all": "Revenir aux valeurs du DMS"
+    },
+    "role": {
+      "primary": "Accent",
+      "success": "Succès",
+      "warning": "Avertissement",
+      "error": "Erreur",
+      "info": "Information"
+    },
+    "problem": {
+      "too_long": "dépasse 512 caractères",
+      "unsafe": "ne peut contenir ; {'{'} {'}'} < > \\, un commentaire, url(), {'@'}import ou !important",
+      "unbalanced": "laisse une parenthèse, un crochet ou un guillemet ouvert",
+      "not_color": "n'est pas une couleur",
+      "not_radius": "n'est pas une longueur comme 0.5rem",
+      "not_font": "n'est pas une liste de polices comme \"Inter\", sans-serif",
+      "palette": "n'est pas un nom de palette comme violet"
+    },
+    "state": {
+      "no_layer_title": "Ce projet n'a pas encore de couche de thème",
+      "no_layer_description": "Le thème s'écrit dans une couche frontend : {ref}",
+      "create_layer": "Créer la couche de thème",
+      "layer_created": "Couche créée dans {path}. Redémarrez le serveur de développement pour qu'il la serve, puis rechargez cette page.",
+      "refused": "Le thème ne peut pas être lu",
+      "save_refused": "Enregistrement refusé",
+      "invalid": "Certaines valeurs ne peuvent pas être enregistrées",
+      "stale": "Les fichiers du thème ont changé sur le disque",
+      "stale_description": "Rechargez-les : vos modifications restent par-dessus les nouveaux fichiers.",
+      "reload": "Recharger"
+    },
+    "preview": {
+      "label": "Aperçu en direct",
+      "mode": "Mode de l'aperçu",
+      "light": "Clair",
+      "dark": "Sombre",
+      "sample": {
+        "name": "Location de vélos",
+        "dashboard": "Tableau de bord",
+        "bikes": "Vélos",
+        "rentals": "Locations",
+        "revenue": "Chiffre d'affaires",
+        "new_rental": "Nouvelle location"
+      }
     }
   },
   "mockups": {

@@ -2,6 +2,7 @@
 import { createApp, defineComponent, shallowRef, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  MOCKUP_RETRY_DELAY_MS,
   MOCKUP_WRITE_DELAY_MS,
   useMockupSpec,
   type MockupSpecEditor,
@@ -31,6 +32,14 @@ class FakeSpecFile {
   spec = initialSpec();
   version = 1;
   refuse: { path: string; message: string } | undefined;
+  /** How many of the next writes fail with a server error before one lands. */
+  failures = 0;
+  /** How many of the next writes land, then answer a server error. */
+  lostAnswers = 0;
+  /** How many of the next reads fail with a server error. */
+  readFailures = 0;
+  /** Holds the answer of the next write that lands until it settles. */
+  answerGate: Promise<void> | undefined;
   readonly writes: Array<{ spec: MockupSpecDocument; digest?: string }> = [];
 
   get digest(): string {
@@ -52,7 +61,15 @@ class FakeSpecFile {
     ) => {
       if (url !== ENDPOINT) throw new Error(`unexpected ${url}`);
       if (init?.method !== "PUT" || !init.body) {
+        if (this.readFailures > 0) {
+          this.readFailures -= 1;
+          throw Object.assign(new Error("unavailable"), { status: 503 });
+        }
         return { spec: structuredClone(this.spec), digest: this.digest };
+      }
+      if (this.failures > 0) {
+        this.failures -= 1;
+        throw Object.assign(new Error("boom"), { status: 500 });
       }
       this.writes.push(structuredClone(init.body));
       if (init.body.digest !== this.digest) {
@@ -61,6 +78,13 @@ class FakeSpecFile {
       if (this.refuse) return { ok: false, errors: [this.refuse] };
       this.spec = structuredClone(init.body.spec);
       this.version += 1;
+      const gate = this.answerGate;
+      this.answerGate = undefined;
+      if (gate) await gate;
+      if (this.lostAnswers > 0) {
+        this.lostAnswers -= 1;
+        throw Object.assign(new Error("bad gateway"), { status: 502 });
+      }
       return { ok: true, digest: this.digest };
     },
   );
@@ -228,11 +252,269 @@ describe("a refused write", () => {
       {
         kind: "refused",
         issue: { path: "/pages/0/tree/0/options/title", message: "Required" },
+        discarded: false,
       },
     ]);
     expect(titleOf(editor.spec.value)).toBe("Good");
     expect(titleOf(file.spec)).toBe("Good");
     await settle(MOCKUP_WRITE_DELAY_MS * 4);
     expect(file.writes).toHaveLength(2);
+  });
+
+  it("leaves no undo step that changes nothing: the next undo goes to the spec before the last written one (fails when the history keeps the refused edit's step)", async () => {
+    await mountEditor();
+    retitle("Good");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    file.refuse = { path: "/pages/0/tree/0/options/x", message: "Bad" };
+    editor.apply({
+      kind: "setOption",
+      pointer: TITLE,
+      key: "x",
+      value: "y",
+    });
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    file.refuse = undefined;
+
+    editor.undo();
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    expect(editor.spec.value).toEqual(initialSpec());
+    expect(file.spec).toEqual(initialSpec());
+    expect(editor.canUndo.value).toBe(false);
+  });
+
+  it("drops the edits typed while the refused write was in flight and says so (fails when they vanish without a word or are written over the refused spec)", async () => {
+    await mountEditor();
+    retitle("Good");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    file.refuse = { path: "/pages/0/tree/0/options/x", message: "Bad" };
+    let release: (() => void) | undefined;
+    const real = file.fetch.getMockImplementation();
+    file.fetch.mockImplementationOnce(async (url, init) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return real?.(url, init);
+    });
+    editor.apply({ kind: "setOption", pointer: TITLE, key: "x", value: "y" });
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    retitle("Typed meanwhile");
+    release?.();
+    await settle(MOCKUP_WRITE_DELAY_MS * 4);
+
+    expect(titleOf(editor.spec.value)).toBe("Good");
+    expect(editor.spec.value?.pages[0]?.tree[0]?.options).not.toHaveProperty(
+      "x",
+    );
+    expect(notices).toEqual([
+      {
+        kind: "refused",
+        issue: { path: "/pages/0/tree/0/options/x", message: "Bad" },
+        discarded: true,
+      },
+    ]);
+    expect(file.writes).toHaveLength(2);
+  });
+});
+
+describe("a write that fails", () => {
+  it("is retried after a short backoff until it lands, the notice staying until then (fails when a 500 leaves the edit unwritten)", async () => {
+    await mountEditor();
+    file.failures = 2;
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(titleOf(file.spec)).toBe("Revenue");
+    expect(editor.hasFailed.value).toBe(true);
+    await settle(10_000);
+    expect(titleOf(file.spec)).toBe("Mine");
+    expect(editor.hasFailed.value).toBe(false);
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+
+  it("is retried at the next stream state, without waiting for the backoff (fails when only a timer retries)", async () => {
+    await mountEditor();
+    file.failures = 1;
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(titleOf(file.spec)).toBe("Revenue");
+    await streamSaysTheFileChanged();
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(titleOf(file.spec)).toBe("Mine");
+  });
+
+  it("is retried with the next edit, which it carries (fails when the new edit waits behind the failed one)", async () => {
+    await mountEditor();
+    file.failures = 1;
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    retitle("Mine, again");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(titleOf(file.spec)).toBe("Mine, again");
+    expect(editor.hasFailed.value).toBe(false);
+  });
+
+  it("gives way to a file another writer changed meanwhile, and the notice goes (fails when the retry overwrites the AI)", async () => {
+    await mountEditor();
+    file.failures = 1;
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    const theirs = initialSpec();
+    theirs.title = "From the AI";
+    file.writeFromOutside(theirs);
+    await streamSaysTheFileChanged();
+    await settle(10_000);
+    expect(file.spec).toEqual(theirs);
+    expect(editor.spec.value).toEqual(theirs);
+    expect(editor.hasFailed.value).toBe(false);
+  });
+});
+
+describe("a write whose answer was lost", () => {
+  it("counts as landed when the retry finds the file holding it, keeping the history (fails when the editor adopts its own write and wipes undo)", async () => {
+    file.lostAnswers = 1;
+    await mountEditor();
+    retitle("A");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    await settle(MOCKUP_RETRY_DELAY_MS);
+
+    expect(titleOf(file.spec)).toBe("A");
+    expect(editor.canUndo.value).toBe(true);
+    expect(editor.hasFailed.value).toBe(false);
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+
+  it("then writes the edit typed before the retry (fails when that edit is dropped)", async () => {
+    file.lostAnswers = 1;
+    await mountEditor();
+    retitle("A");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    retitle("AB");
+
+    await settle(MOCKUP_RETRY_DELAY_MS * 4);
+
+    expect(titleOf(file.spec)).toBe("AB");
+    expect(titleOf(editor.spec.value)).toBe("AB");
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+});
+
+describe("several writes whose answers were lost", () => {
+  it("counts the file as its own write when it holds any of them, then writes the spec shown (fails when only the last one sent is remembered)", async () => {
+    file.lostAnswers = 1;
+    await mountEditor();
+    retitle("A");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    file.failures = 1;
+    retitle("AB");
+
+    await settle(MOCKUP_RETRY_DELAY_MS * 8);
+
+    expect(titleOf(file.spec)).toBe("AB");
+    expect(editor.canUndo.value).toBe(true);
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+
+  it("writes the spec an undo went back to, even when it matches the last answered write (fails when the file keeps the undone edit)", async () => {
+    file.lostAnswers = 1;
+    await mountEditor();
+    retitle("A");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    editor.undo();
+    await settle(MOCKUP_RETRY_DELAY_MS * 4);
+
+    expect(titleOf(file.spec)).toBe("Revenue");
+    expect(titleOf(editor.spec.value)).toBe("Revenue");
+    expect(editor.hasFailed.value).toBe(false);
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+});
+
+describe("a conflict whose file cannot be read", () => {
+  it("backs off like any failed write instead of writing again at once (fails on a write every few milliseconds)", async () => {
+    await mountEditor();
+    file.writeFromOutside(initialSpec());
+    file.readFailures = Number.POSITIVE_INFINITY;
+    retitle("Mine");
+
+    await settle(5000);
+
+    expect(file.writes.length).toBeLessThanOrEqual(5);
+    expect(editor.hasFailed.value).toBe(true);
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+});
+
+describe("the notice of a failed write", () => {
+  it("goes once the spec an undo went back to is confirmed, when the server answers again (fails when the retry banner outlives every pending edit)", async () => {
+    file.failures = Number.POSITIVE_INFINITY;
+    await mountEditor();
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(editor.hasFailed.value).toBe(true);
+    editor.undo();
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    file.failures = 0;
+    await settle(MOCKUP_RETRY_DELAY_MS * 16);
+
+    expect(titleOf(file.spec)).toBe("Revenue");
+    expect(editor.hasFailed.value).toBe(false);
+  });
+});
+
+describe("a write that landed", () => {
+  it("stays pending until the stream sends a state after it (fails when the old compiled paths count as the new spec's)", async () => {
+    await mountEditor();
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(titleOf(file.spec)).toBe("Mine");
+    expect(editor.isPending.value).toBe(true);
+
+    await streamSaysTheFileChanged();
+
+    expect(editor.isPending.value).toBe(false);
+  });
+
+  it("is not pending when the stream sent its state before the write's answer came (fails when clicks stay ignored until the next edit)", async () => {
+    let release = (): void => undefined;
+    file.answerGate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await mountEditor();
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    await streamSaysTheFileChanged();
+
+    release();
+    await settle(MOCKUP_RETRY_DELAY_MS);
+
+    expect(titleOf(file.spec)).toBe("Mine");
+    expect(editor.isPending.value).toBe(false);
+  });
+});
+
+describe("adopting a change from outside", () => {
+  it("reports the spec it dropped and the one it took, for a stream state and for a 409, and not for its own write (fails when an editing session cannot tell)", async () => {
+    await mountEditor();
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    await streamSaysTheFileChanged();
+    expect(editor.adoption.value).toBeUndefined();
+
+    const theirs = initialSpec();
+    theirs.title = "From the AI";
+    file.writeFromOutside(theirs);
+    await streamSaysTheFileChanged();
+    expect(titleOf(editor.adoption.value?.previous)).toBe("Mine");
+    expect(editor.adoption.value?.next).toEqual(theirs);
+
+    const first = editor.adoption.value;
+    const later = initialSpec();
+    later.title = "Again";
+    file.writeFromOutside(later);
+    retitle("Conflicting");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(editor.adoption.value).not.toBe(first);
+    expect(editor.adoption.value?.next).toEqual(later);
   });
 });

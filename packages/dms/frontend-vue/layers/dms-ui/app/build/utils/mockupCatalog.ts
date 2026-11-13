@@ -252,35 +252,144 @@ function startingOptions(block: MockupBlockType): Record<string, unknown> {
   return options;
 }
 
+const MAX_NEW_BLOCK_DEPTH = 3;
+
+/** What a new block takes from, and adds to, the page it is placed on. */
+interface StarterScope {
+  catalog: ReadonlyMap<string, MockupBlockType>;
+  /** The page's fixtures, new ones included. */
+  fixtures: Record<string, unknown>;
+  added: Record<string, unknown>;
+}
+
+const SAMPLE_ROWS = [
+  { id: "1", name: "Ada Lovelace", status: "Active", amount: 1200 },
+  { id: "2", name: "Grace Hopper", status: "Pending", amount: 860 },
+  { id: "3", name: "Alan Turing", status: "Active", amount: 2450 },
+];
+
+const SAMPLE_RECORD = { name: "Ada Lovelace", email: "ada@example.com" };
+
+function formField(id: string, label: string, component: string) {
+  return {
+    id,
+    label,
+    type: "string",
+    component: { componentName: component, options: {}, children: [] },
+  };
+}
+
+/**
+ * The blocks that take a controller class in code. A mockup builds each from
+ * a page fixture, so a new one starts with sample values to read and the
+ * options the compiler asks for.
+ */
+const CONTROLLER_STARTERS = new Map<
+  string,
+  { sample: unknown; options: (reference: string) => Record<string, unknown> }
+>([
+  [
+    "TableView",
+    {
+      sample: SAMPLE_ROWS,
+      options: (reference) => ({
+        fetchUrl: reference,
+        rowIdKey: "id",
+        columns: {
+          name: { name: "Name", type: "string" },
+          status: { name: "Status", type: "string" },
+          amount: { name: "Amount", type: "number" },
+        },
+      }),
+    },
+  ],
+  [
+    "ResourceForm",
+    {
+      sample: SAMPLE_RECORD,
+      options: (reference) => ({
+        mode: "edit",
+        fetchUrl: reference,
+        fields: [
+          formField("name", "Name", "dms-input-text"),
+          formField("email", "Email", "dms-input-text"),
+        ],
+      }),
+    },
+  ],
+]);
+
+/**
+ * The options a new block starts with beyond its defaults, for a block that
+ * draws nothing without them: a form with no fields shows an empty card.
+ */
+const STARTER_OPTIONS = new Map<string, Record<string, unknown>>([
+  [
+    "Form",
+    {
+      title: "Form",
+      fields: [
+        formField("name", "Name", "dms-input-text"),
+        formField("email", "Email", "dms-input-text"),
+      ],
+    },
+  ],
+]);
+
+/** `wanted`, or the first `<wanted>-<n>` the page has no fixture under. */
+function freshKey(fixtures: Record<string, unknown>, wanted: string): string {
+  let key = wanted;
+  for (let suffix = 2; Object.hasOwn(fixtures, key); suffix += 1) {
+    key = `${wanted}-${suffix}`;
+  }
+  return key;
+}
+
+function startingNode(
+  block: MockupBlockType,
+  scope: StarterScope,
+): MockupSpecNode {
+  const id = nodeIdFor(block.type);
+  const controller = CONTROLLER_STARTERS.get(block.type);
+  if (!controller) {
+    const node: MockupSpecNode = { id, type: block.type };
+    const options = {
+      ...startingOptions(block),
+      ...STARTER_OPTIONS.get(block.type),
+    };
+    if (Object.keys(options).length) node.options = options;
+    return node;
+  }
+  const key = freshKey(scope.fixtures, `${id}-data`);
+  scope.fixtures[key] = controller.sample;
+  scope.added[key] = controller.sample;
+  return {
+    id,
+    type: block.type,
+    options: controller.options(`fixture:${key}`),
+  };
+}
+
 /** The children a required `block` option of `block` asks for, as `ChartCard`'s `chart`. */
 function blockOptionChildren(
   block: MockupBlockType,
-  catalog: ReadonlyMap<string, MockupBlockType>,
+  scope: StarterScope,
   depth: number,
 ): MockupSpecNode[] {
   return Object.entries(block.config).flatMap(([key, option]) => {
     const [type] = option.ui?.blockTypes ?? [];
-    const child = type === undefined ? undefined : catalog.get(type);
+    const child = type === undefined ? undefined : scope.catalog.get(type);
     if (option.optional || option.ui?.widget !== "block" || !child) return [];
-    return [{ ...newBlockNode(child, catalog, depth + 1), id: key }];
+    return [{ ...startingBlock(child, scope, depth + 1), id: key }];
   });
 }
 
-const MAX_NEW_BLOCK_DEPTH = 3;
-
-/**
- * The node a block placed from the catalog starts as: its defaults, the
- * values its options ask an editor to place it with, its initial children,
- * and a stand-in for each required option nothing else fills.
- */
-export function newBlockNode(
+function startingBlock(
   block: MockupBlockType,
-  catalog: ReadonlyMap<string, MockupBlockType>,
-  depth = 0,
+  scope: StarterScope,
+  depth: number,
 ): MockupSpecNode {
-  const node: MockupSpecNode = { id: nodeIdFor(block.type), type: block.type };
-  const options = startingOptions(block);
-  if (Object.keys(options).length) node.options = options;
+  const node = startingNode(block, scope);
   const children: MockupSpecNode[] = [
     ...(block.initialChildren ?? []).map((child) => ({
       id: child.id,
@@ -288,9 +397,37 @@ export function newBlockNode(
       options: { ...child.options },
     })),
     ...(depth < MAX_NEW_BLOCK_DEPTH
-      ? blockOptionChildren(block, catalog, depth)
+      ? blockOptionChildren(block, scope, depth)
       : []),
   ];
   if (children.length) node.children = children;
   return node;
+}
+
+/** A block placed from the catalog: its node and the page fixtures it adds. */
+export interface MockupNewBlock {
+  node: MockupSpecNode;
+  fixtures: Record<string, unknown>;
+}
+
+/**
+ * The node a block placed from the catalog starts as: its defaults, the
+ * values its options ask an editor to place it with, its initial children,
+ * and a stand-in for each required option nothing else fills. A block that
+ * reads page fixtures (a table, a form) starts with sample ones, under keys
+ * `pageFixtures` lacks; they come back in `fixtures`, for the same edit to
+ * write into the page.
+ */
+export function newBlock(
+  block: MockupBlockType,
+  catalog: ReadonlyMap<string, MockupBlockType>,
+  pageFixtures: Record<string, unknown> = {},
+): MockupNewBlock {
+  const scope: StarterScope = {
+    catalog,
+    fixtures: { ...pageFixtures },
+    added: {},
+  };
+  const node = startingBlock(block, scope, 0);
+  return { node, fixtures: scope.added };
 }

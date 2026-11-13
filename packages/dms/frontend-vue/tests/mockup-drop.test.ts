@@ -162,7 +162,10 @@ describe("dropEdit", () => {
     };
     const line = { x: 0, y: 0, width: 0, height: 0 };
     expect(
-      dropEdit(drag, { parent: ROW, index: 2, line }, "orders", () => ({})),
+      dropEdit(drag, { parent: ROW, index: 2, line }, "orders", () => ({
+        node: {},
+        fixtures: {},
+      })),
     ).toEqual({
       kind: "moveNode",
       from: REVENUE,
@@ -170,7 +173,10 @@ describe("dropEdit", () => {
       index: 1,
     });
     expect(
-      dropEdit(drag, { parent: null, index: 1, line }, "orders", () => ({})),
+      dropEdit(drag, { parent: null, index: 1, line }, "orders", () => ({
+        node: {},
+        fixtures: {},
+      })),
     ).toEqual({
       kind: "moveNode",
       from: REVENUE,
@@ -183,7 +189,8 @@ describe("dropEdit", () => {
     const line = { x: 0, y: 0, width: 0, height: 0 };
     expect(
       dropEdit(ADD_KPI, { parent: ROW, index: 1, line }, "orders", () => ({
-        type: "KpiCard",
+        node: { type: "KpiCard" },
+        fixtures: {},
       })),
     ).toEqual({
       kind: "insertNode",
@@ -191,6 +198,7 @@ describe("dropEdit", () => {
       page: "orders",
       index: 1,
       node: { type: "KpiCard" },
+      fixtures: {},
     });
   });
 });

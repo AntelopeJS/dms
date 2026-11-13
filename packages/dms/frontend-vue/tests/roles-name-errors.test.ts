@@ -9,7 +9,6 @@ import {
   Suspense,
   type App,
   type Component,
-  type PropType,
 } from "vue";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { useTranslation } from "../layers/dms-core/app/composables/translation/useTranslation";
@@ -105,20 +104,16 @@ async function mountRolesPage() {
   );
   app.component(
     "UDropdownMenu",
-    defineComponent({
-      props: {
-        items:
-          // SAFETY: The roles page supplies dropdown items with labels and selection handlers.
-          Array as PropType<{ label: string; onSelect: () => void }[]>,
-      },
-      setup: (props) => () =>
+    defineComponent(
+      (props: { items: { label: string; onSelect: () => void }[] }) => () =>
         h(
           "div",
-          props.items!.map((item) =>
+          props.items.map((item) =>
             h("button", { onClick: item.onSelect }, item.label),
           ),
         ),
-    }),
+      { props: { items: { type: Array, required: true } } },
+    ),
   );
   for (const name of [
     "UIcon",

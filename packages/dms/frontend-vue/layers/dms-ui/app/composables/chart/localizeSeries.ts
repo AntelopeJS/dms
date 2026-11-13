@@ -22,7 +22,6 @@ function localizePoint(
   point: ChartSeriesEntry,
   translate: ChartTextTranslate,
 ): ChartSeriesEntry {
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The shared isObject guard widens the point owner's fields to unknown; typeof preserves ChartSeriesEntry without another assertion or narrower runtime validation.
   if (typeof point !== "object" || point === null) return point;
   const localized: typeof point & { label?: string } = { ...point };
   if ("x" in point) localized.x = translateText(point.x, translate);

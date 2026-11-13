@@ -14,7 +14,7 @@ import {
 } from "@antelopejs/interface-dms/permissions";
 import { CheckTenantAccess } from "@antelopejs/interface-dms/tenant-access";
 import { gateAllowsSurface } from "@antelopejs/interface-dms/internal/tenant-access";
-import { isInsideModule } from "@antelopejs/interface-dms/page";
+import { isOwnerOnly } from "@antelopejs/interface-dms/page";
 import { categoriesByFullId } from "./state";
 import type {
   RequestAccessContext,
@@ -238,7 +238,7 @@ export async function computeEntryAccessUncached(
   if (!gateAllowsSurface(entry, context.gateDenied)) return false;
   const effective = selectEntryContext(entry, context);
   if (effective.isOwner) return true;
-  if (isInsideModule(entry)) return false;
+  if (isOwnerOnly(entry)) return false;
   if (entry.authOnly === true) return effective.isAuthenticated;
   if (effective.isAuthenticated) {
     if (context.gateDenied && entry.bypassTenantAccessGate !== true) {

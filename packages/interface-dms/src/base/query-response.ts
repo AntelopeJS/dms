@@ -17,6 +17,7 @@
 import type { ChartSeries } from "./chart";
 import { headline, measuredValues } from "./internal/query-response";
 import { bucketLabel } from "./internal/series-bucket";
+import { isNumber } from "../utils/internal/type-check";
 
 /** One measured group: what it is, and what was measured. */
 export interface SeriesPoint {
@@ -217,8 +218,7 @@ function groupTitle(key: number | string, bucket?: SeriesBucket): string {
     return String(labelled);
   }
   if (
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Group keys are already a number-or-string domain; only numeric epoch buckets get date formatting.
-    typeof key !== "number" ||
+    !isNumber(key) ||
     !Number.isInteger(key) ||
     key < BUCKET_EPOCH_FIRST ||
     key > BUCKET_EPOCH_LAST

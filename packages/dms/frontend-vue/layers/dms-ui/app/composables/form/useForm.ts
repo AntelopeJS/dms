@@ -130,7 +130,6 @@ function createFormNotices(
 
   /** Shows a server-authored notice next to the ordinary success toast. */
   const showSubmitNotice = (response: FormSubmitResponse | undefined) => {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The response contract omits this optional server extension. Keep the original unchecked title/description behavior for malformed notices instead of validating or dropping them.
     const notice = (response as { notice?: FormSubmitNotice } | undefined)
       ?.notice;
     if (!notice?.title) return;
@@ -210,9 +209,8 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
     Object.assign(
       state.value,
       processBeforeStateMappers(
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Reset intentionally carries undefined for initially absent fields. The mapper's nominal FormData contract omits undefined, but no validation or dropping of those fields is intended.
         restored as FormData,
-        props.fields,
+        props.fields ?? [],
         getDataType,
       ),
     );
@@ -255,8 +253,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
     if (!submitSucceeded.value) return;
     const fieldIds = new Set(allFields.value.map((field) => field.id));
     const record: FormData = isPlainObject(response)
-      ? // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Only field names are checked, not values; preserve arbitrary response values at this existing unchecked FormData boundary.
-        (Object.fromEntries(
+      ? (Object.fromEntries(
           Object.entries(response).filter(([key]) => fieldIds.has(key)),
         ) as FormData)
       : {};
@@ -266,7 +263,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
       ...JSON.parse(JSON.stringify(record)),
     };
     await applyStoredRecord(
-      processBeforeStateMappers(record, props.fields, getDataType),
+      processBeforeStateMappers(record, props.fields ?? [], getDataType),
     );
   };
 
@@ -296,7 +293,6 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
     if (props.redirectOnSuccess) {
       const target = resolveLinkVariables(
         props.redirectOnSuccess,
-        // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- URL interpolation reads the response's arbitrary keys without validation. The nominal success contract has no index signature; preserve this unchecked projection and malformed runtime responses.
         buildUrlContext(response as ReplaceUrlVariablesContext["response"]),
       );
       await navigateDms(target);
@@ -330,7 +326,6 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
         successPayload: (response) => ({ data: body, response, submitUrl }),
         errorPayload: (error) => ({
           data: body,
-          // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Evented actions may reject with anything. Retain direct data/message access, fallback ordering and nullish throws rather than narrowing to Error instances.
           error: (error as EventError).data || (error as EventError).message,
         }),
       },
@@ -343,7 +338,6 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
     error: Parameters<typeof resolveFormFieldErrors>[0],
   ): void => {
     if (!showServerFieldErrors(error)) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Rejection values are passed unchanged to the existing error formatter; there is no Error-instance validation at this boundary.
       showSubmitErrorToast(error as EventError);
     }
   };

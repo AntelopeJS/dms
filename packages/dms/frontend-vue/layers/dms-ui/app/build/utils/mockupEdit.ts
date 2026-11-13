@@ -4,6 +4,7 @@ import {
   isWithinPointer,
   nodeAtAddress,
   nodePointer,
+  pageFixtures,
   pageIndexOf,
   parseNodePointer,
   siblingsAt,
@@ -30,6 +31,8 @@ export type MockupEdit =
       page: string;
       index: number;
       node: MockupSpecNode;
+      /** Fixtures the node reads, added to the page by the same edit. */
+      fixtures?: Record<string, unknown>;
     }
   | {
       kind: "moveNode";
@@ -41,7 +44,13 @@ export type MockupEdit =
     }
   | { kind: "duplicateNode"; pointer: string }
   | { kind: "removeNode"; pointer: string }
-  | { kind: "replaceNode"; pointer: string; node: MockupSpecNode }
+  | {
+      kind: "replaceNode";
+      pointer: string;
+      node: MockupSpecNode;
+      /** Fixtures the node reads, added to its page by the same edit. */
+      fixtures?: Record<string, unknown>;
+    }
   | { kind: "addPage"; title: string }
   | { kind: "updatePage"; page: string; title?: string; id?: string }
   | { kind: "movePage"; from: number; to: number }
@@ -215,6 +224,23 @@ function insertNode(
       insertAt(current, at, placed),
     ),
     select: nodePointer({ page, steps: [...steps, at] }),
+  };
+}
+
+/** The spec with `added` in the fixtures of page `page`, which keep what they held. */
+function withFixtures(
+  spec: MockupSpecDocument,
+  page: number,
+  added: Record<string, unknown> | undefined,
+): MockupSpecDocument {
+  if (!added || !Object.keys(added).length) return spec;
+  return {
+    ...spec,
+    pages: spec.pages.map((entry, index) =>
+      index === page
+        ? { ...entry, fixtures: { ...added, ...pageFixtures(entry) } }
+        : entry,
+    ),
   };
 }
 
@@ -397,9 +423,12 @@ function applyNodeEdit(
     case "insertNode": {
       const page = pageIndexOf(spec, edit.page);
       const steps = targetSteps(spec, page, edit.parent);
-      return steps
-        ? insertNode(spec, page, steps, edit.index, edit.node)
-        : { spec };
+      if (!steps) return { spec };
+      const inserted = insertNode(spec, page, steps, edit.index, edit.node);
+      return {
+        ...inserted,
+        spec: withFixtures(inserted.spec, page, edit.fixtures),
+      };
     }
     case "moveNode":
       return moveNode(spec, edit);
@@ -407,13 +436,21 @@ function applyNodeEdit(
       return duplicateNode(spec, edit.pointer);
     case "removeNode":
       return removeNode(spec, edit.pointer);
-    case "replaceNode":
-      return updateNode(spec, edit.pointer, (node, siblings) =>
+    case "replaceNode": {
+      const replaced = updateNode(spec, edit.pointer, (node, siblings) =>
         withFreeId(
           replacement(node, edit.node),
           siblings.filter((sibling) => sibling !== node),
         ),
       );
+      const page = parseNodePointer(edit.pointer)?.page;
+      return page === undefined
+        ? replaced
+        : {
+            ...replaced,
+            spec: withFixtures(replaced.spec, page, edit.fixtures),
+          };
+    }
   }
 }
 

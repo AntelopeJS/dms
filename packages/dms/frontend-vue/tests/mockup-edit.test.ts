@@ -4,6 +4,11 @@ import {
   type MockupEdit,
 } from "../layers/dms-ui/app/entries/utils/mockupEdit";
 import {
+  commit,
+  reset,
+  undo,
+} from "../layers/dms-ui/app/entries/utils/mockupHistory";
+import {
   nodeAt,
   parseMockupSpec,
   type MockupSpecDocument,
@@ -176,6 +181,46 @@ describe("inserting, duplicating, replacing", () => {
       node: { id: "orders", type: "KpiCard" },
     }).spec;
     expect(idsAt(next, ROW)).toEqual(["orders-2", "revenue", "orders"]);
+  });
+
+  it("writes the fixtures of an inserted block into its page in the same edit, and one undo takes both back (fails when the node lands without its fixture)", () => {
+    const before = spec();
+    const rows = [{ id: "1", name: "Ada" }];
+    const { spec: next } = apply(
+      {
+        kind: "insertNode",
+        parent: null,
+        page: "orders",
+        index: 0,
+        node: {
+          type: "TableView",
+          options: { fetchUrl: "fixture:table-data" },
+        },
+        fixtures: { "table-data": rows, revenue: "not the one the page holds" },
+      },
+      before,
+    );
+
+    expect(next.pages[0]?.fixtures).toEqual({
+      revenue: { value: 1 },
+      "table-data": rows,
+    });
+    expect(next.pages[1]).toBe(before.pages[1]);
+    expect(undo(commit(reset(before), next)).present).toBe(before);
+  });
+
+  it("writes the fixtures of a replacing block into the page of the replaced node (fails when a swap to a table leaves it without rows)", () => {
+    const { spec: next } = apply({
+      kind: "replaceNode",
+      pointer: CHART,
+      node: { type: "TableView", options: { fetchUrl: "fixture:table-data" } },
+      fixtures: { "table-data": [] },
+    });
+
+    expect(next.pages[0]?.fixtures).toEqual({
+      revenue: { value: 1 },
+      "table-data": [],
+    });
   });
 
   it("inserts nothing under a parent of another page (fails when the page id is ignored)", () => {

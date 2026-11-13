@@ -87,11 +87,10 @@ function parseOffset(value?: string): number {
 }
 
 const INBOX_READ_FILTER_KEY = "filter_isRead";
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Request filter keys are arbitrary strings; inference and NotificationReadState do not retain the string-indexed lookup used for unrecognized filters without changing its existing property access.
-const INBOX_READ_STATES: Record<string, NotificationReadState> = {
+const INBOX_READ_STATES = {
   "is:false": "unread",
   "is:true": "read",
-};
+} satisfies Record<string, NotificationReadState>;
 
 /** The rows a read state lists, out of the feed's totals. */
 const INBOX_TOTALS: Record<

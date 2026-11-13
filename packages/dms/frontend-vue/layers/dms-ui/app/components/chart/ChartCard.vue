@@ -203,8 +203,8 @@ const hasMeta = computed(
           class="text-highlighted mt-2 text-[30px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums"
         >
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="isFirstLoad"
+            :aria-label="t('dms.a11y.loading')"
             class="h-[33px] w-36"
           />
           <span

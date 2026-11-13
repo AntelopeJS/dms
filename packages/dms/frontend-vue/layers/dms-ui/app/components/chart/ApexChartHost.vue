@@ -18,7 +18,6 @@ import { ensureApexLocale } from "../../composables/chart/apexLocales";
 interface Props {
   apexType: string;
   height: number | string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The existing public prop accepts raw Apex overrides; ApexOptions would narrow that contract and cannot type arbitrary dotted-path values.
   options: Record<string, unknown>;
   series: unknown;
 }
@@ -91,7 +90,6 @@ onBeforeUnmount(() => {
 function toApexInput<T>(value: T): T {
   const raw = toRaw(value);
   if (Array.isArray(raw)) {
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Generic T may contain class instances or array properties this existing traversal does not preserve; its callers have no narrower validated options owner.
     return raw.map((entry) => toApexInput(entry)) as T;
   }
   if (raw && isObject(raw) && !(raw instanceof Date)) {
@@ -99,7 +97,6 @@ function toApexInput<T>(value: T): T {
     for (const [key, entry] of Object.entries(raw)) {
       copy[key] = toApexInput(entry);
     }
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Generic T does not establish a plain object; the existing clone drops prototypes and non-enumerable fields, so inference cannot prove it retains T.
     return copy as T;
   }
   return raw;
@@ -145,7 +142,6 @@ function pushOptionsWithoutGroupBroadcast(
 }
 
 function axisTypeOf(options: Props["options"]) {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Raw option overrides leave xaxis unknown; no owner proves this object shape, and validation would change the existing optional-property projection.
   return (options.xaxis as { type?: unknown } | undefined)?.type;
 }
 

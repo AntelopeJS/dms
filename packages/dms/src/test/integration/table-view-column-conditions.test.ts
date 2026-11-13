@@ -47,7 +47,7 @@ describe("[integration] table view column conditions", () => {
     );
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     const deal = response.data.results.find((entry) => entry.title === title);
-    expect(deal, title).to.exist;
+    expect(deal, title).to.not.equal(undefined);
     return deal!;
   };
 

@@ -16,8 +16,8 @@ interface FormComponentProps {
 export interface FormProps extends FormComponentProps {
   title?: string;
   description?: string;
-  /** Every entry of the form, the sections' included. */
-  fields: FormFieldOrGroup[];
+  /** Every entry of the form, the sections' included; none when absent. */
+  fields?: FormFieldOrGroup[];
   /**
    * Titled cards splitting the fields, reached from a navigation that marks
    * the ones holding unsaved changes or errors. Entries in no section come
@@ -51,10 +51,8 @@ export interface FormProps extends FormComponentProps {
   backTo?: string;
   successMessage?: string;
   errorMessage?: string;
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Backend JSON schemas are accepted before conversion by jsonSchemaToZod; a parsed field-value contract would exclude schema keywords and extensions.
   schema?: Record<string, unknown>;
   watchActions?: WatchAction[];
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Success callbacks expose the raw server response and submitted data for application extensions; neither payload has a closed shared schema.
   onSuccessCallback?: (response?: unknown, data?: unknown) => void;
   fieldsOrientation?: "horizontal" | "vertical";
   submitDefaults?: Record<

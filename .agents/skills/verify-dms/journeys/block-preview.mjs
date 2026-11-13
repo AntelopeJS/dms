@@ -2,6 +2,21 @@
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
  */
 
+import { readFileSync } from "node:fs";
+import { fieldOf, isRecord, parseJson } from "../mcp-bridge.mjs";
+
+const STARTERS = new URL("../../../../packages/dms/frontend-vue/tests/fixtures/mockup-starters/nodes.json", import.meta.url);
+const CRASH_TEXT = /Server error|is not iterable|Cannot read properties/;
+
+/** The nodes the /mockup Add tab starts each block as, but those reading a mockup fixture, which only the dev mockup engine serves. */
+function starterNodes() {
+  const starters = parseJson(readFileSync(STARTERS, "utf8"));
+  const types = isRecord(starters) ? Object.keys(starters) : [];
+  return types
+    .map((type) => ({ type, node: fieldOf(fieldOf(starters, type), "node") }))
+    .filter(({ node }) => node !== undefined && !JSON.stringify(node).includes('"fixture:'));
+}
+
 const CHANNEL = "dms-preview";
 const KPI = { type: "KpiCard", options: { title: "Revenue", staticValue: 48200, staticDelta: 12.4, showDelta: true } };
 
@@ -108,6 +123,33 @@ export const journeys = [
         ctx.holds("the frame posted ready", ready, ready),
         ctx.holds("the posted KpiCard is drawn", drawn, drawn),
         ctx.holds("the frame reported its height", await tab.page.evaluate(recordedMessage("resize")), "resize message"),
+      ]);
+    },
+  },
+  {
+    id: "preview-renders-every-starter",
+    title: "every block the /mockup Add tab places draws in the preview without crashing it",
+    entryPoint: "/dms-preview?state=<one starter node>",
+    onboard: false,
+    async run(/** @type {Ctx} */ ctx) {
+      const tab = await previewTab(ctx);
+      /** @type {string[]} */
+      const errors = [];
+      tab.page.on("pageerror", (error) => errors.push(error.message));
+      /** @type {string[]} */
+      const crashed = [];
+      const starters = starterNodes();
+      for (const { type, node } of starters) {
+        const before = errors.length;
+        await tab.goto(`/dms-preview?state=${stateParam({ tree: [node] })}`);
+        await tab.page.locator("[data-dms-block-preview]").waitFor({ state: "attached", timeout: 30_000 });
+        await tab.page.waitForTimeout(500);
+        const text = await tab.page.evaluate(() => document.body.innerText);
+        if (errors.length > before || CRASH_TEXT.test(text)) crashed.push(`${type}: ${errors.slice(before).join("; ") || text.match(CRASH_TEXT)?.[0]}`);
+      }
+      await ctx.verify("no starter crashes the preview", [
+        ctx.holds(`${starters.length} starters drawn`, starters.length > 30, starters.length),
+        ctx.holds("none threw or showed an error page", crashed.length === 0, crashed.join(" | ") || "none"),
       ]);
     },
   },
