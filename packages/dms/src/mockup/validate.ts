@@ -124,10 +124,18 @@ const formSections: PreviewAdapter = {
     if (!sections.success) return options;
     const known = topLevelFieldIds(options);
     const adapted = sections.data.map((section, index) => {
-      const serialized = serializedSectionSchema.safeParse(section);
-      if (!serialized.success || Object.hasOwn(section, "fields")) {
+      if (Object.hasOwn(section, "fields")) {
+        if (Object.hasOwn(section, "fieldIds")) {
+          issues.push({
+            path: `${pointer}/sections/${index}/fieldIds`,
+            message:
+              "a section holds its own fields or names them by id, not both",
+          });
+        }
         return section;
       }
+      const serialized = serializedSectionSchema.safeParse(section);
+      if (!serialized.success) return section;
       serialized.data.fieldIds.forEach((id, position) => {
         if (known.has(id)) return;
         issues.push({

@@ -172,4 +172,41 @@ describe("[unit] a mockup form written with sections that hold their fields", ()
       paths.join(", "),
     ).to.equal(true);
   });
+
+  it("reports a section that both holds fields and names them by id, at its fieldIds (fails when the written ids are dropped in silence)", () => {
+    const read = parseSpec(
+      JSON.stringify({
+        version: 1,
+        pages: [
+          {
+            id: "home",
+            title: "Home",
+            tree: [
+              {
+                type: "Form",
+                options: {
+                  fields: OWN_FIELDS,
+                  sections: [
+                    {
+                      id: "s",
+                      label: "S",
+                      fields: [{ id: "b", label: "B", type: "string" }],
+                      fieldIds: ["intro"],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    if (!read.ok) throw new Error(JSON.stringify(read.issues));
+
+    const { issues } = compileSpec(DEMO, read.spec);
+
+    expect(issues.map((issue) => issue.path)).to.deep.equal([
+      "/pages/0/tree/0/options/sections/0/fieldIds",
+    ]);
+  });
 });
