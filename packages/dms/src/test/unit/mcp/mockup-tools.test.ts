@@ -383,7 +383,17 @@ describe("[unit] mockup MCP tools", () => {
         mockup_resolve_annotation: "builder",
         mockup_write_spec: "builder",
         mockup_patch_spec: "builder",
+        mockup_from_page: "builder",
       });
+    });
+
+    it("refuses mockup_from_page while no mockup engine runs, so a production MCP server converts nothing", async () => {
+      const { isError } = await run(mockupTool("mockup_from_page"), {
+        pageRef: "/books",
+      });
+
+      expect(isError).to.equal(true);
+      expect(await listing(workspace.mockups())).to.deep.equal([]);
     });
   });
 });

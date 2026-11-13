@@ -33,6 +33,11 @@ export function startMockupEngine(mockupsDir = defaultMockupsDir()): void {
   registerMockupPage();
 }
 
+/** Whether the mockup engine serves this process: in development only. */
+export function mockupEngineRunning(): boolean {
+  return engine !== undefined;
+}
+
 /**
  * Ends the event streams and stops watching. The routes stay registered: a
  * new subscriber watches again.

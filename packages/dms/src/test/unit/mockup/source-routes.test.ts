@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect } from "chai";
@@ -140,6 +147,21 @@ describe("[unit] mockup spec source routes", () => {
 
     expect(refused.ok).to.equal(false);
     expect(await readFile(specPath, "utf8")).to.equal(before);
+  });
+
+  it("refuses a from-page request that names no page, or replaces without the digest it read, and writes nothing", async () => {
+    const answers = await Promise.all(
+      [
+        {},
+        { path: "/books", replace: true },
+        { path: "/books", ref: "/x" },
+      ].map((body) => client.post(`${BASE}/from-page`, body)),
+    );
+
+    expect(answers.map((answer) => answer.status)).to.deep.equal([
+      400, 400, 400,
+    ]);
+    expect(await readdir(join(base, "mockups"))).to.deep.equal(["desk"]);
   });
 
   it("lists the registered block types with their described options", async () => {
