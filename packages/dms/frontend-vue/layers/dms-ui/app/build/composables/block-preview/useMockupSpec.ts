@@ -73,8 +73,9 @@ export interface MockupSpecEditor {
   /** Whether the last write failed and is being retried: true until one lands. */
   hasFailed: ComputedRef<boolean>;
   /**
-   * Whether the spec shown is not yet the one in the file. The paths of the
-   * compiled state belong to the file, so they do not name its nodes.
+   * Whether the spec shown is not yet the one the stream last compiled: an
+   * edit not written yet, or written but not yet sent back by the stream. The
+   * paths of the compiled state do not name its nodes until then.
    */
   isPending: ComputedRef<boolean>;
   /**
@@ -156,7 +157,8 @@ function sameSpec(
  * takes the editor back to the last spec it wrote, with the history steps and
  * the later edits that refusal undoes dropped. A write that fails otherwise
  * is retried, after a growing delay, at the next stream state or with the next
- * edit, whichever comes first, until it lands.
+ * edit, whichever comes first, until it lands; when the file already holds
+ * what it sent, the answer was lost and it counts as landed.
  */
 export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   const endpoint = mockupEndpoint(options.name, "/spec");
@@ -164,10 +166,12 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   const written = shallowRef<MockupSpecDocument>();
   const adoption = shallowRef<MockupAdoption>();
   const hasFailed = shallowRef(false);
+  const isAwaitingState = shallowRef(false);
   let digest: string | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   let failures = 0;
+  let unconfirmed: MockupSpecDocument | undefined;
   let isWriting = false;
   let isCheckDue = false;
   let isClosed = false;
@@ -190,6 +194,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
 
   function landed(): void {
     failures = 0;
+    unconfirmed = undefined;
     hasFailed.value = false;
   }
 
@@ -257,15 +262,27 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     retryTimer = setTimeout(() => void write(), delay);
   }
 
-  async function onWriteError(error: unknown): Promise<void> {
+  async function onWriteError(
+    error: unknown,
+    sent: MockupSpecDocument,
+  ): Promise<void> {
     if (statusOf(error) !== HTTP_CONFLICT) {
       if (!hasFailed.value) options.onNotice({ kind: "failed", error });
       hasFailed.value = true;
+      unconfirmed = sent;
       retryLater();
       return;
     }
     const source = await read();
-    if (source && !isClosed) adopt(source, true);
+    if (!source || isClosed) return;
+    if (unconfirmed && sameSpec(source.spec, unconfirmed)) {
+      digest = source.digest;
+      written.value = unconfirmed;
+      isAwaitingState.value = true;
+      landed();
+      return;
+    }
+    adopt(source, true);
   }
 
   async function write(): Promise<void> {
@@ -273,7 +290,11 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     if (retryTimer !== undefined) clearTimeout(retryTimer);
     retryTimer = undefined;
     const spec = history.value?.present;
-    if (!spec || spec === written.value || isWriting || isClosed) return;
+    if (!spec || isWriting || isClosed) return;
+    if (spec === written.value) {
+      landed();
+      return;
+    }
     isWriting = true;
     try {
       const answer = parseWriteAnswer(
@@ -285,17 +306,18 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
       if (answer?.ok) {
         digest = answer.digest;
         written.value = spec;
+        isAwaitingState.value = true;
         landed();
       } else if (answer) {
         revert(answer.issue, spec);
       }
     } catch (error) {
-      await onWriteError(error);
+      await onWriteError(error, spec);
     } finally {
       isWriting = false;
     }
     const present = history.value?.present;
-    if (present !== spec && present !== written.value) schedule();
+    if (present !== written.value && retryTimer === undefined) schedule();
     else if (isCheckDue && !isClosed) {
       isCheckDue = false;
       void check();
@@ -332,7 +354,10 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   });
   watch(
     () => options.state.value?.revision,
-    () => void check(),
+    () => {
+      isAwaitingState.value = false;
+      void check();
+    },
   );
   onBeforeUnmount(() => {
     const isDue = timer !== undefined || retryTimer !== undefined;
@@ -348,7 +373,9 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     adoption,
     hasFailed: computed(() => hasFailed.value),
     isPending: computed(
-      () => !!history.value && history.value.present !== written.value,
+      () =>
+        !!history.value &&
+        (history.value.present !== written.value || isAwaitingState.value),
     ),
     apply,
     undo: () => {

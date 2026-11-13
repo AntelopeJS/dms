@@ -2,6 +2,7 @@
 import { createApp, defineComponent, shallowRef, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  MOCKUP_RETRY_DELAY_MS,
   MOCKUP_WRITE_DELAY_MS,
   useMockupSpec,
   type MockupSpecEditor,
@@ -33,6 +34,8 @@ class FakeSpecFile {
   refuse: { path: string; message: string } | undefined;
   /** How many of the next writes fail with a server error before one lands. */
   failures = 0;
+  /** How many of the next writes land, then answer a server error. */
+  lostAnswers = 0;
   readonly writes: Array<{ spec: MockupSpecDocument; digest?: string }> = [];
 
   get digest(): string {
@@ -67,6 +70,10 @@ class FakeSpecFile {
       if (this.refuse) return { ok: false, errors: [this.refuse] };
       this.spec = structuredClone(init.body.spec);
       this.version += 1;
+      if (this.lostAnswers > 0) {
+        this.lostAnswers -= 1;
+        throw Object.assign(new Error("bad gateway"), { status: 502 });
+      }
       return { ok: true, digest: this.digest };
     },
   );
@@ -346,6 +353,66 @@ describe("a write that fails", () => {
     expect(file.spec).toEqual(theirs);
     expect(editor.spec.value).toEqual(theirs);
     expect(editor.hasFailed.value).toBe(false);
+  });
+});
+
+describe("a write whose answer was lost", () => {
+  it("counts as landed when the retry finds the file holding it, keeping the history (fails when the editor adopts its own write and wipes undo)", async () => {
+    file.lostAnswers = 1;
+    await mountEditor();
+    retitle("A");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    await settle(MOCKUP_RETRY_DELAY_MS);
+
+    expect(titleOf(file.spec)).toBe("A");
+    expect(editor.canUndo.value).toBe(true);
+    expect(editor.hasFailed.value).toBe(false);
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+
+  it("then writes the edit typed before the retry (fails when that edit is dropped)", async () => {
+    file.lostAnswers = 1;
+    await mountEditor();
+    retitle("A");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    retitle("AB");
+
+    await settle(MOCKUP_RETRY_DELAY_MS * 4);
+
+    expect(titleOf(file.spec)).toBe("AB");
+    expect(titleOf(editor.spec.value)).toBe("AB");
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+});
+
+describe("the notice of a failed write", () => {
+  it("goes once an undo brings the spec back to the one in the file (fails when the retry banner outlives every pending edit)", async () => {
+    file.failures = Number.POSITIVE_INFINITY;
+    await mountEditor();
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(editor.hasFailed.value).toBe(true);
+
+    editor.undo();
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    expect(editor.hasFailed.value).toBe(false);
+    expect(editor.isPending.value).toBe(false);
+  });
+});
+
+describe("a write that landed", () => {
+  it("stays pending until the stream sends a state after it (fails when the old compiled paths count as the new spec's)", async () => {
+    await mountEditor();
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(titleOf(file.spec)).toBe("Mine");
+    expect(editor.isPending.value).toBe(true);
+
+    await streamSaysTheFileChanged();
+
+    expect(editor.isPending.value).toBe(false);
   });
 });
 

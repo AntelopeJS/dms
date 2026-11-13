@@ -90,13 +90,17 @@ export interface MockupEditing {
   commitText: (value: string) => void;
 }
 
-/** Whether `pointer` names the same node, by id and type, in the spec the editor dropped and in the one it took. */
+/**
+ * Whether `pointer` names the same node before and after an outside change:
+ * the same id and type, or, for a node with no id, the very same node.
+ */
 function isSameNode(adopted: MockupAdoption, pointer: string): boolean {
   const before = adopted.previous && nodeAt(adopted.previous, pointer);
   const after = nodeAt(adopted.next, pointer);
-  return (
-    !!before && !!after && before.id === after.id && before.type === after.type
-  );
+  if (!before || !after || before.type !== after.type) return false;
+  return before.id === undefined || after.id === undefined
+    ? JSON.stringify(before) === JSON.stringify(after)
+    : before.id === after.id;
 }
 
 /** Wires edit mode: every action becomes one reducer edit, whose result picks the selection. */

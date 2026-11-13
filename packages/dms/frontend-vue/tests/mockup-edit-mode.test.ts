@@ -288,11 +288,34 @@ async function theAIWrites(theirs: MockupSpecDocument): Promise<void> {
   runtime.file.version += 1;
   await viewer.publish(
     "state",
-    mockupState({ revision: 50, pages: STATE.pages }),
+    mockupState({ revision: 100 + runtime.file.version, pages: STATE.pages }),
   );
 }
 
+function withoutIds(document: MockupSpecDocument): MockupSpecDocument {
+  for (const page of document.pages) {
+    for (const node of page.tree) delete node.id;
+  }
+  return document;
+}
+
 describe("a write still pending", () => {
+  it("ignores a click after the write landed, until the stream sends the state it compiles to (fails when the old paths select the block that moved there)", async () => {
+    await pick("block-0");
+    await click("[data-dms-mockup-move-down]");
+    await new Promise((resolve) =>
+      setTimeout(resolve, MOCKUP_WRITE_DELAY_MS + 50),
+    );
+    await flush();
+    expect(titles(runtime.file.spec)).toEqual(["Orders", "Revenue"]);
+
+    await viewer.say({ type: "select", path: "block-0" });
+
+    const field = find("[data-dms-mockup-field=title] input");
+    expect(field).toBeInstanceOf(HTMLInputElement);
+    expect((field as HTMLInputElement).value).toBe("Revenue");
+  });
+
   it("ignores a click on the preview, whose paths are those of the spec before the edit (fails when the click selects the block that sat there)", async () => {
     await pick("block-0");
     runtime.authFetch.mockImplementationOnce(async () => {
@@ -345,6 +368,33 @@ describe("a change from outside while the editor is open", () => {
     await theAIWrites(withKpiAbove());
 
     expect(find("[data-dms-mockup-field=title]")).toBeNull();
+  });
+
+  it("clears the selection on a node with no id when another node with no id takes its place (fails when two absent ids count as the same node)", async () => {
+    await theAIWrites(withoutIds(spec()));
+    await pick("block-0");
+    expect(find("[data-dms-mockup-field=title]")).not.toBeNull();
+    const theirs = withoutIds(spec());
+    theirs.pages[0]?.tree.unshift({
+      type: "KpiCard",
+      options: { title: "New" },
+    });
+
+    await theAIWrites(theirs);
+
+    expect(find("[data-dms-mockup-field=title]")).toBeNull();
+  });
+
+  it("keeps the selection on a node with no id that the outside change left as it was (fails when every node with no id loses its selection)", async () => {
+    await theAIWrites(withoutIds(spec()));
+    await pick("block-0");
+    const theirs = withoutIds(spec());
+    const second = theirs.pages[0]?.tree[1];
+    if (second?.options) second.options.title = "Sales";
+
+    await theAIWrites(theirs);
+
+    expect(find("[data-dms-mockup-field=title]")).not.toBeNull();
   });
 
   it("keeps the selection when its pointer still names the same node (fails when every outside change drops the selection)", async () => {
