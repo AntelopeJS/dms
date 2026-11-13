@@ -70,23 +70,7 @@ function tableViewInstance(options: TableViewOptions, permissionId?: string) {
   return new (tableViewController(options, permissionId))();
 }
 
-describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () => {
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-
-    await RegisterSchema(TENANT_SCHEMA_NAME);
-
-    tenantAccessInterface.RegisterTenantAccessGate(gateInfo);
-  });
-
-  after(() => {
-    tenantAccessInterface.internal.RegisterTenantAccessGate.unregister(
-      gateInfo,
-    );
-  });
-
+function registerFlaggedActionCases(): void {
   it("keeps refusing an unflagged table view while the gate denies the tenant", async () => {
     const error = await httpRejectionOf(
       authorizeAction(
@@ -145,7 +129,9 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
       ),
     ).to.equal(undefined);
   });
+}
 
+function registerFlaggedAccessCases(): void {
   for (const writeAction of WRITE_ACTIONS) {
     it(`re-gates the "${writeAction}" action of a flagged table view`, async () => {
       const error = await httpRejectionOf(
@@ -195,7 +181,9 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
       ),
     ).to.equal(undefined);
   });
+}
 
+function registerBypassCases(): void {
   it("still refuses a caller missing the action permission under bypass", async () => {
     const error = await httpRejectionOf(
       authorizeAction(
@@ -292,4 +280,26 @@ describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () 
 
     expect(meta.hasMixedGateBypassRegistrations).to.equal(true);
   });
+}
+
+describe("[unit] interfaces/dms-base/table-view — bypassTenantAccessGate", () => {
+  before(async () => {
+    ImplementInterface(permissionsInterface, permissionsImpl);
+    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+
+    await RegisterSchema(TENANT_SCHEMA_NAME);
+
+    tenantAccessInterface.RegisterTenantAccessGate(gateInfo);
+  });
+
+  after(() => {
+    tenantAccessInterface.internal.RegisterTenantAccessGate.unregister(
+      gateInfo,
+    );
+  });
+
+  registerFlaggedActionCases();
+  registerFlaggedAccessCases();
+  registerBypassCases();
 });

@@ -107,7 +107,7 @@ function sources(
   };
 }
 
-describe("account activity", () => {
+function registerNotificationMappingCases(): void {
   it("maps each account notification the DMS sends to its event", () => {
     expect(
       notificationToEvent(
@@ -180,7 +180,9 @@ describe("account activity", () => {
       ),
     ).to.equal(undefined);
   });
+}
 
+function registerMergeCases(): void {
   it("merges every source newest first and caps the list", () => {
     const events = buildAccountActivity(
       sources({
@@ -261,7 +263,9 @@ describe("account activity", () => {
     expect(events[0]?.date).to.deep.equal(at("2026-09-25T09:00:00Z"));
     expect(events.at(-1)?.date).to.deep.equal(at("2026-09-06T09:00:00Z"));
   });
+}
 
+function registerOwnEventCases(): void {
   it("keeps one entry per event across its records", () => {
     const events = buildAccountActivity(
       sources({
@@ -353,4 +357,10 @@ describe("account activity", () => {
     );
     expect(events).to.deep.equal([]);
   });
+}
+
+describe("account activity", () => {
+  registerNotificationMappingCases();
+  registerMergeCases();
+  registerOwnEventCases();
 });

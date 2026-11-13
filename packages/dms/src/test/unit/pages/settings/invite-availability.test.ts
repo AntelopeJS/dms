@@ -71,7 +71,7 @@ describe("[unit] pages/settings/users/members — invite availability", () => {
   it("serves the invite button enabled while no module refuses", async () => {
     const button = await inviteButtonFor(OPEN_TENANT);
 
-    expect(button).to.exist;
+    expect(button).to.not.be.oneOf([null, undefined]);
     expect(button?.disabled).to.equal(undefined);
     expect(button).to.not.have.property("availability");
   });

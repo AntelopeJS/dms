@@ -58,7 +58,7 @@ function invite(rolesIds: string[], expiresAt: Date): UserInvite {
   };
 }
 
-describe("[unit] pages/settings/users/role-editor", () => {
+function registerMapRoleEditorTreeCases(): void {
   describe("mapRoleEditorTree", () => {
     it("keeps descriptions and dependencies and lifts unregistered ids", () => {
       const tree = {
@@ -172,7 +172,9 @@ describe("[unit] pages/settings/users/role-editor", () => {
       ]);
     });
   });
+}
 
+function registerOrderRoleEditorTreeCases(): void {
   describe("orderRoleEditorTree", () => {
     const node = (id: string, children?: RoleEditorPermissionNode[]) => ({
       id,
@@ -279,7 +281,9 @@ describe("[unit] pages/settings/users/role-editor", () => {
     const known = new Set(["a", "a.b"]);
     expect(countKnownPermissions(["a", "a.b", "gone", "a"], known)).to.equal(2);
   });
+}
 
+function registerRoleSummaryCases(): void {
   describe("summarizeRoles", () => {
     const members = [
       member("u1", ["r-admin"], true),
@@ -351,4 +355,10 @@ describe("[unit] pages/settings/users/role-editor", () => {
     );
     expect(holders).to.equal(2);
   });
+}
+
+describe("[unit] pages/settings/users/role-editor", () => {
+  registerMapRoleEditorTreeCases();
+  registerOrderRoleEditorTreeCases();
+  registerRoleSummaryCases();
 });

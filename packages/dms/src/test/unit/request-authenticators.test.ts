@@ -36,16 +36,13 @@ async function expectUnauthorized<T>(action: () => Promise<T>): Promise<void> {
   }
 }
 
-describe("[unit] request authenticators", () => {
-  let jwtCalls = 0;
-  const jwt = async () => {
-    jwtCalls++;
-    return principal("jwt-tenant");
-  };
-  beforeEach(() => {
-    jwtCalls = 0;
-  });
+let jwtCalls = 0;
+const jwt = async () => {
+  jwtCalls++;
+  return principal("jwt-tenant");
+};
 
+function registerResolutionCases(): void {
   it("binds tenant to the verified credential across context wrappers", async () => {
     const ctx = context();
     const result = await resolveRequestPrincipal(ctx, [handler()], jwt);
@@ -114,7 +111,9 @@ describe("[unit] request authenticators", () => {
     expect(attempts).to.equal(0);
     expect(jwtCalls).to.equal(0);
   });
+}
 
+function registerRejectionCases(): void {
   for (const authorization of [
     "",
     "Basic opaque.secret",
@@ -181,4 +180,13 @@ describe("[unit] request authenticators", () => {
     await expectUnauthorized(() => resolveRequestPrincipal(ctx, [], jwt));
     expect(jwtCalls).to.equal(1);
   });
+}
+
+describe("[unit] request authenticators", () => {
+  beforeEach(() => {
+    jwtCalls = 0;
+  });
+
+  registerResolutionCases();
+  registerRejectionCases();
 });

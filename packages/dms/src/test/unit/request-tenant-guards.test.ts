@@ -100,43 +100,15 @@ async function provided(
   return provided;
 }
 
-describe("[unit] request tenant guards — JWT and custom credentials", () => {
-  let user: User;
-  let jwt: string;
-  const authenticator: RequestAuthenticator = {
-    recognizes: (token) => token.startsWith("opaque."),
-    authenticate: async () => ({ user, tenantId: TENANT }),
-  };
-  const options = { authenticators: [authenticator] };
+let user: User;
+let jwt: string;
+const authenticator: RequestAuthenticator = {
+  recognizes: (token) => token.startsWith("opaque."),
+  authenticate: async () => ({ user, tenantId: TENANT }),
+};
+const options = { authenticators: [authenticator] };
 
-  before(async () => {
-    await GetModel(UserModel).insert({
-      _id: USER_ID,
-      email: "request-guard@test.local",
-      name: "Request guard",
-      authKey: AUTH_KEY,
-      isValidated: true,
-      language: "en",
-      password: null,
-    });
-    const stored = await GetModel(UserModel).get(USER_ID);
-    if (!stored) throw new Error("Missing guard test user");
-    user = stored;
-    jwt = (await generateAccessToken(TENANT, user)).token;
-    await GetModel(TenantMemberModel, TENANT).insert({
-      _id: MEMBER_ID,
-      userId: USER_ID,
-      roleIds: [],
-      isTenantOwner: false,
-      joinedAt: new Date(),
-      invitedBy: null,
-    });
-  });
-
-  afterEach(() => {
-    tenantAccessInternal.RegisterTenantAccessGate.unregister(gate);
-  });
-
+function registerJwtBindingCases(): void {
   it("preserves JWT authentication and binds its verified tenant", async () => {
     expect((await authenticateRequestUser(context(jwt)))._id).to.equal(USER_ID);
     const ctx = context(jwt);
@@ -204,7 +176,9 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
       await GetModel(UserModel).update(USER_ID, { authKey: AUTH_KEY });
     }
   });
+}
 
+function registerMembershipCases(): void {
   it("does not enable opaque credentials on JWT-only routes", async () => {
     await expectStatus(
       () => authenticateTenantRequest(context("opaque.secret")),
@@ -293,7 +267,9 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
       });
     }
   });
+}
 
+function registerLongLivedRequestCases(): void {
   it("refuses with an i18n key the dashboard translates", async () => {
     expect(
       await refusalOf(() =>
@@ -361,4 +337,38 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
       });
     }
   });
+}
+
+describe("[unit] request tenant guards — JWT and custom credentials", () => {
+  before(async () => {
+    await GetModel(UserModel).insert({
+      _id: USER_ID,
+      email: "request-guard@test.local",
+      name: "Request guard",
+      authKey: AUTH_KEY,
+      isValidated: true,
+      language: "en",
+      password: null,
+    });
+    const stored = await GetModel(UserModel).get(USER_ID);
+    if (!stored) throw new Error("Missing guard test user");
+    user = stored;
+    jwt = (await generateAccessToken(TENANT, user)).token;
+    await GetModel(TenantMemberModel, TENANT).insert({
+      _id: MEMBER_ID,
+      userId: USER_ID,
+      roleIds: [],
+      isTenantOwner: false,
+      joinedAt: new Date(),
+      invitedBy: null,
+    });
+  });
+
+  afterEach(() => {
+    tenantAccessInternal.RegisterTenantAccessGate.unregister(gate);
+  });
+
+  registerJwtBindingCases();
+  registerMembershipCases();
+  registerLongLivedRequestCases();
 });

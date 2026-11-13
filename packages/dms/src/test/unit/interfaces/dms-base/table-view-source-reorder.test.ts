@@ -108,7 +108,7 @@ const sourceOf = (
   return { ...serialized, columns: serializedColumnsOf(serialized) };
 };
 
-describe("[unit] interfaces/dms-base — table view sources and reorder", () => {
+function registerSourceServingCases(): void {
   it("serves a source table: its route, its columns in order, no built-in action", () => {
     const options = sourceOf({
       capabilities: { filter: true },
@@ -179,7 +179,9 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     expect(full.searchable).to.equal(true);
     expect(full.columns[1]?.enableSorting).to.equal(true);
   });
+}
 
+function registerSourceCheckCases(): void {
   it("refuses tabs filtering a route that reads no filter, and unknown columns", () => {
     const tabs: SourceOptions["tabs"] = [
       {
@@ -271,7 +273,9 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
       sourceOf({ expandable: { fields: ["path"], lazyLoad: true } }),
     ).to.throw(/lazyLoad: a source has no get route/);
   });
+}
 
+function registerReorderCases(): void {
   it("serves the reorder field and the pagination mode", () => {
     const options = optionsOf({
       reorder: { field: "position" },
@@ -358,4 +362,10 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     });
     expect(reached).to.deep.equal([controller.model]);
   });
+}
+
+describe("[unit] interfaces/dms-base — table view sources and reorder", () => {
+  registerSourceServingCases();
+  registerSourceCheckCases();
+  registerReorderCases();
 });

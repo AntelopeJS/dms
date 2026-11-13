@@ -93,13 +93,7 @@ const sessionFramesOf = (stream: FakeStream, sessionId: string): Frame[] =>
     (frame) => frame.event === "session" && frame.data.sessionId === sessionId,
   );
 
-describe("[unit] realtime — shared connection", () => {
-  beforeEach(() => setRealtimeBroker(new InMemoryBroker()));
-  afterEach(async () => {
-    await stopRealtime();
-    setRealtimeBroker(new InMemoryBroker());
-  });
-
+function registerSessionLifecycleCases(): void {
   it("hosts a session per tab, each one's frames enveloped with its id", async () => {
     const stream = createFakeStream();
     const connectionId = await openConnection(stream);
@@ -107,7 +101,7 @@ describe("[unit] realtime — shared connection", () => {
     const second = await openSession(connectionId);
     expect(first.ok).to.equal(true);
     expect(first.sessionId).to.not.equal(second.sessionId);
-    expect(first.menuTopics).to.be.an("array").that.is.not.empty;
+    expect(first.menuTopics).to.be.an("array").that.has.length.above(0);
 
     await settle();
     await getRealtimeBroker().publish({
@@ -198,7 +192,9 @@ describe("[unit] realtime — shared connection", () => {
     expect(ack.ok).to.equal(false);
     expect(getSessionInfo(greeting.sessionId!)).to.not.equal(undefined);
   });
+}
 
+function registerConnectionCases(): void {
   it("ends every session on it when the browser drops the stream", async () => {
     const stream = createFakeStream();
     const connectionId = await openConnection(stream);
@@ -273,4 +269,15 @@ describe("[unit] realtime — shared connection", () => {
     expect(busy.isEnded()).to.equal(true);
     expect(getSessionInfo(greeting.sessionId!)).to.equal(undefined);
   });
+}
+
+describe("[unit] realtime — shared connection", () => {
+  beforeEach(() => setRealtimeBroker(new InMemoryBroker()));
+  afterEach(async () => {
+    await stopRealtime();
+    setRealtimeBroker(new InMemoryBroker());
+  });
+
+  registerSessionLifecycleCases();
+  registerConnectionCases();
 });
