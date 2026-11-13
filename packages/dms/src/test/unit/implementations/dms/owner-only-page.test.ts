@@ -94,6 +94,32 @@ describe("[unit] implementations/dms/page — ownerOnly pages", () => {
     expect(permissionsImpl.GetPermission(PUBLIC_PAGE)).to.equal(undefined);
   });
 
+  it("grants again under a category reloaded without ownerOnly before the old one unregisters", async () => {
+    const before = registerTestCategory("oop-toggle", {
+      displayName: "Toggled",
+      category: pagesCategory,
+      ownerOnly: true,
+    });
+    const after = registerTestCategory("oop-toggle", {
+      displayName: "Toggled",
+      category: pagesCategory,
+    });
+    before.cleanup();
+    cleanups.push(after.cleanup);
+    cleanups.push(
+      await registerTestPage(
+        PageController("oop-toggled-page", {
+          displayName: "Under the reloaded category",
+          category: after.category,
+        }),
+      ),
+    );
+    const pageId = "pages.oop-toggle.oop-toggled-page";
+    const member = userFixture({ _id: "oop-toggle-member" });
+    expect(IsModuleScopedPermission("pages.oop-toggle")).to.equal(false);
+    expect(await canOpen(member, pageId, [pageId])).to.equal(true);
+  });
+
   it("frees its permission id when the page unregisters", async () => {
     const remove = await registerTestPage(
       PageController("oop-reloaded", {

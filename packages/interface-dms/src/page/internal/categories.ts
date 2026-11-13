@@ -5,6 +5,7 @@ import {
   MarkModuleScopedPermission,
   type Permission,
   RegisterPermission,
+  UnmarkModuleScopedPermission,
 } from "../../permissions";
 // oxlint-disable-next-line import/no-cycle -- Category resolution reads PageMetadata inside functions; page registration uses the proxies declared in categories.
 import { PageMetadata } from "../metadata";
@@ -243,9 +244,13 @@ export function createCategoryFunction(
       categoryInfo.publicAccess || opensToMembers(categoryInfo.memberAccess),
     ...ownPermission(categoryInfo.permission),
   };
+  const ownPermissionId = categoryOwnPermissionId(categoryInfo);
   if (isOwnerOnly(categoryInfo)) {
-    MarkModuleScopedPermission(categoryOwnPermissionId(categoryInfo));
-  } else if (!(categoryInfo.permission instanceof Action)) {
+    MarkModuleScopedPermission(ownPermissionId);
+    return categoryInfo;
+  }
+  UnmarkModuleScopedPermission(ownPermissionId);
+  if (!(categoryInfo.permission instanceof Action)) {
     RegisterPermission(categoryPermission.id, categoryPermission);
   }
 
