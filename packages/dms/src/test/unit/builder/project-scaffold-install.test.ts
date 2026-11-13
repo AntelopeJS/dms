@@ -9,12 +9,10 @@ import {
 } from "../../../implementations/dms-builder/engine";
 import { runScript } from "./helpers/processes";
 
-const NAMES = [
-  ...Object.keys(BUILDER_CODE_INTERFACES),
-  "typescript",
-  "rimraf",
-  "@types/node",
-];
+const INTERFACES = Object.keys(BUILDER_CODE_INTERFACES);
+const TOOLING = ["typescript", "rimraf", "@types/node"];
+const NAMES = [...INTERFACES, ...TOOLING];
+const PREFIXES = ["file:", "link:", "./"];
 
 let root: string;
 
@@ -26,6 +24,15 @@ function vendorPackage(name: string, protocol: string): string {
     JSON.stringify({ name, version: "0.0.0-local" }),
   );
   return `${protocol}${folder.split(path.sep).join("/")}`;
+}
+
+function vendorPackages(names: string[]): Record<string, string> {
+  return Object.fromEntries(
+    names.map((name, index) => [
+      name,
+      vendorPackage(name, PREFIXES[index % PREFIXES.length] ?? "file:"),
+    ]),
+  );
 }
 
 function writeScaffold(): string {
@@ -44,15 +51,13 @@ describe("scaffolding a module from a project with relative path dependencies", 
   before(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "dms-builder-scaffold-"));
     setBuilderConfig({ projectRoot: root });
-    const dependencies = Object.fromEntries(
-      NAMES.map((name, index) => [
-        name,
-        vendorPackage(name, index % 2 === 0 ? "file:" : "./"),
-      ]),
-    );
     fs.writeFileSync(
       path.join(root, "package.json"),
-      JSON.stringify({ name: "project", dependencies }),
+      JSON.stringify({
+        name: "project",
+        dependencies: vendorPackages(INTERFACES),
+        devDependencies: vendorPackages(TOOLING),
+      }),
     );
     fs.writeFileSync(path.join(root, "tsconfig.json"), "{}");
   });
