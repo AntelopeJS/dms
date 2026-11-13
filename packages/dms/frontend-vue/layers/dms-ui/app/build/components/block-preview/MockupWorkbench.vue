@@ -82,10 +82,13 @@ function notify(notice: MockupSpecNotice): void {
   if (notice.kind === "adopted") {
     toast.add({ color: "info", title: t("dms.mockup.adopted") });
   } else if (notice.kind === "refused") {
+    const issue = `${notice.issue.path}: ${notice.issue.message}`;
     toast.add({
       color: "warning",
       title: t("dms.mockup.refused"),
-      description: `${notice.issue.path}: ${notice.issue.message}`,
+      description: notice.discarded
+        ? `${issue} ${t("dms.mockup.refused_discarded")}`
+        : issue,
     });
   } else {
     presentError(notice.error, { fallbackKey: "dms.mockup.save_failed" });

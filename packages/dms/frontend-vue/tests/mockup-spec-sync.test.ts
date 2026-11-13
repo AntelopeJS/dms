@@ -228,11 +228,65 @@ describe("a refused write", () => {
       {
         kind: "refused",
         issue: { path: "/pages/0/tree/0/options/title", message: "Required" },
+        discarded: false,
       },
     ]);
     expect(titleOf(editor.spec.value)).toBe("Good");
     expect(titleOf(file.spec)).toBe("Good");
     await settle(MOCKUP_WRITE_DELAY_MS * 4);
+    expect(file.writes).toHaveLength(2);
+  });
+
+  it("leaves no undo step that changes nothing: the next undo goes to the spec before the last written one (fails when the history keeps the refused edit's step)", async () => {
+    await mountEditor();
+    retitle("Good");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    file.refuse = { path: "/pages/0/tree/0/options/x", message: "Bad" };
+    editor.apply({
+      kind: "setOption",
+      pointer: TITLE,
+      key: "x",
+      value: "y",
+    });
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    file.refuse = undefined;
+
+    editor.undo();
+    await settle(MOCKUP_WRITE_DELAY_MS);
+
+    expect(editor.spec.value).toEqual(initialSpec());
+    expect(file.spec).toEqual(initialSpec());
+    expect(editor.canUndo.value).toBe(false);
+  });
+
+  it("drops the edits typed while the refused write was in flight and says so (fails when they vanish without a word or are written over the refused spec)", async () => {
+    await mountEditor();
+    retitle("Good");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    file.refuse = { path: "/pages/0/tree/0/options/x", message: "Bad" };
+    let release: (() => void) | undefined;
+    const real = file.fetch.getMockImplementation();
+    file.fetch.mockImplementationOnce(async (url, init) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return real?.(url, init);
+    });
+    editor.apply({ kind: "setOption", pointer: TITLE, key: "x", value: "y" });
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    retitle("Typed meanwhile");
+    release?.();
+    await settle(MOCKUP_WRITE_DELAY_MS * 4);
+
+    expect(titleOf(editor.spec.value)).toBe("Good");
+    expect(editor.spec.value?.pages[0]?.tree[0]?.options).not.toHaveProperty(
+      "x",
+    );
+    expect(notices).toEqual([
+      {
+        kind: "refused",
+        issue: { path: "/pages/0/tree/0/options/x", message: "Bad" },
+        discarded: true,
+      },
+    ]);
     expect(file.writes).toHaveLength(2);
   });
 });

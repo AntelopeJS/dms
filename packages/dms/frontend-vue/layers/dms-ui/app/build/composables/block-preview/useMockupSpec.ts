@@ -26,6 +26,7 @@ import {
   commit,
   redo,
   reset,
+  revertTo,
   undo,
   type MockupHistory,
 } from "../../utils/mockupHistory";
@@ -39,7 +40,12 @@ type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
 /** Why the editor's spec changed under the developer, or could not be saved. */
 export type MockupSpecNotice =
   | { kind: "adopted" }
-  | { kind: "refused"; issue: MockupIssue }
+  | {
+      kind: "refused";
+      issue: MockupIssue;
+      /** Edits typed while the refused write was in flight, dropped with it. */
+      discarded: boolean;
+    }
   | { kind: "failed"; error: unknown };
 
 interface MockupSpecOptions {
@@ -126,7 +132,8 @@ function sameSpec(
  * Each write names the digest the editor last read or wrote, so a file someone
  * else (the AI) wrote since is never overwritten: the editor takes that file
  * instead, starts its history over and says so. A write the backend refuses
- * takes the editor back to the last spec it wrote.
+ * takes the editor back to the last spec it wrote, with the history steps and
+ * the later edits that refusal undoes dropped.
  */
 export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   const endpoint = mockupEndpoint(options.name, "/spec");
@@ -178,12 +185,13 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     adopt(source, present !== undefined);
   }
 
-  function revert(issue: MockupIssue): void {
+  function revert(issue: MockupIssue, sent: MockupSpecDocument): void {
     const current = history.value;
-    if (current && written) {
-      history.value = { past: current.past, present: written, future: [] };
-    }
-    options.onNotice({ kind: "refused", issue });
+    const discarded = !!current && current.present !== sent;
+    if (current && written) history.value = revertTo(current, written);
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+    options.onNotice({ kind: "refused", issue, discarded });
   }
 
   async function onWriteError(error: unknown): Promise<void> {
@@ -211,7 +219,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
         digest = answer.digest;
         written = spec;
       } else if (answer) {
-        revert(answer.issue);
+        revert(answer.issue, spec);
       }
     } catch (error) {
       await onWriteError(error);
