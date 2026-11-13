@@ -84,11 +84,13 @@ describe("[unit] auth tokens naming an unknown user", () => {
 
   it("computes as many HMACs refusing a forged token whether its id names a user or not", async () => {
     for (const { purpose, check } of TOKEN_CHECKS) {
+      const knownToken = forgedFor(user._id, purpose);
+      const unknownToken = forgedFor(UNKNOWN_USER_ID, purpose);
       const known = await hmacsDuring(async () => {
-        await refusalOf(() => check(forgedFor(user._id, purpose)));
+        await refusalOf(() => check(knownToken));
       });
       const unknown = await hmacsDuring(async () => {
-        await refusalOf(() => check(forgedFor(UNKNOWN_USER_ID, purpose)));
+        await refusalOf(() => check(unknownToken));
       });
       expect(known, purpose).to.be.above(0);
       expect(unknown, purpose).to.equal(known);
