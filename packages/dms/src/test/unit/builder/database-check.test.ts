@@ -53,6 +53,7 @@ const CheckExports = z.object({
 /** The check with its three probes answered by the given ones. */
 function loadCheck(probes: {
   postgres: Probe;
+  mysql: Probe;
   mongodb: Probe;
   rethinkdb: Probe;
 }): Check {
@@ -60,6 +61,7 @@ function loadCheck(probes: {
     CHECK_FILE,
     new Map([
       ["./probe-postgres", { probePostgres: probes.postgres }],
+      ["./probe-mysql", { probeMysql: probes.mysql }],
       ["./probe-mongodb", { probeMongodb: probes.mongodb }],
       ["./probe-rethinkdb", { probeRethinkdb: probes.rethinkdb }],
     ]),
@@ -68,7 +70,12 @@ function loadCheck(probes: {
 }
 
 function loadCheckWith(probe: Probe): Check {
-  return loadCheck({ postgres: probe, mongodb: probe, rethinkdb: probe });
+  return loadCheck({
+    postgres: probe,
+    mysql: probe,
+    mongodb: probe,
+    rethinkdb: probe,
+  });
 }
 
 function pause(ms: number): Promise<void> {
@@ -177,20 +184,23 @@ describe("the probe a database check runs and the deadline it keeps", () => {
       };
     const checkDatabase = loadCheck({
       postgres: probe("postgres"),
+      mysql: probe("mysql"),
       mongodb: probe("mongodb"),
       rethinkdb: probe("rethinkdb"),
     });
     const answers: object[] = [];
-    for (const engine of ["postgres", "mongodb", "rethinkdb"]) {
+    for (const engine of ["postgres", "mysql", "mongodb", "rethinkdb"]) {
       answers.push(await checkDatabase(engine, `${engine}://h/db`, 50));
     }
     expect(answers).to.deep.equal([
       { engine: "postgres" },
+      { engine: "mysql" },
       { engine: "mongodb" },
       { engine: "rethinkdb" },
     ]);
     expect(asked).to.deep.equal([
       "postgres postgres://h/db 50",
+      "mysql mysql://h/db 50",
       "mongodb mongodb://h/db 50",
       "rethinkdb rethinkdb://h/db 50",
     ]);
@@ -227,11 +237,11 @@ describe("the probe a database check runs and the deadline it keeps", () => {
     expect(events).to.deep.equal(["closed", "answered"]);
   });
 
-  /** Fails on an implementation that requires the three clients when it loads, or the other engines' when it checks one. */
+  /** Fails on an implementation that requires the four clients when it loads, or the other engines' when it checks one. */
   it("a client is required only when its engine is checked", () => {
     const script = `
     const Module = require("node:module");
-    const clients = ["pg", "mongodb", "rethinkdb-ts"];
+    const clients = ["pg", "mysql2", "mongodb", "rethinkdb-ts"];
     const asked = [];
     const original = Module.prototype.require;
     Module.prototype.require = function (request) {

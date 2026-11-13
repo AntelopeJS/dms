@@ -4,6 +4,7 @@ import {
   type MongoPrivilege,
   type MongoRelation,
   mongoAccess,
+  mysqlAccess,
   type PostgresRelationRow,
   postgresAccess,
   summarizeRelations,
@@ -81,6 +82,29 @@ describe("the access a PostgreSQL role is answered", () => {
       canRead: true,
       canWrite: false,
     });
+  });
+});
+
+describe("the access a MySQL or MariaDB account is answered", () => {
+  const none = { readable: 0, insert: 0, update: 0, delete: 0 };
+
+  /** Fails on an implementation that reads the server's `0` as a grant, or a write as a read. */
+  it("reads a relation it may SELECT from, and writes one it may INSERT, UPDATE or DELETE in", () => {
+    expect(mysqlAccess([{ ...none, readable: 1 }, none])).to.deep.equal({
+      canRead: true,
+      canWrite: false,
+    });
+    for (const write of ["insert", "update", "delete"]) {
+      expect(mysqlAccess([{ ...none, [write]: 1 }]), write).to.deep.equal({
+        canRead: false,
+        canWrite: true,
+      });
+    }
+  });
+
+  /** Fails on an implementation that answers no read access for a database with no relation. */
+  it("an account that sees no relation reads, as the catalogs decide, and writes nothing", () => {
+    expect(mysqlAccess([])).to.deep.equal({ canRead: true, canWrite: false });
   });
 });
 

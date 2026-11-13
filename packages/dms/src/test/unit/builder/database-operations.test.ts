@@ -24,6 +24,7 @@ import {
   type Fixture,
 } from "./harness";
 import { gitInit } from "./helpers/processes";
+import { uninstallPackages } from "./helpers/uninstalled-packages";
 import { projectFile } from "./helpers/project-files";
 
 const OP_TIMEOUT = 60_000;
@@ -99,6 +100,39 @@ describe("checking a database connection", () => {
       expect(server.connections()).to.equal(0);
     } finally {
       await server.close();
+    }
+  });
+});
+
+/** Fails on a check that sends an input to another engine's probe, or answers a missing client with the driver's error. */
+describe("checking a database whose client is not installed", () => {
+  it("answers the sentence that installs the client of the engine it names", async () => {
+    const reinstall = uninstallPackages([
+      "pg",
+      "mysql2",
+      "mongodb",
+      "rethinkdb-ts",
+    ]);
+    try {
+      const sentences = {
+        postgres: "Install pg to connect a PostgreSQL database.",
+        mysql: "Install mysql2 to connect a MySQL or MariaDB database.",
+        mongodb: "Install mongodb to connect a MongoDB database.",
+        rethinkdb: "Install rethinkdb-ts to connect a RethinkDB database.",
+      };
+      for (const [engine, reason] of Object.entries(sentences)) {
+        const input = { engine, url: `${engine}://u@127.0.0.1:1/db`, extra: 1 };
+        expect(
+          await checkConnection(parseCheckInput(input), true),
+          engine,
+        ).to.deep.equal({
+          ok: true,
+          data: { reachable: false, canRead: false, canWrite: false, reason },
+          changes: [],
+        });
+      }
+    } finally {
+      reinstall();
     }
   });
 });
