@@ -102,8 +102,8 @@ const { t } = useI18n();
     </div>
 
     <USkeleton
-      :aria-label="t('dms.a11y.loading')"
       v-if="props.statePending && !props.state"
+      :aria-label="t('dms.a11y.loading')"
       aria-hidden="true"
       class="mt-auto h-[18px] w-28 self-start"
     />

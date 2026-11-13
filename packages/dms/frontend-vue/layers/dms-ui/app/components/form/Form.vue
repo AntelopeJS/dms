@@ -516,8 +516,8 @@ const { showConcurrentEditBanner, handleDiscardAndRefresh, handleKeepEditing } =
       browser bubble from a native required or type="email" control. -->
     <UForm
       :id="formElementId"
-      novalidate
       ref="form"
+      novalidate
       :state
       :schema="localizedSchema"
       :validate="validateServerErrors"

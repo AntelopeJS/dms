@@ -426,8 +426,8 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
             {{ col.label }}
           </span>
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="isBoardLoading && !cells[col.value]"
+            :aria-label="t('dms.a11y.loading')"
             aria-hidden="true"
             class="ms-auto h-[16.5px] w-5 shrink-0 rounded-[5px]"
           />
@@ -486,9 +486,9 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
             :item-key="getRowId"
             filter=".kanban-card-locked"
             class="flex min-h-16 flex-col gap-2"
-            @update:list="(items) => setColumnItems(col, items)"
             ghost-class="dms-kanban-ghost"
             drag-class="dms-kanban-drag"
+            @update:list="(items) => setColumnItems(col, items)"
             @change="(event) => onColumnChange(col, event)"
           >
             <template #item="{ element }">
