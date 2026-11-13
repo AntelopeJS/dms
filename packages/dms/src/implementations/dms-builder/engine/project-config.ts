@@ -12,6 +12,7 @@ import {
   Project,
   type PropertyAssignment,
   type SourceFile,
+  SyntaxKind,
 } from "ts-morph";
 import { VARIABLE_NAME } from "./env-lines";
 import { hides, overridesWrittenAsLiterals } from "./literal-overrides";
@@ -102,22 +103,37 @@ export function objectAt(
   return current;
 }
 
+function indentAt(text: string, position: number): string {
+  const lineStart = text.lastIndexOf("\n", position - 1) + 1;
+  return /^[\t ]*/.exec(text.slice(lineStart))?.[0] ?? "";
+}
+
 /**
- * The indent unit the configuration itself uses: a tab when its lines are tab-indented, else its
- * smallest run of spaces. The file's own layout outranks the project's, which may say nothing.
+ * The indent unit the configuration's own literals use: how much deeper than its object a property
+ * on a line of its own starts. Comments and strings say nothing about it. The file's own layout
+ * outranks the project's, which may say nothing.
  */
-function configIndent(text: string): string | undefined {
-  const indents = text
-    .split("\n")
-    .map((line) => /^([\t ]+)\S/.exec(line)?.[1])
-    .filter((indent): indent is string => indent !== undefined);
-  if (indents.length === 0) {
+function configIndent(file: SourceFile): string | undefined {
+  const root = configObject(file);
+  if (!root) {
     return undefined;
   }
-  if (indents.some((indent) => indent.startsWith("\t"))) {
-    return "\t";
+  const text = file.getFullText();
+  const owners = [
+    root,
+    ...root.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression),
+  ];
+  for (const owner of owners) {
+    const base = indentAt(text, owner.getStart());
+    const property = owner
+      .getProperties()
+      .find((each) => each.getStartLineNumber() > owner.getStartLineNumber());
+    const indent = property && indentAt(text, property.getStart());
+    if (indent && indent.length > base.length && indent.startsWith(base)) {
+      return indent.slice(base.length);
+    }
   }
-  return " ".repeat(Math.min(...indents.map((indent) => indent.length)));
+  return undefined;
 }
 
 /** Opens the configuration for editing, refusing one the builder cannot edit safely. */
@@ -131,7 +147,7 @@ export function openDraft(configPath: string): ConfigDraft {
     path: configPath,
     before,
     file,
-    unit: configIndent(before) ?? indentationText(resolveProjectRoot()),
+    unit: configIndent(file) ?? indentationText(resolveProjectRoot()),
     scaffolds: [],
     variables: [],
     edits: [],
@@ -146,9 +162,7 @@ export function openDraft(configPath: string): ConfigDraft {
 }
 
 function lineIndent(draft: ConfigDraft, node: Node): string {
-  const text = draft.file.getFullText();
-  const lineStart = text.lastIndexOf("\n", node.getStart() - 1) + 1;
-  return /^[\t ]*/.exec(text.slice(lineStart))?.[0] ?? "";
+  return indentAt(draft.file.getFullText(), node.getStart());
 }
 
 export function replace(
