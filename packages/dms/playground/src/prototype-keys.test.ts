@@ -64,10 +64,10 @@ export const settled = Promise.all([
     topLists.getRoutes(key),
   ),
   assertKeysAreUnknown("dashboard kpi preset", (key) =>
-    dashboard.getKpi("revenue", key),
+    dashboard.getKpi("revenue", key, undefined, undefined, undefined),
   ),
   assertKeysAreUnknown("dashboard kpi metric", (key) =>
-    dashboard.getKpi(key, "this-month"),
+    dashboard.getKpi(key, "this-month", undefined, undefined, undefined),
   ),
   assertKeysAreUnknown("request log filter mode", (key) => ({
     rows: filterEntries(new URLSearchParams(`filter_method=${key}:GET`)),

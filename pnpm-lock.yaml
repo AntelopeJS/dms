@@ -468,7 +468,7 @@ importers:
   packages/dms/playground:
     dependencies:
       '@antelopejs/interface-api':
-        specifier: '>=0.2.0 <1.0.0'
+        specifier: '>=0.3.2 <0.4.0'
         version: 0.3.2(@antelopejs/interface-core@0.4.0)
       '@antelopejs/interface-api-util':
         specifier: '>=0.3.0 <1.0.0'

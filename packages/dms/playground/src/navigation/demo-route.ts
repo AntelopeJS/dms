@@ -5,6 +5,7 @@ import {
   Parameter,
   Post,
   type RequestContext,
+  type QueryValue,
 } from "@antelopejs/interface-api";
 import type {
   BannerContent,
@@ -44,7 +45,7 @@ export class NavigationDemoController extends Controller(NAVIGATION_DEMO_API) {
   @Get("redirected")
   redirected(
     @AuthUser() _user: User,
-    @Parameter("missing", "query") missing: string | undefined,
+    @Parameter("missing", "query") missing: QueryValue,
   ): BannerContent {
     if (!missing) return {};
     return {

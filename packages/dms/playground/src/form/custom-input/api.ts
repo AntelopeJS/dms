@@ -1,4 +1,9 @@
-import { Get, Parameter, PartialController } from "@antelopejs/interface-api";
+import {
+  Get,
+  Parameter,
+  PartialController,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { serializeConfirmDialog } from "@antelopejs/interface-dms/base/confirm-dialog";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
@@ -23,7 +28,7 @@ export class FormCustomInputAPIController extends PartialController(
   declare user: User;
 
   @Get("lower-retention")
-  lowerRetention(@Parameter("days", "query") days?: string) {
+  lowerRetention(@Parameter("days", "query") days: QueryValue) {
     return serializeConfirmDialog({
       title: "Delete history older than {days} days?",
       description: "Older entries are deleted at the next save. Type delete.",

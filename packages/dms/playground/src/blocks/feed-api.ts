@@ -5,12 +5,14 @@ import {
   Parameter,
   Post,
   Put,
+  type QueryValue,
 } from "@antelopejs/interface-api";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound, serviceUnavailable } from "./demo-errors";
 import { ago, attentionEntries, workspaceActivity } from "./feed-data";
 import { ownEntry } from "../own-entry";
+import { queryText } from "../query-text";
 
 const DEMO_LATENCY_MS = 700;
 
@@ -95,19 +97,20 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
   }
 
   @Get("attention")
-  getAttention(@Parameter("preset", "query") preset?: string) {
+  getAttention(@Parameter("preset", "query") preset: QueryValue) {
     return later({
       items: attentionEntries(),
-      count: ownEntry(ATTENTION_COUNT_BY_PERIOD, preset ?? ""),
+      count: ownEntry(ATTENTION_COUNT_BY_PERIOD, queryText(preset) ?? ""),
     });
   }
 
   @Get("quota")
-  getQuota(@Parameter("preset", "query") preset?: string) {
-    const isCurrentMonth = (preset ?? DEFAULT_PERIOD) === DEFAULT_PERIOD;
+  getQuota(@Parameter("preset", "query") preset: QueryValue) {
+    const isCurrentMonth =
+      (queryText(preset) ?? DEFAULT_PERIOD) === DEFAULT_PERIOD;
     const value = isCurrentMonth
       ? quotaUsedThisMonth
-      : (ownEntry(QUOTA_BY_PERIOD, preset ?? "") ?? 0);
+      : (ownEntry(QUOTA_BY_PERIOD, queryText(preset) ?? "") ?? 0);
     return later({ value });
   }
 

@@ -1,4 +1,9 @@
-import { Controller, Parameter, Post } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Parameter,
+  Post,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import {
   DataController,
   RegisterDataController,
@@ -32,6 +37,7 @@ import {
   CellAccountModel,
   type InvoiceState,
 } from "./database";
+import { queryText } from "../../query-text";
 
 /** A team of an account, as the "Teams" pills read it (`labelKey`). */
 interface TeamRow {
@@ -445,10 +451,10 @@ export class cellAccountDataAPI extends DataController(
   /** Makes the caller the account's owner: its identity cell then says "You". */
   @Post("assign-to-me")
   async assignToMe(
-    @Parameter("id", "query") id: string,
+    @Parameter("id", "query") id: QueryValue,
     @AuthUser() user: User,
   ): Promise<{ ok: boolean }> {
-    await this.model.update(id, { ownerId: user._id });
+    await this.model.update(queryText(id) ?? "", { ownerId: user._id });
     return { ok: true };
   }
 }
