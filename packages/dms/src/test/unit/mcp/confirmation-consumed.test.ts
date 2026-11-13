@@ -41,7 +41,7 @@ const CodeBlockSchema = z.object({ code: z.string() });
 interface Scenario {
   preview: OpResult<MapResourcesPreview>;
   map: () => Promise<OpResult<MapResourcesResult>>;
-  dryRun: OpResult<ProjectConfigResult>;
+  dryRun: () => Promise<OpResult<ProjectConfigResult>>;
   configure: () => Promise<OpResult<ProjectConfigResult>>;
 }
 
@@ -53,7 +53,7 @@ function defaultScenario(): Scenario {
   return {
     preview: succeeded({ pagesToRemove: ["/erp/countries"] }),
     map: async () => succeeded({ resources: [], leftOut: [] }),
-    dryRun: succeeded({ files: ["antelope.config.ts"] }),
+    dryRun: async () => succeeded({ files: ["antelope.config.ts"] }),
     configure: async () => succeeded({ files: ["antelope.config.ts"] }),
   };
 }
@@ -92,7 +92,7 @@ describe("[unit] a held MCP tool marks a failure after the confirmation gate", (
       ConfigureProject: async (
         _steps: Builder.ProjectConfigStep[],
         opts?: Builder.ProjectConfigOpts,
-      ) => (opts?.dryRun === true ? scenario.dryRun : scenario.configure()),
+      ) => (opts?.dryRun === true ? scenario.dryRun() : scenario.configure()),
     };
     ImplementInterface(Builder, {
       ...implementation,
@@ -121,6 +121,7 @@ describe("[unit] a held MCP tool marks a failure after the confirmation gate", (
     const result = await confirmed(MAP, MAP_ARGS);
     expect(result.isError).to.equal(true);
     expect(result.content[0]?.text).to.equal(JSON.stringify(NOT_FOUND));
+    expect(result.content).to.have.length(2);
     expect(codeOf(result.content)).to.equal(CONFIRMATION_CONSUMED_CODE);
   });
 
@@ -133,6 +134,7 @@ describe("[unit] a held MCP tool marks a failure after the confirmation gate", (
     expect(result.content[0]?.text).to.equal(
       "builder_map_resources failed: disk full",
     );
+    expect(result.content).to.have.length(2);
     expect(codeOf(result.content)).to.equal(CONFIRMATION_CONSUMED_CODE);
   });
 
@@ -159,11 +161,12 @@ describe("[unit] a held MCP tool marks a failure after the confirmation gate", (
     const result = await confirmed(CONFIGURE, CONFIGURE_ARGS);
     expect(result.isError).to.equal(true);
     expect(result.content[0]?.text).to.equal(JSON.stringify(NOT_FOUND));
+    expect(result.content).to.have.length(2);
     expect(codeOf(result.content)).to.equal(CONFIRMATION_CONSUMED_CODE);
   });
 
   it("answers a builder_configure_project dry-run failure with no code block, and keeps no hold for it", async () => {
-    scenario.dryRun = NOT_FOUND;
+    scenario.dryRun = async () => NOT_FOUND;
     const result = await call(session, CONFIGURE, CONFIGURE_ARGS);
     expect(result.isError).to.equal(true);
     expect(result.content.map(({ text }) => text)).to.deep.equal([
@@ -172,6 +175,17 @@ describe("[unit] a held MCP tool marks a failure after the confirmation gate", (
     scenario.dryRun = defaultScenario().dryRun;
     const next = await call(session, CONFIGURE, CONFIGURE_ARGS);
     expect(codeOf(next.content)).to.equal(CONFIRMATION_REQUIRED_CODE);
+  });
+
+  it("answers a builder_configure_project dry run that throws with the server's failure alone, since no hold was spent", async () => {
+    scenario.dryRun = async () => {
+      throw new Error("config unreadable");
+    };
+    const result = await call(session, CONFIGURE, CONFIGURE_ARGS);
+    expect(result.isError).to.equal(true);
+    expect(result.content.map(({ text }) => text)).to.deep.equal([
+      "builder_configure_project failed: config unreadable",
+    ]);
   });
 
   it("answers a confirmed builder_configure_project that writes with the builder's answer alone", async () => {
