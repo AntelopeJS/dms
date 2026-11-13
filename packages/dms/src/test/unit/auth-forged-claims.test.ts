@@ -10,7 +10,10 @@ import {
   validateTenantAssignmentToken,
   validateTwoFactorToken,
 } from "../../implementations/dms-auth";
-import { generateSecret } from "../../implementations/dms-auth/services";
+import {
+  generateSecret,
+  validateSessionHandoffToken,
+} from "../../implementations/dms-auth/services";
 
 const TENANT_ID = "forged-claims-tenant";
 const HTTP_UNAUTHORIZED = 401;
@@ -99,16 +102,27 @@ describe("[unit] auth forged claims", () => {
     }
   });
 
-  it("refuses a malformed two-factor or tenant-assignment token with its 401", async () => {
-    const [twoFactor, assignment] = await Promise.all([
+  it("refuses a malformed two-factor, tenant-assignment or session-handoff token with its 401", async () => {
+    const [twoFactor, assignment, handoff] = await Promise.all([
       refusalOf(() => validateTwoFactorToken(MALFORMED_PAYLOAD_TOKEN)),
       refusalOf(() => validateTenantAssignmentToken(MALFORMED_PAYLOAD_TOKEN)),
+      refusalOf(() => validateSessionHandoffToken(MALFORMED_PAYLOAD_TOKEN)),
     ]);
     expect(twoFactor).to.deep.equal({
       status: HTTP_UNAUTHORIZED,
       body: "error.invalid_2fa_token",
     });
     expect(assignment.status).to.equal(HTTP_UNAUTHORIZED);
+    expect(handoff).to.deep.equal({
+      status: HTTP_UNAUTHORIZED,
+      body: "error.invalid_token",
+    });
+  });
+
+  it("reads a malformed bearer token on an IfAuthUser route as anonymous", () => {
+    expect(internal.IfAuthUserAuthenticator(MALFORMED_PAYLOAD_TOKEN)).to.equal(
+      undefined,
+    );
   });
 
   it("answers every refresh token it refuses before trusting its claims the same 401", async () => {
