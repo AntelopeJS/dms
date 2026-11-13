@@ -14,6 +14,7 @@ import {
   restoreModelMethods,
 } from "./model-methods-keep";
 import { catalogOf } from "./catalog-connection";
+import { writableMappingRefusal } from "./connection-access";
 import { type DisplayDefaults, displayDefaultsOf } from "./display-defaults";
 import { ensureNamedImport } from "./emit";
 import { planMapping } from "./map-resources-batch";
@@ -291,6 +292,10 @@ function planned(
   descriptions: RelationDescription[],
   defaults: ReadonlyMap<string, DisplayDefaults>,
 ): MappingPlan | OpResult<MapResourcesResult> {
+  const readOnly = writableMappingRefusal(input);
+  if (readOnly) {
+    return invalidConfig<MapResourcesResult>(readOnly);
+  }
   const module = targetModule(input.module);
   if (!module || module.isProject) {
     return invalidConfig<MapResourcesResult>(

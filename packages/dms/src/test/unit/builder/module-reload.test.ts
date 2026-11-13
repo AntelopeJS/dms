@@ -9,7 +9,13 @@ import {
   watchModuleReload,
 } from "../../../implementations/dms-builder/engine";
 import { createFixture, destroyFixture, expectOk } from "./harness";
-import { FAKE_CATALOG, INPUT, MODULE, OP_TIMEOUT } from "./mapped-database";
+import {
+  ERP_WRITES,
+  FAKE_CATALOG,
+  INPUT,
+  MODULE,
+  OP_TIMEOUT,
+} from "./mapped-database";
 
 const SHORT_WAIT_MS = 50;
 const OTHER_MODULE = "dms";
@@ -122,7 +128,7 @@ describe("MapResources and the reload of its module", function () {
   }
 
   before(() => {
-    createFixture({ modules: [MODULE] });
+    createFixture({ modules: [MODULE], connectionAccess: ERP_WRITES });
     setCatalogConnectionsForTests({ erp: FAKE_CATALOG });
     setModuleReloadForTests(recording);
   });

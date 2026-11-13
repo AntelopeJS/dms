@@ -141,7 +141,9 @@ const MAPPED_RESOURCE = z.object({
     .describe("False for a stats-only relation; forced false without a key."),
   writable: z
     .boolean()
-    .describe("False serves the TableView without new, edit and delete."),
+    .describe(
+      "False serves the TableView without new, edit and delete. True is refused while the connection's access is `read`.",
+    ),
   fields: z.array(MAPPED_FIELD),
   tabs: z
     .object({ column: z.string() })
@@ -219,7 +221,7 @@ const mapResources = defineTool({
   name: "builder_map_resources",
   title: "Map resources",
   description:
-    "Maps relations of a connected database into a project module bound to it (created with builder_configure_project): table classes and models with the database's names verbatim, DataAPI controllers and one TableView page per relation that has a key. Only your choices are sent: the Builder reads the relations' descriptions from its own catalog connection and checks every choice against them. A relation mapped before is rewritten from the new choices, its page created, kept or removed; a mapping that would remove a page asks the person first, listing it, and a denial writes nothing, and a page that appeared after the person approved is never removed: that write is refused, so call again to ask. `excluded` records relations decided against, so the next analysis does not propose them. Answers what was written and `leftOut`: columns a TableView cannot show, with why.",
+    "Maps relations of a connected database into a project module bound to it (created with builder_configure_project): table classes and models with the database's names verbatim, DataAPI controllers and one TableView page per relation that has a key. Only your choices are sent: the Builder reads the relations' descriptions from its own catalog connection and checks every choice against them. A relation mapped before is rewritten from the new choices, its page created, kept or removed; a mapping that would remove a page asks the person first, listing it, and a denial writes nothing, and a page that appeared after the person approved is never removed: that write is refused, so call again to ask. `excluded` records relations decided against, so the next analysis does not propose them. A connection is read-only unless the dms-database entry of antelope.config.ts sets `config.externalConnections.<id>.access` to `read-write`: on a read-only one, a `writable: true` resource is refused, and so is a ResourceForm that creates or edits its rows. Only a person changes the access. Answers what was written and `leftOut`: columns a TableView cannot show, with why.",
   effect: "builder",
   input: z.object({
     module: BOUND_MODULE,

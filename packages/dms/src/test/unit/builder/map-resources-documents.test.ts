@@ -108,7 +108,10 @@ describe("mapping a document source, whose key may be _id itself", function () {
   let result: Awaited<ReturnType<typeof MapResources>>;
 
   before(async () => {
-    app = createFixture({ modules: [MODULE] });
+    app = createFixture({
+      modules: [MODULE],
+      connectionAccess: { docs: "read-write" },
+    });
     setCatalogConnectionsForTests({ docs: CATALOG });
     setModuleReloadForTests(reloadedAtOnce);
     result = await MapResources({

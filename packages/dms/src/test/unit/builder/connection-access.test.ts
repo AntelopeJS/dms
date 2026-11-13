@@ -1,0 +1,227 @@
+import { ImplementInterface } from "@antelopejs/interface-core";
+import * as Builder from "@antelopejs/interface-dms-builder";
+import { expect } from "chai";
+import { z } from "zod";
+import * as implementation from "../../../implementations/dms-builder";
+import type {
+  MapResourcesInput,
+  OpResult,
+} from "@antelopejs/interface-dms-builder";
+import {
+  AddBlock,
+  ConfigureBlock,
+  GetPageStructure,
+  ListPages,
+  MapResources,
+  PreviewMapResources,
+} from "../../../implementations/dms-builder";
+import {
+  setCatalogConnectionsForTests,
+  setModuleReloadForTests,
+} from "../../../implementations/dms-builder/engine";
+import {
+  createFixture,
+  destroyFixture,
+  expectOk,
+  type Fixture,
+  setConnectionAccess,
+} from "./harness";
+import { FAKE_CATALOG, MODULE, OP_TIMEOUT } from "./mapped-database";
+import { reloadedAtOnce } from "./reload-stub";
+import { answerMcpMessage } from "../../../mcp/protocol";
+import { MCP_TOOLS } from "../../../mcp/tools";
+
+const ToolAnswerSchema = z.object({
+  result: z.object({
+    content: z.array(z.object({ text: z.string() })),
+    isError: z.boolean().optional(),
+  }),
+});
+
+const RefusalSchema = z.object({
+  ok: z.literal(false),
+  error: z.object({
+    code: z.string(),
+    issues: z.array(z.object({ message: z.string() })),
+  }),
+});
+
+const COUNTRIES = "erp/sales/countries";
+const COUNTRIES_API = "sales/countries/data-api.ts";
+const READ_ONLY = 'connection "erp" is read-only';
+
+function countries(writable: boolean) {
+  return {
+    module: MODULE,
+    connection: "erp",
+    resources: [
+      {
+        relation: "sales.countries",
+        label: "name",
+        tableView: true,
+        writable,
+        fields: [{ column: "name" }],
+      },
+    ],
+  } satisfies MapResourcesInput;
+}
+
+/** The message of an `invalid_config` refusal, or a failure naming what came back instead. */
+function refusalOf(result: OpResult<unknown>): string {
+  if (result.ok || result.error.code !== "invalid_config") {
+    throw new Error(`expected invalid_config, got ${JSON.stringify(result)}`);
+  }
+  return result.error.issues.map(({ message }) => message).join("\n");
+}
+
+async function countriesPage(): Promise<string> {
+  const page = (await ListPages()).find(({ id }) => id === "sales-countries");
+  if (!page) {
+    throw new Error("the countries page was not mapped");
+  }
+  return page.ref;
+}
+
+async function formMode(page: string, name: string) {
+  const structure = expectOk(await GetPageStructure(page), "GetPageStructure");
+  return structure.blocks.find((block) => block.name === name)?.config?.mode;
+}
+
+function form(page: string, name: string, mode: "new" | "edit" | "view") {
+  return AddBlock({
+    page,
+    name,
+    type: "ResourceForm",
+    controller: COUNTRIES,
+    config: { mode },
+  });
+}
+
+describe("[unit] builder writes on an external connection follow its access", function () {
+  this.timeout(OP_TIMEOUT);
+
+  let app: Fixture;
+  const moduleFile = (relative: string) =>
+    app.read(`../modules/${MODULE}/src/${relative}`);
+
+  before(() => {
+    app = createFixture({ modules: [MODULE] });
+    setCatalogConnectionsForTests({ erp: FAKE_CATALOG });
+    setModuleReloadForTests(reloadedAtOnce);
+  });
+
+  after(() => {
+    setCatalogConnectionsForTests();
+    setModuleReloadForTests();
+    destroyFixture();
+  });
+
+  describe("mapping a relation", () => {
+    it("refuses write routes on a connection dms-database does not register, saying how to allow them", async () => {
+      for (const result of [
+        await PreviewMapResources(countries(true)),
+        await MapResources(countries(true)),
+      ]) {
+        const message = refusalOf(result);
+        expect(message).to.include(READ_ONLY);
+        expect(message).to.include("sales.countries");
+        expect(message).to.include("config.externalConnections.erp.access");
+        expect(message).to.include("Read & write");
+        expect(message).to.include("`writable: false`");
+      }
+      expect(app.exists(`../modules/${MODULE}/src/${COUNTRIES_API}`)).to.equal(
+        false,
+      );
+    });
+
+    it("maps read-only on a read connection, serving no write route", async () => {
+      setConnectionAccess({ erp: "read" });
+      expectOk(await MapResources(countries(false)), "read-only mapping");
+      expect(moduleFile(COUNTRIES_API)).to.not.include("TableViewRoutes.All");
+    });
+
+    it("refuses write routes while the access is read, and writes them once it is read-write", async () => {
+      setConnectionAccess({ erp: "read" });
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        READ_ONLY,
+      );
+      expect(moduleFile(COUNTRIES_API)).to.not.include("TableViewRoutes.All");
+
+      setConnectionAccess({ erp: "read-write" });
+      expectOk(await MapResources(countries(true)), "writable mapping");
+      expect(moduleFile(COUNTRIES_API)).to.include("TableViewRoutes.All");
+    });
+  });
+
+  describe("through the MCP server", () => {
+    before(() => {
+      ImplementInterface(Builder, implementation);
+    });
+
+    async function callTool(name: string, args: ReturnType<typeof countries>) {
+      const reply = await answerMcpMessage(
+        { access: "safe", tools: MCP_TOOLS },
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name, arguments: args },
+        },
+      );
+      return ToolAnswerSchema.parse(reply).result;
+    }
+
+    it("answers builder_map_resources with the refusal on a read connection, and maps once it is read-write", async () => {
+      setConnectionAccess({ erp: "read" });
+      const refused = await callTool("builder_map_resources", countries(true));
+      expect(refused.isError).to.equal(true);
+      const { error } = RefusalSchema.parse(
+        JSON.parse(refused.content[0]?.text ?? "null"),
+      );
+      expect(error.code).to.equal("invalid_config");
+      expect(error.issues[0]?.message).to.include(READ_ONLY);
+
+      setConnectionAccess({ erp: "read-write" });
+      const mapped = await callTool("builder_map_resources", countries(true));
+      expect(mapped.isError, mapped.content[0]?.text).to.equal(undefined);
+    });
+  });
+
+  describe("a form over a mapped table", () => {
+    let page: string;
+
+    before(async () => {
+      setConnectionAccess({ erp: "read-write" });
+      expectOk(await MapResources(countries(true)), "writable mapping");
+      page = await countriesPage();
+      setConnectionAccess({ erp: "read" });
+    });
+
+    it("is refused when it creates or edits rows on a read connection, and added when it only shows one", async () => {
+      expect(refusalOf(await form(page, "createForm", "new"))).to.include(
+        `refused to add a form that creates rows of "${COUNTRIES}": ${READ_ONLY}`,
+      );
+      expect(refusalOf(await form(page, "editForm", "edit"))).to.include(
+        `refused to add a form that edits rows of "${COUNTRIES}": ${READ_ONLY}`,
+      );
+      expectOk(await form(page, "showForm", "view"), "a form that shows a row");
+    });
+
+    it("is refused, and left as it was, when a patch turns it into one that edits rows", async () => {
+      expect(
+        refusalOf(await ConfigureBlock(`${page}#showForm`, { mode: "edit" })),
+      ).to.include(READ_ONLY);
+      expect(await formMode(page, "showForm")).to.equal("view");
+    });
+
+    it("is added once the connection is read-write", async () => {
+      setConnectionAccess({ erp: "read-write" });
+      expectOk(await form(page, "createForm", "new"), "a form that creates");
+      expectOk(
+        await ConfigureBlock(`${page}#showForm`, { mode: "edit" }),
+        "a form turned into one that edits",
+      );
+      expect(await formMode(page, "showForm")).to.equal("edit");
+    });
+  });
+});
