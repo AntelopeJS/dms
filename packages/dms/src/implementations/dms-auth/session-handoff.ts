@@ -2,8 +2,8 @@ import type { KeyObject } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { decode, sign, verify } from "jsonwebtoken";
-import { isJwtClaims } from "../../utils";
+import { sign, verify } from "jsonwebtoken";
+import { decodeUnverified, isJwtClaims } from "../../utils";
 import { generateSecret } from "./token-secret";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
@@ -58,7 +58,7 @@ function readClaims(token: string, secret: KeyObject) {
 export async function validateSessionHandoffToken(
   token: string,
 ): Promise<SessionHandoffClaims> {
-  const unverified = decode(token);
+  const unverified = decodeUnverified(token);
   if (!isJwtClaims(unverified) || !isString(unverified.id)) refuse();
   const user = await GetModel(UserModel).get(unverified.id);
   if (!user) refuse();
