@@ -9,7 +9,13 @@ import {
   SPEC_FILE,
   writeAtomically,
 } from "./files";
-import type { Json, JsonObject, MockupIssue, MockupName } from "./model";
+import type {
+  Json,
+  JsonObject,
+  MockupIssue,
+  MockupName,
+  MockupSpec,
+} from "./model";
 import { jsonObjectSchema } from "./model";
 
 const JSON_INDENT = 2;
@@ -130,7 +136,7 @@ function writeNow(mockupsDir: string, name: MockupName): SpecWriter {
 export function writeSpec(
   mockupsDir: string,
   name: MockupName,
-  spec: Json,
+  spec: Json | MockupSpec,
 ): Promise<SpecWriteResult> {
   return withSpecLock(mockupsDir, name, (write) => write(spec));
 }
