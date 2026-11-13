@@ -398,7 +398,11 @@ export namespace TableViewRoutes {
     ),
   );
 
-  export const ExportRoutes = {
+  export const ExportRoutes: Record<
+    string,
+    DataControllerCallback | DataControllerCallbackWithOptions
+    // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published export is an open callback dictionary; inference or satisfies would expose narrower named route members and change its declaration.
+  > = {
     exportStart: DefaultRoutes.WithOptions(
       {
         func: async function (
@@ -465,10 +469,7 @@ export namespace TableViewRoutes {
         method: "get",
       },
     }),
-  } satisfies Record<
-    string,
-    DataControllerCallback | DataControllerCallbackWithOptions
-  >;
+  };
 
   export const All = {
     get: Get,
