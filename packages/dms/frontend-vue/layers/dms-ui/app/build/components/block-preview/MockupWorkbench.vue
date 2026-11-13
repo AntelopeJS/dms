@@ -335,6 +335,14 @@ const stageStyle = computed(() => ({
       :title="t(`dms.mockup.${comments.notice.value}`)"
     />
     <UAlert
+      v-if="editor.hasFailed.value"
+      color="error"
+      variant="subtle"
+      icon="i-ph-warning-circle"
+      :title="t('dms.mockup.save_retrying')"
+      data-dms-mockup-save-retrying
+    />
+    <UAlert
       v-if="hasRequestFailed"
       color="error"
       variant="subtle"

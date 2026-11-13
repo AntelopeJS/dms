@@ -148,6 +148,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
   }
 
   function selectPath(layoutPath: string): void {
+    if (editor.isPending.value) return;
     const page = options.page.value;
     selection.value = page ? specPointerFor(page, layoutPath) : undefined;
   }
@@ -219,6 +220,7 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
   }
 
   function openText(message: PreviewTextMessage): void {
+    if (editor.isPending.value) return;
     const page = options.page.value;
     const pointer = page ? specPointerFor(page, message.path) : undefined;
     const node =

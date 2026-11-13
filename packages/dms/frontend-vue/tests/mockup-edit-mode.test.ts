@@ -261,3 +261,23 @@ describe("edit mode", () => {
     ]);
   });
 });
+
+describe("a write still pending", () => {
+  it("ignores a click on the preview, whose paths are those of the spec before the edit (fails when the click selects the block that sat there)", async () => {
+    await pick("block-0");
+    runtime.authFetch.mockImplementationOnce(async () => {
+      throw Object.assign(new Error("boom"), { status: 500 });
+    });
+    await click("[data-dms-mockup-move-down]");
+    await new Promise((resolve) =>
+      setTimeout(resolve, MOCKUP_WRITE_DELAY_MS + 50),
+    );
+    await flush();
+
+    await viewer.say({ type: "select", path: "block-0" });
+
+    const field = find("[data-dms-mockup-field=title] input");
+    expect(field).toBeInstanceOf(HTMLInputElement);
+    expect((field as HTMLInputElement).value).toBe("Revenue");
+  });
+});

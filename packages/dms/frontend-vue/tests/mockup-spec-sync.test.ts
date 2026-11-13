@@ -31,6 +31,8 @@ class FakeSpecFile {
   spec = initialSpec();
   version = 1;
   refuse: { path: string; message: string } | undefined;
+  /** How many of the next writes fail with a server error before one lands. */
+  failures = 0;
   readonly writes: Array<{ spec: MockupSpecDocument; digest?: string }> = [];
 
   get digest(): string {
@@ -53,6 +55,10 @@ class FakeSpecFile {
       if (url !== ENDPOINT) throw new Error(`unexpected ${url}`);
       if (init?.method !== "PUT" || !init.body) {
         return { spec: structuredClone(this.spec), digest: this.digest };
+      }
+      if (this.failures > 0) {
+        this.failures -= 1;
+        throw Object.assign(new Error("boom"), { status: 500 });
       }
       this.writes.push(structuredClone(init.body));
       if (init.body.digest !== this.digest) {
@@ -288,5 +294,57 @@ describe("a refused write", () => {
       },
     ]);
     expect(file.writes).toHaveLength(2);
+  });
+});
+
+describe("a write that fails", () => {
+  it("is retried after a short backoff until it lands, the notice staying until then (fails when a 500 leaves the edit unwritten)", async () => {
+    await mountEditor();
+    file.failures = 2;
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(titleOf(file.spec)).toBe("Revenue");
+    expect(editor.hasFailed.value).toBe(true);
+    await settle(10_000);
+    expect(titleOf(file.spec)).toBe("Mine");
+    expect(editor.hasFailed.value).toBe(false);
+    expect(notices.map((notice) => notice.kind)).toEqual(["failed"]);
+  });
+
+  it("is retried at the next stream state, without waiting for the backoff (fails when only a timer retries)", async () => {
+    await mountEditor();
+    file.failures = 1;
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(titleOf(file.spec)).toBe("Revenue");
+    await streamSaysTheFileChanged();
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(titleOf(file.spec)).toBe("Mine");
+  });
+
+  it("is retried with the next edit, which it carries (fails when the new edit waits behind the failed one)", async () => {
+    await mountEditor();
+    file.failures = 1;
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    retitle("Mine, again");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    expect(titleOf(file.spec)).toBe("Mine, again");
+    expect(editor.hasFailed.value).toBe(false);
+  });
+
+  it("gives way to a file another writer changed meanwhile, and the notice goes (fails when the retry overwrites the AI)", async () => {
+    await mountEditor();
+    file.failures = 1;
+    retitle("Mine");
+    await settle(MOCKUP_WRITE_DELAY_MS);
+    const theirs = initialSpec();
+    theirs.title = "From the AI";
+    file.writeFromOutside(theirs);
+    await streamSaysTheFileChanged();
+    await settle(10_000);
+    expect(file.spec).toEqual(theirs);
+    expect(editor.spec.value).toEqual(theirs);
+    expect(editor.hasFailed.value).toBe(false);
   });
 });

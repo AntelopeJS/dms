@@ -62,6 +62,13 @@ export interface MockupSpecEditor {
   spec: ComputedRef<MockupSpecDocument | undefined>;
   canUndo: ComputedRef<boolean>;
   canRedo: ComputedRef<boolean>;
+  /** Whether the last write failed and is being retried: true until one lands. */
+  hasFailed: ComputedRef<boolean>;
+  /**
+   * Whether the spec shown is not yet the one in the file. The paths of the
+   * compiled state belong to the file, so they do not name its nodes.
+   */
+  isPending: ComputedRef<boolean>;
   /**
    * Applies `edit` and saves the result; undefined when the spec is not read
    * yet or the edit changes nothing. Consecutive edits with the same
@@ -77,6 +84,12 @@ export interface MockupSpecEditor {
 
 /** How long the editor waits after an edit before it writes: one write per burst of typing. */
 export const MOCKUP_WRITE_DELAY_MS = 150;
+
+/** How long the editor waits before it retries a failed write, doubling after each failure. */
+export const MOCKUP_RETRY_DELAY_MS = 500;
+
+/** The longest wait between two retries of a failed write. */
+export const MOCKUP_RETRY_MAX_DELAY_MS = 8000;
 
 const HTTP_CONFLICT = 409;
 
@@ -133,14 +146,19 @@ function sameSpec(
  * else (the AI) wrote since is never overwritten: the editor takes that file
  * instead, starts its history over and says so. A write the backend refuses
  * takes the editor back to the last spec it wrote, with the history steps and
- * the later edits that refusal undoes dropped.
+ * the later edits that refusal undoes dropped. A write that fails otherwise
+ * is retried, after a growing delay, at the next stream state or with the next
+ * edit, whichever comes first, until it lands.
  */
 export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   const endpoint = mockupEndpoint(options.name, "/spec");
   const history = shallowRef<MockupHistory<MockupSpecDocument>>();
+  const written = shallowRef<MockupSpecDocument>();
+  const hasFailed = shallowRef(false);
   let digest: string | undefined;
-  let written: MockupSpecDocument | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let retryTimer: ReturnType<typeof setTimeout> | undefined;
+  let failures = 0;
   let isWriting = false;
   let isCheckDue = false;
   let isClosed = false;
@@ -154,9 +172,23 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     }
   }
 
+  function stopTimers(): void {
+    if (timer !== undefined) clearTimeout(timer);
+    if (retryTimer !== undefined) clearTimeout(retryTimer);
+    timer = undefined;
+    retryTimer = undefined;
+  }
+
+  function landed(): void {
+    failures = 0;
+    hasFailed.value = false;
+  }
+
   function adopt(source: SpecSource, isNews: boolean): void {
+    stopTimers();
+    landed();
     digest = source.digest;
-    written = source.spec;
+    written.value = source.spec;
     history.value = reset(source.spec);
     if (isNews) options.onNotice({ kind: "adopted" });
   }
@@ -172,14 +204,20 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     }
     const source = await read();
     const present = history.value?.present;
-    if (!source || isClosed || source.digest === digest) return;
+    if (!source || isClosed) return;
+    if (source.digest === digest) {
+      if (!isBusy() && present !== written.value) void write();
+      return;
+    }
     if (isBusy()) {
       isCheckDue = true;
       return;
     }
     if (present && sameSpec(source.spec, present)) {
       digest = source.digest;
-      written = present;
+      written.value = present;
+      stopTimers();
+      landed();
       return;
     }
     adopt(source, present !== undefined);
@@ -188,15 +226,30 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   function revert(issue: MockupIssue, sent: MockupSpecDocument): void {
     const current = history.value;
     const discarded = !!current && current.present !== sent;
-    if (current && written) history.value = revertTo(current, written);
-    if (timer !== undefined) clearTimeout(timer);
-    timer = undefined;
+    if (current && written.value) {
+      history.value = revertTo(current, written.value);
+    }
+    stopTimers();
+    landed();
     options.onNotice({ kind: "refused", issue, discarded });
+  }
+
+  function retryLater(): void {
+    if (isClosed) return;
+    if (retryTimer !== undefined) clearTimeout(retryTimer);
+    const delay = Math.min(
+      MOCKUP_RETRY_DELAY_MS * 2 ** failures,
+      MOCKUP_RETRY_MAX_DELAY_MS,
+    );
+    failures += 1;
+    retryTimer = setTimeout(() => void write(), delay);
   }
 
   async function onWriteError(error: unknown): Promise<void> {
     if (statusOf(error) !== HTTP_CONFLICT) {
-      options.onNotice({ kind: "failed", error });
+      if (!hasFailed.value) options.onNotice({ kind: "failed", error });
+      hasFailed.value = true;
+      retryLater();
       return;
     }
     const source = await read();
@@ -205,8 +258,10 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
 
   async function write(): Promise<void> {
     timer = undefined;
+    if (retryTimer !== undefined) clearTimeout(retryTimer);
+    retryTimer = undefined;
     const spec = history.value?.present;
-    if (!spec || spec === written || isWriting || isClosed) return;
+    if (!spec || spec === written.value || isWriting || isClosed) return;
     isWriting = true;
     try {
       const answer = parseWriteAnswer(
@@ -217,7 +272,8 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
       );
       if (answer?.ok) {
         digest = answer.digest;
-        written = spec;
+        written.value = spec;
+        landed();
       } else if (answer) {
         revert(answer.issue, spec);
       }
@@ -227,7 +283,7 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
       isWriting = false;
     }
     const present = history.value?.present;
-    if (present !== spec && present !== written) schedule();
+    if (present !== spec && present !== written.value) schedule();
     else if (isCheckDue && !isClosed) {
       isCheckDue = false;
       void check();
@@ -267,10 +323,9 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     () => void check(),
   );
   onBeforeUnmount(() => {
-    if (timer !== undefined) {
-      clearTimeout(timer);
-      void write();
-    }
+    const isDue = timer !== undefined || retryTimer !== undefined;
+    stopTimers();
+    if (isDue) void write();
     isClosed = true;
   });
 
@@ -278,6 +333,10 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     spec: computed(() => history.value?.present),
     canUndo: computed(() => !!history.value?.past.length),
     canRedo: computed(() => !!history.value?.future.length),
+    hasFailed: computed(() => hasFailed.value),
+    isPending: computed(
+      () => !!history.value && history.value.present !== written.value,
+    ),
     apply,
     undo: () => {
       if (history.value) move(undo(history.value));
