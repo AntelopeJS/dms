@@ -6,6 +6,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { Form } from "../../form-schema";
 import { HttpMethod } from "../../types";
+import { installedTableViewMeta } from "./table-view-meta-slot";
 
 /** @internal The select endpoint of a related controller, read from its own route. */
 export function selectUrl(controller: ControllerClass) {
@@ -17,9 +18,9 @@ export function selectUrl(controller: ControllerClass) {
 /** @internal The form that adds a row to a related controller, when it has one. */
 export function relationAddOptions(controller: ControllerClass) {
   if (!GetMetadata(controller, DataAPIMeta).endpoints.new) return undefined;
-  // oxlint-disable-next-line typescript/no-unsafe-assignment -- Node types require() as any, and this lazy require breaks the import cycle table-view/meta to the data-types barrel to the default types to relations to relation-endpoints.
-  const tableViews: typeof import("../../table-view/meta") = require("../../table-view/meta");
-  const tableViewMeta = GetMetadata(controller, tableViews.TableViewMeta);
+  const tableViews = installedTableViewMeta();
+  if (!tableViews) return undefined;
+  const tableViewMeta = GetMetadata(controller, tableViews);
   const fields = tableViewMeta.getFormFields("new");
   if (fields.length === 0) return undefined;
   const { location } = GetMetadata(controller, ControllerMeta);

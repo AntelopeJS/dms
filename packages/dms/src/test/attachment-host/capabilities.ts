@@ -36,6 +36,7 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { Searchable } from "@antelopejs/interface-dms/base/searchable";
 import {
   Column,
+  Exported,
   resolveBulkRowIds,
   TableView,
   TableViewMeta,
@@ -90,6 +91,7 @@ export class CapabilityInvoiceController extends DataController(
 
   @Searchable()
   @Listable()
+  @Exported()
   @Sortable()
   @Column({
     name: "Number",
@@ -209,6 +211,7 @@ export class ScopedInvoiceController extends DataController(
   declare _id: string;
 
   @Listable()
+  @Exported()
   @Column({
     name: "Number",
     type: new DefaultDataTypes.StringType(),

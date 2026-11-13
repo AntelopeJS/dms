@@ -21,8 +21,8 @@ import { isString } from "../../utils/internal/type-check";
 import { decoratedClass } from "../../utils/internal/decorated-class";
 import type { ColumnDisplay } from "./column-display";
 import { buildTableConfig, decorateColumn } from "./internal/meta-helpers";
-// oxlint-disable-next-line import/no-cycle -- The barrel evaluates built-in data-type decorators; serializeType needs the registry they populate.
 import { DataType, serializeType } from "../data-types";
+import { installTableViewMeta } from "../data-types/internal/table-view-meta-slot";
 import {
   type FieldCondition,
   type FieldGroup,
@@ -164,6 +164,10 @@ const WRITE_ACTION_IDS = new Set([
 
 export class TableViewMeta {
   public static key = Symbol();
+
+  static {
+    installTableViewMeta(TableViewMeta);
+  }
 
   constructor(public readonly target: Class) {}
 
@@ -454,11 +458,11 @@ export class TableViewMeta {
     this.groups[id] = config;
   }
 
-  private readonly footerSummaries: TableViewFooterSummary<any>[] = [];
+  private readonly footerSummaries: TableViewFooterSummary[] = [];
 
   /** Records footer summaries; the ids the `summary` route knows them by. */
-  public registerFooterSummaries<T extends object>(
-    summaries: TableViewFooterSummary<T>[],
+  public registerFooterSummaries(
+    summaries: TableViewFooterSummary[],
   ): string[] {
     return summaries.map((summary) => {
       this.footerSummaries.push(summary);
@@ -467,7 +471,7 @@ export class TableViewMeta {
   }
 
   /** A footer summary by the id `registerFooterSummaries` gave it. */
-  public footerSummary(id: string): TableViewFooterSummary<any> | undefined {
+  public footerSummary(id: string): TableViewFooterSummary | undefined {
     return FOOTER_SUMMARY_ID.test(id)
       ? this.footerSummaries[Number(id)]
       : undefined;

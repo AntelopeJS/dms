@@ -6,8 +6,6 @@ import "../../utils/internal/value-parser";
 import "../../utils/internal/type-check";
 import "../../attachments";
 import "../form-schema";
-// oxlint-disable-next-line import/no-cycle -- Preserve the existing table metadata evaluation before built-in registration.
-import "../table-view/meta";
 import "../types";
 import "./core";
 import * as FieldTypes from "./field-types";
