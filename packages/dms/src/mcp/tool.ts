@@ -35,8 +35,13 @@ export interface McpTool {
   description: string;
   effect: McpToolEffect;
   inputSchema: McpInputSchema;
-  /** Parses the arguments against the tool's schema, then runs it. */
-  call(args: JsonValue): Promise<McpToolResult>;
+  /**
+   * Parses the arguments against the tool's schema, then runs it.
+   *
+   * @param sessionId The MCP session that made the call, as its bridge names
+   * it; `undefined` when the caller named none.
+   */
+  call(args: JsonValue, sessionId?: string): Promise<McpToolResult>;
 }
 
 /** The zod schema of each argument of a tool, keyed by argument name. */
@@ -49,7 +54,10 @@ export interface McpToolSpec<Fields extends McpInputFields> {
   description: string;
   effect: McpToolEffect;
   input: z.ZodObject<Fields>;
-  run(args: z.infer<z.ZodObject<Fields>>): Promise<McpToolResult>;
+  run(
+    args: z.infer<z.ZodObject<Fields>>,
+    sessionId: string | undefined,
+  ): Promise<McpToolResult>;
 }
 
 /** A text answer; `isError` marks a failure the agent should read and act on. */
@@ -95,10 +103,10 @@ export function defineTool<Fields extends McpInputFields>(
     description: spec.description,
     effect: spec.effect,
     inputSchema: inputSchemaOf(spec.input),
-    async call(args) {
+    async call(args, sessionId) {
       const parsed = spec.input.safeParse(args ?? {});
       if (!parsed.success) return textResult(issuesText(parsed.error), true);
-      return spec.run(parsed.data);
+      return spec.run(parsed.data, sessionId);
     },
   };
 }

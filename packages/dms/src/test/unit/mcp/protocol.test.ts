@@ -129,7 +129,7 @@ function request(id: number, method: string, params?: JsonValue): JsonValue {
 }
 
 async function answer(access: McpAccess, message: JsonValue) {
-  return answerMcpMessage({ access, tools: TOOLS }, message);
+  return answerMcpMessage({ access, tools: TOOLS }, message, "test-session");
 }
 
 async function listed(
@@ -139,6 +139,7 @@ async function listed(
   const reply = await answerMcpMessage(
     { access, tools },
     request(1, "tools/list"),
+    undefined,
   );
   return ListAnswerSchema.parse(reply).result.tools.map(({ name }) => name);
 }
@@ -285,6 +286,7 @@ function servesTheRealTools(): void {
     const reply = await answerMcpMessage(
       { access: "full", tools: MCP_TOOLS },
       request(1, "tools/list"),
+      undefined,
     );
     const compose = ListAnswerSchema.parse(reply).result.tools.find(
       ({ name }) => name === "builder_compose_page",

@@ -9,7 +9,7 @@ import { mock } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect } from "chai";
 import { z } from "zod";
-import { runBridge } from "../../../mcp/bridge";
+import { MCP_SESSION_HEADER, runBridge } from "../../../mcp/bridge";
 
 const WAIT_MS = 2_000;
 const POLL_MS = 10;
@@ -31,6 +31,7 @@ const FailureSchema = z.object({
 
 interface Received {
   authorization: string | undefined;
+  session: string | string[] | undefined;
   body: string;
 }
 
@@ -64,7 +65,11 @@ async function startBackend(
     request.on("data", (chunk: Buffer) => chunks.push(chunk));
     request.on("end", () => {
       const body = Buffer.concat(chunks).toString("utf8");
-      received.push({ authorization: request.headers.authorization, body });
+      received.push({
+        authorization: request.headers.authorization,
+        session: request.headers[MCP_SESSION_HEADER],
+        body,
+      });
       Promise.resolve(reply(body)).then(
         (answer) => {
           response.writeHead(answer.status);
@@ -175,6 +180,24 @@ function relaysMessages(): void {
       (line) => EchoAnswerSchema.parse(JSON.parse(line)).id,
     );
     expect(order).to.deep.equal([2, 1]);
+  });
+
+  it("names one session on every message of a bridge, and another one for each other bridge, so a hold stays with the client it refused", async () => {
+    const backend = await serve(echo);
+    input.write('{"jsonrpc":"2.0","id":1,"method":"initialize"}\n');
+    input.write('{"jsonrpc":"2.0","id":2,"method":"tools/call"}\n');
+    await until(() => lines().length === 2);
+    const other = new PassThrough();
+    runBridge(configPath, other, new PassThrough());
+    other.write('{"jsonrpc":"2.0","id":3,"method":"tools/call"}\n');
+    await until(() => backend.received.length === 3);
+    other.end();
+    const [first, second, third] = backend.received.map(
+      ({ session }) => session,
+    );
+    expect(first).to.be.a("string").and.not.equal("");
+    expect(second).to.equal(first);
+    expect(third).to.be.a("string").and.not.equal(first);
   });
 
   it("keeps a message whole when a string in it holds U+2028, which readline would split", async () => {
