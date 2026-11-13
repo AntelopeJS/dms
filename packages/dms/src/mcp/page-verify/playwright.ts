@@ -125,11 +125,16 @@ const LaunchableSchema = z.object({ launch: z.function() });
 type InstallBrowsers = (browsers: string[]) => Promise<false | undefined>;
 
 /** Playwright's registry module, holding the installer its `install` command runs. */
-export const BrowserInstallerSchema = z.object({
+const BrowserInstallerSchema = z.object({
   installBrowsersForNpmInstall: z.custom<InstallBrowsers>(
     (installer) => z.function().safeParse(installer).success,
   ),
 });
+
+/** Playwright's core bundle, parsed down to its browser installer. */
+export const CoreBundleSchema = z
+  .object({ registry: BrowserInstallerSchema })
+  .transform((bundle) => bundle.registry);
 
 /**
  * Reads the Chromium launcher of a loaded Playwright module. The launcher

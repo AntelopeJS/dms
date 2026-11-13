@@ -56,6 +56,11 @@ export interface DmsMenuItem extends NavigationMenuItem {
    * outside a preview.
    */
   previewState?: "hidden" | "partial";
+  /**
+   * Set by the sidebar on an entry a module locked through `useMenuLocks`:
+   * the reason it is closed. The entry is drawn muted and locked, with no link.
+   */
+  lockReason?: string;
 }
 
 /** The route a menu is highlighted against. */
