@@ -103,6 +103,32 @@ describe("[unit] mockup annotation anchors", () => {
     await edit({ op: "test", path: `${path}/options/${option}`, value });
   }
 
+  async function putPages(...trees: JsonValue[][]): Promise<void> {
+    const pages = trees.map((tree, index) => ({
+      id: `page-${index}`,
+      title: `Page ${index}`,
+      tree,
+    }));
+    const written = await answer(
+      write,
+      { mockup: NAME, spec: { version: 1, pages } },
+      writeAnswerSchema,
+    );
+    expect(written.errors).to.deep.equal([]);
+  }
+
+  function header(title: string): JsonValue {
+    return { id: "header", type: "KpiCard", options: { title } };
+  }
+
+  function headerRow(title: string): JsonValue {
+    return {
+      id: "header",
+      type: "GridRow",
+      children: [{ id: "title", type: "KpiCard", options: { title } }],
+    };
+  }
+
   it("keeps a note on its block after an insert before it (fails when the note stores a pointer)", async () => {
     await put(sketch("<p>a</p>"), sketch("<p>b</p>"));
     const id = await annotate("home", "/pages/0/tree/1");
@@ -234,6 +260,56 @@ describe("[unit] mockup annotation anchors", () => {
       { op: "test", path: "/pages/0/tree/2/children/0/id", value: "chart" },
       { op: "test", path: "/pages/0/tree/2/options/title", value: "Costs" },
     );
+  });
+
+  it("anchors a note on a page's root whose id another page's root shares on its own page, from the answer on (fails when it names the first block with that id in the spec)", async () => {
+    await putPages([header("One")], [header("Two")]);
+
+    const created = await createAnnotation(
+      MOCKUP,
+      { page: "page-1", path: "/pages/1/tree/0", text: "on two" },
+      directory(),
+    );
+    if (created.kind !== "created") throw new Error(created.kind);
+    await edit({
+      op: "add",
+      path: "/pages/1/tree/0",
+      value: sketch("<p>new</p>"),
+    });
+
+    expect(created.annotation).to.include({
+      page: "page-1",
+      path: "/pages/1/tree/0",
+    });
+    expect(await served(created.annotation.id)).to.include({ page: "page-1" });
+    await expectBlockAt(
+      created.annotation.id,
+      "/pages/1/tree/1",
+      "title",
+      "Two",
+    );
+  });
+
+  it("anchors a note on a child whose id is shared, under a root whose id is shared, on its own page (fails when the walk climbs to the first root with that id)", async () => {
+    await putPages([headerRow("One")], [headerRow("Two")]);
+
+    const id = await annotate("page-1", "/pages/1/tree/0/children/0");
+
+    expect(await served(id)).to.include({ page: "page-1" });
+    await expectBlockAt(id, "/pages/1/tree/0/children/0", "title", "Two");
+  });
+
+  it("names the first block with a shared id in the spec once the note's page is renamed (fails when the note loses a block that is still there)", async () => {
+    await putPages([header("One")], [header("Two")]);
+    const id = await annotate("page-1", "/pages/1/tree/0");
+
+    await edit(
+      { op: "remove", path: "/pages/0/tree/0" },
+      { op: "replace", path: "/pages/1/id", value: "renamed" },
+    );
+
+    expect(await served(id)).to.include({ page: "renamed" });
+    await expectBlockAt(id, "/pages/1/tree/0", "title", "Two");
   });
 
   it("migrates a version 1 file by stamping ids, and the notes then follow their blocks (fails when notes keep their pointers or are dropped)", async () => {
