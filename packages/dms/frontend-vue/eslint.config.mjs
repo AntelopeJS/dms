@@ -40,6 +40,7 @@ export default [
         },
       ],
       "vue/html-indent": "off",
+      "vue/attributes-order": "error",
       "vue/html-self-closing": ["error", { html: { void: "always" } }],
       "vue/max-attributes-per-line": "off",
       "vue/multi-word-component-names": "off",

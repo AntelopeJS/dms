@@ -39,7 +39,15 @@ export const BYPASS_TARGET_ACTION = "pages.dyn-bypass-target.settle";
 
 export const denyingGate = denyingTenantGate("dyn-gate", DENIED_TENANT);
 
-export async function resolveCategoryNode(user: User, tenantId: string) {
+/** A node of the site layout tree, as the page index builds it. */
+type SiteLayoutNode = Awaited<
+  ReturnType<typeof buildSiteLayoutPayload>
+>["siteLayoutTree"];
+
+export async function resolveCategoryNode(
+  user: User,
+  tenantId: string,
+): Promise<SiteLayoutNode | undefined> {
   const { memberModel, roleModel } = stubPageAccessModels([]);
   const payload = await buildSiteLayoutPayload(
     user,
