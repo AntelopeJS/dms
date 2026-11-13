@@ -210,6 +210,7 @@ export interface NavigationEntry extends Partial<
     | "module"
     | "category"
     | "isModuleRoot"
+    | "ownerOnly"
     | "bypassTenantAccessGate"
     | "layoutUrl"
   >

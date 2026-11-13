@@ -1,7 +1,7 @@
 /** @internal */
 import { UnregisterPermission } from "../../permissions";
-// oxlint-disable-next-line import/no-cycle -- The category proxies are used only when a page publishes, after metadata evaluation.
-import { internal, isInsideModule } from "../categories";
+// oxlint-disable-next-line import/no-cycle -- The category proxies and isOwnerOnly are used only when a page publishes, after metadata evaluation.
+import { internal, isOwnerOnly } from "../categories";
 import type { PageMetadata } from "../metadata";
 import type { PageInfo } from "../types";
 import {
@@ -48,7 +48,7 @@ export function publish(
     .registration()
     .track(() => internal.RegisterPage.unregister(pageInfo));
   context.configure(
-    isInsideModule(pageInfo),
+    isOwnerOnly(pageInfo),
     () =>
       pageInfo.noComponentPermissions === true || pageInfo.authOnly === true,
   );

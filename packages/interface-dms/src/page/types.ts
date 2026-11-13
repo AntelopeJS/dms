@@ -278,6 +278,13 @@ export interface MenuOptions {
   setupId?: string;
   noComponentPermissions?: boolean;
   /**
+   * Only platform owners reach the entry, as on a module page: no role can be
+   * granted it or its blocks, Roles does not list them, anyone else gets 403.
+   * Inherited under a category; wins over `publicAccess`, `authOnly` and
+   * `memberAccess`.
+   */
+  ownerOnly?: boolean;
+  /**
    * Query parameters carried by the entry's menu link, so a single page with
    * `validation.requiredQueryParams` can serve many entries
    * (e.g. `/project?project=<id>`).

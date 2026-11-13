@@ -1,7 +1,7 @@
 {
   "name": "@antelopejs/dms",
-  "version": "0.19.5",
-  "description": "AntelopeJS DMS. Plug in your PostgreSQL, MongoDB or RethinkDB database and your coding agent builds a back office and analytics dashboard as typed TypeScript. Real-time updates on the data the DMS manages.",
+  "version": "0.19.6",
+  "description": "AntelopeJS DMS. Plug in your PostgreSQL, MySQL, MariaDB, MongoDB or RethinkDB database and your coding agent builds a back office and analytics dashboard as typed TypeScript. Real-time updates on the data the DMS manages.",
   "keywords": [
     "antelopejs",
     "dms",
@@ -66,15 +66,18 @@
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.2.0",
   "scripts": {
-    "build": "pnpm --filter @antelopejs/interface-dms build && rimraf dist && tsc && tsc-alias",
+    "build": "pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder build && rimraf dist && tsc && tsc-alias",
     "dev": "ajs project run --inspect -w -p playground",
     "frontend:dev": "pnpm --dir playground frontend:dev",
     "frontend:build": "pnpm --dir playground frontend:build",
     "frontend:start": "pnpm --dir playground frontend:start",
-    "typecheck": "node scripts/unless-prebuilt.mjs pnpm --filter @antelopejs/interface-dms exec tsc && tsc --noEmit",
+    "typecheck": "node scripts/unless-prebuilt.mjs pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder exec tsc && tsc --noEmit",
     "test": "node scripts/unless-prebuilt.mjs pnpm run build && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
-    "test:unit": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/backend-checks.cjs && node scripts/backend-checks.test.mjs && node scripts/docs-scripts.test.mjs && node scripts/json-record.test.mjs && DMS_TEST_DIR=dist/test/unit NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
+    "test:unit": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/backend-checks.cjs && node scripts/backend-checks.test.mjs && node scripts/docs-scripts.test.mjs && node scripts/json-record.test.mjs && node scripts/test-files.test.mjs && DMS_TEST_DIR=dist/test/unit NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test . $(node scripts/test-files.mjs dist/test/unit dist/test/unit/builder)",
     "test:integration": "node scripts/unless-prebuilt.mjs pnpm run build && DMS_TEST_DIR=dist/test/integration NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
+    "test:builder": "node scripts/unless-prebuilt.mjs pnpm run build && DMS_TEST_DIR=dist/test/unit/builder NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test .",
+    "test:builder:1": "node scripts/unless-prebuilt.mjs pnpm run build && DMS_TEST_DIR=dist/test/unit/builder NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test . $(node scripts/test-files.mjs dist/test/unit/builder --shard=1/2)",
+    "test:builder:2": "node scripts/unless-prebuilt.mjs pnpm run build && DMS_TEST_DIR=dist/test/unit/builder NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--require=\\\"$PWD/scripts/backend-runtime-boundaries.cjs\\\"\" ajs module test . $(node scripts/test-files.mjs dist/test/unit/builder --shard=2/2)",
     "test:watch": "tsc -w & tsc-alias -w",
     "release": "pnpm --filter @antelopejs/interface-dms build && pnpm --dir frontend-vue install --frozen-lockfile && release-it",
     "prepack": "pnpm run build",
@@ -82,6 +85,8 @@
     "knip:all": "knip",
     "docs:catalog": "node scripts/docs-catalog.mjs",
     "docs:catalog:check": "node scripts/docs-catalog.mjs --check",
+    "mockup:schema": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/mockup-schema.mjs",
+    "mockup:schema:check": "node scripts/unless-prebuilt.mjs pnpm run build && node scripts/mockup-schema.mjs --check",
     "check:frontend-declarations": "node scripts/check-frontend-declarations.mjs",
     "docs:screenshots": "node scripts/docs-screenshots.mjs",
     "realtime:tabs-check": "node scripts/realtime-tabs-check.mjs"
@@ -105,25 +110,33 @@
     "@antelopejs/interface-database": ">=0.3.0 <1.0.0",
     "@antelopejs/interface-database-decorators": ">=0.3.1 <1.0.0",
     "@antelopejs/interface-dms": ">=0.13.0 <0.14.0",
+    "@antelopejs/interface-dms-builder": ">=0.4.0 <1.0.0",
     "@antelopejs/interface-email": ">=0.0.6 <1.0.0",
     "@antelopejs/interface-file-storage": ">=0.1.4 <1.0.0",
     "archiver": "^7.0.1",
     "csv-stringify": "^6.7.0",
     "defu": "^6.1.4",
+    "diff": "^9.0.0",
+    "dompurify": "^3.4.17",
+    "jsdom": "^29.1.1",
     "jsonwebtoken": "^9.0.3",
     "mmdb-lib": "^3.0.3",
     "node-cron": "^4.2.1",
     "randomstring": "^1.3.1",
     "semver": "^7.7.2",
     "striptags": "^3.2.0",
+    "ts-morph": "^23.0.0",
     "ua-parser-js": "^2.0.9",
-    "zod": "~3.24.2"
+    "zod": "~3.24.2",
+    "zod-to-json-schema": "~3.24.6"
   },
   "devDependencies": {
+    "@antelopejs/api": "^1.7.0",
     "@antelopejs/core": ">=1.21.0 <2",
     "@antelopejs/tooling-configs": "^0.5.3",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
+    "@types/jsdom": "^28.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mocha": "^10",
     "@types/node": "^24.0.0",
@@ -143,8 +156,7 @@
     "rimraf": "^6.1.3",
     "tsc-alias": "^1.9.1",
     "typescript": "^6.0.3",
-    "vue": "^3.5.18",
-    "@antelopejs/api": "^1.7.0"
+    "vue": "^3.5.18"
   },
   "exports": {
     ".": {
@@ -168,6 +180,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "optionalDependencies": {
+    "@antelopejs/interface-database-catalog": ">=0.0.3 <1.0.0",
     "@antelopejs/interface-dms-automation": ">=0.6.0 <1.0.0",
     "@antelopejs/interface-redis": ">=0.0.9 <1.0.0",
     "playwright-core": "~1.56.1"

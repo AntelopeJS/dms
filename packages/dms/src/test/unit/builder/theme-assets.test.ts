@@ -1,0 +1,240 @@
+import fs from "node:fs";
+import type { OpResult } from "@antelopejs/interface-dms-builder";
+import { expect } from "chai";
+import { GetTheme, SetTheme } from "../../../implementations/dms-builder";
+import { offContractTheme, type Sent } from "./helpers/off-contract";
+import { destroyFixture, expectOk } from "./harness";
+import {
+  brandingFiles,
+  configDraft,
+  createThemeFixture,
+  draft,
+  JPEG_LOGO,
+  layerPath,
+  OP_TIMEOUT,
+  PNG_LOGO,
+  SVG_LOGO,
+  upload,
+} from "./helpers/theme-harness";
+
+const OTHER_PNG = Buffer.concat([PNG_LOGO, Buffer.from([1])]);
+
+function issues(result: OpResult<unknown>): Array<[string, string]> {
+  return !result.ok && result.error.code === "invalid_config"
+    ? result.error.issues.map((issue) => [issue.pointer, issue.message])
+    : [];
+}
+
+function pointers(result: OpResult<unknown>): string[] {
+  return issues(result).map(([pointer]) => pointer);
+}
+
+describe("theme logo files", function () {
+  this.timeout(OP_TIMEOUT);
+
+  beforeEach(() => {
+    createThemeFixture();
+  });
+
+  afterEach(() => {
+    destroyFixture();
+  });
+
+  it("writes a JPEG, for the email as for any other slot", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [
+            upload("default", "light", JPEG_LOGO, "image/jpeg"),
+            upload("email", "light", JPEG_LOGO, "image/jpeg"),
+          ],
+        }),
+      ),
+      "SetTheme",
+    );
+    const theme = expectOk(await GetTheme(), "GetTheme");
+    expect(theme.logos.default?.light).to.match(
+      /^\/branding\/default-light-[0-9a-f]{8}\.jpg$/,
+    );
+    expect(theme.logos.email?.light).to.match(
+      /^\/branding\/email-light-[0-9a-f]{8}\.jpg$/,
+    );
+  });
+
+  it("refuses a file that is not what its type says", async () => {
+    const result = await SetTheme(
+      configDraft({
+        uploads: [upload("default", "light", PNG_LOGO, "image/jpeg")],
+      }),
+    );
+    expect(issues(result)).to.deep.equal([
+      ["/uploads/0", "the file is not a JPG image"],
+    ]);
+  });
+
+  it("takes only a PNG or a JPEG for the email, and writes nothing else", async () => {
+    const result = await SetTheme(
+      configDraft({
+        uploads: [
+          upload("email", "light", SVG_LOGO, "image/svg+xml"),
+          upload("email", "dark", Buffer.from("RIFF0000WEBP"), "image/webp"),
+          upload("email", "dark", Buffer.from([0, 0, 1, 0]), "image/x-icon"),
+        ],
+      }),
+    );
+    expect(pointers(result)).to.deep.equal([
+      "/uploads/0",
+      "/uploads/1",
+      "/uploads/2",
+    ]);
+    expect(brandingFiles()).to.deep.equal([]);
+  });
+
+  it("never deletes an email logo, which emails already sent still show", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("email", "light", PNG_LOGO, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    const first = expectOk(await GetTheme(), "GetTheme");
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("email", "light", OTHER_PNG, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.have.length(2);
+    expect(brandingFiles()).to.include(
+      first.logos.email?.light?.replace("/branding/", ""),
+    );
+  });
+
+  it("keeps a file the email pointed at, whatever it is named after", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("default", "light", PNG_LOGO, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    const shared =
+      expectOk(await GetTheme(), "GetTheme").logos.default?.light ?? "";
+    expectOk(
+      await SetTheme(
+        configDraft({
+          logos: { default: { light: shared }, email: { light: shared } },
+        }),
+      ),
+      "SetTheme",
+    );
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
+  });
+
+  it("gives the email a file of its own, even with the bytes of another slot's", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [
+            upload("default", "light", PNG_LOGO, "image/png"),
+            upload("email", "light", PNG_LOGO, "image/png"),
+          ],
+        }),
+      ),
+      "SetTheme",
+    );
+    expect(brandingFiles().map((name) => name.split("-")[0])).to.deep.equal([
+      "default",
+      "email",
+    ]);
+  });
+
+  it("writes only the last of two uploads for one slot and mode", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [
+            upload("default", "light", PNG_LOGO, "image/png"),
+            upload("default", "light", OTHER_PNG, "image/png"),
+          ],
+        }),
+      ),
+      "SetTheme",
+    );
+    const theme = expectOk(await GetTheme(), "GetTheme");
+    expect(brandingFiles()).to.deep.equal([
+      theme.logos.default?.light?.replace("/branding/", ""),
+    ]);
+  });
+
+  it("refuses an SVG that is no image once sanitized, and writes nothing", async () => {
+    const result = await SetTheme(
+      draft({
+        uploads: [
+          upload("default", "light", `${SVG_LOGO}${SVG_LOGO}`, "image/svg+xml"),
+        ],
+      }),
+    );
+    expect(pointers(result)).to.deep.equal(["/uploads/0"]);
+    expect(fs.existsSync(layerPath("app/assets/css/theme.css"))).to.equal(
+      false,
+    );
+  });
+});
+
+describe("theme draft shape", function () {
+  this.timeout(OP_TIMEOUT);
+
+  beforeEach(() => {
+    createThemeFixture();
+  });
+
+  afterEach(() => {
+    destroyFixture();
+  });
+
+  /** Save what a request may hold, typed or not. */
+  function save(body: Sent): ReturnType<typeof SetTheme> {
+    return SetTheme(offContractTheme(body));
+  }
+
+  it("answers a missing draft as invalid rather than failing", async () => {
+    expect(pointers(await save(undefined))).to.deep.equal([""]);
+    expect(pointers(await save({ colors: {}, logos: {} }))).to.deep.equal([
+      "/variables",
+    ]);
+  });
+
+  it("points at every value that is not a string", async () => {
+    const result = await save({
+      variables: { shared: {}, light: { "--ui-bg": 3 }, dark: [] },
+      colors: { primary: null },
+      logos: { default: "/branding/logo.svg", email: { light: false } },
+      uploads: [
+        {
+          slot: "default",
+          mode: "light",
+          contentType: "image/png",
+          base64Content: 42,
+        },
+        "logo.png",
+      ],
+    });
+    expect(pointers(result)).to.deep.equal([
+      "/variables/light/--ui-bg",
+      "/variables/dark",
+      "/colors/primary",
+      "/logos/default",
+      "/logos/email/light",
+      "/uploads/0/base64Content",
+      "/uploads/1",
+    ]);
+  });
+});

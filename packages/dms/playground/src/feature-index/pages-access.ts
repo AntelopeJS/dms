@@ -41,6 +41,12 @@ export const ACCESS_FEATURES: PlaygroundFeature[] = [
   },
   {
     area: AREA,
+    feature: "A page only the platform owner opens",
+    api: "MenuOptions.ownerOnly",
+    demo: `${ACCESS}/access-owner-only`,
+  },
+  {
+    area: AREA,
     feature: "A page whose every block is hidden",
     api: "PageLayout.allComponentsHidden",
     demo: `${ACCESS}/access-all-hidden`,

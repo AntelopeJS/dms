@@ -71,6 +71,7 @@ export default defineConfig({
         frontend: {
           bootstrapSecret: BOOTSTRAP_SECRET,
         },
+        mcp: { enabled: true, mcpJson: false },
       },
     },
     "attachment-host": {

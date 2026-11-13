@@ -30,4 +30,4 @@ runs:
     # interface is built before anything reads them.
     - if: inputs.interface == 'true'
       shell: bash
-      run: pnpm --dir packages/interface-dms build
+      run: pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder build

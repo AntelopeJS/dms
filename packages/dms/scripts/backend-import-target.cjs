@@ -30,6 +30,12 @@ const processPins = {
   "src/store/tarball.ts:8": "const execFileAsync = promisify(execFile);",
   "src/store/tarball.ts:80":
     'await execFileAsync(\n    "npm",\n    ["pack", spec, "--pack-destination", destination, "--silent"],\n    { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS },\n  );',
+  "src/mcp/tools/typecheck.ts:1":
+    'import { execFile } from "node:child_process";',
+  "src/mcp/tools/typecheck.ts:4": 'import { promisify } from "node:util";',
+  "src/mcp/tools/typecheck.ts:11": "const execFileAsync = promisify(execFile);",
+  "src/mcp/tools/typecheck.ts:83":
+    'await execFileAsync(TSC_COMMAND, TSC_ARGS, {\n      cwd: root,\n      timeout: TIMEOUT_MS,\n      maxBuffer: MAX_BUFFER_BYTES,\n      encoding: "utf8",\n    });',
   "src/test/helpers/replica-process.ts:1":
     'import { type ChildProcess, spawn } from "node:child_process";',
   "src/test/unit/package-contents.test.ts:1":
@@ -60,6 +66,20 @@ const processPins = {
     "const runProcess = promisify(execFile);",
   "src/test/unit/implementations/dms/permissions-standalone.test.ts:15":
     "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
+  "src/implementations/dms-builder/engine/project-env.ts:1":
+    'import { spawnSync } from "node:child_process";',
+  "dist/implementations/dms-builder/engine/project-env.js:15":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/implementations/dms-builder/engine/project-env.js:63":
+    'const checked = (0, node_child_process_1.spawnSync)("git", ["check-ignore", "-q", file], {\n        cwd: directory,\n    });',
+  "src/test/unit/builder/helpers/processes.ts:1":
+    'import { spawnSync } from "node:child_process";',
+  "dist/test/unit/builder/helpers/processes.js:8":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/test/unit/builder/helpers/processes.js:11":
+    '(0, node_child_process_1.spawnSync)("git", ["init", "-q"], { cwd: directory });',
+  "dist/test/unit/builder/helpers/processes.js:14":
+    'const run = (0, node_child_process_1.spawnSync)(script, {\n        cwd: directory,\n        shell: true,\n        encoding: "utf8",\n        env: {\n            ...process.env,\n            PATH: `${binDirectory}${node_path_1.default.delimiter}${process.env.PATH}`,\n        },\n    });',
   "dist/dev/module-update-notifications.js:8":
     'const node_child_process_1 = require("node:child_process");',
   "dist/dev/module-update-notifications.js:9":
@@ -82,6 +102,13 @@ const processPins = {
     "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
   "dist/store/tarball.js:58":
     'await execFileAsync("npm", ["pack", spec, "--pack-destination", destination, "--silent"], { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS });',
+  "dist/mcp/tools/typecheck.js:7":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/mcp/tools/typecheck.js:10": 'const node_util_1 = require("node:util");',
+  "dist/mcp/tools/typecheck.js:16":
+    "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
+  "dist/mcp/tools/typecheck.js:79":
+    'await execFileAsync(TSC_COMMAND, TSC_ARGS, {\n            cwd: root,\n            timeout: TIMEOUT_MS,\n            maxBuffer: MAX_BUFFER_BYTES,\n            encoding: "utf8",\n        });',
   "dist/test/helpers/replica-process.js:4":
     'const node_child_process_1 = require("node:child_process");',
   "dist/test/helpers/replica-process.js:108":

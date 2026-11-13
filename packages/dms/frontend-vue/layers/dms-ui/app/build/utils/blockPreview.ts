@@ -10,6 +10,7 @@ import {
   isObject,
   isString,
   isBoolean,
+  isNumber,
 } from "../../../../dms-core/app/utils/type-check";
 export interface PreviewNode {
   /** Block registry type, e.g. `KpiCard`. Wins over `componentName`. */
@@ -57,7 +58,25 @@ export type PreviewIssueKey =
   | "unknown_block"
   | "needs_backend"
   | "unsafe_url"
-  | "unsafe_method";
+  | "unsafe_method"
+  | "invalid_sketch";
+
+/** Node type of a sketch: static HTML of a part that is not a DMS block. */
+export const SKETCH_NODE_TYPE = "sketch";
+
+export const SKETCH_DEFAULT_HEIGHT_PX = 320;
+export const SKETCH_MIN_HEIGHT_PX = 80;
+export const SKETCH_MAX_HEIGHT_PX = 1200;
+export const SKETCH_CAPTION_MAX_LENGTH = 200;
+
+/** The options of a sketch node, as {@link resolvePreviewTree} reads them. */
+export interface PreviewSketch {
+  html: string;
+  css?: string;
+  /** Frame height in CSS pixels, within the sketch bounds. */
+  height: number;
+  caption?: string;
+}
 
 /** Why a node is drawn as an inline notice instead of its block. */
 export interface PreviewIssue {
@@ -77,6 +96,8 @@ export interface PreviewResolvedNode {
   slot?: string;
   colSpan?: number;
   issue?: PreviewIssue;
+  /** Set on a sketch node, which has no component. */
+  sketch?: PreviewSketch;
 }
 
 export const PREVIEW_CHANNEL = "dms-preview";
@@ -92,6 +113,8 @@ export interface PreviewRenderMessage {
   locale?: string;
   /** Paints no background; kept from the previous state when absent. */
   transparent?: boolean;
+  /** Pads the blocks off the frame's edges; kept from the previous state when absent. */
+  padding?: boolean;
 }
 
 /** Parent → iframe: switch the color mode. */
@@ -101,7 +124,20 @@ export interface PreviewThemeMessage {
   theme: PreviewTheme;
 }
 
-export type PreviewInboundMessage = PreviewRenderMessage | PreviewThemeMessage;
+/**
+ * Parent → iframe: while enabled, hovering a block outlines it and a click
+ * selects it instead of reaching it.
+ */
+export interface PreviewInspectMessage {
+  channel: typeof PREVIEW_CHANNEL;
+  type: "inspect";
+  enabled: boolean;
+}
+
+export type PreviewInboundMessage =
+  | PreviewRenderMessage
+  | PreviewThemeMessage
+  | PreviewInspectMessage;
 
 /** Iframe → parent: mounted, ready for `render`. */
 export interface PreviewReadyMessage {
@@ -123,10 +159,19 @@ export interface PreviewErrorMessage {
   message: string;
 }
 
+/** Iframe → parent: the block at this layout path was clicked while inspecting. */
+export interface PreviewSelectMessage {
+  channel: typeof PREVIEW_CHANNEL;
+  type: "select";
+  /** Layout path of the block: its root key `block-<i>`, then each child id, joined by dots. */
+  path: string;
+}
+
 export type PreviewOutboundMessage =
   | PreviewReadyMessage
   | PreviewResizeMessage
-  | PreviewErrorMessage;
+  | PreviewErrorMessage
+  | PreviewSelectMessage;
 
 const ROOT_ID_PREFIX = "block-";
 const RELATIVE_PATH_PATTERN = /^\/(?![/\\])/;
@@ -223,8 +268,10 @@ const INBOUND_VALIDATORS: Record<
     isPreviewTree(data.tree) &&
     (data.theme === undefined || isPreviewTheme(data.theme)) &&
     isOptionalString(data.locale) &&
-    isOptionalBoolean(data.transparent),
+    isOptionalBoolean(data.transparent) &&
+    isOptionalBoolean(data.padding),
   theme: (data) => isPreviewTheme(data.theme),
+  inspect: (data) => isBoolean(data.enabled),
 };
 
 /**
@@ -258,6 +305,51 @@ export function previewResizeMessage(height: number): PreviewResizeMessage {
 
 export function previewErrorMessage(message: string): PreviewErrorMessage {
   return { channel: PREVIEW_CHANNEL, type: "error", message };
+}
+
+export function previewSelectMessage(path: string): PreviewSelectMessage {
+  return { channel: PREVIEW_CHANNEL, type: "select", path };
+}
+
+/** Parent → iframe constructors, for the page that embeds the preview. */
+export function previewRenderMessage(
+  state: Omit<PreviewRenderMessage, "channel" | "type">,
+): PreviewRenderMessage {
+  return { channel: PREVIEW_CHANNEL, type: "render", ...state };
+}
+
+export function previewInspectMessage(enabled: boolean): PreviewInspectMessage {
+  return { channel: PREVIEW_CHANNEL, type: "inspect", enabled };
+}
+
+const OUTBOUND_PARSERS: Record<
+  Extract<Parameters<typeof Object.hasOwn>[1], string>,
+  (data: Record<string, unknown>) => PreviewOutboundMessage | undefined
+> = {
+  ready: () => previewReadyMessage(),
+  resize: ({ height }) =>
+    isNumber(height) && Number.isFinite(height)
+      ? { channel: PREVIEW_CHANNEL, type: "resize", height }
+      : undefined,
+  error: ({ message }) =>
+    isString(message) ? previewErrorMessage(message) : undefined,
+  select: ({ path }) =>
+    isString(path) ? previewSelectMessage(path) : undefined,
+};
+
+/**
+ * The message the embedded preview posted in `data`, or undefined for anything
+ * else a window receives (another channel, an unknown or malformed message):
+ * the embedding page ignores those.
+ */
+export function parsePreviewOutboundMessage(
+  data: Parameters<typeof isRecord>[0],
+): PreviewOutboundMessage | undefined {
+  if (!isRecord(data) || data.channel !== PREVIEW_CHANNEL) return undefined;
+  const type = data.type;
+  if (!isString(type) || !Object.hasOwn(OUTBOUND_PARSERS, type))
+    return undefined;
+  return OUTBOUND_PARSERS[type]?.(data);
 }
 
 /**
@@ -407,24 +499,66 @@ function issueFor(
     : undefined;
 }
 
+function clampSketchHeight(height: unknown): number {
+  if (!isNumber(height) || !Number.isFinite(height)) {
+    return SKETCH_DEFAULT_HEIGHT_PX;
+  }
+  return Math.min(
+    SKETCH_MAX_HEIGHT_PX,
+    Math.max(SKETCH_MIN_HEIGHT_PX, Math.round(height)),
+  );
+}
+
+/**
+ * The sketch a node's options describe, or undefined when they hold no `html`
+ * string. The other options are optional: a wrong type falls back to the
+ * default instead of refusing the sketch.
+ */
+function parseSketch(
+  options: Record<string, unknown> | undefined,
+): PreviewSketch | undefined {
+  if (!options || !isString(options.html)) return undefined;
+  const sketch: PreviewSketch = {
+    html: options.html,
+    height: clampSketchHeight(options.height),
+  };
+  if (isString(options.css)) sketch.css = options.css;
+  if (isString(options.caption)) {
+    sketch.caption = options.caption.slice(0, SKETCH_CAPTION_MAX_LENGTH);
+  }
+  return sketch;
+}
+
+function resolveSketchNode(
+  node: PreviewNode,
+  resolved: PreviewResolvedNode,
+): PreviewResolvedNode {
+  const sketch = parseSketch(node.options);
+  if (sketch) resolved.sketch = sketch;
+  else resolved.issue = { key: "invalid_sketch", name: SKETCH_NODE_TYPE };
+  return resolved;
+}
+
 function resolveNode(
   node: PreviewChildNode,
   id: string,
   blockTypes: PreviewBlockTypes,
 ): PreviewResolvedNode {
+  const placement: PreviewResolvedNode = { id, options: {}, children: [] };
+  if (node.slot) placement.slot = node.slot;
+  if (node.colSpan !== undefined) placement.colSpan = node.colSpan;
+  if (node.type === SKETCH_NODE_TYPE) return resolveSketchNode(node, placement);
+
   const match = matchBlockType(node, blockTypes);
   const options = { ...node.options, ...match?.blockType.fixedOptions };
   const issue = issueFor(node, match, options);
-  const resolved: PreviewResolvedNode = {
-    id,
-    options: issue ? {} : options,
-    children: issue ? [] : resolveChildren(node.children, blockTypes),
+  if (issue) return { ...placement, issue };
+  return {
+    ...placement,
+    options,
+    children: resolveChildren(node.children, blockTypes),
+    componentName: match?.blockType.componentName,
   };
-  if (node.slot) resolved.slot = node.slot;
-  if (node.colSpan !== undefined) resolved.colSpan = node.colSpan;
-  if (issue) resolved.issue = issue;
-  else resolved.componentName = match?.blockType.componentName;
-  return resolved;
 }
 
 function resolveChildren(

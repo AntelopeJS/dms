@@ -1,0 +1,193 @@
+import { readFile } from "node:fs/promises";
+import http from "node:http";
+import https from "node:https";
+import type { Readable, Writable } from "node:stream";
+import { z } from "zod";
+import { BACKEND_URL_HINT, isLoopbackUrl } from "./backend-url";
+
+const HTTP_ACCEPTED = 202;
+const JSON_RPC_INTERNAL_ERROR = -32603;
+
+const BACKEND_UNREACHABLE =
+  "The DMS backend is not running. Start the project with ajs project dev, then retry.";
+
+const REFUSALS: ReadonlyMap<number, string> = new Map([
+  [
+    401,
+    "The DMS backend refused the bridge's credential. Restart the project with ajs project dev, then retry.",
+  ],
+  [
+    403,
+    `The DMS backend refused a request that did not come straight from its own machine. ${BACKEND_URL_HINT}`,
+  ],
+  [
+    404,
+    "The DMS backend serves no MCP route: it runs outside development mode, or mcp.enabled is false. Start the project with ajs project dev, then retry.",
+  ],
+  [
+    413,
+    "The request is larger than the DMS MCP server reads. Split it into smaller calls.",
+  ],
+]);
+
+const BridgeConfigSchema = z.object({ url: z.string(), token: z.string() });
+
+type BridgeConfig = z.infer<typeof BridgeConfigSchema>;
+
+const RequestIdSchema = z.object({
+  method: z.string(),
+  id: z.union([z.string(), z.number()]),
+});
+
+const JsonRpcErrorAnswerSchema = z.object({
+  jsonrpc: z.literal("2.0"),
+  id: z.union([z.string(), z.number(), z.null()]),
+  error: z.object({ code: z.number(), message: z.string() }),
+});
+
+/** The `id` of a failure answer: `null` for a line that is not JSON, as JSON-RPC 2.0 requires. */
+type FailureId = string | number | null;
+
+interface RelayAnswer {
+  status: number;
+  text: string;
+}
+
+/** The bridge's credential is bound for a host that is not this machine, so no request was sent. */
+class NonLoopbackBackendError extends Error {
+  constructor() {
+    super(
+      `The bridge refused to send its credential to a backend that is not on this machine. ${BACKEND_URL_HINT}`,
+    );
+  }
+}
+
+async function readConfig(configPath: string): Promise<BridgeConfig> {
+  return BridgeConfigSchema.parse(
+    JSON.parse(await readFile(configPath, "utf8")),
+  );
+}
+
+function post(config: BridgeConfig, body: string): Promise<RelayAnswer> {
+  if (!isLoopbackUrl(config.url)) {
+    return Promise.reject(new NonLoopbackBackendError());
+  }
+  const url = new URL(config.url);
+  const transport = url.protocol === "https:" ? https : http;
+  return new Promise((resolve, reject) => {
+    const request = transport.request(
+      url,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${config.token}`,
+          "content-type": "application/json",
+          "content-length": Buffer.byteLength(body),
+        },
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.on("end", () =>
+          resolve({
+            status: response.statusCode ?? 0,
+            text: Buffer.concat(chunks).toString("utf8"),
+          }),
+        );
+        response.on("error", reject);
+      },
+    );
+    request.on("error", reject);
+    request.end(body);
+  });
+}
+
+/** `undefined` for a notification, which gets no answer; `null` for a line that is not JSON. */
+function requestIdOf(line: string): FailureId | undefined {
+  let message: unknown;
+  try {
+    message = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  return RequestIdSchema.safeParse(message).data?.id;
+}
+
+function relayedJsonRpcError(text: string): string | undefined {
+  try {
+    return JsonRpcErrorAnswerSchema.safeParse(JSON.parse(text)).success
+      ? text
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function failure(id: FailureId, message: string): string {
+  return JSON.stringify({
+    jsonrpc: "2.0",
+    id,
+    error: { code: JSON_RPC_INTERNAL_ERROR, message },
+  });
+}
+
+async function relay(configPath: string, line: string): Promise<RelayAnswer> {
+  return post(await readConfig(configPath), line);
+}
+
+function answerLine(
+  id: FailureId | undefined,
+  answer: RelayAnswer,
+): string | undefined {
+  if (answer.status === HTTP_ACCEPTED) return undefined;
+  if (answer.status >= 200 && answer.status < 300) return answer.text;
+  const relayed = relayedJsonRpcError(answer.text);
+  if (relayed !== undefined) return relayed;
+  if (id === undefined) return undefined;
+  const refusal =
+    REFUSALS.get(answer.status) ??
+    `${BACKEND_UNREACHABLE} (HTTP ${answer.status})`;
+  return failure(id, refusal);
+}
+
+/**
+ * Calls `onLine` with each `\n`-terminated line of the stream. MCP's stdio
+ * framing is `\n` alone: `readline` would also split at U+2028 and U+2029,
+ * which `JSON.stringify` leaves raw inside strings.
+ */
+function onLines(input: Readable, onLine: (line: string) => void): void {
+  let pending = "";
+  input.setEncoding("utf8");
+  input.on("data", (chunk: string) => {
+    const parts = `${pending}${chunk}`.split("\n");
+    pending = parts.pop() ?? "";
+    for (const part of parts) onLine(part);
+  });
+}
+
+/** The stdio MCP server a coding agent launches from the project's `.mcp.json`. */
+export function runBridge(
+  configPath: string,
+  input: Readable,
+  output: Writable,
+): void {
+  const write = (message: string | undefined) => {
+    if (message !== undefined) output.write(`${message}\n`);
+  };
+  onLines(input, (line) => {
+    if (line.trim().length === 0) return;
+    const id = requestIdOf(line);
+    relay(configPath, line).then(
+      (answer) => write(answerLine(id, answer)),
+      (error: unknown) => {
+        if (id === undefined) return;
+        if (error instanceof NonLoopbackBackendError) {
+          write(failure(id, error.message));
+          return;
+        }
+        const reason = error instanceof Error ? error.message : String(error);
+        write(failure(id, `${BACKEND_UNREACHABLE} (${reason})`));
+      },
+    );
+  });
+}

@@ -1,6 +1,7 @@
 const root = "^packages/dms/src/";
 const tiers = [
-  ["routes", "dev", "page-extensions"],
+  ["mcp"],
+  ["routes", "dev", "page-extensions", "mockup", "branding"],
   ["pages"],
   ["implementations"],
   ["store", "attachments", "realtime", "automation", "crons", "hooks"],
@@ -32,6 +33,16 @@ const loaderEntries = [
 const faces = new Map(
   Object.entries({
     routes: ["oauth", "oauth-config", "authentication"],
+    mcp: [
+      "access",
+      "bridge",
+      "confirmation-gate",
+      "log-buffer",
+      "project-files",
+      "protocol",
+      "route",
+      "tool",
+    ],
     pages: ["account", "members", "permissions", "preview"],
     implementations: [
       "dms/services",
