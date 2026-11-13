@@ -161,20 +161,18 @@ export interface PlatformOwnerCheck {
 /**
  * Refuses a request that is not the platform owner's: 401 when it carries no
  * session, 403 when its user is not flagged `owner` or the tenant access gate
- * denies them. A role that lists `*` does not make its holder the owner here.
+ * denies them.
  */
 export async function assertPlatformOwner(
   request: PlatformOwnerCheck,
 ): Promise<void> {
   assert(request.user, HTTP_UNAUTHORIZED, ERROR_UNAUTHENTICATED);
-  const isOwner =
-    request.user.owner === true &&
-    (await isPlatformOwner(
-      request.user,
-      request.memberModel,
-      request.roleModel,
-      getRequestTenantId(request.requestContext),
-    ));
+  const isOwner = await isPlatformOwner(
+    request.user,
+    request.memberModel,
+    request.roleModel,
+    getRequestTenantId(request.requestContext),
+  );
   assert(isOwner, HTTP_FORBIDDEN, ERROR_UNAUTHORIZED);
 }
 
@@ -208,7 +206,7 @@ export async function buildAccessContext(
   );
   const ungated: AccessContext = {
     permissions,
-    isOwner: permissions.has(WILDCARD_PERMISSION),
+    isOwner: user.owner === true,
     isAuthenticated,
   };
 
@@ -238,7 +236,7 @@ export function buildDeniedAccessContext(
     ungated,
     client: {
       permissions: clientPermissions,
-      isOwner: clientPermissions.has(WILDCARD_PERMISSION),
+      isOwner: ungated.isOwner && clientPermissions.has(WILDCARD_PERMISSION),
       isAuthenticated,
     },
     gateDenied: true,

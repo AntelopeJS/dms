@@ -89,6 +89,11 @@ describe("[unit] implementations/dms/page — ownerOnly pages", () => {
     expect(await canOpen(owner, INHERITED_PAGE, [])).to.equal(true);
   });
 
+  it("denies a member whose role holds *, which only the owner holds", async () => {
+    const member = userFixture({ _id: "oop-wildcard-member" });
+    expect(await canOpen(member, INHERITED_PAGE, ["*"])).to.equal(false);
+  });
+
   it("wins over publicAccess: an anonymous caller is refused", async () => {
     expect(await canOpen(undefined, PUBLIC_PAGE, [])).to.equal(false);
     expect(permissionsImpl.GetPermission(PUBLIC_PAGE)).to.equal(undefined);

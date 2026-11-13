@@ -66,18 +66,22 @@ export async function userCanAccessPage(
     roleIds,
     roleModel,
   );
-  return permissionsOpenPage(info, permissions);
+  return permissionsOpenPage(info, {
+    permissions,
+    isOwner: user.owner === true,
+  });
 }
 
 /**
- * Whether a signed-in member holding `permissions` opens the page, once the
- * tenant gate let them through: the rule {@link userCanAccessPage} ends on.
+ * Whether a signed-in member opens the page, once the tenant gate let them
+ * through: the rule {@link userCanAccessPage} ends on. `isOwner` is the
+ * member's `user.owner` flag: the platform owner opens every page.
  */
 export async function permissionsOpenPage(
   info: PageInfo,
-  permissions: Set<string>,
+  { permissions, isOwner }: { permissions: Set<string>; isOwner: boolean },
 ): Promise<boolean> {
-  if (permissions.has(WILDCARD_PERMISSION)) return true;
+  if (isOwner) return true;
   if (isOwnerOnly(info)) return false;
   if (info.authOnly) return true;
   return HasPermission(
