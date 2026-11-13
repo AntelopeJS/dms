@@ -88,9 +88,7 @@ const isChanged = computed(
 const isDiverged = computed(() => props.change === "diverged");
 const isModified = computed(() => props.change === "modified");
 /** The view drawn as open: none once the table diverged from it. */
-const shownId = computed(() =>
-  isDiverged.value ? undefined : props.activeId,
-);
+const shownId = computed(() => (isDiverged.value ? undefined : props.activeId));
 const canSave = computed(
   () => isModified.value && !!activeView.value?.isUserView,
 );

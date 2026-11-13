@@ -320,9 +320,7 @@ export function useTableViews(options: TableViewsOptions) {
    */
   const selectView = (id: string) =>
     openView(
-      id === activeViewId.value && change.value !== "diverged"
-        ? undefined
-        : id,
+      id === activeViewId.value && change.value !== "diverged" ? undefined : id,
     );
 
   /** Back to the open view's own state. */

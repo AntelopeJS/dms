@@ -193,7 +193,11 @@ export function viewChange(
     : "diverged";
 }
 
-/** The table's current state as a view keeps it. */
+/**
+ * The table's current state as a view keeps it: the filters with a value,
+ * and the pinned ones whatever their value, so a pinned filter cleared stays
+ * cleared when the view opens.
+ */
 export function snapshotViewState(
   snapshot: TableStateSnapshot,
 ): TableViewViewStateConfig {
@@ -205,7 +209,7 @@ export function snapshotViewState(
   );
   return {
     filters: snapshot.filters
-      .filter(isFilterEffective)
+      .filter((filter) => filter.pinned || isFilterEffective(filter))
       .map(({ accessorKey, mode, value }) => ({ accessorKey, mode, value })),
     search: snapshot.search.trim() || undefined,
     sort: snapshot.sorting.map(({ id, desc }) => ({ field: id, desc })),
