@@ -388,7 +388,7 @@ async function observeFormPages() {
 }
 
 async function observeReceivers() {
-  const { authorizeAction } = require("../../packages/interface-dms/dist/base/table-view/internal/auth.js");
+  const { authorizeAction } = untyped;
   const { getTableViewMetaFor } = require("../../packages/interface-dms/dist/base/table-view/internal/meta.js");
   const { ArchiveField } = require("../../packages/interface-dms/dist/base/table-view/meta.js");
   /** @type {Record<string, unknown>} */
