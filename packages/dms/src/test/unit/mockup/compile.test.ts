@@ -32,7 +32,7 @@ function onePage(tree: Json[], fixtures: Json = {}): Json {
   return { version: 1, pages: [{ id: "home", title: "Home", fixtures, tree }] };
 }
 
-describe("[unit] mockup compiler", () => {
+function compilesShippedSpecs(): void {
   it("compiles the shipped example spec with no issue", async () => {
     const store = new MockupStore(MOCKUP_DATA_DIR);
     const state = await store.state(mockupNameSchema.parse(EXAMPLE_MOCKUP));
@@ -71,7 +71,9 @@ describe("[unit] mockup compiler", () => {
     expect(byExample).to.deep.equal([]);
     expect(examples).to.be.greaterThan(50);
   });
+}
 
+function reportsBadBlocks(): void {
   it("reports a bad option at its exact pointer and still emits the node", () => {
     const kpi = { title: "Revenue", valueFormat: "bogus" };
     const { issues, pages } = compile(
@@ -134,7 +136,9 @@ describe("[unit] mockup compiler", () => {
     ]);
     expect(pages[0].tree).to.deep.equal([node]);
   });
+}
 
+function rewritesFixtureReferences(): void {
   it("rewrites fixture references at any depth and reports a missing key", () => {
     const { issues, pages } = compile(
       onePage(
@@ -166,7 +170,9 @@ describe("[unit] mockup compiler", () => {
       },
     ]);
   });
+}
 
+function keepsSketchPlacement(): void {
   it("keeps a sketch's id, slot and span, so the preview draws it at the layout path its pointer is recorded under", () => {
     const compiled = compile(
       onePage([
@@ -195,7 +201,9 @@ describe("[unit] mockup compiler", () => {
       "/pages/0/tree/0/children/0",
     );
   });
+}
 
+function refusesRemoteSketchContent(): void {
   it("refuses a sketch holding a script or a remote url()", () => {
     const { issues, pages } = compile(
       onePage([
@@ -263,7 +271,9 @@ describe("[unit] mockup compiler", () => {
       styles.map((_, index) => `/pages/0/tree/${index}/options/css`),
     );
   });
+}
 
+function checksSketchMarkupAndSiblingIds(): void {
   it("refuses a handler or remote URL behind a quoted '>' and in inline styles", () => {
     const sketches = [
       '<a title=">" href="http://example.com">x</a>',
@@ -324,7 +334,9 @@ describe("[unit] mockup compiler", () => {
       },
     ]);
   });
+}
 
+function validatesDepthAndRuntimeBlocks(): void {
   it("refuses a spec nested past the depth limit instead of overflowing the stack", () => {
     let node: Json = { type: "KpiCard", options: { title: "leaf" } };
     for (let level = 0; level < MAX_JSON_DEPTH; level += 1) {
@@ -370,7 +382,9 @@ describe("[unit] mockup compiler", () => {
     ]);
     expect(schema).to.contain('"const":"MockupTestGauge"');
   });
+}
 
+function validatesTablesAndPageIds(): void {
   it("builds a fixture-backed table through TableView.fromSource and reports a bad column type", () => {
     const rows = [{ _id: "r1", name: "Acme" }];
     const { issues } = compile(
@@ -424,4 +438,15 @@ describe("[unit] mockup compiler", () => {
       ["/pages/1/id"],
     );
   });
+}
+
+describe("[unit] mockup compiler", () => {
+  compilesShippedSpecs();
+  reportsBadBlocks();
+  rewritesFixtureReferences();
+  keepsSketchPlacement();
+  refusesRemoteSketchContent();
+  checksSketchMarkupAndSiblingIds();
+  validatesDepthAndRuntimeBlocks();
+  validatesTablesAndPageIds();
 });

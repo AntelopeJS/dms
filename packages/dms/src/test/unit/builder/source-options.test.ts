@@ -38,36 +38,7 @@ function alias(name: string) {
   );
 }
 
-describe("source-backed options", function () {
-  this.timeout(60_000);
-  before(async () => {
-    app = createFixture();
-    expectOk(
-      await CreateCategory({ name: "shop", displayName: "Shop" }),
-      "category",
-    );
-    expectOk(
-      await CreatePage({
-        name: "board",
-        displayName: "Board",
-        category: "pages.shop",
-      }),
-      "page",
-    );
-    expectOk(
-      await AddBlock({
-        page: PAGE,
-        name: "revenueKpi",
-        type: "KpiCard",
-        config: { title: "Revenue" },
-      }),
-      "block",
-    );
-    base = app.read(FILE);
-  });
-  beforeEach(() => app.write(FILE, base));
-  after(() => destroyFixture());
-
+function readsAndEditsUnderstoodOptions(): void {
   it("reads wrappers, shorthand, imported, namespace and constant aliases by binding", async () => {
     write(
       "(Metric)({ title } as const satisfies { title: string })",
@@ -153,7 +124,9 @@ describe("source-backed options", function () {
       expect((await blocks())[0].config).to.deep.equal(config);
     }
   });
+}
 
+function keepsAliasesAndChildPlacement(): void {
   it("retains an imported alias despite a different canonical-name binding", async () => {
     app.write(
       "board/custom.ts",
@@ -264,7 +237,9 @@ describe("source-backed options", function () {
       "preserve identified subtree",
     );
   });
+}
 
+function keepsLockedExpressionsInPlace(): void {
   it("rejects relocation instead of dropping a locked child expression", async () => {
     write('KpiCard({ title: "Before", staticValue: Math.random() })');
     const [block] = await blocks();
@@ -324,4 +299,39 @@ describe("source-backed options", function () {
       expect(app.read(FILE)).to.contain(`KpiCard(${config})`);
     }
   });
+}
+
+describe("source-backed options", function () {
+  this.timeout(60_000);
+  before(async () => {
+    app = createFixture();
+    expectOk(
+      await CreateCategory({ name: "shop", displayName: "Shop" }),
+      "category",
+    );
+    expectOk(
+      await CreatePage({
+        name: "board",
+        displayName: "Board",
+        category: "pages.shop",
+      }),
+      "page",
+    );
+    expectOk(
+      await AddBlock({
+        page: PAGE,
+        name: "revenueKpi",
+        type: "KpiCard",
+        config: { title: "Revenue" },
+      }),
+      "block",
+    );
+    base = app.read(FILE);
+  });
+  beforeEach(() => app.write(FILE, base));
+  after(() => destroyFixture());
+
+  readsAndEditsUnderstoodOptions();
+  keepsAliasesAndChildPlacement();
+  keepsLockedExpressionsInPlace();
 });

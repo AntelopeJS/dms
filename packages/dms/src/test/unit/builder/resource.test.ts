@@ -32,33 +32,7 @@ async function fieldNamed(name: string) {
   return found;
 }
 
-/**
- * A resource is what a data source reads from, and its fields are what the
- * source editor offers as measures, groupings and filters — including the
- * aspects that decide whether a field may be sorted or filtered on at all.
- */
-describe("resources and their fields", () => {
-  before(async function () {
-    this.timeout(120_000);
-    app = createFixture();
-    expectOk(
-      await CreateResource({
-        name: "order",
-        displayName: "Order",
-        fields: [
-          {
-            name: "amount",
-            label: "Amount",
-            dataType: { $dataType: "number" },
-          },
-        ],
-      }),
-      "CreateResource",
-    );
-  });
-
-  after(() => destroyFixture());
-
+function emitsTheResourceAndAddsFields(): void {
   it("emits a table, a model and a data API, and lists the resource", async () => {
     const structure = await order();
     expect(structure.className).to.equal("Order");
@@ -140,7 +114,9 @@ describe("resources and their fields", () => {
 
     expect((await fieldNamed("archived")).archiveField).to.equal(true);
   });
+}
 
+function createsChangesAndRemovesFields(): void {
   it("creates a resource whose field the CSV export includes", async function () {
     this.timeout(OP_TIMEOUT);
     expectOk(
@@ -198,4 +174,35 @@ describe("resources and their fields", () => {
       "status",
     );
   });
+}
+
+/**
+ * A resource is what a data source reads from, and its fields are what the
+ * source editor offers as measures, groupings and filters — including the
+ * aspects that decide whether a field may be sorted or filtered on at all.
+ */
+describe("resources and their fields", () => {
+  before(async function () {
+    this.timeout(120_000);
+    app = createFixture();
+    expectOk(
+      await CreateResource({
+        name: "order",
+        displayName: "Order",
+        fields: [
+          {
+            name: "amount",
+            label: "Amount",
+            dataType: { $dataType: "number" },
+          },
+        ],
+      }),
+      "CreateResource",
+    );
+  });
+
+  after(() => destroyFixture());
+
+  emitsTheResourceAndAddsFields();
+  createsChangesAndRemovesFields();
 });
