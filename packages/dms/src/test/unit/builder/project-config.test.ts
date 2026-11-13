@@ -171,21 +171,7 @@ function readConfig(): string {
   return projectFile(app.root, "antelope.config.ts");
 }
 
-/**
- * Wiring a project to another database touches several entries of `antelope.config.ts` at once,
- * and a wrong pin there binds a module to the wrong database. The builder writes them on a draft,
- * refuses what contradicts the configuration, and never writes a secret's value.
- */
-describe("project-config operations", function () {
-  this.timeout(OP_TIMEOUT);
-
-  beforeEach(() => {
-    app = createFixture();
-    fs.writeFileSync(configPath(), PROJECT_CONFIG);
-  });
-
-  after(destroyFixture);
-
+function connectBatchCases() {
   it("writes the skill's connect batch as the configuration it expects", async () => {
     expectOk(await ConfigureProject(CONNECT_STEPS), "ConfigureProject");
     expect(readConfig()).to.equal(CONNECTED_CONFIG);
@@ -276,7 +262,9 @@ ${ARCHIVE_CONNECTION}
       ],`),
     );
   });
+}
 
+function moduleEntryCases() {
   it("adds a nested config key beside the ones the module already has", async () => {
     const archive = `          archive: {
             access: "read-write",
@@ -373,7 +361,9 @@ ${connections}
       false,
     );
   });
+}
 
+function envLoadingCases() {
   it("writes in the configuration's own indentation, whatever the project's", async () => {
     fs.writeFileSync(
       configPath(),
@@ -453,7 +443,9 @@ ${connections}
       .and.to.include('const projectEnvFile2 = join(__dirname, ".env");')
       .and.to.include("process.loadEnvFile(projectEnvFile2);");
   });
+}
 
+function refusalCases() {
   it("refuses to add an override where writing the others again would lose one, and writes nothing", async () => {
     for (const overrides of [
       '[{ interface: "@antelopejs/interface-x", source: X_SOURCE }]',
@@ -509,4 +501,25 @@ ${connections}
     );
     expect(readConfig()).to.include("postgres-erp").and.to.include("reports");
   });
+}
+
+/**
+ * Wiring a project to another database touches several entries of `antelope.config.ts` at once,
+ * and a wrong pin there binds a module to the wrong database. The builder writes them on a draft,
+ * refuses what contradicts the configuration, and never writes a secret's value.
+ */
+describe("project-config operations", function () {
+  this.timeout(OP_TIMEOUT);
+
+  beforeEach(() => {
+    app = createFixture();
+    fs.writeFileSync(configPath(), PROJECT_CONFIG);
+  });
+
+  after(destroyFixture);
+
+  connectBatchCases();
+  moduleEntryCases();
+  envLoadingCases();
+  refusalCases();
 });

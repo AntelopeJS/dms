@@ -3,8 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
 import { setBuilderConfig } from "../../../config";
-import { dmsDatabaseId } from "../../../implementations/dms-builder/engine/dms-database";
-import { StepRefusal } from "../../../implementations/dms-builder/engine/project-config";
+import {
+  dmsDatabaseId,
+  StepRefusal,
+} from "../../../implementations/dms-builder/engine";
 
 const DMS_DATABASE_PACKAGE = "@antelopejs/dms-database";
 

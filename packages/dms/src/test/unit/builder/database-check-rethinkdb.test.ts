@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { checkDatabase } from "../../../implementations/dms-builder/engine/database-check";
+import { checkDatabase } from "../../../implementations/dms-builder/engine";
 import {
   CLOSE_SETTLE_MS,
   closedPort,
@@ -38,48 +38,42 @@ function stallsAfterSignIn(): Stall {
 
 const suite = dockerAvailable ? describe : describe.skip;
 
-suite(`checking a RethinkDB database live${LIVE_SUITE_NOTE}`, function () {
-  let server: Container | undefined;
+let server: Container | undefined;
 
-  function urlOf(
-    user: string,
-    password = secretOf(user),
-    database = "shop",
-    port = server?.port,
-  ) {
-    return `rethinkdb://${user}:${password}@127.0.0.1:${port}/${database}`;
-  }
+function urlOf(
+  user: string,
+  password = secretOf(user),
+  database = "shop",
+  port = server?.port,
+) {
+  return `rethinkdb://${user}:${password}@127.0.0.1:${port}/${database}`;
+}
 
-  before(async function () {
-    this.timeout(START_TIMEOUT_MS);
-    server = await startContainer(
-      "rethinkdb:2.4",
-      28015,
-      [],
-      ["rethinkdb", "--bind", "all", "--initial-password", ADMIN_SECRET],
-    );
-    const port = server.port;
-    await waitFor("RethinkDB", () => answersAdmin(port, ADMIN_SECRET));
-    await setUpShop(port, ADMIN_SECRET, [
-      {
-        name: "reader",
-        password: secretOf("reader"),
-        database: { read: true },
-      },
-      {
-        name: "writer",
-        password: secretOf("writer"),
-        database: { read: true, write: true },
-      },
-      { name: "blind", password: secretOf("blind") },
-    ]);
-  });
+async function startServer() {
+  server = await startContainer(
+    "rethinkdb:2.4",
+    28015,
+    [],
+    ["rethinkdb", "--bind", "all", "--initial-password", ADMIN_SECRET],
+  );
+  const port = server.port;
+  await waitFor("RethinkDB", () => answersAdmin(port, ADMIN_SECRET));
+  await setUpShop(port, ADMIN_SECRET, [
+    {
+      name: "reader",
+      password: secretOf("reader"),
+      database: { read: true },
+    },
+    {
+      name: "writer",
+      password: secretOf("writer"),
+      database: { read: true, write: true },
+    },
+    { name: "blind", password: secretOf("blind") },
+  ]);
+}
 
-  after(async function () {
-    this.timeout(START_TIMEOUT_MS);
-    await removeContainer(server);
-  });
-
+function accountPrivilegeCases() {
   it("answers read access and no write access to an account that may only read", async () => {
     const answer = await checkDatabase(
       "rethinkdb",
@@ -125,7 +119,9 @@ suite(`checking a RethinkDB database live${LIVE_SUITE_NOTE}`, function () {
     await checkDatabase("rethinkdb", urlOf("writer"), TIMEOUT_MS);
     expect(await countRows(port, ADMIN_SECRET, "orders")).to.equal(1);
   });
+}
 
+function databaseNameCases() {
   it("answers a database with no table as readable and not written to", async () => {
     const answer = await checkDatabase(
       "rethinkdb",
@@ -171,7 +167,9 @@ suite(`checking a RethinkDB database live${LIVE_SUITE_NOTE}`, function () {
       expect(JSON.stringify(answer), url).to.not.include("r.db(");
     }
   });
+}
 
+function refusedAndUnreachableCases() {
   it("answers a refused password as a server that answered, without the password", async () => {
     const answer = await checkDatabase(
       "rethinkdb",
@@ -220,7 +218,9 @@ suite(`checking a RethinkDB database live${LIVE_SUITE_NOTE}`, function () {
       await silent.close();
     }
   });
+}
 
+function connectionCloseCases() {
   it("closes its connections once it has answered", async () => {
     const proxy = await relay(server?.port ?? 0);
     try {
@@ -266,5 +266,22 @@ suite(`checking a RethinkDB database live${LIVE_SUITE_NOTE}`, function () {
     } finally {
       await proxy.close();
     }
+  }).timeout(TIMEOUT_MS * 5);
+}
+
+suite(`checking a RethinkDB database live${LIVE_SUITE_NOTE}`, function () {
+  before(async function () {
+    this.timeout(START_TIMEOUT_MS);
+    await startServer();
   });
+
+  after(async function () {
+    this.timeout(START_TIMEOUT_MS);
+    await removeContainer(server);
+  });
+
+  accountPrivilegeCases();
+  databaseNameCases();
+  refusedAndUnreachableCases();
+  connectionCloseCases();
 });

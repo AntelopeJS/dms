@@ -2,8 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import type { InterfaceConnection } from "@antelopejs/interface-core";
 import { expect } from "chai";
-import { repairDatabaseConnections } from "../../../implementations/dms-builder/engine/database-repair";
-import { ownModuleId } from "../../../implementations/dms-builder/engine/own-connections";
+import {
+  ownModuleId,
+  repairDatabaseConnections,
+} from "../../../implementations/dms-builder/engine";
 import {
   createFixture,
   destroyFixture,

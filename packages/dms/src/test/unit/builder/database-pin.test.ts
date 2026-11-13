@@ -3,8 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
 import { setBuilderConfig } from "../../../config";
-import { databasePins } from "../../../implementations/dms-builder/engine/database-pin";
-import { ownModuleId } from "../../../implementations/dms-builder/engine/own-connections";
+import {
+  databasePins,
+  ownModuleId,
+} from "../../../implementations/dms-builder/engine";
 
 const DATABASE_INTERFACE = "@antelopejs/interface-database";
 
@@ -60,22 +62,18 @@ function writeConfig(text: string): void {
   fs.writeFileSync(path.join(root, "antelope.config.ts"), text);
 }
 
-/**
- * A tables module pins `interface-database` to its own database and the modules that import it
- * receive that pin, so each of them has to be pinned to the project's default database or it is
- * reached with two bindings.
- */
-describe("the database pins of the modules that import interface-database", () => {
-  before(() => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), "dms-builder-database-pin-"));
-    setBuilderConfig({ projectRoot: root });
-  });
+const wiringWith = (module: string) =>
+  connections(
+    new Map([
+      [ownModuleId(), BOTH],
+      ["dms", BOTH],
+      [module, BOTH],
+      ["mongodb", ["mongodb"]],
+      ["builder-db-erp", ["builder-db-erp"]],
+    ]),
+  );
 
-  after(() => {
-    setBuilderConfig(undefined);
-    fs.rmSync(root, { recursive: true, force: true });
-  });
-
+function priorityAndOverrideCases() {
   it("pins the DMS to the default provider, not the first one by name", () => {
     writeConfig(config(DMS_SOURCE));
     expect(databasePins(PROJECT)).to.deep.equal({
@@ -139,7 +137,9 @@ describe("the database pins of the modules that import interface-database", () =
     );
     expect(() => databasePins(PROJECT)).to.throw(/not written with literals/);
   });
+}
 
+function moduleWiringCases() {
   it("refuses nothing when the DMS pins the database already, beside an override it cannot read", () => {
     writeConfig(
       config(
@@ -196,11 +196,11 @@ describe("the database pins of the modules that import interface-database", () =
         DMS_SOURCE,
         "-1",
         `${LOCAL_APP}
-    reports: {
-      source: { type: "local", path: "../reports" },
-      importOverrides: { "${DATABASE_INTERFACE}": "builder-db-erp" },
-    },
-    docs: { source: { type: "local", path: "../docs" } },`,
+  reports: {
+    source: { type: "local", path: "../reports" },
+    importOverrides: { "${DATABASE_INTERFACE}": "builder-db-erp" },
+  },
+  docs: { source: { type: "local", path: "../docs" } },`,
       ),
     );
     const importing = new Map([
@@ -226,9 +226,9 @@ describe("the database pins of the modules that import interface-database", () =
         DMS_SOURCE,
         "-1",
         `    "dms-database": {
-      source: { type: "package", package: "@antelopejs/dms-database", version: "*" },
-      importOverrides: [{ interface: "${DATABASE_INTERFACE}", source: "builder-db-erp", id: "erp" }],
-    },`,
+    source: { type: "package", package: "@antelopejs/dms-database", version: "*" },
+    importOverrides: [{ interface: "${DATABASE_INTERFACE}", source: "builder-db-erp", id: "erp" }],
+  },`,
       ),
     );
     const importing = new Map([
@@ -241,99 +241,111 @@ describe("the database pins of the modules that import interface-database", () =
       { module: "dms-database", provider: "mongodb" },
     ]);
   });
+}
 
-  describe("a module whose entry the builder cannot write a pin into", () => {
-    const wiringWith = (module: string) =>
-      connections(
-        new Map([
-          [ownModuleId(), BOTH],
-          ["dms", BOTH],
-          [module, BOTH],
-          ["mongodb", ["mongodb"]],
-          ["builder-db-erp", ["builder-db-erp"]],
-        ]),
-      );
+function unwritableEntryCases() {
+  it("is refused by name when it is written as a version string and imports interface-database", () => {
+    writeConfig(
+      config(DMS_SOURCE, "-1", `    "@antelopejs/some-app": "^1.0.0",`),
+    );
+    expect(() => databasePins(wiringWith("@antelopejs/some-app"))).to.throw(
+      /module "@antelopejs\/some-app".*as an object with the pin/,
+    );
+  });
 
-    it("is refused by name when it is written as a version string and imports interface-database", () => {
-      writeConfig(
-        config(DMS_SOURCE, "-1", `    "@antelopejs/some-app": "^1.0.0",`),
-      );
-      expect(() => databasePins(wiringWith("@antelopejs/some-app"))).to.throw(
-        /module "@antelopejs\/some-app".*as an object with the pin/,
-      );
-    });
+  it("is refused by name when it is written with a spread and imports interface-database", () => {
+    writeConfig(
+      config(
+        DMS_SOURCE,
+        "-1",
+        `    reports: { ...SHARED, source: { type: "local", path: "../reports" } },`,
+      ),
+    );
+    expect(() => databasePins(wiringWith("reports"))).to.throw(
+      /module "reports".*as an object with the pin/,
+    );
+  });
 
-    it("is refused by name when it is written with a spread and imports interface-database", () => {
-      writeConfig(
-        config(
-          DMS_SOURCE,
-          "-1",
-          `    reports: { ...SHARED, source: { type: "local", path: "../reports" } },`,
-        ),
-      );
-      expect(() => databasePins(wiringWith("reports"))).to.throw(
-        /module "reports".*as an object with the pin/,
-      );
-    });
-
-    /**
-     * A spread decides nothing about a key written after it, so a pin there is the pin the module
-     * runs with. A detector that refuses every entry with a spread fails the first case, and one
-     * that takes a pin written before the spread for a pin fails the second.
-     */
-    it("counts a plain pin written after the last spread, or computed name, as the module's pin", () => {
-      const pin = `importOverrides: { "${DATABASE_INTERFACE}": "mongodb" }`;
-      for (const written of [
-        `{ ...SHARED, ${pin} }`,
-        `{ ...SHARED, importOverrides: [{ interface: "${DATABASE_INTERFACE}", source: "mongodb" }] }`,
-        `{ ...SHARED, ...MORE, ${pin} }`,
-        `{ [KEY]: 1, ${pin} }`,
-      ]) {
-        writeConfig(config(DMS_SOURCE, "-1", `    reports: ${written},`));
-        expect(databasePins(wiringWith("reports")).pins, written).to.deep.equal(
-          [{ module: "dms", provider: "mongodb" }],
-        );
-      }
-    });
-
-    it("still refuses an entry with a spread whose pin is not one that wins, and says what to write", () => {
-      const pin = `importOverrides: { "${DATABASE_INTERFACE}": "mongodb" }`;
-      for (const written of [
-        `{ ${pin}, ...SHARED }`,
-        `{ ${pin}, [KEY]: 1 }`,
-        `{ ...SHARED, importOverrides: { "@antelopejs/interface-x": "mongodb" } }`,
-        `{ ...SHARED, importOverrides: [{ interface: "${DATABASE_INTERFACE}", source: "mongodb", id: "erp" }] }`,
-        "{ ...SHARED, importOverrides }",
-        "{ ...SHARED, importOverrides: PINS }",
-      ]) {
-        writeConfig(config(DMS_SOURCE, "-1", `    reports: ${written},`));
-        expect(() => databasePins(wiringWith("reports")), written).to.throw(
-          /module "reports".*as an object with the pin/,
-        );
-      }
-    });
-
-    it("is left alone when it imports no interface-database, or provides it itself", () => {
-      writeConfig(
-        config(
-          DMS_SOURCE,
-          "-1",
-          `    "@antelopejs/some-app": "^1.0.0",
-    reports: { ...SHARED, source: { type: "local", path: "../reports" } },`,
-        ),
-      );
-      const providing = connections(
-        new Map([
-          [ownModuleId(), BOTH],
-          ["dms", BOTH],
-          ["reports", ["reports"]],
-          ["mongodb", ["mongodb"]],
-          ["builder-db-erp", ["builder-db-erp"]],
-        ]),
-      );
-      expect(databasePins(providing).pins).to.deep.equal([
+  /**
+   * A spread decides nothing about a key written after it, so a pin there is the pin the module
+   * runs with. A detector that refuses every entry with a spread fails the first case, and one
+   * that takes a pin written before the spread for a pin fails the second.
+   */
+  it("counts a plain pin written after the last spread, or computed name, as the module's pin", () => {
+    const pin = `importOverrides: { "${DATABASE_INTERFACE}": "mongodb" }`;
+    for (const written of [
+      `{ ...SHARED, ${pin} }`,
+      `{ ...SHARED, importOverrides: [{ interface: "${DATABASE_INTERFACE}", source: "mongodb" }] }`,
+      `{ ...SHARED, ...MORE, ${pin} }`,
+      `{ [KEY]: 1, ${pin} }`,
+    ]) {
+      writeConfig(config(DMS_SOURCE, "-1", `    reports: ${written},`));
+      expect(databasePins(wiringWith("reports")).pins, written).to.deep.equal([
         { module: "dms", provider: "mongodb" },
       ]);
-    });
+    }
+  });
+
+  it("still refuses an entry with a spread whose pin is not one that wins, and says what to write", () => {
+    const pin = `importOverrides: { "${DATABASE_INTERFACE}": "mongodb" }`;
+    for (const written of [
+      `{ ${pin}, ...SHARED }`,
+      `{ ${pin}, [KEY]: 1 }`,
+      `{ ...SHARED, importOverrides: { "@antelopejs/interface-x": "mongodb" } }`,
+      `{ ...SHARED, importOverrides: [{ interface: "${DATABASE_INTERFACE}", source: "mongodb", id: "erp" }] }`,
+      "{ ...SHARED, importOverrides }",
+      "{ ...SHARED, importOverrides: PINS }",
+    ]) {
+      writeConfig(config(DMS_SOURCE, "-1", `    reports: ${written},`));
+      expect(() => databasePins(wiringWith("reports")), written).to.throw(
+        /module "reports".*as an object with the pin/,
+      );
+    }
+  });
+
+  it("is left alone when it imports no interface-database, or provides it itself", () => {
+    writeConfig(
+      config(
+        DMS_SOURCE,
+        "-1",
+        `    "@antelopejs/some-app": "^1.0.0",
+  reports: { ...SHARED, source: { type: "local", path: "../reports" } },`,
+      ),
+    );
+    const providing = connections(
+      new Map([
+        [ownModuleId(), BOTH],
+        ["dms", BOTH],
+        ["reports", ["reports"]],
+        ["mongodb", ["mongodb"]],
+        ["builder-db-erp", ["builder-db-erp"]],
+      ]),
+    );
+    expect(databasePins(providing).pins).to.deep.equal([
+      { module: "dms", provider: "mongodb" },
+    ]);
+  });
+}
+
+/**
+ * A tables module pins `interface-database` to its own database and the modules that import it
+ * receive that pin, so each of them has to be pinned to the project's default database or it is
+ * reached with two bindings.
+ */
+describe("the database pins of the modules that import interface-database", () => {
+  before(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "dms-builder-database-pin-"));
+    setBuilderConfig({ projectRoot: root });
+  });
+
+  after(() => {
+    setBuilderConfig(undefined);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  priorityAndOverrideCases();
+  moduleWiringCases();
+  describe("a module whose entry the builder cannot write a pin into", () => {
+    unwritableEntryCases();
   });
 });
