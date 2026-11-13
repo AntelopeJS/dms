@@ -11,8 +11,8 @@ import { RoutesOf } from "./mapped-routes";
 import { targetModule } from "./modules";
 import { stringOf } from "./project-config";
 import {
-  findResourceBySymbol,
   findResourceRecord,
+  listResourceRecords,
   type ResourceRecord,
 } from "./resource-index";
 import { InvalidValueError } from "./value";
@@ -133,12 +133,10 @@ function writingAttempt(
 
 function assertBound(
   type: string,
-  controller: string | undefined,
+  record: ResourceRecord | undefined,
   form: RowWritingForm | undefined,
   added = true,
 ): void {
-  const record =
-    controller === undefined ? undefined : findResourceRecord(controller);
   if (!record) {
     return;
   }
@@ -165,7 +163,7 @@ export function assertBlockAccess({
   const mode = config.mode;
   assertBound(
     type,
-    controller,
+    controller === undefined ? undefined : findResourceRecord(controller),
     ROW_WRITING_FORMS.find((form) => form.mode === mode),
   );
 }
@@ -197,14 +195,40 @@ function assertFormAccess(
   if (after === before || target.type === undefined) {
     return;
   }
-  assertBound(
-    target.type,
-    Node.isIdentifier(controllerNode)
-      ? findResourceBySymbol(controllerNode.getText())?.ref
-      : undefined,
-    rowWritingForm(after),
-    false,
+  for (const record of controllerRecords(controllerNode)) {
+    assertBound(target.type, record, rowWritingForm(after), false);
+  }
+}
+
+/**
+ * The resources a block's controller argument may be: the one whose DataAPI file its import names,
+ * or, when the import does not resolve, every resource of that class name, so a resource of the
+ * same name elsewhere never stands in for a mapped one.
+ */
+function controllerRecords(node: Node | undefined): ResourceRecord[] {
+  if (!Node.isIdentifier(node)) {
+    return [];
+  }
+  const name = node.getText();
+  const target = node
+    .getSourceFile()
+    .getImportDeclarations()
+    .find((declaration) =>
+      declaration
+        .getNamedImports()
+        .some(
+          (specifier) =>
+            (specifier.getAliasNode() ?? specifier.getNameNode()).getText() ===
+            name,
+        ),
+    )
+    ?.getModuleSpecifierSourceFile()
+    ?.getFilePath();
+  const named = listResourceRecords().filter(
+    (record) => record.apiName === name,
   );
+  const imported = named.filter((record) => record.dataApiFile === target);
+  return imported.length > 0 ? imported : named;
 }
 
 /**

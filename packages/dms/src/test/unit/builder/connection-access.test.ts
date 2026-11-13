@@ -14,6 +14,7 @@ import {
   AddBlock,
   ConfigureBlock,
   ConfigureResource,
+  CreateResource,
   GetPageStructure,
   ListPages,
   MapResources,
@@ -33,6 +34,7 @@ import {
 } from "./harness";
 import { FAKE_CATALOG, MODULE, OP_TIMEOUT } from "./mapped-database";
 import { reloadedAtOnce } from "./reload-stub";
+import { recordLaunchEnvironment } from "../../../implementations/dms-builder/engine/connection-access-config";
 import { answerMcpMessage } from "../../../mcp/protocol";
 import { MCP_TOOLS } from "../../../mcp/tools";
 
@@ -114,7 +116,11 @@ describe("[unit] builder writes on an external connection follow its access", fu
 
   before(() => {
     app = createFixture({ modules: [MODULE] });
-    setCatalogConnectionsForTests({ erp: FAKE_CATALOG, other: FAKE_CATALOG });
+    setCatalogConnectionsForTests({
+      erp: FAKE_CATALOG,
+      "erp.v2": FAKE_CATALOG,
+      other: FAKE_CATALOG,
+    });
     setModuleReloadForTests(reloadedAtOnce);
   });
 
@@ -243,7 +249,7 @@ describe("[unit] builder writes on an external connection follow its access", fu
       );
     });
 
-    it("reads the entry keyed by the dms-database package name", async () => {
+    function writeConfig(entries: string[]): void {
       app.write(
         "../antelope.config.ts",
         [
@@ -254,13 +260,69 @@ describe("[unit] builder writes on an external connection follow its access", fu
           "  modules: {",
           `    ${PROJECT_MODULE}: { source: { type: "local", path: "." } },`,
           `    "${MODULE}": { source: { type: "local", path: "modules/${MODULE}" } },`,
-          '    "@antelopejs/dms-database": { version: "0.5.0", config: { externalConnections: { erp: { access: "read-write" } } } },',
+          ...entries.map((entry) => `    ${entry}`),
           "  },",
           "});",
           "",
         ].join("\n"),
       );
+    }
+
+    it("reads the entry keyed by the dms-database package name", async () => {
+      writeConfig([
+        '"@antelopejs/dms-database": { version: "0.5.0", config: { externalConnections: { erp: { access: "read-write" } } } },',
+      ]);
       expectOk(await MapResources(countries(true)), "writable mapping");
+    });
+
+    it("skips a disabled dms-database entry, as core does", async () => {
+      writeConfig([
+        '"dms-database-next": { disabled: true, source: { type: "package", package: "@antelopejs/dms-database" }, config: { externalConnections: { erp: { access: "read-write" } } } },',
+        '"dms-database": { config: { externalConnections: { erp: { access: "read" } } } },',
+      ]);
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        `${READ_ONLY}, since \`config.externalConnections.erp.access\` on the dms-database entry of antelope.config.ts sets it to "read"`,
+      );
+    });
+
+    it("ignores an envOverrides path that core splits inside a connection id holding a dot", async () => {
+      setConnectionAccess(
+        { erp: "read-write", "erp.v2": "read" },
+        '  envOverrides: { ERP_ACCESS: "modules.dms-database.config.externalConnections.erp.v2.access" },\n',
+      );
+      process.env.ERP_ACCESS = "read-write";
+      expect(
+        refusalOf(
+          await MapResources({ ...countries(true), connection: "erp.v2" }),
+        ),
+      ).to.include('connection "erp.v2" is read-only');
+    });
+
+    it("follows an envOverrides variable an environment declares", async () => {
+      setConnectionAccess(
+        { erp: "read-write" },
+        `  environments: { default: { envOverrides: { ERP_ACCESS: "${PATH}" } } },\n`,
+      );
+      process.env.ERP_ACCESS = "read";
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        "the `ERP_ACCESS` variable of `envOverrides`",
+      );
+    });
+
+    it("resolves the access for the launch environment alone once it is recorded", async () => {
+      const production =
+        '  environments: { production: { modules: { "dms-database": { config: { externalConnections: { erp: { access: "read" } } } } } } },\n';
+      setConnectionAccess({ erp: "read-write" }, production);
+      try {
+        recordLaunchEnvironment("default");
+        expectOk(await MapResources(countries(true)), "writable mapping");
+        recordLaunchEnvironment("production");
+        expect(refusalOf(await MapResources(countries(true)))).to.include(
+          `${READ_ONLY}, since \`environments.production\` of antelope.config.ts sets it to "read"`,
+        );
+      } finally {
+        recordLaunchEnvironment(undefined);
+      }
     });
 
     it("follows an envOverrides variable set in the process", async () => {
@@ -355,6 +417,28 @@ describe("[unit] builder writes on an external connection follow its access", fu
         "a title on a form that edits",
       );
       expect(await formMode(page, "showForm")).to.equal("edit");
+    });
+
+    it("refuses turning a form into one that edits rows when a project resource shares its class name", async () => {
+      setConnectionAccess({ erp: "read-write" });
+      expectOk(
+        await CreateResource({
+          name: "country",
+          fields: [{ name: "label", dataType: { $dataType: "string" } }],
+        }),
+        "a project resource named country",
+      );
+      expectOk(
+        await form(page, "otherForm", "view"),
+        "a form that shows a row",
+      );
+      setConnectionAccess({ erp: "read" });
+      expect(
+        refusalOf(await ConfigureBlock(`${page}#otherForm`, { mode: "edit" })),
+      ).to.include(
+        `refused to turn a form into one that edits rows of "${COUNTRIES}": ${READ_ONLY}`,
+      );
+      expect(await formMode(page, "otherForm")).to.equal("view");
     });
 
     it("refuses a table over it while it still serves write routes on a read connection, and adds one once it is mapped read-only", async () => {

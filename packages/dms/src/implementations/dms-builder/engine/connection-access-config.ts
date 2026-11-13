@@ -103,19 +103,36 @@ function dmsDatabaseEntry(
       continue;
     }
     const id = propertyKey(property.getNameNode());
-    if (isDmsDatabaseEntry(id, property.getInitializer())) {
-      return { id, entry: property.getInitializer() };
+    const entry = property.getInitializer();
+    if (!isDmsDatabaseEntry(id, entry)) {
+      continue;
+    }
+    const disabled = memberOf(entry, "disabled");
+    if (disabled === UNREADABLE) {
+      return UNREADABLE;
+    }
+    if (disabled === undefined || Node.isFalseLiteral(disabled)) {
+      return { id, entry };
+    }
+    if (!Node.isTrueLiteral(disabled)) {
+      return UNREADABLE;
     }
   }
   return undefined;
 }
 
-/** What each of `environments` sets, by name, `undefined` where one sets nothing. */
-function environmentSettings(
+/** What one member of `environments` merges over the base: the access, and `envOverrides`. */
+interface EnvironmentLayer {
+  name: string;
+  sets?: AccessSetting;
+  overrides: AccessSetting[];
+}
+
+function environmentLayers(
   environments: Found,
   keys: string[],
   file: string,
-): [string, AccessSetting | undefined][] {
+): EnvironmentLayer[] {
   if (environments === undefined) {
     return [];
   }
@@ -123,19 +140,30 @@ function environmentSettings(
     environments === UNREADABLE ||
     !Node.isObjectLiteralExpression(environments)
   ) {
-    return [["*", said(`\`environments\` of ${file}`, undefined)]];
+    return [
+      {
+        name: "*",
+        sets: said(`\`environments\` of ${file}`, undefined),
+        overrides: [],
+      },
+    ];
   }
   return environments.getProperties().map((property) => {
     const name = Node.isPropertyAssignment(property)
       ? propertyKey(property.getNameNode())
       : property.getText();
-    const [setting] = settingOf(
-      Node.isPropertyAssignment(property)
-        ? walk(property.getInitializer(), keys)
-        : UNREADABLE,
+    const member = Node.isPropertyAssignment(property)
+      ? property.getInitializer()
+      : UNREADABLE;
+    const [sets] = settingOf(
+      walk(member, keys),
       `\`environments.${name}\` of ${file}`,
     );
-    return [name, setting];
+    return {
+      name,
+      sets,
+      overrides: envOverrideSettings(memberOf(member, "envOverrides"), keys),
+    };
   });
 }
 
@@ -173,9 +201,24 @@ function jsonSettings(id: string, connection: string): AccessSetting[] {
 }
 
 /** The access an `envOverrides` variable set in this process writes over the config, as core applies them. */
+/**
+ * Where an `envOverrides` path writes, relative to the access: core splits the path on dots, so a
+ * path reaches it only as the same segments or a prefix of them, never through an id with a dot.
+ */
+function reach(
+  written: string,
+  target: string[],
+): "exact" | "above" | undefined {
+  const segments = written.split(".");
+  if (segments.some((segment, index) => segment !== target[index])) {
+    return undefined;
+  }
+  return segments.length === target.length ? "exact" : "above";
+}
+
 function envOverrideSettings(
   overrides: Found,
-  target: string,
+  target: string[],
 ): AccessSetting[] {
   if (overrides === undefined) {
     return [];
@@ -193,19 +236,16 @@ function envOverrideSettings(
     const paths = Node.isArrayLiteralExpression(initializer)
       ? initializer.getElements().map(stringOf)
       : [stringOf(initializer)];
-    const reaches = paths.some(
-      (written) =>
-        written === undefined ||
-        written === target ||
-        target.startsWith(`${written}.`),
+    const reaches = paths.map((written) =>
+      written === undefined ? "above" : reach(written, target),
     );
-    if (!reaches || value === undefined) {
+    if (reaches.every((found) => found === undefined) || value === undefined) {
       return [];
     }
     return [
       said(
         `the \`${variable}\` variable of \`envOverrides\``,
-        paths.includes(target) ? value : undefined,
+        reaches.every((found) => found !== "above") ? value : undefined,
       ),
     ];
   });
@@ -218,13 +258,19 @@ function envOverrideSettings(
  */
 interface AccessLayers {
   base: AccessSetting[];
-  environments: [string, AccessSetting | undefined][];
-  later: AccessSetting[];
+  environments: EnvironmentLayer[];
+  json: AccessSetting[];
+  overrides: AccessSetting[];
 }
 
 function accessLayers(connection: string): AccessLayers | AccessSetting {
   const configPath = findConfigFile();
-  const empty: AccessLayers = { base: [], environments: [], later: [] };
+  const empty: AccessLayers = {
+    base: [],
+    environments: [],
+    json: [],
+    overrides: [],
+  };
   if (!configPath) {
     return empty;
   }
@@ -246,40 +292,64 @@ function accessLayers(connection: string): AccessLayers | AccessSetting {
       walk(found.entry, keys),
       `\`config.externalConnections.${connection}.access\` on the ${found.id} entry of ${file}`,
     ),
-    environments: environmentSettings(
+    environments: environmentLayers(
       memberOf(root, "environments"),
       ["modules", found.id, ...keys],
       file,
     ),
-    later: [
-      ...jsonSettings(found.id, connection),
-      ...envOverrideSettings(
-        memberOf(root, "envOverrides"),
-        ["modules", found.id, ...keys].join("."),
-      ),
-    ],
+    json: jsonSettings(found.id, connection),
+    overrides: envOverrideSettings(memberOf(root, "envOverrides"), [
+      "modules",
+      found.id,
+      ...keys,
+    ]),
   };
+}
+
+let launchEnvironment: string | undefined;
+
+/**
+ * Records the environment core launched the project with, so the access is resolved for it alone.
+ * Until then, every member of `environments` counts.
+ *
+ * @param environment `GetRuntimeInfo().env`
+ */
+export function recordLaunchEnvironment(environment: string | undefined): void {
+  launchEnvironment = environment;
+}
+
+/** The environments the access may be resolved for: the launch one, or each, and none. */
+function candidates(layers: AccessLayers): (EnvironmentLayer | undefined)[] {
+  if (launchEnvironment === undefined) {
+    return [undefined, ...layers.environments];
+  }
+  return [
+    layers.environments.find(
+      ({ name }) => name === launchEnvironment || name === "*",
+    ),
+  ];
 }
 
 /**
  * The access the project files give a connection, read on every call so a change applies without
- * a restart. Core merges the dms-database entry, the launch environment's `environments` member,
- * `antelope.<id>.json` and `envOverrides`, the last that sets the access winning. The builder
- * cannot know the launch environment, so the access is `"read-write"` only when that merge says
- * so with no environment and with each of `environments`. Anything else, an access set nowhere
- * included, is `"read"`.
+ * a restart. Core merges the dms-database entry, the launch environment's member of
+ * `environments`, `antelope.<id>.json`, then `envOverrides` with the environment's own, the last
+ * that sets the access winning. The access is `"read-write"` only when that merge says so for the
+ * launch environment, or, before it is recorded, for no environment and for each one. Anything
+ * else, an access set nowhere included, is `"read"`.
  */
 export function connectionAccess(connection: string): ResolvedAccess {
   const layers = accessLayers(connection);
   if (!("base" in layers)) {
     return { access: "read", reason: layers.says };
   }
-  const candidates = [undefined, ...layers.environments.map(([, set]) => set)];
-  for (const environment of candidates) {
+  for (const environment of candidates(layers)) {
     const winning = [
       ...layers.base,
-      ...(environment ? [environment] : []),
-      ...layers.later,
+      ...(environment?.sets ? [environment.sets] : []),
+      ...layers.json,
+      ...layers.overrides,
+      ...(environment?.overrides ?? []),
     ].at(-1);
     if (!winning) {
       return {
