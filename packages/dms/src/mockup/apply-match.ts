@@ -1,4 +1,5 @@
 import type { BlockNode } from "@antelopejs/interface-dms-builder";
+import { sameBlock } from "./apply-options";
 import type { MockupNode } from "./model";
 import { SKETCH_TYPE } from "./sketch";
 
@@ -99,8 +100,8 @@ function canStandFor(node: MockupNode, entry: LiveEntry): boolean {
 
 /**
  * The entry of `entries` that `node` stands for: one named its id, else its
- * id's block name; of those, one drawn as the node is (a sketch or not)
- * first, then the first.
+ * id's block name; of those, the one the node still draws, else one drawn as
+ * the node is (a sketch or not), else the first.
  */
 function pick(
   entries: readonly LiveEntry[],
@@ -116,7 +117,9 @@ function pick(
       .map((name) => fits.filter((entry) => nameOf(entry) === name))
       .find((found) => found.length > 0) ?? [];
   return (
-    named.find((entry) => isSketch(entry.node) === isSketch(node)) ?? named[0]
+    named.find((entry) => sameBlock(node, entry.node)) ??
+    named.find((entry) => isSketch(entry.node) === isSketch(node)) ??
+    named[0]
   );
 }
 
@@ -220,10 +223,10 @@ export function placeUnder(
  * or its id's block name ({@link blockNameOf}): first among the children of
  * the block its parent stands for, over the whole tree; then, for a node left
  * over, a free block of that name anywhere on the page, which the mockup
- * moved, one drawn as the node is first, then in page order. A Custom sketch
- * stands only for a block the page draws as one, so a block the builder
- * cannot write again is left without a node only when no sketch of its name
- * is left without a block. `reconverted` is the page converted now, one node
+ * moved: the one the node still draws first, then one drawn as it is, then
+ * the first in page order. A Custom sketch stands only for a block the page
+ * draws as one, so a block the builder cannot write again is left without a
+ * node only when no sketch of its name is left without a block. `reconverted` is the page converted now, one node
  * per block: it pairs each block with the node it would be had the mockup
  * left it alone.
  */

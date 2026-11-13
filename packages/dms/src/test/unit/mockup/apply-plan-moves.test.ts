@@ -188,6 +188,28 @@ describe("[unit] mockup apply: blocks of one name", () => {
 
     expect(removed).to.deep.equal([]);
   });
+
+  it("pairs a moved sketch with the block it still draws when several of its name are free, and removes the one the mockup removed (fails a matcher that pairs by page order alone, deleting code the mockup kept)", () => {
+    const plan = planEdited(
+      [
+        { name: "s1", type: "VStack", children: [{ name: "w", type: null }] },
+        {
+          name: "s2",
+          type: "VStack",
+          children: [{ name: "w", type: "KpiCard", editable: false }],
+        },
+      ],
+      (page) => {
+        takeNode(listAt(page, ["s1"]), "w");
+        page.tree.push(takeNode(listAt(page, ["s2"]), "w"));
+      },
+    );
+
+    expect(plan.summary.removed).to.deep.equal(["/books#s1/w"]);
+    expect(
+      plan.wiring.map(({ reason, kept }) => ({ reason, kept })),
+    ).to.deep.equal([{ reason: "move", kept: "/books#s2/w" }]);
+  });
 });
 
 const LOCKED_GRID: BlockDraft[] = [
