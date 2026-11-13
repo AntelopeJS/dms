@@ -10,6 +10,7 @@ import {
 } from "./database-access";
 import { ProbeConnections } from "./probe-connections";
 import { probeMongodb } from "./probe-mongodb";
+import { probeMysql } from "./probe-mysql";
 import { probePostgres } from "./probe-postgres";
 import { probeRethinkdb } from "./probe-rethinkdb";
 
@@ -22,6 +23,7 @@ const TOO_SLOW = "The database did not answer in time.";
 
 const PROBES: Record<DatabaseEngine, Probe> = {
   postgres: probePostgres,
+  mysql: probeMysql,
   mongodb: probeMongodb,
   rethinkdb: probeRethinkdb,
 };

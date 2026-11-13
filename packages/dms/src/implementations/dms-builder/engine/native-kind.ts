@@ -4,7 +4,11 @@ const NATIVE_KINDS: [RegExp, string][] = [
     "number",
   ],
   [
-    /^(text|character varying|varchar|character|char|bpchar|citext|name)$/,
+    /^(tinyint|smallint|mediumint|int|integer|bigint|decimal|dec|numeric|fixed|float|double|real)( (un)?signed)?( zerofill)?$/,
+    "number",
+  ],
+  [
+    /^(text|tinytext|mediumtext|longtext|character varying|varchar|character|char|bpchar|citext|name)$/,
     "text",
   ],
 ];

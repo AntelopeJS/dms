@@ -6,11 +6,11 @@ import { z } from "zod";
 import type { ProbeConnections } from "./probe-connections";
 
 /**
- * The engines of the *Connect a database* form, by the name the form sends.
- * Mirrored in `frontend-vue/builder/app/runtime/database-connect.ts`.
+ * The engines `CheckDatabaseConnection` takes, as the values of the interface's `DatabaseEngine`.
  */
 export const DATABASE_ENGINES = [
   "postgres",
+  "mysql",
   "mongodb",
   "rethinkdb",
 ] as const satisfies readonly DatabaseEngine[];

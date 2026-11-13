@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import path from "node:path";
 import type * as Mongodb from "mongodb";
+import type * as Mysql2 from "mysql2";
 import type * as Pg from "pg";
 import { z } from "zod";
 import { resolveProjectRoot } from "./project";
@@ -13,6 +14,7 @@ import type { RethinkdbClient } from "./rethinkdb-client";
 interface ClientModules {
   pg: typeof Pg;
   mongodb: typeof Mongodb;
+  mysql2: typeof Mysql2;
   "rethinkdb-ts": RethinkdbClient;
 }
 

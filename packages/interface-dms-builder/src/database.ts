@@ -2,8 +2,11 @@ import { InterfaceFunction } from "@antelopejs/interface-core";
 import type { ProjectConfigOpts, ProjectConfigResult } from "./project";
 import type { OpResult } from "./results";
 
-/** The engines a database can be checked on, by the name `CheckDatabaseConnection` takes. */
-export type DatabaseEngine = "postgres" | "mongodb" | "rethinkdb";
+/**
+ * The engines a database can be checked on, by the name `CheckDatabaseConnection` takes. `mysql`
+ * covers MariaDB too: the same client and the same catalog answer both.
+ */
+export type DatabaseEngine = "postgres" | "mysql" | "mongodb" | "rethinkdb";
 
 /** The database to check: its engine, and a URL of that engine's scheme. */
 export interface DatabaseCheckInput {

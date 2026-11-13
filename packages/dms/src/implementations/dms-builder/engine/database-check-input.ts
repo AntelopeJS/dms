@@ -13,6 +13,7 @@ const SCHEME = /^([a-z][a-z0-9+.-]*:)\/\//i;
 /** The schemes of each engine's URLs. */
 const SCHEMES: Record<DatabaseEngine, readonly string[]> = {
   postgres: ["postgres:", "postgresql:"],
+  mysql: ["mysql:"],
   mongodb: ["mongodb:"],
   rethinkdb: ["rethinkdb:"],
 };

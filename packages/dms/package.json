@@ -149,6 +149,7 @@
     "knip": "^6.34.0",
     "mongodb": "^7.1.1",
     "mongodb-memory-server-core": "^11.0.1",
+    "mysql2": "^3.24.6",
     "oxfmt": "^0.66.0",
     "oxlint": "1.81.0",
     "oxlint-tsgolint": "^7.0.2001",
@@ -191,6 +192,7 @@
   "peerDependencies": {
     "@antelopejs/core": ">=1.21.0 <2",
     "mongodb": "^6.21.0 || ^7.0.0",
+    "mysql2": "^3.24.6",
     "pg": "^8.22.0",
     "rethinkdb-ts": "^2.7.0"
   },
@@ -199,6 +201,9 @@
       "optional": true
     },
     "mongodb": {
+      "optional": true
+    },
+    "mysql2": {
       "optional": true
     },
     "pg": {
