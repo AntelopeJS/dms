@@ -4,7 +4,8 @@
  * attributes the sanitiser keeps reach the page, what it strips never does,
  * and the attributes the parent sets land on the same wrapper.
  */
-import { computed, createApp, h } from "vue";
+import { computed, createApp, createSSRApp, h } from "vue";
+import { renderToString } from "vue/server-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.stubGlobal("computed", computed);
@@ -27,6 +28,34 @@ function mountRichText(
   app.mount(host);
   mounted.push(() => app.unmount());
   return host;
+}
+
+/**
+ * Renders the value on the server, then hydrates that markup in the browser,
+ * and answers the markup, the hydrated host and every warning Vue gave.
+ */
+async function hydrateRichText(modelValue: string) {
+  const render = () => h(DisplayRichText, { modelValue });
+  const html = await renderToString(createSSRApp({ render }));
+  const host = document.createElement("div");
+  host.innerHTML = html;
+  const warnings: string[] = [];
+  const consoleWarn = vi
+    .spyOn(console, "warn")
+    .mockImplementation(() => undefined);
+  const consoleError = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => undefined);
+  const app = createSSRApp({ render });
+  app.config.warnHandler = (message) => warnings.push(message);
+  app.mount(host);
+  mounted.push(() => app.unmount());
+  warnings.push(
+    ...[...consoleWarn.mock.calls, ...consoleError.mock.calls].map(String),
+  );
+  consoleWarn.mockRestore();
+  consoleError.mockRestore();
+  return { html, host, warnings };
 }
 
 afterEach(() => {
@@ -65,6 +94,15 @@ describe("DisplayRichText", () => {
     const wrapper = host.firstElementChild;
     expect(wrapper?.getAttribute("data-testid")).toBe("rich");
     expect(wrapper?.classList.contains("prose")).toBe(true);
+  });
+
+  it("hydrates the markup the server drew without a mismatch", async () => {
+    const { html, host, warnings } = await hydrateRichText(
+      '<h2>Title</h2><p>Read <a href="https://example.com/a?b=1&amp;c=2" title="Docs">the <strong>docs</strong></a>.<br>Next line</p><ul><li>One</li><li>Two</li></ul><!-- note --><p>1 &lt; 2</p>',
+    );
+
+    expect(warnings).toEqual([]);
+    expect(host.innerHTML).toBe(html);
   });
 
   it("shows the empty placeholder for markup with no text", () => {

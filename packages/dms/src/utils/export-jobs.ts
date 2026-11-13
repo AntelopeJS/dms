@@ -126,17 +126,18 @@ function buildDeliveryLink(exportRecord: ExportJob): string {
 
 const ExportJobResultSummarySchema = z
   .object({
-    partial: z.boolean(),
-    failures: z.array(
-      z.object({ source: z.string(), error: z.string() }).passthrough(),
-    ),
+    partial: z.boolean().default(false),
+    failures: z
+      .array(z.object({ source: z.string(), error: z.string() }).passthrough())
+      .default([]),
   })
   .passthrough();
 
 /**
  * The summary `markAsCompleted` stored for the job, as the `generate` of its
- * export returned it. `undefined` when the job stored none, or stored a value
- * that is not a summary.
+ * export returned it. A summary that omits `partial` reads as complete, and
+ * one that omits `failures` as naming none. `undefined` when the job stored
+ * none, or stored a value that is not a summary.
  */
 export function readJobResult(
   exportRecord: ExportJob,

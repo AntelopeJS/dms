@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { CSSProperties } from "vue";
-import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import { useCopyFeedback } from "#dms-ui/app/entries/composables/clipboard/useCopyFeedback";
 import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 
@@ -86,14 +85,23 @@ function collectNames(rules: CSSRuleList, names: Set<string>): void {
   }
 }
 
+/**
+ * The rules of a stylesheet, or `null` when the browser refuses to read them:
+ * a cross-origin sheet then defines no variable for the list.
+ */
+function readableRules(sheet: CSSStyleSheet): CSSRuleList | null {
+  try {
+    return sheet.cssRules;
+  } catch {
+    return null;
+  }
+}
+
 function readVariables(): CSSVariable[] {
   const names = new Set<string>();
   for (const sheet of Array.from(document.styleSheets)) {
-    try {
-      collectNames(sheet.cssRules, names);
-    } catch {
-      ignoreFailure();
-    }
+    const rules = readableRules(sheet);
+    if (rules) collectNames(rules, names);
   }
   const rootStyles = getComputedStyle(document.documentElement);
   return Array.from(names)

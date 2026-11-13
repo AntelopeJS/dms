@@ -48,9 +48,10 @@ function collectStaticComponents(
   const fields: StaticComponentField[] = [];
   for (const key of Object.getOwnPropertyNames(cl)) {
     if (key.startsWith("_")) continue;
-
-    // oxlint-disable-next-line anti-slop/no-reflect-get -- The static field name comes from Object.getOwnPropertyNames; its value is narrowed with instanceof Component.
-    const value: unknown = Reflect.get(cl, key);
+    const descriptor = Object.getOwnPropertyDescriptor(cl, key);
+    const value: unknown = descriptor?.get
+      ? descriptor.get.call(cl)
+      : descriptor?.value;
     if (value instanceof Component) {
       fields.push({ key, component: value });
     }

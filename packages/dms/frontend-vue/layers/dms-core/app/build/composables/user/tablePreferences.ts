@@ -1,6 +1,5 @@
 import { isBranch, type PreferencesTree } from "./preferencesCookie";
 import { isNumber, isString } from "../../../utils/type-check";
-import { ignoreFailure } from "../../utils/ignoreFailure";
 
 /**
  * @internal
@@ -312,19 +311,22 @@ export const readLocalTableEntry = (id: string): PreferencesTree => {
 
 /**
  * @internal
- * Writes the browser-only state of a table, removing its key once empty. A
- * storage that refuses the write (full, disabled) leaves the table as it is.
+ * Writes the browser-only state of a table, removing its key once empty.
+ * Answers whether the storage took it: `false` on the server, or when the
+ * storage refuses the write (full, disabled), which leaves the table as it is.
  */
 export const writeLocalTableEntry = (
   id: string,
   entry: PreferencesTree,
-): void => {
+): boolean => {
   try {
     const storage = browserStorage();
-    if (Object.keys(entry).length === 0) storage?.removeItem(localKey(id));
-    else storage?.setItem(localKey(id), JSON.stringify(entry));
+    if (!storage) return false;
+    if (Object.keys(entry).length === 0) storage.removeItem(localKey(id));
+    else storage.setItem(localKey(id), JSON.stringify(entry));
+    return true;
   } catch {
-    ignoreFailure();
+    return false;
   }
 };
 

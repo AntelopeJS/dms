@@ -1,5 +1,3 @@
-import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
-
 /** `localStorage` key prefix of the open or folded state of each preferences group. */
 export const NOTIFICATION_GROUP_STORAGE_PREFIX = "dms-notification-group:";
 
@@ -18,11 +16,16 @@ function readStorage(key: string): string | null {
   }
 }
 
-function writeStorage(key: string, value: string): void {
+/**
+ * Stores `value` under `key`. Answers `false` when the storage refuses it:
+ * only the kept group choice is lost.
+ */
+function writeStorage(key: string, value: string): boolean {
   try {
     localStorage.setItem(key, value);
+    return true;
   } catch {
-    ignoreFailure();
+    return false;
   }
 }
 

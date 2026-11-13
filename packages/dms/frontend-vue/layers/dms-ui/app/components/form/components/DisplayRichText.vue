@@ -19,13 +19,15 @@ const isEmpty = computed(() => {
   return value.replace(/<[^>]*>/g, "").trim() === "";
 });
 
+const sanitizedFragment = computed(() =>
+  DOMPurify.sanitize(props.modelValue ?? "", { RETURN_DOM_FRAGMENT: true }),
+);
+
 const renderRichText = () =>
   h(
     "div",
     { class: RICH_TEXT_PROSE_CLASSES },
-    sanitizedNodes(
-      DOMPurify.sanitize(props.modelValue ?? "", { RETURN_DOM_FRAGMENT: true }),
-    ),
+    sanitizedNodes(sanitizedFragment.value),
   );
 </script>
 

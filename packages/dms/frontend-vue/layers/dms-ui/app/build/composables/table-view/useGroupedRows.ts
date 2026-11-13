@@ -1,6 +1,5 @@
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import { h, toValue, type ComputedRef, type MaybeRefOrGetter } from "vue";
 import type {
   TableViewColumn,
@@ -45,6 +44,7 @@ export function useGroupedRows(options: GroupedRowsOptions) {
   const { isActive, columns, rows } = options;
   const { t, locale } = useI18n();
   const { renderColumnValue } = useColumnValueRenderer();
+  const { presentError } = useApiErrorPresenter();
   const grouped = computed(() => toValue(options.grouped));
   const by = computed(() => grouped.value?.by ?? "value");
   const field = computed(() => grouped.value?.groupByField ?? "");
@@ -94,8 +94,8 @@ export function useGroupedRows(options: GroupedRowsOptions) {
     if (import.meta.env.SSR || queries.length === 0) return;
     try {
       counts.value = await options.countBatch(queries);
-    } catch {
-      ignoreFailure();
+    } catch (error: unknown) {
+      presentError(error, { fallbackKey: "dms.table.load_error_title" });
     }
   };
 

@@ -349,6 +349,25 @@ describe("a header button's availability", () => {
     expect(buttons()[0]?.disabled).toBe(false);
   });
 
+  it("keeps the last buttons and shows the failure when asking again fails", async () => {
+    const toast = { add: vi.fn(() => ({ id: "failure" })), remove: vi.fn() };
+    vi.stubGlobal("useToast", () => toast);
+    authFetch.mockRejectedValue(new Error("layout unavailable"));
+    await mountOutlet({ workspace: "web" });
+
+    route.query = { workspace: "gone" };
+    await nextTick();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    expect(authFetch).toHaveBeenCalledWith(`${LAYOUT_URL}?workspace=gone`);
+    expect(labels()).toEqual(["Download"]);
+    expect(buttons()[0]?.disabled).toBe(false);
+    expect(toast.add).toHaveBeenCalledTimes(1);
+    expect(toast.add).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "error.500.description" }),
+    );
+  });
+
   it("is asked again for the page's query when it changes", async () => {
     authFetch.mockResolvedValue({
       components: {},

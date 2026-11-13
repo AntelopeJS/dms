@@ -1,4 +1,3 @@
-import { ignoreFailure } from "../build/utils/ignoreFailure";
 import { isString } from "./type-check";
 
 /** `h23`: 24-hour clock (14:05); `h12`: 12-hour clock (2:05 PM). */
@@ -319,7 +318,7 @@ export function localeWeekStart(locale: string): number {
     const weekInfo = info.getWeekInfo?.() ?? info.weekInfo;
     if (weekInfo) return weekInfo.firstDay % DAYS_PER_WEEK;
   } catch {
-    ignoreFailure();
+    return MONDAY;
   }
   return MONDAY;
 }

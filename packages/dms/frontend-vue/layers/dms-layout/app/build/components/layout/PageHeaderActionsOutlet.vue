@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { onServerPrefetch } from "vue";
+import {
+  defineAsyncComponent,
+  defineComponent,
+  h,
+  onServerPrefetch,
+} from "vue";
 import PageHeaderActionBar, {
   type LayoutHeaderAction,
 } from "./PageHeaderActionBar.vue";
@@ -26,8 +31,6 @@ const actions = useServedHeaderActions({
   servedParams: () => props.servedParams,
 });
 
-const ROOT_SELECTOR = "[data-dms-page-header-actions]";
-
 const ROOT_CLASS =
   "flex w-full flex-wrap items-center gap-2 md:ms-auto md:w-auto";
 
@@ -40,39 +43,43 @@ const hasActions = computed(
   () => actions.value.length > 0 || !!pageActions.value,
 );
 
+/** The header's buttons, drawn once the page in the slot has set its actions. */
+const ActionsBar = defineComponent({
+  name: "DmsPageHeaderActions",
+  setup: () => () =>
+    hasActions.value && (!host || host.isReady.value)
+      ? h(
+          "div",
+          { "data-dms-page-header-actions": "", class: ROOT_CLASS },
+          h(
+            PageHeaderActionBar,
+            { actions: actions.value, slotOrder: host?.actionsOrder.value },
+            {
+              default: () => (pageActions.value ? h(pageActions.value) : null),
+            },
+          ),
+        )
+      : null,
+});
+
 /**
- * This outlet's own server-rendered DOM HTML, read back during hydration
- * before the page has registered its actions. Reused by `v-html` only until
- * the host is ready so hydration matches without moving the buttons. This
- * is not an input for arbitrary HTML supplied by a caller.
+ * The buttons. While the browser hydrates the server's page, they hydrate
+ * only once the page has set its actions: until then the browser keeps the
+ * buttons the server drew, untouched, and hydration then finds the same
+ * buttons, so none of them moves. A page the browser draws itself draws them
+ * at once.
  */
-const serverMarkup =
-  !import.meta.env.SSR && host && !host.isReady.value
-    ? (document.querySelector(ROOT_SELECTOR)?.innerHTML ?? null)
-    : null;
-const showsServerMarkup = computed(
-  () => serverMarkup !== null && !host?.isReady.value,
-);
+const Buttons = isDmsHydrating()
+  ? defineAsyncComponent({
+      loader: async () => ActionsBar,
+      hydrate: (hydrate) => {
+        if (host && !host.isReady.value) void host.whenReady().then(hydrate);
+        else hydrate();
+      },
+    })
+  : ActionsBar;
 </script>
 
 <template>
-  <!-- eslint-disable vue/no-v-html -->
-  <div
-    v-if="showsServerMarkup"
-    data-dms-page-header-actions
-    :class="ROOT_CLASS"
-    v-html="serverMarkup"
-  />
-  <div
-    v-else-if="hasActions && (!host || host.isReady.value)"
-    data-dms-page-header-actions
-    :class="ROOT_CLASS"
-  >
-    <PageHeaderActionBar
-      :actions="actions"
-      :slot-order="host?.actionsOrder.value"
-    >
-      <component :is="pageActions" v-if="pageActions" />
-    </PageHeaderActionBar>
-  </div>
+  <component :is="Buttons" />
 </template>

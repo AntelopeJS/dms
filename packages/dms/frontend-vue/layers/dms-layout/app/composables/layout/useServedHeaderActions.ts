@@ -6,7 +6,6 @@ import {
   type ComputedRef,
 } from "vue";
 import { onPageBlocksRefresh } from "#dms-ui/app/utils/blockRefresh";
-import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import type { LayoutHeaderAction } from "../../build/components/layout/PageHeaderActionBar.vue";
 import type { PageLayout } from "#dms-core/app/types/page";
 import {
@@ -41,6 +40,11 @@ interface ServedHeaderActionsOptions {
  * form) asks again too: it may have changed the record the buttons read, or
  * what their availability checks. Buttons without an availability, on a page
  * reading no record, never cause a request.
+ *
+ * A request that fails keeps the last buttons too, and the failure is shown
+ * to the user unless a later request replaced it. A button's availability is
+ * not authorization, so the operations the buttons target must enforce their
+ * own access checks.
  */
 export function useServedHeaderActions({
   actions,
@@ -49,6 +53,7 @@ export function useServedHeaderActions({
 }: ServedHeaderActionsOptions): ComputedRef<LayoutHeaderAction[]> {
   const route = useDmsRoute();
   const siteLayout = useSiteLayout();
+  const { presentError } = useApiErrorPresenter();
   const refreshed = shallowRef<LayoutHeaderAction[] | null>(null);
   let latestRequest = 0;
 
@@ -65,8 +70,10 @@ export function useServedHeaderActions({
       const options: { headerActions?: LayoutHeaderAction[] } | undefined =
         layout.layout.options;
       refreshed.value = options?.headerActions ?? [];
-    } catch {
-      ignoreFailure();
+    } catch (error: unknown) {
+      if (request === latestRequest) {
+        presentError(error, { fallbackKey: "error.500.description" });
+      }
     }
   }
 

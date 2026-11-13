@@ -1,5 +1,4 @@
 import { isUndefined } from "../../utils/type-check";
-import { ignoreFailure } from "../../build/utils/ignoreFailure";
 import { ComponentId } from "../../types/watch";
 
 function getValueByPath(
@@ -82,6 +81,10 @@ export function useWatch(
 
   const requiredEvents = new Set<string>(actions.map((action) => action.event));
 
+  /**
+   * Runs each matching action in turn. A synchronous action failure does not
+   * stop the actions after it.
+   */
   function runMatchingActions(
     matchingActions: WatchAction[],
     event: WatchEvent,
@@ -93,10 +96,11 @@ export function useWatch(
         if (!actionFn) {
           continue;
         }
+        // prettier-ignore
         try {
           actionFn(action, event.detail, componentState);
         } catch {
-          ignoreFailure();
+          // eslint-disable-line no-empty -- A synchronous action failure does not stop subsequent actions.
         }
       }
     } finally {

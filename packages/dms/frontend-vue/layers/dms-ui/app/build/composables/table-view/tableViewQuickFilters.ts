@@ -1,4 +1,3 @@
-import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import type { TableViewListResponse } from "../../../composables/table-view/types";
 import {
   type QuickFilterItem,
@@ -22,6 +21,7 @@ export function useTableViewQuickFilters<T extends Data>(
   const { t } = scope.tabs;
   const { props } = scope;
   const { getDataType } = useDataTypes();
+  const { presentError } = useApiErrorPresenter();
   const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
 
   const relationQuickFiltersLoaded = ref(false);
@@ -60,8 +60,8 @@ export function useTableViewQuickFilters<T extends Data>(
                 source!,
               ),
             };
-          } catch {
-            ignoreFailure();
+          } catch (error: unknown) {
+            presentError(error, { fallbackKey: "dms.table.load_error_title" });
           }
         }),
     );

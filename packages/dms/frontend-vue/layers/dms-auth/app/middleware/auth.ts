@@ -1,4 +1,3 @@
-import { ignoreFailure } from "../../../dms-core/app/entries/utils/ignoreFailure";
 import { isObject } from "../../../dms-core/app/utils/type-check";
 interface AuthMiddlewareOptions {
   navigateAuthenticatedTo?: string;
@@ -11,13 +10,19 @@ function isAuthOptions(value: MiddlewareMeta): value is AuthMiddlewareOptions {
   return isObject(value) && value !== null;
 }
 
+/**
+ * Loads the signed-in user's permission set before the page draws. A failed
+ * load does not stop the navigation: the page draws without the set, so
+ * every permission check answers no, and the failure is shown to the user.
+ */
 async function loadPermissionsIfNeeded() {
   const { loadPermissions } = usePermissions();
+  const { presentError } = useApiErrorPresenter();
 
   try {
     await loadPermissions();
-  } catch {
-    ignoreFailure();
+  } catch (error: unknown) {
+    presentError(error, { fallbackKey: "error.500.description" });
   }
 }
 

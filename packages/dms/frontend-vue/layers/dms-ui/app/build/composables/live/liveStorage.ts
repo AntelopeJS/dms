@@ -1,5 +1,3 @@
-import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
-
 const STORAGE_KEY_PREFIX = "dms.live.paused:";
 const REMEMBER_KEY_PREFIX = "key:";
 const PAUSED_VALUE = "1";
@@ -31,14 +29,21 @@ export function readStoredPause(key: string): boolean {
   return liveStorage()?.getItem(key) === PAUSED_VALUE;
 }
 
-/** @internal */
-export function storePause(key: string, isPaused: boolean): void {
+/**
+ * Keeps a page's Live / Pause choice in this browser. Answers whether the
+ * storage took it: `false` on the server or when the storage refuses it, which
+ * loses only the kept choice.
+ *
+ * @internal
+ */
+export function storePause(key: string, isPaused: boolean): boolean {
   const storage = liveStorage();
-  if (!storage) return;
+  if (!storage) return false;
   try {
     if (isPaused) storage.setItem(key, PAUSED_VALUE);
     else storage.removeItem(key);
+    return true;
   } catch {
-    ignoreFailure();
+    return false;
   }
 }

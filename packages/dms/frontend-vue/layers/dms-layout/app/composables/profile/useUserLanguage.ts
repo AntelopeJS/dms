@@ -1,4 +1,3 @@
-import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 const PROFILE_ENDPOINT = pageRoutePath("/settings/user/profile");
 
@@ -13,9 +12,15 @@ export function useUserLanguage() {
   const { $authFetch } = useAuthFetch();
   const { user, fetch: refreshUser } = useDmsUserSession();
 
+  /**
+   * Switches the interface to `language`, then stores it on the profile and
+   * reads the session again. A failed profile write or session read stays
+   * silent: the interface has already switched.
+   */
   async function changeLanguage(language: string): Promise<void> {
     await dmsApp.$i18n.setLocale(language);
 
+    // prettier-ignore
     try {
       await $authFetch(PROFILE_ENDPOINT, {
         method: "POST",
@@ -28,7 +33,7 @@ export function useUserLanguage() {
 
       await refreshUser();
     } catch {
-      ignoreFailure();
+      // eslint-disable-line no-empty -- Profile-write and session-refresh failures remain silent.
     }
   }
 

@@ -5,7 +5,6 @@ import {
   ref,
   type ComputedRef,
 } from "vue";
-import { ignoreFailure } from "#dms-core/app/entries/utils/ignoreFailure";
 import { GITHUB_REPOSITORY_URL } from "../../utils/github-repository";
 
 const STORAGE_PREFIX = "dms-github-star-prompt:";
@@ -38,11 +37,16 @@ function readStorage(key: string): string | null {
   }
 }
 
-function writeStorage(key: string, value: string): void {
+/**
+ * Stores `value` under `key`. Answers `false` when the storage refuses it:
+ * the prompt's state then lasts for this page only.
+ */
+function writeStorage(key: string, value: string): boolean {
   try {
     localStorage.setItem(key, value);
+    return true;
   } catch {
-    ignoreFailure();
+    return false;
   }
 }
 
