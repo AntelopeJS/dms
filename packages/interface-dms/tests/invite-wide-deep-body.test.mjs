@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { performance } from "node:perf_hooks";
 import test from "node:test";
 import { setFlagsFromString } from "node:v8";
 import { runInNewContext } from "node:vm";
@@ -16,6 +15,7 @@ import {
 } from "../dist/invite-extensions/internal/registry.js";
 import { CollectInviteExtensionPayloads } from "../dist/invite-extensions/internal/delivery.js";
 import { CollectInviteExtensionEdits } from "../dist/invite-extensions/internal/edit.js";
+import { startCpuClock } from "./helpers/cpu-clock.mjs";
 
 internal.RegisterInviteExtension.onHandlers(
   applyInviteExtension,
@@ -134,11 +134,11 @@ function registerBilling() {
  * @returns {{ result: unknown, failure: unknown, ms: number }}
  */
 function timed(run) {
-  const start = performance.now();
+  const cpuMilliseconds = startCpuClock();
   try {
-    return { result: run(), failure: undefined, ms: performance.now() - start };
+    return { result: run(), failure: undefined, ms: cpuMilliseconds() };
   } catch (failure) {
-    return { result: undefined, failure, ms: performance.now() - start };
+    return { result: undefined, failure, ms: cpuMilliseconds() };
   }
 }
 
@@ -155,7 +155,7 @@ function assertRefusedInTime({ failure, ms }) {
 
 /** @param {number} ms */
 function assertWithinBounds(ms) {
-  assert.ok(ms < MAX_MS, `took ${ms.toFixed(0)} ms, bound ${MAX_MS} ms`);
+  assert.ok(ms < MAX_MS, `took ${ms.toFixed(0)} ms of CPU, bound ${MAX_MS} ms`);
   const peak = peakRssMb();
   assert.ok(
     peak < MAX_RSS_MB,

@@ -274,12 +274,13 @@ await test("a nested JSON key named __proto__ is dropped, as the top-level one i
 
 /**
  * Limits of the load tests, each run in a fresh process whose old-space heap is
- * capped. Measured on a 32-core machine at load 10 to 15: the decoder takes
- * 0.02 to 0.7 s and peaks under 215 MB on these bodies. Through the real API
- * server, the recursive schema this branch started from took 3.3 s on a valid
- * 64-deep body of 1 MiB, and the level-by-level schema of the first fix took
- * 11 s on it and overran a 4 GB heap on a 65-deep one, so these limits fail on
- * both.
+ * capped. The time limits bound the CPU time the decoder spends, which a loaded
+ * host does not inflate the way it inflates wall time. Measured on a 32-core
+ * machine at load 10 to 15: the decoder takes 0.02 to 0.7 s and peaks under
+ * 215 MB on these bodies. Through the real API server, the recursive schema
+ * this branch started from took 3.3 s on a valid 64-deep body of 1 MiB, and the
+ * level-by-level schema of the first fix took 11 s on it and overran a 4 GB
+ * heap on a 65-deep one, so these limits fail on both.
  */
 const LOAD_LIMITS = {
   heapMb: 256,
@@ -294,7 +295,7 @@ const LOAD_RUNNER = fileURLToPath(
 const LOAD_RUN = z.object({
   outcome: z.union([z.number(), z.string()]),
   bodyBytes: z.number(),
-  milliseconds: z.number(),
+  cpuMilliseconds: z.number(),
   peakRssMb: z.number(),
 });
 
@@ -309,13 +310,13 @@ const runLoad = async (bodyName) => {
 };
 
 for (const bodyName of ["arrays-65", "objects-65", "arrays-65-last"]) {
-  await test(`a 1 MiB confirmation body of ${bodyName} levels answers 400 within ${LOAD_LIMITS.rejectMs} ms and ${LOAD_LIMITS.rssMb} MB`, async () => {
+  await test(`a 1 MiB confirmation body of ${bodyName} levels answers 400 within ${LOAD_LIMITS.rejectMs} ms of CPU and ${LOAD_LIMITS.rssMb} MB`, async () => {
     const run = await runLoad(bodyName);
     assert.ok(run.bodyBytes > 1_000_000, "the body is about 1 MiB");
     assert.equal(run.outcome, 400);
     assert.ok(
-      run.milliseconds < LOAD_LIMITS.rejectMs,
-      `${run.milliseconds} ms`,
+      run.cpuMilliseconds < LOAD_LIMITS.rejectMs,
+      `${run.cpuMilliseconds} ms of CPU`,
     );
     assert.ok(run.peakRssMb < LOAD_LIMITS.rssMb, `${run.peakRssMb} MB`);
   });
@@ -329,12 +330,12 @@ for (const bodyName of [
   "object-200k-entries",
   "body-200k-keys",
 ]) {
-  await test(`a confirmation body of ${bodyName} is decoded whole within ${LOAD_LIMITS.decodeMs} ms and ${LOAD_LIMITS.rssMb} MB`, async () => {
+  await test(`a confirmation body of ${bodyName} is decoded whole within ${LOAD_LIMITS.decodeMs} ms of CPU and ${LOAD_LIMITS.rssMb} MB`, async () => {
     const run = await runLoad(bodyName);
     assert.equal(run.outcome, "decoded");
     assert.ok(
-      run.milliseconds < LOAD_LIMITS.decodeMs,
-      `${run.milliseconds} ms`,
+      run.cpuMilliseconds < LOAD_LIMITS.decodeMs,
+      `${run.cpuMilliseconds} ms of CPU`,
     );
     assert.ok(run.peakRssMb < LOAD_LIMITS.rssMb, `${run.peakRssMb} MB`);
   });

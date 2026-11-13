@@ -3,6 +3,7 @@ import { createGuardedConfirmRoute } from "../../dist/base/table-view/internal/g
 import { TableViewMeta } from "../../dist/base/table-view/meta.js";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
+import { startCpuClock } from "./cpu-clock.mjs";
 
 const BODY_BYTES = 1024 * 1024;
 const ENTRIES = 200_000;
@@ -62,7 +63,7 @@ const route = createGuardedConfirmRoute(
   "delete",
 );
 
-const started = performance.now();
+const cpuMilliseconds = startCpuClock();
 /** @type {number | string} */
 let outcome = "decoded";
 try {
@@ -80,7 +81,7 @@ console.log(
   JSON.stringify({
     outcome,
     bodyBytes: body.length,
-    milliseconds: Math.round(performance.now() - started),
+    cpuMilliseconds: Math.round(cpuMilliseconds()),
     peakRssMb: Math.round(process.resourceUsage().maxRSS / 1024),
   }),
 );
