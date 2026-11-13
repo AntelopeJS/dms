@@ -3,6 +3,7 @@ import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { tv } from "tailwind-variants";
 import type { TableViewViewsLayout } from "../../../composables/table-view/types";
+import type { TableViewChange } from "../../composables/table-view/utils/views";
 import { toneTextClass } from "../../utils/tone";
 import TableTabs, { type TableTabItem } from "./TableTabs.vue";
 
@@ -23,8 +24,8 @@ interface Props {
   items: TableViewItem[];
   activeId?: string;
   layout: TableViewViewsLayout;
-  /** The table moved away from the open view. */
-  modified?: boolean;
+  /** How the table stands to the open view. */
+  change?: TableViewChange;
   /** Users may save the current state as a view of their own. */
   canSaveAs?: boolean;
   /** No tab row follows the strip: it draws the rule above the rows. */
@@ -81,8 +82,17 @@ const countFormat = computed(() => readableNumberFormat(locale.value));
 const activeView = computed(() =>
   props.items.find((view) => view.id === props.activeId),
 );
+const isChanged = computed(
+  () => !!props.change && props.change !== "unchanged",
+);
+const isDiverged = computed(() => props.change === "diverged");
+const isModified = computed(() => props.change === "modified");
+/** The view drawn as open: none once the table diverged from it. */
+const shownId = computed(() =>
+  isDiverged.value ? undefined : props.activeId,
+);
 const canSave = computed(
-  () => !!props.modified && !!activeView.value?.isUserView,
+  () => isChanged.value && !!activeView.value?.isUserView,
 );
 const canDelete = computed(() => !!activeView.value?.isUserView);
 
@@ -95,7 +105,7 @@ const tabItems = computed<TableTabItem[]>(() =>
     dot: view.dot,
     count: view.count,
     countPending: view.countPending,
-    modified: !!props.modified && view.id === props.activeId,
+    modified: isModified.value && view.id === props.activeId,
   })),
 );
 
@@ -112,7 +122,7 @@ interface ViewAction {
 
 const viewActions = computed<ViewAction[]>(() => {
   const actions: ViewAction[] = [];
-  if (props.modified) {
+  if (isChanged.value) {
     actions.push({
       id: "reset",
       label: t("dms.table.views.reset"),
@@ -162,7 +172,7 @@ const menuItems = computed(() =>
       label: view.label,
       icon: view.icon,
       type: "checkbox" as const,
-      checked: view.id === props.activeId,
+      checked: view.id === shownId.value,
       onSelect: () => emit("open", view.id),
     })),
     viewActions.value.map((action) => ({
@@ -193,10 +203,14 @@ const openTab = (id: string) => emit("open", id);
       :aria-label="t('dms.table.views.title')"
     >
       <span :class="ui.menuValue()">
-        {{ activeView?.label ?? t("dms.table.views.title") }}
+        {{
+          isDiverged
+            ? t("dms.table.views.custom")
+            : (activeView?.label ?? t("dms.table.views.title"))
+        }}
       </span>
       <span
-        v-if="modified"
+        v-if="isChanged"
         :title="t('dms.table.views.modified')"
         :class="ui.modifiedDot()"
       />
@@ -211,7 +225,7 @@ const openTab = (id: string) => emit("open", id);
   >
     <TableTabs
       v-if="layout === 'tabs'"
-      :model-value="activeId ?? ''"
+      :model-value="shownId ?? ''"
       :tabs="tabItems"
       :label="t('dms.table.views.title')"
       class="me-auto min-w-0 border-b-0"
@@ -223,8 +237,8 @@ const openTab = (id: string) => emit("open", id);
         v-for="view in items"
         :key="view.id"
         type="button"
-        :aria-pressed="view.id === activeId"
-        :class="ui.pill({ active: view.id === activeId })"
+        :aria-pressed="view.id === shownId"
+        :class="ui.pill({ active: view.id === shownId })"
         @click="emit('open', view.id)"
       >
         <span
@@ -251,7 +265,7 @@ const openTab = (id: string) => emit("open", id);
           {{ countFormat.format(view.count) }}
         </span>
         <span
-          v-if="modified && view.id === activeId"
+          v-if="isModified && view.id === activeId"
           :title="t('dms.table.views.modified')"
           :class="ui.modifiedDot()"
         />
@@ -267,6 +281,15 @@ const openTab = (id: string) => emit("open", id);
       </button>
     </template>
     <div v-if="barActions.length > 0" :class="ui.actions()">
+      <span
+        v-if="isDiverged"
+        role="status"
+        :title="t('dms.table.views.custom_description')"
+        :class="ui.pill({ active: true })"
+      >
+        <span aria-hidden="true" :class="ui.modifiedDot()" />
+        {{ t("dms.table.views.custom") }}
+      </span>
       <UButton
         v-for="action in barActions"
         :key="action.id"

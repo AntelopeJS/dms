@@ -152,6 +152,46 @@ export function isSameTableState(
   );
 }
 
+/**
+ * How the table stands to the open view: on the view's state (`unchanged`),
+ * moved on from it but still listing within it (`modified`: an extra filter,
+ * another sort), or off it (`diverged`): a filter or search the view declares
+ * was removed or changed, so the rows listed are no longer the view's.
+ */
+export type TableViewChange = "unchanged" | "modified" | "diverged";
+
+const keepsViewSearch = (
+  view: TableViewViewStateConfig,
+  current: TableStateSnapshot,
+): boolean => {
+  const search = view.search?.trim();
+  return !search || current.search.trim() === search;
+};
+
+/** How `current` stands to `view` opened over `defaults`. */
+export function viewChange(
+  view: TableViewViewStateConfig,
+  current: TableStateSnapshot,
+  defaults: TableStateDefaults,
+): TableViewChange {
+  if (
+    isSameTableState(
+      current,
+      viewSnapshot(view, defaults),
+      defaults.columnOrder,
+    )
+  ) {
+    return "unchanged";
+  }
+  const currentFilters = new Set(effectiveFilterKeys(current.filters));
+  const keepsFilters = effectiveFilterKeys(viewFilters(view, [])).every(
+    (key) => currentFilters.has(key),
+  );
+  return keepsFilters && keepsViewSearch(view, current)
+    ? "modified"
+    : "diverged";
+}
+
 /** The table's current state as a view keeps it. */
 export function snapshotViewState(
   snapshot: TableStateSnapshot,
