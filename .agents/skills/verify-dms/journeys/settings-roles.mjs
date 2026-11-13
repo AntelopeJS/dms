@@ -269,8 +269,14 @@ export const journeys = [
       ]);
       await openRoles(admin);
       await admin.click({ role: "button", name: "New role" });
-      await ctx.verify("the editor lists the sibling page but not the owner-only one", [
+      const permissionSearch = { role: "textbox", name: /^Search permissions/ };
+      await admin.fill(permissionSearch, "No block permissions");
+      await ctx.verify("the editor's search finds the sibling page", [
         admin.visible({ role: "checkbox", name: "No block permissions", exact: true }),
+      ]);
+      await admin.fill(permissionSearch, "Platform owner only");
+      await ctx.verify("the same search finds nothing for the owner-only page", [
+        admin.shows(/No permission matches/),
         admin.visible({ role: "checkbox", name: "Platform owner only", exact: true }, { hidden: true }),
       ]);
     },
