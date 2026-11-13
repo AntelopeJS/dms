@@ -9,7 +9,7 @@ import { runInBatches } from "./run-in-batches";
 const TENANT_ID_FIELD = "_id";
 const INSTANCE_REGISTRATION_CONCURRENCY = 8;
 
-function getTenantSchema(): Schema {
+function getTenantSchema(): NonNullable<ReturnType<typeof Schema.get>> {
   const schema = Schema.get(TENANT_SCHEMA_NAME);
   assert(schema, `Schema '${TENANT_SCHEMA_NAME}' is not registered`);
   return schema;

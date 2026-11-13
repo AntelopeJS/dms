@@ -311,6 +311,25 @@ function unwrapArgument(node: Node): QueryArg | undefined {
   return undefined;
 }
 
+/**
+ * `model.m(...)` out of `model.m(...).run()`, the call a route awaits to run
+ * the query the method returns. A call that is not a `.run()` over another call
+ * is its own model call, so a route written before queries needed `.run()`
+ * still reads back.
+ */
+function modelCallOf(call: CallExpression): CallExpression {
+  const callee = call.getExpression();
+  if (
+    !Node.isPropertyAccessExpression(callee) ||
+    callee.getName() !== "run" ||
+    call.getArguments().length > 0
+  ) {
+    return call;
+  }
+  const query = callee.getExpression();
+  return Node.isCallExpression(query) ? query : call;
+}
+
 function unwrapReturnedCall(method: MethodDeclaration) {
   const body = method.getBody();
   if (!body || !Node.isBlock(body)) {
@@ -351,7 +370,9 @@ function unwrapReturnedCall(method: MethodDeclaration) {
     return undefined;
   }
   const call = initializer.getExpression();
-  return Node.isCallExpression(call) ? { call, output } : undefined;
+  return Node.isCallExpression(call)
+    ? { call: modelCallOf(call), output }
+    : undefined;
 }
 
 /** What unwrapping a route's return produced: the call, and how it was dressed. */
@@ -375,7 +396,7 @@ function comparesPrevious(options: Node | undefined): boolean {
 }
 
 /**
- * `return chartCardData(await model.m(...), { … })` — the arrangements a helper
+ * `return chartCardData(await model.m(...).run(), { … })` — the arrangements a helper
  * builds rather than a property name.
  *
  * Only the first argument is the calculation; the options that follow, including
@@ -399,7 +420,7 @@ function unwrapHelperCall(call: CallExpression): UnwrappedResponse | undefined {
     return undefined;
   }
   return {
-    call: inner,
+    call: modelCallOf(inner),
     output: "series",
     response: arrangement,
     compare: comparesPrevious(options) || undefined,
@@ -407,7 +428,7 @@ function unwrapHelperCall(call: CallExpression): UnwrappedResponse | undefined {
 }
 
 /**
- * Hop 3 — the single `return { value: await model.<method>(...) }` call in a
+ * Hop 3 — the single `return { value: await model.<method>(...).run() }` call in a
  * route body, matched as a shape rather than evaluated. Anything outside the
  * grammar yields `undefined`, which the caller reports as `unparseable_route`.
  */
