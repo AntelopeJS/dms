@@ -45,6 +45,8 @@
     "checks",
     "frontend-vue",
     "!frontend-vue/tests",
+    "!frontend-vue/scripts/eslint-globals.mjs",
+    "!frontend-vue/scripts/layer-auto-imports.mjs",
     "!frontend-vue/vitest.config.ts",
     "!frontend-vue/eslint.config.mjs",
     "!frontend-vue/.prettierrc",
@@ -151,6 +153,10 @@
     "./checks/api-error-presentation": {
       "types": "./checks/api-error-presentation.d.mts",
       "default": "./frontend-vue/scripts/check-api-error-presentation.mjs"
+    },
+    "./eslint-globals": {
+      "types": "./frontend-vue/eslint-globals.generated.d.mts",
+      "default": "./frontend-vue/eslint-globals.generated.mjs"
     },
     "./interfaces/*": null
   },
