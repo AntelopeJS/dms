@@ -134,8 +134,20 @@ function isDecodedAuthPayload(
  * verifies the token they came with.
  */
 function decodedClaims(token: string): DecodedAuthPayload | undefined {
-  const claims = decode(token);
+  const claims = decodeUnverified(token);
   return isDecodedAuthPayload(claims) ? claims : undefined;
+}
+
+/**
+ * `decode`, which throws on a `typ: "JWT"` token whose payload is not JSON,
+ * answering `null` for it as for any other token it cannot read.
+ */
+function decodeUnverified(token: string): ReturnType<typeof decode> {
+  try {
+    return decode(token);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -177,21 +189,8 @@ export namespace internal {
   };
 
   export const IfAuthUserAuthenticator = (data: string | undefined) => {
-    if (!data) {
-      return undefined;
-    }
-    try {
-      const result = decodedClaims(data);
-      if (!result) {
-        return undefined;
-      }
-      return {
-        ...result,
-        rawToken: data,
-      };
-    } catch {
-      return undefined;
-    }
+    const result = data ? decodedClaims(data) : undefined;
+    return data && result ? { ...result, rawToken: data } : undefined;
   };
 
   export const AuthRawUserValidator = async (data: TenantTokenInput) => {
@@ -299,7 +298,7 @@ export function generateRefreshToken(
 }
 
 export async function validateRefreshToken(token: string) {
-  const result = decode(token);
+  const result = decodeUnverified(token);
   if (!result || isString(result) || !isString(result.id)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
@@ -380,7 +379,7 @@ async function verifyPurposeToken(
   purpose: string,
   refusal: string,
 ): Promise<VerifiedPurposeToken> {
-  const claims = decode(token);
+  const claims = decodeUnverified(token);
   if (!isPurposeClaims(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
