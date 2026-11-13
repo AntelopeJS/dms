@@ -17,6 +17,7 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import type { IsAssignable } from "../../../helpers/type-checks";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
@@ -626,16 +627,21 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
   });
 
   it("types successMessage on delete, archive and restore only", () => {
+    type RowActions = NonNullable<TableViewOptions<OrderAPI>["rowActions"]>;
+    const answers: [
+      IsAssignable<
+        { successMessage: "$orders.archived" },
+        RowActions["archive"]
+      >,
+      IsAssignable<{ successMessage: "$orders.edited" }, RowActions["edit"]>,
+    ] = [true, false];
     const options = optionsOf(
       TableView(OrderAPI, {
         realtime: false,
-        rowActions: {
-          archive: { successMessage: "$orders.archived" },
-          // @ts-expect-error an edit reports nothing: no successMessage
-          edit: { successMessage: "$orders.edited" },
-        },
+        rowActions: { archive: { successMessage: "$orders.archived" } },
       }),
     );
+    expect(answers).to.deep.equal([true, false]);
     expect(options.rowActions?.archive).to.include({
       successMessage: "$orders.archived",
     });

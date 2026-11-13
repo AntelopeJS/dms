@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import type { IsAssignable } from "../../../helpers/type-checks";
 import { z } from "zod";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
@@ -79,17 +80,25 @@ describe("[unit] interfaces/dms-base — column displays", () => {
   });
 
   it("types a column's display as a display instance, typed options included", () => {
-    const column: ColumnOptions = {
-      name: "Member",
-      type: new DefaultDataTypes.StringType(),
-      // @ts-expect-error the free-form { type, options } is no display
-      display: { type: "identity", options: {} },
-    };
-    // @ts-expect-error an option the identity display does not take
-    new DefaultDisplays.IdentityDisplay({ avatar: "photo" });
-    // @ts-expect-error a duration is written readable or in ms only
-    new DefaultDisplays.DurationDisplay({ format: "seconds" });
-    expect(column.name).to.equal("Member");
+    type Display = NonNullable<ColumnOptions["display"]>;
+    type IdentityOptions = ConstructorParameters<
+      typeof DefaultDisplays.IdentityDisplay
+    >[0];
+    type DurationOptions = ConstructorParameters<
+      typeof DefaultDisplays.DurationDisplay
+    >[0];
+    const answers: [
+      IsAssignable<DefaultDisplays.IdentityDisplay, Display>,
+      IsAssignable<
+        { type: "identity"; options: Record<never, never> },
+        Display
+      >,
+      IsAssignable<{ avatarField: "photo" }, IdentityOptions>,
+      IsAssignable<{ avatar: "photo" }, IdentityOptions>,
+      IsAssignable<{ format: "ms" }, DurationOptions>,
+      IsAssignable<{ format: "seconds" }, DurationOptions>,
+    ] = [true, false, true, false, true, false];
+    expect(answers).to.deep.equal([true, false, true, false, true, false]);
   });
 
   it("serializes the metric displays to the cell types drawing them", () => {
@@ -159,11 +168,26 @@ describe("[unit] interfaces/dms-base — column displays", () => {
       { label: "fr", tone: "success", variant: "soft" },
       { label: "de", variant: "outline" },
     ];
-    // @ts-expect-error a pill has no dashed variant
-    const dashed: DefaultDisplays.PillItem = { label: "it", variant: "dashed" };
-    expect([...locales, dashed]).to.have.length(4);
-    // @ts-expect-error a progress needs its total
-    new DefaultDisplays.ProgressDisplay({ doneField: "done" });
+    const answers: [
+      IsAssignable<
+        { label: "it"; variant: "outline" },
+        DefaultDisplays.PillItem
+      >,
+      IsAssignable<
+        { label: "it"; variant: "dashed" },
+        DefaultDisplays.PillItem
+      >,
+      IsAssignable<
+        { doneField: "done"; totalField: "total" },
+        DefaultDisplays.ProgressDisplayOptions
+      >,
+      IsAssignable<
+        { doneField: "done" },
+        DefaultDisplays.ProgressDisplayOptions
+      >,
+    ] = [true, false, true, false];
+    expect(locales).to.have.length(3);
+    expect(answers).to.deep.equal([true, false, true, false]);
   });
 
   it("serializes the composed sub-line options, the two-line display and an empty identity", () => {
@@ -233,10 +257,12 @@ describe("[unit] interfaces/dms-base — column displays", () => {
         tone: "error",
       },
     ];
-    // @ts-expect-error a sub-line's tone is a cell tone
-    const wrongTone: CellSublineValue = { text: "Late", tone: "danger" };
+    const answers: [
+      IsAssignable<{ text: "Late"; tone: "error" }, CellSublineValue>,
+      IsAssignable<{ text: "Late"; tone: "danger" }, CellSublineValue>,
+    ] = [true, false];
     expect(sublines).to.have.length(3);
-    expect(wrongTone).to.not.equal(undefined);
+    expect(answers).to.deep.equal([true, false]);
   });
 
   it("serializes no display to nothing", () => {
