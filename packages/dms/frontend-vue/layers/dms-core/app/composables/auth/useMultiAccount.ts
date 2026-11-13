@@ -37,10 +37,10 @@ function useAccountsStorage(): AccountsRef {
   const existing = accountsStorageByApp.get(dmsApp);
   if (existing) return existing;
 
-  // SAFETY: A newly created effect scope is active, so run synchronously returns this callback's useStorage result.
   const storage = effectScope(true).run(() =>
     useStorage<StoredAccount[]>(STORAGE_KEY, [], undefined),
-  ) as AccountsRef;
+  );
+  if (!storage) throw new Error("The accounts storage scope is inactive");
   dropDuplicates(storage);
   accountsStorageByApp.set(dmsApp, storage);
   return storage;
@@ -64,9 +64,7 @@ interface UpstreamError {
   statusCode?: number;
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Request failures can throw arbitrary JavaScript values. FetchError owner types cannot describe every thrown value.
 function isTokenRejection(error: unknown): boolean {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Unchecked projection intentionally preserves property access on primitive errors. It does not establish an UpstreamError contract.
   const { status, statusCode } = (error ?? {}) as UpstreamError;
   const upstreamStatus = statusCode ?? status;
   return (
@@ -124,7 +122,6 @@ async function requestAccountSwitch(account: StoredAccount) {
  * @internal
  */
 export async function refreshSessionSurfaces(
-  // oxlint-disable-next-line anti-slop/no-unknown-returns -- Refresh results are awaited and discarded. Deriving from the session fetch owner would reject otherwise valid callbacks with other results.
   refreshUser: () => Promise<unknown>,
 ): Promise<void> {
   await refreshUser();

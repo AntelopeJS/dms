@@ -173,7 +173,6 @@ beforeEach(async () => {
   route = reactive({ path: PATH, query: {} });
 
   navigate.mockImplementation(async (to: string | { path: string }) => {
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- The navigation stub accepts the router's string and object destination variants.
     route.path = typeof to === "string" ? to : to.path;
   });
   installRuntime();

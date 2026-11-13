@@ -61,7 +61,6 @@ export function openTabBus(
 ): TabBus {
   const listeners = new Set<TabMessageHandler>();
   const deliver = (message: Parameters<TabMessageHandler>[0]) => {
-    // oxlint-disable-next-line unicorn/no-useless-spread -- Delivery snapshots listeners so removals and additions during callbacks affect only subsequent messages; iterating the live Set changes that behavior.
     for (const listener of [...listeners]) listener(message);
   };
   const channel = canShareAcrossTabs(environment)

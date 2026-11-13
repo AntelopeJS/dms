@@ -398,8 +398,8 @@ async function markSaved(): Promise<void> {
   >
     <template #badge>
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-if="!status"
+        :aria-label="t('dms.a11y.loading')"
         aria-hidden="true"
         class="h-5 w-12 rounded-full"
       />

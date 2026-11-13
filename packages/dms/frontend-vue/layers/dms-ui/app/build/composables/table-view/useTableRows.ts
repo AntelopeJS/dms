@@ -20,7 +20,6 @@ import {
   usePeriodScope,
 } from "#dms-core/app/composables/period/usePeriodScope";
 
-// oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Source plugins and data controllers own different query keys and values. TableQueryParams excludes plugin extensions and malformed query handling; retain the open request contract.
 type Query = Record<string, unknown>;
 
 /** One count of a batch: its id and its list query. */

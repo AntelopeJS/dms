@@ -84,7 +84,6 @@ export function renderIdentity(
     subtitleClass: toneClass(subtitle?.tone ?? opts.subtitleTone, "dimmed"),
     emptyLabel: opts.emptyLabel ? processI18n(opts.emptyLabel) : undefined,
     emptyIcon: opts.emptyIcon,
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The row's avatar field has no runtime schema; this existing component handoff remains unchecked.
     avatar: readRowField(row, opts.avatarField) as
       | { key: string }
       | string

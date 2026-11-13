@@ -212,9 +212,11 @@ const InputStub = defineComponent({
     () =>
       h("input", {
         value: props.modelValue,
-        // SAFETY: This listener is attached to the input itself and the test dispatches input events on it.
-        onInput: (event: Event) =>
-          emit("update:modelValue", (event.target as HTMLInputElement).value),
+        onInput: (event: Event) => {
+          if (event.target instanceof HTMLInputElement) {
+            emit("update:modelValue", event.target.value);
+          }
+        },
       }),
 });
 

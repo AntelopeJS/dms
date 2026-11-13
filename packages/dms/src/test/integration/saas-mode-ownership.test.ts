@@ -3,7 +3,7 @@ import { GetResponsibleModule } from "@antelopejs/interface-core";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { assert, expect } from "chai";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
-import type { TenantMember } from "@antelopejs/interface-dms/db";
+import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { syncPlatformOwnerOnTenantOwnerChange } from "@antelopejs/interface-dms/tenant-ownership";
 import {
   RegisterSaasMode,
@@ -43,8 +43,10 @@ async function promoteInDefaultTenant(): Promise<void> {
 }
 
 function removeLastOwner(): Promise<void> {
-  // SAFETY: The last-owner guard reads only the member's userId and isTenantOwner, which the fixture supplies.
-  const target = { userId: USER_ID, isTenantOwner: true } as TenantMember;
+  const target = TenantMemberModel.fromPlainData({
+    userId: USER_ID,
+    isTenantOwner: true,
+  });
   return assertNotLastPlatformOwnerOnDelete([target]);
 }
 

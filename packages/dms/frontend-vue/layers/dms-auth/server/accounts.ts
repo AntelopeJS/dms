@@ -60,7 +60,6 @@ function accountCookieName(accountId: string): string {
 }
 
 function descriptor(session: DmsSession, accountId: string): AccountDescriptor {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The session owner does not prove these optional legacy user fields are strings. This preserves the existing unchecked descriptor projection; parsing or coercing them would change stored account payloads.
   const user = (session.user ?? {}) as SessionUser;
   return {
     accountId,

@@ -139,11 +139,11 @@ async function requestEmailValidation() {
 
       <DmsOtpInput
         ref="codeInput"
+        v-model="state.pin"
         :label="$t('page.auth.code.label')"
         size="xl"
         is-split
         is-centered
-        v-model="state.pin"
         :error="codeError"
         :length="PIN_LENGTH"
         :disabled="isLoading"

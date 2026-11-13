@@ -44,6 +44,7 @@ import {
 } from "./factory-private-actions";
 import { serializeCard } from "./factory-private-displays";
 import { pageParamToken, toFormPageUrl } from "./factory-private-urls";
+import { isString } from "../../../utils/internal/type-check";
 
 /** @internal */
 export type FormPageKind = keyof TableViewFormPageUrls;
@@ -253,8 +254,7 @@ export function serializeExpandable(
     );
   }
   const fields = expandable.fields.map((field) =>
-    // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Expandable fields declare a string shorthand or a configured field; this normalizes that declared union.
-    typeof field === "string" ? { key: field } : field,
+    isString(field) ? { key: field } : field,
   );
   assertKnownColumns(
     controllerName,
@@ -409,11 +409,16 @@ export function resolveFormPageTexts(
   };
 }
 
+/** Every form page kind once, keyed by itself, so a new kind cannot be left out of the list. */
+const FORM_PAGE_KIND_NAMES = {
+  new: "new",
+  edit: "edit",
+  view: "view",
+} satisfies { [Kind in FormPageKind]: Kind };
+
 /** @internal */
-// SAFETY: FORM_PAGE_DEFINITIONS declares only the new, edit and view keys that make up FormPageKind.
-export const FORM_PAGE_KINDS = Object.keys(
-  FORM_PAGE_DEFINITIONS,
-) as FormPageKind[];
+export const FORM_PAGE_KINDS: FormPageKind[] =
+  Object.values(FORM_PAGE_KIND_NAMES);
 
 /**
  * Append a form page slug to the slug of the page carrying the table view.

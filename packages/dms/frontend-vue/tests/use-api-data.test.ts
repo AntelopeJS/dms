@@ -57,17 +57,22 @@ interface Sent {
 
 const sent: Sent[] = [];
 let failNextWith: number | undefined;
-type TransportOptions = NonNullable<Parameters<typeof engine.$fetch>[1]>;
 
 /** The transport under `$fetch`: what reaches the backend. */
-// SAFETY: These cases request only { url, page }; the transport invokes the auth hook with normalized headers before answering.
-const transport = (async (url: string, options: TransportOptions = {}) => {
+const transport: NonNullable<
+  Parameters<typeof engine.createDmsFrontendRuntime>[0]
+> = async (url, options = {}) => {
   const headers = new Headers(options.headers);
   const hooks = options.onRequest ?? [];
   for (const hook of Array.isArray(hooks) ? hooks : [hooks]) {
     await hook({ request: url, options: { ...options, headers } });
   }
-  sent.push({ url, query: options.query, headers, signal: options.signal });
+  sent.push({
+    url,
+    query: options.query,
+    headers,
+    signal: options.signal ?? undefined,
+  });
   if (failNextWith) {
     const status = failNextWith;
     failNextWith = undefined;
@@ -77,7 +82,7 @@ const transport = (async (url: string, options: TransportOptions = {}) => {
     });
   }
   return { url, page: options.query?.page ?? null };
-}) as Parameters<typeof engine.createDmsFrontendRuntime>[0];
+};
 
 const mounted: App[] = [];
 

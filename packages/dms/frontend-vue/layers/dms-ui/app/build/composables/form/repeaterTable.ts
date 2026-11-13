@@ -31,7 +31,6 @@ export function renderableColumn(
     compareModes: [],
     filterComponents: {},
 
-    // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- ComponentInfo permits non-JSON options while RenderableColumn requires DataTypeConfig's JSON options; the formatter's unknown owner cannot prove that narrower handoff without changing its existing contract.
     inputComponent: column.component as ComponentInfo<ComponentOptionsData>,
   };
   return { id: column.id, type };

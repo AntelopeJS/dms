@@ -51,69 +51,73 @@ async function hiddenEntriesFor(permissions: string[]): Promise<string[]> {
   return access.hiddenEntries;
 }
 
+const cleanups: Array<() => void> = [];
+
+async function registerPreviewFixtures() {
+  ImplementInterface(permissionsInterface, permissionsImpl);
+  ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
+  ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  ImplementInterface(pageInterfaceInternal, pageImplInternal);
+
+  const label = registerTestCategory(LABEL_ID, {
+    displayName: "Preview label",
+    category: pagesCategory,
+    type: "label",
+    urlSlug: "/",
+  });
+  cleanups.push(label.cleanup);
+  cleanups.push(
+    await registerTestPage(
+      PageController("pv-page", {
+        displayName: "Preview page",
+        category: label.category,
+      }),
+    ),
+  );
+  cleanups.push(
+    await registerTestPage(
+      PageController("pv-target", {
+        displayName: "Preview target",
+        category: pagesCategory,
+        hidden: true,
+      }),
+    ),
+  );
+  const memberPage = PageController("pv-member", {
+    displayName: "Preview member page",
+    category: pagesCategory,
+    memberAccess: "self",
+  });
+  cleanups.push(await registerTestPage(memberPage));
+  cleanups.push(
+    await registerTestPage(
+      PageController("pv-member-child", {
+        displayName: "Preview member child",
+        category: memberPage,
+      }),
+    ),
+  );
+  cleanups.push(
+    RegisterDynamicMenuProvider(LABEL_FULL_ID, () => [
+      { id: "open-entry", displayName: "Open", fullSlug: TARGET_SLUG },
+      {
+        id: "guarded-entry",
+        displayName: "Guarded",
+        fullSlug: TARGET_SLUG,
+        permissionId: ENTRY_PERMISSION,
+      },
+    ]),
+  );
+}
+
+function runCleanups() {
+  for (const cleanup of cleanups.splice(0)) cleanup();
+}
+
 describe("[unit] implementations/dms/page — permission preview of the menu", () => {
-  const cleanups: Array<() => void> = [];
+  before(registerPreviewFixtures);
 
-  before(async () => {
-    ImplementInterface(permissionsInterface, permissionsImpl);
-    ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
-    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
-    ImplementInterface(pageInterfaceInternal, pageImplInternal);
-
-    const label = registerTestCategory(LABEL_ID, {
-      displayName: "Preview label",
-      category: pagesCategory,
-      type: "label",
-      urlSlug: "/",
-    });
-    cleanups.push(label.cleanup);
-    cleanups.push(
-      await registerTestPage(
-        PageController("pv-page", {
-          displayName: "Preview page",
-          category: label.category,
-        }),
-      ),
-    );
-    cleanups.push(
-      await registerTestPage(
-        PageController("pv-target", {
-          displayName: "Preview target",
-          category: pagesCategory,
-          hidden: true,
-        }),
-      ),
-    );
-    const memberPage = PageController("pv-member", {
-      displayName: "Preview member page",
-      category: pagesCategory,
-      memberAccess: "self",
-    });
-    cleanups.push(await registerTestPage(memberPage));
-    cleanups.push(
-      await registerTestPage(
-        PageController("pv-member-child", {
-          displayName: "Preview member child",
-          category: memberPage,
-        }),
-      ),
-    );
-    cleanups.push(
-      RegisterDynamicMenuProvider(LABEL_FULL_ID, () => [
-        { id: "open-entry", displayName: "Open", fullSlug: TARGET_SLUG },
-        {
-          id: "guarded-entry",
-          displayName: "Guarded",
-          fullSlug: TARGET_SLUG,
-          permissionId: ENTRY_PERMISSION,
-        },
-      ]),
-    );
-  });
-
-  after(() => {
-    for (const cleanup of cleanups.splice(0)) cleanup();
-  });
+  after(runCleanups);
 
   it("locks a label category the previewed set cannot reach", async () => {
     const hidden = await hiddenEntriesFor([]);

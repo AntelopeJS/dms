@@ -68,7 +68,7 @@ function without(...ids: string[]): Set<string> {
   return new Set([...ALL_IDS].filter((id) => !ids.includes(id)));
 }
 
-describe("[unit] pages/settings/users/role-preview", () => {
+function registerPreviewLookupCases(): void {
   describe("sanitizePreviewPermissions", () => {
     it("drops empty ids and duplicates", () => {
       expect([
@@ -138,7 +138,9 @@ describe("[unit] pages/settings/users/role-preview", () => {
       ]);
     });
   });
+}
 
+function registerClassifyPreviewBlocksCases(): void {
   describe("classifyPreviewBlocks", () => {
     it("changes nothing when the role holds what the viewer holds", () => {
       const blocks = classifyPreviewBlocks(
@@ -266,7 +268,9 @@ describe("[unit] pages/settings/users/role-preview", () => {
       });
     });
   });
+}
 
+function registerPreviewScopeCases(): void {
   describe("losesOnPreviewPage", () => {
     it("keeps a page whole when no block and no header action changes", () => {
       const blocks = classifyPreviewBlocks(
@@ -321,4 +325,10 @@ describe("[unit] pages/settings/users/role-preview", () => {
       ).to.equal(2);
     });
   });
+}
+
+describe("[unit] pages/settings/users/role-preview", () => {
+  registerPreviewLookupCases();
+  registerClassifyPreviewBlocksCases();
+  registerPreviewScopeCases();
 });

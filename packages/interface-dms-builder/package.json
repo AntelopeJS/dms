@@ -1,0 +1,71 @@
+{
+  "name": "@antelopejs/interface-dms-builder",
+  "version": "0.4.1",
+  "description": "AntelopeJS interface for the DMS builder: create and edit pages, blocks, resources and queries in a DMS project from another module.",
+  "keywords": [
+    "antelopejs",
+    "builder",
+    "codegen",
+    "dms",
+    "interface"
+  ],
+  "homepage": "https://dms.antelopejs.com/docs/modules/builder/extending",
+  "bugs": {
+    "url": "https://github.com/AntelopeJS/dms/issues"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AntelopeJS/dms.git",
+    "directory": "packages/interface-dms-builder"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist",
+    "!dist/.tsbuildinfo",
+    "docs"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "typecheck": "tsc --noEmit",
+    "release": "pnpm run typecheck && release-it",
+    "prepack": "pnpm run build",
+    "knip": "knip --dependencies",
+    "knip:all": "knip"
+  },
+  "devDependencies": {
+    "@antelopejs/interface-core": ">=0.4.0 <1.0.0",
+    "@types/node": "^24.0.0",
+    "knip": "^6.34.0",
+    "release-it": "^19.2.4",
+    "release-it-changelogen": "^0.1.0",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "@antelopejs/interface-core": ">=0.2.4 <1.0.0"
+  },
+  "packageManager": "pnpm@10.2.0",
+  "antelopeJs": {
+    "standalone": true
+  }
+}

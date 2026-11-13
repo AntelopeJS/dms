@@ -175,11 +175,12 @@ export function notifyTwoFactorDisabled(
   return emitNotification(userId, twoFactorTemplate("disabled", method));
 }
 
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Counts outside zero and one deliberately miss this lookup and use the plural copy.
-const COUNT_DESCRIPTION_KEYS: Readonly<Record<number, string>> = {
-  0: "description_none",
-  1: "description_one",
-};
+/** The description of a backup-codes notification for `count` codes held before. */
+function countDescriptionKey(count: number): string {
+  if (count === 0) return "description_none";
+  if (count === 1) return "description_one";
+  return "description";
+}
 
 /** @param previousCount Codes the user still held before the new set replaced them */
 export function notifyBackupCodesRegenerated(
@@ -188,7 +189,7 @@ export function notifyBackupCodesRegenerated(
 ): Promise<void> {
   return emitNotification(userId, templates.backupCodesRegenerated, {
     params: { count: previousCount },
-    descriptionKey: COUNT_DESCRIPTION_KEYS[previousCount] ?? "description",
+    descriptionKey: countDescriptionKey(previousCount),
   });
 }
 

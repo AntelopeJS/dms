@@ -19,25 +19,29 @@ import {
   cardSubtitle,
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/card";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
-import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
+import { displayContext } from "./fixtures/displayContext";
+import { tableViewColumn } from "./fixtures/tableViewColumn";
 
-const rows = [
+interface Row {
+  _id: string;
+  name: string;
+  email?: string;
+  photo?: { key: string };
+}
+
+const rows: Row[] = [
   { _id: "t1", name: "Write the docs" },
   { _id: "t2", name: "Ship it" },
 ];
 
 function createContext() {
   const selected = ref<string[]>(["t2"]);
-  const opened: (typeof rows)[number][] = [];
-  // SAFETY: These card tests exercise only the supplied selection, pagination, and default-open operations.
-  const context = {
+  const opened: Row[] = [];
+  const context = displayContext<Row>({
     items: rows,
-    columns: [],
-    loading: false,
-    rowIdKey: "_id",
     labelKey: "name",
     options: { card: { component: { componentName: "TaskCard" } } },
-    pagination: { pageIndex: 0, pageSize: 10, total: 2 },
+    pagination: { total: 2 },
     selection: {
       ids: selected.value,
       isSelected: (id: string) => selected.value.includes(id),
@@ -48,11 +52,8 @@ function createContext() {
           : selected.value.filter((entry) => entry !== id);
       },
     },
-    actions: {
-      canAdd: false,
-      open: (item: (typeof rows)[number]) => opened.push(item),
-    },
-  } as TableViewDisplayContext<(typeof rows)[number]>;
+    actions: { open: (item: Row) => opened.push(item) },
+  });
   return { context, selected, opened };
 }
 
@@ -185,16 +186,13 @@ describe("the default cards", () => {
     expect(container.querySelector("img")).toBeNull();
     app.unmount();
 
-    // SAFETY: The identity renderer reads only the id, accessorKey, and display fields supplied here.
     context.columns = [
-      {
-        id: "name",
-        accessorKey: "name",
+      tableViewColumn("name", {
         display: {
           type: "identity",
           options: { subtitleField: "email", avatarField: "photo" },
         },
-      } as TableViewColumn,
+      }),
     ];
     context.items = [
       { ...rows[0]!, email: "ann@example.com", photo: { key: "ann.png" } },
@@ -224,15 +222,12 @@ describe("the default cards", () => {
 });
 
 describe("card subtitle and avatar", () => {
-  // SAFETY: cardIdentity reads only accessorKey and display from this deliberately partial column.
-  const identityColumn = {
-    id: "name",
-    accessorKey: "name",
+  const identityColumn = tableViewColumn("name", {
     display: {
       type: "identity",
       options: { subtitleField: "email", avatarField: "avatar", storage: "s" },
     },
-  } as TableViewColumn;
+  });
 
   it("reads them off the title column's identity display", () => {
     expect(cardIdentity([identityColumn], "name")).toEqual({
@@ -293,15 +288,7 @@ describe("card fields", () => {
     "hidden",
     "size",
     "tags",
-  ].map(
-    (key) =>
-      // SAFETY: cardFieldColumns reads only id, accessorKey, and listable from these columns.
-      ({
-        id: key,
-        accessorKey: key,
-        listable: key !== "hidden",
-      }) as TableViewColumn,
-  );
+  ].map((key) => tableViewColumn(key, { listable: key !== "hidden" }));
   const keys = (picked: TableViewColumn[]) =>
     picked.map((column) => column.accessorKey);
 

@@ -97,8 +97,8 @@ const { t } = useI18n();
   >
     <template v-if="isMd">
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-if="props.placeholder || (props.loading && props.icon)"
+        :aria-label="t('dms.a11y.loading')"
         class="size-10 shrink-0 rounded-[10px]"
       />
       <DmsIconWell
@@ -131,8 +131,8 @@ const { t } = useI18n();
           :label="props.eyebrow"
         />
         <USkeleton
-          :aria-label="t('dms.a11y.loading')"
           v-if="props.loading"
+          :aria-label="t('dms.a11y.loading')"
           class="h-[22px] w-16"
         />
         <p
@@ -155,8 +155,8 @@ const { t } = useI18n();
 
     <template v-else>
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-if="props.placeholder || (props.loading && props.icon)"
+        :aria-label="t('dms.a11y.loading')"
         class="size-8 shrink-0 rounded-[9px]"
       />
       <DmsIconWell
@@ -184,8 +184,8 @@ const { t } = useI18n();
       <span v-else class="grid min-w-0 gap-0.5">
         <DmsEyebrow as="span" size="xs" :label="props.eyebrow" />
         <USkeleton
-          :aria-label="t('dms.a11y.loading')"
           v-if="props.loading"
+          :aria-label="t('dms.a11y.loading')"
           class="my-0.5 h-3.5 w-24"
         />
         <b
@@ -197,8 +197,8 @@ const { t } = useI18n();
         </b>
         <template v-if="props.detail">
           <USkeleton
-            :aria-label="t('dms.a11y.loading')"
             v-if="props.loading"
+            :aria-label="t('dms.a11y.loading')"
             class="h-3 w-20"
           />
           <small

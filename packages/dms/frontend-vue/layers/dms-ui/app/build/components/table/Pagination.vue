@@ -43,7 +43,6 @@ const theme = tv({
   },
 });
 
-// oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Module theme configuration is unchecked; retain its existing contract derived from this component's normalized theme.
 const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
   ui: { tablePagination: Partial<typeof theme> };
 };
@@ -201,8 +200,8 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
       </span>
       {{ summary.label }}
       <USkeleton
-        :aria-label="t('dms.a11y.loading')"
         v-if="summary.value === undefined"
+        :aria-label="t('dms.a11y.loading')"
         aria-hidden="true"
         :class="uiTablePagination.summaryPlaceholder()"
       />

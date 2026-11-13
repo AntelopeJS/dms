@@ -190,7 +190,6 @@ export function installBrowserLeaveGuards(
     event.returnValue = "";
   });
 
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- Window's DOM declaration omits the optional Navigation API; retain the unchecked property read and unsupported-browser fallback.
   const navigation = (window as { navigation?: NavigationLike }).navigation;
   navigation?.addEventListener("navigate", (event) => {
     const traverse: TraverseEvent = event;

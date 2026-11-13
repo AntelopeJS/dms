@@ -43,7 +43,6 @@ function emptyPreferences(): SidePanelPreferences {
   return { openId: null, widths: {} };
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Cookie widths are untrusted, including arrays and primitives. Inference has no source type, and SidePanelPreferences would exclude the malformed values this parser handles.
 function readWidths(value: unknown): Record<string, number> {
   if (!isObject(value) || value === null) return {};
   return Object.fromEntries(
@@ -59,7 +58,6 @@ function readWidths(value: unknown): Record<string, number> {
  *
  * @internal
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- This public cookie parser accepts arbitrary decoded browser data. Inference is unavailable and its parsed SidePanelPreferences output cannot describe invalid inputs.
 export function readSidePanelPreferences(value: unknown): SidePanelPreferences {
   if (!isObject(value) || value === null) return emptyPreferences();
   const openId = isString(value.openId) ? value.openId : null;

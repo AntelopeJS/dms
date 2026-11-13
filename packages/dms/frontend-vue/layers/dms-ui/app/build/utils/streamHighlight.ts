@@ -49,7 +49,6 @@ export function highlightStream<State>(
   highlighter: Highlighter,
   put: HighlightedRange,
 ): void {
-  // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- The CodeMirror-compatible fallback is true regardless of State; retain that unchecked parser default.
   const state = parser.startState?.(INDENT_UNIT) ?? (true as State);
   let pending: { from: number; to: number; classes: string } | null = null;
   const flush = () => {

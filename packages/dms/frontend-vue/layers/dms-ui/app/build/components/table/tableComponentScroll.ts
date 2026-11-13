@@ -18,8 +18,8 @@ export function useTableComponentScroll<T extends Data>(props: TableProps<T>) {
   const onTableScroll = (event: Event) => {
     syncScrollEdges();
     if (!hasScrollArea.value) return;
-    // SAFETY: This scroll listener is attached directly to the table's scrolling section.
-    isScrolled.value = (event.target as HTMLElement).scrollTop > 0;
+    const { target } = event;
+    isScrolled.value = target instanceof Element && target.scrollTop > 0;
   };
 
   const tableRootRef = useTemplateRef<HTMLElement>("tableRoot");
@@ -45,8 +45,8 @@ export function useTableComponentScroll<T extends Data>(props: TableProps<T>) {
   }));
 
   const syncClippedTitle = (event: MouseEvent) => {
-    // SAFETY: The mouseenter bindings attach this listener to the caption span and cell divs.
-    const cell = event.currentTarget as HTMLElement;
+    const cell = event.currentTarget;
+    if (!(cell instanceof HTMLElement)) return;
     if (cell.scrollWidth > cell.clientWidth) {
       cell.title = cell.textContent?.trim() ?? "";
     } else {

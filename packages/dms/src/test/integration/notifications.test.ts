@@ -33,20 +33,23 @@ const data: NotificationData = {
   params: { amount: 100 },
 };
 
-describe("Notification idempotency (MongoDB adapter)", () => {
-  let model: UserNotificationsModel;
-  let sendable: SendableNotification;
+let model: UserNotificationsModel;
 
-  beforeEach(async () => {
-    await resetDatabase();
-    model = GetModel(UserNotificationsModel);
-    internal.RegisterNotificationCategory.register(data.subject.category);
-    internal.RegisterNotificationSubject.register(data.subject);
-    sendable = new SendableNotification(data);
-    for (const userId of [USER, OTHER_USER]) {
-      await GetModel(UserNotificationPreferencesModel).createDefault(userId);
-    }
-  });
+let sendable: SendableNotification;
+
+async function resetNotifications() {
+  await resetDatabase();
+  model = GetModel(UserNotificationsModel);
+  internal.RegisterNotificationCategory.register(data.subject.category);
+  internal.RegisterNotificationSubject.register(data.subject);
+  sendable = new SendableNotification(data);
+  for (const userId of [USER, OTHER_USER]) {
+    await GetModel(UserNotificationPreferencesModel).createDefault(userId);
+  }
+}
+
+describe("Notification idempotency (MongoDB adapter)", () => {
+  beforeEach(resetNotifications);
 
   it("atomically deduplicates concurrent sends and emits realtime only once", async () => {
     let published = 0;
@@ -110,6 +113,10 @@ describe("Notification idempotency (MongoDB adapter)", () => {
     assert.deepEqual(await model.get(first._id), read);
     assert.equal((await model.getByUserId(OTHER_USER)).length, 1);
   });
+});
+
+describe("Notification idempotency (MongoDB adapter), identities and unkeyed sends", () => {
+  beforeEach(resetNotifications);
 
   it("keeps shared group identity stable across partial retries", async () => {
     await sendable.toUsersIdempotently([USER], EVENT, { readScope: "shared" });
@@ -196,6 +203,10 @@ describe("Notification idempotency (MongoDB adapter)", () => {
     assert.deepEqual(updated?.params, { amount: 200, owner: "$finance" });
     assert.equal(updated?.isRead, false);
   });
+});
+
+describe("Notification idempotency (MongoDB adapter), dismissals and reused keys", () => {
+  beforeEach(resetNotifications);
 
   it("stores every send of a sender that turned deduplication off", async () => {
     await sendable.toUser(USER, { dedupe: false });
@@ -275,6 +286,10 @@ describe("Notification idempotency (MongoDB adapter)", () => {
     assert.equal((await model.getByUserId(USER)).length, 1);
     assert.equal(await model.createIdempotently(USER, data, EVENT), undefined);
   });
+});
+
+describe("Notification idempotency (MongoDB adapter), failures and retries", () => {
+  beforeEach(resetNotifications);
 
   it("propagates insert failure without an exact existing receipt", async () => {
     const original = model.create.bind(model);

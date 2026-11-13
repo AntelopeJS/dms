@@ -75,7 +75,6 @@ function categoryOf(name: string): VariableCategory {
 function collectNames(rules: CSSRuleList, names: Set<string>): void {
   for (const rule of Array.from(rules)) {
     if ("cssRules" in rule && rule.cssRules) {
-      // oxlint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- CSSOM rules with cssRules include keyframes, not only CSSGroupingRule; retain the rule-list projection.
       collectNames((rule as CSSGroupingRule).cssRules, names);
     }
     if (rule instanceof CSSStyleRule) {

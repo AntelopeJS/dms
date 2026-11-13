@@ -15,7 +15,6 @@ import {
   provide,
   ref,
   type App,
-  type ComponentPublicInstance,
   type Component,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -161,17 +160,17 @@ describe("scrollToBlock", () => {
 
 describe("registerBlockAnchor", () => {
   it("leaves an anchor to the block that took it over", () => {
-    // SAFETY: The first instance is only an identity token and is replaced before its subtree could be read.
-    const first = {} as ComponentPublicInstance;
-    // SAFETY: blockAnchorElement reads only $.subTree.el, supplied by this fixture.
-    const second = {
-      $: { subTree: { el: document.createElement("div") } },
-    } as ComponentPublicInstance;
+    const firstApp = createApp(Section);
+    const secondApp = createApp(Section);
+    const first = firstApp.mount(document.createElement("div"));
+    const second = secondApp.mount(document.createElement("div"));
     registerBlockAnchor("chart", first);
     registerBlockAnchor("chart", second);
     registerBlockAnchor("chart", null, first);
     expect(scrollToBlock("chart")).toBe(true);
     registerBlockAnchor("chart", null, second);
     expect(scrollToBlock("chart")).toBe(false);
+    firstApp.unmount();
+    secondApp.unmount();
   });
 });

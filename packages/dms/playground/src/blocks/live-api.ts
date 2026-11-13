@@ -14,13 +14,12 @@ const BATCH_SERVER_ERRORS = 2;
 const BURST_BATCHES = 3;
 const BURST_INTERVAL_MS = 1_500;
 const MAX_FEED_ENTRIES = 30;
-// oxlint-disable-next-line anti-slop/no-known-value-widening -- Arbitrary preset query strings require the existing indexed lookup and fallback.
-const PRESET_SCALES: Record<string, number> = {
+const PRESET_SCALES = {
   "last-hour": 1,
   "last-24h": 24,
   "last-7-days": 168,
   "last-30-days": 720,
-};
+} satisfies Record<string, number>;
 const HTTP_STATUSES = [200, 200, 201, 200, 404, 200, 500];
 const ROUTES = [
   "GET /api/orders",
