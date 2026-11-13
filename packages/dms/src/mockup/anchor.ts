@@ -4,10 +4,12 @@ import type { JsonObject, MockupIssue, MockupNode, MockupSpec } from "./model";
 import { jsonPointer, pageIdSchema } from "./model";
 
 /**
- * The block a note is about: the node whose id is `block`, then down through
- * the children whose ids are `steps`. `page` is set when a node of another
- * page had the id `block` first: the block is then the first node with that
- * id on the page `page`, or, once no page has that id, in the spec.
+ * The block a note is about: the one node whose id is `block`, then down
+ * through the one child whose id is each of `steps`. Without `page`, `block`
+ * is an id anchoring stamped, unique in the whole spec, so the block follows
+ * a move to another page and a page rename. With `page`, `block` is an id an
+ * author wrote, unique only on the page `page`. Several matches name no
+ * block, nor does a missing page.
  */
 export const blockAnchorSchema = z
   .object({
@@ -129,32 +131,38 @@ function visitsOf(tree: BlockTree): Visit[] {
   );
 }
 
+function only<Item>(items: readonly Item[]): Item | undefined {
+  return items.length === 1 ? items[0] : undefined;
+}
+
 function childWithId(from: Visit, id: string): Visit | undefined {
-  const children = from.node.children ?? [];
-  const index = children.findIndex((child) => child?.id === id);
-  const node = index < 0 ? undefined : children[index];
-  if (!node) return undefined;
+  const child = only(
+    (from.node.children ?? []).flatMap((node, index) =>
+      node?.id === id ? [{ node, index }] : [],
+    ),
+  );
+  if (!child) return undefined;
   return {
-    node,
+    node: child.node,
     address: {
       page: from.address.page,
-      indexes: [...from.address.indexes, index],
+      indexes: [...from.address.indexes, child.index],
     },
   };
 }
 
 function findBlock(tree: BlockTree, anchor: BlockAnchor): Visit | undefined {
-  const page = tree.pages.some((entry) => entry?.id === anchor.page)
-    ? anchor.page
-    : undefined;
-  const first = visitsOf(tree).find(
-    ({ node, address }) =>
-      node.id === anchor.block &&
-      (page === undefined || tree.pages[address.page]?.id === page),
+  const block = only(
+    visitsOf(tree).filter(
+      ({ node, address }) =>
+        node.id === anchor.block &&
+        (anchor.page === undefined ||
+          tree.pages[address.page]?.id === anchor.page),
+    ),
   );
   return anchor.steps.reduce<Visit | undefined>(
     (visit, step) => visit && childWithId(visit, step),
-    first,
+    block,
   );
 }
 
@@ -171,9 +179,8 @@ function pointerOf({ page, indexes }: NodeAddress): string {
 }
 
 /**
- * Where the block `anchor` names is in `tree` now: the first node with its
- * id in document order, on its page when it names one that exists, then the
- * children its steps name. Undefined when the block is gone.
+ * Where the block `anchor` names is in `tree` now. Undefined when the block
+ * is gone or cannot be told apart from another: see {@link BlockAnchor}.
  */
 export function locateBlock(
   tree: BlockTree,
@@ -260,14 +267,19 @@ function stampNode(spec: MockupSpec, address: NodeAddress, id: string): void {
   if (node) node.id = id;
 }
 
+/** Whether a note can anchor on a node with this id: none yet, or one anchoring stamped. */
+function isAnchorable(id: string | undefined): boolean {
+  return id === undefined || STAMPED_ID.test(id);
+}
+
 /**
- * Anchors the node `site` names in `spec`, walking up from it. A node with
- * no id gets a fresh one, stamped on `spec` in place, and anchors there. A
- * node whose id already leads back to the target anchors there. Any other id
- * joins the steps and the walk goes to the parent: no existing id is ever
- * renamed. A root whose id leads elsewhere anchors anyway, with its page, so
- * it names the first node with that id on its page. Undefined when `site`
- * names no node of `spec`.
+ * Anchors the node `site` names in `spec` on the nearest node, from it up to
+ * its root, that has no id or an id anchoring stamped: a node with no id gets
+ * a fresh one, stamped on `spec` in place. The ids authors wrote on the nodes
+ * below it are the steps: siblings never share one. No id is ever renamed, so
+ * when every node down to the target has an id an author wrote, the anchor is
+ * those ids on the page of `site`. Undefined when `site` names no node of
+ * `spec`.
  */
 export function anchorSite(
   spec: MockupSpec,
@@ -276,24 +288,20 @@ export function anchorSite(
   const address = addressOfSite(spec, site);
   const chain = address && chainTo(spec, address);
   if (!address || !chain) return undefined;
-  const taken = new Set(visitsOf(spec).flatMap(({ node }) => node.id ?? []));
-  const target = pointerOf(address);
-  let steps: string[] = [];
-  for (let depth = chain.length - 1; ; depth -= 1) {
-    const id = chain[depth].id;
-    const reached = {
-      page: address.page,
-      indexes: address.indexes.slice(0, depth + 1),
-    };
-    if (id === undefined) {
-      const stamp = { path: pointerOf(reached), id: freshId(taken) };
-      stampNode(spec, reached, stamp.id);
-      return { anchor: { block: stamp.id, steps }, stamp };
-    }
-    const anchor = { block: id, steps };
-    const found = findBlock(spec, anchor);
-    if (found && pointerOf(found.address) === target) return { anchor };
-    if (depth === 0) return { anchor: { ...anchor, page: site.page } };
-    steps = [id, ...steps];
+  const depth = chain.findLastIndex(({ id }) => isAnchorable(id));
+  const steps = chain.slice(depth + 1).flatMap(({ id }) => id ?? []);
+  if (depth < 0) {
+    const [block, ...below] = steps;
+    return { anchor: { block, steps: below, page: site.page } };
   }
+  const id = chain[depth].id;
+  if (id !== undefined) return { anchor: { block: id, steps } };
+  const taken = new Set(visitsOf(spec).flatMap(({ node }) => node.id ?? []));
+  const reached = {
+    page: address.page,
+    indexes: address.indexes.slice(0, depth + 1),
+  };
+  const stamp = { path: pointerOf(reached), id: freshId(taken) };
+  stampNode(spec, reached, stamp.id);
+  return { anchor: { block: stamp.id, steps }, stamp };
 }
