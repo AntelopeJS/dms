@@ -28,6 +28,7 @@ import {
   destroyFixture,
   expectOk,
   type Fixture,
+  PROJECT_MODULE,
   setConnectionAccess,
 } from "./harness";
 import { FAKE_CATALOG, MODULE, OP_TIMEOUT } from "./mapped-database";
@@ -221,6 +222,47 @@ describe("[unit] builder writes on an external connection follow its access", fu
       );
     });
 
+    it("is read-only when only an environment sets it to read-write, since another launch would not", async () => {
+      setConnectionAccess(
+        {},
+        '  environments: { development: { modules: { "dms-database": { config: { externalConnections: { erp: { access: "read-write" } } } } } } },\n',
+      );
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        `${READ_ONLY}, since no \`config.externalConnections.erp.access\``,
+      );
+    });
+
+    it("is read-only when antelope.dms-database.json replaces the connection with a value that is not an object", async () => {
+      setConnectionAccess({ erp: "read-write" });
+      app.write(
+        JSON_FILE,
+        JSON.stringify({ externalConnections: { erp: "read" } }),
+      );
+      expect(refusalOf(await MapResources(countries(true)))).to.include(
+        `${READ_ONLY}, since antelope.dms-database.json replaces \`externalConnections.erp\``,
+      );
+    });
+
+    it("reads the entry keyed by the dms-database package name", async () => {
+      app.write(
+        "../antelope.config.ts",
+        [
+          'import { defineConfig } from "@antelopejs/interface-core/config";',
+          "",
+          "export default defineConfig({",
+          '  name: "fixture",',
+          "  modules: {",
+          `    ${PROJECT_MODULE}: { source: { type: "local", path: "." } },`,
+          `    "${MODULE}": { source: { type: "local", path: "modules/${MODULE}" } },`,
+          '    "@antelopejs/dms-database": { version: "0.5.0", config: { externalConnections: { erp: { access: "read-write" } } } },',
+          "  },",
+          "});",
+          "",
+        ].join("\n"),
+      );
+      expectOk(await MapResources(countries(true)), "writable mapping");
+    });
+
     it("follows an envOverrides variable set in the process", async () => {
       setConnectionAccess(
         { erp: "read-write" },
@@ -302,6 +344,15 @@ describe("[unit] builder writes on an external connection follow its access", fu
       expectOk(
         await ConfigureBlock(`${page}#showForm`, { mode: "edit" }),
         "a form turned into one that edits",
+      );
+      expect(await formMode(page, "showForm")).to.equal("edit");
+    });
+
+    it("lets a patch through that leaves a writing form's mode as it was, on a read connection", async () => {
+      setConnectionAccess({ erp: "read" });
+      expectOk(
+        await ConfigureBlock(`${page}#showForm`, { title: "Edit a country" }),
+        "a title on a form that edits",
       );
       expect(await formMode(page, "showForm")).to.equal("edit");
     });

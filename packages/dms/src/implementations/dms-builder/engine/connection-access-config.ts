@@ -80,6 +80,7 @@ function settingOf(found: Found, where: string): AccessSetting[] {
 function isDmsDatabaseEntry(id: string, entry: Node | undefined): boolean {
   return (
     id === DMS_DATABASE_ID ||
+    id === DMS_DATABASE_PACKAGE ||
     literal(walk(entry, ["source", "package"])) === DMS_DATABASE_PACKAGE
   );
 }
@@ -109,11 +110,12 @@ function dmsDatabaseEntry(
   return undefined;
 }
 
+/** What each of `environments` sets, by name, `undefined` where one sets nothing. */
 function environmentSettings(
   environments: Found,
   keys: string[],
   file: string,
-): AccessSetting[] {
+): [string, AccessSetting | undefined][] {
   if (environments === undefined) {
     return [];
   }
@@ -121,18 +123,19 @@ function environmentSettings(
     environments === UNREADABLE ||
     !Node.isObjectLiteralExpression(environments)
   ) {
-    return settingOf(UNREADABLE, `\`environments\` of ${file}`);
+    return [["*", said(`\`environments\` of ${file}`, undefined)]];
   }
-  return environments.getProperties().flatMap((property) => {
+  return environments.getProperties().map((property) => {
     const name = Node.isPropertyAssignment(property)
       ? propertyKey(property.getNameNode())
       : property.getText();
-    return settingOf(
+    const [setting] = settingOf(
       Node.isPropertyAssignment(property)
         ? walk(property.getInitializer(), keys)
         : UNREADABLE,
       `\`environments.${name}\` of ${file}`,
     );
+    return [name, setting];
   });
 }
 
@@ -149,8 +152,19 @@ function jsonSettings(id: string, connection: string): AccessSetting[] {
   } catch {
     return [said(file, undefined)];
   }
+  if (!isPlainObject(value)) {
+    return [];
+  }
   for (const key of ["externalConnections", connection, "access"]) {
-    if (!isPlainObject(value) || !Object.hasOwn(value, key)) {
+    if (!isPlainObject(value)) {
+      return [
+        {
+          writes: false,
+          says: `${file} replaces \`externalConnections.${connection}\` with something that holds no \`access\``,
+        },
+      ];
+    }
+    if (!Object.hasOwn(value, key)) {
       return [];
     }
     value = value[key];
@@ -197,59 +211,85 @@ function envOverrideSettings(
   });
 }
 
-function accessSettings(connection: string): AccessSetting[] {
+/**
+ * The places core merges into dms-database's config that set the access, in its order: the
+ * entry, one of `environments` (the launch environment, which the builder cannot know, so each in
+ * turn), then `antelope.<id>.json` and `envOverrides`, where the last one wins.
+ */
+interface AccessLayers {
+  base: AccessSetting[];
+  environments: [string, AccessSetting | undefined][];
+  later: AccessSetting[];
+}
+
+function accessLayers(connection: string): AccessLayers | AccessSetting {
   const configPath = findConfigFile();
+  const empty: AccessLayers = { base: [], environments: [], later: [] };
   if (!configPath) {
-    return [];
+    return empty;
   }
   const file = path.basename(configPath);
   const root = configObject(new Project().addSourceFileAtPath(configPath));
   if (!root) {
-    return settingOf(UNREADABLE, file);
+    return said(file, undefined);
   }
   const found = dmsDatabaseEntry(memberOf(root, "modules"));
   if (found === undefined) {
-    return [];
+    return empty;
   }
   if (found === UNREADABLE) {
-    return settingOf(UNREADABLE, `\`modules\` of ${file}`);
+    return said(`\`modules\` of ${file}`, undefined);
   }
   const keys = ["config", "externalConnections", connection, "access"];
-  return [
-    ...settingOf(
+  return {
+    base: settingOf(
       walk(found.entry, keys),
       `\`config.externalConnections.${connection}.access\` on the ${found.id} entry of ${file}`,
     ),
-    ...environmentSettings(
+    environments: environmentSettings(
       memberOf(root, "environments"),
       ["modules", found.id, ...keys],
       file,
     ),
-    ...jsonSettings(found.id, connection),
-    ...envOverrideSettings(
-      memberOf(root, "envOverrides"),
-      ["modules", found.id, ...keys].join("."),
-    ),
-  ];
+    later: [
+      ...jsonSettings(found.id, connection),
+      ...envOverrideSettings(
+        memberOf(root, "envOverrides"),
+        ["modules", found.id, ...keys].join("."),
+      ),
+    ],
+  };
 }
 
 /**
  * The access the project files give a connection, read on every call so a change applies without
- * a restart. It is `"read-write"` only when every place core merges into dms-database's config
- * that sets it says so: the dms-database entry, any of `environments`, `antelope.<id>.json` and
- * `envOverrides`. Anything else, an access set nowhere included, is `"read"`.
+ * a restart. Core merges the dms-database entry, the launch environment's `environments` member,
+ * `antelope.<id>.json` and `envOverrides`, the last that sets the access winning. The builder
+ * cannot know the launch environment, so the access is `"read-write"` only when that merge says
+ * so with no environment and with each of `environments`. Anything else, an access set nowhere
+ * included, is `"read"`.
  */
 export function connectionAccess(connection: string): ResolvedAccess {
-  const settings = accessSettings(connection);
-  const blocking = settings.find(({ writes }) => !writes);
-  if (blocking) {
-    return { access: "read", reason: blocking.says };
+  const layers = accessLayers(connection);
+  if (!("base" in layers)) {
+    return { access: "read", reason: layers.says };
   }
-  if (settings.length === 0) {
-    return {
-      access: "read",
-      reason: `no \`config.externalConnections.${connection}.access\` on the dms-database entry of antelope.config.ts sets it, and "read" is the default`,
-    };
+  const candidates = [undefined, ...layers.environments.map(([, set]) => set)];
+  for (const environment of candidates) {
+    const winning = [
+      ...layers.base,
+      ...(environment ? [environment] : []),
+      ...layers.later,
+    ].at(-1);
+    if (!winning) {
+      return {
+        access: "read",
+        reason: `no \`config.externalConnections.${connection}.access\` on the dms-database entry of antelope.config.ts sets it, and "read" is the default`,
+      };
+    }
+    if (!winning.writes) {
+      return { access: "read", reason: winning.says };
+    }
   }
   return { access: "read-write" };
 }

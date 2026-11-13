@@ -120,9 +120,11 @@ function writingAttempt(
   type: string,
   record: ResourceRecord,
   form: RowWritingForm | undefined,
+  added: boolean,
 ): string | undefined {
   if (type === RESOURCE_FORM) {
-    return form && `add a form that ${form.verb} rows of "${record.ref}"`;
+    const what = added ? "add a form" : "turn a form into one";
+    return form && `${what} that ${form.verb} rows of "${record.ref}"`;
   }
   return servesWrites(record)
     ? `add a ${type} over "${record.ref}", whose table still serves create, edit and delete routes; map it again with \`writable: false\` to show it read-only`
@@ -133,6 +135,7 @@ function assertBound(
   type: string,
   controller: string | undefined,
   form: RowWritingForm | undefined,
+  added = true,
 ): void {
   const record =
     controller === undefined ? undefined : findResourceRecord(controller);
@@ -140,7 +143,7 @@ function assertBound(
     return;
   }
   const connection = mappedConnectionOfFile(record.databaseFile);
-  const attempt = writingAttempt(type, record, form);
+  const attempt = writingAttempt(type, record, form, added);
   const refusal =
     connection === undefined || attempt === undefined
       ? undefined
@@ -167,30 +170,49 @@ export function assertBlockAccess({
   );
 }
 
-/**
- * Throws for a form already on a page, read from its call as it stands after a patch, that now
- * creates or edits rows of a table mapped from a read-only connection.
- */
-export function assertFormAccess({
+/** A ResourceForm's mode as its call holds it, when it is a literal; nothing for another block. */
+function formMode({
   type,
   controllerArg,
   factoryCall,
-}: BlockTarget): void {
+}: BlockTarget): string | undefined {
   if (type !== RESOURCE_FORM || !controllerArg) {
-    return;
+    return undefined;
   }
-  const [controllerNode, options] = factoryCall.getArguments();
+  const options = factoryCall.getArguments()[1];
   const property = Node.isObjectLiteralExpression(options)
     ? options.getProperty("mode")
     : undefined;
-  const mode = Node.isPropertyAssignment(property)
+  return Node.isPropertyAssignment(property)
     ? stringOf(property.getInitializer())
     : undefined;
+}
+
+function assertFormAccess(
+  target: BlockTarget,
+  before: string | undefined,
+): void {
+  const after = formMode(target);
+  const controllerNode = target.factoryCall.getArguments()[0];
+  if (after === before || target.type === undefined) {
+    return;
+  }
   assertBound(
-    type,
+    target.type,
     Node.isIdentifier(controllerNode)
       ? findResourceBySymbol(controllerNode.getText())?.ref
       : undefined,
-    rowWritingForm(mode),
+    rowWritingForm(after),
+    false,
   );
+}
+
+/**
+ * Reads a block before a patch, and returns the check to run after it: it throws when the patch
+ * turned a ResourceForm into one that creates or edits rows of a table mapped from a read-only
+ * connection. A patch that leaves the form's mode as it was passes.
+ */
+export function formGuard(target: BlockTarget): () => void {
+  const before = formMode(target);
+  return () => assertFormAccess(target, before);
 }

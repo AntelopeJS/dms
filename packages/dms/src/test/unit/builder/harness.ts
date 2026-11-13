@@ -94,15 +94,21 @@ function ProjectConfig(
 
 let fixtureModules: string[] = [];
 
+/**
+ * The engine caches the configured modules by the configuration's mtime, and two writes in one
+ * tick share it, so each write here moves the mtime forward by a second.
+ */
+let configStamp = Date.now() / 1000;
+
 function WriteProjectConfig(
   modules: string[],
   access: ConnectionAccessConfig | undefined,
   overrides?: string,
 ): void {
-  fs.writeFileSync(
-    path.join(FIXTURE_ROOT, "antelope.config.ts"),
-    ProjectConfig(modules, access, overrides),
-  );
+  const file = path.join(FIXTURE_ROOT, "antelope.config.ts");
+  fs.writeFileSync(file, ProjectConfig(modules, access, overrides));
+  configStamp += 1;
+  fs.utimesSync(file, configStamp, configStamp);
 }
 
 function WriteModules(

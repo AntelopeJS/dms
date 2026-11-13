@@ -20,7 +20,7 @@ import {
 } from "ts-morph";
 import { type BlockTarget, resolveBlockTarget } from "./block-target";
 import { buildCatalog } from "./catalog";
-import { assertBlockAccess, assertFormAccess } from "./connection-access";
+import { assertBlockAccess, formGuard } from "./connection-access";
 import { applyImportRef, blockCallText, childArgText } from "./emit";
 import { stringLiteralValue } from "./literals";
 import { contentVersion } from "./page-structure";
@@ -373,6 +373,7 @@ export function configureBlock(
   const { ctx, imports } = createImportCollector({
     resolveRef: resourceRefResolver(),
   });
+  const checkForm = formGuard(resolved.target);
   try {
     applyPatch(
       ensureOptionsObject(resolved.target),
@@ -388,7 +389,7 @@ export function configureBlock(
       }
       applyPatch(metaObject, opts.meta, false, ctx);
     }
-    assertFormAccess(resolved.target);
+    checkForm();
   } catch (error) {
     transaction.rollback();
     if (error instanceof InvalidValueError) {
