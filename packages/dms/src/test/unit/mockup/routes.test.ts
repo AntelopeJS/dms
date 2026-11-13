@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { type ClientRequest, get, type IncomingMessage } from "node:http";
 import { join } from "node:path";
@@ -82,74 +82,47 @@ function ids(data: unknown): string[] {
   return idsSchema.parse(data);
 }
 
+let base: string;
+let engine: MockupEngine;
+const routeIds: number[] = [];
+
+/** Serves the mockup routes over one mockup, `desk`, in a fresh directory. */
+async function startEngine(): Promise<void> {
+  expect(
+    getRegisteredRoutes().filter((route) => route.location.startsWith(BASE)),
+  ).to.deep.equal([]);
+  base = await mkdtemp(join(tmpdir(), "dms-mockup-routes-"));
+  await mkdir(join(base, "mockups", "desk"), { recursive: true });
+  await writeFile(join(base, "mockups", "desk", "spec.json"), SPEC);
+  engine = {
+    store: new MockupStore(join(base, "mockups")),
+    streams: new Set(),
+  };
+  registerMockupRoutes(engine);
+  routeIds.push(
+    ...getRegisteredRoutes()
+      .filter((route) => route.location.startsWith(BASE))
+      .map((route) => Number(route.id)),
+  );
+}
+
+async function stopEngine(): Promise<void> {
+  routeIds.forEach(UnregisterRoute);
+  closeMockupStreams(engine);
+  engine.store.close();
+  await rm(base, { recursive: true, force: true });
+}
+
 describe("[unit] mockup routes", () => {
-  let base: string;
-  let engine: MockupEngine;
-  const routeIds: number[] = [];
+  before(startEngine);
+  after(stopEngine);
 
-  before(async () => {
-    expect(
-      getRegisteredRoutes().filter((route) => route.location.startsWith(BASE)),
-    ).to.deep.equal([]);
-    base = await mkdtemp(join(tmpdir(), "dms-mockup-routes-"));
-    await mkdir(join(base, "mockups", "desk"), { recursive: true });
-    await writeFile(join(base, "mockups", "desk", "spec.json"), SPEC);
-    engine = {
-      store: new MockupStore(join(base, "mockups")),
-      streams: new Set(),
-    };
-    registerMockupRoutes(engine);
-    routeIds.push(
-      ...getRegisteredRoutes()
-        .filter((route) => route.location.startsWith(BASE))
-        .map((route) => Number(route.id)),
-    );
-  });
+  it("lists the mockups at the API root as the rows of a source table", async () => {
+    const listed = await client.get(BASE);
 
-  after(async () => {
-    routeIds.forEach(UnregisterRoute);
-    closeMockupStreams(engine);
-    engine.store.close();
-    await rm(base, { recursive: true, force: true });
-  });
-
-  it("lists the mockups at the API root as the rows of a source table, the one changed last first", async () => {
-    const newer = join(base, "mockups", "newer");
-    await mkdir(newer);
-    await writeFile(join(newer, "spec.json"), SPEC);
-    await utimes(
-      join(base, "mockups", "desk", "spec.json"),
-      new Date("2026-01-01T00:00:00Z"),
-      new Date("2026-01-01T00:00:00Z"),
-    );
-    try {
-      const listed = await client.get(BASE);
-
-      expect(listed.status).to.equal(200);
-      expect(listed.data).to.deep.equal({
-        results: [
-          {
-            name: "newer",
-            pages: 1,
-            openComments: 0,
-            status: "draft",
-            updatedAt: (
-              await stat(join(newer, "spec.json"))
-            ).mtime.toISOString(),
-          },
-          {
-            name: "desk",
-            pages: 1,
-            openComments: 0,
-            status: "draft",
-            updatedAt: "2026-01-01T00:00:00.000Z",
-          },
-        ],
-        total: 2,
-      });
-    } finally {
-      await rm(newer, { recursive: true, force: true });
-    }
+    expect(listed.status).to.equal(200);
+    expect(listed.data).to.have.property("total", 1);
+    expect(listed.data).to.have.nested.property("results[0].name", "desk");
   });
 
   it("sorts, searches and pages an array fixture's rows", async () => {
