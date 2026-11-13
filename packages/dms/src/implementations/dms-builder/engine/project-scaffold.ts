@@ -33,7 +33,7 @@ const DEFAULT_TOOLING = {
  * The project's compiler options a module leaves out: each stops the emit, or refuses or breaks it
  * once the module compiles to CommonJS in `dist`.
  */
-const NON_EMITTING_OPTIONS = new Set([
+const OPTIONS_AGAINST_COMMONJS_DIST = new Set([
   "noEmit",
   "emitDeclarationOnly",
   "outFile",
@@ -171,14 +171,14 @@ function manifestText(
 }
 
 /**
- * The project's compiler options that do not stop or break a CommonJS emit, so the module compiles
- * as the project does yet core can load what its build writes, whatever the project compiles to or
- * whether it emits at all. An incremental build keeps its state in `dist`, which the module's build
+ * The project's compiler options, less those that stop or break a CommonJS emit into `dist`, so the
+ * module compiles as the project does yet its build writes what core loads, whatever module the
+ * project compiles to and whether it emits at all. An incremental build keeps its state in `dist`, which the module's build
  * deletes: state left outside would claim the emit is current once `dist` is gone.
  */
 function tsconfigText(project: TsConfig): string {
   const kept = Object.entries(project.compilerOptions ?? {}).filter(
-    ([name]) => !NON_EMITTING_OPTIONS.has(name),
+    ([name]) => !OPTIONS_AGAINST_COMMONJS_DIST.has(name),
   );
   const compilerOptions = Object.assign(Object.fromEntries(kept), {
     module: "commonjs",

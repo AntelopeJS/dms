@@ -89,7 +89,7 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
         },
         "package.json",
       );
-      expect(text).to.contain('"typescript"');
+      expect(text).to.contain('"typescript": "^6.0.3"');
       expect(text).not.to.contain(`"${name}"`);
     });
   }
@@ -120,6 +120,9 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
       "tsconfig.json": JSON.stringify({
         compilerOptions: {
           noEmit: true,
+          emitDeclarationOnly: true,
+          declaration: true,
+          outFile: "out.js",
           module: "preserve",
           moduleResolution: "bundler",
           allowImportingTsExtensions: true,
