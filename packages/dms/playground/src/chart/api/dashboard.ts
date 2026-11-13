@@ -217,7 +217,7 @@ export class DashboardApiController extends Controller("/api/dashboard") {
     const limit = clampCount(queryText(limitParam), TOP_PRODUCT_DEFAULT_LIMIT);
     const options: BuildTopProductItemOptions = {
       includeSparkline: withSparkline === "true",
-      includeDelta: !!(comparison && comparison !== "none"),
+      includeDelta: !!(queryText(comparison) && comparison !== "none"),
     };
     const items = TOP_PRODUCT_NAMES.slice(
       0,

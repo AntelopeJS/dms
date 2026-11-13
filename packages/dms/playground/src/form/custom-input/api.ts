@@ -9,6 +9,7 @@ import { serializeConfirmDialog } from "@antelopejs/interface-dms/base/confirm-d
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { DemoRecordController } from "../demo-record-api";
 import { FORM_CUSTOM_INPUT_API, PageFormCustomInput } from "./page";
+import { queryText } from "../../query-text";
 
 const DEFAULT_RETENTION_DAYS = 28;
 
@@ -32,7 +33,7 @@ export class FormCustomInputAPIController extends PartialController(
     return serializeConfirmDialog({
       title: "Delete history older than {days} days?",
       description: "Older entries are deleted at the next save. Type delete.",
-      params: { days },
+      params: { days: queryText(days) },
       color: "error",
       icon: "i-ph-trash",
       confirmLabel: "Delete and save",
