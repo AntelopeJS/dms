@@ -1,75 +1,24 @@
 /** @vitest-environment jsdom */
-import { createApp, defineComponent, shallowRef, type App } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   MOCKUP_RETRY_DELAY_MS,
   MOCKUP_WRITE_DELAY_MS,
-  useMockupSpec,
-  type MockupSpecEditor,
-  type MockupSpecNotice,
 } from "../layers/dms-ui/app/entries/composables/block-preview/useMockupSpec";
-import type { MockupSpecDocument } from "../layers/dms-ui/app/entries/utils/mockupSpec";
-import { mockupState } from "./helpers/mockup-runtime";
-import { FakeSpecFile, initialSpec } from "./helpers/mockup-spec-file";
+import { initialSpec } from "./helpers/mockup-spec-file";
+import {
+  TITLE,
+  editor,
+  file,
+  mountEditor,
+  notices,
+  retitle,
+  settle,
+  streamSaysTheFileChanged,
+  titleOf,
+  useSpecEditor,
+} from "./helpers/mockup-spec-editor";
 
-const TITLE = "/pages/0/tree/0";
-
-let file: FakeSpecFile;
-let app: App | undefined;
-let editor: MockupSpecEditor;
-let notices: MockupSpecNotice[];
-const state = shallowRef(mockupState());
-
-async function settle(ms = 0): Promise<void> {
-  await vi.advanceTimersByTimeAsync(ms);
-}
-
-async function mountEditor(): Promise<void> {
-  const host = document.createElement("div");
-  app = createApp(
-    defineComponent({
-      setup() {
-        editor = useMockupSpec({
-          name: "demo",
-          authFetch: file.fetch,
-          state,
-          onNotice: (notice) => notices.push(notice),
-        });
-        return () => null;
-      },
-    }),
-  );
-  app.mount(host);
-  await settle();
-}
-
-function retitle(title: string): void {
-  editor.apply(
-    { kind: "setOption", pointer: TITLE, key: "title", value: title },
-    `${TITLE}:title`,
-  );
-}
-
-function titleOf(spec: MockupSpecDocument | undefined): unknown {
-  return spec?.pages[0]?.tree[0]?.options?.title;
-}
-
-async function streamSaysTheFileChanged(): Promise<void> {
-  state.value = mockupState({ revision: state.value.revision + 1 });
-  await settle();
-}
-
-beforeEach(() => {
-  vi.useFakeTimers();
-  file = new FakeSpecFile();
-  notices = [];
-});
-
-afterEach(() => {
-  app?.unmount();
-  app = undefined;
-  vi.useRealTimers();
-});
+useSpecEditor();
 
 describe("writing the spec", () => {
   it("writes one burst of typing once, the latest spec winning, with the digest it read (fails on a write per keystroke or a stale spec)", async () => {
@@ -158,127 +107,6 @@ describe("another writer", () => {
     expect(file.spec).toEqual(theirs);
     expect(editor.spec.value).toEqual(theirs);
     expect(notices).toEqual([{ kind: "adopted" }]);
-  });
-});
-
-describe("an id a note stamped on the file", () => {
-  const STAMP = "b-k3j9x0qz";
-
-  function stamped(
-    spec: MockupSpecDocument,
-    ids = new Map([[0, STAMP]]),
-  ): MockupSpecDocument {
-    const [page, ...rest] = spec.pages;
-    if (!page) return spec;
-    const tree = page.tree.map((node, index) => {
-      const id = ids.get(index);
-      return id === undefined ? node : { ...node, id };
-    });
-    return { ...spec, pages: [{ ...page, tree }, ...rest] };
-  }
-
-  it("counts a file that adds an id and changes anything else as another writer's change (fails when any added id passes for a stamp)", async () => {
-    await mountEditor();
-
-    file.writeFromOutside({ ...stamped(file.spec), title: "From the AI" });
-    await streamSaysTheFileChanged();
-
-    expect(notices).toEqual([{ kind: "adopted" }]);
-  });
-
-  it("gives an undone step the id where exactly one node without an id equals the stamped one, and none to twins (fails when an undo writes the block without its id, or puts it on a twin)", async () => {
-    const kpi = (title: string) => ({ type: "KpiCard", options: { title } });
-    file.spec = {
-      version: 1,
-      pages: [
-        { id: "orders", title: "Orders", tree: [kpi("A"), kpi("B"), kpi("B")] },
-      ],
-    };
-    await mountEditor();
-    editor.apply({
-      kind: "insertNode",
-      parent: null,
-      page: "orders",
-      index: 0,
-      node: { type: "Banner" },
-    });
-    await settle(MOCKUP_WRITE_DELAY_MS);
-    const ids = new Map([
-      [1, "b-aaaaaaaa"],
-      [2, STAMP],
-    ]);
-    file.writeFromOutside(stamped(file.spec, ids));
-    await streamSaysTheFileChanged();
-
-    editor.undo();
-    await settle(MOCKUP_WRITE_DELAY_MS);
-
-    expect(file.spec.pages[0]?.tree.map((node) => node.id)).toEqual([
-      "b-aaaaaaaa",
-      undefined,
-      undefined,
-    ]);
-    expect(notices).toEqual([]);
-  });
-
-  it("keeps the history and says nothing, and the spec shown takes the id (fails when a stamp counts as another writer's change)", async () => {
-    await mountEditor();
-    retitle("Mine");
-    await settle(MOCKUP_WRITE_DELAY_MS);
-
-    file.writeFromOutside(stamped(file.spec));
-    await streamSaysTheFileChanged();
-
-    expect(editor.canUndo.value).toBe(true);
-    expect(notices).toEqual([]);
-    expect(editor.spec.value).toEqual(file.spec);
-    expect(file.spec.pages[0]?.tree[0]?.id).toBe(STAMP);
-  });
-
-  it("puts the id on the stamped block when a move not written yet took it from its place (fails when the spec shown takes the id at the block's old pointer)", async () => {
-    const kpi = (title: string) => ({ type: "KpiCard", options: { title } });
-    file.spec = {
-      version: 1,
-      pages: [
-        { id: "orders", title: "Orders", tree: [kpi("A"), kpi("B"), kpi("C")] },
-      ],
-    };
-    await mountEditor();
-
-    editor.apply({
-      kind: "moveNode",
-      from: "/pages/0/tree/0",
-      parent: null,
-      index: 2,
-    });
-    file.writeFromOutside(stamped(file.spec));
-    await streamSaysTheFileChanged();
-    await settle(MOCKUP_WRITE_DELAY_MS * 4);
-
-    expect(
-      file.spec.pages[0]?.tree.map((node) => [node.options?.title, node.id]),
-    ).toEqual([
-      ["B", undefined],
-      ["C", undefined],
-      ["A", STAMP],
-    ]);
-    expect(notices).toEqual([]);
-  });
-
-  it("writes an edit typed after the stamp over the stamped file, keeping the id (fails when the conflict drops the edit or the id)", async () => {
-    await mountEditor();
-    retitle("Mine");
-    await settle(MOCKUP_WRITE_DELAY_MS);
-
-    file.writeFromOutside(stamped(file.spec));
-    retitle("Mine, again");
-    await settle(MOCKUP_WRITE_DELAY_MS * 4);
-
-    expect(titleOf(file.spec)).toBe("Mine, again");
-    expect(file.spec.pages[0]?.tree[0]?.id).toBe(STAMP);
-    expect(editor.spec.value).toEqual(file.spec);
-    expect(editor.canUndo.value).toBe(true);
-    expect(notices).toEqual([]);
   });
 });
 

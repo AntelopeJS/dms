@@ -161,8 +161,9 @@ function sameSpec(
  * edit, whichever comes first, until it lands. A file holding the spec shown,
  * or any spec sent whose answer was lost, is the editor's own write, never an
  * outside change. Nor is a file that only adds ids a note stamped on nodes
- * that had none: the editor keeps its history and any edit not written yet,
- * and the ids join the spec shown and the steps that hold their nodes.
+ * that had none of one of those specs, or of the spec last written or read:
+ * the editor keeps its history and any edit not written yet, and each id
+ * joins every step of the history that holds its block.
  */
 export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
   const endpoint = mockupEndpoint(options.name, "/spec");
@@ -225,16 +226,18 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     return true;
   }
 
-  /** Takes the file as the spec last written or read with ids a note stamped; false when it changed more. */
+  /**
+   * Takes the file as the spec last written or read, or one sent without an
+   * answer, with ids a note stamped; false when it changed more.
+   */
   function takeStamps(source: SpecSource): boolean {
+    const bases = [written.value, ...unconfirmed].flatMap((spec) => spec ?? []);
     const stamped =
-      history.value &&
-      written.value &&
-      stampedHistory(history.value, written.value, source.spec);
+      history.value && stampedHistory(history.value, bases, source.spec);
     if (!stamped) return false;
-    history.value = stamped;
+    history.value = stamped.history;
     digest = source.digest;
-    written.value = source.spec;
+    written.value = stamped.written;
     landed();
     return true;
   }
