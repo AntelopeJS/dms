@@ -248,6 +248,10 @@ describe("the relation rules of the analysis", () => {
     expect(proposal.resources[0].tableView.rule).to.equal("R5");
   });
 
+  appliesTheRulesThatLabelOrAsk();
+});
+
+function appliesTheRulesThatLabelOrAsk(): void {
   it("labels a referenced table with no label by its key, and asks (R7)", () => {
     const lines = Relation({
       relation: "erp.lines",
@@ -359,23 +363,45 @@ describe("the relation rules of the analysis", () => {
       "label:erp.parts",
     ]);
   });
+}
+
+const invoices = Relation({
+  relation: "erp.invoices",
+  key: ["id"],
+  columns: [
+    Column("id", "number"),
+    Column("number", "string"),
+    Column("order_ref", "string"),
+  ],
 });
+const profiles = [
+  Profiled("erp.invoices", 50, { number: { traits: ["label-candidate"] } }),
+  ...PROFILES,
+];
+
+function analysed(containment: number): MappingProposal {
+  return proposeMapping(
+    Input([CUSTOMERS, ORDERS, invoices], profiles, {
+      references: [
+        {
+          from: { relation: "erp.invoices", column: "order_ref" },
+          to: { relation: "erp.orders", column: "id" },
+          match: {
+            status: "ok",
+            value: {
+              containment,
+              checkedRows: 50,
+              sampled: false,
+              targetIsKey: true,
+            },
+          },
+        },
+      ],
+    }),
+  );
+}
 
 describe("references the database does not declare", () => {
-  const invoices = Relation({
-    relation: "erp.invoices",
-    key: ["id"],
-    columns: [
-      Column("id", "number"),
-      Column("number", "string"),
-      Column("order_ref", "string"),
-    ],
-  });
-  const profiles = [
-    Profiled("erp.invoices", 50, { number: { traits: ["label-candidate"] } }),
-    ...PROFILES,
-  ];
-
   it("checks a column named like a reference against the key its name points at", () => {
     expect(impliedReferenceChecks([CUSTOMERS, ORDERS, invoices])).to.deep.equal(
       [
@@ -386,28 +412,6 @@ describe("references the database does not declare", () => {
       ],
     );
   });
-
-  function analysed(containment: number): MappingProposal {
-    return proposeMapping(
-      Input([CUSTOMERS, ORDERS, invoices], profiles, {
-        references: [
-          {
-            from: { relation: "erp.invoices", column: "order_ref" },
-            to: { relation: "erp.orders", column: "id" },
-            match: {
-              status: "ok",
-              value: {
-                containment,
-                checkedRows: 50,
-                sampled: false,
-                targetIsKey: true,
-              },
-            },
-          },
-        ],
-      }),
-    );
-  }
 
   it("makes one found whole a relation column, marked implied (F5)", () => {
     const proposal = analysed(1);
@@ -442,6 +446,17 @@ describe("references the database does not declare", () => {
     ]);
   });
 
+  offersOnlyKeysHoldingTheSameKindOfValue();
+
+  it("ignores one found in part", () => {
+    const proposal = analysed(0.5);
+    expect(proposal.open.map((item) => item.id)).to.not.include(
+      "reference:erp.invoices.order_ref",
+    );
+  });
+});
+
+function offersOnlyKeysHoldingTheSameKindOfValue(): void {
   it("proposes no reference whose key holds another kind of value than the column", () => {
     const uuids = Relation({
       relation: "erp.invoices",
@@ -515,11 +530,4 @@ describe("references the database does not declare", () => {
       "erp.orders",
     ]);
   });
-
-  it("ignores one found in part", () => {
-    const proposal = analysed(0.5);
-    expect(proposal.open.map((item) => item.id)).to.not.include(
-      "reference:erp.invoices.order_ref",
-    );
-  });
-});
+}
