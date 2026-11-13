@@ -276,12 +276,28 @@ export function withoutEditor(
   };
 }
 
+async function visibleMenus(page: Page): Promise<Locator[]> {
+  const menus = page.locator("[role=menu]");
+  const count = await menus.count();
+  const visible: Locator[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const menu = menus.nth(index);
+    if (await menu.isVisible().catch(() => false)) visible.push(menu);
+  }
+  return visible;
+}
+
 /**
- * The names of the items of the menu a click opened. A dropdown draws its
- * menu outside the page content, so the content text does not show it.
+ * The names of the items of the menu a click opened, when more menus show
+ * than the `before` that showed ahead of it. A dropdown draws its menu last,
+ * outside the page content, so the content text does not show it.
  */
-async function openedMenu(page: Page): Promise<string[] | undefined> {
-  const menu = await firstVisible(page.locator("[role=menu]"));
+async function openedMenu(
+  page: Page,
+  before: number,
+): Promise<string[] | undefined> {
+  const shown = await visibleMenus(page);
+  const menu = shown.length > before ? shown.at(-1) : undefined;
   if (menu === undefined) return undefined;
   const items = menu.locator(
     "[role=menuitem], [role=menuitemcheckbox], [role=menuitemradio]",
@@ -303,11 +319,12 @@ async function checkOpenedForm(
   const fieldsBefore = await page.locator(`${CONTENT} ${EDITABLE}`).count();
   const writesBefore = guard.writes.length;
   const textBefore = await contentText(page);
+  const menusBefore = (await visibleMenus(page)).length;
   await opener.click({ timeout: CLICK_TIMEOUT_MS });
   await waitSettled(page);
   const form = await openedEditor(page, fieldsBefore);
   if (form === undefined) {
-    const menu = await openedMenu(page);
+    const menu = await openedMenu(page, menusBefore);
     const outcome = withoutEditor(
       {
         wrote: guard.writes.length > writesBefore,
