@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { assert } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
+import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel, type UserInvite, UserInviteModel } from "./db";
 import { normalizeEmail, UserModel } from "./auth/db";
@@ -10,6 +12,7 @@ import { ExecuteHooks, Hook, type InviteReplacementReason } from "./hooks";
 import type { InviteExtensionPayloads } from "./invite-extensions";
 import { DeliverInviteExtensions } from "./invite-extensions/internal/delivery";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
+import { isSameInviteContent } from "./internal/invite-content";
 import { decideInvite } from "./invite-resolution";
 import { changeTenantMembers, type TenantMembersWrite } from "./tenant-members";
 import { applyAdmittedTenantOwnership } from "./internal/tenant-ownership";
@@ -23,6 +26,7 @@ export { inviteeDisplayName } from "./invitee-display-name";
 
 export const INVITE_TOKEN_LENGTH = 64;
 export const INVITE_EXPIRY_DAYS = 7;
+const HTTP_CONFLICT = 409;
 
 export interface InviteUserToTenantOptions {
   tenantId: string;
@@ -214,6 +218,10 @@ export interface CreateUserInviteTokenResult {
  * Low-level: create a `user_invites` row + token for a tenant. Replaces any
  * existing invite for the same email (within the tenant). Fires
  * INVITE_DELETED / INVITE_BEING_CREATED / INVITE_CREATED hooks.
+ *
+ * Concurrent calls that all find no invite for the email keep one: a call
+ * that loses returns the kept invite when it carries the same content, and
+ * fails with HTTP 409 when it does not.
  */
 export async function createUserInviteToken(
   options: CreateUserInviteTokenOptions,
@@ -253,7 +261,18 @@ async function createAdmittedInviteToken(
     asTenantOwner,
     roleIds,
   });
-  await userInviteModel.insert(replacement);
+  try {
+    await userInviteModel.insert(replacement);
+  } catch (error) {
+    if (!IsDuplicateKeyError(error)) throw error;
+    const winner = await userInviteModel.getByEmail(email);
+    assert(
+      winner && isSameInviteContent(winner, replacement),
+      HTTP_CONFLICT,
+      "Invitation for this email was created concurrently with other content",
+    );
+    return { inviteId: winner._id, token: winner.token };
+  }
   await ExecuteHooks(Hook.INVITE_CREATED, {
     tenantId,
     inviteId: replacement._id,
@@ -281,5 +300,6 @@ function buildInviteSnapshot(
     expiresAt: new Date(Date.now() + INVITE_EXPIRY_DAYS * MILLISECONDS_PER_DAY),
     invitedBy: options.invitedBy ?? null,
     extensions: options.extensions ?? null,
+    creationResolutionId: "",
   });
 }
