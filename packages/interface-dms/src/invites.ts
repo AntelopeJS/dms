@@ -264,10 +264,10 @@ async function createAdmittedInviteToken(
   try {
     await userInviteModel.insert(replacement);
   } catch (error) {
+    if (!IsDuplicateKeyError(error)) throw error;
     const winner = await userInviteModel.getByEmail(email);
-    if (!IsDuplicateKeyError(error) || !winner) throw error;
     assert(
-      isSameInviteContent(winner, replacement),
+      winner && isSameInviteContent(winner, replacement),
       HTTP_CONFLICT,
       "Invitation for this email was created concurrently with other content",
     );
