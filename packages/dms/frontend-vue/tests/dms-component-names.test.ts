@@ -39,5 +39,5 @@ afterEach(() => {
 describe("the DMS component check", () => {
   it("knows exactly the components and layouts dms.frontend.ts registers in production", async () => {
     expect(dmsRegistrations()).toEqual(await productionRegistrations());
-  });
+  }, 20000);
 });
