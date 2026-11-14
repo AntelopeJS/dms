@@ -19,6 +19,7 @@ import {
 } from "./helpers/theme-harness";
 
 const OTHER_PNG = Buffer.concat([PNG_LOGO, Buffer.from([1])]);
+const THIRD_PNG = Buffer.concat([PNG_LOGO, Buffer.from([2])]);
 
 function issues(result: OpResult<unknown>): Array<[string, string]> {
   return !result.ok && result.error.code === "invalid_config"
@@ -259,6 +260,28 @@ function keepsLogoFilesTheAppConfigJoins(): void {
     expect(brandingFiles()).to.deep.equal([]);
   });
 
+  it("keeps a file a slot reaches through a name joined from literals alone, and deletes it once nothing builds it", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("default", "light", PNG_LOGO, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    const shared =
+      expectOk(await GetTheme(), "GetTheme").logos.default?.light ?? "";
+    const hash = /-([0-9a-f]{8})\.png$/.exec(shared)?.[1] ?? "";
+    const joinedConfig = (extension: string): string =>
+      `export default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${shared}" }, email: { light: "/branding/default-light-" + "${hash}.${extension}" } } },\n});\n`;
+    writeLayerFile("app/app.config.ts", joinedConfig("png"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
+    writeLayerFile("app/app.config.ts", joinedConfig("jpg"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.deep.equal([]);
+  });
+
   it("keeps a file a slot reaches through a name built with concat or join, and deletes it once nothing builds it", async () => {
     expectOk(
       await SetTheme(
@@ -284,6 +307,37 @@ function keepsLogoFilesTheAppConfigJoins(): void {
       light.replace("/branding/", ""),
       dark.replace("/branding/", ""),
     ]);
+    writeLayerFile("app/app.config.ts", builtConfig("jpg"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.deep.equal([]);
+  });
+
+  it("keeps a file a slot reaches through a built path with a query string or a fragment, or named in its query, and deletes it once nothing builds it", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [
+            upload("default", "light", PNG_LOGO, "image/png"),
+            upload("default", "dark", OTHER_PNG, "image/png"),
+            upload("collapsed", "dark", THIRD_PNG, "image/png"),
+          ],
+        }),
+      ),
+      "SetTheme",
+    );
+    const logos = expectOk(await GetTheme(), "GetTheme").logos;
+    const light = logos.default?.light ?? "";
+    const dark = logos.default?.dark ?? "";
+    const collapsed = logos.collapsed?.dark ?? "";
+    const hashOf = (logo: string): string =>
+      /-([0-9a-f]{8})\.png$/.exec(logo)?.[1] ?? "";
+    const builtConfig = (extension: string): string =>
+      `const SLOT = "default";\nconst VERSION = "3";\nconst LIGHT_HASH = "${hashOf(light)}";\nconst DARK_HASH = "${hashOf(dark)}";\nconst COLLAPSED_HASH = "${hashOf(collapsed)}";\nexport const OPTIMIZED = "/_vercel/image?url=/branding/collapsed-dark-" + COLLAPSED_HASH + ".${extension}&w=64";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${light}", dark: "${dark}" }, collapsed: { dark: "${collapsed}" }, email: { light: "/branding/" + SLOT + "-light-" + LIGHT_HASH + ".${extension}?v=" + VERSION, dark: \`/branding/default-dark-\${DARK_HASH}.${extension}#/a/\${VERSION}\` } } },\n});\n`;
+    writeLayerFile("app/app.config.ts", builtConfig("png"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.have.members(
+      [light, dark, collapsed].map((logo) => logo.replace("/branding/", "")),
+    );
     writeLayerFile("app/app.config.ts", builtConfig("jpg"));
     expectOk(await SetTheme(configDraft()), "SetTheme");
     expect(brandingFiles()).to.deep.equal([]);

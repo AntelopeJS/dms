@@ -147,27 +147,37 @@ export function stringLiterals(sourceFile: SourceFile): Set<string> {
 }
 
 /**
- * The static text of the file name a string expression builds, after its last
- * `/`, split where a runtime value goes: `${slot}-light-${hash}.png` and
- * `slot + "-light-" + hash + ".png"` are both `["", "-light-", ".png"]`.
+ * The static text of a file name a string expression may build, split where a
+ * runtime value goes: `/branding/${slot}-light-${hash}.png?v=${v}` builds
+ * `["", "-light-", ".png"]`, and `"/branding/" + "default-light-ab12cd34.png"`
+ * builds `["default-light-ab12cd34.png"]`.
  */
-export type BuiltFileName = readonly [string, string, ...string[]];
+export type BuiltFileName = readonly [string, ...string[]];
 
-function builtFileName(parts: string[]): BuiltFileName | undefined {
-  const directoryEnd = parts.findLastIndex((part) => part.includes("/"));
-  const fileParts =
-    directoryEnd < 0
-      ? parts
-      : [
-          parts[directoryEnd]?.split("/").pop() ?? "",
-          ...parts.slice(directoryEnd + 1),
-        ];
-  const [first, second, ...rest] = fileParts;
-  return first !== undefined &&
-    second !== undefined &&
-    fileParts.join("") !== ""
-    ? [first, second, ...rest]
-    : undefined;
+/** A character no builder-named file holds, such as `/`, `?`, `#` or `&`. */
+const NOT_IN_FILE_NAME = /[^\w.-]/;
+
+/**
+ * Each stretch of the text between characters no file name holds, so a file
+ * named in a path, a query or a fragment is one of them, when it spells some
+ * text: a name of runtime values alone could be any file.
+ */
+function builtSegments(parts: string[]): BuiltFileName[] {
+  const segments: string[][] = [];
+  let current: string[] = [];
+  for (const part of parts) {
+    const [head = "", ...later] = part.split(NOT_IN_FILE_NAME);
+    current.push(head);
+    for (const text of later) {
+      segments.push(current);
+      current = [text];
+    }
+  }
+  segments.push(current);
+  return segments.flatMap(([first = "", ...rest]) => {
+    const segment: BuiltFileName = [first, ...rest];
+    return segment.join("") === "" ? [] : [segment];
+  });
 }
 
 /** Text an expression spells, or `undefined` where a runtime value goes. */
@@ -271,16 +281,14 @@ function buildsAString(node: Node): boolean {
 }
 
 /**
- * The file name each template literal, `+` chain, `.concat()` or `[…].join()`
- * of a file builds, when it spells some of its text: a name of runtime values
- * alone could be any file.
+ * The file names each template literal, `+` chain, `.concat()` or `[…].join()`
+ * of a file may build.
  */
 export function builtFileNames(sourceFile: SourceFile): BuiltFileName[] {
   return sourceFile
     .getDescendants()
     .filter(buildsAString)
-    .map((node) => builtFileName(textBetweenRuntimeValues(pieces(node))))
-    .filter((name) => name !== undefined);
+    .flatMap((node) => builtSegments(textBetweenRuntimeValues(pieces(node))));
 }
 
 /** Whether some value of the substitutions makes the template build this name. */
@@ -288,7 +296,10 @@ export function buildsFileName(
   [first, ...later]: BuiltFileName,
   fileName: string,
 ): boolean {
-  const last = later.pop() ?? "";
+  const last = later.pop();
+  if (last === undefined) {
+    return fileName === first;
+  }
   if (
     !fileName.startsWith(first) ||
     !fileName.endsWith(last) ||
