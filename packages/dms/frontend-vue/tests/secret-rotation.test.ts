@@ -28,7 +28,9 @@ describe("a field the server saved on its own", () => {
       apiKey: OLD_KEY,
     });
     const initialValues = ref<FormData>({ name: "Acme", apiKey: OLD_KEY });
-    const dirty = useFormDirty(() => ({ ...state.value }));
+    const dirty = useFormDirty<Record<string, unknown>>(() => ({
+      ...state.value,
+    }));
     const instantSave = { confirmField: vi.fn() };
     const markFieldSaved = fieldSavedMarker({
       hasField: (id) => id in initialValues.value,
@@ -140,7 +142,7 @@ describe("DmsInputSecret", () => {
     const { default: InputSecret } = await import(
       "../layers/dms-ui/app/components/form/components/InputSecret.vue"
     );
-    const value = ref<string>(OLD_KEY);
+    const value = ref<string | null | undefined>(OLD_KEY);
     const markFieldSaved = vi.fn();
     app = createApp({
       render: () =>
@@ -148,7 +150,7 @@ describe("DmsInputSecret", () => {
           id: "apiKey",
           rotateUrl: "/api/keys/rotate",
           modelValue: value.value,
-          "onUpdate:modelValue": (next: string) => {
+          "onUpdate:modelValue": (next: string | null | undefined) => {
             value.value = next;
           },
         }),

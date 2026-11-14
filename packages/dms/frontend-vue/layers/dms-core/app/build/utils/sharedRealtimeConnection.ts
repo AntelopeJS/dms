@@ -26,6 +26,7 @@ import {
 
 const HELLO_EVENT = "hello";
 const SESSION_EVENT = "session";
+const LEADER_EVENT = "leader";
 const SESSION_HEADER = "x-realtime-session";
 const CONNECTION_HEADER = "x-realtime-connection";
 const RECONNECT_INITIAL_DELAY_MS = 500;
@@ -97,6 +98,11 @@ export interface SharedRealtimeConnectionOptions extends StreamRecovery {
     eventName: string,
     data: Parameters<SseEventHandler>[1],
   ) => void;
+  /**
+   * A frame of the connection meant for one tab of the browser, the one that
+   * holds the stream: a `navigate_to_page` call moves that tab alone.
+   */
+  onLeaderFrame: (data: Parameters<SseEventHandler>[1]) => void;
   environment?: CrossTabEnvironment;
 }
 
@@ -322,6 +328,10 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
         return;
       }
       if (!connectionId) return;
+      if (eventName === LEADER_EVENT) {
+        options.onLeaderFrame(data);
+        return;
+      }
       if (eventName !== SESSION_EVENT) {
         bus.post({ kind: "frame", connectionId, event: eventName, data });
         return;

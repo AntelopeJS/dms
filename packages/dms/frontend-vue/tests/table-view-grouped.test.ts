@@ -267,7 +267,7 @@ describe("useGroupedRows", () => {
 
   it("counts the groups listed, with the rows' own filters, and heads them", async () => {
     const asked: unknown[] = [];
-    const rows = ref([
+    const rows = computed(() => [
       { _id: "1", status: "open" },
       { _id: "2", status: "open" },
       { _id: "3", status: null },
@@ -316,7 +316,8 @@ describe("useGroupedRows", () => {
   it("shows a failed count request and keeps the counts it read before", async () => {
     const toast = { add: vi.fn(() => ({ id: "failure" })), remove: vi.fn() };
     vi.stubGlobal("useToast", () => toast);
-    const rows = ref([{ _id: "1", status: "open" }]);
+    const source = ref([{ _id: "1", status: "open" }]);
+    const rows = computed(() => source.value);
     let requests = 0;
     let grouped: ReturnType<typeof useGroupedRows> | undefined;
     app = createApp(
@@ -341,7 +342,7 @@ describe("useGroupedRows", () => {
     app.mount(document.createElement("div"));
     await nextTick();
     await nextTick();
-    rows.value = [...rows.value, { _id: "2", status: "closed" }];
+    source.value = [...source.value, { _id: "2", status: "closed" }];
     await nextTick();
     await new Promise((resolve) => setTimeout(resolve, 0));
 

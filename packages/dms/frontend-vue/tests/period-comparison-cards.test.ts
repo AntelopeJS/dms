@@ -96,12 +96,14 @@ async function render(
           pageId: "page",
           periodScope: SCOPE,
           fetchUrl: state ? "/revenue" : undefined,
+          ...(state
+            ? {}
+            : {
+                staticValue: 48200,
+                staticDelta: 12.4,
+                staticPreviousValue: 42900,
+              }),
         };
-        if (!state) {
-          cardProps.staticValue = 48200;
-          cardProps.staticDelta = 12.4;
-          cardProps.staticPreviousValue = 42900;
-        }
         return h(card, { ...cardProps, ...props });
       };
     },

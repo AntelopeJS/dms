@@ -5,7 +5,7 @@ import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 
 const authFetch = vi.fn();
-const toastAdd = vi.fn(() => ({ id: "failure" }));
+const toastAdd = vi.fn((_toast: object) => ({ id: "failure" }));
 let scope: EffectScope;
 
 function readRecord() {

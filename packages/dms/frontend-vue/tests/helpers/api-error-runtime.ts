@@ -30,7 +30,7 @@ export function installApiErrorRuntime() {
   const ledger = ref(new WeakMap());
   vi.stubGlobal("getPluginI18n", () => ({ i18n: composer }));
   vi.stubGlobal("useApiErrorPresenter", () => {
-    const state = globalThis.useDmsState;
+    const state: unknown = Reflect.get(globalThis, "useDmsState");
     vi.stubGlobal("useDmsState", () => ledger);
     try {
       return useApiErrorPresenter();

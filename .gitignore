@@ -9,6 +9,9 @@ dist
 # Node dependencies
 node_modules
 
+# Frontend-vue types `ajs dms prepare-types` writes for the test type check
+.frontend-vue-types
+
 # Logs
 logs
 *.log

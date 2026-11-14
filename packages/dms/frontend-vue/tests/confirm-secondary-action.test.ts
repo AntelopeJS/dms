@@ -175,8 +175,11 @@ describe("ConfirmModal secondary action", () => {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
+  type ModalProps = InstanceType<typeof ConfirmModal>["$props"];
+
   function mount(
-    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+    props: Pick<ModalProps, "title"> &
+      Partial<Omit<ModalProps, "title" | "style">>,
   ): void {
     app = createApp({
       render: () =>

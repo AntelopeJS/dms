@@ -260,10 +260,13 @@ function registerSseResumeTests() {
     let cursor: string | null = null;
     let token = "first";
     const options: Partial<SseStreamOptions> = {
-      headers: () =>
-        cursor
-          ? { Authorization: `Bearer ${token}`, "Last-Event-ID": cursor }
-          : { Authorization: `Bearer ${token}` },
+      headers: () => {
+        const headers: Record<string, string> = {
+          Authorization: `Bearer ${token}`,
+        };
+        if (cursor) headers["Last-Event-ID"] = cursor;
+        return headers;
+      },
       onEvent: (_name, _data, id) => {
         if (id !== null) cursor = id;
       },

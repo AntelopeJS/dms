@@ -15,7 +15,11 @@ import {
   pageToolbar,
   type PageToolbarOptions,
 } from "@antelopejs/interface-dms/base/page-toolbar";
-import type { PeriodSelectorProps } from "@antelopejs/interface-dms/base/period-selector";
+import {
+  DEFAULT_PERIOD_SCOPE,
+  PeriodSelectorSchema,
+  type PeriodSelectorProps,
+} from "@antelopejs/interface-dms/base/period-selector";
 import PageToolbarBlock from "../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue";
 import PeriodSelector from "../layers/dms-ui/app/components/period/PeriodSelector.vue";
 import DmsSegmentedControl from "../layers/dms-ui/app/components/segmented/SegmentedControl.vue";
@@ -46,7 +50,8 @@ function toolbarPeriod(
 ): PeriodSelectorProps {
   const serialized = pageToolbar({ live: false, period }).serializeSync();
   const child = serialized.children?.find((entry) => entry.id === "period");
-  return child?.component.options;
+  if (!child) throw new Error("the toolbar serializes no period child");
+  return PeriodSelectorSchema.parse(child.component.options);
 }
 
 async function mountPeriod(period: PageToolbarOptions["period"]) {
@@ -58,6 +63,7 @@ async function mountPeriod(period: PageToolbarOptions["period"]) {
           componentId: "toolbar.period",
           pageId: "sales",
           ...options,
+          id: options.id ?? DEFAULT_PERIOD_SCOPE,
         }),
       ]),
   });

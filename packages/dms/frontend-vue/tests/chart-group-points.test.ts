@@ -12,6 +12,8 @@ import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 
 const TITLE = "Invoices by month";
 
+type ChartProps = InstanceType<typeof Chart>["$props"];
+
 const authFetch = vi.fn();
 
 const PlotProbe = defineComponent({
@@ -35,7 +37,10 @@ function registerUi(app: App): void {
   app.component("DmsApexChartHost", PlotProbe);
 }
 
-function chartPage(type: string, xaxisType?: string) {
+function chartPage(
+  type: ChartProps["type"],
+  xaxisType?: ChartProps["xaxisType"],
+) {
   return defineComponent({
     setup: () => () =>
       h(Chart, {
@@ -49,7 +54,10 @@ function chartPage(type: string, xaxisType?: string) {
   });
 }
 
-async function plottedSeries(type: string, xaxisType?: string) {
+async function plottedSeries(
+  type: ChartProps["type"],
+  xaxisType?: ChartProps["xaxisType"],
+) {
   const { html } = await serverRender(chartPage(type, xaxisType), registerUi);
   const probe = document.createElement("div");
   probe.innerHTML = html;
@@ -77,7 +85,7 @@ describe("a bare chart fed one point per group", () => {
     });
   });
 
-  it.each(["column", "bar", "line"])(
+  it.each(["column", "bar", "line"] as const)(
     "draws the points as one series named after the %s chart, each group a category",
     async (type) => {
       expect(await plottedSeries(type)).toEqual([

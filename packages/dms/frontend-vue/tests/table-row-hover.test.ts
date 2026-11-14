@@ -74,13 +74,23 @@ describe("rowCustomActions", () => {
   const stopSelling: CustomRowAction = {
     id: "stop_selling",
     label: "Stop selling",
-    target: { type: "api", url: "/plans/{{row._id}}/stop", method: "POST" },
+    target: {
+      type: "api",
+      url: "/plans/{{row._id}}/stop",
+      method: "POST",
+      successMessage: "Stopped",
+    },
     rule: { field: "isActive", equals: true },
   };
   const remove: CustomRowAction = {
     id: "delete",
     label: "Delete",
-    target: { type: "api", url: "/plans/{{row._id}}", method: "DELETE" },
+    target: {
+      type: "api",
+      url: "/plans/{{row._id}}",
+      method: "DELETE",
+      successMessage: "Deleted",
+    },
     rule: { field: "workspaces", equals: 0 },
   };
 

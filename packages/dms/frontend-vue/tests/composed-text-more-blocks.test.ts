@@ -21,51 +21,56 @@ import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regio
 const NOW = Date.UTC(2026, 9, 10, 12);
 const THREE_MINUTES_AGO = new Date(NOW - 3 * 60 * 1000).toISOString();
 
+const messages = {
+  en: {
+    mail: {
+      to_review:
+        "no message to review | {count} message to review | {count} messages to review",
+      bounced: "{count} bounced on {list}",
+      device: "{browser} on {os}",
+      signed_in: "Signed in on {device}",
+      sent: "Sent {when}",
+    },
+    media: {
+      files: "{count} file | {count} files",
+      used: "{size} used",
+      quota: "{used} of {total}",
+      library: "Library",
+      new: "New",
+    },
+    api: { last_call: "Last call {at}" },
+  },
+  fr: {
+    mail: {
+      to_review:
+        "aucun message à traiter | {count} message à traiter | {count} messages à traiter",
+      bounced: "{count} rejetés sur {list}",
+      device: "{browser} sous {os}",
+      signed_in: "Connexion sur {device}",
+      sent: "Envoyé {when}",
+    },
+    media: {
+      files: "{count} fichier | {count} fichiers",
+      used: "{size} utilisés",
+      quota: "{used} sur {total}",
+      library: "Médiathèque",
+      new: "Nouveau",
+    },
+    api: { last_call: "Dernier appel {at}" },
+  },
+};
+
 const i18n = createI18n({
   legacy: false,
   locale: "en",
   fallbackLocale: "en",
   missingWarn: false,
   fallbackWarn: false,
-  messages: {
-    en: {
-      mail: {
-        to_review:
-          "no message to review | {count} message to review | {count} messages to review",
-        bounced: "{count} bounced on {list}",
-        device: "{browser} on {os}",
-        signed_in: "Signed in on {device}",
-        sent: "Sent {when}",
-      },
-      media: {
-        files: "{count} file | {count} files",
-        used: "{size} used",
-        quota: "{used} of {total}",
-        library: "Library",
-        new: "New",
-      },
-      api: { last_call: "Last call {at}" },
-    },
-    fr: {
-      mail: {
-        to_review:
-          "aucun message à traiter | {count} message à traiter | {count} messages à traiter",
-        bounced: "{count} rejetés sur {list}",
-        device: "{browser} sous {os}",
-        signed_in: "Connexion sur {device}",
-        sent: "Envoyé {when}",
-      },
-      media: {
-        files: "{count} fichier | {count} fichiers",
-        used: "{size} utilisés",
-        quota: "{used} sur {total}",
-        library: "Médiathèque",
-        new: "Nouveau",
-      },
-      api: { last_call: "Dernier appel {at}" },
-    },
-  },
+  messages: {},
 });
+for (const [locale, localeMessages] of Object.entries(messages)) {
+  i18n.global.setLocaleMessage(locale, localeMessages);
+}
 
 let meterData: Pick<
   InstanceType<typeof MeterBlock>["$props"],

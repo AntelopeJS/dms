@@ -16,9 +16,9 @@ import { useTableReorder } from "../layers/dms-ui/app/entries/composables/table-
 import { moveRow } from "../layers/dms-ui/app/entries/composables/table-view/utils/reorder";
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 import { displayContext } from "./fixtures/displayContext";
+import { fetchClient } from "./fixtures/fetchClient";
 
-type Row = { _id: string; name: string };
-type Api = Parameters<typeof useTableReorder>[0]["api"];
+type Row = Record<string, unknown>;
 
 const TaskCard = defineComponent({
   props: {
@@ -234,7 +234,7 @@ describe("which displays move rows", () => {
       data: ref(null),
       rowIdKey: "_id",
       location: "/api/features",
-      api: vi.fn<Api>(),
+      api: fetchClient(() => undefined),
       canEdit: computed(() => true),
       isNarrowed: computed(() => false),
       isOrderedDisplay: computed(() => false),

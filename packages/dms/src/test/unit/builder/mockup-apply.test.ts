@@ -240,6 +240,19 @@ describe("[unit] mockup apply against the builder", () => {
     const structure = expectOk(await GetPageStructure(PAGE), "structure");
     expect(structure.page.displayName).to.equal("Sales board");
   });
+
+  it("titles a single-page mockup with the name an apply gave its page (fails an apply that keeps the old spec title)", async function () {
+    this.timeout(OP_TIMEOUT);
+    await editSpec((spec) => {
+      spec.pages[0].title = "Revenue board";
+    });
+
+    await applyMockupToPage(mockups, MOCKUP, SPEC_PAGE, BUILDER);
+
+    const file = join(mockups, MOCKUP, "spec.json");
+    const spec = specSchema.parse(JSON.parse(await readFile(file, "utf8")));
+    expect(spec.title).to.equal("Revenue board");
+  });
 });
 
 describe("[unit] mockup apply against the builder: blocks a mockup moved, added or named", () => {

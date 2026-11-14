@@ -27,7 +27,9 @@ async function clientPlugins(): Promise<DmsPluginSetup[]> {
       });
     },
   };
-  await engine.setupFrontendModules([{ module: probe, options: {} }]);
+  await engine.setupFrontendModules([
+    { module: probe, options: { public: {} } },
+  ]);
   return registered;
 }
 
@@ -43,13 +45,14 @@ afterEach(() => {
 describe("the dev-only plugins of the dms frontend module", () => {
   it("run through the app context once their file has loaded", async () => {
     const app = createApp({});
-    const runWithContext = vi.fn(
-      <T>(callback: () => T): T => app.runWithContext(callback),
-    );
+    let contextRuns = 0;
     const context: DmsAppContext = {
       vueApp: app,
       provide: () => undefined,
-      runWithContext,
+      runWithContext: (callback) => {
+        contextRuns += 1;
+        return app.runWithContext(callback);
+      },
       hook: () => undefined,
       $i18n: Object.assign(createI18n({ legacy: false }).global, {
         locales: computed(() => []),
@@ -61,6 +64,6 @@ describe("the dev-only plugins of the dms frontend module", () => {
     for (const setup of [devReload, devErrorLog])
       await Promise.resolve(setup(context)).catch(() => undefined);
 
-    expect(runWithContext).toHaveBeenCalledTimes(2);
+    expect(contextRuns).toBe(2);
   });
 });

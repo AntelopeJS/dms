@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type App, type VNode, createApp, h, ref } from "vue";
+import { type App, type Component, type VNode, createApp, h, ref } from "vue";
 import { isFunction } from "../layers/dms-core/app/utils/type-check";
 import { browserRuntime } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
@@ -26,7 +26,8 @@ const loaders = {
 };
 
 async function mount(path: keyof typeof loaders, props: MountProps) {
-  const { default: component } = await loaders[path]();
+  const { default: loaded } = await loaders[path]();
+  const component: Component = loaded;
   const read = isFunction(props) ? props : () => props;
   app = createApp({ setup: () => () => h(component, read()) });
   runtime?.scope.stop();

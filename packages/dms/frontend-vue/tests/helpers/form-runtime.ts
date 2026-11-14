@@ -152,7 +152,7 @@ export async function mountForm(
     useModal().open({
       title: "Edit person",
       component: Form,
-      componentOptions: options,
+      componentOptions: { ...options },
     });
     vi.stubGlobal("useOverlay", () => ({
       create: () => ({ open: openPrompt }),

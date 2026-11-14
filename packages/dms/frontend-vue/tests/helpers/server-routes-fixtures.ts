@@ -176,9 +176,9 @@ function decodedCookie(header: string) {
   const scopedName = pair.slice(0, separator);
   const name = scopedName.replace(/_[0-9a-f]{12}$/, "");
   const raw = pair.slice(separator + 1);
-  const value = raw
-    ? readSealedCookie({ headers: { cookie: pair } }, name)
-    : "";
+  const request = new IncomingMessage(new Socket());
+  request.headers.cookie = pair;
+  const value = raw ? readSealedCookie(request, name) : "";
   return { name: scopedName, attributes: attributes.join("; "), value };
 }
 

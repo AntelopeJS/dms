@@ -23,7 +23,7 @@
     "dev": "pnpm --dir packages/dms dev",
     "frontend:dev": "pnpm --dir packages/dms frontend:dev",
     "build": "pnpm --filter @antelopejs/dms build",
-    "typecheck": "pnpm --dir packages/interface-dms typecheck && pnpm --dir packages/interface-dms-builder typecheck && pnpm --dir packages/dms typecheck && pnpm run typecheck:probes",
+    "typecheck": "pnpm --dir packages/interface-dms typecheck && pnpm --dir packages/interface-dms-builder typecheck && pnpm --dir packages/dms typecheck && pnpm --dir packages/dms/frontend-vue typecheck:tests && pnpm run typecheck:probes",
     "typecheck:probes": "tsc -p .agents/probes/tsconfig.json",
     "lint": "oxlint && node packages/dms/playground/checks/raw-sources.cjs && pnpm run deps && pnpm --dir packages/dms/frontend-vue lint && pnpm --dir packages/dms exec antelopejs-check-interface-ranges",
     "lint:fix": "oxlint --fix && pnpm --dir packages/dms/frontend-vue lint:fix",
