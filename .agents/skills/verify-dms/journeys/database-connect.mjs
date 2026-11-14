@@ -97,7 +97,11 @@ async function untilAnswering(session) {
   await sleep(SETTLE_MS);
   const deadline = Date.now() + RESTART_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    if ((await operation(session, "database_project").catch(() => ({ ok: false }))).ok) return true;
+    const answer = await session
+      .followRestart()
+      .then(() => operation(session, "database_project"))
+      .catch(() => ({ ok: false }));
+    if (answer.ok) return true;
     await sleep(POLL_MS);
   }
   return false;
@@ -122,6 +126,7 @@ export const journeys = [
     title: "under ajs project dev -w, the connect batch restarts the project with its tables module installed, and the connection answers",
     entryPoint: "MCP tools database_project, builder_configure_project, database_connections",
     backend: "watch",
+    standby: false,
     async run(/** @type {Ctx} */ ctx) {
       await withBridge(ctx, async (session) => {
         const id = `shop${randomBytes(3).toString("hex")}`;
@@ -146,7 +151,10 @@ export const journeys = [
         let listed = "";
         while (Date.now() < deadline) {
           await sleep(POLL_MS);
-          listed = await session.call("database_connections").then((answer) => toolText(answer).text, (/** @type {unknown} */ error) => String(error));
+          listed = await session
+            .followRestart()
+            .then(() => session.call("database_connections"))
+            .then((answer) => toolText(answer).text, (/** @type {unknown} */ error) => String(error));
           if (listed.includes(`"${id}"`) && !listed.includes("error")) break;
         }
         const log = backendLog(ctx);

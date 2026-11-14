@@ -5,7 +5,7 @@ import { join, posix } from "node:path";
 
 /**
  * @typedef {{ id: number, result?: unknown, error?: unknown }} Answer
- * @typedef {{ request: (method: string, params?: Record<string, unknown>) => Promise<Answer>, call: (name: string, args?: Record<string, unknown>) => Promise<Answer> }} Session
+ * @typedef {{ request: (method: string, params?: Record<string, unknown>) => Promise<Answer>, call: (name: string, args?: Record<string, unknown>) => Promise<Answer>, followRestart: () => Promise<void> }} Session
  * @typedef {Pick<import("../../../packages/dms/bin/control/journey.mjs").JourneyContext, "state" | "restartBackend">} Run
  */
 
@@ -140,6 +140,10 @@ async function servingCredential(ctx, projectRoot) {
  * that answers it. The bridge reads its credential file for every message,
  * and a standby backend rewrites the project's file while a journey runs, so
  * the project's launcher is copied beside a private credential file.
+ * `followRestart` copies the credential the project holds now into that
+ * file, as a coding agent's bridge reads it after the project restarts in
+ * place with a new token; only a journey that runs with no standby
+ * (`standby: false`) can trust the project's file to be its backend's.
  *
  * @template T
  * @param {Run} ctx The journey
@@ -151,7 +155,9 @@ export async function withBridge(ctx, action) {
   const credential = await servingCredential(ctx, projectRoot);
   const folder = mkdtempSync(join(tmpdir(), "verify-dms-mcp-"));
   copyFileSync(join(projectRoot, BRIDGE_LAUNCHER), join(folder, "mcp-bridge.cjs"));
-  writeFileSync(join(folder, "mcp.json"), JSON.stringify(credential), { mode: OWNER_ONLY_MODE });
+  /** @param {{ url: string, token: string }} held */
+  const hold = (held) => writeFileSync(join(folder, "mcp.json"), JSON.stringify(held), { mode: OWNER_ONLY_MODE });
+  hold(credential);
   const child = spawn(process.execPath, [join(folder, "mcp-bridge.cjs")], { stdio: ["pipe", "pipe", "inherit"] });
   /** @type {Map<number, (answer: Answer) => void>} */
   const waiting = new Map();
@@ -182,7 +188,11 @@ export async function withBridge(ctx, action) {
   try {
     await request("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "verify-dms", version: "1" } });
     child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`);
-    return await action({ request, call: (name, args = {}) => request("tools/call", { name, arguments: args }) });
+    return await action({
+      request,
+      call: (name, args = {}) => request("tools/call", { name, arguments: args }),
+      followRestart: async () => hold(publishedCredential(projectRoot, ctx.state.apiUrl)),
+    });
   } finally {
     child.kill();
     rmSync(folder, { recursive: true, force: true });
