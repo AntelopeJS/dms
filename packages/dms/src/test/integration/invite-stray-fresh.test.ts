@@ -16,6 +16,7 @@ import {
   holdFirstFreshCaller,
   afterFirstEmailRead,
   beforeFirstOnlyInviteCheck,
+  readFirstEmailAs,
 } from "../helpers/invite-holds";
 import { inviteFixture } from "../helpers/invite-resolution-fixtures";
 
@@ -180,7 +181,7 @@ describe("[integration] an invitation retired while another creation reads it", 
 
   it("refuses a new invitation when the kept invite it read beside a withdrawn fresh invite is accepted", async () => {
     const { invites, keptInvite } = await withdrawalThatFailedToDelete();
-    hold = afterFirstEmailRead(() => accept(keptInvite));
+    hold = readFirstEmailAs(keptInvite, () => accept(keptInvite));
     await refusal(createUserInviteToken(inviteOptions()));
     assert.deepEqual(await tokensOf(invites), []);
   });

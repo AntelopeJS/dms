@@ -56,6 +56,20 @@ export function afterFirstEmailRead(effect: () => Promise<void>) {
   return { restore };
 }
 
+/** Makes the first `getByEmail` read return `invite`, one of the email's stored invites, after `effect` runs. */
+export function readFirstEmailAs(
+  invite: UserInvite,
+  effect: () => Promise<void>,
+) {
+  const restore = restorer("getByEmail");
+  UserInviteModel.prototype.getByEmail = async () => {
+    restore();
+    await effect();
+    return invite;
+  };
+  return { restore };
+}
+
 /** Runs `effect` once, before the first `isOnlyInviteOfEmail` check reads. */
 export function beforeFirstOnlyInviteCheck(effect: () => Promise<void>) {
   const restore = restorer("isOnlyInviteOfEmail");
