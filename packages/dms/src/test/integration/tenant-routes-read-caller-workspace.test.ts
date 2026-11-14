@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { z } from "zod";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { RoleModel } from "@antelopejs/interface-dms/db";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import { createUserInviteToken } from "@antelopejs/interface-dms/invites";
 import { applyTenantOwnership } from "@antelopejs/interface-dms/tenant-ownership";
 import { authorizedClient, parseAuthBody, registerUser } from "../helpers/auth";
@@ -13,7 +14,7 @@ import { parseBody } from "../helpers/parse-body";
 const WORKSPACES = ["caller-workspace-a", "caller-workspace-b"];
 const HTTP_OK = 200;
 const REPEATS = 5;
-const ALL_PERMISSIONS = "*";
+const INVITES_LIST = "settings.workspace.invites.table.list";
 
 const Names = z.array(z.string());
 const InviteList = z.object({
@@ -27,7 +28,7 @@ const InviteList = z.object({
 async function seedWorkspace(tenantId: string, userId: string): Promise<void> {
   const [roleId] = await GetModel(RoleModel, tenantId).insert({
     name: `role of ${tenantId}`,
-    permissions: [ALL_PERMISSIONS],
+    permissions: withPermissionAncestors([INVITES_LIST]),
   });
   await applyTenantOwnership(GetModel(UserModel), userId, tenantId, {
     roleIds: [roleId],
@@ -128,7 +129,7 @@ describe("[integration] tenant routes read the caller's workspace", () => {
         "/dms/permissions",
         Names,
       );
-      expect(permissions).to.include(ALL_PERMISSIONS);
+      expect(permissions).to.include(INVITES_LIST);
     }
   });
 });

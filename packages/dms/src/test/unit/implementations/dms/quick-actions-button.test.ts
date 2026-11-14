@@ -260,8 +260,9 @@ describe("[unit] implementations/dms/quick-actions — button targets", () => {
   });
 
   it("is not served when no component of the page declares the button", async () => {
-    const actions = await actionsFor(["*"]);
+    const actions = await actionsFor(["pages.qb-open"]);
 
+    expect(actions).to.have.property(actionKey("qb-open"));
     expect(actions).to.not.have.property(actionKey("qb-unknown"));
   });
 

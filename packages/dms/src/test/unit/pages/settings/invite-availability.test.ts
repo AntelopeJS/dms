@@ -26,7 +26,10 @@ import { userFixture } from "../../../helpers/user-fixture";
 const FULL_TENANT = "invite-availability-full-tenant";
 const OPEN_TENANT = "invite-availability-open-tenant";
 const SEAT_LIMIT_REASON = "$test.seat_limit_reached";
-const INVITER = userFixture({ _id: "invite-availability-inviter" });
+const INVITER = userFixture({
+  _id: "invite-availability-inviter",
+  owner: true,
+});
 
 function membersPageSlug(): string {
   const pageInfo = GetMetadata(
@@ -42,7 +45,7 @@ async function inviteButtonFor(
 ): Promise<CustomButtonSerialized | undefined> {
   const handler = GetPageLayoutBySlug(membersPageSlug());
   if (!handler) throw new Error("The members page serves no layout");
-  const { memberModel, roleModel } = stubPageAccessModels(["*"]);
+  const { memberModel, roleModel } = stubPageAccessModels([]);
   const layout = await handler({
     user: INVITER,
     memberModel,

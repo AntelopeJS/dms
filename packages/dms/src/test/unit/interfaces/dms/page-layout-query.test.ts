@@ -30,8 +30,8 @@ import { userFixture } from "../../../helpers/user-fixture";
 import { requestContextFixture } from "../../../helpers/request-context";
 
 const TENANT = "layout-query-tenant";
-const MEMBER = userFixture({ _id: "layout-query-member" });
-const models = stubPageAccessModels(["*"]);
+const OWNER = userFixture({ _id: "layout-query-owner", owner: true });
+const models = stubPageAccessModels([]);
 const requestAt = (url: URL) => requestContextFixture(url);
 
 const HeaderAction = z
@@ -112,7 +112,7 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
     const handler = GetPageLayoutBySlug(slug);
     if (!handler) throw new Error(`no layout handler for ${slug}`);
     const layout = await handler({
-      user: MEMBER,
+      user: OWNER,
       memberModel: models.memberModel,
       roleModel: models.roleModel,
       tenantId: TENANT,
@@ -164,7 +164,7 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
         (
           await buildPagePayload(
             slug,
-            MEMBER,
+            OWNER,
             models.memberModel,
             models.roleModel,
             TENANT,
@@ -237,7 +237,7 @@ describe("[unit] interfaces/dms/page — header availability reads the route par
     const path = pattern.replace(":id", id);
     const payload = await buildPagePayload(
       path,
-      MEMBER,
+      OWNER,
       models.memberModel,
       models.roleModel,
       TENANT,
@@ -284,7 +284,7 @@ async function servedLayout(id: string, slug = pattern) {
   const path = slug.replace(":id", id);
   const payload = await buildPagePayload(
     path,
-    MEMBER,
+    OWNER,
     models.memberModel,
     models.roleModel,
     TENANT,

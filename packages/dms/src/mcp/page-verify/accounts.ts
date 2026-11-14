@@ -16,7 +16,7 @@ import type { PageInfo } from "@antelopejs/interface-dms/page";
 import { ApplyPermissionsResolvers } from "@antelopejs/interface-dms/permissions-resolver";
 import { SESSION_HANDOFF_ENDPOINT } from "../../config/session-handoff";
 import { generateSessionHandoffToken } from "../../implementations/dms-auth/services";
-import { permissionsOpenPage } from "../../utils";
+import { WILDCARD_PERMISSION, permissionsOpenPage } from "../../utils";
 import type { VerifyAccountSummary } from "./report";
 
 const SESSION_USER_AGENT = "DMS page_verify (headless Chromium)";
@@ -157,14 +157,19 @@ export async function memberAccount(
 /**
  * Whether a member holding only `role` opens the page: the role's grants
  * through the registered resolvers, as a role preview computes them, then
- * the rule the page guard applies.
+ * the rule the page guard applies. A `*` the role lists grants nothing, as
+ * for its holders.
  */
 export async function roleOpensPage(
   workspace: Workspace,
   role: Role,
   info: PageInfo,
 ): Promise<boolean> {
-  const rolePermissions = new Set(role.permissions);
+  const rolePermissions = new Set(
+    role.permissions.filter(
+      (permissionId) => permissionId !== WILDCARD_PERMISSION,
+    ),
+  );
   const permissions = await ApplyPermissionsResolvers(
     workspace.owner._id,
     workspace.tenantId,
