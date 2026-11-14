@@ -7,17 +7,21 @@ export interface DmsComponentsOptions {
 }
 
 /**
- * Every name the installed `@antelopejs/dms` registers a component under, with its `Dms` prefix.
+ * The names the installed `@antelopejs/dms` registers: each component with its `Dms` prefix, and each layout.
  *
  * @internal
  */
-export declare function dmsComponentNames(): Set<string>;
+export declare function dmsRegistrations(): {
+  components: Set<string>;
+  layouts: Set<string>;
+};
 
 /**
  * One diagnostic, `<file>:<line>: <name> ...`, for each `Dms` component the
- * layer's `.vue` files or the builders of `sources` name and that neither the
- * installed `@antelopejs/dms`, the installed `@antelopejs/dms-frontend` nor
- * the layer registers.
+ * layer names by tag, static `is` or `resolveComponent`, or that an
+ * interface-dms builder of the layer or of `sources` names, and that neither
+ * the installed `@antelopejs/dms`, the installed `@antelopejs/dms-frontend`
+ * nor the layer registers.
  */
 export declare function checkDmsComponents(
   options: DmsComponentsOptions,
