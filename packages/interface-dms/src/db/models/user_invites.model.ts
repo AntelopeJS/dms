@@ -31,6 +31,26 @@ export class UserInviteModel extends BasicDataModel(
   }
 
   /**
+   * Get an invite sent to the email other than the one with the given id
+   *
+   * @param email The email the invite was sent to
+   * @param exceptId The id of the invite to leave out
+   * @returns The invite or undefined if not found
+   */
+  getOtherByEmail(
+    email: string,
+    exceptId: string,
+  ): Promise<UserInvite | undefined> {
+    return this.table
+      .getAll(normalizeEmail(email), "email")
+      .filter((row) => row.key("_id").ne(exceptId))
+      .nth(0)
+      .default(undefined)
+      .run()
+      .then((res) => (res ? UserInviteModel.fromDatabase(res) : undefined));
+  }
+
+  /**
    * Get an invite by its token
    *
    * @param token The token of the invite
