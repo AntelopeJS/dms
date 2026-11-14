@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { expect } from "chai";
+import ts from "typescript";
 import type { ProjectConfigStep } from "@antelopejs/interface-dms-builder";
 import {
   AddModule,
@@ -16,7 +17,7 @@ import {
   expectOk,
   type Fixture,
 } from "./harness";
-import { projectFile, tsConfigFile } from "./helpers/project-files";
+import { projectFile } from "./helpers/project-files";
 
 const OP_TIMEOUT = 120_000;
 const DATABASE = "@antelopejs/interface-database";
@@ -144,23 +145,6 @@ export default defineConfig({
 });
 `;
 
-const ARCHIVE_CONNECTION = `        {
-          interface: "${DATABASE}",
-          source: "postgres-erp",
-          id: "archive",
-        },`;
-
-function dmsDatabaseConfig(entry: string): string {
-  return PROJECT_CONFIG.replace(
-    "    mongodb: {",
-    `    "dms-database": {
-      source: { type: "package", package: "@antelopejs/dms-database", version: "0.1.0" },
-${entry}
-    },
-    mongodb: {`,
-  );
-}
-
 let app: Fixture;
 
 function configPath(): string {
@@ -264,57 +248,6 @@ function writesModuleEntries(): void {
   });
 }
 
-function registersWithDmsDatabase(): void {
-  it("writes a plain pin ahead of a connection that has an id", async () => {
-    fs.writeFileSync(
-      configPath(),
-      dmsDatabaseConfig(
-        `      importOverrides: [\n${ARCHIVE_CONNECTION}\n      ],`,
-      ),
-    );
-    expectOk(
-      await ConfigureModule("dms-database", {
-        importOverrides: [{ interface: DATABASE, source: "mongodb" }],
-      }),
-      "pin dms-database",
-    );
-    expect(readConfig()).to.equal(
-      dmsDatabaseConfig(`      importOverrides: [
-        {
-          interface: "${DATABASE}",
-          source: "mongodb",
-        },
-${ARCHIVE_CONNECTION}
-      ],`),
-    );
-  });
-
-  it("adds a nested config key beside the ones the module already has", async () => {
-    const archive = `          archive: {
-            access: "read-write",
-          },`;
-    const configWith = (connections: string) =>
-      dmsDatabaseConfig(`      config: {
-        externalConnections: {
-${connections}
-        },
-      },`);
-    fs.writeFileSync(configPath(), configWith(archive));
-    expectOk(
-      await ConfigureModule("dms-database", {
-        config: { externalConnections: { erp: { access: "read" } } },
-      }),
-      "register erp",
-    );
-    expect(readConfig()).to.equal(
-      configWith(`${archive}
-          erp: {
-            access: "read",
-          },`),
-    );
-  });
-}
-
 function writesWholeBatchesInTheProjectsStyle(): void {
   it("scaffolds a local module from a tsconfig.json with comments and trailing commas", async () => {
     fs.writeFileSync(
@@ -327,9 +260,13 @@ function writesWholeBatchesInTheProjectsStyle(): void {
       ]),
       "CreateLocalModule",
     );
-    expect(
-      tsConfigFile(app.root, "modules/reports/tsconfig.json").compilerOptions,
-    ).to.include({ strict: true });
+    const parsed = ts.getParsedCommandLineOfConfigFile(
+      path.join(app.root, "modules/reports/tsconfig.json"),
+      undefined,
+      { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined },
+    );
+    expect(parsed?.errors).to.deep.equal([]);
+    expect(parsed?.options.strict).to.equal(true);
   });
 
   it("writes nothing when one step of a batch is refused", async () => {
@@ -535,7 +472,6 @@ describe("project-config operations", function () {
   after(destroyFixture);
 
   writesModuleEntries();
-  registersWithDmsDatabase();
   writesWholeBatchesInTheProjectsStyle();
   loadsEnvBesideTheConfigurationsOwnCode();
   refusesWhatItCannotRewrite();

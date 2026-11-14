@@ -20,7 +20,7 @@ export function useTableViewCountsQuery<T extends Data>(
   const { queryParamHiddenFilters, routeParamHiddenFilters } = scope.urlFilters;
   const { activeTabFilters, resolvedTabs } = scope.tabs;
   const { effectiveColumnFilters, effectiveGlobalFilter } = scope.querySorting;
-  const { tableViewItems, activeViewId } = scope.views;
+  const { tableViewItems, activeViewId, viewChange } = scope.views;
   const { pinnedDefaultFilters } = scope.pinnedFilters;
   const scopeFilters = computed<TableFilter[]>(() => [
     ...queryParamHiddenFilters.value,
@@ -55,7 +55,8 @@ export function useTableViewCountsQuery<T extends Data>(
             filters: viewFilters(view, pinnedDefaultFilters),
             search: view.search,
           })),
-        activeViewId: activeViewId.value,
+        activeViewId:
+          viewChange.value === "diverged" ? undefined : activeViewId.value,
       }),
     ),
     COUNTS_DEBOUNCE_MS,

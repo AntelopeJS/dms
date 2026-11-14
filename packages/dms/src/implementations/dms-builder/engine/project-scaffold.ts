@@ -30,16 +30,33 @@ const DEFAULT_TOOLING = {
   "@types/node": "^24.0.0",
 } satisfies Record<string, string>;
 /**
- * The project's compiler options a module leaves out: each stops the emit, or refuses or breaks it
- * once the module compiles to CommonJS in `dist`.
+ * What a module's build needs whatever the project's tsconfig says: a CommonJS emit from `src`
+ * into `dist`, with its incremental state in `dist`, which the build deletes, so no state left
+ * outside claims the emit is current once `dist` is gone.
  */
-const OPTIONS_AGAINST_COMMONJS_DIST = new Set([
-  "noEmit",
-  "emitDeclarationOnly",
-  "outFile",
-  "allowImportingTsExtensions",
-  "verbatimModuleSyntax",
-]);
+const MODULE_OPTIONS = {
+  module: "commonjs",
+  moduleResolution: "bundler",
+  rootDir: "src",
+  outDir: "dist",
+  tsBuildInfoFile: "dist/.tsbuildinfo",
+};
+/**
+ * The project's options a module overrides: those that stop or break its emit or write it outside
+ * `dist`, and those that name what only the project installs or holds. A module installs `@types/node` alone.
+ */
+const PROJECT_OPTIONS_OVERRIDDEN = {
+  noEmit: false,
+  emitDeclarationOnly: false,
+  outFile: null,
+  declarationDir: null,
+  allowImportingTsExtensions: false,
+  verbatimModuleSyntax: false,
+  types: ["node"],
+  typeRoots: null,
+  baseUrl: null,
+  paths: null,
+};
 const ENTRY_TEXT =
   "export function construct(): void {}\n\nexport async function start(): Promise<void> {}\n";
 
@@ -61,10 +78,6 @@ interface PackageManifest {
   packageManager?: string | null;
 }
 
-interface TsConfig {
-  compilerOptions?: object | null;
-}
-
 class ScaffoldRefusal extends Error {}
 
 function isVersions(value: unknown): value is Versions {
@@ -72,14 +85,6 @@ function isVersions(value: unknown): value is Versions {
     return true;
   }
   return isPlainObject(value) && Object.values(value).every(isString);
-}
-
-function isOptions(value: unknown): value is object | null {
-  return (
-    value === null ||
-    (Array.isArray(value) && value.length === 0) ||
-    isPlainObject(value)
-  );
 }
 
 function isPackageManifest(value: unknown): value is PackageManifest {
@@ -91,13 +96,6 @@ function isPackageManifest(value: unknown): value is PackageManifest {
     (value.packageManager === undefined ||
       value.packageManager === null ||
       isString(value.packageManager))
-  );
-}
-
-function isTsConfig(value: unknown): value is TsConfig {
-  return (
-    isPlainObject(value) &&
-    (value.compilerOptions === undefined || isOptions(value.compilerOptions))
   );
 }
 
@@ -124,6 +122,62 @@ function readJson<T>(
     );
   }
   return read.config;
+}
+
+const PATH_SPEC = /^(?<protocol>file:|link:|(?=\.\.?\/))(?<target>.*)$/s;
+
+/**
+ * A path spec relative to `from` (`file:`, `link:` or a bare `./` or `../` path), rewritten to
+ * name the same target from `to`. An absolute or home-relative (`~`) spec names it from anywhere.
+ */
+function rebasedSpec(spec: string, from: string, to: string): string {
+  const local = PATH_SPEC.exec(spec)?.groups;
+  if (
+    local === undefined ||
+    local.target === "~" ||
+    local.target.startsWith("~/") ||
+    path.isAbsolute(local.target)
+  ) {
+    return spec;
+  }
+  const target = path
+    .relative(to, path.resolve(from, local.target))
+    .split(path.sep)
+    .join("/");
+  return `${local.protocol}${target.startsWith("../") ? "" : "./"}${target}`;
+}
+
+function rebasedVersions(
+  versions: Versions | undefined,
+  from: string,
+  to: string,
+): Versions | undefined {
+  if (versions === undefined || versions === null || Array.isArray(versions)) {
+    return versions;
+  }
+  return Object.fromEntries(
+    Object.entries(versions).map(([name, spec]) => [
+      name,
+      rebasedSpec(spec, from, to),
+    ]),
+  );
+}
+
+/** The project's manifest with its path specs resolving from the module's folder `root`. */
+function seenFrom(
+  project: PackageManifest,
+  projectRoot: string,
+  root: string,
+): PackageManifest {
+  return {
+    ...project,
+    dependencies: rebasedVersions(project.dependencies, projectRoot, root),
+    devDependencies: rebasedVersions(
+      project.devDependencies,
+      projectRoot,
+      root,
+    ),
+  };
 }
 
 function picked(
@@ -171,23 +225,26 @@ function manifestText(
 }
 
 /**
- * The project's compiler options, less those that stop or break a CommonJS emit into `dist`, so the
- * module compiles as the project does yet its build writes what core loads, whatever module the
- * project compiles to and whether it emits at all. An incremental build keeps its state in `dist`, which the module's build
- * deletes: state left outside would claim the emit is current once `dist` is gone.
+ * The module's tsconfig: it extends the project's, so the module compiles as the project does,
+ * bases included, less what the module overrides; the builder's defaults when the project has none.
  */
-function tsconfigText(project: TsConfig): string {
-  const kept = Object.entries(project.compilerOptions ?? {}).filter(
-    ([name]) => !OPTIONS_AGAINST_COMMONJS_DIST.has(name),
-  );
-  const compilerOptions = Object.assign(Object.fromEntries(kept), {
-    module: "commonjs",
-    moduleResolution: "bundler",
-    rootDir: "src",
-    outDir: "dist",
-    tsBuildInfoFile: "dist/.tsbuildinfo",
-  });
-  return `${JSON.stringify({ compilerOptions, include: ["src/**/*.ts"] }, null, 2)}\n`;
+function tsconfigText(
+  root: string,
+  projectTsconfig: string | undefined,
+): string {
+  const config =
+    projectTsconfig === undefined
+      ? { compilerOptions: { ...DEFAULT_COMPILER_OPTIONS, ...MODULE_OPTIONS } }
+      : {
+          extends: path
+            .relative(root, projectTsconfig)
+            .split(path.sep)
+            .join("/"),
+          compilerOptions: { ...PROJECT_OPTIONS_OVERRIDDEN, ...MODULE_OPTIONS },
+          files: [],
+          exclude: [],
+        };
+  return `${JSON.stringify({ ...config, include: ["src/**/*.ts"] }, null, 2)}\n`;
 }
 
 /**
@@ -205,12 +262,12 @@ export function scaffoldLocalModule(
   if (fs.existsSync(root)) {
     throw new ScaffoldRefusal(`module path "${relativePath}" already exists`);
   }
-  const project =
-    readJson(path.join(projectRoot, "package.json"), isPackageManifest) ?? {};
-  const tsconfig = readJson(
-    path.join(projectRoot, "tsconfig.json"),
-    isTsConfig,
-  ) ?? { compilerOptions: DEFAULT_COMPILER_OPTIONS };
+  const project = seenFrom(
+    readJson(path.join(projectRoot, "package.json"), isPackageManifest) ?? {},
+    projectRoot,
+    root,
+  );
+  const projectTsconfig = path.join(projectRoot, "tsconfig.json");
   return {
     id,
     root,
@@ -218,7 +275,13 @@ export function scaffoldLocalModule(
     entryText: ENTRY_TEXT,
     files: new Map([
       [path.join(root, "package.json"), manifestText(id, project, connection)],
-      [path.join(root, "tsconfig.json"), tsconfigText(tsconfig)],
+      [
+        path.join(root, "tsconfig.json"),
+        tsconfigText(
+          root,
+          fs.existsSync(projectTsconfig) ? projectTsconfig : undefined,
+        ),
+      ],
     ]),
     source: localSource(root),
   };

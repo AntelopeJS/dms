@@ -6,7 +6,7 @@ import type {
   ThemeLogos,
   ValidationIssue,
 } from "@antelopejs/interface-dms-builder";
-import type { ObjectLiteralExpression, SourceFile } from "ts-morph";
+import { Node, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 import { isString } from "./scalar-guards";
 import {
   canWriteString,
@@ -115,6 +115,20 @@ export function readLogos(sourceFile: SourceFile): ThemeLogos {
     }
   }
   return logos;
+}
+
+/** Every string a file spells as a literal, wherever it sits. */
+export function stringLiterals(sourceFile: SourceFile): Set<string> {
+  return new Set(
+    sourceFile
+      .getDescendants()
+      .filter(
+        (node) =>
+          Node.isStringLiteral(node) ||
+          Node.isNoSubstitutionTemplateLiteral(node),
+      )
+      .map((node) => node.getLiteralValue()),
+  );
 }
 
 /** The palettes an app config picks under `ui.colors`, string literals only. */

@@ -393,6 +393,40 @@ export function revokePermission(
 }
 
 /**
+ * A click on a node's box: `checked` grants its subtree, unless the grant adds
+ * nothing the user may grant (a mixed box over what they lack), which clears
+ * the box as a click on a checked one does.
+ */
+export function clickPermission(
+  index: PermissionIndex,
+  selection: Set<string>,
+  id: string,
+  checked: boolean,
+  canGrant: (permissionId: string) => boolean,
+): PermissionGrant {
+  if (checked) {
+    const grant = grantPermission(index, selection, id, canGrant);
+    if (grant.selection.size > selection.size) return grant;
+  }
+  return {
+    selection: revokePermission(index, selection, id),
+    autoAdded: [],
+  };
+}
+
+/**
+ * Whether a permission may be ticked: any for the platform owner (`grantable`
+ * null), else one the user holds or the saved role holds already, which the
+ * roles API lets an edit keep.
+ */
+export function grantableBy(
+  grantable: ReadonlySet<string> | null,
+  saved: ReadonlySet<string>,
+): (permissionId: string) => boolean {
+  return (id) => !grantable || grantable.has(id) || saved.has(id);
+}
+
+/**
  * The "added automatically" hints still true of a selection: a node no
  * longer granted loses its hint, and a hint stops naming what is no longer
  * granted, so a revoke that cascades (unticking a list takes the edit that

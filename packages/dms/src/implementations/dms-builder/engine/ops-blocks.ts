@@ -431,7 +431,7 @@ export function configurePage(
   }
   const { category, ...scalar } = patch;
   let move: CategoryMove | undefined;
-  if (category !== undefined) {
+  if (category !== undefined && category !== context.page.categoryRef) {
     const planned = planCategoryMove(ref, context.page, category);
     if ("ok" in planned) {
       return planned;
@@ -445,7 +445,7 @@ export function configurePage(
     resolveRef: resourceRefResolver(),
   });
   try {
-    applyPatch(optionsArg, optionsPatch(scalar), false, ctx);
+    applyPatch(optionsArg, optionsPatch(optionsArg, scalar), false, ctx);
   } catch (error) {
     transaction.rollback();
     if (error instanceof InvalidValueError) {

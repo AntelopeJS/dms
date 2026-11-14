@@ -10,18 +10,14 @@ import {
   type Diagnostic,
   DiagnosticMessageChain,
   type ExportDeclaration,
-  type FunctionDeclaration,
-  type Identifier,
   type ImportDeclaration,
   type ImportSpecifier,
-  type InterfaceDeclaration,
   Node,
   type Project,
   type SourceFile,
   SyntaxKind,
-  type TypeAliasDeclaration,
-  type VariableDeclaration,
 } from "ts-morph";
+import { referenceStarts } from "./local-bindings";
 import { getCalleeName, getExtendsCall, stringLiteralValue } from "./literals";
 import {
   addModuleSources,
@@ -127,17 +123,31 @@ export function bindsNothing(declaration: ImportDeclaration): boolean {
   );
 }
 
+/** The local name a named import binds: its alias, or the imported name. */
+function namedBinding(specifier: ImportSpecifier): Node {
+  return specifier.getAliasNode() ?? specifier.getNameNode();
+}
+
+/** Each name an import declaration binds: its default, namespace and named imports. */
+function importBindings(declaration: ImportDeclaration): Node[] {
+  return [
+    declaration.getDefaultImport(),
+    declaration.getNamespaceImport(),
+    ...declaration.getNamedImports().map(namedBinding),
+  ].filter((binding) => binding !== undefined);
+}
+
 /**
- * The names the file binds through its named imports, before a rewrite. Pass
- * the result back to {@link pruneUnusedImports} so it drops only what the
- * rewrite orphaned.
+ * The names the file binds through its imports, before a rewrite. Pass the
+ * result back to {@link pruneUnusedImports} so it drops only what the rewrite
+ * orphaned.
  */
 export function referencedImportNames(sourceFile: SourceFile): Set<string> {
   const names = new Set<string>();
   for (const declaration of sourceFile.getImportDeclarations()) {
-    for (const specifier of declaration.getNamedImports()) {
-      if (isReferenced(sourceFile, specifier)) {
-        names.add(specifier.getAliasNode()?.getText() ?? specifier.getName());
+    for (const binding of importBindings(declaration)) {
+      if (isReferenced(sourceFile, binding)) {
+        names.add(binding.getText());
       }
     }
   }
@@ -145,35 +155,21 @@ export function referencedImportNames(sourceFile: SourceFile): Set<string> {
 }
 
 /**
- * Whether the file uses the binding the specifier imports. Only the file is
- * searched: a project-wide search finds the same uses here, after reading
- * every other file.
+ * Whether the file uses the name an import binds. Only the file is searched: a
+ * project-wide search finds the same uses here, after reading every other
+ * file.
  */
-function isReferenced(
-  sourceFile: SourceFile,
-  specifier: ImportSpecifier,
-): boolean {
-  const binding = specifier.getAliasNode() ?? specifier.getNameNode();
-  const fileName = sourceFile.getFilePath();
-  const highlights =
-    sourceFile
-      .getProject()
-      .getLanguageService()
-      .compilerObject.getDocumentHighlights(fileName, binding.getStart(), [
-        fileName,
-      ]) ?? [];
-  return highlights.some((highlight) =>
-    highlight.highlightSpans.some(
-      (span) =>
-        sourceFile
-          .getDescendantAtPos(span.textSpan.start)
-          ?.getFirstAncestorByKind(SyntaxKind.ImportDeclaration) === undefined,
-    ),
+function isReferenced(sourceFile: SourceFile, binding: Node): boolean {
+  return referenceStarts(sourceFile, binding).some(
+    (start) =>
+      sourceFile
+        .getDescendantAtPos(start)
+        ?.getFirstAncestorByKind(SyntaxKind.ImportDeclaration) === undefined,
   );
 }
 
 /**
- * Drops named imports the rewrite just orphaned. A whole-tree rewrite can
+ * Drops the imports the rewrite just orphaned. A whole-tree rewrite can
  * remove the last user of a factory, and a dangling import would otherwise stay
  * behind in the file the builder wrote.
  *
@@ -191,9 +187,16 @@ export function pruneUnusedImports(
     if (bindsNothing(declaration)) {
       continue;
     }
+    const defaultImport = declaration.getDefaultImport();
+    if (defaultImport && isOrphaned(sourceFile, defaultImport, used)) {
+      declaration.removeDefaultImport();
+    }
+    const namespaceImport = declaration.getNamespaceImport();
+    if (namespaceImport && isOrphaned(sourceFile, namespaceImport, used)) {
+      declaration.removeNamespaceImport();
+    }
     for (const specifier of declaration.getNamedImports()) {
-      const name = specifier.getAliasNode()?.getText() ?? specifier.getName();
-      if (used.has(name) && !isReferenced(sourceFile, specifier)) {
+      if (isOrphaned(sourceFile, namedBinding(specifier), used)) {
         specifier.remove();
       }
     }
@@ -203,112 +206,12 @@ export function pruneUnusedImports(
   }
 }
 
-/** A top-level declaration the file keeps to itself: nothing else can reach it. */
-interface LocalDeclaration {
-  name: string;
-  node:
-    | VariableDeclaration
-    | FunctionDeclaration
-    | InterfaceDeclaration
-    | TypeAliasDeclaration;
-}
-
-/**
- * The file's unexported top-level declarations. A destructuring pattern is
- * skipped: it names several bindings at once, and removing one of them is not
- * a removal of the declaration.
- */
-function localDeclarations(sourceFile: SourceFile): LocalDeclaration[] {
-  const locals: LocalDeclaration[] = [];
-  for (const statement of sourceFile.getVariableStatements()) {
-    if (statement.isExported()) {
-      continue;
-    }
-    for (const node of statement.getDeclarations()) {
-      if (Node.isIdentifier(node.getNameNode())) {
-        locals.push({ name: node.getName(), node });
-      }
-    }
-  }
-  for (const node of [
-    ...sourceFile.getFunctions(),
-    ...sourceFile.getInterfaces(),
-    ...sourceFile.getTypeAliases(),
-  ]) {
-    const name = node.getName();
-    if (!node.isExported() && name !== undefined) {
-      locals.push({ name, node });
-    }
-  }
-  return locals;
-}
-
-/**
- * Whether anything else in the file uses the local. Read off the identifiers
- * rather than the language service: a name that only looks used (a property of
- * the same spelling) keeps a declaration that could have gone, which is the
- * safe way to be wrong. The key of an object literal member (`displayName:`)
- * never reads a binding, so it is not counted: a patch that turns the shorthand
- * `{ displayName }` into `{ displayName: "…" }` leaves that spelling behind.
- */
-function isLocalReferenced(
+function isOrphaned(
   sourceFile: SourceFile,
-  local: LocalDeclaration,
-): boolean {
-  return sourceFile
-    .getDescendantsOfKind(SyntaxKind.Identifier)
-    .some(
-      (identifier) =>
-        identifier.getText() === local.name &&
-        !isObjectLiteralKey(identifier) &&
-        !local.node.containsRange(identifier.getPos(), identifier.getEnd()),
-    );
-}
-
-function isObjectLiteralKey(identifier: Identifier): boolean {
-  const parent = identifier.getParent();
-  return (
-    Node.isPropertyAssignment(parent) && parent.getNameNode() === identifier
-  );
-}
-
-/**
- * The file's own top-level declarations something in it still uses, before a
- * removal. Pass the result back to {@link pruneUnusedLocals}.
- */
-export function referencedLocalNames(sourceFile: SourceFile): Set<string> {
-  return new Set(
-    localDeclarations(sourceFile)
-      .filter((local) => isLocalReferenced(sourceFile, local))
-      .map((local) => local.name),
-  );
-}
-
-/**
- * Drops the declarations a removal left without a user: the constant only a
- * deleted page read, then whatever only that constant read. As with imports,
- * one that was unused to begin with is the author's, and stays.
- */
-export function pruneUnusedLocals(
-  sourceFile: SourceFile,
+  binding: Node,
   used: Set<string>,
-): void {
-  const pending = new Set(used);
-  let orphan = findOrphanedLocal(sourceFile, pending);
-  while (orphan) {
-    pending.delete(orphan.name);
-    orphan.node.remove();
-    orphan = findOrphanedLocal(sourceFile, pending);
-  }
-}
-
-function findOrphanedLocal(
-  sourceFile: SourceFile,
-  pending: Set<string>,
-): LocalDeclaration | undefined {
-  return localDeclarations(sourceFile).find(
-    (local) => pending.has(local.name) && !isLocalReferenced(sourceFile, local),
-  );
+): boolean {
+  return used.has(binding.getText()) && !isReferenced(sourceFile, binding);
 }
 
 /**

@@ -7,6 +7,7 @@ import type { Json, JsonObject } from "./model";
 import {
   jsonSchema,
   KEY_PATTERN,
+  LIVE_ROUTE_PATTERN,
   MAX_PAGES,
   MAX_RELATIVE_ROUTE,
   MOCKUP_SOURCES,
@@ -205,7 +206,7 @@ function pageDefinition(): JsonObject {
         propertyNames: { pattern: KEY_PATTERN.source },
         additionalProperties: {
           type: "string",
-          pattern: RELATIVE_ROUTE_PATTERN.source,
+          pattern: LIVE_ROUTE_PATTERN.source,
           maxLength: MAX_RELATIVE_ROUTE,
         },
         description:

@@ -173,6 +173,8 @@
       "views": {
         "title": "Views",
         "modified": "Changed since the view was opened",
+        "custom": "Custom filters",
+        "custom_description": "A filter or search the view sets was removed or changed: the rows listed are not the view's.",
         "reset": "Reset",
         "save": "Save",
         "save_as": "Save as new view",

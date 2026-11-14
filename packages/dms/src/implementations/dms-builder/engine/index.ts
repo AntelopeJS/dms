@@ -58,4 +58,5 @@ export * from "./theme-scaffold";
 export * from "./theme-stylesheet";
 export * from "./theme-svg";
 export * from "./value";
+export * from "./local-bindings";
 export * from "./writable";

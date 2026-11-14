@@ -109,6 +109,22 @@ export async function loadRoleEditorTree(): Promise<
   return applyPermissionWarnings(tree, resolvePermissionWarnings());
 }
 
+/**
+ * The ids of `permissionIds` that `actor` may grant, as `assertGrantable`
+ * decides; `null` when its effective permissions hold `*`, as the platform
+ * owner's do, since it may then grant every one.
+ */
+async function grantablePermissionIds(
+  actor: RoleEditorActor,
+  permissionIds: string[],
+): Promise<string[] | null> {
+  if (actor.permissions.has(WILDCARD_PERMISSION)) return null;
+  const held = await Promise.all(
+    permissionIds.map((id) => HasPermission(actor.permissions, id)),
+  );
+  return permissionIds.filter((_, index) => held[index]);
+}
+
 async function loadUserNames(userIds: string[]): Promise<Map<string, string>> {
   if (userIds.length === 0) return new Map();
   const users = await GetModel(UserModel).getBy("_id", ...new Set(userIds));
@@ -127,7 +143,10 @@ export async function loadRolesOverview(
     loadRoleEditorTree(),
   ]);
   const permissionIds = collectPermissionIds(tree);
-  const userNames = await loadUserNames(members.map((member) => member.userId));
+  const [userNames, grantable] = await Promise.all([
+    loadUserNames(members.map((member) => member.userId)),
+    grantablePermissionIds(actor, permissionIds),
+  ]);
   return {
     roles: summarizeRoles({
       roles,
@@ -139,8 +158,7 @@ export async function loadRolesOverview(
     }),
     owners: summarizeOwners(members, userNames),
     totalPermissions: permissionIds.length,
-
-    grantable: null,
+    grantable,
     capabilities,
   };
 }

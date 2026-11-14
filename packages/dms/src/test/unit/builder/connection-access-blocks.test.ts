@@ -53,6 +53,19 @@ describe("[unit] a form over a mapped table follows its connection's access", fu
     expectOk(await form(page, "showForm", "view"), "a form that shows a row");
   });
 
+  it("is refused when its mode is an expression the builder cannot read, on a read connection", async () => {
+    const added = await AddBlock({
+      page,
+      name: "builtForm",
+      type: "ResourceForm",
+      controller: COUNTRIES,
+      config: { mode: { $expr: '"ed" + "it"' } },
+    });
+    expect(refusalOf(added)).to.include(
+      `refused to add a form that may create or edit rows of "${COUNTRIES}": ${READ_ONLY}`,
+    );
+  });
+
   it("is refused, and left as it was, when a patch turns it into one that edits rows", async () => {
     expect(
       refusalOf(await ConfigureBlock(`${page}#showForm`, { mode: "edit" })),
@@ -164,5 +177,11 @@ describe("[unit] a table or routes over a mapped table follow its connection's a
     setConnectionAccess({ erp: "read-write" });
     expectOk(await ConfigureResource(COUNTRIES, CREATING), "ConfigureResource");
     expect(erp.moduleFile(COUNTRIES_API)).to.include("TableViewRoutes.New");
+  });
+
+  it("marks the controller with its connection, so its write routes follow the access at runtime", () => {
+    expect(erp.moduleFile(COUNTRIES_API)).to.include(
+      '@ExternalConnection("erp")',
+    );
   });
 });

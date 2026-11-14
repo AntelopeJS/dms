@@ -173,6 +173,8 @@
       "views": {
         "title": "Vues",
         "modified": "Modifiée depuis l'ouverture de la vue",
+        "custom": "Filtres personnalisés",
+        "custom_description": "Un filtre ou une recherche de la vue a été retiré ou modifié : les lignes affichées ne sont plus celles de la vue.",
         "reset": "Réinitialiser",
         "save": "Enregistrer",
         "save_as": "Enregistrer comme nouvelle vue",

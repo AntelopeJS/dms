@@ -156,7 +156,7 @@ export async function SetPageBlocks(
   draft: PageDraft,
   opts?: MutationOpts,
 ): Promise<OpResult<{ version: string }>> {
-  return setPageBlocks(page, draft, opts);
+  return withConnectionAccess(() => setPageBlocks(page, draft, opts));
 }
 
 export async function PreviewQuery(

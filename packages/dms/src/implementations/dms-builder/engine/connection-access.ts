@@ -1,15 +1,19 @@
 import type {
   AddBlockInput,
+  BlockDraft,
   MapResourcesInput,
+  PageDraft,
   ResourceRoute,
 } from "@antelopejs/interface-dms-builder";
-import { Node } from "ts-morph";
-import type { BlockTarget } from "./block-target";
+import { type ClassDeclaration, Node } from "ts-morph";
+import { type BlockTarget, resolveBlockTarget } from "./block-target";
 import { connectionAccess } from "./connection-access-config";
 import { mappedConnectionOfFile, recordedConnection } from "./mapped-modules";
 import { RoutesOf } from "./mapped-routes";
 import { targetModule } from "./modules";
-import { stringOf } from "./project-config";
+import { objectLiteralToValue } from "./config-literal";
+import type { LiteralValue } from "./guards";
+import { isString } from "./scalar-guards";
 import {
   findResourceRecord,
   listResourceRecords,
@@ -116,10 +120,24 @@ function servesWrites(record: ResourceRecord): boolean {
   );
 }
 
-type RowWritingForm = (typeof ROW_WRITING_FORMS)[number];
+interface RowWritingForm {
+  verb: string;
+}
 
+/** A mode the builder cannot read as `"new"`, `"edit"` or `"view"` may be either writing mode. */
+const UNREAD_MODE: RowWritingForm = { verb: "may create or edit" };
+
+/** The rows a ResourceForm in this mode writes: none for `"view"` or no mode, any for a mode it cannot read. */
 function rowWritingForm(mode: string | undefined): RowWritingForm | undefined {
-  return ROW_WRITING_FORMS.find((form) => form.mode === mode);
+  if (mode === undefined || mode === "view") {
+    return undefined;
+  }
+  return ROW_WRITING_FORMS.find((form) => form.mode === mode) ?? UNREAD_MODE;
+}
+
+/** A mode as text: the string it is, or the JSON of a value that is not one, such as `{ $expr }`. */
+function modeText(mode: LiteralValue | undefined): string | undefined {
+  return isString(mode) ? mode : JSON.stringify(mode);
 }
 
 /** What a block bound to a resource asks to write, completing "refused to …", if anything. */
@@ -138,21 +156,27 @@ function writingAttempt(
     : undefined;
 }
 
+/** Why a block bound to a resource is refused on a read-only connection, or nothing. */
+function boundRefusal(
+  type: string,
+  record: ResourceRecord,
+  form: RowWritingForm | undefined,
+  added: boolean,
+): string | undefined {
+  const connection = mappedConnectionOfFile(record.databaseFile);
+  const attempt = writingAttempt(type, record, form, added);
+  return connection === undefined || attempt === undefined
+    ? undefined
+    : readOnlyRefusal(connection, attempt);
+}
+
 function assertBound(
   type: string,
   record: ResourceRecord | undefined,
   form: RowWritingForm | undefined,
   added = true,
 ): void {
-  if (!record) {
-    return;
-  }
-  const connection = mappedConnectionOfFile(record.databaseFile);
-  const attempt = writingAttempt(type, record, form, added);
-  const refusal =
-    connection === undefined || attempt === undefined
-      ? undefined
-      : readOnlyRefusal(connection, attempt);
+  const refusal = record && boundRefusal(type, record, form, added);
   if (refusal) {
     throw new ReadOnlyConnectionError(refusal);
   }
@@ -167,30 +191,28 @@ export function assertBlockAccess({
   controller,
   config,
 }: Pick<AddBlockInput, "type" | "controller" | "config">): void {
-  const mode = config.mode;
   assertBound(
     type,
     controller === undefined ? undefined : findResourceRecord(controller),
-    ROW_WRITING_FORMS.find((form) => form.mode === mode),
+    rowWritingForm(modeText(config.mode)),
   );
 }
 
-/** A ResourceForm's mode as its call holds it, when it is a literal; nothing for another block. */
+/**
+ * A ResourceForm's mode as the page reader reads its call, named constants resolved, as text; the
+ * text of the whole options when they are not an object literal; nothing for another block.
+ */
 function formMode({
   type,
   controllerArg,
   factoryCall,
 }: BlockTarget): string | undefined {
-  if (type !== RESOURCE_FORM || !controllerArg) {
+  const options = factoryCall.getArguments()[1];
+  if (type !== RESOURCE_FORM || !controllerArg || options === undefined) {
     return undefined;
   }
-  const options = factoryCall.getArguments()[1];
-  const property = Node.isObjectLiteralExpression(options)
-    ? options.getProperty("mode")
-    : undefined;
-  return Node.isPropertyAssignment(property)
-    ? stringOf(property.getInitializer())
-    : undefined;
+  const { value } = objectLiteralToValue(options);
+  return modeText(Object.hasOwn(value, "$expr") ? value : value.mode);
 }
 
 function assertFormAccess(
@@ -246,4 +268,95 @@ function controllerRecords(node: Node | undefined): ResourceRecord[] {
 export function formGuard(target: BlockTarget): () => void {
   const before = formMode(target);
   return () => assertFormAccess(target, before);
+}
+
+/** A block as its source holds it: its type, the resources its controller may be, its form mode. */
+interface WrittenBlock {
+  type: string | undefined;
+  records: ResourceRecord[];
+  mode: string | undefined;
+}
+
+/** The path of each block a draft writes; a preserved block keeps its text, children included. */
+function writtenPaths(
+  blocks: readonly BlockDraft[],
+  parent: readonly string[] = [],
+): string[][] {
+  return blocks.flatMap((block) => {
+    if (block.preserve) {
+      return [];
+    }
+    const path = [...parent, block.name];
+    return [path, ...writtenPaths(block.children ?? [], path)];
+  });
+}
+
+function controllerNode(target: BlockTarget): Node | undefined {
+  return target.controllerArg
+    ? target.factoryCall.getArguments()[0]
+    : undefined;
+}
+
+function writtenBlock(
+  cls: ClassDeclaration,
+  path: readonly string[],
+): WrittenBlock | undefined {
+  const resolved = resolveBlockTarget(cls, [...path]);
+  if (!resolved.ok) {
+    return undefined;
+  }
+  const { target } = resolved;
+  return {
+    type: target.type,
+    records: controllerRecords(controllerNode(target)),
+    mode: formMode(target),
+  };
+}
+
+function sameControllers(a: WrittenBlock, b: WrittenBlock): boolean {
+  const refs = (block: WrittenBlock) =>
+    block.records
+      .map((record) => record.ref)
+      .sort()
+      .join("\n");
+  return refs(a) === refs(b);
+}
+
+/**
+ * Reads the blocks a draft rewrites, and returns the check to run on the page class once it is
+ * written. It answers why the draft is refused, as AddBlock refuses a block the draft adds, or
+ * puts over another controller, that would write to a table mapped from a read-only connection,
+ * and as ConfigureBlock refuses a ResourceForm the draft turned into one that creates or edits its
+ * rows. A block whose type, controller and mode stay as they were passes.
+ */
+export function draftGuard(
+  cls: ClassDeclaration,
+  draft: Pick<PageDraft, "blocks">,
+): (written: ClassDeclaration) => string | undefined {
+  const paths = writtenPaths(draft.blocks);
+  const before = new Map(
+    paths.map((path) => [path.join("/"), writtenBlock(cls, path)]),
+  );
+  return (written) => {
+    for (const path of paths) {
+      const after = writtenBlock(written, path);
+      if (after?.type === undefined) {
+        continue;
+      }
+      const { type } = after;
+      const prior = before.get(path.join("/"));
+      const kept = prior?.type === type && sameControllers(prior, after);
+      if (kept && prior.mode === after.mode) {
+        continue;
+      }
+      const form = rowWritingForm(after.mode);
+      const refusal = after.records
+        .map((record) => boundRefusal(type, record, form, !kept))
+        .find((found) => found !== undefined);
+      if (refusal) {
+        return refusal;
+      }
+    }
+    return undefined;
+  };
 }

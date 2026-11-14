@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ImageItemValue } from "#dms-core/app/types/image";
 import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
 import { FORM_FIELD_LOADING_KEY } from "../../../composables/form/types/field-loading";
 import type { PresignResponse } from "../../../composables/form/useUploadWithProgress";

@@ -15,6 +15,7 @@ import {
   PNG_LOGO,
   SVG_LOGO,
   upload,
+  writeLayerFile,
 } from "./helpers/theme-harness";
 
 const OTHER_PNG = Buffer.concat([PNG_LOGO, Buffer.from([1])]);
@@ -121,6 +122,25 @@ function deletesUnusedEmailLogoFiles(): void {
     expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
     expectOk(await SetTheme(configDraft()), "SetTheme");
     expect(brandingFiles()).to.deep.equal([]);
+  });
+
+  it("keeps a file a slot reaches through a constant of the app config", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("default", "light", PNG_LOGO, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    const shared =
+      expectOk(await GetTheme(), "GetTheme").logos.default?.light ?? "";
+    writeLayerFile(
+      "app/app.config.ts",
+      `const EMAIL_LOGO = "${shared}";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${shared}" }, email: { light: EMAIL_LOGO } } },\n});\n`,
+    );
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
   });
 
   it("writes one file for the email and another slot sent the same bytes", async () => {

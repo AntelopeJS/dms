@@ -282,11 +282,15 @@ function isSource(
   return MOCKUP_SOURCES.some((source) => source === value);
 }
 
-/** A path of the dashboard: one `/`, never `//` or `/\`, no space. */
+/**
+ * A path of the dashboard, by the backend's `RELATIVE_ROUTE_PATTERN`: one
+ * leading `/`, no host (`//host`, `/\host`), no whitespace, and no control
+ * character, which a URL parser drops: `/<tab>/host` reads `//host`.
+ */
 export function isDashboardPath(
   value: Parameters<typeof isString>[0],
 ): boolean {
-  return isString(value) && /^\/(?![/\\])\S*$/.test(value);
+  return isString(value) && /^\/(?![/\\])[^\s\p{Cc}]*$/u.test(value);
 }
 
 function isBuiltPage(

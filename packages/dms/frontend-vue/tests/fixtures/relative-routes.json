@@ -1,0 +1,39 @@
+{
+  "accepted": [
+    "/",
+    "/orders",
+    "/orders/new",
+    "/api/books?page=2&sort=-title",
+    "/orders?tab=open#top",
+    "/caf%C3%A9",
+    "/café",
+    "/api/customers/{{params.id}}/stats",
+    "/{{}}"
+  ],
+  "refused": [
+    "",
+    "orders",
+    "//evil.com",
+    "/\\evil.com",
+    "https://evil.com/x",
+    "javascript:alert(1)",
+    "/a b",
+    "/a\u00a0b",
+    "/\t/evil.example/steal",
+    "/\n/evil.example/steal",
+    "/\r/evil.example/steal",
+    "/\u0000/evil.example/steal",
+    "/a\u007f",
+    "/a\u0085",
+    "/a {{params.id}}",
+    "/{{ params.id }} b",
+    "/{{ }}",
+    "/{{ params id }}",
+    "/{{ params.id }",
+    "/{{ a}}b }}",
+    "/{{ a{{b }}",
+    "/{{\tparams.id}}",
+    "/{{\u00a0params.id}}",
+    "/{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}} "
+  ]
+}

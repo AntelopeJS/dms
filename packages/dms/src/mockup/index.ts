@@ -8,6 +8,9 @@ import {
 import { MockupStore } from "./store";
 
 export * from "./annotations";
+export * from "./apply-notes";
+export * from "./apply-plan";
+export * from "./apply-to-page";
 export * from "./compile";
 export * from "./files";
 export * from "./from-page";

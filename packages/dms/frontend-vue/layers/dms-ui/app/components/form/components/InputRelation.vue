@@ -32,19 +32,16 @@ import {
   resolveRelationPick,
 } from "../../../build/composables/data-types/relationFilter";
 
-const SEARCH_DEBOUNCE_MS = 200;
-// How long the menu's content gets to leave the page before the add form opens
-// anyway, and the beat its focus return takes once it has.
-const MENU_CLOSE_MAX_MS = 1000;
-const MENU_FOCUS_SETTLE_MS = 60;
-
 /** Title and description of the drawer a relation picker's "add" opens. */
-interface RelationAddFormTexts {
+export interface RelationAddFormTexts {
   displayName?: string;
   description?: string;
 }
 
-interface RelationProps extends SelectMenuProps<T, "value", M> {
+export interface RelationProps<
+  T extends ArrayOrNested<SelectMenuItem>,
+  M extends boolean = false,
+> extends SelectMenuProps<T, "value", M> {
   searchUrl: string;
   initialValue?: unknown;
   deselectable?: boolean;
@@ -68,7 +65,13 @@ interface RelationProps extends SelectMenuProps<T, "value", M> {
   addFormTexts?: RelationAddFormTexts;
 }
 
-const props = withDefaults(defineProps<RelationProps>(), {
+const SEARCH_DEBOUNCE_MS = 200;
+// How long the menu's content gets to leave the page before the add form opens
+// anyway, and the beat its focus return takes once it has.
+const MENU_CLOSE_MAX_MS = 1000;
+const MENU_FOCUS_SETTLE_MS = 60;
+
+const props = withDefaults(defineProps<RelationProps<T, M>>(), {
   deselectable: true,
 });
 const emits = defineEmits<SelectMenuEmits<T, "value", M>>();

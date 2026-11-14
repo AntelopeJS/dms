@@ -67,14 +67,15 @@ const theme = tv({
 <script setup lang="ts">
 import { DmsLink } from "#dms/frontend-module";
 import { PREVIEW_LOCK_ICON } from "#dms-ui/app/entries/utils/permissionPreview";
+import type { DmsMenuItem } from "#dms-core/app/types/menu";
 
-interface Props {
+export interface CollapsedMenuItemProps {
   item: DmsMenuItem;
   isTopLevel?: boolean;
   level?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<CollapsedMenuItemProps>(), {
   isTopLevel: false,
   level: 0,
 });

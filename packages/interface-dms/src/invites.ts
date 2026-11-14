@@ -219,9 +219,10 @@ export interface CreateUserInviteTokenResult {
  * existing invite for the same email (within the tenant). Fires
  * INVITE_DELETED / INVITE_BEING_CREATED / INVITE_CREATED hooks.
  *
- * Concurrent calls that all find no invite for the email keep one: a call
- * that loses returns the kept invite when it carries the same content, and
- * fails with HTTP 409 when it does not.
+ * Concurrent calls that all find no invite for the email keep one, also when
+ * another call replaces the invite in between: a call that loses returns the
+ * kept invite when it carries the same content, and fails with HTTP 409 when
+ * it does not.
  */
 export async function createUserInviteToken(
   options: CreateUserInviteTokenOptions,
@@ -265,13 +266,12 @@ async function createAdmittedInviteToken(
     await userInviteModel.insert(replacement);
   } catch (error) {
     if (!IsDuplicateKeyError(error)) throw error;
-    const winner = await userInviteModel.getByEmail(email);
-    assert(
-      winner && isSameInviteContent(winner, replacement),
-      HTTP_CONFLICT,
-      "Invitation for this email was created concurrently with other content",
-    );
-    return { inviteId: winner._id, token: winner.token };
+    return yieldToWinner(await userInviteModel.getByEmail(email), replacement);
+  }
+  const rival = await userInviteModel.getOtherByEmail(email, replacement._id);
+  if (rival) {
+    await userInviteModel.delete(replacement._id);
+    return yieldToWinner(rival, replacement);
   }
   await ExecuteHooks(Hook.INVITE_CREATED, {
     tenantId,
@@ -282,6 +282,18 @@ async function createAdmittedInviteToken(
     roleIds,
   });
   return { inviteId: replacement._id, token: replacement.token };
+}
+
+function yieldToWinner(
+  winner: UserInvite | undefined,
+  lost: UserInvite,
+): CreateUserInviteTokenResult {
+  assert(
+    winner && isSameInviteContent(winner, lost),
+    HTTP_CONFLICT,
+    "Invitation for this email was created concurrently with other content",
+  );
+  return { inviteId: winner._id, token: winner.token };
 }
 
 function buildInviteSnapshot(
