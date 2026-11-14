@@ -61,7 +61,7 @@ describe("a mockup form field written with a type and no component", () => {
     ).to.deep.equal([factoryComponent("string"), factoryComponent("email")]);
   });
 
-  it("gives the fields of a group and of a section their input too (fails when only top-level fields are filled)", () => {
+  it("gives the fields of a group and of a section their input too, so they draw once moved into fields (fails when only top-level fields are filled)", () => {
     const compiled = compile([
       {
         type: "Form",
@@ -113,7 +113,7 @@ describe("a mockup form field written with a type and no component", () => {
     );
   });
 
-  it("keeps a component or an inputComponent the spec writes (fails when a written input is replaced by the type's)", () => {
+  it("keeps a component or an inputComponent the spec writes, and falls back to the type's on null as the factory does (fails when a written input is replaced, or a null one reaches dms-form)", () => {
     const written = { componentName: "dms-input-textarea", options: {} };
     const compiled = compile([
       {
@@ -122,6 +122,8 @@ describe("a mockup form field written with a type and no component", () => {
           fields: [
             { id: "a", type: "string", component: written },
             { id: "b", type: "string", inputComponent: written },
+            { id: "c", type: "string", component: null },
+            { id: "d", type: "string", inputComponent: null },
           ],
         },
       },
@@ -129,7 +131,12 @@ describe("a mockup form field written with a type and no component", () => {
 
     expect(
       compiledFields(compiled).map((field) => field.component),
-    ).to.deep.equal([written, written]);
+    ).to.deep.equal([
+      written,
+      written,
+      factoryComponent("string"),
+      factoryComponent("string"),
+    ]);
   });
 
   it("reports a field it cannot give an input at its pointer, and leaves it out of the preview (fails when dms-form gets a field with no component)", () => {
@@ -150,7 +157,8 @@ describe("a mockup form field written with a type and no component", () => {
       { path: "/pages/0/tree/0/options/fields/1", message: "Invalid input" },
       {
         path: "/pages/0/tree/0/options/fields/0/type",
-        message: 'no data type is registered as "bogus"',
+        message:
+          'the data type "bogus" gives no input: it is not registered, or it needs options a mockup cannot give, so write the field\'s component',
       },
     ]);
     expect(compiledFields(compiled).map((field) => field.id)).to.deep.equal([

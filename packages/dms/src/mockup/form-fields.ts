@@ -29,7 +29,7 @@ function typeInput(
   } catch {
     issues.push({
       path: at,
-      message: `no data type is registered as "${id.data}"`,
+      message: `the data type "${id.data}" gives no input: it is not registered, or it needs options a mockup cannot give, so write the field's component`,
     });
     return undefined;
   }
@@ -38,7 +38,7 @@ function typeInput(
 /**
  * The field as `dms-form` reads it, with the `component` the `Form` factory
  * gives it: the one written, else its `inputComponent`, else its data type's
- * input. A group's fields get theirs. A field left with no input is dropped,
+ * input, a written `null` counting as none. A group's fields get theirs. A field left with no input is dropped,
  * its issue reported, since the component cannot draw it.
  */
 function withInput(
@@ -53,13 +53,12 @@ function withInput(
   if (group.success) {
     return { ...field, fields: withInputs(group.data, `${at}/fields`, issues) };
   }
-  if (Object.hasOwn(field, "component")) return field;
-  const { inputComponent, ...rest } = field;
-  if (inputComponent !== undefined)
-    return { ...rest, component: inputComponent };
+  const { inputComponent, component: _component, ...rest } = field;
+  const written = jsonObjectSchema.safeParse(field.component ?? inputComponent);
+  if (written.success) return { ...rest, component: written.data };
   if (field.type === undefined) return undefined;
   const component = typeInput(field.type, `${at}/type`, issues);
-  return component === undefined ? undefined : { ...field, component };
+  return component === undefined ? undefined : { ...rest, component };
 }
 
 function withInputs(
