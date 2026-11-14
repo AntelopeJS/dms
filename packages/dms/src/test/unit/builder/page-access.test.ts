@@ -250,13 +250,19 @@ function readsThePermissionAPageNames(): void {
   it("lists a role whose only grant is * as reaching no page", async function () {
     this.timeout(30_000);
     const tenant = "page-access-stored-wildcard";
-    const [roleId] = await GetModel(RoleModel, tenant).insert({
-      name: "Stored *",
-      permissions: ["*"],
-    });
+    const [wildcardId, supportId] = await GetModel(RoleModel, tenant).insert([
+      { name: "Stored *", permissions: ["*"] },
+      { name: "Support", permissions: ["pages.shop.board", "pages.other"] },
+    ]);
     const access = await pageAccess("/shop/board", tenant);
     expect(access?.roles).to.deep.equal([
-      { id: String(roleId), name: "Stored *", members: 0, permissions: [] },
+      { id: String(wildcardId), name: "Stored *", members: 0, permissions: [] },
+      {
+        id: String(supportId),
+        name: "Support",
+        members: 0,
+        permissions: ["pages.shop.board"],
+      },
     ]);
   });
 }
