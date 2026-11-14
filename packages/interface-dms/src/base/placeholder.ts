@@ -2,7 +2,7 @@ import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 
-const PLACEHOLDER_COMPONENT_NAME = "dms-placeholder";
+const PLACEHOLDER_COMPONENT_NAME = "dms-placeholder-block";
 
 /**
  * Options for Placeholder component

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { nextTick } from "vue";
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
-import TableEmpty from "#dms-ui/app/entries/components/table/Empty";
-import TablePagination from "#dms-ui/app/entries/components/table/Pagination";
+import TableEmpty from "#dms-ui/app/entries/components/table/TableEmpty";
+import TablePagination from "#dms-ui/app/entries/components/table/TablePagination";
 import type { TableViewDisplayContext } from "#dms-ui/app/composables/table-view/types/display";
 import { useConfirm } from "#dms-ui/app/composables/confirm";
 import { useNotificationCatalog } from "../../../../composables/notification/useNotificationCatalog";
@@ -126,7 +126,7 @@ watch([unreadCount, () => notifications.value[0]?._id], () => {
 
     <template v-else-if="context.items.length > 0">
       <section v-for="(group, index) in groups" :key="group.key">
-        <DmsEyebrow
+        <DmsEyebrowLabel
           as="h3"
           class="border-muted bg-(--dms-bg-muted) pt-2 pr-[18px] pb-1.5 pl-[18px]"
           :class="{ 'border-t': index > 0 }"

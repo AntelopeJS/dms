@@ -122,7 +122,7 @@ describe("a tab's badge", () => {
     vi.stubGlobal("useTab", () => ({ activeTab: vue.ref("0") }));
     vi.stubGlobal("useTabShortcuts", () => {});
     const { default: Tab } = await import(
-      "../layers/dms-ui/app/components/tab/Tab.vue"
+      "../layers/dms-ui/app/components/tab/TabBlock.vue"
     );
     app = vue.createApp({
       render: () =>

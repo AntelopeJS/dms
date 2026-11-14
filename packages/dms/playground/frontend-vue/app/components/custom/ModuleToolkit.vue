@@ -164,25 +164,25 @@ const invoiceText = computed(() =>
         :label="`<DmsPermissionGate permission='${TOOLKIT_PERMISSION}'>`"
       >
         <DmsPermissionGate :permission="TOOLKIT_PERMISSION">
-          <DmsBanner
+          <DmsNoticeBanner
             tone="success"
             icon="i-ph-check-circle"
             size="sm"
             title="You may see this page"
           />
           <template #fallback>
-            <DmsBanner tone="warning" size="sm" title="Fallback slot" />
+            <DmsNoticeBanner tone="warning" size="sm" title="Fallback slot" />
           </template>
         </DmsPermissionGate>
         <DmsPermissionGate :permission="UNKNOWN_PERMISSION">
-          <DmsBanner
+          <DmsNoticeBanner
             tone="info"
             icon="i-ph-info"
             size="sm"
             title="Granted: the wildcard holds every permission"
           />
           <template #fallback>
-            <DmsBanner
+            <DmsNoticeBanner
               tone="warning"
               size="sm"
               title="Fallback: nobody holds this permission"

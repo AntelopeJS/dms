@@ -78,19 +78,19 @@ const LOCALES = [
   <div class="grid gap-16 pb-10">
     <ShowcaseSection
       id="card"
-      title="DmsCard"
+      title="DmsCardPanel"
       description="The card frame around primary components: plain, with an eyebrow head (title, count, actions) and a muted footer, interactive, selected, elevated."
       :columns="3"
     >
       <ShowcaseDemo label="default (padded)">
-        <DmsCard>
+        <DmsCardPanel>
           <p class="text-muted text-[13px]">
             A plain card: the body is padded, no head or footer.
           </p>
-        </DmsCard>
+        </DmsCardPanel>
       </ShowcaseDemo>
       <ShowcaseDemo label="title · count · #actions · #footer">
-        <DmsCard title="Recent invoices" :count="12">
+        <DmsCardPanel title="Recent invoices" :count="12">
           <template #actions>
             <UButton
               icon="i-ph-arrows-clockwise"
@@ -110,22 +110,22 @@ const LOCALES = [
           <template #footer>
             <span class="text-muted text-[12.5px]">Synced 2 min ago</span>
           </template>
-        </DmsCard>
+        </DmsCardPanel>
       </ShowcaseDemo>
       <ShowcaseDemo label="variant='elevated' · :padded='false'">
-        <DmsCard variant="elevated" :padded="false">
+        <DmsCardPanel variant="elevated" :padded="false">
           <div class="text-muted p-3 text-[13px]">
             Elevated: stronger shadow for full-page surfaces (auth box, error
             panel). Unpadded body.
           </div>
-        </DmsCard>
+        </DmsCardPanel>
       </ShowcaseDemo>
       <ShowcaseDemo
         label="interactive · selected (card picker, click one)"
         wide
       >
         <div class="grid gap-3 md:grid-cols-3">
-          <DmsCard
+          <DmsCardPanel
             v-for="item in PLANS"
             :key="item.value"
             as="button"
@@ -139,7 +139,7 @@ const LOCALES = [
               {{ item.label }}
             </span>
             <span class="text-muted font-mono text-xs">{{ item.price }}</span>
-          </DmsCard>
+          </DmsCardPanel>
         </div>
       </ShowcaseDemo>
     </ShowcaseSection>
@@ -214,11 +214,11 @@ const LOCALES = [
 
     <ShowcaseSection
       id="segmented"
-      title="DmsSegmented"
+      title="DmsSegmentedControl"
       description="Single-select toggle: a recessed track with the active segment raised. Arrow keys, Home and End move between segments, skipping disabled ones."
     >
       <ShowcaseDemo label="variant='default' · icon">
-        <DmsSegmented
+        <DmsSegmentedControl
           v-model="view"
           :items="VIEW_ITEMS"
           aria-label="View"
@@ -226,7 +226,7 @@ const LOCALES = [
         />
       </ShowcaseDemo>
       <ShowcaseDemo label="variant='mono' (period selectors)">
-        <DmsSegmented
+        <DmsSegmentedControl
           v-model="period"
           :items="PERIOD_ITEMS"
           variant="mono"
@@ -235,7 +235,7 @@ const LOCALES = [
         />
       </ShowcaseDemo>
       <ShowcaseDemo label="count · item disabled">
-        <DmsSegmented
+        <DmsSegmentedControl
           v-model="inbox"
           :items="INBOX_ITEMS"
           aria-label="Inbox filter"
@@ -244,7 +244,7 @@ const LOCALES = [
       </ShowcaseDemo>
       <ShowcaseDemo label="disabled (whole control) · block (full width)">
         <div class="grid gap-3">
-          <DmsSegmented
+          <DmsSegmentedControl
             v-model="period"
             :items="PERIOD_ITEMS"
             variant="mono"
@@ -252,7 +252,7 @@ const LOCALES = [
             aria-label="Period (disabled)"
             class="justify-self-start"
           />
-          <DmsSegmented
+          <DmsSegmentedControl
             v-model="view"
             :items="VIEW_ITEMS"
             block
@@ -265,7 +265,7 @@ const LOCALES = [
         wide
       >
         <div class="flex flex-wrap items-center gap-4">
-          <DmsSegmented
+          <DmsSegmentedControl
             v-for="segmentSize in SEGMENTED_SIZES"
             :key="segmentSize"
             v-model="size"
@@ -445,7 +445,7 @@ const LOCALES = [
           <template #aside>
             <USwitch :model-value="false" size="sm" aria-label="Enabled" />
           </template>
-          <DmsMeter :value="2" :max="10" label="Runs this month" />
+          <DmsMeterBar :value="2" :max="10" label="Runs this month" />
           <template #actions>
             <UButton
               label="Restore"
@@ -460,12 +460,12 @@ const LOCALES = [
 
     <ShowcaseSection
       id="section"
-      title="DmsSection"
+      title="DmsSectionPanel"
       description="A titled group of a settings page: a card by default, a danger zone with a red-tinted frame, or bare (card false). Its badge slot follows the title, its trail slot ends the head, its footer slot closes the card."
       :columns="2"
     >
       <ShowcaseDemo label="title · description · #badge · #trail · #footer">
-        <DmsSection
+        <DmsSectionPanel
           title="Notifications"
           description="What we send, and where."
         >
@@ -486,10 +486,10 @@ const LOCALES = [
               >Changes save instantly.</span
             >
           </template>
-        </DmsSection>
+        </DmsSectionPanel>
       </ShowcaseDemo>
       <ShowcaseDemo label="danger · :card='false'">
-        <DmsSection
+        <DmsSectionPanel
           title="Danger zone"
           description="Deleting the workspace removes every record."
           danger
@@ -500,14 +500,14 @@ const LOCALES = [
           >
             <UButton label="Delete" color="error" variant="outline" size="sm" />
           </DmsFieldRow>
-        </DmsSection>
-        <DmsSection
+        </DmsSectionPanel>
+        <DmsSectionPanel
           title="Bare section"
           description="card=false: the title and the content, no frame."
           :card="false"
         >
           <p class="text-muted text-[13px]">Content without a card.</p>
-        </DmsSection>
+        </DmsSectionPanel>
       </ShowcaseDemo>
     </ShowcaseSection>
   </div>

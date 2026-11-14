@@ -32,7 +32,7 @@ async function render(props: Partial<CardProps>): Promise<string> {
       }),
   });
   for (const name of [
-    "DmsCard",
+    "DmsCardPanel",
     "DmsLink",
     "UBadge",
     "UIcon",

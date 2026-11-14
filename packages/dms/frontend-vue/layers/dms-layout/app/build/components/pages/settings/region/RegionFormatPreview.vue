@@ -51,7 +51,7 @@ const samples = computed<FormatSample[]>(() => {
 </script>
 
 <template>
-  <DmsSection
+  <DmsSectionPanel
     title="$page.settings.region.preview_title"
     :description="
       t('page.settings.region.preview_description', {
@@ -70,7 +70,7 @@ const samples = computed<FormatSample[]>(() => {
         :key="sample.labelKey"
         class="min-w-0 flex-auto px-[18px] py-3 shadow-[-1px_-1px_0_var(--ui-border-muted)]"
       >
-        <DmsEyebrow
+        <DmsEyebrowLabel
           as="span"
           size="xs"
           class="mb-1 block"
@@ -83,5 +83,5 @@ const samples = computed<FormatSample[]>(() => {
         </b>
       </div>
     </div>
-  </DmsSection>
+  </DmsSectionPanel>
 </template>

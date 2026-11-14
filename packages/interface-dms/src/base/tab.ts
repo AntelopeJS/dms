@@ -93,7 +93,7 @@ export interface TabProps extends BaseComponentProps {
   fit?: boolean;
 }
 
-const TAB_COMPONENT_NAME = "dms-tab";
+const TAB_COMPONENT_NAME = "dms-tab-block";
 
 /**
  * `options` is optional because a page is written as it is built: the editor

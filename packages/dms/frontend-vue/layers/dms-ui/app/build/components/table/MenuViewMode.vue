@@ -2,7 +2,11 @@
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { ModelRef, ShallowRef } from "vue";
-import type { KanbanGroupByOption, TableSharedData, Data } from "./Table.vue";
+import type {
+  KanbanGroupByOption,
+  TableSharedData,
+  Data,
+} from "./TableRoot.vue";
 import {
   GROUPED_DISPLAY_ID,
   KANBAN_DISPLAY_ID,

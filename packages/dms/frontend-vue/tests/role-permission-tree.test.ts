@@ -111,7 +111,7 @@ function mountTree(tree = TREE, selection = new Set<string>()) {
   app.component("UCheckbox", CheckboxStub);
   app.component("UButton", stub("button"));
   app.component("UIcon", stub("i"));
-  app.component("DmsMeter", stub("span"));
+  app.component("DmsMeterBar", stub("span"));
   app.mount(host);
   return { host, index, expanded, toggles };
 }
@@ -269,10 +269,10 @@ function mountEditor(tree = TREE, selection = new Set<string>()) {
   app.component("UInput", InputStub);
   app.component("UFormField", slotStub);
   app.component("UDropdownMenu", slotStub);
-  app.component("DmsMeter", stub("span"));
+  app.component("DmsMeterBar", stub("span"));
   app.component("DmsIconWell", stub("span"));
   app.component("DmsSaveBar", stub("div"));
-  app.component("DmsBanner", BannerStub);
+  app.component("DmsNoticeBanner", BannerStub);
   app.mount(host);
   return { host };
 }

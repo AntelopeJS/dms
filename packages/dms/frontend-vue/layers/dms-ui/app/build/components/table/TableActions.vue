@@ -3,8 +3,8 @@ import { injectLocal, useFocusWithin } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import { nextTick, type ShallowRef } from "vue";
 
-import TableMenu from "./Menu.vue";
-import type { Data, TableFilter, TableSharedData } from "./Table.vue";
+import TableMenu from "./TableMenu.vue";
+import type { Data, TableFilter, TableSharedData } from "./TableRoot.vue";
 import { KANBAN_DISPLAY_ID } from "../../../composables/table-view/types";
 import type { CustomButton } from "../../../composables/table-view/types/custom-button";
 import { useTableContext } from "../../composables/table/useTableContext";

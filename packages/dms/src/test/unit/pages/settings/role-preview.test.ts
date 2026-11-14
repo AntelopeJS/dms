@@ -50,7 +50,7 @@ const TREE = {
 
 const COMPONENTS = {
   kpis: {
-    componentName: "DmsGrid",
+    componentName: "DmsGridBlock",
     children: [{ id: "revenue", component: { componentName: "DmsKpi" } }],
   },
   table: { componentName: "DmsTableView" },

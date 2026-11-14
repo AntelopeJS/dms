@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useFormField } from "@nuxt/ui/composables/useFormField";
-import DmsSegmented from "../../segmented/Segmented.vue";
+import DmsSegmentedControl from "../../segmented/SegmentedControl.vue";
 
 type SegmentValue = string | number;
 
@@ -36,7 +36,7 @@ function pick(value: SegmentValue | undefined): void {
     :class="isInvalid && 'ring-error ring-1'"
     v-bind="ariaAttrs"
   >
-    <DmsSegmented
+    <DmsSegmentedControl
       :model-value="model ?? undefined"
       :items="props.items"
       :disabled="props.disabled"

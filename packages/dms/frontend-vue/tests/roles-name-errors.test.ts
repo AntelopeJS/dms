@@ -120,9 +120,9 @@ async function mountRolesPage() {
     "UAvatar",
     "UBadge",
     "UTooltip",
-    "DmsMeter",
+    "DmsMeterBar",
     "DmsIconWell",
-    "DmsBanner",
+    "DmsNoticeBanner",
   ])
     app.component(name, () => null);
   app.mount(host);

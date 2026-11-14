@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { FlexRender } from "@tanstack/vue-table";
 import { normalizeActionConfig } from "#dms-core/app/utils/row-action-rule-evaluator";
-import TableEmpty from "./Empty.vue";
+import TableEmpty from "./TableEmpty.vue";
 import type { Data } from "./Table.types";
 import type { TableBodyContext } from "./TableBody.types";
 const props = defineProps<{ context: TableBodyContext<T> }>();

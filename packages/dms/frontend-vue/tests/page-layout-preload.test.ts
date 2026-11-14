@@ -12,8 +12,8 @@ const LAYOUT = {
   },
   components: {
     main: {
-      componentName: "DmsCard",
-      children: [{ id: "table", component: { componentName: "DmsTable" } }],
+      componentName: "DmsCardPanel",
+      children: [{ id: "table", component: { componentName: "DmsTableRoot" } }],
     },
   },
 } satisfies NonNullable<Parameters<typeof collectPageLayoutComponentNames>[0]>;
@@ -45,8 +45,8 @@ describe("the preload of a page's components", () => {
   it("leaves the layout itself to the renderer, and takes its children", () => {
     expect(collectPageLayoutComponentNames(LAYOUT)).toEqual([
       "PageBanner",
-      "DmsCard",
-      "DmsTable",
+      "DmsCardPanel",
+      "DmsTableRoot",
     ]);
   });
 
@@ -57,8 +57,8 @@ describe("the preload of a page's components", () => {
     preloadPageLayoutComponents(LAYOUT);
     expect(resolve.mock.calls.map(([name]) => name)).toEqual([
       "PageBanner",
-      "DmsCard",
-      "DmsTable",
+      "DmsCardPanel",
+      "DmsTableRoot",
     ]);
   });
 
@@ -69,9 +69,9 @@ describe("the preload of a page's components", () => {
     expect(await settled(preloaded)).toBe(false);
 
     pending.get("PageBanner")!();
-    pending.get("DmsCard")!();
+    pending.get("DmsCardPanel")!();
     expect(await settled(preloaded)).toBe(false);
-    pending.get("DmsTable")!();
+    pending.get("DmsTableRoot")!();
     expect(await settled(preloaded)).toBe(true);
   });
 

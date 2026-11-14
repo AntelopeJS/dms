@@ -246,7 +246,7 @@ async function cancelChange(): Promise<void> {
 </script>
 
 <template>
-  <DmsSection
+  <DmsSectionPanel
     id="email"
     class="scroll-mt-6"
     title="$page.settings.security.email_title"
@@ -292,7 +292,7 @@ async function cancelChange(): Promise<void> {
             <span>{{ t("page.settings.security.email.usage") }}</span>
           </template>
         </DmsListRow>
-        <DmsBanner
+        <DmsNoticeBanner
           v-if="pendingEmail && !isEditing"
           class="mt-3"
           size="sm"
@@ -318,7 +318,7 @@ async function cancelChange(): Promise<void> {
               @click="cancelChange"
             />
           </template>
-        </DmsBanner>
+        </DmsNoticeBanner>
       </template>
 
       <SecurityPanelField
@@ -366,7 +366,7 @@ async function cancelChange(): Promise<void> {
           </DmsLink>
         </template>
       </SecurityPanelField>
-      <DmsBanner
+      <DmsNoticeBanner
         class="col-span-full"
         size="sm"
         tone="primary"
@@ -388,7 +388,7 @@ async function cancelChange(): Promise<void> {
             </template>
           </i18n-t>
         </template>
-      </DmsBanner>
+      </DmsNoticeBanner>
     </SecurityEditPanel>
     <SecurityCodeModal
       v-model:open="isCodeOpen"
@@ -406,5 +406,5 @@ async function cancelChange(): Promise<void> {
       :loading="isConfirming"
       @confirm="confirmCode"
     />
-  </DmsSection>
+  </DmsSectionPanel>
 </template>

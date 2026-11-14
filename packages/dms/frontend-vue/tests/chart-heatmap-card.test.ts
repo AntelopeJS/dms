@@ -2,7 +2,7 @@ import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import type { ChartType } from "../layers/dms-ui/app/composables/chart/types";
 import { chartRuntime } from "./helpers/charts-runtime";
 
@@ -55,7 +55,7 @@ async function renderCard(type: ChartType) {
         () => h(Chart, { type, componentId: "plot", pageId: "p" }),
       ),
   });
-  for (const name of ["DmsCard", "DmsClientOnly", "UIcon", "USkeleton"]) {
+  for (const name of ["DmsCardPanel", "DmsClientOnly", "UIcon", "USkeleton"]) {
     app.component(name, Slot);
   }
   app.component("DmsApexChartHost", PlotProbe);

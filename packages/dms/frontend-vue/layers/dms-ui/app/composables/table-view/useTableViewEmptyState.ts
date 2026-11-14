@@ -3,7 +3,7 @@ import { computed, type ComputedRef, type ShallowRef } from "vue";
 import type {
   Data,
   TableSharedData,
-} from "../../build/components/table/Table.vue";
+} from "../../build/components/table/TableRoot.vue";
 
 /** What narrows a table's rows, and the ways out, for its empty state. */
 export interface TableViewEmptyStateControls {

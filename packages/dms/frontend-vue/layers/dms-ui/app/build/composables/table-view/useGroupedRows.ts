@@ -9,7 +9,7 @@ import type {
   Data,
   TableFilter,
   TableRowGrouping,
-} from "../../components/table/Table.vue";
+} from "../../components/table/TableRoot.vue";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
 import type { TableCountQuery } from "./useTableRows";
 import {

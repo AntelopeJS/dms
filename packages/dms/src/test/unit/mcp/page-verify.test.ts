@@ -180,7 +180,7 @@ function checksRolesAndListsFailures(): void {
           visible: false,
           drewNothing: true,
         },
-        { ...block("wide", "dms-grid"), visible: false },
+        { ...block("wide", "dms-grid-block"), visible: false },
       ],
       layout: {
         horizontalOverflow: true,
@@ -224,7 +224,7 @@ function checksRolesAndListsFailures(): void {
     );
     expect(listFailures(report)).to.deep.equal([
       "mobile: block chart (dms-chart-card) is missing",
-      "mobile: block wide (dms-grid) reaches outside the page width",
+      "mobile: block wide (dms-grid-block) reaches outside the page width",
       "mobile: the page scrolls sideways",
       "data: TableView at orders is empty (reads /api/orders)",
       'form: form "New order": no form opened on click',

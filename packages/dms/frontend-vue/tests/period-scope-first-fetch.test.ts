@@ -259,11 +259,11 @@ describe("period-scoped cards on first paint", () => {
         }),
     });
     withComponents(app, {
-      DmsCard: Passthrough,
+      DmsCardPanel: Passthrough,
       UIcon: Passthrough,
       USkeleton: Skeleton,
       DmsTrendBadge: Passthrough,
-      DmsSparkline: Passthrough,
+      DmsSparklineChart: Passthrough,
       ClientOnly: Passthrough,
     });
 

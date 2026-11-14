@@ -58,7 +58,7 @@ async function mountRelation() {
   });
   vi.stubGlobal("useDrawer", () => ({ open }));
   const { default: Relation } = await import(
-    "../layers/dms-ui/app/components/form/components/Relation.vue"
+    "../layers/dms-ui/app/components/form/components/InputRelation.vue"
   );
   const selected = ref<string | undefined>("ann");
   const updates = vi.fn((value: string | undefined) => {

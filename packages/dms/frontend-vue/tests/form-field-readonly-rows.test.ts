@@ -33,7 +33,7 @@ it.each(["array", "key_value"])(
     ];
     const displayEmpty = (app: App) => {
       app.component(
-        "DmsDisplay",
+        "DmsDisplayValue",
         defineComponent({
           setup: () => () => h("span", "Empty"),
         }),

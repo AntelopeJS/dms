@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type Slot, computed } from "vue";
 import { tv } from "tailwind-variants";
-import DmsEyebrow from "./Eyebrow.vue";
+import DmsEyebrowLabel from "./EyebrowLabel.vue";
 
 export type SectionHeaderSize = "section" | "card";
 
@@ -93,7 +93,7 @@ const hasCount = computed(
         :class="ui.title()"
       >
         <slot name="title">
-          <DmsEyebrow
+          <DmsEyebrowLabel
             v-if="isCard"
             as="span"
             tone="muted"

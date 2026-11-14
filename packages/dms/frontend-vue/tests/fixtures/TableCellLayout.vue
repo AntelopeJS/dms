@@ -4,7 +4,7 @@ import type { CellContext } from "@tanstack/vue-table";
 import Table, {
   type Data,
   type TableColumn,
-} from "../../layers/dms-ui/app/entries/components/table/Table";
+} from "../../layers/dms-ui/app/entries/components/table/TableRoot";
 import Badge from "@nuxt/ui/components/Badge.vue";
 
 interface LayoutRow extends Data {

@@ -87,7 +87,7 @@ const modeLabel = (mode: ThemeMode) => t(`branding.developer.${mode}`);
       <div
         class="grid grid-cols-[minmax(0,1fr)_repeat(2,minmax(0,1.2fr))] gap-2"
       >
-        <DmsEyebrow :label="t(`branding.group.${group.id}`)" />
+        <DmsEyebrowLabel :label="t(`branding.group.${group.id}`)" />
         <span
           v-for="mode in THEME_MODES"
           :key="mode"
@@ -141,7 +141,7 @@ const modeLabel = (mode: ThemeMode) => t(`branding.developer.${mode}`);
     </section>
 
     <section class="flex flex-col gap-2">
-      <DmsEyebrow :label="t('branding.section.other_variables')" />
+      <DmsEyebrowLabel :label="t('branding.section.other_variables')" />
       <div
         v-for="entry in otherVariables"
         :key="`${entry.set}:${entry.name}`"
@@ -194,7 +194,7 @@ const modeLabel = (mode: ThemeMode) => t(`branding.developer.${mode}`);
     </section>
 
     <section class="flex flex-col gap-2">
-      <DmsEyebrow :label="t('branding.section.status')" />
+      <DmsEyebrowLabel :label="t('branding.section.status')" />
       <div
         v-for="role in STATUS_ROLES"
         :key="role"
@@ -225,7 +225,7 @@ const modeLabel = (mode: ThemeMode) => t(`branding.developer.${mode}`);
     </section>
 
     <section class="flex flex-col gap-2">
-      <DmsEyebrow :label="t('branding.section.logo_slots')" />
+      <DmsEyebrowLabel :label="t('branding.section.logo_slots')" />
       <p
         v-if="props.editor.logoProblem.value"
         role="alert"

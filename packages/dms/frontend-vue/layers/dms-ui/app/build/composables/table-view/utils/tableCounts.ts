@@ -1,4 +1,4 @@
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import type { TableCountRequest } from "../useTableListData";
 import { buildTableQuery, isFilterEffective } from "./tableQuery";
 

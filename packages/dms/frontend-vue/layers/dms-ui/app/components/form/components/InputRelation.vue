@@ -15,7 +15,7 @@ import type {
 import type { ArrayOrNested } from "@nuxt/ui/runtime/types/utils.js";
 
 import { refDebounced } from "@vueuse/core";
-import DmsForm from "../Form.vue";
+import DmsFormBlock from "../FormBlock.vue";
 import { dmsOwnDrawer } from "../../../build/composables/containers/context";
 import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
 import { unlabeledRelationIds } from "../../../build/composables/data-types/relationValue";
@@ -481,7 +481,7 @@ function openAddDrawer() {
         : t("dms.table.new_item_description"),
       direction: "bottom",
       containerId: addContainerId,
-      component: DmsForm,
+      component: DmsFormBlock,
       componentOptions: {
         ...formOptions,
         onSuccessCallback: (response: unknown, formData: unknown) => {

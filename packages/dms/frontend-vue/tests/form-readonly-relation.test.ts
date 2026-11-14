@@ -100,7 +100,7 @@ describe("a disabled relation field", () => {
       id: "customer",
       type: "relation",
       disabled: true,
-      component: { componentName: "dms-relation", options },
+      component: { componentName: "dms-input-relation", options },
     };
     app = createApp({
       setup() {
@@ -123,7 +123,7 @@ describe("a disabled relation field", () => {
       }),
     );
     app.component(
-      "DmsDisplay",
+      "DmsDisplayValue",
       defineComponent({
         props: { modelValue: { type: null, default: undefined } },
         setup(props) {

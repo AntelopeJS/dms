@@ -265,7 +265,7 @@ export interface BlockTypeDefinition {
   childMeta?: ZodTypeAny;
   /**
    * Options the factory sets itself, whatever the caller passes — a chart's
-   * `type`, which is what tells `dms-chart` which chart to draw. A consumer
+   * `type`, which is what tells `dms-chart-block` which chart to draw. A consumer
    * rendering from the descriptor alone has to merge these in.
    */
   // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Published factory defaults contain application-owned option values; each registered block owns their schema.

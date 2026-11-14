@@ -58,7 +58,7 @@ export interface GuardOptions {
   fallback?: GuardFallback;
 }
 
-const GUARD_COMPONENT_NAME = "dms-guard";
+const GUARD_COMPONENT_NAME = "dms-guard-block";
 const GUARD_ICON = "i-ph-shield-check";
 const GUARD_DEFAULT_CONDITION = "empty";
 

@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="T extends Data">
 import { injectLocal } from "@vueuse/core";
 
-import type { Data, TableFilter, TableSharedData } from "./Table.vue";
+import type { Data, TableFilter, TableSharedData } from "./TableRoot.vue";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
 import defu from "defu";

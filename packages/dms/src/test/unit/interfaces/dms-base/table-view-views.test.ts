@@ -326,7 +326,7 @@ describe("[unit] interfaces/dms-base — table view links and URL keys", () => {
     const shared = withTableViewPlacements({
       content: table,
       side: {
-        componentName: "dms-grid",
+        componentName: "dms-grid-block",
         children: [{ id: "archive", component: table }],
       },
     });

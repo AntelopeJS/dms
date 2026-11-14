@@ -35,7 +35,7 @@ const classesOf = (value: TabsUi["list"]): string =>
 
 async function mount(props: Partial<TabProps>): Promise<TabsUi> {
   const { default: Tab } = await import(
-    "../layers/dms-ui/app/components/tab/Tab.vue"
+    "../layers/dms-ui/app/components/tab/TabBlock.vue"
   );
   app = vue.createApp({
     render: () =>

@@ -23,7 +23,7 @@ export const COMPONENT_SLOT_KEY = "slotId";
  * sits above this one in the layering, and the walker tests resolve forms built
  * by `Form`, so the two cannot drift apart.
  */
-const SLOT_FORM_COMPONENT_NAME = "dms-form";
+const SLOT_FORM_COMPONENT_NAME = "dms-form-block";
 
 /**
  * What the walker checks of a form's options before it hands them to a

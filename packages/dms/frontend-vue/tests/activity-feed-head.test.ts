@@ -57,7 +57,7 @@ async function render(props: FeedProps): Promise<string> {
         ...props,
       }),
   });
-  app.component("DmsCard", Card);
+  app.component("DmsCardPanel", Card);
   app.component("UBadge", Badge);
   for (const name of ["UIcon", "USkeleton", "UButton", "ULink", "NuxtLink"]) {
     app.component(name, Slot);

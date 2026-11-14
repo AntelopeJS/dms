@@ -76,7 +76,7 @@ async function changeNote(setup: NotesSetup): Promise<string> {
   const field: FormField = {
     id: "customer",
     type: "relation",
-    component: { componentName: "DmsRelation", options: setup.options },
+    component: { componentName: "DmsInputRelation", options: setup.options },
   };
   app = createApp({
     setup() {

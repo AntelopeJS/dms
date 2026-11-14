@@ -100,7 +100,12 @@ async function mountAndOpen(): Promise<void> {
   app = createApp(SecurityPassword);
   app.config.globalProperties.$t = (key: string) => key;
   browserRuntime(app);
-  for (const name of ["DmsSection", "DmsFieldRow", "DmsListRow", "UTooltip"]) {
+  for (const name of [
+    "DmsSectionPanel",
+    "DmsFieldRow",
+    "DmsListRow",
+    "UTooltip",
+  ]) {
     app.component(name, Passthrough);
   }
   for (const name of ["UIcon", "DmsLink", "UCheckbox"]) {

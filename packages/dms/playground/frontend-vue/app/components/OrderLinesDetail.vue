@@ -60,7 +60,7 @@ const total = computed(() =>
 <template>
   <div class="grid gap-6 md:grid-cols-2">
     <section class="grid min-w-0 content-start gap-2">
-      <DmsEyebrow :label="`Lines · ${lines.length}`" />
+      <DmsEyebrowLabel :label="`Lines · ${lines.length}`" />
       <table class="w-full text-[12.5px]">
         <caption class="sr-only">
           Lines of the order
@@ -98,7 +98,7 @@ const total = computed(() =>
       </table>
     </section>
     <section class="grid min-w-0 content-start gap-2">
-      <DmsEyebrow label="Timeline" />
+      <DmsEyebrowLabel label="Timeline" />
       <div class="dms-card overflow-hidden">
         <DmsActivityItem
           v-for="event in events"

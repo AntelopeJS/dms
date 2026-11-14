@@ -15,10 +15,13 @@ import {
 
 const BLOCK_TYPES: PreviewBlockTypes = {
   KpiCard: { componentName: "dms-kpi-card" },
-  ChartLine: { componentName: "dms-chart", fixedOptions: { type: "line" } },
+  ChartLine: {
+    componentName: "dms-chart-block",
+    fixedOptions: { type: "line" },
+  },
   Card: { componentName: "dms-card-block" },
   TableView: { componentName: "dms-table-view", needsController: true },
-  ResourceForm: { componentName: "dms-form", needsController: true },
+  ResourceForm: { componentName: "dms-form-block", needsController: true },
 };
 
 describe("preview state parameter", () => {
@@ -68,7 +71,7 @@ describe("preview allowlist", () => {
     );
     expect(node).toMatchObject({
       id: "block-0",
-      componentName: "dms-chart",
+      componentName: "dms-chart-block",
       options: { title: "Sales", type: "line" },
     });
     expect(node.issue).toBeUndefined();
@@ -129,7 +132,7 @@ describe("route-sourced blocks", () => {
       BLOCK_TYPES,
     );
     expect(node.issue).toBeUndefined();
-    expect(node.componentName).toBe("dms-form");
+    expect(node.componentName).toBe("dms-form-block");
     expect(node.options).toEqual(options);
     expect(
       resolvePreviewTree(

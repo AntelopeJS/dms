@@ -1,4 +1,4 @@
-import type { Data, TableColumn } from "../../components/table/Table.vue";
+import type { Data, TableColumn } from "../../components/table/TableRoot.vue";
 import { upperFirst } from "scule";
 import { useClipboard } from "@vueuse/core";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";

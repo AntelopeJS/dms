@@ -1695,7 +1695,7 @@
     },
     {
       "type": "ChartArea",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "area"
       },
@@ -2206,7 +2206,7 @@
     },
     {
       "type": "ChartBar",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "bar"
       },
@@ -2739,7 +2739,7 @@
     },
     {
       "type": "ChartCandlestick",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "candlestick"
       },
@@ -3453,7 +3453,7 @@
     },
     {
       "type": "ChartColumn",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "column"
       },
@@ -3972,7 +3972,7 @@
     },
     {
       "type": "ChartDonut",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "donut"
       },
@@ -4235,7 +4235,7 @@
     },
     {
       "type": "ChartHeatmap",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "heatmap"
       },
@@ -4617,7 +4617,7 @@
     },
     {
       "type": "ChartLine",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "line"
       },
@@ -5116,7 +5116,7 @@
     },
     {
       "type": "ChartMixed",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "mixed"
       },
@@ -5634,7 +5634,7 @@
     },
     {
       "type": "ChartPie",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "pie"
       },
@@ -5869,7 +5869,7 @@
     },
     {
       "type": "ChartRadar",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "radar"
       },
@@ -6370,7 +6370,7 @@
     },
     {
       "type": "ChartRadialBar",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "radialBar"
       },
@@ -6624,7 +6624,7 @@
     },
     {
       "type": "ChartRangeArea",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "rangeArea"
       },
@@ -7125,7 +7125,7 @@
     },
     {
       "type": "ChartScatter",
-      "componentName": "dms-chart",
+      "componentName": "dms-chart-block",
       "fixedOptions": {
         "type": "scatter"
       },
@@ -8264,7 +8264,7 @@
     },
     {
       "type": "Form",
-      "componentName": "dms-form",
+      "componentName": "dms-form-block",
       "meta": {
         "name": "Form",
         "icon": "i-ph-note-pencil",
@@ -9066,7 +9066,7 @@
     },
     {
       "type": "Grid",
-      "componentName": "dms-grid",
+      "componentName": "dms-grid-block",
       "container": true,
       "allowedChildren": [
         "GridRow"
@@ -9141,7 +9141,7 @@
     },
     {
       "type": "Guard",
-      "componentName": "dms-guard",
+      "componentName": "dms-guard-block",
       "container": true,
       "meta": {
         "name": "Guard",
@@ -11995,7 +11995,7 @@
     },
     {
       "type": "Placeholder",
-      "componentName": "dms-placeholder",
+      "componentName": "dms-placeholder-block",
       "meta": {
         "name": "Placeholder",
         "icon": "i-ph-selection",
@@ -12043,7 +12043,7 @@
     },
     {
       "type": "ResourceForm",
-      "componentName": "dms-form",
+      "componentName": "dms-form-block",
       "controllerArg": true,
       "meta": {
         "name": "Table form",
@@ -12242,7 +12242,7 @@
     },
     {
       "type": "Spacer",
-      "componentName": "dms-spacer",
+      "componentName": "dms-stack-spacer",
       "meta": {
         "name": "Spacer",
         "icon": "i-ph-arrow-line-right",
@@ -12691,7 +12691,7 @@
     },
     {
       "type": "Tab",
-      "componentName": "dms-tab",
+      "componentName": "dms-tab-block",
       "container": true,
       "dynamicSlots": {
         "optionPath": "items",

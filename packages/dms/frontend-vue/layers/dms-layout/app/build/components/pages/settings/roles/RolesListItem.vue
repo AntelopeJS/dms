@@ -80,7 +80,7 @@ const ui = computed(() =>
       {{ props.memberCount }}
     </span>
     <span :class="ui.sum()">
-      <DmsMeter
+      <DmsMeterBar
         as="span"
         size="xs"
         class="flex-1"

@@ -1,5 +1,5 @@
 import type { PaginationState, SortingState } from "@tanstack/vue-table";
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 
 interface QueryConfig {
   pagination: PaginationState;

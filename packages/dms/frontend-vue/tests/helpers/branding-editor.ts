@@ -103,8 +103,8 @@ const STUBS: Record<string, Component> = {
   UInput: passthrough("input"),
   USelect: passthrough("div"),
   UPopover: passthrough("div"),
-  DmsEyebrow: TitledStub,
-  DmsBanner: TitledStub,
+  DmsEyebrowLabel: TitledStub,
+  DmsNoticeBanner: TitledStub,
   DmsEmptyState: TitledStub,
 };
 

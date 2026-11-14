@@ -13,7 +13,7 @@ const { formatTime } = useRegionalFormat();
 
 <template>
   <div class="grid gap-6 lg:grid-cols-2">
-    <DmsCard title="Setup function log" :count="log.length">
+    <DmsCardPanel title="Setup function log" :count="log.length">
       <DmsEmptyState
         v-if="!log.length"
         icon="i-ph-plugs-connected"
@@ -35,7 +35,7 @@ const { formatTime } = useRegionalFormat();
           Leave the page and come back: the cleanup line shows first.
         </span>
       </template>
-    </DmsCard>
+    </DmsCardPanel>
     <SourceSnippet path="plugins/dms-page-setup-demo.client.ts" />
   </div>
 </template>

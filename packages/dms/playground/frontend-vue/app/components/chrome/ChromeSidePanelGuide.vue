@@ -68,9 +68,9 @@ const panelItems = computed(() =>
       <ShowcaseDemo
         label="useAppSidePanels().panels · resolveSidePanelWidthBounds"
       >
-        <DmsCard title="Registered panels" :count="panelItems.length">
+        <DmsCardPanel title="Registered panels" :count="panelItems.length">
           <DmsKeyValueList :items="panelItems" dense />
-        </DmsCard>
+        </DmsCardPanel>
       </ShowcaseDemo>
     </ShowcaseSection>
 

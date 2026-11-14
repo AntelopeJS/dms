@@ -7,4 +7,4 @@ export type {
   TableEmits,
   TableFilter,
   TableSharedData,
-} from "../../build/components/table/Table.vue";
+} from "../../build/components/table/TableRoot.vue";

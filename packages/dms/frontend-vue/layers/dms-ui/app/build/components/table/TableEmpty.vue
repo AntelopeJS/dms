@@ -5,7 +5,7 @@ import DmsEmptyState, {
   type EmptyStateVariant,
 } from "../../../components/empty-state/EmptyState.vue";
 
-import type { TableSharedData, Data } from "./Table.vue";
+import type { TableSharedData, Data } from "./TableRoot.vue";
 import { clearTableFiltersLabelKey } from "../../composables/table/utils/clearTableFilters";
 import type {
   TableViewEmptyStateConfig,

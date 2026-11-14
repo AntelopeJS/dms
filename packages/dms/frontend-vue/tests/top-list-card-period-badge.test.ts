@@ -33,7 +33,7 @@ async function render(beforeCard?: () => void): Promise<string> {
         });
     },
   });
-  app.component("DmsCard", Tagged("card"));
+  app.component("DmsCardPanel", Tagged("card"));
   app.component("UBadge", Tagged("badge"));
   app.component("USkeleton", Tagged("skeleton"));
   app.component("UIcon", Tagged("icon"));

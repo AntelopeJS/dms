@@ -66,7 +66,7 @@ function createFormApp(create: typeof createApp): App {
         h("div", [slots.default?.(), slots.footer?.()]),
   });
   for (const [name, stub] of Object.entries({
-    DmsSection: passThrough,
+    DmsSectionPanel: passThrough,
     DmsEmptyState: passThrough,
     DmsIconWell: defineComponent({ render: () => h("span") }),
     UBadge: defineComponent({ render: () => h("span") }),

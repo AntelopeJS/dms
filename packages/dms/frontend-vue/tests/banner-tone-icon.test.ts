@@ -1,13 +1,13 @@
 /** @vitest-environment jsdom */
 /**
- * A DmsBanner given no icon shows its tone's, as the Banner block does: a
+ * A DmsNoticeBanner given no icon shows its tone's, as the Banner block does: a
  * check on success, an "i" on info. An icon given wins.
  */
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, expect, it } from "vitest";
 
-const { default: DmsBanner } = await import(
-  "../layers/dms-ui/app/components/banner/Banner.vue"
+const { default: DmsNoticeBanner } = await import(
+  "../layers/dms-ui/app/components/banner/NoticeBanner.vue"
 );
 
 const UAlert = defineComponent({
@@ -22,11 +22,11 @@ let app: App | undefined;
 afterEach(() => app?.unmount());
 
 function iconOf(
-  props: Partial<InstanceType<typeof DmsBanner>["$props"]>,
+  props: Partial<InstanceType<typeof DmsNoticeBanner>["$props"]>,
 ): string | null {
   const host = document.createElement("div");
   app = createApp({
-    render: () => h(DmsBanner, { title: "Notice", ...props }),
+    render: () => h(DmsNoticeBanner, { title: "Notice", ...props }),
   });
   app.component("UAlert", UAlert);
   app.component(
@@ -41,7 +41,7 @@ function iconOf(
 }
 
 it.each<
-  [NonNullable<InstanceType<typeof DmsBanner>["$props"]["tone"]>, string]
+  [NonNullable<InstanceType<typeof DmsNoticeBanner>["$props"]["tone"]>, string]
 >([
   ["warning", "i-ph-warning"],
   ["success", "i-ph-check-circle"],

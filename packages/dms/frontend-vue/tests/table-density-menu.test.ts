@@ -14,6 +14,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableMenuDensity from "../layers/dms-ui/app/entries/components/table/MenuDensity";
 import TableMenuRoot from "../layers/dms-ui/app/entries/components/table/MenuRoot";
 
+/** The global name `@nuxt/icon` registers and the sources resolve. */
+
 describe("table density menu", () => {
   let app: App | undefined;
 

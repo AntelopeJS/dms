@@ -88,7 +88,12 @@ async function mountEmail(): Promise<void> {
   );
   app = createApp(SecurityEmail);
   browserRuntime(app);
-  for (const name of ["DmsSection", "DmsFieldRow", "DmsListRow", "UTooltip"]) {
+  for (const name of [
+    "DmsSectionPanel",
+    "DmsFieldRow",
+    "DmsListRow",
+    "UTooltip",
+  ]) {
     app.component(name, Passthrough);
   }
   for (const name of ["UBadge", "USkeleton", "UIcon", "DmsLink"]) {
@@ -115,7 +120,9 @@ async function mountEmail(): Promise<void> {
             : null,
     }),
   );
-  app.component("DmsBanner", (_, { slots }) => h("div", slots.description?.()));
+  app.component("DmsNoticeBanner", (_, { slots }) =>
+    h("div", slots.description?.()),
+  );
   app.mount(host);
   await flush();
   refresh.mockClear();

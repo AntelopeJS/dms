@@ -7,7 +7,7 @@ import type {
 import type {
   TableDensity,
   TableFilter,
-} from "../../../components/table/Table.vue";
+} from "../../../components/table/TableRoot.vue";
 import { mergeColumnOrder } from "../../table/utils/columnOrder";
 import { isFilterEffective } from "./tableQuery";
 import type { LocationQuery } from "#dms/frontend-module";

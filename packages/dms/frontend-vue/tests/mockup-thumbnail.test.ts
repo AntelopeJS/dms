@@ -43,7 +43,7 @@ afterEach(() => {
 async function mountThumbnail(): Promise<HTMLElement> {
   host = document.createElement("div");
   document.body.append(host);
-  app = createApp(MockupThumbnail, { name: "demo" });
+  app = createApp(MockupThumbnail, { name: "demo-mockup" });
   app.component("UIcon", defineComponent({ setup: () => () => h("span") }));
   app.mount(host);
   await flush();
@@ -71,7 +71,7 @@ it("reads nothing until the band scrolls into view", async () => {
   await scrollIntoView();
 
   expect(authFetch).toHaveBeenCalledTimes(1);
-  expect(authFetch).toHaveBeenCalledWith("/api/mockup/demo");
+  expect(authFetch).toHaveBeenCalledWith("/api/mockup/demo-mockup");
 });
 
 /**

@@ -9,7 +9,7 @@
 import { createApp, defineComponent, h, ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChart";
 import type { UseApexChartInput } from "../layers/dms-ui/app/composables/chart/useApexChart.types";
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
@@ -83,7 +83,7 @@ async function renderCard(
       ),
   });
   engine.provideDmsFrontendRuntime(app, runtime);
-  for (const name of ["DmsCard", "DmsClientOnly", "UIcon", "USkeleton"])
+  for (const name of ["DmsCardPanel", "DmsClientOnly", "UIcon", "USkeleton"])
     app.component(name, Slot);
   app.component("DmsApexChartHost", LegendProbe);
   const host = document.createElement("div");

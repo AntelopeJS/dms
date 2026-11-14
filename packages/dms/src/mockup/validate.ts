@@ -65,7 +65,7 @@ const blockChildren: PreviewAdapter = {
   },
 };
 
-const FORM_COMPONENT = "dms-form";
+const FORM_COMPONENT = "dms-form-block";
 const serializedSectionSchema = z.object({ fieldIds: z.array(z.string()) });
 const fieldIdSchema = z.object({ id: z.string() });
 

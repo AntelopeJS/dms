@@ -199,7 +199,7 @@ function onRowClick(): void {
     <span class="flex min-w-0 items-center gap-3">
       <span :class="ui.id()" :title="props.node.id">{{ props.node.id }}</span>
       <span v-if="props.count" :class="ui.count()">
-        <DmsMeter
+        <DmsMeterBar
           as="span"
           size="xs"
           class="w-10 shrink-0 @max-md/editor:hidden"

@@ -5,10 +5,10 @@ import {
   useBlockStateAttributes,
 } from "../../build/composables/blocks/blockDataState";
 import DmsStatCell from "../../build/components/stat/StatCell.vue";
-import DmsEyebrow from "../section-header/Eyebrow.vue";
+import DmsEyebrowLabel from "../section-header/EyebrowLabel.vue";
 
 import DmsTrendBadge from "../chart/internal/TrendBadge.vue";
-import DmsSparkline from "../chart/internal/Sparkline.vue";
+import DmsSparklineChart from "../chart/internal/SparklineChart.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { readFetchNotFound } from "../../build/utils/fetchNotFound";
 import DmsBlockInlineStatus from "../../build/components/blocks/BlockInlineStatus.vue";
@@ -243,7 +243,7 @@ const isStat = computed(() => props.variant === "stat");
           </span>
         </div>
         <div v-if="showSparkline" class="h-6 w-16">
-          <DmsSparkline
+          <DmsSparklineChart
             v-if="hasSparkline"
             :values="sparkline"
             :accent="resolvedSparklineAccent"
@@ -259,7 +259,7 @@ const isStat = computed(() => props.variant === "stat");
     </template>
   </DmsStatCell>
 
-  <DmsCard
+  <DmsCardPanel
     v-else
     v-bind="blockAttributes"
     :padded="false"
@@ -272,7 +272,7 @@ const isStat = computed(() => props.variant === "stat");
         class="text-dimmed size-[15px] shrink-0"
         :aria-hidden="true"
       />
-      <DmsEyebrow
+      <DmsEyebrowLabel
         tone="muted"
         truncate
         class="max-sm:whitespace-normal"
@@ -381,12 +381,12 @@ const isStat = computed(() => props.variant === "stat");
         class="ml-auto h-[34px] w-24 shrink-0 transition-opacity"
         :class="isRefreshing && 'opacity-55'"
       >
-        <DmsSparkline
+        <DmsSparklineChart
           :values="sparkline"
           :accent="resolvedSparklineAccent"
           :aria-label="processI18n(title)"
         />
       </div>
     </div>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

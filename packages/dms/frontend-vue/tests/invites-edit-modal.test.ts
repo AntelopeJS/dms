@@ -75,7 +75,7 @@ function invitesRowActions() {
     },
     formComponents: {
       edit: {
-        componentName: "DmsForm",
+        componentName: "DmsFormBlock",
         options: {
           fields: [],
           fetchUrl: "/api/tables/admin-invites/get?id={{params.id}}",

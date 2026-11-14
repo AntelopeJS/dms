@@ -306,7 +306,7 @@ function readsSerializedForm(
   options: Record<string, unknown>,
 ): boolean {
   return (
-    blockType.componentName === "dms-form" &&
+    blockType.componentName === "dms-form-block" &&
     isString(options.fetchUrl) &&
     Array.isArray(options.fields) &&
     !options.submitUrl

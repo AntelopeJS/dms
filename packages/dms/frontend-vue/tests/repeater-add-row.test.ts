@@ -25,7 +25,7 @@ import {
 } from "@nuxt/ui/composables/useFormField";
 import type { FormEvent } from "@nuxt/ui";
 import { useEventBus } from "@vueuse/core";
-import Repeater from "../layers/dms-ui/app/components/form/components/Repeater.vue";
+import Repeater from "../layers/dms-ui/app/components/form/components/InputRepeater.vue";
 import { registerDmsComponent } from "#dms/frontend-module";
 
 registerDmsComponent(

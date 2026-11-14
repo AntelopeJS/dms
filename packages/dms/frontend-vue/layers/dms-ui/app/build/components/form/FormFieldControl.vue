@@ -94,7 +94,7 @@ const readonly = computed<FormFieldReadonly>(() =>
         v-if="showsDisplay"
         class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1"
       >
-        <DmsDisplay
+        <DmsDisplayValue
           :model-value="readonlyValue"
           :type="field.type"
           :loading

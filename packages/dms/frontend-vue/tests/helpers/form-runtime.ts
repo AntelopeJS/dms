@@ -106,7 +106,7 @@ export async function mountForm(
   setupApp?: (app: Vue.App) => void,
 ) {
   const { default: Form } = await import(
-    "../../layers/dms-ui/app/components/form/Form.vue"
+    "../../layers/dms-ui/app/components/form/FormBlock.vue"
   );
   const options: FormProps = {
     componentId: "form",
@@ -179,8 +179,8 @@ export async function mountForm(
 export function registerFormComponents(app: Vue.App) {
   app.config.globalProperties.$t = t;
   for (const name of [
-    "DmsCard",
-    "DmsSection",
+    "DmsCardPanel",
+    "DmsSectionPanel",
     "UFormField",
     "UIcon",
     "DmsLocalizedField",
@@ -192,7 +192,7 @@ export function registerFormComponents(app: Vue.App) {
   app.component("UButton", Button);
   app.component("UAlert", Alert);
   app.component(
-    "DmsDisplay",
+    "DmsDisplayValue",
     Vue.defineComponent({
       props: ["modelValue"],
       setup: (props) => () => Vue.h("span", String(props.modelValue ?? "")),

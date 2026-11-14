@@ -43,14 +43,14 @@ const authItems = computed(() => authLinks.value.map(linkItem));
       :columns="1"
     >
       <ShowcaseDemo label="useFooterLinks().links">
-        <DmsCard title="Footer" :count="footerItems.length">
+        <DmsCardPanel title="Footer" :count="footerItems.length">
           <DmsKeyValueList :items="footerItems" dense />
-        </DmsCard>
+        </DmsCardPanel>
       </ShowcaseDemo>
       <ShowcaseDemo label="useAuthLinks('login').links">
-        <DmsCard title="Under the sign-in form" :count="authItems.length">
+        <DmsCardPanel title="Under the sign-in form" :count="authItems.length">
           <DmsKeyValueList :items="authItems" dense />
-        </DmsCard>
+        </DmsCardPanel>
       </ShowcaseDemo>
     </ShowcaseSection>
 

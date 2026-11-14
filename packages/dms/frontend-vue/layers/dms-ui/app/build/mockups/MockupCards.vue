@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { TableViewDisplayContext } from "../../composables/table-view/types";
-import DmsEmpty from "../components/table/Empty.vue";
-import DmsPagination from "../components/table/Pagination.vue";
+import DmsTableEmpty from "../components/table/TableEmpty.vue";
+import DmsTablePagination from "../components/table/TablePagination.vue";
 import {
   parseMockupSummary,
   type MockupSource,
@@ -79,7 +79,7 @@ function metaLine(mockup: MockupSummary): string {
       </li>
     </ul>
 
-    <DmsEmpty v-else-if="!mockups.length" :can-add-row="false" />
+    <DmsTableEmpty v-else-if="!mockups.length" :can-add-row="false" />
 
     <ul
       v-else
@@ -139,6 +139,6 @@ function metaLine(mockup: MockupSummary): string {
       </li>
     </ul>
 
-    <DmsPagination />
+    <DmsTablePagination />
   </div>
 </template>

@@ -12,7 +12,7 @@ import type {
 import type {
   TableDensity,
   TableFilter,
-} from "../../components/table/Table.vue";
+} from "../../components/table/TableRoot.vue";
 import {
   isSameTableState,
   newUserViewId,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DmsCard from "#dms-ui/app/components/card/Card.vue";
+import DmsCardPanel from "#dms-ui/app/components/card/CardPanel.vue";
 import RolePanelHead from "./RolePanelHead.vue";
 import type { RoleOwnersSummary } from "./role-types";
 
@@ -16,7 +16,7 @@ const MEMBERS_PAGE_PATH = "/settings/workspace/members";
 <template>
   <!-- v2 "Owner role · locked": the owner is not a stored role, so the editor
        explains it instead of offering a tree. -->
-  <DmsCard
+  <DmsCardPanel
     as="section"
     :padded="false"
     class="min-w-0"
@@ -53,5 +53,5 @@ const MEMBERS_PAGE_PATH = "/settings/workspace/members";
         />
       </template>
     </DmsEmptyState>
-  </DmsCard>
+  </DmsCardPanel>
 </template>
