@@ -86,9 +86,11 @@ export interface TableViewViewState {
 
 /**
  * A named state of the table ("Past due > 7 days", "Mine"). Opening it
- * applies its state; the user may then change filters or sort, which marks
- * the view as modified with a way back (Reset) or forward (Save as new view).
- * A view the module declares is never overwritten.
+ * applies its state; the user may then change filters or sort, with a way
+ * back (Reset) or forward (Save as new view). A change that only narrows the
+ * view (an extra filter, another sort) keeps it named, marked as modified; one
+ * that removes or changes a filter or search it sets leaves it, and the table
+ * reads as custom filters. A view the module declares is never overwritten.
  */
 export interface TableViewView extends TableViewViewState {
   /** Stable id, used in the URL (`?view=<id>`). */
@@ -104,7 +106,8 @@ export interface TableViewView extends TableViewViewState {
    * Shows the number of rows the view lists, counted by the controller's
    * `countBatch` route like the tab counters: what opening it would list,
    * under the open tab and the page's URL filters. The open view counts the
-   * rows listed, its filters and search as the user edited them.
+   * rows listed, its filters and search as the user edited them, until a
+   * change leaves it (see `TableViewView`).
    */
   count?: boolean;
   /**

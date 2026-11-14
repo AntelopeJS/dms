@@ -1,48 +1,9 @@
 /** @vitest-environment jsdom */
-import {
-  computed,
-  createApp,
-  defineComponent,
-  h,
-  nextTick,
-  onMounted,
-  ref,
-  watch,
-  type App,
-} from "vue";
-import type { SortingState, VisibilityState } from "@tanstack/vue-table";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  PHONE_VIEWPORT_QUERY,
-  useMobileDisplay,
-} from "../layers/dms-ui/app/entries/composables/table-view/useMobileDisplay";
-import { useTableViews } from "../layers/dms-ui/app/entries/composables/table-view/useTableViews";
-import type { TablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
-import { linkedArrivalPreferences } from "../layers/dms-ui/app/entries/composables/table-view/utils/linkedArrival";
-import { type TableStateDefaults } from "../layers/dms-ui/app/entries/composables/table-view/utils/views";
-import type { TableViewViewsConfig } from "../layers/dms-ui/app/composables/table-view/types";
-import type {
-  TableDensity,
-  TableFilter,
-} from "../layers/dms-ui/app/entries/components/table/TableRoot";
-import type { ConfirmOptions } from "../layers/dms-ui/app/composables/confirm/types";
-import type { ToastProps } from "@nuxt/ui";
-
+import { nextTick } from "vue";
+import { beforeEach, describe, expect, it } from "vitest";
+import { PHONE_VIEWPORT_QUERY } from "../layers/dms-ui/app/entries/composables/table-view/useMobileDisplay";
 import { pinnedStatus, DEFAULTS } from "./helpers/table-view-views-fixtures";
-
-interface HarnessOptions {
-  views: TableViewViewsConfig;
-  query?: Record<string, string>;
-  preferences?: Record<string, Parameters<TablePreferences["set"]>[1]>;
-  userId?: string;
-  viewName?: string;
-  /** Arrived through a link naming what the table lists. */
-  isLinked?: boolean;
-  /** The answer to a confirmation without fields (a deletion). */
-  isConfirmed?: boolean;
-  /** Wires a phone's `mobileDisplay` after the views, as the table view does. */
-  mobileDisplay?: string;
-}
+import { createTableViewViewsFixture } from "./helpers/table-view-views-harness";
 
 describe("useTableViews", () => {
   const fixture = createTableViewViewsFixture();
@@ -51,133 +12,6 @@ describe("useTableViews", () => {
   registerViewClosingTests(fixture);
   registerMobileAndDeclaredViewTests(fixture);
 });
-
-function createTableViewViewsFixture() {
-  let app: App | undefined;
-  let toasts: unknown[];
-  let dialogs: ConfirmOptions[];
-
-  const mountViews = async (options: HarnessOptions) => {
-    const preferences = new Map<string, unknown>(
-      Object.entries(options.preferences ?? {}),
-    );
-
-    const restores: Array<() => void> = [];
-    const tablePreferences = createRestorablePreferences(preferences, restores);
-    vi.stubGlobal("useDmsUserSession", () => ({
-      user: ref({ _id: options.userId ?? "u1" }),
-    }));
-    vi.stubGlobal("useDmsRoute", () => ({ query: options.query ?? {} }));
-    vi.stubGlobal("useConfirm", () => ({
-      confirm: async (dialog: ConfirmOptions) => {
-        dialogs.push(dialog);
-        if (!dialog.onConfirm) return options.isConfirmed ?? true;
-        await dialog.onConfirm({ label: options.viewName ?? "Mine" });
-        return true;
-      },
-    }));
-
-    const state = {
-      columnFilters: ref<TableFilter[]>([]),
-      globalFilter: ref<string | undefined>(),
-      sorting: ref<SortingState>([]),
-      columnVisibility: ref<VisibilityState>({}),
-      columnOrder: ref<string[]>([]),
-      display: ref("table"),
-      density: ref<TableDensity>("default"),
-      pagination: ref({ pageIndex: 3, pageSize: 10 }),
-    };
-    const displayDefault = ref(DEFAULTS.display);
-    const defaults: TableStateDefaults = {
-      ...DEFAULTS,
-      get display() {
-        return displayDefault.value;
-      },
-    };
-    let api: ReturnType<typeof useTableViews> | undefined;
-    app = createApp(
-      defineComponent({
-        setup() {
-          onMounted(() => restores.forEach((restore) => restore()));
-
-          tablePreferences.restore("density", state.density);
-          tablePreferences.restore("columnOrder", state.columnOrder);
-          api = useTableViews({
-            views: options.views,
-            defaults,
-            state,
-            preferences: options.isLinked
-              ? linkedArrivalPreferences(tablePreferences)
-              : tablePreferences,
-            urlScope: { tableId: "content", isSoleTableView: true },
-          });
-          useMobileDisplay({
-            mobileDisplay: options.mobileDisplay,
-            defaultDisplay: displayDefault,
-            offered: DEFAULTS.displays,
-            display: state.display,
-            activeView: api.activeView,
-            isDisplayChosen: () => false,
-          });
-          return () => h("div");
-        },
-      }),
-    );
-    app.mount(document.createElement("div"));
-    await nextTick();
-    return { api: api!, state, preferences };
-  };
-
-  const VIEWS: TableViewViewsConfig = {
-    defaultView: "all",
-    userViews: true,
-    items: [
-      { id: "all", label: "All" },
-      {
-        id: "mine",
-        label: "$tickets.mine",
-        filters: [{ accessorKey: "owner", mode: "is", value: "{{user.id}}" }],
-        sort: [{ field: "title" }],
-      },
-    ],
-  };
-
-  beforeEach(() => {
-    toasts = [];
-    dialogs = [];
-    vi.stubGlobal("computed", computed);
-    vi.stubGlobal("ref", ref);
-    vi.stubGlobal("watch", watch);
-    vi.stubGlobal("onMounted", onMounted);
-    vi.stubGlobal("Color", { warning: "warning" });
-    vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
-    vi.stubGlobal("useTranslation", () => ({
-      processI18n: (text: string) => text.replace(/^\$/, "i18n:"),
-    }));
-    vi.stubGlobal("useToast", () => ({
-      add: (toast: ToastProps) => toasts.push(toast),
-    }));
-  });
-
-  afterEach(() => {
-    app?.unmount();
-    app = undefined;
-    vi.unstubAllGlobals();
-  });
-  return {
-    mountViews,
-    VIEWS,
-    get toasts() {
-      return toasts;
-    },
-    get app() {
-      return app;
-    },
-    get dialogs() {
-      return dialogs;
-    },
-  };
-}
 
 /** A media query that matches, or not, for good. */
 class FixedMediaQuery extends EventTarget implements MediaQueryList {
@@ -192,28 +26,6 @@ class FixedMediaQuery extends EventTarget implements MediaQueryList {
 
   addListener = () => undefined;
   removeListener = () => undefined;
-}
-
-function createRestorablePreferences(
-  preferences: Map<string, unknown>,
-  restores: Array<() => void>,
-): TablePreferences {
-  return {
-    // SAFETY: holds when the V a caller requests for a field is the type of the value `preferences` stores under it; a field absent from the map returns the caller's fallback, which is a V.
-    get: <V>(field: string, fallback: V) =>
-      (preferences.has(field) ? preferences.get(field) : fallback) as V,
-    set: (field, value) => {
-      preferences.set(field, value);
-    },
-    restore: (field, state) => {
-      restores.push(() => {
-        if (preferences.has(field)) {
-          // SAFETY: holds when the state ref passed to restore holds the type of the value `preferences` stores under that same field.
-          state.value = preferences.get(field) as typeof state.value;
-        }
-      });
-    },
-  };
 }
 
 function registerViewArrivalTests(
@@ -337,14 +149,17 @@ function registerViewDefaultsAndSavingTests(
       views: fixture.VIEWS,
       query: { view: "mine" },
     });
-    expect(api.isModified.value).toBe(false);
+    expect(api.change.value).toBe("unchanged");
     state.globalFilter.value = "printer";
     await nextTick();
-    expect(api.isModified.value).toBe(true);
+    expect(api.change.value).toBe("modified");
+    state.sorting.value = [{ id: "createdAt", desc: true }];
+    await nextTick();
+    expect(api.change.value).toBe("modified");
     api.resetView();
     await nextTick();
     expect(state.globalFilter.value).toBe(undefined);
-    expect(api.isModified.value).toBe(false);
+    expect(api.change.value).toBe("unchanged");
   });
 
   it("saves the current state as a view of the user's own, served to them only", async () => {
@@ -373,10 +188,10 @@ function registerViewDefaultsAndSavingTests(
 
     state.density.value = "compact";
     await nextTick();
-    expect(api.isModified.value).toBe(true);
+    expect(api.change.value).toBe("modified");
     api.saveView();
     await nextTick();
-    expect(api.isModified.value).toBe(false);
+    expect(api.change.value).toBe("unchanged");
 
     await api.deleteView(saved!.id);
     await nextTick();
@@ -401,7 +216,7 @@ function registerViewClosingTests(
     api.selectView("mine");
     await nextTick();
     expect(api.activeViewId.value).toBe(undefined);
-    expect(api.isModified.value).toBe(false);
+    expect(api.change.value).toBe("unchanged");
     expect(state.columnFilters.value).toEqual([{ ...pinnedStatus }]);
     expect(state.sorting.value).toEqual(DEFAULTS.sorting);
     api.selectView("mine");
@@ -474,7 +289,7 @@ function registerMobileAndDeclaredViewTests(
       });
       expect(api.activeViewId.value).toBe("all");
       expect(state.display.value).toBe("grouped");
-      expect(api.isModified.value).toBe(false);
+      expect(api.change.value).toBe("unchanged");
       api.openView("mine");
       await nextTick();
       expect(state.display.value).toBe("grouped");

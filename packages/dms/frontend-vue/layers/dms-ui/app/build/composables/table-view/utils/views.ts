@@ -152,7 +152,52 @@ export function isSameTableState(
   );
 }
 
-/** The table's current state as a view keeps it. */
+/**
+ * How the table stands to the open view: on the view's state (`unchanged`),
+ * moved on from it but still listing within it (`modified`: an extra filter,
+ * another sort), or off it (`diverged`): a filter or search opening the view
+ * sets (the table's pinned filters included) was removed or changed, so the
+ * rows listed are no longer the view's.
+ */
+export type TableViewChange = "unchanged" | "modified" | "diverged";
+
+const keepsViewSearch = (
+  view: TableViewViewStateConfig,
+  current: TableStateSnapshot,
+): boolean => {
+  const search = view.search?.trim();
+  return !search || current.search.trim() === search;
+};
+
+/** How `current` stands to `view` opened over `defaults`. */
+export function viewChange(
+  view: TableViewViewStateConfig,
+  current: TableStateSnapshot,
+  defaults: TableStateDefaults,
+): TableViewChange {
+  if (
+    isSameTableState(
+      current,
+      viewSnapshot(view, defaults),
+      defaults.columnOrder,
+    )
+  ) {
+    return "unchanged";
+  }
+  const currentFilters = new Set(effectiveFilterKeys(current.filters));
+  const keepsFilters = effectiveFilterKeys(
+    viewFilters(view, defaults.pinnedFilters),
+  ).every((key) => currentFilters.has(key));
+  return keepsFilters && keepsViewSearch(view, current)
+    ? "modified"
+    : "diverged";
+}
+
+/**
+ * The table's current state as a view keeps it: the filters with a value,
+ * and the pinned ones whatever their value, so a pinned filter cleared stays
+ * cleared when the view opens.
+ */
 export function snapshotViewState(
   snapshot: TableStateSnapshot,
 ): TableViewViewStateConfig {
@@ -164,7 +209,7 @@ export function snapshotViewState(
   );
   return {
     filters: snapshot.filters
-      .filter(isFilterEffective)
+      .filter((filter) => filter.pinned || isFilterEffective(filter))
       .map(({ accessorKey, mode, value }) => ({ accessorKey, mode, value })),
     search: snapshot.search.trim() || undefined,
     sort: snapshot.sorting.map(({ id, desc }) => ({ field: id, desc })),

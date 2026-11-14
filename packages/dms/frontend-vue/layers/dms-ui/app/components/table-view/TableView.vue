@@ -94,7 +94,7 @@ const {
   globalFilter,
   showArchived,
   activeViewId,
-  isViewModified,
+  viewChange,
   canSaveViews,
   selectView,
   resetView,
@@ -276,7 +276,7 @@ const blockAttributes = useBlockStateAttributes("TableView", () =>
         :items="viewItems"
         :active-id="activeViewId"
         :layout="viewsLayout"
-        :modified="isViewModified"
+        :change="viewChange"
         :can-save-as="canSaveViews"
         :divided="tabsWithCount.length === 0"
         @open="selectView"

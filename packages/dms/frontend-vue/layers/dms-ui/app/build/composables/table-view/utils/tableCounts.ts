@@ -38,6 +38,10 @@ export interface TableCountState {
 export interface TableCountQueriesInput extends TableCountState {
   tabs: CountedTab[];
   views: CountedView[];
+  /**
+   * The view whose counter counts the rows listed: the open one, unless the
+   * table diverged from it, which leaves it counting its own rows.
+   */
   activeViewId?: string;
 }
 
