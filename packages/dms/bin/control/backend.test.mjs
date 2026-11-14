@@ -11,6 +11,7 @@ import {
   utimesSync,
   writeFileSync,
 } from "node:fs";
+import { platform } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { freshDatabase, restartBackend } from "./backend.mjs";
@@ -190,7 +191,9 @@ await test("while a build folder is missing, a fresh database refuses before it 
 await test(
   "a build folder that cannot be read keeps a standby from being used; a version that counts what it cannot read as unchanged uses it",
   {
-    skip: process.getuid?.() === 0 && "root reads a folder whatever its mode",
+    skip:
+      (process.getuid?.() === 0 && "root reads a folder whatever its mode") ||
+      (platform() === "win32" && "Windows reads a folder whatever its mode"),
   },
   async (t) => {
     const state = await newRun(t);

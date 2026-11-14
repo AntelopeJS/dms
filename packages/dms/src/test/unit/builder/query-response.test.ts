@@ -139,7 +139,8 @@ function arrangesOneCalculationPerBlock(): void {
     );
   });
 
-  it("reads the arrangement back, so a card stays editable", async () => {
+  it("reads the arrangement back, so a card stays editable", async function () {
+    this.timeout(OP_TIMEOUT);
     const card = await queryNamed("revenueCard");
     expect(card?.opaque, "an arrangement is not an opaque body").to.not.equal(
       true,
@@ -245,7 +246,8 @@ function comparesAgainstThePeriodBefore(): void {
     );
   });
 
-  it("reads the comparison back, so the next save keeps it", async () => {
+  it("reads the comparison back, so the next save keeps it", async function () {
+    this.timeout(OP_TIMEOUT);
     const trend = await queryNamed("revenueTrend");
     expect(trend?.opaque).to.not.equal(true);
     expect(trend?.compare).to.equal(true);

@@ -78,8 +78,9 @@ function escaped(text) {
 /**
  * Replaces the run's web URL, where a file holds it as a whole
  * double-quoted value, and the workspace folder, where a file holds it or a
- * path under it as one, with placeholders. `%` is escaped first, so no text
- * of the file reads as a placeholder.
+ * path under it as one, joined by `/` or by the system's separator, with
+ * placeholders. `%` is escaped first, so no text of the file reads as a
+ * placeholder.
  *
  * @param {string} webUrl The run's web URL
  * @param {string[]} folders The workspace folder, as given and resolved
@@ -92,10 +93,11 @@ function leavingOutRunValues(webUrl, folders) {
     ...folders.flatMap((folder) => {
       const quoted = JSON.stringify(folder);
       /** @type {Array<[string, string]>} */
-      const forms = [
-        [quoted, `"${ESCAPE}P"`],
-        [`${quoted.slice(0, -1)}/`, `"${ESCAPE}P/`],
-      ];
+      const forms = [[quoted, `"${ESCAPE}P"`]];
+      for (const separator of new Set(["/", sep])) {
+        const under = JSON.stringify(separator).slice(1, -1);
+        forms.push([`${quoted.slice(0, -1)}${under}`, `"${ESCAPE}P/`]);
+      }
       return forms;
     }),
   ];

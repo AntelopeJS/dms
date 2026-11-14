@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomInt } from "node:crypto";
 import {
   closeSync,
@@ -9,6 +9,7 @@ import {
   readlinkSync,
 } from "node:fs";
 import { createConnection, createServer } from "node:net";
+import { platform } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
@@ -401,11 +402,22 @@ export function listenersOf(port) {
 }
 
 /**
+ * Signals the process group `pid` leads, or `pid` alone when it leads none.
+ * Windows has neither groups nor signals, so there `taskkill /T /F` ends
+ * `pid` and every process it started, which a group's SIGKILL reaches on
+ * Linux, whatever `signal` asks.
+ *
  * @param {number} pid
  * @param {NodeJS.Signals} signal
  */
 function signalGroup(pid, signal) {
   assertSignalable(pid);
+  if (platform() === "win32") {
+    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
+      stdio: "ignore",
+    });
+    return;
+  }
   try {
     process.kill(-pid, signal);
   } catch {

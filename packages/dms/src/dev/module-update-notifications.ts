@@ -1,5 +1,3 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModuleInfo, ListModules } from "@antelopejs/interface-core/modules";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
@@ -12,6 +10,7 @@ import {
 } from "@antelopejs/interface-dms/notifications";
 import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifications/types";
 import { satisfies, validRange } from "semver";
+import { runPackageManager } from "../utils/package-manager/index";
 
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 const NPM_VIEW_TIMEOUT_MS = 30_000;
@@ -40,8 +39,6 @@ export interface OutdatedModule {
   current: string;
   latest: string;
 }
-
-const execFileAsync = promisify(execFile);
 
 let updatesSubject: NotificationSubjectInfo | undefined;
 let checkTimer: NodeJS.Timeout | undefined;
@@ -92,7 +89,7 @@ async function fetchLatestVersion(
 ): Promise<string | undefined> {
   if (packageName === undefined) return undefined;
   try {
-    const { stdout } = await execFileAsync(
+    const { stdout } = await runPackageManager(
       "npm",
       ["view", packageName, "version"],
       { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS, signal },

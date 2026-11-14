@@ -85,7 +85,7 @@ describe("theme layer creation", function () {
     const writeFileSync = fs.writeFileSync;
     Object.assign(fs, {
       writeFileSync: (...args: Parameters<typeof fs.writeFileSync>) => {
-        if (args[0] === barrel) {
+        if (path.resolve(String(args[0])) === barrel) {
           throw failure;
         }
         writeFileSync(...args);

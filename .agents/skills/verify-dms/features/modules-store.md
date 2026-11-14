@@ -5,6 +5,8 @@ covers:
   - packages/dms/src/pages/modules/**
   - packages/dms/src/validation/store.schema.ts
   - packages/dms/src/dev/**
+  - packages/dms/src/utils/package-manager/**
+  - packages/dms/src/utils/package-manager.ts
   - packages/dms/frontend-vue/layers/dms-layout/app/custom-pages/modules*.vue
   - packages/dms/frontend-vue/layers/dms-layout/app/build/components/pages/modules/**
   - packages/dms/frontend-vue/layers/dms-core/app/types/module-store.ts

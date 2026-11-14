@@ -23,7 +23,7 @@ import { cliPaths } from "./launch.mjs";
  * @returns {string} A real scratch folder removed when the test ends
  */
 function scratch(t) {
-  const dir = realpathSync(
+  const dir = realpathSync.native(
     mkdtempSync(join(tmpdir(), "dms-control-renderer-test-")),
   );
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -204,7 +204,7 @@ await test("up takes the playground and the renderer from the skill's config, re
     `{ playground: "/dms/playground", renderer: ".", ${EMPTY_CONFIG} }`,
   );
   assert.deepEqual(await targetOf({}, checkout), {
-    playground: "/dms/playground",
+    playground: resolve(checkout, "/dms/playground"),
     renderer: checkout,
   });
 });

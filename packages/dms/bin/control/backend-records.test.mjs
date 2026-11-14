@@ -15,7 +15,7 @@ import {
   withoutStartTimes,
 } from "./helpers/fake-run.mjs";
 import { canChoosePid, chooseNextPid } from "./helpers/pids.mjs";
-import { isRunning } from "./identity.mjs";
+import { hasProc, isRunning } from "./identity.mjs";
 import { startDetached } from "./processes.mjs";
 import { backendsFolder, recordBackend } from "./run-state.mjs";
 import { down, liveBackends } from "./stack.mjs";
@@ -34,45 +34,61 @@ function stderrOf(t) {
     write.mock.calls.map((call) => String(call.arguments[0])).join("");
 }
 
-await test("a process that took the pid of a backend the run recorded is not stopped, even with that backend's database in its environment", async (t) => {
-  const state = await newRun(t);
-  await freshDatabase(state, "j001");
-  const database = `${state.databasePrefix}_j002`;
-  const standby = await startedOn(database);
-  const record = liveBackends(state).find(
-    (backend) => backend.pid === standby.pid,
-  );
-  assert.ok(record, "the standby is recorded");
-  const other = bystander(t, { ...process.env, MONGO_DATABASE: database });
-  recordBackend(state.dir, { ...record, pid: other });
-  await freshDatabase(state, "r1");
-  assert.equal(isRunning(other), true);
-  await down(state);
-  assert.equal(isRunning(other), true);
-  assert.deepEqual(running(), []);
-});
+await test(
+  "a process that took the pid of a backend the run recorded is not stopped, even with that backend's database in its environment",
+  {
+    skip:
+      !hasProc() &&
+      "a start time tells a process from another that took its pid, and only /proc gives one",
+  },
+  async (t) => {
+    const state = await newRun(t);
+    await freshDatabase(state, "j001");
+    const database = `${state.databasePrefix}_j002`;
+    const standby = await startedOn(database);
+    const record = liveBackends(state).find(
+      (backend) => backend.pid === standby.pid,
+    );
+    assert.ok(record, "the standby is recorded");
+    const other = bystander(t, { ...process.env, MONGO_DATABASE: database });
+    recordBackend(state.dir, { ...record, pid: other });
+    await freshDatabase(state, "r1");
+    assert.equal(isRunning(other), true);
+    await down(state);
+    assert.equal(isRunning(other), true);
+    assert.deepEqual(running(), []);
+  },
+);
 
-await test("a process that took the pid of a process run.json records is not stopped by a restart or by down", async (t) => {
-  const state = await newRun(t);
-  await freshDatabase(state, "j001");
-  const serving = state.processes.find((entry) => entry.name === "backend");
-  assert.ok(serving, "run.json records the backend");
-  const other = bystander(t, {
-    ...process.env,
-    MONGO_DATABASE: state.database,
-  });
-  const reused = { ...serving, pid: other };
-  state.processes = state.processes.map((entry) =>
-    entry === serving ? reused : entry,
-  );
-  await restartBackend(state);
-  assert.equal(isRunning(other), true);
-  assert.equal((await served(state)).database, state.database);
-  state.processes = [...state.processes, { ...reused, name: "frontend" }];
-  await down(state);
-  assert.equal(isRunning(other), true);
-  assert.deepEqual(running(), []);
-});
+await test(
+  "a process that took the pid of a process run.json records is not stopped by a restart or by down",
+  {
+    skip:
+      !hasProc() &&
+      "a start time tells a process from another that took its pid, and only /proc gives one",
+  },
+  async (t) => {
+    const state = await newRun(t);
+    await freshDatabase(state, "j001");
+    const serving = state.processes.find((entry) => entry.name === "backend");
+    assert.ok(serving, "run.json records the backend");
+    const other = bystander(t, {
+      ...process.env,
+      MONGO_DATABASE: state.database,
+    });
+    const reused = { ...serving, pid: other };
+    state.processes = state.processes.map((entry) =>
+      entry === serving ? reused : entry,
+    );
+    await restartBackend(state);
+    assert.equal(isRunning(other), true);
+    assert.equal((await served(state)).database, state.database);
+    state.processes = [...state.processes, { ...reused, name: "frontend" }];
+    await down(state);
+    assert.equal(isRunning(other), true);
+    assert.deepEqual(running(), []);
+  },
+);
 
 await test("a backend record removed while the records are read counts as gone", async (t) => {
   const state = await newRun(t);
@@ -165,42 +181,58 @@ function forwarderOf(state) {
   return api;
 }
 
-await test("a run.json record without a start time, as an earlier dms-control wrote, is stopped by down only while its pid runs a process started when the record says; a version that trusts the pid alone stops a process started days later", async (t) => {
-  const state = await newRun(t);
-  const later = bystander(t);
-  const own = bystander(t);
-  const now = new Date();
-  /**
-   * @param {string} name
-   * @param {number} pid
-   * @param {Date} at
-   */
-  const recorded = (name, pid, at) => ({
-    name,
-    pid,
-    command: "a process an earlier dms-control started",
-    cwd: state.dir,
-    log: join(state.logs, `${name}.log`),
-    startedAt: at.toISOString(),
-  });
-  state.processes = [
-    recorded("frontend", later, new Date(now.getTime() - SIX_DAYS_MS)),
-    recorded("mail", own, now),
-  ];
-  await down(state);
-  assert.equal(isRunning(later), true);
-  assert.equal(isRunning(own), false);
-});
+await test(
+  "a run.json record without a start time, as an earlier dms-control wrote, is stopped by down only while its pid runs a process started when the record says; a version that trusts the pid alone stops a process started days later",
+  {
+    skip:
+      !hasProc() &&
+      "a start time tells a process from another that took its pid, and only /proc gives one",
+  },
+  async (t) => {
+    const state = await newRun(t);
+    const later = bystander(t);
+    const own = bystander(t);
+    const now = new Date();
+    /**
+     * @param {string} name
+     * @param {number} pid
+     * @param {Date} at
+     */
+    const recorded = (name, pid, at) => ({
+      name,
+      pid,
+      command: "a process an earlier dms-control started",
+      cwd: state.dir,
+      log: join(state.logs, `${name}.log`),
+      startedAt: at.toISOString(),
+    });
+    state.processes = [
+      recorded("frontend", later, new Date(now.getTime() - SIX_DAYS_MS)),
+      recorded("mail", own, now),
+    ];
+    await down(state);
+    assert.equal(isRunning(later), true);
+    assert.equal(isRunning(own), false);
+  },
+);
 
-await test("a backend record without a start time, as this branch wrote before, is stopped by down; a version that skips such a record leaves the standby running", async (t) => {
-  const state = await newRun(t);
-  await freshDatabase(state, "j001");
-  await startedOn(`${state.databasePrefix}_j002`);
-  assert.equal(withoutStartTimes(state), 2);
-  assert.equal(liveBackends(state).length, 2);
-  await down(state);
-  assert.deepEqual(running(), []);
-});
+await test(
+  "a backend record without a start time, as this branch wrote before, is stopped by down; a version that skips such a record leaves the standby running",
+  {
+    skip:
+      !hasProc() &&
+      "only /proc gives a start time, so no record holds one to leave out",
+  },
+  async (t) => {
+    const state = await newRun(t);
+    await freshDatabase(state, "j001");
+    await startedOn(`${state.databasePrefix}_j002`);
+    assert.equal(withoutStartTimes(state), 2);
+    assert.equal(liveBackends(state).length, 2);
+    await down(state);
+    assert.deepEqual(running(), []);
+  },
+);
 
 await test(
   "a recorded backend that exits while a fresh database waits for the standby, and whose pid another process takes, is not signalled; a version that kills from the list it read before the wait kills that process",
@@ -247,30 +279,52 @@ await test(
   },
 );
 
-await test("a forwarder that exited, whose pid another process holds, is started again and the API answers; a version that trusts a live pid leaves the API port closed", async (t) => {
-  const state = await newRun(t);
-  await freshDatabase(state, "j001");
-  const api = forwarderOf(state);
-  process.kill(api.pid, "SIGKILL");
-  while (isRunning(api.pid)) await sleep(20);
-  const other = bystander(t);
-  state.processes = state.processes.map((entry) =>
-    entry === api ? { ...api, pid: other } : entry,
-  );
-  await freshDatabase(state, "j002");
-  assert.equal((await served(state)).database, `${state.databasePrefix}_j002`);
-  assert.equal(isRunning(other), true);
-});
+await test(
+  "a forwarder that exited, whose pid another process holds, is started again and the API answers; a version that trusts a live pid leaves the API port closed",
+  {
+    skip:
+      !hasProc() &&
+      "a start time tells a process from another that took its pid, and only /proc gives one",
+  },
+  async (t) => {
+    const state = await newRun(t);
+    await freshDatabase(state, "j001");
+    const api = forwarderOf(state);
+    process.kill(api.pid, "SIGKILL");
+    while (isRunning(api.pid)) await sleep(20);
+    const other = bystander(t);
+    state.processes = state.processes.map((entry) =>
+      entry === api ? { ...api, pid: other } : entry,
+    );
+    await freshDatabase(state, "j002");
+    assert.equal(
+      (await served(state)).database,
+      `${state.databasePrefix}_j002`,
+    );
+    assert.equal(isRunning(other), true);
+  },
+);
 
-await test("doctor fails a recorded process whose pid another process holds; a version that checks only that the pid is alive passes it", async (t) => {
-  const state = await newRun(t);
-  await freshDatabase(state, "j001");
-  const api = forwarderOf(state);
-  const other = bystander(t);
-  state.processes = [...state.processes, { ...api, name: "mail", pid: other }];
-  const lines = await doctor(state);
-  const okOf = (/** @type {string} */ check) =>
-    lines.find((line) => line.check === check)?.ok;
-  assert.equal(okOf(`api pid ${api.pid} alive`), true);
-  assert.equal(okOf(`mail pid ${other} alive`), false);
-});
+await test(
+  "doctor fails a recorded process whose pid another process holds; a version that checks only that the pid is alive passes it",
+  {
+    skip:
+      !hasProc() &&
+      "a start time tells a process from another that took its pid, and only /proc gives one",
+  },
+  async (t) => {
+    const state = await newRun(t);
+    await freshDatabase(state, "j001");
+    const api = forwarderOf(state);
+    const other = bystander(t);
+    state.processes = [
+      ...state.processes,
+      { ...api, name: "mail", pid: other },
+    ];
+    const lines = await doctor(state);
+    const okOf = (/** @type {string} */ check) =>
+      lines.find((line) => line.check === check)?.ok;
+    assert.equal(okOf(`api pid ${api.pid} alive`), true);
+    assert.equal(okOf(`mail pid ${other} alive`), false);
+  },
+);

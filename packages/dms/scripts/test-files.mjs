@@ -1,5 +1,5 @@
 import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 /** The test files `ajs module test` collects from a folder. */
@@ -11,7 +11,7 @@ const SHARD = /^--shard=(\d+)\/(\d+)$/;
  *
  * @param {string} root The folder the runner would scan
  * @param {string[]} excluded Folders under `root` to leave out
- * @returns {string[]} The file paths
+ * @returns {string[]} The file paths, with `/` separators on every OS
  */
 export function testFiles(root, excluded) {
   const skipped = new Set(excluded.map((folder) => join(folder)));
@@ -23,7 +23,8 @@ export function testFiles(root, excluded) {
     for (const entry of readdirSync(folder, { withFileTypes: true })) {
       const path = join(folder, entry.name);
       if (entry.isDirectory()) visit(path);
-      else if (TEST_FILE.test(entry.name)) files.push(path);
+      else if (TEST_FILE.test(entry.name))
+        files.push(path.split(sep).join("/"));
     }
   };
   visit(root);

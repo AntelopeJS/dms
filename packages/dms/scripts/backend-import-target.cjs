@@ -12,36 +12,15 @@ const { forbidden } = require("../../../.dependency-cruiser/backend.cjs");
 const root = nodePath.resolve(__dirname, "..");
 const workspace = nodePath.resolve(root, "../..");
 const processPins = {
-  "src/dev/module-update-notifications.ts:1":
+  "src/utils/package-manager.ts:1":
     'import { execFile } from "node:child_process";',
-  "src/dev/module-update-notifications.ts:2":
-    'import { promisify } from "node:util";',
-  "src/dev/module-update-notifications.ts:44":
+  "src/utils/package-manager.ts:3": 'import { promisify } from "node:util";',
+  "src/utils/package-manager.ts:5":
     "const execFileAsync = promisify(execFile);",
-  "src/dev/module-update-notifications.ts:95":
-    'const { stdout } = await execFileAsync(\n      "npm",\n      ["view", packageName, "version"],\n      { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS, signal },\n    );',
-  "src/store/registry.ts:1": 'import { execFile } from "node:child_process";',
-  "src/store/registry.ts:2": 'import { promisify } from "node:util";',
-  "src/store/registry.ts:10": "const execFileAsync = promisify(execFile);",
-  "src/store/registry.ts:39":
-    'const { stdout } = await execFileAsync(\n      "npm",\n      ["view", spec, ...fields, "--json"],\n      { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS },\n    );',
-  "src/store/tarball.ts:1": 'import { execFile } from "node:child_process";',
-  "src/store/tarball.ts:5": 'import { promisify } from "node:util";',
-  "src/store/tarball.ts:8": "const execFileAsync = promisify(execFile);",
-  "src/store/tarball.ts:80":
-    'await execFileAsync(\n    "npm",\n    ["pack", spec, "--pack-destination", destination, "--silent"],\n    { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS },\n  );',
-  "src/mcp/tools/typecheck.ts:1":
-    'import { execFile } from "node:child_process";',
-  "src/mcp/tools/typecheck.ts:4": 'import { promisify } from "node:util";',
-  "src/mcp/tools/typecheck.ts:11": "const execFileAsync = promisify(execFile);",
-  "src/mcp/tools/typecheck.ts:83":
-    'await execFileAsync(TSC_COMMAND, TSC_ARGS, {\n      cwd: root,\n      timeout: TIMEOUT_MS,\n      maxBuffer: MAX_BUFFER_BYTES,\n      encoding: "utf8",\n    });',
+  "src/utils/package-manager.ts:59":
+    'return platform() === "win32"\n    ? execFileAsync(windowsCommandLine(manager, args), {\n        ...options,\n        shell: "cmd.exe",\n      })\n    : execFileAsync(manager, args, options);',
   "src/test/helpers/replica-process.ts:1":
     'import { type ChildProcess, spawn } from "node:child_process";',
-  "src/test/unit/package-contents.test.ts:1":
-    'import { execFileSync } from "node:child_process";',
-  "src/test/unit/package-contents.test.ts:47":
-    'const output = execFileSync(\n    "npm",\n    ["pack", "--dry-run", "--json", "--ignore-scripts"],\n    {\n      cwd: PACKAGE_ROOT,\n      encoding: "utf8",\n      timeout: PACK_TIMEOUT_MS,\n\n      stdio: ["ignore", "pipe", "pipe"],\n    },\n  );',
   "src/test/unit/interfaces/dms-base/table-view-evaluation-order.test.ts:1":
     'import { execFile } from "node:child_process";',
   "src/test/unit/interfaces/dms-base/table-view-evaluation-order.test.ts:2":
@@ -93,44 +72,19 @@ const processPins = {
   "dist/test/unit/builder/helpers/database-servers.js:22":
     "const run = (0, node_util_1.promisify)(node_child_process_1.execFile);",
   "dist/test/unit/builder/helpers/database-servers.js:27":
-    'exports.dockerAvailable = (0, node_child_process_1.spawnSync)("docker", ["version", "--format", "{{.Server.Version}}"], {\n    stdio: "ignore",\n}).status === 0;',
-  "dist/dev/module-update-notifications.js:8":
+    'exports.dockerAvailable = (0, node_child_process_1.spawnSync)("docker", ["version", "--format", "{{.Server.Os}}"], {\n    encoding: "utf8",\n}).stdout?.trim() === "linux";',
+  "dist/utils/package-manager.js:5":
     'const node_child_process_1 = require("node:child_process");',
-  "dist/dev/module-update-notifications.js:9":
+  "dist/utils/package-manager.js:7":
     'const node_util_1 = require("node:util");',
-  "dist/dev/module-update-notifications.js:28":
+  "dist/utils/package-manager.js:8":
     "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
-  "dist/dev/module-update-notifications.js:68":
-    'const { stdout } = await execFileAsync("npm", ["view", packageName, "version"], { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS, signal });',
-  "dist/store/registry.js:6":
-    'const node_child_process_1 = require("node:child_process");',
-  "dist/store/registry.js:7": 'const node_util_1 = require("node:util");',
-  "dist/store/registry.js:10":
-    "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
-  "dist/store/registry.js:24":
-    'const { stdout } = await execFileAsync("npm", ["view", spec, ...fields, "--json"], { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS });',
-  "dist/store/tarball.js:8":
-    'const node_child_process_1 = require("node:child_process");',
-  "dist/store/tarball.js:12": 'const node_util_1 = require("node:util");',
-  "dist/store/tarball.js:14":
-    "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
-  "dist/store/tarball.js:58":
-    'await execFileAsync("npm", ["pack", spec, "--pack-destination", destination, "--silent"], { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS });',
-  "dist/mcp/tools/typecheck.js:7":
-    'const node_child_process_1 = require("node:child_process");',
-  "dist/mcp/tools/typecheck.js:10": 'const node_util_1 = require("node:util");',
-  "dist/mcp/tools/typecheck.js:16":
-    "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
-  "dist/mcp/tools/typecheck.js:79":
-    'await execFileAsync(TSC_COMMAND, TSC_ARGS, {\n            cwd: root,\n            timeout: TIMEOUT_MS,\n            maxBuffer: MAX_BUFFER_BYTES,\n            encoding: "utf8",\n        });',
+  "dist/utils/package-manager.js:21":
+    'return (0, node_os_1.platform)() === "win32"\n        ? execFileAsync(windowsCommandLine(manager, args), {\n            ...options,\n            shell: "cmd.exe",\n        })\n        : execFileAsync(manager, args, options);',
   "dist/test/helpers/replica-process.js:4":
     'const node_child_process_1 = require("node:child_process");',
-  "dist/test/helpers/replica-process.js:108":
-    'const child = (0, node_child_process_1.spawn)((0, node_path_1.join)(MODULE_ROOT, "node_modules/.bin/ajs"), ["project", "run", "--project", directory], {\n            cwd: directory,\n            env: { ...process.env, REPLICA_HOST_HOLD_MS: String(holdMs) },\n        });',
-  "dist/test/unit/package-contents.test.js:3":
-    'const node_child_process_1 = require("node:child_process");',
-  "dist/test/unit/package-contents.test.js:33":
-    'const output = (0, node_child_process_1.execFileSync)("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {\n        cwd: PACKAGE_ROOT,\n        encoding: "utf8",\n        timeout: PACK_TIMEOUT_MS,\n        stdio: ["ignore", "pipe", "pipe"],\n    });',
+  "dist/test/helpers/replica-process.js:110":
+    'const child = (0, node_child_process_1.spawn)(process.execPath, [AJS, "project", "run", "--project", directory], {\n            cwd: directory,\n            env: { ...process.env, REPLICA_HOST_HOLD_MS: String(holdMs) },\n        });',
   "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:3":
     'const node_child_process_1 = require("node:child_process");',
   "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:4":

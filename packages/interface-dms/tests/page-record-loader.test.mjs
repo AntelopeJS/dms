@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import test from "node:test";
 import ts from "typescript";
 import { DefaultLayout } from "../dist/base/layouts.js";
@@ -40,13 +40,15 @@ function loaderErrors(loader) {
     types: [],
   };
   const base = ts.createCompilerHost(options);
+  /** @param {string} file */
+  const isLoader = (file) => resolve(file) === LOADER_FILE;
   /** @type {ts.CompilerHost} */
   const host = {
     ...base,
-    fileExists: (file) => file === LOADER_FILE || base.fileExists(file),
-    readFile: (file) => (file === LOADER_FILE ? source : base.readFile(file)),
+    fileExists: (file) => isLoader(file) || base.fileExists(file),
+    readFile: (file) => (isLoader(file) ? source : base.readFile(file)),
     getSourceFile: (file, language, ...rest) =>
-      file === LOADER_FILE
+      isLoader(file)
         ? ts.createSourceFile(file, source, language)
         : base.getSourceFile(file, language, ...rest),
   };

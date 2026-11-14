@@ -10,6 +10,9 @@ const { options, failures } = require("./aliases-context.cjs");
 const { permitted } = require("./aliases-permit.cjs");
 
 const specifierSchema = z.string();
+
+/** @param {string} path */
+const globPath = (path) => path.split(sep).join("/");
 const globOptions = z
   .object({
     query: z.literal("?raw").optional(),
@@ -47,7 +50,7 @@ function checkSpecifier(value, path, viteAssets = true) {
 function globPattern(pattern, importer) {
   if (pattern.startsWith("./") || pattern.startsWith("../")) {
     return {
-      pattern: nodePath.resolve(nodePath.dirname(importer), pattern),
+      pattern: globPath(nodePath.resolve(nodePath.dirname(importer), pattern)),
       request: (file) =>
         `./${nodePath.relative(nodePath.dirname(importer), file).split(sep).join("/")}`,
     };
@@ -62,7 +65,9 @@ function globPattern(pattern, importer) {
       targets[0].replace(/\*$/, ""),
     );
     return {
-      pattern: nodePath.resolve(directory, pattern.slice(prefix.length)),
+      pattern: globPath(
+        nodePath.resolve(directory, pattern.slice(prefix.length)),
+      ),
       request: (file) =>
         prefix + nodePath.relative(directory, file).split(sep).join("/"),
     };
@@ -134,7 +139,7 @@ function checkGlob(node, importer) {
         ...negatives.map((negative) => negative.pattern),
       ],
     })) {
-      if (file !== importer)
+      if (nodePath.resolve(file) !== importer)
         checkSpecifier(
           positive.request(file) + (settings.query ?? ""),
           importer,

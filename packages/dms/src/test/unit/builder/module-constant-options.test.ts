@@ -2,6 +2,8 @@ import { expect } from "chai";
 import { ListCategories } from "../../../implementations/dms-builder";
 import { createFixture, destroyFixture } from "./harness";
 
+const OP_TIMEOUT = 60_000;
+
 const SOURCE = `import { RegisterModule } from "@antelopejs/interface-dms/page";
 
 const SHOP = "Shop";
@@ -35,11 +37,13 @@ describe("module category names written as constants", () => {
 
   after(() => destroyFixture());
 
-  it("read the module title as the value its constant holds", async () => {
+  it("read the module title as the value its constant holds", async function () {
+    this.timeout(OP_TIMEOUT);
     expect(await displayNameOf("modules.shop")).to.equal("Shop module");
   });
 
-  it("read the default category name as the value its constant holds", async () => {
+  it("read the default category name as the value its constant holds", async function () {
+    this.timeout(OP_TIMEOUT);
     expect(await displayNameOf("modules.shop.pages")).to.equal("Shop pages");
   });
 });

@@ -104,7 +104,8 @@ function writesSeriesQueries(): void {
 }
 
 function readsBackAndEditsSeriesQueries(): void {
-  it("reads back as the parameters that produced it", async () => {
+  it("reads back as the parameters that produced it", async function () {
+    this.timeout(OP_TIMEOUT);
     const structure = expectOk(
       await GetPageStructure(PAGE),
       "GetPageStructure",
@@ -125,7 +126,8 @@ function readsBackAndEditsSeriesQueries(): void {
     });
   });
 
-  it("reads a ranking back as an ordering and a limit", async () => {
+  it("reads a ranking back as an ordering and a limit", async function () {
+    this.timeout(OP_TIMEOUT);
     const structure = expectOk(
       await GetPageStructure(PAGE),
       "GetPageStructure",

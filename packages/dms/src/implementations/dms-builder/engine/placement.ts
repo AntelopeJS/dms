@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { Project, SourceFile } from "ts-morph";
 import { relativeModule } from "./emit";
+import { isInsideFolder } from "./file-paths";
 import { resolveRootBarrel } from "./writable";
 
 export function srcDir(project: Project, module?: string): string | undefined {
@@ -17,7 +18,7 @@ export function resolveWithinSrc(
   dir: string,
 ): string | undefined {
   const resolved = path.normalize(path.join(base, dir));
-  if (resolved !== base && !resolved.startsWith(base + path.sep)) {
+  if (!isInsideFolder(base, resolved)) {
     return undefined;
   }
   return resolved;

@@ -3,12 +3,14 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { bin } from "@antelopejs/core/package.json";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { setTimeout } from "node:timers/promises";
 
 const MODULE_ROOT = resolve(__dirname, "../../..");
 const PROVIDERS = join(MODULE_ROOT, ".antelope/cache/@antelopejs");
 const INSTALLED_API = join(MODULE_ROOT, "node_modules/@antelopejs/api");
+const AJS = join(MODULE_ROOT, "node_modules/@antelopejs/core", bin.ajs);
 const SECRET = "replica-test-secret";
 const READY_POLL_MS = 250;
 
@@ -119,8 +121,8 @@ export class ReplicaProcess {
       `export default ${JSON.stringify(projectConfig(database, port, directory))};\n`,
     );
     const child = spawn(
-      join(MODULE_ROOT, "node_modules/.bin/ajs"),
-      ["project", "run", "--project", directory],
+      process.execPath,
+      [AJS, "project", "run", "--project", directory],
       {
         cwd: directory,
         env: { ...process.env, REPLICA_HOST_HOLD_MS: String(holdMs) },

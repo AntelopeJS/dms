@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { createServer } from "node:http";
 import test from "node:test";
-import { ephemeralRange } from "./helpers/ephemeral-range.mjs";
+import {
+  EPHEMERAL_RANGE_FILE,
+  ephemeralRange,
+} from "./helpers/ephemeral-range.mjs";
 import { canNarrowRange, runInNarrowRange } from "./helpers/narrow-range.mjs";
 import { decode, isNumber, isString, nullable, objectOf } from "./json.mjs";
 import { freePort } from "./processes.mjs";
@@ -100,17 +104,28 @@ await test(
   },
 );
 
-await test("a run's three ports are distinct and lie outside the kernel's ephemeral range", async () => {
-  const { low, high } = ephemeralRange();
+await test("a run's three ports are distinct", async () => {
   const ports = Object.values(await runPorts());
   assert.equal(new Set(ports).size, 3, `${ports.join(", ")} repeat a port`);
-  for (const port of ports) {
-    assert.ok(
-      port < low || port > high,
-      `${port} lies in the ephemeral range ${low}-${high}`,
-    );
-  }
 });
+
+await test(
+  "a run's three ports lie outside the kernel's ephemeral range",
+  {
+    skip:
+      !existsSync(EPHEMERAL_RANGE_FILE) &&
+      "the kernel's ephemeral range is read from /proc",
+  },
+  async () => {
+    const { low, high } = ephemeralRange();
+    for (const port of Object.values(await runPorts())) {
+      assert.ok(
+        port < low || port > high,
+        `${port} lies in the ephemeral range ${low}-${high}`,
+      );
+    }
+  },
+);
 
 await test("a run takes no port fetch refuses to connect to; a version that keeps 6000, 10080 or 2049 makes fetch throw bad port", async (t) => {
   const candidates = [6000, 10080, 2049];

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import test from "node:test";
 import { formalGate, runFormalCheck, touchedFormalChecks } from "./formal.mjs";
 
@@ -83,7 +83,7 @@ function formalRepo(t, head) {
   const changed = git(root, "diff", "--name-only", baseSha, headSha)
     .split("\n")
     .filter(Boolean);
-  const evidence = join(root, "..", `${root.split("/").pop()}-evidence`);
+  const evidence = join(root, "..", `${basename(root)}-evidence`);
   mkdirSync(evidence);
   t.after(() => rmSync(evidence, { recursive: true, force: true }));
   const skill = { repo: root, config: { formal: [CHECK_CONFIG] } };

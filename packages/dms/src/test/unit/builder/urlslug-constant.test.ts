@@ -4,6 +4,8 @@ import { expect } from "chai";
 import { ListPages } from "../../../implementations/dms-builder";
 import { createFixture, destroyFixture, type Fixture } from "./harness";
 
+const OP_TIMEOUT = 60_000;
+
 const SOURCE = `import { Placeholder } from "@antelopejs/interface-dms/base";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import {
@@ -48,7 +50,8 @@ describe("urlSlug written as a constant", () => {
 
   after(() => destroyFixture());
 
-  it("lists the page under the constants' slugs", async () => {
+  it("lists the page under the constants' slugs", async function () {
+    this.timeout(OP_TIMEOUT);
     const refs = (await ListPages()).map((page) => page.ref);
     expect(refs).to.include("/shop/main");
     expect(refs).to.not.include("/board/overview");

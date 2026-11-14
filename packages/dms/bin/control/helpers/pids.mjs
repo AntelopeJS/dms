@@ -18,6 +18,16 @@ export function canChoosePid() {
 }
 
 /**
+ * The pid a process wrote to `file`.
+ *
+ * @param {string} file The file
+ * @returns {number} The pid
+ */
+export function pidIn(file) {
+  return Number(readFileSync(file, "utf8"));
+}
+
+/**
  * Makes `pid` the next one the kernel gives a new process, once it is free.
  *
  * @param {number} pid The pid

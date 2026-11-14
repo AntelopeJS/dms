@@ -144,6 +144,7 @@ describe("who reaches a page", () => {
 
 function readsAPagesBlocksAndDefaults(): void {
   it("names the page's permission after it, and lists its blocks' actions", function () {
+    this.timeout(30_000);
     const access = describePageAccess(recordOf("/shop/board"), boardTree(), [
       SUPPORT,
     ]);

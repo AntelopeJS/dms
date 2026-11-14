@@ -15,17 +15,20 @@ import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { arrayOf, decode, isNumber, isString, objectOf } from "../json.mjs";
 import { isSameProcess, startTimeOf } from "../identity.mjs";
-import { freePort } from "../processes.mjs";
-import { backendsFolder, createRunFolders, saveRun } from "../run-state.mjs";
+import { freePort, restartablePort, stopRecorded } from "../processes.mjs";
+import {
+  backendsFolder,
+  createRunFolders,
+  readRun,
+  saveRun,
+} from "../run-state.mjs";
 import { down } from "../stack.mjs";
 
 /** How many runs the tests made, which tells their databases apart */
 let runs = 0;
 const REGISTRY_WAIT_MS = 10_000;
-const FIRST_UNPRIVILEGED_PORT = 1024;
-const LAST_PORT = 65_535;
 
-/** A backend that answers every request with its pid and the database it was started on, and reports both to the test's registry once it listens, with the \`ajs project\` command that started it. */
+/** A backend that answers every request with its pid and the database it was started on, and reports both to the test's registry once it listens, with the \`ajs project\` command that started it. The report stays open while the backend runs, so its end tells the registry the backend is gone. */
 const FAKE_BACKEND = `
 const http = require("node:http");
 const self = JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE });
@@ -36,7 +39,7 @@ const server = http.createServer((request, response) => {
 server.listen(Number(process.env.PORT), "127.0.0.1", () => {
   const report = http.request(process.env.FAKE_REGISTRY, { method: "POST" });
   report.on("error", () => undefined);
-  report.end(JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE, command: process.argv.slice(3, process.argv.indexOf("-e")).join(" ") }));
+  report.write(JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE, command: process.argv.slice(3, process.argv.indexOf("-e")).join(" ") }) + "\\n");
 });
 `;
 
@@ -75,15 +78,15 @@ const isReported = objectOf({
 });
 const isDropped = arrayOf(isString);
 
-/** @type {{ pid: number, database: string, command: string, startTime: number | null }[]} Every fake backend the tests started, in the order they listened, with the `ajs project` command that started it and the start time that tells it from a later process given its pid */
+/** @type {{ pid: number, database: string, command: string, startTime: number | null, reporting: boolean }[]} Every fake backend the tests started, in the order they listened, with the `ajs project` command that started it, the start time that tells it from a later process given its pid, and whether its report is still open, which tells it from a later process given its pid where there is no start time */
 const started = [];
 
-const registry = createServer((request, response) => {
+const registry = createServer((request) => {
+  request.socket.unref();
   let body = "";
   request.on("data", (chunk) => {
     body += String(chunk);
-  });
-  request.on("end", () => {
+    if (!body.endsWith("\n")) return;
     /** @type {unknown} */
     const parsed = JSON.parse(body);
     const backend = decode(
@@ -92,56 +95,23 @@ const registry = createServer((request, response) => {
       "a report",
       "a pid, database and command",
     );
-    started.push({ ...backend, startTime: startTimeOf(backend.pid) });
-    response.end();
+    const entry = {
+      ...backend,
+      startTime: startTimeOf(backend.pid),
+      reporting: true,
+    };
+    started.push(entry);
+    request.socket.once("close", () => {
+      entry.reporting = false;
+    });
   });
 });
+registry.requestTimeout = 0;
 const registryPort = await freePort();
 await new Promise((resolve) =>
   registry.listen(registryPort, "127.0.0.1", resolve),
 );
 registry.unref();
-
-/**
- * @param {number} port A loopback port
- * @returns {Promise<boolean>} Whether a server can listen on it now
- */
-function canListen(port) {
-  return new Promise((resolve) => {
-    const probe = createServer();
-    probe.once("error", () => resolve(false));
-    probe.listen(port, "127.0.0.1", () => probe.close(() => resolve(true)));
-  });
-}
-
-/**
- * A free loopback port outside the kernel's ephemeral range. No outgoing
- * connection takes it as its source port, so a forwarder the test kills can
- * listen on it again: a port from `freePort` can be held by another
- * connection's TIME_WAIT by then.
- *
- * @returns {Promise<number>} The port
- */
-async function portOutsideEphemeralRange() {
-  const [low, high] = readFileSync(
-    "/proc/sys/net/ipv4/ip_local_port_range",
-    "utf8",
-  )
-    .trim()
-    .split(/\s+/)
-    .map(Number);
-  const below = Math.max(low - FIRST_UNPRIVILEGED_PORT, 0);
-  const above = LAST_PORT - high;
-  assert.ok(below + above > 0, "some port lies outside the ephemeral range");
-  for (;;) {
-    const index = Math.floor(Math.random() * (below + above));
-    const port =
-      index < below
-        ? FIRST_UNPRIVILEGED_PORT + index
-        : high + 1 + index - below;
-    if (await canListen(port)) return port;
-  }
-}
 
 /**
  * The backend started on `database`, once it listens. Fails the test when
@@ -197,10 +167,10 @@ export function bystander(t, env = process.env) {
   return child.pid;
 }
 
-/** @returns {number[]} The pids of the fake backends that still run, each only while its pid still runs that backend */
+/** @returns {number[]} The pids of the fake backends that still run, each only while its pid still runs that backend and its report is open */
 export function running() {
   return started
-    .filter((backend) => isSameProcess(backend))
+    .filter((backend) => backend.reporting && isSameProcess(backend))
     .map((backend) => backend.pid)
     .toSorted((a, b) => a - b);
 }
@@ -209,8 +179,9 @@ export function running() {
  * A run whose playground starts the fake backend, with no process yet, and
  * the files a build writes: the module's `dist`, the `dist` of a workspace
  * package the playground links, the playground's `dist` and its project
- * build, which `up` records as the run's build folders. `down` stops what
- * the test started.
+ * build, which `up` records as the run's build folders. After the test,
+ * `down` stops what the test started, and what `run.json` records stops
+ * first, for a test that drives a copy of the run loaded from it.
  *
  * @param {import("node:test").TestContext} t The test
  * @returns {Promise<import("../run-state.mjs").RunState>} The run
@@ -228,7 +199,7 @@ export async function newRun(t) {
     join(playground, "node_modules/@antelopejs/interface-t"),
   );
   const paths = createRunFolders(join(parent, "run"));
-  const apiPort = await portOutsideEphemeralRange();
+  const apiPort = await restartablePort();
   runs += 1;
   const prefix = `verify_t${runs}`;
   const state = {
@@ -264,6 +235,7 @@ export async function newRun(t) {
   };
   saveRun(state);
   t.after(async () => {
+    await stopRecorded(readRun(state.dir).processes);
     await down(state);
     rmSync(parent, { recursive: true, force: true });
   });

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { createConnection, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -247,13 +247,21 @@ await test(
   },
 );
 
-await test("a restartable port lies outside the kernel's ephemeral range and is free to listen on", async () => {
-  const { low, high } = ephemeralRange();
-  const port = await restartablePort();
-  assert.ok(
-    port < low || port > high,
-    `${port} lies in the ephemeral range ${low}-${high}`,
-  );
-  const server = await serveForwarder(port, join(tmpdir(), "unused-target"));
-  server.close();
-});
+await test(
+  "a restartable port lies outside the kernel's ephemeral range and is free to listen on",
+  {
+    skip:
+      !existsSync(EPHEMERAL_RANGE_FILE) &&
+      "the kernel's ephemeral range is read from /proc",
+  },
+  async () => {
+    const { low, high } = ephemeralRange();
+    const port = await restartablePort();
+    assert.ok(
+      port < low || port > high,
+      `${port} lies in the ephemeral range ${low}-${high}`,
+    );
+    const server = await serveForwarder(port, join(tmpdir(), "unused-target"));
+    server.close();
+  },
+);

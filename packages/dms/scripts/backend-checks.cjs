@@ -232,7 +232,8 @@ function checkSourceRoots(source, path) {
         allowJs: true,
       };
       const host = ts.createCompilerHost(options);
-      host.getSourceFile = (name) => (name === path ? source : undefined);
+      host.getSourceFile = (name) =>
+        nodePath.resolve(name) === path ? source : undefined;
       checker = ts.createProgram([path], options, host).getTypeChecker();
     }
     const symbol = ts.isShorthandPropertyAssignment(node.parent)
