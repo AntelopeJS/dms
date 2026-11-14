@@ -47,8 +47,9 @@ export type DataTypeValue = {
  * cannot model structurally. The referenced symbol must already be importable in
  * the target file; the builder does not add its import.
  *
- * Note: dms-ai's safe mode rejects `$expr` (arbitrary code defeats the
- * structured guarantees). Only a direct file edit (vibe mode) should use it.
+ * Note: the builder tools of the `@antelopejs/dms` MCP server reject `$expr`
+ * (arbitrary code defeats the structured guarantees). Only a direct file edit
+ * should use it.
  */
 export type ExprValue = {
   $expr: string;

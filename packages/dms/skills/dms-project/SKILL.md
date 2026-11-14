@@ -176,7 +176,7 @@ building or deploying the frontend server belong to the **dms-frontend** skill (
 
 ### Never from inside the DMS
 
-An agent running inside the DMS (the dms-ai assistant, whose sidecar the backend spawns, or any
+An agent running inside the DMS (the dms-assistant chat, whose sidecar the backend spawns, or any
 process these dev servers started) **leaves the servers running**: stopping the backend takes the
 agent down with it. It relies on hot reload and, when a change needs a full restart, asks the user
 to run it. The script refuses to stop a process tree that contains its calling shell.

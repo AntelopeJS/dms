@@ -88,8 +88,8 @@ let listConnectionIds: ConnectionLister = declaredConnections;
 let resolveCatalog: CatalogResolver = declaredCatalog;
 
 /**
- * The catalog connections the project declares for dms-builder: `importOverrides` entries of
- * `@antelopejs/interface-database-catalog` with an id on the builder's module entry.
+ * The catalog connections the project declares for the builder: `importOverrides` entries of
+ * `@antelopejs/interface-database-catalog` with an id on the `dms` module entry.
  */
 export function listCatalogConnections(): string[] {
   return listConnectionIds();

@@ -880,10 +880,6 @@
           "title": "Automatisation",
           "description": "Des procédures visuelles faites de déclencheurs, d’actions et de nœuds de données."
         },
-        "builder": {
-          "title": "Builder",
-          "description": "Modifie les pages, tableaux et formulaires du projet, en n’écrivant que du code qui compile."
-        },
         "database": {
           "title": "Base de données",
           "description": "Schémas, explorateur de données, diagramme et espace de requêtes AQL."

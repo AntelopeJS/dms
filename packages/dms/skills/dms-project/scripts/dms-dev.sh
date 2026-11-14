@@ -240,7 +240,7 @@ self_ancestors() {
   done
 }
 
-# An agent spawned by the backend (e.g. dms-ai) would take its own host down.
+# An agent spawned by the backend (e.g. dms-assistant) would take its own host down.
 refuse_if_hosting_self() {
   local hosting
   hosting="$(printf '%s\n' "$@" | grep -Fx -f <(self_ancestors) | head -1)"
