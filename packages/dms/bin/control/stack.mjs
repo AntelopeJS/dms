@@ -76,6 +76,25 @@ function parseExtraEnv(pairs) {
 }
 
 /**
+ * The ports of a run's API forwarder, dashboard and mail sink: three
+ * distinct ports from {@link restartablePort}, so each server listens on its
+ * port again after a restart while an outgoing connection's TIME_WAIT holds
+ * a port of the kernel's ephemeral range.
+ *
+ * @returns {Promise<{ apiPort: number, webPort: number, smtpPort: number }>} The ports
+ */
+export async function runPorts() {
+  /** @type {number[]} */
+  const ports = [];
+  while (ports.length < 3) {
+    const port = await restartablePort();
+    if (!ports.includes(port)) ports.push(port);
+  }
+  const [apiPort, webPort, smtpPort] = ports;
+  return { apiPort, webPort, smtpPort };
+}
+
+/**
  * @param {UpOptions} options
  * @returns {Promise<RunState>}
  */
@@ -86,9 +105,7 @@ async function initialState(options) {
   }
   const id = newRunId();
   const paths = createRunFolders(join(runsRoot(options.runs), id));
-  const apiPort = await restartablePort();
-  const webPort = await freePort();
-  const smtpPort = await freePort();
+  const { apiPort, webPort, smtpPort } = await runPorts();
   const checkout = checkoutOf(playground);
   const renderer = options.renderer && resolveRenderer(options.renderer);
   const verified = renderer ? checkoutOf(renderer) : checkout;
@@ -203,7 +220,7 @@ async function startFirstMail(state) {
       return;
     } catch (error) {
       if (attempt === MAIL_PORT_ATTEMPTS) throw error;
-      state.smtpPort = await freePort();
+      state.smtpPort = await restartablePort();
     }
   }
 }
