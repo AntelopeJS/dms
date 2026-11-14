@@ -16,6 +16,7 @@ import {
   withEnvLine,
   withoutEnvLine,
 } from "./env-lines";
+import { shadowing } from "./inherited-variables";
 import { configObject, findConfigFile, propertyNamed } from "./modules";
 import { invalidConfig } from "./ops";
 import { configureProject } from "./project-config-ops";
@@ -90,31 +91,6 @@ function commitRisk(directory: string, file: string): string | undefined {
 export function projectEnvFile(): string | undefined {
   const configPath = findConfigFile();
   return configPath && path.join(path.dirname(configPath), ENV_FILE);
-}
-
-let inheritedVariables = new Set<string>();
-
-/**
- * Records the variables the project started with that its `.env` did not supply, such as one
- * exported in the shell that started it. Core and the configuration's own loaders never overwrite
- * a variable already set, so a value the builder writes to `.env` for one of them never loads.
- * Called once the project has loaded its `.env`, at each start.
- */
-export function recordInheritedVariables(): void {
-  const text = envFileText() ?? "";
-  inheritedVariables = new Set(
-    Object.entries(process.env)
-      .filter(([name, value]) => envValue(text, name) !== value)
-      .map(([name]) => name),
-  );
-}
-
-/** Why `.env` cannot give `name` the value `value`: the project keeps the one it started with. */
-function shadowing(name: string, value: string): string | undefined {
-  if (!inheritedVariables.has(name) || process.env[name] === value) {
-    return undefined;
-  }
-  return `${name} is set in the environment that started the project, which wins over .env, so the project would not load the new value: unset ${name} there and restart the project`;
 }
 
 /**

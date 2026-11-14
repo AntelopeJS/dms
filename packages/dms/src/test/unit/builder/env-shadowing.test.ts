@@ -1,8 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { expect } from "chai";
+import { startBuilder } from "../../../builder";
+import { getBuilderConfig, setBuilderConfig } from "../../../config";
 import {
   configureProjectWithVariables,
+  envFileText,
   recordInheritedVariables,
   setConnectionUrl,
   setProjectVariable,
@@ -23,7 +26,7 @@ const VARIABLE = "BUILDER_DB_ERP_URL";
 const URL = "postgres://reader:secret@db.example:5432/erp";
 const SHELL_URL = "postgres://other:secret@shell.example:5432/erp";
 const SHADOWED = new RegExp(
-  `${VARIABLE} is set in the environment that started the project`,
+  `project runs with a value of ${VARIABLE} it did not load from \\.env`,
 );
 
 let app: Fixture;
@@ -39,7 +42,7 @@ function startWith(inherited: string | undefined): void {
   } else {
     process.env[VARIABLE] = inherited;
   }
-  recordInheritedVariables();
+  recordInheritedVariables(envFileText());
 }
 
 function refusal(write: () => void): string {
@@ -111,6 +114,19 @@ describe("a connection variable the starting environment sets", function () {
     expect(result.ok).to.equal(false);
     expect(JSON.stringify(result)).to.match(SHADOWED);
     expect(projectFile(app.root, ".env")).to.equal(before);
+    expect(refusal(() => setProjectVariable(VARIABLE, URL))).to.match(SHADOWED);
+  });
+
+  it("records the variables at each start of the builder", async () => {
+    startWith(undefined);
+    process.env[VARIABLE] = SHELL_URL;
+    const config = getBuilderConfig();
+    setBuilderConfig({ ...config, enabled: true });
+    try {
+      await startBuilder(false, "default");
+    } finally {
+      setBuilderConfig(config);
+    }
     expect(refusal(() => setProjectVariable(VARIABLE, URL))).to.match(SHADOWED);
   });
 
