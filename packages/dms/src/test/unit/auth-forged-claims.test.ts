@@ -19,6 +19,8 @@ import {
   UNKNOWN_USER_ID,
 } from "../helpers/forged-tokens";
 
+const SESSION_ID = "signed-session";
+
 describe("[unit] auth forged claims", () => {
   let user: User;
 
@@ -37,10 +39,10 @@ describe("[unit] auth forged claims", () => {
       forge({ id: { $gt: "" }, purpose: "access" }),
       forge({ id: { $gt: "zzzzzzzz" }, purpose: "access" }),
       forge({ id: UNKNOWN_USER_ID, sessionId: { $gt: "" }, purpose: "access" }),
-      forge({ id: user._id, purpose: "access" }),
-      forge({ id: UNKNOWN_USER_ID, purpose: "access" }),
-      signFor(user, { purpose: "access", ...EXPIRED }),
-      signFor(user, { purpose: "refresh" }),
+      forge({ id: user._id, sessionId: SESSION_ID, purpose: "access" }),
+      forge({ id: UNKNOWN_USER_ID, sessionId: SESSION_ID, purpose: "access" }),
+      signFor(user, { sessionId: SESSION_ID, purpose: "access", ...EXPIRED }),
+      signFor(user, { sessionId: SESSION_ID, purpose: "refresh" }),
     ];
     const refusals = await Promise.all(
       refused.map((token) =>
@@ -82,10 +84,10 @@ describe("[unit] auth forged claims", () => {
     const refused = [
       "not-a-jwt",
       MALFORMED_PAYLOAD_TOKEN,
-      forge({ id: user._id, purpose: "refresh" }),
-      forge({ id: UNKNOWN_USER_ID, purpose: "refresh" }),
-      signFor(user, { purpose: "refresh", ...EXPIRED }),
-      signFor(user, { purpose: "access" }),
+      forge({ id: user._id, sessionId: SESSION_ID, purpose: "refresh" }),
+      forge({ id: UNKNOWN_USER_ID, sessionId: SESSION_ID, purpose: "refresh" }),
+      signFor(user, { sessionId: SESSION_ID, purpose: "refresh", ...EXPIRED }),
+      signFor(user, { sessionId: SESSION_ID, purpose: "access" }),
     ];
     const refusals = await Promise.all(
       refused.map((token) => refusalOf(() => validateRefreshToken(token))),
