@@ -54,7 +54,7 @@ function connectSteps(
     },
     tables,
     { op: "ConfigureModule", id: "dms-builder", entry: catalog },
-    { op: "ConfigureModule", id: "dms-ai", entry: catalog },
+    { op: "ConfigureModule", id: "dms-assistant", entry: catalog },
   ];
 }
 
@@ -460,7 +460,7 @@ describe("a database connection after it was made", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {
-    app = createFixture({ modules: ["dms-builder", "dms-ai"] });
+    app = createFixture({ modules: ["dms-builder", "dms-assistant"] });
     gitInit(app.root);
     fs.writeFileSync(path.join(app.root, ".gitignore"), ".env\n");
     connect("erp", {
