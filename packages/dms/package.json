@@ -198,7 +198,8 @@
     "mongodb": "^6.21.0 || ^7.0.0",
     "mysql2": "^3.24.6",
     "pg": "^8.22.0",
-    "rethinkdb-ts": "^2.7.0"
+    "rethinkdb-ts": "^2.7.0",
+    "typescript": ">=5.8.0 <7.0.0"
   },
   "peerDependenciesMeta": {
     "@antelopejs/core": {
@@ -214,6 +215,9 @@
       "optional": true
     },
     "rethinkdb-ts": {
+      "optional": true
+    },
+    "typescript": {
       "optional": true
     }
   }
