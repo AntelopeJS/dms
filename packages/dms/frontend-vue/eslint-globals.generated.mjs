@@ -812,7 +812,6 @@ export default Object.freeze({
   setReaderTimeZoneSource: "readonly",
   setRegionalPreferencesSource: "readonly",
   settledRenderedBellCounts: "readonly",
-  shortcutsAggregatedD: "readonly",
   shouldExpandMenuItem: "readonly",
   siblingComponentId: "readonly",
   snapshotFormState: "readonly",
