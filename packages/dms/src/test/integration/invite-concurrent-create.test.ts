@@ -19,7 +19,12 @@ import {
 import { runCleanupUserInvites } from "../../crons";
 import { resetDatabase } from "../helpers/db";
 import { inviteFixture } from "../helpers/invite-resolution-fixtures";
-import { failFirstDelete, holdFirstFreshCaller } from "../helpers/invite-holds";
+import {
+  failFirstDelete,
+  holdFirstCall,
+  holdFirstFreshCaller,
+  holdFreshAfterRivalRead,
+} from "../helpers/invite-holds";
 
 const TENANT = "invite-concurrent-create-tenant";
 const HTTP_CONFLICT = 409;
@@ -167,83 +172,6 @@ describe("[integration] four concurrent invitations of one email", () => {
   });
 });
 
-/** A one-shot gate: `pass` parks its caller until `release` runs. */
-function gate() {
-  let park = () => {};
-  const parked = new Promise<void>((resolve) => {
-    park = resolve;
-  });
-  let release = () => {};
-  const released = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const pass = async () => {
-    park();
-    await released;
-  };
-  return { parked, release, pass };
-}
-
-/** Holds the first `getOtherByEmail` call after it read its rival, until `release` runs. */
-function holdFirstRivalRead() {
-  const original = Object.getOwnPropertyDescriptor(
-    UserInviteModel.prototype,
-    "getOtherByEmail",
-  );
-  assert.ok(original);
-  const restore = () => {
-    Object.defineProperty(
-      UserInviteModel.prototype,
-      "getOtherByEmail",
-      original,
-    );
-  };
-  const { parked, release, pass } = gate();
-  UserInviteModel.prototype.getOtherByEmail = async function (
-    this: UserInviteModel,
-    email: string,
-    exceptId: string,
-  ) {
-    restore();
-    const rival = await this.getOtherByEmail(email, exceptId);
-    await pass();
-    return rival;
-  };
-  return { parked, release, restore };
-}
-
-/** Holds the first call of an invite model method before it runs, until `release` runs. */
-function holdFirstCall(method: "delete" | "insert") {
-  const restore = () => {
-    Reflect.deleteProperty(UserInviteModel.prototype, method);
-  };
-  const { parked, release, pass } = gate();
-  const held = {
-    async delete(
-      this: UserInviteModel,
-      ...args: Parameters<UserInviteModel["delete"]>
-    ) {
-      restore();
-      await pass();
-      return this.delete(...args);
-    },
-    async insert(
-      this: UserInviteModel,
-      ...args: Parameters<UserInviteModel["insert"]>
-    ) {
-      restore();
-      await pass();
-      return this.insert(...args);
-    },
-  };
-  Object.defineProperty(UserInviteModel.prototype, method, {
-    value: held[method],
-    configurable: true,
-    writable: true,
-  });
-  return { parked, release, restore };
-}
-
 async function retire(
   invite: UserInvite,
   reason: "cancelled" | "expired",
@@ -258,22 +186,10 @@ function restoreHolds(): void {
   for (const hold of holds.splice(0)) hold.restore();
 }
 
-/** Runs A's creation and C's replacement, then B's fresh insert, holding B after it read C's invite as its rival. */
 async function freshHeldAfterRivalRead() {
-  const invites = GetModel(UserInviteModel, TENANT);
-  const firstRead = holdFirstFreshCaller();
-  const fresh = createUserInviteToken(inviteOptions("member"));
-  await firstRead.parked;
-  firstRead.unregister();
-  await createUserInviteToken(inviteOptions("member"));
-  const kept = await createUserInviteToken(inviteOptions("member"));
-  const rivalRead = holdFirstRivalRead();
-  holds.push(rivalRead);
-  firstRead.release();
-  await rivalRead.parked;
-  const keptInvite = await invites.get(kept.inviteId);
-  assert.ok(keptInvite);
-  return { invites, fresh, rivalRead, keptInvite };
+  const held = await holdFreshAfterRivalRead(inviteOptions("member"));
+  holds.push(held.rivalRead);
+  return held;
 }
 
 /** Holds B after its rival read, then retires the invite B read as its rival. */

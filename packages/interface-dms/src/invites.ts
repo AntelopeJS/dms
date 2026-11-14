@@ -343,8 +343,8 @@ async function removeIfCancelled(
 /**
  * Withdraws a fresh invite that found a rival, through its decision: a
  * replacement decided on it first is kept instead, and its decider completes it.
- * When the rival was retired meanwhile, it yields to the email's invite, or
- * runs the creation again when the email has none.
+ * Otherwise it yields to the email's current invite, or runs the creation
+ * again when the email has none left.
  */
 async function withdrawFreshInvite(
   options: CreateUserInviteTokenOptions,
@@ -355,12 +355,36 @@ async function withdrawFreshInvite(
   const decisions = GetModel(InviteResolutionsModel, tenantId);
   const { resolution, claimed } = await decisions.withdraw(tenantId, fresh);
   if (!claimed) return yieldToWinner(resolution.replacement ?? rival, fresh);
-  const invites = GetModel(UserInviteModel, tenantId);
-  await invites.delete(fresh._id);
-  const winner =
-    (await invites.get(rival._id)) ?? (await invites.getByEmail(options.email));
+  await GetModel(UserInviteModel, tenantId).delete(fresh._id);
+  const winner = await currentInviteOf(options, rival);
   if (!winner) return createAdmittedInviteToken(options);
   return yieldToWinner(winner, fresh);
+}
+
+/**
+ * The invite a withdrawn fresh invite yields to: its rival while stored, else
+ * the email's invite, or the replacement decided on it. A cancellation or an
+ * expiry decided on it is completed first, so its token is never handed out.
+ *
+ * @returns The invite, or undefined when the email has none left
+ */
+async function currentInviteOf(
+  options: CreateUserInviteTokenOptions,
+  rival: UserInvite,
+): Promise<UserInvite | undefined> {
+  const { tenantId, email } = options;
+  const invites = GetModel(UserInviteModel, tenantId);
+  const invite =
+    (await invites.get(rival._id)) ?? (await invites.getByEmail(email));
+  if (!invite) return undefined;
+  const decision = await GetModel(
+    InviteResolutionsModel,
+    tenantId,
+  ).getForInvite(tenantId, invite._id);
+  if (!decision || decision.reason === "accepted") return invite;
+  if (decision.replacement) return decision.replacement;
+  await completeAdmittedInviteResolution(decision);
+  return currentInviteOf(options, invite);
 }
 
 function yieldToWinner(

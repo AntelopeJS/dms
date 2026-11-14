@@ -1,4 +1,9 @@
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
+import {
+  type CreateUserInviteTokenOptions,
+  createUserInviteToken,
+} from "@antelopejs/interface-dms/invites";
 import {
   Hook,
   RegisterHook,
@@ -94,4 +99,109 @@ export function failFirstDelete() {
     return Promise.reject(new Error("delete failed"));
   };
   return { restore };
+}
+
+/** A one-shot gate: `pass` parks its caller until `release` runs. */
+export function gate() {
+  let park = () => {};
+  const parked = new Promise<void>((resolve) => {
+    park = resolve;
+  });
+  let release = () => {};
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const pass = async () => {
+    park();
+    await released;
+  };
+  return { parked, release, pass };
+}
+
+/** Holds the first `getOtherByEmail` call after it read its rival, until `release` runs. */
+export function holdFirstRivalRead() {
+  const original = Object.getOwnPropertyDescriptor(
+    UserInviteModel.prototype,
+    "getOtherByEmail",
+  );
+  if (!original)
+    throw new Error("UserInviteModel has no getOtherByEmail method");
+  const restore = () => {
+    Object.defineProperty(
+      UserInviteModel.prototype,
+      "getOtherByEmail",
+      original,
+    );
+  };
+  const { parked, release, pass } = gate();
+  UserInviteModel.prototype.getOtherByEmail = async function (
+    this: UserInviteModel,
+    email: string,
+    exceptId: string,
+  ) {
+    restore();
+    const rival = await this.getOtherByEmail(email, exceptId);
+    await pass();
+    return rival;
+  };
+  return { parked, release, restore };
+}
+
+/** Holds the first call of an invite model method before it runs, until `release` runs. */
+export function holdFirstCall(method: "delete" | "get" | "insert") {
+  const restore = () => {
+    Reflect.deleteProperty(UserInviteModel.prototype, method);
+  };
+  const { parked, release, pass } = gate();
+  const held = {
+    async delete(
+      this: UserInviteModel,
+      ...args: Parameters<UserInviteModel["delete"]>
+    ) {
+      restore();
+      await pass();
+      return this.delete(...args);
+    },
+    async get(
+      this: UserInviteModel,
+      ...args: Parameters<UserInviteModel["get"]>
+    ) {
+      restore();
+      await pass();
+      return this.get(...args);
+    },
+    async insert(
+      this: UserInviteModel,
+      ...args: Parameters<UserInviteModel["insert"]>
+    ) {
+      restore();
+      await pass();
+      return this.insert(...args);
+    },
+  };
+  Object.defineProperty(UserInviteModel.prototype, method, {
+    value: held[method],
+    configurable: true,
+    writable: true,
+  });
+  return { parked, release, restore };
+}
+
+/** Runs A's creation and C's replacement, then B's fresh insert, holding B after it read C's invite as its rival. */
+export async function holdFreshAfterRivalRead(
+  options: CreateUserInviteTokenOptions,
+) {
+  const invites = GetModel(UserInviteModel, options.tenantId);
+  const firstRead = holdFirstFreshCaller();
+  const fresh = createUserInviteToken(options);
+  await firstRead.parked;
+  firstRead.unregister();
+  await createUserInviteToken(options);
+  const kept = await createUserInviteToken(options);
+  const rivalRead = holdFirstRivalRead();
+  firstRead.release();
+  await rivalRead.parked;
+  const keptInvite = await invites.get(kept.inviteId);
+  if (!keptInvite) throw new Error("the kept invite is not stored");
+  return { invites, fresh, rivalRead, keptInvite };
 }
