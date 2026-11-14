@@ -7,6 +7,7 @@ import {
 } from "../../../implementations/dms-builder/engine";
 import type {
   PlanPoints,
+  PlanQuery,
   PlanStream,
 } from "../../../implementations/dms-builder/engine";
 import type {
@@ -33,10 +34,14 @@ type Outcome<Result> = (
   reject: (error: Error) => void,
 ) => void;
 
-function awaitable<Result>(outcome: Outcome<Result>): Promise<Result> {
-  const settling = new Promise<Result>(outcome);
-  settling.catch(() => undefined);
-  return settling;
+function awaitable<Result>(outcome: Outcome<Result>): PlanQuery<Result> {
+  return {
+    run: () => {
+      const settling = new Promise<Result>(outcome);
+      settling.catch(() => undefined);
+      return settling;
+    },
+  };
 }
 
 /**
@@ -48,10 +53,11 @@ function tableSettling(
   total: Outcome<number>,
   groups: Outcome<QueryPoint[]>,
 ): PlanStream {
-  const grouped: PlanPoints = Object.assign(awaitable(groups), {
+  const grouped: PlanPoints = {
+    ...awaitable(groups),
     orderBy: () => grouped,
     slice: () => grouped,
-  });
+  };
   const handle: PlanStream = {
     filter: () => handle,
     map: () => handle,

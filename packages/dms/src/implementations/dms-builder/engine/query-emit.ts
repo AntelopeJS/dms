@@ -37,7 +37,7 @@ const TENANT_SCHEMA_NAME_VALUE = "dms-tenant";
  */
 interface ResponseEmission {
   returnType: string;
-  /** Given the awaited call, and the preceding period's when comparing. */
+  /** Given the call that runs the query, and the preceding period's when comparing. */
   body: (current: string, previous?: string) => string;
   /** Symbols the route has to import for that body.  */
   imports: string[];
@@ -348,7 +348,7 @@ function comparisonCall(
           in: "query",
         });
   });
-  return `model.${modelMethod}(${args.join(", ")})`;
+  return `model.${modelMethod}(${args.join(", ")}).run()`;
 }
 
 /** A route method's source, with the symbols its text needs imported. */
@@ -402,7 +402,7 @@ export function queryRouteMethodText(
   for (const name of response.imports) {
     symbols.push({ name, module: RESPONSE_MODULE });
   }
-  const call = `model.${modelMethod}(${args})`;
+  const call = `model.${modelMethod}(${args}).run()`;
   const previous = comparisonCall(spec, modelMethod);
   if (previous) {
     for (const parameter of COMPARISON_PARAMETERS) {
