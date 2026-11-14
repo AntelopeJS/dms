@@ -182,12 +182,18 @@ function session(folder) {
  *
  * @param {string} folder Where the messages go
  * @param {number} port The loopback port to listen on
- * @returns {Promise<void>} Resolves once listening
+ * @returns {Promise<import("node:net").Server>} The listening sink; rejects when it cannot listen
  */
 export function serveMail(folder, port) {
   mkdirSync(folder, { recursive: true });
   const server = createServer(session(folder));
-  return new Promise((resolve) => server.listen(port, "127.0.0.1", resolve));
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, "127.0.0.1", () => {
+      server.off("error", reject);
+      resolve(server);
+    });
+  });
 }
 
 /**

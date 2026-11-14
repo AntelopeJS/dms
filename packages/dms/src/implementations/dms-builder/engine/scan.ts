@@ -18,7 +18,6 @@ import {
   getCalleeName,
   getExtendsCall,
   getIdentifierProperty,
-  getNumberProperty,
   getObjectProperty,
   getStringProperty,
   stringLiteralValue,
@@ -98,7 +97,7 @@ function readObjectOption(
   return value.fullyLiteral ? value.value : undefined;
 }
 
-/** A page option read as the value it holds when that value passes `is`. */
+/** A page's or a category's option read as the value it holds when that value passes `is`. */
 function readOption<Value>(
   opts: ObjectLiteralExpression,
   name: string,
@@ -328,9 +327,9 @@ class SourceScanner {
       ref: parent ? `${parent.ref}.${id}` : id,
       id,
       fullSlug: joinSlug(parent?.fullSlug ?? "", urlSlug),
-      displayName: getStringProperty(opts, "displayName") ?? id,
-      icon: getStringProperty(opts, "icon"),
-      order: getNumberProperty(opts, "order"),
+      displayName: readOption(opts, "displayName", isString) ?? id,
+      icon: readOption(opts, "icon", isString),
+      order: readOption(opts, "order", isNumber),
       parentRef: parent?.ref,
       importName: Node.isVariableDeclaration(decl) ? decl.getName() : undefined,
       importModule: decl.getSourceFile().getFilePath(),

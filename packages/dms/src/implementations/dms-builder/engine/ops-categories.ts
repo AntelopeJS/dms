@@ -141,6 +141,27 @@ function openCategoryDeclaration(category: CategoryRecord) {
   return { sourceFile, decl };
 }
 
+/**
+ * The options a patch sets to something other than what `ListCategories`
+ * reported. An option written as code the scanner cannot read reports as a
+ * fallback, so an echo of that fallback leaves the code as written.
+ */
+function changedFromRead(
+  category: CategoryRecord,
+  patch: Omit<Partial<EditableCategoryMeta>, "parent">,
+): Omit<Partial<EditableCategoryMeta>, "parent"> {
+  const read = new Map<string, unknown>([
+    ["displayName", category.displayName],
+    ["icon", category.icon],
+    ["order", category.order],
+  ]);
+  return Object.fromEntries(
+    Object.entries(patch).filter(
+      ([key, value]) => value == null || value !== read.get(key),
+    ),
+  );
+}
+
 export function configureCategory(
   ref: string,
   patch: Partial<EditableCategoryMeta>,
@@ -160,7 +181,7 @@ export function configureCategory(
     return unsupported("category options are not a plain object literal");
   }
   const { parent, ...scalar } = patch;
-  if (parent !== undefined) {
+  if (parent !== undefined && parent !== category.parentRef) {
     return unsupported("changing a category's parent is not supported in v1");
   }
   const transaction = new Transaction(opened.sourceFile.getProject());
@@ -169,7 +190,12 @@ export function configureCategory(
     resolveRef: resourceRefResolver(),
   });
   try {
-    applyPatch(optionsArg, optionsPatch(optionsArg, scalar), false, ctx);
+    applyPatch(
+      optionsArg,
+      optionsPatch(optionsArg, changedFromRead(category, scalar)),
+      false,
+      ctx,
+    );
   } catch (error) {
     transaction.rollback();
     if (error instanceof InvalidValueError) {
