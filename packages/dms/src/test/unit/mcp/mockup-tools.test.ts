@@ -215,6 +215,30 @@ function writesOrRefusesSpecs(): void {
     ]);
   });
 
+  it("records the chat as the source of a spec the chat's session writes, over the source the agent set", async () => {
+    const written = {
+      version: 1,
+      source: "claude-code",
+      pages: [{ id: "home", title: "Home", tree: [sketch("<p>hi</p>")] }],
+    };
+
+    const fromChat = await write.call(
+      { mockup: NAME, spec: written },
+      undefined,
+      "chat",
+    );
+    const chatSource = parseSpec(await workspace.specBytes());
+    await write.call({ mockup: NAME, spec: written });
+    const terminalSource = parseSpec(await workspace.specBytes());
+
+    expect(fromChat.isError).to.equal(undefined);
+    expect(chatSource).to.have.nested.property("spec.source", "chat");
+    expect(terminalSource).to.have.nested.property(
+      "spec.source",
+      "claude-code",
+    );
+  });
+
   it("refuses an invalid spec at exact pointers and leaves the old file byte-identical", async () => {
     await write.call({ mockup: NAME, spec: spec(sketch("<p>old</p>")) });
     const before = await workspace.specBytes();

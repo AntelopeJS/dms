@@ -88,7 +88,7 @@ export function formatMcpJson(value: JsonValue): string {
 }
 
 function launcherSource(): string {
-  return `require(${JSON.stringify(BRIDGE_MODULE_PATH)}).runBridge(require("node:path").join(__dirname, ${JSON.stringify(BRIDGE_CONFIG_FILE_NAME)}), process.stdin, process.stdout);\n`;
+  return `require(${JSON.stringify(BRIDGE_MODULE_PATH)}).runBridge(require("node:path").join(__dirname, ${JSON.stringify(BRIDGE_CONFIG_FILE_NAME)}), process.stdin, process.stdout, process.argv.slice(2));\n`;
 }
 
 async function writePrivateAtomically(

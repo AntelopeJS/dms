@@ -12,6 +12,7 @@ describe("[unit] mcp route", () => {
       ctx,
       ctx.rawRequest.headers.authorization,
       undefined,
+      undefined,
     );
     expect(answer.getStatus()).to.equal(403);
   });
@@ -27,6 +28,7 @@ describe("[unit] mcp route", () => {
     const answer = await new McpController().answer(
       ctx,
       ctx.rawRequest.headers.authorization,
+      undefined,
       undefined,
     );
     expect(answer.getStatus()).to.equal(401);

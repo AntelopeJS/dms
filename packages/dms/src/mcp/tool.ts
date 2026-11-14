@@ -1,5 +1,6 @@
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
+import type { McpClient } from "./bridge";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { JsonObjectSchema } from "./json";
 
@@ -40,8 +41,14 @@ export interface McpTool {
    *
    * @param sessionId The MCP session that made the call, as its bridge names
    * it; `undefined` when the caller named none.
+   * @param client The client the bridge was started for, such as the
+   * dashboard chat; `undefined` for a coding agent's own session.
    */
-  call(args: JsonValue, sessionId?: string): Promise<McpToolResult>;
+  call(
+    args: JsonValue,
+    sessionId?: string,
+    client?: McpClient,
+  ): Promise<McpToolResult>;
 }
 
 /** The zod schema of each argument of a tool, keyed by argument name. */
@@ -57,6 +64,7 @@ export interface McpToolSpec<Fields extends McpInputFields> {
   run(
     args: z.infer<z.ZodObject<Fields>>,
     sessionId: string | undefined,
+    client: McpClient | undefined,
   ): Promise<McpToolResult>;
 }
 
@@ -114,10 +122,10 @@ export function defineTool<Fields extends McpInputFields>(
     description: spec.description,
     effect: spec.effect,
     inputSchema: inputSchemaOf(spec.input),
-    async call(args, sessionId) {
+    async call(args, sessionId, client) {
       const parsed = spec.input.safeParse(args ?? {});
       if (!parsed.success) return textResult(issuesText(parsed.error), true);
-      return spec.run(parsed.data, sessionId);
+      return spec.run(parsed.data, sessionId, client);
     },
   };
 }

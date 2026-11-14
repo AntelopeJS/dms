@@ -1,6 +1,7 @@
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import { isToolAllowed, type McpAccess } from "./access";
+import type { McpClient } from "./bridge";
 import { JsonObjectSchema, JsonValueSchema } from "./json";
 import {
   type McpTool,
@@ -80,10 +81,15 @@ function listTools(session: McpSession): JsonValue {
   };
 }
 
+interface McpCaller {
+  sessionId: string | undefined;
+  client: McpClient | undefined;
+}
+
 async function callTool(
   session: McpSession,
   params: JsonValue | undefined,
-  sessionId: string | undefined,
+  caller: McpCaller,
 ): Promise<JsonValue> {
   const parsed = CallParamsSchema.safeParse(params);
   if (!parsed.success) {
@@ -102,7 +108,7 @@ async function callTool(
       `${tool.name} is not available in Safe mode: it changes the project past what the builder edits.`,
     );
   }
-  const result = await runTool(tool, parsed.data.arguments ?? {}, sessionId);
+  const result = await runTool(tool, parsed.data.arguments ?? {}, caller);
   const content = result.content.map(({ type, text }) => ({ type, text }));
   return result.isError === true ? { content, isError: true } : { content };
 }
@@ -111,10 +117,10 @@ async function callTool(
 async function runTool(
   tool: McpTool,
   args: JsonValue,
-  sessionId: string | undefined,
+  caller: McpCaller,
 ): Promise<McpToolResult> {
   try {
-    return await tool.call(args, sessionId);
+    return await tool.call(args, caller.sessionId, caller.client);
   } catch (error) {
     return thrownResult(tool.name, ThrownReasonSchema.parse(error));
   }
@@ -124,7 +130,7 @@ async function dispatch(
   session: McpSession,
   method: string,
   params: JsonValue | undefined,
-  sessionId: string | undefined,
+  caller: McpCaller,
 ): Promise<JsonValue> {
   switch (method) {
     case "initialize":
@@ -138,7 +144,7 @@ async function dispatch(
     case "tools/list":
       return listTools(session);
     case "tools/call":
-      return callTool(session, params, sessionId);
+      return callTool(session, params, caller);
     default:
       throw new MethodError(
         JSON_RPC_METHOD_NOT_FOUND,
@@ -163,11 +169,14 @@ function errorAnswer(
  *
  * @param sessionId The MCP session the message came from, as its bridge
  * names it; `undefined` when the caller named none.
+ * @param client The client the bridge was started for, such as the dashboard
+ * chat; `undefined` for a coding agent's own session.
  */
 export async function answerMcpMessage(
   session: McpSession,
   message: JsonValue,
   sessionId: string | undefined,
+  client?: McpClient,
 ): Promise<JsonValue | undefined> {
   const parsed = JsonRpcMessageSchema.safeParse(message);
   if (!parsed.success) {
@@ -182,7 +191,7 @@ export async function answerMcpMessage(
     return {
       jsonrpc: "2.0",
       id,
-      result: await dispatch(session, method, params, sessionId),
+      result: await dispatch(session, method, params, { sessionId, client }),
     };
   } catch (error) {
     if (error instanceof MethodError) {
