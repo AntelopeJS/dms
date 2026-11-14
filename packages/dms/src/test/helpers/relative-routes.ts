@@ -29,9 +29,23 @@ export const ACCEPTED_ROUTES: readonly string[] = [
 ];
 
 /**
+ * Live routes whose `{{ }}` tokens pad their key with spaces, as the
+ * dashboard resolves them: a live route accepts them, a built page's link
+ * refuses them.
+ */
+export const PADDED_TOKEN_ROUTES: readonly string[] = [
+  "/api/customers/{{ params.id }}/stats",
+  "/api/orders?store={{  query.store}}&page={{query.page }}",
+  "/{{{ params.id }}}",
+];
+
+/**
  * Paths that a built page's link and a live route both refuse: no leading
  * `/`, a host behind `//` or `/\`, a scheme, whitespace, a control
- * character that a URL parser drops, or a path over the length limit.
+ * character that a URL parser drops, a space outside a `{{ }}` token or
+ * inside its key, or a path over the length limit. The run of tokens ending
+ * in a space takes tens of seconds for a rule that backtracks over it, and
+ * mocha reports the timeout.
  */
 export const REFUSED_ROUTES: readonly string[] = [
   ...table.refused,

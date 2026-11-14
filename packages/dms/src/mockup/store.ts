@@ -28,7 +28,7 @@ import {
 } from "./model";
 
 /** How long a burst of writes to one file is waited out before it is read. */
-export const WATCH_DEBOUNCE_MS = 40;
+const WATCH_DEBOUNCE_MS = 40;
 
 /** What a subscriber to one mockup receives. */
 export type MockupEvent =

@@ -17,16 +17,32 @@ function scaffoldWith(files: Record<string, string>) {
   return scaffoldLocalModule("m", "modules/m");
 }
 
-/** What `tsc` reports and writes for a scaffolded module, built in memory from its files. */
-function build(files: Record<string, string>) {
+/**
+ * What `tsc` reports and writes for a scaffolded module, built in memory from its files, the
+ * `sources` written beside its entry and the `@types/node` its install brings.
+ */
+function build(
+  files: Record<string, string>,
+  sources: Record<string, string> = {},
+) {
   const scaffold = scaffoldWith(files);
   for (const [file, text] of [
     ...scaffold.files,
     [scaffold.entryFile, scaffold.entryText],
+    ...Object.entries(sources).map(([name, source]) => [
+      path.join(scaffold.root, "src", name),
+      source,
+    ]),
   ]) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, text);
   }
+  const types = path.join(scaffold.root, "node_modules", "@types");
+  fs.mkdirSync(types, { recursive: true });
+  fs.symlinkSync(
+    path.join(process.cwd(), "node_modules", "@types", "node"),
+    path.join(types, "node"),
+  );
   const config = ts.getParsedCommandLineOfConfigFile(
     path.join(scaffold.root, "tsconfig.json"),
     undefined,
@@ -48,6 +64,9 @@ function build(files: Record<string, string>) {
       ts.flattenDiagnosticMessageText(d.messageText, " "),
     ),
     entry: written.get(path.join(scaffold.root, "dist", "index.js")),
+    outsideDist: [...written.keys()].filter(
+      (file) => !file.startsWith(path.join(scaffold.root, "dist") + path.sep),
+    ),
   };
 }
 
@@ -58,7 +77,8 @@ function fileOf(files: Record<string, string>, name: string): string {
   return String(text);
 }
 
-describe("scaffolding a module from project files npm, pnpm and tsc accept", () => {
+/** Gives the tests of a suite a fresh project folder of their own. */
+function inProjectRoot(): void {
   before(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "dms-builder-scaffold-"));
     setBuilderConfig({ projectRoot: root });
@@ -68,6 +88,10 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
     fs.rmSync(root, { recursive: true, force: true });
     setBuilderConfig({});
   });
+}
+
+describe("scaffolding a module from project files npm, pnpm and tsc accept", () => {
+  inProjectRoot();
 
   for (const field of ["dependencies", "devDependencies"]) {
     for (const value of ["null", "[]"]) {
@@ -102,39 +126,6 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
     expect(text).to.contain('"packageManager": null');
   });
 
-  for (const value of ["null", "[]"]) {
-    it(`reads compilerOptions ${value} as absent`, () => {
-      const text = fileOf(
-        { "tsconfig.json": `{"compilerOptions": ${value}}` },
-        "tsconfig.json",
-      );
-      expect(text).to.equal(
-        '{\n  "compilerOptions": {\n    "module": "commonjs",\n    "moduleResolution": "bundler",\n    "rootDir": "src",\n    "outDir": "dist",\n    "tsBuildInfoFile": "dist/.tsbuildinfo"\n  },\n  "include": [\n    "src/**/*.ts"\n  ]\n}\n',
-      );
-    });
-  }
-
-  it("builds the module to CommonJS in dist from a typecheck-only project", function () {
-    this.timeout(30_000);
-    const { errors, entry } = build({
-      "tsconfig.json": JSON.stringify({
-        compilerOptions: {
-          noEmit: true,
-          emitDeclarationOnly: true,
-          declaration: true,
-          outFile: "out.js",
-          module: "preserve",
-          moduleResolution: "bundler",
-          allowImportingTsExtensions: true,
-          verbatimModuleSyntax: true,
-          strict: true,
-        },
-      }),
-    });
-    expect(errors).to.deep.equal([]);
-    expect(entry).to.match(/^exports\.construct = construct;$/m);
-  });
-
   for (const spec of ["file:~/lib", "file:/opt/lib", "^1.0.0"]) {
     it(`keeps the project's ${spec} spec, which names its target from any folder`, () => {
       const text = fileOf(
@@ -163,5 +154,96 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
     expect(() =>
       scaffoldWith({ "package.json": '{"dependencies": {"a": null}}' }),
     ).to.throw("package.json cannot be read");
+  });
+});
+
+describe("building a module scaffolded from the project's tsconfig", () => {
+  inProjectRoot();
+
+  for (const value of ["null", "[]"]) {
+    it(`builds the module of a project whose compilerOptions is ${value}`, function () {
+      this.timeout(30_000);
+      const { errors, entry } = build({
+        "tsconfig.json": `{"compilerOptions": ${value}}`,
+      });
+      expect(errors).to.deep.equal([]);
+      expect(entry).to.match(/^exports\.construct = construct;$/m);
+    });
+  }
+
+  it("builds the module without the types, type roots, paths and files only the project has", function () {
+    this.timeout(30_000);
+    const { errors, entry } = build({
+      "tsconfig.json": JSON.stringify({
+        compilerOptions: {
+          types: ["vite/client"],
+          typeRoots: ["./types"],
+          baseUrl: ".",
+          paths: { "~/*": ["./app/*"] },
+          ignoreDeprecations: "6.0",
+        },
+        files: ["app.ts"],
+      }),
+    });
+    expect(errors).to.deep.equal([]);
+    expect(entry).to.match(/^exports\.construct = construct;$/m);
+  });
+
+  it("builds the module's sources though the project excludes its folder", function () {
+    this.timeout(30_000);
+    const { errors, entry } = build({
+      "tsconfig.json": JSON.stringify({ exclude: ["modules"] }),
+    });
+    expect(errors).to.deep.equal([]);
+    expect(entry).to.match(/^exports\.construct = construct;$/m);
+  });
+
+  it("writes the module's declarations in its dist though the project sets declarationDir", function () {
+    this.timeout(30_000);
+    const { errors, outsideDist } = build({
+      "tsconfig.json": JSON.stringify({
+        compilerOptions: { declaration: true, declarationDir: "types" },
+      }),
+    });
+    expect(errors).to.deep.equal([]);
+    expect(outsideDist).to.deep.equal([]);
+  });
+
+  it("builds module code that needs an option the project's base tsconfig sets", function () {
+    this.timeout(30_000);
+    const { errors } = build(
+      {
+        "tsconfig.base.json": JSON.stringify({
+          compilerOptions: { experimentalDecorators: true },
+        }),
+        "tsconfig.json": JSON.stringify({ extends: "./tsconfig.base.json" }),
+      },
+      {
+        "decorated.ts":
+          "function inject(_target: object, _key: string | undefined, _index: number): void {}\n\nexport class Service {\n  constructor(@inject readonly port: number) {}\n}\n",
+      },
+    );
+    expect(errors).to.deep.equal([]);
+  });
+
+  it("builds the module to CommonJS in dist from a typecheck-only project", function () {
+    this.timeout(30_000);
+    const { errors, entry } = build({
+      "tsconfig.json": JSON.stringify({
+        compilerOptions: {
+          noEmit: true,
+          emitDeclarationOnly: true,
+          declaration: true,
+          outFile: "out.js",
+          module: "preserve",
+          moduleResolution: "bundler",
+          allowImportingTsExtensions: true,
+          verbatimModuleSyntax: true,
+          strict: true,
+        },
+      }),
+    });
+    expect(errors).to.deep.equal([]);
+    expect(entry).to.match(/^exports\.construct = construct;$/m);
   });
 });

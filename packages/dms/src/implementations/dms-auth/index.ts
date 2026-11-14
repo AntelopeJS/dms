@@ -285,7 +285,7 @@ export async function validateRefreshToken(token: string) {
 
   const user = await GetModel(UserModel).get(result.id);
   const claims = verifiedSessionClaims(token, user, REFRESH_TOKEN_PURPOSE);
-  if (!claims) {
+  if (!user || !claims) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
   }
   return claims;

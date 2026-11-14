@@ -7,7 +7,11 @@ import {
   validateTenantAssignmentToken,
   validateTwoFactorToken,
 } from "../../implementations/dms-auth";
-import { validateSessionHandoffToken } from "../../implementations/dms-auth/services";
+import {
+  UNKNOWN_USER_AUTH_KEY,
+  validateSessionHandoffToken,
+} from "../../implementations/dms-auth/services";
+import { generateAuthKey } from "../../utils";
 import {
   forge,
   HTTP_UNAUTHORIZED,
@@ -104,6 +108,18 @@ describe("[unit] auth tokens naming an unknown user", () => {
       );
       expect(refusal.status, purpose).to.equal(HTTP_UNAUTHORIZED);
     }
+  });
+
+  it("verifies an unknown id against a key as long as a real one", () => {
+    expect(UNKNOWN_USER_AUTH_KEY).to.have.lengthOf(generateAuthKey().length);
+  });
+
+  it("refuses a refresh token signed for a user deleted since", async () => {
+    const gone = await insertTokenUser();
+    const token = signFor(gone, { sessionId: "signed", purpose: "refresh" });
+    await GetModel(UserModel).delete(gone._id);
+    const refusal = await refusalOf(() => validateRefreshToken(token));
+    expect(refusal.status).to.equal(HTTP_UNAUTHORIZED);
   });
 
   it("reads no session before the access token's signature checks out", async () => {
