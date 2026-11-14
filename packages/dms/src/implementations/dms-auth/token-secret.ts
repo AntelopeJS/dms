@@ -2,13 +2,15 @@ import { createSecretKey, type KeyObject } from "node:crypto";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { type JwtPayload, verify } from "jsonwebtoken";
 import { getAuthConfig } from "../../config";
+import { generateAuthKey } from "../../utils";
 
 const SECRET_VERSION = 1;
 /**
  * The `authKey` {@link verifyTokenFor} verifies against when no user matched.
- * A token signed with it is still refused, since it names no user.
+ * Minted per process like a real key, so its HMAC costs the same. A token
+ * signed with it is still refused, since it names no user.
  */
-export const UNKNOWN_USER_AUTH_KEY = "unknown-user";
+export const UNKNOWN_USER_AUTH_KEY = generateAuthKey();
 
 /**
  * The secret a user's tokens are signed with: the instance secret mixed with
