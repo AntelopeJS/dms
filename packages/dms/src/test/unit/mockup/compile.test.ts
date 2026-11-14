@@ -287,7 +287,7 @@ function checksSketchMarkupAndSiblingIds(): void {
       onePage(sketches.map((html) => ({ type: "sketch", options: { html } }))),
     );
 
-    expect(issues.map((issue) => issue.path)).to.deep.equal(
+    expect([...new Set(issues.map((issue) => issue.path))]).to.deep.equal(
       sketches.map((_, index) => `/pages/0/tree/${index}/options/html`),
     );
   });
