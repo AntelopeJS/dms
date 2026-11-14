@@ -17,16 +17,32 @@ function scaffoldWith(files: Record<string, string>) {
   return scaffoldLocalModule("m", "modules/m");
 }
 
-/** What `tsc` reports and writes for a scaffolded module, built in memory from its files. */
-function build(files: Record<string, string>) {
+/**
+ * What `tsc` reports and writes for a scaffolded module, built in memory from its files, the
+ * `sources` written beside its entry and the `@types/node` its install brings.
+ */
+function build(
+  files: Record<string, string>,
+  sources: Record<string, string> = {},
+) {
   const scaffold = scaffoldWith(files);
   for (const [file, text] of [
     ...scaffold.files,
     [scaffold.entryFile, scaffold.entryText],
+    ...Object.entries(sources).map(([name, source]) => [
+      path.join(scaffold.root, "src", name),
+      source,
+    ]),
   ]) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, text);
   }
+  const types = path.join(scaffold.root, "node_modules", "@types");
+  fs.mkdirSync(types, { recursive: true });
+  fs.symlinkSync(
+    path.dirname(require.resolve("@types/node/package.json")),
+    path.join(types, "node"),
+  );
   const config = ts.getParsedCommandLineOfConfigFile(
     path.join(scaffold.root, "tsconfig.json"),
     undefined,
@@ -103,16 +119,50 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
   });
 
   for (const value of ["null", "[]"]) {
-    it(`reads compilerOptions ${value} as absent`, () => {
-      const text = fileOf(
-        { "tsconfig.json": `{"compilerOptions": ${value}}` },
-        "tsconfig.json",
-      );
-      expect(text).to.equal(
-        '{\n  "compilerOptions": {\n    "module": "commonjs",\n    "moduleResolution": "bundler",\n    "rootDir": "src",\n    "outDir": "dist",\n    "tsBuildInfoFile": "dist/.tsbuildinfo"\n  },\n  "include": [\n    "src/**/*.ts"\n  ]\n}\n',
-      );
+    it(`builds the module of a project whose compilerOptions is ${value}`, function () {
+      this.timeout(30_000);
+      const { errors, entry } = build({
+        "tsconfig.json": `{"compilerOptions": ${value}}`,
+      });
+      expect(errors).to.deep.equal([]);
+      expect(entry).to.match(/^exports\.construct = construct;$/m);
     });
   }
+
+  it("builds the module without the types, type roots, paths and files only the project has", function () {
+    this.timeout(30_000);
+    const { errors, entry } = build({
+      "tsconfig.json": JSON.stringify({
+        compilerOptions: {
+          types: ["vite/client"],
+          typeRoots: ["./types"],
+          baseUrl: ".",
+          paths: { "~/*": ["./app/*"] },
+          ignoreDeprecations: "6.0",
+        },
+        files: ["app.ts"],
+      }),
+    });
+    expect(errors).to.deep.equal([]);
+    expect(entry).to.match(/^exports\.construct = construct;$/m);
+  });
+
+  it("builds module code that needs an option the project's base tsconfig sets", function () {
+    this.timeout(30_000);
+    const { errors } = build(
+      {
+        "tsconfig.base.json": JSON.stringify({
+          compilerOptions: { experimentalDecorators: true },
+        }),
+        "tsconfig.json": JSON.stringify({ extends: "./tsconfig.base.json" }),
+      },
+      {
+        "decorated.ts":
+          "function inject(_target: object, _key: string | undefined, _index: number): void {}\n\nexport class Service {\n  constructor(@inject readonly port: number) {}\n}\n",
+      },
+    );
+    expect(errors).to.deep.equal([]);
+  });
 
   it("builds the module to CommonJS in dist from a typecheck-only project", function () {
     this.timeout(30_000);
