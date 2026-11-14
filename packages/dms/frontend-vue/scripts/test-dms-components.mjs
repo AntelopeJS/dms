@@ -22,6 +22,7 @@ const FIXTURE_FILES = {
     "  setup(sdk) {",
     '    sdk.registerComponent("extra-panel", {});',
     '    sdk.registerComponent("DmsAcmeRawPanel", {}, { prefix: false });',
+    '    sdk.registerComponent("DmsChip", {});',
     "  },",
     "};",
     "const other = { componentPrefix: this.componentPrefix };",
@@ -85,6 +86,7 @@ assert.deepEqual(
       "  <DmsAcmeNoSuchPanel />",
       "  <DmsCardpanel />",
       "  <DmsDefaultLayout />",
+      "  <DmsChip />",
       "</div>",
     ].join("\n"),
     script: 'const card = resolveComponent("DmsSelect");',
@@ -95,6 +97,7 @@ assert.deepEqual(
     "app/pages/Screen.vue:9: `DmsAcmeNoSuchPanel`",
     "app/pages/Screen.vue:10: `DmsCardpanel`",
     "app/pages/Screen.vue:11: `DmsDefaultLayout`",
+    "app/pages/Screen.vue:12: `DmsChip`",
     "app/pages/Screen.vue:3: `DmsSelect`",
   ],
 );
@@ -137,6 +140,7 @@ assert.deepEqual(
       'const board = CustomComponent("DmsBoard");',
       'const componentName = "DmsMeter";',
       "const info = { componentName };",
+      'function make() { const INNER = "DmsChip"; return CustomComponent(INNER); }',
     ].join("\n"),
   }),
   [
@@ -148,6 +152,7 @@ assert.deepEqual(
     "src/pages/home.ts:7: `DmsTextarea`",
     "src/pages/home.ts:8: `DmsBoard`",
     "src/pages/home.ts:10: `DmsMeter`",
+    "src/pages/home.ts:11: `DmsChip`",
   ],
 );
 assert.deepEqual(
