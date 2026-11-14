@@ -141,6 +141,12 @@ describe("checking a database connection", () => {
         ).to.equal("checked");
       }
       expect(
+        await answer(
+          "mysql",
+          "mysql:///erp?socketPath=%2Fvar%2Frun%2Fmysqld%2Fmysqld.sock",
+        ),
+      ).to.equal("checked");
+      expect(
         await answer("postgres", "postgres://u@%2Fvar%2Frun%2Fpostgresql/erp"),
       ).to.equal("checked");
     } finally {

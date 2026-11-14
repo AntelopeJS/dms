@@ -39,8 +39,9 @@ const BRACKETED_IPV6 = /^\[[0-9a-f:.]+\]$/i;
 const HOST_NAME = /^[A-Za-z0-9._~-]+$/;
 
 /**
- * Whether the driver of `engine` reads the host of `url` as the URL says. A URL the driver cannot
- * parse at all is left to the check, which answers its failure.
+ * Whether the host of `url` is a host name or an IPv6 address, for an engine whose driver does not
+ * read a socket host. Any host passes for the other engines. A URL the driver cannot parse at all
+ * is left to the check, which answers its failure.
  */
 function hasReadableHost(engine: DatabaseEngine, url: string): boolean {
   if (SOCKET_HOST[engine]) {
