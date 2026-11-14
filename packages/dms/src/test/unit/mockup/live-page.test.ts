@@ -154,6 +154,22 @@ describe("[unit] mockup of a live page, opened twice", () => {
     expect(replaced.pages[0]?.livePage?.version).to.equal("fedcba9876543210");
   });
 
+  it("titles a single-page mockup with the page's new name on replace (fails a replace that keeps the old spec title)", async () => {
+    await t.open({ pageRef: "/books" });
+    const read = await readSpecSource(t.dir, mockupNameSchema.parse("books"));
+    const renamed = structureOf("/books", BLOCKS, "fedcba9876543210");
+    renamed.page.displayName = "Library";
+
+    await t.open({ pageRef: "/books" }, stubPages([renamed]), {
+      replace: true,
+      digest: read?.digest,
+    });
+    const replaced = await t.specOf("books");
+
+    expect(replaced.title).to.equal("Library");
+    expect(replaced.pages[0]?.title).to.equal("Library");
+  });
+
   it("refuses a replace over a spec that changed since its digest was read", async () => {
     await t.open({ pageRef: "/books" });
     const before = await t.specText("books");
