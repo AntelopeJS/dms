@@ -50,7 +50,7 @@ describe("naming the periods of a bucketed series", () => {
 
   it("hands the helper the bucket when the interface takes it", () => {
     expect(routeOf(true)).to.contain(
-      'chartCardData(await model.revenue(), { measure: "sum", label: "Amount", bucket: "month" })',
+      'chartCardData(await model.revenue().run(), { measure: "sum", label: "Amount", bucket: "month" })',
     );
   });
 
