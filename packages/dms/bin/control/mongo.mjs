@@ -20,6 +20,9 @@ import {
   waitForOwnPort,
 } from "./processes.mjs";
 
+/** A file name Node runs as a script. */
+const JAVASCRIPT_FILE = /\.[cm]?js$/u;
+
 /**
  * @typedef {(...args: unknown[]) => unknown} Callable A function whose result is read as `unknown`
  * @typedef {new (...args: unknown[]) => unknown} Constructor A class whose instances are read as `unknown`
@@ -226,7 +229,9 @@ function mongodOnPath() {
 
 /**
  * The mongod binary: `DMS_CONTROL_MONGOD`, else `mongod` on PATH, else the
- * one mongodb-memory-server-core caches (and downloads once).
+ * one mongodb-memory-server-core caches (and downloads once). A
+ * `DMS_CONTROL_MONGOD` that names a JavaScript file, such as a stand-in,
+ * runs on this Node (see {@link startMongod}).
  *
  * @param {string[]} from Folders to resolve mongodb-memory-server-core from
  * @returns {Promise<string>} The binary path
@@ -252,7 +257,9 @@ export async function mongodBinary(from) {
  * Starts a mongod owned by the run, on `port` or a free one, with its data
  * under the run folder, as the only member of a replica set, so change
  * streams work. A mongod that does not become primary is stopped before the
- * error is thrown.
+ * error is thrown. A binary that is a JavaScript file runs on this Node, as
+ * every other process dms-control starts does, since Windows runs no script
+ * by its path alone.
  *
  * @param {{ mongo: string, logs: string }} paths The run's folders
  * @param {string[]} from Folders to resolve mongodb-memory-server-core from
@@ -263,10 +270,12 @@ export async function startMongod(paths, from, port) {
   const binary = await mongodBinary(from);
   port ??= await freePort();
   mkdirSync(paths.mongo, { recursive: true });
+  const script = JAVASCRIPT_FILE.test(binary);
   const record = startDetached({
     name: "mongod",
-    program: binary,
+    program: script ? process.execPath : binary,
     args: [
+      ...(script ? [binary] : []),
       "--dbpath",
       paths.mongo,
       "--port",
