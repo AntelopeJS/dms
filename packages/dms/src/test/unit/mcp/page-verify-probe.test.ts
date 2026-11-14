@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { JSDOM } from "jsdom";
-import { probePage } from "../../../mcp/page-verify/page-probe";
+import { probePage } from "../../../mcp/page-verify";
 
 const installed: string[] = [];
 
@@ -35,7 +35,8 @@ async function productionVue(): Promise<typeof import("vue")> {
   try {
     return await import("vue");
   } finally {
-    process.env.NODE_ENV = previous;
+    if (previous === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previous;
   }
 }
 
