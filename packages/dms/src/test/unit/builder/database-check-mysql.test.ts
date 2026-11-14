@@ -49,7 +49,19 @@ const GRANTS: [string, string][] = [
   ["inserter", "INSERT ON shop.orders"],
   ["updater", "UPDATE ON shop.notes"],
   ["deleter", "DELETE ON shop.notes"],
-  ["blind", "SELECT (id) ON shop.notes"],
+  ["blind", "SELECT (id) ON shop.orders"],
+];
+
+/** An account named with `@` that reads `shop` only through a role another role holds. */
+const ROLE_USER = "ops@team";
+
+const ROLE_SETUP = [
+  "CREATE ROLE shop_read",
+  "CREATE ROLE shop_staff",
+  "GRANT SELECT ON shop.* TO shop_read",
+  "GRANT shop_read TO shop_staff",
+  `CREATE USER '${ROLE_USER}'@'%' IDENTIFIED BY '${secretOf(ROLE_USER)}'`,
+  `GRANT shop_staff TO '${ROLE_USER}'@'%'`,
 ];
 
 const SETUP = [
@@ -60,6 +72,7 @@ const SETUP = [
     (user) => `CREATE USER '${user}'@'%' IDENTIFIED BY '${secretOf(user)}'`,
   ),
   ...GRANTS.map(([user, grant]) => `GRANT ${grant} TO '${user}'@'%'`),
+  ...ROLE_SETUP,
 ];
 
 /** A MySQL-protocol server the suite starts: the image, and the variable it reads the root password from. */
@@ -67,6 +80,8 @@ interface Flavour {
   label: string;
   image: string;
   passwordVariable: string;
+  /** How the server makes the role the account holds active on every sign-in. */
+  defaultRole: string;
 }
 
 const FLAVOURS: Flavour[] = [
@@ -74,11 +89,13 @@ const FLAVOURS: Flavour[] = [
     label: "MySQL",
     image: "mysql:8.4",
     passwordVariable: "MYSQL_ROOT_PASSWORD",
+    defaultRole: `SET DEFAULT ROLE ALL TO '${ROLE_USER}'@'%'`,
   },
   {
     label: "MariaDB",
     image: "mariadb:11",
     passwordVariable: "MARIADB_ROOT_PASSWORD",
+    defaultRole: `SET DEFAULT ROLE shop_staff FOR '${ROLE_USER}'@'%'`,
   },
 ];
 
@@ -108,16 +125,41 @@ function accessCases(live: Live): void {
     expect(answer).to.include({ canRead: true, canWrite: true });
   });
 
-  it("answers write access without read access to an account that may only INSERT, UPDATE or DELETE", async () => {
-    for (const user of ["inserter", "updater", "deleter"]) {
+  it("answers write access without read access to an account that may only DELETE", async () => {
+    const answer = await checkDatabase(
+      "mysql",
+      live.url("deleter"),
+      TIMEOUT_MS,
+    );
+    expect(answer).to.include({
+      reachable: true,
+      canRead: false,
+      canWrite: true,
+    });
+    expect(answer.reason).to.be.a("string");
+  });
+
+  /** Fails on an implementation that counts INSERT or UPDATE on a relation the account cannot read. */
+  it("answers no access to an account that may only INSERT or UPDATE", async () => {
+    for (const user of ["inserter", "updater"]) {
       const answer = await checkDatabase("mysql", live.url(user), TIMEOUT_MS);
-      expect(answer, user).to.include({
-        reachable: true,
-        canRead: false,
-        canWrite: true,
-      });
-      expect(answer.reason, user).to.be.a("string");
+      expect(answer, user).to.include({ canRead: false, canWrite: false });
     }
+  });
+
+  /** Fails on an implementation that matches grantees by the account's name instead of the session's privileges. */
+  it("answers read access to an account named with @ that reads through a role another role holds", async () => {
+    const answer = await checkDatabase(
+      "mysql",
+      live.url(encodeURIComponent(ROLE_USER), secretOf(ROLE_USER)),
+      TIMEOUT_MS,
+    );
+    expect(answer).to.include({
+      reachable: true,
+      user: `${ROLE_USER}@%`,
+      canRead: true,
+      canWrite: false,
+    });
   });
 
   it("answers no access, with a reason, to an account granted some columns only", async () => {
@@ -286,7 +328,7 @@ for (const flavour of FLAVOURS) {
           }
         });
         const connection = await createConnection(admin);
-        for (const statement of SETUP) {
+        for (const statement of [...SETUP, flavour.defaultRole]) {
           await connection.query(statement);
         }
         await connection.end();

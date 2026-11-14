@@ -1,11 +1,11 @@
 import { type Privileges, summarizeRelations } from "./database-access";
 
-/** One relation of `RELATIONS_SQL` in `probe-mysql.ts`, each privilege as the server's `0` or `1`. */
+/** What the account may do with one relation, as `probe-mysql.ts` reads it. */
 export interface MysqlRelationRow {
-  readable: number;
-  insert: number;
-  update: number;
-  delete: number;
+  readable: boolean;
+  insert: boolean;
+  update: boolean;
+  delete: boolean;
 }
 
 /**
@@ -17,8 +17,8 @@ export interface MysqlRelationRow {
 export function mysqlAccess(rows: readonly MysqlRelationRow[]): Privileges {
   return summarizeRelations(
     rows.map((row) => ({
-      readable: row.readable === 1,
-      writable: row.insert === 1 || row.update === 1 || row.delete === 1,
+      readable: row.readable,
+      writable: row.insert || row.update || row.delete,
     })),
   );
 }

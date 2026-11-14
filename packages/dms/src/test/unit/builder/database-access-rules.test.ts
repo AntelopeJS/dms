@@ -86,16 +86,16 @@ describe("the access a PostgreSQL role is answered", () => {
 });
 
 describe("the access a MySQL or MariaDB account is answered", () => {
-  const none = { readable: 0, insert: 0, update: 0, delete: 0 };
+  const none = { readable: false, insert: false, update: false, delete: false };
 
-  /** Fails on an implementation that reads the server's `0` as a grant, or a write as a read. */
+  /** Fails on an implementation that reads a write as a read, or misses one kind of write. */
   it("reads a relation it may SELECT from, and writes one it may INSERT, UPDATE or DELETE in", () => {
-    expect(mysqlAccess([{ ...none, readable: 1 }, none])).to.deep.equal({
+    expect(mysqlAccess([{ ...none, readable: true }, none])).to.deep.equal({
       canRead: true,
       canWrite: false,
     });
     for (const write of ["insert", "update", "delete"]) {
-      expect(mysqlAccess([{ ...none, [write]: 1 }]), write).to.deep.equal({
+      expect(mysqlAccess([{ ...none, [write]: true }]), write).to.deep.equal({
         canRead: false,
         canWrite: true,
       });
