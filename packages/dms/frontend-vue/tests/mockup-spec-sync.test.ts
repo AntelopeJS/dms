@@ -302,6 +302,34 @@ describe("several writes whose answers were lost", () => {
   });
 });
 
+describe("a spec.json the editor cannot read", () => {
+  it("is no failed save: nothing was edited, so nothing is reported, and the editor waits for a readable file (fails on a 'could not be saved' toast per read)", async () => {
+    file.isInvalid = true;
+    await mountEditor();
+    await streamSaysTheFileChanged();
+
+    expect(notices).toEqual([]);
+    expect(editor.hasFailed.value).toBe(false);
+    expect(editor.spec.value).toBeUndefined();
+
+    file.isInvalid = false;
+    await streamSaysTheFileChanged();
+
+    expect(titleOf(editor.spec.value)).toBe("Revenue");
+    expect(notices).toEqual([]);
+    expect(file.writes).toEqual([]);
+  });
+
+  it("is no failed save when the server does not answer the read either (fails when an unanswered read toasts)", async () => {
+    file.readFailures = 2;
+    await mountEditor();
+    await streamSaysTheFileChanged();
+
+    expect(notices).toEqual([]);
+    expect(editor.hasFailed.value).toBe(false);
+  });
+});
+
 describe("a conflict whose file cannot be read", () => {
   it("backs off like any failed write instead of writing again at once (fails on a write every few milliseconds)", async () => {
     await mountEditor();
