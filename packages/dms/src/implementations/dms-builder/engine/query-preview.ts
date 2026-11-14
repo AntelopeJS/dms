@@ -257,12 +257,12 @@ export async function runPlanPreview(
   try {
     const plan = template.plan(params, fields);
     const args = request.args ?? {};
-    const rows = await executePlan(table, plan, fields, args);
+    const rows = await executePlan(table, plan, fields, args).run();
     const preceding = query.compare
       ? precedingArguments(plan, fields, args)
       : undefined;
     const previous = preceding
-      ? readRows(await executePlan(table, plan, fields, preceding)).points
+      ? readRows(await executePlan(table, plan, fields, preceding).run()).points
       : undefined;
     return arrange(
       readRows(rows),
