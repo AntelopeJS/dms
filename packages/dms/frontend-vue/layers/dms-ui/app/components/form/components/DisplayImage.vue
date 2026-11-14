@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ImageItemValue } from "#dms-core/app/types/image";
 interface DisplayImageProps {
   modelValue?: ImageItemValue | ImageItemValue[] | null;
   multiple?: boolean;

@@ -5,7 +5,7 @@ export type SecurityDialogTone = "primary" | "error" | "warning";
 <script setup lang="ts">
 import DmsModalEscHint from "#dms-ui/app/entries/components/modal/ModalEscHint";
 
-interface SecurityDialogFrameProps {
+export interface SecurityDialogFrameProps {
   title: string;
   icon: string;
   tone?: SecurityDialogTone;

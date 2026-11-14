@@ -18,6 +18,14 @@ import {
   type ZonedDateTime,
 } from "@internationalized/date";
 
+export interface DmsCalendarProps<R extends boolean, M extends boolean>
+  extends CalendarProps<R, M> {
+  /** Earliest day that can be picked (ISO date). */
+  minDate?: string;
+  /** Latest day that can be picked (ISO date). */
+  maxDate?: string;
+}
+
 /** A day as the calendar holds it, with or without a time of day. */
 type CalendarValue = CalendarDate | CalendarDateTime | ZonedDateTime;
 
@@ -44,14 +52,7 @@ type DateValue =
   | null
   | undefined;
 
-interface DmsCalendarProps extends CalendarProps<R, M> {
-  /** Earliest day that can be picked (ISO date). */
-  minDate?: string;
-  /** Latest day that can be picked (ISO date). */
-  maxDate?: string;
-}
-
-const props = defineProps<DmsCalendarProps>();
+const props = defineProps<DmsCalendarProps<R, M>>();
 const emits = defineEmits<{
   "update:modelValue": [
     value:
@@ -108,7 +109,7 @@ function isDateRangeValue(
 }
 
 function convertModelValue(
-  value: DmsCalendarProps["modelValue"] | DateValue,
+  value: DmsCalendarProps<R, M>["modelValue"] | DateValue,
 ): DateValue {
   if (isString(value)) {
     return convertIsoStringToCalendarDate(value);
@@ -126,7 +127,7 @@ const {
   color: fieldColor,
   ariaAttrs,
   emitFormChange,
-} = useFormField<DmsCalendarProps>(props);
+} = useFormField<DmsCalendarProps<R, M>>(props);
 const invalid = computed(() => fieldColor.value === "error");
 
 function toBoundDate(value: string | undefined): CalendarDate | undefined {

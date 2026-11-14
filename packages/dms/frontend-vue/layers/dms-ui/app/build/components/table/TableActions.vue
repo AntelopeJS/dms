@@ -24,6 +24,26 @@ import {
 } from "../../composables/table-view/utils/quickFilters";
 import DmsSearchInput from "../form/SearchInput.vue";
 
+export interface TableActionsProps {
+  canAddRow?: boolean;
+  /** The add action's configured label (`$`: i18n key); "New entry" without. */
+  addLabel?: string;
+  /** The add action's configured icon; the theme's plus without. */
+  addIcon?: string;
+  /** Shows the archive mode toggle, bound to the `showArchived` model. */
+  archiveToggle?: boolean;
+  customButtons?: CustomButton[];
+  onCustomButton?: (button: CustomButton) => void;
+  /** Which controls are drawn; the full chrome by default. */
+  chrome?: ResolvedTableChrome;
+  /** Placeholder of the search field. */
+  searchPlaceholder?: string;
+  /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
+  searchShortcut?: string;
+  /** Dropdown filters writing their column's filter. */
+  quickFilters?: ResolvedQuickFilter[];
+}
+
 const theme = tv({
   slots: {
     root: "flex flex-wrap items-center gap-1.5",
@@ -97,26 +117,6 @@ const theme = tv({
     },
   },
 });
-
-interface TableActionsProps {
-  canAddRow?: boolean;
-  /** The add action's configured label (`$`: i18n key); "New entry" without. */
-  addLabel?: string;
-  /** The add action's configured icon; the theme's plus without. */
-  addIcon?: string;
-  /** Shows the archive mode toggle, bound to the `showArchived` model. */
-  archiveToggle?: boolean;
-  customButtons?: CustomButton[];
-  onCustomButton?: (button: CustomButton) => void;
-  /** Which controls are drawn; the full chrome by default. */
-  chrome?: ResolvedTableChrome;
-  /** Placeholder of the search field. */
-  searchPlaceholder?: string;
-  /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
-  searchShortcut?: string;
-  /** Dropdown filters writing their column's filter. */
-  quickFilters?: ResolvedQuickFilter[];
-}
 
 const props = defineProps<TableActionsProps>();
 
