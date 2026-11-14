@@ -13,7 +13,10 @@ import {
   expectOk,
   type Fixture,
 } from "./harness";
-import { configuredModuleIds } from "../../../implementations/dms-builder/engine";
+import {
+  configuredModuleIds,
+  isInsideFolder,
+} from "../../../implementations/dms-builder/engine";
 import { projectFile, withFileEdited } from "./helpers/project-files";
 
 const OP_TIMEOUT = 120_000;
@@ -52,7 +55,7 @@ describe("a project with more than one local module", function () {
       (resource) => resource.ref === "ledger",
     );
     expect(ledger?.sourceModule).to.equal(ERP);
-    expect(ledger?.files.database).to.equal(
+    expect(path.resolve(ledger?.files.database ?? "")).to.equal(
       path.join(app.root, "modules", ERP, "src", "ledger", "database.ts"),
     );
     const barrel = projectFile(
@@ -81,7 +84,10 @@ describe("a project with more than one local module", function () {
     );
     expect(page?.sourceModule).to.equal(ERP);
     expect(
-      page?.filepath.startsWith(path.join(app.root, "modules", ERP, "src")),
+      isInsideFolder(
+        path.join(app.root, "modules", ERP, "src"),
+        page?.filepath ?? "",
+      ),
     ).to.equal(true);
   });
 

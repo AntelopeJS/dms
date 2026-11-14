@@ -11,7 +11,7 @@ import path from "node:path";
 export function isInsideFolder(
   folder: string,
   candidate: string,
-  paths: path.PlatformPath = path,
+  paths: typeof path = path,
 ): boolean {
   const relative = paths.relative(folder, candidate);
   return (
@@ -30,7 +30,7 @@ export function isInsideFolder(
 export function posixRelative(
   from: string,
   to: string,
-  paths: path.PlatformPath = path,
+  paths: typeof path = path,
 ): string {
   return paths.relative(from, to).split(paths.sep).join("/");
 }
