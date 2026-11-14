@@ -75,7 +75,7 @@ suites declare their own), never for one the DMS provisions.
   includes immutable page/component provenance, live tenant and component access,
   upload action permissions, private and public visibility, staging promotion,
   failed-save retention, barriered concurrent saves, staged-key retries, canonical
-  metadata validation, physical cleanup, and preserved legacy references.
+  metadata validation, physical cleanup, and refused keys with no recorded upload.
 - **Frontend:** run `pnpm --dir frontend-vue test`. Component tests cover native file
   rendering and preview URL behavior.
 

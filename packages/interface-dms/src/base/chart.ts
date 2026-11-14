@@ -67,7 +67,7 @@ export const VALUE_FORMATS = [
 ] as const;
 export type ValueFormat = (typeof VALUE_FORMATS)[number];
 
-/** Fixed fraction digits, or Intl defaults (including native currency digits). Omit to preserve legacy formatting. */
+/** Fixed fraction digits, or Intl defaults (including native currency digits). Omit for the format's default: whole currency amounts, at most one fraction digit for percent and compact, Intl defaults otherwise. */
 export type ValuePrecision = number | "native";
 
 export interface KeyValuePair {

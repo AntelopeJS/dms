@@ -52,8 +52,9 @@ export function CollectInviteExtensionPayloads(
  * Hand each extension the payload its invitation carried, now that the invitee
  * is a member of the tenant.
  *
- * Legacy delivery logs failures. Durable delivery requests retryOnFailure:
- * invalid stored payloads and failed handlers then keep the decision pending.
+ * Without retryOnFailure, a failure is logged and the call resolves. Durable
+ * delivery requests retryOnFailure: invalid stored payloads and failed handlers
+ * then keep the decision pending.
  *
  * @internal
  */

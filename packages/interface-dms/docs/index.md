@@ -87,7 +87,7 @@ Each subpath is its own entry point, and importing one does not load the others.
 
 Beyond these entry points, built files are importable through the `./*` export (`@antelopejs/interface-dms/base/form-types`). Moving or renaming a public path is a breaking change, like removing an export.
 
-Importability does not make a declaration public. Paths under `internal/`, symbols tagged `@internal`, and `internal` namespaces are wiring between the interface and its implementation, not supported consumer APIs. This includes compatibility exports retained at old paths. Public types named by a supported signature remain part of its contract. Use the documented entry points rather than calling internal proxies or raw writer helpers.
+Importability does not make a declaration public. Paths under `internal/`, symbols tagged `@internal`, and `internal` namespaces are wiring between the interface and its implementation, not supported consumer APIs. This includes internal symbols kept at a path a module already imports. Public types named by a supported signature remain part of its contract. Use the documented entry points rather than calling internal proxies or raw writer helpers.
 
 ## How a domain folder is laid out
 
