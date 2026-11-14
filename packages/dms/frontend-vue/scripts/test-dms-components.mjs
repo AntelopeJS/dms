@@ -204,9 +204,21 @@ assert.match(
 );
 assert.deepEqual(await diagnose({ screen: "<DmsLink />", asserted: true }), []);
 
+/** Installs of typescript and vue whose entry is missing: resolution stops at them and fails, whatever the host has above. */
+const BROKEN_PARSERS = {
+  "node_modules/typescript/package.json": { main: "missing.js" },
+  "node_modules/vue/package.json": {
+    exports: { "./compiler-sfc": "./missing.js" },
+  },
+};
+
 async function checkWithoutParsers() {
   const root = mkdtempSync(join(tmpdir(), "dms-components-parsers-"));
   try {
+    for (const [file, manifest] of Object.entries(BROKEN_PARSERS)) {
+      mkdirSync(dirname(join(root, file)), { recursive: true });
+      writeFileSync(join(root, file), JSON.stringify(manifest));
+    }
     const frontend = join(root, "dms", "frontend-vue");
     mkdirSync(join(frontend, "scripts"), { recursive: true });
     for (const file of [
