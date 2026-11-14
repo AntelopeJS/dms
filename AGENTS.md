@@ -14,7 +14,7 @@ Run a package script from its own directory: `pnpm --dir packages/dms <script>`.
 
 ## Tests
 
-`pnpm run checks` runs only the interface tests. The backend and Vue suites run in their own CI jobs, so run the one your change touches:
+`pnpm run checks` builds `packages/dms` and runs its backend invariant checks (`pnpm --dir packages/dms check:backend`), then the interface tests. The backend and Vue suites run in their own CI jobs, so run the one your change touches:
 
 - `pnpm --dir packages/dms test:unit` and `test:integration`. They boot the module against an in-memory MongoDB. See `packages/dms/TESTING.md`.
 - `pnpm --dir packages/dms/frontend-vue test` and `typecheck`.
