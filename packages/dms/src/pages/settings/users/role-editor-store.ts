@@ -111,8 +111,8 @@ export async function loadRoleEditorTree(): Promise<
 
 /**
  * The ids of `permissionIds` that `actor` may grant, as `assertGrantable`
- * decides; `null` for the platform owner, the only holder of `*`, who may
- * grant every one.
+ * decides; `null` when its effective permissions hold `*`, as the platform
+ * owner's do, since it may then grant every one.
  */
 async function grantablePermissionIds(
   actor: RoleEditorActor,
