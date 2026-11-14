@@ -16,7 +16,7 @@ import { buttonLinkProps } from "../../utils/link";
 import { interpolateLiteral } from "../../utils/literalText";
 import { readTranslationKey } from "#dms-core/app/composables/translation/useTranslation";
 
-interface TableEmptyProps {
+export interface TableEmptyProps {
   canAddRow?: boolean;
   /**
    * Message (i18n key) of a failed data fetch; switches the panel to its

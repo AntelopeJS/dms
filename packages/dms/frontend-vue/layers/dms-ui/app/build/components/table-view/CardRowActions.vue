@@ -9,12 +9,12 @@ import { ACTIONS_COLUMN_ID } from "../../composables/table/constants";
  * rules and confirmations, as the row does in the grid. Nothing is drawn
  * outside a table (no TanStack instance) or for a table with no row action.
  */
-interface CardRowActionsProps {
+export interface CardRowActionsProps<T extends Record<string, unknown>> {
   table?: Table<T>;
   rowId: string;
 }
 
-const props = defineProps<CardRowActionsProps>();
+const props = defineProps<CardRowActionsProps<T>>();
 
 const cell = computed(() =>
   props.table

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ComponentInfo } from "#dms-core/app/types/page";
 import { EYEBROW_CLASS } from "../../../build/utils/eyebrow";
 import {
   formErrorsInjectionKey,

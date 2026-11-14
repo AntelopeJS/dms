@@ -20,6 +20,14 @@ import type {
   GetItemKeys,
 } from "@nuxt/ui/runtime/types/utils.js";
 
+export interface ExtendedSelectProps<
+  T extends ArrayOrNested<SelectItem>,
+  VK extends GetItemKeys<T> = "value",
+  M extends boolean = false,
+> extends SelectProps<T, VK, M> {
+  deselectable?: boolean;
+}
+
 type ColoredSelectItem = Extract<SelectItem, object> & {
   label?: string;
   icon?: string;
@@ -27,11 +35,7 @@ type ColoredSelectItem = Extract<SelectItem, object> & {
   textColor?: string;
 };
 
-interface ExtendedSelectProps extends SelectProps<T, VK, M> {
-  deselectable?: boolean;
-}
-
-const props = withDefaults(defineProps<ExtendedSelectProps>(), {
+const props = withDefaults(defineProps<ExtendedSelectProps<T, VK, M>>(), {
   deselectable: true,
 });
 const emits = defineEmits<SelectEmits<T, VK, M>>();

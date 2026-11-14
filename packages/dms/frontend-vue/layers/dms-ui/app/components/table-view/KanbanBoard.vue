@@ -1,6 +1,8 @@
 <script setup lang="ts" generic="T extends Data">
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { Data } from "../../build/components/table/TableRoot.vue";
+import type { ComponentInfo } from "#dms-core/app/types/page";
+import type { RowActionConfig } from "#dms-core/app/types/row-action";
 import SortableList, {
   type SortableListChange,
 } from "../../build/components/sortable/SortableList.vue";
@@ -25,22 +27,7 @@ import { useComposedText } from "#dms-core/app/composables/translation/useCompos
 import { useCardFields } from "../../build/composables/table-view/useCardFields";
 import { tableWriteErrorOptions } from "../../build/composables/table-view/utils/writeError";
 
-const DEFAULT_COLUMN_PAGE_SIZE = 10;
-const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
-const DEFAULT_ROW_ID_KEY = "_id";
-const NEUTRAL_DOT_COLOR = "var(--ui-color-neutral-400)";
-
-const SKELETON_CARD_COUNT = 3;
-
-interface BoardCellState {
-  items: T[];
-  total: number;
-  loadingMore: boolean;
-}
-
-type ListResponse = TableViewListResponse<T>;
-
-interface KanbanBoardProps {
+export interface KanbanBoardProps<T extends Data> {
   location: string;
   columns: TableViewColumn[];
   labelKey?: string;
@@ -70,7 +57,22 @@ interface KanbanBoardProps {
   deleteAction?: boolean | RowActionConfig;
 }
 
-const props = defineProps<KanbanBoardProps>();
+const DEFAULT_COLUMN_PAGE_SIZE = 10;
+const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
+const DEFAULT_ROW_ID_KEY = "_id";
+const NEUTRAL_DOT_COLOR = "var(--ui-color-neutral-400)";
+
+const SKELETON_CARD_COUNT = 3;
+
+interface BoardCellState {
+  items: T[];
+  total: number;
+  loadingMore: boolean;
+}
+
+type ListResponse = TableViewListResponse<T>;
+
+const props = defineProps<KanbanBoardProps<T>>();
 
 const emit = defineEmits<{
   "card-click": [item: T];

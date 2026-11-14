@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Component } from "vue";
 import { Popover } from "reka-ui/namespaced";
 import TableMenuRoot from "./MenuRoot.vue";
 import TableMenuColumns from "./MenuColumns.vue";

@@ -9,6 +9,10 @@ import type { SelectItem } from "@nuxt/ui";
 import { formatFilterValue as formatFilterValueUtil } from "../../composables/table/utils/formatFilterValue";
 import { clearTableFiltersLabelKey } from "../../composables/table/utils/clearTableFilters";
 
+export interface MenuFilterProps {
+  isFormOnly?: boolean;
+}
+
 const theme = tv({
   slots: {
     root: "divide-default divide-y",
@@ -27,10 +31,6 @@ const theme = tv({
     actionButton: "justify-start",
   },
 });
-
-interface MenuFilterProps {
-  isFormOnly?: boolean;
-}
 
 const props = withDefaults(defineProps<MenuFilterProps>(), {
   isFormOnly: false,

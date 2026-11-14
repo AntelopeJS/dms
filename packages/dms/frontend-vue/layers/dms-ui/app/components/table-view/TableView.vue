@@ -14,6 +14,7 @@ import type { RowActionRule } from "#dms-core/app/types/row-action";
 import type { TableViewLiveHoldOptions } from "#dms-core/app/types/live";
 import DmsBlockStatus from "../../build/components/blocks/BlockStatus.vue";
 import UTable from "../../build/components/table/TableRoot.vue";
+import type { Data } from "../../build/components/table/TableRoot.vue";
 import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDetail.vue";
 import LiveHoldBanner from "../../build/components/table-view/LiveHoldBanner.vue";
 import TableViews from "../../build/components/table/TableViews.vue";
@@ -23,7 +24,7 @@ import {
   useBlockStateAttributes,
 } from "../../build/composables/blocks/blockDataState";
 
-interface TableViewProps<T extends Data> extends TableViewConfig<T> {
+export interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Expandable rows: caret column + detail band (backend `expandable`). */
   expandable?: TableViewExpandableConfig;
   /** Caption count while the archived rows show (backend `archivedCountLabel`). */

@@ -11,7 +11,7 @@ export type CardMode = (typeof CARD_MODE)[keyof typeof CARD_MODE];
 </script>
 
 <script setup lang="ts">
-interface CardProps {
+export interface CardProps {
   clickable?: boolean;
   dimmed?: boolean;
   to?: string;

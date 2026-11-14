@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ImageItemValue } from "#dms-core/app/types/image";
 import { useFileMetadata } from "../../build/composables/files/useFileMetadata";
 
 const props = defineProps<{
