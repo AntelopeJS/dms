@@ -291,8 +291,8 @@ async function createAdmittedInviteToken(
 }
 
 /**
- * Completes a cancellation that retired the invite a creation read, so the
- * creation can read the email again.
+ * Removes the invite a creation read when a completed cancellation already
+ * retired it, so the creation can read the email again.
  *
  * @returns Whether the invite's decision was such a cancellation
  */
@@ -304,14 +304,15 @@ async function completeCancellationOfRead(
     tenantId,
     invite._id,
   );
-  if (held?.reason !== "cancelled" || held.replacement) return false;
+  if (held?.reason !== "cancelled" || held.replacement || !held.completed)
+    return false;
   await completeAdmittedInviteResolution(held);
   return true;
 }
 
 /**
  * Withdraws a fresh invite that found a rival, through its decision: a
- * replacement decided on it first is completed and kept instead.
+ * replacement decided on it first is kept instead, and its decider completes it.
  */
 async function withdrawFreshInvite(
   tenantId: string,
@@ -320,12 +321,8 @@ async function withdrawFreshInvite(
 ): Promise<CreateUserInviteTokenResult> {
   const decisions = GetModel(InviteResolutionsModel, tenantId);
   const { resolution, claimed } = await decisions.withdraw(tenantId, fresh);
-  if (!claimed) {
-    await completeAdmittedInviteResolution(resolution);
-    return yieldToWinner(resolution.replacement ?? rival, fresh);
-  }
+  if (!claimed) return yieldToWinner(resolution.replacement ?? rival, fresh);
   await GetModel(UserInviteModel, tenantId).delete(fresh._id);
-  await decisions.update(resolution._id, { completed: true });
   return yieldToWinner(rival, fresh);
 }
 

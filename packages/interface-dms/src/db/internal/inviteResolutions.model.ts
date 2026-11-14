@@ -84,7 +84,9 @@ export class InviteResolutionsModel extends BasicDataModel(
 
   /**
    * Claims the decision of a fresh invite that lost its email to a rival, so
-   * no replacement can be decided on it once it is withdrawn.
+   * no replacement can be decided on it once it is withdrawn. The claim is
+   * stored completed: a withdrawn invite was never announced, so no hook
+   * reports its removal.
    *
    * @returns The invite's decision, and whether this call recorded it
    */
@@ -108,7 +110,7 @@ export class InviteResolutionsModel extends BasicDataModel(
         revision,
         membershipPhase: "pending",
         replacementPhase: "pending",
-        completed: false,
+        completed: true,
         decidedAt: new Date(),
       });
     } catch (error) {
