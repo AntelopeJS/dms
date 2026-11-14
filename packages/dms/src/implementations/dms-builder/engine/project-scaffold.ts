@@ -42,13 +42,14 @@ const MODULE_OPTIONS = {
   tsBuildInfoFile: "dist/.tsbuildinfo",
 };
 /**
- * The project's options a module overrides: those that stop or break its emit, and those that
- * name what only the project installs or holds. A module installs `@types/node` alone.
+ * The project's options a module overrides: those that stop or break its emit or write it outside
+ * `dist`, and those that name what only the project installs or holds. A module installs `@types/node` alone.
  */
 const PROJECT_OPTIONS_OVERRIDDEN = {
   noEmit: false,
   emitDeclarationOnly: false,
   outFile: null,
+  declarationDir: null,
   allowImportingTsExtensions: false,
   verbatimModuleSyntax: false,
   types: ["node"],
@@ -241,6 +242,7 @@ function tsconfigText(
             .join("/"),
           compilerOptions: { ...PROJECT_OPTIONS_OVERRIDDEN, ...MODULE_OPTIONS },
           files: [],
+          exclude: [],
         };
   return `${JSON.stringify({ ...config, include: ["src/**/*.ts"] }, null, 2)}\n`;
 }

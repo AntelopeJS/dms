@@ -64,6 +64,9 @@ function build(
       ts.flattenDiagnosticMessageText(d.messageText, " "),
     ),
     entry: written.get(path.join(scaffold.root, "dist", "index.js")),
+    outsideDist: [...written.keys()].filter(
+      (file) => !file.startsWith(path.join(scaffold.root, "dist") + path.sep),
+    ),
   };
 }
 
@@ -74,7 +77,8 @@ function fileOf(files: Record<string, string>, name: string): string {
   return String(text);
 }
 
-describe("scaffolding a module from project files npm, pnpm and tsc accept", () => {
+/** Gives the tests of a suite a fresh project folder of their own. */
+function inProjectRoot(): void {
   before(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), "dms-builder-scaffold-"));
     setBuilderConfig({ projectRoot: root });
@@ -84,6 +88,10 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
     fs.rmSync(root, { recursive: true, force: true });
     setBuilderConfig({});
   });
+}
+
+describe("scaffolding a module from project files npm, pnpm and tsc accept", () => {
+  inProjectRoot();
 
   for (const field of ["dependencies", "devDependencies"]) {
     for (const value of ["null", "[]"]) {
@@ -118,6 +126,40 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
     expect(text).to.contain('"packageManager": null');
   });
 
+  for (const spec of ["file:~/lib", "file:/opt/lib", "^1.0.0"]) {
+    it(`keeps the project's ${spec} spec, which names its target from any folder`, () => {
+      const text = fileOf(
+        {
+          "package.json": `{"dependencies": {"@antelopejs/interface-api": "${spec}"}}`,
+        },
+        "package.json",
+      );
+      expect(text).to.contain(`"@antelopejs/interface-api": "${spec}"`);
+    });
+  }
+
+  it("rebases a relative spec whose folder name starts with ~", () => {
+    const text = fileOf(
+      {
+        "package.json": `{"dependencies": {"@antelopejs/interface-api": "file:~vendor/api"}}`,
+      },
+      "package.json",
+    );
+    expect(text).to.contain(
+      `"@antelopejs/interface-api": "file:../../~vendor/api"`,
+    );
+  });
+
+  it("refuses a dependency whose range is not a string", () => {
+    expect(() =>
+      scaffoldWith({ "package.json": '{"dependencies": {"a": null}}' }),
+    ).to.throw("package.json cannot be read");
+  });
+});
+
+describe("building a module scaffolded from the project's tsconfig", () => {
+  inProjectRoot();
+
   for (const value of ["null", "[]"]) {
     it(`builds the module of a project whose compilerOptions is ${value}`, function () {
       this.timeout(30_000);
@@ -145,6 +187,26 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
     });
     expect(errors).to.deep.equal([]);
     expect(entry).to.match(/^exports\.construct = construct;$/m);
+  });
+
+  it("builds the module's sources though the project excludes its folder", function () {
+    this.timeout(30_000);
+    const { errors, entry } = build({
+      "tsconfig.json": JSON.stringify({ exclude: ["modules"] }),
+    });
+    expect(errors).to.deep.equal([]);
+    expect(entry).to.match(/^exports\.construct = construct;$/m);
+  });
+
+  it("writes the module's declarations in its dist though the project sets declarationDir", function () {
+    this.timeout(30_000);
+    const { errors, outsideDist } = build({
+      "tsconfig.json": JSON.stringify({
+        compilerOptions: { declaration: true, declarationDir: "types" },
+      }),
+    });
+    expect(errors).to.deep.equal([]);
+    expect(outsideDist).to.deep.equal([]);
   });
 
   it("builds module code that needs an option the project's base tsconfig sets", function () {
@@ -183,35 +245,5 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
     });
     expect(errors).to.deep.equal([]);
     expect(entry).to.match(/^exports\.construct = construct;$/m);
-  });
-
-  for (const spec of ["file:~/lib", "file:/opt/lib", "^1.0.0"]) {
-    it(`keeps the project's ${spec} spec, which names its target from any folder`, () => {
-      const text = fileOf(
-        {
-          "package.json": `{"dependencies": {"@antelopejs/interface-api": "${spec}"}}`,
-        },
-        "package.json",
-      );
-      expect(text).to.contain(`"@antelopejs/interface-api": "${spec}"`);
-    });
-  }
-
-  it("rebases a relative spec whose folder name starts with ~", () => {
-    const text = fileOf(
-      {
-        "package.json": `{"dependencies": {"@antelopejs/interface-api": "file:~vendor/api"}}`,
-      },
-      "package.json",
-    );
-    expect(text).to.contain(
-      `"@antelopejs/interface-api": "file:../../~vendor/api"`,
-    );
-  });
-
-  it("refuses a dependency whose range is not a string", () => {
-    expect(() =>
-      scaffoldWith({ "package.json": '{"dependencies": {"a": null}}' }),
-    ).to.throw("package.json cannot be read");
   });
 });
