@@ -147,6 +147,16 @@ async function cancel(invite: UserInvite): Promise<void> {
   await completeInviteResolution(resolution);
 }
 
+async function accept(invite: UserInvite): Promise<void> {
+  const resolution = await decideInvite({
+    tenantId: TENANT,
+    invite,
+    reason: "accepted",
+    userId: "accepting-user",
+  });
+  await completeInviteResolution(resolution);
+}
+
 describe("[integration] an invitation retired while another creation reads it", () => {
   let hold: { restore: () => void } | undefined;
 
@@ -163,15 +173,14 @@ describe("[integration] an invitation retired while another creation reads it", 
 
   it("refuses a new invitation when the invite it read is accepted before its decision", async () => {
     const { invites, invite } = await pendingInvite();
-    hold = afterFirstEmailRead(async () => {
-      const acceptance = await decideInvite({
-        tenantId: TENANT,
-        invite,
-        reason: "accepted",
-        userId: "accepting-user",
-      });
-      await completeInviteResolution(acceptance);
-    });
+    hold = afterFirstEmailRead(() => accept(invite));
+    await refusal(createUserInviteToken(inviteOptions()));
+    assert.deepEqual(await tokensOf(invites), []);
+  });
+
+  it("refuses a new invitation when the kept invite it read beside a withdrawn fresh invite is accepted", async () => {
+    const { invites, keptInvite } = await withdrawalThatFailedToDelete();
+    hold = afterFirstEmailRead(() => accept(keptInvite));
     await refusal(createUserInviteToken(inviteOptions()));
     assert.deepEqual(await tokensOf(invites), []);
   });
