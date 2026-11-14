@@ -58,6 +58,10 @@ const loaderExemptions = {
     "    Object.assign(require.cache, { [file]: { exports } });",
   "dist/test/unit/builder/helpers/module-cache.js:9":
     "    delete require.cache[file];",
+  "src/test/integration/mcp-startup-modules.test.ts:6":
+    "const tsMorphFilesAtStart = Object.keys(require.cache).filter((file) =>",
+  "dist/test/integration/mcp-startup-modules.test.js:9":
+    "const tsMorphFilesAtStart = Object.keys(require.cache).filter((file) => file.includes(TS_MORPH_SEGMENT));",
 };
 
 module.exports = {
