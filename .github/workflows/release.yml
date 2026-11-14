@@ -42,10 +42,11 @@ jobs:
           test "$GITHUB_REF" = "refs/heads/$release_branch"
           node --input-type=module <<'NODE'
           import { readFileSync } from 'node:fs'
-          import { satisfiesImplementedRange } from './checks/release-range.mjs'
+          import { satisfiesBoundedRange, satisfiesImplementedRange } from './checks/release-range.mjs'
           const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'))
           const pkg = readJson('./packages/dms/package.json')
           const iface = readJson('./packages/interface-dms/package.json')
+          const builder = readJson('./packages/interface-dms-builder/package.json')
           if (
             pkg.name !== '@antelopejs/dms' ||
             pkg.private === true ||
@@ -55,6 +56,7 @@ jobs:
             pkg.publishConfig.access !== 'public' ||
             pkg.publishConfig.provenance !== true ||
             !satisfiesImplementedRange(iface.version, pkg.dependencies['@antelopejs/interface-dms']) ||
+            !satisfiesBoundedRange(builder.version, pkg.dependencies['@antelopejs/interface-dms-builder']) ||
             // The runtime provides the interface package and nothing else.
             !pkg.antelopeJs.implements.includes('@antelopejs/interface-dms') ||
             pkg.antelopeJs.implements.some((name) => name !== '@antelopejs/interface-dms')

@@ -1,6 +1,6 @@
 ---
 name: formal-release-range
-description: Checks the release rule that the interface in the tree satisfies the range the DMS module publishes (satisfiesImplementedRange) against semver, prereleases included. Use when checks/release-range.mjs, the validate job of .github/workflows/release.yml, the interface-dms version, or the @antelopejs/interface-dms range in packages/dms/package.json changes.
+description: Checks the release rules that the interfaces in the tree satisfy the ranges the DMS module publishes for them (satisfiesImplementedRange for interface-dms, satisfiesBoundedRange for interface-dms-builder) against semver, prereleases included. Use when checks/release-range.mjs, the validate job of .github/workflows/release.yml, the interface-dms or interface-dms-builder version, or their ranges in packages/dms/package.json change.
 ---
 
 # Verify the release range rule
@@ -9,15 +9,18 @@ The `validate` job of the module release refuses to publish `@antelopejs/dms` un
 
 The rule is `satisfiesImplementedRange` in `checks/release-range.mjs`. It runs with no dependency, before any install, and the workflow imports it. The properties drive that function and compare it with `semver`.
 
+The same job refuses the release unless the `@antelopejs/interface-dms-builder` version in the tree satisfies the range the module declares for it. The module consumes that interface rather than implementing it, so its range is any `>=A.B.C <D.E.F`. The rule is `satisfiesBoundedRange`, which `satisfiesImplementedRange` also builds on. Any other spelling of the range is refused.
+
 ## Run the properties
 
 Use Node 24 from `.nvmrc` and the pinned lockfile install. From the repository root, run this command.
 
 ```sh
 FC_SEED=20261029 node --test --test-reporter=spec checks/release-range.test.mjs
+node --test --test-reporter=spec checks/bounded-range.test.mjs
 ```
 
-Expect exit code 0, `pass 7` and `fail 0`. The same file runs in `pnpm test`, so `pnpm run checks` and the required CI `checks` job run it.
+Expect exit code 0 and `fail 0`, with `pass 7` for the first file and `pass 2` for the second, whose default seed is `20261114`. The same files run in `pnpm test`, so `pnpm run checks` and the required CI `checks` job run them.
 Change `FC_SEED` to explore another sample. Keep the failing seed and the printed counterexample when reporting a failure. The same seed reproduces the same generation and shrinking with the pinned fast-check version.
 
 Exit 1 means a property failed. Its output is the shrunk counterexample.
@@ -30,6 +33,8 @@ The oracle is `semver.satisfies(version, range)` with default options. It is the
 2. **Membership.** For every stable version, the rule and `semver.satisfies` agree. It catches string comparison, an inclusive cap, an exclusive floor, a dropped patch compare, and a dropped major.
 3. **Cap.** No version in the next minor or any later release is accepted, prereleases and build metadata included.
 4. **Prerelease and build metadata.** For every version, prereleases and build metadata included, the rule and `semver.satisfies` agree.
+5. **Bounded membership.** For every `>=A.B.C <D.E.F` range and every version, prereleases and build metadata included, `satisfiesBoundedRange` and `semver.satisfies` agree. Versions are drawn on the floor, on the cap or anywhere.
+6. **Bounded shape.** Every other spelling of a range is refused, even where `semver` admits the version.
 
 On failure, rebuild the counterexample as a pair of `iface.version` and `pkg.dependencies['@antelopejs/interface-dms']`. Check these facts before calling it a product bug.
 
@@ -40,7 +45,7 @@ A malformed generator is a modelling error. A mismatch after those checks is a f
 
 ## Behaviour probe
 
-`probe.mjs` prints what the release workflow's `validate` step decides in a checkout, one line per case: 80 version and range pairs, prereleases and build metadata included, and 8 manifests that each break one of the step's other checks. It extracts the step's node script from `release.yml`, wherever the rule lives (inline, as before #529, or imported from `checks/release-range.mjs`), and runs it on fixture manifests built from the checkout's own.
+`probe.mjs` prints what the release workflow's `validate` step decides in a checkout, one line per case: 80 interface-dms version and range pairs, 42 interface-dms-builder version and range pairs, prereleases and build metadata included, and 8 manifests that each break one of the step's other checks. It extracts the step's node script from `release.yml`, wherever the rule lives (inline, as before #529, or imported from `checks/release-range.mjs`), and runs it on fixture manifests built from the checkout's own.
 
 ```sh
 node .agents/skills/formal-release-range/probe.mjs <checkout>
@@ -57,7 +62,7 @@ None. The four disagreements recorded before #538 are fixed, and the strict prop
 Each property runs 1000 cases with default seed `20261029`, overridable with `FC_SEED`.
 Floors are `0.minor.patch` with minor 0 to 4 or 8 to 11 (the second band crosses the `0.9`/`0.10` width change) and patch 0 to 4.
 Versions put the major at 0 (weight 8) or 1 to 4, the minor around the floor minor or 0 to 12, and the patch around the floor patch or 0 to 4. Prerelease is absent or `next`, `alpha` or `rc` followed by `.0` to `.4`. Build metadata is absent, `build.0` or `sha.abc123`.
-Ranges are the canonical range for the floor and 28 mutations of it (cap and floor changes, other operators, spacing, `v` prefix, prerelease or build bounds, a union, a wildcard, empty, missing, and leading zeros).
+Ranges are the canonical range for the floor and 29 mutations of it (cap and floor changes, other operators, spacing, `v` prefix, prerelease or build bounds, a union, a wildcard, empty, missing, and leading zeros).
 An explicit table pins the three oracle readings for seven versions on `>=0.9.1 <0.10.0`, and another pins ten malformed or long versions against `semver.satisfies`.
 
 The check does not cover numbers beyond 2^53, versions or ranges with a leading `v` or `=` on the version, version strings that are not valid semver, or any other check in the `validate` step. The workflow wiring (the step imports `./checks/release-range.mjs` as an ES module) was confirmed by extracting the step and running it, not by a test: a test that read `release.yml` would break the repo's rule that no test reads the file it covers.
@@ -65,13 +70,14 @@ The check does not cover numbers beyond 2^53, versions or ranges with a leading 
 
 ## Coverage record
 
-Last synchronized product commit is the fix for #538, which rewrote the rule and reran every scratch break below.
+Last synchronized product commit is the one that added the interface-dms-builder rule (ANT-2585), which reran every scratch break below.
 
 | File | What it covers |
 | --- | --- |
-| `checks/release-range.mjs` | `satisfiesImplementedRange` and the version and range patterns it reads |
+| `checks/release-range.mjs` | `satisfiesImplementedRange`, `satisfiesBoundedRange` and the version and range patterns they read |
 | `checks/release-range.test.mjs` | The properties, the generators and the oracle table |
-| `.github/workflows/release.yml` | The `validate` job step that imports the module, with `actions/setup-node` before it |
+| `checks/bounded-range.test.mjs` | The bounded-range properties and their generators |
+| `.github/workflows/release.yml` | The `validate` job step that imports the module, with `actions/setup-node` before it, and the interface-dms-builder manifest it reads |
 | `package.json` | The root `test` script that runs the check, and the `fast-check` and `semver` dev dependencies |
 
 Compare changes since the sync commit against this table before trusting an old pass.
@@ -98,3 +104,6 @@ In a scratch copy of `checks/release-range.mjs` and `checks/release-range.test.m
 | Accept an empty build suffix | Malformed versions fails for `0.9.5+`. |
 | Accept `_` in build metadata | Malformed versions fails for `0.9.5+a_b`. |
 | Drop the 256-character cap | Malformed versions fails for a 257-character version. |
+| Drop `capMajor === 0` | Range fails for `>=0.M.p <1.(M+1).0` ("cap major one"). |
+
+These breaks of `satisfiesBoundedRange` each fail bounded membership or bounded shape with seed `20261114`: an inclusive cap, an exclusive floor, numbers compared as strings, the patch ignored, a prerelease accepted, and the range pattern without its end anchor.
