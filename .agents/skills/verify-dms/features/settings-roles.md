@@ -34,6 +34,7 @@ What each role can see and do, and who holds it. Settings > Workspace > Roles is
 - `role-preview-opens-tab`: Preview as <role> opens a new tab with the Role preview bar, menu entries marked "Hidden for <role>", and the page hidden; Exit preview ends it.
 - `role-duplicate`: Duplicate role stores "<name> (copy)" with the same permissions.
 - `role-delete-unused`: the dialog says nobody holds the role; Cancel keeps it; Delete removes it from the list and the API after a reload.
+- `role-editor-grants-only-held`: a member whose role grants Roles edit ticks "Export reports" on their own role and saves: "You can’t grant permissions you don’t hold yourself."; the stored role is unchanged; the member's `PUT` adding `*` and their `GET /dms/modules-listing` both answer 403; the platform owner then saves the same tick ("Role saved").
 - `role-delete-in-use-moves-members`: the dialog counts the holders and offers "Move them to"; after deleting, the member holds the chosen role and is refused the page the deleted role granted.
 
 ## How to get to it (user POV)

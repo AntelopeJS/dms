@@ -13,7 +13,10 @@ import {
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
-import { GetPermissions } from "@antelopejs/interface-dms/permissions";
+import {
+  GetPermissions,
+  HasPermission,
+} from "@antelopejs/interface-dms/permissions";
 import { changeTenantMembers } from "@antelopejs/interface-dms/tenant-members";
 import { describeMemberEdit } from "@antelopejs/interface-dms/internal/member-changes";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
@@ -27,7 +30,7 @@ import {
   GetMenuOrder,
   notifyMenuAccessChanged,
 } from "../../../implementations/dms/page";
-import { haveSameMembers } from "../../../utils";
+import { haveSameMembers, WILDCARD_PERMISSION } from "../../../utils";
 import { type RoleEditorInput, roleDeleteSchema } from "../../../validation";
 import {
   applyPermissionWarnings,
@@ -46,10 +49,12 @@ import {
   summarizeRoles,
 } from "./role-editor";
 
+const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 const HTTP_INTERNAL_ERROR = 500;
 
+const UNGRANTABLE_MESSAGE = "$page.settings.roles.error.ungrantable";
 const ROLE_NOT_FOUND_MESSAGE = "$page.settings.roles.error.not_found";
 const NAME_TAKEN_MESSAGE = "$page.settings.roles.error.name_taken";
 const IN_USE_MESSAGE = "$page.settings.roles.error.in_use";
@@ -63,6 +68,27 @@ export const REASSIGN_FIELD = "reassignTo";
 export interface RoleEditorActor {
   tenantId: string;
   permissions: Set<string>;
+}
+
+/**
+ * Refuses a role that would hold `*`, which only the platform owner holds, or
+ * a permission of `permissions` that `actor` does not hold. `kept` are the
+ * permissions the role holds already: an edit may leave them in place.
+ */
+export async function assertGrantable(
+  actor: RoleEditorActor,
+  permissions: string[],
+  kept: string[] = [],
+): Promise<void> {
+  const added = permissions.filter((id) => !kept.includes(id));
+  const held = await Promise.all(
+    added.map((id) => HasPermission(actor.permissions, id)),
+  );
+  assert(
+    !permissions.includes(WILDCARD_PERMISSION) && held.every(Boolean),
+    HTTP_FORBIDDEN,
+    UNGRANTABLE_MESSAGE,
+  );
 }
 
 /**
@@ -139,14 +165,16 @@ async function assertNameAvailable(
 }
 
 async function insertRole(
-  tenantId: string,
+  actor: RoleEditorActor,
   input: RoleEditorInput,
 ): Promise<string> {
+  const permissions = await withRequiredPermissions(input.permissions);
+  await assertGrantable(actor, permissions);
   const now = new Date();
-  const [roleId] = await GetModel(RoleModel, tenantId).insert({
+  const [roleId] = await GetModel(RoleModel, actor.tenantId).insert({
     name: input.name,
     description: input.description,
-    permissions: await withRequiredPermissions(input.permissions),
+    permissions,
     createdAt: now,
     updatedAt: now,
   });
@@ -160,7 +188,7 @@ export async function createRole(
   input: RoleEditorInput,
 ): Promise<string> {
   await assertNameAvailable(actor.tenantId, input.name);
-  return insertRole(actor.tenantId, input);
+  return insertRole(actor, input);
 }
 
 /** What saving a role changed. */
@@ -182,6 +210,7 @@ export async function updateRole(
   const role = await requireRole(actor.tenantId, roleId);
   await assertNameAvailable(actor.tenantId, input.name, roleId);
   const permissions = await withRequiredPermissions(input.permissions);
+  await assertGrantable(actor, permissions, role.permissions);
   const permissionsChanged = !haveSameMembers(
     role.permissions ?? [],
     permissions,
@@ -203,7 +232,7 @@ export async function duplicateRole(
   const role = await requireRole(actor.tenantId, roleId);
   await assertNameAvailable(actor.tenantId, name);
   const permissions = role.permissions ?? [];
-  return insertRole(actor.tenantId, {
+  return insertRole(actor, {
     name,
     description: role.description ?? "",
     permissions,

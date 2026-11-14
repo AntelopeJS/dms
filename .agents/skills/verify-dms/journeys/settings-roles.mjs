@@ -2,6 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { byCodeUnit, ROLES, MEMBERS, PAGES_API, EXPORT_PERMISSION, PLAYGROUND_ONLY, TOTAL_PERMISSIONS, LONG_NAME, createRole, storedRoles, listMembers, openRoles, newRole, selectRole, signupLink, invite, acceptInvitation, joinedMember, previewHidden } from "./settings-roles/steps.mjs";
 import { roleDeletionJourneys } from "./settings-roles/deletion.mjs";
+import { roleGrantJourneys } from "./settings-roles/grants.mjs";
 import { isRoleOverviewRow, listIn } from "../rows.mjs";
 
 /**
@@ -346,4 +347,5 @@ export const journeys = [
     },
   },
   ...roleDeletionJourneys,
+  ...roleGrantJourneys,
 ];

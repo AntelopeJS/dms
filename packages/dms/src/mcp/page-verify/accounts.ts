@@ -171,7 +171,7 @@ export async function roleOpensPage(
     rolePermissions,
     { preview: { rolePermissions } },
   );
-  return permissionsOpenPage(info, permissions);
+  return permissionsOpenPage(info, { permissions, isOwner: false });
 }
 
 /**
