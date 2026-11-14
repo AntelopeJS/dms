@@ -4,6 +4,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import {
   Hook,
+  type InviteDeletedHookPayload,
   RegisterHook,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
@@ -15,6 +16,7 @@ import {
   completeInviteResolution,
   decideInvite,
 } from "@antelopejs/interface-dms/invite-resolution";
+import { runCleanupUserInvites } from "../../crons";
 import { resetDatabase } from "../helpers/db";
 import { inviteFixture } from "../helpers/invite-resolution-fixtures";
 
@@ -234,20 +236,35 @@ function holdFirstRivalRead() {
   return { parked, release, restore };
 }
 
-/** Holds the first invite `delete` call before it deletes, until `release` runs. */
-function holdFirstDelete() {
+/** Holds the first call of an invite model method before it runs, until `release` runs. */
+function holdFirstCall(method: "delete" | "insert") {
   const restore = () => {
-    Reflect.deleteProperty(UserInviteModel.prototype, "delete");
+    Reflect.deleteProperty(UserInviteModel.prototype, method);
   };
   const { parked, release, pass } = gate();
-  UserInviteModel.prototype.delete = async function (
-    this: UserInviteModel,
-    ...args: Parameters<UserInviteModel["delete"]>
-  ) {
-    restore();
-    await pass();
-    return this.delete(...args);
+  const held = {
+    async delete(
+      this: UserInviteModel,
+      ...args: Parameters<UserInviteModel["delete"]>
+    ) {
+      restore();
+      await pass();
+      return this.delete(...args);
+    },
+    async insert(
+      this: UserInviteModel,
+      ...args: Parameters<UserInviteModel["insert"]>
+    ) {
+      restore();
+      await pass();
+      return this.insert(...args);
+    },
   };
+  Object.defineProperty(UserInviteModel.prototype, method, {
+    value: held[method],
+    configurable: true,
+    writable: true,
+  });
   return { parked, release, restore };
 }
 
@@ -272,7 +289,7 @@ describe("[integration] an invitation retired while a fresh invite withdraws", (
   });
 
   /** Runs A's creation and C's replacement, then B's fresh insert, holding B after it read C's invite as its rival. */
-  async function freshHeldAfterRivalRead(reason: "cancelled" | "expired") {
+  async function freshHeldAfterRivalRead() {
     const invites = GetModel(UserInviteModel, TENANT);
     const firstRead = holdFirstFreshCaller();
     const fresh = createUserInviteToken(inviteOptions("member"));
@@ -286,14 +303,20 @@ describe("[integration] an invitation retired while a fresh invite withdraws", (
     await rivalRead.parked;
     const keptInvite = await invites.get(kept.inviteId);
     assert.ok(keptInvite);
-    await retire(keptInvite, reason);
-    return { invites, fresh, rivalRead };
+    return { invites, fresh, rivalRead, keptInvite };
+  }
+
+  /** Holds B after its rival read, then retires the invite B read as its rival. */
+  async function freshHeldAfterRivalRetired(reason: "cancelled" | "expired") {
+    const held = await freshHeldAfterRivalRead();
+    await retire(held.keptInvite, reason);
+    return held;
   }
 
   for (const reason of ["cancelled", "expired"] as const) {
     it(`keeps one pending invitation when the kept invite is ${reason} before the fresh one withdraws`, async () => {
       const { invites, fresh, rivalRead } =
-        await freshHeldAfterRivalRead(reason);
+        await freshHeldAfterRivalRetired(reason);
       const stray = await invites.getByEmail(inviteOptions("member").email);
       assert.ok(stray);
       replacementGate = holdFirstFreshCaller();
@@ -316,8 +339,8 @@ describe("[integration] an invitation retired while a fresh invite withdraws", (
 
   it("invites a caller that reads a fresh invite between its withdrawal decision and its deletion", async () => {
     const { invites, fresh, rivalRead } =
-      await freshHeldAfterRivalRead("cancelled");
-    const deletion = holdFirstDelete();
+      await freshHeldAfterRivalRetired("cancelled");
+    const deletion = holdFirstCall("delete");
     holds.push(deletion);
     rivalRead.release();
     await deletion.parked;
@@ -331,5 +354,53 @@ describe("[integration] an invitation retired while a fresh invite withdraws", (
       rows.map((row) => row.token),
       [invited.token],
     );
+  });
+
+  it("hands the withdrawing caller a replacement still being inserted", async () => {
+    const { invites, fresh, rivalRead } =
+      await freshHeldAfterRivalRetired("cancelled");
+    const stray = await invites.getByEmail(inviteOptions("member").email);
+    assert.ok(stray);
+    const insertion = holdFirstCall("insert");
+    holds.push(insertion);
+    const replacing = createUserInviteToken({
+      ...inviteOptions("member"),
+      replacesInvite: stray,
+    });
+    await insertion.parked;
+
+    rivalRead.release();
+    const withdrawn = await fresh;
+    insertion.release();
+    const replaced = await replacing;
+
+    assert.deepEqual(withdrawn, replaced);
+    const rows = await invites.getAll();
+    assert.deepEqual(
+      rows.map((row) => row.token),
+      [replaced.token],
+    );
+  });
+
+  it("reports no removal of a withdrawn invite when the cleanup cron overlaps its withdrawal", async () => {
+    const { fresh, rivalRead } = await freshHeldAfterRivalRead();
+    const deleted: string[] = [];
+    const recordDeletion = (payload: InviteDeletedHookPayload) => {
+      deleted.push(payload.inviteId);
+    };
+    RegisterHook(Hook.INVITE_DELETED, recordDeletion);
+    holds.push({
+      restore: () => UnregisterHook(Hook.INVITE_DELETED, recordDeletion),
+    });
+    const deletion = holdFirstCall("delete");
+    holds.push(deletion);
+    rivalRead.release();
+    await deletion.parked;
+
+    await runCleanupUserInvites();
+    deletion.release();
+    await fresh;
+
+    assert.deepEqual(deleted, []);
   });
 });
