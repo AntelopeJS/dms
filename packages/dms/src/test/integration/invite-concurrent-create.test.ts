@@ -11,6 +11,10 @@ import {
   type CreateUserInviteTokenOptions,
   createUserInviteToken,
 } from "@antelopejs/interface-dms/invites";
+import {
+  completeInviteResolution,
+  decideInvite,
+} from "@antelopejs/interface-dms/invite-resolution";
 import { resetDatabase } from "../helpers/db";
 import { inviteFixture } from "../helpers/invite-resolution-fixtures";
 
@@ -183,4 +187,97 @@ describe("[integration] four concurrent invitations of one email", () => {
       [kept.token],
     );
   });
+});
+
+/** Holds the first `getOtherByEmail` call after it read its rival, until `release` runs. */
+function holdFirstRivalRead() {
+  const original = Object.getOwnPropertyDescriptor(
+    UserInviteModel.prototype,
+    "getOtherByEmail",
+  );
+  assert.ok(original);
+  const restore = () =>
+    Object.defineProperty(
+      UserInviteModel.prototype,
+      "getOtherByEmail",
+      original,
+    );
+  let park = () => {};
+  const parked = new Promise<void>((resolve) => {
+    park = resolve;
+  });
+  let release = () => {};
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  UserInviteModel.prototype.getOtherByEmail = async function (
+    this: UserInviteModel,
+    email: string,
+    exceptId: string,
+  ) {
+    restore();
+    const rival = await this.getOtherByEmail(email, exceptId);
+    park();
+    await released;
+    return rival;
+  };
+  return { parked, release, restore };
+}
+
+async function retire(
+  invite: UserInvite,
+  reason: "cancelled" | "expired",
+): Promise<void> {
+  const resolution = await decideInvite({ tenantId: TENANT, invite, reason });
+  await completeInviteResolution(resolution);
+}
+
+describe("[integration] an invitation retired while a fresh invite withdraws", () => {
+  let rivalRead: ReturnType<typeof holdFirstRivalRead> | undefined;
+  let replacementGate: ReturnType<typeof holdFirstFreshCaller> | undefined;
+
+  beforeEach(resetDatabase);
+
+  afterEach(() => {
+    rivalRead?.restore();
+    rivalRead = undefined;
+    replacementGate?.unregister();
+    replacementGate = undefined;
+  });
+
+  for (const reason of ["cancelled", "expired"] as const) {
+    it(`keeps one pending invitation when the kept invite is ${reason} before the fresh one withdraws`, async () => {
+      const invites = GetModel(UserInviteModel, TENANT);
+      const firstRead = holdFirstFreshCaller();
+      const fresh = createUserInviteToken(inviteOptions("member"));
+      await firstRead.parked;
+      firstRead.unregister();
+      await createUserInviteToken(inviteOptions("member"));
+      const kept = await createUserInviteToken(inviteOptions("member"));
+      rivalRead = holdFirstRivalRead();
+      firstRead.release();
+      await rivalRead.parked;
+
+      const keptInvite = await invites.get(kept.inviteId);
+      assert.ok(keptInvite);
+      await retire(keptInvite, reason);
+      const stray = await invites.getByEmail(inviteOptions("member").email);
+      assert.ok(stray);
+      replacementGate = holdFirstFreshCaller();
+      const replacing = createUserInviteToken({
+        ...inviteOptions("member"),
+        replacesInvite: stray,
+      });
+      await replacementGate.parked;
+
+      rivalRead.release();
+      await fresh.catch(() => null);
+      await createUserInviteToken(inviteOptions("member"));
+      replacementGate.release();
+      await replacing.catch(() => null);
+
+      const rows = await invites.getAll();
+      assert.equal(rows.length, 1, JSON.stringify(rows.map((row) => row._id)));
+    });
+  }
 });
