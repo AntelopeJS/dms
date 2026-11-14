@@ -127,17 +127,27 @@ export function bindsNothing(declaration: ImportDeclaration): boolean {
   );
 }
 
+/** The local name a named import binds: its alias, or the imported name. */
+function namedBinding(specifier: ImportSpecifier): Node {
+  return specifier.getAliasNode() ?? specifier.getNameNode();
+}
+
 /**
- * The names the file binds through its named imports, before a rewrite. Pass
- * the result back to {@link pruneUnusedImports} so it drops only what the
- * rewrite orphaned.
+ * The names the file binds through its default and named imports, before a
+ * rewrite. Pass the result back to {@link pruneUnusedImports} so it drops only
+ * what the rewrite orphaned.
  */
 export function referencedImportNames(sourceFile: SourceFile): Set<string> {
   const names = new Set<string>();
   for (const declaration of sourceFile.getImportDeclarations()) {
-    for (const specifier of declaration.getNamedImports()) {
-      if (isReferenced(sourceFile, specifier)) {
-        names.add(specifier.getAliasNode()?.getText() ?? specifier.getName());
+    const defaultImport = declaration.getDefaultImport();
+    const bindings = [
+      ...(defaultImport ? [defaultImport] : []),
+      ...declaration.getNamedImports().map(namedBinding),
+    ];
+    for (const binding of bindings) {
+      if (isReferenced(sourceFile, binding)) {
+        names.add(binding.getText());
       }
     }
   }
@@ -145,15 +155,11 @@ export function referencedImportNames(sourceFile: SourceFile): Set<string> {
 }
 
 /**
- * Whether the file uses the binding the specifier imports. Only the file is
- * searched: a project-wide search finds the same uses here, after reading
- * every other file.
+ * Whether the file uses the name an import binds. Only the file is searched: a
+ * project-wide search finds the same uses here, after reading every other
+ * file.
  */
-function isReferenced(
-  sourceFile: SourceFile,
-  specifier: ImportSpecifier,
-): boolean {
-  const binding = specifier.getAliasNode() ?? specifier.getNameNode();
+function isReferenced(sourceFile: SourceFile, binding: Node): boolean {
   const fileName = sourceFile.getFilePath();
   const highlights =
     sourceFile
@@ -173,7 +179,7 @@ function isReferenced(
 }
 
 /**
- * Drops named imports the rewrite just orphaned. A whole-tree rewrite can
+ * Drops default and named imports the rewrite just orphaned. A whole-tree rewrite can
  * remove the last user of a factory, and a dangling import would otherwise stay
  * behind in the file the builder wrote.
  *
@@ -191,9 +197,12 @@ export function pruneUnusedImports(
     if (bindsNothing(declaration)) {
       continue;
     }
+    const defaultImport = declaration.getDefaultImport();
+    if (defaultImport && isOrphaned(sourceFile, defaultImport, used)) {
+      declaration.removeDefaultImport();
+    }
     for (const specifier of declaration.getNamedImports()) {
-      const name = specifier.getAliasNode()?.getText() ?? specifier.getName();
-      if (used.has(name) && !isReferenced(sourceFile, specifier)) {
+      if (isOrphaned(sourceFile, namedBinding(specifier), used)) {
         specifier.remove();
       }
     }
@@ -201,6 +210,14 @@ export function pruneUnusedImports(
       declaration.remove();
     }
   }
+}
+
+function isOrphaned(
+  sourceFile: SourceFile,
+  binding: Node,
+  used: Set<string>,
+): boolean {
+  return used.has(binding.getText()) && !isReferenced(sourceFile, binding);
 }
 
 /** A top-level declaration the file keeps to itself: nothing else can reach it. */
