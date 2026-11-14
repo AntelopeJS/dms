@@ -10,7 +10,7 @@ import {
 import { runScript } from "./helpers/processes";
 
 const INTERFACES = Object.keys(BUILDER_CODE_INTERFACES);
-const TOOLING = ["typescript", "rimraf", "@types/node"];
+const TOOLING = ["rimraf", "@types/node"];
 const NAMES = [...INTERFACES, ...TOOLING];
 const PREFIXES = ["file:", "link:", "./"];
 
@@ -35,6 +35,14 @@ function vendorPackages(names: string[]): Record<string, string> {
   );
 }
 
+const BUILDER_TYPESCRIPT = /\n\s*"typescript": "[^"]*",/g;
+
+/** The manifest without the builder's own TypeScript range, which an offline install cannot fetch. */
+function withoutRegistryTypescript(text: string): string {
+  expect(text.match(BUILDER_TYPESCRIPT)).to.have.length(1);
+  return text.replace(BUILDER_TYPESCRIPT, "");
+}
+
 function writeScaffold(): string {
   const scaffold = scaffoldLocalModule("m", "modules/m");
   for (const [file, text] of [
@@ -42,7 +50,12 @@ function writeScaffold(): string {
     [scaffold.entryFile, scaffold.entryText] as const,
   ]) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, text);
+    fs.writeFileSync(
+      file,
+      path.basename(file) === "package.json"
+        ? withoutRegistryTypescript(text)
+        : text,
+    );
   }
   return scaffold.root;
 }
