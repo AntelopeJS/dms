@@ -26,8 +26,12 @@ interface VueVNode {
 
 declare global {
   interface Element {
-    /** Set by Vue on the element an app is mounted on. */
-    __vue_app__?: { _instance?: { subTree?: VueVNode } | null };
+    /**
+     * The root vnode Vue renders or hydrates into the element an app is
+     * mounted on, in every build. The app's `_instance` is set only in a
+     * development or devtools build.
+     */
+    _vnode?: VueVNode | null;
   }
 }
 
@@ -131,7 +135,7 @@ function probeInPage(): PageProbe {
   for (const root of document.querySelectorAll(
     "[data-v-app], [data-server-rendered]",
   )) {
-    visit(root.__vue_app__?._instance?.subTree);
+    visit(root._vnode);
   }
   return {
     blocks,
