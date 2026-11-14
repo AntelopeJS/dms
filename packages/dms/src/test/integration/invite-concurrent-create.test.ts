@@ -4,6 +4,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import {
   Hook,
+  type InviteDeletedHookPayload,
   RegisterHook,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
@@ -11,6 +12,11 @@ import {
   type CreateUserInviteTokenOptions,
   createUserInviteToken,
 } from "@antelopejs/interface-dms/invites";
+import {
+  completeInviteResolution,
+  decideInvite,
+} from "@antelopejs/interface-dms/invite-resolution";
+import { runCleanupUserInvites } from "../../crons";
 import { resetDatabase } from "../helpers/db";
 import { inviteFixture } from "../helpers/invite-resolution-fixtures";
 
@@ -181,6 +187,264 @@ describe("[integration] four concurrent invitations of one email", () => {
     assert.deepEqual(
       rows.map((row) => row.token),
       [kept.token],
+    );
+  });
+});
+
+/** A one-shot gate: `pass` parks its caller until `release` runs. */
+function gate() {
+  let park = () => {};
+  const parked = new Promise<void>((resolve) => {
+    park = resolve;
+  });
+  let release = () => {};
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const pass = async () => {
+    park();
+    await released;
+  };
+  return { parked, release, pass };
+}
+
+/** Holds the first `getOtherByEmail` call after it read its rival, until `release` runs. */
+function holdFirstRivalRead() {
+  const original = Object.getOwnPropertyDescriptor(
+    UserInviteModel.prototype,
+    "getOtherByEmail",
+  );
+  assert.ok(original);
+  const restore = () => {
+    Object.defineProperty(
+      UserInviteModel.prototype,
+      "getOtherByEmail",
+      original,
+    );
+  };
+  const { parked, release, pass } = gate();
+  UserInviteModel.prototype.getOtherByEmail = async function (
+    this: UserInviteModel,
+    email: string,
+    exceptId: string,
+  ) {
+    restore();
+    const rival = await this.getOtherByEmail(email, exceptId);
+    await pass();
+    return rival;
+  };
+  return { parked, release, restore };
+}
+
+/** Holds the first call of an invite model method before it runs, until `release` runs. */
+function holdFirstCall(method: "delete" | "insert") {
+  const restore = () => {
+    Reflect.deleteProperty(UserInviteModel.prototype, method);
+  };
+  const { parked, release, pass } = gate();
+  const held = {
+    async delete(
+      this: UserInviteModel,
+      ...args: Parameters<UserInviteModel["delete"]>
+    ) {
+      restore();
+      await pass();
+      return this.delete(...args);
+    },
+    async insert(
+      this: UserInviteModel,
+      ...args: Parameters<UserInviteModel["insert"]>
+    ) {
+      restore();
+      await pass();
+      return this.insert(...args);
+    },
+  };
+  Object.defineProperty(UserInviteModel.prototype, method, {
+    value: held[method],
+    configurable: true,
+    writable: true,
+  });
+  return { parked, release, restore };
+}
+
+/** Makes the first invite `delete` call fail. */
+function failFirstDelete() {
+  const restore = () => {
+    Reflect.deleteProperty(UserInviteModel.prototype, "delete");
+  };
+  UserInviteModel.prototype.delete = () => {
+    restore();
+    return Promise.reject(new Error("delete failed"));
+  };
+  return { restore };
+}
+
+async function retire(
+  invite: UserInvite,
+  reason: "cancelled" | "expired",
+): Promise<void> {
+  const resolution = await decideInvite({ tenantId: TENANT, invite, reason });
+  await completeInviteResolution(resolution);
+}
+
+const holds: { restore: () => void }[] = [];
+
+function restoreHolds(): void {
+  for (const hold of holds.splice(0)) hold.restore();
+}
+
+/** Runs A's creation and C's replacement, then B's fresh insert, holding B after it read C's invite as its rival. */
+async function freshHeldAfterRivalRead() {
+  const invites = GetModel(UserInviteModel, TENANT);
+  const firstRead = holdFirstFreshCaller();
+  const fresh = createUserInviteToken(inviteOptions("member"));
+  await firstRead.parked;
+  firstRead.unregister();
+  await createUserInviteToken(inviteOptions("member"));
+  const kept = await createUserInviteToken(inviteOptions("member"));
+  const rivalRead = holdFirstRivalRead();
+  holds.push(rivalRead);
+  firstRead.release();
+  await rivalRead.parked;
+  const keptInvite = await invites.get(kept.inviteId);
+  assert.ok(keptInvite);
+  return { invites, fresh, rivalRead, keptInvite };
+}
+
+/** Holds B after its rival read, then retires the invite B read as its rival. */
+async function freshHeldAfterRivalRetired(reason: "cancelled" | "expired") {
+  const held = await freshHeldAfterRivalRead();
+  await retire(held.keptInvite, reason);
+  return held;
+}
+
+describe("[integration] an invitation retired while a fresh invite withdraws", () => {
+  let replacementGate: ReturnType<typeof holdFirstFreshCaller> | undefined;
+
+  beforeEach(resetDatabase);
+
+  afterEach(() => {
+    restoreHolds();
+    replacementGate?.unregister();
+    replacementGate = undefined;
+  });
+
+  for (const reason of ["cancelled", "expired"] as const) {
+    it(`keeps one pending invitation when the kept invite is ${reason} before the fresh one withdraws`, async () => {
+      const { invites, fresh, rivalRead } =
+        await freshHeldAfterRivalRetired(reason);
+      const stray = await invites.getByEmail(inviteOptions("member").email);
+      assert.ok(stray);
+      replacementGate = holdFirstFreshCaller();
+      const replacing = createUserInviteToken({
+        ...inviteOptions("member"),
+        replacesInvite: stray,
+      });
+      await replacementGate.parked;
+
+      rivalRead.release();
+      await fresh.catch(() => null);
+      await createUserInviteToken(inviteOptions("member"));
+      replacementGate.release();
+      await replacing.catch(() => null);
+
+      const rows = await invites.getAll();
+      assert.equal(rows.length, 1, JSON.stringify(rows.map((row) => row._id)));
+    });
+  }
+
+  it("invites a caller that reads a fresh invite between its withdrawal decision and its deletion", async () => {
+    const { invites, fresh, rivalRead } =
+      await freshHeldAfterRivalRetired("cancelled");
+    const deletion = holdFirstCall("delete");
+    holds.push(deletion);
+    rivalRead.release();
+    await deletion.parked;
+
+    const invited = await createUserInviteToken(inviteOptions("member"));
+    deletion.release();
+    await fresh.catch(() => null);
+
+    const rows = await invites.getAll();
+    assert.deepEqual(
+      rows.map((row) => row.token),
+      [invited.token],
+    );
+  });
+});
+
+describe("[integration] withdrawal of a fresh invite that found a rival", () => {
+  beforeEach(resetDatabase);
+
+  afterEach(restoreHolds);
+
+  it("hands the withdrawing caller a replacement still being inserted", async () => {
+    const { invites, fresh, rivalRead } =
+      await freshHeldAfterRivalRetired("cancelled");
+    const stray = await invites.getByEmail(inviteOptions("member").email);
+    assert.ok(stray);
+    const insertion = holdFirstCall("insert");
+    holds.push(insertion);
+    const replacing = createUserInviteToken({
+      ...inviteOptions("member"),
+      replacesInvite: stray,
+    });
+    await insertion.parked;
+
+    rivalRead.release();
+    const withdrawn = await fresh;
+    insertion.release();
+    const replaced = await replacing;
+
+    assert.deepEqual(withdrawn, replaced);
+    const rows = await invites.getAll();
+    assert.deepEqual(
+      rows.map((row) => row.token),
+      [replaced.token],
+    );
+  });
+
+  it("reports no removal of a withdrawn invite when the cleanup cron overlaps its withdrawal", async () => {
+    const { fresh, rivalRead } = await freshHeldAfterRivalRead();
+    const deleted: string[] = [];
+    const recordDeletion = (payload: InviteDeletedHookPayload) => {
+      deleted.push(payload.inviteId);
+    };
+    RegisterHook(Hook.INVITE_DELETED, recordDeletion);
+    holds.push({
+      restore: () => UnregisterHook(Hook.INVITE_DELETED, recordDeletion),
+    });
+    const deletion = holdFirstCall("delete");
+    holds.push(deletion);
+    rivalRead.release();
+    await deletion.parked;
+
+    await runCleanupUserInvites();
+    deletion.release();
+    await fresh;
+
+    assert.deepEqual(deleted, []);
+  });
+
+  it("removes an expired fresh invite whose withdrawal failed to delete it", async () => {
+    const { invites, fresh, rivalRead, keptInvite } =
+      await freshHeldAfterRivalRead();
+    holds.push(failFirstDelete());
+    rivalRead.release();
+    await fresh.catch(() => null);
+    const stray = (await invites.getAll()).find(
+      (row) => row._id !== keptInvite._id,
+    );
+    assert.ok(stray);
+
+    await invites.update(stray._id, { expiresAt: new Date(0) });
+    await runCleanupUserInvites();
+
+    const rows = await invites.getAll();
+    assert.deepEqual(
+      rows.map((row) => row._id),
+      [keptInvite._id],
     );
   });
 });
