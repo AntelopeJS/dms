@@ -14,25 +14,31 @@ import { checkDmsComponents } from "./check-dms-components.mjs";
 const NODE_MODULES = fileURLToPath(new URL("../node_modules", import.meta.url));
 
 const FIXTURE_FILES = {
-  "package.json": "{}",
-  "dms.frontend.ts": [
+  "frontend-vue/package.json": "{}",
+  "frontend-vue/dms.frontend.ts": [
     'const PREFIX = "DmsAcme";',
     "export default {",
     "  componentPrefix: PREFIX,",
-    '  setup(sdk) { sdk.registerComponent("extra-panel", {}); },',
+    "  setup(sdk) {",
+    '    sdk.registerComponent("extra-panel", {});',
+    '    sdk.registerComponent("DmsAcmeRawPanel", {}, { prefix: false });',
+    "  },",
     "};",
+    "const other = { componentPrefix: this.componentPrefix };",
   ].join("\n"),
-  "app/components/StatusBoard.vue": "<template><div /></template>",
-  "app/custom-layouts/Board.vue": "<template><div /></template>",
+  "frontend-vue/app/components/StatusBoard.vue": "<template><div /></template>",
+  "frontend-vue/app/custom-layouts/Board.vue": "<template><div /></template>",
 };
 
 async function diagnose({ screen = "<div />", script = "", backend = "" }) {
-  const layer = mkdtempSync(join(tmpdir(), "dms-components-"));
+  const module = mkdtempSync(join(tmpdir(), "dms-components-"));
+  const layer = join(module, "frontend-vue");
   try {
+    mkdirSync(layer);
     symlinkSync(NODE_MODULES, join(layer, "node_modules"), "junction");
     const files = {
       ...FIXTURE_FILES,
-      "app/pages/Screen.vue": [
+      "frontend-vue/app/pages/Screen.vue": [
         "<script setup>",
         'import DmsLocalPanel from "./DmsLocalPanel.vue";',
         script,
@@ -45,22 +51,23 @@ async function diagnose({ screen = "<div />", script = "", backend = "" }) {
       "src/pages/home.test.ts": 'CustomComponent("DmsCard");',
     };
     for (const [file, content] of Object.entries(files)) {
-      mkdirSync(dirname(join(layer, file)), { recursive: true });
-      writeFileSync(join(layer, file), content);
+      mkdirSync(dirname(join(module, file)), { recursive: true });
+      writeFileSync(join(module, file), content);
     }
-    const shown = relative(process.cwd(), layer).length + 1;
+    const shown = relative(process.cwd(), module).length + 1;
     const diagnostics = await checkDmsComponents({
       layer,
-      sources: [join(layer, "src")],
+      sources: [join(module, "src")],
     });
     return diagnostics.map((line) =>
       line
         .slice(shown)
         .replaceAll("\\", "/")
+        .replace(/^frontend-vue\//, "")
         .replace(/` is no component .*$/, "`"),
     );
   } finally {
-    rmSync(layer, { recursive: true, force: true });
+    rmSync(module, { recursive: true, force: true });
   }
 }
 
@@ -102,12 +109,15 @@ assert.deepEqual(
       "  <DmsLocalPanel />",
       "  <dms-local-panel />",
       "  <DmsLazyPanel />",
+      "  <DmsPickedPanel />",
+      "  <DmsAcmeRawPanel />",
       "  <DmsLink />",
       "  <DmsSectionBlock />",
       "</div>",
     ].join("\n"),
     script: [
       "const DmsLazyPanel = defineAsyncComponent(() => import('./Panel.vue'));",
+      "const { DmsPickedPanel } = panels;",
       'const card = resolveComponent("DmsInputSelect");',
     ].join("\n"),
   }),
@@ -124,6 +134,9 @@ assert.deepEqual(
       'const NAME = "dms-select";',
       "const field = new ComponentBuilder(NAME);",
       "const input = CustomComponent(`DmsTextarea` as const);",
+      'const board = CustomComponent("DmsBoard");',
+      'const componentName = "DmsMeter";',
+      "const info = { componentName };",
     ].join("\n"),
   }),
   [
@@ -133,6 +146,8 @@ assert.deepEqual(
     "src/pages/home.ts:4: `DmsAcmeNoSuchBanner`",
     "src/pages/home.ts:6: `dms-select`",
     "src/pages/home.ts:7: `DmsTextarea`",
+    "src/pages/home.ts:8: `DmsBoard`",
+    "src/pages/home.ts:10: `DmsMeter`",
   ],
 );
 assert.deepEqual(
@@ -146,6 +161,9 @@ assert.deepEqual(
       'const extra = CustomComponent("dms-acme-extra-panel");',
       'const logger = child({ component: "dms-mailing" });',
       'const database = connect("dms-database");',
+      'const component = "dms-mailing";',
+      "log.child({ component });",
+      "export function build(component) { return CustomComponent(component); }",
     ].join("\n"),
   }),
   [],
