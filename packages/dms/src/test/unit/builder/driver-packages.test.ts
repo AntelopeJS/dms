@@ -7,8 +7,10 @@ import {
   GetDatabaseProject,
 } from "../../../implementations/dms-builder";
 import * as implementation from "../../../implementations/dms-builder";
-import { driverPackages } from "../../../implementations/dms-builder/engine";
-import { DATABASE_ENGINES } from "../../../implementations/dms-builder/engine/database-access";
+import {
+  DATABASE_ENGINES,
+  driverPackages,
+} from "../../../implementations/dms-builder/engine";
 import { mockupTool, run } from "../../helpers/mockup-mcp";
 import { createFixture, destroyFixture, expectOk } from "./harness";
 import { projectFile } from "./helpers/project-files";
