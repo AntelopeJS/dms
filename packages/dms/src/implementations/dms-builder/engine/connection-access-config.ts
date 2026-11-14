@@ -91,16 +91,15 @@ export function recordLaunchEnvironment(environment: string | undefined): void {
   launchEnvironment = environment;
 }
 
-/** Puts `process.env` back as it was: core's loader reads the project's `.env` into it. */
-function restoreEnv(before: NodeJS.ProcessEnv): void {
+/**
+ * Removes the variables core's loader added from the project's `.env`. A value it replaced, or
+ * removed, stays as it left it: core records the values it set from `.env`, and the next start
+ * replaces exactly those, so an older value put back would outlive every restart.
+ */
+function removeAdded(before: NodeJS.ProcessEnv): void {
   for (const name of Object.keys(process.env)) {
     if (!Object.hasOwn(before, name)) {
       delete process.env[name];
-    }
-  }
-  for (const [name, value] of Object.entries(before)) {
-    if (process.env[name] !== value) {
-      process.env[name] = value;
     }
   }
 }
@@ -109,7 +108,7 @@ type ConfigLoading = ReturnType<
   InstanceType<CoreModule["ConfigLoader"]>["load"]
 >;
 
-/** Calls core's loader, putting `process.env` back before anything else runs. */
+/** Calls core's loader, removing what it added before anything else runs. */
 function startLoad(
   core: CoreModule,
   environment: string,
@@ -122,7 +121,7 @@ function startLoad(
       findConfigFile(),
     );
   } finally {
-    restoreEnv(before);
+    removeAdded(before);
   }
 }
 
@@ -170,8 +169,9 @@ function dropAdded(before: NodeJS.ProcessEnv): void {
 }
 
 /**
- * Loads the configuration and leaves `process.env` as it was. Core reads the project's `.env`
- * synchronously, before the loader's first `await`, so it is put back before any other code runs.
+ * Loads the configuration and adds no variable to `process.env`. Core reads the project's `.env`
+ * synchronously, before the loader's first `await`, so what it added is removed before any other
+ * code runs; a value it replaced from `.env` is the one core records and the next start replaces.
  * A configuration may also load a `.env` itself (`process.loadEnvFile`, which the builder writes
  * when it maps a variable) while it is evaluated, later: once the load settles, the variables it
  * added are removed too. `loadEnvFile` never overwrites a variable already set, so no other is
