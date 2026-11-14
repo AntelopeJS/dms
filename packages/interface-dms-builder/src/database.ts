@@ -135,6 +135,20 @@ export interface DatabaseConnection {
   details?: ConnectionDetails;
 }
 
+/** One `interface-database` or `interface-database-catalog` binding a module entry declares. */
+export interface EntryConnection {
+  interface: string;
+  /** The module that provides the interface. */
+  source: string;
+  /** The connection's id; absent for a plain pin. */
+  id?: string;
+  /**
+   * The access dms-database grants the connection: `read-write` only when its
+   * `config.externalConnections.<id>.access` says so, else `read`. Absent for a plain pin.
+   */
+  access?: "read" | "read-write";
+}
+
 /** The rows to sample from a relation of a catalog connection. */
 export interface RowSampleRequest {
   relation: string;
@@ -239,6 +253,18 @@ export const SetDatabaseConnectionUrl =
   InterfaceFunction<
     (connection: string, url: string) => Promise<OpResult<{ variable: string }>>
   >();
+
+/**
+ * The `interface-database` and `interface-database-catalog` bindings of the module entry `module`,
+ * read from `antelope.config.ts` as written, whether core loads the module or not: a
+ * `disabled: true` entry answers too. `not_found` when no entry has that id. An entry, its
+ * `importOverrides` or a binding written in a way the builder cannot read, such as a variable or a
+ * spread, fails with `invalid_config` rather than leaving a binding out. Writes nothing.
+ *
+ * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
+ */
+export const ListEntryConnections =
+  InterfaceFunction<(module: string) => Promise<OpResult<EntryConnection[]>>>();
 
 /**
  * Sample rows of a relation of a catalog connection; `not_found` for an unknown connection.
