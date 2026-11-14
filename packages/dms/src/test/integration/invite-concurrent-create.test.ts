@@ -316,6 +316,18 @@ describe("[integration] an invitation retired while a fresh invite withdraws", (
       const rows = await invites.getAll();
       assert.equal(rows.length, 1, JSON.stringify(rows.map((row) => row._id)));
     });
+
+    it(`hands the fresh caller a pending invitation when the kept invite is ${reason} before it withdraws`, async () => {
+      const { invites, fresh, rivalRead } =
+        await freshHeldAfterRivalRetired(reason);
+      rivalRead.release();
+      const invited = await fresh;
+      const rows = await invites.getAll();
+      assert.deepEqual(
+        rows.map((row) => row.token),
+        [invited.token],
+      );
+    });
   }
 
   it("invites a caller that reads a fresh invite between its withdrawal decision and its deletion", async () => {

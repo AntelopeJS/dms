@@ -258,7 +258,7 @@ async function createAdmittedInviteToken(
     return yieldToWinner(await userInviteModel.getByEmail(email), replacement);
   }
   const rival = await userInviteModel.getOtherByEmail(email, replacement._id);
-  if (rival) return withdrawFreshInvite(tenantId, replacement, rival);
+  if (rival) return withdrawFreshInvite(options, replacement, rival);
   await ExecuteHooks(Hook.INVITE_CREATED, {
     tenantId,
     inviteId: replacement._id,
@@ -343,17 +343,24 @@ async function removeIfCancelled(
 /**
  * Withdraws a fresh invite that found a rival, through its decision: a
  * replacement decided on it first is kept instead, and its decider completes it.
+ * When the rival was retired meanwhile, it yields to the email's invite, or
+ * runs the creation again when the email has none.
  */
 async function withdrawFreshInvite(
-  tenantId: string,
+  options: CreateUserInviteTokenOptions,
   fresh: UserInvite,
   rival: UserInvite,
 ): Promise<CreateUserInviteTokenResult> {
+  const { tenantId } = options;
   const decisions = GetModel(InviteResolutionsModel, tenantId);
   const { resolution, claimed } = await decisions.withdraw(tenantId, fresh);
   if (!claimed) return yieldToWinner(resolution.replacement ?? rival, fresh);
-  await GetModel(UserInviteModel, tenantId).delete(fresh._id);
-  return yieldToWinner(rival, fresh);
+  const invites = GetModel(UserInviteModel, tenantId);
+  await invites.delete(fresh._id);
+  const winner =
+    (await invites.get(rival._id)) ?? (await invites.getByEmail(options.email));
+  if (!winner) return createAdmittedInviteToken(options);
+  return yieldToWinner(winner, fresh);
 }
 
 function yieldToWinner(
