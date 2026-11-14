@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -19,12 +25,16 @@ const REGISTRY = "generated-frontend-modules.json";
  * A checkout holding a module's page, an installed dms-frontend and a build
  * cache. Each run copies the page into its workspace, as the dms-frontend
  * setup does, with a registry naming its own folder and URL; its build
- * serves the page its workspace holds.
+ * serves the page its workspace holds. A key reads no install above the
+ * fixture's folder unless a run names a higher `top`, so what sits above
+ * `TMPDIR` leaves it unchanged.
  *
  * @param {import("node:test").TestContext} t The test
  */
 function fixture(t) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-build-layout-test-"));
+  const dir = realpathSync(
+    mkdtempSync(join(tmpdir(), "dms-control-build-layout-test-")),
+  );
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   setEnv(t, { XDG_CACHE_HOME: join(dir, "xdg") });
   const checkout = join(dir, "checkout");
@@ -39,7 +49,7 @@ function fixture(t) {
   };
   let port = 1000;
   /**
-   * @param {{ runs?: string, prepare?: (workspace: string) => void, build?: (workspace: string, prepared: boolean) => void, useCache?: boolean }} [options]
+   * @param {{ runs?: string, prepare?: (workspace: string) => void, build?: (workspace: string, prepared: boolean) => void, useCache?: boolean, top?: string }} [options]
    */
   const up = async (options = {}) => {
     port += 1;
@@ -87,6 +97,7 @@ function fixture(t) {
         },
       },
       options.useCache ?? true,
+      options.top ?? dir,
     );
     const laidOut = treeOf(workspace) ?? {};
     return {
@@ -294,21 +305,49 @@ await test("a build that refuses its prepared workspace builds again as ajs dms 
 });
 
 await test("a run records the VITE_ and NODE_ENV variables it keyed on, so another shell keys its sources the same", async (t) => {
-  const { frontend, up } = fixture(t);
+  const { dir, frontend, up } = fixture(t);
   setEnv(t, { VITE_PROBE: "on" });
   const run = await up();
   delete process.env.VITE_PROBE;
   assert.deepEqual(run.state.bakedEnv, { VITE_PROBE: "on" });
   const sources = sourceNames(run.workspace).filter((name) => name !== "dist");
-  const again = buildInputs(run.state, frontend, {
-    project: run.state.runPlayground ?? "",
-    workspace: run.workspace,
-    names: sources,
-    installed: run.workspace,
-  });
+  const again = buildInputs(
+    run.state,
+    frontend,
+    {
+      project: run.state.runPlayground ?? "",
+      workspace: run.workspace,
+      names: sources,
+      installed: run.workspace,
+    },
+    dir,
+  );
   assert.equal(
     buildKey(again),
     run.frontendBuild?.key,
     "doctor keys with its own shell's variables and fails a fresh build",
+  );
+});
+
+await test("an install record above TMPDIR that the key cannot read leaves the runs cached", async (t) => {
+  const outer = realpathSync(
+    mkdtempSync(join(tmpdir(), "dms-control-build-layout-outer-")),
+  );
+  t.after(() => rmSync(outer, { recursive: true, force: true }));
+  const record = join(outer, "node_modules", ".modules.yaml");
+  write(record, '{"layoutVersion":5}\n');
+  write(join(outer, "tmp", ".keep"), "");
+  setEnv(t, { TMPDIR: join(outer, "tmp") });
+  const { up } = fixture(t);
+  assert.match(
+    (await up({ top: outer })).frontendBuild?.reason ?? "",
+    /\.modules\.yaml is not the YAML layout the build cache reads/u,
+    "a run whose key reads the folder above TMPDIR refuses the record there, so the fixture's runs below hit only by not reading it",
+  );
+  await up();
+  assert.equal(
+    (await up()).frontendBuild?.cached,
+    true,
+    "a fixture whose keys read above its folder misses on whatever install sits above TMPDIR",
   );
 });
