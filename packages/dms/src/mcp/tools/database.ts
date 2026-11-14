@@ -1,3 +1,4 @@
+import { GetDatabaseProject } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
 import {
   type CatalogConnection,
@@ -5,6 +6,7 @@ import {
   listCatalogConnections,
 } from "../../implementations/dms-builder/engine/catalog-connection";
 import { defineTool, type McpToolResult, textResult } from "../tool";
+import { opResult } from "./builder-shared";
 
 function failed(error: { [key: string]: string | string[] }): McpToolResult {
   return textResult(JSON.stringify({ ok: false, error }), true);
@@ -55,7 +57,7 @@ const connections = defineTool({
   name: "database_connections",
   title: "List database connections",
   description:
-    "Lists the databases the project connects the DMS to, each with its engine, version, database and role, or `error` when its provider does not answer. Configuration declares them; when none is listed, connect one first with builder_configure_project.",
+    "Lists the databases the project connects the DMS to, each with its engine, version, database and role, or `error` when its provider does not answer. Configuration declares them; when none is listed, read database_project, then connect one with builder_configure_project.",
   effect: "read",
   input: z.object({}),
   run: async () =>
@@ -64,6 +66,16 @@ const connections = defineTool({
         await Promise.all(listCatalogConnections().map(describeConnection)),
       ),
     ),
+});
+
+const project = defineTool({
+  name: "database_project",
+  title: "Read the project's database wiring",
+  description:
+    "Answers what a builder_configure_project batch that connects a database needs: `self`, the DMS's module id, which declares the catalog connection; `ownDatabase`, the project's default interface-database provider; `databasePins`, the modules to pin to it; `dmsDatabase`, the dms-database module id; `interfaceDatabase`, the version core resolves; and `drivers`, each engine's driver package with the only range the project can start, to write as the AddModule source version unchanged. An engine absent from `drivers` has no release built for that version.",
+  effect: "read",
+  input: z.object({}),
+  run: async () => opResult(await GetDatabaseProject()),
 });
 
 const relations = defineTool({
@@ -126,4 +138,10 @@ const profile = defineTool({
     ),
 });
 
-export const DATABASE_TOOLS = [connections, relations, describe, profile];
+export const DATABASE_TOOLS = [
+  connections,
+  project,
+  relations,
+  describe,
+  profile,
+];

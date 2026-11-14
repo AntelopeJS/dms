@@ -1,10 +1,15 @@
+import { ImplementInterface } from "@antelopejs/interface-core";
+import * as Builder from "@antelopejs/interface-dms-builder";
 import { expect } from "chai";
 import semver from "semver";
 import {
   ConfigureProject,
   GetDatabaseProject,
 } from "../../../implementations/dms-builder";
+import * as implementation from "../../../implementations/dms-builder";
 import { driverPackages } from "../../../implementations/dms-builder/engine";
+import { z } from "zod";
+import { mockupTool, run } from "../../helpers/mockup-mcp";
 import { createFixture, destroyFixture, expectOk } from "./harness";
 import { projectFile } from "./helpers/project-files";
 
@@ -72,6 +77,7 @@ describe("connecting a driver to the project", function () {
 
   before(() => {
     root = createFixture({ modules: ["erp-tables"] }).root;
+    ImplementInterface(Builder, implementation);
   });
 
   after(destroyFixture);
@@ -108,5 +114,20 @@ describe("connecting a driver to the project", function () {
       true,
     );
     expect(semver.satisfies(NEXT_POSTGRES_LINE, written ?? "")).to.equal(false);
+  });
+
+  it("answers the same project state to an MCP client, so the driver range it writes can start", async () => {
+    const project = await GetDatabaseProject();
+    const { text, isError } = await run(mockupTool("database_project"), {});
+    expect(isError, text).to.equal(false);
+    expect(JSON.parse(text)).to.deep.equal(JSON.parse(JSON.stringify(project)));
+    const version = z
+      .object({
+        data: z.object({
+          drivers: z.object({ postgres: z.object({ version: z.string() }) }),
+        }),
+      })
+      .parse(JSON.parse(text)).data.drivers.postgres.version;
+    expect(semver.satisfies(BUILT_FOR_0_4.postgres, version)).to.equal(false);
   });
 });
