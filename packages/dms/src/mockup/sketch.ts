@@ -50,6 +50,12 @@ export type SketchCheck =
 
 const UNREADABLE = "markup or CSS too large for the parser to read";
 
+/** A sketch's source as a caller of the published subpath may hand it: checked to be strings before anything reads it. */
+const SketchSourceSchema = z.object({
+  html: z.string(),
+  css: z.string().optional(),
+});
+
 /**
  * What `read` answers, or `unreadable` when it runs out of room: a string too
  * long for the engine or a stack too deep throws a `RangeError`, which a check
@@ -74,13 +80,24 @@ function readable<T>(read: () => T, unreadable: T): T {
  * answered with its markup written back from the parsed tree, which is what
  * the frame must draw. This module needs only `zod`, `parse5` and `@csstools/css-tokenizer`, so a process
  * without the AntelopeJS runtime can require it as `@antelopejs/dms/sketch`.
- * `html` and `css` each hold at most {@link SKETCH_MAX_SOURCE} characters.
+ * `html` and `css` each hold at most {@link SKETCH_MAX_SOURCE} characters, and
+ * a field that is not a string, from a caller that skipped the types, is
+ * refused rather than read.
  *
  * Draw only `checked.sketch`, never the source the check was given: the
  * viewer's `buildSketchDocument` draws the markup it is handed as is, so the
  * check holds only for the markup it answered.
  */
-export function checkSketch(sketch: SketchSource): SketchCheck {
+export function checkSketch(source: SketchSource): SketchCheck {
+  const read = SketchSourceSchema.safeParse(source);
+  if (!read.success) {
+    const field = read.error.issues[0]?.path[0] === "css" ? "css" : "html";
+    return {
+      ok: false,
+      refusals: [{ field, what: "a field that is not a string" }],
+    };
+  }
+  const sketch = read.data;
   const oversized = (["html", "css"] as const).flatMap((field) =>
     (sketch[field]?.length ?? 0) > SKETCH_MAX_SOURCE
       ? [{ field, what: `more than ${SKETCH_MAX_SOURCE} characters` }]

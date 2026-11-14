@@ -5,7 +5,11 @@ import {
   mockupNameSchema,
   parseSpec,
 } from "../../../mockup";
-import { checkSketch, SKETCH_MAX_SOURCE } from "../../../mockup/sketch";
+import {
+  checkSketch,
+  type SketchCheck,
+  SKETCH_MAX_SOURCE,
+} from "../../../mockup/sketch";
 
 /** What one check may take on the slowest input the caps admit; parse5 took 13 s on the attribute input before the per-tag cap. */
 const CHECK_BOUND_MS = 2_000;
@@ -254,5 +258,60 @@ describe("Sketch check bounds on what the parser materialises", () => {
     const image = filled('<img src="data:image/png;base64,', "A", '">');
 
     expect(timedRefusals(image).refusals).to.deep.equal([]);
+  });
+});
+
+/** `checkSketch` as a caller without the types sees it: a method's parameter accepts anything. */
+/** A field as a JavaScript caller might fill it: anything but a string included, even an object posing as one. */
+type AnyField =
+  | string
+  | number
+  | null
+  | undefined
+  | AnyField[]
+  | { length?: number; toString?: () => string };
+
+/** A sketch as a JavaScript caller might pass it, or no sketch at all. */
+type AnySource = AnyField | { html?: AnyField; css?: AnyField };
+
+interface UntypedCaller {
+  check(source: AnySource): SketchCheck;
+}
+
+const untyped: UntypedCaller = { check: checkSketch };
+
+describe("Sketch check inputs", () => {
+  it("refuses a field that is not a string, from a caller that skipped the types, without throwing", () => {
+    const sources: AnySource[] = [
+      null,
+      undefined,
+      {},
+      { html: null },
+      { html: ["<p>"] },
+      { html: 5 },
+      { html: {} },
+      {
+        html: {
+          length: 0,
+          toString: () => "<a href=https://example.com>x</a>",
+        },
+      },
+      { html: "<p>x</p>", css: 5 },
+    ];
+    const answers = sources.map((source) => untyped.check(source));
+
+    expect(
+      answers.map((answer) =>
+        answer.ok ? [] : answer.refusals.map(({ field }) => field),
+      ),
+    ).to.deep.equal([...sources.slice(0, -1).map(() => ["html"]), ["css"]]);
+  });
+
+  it("names the tag cap when markup only passes it once the parser writes in the tags it implies", () => {
+    const implied = timedRefusals("<p>x".repeat(4096));
+
+    expect(implied.refusals).to.deep.equal([
+      "markup that, written back, holds more than 4096 tags",
+    ]);
   });
 });

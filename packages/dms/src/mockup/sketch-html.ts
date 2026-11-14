@@ -136,9 +136,25 @@ const URL_FORM_REFUSAL: Record<UrlForm, string> = {
   image: "a data:image/ URL",
 };
 
+/** What a style text holds that a sketch may not, read once per distinct text in one parse. */
+type CssReader = (css: string) => string[];
+
+/** A {@link CssReader} that reads each distinct text once: copies of a rebuilt element share their attribute strings. */
+function cssReader(): CssReader {
+  const read = new Map<string, string[]>();
+  return (css) => {
+    const known = read.get(css);
+    if (known !== undefined) return known;
+    const found = cssRefusals(css);
+    read.set(css, found);
+    return found;
+  };
+}
+
 function attributeRefusals(
   allowlist: NamespaceAllowlist,
   element: Element,
+  readCss: CssReader,
 ): string[] {
   const tag = `<${element.tagName}>`;
   return element.attrs.flatMap((attribute) => {
@@ -157,27 +173,32 @@ function attributeRefusals(
           ];
     }
     if (name === "style" || allowlist.valuesAreCss)
-      return cssRefusals(attribute.value);
+      return readCss(attribute.value);
     return [];
   });
 }
 
 /** What `element` and its descendants hold that a sketch may not. */
-function treeRefusals(element: Element): string[] {
+function treeRefusals(element: Element, readCss: CssReader): string[] {
   const allowlist = ALLOWLISTS.get(element.namespaceURI);
   if (allowlist === undefined || !allowlist.elements.has(element.tagName)) {
     return [`a ${allowlist?.label ?? ""}<${element.tagName}> element`];
   }
-  const own = attributeRefusals(allowlist, element);
+  const own = attributeRefusals(allowlist, element, readCss);
   if (element.tagName === "style") {
     const elements = elementChildren(element);
     return [
       ...own,
       ...(elements.length > 0 ? ["an element inside a <style>"] : []),
-      ...cssRefusals(textOf(element)),
+      ...readCss(textOf(element)),
     ];
   }
-  return [...own, ...elementChildren(element).flatMap(treeRefusals)];
+  return [
+    ...own,
+    ...elementChildren(element).flatMap((child) =>
+      treeRefusals(child, readCss),
+    ),
+  ];
 }
 
 function withoutComments(node: ParentNode): void {
@@ -274,9 +295,12 @@ function readMarkup(markup: string): ReadMarkup {
     head.childNodes.length > 0 ||
     elementChildren(root).length !== 2 ||
     elementChildren(document).length !== 1;
+  const readCss = cssReader();
   const refusals = [
     ...(scaffold ? ["an <html>, <head> or <body> tag"] : []),
-    ...elementChildren(body).flatMap(treeRefusals),
+    ...elementChildren(body).flatMap((element) =>
+      treeRefusals(element, readCss),
+    ),
   ];
   if (refusals.length > 0) return { refusals, body: "" };
   withoutComments(body);
@@ -302,12 +326,24 @@ export function checkMarkup(markup: string): ReadMarkup {
   if (first.refusals.length > 0)
     return { refusals: [...new Set(first.refusals)], body: "" };
   const second = readMarkup(first.body);
-  return second.refusals.length > 0 || second.body !== first.body
-    ? {
+  if (second.refusals.length > 0) {
+    return {
+      refusals: [
+        ...new Set(
+          second.refusals.map(
+            (what) => `markup that, written back, holds ${what}`,
+          ),
+        ),
+      ],
+      body: "",
+    };
+  }
+  return second.body === first.body
+    ? first
+    : {
         refusals: ["markup the parser reads differently once written back"],
         body: "",
-      }
-    : first;
+      };
 }
 
 /**
