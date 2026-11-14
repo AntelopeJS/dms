@@ -3,7 +3,7 @@
     "@typescript-eslint/no-dynamic-delete": 0,
     "@typescript-eslint/no-unused-vars": 2,
     "antelopejs/no-comments": 0,
-    "anti-slop/no-chained-type-assertions": 1,
+    "anti-slop/no-chained-type-assertions": 0,
     "anti-slop/no-conditional-empty-object-spread": 0,
     "anti-slop/no-known-value-widening": 1,
     "anti-slop/no-object-parameters": 1,
@@ -30,7 +30,7 @@
   },
   "tsExpectError": 0,
   "tsIgnore": 0,
-  "safety": 34,
+  "safety": 32,
   "config": {
     "@typescript-eslint/no-explicit-any for packages/dms/frontend-vue/**/*.{js,mjs,cjs,ts,vue}": 0,
     "anti-slop/no-chained-type-assertions for packages/dms/src/test/integration/**": 0,
