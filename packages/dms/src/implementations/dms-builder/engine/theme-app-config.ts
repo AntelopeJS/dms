@@ -148,23 +148,29 @@ export function stringLiterals(sourceFile: SourceFile): Set<string> {
 
 /**
  * The static text of the file name a string expression builds, after its last
- * `/` and before any `?` or `#`, split where a runtime value goes:
- * `${slot}-light-${hash}.png` and `slot + "-light-" + hash + ".png?v=" + v`
- * are both `["", "-light-", ".png"]`.
+ * `/`, split where a runtime value goes: `${slot}-light-${hash}.png` and
+ * `slot + "-light-" + hash + ".png?v=" + v` (read up to its `?`) are both
+ * `["", "-light-", ".png"]`.
  */
 export type BuiltFileName = readonly [string, string, ...string[]];
 
 const QUERY_OR_FRAGMENT = /[?#]/;
 
-function builtFileName(built: string[]): BuiltFileName | undefined {
-  const suffixStart = built.findIndex((part) => QUERY_OR_FRAGMENT.test(part));
-  const parts =
-    suffixStart < 0
-      ? built
-      : [
-          ...built.slice(0, suffixStart),
-          built[suffixStart]?.split(QUERY_OR_FRAGMENT)[0] ?? "",
-        ];
+/**
+ * The text before the first `?` or `#`, where a URL's path ends, and the whole
+ * text, since a URL may name the file in its query (`/image?url=/branding/…`).
+ */
+function pathReadings(parts: string[]): string[][] {
+  const end = parts.findIndex((part) => QUERY_OR_FRAGMENT.test(part));
+  return end < 0
+    ? [parts]
+    : [
+        [...parts.slice(0, end), parts[end]?.split(QUERY_OR_FRAGMENT)[0] ?? ""],
+        parts,
+      ];
+}
+
+function builtFileName(parts: string[]): BuiltFileName | undefined {
   const directoryEnd = parts.findLastIndex((part) => part.includes("/"));
   const fileParts =
     directoryEnd < 0
@@ -290,7 +296,9 @@ export function builtFileNames(sourceFile: SourceFile): BuiltFileName[] {
   return sourceFile
     .getDescendants()
     .filter(buildsAString)
-    .map((node) => builtFileName(textBetweenRuntimeValues(pieces(node))))
+    .flatMap((node) =>
+      pathReadings(textBetweenRuntimeValues(pieces(node))).map(builtFileName),
+    )
     .filter((name) => name !== undefined);
 }
 
