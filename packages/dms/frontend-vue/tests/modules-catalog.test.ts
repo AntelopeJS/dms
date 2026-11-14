@@ -219,25 +219,33 @@ describe("recentModules", () => {
     childrenOrders: [],
     ...extra,
   });
-  const landingTree = (moduleId: string, slugs: string[]): SiteLayoutTree => {
+  const moduleRoot = (moduleId: string, slugs: string[]): SiteLayoutTree => {
     const pages = slugs.map((fullSlug, index) =>
       treeNode(`page-${index}`, fullSlug, { layoutUrl: "/layout" }),
     );
-    const root = treeNode(moduleId, `/modules/${moduleId}`, {
+    return treeNode(moduleId, `/modules/${moduleId}`, {
       isModuleRoot: true,
       children: Object.fromEntries(pages.map((page) => [page.id, page])),
       childrenOrders: pages.map((page) => page.id),
     });
-    return treeNode("", "/", {
+  };
+  const landingTree = (
+    ...modules: [moduleId: string, slugs: string[]][]
+  ): SiteLayoutTree =>
+    treeNode("", "/", {
       children: {
         modules: treeNode("modules", "/modules", {
-          children: { [moduleId]: root },
-          childrenOrders: [moduleId],
+          children: Object.fromEntries(
+            modules.map(([moduleId, slugs]) => [
+              moduleId,
+              moduleRoot(moduleId, slugs),
+            ]),
+          ),
+          childrenOrders: modules.map(([moduleId]) => moduleId),
         }),
       },
       childrenOrders: ["modules"],
     });
-  };
   const cms: ModuleWithAccess = {
     id: "cms",
     title: "$cms.title",
@@ -247,9 +255,9 @@ describe("recentModules", () => {
   };
 
   it("opens a recent module on its landing page, not where it was left", () => {
-    const tree = landingTree("cms", [
-      "/modules/cms/pages",
-      "/modules/cms/media",
+    const tree = landingTree([
+      "cms",
+      ["/modules/cms/pages", "/modules/cms/media"],
     ]);
     const visits: ModuleHistoryEntry[] = [
       { moduleId: "cms", path: "/modules/cms/media", visitedAt: 1 },
@@ -266,14 +274,19 @@ describe("recentModules", () => {
   });
 
   it("lists the most recent first and leaves out modules the caller cannot open", () => {
-    const tree = landingTree("cms", ["/modules/cms/pages"]);
+    const tree = landingTree(
+      ["cms", ["/modules/cms/pages"]],
+      ["blog", ["/modules/blog/posts"]],
+    );
+    const blog = { ...cms, id: "blog" };
     const crm = { ...cms, id: "crm", hasAccess: false };
     const visits: ModuleHistoryEntry[] = [
-      { moduleId: "crm", path: "/modules/crm", visitedAt: 2 },
       { moduleId: "cms", path: "/modules/cms/pages", visitedAt: 1 },
-      { moduleId: "gone", path: "/modules/gone", visitedAt: 3 },
+      { moduleId: "crm", path: "/modules/crm", visitedAt: 2 },
+      { moduleId: "blog", path: "/modules/blog/posts", visitedAt: 3 },
+      { moduleId: "gone", path: "/modules/gone", visitedAt: 4 },
     ];
-    const recent = recentModules(visits, { cms, crm }, tree);
-    expect(recent.map((module) => module.moduleId)).toEqual(["cms"]);
+    const recent = recentModules(visits, { cms, blog, crm }, tree);
+    expect(recent.map((module) => module.moduleId)).toEqual(["blog", "cms"]);
   });
 });
