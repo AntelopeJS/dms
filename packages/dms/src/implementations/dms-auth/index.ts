@@ -46,7 +46,6 @@ interface TenantTokenInput {
   tenantId: string;
   id: string;
   rawToken: string;
-  sessionId?: string;
 }
 
 interface TokenResult {
@@ -92,7 +91,7 @@ async function validateUserToken(
 interface DecodedAuthPayload {
   tenantId: string;
   id: string;
-  sessionId?: string;
+  sessionId: string;
 }
 
 function isSessionPayload(
@@ -106,7 +105,8 @@ function isSessionPayload(
     !!payload.id &&
     isString(payload.tenantId) &&
     !!payload.tenantId &&
-    (payload.sessionId === undefined || isString(payload.sessionId))
+    isString(payload.sessionId) &&
+    !!payload.sessionId
   );
 }
 
@@ -118,7 +118,7 @@ function isDecodedAuthPayload(
     !isString(claims) &&
     isString(claims.id) &&
     isString(claims.tenantId) &&
-    (claims.sessionId === undefined || isString(claims.sessionId))
+    isString(claims.sessionId)
   );
 }
 
@@ -238,7 +238,7 @@ export async function isRejectedBearerToken(
 export function generateAccessToken(
   tenantId: string,
   user: User,
-  sessionId?: string,
+  sessionId: string,
 ): TokenResult {
   const config = getAuthConfig();
   const token = signUserToken(
@@ -256,7 +256,7 @@ export function generateAccessToken(
 export function generateRefreshToken(
   tenantId: string,
   user: User,
-  sessionId?: string,
+  sessionId: string,
 ): TokenResult {
   const config = getAuthConfig();
   const token = signUserToken(

@@ -14,17 +14,16 @@ const SESSION_EXPIRED_ERROR = "error.session_expired";
  * @param sessionId The verified token's `sessionId` claim
  */
 export async function loadTokenSession(
-  sessionId: Session["_id"] | undefined,
+  sessionId: Session["_id"],
 ): Promise<Session | undefined> {
-  return sessionId ? GetModel(SessionModel).get(sessionId) : undefined;
+  return GetModel(SessionModel).get(sessionId);
 }
 
 /**
- * An access token bound to a session lives only as long as that session:
- * signing it out (Settings › Security, logout) deletes the row, and the token
- * stops working at once instead of at its expiry. The row is the shared
- * revocation state, so every instance agrees. A token carrying no session
- * claim has nothing to check against and is left to its signature and expiry.
+ * An access token lives only as long as its session: signing it out
+ * (Settings › Security, logout) deletes the row, and the token stops working
+ * at once instead of at its expiry. The row is the shared revocation state,
+ * so every instance agrees.
  *
  * @param sessionId The verified token's `sessionId` claim
  * @param session The row {@link loadTokenSession} read for the claim
@@ -32,13 +31,10 @@ export async function loadTokenSession(
  * @throws Error when the session is gone or belongs to another user
  */
 export function assertTokenSessionAlive(
-  sessionId: string | undefined,
+  sessionId: string,
   session: Session | undefined,
   user: User,
 ): void {
-  if (!sessionId) {
-    return;
-  }
   if (session?._id !== sessionId || session.userId !== String(user._id)) {
     throw new Error(SESSION_EXPIRED_ERROR);
   }

@@ -44,18 +44,16 @@ export async function switchTenant(
 
   await assertMembership(user._id, tenantId);
 
-  if (tokenPayload.sessionId) {
-    const session = await sessionModel.get(tokenPayload.sessionId);
-    assert(session, 401, "error.session_expired");
-    assert(
-      isCurrentRefreshToken(session, refreshToken),
-      401,
-      "error.session_expired",
-    );
-    sessionModel
-      .update(tokenPayload.sessionId, { lastActiveAt: new Date() })
-      .catch(() => {});
-  }
+  const session = await sessionModel.get(tokenPayload.sessionId);
+  assert(session, 401, "error.session_expired");
+  assert(
+    isCurrentRefreshToken(session, refreshToken),
+    401,
+    "error.session_expired",
+  );
+  sessionModel
+    .update(tokenPayload.sessionId, { lastActiveAt: new Date() })
+    .catch(() => {});
 
   const accessTokenData = await generateAccessToken(
     tenantId,
@@ -70,12 +68,10 @@ export async function switchTenant(
   );
   const nextRefreshToken = refreshTokenData.token;
 
-  if (tokenPayload.sessionId) {
-    await sessionModel.replaceRefreshToken(
-      tokenPayload.sessionId,
-      nextRefreshToken,
-    );
-  }
+  await sessionModel.replaceRefreshToken(
+    tokenPayload.sessionId,
+    nextRefreshToken,
+  );
 
   return {
     token_type: "Bearer",

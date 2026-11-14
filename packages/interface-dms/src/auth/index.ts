@@ -157,7 +157,7 @@ export const generateAccessToken =
     (
       tenantId: string,
       user: User,
-      sessionId?: string,
+      sessionId: string,
     ) => { expiresIn: number; token: string }
   >();
 
@@ -173,18 +173,18 @@ export const generateRefreshToken =
     (
       tenantId: string,
       user: User,
-      sessionId?: string,
+      sessionId: string,
     ) => { expiresIn: number; token: string }
   >();
 
 /**
- * Validate a refresh token and return the user id and tenantId
+ * Validate a refresh token and return the user id, tenantId and session id
  * @param token
- * @returns The user id and tenantId
+ * @returns The user id, tenantId and the id of the session the token belongs to
  */
 export const validateRefreshToken =
   InterfaceFunction<
-    (token: string) => { id: string; tenantId: string; sessionId?: string }
+    (token: string) => { id: string; tenantId: string; sessionId: string }
   >();
 
 export const generateTwoFactorToken =
@@ -247,7 +247,7 @@ export const sanitizeUser = InterfaceFunction<(user: User) => Partial<User>>();
 export interface JwtUserPayload {
   id: string;
   tenantId: string;
-  sessionId?: string;
+  sessionId: string;
 }
 
 export interface ExternalIdentityInput {

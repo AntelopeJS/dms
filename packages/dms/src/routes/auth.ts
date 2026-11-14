@@ -186,7 +186,6 @@ export class AuthController extends Controller("/api/auth") {
   @Post("/logout")
   logout(@AuthRawUser() user: User, @JSONBody() body: unknown) {
     return authRoutes.logout(
-      this.userModel,
       this.sessionModel,
       user,
       assertValidation(body, (value) => authSchema.logout.parse(value)),
