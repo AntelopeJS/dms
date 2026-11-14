@@ -8,6 +8,7 @@ import type {
 } from "@antelopejs/interface-dms-builder";
 import { Node, type ObjectLiteralExpression } from "ts-morph";
 import { CATALOG_INTERFACE, DATABASE_INTERFACE } from "./interface-ids";
+import { hasReadableHost, HOST_PROBLEM } from "./database-host";
 import { databasePriority, defaultDatabaseProvider } from "./database-pin";
 import { ownConnections } from "./own-connections";
 import { recordedConnection } from "./mapped-modules";
@@ -347,6 +348,9 @@ export function setConnectionUrl(
     return invalidConfig<{ variable: string }>(
       `the connection reads ${read.url.protocol.replace(/:$/, "")} URLs`,
     );
+  }
+  if (!hasReadableHost(next.href)) {
+    return invalidConfig<{ variable: string }>(HOST_PROBLEM);
   }
   if (
     savedPassword(next) === undefined &&
