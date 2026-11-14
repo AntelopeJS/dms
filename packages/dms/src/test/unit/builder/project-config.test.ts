@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { expect } from "chai";
+import ts from "typescript";
 import type { ProjectConfigStep } from "@antelopejs/interface-dms-builder";
 import {
   AddModule,
@@ -16,7 +17,7 @@ import {
   expectOk,
   type Fixture,
 } from "./harness";
-import { projectFile, tsConfigFile } from "./helpers/project-files";
+import { projectFile } from "./helpers/project-files";
 
 const OP_TIMEOUT = 120_000;
 const DATABASE = "@antelopejs/interface-database";
@@ -259,9 +260,13 @@ function writesWholeBatchesInTheProjectsStyle(): void {
       ]),
       "CreateLocalModule",
     );
-    expect(
-      tsConfigFile(app.root, "modules/reports/tsconfig.json").compilerOptions,
-    ).to.include({ strict: true });
+    const parsed = ts.getParsedCommandLineOfConfigFile(
+      path.join(app.root, "modules/reports/tsconfig.json"),
+      undefined,
+      { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined },
+    );
+    expect(parsed?.errors).to.deep.equal([]);
+    expect(parsed?.options.strict).to.equal(true);
   });
 
   it("writes nothing when one step of a batch is refused", async () => {
