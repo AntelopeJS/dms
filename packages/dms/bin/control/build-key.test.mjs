@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -394,7 +394,9 @@ await test("links of one name and one link text in two node_modules are keyed by
 });
 
 await test("an install record above TMPDIR that the key cannot read leaves the fixture's keys unchanged", (t) => {
-  const outer = mkdtempSync(join(tmpdir(), "dms-control-build-key-outer-"));
+  const outer = realpathSync(
+    mkdtempSync(join(tmpdir(), "dms-control-build-key-outer-")),
+  );
   t.after(() => rmSync(outer, { recursive: true, force: true }));
   write(join(outer, "node_modules", ".modules.yaml"), '{"layoutVersion":5}\n');
   write(join(outer, "tmp", ".keep"), "");
@@ -402,9 +404,9 @@ await test("an install record above TMPDIR that the key cannot read leaves the f
   const { frontend, prepare } = fixture(t);
   const side = prepare("run-a", 1001);
   assert.throws(
-    () => buildInputs(side.run, frontend, side.prepared),
+    () => buildInputs(side.run, frontend, side.prepared, outer),
     /\.modules\.yaml is not the YAML layout the build cache reads/u,
-    "a key left unbounded reads the installs up to the filesystem root, as a bare import resolves",
+    "a key that reads the folder above TMPDIR refuses the record there, so the fixture's keys below pass only by not reading it",
   );
   assert.equal(
     keyOf(frontend, prepare("run-b", 2002)),
