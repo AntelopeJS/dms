@@ -34,4 +34,4 @@ Evidence is under `$RUN/evidence/mockups/<journey>/`.
 
 ## Gotchas
 
-- Each journey names the backend it needs (`backend: "production"` or `"dev"`), so one run passes both. To drive `/mockup` by hand, run `up --dev-backend` and sign the browser in as the administrator first: the page refuses anyone else.
+- Each journey names the backend it needs (`backend: "production"` or `"dev"`), so one run passes both. To drive `/mockup` by hand, run `dms-control up --dev-backend` and sign the browser in as the administrator first: the page refuses anyone else.
