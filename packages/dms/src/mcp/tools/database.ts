@@ -72,7 +72,7 @@ const project = defineTool({
   name: "database_project",
   title: "Read the project's database wiring",
   description:
-    "Answers what a builder_configure_project batch that connects a database needs: `self`, the DMS's module id, which declares the catalog connection; `ownDatabase`, the project's default interface-database provider; `databasePins`, the modules to pin to it; `dmsDatabase`, the dms-database module id; `interfaceDatabase`, the version core resolves; and `drivers`, each engine's driver package with the only range the project can start, to write as the AddModule source version unchanged. An engine absent from `drivers` has no release built for that version.",
+    "Answers what a builder_configure_project batch that connects a database needs: `modules`, the module ids antelope.config.ts holds; `self`, the DMS's module id, which declares the catalog connection; `ownDatabase`, the project's default interface-database provider; `databasePins`, the modules to pin to it; `dmsDatabase`, the dms-database module id; `interfaceDatabase`, the version core resolves; and `drivers`, each engine's driver package with the only range the project can start, to write as the AddModule source version unchanged. An engine absent from `drivers` has no release built for that version.",
   effect: "read",
   input: z.object({}),
   run: async () => opResult(await GetDatabaseProject()),

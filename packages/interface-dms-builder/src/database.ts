@@ -214,7 +214,8 @@ export const RepairDatabaseConnections =
 /**
  * The project's modules and the database pins connecting another database needs.
  *
- * Owner path only: no MCP tool exposes it, so only an owner-authenticated entry calls it.
+ * The DMS's MCP tool `database_project` answers it as it is, so an agent plans a connect batch
+ * from the same module ids and driver ranges as an owner-authenticated entry.
  */
 export const GetDatabaseProject =
   InterfaceFunction<() => Promise<OpResult<DatabaseProject>>>();
