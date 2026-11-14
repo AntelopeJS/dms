@@ -7,7 +7,10 @@ import {
   GetDatabaseProject,
 } from "../../../implementations/dms-builder";
 import * as implementation from "../../../implementations/dms-builder";
-import { driverPackages } from "../../../implementations/dms-builder/engine";
+import {
+  DATABASE_ENGINES,
+  driverPackages,
+} from "../../../implementations/dms-builder/engine";
 import { mockupTool, run } from "../../helpers/mockup-mcp";
 import { createFixture, destroyFixture, expectOk } from "./harness";
 import { projectFile } from "./helpers/project-files";
@@ -19,6 +22,17 @@ const BUILT_FOR_0_4: Record<"postgres" | "mongodb" | "rethinkdb", string> = {
   postgres: "0.4.0",
   mongodb: "1.8.0",
   rethinkdb: "1.10.0",
+};
+
+/**
+ * The latest release of each driver on npm on 2026-11-14. Each one depends on
+ * `@antelopejs/interface-database` `>=0.4.0 <0.5.0`.
+ */
+const LATEST_ON_2026_11_14: Record<Builder.DatabaseEngine, string> = {
+  postgres: "0.4.0",
+  mysql: "0.2.1",
+  mongodb: "1.8.1",
+  rethinkdb: "1.10.1",
 };
 
 /** The first postgres release past the 0.4 line, which a closed range refuses. */
@@ -52,12 +66,24 @@ describe("the driver range a project can install", () => {
     expect(drivers.mongodb?.version).to.equal(">=1.6.2 <1.8.0");
   });
 
-  it("offers a 0.4 project only the drivers built for 0.4, and no engine without one", () => {
+  it("offers a 0.4 project only the drivers built for 0.4", () => {
     const drivers = driverPackages("0.4.2");
     expect(drivers.postgres?.version).to.equal(">=0.4.0 <0.5.0");
+    expect(drivers.mysql?.version).to.equal(">=0.2.0 <0.3.0");
     expect(drivers.mongodb?.version).to.equal(">=1.8.0 <1.9.0");
     expect(drivers.rethinkdb?.version).to.equal(">=1.10.0 <1.11.0");
-    expect(drivers).to.not.have.property("mysql");
+  });
+
+  it("offers every engine its latest driver on interface-database 0.4.0, as npm listed them on 2026-11-14", () => {
+    const drivers = driverPackages("0.4.0");
+    for (const engine of DATABASE_ENGINES) {
+      const range = drivers[engine]?.version;
+      expect(range, `${engine} has a driver`).to.be.a("string");
+      expect(
+        semver.satisfies(LATEST_ON_2026_11_14[engine], range ?? "<0.0.0"),
+        `${engine} ${range}`,
+      ).to.equal(true);
+    }
   });
 
   it("offers nothing when the project resolves no interface-database", () => {

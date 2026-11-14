@@ -38,7 +38,10 @@ const DRIVERS: Record<DatabaseEngine, Driver> = {
   },
   mysql: {
     package: "@antelopejs/mysql",
-    segments: [{ from: "0.1.0", interfaceDatabase: ">=0.3.1 <0.4.0" }],
+    segments: [
+      { from: "0.1.0", interfaceDatabase: ">=0.3.1 <0.4.0" },
+      { from: "0.2.0", interfaceDatabase: ">=0.4.0 <0.5.0" },
+    ],
   },
   mongodb: {
     package: "@antelopejs/mongodb",
