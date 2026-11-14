@@ -249,12 +249,24 @@ function textBetweenRuntimeValues(joined: Piece[]): string[] {
   return parts;
 }
 
+function enclosingExpression(node: Node): Node | undefined {
+  const parent = node.getParent();
+  return Node.isParenthesizedExpression(parent)
+    ? enclosingExpression(parent)
+    : parent;
+}
+
+/**
+ * A template literal, or a `+` chain, `.concat()` or `[…].join()` that is not
+ * an operand of a larger `+` chain, whose file name would then match too much.
+ */
 function buildsAString(node: Node): boolean {
   return (
     Node.isTemplateExpression(node) ||
-    (isConcatenation(node) && !isConcatenation(node.getParent())) ||
-    methodCall(node, "concat") !== undefined ||
-    methodCall(node, "join") !== undefined
+    ((isConcatenation(node) ||
+      methodCall(node, "concat") !== undefined ||
+      methodCall(node, "join") !== undefined) &&
+      !isConcatenation(enclosingExpression(node)))
   );
 }
 

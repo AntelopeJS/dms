@@ -259,7 +259,7 @@ function keepsLogoFilesTheAppConfigJoins(): void {
     expect(brandingFiles()).to.deep.equal([]);
   });
 
-  it("keeps a file a slot reaches through a name built with concat or join", async () => {
+  it("keeps a file a slot reaches through a name built with concat or join, and deletes it once nothing builds it", async () => {
     expectOk(
       await SetTheme(
         configDraft({
@@ -276,15 +276,17 @@ function keepsLogoFilesTheAppConfigJoins(): void {
     const dark = logos?.dark ?? "";
     const hashOf = (logo: string): string =>
       /-([0-9a-f]{8})\.png$/.exec(logo)?.[1] ?? "";
-    writeLayerFile(
-      "app/app.config.ts",
-      `const SLOT = "default";\nconst DARK_HASH = "${hashOf(dark)}";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${light}", dark: "${dark}" }, email: { light: "/branding/".concat(SLOT, "-light-", "${hashOf(light)}", ".png"), dark: ["/branding/", SLOT, "-dark-", DARK_HASH, ".png"].join("") } } },\n});\n`,
-    );
+    const builtConfig = (extension: string): string =>
+      `const SLOT = "default";\nconst DARK_HASH = "${hashOf(dark)}";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${light}", dark: "${dark}" }, email: { light: "/branding/".concat(SLOT, "-light-", "${hashOf(light)}", ".${extension}"), dark: ["/branding/default", "dark", DARK_HASH].join("-") + ".${extension}" } } },\n});\n`;
+    writeLayerFile("app/app.config.ts", builtConfig("png"));
     expectOk(await SetTheme(configDraft()), "SetTheme");
     expect(brandingFiles()).to.have.members([
       light.replace("/branding/", ""),
       dark.replace("/branding/", ""),
     ]);
+    writeLayerFile("app/app.config.ts", builtConfig("jpg"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.deep.equal([]);
   });
 }
 
