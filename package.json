@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.2.0",
   "devDependencies": {
-    "@antelopejs/core": ">=1.23.0 <2",
+    "@antelopejs/core": "~1.23.0",
     "@antelopejs/tooling-configs": "^0.5.3",
     "dependency-cruiser": "^18.7.0",
     "fast-check": "^4.10.2",
@@ -25,7 +25,8 @@
     "build": "pnpm --filter @antelopejs/dms build",
     "typecheck": "pnpm --dir packages/interface-dms typecheck && pnpm --dir packages/interface-dms-builder typecheck && pnpm --dir packages/dms typecheck && pnpm --dir packages/dms/frontend-vue typecheck:tests && pnpm run typecheck:probes",
     "typecheck:probes": "tsc -p .agents/probes/tsconfig.json",
-    "lint": "oxlint && node packages/dms/playground/checks/raw-sources.cjs && pnpm run deps && pnpm --dir packages/dms/frontend-vue lint && pnpm --dir packages/dms exec antelopejs-check-interface-ranges",
+    "lint": "oxlint && node packages/dms/playground/checks/raw-sources.cjs && pnpm run deps && pnpm --dir packages/dms/frontend-vue lint && pnpm run ranges",
+    "ranges": "ANTELOPEJS_CHECKS_SKIP=typecheck,lint,format:check,knip,test,size,ratchet,suppressions,sync:check,verify:types,verify:lockfiles,lockfile:singletons,git:identity,readme:version,published:types pnpm --silent --package=@antelopejs/tooling-configs@0.7.1 dlx antelopejs-checks --no-services",
     "lint:fix": "oxlint --fix && pnpm --dir packages/dms/frontend-vue lint:fix",
     "format": "oxfmt . && pnpm --dir packages/dms/frontend-vue format",
     "knip": "pnpm --dir packages/interface-dms knip && pnpm --dir packages/interface-dms-builder knip && pnpm --dir packages/dms knip",

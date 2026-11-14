@@ -158,7 +158,7 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/nodemailer",
-        version: "0.0.6",
+        version: "0.0.12",
       },
       config: {
         host: UNREACHABLE_SMTP_HOST,
