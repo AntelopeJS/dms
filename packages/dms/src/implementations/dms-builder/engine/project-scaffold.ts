@@ -125,6 +125,9 @@ function readJson<T>(
   return read.config;
 }
 
+/** The spec protocols only a pnpm workspace resolves. */
+const WORKSPACE_PROTOCOLS = ["workspace:", "catalog:"];
+
 const PATH_SPEC = /^(?<protocol>file:|link:|(?=\.\.?\/))(?<target>.*)$/s;
 
 /**
@@ -151,9 +154,9 @@ function relativeTarget(to: string, target: string): string {
 }
 
 /**
- * A `workspace:` spec of the project, as a `link:` to the folder the project resolves `name` to:
- * the module installs outside the workspace, where that protocol resolves nothing, and links the
- * project's copy. Left as it is when the project has not installed `name`.
+ * A `workspace:` or `catalog:` spec of the project, as a `link:` to the folder the project resolves
+ * `name` to: the module installs outside the workspace, where neither protocol resolves, and links
+ * the project's copy. Left as it is when the project has not installed `name`.
  */
 function linkedWorkspaceSpec(
   name: string,
@@ -162,7 +165,10 @@ function linkedWorkspaceSpec(
   to: string,
 ): string {
   const installed = path.join(from, "node_modules", name);
-  if (!spec.startsWith("workspace:") || !fs.existsSync(installed)) {
+  if (
+    !WORKSPACE_PROTOCOLS.some((protocol) => spec.startsWith(protocol)) ||
+    !fs.existsSync(installed)
+  ) {
     return spec;
   }
   return `link:${relativeTarget(to, fs.realpathSync(installed))}`;

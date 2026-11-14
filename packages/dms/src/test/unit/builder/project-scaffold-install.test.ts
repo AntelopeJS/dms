@@ -177,3 +177,51 @@ describe("scaffolding a module from a project inside a pnpm workspace", () => {
     ).to.equal(fs.realpathSync(path.join(workspace, "interface")));
   });
 });
+
+describe("scaffolding a module from a project with a catalog: dependency", () => {
+  const CORE_INTERFACE = "@antelopejs/interface-core";
+  let workspace: string;
+
+  before(() => {
+    workspace = fs.mkdtempSync(path.join(os.tmpdir(), "dms-builder-catalog-"));
+    root = path.join(workspace, "project");
+    const copy = path.join(workspace, "store", "interface-core");
+    fs.mkdirSync(copy, { recursive: true });
+    fs.writeFileSync(
+      path.join(copy, "package.json"),
+      JSON.stringify({ name: CORE_INTERFACE, version: "0.0.0-catalog" }),
+    );
+    fs.mkdirSync(path.join(root, "node_modules", "@antelopejs"), {
+      recursive: true,
+    });
+    fs.symlinkSync(
+      copy,
+      path.join(root, "node_modules", CORE_INTERFACE),
+      "junction",
+    );
+    fs.writeFileSync(
+      path.join(root, "package.json"),
+      JSON.stringify({
+        name: "project",
+        dependencies: { [CORE_INTERFACE]: "catalog:" },
+      }),
+    );
+    setBuilderConfig({ projectRoot: root });
+  });
+
+  after(() => {
+    fs.rmSync(workspace, { recursive: true, force: true });
+    setBuilderConfig({});
+  });
+
+  it("links the module to the copy the project resolves, which an install outside the workspace can reach", () => {
+    const scaffold = scaffoldLocalModule("m", "modules/m");
+    const manifest = scaffold.files.get(
+      path.join(scaffold.root, "package.json"),
+    );
+    const spec: unknown = JSON.parse(manifest ?? "{}").dependencies?.[
+      CORE_INTERFACE
+    ];
+    expect(spec).to.equal("link:../../../store/interface-core");
+  });
+});
