@@ -37,13 +37,16 @@ async function mountFooter(): Promise<void> {
   host = document.createElement("div");
   document.body.append(host);
   app = createApp(Footer);
-  app.component("DmsLink", {
-    props: ["to"],
-    setup:
-      (props: { to: string }, { slots }) =>
-      () =>
-        h("a", { href: props.to }, slots.default?.()),
-  });
+  app.component(
+    "DmsLink",
+    defineComponent({
+      props: { to: { type: String, required: true } },
+      setup:
+        (props, { slots }) =>
+        () =>
+          h("a", { href: props.to }, slots.default?.()),
+    }),
+  );
   app.component("USelect", SelectStub);
   app.component("UIcon", () => h("span"));
   app.mount(host);

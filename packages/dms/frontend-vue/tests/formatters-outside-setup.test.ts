@@ -10,6 +10,8 @@
 import { createApp, defineComponent, h, isVNode } from "vue";
 import { createI18n, useI18n } from "vue-i18n";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { DataTypeConfig } from "../layers/dms-core/app/types/data-type";
+import type { RenderableColumn } from "../layers/dms-ui/app/entries/composables/data-types/useColumnValueRenderer";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { Size } from "../layers/dms-core/app/types/size";
 import * as formatterUtils from "../layers/dms-core/app/utils/formatter";
@@ -20,9 +22,7 @@ import coreFr from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json"
 import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 
-type Messages = import("vue-i18n").LocaleMessage<
-  import("vue-i18n").VueMessageType
->;
+type Messages = { [key: string]: string | Messages };
 
 const mergeMessages = (...sources: Messages[]): Messages =>
   sources.reduce<Messages>((merged, source) => {
@@ -177,6 +177,16 @@ function mountRenderer<R>(use: () => R) {
   };
 }
 
+const dataType = (
+  id: string,
+  options?: DataTypeConfig["inputComponent"]["options"],
+): DataTypeConfig => ({
+  id,
+  compareModes: [],
+  filterComponents: {},
+  inputComponent: options === undefined ? {} : { options },
+});
+
 describe("the price formatter", () => {
   it("writes euros by default and the currency the field states", () => {
     const price = dataTypes.get("price")!.formatter!.default;
@@ -194,16 +204,13 @@ describe("the price formatter", () => {
         isVNode(node) ? String(node.children) : String(node);
       const typed = {
         accessorKey: "total",
-        type: {
-          id: "price",
-          inputComponent: { options: { currency: "USD" } },
-        },
-      };
+        type: dataType("price", { currency: "USD" }),
+      } satisfies RenderableColumn;
       const displayed = {
         accessorKey: "total",
-        type: { id: "number" },
+        type: dataType("number"),
         display: { type: "price", options: { currency: "USD" } },
-      };
+      } satisfies RenderableColumn;
       expect(text(renderer().renderValue(typed, 5, undefined))).toBe("US$5.00");
       expect(text(renderer().renderValue(displayed, 5, undefined))).toBe(
         "US$5.00",
@@ -216,37 +223,34 @@ describe("the price formatter", () => {
 
 describe("a catalog-like table drawn after its setup", () => {
   const columns = {
-    image: { accessorKey: "image", type: { id: "image" } },
-    tags: { accessorKey: "tags", type: { id: "tags" } },
+    image: { accessorKey: "image", type: dataType("image") },
+    tags: { accessorKey: "tags", type: dataType("tags") },
     stock: {
       accessorKey: "stock",
-      type: { id: "number", inputComponent: { options: { suffix: " pcs" } } },
+      type: dataType("number", { suffix: " pcs" }),
     },
     state: {
       accessorKey: "state",
-      type: {
-        id: "select",
-        inputComponent: {
-          options: { items: [{ label: "$dms.date.undefined", value: "a" }] },
-        },
-      },
+      type: dataType("select", {
+        items: [{ label: "$dms.date.undefined", value: "a" }],
+      }),
     },
     family: {
       accessorKey: "family",
-      type: { id: "cascader_relation", inputComponent: { options: {} } },
+      type: dataType("cascader_relation", {}),
     },
     price: {
       accessorKey: "price",
-      type: { id: "price" },
+      type: dataType("price"),
       display: { type: "two_line", options: { subField: "unit" } },
     },
-    released: { accessorKey: "released", type: { id: "date" } },
+    released: { accessorKey: "released", type: dataType("date") },
     files: {
       accessorKey: "files",
-      type: { id: "file", inputComponent: { options: { multiple: true } } },
+      type: dataType("file", { multiple: true }),
     },
-    description: { accessorKey: "description", type: { id: "rich_text" } },
-  };
+    description: { accessorKey: "description", type: dataType("rich_text") },
+  } satisfies Record<string, RenderableColumn>;
   const row = {
     image: "https://example.com/product.png",
     tags: ["solar", "home"],

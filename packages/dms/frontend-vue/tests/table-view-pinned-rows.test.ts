@@ -137,7 +137,7 @@ describe("the rows a paging table shows, pinned page by page", () => {
   }));
 
   const SHOWN = ["a1", "a3", "a0", "a2", "a6", "a7", "a4", "a5", "a8", "a9"];
-  const idsOf = (rows: { _id: string }[]) => rows.map((row) => row._id);
+  const idsOf = (rows: Record<string, unknown>[]) => rows.map((row) => row._id);
 
   function controllerRows() {
     const api = fetchClient(

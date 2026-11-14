@@ -38,8 +38,10 @@ function layOut(): void {
     get: () => VIEW_HEIGHT,
   });
   scroller.getBoundingClientRect = () => new DOMRect();
-  const rowTop = (row: Element) =>
-    [...scroller.querySelectorAll("tr")].indexOf(row) * ROW_HEIGHT - scrollTop;
+  const rowTop = (row: Element) => {
+    const rows: Element[] = [...scroller.querySelectorAll("tr")];
+    return rows.indexOf(row) * ROW_HEIGHT - scrollTop;
+  };
   Element.prototype.getBoundingClientRect = function (this: Element) {
     return new DOMRect(0, rowTop(this));
   };

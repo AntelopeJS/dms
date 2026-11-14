@@ -169,18 +169,26 @@ function stillUnnamed(spec: JsonObject, stamp: NodeStamp): boolean {
   return node.success && node.data.type === stamp.type;
 }
 
+/** What an apply wrote, for {@link stampSpec} to record in the spec. */
+interface Written {
+  livePage: MockupLivePage;
+  stamps: readonly NodeStamp[];
+  /** The display name the write gave the page, when it changed it. */
+  title: string | undefined;
+}
+
 /**
- * Records the version the write left the page at in `livePage`, and the name
- * each node in `stamps` was written under as its id, unless the spec no
- * longer links page `index` to the page. A node that took an id or another
- * type meanwhile keeps it.
+ * Records the version the write left the page at in `livePage`, the name
+ * each node in `stamps` was written under as its id, and, in a spec of one
+ * page, a `title` the write gave the page as the spec's title, unless the
+ * spec no longer links page `index` to the page. A node that took an id or
+ * another type meanwhile keeps it.
  */
 function stampSpec(
   mockupsDir: string,
   name: MockupName,
   index: number,
-  livePage: MockupLivePage,
-  stamps: readonly NodeStamp[],
+  { livePage, stamps, title }: Written,
 ): Promise<Stamp> {
   return withSpecLock(mockupsDir, name, async (_write, _stamp, set) => {
     const text = await readSpecText(mockupsDir, name);
@@ -199,9 +207,13 @@ function stampSpec(
     const ids = stamps
       .filter((stamp) => stillUnnamed(spec, stamp))
       .map(({ path, id }) => ({ path, key: "id", value: id }));
+    const onePage = specValueAt(spec, "/pages/1") === undefined;
     await set(text, [
       { path: page, key: "version", value: livePage.version },
       ...ids,
+      ...(title !== undefined && onePage
+        ? [{ path: "", key: "title", value: title }]
+        : []),
     ]);
     return { stamped: true };
   });
@@ -248,7 +260,11 @@ async function applyNow(
     ok: true,
     outcome: "applied",
     livePage: written,
-    ...(await stampSpec(mockupsDir, name, index, written, plan.stamps)),
+    ...(await stampSpec(mockupsDir, name, index, {
+      livePage: written,
+      stamps: plan.stamps,
+      title: plan.draft.page?.displayName,
+    })),
     ...summarize(plan.draft, structure),
     wiring: plan.wiring,
   };

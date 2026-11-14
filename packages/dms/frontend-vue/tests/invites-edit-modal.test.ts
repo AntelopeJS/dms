@@ -62,6 +62,7 @@ function invitesRowActions() {
     location: "/api/tables/admin-invites",
     componentId: "table",
     pageId: "settings.workspace.invites",
+    columns: [],
     labelKey: "email",
     formContainer: {
       type: FormContainerType.modal,
@@ -145,7 +146,10 @@ describe("Invitations table: Edit invitation", () => {
     await editRow(INVITE);
 
     const [opened] = openModal.mock.calls[0]!;
-    opened.componentOptions!.onSuccessCallback();
+    const onSuccess = opened.componentOptions?.onSuccessCallback;
+    if (typeof onSuccess !== "function")
+      throw new Error("the modal hands no onSuccessCallback");
+    onSuccess();
 
     expect(modal.close).toHaveBeenCalledTimes(1);
     expect(refresh).toHaveBeenCalledTimes(1);

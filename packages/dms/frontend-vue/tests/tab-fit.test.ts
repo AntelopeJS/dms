@@ -6,6 +6,7 @@
  */
 import * as vue from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 import { AxeOrientation } from "../layers/dms-core/app/types/orientation";
 import { Color } from "../layers/dms-core/app/types/color";
 import { Size } from "../layers/dms-core/app/types/size";
@@ -30,8 +31,8 @@ const Tabs = vue.defineComponent({
   },
 });
 
-const classesOf = (value: TabsUi["list"]): string =>
-  [value].flat(Infinity).filter(Boolean).join(" ");
+const classesOf = (value: unknown): string =>
+  [value].flat(Infinity).filter(isString).filter(Boolean).join(" ");
 
 async function mount(props: Partial<TabProps>): Promise<TabsUi> {
   const { default: Tab } = await import(

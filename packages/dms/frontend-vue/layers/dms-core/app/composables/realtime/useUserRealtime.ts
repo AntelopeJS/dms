@@ -19,6 +19,7 @@ const CONNECTION_NAME_PREFIX = "dms-realtime";
 const SESSION_STATE_KEY = "dms.realtime.sessionId";
 const MENU_TOPICS_STATE_KEY = "dms.realtime.menuTopics";
 const SNAPSHOT_EVENT = "snapshot";
+const LEADER_EVENT = "leader";
 /** The server ended this tab's session alone: the tab opens a new one. */
 const SESSION_ENDED_EVENT = "session-ended";
 /** Frames held while a session is being opened, every tab's included. */
@@ -338,6 +339,7 @@ const connectTab = (
         buffered.push({ sessionId, eventName, data });
       }
     },
+    onLeaderFrame: (data) => dispatch(LEADER_EVENT, data),
     refreshSession: callbacks.refreshSession,
     redirectToAuth: callbacks.redirectToAuth,
   });

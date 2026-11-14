@@ -110,7 +110,9 @@ describe("a tab's badge", () => {
     },
   });
 
-  async function badgesOf(badges: unknown[]): Promise<unknown[]> {
+  async function badgesOf(
+    badges: TabProps["items"][number]["badge"][],
+  ): Promise<unknown[]> {
     vi.stubGlobal("AxeOrientation", AxeOrientation);
     vi.stubGlobal("Color", Color);
     vi.stubGlobal("Size", Size);

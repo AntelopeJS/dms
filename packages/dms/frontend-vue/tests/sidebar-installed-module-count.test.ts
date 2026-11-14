@@ -88,7 +88,10 @@ const Navigation = defineComponent({
         h(
           "a",
           { href: item.to },
-          [item.label, item.badge ? ` ${item.badge.label}` : ""].join(""),
+          [
+            item.label,
+            typeof item.badge === "object" ? ` ${item.badge.label}` : "",
+          ].join(""),
         ),
       ),
     ),

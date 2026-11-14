@@ -177,8 +177,10 @@ function createConfirmDialogFieldsFixture() {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
+  type ConfirmModalProps = InstanceType<typeof ConfirmModal>["$props"];
+
   function mount(
-    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
+    props: Partial<ConfirmModalProps> & Pick<ConfirmModalProps, "title">,
   ): void {
     app = createApp({
       render: () =>

@@ -41,13 +41,10 @@ function mountBanner(to: string): HTMLAnchorElement {
         actions: [{ label: "Pending", to }],
       }),
   };
-  const app = createApp({
-    render: () =>
-      h(InertiaApp, {
-        initialPage: { component: "orders", props: {}, url: PAGE },
-        initialComponent: page,
-        resolveComponent: () => page,
-      }),
+  const app = createApp(InertiaApp, {
+    initialPage: { component: "orders", props: {}, url: PAGE },
+    initialComponent: page,
+    resolveComponent: () => page,
   });
   const runtime = browserRuntime(app);
   Object.assign(runtime.route, { path: PAGE, fullPath: PAGE });

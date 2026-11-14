@@ -7,6 +7,7 @@ import { createI18n } from "vue-i18n";
 import { beforeEach, expect, it, vi } from "vitest";
 import en from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
 import fr from "../layers/dms-layout/app/entries/i18n/locales/layout-fr-FR.json";
+import { dmsAppContext, emptyApp } from "./fixtures/dmsAppContext";
 
 let actions: Ref<unknown> | undefined;
 const isOwner = ref(false);
@@ -41,7 +42,7 @@ beforeEach(() => {
   actions = undefined;
   isOwner.value = false;
   push.mockClear();
-  plugin();
+  plugin(dmsAppContext(emptyApp()));
 });
 
 const mockupsAction = () =>

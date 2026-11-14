@@ -5,6 +5,8 @@ import {
   moveRow,
   reorderEdits,
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/reorder";
+import { fetchClient } from "./fixtures/fetchClient";
+import { fetchClientMock } from "./fixtures/unusedApi";
 import type { TableViewListResponse } from "../layers/dms-ui/app/composables/table-view/types";
 
 type Api = Parameters<typeof useTableReorder>[0]["api"];
@@ -48,7 +50,7 @@ describe("rows ordered by hand", () => {
   });
 
   const reorderOf = (
-    api: ReturnType<typeof vi.fn>,
+    api: Api,
     narrowed = false,
     data = ref<TableViewListResponse<ReturnType<typeof ranked>[number]> | null>(
       {
@@ -77,7 +79,7 @@ describe("rows ordered by hand", () => {
   };
 
   it("moves the row at once and saves its new position by a partial edit", async () => {
-    const api = vi.fn(async () => ({}));
+    const api = fetchClient(async () => ({}));
     const { reorderState, data } = reorderOf(api);
     expect(reorderState.value?.enabled).toBe(true);
     await reorderState.value!.move(2, 0);
@@ -96,7 +98,7 @@ describe("rows ordered by hand", () => {
   });
 
   it("lists the rows again when the save fails, and is off while narrowed", async () => {
-    const api = vi.fn(async () => {
+    const api = fetchClient(async () => {
       throw new Error("denied");
     });
     const { reorderState, refresh, onError } = reorderOf(api);
@@ -112,7 +114,7 @@ describe("rows ordered by hand", () => {
       data: ref(null),
       rowIdKey: "_id",
       location: "/api/features",
-      api: vi.fn<Api>(),
+      api: fetchClientMock(),
       canEdit: computed(() => false),
       isNarrowed: computed(() => false),
       isOrderedDisplay: computed(() => true),

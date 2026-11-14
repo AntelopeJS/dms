@@ -29,6 +29,10 @@ const { default: asyncDataScopePlugin } = await import(
 const ACCOUNT_A = { accountId: "account-a", activeTenantId: "tenant-1" };
 const ACCOUNT_B = { accountId: "account-b", activeTenantId: "tenant-1" };
 
+function sessionState() {
+  return engine.useDmsState<typeof ACCOUNT_A | null>("dms-session", () => null);
+}
+
 const handler = vi.fn(async () => "orders of account A");
 
 const Page = defineComponent({
@@ -51,7 +55,7 @@ function start(
 ) {
   engine.provideDmsFrontendRuntime(app, runtime);
   app.runWithContext(() => {
-    engine.useDmsState("dms-session", () => null).value = session;
+    sessionState().value = session;
     void asyncDataScopePlugin(dmsAppContext(app));
   });
 }
@@ -117,7 +121,7 @@ describe("the async data scope", () => {
     expect(host.textContent).toBe("orders of account A");
 
     browserApp.runWithContext(() => {
-      engine.useDmsState("dms-session", () => null).value = ACCOUNT_B;
+      sessionState().value = ACCOUNT_B;
     });
     await settle();
 
@@ -152,7 +156,7 @@ describe("the async data scope", () => {
     const app = createApp(Root);
     engine.provideDmsFrontendRuntime(app, browser);
     app.runWithContext(() => {
-      engine.useDmsState("dms-session", () => null).value = ACCOUNT_A;
+      sessionState().value = ACCOUNT_A;
     });
     await engine.installDmsPlugins(
       app,

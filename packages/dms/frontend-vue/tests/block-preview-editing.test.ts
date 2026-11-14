@@ -2,6 +2,7 @@
 import {
   computed,
   createApp,
+  defineComponent,
   h,
   nextTick,
   onMounted,
@@ -60,13 +61,16 @@ class FakeResizeObserver {
 
 const Probe: FunctionalComponent = () =>
   h("button", { class: "probe", onClick: clicked }, "Revenue");
+const Caption = defineComponent({ render: () => h("h2", "Caption") });
 const Frame: FunctionalComponent = (_props, { slots }) =>
   h("section", { class: "frame" }, [
-    h(
-      "h2",
-      { ref: (element) => registerBlockAnchor("content", element) },
-      "Caption",
-    ),
+    h(Caption, {
+      ref: (instance) =>
+        registerBlockAnchor(
+          "content",
+          instance instanceof Element ? null : instance,
+        ),
+    }),
     slots.default?.(),
   ]);
 const BLOCKS: Record<string, Component> = {

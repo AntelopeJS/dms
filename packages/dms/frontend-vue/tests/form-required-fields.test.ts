@@ -2,15 +2,26 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { jsonSchemaToZod } from "json-schema-to-zod";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import {
   buildValidationSchema,
   isFieldMarkedRequired,
   makeFieldSchemaRequired,
 } from "../layers/dms-ui/app/composables/form/useForm";
 
+function serializedJsonSchema(
+  schema: z.ZodTypeAny,
+): Parameters<typeof jsonSchemaToZod>[0] {
+  const json: unknown = JSON.parse(JSON.stringify(zodToJsonSchema(schema)));
+  if (typeof json === "boolean" || isObject(json)) return json;
+  throw new TypeError(
+    "zodToJsonSchema returned neither an object nor a boolean",
+  );
+}
+
 function roundTrippedOptionalString(): z.ZodTypeAny {
   const source = z.object({ value: z.string().nullable().optional() });
-  const json = zodToJsonSchema(source);
+  const json = serializedJsonSchema(source);
   const code = jsonSchemaToZod(json, { module: "none" }).replace(
     /\.strict\(\)$/,
     ".passthrough()",

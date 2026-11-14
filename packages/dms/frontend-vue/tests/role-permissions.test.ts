@@ -73,7 +73,7 @@ const LIST_TREE: RolePermissionNode[] = [
 ];
 
 describe("table actions depending on the list", () => {
-  const listIndex = buildPermissionIndex(LIST_TREE, identity);
+  const listIndex = buildPermissionIndex(LIST_TREE);
 
   it("ticks the list with an edit", () => {
     const grant = grantPermission(

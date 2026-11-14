@@ -14,13 +14,15 @@ const { default: devErrorLogPlugin } = await import(
 );
 
 let app: App;
-let showErrorPage: ReturnType<typeof vi.fn>;
+type ErrorHandler = NonNullable<App["config"]["errorHandler"]>;
+
+let showErrorPage: ReturnType<typeof vi.fn<ErrorHandler>>;
 
 const install = () => devErrorLogPlugin(dmsAppContext(app));
 
 beforeEach(() => {
   app = createApp({ render: () => null });
-  showErrorPage = vi.fn();
+  showErrorPage = vi.fn<ErrorHandler>();
   app.config.errorHandler = showErrorPage;
 });
 

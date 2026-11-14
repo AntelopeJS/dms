@@ -17,7 +17,15 @@ import {
   type App,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from "vitest";
 import { dmsAppContext } from "./fixtures/dmsAppContext";
 import type {
   DmsAppContext,
@@ -147,7 +155,7 @@ async function serverRender(): Promise<{ html: string; payload: DmsPayload }> {
 }
 
 const mounted: App[] = [];
-let warn: ReturnType<typeof vi.spyOn>;
+let warn: MockInstance<typeof console.warn>;
 
 beforeEach(async () => {
   asked.length = 0;

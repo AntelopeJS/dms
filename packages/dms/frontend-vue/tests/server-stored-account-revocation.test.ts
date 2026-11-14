@@ -1,3 +1,5 @@
+import { IncomingMessage } from "node:http";
+import { Socket } from "node:net";
 import { describe, expect, it } from "vitest";
 import { readSealedCookie } from "@antelopejs/dms-frontend/templates/vue/server/auth/session.mjs";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
@@ -58,10 +60,9 @@ class Browser {
 
   /** The accounts the index lists, by the same id. */
   indexed(): string[] {
-    const index = readSealedCookie(
-      { headers: { cookie: this.pairOf("dms_account_index_") } },
-      "dms_account_index",
-    );
+    const request = new IncomingMessage(new Socket());
+    request.headers.cookie = this.pairOf("dms_account_index_");
+    const index = readSealedCookie(request, "dms_account_index");
     return isObject(index)
       ? Object.keys(index).map((id) => id.replaceAll("-", ""))
       : [];

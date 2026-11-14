@@ -69,7 +69,9 @@ describe("a row drawer's header", () => {
 
   it("steps with the header's buttons", async () => {
     const { drawer } = await openOn(drawerAction({ positionLabel: "$p" }));
-    headerOf(drawer)!.navigation!.next();
+    const navigation = headerOf(drawer)?.navigation;
+    if (!navigation) throw new Error("The header carries no navigation");
+    navigation.next();
     expect(headerOf(drawer)?.navigation).toMatchObject({ index: 1 });
   });
 
