@@ -236,7 +236,9 @@ function specWith(
   const pages = replaced.spec.pages.map((existing, index) =>
     index === replaced.index ? page : existing,
   );
-  return { ...replaced.spec, pages };
+  return pages.length === 1
+    ? { ...replaced.spec, title: page.title, pages }
+    : { ...replaced.spec, pages };
 }
 
 async function readStructure(
