@@ -17,6 +17,7 @@ import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regio
 import { readSubline } from "../layers/dms-ui/app/entries/composables/data-types/cellHelpers";
 import { registerMetricCellTypes } from "../layers/dms-ui/app/entries/composables/data-types/metricCells";
 import { registerTwoLineCellType } from "../layers/dms-ui/app/entries/composables/data-types/twoLineCell";
+import { registerDefaultDataTypes } from "../layers/dms-ui/app/entries/composables/data-types/registerDefaults";
 
 const IdentityCell = (
   await import(
@@ -389,7 +390,7 @@ describe("IdentityCell", () => {
 });
 
 describe("identity sub-line", () => {
-  const identityFormatter = async () => {
+  const identityFormatter = () => {
     const registered = new Map<string, DataType["formatter"]>();
 
     vi.stubGlobal("h", h);
@@ -406,15 +407,12 @@ describe("identity sub-line", () => {
       registerDataType: (dataType: DataType) =>
         registered.set(dataType.id, dataType.formatter),
     }));
-    const { registerDefaultDataTypes } = await import(
-      "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
-    );
     registerDefaultDataTypes();
     return registered.get("identity")!;
   };
 
-  it("composes a subtitle the row gives as a composed text, in its tone", async () => {
-    const identity = await identityFormatter();
+  it("composes a subtitle the row gives as a composed text, in its tone", () => {
+    const identity = identityFormatter();
     const cell = render(() =>
       identity.default(
         "Camille Martin",
@@ -428,8 +426,8 @@ describe("identity sub-line", () => {
     expect(sub?.className).toContain("text-success");
   });
 
-  it("keeps a plain subtitle as written, in subtitleTone", async () => {
-    const identity = await identityFormatter();
+  it("keeps a plain subtitle as written, in subtitleTone", () => {
+    const identity = identityFormatter();
     const cell = render(() =>
       identity.default(
         "Acme",
@@ -443,8 +441,8 @@ describe("identity sub-line", () => {
     expect(sub?.className).toContain("text-muted");
   });
 
-  it("reads each row's tile icon from iconField, falling back to icon", async () => {
-    const identity = await identityFormatter();
+  it("reads each row's tile icon from iconField, falling back to icon", () => {
+    const identity = identityFormatter();
     const options = { iconField: "icon", icon: "i-ph-puzzle-piece" };
     const tileOf = (row: { icon?: string }) =>
       render(() => identity.default("Exports", "en", options, row))
@@ -456,8 +454,8 @@ describe("identity sub-line", () => {
     expect(tileOf({})).toBe("i-ph-puzzle-piece");
   });
 
-  it("draws an empty issuer as its translated empty label and icon", async () => {
-    const identity = await identityFormatter();
+  it("draws an empty issuer as its translated empty label and icon", () => {
+    const identity = identityFormatter();
     const cell = render(() =>
       identity.empty(
         null,
