@@ -72,10 +72,15 @@ const isRestartReport = objectOf({
   code: nullable(isString),
 });
 
-/** @returns {boolean} True where the test may make a user and network namespace with a loopback interface */
+/** @returns {boolean} True where the test may make a user and network namespace with a loopback interface and set its ephemeral range */
 function canUnshareNetwork() {
   return (
-    spawnSync("unshare", ["-rn", "ip", "link", "set", "lo", "up"]).status === 0
+    spawnSync("unshare", [
+      "-rn",
+      "sh",
+      "-c",
+      `ip link set lo up && echo "${NARROW_RANGE}" > ${EPHEMERAL_RANGE_FILE}`,
+    ]).status === 0
   );
 }
 
