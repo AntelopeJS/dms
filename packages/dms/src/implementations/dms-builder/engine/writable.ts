@@ -132,20 +132,24 @@ function namedBinding(specifier: ImportSpecifier): Node {
   return specifier.getAliasNode() ?? specifier.getNameNode();
 }
 
+/** Each name an import declaration binds: its default, namespace and named imports. */
+function importBindings(declaration: ImportDeclaration): Node[] {
+  return [
+    declaration.getDefaultImport(),
+    declaration.getNamespaceImport(),
+    ...declaration.getNamedImports().map(namedBinding),
+  ].filter((binding) => binding !== undefined);
+}
+
 /**
- * The names the file binds through its default and named imports, before a
- * rewrite. Pass the result back to {@link pruneUnusedImports} so it drops only
- * what the rewrite orphaned.
+ * The names the file binds through its imports, before a rewrite. Pass the
+ * result back to {@link pruneUnusedImports} so it drops only what the rewrite
+ * orphaned.
  */
 export function referencedImportNames(sourceFile: SourceFile): Set<string> {
   const names = new Set<string>();
   for (const declaration of sourceFile.getImportDeclarations()) {
-    const defaultImport = declaration.getDefaultImport();
-    const bindings = [
-      ...(defaultImport ? [defaultImport] : []),
-      ...declaration.getNamedImports().map(namedBinding),
-    ];
-    for (const binding of bindings) {
+    for (const binding of importBindings(declaration)) {
       if (isReferenced(sourceFile, binding)) {
         names.add(binding.getText());
       }
@@ -179,7 +183,7 @@ function isReferenced(sourceFile: SourceFile, binding: Node): boolean {
 }
 
 /**
- * Drops default and named imports the rewrite just orphaned. A whole-tree rewrite can
+ * Drops the imports the rewrite just orphaned. A whole-tree rewrite can
  * remove the last user of a factory, and a dangling import would otherwise stay
  * behind in the file the builder wrote.
  *
@@ -200,6 +204,10 @@ export function pruneUnusedImports(
     const defaultImport = declaration.getDefaultImport();
     if (defaultImport && isOrphaned(sourceFile, defaultImport, used)) {
       declaration.removeDefaultImport();
+    }
+    const namespaceImport = declaration.getNamespaceImport();
+    if (namespaceImport && isOrphaned(sourceFile, namespaceImport, used)) {
+      declaration.removeNamespaceImport();
     }
     for (const specifier of declaration.getNamedImports()) {
       if (isOrphaned(sourceFile, namedBinding(specifier), used)) {
@@ -265,8 +273,9 @@ function localDeclarations(sourceFile: SourceFile): LocalDeclaration[] {
  * rather than the language service: a name that only looks used (a property of
  * the same spelling) keeps a declaration that could have gone, which is the
  * safe way to be wrong. The key of an object literal member (`displayName:`)
- * never reads a binding, so it is not counted: a patch that turns the shorthand
- * `{ displayName }` into `{ displayName: "…" }` leaves that spelling behind.
+ * and the name after a dot (`labels.board`) never read a binding, so they are
+ * not counted: a patch that turns the shorthand `{ displayName }` into
+ * `{ displayName: "…" }` leaves that spelling behind.
  */
 function isLocalReferenced(
   sourceFile: SourceFile,
@@ -277,15 +286,17 @@ function isLocalReferenced(
     .some(
       (identifier) =>
         identifier.getText() === local.name &&
-        !isObjectLiteralKey(identifier) &&
+        !isMemberName(identifier) &&
         !local.node.containsRange(identifier.getPos(), identifier.getEnd()),
     );
 }
 
-function isObjectLiteralKey(identifier: Identifier): boolean {
+function isMemberName(identifier: Identifier): boolean {
   const parent = identifier.getParent();
   return (
-    Node.isPropertyAssignment(parent) && parent.getNameNode() === identifier
+    (Node.isPropertyAssignment(parent) ||
+      Node.isPropertyAccessExpression(parent)) &&
+    parent.getNameNode() === identifier
   );
 }
 

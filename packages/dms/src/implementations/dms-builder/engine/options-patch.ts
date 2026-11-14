@@ -3,7 +3,7 @@ import type {
   EditableCategoryMeta,
   EditablePageMeta,
 } from "@antelopejs/interface-dms-builder";
-import { Node, type ObjectLiteralExpression } from "ts-morph";
+import { Node, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 import { propertyKey } from "./paths";
 import { type EmitContext, serializeValue } from "./value";
 import {
@@ -37,13 +37,40 @@ export function optionsPatch(
 }
 
 /**
- * Writes `patch` into an object literal: an `undefined` value removes its key,
- * any other value replaces the key's member in place, shorthand included, or is
- * added. A local or import that only a replaced or removed value read is then
- * dropped, and so is whatever only that local read, so the file stays free of
- * unused bindings.
+ * Runs `write`, then drops each local or import that only what `write`
+ * replaced or removed read, and whatever only that local read, so the file
+ * stays free of unused bindings. A binding unused before `write` stays.
+ */
+export function pruningOrphans<T>(sourceFile: SourceFile, write: () => T): T {
+  const usedLocals = referencedLocalNames(sourceFile);
+  const usedImports = referencedImportNames(sourceFile);
+  const result = write();
+  pruneUnusedLocals(sourceFile, usedLocals);
+  pruneUnusedImports(sourceFile, usedImports);
+  return result;
+}
+
+/**
+ * {@link writePatch}, then the bindings only a replaced or removed value read
+ * are dropped, as {@link pruningOrphans} drops them.
  */
 export function applyPatch(
+  obj: ObjectLiteralExpression,
+  patch: ConfigObject,
+  replace: boolean,
+  ctx: EmitContext,
+): void {
+  pruningOrphans(obj.getSourceFile(), () =>
+    writePatch(obj, patch, replace, ctx),
+  );
+}
+
+/**
+ * Writes `patch` into an object literal: an `undefined` value removes its key,
+ * any other value replaces the key's member in place, shorthand included, or is
+ * added. Bindings the old values read are left as they are.
+ */
+export function writePatch(
   obj: ObjectLiteralExpression,
   patch: ConfigObject,
   replace: boolean,
@@ -56,9 +83,6 @@ export function applyPatch(
       value === undefined ? undefined : serializeValue(value, ctx),
     );
   }
-  const sourceFile = obj.getSourceFile();
-  const usedLocals = referencedLocalNames(sourceFile);
-  const usedImports = referencedImportNames(sourceFile);
   if (replace) {
     for (const prop of obj.getProperties()) {
       prop.remove();
@@ -78,6 +102,4 @@ export function applyPatch(
       obj.addPropertyAssignment({ name: propertyKey(key), initializer });
     }
   }
-  pruneUnusedLocals(sourceFile, usedLocals);
-  pruneUnusedImports(sourceFile, usedImports);
 }
