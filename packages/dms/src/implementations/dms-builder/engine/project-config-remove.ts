@@ -9,14 +9,17 @@ import {
   ENV_OVERRIDES,
   IMPORT_OVERRIDES,
   MODULES,
-  moduleEntries,
   objectAt,
   propertyNamed,
   refuse,
   replace,
   stringOf,
 } from "./project-config";
-import { mayNameSource, writtenModules } from "./project-config-readers";
+import {
+  mayNameSource,
+  moduleEntries,
+  writtenModules,
+} from "./project-config-readers";
 
 const LINE_REST = /^[ \t]*/;
 const TRAILING_COMMA = /^[ \t]*,/;
