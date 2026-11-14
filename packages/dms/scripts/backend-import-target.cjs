@@ -80,6 +80,20 @@ const processPins = {
     '(0, node_child_process_1.spawnSync)("git", ["init", "-q"], { cwd: directory });',
   "dist/test/unit/builder/helpers/processes.js:14":
     'const run = (0, node_child_process_1.spawnSync)(script, {\n        cwd: directory,\n        shell: true,\n        encoding: "utf8",\n        env: {\n            ...process.env,\n            PATH: `${binDirectory}${node_path_1.default.delimiter}${process.env.PATH}`,\n        },\n    });',
+  "src/test/unit/builder/helpers/database-servers.ts:1":
+    'import { execFile, spawnSync } from "node:child_process";',
+  "src/test/unit/builder/helpers/database-servers.ts:5":
+    'import { promisify } from "node:util";',
+  "src/test/unit/builder/helpers/database-servers.ts:8":
+    "const run = promisify(execFile);",
+  "dist/test/unit/builder/helpers/database-servers.js:16":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/test/unit/builder/helpers/database-servers.js:20":
+    'const node_util_1 = require("node:util");',
+  "dist/test/unit/builder/helpers/database-servers.js:22":
+    "const run = (0, node_util_1.promisify)(node_child_process_1.execFile);",
+  "dist/test/unit/builder/helpers/database-servers.js:27":
+    'exports.dockerAvailable = (0, node_child_process_1.spawnSync)("docker", ["version", "--format", "{{.Server.Version}}"], {\n    stdio: "ignore",\n}).status === 0;',
   "dist/dev/module-update-notifications.js:8":
     'const node_child_process_1 = require("node:child_process");',
   "dist/dev/module-update-notifications.js:9":

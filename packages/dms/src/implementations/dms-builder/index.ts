@@ -13,6 +13,7 @@ import type {
   MapResourcesPreview,
   MapResourcesResult,
   ModuleEntryInput,
+  ConfigureProjectOpts,
   CreateLocalModuleOpts,
   ProjectConfigOpts,
   ProjectConfigResult,
@@ -65,6 +66,20 @@ import { withConnectionAccess } from "./engine/connection-access-config";
 import { mapResources, previewMapResources } from "./engine/map-resources";
 import { mappedChoices } from "./engine/mapped-choices";
 import { configureProject } from "./engine/project-config-ops";
+import { configureProjectWithVariables } from "./engine/project-env";
+import {
+  CheckDatabaseConnection,
+  GetDatabaseConnection,
+  GetDatabaseProject,
+  GetLatestAnalysis,
+  ListDatabaseConnections,
+  RemoveDatabaseConnection,
+  RepairDatabaseConnections,
+  SampleDatabaseRows,
+  SetDatabaseConnectionUrl,
+} from "./database";
+
+export * from "./database";
 import {
   buildCatalog,
   invalidateCatalog,
@@ -273,9 +288,13 @@ export async function GetMapping(
  */
 export async function ConfigureProject(
   steps: ProjectConfigStep[],
-  opts?: ProjectConfigOpts,
+  opts: ConfigureProjectOpts = {},
 ): Promise<OpResult<ProjectConfigResult>> {
-  return configureProject(steps, opts);
+  const { variables, ...configOpts } = opts;
+  if (!variables?.length || configOpts.dryRun) {
+    return configureProject(steps, configOpts);
+  }
+  return configureProjectWithVariables(steps, variables);
 }
 
 /**
@@ -454,6 +473,7 @@ export const Operations = {
   AddModule,
   AddQuery,
   AnalyseDatabase,
+  CheckDatabaseConnection,
   ComposePage,
   ConfigureBlock,
   ConfigureCategory,
@@ -474,11 +494,15 @@ export const Operations = {
   DeleteResource,
   GetAnalysis,
   GetCatalog,
+  GetDatabaseConnection,
+  GetDatabaseProject,
+  GetLatestAnalysis,
   GetMapping,
   GetPageStructure,
   GetResourceStructure,
   GetTheme,
   ListCategories,
+  ListDatabaseConnections,
   ListDataSources,
   ListPages,
   ListQueryTemplates,
@@ -490,8 +514,12 @@ export const Operations = {
   PreviewQuery,
   RefreshSourceIndex,
   RemoveBlock,
+  RemoveDatabaseConnection,
   RemoveField,
   RemoveQuery,
+  RepairDatabaseConnections,
+  SampleDatabaseRows,
+  SetDatabaseConnectionUrl,
   SetPageBlocks,
   SetTheme,
 } satisfies typeof BuilderOperations;

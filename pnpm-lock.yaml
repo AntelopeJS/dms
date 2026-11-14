@@ -78,7 +78,7 @@ importers:
         specifier: '>=0.13.0 <0.14.0'
         version: link:../interface-dms
       '@antelopejs/interface-dms-builder':
-        specifier: '>=0.4.0 <1.0.0'
+        specifier: '>=0.4.1 <0.5.0'
         version: link:../interface-dms-builder
       '@antelopejs/interface-email':
         specifier: '>=0.0.6 <1.0.0'
@@ -168,6 +168,9 @@ importers:
       '@types/node-cron':
         specifier: ^3.0.11
         version: 3.0.11
+      '@types/pg':
+        specifier: ^8.20.0
+        version: 8.23.1
       '@types/randomstring':
         specifier: ^1.3.0
         version: 1.3.0
@@ -192,6 +195,9 @@ importers:
       mongodb-memory-server-core:
         specifier: ^11.0.1
         version: 11.2.0(socks@2.8.7)
+      mysql2:
+        specifier: ^3.24.6
+        version: 3.24.6(@types/node@26.6.5)
       oxfmt:
         specifier: ^0.66.0
         version: 0.66.0
@@ -201,12 +207,18 @@ importers:
       oxlint-tsgolint:
         specifier: ^7.0.2001
         version: 7.0.2001
+      pg:
+        specifier: ^8.22.0
+        version: 8.23.1
       release-it:
         specifier: ^19.2.4
         version: 19.2.4(@types/node@26.6.5)
       release-it-changelogen:
         specifier: ^0.1.0
         version: 0.1.0(changelogen@0.5.7)(release-it@19.2.4(@types/node@26.6.5))(semver@7.8.5)
+      rethinkdb-ts:
+        specifier: ^2.7.0
+        version: 2.7.0
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
@@ -412,7 +424,7 @@ importers:
         version: 3.7.1(axios@1.18.0)(vue@3.5.25(typescript@5.9.3))
       '@nuxt/ui':
         specifier: 4.10.0
-        version: 4.10.0(eeb6b253fda7dae167ddf549ea86f05c)
+        version: 4.10.0(b7baba20b6dce22014989298c09e24ef)
       '@types/jsonwebtoken':
         specifier: ^9.0.10
         version: 9.0.10
@@ -2854,6 +2866,9 @@ packages:
     resolution: {integrity: sha512-EULJ8LApcVEPbrfND0cRQqutIOdiIgJ1Mgrhpy755r14xMohPTEpkV/k28SJvuOs9bHRFW8x+KeDAEPiGQPB9Q==}
     deprecated: This is a stub types definition. parse-path provides its own type definitions, so you do not need this installed.
 
+  '@types/pg@8.23.1':
+    resolution: {integrity: sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A==}
+
   '@types/proper-lockfile@4.1.4':
     resolution: {integrity: sha512-uo2ABllncSqg9F1D4nugVl9v93RmjxF6LJzQLMLDdPaXCUIDPeOJ21Gbqi43xNKzBi/WQ0Q0dICqufzQbMjipQ==}
 
@@ -3317,6 +3332,10 @@ packages:
 
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
+
+  aws-ssl-profiles@1.1.2:
+    resolution: {integrity: sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==}
+    engines: {node: '>= 6.0.0'}
 
   axios@1.18.0:
     resolution: {integrity: sha512-E32NzpYKp++W7XRe52rHiXV2ehxmh3wbdgO7MHeFM+vqxLBYHzt0ElkiImtOBxtOmyp0yoC8C6uESVV84Y2/hw==}
@@ -4236,6 +4255,9 @@ packages:
     resolution: {integrity: sha512-sQtrEfA+ez/3G0cCZecF70oqpCRttCexYUG4mUrtWL49ULUzUyxokt5kyqwtKzj1270RaKih+hcP3qLcumccow==}
     engines: {node: '>=10'}
 
+  generate-function@2.3.1:
+    resolution: {integrity: sha512-eeB5GfMNeevm/GRYq20ShmsaGcmI81kIX2K9XQx5miC8KdHaC6Jm0qQ8ZNeGOi7wYB8OsdxKs+Y2oVuTFuVwKQ==}
+
   get-caller-file@2.0.5:
     resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
     engines: {node: 6.* || 8.* || >= 10.*}
@@ -4391,6 +4413,10 @@ packages:
     resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
     engines: {node: '>=0.10.0'}
 
+  iconv-lite@0.7.3:
+    resolution: {integrity: sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==}
+    engines: {node: '>=0.10.0'}
+
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
 
@@ -4523,6 +4549,9 @@ packages:
 
   is-potential-custom-element-name@1.0.1:
     resolution: {integrity: sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ==}
+
+  is-property@1.0.2:
+    resolution: {integrity: sha512-Ks/IoX00TtClbGQr4TWXemAnktAQvYB7HzcCxDGqEZU6oCmb2INHuOoKxbtR+HFkmYWBKv/dOZtGRiAjDhj92g==}
 
   is-ssh@1.4.1:
     resolution: {integrity: sha512-JNeu1wQsHjyHgn9NcWTaXq6zWSR6hqE0++zhfZlkFBbScNkyvxCdeV8sRkSBaeLKxmbpR21brail63ACNxJ0Tg==}
@@ -4938,6 +4967,9 @@ packages:
     resolution: {integrity: sha512-ja1E3yCr9i/0hmBVaM0bfwDjnGy8I/s6PP4DFp+yP+a+mrHO4Rm7DtmnqROTUkHIkqffC84YY7AeqX6oFk0WFg==}
     engines: {node: '>=18'}
 
+  long@5.3.2:
+    resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
+
   loupe@2.3.7:
     resolution: {integrity: sha512-zSMINGVYkdpYSOBmLi0D1Uo7JU9nVdQKrHxC8eYlV+9YKK9WePqAlL7lSlorG/U2Fw1w0hTBmaa/jrQ3UbPHtA==}
 
@@ -4958,6 +4990,10 @@ packages:
   lru-cache@7.18.3:
     resolution: {integrity: sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==}
     engines: {node: '>=12'}
+
+  lru.min@1.1.5:
+    resolution: {integrity: sha512-5J9ysMYUpYIg9RF2vJpy9SinEmSviFSe0GyPpCQ4L5QSkLAgeLXlTAOu2ZwWUU5m+0SBl6gUU1R1ZQB3aKypfA==}
+    engines: {bun: '>=1.0.0', deno: '>=1.30.0', node: '>=8.0.0'}
 
   macos-release@3.4.0:
     resolution: {integrity: sha512-wpGPwyg/xrSp4H4Db4xYSeAr6+cFQGHfspHzDUdYxswDnUW0L5Ov63UuJiSr8NMSpyaChO4u1n0MXUvVPtrN6A==}
@@ -5186,6 +5222,16 @@ packages:
   mylas@2.1.14:
     resolution: {integrity: sha512-BzQguy9W9NJgoVn2mRWzbFrFWWztGCcng2QI9+41frfk+Athwgx3qhqhvStz7ExeUUu7Kzw427sNzHpEZNINog==}
     engines: {node: '>=16.0.0'}
+
+  mysql2@3.24.6:
+    resolution: {integrity: sha512-enu73KhbAua2L3dIxjc6qg6ZJ7H3pt1BImZASWNWY5xSsmJ1ZuUPULTDGXgmJbI61vb+nJAG19IZclIq19UidQ==}
+    engines: {node: '>= 8.0'}
+    peerDependencies:
+      '@types/node': '>= 8'
+
+  named-placeholders@1.1.6:
+    resolution: {integrity: sha512-Tz09sEL2EEuv5fFowm419c1+a/jSMiBjI9gHxVLrVdbUkkNUUfjsVYs9pVZu5oCon/kmRh9TfLEObFtkVxmY0w==}
+    engines: {node: '>=8.0.0'}
 
   nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
@@ -5439,6 +5485,40 @@ packages:
   perfect-debounce@2.1.0:
     resolution: {integrity: sha512-LjgdTytVFXeUgtHZr9WYViYSM/g8MkcTPYDlPa3cDqMirHjKiSZPYd6DoL7pK8AJQr+uWkQvCjHNdiMqsrJs+g==}
 
+  pg-cloudflare@1.4.1:
+    resolution: {integrity: sha512-6PQbsFWZcp9EmJEwy5cGQ2La+AMWpP46lgbb8X+U/XsHIUweYDNCpeuKck5RxL2MdVFi7krbbEi5nX4Zh7JhrQ==}
+
+  pg-connection-string@2.14.1:
+    resolution: {integrity: sha512-qR3kGNPBLpCNtz0evbKA0Y/MRFXwSSdT+pTJvYp/bXTcReZbvX1kzF0IyTc1QnxqF7AZbOeBhNL8R5mYQZV/MA==}
+
+  pg-int8@1.0.1:
+    resolution: {integrity: sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==}
+    engines: {node: '>=4.0.0'}
+
+  pg-pool@3.14.0:
+    resolution: {integrity: sha512-gKtPkFdQPU3DksooVLi9LsjZxrsBUZIpa+7aVx+LV5pNh0KzP4Zleud2po+ConrxbuXGBJ6Hfer6hdgpIBpBaw==}
+    peerDependencies:
+      pg: '>=8.0'
+
+  pg-protocol@1.16.1:
+    resolution: {integrity: sha512-p9VOFMiHB/ZbJATetbg+99PxssTVSQRnyuPSQ67mN1+1KBOjZaZ83ZQzltnxPhJwSsC3nwVjJ10DVJlerbFzLg==}
+
+  pg-types@2.2.0:
+    resolution: {integrity: sha512-qTAAlrEsl8s4OiEQY69wDvcMIdQN6wdz5ojQiOy6YRMuynxenON0O5oCpJI6lshc6scgAY8qvJ2On/p+CXY0GA==}
+    engines: {node: '>=4'}
+
+  pg@8.23.1:
+    resolution: {integrity: sha512-aL96AHANtWjPLDOLqnhx+ngp9+UK7ETEU8VJrDCGvsSSi/mGLcWYsS6Herg7lmaBJe4uwrfqsa7gTEFaSizDoQ==}
+    engines: {node: '>= 16.0.0'}
+    peerDependencies:
+      pg-native: '>=3.0.1'
+    peerDependenciesMeta:
+      pg-native:
+        optional: true
+
+  pgpass@1.0.5:
+    resolution: {integrity: sha512-FdW9r/jQZhSeohs1Z3sI1yxFQNFvMcnmfuj4WBMUTxOrAyLMaTcE1aAMBiTlbMNaXvBCQuVi0R7hd8udDSP7ug==}
+
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -5500,6 +5580,22 @@ packages:
   postcss@8.5.6:
     resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
     engines: {node: ^10 || ^12 || >=14}
+
+  postgres-array@2.0.0:
+    resolution: {integrity: sha512-VpZrUqU5A69eQyW2c5CA1jtLecCsN2U/bD6VilrFDWq5+5UIEVO7nazS3TEcHf1zuPYO/sqGvUvW62g86RXZuA==}
+    engines: {node: '>=4'}
+
+  postgres-bytea@1.0.1:
+    resolution: {integrity: sha512-5+5HqXnsZPE65IJZSMkZtURARZelel2oXUEO8rH83VS/hxH5vv1uHquPg5wZs8yMAfdv971IU+kcPUczi7NVBQ==}
+    engines: {node: '>=0.10.0'}
+
+  postgres-date@1.0.7:
+    resolution: {integrity: sha512-suDmjLVQg78nMK2UZ454hAG+OAW+HQPZ6n++TNDUX+L0+uUlLywnoxJKDou51Zm+zTCjrCl0Nq6J9C5hP9vK/Q==}
+    engines: {node: '>=0.10.0'}
+
+  postgres-interval@1.2.0:
+    resolution: {integrity: sha512-9ZhXKM/rw350N1ovuWHbGxnGh/SNJ4cnxHiM0rxE4VN41wsg8P8zWn9hv/buK00RP4WvlOyr/RBDiptyxVbkZQ==}
+    engines: {node: '>=0.10.0'}
 
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
@@ -5780,6 +5876,10 @@ packages:
     resolution: {integrity: sha512-oMA2dcrw6u0YfxJQXm342bFKX/E4sG9rbTzO9ptUcR/e8A33cHuvStiYOwH7fszkZlZ1z/ta9AAoPk2F4qIOHA==}
     engines: {node: '>=18'}
 
+  rethinkdb-ts@2.7.0:
+    resolution: {integrity: sha512-dKgkAppl/L8HX7h12rrs+cqT/uH8Cgq/tyyNEq6a8Sr9JCUpQYOpWPX8WAx6iAwJJbwBp79IpgHzpo/8MP0pdg==}
+    engines: {node: '>=18.x <=22.x'}
+
   retry@0.12.0:
     resolution: {integrity: sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==}
     engines: {node: '>= 4'}
@@ -5940,6 +6040,14 @@ packages:
 
   sparse-bitfield@3.0.3:
     resolution: {integrity: sha512-kvzhi7vqKTfkh0PZU+2D2PIllw2ymqJKujUcyPMd9Y75Nv4nPbGJZXNhxsgdQab2BmlDct1YnfQCguEvHr7VsQ==}
+
+  split2@4.2.0:
+    resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
+    engines: {node: '>= 10.x'}
+
+  sql-escaper@1.5.2:
+    resolution: {integrity: sha512-6CKD38c31SENivxOADeMNLdukOnUxUcflKtzVWzace7Riv1v7cAEym5Cx9Q7gYZ3ezIJI7ZpqecQq8cqNeSSFg==}
+    engines: {bun: '>=1.0.0', deno: '>=2.0.0', node: '>=12.0.0'}
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -7891,13 +7999,13 @@ snapshots:
       - rolldown
       - unplugin
 
-  '@nuxt/fonts@0.14.0(db0@0.3.4)(esbuild@0.27.7)(ioredis@5.11.0)(magic-string@0.30.21)(oxc-parser@0.147.0)(rollup@4.52.5)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1))':
+  '@nuxt/fonts@0.14.0(db0@0.3.4(mysql2@3.24.6(@types/node@26.6.5)))(esbuild@0.27.7)(ioredis@5.11.0)(magic-string@0.30.21)(oxc-parser@0.147.0)(rollup@4.52.5)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1))':
     dependencies:
       '@nuxt/devtools-kit': 3.4.1(magic-string@0.30.21)(oxc-parser@0.147.0)(unplugin@3.3.0(esbuild@0.27.7)(rollup@4.52.5)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1)))(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1))
       '@nuxt/kit': 4.5.2(magic-string@0.30.21)(oxc-parser@0.147.0)(unplugin@3.3.0(esbuild@0.27.7)(rollup@4.52.5)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1)))
       consola: 3.4.2
       defu: 6.1.7
-      fontless: 0.2.1(db0@0.3.4)(ioredis@5.11.0)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1))
+      fontless: 0.2.1(db0@0.3.4(mysql2@3.24.6(@types/node@26.6.5)))(ioredis@5.11.0)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1))
       h3: 1.15.11
       magic-regexp: 0.10.0
       ofetch: 1.5.1
@@ -7907,7 +8015,7 @@ snapshots:
       ufo: 1.6.4
       unifont: 0.7.5
       unplugin: 3.3.0(esbuild@0.27.7)(rollup@4.52.5)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1))
-      unstorage: 1.17.5(db0@0.3.4)(ioredis@5.11.0)
+      unstorage: 1.17.5(db0@0.3.4(mysql2@3.24.6(@types/node@26.6.5)))(ioredis@5.11.0)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -8005,11 +8113,11 @@ snapshots:
       pkg-types: 2.3.1
       std-env: 4.2.0
 
-  '@nuxt/ui@4.10.0(eeb6b253fda7dae167ddf549ea86f05c)':
+  '@nuxt/ui@4.10.0(b7baba20b6dce22014989298c09e24ef)':
     dependencies:
       '@floating-ui/dom': 1.8.0
       '@iconify/vue': 5.0.1(vue@3.5.25(typescript@5.9.3))
-      '@nuxt/fonts': 0.14.0(db0@0.3.4)(esbuild@0.27.7)(ioredis@5.11.0)(magic-string@0.30.21)(oxc-parser@0.147.0)(rollup@4.52.5)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1))
+      '@nuxt/fonts': 0.14.0(db0@0.3.4(mysql2@3.24.6(@types/node@26.6.5)))(esbuild@0.27.7)(ioredis@5.11.0)(magic-string@0.30.21)(oxc-parser@0.147.0)(rollup@4.52.5)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1))
       '@nuxt/icon': 2.5.0(magic-string@0.30.21)(oxc-parser@0.147.0)(unplugin@3.3.0(esbuild@0.27.7)(rollup@4.52.5)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1)))(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1))(vue@3.5.25(typescript@5.9.3))
       '@nuxt/kit': 4.5.2(magic-string@0.30.21)(oxc-parser@0.147.0)(unplugin@3.3.0(esbuild@0.27.7)(rollup@4.52.5)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1)))
       '@nuxt/schema': 4.5.2
@@ -8981,6 +9089,12 @@ snapshots:
     dependencies:
       parse-path: 7.1.0
 
+  '@types/pg@8.23.1':
+    dependencies:
+      '@types/node': 24.19.2
+      pg-protocol: 1.16.1
+      pg-types: 2.2.0
+
   '@types/proper-lockfile@4.1.4':
     dependencies:
       '@types/retry': 0.12.5
@@ -9490,6 +9604,8 @@ snapshots:
 
   asynckit@0.4.0: {}
 
+  aws-ssl-profiles@1.1.2: {}
+
   axios@1.18.0:
     dependencies:
       follow-redirects: 1.16.0(debug@4.4.3)
@@ -9909,7 +10025,9 @@ snapshots:
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  db0@0.3.4:
+  db0@0.3.4(mysql2@3.24.6(@types/node@26.6.5)):
+    optionalDependencies:
+      mysql2: 3.24.6(@types/node@26.6.5)
     optional: true
 
   debug@4.4.3(supports-color@8.1.1):
@@ -10405,7 +10523,7 @@ snapshots:
     dependencies:
       tiny-inflate: 1.0.3
 
-  fontless@0.2.1(db0@0.3.4)(ioredis@5.11.0)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1)):
+  fontless@0.2.1(db0@0.3.4(mysql2@3.24.6(@types/node@26.6.5)))(ioredis@5.11.0)(vite@7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1)):
     dependencies:
       consola: 3.4.2
       css-tree: 3.2.1
@@ -10419,7 +10537,7 @@ snapshots:
       pathe: 2.0.3
       ufo: 1.6.4
       unifont: 0.7.5
-      unstorage: 1.17.5(db0@0.3.4)(ioredis@5.11.0)
+      unstorage: 1.17.5(db0@0.3.4(mysql2@3.24.6(@types/node@26.6.5)))(ioredis@5.11.0)
     optionalDependencies:
       vite: 7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1)
     transitivePeerDependencies:
@@ -10481,6 +10599,10 @@ snapshots:
   function-bind@1.1.2: {}
 
   fuse.js@7.5.0: {}
+
+  generate-function@2.3.1:
+    dependencies:
+      is-property: 1.0.2
 
   get-caller-file@2.0.5: {}
 
@@ -10681,6 +10803,10 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
+  iconv-lite@0.7.3:
+    dependencies:
+      safer-buffer: 2.1.2
+
   ieee754@1.2.1: {}
 
   ignore@5.3.2: {}
@@ -10807,6 +10933,8 @@ snapshots:
   is-path-inside@4.0.0: {}
 
   is-potential-custom-element-name@1.0.1: {}
+
+  is-property@1.0.2: {}
 
   is-ssh@1.4.1:
     dependencies:
@@ -11184,6 +11312,8 @@ snapshots:
       is-unicode-supported: 2.1.0
       yoctocolors: 2.1.2
 
+  long@5.3.2: {}
+
   loupe@2.3.7:
     dependencies:
       get-func-name: 2.0.2
@@ -11201,6 +11331,8 @@ snapshots:
   lru-cache@11.5.3: {}
 
   lru-cache@7.18.3: {}
+
+  lru.min@1.1.5: {}
 
   macos-release@3.4.0: {}
 
@@ -11447,6 +11579,21 @@ snapshots:
   mute-stream@2.0.0: {}
 
   mylas@2.1.14: {}
+
+  mysql2@3.24.6(@types/node@26.6.5):
+    dependencies:
+      '@types/node': 26.6.5
+      aws-ssl-profiles: 1.1.2
+      generate-function: 2.3.1
+      iconv-lite: 0.7.3
+      long: 5.3.2
+      lru.min: 1.1.5
+      named-placeholders: 1.1.6
+      sql-escaper: 1.5.2
+
+  named-placeholders@1.1.6:
+    dependencies:
+      lru.min: 1.1.5
 
   nanoid@3.3.11: {}
 
@@ -11774,6 +11921,41 @@ snapshots:
 
   perfect-debounce@2.1.0: {}
 
+  pg-cloudflare@1.4.1:
+    optional: true
+
+  pg-connection-string@2.14.1: {}
+
+  pg-int8@1.0.1: {}
+
+  pg-pool@3.14.0(pg@8.23.1):
+    dependencies:
+      pg: 8.23.1
+
+  pg-protocol@1.16.1: {}
+
+  pg-types@2.2.0:
+    dependencies:
+      pg-int8: 1.0.1
+      postgres-array: 2.0.0
+      postgres-bytea: 1.0.1
+      postgres-date: 1.0.7
+      postgres-interval: 1.2.0
+
+  pg@8.23.1:
+    dependencies:
+      pg-connection-string: 2.14.1
+      pg-pool: 3.14.0(pg@8.23.1)
+      pg-protocol: 1.16.1
+      pg-types: 2.2.0
+      pgpass: 1.0.5
+    optionalDependencies:
+      pg-cloudflare: 1.4.1
+
+  pgpass@1.0.5:
+    dependencies:
+      split2: 4.2.0
+
   picocolors@1.1.1: {}
 
   picomatch@2.3.2: {}
@@ -11833,6 +12015,16 @@ snapshots:
       nanoid: 3.3.11
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  postgres-array@2.0.0: {}
+
+  postgres-bytea@1.0.1: {}
+
+  postgres-date@1.0.7: {}
+
+  postgres-interval@1.2.0:
+    dependencies:
+      xtend: 4.0.2
 
   prelude-ls@1.2.1: {}
 
@@ -12189,6 +12381,8 @@ snapshots:
       onetime: 7.0.0
       signal-exit: 4.1.0
 
+  rethinkdb-ts@2.7.0: {}
+
   retry@0.12.0: {}
 
   retry@0.13.1: {}
@@ -12367,6 +12561,10 @@ snapshots:
   sparse-bitfield@3.0.3:
     dependencies:
       memory-pager: 1.5.0
+
+  split2@4.2.0: {}
+
+  sql-escaper@1.5.2: {}
 
   stackback@0.0.2: {}
 
@@ -12831,7 +13029,7 @@ snapshots:
       rollup: 4.52.5
       vite: 7.2.4(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.71.1)(terser@5.44.0)(tsx@4.20.6)(yaml@2.9.1)
 
-  unstorage@1.17.5(db0@0.3.4)(ioredis@5.11.0):
+  unstorage@1.17.5(db0@0.3.4(mysql2@3.24.6(@types/node@26.6.5)))(ioredis@5.11.0):
     dependencies:
       anymatch: 3.1.3
       chokidar: 5.0.0
@@ -12842,7 +13040,7 @@ snapshots:
       ofetch: 1.5.1
       ufo: 1.6.4
     optionalDependencies:
-      db0: 0.3.4
+      db0: 0.3.4(mysql2@3.24.6(@types/node@26.6.5))
       ioredis: 5.11.0
 
   untyped@2.0.0:

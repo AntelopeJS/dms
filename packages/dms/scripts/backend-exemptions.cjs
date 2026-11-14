@@ -19,9 +19,9 @@ const builtinExemptions = {
     'import Module, { findPackageJSON } from "node:module";',
 };
 const requireResolveExemptions = {
-  "src/implementations/dms-builder/engine/module-loader.ts:24":
+  "src/implementations/dms-builder/engine/module-loader.ts:29":
     "  return require.resolve(specifier);",
-  "dist/implementations/dms-builder/engine/module-loader.js:18":
+  "dist/implementations/dms-builder/engine/module-loader.js:22":
     "    return require.resolve(specifier);",
   "src/store/compatibility.ts:56":
     "  const entryFolder = path.dirname(require.resolve(INTERFACE_ENTRY));",
@@ -41,14 +41,14 @@ const loaderExemptions = {
   "src/implementations/dms-builder/engine/module-loader.ts:12":
     "  const loaded: unknown = require(specifier);",
   "src/implementations/dms-builder/engine/module-loader.ts:18":
-    "  const loaded: unknown = createRequire(file)(specifier);",
-  "src/implementations/dms-builder/engine/module-loader.ts:29":
+    "  return createRequire(file);",
+  "src/implementations/dms-builder/engine/module-loader.ts:34":
     "  return Object.entries(require.cache).map(([file, entry]) => {",
-  "dist/implementations/dms-builder/engine/module-loader.js:10":
+  "dist/implementations/dms-builder/engine/module-loader.js:11":
     "    const loaded = require(specifier);",
-  "dist/implementations/dms-builder/engine/module-loader.js:14":
-    "    const loaded = (0, node_module_1.createRequire)(file)(specifier);",
-  "dist/implementations/dms-builder/engine/module-loader.js:21":
+  "dist/implementations/dms-builder/engine/module-loader.js:15":
+    "    return (0, node_module_1.createRequire)(file);",
+  "dist/implementations/dms-builder/engine/module-loader.js:25":
     "    return Object.entries(require.cache).map(([file, entry]) => {",
   "src/test/unit/builder/helpers/module-cache.ts:8":
     "  Object.assign(require.cache, { [file]: { exports } });",

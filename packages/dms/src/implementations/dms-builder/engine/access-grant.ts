@@ -8,6 +8,7 @@ import { readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import { Node, type ObjectLiteralExpression } from "ts-morph";
 import { z } from "zod";
+import { hasUnreadableMember } from "./literal-overrides";
 import { findConfigFile, propertyKey } from "./modules";
 import { resolveProjectRoot } from "./project";
 import {
@@ -47,7 +48,10 @@ function readDraft(): ConfigDraft | undefined {
   }
 }
 
-/** The object literal at `path`: absent, or unreadable when it is not a plain literal. */
+/**
+ * The object literal at `path`: absent, or unreadable when it, or an object along the way, is not
+ * a plain literal or holds a member under a name the builder cannot read, which may be the key.
+ */
 function literalAt(
   draft: ConfigDraft | undefined,
   path: string[],
@@ -56,6 +60,12 @@ function literalAt(
     return UNREADABLE;
   }
   try {
+    for (const depth of path.keys()) {
+      const along = objectAt(draft, path.slice(0, depth));
+      if (along && hasUnreadableMember(along)) {
+        return UNREADABLE;
+      }
+    }
     return objectAt(draft, path);
   } catch {
     return UNREADABLE;

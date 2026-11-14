@@ -1,3 +1,4 @@
+import { ownModuleId } from "./own-connections";
 import { randomUUID } from "node:crypto";
 import type {
   RelationDescription,
@@ -244,7 +245,7 @@ export function startAnalysis(
   const catalog = catalogOf(input.connection);
   if (!catalog) {
     return invalidConfig<AnalysisState>(
-      `dms-builder has no catalog connection "${input.connection}"; declare one in its importOverrides`,
+      `${ownModuleId()} has no catalog connection "${input.connection}"; declare one in its importOverrides`,
     );
   }
   const module = targetModule(input.module);

@@ -1,30 +1,28 @@
 import fs from "node:fs";
 import type {
   ConfigValue,
-  CreateLocalModuleStep,
   ImportOverrideInput,
-  ModuleEntryInput,
 } from "@antelopejs/interface-dms-builder";
 import {
   type ArrayLiteralExpression,
   Node,
+  type ObjectLiteralElementLike,
   type ObjectLiteralExpression,
   Project,
   type PropertyAssignment,
   type SourceFile,
   SyntaxKind,
 } from "ts-morph";
-import { VARIABLE_NAME } from "./env-lines";
-import { hides, overridesWrittenAsLiterals } from "./literal-overrides";
+import { hasUnreadableMember, shorthandNamed } from "./literal-overrides";
 import { configObject, propertyKey } from "./modules";
 import { indentationText, resolveProjectRoot } from "./project";
 import { keyText, literalText } from "./project-config-text";
-import { type Scaffold, scaffoldLocalModule } from "./project-scaffold";
+import type { Scaffold } from "./project-scaffold";
+import { isPlainObject } from "./value";
 
 export const ENV_OVERRIDES = "envOverrides";
 export const MODULES = "modules";
 export const IMPORT_OVERRIDES = "importOverrides";
-const DISABLED_EXPORTS = "disabledExports";
 
 /**
  * The configuration being edited, in memory until every step has been accepted. Edits are text
@@ -76,11 +74,24 @@ export function propertyNamed(
  * key written twice, since an edit of either copy may not be the one that takes effect, and one
  * written as a shorthand, a method or an accessor.
  */
-function soleProperty(
+export function soleProperty(
   owner: ObjectLiteralExpression,
   name: string,
   where: string,
 ): PropertyAssignment | undefined {
+  const property = soleMember(owner, name, where);
+  if (property !== undefined && !Node.isPropertyAssignment(property)) {
+    refuse(`"${where}" in the configuration is not written as \`key: value\``);
+  }
+  return property;
+}
+
+/** The one member of the object named `name`, whatever its form, refusing a key written twice. */
+function soleMember(
+  owner: ObjectLiteralExpression,
+  name: string,
+  where: string,
+): ObjectLiteralElementLike | undefined {
   const copies = owner.getProperties().filter((property) => {
     const nameNode = Node.isSpreadAssignment(property)
       ? undefined
@@ -92,41 +103,26 @@ function soleProperty(
       `"${where}" is written ${copies.length} times in the configuration; keep one`,
     );
   }
-  const [property] = copies;
-  if (property !== undefined && !Node.isPropertyAssignment(property)) {
-    refuse(`"${where}" in the configuration is not written as \`key: value\``);
-  }
-  return property;
+  return copies[0];
 }
 
-function hasComputedKey(owner: ObjectLiteralExpression): boolean {
-  return owner
-    .getProperties()
-    .some(
-      (property) =>
-        !Node.isSpreadAssignment(property) &&
-        Node.isComputedPropertyName(property.getNameNode()),
-    );
-}
-
+/** The object literal `node`, written at `key` of the object at `path`, refused when it has a spread. */
 function plainObject(
   node: Node | undefined,
-  name: string,
+  path: string[],
+  key: string,
 ): ObjectLiteralExpression {
   if (
     !Node.isObjectLiteralExpression(node) ||
     node.getProperties().some(Node.isSpreadAssignment)
   ) {
-    refuse(`"${name}" in the configuration is not a plain object literal`);
-  }
-  if (hasComputedKey(node)) {
-    refuse(`"${name}" in the configuration has a computed key`);
+    refuseUnreadable(path, key);
   }
   return node;
 }
 
 function rootObject(draft: ConfigDraft): ObjectLiteralExpression {
-  return plainObject(configObject(draft.file), "export default");
+  return plainObject(configObject(draft.file), [], "export default");
 }
 
 /** The object literal at `path` from the configuration's root, or nothing when a key is absent. */
@@ -137,11 +133,14 @@ export function objectAt(
   let current = rootObject(draft);
   for (const [index, key] of path.entries()) {
     const where = path.slice(0, index + 1).join(".");
-    const property = soleProperty(current, key, where);
-    if (!property) {
+    const member = soleMember(current, key, where);
+    if (!member) {
       return undefined;
     }
-    current = plainObject(property.getInitializer(), where);
+    if (!Node.isPropertyAssignment(member)) {
+      refuseUnreadable(path.slice(0, index), key);
+    }
+    current = plainObject(member.getInitializer(), path.slice(0, index), key);
   }
   return current;
 }
@@ -285,7 +284,12 @@ function addProperty(
   );
 }
 
-/** Sets `key` on the object at `path`, replacing its value when present. */
+/**
+ * Sets `key` on the object at `path`, replacing its value when present. A shorthand member of that
+ * name is replaced by an assignment, unless the value is an object: the shorthand's value is a
+ * variable the builder cannot read. An object holding a member under a name the builder cannot
+ * read, a computed name, a method or an accessor, may hold `key` there, so it is refused.
+ */
 export function setProperty(
   draft: ConfigDraft,
   path: string[],
@@ -294,8 +298,23 @@ export function setProperty(
 ): void {
   const owner =
     objectAt(draft, path) ?? refuse(`could not find ${path.join(".")}`);
-  const existing = soleProperty(owner, key, [...path, key].join("."));
+  const shorthand = shorthandNamed(owner, key);
+  if (hasUnreadableMember(owner) || (shorthand && isPlainObject(value))) {
+    refuseUnreadable(path, key);
+  }
+  soleMember(owner, key, [...path, key].join("."));
   const literal = literalText(value, draft.unit);
+  if (shorthand) {
+    const text = rebased(literal, lineIndent(draft, shorthand));
+    replace(
+      draft,
+      shorthand.getStart(),
+      shorthand.getEnd(),
+      `${keyText(key)}: ${text}`,
+    );
+    return;
+  }
+  const existing = propertyNamed(owner, key);
   if (!existing) {
     addProperty(draft, path, key, literal);
     return;
@@ -305,12 +324,6 @@ export function setProperty(
   replace(draft, initializer.getStart(), initializer.getEnd(), text);
 }
 
-function ensureObject(draft: ConfigDraft, path: string[]): void {
-  if (!objectAt(draft, path)) {
-    setProperty(draft, path.slice(0, -1), path[path.length - 1], {});
-  }
-}
-
 export function stringOf(node: Node | undefined): string | undefined {
   return Node.isStringLiteral(node) ||
     Node.isNoSubstitutionTemplateLiteral(node)
@@ -318,51 +331,22 @@ export function stringOf(node: Node | undefined): string | undefined {
     : undefined;
 }
 
-function mergeValues(
-  draft: ConfigDraft,
-  path: string[],
-  values: ModuleEntryInput["config" | "exportPriority"],
-): void {
-  if (!values || Object.keys(values).length === 0) {
-    return;
+/** Where `key` of the object at `path` sits: by its key path in a module's entry, else from the root. */
+function locate(path: string[], key: string): string {
+  const [head, module, ...inside] = path;
+  if (head !== MODULES) {
+    return `"${[...path, key].join(".")}" in the configuration`;
   }
-  ensureObject(draft, path);
-  for (const [key, value] of Object.entries(values)) {
-    setProperty(draft, path, key, value);
-  }
+  return module === undefined
+    ? `module "${key}"`
+    : `${[...inside, key].join(".")} of module "${module}"`;
 }
 
-/** Names each variable in `envOverrides`, refusing one that already supplies another path. */
-function bindVariables(
-  draft: ConfigDraft,
-  id: string,
-  env: Record<string, string> | undefined,
-): void {
-  if (!env || Object.keys(env).length === 0) {
-    return;
-  }
-  ensureObject(draft, [ENV_OVERRIDES]);
-  for (const [configPath, variable] of Object.entries(env)) {
-    if (!VARIABLE_NAME.test(variable)) {
-      refuse(`${variable} is not a variable name`);
-    }
-    const target = `${MODULES}.${id}.config.${configPath}`;
-    const overrides =
-      objectAt(draft, [ENV_OVERRIDES]) ??
-      refuse("could not write envOverrides");
-    const current = soleProperty(
-      overrides,
-      variable,
-      `${ENV_OVERRIDES}.${variable}`,
-    )?.getInitializer();
-    if (current !== undefined && stringOf(current) !== target) {
-      refuse(
-        `${variable} already supplies ${stringOf(current) ?? current.getText()}; choose another variable for ${target}`,
-      );
-    }
-    setProperty(draft, [ENV_OVERRIDES], variable, target);
-    draft.variables.push(variable);
-  }
+/** Refuses a write to `key` of the object at `path`, held where the builder cannot read what it would replace. */
+export function refuseUnreadable(path: string[], key: string): never {
+  return refuse(
+    `${locate(path, key)} is held in a way the builder cannot read (a variable, a spread, a computed name, a method or an accessor), so writing it again would lose a part: write it as a plain object literal with plain names there, then try again`,
+  );
 }
 
 /** The overrides a module already declares, from either spelling `importOverrides` takes. */
@@ -384,7 +368,7 @@ export function existingOverrides(
 }
 
 export function overrideOf(element: Node): ImportOverrideInput {
-  const entry = plainObject(element, IMPORT_OVERRIDES);
+  const entry = plainObject(element, [], IMPORT_OVERRIDES);
   return {
     interface:
       stringOf(propertyNamed(entry, "interface")?.getInitializer()) ?? "",
@@ -397,148 +381,4 @@ function overridesOfArray(
   array: ArrayLiteralExpression,
 ): ImportOverrideInput[] {
   return array.getElements().map(overrideOf);
-}
-
-function describeBinding(entry: ImportOverrideInput): string {
-  return entry.id ? `${entry.interface} (${entry.id})` : entry.interface;
-}
-
-/** The overrides after adding `added`, refusing a pin or connection that contradicts one. */
-function mergedOverrides(
-  module: string,
-  current: ImportOverrideInput[],
-  added: ImportOverrideInput[],
-): ImportOverrideInput[] {
-  const merged = [...current];
-  for (const entry of added) {
-    const existing = merged.find(
-      (candidate) =>
-        candidate.interface === entry.interface && candidate.id === entry.id,
-    );
-    if (existing && existing.source !== entry.source) {
-      refuse(
-        `module "${module}" already binds ${describeBinding(entry)} to "${existing.source}", not "${entry.source}"`,
-      );
-    }
-    if (!existing) {
-      merged.push(entry);
-    }
-  }
-  return merged;
-}
-
-/** The pins-only spelling when nothing needs more, the array spelling otherwise. */
-function overridesValue(entries: ImportOverrideInput[]): ConfigValue {
-  if (
-    entries.every(
-      (entry) => entry.id === undefined && entry.source !== undefined,
-    )
-  ) {
-    return Object.fromEntries(
-      entries.map((entry) => [entry.interface, entry.source]),
-    );
-  }
-  return entries.map((entry) => ({
-    interface: entry.interface,
-    source: entry.source,
-    id: entry.id,
-  }));
-}
-
-function mergeOverrides(
-  draft: ConfigDraft,
-  id: string,
-  added: ImportOverrideInput[],
-): void {
-  if (added.length === 0) {
-    return;
-  }
-  const entry =
-    objectAt(draft, [MODULES, id]) ??
-    refuse(`the project has no module "${id}"`);
-  const written = propertyNamed(entry, IMPORT_OVERRIDES)?.getInitializer();
-  if (hides(entry, IMPORT_OVERRIDES) || !overridesWrittenAsLiterals(written)) {
-    refuse(
-      `the importOverrides of module "${id}" are not written with literals only, and writing them again would lose a part: add ${added.map(describeBinding).join(", ")} there by hand`,
-    );
-  }
-  const current = existingOverrides(written);
-  const merged = mergedOverrides(id, current, added);
-  setProperty(draft, [MODULES, id], IMPORT_OVERRIDES, overridesValue(merged));
-}
-
-function existingStrings(initializer: Node, id: string): string[] {
-  const elements = Node.isArrayLiteralExpression(initializer)
-    ? initializer.getElements().map(stringOf)
-    : [undefined];
-  return elements.map(
-    (element) =>
-      element ??
-      refuse(
-        `"${DISABLED_EXPORTS}" of module "${id}" is not a list of plain strings: edit it by hand`,
-      ),
-  );
-}
-
-function mergeDisabledExports(
-  draft: ConfigDraft,
-  id: string,
-  added: string[],
-): void {
-  if (added.length === 0) {
-    return;
-  }
-  const entry =
-    objectAt(draft, [MODULES, id]) ??
-    refuse(`the project has no module "${id}"`);
-  const current = propertyNamed(entry, DISABLED_EXPORTS)?.getInitializer();
-  const existing = current ? existingStrings(current, id) : [];
-  setProperty(draft, [MODULES, id], DISABLED_EXPORTS, [
-    ...new Set([...existing, ...added]),
-  ]);
-}
-
-export function writeEntry(
-  draft: ConfigDraft,
-  id: string,
-  entry: ModuleEntryInput,
-): void {
-  if (!objectAt(draft, [MODULES, id])) {
-    refuse(`the project has no module "${id}"`);
-  }
-  if (entry.source) {
-    setProperty(draft, [MODULES, id], "source", entry.source);
-  }
-  mergeValues(draft, [MODULES, id, "config"], entry.config);
-  mergeOverrides(draft, id, entry.importOverrides ?? []);
-  mergeValues(draft, [MODULES, id, "exportPriority"], entry.exportPriority);
-  mergeDisabledExports(draft, id, entry.disabledExports ?? []);
-  bindVariables(draft, id, entry.env);
-}
-
-export function addModule(
-  draft: ConfigDraft,
-  id: string,
-  entry: ModuleEntryInput,
-): void {
-  const modules =
-    objectAt(draft, [MODULES]) ??
-    refuse("the configuration has no modules literal");
-  if (soleProperty(modules, id, `${MODULES}.${id}`)) {
-    refuse(`the project already has a module "${id}"`);
-  }
-  if (!entry.source) {
-    refuse(`module "${id}" needs a source`);
-  }
-  setProperty(draft, [MODULES], id, {});
-  writeEntry(draft, id, entry);
-}
-
-export function createLocalModule(
-  draft: ConfigDraft,
-  step: CreateLocalModuleStep,
-): void {
-  const scaffold = scaffoldLocalModule(step.id, step.path, step.connection);
-  draft.scaffolds.push(scaffold);
-  addModule(draft, step.id, { ...step.entry, source: scaffold.source });
 }

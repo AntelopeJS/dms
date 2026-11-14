@@ -1,11 +1,10 @@
 import type { ProjectConfigStep } from "@antelopejs/interface-dms-builder";
+import { type ConfigDraft, refuse } from "./project-config";
 import {
   addModule,
-  type ConfigDraft,
   createLocalModule,
-  refuse,
   writeEntry,
-} from "./project-config";
+} from "./project-config-entry";
 import { removeConnection, removeModule } from "./project-config-remove";
 
 /** Applies one step to the draft, or throws a `StepRefusal` saying why it cannot. */

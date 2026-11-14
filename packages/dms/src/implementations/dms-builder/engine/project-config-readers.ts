@@ -1,18 +1,36 @@
 import type { ImportOverrideInput } from "@antelopejs/interface-dms-builder";
 import { Node, type ObjectLiteralExpression } from "ts-morph";
 import { CATALOG_INTERFACE, DATABASE_INTERFACE } from "./interface-ids";
-import { hides } from "./literal-overrides";
-import { propertyKey } from "./modules";
+import { hides, isPlainObjectLiteral } from "./literal-overrides";
+import { findConfigFile, propertyKey } from "./modules";
 import {
   type ConfigDraft,
   existingOverrides,
   IMPORT_OVERRIDES,
   MODULES,
   objectAt,
+  openDraft,
   overrideOf,
   propertyNamed,
+  StepRefusal,
   stringOf,
 } from "./project-config";
+
+/** The configuration opened for reading; nothing when the project has none or it is not a literal. */
+export function readableConfig(): ConfigDraft | undefined {
+  const configPath = findConfigFile();
+  if (!configPath) {
+    return undefined;
+  }
+  try {
+    return openDraft(configPath);
+  } catch (error) {
+    if (error instanceof StepRefusal) {
+      return undefined;
+    }
+    throw error;
+  }
+}
 
 /** Every module of the configuration, by id, with its entry as written, whatever its form. */
 export function writtenModules(
@@ -142,14 +160,14 @@ export function moduleEntries(
   const entries: [string, ObjectLiteralExpression][] = [];
   const modules = objectAt(draft, [MODULES]);
   for (const property of modules?.getProperties() ?? []) {
-    if (!Node.isPropertyAssignment(property)) {
+    if (
+      !Node.isPropertyAssignment(property) ||
+      Node.isComputedPropertyName(property.getNameNode())
+    ) {
       continue;
     }
     const entry = property.getInitializer();
-    if (
-      Node.isObjectLiteralExpression(entry) &&
-      !entry.getProperties().some(Node.isSpreadAssignment)
-    ) {
+    if (isPlainObjectLiteral(entry)) {
       entries.push([propertyKey(property.getNameNode()), entry]);
     }
   }

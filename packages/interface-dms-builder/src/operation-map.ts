@@ -1,5 +1,20 @@
-import { AnalyseDatabase, GetAnalysis, GetMapping } from "./analysis";
+import {
+  AnalyseDatabase,
+  GetAnalysis,
+  GetLatestAnalysis,
+  GetMapping,
+} from "./analysis";
 import { ComposePage } from "./compose";
+import {
+  CheckDatabaseConnection,
+  GetDatabaseConnection,
+  GetDatabaseProject,
+  ListDatabaseConnections,
+  RemoveDatabaseConnection,
+  RepairDatabaseConnections,
+  SampleDatabaseRows,
+  SetDatabaseConnectionUrl,
+} from "./database";
 import { PreviewLayout, PreviewQuery, SetPageBlocks } from "./drafts";
 import { MapResources, PreviewMapResources } from "./mapping";
 import {
@@ -58,6 +73,7 @@ export const Operations = {
   AddModule,
   AddQuery,
   AnalyseDatabase,
+  CheckDatabaseConnection,
   ComposePage,
   ConfigureBlock,
   ConfigureCategory,
@@ -78,11 +94,15 @@ export const Operations = {
   DeleteResource,
   GetAnalysis,
   GetCatalog,
+  GetDatabaseConnection,
+  GetDatabaseProject,
+  GetLatestAnalysis,
   GetMapping,
   GetPageStructure,
   GetResourceStructure,
   GetTheme,
   ListCategories,
+  ListDatabaseConnections,
   ListDataSources,
   ListPages,
   ListQueryTemplates,
@@ -94,8 +114,12 @@ export const Operations = {
   PreviewQuery,
   RefreshSourceIndex,
   RemoveBlock,
+  RemoveDatabaseConnection,
   RemoveField,
   RemoveQuery,
+  RepairDatabaseConnections,
+  SampleDatabaseRows,
+  SetDatabaseConnectionUrl,
   SetPageBlocks,
   SetTheme,
 };

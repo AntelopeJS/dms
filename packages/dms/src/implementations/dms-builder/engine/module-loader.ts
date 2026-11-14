@@ -13,9 +13,14 @@ export function loadModule(specifier: string) {
   return isIndexable(loaded) ? loaded : {};
 }
 
+/** A `require` that resolves from the folder of `file` the way a module written there resolves it. */
+export function requireFrom(file: string): NodeJS.Require {
+  return createRequire(file);
+}
+
 /** The exports of `specifier`, resolved from the folder of `file` the way a module written there resolves it. */
 export function loadModuleFrom(file: string, specifier: string) {
-  const loaded: unknown = createRequire(file)(specifier);
+  const loaded: unknown = requireFrom(file)(specifier);
   return isIndexable(loaded) ? loaded : {};
 }
 

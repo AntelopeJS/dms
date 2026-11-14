@@ -1,3 +1,4 @@
+import { ownModuleId } from "./own-connections";
 import type {
   ColumnDescription,
   RelationDescription,
@@ -207,7 +208,7 @@ export async function mappedChoices(
   const catalog = catalogOf(connection);
   if (!catalog) {
     return invalidConfig<MappedRelation[]>(
-      `dms-builder has no catalog connection "${connection}"; declare one in its importOverrides`,
+      `${ownModuleId()} has no catalog connection "${connection}"; declare one in its importOverrides`,
     );
   }
   const records = [...mappedRecordsOf(module)].filter(

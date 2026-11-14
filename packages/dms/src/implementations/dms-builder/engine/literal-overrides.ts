@@ -1,15 +1,54 @@
-import { Node, type ObjectLiteralExpression } from "ts-morph";
+import {
+  Node,
+  type ObjectLiteralElementLike,
+  type ObjectLiteralExpression,
+  type ShorthandPropertyAssignment,
+} from "ts-morph";
 
-/** Whether an object literal may hold `key` where the builder cannot read it: in a spread, or as a shorthand. */
-export function hides(owner: ObjectLiteralExpression, key: string): boolean {
+/** Whether a member's name is not one the builder reads: a spread, a computed name, a method or an accessor. */
+function hidesItsName(member: ObjectLiteralElementLike): boolean {
+  return Node.isPropertyAssignment(member)
+    ? Node.isComputedPropertyName(member.getNameNode())
+    : !Node.isShorthandPropertyAssignment(member);
+}
+
+/** Whether an object literal has a member whose name the builder cannot read, which may be any key. */
+export function hasUnreadableMember(owner: ObjectLiteralExpression): boolean {
+  return owner.getProperties().some(hidesItsName);
+}
+
+/**
+ * The members of an object literal written after its last member with an unreadable name. A later
+ * key wins over an earlier one, so these alone decide what the object holds for the keys they name.
+ */
+export function readableTail(
+  owner: ObjectLiteralExpression,
+): ObjectLiteralElementLike[] {
+  const members = owner.getProperties();
+  return members.slice(members.findLastIndex(hidesItsName) + 1);
+}
+
+/** Whether `node` is an object literal whose every member the builder reads by its name, as written. */
+export function isPlainObjectLiteral(
+  node: Node | undefined,
+): node is ObjectLiteralExpression {
+  return Node.isObjectLiteralExpression(node) && !hasUnreadableMember(node);
+}
+
+/** The shorthand member of `owner` named `key`, whose value is a variable the builder cannot read. */
+export function shorthandNamed(
+  owner: ObjectLiteralExpression,
+  key: string,
+): ShorthandPropertyAssignment | undefined {
   return owner
     .getProperties()
-    .some(
-      (property) =>
-        Node.isSpreadAssignment(property) ||
-        (Node.isShorthandPropertyAssignment(property) &&
-          property.getName() === key),
-    );
+    .filter(Node.isShorthandPropertyAssignment)
+    .find((property) => property.getName() === key);
+}
+
+/** Whether an object literal may hold `key` where the builder cannot read it: under an unreadable name, or as a shorthand. */
+export function hides(owner: ObjectLiteralExpression, key: string): boolean {
+  return hasUnreadableMember(owner) || shorthandNamed(owner, key) !== undefined;
 }
 
 function isStringLiteral(node: Node | undefined): boolean {
