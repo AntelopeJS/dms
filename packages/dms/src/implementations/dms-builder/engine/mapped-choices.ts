@@ -207,7 +207,7 @@ export async function mappedChoices(
   const catalog = catalogOf(connection);
   if (!catalog) {
     return invalidConfig<MappedRelation[]>(
-      `dms-builder has no catalog connection "${connection}"; declare one in its importOverrides`,
+      `dms has no catalog connection "${connection}"; declare one in its importOverrides`,
     );
   }
   const records = [...mappedRecordsOf(module)].filter(

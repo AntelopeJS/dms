@@ -880,10 +880,6 @@
           "title": "Automation",
           "description": "Visual procedures built from triggers, actions and data nodes."
         },
-        "builder": {
-          "title": "Builder",
-          "description": "Edits the project’s pages, tables and forms, writing only code that compiles."
-        },
         "database": {
           "title": "Database",
           "description": "Schemas, data browser, schema diagram and an AQL query workspace."

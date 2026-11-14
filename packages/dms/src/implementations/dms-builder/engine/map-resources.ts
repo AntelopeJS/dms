@@ -455,7 +455,7 @@ async function withDescriptions<T>(
   const catalog = catalogOf(input.connection);
   if (!catalog) {
     return invalidConfig<T>(
-      `dms-builder has no catalog connection "${input.connection}"; declare one in its importOverrides`,
+      `dms has no catalog connection "${input.connection}"; declare one in its importOverrides`,
     );
   }
   const relations = describedRelations(input);

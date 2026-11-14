@@ -72,7 +72,7 @@ export class SubmitRecipePage extends PageController("submit-recipe", {
 | The `ajs dms` CLI, a frontend module's `dms.server.ts` / `dms.frontend.build.ts`, building and deploying the frontend server (ships with `@antelopejs/dms-frontend`) | **dms-frontend** |
 
 These skills ship in this package (`skills/`, declared via `antelopeJs.skills`). The **antelopejs**
-plugin links them into a project's `.claude/skills/`, and the dms-ai assistant loads them for every
+plugin links them into a project's `.claude/skills/`, and dms-assistant loads them for every
 loaded module.
 
 ## Docs & exact interface surfaces
