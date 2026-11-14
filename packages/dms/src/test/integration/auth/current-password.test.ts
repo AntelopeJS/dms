@@ -9,7 +9,7 @@ import {
   registerUser,
 } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
-import { captureEmails } from "../../helpers/emails";
+import { captureEmailsInSuite } from "../../helpers/emails";
 import { findUserByEmail } from "../../helpers/fixtures";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
@@ -72,7 +72,7 @@ describe("[integration] auth/current password re-check", function () {
     };
   };
 
-  before(captureEmails);
+  captureEmailsInSuite();
 
   beforeEach(async () => {
     await resetDatabase();

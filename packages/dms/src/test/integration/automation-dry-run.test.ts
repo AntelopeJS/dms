@@ -20,7 +20,11 @@ import {
 } from "../../automation";
 import { UserNotificationsModel } from "../../db";
 import { resetDatabase } from "../helpers/db";
-import { captureEmails, renderedEmails, sentEmails } from "../helpers/emails";
+import {
+  captureEmailsInSuite,
+  renderedEmails,
+  sentEmails,
+} from "../helpers/emails";
 
 const TEMPLATE = "automation-dry-run-test";
 const EMAIL = "dry-run@automation.test";
@@ -50,8 +54,9 @@ async function addMember(userId: string, roleIds: string[]) {
 }
 
 describe("Automation actions in a test run", () => {
+  captureEmailsInSuite();
+
   before(() => {
-    captureEmails();
     RegisterHtmlTemplate(TEMPLATE);
   });
 

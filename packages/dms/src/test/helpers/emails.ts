@@ -1,10 +1,13 @@
 import { ImplementInterface } from "@antelopejs/interface-core";
+import { ReloadModule } from "@antelopejs/interface-core/modules";
 import {
   GenerateHtml,
   type HtmlTemplateRef,
 } from "@antelopejs/interface-dms/html-render";
 import { Send } from "@antelopejs/interface-email";
+import { GenerateHtml as renderHtml } from "../../implementations/dms-html-render";
 
+const MAIL_TRANSPORT_MODULE = "nodemailer";
 const POLL_INTERVAL_MS = 20;
 const POLL_ATTEMPTS = 50;
 
@@ -25,17 +28,30 @@ export const sentEmails: Parameters<typeof Send>[0][] = [];
 /**
  * Set by a test to have every email fail before it leaves, as a mail outage
  * does; the test sets it back once done. The failure is raised where the
- * email is rendered: the DMS module's `Send` calls are routed to the
- * harness's nodemailer module, which a test cannot replace.
+ * email is rendered, while the suite captures its emails.
  */
 export const emailOutage = { isOn: false };
 
 /**
- * The harness has no render service, and the test mailbox needs the network:
- * emails are kept as the props they were rendered from, and every send
- * succeeds. Flows that await their email (two-factor codes) then answer.
+ * Captures the emails the enclosing suite renders and sends. The harness has
+ * no render service, and the test mailbox needs the network: emails are kept
+ * as the props they were rendered from, and every send succeeds. Flows that
+ * await their email (two-factor codes) then answer. Once the suite is done,
+ * the module's renderer and the harness's mail transport serve again.
  */
-export function captureEmails(): void {
+export function captureEmailsInSuite(): void {
+  before(captureEmails);
+  after(releaseEmails);
+}
+
+async function releaseEmails(): Promise<void> {
+  ImplementInterface({ GenerateHtml }, { GenerateHtml: renderHtml });
+  await ReloadModule(MAIL_TRANSPORT_MODULE);
+}
+
+function captureEmails(): void {
+  renderedEmails.length = 0;
+  sentEmails.length = 0;
   ImplementInterface(
     { GenerateHtml },
     {

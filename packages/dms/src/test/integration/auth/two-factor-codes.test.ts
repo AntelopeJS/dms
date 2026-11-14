@@ -18,7 +18,7 @@ import {
 } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import {
-  captureEmails,
+  captureEmailsInSuite,
   lastRenderedEmail,
   emailOutage,
   renderedEmails,
@@ -211,7 +211,7 @@ async function resetTwoFactorUser() {
 describe("[integration] auth/two-factor codes", function () {
   this.timeout(TEST_TIMEOUT_MS);
 
-  before(captureEmails);
+  captureEmailsInSuite();
 
   beforeEach(resetTwoFactorUser);
 
@@ -291,7 +291,7 @@ describe("[integration] auth/two-factor codes", function () {
 describe("[integration] auth/two-factor codes", function () {
   this.timeout(TEST_TIMEOUT_MS);
 
-  before(captureEmails);
+  captureEmailsInSuite();
 
   beforeEach(resetTwoFactorUser);
 
@@ -346,7 +346,7 @@ describe("[integration] auth/two-factor codes", function () {
 describe("[integration] auth/two-factor codes", function () {
   this.timeout(TEST_TIMEOUT_MS);
 
-  before(captureEmails);
+  captureEmailsInSuite();
 
   beforeEach(resetTwoFactorUser);
 
@@ -414,7 +414,7 @@ describe("[integration] auth/two-factor codes", function () {
 describe("[integration] auth/two-factor codes", function () {
   this.timeout(TEST_TIMEOUT_MS);
 
-  before(captureEmails);
+  captureEmailsInSuite();
 
   beforeEach(resetTwoFactorUser);
 
