@@ -47,6 +47,8 @@ export interface EditAsMockupOptions {
   replace?: boolean;
   /** Refuses a replace when the mockup's `spec.json` changed since this digest was read. */
   digest?: SpecDigest;
+  /** Reaches the page of this mockup converted from the live page, never another mockup. */
+  mockup?: MockupName;
 }
 
 type Opened = { mockup: MockupName; page: string; url: string };
@@ -174,22 +176,44 @@ async function slotFor(mockupsDir: string, ref: string): Promise<Slot> {
   for (let suffix = 1; suffix <= MAX_SUFFIX; suffix += 1) {
     const name = parseMockupName(suffix === 1 ? base : `${base}-${suffix}`);
     if (!name) continue;
-    const source = await readSpecSource(mockupsDir, name);
-    if (!source) return { kind: "free", name };
-    const linked = linkedPageOf(source.spec, ref);
-    if (linked) {
-      const spec = specSchema.safeParse(source.spec);
-      return {
-        kind: "linked",
-        name,
-        page: { id: linked.id, version: linked.version },
-        spec: spec.success ? spec.data : undefined,
-        index: linked.index,
-        digest: source.digest,
-      };
-    }
+    const slot = await linkedSlot(mockupsDir, name, ref);
+    if (slot) return slot;
   }
   throw new Error(`no mockup name is left for the page ${ref}`);
+}
+
+/** Mockup `name`: free when it does not exist, linked when a page of it was converted from `ref`. */
+async function linkedSlot(
+  mockupsDir: string,
+  name: MockupName,
+  ref: string,
+): Promise<Slot | undefined> {
+  const source = await readSpecSource(mockupsDir, name);
+  if (!source) return { kind: "free", name };
+  const linked = linkedPageOf(source.spec, ref);
+  if (!linked) return undefined;
+  const spec = specSchema.safeParse(source.spec);
+  return {
+    kind: "linked",
+    name,
+    page: { id: linked.id, version: linked.version },
+    spec: spec.success ? spec.data : undefined,
+    index: linked.index,
+    digest: source.digest,
+  };
+}
+
+/** The slot a conversion writes: the page of `options.mockup` linked to `ref`, else the page's own mockup. */
+async function targetSlot(
+  mockupsDir: string,
+  ref: string,
+  mockup: MockupName | undefined,
+): Promise<Slot | Failure> {
+  if (mockup === undefined) return slotFor(mockupsDir, ref);
+  const slot = await linkedSlot(mockupsDir, mockup, ref);
+  return slot?.kind === "linked"
+    ? slot
+    : failure("not_found", `the mockup ${mockup} has no page linked to ${ref}`);
 }
 
 /** The structure of each resource of `refs` the builder reads, by ref. */
@@ -293,7 +317,8 @@ async function convertLivePage(
 ): Promise<EditAsMockupAnswer> {
   const structure = await readStructure(target, pages);
   if ("ok" in structure) return structure;
-  const slot = await slotFor(mockupsDir, structure.page.ref);
+  const slot = await targetSlot(mockupsDir, structure.page.ref, options.mockup);
+  if ("ok" in slot) return slot;
   const pageId = slot.kind === "linked" ? slot.page.id : slot.name;
   const opened = {
     mockup: slot.name,

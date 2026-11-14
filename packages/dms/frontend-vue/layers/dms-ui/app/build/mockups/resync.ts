@@ -29,24 +29,26 @@ function parseAnswer(
 }
 
 /**
- * Brings the mockup of the page at `path` up to date with the page, and
- * answers the viewer URL of that mockup. The page's mockup is converted from
- * the page when it has none, and converted again over the one it has when the
- * page changed since.
+ * Converts the page at `path` again over its linked page of `mockup`, and
+ * answers the viewer URL of that page. Only that page of the mockup changes.
  */
 export async function resyncFromPage(
   fetch: Fetch,
+  mockup: string,
   path: string,
 ): Promise<string> {
   const opened = parseAnswer(
-    await fetch(FROM_PAGE_ENDPOINT, { method: "POST", body: { path } }),
+    await fetch(FROM_PAGE_ENDPOINT, {
+      method: "POST",
+      body: { path, mockup },
+    }),
   );
   if (!opened) throw new Error("Unexpected answer from the mockup API");
   if (!opened.stale || opened.digest === undefined) return opened.url;
   const replaced = parseAnswer(
     await fetch(FROM_PAGE_ENDPOINT, {
       method: "POST",
-      body: { path, replace: true, digest: opened.digest },
+      body: { path, mockup, replace: true, digest: opened.digest },
     }),
   );
   if (!replaced) throw new Error("Unexpected answer from the mockup API");

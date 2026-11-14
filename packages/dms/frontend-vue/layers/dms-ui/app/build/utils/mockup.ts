@@ -97,7 +97,9 @@ export const MOCKUP_SOURCES: readonly MockupSource[] = [
 export interface MockupBuiltPage {
   path: string;
   title: string;
-  /** Whether the page's source changed after the mockup was built. */
+  /** The mockup page linked to the live page, which an update from the page converts over. */
+  pageId?: string;
+  /** Whether the live page changed since its linked mockup page was converted or built. */
   changed: boolean;
 }
 
@@ -302,7 +304,8 @@ function isBuiltPage(
     isRecord(value) &&
     isDashboardPath(value.path) &&
     isString(value.title) &&
-    typeof value.changed === "boolean"
+    typeof value.changed === "boolean" &&
+    (value.pageId === undefined || isString(value.pageId))
   );
 }
 

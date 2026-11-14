@@ -51,10 +51,10 @@ function statusOf(mockup: MockupSummary): { label: string; color: string } {
     : { label: t("dms.mockup.status_draft"), color: "neutral" };
 }
 
-async function resync(path: string): Promise<void> {
+async function resync(mockup: string, path: string): Promise<void> {
   resyncing.value = path;
   try {
-    await router.push(await resyncFromPage($authFetch, path));
+    await router.push(await resyncFromPage($authFetch, mockup, path));
   } catch (error) {
     presentError(error, { fallbackKey: "dms.mockup.resync_failed" });
   } finally {
@@ -167,13 +167,13 @@ function metaLine(mockup: MockupSummary): string {
                 {{ page.title }}
               </DmsLink>
               <button
-                v-if="page.changed"
+                v-if="page.changed && page.pageId"
                 type="button"
                 class="text-warning relative text-xs hover:underline disabled:opacity-50"
                 :disabled="resyncing !== undefined"
                 :title="t('dms.mockup.resync_hint')"
                 data-dms-mockup-resync
-                @click="resync(page.path)"
+                @click="resync(mockup.name, page.path)"
               >
                 {{ t("dms.mockup.resync") }}
               </button>

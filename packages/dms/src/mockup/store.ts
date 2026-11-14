@@ -2,11 +2,14 @@ import { type FSWatcher, watch } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { PageSummary } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
 import { listAnnotations, type MockupAnnotation } from "./annotations";
-import { BUILDER_PAGES } from "./live-page";
-import { changedSinceBuild, type PageLister, readPageList } from "./built-sync";
+import {
+  BuilderReads,
+  type BuiltPageSync,
+  builtPageSync,
+  type PageReader,
+} from "./built-sync";
 import { compileSpec, parseSpec } from "./compile";
 import {
   ANNOTATIONS_FILE,
@@ -63,9 +66,9 @@ export type MockupSummary = MockupSummaryBase &
         builtAt: string;
         /**
          * Each page's dashboard path, titled by the path when it has no
-         * title, and whether its source file changed after the build.
+         * title, the spec page linked to it, and whether it changed since.
          */
-        builtPages: Array<{ path: string; title: string; changed: boolean }>;
+        builtPages: Array<{ path: string; title: string } & BuiltPageSync>;
       }
   );
 
@@ -137,9 +140,10 @@ export class MockupStore {
   private readonly watches = new Map<MockupName, Watch>();
   private watcher: FSWatcher | undefined;
 
+  /** Without `livePages`, as when the builder is off, no built page reads as changed. */
   constructor(
     readonly mockupsDir: string,
-    private readonly livePages: PageLister = BUILDER_PAGES,
+    private readonly livePages?: PageReader,
   ) {}
 
   /**
@@ -154,12 +158,11 @@ export class MockupStore {
       if (parseFsError(error).code === MISSING_FILE) return [];
       throw error;
     }
-    let projectPages: Promise<readonly PageSummary[]> | undefined;
-    const pages = () => (projectPages ??= readPageList(this.livePages));
+    const reads = this.livePages && new BuilderReads(this.livePages);
     const summaries = await Promise.all(
       names.map(async (raw) => {
         const name = parseMockupName(raw);
-        return name ? this.summary(name, pages) : undefined;
+        return name ? this.summary(name, reads) : undefined;
       }),
     );
     return summaries
@@ -177,7 +180,7 @@ export class MockupStore {
    */
   private async summary(
     name: MockupName,
-    projectPages: () => Promise<readonly PageSummary[]>,
+    reads: BuilderReads | undefined,
   ): Promise<MockupSummary | undefined> {
     const file = await this.specFile(name);
     if (!file) return undefined;
@@ -191,7 +194,6 @@ export class MockupStore {
     if (title !== undefined) base.title = title;
     if (source !== undefined) base.source = source;
     if (!built) return { ...base, status: "draft" };
-    const pagesNow = await projectPages();
     return {
       ...base,
       status: "built",
@@ -200,7 +202,7 @@ export class MockupStore {
         built.pages.map(async (page) => ({
           path: page.path,
           title: page.title?.trim() || page.path,
-          changed: await changedSinceBuild(page.path, built.at, pagesNow),
+          ...(await builtPageSync(page.path, pages, reads)),
         })),
       ),
     };

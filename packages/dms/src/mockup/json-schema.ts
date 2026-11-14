@@ -188,7 +188,7 @@ function pageDefinition(): JsonObject {
         required: ["ref", "version"],
         additionalProperties: false,
         description:
-          "The live page this page was converted from (Edit as mockup). Build it updates that page instead of creating a new one.",
+          "The live page this page was converted from (Edit as mockup) or built into, and its version then. Build it updates that page instead of creating a new one.",
         properties: {
           ref: {
             type: "string",
@@ -229,7 +229,7 @@ function builtDefinition(): JsonObject {
     required: ["at", "pages"],
     additionalProperties: false,
     description:
-      "Written when the mockup is built into real pages. Leave it out while the mockup is a draft: the Mockups page lists a mockup with it as Built and links each page.",
+      "Written when the mockup is built into real pages. Leave it out while the mockup is a draft: the Mockups page lists a mockup with it as Built and links each page. Also set each built page's livePage to the page it was built into, with the version the builder answered after the build: the Mockups page marks the mockup Out of sync once that page's version moves on.",
     properties: {
       at: {
         type: "string",

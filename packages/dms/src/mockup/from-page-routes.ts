@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import { MOCKUP_API } from "./fixtures";
 import { type EditAsMockupAnswer, editPageAsMockup } from "./live-page";
+import { mockupNameSchema } from "./model";
 import { MockupOwnerController } from "./owner-controller";
 
 const HTTP_BAD_REQUEST = 400;
@@ -27,6 +28,8 @@ const replacing = {
   replace: z.boolean().optional(),
   /** The digest of the mockup's spec the client read: a replace needs it. */
   digest: z.string().optional(),
+  /** Converts into the page of this mockup linked to the live page, never another mockup. */
+  mockup: mockupNameSchema.optional(),
 };
 
 const fromPageBodySchema = z
@@ -58,10 +61,11 @@ export function registerFromPageRoute(mockupsDir: string) {
           message: parsed.error.message,
         });
       }
-      const { replace, digest, ...target } = parsed.data;
+      const { replace, digest, mockup, ...target } = parsed.data;
       const answer = await editPageAsMockup(mockupsDir, target, {
         replace,
         digest,
+        mockup,
       });
       if (!answer.ok)
         throw new HTTPResult(FAILURE_STATUS[answer.error], answer);

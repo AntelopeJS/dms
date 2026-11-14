@@ -37,27 +37,13 @@ function spec(title: string): string {
 
 let root: string;
 let store: MockupStore;
-let projectPages: Array<{ ref: string; filepath: string }> = [];
-
-/** The project's pages as the builder would list them: only `ref` and `filepath` are read. */
-const lister = {
-  listPages: async () =>
-    projectPages.map((page) => ({
-      ...page,
-      id: page.ref,
-      displayName: page.ref,
-      category: "pages",
-    })),
-};
-
 /** One mockup, `desk`, in a fresh mockups directory for each test. */
 function withMockupsDirectory(): void {
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "dms-mockups-"));
     await mkdir(join(root, NAME));
     await writeFile(join(root, NAME, "spec.json"), spec("First"));
-    projectPages = [];
-    store = new MockupStore(root, lister);
+    store = new MockupStore(root);
   });
 
   afterEach(async () => {
@@ -173,46 +159,6 @@ describe("[unit] mockup list status and source", () => {
       { path: "/orders", title: "Orders", changed: false },
       { path: "/orders/new", title: "/orders/new", changed: false },
       { path: "/stock", title: "/stock", changed: false },
-    ]);
-  });
-
-  it("marks a built page changed only when its file was written after the build", async () => {
-    const builtAt = "2026-11-13T12:00:00Z";
-    const edited = join(root, "orders.ts");
-    const untouched = join(root, "stock.ts");
-    await writeFile(edited, "");
-    await writeFile(untouched, "");
-    await utimes(
-      edited,
-      new Date("2026-11-13T13:00:00Z"),
-      new Date("2026-11-13T13:00:00Z"),
-    );
-    await utimes(
-      untouched,
-      new Date("2026-11-13T11:00:00Z"),
-      new Date("2026-11-13T11:00:00Z"),
-    );
-    projectPages = [
-      { ref: "/orders", filepath: edited },
-      { ref: "/stock", filepath: untouched },
-    ];
-    await writeFile(
-      join(root, NAME, "spec.json"),
-      JSON.stringify({
-        ...specObject("Built"),
-        built: {
-          at: builtAt,
-          pages: [{ path: "/orders" }, { path: "/stock" }, { path: "/gone" }],
-        },
-      }),
-    );
-
-    const [summary] = await store.list();
-
-    expect(summary).to.have.deep.property("builtPages", [
-      { path: "/orders", title: "/orders", changed: true },
-      { path: "/stock", title: "/stock", changed: false },
-      { path: "/gone", title: "/gone", changed: false },
     ]);
   });
 

@@ -282,16 +282,23 @@ it("reads the first page of each card's own mockup once it scrolls into view", a
 
 /**
  * Fails an implementation that keeps a built mockup Built after one of its
- * pages changed, offers to update a page that did not change, or opens the
- * stale mockup without converting the page into it again.
+ * pages changed, offers to update a page that did not change or that no mockup
+ * page is linked to, converts into another mockup than the card's, or opens
+ * the stale mockup without converting the page into it again.
  */
 it("badges a built mockup with a changed page Out of sync and updates that page's mockup from it", async () => {
   const drifted = {
     ...built,
     name: "drifted",
     builtPages: [
-      { path: "/bikes", title: "Bikes", changed: true },
-      { path: "/bikes/new", title: "/bikes/new", changed: false },
+      { path: "/bikes", title: "Bikes", pageId: "bikes", changed: true },
+      {
+        path: "/bikes/new",
+        title: "/bikes/new",
+        pageId: "new",
+        changed: false,
+      },
+      { path: "/stock", title: "Stock", changed: true },
     ],
   };
   const root = await mountCards([built, drifted]);
@@ -324,8 +331,8 @@ it("badges a built mockup with a changed page Out of sync and updates that page'
   await vi.waitFor(() => expect(navigateTo).toHaveBeenCalled());
 
   expect(authFetch.mock.calls.map(([, options]) => options.body)).toEqual([
-    { path: "/bikes" },
-    { path: "/bikes", replace: true, digest: "d1" },
+    { path: "/bikes", mockup: "drifted" },
+    { path: "/bikes", mockup: "drifted", replace: true, digest: "d1" },
   ]);
   expect(navigateTo).toHaveBeenCalledWith("/mockup?name=bikes&page=bikes");
 });
