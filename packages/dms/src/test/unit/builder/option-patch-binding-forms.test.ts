@@ -123,6 +123,15 @@ describe("the binding forms a patched option read", () => {
       expect(await renameFrom(title, binding)).to.not.contain(gone);
     });
   }
+
+  it("drops one name of a destructured literal with its member", async function () {
+    this.timeout(OP_TIMEOUT);
+    const written = await renameFrom(
+      "board",
+      'const { board, other } = { board: "Board", other: "Other" };\nexport const kept = other;',
+    );
+    expect(written).to.contain('const { other } = { other: "Other" };');
+  });
 });
 
 /**
@@ -150,13 +159,4 @@ describe("an unused local the patched option only spelled", () => {
       expect(await renameFrom(title, binding)).to.contain(draft);
     });
   }
-
-  it("keeps a destructuring of a literal another name still reads", async function () {
-    this.timeout(OP_TIMEOUT);
-    const binding =
-      'const { board, other } = { board: "Board", other: "Other" };';
-    expect(
-      await renameFrom("board", `${binding}\nexport const kept = other;`),
-    ).to.contain(binding);
-  });
 });

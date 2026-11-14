@@ -60,18 +60,54 @@ function namedElements(declaration: VariableDeclaration): BindingElement[] {
 }
 
 /**
- * Whether one name can leave the declaration alone. A literal destructured in
- * place is checked against the pattern, so dropping one of several names from
- * the pattern alone fails on the literal's excess member.
+ * The member of the literal a pattern element reads, when the declaration
+ * destructures an object literal in place and the element names one plain
+ * member of it. `null` when the literal has no such single member.
  */
-function isPrunableSingly(declaration: VariableDeclaration): boolean {
+function literalMember(
+  declaration: VariableDeclaration,
+  element: BindingElement,
+): Node | null | undefined {
+  const initializer = declaration.getInitializer();
+  if (!Node.isObjectLiteralExpression(initializer)) {
+    return undefined;
+  }
+  if (element.getParent() !== declaration.getNameNode()) {
+    return null;
+  }
+  const key = (
+    element.getPropertyNameNode() ?? element.getNameNode()
+  ).getText();
+  const properties = initializer.getProperties();
+  const plain = properties.every(
+    (property) =>
+      (Node.isPropertyAssignment(property) ||
+        Node.isShorthandPropertyAssignment(property)) &&
+      !Node.isComputedPropertyName(property.getNameNode()),
+  );
+  const matches = properties.filter(
+    (property) =>
+      (Node.isPropertyAssignment(property) ||
+        Node.isShorthandPropertyAssignment(property)) &&
+      property.getName() === key,
+  );
+  return plain && matches.length === 1 ? matches[0] : null;
+}
+
+/**
+ * Whether one name can leave the declaration alone. A literal destructured in
+ * place is checked against the pattern, so a name leaves with its literal
+ * member, and only when that member is a plain one.
+ */
+function isPrunableSingly(
+  declaration: VariableDeclaration,
+  element: BindingElement,
+): boolean {
   const initializer = declaration.getInitializer();
   return (
     namedElements(declaration).length === 1 ||
-    !(
-      Node.isObjectLiteralExpression(initializer) ||
-      Node.isArrayLiteralExpression(initializer)
-    )
+    (!Node.isArrayLiteralExpression(initializer) &&
+      literalMember(declaration, element) !== null)
   );
 }
 
@@ -85,6 +121,7 @@ function removeBindingElement(
     declaration.remove();
     return;
   }
+  const member = literalMember(declaration, element) ?? undefined;
   const texts = kept.map((child) => (child === element ? "" : child.getText()));
   if (Node.isObjectBindingPattern(pattern)) {
     pattern.replaceWithText(
@@ -92,6 +129,12 @@ function removeBindingElement(
     );
   } else {
     pattern.replaceWithText(`[${texts.join(", ")}]`);
+  }
+  if (
+    Node.isPropertyAssignment(member) ||
+    Node.isShorthandPropertyAssignment(member)
+  ) {
+    member.remove();
   }
 }
 
@@ -110,7 +153,7 @@ function patternBindings(declaration: VariableDeclaration): LocalBinding[] {
           child.getDotDotDotToken() !== undefined,
       );
       return (
-        isPrunableSingly(declaration) &&
+        isPrunableSingly(declaration, element) &&
         (!hasRest || element.getDotDotDotToken() !== undefined)
       );
     })
