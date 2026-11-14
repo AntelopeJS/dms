@@ -17,14 +17,14 @@ import {
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
-import { generateAccessToken } from "@antelopejs/interface-dms/auth";
+import { sessionAccessToken } from "./session-token";
 
 export const TENANT = DEFAULT_TENANT_ID;
 
 const InviteRow = z.record(z.string(), z.unknown());
 
 async function requestContext(admin: User) {
-  const { token } = await generateAccessToken(TENANT, admin);
+  const token = await sessionAccessToken(TENANT, admin);
   const rawRequest = new IncomingMessage(new Socket());
   rawRequest.headers.authorization = `Bearer ${token}`;
   return {

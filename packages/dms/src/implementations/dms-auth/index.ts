@@ -41,12 +41,12 @@ const TWO_FACTOR_TOKEN_PURPOSE = "2fa";
 const ACCESS_TOKEN_PURPOSE = "access";
 const REFRESH_TOKEN_PURPOSE = "refresh";
 const INVALID_SESSION_TOKEN_ERROR = "Invalid session token";
+const MISSING_SESSION_ID_ERROR = "An access or refresh token needs a sessionId";
 
 interface TenantTokenInput {
   tenantId: string;
   id: string;
   rawToken: string;
-  sessionId?: string;
 }
 
 interface TokenResult {
@@ -92,7 +92,7 @@ async function validateUserToken(
 interface DecodedAuthPayload {
   tenantId: string;
   id: string;
-  sessionId?: string;
+  sessionId: string;
 }
 
 function isSessionPayload(
@@ -106,7 +106,8 @@ function isSessionPayload(
     !!payload.id &&
     isString(payload.tenantId) &&
     !!payload.tenantId &&
-    (payload.sessionId === undefined || isString(payload.sessionId))
+    isString(payload.sessionId) &&
+    !!payload.sessionId
   );
 }
 
@@ -118,7 +119,7 @@ function isDecodedAuthPayload(
     !isString(claims) &&
     isString(claims.id) &&
     isString(claims.tenantId) &&
-    (claims.sessionId === undefined || isString(claims.sessionId))
+    isString(claims.sessionId)
   );
 }
 
@@ -235,6 +236,18 @@ export async function isRejectedBearerToken(
   }
 }
 
+function requireSessionId(sessionId: string | undefined): string {
+  if (!sessionId) {
+    throw new Error(MISSING_SESSION_ID_ERROR);
+  }
+  return sessionId;
+}
+
+/**
+ * Sign an access token bound to the session `sessionId`.
+ *
+ * @throws Error when `sessionId` is missing or empty
+ */
 export function generateAccessToken(
   tenantId: string,
   user: User,
@@ -243,7 +256,11 @@ export function generateAccessToken(
   const config = getAuthConfig();
   const token = signUserToken(
     user,
-    { tenantId, sessionId, purpose: ACCESS_TOKEN_PURPOSE },
+    {
+      tenantId,
+      sessionId: requireSessionId(sessionId),
+      purpose: ACCESS_TOKEN_PURPOSE,
+    },
     Math.floor(config.accessTokenLifetime / 1000),
   );
 
@@ -253,6 +270,11 @@ export function generateAccessToken(
   };
 }
 
+/**
+ * Sign a refresh token bound to the session `sessionId`.
+ *
+ * @throws Error when `sessionId` is missing or empty
+ */
 export function generateRefreshToken(
   tenantId: string,
   user: User,
@@ -261,7 +283,11 @@ export function generateRefreshToken(
   const config = getAuthConfig();
   const token = signUserToken(
     user,
-    { tenantId, sessionId, purpose: REFRESH_TOKEN_PURPOSE },
+    {
+      tenantId,
+      sessionId: requireSessionId(sessionId),
+      purpose: REFRESH_TOKEN_PURPOSE,
+    },
     Math.floor(config.refreshTokenLifetime / 1000),
   );
 

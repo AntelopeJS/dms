@@ -48,14 +48,13 @@ export async function refresh(
   const { token } = body;
 
   const tokenPayload = await validateRefreshToken(token);
+  assert(tokenPayload.sessionId, 401, "error.invalid_token");
 
   const user = await userModel.get(tokenPayload.id);
   assert(user, 401, "error.invalid_token");
 
-  if (tokenPayload.sessionId) {
-    const session = await sessionModel.get(tokenPayload.sessionId);
-    assert(session, 401, "error.session_expired");
-  }
+  const session = await sessionModel.get(tokenPayload.sessionId);
+  assert(session, 401, "error.session_expired");
 
   const { tenantId } = tokenPayload;
   assert(tenantId, 401, "error.invalid_token");
@@ -68,7 +67,7 @@ export async function refresh(
   );
 
   let refreshToken = token;
-  if (tokenPayload.sessionId && shouldRotateRefreshToken(token)) {
+  if (shouldRotateRefreshToken(token)) {
     const refreshTokenData = await generateRefreshToken(
       tenantId,
       user,
@@ -81,13 +80,8 @@ export async function refresh(
     );
     assert(resolvedToken, 401, "error.session_expired");
     refreshToken = resolvedToken;
-  } else if (tokenPayload.sessionId) {
-    const session = await sessionModel.get(tokenPayload.sessionId);
-    assert(
-      session && isCurrentRefreshToken(session, token),
-      401,
-      "error.session_expired",
-    );
+  } else {
+    assert(isCurrentRefreshToken(session, token), 401, "error.session_expired");
     sessionModel
       .update(tokenPayload.sessionId, { lastActiveAt: new Date() })
       .catch(() => {});

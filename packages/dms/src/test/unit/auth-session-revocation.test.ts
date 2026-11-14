@@ -12,6 +12,7 @@ import {
   internal,
   isRejectedBearerToken,
 } from "../../implementations/dms-auth";
+import { signFor } from "../helpers/forged-tokens";
 
 const TENANT_ID = "session-revocation-tenant";
 const HTTP_UNAUTHORIZED = 401;
@@ -122,8 +123,9 @@ describe("[unit] auth access token bound to its session", () => {
     await expectUnauthorized(() => validateAccess(token));
   });
 
-  it("leaves a token without a session claim to its signature", async () => {
-    const { token } = generateAccessToken(TENANT_ID, user);
-    expect((await validateAccess(token))._id).to.equal(user._id);
+  it("refuses a signed token without a session claim", async () => {
+    const token = signFor(user, { tenantId: TENANT_ID, purpose: "access" });
+    await expectUnauthorized(() => validateAccess(token));
+    expect(await isRejectedBearerToken(`Bearer ${token}`)).to.equal(true);
   });
 });
