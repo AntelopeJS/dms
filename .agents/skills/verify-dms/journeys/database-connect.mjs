@@ -2,7 +2,6 @@ import { randomBytes } from "node:crypto";
 import { appendFileSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import { MongoClient } from "mongodb";
 import { fieldOf, itemsOf, parseJson, textOf, toolText, withBridge } from "../mcp-bridge.mjs";
 
 /**
@@ -75,6 +74,7 @@ function connectSteps(id, project) {
  * @returns {Promise<void>} Resolves once written
  */
 async function seedOrders(ctx, database) {
+  const { MongoClient } = await import("mongodb");
   const client = new MongoClient(ctx.state.mongoUrl);
   try {
     await client.db(database).collection("orders").insertMany([
