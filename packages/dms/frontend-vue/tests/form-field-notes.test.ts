@@ -62,6 +62,7 @@ async function mount(entry: FormField) {
     isFieldHidden: () => false,
     isFieldDisabled: () => false,
     isFieldRequired: () => false,
+    isReadOnly: ref(false),
     showsChanges: true,
     isFieldChanged: () => false,
     baselineValue: () => "south",

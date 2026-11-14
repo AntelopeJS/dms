@@ -12,6 +12,13 @@ import { unusedApi } from "./fixtures/unusedApi";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import type { RowNavigationSource } from "../layers/dms-ui/app/entries/composables/actions/rowNavigation";
 import RowHeader from "../layers/dms-ui/app/entries/components/containers/row/RowHeader";
+import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
+import {
+  isBoolean,
+  isFunction,
+  isNumber,
+  isObject,
+} from "../layers/dms-core/app/utils/type-check";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 import type {
   DrawerOptions,
@@ -140,8 +147,30 @@ function mountTargets(
 
 const latest = (drawer: OpenedDrawer): DrawerOptions =>
   Object.assign({}, drawer.options, ...drawer.patches);
-const headerOf = (drawer: OpenedDrawer) =>
-  latest(drawer).headerComponentOptions;
+
+const isRowNavigation = (value: unknown): value is RowNavigation =>
+  isObject(value) &&
+  isNumber(value.index) &&
+  isNumber(value.total) &&
+  isBoolean(value.hasPrev) &&
+  isBoolean(value.hasNext) &&
+  isFunction(value.prev) &&
+  isFunction(value.next);
+
+type DrawerHeader = NonNullable<DrawerOptions["headerComponentOptions"]> & {
+  navigation?: RowNavigation;
+};
+
+const headerOf = (drawer: OpenedDrawer): DrawerHeader | undefined => {
+  const header = latest(drawer).headerComponentOptions;
+  if (!header) return undefined;
+  return {
+    ...header,
+    navigation: isRowNavigation(header.navigation)
+      ? header.navigation
+      : undefined,
+  };
+};
 
 const press = (key: string) =>
   window.dispatchEvent(new KeyboardEvent("keydown", { key }));

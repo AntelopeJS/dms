@@ -115,14 +115,15 @@ describe("the counts a page visit carries", () => {
 
 const MenuStub = defineComponent(
   (props: { items: NavigationMenuItem[][] }, { slots }) => {
-    const renderItem = (item: NavigationMenuItem): VNode =>
-      h(
+    const renderItem = (item: NavigationMenuItem): VNode => {
+      const badge = typeof item.badge === "object" ? item.badge : undefined;
+      return h(
         "div",
         {
           "data-entry": item.fullId,
-          "data-badge": item.badge?.label,
-          "data-color": item.badge?.color,
-          "data-variant": item.badge?.variant,
+          "data-badge": badge?.label,
+          "data-color": badge?.color,
+          "data-variant": badge?.variant,
           "data-prefetch": String(item.prefetch),
           "data-trailing-icon": item.trailingIcon,
         },
@@ -135,6 +136,7 @@ const MenuStub = defineComponent(
           ...(item.children?.map(renderItem) ?? []),
         ],
       );
+    };
     return () => h("nav", props.items.flat().map(renderItem));
   },
   { props: { items: { type: Array, required: true } } },
@@ -162,7 +164,7 @@ describe("NavigationMenu badges", () => {
   const badgeOf = (fullId: string) =>
     host.querySelector<HTMLElement>(`[data-entry="${fullId}"]`)!.dataset;
 
-  function mount(items = ITEMS): void {
+  function mount(items: NavigationMenuItem[] = ITEMS): void {
     state.set("dms-permission-preview-session", ref(null));
     state.set("dms-permission-preview-result", ref(null));
     app = createApp(NavigationMenu, { items });

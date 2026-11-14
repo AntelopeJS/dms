@@ -30,10 +30,10 @@ const PANEL_COMPONENT = "RunPanel";
 const ROW_PANEL_COMPONENT = "DmsRowSidePanel";
 const DESKTOP_QUERY = "(min-width: 1024px)";
 
-interface Row {
+type Row = {
   _id: string;
   name: string;
-}
+};
 
 let sharedState: Map<string, Ref<unknown>>;
 type SidePanelCookie = Ref<ReturnType<typeof readSidePanelPreferences> | null>;

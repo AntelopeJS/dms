@@ -15,7 +15,9 @@ const authFetch = vi.fn(async (url: string) =>
     : { counts: { all: 2, unread: 1 } },
 );
 const confirmOpen = vi.fn(async () => true);
-const createOverlay = vi.fn(() => ({ open: confirmOpen }));
+const createOverlay = vi.fn((_component: unknown, _config: unknown) => ({
+  open: confirmOpen,
+}));
 const addToast = vi.fn(() => ({ id: "failure" }));
 let app: App;
 

@@ -3,6 +3,7 @@ import {
   storeActions,
   toModuleStoreEntry,
 } from "../../layers/dms-layout/app/entries/utils/module-store-catalog";
+import type { ModuleCatalogEntry } from "../../layers/dms-core/app/types/page";
 import type {
   MissingInterface,
   StoreListingEntry,
@@ -40,11 +41,13 @@ export function listingEntry(
     title: id[0].toUpperCase() + id.slice(1),
     description: `${id} description`,
     state: "available",
+    source: "npm",
     updateAvailable: false,
     compatible: true,
     frontend: "none",
     missingInterfaces: [],
     dependents: [],
+    usedByProject: false,
     ...overrides,
   };
 }
@@ -98,7 +101,7 @@ export const FRONTEND_REQUIREMENT = {
 };
 
 export function versionDetailsFixture() {
-  const installed = [
+  const installed: ModuleCatalogEntry[] = [
     {
       id: "media",
       title: "Media",

@@ -76,9 +76,7 @@ async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();
 }
 
-function mount(
-  props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
-): void {
+function mount(props: InstanceType<typeof ConfirmModal>["$props"]): void {
   app = createApp({
     render: () =>
       h(DialogRoot, null, () => h(ConfirmModal, { onClose: closed, ...props })),
