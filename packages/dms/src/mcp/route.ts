@@ -10,7 +10,11 @@ import {
   type RequestContext,
 } from "@antelopejs/interface-api";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
-import { MCP_SESSION_HEADER } from "./bridge";
+import {
+  MCP_CLIENT_HEADER,
+  MCP_SESSION_HEADER,
+  McpClientSchema,
+} from "./bridge";
 import { JsonValueSchema } from "./json";
 import { answerMcpMessage, type McpSession } from "./protocol";
 
@@ -93,6 +97,7 @@ export class McpController extends Controller(CONTROLLER_LOCATION) {
     @Context() ctx: RequestContext,
     @Parameter("authorization", "header") authorization: string | undefined,
     @Parameter(MCP_SESSION_HEADER, "header") sessionId: string | undefined,
+    @Parameter(MCP_CLIENT_HEADER, "header") client: string | undefined,
   ): Promise<HTTPResult> {
     if (!isDirectLocalCall(ctx.rawRequest)) {
       return new HTTPResult(HTTP_FORBIDDEN, { error: "forbidden" });
@@ -105,7 +110,12 @@ export class McpController extends Controller(CONTROLLER_LOCATION) {
     if (message === undefined) {
       return new HTTPResult(HTTP_BAD_REQUEST, PARSE_ERROR);
     }
-    const answer = await answerMcpMessage(current.session, message, sessionId);
+    const answer = await answerMcpMessage(
+      current.session,
+      message,
+      sessionId,
+      McpClientSchema.safeParse(client).data,
+    );
     return answer === undefined
       ? new HTTPResult(HTTP_ACCEPTED)
       : new HTTPResult(HTTP_OK, answer);

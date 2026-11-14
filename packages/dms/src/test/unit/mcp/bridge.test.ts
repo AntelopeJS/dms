@@ -9,7 +9,11 @@ import { mock } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect } from "chai";
 import { z } from "zod";
-import { MCP_SESSION_HEADER, runBridge } from "../../../mcp/bridge";
+import {
+  MCP_CLIENT_HEADER,
+  MCP_SESSION_HEADER,
+  runBridge,
+} from "../../../mcp/bridge";
 
 const WAIT_MS = 2_000;
 const POLL_MS = 10;
@@ -32,6 +36,7 @@ const FailureSchema = z.object({
 interface Received {
   authorization: string | undefined;
   session: string | string[] | undefined;
+  client: string | string[] | undefined;
   body: string;
 }
 
@@ -68,6 +73,7 @@ async function startBackend(
       received.push({
         authorization: request.headers.authorization,
         session: request.headers[MCP_SESSION_HEADER],
+        client: request.headers[MCP_CLIENT_HEADER],
         body,
       });
       Promise.resolve(reply(body)).then(
@@ -198,6 +204,23 @@ function relaysMessages(): void {
     expect(first).to.be.a("string").and.not.equal("");
     expect(second).to.equal(first);
     expect(third).to.be.a("string").and.not.equal(first);
+  });
+
+  it("names the chat as the client of every message of a bridge started with --client=chat, and no client otherwise", async () => {
+    const backend = await serve(echo);
+    input.write('{"jsonrpc":"2.0","id":1,"method":"tools/call"}\n');
+    await until(() => backend.received.length === 1);
+    const chat = new PassThrough();
+    runBridge(configPath, chat, new PassThrough(), ["--client=chat"]);
+    chat.write('{"jsonrpc":"2.0","id":2,"method":"tools/call"}\n');
+    chat.write('{"jsonrpc":"2.0","id":3,"method":"tools/call"}\n');
+    await until(() => backend.received.length === 3);
+    chat.end();
+    expect(backend.received.map(({ client }) => client)).to.deep.equal([
+      undefined,
+      "chat",
+      "chat",
+    ]);
   });
 
   it("keeps a message whole when a string in it holds U+2028, which readline would split", async () => {

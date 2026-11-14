@@ -12,6 +12,23 @@ const JSON_RPC_INTERNAL_ERROR = -32603;
 /** The header that names the MCP session a relayed message belongs to: one bridge process, one coding-agent session. */
 export const MCP_SESSION_HEADER = "mcp-session-id";
 
+/** The header that names which client a relayed message comes from, when the bridge was started for one. */
+export const MCP_CLIENT_HEADER = "mcp-client";
+
+/** A client the DMS tells apart from a coding agent's terminal session: `chat` is the dashboard's chat. */
+export const McpClientSchema = z.enum(["chat"]);
+
+/** A client {@link McpClientSchema} names. */
+export type McpClient = z.infer<typeof McpClientSchema>;
+
+const CLIENT_FLAG = "--client=";
+
+/** The client the launcher's `--client=<name>` argument names, or `undefined` when it names none the DMS knows. */
+export function clientFromArgs(args: readonly string[]): McpClient | undefined {
+  const flag = args.find((arg) => arg.startsWith(CLIENT_FLAG));
+  return McpClientSchema.safeParse(flag?.slice(CLIENT_FLAG.length)).data;
+}
+
 const BACKEND_UNREACHABLE =
   "The DMS backend is not running. Start the project with ajs project dev, then retry.";
 
@@ -72,28 +89,32 @@ async function readConfig(configPath: string): Promise<BridgeConfig> {
   );
 }
 
+interface RelayOrigin {
+  sessionId: string;
+  client: McpClient | undefined;
+}
+
 function post(
   config: BridgeConfig,
   body: string,
-  sessionId: string,
+  origin: RelayOrigin,
 ): Promise<RelayAnswer> {
   if (!isLoopbackUrl(config.url)) {
     return Promise.reject(new NonLoopbackBackendError());
   }
   const url = new URL(config.url);
   const transport = url.protocol === "https:" ? https : http;
+  const headers: http.OutgoingHttpHeaders = {
+    authorization: `Bearer ${config.token}`,
+    [MCP_SESSION_HEADER]: origin.sessionId,
+    "content-type": "application/json",
+    "content-length": Buffer.byteLength(body),
+  };
+  if (origin.client !== undefined) headers[MCP_CLIENT_HEADER] = origin.client;
   return new Promise((resolve, reject) => {
     const request = transport.request(
       url,
-      {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${config.token}`,
-          [MCP_SESSION_HEADER]: sessionId,
-          "content-type": "application/json",
-          "content-length": Buffer.byteLength(body),
-        },
-      },
+      { method: "POST", headers },
       (response) => {
         const chunks: Buffer[] = [];
         response.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -143,9 +164,9 @@ function failure(id: FailureId, message: string): string {
 async function relay(
   configPath: string,
   line: string,
-  sessionId: string,
+  origin: RelayOrigin,
 ): Promise<RelayAnswer> {
-  return post(await readConfig(configPath), line, sessionId);
+  return post(await readConfig(configPath), line, origin);
 }
 
 function answerLine(
@@ -178,20 +199,29 @@ function onLines(input: Readable, onLine: (line: string) => void): void {
   });
 }
 
-/** The stdio MCP server a coding agent launches from the project's `.mcp.json`. */
+/**
+ * The stdio MCP server a coding agent launches from the project's `.mcp.json`.
+ *
+ * @param args The launcher's command-line arguments: `--client=chat` marks
+ * every message of this bridge as the dashboard chat's.
+ */
 export function runBridge(
   configPath: string,
   input: Readable,
   output: Writable,
+  args: readonly string[] = [],
 ): void {
-  const sessionId = randomUUID();
+  const origin: RelayOrigin = {
+    sessionId: randomUUID(),
+    client: clientFromArgs(args),
+  };
   const write = (message: string | undefined) => {
     if (message !== undefined) output.write(`${message}\n`);
   };
   onLines(input, (line) => {
     if (line.trim().length === 0) return;
     const id = requestIdOf(line);
-    relay(configPath, line, sessionId).then(
+    relay(configPath, line, origin).then(
       (answer) => write(answerLine(id, answer)),
       (error: unknown) => {
         if (id === undefined) return;
