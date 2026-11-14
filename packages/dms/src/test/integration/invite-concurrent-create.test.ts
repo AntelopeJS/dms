@@ -80,3 +80,52 @@ describe("[integration] concurrent invitations of one email", () => {
     assert.equal(refusal.getStatus(), HTTP_CONFLICT);
   });
 });
+
+/** Holds the first caller at `INVITE_BEING_CREATED`, after it read no invitation, until `release` runs. */
+function holdFirstFreshCaller() {
+  let held = false;
+  let park = () => {};
+  const parked = new Promise<void>((resolve) => {
+    park = resolve;
+  });
+  let release = () => {};
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const hold = async () => {
+    if (held) return;
+    held = true;
+    park();
+    await released;
+  };
+  RegisterHook(Hook.INVITE_BEING_CREATED, hold);
+  return {
+    parked,
+    release,
+    unregister: () => UnregisterHook(Hook.INVITE_BEING_CREATED, hold),
+  };
+}
+
+describe("[integration] three concurrent invitations of one email", () => {
+  let gate: ReturnType<typeof holdFirstFreshCaller>;
+
+  beforeEach(async () => {
+    await resetDatabase();
+    gate = holdFirstFreshCaller();
+  });
+
+  afterEach(() => gate.unregister());
+
+  it("keeps one pending invitation when a fresh invite lands after a replacement", async () => {
+    const late = createUserInviteToken(inviteOptions("member"));
+    await gate.parked;
+    await createUserInviteToken(inviteOptions("member"));
+    const replacement = await createUserInviteToken(inviteOptions("member"));
+    gate.release();
+    const lateResult = await late;
+    const rows = await GetModel(UserInviteModel, TENANT).getAll();
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]?.token, replacement.token);
+    assert.deepEqual(lateResult, replacement);
+  });
+});
