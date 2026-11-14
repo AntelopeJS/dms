@@ -30,17 +30,9 @@ function settingsOf(dev: boolean): McpSettings | undefined {
   };
 }
 
-/**
- * Serves the MCP route when the config turns it on. It loads the builder engine first, in the
- * DMS's own context: the engine reads its module's connections from the module that loads it, and a
- * tool runs in the context of the module serving HTTP.
- *
- * @param dev Whether the runtime is in development mode.
- */
 export async function startMcp(dev: boolean): Promise<void> {
   const settings = settingsOf(dev);
   if (settings === undefined) return;
-  await import("../implementations/dms-builder/engine");
   const { serveMcp } = await import("./server");
   await serveMcp(settings);
 }

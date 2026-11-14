@@ -1,8 +1,10 @@
 import { z } from "zod";
-import type { CatalogConnection } from "../../implementations/dms-builder/engine";
+import {
+  type CatalogConnection,
+  catalogOf,
+  listCatalogConnections,
+} from "../../implementations/dms-builder/engine/catalog-connection";
 import { defineTool, type McpToolResult, textResult } from "../tool";
-
-const engine = () => import("../../implementations/dms-builder/engine");
 
 function failed(error: { [key: string]: string | string[] }): McpToolResult {
   return textResult(JSON.stringify({ ok: false, error }), true);
@@ -12,7 +14,6 @@ async function onCatalog(
   connection: string,
   work: (catalog: CatalogConnection) => Promise<string>,
 ): Promise<McpToolResult> {
-  const { catalogOf, listCatalogConnections } = await engine();
   try {
     const catalog = catalogOf(connection);
     if (catalog === undefined) {
@@ -40,7 +41,6 @@ const RELATION = z
 const COLUMN_REFERENCE = z.object({ relation: RELATION, column: z.string() });
 
 async function describeConnection(connection: string) {
-  const { catalogOf } = await engine();
   try {
     return { connection, ...(await catalogOf(connection)?.Info()) };
   } catch (error) {
@@ -58,14 +58,12 @@ const connections = defineTool({
     "Lists the databases the project connects the DMS to, each with its engine, version, database and role, or `error` when its provider does not answer. Configuration declares them; when none is listed, connect one first with builder_configure_project.",
   effect: "read",
   input: z.object({}),
-  run: async () => {
-    const { listCatalogConnections } = await engine();
-    return textResult(
+  run: async () =>
+    textResult(
       JSON.stringify(
         await Promise.all(listCatalogConnections().map(describeConnection)),
       ),
-    );
-  },
+    ),
 });
 
 const relations = defineTool({
