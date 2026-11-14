@@ -4,9 +4,62 @@ import {
   defaultTreeAdapter,
   parse,
 } from "parse5";
+import { createRequire } from "node:module";
+import { z } from "zod";
+import type * as Tokenizer from "@csstools/css-tokenizer" with {
+  "resolution-mode": "import",
+};
 import { checkSketch, type SketchSource } from "../../../mockup/sketch";
 
 type Element = DefaultTreeAdapterTypes.Element;
+type CSSToken = Tokenizer.CSSToken;
+/** A function a module exports, whatever its signature: the schema below names the signature. */
+type Exported = (...args: never[]) => void;
+
+function isFunction(value: unknown): value is Exported {
+  return value instanceof Function;
+}
+
+function exported<Name extends keyof typeof Tokenizer>() {
+  return z.custom<(typeof Tokenizer)[Name]>(isFunction);
+}
+
+/** The tokenizer's CommonJS build, loaded apart from the check under test and parsed against its declarations. */
+const OracleTokenizerSchema = z.object({
+  tokenize: exported<"tokenize">(),
+  isTokenAtKeyword: exported<"isTokenAtKeyword">(),
+  isTokenBadString: exported<"isTokenBadString">(),
+  isTokenBadURL: exported<"isTokenBadURL">(),
+  isTokenCloseCurly: exported<"isTokenCloseCurly">(),
+  isTokenCloseParen: exported<"isTokenCloseParen">(),
+  isTokenCloseSquare: exported<"isTokenCloseSquare">(),
+  isTokenFunction: exported<"isTokenFunction">(),
+  isTokenOpenCurly: exported<"isTokenOpenCurly">(),
+  isTokenOpenParen: exported<"isTokenOpenParen">(),
+  isTokenOpenSquare: exported<"isTokenOpenSquare">(),
+  isTokenString: exported<"isTokenString">(),
+  isTokenURL: exported<"isTokenURL">(),
+  isTokenWhiteSpaceOrComment: exported<"isTokenWhiteSpaceOrComment">(),
+});
+
+const {
+  isTokenAtKeyword,
+  isTokenBadString,
+  isTokenBadURL,
+  isTokenCloseCurly,
+  isTokenCloseParen,
+  isTokenCloseSquare,
+  isTokenFunction,
+  isTokenOpenCurly,
+  isTokenOpenParen,
+  isTokenOpenSquare,
+  isTokenString,
+  isTokenURL,
+  isTokenWhiteSpaceOrComment,
+  tokenize,
+} = OracleTokenizerSchema.parse(
+  createRequire(__filename)("@csstools/css-tokenizer"),
+);
 
 const HTML_INPUTS = 3000;
 const CSS_INPUTS = 500;
@@ -127,6 +180,10 @@ const CSS_TEMPLATES = [
   (value: string) => `</style><a href="${value}">x</a>`,
   (value: string) => `p{}</STYLE\t><img src="${value}">`,
   (value: string) => `p{content:"${value}"}`,
+  (value: string) => `p{b:url("#x\n);background:url(${value});c:"}`,
+  (value: string) => `p{b:url(\\22 ${value}\\22 )}`,
+  () => "p{background:url(\\22 #a\\22 )}",
+  (value: string) => `p{--x:"${value}";background:image-set(var(--x) 1x)}`,
 ];
 
 /** A seeded mulberry32, so a failure replays. */
@@ -140,9 +197,9 @@ function random(seed: number): () => number {
   };
 }
 
-type Pick = <T>(items: readonly T[]) => T;
+type Picker = <T>(items: readonly T[]) => T;
 
-function picker(next: () => number): Pick {
+function picker(next: () => number): Picker {
   return (items) => {
     const item = items[Math.floor(next() * items.length)];
     if (item === undefined) throw new Error("picked from an empty list");
@@ -150,7 +207,7 @@ function picker(next: () => number): Pick {
   };
 }
 
-function generatedHtml(pick: Pick, next: () => number): string {
+function generatedHtml(pick: Picker, next: () => number): string {
   const tag = pick(TAGS);
   const quote = pick(QUOTES);
   const attribute = `${pick(ATTRIBUTES)}${pick(ASSIGNMENTS)}${quote}${pick(VALUES)}${next() < 0.15 ? "" : quote}`;
@@ -180,23 +237,59 @@ function oracleLocal(value: string): boolean {
   return url.startsWith("#") || /^data:image\//i.test(url);
 }
 
+const LOADERS = new Set(["url", "src", "image", "image-set", "cross-fade"]);
+
+function oracleName(token: CSSToken): string {
+  return isTokenFunction(token)
+    ? token[4].value.toLowerCase().replace(/^-(?:webkit|moz|ms|o)-/, "")
+    : "";
+}
+
+/** Whether an opened url() or src() reads its URL from a token other than a local string. */
+function badFirstArgument(
+  token: CSSToken,
+  opened: string | undefined,
+): boolean {
+  if (opened !== "url" && opened !== "src") return false;
+  return !isTokenString(token) || !oracleLocal(token[4].value);
+}
+
+/** What a browser would load from `css`, read by a CSS tokenizer, written apart from the check under test. */
 function oracleCss(css: string): string | undefined {
-  const decoded = css
-    .replace(/\r\n|\r|\f/g, "\n")
-    .replace(/\\\n/g, "")
-    .replace(/\\([0-9a-f]{1,6})[ \t\n]?/gi, (_, hex: string) =>
-      String.fromCodePoint(
-        Math.min(Number.parseInt(hex, 16) || 0xfffd, 0x10ffff),
-      ),
-    )
-    .replace(/\\(.)/g, "$1");
-  if (/@import/i.test(decoded)) return "an @import";
-  for (const match of decoded.matchAll(/url\([ \t\n]*["']?([^"')]*)/gi)) {
-    if (!oracleLocal(match[1] ?? "")) return `url(${match[1]})`;
+  const open: string[] = [];
+  let awaiting: string | undefined;
+  for (const token of tokenize({ css })) {
+    if (isTokenWhiteSpaceOrComment(token)) continue;
+    if (isTokenBadString(token) || isTokenBadURL(token))
+      return "a broken string or url";
+    if (isTokenAtKeyword(token) && token[4].value.toLowerCase() === "import")
+      return "an @import";
+    if (isTokenURL(token) && !oracleLocal(token[4].value))
+      return `url(${token[4].value})`;
+    if (badFirstArgument(token, awaiting))
+      return `${awaiting}() reading ${token[1]}`;
+    awaiting = undefined;
+    const loaded = open.some((name) => LOADERS.has(name));
+    if (isTokenString(token) && loaded && !oracleLocal(token[4].value))
+      return `a loaded string ${token[4].value}`;
+    if (isTokenFunction(token)) {
+      open.push(oracleName(token));
+      awaiting = oracleName(token);
+    } else if (
+      isTokenOpenParen(token) ||
+      isTokenOpenSquare(token) ||
+      isTokenOpenCurly(token)
+    ) {
+      open.push("");
+    } else if (
+      isTokenCloseParen(token) ||
+      isTokenCloseSquare(token) ||
+      isTokenCloseCurly(token)
+    ) {
+      open.pop();
+    }
   }
-  return /["'][ \t\n]*(?:https?:|\/\/)/i.test(decoded)
-    ? "a quoted remote URL"
-    : undefined;
+  return undefined;
 }
 
 function elementsOf(node: DefaultTreeAdapterTypes.ParentNode): Element[] {

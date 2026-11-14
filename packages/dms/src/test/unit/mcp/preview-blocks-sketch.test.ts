@@ -10,10 +10,16 @@ const PreviewAnswer = z.object({
   error: z.object({ code: z.string() }).optional(),
 });
 
+/** A CSS string a newline ends early, so a regex reading one string across it misses the url() after. */
+const NEWLINE_IN_STRING =
+  'p{b:url("#x\n);background:url(https://evil.example/css);c:"}';
+/** An escaped quote, which a browser keeps inside the URL `"#a"`, a relative URL. */
+const ESCAPED_QUOTE = "p{b:url(\\22 #a\\22 )}";
+
 /**
  * Sketches that link or load outside the frame: the ones the mockup compiler
  * learnt to refuse in dms#858, which the looser copy `preview_blocks` kept let
- * through, then the ones two reviews of the shared check found.
+ * through, then the ones four reviews of the shared check found.
  */
 const BYPASSES: Sketch[] = [
   { html: '<a/href="https://example.com/x">x</a>' },
@@ -80,6 +86,17 @@ const BYPASSES: Sketch[] = [
   { html: "<p>x</p>", css: 'p{background:image-set("/api/x.png" 1x)}' },
   { html: "<a title=\v' href=https://example.com/x>x</a>" },
   { html: '<a title=\v "x href=https://example.com/x y">x</a>' },
+  { html: "<p>x</p>", css: NEWLINE_IN_STRING },
+  {
+    html: '<p style="b:url(&quot;#x&#10;);background:url(https://evil.example/css);c:&quot;">x</p>',
+  },
+  { html: `<style>${NEWLINE_IN_STRING}</style><p>x</p>` },
+  { html: `<svg><style>${NEWLINE_IN_STRING}</style></svg>` },
+  { html: "<p>x</p>", css: ESCAPED_QUOTE },
+  { html: '<p style="b:url(\\22 #a\\22 )">x</p>' },
+  { html: `<style>${ESCAPED_QUOTE}</style><p>x</p>` },
+  { html: `<svg><style>${ESCAPED_QUOTE}</style></svg>` },
+  { html: '<base href="https://example.com/"><a href="#x">x</a>' },
 ];
 
 const STATIC_SKETCH: Sketch = {

@@ -130,6 +130,16 @@ afterEach(() => {
 });
 
 describe("sketch frame", () => {
+  it("resolves an #anchor inside the frame's own document, not against the dashboard's URL", async () => {
+    mountSketch({ html: '<a href="#top">Top</a>', height: 120 });
+    await settle();
+    const drawn = new DOMParser().parseFromString(
+      frame()?.getAttribute("srcdoc") ?? "",
+      "text/html",
+    );
+    expect(drawn.querySelector("a")?.href).toBe("about:srcdoc#top");
+  });
+
   it("is sandboxed with nothing granted and carries the CSP before the sketch", async () => {
     mountSketch({
       html: "<script>alert(1)</script><p>Body</p>",
