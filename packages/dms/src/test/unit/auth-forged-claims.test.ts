@@ -36,8 +36,12 @@ describe("[unit] auth forged claims", () => {
     const refused = [
       "not-a-jwt",
       MALFORMED_PAYLOAD_TOKEN,
-      forge({ id: { $gt: "" }, purpose: "access" }),
-      forge({ id: { $gt: "zzzzzzzz" }, purpose: "access" }),
+      forge({ id: { $gt: "" }, sessionId: SESSION_ID, purpose: "access" }),
+      forge({
+        id: { $gt: "zzzzzzzz" },
+        sessionId: SESSION_ID,
+        purpose: "access",
+      }),
       forge({ id: UNKNOWN_USER_ID, sessionId: { $gt: "" }, purpose: "access" }),
       forge({ id: user._id, sessionId: SESSION_ID, purpose: "access" }),
       forge({ id: UNKNOWN_USER_ID, sessionId: SESSION_ID, purpose: "access" }),
