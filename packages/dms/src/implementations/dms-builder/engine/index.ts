@@ -25,6 +25,7 @@ export * from "./env-lines";
 export * from "./file-batch";
 export * from "./file-paths";
 export * from "./guards";
+export * from "./inherited-variables";
 export * from "./interface-capabilities";
 export * from "./module-loader";
 export * from "./module-reload";

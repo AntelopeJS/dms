@@ -49,7 +49,7 @@ const processPins = {
     'import { spawnSync } from "node:child_process";',
   "dist/implementations/dms-builder/engine/project-env.js:15":
     'const node_child_process_1 = require("node:child_process");',
-  "dist/implementations/dms-builder/engine/project-env.js:63":
+  "dist/implementations/dms-builder/engine/project-env.js:64":
     'const checked = (0, node_child_process_1.spawnSync)("git", ["check-ignore", "-q", file], {\n        cwd: directory,\n    });',
   "src/test/unit/builder/helpers/processes.ts:1":
     'import { spawnSync } from "node:child_process";',

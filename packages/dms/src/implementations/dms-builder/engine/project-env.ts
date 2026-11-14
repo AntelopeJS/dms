@@ -16,6 +16,7 @@ import {
   withEnvLine,
   withoutEnvLine,
 } from "./env-lines";
+import { shadowing } from "./inherited-variables";
 import { configObject, findConfigFile, propertyNamed } from "./modules";
 import { invalidConfig } from "./ops";
 import { configureProject } from "./project-config-ops";
@@ -167,7 +168,8 @@ export function writeEnvFiles(
 /**
  * Sets a variable `envOverrides` maps in the project's `.env`, for development. It refuses when the
  * project is in a git repository that does not ignore `.env`, so a value written here never
- * reaches a commit. The value is never answered. `mapped` names the variables
+ * reaches a commit, and when the environment that started the project holds another value for it,
+ * which the project would keep. The value is never answered. `mapped` names the variables
  * `envOverrides` will map, for a batch about to be written; by default, those it maps now.
  */
 export function setProjectVariable(
@@ -185,6 +187,10 @@ export function setProjectVariable(
   }
   if (value === "" || UNQUOTABLE.test(value)) {
     refuse(`the value of ${name} is empty, or holds a quote or a line break`);
+  }
+  const shadowed = shadowing(name, value);
+  if (shadowed) {
+    refuse(shadowed);
   }
   const directory = path.dirname(configPath);
   const risk = commitRisk(directory, ENV_FILE);
