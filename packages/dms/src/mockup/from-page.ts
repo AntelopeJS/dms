@@ -11,8 +11,8 @@ import { type SketchReason, sketchFor } from "./from-page-sketch";
 import type { Json, JsonObject, MockupNode, MockupSpecPage } from "./model";
 import {
   jsonObjectSchema,
+  liveRouteSchema,
   RESERVED_MOCKUP_NAMES,
-  relativeRouteSchema,
 } from "./model";
 import { type SampleColumn, sampleRows } from "./sample-rows";
 
@@ -142,9 +142,7 @@ type Routed<Value> =
   | { ok: false; reason: SketchReason };
 
 function routeIssue(route: string): SketchReason | undefined {
-  return relativeRouteSchema.safeParse(route).success
-    ? undefined
-    : "remote-route";
+  return liveRouteSchema.safeParse(route).success ? undefined : "remote-route";
 }
 
 function routeData(value: Json, c: Conversion): Routed<Json> {

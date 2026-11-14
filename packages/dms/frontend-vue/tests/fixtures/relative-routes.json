@@ -6,7 +6,9 @@
     "/api/books?page=2&sort=-title",
     "/orders?tab=open#top",
     "/caf%C3%A9",
-    "/café"
+    "/café",
+    "/api/customers/{{params.id}}/stats",
+    "/{{}}"
   ],
   "refused": [
     "",
@@ -22,6 +24,16 @@
     "/\r/evil.example/steal",
     "/\u0000/evil.example/steal",
     "/a\u007f",
-    "/a\u0085"
+    "/a\u0085",
+    "/a {{params.id}}",
+    "/{{ params.id }} b",
+    "/{{ }}",
+    "/{{ params id }}",
+    "/{{ params.id }",
+    "/{{ a}}b }}",
+    "/{{ a{{b }}",
+    "/{{\tparams.id}}",
+    "/{{\u00a0params.id}}",
+    "/{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}}{{a}} "
   ]
 }

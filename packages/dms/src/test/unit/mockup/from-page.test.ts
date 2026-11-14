@@ -16,7 +16,11 @@ import {
   structureOf,
   unmappedPaths,
 } from "../../helpers/live-page";
-import { ACCEPTED_ROUTES, REFUSED_ROUTES } from "../../helpers/relative-routes";
+import {
+  ACCEPTED_ROUTES,
+  PADDED_TOKEN_ROUTES,
+  REFUSED_ROUTES,
+} from "../../helpers/relative-routes";
 
 const NAME = mockupNameSchema.parse("books");
 const REF = "/books";
@@ -286,8 +290,8 @@ describe("[unit] mockup conversion of a block's live route", () => {
     }
   });
 
-  it("keeps a block's route that is a relative route as a live route the spec reads back", () => {
-    for (const route of ACCEPTED_ROUTES) {
+  it("keeps a block's route that is a relative route, its tokens padded or not, as a live route the spec reads back", () => {
+    for (const route of [...ACCEPTED_ROUTES, ...PADDED_TOKEN_ROUTES]) {
       const converted = convertRoute(route);
 
       expect(converted.sketches, JSON.stringify(route)).to.deep.equal([]);

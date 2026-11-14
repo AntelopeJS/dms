@@ -10,7 +10,11 @@ import {
   specSchema,
   updateAnnotation,
 } from "../../../mockup";
-import { ACCEPTED_ROUTES, REFUSED_ROUTES } from "../../helpers/relative-routes";
+import {
+  ACCEPTED_ROUTES,
+  PADDED_TOKEN_ROUTES,
+  REFUSED_ROUTES,
+} from "../../helpers/relative-routes";
 
 const NAME = mockupNameSchema.parse("desk");
 
@@ -209,7 +213,7 @@ describe("[unit] mockup list status and source", () => {
 });
 
 describe("[unit] mockup spec source and built", () => {
-  it("reads, in the spec, a page's live route by the rule of a built page's path", () => {
+  it("reads, in the spec, a page's live route by the rule of a built page's path, its tokens padded or not", () => {
     const written = (route: string) =>
       specSchema.safeParse({
         version: 1,
@@ -219,19 +223,19 @@ describe("[unit] mockup spec source and built", () => {
     for (const route of REFUSED_ROUTES) {
       expect(written(route), JSON.stringify(route)).to.equal(false);
     }
-    for (const route of ACCEPTED_ROUTES) {
+    for (const route of [...ACCEPTED_ROUTES, ...PADDED_TOKEN_ROUTES]) {
       expect(written(route), JSON.stringify(route)).to.equal(true);
     }
   });
 
-  it("refuses, in the spec, a built page whose path is not a relative route", () => {
+  it("refuses, in the spec, a built page whose path is not a relative route or pads a token with spaces", () => {
     const written = (path: string) =>
       specSchema.safeParse({
         ...specObject("Built"),
         built: { at: "2026-11-13T10:00:00Z", pages: [{ path }] },
       }).success;
 
-    for (const path of REFUSED_ROUTES) {
+    for (const path of [...REFUSED_ROUTES, ...PADDED_TOKEN_ROUTES]) {
       expect(written(path), JSON.stringify(path)).to.equal(false);
     }
     for (const path of ACCEPTED_ROUTES) {
