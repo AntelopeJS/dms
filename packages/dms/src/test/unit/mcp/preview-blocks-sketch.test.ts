@@ -13,7 +13,7 @@ const PreviewAnswer = z.object({
 /**
  * Sketches that link or load outside the frame: the ones the mockup compiler
  * learnt to refuse in dms#858, which the looser copy `preview_blocks` kept let
- * through, then the ones a review of the shared check found.
+ * through, then the ones two reviews of the shared check found.
  */
 const BYPASSES: Sketch[] = [
   { html: '<a/href="https://example.com/x">x</a>' },
@@ -78,6 +78,8 @@ const BYPASSES: Sketch[] = [
   },
   { html: '<svg><rect fill="u&#114;l(https://example.com/x)"/></svg>' },
   { html: "<p>x</p>", css: 'p{background:image-set("/api/x.png" 1x)}' },
+  { html: "<a title=\v' href=https://example.com/x>x</a>" },
+  { html: '<a title=\v "x href=https://example.com/x y">x</a>' },
 ];
 
 const STATIC_SKETCH: Sketch = {
