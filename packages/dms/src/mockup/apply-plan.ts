@@ -323,7 +323,8 @@ function emitList(
  * slot and span edits are written, blocks no node stands for are removed,
  * and new nodes of the builder's own types are added, each under a name the
  * next apply pairs it with again: its id's block name, or, for a node with no
- * id, a name listed in `stamps` for the caller to record as its id.
+ * id, a name listed in `stamps` for the caller to record as its id. A title
+ * the mockup changed is written as the page's display name.
  */
 export function planApply(
   page: MockupSpecPage,
@@ -347,7 +348,11 @@ export function planApply(
   namePlaces(p, page.tree, "root");
   settle(p);
   const blocks = emitList(p, page.tree, pointer, "root");
-  return { draft: { blocks }, wiring: p.wiring, stamps: p.stamps };
+  const draft: PageDraft =
+    page.title === reconverted.title
+      ? { blocks }
+      : { page: { displayName: page.title }, blocks };
+  return { draft, wiring: p.wiring, stamps: p.stamps };
 }
 
 function summarizeList(
