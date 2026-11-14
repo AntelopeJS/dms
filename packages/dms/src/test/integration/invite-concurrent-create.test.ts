@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { UserInviteModel } from "@antelopejs/interface-dms/db";
+import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import {
   Hook,
   RegisterHook,
@@ -12,6 +12,7 @@ import {
   createUserInviteToken,
 } from "@antelopejs/interface-dms/invites";
 import { resetDatabase } from "../helpers/db";
+import { inviteFixture } from "../helpers/invite-resolution-fixtures";
 
 const TENANT = "invite-concurrent-create-tenant";
 const HTTP_CONFLICT = 409;
@@ -127,5 +128,59 @@ describe("[integration] three concurrent invitations of one email", () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0]?.token, replacement.token);
     assert.deepEqual(lateResult, replacement);
+  });
+});
+
+/** Creates and replaces an invite, then stores a stray fresh row beside the kept replacement. */
+async function keptInviteWithStrayFresh() {
+  const invites = GetModel(UserInviteModel, TENANT);
+  await createUserInviteToken(inviteOptions("member"));
+  const kept = await createUserInviteToken(inviteOptions("member"));
+  const replacement = await invites.get(kept.inviteId);
+  assert.ok(replacement);
+  const fresh = Object.assign(inviteFixture(replacement), {
+    _id: "fresh-invite-before-withdrawal",
+    token: "fresh-invite-token",
+    creationResolutionId: "",
+  });
+  await invites.insert(fresh);
+  return { invites, kept, fresh };
+}
+
+async function assertReplacementRefused(fresh: UserInvite): Promise<void> {
+  const refusal = await createUserInviteToken({
+    ...inviteOptions("member"),
+    replacesInvite: fresh,
+  }).then(
+    () => null,
+    (error: unknown) => error,
+  );
+  assert.ok(refusal instanceof HTTPResult, String(refusal));
+  assert.equal(refusal.getStatus(), HTTP_CONFLICT);
+}
+
+describe("[integration] four concurrent invitations of one email", () => {
+  beforeEach(resetDatabase);
+
+  it("keeps one pending invitation when a fourth caller replaces a fresh invite before it withdraws", async () => {
+    const { invites, kept, fresh } = await keptInviteWithStrayFresh();
+    await assertReplacementRefused(fresh);
+    await invites.delete(fresh._id);
+    const rows = await invites.getAll();
+    assert.deepEqual(
+      rows.map((row) => row.token),
+      [kept.token],
+    );
+  });
+
+  it("keeps one pending invitation when a fourth caller replaces a fresh invite after it withdrew", async () => {
+    const { invites, kept, fresh } = await keptInviteWithStrayFresh();
+    await invites.delete(fresh._id);
+    await assertReplacementRefused(fresh);
+    const rows = await invites.getAll();
+    assert.deepEqual(
+      rows.map((row) => row.token),
+      [kept.token],
+    );
   });
 });

@@ -61,7 +61,11 @@ function assertSameDecision(
   );
 }
 
-/** Chooses one permanent outcome; all competing lifecycle paths must use this before effects. */
+/**
+ * Chooses one permanent outcome; all competing lifecycle paths must use this before effects.
+ * A new replacement is refused with HTTP 409 unless its invite is the only invite of its email,
+ * so a fresh invite that lost a concurrent creation is withdrawn, never replaced.
+ */
 export async function decideInvite(
   input: ResolveInviteInput,
 ): Promise<InviteResolution> {
@@ -74,6 +78,15 @@ export async function decideInvite(
       new Date(input.invite.expiresAt) > new Date(),
     HTTP_CONFLICT,
     "Invitation expired before acceptance",
+  );
+  assert(
+    !input.replacement ||
+      existing ||
+      (await GetModel(UserInviteModel, input.tenantId).isOnlyInviteOfEmail(
+        input.invite,
+      )),
+    HTTP_CONFLICT,
+    "Invitation for this email was created concurrently",
   );
   const extensionKeys = [
     ...new Set([
