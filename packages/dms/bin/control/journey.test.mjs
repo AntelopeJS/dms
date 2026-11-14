@@ -12,12 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { isSameProcess } from "./identity.mjs";
-import {
-  JourneyContext,
-  loadJourneys,
-  runJourney,
-  runJourneyFile,
-} from "./journey.mjs";
+import { JourneyContext, runJourney, runJourneyFile } from "./journey.mjs";
+import { loadJourneys } from "./journey-load.mjs";
 import { apiTargetFile, writeTarget } from "./forwarder.mjs";
 import { startMongod } from "./mongo.mjs";
 import { startDetached, stopRecorded, waitForPort } from "./processes.mjs";
@@ -43,7 +39,7 @@ function journeysModule(t, source) {
 await test("a module exporting well-formed journeys loads them", async (t) => {
   const file = journeysModule(
     t,
-    `export const journeys = [${JOURNEY}, { id: "b", title: "t", entryPoint: "e", database: "fresh", onboard: false, async run() {} }];`,
+    `export const journeys = [${JOURNEY}, { id: "b", title: "t", entryPoint: "e", database: "fresh", onboard: false, standby: false, async run() {} }];`,
   );
   const journeys = await loadJourneys(file);
   assert.deepEqual(
@@ -71,6 +67,8 @@ await test("a journey missing a field a run reads is refused", async (t) => {
     '{ id: "x", title: "t", entryPoint: "e", onboard: "yes", async run() {} }',
     '{ id: "x", title: "t", entryPoint: "e", backend: "development", async run() {} }',
     '{ id: "x", title: "t", entryPoint: "e", database: "shared", backend: "dev", async run() {} }',
+    '{ id: "x", title: "t", entryPoint: "e", standby: "no", async run() {} }',
+    '{ id: "x", title: "t", entryPoint: "e", database: "shared", standby: false, async run() {} }',
     "null",
   ];
   for (const journey of broken) {
