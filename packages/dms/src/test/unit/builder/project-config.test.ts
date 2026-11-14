@@ -131,7 +131,7 @@ export default defineConfig({
         type: "local",
         path: "modules/erp-tables",
         watchDir: ["src"],
-        installCommand: ["pnpm install", "pnpm run build"],
+        installCommand: ["pnpm install --ignore-workspace", "pnpm run build"],
         reloadCommand: ["pnpm exec tsc"],
       },
       importOverrides: {
