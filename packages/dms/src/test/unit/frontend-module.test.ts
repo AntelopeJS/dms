@@ -68,7 +68,7 @@ describe("[unit] frontend version drift", () => {
       [
         { name: "@antelopejs/dms-frontend-vue", version: "0.9.8" },
         { name: "@antelopejs/dms-media-frontend-vue", version: "0.5.0" },
-        { name: "@antelopejs/dms-ai-frontend-vue", version: "0.5.0" },
+        { name: "@antelopejs/dms-assistant-frontend-vue", version: "0.5.0" },
       ],
       running,
     );

@@ -32,8 +32,8 @@ export default defineConfig({
     dms: {
       source: { type: "package", package: "@antelopejs/dms", version: "0.8.0" },
     },
-    "dms-ai": {
-      source: { type: "package", package: "@antelopejs/dms-ai", version: "0.2.0" },
+    "dms-assistant": {
+      source: { type: "package", package: "@antelopejs/dms-assistant", version: "0.2.0" },
       config: { backendUrl: "\${@api.API_LOCAL_BASE_URL}" },
     },
     mongodb: {
@@ -73,7 +73,7 @@ const CONNECT_STEPS: ProjectConfigStep[] = [
   },
   {
     op: "ConfigureModule",
-    id: "dms-ai",
+    id: "dms-assistant",
     entry: {
       importOverrides: [
         { interface: CATALOG, source: "postgres-erp", id: "erp" },
@@ -98,8 +98,8 @@ export default defineConfig({
     dms: {
       source: { type: "package", package: "@antelopejs/dms", version: "0.8.0" },
     },
-    "dms-ai": {
-      source: { type: "package", package: "@antelopejs/dms-ai", version: "0.2.0" },
+    "dms-assistant": {
+      source: { type: "package", package: "@antelopejs/dms-assistant", version: "0.2.0" },
       config: { backendUrl: "\${@api.API_LOCAL_BASE_URL}" },
       importOverrides: [
         {
@@ -316,7 +316,7 @@ function writesWholeBatchesInTheProjectsStyle(): void {
     const header = "/**\n * The fixture's configuration.\n */\n";
     fs.writeFileSync(configPath(), header + PROJECT_CONFIG);
     expectOk(
-      await ConfigureModule("dms-ai", {
+      await ConfigureModule("dms-assistant", {
         config: { externalConnections: { erp: { access: "read" } } },
       }),
       "ConfigureModule",

@@ -20,7 +20,7 @@ describe("editing the URL of a MySQL connection", function () {
   this.timeout(OP_TIMEOUT);
 
   before(() => {
-    const app = createFixture({ modules: ["dms-builder", "dms-ai"] });
+    const app = createFixture({ modules: ["dms-builder", "dms-assistant"] });
     gitInit(app.root);
     fs.writeFileSync(path.join(app.root, ".gitignore"), ".env\n");
     const catalog = {
@@ -57,7 +57,7 @@ describe("editing the URL of a MySQL connection", function () {
             connection: "erp",
           },
           { op: "ConfigureModule", id: "dms-builder", entry: catalog },
-          { op: "ConfigureModule", id: "dms-ai", entry: catalog },
+          { op: "ConfigureModule", id: "dms-assistant", entry: catalog },
         ],
         [{ name: VARIABLE, value: URL }],
       ),

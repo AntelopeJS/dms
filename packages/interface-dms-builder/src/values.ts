@@ -47,8 +47,8 @@ export type DataTypeValue = {
  * cannot model structurally. The referenced symbol must already be importable in
  * the target file; the builder does not add its import.
  *
- * Note: dms-ai's safe mode rejects `$expr` (arbitrary code defeats the
- * structured guarantees). Only a direct file edit (vibe mode) should use it.
+ * Note: dms-assistant's Safe mode rejects `$expr` (arbitrary code defeats the
+ * structured guarantees). Only a direct file edit (Code mode) should use it.
  */
 export type ExprValue = {
   $expr: string;
