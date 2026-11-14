@@ -6,7 +6,14 @@ import type {
   ThemeLogos,
   ValidationIssue,
 } from "@antelopejs/interface-dms-builder";
-import { Node, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
+import {
+  type ArrayLiteralExpression,
+  type BinaryExpression,
+  Node,
+  type ObjectLiteralExpression,
+  type SourceFile,
+  SyntaxKind,
+} from "ts-morph";
 import { isString } from "./scalar-guards";
 import {
   canWriteString,
@@ -140,9 +147,9 @@ export function stringLiterals(sourceFile: SourceFile): Set<string> {
 }
 
 /**
- * The static text of the file name a template literal builds, after its last
- * `/`, split where a substitution goes: `${slot}-light-${hash}.png` is
- * `["", "-light-", ".png"]`.
+ * The static text of the file name a string expression builds, after its last
+ * `/`, split where a runtime value goes: `${slot}-light-${hash}.png` and
+ * `slot + "-light-" + hash + ".png"` are both `["", "-light-", ".png"]`.
  */
 export type BuiltFileName = readonly [string, string, ...string[]];
 
@@ -163,22 +170,104 @@ function builtFileName(parts: string[]): BuiltFileName | undefined {
     : undefined;
 }
 
+/** Text an expression spells, or `undefined` where a runtime value goes. */
+type Piece = string | undefined;
+
+function isConcatenation(node: Node | undefined): node is BinaryExpression {
+  return (
+    Node.isBinaryExpression(node) &&
+    node.getOperatorToken().getKind() === SyntaxKind.PlusToken
+  );
+}
+
+function methodCall(
+  node: Node,
+  name: string,
+): { receiver: Node; args: Node[] } | undefined {
+  if (!Node.isCallExpression(node)) {
+    return undefined;
+  }
+  const callee = node.getExpression();
+  return Node.isPropertyAccessExpression(callee) && callee.getName() === name
+    ? { receiver: callee.getExpression(), args: node.getArguments() }
+    : undefined;
+}
+
+function joinedPieces(
+  array: ArrayLiteralExpression,
+  separator: Node | undefined,
+): Piece[] {
+  const between = separator ? pieces(separator) : [","];
+  return array
+    .getElements()
+    .flatMap((element, index) => [
+      ...(index === 0 ? [] : between),
+      ...pieces(element),
+    ]);
+}
+
 /**
- * The file name each template literal of a file builds, when the template
- * spells some of its text: a name of substitutions alone could be any file.
+ * The text and runtime values an expression joins into a string, in order,
+ * through template literals, `+`, `.concat()` and `[…].join()`.
+ */
+function pieces(node: Node): Piece[] {
+  if (
+    Node.isStringLiteral(node) ||
+    Node.isNoSubstitutionTemplateLiteral(node)
+  ) {
+    return [node.getLiteralValue()];
+  }
+  if (Node.isTemplateExpression(node)) {
+    return [
+      node.getHead().getLiteralText(),
+      ...node
+        .getTemplateSpans()
+        .flatMap((span) => [undefined, span.getLiteral().getLiteralText()]),
+    ];
+  }
+  if (Node.isParenthesizedExpression(node)) {
+    return pieces(node.getExpression());
+  }
+  if (isConcatenation(node)) {
+    return [...pieces(node.getLeft()), ...pieces(node.getRight())];
+  }
+  const concat = methodCall(node, "concat");
+  if (concat) {
+    return [concat.receiver, ...concat.args].flatMap(pieces);
+  }
+  const join = methodCall(node, "join");
+  return join && Node.isArrayLiteralExpression(join.receiver)
+    ? joinedPieces(join.receiver, join.args[0])
+    : [undefined];
+}
+
+function textBetweenRuntimeValues(joined: Piece[]): string[] {
+  const parts = [""];
+  for (const piece of joined) {
+    parts.push(piece === undefined ? "" : `${parts.pop() ?? ""}${piece}`);
+  }
+  return parts;
+}
+
+function buildsAString(node: Node): boolean {
+  return (
+    Node.isTemplateExpression(node) ||
+    (isConcatenation(node) && !isConcatenation(node.getParent())) ||
+    methodCall(node, "concat") !== undefined ||
+    methodCall(node, "join") !== undefined
+  );
+}
+
+/**
+ * The file name each template literal, `+` chain, `.concat()` or `[…].join()`
+ * of a file builds, when it spells some of its text: a name of runtime values
+ * alone could be any file.
  */
 export function builtFileNames(sourceFile: SourceFile): BuiltFileName[] {
   return sourceFile
     .getDescendants()
-    .filter(Node.isTemplateExpression)
-    .map((template) =>
-      builtFileName([
-        template.getHead().getLiteralText(),
-        ...template
-          .getTemplateSpans()
-          .map((span) => span.getLiteral().getLiteralText()),
-      ]),
-    )
+    .filter(buildsAString)
+    .map((node) => builtFileName(textBetweenRuntimeValues(pieces(node))))
     .filter((name) => name !== undefined);
 }
 

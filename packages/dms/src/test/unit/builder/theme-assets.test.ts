@@ -236,6 +236,58 @@ function keepsLogoFilesTheAppConfigReaches(): void {
   });
 }
 
+function keepsLogoFilesTheAppConfigJoins(): void {
+  it("keeps a file a slot reaches through a name joined with +, and deletes it once nothing builds it", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("default", "light", PNG_LOGO, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    const shared =
+      expectOk(await GetTheme(), "GetTheme").logos.default?.light ?? "";
+    const hash = /-([0-9a-f]{8})\.png$/.exec(shared)?.[1] ?? "";
+    const joinedConfig = (extension: string): string =>
+      `const SLOT = "default";\nconst HASH = "${hash}";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${shared}" }, email: { light: "/branding/" + SLOT + "-light-" + HASH + ".${extension}" } } },\n});\n`;
+    writeLayerFile("app/app.config.ts", joinedConfig("png"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
+    writeLayerFile("app/app.config.ts", joinedConfig("jpg"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.deep.equal([]);
+  });
+
+  it("keeps a file a slot reaches through a name built with concat or join", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [
+            upload("default", "light", PNG_LOGO, "image/png"),
+            upload("default", "dark", OTHER_PNG, "image/png"),
+          ],
+        }),
+      ),
+      "SetTheme",
+    );
+    const logos = expectOk(await GetTheme(), "GetTheme").logos.default;
+    const light = logos?.light ?? "";
+    const dark = logos?.dark ?? "";
+    const hashOf = (logo: string): string =>
+      /-([0-9a-f]{8})\.png$/.exec(logo)?.[1] ?? "";
+    writeLayerFile(
+      "app/app.config.ts",
+      `const SLOT = "default";\nconst DARK_HASH = "${hashOf(dark)}";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${light}", dark: "${dark}" }, email: { light: "/branding/".concat(SLOT, "-light-", "${hashOf(light)}", ".png"), dark: ["/branding/", SLOT, "-dark-", DARK_HASH, ".png"].join("") } } },\n});\n`,
+    );
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.have.members([
+      light.replace("/branding/", ""),
+      dark.replace("/branding/", ""),
+    ]);
+  });
+}
+
 function writesOneFileOrNothing(): void {
   it("writes one file for the email and another slot sent the same bytes", async () => {
     expectOk(
@@ -301,6 +353,7 @@ describe("theme logo files", function () {
   checksUploadedFileTypes();
   deletesUnusedEmailLogoFiles();
   keepsLogoFilesTheAppConfigReaches();
+  keepsLogoFilesTheAppConfigJoins();
   writesOneFileOrNothing();
 });
 

@@ -78,7 +78,7 @@ export interface ReachedStrings {
  * Every string the app config spells as a literal, and every string a local
  * file it imports spells, through re-exports too: a logo slot may name its
  * path through a constant of another file. Also every file name a template
- * literal of those files builds.
+ * literal, `+` chain, `.concat()` or `[…].join()` of those files builds.
  */
 export function reachableStrings(appConfig: SourceFile): ReachedStrings {
   const appDirectory = path.dirname(appConfig.getFilePath());
