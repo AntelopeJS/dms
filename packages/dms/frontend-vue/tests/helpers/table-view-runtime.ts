@@ -72,12 +72,15 @@ export async function tableViewRuntime(
   vi.stubGlobal("useDmsAppConfig", () => ({ ui: { icons: {} } }));
   vi.stubGlobal("useI18n", () => i18n);
   vi.stubGlobal("resolveDmsComponent", () => undefined);
+  await loadTableView();
 }
 
-export async function mountTableView(
-  overrides: Partial<TableViewConfig<Data>> = {},
-  prepare?: () => void,
-) {
+/**
+ * Imports TableView and its plugins once the globals they read are stubbed.
+ * `tableViewRuntime` calls it so the cold transform of the component graph
+ * runs in the setup hook, not inside the first test's timeout.
+ */
+async function loadTableView() {
   const { default: TableView } = await import(
     "../../layers/dms-ui/app/components/table-view/TableView.vue"
   );
@@ -87,6 +90,14 @@ export async function mountTableView(
   const { default: registerDisplays } = await import(
     "../../layers/dms-ui/app/plugins/table-view-displays"
   );
+  return { TableView, register, registerDisplays };
+}
+
+export async function mountTableView(
+  overrides: Partial<TableViewConfig<Data>> = {},
+  prepare?: () => void,
+) {
+  const { TableView, register, registerDisplays } = await loadTableView();
   const config = {
     componentId: "orders",
     pageId: "sales",
