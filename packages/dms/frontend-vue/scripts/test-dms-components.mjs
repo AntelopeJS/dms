@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  copyFileSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -8,8 +9,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
-import { checkDmsComponents } from "./check-dms-components.mjs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  assertDmsComponents,
+  checkDmsComponents,
+} from "./check-dms-components.mjs";
 
 const NODE_MODULES = fileURLToPath(new URL("../node_modules", import.meta.url));
 
@@ -31,12 +35,19 @@ const FIXTURE_FILES = {
   "frontend-vue/app/custom-layouts/Board.vue": "<template><div /></template>",
 };
 
-async function diagnose({ screen = "<div />", script = "", backend = "" }) {
+async function diagnose({
+  screen = "<div />",
+  script = "",
+  backend = "",
+  renderer = true,
+  asserted = false,
+}) {
   const module = mkdtempSync(join(tmpdir(), "dms-components-"));
   const layer = join(module, "frontend-vue");
   try {
     mkdirSync(layer);
-    symlinkSync(NODE_MODULES, join(layer, "node_modules"), "junction");
+    if (renderer)
+      symlinkSync(NODE_MODULES, join(layer, "node_modules"), "junction");
     const files = {
       ...FIXTURE_FILES,
       "frontend-vue/app/pages/Screen.vue": [
@@ -56,10 +67,13 @@ async function diagnose({ screen = "<div />", script = "", backend = "" }) {
       writeFileSync(join(module, file), content);
     }
     const shown = relative(process.cwd(), module).length + 1;
-    const diagnostics = await checkDmsComponents({
-      layer,
-      sources: [join(module, "src")],
-    });
+    const options = { layer, sources: [join(module, "src")] };
+    if (asserted)
+      return await assertDmsComponents(options).then(
+        () => [],
+        (error) => error.message.replaceAll(layer, "<layer>").split("\n"),
+      );
+    const diagnostics = await checkDmsComponents(options);
     return diagnostics.map((line) =>
       line
         .slice(shown)
@@ -172,4 +186,70 @@ assert.deepEqual(
     ].join("\n"),
   }),
   [],
+);
+
+assert.deepEqual(
+  await diagnose({
+    screen: "<DmsCardPanel />",
+    renderer: false,
+    asserted: true,
+  }),
+  [],
+);
+assert.match(
+  (
+    await diagnose({ screen: "<DmsLink />", renderer: false, asserted: true })
+  ).at(-1),
+  /^@antelopejs\/dms-frontend is not installed in <layer>, so the components its renderer registers, such as DmsLink, count as unknown\. If the layer uses one, run in <layer>: \S+ (?:add|install) -[Dd] "@antelopejs\/dms-frontend@>=0\.11\.0 <0\.12\.0"$/,
+);
+assert.deepEqual(await diagnose({ screen: "<DmsLink />", asserted: true }), []);
+
+/** Installs of typescript and vue whose entry is missing: resolution stops at them and fails, whatever the host has above. */
+const BROKEN_PARSERS = {
+  "node_modules/typescript/package.json": { main: "missing.js" },
+  "node_modules/vue/package.json": {
+    exports: { "./compiler-sfc": "./missing.js" },
+  },
+};
+
+async function checkWithoutParsers() {
+  const root = mkdtempSync(join(tmpdir(), "dms-components-parsers-"));
+  try {
+    for (const [file, manifest] of Object.entries(BROKEN_PARSERS)) {
+      mkdirSync(dirname(join(root, file)), { recursive: true });
+      writeFileSync(join(root, file), JSON.stringify(manifest));
+    }
+    const frontend = join(root, "dms", "frontend-vue");
+    mkdirSync(join(frontend, "scripts"), { recursive: true });
+    for (const file of [
+      "scripts/check-dms-components.mjs",
+      "scripts/dms-components-dependencies.mjs",
+      "package.json",
+    ])
+      copyFileSync(
+        new URL(`../${file}`, import.meta.url),
+        join(frontend, file),
+      );
+    copyFileSync(
+      new URL("../../package.json", import.meta.url),
+      join(root, "dms", "package.json"),
+    );
+    const layer = join(root, "layer");
+    mkdirSync(layer);
+    writeFileSync(join(layer, "package.json"), "{}");
+    const copy = await import(
+      pathToFileURL(join(frontend, "scripts", "check-dms-components.mjs")).href
+    );
+    return await copy.checkDmsComponents({ layer }).then(
+      () => "",
+      (error) => error.message.replaceAll(layer, "<layer>"),
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+assert.match(
+  await checkWithoutParsers(),
+  /^The DMS component check parses the layer with typescript and vue, and typescript and vue cannot be resolved from <layer>\. In <layer>, run: \S+ (?:add|install) -[Dd] "typescript@>=5\.8\.0 <7\.0\.0" "vue@\^3\.5\.0"$/,
 );

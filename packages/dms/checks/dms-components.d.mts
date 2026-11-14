@@ -27,7 +27,12 @@ export declare function checkDmsComponents(
   options: DmsComponentsOptions,
 ): Promise<string[]>;
 
-/** Rejects with every diagnostic of {@link checkDmsComponents}, one per line. */
+/**
+ * Rejects with every diagnostic of {@link checkDmsComponents}, one per line.
+ * When `@antelopejs/dms-frontend` is not installed in the layer, the last
+ * line says that the components its renderer registers count as unknown, and
+ * gives the command that adds it.
+ */
 export declare function assertDmsComponents(
   options: DmsComponentsOptions,
 ): Promise<void>;

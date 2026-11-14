@@ -1,7 +1,12 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { createRequire } from "node:module";
 import { join, relative, resolve, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import {
+  addCommand,
+  dependencies,
+  RENDERER,
+  rendererComponentNames,
+} from "./dms-components-dependencies.mjs";
 
 const DMS_PREFIX = "Dms";
 const DMS_LAYERS = fileURLToPath(new URL("../layers", import.meta.url));
@@ -114,32 +119,6 @@ export function dmsRegistrations() {
     ),
     layouts: new Set(layouts),
   };
-}
-
-function dependencies(layer) {
-  const manifest = join(layer, "package.json");
-  if (!existsSync(manifest)) throw new Error(`No package.json in ${layer}`);
-  const require = createRequire(manifest);
-  try {
-    return {
-      ts: require("typescript"),
-      parse: require("vue/compiler-sfc").parse,
-      rendererGlobals: require.resolve(
-        "@antelopejs/dms-frontend/eslint-globals",
-      ),
-    };
-  } catch (error) {
-    throw new Error(
-      `Install typescript, vue and @antelopejs/dms-frontend in ${layer} to check its DMS components`,
-      { cause: error },
-    );
-  }
-}
-
-/** The `Dms` components the `@antelopejs/dms-frontend` renderer registers itself. */
-async function rendererComponentNames(globalsPath) {
-  const { default: globals } = await import(pathToFileURL(globalsPath).href);
-  return Object.keys(globals).filter((name) => /^Dms[A-Z]/.test(name));
 }
 
 function parseScript(file, source, ts) {
@@ -496,7 +475,11 @@ function isKnown({ kind, name }, known) {
  * an unknown tag as an empty element, with no error. Each diagnostic names
  * the file, the line and the name.
  */
-export async function checkDmsComponents({ layer, sources = [] }) {
+export async function checkDmsComponents(options) {
+  return (await inspect(options)).diagnostics;
+}
+
+async function inspect({ layer, sources = [] }) {
   const root = resolve(layer);
   const tools = dependencies(root);
   const layerFiles = readSources([root], /\.(?:vue|[cm]?ts)$/);
@@ -509,17 +492,28 @@ export async function checkDmsComponents({ layer, sources = [] }) {
   )
     .filter(({ file }) => !read.has(file))
     .flatMap((file) => fileStrings(file, tools));
-  return [...layerStrings, ...sourceStrings]
+  const diagnostics = [...layerStrings, ...sourceStrings]
     .filter(({ kind }) => ["vue", "builder", "componentName"].includes(kind))
     .filter((use) => DMS_NAME.test(use.name) && !isKnown(use, known))
     .map(
       ({ file, line, name }) =>
         `${relative(process.cwd(), file)}:${line}: \`${name}\` is no component the installed @antelopejs/dms, @antelopejs/dms-frontend or this layer registers`,
     );
+  return { diagnostics, root, rendererMissing: !tools.rendererGlobals };
 }
 
-/** Rejects with every diagnostic of {@link checkDmsComponents}, one per line. */
+/**
+ * Rejects with every diagnostic of {@link checkDmsComponents}, one per line.
+ * When `@antelopejs/dms-frontend` is not installed, the last line says that
+ * the components its renderer registers count as unknown, and how to add it.
+ */
 export async function assertDmsComponents(options) {
-  const diagnostics = await checkDmsComponents(options);
-  if (diagnostics.length) throw new Error(diagnostics.join("\n"));
+  const { diagnostics, root, rendererMissing } = await inspect(options);
+  if (!diagnostics.length) return;
+  const note = rendererMissing
+    ? [
+        `${RENDERER} is not installed in ${root}, so the components its renderer registers, such as DmsLink, count as unknown. If the layer uses one, run in ${root}: ${addCommand([RENDERER])}`,
+      ]
+    : [];
+  throw new Error([...diagnostics, ...note].join("\n"));
 }
