@@ -73,7 +73,7 @@ export class SubmitRecipePage extends PageController("submit-recipe", {
 
 **dms-project**, **dms-auth** and **dms-module** ship in this package (`skills/`, declared via
 `antelopeJs.skills`). The **antelopejs** plugin links them into a project's `.claude/skills/`, and
-the dms-ai assistant loads them for every loaded module. The `antelopejs:` workflow skills ship with
+dms-assistant loads them for every loaded module. The `antelopejs:` workflow skills ship with
 the **antelopejs** plugin, not with this package.
 
 ## Docs & exact interface surfaces

@@ -38,7 +38,7 @@ out a module without it.
 **Ship a skill.** Add `skills/<module-name>/SKILL.md` (frontmatter `name`, a trigger-rich
 `description`, `icon`, `category`, `tags`) saying when and how to use the module, list `"skills"` in
 `files`, and declare `"antelopeJs": { "skills": ["./skills"] }`. The **antelopejs** plugin links it into
-Claude Code and Codex projects and dms-ai loads it — `docs/08.ai-and-claude-code/7.module-skills.md`.
+Claude Code and Codex projects and dms-assistant loads it — `docs/08.ai-and-claude-code/8.module-skills.md`.
 
 ## The lifecycle entry (`src/index.ts`)
 

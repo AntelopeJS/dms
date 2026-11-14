@@ -20,7 +20,7 @@
       "id": "ai-ship-module-skills",
       "area": "dms-ai",
       "style": "clean",
-      "prompt": "Make our module ship its own skill so dms-ai loads it.",
+      "prompt": "Make our module ship its own skill so dms-assistant loads it.",
       "expect": {
         "skills": ["dms-module"],
         "acceptable": ["dms-ai", "antelopejs"]
