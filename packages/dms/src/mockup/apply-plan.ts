@@ -48,6 +48,8 @@ export interface PlanContext {
 
 /** The builder paths a draft keeps, writes over, adds and removes, the blocks under a kept or removed one left out. */
 export type DraftSummary = {
+  /** The page's display name, present only when the draft writes it. */
+  displayName?: string;
   preserved: string[];
   written: string[];
   added: string[];
@@ -394,6 +396,9 @@ export function summarize(
     added: [],
     removed: [],
   };
+  if (draft.page?.displayName !== undefined) {
+    summary.displayName = draft.page.displayName;
+  }
   summarizeList(
     draft.blocks,
     structure.blocks,
