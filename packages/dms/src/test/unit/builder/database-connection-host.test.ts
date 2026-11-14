@@ -67,13 +67,15 @@ describe("editing the URL of a MySQL connection", function () {
 
   after(destroyFixture);
 
-  it("refuses a socket path as its host, and leaves .env as it was", () => {
-    for (const host of [
-      "%2Fvar%2Frun%2Fmysqld",
-      "%2fvar%2frun%2fmysqld.sock",
+  it("refuses a socket path or an undecodable host, before keeping the password, and leaves .env as it was", () => {
+    for (const url of [
+      "mysql://reader:pw@%2Fvar%2Frun%2Fmysqld/erp",
+      "mysql://reader:pw@%2fvar%2frun%2fmysqld.sock/erp",
+      "mysql://reader@%2Fvar%2Frun%2Fmysqld/erp",
+      "mysql://reader:pw@%ZZ/erp",
     ]) {
-      const result = setConnectionUrl("erp", `mysql://reader:pw@${host}/erp`);
-      expect(result.ok ? "ok" : result.error, host).to.deep.equal({
+      const result = setConnectionUrl("erp", url);
+      expect(result.ok ? "ok" : result.error, url).to.deep.equal({
         code: "invalid_config",
         issues: [
           {

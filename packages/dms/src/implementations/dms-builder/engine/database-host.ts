@@ -25,15 +25,14 @@ const HOST_NAME = /^[A-Za-z0-9._~-]+$/;
 
 /**
  * Whether the host of `url` is a host name or an IPv6 address, when the engine of its scheme has a
- * driver that does not read a socket host. Any host passes for the other engines. A URL that does
- * not parse is left to its caller, which answers its failure.
+ * driver that does not read a socket host, a host that does not decode included. Any host passes
+ * for the other engines. A URL that does not parse is left to its caller, which answers its
+ * failure.
  */
 export function hasReadableHost(url: string): boolean {
   let parsed: URL;
-  let host: string;
   try {
     parsed = new URL(url);
-    host = decodeURIComponent(parsed.hostname);
   } catch {
     return true;
   }
@@ -44,6 +43,12 @@ export function hasReadableHost(url: string): boolean {
   );
   if (engine === undefined || SOCKET_HOST[engine]) {
     return true;
+  }
+  let host: string;
+  try {
+    host = decodeURIComponent(parsed.hostname);
+  } catch {
+    return false;
   }
   return host === "" || BRACKETED_IPV6.test(host) || HOST_NAME.test(host);
 }
