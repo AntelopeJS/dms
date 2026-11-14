@@ -185,6 +185,10 @@
       "types": "./checks/api-error-presentation.d.mts",
       "default": "./frontend-vue/scripts/check-api-error-presentation.mjs"
     },
+    "./checks/dms-components": {
+      "types": "./checks/dms-components.d.mts",
+      "default": "./frontend-vue/scripts/check-dms-components.mjs"
+    },
     "./eslint-globals": {
       "types": "./frontend-vue/eslint-globals.generated.d.mts",
       "default": "./frontend-vue/eslint-globals.generated.mjs"

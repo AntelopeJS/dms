@@ -6,6 +6,8 @@ import { brotliDecompressSync } from "node:zlib";
 import { z } from "zod";
 import { assertApiErrorPresentation } from "./check-api-error-presentation.mjs";
 import "./test-api-error-presentation.mjs";
+import { assertDmsComponents } from "./check-dms-components.mjs";
+import "./test-dms-components.mjs";
 import "./check-autoimport-boundaries.mjs";
 import "./test-autoimport-boundaries.mjs";
 import "./check-page-invariants.mjs";
@@ -356,6 +358,10 @@ function checkGeistNarrowSpace() {
 
 for (const [name, check] of [
   ["API error presentation", () => assertApiErrorPresentation([LAYERS_DIR])],
+  [
+    "DMS components",
+    () => assertDmsComponents({ layer: ROOT, sources: [join(ROOT, "../src")] }),
+  ],
   ["core error fallback", checkCoreErrorFallback],
   ["translated accessible names", checkAccessibleNames],
   ["layer plugin registration", checkPluginRegistration],
@@ -369,7 +375,7 @@ for (const [name, check] of [
   ["onboarding page meta", checkOnboardingPageMeta],
 ]) {
   try {
-    check();
+    await check();
     console.log(`PASS ${name}`);
   } catch (error) {
     console.error(`FAIL ${name}`);
