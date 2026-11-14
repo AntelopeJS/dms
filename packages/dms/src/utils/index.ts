@@ -23,6 +23,7 @@ export * from "./notification-registry";
 export * from "./notification-rules";
 export * from "./notification-tones";
 export * from "./one-time-code";
+export * from "./owner-only-file";
 export * from "./page-access";
 export * from "./request-email-verification";
 export * from "./own-value";

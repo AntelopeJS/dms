@@ -109,6 +109,29 @@ const processPins = {
     "const runProcess = (0, node_util_1.promisify)(node_child_process_1.execFile);",
   "dist/test/unit/implementations/dms/permissions-standalone.test.js:14":
     "const { stdout } = await runProcess(process.execPath, [FIXTURE]);",
+  "src/utils/owner-only-file.ts:1":
+    'import { execFile } from "node:child_process";',
+  "src/utils/owner-only-file.ts:5": 'import { promisify } from "node:util";',
+  "src/utils/owner-only-file.ts:7":
+    "const execFileAsync = promisify(execFile);",
+  "src/utils/owner-only-file.ts:42":
+    'await execFileAsync(\n    powershell,\n    ["-NoProfile", "-NonInteractive", "-Command", SET_OWNER_ONLY_DACL],\n    { env: { ...process.env, [TARGET_ENV]: filePath } },\n  );',
+  "dist/utils/owner-only-file.js:4":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/utils/owner-only-file.js:8":
+    'const node_util_1 = require("node:util");',
+  "dist/utils/owner-only-file.js:9":
+    "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
+  "dist/utils/owner-only-file.js:26":
+    'await execFileAsync(powershell, ["-NoProfile", "-NonInteractive", "-Command", SET_OWNER_ONLY_DACL], { env: { ...process.env, [TARGET_ENV]: filePath } });',
+  "src/test/helpers/mcp.ts:1":
+    'import { execFileSync } from "node:child_process";',
+  "src/test/helpers/mcp.ts:29":
+    'const listing = execFileSync("icacls", [path], { encoding: "utf8" });',
+  "dist/test/helpers/mcp.js:7":
+    'const node_child_process_1 = require("node:child_process");',
+  "dist/test/helpers/mcp.js:22":
+    'const listing = (0, node_child_process_1.execFileSync)("icacls", [path], { encoding: "utf8" });',
 };
 
 /**
