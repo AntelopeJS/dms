@@ -62,16 +62,17 @@ export async function builtPageSync(
   specPages: readonly unknown[],
   reads: BuilderReads | undefined,
 ): Promise<BuiltPageSync> {
-  if (!reads) return { changed: false };
+  const linkedPages = specPages.flatMap((page) => {
+    const read = linkedPageSchema.safeParse(page);
+    return read.success ? [read.data] : [];
+  });
+  if (!reads || linkedPages.length === 0) return { changed: false };
   const ref = resolvePageRef(path, await reads.pages());
-  if (ref === undefined) return { changed: false };
-  const linked = specPages
-    .map((page) => linkedPageSchema.safeParse(page))
-    .find((page) => page.success && page.data.livePage.ref === ref);
-  if (!linked?.success) return { changed: false };
+  const linked = linkedPages.find((page) => page.livePage.ref === ref);
+  if (ref === undefined || !linked) return { changed: false };
   const current = await reads.version(ref);
   return {
-    pageId: linked.data.id,
-    changed: current !== undefined && current !== linked.data.livePage.version,
+    pageId: linked.id,
+    changed: current !== undefined && current !== linked.livePage.version,
   };
 }
