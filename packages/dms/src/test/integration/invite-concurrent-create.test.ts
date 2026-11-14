@@ -12,6 +12,7 @@ import {
   createUserInviteToken,
 } from "@antelopejs/interface-dms/invites";
 import { resetDatabase } from "../helpers/db";
+import { inviteFixture } from "../helpers/invite-resolution-fixtures";
 
 const TENANT = "invite-concurrent-create-tenant";
 const HTTP_CONFLICT = 409;
@@ -127,5 +128,38 @@ describe("[integration] three concurrent invitations of one email", () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0]?.token, replacement.token);
     assert.deepEqual(lateResult, replacement);
+  });
+});
+
+describe("[integration] four concurrent invitations of one email", () => {
+  beforeEach(resetDatabase);
+
+  it("keeps one pending invitation when a fourth caller replaces a fresh invite before it withdraws", async () => {
+    const invites = GetModel(UserInviteModel, TENANT);
+    await createUserInviteToken(inviteOptions("member"));
+    const kept = await createUserInviteToken(inviteOptions("member"));
+    const replacement = await invites.get(kept.inviteId);
+    assert.ok(replacement);
+    const fresh = Object.assign(inviteFixture(replacement), {
+      _id: "fresh-invite-before-withdrawal",
+      token: "fresh-invite-token",
+      creationResolutionId: "",
+    });
+    await invites.insert(fresh);
+    const refusal = await createUserInviteToken({
+      ...inviteOptions("member"),
+      replacesInvite: fresh,
+    }).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    await invites.delete(fresh._id);
+    const rows = await invites.getAll();
+    assert.deepEqual(
+      rows.map((row) => row.token),
+      [kept.token],
+    );
+    assert.ok(refusal instanceof HTTPResult, String(refusal));
+    assert.equal(refusal.getStatus(), HTTP_CONFLICT);
   });
 });

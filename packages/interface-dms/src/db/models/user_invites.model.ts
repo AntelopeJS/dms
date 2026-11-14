@@ -51,6 +51,19 @@ export class UserInviteModel extends BasicDataModel(
   }
 
   /**
+   * Whether the invite is stored and is the only invite sent to its email
+   *
+   * @param invite The invite to look for
+   * @returns True when the email's invites are exactly this one
+   */
+  async isOnlyInviteOfEmail(invite: UserInvite): Promise<boolean> {
+    const rows = await this.table
+      .getAll(normalizeEmail(invite.email), "email")
+      .run();
+    return rows.length === 1 && rows[0]?._id === invite._id;
+  }
+
+  /**
    * Get an invite by its token
    *
    * @param token The token of the invite
