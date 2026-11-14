@@ -68,6 +68,36 @@ describe("the page outline", () => {
     ]);
   });
 
+  it("names a block whose only id is stamped by its type, and keeps an author's id (fails when a note's stamp shows in the trail)", () => {
+    const stamped: MockupSpecDocument = {
+      pages: [
+        {
+          id: "orders",
+          title: "Orders",
+          tree: [
+            {
+              id: "b-k3j9x0qa",
+              type: "GridRow",
+              children: [{ id: "b-7hd2m1zz", type: "GridRow" }],
+            },
+            { id: "b-team", type: "GridRow", children: [{ type: "GridRow" }] },
+          ],
+        },
+      ],
+    };
+    expect(breadcrumb(stamped, "/pages/0/tree/0/children/0", CATALOG)).toEqual([
+      "Orders",
+      "Grid row",
+      "Grid row",
+    ]);
+    expect(breadcrumb(stamped, "/pages/0/tree/1/children/0", CATALOG)).toEqual([
+      "Orders",
+      "b-team",
+      "Grid row",
+    ]);
+    expect(outlineRows(stamped, 0, CATALOG)[0]?.label).toBe("Grid row");
+  });
+
   it("names a node's layout path as the compiler does: root index, then child id or index (fails on a spec pointer handed to the AI)", () => {
     expect(layoutPathOf(SPEC, "/pages/0/tree/0/children/0")).toBe(
       "block-0.revenue",
