@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 import { DATABASE_ENGINES } from "./database-access";
 import { checkDatabase } from "./database-check";
+import { hasReadableHost, HOST_PROBLEM } from "./database-host";
 import { invalidConfig, unsupported } from "./ops";
 
 const SCHEME = /^([a-z][a-z0-9+.-]*:)\/\//i;
@@ -34,8 +35,9 @@ export function parseCheckInput(input: unknown): ParsedCheckInput {
 /**
  * Checks the database `parsed` names, once it is an engine and a URL of that engine's scheme. The
  * builder may be mounted outside development through `builder.enabled`, and this opens a
- * connection to a host the caller names, so it refuses unless `dev`. A refusal names the fields
- * of the input, never their values.
+ * connection to a host the caller names, so it refuses unless `dev`. It refuses a host the
+ * engine's driver would not read as written, such as a socket path for MySQL. A refusal names the
+ * fields of the input, never their values.
  */
 export async function checkConnection(
   parsed: ParsedCheckInput,
@@ -57,6 +59,9 @@ export async function checkConnection(
     return invalidConfig<DatabaseAccess>(
       `Expected an engine of ${DATABASE_ENGINES.join(", ")} and a URL of that engine; check ${fields.join(", ")}.`,
     );
+  }
+  if (!hasReadableHost(parsed.data.url)) {
+    return invalidConfig<DatabaseAccess>(HOST_PROBLEM);
   }
   return {
     ok: true,
