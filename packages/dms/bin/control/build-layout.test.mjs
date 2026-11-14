@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -329,7 +330,7 @@ await test("a run records the VITE_ and NODE_ENV variables it keyed on, so anoth
   );
 });
 
-await test("an install record above TMPDIR that the key cannot read leaves the runs cached", async (t) => {
+await test("an install record above TMPDIR that the key cannot read leaves the runs cached, through a linked TMPDIR too", async (t) => {
   const outer = realpathSync(
     mkdtempSync(join(tmpdir(), "dms-control-build-layout-outer-")),
   );
@@ -337,8 +338,10 @@ await test("an install record above TMPDIR that the key cannot read leaves the r
   const record = join(outer, "node_modules", ".modules.yaml");
   write(record, '{"layoutVersion":5}\n');
   write(join(outer, "tmp", ".keep"), "");
-  setEnv(t, { TMPDIR: join(outer, "tmp") });
-  const { up } = fixture(t);
+  symlinkSync(join(outer, "tmp"), join(outer, "linked-tmp"));
+  setEnv(t, { TMPDIR: join(outer, "linked-tmp") });
+  const { dir, up } = fixture(t);
+  write(join(dir, "node_modules", ".modules.yaml"), "layoutVersion: 5\n");
   assert.match(
     (await up({ top: outer })).frontendBuild?.reason ?? "",
     /\.modules\.yaml is not the YAML layout the build cache reads/u,
@@ -348,6 +351,6 @@ await test("an install record above TMPDIR that the key cannot read leaves the r
   assert.equal(
     (await up()).frontendBuild?.cached,
     true,
-    "a fixture whose keys read above its folder misses on whatever install sits above TMPDIR",
+    "a fixture whose keys read above its folder, by its linked path or its real one, misses on whatever install sits above TMPDIR",
   );
 });
