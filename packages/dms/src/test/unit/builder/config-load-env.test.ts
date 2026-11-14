@@ -2,8 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { ConfigLoader } from "@antelopejs/core";
 import { expect } from "chai";
-import { ConfigureProject } from "../../../implementations/dms-builder";
-import { ListEntryConnections } from "../../../implementations/dms-builder/database";
+import {
+  ConfigureProject,
+  ListEntryConnections,
+} from "../../../implementations/dms-builder";
 import { setProjectVariable } from "../../../implementations/dms-builder/engine";
 import {
   createFixture,
