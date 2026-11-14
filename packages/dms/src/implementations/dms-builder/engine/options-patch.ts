@@ -8,12 +8,8 @@ import { Node, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 import { optionValue } from "./config-literal";
 import { propertyKey } from "./paths";
 import { type EmitContext, serializeValue } from "./value";
-import {
-  pruneUnusedImports,
-  pruneUnusedLocals,
-  referencedImportNames,
-  referencedLocalNames,
-} from "./writable";
+import { pruneUnusedLocals, referencedLocalNames } from "./local-bindings";
+import { pruneUnusedImports, referencedImportNames } from "./writable";
 
 type OptionsPatchValue =
   | EditablePageMeta[keyof EditablePageMeta]
