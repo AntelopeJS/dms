@@ -97,7 +97,7 @@ function readObjectOption(
   return value.fullyLiteral ? value.value : undefined;
 }
 
-/** A page's or a category's option read as the value it holds when that value passes `is`. */
+/** A page's, a category's or a module's option read as the value it holds when that value passes `is`. */
 function readOption<Value>(
   opts: ObjectLiteralExpression,
   name: string,
@@ -172,7 +172,7 @@ class SourceScanner {
       ref: `modules.${id}`,
       id,
       fullSlug: `/modules/${id}`,
-      displayName: getStringProperty(arg, "title") ?? id,
+      displayName: readOption(arg, "title", isString) ?? id,
       parentRef: "modules",
       moduleId: id,
     };
@@ -193,7 +193,7 @@ class SourceScanner {
       ref: `${root.ref}.pages`,
       id: "pages",
       fullSlug: joinSlug(root.fullSlug, urlSlug),
-      displayName: getStringProperty(defCat, "displayName") ?? "pages",
+      displayName: readOption(defCat, "displayName", isString) ?? "pages",
       parentRef: root.ref,
       moduleId: root.moduleId,
     };
