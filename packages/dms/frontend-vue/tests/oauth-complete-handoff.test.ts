@@ -57,6 +57,7 @@ const siteResponse = {
       },
     },
     categories: {},
+    banners: [],
   },
   siteLayoutTree: undefined,
   quickActions: undefined,

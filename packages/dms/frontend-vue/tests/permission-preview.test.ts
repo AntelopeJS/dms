@@ -75,6 +75,9 @@ function registerPreviewSessionAndRenderingTests() {
         "grid.kpis": { state: "hidden" },
       },
       hiddenEntries: [],
+      partialEntries: [],
+      hiddenHeaderActions: [],
+      hiddenQuickActions: [],
       outOfScope: 0,
     };
     expect(resolvePreviewBlock(result, "grid.kpis")).toEqual({
@@ -116,6 +119,9 @@ function registerPreviewSessionAndRenderingTests() {
       page: { fullId: "sales.orders", displayName: "Orders", hidden: false },
       blocks: { table: { state: "hidden" } },
       hiddenEntries: ["sales.orders"],
+      partialEntries: [],
+      hiddenHeaderActions: [],
+      hiddenQuickActions: [],
       outOfScope: 0,
     };
     const HIDDEN = new Set(RESULT.hiddenEntries);
