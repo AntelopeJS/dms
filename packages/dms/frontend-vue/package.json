@@ -16,6 +16,7 @@
   "scripts": {
     "typecheck": "ajs dms verify-source --layer \"$PWD\" --local-package @antelopejs/dms=.. --local-package @antelopejs/interface-dms=../../interface-dms",
     "test": "vitest run",
+    "typecheck:tests": "ajs dms prepare-types -q --out ../.frontend-vue-types --layer . --local-package @antelopejs/dms=.. --local-package @antelopejs/interface-dms=../../interface-dms && vue-tsc -p tests/tsconfig.json --noEmit",
     "eslint-globals": "node scripts/eslint-globals.mjs",
     "format": "prettier --write .",
     "lint": "node scripts/check-invariants.mjs && node scripts/check-disable-blocks.mjs && eslint .",

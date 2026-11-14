@@ -38,4 +38,5 @@ playwright-report
 # TypeScript config (local only — not shipped as part of the layer)
 tsconfig.json
 tsconfig.*.json
+!tests/tsconfig.json
 
