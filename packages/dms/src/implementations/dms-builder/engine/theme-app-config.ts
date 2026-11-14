@@ -148,12 +148,23 @@ export function stringLiterals(sourceFile: SourceFile): Set<string> {
 
 /**
  * The static text of the file name a string expression builds, after its last
- * `/`, split where a runtime value goes: `${slot}-light-${hash}.png` and
- * `slot + "-light-" + hash + ".png"` are both `["", "-light-", ".png"]`.
+ * `/` and before any `?` or `#`, split where a runtime value goes:
+ * `${slot}-light-${hash}.png` and `slot + "-light-" + hash + ".png?v=" + v`
+ * are both `["", "-light-", ".png"]`.
  */
 export type BuiltFileName = readonly [string, string, ...string[]];
 
-function builtFileName(parts: string[]): BuiltFileName | undefined {
+const QUERY_OR_FRAGMENT = /[?#]/;
+
+function builtFileName(built: string[]): BuiltFileName | undefined {
+  const suffixStart = built.findIndex((part) => QUERY_OR_FRAGMENT.test(part));
+  const parts =
+    suffixStart < 0
+      ? built
+      : [
+          ...built.slice(0, suffixStart),
+          built[suffixStart]?.split(QUERY_OR_FRAGMENT)[0] ?? "",
+        ];
   const directoryEnd = parts.findLastIndex((part) => part.includes("/"));
   const fileParts =
     directoryEnd < 0

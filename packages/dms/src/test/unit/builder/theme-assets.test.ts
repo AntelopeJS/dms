@@ -288,6 +288,36 @@ function keepsLogoFilesTheAppConfigJoins(): void {
     expectOk(await SetTheme(configDraft()), "SetTheme");
     expect(brandingFiles()).to.deep.equal([]);
   });
+
+  it("keeps a file a slot reaches through a built path with a query string or a fragment, and deletes it once nothing builds it", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [
+            upload("default", "light", PNG_LOGO, "image/png"),
+            upload("default", "dark", OTHER_PNG, "image/png"),
+          ],
+        }),
+      ),
+      "SetTheme",
+    );
+    const logos = expectOk(await GetTheme(), "GetTheme").logos.default;
+    const light = logos?.light ?? "";
+    const dark = logos?.dark ?? "";
+    const hashOf = (logo: string): string =>
+      /-([0-9a-f]{8})\.png$/.exec(logo)?.[1] ?? "";
+    const builtConfig = (extension: string): string =>
+      `const SLOT = "default";\nconst VERSION = "3";\nconst LIGHT_HASH = "${hashOf(light)}";\nconst DARK_HASH = "${hashOf(dark)}";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${light}", dark: "${dark}" }, email: { light: "/branding/" + SLOT + "-light-" + LIGHT_HASH + ".${extension}?v=" + VERSION, dark: \`/branding/\${SLOT}-dark-\${DARK_HASH}.${extension}#/a/\${VERSION}\` } } },\n});\n`;
+    writeLayerFile("app/app.config.ts", builtConfig("png"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.have.members([
+      light.replace("/branding/", ""),
+      dark.replace("/branding/", ""),
+    ]);
+    writeLayerFile("app/app.config.ts", builtConfig("jpg"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.deep.equal([]);
+  });
 }
 
 function writesOneFileOrNothing(): void {
