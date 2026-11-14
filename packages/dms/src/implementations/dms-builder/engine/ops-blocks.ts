@@ -445,7 +445,12 @@ export function configurePage(
     resolveRef: resourceRefResolver(),
   });
   try {
-    applyPatch(optionsArg, optionsPatch(optionsArg, scalar), false, ctx);
+    applyPatch(
+      optionsArg,
+      optionsPatch(optionsArg, scalar, context.page.id),
+      false,
+      ctx,
+    );
   } catch (error) {
     transaction.rollback();
     if (error instanceof InvalidValueError) {

@@ -25,18 +25,22 @@ type OptionsPatchValue =
  *
  * An option the patch sets to the value the file already reads as is left as
  * written, so echoing what was read back does not turn a constant into its value.
+ * A `displayName` the scanner cannot read reads as the page's or the category's
+ * `id`, so an echo of that `id` leaves the name's code as written.
  */
 export function optionsPatch(
   options: ObjectLiteralExpression,
   patch: Record<string, OptionsPatchValue>,
+  id: string,
 ): Record<string, OptionsPatchValue> {
+  const readAs = (key: string) =>
+    optionValue(options, key) ?? (key === "displayName" ? id : undefined);
   return Object.fromEntries(
     Object.entries(patch)
       .map(([key, value]) => [key, value === null ? undefined : value] as const)
       .filter(
         ([key, value]) =>
-          value === undefined ||
-          !isDeepStrictEqual(value, optionValue(options, key)),
+          value === undefined || !isDeepStrictEqual(value, readAs(key)),
       ),
   );
 }
