@@ -249,19 +249,22 @@ export function withUploads(
 }
 
 /**
- * Absolute paths of builder-named logo files the previous logos used and no
- * string the saved app config reaches names: a slot may reach a file through a
- * constant the logos do not read, in the app config or a file it imports.
+ * Absolute paths of builder-named logo files the previous logos used and whose
+ * file name no string the saved app config reaches contains: a slot may reach
+ * a file through a constant the logos do not read, in the app config or a file
+ * it imports, or through a path it builds at runtime around that file name.
  */
 export function orphanedAssets(
   publicDirectory: string,
   previousLogos: ThemeLogos,
-  keptPaths: ReadonlySet<string>,
+  keptStrings: ReadonlySet<string>,
 ): string[] {
+  const reached = [...keptStrings];
   return [...new Set(logoPaths(previousLogos))]
     .filter(
       (publicPath) =>
-        OWNED_ASSET.test(publicPath) && !keptPaths.has(publicPath),
+        OWNED_ASSET.test(publicPath) &&
+        !reached.some((text) => text.includes(path.posix.basename(publicPath))),
     )
     .map((publicPath) => path.join(publicDirectory, publicPath));
 }

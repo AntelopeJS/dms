@@ -67,8 +67,7 @@ function localImports(sourceFile: SourceFile, appDirectory: string): string[] {
 /**
  * Every string the app config spells as a literal, and every string a local
  * file it imports spells, through re-exports too: a logo slot may name its
- * path through a constant of another file. A path built at runtime is not
- * seen.
+ * path through a constant of another file.
  */
 export function reachableStringLiterals(appConfig: SourceFile): Set<string> {
   const appDirectory = path.dirname(appConfig.getFilePath());

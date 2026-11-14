@@ -117,17 +117,25 @@ export function readLogos(sourceFile: SourceFile): ThemeLogos {
   return logos;
 }
 
-/** Every string a file spells as a literal, wherever it sits. */
+/**
+ * Every string a file spells as a literal, wherever it sits, and the text
+ * between the substitutions of each template literal.
+ */
 export function stringLiterals(sourceFile: SourceFile): Set<string> {
   return new Set(
-    sourceFile
-      .getDescendants()
-      .filter(
-        (node) =>
-          Node.isStringLiteral(node) ||
-          Node.isNoSubstitutionTemplateLiteral(node),
-      )
-      .map((node) => node.getLiteralValue()),
+    sourceFile.getDescendants().flatMap((node) => {
+      if (
+        Node.isStringLiteral(node) ||
+        Node.isNoSubstitutionTemplateLiteral(node)
+      ) {
+        return [node.getLiteralValue()];
+      }
+      return Node.isTemplateHead(node) ||
+        Node.isTemplateMiddle(node) ||
+        Node.isTemplateTail(node)
+        ? [node.getLiteralText()]
+        : [];
+    }),
   );
 }
 
