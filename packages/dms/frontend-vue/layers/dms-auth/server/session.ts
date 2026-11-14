@@ -83,9 +83,59 @@ function singleFlight(
   return entry.promise;
 }
 
+/** The backend refresh of `refreshToken`, shared by the requests that ask together. */
+function refreshTokens(
+  event: DmsServerEvent,
+  accessToken: DmsSession["accessToken"],
+  refreshToken: string,
+): Promise<SessionTokens> {
+  return singleFlight(refreshToken, async () =>
+    tokenPair.parse(
+      await event.backend("/api/auth/refresh", {
+        method: "POST",
+        token: accessToken,
+        body: { token: refreshToken },
+      }),
+    ),
+  );
+}
+
+/**
+ * Revokes the backend session `refreshToken` belongs to. A logout the backend
+ * refuses, as it does with an expired access token, is sent once more with a
+ * renewed one, so the backend session does not outlive the sign-out.
+ */
+async function revoke(
+  event: DmsServerEvent,
+  accessToken: string,
+  refreshToken: string,
+) {
+  const logout = (token: string) =>
+    event.backend("/api/auth/logout", {
+      method: "POST",
+      token,
+      body: { token: refreshToken },
+    });
+  const refused = await logout(accessToken).then(() => false, isRefusal);
+  if (refused)
+    await refreshTokens(event, accessToken, refreshToken)
+      .then((tokens) => logout(tokens.access_token))
+      .catch(() => {});
+}
+
+/**
+ * Signs the browser out of `session`: clears it and forgets its stored
+ * account, whose refresh token would otherwise open it again.
+ */
+function signOut(event: DmsServerEvent, session: DmsSession | undefined) {
+  event.session.clear();
+  if (session?.accountId) removeAccount(event, session.accountId);
+}
+
 /**
  * Renews `session` with its refresh token, writes it and returns it; the rest
- * of the request runs with it. A refused refresh signs the browser out.
+ * of the request runs with it. A refused refresh signs the browser out of that
+ * account, its stored account included.
  * The frontend server calls it when the backend refuses a signed-in page
  * visit, and `POST /api/_auth/session` when the browser asks.
  */
@@ -96,14 +146,10 @@ export async function renewSession(
   const refreshToken = session?.refreshToken;
   if (!session || !refreshToken) return undefined;
   try {
-    const tokens = await singleFlight(refreshToken, async () =>
-      tokenPair.parse(
-        await event.backend("/api/auth/refresh", {
-          method: "POST",
-          token: session.accessToken,
-          body: { token: refreshToken },
-        }),
-      ),
+    const tokens = await refreshTokens(
+      event,
+      session.accessToken,
+      refreshToken,
     );
     const user = sessionUser.parse(
       await event.backend("/api/auth/me", { token: tokens.access_token }),
@@ -113,7 +159,7 @@ export async function renewSession(
     event.session.useForRequest(refreshed);
     return refreshed;
   } catch (error) {
-    if (isRefusal(error)) event.session.clear();
+    if (isRefusal(error)) signOut(event, session);
     event.session.useForRequest(undefined);
     return undefined;
   }
@@ -134,15 +180,8 @@ export async function refreshSessionRoute(event: DmsServerEvent) {
 export async function logoutRoute(event: DmsServerEvent) {
   const session = event.session.read();
   if (session?.refreshToken && session.accessToken)
-    await event
-      .backend("/api/auth/logout", {
-        method: "POST",
-        token: session.accessToken,
-        body: { token: session.refreshToken },
-      })
-      .catch(() => {});
-  event.session.clear();
-  if (session?.accountId) removeAccount(event, session.accountId);
+    await revoke(event, session.accessToken, session.refreshToken);
+  signOut(event, session);
   return {};
 }
 

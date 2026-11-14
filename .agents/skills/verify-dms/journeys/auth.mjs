@@ -1,5 +1,6 @@
 import { isUserRow, listOf, stringIn } from "../rows.mjs";
 import { accountJourneys } from "./auth/accounts.mjs";
+import { storedAccountJourneys } from "./auth/stored-account.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -202,4 +203,5 @@ export const journeys = [
     },
   },
   ...accountJourneys,
+  ...storedAccountJourneys,
 ];

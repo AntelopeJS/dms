@@ -36,7 +36,7 @@ export function createServerRoutesFixture() {
         relay: headerValue(request.headers["x-dms-oauth-relay"]),
         forwardedFor: headerValue(request.headers["x-forwarded-for"]),
       });
-      const answer = backendAnswer(path, body);
+      const answer = backendAnswer(path, body, request.headers.authorization);
       response.writeHead(answer.status, { "content-type": "application/json" });
       response.end(JSON.stringify(answer.body));
     });
