@@ -13,6 +13,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { z } from "zod";
 import type { FixtureScope } from "./fixtures";
+import { withFieldInputs } from "./form-fields";
 import {
   checkFixture,
   dataUrl,
@@ -256,7 +257,8 @@ const resourceForm: ControllerBlock = {
     const form = GetBlockType(FORM_TYPE);
     if (!form) return { ...node, options };
     validateBlockOptions(form, node, options, optionsAt, scope.issues);
-    return { ...node, options: componentOptionsOf(form, options) };
+    const filled = withFieldInputs(form, options, optionsAt, scope.issues);
+    return { ...node, options: componentOptionsOf(form, filled) };
   },
 };
 

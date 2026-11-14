@@ -6,6 +6,7 @@ import { stampedIdIssues } from "./anchor";
 import { CONTROLLER_BLOCKS } from "./controller-blocks";
 import type { FixtureScope } from "./fixtures";
 import { rewriteObject } from "./fixtures";
+import { withFieldInputs } from "./form-fields";
 import type {
   JsonObject,
   MockupIssue,
@@ -160,11 +161,14 @@ const blockKind: NodeKind = {
         scope.issues,
         (child) => descriptorOf(child, scope.catalog)?.type ?? child.type,
       );
+      const options = withFieldInputs(
+        descriptor,
+        compiled.options,
+        `${pointer}/options`,
+        scope.issues,
+      );
       return compileChildren(
-        {
-          ...compiled,
-          options: componentOptionsOf(descriptor, compiled.options),
-        },
+        { ...compiled, options: componentOptionsOf(descriptor, options) },
         pointer,
         layoutPath,
         scope,
