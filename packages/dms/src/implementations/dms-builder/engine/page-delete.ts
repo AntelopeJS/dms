@@ -8,14 +8,13 @@ import type { ClassDeclaration } from "ts-morph";
 import { checkVersion, commit, isError, notFound, openPage } from "./ops";
 import { dropOrphanedModelMethod } from "./query-ops-emit";
 import { findQueryRoutes, routeModelBinding } from "./query-structure";
+import { pruneUnusedLocals, referencedLocalNames } from "./local-bindings";
 import {
   findImporters,
   findPageClass,
   holdsOnlyImports,
   pruneUnusedImports,
-  pruneUnusedLocals,
   referencedImportNames,
-  referencedLocalNames,
   Transaction,
 } from "./writable";
 
