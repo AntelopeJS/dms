@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { DEFAULT_CLIENT_BASE_URL, getClientBaseUrl } from "../../config";
 import { pagesBySlug } from "../../utils";
+import { sendToLeaderTabs } from "../../realtime";
 import { defineTool, textResult } from "../tool";
 
 const DMS_MODULE_ID = "dms";
@@ -52,7 +53,7 @@ const navigateToPage = defineTool({
   name: "navigate_to_page",
   title: "Navigate to page",
   description:
-    "Resolves a registered page from its path and answers the dashboard URL it is served at, for the person to open: outside the dashboard chat no browser tab is driven. A path that is not a registered page route answers the closest known routes instead, so it never sends anyone to a 404. Call list_pages for the real routes; never guess one from a filename.",
+    "Resolves a registered page from its path, moves the open dashboard tab of each browser (the one holding its realtime connection) to it, and answers its dashboard URL and how many browsers moved. A path that is not a registered page route answers the closest known routes instead, so it never sends anyone to a 404. Call list_pages for the real routes; never guess one from a filename.",
   effect: "read",
   input: z.object({ path: z.string() }),
   async run({ path }) {
@@ -73,11 +74,20 @@ const navigateToPage = defineTool({
       "",
     );
     const url = `${origin}${route}`;
+    const tabs = sendToLeaderTabs({
+      topic: "dms:navigate",
+      type: "navigate",
+      payload: { path: route },
+      ts: Date.now(),
+    });
     return textResult(
       JSON.stringify({
         ok: true,
-        data: { path: route, url },
-        message: `Open ${url} in the dashboard.`,
+        data: { path: route, url, tabs },
+        message:
+          tabs > 0
+            ? `Moved the dashboard tab of ${tabs} browser(s) to ${url}.`
+            : `No dashboard tab is open: open ${url}.`,
       }),
     );
   },
