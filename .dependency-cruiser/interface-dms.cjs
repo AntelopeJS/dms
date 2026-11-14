@@ -35,6 +35,7 @@ const tiers = [
     "realtime.ts",
     "uploads.ts",
     "tenant-access.ts",
+    "connection-access.ts",
     "utils/",
     "constants.ts",
     "types.ts",

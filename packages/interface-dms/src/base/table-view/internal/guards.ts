@@ -12,6 +12,7 @@ import {
 } from "@antelopejs/interface-data-api/components";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { z } from "zod";
+import { AssertConnectionWritable } from "../../../connection-access";
 import type { JsonValue } from "../../../json";
 import type { AfterWrite, GuardFn } from "../../types/guards";
 import { fetchRowForGuard } from "../data-functions";
@@ -286,6 +287,7 @@ export const createGuardedConfirmRoute = <
       params: GuardedActionParams[K],
       confirmBody: Buffer,
     ) {
+      await AssertConnectionWritable(this.constructor);
       const guard = getGuardForAction(this, actionName);
       const afterWrite = guard
         ? await config.invokeGuard(this, ctx, params, confirmBody, guard)
@@ -336,6 +338,7 @@ export const createGuardedWriteRoute = <
       body: Validation.WrittenBody,
       ...rest: Rest
     ) {
+      await AssertConnectionWritable(this.constructor);
       const guard = getGuardForAction(this, actionName);
       if (!guard) return baseRoute.func.call(this, ctx, params, body, ...rest);
       const writtenBody = Validation.ParseBody(body);

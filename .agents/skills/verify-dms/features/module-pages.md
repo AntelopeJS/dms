@@ -8,6 +8,7 @@ covers:
   - packages/dms/src/implementations/dms/uploads.ts
   - packages/dms/src/implementations/dms/realtime.ts
   - packages/dms/src/implementations/dms/route-params.ts
+  - packages/dms/src/implementations/dms/connection-access.ts
   - packages/dms/src/attachments/**
   - packages/dms/src/realtime/**
   - packages/dms/src/routes/realtime.ts
@@ -39,6 +40,7 @@ covers:
   - packages/dms/frontend-vue/layers/dms-core/app/composables/period/**
   - packages/dms/frontend-vue/layers/dms-layout/app/emails/EmailExportReady.vue
   - packages/interface-dms/src/base/**
+  - packages/interface-dms/src/connection-access.ts
   - packages/interface-dms/src/page/**
   - packages/interface-dms/src/db/**
   - packages/interface-dms/src/data-controllers/index.ts

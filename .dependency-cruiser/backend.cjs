@@ -18,6 +18,7 @@ const loaderEntries = [
   "dms/invite-extensions",
   "dms/permissions-resolver",
   "dms/tenant-access",
+  "dms/connection-access",
   "dms/saas-mode",
   "dms/attachments",
   "dms/realtime",
