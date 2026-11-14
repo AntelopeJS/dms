@@ -44,6 +44,7 @@ import { knownRoutes, type PageTarget, resolvePage } from "./targets";
 
 export * from "./accounts";
 export * from "./failures";
+export * from "./forms";
 export * from "./mockup";
 export * from "./render";
 export * from "./page-probe";
