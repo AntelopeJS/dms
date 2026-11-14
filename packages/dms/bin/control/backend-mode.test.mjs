@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { join } from "node:path";
 import test from "node:test";
 import { freshDatabase, restartBackend } from "./backend.mjs";
 import {
@@ -87,6 +88,19 @@ await test("a watch backend loads the module from the checkout's module folder, 
     ),
     [state.moduleRoot, state.moduleRoot, null, null],
   );
+});
+
+await test("a watch backend restarted on another build, as the base version's, loads that build's module folder", async (t) => {
+  const state = await newRun(t);
+  await freshDatabase(state, "j001", { backend: "watch" });
+  const baseModuleRoot = join(state.dir, "base-module");
+  await restartBackend(state, {
+    playground: state.playground,
+    cwd: state.runPlayground ?? state.playground,
+    moduleRoot: baseModuleRoot,
+  });
+  const base = await served(state);
+  assert.equal(await moduleRootOfBackend(base.pid), baseModuleRoot);
 });
 
 await test("a restart inside a journey that pins production in a dev run keeps production", async (t) => {
