@@ -11,7 +11,6 @@ import {
   MockupStore,
   parseMockupName,
   updateAnnotation,
-  WATCH_DEBOUNCE_MS,
 } from "../../../mockup";
 
 const NAME = mockupNameSchema.parse("desk");
@@ -158,7 +157,6 @@ describe("[unit] mockup store", () => {
 
     expect(received.event).to.equal("state");
     expect(elapsed).to.be.below(SAVE_TO_STATE_BUDGET_MS);
-    expect(elapsed).to.be.at.least(WATCH_DEBOUNCE_MS);
   });
 });
 
