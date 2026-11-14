@@ -54,7 +54,7 @@ function arrangesOneCalculationPerBlock(): void {
     this.timeout(OP_TIMEOUT);
     expectOk(await AddQuery(PAGE, MONTHLY), "AddQuery");
     expect(app.read(PAGE_FILE)).to.contain(
-      "return { series: await model.revenue() };",
+      "return { series: await model.revenue().run() };",
     );
   });
 
@@ -78,7 +78,7 @@ function arrangesOneCalculationPerBlock(): void {
       );
 
       expect(route.text).to.contain(
-        "return { series: await model.revenue() };",
+        "return { series: await model.revenue().run() };",
       );
       expect(
         route.symbols.map((symbol) => symbol.name),
@@ -100,7 +100,7 @@ function arrangesOneCalculationPerBlock(): void {
 
     const page = app.read(PAGE_FILE);
     expect(page).to.contain(
-      'chartCardData(await model.revenueCard(), { measure: "sum", label: "Amount"',
+      'chartCardData(await model.revenueCard().run(), { measure: "sum", label: "Amount"',
     );
     expect(page, "the helper is imported, not reinvented").to.contain(
       'import { ChartCardData, chartCardData } from "@antelopejs/interface-dms/base";',
@@ -120,7 +120,7 @@ function arrangesOneCalculationPerBlock(): void {
       "AddQuery",
     );
     expect(app.read(PAGE_FILE)).to.contain(
-      'chartCardData(await model.ordersCard(), { measure: "count", label: "order"',
+      'chartCardData(await model.ordersCard().run(), { measure: "count", label: "order"',
     );
   });
 
@@ -135,7 +135,7 @@ function arrangesOneCalculationPerBlock(): void {
       "AddQuery",
     );
     expect(app.read(PAGE_FILE)).to.contain(
-      "topListData(await model.topMonths()",
+      "topListData(await model.topMonths().run()",
     );
   });
 
@@ -241,7 +241,7 @@ function comparesAgainstThePeriodBefore(): void {
       '@Parameter("from", "query") from: string | true | undefined,',
     );
     expect(page).to.contain(
-      "previous: await model.revenueTrend(new Date(String(compareFrom)), new Date(String(compareTo)))",
+      "previous: await model.revenueTrend(new Date(String(compareFrom)), new Date(String(compareTo))).run()",
     );
   });
 
@@ -266,10 +266,10 @@ function comparesAgainstThePeriodBefore(): void {
 
     const page = app.read(PAGE_FILE);
     expect(page).to.contain(
-      "chartCardData(await model.revenueTrend(new Date(String(from)), new Date(String(to)))",
+      "chartCardData(await model.revenueTrend(new Date(String(from)), new Date(String(to))).run()",
     );
     expect(page).to.contain(
-      "previous: await model.revenueTrend(new Date(String(compareFrom)), new Date(String(compareTo)))",
+      "previous: await model.revenueTrend(new Date(String(compareFrom)), new Date(String(compareTo))).run()",
     );
     const trend = await queryNamed("revenueTrend");
     expect(trend?.params).to.include({ limit: 12 });

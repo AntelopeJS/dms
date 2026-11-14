@@ -194,7 +194,7 @@ export interface QueryStructure {
   opaque?: boolean;
   /**
    * Set when `opaque === true`. `unparseable_route` — the GET wrapper is not the
-   * recognized `return { value: await model.m(...) }` shape. `unparseable_chain`
+   * recognized `return { value: await model.m(...).run() }` shape. `unparseable_chain`
    * — the model method it calls is not a chain any registered template accepts
    * (hand-written, edited out of grammar, or from a newer builder).
    */

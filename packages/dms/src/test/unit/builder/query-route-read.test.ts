@@ -24,11 +24,22 @@ describe("reading whether a route compares", () => {
   it("reads a card handed the preceding period as comparing", () => {
     const call = parseQueryRouteCall(
       routeMethod(
-        'return chartCardData(await model.revenue(new Date(from), new Date(to)), { measure: "sum", label: "Amount", previous: await model.revenue(new Date(compareFrom), new Date(compareTo)) });',
+        'return chartCardData(await model.revenue(new Date(from), new Date(to)).run(), { measure: "sum", label: "Amount", previous: await model.revenue(new Date(compareFrom), new Date(compareTo)).run() });',
       ),
     );
     expect(call?.response).to.equal("card");
     expect(call?.compare).to.equal(true);
+    expect(call?.modelMethod).to.equal("revenue");
+  });
+
+  it("reads a route that awaits the model call without running it", () => {
+    const call = parseQueryRouteCall(
+      routeMethod(
+        'return chartCardData(await model.revenue(new Date(from), new Date(to)), { measure: "sum", label: "Amount" });',
+      ),
+    );
+    expect(call?.modelMethod).to.equal("revenue");
+    expect(call?.args).to.have.length(2);
   });
 
   it("reads a card whose bounds are narrowed from the query string as comparing", () => {
@@ -54,7 +65,7 @@ describe("reading whether a route compares", () => {
   it("reads a card without one as not comparing", () => {
     const call = parseQueryRouteCall(
       routeMethod(
-        'return chartCardData(await model.revenue(new Date(from), new Date(to)), { measure: "sum", label: "Amount" });',
+        'return chartCardData(await model.revenue(new Date(from), new Date(to)).run(), { measure: "sum", label: "Amount" });',
       ),
     );
     expect(call?.response).to.equal("card");
