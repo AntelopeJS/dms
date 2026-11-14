@@ -4,6 +4,7 @@
 @import "@nuxt/ui";
 @plugin "@tailwindcss/typography";
 @source "../../app.config.ts";
+@source "../../theme";
 
 @import "./foundation.css";
 
