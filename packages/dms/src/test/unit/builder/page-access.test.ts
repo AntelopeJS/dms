@@ -1,4 +1,6 @@
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { PermissionTree } from "@antelopejs/interface-dms";
+import { RoleModel } from "@antelopejs/interface-dms/db";
 import { expect } from "chai";
 import {
   ConfigurePage,
@@ -64,7 +66,6 @@ const SUPPORT: RoleAccess = {
   id: "r1",
   name: "Support",
   members: 3,
-  all: false,
   permissions: ["pages.shop.board"],
 };
 
@@ -244,5 +245,24 @@ function readsThePermissionAPageNames(): void {
     const access = await pageAccess("/shop/board", undefined);
     expect(access?.mode).to.equal("unmanaged");
     expect(access?.roles).to.equal(null);
+  });
+
+  it("lists a role whose only grant is * as reaching no page", async function () {
+    this.timeout(30_000);
+    const tenant = "page-access-stored-wildcard";
+    const [wildcardId, supportId] = await GetModel(RoleModel, tenant).insert([
+      { name: "Stored *", permissions: ["*"] },
+      { name: "Support", permissions: ["pages.shop.board", "pages.other"] },
+    ]);
+    const access = await pageAccess("/shop/board", tenant);
+    expect(access?.roles).to.deep.equal([
+      { id: String(wildcardId), name: "Stored *", members: 0, permissions: [] },
+      {
+        id: String(supportId),
+        name: "Support",
+        members: 0,
+        permissions: ["pages.shop.board"],
+      },
+    ]);
   });
 }
