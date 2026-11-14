@@ -13,7 +13,14 @@ import { createServer, get } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import { arrayOf, decode, isNumber, isString, objectOf } from "../json.mjs";
+import {
+  arrayOf,
+  decode,
+  isNumber,
+  isString,
+  nullable,
+  objectOf,
+} from "../json.mjs";
 import { isSameProcess, startTimeOf } from "../identity.mjs";
 import { freePort, restartablePort, stopRecorded } from "../processes.mjs";
 import {
@@ -28,7 +35,7 @@ import { down } from "../stack.mjs";
 let runs = 0;
 const REGISTRY_WAIT_MS = 10_000;
 
-/** A backend that answers every request with its pid and the database it was started on, and reports both to the test's registry once it listens, with the \`ajs project\` command that started it. The report stays open while the backend runs, so its end tells the registry the backend is gone. */
+/** A backend that answers every request with its pid and the database it was started on, and reports both to the test's registry once it listens, with the \`ajs project\` command that started it and the module folder its configuration loads the module from (\`DMS_MODULE_ROOT\`, else none). The report stays open while the backend runs, so its end tells the registry the backend is gone. */
 const FAKE_BACKEND = `
 const http = require("node:http");
 const self = JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE });
@@ -39,7 +46,7 @@ const server = http.createServer((request, response) => {
 server.listen(Number(process.env.PORT), "127.0.0.1", () => {
   const report = http.request(process.env.FAKE_REGISTRY, { method: "POST" });
   report.on("error", () => undefined);
-  report.write(JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE, command: process.argv.slice(3, process.argv.indexOf("-e")).join(" ") }) + "\\n");
+  report.write(JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE, command: process.argv.slice(3, process.argv.indexOf("-e")).join(" "), moduleRoot: process.env.DMS_MODULE_ROOT ?? null }) + "\\n");
 });
 `;
 
@@ -75,6 +82,7 @@ const isReported = objectOf({
   pid: isNumber,
   database: isString,
   command: isString,
+  moduleRoot: nullable(isString),
 });
 const isDropped = arrayOf(isString);
 
@@ -141,10 +149,29 @@ export async function startedOn(database) {
  * @returns {Promise<string>} Its command
  */
 export async function commandOf(pid) {
+  return (await reportOf(pid)).command;
+}
+
+/**
+ * The module folder the backend `pid` was told to load the module from,
+ * once it listens, or `null` when it loads it where its configuration says.
+ *
+ * @param {number} pid The backend
+ * @returns {Promise<string | null>} Its `DMS_MODULE_ROOT`
+ */
+export async function moduleRootOfBackend(pid) {
+  return (await reportOf(pid)).moduleRoot;
+}
+
+/**
+ * @param {number} pid The backend
+ * @returns {Promise<{ command: string, moduleRoot: string | null }>} What it reported once it listened
+ */
+async function reportOf(pid) {
   const deadline = Date.now() + REGISTRY_WAIT_MS;
   for (;;) {
     const backend = started.findLast((entry) => entry.pid === pid);
-    if (backend) return backend.command;
+    if (backend) return backend;
     assert.ok(Date.now() < deadline, `backend ${pid} reports its command`);
     await sleep(20);
   }
