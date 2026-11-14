@@ -3,6 +3,7 @@ import {
   type Identifier,
   Node,
   type SourceFile,
+  type Symbol as BindingSymbol,
   SyntaxKind,
   type VariableDeclaration,
 } from "ts-morph";
@@ -50,14 +51,37 @@ function patternElements(pattern: Node): Node[] {
     : [];
 }
 
+/** The elements of a declaration's patterns, at any depth, that bind a name. */
+function namedElements(declaration: VariableDeclaration): BindingElement[] {
+  return declaration
+    .getNameNode()
+    .getDescendantsOfKind(SyntaxKind.BindingElement)
+    .filter((element) => Node.isIdentifier(element.getNameNode()));
+}
+
+/**
+ * Whether one name can leave the declaration alone. A literal destructured in
+ * place is checked against the pattern, so dropping one of several names from
+ * the pattern alone fails on the literal's excess member.
+ */
+function isPrunableSingly(declaration: VariableDeclaration): boolean {
+  const initializer = declaration.getInitializer();
+  return (
+    namedElements(declaration).length === 1 ||
+    !(
+      Node.isObjectLiteralExpression(initializer) ||
+      Node.isArrayLiteralExpression(initializer)
+    )
+  );
+}
+
 function removeBindingElement(
   declaration: VariableDeclaration,
   element: BindingElement,
 ): void {
   const pattern = element.getParentOrThrow();
   const kept = patternElements(pattern);
-  const named = kept.filter((child) => Node.isBindingElement(child));
-  if (named.length === 1 && pattern === declaration.getNameNode()) {
+  if (namedElements(declaration).length === 1) {
     declaration.remove();
     return;
   }
@@ -85,7 +109,10 @@ function patternBindings(declaration: VariableDeclaration): LocalBinding[] {
           Node.isBindingElement(child) &&
           child.getDotDotDotToken() !== undefined,
       );
-      return !hasRest || element.getDotDotDotToken() !== undefined;
+      return (
+        isPrunableSingly(declaration) &&
+        (!hasRest || element.getDotDotDotToken() !== undefined)
+      );
     })
     .flatMap((element) => {
       const name = element.getNameNode();
@@ -156,16 +183,31 @@ function isLocalReferenced(
 ): boolean {
   const start = local.scope.getStart();
   const end = local.scope.getEnd();
+  const symbol = local.binding.getSymbol();
   return referenceStarts(sourceFile, local.binding).some(
     (position) =>
       (position < start || position >= end) &&
-      !isPropertyKey(sourceFile.getDescendantAtPos(position)),
+      readsSymbol(sourceFile.getDescendantAtPos(position), symbol),
   );
 }
 
-function isPropertyKey(node: Node | undefined): boolean {
+/**
+ * Whether the identifier at a highlight reads the local's own symbol. A
+ * highlight of a destructured name also covers the property it came from: a
+ * key, a property signature or a `labels.board` access, none of which reads it.
+ */
+function readsSymbol(
+  node: Node | undefined,
+  symbol: BindingSymbol | undefined,
+): boolean {
   const parent = node?.getParent();
-  return Node.isPropertyAssignment(parent) && parent.getNameNode() === node;
+  if (node === undefined || Node.isExportSpecifier(parent)) {
+    return true;
+  }
+  const read = Node.isShorthandPropertyAssignment(parent)
+    ? parent.getValueSymbol()
+    : node.getSymbol();
+  return read === undefined || read === symbol;
 }
 
 /**

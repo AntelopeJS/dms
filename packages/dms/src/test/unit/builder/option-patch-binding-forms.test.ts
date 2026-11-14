@@ -104,9 +104,15 @@ describe("the binding forms a patched option read", () => {
       "const { board }",
     ],
     [
+      "a name destructured from an interface-typed value",
+      "board",
+      'export interface Labels {\n  board: string;\n}\nconst labels: Labels = { board: "Board" };\nconst { board } = labels;\nexport const other = labels.board;',
+      "const { board }",
+    ],
+    [
       "one name of an array destructuring",
       "board",
-      'const [board, other] = ["Board", "Other"];\nexport const kept = other;',
+      'const labels = ["Board", "Other"];\nconst [board, other] = labels;\nexport const kept = other;',
       "board,",
     ],
   ];
@@ -144,4 +150,13 @@ describe("an unused local the patched option only spelled", () => {
       expect(await renameFrom(title, binding)).to.contain(draft);
     });
   }
+
+  it("keeps a destructuring of a literal another name still reads", async function () {
+    this.timeout(OP_TIMEOUT);
+    const binding =
+      'const { board, other } = { board: "Board", other: "Other" };';
+    expect(
+      await renameFrom("board", `${binding}\nexport const kept = other;`),
+    ).to.contain(binding);
+  });
 });
