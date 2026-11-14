@@ -4,6 +4,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel, type UserInvite, UserInviteModel } from "./db";
+import { InviteResolutionsModel } from "./db/internal/inviteResolutions.model";
 import { normalizeEmail, UserModel } from "./auth/db";
 import randomstring from "randomstring";
 import { fireAndForget } from "./utils/fire-and-forget";
@@ -269,10 +270,7 @@ async function createAdmittedInviteToken(
     return yieldToWinner(await userInviteModel.getByEmail(email), replacement);
   }
   const rival = await userInviteModel.getOtherByEmail(email, replacement._id);
-  if (rival) {
-    await userInviteModel.delete(replacement._id);
-    return yieldToWinner(rival, replacement);
-  }
+  if (rival) return withdrawFreshInvite(tenantId, replacement, rival);
   await ExecuteHooks(Hook.INVITE_CREATED, {
     tenantId,
     inviteId: replacement._id,
@@ -282,6 +280,26 @@ async function createAdmittedInviteToken(
     roleIds,
   });
   return { inviteId: replacement._id, token: replacement.token };
+}
+
+/**
+ * Withdraws a fresh invite that found a rival, through its decision: a
+ * replacement decided on it first is completed and kept instead.
+ */
+async function withdrawFreshInvite(
+  tenantId: string,
+  fresh: UserInvite,
+  rival: UserInvite,
+): Promise<CreateUserInviteTokenResult> {
+  const decisions = GetModel(InviteResolutionsModel, tenantId);
+  const { resolution, claimed } = await decisions.withdraw(tenantId, fresh);
+  if (!claimed) {
+    await completeAdmittedInviteResolution(resolution);
+    return yieldToWinner(resolution.replacement ?? rival, fresh);
+  }
+  await GetModel(UserInviteModel, tenantId).delete(fresh._id);
+  await decisions.update(resolution._id, { completed: true });
+  return yieldToWinner(rival, fresh);
 }
 
 function yieldToWinner(

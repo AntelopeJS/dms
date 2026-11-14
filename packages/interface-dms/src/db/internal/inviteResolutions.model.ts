@@ -4,6 +4,7 @@ import {
   type InviteMembershipPhase,
   InviteResolution,
 } from "../tables/inviteResolutions.table";
+import type { UserInvite } from "../tables/user_invites.table";
 import { inviteResolutionsTableName } from "./table-names";
 import type { InviteDecision } from "../models/inviteResolutions.model";
 
@@ -79,6 +80,45 @@ export class InviteResolutionsModel extends BasicDataModel(
       throw insertError ?? new Error("Invite decision was not persisted");
     }
     return resolution;
+  }
+
+  /**
+   * Claims the decision of a fresh invite that lost its email to a rival, so
+   * no replacement can be decided on it once it is withdrawn.
+   *
+   * @returns The invite's decision, and whether this call recorded it
+   */
+  async withdraw(
+    tenantId: string,
+    invite: UserInvite,
+  ): Promise<{ resolution: InviteResolution; claimed: boolean }> {
+    const id = decisionId(tenantId, invite._id);
+    const revision = randomUUID();
+    let insertError: unknown;
+    try {
+      await this.insert({
+        tenantId,
+        invite,
+        inviteToken: invite.token,
+        reason: "cancelled",
+        extensionKeys: [],
+        _id: id,
+        userId: null,
+        replacement: null,
+        revision,
+        membershipPhase: "pending",
+        replacementPhase: "pending",
+        completed: false,
+        decidedAt: new Date(),
+      });
+    } catch (error) {
+      insertError = error;
+    }
+    const resolution = await this.get(id);
+    if (!resolution) {
+      throw insertError ?? new Error("Invite withdrawal was not persisted");
+    }
+    return { resolution, claimed: resolution.revision === revision };
   }
 
   /** Advances a membership stage only against the exact observed revision. */
