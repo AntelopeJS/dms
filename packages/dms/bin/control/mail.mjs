@@ -189,7 +189,10 @@ export function serveMail(folder, port) {
   const server = createServer(session(folder));
   return new Promise((resolve, reject) => {
     server.once("error", reject);
-    server.listen(port, "127.0.0.1", () => resolve(server));
+    server.listen(port, "127.0.0.1", () => {
+      server.off("error", reject);
+      resolve(server);
+    });
   });
 }
 

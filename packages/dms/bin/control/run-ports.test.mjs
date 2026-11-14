@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
 import test from "node:test";
 import { ephemeralRange } from "./helpers/ephemeral-range.mjs";
 import { canNarrowRange, runInNarrowRange } from "./helpers/narrow-range.mjs";
 import { decode, isNumber, isString, nullable, objectOf } from "./json.mjs";
+import { freePort } from "./processes.mjs";
 import { runPorts } from "./stack.mjs";
 
 /**
@@ -107,5 +109,18 @@ await test("a run's three ports are distinct and lie outside the kernel's epheme
       port < low || port > high,
       `${port} lies in the ephemeral range ${low}-${high}`,
     );
+  }
+});
+
+await test("a run takes no port fetch refuses to connect to; a version that keeps 6000, 10080 or 2049 makes fetch throw bad port", async (t) => {
+  const candidates = [6000, 10080, 2049];
+  for (let index = 0; index < 3; index += 1) candidates.push(await freePort());
+  const ports = await runPorts(async () => candidates.shift() ?? freePort());
+  for (const port of Object.values(ports)) {
+    const server = createServer((_, response) => response.end("ok"));
+    await new Promise((resolve) => server.listen(port, "127.0.0.1", resolve));
+    t.after(() => server.close());
+    const response = await fetch(`http://127.0.0.1:${port}/`);
+    assert.equal(await response.text(), "ok", `fetch reaches ${port}`);
   }
 });
