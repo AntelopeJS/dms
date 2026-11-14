@@ -84,17 +84,21 @@ await test("shape: every other spelling of a range is refused, even when semver 
   assert.deepEqual(accepted, []);
 });
 
-await test("unsafe integers: a number beyond 2^53 - 1 in the version or the range is refused, as semver refuses it (catches parts read with Number and compared after rounding)", () => {
+await test("unsafe integers: a number beyond 2^53 - 1 in the version or the range is refused, as semver refuses it (catches a missing or partial safe-integer guard on any part)", () => {
   const observed = [
     ["0.9007199254740992.0", ">=0.4.0 <1.0.0"],
     ["0.4.99999999999999999999", ">=0.4.0 <1.0.0"],
     ["0.4.1", ">=0.4.0 <9007199254740992.0.0"],
+    ["0.4.1", ">=0.4.0 <1.9007199254740992.0"],
+    ["1.0.0", ">=0.9007199254740992.0 <2.0.0"],
     ["0.4.1", ">=0.4.0 <9007199254740991.0.0"],
   ].map(([version, range]) => [
     satisfiesBoundedRange(version, range),
     semver.satisfies(version, range),
   ]);
   assert.deepEqual(observed, [
+    [false, false],
+    [false, false],
     [false, false],
     [false, false],
     [false, false],

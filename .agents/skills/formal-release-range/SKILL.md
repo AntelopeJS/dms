@@ -66,7 +66,7 @@ Versions put the major at 0 (weight 8) or 1 to 4, the minor around the floor min
 Ranges are the canonical range for the floor and 29 mutations of it (cap and floor changes, other operators, spacing, `v` prefix, prerelease or build bounds, a union, a wildcard, empty, missing, and leading zeros).
 An explicit table pins the three oracle readings for seven versions on `>=0.9.1 <0.10.0`, and another pins ten malformed or long versions against `semver.satisfies`.
 
-The bounded properties run 1000 cases with default seed `20261114`, also overridable with `FC_SEED`. Each floor and cap part is 0 to 2 or 8 to 11, so floors above the cap occur too. The version is the floor, the cap or any such triple, followed by nothing, a `next` or `rc` prerelease `.0` to `.2`, or `+build.0` or `+sha.abc123`. The bounded shape test refuses 18 other spellings, among them leading and trailing junk, and a table pins four versions or ranges around 2^53 - 1 against `semver.satisfies`.
+Bounded membership runs 1000 cases with default seed `20261114`, also overridable with `FC_SEED`. Each floor and cap part is 0 to 2 or 8 to 11, so floors above the cap occur too. The version is the floor, the cap or any such triple, followed by nothing, a `next` or `rc` prerelease `.0` to `.2`, or `+build.0` or `+sha.abc123`. The bounded shape test refuses 18 other spellings, among them leading and trailing junk, and a table pins six versions or ranges around 2^53 - 1 against `semver.satisfies`.
 
 The properties do not draw numbers beyond 2^53 (only the unsafe-integers table does), versions or ranges with a leading `v` or `=` on the version, version strings that are not valid semver, or any other check in the `validate` step. The workflow wiring (the step imports `./checks/release-range.mjs` as an ES module) was confirmed by extracting the step and running it, not by a test: a test that read `release.yml` would break the repo's rule that no test reads the file it covers.
 `satisfiesImplementedRange` only accepts the exact spelling `>=0.M.p <0.(M+1).0`. A semver-equivalent spelling (two spaces, a trailing space) is rejected on purpose.
@@ -95,7 +95,7 @@ In a scratch copy of `checks/release-range.mjs`, `checks/release-range.test.mjs`
 | --- | --- |
 | Numbers compared as strings | Range fails for `>=0.9.0 <0.10.0`, membership for `0.10.0` on `>=0.1.1 <0.2.0`. Bounded membership fails for `8.0.0` on `>=1.1.9 <10.2.11`. |
 | Drop the patch comparison | Membership fails for `0.9.0` on `>=0.9.3 <0.10.0`. Bounded membership fails too. |
-| Ignore the major | Membership and cap fail for `1.2.2` on `>=0.2.2 <0.3.0`. Bounded membership fails too. |
+| Ignore the major | Membership fails for `1.2.2` on `>=0.2.2 <0.3.0`, cap for `1.2.1` on `>=0.2.1 <0.3.0`. Bounded membership fails too. |
 | Exclusive floor | Range fails for `>=0.0.4 <0.1.0` at the floor itself. Membership and bounded membership fail too. |
 | Inclusive cap | Membership and cap fail for `0.11.0` on `>=0.10.1 <0.11.0`. Bounded membership fails for `9.1.11` on `>=1.1.0 <9.1.11`. |
 | Drop `capMinor === floorMinor + 1` | Range fails for `>=0.11.1 <0.13.0` ("cap skips a minor"). |
@@ -104,10 +104,10 @@ In a scratch copy of `checks/release-range.mjs`, `checks/release-range.test.mjs`
 | Drop the `^` of the range pattern | Bounded shape fails: it accepts `<0.4.1 >=0.4.0 <1.0.0` and `x>=0.4.0 <1.0.0`. |
 | Drop the `$` of the range pattern | Range fails for `>=0.9.3 <0.10.0 ` ("trailing space"). Bounded shape fails too. |
 | Accept a prerelease | Prerelease and the oracle table fail. Bounded membership fails for `1.8.2-next.0` on `>=1.8.2 <9.0.2`. |
-| Refuse build metadata | Prerelease and the oracle table fail. Bounded membership fails for `8.0.0+build.0` on `>=1.1.9 <10.2.11`. |
+| Refuse build metadata | Prerelease, malformed versions and the oracle table fail. Bounded membership fails for `8.0.0+build.0` on `>=1.1.9 <10.2.11`. |
 | Accept a leading zero (`\d+`) | Range fails for `>=0.00.4 <0.1.0`. The leading-zero test, malformed versions and bounded shape fail too. |
 | Accept an empty build suffix | Malformed versions fails for `0.9.5+`. |
 | Accept `_` in build metadata | Malformed versions fails for `0.9.5+a_b`. |
 | Drop the 256-character cap | Malformed versions fails for a 257-character version. |
-| Drop the safe-integer guard in the range | Unsafe integers fails for `0.4.1` on `>=0.4.0 <9007199254740992.0.0`. |
-| Drop the safe-integer guard in the version | Unsafe integers fails for `0.9007199254740992.0` on `>=0.4.0 <1.0.0`. |
+| Drop the safe-integer guard in the range | Unsafe integers fails for `0.4.1` on `>=0.4.0 <9007199254740992.0.0`, `>=0.4.0 <1.9007199254740992.0`, and `1.0.0` on `>=0.9007199254740992.0 <2.0.0`. |
+| Drop the safe-integer guard in the version | Unsafe integers fails for `0.9007199254740992.0` and `0.4.99999999999999999999` on `>=0.4.0 <1.0.0`. |
