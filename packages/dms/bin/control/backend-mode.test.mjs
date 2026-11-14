@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
+import { join } from "node:path";
 import test from "node:test";
 import { freshDatabase, restartBackend } from "./backend.mjs";
-import { commandOf, newRun, served, startedOn } from "./helpers/fake-run.mjs";
+import {
+  commandOf,
+  moduleRootOfBackend,
+  newRun,
+  served,
+  startedOn,
+} from "./helpers/fake-run.mjs";
 import { isRunning } from "./identity.mjs";
 import { loadRun, saveRun } from "./run-state.mjs";
 
@@ -61,6 +68,39 @@ await test("a journey that pins watch gets ajs project dev -w, not the dev stand
     [await commandOf(pinned.pid), await commandOf(restarted.pid)],
     ["dev -w", "dev -w"],
   );
+});
+
+await test("a watch backend loads the module from the checkout's module folder, which the run's copy only links to, and a production or dev backend from the copy", async (t) => {
+  const state = await newRun(t);
+  await freshDatabase(state, "j001", { backend: "watch" });
+  const watching = await served(state);
+  await restartBackend(state);
+  const restarted = await served(state);
+  await freshDatabase(state, "j002");
+  const production = await served(state);
+  await freshDatabase(state, "j003", { backend: "dev" });
+  const dev = await served(state);
+  assert.deepEqual(
+    await Promise.all(
+      [watching, restarted, production, dev].map(({ pid }) =>
+        moduleRootOfBackend(pid),
+      ),
+    ),
+    [state.moduleRoot, state.moduleRoot, null, null],
+  );
+});
+
+await test("a watch backend restarted on another build, as the base version's, loads that build's module folder", async (t) => {
+  const state = await newRun(t);
+  await freshDatabase(state, "j001", { backend: "watch" });
+  const baseModuleRoot = join(state.dir, "base-module");
+  await restartBackend(state, {
+    playground: state.playground,
+    cwd: state.runPlayground ?? state.playground,
+    moduleRoot: baseModuleRoot,
+  });
+  const base = await served(state);
+  assert.equal(await moduleRootOfBackend(base.pid), baseModuleRoot);
 });
 
 await test("a restart inside a journey that pins production in a dev run keeps production", async (t) => {

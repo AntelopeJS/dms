@@ -8,6 +8,7 @@ import { runPrepare } from "./verify/skill.mjs";
 import { COPY_SKIPPED, layOutCopy } from "./run-copy.mjs";
 import { cliPaths, ENVIRONMENT, spec } from "./launch.mjs";
 import { restartBackend } from "./backend.mjs";
+import { moduleRootOf } from "./module-root.mjs";
 
 const READY_MARK = ".dms-control-ready";
 
@@ -84,7 +85,11 @@ export async function withBaseBackend(state, skill, action) {
       cwd,
     ),
   );
-  await restartBackend(state, { playground, cwd });
+  await restartBackend(state, {
+    playground,
+    cwd,
+    moduleRoot: moduleRootOf(playground, base.dir),
+  });
   try {
     await action(base.sha);
   } finally {

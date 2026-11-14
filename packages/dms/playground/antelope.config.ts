@@ -2,6 +2,7 @@ import { defineConfig } from "@antelopejs/interface-core/config";
 
 const preferredApiPort = process.env.PORT ?? "5010";
 const dmsClientUrl = process.env.DMS_CLIENT_BASE_URL;
+const dmsModuleRoot = process.env.DMS_MODULE_ROOT ?? "..";
 const dmsInstallCommand = process.env.DMS_PREBUILT
   ? []
   : ["pnpm build", "pnpm --dir playground build"];
@@ -17,7 +18,7 @@ export default defineConfig({
     dms: {
       source: {
         type: "local",
-        path: "..",
+        path: dmsModuleRoot,
         watchDir: ["src"],
         installCommand: dmsInstallCommand,
       },
