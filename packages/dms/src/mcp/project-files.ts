@@ -1,9 +1,10 @@
-import { chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { parse as parseToml } from "smol-toml";
 import { z } from "zod";
+import { writeOwnerOnlyFile } from "../utils";
 import { resolveBridgeOrigin } from "./backend-url";
 import { JsonObjectSchema } from "./json";
 
@@ -14,7 +15,6 @@ const PROJECT_MCP_JSON_FILE_NAME = ".mcp.json";
 const PROJECT_CODEX_CONFIG_SEGMENTS = [".codex", "config.toml"];
 /** The server's key in `.mcp.json` and `.codex/config.toml`, and so the `mcp__dms__` prefix of its tools in Claude Code. */
 const MCP_SERVER_KEY = "dms";
-const PRIVATE_FILE_MODE = 0o600;
 const PRIVATE_DIRECTORY_MODE = 0o700;
 const JSON_INDENT = 2;
 const FORMAT_PRINT_WIDTH = 80;
@@ -89,16 +89,6 @@ export function formatMcpJson(value: JsonValue): string {
 
 function launcherSource(): string {
   return `require(${JSON.stringify(BRIDGE_MODULE_PATH)}).runBridge(require("node:path").join(__dirname, ${JSON.stringify(BRIDGE_CONFIG_FILE_NAME)}), process.stdin, process.stdout);\n`;
-}
-
-async function writePrivateAtomically(
-  filePath: string,
-  content: string,
-): Promise<void> {
-  const temp = `${filePath}.${process.pid}.tmp`;
-  await writeFile(temp, content, { mode: PRIVATE_FILE_MODE });
-  await chmod(temp, PRIVATE_FILE_MODE);
-  await rename(temp, filePath);
 }
 
 const MissingFileSchema = z.object({ code: z.literal("ENOENT") });
@@ -233,7 +223,7 @@ export async function publishMcpBridge(target: McpBridgeTarget): Promise<void> {
 export async function publishBridge(files: BridgeFiles): Promise<void> {
   const cacheDir = path.join(files.projectPath, ...CACHE_DIR_SEGMENTS);
   await mkdir(cacheDir, { recursive: true, mode: PRIVATE_DIRECTORY_MODE });
-  await writePrivateAtomically(
+  await writeOwnerOnlyFile(
     path.join(cacheDir, BRIDGE_CONFIG_FILE_NAME),
     JSON.stringify({ url: files.url, token: files.token }),
   );
