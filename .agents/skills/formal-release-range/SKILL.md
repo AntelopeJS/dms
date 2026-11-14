@@ -20,7 +20,7 @@ FC_SEED=20261029 node --test --test-reporter=spec checks/release-range.test.mjs
 node --test --test-reporter=spec checks/bounded-range.test.mjs
 ```
 
-Expect exit code 0 and `fail 0`, with `pass 7` for the first file and `pass 2` for the second, whose default seed is `20261114`. The same files run in `pnpm test`, so `pnpm run checks` and the required CI `checks` job run them.
+Expect exit code 0 and `fail 0`, with `pass 7` for the first file and `pass 3` for the second, whose default seed is `20261114`. The same files run in `pnpm test`, so `pnpm run checks` and the required CI `checks` job run them.
 Change `FC_SEED` to explore another sample. Keep the failing seed and the printed counterexample when reporting a failure. The same seed reproduces the same generation and shrinking with the pinned fast-check version.
 
 Exit 1 means a property failed. Its output is the shrunk counterexample.
@@ -35,8 +35,9 @@ The oracle is `semver.satisfies(version, range)` with default options. It is the
 4. **Prerelease and build metadata.** For every version, prereleases and build metadata included, the rule and `semver.satisfies` agree.
 5. **Bounded membership.** For every `>=A.B.C <D.E.F` range and every version, prereleases and build metadata included, `satisfiesBoundedRange` and `semver.satisfies` agree. Versions are drawn on the floor, on the cap or anywhere.
 6. **Bounded shape.** Every other spelling of a range is refused, even where `semver` admits the version.
+7. **Unsafe integers.** A number beyond 2^53 - 1 in the version or the range is refused, as `semver` refuses it.
 
-On failure, rebuild the counterexample as a pair of `iface.version` and `pkg.dependencies['@antelopejs/interface-dms']`. Check these facts before calling it a product bug.
+On failure, rebuild the counterexample as a pair of `iface.version` and `pkg.dependencies['@antelopejs/interface-dms']`, or, for a bounded property, of `builder.version` and `pkg.dependencies['@antelopejs/interface-dms-builder']`. Check these facts before calling it a product bug.
 
 - The version is valid semver and the range is the text printed in the counterexample.
 - The oracle call uses default options, with no normalised range.
@@ -45,7 +46,7 @@ A malformed generator is a modelling error. A mismatch after those checks is a f
 
 ## Behaviour probe
 
-`probe.mjs` prints what the release workflow's `validate` step decides in a checkout, one line per case: 80 interface-dms version and range pairs, 42 interface-dms-builder version and range pairs, prereleases and build metadata included, and 8 manifests that each break one of the step's other checks. It extracts the step's node script from `release.yml`, wherever the rule lives (inline, as before #529, or imported from `checks/release-range.mjs`), and runs it on fixture manifests built from the checkout's own.
+`probe.mjs` prints what the release workflow's `validate` step decides in a checkout, one line per case: 80 interface-dms version and range pairs, 42 interface-dms-builder version and range pairs, prereleases and build metadata included, and 8 manifests that each break one of the step's other checks. It extracts the step's node script from `release.yml`, wherever the rule lives (inline, as before #529, or imported from `checks/release-range.mjs`), and runs it on fixture manifests built from the checkout's own. A checkout without `packages/interface-dms-builder` prints no builder rows.
 
 ```sh
 node .agents/skills/formal-release-range/probe.mjs <checkout>
@@ -65,7 +66,9 @@ Versions put the major at 0 (weight 8) or 1 to 4, the minor around the floor min
 Ranges are the canonical range for the floor and 29 mutations of it (cap and floor changes, other operators, spacing, `v` prefix, prerelease or build bounds, a union, a wildcard, empty, missing, and leading zeros).
 An explicit table pins the three oracle readings for seven versions on `>=0.9.1 <0.10.0`, and another pins ten malformed or long versions against `semver.satisfies`.
 
-The check does not cover numbers beyond 2^53, versions or ranges with a leading `v` or `=` on the version, version strings that are not valid semver, or any other check in the `validate` step. The workflow wiring (the step imports `./checks/release-range.mjs` as an ES module) was confirmed by extracting the step and running it, not by a test: a test that read `release.yml` would break the repo's rule that no test reads the file it covers.
+The bounded properties run 1000 cases with default seed `20261114`, also overridable with `FC_SEED`. Each floor and cap part is 0 to 2 or 8 to 11, so floors above the cap occur too. The version is the floor, the cap or any such triple, followed by nothing, a `next` or `rc` prerelease `.0` to `.2`, or `+build.0` or `+sha.abc123`. The bounded shape test refuses 18 other spellings, among them leading and trailing junk, and a table pins four versions or ranges around 2^53 - 1 against `semver.satisfies`.
+
+The properties do not draw numbers beyond 2^53 (only the unsafe-integers table does), versions or ranges with a leading `v` or `=` on the version, version strings that are not valid semver, or any other check in the `validate` step. The workflow wiring (the step imports `./checks/release-range.mjs` as an ES module) was confirmed by extracting the step and running it, not by a test: a test that read `release.yml` would break the repo's rule that no test reads the file it covers.
 `satisfiesImplementedRange` only accepts the exact spelling `>=0.M.p <0.(M+1).0`. A semver-equivalent spelling (two spaces, a trailing space) is rejected on purpose.
 
 ## Coverage record
@@ -86,24 +89,25 @@ Move the sync commit forward only after confirming the properties still describe
 
 ## Confirm the check can fail
 
-In a scratch copy of `checks/release-range.mjs` and `checks/release-range.test.mjs` outside the repo, apply one break at a time to the module, run the command above, and restore it. These breaks were caught at the sync commit with seed `20261029`. Every run exited 1, and the restored copy exited 0.
+In a scratch copy of `checks/release-range.mjs`, `checks/release-range.test.mjs` and `checks/bounded-range.test.mjs` outside the repo, apply one break at a time to the module, run both test files, and restore it. These breaks were caught at the sync commit with the default seeds (`20261029` and `20261114`). Every break made at least one file exit 1, and the restored copy exited 0 on both.
 
 | Scratch break | Failing observation |
 | --- | --- |
-| Numbers compared as strings | Range fails for floor `0.11.1`. Membership, prerelease and the oracle table fail too. |
-| `minor === floorMinor` to `>=` | Cap fails for floor `0.0.1`, version `0.1.1`. Membership fails too. |
-| `>=` to `>` on the floor patch | Range fails for floor `0.11.1` at the floor itself. Membership fails too. |
-| Drop the patch comparison | Membership fails for floor `0.9.3`, version `0.9.0`. |
-| Drop `capMinor === floorMinor + 1` | Range fails for `>=0.2.2 <0.4.0` ("cap skips a minor"). |
-| Ignore the major | Membership and cap fail for floor `0.2.2`, version `1.2.2`. |
-| Drop the `$` of the range pattern | Range fails for `>=0.0.1 <0.1.0 \|\| >=0.20.0 <0.21.0`. |
-| Accept a prerelease | Prerelease fails for floor `0.0.0`, version `0.0.0-next.0`. The oracle table fails too. |
-| Refuse build metadata | Prerelease fails for floor `0.8.2`, version `0.8.2+build.0`. The oracle table fails too. |
-| Accept a leading zero (`\d+`) | Range fails for `>=0.0.00 <0.1.0`. The leading-zero test fails too. |
-| Accept a leading zero in the version (`\d+`) | Malformed versions fails for `0.09.5`. |
+| Numbers compared as strings | Range fails for `>=0.9.0 <0.10.0`, membership for `0.10.0` on `>=0.1.1 <0.2.0`. Bounded membership fails for `8.0.0` on `>=1.1.9 <10.2.11`. |
+| Drop the patch comparison | Membership fails for `0.9.0` on `>=0.9.3 <0.10.0`. Bounded membership fails too. |
+| Ignore the major | Membership and cap fail for `1.2.2` on `>=0.2.2 <0.3.0`. Bounded membership fails too. |
+| Exclusive floor | Range fails for `>=0.0.4 <0.1.0` at the floor itself. Membership and bounded membership fail too. |
+| Inclusive cap | Membership and cap fail for `0.11.0` on `>=0.10.1 <0.11.0`. Bounded membership fails for `9.1.11` on `>=1.1.0 <9.1.11`. |
+| Drop `capMinor === floorMinor + 1` | Range fails for `>=0.11.1 <0.13.0` ("cap skips a minor"). |
+| Drop `capMajor === 0` | Range fails for `>=0.0.3 <1.1.0` ("cap major one"). |
+| Drop `capPatch === 0` | Range fails for `>=0.3.1 <0.4.1` ("cap patch"). |
+| Drop the `^` of the range pattern | Bounded shape fails: it accepts `<0.4.1 >=0.4.0 <1.0.0` and `x>=0.4.0 <1.0.0`. |
+| Drop the `$` of the range pattern | Range fails for `>=0.9.3 <0.10.0 ` ("trailing space"). Bounded shape fails too. |
+| Accept a prerelease | Prerelease and the oracle table fail. Bounded membership fails for `1.8.2-next.0` on `>=1.8.2 <9.0.2`. |
+| Refuse build metadata | Prerelease and the oracle table fail. Bounded membership fails for `8.0.0+build.0` on `>=1.1.9 <10.2.11`. |
+| Accept a leading zero (`\d+`) | Range fails for `>=0.00.4 <0.1.0`. The leading-zero test, malformed versions and bounded shape fail too. |
 | Accept an empty build suffix | Malformed versions fails for `0.9.5+`. |
 | Accept `_` in build metadata | Malformed versions fails for `0.9.5+a_b`. |
 | Drop the 256-character cap | Malformed versions fails for a 257-character version. |
-| Drop `capMajor === 0` | Range fails for `>=0.M.p <1.(M+1).0` ("cap major one"). |
-
-These breaks of `satisfiesBoundedRange` each fail bounded membership or bounded shape with seed `20261114`: an inclusive cap, an exclusive floor, numbers compared as strings, the patch ignored, a prerelease accepted, and the range pattern without its end anchor.
+| Drop the safe-integer guard in the range | Unsafe integers fails for `0.4.1` on `>=0.4.0 <9007199254740992.0.0`. |
+| Drop the safe-integer guard in the version | Unsafe integers fails for `0.9007199254740992.0` on `>=0.4.0 <1.0.0`. |

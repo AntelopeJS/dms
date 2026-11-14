@@ -82,11 +82,12 @@ function readManifest(file) {
 
 const pkg = readManifest(path.join(checkout, "packages", "dms", "package.json"));
 const iface = readManifest(path.join(checkout, "packages", "interface-dms", "package.json"));
-const builder = readManifest(path.join(checkout, "packages", "interface-dms-builder", "package.json"));
+const builderFile = path.join(checkout, "packages", "interface-dms-builder", "package.json");
+const builder = existsSync(builderFile) ? readManifest(builderFile) : undefined;
 const manifests = (/** @type {Manifest} */ dms, /** @type {string} */ version, builderVersion = BUILDER_CANONICAL.version) => ({
   "packages/dms/package.json": dms,
   "packages/interface-dms/package.json": { ...iface, version },
-  "packages/interface-dms-builder/package.json": { ...builder, version: builderVersion },
+  ...(builder && { "packages/interface-dms-builder/package.json": { ...builder, version: builderVersion } }),
 });
 const withRange = (/** @type {string} */ range, builderRange = BUILDER_CANONICAL.range) => ({
   ...pkg,
@@ -98,7 +99,7 @@ for (const range of RANGES) {
     console.log(`range ${JSON.stringify(range)} version ${version}\texit ${decide(checkout, step, manifests(withRange(range), version))}`);
   }
 }
-for (const range of BUILDER_RANGES) {
+for (const range of builder ? BUILDER_RANGES : []) {
   for (const version of BUILDER_VERSIONS) {
     console.log(`builder range ${JSON.stringify(range)} version ${version}\texit ${decide(checkout, step, manifests(withRange(CANONICAL.range, range), CANONICAL.version, version))}`);
   }

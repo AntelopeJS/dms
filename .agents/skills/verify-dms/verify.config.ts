@@ -278,9 +278,9 @@ const config: VerifyConfig = {
     },
     {
       name: "formal-release-range",
-      covers: ["checks/release-range.mjs", "checks/release-range.test.mjs", ".github/workflows/release.yml"],
-      files: ["checks/release-range.test.mjs", ".agents/skills/formal-release-range/**"],
-      command: ["node", "--test", "--test-reporter=tap", "checks/release-range.test.mjs"],
+      covers: ["checks/release-range.mjs", "checks/release-range.test.mjs", "checks/bounded-range.test.mjs", ".github/workflows/release.yml"],
+      files: ["checks/release-range.test.mjs", "checks/bounded-range.test.mjs", ".agents/skills/formal-release-range/**"],
+      command: ["node", "--test", "--test-reporter=tap", "checks/release-range.test.mjs", "checks/bounded-range.test.mjs"],
       violation: /^not ok \d+ - (.+?)(?: # TODO.*)?$/gm,
       passing: /^ok \d+ - (.+?)(?: # TODO.*)?$/gm,
       behaviour: { kind: "probe", command: ["node", ".agents/skills/formal-release-range/probe.mjs"] },

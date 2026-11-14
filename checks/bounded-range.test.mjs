@@ -56,7 +56,7 @@ await test("membership: the rule agrees with semver.satisfies on every >=A.B.C <
   });
 });
 
-await test("shape: every other spelling of a range is refused, even when semver admits the version (catches a pattern without anchors or one that reads any comparator)", () => {
+await test("shape: every other spelling of a range is refused, even when semver admits the version (catches a pattern without its start or end anchor, or one that reads any comparator)", () => {
   const version = "0.4.1";
   const spellings = [
     "^0.4.0",
@@ -72,6 +72,8 @@ await test("shape: every other spelling of a range is refused, even when semver 
     ">=v0.4.0 <1.0.0",
     ">=0.4.0-0 <1.0.0",
     ">=0.4.0 <1.0.0 || >=2.0.0 <3.0.0",
+    "<0.4.1 >=0.4.0 <1.0.0",
+    "x>=0.4.0 <1.0.0",
     ">=0.04.0 <1.0.0",
     "",
     undefined,
@@ -80,4 +82,22 @@ await test("shape: every other spelling of a range is refused, even when semver 
     satisfiesBoundedRange(version, range),
   );
   assert.deepEqual(accepted, []);
+});
+
+await test("unsafe integers: a number beyond 2^53 - 1 in the version or the range is refused, as semver refuses it (catches parts read with Number and compared after rounding)", () => {
+  const observed = [
+    ["0.9007199254740992.0", ">=0.4.0 <1.0.0"],
+    ["0.4.99999999999999999999", ">=0.4.0 <1.0.0"],
+    ["0.4.1", ">=0.4.0 <9007199254740992.0.0"],
+    ["0.4.1", ">=0.4.0 <9007199254740991.0.0"],
+  ].map(([version, range]) => [
+    satisfiesBoundedRange(version, range),
+    semver.satisfies(version, range),
+  ]);
+  assert.deepEqual(observed, [
+    [false, false],
+    [false, false],
+    [false, false],
+    [true, true],
+  ]);
 });

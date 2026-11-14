@@ -17,7 +17,7 @@ const compare = (left, right) =>
 
 /**
  * The floor and cap of a `>=A.B.C <D.E.F` range, or undefined for any other
- * spelling.
+ * spelling or a number beyond 2^53 - 1.
  *
  * @param {string | undefined} range
  * @returns {{ floor: number[], cap: number[] } | undefined}
@@ -26,12 +26,14 @@ const parseBounded = (range) => {
   const bounds = BOUNDED.exec(range ?? "");
   if (!bounds) return undefined;
   const numbers = bounds.slice(1).map(Number);
+  if (!numbers.every(Number.isSafeInteger)) return undefined;
   return { floor: numbers.slice(0, 3), cap: numbers.slice(3) };
 };
 
 /**
  * The `major.minor.patch` of a release version, or undefined for a prerelease,
- * a number with a leading zero or a version longer than 256 characters.
+ * a number with a leading zero or beyond 2^53 - 1, or a version longer than 256
+ * characters.
  *
  * @param {string} version
  * @returns {number[] | undefined}
@@ -39,7 +41,8 @@ const parseBounded = (range) => {
 const parseRelease = (version) => {
   const release =
     version.length <= MAX_VERSION_LENGTH ? RELEASE.exec(version) : null;
-  return release ? release.slice(1).map(Number) : undefined;
+  const numbers = release?.slice(1).map(Number);
+  return numbers?.every(Number.isSafeInteger) ? numbers : undefined;
 };
 
 /**
@@ -50,8 +53,8 @@ const parseRelease = (version) => {
  *
  * Neither bound carries a prerelease, so `semver` admits no prerelease version,
  * and it ignores build metadata. A number with a leading zero is not semver, in
- * the range or in the version, and `semver` refuses a version longer than 256
- * characters.
+ * the range or in the version, and `semver` refuses a number beyond 2^53 - 1
+ * and a version longer than 256 characters.
  *
  * The release workflow runs this before any install, so it imports nothing.
  *
