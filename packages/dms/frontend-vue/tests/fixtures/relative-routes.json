@@ -1,0 +1,26 @@
+{
+  "accepted": [
+    "/",
+    "/orders",
+    "/orders/new",
+    "/api/books?page=2&sort=-title",
+    "/orders?tab=open#top",
+    "/caf%C3%A9",
+    "/café"
+  ],
+  "refused": [
+    "",
+    "orders",
+    "//evil.com",
+    "/\\evil.com",
+    "https://evil.com/x",
+    "javascript:alert(1)",
+    "/a b",
+    "/a\u00a0b",
+    "/\t/evil.example/steal",
+    "/\n/evil.example/steal",
+    "/\r/evil.example/steal",
+    "/\u0000/evil.example/steal",
+    "/a\u007f"
+  ]
+}
