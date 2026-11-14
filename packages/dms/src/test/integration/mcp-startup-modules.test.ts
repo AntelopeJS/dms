@@ -1,10 +1,10 @@
 import path from "node:path";
 import { expect } from "chai";
 
-const TS_MORPH_DIR = path.dirname(require.resolve("ts-morph/package.json"));
+const TS_MORPH_SEGMENT = `${path.sep}node_modules${path.sep}ts-morph${path.sep}`;
 
 const tsMorphFilesAtStart = Object.keys(require.cache).filter((file) =>
-  file.startsWith(TS_MORPH_DIR + path.sep),
+  file.includes(TS_MORPH_SEGMENT),
 );
 
 /**
