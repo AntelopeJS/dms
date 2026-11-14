@@ -5,7 +5,7 @@ import {
   RegisteringProxy,
 } from "@antelopejs/interface-core";
 import {
-  type Class,
+  type DecoratorTarget,
   MakeClassDecorator,
 } from "@antelopejs/interface-core/decorators";
 
@@ -60,7 +60,7 @@ class ExternalConnectionMeta {
 
   public connection: string | undefined;
 
-  constructor(public readonly target: Class) {}
+  constructor(public readonly target: DecoratorTarget) {}
 
   /** A controller derived from this one writes to the same connection. */
   public inherit(parent: ExternalConnectionMeta): void {
@@ -89,7 +89,7 @@ export const ExternalConnection = MakeClassDecorator(
  * @param controller The data controller's class
  */
 export async function AssertConnectionWritable(
-  controller: Class,
+  controller: DecoratorTarget,
 ): Promise<void> {
   const { connection } = GetMetadata(controller, ExternalConnectionMeta);
   if (connection === undefined) {
