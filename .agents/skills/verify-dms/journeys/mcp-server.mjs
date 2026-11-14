@@ -1,6 +1,7 @@
-import { readFileSync, statSync } from "node:fs";
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { BRIDGE_LAUNCHER, fieldOf, itemsOf, parseJson, textOf, toolText, withBridge } from "../mcp-bridge.mjs";
+import { createRole, joinedMember } from "./settings-members/steps.mjs";
 
 /**
  * @typedef {import("../../../../packages/dms/bin/control/journey.mjs").JourneyContext} Ctx
@@ -12,6 +13,42 @@ const PERMISSION_BITS = 0o777;
 const METHOD_NOT_FOUND = -32601;
 const INVALID_PARAMS = -32602;
 const USERS_PAGE = "/table-view/table-view-users";
+const USERS_PERMISSION = "library.components.table-view.table-view-users";
+const MOCKUP = "page-verify-member";
+const MOCKUP_SPEC = {
+  version: 1,
+  title: "Users desk",
+  pages: [
+    {
+      id: "users",
+      title: "Users",
+      fixtures: { users: [{ _id: "u1", name: "Ada" }, { _id: "u2", name: "Grace" }] },
+      tree: [
+        {
+          type: "TableView",
+          options: {
+            caption: "Users",
+            fetchUrl: "fixture:users",
+            rowIdKey: "_id",
+            columns: { name: { name: "Name", type: "string", order: 1 } },
+          },
+        },
+      ],
+    },
+  ],
+};
+
+/**
+ * Writes the journey's mockup under the project's `mockups/`, which the
+ * development backend reads from its working directory.
+ *
+ * @param {string} root
+ */
+function writeMockup(root) {
+  const folder = join(root, "mockups", MOCKUP);
+  mkdirSync(folder, { recursive: true });
+  writeFileSync(join(folder, "spec.json"), JSON.stringify(MOCKUP_SPEC));
+}
 
 /** The MCP server the DMS serves in development, reached through its stdio bridge. */
 export const journeys = [
@@ -115,6 +152,45 @@ export const journeys = [
           ctx.holds("the New entry form showed validation", fieldOf(form, "ok") === true, JSON.stringify(form)),
           ctx.holds("the page screenshot is written under the project", screenshot.startsWith(".antelope/page-verify/") && statSync(join(root, screenshot)).size > 0, screenshot),
           ctx.holds("the unknown route names its failure", textOf(itemsOf(fieldOf(missing, "failures"))[0]).startsWith("not a registered page route"), JSON.stringify(missing)),
+        ]);
+      });
+    },
+  },
+  {
+    id: "page-verify-member-against-mockup",
+    title: "page_verify opens a page as a member holding only one role and draws the mockup comparison through the owner's session, which the member is refused",
+    entryPoint: `node ${BRIDGE_LAUNCHER}, tools/call page_verify { role, mockup }`,
+    backend: "dev",
+    async run(/** @type {Ctx} */ ctx) {
+      writeMockup(ctx.state.runPlayground ?? ctx.state.playground);
+      const roleName = ctx.unique("Reviewer");
+      await createRole(ctx, roleName, [USERS_PERMISSION, `${USERS_PERMISSION}.table`]);
+      const admin = await ctx.tab("admin");
+      await admin.signIn("admin");
+      const { email } = await joinedMember(ctx, admin, { firstName: "Iris", roleName });
+      const owner = await ctx.api("GET the mockup as the owner", { method: "GET", path: `/api/mockup/${MOCKUP}` });
+      const member = await ctx.api("GET the mockup as the member", { method: "GET", path: `/api/mockup/${MOCKUP}`, as: "iris" });
+      await ctx.verify("only the owner reads the mockup the viewer draws", [ctx.status(owner, 200), ctx.status(member, 403)]);
+      await withBridge(ctx, async (session) => {
+        const { text } = toolText(
+          await session.call("page_verify", { page: USERS_PAGE, role: roleName, mockup: MOCKUP, viewports: ["desktop"] }),
+        );
+        const report = parseJson(text);
+        const account = fieldOf(report, "account");
+        const [users] = itemsOf(fieldOf(report, "pages"));
+        const comparison = fieldOf(fieldOf(users, "render"), "mockup");
+        const [table] = itemsOf(fieldOf(comparison, "blocks"));
+        const [desktop] = itemsOf(fieldOf(fieldOf(users, "render"), "viewports"));
+        const pageTable = itemsOf(fieldOf(desktop, "blocks")).find((block) => fieldOf(block, "path") === fieldOf(table, "pagePath"));
+        await ctx.verify("the page opened as the member and the mockup was drawn beside it", [
+          ctx.equal("signed in as a member", fieldOf(account, "kind"), "member"),
+          ctx.equal("the member is the invited one", fieldOf(account, "email"), email),
+          ctx.equal("the member holds the asked role", fieldOf(account, "role"), roleName),
+          ctx.equal("the comparison names the mockup", fieldOf(comparison, "mockup"), MOCKUP),
+          ctx.equal("the viewer drew the mockup", fieldOf(comparison, "unavailable"), undefined),
+          ctx.holds("the mockup screenshot is written", textOf(fieldOf(comparison, "screenshot")).startsWith(".antelope/page-verify/"), JSON.stringify(comparison)),
+          ctx.equal("the mockup table pairs with the page table", fieldOf(table, "status"), "matched"),
+          ctx.equal("the member's page drew that table", fieldOf(pageTable, "present"), true),
         ]);
       });
     },
