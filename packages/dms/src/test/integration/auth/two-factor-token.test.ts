@@ -1,15 +1,14 @@
-import type { KeyObject } from "node:crypto";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { UserModel } from "@antelopejs/interface-dms/auth/db";
+import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
 import { sign } from "jsonwebtoken";
 import {
   generateTwoFactorToken,
   validateRefreshToken,
 } from "../../../implementations/dms-auth";
-import { generateSecret } from "../../../implementations/dms-auth/services";
 import { registerUser, type RegisteredUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
+import { resign, signFor } from "../../helpers/forged-tokens";
 import { createClient } from "../../helpers/http";
 
 const TWO_FACTOR_ROUTES = [
@@ -18,6 +17,8 @@ const TWO_FACTOR_ROUTES = [
 ];
 const HTTP_BAD_REQUEST = 400;
 const HTTP_UNAUTHORIZED = 401;
+const HTTP_TOO_MANY_REQUESTS = 429;
+const ATTEMPTS_PER_CHALLENGE = 5;
 const INVALID_TWO_FACTOR_TOKEN = "error.invalid_2fa_token";
 const TWO_FACTOR_PURPOSE = "2fa";
 const UNKNOWN_USER_ID = "no-such-user";
@@ -36,10 +37,10 @@ function attempt(route: string, token: string) {
   return post(route, { token, code: TOTP_CODE, method: "totp" });
 }
 
-async function userSecret(userId: string): Promise<KeyObject> {
+async function storedUser(userId: string): Promise<User> {
   const stored = await GetModel(UserModel).get(userId);
   if (!stored) throw new Error(`No user ${userId}`);
-  return generateSecret(stored.authKey);
+  return stored;
 }
 
 async function tenantOf(user: RegisteredUser): Promise<string> {
@@ -52,16 +53,16 @@ async function badTokens(
 ): Promise<Record<string, string>> {
   const tenantId = await tenantOf(user);
   const claims = { id: user.userId, tenantId, purpose: TWO_FACTOR_PURPOSE };
-  const secret = await userSecret(user.userId);
+  const stored = await storedUser(user.userId);
   const nowSeconds = Math.floor(Date.now() / 1000);
   return {
     "an unknown user": sign({ ...claims, id: UNKNOWN_USER_ID }, FOREIGN_SECRET),
     "a bad signature": sign(claims, FOREIGN_SECRET),
-    "an expired challenge": sign(
-      { ...claims, exp: nowSeconds - SECONDS_PER_MINUTE },
-      secret,
-    ),
-    "another purpose": sign({ ...claims, purpose: "refresh" }, secret),
+    "an expired challenge": signFor(stored, {
+      ...claims,
+      exp: nowSeconds - SECONDS_PER_MINUTE,
+    }),
+    "another purpose": signFor(stored, { ...claims, purpose: "refresh" }),
   };
 }
 
@@ -114,5 +115,23 @@ describe("[integration] auth/two-factor token", () => {
       HTTP_BAD_REQUEST,
     );
     expect(response.data).to.equal("error.2fa_email_not_enabled");
+  });
+
+  it("counts a re-signed copy's tries against the original challenge", async () => {
+    const stored = await storedUser(user.userId);
+    const { token } = generateTwoFactorToken(await tenantOf(user), stored);
+    const wrongCode = (sent: string) =>
+      post("/api/auth/verify-2fa", {
+        token: sent,
+        code: "0",
+        method: "backup",
+      });
+    for (let attempt = 0; attempt < ATTEMPTS_PER_CHALLENGE; attempt++) {
+      expect((await wrongCode(token)).status).to.equal(HTTP_UNAUTHORIZED);
+    }
+    const copy = await wrongCode(resign(token));
+    expect(copy.status, JSON.stringify(copy.data)).to.equal(
+      HTTP_TOO_MANY_REQUESTS,
+    );
   });
 });

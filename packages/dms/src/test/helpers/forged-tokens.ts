@@ -7,11 +7,12 @@ import {
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { assert, expect } from "chai";
-import { type JwtPayload, sign } from "jsonwebtoken";
+import { decode, type JwtPayload, sign } from "jsonwebtoken";
 import {
-  generateSecret,
-  UNKNOWN_USER_AUTH_KEY,
+  tokenSecret,
+  userTokenMac,
 } from "../../implementations/dms-auth/services";
+import { isJwtClaims } from "../../utils";
 
 const TENANT_ID = "forged-claims-tenant";
 
@@ -48,20 +49,46 @@ export function forge(claims: JwtPayload): string {
   return sign({ tenantId: TENANT_ID, ...claims }, "forged-secret");
 }
 
-/** A token carrying `claims`, signed for `user`. */
+const TOKEN_LIFETIME_SECONDS = 3600;
+
+/** A token carrying `claims`, signed for `user` with the instance key. */
 export function signFor(user: User, claims: JwtPayload): string {
+  const iat = Math.floor(Date.now() / 1000);
+  const payload = {
+    id: user._id,
+    tenantId: TENANT_ID,
+    iat,
+    exp: iat + TOKEN_LIFETIME_SECONDS,
+    ...claims,
+  };
   return sign(
-    { id: user._id, tenantId: TENANT_ID, ...claims },
-    generateSecret(user.authKey),
+    { ...payload, key: userTokenMac(user.authKey, payload) },
+    tokenSecret(),
   );
 }
 
-/** A token carrying `claims`, signed with the key verified when no user matched. */
-export function signForUnknownUser(claims: JwtPayload): string {
-  return sign(
-    { id: UNKNOWN_USER_ID, tenantId: TENANT_ID, ...claims },
-    generateSecret(UNKNOWN_USER_AUTH_KEY),
-  );
+/**
+ * A token signed with the instance key that reuses the `key` claim of
+ * `captured` over new `claims`, as someone who knows `jwtSecret` would.
+ */
+export function reuseKeyOf(captured: string, claims: JwtPayload): string {
+  const decoded = decode(captured);
+  assert(isJwtClaims(decoded), "captured token carries claims");
+  const key: unknown = decoded.key;
+  return sign({ tenantId: TENANT_ID, ...claims, key }, tokenSecret(), {
+    expiresIn: TOKEN_LIFETIME_SECONDS * 24,
+  });
+}
+
+/**
+ * `token` signed again with the instance key, its claims in reverse order and
+ * `overrides` applied, as someone who knows `jwtSecret` would.
+ */
+export function resign(token: string, overrides: JwtPayload = {}): string {
+  const decoded = decode(token);
+  assert(isJwtClaims(decoded), "token carries claims");
+  const reversed = Object.fromEntries(Object.entries(decoded).reverse());
+  return sign({ ...reversed, ...overrides }, tokenSecret());
 }
 
 /** Stores a validated owner for token tests to name. */
@@ -100,6 +127,25 @@ export async function hmacsDuring(run: () => Promise<void>): Promise<number> {
     Reflect.set(crypto, "createHmac", createHmac);
   }
   return count;
+}
+
+/** The ids every user lookup asked for while `run` ran. */
+export async function userReadsDuring(
+  run: () => Promise<void>,
+): Promise<string[]> {
+  const model = GetModel(UserModel);
+  const get = model.get.bind(model);
+  const reads: string[] = [];
+  model.get = async (...args: Parameters<UserModel["get"]>) => {
+    reads.push(String(args[0]));
+    return get(...args);
+  };
+  try {
+    await run();
+  } finally {
+    Reflect.deleteProperty(model, "get");
+  }
+  return reads;
 }
 
 /** The ids every session lookup asked for while `run` ran. */
