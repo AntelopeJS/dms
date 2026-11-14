@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect } from "chai";
+import ts from "typescript";
 import { setBuilderConfig } from "../../../config";
 import { scaffoldLocalModule } from "../../../implementations/dms-builder/engine";
 
@@ -14,6 +15,40 @@ function scaffoldWith(files: Record<string, string>) {
     fs.writeFileSync(path.join(root, name), text);
   }
   return scaffoldLocalModule("m", "modules/m");
+}
+
+/** What `tsc` reports and writes for a scaffolded module, built in memory from its files. */
+function build(files: Record<string, string>) {
+  const scaffold = scaffoldWith(files);
+  for (const [file, text] of [
+    ...scaffold.files,
+    [scaffold.entryFile, scaffold.entryText],
+  ]) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, text);
+  }
+  const config = ts.getParsedCommandLineOfConfigFile(
+    path.join(scaffold.root, "tsconfig.json"),
+    undefined,
+    { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined },
+  );
+  expect(config?.errors).to.deep.equal([]);
+  const program = ts.createProgram(
+    config?.fileNames ?? [],
+    config?.options ?? {},
+  );
+  const written = new Map<string, string>();
+  const emit = program.emit(undefined, (file, text) => written.set(file, text));
+  const diagnostics = [
+    ...ts.getPreEmitDiagnostics(program),
+    ...emit.diagnostics,
+  ];
+  return {
+    errors: diagnostics.map((d) =>
+      ts.flattenDiagnosticMessageText(d.messageText, " "),
+    ),
+    entry: written.get(path.join(scaffold.root, "dist", "index.js")),
+  };
 }
 
 function fileOf(files: Record<string, string>, name: string): string {
@@ -54,7 +89,7 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
         },
         "package.json",
       );
-      expect(text).to.contain('"typescript"');
+      expect(text).to.contain('"typescript": "^6.0.3"');
       expect(text).not.to.contain(`"${name}"`);
     });
   }
@@ -74,10 +109,31 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
         "tsconfig.json",
       );
       expect(text).to.equal(
-        '{\n  "compilerOptions": {\n    "rootDir": "src",\n    "outDir": "dist",\n    "tsBuildInfoFile": "dist/.tsbuildinfo"\n  },\n  "include": [\n    "src/**/*.ts"\n  ]\n}\n',
+        '{\n  "compilerOptions": {\n    "module": "commonjs",\n    "moduleResolution": "bundler",\n    "rootDir": "src",\n    "outDir": "dist",\n    "tsBuildInfoFile": "dist/.tsbuildinfo"\n  },\n  "include": [\n    "src/**/*.ts"\n  ]\n}\n',
       );
     });
   }
+
+  it("builds the module to CommonJS in dist from a typecheck-only project", function () {
+    this.timeout(30_000);
+    const { errors, entry } = build({
+      "tsconfig.json": JSON.stringify({
+        compilerOptions: {
+          noEmit: true,
+          emitDeclarationOnly: true,
+          declaration: true,
+          outFile: "out.js",
+          module: "preserve",
+          moduleResolution: "bundler",
+          allowImportingTsExtensions: true,
+          verbatimModuleSyntax: true,
+          strict: true,
+        },
+      }),
+    });
+    expect(errors).to.deep.equal([]);
+    expect(entry).to.match(/^exports\.construct = construct;$/m);
+  });
 
   it("refuses a dependency whose range is not a string", () => {
     expect(() =>
