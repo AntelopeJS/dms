@@ -56,20 +56,20 @@ await test("a package copied into a linked package's node_modules refuses the ke
     "node_modules",
   );
   write(join(checkout, store, "color-lib", "index.js"), "export default 1;\n");
-  for (const name of ["color-lib", join("@acme", "color-lib")]) {
-    const copied = join(shared, "node_modules", name);
+  for (const name of [["color-lib"], ["@acme", "color-lib"]]) {
+    const copied = join(shared, "node_modules", ...name);
     write(join(copied, "index.js"), 'export default "COLOR-V1";\n');
     assert.throws(
       () => keyOf(frontend, side),
       new RegExp(
-        `${name} is a package copied into a linked package's node_modules`,
+        `${name.join("[\\\\/]")} is a package copied into a linked package's node_modules`,
         "u",
       ),
       "a key that skips a linked package's node_modules serves the build of the copy's old files",
     );
     rmSync(copied, { recursive: true });
     symlinkSync(
-      join("../".repeat(name.split("/").length + 2), store, "color-lib"),
+      join("../".repeat(name.length + 2), store, "color-lib"),
       copied,
     );
   }
@@ -93,7 +93,7 @@ await test("a link the key cannot follow refuses the key; a link into a keyed pa
   symlinkSync("missing.js", join(shared, "dangling.js"));
   assert.throws(
     () => keyOf(frontend, side),
-    /node_modules\/inner links to .*packages\/inner, which the build cache does not key/u,
+    /node_modules[\\/]inner links to .*packages[\\/]inner, which the build cache does not key/u,
     "a key reading a linked package's node_modules by link text serves a build of the old files of a package linked only from inside it",
   );
   symlinkSync("../../packages/inner", join(modules, "inner"));
@@ -109,7 +109,7 @@ await test("a link the key cannot follow refuses the key; a link into a keyed pa
   symlinkSync(theme, join(shared, "theme.css"));
   assert.throws(
     () => keyOf(frontend, side),
-    /shared-ui\/theme\.css links to .*elsewhere\/theme\.css, which the build cache does not key/u,
+    /shared-ui[\\/]theme\.css links to .*elsewhere[\\/]theme\.css, which the build cache does not key/u,
     "a key that hashes a link's text serves a build of the old file it reaches",
   );
   rmSync(join(shared, "theme.css"));
@@ -117,7 +117,7 @@ await test("a link the key cannot follow refuses the key; a link into a keyed pa
   symlinkSync("../inner/.dms-frontend/dist/chunk.js", join(shared, "chunk.js"));
   assert.throws(
     () => keyOf(frontend, side),
-    /shared-ui\/chunk\.js links to .*\.dms-frontend\/dist\/chunk\.js, which the build cache does not key/u,
+    /shared-ui[\\/]chunk\.js links to .*\.dms-frontend[\\/]dist[\\/]chunk\.js, which the build cache does not key/u,
     "a key that counts a keyed package's run outputs as keyed serves a build of the output it reached",
   );
 });
@@ -132,7 +132,7 @@ await test("a link inside a package copied into node_modules that the key cannot
   symlinkSync(color, join(modules, "ui-kit", "node_modules", "color-lib"));
   assert.throws(
     () => keyOf(frontend, side),
-    /ui-kit\/node_modules\/color-lib links to/u,
+    /ui-kit[\\/]node_modules[\\/]color-lib links to/u,
     "a key that hashes a copied package's links by their text serves a build of the old files they reach",
   );
 });

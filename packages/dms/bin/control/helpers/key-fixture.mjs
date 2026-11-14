@@ -18,7 +18,7 @@ import { write } from "./repo.mjs";
  * @param {import("node:test").TestContext} t The test
  */
 export function fixture(t) {
-  const dir = realpathSync(
+  const dir = realpathSync.native(
     mkdtempSync(join(tmpdir(), "dms-control-build-key-test-")),
   );
   t.after(() => rmSync(dir, { recursive: true, force: true }));

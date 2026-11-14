@@ -5,7 +5,12 @@ import { join } from "node:path";
 import { createInterface } from "node:readline";
 import test from "node:test";
 import { bystander, newRun, storedRun } from "./helpers/fake-run.mjs";
-import { currentNamespaces, isRunning, startTimeOf } from "./identity.mjs";
+import {
+  currentNamespaces,
+  hasProc,
+  isRunning,
+  startTimeOf,
+} from "./identity.mjs";
 import {
   decode,
   isBoolean,
@@ -210,35 +215,49 @@ await test("a run that recorded no namespaces, as an earlier dms-control wrote i
   assert.equal(isRunning(pid), false);
 });
 
-await test("mail, timings and api read a run started in another PID namespace; down on that run still refuses and leaves run.json as it was; a version that checks the namespace for every command fails mail, timings and api", async (t) => {
-  const state = await newRun(t);
-  state.namespaces = { ...currentNamespaces(), pid: "pid:[1]" };
-  saveRun(state);
-  const recorded = storedRun(state.dir);
-  /** @param {string[]} command */
-  const run = (...command) =>
-    spawnSync(
-      process.execPath,
-      [CONTROL_BIN, command[0], state.dir, ...command.slice(1)],
-      {
-        encoding: "utf8",
-      },
+await test(
+  "mail, timings and api read a run started in another PID namespace; down on that run still refuses and leaves run.json as it was; a version that checks the namespace for every command fails mail, timings and api",
+  {
+    skip:
+      !hasProc() &&
+      "the namespaces a process runs in are read from /proc/self/ns",
+  },
+  async (t) => {
+    const state = await newRun(t);
+    state.namespaces = { ...currentNamespaces(), pid: "pid:[1]" };
+    saveRun(state);
+    const recorded = storedRun(state.dir);
+    /** @param {string[]} command */
+    const run = (...command) =>
+      spawnSync(
+        process.execPath,
+        [CONTROL_BIN, command[0], state.dir, ...command.slice(1)],
+        {
+          encoding: "utf8",
+        },
+      );
+
+    const mail = run("mail");
+    assert.equal(mail.status, 0, mail.stderr);
+    assert.deepEqual(JSON.parse(mail.stdout), []);
+    const timings = run("timings");
+    assert.equal(timings.status, 0, timings.stderr);
+    const api = run(
+      "api",
+      "GET",
+      "/api/onboarding/informations",
+      "--as",
+      "anon",
     );
+    assert.doesNotMatch(api.stderr, /another PID namespace/);
+    assert.match(api.stdout, /ECONNREFUSED/, api.stderr);
 
-  const mail = run("mail");
-  assert.equal(mail.status, 0, mail.stderr);
-  assert.deepEqual(JSON.parse(mail.stdout), []);
-  const timings = run("timings");
-  assert.equal(timings.status, 0, timings.stderr);
-  const api = run("api", "GET", "/api/onboarding/informations", "--as", "anon");
-  assert.doesNotMatch(api.stderr, /another PID namespace/);
-  assert.match(api.stdout, /ECONNREFUSED/, api.stderr);
-
-  const down = run("down");
-  assert.equal(down.status, 1, down.stderr);
-  assert.match(
-    down.stderr,
-    /this run was started in another PID namespace \(run: pid:\[1\]; here: pid:\[\d+\]\); run this command there/,
-  );
-  assert.equal(storedRun(state.dir), recorded);
-});
+    const down = run("down");
+    assert.equal(down.status, 1, down.stderr);
+    assert.match(
+      down.stderr,
+      /this run was started in another PID namespace \(run: pid:\[1\]; here: pid:\[\d+\]\); run this command there/,
+    );
+    assert.equal(storedRun(state.dir), recorded);
+  },
+);

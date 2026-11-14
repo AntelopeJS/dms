@@ -1,10 +1,10 @@
 import { existsSync, readdirSync, readFileSync, readlinkSync } from "node:fs";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 
 /**
  * What a folder holds, for a test to compare: each file's text and each
- * symbolic link's target (as `-> target`), by path, or null when the folder
- * does not exist.
+ * symbolic link's target (as `-> target`), by its path joined with `/` on
+ * every system, or null when the folder does not exist.
  *
  * @param {string} folder The folder
  * @returns {Record<string, string> | null} Its content
@@ -18,7 +18,7 @@ export function treeOf(folder) {
     for (const entry of readdirSync(join(folder, prefix), {
       withFileTypes: true,
     })) {
-      const name = join(prefix, entry.name);
+      const name = posix.join(prefix, entry.name);
       const path = join(folder, name);
       if (entry.isSymbolicLink()) content[name] = `-> ${readlinkSync(path)}`;
       else if (entry.isDirectory()) walk(name);
