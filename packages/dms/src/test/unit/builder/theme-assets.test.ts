@@ -344,6 +344,30 @@ function keepsLogoFilesTheAppConfigJoins(): void {
   });
 }
 
+function keepsLogoFilesTheAppConfigEncodes(): void {
+  it("keeps a file a slot reaches through a percent-encoded optimizer URL, and deletes it once nothing builds it", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("default", "light", PNG_LOGO, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    const shared =
+      expectOk(await GetTheme(), "GetTheme").logos.default?.light ?? "";
+    const hash = /-([0-9a-f]{8})\.png$/.exec(shared)?.[1] ?? "";
+    const encodedConfig = (extension: string): string =>
+      `const HASH = "${hash}";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${shared}" }, email: { light: "/_vercel/image?url=%2Fbranding%2Fdefault-light-" + HASH + ".${extension}&w=64" } } },\n});\n`;
+    writeLayerFile("app/app.config.ts", encodedConfig("png"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
+    writeLayerFile("app/app.config.ts", encodedConfig("jpg"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.deep.equal([]);
+  });
+}
+
 function writesOneFileOrNothing(): void {
   it("writes one file for the email and another slot sent the same bytes", async () => {
     expectOk(
@@ -410,6 +434,7 @@ describe("theme logo files", function () {
   deletesUnusedEmailLogoFiles();
   keepsLogoFilesTheAppConfigReaches();
   keepsLogoFilesTheAppConfigJoins();
+  keepsLogoFilesTheAppConfigEncodes();
   writesOneFileOrNothing();
 });
 
