@@ -3,6 +3,7 @@ import type { JsonObject, MockupIssue, MockupNode } from "./model";
 import { zodIssues } from "./model";
 import { cssRefusals } from "./sketch-css";
 import { checkMarkup, staysInStyle } from "./sketch-html";
+import { SKETCH_MAX_SOURCE } from "./sketch-limits";
 
 /** The node type of a sketch: static HTML and CSS of a part the DMS lacks. */
 export const SKETCH_TYPE = "sketch";
@@ -11,8 +12,7 @@ export const SKETCH_MIN_HEIGHT = 80;
 export const SKETCH_MAX_HEIGHT = 1200;
 export const SKETCH_DEFAULT_HEIGHT = 320;
 export const SKETCH_MAX_CAPTION = 200;
-/** The most characters a sketch's `html` or `css` may hold, room for inline `data:` images. */
-export const SKETCH_MAX_SOURCE = 512 * 1024;
+export { SKETCH_MAX_SOURCE };
 
 const sketchOptionsSchema = z
   .object({
@@ -48,6 +48,23 @@ export type SketchCheck =
   | { ok: true; sketch: SketchSource }
   | { ok: false; refusals: SketchRefusal[] };
 
+const UNREADABLE = "markup or CSS too large for the parser to read";
+
+/**
+ * What `read` answers, or `unreadable` when it runs out of room: a string too
+ * long for the engine or a stack too deep throws a `RangeError`, which a check
+ * turns into a refusal rather than an exception. Any other error is a bug and
+ * is thrown.
+ */
+function readable<T>(read: () => T, unreadable: T): T {
+  try {
+    return read();
+  } catch (error) {
+    if (error instanceof RangeError) return unreadable;
+    throw error;
+  }
+}
+
 /**
  * Checks a sketch the way the viewer's frame will read it. `html` is parsed
  * with an HTML parser as the frame's body, and every element and attribute of
@@ -70,19 +87,26 @@ export function checkSketch(sketch: SketchSource): SketchCheck {
       : [],
   );
   if (oversized.length > 0) return { ok: false, refusals: oversized };
-  const markup = checkMarkup(sketch.html);
-  const css =
-    sketch.css === undefined
+  const markup = readable(() => checkMarkup(sketch.html), {
+    refusals: [UNREADABLE],
+    body: "",
+  });
+  const { css } = sketch;
+  const cssFound =
+    css === undefined
       ? []
-      : [
-          ...(staysInStyle(sketch.css)
-            ? []
-            : ["markup such as </style> that ends the style element"]),
-          ...cssRefusals(sketch.css),
-        ];
+      : readable(
+          () => [
+            ...(staysInStyle(css)
+              ? []
+              : ["markup such as </style> that ends the style element"]),
+            ...cssRefusals(css),
+          ],
+          [UNREADABLE],
+        );
   const refusals: SketchRefusal[] = [
     ...markup.refusals.map((what) => ({ field: "html" as const, what })),
-    ...css.map((what) => ({ field: "css" as const, what })),
+    ...cssFound.map((what) => ({ field: "css" as const, what })),
   ];
   if (refusals.length > 0) return { ok: false, refusals };
   return {

@@ -155,7 +155,9 @@ describe("Sketch size", () => {
     );
     expect(Math.max(...deep.map(({ ms }) => ms))).to.be.below(CHECK_BOUND_MS);
   });
+});
 
+describe("Sketch check bounds on what the parser materialises", () => {
   it("refuses a css that ends its style element before parsing it, within the time bound", () => {
     const attributes = Array.from(
       { length: 95_000 },
@@ -218,5 +220,39 @@ describe("Sketch size", () => {
       [],
     );
     expect(Math.max(...timed.map(({ ms }) => ms))).to.be.below(CHECK_BOUND_MS);
+  });
+
+  it("refuses an attribute the parser would copy into every rebuilt element, never throwing, within the time bound", () => {
+    const rebuilt = (attribute: string, unit: string, copies: number): string =>
+      filled(`<p><b ${attribute}="`, unit, `">${"<p>x".repeat(copies)}`);
+    const inputs = [
+      rebuilt("style", "color:red;", 100),
+      rebuilt("title", "x", 100),
+      rebuilt("style", "color:red;", 10),
+      rebuilt("style", "color:red;", 300),
+      rebuilt("title", "x", 300),
+      rebuilt("title", "x", 4094),
+    ];
+    const timed = inputs.map(timedRefusals);
+
+    expect(timed.map(({ refusals }) => refusals)).to.deep.equal(
+      inputs.map(() => [
+        `markup that makes the parser copy more than ${2 * SKETCH_MAX_SOURCE} characters of attributes`,
+      ]),
+    );
+    expect(Math.max(...timed.map(({ ms }) => ms))).to.be.below(CHECK_BOUND_MS);
+  });
+
+  it("refuses an <html> or <body> tag that would merge attributes into the frame's own element", () => {
+    const merged = timedRefusals(`<p>x</p>${"<body b=1>".repeat(4000)}`);
+
+    expect(merged.refusals).to.deep.equal(["an <html>, <head> or <body> tag"]);
+    expect(merged.ms).to.be.below(CHECK_BOUND_MS);
+  });
+
+  it("keeps one data image as large as the size cap allows", () => {
+    const image = filled('<img src="data:image/png;base64,', "A", '">');
+
+    expect(timedRefusals(image).refusals).to.deep.equal([]);
   });
 });
