@@ -1,20 +1,27 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+export const RENDERER = "@antelopejs/dms-frontend";
+
+function manifest(path) {
+  return JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
+}
+
+const FRONTEND = manifest("../package.json");
+
 /**
- * The development dependencies the check resolves, with the range each is
- * installed at. `typescript` and `vue` parse the layer's files; the renderer
- * only lists the components it registers itself, such as `DmsLink`.
+ * The development dependencies the check resolves, at the range the
+ * installed `@antelopejs/dms` declares for each. `typescript` and `vue` parse
+ * the layer's files; the renderer only lists the components it registers
+ * itself, such as `DmsLink`.
  */
 const DMS_COMPONENTS_DEPENDENCIES = Object.freeze({
-  typescript: ">=5.8.0 <7.0.0",
-  vue: "^3.5.0",
-  "@antelopejs/dms-frontend": ">=0.11.0 <0.12.0",
+  typescript: manifest("../../package.json").peerDependencies.typescript,
+  vue: FRONTEND.peerDependencies.vue,
+  [RENDERER]: FRONTEND.engines[RENDERER],
 });
-
-export const RENDERER = "@antelopejs/dms-frontend";
 
 /** How the package manager running the check adds a development dependency. */
 const ADD_DEV_DEPENDENCY = {
@@ -27,7 +34,9 @@ const ADD_DEV_DEPENDENCY = {
 /** The command that adds `packages` at their range, for the package manager running the check. */
 export function addCommand(packages) {
   const manager = (process.env.npm_config_user_agent ?? "").split("/")[0];
-  const add = ADD_DEV_DEPENDENCY[manager] ?? ADD_DEV_DEPENDENCY.pnpm;
+  const add = Object.hasOwn(ADD_DEV_DEPENDENCY, manager)
+    ? ADD_DEV_DEPENDENCY[manager]
+    : ADD_DEV_DEPENDENCY.pnpm;
   const specs = packages.map(
     (name) => `"${name}@${DMS_COMPONENTS_DEPENDENCIES[name]}"`,
   );

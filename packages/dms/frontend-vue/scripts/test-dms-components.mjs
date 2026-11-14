@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  copyFileSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -8,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   assertDmsComponents,
   checkDmsComponents,
@@ -202,3 +203,41 @@ assert.match(
   /^@antelopejs\/dms-frontend is not installed in <layer>, so the components its renderer registers, such as DmsLink, count as unknown\. If the layer uses one, run in <layer>: \S+ (?:add|install) -[Dd] "@antelopejs\/dms-frontend@>=0\.11\.0 <0\.12\.0"$/,
 );
 assert.deepEqual(await diagnose({ screen: "<DmsLink />", asserted: true }), []);
+
+async function checkWithoutParsers() {
+  const root = mkdtempSync(join(tmpdir(), "dms-components-parsers-"));
+  try {
+    const frontend = join(root, "dms", "frontend-vue");
+    mkdirSync(join(frontend, "scripts"), { recursive: true });
+    for (const file of [
+      "scripts/check-dms-components.mjs",
+      "scripts/dms-components-dependencies.mjs",
+      "package.json",
+    ])
+      copyFileSync(
+        new URL(`../${file}`, import.meta.url),
+        join(frontend, file),
+      );
+    copyFileSync(
+      new URL("../../package.json", import.meta.url),
+      join(root, "dms", "package.json"),
+    );
+    const layer = join(root, "layer");
+    mkdirSync(layer);
+    writeFileSync(join(layer, "package.json"), "{}");
+    const copy = await import(
+      pathToFileURL(join(frontend, "scripts", "check-dms-components.mjs")).href
+    );
+    return await copy.checkDmsComponents({ layer }).then(
+      () => "",
+      (error) => error.message.replaceAll(layer, "<layer>"),
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+assert.match(
+  await checkWithoutParsers(),
+  /^The DMS component check parses the layer with typescript and vue, and typescript and vue cannot be resolved from <layer>\. In <layer>, run: \S+ (?:add|install) -[Dd] "typescript@>=5\.8\.0 <7\.0\.0" "vue@\^3\.5\.0"$/,
+);
