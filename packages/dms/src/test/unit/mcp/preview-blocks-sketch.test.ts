@@ -13,13 +13,15 @@ const PreviewAnswer = z.object({
 /** A CSS string a newline ends early, so a regex reading one string across it misses the url() after. */
 const NEWLINE_IN_STRING =
   'p{b:url("#x\n);background:url(https://evil.example/css);c:"}';
+/** A CSS custom function whose result an image function loads. */
+const CUSTOM_FUNCTION = '@function --u(){result:"http://evil.test/x.png"} ';
 /** An escaped quote, which a browser keeps inside the URL `"#a"`, a relative URL. */
 const ESCAPED_QUOTE = "p{b:url(\\22 #a\\22 )}";
 
 /**
  * Sketches that link or load outside the frame: the ones the mockup compiler
  * learnt to refuse in dms#858, which the looser copy `preview_blocks` kept let
- * through, then the ones four reviews of the shared check found.
+ * through, then the ones five reviews of the shared check found.
  */
 const BYPASSES: Sketch[] = [
   { html: '<a/href="https://example.com/x">x</a>' },
@@ -97,6 +99,27 @@ const BYPASSES: Sketch[] = [
   { html: `<style>${ESCAPED_QUOTE}</style><p>x</p>` },
   { html: `<svg><style>${ESCAPED_QUOTE}</style></svg>` },
   { html: '<base href="https://example.com/"><a href="#x">x</a>' },
+  {
+    html: "<p>x</p>",
+    css: `${CUSTOM_FUNCTION}p{background-image:image-set(--u() 1x)}`,
+  },
+  {
+    html: `<svg><style>${CUSTOM_FUNCTION}p{background-image:image-set(--u() 1x)}</style></svg>`,
+  },
+  ...[
+    "cursor:image-set(--u() 1x),auto",
+    "list-style-image:image-set(--u() 1x)",
+    "mask-image:image-set(--u() 1x)",
+    "content:image-set(--u() 1x)",
+    "border-image:image-set(--u() 1x) 30",
+  ].map((declaration) => ({
+    html: "<p>x</p>",
+    css: `${CUSTOM_FUNCTION}p{${declaration}}`,
+  })),
+  {
+    html: "<p>x</p>",
+    css: '@function --u(){result:var(--s)} p{--s:"http://evil.test/x.png";background-image:image-set(--u() 1x)}',
+  },
 ];
 
 const STATIC_SKETCH: Sketch = {

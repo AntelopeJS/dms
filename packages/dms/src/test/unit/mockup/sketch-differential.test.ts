@@ -4,44 +4,8 @@ import {
   defaultTreeAdapter,
   parse,
 } from "parse5";
-import { z } from "zod";
-import type * as Tokenizer from "@csstools/css-tokenizer" with {
-  "resolution-mode": "import",
-};
-import { checkSketch, type SketchSource } from "../../../mockup/sketch";
-
-type Element = DefaultTreeAdapterTypes.Element;
-type CSSToken = Tokenizer.CSSToken;
-/** A function a module exports, whatever its signature: the schema below names the signature. */
-type Exported = (...args: never[]) => void;
-
-function isFunction(value: unknown): value is Exported {
-  return typeof value === "function";
-}
-
-function exported<Name extends keyof typeof Tokenizer>() {
-  return z.custom<(typeof Tokenizer)[Name]>(isFunction);
-}
-
-/** The tokenizer's CommonJS build, loaded apart from the check under test and parsed against its declarations. */
-const OracleTokenizerSchema = z.object({
-  tokenize: exported<"tokenize">(),
-  isTokenAtKeyword: exported<"isTokenAtKeyword">(),
-  isTokenBadString: exported<"isTokenBadString">(),
-  isTokenBadURL: exported<"isTokenBadURL">(),
-  isTokenCloseCurly: exported<"isTokenCloseCurly">(),
-  isTokenCloseParen: exported<"isTokenCloseParen">(),
-  isTokenCloseSquare: exported<"isTokenCloseSquare">(),
-  isTokenFunction: exported<"isTokenFunction">(),
-  isTokenOpenCurly: exported<"isTokenOpenCurly">(),
-  isTokenOpenParen: exported<"isTokenOpenParen">(),
-  isTokenOpenSquare: exported<"isTokenOpenSquare">(),
-  isTokenString: exported<"isTokenString">(),
-  isTokenURL: exported<"isTokenURL">(),
-  isTokenWhiteSpaceOrComment: exported<"isTokenWhiteSpaceOrComment">(),
-});
-
-const {
+import {
+  type CSSToken,
   isTokenAtKeyword,
   isTokenBadString,
   isTokenBadURL,
@@ -54,9 +18,11 @@ const {
   isTokenOpenSquare,
   isTokenString,
   isTokenURL,
-  isTokenWhiteSpaceOrComment,
   tokenize,
-} = OracleTokenizerSchema.parse(require("@csstools/css-tokenizer"));
+} from "@csstools/css-tokenizer";
+import { checkSketch, type SketchSource } from "../../../mockup/sketch";
+
+type Element = DefaultTreeAdapterTypes.Element;
 
 const HTML_INPUTS = 3000;
 const CSS_INPUTS = 500;
@@ -166,6 +132,9 @@ const WRAPPERS: ReadonlyArray<readonly [string, string]> = [
   ["<p>", ""],
   ["<svg><foreignObject>", "</foreignObject></svg>"],
   ["<math><mtext>", "</mtext></math>"],
+  ["<!-- x --!>", ""],
+  ['<textarea><i title="</textarea>', ""],
+  ['<svg><![CDATA[> <i title="]]></svg>', ""],
 ];
 const CSS_TEMPLATES = [
   (value: string) => `p{background:url(${value})}`,
@@ -181,6 +150,14 @@ const CSS_TEMPLATES = [
   (value: string) => `p{b:url(\\22 ${value}\\22 )}`,
   () => "p{background:url(\\22 #a\\22 )}",
   (value: string) => `p{--x:"${value}";background:image-set(var(--x) 1x)}`,
+  (value: string) =>
+    `@function --u(){result:"${value}"} p{background-image:image-set(--u() 1x)}`,
+  (value: string) =>
+    `@function --u(){result:url(${value})} p{cursor:--u(),auto}`,
+  (value: string) => `p{list-style-image:--u("${value}")}`,
+  (value: string) =>
+    `p{background:if(style(--x:1): url(${value}); else: none)}`,
+  () => "p{background:rgb(1 2 3);color:calc(1px + 2px)}",
 ];
 
 /** A seeded mulberry32, so a failure replays. */
@@ -234,57 +211,65 @@ function oracleLocal(value: string): boolean {
   return url.startsWith("#") || /^data:image\//i.test(url);
 }
 
-const LOADERS = new Set(["url", "src", "image", "image-set", "cross-fade"]);
+/** The only functions the oracle trusts: the few the generator's safe CSS calls. */
+const ORACLE_FUNCTIONS = new Set(["url", "image-set", "rgb", "calc"]);
+/** The only at-rules the oracle trusts. */
+const ORACLE_AT_RULES = new Set(["media", "supports", "keyframes"]);
 
-function oracleName(token: CSSToken): string {
-  return isTokenFunction(token)
-    ? token[4].value.toLowerCase().replace(/^-(?:webkit|moz|ms|o)-/, "")
-    : "";
+function isOpener(token: CSSToken): boolean {
+  return (
+    isTokenFunction(token) ||
+    isTokenOpenParen(token) ||
+    isTokenOpenSquare(token) ||
+    isTokenOpenCurly(token)
+  );
 }
 
-/** Whether an opened url() or src() reads its URL from a token other than a local string. */
-function badFirstArgument(
+function isCloser(token: CSSToken): boolean {
+  return (
+    isTokenCloseParen(token) ||
+    isTokenCloseSquare(token) ||
+    isTokenCloseCurly(token)
+  );
+}
+
+/** Why one token is unsafe by the oracle's own rule, given whether it sits inside a function. */
+function oracleTokenUnsafe(
   token: CSSToken,
-  opened: string | undefined,
-): boolean {
-  if (opened !== "url" && opened !== "src") return false;
-  return !isTokenString(token) || !oracleLocal(token[4].value);
+  inFunction: boolean,
+): string | undefined {
+  if (isTokenBadString(token) || isTokenBadURL(token)) return "a broken token";
+  if (
+    isTokenAtKeyword(token) &&
+    !ORACLE_AT_RULES.has(token[4].value.toLowerCase())
+  ) {
+    return `@${token[4].value}`;
+  }
+  if (
+    isTokenFunction(token) &&
+    !ORACLE_FUNCTIONS.has(token[4].value.toLowerCase())
+  ) {
+    return `${token[4].value}()`;
+  }
+  if (isTokenURL(token) && !oracleLocal(token[4].value))
+    return `url(${token[4].value})`;
+  return isTokenString(token) && inFunction && !oracleLocal(token[4].value)
+    ? `a string ${token[4].value} in a function`
+    : undefined;
 }
 
-/** What a browser would load from `css`, read by a CSS tokenizer, written apart from the check under test. */
+/**
+ * Why `css` is unsafe, by a rule the test owns and the check does not share:
+ * any function or at-rule outside a short trusted list, and any url, or string
+ * inside a function, that is not `#…` or `data:image/`.
+ */
 function oracleCss(css: string): string | undefined {
-  const open: string[] = [];
-  let awaiting: string | undefined;
+  const functions: boolean[] = [];
   for (const token of tokenize({ css })) {
-    if (isTokenWhiteSpaceOrComment(token)) continue;
-    if (isTokenBadString(token) || isTokenBadURL(token))
-      return "a broken string or url";
-    if (isTokenAtKeyword(token) && token[4].value.toLowerCase() === "import")
-      return "an @import";
-    if (isTokenURL(token) && !oracleLocal(token[4].value))
-      return `url(${token[4].value})`;
-    if (badFirstArgument(token, awaiting))
-      return `${awaiting}() reading ${token[1]}`;
-    awaiting = undefined;
-    const loaded = open.some((name) => LOADERS.has(name));
-    if (isTokenString(token) && loaded && !oracleLocal(token[4].value))
-      return `a loaded string ${token[4].value}`;
-    if (isTokenFunction(token)) {
-      open.push(oracleName(token));
-      awaiting = oracleName(token);
-    } else if (
-      isTokenOpenParen(token) ||
-      isTokenOpenSquare(token) ||
-      isTokenOpenCurly(token)
-    ) {
-      open.push("");
-    } else if (
-      isTokenCloseParen(token) ||
-      isTokenCloseSquare(token) ||
-      isTokenCloseCurly(token)
-    ) {
-      open.pop();
-    }
+    const unsafe = oracleTokenUnsafe(token, functions.includes(true));
+    if (unsafe !== undefined) return unsafe;
+    if (isOpener(token)) functions.push(isTokenFunction(token));
+    else if (isCloser(token)) functions.pop();
   }
   return undefined;
 }

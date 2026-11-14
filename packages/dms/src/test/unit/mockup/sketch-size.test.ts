@@ -11,9 +11,9 @@ import { checkSketch, SKETCH_MAX_SOURCE } from "../../../mockup/sketch";
 const CHECK_BOUND_MS = 2_000;
 const OVERSIZED_SOURCE = 20 * 1024 * 1024;
 
-/** `<p …>x</p>` holding as many attributes as fit in the size cap, so only the attribute cap can refuse it. */
-function oneTagWith(attribute: (index: number) => string): string {
-  const frame = "<p>x</p>".length;
+/** `prefix`, then `<p …>x</p>` holding as many attributes as fit in the size cap, so only the attribute cap can refuse it. */
+function oneTagWith(attribute: (index: number) => string, prefix = ""): string {
+  const frame = prefix.length + "<p>x</p>".length;
   const attributes: string[] = [];
   let length = frame;
   for (let index = 0; ; index += 1) {
@@ -22,7 +22,38 @@ function oneTagWith(attribute: (index: number) => string): string {
     attributes.push(written);
     length += written.length;
   }
-  return `<p${attributes.join("")}>x</p>`;
+  return `${prefix}<p${attributes.join("")}>x</p>`;
+}
+
+/** `head`, then `unit` repeated, then `tail`, at most the size cap long. */
+function filled(head: string, unit: string, tail = ""): string {
+  const room = SKETCH_MAX_SOURCE - head.length - tail.length;
+  return `${head}${unit.repeat(Math.floor(room / unit.length))}${tail}`;
+}
+
+/** Half `opener` repeated, half `closer`, at most the size cap long. */
+function halves(opener: string, closer: string): string {
+  const half = SKETCH_MAX_SOURCE / 2;
+  return `${opener.repeat(Math.floor(half / opener.length))}${closer.repeat(Math.floor(half / closer.length))}`;
+}
+
+/** Markup that hides a tag from a scan that ends comments, raw text or CDATA too early or too late. */
+const SCAN_DESYNCS = [
+  "<!-- x --!>",
+  '<textarea><i title="</textarea>',
+  '<style><i title="</style>',
+  '<title><i title="</title>',
+  '<xmp><i title="</xmp>',
+  '<svg><![CDATA[> <i title="]]></svg>',
+];
+
+function timedCss(css: string): TimedCheck {
+  const start = performance.now();
+  const checked = checkSketch({ html: "<p>x</p>", css });
+  return {
+    ms: performance.now() - start,
+    refusals: checked.ok ? [] : checked.refusals.map(({ what }) => what),
+  };
 }
 
 /** How long one check took, and what it refused. */
@@ -97,5 +128,31 @@ describe("Sketch size", () => {
       `more than ${SKETCH_MAX_SOURCE} characters`,
     ]);
     expect(oversized.ms).to.be.below(CHECK_BOUND_MS);
+  });
+
+  it("refuses a tag a comment, raw text or CDATA hides from a naive scan, within the time bound", () => {
+    const timed = SCAN_DESYNCS.map((prefix) =>
+      timedRefusals(oneTagWith((index) => `a${index}`, prefix)),
+    );
+
+    expect(timed.map(({ refusals }) => refusals)).to.deep.equal(
+      SCAN_DESYNCS.map(() => ["a tag with more than 64 attributes"]),
+    );
+    expect(Math.max(...timed.map(({ ms }) => ms))).to.be.below(CHECK_BOUND_MS);
+  });
+
+  it("refuses CSS nested past the bracket bound, at the size cap and within the time bound", () => {
+    const deep = [
+      timedCss(filled("p{a:", "var(")),
+      timedCss(filled("p{a:", "env(")),
+      timedCss(halves("(", '"a"')),
+      timedCss(halves("[", ")")),
+      timedRefusals(`<p style="${halves("[", ")").slice(20)}">x</p>`),
+    ];
+
+    expect(deep.map(({ refusals }) => refusals.at(-1))).to.deep.equal(
+      deep.map(() => "CSS nested more than 64 brackets deep"),
+    );
+    expect(Math.max(...deep.map(({ ms }) => ms))).to.be.below(CHECK_BOUND_MS);
   });
 });

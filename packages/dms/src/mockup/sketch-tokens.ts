@@ -1,49 +1,78 @@
-import { z } from "zod";
-import type * as Tokenizer from "@csstools/css-tokenizer" with {
-  "resolution-mode": "import",
+import {
+  type CSSToken,
+  isTokenAtKeyword,
+  isTokenBadString,
+  isTokenBadURL,
+  isTokenCloseCurly,
+  isTokenCloseParen,
+  isTokenCloseSquare,
+  isTokenComma,
+  isTokenDelim,
+  isTokenFunction,
+  isTokenIdent,
+  isTokenNumeric,
+  isTokenOpenCurly,
+  isTokenOpenParen,
+  isTokenOpenSquare,
+  isTokenString,
+  isTokenURL,
+  isTokenWhiteSpaceOrComment,
+  tokenize,
+} from "@csstools/css-tokenizer";
+
+export type { CSSToken };
+
+const tokenizer = {
+  isTokenAtKeyword,
+  isTokenBadString,
+  isTokenBadURL,
+  isTokenCloseCurly,
+  isTokenCloseParen,
+  isTokenCloseSquare,
+  isTokenComma,
+  isTokenDelim,
+  isTokenFunction,
+  isTokenIdent,
+  isTokenNumeric,
+  isTokenOpenCurly,
+  isTokenOpenParen,
+  isTokenOpenSquare,
+  isTokenString,
+  isTokenURL,
+  isTokenWhiteSpaceOrComment,
+  tokenize,
 };
 
-/** A CSS token, as the CSS Syntax spec's tokenizer reads it. */
-export type CSSToken = Tokenizer.CSSToken;
-
-/** A function a module exports, whatever its signature: the schema below names the signature. */
-type Exported = (...args: never[]) => void;
-
-function isFunction(value: unknown): value is Exported {
-  return typeof value === "function";
+/**
+ * Whether the tokenizer reads `url(x)` as one url token for `x`, as the CSS
+ * Syntax spec does. A tokenizer that keeps its exports but reads CSS
+ * differently, even one answering no tokens at all, fails this, so the check
+ * refuses to load rather than pass CSS it never read.
+ */
+function readsCss(): boolean {
+  const tokens = tokenize({ css: "url(x)" });
+  const [first, end] = tokens;
+  return (
+    tokens.length === 2 &&
+    first !== undefined &&
+    isTokenURL(first) &&
+    first[4].value === "x" &&
+    end !== undefined &&
+    !isTokenURL(end)
+  );
 }
 
-/** One export of `@csstools/css-tokenizer`, typed from the package's own declarations. */
-function exported<Name extends keyof typeof Tokenizer>() {
-  return z.custom<(typeof Tokenizer)[Name]>(isFunction);
+function loadCssTokenizer(): typeof tokenizer {
+  if (!readsCss()) {
+    throw new Error("the CSS tokenizer does not read url(x) as a url token");
+  }
+  return tokenizer;
 }
-
-/** The exports of `@csstools/css-tokenizer` the sketch check reads. */
-const CssTokenizerSchema = z.object({
-  tokenize: exported<"tokenize">(),
-  isTokenAtKeyword: exported<"isTokenAtKeyword">(),
-  isTokenBadString: exported<"isTokenBadString">(),
-  isTokenBadURL: exported<"isTokenBadURL">(),
-  isTokenCloseCurly: exported<"isTokenCloseCurly">(),
-  isTokenCloseParen: exported<"isTokenCloseParen">(),
-  isTokenCloseSquare: exported<"isTokenCloseSquare">(),
-  isTokenDelim: exported<"isTokenDelim">(),
-  isTokenFunction: exported<"isTokenFunction">(),
-  isTokenIdent: exported<"isTokenIdent">(),
-  isTokenOpenCurly: exported<"isTokenOpenCurly">(),
-  isTokenOpenParen: exported<"isTokenOpenParen">(),
-  isTokenOpenSquare: exported<"isTokenOpenSquare">(),
-  isTokenString: exported<"isTokenString">(),
-  isTokenURL: exported<"isTokenURL">(),
-  isTokenWhiteSpaceOrComment: exported<"isTokenWhiteSpaceOrComment">(),
-});
 
 /**
- * The CSS tokenizer the sketch check reads CSS with. `@csstools/css-tokenizer`
- * 3 ships a CommonJS build, which this CommonJS module loads so it runs on
- * every Node the package admits, but publishes declarations for its ES module
- * build only, so its CommonJS exports are parsed against those declarations.
+ * The CSS tokenizer the sketch check reads CSS with, `@csstools/css-tokenizer`
+ * 4, the version jsdom's CSS code already uses, read once before use. It is an
+ * ES module, loaded from this CommonJS module through `require(esm)`, which
+ * every Node jsdom 29 runs on supports.
  */
-export const cssTokenizer = CssTokenizerSchema.parse(
-  require("@csstools/css-tokenizer"),
-);
+export const cssTokenizer = loadCssTokenizer();
