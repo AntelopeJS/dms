@@ -149,7 +149,7 @@ Full layer authoring: `docs/02.building/08.frontend-layer.md`.
 
 ## What you register (delegates to the other skills)
 
-Pages and components → **dms-pages**; auth, permissions, tenants → **dms-auth**; backend services
+Pages and components → **antelopejs:dms-pages**; auth, permissions, tenants → **dms-auth**; backend services
 and custom Vue → the doc map in [REFERENCE.md](REFERENCE.md). Pages usually attach to a `Category`
 under the built-in `pagesCategory` (`RegisterModule` is for distributable modules). DB models use
 `@antelopejs/interface-database-decorators`; routes use `@antelopejs/interface-api`.

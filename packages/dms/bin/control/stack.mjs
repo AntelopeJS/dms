@@ -53,6 +53,10 @@ const SECRET_BYTES = 32;
 const PREPARED_WORKSPACE = new URL("prepared-workspace.mjs", import.meta.url)
   .href;
 const MAIL_PORT_ATTEMPTS = 3;
+const BLOCKED_PORTS = new Set([
+  1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666,
+  6667, 6668, 6669, 6679, 6697, 10080,
+]);
 const SECRET_NAMES = [
   "DMS_JWT_SECRET",
   "AUTH_JWT_SECRET",
@@ -76,6 +80,28 @@ function parseExtraEnv(pairs) {
 }
 
 /**
+ * The ports of a run's API forwarder, dashboard and mail sink: three
+ * distinct ports from `pick`, {@link restartablePort} by default, so each
+ * server listens on its port again after a restart while an outgoing
+ * connection's TIME_WAIT holds a port of the kernel's ephemeral range. It
+ * skips the ports `fetch` and Chromium refuse to connect to, so the run's
+ * readiness probes and browser reach every server.
+ *
+ * @param {() => Promise<number>} [pick] Where a candidate port comes from
+ * @returns {Promise<{ apiPort: number, webPort: number, smtpPort: number }>} The ports
+ */
+export async function runPorts(pick = restartablePort) {
+  /** @type {number[]} */
+  const ports = [];
+  while (ports.length < 3) {
+    const port = await pick();
+    if (!ports.includes(port) && !BLOCKED_PORTS.has(port)) ports.push(port);
+  }
+  const [apiPort, webPort, smtpPort] = ports;
+  return { apiPort, webPort, smtpPort };
+}
+
+/**
  * @param {UpOptions} options
  * @returns {Promise<RunState>}
  */
@@ -86,9 +112,7 @@ async function initialState(options) {
   }
   const id = newRunId();
   const paths = createRunFolders(join(runsRoot(options.runs), id));
-  const apiPort = await restartablePort();
-  const webPort = await freePort();
-  const smtpPort = await freePort();
+  const { apiPort, webPort, smtpPort } = await runPorts();
   const checkout = checkoutOf(playground);
   const renderer = options.renderer && resolveRenderer(options.renderer);
   const verified = renderer ? checkoutOf(renderer) : checkout;
@@ -203,7 +227,7 @@ async function startFirstMail(state) {
       return;
     } catch (error) {
       if (attempt === MAIL_PORT_ATTEMPTS) throw error;
-      state.smtpPort = await freePort();
+      state.smtpPort = await restartablePort();
     }
   }
 }

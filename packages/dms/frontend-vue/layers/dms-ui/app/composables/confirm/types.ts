@@ -57,7 +57,7 @@ export interface ConfirmOptions
    * dismissal, and resolves `true` only once it succeeds; a rejection is
    * shown inline and the modal stays open (a {@link ConfirmTextError} under
    * the typed field), its confirm button ready for a retry. The alert words
-   * the error for users (see `resolveActionError`): the server's message when
+   * the error for users (see `useApiErrorPresenter`): the server's message when
    * it is user-facing, else a translated fallback. Resolving `false` also
    * keeps it open, for a handler that already reported the problem itself
    * (toast); resolving a {@link ConfirmPartialOutcome} keeps it open to say

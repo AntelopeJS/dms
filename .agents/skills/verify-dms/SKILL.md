@@ -23,7 +23,7 @@ RUN=$($C up --prepare)   # installs, builds, starts; prints the run folder
 `--prepare` first runs the `prepare` commands of `verify.config.ts` (the frozen install, the module build and the playground build); without it `up` uses the builds already there, and `doctor` fails on a stale one. `up` reads the playground from `verify.config.ts` and starts an isolated DMS:
 
 - the checkout is laid out again under `$RUN/root`, every sibling linked, and the playground copied without `node_modules`, `.antelope` and `.dms-frontend`, so the run's build and `.antelope/` are its own;
-- the dashboard and the mail sink get free ports from the kernel, the API a free port outside the kernel's ephemeral range, so no outgoing connection's TIME_WAIT keeps a restarted forwarder off it, and `HOME` is `$RUN/home`;
+- the API, the dashboard and the mail sink get free ports outside the kernel's ephemeral range, so no outgoing connection's TIME_WAIT keeps a restarted forwarder, dashboard or sink off its port, and `HOME` is `$RUN/home`;
 - a `mongod` the run owns (from `PATH`, `DMS_CONTROL_MONGOD`, or the binary mongodb-memory-server-core caches), started as a single-node replica set so change streams work, serves `verify_<run>` databases; `--mongo-url` uses another server;
 - the backend runs `ajs project start -e docs` (`ajs project dev -e docs` with `--dev-backend`) on a port of its own, behind a forwarder that holds the API port, and the dashboard `ajs dms start -e docs -b <api>`; ready means `/api/onboarding/informations` and `/dms-preview` answer 200;
 - fresh secrets, `DMS_CLIENT_BASE_URL` set to the dashboard and the `docs` mail pointed at the sink;

@@ -31,6 +31,8 @@ function entry(
     icon: "i-ph-cube",
     hasAccess: true,
     landingSlug: `/modules/${id}`,
+    status: "live",
+    readout: [],
     ...overrides,
   };
 }
@@ -44,7 +46,7 @@ const modules = [
 ];
 
 describe("summarizeModules", () => {
-  it("counts installed modules by status, missing status reading as live", () => {
+  it("counts installed modules by status", () => {
     expect(summarizeModules(modules)).toEqual({
       installed: 5,
       updates: 1,

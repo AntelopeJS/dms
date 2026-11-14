@@ -223,7 +223,7 @@ describe("[unit] mockup apply against the builder", () => {
     expect(app.read(FILE)).to.equal(before);
   });
 
-  it("writes a title the mockup changed as the page's display name (fails an apply that writes the blocks only)", async function () {
+  it("writes a title the mockup changed as the page's display name and says so (fails an apply that writes the blocks only or answers no displayName)", async function () {
     this.timeout(OP_TIMEOUT);
     await editSpec((spec) => {
       spec.pages[0].title = "Sales board";
@@ -231,7 +231,12 @@ describe("[unit] mockup apply against the builder", () => {
 
     const answer = await applyMockupToPage(mockups, MOCKUP, SPEC_PAGE, BUILDER);
 
-    expect(answer).to.deep.include({ ok: true, written: [], removed: [] });
+    expect(answer).to.deep.include({
+      ok: true,
+      displayName: "Sales board",
+      written: [],
+      removed: [],
+    });
     const structure = expectOk(await GetPageStructure(PAGE), "structure");
     expect(structure.page.displayName).to.equal("Sales board");
   });

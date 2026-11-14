@@ -1,6 +1,5 @@
 import type {
   ModuleCatalogEntry,
-  ModuleStatus,
   ModuleWithAccess,
   PageInfo,
   SiteLayout,
@@ -79,10 +78,6 @@ export interface ModulePageMatch {
   sectionTitle?: string;
 }
 
-export function moduleStatus(entry: ModuleCatalogEntry): ModuleStatus {
-  return entry.status ?? "live";
-}
-
 export function moduleCategory(
   entry: Pick<ModuleCatalogEntry, "catalogCategory">,
 ): string {
@@ -100,7 +95,7 @@ export function summarizeModules(
     beta: 0,
   };
   for (const entry of entries) {
-    const status = moduleStatus(entry);
+    const { status } = entry;
     if (status === "update") summary.updates += 1;
     else if (status === "attention") summary.attention += 1;
     else if (status === "beta") summary.beta += 1;

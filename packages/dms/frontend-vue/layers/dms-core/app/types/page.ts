@@ -85,13 +85,12 @@ export interface ModuleReadoutLine {
 
 /**
  * One entry of `/dms/modules-listing`: the module's info plus what its
- * catalog hooks reported. `status` and `readout` are optional so a backend
- * predating the hooks still reads as live with no readout.
+ * catalog hooks reported.
  */
 export type ModuleCatalogEntry = ModuleWithAccess & {
   landingSlug: string;
-  status?: ModuleStatus;
-  readout?: ModuleReadoutLine[];
+  status: ModuleStatus;
+  readout: ModuleReadoutLine[];
   /**
    * Where its code comes from, read from the module store; absent for a
    * module the store does not list.
@@ -154,8 +153,7 @@ export type SiteLayout = {
    * `urlTransparent`, by `fullSlug`.
    */
   categories: Record<string, CategoryInfo>;
-  /** Absent when the backend predates layout banners. */
-  banners?: LayoutBanner[];
+  banners: LayoutBanner[];
 };
 
 export interface QuickActionCategoryInfo {

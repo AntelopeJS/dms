@@ -10,10 +10,6 @@ import {
   type App,
 } from "vue";
 import ConfirmModal from "../layers/dms-ui/app/components/confirm/ConfirmModal.vue";
-import {
-  ACTION_ERROR_GENERIC_KEY,
-  resolveActionError,
-} from "../layers/dms-ui/app/entries/composables/confirm/actionError";
 import { ConfirmActionError } from "../layers/dms-ui/app/composables/confirm/types";
 
 import { DialogRoot } from "reka-ui";
@@ -22,6 +18,8 @@ import {
   installReadOnlyRefusal,
 } from "./helpers/read-only-refusal";
 
+const GENERIC_KEY = "dms.action_error.generic";
+
 /** An ofetch `FetchError` as a refused (or unreachable) request throws it. */
 function fetchError<Data = undefined>(status: number | undefined, data?: Data) {
   return Object.assign(
@@ -29,44 +27,6 @@ function fetchError<Data = undefined>(status: number | undefined, data?: Data) {
     { name: "FetchError", statusCode: status, data },
   );
 }
-
-describe("resolveActionError", () => {
-  it("forwards loaded keys without using the legacy translator as a lookup", () => {
-    const translate = vi.fn(() => "Untrusted missing-handler text");
-    for (const message of ["error.read_only_demo", "$error.read_only_demo"]) {
-      expect(resolveActionError(fetchError(403, { message }), translate)).toBe(
-        "error.read_only_demo",
-      );
-    }
-    expect(translate).not.toHaveBeenCalled();
-  });
-
-  it("uses the presenter fallback for untrusted text and unknown keys", () => {
-    for (const error of [
-      fetchError(500, "Archive field not configured."),
-      fetchError(422, '{"issues":[{"path":["name"]}]}'),
-      fetchError(400, "TypeError: x is undefined\n    at run (a.js:1:2)"),
-      fetchError(404, "error.no_such_key"),
-      fetchError(400, { detail: "no message field" }),
-      new Error("Pick another role first."),
-      new TypeError("Failed to fetch"),
-      { unexpected: true },
-    ]) {
-      expect(resolveActionError(error, (key) => key)).toBe(
-        ACTION_ERROR_GENERIC_KEY,
-      );
-    }
-  });
-
-  it("returns no text for cancellation", () => {
-    expect(
-      resolveActionError(
-        new DOMException("Aborted", "AbortError"),
-        (key) => key,
-      ),
-    ).toBe("");
-  });
-});
 
 describe("ConfirmModal failures", () => {
   const fixture = createConfirmActionErrorsFixture();
@@ -216,7 +176,7 @@ function registerConfirmationRetryTests(
     await fixture.flush();
     expect(fixture.closed).not.toHaveBeenCalled();
     expect(fixture.alert()?.dataset.alert).toBe("warning");
-    expect(fixture.alert()?.textContent).toBe(ACTION_ERROR_GENERIC_KEY);
+    expect(fixture.alert()?.textContent).toBe(GENERIC_KEY);
 
     expect(fixture.host.textContent).not.toContain("[DELETE]");
 
@@ -265,7 +225,7 @@ function registerConfirmationRetryTests(
 
     fixture.button("Archive")!.click();
     await fixture.flush();
-    expect(fixture.alert()?.textContent).toBe(ACTION_ERROR_GENERIC_KEY);
+    expect(fixture.alert()?.textContent).toBe(GENERIC_KEY);
 
     fixture.button("Archive")!.click();
     await fixture.flush();
