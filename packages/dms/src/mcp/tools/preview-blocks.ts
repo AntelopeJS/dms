@@ -80,7 +80,7 @@ const PreviewSketchSchema = z
       .min(1)
       .max(MAX_JSON_BYTES)
       .describe(
-        "Body markup of the component. Static only: no script, event handler or external resource; images and fonts as data: URLs.",
+        "Body markup of the component. Static only: no script, event handler or external resource; images and fonts as data: URLs. The text `url(` may not appear anywhere, prose included.",
       ),
     css: z
       .string()
@@ -325,7 +325,7 @@ export const previewBlocksTool = defineTool({
   name: "preview_blocks",
   title: "Preview blocks",
   description:
-    "Checks a preview of DMS blocks before you build it: a block tree, each node a registered block `type` from builder_catalog (or its `componentName`) with its options and children, beside the person's mockup when you pass it as `reference`, with one tab per variant. A view may carry a `sketch` instead of (or beside) its `tree`: static HTML and CSS of a custom component you propose, labelled as not a DMS block. It validates every node against the block types the DMS registers and the preview's limits " +
+    "Checks a preview of DMS blocks before you build it: a block tree, each node a registered block `type` from builder_catalog (or its `componentName`) with its options and children, beside the person's mockup when you pass it as `reference`, with one tab per variant. A view may carry a `sketch` instead of (or beside) its `tree`: static HTML and CSS of a custom component you propose, labelled as not a DMS block, which the mockup compiler's sketch check refuses as it would in a mockup (the text `url(` may not appear anywhere in it, prose included). It validates every node against the block types the DMS registers and the preview's limits " +
     `(${MAX_DEPTH} levels, ${MAX_NODES} nodes, ${MAX_VARIANTS} variants, ${MAX_JSON_BYTES / BYTES_PER_KIBIBYTE} KiB)` +
     ", and answers what it validated: the views, the node count and the block types used. It renders nothing and changes nothing in the project.",
   effect: "read",
