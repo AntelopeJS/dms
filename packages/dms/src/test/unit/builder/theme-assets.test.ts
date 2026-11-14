@@ -143,6 +143,30 @@ function deletesUnusedEmailLogoFiles(): void {
     expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
   });
 
+  it("keeps a file a slot reaches through a constant another file exports", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("default", "light", PNG_LOGO, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    const shared =
+      expectOk(await GetTheme(), "GetTheme").logos.default?.light ?? "";
+    writeLayerFile("app/brand/paths.ts", `export * from "./logos";\n`);
+    writeLayerFile(
+      "app/brand/logos.ts",
+      `export const EMAIL_LOGO = "${shared}";\n`,
+    );
+    writeLayerFile(
+      "app/app.config.ts",
+      `import { EMAIL_LOGO } from "~/brand/paths";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${shared}" }, email: { light: EMAIL_LOGO } } },\n});\n`,
+    );
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
+  });
+
   it("writes one file for the email and another slot sent the same bytes", async () => {
     expectOk(
       await SetTheme(

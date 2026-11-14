@@ -33,8 +33,13 @@ function labelFor(name: string): string {
   return name.toUpperCase();
 }
 
+function iconFor(name: string): string {
+  return \`i-ph-\${name}\`;
+}
+
 export const archiveCategory = Category("archive", {
   displayName: labelFor("archive"),
+  icon: iconFor("archive"),
   category: pagesCategory,
 });
 `;
@@ -90,6 +95,22 @@ describe("category options written as constants", () => {
     expect(displayName).to.equal("archive");
     expectOk(
       await ConfigureCategory(ref, { displayName, parent }),
+      "ConfigureCategory",
+    );
+    expect(app.read(FILE)).to.equal(SOURCE);
+  });
+
+  it("are left as written when the echo sends an icon written as code as null", async function () {
+    this.timeout(OP_TIMEOUT);
+    const { ref, displayName, icon, parent } =
+      await categoryMeta("pages.archive");
+    expect(icon).to.equal(undefined);
+    expectOk(
+      await ConfigureCategory(ref, {
+        displayName,
+        parent,
+        ...Object.fromEntries([["icon", null]]),
+      }),
       "ConfigureCategory",
     );
     expect(app.read(FILE)).to.equal(SOURCE);

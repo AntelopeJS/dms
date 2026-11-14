@@ -25,6 +25,8 @@ type OptionsPatchValue =
  *
  * An option the patch sets to the value the file already reads as is left as
  * written, so echoing what was read back does not turn a constant into its value.
+ * A clear is such an echo when the option reads as absent: an option written as
+ * code the scanner cannot read, such as `icon: iconFor("archive")`, stays.
  * A `displayName` the scanner cannot read reads as the page's or the category's
  * `id`, so an echo of that `id` leaves the name's code as written.
  */
@@ -38,10 +40,7 @@ export function optionsPatch(
   return Object.fromEntries(
     Object.entries(patch)
       .map(([key, value]) => [key, value === null ? undefined : value] as const)
-      .filter(
-        ([key, value]) =>
-          value === undefined || !isDeepStrictEqual(value, readAs(key)),
-      ),
+      .filter(([key, value]) => !isDeepStrictEqual(value, readAs(key))),
   );
 }
 

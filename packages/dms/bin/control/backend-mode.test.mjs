@@ -47,6 +47,22 @@ await test("a journey that pins dev in a production run gets a dev backend, not 
   );
 });
 
+await test("a journey that pins watch gets ajs project dev -w, not the dev standby, and a restart inside it keeps watching", async (t) => {
+  const state = await newRun(t);
+  state.backendMode = "dev";
+  await freshDatabase(state, "j001");
+  const standby = await startedOn(`${state.databasePrefix}_j002`);
+  await freshDatabase(state, "j002", { backend: "watch" });
+  const pinned = await served(state);
+  await restartBackend(state);
+  const restarted = await served(state);
+  assert.notEqual(pinned.pid, standby.pid);
+  assert.deepEqual(
+    [await commandOf(pinned.pid), await commandOf(restarted.pid)],
+    ["dev -w", "dev -w"],
+  );
+});
+
 await test("a restart inside a journey that pins production in a dev run keeps production", async (t) => {
   const state = await newRun(t);
   state.backendMode = "dev";

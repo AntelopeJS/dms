@@ -10,7 +10,7 @@ import type { OpResult } from "./results";
 export const DATABASE_ENGINE_SCHEMES = {
   postgres: ["postgres:", "postgresql:"],
   mysql: ["mysql:"],
-  mongodb: ["mongodb:"],
+  mongodb: ["mongodb:", "mongodb+srv:"],
   rethinkdb: ["rethinkdb:"],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
