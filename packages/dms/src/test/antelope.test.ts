@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { defineConfig } from "@antelopejs/interface-core/config";
+import { MongoClient } from "mongodb";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
 
 const ANY_FREE_PORT = 0;
@@ -20,6 +21,24 @@ const CLOSED_SMTP_PORT = 1;
 const LOCAL_API_PATH = process.env.DMS_TEST_API_PATH;
 const LOCAL_MONGODB_PATH = process.env.DMS_TEST_MONGODB_PATH;
 const LOCAL_STORAGE_PATH = process.env.DMS_TEST_STORAGE_PATH;
+
+/**
+ * Makes the test replica set acknowledge a write once it is applied, not
+ * once a majority has journaled it. With the implicit `majority` default each
+ * write waits for a journal sync, which on Windows runners can take hundreds
+ * of milliseconds and adds up to a stall past the 2000 ms test timeout.
+ */
+async function acknowledgeWritesOnApply(url: string): Promise<void> {
+  const client = await MongoClient.connect(url);
+  try {
+    await client.db("admin").command({
+      setDefaultRWConcern: 1,
+      defaultWriteConcern: { w: 1 },
+    });
+  } finally {
+    await client.close();
+  }
+}
 
 const LOCAL_INSTALL_COMMAND = process.env.DMS_PREBUILT ? [] : ["pnpm build"];
 const INSTALLED_API = {
@@ -157,6 +176,7 @@ export default defineConfig({
       storageDir = await mkdtemp(join(tmpdir(), "dms-test-storage-"));
 
       const mongoUrl = mongod.getUri();
+      await acknowledgeWritesOnApply(mongoUrl);
       process.env.TEST_MONGO_URL = mongoUrl;
       process.env.TEST_JWT_SECRET = JWT_SECRET;
       process.env.TEST_BOOTSTRAP_SECRET = BOOTSTRAP_SECRET;
