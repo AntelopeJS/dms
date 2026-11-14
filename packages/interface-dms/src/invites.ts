@@ -288,9 +288,9 @@ async function createAdmittedInviteToken(
 }
 
 /**
- * Removes the invites whose decision is already completed, so a creation
- * refused because of one can run again: the stored invites of the email, such
- * as a fresh invite whose withdrawal failed to delete it, and the invites the
+ * Removes the invites a completed cancellation retired, so a creation refused
+ * because of one can run again: the stored invites of the email, such as a
+ * fresh invite whose withdrawal failed to delete it, and the invites the
  * creation read, whose rows may be gone already.
  *
  * @returns Whether it found any
@@ -307,7 +307,11 @@ async function removeRetiredInvites(
     [...ids].map((inviteId) => decisions.getForInvite(tenantId, inviteId)),
   );
   const retired = held.flatMap((decision) =>
-    decision?.completed ? [decision] : [],
+    decision?.reason === "cancelled" &&
+    !decision.replacement &&
+    decision.completed
+      ? [decision]
+      : [],
   );
   await Promise.all(retired.map(completeAdmittedInviteResolution));
   return retired.length > 0;
