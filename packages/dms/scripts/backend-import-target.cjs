@@ -17,7 +17,7 @@ const processPins = {
   "src/utils/package-manager.ts:3": 'import { promisify } from "node:util";',
   "src/utils/package-manager.ts:5":
     "const execFileAsync = promisify(execFile);",
-  "src/utils/package-manager.ts:58":
+  "src/utils/package-manager.ts:59":
     'return platform() === "win32"\n    ? execFileAsync(windowsCommandLine(manager, args), {\n        ...options,\n        shell: "cmd.exe",\n      })\n    : execFileAsync(manager, args, options);',
   "src/test/helpers/replica-process.ts:1":
     'import { type ChildProcess, spawn } from "node:child_process";',

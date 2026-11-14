@@ -1,5 +1,4 @@
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { gunzipSync } from "node:zlib";
 import { runPackageManager } from "../utils/package-manager/index";
@@ -16,6 +15,8 @@ const OCTAL = 8;
 /** Every file of an npm tarball sits under this folder. */
 const PACKAGE_ROOT = "package/";
 const TEMP_PREFIX = "dms-store-pack-";
+/** Where packs land, inside the project so the path npm receives names no user folder. */
+const PACK_PARENT = path.join("node_modules", ".cache", "dms");
 
 interface TarHeader {
   name: string;
@@ -76,7 +77,13 @@ async function packRelease(
 ): Promise<Buffer> {
   await runPackageManager(
     "npm",
-    ["pack", spec, "--pack-destination", destination, "--silent"],
+    [
+      "pack",
+      spec,
+      "--pack-destination",
+      path.relative(projectPath, destination),
+      "--silent",
+    ],
     { cwd: projectPath, timeout: NPM_PACK_TIMEOUT_MS },
   );
   const [file] = await readdir(destination);
@@ -94,7 +101,9 @@ export async function readPublishedFiles(
   projectPath: string,
   filePaths: readonly string[],
 ): Promise<Map<string, string>> {
-  const destination = await mkdtemp(path.join(tmpdir(), TEMP_PREFIX));
+  const parent = path.join(projectPath, PACK_PARENT);
+  await mkdir(parent, { recursive: true });
+  const destination = await mkdtemp(path.join(parent, TEMP_PREFIX));
   try {
     const archive = await packRelease(
       `${packageName}@${version}`,
