@@ -26,5 +26,5 @@ export function shadowing(name: string, value: string): string | undefined {
   if (!inheritedVariables.has(name) || process.env[name] === value) {
     return undefined;
   }
-  return `the project runs with a value of ${name} it did not load from .env, as one set in the environment that started it, such as its shell, which wins over .env: unset ${name} there and restart the project, or it never loads the new value`;
+  return `the project runs with a value of ${name} it did not load from .env, for example one set in the environment that started it (its shell), which wins over .env: unset ${name} there and restart the project, or it never loads the new value`;
 }

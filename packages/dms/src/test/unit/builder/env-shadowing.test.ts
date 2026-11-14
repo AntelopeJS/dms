@@ -117,17 +117,23 @@ describe("a connection variable the starting environment sets", function () {
     expect(refusal(() => setProjectVariable(VARIABLE, URL))).to.match(SHADOWED);
   });
 
-  it("records the variables at each start of the builder", async () => {
-    startWith(undefined);
-    process.env[VARIABLE] = SHELL_URL;
+  it("records the variables at each start of the builder, against the .env it loaded", async () => {
     const config = getBuilderConfig();
     setBuilderConfig({ ...config, enabled: true });
     try {
+      startWith(undefined);
+      process.env[VARIABLE] = SHELL_URL;
       await startBuilder(false, "default");
+      expect(refusal(() => setProjectVariable(VARIABLE, URL))).to.match(
+        SHADOWED,
+      );
+      fs.writeFileSync(envFile(), `${VARIABLE}="${SHELL_URL}"\n`);
+      await startBuilder(false, "default");
+      setProjectVariable(VARIABLE, URL);
     } finally {
       setBuilderConfig(config);
     }
-    expect(refusal(() => setProjectVariable(VARIABLE, URL))).to.match(SHADOWED);
+    expect(projectFile(app.root, ".env")).to.equal(`${VARIABLE}="${URL}"\n`);
   });
 
   it("writes the value the starting environment holds already, which the project loads", () => {
