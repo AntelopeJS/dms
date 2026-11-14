@@ -209,7 +209,22 @@ describe("[unit] mockup list status and source", () => {
 });
 
 describe("[unit] mockup spec source and built", () => {
-  it("refuses, in the spec, a built page whose path is not one of the dashboard", () => {
+  it("reads, in the spec, a page's live route by the rule of a built page's path", () => {
+    const written = (route: string) =>
+      specSchema.safeParse({
+        version: 1,
+        pages: [{ ...specObject("Live").pages[0], liveRoutes: { k: route } }],
+      }).success;
+
+    for (const route of REFUSED_ROUTES) {
+      expect(written(route), JSON.stringify(route)).to.equal(false);
+    }
+    for (const route of ACCEPTED_ROUTES) {
+      expect(written(route), JSON.stringify(route)).to.equal(true);
+    }
+  });
+
+  it("refuses, in the spec, a built page whose path is not a relative route", () => {
     const written = (path: string) =>
       specSchema.safeParse({
         ...specObject("Built"),

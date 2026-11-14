@@ -11,8 +11,8 @@ import { type SketchReason, sketchFor } from "./from-page-sketch";
 import type { Json, JsonObject, MockupNode, MockupSpecPage } from "./model";
 import {
   jsonObjectSchema,
-  RELATIVE_ROUTE_PATTERN,
   RESERVED_MOCKUP_NAMES,
+  relativeRouteSchema,
 } from "./model";
 import { type SampleColumn, sampleRows } from "./sample-rows";
 
@@ -142,7 +142,9 @@ type Routed<Value> =
   | { ok: false; reason: SketchReason };
 
 function routeIssue(route: string): SketchReason | undefined {
-  return RELATIVE_ROUTE_PATTERN.test(route) ? undefined : "remote-route";
+  return relativeRouteSchema.safeParse(route).success
+    ? undefined
+    : "remote-route";
 }
 
 function routeData(value: Json, c: Conversion): Routed<Json> {
@@ -198,10 +200,13 @@ function tableOf(block: BlockNode, c: Conversion): Routed<MockupNode> {
     ),
   );
   if (holdsSentinel(picked)) return { ok: false, reason: "sentinel" };
+  const listRoute = `${resource.route}/list`;
+  const issue = routeIssue(listRoute);
+  if (issue) return { ok: false, reason: issue };
   const routed = routeObject(picked, c);
   if (!routed.ok) return routed;
   const fields = listedFields(resource);
-  const key = keyFor(c, `${resource.route}/list`, sampleRows(fields), "rows");
+  const key = keyFor(c, listRoute, sampleRows(fields), "rows");
   const columns = Object.fromEntries(
     fields.map((field): [string, JsonObject] => [
       field.field,

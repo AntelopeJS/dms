@@ -254,7 +254,27 @@ describe("[unit] mockup conversion of a block's live route", () => {
     ]);
   }
 
-  it("sketches a block whose route is not a path of this site, never keeps it as a live route", () => {
+  it("sketches a bound table whose resource's list route is not a relative route", () => {
+    const resource = { ...BOOK_RESOURCE, route: "/api/my books" };
+    const converted = convertPage(
+      structureOf(REF, [
+        { name: "table", type: "TableView", controller: "book", config: {} },
+      ]),
+      "books",
+      {
+        oracle: openOracle(NAME, "books"),
+        resources: new Map([[resource.ref, resource]]),
+      },
+    );
+
+    expect(converted.sketches).to.deep.equal([
+      { path: "/books#table", reason: "remote-route" },
+    ]);
+    expect(converted.page).not.to.have.property("liveRoutes");
+    expect(issuesOf(converted)).to.deep.equal([]);
+  });
+
+  it("sketches a block whose route is not a relative route, never keeps it as a live route", () => {
     for (const route of REFUSED_ROUTES) {
       const converted = convertRoute(route);
 
@@ -266,7 +286,7 @@ describe("[unit] mockup conversion of a block's live route", () => {
     }
   });
 
-  it("keeps a block's route that is a path of this site as a live route the spec reads back", () => {
+  it("keeps a block's route that is a relative route as a live route the spec reads back", () => {
     for (const route of ACCEPTED_ROUTES) {
       const converted = convertRoute(route);
 

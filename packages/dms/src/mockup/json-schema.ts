@@ -7,8 +7,8 @@ import type { Json, JsonObject } from "./model";
 import {
   jsonSchema,
   KEY_PATTERN,
-  MAX_DASHBOARD_PATH,
   MAX_PAGES,
+  MAX_RELATIVE_ROUTE,
   MOCKUP_SOURCES,
   RELATIVE_ROUTE_PATTERN,
   SLUG_PATTERN,
@@ -206,6 +206,7 @@ function pageDefinition(): JsonObject {
         additionalProperties: {
           type: "string",
           pattern: RELATIVE_ROUTE_PATTERN.source,
+          maxLength: MAX_RELATIVE_ROUTE,
         },
         description:
           'The live route a fixture key stands for: with Real data on, an option "fixture:<key>" reads it instead of the fixture.',
@@ -247,7 +248,7 @@ function builtDefinition(): JsonObject {
             path: {
               type: "string",
               pattern: RELATIVE_ROUTE_PATTERN.source,
-              maxLength: MAX_DASHBOARD_PATH,
+              maxLength: MAX_RELATIVE_ROUTE,
               description:
                 'A path of the dashboard, such as "/orders": it starts with one "/", never "//" or "/\\", and holds no whitespace or control character.',
             },
