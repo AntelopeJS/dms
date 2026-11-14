@@ -581,18 +581,10 @@ export function setPageBlocks(
     applyImportRef(context.sourceFile, importRef);
   }
   const written = findPageClass(context.sourceFile, context.page.id);
-  if (!written) {
+  const refusal = written && checkAccess(written);
+  if (!written || refusal) {
     transaction.rollback();
-    return notFound<{ version: string }>(ref);
-  }
-  try {
-    checkAccess(written);
-  } catch (error) {
-    transaction.rollback();
-    if (error instanceof InvalidValueError) {
-      return invalidValue(error);
-    }
-    throw error;
+    return refusal ? invalidConfig(refusal) : notFound(ref);
   }
   let warnings: OpWarning[] = [];
   if (draft.queries) {

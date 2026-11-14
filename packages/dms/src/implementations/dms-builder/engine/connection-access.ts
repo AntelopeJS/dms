@@ -156,21 +156,27 @@ function writingAttempt(
     : undefined;
 }
 
+/** Why a block bound to a resource is refused on a read-only connection, or nothing. */
+function boundRefusal(
+  type: string,
+  record: ResourceRecord,
+  form: RowWritingForm | undefined,
+  added: boolean,
+): string | undefined {
+  const connection = mappedConnectionOfFile(record.databaseFile);
+  const attempt = writingAttempt(type, record, form, added);
+  return connection === undefined || attempt === undefined
+    ? undefined
+    : readOnlyRefusal(connection, attempt);
+}
+
 function assertBound(
   type: string,
   record: ResourceRecord | undefined,
   form: RowWritingForm | undefined,
   added = true,
 ): void {
-  if (!record) {
-    return;
-  }
-  const connection = mappedConnectionOfFile(record.databaseFile);
-  const attempt = writingAttempt(type, record, form, added);
-  const refusal =
-    connection === undefined || attempt === undefined
-      ? undefined
-      : readOnlyRefusal(connection, attempt);
+  const refusal = record && boundRefusal(type, record, form, added);
   if (refusal) {
     throw new ReadOnlyConnectionError(refusal);
   }
@@ -318,15 +324,15 @@ function sameControllers(a: WrittenBlock, b: WrittenBlock): boolean {
 
 /**
  * Reads the blocks a draft rewrites, and returns the check to run on the page class once it is
- * written. It throws, as AddBlock does, for a block the draft adds, or puts over another
- * controller, that would write to a table mapped from a read-only connection; and, as
- * ConfigureBlock does, for a ResourceForm the draft turned into one that creates or edits its
+ * written. It answers why the draft is refused, as AddBlock refuses a block the draft adds, or
+ * puts over another controller, that would write to a table mapped from a read-only connection,
+ * and as ConfigureBlock refuses a ResourceForm the draft turned into one that creates or edits its
  * rows. A block whose type, controller and mode stay as they were passes.
  */
 export function draftGuard(
   cls: ClassDeclaration,
   draft: Pick<PageDraft, "blocks">,
-): (written: ClassDeclaration) => void {
+): (written: ClassDeclaration) => string | undefined {
   const paths = writtenPaths(draft.blocks);
   const before = new Map(
     paths.map((path) => [path.join("/"), writtenBlock(cls, path)]),
@@ -337,14 +343,20 @@ export function draftGuard(
       if (after?.type === undefined) {
         continue;
       }
+      const { type } = after;
       const prior = before.get(path.join("/"));
-      const kept = prior?.type === after.type && sameControllers(prior, after);
+      const kept = prior?.type === type && sameControllers(prior, after);
       if (kept && prior.mode === after.mode) {
         continue;
       }
-      for (const record of after.records) {
-        assertBound(after.type, record, rowWritingForm(after.mode), !kept);
+      const form = rowWritingForm(after.mode);
+      const refusal = after.records
+        .map((record) => boundRefusal(type, record, form, !kept))
+        .find((found) => found !== undefined);
+      if (refusal) {
+        return refusal;
       }
     }
+    return undefined;
   };
 }
