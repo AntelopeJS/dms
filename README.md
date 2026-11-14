@@ -118,7 +118,7 @@ ajs project modules add @antelopejs/dms
 pnpm add -D @antelopejs/dms-frontend
 ```
 
-It also needs an API module, a database module and an authentication module. The database module is `@antelopejs/mongodb`, or `@antelopejs/mysql` for MySQL and MariaDB, in a release built on the 0.4 line of `interface-database`. See [Installation](https://dms.antelopejs.com/docs/getting-started/installation). The DMS also runs [inside an AdonisJS 6 backend](https://dms.antelopejs.com/docs/getting-started/adonisjs).
+It also needs an API module, a database module and an authentication module. The database module is `@antelopejs/mongodb`, or `@antelopejs/mysql` for MySQL and MariaDB, in a release built on the 0.4 line of `interface-database`. See [Installation](https://dms.antelopejs.com/docs/getting-started/installation). The DMS also runs [inside an AdonisJS backend](https://dms.antelopejs.com/docs/getting-started/adonisjs).
 
 </details>
 
@@ -286,7 +286,7 @@ Generated pages are read-only until you switch on **Rows can be edited** for a t
 <details>
 <summary><b>Which databases?</b></summary>
 
-**Connect** reads PostgreSQL, MySQL, MariaDB, MongoDB and RethinkDB today. The DMS keeps its own accounts, roles and settings in the database module you load: MongoDB in the templates, or MySQL 8.4 and 9.7 and MariaDB 11.8 and 12.3 with [`@antelopejs/mysql`](https://github.com/AntelopeJS/mysql). Need another database? Tell us on [Discord](https://discord.gg/g4pFt6eXqu).
+**Connect** reads PostgreSQL, MySQL, MariaDB, MongoDB and RethinkDB today. The DMS keeps its own accounts, roles and settings in the database module you load: MongoDB in the templates, or MySQL and MariaDB with [`@antelopejs/mysql`](https://github.com/AntelopeJS/mysql), whose README lists the server versions it supports. Need another database? Tell us on [Discord](https://discord.gg/g4pFt6eXqu).
 
 </details>
 
