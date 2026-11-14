@@ -41,27 +41,28 @@ setInterval(() => {}, 1_000_000);
 `;
 
 const LOADING_STUB = `import { createServer } from "node:http";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 const [role, refusals] = [process.argv[2], Number(process.argv[3])];
 if (role === "front") {
-  const state = await fetch("http://localhost:" + process.env.DMS_BACK_PORT + "/state");
+  const { host, port } = JSON.parse(readFileSync(".antelope/dev.json", "utf8")).servers.api.endpoints[0];
+  const state = await fetch("http://" + host + ":" + port + "/state");
   console.log("Server ready on");
   console.log("manifest " + (await state.text()));
 } else {
   let requests = 0;
   const manifest = "/dms/frontend?renderer=vue&rendererVersion=3";
-  createServer((req, res) => {
+  const server = createServer((req, res) => {
     const served = req.url === manifest && ++requests > refusals;
     if (req.url === "/state") res.end(requests > refusals ? "served" : "loading");
     else {
       res.statusCode = served ? 200 : req.url === manifest ? 503 : 404;
       res.end("{}");
     }
-  }).listen(Number(process.env.PORT), () => {
+  }).listen(0, "127.0.0.1", () => {
     mkdirSync(".antelope", { recursive: true });
     writeFileSync(".antelope/dev.json", JSON.stringify({
       pid: process.pid,
-      servers: { api: { endpoints: [{ host: "localhost", port: process.env.PORT }] } },
+      servers: { api: { endpoints: [{ host: "127.0.0.1", port: server.address().port }] } },
     }));
     console.log("Server started, listening");
     if (process.argv[4] === "broken") console.log("Failed to load module @x/broken");
@@ -136,6 +137,14 @@ function scriptEnv(stub, root, extra) {
     DMS_FRONT_CMD: `${process.execPath} ${stub} front`,
     ...extra,
   });
+}
+
+/**
+ * @param {ReturnType<import("node:net").Server["address"]>} address
+ * @returns {address is import("node:net").AddressInfo} True for the address of a TCP listener
+ */
+function isTcpAddress(address) {
+  return typeof address === "object" && address !== null;
 }
 
 /**
@@ -258,7 +267,6 @@ await test("the dashboard starts only once the backend serves its manifest (fail
   const { loading, project } = fixture(t);
   const root = project();
   const env = scriptEnv(loading, root, {
-    DMS_BACK_PORT: "24601",
     DMS_BACK_CMD: `${process.execPath} ${loading} back 2`,
     DMS_FRONT_CMD: `${process.execPath} ${loading} front`,
   });
@@ -272,7 +280,6 @@ await test("a backend that never serves its manifest fails the start and leaves 
   const { loading, project } = fixture(t);
   const root = project();
   const env = scriptEnv(loading, root, {
-    DMS_BACK_PORT: "24602",
     DMS_DEV_TIMEOUT: "2",
     DMS_BACK_CMD: `${process.execPath} ${loading} back 1000000`,
     DMS_FRONT_CMD: `${process.execPath} ${loading} front`,
@@ -291,13 +298,14 @@ await test("the manifest probe goes direct like the dashboard's fetch (fails a p
     res.end();
   });
   await new Promise((resolve) =>
-    proxy.listen(24699, "127.0.0.1", () => resolve(undefined)),
+    proxy.listen(0, "127.0.0.1", () => resolve(undefined)),
   );
   t.after(() => proxy.close());
-  const proxyUrl = "http://127.0.0.1:24699";
+  const address = proxy.address();
+  assert.ok(isTcpAddress(address));
+  const proxyUrl = `http://127.0.0.1:${address.port}`;
   const root = project();
   const env = scriptEnv(loading, root, {
-    DMS_BACK_PORT: "24603",
     DMS_BACK_CMD: `${process.execPath} ${loading} back 0`,
     DMS_FRONT_CMD: `${process.execPath} ${loading} front`,
     http_proxy: proxyUrl,
@@ -312,7 +320,6 @@ await test("a fatal error logged after the ready line fails the start at once (f
   const { loading, project } = fixture(t);
   const root = project();
   const env = scriptEnv(loading, root, {
-    DMS_BACK_PORT: "24604",
     DMS_DEV_TIMEOUT: "30",
     DMS_BACK_CMD: `${process.execPath} ${loading} back 1000000 broken`,
     DMS_FRONT_CMD: `${process.execPath} ${loading} front`,
