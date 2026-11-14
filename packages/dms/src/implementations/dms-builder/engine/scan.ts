@@ -212,7 +212,7 @@ class SourceScanner {
       return;
     }
     const category = this.resolvePageCategory(optsArg);
-    const urlSlug = getStringProperty(optsArg, "urlSlug") ?? id;
+    const urlSlug = readOption(optsArg, "urlSlug", isString) ?? id;
     const ref = joinSlug(category?.fullSlug ?? "", urlSlug);
     this.pages.set(ref, {
       ref,
@@ -322,7 +322,7 @@ class SourceScanner {
   ): CategoryRecord {
     const parentId = getIdentifierProperty(opts, "category");
     const parent = parentId ? this.resolveCategoryRef(parentId) : undefined;
-    const urlSlug = getStringProperty(opts, "urlSlug") ?? id;
+    const urlSlug = readOption(opts, "urlSlug", isString) ?? id;
     const record: CategoryRecord = {
       ref: parent ? `${parent.ref}.${id}` : id,
       id,
