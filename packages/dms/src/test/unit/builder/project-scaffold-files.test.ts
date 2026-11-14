@@ -40,7 +40,7 @@ function build(
   const types = path.join(scaffold.root, "node_modules", "@types");
   fs.mkdirSync(types, { recursive: true });
   fs.symlinkSync(
-    path.dirname(require.resolve("@types/node/package.json")),
+    path.join(process.cwd(), "node_modules", "@types", "node"),
     path.join(types, "node"),
   );
   const config = ts.getParsedCommandLineOfConfigFile(
