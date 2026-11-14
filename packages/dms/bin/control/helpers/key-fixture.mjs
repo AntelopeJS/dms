@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildInputs, buildKey, sourceNames } from "../build-key.mjs";
@@ -12,12 +12,15 @@ import { write } from "./repo.mjs";
  * module's copied page, the registry the setup generated (which names the
  * workspace's folder and the run's URL), the install record, the lockfile
  * and the installed modules. The project's `node_modules` links to the
- * playground's, as the run's copy does.
+ * playground's, as the run's copy does. A key reads no install above the
+ * fixture's folder, so what sits above `TMPDIR` leaves it unchanged.
  *
  * @param {import("node:test").TestContext} t The test
  */
 export function fixture(t) {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-build-key-test-"));
+  const dir = realpathSync(
+    mkdtempSync(join(tmpdir(), "dms-control-build-key-test-")),
+  );
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const frontend = join(dir, "dms-frontend");
   write(join(frontend, "package.json"), '{"version":"0.10.0"}');
@@ -67,16 +70,16 @@ export function fixture(t) {
       names: sourceNames(workspace),
       installed: workspace,
     };
-    return { project, workspace, run, prepared };
+    return { project, workspace, run, prepared, top: dir };
   };
   return { dir, frontend, checkout, modules, prepare };
 }
 
 /**
  * @param {string} frontend
- * @param {{ run: import("../build-key.mjs").KeyedRun, prepared: import("../build-key.mjs").PreparedWorkspace }} side
+ * @param {{ run: import("../build-key.mjs").KeyedRun, prepared: import("../build-key.mjs").PreparedWorkspace, top: string }} side
  * @returns {string}
  */
 export function keyOf(frontend, side) {
-  return buildKey(buildInputs(side.run, frontend, side.prepared));
+  return buildKey(buildInputs(side.run, frontend, side.prepared, side.top));
 }
