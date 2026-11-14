@@ -118,7 +118,7 @@ ajs project modules add @antelopejs/dms
 pnpm add -D @antelopejs/dms-frontend
 ```
 
-It also needs an API module, a database module and an authentication module. The database module is `@antelopejs/mongodb`, or `@antelopejs/mysql` for MySQL and MariaDB. See [Installation](https://dms.antelopejs.com/docs/getting-started/installation). The DMS also runs [inside an AdonisJS 6 backend](https://dms.antelopejs.com/docs/getting-started/adonisjs).
+It also needs an API module, a database module and an authentication module. The database module is `@antelopejs/mongodb`, or `@antelopejs/mysql` for MySQL and MariaDB, in a release built on the 0.4 line of `interface-database`. See [Installation](https://dms.antelopejs.com/docs/getting-started/installation). The DMS also runs [inside an AdonisJS 6 backend](https://dms.antelopejs.com/docs/getting-started/adonisjs).
 
 </details>
 
