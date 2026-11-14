@@ -51,8 +51,13 @@ export interface PlanRow {
   key(field: string): PlanValue;
 }
 
-/** One point per group once awaited, in the order the stream holds them. */
-export interface PlanPoints extends PromiseLike<QueryPoint[]> {
+/** A query that answers `Answer` once run, and sends nothing until then. */
+export interface PlanQuery<Answer> {
+  run(): Promise<Answer>;
+}
+
+/** One point per group once run, in the order the stream holds them. */
+export interface PlanPoints extends PlanQuery<QueryPoint[]> {
   orderBy(index: string, direction?: "asc" | "desc"): PlanPoints;
   slice(offset: number, count?: number): PlanPoints;
 }
@@ -65,11 +70,11 @@ export interface PlanStream {
     index: string,
     mapper: (rows: PlanStream, group: PlanValue) => GroupedPoint,
   ): PlanPoints;
-  count(field?: string): PromiseLike<number>;
-  sum(field?: string): PromiseLike<number>;
-  avg(field?: string): PromiseLike<number>;
-  min(field?: string): PromiseLike<number>;
-  max(field?: string): PromiseLike<number>;
+  count(field?: string): PlanQuery<number>;
+  sum(field?: string): PlanQuery<number>;
+  avg(field?: string): PlanQuery<number>;
+  min(field?: string): PlanQuery<number>;
+  max(field?: string): PlanQuery<number>;
 }
 
 /** Values the route would supply per request, by the name the route exposes. */
@@ -189,7 +194,7 @@ function measureOver(
   rows: PlanStream,
   measure: PlanMeasure,
   over: string,
-): PromiseLike<number> {
+): PlanQuery<number> {
   if (measure.kind === "count") {
     return rows.count();
   }
@@ -216,7 +221,7 @@ export interface BucketMembers {
 /** One group as the mapper hands it back: the group itself and what was measured over its rows. */
 export interface GroupedPoint {
   x: PlanValue;
-  y: PromiseLike<number>;
+  y: PlanQuery<number>;
 }
 
 function applyGroup(
@@ -258,8 +263,8 @@ function applyGroup(
 
 /**
  * Build the plan against a table handle. The result is what the database's own
- * chain answers — awaitable, a number for a scalar plan and one point per group
- * for a grouped one — so a caller awaits it as it would any query.
+ * chain answers once run, a number for a scalar plan and one point per group
+ * for a grouped one, so a caller runs it as it would any query.
  *
  * Throws when an argument a filter binds was not supplied, rather than running a
  * query with a missing bound value in it.
@@ -269,7 +274,7 @@ export function executePlan(
   plan: QueryPlan,
   fields: ResourceFieldStructure[],
   args: PlanArguments = {},
-): PromiseLike<number | QueryPoint[]> {
+): PlanQuery<number | QueryPoint[]> {
   const narrowed = applyFilters(table, resolveFilters(plan, fields, args));
   if (plan.group) {
     return applyGroup(narrowed, plan, plan.group);
