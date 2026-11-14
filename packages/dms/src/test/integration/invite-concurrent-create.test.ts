@@ -268,6 +268,18 @@ function holdFirstCall(method: "delete" | "insert") {
   return { parked, release, restore };
 }
 
+/** Makes the first invite `delete` call fail. */
+function failFirstDelete() {
+  const restore = () => {
+    Reflect.deleteProperty(UserInviteModel.prototype, "delete");
+  };
+  UserInviteModel.prototype.delete = () => {
+    restore();
+    return Promise.reject(new Error("delete failed"));
+  };
+  return { restore };
+}
+
 async function retire(
   invite: UserInvite,
   reason: "cancelled" | "expired",
@@ -276,42 +288,47 @@ async function retire(
   await completeInviteResolution(resolution);
 }
 
+const holds: { restore: () => void }[] = [];
+
+function restoreHolds(): void {
+  for (const hold of holds.splice(0)) hold.restore();
+}
+
+/** Runs A's creation and C's replacement, then B's fresh insert, holding B after it read C's invite as its rival. */
+async function freshHeldAfterRivalRead() {
+  const invites = GetModel(UserInviteModel, TENANT);
+  const firstRead = holdFirstFreshCaller();
+  const fresh = createUserInviteToken(inviteOptions("member"));
+  await firstRead.parked;
+  firstRead.unregister();
+  await createUserInviteToken(inviteOptions("member"));
+  const kept = await createUserInviteToken(inviteOptions("member"));
+  const rivalRead = holdFirstRivalRead();
+  holds.push(rivalRead);
+  firstRead.release();
+  await rivalRead.parked;
+  const keptInvite = await invites.get(kept.inviteId);
+  assert.ok(keptInvite);
+  return { invites, fresh, rivalRead, keptInvite };
+}
+
+/** Holds B after its rival read, then retires the invite B read as its rival. */
+async function freshHeldAfterRivalRetired(reason: "cancelled" | "expired") {
+  const held = await freshHeldAfterRivalRead();
+  await retire(held.keptInvite, reason);
+  return held;
+}
+
 describe("[integration] an invitation retired while a fresh invite withdraws", () => {
-  const holds: { restore: () => void }[] = [];
   let replacementGate: ReturnType<typeof holdFirstFreshCaller> | undefined;
 
   beforeEach(resetDatabase);
 
   afterEach(() => {
-    for (const hold of holds.splice(0)) hold.restore();
+    restoreHolds();
     replacementGate?.unregister();
     replacementGate = undefined;
   });
-
-  /** Runs A's creation and C's replacement, then B's fresh insert, holding B after it read C's invite as its rival. */
-  async function freshHeldAfterRivalRead() {
-    const invites = GetModel(UserInviteModel, TENANT);
-    const firstRead = holdFirstFreshCaller();
-    const fresh = createUserInviteToken(inviteOptions("member"));
-    await firstRead.parked;
-    firstRead.unregister();
-    await createUserInviteToken(inviteOptions("member"));
-    const kept = await createUserInviteToken(inviteOptions("member"));
-    const rivalRead = holdFirstRivalRead();
-    holds.push(rivalRead);
-    firstRead.release();
-    await rivalRead.parked;
-    const keptInvite = await invites.get(kept.inviteId);
-    assert.ok(keptInvite);
-    return { invites, fresh, rivalRead, keptInvite };
-  }
-
-  /** Holds B after its rival read, then retires the invite B read as its rival. */
-  async function freshHeldAfterRivalRetired(reason: "cancelled" | "expired") {
-    const held = await freshHeldAfterRivalRead();
-    await retire(held.keptInvite, reason);
-    return held;
-  }
 
   for (const reason of ["cancelled", "expired"] as const) {
     it(`keeps one pending invitation when the kept invite is ${reason} before the fresh one withdraws`, async () => {
@@ -355,6 +372,12 @@ describe("[integration] an invitation retired while a fresh invite withdraws", (
       [invited.token],
     );
   });
+});
+
+describe("[integration] withdrawal of a fresh invite that found a rival", () => {
+  beforeEach(resetDatabase);
+
+  afterEach(restoreHolds);
 
   it("hands the withdrawing caller a replacement still being inserted", async () => {
     const { invites, fresh, rivalRead } =
@@ -402,5 +425,26 @@ describe("[integration] an invitation retired while a fresh invite withdraws", (
     await fresh;
 
     assert.deepEqual(deleted, []);
+  });
+
+  it("removes an expired fresh invite whose withdrawal failed to delete it", async () => {
+    const { invites, fresh, rivalRead, keptInvite } =
+      await freshHeldAfterRivalRead();
+    holds.push(failFirstDelete());
+    rivalRead.release();
+    await fresh.catch(() => null);
+    const stray = (await invites.getAll()).find(
+      (row) => row._id !== keptInvite._id,
+    );
+    assert.ok(stray);
+
+    await invites.update(stray._id, { expiresAt: new Date(0) });
+    await runCleanupUserInvites();
+
+    const rows = await invites.getAll();
+    assert.deepEqual(
+      rows.map((row) => row._id),
+      [keptInvite._id],
+    );
   });
 });
