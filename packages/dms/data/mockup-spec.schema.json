@@ -137,7 +137,7 @@
           },
           "additionalProperties": {
             "type": "string",
-            "pattern": "^\\/(?![/\\\\])[^\\s\\p{Cc}]*$",
+            "pattern": "^\\/(?![/\\\\])(?:[^\\s\\p{Cc}{]|\\{(?!\\{ *[^\\s\\p{Cc}{}]+ *\\}\\})|\\{\\{ *[^\\s\\p{Cc}{}]+ *\\}\\})*$",
             "maxLength": 2048
           },
           "description": "The live route a fixture key stands for: with Real data on, an option \"fixture:<key>\" reads it instead of the fixture."
