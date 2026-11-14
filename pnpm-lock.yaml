@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@antelopejs/dms-frontend': file:.tgz-deps/antelopejs-dms-frontend-1d3862f.tgz
-
 importers:
 
   .:
@@ -405,8 +402,8 @@ importers:
         specifier: '>=1.23.0 <2'
         version: 1.23.0
       '@antelopejs/dms-frontend':
-        specifier: file:../../../.tgz-deps/antelopejs-dms-frontend-1d3862f.tgz
-        version: file:.tgz-deps/antelopejs-dms-frontend-1d3862f.tgz(@antelopejs/core@1.23.0)
+        specifier: '>=0.11.1 <0.12.0'
+        version: 0.11.1(@antelopejs/core@1.23.0)
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -505,8 +502,8 @@ importers:
         specifier: '>=1.23.0 <2'
         version: 1.23.0
       '@antelopejs/dms-frontend':
-        specifier: file:../../../.tgz-deps/antelopejs-dms-frontend-1d3862f.tgz
-        version: file:.tgz-deps/antelopejs-dms-frontend-1d3862f.tgz(@antelopejs/core@1.23.0)
+        specifier: '>=0.11.0 <0.12.0'
+        version: 0.11.1(@antelopejs/core@1.23.0)
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
@@ -621,9 +618,8 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  '@antelopejs/dms-frontend@file:.tgz-deps/antelopejs-dms-frontend-1d3862f.tgz':
-    resolution: {integrity: sha512-qq0ll2w4HKJIBi/9m6TfAzfikuiZe8voeVEVTZWnijrMeHaAdtlaNOTyIZ8ZtUriIUjecy9OM8arahJIUjtHNA==, tarball: file:.tgz-deps/antelopejs-dms-frontend-1d3862f.tgz}
-    version: 0.11.0
+  '@antelopejs/dms-frontend@0.11.1':
+    resolution: {integrity: sha512-Owu88uYgEfH3TTSVt30PYEeZFydq5aqLamZcSitYaFBNDUyZAglbR8HqAwqQM67nSFCwJ/sdQaqVcV52jDXjzw==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -6852,7 +6848,7 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@file:.tgz-deps/antelopejs-dms-frontend-1d3862f.tgz(@antelopejs/core@1.23.0)':
+  '@antelopejs/dms-frontend@0.11.1(@antelopejs/core@1.23.0)':
     dependencies:
       '@antelopejs/core': 1.23.0
       '@intlify/message-compiler': 11.4.8

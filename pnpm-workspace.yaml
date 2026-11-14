@@ -15,5 +15,3 @@ onlyBuiltDependencies:
   - vue-demi
 allowBuilds:
   lefthook: false
-overrides:
-  "@antelopejs/dms-frontend": "file:.tgz-deps/antelopejs-dms-frontend-1d3862f.tgz"
