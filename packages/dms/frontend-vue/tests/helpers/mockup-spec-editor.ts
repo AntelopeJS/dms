@@ -6,7 +6,7 @@ import {
   type MockupSpecNotice,
 } from "../../layers/dms-ui/app/entries/composables/block-preview/useMockupSpec";
 import type { MockupSpecDocument } from "../../layers/dms-ui/app/entries/utils/mockupSpec";
-import { fetchClientMock } from "../fixtures/unusedApi";
+import { fetchClient } from "../fixtures/fetchClient";
 import { mockupState } from "./mockup-runtime";
 import { FakeSpecFile } from "./mockup-spec-file";
 
@@ -31,7 +31,7 @@ export async function mountEditor(): Promise<void> {
       setup() {
         editor = useMockupSpec({
           name: "demo",
-          authFetch: fetchClientMock().mockImplementation(file.fetch),
+          authFetch: fetchClient(file.fetch),
           state,
           onNotice: (notice) => notices.push(notice),
         });

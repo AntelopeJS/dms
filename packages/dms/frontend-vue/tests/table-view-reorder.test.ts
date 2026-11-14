@@ -5,6 +5,7 @@ import {
   moveRow,
   reorderEdits,
 } from "../layers/dms-ui/app/entries/composables/table-view/utils/reorder";
+import { fetchClient } from "./fixtures/fetchClient";
 import { fetchClientMock } from "./fixtures/unusedApi";
 import type { TableViewListResponse } from "../layers/dms-ui/app/composables/table-view/types";
 
@@ -78,7 +79,7 @@ describe("rows ordered by hand", () => {
   };
 
   it("moves the row at once and saves its new position by a partial edit", async () => {
-    const api = fetchClientMock().mockImplementation(async () => ({}));
+    const api = fetchClient(async () => ({}));
     const { reorderState, data } = reorderOf(api);
     expect(reorderState.value?.enabled).toBe(true);
     await reorderState.value!.move(2, 0);
@@ -97,7 +98,7 @@ describe("rows ordered by hand", () => {
   });
 
   it("lists the rows again when the save fails, and is off while narrowed", async () => {
-    const api = fetchClientMock().mockImplementation(async () => {
+    const api = fetchClient(async () => {
       throw new Error("denied");
     });
     const { reorderState, refresh, onError } = reorderOf(api);
