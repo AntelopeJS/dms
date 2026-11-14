@@ -6,7 +6,6 @@ import {
 import { GetMetadata } from "@antelopejs/interface-core";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { assert, expect } from "chai";
-import { generateAccessToken } from "../../../../implementations/dms-auth";
 import { NotificationsApiController } from "../../../../pages/account";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
@@ -16,6 +15,7 @@ import {
 import { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { denyingTenantGate } from "../../../helpers/page-access";
 import { requestContextFixture } from "../../../helpers/request-context";
+import { sessionAccessToken } from "../../../helpers/session-token";
 
 const DENIED_TENANT = "notifications-gate-tenant";
 const MEMBER_ID = "notifications-gate-member";
@@ -60,8 +60,8 @@ describe("[unit] pages/settings/users/notifications — tenant access gate", () 
   before(async () => {
     const member = await insertUser(MEMBER_ID);
     const outsider = await insertUser(OUTSIDER_ID);
-    memberToken = generateAccessToken(DENIED_TENANT, member).token;
-    outsiderToken = generateAccessToken(DENIED_TENANT, outsider).token;
+    memberToken = await sessionAccessToken(DENIED_TENANT, member);
+    outsiderToken = await sessionAccessToken(DENIED_TENANT, outsider);
     await GetModel(TenantMemberModel, DENIED_TENANT).insert({
       userId: MEMBER_ID,
       roleIds: [],

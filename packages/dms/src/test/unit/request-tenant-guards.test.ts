@@ -22,13 +22,13 @@ import {
 import {
   AuthUser,
   authenticateRequestUser,
-  generateAccessToken,
   IfAuthUser,
   type RequestAuthenticator,
 } from "@antelopejs/interface-dms/auth";
 import { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { denyingTenantGate } from "../helpers/page-access";
 import { requestContextFixture } from "../helpers/request-context";
+import { sessionAccessToken } from "../helpers/session-token";
 
 const TENANT = "request-guard-tenant";
 const OTHER_TENANT = "request-guard-other";
@@ -137,7 +137,7 @@ function registerJwtBindingCases(): void {
   });
 
   it("binds the tenant of a verified token, through the decorators or on demand", async () => {
-    const other = (await generateAccessToken(OTHER_TENANT, user)).token;
+    const other = await sessionAccessToken(OTHER_TENANT, user);
 
     const anonymous = context(other);
     expect(getRequestTenantId(anonymous)).to.equal(DEFAULT_TENANT_ID);
@@ -191,9 +191,7 @@ function registerMembershipCases(): void {
       ...authenticator,
       authenticate: async () => ({ user, tenantId: OTHER_TENANT }),
     };
-    const authenticated = context(
-      (await generateAccessToken(OTHER_TENANT, user)).token,
-    );
+    const authenticated = context(await sessionAccessToken(OTHER_TENANT, user));
     expect((await authenticateRequestUser(authenticated))._id).to.equal(
       USER_ID,
     );
@@ -353,7 +351,7 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
     const stored = await GetModel(UserModel).get(USER_ID);
     if (!stored) throw new Error("Missing guard test user");
     user = stored;
-    jwt = (await generateAccessToken(TENANT, user)).token;
+    jwt = await sessionAccessToken(TENANT, user);
     await GetModel(TenantMemberModel, TENANT).insert({
       _id: MEMBER_ID,
       userId: USER_ID,
