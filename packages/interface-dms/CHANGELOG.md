@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.14.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.0...v0.14.1)
+
+### 🩹 Fixes
+
+- **dms:** Restrict credential files to their owner on Windows ([#1008](https://github.com/AntelopeJS/dms/pull/1008))
+- **dms:** Keep a logo file the app config builds with +, concat or join ([#1024](https://github.com/AntelopeJS/dms/pull/1024))
+- **interface-dms:** Keep one pending invite when a cancel, accept or expiry lands during a fresh invite's withdrawal ([#1021](https://github.com/AntelopeJS/dms/pull/1021))
+- **dms:** Install a scaffolded module outside the project's pnpm workspace ([#1022](https://github.com/AntelopeJS/dms/pull/1022))
+- **dms:** Check preview_blocks sketches with the mockup compiler's sanitizer and publish it as @antelopejs/dms/sketch ([#1009](https://github.com/AntelopeJS/dms/pull/1009))
+
+### 📖 Documentation
+
+- **interface-dms-builder:** Say when a second catalog provider needs exportPriority or a pin ([#1026](https://github.com/AntelopeJS/dms/pull/1026))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms-builder v0.5.1 ([77d48d67](https://github.com/AntelopeJS/dms/commit/77d48d67))
+- **release:** @antelopejs/dms v0.20.0 ([b540c6be](https://github.com/AntelopeJS/dms/commit/b540c6be))
+
+### ✅ Tests
+
+- **dms:** Let the invite host take any zod 3.x and spawn npm through its Windows shim ([#1023](https://github.com/AntelopeJS/dms/pull/1023))
+- **dms:** Load TableView in the table runtime setup, not the first test ([#1025](https://github.com/AntelopeJS/dms/pull/1025))
+- **dms:** Acknowledge test MongoDB writes on apply so Windows integration runs stop stalling ([#1027](https://github.com/AntelopeJS/dms/pull/1027))
+
+### 🤖 CI
+
+- Run the CI on Windows in parallel with Linux ([#906](https://github.com/AntelopeJS/dms/pull/906))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.14.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.13.3...v0.14.0)
