@@ -12,7 +12,7 @@ import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
 import { GenerateHtml } from "@antelopejs/interface-dms/html-render";
 export * from "./account-emails";
 import { AdminInviteTemplate } from "./email-templates";
-import { type decode, type JwtPayload, sign } from "jsonwebtoken";
+import type { decode, JwtPayload } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
   type AdminInviteEmailNames,
@@ -26,7 +26,7 @@ import {
   isObject,
   isString,
 } from "@antelopejs/interface-dms/utils/internal/type-check";
-import { generateSecret, verifyTokenFor } from "./token-secret";
+import { loadTokenUser, signUserToken, verifyUserToken } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
@@ -65,17 +65,10 @@ async function validateUserToken(
   data: TenantTokenInput,
   checkEmailValidation: boolean = false,
 ): Promise<User> {
-  const userModel = GetModel(UserModel);
-
-  const user = await userModel.get(data.id);
-  const claims = verifiedSessionClaims(
+  const { claims, user } = await verifiedSession(
     data.rawToken,
-    user,
     ACCESS_TOKEN_PURPOSE,
   );
-  if (!user || !claims) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
-  }
 
   const session = await loadTokenSession(claims.sessionId);
   try {
@@ -84,7 +77,7 @@ async function validateUserToken(
     throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
   }
 
-  await recordUserActivity(userModel, user);
+  await recordUserActivity(GetModel(UserModel), user);
 
   if (checkEmailValidation) {
     const config = getAuthConfig();
@@ -140,17 +133,26 @@ function decodedClaims(token: string): DecodedAuthPayload | undefined {
 }
 
 /**
- * The claims of `token` once it is proven to be a `purpose` token signed for
- * `user`, or `undefined`. Every refusal looks the same, so a caller that
- * answers it with one message tells no forged token apart from another.
+ * The claims of `token` and the user it names, once its signature proves it a
+ * `purpose` token and the user still holds the key it was issued under. The
+ * user is read only after the signature checks out, and every refusal is the
+ * same 401.
+ *
+ * @throws HTTPResult(401) for any token that is not a live `purpose` token
  */
-function verifiedSessionClaims(
+async function verifiedSession(
   token: string,
-  user: User | undefined,
   purpose: string,
-): DecodedAuthPayload | undefined {
-  const payload = verifyTokenFor(token, user);
-  return payload && isSessionPayload(payload, purpose) ? payload : undefined;
+): Promise<{ claims: DecodedAuthPayload; user: User }> {
+  const claims = verifyUserToken(token);
+  if (!claims || !isSessionPayload(claims, purpose)) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
+  }
+  const user = await loadTokenUser(claims);
+  if (!user) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
+  }
+  return { claims, user };
 }
 
 export namespace internal {
@@ -239,14 +241,10 @@ export function generateAccessToken(
   sessionId?: string,
 ): TokenResult {
   const config = getAuthConfig();
-
-  const secret = generateSecret(user.authKey);
-  const token = sign(
-    { id: user._id, tenantId, sessionId, purpose: ACCESS_TOKEN_PURPOSE },
-    secret,
-    {
-      expiresIn: Math.floor(config.accessTokenLifetime / 1000),
-    },
+  const token = signUserToken(
+    user,
+    { tenantId, sessionId, purpose: ACCESS_TOKEN_PURPOSE },
+    { expiresIn: Math.floor(config.accessTokenLifetime / 1000) },
   );
 
   return {
@@ -261,14 +259,10 @@ export function generateRefreshToken(
   sessionId?: string,
 ): TokenResult {
   const config = getAuthConfig();
-  const secret = generateSecret(user.authKey);
-
-  const token = sign(
-    { id: user._id, tenantId, sessionId, purpose: REFRESH_TOKEN_PURPOSE },
-    secret,
-    {
-      expiresIn: Math.floor(config.refreshTokenLifetime / 1000),
-    },
+  const token = signUserToken(
+    user,
+    { tenantId, sessionId, purpose: REFRESH_TOKEN_PURPOSE },
+    { expiresIn: Math.floor(config.refreshTokenLifetime / 1000) },
   );
 
   return {
@@ -278,16 +272,7 @@ export function generateRefreshToken(
 }
 
 export async function validateRefreshToken(token: string) {
-  const result = decodeUnverified(token);
-  if (!result || isString(result) || !isString(result.id)) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
-  }
-
-  const user = await GetModel(UserModel).get(result.id);
-  const claims = verifiedSessionClaims(token, user, REFRESH_TOKEN_PURPOSE);
-  if (!user || !claims) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_SESSION_TOKEN_ERROR);
-  }
+  const { claims } = await verifiedSession(token, REFRESH_TOKEN_PURPOSE);
   return claims;
 }
 
@@ -299,11 +284,9 @@ export function generateTwoFactorToken(
   tenantId: string,
   user: User,
 ): TokenResult {
-  const secret = generateSecret(user.authKey);
-
-  const token = sign(
-    { id: user._id, tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE },
-    secret,
+  const token = signUserToken(
+    user,
+    { tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE },
     {
       expiresIn: Math.floor(TWO_FACTOR_TOKEN_LIFETIME_MS / 1000),
       jwtid: randomUUID(),
@@ -314,10 +297,9 @@ export function generateTwoFactorToken(
 }
 
 export function generateTenantAssignmentToken(user: User): TokenResult {
-  const secret = generateSecret(user.authKey);
-  const token = sign(
-    { id: user._id, purpose: TENANT_ASSIGNMENT_PURPOSE },
-    secret,
+  const token = signUserToken(
+    user,
+    { purpose: TENANT_ASSIGNMENT_PURPOSE },
     { expiresIn: Math.floor(TENANT_ASSIGNMENT_TOKEN_LIFETIME_MS / 1000) },
   );
   return { token, expiresIn: TENANT_ASSIGNMENT_TOKEN_LIFETIME_MS };
@@ -350,12 +332,12 @@ async function verifyPurposeToken(
   purpose: string,
   refusal: string,
 ): Promise<VerifiedPurposeToken> {
-  const claims = decodeUnverified(token);
+  const claims = verifyUserToken(token);
   if (!isPurposeClaims(claims, purpose)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
-  const user = await GetModel(UserModel).get(claims.id);
-  if (!verifyTokenFor(token, user) || !user) {
+  const user = await loadTokenUser(claims);
+  if (!user) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
   }
   return { claims, user };

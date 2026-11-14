@@ -4,7 +4,6 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { assert, expect } from "chai";
 import { sign } from "jsonwebtoken";
-import { getAuthConfig } from "../../config";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -13,7 +12,7 @@ import {
   internal,
   validateRefreshToken,
 } from "../../implementations/dms-auth";
-import { generateSecret } from "../../implementations/dms-auth/services";
+import { signFor } from "../helpers/forged-tokens";
 
 const TENANT_ID = "purpose-test-tenant";
 const HTTP_UNAUTHORIZED = 401;
@@ -86,8 +85,7 @@ describe("[unit] auth token purpose separation", () => {
   });
 
   it("rejects old untyped tokens instead of retaining the token-confusion bypass", async () => {
-    const secret = `1:${user.authKey}:${getAuthConfig().jwtSecret}`;
-    const token = sign({ id: user._id, tenantId: TENANT_ID }, secret);
+    const token = signFor(user, {});
     await expectUnauthorized(() => validateAccess(token));
     await expectUnauthorized(() => validateRefreshToken(token));
   });
@@ -97,10 +95,7 @@ describe("[unit] auth token purpose separation", () => {
   });
 
   it("rejects a signed refresh token whose session is no string", async () => {
-    const token = sign(
-      { id: user._id, tenantId: TENANT_ID, sessionId: 1, purpose: "refresh" },
-      generateSecret(user.authKey),
-    );
+    const token = signFor(user, { sessionId: 1, purpose: "refresh" });
     await expectUnauthorized(() => validateRefreshToken(token));
   });
 

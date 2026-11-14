@@ -9,8 +9,8 @@ import {
 import { assert, expect } from "chai";
 import { type JwtPayload, sign } from "jsonwebtoken";
 import {
-  generateSecret,
-  UNKNOWN_USER_AUTH_KEY,
+  authKeyFingerprint,
+  tokenSecret,
 } from "../../implementations/dms-auth/services";
 
 const TENANT_ID = "forged-claims-tenant";
@@ -51,16 +51,13 @@ export function forge(claims: JwtPayload): string {
 /** A token carrying `claims`, signed for `user`. */
 export function signFor(user: User, claims: JwtPayload): string {
   return sign(
-    { id: user._id, tenantId: TENANT_ID, ...claims },
-    generateSecret(user.authKey),
-  );
-}
-
-/** A token carrying `claims`, signed with the key verified when no user matched. */
-export function signForUnknownUser(claims: JwtPayload): string {
-  return sign(
-    { id: UNKNOWN_USER_ID, tenantId: TENANT_ID, ...claims },
-    generateSecret(UNKNOWN_USER_AUTH_KEY),
+    {
+      id: user._id,
+      tenantId: TENANT_ID,
+      key: authKeyFingerprint(user.authKey),
+      ...claims,
+    },
+    tokenSecret(),
   );
 }
 
@@ -100,6 +97,25 @@ export async function hmacsDuring(run: () => Promise<void>): Promise<number> {
     Reflect.set(crypto, "createHmac", createHmac);
   }
   return count;
+}
+
+/** The ids every user lookup asked for while `run` ran. */
+export async function userReadsDuring(
+  run: () => Promise<void>,
+): Promise<string[]> {
+  const model = GetModel(UserModel);
+  const get = model.get.bind(model);
+  const reads: string[] = [];
+  model.get = async (...args: Parameters<UserModel["get"]>) => {
+    reads.push(String(args[0]));
+    return get(...args);
+  };
+  try {
+    await run();
+  } finally {
+    Reflect.deleteProperty(model, "get");
+  }
+  return reads;
 }
 
 /** The ids every session lookup asked for while `run` ran. */

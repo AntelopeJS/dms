@@ -1,47 +1,87 @@
-import { createSecretKey, type KeyObject } from "node:crypto";
-import type { User } from "@antelopejs/interface-dms/auth/db";
-import { type JwtPayload, verify } from "jsonwebtoken";
+import {
+  createHmac,
+  createSecretKey,
+  type KeyObject,
+  timingSafeEqual,
+} from "node:crypto";
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
+import { type JwtPayload, type SignOptions, sign, verify } from "jsonwebtoken";
 import { getAuthConfig } from "../../config";
-import { generateAuthKey } from "../../utils";
+import { isJwtClaims } from "../../utils";
 
-const SECRET_VERSION = 1;
-/**
- * The `authKey` {@link verifyTokenFor} verifies against when no user matched.
- * Minted per process like a real key, so its HMAC costs the same. A token
- * signed with it is still refused, since it names no user.
- */
-export const UNKNOWN_USER_AUTH_KEY = generateAuthKey();
+const SECRET_VERSION = 2;
 
 /**
- * The secret a user's tokens are signed with: the instance secret mixed with
- * the user's `authKey`, so rotating the key invalidates every token issued
- * before.
+ * The instance key every user token is signed with. It needs no user, so a
+ * token's signature is checked before any account is read.
  */
-export function generateSecret(authKey: string): KeyObject {
+export function tokenSecret(): KeyObject {
   return createSecretKey(
-    `${SECRET_VERSION}:${authKey}:${getAuthConfig().jwtSecret}`,
+    `${SECRET_VERSION}:${getAuthConfig().jwtSecret}`,
     "utf8",
   );
 }
 
 /**
- * The payload of `token` once it is proven signed for `user`, or `null`.
- * When no user matched the token's claimed id, the token is still verified,
- * against a fixed key no token is signed with, so refusing an unknown id
- * takes the same work as refusing a forged signature.
+ * The `key` claim that binds a token to the `authKey` it was issued under, so
+ * rotating the key invalidates every token issued before.
+ */
+export function authKeyFingerprint(authKey: string): string {
+  return createHmac("sha256", tokenSecret())
+    .update(`authKey:${authKey}`)
+    .digest("base64url");
+}
+
+/**
+ * Signs `claims` for `user`, naming the user and the `authKey` it holds now.
+ */
+export function signUserToken(
+  user: User,
+  claims: JwtPayload,
+  options: SignOptions,
+): string {
+  return sign(
+    { ...claims, id: user._id, key: authKeyFingerprint(user.authKey) },
+    tokenSecret(),
+    options,
+  );
+}
+
+/**
+ * The claims of `token` once its signature checks out, or `null`. Reads no
+ * account: a forged token is refused before any user lookup.
  *
  * @param token The token as the client sent it
- * @param user The user its unverified `id` claim names, when one exists
  */
-export function verifyTokenFor(
-  token: string,
-  user: User | undefined,
-): string | JwtPayload | null {
-  const secret = generateSecret(user ? user.authKey : UNKNOWN_USER_AUTH_KEY);
+export function verifyUserToken(token: string): JwtPayload | null {
   try {
-    const payload = verify(token, secret, { algorithms: ["HS256"] });
-    return user ? payload : null;
+    const payload = verify(token, tokenSecret(), { algorithms: ["HS256"] });
+    return isJwtClaims(payload) ? payload : null;
   } catch {
     return null;
   }
+}
+
+function sameFingerprint(authKey: string, claimed: string): boolean {
+  const expected = Buffer.from(authKeyFingerprint(authKey));
+  const actual = Buffer.from(claimed);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+/**
+ * The user verified `claims` name, when it still exists and still holds the
+ * `authKey` the token was issued under.
+ *
+ * @param claims Claims {@link verifyUserToken} returned
+ */
+export async function loadTokenUser(
+  claims: JwtPayload,
+): Promise<User | undefined> {
+  if (!isString(claims.id) || !isString(claims.key)) {
+    return undefined;
+  }
+  const user = await GetModel(UserModel).get(claims.id);
+  return user && sameFingerprint(user.authKey, claims.key) ? user : undefined;
 }

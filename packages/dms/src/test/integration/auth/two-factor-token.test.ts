@@ -1,4 +1,3 @@
-import type { KeyObject } from "node:crypto";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
@@ -7,7 +6,10 @@ import {
   generateTwoFactorToken,
   validateRefreshToken,
 } from "../../../implementations/dms-auth";
-import { generateSecret } from "../../../implementations/dms-auth/services";
+import {
+  authKeyFingerprint,
+  tokenSecret,
+} from "../../../implementations/dms-auth/services";
 import { registerUser, type RegisteredUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
@@ -36,10 +38,10 @@ function attempt(route: string, token: string) {
   return post(route, { token, code: TOTP_CODE, method: "totp" });
 }
 
-async function userSecret(userId: string): Promise<KeyObject> {
+async function userKey(userId: string): Promise<string> {
   const stored = await GetModel(UserModel).get(userId);
   if (!stored) throw new Error(`No user ${userId}`);
-  return generateSecret(stored.authKey);
+  return authKeyFingerprint(stored.authKey);
 }
 
 async function tenantOf(user: RegisteredUser): Promise<string> {
@@ -51,8 +53,13 @@ async function badTokens(
   user: RegisteredUser,
 ): Promise<Record<string, string>> {
   const tenantId = await tenantOf(user);
-  const claims = { id: user.userId, tenantId, purpose: TWO_FACTOR_PURPOSE };
-  const secret = await userSecret(user.userId);
+  const claims = {
+    id: user.userId,
+    tenantId,
+    key: await userKey(user.userId),
+    purpose: TWO_FACTOR_PURPOSE,
+  };
+  const secret = tokenSecret();
   const nowSeconds = Math.floor(Date.now() / 1000);
   return {
     "an unknown user": sign({ ...claims, id: UNKNOWN_USER_ID }, FOREIGN_SECRET),

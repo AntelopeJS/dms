@@ -7,11 +7,7 @@ import {
   validateTenantAssignmentToken,
   validateTwoFactorToken,
 } from "../../implementations/dms-auth";
-import {
-  UNKNOWN_USER_AUTH_KEY,
-  validateSessionHandoffToken,
-} from "../../implementations/dms-auth/services";
-import { generateAuthKey } from "../../utils";
+import { validateSessionHandoffToken } from "../../implementations/dms-auth/services";
 import {
   forge,
   HTTP_UNAUTHORIZED,
@@ -20,8 +16,8 @@ import {
   refusalOf,
   sessionLookupsDuring,
   signFor,
-  signForUnknownUser,
   UNKNOWN_USER_ID,
+  userReadsDuring,
 } from "../helpers/forged-tokens";
 
 const TOKEN_CHECKS: {
@@ -101,17 +97,24 @@ describe("[unit] auth tokens naming an unknown user", () => {
     }
   });
 
-  it("refuses a token of every kind signed with the key verified for an unknown id", async () => {
+  it("reads no user before refusing a forged token of every kind", async () => {
     for (const { purpose, check } of TOKEN_CHECKS) {
-      const refusal = await refusalOf(() =>
-        check(signForUnknownUser({ purpose, sessionId: "forged-session" })),
-      );
-      expect(refusal.status, purpose).to.equal(HTTP_UNAUTHORIZED);
+      const reads = await userReadsDuring(async () => {
+        await refusalOf(() => check(forgedFor(user._id, purpose)));
+        await refusalOf(() => check(forgedFor(UNKNOWN_USER_ID, purpose)));
+      });
+      expect(reads, purpose).to.deep.equal([]);
     }
   });
 
-  it("verifies an unknown id against a key as long as a real one", () => {
-    expect(UNKNOWN_USER_AUTH_KEY).to.have.lengthOf(generateAuthKey().length);
+  it("reads the user a token of every kind names once its signature checks out", async () => {
+    for (const { purpose, check } of TOKEN_CHECKS) {
+      const token = signFor(user, { purpose, sessionId: "signed" });
+      const reads = await userReadsDuring(async () => {
+        await check(token).catch(() => undefined);
+      });
+      expect(reads, purpose).to.include(user._id);
+    }
   });
 
   it("refuses a refresh token signed for a user deleted since", async () => {

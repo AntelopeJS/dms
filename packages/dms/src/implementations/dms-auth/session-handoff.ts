@@ -1,9 +1,6 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { GetModel } from "@antelopejs/interface-database-decorators";
-import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { sign } from "jsonwebtoken";
-import { decodeUnverified, isJwtClaims } from "../../utils";
-import { generateSecret, verifyTokenFor } from "./token-secret";
+import type { User } from "@antelopejs/interface-dms/auth/db";
+import { loadTokenUser, signUserToken, verifyUserToken } from "./token-secret";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const HTTP_UNAUTHORIZED = 401;
@@ -20,7 +17,7 @@ export interface SessionHandoffClaims {
 
 /**
  * A short-lived token that hands one session a fresh token pair once the
- * user's `authKey` has been rotated under it. Signed with the new key, so it
+ * user's `authKey` has been rotated under it. Bound to the new key, so it
  * dies with the next rotation; it only buys a pair when presented to
  * `/api/auth/session-handoff`.
  */
@@ -29,9 +26,9 @@ export function generateSessionHandoffToken(
   tenantId: string,
   sessionId: string,
 ): string {
-  return sign(
-    { id: user._id, tenantId, sessionId, purpose: SESSION_HANDOFF_PURPOSE },
-    generateSecret(user.authKey),
+  return signUserToken(
+    user,
+    { tenantId, sessionId, purpose: SESSION_HANDOFF_PURPOSE },
     { expiresIn: SESSION_HANDOFF_LIFETIME_SECONDS },
   );
 }
@@ -48,18 +45,16 @@ function refuse(): never {
 export async function validateSessionHandoffToken(
   token: string,
 ): Promise<SessionHandoffClaims> {
-  const unverified = decodeUnverified(token);
-  if (!isJwtClaims(unverified) || !isString(unverified.id)) refuse();
-  const user = await GetModel(UserModel).get(unverified.id);
-  const claims = verifyTokenFor(token, user);
+  const claims = verifyUserToken(token);
   if (
-    !user ||
-    !isJwtClaims(claims) ||
+    !claims ||
     claims.purpose !== SESSION_HANDOFF_PURPOSE ||
     !isString(claims.tenantId) ||
     !isString(claims.sessionId)
   ) {
     refuse();
   }
+  const user = await loadTokenUser(claims);
+  if (!user) refuse();
   return { user, tenantId: claims.tenantId, sessionId: claims.sessionId };
 }
