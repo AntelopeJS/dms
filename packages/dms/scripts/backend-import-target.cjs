@@ -18,7 +18,7 @@ const processPins = {
   "src/utils/package-manager.ts:5":
     "const execFileAsync = promisify(execFile);",
   "src/utils/package-manager.ts:58":
-    'return platform() === "win32"\n    ? execFileAsync(windowsCommandLine(manager, args), {\n        ...options,\n        shell: true,\n      })\n    : execFileAsync(manager, args, options);',
+    'return platform() === "win32"\n    ? execFileAsync(windowsCommandLine(manager, args), {\n        ...options,\n        shell: "cmd.exe",\n      })\n    : execFileAsync(manager, args, options);',
   "src/test/helpers/replica-process.ts:1":
     'import { type ChildProcess, spawn } from "node:child_process";',
   "src/test/unit/interfaces/dms-base/table-view-evaluation-order.test.ts:1":
@@ -80,7 +80,7 @@ const processPins = {
   "dist/utils/package-manager.js:8":
     "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
   "dist/utils/package-manager.js:21":
-    'return (0, node_os_1.platform)() === "win32"\n        ? execFileAsync(windowsCommandLine(manager, args), {\n            ...options,\n            shell: true,\n        })\n        : execFileAsync(manager, args, options);',
+    'return (0, node_os_1.platform)() === "win32"\n        ? execFileAsync(windowsCommandLine(manager, args), {\n            ...options,\n            shell: "cmd.exe",\n        })\n        : execFileAsync(manager, args, options);',
   "dist/test/helpers/replica-process.js:4":
     'const node_child_process_1 = require("node:child_process");',
   "dist/test/helpers/replica-process.js:110":

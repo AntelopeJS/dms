@@ -47,8 +47,9 @@ export function windowsCommandLine(
 /**
  * Runs `manager` with `args` and resolves its output. On Windows the CLI is a
  * `.cmd` shim, which only cmd.exe can run, so the command goes through
- * cmd.exe as {@link windowsCommandLine} builds it, and a refused argument
- * rejects before anything runs. Elsewhere the CLI runs with no shell.
+ * cmd.exe as {@link windowsCommandLine} builds it, whatever `%ComSpec%`
+ * names, and a refused argument rejects before anything runs. Elsewhere the
+ * CLI runs with no shell.
  */
 export async function runPackageManager(
   manager: PackageManager,
@@ -58,7 +59,7 @@ export async function runPackageManager(
   return platform() === "win32"
     ? execFileAsync(windowsCommandLine(manager, args), {
         ...options,
-        shell: true,
+        shell: "cmd.exe",
       })
     : execFileAsync(manager, args, options);
 }
