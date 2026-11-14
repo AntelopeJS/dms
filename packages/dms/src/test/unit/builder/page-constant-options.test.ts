@@ -15,6 +15,7 @@ import {
 
 const OP_TIMEOUT = 60_000;
 const PAGE = "/board/overview";
+const ARCHIVE = "/board/archive";
 const FILE = "board/page.ts";
 const SOURCE = `import { Placeholder } from "@antelopejs/interface-dms/base";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
@@ -52,12 +53,25 @@ export class BoardPage extends PageController(
 ) {
   static placeholder = Placeholder({ label: "Board" });
 }
+
+function labelFor(name: string): string {
+  return name.toUpperCase();
+}
+
+@RegisterPage()
+export class ArchivePage extends PageController(
+  "archive",
+  { displayName: labelFor("archive"), category: boardCategory },
+  DefaultLayout({ fullWidth: true }),
+) {
+  static placeholder = Placeholder({ label: "Archive" });
+}
 `;
 
 let app: Fixture;
 
-async function pageMeta() {
-  return expectOk(await GetPageStructure(PAGE), "GetPageStructure").page;
+async function pageMeta(page = PAGE) {
+  return expectOk(await GetPageStructure(page), "GetPageStructure").page;
 }
 
 /**
@@ -113,6 +127,37 @@ describe("page options written as constants", () => {
     expectOk(
       await SetPageBlocks(PAGE, {
         page: { displayName, icon, order, hidden, description },
+        blocks: blocks.map((block) => ({
+          name: block.name,
+          type: block.type ?? undefined,
+          config: block.config,
+        })),
+      }),
+      "SetPageBlocks",
+    );
+    expect(app.read(FILE)).to.equal(SOURCE);
+  });
+
+  it("are left as written when ConfigurePage echoes the id a name written as code reads as", async function () {
+    this.timeout(OP_TIMEOUT);
+    const { displayName, category } = await pageMeta(ARCHIVE);
+    expect(displayName).to.equal("archive");
+    expectOk(
+      await ConfigurePage(ARCHIVE, { displayName, category }),
+      "ConfigurePage",
+    );
+    expect(app.read(FILE)).to.equal(SOURCE);
+  });
+
+  it("are left as written when a draft save echoes the id a name written as code reads as", async function () {
+    this.timeout(OP_TIMEOUT);
+    const { page, blocks } = expectOk(
+      await GetPageStructure(ARCHIVE),
+      "GetPageStructure",
+    );
+    expectOk(
+      await SetPageBlocks(ARCHIVE, {
+        page: { displayName: page.displayName },
         blocks: blocks.map((block) => ({
           name: block.name,
           type: block.type ?? undefined,

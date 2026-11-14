@@ -1,6 +1,6 @@
 ---
 name: dms
-description: Gives the mental model of the AntelopeJS DMS (backend-described pages and blocks rendered by a shared frontend) and routes to the right DMS skill. Use when the user mentions the AntelopeJS DMS, when building an app, admin page or dashboard on it, or when working in @antelopejs/dms or any dms-* module. Routes to dms-best-practices, dms-project, dms-pages, dms-auth, dms-module and dms-frontend.
+description: Gives the mental model of the AntelopeJS DMS (backend-described pages and blocks rendered by a shared frontend) and routes to the right DMS skill. Use when the user mentions the AntelopeJS DMS, when building an app, admin page or dashboard on it, or when working in @antelopejs/dms or any dms-* module. Routes to dms-project, dms-auth, dms-module, dms-frontend, and the antelopejs plugin's antelopejs:dms-best-practices and antelopejs:dms-pages.
 icon: i-ph-squares-four
 category: overview
 tags: [dms, architecture, mental-model, router]
@@ -64,16 +64,17 @@ export class SubmitRecipePage extends PageController("submit-recipe", {
 
 | Task | Skill |
 | --- | --- |
-| **Before building or changing any page**, before writing a `CustomComponent`, or when the user hands you a design, mockup or screenshot | **dms-best-practices** |
+| **Before building or changing any page**, before writing a `CustomComponent`, or when the user hands you a design, mockup or screenshot | **antelopejs:dms-best-practices** |
 | Set up a project that uses the DMS — `antelope.config.ts`, lifecycle, `AddFrontendModule` — and run, stop or restart its dev servers to test a change live | **dms-project** |
-| Add a screen — pages, categories, blocks, DataTypes, the routes that feed them | **dms-pages** |
+| Add a screen — pages, categories, blocks, DataTypes, the routes that feed them | **antelopejs:dms-pages** |
 | Protect a page or route, define and check permissions, users / roles / tenants | **dms-auth** |
 | Package a *distributable* module — `antelopeJs` manifest, `RegisterModule`, its own skill | **dms-module** |
 | The `ajs dms` CLI, a frontend module's `dms.server.ts` / `dms.frontend.build.ts`, building and deploying the frontend server (ships with `@antelopejs/dms-frontend`) | **dms-frontend** |
 
-These skills ship in this package (`skills/`, declared via `antelopeJs.skills`). The **antelopejs**
-plugin links them into a project's `.claude/skills/`, and the dms-ai assistant loads them for every
-loaded module.
+**dms-project**, **dms-auth** and **dms-module** ship in this package (`skills/`, declared via
+`antelopeJs.skills`). The **antelopejs** plugin links them into a project's `.claude/skills/`, and
+the dms-ai assistant loads them for every loaded module. The `antelopejs:` workflow skills ship with
+the **antelopejs** plugin, not with this package.
 
 ## Docs & exact interface surfaces
 

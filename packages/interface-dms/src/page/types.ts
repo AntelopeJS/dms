@@ -96,8 +96,7 @@ export type ModuleStatus = "live" | "beta" | "update" | "attention";
 
 /**
  * Tone of one readout line: `success` (healthy figure), `info` (neutral
- * fact), `warning` (worth a look) or `error` (something is failing). The
- * former `ok` is still read as `success` in 0.4, with a warning.
+ * fact), `warning` (worth a look) or `error` (something is failing).
  */
 export type ModuleReadoutTone = Extract<
   Tone,

@@ -53,10 +53,7 @@ import {
   publishNotificationsRead,
   publishNotificationsUnread,
 } from "../../../implementations/dms-notifications";
-import {
-  userNotificationPreferencesPatchSchema,
-  userNotificationPreferencesSchema,
-} from "../../../validation";
+import { userNotificationPreferencesPatchSchema } from "../../../validation";
 import { userCategory } from "./category";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -211,18 +208,6 @@ function readFeedFilter(context: RequestContext): NotificationFeedFilter {
   return filter;
 }
 
-/** Refuses turning a locked subject off. */
-function assertLockedSubjectsStayOn(changes: Record<string, boolean>): void {
-  for (const [key, enabled] of Object.entries(changes)) {
-    const subject = findSubjectByPreferenceKey(key);
-    assert(
-      enabled || !subject || !isSubjectLocked(subject),
-      HTTP_FORBIDDEN,
-      "error.forbidden",
-    );
-  }
-}
-
 /** Refuses keys that name no registered subject, and turning a locked subject off. */
 function assertChangesAllowed(changes: Record<string, boolean>): void {
   for (const key of Object.keys(changes)) {
@@ -232,7 +217,14 @@ function assertChangesAllowed(changes: Record<string, boolean>): void {
       "error.request_refused",
     );
   }
-  assertLockedSubjectsStayOn(changes);
+  for (const [key, enabled] of Object.entries(changes)) {
+    const subject = findSubjectByPreferenceKey(key);
+    assert(
+      enabled || !subject || !isSubjectLocked(subject),
+      HTTP_FORBIDDEN,
+      "error.forbidden",
+    );
+  }
 }
 
 @RegisterPage()
@@ -283,25 +275,6 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
       this.user._id,
     );
     return preferences.preferences;
-  }
-
-  /**
-   * Replaces the whole map. Kept for existing clients, which may still send
-   * keys of subjects no longer registered; the settings screen saves per
-   * subject through PATCH. A locked subject cannot be turned off here either.
-   */
-  @Put("/preferences")
-  async updatePreferences(
-    @JSONBody() body: unknown,
-    @Model(UserNotificationPreferencesModel)
-    preferencesModel: UserNotificationPreferencesModel,
-  ) {
-    const preferences = assertValidation(body, (v) =>
-      userNotificationPreferencesSchema.parse(v),
-    );
-    assertLockedSubjectsStayOn(preferences);
-
-    return preferencesModel.updatePreferences(this.user._id, preferences);
   }
 
   /**

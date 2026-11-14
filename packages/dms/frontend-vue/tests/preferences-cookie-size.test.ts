@@ -294,13 +294,4 @@ describe("the preferences cookie", () => {
     first.setPreference("module.theme", "dense");
     expect(second.getPreference("module.theme")).toBe("dense");
   });
-
-  it("deletes the user-preferences cookie it replaces, unread", () => {
-    document.cookie = `user-preferences=${encodeURIComponent(
-      JSON.stringify({ tables: { a: { b: { density: "compact" } } } }),
-    )}; path=/`;
-    const { preferences } = usePreferences();
-    expect(document.cookie).not.toMatch(/user-preferences=/);
-    expect(preferences.value).toEqual({});
-  });
 });

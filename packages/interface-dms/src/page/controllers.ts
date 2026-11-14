@@ -454,24 +454,21 @@ export interface FrontendModuleMetadata {
    * Absolute backend API paths (`/api/...`) the frontend server may open a
    * session from on behalf of this module, as declared by
    * {@link AddFrontendModuleOptions.authEstablishEndpoints}. Empty when the
-   * module declared none, absent when the DMS serving this metadata predates
-   * the field.
+   * module declared none.
    */
-  authEstablishEndpoints?: string[];
+  authEstablishEndpoints: string[];
   /**
    * The routes this module serves to anyone, as declared by
    * {@link AddFrontendModuleOptions.publicEndpoints}. Empty when the module
-   * declared none, absent when the DMS serving this metadata predates the
-   * field.
+   * declared none.
    */
-  publicEndpoints?: FrontendPublicEndpoint[];
+  publicEndpoints: FrontendPublicEndpoint[];
   /**
    * The backend prefixes this module declares, as
    * {@link AddFrontendModuleOptions.backendProxies}, each with its `auth`.
-   * Empty when the module declared none, absent when the DMS serving this
-   * metadata predates the field.
+   * Empty when the module declared none.
    */
-  backendProxies?: Required<FrontendBackendProxy>[];
+  backendProxies: Required<FrontendBackendProxy>[];
 }
 
 /** Returns registered frontend source metadata for server-side module discovery, excluding private options. */

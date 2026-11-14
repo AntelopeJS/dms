@@ -370,12 +370,11 @@ function applyPageMeta(
       "page options are not a plain object literal",
     );
   }
-  applyPatch(
-    optionsArg,
-    withConstants(optionsPatch(optionsArg, scalar), constantsIn(optionsArg)),
-    false,
-    ctx,
+  const patched = withConstants(
+    optionsPatch(optionsArg, scalar, id),
+    constantsIn(optionsArg),
   );
+  applyPatch(optionsArg, patched, false, ctx);
   return undefined;
 }
 

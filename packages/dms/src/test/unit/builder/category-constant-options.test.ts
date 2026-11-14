@@ -114,4 +114,13 @@ describe("category options written as constants", () => {
     expect(written).to.contain("  icon,\n");
     expect((await categoryMeta()).displayName).to.equal("Orders board");
   });
+
+  it("write a readable name changed to the category's id", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await ConfigureCategory(REF, { displayName: "board" }),
+      "ConfigureCategory",
+    );
+    expect(app.read(FILE)).to.contain('displayName: "board"');
+  });
 });

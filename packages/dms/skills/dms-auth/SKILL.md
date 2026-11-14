@@ -49,7 +49,7 @@ route. This optional-auth-returns-200 behavior has caused a real token-refresh b
 
 ## Protecting pages
 
-A page's auth comes from its `PageController` options (see **dms-pages**): `publicAccess:
+A page's auth comes from its `PageController` options (see **antelopejs:dms-pages**): `publicAccess:
 true` (no auth), `authOnly: true` (login only), `memberAccess: true` (every signed-in member
 holds the page, its components and actions without a role grant), default (login **and** the auto-derived page
 permission), `permission: …` (a specific `Partial<Permission> | Action`),
@@ -65,7 +65,7 @@ A component's permission id is the page's **`fullId`** (category chain + page id
 the component key, then the action (e.g. `pages.recipes.submit-recipe.form.delete`), registered
 automatically when the page loads. The roles editor titles each one with the component's metadata: DMS blocks set
 their own, and a `CustomComponent` needs `.meta({ name, description, icon })` with `$` keys (see
-**dms-best-practices**). Users hold roles; roles hold granted permission ids; the
+**antelopejs:dms-best-practices**). Users hold roles; roles hold granted permission ids; the
 platform **owner** holds everything. **Module pages are special**: prefixed
 `modules.<moduleId>.…`, never grantable in the Roles tree, owner-only regardless of grants.
 

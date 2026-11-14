@@ -42,7 +42,6 @@ export interface SecurityOverview {
 
 /** What the API returns to enrol an authenticator app. */
 export interface TotpSetup {
-  secret: string;
   /** Base32 key to type into an app that cannot scan. */
   manualKey: string;
   otpAuthUrl: string;

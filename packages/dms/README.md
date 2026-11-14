@@ -26,7 +26,7 @@
 - Handles sign-in, members, roles and permissions down to each block, multi-tenancy and a SaaS mode.
 - Manages data through data controllers and table views, with file uploads, notifications and realtime updates.
 - Grows with installable modules: an AI assistant, a page builder, database and API consoles, automations, SaaS billing, translations, mailing, marketing analytics and a media library.
-- Ships Claude Code skills (`dms`, `dms-best-practices`, `dms-pages`…) so coding agents build pages the way the DMS expects.
+- Ships Claude Code skills (`dms`, `dms-project`, `dms-auth`, `dms-module`) so coding agents use its API the way the DMS expects. The `antelopejs` plugin adds the page-building skills.
 
 Its public contracts live in a separate package, [`@antelopejs/interface-dms`](https://www.npmjs.com/package/@antelopejs/interface-dms): modules import them from there, never from this runtime.
 
@@ -110,7 +110,7 @@ Each DMS release declares the renderer releases it runs on in `engines["@antelop
 
 The runtime guides live in [`docs/`](./docs). The canonical contract reference belongs to [`@antelopejs/interface-dms`](../interface-dms/docs/index.md), not this runtime package.
 
-The package ships the core Claude Code skills (`dms`, `dms-auth`, `dms-best-practices`, `dms-module`, `dms-pages`, `dms-project`) in [`skills/`](https://github.com/AntelopeJS/dms/tree/main/packages/dms/skills), declared under `antelopeJs.skills`; [Install the plugin](https://dms.antelopejs.com/docs/ai-and-claude-code/install) to use them.
+The package ships the core Claude Code skills (`dms`, `dms-auth`, `dms-module`, `dms-project`) in [`skills/`](https://github.com/AntelopeJS/dms/tree/main/packages/dms/skills), declared under `antelopeJs.skills`; [Install the plugin](https://dms.antelopejs.com/docs/ai-and-claude-code/install) to use them. The plugin itself ships `antelopejs:dms-pages` and `antelopejs:dms-best-practices`.
 
 ## Contributing
 
