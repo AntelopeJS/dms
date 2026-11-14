@@ -5,6 +5,7 @@ import {
   Parameter,
   Post,
   type RequestContext,
+  type QueryValue,
 } from "@antelopejs/interface-api";
 import type {
   BannerContent,
@@ -16,6 +17,7 @@ import { AuthUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import { NAVIGATION_DEMO_API } from "./category";
+import { queryText } from "../query-text";
 import { rotateDemoProjectStatuses } from "./dynamic-provider";
 
 interface RotateResult {
@@ -44,12 +46,13 @@ export class NavigationDemoController extends Controller(NAVIGATION_DEMO_API) {
   @Get("redirected")
   redirected(
     @AuthUser() _user: User,
-    @Parameter("missing", "query") missing: string | undefined,
+    @Parameter("missing", "query") missing: QueryValue,
   ): BannerContent {
-    if (!missing) return {};
+    const project = queryText(missing);
+    if (!project) return {};
     return {
       tone: "warning",
-      title: `Redirected here: no project is called "${missing}"`,
+      title: `Redirected here: no project is called "${project}"`,
       description:
         "The project page's validation function refused the URL, and its redirectTo sent you to this page with ?missing= set.",
     };

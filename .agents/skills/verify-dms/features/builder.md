@@ -18,6 +18,7 @@ The builder engine of `@antelopejs/dms`, which implements `@antelopejs/interface
 - `builder-lists-and-reads-pages`: `builder_list_pages` lists the playground's pages with their ref, id and file, and `builder_page_structure` reads one page's block tree with a version hash.
 - `builder-delete-waits-for-a-repeat`: Destructive: `builder_delete_page` answers what it would do and deletes nothing on the first call, and the page is still listed.
 - `builder-refuses-an-unknown-page`: error path: `builder_page_structure` on a page that does not exist answers a failure the agent can read.
+- `builder-period-bound-series-and-comparison-card-answer-over-http`: `builder_create_resource` seeds dated orders, `builder_add_query` saves a series bound by `$param` `from` and `to` and a card with `compare`, the page declares each bound as `string | true | undefined` and parses it with `new Date(String(x))`, and after the playground compiles and the backend restarts the owner's GETs answer the orders of the period and of the one before it.
 
 ## How to get to it (user POV)
 
@@ -33,5 +34,6 @@ The journeys call the builder's MCP tools through the stdio bridge, as the MCP s
 
 ## Gotchas
 
-- The journeys edit nothing: the run's playground is a copy, but a write would also reload the sources the backend serves. A repeated deletion, resource, query and theme edits are not driven.
+- Only the period journey writes: it adds the `order` resource and two queries to the first page the builder lists, in the run's copy of the playground, then runs `tsc` there and restarts the backend. Run it once per run, because the resource name is then taken. A repeated deletion, other resource, query and theme edits are not driven.
+- The journey adds its queries to an existing page. A category the builder creates is not found by a page creation in a run, because the run links `@antelopejs/interface-dms` from outside `node_modules` and the source scan then does not recognise `pagesCategory`.
 - The builder is on in the run because the playground's `docs` environment sets `builder.enabled`. The development-mode default is not driven.

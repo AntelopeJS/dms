@@ -23,6 +23,7 @@ export * from "./ops";
 export * from "./options-patch";
 export * from "./page-access";
 export * from "./page-structure";
+export * from "./project";
 export * from "./project-env";
 export * from "./project-scaffold";
 export * from "./query-chain";

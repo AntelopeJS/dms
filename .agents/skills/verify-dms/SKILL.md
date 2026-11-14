@@ -186,13 +186,14 @@ The skill is not Trusted yet. It becomes Trusted when it passes a shadow run of 
 
 ## Component probes
 
-`antelopejs-api-diff <base-ref> --probe <file.cjs>` captures one file, so the `interface-dms` component coverage in `.agents/probes/` is four standalone scripts. Pass the ones whose keys your change reaches, one api-diff run each.
+`antelopejs-api-diff <base-ref> --probe <file.cjs>` captures one file, so the `interface-dms` component coverage in `.agents/probes/` is five standalone scripts. Pass the ones whose keys your change reaches, one api-diff run each.
 
 | Probe | Keys it prints |
 |---|---|
 | `interface-components-builder.cjs` | `sync`, `serialized`, `filtered`, `shadowedCall`, `ownKeys`, `positional`, `permission`, `uploadConstraintReads`, `defaultTypesFresh`, `dataTypesAndHints` |
 | `interface-components-routes.cjs` | `routes`, `factoryHelpers`, `metadata`, `lifecycle` |
-| `interface-components-read-order.cjs` | `typeBoundaries`, `pageInfoPrecedence`, `extractedPageCalls`, `evaluationOrder` |
+| `interface-components-read-order.cjs` | `pageInfoPrecedence`, `extractedPageCalls`, `evaluationOrder` |
+| `interface-components-type-boundaries.cjs` | `typeBoundaries` |
 | `interface-components-owner-order.cjs` | `ownerAccessorOrder`, `publicWatchFilterOrder`, `publicPageScheduling` |
 
 ## Feature map

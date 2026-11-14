@@ -1,4 +1,9 @@
-import { Controller, Get, Parameter } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
 import type { BannerContent } from "@antelopejs/interface-dms/base/banner";
 import type { KeyValueListItem } from "@antelopejs/interface-dms/base/key-value-list";
@@ -172,7 +177,7 @@ export class BlocksOrdersApiController extends Controller(
   "/api/blocks/orders",
 ) {
   @Get("")
-  getOrders(@Parameter("status", "query") status?: string) {
+  getOrders(@Parameter("status", "query") status: QueryValue) {
     const orders = ORDERS.filter((order) => order.status === status);
     return later({ items: orders.map(orderEntry) });
   }

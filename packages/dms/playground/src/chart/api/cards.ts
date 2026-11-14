@@ -1,10 +1,16 @@
-import { Controller, Get, Parameter } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import {
   chartCardData,
   kpiCardData,
   type SeriesPoint,
 } from "@antelopejs/interface-dms/base/query-response";
 import { ownEntry } from "../../own-entry";
+import { queryText } from "../../query-text";
 
 const CHANNELS = ["Direct", "Email", "Search", "Social"];
 const CHANNEL_SESSIONS = [4200, 1800, 6500, 2100];
@@ -32,8 +38,8 @@ function hourly(values: number[], scale = 1): SeriesPoint[] {
  */
 export class CardsDemoApiController extends Controller("/api/dashboard/cards") {
   @Get("channels")
-  getChannels(@Parameter("preset", "query") preset?: string) {
-    const scale = ownEntry(PRESET_SCALES, preset ?? "") ?? 1;
+  getChannels(@Parameter("preset", "query") preset: QueryValue) {
+    const scale = ownEntry(PRESET_SCALES, queryText(preset) ?? "") ?? 1;
     const points = CHANNELS.map((x, index) => ({
       x,
       y: Math.round(CHANNEL_SESSIONS[index] * scale),
@@ -42,8 +48,8 @@ export class CardsDemoApiController extends Controller("/api/dashboard/cards") {
   }
 
   @Get("latency")
-  getLatency(@Parameter("preset", "query") preset?: string) {
-    const scale = ownEntry(PRESET_SCALES, preset ?? "") ?? 1;
+  getLatency(@Parameter("preset", "query") preset: QueryValue) {
+    const scale = ownEntry(PRESET_SCALES, queryText(preset) ?? "") ?? 1;
     const data = chartCardData(hourly(LATENCY_AVERAGE, scale), {
       measure: "avg",
       label: "Average",
@@ -58,10 +64,12 @@ export class CardsDemoApiController extends Controller("/api/dashboard/cards") {
   }
 
   @Get("signups")
-  getSignups(@Parameter("comparison", "query") comparison?: string) {
+  getSignups(@Parameter("comparison", "query") comparison: QueryValue) {
     return kpiCardData(hourly(SIGNUPS), {
       measure: "sum",
-      previous: isComparing(comparison) ? hourly(NO_SIGNUP) : undefined,
+      previous: isComparing(queryText(comparison))
+        ? hourly(NO_SIGNUP)
+        : undefined,
     });
   }
 }

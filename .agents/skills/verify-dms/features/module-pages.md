@@ -1,6 +1,7 @@
 ---
 covers:
   - packages/dms/src/implementations/dms/page/**
+  - packages/dms/src/utils/query-text.ts
   - packages/dms/src/implementations/dms/page.ts
   - packages/dms/src/implementations/dms-base/**
   - packages/dms/src/implementations/dms/attachments.ts

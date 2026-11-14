@@ -1,4 +1,9 @@
-import { Controller, Get, Parameter } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import {
   type ChartCardPayload,
   type KpiCardPayload,
@@ -26,6 +31,7 @@ import {
 } from "./dashboard-data";
 import { opsHourLabels, latencyPoints } from "./dashboard-latency";
 import { DAILY_METRICS, dailyFigures, kpiOf } from "./dashboard-kpis";
+import { queryText } from "../../query-text";
 
 const REPLICA_SEED = 47;
 const REPLICA_MIN = 1;
@@ -54,54 +60,59 @@ function toCents(price: number): number {
 export class DashboardApiController extends Controller("/api/dashboard") {
   @Get("sales")
   getSales(
-    @Parameter("preset", "query") preset?: string,
-    @Parameter("from", "query") from?: string,
-    @Parameter("to", "query") to?: string,
-    @Parameter("comparison", "query") comparison?: string,
+    @Parameter("preset", "query") preset: QueryValue,
+    @Parameter("from", "query") from: QueryValue,
+    @Parameter("to", "query") to: QueryValue,
+    @Parameter("comparison", "query") comparison: QueryValue,
   ): ChartCardPayload {
     return dailyFigures(DAILY_METRICS.revenue, {
-      preset,
-      from,
-      to,
-      comparison,
+      preset: queryText(preset),
+      from: queryText(from),
+      to: queryText(to),
+      comparison: queryText(comparison),
     });
   }
 
   @Get("traffic")
   getTraffic(
-    @Parameter("preset", "query") preset?: string,
-    @Parameter("from", "query") from?: string,
-    @Parameter("to", "query") to?: string,
-    @Parameter("comparison", "query") comparison?: string,
+    @Parameter("preset", "query") preset: QueryValue,
+    @Parameter("from", "query") from: QueryValue,
+    @Parameter("to", "query") to: QueryValue,
+    @Parameter("comparison", "query") comparison: QueryValue,
   ): ChartCardPayload {
     return dailyFigures(DAILY_METRICS.sessions, {
-      preset,
-      from,
-      to,
-      comparison,
+      preset: queryText(preset),
+      from: queryText(from),
+      to: queryText(to),
+      comparison: queryText(comparison),
     });
   }
 
   @Get("kpi/:metric")
   getKpi(
     @Parameter("metric", "param") metric: string,
-    @Parameter("preset", "query") preset?: string,
-    @Parameter("from", "query") from?: string,
-    @Parameter("to", "query") to?: string,
-    @Parameter("comparison", "query") comparison?: string,
+    @Parameter("preset", "query") preset: QueryValue,
+    @Parameter("from", "query") from: QueryValue,
+    @Parameter("to", "query") to: QueryValue,
+    @Parameter("comparison", "query") comparison: QueryValue,
   ): KpiCardPayload {
-    return kpiOf(metric, { preset, from, to, comparison });
+    return kpiOf(metric, {
+      preset: queryText(preset),
+      from: queryText(from),
+      to: queryText(to),
+      comparison: queryText(comparison),
+    });
   }
 
   @Get("series")
   getSeries(
-    @Parameter("seed", "query") seedParam?: string,
-    @Parameter("size", "query") sizeParam?: string,
-    @Parameter("count", "query") countParam?: string,
+    @Parameter("seed", "query") seedParam: QueryValue,
+    @Parameter("size", "query") sizeParam: QueryValue,
+    @Parameter("count", "query") countParam: QueryValue,
   ): ChartPayload {
-    const seed = parseInt(seedParam || "1", 10);
-    const size = clampCount(sizeParam, 12);
-    const count = clampCount(countParam, 1);
+    const seed = parseInt(queryText(seedParam) || "1", 10);
+    const size = clampCount(queryText(sizeParam), 12);
+    const count = clampCount(queryText(countParam), 1);
     const series = Array.from({ length: count }, (_, index) =>
       buildSeries(`Series ${index + 1}`, size, seed + index * 7, 100, 800),
     );
@@ -164,8 +175,10 @@ export class DashboardApiController extends Controller("/api/dashboard") {
   }
 
   @Get("circular")
-  getCircular(@Parameter("size", "query") sizeParam?: string): CircularPayload {
-    const size = clampCount(sizeParam, CHANNEL_LABELS.length);
+  getCircular(
+    @Parameter("size", "query") sizeParam: QueryValue,
+  ): CircularPayload {
+    const size = clampCount(queryText(sizeParam), CHANNEL_LABELS.length);
     const data = CHANNEL_LABELS.slice(0, size).map((label, index) => ({
       x: label,
       y: Math.round(
@@ -179,8 +192,8 @@ export class DashboardApiController extends Controller("/api/dashboard") {
 
   /** Shares of a goal, 0 to 100: what a radial bar reads as percentages. */
   @Get("goals")
-  getGoals(@Parameter("size", "query") sizeParam?: string): CircularPayload {
-    const size = clampCount(sizeParam, CHANNEL_LABELS.length);
+  getGoals(@Parameter("size", "query") sizeParam: QueryValue): CircularPayload {
+    const size = clampCount(queryText(sizeParam), CHANNEL_LABELS.length);
     const data = CHANNEL_LABELS.slice(0, size).map((label, index) => ({
       x: label,
       y: Math.round(
@@ -194,17 +207,17 @@ export class DashboardApiController extends Controller("/api/dashboard") {
 
   @Get("top-products")
   getTopProducts(
-    @Parameter("limit", "query") limitParam?: string,
-    @Parameter("preset", "query") preset?: string,
-    @Parameter("from", "query") from?: string,
-    @Parameter("comparison", "query") comparison?: string,
-    @Parameter("withSparkline", "query") withSparkline?: string,
+    @Parameter("limit", "query") limitParam: QueryValue,
+    @Parameter("preset", "query") preset: QueryValue,
+    @Parameter("from", "query") from: QueryValue,
+    @Parameter("comparison", "query") comparison: QueryValue,
+    @Parameter("withSparkline", "query") withSparkline: QueryValue,
   ): TopListPayload {
-    const seed = resolveSeed(preset, from);
-    const limit = clampCount(limitParam, TOP_PRODUCT_DEFAULT_LIMIT);
+    const seed = resolveSeed(queryText(preset), queryText(from));
+    const limit = clampCount(queryText(limitParam), TOP_PRODUCT_DEFAULT_LIMIT);
     const options: BuildTopProductItemOptions = {
       includeSparkline: withSparkline === "true",
-      includeDelta: !!(comparison && comparison !== "none"),
+      includeDelta: !!(queryText(comparison) && comparison !== "none"),
     };
     const items = TOP_PRODUCT_NAMES.slice(
       0,

@@ -7,6 +7,7 @@ import {
   JSONBody,
   Parameter,
   Put,
+  type QueryValue,
   type RequestContext,
   Route,
 } from "@antelopejs/interface-api";
@@ -77,12 +78,12 @@ function toSubjectView(
   return { ...subject, locked: isSubjectLocked(subject) };
 }
 
-function parsePageSize(value?: string): number {
+function parsePageSize(value: QueryValue): number {
   const size = Number(value) || DEFAULT_PAGE_SIZE;
   return Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 }
 
-function parseOffset(value?: string): number {
+function parseOffset(value: QueryValue): number {
   return Math.max(Number(value) || 0, 0);
 }
 
@@ -338,8 +339,8 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
     @Context() context: RequestContext,
     @Model(UserNotificationsModel)
     notificationsModel: UserNotificationsModel,
-    @Parameter("limit", "query") limitParam?: string,
-    @Parameter("offset", "query") offsetParam?: string,
+    @Parameter("limit", "query") limitParam: QueryValue,
+    @Parameter("offset", "query") offsetParam: QueryValue,
   ) {
     return await notificationsModel.getFeedPage(
       this.user._id,
@@ -377,8 +378,8 @@ export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
     @Context() context: RequestContext,
     @Model(UserNotificationsModel)
     notificationsModel: UserNotificationsModel,
-    @Parameter("limit", "query") limitParam?: string,
-    @Parameter("offset", "query") offsetParam?: string,
+    @Parameter("limit", "query") limitParam: QueryValue,
+    @Parameter("offset", "query") offsetParam: QueryValue,
   ) {
     const readState = ownValue(
       INBOX_READ_STATES,
