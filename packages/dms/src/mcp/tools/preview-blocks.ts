@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { listPreviewBlockTypes } from "../../pages/public/preview";
+import { sketchRefusals } from "../../mockup/sketch";
 import { JsonObjectSchema } from "../json";
 import { defineTool, type McpToolResult, textResult } from "../tool";
 
@@ -22,24 +23,6 @@ const SAME_ORIGIN_PATH = /^\/(?![/\\])/;
 const REMOTE_URL = /^https?:\/\//i;
 const URL_OPTION_KEY = /(?:Url|^location)$/;
 const OptionUrlSchema = z.string();
-
-/** Markup the dms-ai sketch frame would block, refused here with a clear error; the frame, not this list, is the guard. */
-const SKETCH_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
-  [/<\s*script\b/i, "a <script> element"],
-  [
-    /<\s*(?:iframe|frame|frameset|object|embed|applet|portal|link|base)\b/i,
-    "an embedding or linking element (iframe, object, embed, link, base)",
-  ],
-  [/<\s*meta\b[^>]*http-equiv/i, "a <meta http-equiv>"],
-  [/<[^>]*[\s/"']on[a-z]+\s*=/i, "an on* event handler attribute"],
-  [/(?:java|vb)script\s*:/i, "a javascript: URL"],
-  [/@import\b/i, "a CSS @import"],
-  [/url\(\s*(?!['"]?\s*data:)/i, "a url() that is not a data: URL"],
-  [
-    /<[^>]*\s(?:src|srcset|href|xlink:href|poster|action|formaction|background|data|ping)\s*=\s*(?!['"]?\s*(?:data:|#))/i,
-    "a src, href or similar attribute that is not a data: URL or an #anchor",
-  ],
-];
 
 interface PreviewNode {
   type?: string;
@@ -276,13 +259,12 @@ function checkNode(
   }
 }
 
-function checkSketch(html: string, css: string | undefined): void {
-  const markup = `${html}\n${css ?? ""}`;
-  const refused = SKETCH_FORBIDDEN.find(([pattern]) => pattern.test(markup));
-  if (refused === undefined) return;
+function checkSketch(sketch: { html: string; css?: string }): void {
+  const refused = sketchRefusals(sketch);
+  if (refused.length === 0) return;
   throw new PreviewInputError(
     "invalid_sketch",
-    `A sketch is static HTML and CSS: inline images and fonts as data: URLs, and use no script, event handler, external resource or embedded frame. Refused: ${refused[1]}.`,
+    `A sketch is static HTML and CSS: inline images and fonts as data: URLs, and use no script, event handler, external resource or embedded frame. Refused: ${refused.join("; ")}.`,
   );
 }
 
@@ -298,7 +280,7 @@ function checkViews(views: PreviewView[]): PreviewTally {
     }
     const roots = tree === undefined ? [] : [tree].flat();
     for (const root of roots) checkNode(root, 1, known, tally);
-    if (sketch !== undefined) checkSketch(sketch.html, sketch.css);
+    if (sketch !== undefined) checkSketch(sketch);
   }
   const content = views.map(({ tree, sketch }) => ({ tree, sketch }));
   if (Buffer.byteLength(JSON.stringify(content)) > MAX_JSON_BYTES) {

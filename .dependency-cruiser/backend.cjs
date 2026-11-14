@@ -44,6 +44,7 @@ const faces = new Map(
       "route",
       "tool",
     ],
+    mockup: ["sketch"],
     pages: ["account", "members", "permissions", "preview"],
     implementations: [
       "dms/services",
