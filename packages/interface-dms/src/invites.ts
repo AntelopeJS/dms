@@ -255,10 +255,25 @@ async function createAdmittedInviteToken(
     await userInviteModel.insert(replacement);
   } catch (error) {
     if (!IsDuplicateKeyError(error)) throw error;
-    return yieldToWinner(await userInviteModel.getByEmail(email), replacement);
+    const winner = await userInviteModel.getByEmail(email);
+    return yieldOrCreateAgain(
+      options,
+      winner && (await currentInviteOf(options, winner)),
+      replacement,
+    );
   }
   const rival = await userInviteModel.getOtherByEmail(email, replacement._id);
-  if (rival) return withdrawFreshInvite(options, replacement, rival);
+  if (rival) {
+    const outcome = await userInviteModel.settleFresh(
+      replacement._id,
+      "withdrawn",
+    );
+    if (outcome !== "kept")
+      return withdrawFreshInvite(options, replacement, rival);
+    const current = await currentInviteOf(options, replacement);
+    if (current?._id !== replacement._id)
+      return yieldOrCreateAgain(options, current, replacement);
+  }
   await ExecuteHooks(Hook.INVITE_CREATED, {
     tenantId,
     inviteId: replacement._id,
@@ -363,11 +378,24 @@ async function withdrawFreshInvite(
   const { tenantId } = options;
   const decisions = GetModel(InviteResolutionsModel, tenantId);
   const { resolution, claimed } = await decisions.withdraw(tenantId, fresh);
-  if (!claimed) return yieldToWinner(resolution.replacement ?? rival, fresh);
-  await GetModel(UserInviteModel, tenantId).delete(fresh._id);
-  const winner = await currentInviteOf(options, rival);
-  if (!winner) return createAdmittedInviteToken(options);
-  return yieldToWinner(winner, fresh);
+  if (resolution.replacement)
+    return yieldToWinner(resolution.replacement, fresh);
+  if (claimed) await GetModel(UserInviteModel, tenantId).delete(fresh._id);
+  return yieldOrCreateAgain(
+    options,
+    await currentInviteOf(options, rival),
+    fresh,
+  );
+}
+
+/** Yields to the email's current invite, or runs the creation again when the email has none left. */
+function yieldOrCreateAgain(
+  options: CreateUserInviteTokenOptions,
+  current: UserInvite | undefined,
+  lost: UserInvite,
+): Promise<CreateUserInviteTokenResult> | CreateUserInviteTokenResult {
+  if (!current) return createAdmittedInviteToken(options);
+  return yieldToWinner(current, lost);
 }
 
 /**
@@ -390,9 +418,45 @@ async function currentInviteOf(
     InviteResolutionsModel,
     tenantId,
   ).getForInvite(tenantId, invite._id);
-  if (!decision || decision.reason === "accepted") return invite;
+  if (!decision) return followUndecided(options, invite);
+  if (decision.reason === "accepted") return invite;
   if (decision.replacement) return decision.replacement;
   await completeAdmittedInviteResolution(decision);
+  return currentInviteOf(options, invite);
+}
+
+/**
+ * The invite to yield to when `invite` has no decision. A replacement, or a
+ * fresh invite settled kept, is yielded to. A fresh invite that is the only
+ * invite of its email is settled kept here, so its creator keeps it even if it
+ * read a rival since retired. A fresh invite beside another invite yields to
+ * that one, and a fresh invite settled withdrawn has its withdrawal finished
+ * here, so no caller waits on its creator.
+ *
+ * @returns The invite, or undefined when the email has none left
+ */
+async function followUndecided(
+  options: CreateUserInviteTokenOptions,
+  invite: UserInvite,
+): Promise<UserInvite | undefined> {
+  const { tenantId, email } = options;
+  if (invite.creationResolutionId || invite.freshOutcome === "kept")
+    return invite;
+  const invites = GetModel(UserInviteModel, tenantId);
+  if (invite.freshOutcome !== "withdrawn") {
+    if (!(await invites.isOnlyInviteOfEmail(invite))) {
+      const other = await invites.getOtherByEmail(email, invite._id);
+      return currentInviteOf(options, other ?? invite);
+    }
+    if ((await invites.settleFresh(invite._id, "kept")) === "kept")
+      return invite;
+  }
+  const { resolution } = await GetModel(
+    InviteResolutionsModel,
+    tenantId,
+  ).withdraw(tenantId, invite);
+  if (resolution.replacement) return resolution.replacement;
+  await invites.delete(invite._id);
   return currentInviteOf(options, invite);
 }
 

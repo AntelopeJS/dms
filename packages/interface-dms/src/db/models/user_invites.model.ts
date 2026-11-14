@@ -2,6 +2,7 @@ import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { normalizeEmail } from "../../auth/db/models/users.model";
 import { getRowInstance } from "../../utils/internal/row-instance";
 import {
+  type FreshInviteOutcome,
   USER_INVITES_TABLE_NAME,
   UserInvite,
 } from "../tables/user_invites.table";
@@ -72,6 +73,31 @@ export class UserInviteModel extends BasicDataModel(
       .getAll(normalizeEmail(invite.email), "email")
       .run();
     return rows.length === 1 && rows[0]?._id === invite._id;
+  }
+
+  /**
+   * Settles an invite created without a replacement as kept or withdrawn,
+   * unless it is settled already: the first outcome written stands.
+   *
+   * @param inviteId The invite to settle
+   * @param outcome The outcome to write
+   * @returns The invite's outcome after this call, or undefined when it is no longer stored
+   */
+  async settleFresh(
+    inviteId: string,
+    outcome: FreshInviteOutcome,
+  ): Promise<FreshInviteOutcome | undefined> {
+    const written = await this.table
+      .atomicMutation(inviteId, {
+        type: "update",
+        revisionField: "freshOutcome",
+        expectedRevision: { kind: "missing" },
+        nextRevision: outcome,
+        patch: {},
+      })
+      .run();
+    if (written === "applied") return outcome;
+    return (await this.get(inviteId))?.freshOutcome;
   }
 
   /**
