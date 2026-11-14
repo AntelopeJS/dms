@@ -1,7 +1,6 @@
 import {
   checkboxState,
-  grantPermission,
-  revokePermission,
+  clickPermission,
   type PermissionIndex,
 } from "../../layers/dms-layout/app/entries/components/pages/settings/roles/role-permissions";
 import type { RolePermissionNode } from "../../layers/dms-layout/app/entries/components/pages/settings/roles/role-types";
@@ -165,9 +164,7 @@ function editorClick(
   id: string,
 ): Set<string> {
   const checked = clickedValue(checkboxState(index, id, selection));
-  return checked
-    ? grantPermission(index, selection, id, anyone).selection
-    : revokePermission(index, selection, id);
+  return clickPermission(index, selection, id, checked, anyone).selection;
 }
 
 /** Deterministic pseudo-random sequence (mulberry32). */
