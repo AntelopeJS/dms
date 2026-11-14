@@ -3,14 +3,15 @@ import type {
   EditableCategoryMeta,
   EditablePageMeta,
 } from "@antelopejs/interface-dms-builder";
-import {
-  Node,
-  type ObjectLiteralElementLike,
-  type ObjectLiteralExpression,
-} from "ts-morph";
+import { Node, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
 import { propertyKey } from "./paths";
 import { type EmitContext, serializeValue } from "./value";
-import { pruneUnusedImports, pruneUnusedLocals } from "./writable";
+import {
+  pruneUnusedImports,
+  pruneUnusedLocals,
+  referencedImportNames,
+  referencedLocalNames,
+} from "./writable";
 
 type OptionsPatchValue =
   | EditablePageMeta[keyof EditablePageMeta]
@@ -36,12 +37,40 @@ export function optionsPatch(
 }
 
 /**
- * Writes `patch` into an object literal: an `undefined` value removes its key,
- * any other value replaces the key's member in place, shorthand included, or is
- * added. A local or named import that only a replaced or removed shorthand read
- * is then dropped, so the file stays free of unused bindings.
+ * Runs `write`, then drops each local or import that only what `write`
+ * replaced or removed read, and whatever only that local read, so the file
+ * stays free of unused bindings. A binding unused before `write` stays.
+ */
+export function pruningOrphans<T>(sourceFile: SourceFile, write: () => T): T {
+  const usedLocals = referencedLocalNames(sourceFile);
+  const usedImports = referencedImportNames(sourceFile);
+  const result = write();
+  pruneUnusedLocals(sourceFile, usedLocals);
+  pruneUnusedImports(sourceFile, usedImports);
+  return result;
+}
+
+/**
+ * {@link writePatch}, then the bindings only a replaced or removed value read
+ * are dropped, as {@link pruningOrphans} drops them.
  */
 export function applyPatch(
+  obj: ObjectLiteralExpression,
+  patch: ConfigObject,
+  replace: boolean,
+  ctx: EmitContext,
+): void {
+  pruningOrphans(obj.getSourceFile(), () =>
+    writePatch(obj, patch, replace, ctx),
+  );
+}
+
+/**
+ * Writes `patch` into an object literal: an `undefined` value removes its key,
+ * any other value replaces the key's member in place, shorthand included, or is
+ * added. Bindings the old values read are left as they are.
+ */
+export function writePatch(
   obj: ObjectLiteralExpression,
   patch: ConfigObject,
   replace: boolean,
@@ -54,36 +83,23 @@ export function applyPatch(
       value === undefined ? undefined : serializeValue(value, ctx),
     );
   }
-  const shorthandBindings = new Set<string>();
-  const remove = (prop: ObjectLiteralElementLike): void => {
-    if (Node.isShorthandPropertyAssignment(prop)) {
-      shorthandBindings.add(prop.getName());
-    }
-    prop.remove();
-  };
   if (replace) {
     for (const prop of obj.getProperties()) {
-      remove(prop);
+      prop.remove();
     }
   }
   for (const [key, initializer] of initializers) {
     const existing = obj.getProperty(key);
     if (initializer === undefined) {
-      if (existing) {
-        remove(existing);
-      }
+      existing?.remove();
       continue;
     }
     if (existing && Node.isPropertyAssignment(existing)) {
       existing.setInitializer(initializer);
     } else if (existing && Node.isShorthandPropertyAssignment(existing)) {
-      shorthandBindings.add(existing.getName());
       existing.replaceWithText(`${propertyKey(key)}: ${initializer}`);
     } else {
       obj.addPropertyAssignment({ name: propertyKey(key), initializer });
     }
   }
-  const sourceFile = obj.getSourceFile();
-  pruneUnusedLocals(sourceFile, shorthandBindings);
-  pruneUnusedImports(sourceFile, shorthandBindings);
 }
