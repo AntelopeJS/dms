@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { assertRowRule } from "../dist/base/table-view/internal/row-rule-shape.js";
+import { startCpuClock } from "./helpers/cpu-clock.mjs";
 
 const SUBJECT = "Malformed row rule";
 const LEAF = { field: "status", equals: "open" };
@@ -146,16 +147,16 @@ await test("the subject and the path prefix every refusal", () => {
 });
 
 await test("a rule 10,000 levels deep is refused quickly", () => {
-  const started = performance.now();
+  const cpuMilliseconds = startCpuClock();
   assert.match(
     problemOf(nested(10_000, (inner) => ({ not: inner }))) ?? "",
     /nests rules deeper than 64 levels$/,
   );
-  assert.ok(performance.now() - started < 1000);
+  assert.ok(cpuMilliseconds() < 1000);
 });
 
 await test("a list of 200,000 rules is walked within a time bound", () => {
-  const started = performance.now();
+  const cpuMilliseconds = startCpuClock();
   assert.equal(
     problemOf({ and: Array.from({ length: 200_000 }, () => LEAF) }),
     undefined,
@@ -164,7 +165,7 @@ await test("a list of 200,000 rules is walked within a time bound", () => {
     problemOf({ or: Array.from({ length: 200_000 }, () => LEAF).concat([{}]) }),
     `${SUBJECT}: rule.or[200000] must name an operator (and, or, not, equals, notEquals, in or notIn)`,
   );
-  assert.ok(performance.now() - started < 2000);
+  assert.ok(cpuMilliseconds() < 2000);
 });
 
 await test("a 1 MiB body of rules 63 levels deep is walked with bounded time and memory", () => {
@@ -176,8 +177,8 @@ await test("a 1 MiB body of rules 63 levels deep is walked with bounded time and
     rules.push(rule);
   }
   const rssBefore = process.memoryUsage().rss;
-  const started = performance.now();
+  const cpuMilliseconds = startCpuClock();
   assert.equal(problemOf({ and: rules }), undefined);
-  assert.ok(performance.now() - started < 2000);
+  assert.ok(cpuMilliseconds() < 2000);
   assert.ok(process.memoryUsage().rss - rssBefore < 100 * 1024 * 1024);
 });
