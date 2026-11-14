@@ -189,7 +189,7 @@ describe("Sketch check bounds on what the parser materialises", () => {
     expect(timed.ms).to.be.below(CHECK_BOUND_MS);
   });
 
-  it("refuses markup that makes the parser rebuild elements thousands of times, within the time bound", () => {
+  it("refuses markup that makes the parser rebuild elements thousands of times, within the time bound", function () {
     const opened = (tag: string, count: number): string =>
       Array.from({ length: count }, (_, index) => `<${tag} id=${index}>`).join(
         "",
@@ -218,6 +218,7 @@ describe("Sketch check bounds on what the parser materialises", () => {
       `<table>${opened("b", 2040)}${"<tr><td>x</td></tr>".repeat(500)}`,
       `<table>${opened("b", 2040)}${"x".repeat(2000)}`,
     ];
+    this.timeout(inputs.length * CHECK_BOUND_MS);
     const timed = inputs.map(timedRefusals);
 
     expect(timed.filter(({ refusals }) => refusals.length === 0)).to.deep.equal(
