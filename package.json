@@ -48,7 +48,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@antelopejs/interface-dms-builder": "file:.tgz-deps/antelopejs-interface-dms-builder-008d672.tgz"
+      "@antelopejs/interface-dms-builder": "file:.tgz-deps/antelopejs-interface-dms-builder-2e5218a.tgz"
     }
   }
 }
