@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ModuleHistoryEntry } from "../layers/dms-layout/app/composables/page/useModuleHistory";
 import type {
   ModuleCatalogEntry,
   ModuleWithAccess,
@@ -250,11 +251,10 @@ describe("recentModules", () => {
       "/modules/cms/pages",
       "/modules/cms/media",
     ]);
-    const recent = recentModules(
-      [{ moduleId: "cms", path: "/modules/cms/media", visitedAt: 1 }],
-      { cms },
-      tree,
-    );
+    const visits: ModuleHistoryEntry[] = [
+      { moduleId: "cms", path: "/modules/cms/media", visitedAt: 1 },
+    ];
+    const recent = recentModules(visits, { cms }, tree);
     expect(recent).toEqual([
       {
         moduleId: "cms",
@@ -268,15 +268,12 @@ describe("recentModules", () => {
   it("lists the most recent first and leaves out modules the caller cannot open", () => {
     const tree = landingTree("cms", ["/modules/cms/pages"]);
     const crm = { ...cms, id: "crm", hasAccess: false };
-    const recent = recentModules(
-      [
-        { moduleId: "crm", path: "/modules/crm", visitedAt: 2 },
-        { moduleId: "cms", path: "/modules/cms/pages", visitedAt: 1 },
-        { moduleId: "gone", path: "/modules/gone", visitedAt: 3 },
-      ],
-      { cms, crm },
-      tree,
-    );
+    const visits: ModuleHistoryEntry[] = [
+      { moduleId: "crm", path: "/modules/crm", visitedAt: 2 },
+      { moduleId: "cms", path: "/modules/cms/pages", visitedAt: 1 },
+      { moduleId: "gone", path: "/modules/gone", visitedAt: 3 },
+    ];
+    const recent = recentModules(visits, { cms, crm }, tree);
     expect(recent.map((module) => module.moduleId)).toEqual(["cms"]);
   });
 });

@@ -20,6 +20,7 @@ import { SortDirection } from "../../layers/dms-ui/app/types/table/query";
 import { resolveApiErrorMessage } from "../../layers/dms-core/app/composables/resolveApiError";
 import * as typeChecks from "../../layers/dms-core/app/utils/type-check";
 import * as formatters from "../../layers/dms-core/app/utils/formatter";
+import type { Data } from "../../layers/dms-ui/app/types/table/base";
 import type { TableViewConfig } from "../../layers/dms-ui/app/composables/table-view/types";
 import { TableViewEvents } from "../../layers/dms-ui/app/composables/table-view/types";
 import { TableViewFunctions } from "../../layers/dms-ui/app/composables/table-view/types/functions";
@@ -74,7 +75,7 @@ export async function tableViewRuntime(
 }
 
 export async function mountTableView(
-  overrides: Partial<TableViewConfig> = {},
+  overrides: Partial<TableViewConfig<Data>> = {},
   prepare?: () => void,
 ) {
   const { default: TableView } = await import(

@@ -8,6 +8,7 @@ import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
+import { fetchClient } from "./fixtures/fetchClient";
 import type { CustomButton } from "../layers/dms-ui/app/composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
 
@@ -26,7 +27,7 @@ function mountTargets() {
     defineComponent({
       setup() {
         targets = useActionTargets({
-          api: vi.fn(),
+          api: fetchClient(() => undefined),
           pageId: "queue-page",
           componentId: "page-header",
           handleApiError,

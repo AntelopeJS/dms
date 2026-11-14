@@ -11,7 +11,7 @@ const TABS = [
   {
     id: "open",
     label: "Open",
-    filter: { accessorKey: "status", value: "open" },
+    filter: { accessorKey: "status", value: "open", mode: "is" },
   },
 ];
 

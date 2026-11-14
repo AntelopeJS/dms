@@ -27,8 +27,10 @@ Button.inheritAttrs = false;
 let app: App | undefined;
 let host: HTMLDivElement;
 
+type SaveBarProps = InstanceType<typeof SaveBarComponent>["$props"];
+
 async function mount(
-  props: Partial<InstanceType<typeof SaveBarComponent>["$props"]>,
+  props: Partial<SaveBarProps> & Pick<SaveBarProps, "dirty">,
 ) {
   const { default: SaveBar } = await import(
     "../layers/dms-ui/app/components/save-bar/SaveBar.vue"

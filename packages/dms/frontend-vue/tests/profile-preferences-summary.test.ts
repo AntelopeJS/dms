@@ -1,5 +1,13 @@
 /** @vitest-environment jsdom */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import iconsPlugin from "@nuxt/ui/runtime/vue/plugins/icons.js";
@@ -223,7 +231,7 @@ describe("access gating", () => {
 });
 
 const navPages = ref<{ fullId: string; to: string }[]>([]);
-let authFetch: ReturnType<typeof vi.fn>;
+let authFetch: Mock<(url: string) => Promise<unknown>>;
 let resolveAccess: (value: Parameters<typeof buildAccessSummary>[1]) => void;
 let resolvePreferences: (value: Record<string, boolean>) => void;
 let feed: ReturnType<typeof useNotifications>;

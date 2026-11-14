@@ -15,7 +15,7 @@ import { createI18n } from "vue-i18n";
 import { App as InertiaApp } from "@inertiajs/vue3";
 import { useToast } from "@nuxt/ui/composables/useToast";
 
-const shellModules = import.meta.glob([
+const shellModules = import.meta.glob<Record<string, unknown>>([
   "../../layers/dms-layout/app/composables/**/*.ts",
   "../../layers/dms-layout/app/utils/*.ts",
   "../../layers/dms-core/app/types/page.ts",
@@ -60,11 +60,7 @@ export async function installShellRuntime(path = "/") {
     baseURL: "http://api",
     homepage: "/",
   };
-  const i18n = createI18n({
-    legacy: false,
-    locale: "en",
-    messages: { en: {} },
-  });
+  const i18n = createI18n({ legacy: false, locale: "en", messages: {} });
   await engine.installDmsPlugins(app, i18n.global, runtime, async () => ({}), [
     "en",
   ]);

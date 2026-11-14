@@ -70,7 +70,8 @@ const renderMenuItem = (item: NavigationMenuItem): VNode =>
     {
       "data-entry": item.fullId,
       "data-to": item.to,
-      "data-badge": item.badge?.label,
+      "data-badge":
+        typeof item.badge === "object" ? item.badge.label : undefined,
       "data-trailing-icon": item.trailingIcon,
       title: item.title,
       class: item.class,

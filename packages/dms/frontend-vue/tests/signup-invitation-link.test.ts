@@ -20,7 +20,9 @@ import {
   stubApiData,
 } from "./helpers/api-data-runtime";
 
-const route = reactive<{ query: Record<string, string> }>({ query: {} });
+type Query = Record<string, string | string[]>;
+
+const route = reactive<{ query: Query }>({ query: {} });
 let app: App;
 let host: HTMLDivElement;
 const locale = ref("en");
@@ -113,7 +115,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it.each([{}, { token: "" }, { token: ["a", "b"] }])(
+it.each<Query>([{}, { token: "" }, { token: ["a", "b"] }])(
   "explains an invitation link without its token (%o)",
   (query) => {
     expect(() => mountSignup(query)).not.toThrow();
@@ -197,7 +199,7 @@ it("opens in the language the invitation was written in", () => {
   expect(locale.value).toBe("fr");
 });
 
-it.each([{}, { lang: "en" }, { lang: "de" }, { lang: ["fr", "en"] }])(
+it.each<Query>([{}, { lang: "en" }, { lang: "de" }, { lang: ["fr", "en"] }])(
   "keeps the current language for an invitation link carrying %o",
   (query) => {
     mountSignup({ token: "invite-token", email: "new@local.test", ...query });

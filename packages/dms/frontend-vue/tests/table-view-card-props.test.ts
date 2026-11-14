@@ -22,12 +22,12 @@ import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-vie
 import { displayContext } from "./fixtures/displayContext";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
 
-interface Row {
+type Row = {
   _id: string;
   name: string;
   email?: string;
   photo?: { key: string };
-}
+};
 
 const rows: Row[] = [
   { _id: "t1", name: "Write the docs" },
@@ -36,8 +36,8 @@ const rows: Row[] = [
 
 function createContext() {
   const selected = ref<string[]>(["t2"]);
-  const opened: Row[] = [];
-  const context = displayContext<Row>({
+  const opened: Array<Record<string, unknown>> = [];
+  const context = displayContext<Record<string, unknown>>({
     items: rows,
     labelKey: "name",
     options: { card: { component: { componentName: "TaskCard" } } },
@@ -52,7 +52,7 @@ function createContext() {
           : selected.value.filter((entry) => entry !== id);
       },
     },
-    actions: { open: (item: Row) => opened.push(item) },
+    actions: { open: (item) => opened.push(item) },
   });
   return { context, selected, opened };
 }

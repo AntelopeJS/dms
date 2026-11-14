@@ -2,10 +2,11 @@
  * The Branding icon is in the header for the platform owner alone, and opens
  * the editor's page.
  */
-import { computed, ref, type Ref } from "vue";
+import { computed, createApp, ref, type Ref } from "vue";
 import { createI18n } from "vue-i18n";
 import { beforeEach, expect, it, vi } from "vitest";
 import fr from "../layers/dms-layout/app/entries/i18n/locales/layout-fr-FR.json";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 
 let actions: Ref<unknown> | undefined;
 const isOwner = ref(false);
@@ -34,7 +35,7 @@ const i18n = createI18n({ legacy: false, locale: "fr", messages: { fr } });
 beforeEach(() => {
   actions = undefined;
   isOwner.value = false;
-  plugin();
+  plugin(dmsAppContext(createApp({ render: () => null })));
 });
 
 const brandingAction = () =>

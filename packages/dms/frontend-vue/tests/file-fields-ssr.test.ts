@@ -56,7 +56,7 @@ const mounted: App[] = [];
 const passthrough: FunctionalComponent = (_, { slots }) =>
   h("span", slots.default?.());
 const renderTag =
-  (tag: string): FunctionalComponent =>
+  (tag: string): FunctionalComponent<{ src?: string }> =>
   (props) =>
     h(tag, props.src ? { src: props.src } : {});
 

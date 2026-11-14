@@ -36,6 +36,9 @@ import type { formFieldInjectionKey as FormFieldKey } from "@nuxt/ui/composables
 type FieldInjection =
   typeof FormFieldKey extends InjectionKey<infer Value> ? Value : never;
 type DrawerProps = NonNullable<VNode["props"]>;
+type DynamicDrawerProps = InstanceType<
+  (typeof import("../layers/dms-ui/app/entries/components/containers/drawer/DynamicDrawer"))["default"]
+>["$props"];
 
 interface BodyInjections {
   explorer?: string | null;
@@ -452,10 +455,13 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     const { formFieldInjectionKey } = await import(
       "@nuxt/ui/runtime/composables/useFormField.js"
     );
-    const opened = shallowRef<DrawerProps>();
+    const opened = shallowRef<DynamicDrawerProps>();
     vi.stubGlobal("markRaw", <T>(value: T) => value);
     vi.stubGlobal("useOverlay", () => ({
-      create: (_component: Component, { props }: { props: DrawerProps }) => {
+      create: (
+        _component: Component,
+        { props }: { props: DynamicDrawerProps },
+      ) => {
         opened.value = props;
         return {
           open: () => new Promise(() => {}),
@@ -483,7 +489,10 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
       setup() {
         const drawer = useDrawer();
         provide(EXPLORER_KEY, "library-1");
-        provide(DMS_CONTAINER_KEY, { id: "outer", close: () => {} });
+        provide(DMS_CONTAINER_KEY, {
+          id: "outer",
+          close: () => Promise.resolve(),
+        });
         provide(formFieldInjectionKey, { name: "outer-field" } as never);
         drawer.open(
           wrap({

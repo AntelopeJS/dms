@@ -169,6 +169,8 @@ function createPermissionPreviewPartialFixture() {
     blocks: {},
     hiddenEntries: ["pages.sales.invoices"],
     partialEntries: ["pages.sales", "pages.sales.orders"],
+    hiddenHeaderActions: [],
+    hiddenQuickActions: [],
     outOfScope: 0,
   };
 

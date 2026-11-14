@@ -10,16 +10,19 @@ import {
   isAccountMenuRoute,
 } from "../layers/dms-layout/app/utils/account-menu";
 
-type Messages = import("vue-i18n").LocaleMessage<
-  import("vue-i18n").VueMessageType
->;
+interface Messages {
+  [key: string]: string | Messages;
+}
 
-function lookup(messages: Messages, key: string): Messages[string] | undefined {
+function lookup(
+  messages: Messages,
+  key: string,
+): string | Messages | undefined {
   return key
     .split(".")
     .reduce<
-      Messages[string] | undefined
-    >((node, part) => node?.[part], messages);
+      string | Messages | undefined
+    >((node, part) => (isString(node) ? undefined : node?.[part]), messages);
 }
 
 describe("account menu entries", () => {

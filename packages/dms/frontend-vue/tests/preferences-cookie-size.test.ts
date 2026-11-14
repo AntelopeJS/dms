@@ -55,6 +55,13 @@ const installCookie = (initial: string) => {
 
 const cookieBytes = () => preferencesCookieBytes(stored.value);
 const storedTree = () => decodePreferencesTree(stored.value);
+const storedTableIds = (): string[] => {
+  const { tables } = storedTree();
+  if (typeof tables !== "object" || tables === null) {
+    throw new Error("The cookie holds no tables");
+  }
+  return Object.keys(tables);
+};
 
 const sortByName = (componentId: string, pageId: string) =>
   useTablePreferences(componentId, pageId).set(
@@ -117,7 +124,7 @@ describe("the size of a table's state in the preferences cookie", () => {
       visitTypicalTable(...tableIds(index));
     }
     expect(cookieBytes()).toBeLessThanOrEqual(MAX_PREFERENCES_COOKIE_BYTES);
-    expect(Object.keys(storedTree().tables)).toHaveLength(TYPICAL_TABLES);
+    expect(storedTableIds()).toHaveLength(TYPICAL_TABLES);
     expect(
       useTablePreferences(...tableIds(0)).get("sorting", DEFAULT_SORT),
     ).toEqual([{ id: "name", desc: true }]);

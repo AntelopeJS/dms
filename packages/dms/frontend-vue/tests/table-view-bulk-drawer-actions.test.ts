@@ -15,7 +15,7 @@ describe("a bulk action run on one row", () => {
   const bulkApi = (url: string): CustomRowAction => ({
     label: "Re-run",
     bulk: true,
-    target: { type: "api", url },
+    target: { type: "api", url, successMessage: "$runs.done" },
   });
 
   beforeEach(() => vi.stubGlobal("interpolateUrl", interpolateUrl));
@@ -82,7 +82,14 @@ describe("a bulk action run on one row", () => {
   it("leaves an action that is not bulk as it is", async () => {
     const targets = mountTargets();
     targets.handleCustomRowAction(
-      { label: "Run", target: { type: "api", url: "/api/runs/run" } },
+      {
+        label: "Run",
+        target: {
+          type: "api",
+          url: "/api/runs/run",
+          successMessage: "$runs.done",
+        },
+      },
       { _id: "r1" },
     );
     await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));

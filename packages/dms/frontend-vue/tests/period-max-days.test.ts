@@ -79,8 +79,8 @@ describe("the range calendar with maxDays", () => {
           }),
       }),
     );
-    app.config.globalProperties.$t = (_key: string, fallback: string) =>
-      fallback;
+    app.config.globalProperties.$t = (key: string, fallback?: unknown) =>
+      typeof fallback === "string" ? fallback : key;
     app.component(
       "UButton",
       defineComponent({ setup: () => () => h("button") }),
