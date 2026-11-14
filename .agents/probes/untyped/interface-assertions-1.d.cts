@@ -38,3 +38,22 @@ export const describeOptions: Describer;
 export const rerunDescribeSchema: Describer;
 export const rerunDescribeOptions: Describer;
 export const selectTypeOf: (options: ChoiceOptions) => ChoiceType;
+/** A controller receiver, or a value that is none, which the battery feeds authorizeAction on purpose. */
+export type ReceiverLike =
+  | { readonly constructor?: unknown }
+  | string
+  | number
+  | null
+  | undefined;
+
+/** The user authorizeAction checks, as far as the probe sets it. */
+export interface ProbeUser {
+  _id: string;
+}
+
+export const authorizeAction: (
+  receiver: ReceiverLike,
+  actionId: string,
+  user: ProbeUser,
+  tenantId: string,
+) => Promise<ReadonlySet<string> | undefined>;

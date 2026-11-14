@@ -14,9 +14,14 @@ import type {
   TableViewFooterOptions,
   TableViewFooterSerialized,
   TableViewFooterSummary,
+  TableViewSummaryOperation,
 } from "../options";
 
 const LEGEND_TYPE_ID = "select";
+const SUMMARY_OPERATIONS: readonly TableViewSummaryOperation[] = [
+  "sum",
+  "count",
+];
 
 /**
  * The columns a row rule reads, nested rules included.
@@ -46,6 +51,11 @@ function checkedSummary<T extends object>(
 ): TableViewFooterSummary {
   const { where, ...figure } = summary;
   const subject = `TableView footer summary "${figure.label}" on ${controllerName}`;
+  if (!SUMMARY_OPERATIONS.includes(figure.op)) {
+    throw new Error(
+      `${subject} has op ${JSON.stringify(figure.op)}: give it ${SUMMARY_OPERATIONS.map((op) => `"${op}"`).join(" or ")}`,
+    );
+  }
   if (figure.op === "sum" && !figure.field) {
     throw new Error(`${subject} sums no field: give it a field`);
   }

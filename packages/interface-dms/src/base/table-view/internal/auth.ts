@@ -60,8 +60,7 @@ function isGateBypassableAction(
 
 /** @internal */
 export async function authorizeAction(
-  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The published authorization helper accepts a dispatcher-bound controller receiver without a class validation step.
-  thisObj: unknown,
+  thisObj: DataControllerInstance,
   actionId: string,
   user: User,
   tenantId: string,

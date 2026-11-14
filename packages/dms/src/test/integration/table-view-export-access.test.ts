@@ -18,9 +18,20 @@ const StatusBody = z.object({ status: z.string() });
 
 let client: AxiosInstance;
 
-async function settledStatus(jobId: string): Promise<string> {
+async function startExport(location: string): Promise<string> {
+  const started = await client.get(`${location}/export/start`, {
+    params: { format: "csv" },
+  });
+  expect(started.status, JSON.stringify(started.data)).to.equal(HTTP_OK);
+  return parseBody(StartBody, started).jobId;
+}
+
+async function settledStatus(
+  jobId: string,
+  location = LOCATION,
+): Promise<string> {
   for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
-    const response = await client.get(`${LOCATION}/export/status/${jobId}`);
+    const response = await client.get(`${location}/export/status/${jobId}`);
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     const { status } = parseBody(StatusBody, response);
     if (status !== "pending") return status;
@@ -37,23 +48,19 @@ describe("[integration] table view export access", () => {
   });
 
   it("answers an export's status on the table view that started it, and refuses it on another", async () => {
-    const started = await client.get(`${LOCATION}/export/start`, {
-      params: { format: "csv" },
-    });
-    expect(started.status, JSON.stringify(started.data)).to.equal(HTTP_OK);
-    const { jobId } = parseBody(StartBody, started);
+    const jobId = await startExport(LOCATION);
+    const otherJobId = await startExport(OTHER_LOCATION);
 
     expect(await settledStatus(jobId)).to.equal("completed");
+    expect(await settledStatus(otherJobId, OTHER_LOCATION)).to.equal(
+      "completed",
+    );
     const other = await client.get(`${OTHER_LOCATION}/export/status/${jobId}`);
     expect(other.status, JSON.stringify(other.data)).to.equal(HTTP_FORBIDDEN);
   });
 
   it("serves an export's file on the table view that started it, and refuses it on another", async () => {
-    const started = await client.get(`${LOCATION}/export/start`, {
-      params: { format: "csv" },
-    });
-    expect(started.status, JSON.stringify(started.data)).to.equal(HTTP_OK);
-    const { jobId } = parseBody(StartBody, started);
+    const jobId = await startExport(LOCATION);
     expect(await settledStatus(jobId)).to.equal("completed");
 
     const other = await client.get(

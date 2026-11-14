@@ -1,5 +1,6 @@
 const describeModule = require("../../../packages/interface-dms/dist/base/block-registry/internal/describe.js");
 const { SelectType } = require("../../../packages/interface-dms/dist/base/data-types/default/choices.js");
+const { authorizeAction } = require("../../../packages/interface-dms/dist/base/table-view/internal/auth.js");
 
 /**
  * @param {unknown} schema
@@ -28,4 +29,5 @@ module.exports = {
   rerunDescribeSchema,
   rerunDescribeOptions,
   selectTypeOf,
+  authorizeAction,
 };
