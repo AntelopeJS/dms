@@ -1,7 +1,8 @@
 import type { DatabaseAccess } from "@antelopejs/interface-dms-builder";
+import type { Connection as PromiseConnection } from "mysql2/promise";
 import net from "node:net";
 import { z } from "zod";
-import { mysqlAccess } from "./access-mysql";
+import { type MysqlRelationRow, mysqlAccess } from "./access-mysql";
 import {
   failureMessage,
   missingClient,
@@ -33,27 +34,25 @@ const REFUSALS = new Map([
 const ACCOUNT_SQL = "SELECT CURRENT_USER() AS user, DATABASE() AS name";
 
 /**
- * The account the connection runs as, spelled as the privilege views spell a grantee. Mirrors
- * `GRANTEE` of `@antelopejs/mysql` 0.1.0 (`src/dialect/mysql/external-catalog.ts`).
- */
-const GRANTEE =
-  "CONCAT('''', SUBSTRING_INDEX(CURRENT_USER(), '@', 1), '''@''', SUBSTRING_INDEX(CURRENT_USER(), '@', -1), '''')";
-
-function privilege(name: string): string {
-  return `(EXISTS (SELECT 1 FROM information_schema.USER_PRIVILEGES u WHERE u.GRANTEE = ${GRANTEE} AND u.PRIVILEGE_TYPE = '${name}')
-    OR EXISTS (SELECT 1 FROM information_schema.SCHEMA_PRIVILEGES s WHERE s.GRANTEE = ${GRANTEE} AND s.TABLE_SCHEMA = t.TABLE_SCHEMA AND s.PRIVILEGE_TYPE = '${name}')
-    OR EXISTS (SELECT 1 FROM information_schema.TABLE_PRIVILEGES p WHERE p.GRANTEE = ${GRANTEE} AND p.TABLE_SCHEMA = t.TABLE_SCHEMA AND p.TABLE_NAME = t.TABLE_NAME AND p.PRIVILEGE_TYPE = '${name}'))`;
-}
-
-/**
- * The relations of the URL's database and what the account may do to each. Mirrors `Relations` of
- * `@antelopejs/mysql` 0.1.0 (`src/dialect/mysql/external-catalog.ts`), which MariaDB shares: the
- * same relation types and the same privilege lookups, without the columns the check does not read.
+ * The relations of the URL's database, with whether the account holds SELECT, INSERT and UPDATE on
+ * every column of each. Mirrors `Relations` of `@antelopejs/mysql` (`src/dialect/mysql/external-catalog.ts`):
+ * `information_schema.COLUMNS.PRIVILEGES` is the server's own reckoning for the session, roles and
+ * the roles they hold included, and never spells the account's name. Names are grouped and matched
+ * as bytes, since MariaDB's catalog compares them without regard to case.
  */
 const RELATIONS_SQL = `
-  SELECT ${privilege("SELECT")} AS readable, ${privilege("INSERT")} AS \`insert\`,
-    ${privilege("UPDATE")} AS \`update\`, ${privilege("DELETE")} AS \`delete\`
+  SELECT t.TABLE_SCHEMA AS rel_schema, t.TABLE_NAME AS rel_name, COALESCE(p.every_select, 0) AS can_select,
+    COALESCE(p.every_insert, 0) AS can_insert, COALESCE(p.every_update, 0) AS can_update
   FROM information_schema.TABLES t
+  LEFT JOIN (
+    SELECT CAST(c.TABLE_SCHEMA AS BINARY) AS col_schema, CAST(c.TABLE_NAME AS BINARY) AS col_table,
+      MIN(FIND_IN_SET('select', c.PRIVILEGES) > 0) AS every_select,
+      MIN(FIND_IN_SET('insert', c.PRIVILEGES) > 0) AS every_insert,
+      MIN(FIND_IN_SET('update', c.PRIVILEGES) > 0) AS every_update
+    FROM information_schema.COLUMNS c
+    WHERE c.TABLE_SCHEMA = DATABASE()
+    GROUP BY col_schema, col_table
+  ) p ON p.col_schema = CAST(t.TABLE_SCHEMA AS BINARY) AND p.col_table = CAST(t.TABLE_NAME AS BINARY)
   WHERE t.TABLE_TYPE IN ('BASE TABLE', 'VIEW') AND t.TABLE_SCHEMA = DATABASE()`;
 
 const AccountRows = z.array(
@@ -62,12 +61,60 @@ const AccountRows = z.array(
 
 const RelationRows = z.array(
   z.object({
-    readable: z.coerce.number(),
-    insert: z.coerce.number(),
-    update: z.coerce.number(),
-    delete: z.coerce.number(),
+    rel_schema: z.string(),
+    rel_name: z.string(),
+    can_select: z.coerce.number(),
+    can_insert: z.coerce.number(),
+    can_update: z.coerce.number(),
   }),
 );
+
+type RelationRow = z.infer<typeof RelationRows>[number];
+
+function ident(name: string): string {
+  return `\`${name.replaceAll("`", "``")}\``;
+}
+
+/** The connection the probe prepares statements on, and never runs them. */
+type Preparer = Pick<PromiseConnection, "prepare" | "unprepare">;
+
+/**
+ * Whether the server accepts `statement` from this account, as `Prepares` of `@antelopejs/mysql`
+ * (`src/connection.ts`) asks it: a refusal the server answers is `false`, a network failure throws.
+ */
+async function prepares(client: Preparer, statement: string): Promise<boolean> {
+  try {
+    await client.prepare(statement);
+    client.unprepare(statement);
+    return true;
+  } catch (error) {
+    if (ServerError.safeParse(error).success) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
+ * One relation's privileges, as `ParseRelations` of `@antelopejs/mysql`
+ * (`src/implementations/database/external-catalog.ts`) settles them: readable once the server
+ * prepares a whole-row SELECT, INSERT and UPDATE counted only on a readable relation, and DELETE
+ * read by preparing one, since no column privilege tells it.
+ */
+async function relationAccess(
+  client: Preparer,
+  row: RelationRow,
+): Promise<MysqlRelationRow> {
+  const table = `${ident(row.rel_schema)}.${ident(row.rel_name)}`;
+  const readable =
+    row.can_select === 1 && (await prepares(client, `SELECT * FROM ${table}`));
+  return {
+    readable,
+    insert: readable && row.can_insert === 1,
+    update: readable && row.can_update === 1,
+    delete: await prepares(client, `DELETE FROM ${table}`),
+  };
+}
 
 /** What `mysql2` passes its stream factory: where to connect, as it read the URL. */
 interface StreamRequest {
@@ -147,11 +194,11 @@ export const probeMysql: Probe = async (url, timeoutMs, connections) => {
       sql: RELATIONS_SQL,
       timeout: timeoutMs,
     });
-    return signedIn(
-      latencyMs,
-      account.user,
-      mysqlAccess(RelationRows.parse(relations)),
-    );
+    const rows: MysqlRelationRow[] = [];
+    for (const row of RelationRows.parse(relations)) {
+      rows.push(await relationAccess(client, row));
+    }
+    return signedIn(latencyMs, account.user, mysqlAccess(rows));
   } catch (error) {
     const server = ServerError.safeParse(error);
     return server.success
