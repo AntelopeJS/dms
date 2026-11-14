@@ -13,6 +13,7 @@ export default defineConfig({
       dts: false,
       autoImport: false,
       components: false,
+      icon: { clientBundle: { scan: true } },
     }),
   ],
   resolve: {
