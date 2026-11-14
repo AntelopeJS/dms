@@ -9,11 +9,13 @@ export const SKETCH_MIN_HEIGHT = 80;
 export const SKETCH_MAX_HEIGHT = 1200;
 export const SKETCH_DEFAULT_HEIGHT = 320;
 export const SKETCH_MAX_CAPTION = 200;
+/** The most characters a sketch's `html` or `css` may hold, room for inline `data:` images. */
+export const SKETCH_MAX_SOURCE = 512 * 1024;
 
 const sketchOptionsSchema = z
   .object({
-    html: z.string(),
-    css: z.string().optional(),
+    html: z.string().max(SKETCH_MAX_SOURCE),
+    css: z.string().max(SKETCH_MAX_SOURCE).optional(),
     height: z
       .number()
       .int()
