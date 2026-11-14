@@ -1,5 +1,6 @@
 import { type DmsAppContext, type DmsPluginSetup } from "#dms/frontend-module";
 import dmsMenuSyncPlugin from "./layers/dms-layout/app/plugins/dms-menu-sync.client";
+import dmsMcpNavigatePlugin from "./layers/dms-layout/app/plugins/dms-mcp-navigate.client";
 import commandPaletteNavigationPlugin from "./layers/dms-layout/app/plugins/command-palette-navigation.client";
 import commandPalettePersonalPagesPlugin from "./layers/dms-layout/app/plugins/command-palette-personal-pages.client";
 import commandPaletteQuickActionsPlugin from "./layers/dms-layout/app/plugins/command-palette-quick-actions.client";
@@ -11,6 +12,7 @@ import timeZoneCookiePlugin from "./layers/dms-layout/app/plugins/time-zone-cook
 
 const deferredPlugins: DmsPluginSetup[] = [
   dmsMenuSyncPlugin,
+  dmsMcpNavigatePlugin,
   commandPaletteNavigationPlugin,
   commandPalettePersonalPagesPlugin,
   commandPaletteQuickActionsPlugin,
