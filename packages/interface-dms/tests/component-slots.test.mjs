@@ -163,14 +163,14 @@ await test("a slot id in a component that is not a form is ignored", async (t) =
 await test("a form without a fields array is skipped", async (t) => {
   const { slotId, calls } = registerSlot(t, withExtraField);
   const layout = [
-    { componentName: "dms-form", options: { slotId }, children: [] },
+    { componentName: "dms-form-block", options: { slotId }, children: [] },
     {
-      componentName: "dms-form",
+      componentName: "dms-form-block",
       options: { slotId, fields: "name" },
       children: [],
     },
     {
-      componentName: "dms-form",
+      componentName: "dms-form-block",
       options: { slotId, fields: { name: true } },
       children: [],
     },
@@ -186,7 +186,7 @@ await test("a form whose slot id is not a string is skipped", async (t) => {
   const { calls } = registerSlot(t, withExtraField);
   const layout = [
     {
-      componentName: "dms-form",
+      componentName: "dms-form-block",
       options: { slotId: 7, fields: [] },
       children: [],
     },
@@ -202,7 +202,7 @@ await test("a form's slot resolves on its fields and slot id alone, whatever its
   const { slotId, calls } = registerSlot(t);
   const layout = [
     {
-      componentName: "dms-form",
+      componentName: "dms-form-block",
       options: { slotId, fields: [], watchActions: "not a list" },
       children: [],
     },

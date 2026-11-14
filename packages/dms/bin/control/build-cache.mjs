@@ -251,9 +251,10 @@ export function storeBuild(cache, key, inputs, build) {
  * @param {string} frontendPackage
  * @param {FrontendSteps} steps
  * @param {string} workspace
+ * @param {string | undefined} top
  * @returns {Promise<PreparedBuild | { reason: string }>}
  */
-async function prepareBuild(state, frontendPackage, steps, workspace) {
+async function prepareBuild(state, frontendPackage, steps, workspace, top) {
   try {
     await steps.prepare(workspace);
   } catch (error) {
@@ -269,7 +270,7 @@ async function prepareBuild(state, frontendPackage, steps, workspace) {
       names: sourceNames(workspace),
       installed: workspace,
     };
-    const inputs = buildInputs(state, frontendPackage, prepared);
+    const inputs = buildInputs(state, frontendPackage, prepared, top);
     return { prepared, inputs, key: buildKey(inputs) };
   } catch (error) {
     return {
@@ -282,13 +283,16 @@ async function prepareBuild(state, frontendPackage, steps, workspace) {
  * @param {BuildingRun} state
  * @param {string} frontendPackage
  * @param {PreparedBuild} build
+ * @param {string | undefined} top
  * @returns {import("./run-state.mjs").FrontendBuild}
  */
-function storeConsumed(state, frontendPackage, build) {
+function storeConsumed(state, frontendPackage, build, top) {
   const { prepared, inputs, key } = build;
   const cache = frontendCache();
   try {
-    const consumed = buildKey(buildInputs(state, frontendPackage, prepared));
+    const consumed = buildKey(
+      buildInputs(state, frontendPackage, prepared, top),
+    );
     if (consumed !== key) {
       return {
         key: null,
@@ -358,6 +362,7 @@ async function buildAsItIs(state, steps, workspace, reason) {
  * @param {string} frontendPackage The `@antelopejs/dms-frontend` folder that builds
  * @param {FrontendSteps} steps How the run prepares and builds
  * @param {boolean} useCache Whether to read and write the cache
+ * @param {string} [top] The highest folder whose installs the key reads, as a real path (see `buildInputs`)
  * @returns {Promise<void>} Resolves once the build is laid out
  */
 export async function layOutFrontendBuild(
@@ -365,6 +370,7 @@ export async function layOutFrontendBuild(
   frontendPackage,
   steps,
   useCache,
+  top,
 ) {
   const workspace = join(state.runPlayground ?? "", WORKSPACE_FOLDER);
   if (!useCache) {
@@ -373,7 +379,13 @@ export async function layOutFrontendBuild(
     return;
   }
   state.bakedEnv = bakedVariables(process.env);
-  const build = await prepareBuild(state, frontendPackage, steps, workspace);
+  const build = await prepareBuild(
+    state,
+    frontendPackage,
+    steps,
+    workspace,
+    top,
+  );
   if ("reason" in build) {
     await buildAsItIs(state, steps, workspace, build.reason);
     return;
@@ -390,5 +402,5 @@ export async function layOutFrontendBuild(
     await buildAsItIs(state, steps, workspace, reason);
     return;
   }
-  state.frontendBuild = storeConsumed(state, frontendPackage, build);
+  state.frontendBuild = storeConsumed(state, frontendPackage, build, top);
 }

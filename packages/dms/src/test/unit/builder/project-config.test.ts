@@ -375,6 +375,20 @@ function writesWholeBatchesInTheProjectsStyle(): void {
     );
   });
 
+  it("indents a block it adds as the configuration's properties, not its comments", async () => {
+    const header = "/**\n * The fixture's configuration.\n */\n";
+    fs.writeFileSync(configPath(), header + PROJECT_CONFIG);
+    expectOk(
+      await ConfigureModule("dms-ai", {
+        config: { externalConnections: { erp: { access: "read" } } },
+      }),
+      "ConfigureModule",
+    );
+    expect(readConfig()).to.include(
+      '\n      config: {\n        backendUrl: "${@api.API_LOCAL_BASE_URL}",\n        externalConnections: {\n          erp: {\n            access: "read",\n          },\n        },\n      },\n',
+    );
+  });
+
   it("adds the variable to .env.example when the project has one", async () => {
     const example = path.join(app.root, ".env.example");
     fs.writeFileSync(example, "MONGODB_URL=\n");

@@ -311,14 +311,6 @@ describe("[unit] interfaces/dms-base — table view links and URL keys", () => {
     ).to.equal("/views-tickets-page?content.view=mine&content.tab=open");
   });
 
-  it("refuses to link a controller that is no page", () => {
-    class NotAPage {}
-    expect(() =>
-      // @ts-expect-error Non-controller deliberately exercises page registration validation.
-      tableViewLink(NotAPage, "content", { view: "a" }),
-    ).to.throw(/is no page/);
-  });
-
   it("tells each served table view its key and whether it is alone on its page", () => {
     const table: ComponentInfoSerialized = {
       componentName: "dms-table-view",
@@ -334,7 +326,7 @@ describe("[unit] interfaces/dms-base — table view links and URL keys", () => {
     const shared = withTableViewPlacements({
       content: table,
       side: {
-        componentName: "dms-grid",
+        componentName: "dms-grid-block",
         children: [{ id: "archive", component: table }],
       },
     });

@@ -4,6 +4,7 @@ import {
   Parameter,
   Post,
   type RequestContext,
+  type QueryValue,
 } from "@antelopejs/interface-api";
 import {
   DataController,
@@ -35,6 +36,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { JobRun, JobRunModel, type JobRunStatus } from "./database";
 import { ownEntry } from "../../own-entry";
+import { queryText } from "../../query-text";
 
 /**
  * Published once a bulk re-run rewrote runs through its own route, which the
@@ -313,10 +315,10 @@ export class jobRunDataAPI extends DataController(
   /** Makes the caller the run's owner, for the "Mine" view's `{{user.id}}`. */
   @Post("assign-to-me")
   async assignToMe(
-    @Parameter("id", "query") id: string,
+    @Parameter("id", "query") id: QueryValue,
     @AuthUser() user: User,
   ): Promise<{ ok: boolean }> {
-    await this.model.update(id, { ownerId: user._id });
+    await this.model.update(queryText(id) ?? "", { ownerId: user._id });
     return { ok: true };
   }
 }

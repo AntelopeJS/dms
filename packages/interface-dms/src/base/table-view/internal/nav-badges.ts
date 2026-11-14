@@ -4,10 +4,7 @@ import {
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
-import {
-  type DataControllerCallback,
-  GetDataControllerMeta,
-} from "@antelopejs/interface-data-api";
+import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
 import { Parameters } from "@antelopejs/interface-data-api/components";
 import type {
   ComponentBuilder,
@@ -67,8 +64,7 @@ async function countRows(
     GetDataControllerMeta(instance),
   );
   const { total } = await countWithSearch(
-    // SAFETY: Bug in the published countWithSearch, which types its receiver as DataControllerCallback, a route descriptor, while its implementation reads the controller instance a route runs on. GetControllerInstance returns that instance, so the receiver is right for the implementation and wrong only as the published type.
-    instance as DataControllerCallback,
+    instance,
     queryContext,
     { filters },
     user,

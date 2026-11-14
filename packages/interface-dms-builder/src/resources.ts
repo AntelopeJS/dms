@@ -34,7 +34,10 @@ export interface FieldAspects {
   searchable?: boolean;
   /** Sortable in the TableView. */
   sortable?: boolean;
-  /** Column-filterable in the TableView. */
+  /**
+   * Column-filterable in the TableView. Never on an archive field: the filter
+   * `@ArchiveField` registers serves it, and `TableView` refuses another.
+   */
   filterable?: boolean;
   /** Field access mode. Default `"readwrite"`. */
   access?: "read" | "readwrite";

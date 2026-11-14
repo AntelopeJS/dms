@@ -36,7 +36,13 @@ describe("[unit] mcp project files", () => {
   });
 
   async function publish(writeMcpJson = true, token = TOKEN): Promise<void> {
-    await publishBridge({ projectPath, url: URL, token, writeMcpJson });
+    await publishBridge({
+      projectPath,
+      url: URL,
+      token,
+      writeMcpJson,
+      writeCodexConfig: false,
+    });
   }
 
   it("creates .mcp.json with the dms server, printed as the formatter prints it", async () => {

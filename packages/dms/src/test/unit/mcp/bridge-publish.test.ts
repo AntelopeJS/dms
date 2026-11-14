@@ -38,6 +38,7 @@ describe("[unit] mcp bridge publication", () => {
       projectPath,
       token: TOKEN,
       writeMcpJson: true,
+      writeCodexConfig: true,
       backendUrl,
       apiBaseUrl,
       routePath: "/dms/mcp",
@@ -49,11 +50,12 @@ describe("[unit] mcp bridge publication", () => {
     return readOptionalText(join(projectPath, file));
   }
 
-  it("writes no credential, no launcher and no .mcp.json entry for a public apiBaseUrl without a backendUrl, and warns once naming mcp.backendUrl", async () => {
+  it("writes no credential, no launcher and no .mcp.json or Codex entry for a public apiBaseUrl without a backendUrl, and warns once naming mcp.backendUrl", async () => {
     await publish(PUBLIC_API);
     expect(written(CREDENTIAL_FILE)).to.equal(undefined);
     expect(written(LAUNCHER_FILE)).to.equal(undefined);
     expect(written(".mcp.json")).to.equal(undefined);
+    expect(written(".codex/config.toml")).to.equal(undefined);
     expect(warn.mock.callCount()).to.equal(1);
     expect(String(warn.mock.calls[0]?.arguments[0])).to.contain(
       "mcp.backendUrl",

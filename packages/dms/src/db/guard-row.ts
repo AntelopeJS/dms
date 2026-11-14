@@ -12,6 +12,6 @@ export async function fetchRowForGuard(
 ): Promise<RowFields | undefined> {
   const controllerMetadata = GetDataControllerMeta(controller);
   const model = Query.GetModel(controller, controllerMetadata);
-  const rows = await model.table.getAll([id], idField);
+  const rows = await model.table.getAll([id], idField).run();
   return rows[0];
 }

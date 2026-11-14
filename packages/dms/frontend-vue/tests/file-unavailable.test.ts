@@ -11,7 +11,7 @@ import {
   watch,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import File from "../layers/dms-ui/app/components/form/components/File.vue";
+import File from "../layers/dms-ui/app/components/form/components/InputFile.vue";
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 
 const STORED_KEY = "files/profile/avatar.pdf";

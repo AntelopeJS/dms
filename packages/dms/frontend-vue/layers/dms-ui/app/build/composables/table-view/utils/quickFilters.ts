@@ -1,6 +1,6 @@
 import type { TableViewColumn } from "../../../../composables/table-view/types/column";
 import type { TableViewQuickFilterMode } from "../../../../composables/table-view/types/config";
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import type {
   DataType,
   DataTypeSelectSource,

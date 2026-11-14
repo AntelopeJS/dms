@@ -6,6 +6,7 @@ import { resolveDmsComponent } from "../../composables/resolveDmsComponent";
 import { escapeRegExp } from "../../build/composables/form/formEntryContext";
 import type { validateFormState } from "../../build/composables/form/formValidation";
 import DmsFormErrorText from "../../build/components/form/FormErrorText.vue";
+import { useDeclaredFieldProps } from "../../build/composables/form/fieldComponentProps";
 
 interface LocalizedFieldProps {
   field: FormField;
@@ -73,6 +74,12 @@ const showDisplay = computed(
   () => !!props.field.disabled && !!props.field.type,
 );
 
+const component = computed(() => {
+  const name = props.field.component.componentName;
+  return name ? resolveDmsComponent(name) || name : null;
+});
+const rendered = computed(() => (showDisplay.value ? null : component.value));
+
 const otherLocales = computed(() =>
   locales.value.filter((lang) => lang.code !== locale.value),
 );
@@ -100,6 +107,22 @@ watch(
     if (isTranslationInvalid) isExpanded.value = true;
   },
 );
+
+const { isReady, offer } = await useDeclaredFieldProps(rendered);
+const shared = computed(() => ({
+  loading: props.loading,
+  componentId: props.componentId,
+  pageId: props.pageId,
+}));
+const mainOffered = computed(() => {
+  const initial = props.initialValues?.[props.field.id];
+  return offer({
+    ...shared.value,
+    initialValue:
+      isObject(initial) && initial !== null ? initial[locale.value] : undefined,
+  });
+});
+const translationOffered = computed(() => offer(shared.value));
 </script>
 
 <template>
@@ -112,7 +135,7 @@ watch(
         :data-field="field.id"
         :help="field.hint ? processI18n(field.hint) : undefined"
       >
-        <DmsDisplay
+        <DmsDisplayValue
           v-if="showDisplay"
           :model-value="localeValues[locale]"
           :type="field.type"
@@ -121,25 +144,14 @@ watch(
           v-bind="field.component.options || {}"
         />
         <Component
-          :is="
-            resolveDmsComponent(field.component.componentName) ||
-            field.component.componentName
-          "
-          v-else-if="field.component.componentName"
+          :is="component"
+          v-else-if="component && isReady"
           :id="field.id"
           :model-value="localeValues[locale] ?? EMPTY_TEXT"
-          :initial-value="
-            (
-              initialValues?.[field.id] as Record<string, unknown> | undefined
-            )?.[locale]
-          "
-          :loading
           :disabled="field.disabled"
-          :component-id="props.componentId"
-          :page-id="props.pageId"
           class="w-full"
           :class="{ 'opacity-75': field.disabled }"
-          v-bind="field.component.options || {}"
+          v-bind="{ ...mainOffered, ...field.component.options }"
           @update:model-value="setLocaleValue(locale, $event)"
         />
         <template v-if="hasMainError" #error="{ error }">
@@ -180,7 +192,7 @@ watch(
                   :name="`${field.id}.${lang.code}`"
                   :data-field="`${field.id}.${lang.code}`"
                 >
-                  <DmsDisplay
+                  <DmsDisplayValue
                     v-if="showDisplay"
                     :model-value="localeValues[lang.code]"
                     :type="field.type"
@@ -189,20 +201,17 @@ watch(
                     v-bind="field.component.options || {}"
                   />
                   <Component
-                    :is="
-                      resolveDmsComponent(field.component.componentName) ||
-                      field.component.componentName
-                    "
-                    v-else-if="field.component.componentName"
+                    :is="component"
+                    v-else-if="component && isReady"
                     :id="`${field.id}_${lang.code}`"
                     :model-value="localeValues[lang.code] ?? EMPTY_TEXT"
-                    :loading
                     :disabled="field.disabled"
-                    :component-id="props.componentId"
-                    :page-id="props.pageId"
                     class="w-full"
                     :class="{ 'opacity-75': field.disabled }"
-                    v-bind="field.component.options || {}"
+                    v-bind="{
+                      ...translationOffered,
+                      ...field.component.options,
+                    }"
                     @update:model-value="setLocaleValue(lang.code, $event)"
                   />
                   <template #error="{ error }">

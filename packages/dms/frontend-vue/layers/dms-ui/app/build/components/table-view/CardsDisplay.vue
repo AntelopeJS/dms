@@ -1,8 +1,8 @@
 <script setup lang="ts" generic="T extends Record<string, unknown>">
 import { defineComponent, markRaw, type Component } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import TablePagination from "../table/Pagination.vue";
-import TableEmpty from "../table/Empty.vue";
+import TablePagination from "../table/TablePagination.vue";
+import TableEmpty from "../table/TableEmpty.vue";
 import CardGridSkeleton from "./CardGridSkeleton.vue";
 import CardAvatar from "./CardAvatar.vue";
 import CardRowActions from "./CardRowActions.vue";
@@ -251,7 +251,11 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
           class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 max-sm:@max-[16rem]:grid-cols-1"
         >
           <div v-for="column in fieldColumns" :key="column.id" class="min-w-0">
-            <DmsEyebrow as="dt" truncate :label="processI18n(column.header)" />
+            <DmsEyebrowLabel
+              as="dt"
+              truncate
+              :label="processI18n(column.header)"
+            />
             <dd class="text-default mt-0.5 flex min-w-0">
               <FieldValue :column="column" :item="item" />
             </dd>

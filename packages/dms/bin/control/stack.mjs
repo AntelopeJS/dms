@@ -10,6 +10,7 @@ import { currentNamespaces, isSameProcess } from "./identity.mjs";
 import { dropRunDatabases, startMongod } from "./mongo.mjs";
 import {
   freePort,
+  restartablePort,
   runToEnd,
   startDetached,
   stopRecorded,
@@ -85,7 +86,7 @@ async function initialState(options) {
   }
   const id = newRunId();
   const paths = createRunFolders(join(runsRoot(options.runs), id));
-  const apiPort = await freePort();
+  const apiPort = await restartablePort();
   const webPort = await freePort();
   const smtpPort = await freePort();
   const checkout = checkoutOf(playground);
@@ -97,7 +98,7 @@ async function initialState(options) {
     createdAt: new Date().toISOString(),
     environment: ENVIRONMENT,
     playground,
-    moduleRoot: moduleRootOf(playground),
+    moduleRoot: moduleRootOf(playground, checkout.root),
     repo: checkout.root,
     headSha: verified.head,
     baseRef: options.base ?? "origin/main",

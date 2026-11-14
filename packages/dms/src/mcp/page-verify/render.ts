@@ -1,3 +1,4 @@
+import { TABLE_VIEW_COMPONENT_NAME } from "@antelopejs/interface-dms/component-options/internal/page-layout";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import type { BrowserContext, Frame, Page, Request } from "./playwright";
@@ -75,19 +76,39 @@ export function fileSegment(value: string): string {
   return value.replace(/^\/+/, "").replace(/[^A-Za-z0-9_.-]+/g, "_") || "root";
 }
 
+/**
+ * The options of a served block that name where it reads: `fetchUrl` for
+ * most blocks; for a table view, the `source` of a `TableView.fromSource`
+ * table, else the `location` of its data controller.
+ */
+interface LayoutNodeOptions {
+  fetchUrl?: string;
+  location?: string;
+  source?: { fetchUrl?: string };
+}
+
 /** A component of a served layout: its children each sit under an id. */
 interface LayoutNode {
   componentName?: string;
-  options?: { fetchUrl?: string };
+  options?: LayoutNodeOptions;
   children?: { id: string; component: LayoutNode }[];
 }
+
+const optionalString = z.string().optional().catch(undefined);
 
 const LayoutNodeSchema: z.ZodType<LayoutNode, z.ZodTypeDef, unknown> = z.lazy(
   () =>
     z.object({
       componentName: z.string().optional(),
       options: z
-        .object({ fetchUrl: z.string().optional().catch(undefined) })
+        .object({
+          fetchUrl: optionalString,
+          location: optionalString,
+          source: z
+            .object({ fetchUrl: optionalString })
+            .optional()
+            .catch(undefined),
+        })
         .optional()
         .catch(undefined),
       children: z
@@ -106,12 +127,23 @@ export interface ExpectedBlock {
   source?: string;
 }
 
+/** The URL a block lists its data from, as its frontend component requests it. */
+function sourceOf(node: LayoutNode): string | undefined {
+  const options = node.options;
+  if (node.componentName !== TABLE_VIEW_COMPONENT_NAME)
+    return options?.fetchUrl;
+  if (options?.source?.fetchUrl !== undefined) return options.source.fetchUrl;
+  return options?.location === undefined
+    ? undefined
+    : `${options.location}/list`;
+}
+
 function collectBlocks(
   node: LayoutNode,
   blockPath: string,
   into: ExpectedBlock[],
 ): void {
-  const source = node.options?.fetchUrl;
+  const source = sourceOf(node);
   into.push({
     path: blockPath,
     component: node.componentName ?? "",

@@ -8,7 +8,6 @@ import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
   type DataControllerCallback,
-  type DataControllerCallbackWithOptions,
   DefaultRoutes,
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
@@ -195,7 +194,6 @@ function requestedSummaries(
   for (const id of ids) {
     const summary = meta.footerSummary(id);
     assert(summary, 400, `Unknown footer summary "${id}".`);
-    // oxlint-disable-next-line typescript/no-unsafe-assignment -- meta.footerSummary answers TableViewFooterSummary<any> because TableViewMeta stores the summaries of every controller's row type, and TypeScript cannot relate RowActionRule<T> to RowActionRule<Record<string, unknown>> for a generic T.
     summaries[id] = summary;
   }
   return summaries;
@@ -398,11 +396,7 @@ export namespace TableViewRoutes {
     ),
   );
 
-  export const ExportRoutes: Record<
-    string,
-    DataControllerCallback | DataControllerCallbackWithOptions
-    // oxlint-disable-next-line anti-slop/no-known-value-widening -- The published export is an open callback dictionary; inference or satisfies would expose narrower named route members and change its declaration.
-  > = {
+  export const ExportRoutes = {
     exportStart: DefaultRoutes.WithOptions(
       {
         func: async function (

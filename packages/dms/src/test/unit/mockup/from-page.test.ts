@@ -16,6 +16,7 @@ import {
   structureOf,
   unmappedPaths,
 } from "../../helpers/live-page";
+import { ACCEPTED_ROUTES, REFUSED_ROUTES } from "../../helpers/relative-routes";
 
 const NAME = mockupNameSchema.parse("books");
 const REF = "/books";
@@ -158,24 +159,6 @@ describe("[unit] mockup conversion of a live page", () => {
     expect(convert(EVERY_ROW).sketches).to.deep.equal(expected);
   });
 
-  it("sketches a block whose route hides a host behind a control character, never keeps it as a live route", () => {
-    for (const control of ["\t", "\n", "\r"]) {
-      const converted = convert([
-        {
-          name: "kpi",
-          type: "KpiCard",
-          config: { title: "K", fetchUrl: `/${control}/evil.example/steal` },
-        },
-      ]);
-
-      expect(converted.sketches, JSON.stringify(control)).to.deep.equal([
-        { path: "/books#kpi", reason: "remote-route" },
-      ]);
-      expect(converted.page).not.to.have.property("liveRoutes");
-      expect(issuesOf(converted)).to.deep.equal([]);
-    }
-  });
-
   it("writes no value set in code into the spec", () => {
     const text = JSON.stringify(convert(EVERY_ROW).page);
 
@@ -261,5 +244,57 @@ describe("[unit] mockup conversion of a live page", () => {
       livePage: { ref: REF, version: "0123456789abcdef" },
       tree: [],
     });
+  });
+});
+
+describe("[unit] mockup conversion of a block's live route", () => {
+  function convertRoute(route: string): ConvertedPage {
+    return convert([
+      { name: "kpi", type: "KpiCard", config: { title: "K", fetchUrl: route } },
+    ]);
+  }
+
+  it("sketches a bound table whose resource's list route is not a relative route", () => {
+    const resource = { ...BOOK_RESOURCE, route: "/api/my books" };
+    const converted = convertPage(
+      structureOf(REF, [
+        { name: "table", type: "TableView", controller: "book", config: {} },
+      ]),
+      "books",
+      {
+        oracle: openOracle(NAME, "books"),
+        resources: new Map([[resource.ref, resource]]),
+      },
+    );
+
+    expect(converted.sketches).to.deep.equal([
+      { path: "/books#table", reason: "remote-route" },
+    ]);
+    expect(converted.page).not.to.have.property("liveRoutes");
+    expect(issuesOf(converted)).to.deep.equal([]);
+  });
+
+  it("sketches a block whose route is not a relative route, never keeps it as a live route", () => {
+    for (const route of REFUSED_ROUTES) {
+      const converted = convertRoute(route);
+
+      expect(converted.sketches, JSON.stringify(route)).to.deep.equal([
+        { path: "/books#kpi", reason: "remote-route" },
+      ]);
+      expect(converted.page).not.to.have.property("liveRoutes");
+      expect(issuesOf(converted)).to.deep.equal([]);
+    }
+  });
+
+  it("keeps a block's route that is a relative route as a live route the spec reads back", () => {
+    for (const route of ACCEPTED_ROUTES) {
+      const converted = convertRoute(route);
+
+      expect(converted.sketches, JSON.stringify(route)).to.deep.equal([]);
+      expect(Object.values(converted.page.liveRoutes ?? {})).to.deep.equal([
+        route,
+      ]);
+      expect(issuesOf(converted), JSON.stringify(route)).to.deep.equal([]);
+    }
   });
 });

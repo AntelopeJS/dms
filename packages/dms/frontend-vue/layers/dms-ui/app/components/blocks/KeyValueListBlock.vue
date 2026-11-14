@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { isString } from "../../../../dms-core/app/utils/type-check";
 import { computed } from "vue";
-import DmsCard from "../card/Card.vue";
+import DmsCardPanel from "../card/CardPanel.vue";
 import DmsKeyValueList, {
   type KeyValueItem,
 } from "../key-value-list/KeyValueList.vue";
@@ -109,7 +109,7 @@ const listClass = computed(() => (props.card ? "px-[18px] py-2" : undefined));
 
 <template>
   <component
-    :is="props.card ? DmsCard : 'div'"
+    :is="props.card ? DmsCardPanel : 'div'"
     v-bind="props.card ? { padded: false, title } : {}"
   >
     <DmsBlockStatus

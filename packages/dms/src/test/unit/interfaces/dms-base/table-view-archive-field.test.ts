@@ -5,6 +5,7 @@ import {
   Access,
   AccessMode,
   DataAPIMeta,
+  Filter,
 } from "@antelopejs/interface-data-api/metadata";
 import {
   Field,
@@ -12,7 +13,10 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
-import { ArchiveField } from "@antelopejs/interface-dms/base/table-view";
+import {
+  ArchiveField,
+  TableView,
+} from "@antelopejs/interface-dms/base/table-view";
 import { expect } from "chai";
 
 @RegisterTable("archive-field-test", CORE_SCHEMA_NAME)
@@ -34,6 +38,16 @@ class ArchiveFieldController extends DataController(
   declare isClosed: boolean;
 }
 
+class OverriddenArchiveController extends DataController(
+  ArchiveFieldRow,
+  {},
+  Controller("/archive-field-override-test"),
+) {
+  @Filter()
+  @ArchiveField()
+  declare isArchived: boolean;
+}
+
 describe("[unit] interfaces/dms-base/table-view — the archive field", () => {
   const meta = GetMetadata(ArchiveFieldController, DataAPIMeta);
   const readable = meta.readable._default.props.map(([key]) => key);
@@ -46,5 +60,15 @@ describe("[unit] interfaces/dms-base/table-view — the archive field", () => {
 
   it("keeps the access a field declares", () => {
     expect(meta.fields.isClosed?.mode).to.equal(AccessMode.ReadWrite);
+  });
+
+  it("serves a table view on the filter it registers", () => {
+    expect(() => TableView(ArchiveFieldController)).not.to.throw();
+  });
+
+  it("refuses a table view whose archive field another Filter serves", () => {
+    expect(() => TableView(OverriddenArchiveController)).to.throw(
+      /archive field "isArchived" .* declares its own Filter/,
+    );
   });
 });

@@ -62,7 +62,7 @@ const failureMessage = computed(() => {
 </script>
 
 <template>
-  <DmsSection
+  <DmsSectionPanel
     :title="t('page.settings.notifications.preferences_title')"
     :description="t('page.settings.notifications.preferences_description')"
   >
@@ -190,5 +190,5 @@ const failureMessage = computed(() => {
         {{ t("page.settings.notifications.email_hint") }}
       </span>
     </template>
-  </DmsSection>
+  </DmsSectionPanel>
 </template>

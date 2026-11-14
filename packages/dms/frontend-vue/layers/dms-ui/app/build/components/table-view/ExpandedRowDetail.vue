@@ -4,7 +4,7 @@ import { get } from "@nuxt/ui/runtime/utils/index.js";
 import DmsKeyValueList, {
   type KeyValueItem,
 } from "../../../components/key-value-list/KeyValueList.vue";
-import DmsEyebrow from "../../../components/section-header/Eyebrow.vue";
+import DmsEyebrowLabel from "../../../components/section-header/EyebrowLabel.vue";
 import { useColumnValueRenderer } from "../../composables/data-types/useColumnValueRenderer";
 import type {
   TableViewColumn,
@@ -127,7 +127,7 @@ const FieldValue = (fieldProps: { item: KeyValueItem }) =>
     v-else-if="fields.length > 0"
     class="grid min-w-0 content-start gap-2"
   >
-    <DmsEyebrow
+    <DmsEyebrowLabel
       v-if="props.config.fieldsLabel"
       :label="processI18n(props.config.fieldsLabel)"
     />

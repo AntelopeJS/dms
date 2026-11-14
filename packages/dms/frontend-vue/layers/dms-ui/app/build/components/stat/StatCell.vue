@@ -3,7 +3,7 @@ import { type Slot, computed } from "vue";
 import DmsIconWell, {
   type IconWellTone,
 } from "../../../components/icon-well/IconWell.vue";
-import DmsEyebrow from "../../../components/section-header/Eyebrow.vue";
+import DmsEyebrowLabel from "../../../components/section-header/EyebrowLabel.vue";
 import DmsAutoLink from "../../../components/link/AutoLink.vue";
 import { DMS_TONE_TEXT } from "../../utils/tone";
 import type { Tone } from "#dms-core/app/types/tone";
@@ -124,7 +124,7 @@ const { t } = useI18n();
         />
       </div>
       <div v-else class="grid min-w-0 flex-1 gap-[3px]">
-        <DmsEyebrow
+        <DmsEyebrowLabel
           tone="muted"
           truncate
           :class="wraps"
@@ -182,7 +182,7 @@ const { t } = useI18n();
         />
       </div>
       <span v-else class="grid min-w-0 gap-0.5">
-        <DmsEyebrow as="span" size="xs" :label="props.eyebrow" />
+        <DmsEyebrowLabel as="span" size="xs" :label="props.eyebrow" />
         <USkeleton
           v-if="props.loading"
           :aria-label="t('dms.a11y.loading')"

@@ -21,7 +21,7 @@ import {
 import { getAppTranslation } from "../../../../../dms-core/app/composables/translation/useTranslation";
 
 const Sparkline = defineAsyncComponent(
-  () => import("../../../components/chart/internal/Sparkline.vue"),
+  () => import("../../../components/chart/internal/SparklineChart.vue"),
 );
 
 const CELL_TEXT_CLASS = "text-[12.5px]";

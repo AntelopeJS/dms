@@ -140,7 +140,7 @@ export interface ChartResponse {
 
 export type ValueFormat = "number" | "currency" | "percent" | "compact";
 
-/** Fixed fraction digits, or Intl defaults; omitted preserves legacy formatting. */
+/** Fixed fraction digits, or Intl defaults; omitted uses the format's default fraction digits. */
 export type ValuePrecision = number | "native";
 
 export type ComparisonStyle = "dashed" | "solid" | "dimmed";

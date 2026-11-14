@@ -121,7 +121,7 @@ describe("isFieldMarkedRequired", () => {
           id: "terms",
           required: true,
           type: "boolean",
-          component: { componentName: "dms-checkbox" },
+          component: { componentName: "dms-input-checkbox" },
         },
         none,
         none,

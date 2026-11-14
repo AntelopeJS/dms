@@ -6,6 +6,7 @@ import { stampedIdIssues } from "./anchor";
 import { CONTROLLER_BLOCKS } from "./controller-blocks";
 import type { FixtureScope } from "./fixtures";
 import { rewriteObject } from "./fixtures";
+import { withFieldInputs } from "./form-fields";
 import type {
   JsonObject,
   MockupIssue,
@@ -17,7 +18,11 @@ import type {
 } from "./model";
 import { specSchema, zodIssues } from "./model";
 import { compileSketch, SKETCH_TYPE } from "./sketch";
-import { validateBlockChildren, validateBlockOptions } from "./validate";
+import {
+  componentOptionsOf,
+  validateBlockChildren,
+  validateBlockOptions,
+} from "./validate";
 
 /** The registered block types, looked up as `DmsBlockPreview` does. */
 interface Catalog {
@@ -156,7 +161,18 @@ const blockKind: NodeKind = {
         scope.issues,
         (child) => descriptorOf(child, scope.catalog)?.type ?? child.type,
       );
-      return compileChildren(compiled, pointer, layoutPath, scope);
+      const options = withFieldInputs(
+        descriptor,
+        compiled.options,
+        `${pointer}/options`,
+        scope.issues,
+      );
+      return compileChildren(
+        { ...compiled, options: componentOptionsOf(descriptor, options) },
+        pointer,
+        layoutPath,
+        scope,
+      );
     };
   },
 };

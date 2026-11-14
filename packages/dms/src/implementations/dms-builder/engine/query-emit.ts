@@ -287,22 +287,29 @@ export function queryModelMethodText(
 
 /**
  * The route argument for a model parameter. The route reads the value under its
- * public `routeName`; a `@Parameter` yields a string, so a non-string slot
- * coerces here rather than inside the query — keeping the model method's
- * signature honest about what it accepts.
+ * public `routeName`. A `@Parameter` yields text from the path and a `QueryValue`
+ * from the query string, so the route coerces here rather than inside the query,
+ * which keeps the model method's signature honest about what it accepts.
  */
-function routeArgument(param: MethodParam): string {
+function routeArgument(
+  param: Pick<MethodParam, "routeName" | "type" | "in">,
+): string {
   if (param.type === "number") {
     return `Number(${param.routeName})`;
-  }
-  if (param.type === "Date") {
-    return `new Date(${param.routeName})`;
   }
   if (param.type === "boolean") {
     return `${param.routeName} === "true"`;
   }
-  return param.routeName;
+  const text =
+    param.in === "query" ? `String(${param.routeName})` : param.routeName;
+  return param.type === "Date" ? `new Date(${text})` : text;
 }
+
+/**
+ * What a route declares for a query-string parameter: interface-api's `QueryValue`,
+ * spelled out so the route needs no import that interface-api 0.3.0 lacks.
+ */
+const QUERY_VALUE_TYPE = "string | true | undefined";
 
 /** The route parameters a comparison reads the preceding period's bounds from. */
 export const COMPARISON_PARAMETERS = ["compareFrom", "compareTo"] as const;
@@ -335,7 +342,11 @@ function comparisonCall(
     const at = bounds.indexOf(parameter);
     return at === -1
       ? routeArgument(parameter)
-      : `new Date(${COMPARISON_PARAMETERS[at]})`;
+      : routeArgument({
+          routeName: COMPARISON_PARAMETERS[at],
+          type: "Date",
+          in: "query",
+        });
   });
   return `model.${modelMethod}(${args.join(", ")})`;
 }
@@ -372,11 +383,15 @@ export function queryRouteMethodText(
     `${indent}@AuthUserWithPermission(${pageClass}) _user: User,`,
     `${indent}@${modelDecorator}(${modelName}) model: ${modelName},`,
   ];
-  for (const param of spec.chain.parameters) {
+  const routeParameter = (param: Pick<MethodParam, "routeName" | "in">) => {
+    const type = param.in === "query" ? QUERY_VALUE_TYPE : "string";
     symbols.push(decoratorImport("Parameter"));
     parameters.push(
-      `${indent}@Parameter(${JSON.stringify(param.routeName)}, ${JSON.stringify(param.in)}) ${param.routeName}: string,`,
+      `${indent}@Parameter(${JSON.stringify(param.routeName)}, ${JSON.stringify(param.in)}) ${param.routeName}: ${type},`,
     );
+  };
+  for (const param of spec.chain.parameters) {
+    routeParameter(param);
   }
   const args = spec.chain.parameters.map(routeArgument).join(", ");
   const response = responseEmission(
@@ -391,10 +406,7 @@ export function queryRouteMethodText(
   const previous = comparisonCall(spec, modelMethod);
   if (previous) {
     for (const parameter of COMPARISON_PARAMETERS) {
-      symbols.push(decoratorImport("Parameter"));
-      parameters.push(
-        `${indent}@Parameter(${JSON.stringify(parameter)}, "query") ${parameter}: string,`,
-      );
+      routeParameter({ routeName: parameter, in: "query" });
     }
   }
   const text = [

@@ -7,7 +7,7 @@ import {
   type TableCountState,
 } from "./utils/tableCounts";
 import { viewFilters } from "./utils/views";
-import { type TableViewItem } from "../../components/table/Views.vue";
+import { type TableViewItem } from "../../components/table/TableViews.vue";
 import { useTableCountsData } from "./useTableListData";
 import type { TableViewScope } from "./tableViewScope";
 

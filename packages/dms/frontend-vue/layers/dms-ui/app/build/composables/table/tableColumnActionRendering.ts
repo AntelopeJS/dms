@@ -1,4 +1,4 @@
-import type { Data } from "../../components/table/Table.vue";
+import type { Data } from "../../components/table/TableRoot.vue";
 import Button from "@nuxt/ui/components/Button.vue";
 import DropdownMenu, {
   type DropdownMenuItem,

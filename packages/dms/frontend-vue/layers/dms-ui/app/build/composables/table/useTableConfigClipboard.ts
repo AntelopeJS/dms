@@ -5,7 +5,7 @@ import type {
   Data,
   TableDensity,
   TableSharedData,
-} from "../../components/table/Table.vue";
+} from "../../components/table/TableRoot.vue";
 
 const CONFIG_VERSION = 1;
 const TOAST_DURATION_MS = 3000;

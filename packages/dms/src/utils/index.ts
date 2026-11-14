@@ -34,3 +34,4 @@ export * from "./upload-constraints";
 export * from "./upload-token";
 export * from "./user-activity";
 export * from "./user-agent";
+export * from "./query-text";

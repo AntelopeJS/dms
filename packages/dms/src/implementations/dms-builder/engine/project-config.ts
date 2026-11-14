@@ -6,10 +6,12 @@ import type {
 import {
   type ArrayLiteralExpression,
   Node,
+  type ObjectLiteralElementLike,
   type ObjectLiteralExpression,
   Project,
   type PropertyAssignment,
   type SourceFile,
+  SyntaxKind,
 } from "ts-morph";
 import {
   hasUnreadableMember,
@@ -60,6 +62,7 @@ export function refuse(message: string): never {
   throw new StepRefusal(message);
 }
 
+/** The property JavaScript keeps for `name`: the last one written. */
 export function propertyNamed(
   owner: ObjectLiteralExpression,
   name: string,
@@ -67,7 +70,44 @@ export function propertyNamed(
   return owner
     .getProperties()
     .filter(Node.isPropertyAssignment)
-    .find((property) => propertyKey(property.getNameNode()) === name);
+    .findLast((property) => propertyKey(property.getNameNode()) === name);
+}
+
+/**
+ * The one property of the object written as `name: value`, or nothing when none is. Refuses a
+ * key written twice, since an edit of either copy may not be the one that takes effect, and one
+ * written as a shorthand, a method or an accessor.
+ */
+export function soleProperty(
+  owner: ObjectLiteralExpression,
+  name: string,
+  where: string,
+): PropertyAssignment | undefined {
+  const property = soleMember(owner, name, where);
+  if (property !== undefined && !Node.isPropertyAssignment(property)) {
+    refuse(`"${where}" in the configuration is not written as \`key: value\``);
+  }
+  return property;
+}
+
+/** The one member of the object named `name`, whatever its form, refusing a key written twice. */
+function soleMember(
+  owner: ObjectLiteralExpression,
+  name: string,
+  where: string,
+): ObjectLiteralElementLike | undefined {
+  const copies = owner.getProperties().filter((property) => {
+    const nameNode = Node.isSpreadAssignment(property)
+      ? undefined
+      : property.getNameNode();
+    return nameNode !== undefined && propertyKey(nameNode) === name;
+  });
+  if (copies.length > 1) {
+    refuse(
+      `"${where}" is written ${copies.length} times in the configuration; keep one`,
+    );
+  }
+  return copies[0];
 }
 
 /** The object literal `node`, written at `key` of the object at `path`, refused when it has a spread. */
@@ -95,32 +135,61 @@ export function objectAt(
   path: string[],
 ): ObjectLiteralExpression | undefined {
   let current = rootObject(draft);
-  for (const [depth, key] of path.entries()) {
-    const property = propertyNamed(current, key);
-    if (!property) {
+  for (const [index, key] of path.entries()) {
+    const where = path.slice(0, index + 1).join(".");
+    const member = soleMember(current, key, where);
+    if (!member) {
       return undefined;
     }
-    current = plainObject(property.getInitializer(), path.slice(0, depth), key);
+    if (!Node.isPropertyAssignment(member)) {
+      refuseUnreadable(path.slice(0, index), key);
+    }
+    current = plainObject(member.getInitializer(), path.slice(0, index), key);
   }
   return current;
 }
 
+function indentAt(text: string, position: number): string {
+  const lineStart = text.lastIndexOf("\n", position - 1) + 1;
+  return text.slice(lineStart).replace(/[^\t ][\s\S]*$/, "");
+}
+
+/** How much deeper than its object's line the first property on a later line starts, if it does. */
+function nestingStep(text: string, owner: ObjectLiteralExpression) {
+  const base = indentAt(text, owner.getStart());
+  const property = owner
+    .getProperties()
+    .find((each) => each.getStartLineNumber() > owner.getStartLineNumber());
+  const indent = property && indentAt(text, property.getStart());
+  return indent && indent.length > base.length && indent.startsWith(base)
+    ? indent.slice(base.length)
+    : undefined;
+}
+
 /**
- * The indent unit the configuration itself uses: a tab when its lines are tab-indented, else its
- * smallest run of spaces. The file's own layout outranks the project's, which may say nothing.
+ * The indent unit the configuration's own object literals use: the smallest step from an object's
+ * line to a property on a later line, so a comment's lines are never measured. The file's own
+ * layout outranks the project's, which may say nothing.
  */
-function configIndent(text: string): string | undefined {
-  const indents = text
-    .split("\n")
-    .map((line) => /^([\t ]+)\S/.exec(line)?.[1])
-    .filter((indent): indent is string => indent !== undefined);
-  if (indents.length === 0) {
+function configIndent(file: SourceFile): string | undefined {
+  const root = configObject(file);
+  if (!root) {
     return undefined;
   }
-  if (indents.some((indent) => indent.startsWith("\t"))) {
-    return "\t";
-  }
-  return " ".repeat(Math.min(...indents.map((indent) => indent.length)));
+  const text = file.getFullText();
+  return [
+    root,
+    ...root.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression),
+  ]
+    .map((owner) => nestingStep(text, owner))
+    .filter((step) => step !== undefined)
+    .reduce<string | undefined>(
+      (smallest, step) =>
+        smallest === undefined || step.length < smallest.length
+          ? step
+          : smallest,
+      undefined,
+    );
 }
 
 /** Opens the configuration for editing, refusing one the builder cannot edit safely. */
@@ -134,7 +203,7 @@ export function openDraft(configPath: string): ConfigDraft {
     path: configPath,
     before,
     file,
-    unit: configIndent(before) ?? indentationText(resolveProjectRoot()),
+    unit: configIndent(file) ?? indentationText(resolveProjectRoot()),
     scaffolds: [],
     variables: [],
     edits: [],
@@ -149,9 +218,7 @@ export function openDraft(configPath: string): ConfigDraft {
 }
 
 function lineIndent(draft: ConfigDraft, node: Node): string {
-  const text = draft.file.getFullText();
-  const lineStart = text.lastIndexOf("\n", node.getStart() - 1) + 1;
-  return /^[\t ]*/.exec(text.slice(lineStart))?.[0] ?? "";
+  return indentAt(draft.file.getFullText(), node.getStart());
 }
 
 export function replace(
@@ -239,6 +306,7 @@ export function setProperty(
   if (hasUnreadableMember(owner) || (shorthand && isPlainObject(value))) {
     refuseUnreadable(path, key);
   }
+  soleMember(owner, key, [...path, key].join("."));
   const literal = literalText(value, draft.unit);
   if (shorthand) {
     const text = rebased(literal, lineIndent(draft, shorthand));

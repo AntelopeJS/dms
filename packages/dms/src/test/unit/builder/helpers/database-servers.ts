@@ -165,8 +165,8 @@ async function startRelay(
       };
       clients.add(client);
       upstreams.add(upstream);
-      client.on("data", (chunk) => forward(chunk, true));
-      upstream.on("data", (chunk) => forward(chunk, false));
+      client.on("data", (chunk) => forward(Buffer.from(chunk), true));
+      upstream.on("data", (chunk) => forward(Buffer.from(chunk), false));
       client.on("close", () => {
         clients.delete(client);
         upstream.destroy();

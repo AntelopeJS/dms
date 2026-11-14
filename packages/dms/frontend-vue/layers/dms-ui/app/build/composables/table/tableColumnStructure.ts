@@ -1,4 +1,4 @@
-import type { Data, TableColumn } from "../../components/table/Table.vue";
+import type { Data, TableColumn } from "../../components/table/TableRoot.vue";
 import Button from "@nuxt/ui/components/Button.vue";
 import Checkbox from "@nuxt/ui/components/Checkbox.vue";
 import {

@@ -55,7 +55,7 @@ async function mount(): Promise<void> {
   );
   app = createApp(SecuritySessions);
   browserRuntime(app);
-  app.component("DmsSection", Passthrough);
+  app.component("DmsSectionPanel", Passthrough);
   app.component("DmsEmptyState", EmptyState);
   for (const name of ["USkeleton", "UButton", "DmsListRow", "UModal"]) {
     app.component(name, defineComponent({ render: () => h("span") }));

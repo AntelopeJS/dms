@@ -399,8 +399,7 @@ function invalidConfigError(issues: ValidationIssue[]): OpResult<never> {
  * uploaded logos, the files of the fonts the variables name and, when
  * missing, the entry's stylesheet import. Everything is checked, and every
  * font file the layer lacks downloaded, before any file is written.
- * Builder-named logo and font files the theme no longer uses are deleted,
- * except email logos.
+ * Builder-named logo and font files the theme no longer uses are deleted.
  */
 export async function setTheme(
   draft: ThemeDraft,

@@ -28,6 +28,8 @@ export class FakeSpecFile {
   lostAnswers = 0;
   /** How many of the next reads fail with a server error. */
   readFailures = 0;
+  /** Whether `spec.json` holds a document the spec parser rejects. */
+  isInvalid = false;
   /** Holds the answer of the next write that lands until it settles. */
   answerGate: Promise<void> | undefined;
   readonly writes: Array<{ spec: MockupSpecDocument; digest?: string }> = [];
@@ -55,7 +57,10 @@ export class FakeSpecFile {
           this.readFailures -= 1;
           throw Object.assign(new Error("unavailable"), { status: 503 });
         }
-        return { spec: structuredClone(this.spec), digest: this.digest };
+        const spec = this.isInvalid
+          ? { version: 1, pages: "broken" }
+          : structuredClone(this.spec);
+        return { spec, digest: this.digest };
       }
       if (this.failures > 0) {
         this.failures -= 1;

@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { hydrate, serverRender } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 
 const AMOUNT = 9.391;
 const AXIS = 'class="axis">€9<';
@@ -59,7 +59,7 @@ const Page = defineComponent({
 });
 
 function registerUi(app: App): void {
-  for (const name of ["DmsCard", "DmsClientOnly", "UIcon", "USkeleton"])
+  for (const name of ["DmsCardPanel", "DmsClientOnly", "UIcon", "USkeleton"])
     app.component(name, Slot);
   app.component("DmsApexChartHost", PlotProbe);
 }

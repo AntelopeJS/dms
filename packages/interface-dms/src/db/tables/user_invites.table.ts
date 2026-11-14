@@ -11,6 +11,7 @@ import type { InviteExtensionPayloads } from "../../invite-extension-payloads";
 import { Role } from "./roles.table";
 
 export const USER_INVITES_TABLE_NAME = "user_invites";
+const PENDING_INVITE_INDEX = "email_creationResolutionId";
 
 @RegisterTable(USER_INVITES_TABLE_NAME, TENANT_SCHEMA_NAME)
 export class UserInvite extends Table {
@@ -22,6 +23,7 @@ export class UserInvite extends Table {
   @Field("date")
   declare createdAt: Date;
 
+  @Index({ group: PENDING_INVITE_INDEX, unique: true })
   @Index({ crossInstance: true })
   @Field("string")
   declare email: string;
@@ -50,7 +52,13 @@ export class UserInvite extends Table {
   @Field("date")
   declare expiresAt: Date;
 
-  /** A replacement is actionable only after its creating resolution completes. */
+  /**
+   * Id of the resolution that created this invitation as a replacement, which
+   * is actionable only once that resolution completes. Empty for an invitation
+   * created without one: unique with `email`, so concurrent invitations of one
+   * email keep a single row.
+   */
+  @Index({ group: PENDING_INVITE_INDEX, unique: true })
   @Field("string")
   declare creationResolutionId?: string;
 

@@ -390,7 +390,7 @@ async function markSaved(): Promise<void> {
 </script>
 
 <template>
-  <DmsSection
+  <DmsSectionPanel
     id="two-factor"
     class="scroll-mt-6"
     title="$page.settings.two_factor.title"
@@ -644,5 +644,5 @@ async function markSaved(): Promise<void> {
       @confirm="confirmRegenerate"
       @send-code="sendEmailCode"
     />
-  </DmsSection>
+  </DmsSectionPanel>
 </template>

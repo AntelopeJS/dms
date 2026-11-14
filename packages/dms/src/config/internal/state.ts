@@ -229,6 +229,11 @@ export interface McpConfig {
    */
   mcpJson?: boolean;
   /**
+   * Adds the `dms` server to the project's `.codex/config.toml` when no `dms`
+   * server is declared there. Defaults to `true`; `false` leaves the file alone.
+   */
+  codexConfig?: boolean;
+  /**
    * The origin the bridge sends its requests and its per-start credential to,
    * on the machine that runs the backend. Set it to
    * `${@api.API_LOCAL_BASE_URL}`, the api module's same-host origin.

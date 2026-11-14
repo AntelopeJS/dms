@@ -4,7 +4,7 @@ import type { Column } from "@tanstack/vue-table";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
 
-import type { TableSharedData, Data } from "./Table.vue";
+import type { TableSharedData, Data } from "./TableRoot.vue";
 import SortableList from "../sortable/SortableList.vue";
 
 const theme = tv({

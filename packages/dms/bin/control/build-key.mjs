@@ -288,12 +288,13 @@ function assertKeyed(outside) {
 
 /**
  * @param {string} folder
+ * @param {string | undefined} top The highest folder to list, when `folder` is under it
  * @returns {string[]}
  */
-function upFrom(folder) {
+function upFrom(folder, top) {
   const folders = [folder];
   let current = folder;
-  while (dirname(current) !== current) {
+  while (current !== top && dirname(current) !== current) {
     current = dirname(current);
     folders.push(current);
   }
@@ -345,16 +346,17 @@ function installRecord(path) {
  * folder above that, and of each `node_modules` of a linked package.
  *
  * @param {string} workspace The workspace
+ * @param {string | undefined} top The highest folder whose installs are read (see `buildInputs`)
  * @returns {string} A sha256, in hex
  * @throws When the build can resolve through an install the key does not read (see `assertKeyed`), or `.modules.yaml` cannot be read (see `installRecord`)
  */
-function hashOutsideInstalls(workspace) {
+function hashOutsideInstalls(workspace, top) {
   const hash = createHash("sha256");
   /** @type {Outside} */
   const outside = { linked: new Map(), links: [], installs: [] };
   /** @type {string[]} */
   const reached = [];
-  for (const folder of upFrom(dirname(workspace))) {
+  for (const folder of upFrom(dirname(workspace), top)) {
     const modules = join(folder, MODULES_FOLDER);
     if (!existsSync(modules)) continue;
     reached.push(modules);
@@ -370,7 +372,7 @@ function hashOutsideInstalls(workspace) {
   /** @type {Map<string, string>} */
   const records = new Map();
   for (const modules of [...reached, ...outside.installs]) {
-    for (const owner of upFrom(dirname(realpathSync(modules)))) {
+    for (const owner of upFrom(dirname(realpathSync(modules)), top)) {
       for (const name of INSTALL_RECORDS) {
         const record = join(owner, name);
         if (existsSync(record)) records.set(record, name);
@@ -429,10 +431,11 @@ export function bakedVariables(env) {
  * @param {KeyedRun} run The run
  * @param {string} frontendPackage The `@antelopejs/dms-frontend` folder that builds
  * @param {PreparedWorkspace} prepared The workspace, right after its setup
+ * @param {string} [top] The highest folder whose installs are read, as a real path; the filesystem root when left out, as a bare import resolves up to it
  * @returns {BuildInputs} The inputs
  * @throws When the build can resolve through an install above the workspace that the key does not read, such as a package copied into a linked package's `node_modules`, or a `.modules.yaml` it cannot read
  */
-export function buildInputs(run, frontendPackage, prepared) {
+export function buildInputs(run, frontendPackage, prepared, top) {
   const { project, workspace, names, installed } = prepared;
   const rewrite = leavingOutRunValues(run.webUrl, [
     realpathSync(workspace),
@@ -464,7 +467,7 @@ export function buildInputs(run, frontendPackage, prepared) {
       },
     ),
     installed: hashFolder(installed, [LOCKFILE]),
-    outside: hashOutsideInstalls(workspace),
+    outside: hashOutsideInstalls(workspace, top),
   };
 }
 

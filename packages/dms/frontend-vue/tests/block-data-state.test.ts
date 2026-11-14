@@ -25,7 +25,7 @@ import {
 import { BLOCK_PATH_KEY } from "../layers/dms-ui/app/entries/composables/blocks/blockDataState";
 
 const { default: Chart } = await import(
-  "../layers/dms-ui/app/components/chart/Chart.vue"
+  "../layers/dms-ui/app/components/chart/ChartBlock.vue"
 );
 const { default: ChartCard } = await import(
   "../layers/dms-ui/app/components/chart/ChartCard.vue"

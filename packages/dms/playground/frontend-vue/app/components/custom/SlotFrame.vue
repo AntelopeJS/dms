@@ -38,7 +38,7 @@ const injectedItems = computed(() => [
 </script>
 
 <template>
-  <DmsCard :title="props.title">
+  <DmsCardPanel :title="props.title">
     <div
       class="grid gap-5"
       :class="{ 'lg:grid-cols-[minmax(0,1fr)_18rem]': slots.aside }"
@@ -51,9 +51,9 @@ const injectedItems = computed(() => [
         v-if="slots.aside"
         class="border-default grid content-start gap-2 rounded-md border border-dashed p-3"
       >
-        <DmsEyebrow>#aside slot</DmsEyebrow>
+        <DmsEyebrowLabel>#aside slot</DmsEyebrowLabel>
         <slot name="aside" />
       </aside>
     </div>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

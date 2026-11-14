@@ -80,7 +80,7 @@ export class SalesPage extends PageController("sales", {
 | Package                                     | Supported          | Tested with |
 | ------------------------------------------- | ------------------ | ----------- |
 | `@antelopejs/core`                          | `>=1.21.0 <2`      | `1.21.0`    |
-| `@antelopejs/interface-api`                 | `>=0.2.0 <1.0.0`   | `0.2.0`     |
+| `@antelopejs/interface-api`                 | `>=0.3.2 <1.0.0`   | `0.3.2`     |
 | `@antelopejs/interface-api-util`            | `>=0.3.0 <1.0.0`   | `0.3.0`     |
 | `@antelopejs/interface-core`                | `>=0.4.0 <1.0.0`   | `0.4.0`     |
 | `@antelopejs/interface-data-api`            | `>=0.6.0 <1.0.0`   | `0.6.0`     |

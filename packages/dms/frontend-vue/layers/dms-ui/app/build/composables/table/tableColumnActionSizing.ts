@@ -1,4 +1,4 @@
-import type { Data, TableColumn } from "../../components/table/Table.vue";
+import type { Data, TableColumn } from "../../components/table/TableRoot.vue";
 import { ACTIONS_COLUMN_ID } from "./constants";
 
 import type {

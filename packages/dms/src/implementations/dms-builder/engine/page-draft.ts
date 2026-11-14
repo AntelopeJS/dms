@@ -30,9 +30,8 @@ import {
   importSpecifier,
 } from "./emit";
 import { getExtendsCall, stringLiteralValue } from "./literals";
+import { applyPatch, optionsPatch } from "./options-patch";
 import {
-  applyPatch,
-  optionsPatch,
   checkVersion,
   commit,
   invalidConfig,
@@ -138,8 +137,9 @@ function constantsIn(options: Node | undefined): ConstantsByPath {
  * value keeps the name through every save that did not change it.
  *
  * Only where the author wrote it, and only while the value there is still the
- * one it holds. The same value anywhere else was typed out, or set in the
- * builder, and naming it would tie it to a constant it never used.
+ * one it holds, or, for an enum member, one another member of its enum holds.
+ * The same value anywhere else was typed out, or set in the builder, and
+ * naming it would tie it to a constant it never used.
  */
 function withConstants(
   options: ConfigObject,
@@ -161,8 +161,12 @@ function namedAt(
   constants: ConstantsByPath,
 ): ConfigValue {
   const constant = constants.get(JSON.stringify(path));
-  if (constant && constant.value === value) {
-    return { $expr: constant.name };
+  const named =
+    constant?.value === value
+      ? constant
+      : constant?.members?.find((member) => member.value === value);
+  if (named) {
+    return { $expr: named.name };
   }
   if (Array.isArray(value)) {
     return value.map((item, index) =>
@@ -331,9 +335,9 @@ function blockImports(
 /**
  * Patch the page's own options in the same transaction as its blocks, so one
  * call is one typecheck and one write. Returns the failure, or nothing.
- */
-/**
- * Patch the page's own options.
+ *
+ * An option sent back with the value a constant or a template of constants
+ * gives it keeps that source text, as a block's options do.
  *
  * The class is found again rather than passed in: rewriting the blocks removes
  * text from the file, and ts-morph forgets every node in it when that happens.
@@ -365,7 +369,12 @@ function applyPageMeta(
       "page options are not a plain object literal",
     );
   }
-  applyPatch(optionsArg, optionsPatch(scalar), false, ctx);
+  applyPatch(
+    optionsArg,
+    withConstants(optionsPatch(scalar), constantsIn(optionsArg)),
+    false,
+    ctx,
+  );
   return undefined;
 }
 

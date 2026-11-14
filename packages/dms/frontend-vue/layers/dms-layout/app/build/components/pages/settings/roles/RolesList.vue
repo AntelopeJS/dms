@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TEXT_LINK_CLASS } from "#dms-ui/app/entries/utils/textLink";
-import DmsCard from "#dms-ui/app/components/card/Card.vue";
-import DmsEyebrow from "#dms-ui/app/components/section-header/Eyebrow.vue";
+import DmsCardPanel from "#dms-ui/app/components/card/CardPanel.vue";
+import DmsEyebrowLabel from "#dms-ui/app/components/section-header/EyebrowLabel.vue";
 import RoleMemberAvatars from "./RoleMemberAvatars.vue";
 import RolesListItem from "./RolesListItem.vue";
 import {
@@ -46,7 +46,7 @@ function coverage(count: number): number {
 <template>
   <!-- v2 .cs-rlist: a card of roles, each with its members and a coverage bar;
        it sticks beside the editor while the permission tree scrolls. -->
-  <DmsCard
+  <DmsCardPanel
     as="aside"
     :padded="false"
     class="@3xl:sticky @3xl:top-6"
@@ -55,7 +55,7 @@ function coverage(count: number): number {
     <!-- The members column's label stays on the title's line: as an action
          it would drop under it in this narrow column. -->
     <template #header>
-      <DmsEyebrow
+      <DmsEyebrowLabel
         as="span"
         tone="muted"
         :label="t('page.settings.roles.editor.list_title')"
@@ -154,5 +154,5 @@ function coverage(count: number): number {
         </DmsLink>
       </span>
     </template>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

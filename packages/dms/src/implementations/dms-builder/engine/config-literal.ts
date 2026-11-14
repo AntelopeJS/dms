@@ -39,13 +39,22 @@ function isConstantValue(value: LiteralValue): value is ConstantValue {
   );
 }
 
-/** A named constant a value was read from. */
-export interface NamedConstant {
-  /** The keys and indexes leading to it from the top of the value read. */
-  path: (string | number)[];
-  /** The source text the value was written as: a constant's name, or a template literal of constants. */
+/** A value the writer can put back as its source text. */
+interface ValueName {
+  /** The source text: a constant's name, an enum member, or a template literal of constants. */
   name: string;
   value: ConstantValue;
+}
+
+/** A named constant a value was read from. */
+export interface NamedConstant extends ValueName {
+  /** The keys and indexes leading to it from the top of the value read. */
+  path: (string | number)[];
+  /**
+   * Every member of the enum the value was read from, so an edited value one
+   * of them holds is written as that member rather than as a literal.
+   */
+  members?: ValueName[];
 }
 
 /** The constants of a value read inside another, placed within that other. */
@@ -191,22 +200,94 @@ function importedByName(node: Node): boolean {
 }
 
 /**
- * The value of each constant a file imports by name, so a page's version
- * moves when one of them changes in the file that declares it.
+ * The value of each constant a file imports by name, and of each member of an
+ * enum it declares, so a page's version moves when one of them changes in
+ * another file: an enum member's value can be read through any import.
  */
 export function importedConstants(
   sourceFile: SourceFile,
 ): [string, ConstantValue][] {
-  return sourceFile
+  const localEnums = sourceFile
+    .getDescendantsOfKind(SyntaxKind.EnumDeclaration)
+    .flatMap((declaration) =>
+      declaration
+        .getMembers()
+        .map((member): [string, ConstantValue] => [
+          `${declaration.getName()}.${member.getName()}`,
+          member.getValue() ?? null,
+        ]),
+    );
+  const imported = sourceFile
     .getImportDeclarations()
     .flatMap((declaration) => declaration.getNamedImports())
-    .flatMap((specifier) => {
+    .flatMap((specifier): [string, ConstantValue][] => {
       const binding = specifier.getAliasNode() ?? specifier.getNameNode();
-      const constant = Node.isIdentifier(binding)
-        ? constantValue(binding)
-        : undefined;
-      return constant ? [[binding.getText(), constant.value]] : [];
+      if (!Node.isIdentifier(binding)) return [];
+      const constant = constantValue(binding);
+      if (constant) return [[binding.getText(), constant.value]];
+      return (enumMembers(binding) ?? []).map(
+        ({ name, value }): [string, ConstantValue] => [name, value],
+      );
     });
+  return [...imported, ...localEnums];
+}
+
+/** Whether a member's value reaches the builder unchanged through JSON: not `NaN` or an infinity. */
+function survivesJson(
+  value: string | number | undefined,
+): value is string | number {
+  return value !== undefined && JSON.stringify(value) !== "null";
+}
+
+/**
+ * Each member of the enum `owner` names whose value the checker resolves,
+ * written as `owner.member`, or `undefined` when `owner` is not an enum
+ * declared in the same file or imported by name.
+ */
+function enumMembers(owner: Node): ValueName[] | undefined {
+  if (!Node.isIdentifier(owner)) {
+    return undefined;
+  }
+  const definitions = owner.getDefinitionNodes();
+  const definition = definitions[0];
+  if (
+    definitions.length !== 1 ||
+    !Node.isEnumDeclaration(definition) ||
+    (definition.getSourceFile() !== owner.getSourceFile() &&
+      !importedByName(owner))
+  ) {
+    return undefined;
+  }
+  return definition.getMembers().flatMap((member) => {
+    const value = member.getValue();
+    return survivesJson(value) && Node.isIdentifier(member.getNameNode())
+      ? [{ name: `${owner.getText()}.${member.getName()}`, value }]
+      : [];
+  });
+}
+
+/**
+ * A member of an enum the checker resolves, `HttpMethod.get`, read as its
+ * value, so an option set from an enum does not lock its block. It is reported
+ * with its name and the enum's other members, and the page writer puts back
+ * the member that holds the value saved, or a literal when none does.
+ */
+function enumMemberRef(node: Node): LiteralResult | undefined {
+  if (!Node.isPropertyAccessExpression(node)) {
+    return undefined;
+  }
+  const owner = node.getExpression();
+  const members = enumMembers(owner);
+  const name = `${owner.getText()}.${node.getName()}`;
+  const member = members?.find((candidate) => candidate.name === name);
+  if (!members || !member) {
+    return undefined;
+  }
+  return {
+    value: member.value,
+    fullyLiteral: true,
+    constants: [{ path: [], ...member, members }],
+  };
 }
 
 function constantValue(node: Node): { value: ConstantValue } | undefined {
@@ -348,14 +429,26 @@ function literalToValue(node: Node | undefined): LiteralResult {
   if (Node.isArrayLiteralExpression(node)) {
     return arrayLiteralToValue(node);
   }
-  return (
-    dataTypeCall(node) ??
-    blockCall(node) ??
-    resourceRef(node) ??
-    constantRef(node) ??
-    templateRef(node) ??
-    opaqueExpr(node)
-  );
+  return codeValue(node);
+}
+
+/** The readers of a value written as code rather than a literal, tried in order. */
+const CODE_READERS = [
+  dataTypeCall,
+  blockCall,
+  resourceRef,
+  constantRef,
+  enumMemberRef,
+  templateRef,
+];
+
+/** The value code stands for, when a reader resolves it; otherwise the code, opaque. */
+function codeValue(node: Node): LiteralResult {
+  for (const read of CODE_READERS) {
+    const result = read(node);
+    if (result) return result;
+  }
+  return opaqueExpr(node);
 }
 
 export function objectLiteralToValue(node: Node): ObjectLiteralResult {

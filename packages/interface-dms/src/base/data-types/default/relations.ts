@@ -61,7 +61,6 @@ export class RelationType<T extends ControllerClass> extends DataType {
         avatar?: keyof InstanceType<T> & string;
         disabled?: keyof InstanceType<T> & string;
       };
-      fallback?: string;
       /**
        * Use the relation purely as a native FILTER, without resolving the
        * related row into the `/list` output.
@@ -207,7 +206,6 @@ export class CascaderRelationType<T extends ControllerClass> extends DataType {
       };
       maxDepth?: number;
       leafOnly?: boolean;
-      fallback?: string;
       /**
        * Use the cascader relation purely as a native FILTER, without
        * resolving the related row into the `/list` output.
@@ -244,7 +242,6 @@ export class CascaderRelationType<T extends ControllerClass> extends DataType {
       keyMapping: this.options.keyMapping,
       maxDepth: this.options.maxDepth,
       leafOnly: this.options.leafOnly,
-      fallback: this.options.fallback,
     });
   }
 

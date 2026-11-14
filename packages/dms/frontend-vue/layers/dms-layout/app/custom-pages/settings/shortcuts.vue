@@ -2,7 +2,7 @@
 import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import { useShortcutRegistry } from "#dms-ui/app/entries/composables/shortcuts/useShortcutRegistry";
 import KeyboardShortcut from "../../build/components/pages/settings/shortcut/KeyboardShortcut.vue";
-import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
+import DmsSegmentedControl from "#dms-ui/app/components/segmented/SegmentedControl.vue";
 import { usePageHeaderActions } from "#dms-ui/app/composables/layout/usePageHeaderActions";
 import DmsSearchInput from "#dms-ui/app/entries/components/form/SearchInput";
 import {
@@ -47,7 +47,7 @@ const platformItems = computed(() => [
 ]);
 
 usePageHeaderActions(() =>
-  h(DmsSegmented, {
+  h(DmsSegmentedControl, {
     items: platformItems.value,
     modelValue: platform.value,
     size: "xs",
@@ -149,7 +149,7 @@ const detectedLabel = computed(() =>
       </span>
     </div>
 
-    <DmsSection
+    <DmsSectionPanel
       v-for="group in groups"
       :key="group.key"
       :title="group.title"
@@ -178,7 +178,7 @@ const detectedLabel = computed(() =>
       >
         <KeyboardShortcut :keys="shortcut.key.map(keyLabel)" />
       </DmsFieldRow>
-    </DmsSection>
+    </DmsSectionPanel>
 
     <p v-if="query && groups.length === 0" class="text-muted text-[13px]">
       {{ t("page.settings.shortcuts.no_results") }}

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, resolveComponent } from "vue";
-import DmsMeter, {
+import DmsMeterBar, {
   type MeterFormat,
   type MeterSegment,
   type MeterSize,
   type MeterTone,
-} from "./Meter.vue";
+} from "./MeterBar.vue";
 import DmsBlockActions, {
   type BlockAction,
 } from "../../build/components/blocks/BlockActions.vue";
@@ -134,7 +134,7 @@ const skeletonHasLegend = computed(
   () => props.legend || props.actions.length > 0,
 );
 
-const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
+const Wrapper = props.card ? resolveComponent("DmsCardPanel") : "div";
 </script>
 
 <template>
@@ -173,7 +173,7 @@ const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
         @retry="refresh()"
       />
     </div>
-    <DmsMeter
+    <DmsMeterBar
       v-else
       :label="translate(props.label)"
       :hint="figures.hint"
@@ -196,6 +196,6 @@ const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
           rest-variant="link"
         />
       </template>
-    </DmsMeter>
+    </DmsMeterBar>
   </component>
 </template>

@@ -1,14 +1,10 @@
 import type { DmsServerEvent } from "#dms/server";
 import { privateSecret } from "../../../server/private-options";
+import { readJsonObject } from "../../../server/request-body";
 import { validRenderToken } from "./render-token";
 import { isObject, isString } from "../../dms-core/app/utils/type-check";
 
 const SERVICE_TOKEN_HEADER = "x-dms-service-token";
-
-interface RenderInput {
-  templateName?: unknown;
-  props?: unknown;
-}
 
 function failure(status: number, message: string): Response {
   return Response.json({ message }, { status });
@@ -36,8 +32,9 @@ export async function renderHtml(event: DmsServerEvent): Promise<Response> {
     )
   )
     return failure(401, "Invalid service token");
-  const input = await event.readJson<RenderInput>();
+  const input = await readJsonObject(event);
   if (
+    !input ||
     !isString(input.templateName) ||
     input.templateName.trim() === "" ||
     !isObject(input.props)

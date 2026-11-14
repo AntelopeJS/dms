@@ -5,7 +5,7 @@ import type {
   TableEmits,
   TableFilter,
   TableProps,
-} from "../../components/table/Table.vue";
+} from "../../components/table/TableRoot.vue";
 import {
   getCoreRowModel,
   getExpandedRowModel,

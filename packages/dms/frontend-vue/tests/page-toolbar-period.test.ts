@@ -18,7 +18,7 @@ import {
 import type { PeriodSelectorProps } from "@antelopejs/interface-dms/base/period-selector";
 import PageToolbarBlock from "../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue";
 import PeriodSelector from "../layers/dms-ui/app/components/period/PeriodSelector.vue";
-import DmsSegmented from "../layers/dms-ui/app/components/segmented/Segmented.vue";
+import DmsSegmentedControl from "../layers/dms-ui/app/components/segmented/SegmentedControl.vue";
 import coreEnGB from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
 import coreFrFR from "../layers/dms-core/app/entries/i18n/locales/core-fr-FR.json";
 
@@ -63,7 +63,7 @@ async function mountPeriod(period: PageToolbarOptions["period"]) {
   });
   app.config.globalProperties.$t = t;
   app.component("UIcon", () => h("i"));
-  app.component("DmsSegmented", DmsSegmented);
+  app.component("DmsSegmentedControl", DmsSegmentedControl);
   app.component("UPopover", (_, { slots }) => [
     slots.default?.(),
     slots.anchor?.(),

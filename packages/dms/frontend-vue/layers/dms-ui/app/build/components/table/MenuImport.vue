@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends Data">
 import { tv } from "tailwind-variants";
-import type { Data } from "./Table.vue";
+import type { Data } from "./TableRoot.vue";
 import { useTableConfigClipboard } from "../../composables/table/useTableConfigClipboard";
 
 const theme = tv({

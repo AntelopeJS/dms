@@ -3,6 +3,7 @@ import {
   HTTPResult,
   Parameter,
   Post,
+  type QueryValue,
 } from "@antelopejs/interface-api";
 import {
   DataController,
@@ -23,6 +24,7 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import { RoadmapFeature, RoadmapFeatureModel } from "./database";
+import { queryText } from "../../query-text";
 
 const HTTP_NOT_FOUND = 404;
 const JSON_TYPE = "application/json";
@@ -75,8 +77,8 @@ export class roadmapFeatureDataAPI extends DataController(
 
   /** The cards' "Upvote" button, a custom row action placed by the card. */
   @Post("upvote")
-  async upvote(@Parameter("id", "query") id: string) {
-    const feature = await this.model.get(id);
+  async upvote(@Parameter("id", "query") id: QueryValue) {
+    const feature = await this.model.get(queryText(id) ?? "");
     if (!feature) {
       throw new HTTPResult(
         HTTP_NOT_FOUND,
@@ -84,7 +86,7 @@ export class roadmapFeatureDataAPI extends DataController(
         JSON_TYPE,
       );
     }
-    await this.model.update(id, { votes: feature.votes + 1 });
+    await this.model.update(queryText(id) ?? "", { votes: feature.votes + 1 });
     return { votes: feature.votes + 1 };
   }
 }

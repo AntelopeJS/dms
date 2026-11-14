@@ -23,6 +23,7 @@ import {
   refuse,
   refuseUnreadable,
   setProperty,
+  soleProperty,
   stringOf,
 } from "./project-config";
 import { scaffoldLocalModule } from "./project-scaffold";
@@ -98,7 +99,11 @@ function bindVariables(
     const overrides =
       objectAt(draft, [ENV_OVERRIDES]) ??
       refuse("could not write envOverrides");
-    const current = propertyNamed(overrides, variable)?.getInitializer();
+    const current = soleProperty(
+      overrides,
+      variable,
+      `${ENV_OVERRIDES}.${variable}`,
+    )?.getInitializer();
     if (current !== undefined && stringOf(current) !== target) {
       refuse(
         `${variable} already supplies ${stringOf(current) ?? current.getText()}; choose another variable for ${target}`,
@@ -255,7 +260,7 @@ export function addModule(
   const modules =
     objectAt(draft, [MODULES]) ??
     refuse("the configuration has no modules literal");
-  if (propertyNamed(modules, id)) {
+  if (soleProperty(modules, id, `${MODULES}.${id}`)) {
     refuse(`the project already has a module "${id}"`);
   }
   if (!entry.source) {

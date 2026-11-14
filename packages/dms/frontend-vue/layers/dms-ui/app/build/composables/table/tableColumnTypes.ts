@@ -4,7 +4,7 @@ import type {
   TableColumn,
   TableEmits,
   TableRowActionOptions,
-} from "../../components/table/Table.vue";
+} from "../../components/table/TableRoot.vue";
 import type { UseClipboardReturn } from "@vueuse/core";
 import type {
   FormContainer,

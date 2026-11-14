@@ -9,7 +9,7 @@ import type {
   Updater,
   VisibilityState,
 } from "@tanstack/vue-table";
-import type { TableFilter } from "../../components/table/Table.vue";
+import type { TableFilter } from "../../components/table/TableRoot.vue";
 
 interface TableStates {
   globalFilterState: ModelRef<string>;

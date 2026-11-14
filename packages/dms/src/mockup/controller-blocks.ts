@@ -13,6 +13,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { z } from "zod";
 import type { FixtureScope } from "./fixtures";
+import { withFieldInputs } from "./form-fields";
 import {
   checkFixture,
   dataUrl,
@@ -22,7 +23,11 @@ import {
 } from "./fixtures";
 import type { JsonObject, MockupNode } from "./model";
 import { jsonObjectSchema, zodIssues } from "./model";
-import { previewOptionsOf, validateBlockOptions } from "./validate";
+import {
+  componentOptionsOf,
+  previewOptionsOf,
+  validateBlockOptions,
+} from "./validate";
 
 /**
  * How a mockup builds a block whose factory takes a controller class: what
@@ -250,9 +255,10 @@ const resourceForm: ControllerBlock = {
     }
     const options = rewriteObject(written, optionsAt, scope);
     const form = GetBlockType(FORM_TYPE);
-    if (form)
-      validateBlockOptions(form, node, options, optionsAt, scope.issues);
-    return { ...node, options };
+    if (!form) return { ...node, options };
+    validateBlockOptions(form, node, options, optionsAt, scope.issues);
+    const filled = withFieldInputs(form, options, optionsAt, scope.issues);
+    return { ...node, options: componentOptionsOf(form, filled) };
   },
 };
 

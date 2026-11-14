@@ -79,7 +79,7 @@ describe("[unit] block preview", () => {
     it("carries a chart's fixed type and flags blocks needing a controller", () => {
       const listed = listPreviewBlockTypes();
       expect(listed.ChartLine).to.deep.equal({
-        componentName: "dms-chart",
+        componentName: "dms-chart-block",
         fixedOptions: { type: "line" },
       });
       expect(listed.TableView.needsController).to.equal(true);

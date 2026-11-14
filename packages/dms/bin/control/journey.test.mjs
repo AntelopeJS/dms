@@ -12,16 +12,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { isSameProcess } from "./identity.mjs";
-import {
-  JourneyContext,
-  loadJourneys,
-  runJourney,
-  runJourneyFile,
-} from "./journey.mjs";
+import { JourneyContext, runJourney, runJourneyFile } from "./journey.mjs";
+import { loadJourneys } from "./journey-load.mjs";
 import { apiTargetFile, writeTarget } from "./forwarder.mjs";
+import { commandOf, newRun, served, startedOn } from "./helpers/fake-run.mjs";
 import { startMongod } from "./mongo.mjs";
-import { startDetached, stopRecorded, waitForPort } from "./processes.mjs";
-import { recordBackend } from "./run-state.mjs";
+import {
+  freePort,
+  startDetached,
+  stopRecorded,
+  waitForPort,
+} from "./processes.mjs";
+import { recordBackend, saveRun } from "./run-state.mjs";
 import { liveBackends } from "./stack.mjs";
 import { readTimings } from "./timing.mjs";
 
@@ -43,7 +45,7 @@ function journeysModule(t, source) {
 await test("a module exporting well-formed journeys loads them", async (t) => {
   const file = journeysModule(
     t,
-    `export const journeys = [${JOURNEY}, { id: "b", title: "t", entryPoint: "e", database: "fresh", onboard: false, async run() {} }];`,
+    `export const journeys = [${JOURNEY}, { id: "b", title: "t", entryPoint: "e", database: "fresh", onboard: false, standby: false, async run() {} }];`,
   );
   const journeys = await loadJourneys(file);
   assert.deepEqual(
@@ -71,6 +73,8 @@ await test("a journey missing a field a run reads is refused", async (t) => {
     '{ id: "x", title: "t", entryPoint: "e", onboard: "yes", async run() {} }',
     '{ id: "x", title: "t", entryPoint: "e", backend: "development", async run() {} }',
     '{ id: "x", title: "t", entryPoint: "e", database: "shared", backend: "dev", async run() {} }',
+    '{ id: "x", title: "t", entryPoint: "e", standby: "no", async run() {} }',
+    '{ id: "x", title: "t", entryPoint: "e", database: "shared", standby: false, async run() {} }',
     "null",
   ];
   for (const journey of broken) {
@@ -115,6 +119,59 @@ await test("a journey whose browser fails to launch still records its journey en
     "feat",
     "j1",
   ]);
+});
+
+/** A playwright-core whose Chromium launches a browser that opens nothing, so a journey runs without one. */
+const FAKE_PLAYWRIGHT = `
+module.exports = { chromium: { launch: async () => ({ close: async () => {} }) } };
+`;
+
+await test("a journey that pins a dev backend and no standby in a production run is served by a dev backend started for it, the only backend that runs while it does; dropping either pin fails it", async (t) => {
+  const state = await newRun(t);
+  state.smtpPort = await freePort();
+  saveRun(state);
+  const playwright = join(state.playground, "node_modules/playwright-core");
+  mkdirSync(playwright, { recursive: true });
+  writeFileSync(
+    join(playwright, "package.json"),
+    '{"name":"playwright-core","main":"index.js"}',
+  );
+  writeFileSync(join(playwright, "index.js"), FAKE_PLAYWRIGHT);
+  const journey = {
+    title: "t",
+    entryPoint: "e",
+    onboard: false,
+    async run() {},
+  };
+  const first = await runJourney(state, "feat", { ...journey, id: "a" }, {});
+  assert.equal(first.error, null);
+  const standby = await startedOn(`${state.databasePrefix}_j002`);
+  /** @type {{ pid: number, database: string, live: number[] }[]} */
+  const seen = [];
+  const pinned = await runJourney(
+    state,
+    "feat",
+    {
+      ...journey,
+      id: "b",
+      backend: "dev",
+      standby: false,
+      async run() {
+        const answer = await served(state);
+        const live = liveBackends(state).map((backend) => backend.pid);
+        seen.push({ ...answer, live });
+      },
+    },
+    {},
+  );
+  assert.equal(pinned.error, null);
+  const [answer] = seen;
+  assert.equal(answer?.database, `${state.databasePrefix}_j002`);
+  assert.notEqual(answer.pid, standby.pid);
+  assert.deepEqual(
+    [await commandOf(answer.pid), answer.live],
+    ["dev", [answer.pid]],
+  );
 });
 
 await test("a run whose backend holds the API port itself is refused before its journeys load", async (t) => {

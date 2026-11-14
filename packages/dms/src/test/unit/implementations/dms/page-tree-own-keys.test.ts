@@ -55,7 +55,9 @@ describe("[unit] implementations/dms/page — segments named like Object.prototy
           category: unregisteredCategory("constructor"),
         }),
       );
-      const { memberModel, roleModel } = stubPageAccessModels(["*"]);
+      const { memberModel, roleModel } = stubPageAccessModels([
+        "pages.constructor.prototype-key-sales",
+      ]);
       const payload = await buildSiteLayoutPayload(
         MEMBER,
         memberModel,

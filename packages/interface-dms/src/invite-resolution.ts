@@ -1,4 +1,3 @@
-import { isDeepStrictEqual } from "node:util";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { InviteDecision } from "./db/models/inviteResolutions.model";
@@ -10,6 +9,7 @@ import { listInviteExtensions } from "./invite-extensions/internal/registry";
 import { changeTenantMembers } from "./tenant-members";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
 import { describeInviteMembership } from "./internal/invite-membership";
+import { isSameInviteContent } from "./internal/invite-content";
 
 const HTTP_CONFLICT = 409;
 export type ResolveInviteInput = Omit<InviteDecision, "extensionKeys">;
@@ -44,35 +44,6 @@ export async function assertInviteReady(
   );
 }
 
-/**
- * The replacement's content as plain data.
- *
- * `roles_ids` and `extensions` reach this comparison as per-context views when
- * the caller lives in another module, and `isDeepStrictEqual` refuses two views
- * holding the same values — which would report a faithful retry as a conflict.
- */
-function replacementContent(
-  invite: UserInvite | null | undefined,
-): string | null {
-  if (!invite) return null;
-  return JSON.stringify([
-    invite.email,
-    invite.firstname,
-    invite.lastname,
-    invite.language,
-    invite.roles_ids,
-    invite.asTenantOwner,
-    invite.extensions,
-  ]);
-}
-
-function isSameContent(left: string | null, right: string | null): boolean {
-  return isDeepStrictEqual(
-    left === null ? null : JSON.parse(left),
-    right === null ? null : JSON.parse(right),
-  );
-}
-
 function assertSameDecision(
   resolution: InviteResolution,
   input: ResolveInviteInput,
@@ -84,10 +55,7 @@ function assertSameDecision(
     "Invitation already has a different terminal decision",
   );
   assert(
-    isSameContent(
-      replacementContent(resolution.replacement),
-      replacementContent(input.replacement),
-    ),
+    isSameInviteContent(resolution.replacement, input.replacement),
     HTTP_CONFLICT,
     "Invitation already has a different replacement",
   );

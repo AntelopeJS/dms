@@ -264,7 +264,7 @@ const FOUNDATION_FEATURES: FrontendFeature[] = [
   },
   {
     feature: "Eyebrow and section header",
-    api: "<DmsEyebrow />, <DmsSectionHeader title description />",
+    api: "<DmsEyebrowLabel />, <DmsSectionHeader title description />",
     demo: `${LABELS}#section-header`,
   },
   {
@@ -274,7 +274,7 @@ const FOUNDATION_FEATURES: FrontendFeature[] = [
   },
   {
     feature: "Banner, empty state and meter",
-    api: "<DmsBanner />, <DmsEmptyState />, <DmsMeter />",
+    api: "<DmsNoticeBanner />, <DmsEmptyState />, <DmsMeterBar />",
     demo: `${FEEDBACK}#banner`,
   },
   {
@@ -305,7 +305,7 @@ const FOUNDATION_FEATURES: FrontendFeature[] = [
   },
   {
     feature: "Card, navigation card and segmented control",
-    api: "<DmsCard />, <DmsNavCard />, <DmsSegmented v-model :items />",
+    api: "<DmsCardPanel />, <DmsNavCard />, <DmsSegmentedControl v-model :items />",
     demo: `${SURFACES}#card`,
   },
   {
@@ -320,7 +320,7 @@ const FOUNDATION_FEATURES: FrontendFeature[] = [
   },
   {
     feature: "Settings section, card, bare or danger zone",
-    api: "<DmsSection title danger :card> #badge #trail #footer",
+    api: "<DmsSectionPanel title danger :card> #badge #trail #footer",
     demo: `${SURFACES}#section`,
   },
   {

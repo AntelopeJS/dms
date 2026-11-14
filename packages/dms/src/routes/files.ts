@@ -6,6 +6,7 @@ import {
   JSONBody,
   Parameter,
   Post,
+  type QueryValue,
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { assertValidation } from "@antelopejs/interface-api-util";
@@ -61,8 +62,8 @@ export class FilesController extends Controller("/api/files") {
   @Get("/metadata")
   async getMetadata(
     @Context() context: RequestContext,
-    @Parameter("resourceKey", "query") resourceKey: string,
-    @Parameter("storage", "query") storage?: string,
+    @Parameter("resourceKey", "query") resourceKey: QueryValue,
+    @Parameter("storage", "query") storage: QueryValue,
   ) {
     const query = assertValidation({ resourceKey, storage }, (value) =>
       metadataQuerySchema.parse(value),

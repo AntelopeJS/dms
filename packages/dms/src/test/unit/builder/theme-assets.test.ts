@@ -46,9 +46,7 @@ function checksUploadedFileTypes(): void {
     expect(theme.logos.default?.light).to.match(
       /^\/branding\/default-light-[0-9a-f]{8}\.jpg$/,
     );
-    expect(theme.logos.email?.light).to.match(
-      /^\/branding\/email-light-[0-9a-f]{8}\.jpg$/,
-    );
+    expect(theme.logos.email?.light).to.equal(theme.logos.default?.light);
   });
 
   it("refuses a file that is not what its type says", async () => {
@@ -81,8 +79,8 @@ function checksUploadedFileTypes(): void {
   });
 }
 
-function keepsEmailLogoFiles(): void {
-  it("never deletes an email logo, which emails already sent still show", async () => {
+function deletesUnusedEmailLogoFiles(): void {
+  it("deletes the email logo a new one replaces", async () => {
     expectOk(
       await SetTheme(
         configDraft({
@@ -91,7 +89,6 @@ function keepsEmailLogoFiles(): void {
       ),
       "SetTheme",
     );
-    const first = expectOk(await GetTheme(), "GetTheme");
     expectOk(
       await SetTheme(
         configDraft({
@@ -100,14 +97,13 @@ function keepsEmailLogoFiles(): void {
       ),
       "SetTheme",
     );
-    expectOk(await SetTheme(configDraft()), "SetTheme");
-    expect(brandingFiles()).to.have.length(2);
-    expect(brandingFiles()).to.include(
-      first.logos.email?.light?.replace("/branding/", ""),
-    );
+    const theme = expectOk(await GetTheme(), "GetTheme");
+    expect(brandingFiles()).to.deep.equal([
+      theme.logos.email?.light?.replace("/branding/", ""),
+    ]);
   });
 
-  it("keeps a file the email pointed at, whatever it is named after", async () => {
+  it("keeps a file the email still points at, and deletes it once nothing does", async () => {
     expectOk(
       await SetTheme(
         configDraft({
@@ -119,18 +115,15 @@ function keepsEmailLogoFiles(): void {
     const shared =
       expectOk(await GetTheme(), "GetTheme").logos.default?.light ?? "";
     expectOk(
-      await SetTheme(
-        configDraft({
-          logos: { default: { light: shared }, email: { light: shared } },
-        }),
-      ),
+      await SetTheme(configDraft({ logos: { email: { light: shared } } })),
       "SetTheme",
     );
-    expectOk(await SetTheme(configDraft()), "SetTheme");
     expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.deep.equal([]);
   });
 
-  it("gives the email a file of its own, even with the bytes of another slot's", async () => {
+  it("writes one file for the email and another slot sent the same bytes", async () => {
     expectOk(
       await SetTheme(
         configDraft({
@@ -142,10 +135,9 @@ function keepsEmailLogoFiles(): void {
       ),
       "SetTheme",
     );
-    expect(brandingFiles().map((name) => name.split("-")[0])).to.deep.equal([
-      "default",
-      "email",
-    ]);
+    const theme = expectOk(await GetTheme(), "GetTheme");
+    expect(theme.logos.email?.light).to.equal(theme.logos.default?.light);
+    expect(brandingFiles()).to.have.length(1);
   });
 }
 
@@ -195,7 +187,7 @@ describe("theme logo files", function () {
   });
 
   checksUploadedFileTypes();
-  keepsEmailLogoFiles();
+  deletesUnusedEmailLogoFiles();
   writesOneFileOrNothing();
 });
 

@@ -6,7 +6,7 @@ import {
   keyValueRows,
   keyValueObject,
 } from "../../../build/composables/form/keyValueRows";
-import DmsRepeater from "./Repeater.vue";
+import DmsInputRepeater from "./InputRepeater.vue";
 
 interface KeyValueColumn {
   type?: string;
@@ -31,7 +31,7 @@ const { t } = useI18n();
 const { report } = useControlError();
 
 const KEY_COMPONENT = { componentName: "dms-input-text" };
-const TOGGLE_COMPONENT = { componentName: "dms-checkbox" };
+const TOGGLE_COMPONENT = { componentName: "dms-input-checkbox" };
 
 const columns = computed(() => [
   ...(props.toggleable
@@ -72,7 +72,7 @@ function onRows(next: KeyValueRow[] | null | undefined): void {
 </script>
 
 <template>
-  <DmsRepeater
+  <DmsInputRepeater
     :id="props.id"
     :model-value="rows"
     :columns="columns"

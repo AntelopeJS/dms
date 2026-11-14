@@ -47,7 +47,7 @@ export function RegisterComponentSlot(
       `[dms] component slot "${slotId}" already had a resolver; the latest one now owns it.`,
     );
   }
-  // SAFETY: Holds when every node named dms-form in a layout the page metadata passes to ResolveComponentSlots was serialized by Form, whose options are FormPropsSerialized with its builder's watch actions; the walker hands this resolver only such a node's options, after checking their fields array and this slotId.
+  // SAFETY: Holds when every node named dms-form-block in a layout the page metadata passes to ResolveComponentSlots was serialized by Form, whose options are FormPropsSerialized with its builder's watch actions; the walker hands this resolver only such a node's options, after checking their fields array and this slotId.
   slotResolvers.set(slotId, resolver as SlotFormResolver);
   return () => {
     if (slotResolvers.get(slotId) === resolver) {

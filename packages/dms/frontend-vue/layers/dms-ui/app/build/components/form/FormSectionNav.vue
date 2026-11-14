@@ -6,7 +6,7 @@ import {
   type FormSectionState,
   groupSectionsForNav,
 } from "../../composables/form/formSections";
-import DmsEyebrow from "../../../components/section-header/Eyebrow.vue";
+import DmsEyebrowLabel from "../../../components/section-header/EyebrowLabel.vue";
 
 type FormSectionNavVariant = "list" | "chips";
 
@@ -101,7 +101,7 @@ function onSelect(event: MouseEvent, sectionId: string): void {
       :key="group.sections[0]?.id ?? groupIndex"
       :class="GROUP_CLASSES[layout]"
     >
-      <DmsEyebrow
+      <DmsEyebrowLabel
         v-if="group.label"
         :id="groupHeadingId(groupIndex)"
         :label="processI18n(group.label)"

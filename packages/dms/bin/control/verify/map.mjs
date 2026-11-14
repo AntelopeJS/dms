@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, matchesGlob } from "node:path";
 import { git } from "../git.mjs";
-import { loadJourneys } from "../journey.mjs";
+import { loadJourneys } from "../journey-load.mjs";
 import { journeysFile, readFeatures } from "./skill.mjs";
 
 /**

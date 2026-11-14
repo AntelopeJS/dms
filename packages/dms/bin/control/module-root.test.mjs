@@ -47,7 +47,7 @@ await test("the module of a playground in a verification skill is the repository
     type: "module",
   });
   const playground = writePackage(join(skill, "playground"), PLAYGROUND);
-  assert.equal(moduleRootOf(playground), repo);
+  assert.equal(moduleRootOf(playground, repo), repo);
 });
 
 await test("the module of a playground inside the module is its parent", (t) => {
@@ -57,11 +57,13 @@ await test("the module of a playground inside the module is its parent", (t) => 
   });
   const module = writePackage(join(workspace, "packages", "dms"), MODULE);
   const playground = writePackage(join(module, "playground"), PLAYGROUND);
-  assert.equal(moduleRootOf(playground), module);
+  assert.equal(moduleRootOf(playground, workspace), module);
 });
 
-await test("a playground with no module above it keeps its parent as the module", (t) => {
-  const parent = scratch(t);
+await test("a playground with no module above it in its checkout keeps its parent as the module, whatever sits above the checkout", (t) => {
+  const outside = writePackage(scratch(t), MODULE);
+  const checkout = join(outside, "checkout");
+  const parent = join(checkout, "apps");
   const playground = writePackage(join(parent, "playground"), PLAYGROUND);
-  assert.equal(moduleRootOf(playground), parent);
+  assert.equal(moduleRootOf(playground, checkout), parent);
 });

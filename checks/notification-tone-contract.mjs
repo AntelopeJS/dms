@@ -25,7 +25,7 @@ const server = await createServer({
   },
   esbuild: { tsconfigRaw: "{}" },
   optimizeDeps: { noDiscovery: true },
-  server: { middlewareMode: true },
+  server: { middlewareMode: true, watch: null },
   appType: "custom",
 });
 

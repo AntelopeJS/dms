@@ -103,7 +103,7 @@ const COMPONENT_ALIASES: Record<
   Parameters<DmsFrontendSdk["registerComponent"]>[0]
 > = {
   ActivityFeed: "ActivityFeedBlock",
-  Section: "SectionBlock",
+  SectionPanel: "SectionBlock",
   FieldRow: "FieldRowBlock",
 };
 

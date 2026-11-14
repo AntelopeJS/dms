@@ -1,4 +1,4 @@
-import type { TableFilter } from "../../../components/table/Table.vue";
+import type { TableFilter } from "../../../components/table/TableRoot.vue";
 import { isString } from "#dms-core/app/utils/type-check";
 
 interface FilterColumn {

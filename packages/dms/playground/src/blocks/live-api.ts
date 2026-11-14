@@ -1,9 +1,16 @@
-import { Controller, Get, Parameter, Post } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  Post,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
 import type { StatGroupItem } from "@antelopejs/interface-dms/base/stat-group";
 import type { Tone } from "@antelopejs/interface-dms/base/types";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { ownEntry } from "../own-entry";
+import { queryText } from "../query-text";
 
 /** Published on each batch of requests the live page follows. */
 export const LIVE_DEMO_TOPIC = "blocks:live-demo";
@@ -132,8 +139,8 @@ function liveStats(preset: string | undefined): StatGroupItem[] {
 /** Routes of the live mode demo: figures, a request log and the publishers. */
 export class BlocksLiveApiController extends Controller("/api/blocks/live") {
   @Get("stats")
-  getStats(@Parameter("preset", "query") preset?: string) {
-    return later({ items: liveStats(preset) });
+  getStats(@Parameter("preset", "query") preset: QueryValue) {
+    return later({ items: liveStats(queryText(preset)) });
   }
 
   @Get("requests")

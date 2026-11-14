@@ -1,13 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { pathToFileURL } from "node:url";
 import { withBaseBackend } from "./base.mjs";
 import { launchBrowser, newContext, screenshot } from "./browser.mjs";
 import { startDatabase, stopDatabase } from "./database.mjs";
 import { capturedMail } from "./mail.mjs";
-import { isRecord, isString, readRecordList } from "./json.mjs";
-import { isBackendMode, saveRun } from "./run-state.mjs";
+import { loadJourneys } from "./journey-load.mjs";
+import { readRecordList } from "./json.mjs";
+import { saveRun } from "./run-state.mjs";
 import {
   adminCredentials,
   apiRequest,
@@ -29,7 +29,7 @@ import { recordTiming, stopwatch, timed } from "./timing.mjs";
  * @typedef {{ name: string, pass: boolean, detail: string }} Check
  * @typedef {ReturnType<typeof capturedMail>[number]} CapturedMail
  * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult
- * @typedef {{ id: string, title: string, entryPoint: string, database?: string, onboard?: boolean, backend?: import("./run-state.mjs").BackendMode, run: (context: JourneyContext) => Promise<void> }} Journey `backend` pins how the backend of its fresh database runs, whatever mode `up` gave the run
+ * @typedef {import("./journey-load.mjs").Journey} Journey
  * @typedef {{ name: string, folder: string, checks: Check[] }} Step
  */
 
@@ -389,7 +389,7 @@ async function prepare(state, feature, journey, context) {
     await timed(
       state,
       "fresh-database",
-      () => freshDatabase(state, `j${index}`, journey.backend),
+      () => freshDatabase(state, `j${index}`, journey),
       detail,
     );
     const backend = state.processes.find((entry) => entry.name === "backend");
@@ -509,45 +509,6 @@ async function driveJourney(state, feature, journey, skill) {
     error,
     folder: relative(state.evidence, context.folder),
   };
-}
-
-/**
- * @param {unknown} value A value a journeys module exports
- * @returns {value is Journey} True for an object with the fields a journey run reads
- */
-function isJourney(value) {
-  return (
-    isRecord(value) &&
-    isString(value.id) &&
-    isString(value.title) &&
-    isString(value.entryPoint) &&
-    (value.database === undefined || isString(value.database)) &&
-    (value.onboard === undefined || typeof value.onboard === "boolean") &&
-    (value.backend === undefined ||
-      (value.database !== "shared" && isBackendMode(value.backend))) &&
-    typeof value.run === "function"
-  );
-}
-
-/**
- * Loads the journeys a feature's file exports (`export const journeys`).
- *
- * @param {string} file The journeys module
- * @returns {Promise<Journey[]>} The journeys
- */
-export async function loadJourneys(file) {
-  if (!existsSync(file)) throw new Error(`${file} does not exist`);
-  /** @type {unknown} */
-  const exported = await import(pathToFileURL(file).href);
-  const entries = isRecord(exported) ? exported.journeys : undefined;
-  if (!Array.isArray(entries))
-    throw new Error(`${file} exports no journeys array`);
-  const journeys = entries.filter(isJourney);
-  if (journeys.length !== entries.length)
-    throw new Error(
-      `${file} exports a journey without an id, title, entry point or run function, or pins a backend on a shared database`,
-    );
-  return journeys;
 }
 
 /**

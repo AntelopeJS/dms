@@ -4,7 +4,7 @@ import UButton from "@nuxt/ui/components/Button.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import DmsEmptyState from "#dms-ui/app/components/empty-state/EmptyState.vue";
 import DmsSectionHeader from "#dms-ui/app/components/section-header/SectionHeader.vue";
-import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
+import DmsSegmentedControl from "#dms-ui/app/components/segmented/SegmentedControl.vue";
 import DmsStatGroup, {
   type StatGroupItem,
 } from "#dms-ui/app/components/stat-group/StatGroup.vue";
@@ -266,7 +266,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
 <template>
   <div class="pb-20">
     <!-- Not a platform owner: say who manages modules instead of redirecting. -->
-    <DmsCard v-if="isForbidden" :padded="false">
+    <DmsCardPanel v-if="isForbidden" :padded="false">
       <DmsEmptyState
         variant="no-access"
         :title="t('modules.forbidden.title')"
@@ -283,11 +283,11 @@ const summaryCards = computed<StatGroupItem[]>(() =>
           />
         </template>
       </DmsEmptyState>
-    </DmsCard>
+    </DmsCardPanel>
 
     <!-- Load failure: what failed, what still works, and a retry. -->
     <div v-else-if="failure" role="alert">
-      <DmsBanner
+      <DmsNoticeBanner
         tone="error"
         icon="i-ph-plugs"
         :title="t('modules.error.title')"
@@ -317,7 +317,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
             @click="retry"
           />
         </template>
-      </DmsBanner>
+      </DmsNoticeBanner>
     </div>
 
     <template v-else>
@@ -343,7 +343,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
           :description="t('modules.installed.description')"
         >
           <template #trailing>
-            <DmsSegmented
+            <DmsSegmentedControl
               v-model="sortMode"
               :items="sortItems"
               size="sm"
@@ -382,16 +382,16 @@ const summaryCards = computed<StatGroupItem[]>(() =>
         </div>
 
         <!-- Nothing installed -->
-        <DmsCard v-else-if="modules.length === 0" :padded="false">
+        <DmsCardPanel v-else-if="modules.length === 0" :padded="false">
           <DmsEmptyState
             icon="i-ph-package"
             :title="t('modules.empty.title')"
             :description="t('modules.empty.description')"
           />
-        </DmsCard>
+        </DmsCardPanel>
 
         <!-- Search with no result: point to where the thing lives. -->
-        <DmsCard v-else-if="visibleModules.length === 0" :padded="false">
+        <DmsCardPanel v-else-if="visibleModules.length === 0" :padded="false">
           <DmsEmptyState
             variant="no-result"
             :title="
@@ -454,7 +454,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
               />
             </template>
           </DmsEmptyState>
-        </DmsCard>
+        </DmsCardPanel>
 
         <div v-else :class="MODULE_TILE_GRID_CLASS">
           <ModuleCatalogTile

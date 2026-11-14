@@ -30,7 +30,7 @@ describe("the shortcuts plugin", () => {
     await setup(engine.useDmsApp());
     app = createApp(Shortcuts);
     app.component(
-      "DmsSection",
+      "DmsSectionPanel",
       defineComponent({
         props: ["title"],
         setup:

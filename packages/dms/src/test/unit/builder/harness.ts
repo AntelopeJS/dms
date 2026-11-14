@@ -33,11 +33,12 @@ const FIXTURE_ROOT = path.join(
  * Resolved the way the playground resolves: the DMS interfaces publish their
  * subpaths through `exports` alone, which `moduleResolution: "node"` never reads.
  */
-const TSCONFIG = {
+export const TSCONFIG = {
   compilerOptions: {
     target: "ES2022",
     module: "preserve",
     moduleResolution: "bundler",
+    types: ["node"],
     experimentalDecorators: true,
     emitDecoratorMetadata: true,
     strict: true,

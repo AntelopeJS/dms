@@ -8,7 +8,7 @@ import {
   formatFilterValue,
   resolveNowTokens,
 } from "../layers/dms-ui/app/entries/composables/table/utils/formatFilterValue";
-import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/Table";
+import type { TableFilter } from "../layers/dms-ui/app/entries/components/table/TableRoot";
 import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 

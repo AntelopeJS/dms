@@ -2,7 +2,7 @@ import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import type { ChartType } from "../layers/dms-ui/app/composables/chart/types";
 import { chartRuntime } from "./helpers/charts-runtime";
 
@@ -35,12 +35,12 @@ const Slot = defineComponent({
 });
 
 const SLOT_COMPONENTS = [
-  "DmsCard",
+  "DmsCardPanel",
   "DmsClientOnly",
   "UIcon",
   "USkeleton",
   "DmsTrendBadge",
-  "DmsSparkline",
+  "DmsSparklineChart",
   "UBadge",
 ];
 

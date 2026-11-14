@@ -516,6 +516,7 @@ function checkImports(directory, boundary = directory) {
       checkImports(path, boundary);
       continue;
     }
+    /** @type {boolean} */
     const compiled = boundary === join(root, "dist");
     assert.ok(
       compiled || entry.name !== "package.json",

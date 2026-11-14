@@ -1,7 +1,14 @@
-import { Controller, Get, Parameter, Post } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  Post,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound } from "./demo-errors";
 import { ownEntry } from "../own-entry";
+import { queryText } from "../query-text";
 
 /** Published on each test call, which the Guard demo follows. */
 export const GUARD_DEMO_TOPIC = "blocks:guard-demo";
@@ -46,8 +53,8 @@ function callSeries(total: number): number[] {
  */
 export class BlocksGuardApiController extends Controller("/api/blocks/guard") {
   @Get("calls")
-  getCalls(@Parameter("preset", "query") preset?: string) {
-    const calls = callsIn(preset);
+  getCalls(@Parameter("preset", "query") preset: QueryValue) {
+    const calls = callsIn(queryText(preset));
     const emptyState = calls
       ? undefined
       : { description: "No call reached this route in the selected period." };
@@ -55,14 +62,14 @@ export class BlocksGuardApiController extends Controller("/api/blocks/guard") {
   }
 
   @Get("calls/kpi")
-  getCallsKpi(@Parameter("preset", "query") preset?: string) {
-    const calls = callsIn(preset);
+  getCallsKpi(@Parameter("preset", "query") preset: QueryValue) {
+    const calls = callsIn(queryText(preset));
     return later({ value: calls, sparkline: callSeries(calls) });
   }
 
   @Get("calls/series")
-  getCallsSeries(@Parameter("preset", "query") preset?: string) {
-    const data = callSeries(callsIn(preset)).map((y, index) => ({
+  getCallsSeries(@Parameter("preset", "query") preset: QueryValue) {
+    const data = callSeries(callsIn(queryText(preset))).map((y, index) => ({
       x: `t${index + 1}`,
       y,
     }));

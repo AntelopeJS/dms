@@ -181,7 +181,7 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <DmsSection
+  <DmsSectionPanel
     id="password"
     class="scroll-mt-6"
     title="$page.settings.security.password_title"
@@ -325,5 +325,5 @@ async function submit(): Promise<void> {
         </p>
       </template>
     </SecurityEditPanel>
-  </DmsSection>
+  </DmsSectionPanel>
 </template>

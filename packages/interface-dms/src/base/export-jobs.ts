@@ -10,8 +10,10 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { InterfaceFunction } from "@antelopejs/interface-core";
 import type { User } from "../auth/db";
+import type { ZodType, ZodTypeDef } from "zod";
 import type { ExportJob } from "../db/tables/exportJobs.table";
 import { MILLISECONDS_PER_DAY } from "../utils/internal/time";
+import { readExportJobContext } from "./internal/export-jobs";
 import type { ExportStatus } from "./types/export-status";
 
 /** Lifetime of a stored export, enforced by the `sweep-stale-exports` cron. */
@@ -69,7 +71,8 @@ export interface ExportJobGenerateContext<TContext = unknown> {
   jobId: string;
   tenantId: string;
   localPath: string;
-  context: TContext;
+  /** The `context` passed to `runExportJob`: `undefined` when it passed none. */
+  context: TContext | undefined;
   reportProgress: (progress: number) => Promise<void>;
   /** Aborted when the job exceeds `maxExecutionTimeMs`. */
   signal: AbortSignal;
@@ -104,16 +107,30 @@ export interface RunExportJobOptions<TContext = unknown> {
   ) => Promise<ExportJobResultSummary | void>;
 }
 
-export interface ExportJobOwnership<TContext = unknown> {
-  /** Optional extra ACL beyond the userId check. */
-  isOwnedBy?: (record: ExportJob, context: TContext, user: User) => boolean;
+/**
+ * An access check of your own, run after the owner and scope checks: the
+ * context the job was started with is read back through `contextSchema`, and
+ * `isOwnedBy` decides on it.
+ */
+export interface ExportJobContextCheck<TContext> {
+  /**
+   * A zod 3 schema that reads back the `context` the job was started with,
+   * from the JSON it was stored as: `null` for a job started without one, a
+   * `Date` as its ISO string. A stored context the schema refuses refuses the
+   * job.
+   */
+  contextSchema: ZodType<TContext, ZodTypeDef, unknown>;
+  /** Extra ACL beyond the userId check, on the context `contextSchema` read. */
+  isOwnedBy: (record: ExportJob, context: TContext, user: User) => boolean;
 }
 
-export interface ExportJobAccessOptions<
-  TContext = unknown,
-> extends ExportJobOwnership<TContext> {
-  scope?: string;
-}
+/** An optional {@link ExportJobContextCheck}: both of its members, or neither. */
+export type ExportJobOwnership<TContext = unknown> =
+  | ExportJobContextCheck<TContext>
+  | { contextSchema?: undefined; isOwnedBy?: undefined };
+
+export type ExportJobAccessOptions<TContext = unknown> =
+  ExportJobOwnership<TContext> & { scope?: string };
 
 export interface ExportJobTicket {
   jobId: string;
@@ -152,25 +169,32 @@ export const getDeliverer =
   InterfaceFunction<(delivery: string) => Deliverer>();
 
 /**
- * A proxy carries no type parameter of its own, so the generic entry points
- * below erase the caller's context type on the way in. The engine never reads
- * `context`: it carries it back to `generate` and `isOwnedBy` untouched, which
- * is why the erased shape widens the value and narrows the callbacks -- that
- * way every `TContext` fits it without an assertion.
+ * The access options a proxy takes: the caller's
+ * {@link ExportJobContextCheck} folded into one check that reads the job's
+ * context itself, so no context type crosses the proxy.
  */
-interface ErasedRunExportJobOptions extends Omit<
-  RunExportJobOptions,
-  "context" | "generate"
-> {
-  context?: unknown;
-  generate: (
-    ctx: ExportJobGenerateContext<never>,
-  ) => Promise<ExportJobResultSummary | void>;
-}
-
 interface ErasedExportJobAccessOptions {
   scope?: string;
-  isOwnedBy?: (record: ExportJob, context: never, user: User) => boolean;
+  isOwnedBy?: (record: ExportJob, user: User) => boolean;
+}
+
+function eraseAccess<TContext>(
+  access: ExportJobAccessOptions<TContext> | undefined,
+): ErasedExportJobAccessOptions | undefined {
+  if (!access?.isOwnedBy) return access;
+  const { contextSchema, isOwnedBy } = access;
+  if (!contextSchema) {
+    throw new TypeError(
+      "An export job access check gives isOwnedBy without the contextSchema it reads the job's context through",
+    );
+  }
+  return {
+    scope: access.scope,
+    isOwnedBy: (record, user) => {
+      const context = readExportJobContext(record, contextSchema);
+      return context.success && isOwnedBy(record, context.data, user);
+    },
+  };
 }
 
 /**
@@ -182,7 +206,7 @@ interface ErasedExportJobAccessOptions {
  * @internal
  */
 export const runExportJobProxy =
-  InterfaceFunction<(options: ErasedRunExportJobOptions) => ExportJobTicket>();
+  InterfaceFunction<(options: RunExportJobOptions) => ExportJobTicket>();
 
 /** @internal */
 export const getExportJobStatusProxy =
@@ -206,25 +230,44 @@ export const downloadExportJobProxy =
     ) => void
   >();
 
-/** Starts an export job and returns the ticket its caller polls. */
+/**
+ * Starts an export job and returns the ticket its caller polls.
+ *
+ * A proxy carries no type parameter of its own, so the context type is erased
+ * on the way in: `generate` closes over the caller's own `context` and the
+ * engine stores it only.
+ */
 export function runExportJob<TContext = unknown>(
   options: RunExportJobOptions<TContext>,
 ): Promise<ExportJobTicket> {
-  return runExportJobProxy(options);
+  const { context, generate } = options;
+  return runExportJobProxy({
+    ...options,
+    generate: (job) => generate({ ...job, context }),
+  });
 }
 
+/**
+ * The status of an export job its caller may read.
+ *
+ * @throws TypeError, at the call, when `access` gives `isOwnedBy` without
+ * `contextSchema`.
+ */
 export function getExportJobStatus<TContext = unknown>(
   ctx: RequestContext,
   user: User,
   jobId: string,
   access?: ExportJobAccessOptions<TContext>,
 ): Promise<ExportJobStatus> {
-  return getExportJobStatusProxy(ctx, user, jobId, access);
+  return getExportJobStatusProxy(ctx, user, jobId, eraseAccess(access));
 }
 
 /**
  * Streams a completed export job to the response. Returns once the pipe is
  * started, not once it has drained.
+ *
+ * @throws TypeError, at the call, when `access` gives `isOwnedBy` without
+ * `contextSchema`.
  */
 export function downloadExportJob<TContext = unknown>(
   ctx: RequestContext,
@@ -232,7 +275,7 @@ export function downloadExportJob<TContext = unknown>(
   jobId: string,
   access?: ExportJobAccessOptions<TContext>,
 ): Promise<void> {
-  return downloadExportJobProxy(ctx, user, jobId, access);
+  return downloadExportJobProxy(ctx, user, jobId, eraseAccess(access));
 }
 
 /** Lists the caller's own export jobs, most recent first. */

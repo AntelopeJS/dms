@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { type Slot, computed } from "vue";
-import DmsCard from "../card/Card.vue";
+import DmsCardPanel from "../card/CardPanel.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import DmsBlockActions, {
   type BlockAction,
@@ -58,7 +58,7 @@ const hasFooter = computed(() => !!props.footer || !!slots.footer);
 </script>
 
 <template>
-  <DmsCard :padded="props.padded" :variant="props.variant">
+  <DmsCardPanel :padded="props.padded" :variant="props.variant">
     <template v-if="hasHeading" #header>
       <DmsSectionHeader
         size="card"
@@ -91,5 +91,5 @@ const hasFooter = computed(() => !!props.footer || !!slots.footer);
       </span>
       <slot name="footer" />
     </template>
-  </DmsCard>
+  </DmsCardPanel>
 </template>

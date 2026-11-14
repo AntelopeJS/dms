@@ -31,7 +31,7 @@ async function render(
         ...props,
       }),
   });
-  for (const name of ["DmsCard", "UIcon", "USkeleton"]) {
+  for (const name of ["DmsCardPanel", "UIcon", "USkeleton"]) {
     app.component(name, Slot);
   }
   await chartRuntime(app, response.value);

@@ -8,7 +8,7 @@ import { defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { serverRender } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
-import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
+import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 
 const TITLE = "Invoices by month";
 
@@ -30,7 +30,7 @@ const Slot = defineComponent({
 });
 
 function registerUi(app: App): void {
-  for (const name of ["DmsCard", "DmsClientOnly", "UIcon", "USkeleton"])
+  for (const name of ["DmsCardPanel", "DmsClientOnly", "UIcon", "USkeleton"])
     app.component(name, Slot);
   app.component("DmsApexChartHost", PlotProbe);
 }

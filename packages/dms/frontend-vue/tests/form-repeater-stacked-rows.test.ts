@@ -2,7 +2,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import * as Vue from "vue";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
-import Repeater from "../layers/dms-ui/app/components/form/components/Repeater.vue";
+import Repeater from "../layers/dms-ui/app/components/form/components/InputRepeater.vue";
 
 let app: Vue.App | undefined;
 

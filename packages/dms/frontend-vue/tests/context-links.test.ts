@@ -120,7 +120,13 @@ async function renderTopList(): Promise<string> {
         ],
       }),
   });
-  for (const name of ["DmsCard", "UBadge", "UIcon", "USkeleton", "UButton"]) {
+  for (const name of [
+    "DmsCardPanel",
+    "UBadge",
+    "UIcon",
+    "USkeleton",
+    "UButton",
+  ]) {
     ssrApp.component(name, Slot);
   }
   ssrApp.component("DmsLink", Link);

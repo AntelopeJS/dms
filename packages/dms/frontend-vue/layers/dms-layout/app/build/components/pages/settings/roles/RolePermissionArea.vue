@@ -129,7 +129,7 @@ const ui = computed(() => theme({ completion: completion.value }));
         >
           {{ props.area.node.id }}
         </span>
-        <DmsMeter
+        <DmsMeterBar
           as="span"
           size="xs"
           class="w-14 shrink-0 @max-md/editor:hidden"

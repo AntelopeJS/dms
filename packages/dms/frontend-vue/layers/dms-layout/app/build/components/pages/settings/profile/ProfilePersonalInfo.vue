@@ -177,7 +177,7 @@ async function save(): Promise<void> {
 
 <template>
   <div>
-    <DmsCard
+    <DmsCardPanel
       as="form"
       :padded="false"
       class="overflow-clip"
@@ -332,7 +332,7 @@ async function save(): Promise<void> {
           {{ t("page.settings.profile.credentials_hint") }}
         </span>
       </DmsFieldRow>
-    </DmsCard>
+    </DmsCardPanel>
 
     <DmsSaveBar
       :dirty="isDirty"

@@ -220,7 +220,7 @@ const segmentedItems = usePeriodSelectorSegments(
           data-allow-mismatch="text"
           @click="onSegmentedClick"
         >
-          <DmsSegmented
+          <DmsSegmentedControl
             v-model="segmentedPreset"
             :items="segmentedItems"
             :size="size"

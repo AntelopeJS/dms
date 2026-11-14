@@ -12,6 +12,7 @@ import {
   inject,
   nextTick,
   ref,
+  Suspense,
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -100,11 +101,11 @@ describe("a disabled relation field", () => {
       id: "customer",
       type: "relation",
       disabled: true,
-      component: { componentName: "dms-relation", options },
+      component: { componentName: "dms-input-relation", options },
     };
     app = createApp({
       setup() {
-        return () => h(FormFieldControl, { field });
+        return () => h(Suspense, null, () => h(FormFieldControl, { field }));
       },
     });
     app.provide(FORM_ENTRY_CONTEXT_KEY, {
@@ -123,7 +124,7 @@ describe("a disabled relation field", () => {
       }),
     );
     app.component(
-      "DmsDisplay",
+      "DmsDisplayValue",
       defineComponent({
         props: { modelValue: { type: null, default: undefined } },
         setup(props) {
@@ -135,6 +136,7 @@ describe("a disabled relation field", () => {
       }),
     );
     app.mount(document.createElement("div"));
+    await new Promise((resolve) => setTimeout(resolve));
     await nextTick();
     expect(shown.at(-1)).toEqual(customer);
   });

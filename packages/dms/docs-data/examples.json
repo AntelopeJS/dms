@@ -1618,7 +1618,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -1653,7 +1653,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -1908,7 +1908,7 @@
           "id": "plan",
           "label": "Plan",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -1934,7 +1934,7 @@
           "label": "Weekly summary",
           "description": "A digest of activity every Monday.",
           "component": {
-            "componentName": "dms-switch",
+            "componentName": "dms-input-switch",
             "options": {},
             "children": []
           },
@@ -2165,7 +2165,7 @@
           "id": "weeklyReport",
           "label": "Weekly report",
           "component": {
-            "componentName": "dms-switch",
+            "componentName": "dms-input-switch",
             "options": {},
             "children": []
           },
@@ -2618,7 +2618,7 @@
           "id": "faces",
           "label": "Faces",
           "component": {
-            "componentName": "dms-repeater",
+            "componentName": "dms-input-repeater",
             "options": {
               "columns": [
                 {
@@ -2626,7 +2626,7 @@
                   "label": "Orientation",
                   "type": "select",
                   "component": {
-                    "componentName": "dms-select",
+                    "componentName": "dms-input-select",
                     "options": {
                       "items": [
                         {
@@ -2856,7 +2856,7 @@
           "id": "type",
           "label": "Type",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -2887,7 +2887,7 @@
           "id": "status",
           "label": "Status",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -2925,7 +2925,7 @@
           "id": "leadTechnician",
           "label": "Lead technician",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -3000,7 +3000,7 @@
           "id": "photos",
           "label": "Site photos",
           "component": {
-            "componentName": "dms-image",
+            "componentName": "dms-input-image",
             "options": {
               "multiple": true,
               "max": 6,
@@ -3174,7 +3174,7 @@
           "id": "type",
           "label": "Type",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -3205,7 +3205,7 @@
           "id": "status",
           "label": "Status",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -3243,7 +3243,7 @@
           "id": "leadTechnician",
           "label": "Lead technician",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -3318,7 +3318,7 @@
           "id": "photos",
           "label": "Site photos",
           "component": {
-            "componentName": "dms-image",
+            "componentName": "dms-input-image",
             "options": {
               "multiple": true,
               "max": 6,
@@ -3493,7 +3493,7 @@
           "id": "type",
           "label": "Type",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -3525,7 +3525,7 @@
           "id": "status",
           "label": "Status",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -3564,7 +3564,7 @@
           "id": "leadTechnician",
           "label": "Lead technician",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -3643,7 +3643,7 @@
           "id": "photos",
           "label": "Site photos",
           "component": {
-            "componentName": "dms-image",
+            "componentName": "dms-input-image",
             "options": {
               "multiple": true,
               "max": 6,
@@ -3862,7 +3862,7 @@
           "id": "boolean",
           "label": "boolean",
           "component": {
-            "componentName": "dms-switch",
+            "componentName": "dms-input-switch",
             "options": {},
             "children": []
           },
@@ -3873,7 +3873,7 @@
           "id": "select",
           "label": "select",
           "component": {
-            "componentName": "dms-select",
+            "componentName": "dms-input-select",
             "options": {
               "items": [
                 {
@@ -3980,7 +3980,7 @@
           "id": "file",
           "label": "file",
           "component": {
-            "componentName": "dms-file",
+            "componentName": "dms-input-file",
             "options": {},
             "children": []
           },
@@ -3990,7 +3990,7 @@
           "id": "image",
           "label": "image",
           "component": {
-            "componentName": "dms-image",
+            "componentName": "dms-input-image",
             "options": {
               "constraints": {
                 "allowedMimetypes": ["image/*"]
@@ -4014,7 +4014,7 @@
           "id": "status",
           "label": "status",
           "component": {
-            "componentName": "dms-checkbox",
+            "componentName": "dms-input-checkbox",
             "options": {
               "onlineLabel": "$common.status.online",
               "offlineLabel": "$common.status.offline",
@@ -4030,7 +4030,7 @@
           "id": "array",
           "label": "array",
           "component": {
-            "componentName": "dms-repeater",
+            "componentName": "dms-input-repeater",
             "options": {
               "columns": [
                 {
@@ -4501,7 +4501,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -4536,7 +4536,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -4899,7 +4899,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -4934,7 +4934,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -5281,7 +5281,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -5316,7 +5316,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -5676,7 +5676,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -5699,7 +5699,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -6085,7 +6085,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -6120,7 +6120,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -6418,7 +6418,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -6453,7 +6453,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -6803,7 +6803,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -6826,7 +6826,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -7140,7 +7140,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -7163,7 +7163,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -7455,7 +7455,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -7478,7 +7478,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -7768,7 +7768,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -7791,7 +7791,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -8030,7 +8030,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -8065,7 +8065,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -8268,7 +8268,7 @@
       "realtime": false,
       "formComponents": {
         "new": {
-          "componentName": "dms-form",
+          "componentName": "dms-form-block",
           "options": {
             "title": "New project",
             "submitUrl": "/docs-fixtures/projects/new",
@@ -8288,7 +8288,7 @@
                 "id": "type",
                 "label": "Type",
                 "component": {
-                  "componentName": "dms-select",
+                  "componentName": "dms-input-select",
                   "options": {
                     "items": [
                       {
@@ -8319,7 +8319,7 @@
                 "id": "status",
                 "label": "Status",
                 "component": {
-                  "componentName": "dms-select",
+                  "componentName": "dms-input-select",
                   "options": {
                     "items": [
                       {
@@ -8555,7 +8555,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -8590,7 +8590,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -8896,7 +8896,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -8931,7 +8931,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -9126,7 +9126,7 @@
       "realtime": false,
       "formComponents": {
         "new": {
-          "componentName": "dms-form",
+          "componentName": "dms-form-block",
           "options": {
             "title": "New project",
             "submitUrl": "/docs-fixtures/projects/new",
@@ -9146,7 +9146,7 @@
                 "id": "type",
                 "label": "Type",
                 "component": {
-                  "componentName": "dms-select",
+                  "componentName": "dms-input-select",
                   "options": {
                     "items": [
                       {
@@ -9177,7 +9177,7 @@
                 "id": "status",
                 "label": "Status",
                 "component": {
-                  "componentName": "dms-select",
+                  "componentName": "dms-input-select",
                   "options": {
                     "items": [
                       {
@@ -9322,7 +9322,7 @@
           "children": []
         },
         "edit": {
-          "componentName": "dms-form",
+          "componentName": "dms-form-block",
           "options": {
             "title": "Edit project",
             "fetchUrl": "/docs-fixtures/projects/get?id={{params.id}}",
@@ -9343,7 +9343,7 @@
                 "id": "type",
                 "label": "Type",
                 "component": {
-                  "componentName": "dms-select",
+                  "componentName": "dms-input-select",
                   "options": {
                     "items": [
                       {
@@ -9374,7 +9374,7 @@
                 "id": "status",
                 "label": "Status",
                 "component": {
-                  "componentName": "dms-select",
+                  "componentName": "dms-input-select",
                   "options": {
                     "items": [
                       {
@@ -9613,7 +9613,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -9648,7 +9648,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -9898,7 +9898,7 @@
             "defaultCompareMode": "is",
             "filterComponents": {
               "default": {
-                "componentName": "dms-select",
+                "componentName": "dms-input-select",
                 "options": {
                   "items": [
                     {
@@ -9921,7 +9921,7 @@
               "is_not_empty": "noInput"
             },
             "inputComponent": {
-              "componentName": "dms-select",
+              "componentName": "dms-input-select",
               "options": {
                 "items": [
                   {
@@ -10141,7 +10141,7 @@
       "realtime": false,
       "formComponents": {
         "new": {
-          "componentName": "dms-form",
+          "componentName": "dms-form-block",
           "options": {
             "title": "New task",
             "submitUrl": "/docs-fixtures/tasks/new",
@@ -10213,7 +10213,7 @@
           "children": []
         },
         "edit": {
-          "componentName": "dms-form",
+          "componentName": "dms-form-block",
           "options": {
             "title": "Edit task",
             "fetchUrl": "/docs-fixtures/tasks/get?id={{params.id}}",

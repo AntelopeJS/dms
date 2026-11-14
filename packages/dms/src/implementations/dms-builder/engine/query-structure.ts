@@ -230,26 +230,42 @@ function routeModelClassName(method: MethodDeclaration): string | undefined {
   return undefined;
 }
 
+/** The argument of a one-argument call to `calleeName`, or `undefined`. */
+function calledWith(
+  node: CallExpression | NewExpression,
+  calleeName: string,
+): Node | undefined {
+  const callee = node.getExpression();
+  const args = node.getArguments();
+  return Node.isIdentifier(callee) &&
+    callee.getText() === calleeName &&
+    args.length === 1
+    ? args[0]
+    : undefined;
+}
+
+/**
+ * The parameter a route hands on as text: `x`, or `String(x)`, which is how a
+ * `QueryValue` read from the query string is narrowed to text.
+ */
+function textParam(node: Node | undefined): string | undefined {
+  const text =
+    node && Node.isCallExpression(node) ? calledWith(node, "String") : node;
+  return text && Node.isIdentifier(text) ? text.getText() : undefined;
+}
+
 /**
  * `Number(x)` and `new Date(x)` both read as the parameter `x` carrying a
- * coercion. Anything else in that position is not a shape this can describe.
+ * coercion, as does `new Date(String(x))`. Anything else in that position is
+ * not a shape this can describe.
  */
 function coercedParam(
   node: CallExpression | NewExpression,
   calleeName: string,
   coerce: "number" | "date",
 ): QueryArg | undefined {
-  const callee = node.getExpression();
-  const inner = node.getArguments()[0];
-  if (
-    Node.isIdentifier(callee) &&
-    callee.getText() === calleeName &&
-    inner &&
-    Node.isIdentifier(inner)
-  ) {
-    return { kind: "param", name: inner.getText(), coerce };
-  }
-  return undefined;
+  const name = textParam(calledWith(node, calleeName));
+  return name ? { kind: "param", name, coerce } : undefined;
 }
 
 /** `x === "true"` is how a boolean parameter arrives from a query string. */
@@ -272,7 +288,10 @@ function unwrapArgument(node: Node): QueryArg | undefined {
     return { kind: "param", name: node.getText() };
   }
   if (Node.isCallExpression(node)) {
-    return coercedParam(node, "Number", "number");
+    const text = textParam(node);
+    return text
+      ? { kind: "param", name: text }
+      : coercedParam(node, "Number", "number");
   }
   if (Node.isNewExpression(node)) {
     return coercedParam(node, "Date", "date");

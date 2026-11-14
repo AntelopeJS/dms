@@ -63,7 +63,7 @@ function mount() {
     }),
   );
   app.component(
-    "DmsEyebrow",
+    "DmsEyebrowLabel",
     defineComponent({
       props: { label: String },
       setup: (props) => () => h("h3", props.label),

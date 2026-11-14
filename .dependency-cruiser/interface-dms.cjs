@@ -63,6 +63,7 @@ const internals = new Map(
       "own-entry",
     ],
     "invite-resolution.ts": [
+      "invite-content",
       "invite-membership",
       "invite-replacement",
       "invite-resolution",

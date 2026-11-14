@@ -12,7 +12,7 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import Register from "../layers/dms-onboarding/app/components/onboarding/steps/register.vue";
+import Register from "../layers/dms-onboarding/app/components/onboarding/steps/StepRegister.vue";
 import Onboarding from "../layers/dms-onboarding/app/custom-pages/onboarding.vue";
 import {
   passwordSchema,
@@ -121,7 +121,7 @@ function registerUi(app: App) {
     "UIcon",
     "UBadge",
     "DmsIconWell",
-    "DmsEyebrow",
+    "DmsEyebrowLabel",
     "DmsKeyValueList",
     "i18n-t",
   ]) {

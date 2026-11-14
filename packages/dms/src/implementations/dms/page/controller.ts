@@ -3,6 +3,7 @@ import {
   Parameter,
   Get,
   Context,
+  type QueryValue,
   type RequestContext,
   Post,
   JSONBody,
@@ -27,6 +28,7 @@ import {
   GetPageLayoutBySlug,
 } from "@antelopejs/interface-dms/page";
 import { assertPageSessionAccepted } from "../stale-session";
+import { queryText } from "../../../utils";
 import { resolveUserPermissions, buildAccessContext } from "./access";
 import type {
   SiteLayoutPayload,
@@ -55,10 +57,10 @@ export class DMSController extends Controller("/dms") {
   declare bootstrapHeader: string | undefined;
 
   @Parameter("path", "query")
-  declare pagePath: string;
+  declare pagePath: QueryValue;
 
   @Parameter("shared", "query")
-  declare sharedPage: string | undefined;
+  declare sharedPage: QueryValue;
 
   @Parameter("authorization", "header")
   declare authorization: string | undefined;
@@ -66,15 +68,15 @@ export class DMSController extends Controller("/dms") {
   @Get("/frontend")
   async frontend(
     @Context() requestContext: RequestContext,
-    @Parameter("clientUrl", "query") clientUrl: string | undefined,
-    @Parameter("renderer", "query") renderer: string | undefined,
-    @Parameter("rendererVersion", "query") rendererVersion: string | undefined,
+    @Parameter("clientUrl", "query") clientUrl: QueryValue,
+    @Parameter("renderer", "query") renderer: QueryValue,
+    @Parameter("rendererVersion", "query") rendererVersion: QueryValue,
   ): Promise<FrontendManifest<ManifestModuleEntry>> {
     return buildFrontendManifest(
       requestContext,
-      clientUrl,
-      renderer,
-      rendererVersion,
+      queryText(clientUrl),
+      queryText(renderer),
+      queryText(rendererVersion),
       this.bootstrapHeader,
     );
   }
@@ -157,8 +159,9 @@ export class DMSController extends Controller("/dms") {
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @IfAuthUser() user: User | undefined,
-    @Parameter(PAGE_LAYOUT_SLUG_PARAMETER, "query") slug: string,
+    @Parameter(PAGE_LAYOUT_SLUG_PARAMETER, "query") slugParameter: QueryValue,
   ) {
+    const slug = queryText(slugParameter);
     assert(slug, 400, "error.slug_required");
 
     const normalizedSlug = slug.startsWith("/") ? slug : `/${slug}`;
@@ -181,9 +184,10 @@ export class DMSController extends Controller("/dms") {
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @IfAuthUser() user: User | undefined,
   ): Promise<PageResponsePayload> {
-    assert(this.pagePath, 400, "error.path_required");
+    const pagePath = queryText(this.pagePath);
+    assert(pagePath, 400, "error.path_required");
     const payload = await buildPagePayload(
-      this.pagePath,
+      pagePath,
       user,
       memberModel,
       roleModel,

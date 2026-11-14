@@ -184,6 +184,21 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
         false,
       );
     });
+
+    it("rejects every value when it has no items", () => {
+      const type = new DefaultDataTypes.SelectType();
+      expect(type.getValidation().safeParse("").success).to.equal(false);
+      expect(type.getValidation().safeParse("a").success).to.equal(false);
+    });
+
+    it("accepts only an empty array when multiple=true and it has no items", () => {
+      const type = new DefaultDataTypes.SelectType({
+        items: [],
+        multiple: true,
+      });
+      expect(type.getValidation().safeParse([]).success).to.equal(true);
+      expect(type.getValidation().safeParse(["a"]).success).to.equal(false);
+    });
   });
 
   describe("PhoneType", () => {

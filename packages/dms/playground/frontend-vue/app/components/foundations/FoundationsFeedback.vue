@@ -90,7 +90,7 @@ const STATUS_METRICS = [
   <div class="grid gap-16 pb-10">
     <ShowcaseSection
       id="banner"
-      title="DmsBanner"
+      title="DmsNoticeBanner"
       description="Notice banner: a tinted wash over the card surface with a boxed icon, for module beta notices, maintenance and results."
     >
       <ShowcaseDemo
@@ -98,7 +98,7 @@ const STATUS_METRICS = [
         wide
       >
         <div class="grid gap-3">
-          <DmsBanner
+          <DmsNoticeBanner
             v-for="item in BANNER_TONES"
             :key="item.tone"
             :tone="item.tone"
@@ -110,14 +110,14 @@ const STATUS_METRICS = [
       </ShowcaseDemo>
       <ShowcaseDemo label="size='sm' (title and description inline)">
         <div class="grid gap-3">
-          <DmsBanner
+          <DmsNoticeBanner
             size="sm"
             tone="info"
             icon="i-ph-info"
             title="Read-only."
             description="You are viewing an archived record."
           />
-          <DmsBanner
+          <DmsNoticeBanner
             size="sm"
             tone="warning"
             title="Trial ends in 3 days."
@@ -126,7 +126,7 @@ const STATUS_METRICS = [
         </div>
       </ShowcaseDemo>
       <ShowcaseDemo label="#actions · dismissible (@dismiss)">
-        <DmsBanner
+        <DmsNoticeBanner
           v-if="!dismissed"
           tone="primary"
           icon="i-ph-sparkle"
@@ -138,7 +138,7 @@ const STATUS_METRICS = [
           <template #actions>
             <UButton label="Try it" size="sm" />
           </template>
-        </DmsBanner>
+        </DmsNoticeBanner>
         <UButton
           v-else
           label="Show the dismissed banner again"
@@ -151,7 +151,7 @@ const STATUS_METRICS = [
         />
       </ShowcaseDemo>
       <ShowcaseDemo label="#cli (inset command box with DmsCopyButton)" wide>
-        <DmsBanner
+        <DmsNoticeBanner
           tone="warning"
           title="This module is in beta"
           description="Install the CLI to follow the release notes."
@@ -166,7 +166,7 @@ const STATUS_METRICS = [
               <DmsCopyButton value="npx ajs module add @acme/billing" />
             </div>
           </template>
-        </DmsBanner>
+        </DmsNoticeBanner>
       </ShowcaseDemo>
     </ShowcaseSection>
 
@@ -240,11 +240,11 @@ const STATUS_METRICS = [
 
     <ShowcaseSection
       id="meter"
-      title="DmsMeter"
+      title="DmsMeterBar"
       description="Label, mono value and a bar: a single value, stacked segments with a legend, warning / error thresholds."
     >
       <ShowcaseDemo label="label · hint · value · max · format='fraction'">
-        <DmsMeter
+        <DmsMeterBar
           label="Seats"
           hint="8 in use · 2 free"
           :value="8"
@@ -253,7 +253,7 @@ const STATUS_METRICS = [
         />
       </ShowcaseDemo>
       <ShowcaseDemo label="segments · legend · #legend-end">
-        <DmsMeter
+        <DmsMeterBar
           label="Seats"
           :segments="[...SEATS_SEGMENTS]"
           :max="10"
@@ -264,11 +264,11 @@ const STATUS_METRICS = [
           <template #legend-end>
             <ULink to="#meter" class="text-primary text-xs">Manage</ULink>
           </template>
-        </DmsMeter>
+        </DmsMeterBar>
       </ShowcaseDemo>
       <ShowcaseDemo label="warnAt=75 · errorAt=90 (value 62 · 81 · 96)">
         <div class="grid gap-4">
-          <DmsMeter
+          <DmsMeterBar
             v-for="value in [62, 81, 96]"
             :key="value"
             label="API calls"
@@ -281,21 +281,21 @@ const STATUS_METRICS = [
       </ShowcaseDemo>
       <ShowcaseDemo label="format='fraction' · 'percent' · 'value' · 'none'">
         <div class="grid gap-4">
-          <DmsMeter label="fraction" :value="34" :max="50" format="fraction" />
-          <DmsMeter label="percent" :value="34" :max="50" format="percent" />
-          <DmsMeter label="value" :value="34" :max="50" format="value" />
-          <DmsMeter label="none" :value="34" :max="50" format="none" />
+          <DmsMeterBar label="fraction" :value="34" :max="50" format="fraction" />
+          <DmsMeterBar label="percent" :value="34" :max="50" format="percent" />
+          <DmsMeterBar label="value" :value="34" :max="50" format="value" />
+          <DmsMeterBar label="none" :value="34" :max="50" format="none" />
         </div>
       </ShowcaseDemo>
       <ShowcaseDemo label="size='xs' (4px) · 'sm' (6px) · 'md' (8px) · tone">
         <div class="grid gap-4">
-          <DmsMeter :value="72" size="xs" tone="success" />
-          <DmsMeter :value="72" size="sm" tone="primary" />
-          <DmsMeter :value="72" size="md" tone="secondary" />
+          <DmsMeterBar :value="72" size="xs" tone="success" />
+          <DmsMeterBar :value="72" size="sm" tone="primary" />
+          <DmsMeterBar :value="72" size="md" tone="secondary" />
         </div>
       </ShowcaseDemo>
       <ShowcaseDemo label="segments (storage) · legend">
-        <DmsMeter
+        <DmsMeterBar
           label="Storage"
           hint="68 of 100 GB"
           :segments="[...STORAGE_SEGMENTS]"
@@ -404,7 +404,7 @@ const STATUS_METRICS = [
                   : 'Amounts above €10,000 are masked.'
             "
           >
-            <DmsCard title="Invoices" :count="12">
+            <DmsCardPanel title="Invoices" :count="12">
               <DmsKeyValueList
                 dense
                 :items="[
@@ -418,7 +418,7 @@ const STATUS_METRICS = [
                   { label: 'Customer', value: 'Northwind Traders' },
                 ]"
               />
-            </DmsCard>
+            </DmsCardPanel>
           </DmsPermissionVeil>
         </div>
       </ShowcaseDemo>

@@ -2,7 +2,7 @@
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
-import type { Data, TableSharedData, NavItem } from "./Table.vue";
+import type { Data, TableSharedData, NavItem } from "./TableRoot.vue";
 import { useTableConfigClipboard } from "../../composables/table/useTableConfigClipboard";
 
 const theme = tv({

@@ -2,6 +2,8 @@ import type {
   MapResourcesInput,
   OpResult,
 } from "@antelopejs/interface-dms-builder";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
+import { z } from "zod";
 import {
   AddBlock,
   GetPageStructure,
@@ -19,6 +21,9 @@ import {
   type Fixture,
   PROJECT_MODULE,
 } from "../harness";
+import type { McpAccess } from "../../../../mcp/access";
+import { answerMcpMessage } from "../../../../mcp/protocol";
+import { MCP_TOOLS } from "../../../../mcp/tools";
 import { FAKE_CATALOG, MODULE } from "../mapped-database";
 import { reloadedAtOnce } from "../reload-stub";
 
@@ -27,6 +32,35 @@ export const COUNTRIES_API = "sales/countries/data-api.ts";
 export const READ_ONLY = 'connection "erp" is read-only';
 export const ACCESS_PATH =
   "modules.dms-database.config.externalConnections.erp.access";
+
+export const RAISE_REFUSED = "an agent never raises a connection's access";
+
+const ToolAnswerSchema = z.object({
+  result: z.object({
+    content: z.array(z.object({ text: z.string() })),
+    isError: z.boolean().optional(),
+  }),
+});
+
+/** Calls `builder_configure_project` once, as an agent with this access. */
+export function reply(access: McpAccess, args: JsonValue) {
+  return answerMcpMessage(
+    { access, tools: MCP_TOOLS },
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "builder_configure_project", arguments: args },
+    },
+    "test-session",
+  );
+}
+
+/** Calls the tool twice in full mode, as the repeat-confirmation gate asks; answers the second. */
+export async function confirmedCall(args: JsonValue) {
+  await reply("full", args);
+  return ToolAnswerSchema.parse(await reply("full", args)).result;
+}
 
 /** A mapping of `sales.countries` from `erp` into the fixture's tables module. */
 export function countries(writable: boolean, tableView = true) {

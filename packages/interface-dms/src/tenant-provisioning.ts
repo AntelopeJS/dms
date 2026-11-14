@@ -25,6 +25,6 @@ export async function ProvisionTenant(
 ): Promise<void> {
   const schema = Schema.get(TENANT_SCHEMA_NAME);
   assert(schema, `Schema '${TENANT_SCHEMA_NAME}' is not registered`);
-  await schema.createInstance(payload.tenantId);
+  await schema.createInstance(payload.tenantId).run();
   await ExecuteHooks(Hook.TENANT_BEING_PROVISIONED, payload);
 }

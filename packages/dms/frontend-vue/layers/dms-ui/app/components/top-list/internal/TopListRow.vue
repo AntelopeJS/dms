@@ -4,7 +4,7 @@ import type { TopListItem } from "../../../composables/chart/types";
 import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 
 import DmsTrendBadge from "../../chart/internal/TrendBadge.vue";
-import DmsSparkline from "../../chart/internal/Sparkline.vue";
+import DmsSparklineChart from "../../chart/internal/SparklineChart.vue";
 
 interface Props {
   item: TopListItem;
@@ -109,7 +109,7 @@ const barStyle = computed(() => ({
     </span>
     <!-- Sparkline column from 28rem of card width (container query). -->
     <div v-if="showSparkline" class="hidden h-6 w-16 @[28rem]:block">
-      <DmsSparkline
+      <DmsSparklineChart
         v-if="hasSparklineData"
         :values="item.sparkline ?? []"
         :accent="sparklineAccent"

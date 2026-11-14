@@ -244,8 +244,8 @@ function holderName(): string {
  * so a start never waits for provisioning and never fails for it, and take over
  * when the holder's token stops changing. Clears the marker only after every
  * provisioning handler resolves. A failure is logged, frees the lease for a
- * waiting replica, and leaves the row pending for the next attempt. Legacy rows
- * with no marker are already provisioned and are not run again.
+ * waiting replica, and leaves the row pending for the next attempt. A row whose
+ * marker is false or unset counts as provisioned and is not run again.
  *
  * @param signal Ends the call: a wait for another replica's provisioning, or
  * the wait for this replica's own run. A run in progress is not cancelled: it

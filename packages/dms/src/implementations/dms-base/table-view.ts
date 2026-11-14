@@ -18,11 +18,12 @@ import type {
 import type { Stream, ValueProxy } from "@antelopejs/interface-database";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DEFAULT_ROW_ID_FIELD } from "@antelopejs/interface-dms/base/table-view";
+import { readExportJobContext } from "@antelopejs/interface-dms/base/internal/export-jobs";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import {
   DEFAULT_EXPORT_FORMAT,
   downloadExportJob,
-  type ExportJobAccessOptions,
+  type ExportJobAccess,
   type ExportWriter,
   getExporter,
   getExportJobStatus,
@@ -41,15 +42,16 @@ import {
 } from "./search-route";
 import { fetchRowForGuard as fetchRowForGuardHelper } from "../../db";
 import { isNumber } from "@antelopejs/interface-dms/utils/internal/type-check";
+import { z } from "zod";
 
 /** Rows read from the database per export page. */
 export const EXPORT_BATCH_SIZE = 100;
 
 const TABLE_VIEW_EXPORT_SCOPE = "table-view";
 
-interface TableViewExportContext {
-  controllerKey: string;
-}
+const TableViewExportContextSchema = z.object({ controllerKey: z.string() });
+
+type TableViewExportContext = z.infer<typeof TableViewExportContextSchema>;
 
 /** One page of rows on its way to the export writer. */
 interface ExportBatch {
@@ -69,7 +71,7 @@ async function processBatch({
   writer,
   headers,
 }: ExportBatch): Promise<void> {
-  const dbResult = await pendingRecordBatch;
+  const dbResult = await pendingRecordBatch.run();
   const results = await Promise.all(
     dbResult.map((entry) => {
       const stored = model.constructor.fromDatabase(entry);
@@ -123,13 +125,11 @@ async function buildIdsExportQuery(
     );
     const archiveConstraint = filtersWithArchive?.[archiveField];
     if (archiveConstraint) {
-      const archiveValue = archiveConstraint[0];
-
       const isNotEqual = archiveConstraint[1] === "ne";
       query = query.filter((row: ValueProxy<RowFields>) =>
         isNotEqual
-          ? row.key(archiveField).ne(archiveValue)
-          : row.key(archiveField).eq(archiveValue),
+          ? row.key(archiveField).ne(true)
+          : row.key(archiveField).eq(true),
       );
     }
   }
@@ -179,11 +179,13 @@ function getControllerKey(controller: DataControllerInstance): string {
 
 function buildTableViewAccessForController(
   controller: DataControllerInstance,
-): ExportJobAccessOptions<TableViewExportContext> {
+): ExportJobAccess {
   const controllerKey = getControllerKey(controller);
   return {
     scope: TABLE_VIEW_EXPORT_SCOPE,
-    isOwnedBy: (_record, context) => context?.controllerKey === controllerKey,
+    isOwnedBy: (record) =>
+      readExportJobContext(record, TableViewExportContextSchema).data
+        ?.controllerKey === controllerKey,
   };
 }
 
@@ -226,7 +228,7 @@ export async function generateTableViewExport({
     user,
   });
 
-  const totalRecordsCount = await queryTotal;
+  const totalRecordsCount = await queryTotal.run();
 
   for (let i = 0; i < totalRecordsCount; i += EXPORT_BATCH_SIZE) {
     const pendingRecordBatch = Query.ListPage(
@@ -397,7 +399,7 @@ export async function validateRowsAgainstRule(
   const controllerMetadata = GetDataControllerMeta(controller);
   const model = Query.GetModel(controller, controllerMetadata);
 
-  const rows = await model.table.getAll(ids, idField);
+  const rows = await model.table.getAll(ids, idField).run();
 
   const eligibleIds: string[] = [];
   const rejectedIds: string[] = [];
@@ -454,9 +456,12 @@ export async function archiveRows(
     return { success: true, archivedCount: 0 };
   }
 
-  const updated = await model.table.getAll(idArray, idField).update({
-    [archiveField]: true,
-  });
+  const updated = await model.table
+    .getAll(idArray, idField)
+    .update({
+      [archiveField]: true,
+    })
+    .run();
 
   return { success: true, archivedCount: updatedRowCount(updated, idArray) };
 }
@@ -483,9 +488,12 @@ export async function restoreRows(
     return { success: true, restoredCount: 0 };
   }
 
-  const updated = await model.table.getAll(idArray, idField).update({
-    [archiveField]: false,
-  });
+  const updated = await model.table
+    .getAll(idArray, idField)
+    .update({
+      [archiveField]: false,
+    })
+    .run();
 
   return { success: true, restoredCount: updatedRowCount(updated, idArray) };
 }

@@ -27,7 +27,7 @@ async function render(props: FeedProps): Promise<string> {
       }),
   });
   for (const name of [
-    "DmsCard",
+    "DmsCardPanel",
     "UIcon",
     "USkeleton",
     "UButton",

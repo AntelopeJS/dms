@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="T extends Data">
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import KanbanBoard from "./KanbanBoard.vue";
-import type { Data } from "../../build/components/table/Table.vue";
+import type { Data } from "../../build/components/table/TableRoot.vue";
 import type {
   TableViewCardConfig,
   TableViewDisplayContext,

@@ -9,8 +9,6 @@ import { readPermissionTree } from "./permissions";
 import type { PageRecord } from "./scan";
 import { findPageRecord } from "./source-index";
 
-/** A role holding it holds every permission there is. */
-const ALL_PERMISSIONS = "*";
 const ID_SEPARATOR = ".";
 
 /**
@@ -37,8 +35,6 @@ export interface RoleAccess {
   name: string;
   /** How many members hold it. */
   members: number;
-  /** Whether it holds every permission there is. */
-  all: boolean;
   /** The permissions it holds under the page, the page's own included. */
   permissions: string[];
 }
@@ -260,7 +256,6 @@ async function readRoles(
           id: String(role._id),
           name: role.name,
           members: holders.get(String(role._id)) ?? 0,
-          all: held.includes(ALL_PERMISSIONS),
           permissions: held.filter(under),
         };
       })

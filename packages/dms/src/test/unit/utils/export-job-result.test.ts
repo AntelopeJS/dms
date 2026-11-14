@@ -36,6 +36,30 @@ describe("[unit] utils/export-jobs — the result summary a job stored", () => {
     });
   });
 
+  it("reads a partial summary with incomplete failures as partial, naming each source it can", () => {
+    const stored = JSON.stringify({
+      partial: true,
+      failures: [{ source: "mod-a" }, { error: "timeout" }, "mod-c"],
+    });
+
+    expect(readJobResult(jobStoring(stored))).to.deep.equal({
+      partial: true,
+      failures: [{ source: "mod-a", error: "" }],
+    });
+  });
+
+  it("reads a summary naming failures as partial when its partial is not a boolean", () => {
+    const stored = JSON.stringify({
+      partial: "yes",
+      failures: [{ source: "billing", error: "timeout" }],
+    });
+
+    expect(readJobResult(jobStoring(stored))).to.deep.equal({
+      partial: true,
+      failures: [{ source: "billing", error: "timeout" }],
+    });
+  });
+
   it("reads no summary from a stored value that is not one", () => {
     expect(readJobResult(jobStoring(JSON.stringify("done")))).to.equal(
       undefined,

@@ -1,10 +1,6 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { InterfaceFunction } from "@antelopejs/interface-core";
-import type {
-  DataControllerCallback,
-  DataControllerCallbackWithOptions,
-  DataControllerInstance,
-} from "@antelopejs/interface-data-api";
+import type { DataControllerInstance } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "../../auth/db";
 import type { RowActionRule } from "../types/row-action";
@@ -32,7 +28,7 @@ export interface TableViewListPage {
 export const listWithSearch =
   InterfaceFunction<
     (
-      thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+      thisObj: DataControllerInstance,
       ctx: RequestContext,
       listParams: Parameters.ListParameters,
       user?: User,
@@ -44,7 +40,7 @@ export const listWithSearch =
 export const countWithSearch =
   InterfaceFunction<
     (
-      thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+      thisObj: DataControllerInstance,
       ctx: RequestContext,
       listParams: Parameters.ListParameters,
       user?: User,
@@ -56,7 +52,7 @@ export const countWithSearch =
 export const summarizeWithSearch = InterfaceFunction<
   // oxlint-disable-next-line eslint/max-params -- The runtime implements summarizeWithSearch with this positional interface signature.
   (
-    thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+    thisObj: DataControllerInstance,
     ctx: RequestContext,
     listParams: Parameters.ListParameters,
     summaries: Record<string, TableViewFooterSummary>,
@@ -112,7 +108,7 @@ export const BULK_ALL_MATCHING_KEY = "allMatching";
 export const startExport = InterfaceFunction<
   // oxlint-disable-next-line eslint/max-params -- The runtime implements startExport with this positional interface signature.
   (
-    thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+    thisObj: DataControllerInstance,
     ctx: RequestContext,
     listParams: Parameters.ListParameters,
     format?: string,
@@ -125,7 +121,7 @@ export const startExport = InterfaceFunction<
 /** @internal */
 export const getExportStatus = InterfaceFunction<
   (
-    thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+    thisObj: DataControllerInstance,
     ctx: RequestContext,
     exportId: string,
     user?: User,
@@ -140,7 +136,7 @@ export const getExportStatus = InterfaceFunction<
 export const downloadExport =
   InterfaceFunction<
     (
-      thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+      thisObj: DataControllerInstance,
       ctx: RequestContext,
       exportId: string,
       user?: User,
@@ -172,7 +168,7 @@ interface RuleValidationResult {
 export const validateRowsAgainstRule =
   InterfaceFunction<
     (
-      controller: DataControllerCallback | DataControllerCallbackWithOptions,
+      controller: DataControllerInstance,
       ids: string[],
       rule: RowActionRule | undefined,
       strictMode: boolean,
@@ -183,7 +179,7 @@ export const validateRowsAgainstRule =
 /** @internal */
 export const fetchRowForGuard = InterfaceFunction<
   (
-    controller: DataControllerCallback | DataControllerCallbackWithOptions,
+    controller: DataControllerInstance,
     id: string,
     idField: string,
     // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Guard rows come from module-owned models through this published runtime proxy; values have no shared schema here.

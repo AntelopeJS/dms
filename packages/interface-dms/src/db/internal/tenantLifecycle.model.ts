@@ -138,7 +138,7 @@ export class TenantLifecycleModel extends BasicDataModel(
     }
   }
 
-  /** The tenant's row, or the legacy shared row, without initializing one. */
+  /** The tenant's row, else the shared `membership-and-invites` row, without initializing one. */
   private async existing(
     tenantId: string,
   ): Promise<TenantLifecycle | undefined> {

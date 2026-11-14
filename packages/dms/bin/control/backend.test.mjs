@@ -75,6 +75,24 @@ await test("a standby started for another database is killed and its database dr
   ]);
 });
 
+await test("a database without standby is served by a backend started for it, not the standby booted before it, and no standby boots while it is used; the next database gets one again", async (t) => {
+  const state = await newRun(t);
+  await freshDatabase(state, "j001");
+  const standby = await startedOn(`${state.databasePrefix}_j002`);
+  await freshDatabase(state, "j002", { standby: false });
+  const answer = await served(state);
+  assert.equal(answer.database, `${state.databasePrefix}_j002`);
+  assert.notEqual(answer.pid, standby.pid);
+  assert.equal(isRunning(standby.pid), false);
+  assert.deepEqual(
+    liveBackends(state).map((backend) => backend.pid),
+    [answer.pid],
+  );
+  await freshDatabase(state, "j003");
+  const next = await startedOn(`${state.databasePrefix}_j004`);
+  assert.equal(isRunning(next.pid), true);
+});
+
 await test("a standby that died is replaced by a backend started on the spot", async (t) => {
   const state = await newRun(t);
   await freshDatabase(state, "j001");

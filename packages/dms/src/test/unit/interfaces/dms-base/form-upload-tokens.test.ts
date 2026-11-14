@@ -119,14 +119,14 @@ describe("[unit] interfaces/dms-base/form — the form stamps its own upload fie
     };
     const hostOptions = {
       addForm: {
-        componentName: "dms-form",
+        componentName: "dms-form-block",
         options: {
           fields: [
             {
               id: "attachment",
               type: "file",
               component: {
-                componentName: "dms-file",
+                componentName: "dms-input-file",
                 options: uploadOptions,
               },
             },

@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
         class="w-full sm:w-60"
       />
       <!-- Phones: the six categories wrap onto a second line. -->
-      <DmsSegmented
+      <DmsSegmentedControl
         v-if="cssVariables.length"
         v-model="category"
         class="max-sm:h-auto max-sm:flex-wrap max-sm:[&>button]:h-6"

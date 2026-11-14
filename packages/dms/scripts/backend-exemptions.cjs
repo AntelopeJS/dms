@@ -1,11 +1,11 @@
 const constructorExemptions = {
-  "implementations/dms-base/search-route.ts:402":
+  "implementations/dms-base/search-route.ts:403":
     "      const entryInstance = model.constructor.fromDatabase(entry);",
-  "implementations/dms-base/table-view.ts:75":
+  "implementations/dms-base/table-view.ts:77":
     "      const stored = model.constructor.fromDatabase(entry);",
   "implementations/dms-base/table-view.ts:172":
     "  const owner = controller.constructor;",
-  "implementations/dms-base/table-view.ts:373":
+  "implementations/dms-base/table-view.ts:375":
     "    const stored = model.constructor.fromDatabase(row);",
   "test/unit/implementations/dms-base/table-view-shared-controller.test.ts:66":
     "    const meta = GetMetadata(instance.constructor, TableViewMeta);",
@@ -58,6 +58,10 @@ const loaderExemptions = {
     "    Object.assign(require.cache, { [file]: { exports } });",
   "dist/test/unit/builder/helpers/module-cache.js:9":
     "    delete require.cache[file];",
+  "src/test/integration/mcp-startup-modules.test.ts:6":
+    "const tsMorphFilesAtStart = Object.keys(require.cache).filter((file) =>",
+  "dist/test/integration/mcp-startup-modules.test.js:9":
+    "const tsMorphFilesAtStart = Object.keys(require.cache).filter((file) => file.includes(TS_MORPH_SEGMENT));",
 };
 
 module.exports = {

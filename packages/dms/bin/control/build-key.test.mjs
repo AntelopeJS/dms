@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { setEnv } from "./helpers/env.mjs";
+import { buildInputs } from "./build-key.mjs";
 import { fixture, keyOf } from "./helpers/key-fixture.mjs";
 import { write } from "./helpers/repo.mjs";
 
@@ -388,5 +390,27 @@ await test("links of one name and one link text in two node_modules are keyed by
     keyOf(frontend, side),
     linked,
     "a key that reuses a linked package's hash by its name or link text serves the nearer package's hash for the farther one",
+  );
+});
+
+await test("an install record above TMPDIR that the key cannot read leaves the fixture's keys unchanged", (t) => {
+  const outer = realpathSync(
+    mkdtempSync(join(tmpdir(), "dms-control-build-key-outer-")),
+  );
+  t.after(() => rmSync(outer, { recursive: true, force: true }));
+  write(join(outer, "node_modules", ".modules.yaml"), '{"layoutVersion":5}\n');
+  write(join(outer, "tmp", ".keep"), "");
+  setEnv(t, { TMPDIR: join(outer, "tmp") });
+  const { frontend, prepare } = fixture(t);
+  const side = prepare("run-a", 1001);
+  assert.throws(
+    () => buildInputs(side.run, frontend, side.prepared, outer),
+    /\.modules\.yaml is not the YAML layout the build cache reads/u,
+    "a key that reads the folder above TMPDIR refuses the record there, so the fixture's keys below pass only by not reading it",
+  );
+  assert.equal(
+    keyOf(frontend, prepare("run-b", 2002)),
+    keyOf(frontend, side),
+    "a fixture whose keys read above its folder fails on whatever install sits above TMPDIR",
   );
 });

@@ -1,6 +1,12 @@
-import { Controller, Get, Parameter } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  Parameter,
+  type QueryValue,
+} from "@antelopejs/interface-api";
 import type { TopListItem } from "@antelopejs/interface-dms/base/top-list-card";
 import { ownEntry } from "../../own-entry";
+import { queryText } from "../../query-text";
 
 const MINUTE_MS = 60 * 1000;
 const SPARKLINE_LENGTH = 8;
@@ -98,8 +104,8 @@ function pageItem(page: PageVisit): TopListItem {
 /** Rankings of the TopListCard demos. */
 export class TopListDemoApiController extends Controller("/api/dashboard/top") {
   @Get("routes")
-  getRoutes(@Parameter("preset", "query") preset?: string) {
-    const slowdown = ownEntry(PRESET_SLOWDOWN, preset ?? "") ?? 1;
+  getRoutes(@Parameter("preset", "query") preset: QueryValue) {
+    const slowdown = ownEntry(PRESET_SLOWDOWN, queryText(preset) ?? "") ?? 1;
     return {
       items: ROUTE_TIMINGS.map((timing) => routeItem(timing, slowdown)),
     };

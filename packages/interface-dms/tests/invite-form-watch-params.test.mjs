@@ -40,7 +40,7 @@ async function paramsOnInviteForm(watchActions) {
   });
   /** @type {unknown} */
   const resolved = await ResolveComponentSlots({
-    componentName: "dms-form",
+    componentName: "dms-form-block",
     options: { slotId: INVITE_FORM_SLOT_ID, fields: [{ id: "emails" }] },
   });
   clearInviteExtensions();

@@ -187,9 +187,7 @@ async function canViewArchived(
 export function archiveFilter(
   archived: boolean,
 ): NonNullable<Parameters.ListParameters["filters"]>[string] {
-  // SAFETY: Bug in interface-data-api's published FilterValue, which types a filter value as a string. The archive filter must compare with the boolean true, so the string type is false; the value is right as long as every reader hands it to the database unchanged, as each does: the data-api list runs the field's filter, the default one ArchiveField registers (proxy.eq or proxy.ne), and its index lookup passes it to getAll when the archive field is indexed and the filter is eq; buildIdsExportQuery compares row.key(archiveField) with it. A Filter a module declares above ArchiveField on that field replaces the default and receives the boolean.
-  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The boolean reaches a string-typed slot through unknown; a single assertion cannot cross from boolean to string.
-  return [true as unknown as string, archived ? "eq" : "ne"];
+  return ["true", archived ? "eq" : "ne"];
 }
 
 export async function applyArchiveFilter(
@@ -340,7 +338,7 @@ export async function countWithSearch(
     user,
     permissions,
   );
-  const total = await queryTotal;
+  const total = await queryTotal.run();
   return { total };
 }
 
@@ -395,7 +393,10 @@ export async function listWithSearch(
     deferredJoined,
   });
 
-  const [dbResult, dbTotal] = await Promise.all([queryPaged, queryTotal]);
+  const [dbResult, dbTotal] = await Promise.all([
+    queryPaged.run(),
+    queryTotal.run(),
+  ]);
 
   const results = await Promise.all(
     dbResult.map((entry) => {

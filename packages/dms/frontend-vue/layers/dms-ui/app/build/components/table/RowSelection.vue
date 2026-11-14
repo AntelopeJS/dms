@@ -2,7 +2,7 @@
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { isActionEnabled } from "#dms-core/app/utils/row-action-rule-evaluator";
 import type { RowSelectionState } from "@tanstack/vue-table";
-import type { TableRowActionOptions, Data } from "./Table.vue";
+import type { TableRowActionOptions, Data } from "./TableRoot.vue";
 import { useTableContext } from "../../composables/table/useTableContext";
 import { selectedRowIds } from "../../composables/table-view/utils/bulkActions";
 import { isAllMatchingAction } from "../../composables/actions/bulkSelection";
