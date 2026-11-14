@@ -13,6 +13,9 @@ import { Role } from "./roles.table";
 export const USER_INVITES_TABLE_NAME = "user_invites";
 const PENDING_INVITE_INDEX = "email_creationResolutionId";
 
+/** How an invitation created without a replacement settled. */
+export type FreshInviteOutcome = "kept" | "withdrawn";
+
 @RegisterTable(USER_INVITES_TABLE_NAME, TENANT_SCHEMA_NAME)
 export class UserInvite extends Table {
   @Field("string")
@@ -61,6 +64,16 @@ export class UserInvite extends Table {
   @Index({ group: PENDING_INVITE_INDEX, unique: true })
   @Field("string")
   declare creationResolutionId?: string;
+
+  /**
+   * How an invitation created without a replacement settled after it looked
+   * for another invitation of its email: `kept`, or `withdrawn` because it
+   * found one. Absent while it is undecided. Written once, through
+   * `UserInviteModel.settleFresh`, so whichever of its creator's withdrawal
+   * and another caller's adoption writes first decides.
+   */
+  @Field("string")
+  declare freshOutcome?: FreshInviteOutcome;
 
   /**
    * Id of the user who sent the invitation, or last resent it. `null` for an

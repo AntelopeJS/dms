@@ -89,6 +89,83 @@ export function beforeFirstOnlyInviteCheck(effect: () => Promise<void>) {
   return { restore };
 }
 
+/** Holds the first `count` callers at `INVITE_BEING_CREATED`, after each read no invitation, each until its own gate is released. */
+function holdFreshCallers(count: number) {
+  const gates = Array.from({ length: count }, () => gate());
+  let arrived = 0;
+  const hold = async () => {
+    const held = gates[arrived];
+    arrived += 1;
+    if (held) await held.pass();
+  };
+  RegisterHook(Hook.INVITE_BEING_CREATED, hold);
+  return {
+    gates,
+    unregister: () => UnregisterHook(Hook.INVITE_BEING_CREATED, hold),
+  };
+}
+
+/** Holds the first `settleFresh` call after it settled, until `release` runs. */
+export function holdAfterFirstSettle() {
+  const original = Object.getOwnPropertyDescriptor(
+    UserInviteModel.prototype,
+    "settleFresh",
+  );
+  if (!original) throw new Error("UserInviteModel has no settleFresh method");
+  const restore = () => {
+    Object.defineProperty(UserInviteModel.prototype, "settleFresh", original);
+  };
+  const { parked, release, pass } = gate();
+  UserInviteModel.prototype.settleFresh = async function (
+    this: UserInviteModel,
+    ...args: Parameters<UserInviteModel["settleFresh"]>
+  ) {
+    restore();
+    const outcome = await this.settleFresh(...args);
+    await pass();
+    return outcome;
+  };
+  return { parked, release, restore };
+}
+
+/** Holds `INVITE_DELETED` for one invite, until `release` runs. */
+export function holdDeletionOf(inviteId: string) {
+  const { parked, release, pass } = gate();
+  const hold = async (payload: { inviteId: string }) => {
+    if (payload.inviteId === inviteId) await pass();
+  };
+  RegisterHook(Hook.INVITE_DELETED, hold);
+  return {
+    parked,
+    release,
+    restore: () => UnregisterHook(Hook.INVITE_DELETED, hold),
+  };
+}
+
+/**
+ * Holds two fresh callers after each read no invitation, then runs A's
+ * creation and C's replacement, so both read C's invite as their rival once
+ * released.
+ */
+export async function holdTwoFreshCallersBesideKept(
+  options: CreateUserInviteTokenOptions,
+) {
+  const invites = GetModel(UserInviteModel, options.tenantId);
+  const fresh = holdFreshCallers(2);
+  const [first, second] = fresh.gates;
+  if (!first || !second) throw new Error("two fresh callers are held");
+  const firstCall = createUserInviteToken(options);
+  await first.parked;
+  const secondCall = createUserInviteToken(options);
+  await second.parked;
+  fresh.unregister();
+  await createUserInviteToken(options);
+  const kept = await createUserInviteToken(options);
+  const keptInvite = await invites.get(kept.inviteId);
+  if (!keptInvite) throw new Error("the kept invite is not stored");
+  return { invites, first, second, firstCall, secondCall, keptInvite };
+}
+
 /** Makes the first invite `delete` call fail. */
 export function failFirstDelete() {
   const restore = () => {
