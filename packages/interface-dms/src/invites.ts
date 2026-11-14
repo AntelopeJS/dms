@@ -285,8 +285,11 @@ async function replaceInvite(
     });
   } catch (error) {
     const retry = await retryAfterRefusal(options, invite);
-    if (!retry) throw error;
-    return createAdmittedInviteToken(retry);
+    if (retry === "read the email again")
+      return createAdmittedInviteToken(options);
+    if (retry === "replace the same invite")
+      return replaceInvite(options, invite, replacement);
+    throw error;
   }
   await completeAdmittedInviteResolution(resolution);
   if (!resolution.replacement) throw new Error("Replacement snapshot missing");
@@ -296,29 +299,35 @@ async function replaceInvite(
   };
 }
 
+/** How a creation that `decideInvite` refused runs again, if it does. */
+type RetryAfterRefusal =
+  | "read the email again"
+  | "replace the same invite"
+  | undefined;
+
 /**
- * The creation to run again after `decideInvite` refused to replace `read`.
- * When a completed cancellation retired the invite a new invitation read, it
- * reads the email again. When it removed invites a completed cancellation
+ * How the creation runs again after `decideInvite` refused to replace `read`.
+ * When a completed cancellation retired the invite a new invitation read, by
+ * the time the email's invites are listed, it reads the email again. When it removed invites a completed cancellation
  * retired but left stored, such as a fresh invite whose withdrawal failed to
- * delete it, it replaces `read` again, so any other refusal stands.
+ * delete it, it replaces `read` again with the same options, so a new
+ * invitation can still read the email again if `read` is cancelled meanwhile,
+ * and any other refusal stands.
  *
- * @returns The options to run again with, or undefined to keep the refusal
+ * @returns The retry, or undefined to keep the refusal
  */
 async function retryAfterRefusal(
   options: CreateUserInviteTokenOptions,
   read: UserInvite,
-): Promise<CreateUserInviteTokenOptions | undefined> {
+): Promise<RetryAfterRefusal> {
   const { tenantId, email } = options;
-  if (!options.replacesInvite && (await removeIfCancelled(tenantId, read._id)))
-    return options;
   const stored = await GetModel(UserInviteModel, tenantId).listByEmail(email);
   const removed = await Promise.all(
     stored.map((invite) => removeIfCancelled(tenantId, invite._id)),
   );
-  return removed.includes(true)
-    ? { ...options, replacesInvite: read }
-    : undefined;
+  if (!options.replacesInvite && (await removeIfCancelled(tenantId, read._id)))
+    return "read the email again";
+  return removed.includes(true) ? "replace the same invite" : undefined;
 }
 
 /**
