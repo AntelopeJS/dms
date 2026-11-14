@@ -173,7 +173,9 @@ export default defineConfig({
         replSet: { count: 1 },
         binary: { version: MONGO_BINARY_VERSION },
       });
-      storageDir = await mkdtemp(join(tmpdir(), "dms-test-storage-"));
+      storageDir = await mkdtemp(
+        join(process.env.RUNNER_TEMP ?? tmpdir(), "dms-test-storage-"),
+      );
 
       const mongoUrl = mongod.getUri();
       await acknowledgeWritesOnApply(mongoUrl);
