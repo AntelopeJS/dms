@@ -9,7 +9,10 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkDmsComponents } from "./check-dms-components.mjs";
+import {
+  assertDmsComponents,
+  checkDmsComponents,
+} from "./check-dms-components.mjs";
 
 const NODE_MODULES = fileURLToPath(new URL("../node_modules", import.meta.url));
 
@@ -31,12 +34,19 @@ const FIXTURE_FILES = {
   "frontend-vue/app/custom-layouts/Board.vue": "<template><div /></template>",
 };
 
-async function diagnose({ screen = "<div />", script = "", backend = "" }) {
+async function diagnose({
+  screen = "<div />",
+  script = "",
+  backend = "",
+  renderer = true,
+  asserted = false,
+}) {
   const module = mkdtempSync(join(tmpdir(), "dms-components-"));
   const layer = join(module, "frontend-vue");
   try {
     mkdirSync(layer);
-    symlinkSync(NODE_MODULES, join(layer, "node_modules"), "junction");
+    if (renderer)
+      symlinkSync(NODE_MODULES, join(layer, "node_modules"), "junction");
     const files = {
       ...FIXTURE_FILES,
       "frontend-vue/app/pages/Screen.vue": [
@@ -56,10 +66,13 @@ async function diagnose({ screen = "<div />", script = "", backend = "" }) {
       writeFileSync(join(module, file), content);
     }
     const shown = relative(process.cwd(), module).length + 1;
-    const diagnostics = await checkDmsComponents({
-      layer,
-      sources: [join(module, "src")],
-    });
+    const options = { layer, sources: [join(module, "src")] };
+    if (asserted)
+      return await assertDmsComponents(options).then(
+        () => [],
+        (error) => error.message.replaceAll(layer, "<layer>").split("\n"),
+      );
+    const diagnostics = await checkDmsComponents(options);
     return diagnostics.map((line) =>
       line
         .slice(shown)
@@ -173,3 +186,19 @@ assert.deepEqual(
   }),
   [],
 );
+
+assert.deepEqual(
+  await diagnose({
+    screen: "<DmsCardPanel />",
+    renderer: false,
+    asserted: true,
+  }),
+  [],
+);
+assert.match(
+  (
+    await diagnose({ screen: "<DmsLink />", renderer: false, asserted: true })
+  ).at(-1),
+  /^@antelopejs\/dms-frontend is not installed in <layer>, so the components its renderer registers, such as DmsLink, count as unknown\. If the layer uses one, run in <layer>: \S+ (?:add|install) -[Dd] "@antelopejs\/dms-frontend@>=0\.11\.0 <0\.12\.0"$/,
+);
+assert.deepEqual(await diagnose({ screen: "<DmsLink />", asserted: true }), []);
