@@ -141,11 +141,31 @@ function rebasedSpec(spec: string, from: string, to: string): string {
   ) {
     return spec;
   }
-  const target = path
-    .relative(to, path.resolve(from, local.target))
-    .split(path.sep)
-    .join("/");
-  return `${local.protocol}${target.startsWith("../") ? "" : "./"}${target}`;
+  return `${local.protocol}${relativeTarget(to, path.resolve(from, local.target))}`;
+}
+
+/** `target` as a path spec names it from `to`: `./` or `../` first, with `/` separators. */
+function relativeTarget(to: string, target: string): string {
+  const relative = path.relative(to, target).split(path.sep).join("/");
+  return relative.startsWith("../") ? relative : `./${relative}`;
+}
+
+/**
+ * A `workspace:` spec of the project, as a `link:` to the folder the project resolves `name` to:
+ * the module installs outside the workspace, where that protocol resolves nothing, and links the
+ * project's copy. Left as it is when the project has not installed `name`.
+ */
+function linkedWorkspaceSpec(
+  name: string,
+  spec: string,
+  from: string,
+  to: string,
+): string {
+  const installed = path.join(from, "node_modules", name);
+  if (!spec.startsWith("workspace:") || !fs.existsSync(installed)) {
+    return spec;
+  }
+  return `link:${relativeTarget(to, fs.realpathSync(installed))}`;
 }
 
 function rebasedVersions(
@@ -159,7 +179,7 @@ function rebasedVersions(
   return Object.fromEntries(
     Object.entries(versions).map(([name, spec]) => [
       name,
-      rebasedSpec(spec, from, to),
+      linkedWorkspaceSpec(name, rebasedSpec(spec, from, to), from, to),
     ]),
   );
 }
@@ -309,13 +329,17 @@ export type LocalSource = {
   reloadCommand: string[];
 };
 
-/** The source of a local module's entry: watched and rebuilt on change, as the project's own is. */
+/**
+ * The source of a local module's entry: watched and rebuilt on change, as the project's own is. It
+ * installs into its own folder, outside any pnpm workspace that holds the project: there a plain
+ * `pnpm install` reinstalls the whole workspace and leaves the module without its dependencies.
+ */
 export function localSource(root: string): LocalSource {
   return {
     type: "local",
     path: posixRelative(resolveProjectRoot(), root),
     watchDir: ["src"],
-    installCommand: ["pnpm install", "pnpm run build"],
+    installCommand: ["pnpm install --ignore-workspace", "pnpm run build"],
     reloadCommand: ["pnpm exec tsc"],
   };
 }
