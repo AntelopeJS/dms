@@ -12,6 +12,7 @@ import {
   type UrlForm,
 } from "./sketch-allowlist";
 import { cssRefusals, localUrlForm } from "./sketch-css";
+import { moreAttributesThan } from "./sketch-scan";
 
 type Node = DefaultTreeAdapterTypes.Node;
 type Element = DefaultTreeAdapterTypes.Element;
@@ -143,6 +144,8 @@ const MAX_DEPTH = 256;
  * elements tags can keep open, so the count is bounded before it parses.
  */
 const MAX_TAGS = 4096;
+/** How many attributes one tag may hold. parse5's time on a tag grows with the square of its attributes. */
+const MAX_ATTRIBUTES = 64;
 /** What opens a tag in HTML: `<` or `</`, then an ASCII letter. */
 const TAG_OPEN = /<\/?[a-zA-Z]/g;
 
@@ -170,6 +173,12 @@ function deeperThan(root: ParentNode, limit: number): boolean {
 function readMarkup(markup: string): ReadMarkup {
   if (moreTagsThan(markup, MAX_TAGS)) {
     return { refusals: [`more than ${MAX_TAGS} tags`], body: "" };
+  }
+  if (moreAttributesThan(markup, MAX_ATTRIBUTES)) {
+    return {
+      refusals: [`a tag with more than ${MAX_ATTRIBUTES} attributes`],
+      body: "",
+    };
   }
   const document = frameDocument("", markup);
   const root = child(document, "html");

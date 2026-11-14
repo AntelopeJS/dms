@@ -55,14 +55,21 @@ export type SketchCheck =
  * a `data:image/` URL. The CSS of `css`, of `<style>` elements and of `style`
  * and SVG attributes is read with its escapes decoded. A sketch that passes is
  * answered with its markup written back from the parsed tree, which is what
- * the frame must draw. This module needs only `zod` and `parse5`, so a process
+ * the frame must draw. This module needs only `zod`, `parse5` and `@csstools/css-tokenizer`, so a process
  * without the AntelopeJS runtime can require it as `@antelopejs/dms/sketch`.
+ * `html` and `css` each hold at most {@link SKETCH_MAX_SOURCE} characters.
  *
  * Draw only `checked.sketch`, never the source the check was given: the
  * viewer's `buildSketchDocument` draws the markup it is handed as is, so the
  * check holds only for the markup it answered.
  */
 export function checkSketch(sketch: SketchSource): SketchCheck {
+  const oversized = (["html", "css"] as const).flatMap((field) =>
+    (sketch[field]?.length ?? 0) > SKETCH_MAX_SOURCE
+      ? [{ field, what: `more than ${SKETCH_MAX_SOURCE} characters` }]
+      : [],
+  );
+  if (oversized.length > 0) return { ok: false, refusals: oversized };
   const markup = checkMarkup(sketch.html);
   const css =
     sketch.css === undefined
