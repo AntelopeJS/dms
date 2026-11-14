@@ -250,8 +250,8 @@ export function withUploads(
 
 /**
  * Absolute paths of builder-named logo files the previous logos used and no
- * string of the saved app config names: a slot may reach a file through a
- * constant the logos do not read.
+ * string the saved app config reaches names: a slot may reach a file through a
+ * constant the logos do not read, in the app config or a file it imports.
  */
 export function orphanedAssets(
   publicDirectory: string,
