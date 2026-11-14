@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const OWNER_ONLY_MODE = 0o600;
 const POWERSHELL_TIMEOUT_MS = 30_000;
+const CLEANUP_RETRIES = 3;
 const TARGET_ENV = "DMS_OWNER_ONLY_FILE";
 
 const SET_OWNER_ONLY_DACL = [
@@ -68,7 +69,9 @@ async function applyOwnerOnlyDacl(
  *
  * The file is staged in a directory this call creates beside the target and
  * restricts, inheritably, before any file exists in it, so the staged file is
- * born owner-only and no other account can hold a handle opened before the
+ * born owner-only, and it is created exclusively, so a file another account
+ * placed there first is refused rather than reused. No account that cannot
+ * write to the target's directory can hold a handle opened before the
  * restriction. The staged file gets its own DACL, the secret is written, and
  * the file is renamed over the target. The directory holding the target is
  * never re-ACLed. On any failure, including a PowerShell timeout, the staging
@@ -84,12 +87,16 @@ export async function writeOwnerOnlyFile(
   try {
     await applyOwnerOnlyDacl(staging, SET_OWNER_ONLY_DIRECTORY_DACL);
     const temp = join(staging, basename(filePath));
-    await writeFile(temp, "", { mode: OWNER_ONLY_MODE });
+    await writeFile(temp, "", { mode: OWNER_ONLY_MODE, flag: "wx" });
     await chmod(temp, OWNER_ONLY_MODE);
     await applyOwnerOnlyDacl(temp, SET_OWNER_ONLY_DACL);
     await writeFile(temp, content);
     await rename(temp, filePath);
   } finally {
-    await rm(staging, { recursive: true, force: true }).catch(() => undefined);
+    await rm(staging, {
+      recursive: true,
+      force: true,
+      maxRetries: CLEANUP_RETRIES,
+    }).catch(() => undefined);
   }
 }
