@@ -286,9 +286,8 @@ export function generateTwoFactorToken(
 ): TokenResult {
   const token = signUserToken(
     user,
-    { tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE },
+    { tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE, jti: randomUUID() },
     Math.floor(TWO_FACTOR_TOKEN_LIFETIME_MS / 1000),
-    { jwtid: randomUUID() },
   );
 
   return { token, expiresIn: TWO_FACTOR_TOKEN_LIFETIME_MS };
@@ -356,7 +355,7 @@ export async function validateTwoFactorToken(token: string) {
     TWO_FACTOR_TOKEN_PURPOSE,
     INVALID_TWO_FACTOR_TOKEN_ERROR,
   );
-  if (!isString(claims.tenantId)) {
+  if (!isString(claims.tenantId) || !isString(claims.jti)) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_TWO_FACTOR_TOKEN_ERROR);
   }
   return { ...claims, tenantId: claims.tenantId, user };

@@ -8,7 +8,7 @@ import {
 } from "../../../implementations/dms-auth";
 import { registerUser, type RegisteredUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
-import { signFor } from "../../helpers/forged-tokens";
+import { resign, signFor } from "../../helpers/forged-tokens";
 import { createClient } from "../../helpers/http";
 
 const TWO_FACTOR_ROUTES = [
@@ -17,6 +17,8 @@ const TWO_FACTOR_ROUTES = [
 ];
 const HTTP_BAD_REQUEST = 400;
 const HTTP_UNAUTHORIZED = 401;
+const HTTP_TOO_MANY_REQUESTS = 429;
+const ATTEMPTS_PER_CHALLENGE = 5;
 const INVALID_TWO_FACTOR_TOKEN = "error.invalid_2fa_token";
 const TWO_FACTOR_PURPOSE = "2fa";
 const UNKNOWN_USER_ID = "no-such-user";
@@ -113,5 +115,23 @@ describe("[integration] auth/two-factor token", () => {
       HTTP_BAD_REQUEST,
     );
     expect(response.data).to.equal("error.2fa_email_not_enabled");
+  });
+
+  it("counts a re-signed copy's tries against the original challenge", async () => {
+    const stored = await storedUser(user.userId);
+    const { token } = generateTwoFactorToken(await tenantOf(user), stored);
+    const wrongCode = (sent: string) =>
+      post("/api/auth/verify-2fa", {
+        token: sent,
+        code: "0",
+        method: "backup",
+      });
+    for (let attempt = 0; attempt < ATTEMPTS_PER_CHALLENGE; attempt++) {
+      expect((await wrongCode(token)).status).to.equal(HTTP_UNAUTHORIZED);
+    }
+    const copy = await wrongCode(resign(token));
+    expect(copy.status, JSON.stringify(copy.data)).to.equal(
+      HTTP_TOO_MANY_REQUESTS,
+    );
   });
 });

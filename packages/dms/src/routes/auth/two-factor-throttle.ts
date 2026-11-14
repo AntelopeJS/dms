@@ -3,7 +3,12 @@ import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import { SignInAttemptsModel, type TwoFactorTries } from "../../db/models";
-import { notifyTwoFactorLockout } from "../../utils";
+import {
+  decodeUnverified,
+  isJwtClaims,
+  notifyTwoFactorLockout,
+} from "../../utils";
+import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { ATTEMPT_RETENTION_MS } from "../../hooks";
 
 const HTTP_UNAUTHORIZED = 401;
@@ -11,6 +16,7 @@ const HTTP_TOO_MANY_REQUESTS = 429;
 const CHALLENGE_SPENT_MESSAGE = "error.too_many_2fa_attempts";
 const ACCOUNT_LOCKED_MESSAGE = "error.too_many_2fa_attempts_account";
 const CHALLENGE_USED_MESSAGE = "error.2fa_challenge_used";
+const INVALID_TWO_FACTOR_TOKEN = "error.invalid_2fa_token";
 const MS_PER_MINUTE = 60 * 1000;
 /**
  * Codes one two-factor challenge accepts, right or wrong. Past them the
@@ -28,8 +34,18 @@ export const TWO_FACTOR_ATTEMPTS_PER_ACCOUNT = 10;
  */
 export const TWO_FACTOR_WINDOW_MS = 60 * MS_PER_MINUTE;
 
+/**
+ * The challenge a verified two-factor token stands for: its `jti`, which the
+ * token's `key` MAC binds, so a re-signed copy cannot open a new challenge.
+ */
 function challengeKey(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
+  const claims = decodeUnverified(token);
+  assert(
+    isJwtClaims(claims) && isString(claims.jti),
+    HTTP_UNAUTHORIZED,
+    INVALID_TWO_FACTOR_TOKEN,
+  );
+  return createHash("sha256").update(claims.jti).digest("hex");
 }
 
 function windowStart(now: Date): Date {

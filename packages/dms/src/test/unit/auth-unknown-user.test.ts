@@ -1,7 +1,9 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
+import { randomUUID } from "node:crypto";
 import {
+  generateTwoFactorToken,
   internal,
   validateRefreshToken,
   validateTenantAssignmentToken,
@@ -14,6 +16,7 @@ import {
   hmacsDuring,
   insertTokenUser,
   refusalOf,
+  resign,
   reuseKeyOf,
   sessionLookupsDuring,
   signFor,
@@ -126,6 +129,14 @@ describe("[unit] auth tokens naming an unknown user", () => {
     const replayed = reuseKeyOf(captured, { id: user._id, purpose: "access" });
     const refusal = await refusalOf(() =>
       internal.AuthRawUserValidator(internal.AuthUserAuthenticator(replayed)),
+    );
+    expect(refusal.status).to.equal(HTTP_UNAUTHORIZED);
+  });
+
+  it("refuses a two-factor token re-signed with a new jti", async () => {
+    const { token } = generateTwoFactorToken("tenant", user);
+    const refusal = await refusalOf(() =>
+      validateTwoFactorToken(resign(token, { jti: randomUUID() })),
     );
     expect(refusal.status).to.equal(HTTP_UNAUTHORIZED);
   });

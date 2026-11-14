@@ -7,7 +7,7 @@ import {
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { isString } from "@antelopejs/interface-dms/utils/internal/type-check";
-import { type JwtPayload, type SignOptions, sign, verify } from "jsonwebtoken";
+import { type JwtPayload, sign, verify } from "jsonwebtoken";
 import { getAuthConfig } from "../../config";
 import { isJwtClaims } from "../../utils";
 
@@ -27,7 +27,15 @@ export function tokenSecret(): KeyObject {
 const USER_KEY_VERSION = 1;
 
 /** The claims a token's `key` MAC covers, in a fixed order. */
-const BOUND_CLAIMS = ["id", "purpose", "tenantId", "sessionId", "iat", "exp"];
+const BOUND_CLAIMS = [
+  "id",
+  "purpose",
+  "tenantId",
+  "sessionId",
+  "jti",
+  "iat",
+  "exp",
+];
 
 /**
  * The `key` claim: a MAC over the token's own claims, keyed by the user's
@@ -60,14 +68,12 @@ export function signUserToken(
   user: User,
   claims: JwtPayload,
   lifetimeSeconds: number,
-  options: Pick<SignOptions, "jwtid"> = {},
 ): string {
   const iat = Math.floor(Date.now() / 1000);
   const payload = { ...claims, id: user._id, iat, exp: iat + lifetimeSeconds };
   return sign(
     { ...payload, key: userTokenMac(user.authKey, payload) },
     tokenSecret(),
-    options,
   );
 }
 

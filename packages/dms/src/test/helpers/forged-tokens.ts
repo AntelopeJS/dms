@@ -80,6 +80,17 @@ export function reuseKeyOf(captured: string, claims: JwtPayload): string {
   });
 }
 
+/**
+ * `token` signed again with the instance key, its claims in reverse order and
+ * `overrides` applied, as someone who knows `jwtSecret` would.
+ */
+export function resign(token: string, overrides: JwtPayload = {}): string {
+  const decoded = decode(token);
+  assert(isJwtClaims(decoded), "token carries claims");
+  const reversed = Object.fromEntries(Object.entries(decoded).reverse());
+  return sign({ ...reversed, ...overrides }, tokenSecret());
+}
+
 /** Stores a validated owner for token tests to name. */
 export async function insertTokenUser(): Promise<User> {
   const model = GetModel(UserModel);
