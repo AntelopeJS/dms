@@ -12,7 +12,7 @@ import { join, posix } from "node:path";
 /** The launcher the project's `.mcp.json` runs, relative to the project root. */
 export const BRIDGE_LAUNCHER = posix.join("node_modules", ".cache", "dms", "mcp-bridge.cjs");
 
-const ANSWER_TIMEOUT_MS = 60_000;
+const ANSWER_TIMEOUT_MS = 180_000;
 const OWNER_ONLY_MODE = 0o600;
 const CREDENTIAL_ATTEMPTS = 3;
 
