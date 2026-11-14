@@ -34,9 +34,13 @@ import {
 } from "../layers/dms-ui/app/composables/layout/usePageHeaderActions";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { stubMiscActions } from "./helpers/misc-runtime";
-import type { LayoutHeaderAction } from "../layers/dms-layout/app/build/components/layout/PageHeaderActionBar.vue";
+import type PageHeaderActionsOutlet from "../layers/dms-layout/app/entries/components/layout/PageHeaderActionsOutlet";
 import type { LocationQuery } from "#dms/frontend-module";
 import type { NamedValue } from "vue-i18n";
+
+type LayoutHeaderAction = InstanceType<
+  typeof PageHeaderActionsOutlet
+>["$props"]["actions"][number];
 
 const LAYOUT_URL = "/modules/lang/queue/pagelayout";
 const route = reactive<{ path: string; query: LocationQuery }>({
