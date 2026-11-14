@@ -32,12 +32,7 @@ const columns: Parameters<typeof formatFilterValue>[1] = [
   {
     value: "paidAt",
     label: "Paid",
-    type: {
-      id: "date",
-      compareModes: [],
-      filterComponents: {},
-      inputComponent: {},
-    },
+    type: { id: "date" },
   },
 ];
 
