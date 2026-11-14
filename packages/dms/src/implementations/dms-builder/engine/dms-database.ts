@@ -6,13 +6,16 @@ import { resolveProjectRoot } from "./project";
 import {
   type ConfigDraft,
   MODULES,
-  moduleEntries,
   objectAt,
   propertyNamed,
   refuse,
   stringOf,
 } from "./project-config";
-import { readableConfig, writtenModules } from "./project-config-readers";
+import {
+  moduleEntries,
+  readableConfig,
+  writtenModules,
+} from "./project-config-readers";
 import { isString } from "./scalar-guards";
 import { isPlainObject } from "./value";
 

@@ -1,4 +1,4 @@
-import type { ControllerClass } from "@antelopejs/interface-api";
+import type { DecoratorTarget } from "@antelopejs/interface-core/decorators";
 
 export type MaybePromise<T> = T | Promise<T>;
 
@@ -14,8 +14,12 @@ export interface ImageValue {
  * the page registers. `PageMetadata` implements it.
  */
 export interface CreatedPage {
-  /** The page controller the component is placed on. */
-  readonly target: ControllerClass;
+  /**
+   * The page controller the component is placed on, as page metadata holds
+   * it. `pageController` (`@antelopejs/interface-dms/page/internal/page-controller`)
+   * narrows it to the controller class, or throws `PageTargetError`.
+   */
+  readonly target: DecoratorTarget;
   /** The id and slug the page registered under, from the root category. */
   readonly pageInfo?: { readonly fullId: string; readonly fullSlug: string };
 }

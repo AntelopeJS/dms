@@ -1,5 +1,6 @@
 /** Stable number, string and date data types. @packageDocumentation */
 import type { RequestContext } from "@antelopejs/interface-api";
+import type { FilterValue } from "@antelopejs/interface-data-api/metadata";
 import type {
   ValueProxy,
   ValueProxyOrValue,
@@ -196,18 +197,19 @@ export class DateType extends DataType {
     context: RequestContext,
     proxy: ValueProxy<unknown>,
     key: string,
-    value: string,
+    value: FilterValue[0],
     mode: string,
     // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- Preserve DataType.filter's public row type.
     row: ValueProxy<Record<string, unknown>>,
   ): ValueProxyOrValue<boolean> {
+    const text = String(value);
     if (mode === "is" || mode === "is_not") {
-      return this.sameDayFilter(proxy, value, mode === "is_not");
+      return this.sameDayFilter(proxy, text, mode === "is_not");
     }
     if (mode === "is_between") {
-      return whenValueSet(proxy, this.dayRangeFilter(proxy, value));
+      return whenValueSet(proxy, this.dayRangeFilter(proxy, text));
     }
-    const ordered = this.orderFilter(proxy, value, mode);
+    const ordered = this.orderFilter(proxy, text, mode);
     if (ordered !== undefined) {
       return whenValueSet(proxy, ordered);
     }

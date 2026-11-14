@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { assert } from "@antelopejs/interface-api-util";
-import type { RowFields } from "@antelopejs/interface-data-api/metadata";
+import type { StoredRow } from "@antelopejs/interface-data-api/metadata";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { Send } from "@antelopejs/interface-email";
 import {
@@ -70,7 +70,7 @@ class CsvWriter implements ExportWriter {
     fs.writeFileSync(this.filePath, `﻿${headerLine}`);
   }
 
-  appendRow(headers: string[], row: RowFields): void {
+  appendRow(headers: string[], row: StoredRow): void {
     const csvRowContent = stringify([row], {
       header: false,
       columns: headers,

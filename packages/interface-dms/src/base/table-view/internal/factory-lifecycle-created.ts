@@ -6,6 +6,7 @@ import { GetPermissionId, PageMetadata } from "../../../page";
 import { claimFormPageRoute } from "../../../page/internal/form-page-routes";
 import { resolveInheritedLayout } from "../../../page/internal/categories";
 import type { CreatedPage } from "../../../types";
+import { pageController } from "../../../page/internal/page-controller";
 import { fireAndForget } from "../../../utils/fire-and-forget";
 import type { FormBuilder } from "../../form-types";
 import { FormPageLayout } from "../../layouts";
@@ -84,7 +85,7 @@ export function tableViewCreated<T extends ControllerClass>(
 
   const routeKey = formRouteKey(
     tableViewPermissionId,
-    GetPermissionId(parentPage.target) ?? parentInfo.fullId,
+    GetPermissionId(pageController(parentPage.target)) ?? parentInfo.fullId,
   );
 
   builder.mergeOptions({
@@ -112,7 +113,7 @@ export function tableViewCreated<T extends ControllerClass>(
 
     const texts = resolveFormPageTexts(kind, customPages);
 
-    const FormController = class extends parentPage.target {};
+    const FormController = class extends pageController(parentPage.target) {};
     const formMeta = new PageMetadata(FormController);
     formMeta.SetInfo(
       id,

@@ -1,8 +1,8 @@
-import type { RowFields } from "@antelopejs/interface-data-api/metadata";
+import type { StoredRow } from "@antelopejs/interface-data-api/metadata";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import { FIELD_OPERATORS } from "@antelopejs/interface-dms/base/types/row-action-operators";
 
-type RuleEvaluator = (rule: RowActionRule, row: RowFields) => boolean;
+type RuleEvaluator = (rule: RowActionRule, row: StoredRow) => boolean;
 
 function isRow(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

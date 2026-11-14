@@ -13,11 +13,7 @@ import {
   type SourceFile,
   SyntaxKind,
 } from "ts-morph";
-import {
-  hasUnreadableMember,
-  isPlainObjectLiteral,
-  shorthandNamed,
-} from "./literal-overrides";
+import { hasUnreadableMember, shorthandNamed } from "./literal-overrides";
 import { configObject, propertyKey } from "./modules";
 import { indentationText, resolveProjectRoot } from "./project";
 import { keyText, literalText } from "./project-config-text";
@@ -385,56 +381,4 @@ function overridesOfArray(
   array: ArrayLiteralExpression,
 ): ImportOverrideInput[] {
   return array.getElements().map(overrideOf);
-}
-
-/**
- * Each module entry of the configuration written as a plain object literal, by id. An entry
- * written otherwise, a version string or a spread, is left out: nothing the builder reads is there.
- */
-export function moduleEntries(
-  draft: ConfigDraft,
-): [string, ObjectLiteralExpression][] {
-  const entries: [string, ObjectLiteralExpression][] = [];
-  const modules = objectAt(draft, [MODULES]);
-  for (const property of modules?.getProperties() ?? []) {
-    if (
-      !Node.isPropertyAssignment(property) ||
-      Node.isComputedPropertyName(property.getNameNode())
-    ) {
-      continue;
-    }
-    const entry = property.getInitializer();
-    if (isPlainObjectLiteral(entry)) {
-      entries.push([propertyKey(property.getNameNode()), entry]);
-    }
-  }
-  return entries;
-}
-
-/** The `importOverrides` a module entry declares. */
-export function overridesOf(entry: ObjectLiteralExpression) {
-  return existingOverrides(
-    propertyNamed(entry, IMPORT_OVERRIDES)?.getInitializer(),
-  );
-}
-
-/**
- * The `importOverrides` a module entry declares as plain literals, for a reader: an element written
- * any other way is left out instead of refused, since no connection the builder wrote is there.
- */
-export function readableOverrides(
-  entry: ObjectLiteralExpression,
-): ImportOverrideInput[] {
-  const overrides = propertyNamed(entry, IMPORT_OVERRIDES)?.getInitializer();
-  if (!Node.isArrayLiteralExpression(overrides)) {
-    return existingOverrides(overrides);
-  }
-  return overrides
-    .getElements()
-    .filter(
-      (element) =>
-        Node.isObjectLiteralExpression(element) &&
-        !element.getProperties().some(Node.isSpreadAssignment),
-    )
-    .map(overrideOf);
 }

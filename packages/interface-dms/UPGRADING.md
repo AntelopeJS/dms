@@ -6,6 +6,11 @@ Each section is the upgrade-notes block of one `@antelopejs/interface-dms` relea
 
 Each type below said something the runtime does not do, and now says what it does. HTTP routes, their answers and stored rows are unchanged.
 
+### Peer ranges
+
+- **`@antelopejs/interface-data-api` `>=0.8.0 <0.9.0`.** interface-data-api 0.7 replaced the published `RowFields` with `StoredRow`. The table-view routes' declarations (`TableViewRoutes.Get`, `Edit` and the `get` and `edit` routes of a data controller built from them) now name `StoredRow`, so a project on data-api 0.6 fails with TS2694. Move the project's data-api to the 0.8 line ([#888](https://github.com/AntelopeJS/dms/pull/888)).
+- **`@antelopejs/interface-database-decorators` `>=0.5.2 <1.0.0`.** data-api 0.8 declares its modifier keys as `Class<ContainerModifier>`, which decorators 0.3's `LocalizationModifier` does not satisfy ([#888](https://github.com/AntelopeJS/dms/pull/888)).
+
 ### Table views
 
 - **The table-view data functions take the data controller instance.** `listWithSearch`, `countWithSearch`, `summarizeWithSearch`, `startExport`, `getExportStatus`, `downloadExport`, `validateRowsAgainstRule`, `fetchRowForGuard`, and `archiveRows` and `restoreRows` through `RowBulkOperationParams`, typed their first parameter `DataControllerCallback | DataControllerCallbackWithOptions`, a route descriptor. The runtime reads the controller instance the route runs on, which is what every route passes as `this`. The parameter is now `DataControllerInstance` (`object`). A call that passes a controller instance, such as the one `GetControllerInstance` answers, compiles without a cast, where it failed with TS2345. Code that assigns the parameter type to the old union (`const route: DataControllerCallback | DataControllerCallbackWithOptions = receiver`, with `receiver` typed `Parameters<typeof countWithSearch>[0]`) fails with TS2322: type it `DataControllerInstance`. Reading a route member off the parameter type (`.method`, `.func`) failed with TS2339 before and still does.
@@ -84,6 +89,10 @@ Each type below said something the runtime does not do, and now says what it doe
 | `DmsSection` | `DmsSectionPanel` | `dms-section` | `dms-section-panel` |
 | `DmsSegmented` | `DmsSegmentedControl` | `dms-segmented` | `dms-segmented-control` |
 | `DmsTab` | `DmsTabBlock` | `dms-tab` | `dms-tab-block` |
+
+### Types
+
+- **`DataType.filter` takes `value: FilterValue[0]` (`string | boolean`), not `string`.** data-api 0.8 types a filter value as `string | boolean`, because the archive filter hands the boolean `true` to its field's filter. A subclass that overrides `filter` with `value: string` still compiles, since methods compare their parameters both ways. A caller that passes a string compiles unchanged. The built-in compare modes keep `value: string`: `DataType.filter` hands them `String(value)`, which their value parser reads back as the same boolean ([#888](https://github.com/AntelopeJS/dms/pull/888)).
 
 ## v0.12.0
 

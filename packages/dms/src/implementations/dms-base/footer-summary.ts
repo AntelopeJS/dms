@@ -6,7 +6,7 @@ import {
 } from "@antelopejs/interface-data-api/components";
 import type {
   DataAPIMeta,
-  RowFields,
+  StoredRow,
 } from "@antelopejs/interface-data-api/metadata";
 import type {
   Datum,
@@ -27,9 +27,9 @@ import { isRuleOperand, type RuleOperand } from "./row-rule-operand";
 import { buildFilteredQuery } from "./search-route";
 
 type SummaryReceiver = globalThis.Parameters<typeof SummarizeDeclaration>[0];
-type Row = ValueProxy<RowFields>;
+type Row = ValueProxy<StoredRow>;
 type Condition = ValueProxyOrValue<boolean>;
-type FieldReader = (field: string) => ValueProxy<unknown>;
+type FieldReader = (field: string) => ValueProxy<StoredRow[string]>;
 
 const isLiteral = (condition: Condition): condition is boolean =>
   typeof condition === "boolean";
@@ -51,7 +51,7 @@ function negate(condition: Condition): Condition {
 }
 
 const anyOf = (
-  value: ValueProxy<unknown>,
+  value: ReturnType<FieldReader>,
   operands: readonly RuleOperand[],
 ): Condition =>
   operands.map((operand): Condition => value.eq(operand)).reduce(either, false);
@@ -121,7 +121,7 @@ export function compileRowRule(
 }
 
 type SummaryReader = (
-  rows: Stream<RowFields>,
+  rows: Stream<StoredRow>,
   field: string | undefined,
 ) => Datum<number>;
 
@@ -136,7 +136,7 @@ function fieldReader(
   row: Row,
 ): FieldReader {
   return (field) =>
-    Validation.UnlockRequest<RowFields, string>(thisObj, meta, row, field);
+    Validation.UnlockRequest<StoredRow, string>(thisObj, meta, row, field);
 }
 
 /**

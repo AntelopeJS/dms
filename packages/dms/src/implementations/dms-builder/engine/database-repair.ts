@@ -12,13 +12,8 @@ import { CATALOG_INTERFACE, DATABASE_INTERFACE } from "./interface-ids";
 import { findConfigFile } from "./modules";
 import { invalidConfig, unsupported } from "./ops";
 import { ownModuleId } from "./own-connections";
-import {
-  type ConfigDraft,
-  moduleEntries,
-  openDraft,
-  readableOverrides,
-  StepRefusal,
-} from "./project-config";
+import { type ConfigDraft, openDraft, StepRefusal } from "./project-config";
+import { moduleEntries, readableOverrides } from "./project-config-readers";
 import { configureProject } from "./project-config-ops";
 
 type Lookup = Parameters<typeof databasePins>[0];

@@ -14,6 +14,7 @@ import { TenantScopedModel } from "../../tenant-scoped-model";
 import type { PageMetadata } from "../metadata";
 import type { PageInfo } from "../types";
 import { opensToMembers } from "./member-access";
+import { pageController } from "./page-controller";
 import {
   isPageInsideModule,
   logModuleRouteGated,
@@ -69,6 +70,7 @@ export function applyAuthDecorators(
   pageInfo: PageInfo,
 ): void {
   if (pageInfo.publicAccess === true) return;
+  const controller = pageController(page.target);
   const authOnly = pageInfo.authOnly === true;
   const isModulePage = isPageInsideModule(pageInfo);
   page.guardOptions = {
@@ -78,11 +80,11 @@ export function applyAuthDecorators(
     ? AuthUser()
     : isModulePage || pageInfo.ownerOnly === true
       ? AuthOwnerOnly()
-      : AuthUserWithPermission(page.target, page.guardOptions);
-  authDecorator(prototypeOf(page.target), "user");
+      : AuthUserWithPermission(controller, page.guardOptions);
+  authDecorator(prototypeOf(controller), "user");
   if (isModulePage && !authOnly) logModuleRouteGated(pageInfo.fullSlug);
   if (authOnly) return;
-  TenantScopedModel(RoleModel)(prototypeOf(page.target), "roleModel");
-  TenantScopedModel(TenantMemberModel)(prototypeOf(page.target), "memberModel");
-  RequestTenantIdProperty()(prototypeOf(page.target), "tenantId");
+  TenantScopedModel(RoleModel)(prototypeOf(controller), "roleModel");
+  TenantScopedModel(TenantMemberModel)(prototypeOf(controller), "memberModel");
+  RequestTenantIdProperty()(prototypeOf(controller), "tenantId");
 }

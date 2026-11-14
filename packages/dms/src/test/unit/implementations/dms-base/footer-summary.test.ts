@@ -1,11 +1,12 @@
 import { ValueProxy } from "@antelopejs/interface-database";
+import type { StoredRow } from "@antelopejs/interface-data-api/metadata";
 import { expect } from "chai";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import { assertRowRule } from "@antelopejs/interface-dms/base/table-view/internal/row-rule-shape";
 import { compileRowRule } from "../../../../implementations/dms-base/services";
 
-const field = (name: string): ValueProxy<unknown> =>
-  ValueProxy.constant<unknown>(name);
+const field = (name: string): ValueProxy<StoredRow[string]> =>
+  ValueProxy.constant<StoredRow[string]>(name);
 
 const fromJson = (json: string): RowActionRule => {
   const parsed: unknown = JSON.parse(json);

@@ -1,6 +1,6 @@
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
-  type Class,
+  type DecoratorTarget,
   MakePropertyDecorator,
 } from "@antelopejs/interface-core/decorators";
 
@@ -9,7 +9,7 @@ import { decoratedClass } from "../utils/internal/decorated-class";
 export class SearchableMeta {
   public static key = Symbol();
 
-  constructor(public readonly target: Class) {}
+  constructor(public readonly target: DecoratorTarget) {}
 
   public readonly searchableFields: Record<string, string> = {};
 

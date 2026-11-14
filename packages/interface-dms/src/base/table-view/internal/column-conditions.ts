@@ -3,10 +3,7 @@ import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import { Validation } from "@antelopejs/interface-data-api/components";
-import {
-  DataAPIMeta,
-  type RowFields,
-} from "@antelopejs/interface-data-api/metadata";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type { FieldCondition } from "../../form-types";
 import { fetchRowForGuard } from "../data-functions";
 import type { ColumnOptions } from "../meta";
@@ -15,6 +12,9 @@ import { getTableViewMetaFor } from "./meta";
 
 type WriteMode = "new" | "edit";
 
+/** A row as the guard read answers it: its fields by name. */
+type GuardRow = NonNullable<Awaited<ReturnType<typeof fetchRowForGuard>>>;
+
 /** What a `new` or `edit` route receives second: the row an edit names, and whether mandatory fields are already checked. */
 interface ColumnWriteParameters {
   id?: string;
@@ -22,19 +22,19 @@ interface ColumnWriteParameters {
 }
 
 /** The value `row` holds under `key`; a key it does not hold itself reads as absent, whatever `Object.prototype` answers. */
-const ownValue = (row: Readonly<RowFields>, key: string): RowFields[string] =>
+const ownValue = (row: Readonly<GuardRow>, key: string): GuardRow[string] =>
   Object.hasOwn(row, key) ? row[key] : undefined;
 
 /** Whether `row` meets `condition`: a field it lacks counts as empty. */
 const meetsFieldCondition = (
   condition: FieldCondition,
-  row: Readonly<RowFields>,
+  row: Readonly<GuardRow>,
 ): boolean => condition.in.includes(ownValue(row, condition.field) ?? null);
 
 /** The columns whose form field `row` hides or disables. */
 function inactiveColumns(
   columns: Readonly<Record<string, ColumnOptions>>,
-  row: Readonly<RowFields>,
+  row: Readonly<GuardRow>,
 ) {
   const entries = Object.entries(columns);
   return {
@@ -52,7 +52,7 @@ function inactiveColumns(
 }
 
 const isEmptyValue = (
-  value: RowFields[string],
+  value: GuardRow[string],
 ): value is null | undefined | "" | [] =>
   value === undefined ||
   value === null ||
@@ -106,8 +106,8 @@ export const withColumnConditions = <
     }
 
     const body = Validation.ParseBody(rawBody);
-    let row: RowFields = body;
-    let current: RowFields | undefined;
+    let row: GuardRow = body;
+    let current: GuardRow | undefined;
     if (mode === "edit") {
       current = await fetchRowForGuard(
         this,

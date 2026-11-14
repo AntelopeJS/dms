@@ -19,10 +19,8 @@ import {
   type ConfigDraft,
   ENV_OVERRIDES,
   MODULES,
-  moduleEntries,
   objectAt,
   openDraft,
-  readableOverrides,
   propertyNamed,
   StepRefusal,
   stringOf,
@@ -30,6 +28,8 @@ import {
 import {
   DATABASE_SOURCE_INTERFACES,
   mayNameSource,
+  moduleEntries,
+  readableOverrides,
   writtenModules,
 } from "./project-config-readers";
 import { configureProject } from "./project-config-ops";

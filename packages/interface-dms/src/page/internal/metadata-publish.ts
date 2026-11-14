@@ -8,6 +8,7 @@ import {
   RequestRouteParametersProperty,
 } from "./metadata-helpers";
 import type { PageRegistration } from "./page-registration";
+import { pageController } from "./page-controller";
 import {
   pageMetadataByFullId,
   permissionMap,
@@ -34,6 +35,7 @@ export function publish(
   pageInfo: PageInfo,
   context: PublishContext,
 ): void {
+  const controller = pageController(page.target);
   const previous = pageMetadataByFullId.get(pageInfo.fullId);
   pageMetadataByFullId.set(pageInfo.fullId, page);
   context.registration().track(() => {
@@ -52,9 +54,9 @@ export function publish(
       pageInfo.noComponentPermissions === true || pageInfo.authOnly === true,
   );
   context.registerPermission(pageInfo);
-  permissionMap.set(page.target, context.permissionId());
+  permissionMap.set(controller, context.permissionId());
   context.registration().track(() => {
-    permissionMap.delete(page.target);
+    permissionMap.delete(controller);
     if (!context.ownsPermissions()) return;
     if (context.registeredPermission() && context.permissionId()) {
       UnregisterPermission(context.permissionId());
@@ -63,8 +65,8 @@ export function publish(
   });
   context.ownProperties();
   context.auth(pageInfo);
-  RequestQueryProperty()(prototypeOf(page.target), "pageQuery");
-  RequestRouteParametersProperty()(prototypeOf(page.target), "pageParams");
+  RequestQueryProperty()(prototypeOf(controller), "pageQuery");
+  RequestRouteParametersProperty()(prototypeOf(controller), "pageParams");
   context.route(pageInfo);
 }
 

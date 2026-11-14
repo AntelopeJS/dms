@@ -9,7 +9,7 @@ import {
   type Parameters,
   Validation,
 } from "@antelopejs/interface-data-api/components";
-import type { RowFields } from "@antelopejs/interface-data-api/metadata";
+import type { StoredRow } from "@antelopejs/interface-data-api/metadata";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
@@ -44,7 +44,10 @@ async function loadPendingInvite(
   return invite;
 }
 
-function isRow(answer: unknown): answer is RowFields {
+/** Whether the row read answered a row, not an empty answer. */
+function isRow(
+  answer: Awaited<ReturnType<typeof TableViewRoutes.Get.func>> | undefined,
+): answer is StoredRow {
   return typeof answer === "object" && answer !== null;
 }
 

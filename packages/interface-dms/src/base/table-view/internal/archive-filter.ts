@@ -9,6 +9,7 @@ import type {
   ValueProxy,
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
+import { isBoolean } from "../../../utils/internal/type-check";
 
 const HTTP_BAD_REQUEST = 400;
 
@@ -18,9 +19,9 @@ const ARCHIVED_BY_TEXT = new Map([
 ]);
 
 /**
- * The filter `@ArchiveField` registers. A list filter carries its value as
- * text, so this reads `true` or `false` as the boolean the field stores, then
- * compares with `eq` or `ne`.
+ * The filter `@ArchiveField` registers. A list request carries its value as
+ * text, so this reads `true` or `false` as the boolean the field stores, takes
+ * a boolean a server caller passes as it is, then compares with `eq` or `ne`.
  *
  * @throws HTTPResult 400 when the value is not `true` or `false`, or the mode
  * is not `eq` or `ne`
@@ -30,10 +31,10 @@ export function filterArchiveField(
   _context: RequestContext,
   proxy: ValueProxy<unknown>,
   _key: string,
-  value: string,
+  value: string | boolean,
   mode: string,
 ): ValueProxyOrValue<boolean> {
-  const archived = ARCHIVED_BY_TEXT.get(value);
+  const archived = isBoolean(value) ? value : ARCHIVED_BY_TEXT.get(value);
   assert(
     archived !== undefined,
     HTTP_BAD_REQUEST,
