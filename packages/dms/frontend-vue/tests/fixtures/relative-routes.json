@@ -21,6 +21,7 @@
     "/\n/evil.example/steal",
     "/\r/evil.example/steal",
     "/\u0000/evil.example/steal",
-    "/a\u007f"
+    "/a\u007f",
+    "/a\u0085"
   ]
 }
