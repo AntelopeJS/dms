@@ -1,6 +1,8 @@
 import { z } from "zod";
 import type { JsonObject, MockupIssue, MockupNode } from "./model";
 import { zodIssues } from "./model";
+import { cssRefusals } from "./sketch-css";
+import { checkMarkup, staysInStyle } from "./sketch-html";
 
 /** The node type of a sketch: static HTML and CSS of a part the DMS lacks. */
 export const SKETCH_TYPE = "sketch";
@@ -9,11 +11,13 @@ export const SKETCH_MIN_HEIGHT = 80;
 export const SKETCH_MAX_HEIGHT = 1200;
 export const SKETCH_DEFAULT_HEIGHT = 320;
 export const SKETCH_MAX_CAPTION = 200;
+/** The most characters a sketch's `html` or `css` may hold, room for inline `data:` images. */
+export const SKETCH_MAX_SOURCE = 512 * 1024;
 
 const sketchOptionsSchema = z
   .object({
-    html: z.string(),
-    css: z.string().optional(),
+    html: z.string().max(SKETCH_MAX_SOURCE),
+    css: z.string().max(SKETCH_MAX_SOURCE).optional(),
     height: z
       .number()
       .int()
@@ -24,121 +28,80 @@ const sketchOptionsSchema = z
   })
   .strict();
 
+/** A sketch's source: the markup of its body and its style sheet. */
+export interface SketchSource {
+  html: string;
+  css?: string;
+}
+
+/** One thing a sketch holds that it may not, and the field that holds it. */
+export interface SketchRefusal {
+  field: "html" | "css";
+  what: string;
+}
+
 /**
- * Markup a sketch may not hold, as dms-ai's `PREVIEW_SKETCH_FORBIDDEN` lists
- * it. The frame the viewer draws a sketch in runs no script and loads nothing
- * but `data:` URLs; these checks turn a sketch that would break there into an
- * issue instead.
+ * A checked sketch: the sketch to draw, its markup written back from the tree
+ * the check read, or what it holds that it may not.
  */
-/** The inside of a tag up to a point, skipping quoted attribute values. */
-const IN_TAG = String.raw`<(?:[^>"']|"[^"]*"|'[^']*')*?`;
-const ATTRIBUTE_START = String.raw`(?<=[\s/"'])`;
-/** The character references a style value may hold: the five HTML always escapes. */
-const PLAIN_REFERENCES = new Map([
-  ["quot", '"'],
-  ["apos", "'"],
-  ["amp", "&"],
-  ["lt", "<"],
-  ["gt", ">"],
-]);
-/** A character reference other than the plain ones, which could spell CSS syntax unseen. */
-const HIDDEN_REFERENCE = String.raw`&(?:#|(?!(?:quot|apos|amp|lt|gt);)[a-z])`;
-const PLAIN_REFERENCE = /&(quot|apos|amp|lt|gt);/gi;
-const URL_ATTRIBUTES =
-  "src|srcset|href|xlink:href|poster|action|formaction|background|data|ping";
+export type SketchCheck =
+  | { ok: true; sketch: SketchSource }
+  | { ok: false; refusals: SketchRefusal[] };
 
-export const SKETCH_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
-  [/<\s*script\b/i, "a <script> element"],
-  [
-    /<\s*(?:iframe|frame|frameset|object|embed|applet|portal|link|base)\b/i,
-    "an embedding or linking element (iframe, object, embed, link, base)",
-  ],
-  [
-    new RegExp(`<\\s*meta\\b${IN_TAG.slice(1)}http-equiv`, "i"),
-    "a <meta http-equiv>",
-  ],
-  [
-    new RegExp(`${IN_TAG}${ATTRIBUTE_START}on[a-z]+\\s*=`, "i"),
-    "an on* event handler attribute",
-  ],
-  [/(?:java|vb)script\s*:/i, "a javascript: URL"],
-  [
-    new RegExp(
-      `${IN_TAG}${ATTRIBUTE_START}style\\s*=\\s*(?:"[^"]*${HIDDEN_REFERENCE}|'[^']*${HIDDEN_REFERENCE}|[^\\s>"']*${HIDDEN_REFERENCE})`,
-      "i",
-    ),
-    "a style attribute written with character references other than &quot; &apos; &amp; &lt; &gt; (&#40;)",
-  ],
-  [/@import\b/i, "a CSS @import"],
-  [/url\(\s*(?!['"]?\s*data:)/i, "a url() that is not a data: URL"],
-  [
-    new RegExp(
-      `${IN_TAG}${ATTRIBUTE_START}(?:${URL_ATTRIBUTES})\\s*=\\s*(?!['"]?\\s*(?:data:|#))`,
-      "i",
-    ),
-    "a src, href or similar attribute that is not a data: URL or an #anchor",
-  ],
-];
-
-/** What CSS may not hold beyond {@link SKETCH_FORBIDDEN}, read with its escapes decoded. */
-const CSS_FORBIDDEN: ReadonlyArray<readonly [RegExp, string]> = [
-  [
-    /['"]\s*(?:(?:https?|ftp|wss?|file):|\/\/)/i,
-    "a quoted URL that is not a data: URL (in image(), image-set() or anywhere else)",
-  ],
-];
-
-const CSS_ESCAPE = /\\([0-9a-f]{1,6})\s?|\\([^\n0-9a-f])/gi;
-const MAX_CODE_POINT = 0x10ffff;
-const REPLACEMENT_CHARACTER = "�";
-const STYLE_ELEMENT = /<style\b[^>]*>([\s\S]*?)(?:<\/style\s*>|$)/gi;
-const STYLE_ATTRIBUTE =
-  /[\s/"']style\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
-
-/** `css` with its escapes decoded, as a CSS parser reads it. */
-function decodeCssEscapes(css: string): string {
-  return css.replace(
-    CSS_ESCAPE,
-    (_, hex: string | undefined, char: string | undefined) => {
-      if (hex === undefined) return char ?? "";
-      const codePoint = Number.parseInt(hex, 16);
-      return codePoint > 0 && codePoint <= MAX_CODE_POINT
-        ? String.fromCodePoint(codePoint)
-        : REPLACEMENT_CHARACTER;
-    },
+/**
+ * Checks a sketch the way the viewer's frame will read it. `html` is parsed
+ * with an HTML parser as the frame's body, and every element and attribute of
+ * the tree must be on the sketch allowlist; a URL may only be an `#anchor` or
+ * a `data:image/` URL. The CSS of `css`, of `<style>` elements and of `style`
+ * and SVG attributes is read with its escapes decoded. A sketch that passes is
+ * answered with its markup written back from the parsed tree, which is what
+ * the frame must draw. This module needs only `zod`, `parse5` and `@csstools/css-tokenizer`, so a process
+ * without the AntelopeJS runtime can require it as `@antelopejs/dms/sketch`.
+ * `html` and `css` each hold at most {@link SKETCH_MAX_SOURCE} characters.
+ *
+ * Draw only `checked.sketch`, never the source the check was given: the
+ * viewer's `buildSketchDocument` draws the markup it is handed as is, so the
+ * check holds only for the markup it answered.
+ */
+export function checkSketch(sketch: SketchSource): SketchCheck {
+  const oversized = (["html", "css"] as const).flatMap((field) =>
+    (sketch[field]?.length ?? 0) > SKETCH_MAX_SOURCE
+      ? [{ field, what: `more than ${SKETCH_MAX_SOURCE} characters` }]
+      : [],
   );
-}
-
-/** The CSS an HTML sketch holds: its `<style>` elements and `style` attributes. */
-function cssInHtml(html: string): string {
-  const elements = [...html.matchAll(STYLE_ELEMENT)].map(
-    (match) => match[1] ?? "",
-  );
-  const attributes = [...html.matchAll(STYLE_ATTRIBUTE)].map((match) =>
-    (match[1] ?? match[2] ?? match[3] ?? "").replace(
-      PLAIN_REFERENCE,
-      (_, name: string) => PLAIN_REFERENCES.get(name.toLowerCase()) ?? "",
-    ),
-  );
-  return [...elements, ...attributes].join("\n");
-}
-
-function matching(
-  rules: ReadonlyArray<readonly [RegExp, string]>,
-  texts: string[],
-): string[] {
-  return rules
-    .filter(([pattern]) => texts.some((text) => pattern.test(text)))
-    .map(([, what]) => what);
-}
-
-/** What `markup` holds that a sketch may not, its CSS read with escapes decoded. */
-function forbiddenIn(markup: string, css: string): string[] {
-  const decoded = decodeCssEscapes(css);
-  return [
-    ...matching(SKETCH_FORBIDDEN, [markup, decoded]),
-    ...matching(CSS_FORBIDDEN, [decoded]),
+  if (oversized.length > 0) return { ok: false, refusals: oversized };
+  const markup = checkMarkup(sketch.html);
+  const css =
+    sketch.css === undefined
+      ? []
+      : [
+          ...(staysInStyle(sketch.css)
+            ? []
+            : ["markup such as </style> that ends the style element"]),
+          ...cssRefusals(sketch.css),
+        ];
+  const refusals: SketchRefusal[] = [
+    ...markup.refusals.map((what) => ({ field: "html" as const, what })),
+    ...css.map((what) => ({ field: "css" as const, what })),
   ];
+  if (refusals.length > 0) return { ok: false, refusals };
+  return {
+    ok: true,
+    sketch:
+      sketch.css === undefined
+        ? { html: markup.body }
+        : { html: markup.body, css: sketch.css },
+  };
+}
+
+/**
+ * What a sketch holds that it may not, as {@link checkSketch} finds it: empty
+ * when it may be drawn. An empty list does not make the source safe to draw:
+ * draw the sketch {@link checkSketch} answers.
+ */
+export function sketchRefusals(sketch: SketchSource): string[] {
+  const checked = checkSketch(sketch);
+  return checked.ok ? [] : checked.refusals.map(({ what }) => what);
 }
 
 /** `sketch` where `node` sat: its id, slot and span, which its layout path and its parent read. */
@@ -172,27 +135,21 @@ export function compileSketch(
     return placed(node, { type: SKETCH_TYPE, options: { html: "" } });
   }
   const { html, css, height, caption } = parsed.data;
-  const refusals = [
-    ...forbiddenIn(html, cssInHtml(html)).map((what) => ({
-      field: "html",
-      what,
-    })),
-    ...forbiddenIn(css ?? "", css ?? "").map((what) => ({
-      field: "css",
-      what,
-    })),
-  ];
-  for (const { field, what } of refusals) {
-    issues.push({
-      path: `${pointer}/options/${field}`,
-      message: `a sketch is static HTML and CSS, so it may not hold ${what}`,
-    });
+  const checked = checkSketch(css === undefined ? { html } : { html, css });
+  if (!checked.ok) {
+    for (const { field, what } of checked.refusals) {
+      issues.push({
+        path: `${pointer}/options/${field}`,
+        message: `a sketch is static HTML and CSS, so it may not hold ${what}`,
+      });
+    }
   }
+  const drawn = checked.ok ? checked.sketch : { html: "" };
   const options: JsonObject = {
-    html: refusals.length ? "" : html,
+    html: drawn.html,
     height: height ?? SKETCH_DEFAULT_HEIGHT,
   };
-  if (css !== undefined && !refusals.length) options.css = css;
+  if (drawn.css !== undefined) options.css = drawn.css;
   if (caption !== undefined) options.caption = caption;
   return placed(node, { type: SKETCH_TYPE, options });
 }

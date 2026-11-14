@@ -18,6 +18,7 @@ import {
   SKETCH_DEFAULT_HEIGHT,
   SKETCH_MAX_CAPTION,
   SKETCH_MAX_HEIGHT,
+  SKETCH_MAX_SOURCE,
   SKETCH_MIN_HEIGHT,
   SKETCH_TYPE,
 } from "./sketch";
@@ -137,8 +138,8 @@ const SKETCH_NODE: JsonObject = {
       required: ["html"],
       additionalProperties: false,
       properties: {
-        html: { type: "string" },
-        css: { type: "string" },
+        html: { type: "string", maxLength: SKETCH_MAX_SOURCE },
+        css: { type: "string", maxLength: SKETCH_MAX_SOURCE },
         height: {
           type: "integer",
           minimum: SKETCH_MIN_HEIGHT,

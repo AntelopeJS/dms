@@ -10876,10 +10876,12 @@
               "additionalProperties": false,
               "properties": {
                 "html": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 524288
                 },
                 "css": {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 524288
                 },
                 "height": {
                   "type": "integer",

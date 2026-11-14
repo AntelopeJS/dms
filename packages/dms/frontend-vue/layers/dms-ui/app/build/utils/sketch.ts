@@ -142,6 +142,14 @@ export function currentSketchScheme(): SketchScheme {
 /**
  * The standalone document a sketch is drawn in. The CSP comes first in the
  * head, before anything the sketch wrote, so no later markup can loosen it.
+ *
+ * It draws `sketch.html` and `sketch.css` as given, checking neither: hand it
+ * only the sketch `checkSketch` from `@antelopejs/dms/sketch` answered, as a
+ * compiled mockup holds it. The frame's CSP stops loads but not a link out,
+ * so unchecked markup can navigate the frame away. Its `<base>` makes an
+ * `#anchor` resolve inside the frame's own `about:srcdoc` document, where a
+ * srcdoc document would otherwise resolve it against the dashboard's URL and
+ * load the dashboard into the frame.
  */
 export function buildSketchDocument(
   sketch: PreviewSketch,
@@ -150,6 +158,7 @@ export function buildSketchDocument(
   return [
     "<!doctype html><html><head>",
     `<meta http-equiv="Content-Security-Policy" content="${SKETCH_CSP}">`,
+    '<base href="about:srcdoc">',
     '<meta charset="utf-8">',
     `<style>${tokensCss}\n${SKETCH_BASE_CSS}</style>`,
     `<style>${sketch.css ?? ""}</style>`,
