@@ -1,12 +1,9 @@
 import type {
   AddBlockInput,
   BlockPath,
-  ConfigObject,
   ConfigureBlock,
   ConfigureBlockOpts,
   DuplicateScope,
-  EditableCategoryMeta,
-  EditablePageMeta,
   MutationOpts,
   OpResult,
   OpWarning,
@@ -24,14 +21,14 @@ import { assertBlockAccess, formGuard } from "./connection-access";
 import { applyImportRef, blockCallText, childArgText } from "./emit";
 import { stringLiteralValue } from "./literals";
 import { contentVersion, pageVersion } from "./page-structure";
-import { parseBlockPath, propertyKey } from "./paths";
+import { parseBlockPath } from "./paths";
 import { moduleMismatch } from "./modules";
+import { applyPatch } from "./options-patch";
 import { invalidateResourceIndex, resourceRefResolver } from "./resource-index";
 import { type PageRecord } from "./scan";
 import { findPageRecord, invalidateSourceIndex } from "./source-index";
 import {
   createImportCollector,
-  type EmitContext,
   InvalidValueError,
   serializeValue,
   UnknownDataTypeError,
@@ -223,63 +220,6 @@ function ensureOptionsObject(target: BlockTarget): ObjectLiteralExpression {
   return target.factoryCall
     .insertArgument(index, "{}")
     .asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
-}
-
-type OptionsPatchValue =
-  | EditablePageMeta[keyof EditablePageMeta]
-  | EditableCategoryMeta[keyof EditableCategoryMeta];
-
-/**
- * A patch of a page's or a category's own options, as the wire carries it.
- *
- * JSON has no `undefined`: an option the editor clears — a page's permission,
- * its position — arrives as `null`, which no option of a page means. It is
- * read as what the editor meant, an option to take out of the file, rather
- * than written as a `null` the page's types refuse.
- */
-export function optionsPatch(
-  patch: Record<string, OptionsPatchValue>,
-): Record<string, OptionsPatchValue> {
-  return Object.fromEntries(
-    Object.entries(patch).map(([key, value]) => [
-      key,
-      value === null ? undefined : value,
-    ]),
-  );
-}
-
-export function applyPatch(
-  obj: ObjectLiteralExpression,
-  patch: ConfigObject,
-  replace: boolean,
-  ctx: EmitContext,
-): void {
-  const initializers = new Map<string, string | undefined>();
-  for (const [key, value] of Object.entries(patch)) {
-    initializers.set(
-      key,
-      value === undefined ? undefined : serializeValue(value, ctx),
-    );
-  }
-  if (replace) {
-    for (const prop of obj.getProperties()) {
-      prop.remove();
-    }
-  }
-  for (const [key, initializer] of initializers) {
-    const existing = obj.getProperty(key);
-    if (initializer === undefined) {
-      if (existing) {
-        existing.remove();
-      }
-      continue;
-    }
-    if (existing && Node.isPropertyAssignment(existing)) {
-      existing.setInitializer(initializer);
-    } else {
-      obj.addPropertyAssignment({ name: propertyKey(key), initializer });
-    }
-  }
 }
 
 /** The `.child()` third argument, created when the call does not carry one. */
