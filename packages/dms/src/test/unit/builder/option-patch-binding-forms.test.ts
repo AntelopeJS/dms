@@ -115,6 +115,24 @@ describe("the binding forms a patched option read", () => {
       'const labels = ["Board", "Other"];\nconst [board, other] = labels;\nexport const kept = other;',
       "board,",
     ],
+    [
+      "a merged interface",
+      '({ row: "Board", col: 1 } satisfies Shape).row',
+      "interface Shape {\n  row: string;\n}\ninterface Shape {\n  col: number;\n}",
+      "interface Shape",
+    ],
+    [
+      "a merged enum",
+      "Label.Board",
+      'enum Label {\n  Board = "Board",\n}\nenum Label {\n  Other = "Other",\n}',
+      "enum Label",
+    ],
+    [
+      "an overloaded function",
+      'label("Board")',
+      "function label(value: string): string;\nfunction label(value: number): string;\nfunction label(value: unknown): string {\n  return String(value);\n}",
+      "function label",
+    ],
   ];
 
   for (const [form, title, binding, gone] of cases) {
@@ -123,6 +141,15 @@ describe("the binding forms a patched option read", () => {
       expect(await renameFrom(title, binding)).to.not.contain(gone);
     });
   }
+
+  it("drops one name of a destructured literal with its member", async function () {
+    this.timeout(OP_TIMEOUT);
+    const written = await renameFrom(
+      "board",
+      'const { board, other } = { board: "Board", other: "Other" };\nexport const kept = other;',
+    );
+    expect(written).to.contain('const { other } = { other: "Other" };');
+  });
 });
 
 /**
@@ -150,13 +177,4 @@ describe("an unused local the patched option only spelled", () => {
       expect(await renameFrom(title, binding)).to.contain(draft);
     });
   }
-
-  it("keeps a destructuring of a literal another name still reads", async function () {
-    this.timeout(OP_TIMEOUT);
-    const binding =
-      'const { board, other } = { board: "Board", other: "Other" };';
-    expect(
-      await renameFrom("board", `${binding}\nexport const kept = other;`),
-    ).to.contain(binding);
-  });
 });

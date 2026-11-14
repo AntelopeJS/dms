@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/interface-dms-builder",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "AntelopeJS interface for the DMS builder: create and edit pages, blocks, resources and queries in a DMS project from another module.",
   "keywords": [
     "antelopejs",

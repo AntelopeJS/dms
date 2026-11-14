@@ -269,7 +269,8 @@ class SourceScanner {
     if (cached) {
       return cached;
     }
-    if (decl.getSourceFile().isInNodeModules()) {
+    const declaredIn = decl.getSourceFile();
+    if (declaredIn.isInNodeModules() || declaredIn.isDeclarationFile()) {
       return this.resolveReserved(idNode.getText());
     }
     if (Node.isVariableDeclaration(decl)) {

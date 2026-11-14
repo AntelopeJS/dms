@@ -58,15 +58,15 @@ export class SalesPage extends PageController("sales", {
 
 <!-- antelopejs-docs-compat:start -->
 
-| Package                                     | Supported         | Tested with |
-| ------------------------------------------- | ----------------- | ----------- |
-| `@antelopejs/interface-api`                 | `>=0.3.0 <1.0.0`  | `0.3.2`     |
-| `@antelopejs/interface-api-util`            | `>=0.1.3 <1.0.0`  | `0.3.0`     |
-| `@antelopejs/interface-core`                | `>=0.5.1 <1.0.0`  | `0.5.1`     |
-| `@antelopejs/interface-data-api`            | `>=0.8.0 <0.9.0`  | `0.8.0`     |
-| `@antelopejs/interface-database`            | `>=0.1.11 <1.0.0` | `0.3.1`     |
-| `@antelopejs/interface-database-decorators` | `>=0.3.0 <1.0.0`  | `0.5.2`     |
-| `@antelopejs/interface-file-storage`        | `>=0.1.4 <1.0.0`  | `0.1.4`     |
+| Package                                     | Supported        | Tested with |
+| ------------------------------------------- | ---------------- | ----------- |
+| `@antelopejs/interface-api`                 | `>=0.3.0 <1.0.0` | `0.3.2`     |
+| `@antelopejs/interface-api-util`            | `>=0.1.3 <1.0.0` | `0.3.0`     |
+| `@antelopejs/interface-core`                | `>=0.5.1 <1.0.0` | `0.5.1`     |
+| `@antelopejs/interface-data-api`            | `>=0.8.0 <0.9.0` | `0.8.0`     |
+| `@antelopejs/interface-database`            | `>=0.4.0 <0.5.0` | `0.4.0`     |
+| `@antelopejs/interface-database-decorators` | `>=0.5.2 <0.6.0` | `0.5.2`     |
+| `@antelopejs/interface-file-storage`        | `>=0.1.4 <1.0.0` | `0.1.4`     |
 
 <!-- antelopejs-docs-compat:end -->
 

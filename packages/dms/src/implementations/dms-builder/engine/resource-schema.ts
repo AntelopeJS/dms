@@ -27,7 +27,9 @@ function isSchemaRegistry(value: unknown): value is SchemaRegistry {
  * that connection's driver, which the builder's own import does not reach, so the package is
  * resolved from the resource's own file, the way the generated model resolves it.
  */
-export function resourceSchema(record: ResourceRecord): Schema | undefined {
+export function resourceSchema(
+  record: ResourceRecord,
+): ReturnType<typeof Schema.get> {
   const database = loadModuleFrom(record.databaseFile, DATABASE_INTERFACE);
   return isSchemaRegistry(database)
     ? database.Schema.get(record.schema)

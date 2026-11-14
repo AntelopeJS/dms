@@ -21,7 +21,6 @@ import {
   EMPTY_APP_CONFIG,
   readColors,
   readLogos,
-  stringLiterals,
   validateColors,
   validateLogos,
   writeAppConfig,
@@ -33,6 +32,7 @@ import {
   stageLogos,
   withUploads,
 } from "./theme-assets";
+import { reachableStringLiterals } from "./theme-config-imports";
 import { isString } from "./scalar-guards";
 import { themeDraftIssues } from "./theme-draft";
 import { importStylesheet, importsStylesheet } from "./theme-entry";
@@ -373,7 +373,7 @@ function writeTheme(
     ...orphanedAssets(
       sources.publicDirectory,
       previousLogos,
-      stringLiterals(sources.appConfig),
+      reachableStringLiterals(sources.appConfig),
     ),
     ...orphanedFontFiles(fonts, sources.publicDirectory),
   ]) {

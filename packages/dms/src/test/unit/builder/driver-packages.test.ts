@@ -17,6 +17,9 @@ const BUILT_FOR_0_4: Record<"postgres" | "mongodb" | "rethinkdb", string> = {
   rethinkdb: "1.10.0",
 };
 
+/** The first postgres release past the 0.4 line, which a closed range refuses. */
+const NEXT_POSTGRES_LINE = "0.5.0";
+
 const ENGINES_ON_0_4: (keyof typeof BUILT_FOR_0_4)[] = [
   "postgres",
   "mongodb",
@@ -60,7 +63,7 @@ describe("the driver range a project can install", () => {
 
 /**
  * Fails on a project state that reads another interface-database than the one core resolves for
- * the project, or answers an open range. The test project resolves 0.3, through its MongoDB module.
+ * the project, or answers an open range. The test project resolves 0.4, through its MongoDB module.
  */
 describe("connecting a driver to the project", function () {
   this.timeout(OP_TIMEOUT);
@@ -73,10 +76,10 @@ describe("connecting a driver to the project", function () {
 
   after(destroyFixture);
 
-  it("answers and writes a range that excludes the drivers built for 0.4", async () => {
+  it("answers and writes the range of the drivers built for 0.4, closed before the next line", async () => {
     const project = await GetDatabaseProject();
     const resolved = project.ok ? project.data.interfaceDatabase : undefined;
-    expect(semver.satisfies(resolved ?? "", "0.3.x"), resolved).to.equal(true);
+    expect(semver.satisfies(resolved ?? "", "0.4.x"), resolved).to.equal(true);
     const postgres = project.ok ? project.data.drivers.postgres : undefined;
     expect(postgres).to.deep.equal(driverPackages(resolved).postgres);
     expectOk(
@@ -102,7 +105,8 @@ describe("connecting a driver to the project", function () {
     )?.[1];
     expect(written).to.equal(postgres?.version);
     expect(semver.satisfies(BUILT_FOR_0_4.postgres, written ?? "")).to.equal(
-      false,
+      true,
     );
+    expect(semver.satisfies(NEXT_POSTGRES_LINE, written ?? "")).to.equal(false);
   });
 });
