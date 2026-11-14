@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.5.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-dms-builder-v0.5.0...v0.5.1)
+
+### 🚀 Enhancements
+
+- **dms:** ⚠️  Move to interface-database 0.4.0 ([#907](https://github.com/AntelopeJS/dms/pull/907))
+- **dms:** Record source chat for a mockup spec the chat's MCP session writes ([#1011](https://github.com/AntelopeJS/dms/pull/1011))
+
+### 🩹 Fixes
+
+- **dms:** Prune one name of a destructured literal with its member ([#1004](https://github.com/AntelopeJS/dms/pull/1004))
+- **dms:** Resolve the root category declared in a linked interface so a remap reuses its category ([#1007](https://github.com/AntelopeJS/dms/pull/1007))
+- **dms:** Refuse a MySQL socket host in the connect check ([#1002](https://github.com/AntelopeJS/dms/pull/1002))
+- **verify-dms:** Wait 180 s for an MCP bridge answer ([#1012](https://github.com/AntelopeJS/dms/pull/1012))
+- **dms:** Keep a logo file the app config names through a template literal ([#1010](https://github.com/AntelopeJS/dms/pull/1010))
+- **dms:** Serve the project's database wiring to MCP clients so a connect batch writes a startable driver range ([#1016](https://github.com/AntelopeJS/dms/pull/1016))
+- **interface-dms:** Keep one pending invite when a fourth caller replaces a fresh invite ([#1013](https://github.com/AntelopeJS/dms/pull/1013))
+- **interface-dms:** Accept any zod 3.x from 3.24.2 so a module's newer zod is shared ([#1015](https://github.com/AntelopeJS/dms/pull/1015))
+- **dms:** Accept any zod 3.x from 3.24.2 so the workspace shares one zod copy ([#1018](https://github.com/AntelopeJS/dms/pull/1018))
+- **dms:** Keep a logo file the app config builds from substitutions alone ([#1019](https://github.com/AntelopeJS/dms/pull/1019))
+- **dms:** ⚠️  Verify a token's signature before looking up its user ([#1014](https://github.com/AntelopeJS/dms/pull/1014))
+- **release:** Build interface-dms-builder before the release lint ([#1020](https://github.com/AntelopeJS/dms/pull/1020))
+
+### 📖 Documentation
+
+- **dms:** Name AdonisJS and MySQL without versions in prose ([#1017](https://github.com/AntelopeJS/dms/pull/1017))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.14.0 ([1c5c7f16](https://github.com/AntelopeJS/dms/commit/1c5c7f16))
+
+#### ⚠️ Breaking Changes
+
+- **dms:** ⚠️  Move to interface-database 0.4.0 ([#907](https://github.com/AntelopeJS/dms/pull/907))
+- **dms:** ⚠️  Verify a token's signature before looking up its user ([#1014](https://github.com/AntelopeJS/dms/pull/1014))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.5.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.19.6...v0.5.0)
