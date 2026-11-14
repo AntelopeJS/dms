@@ -173,8 +173,10 @@ describe("scaffolding a module from a project inside a pnpm workspace", () => {
     );
     expect(missing).to.deep.equal([]);
     expect(
-      fs.realpathSync(path.join(scaffold.root, "node_modules", DMS_INTERFACE)),
-    ).to.equal(fs.realpathSync(path.join(workspace, "interface")));
+      fs.realpathSync.native(
+        path.join(scaffold.root, "node_modules", DMS_INTERFACE),
+      ),
+    ).to.equal(fs.realpathSync.native(path.join(workspace, "interface")));
   });
 });
 
