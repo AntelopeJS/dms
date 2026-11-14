@@ -11,6 +11,7 @@ import {
   DiagnosticMessageChain,
   type ExportDeclaration,
   type FunctionDeclaration,
+  type Identifier,
   type ImportDeclaration,
   type ImportSpecifier,
   type InterfaceDeclaration,
@@ -246,7 +247,9 @@ function localDeclarations(sourceFile: SourceFile): LocalDeclaration[] {
  * Whether anything else in the file uses the local. Read off the identifiers
  * rather than the language service: a name that only looks used (a property of
  * the same spelling) keeps a declaration that could have gone, which is the
- * safe way to be wrong.
+ * safe way to be wrong. The key of an object literal member (`displayName:`)
+ * never reads a binding, so it is not counted: a patch that turns the shorthand
+ * `{ displayName }` into `{ displayName: "…" }` leaves that spelling behind.
  */
 function isLocalReferenced(
   sourceFile: SourceFile,
@@ -257,8 +260,16 @@ function isLocalReferenced(
     .some(
       (identifier) =>
         identifier.getText() === local.name &&
+        !isObjectLiteralKey(identifier) &&
         !local.node.containsRange(identifier.getPos(), identifier.getEnd()),
     );
+}
+
+function isObjectLiteralKey(identifier: Identifier): boolean {
+  const parent = identifier.getParent();
+  return (
+    Node.isPropertyAssignment(parent) && parent.getNameNode() === identifier
+  );
 }
 
 /**

@@ -20,6 +20,7 @@ export * from "./module-reload";
 export * from "./modules";
 export * from "./native-kind";
 export * from "./ops";
+export * from "./options-patch";
 export * from "./page-access";
 export * from "./page-structure";
 export * from "./project-env";

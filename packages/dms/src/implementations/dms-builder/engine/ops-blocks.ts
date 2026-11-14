@@ -52,9 +52,8 @@ import {
   resolveRootBarrel,
   Transaction,
 } from "./writable";
+import { applyPatch, optionsPatch } from "./options-patch";
 import {
-  applyPatch,
-  optionsPatch,
   checkVersion,
   childArgsOf,
   clampIndex,

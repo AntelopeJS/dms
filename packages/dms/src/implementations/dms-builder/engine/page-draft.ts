@@ -30,9 +30,8 @@ import {
   importSpecifier,
 } from "./emit";
 import { getExtendsCall, stringLiteralValue } from "./literals";
+import { applyPatch, optionsPatch } from "./options-patch";
 import {
-  applyPatch,
-  optionsPatch,
   checkVersion,
   commit,
   invalidConfig,
