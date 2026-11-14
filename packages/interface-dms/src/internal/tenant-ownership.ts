@@ -82,10 +82,11 @@ export async function applyAdmittedTenantOwnership(
 }
 
 /**
- * Compatibility shim: in non-SaaS mode, the legacy `users.owner` boolean is
- * kept in sync with `TenantMember.isTenantOwner` on the default tenant. This
- * is a no-op in SaaS mode (where `users.owner` reflects platform ownership
- * separately, see `RegisterSaasMode`) and outside the default tenant.
+ * Outside SaaS mode the default tenant's owners are the platform owners, so
+ * this copies `TenantMember.isTenantOwner` on the default tenant onto
+ * `users.owner`. It does nothing in SaaS mode (where `users.owner` reflects
+ * platform ownership separately, see `RegisterSaasMode`) and outside the
+ * default tenant.
  *
  * @internal
  */

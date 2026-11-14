@@ -79,7 +79,7 @@ interface Props {
   /**
    * Surface a themed delete badge on selected nodes and route Delete/Backspace
    * through the `delete-nodes` event. The consumer stays in charge of the
-   * actual removal. Off by default for backwards compatibility.
+   * actual removal. Off by default.
    */
   deletableNodes?: boolean;
   /**
