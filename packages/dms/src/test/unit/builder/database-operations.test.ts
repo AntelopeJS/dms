@@ -107,6 +107,46 @@ describe("checking a database connection", () => {
       await server.close();
     }
   });
+
+  it("refuses a MySQL URL whose host is a socket path, which mysql2 would look up as a host name", async () => {
+    setClientLoaderForTests(() => undefined);
+    const answer = async (engine: DatabaseEngine, url: string) => {
+      const result = await checkConnection(
+        parseCheckInput({ engine, url }),
+        true,
+      );
+      return result.ok ? "checked" : result.error;
+    };
+    try {
+      for (const host of [
+        "%2Fvar%2Frun%2Fmysqld",
+        "%2Fvar%2Frun%2Fmysqld.sock",
+      ]) {
+        const result = await answer("mysql", `mysql://u:${SECRET}@${host}/erp`);
+        expect(result, host).to.deep.equal({
+          code: "invalid_config",
+          issues: [
+            {
+              pointer: "",
+              message:
+                "the host is a name or an address only: no spaces, port or path",
+            },
+          ],
+        });
+      }
+      for (const host of ["db.example", "[::1]", "127.0.0.1"]) {
+        expect(
+          await answer("mysql", `mysql://u@${host}:3306/erp`),
+          host,
+        ).to.equal("checked");
+      }
+      expect(
+        await answer("postgres", "postgres://u@%2Fvar%2Frun%2Fpostgresql/erp"),
+      ).to.equal("checked");
+    } finally {
+      setClientLoaderForTests();
+    }
+  });
 });
 
 /** Fails on a check that sends an input to another engine's probe, or answers a missing client with the driver's error. */
