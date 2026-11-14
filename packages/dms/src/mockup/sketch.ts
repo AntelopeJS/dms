@@ -57,6 +57,10 @@ export type SketchCheck =
  * answered with its markup written back from the parsed tree, which is what
  * the frame must draw. This module needs only `zod` and `parse5`, so a process
  * without the AntelopeJS runtime can require it as `@antelopejs/dms/sketch`.
+ *
+ * Draw only `checked.sketch`, never the source the check was given: the
+ * viewer's `buildSketchDocument` draws the markup it is handed as is, so the
+ * check holds only for the markup it answered.
  */
 export function checkSketch(sketch: SketchSource): SketchCheck {
   const markup = checkMarkup(sketch.html);
@@ -83,7 +87,11 @@ export function checkSketch(sketch: SketchSource): SketchCheck {
   };
 }
 
-/** What a sketch holds that it may not, as {@link checkSketch} finds it: empty when it may be drawn. */
+/**
+ * What a sketch holds that it may not, as {@link checkSketch} finds it: empty
+ * when it may be drawn. An empty list does not make the source safe to draw:
+ * draw the sketch {@link checkSketch} answers.
+ */
 export function sketchRefusals(sketch: SketchSource): string[] {
   const checked = checkSketch(sketch);
   return checked.ok ? [] : checked.refusals.map(({ what }) => what);
