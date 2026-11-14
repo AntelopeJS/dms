@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import type { TableViewDisplayContext } from "../../composables/table-view/types";
 import DmsTableEmpty from "../components/table/TableEmpty.vue";
 import DmsTablePagination from "../components/table/TablePagination.vue";
@@ -9,6 +9,7 @@ import {
   type MockupSummary,
 } from "../utils/mockup";
 import MockupThumbnail from "./MockupThumbnail.vue";
+import { resyncFromPage } from "./resync";
 
 /**
  * The display of the Mockups page: one card per mockup, with a thumbnail of
@@ -28,6 +29,38 @@ const SOURCE_KEYS: Record<MockupSource, string> = {
 };
 
 const { t } = useI18n();
+const { $authFetch } = useAuthFetch();
+const { presentError } = useApiErrorPresenter();
+const router = useDmsRouter();
+
+/** The path of the page being turned back into its mockup, while it is. */
+const resyncing = ref<string>();
+
+function isOutOfSync(mockup: MockupSummary): boolean {
+  return (
+    mockup.status === "built" && mockup.builtPages.some((page) => page.changed)
+  );
+}
+
+function statusOf(mockup: MockupSummary): { label: string; color: string } {
+  if (isOutOfSync(mockup)) {
+    return { label: t("dms.mockup.status_out_of_sync"), color: "warning" };
+  }
+  return mockup.status === "built"
+    ? { label: t("dms.mockup.status_built"), color: "success" }
+    : { label: t("dms.mockup.status_draft"), color: "neutral" };
+}
+
+async function resync(mockup: string, path: string): Promise<void> {
+  resyncing.value = path;
+  try {
+    await router.push(await resyncFromPage($authFetch, mockup, path));
+  } catch (error) {
+    presentError(error, { fallbackKey: "dms.mockup.resync_failed" });
+  } finally {
+    resyncing.value = undefined;
+  }
+}
 
 const mockups = computed(() =>
   props.context.items.flatMap((row) => parseMockupSummary(row) ?? []),
@@ -105,16 +138,12 @@ function metaLine(mockup: MockupSummary): string {
               </DmsLink>
             </h3>
             <UBadge
-              :color="mockup.status === 'built' ? 'success' : 'neutral'"
+              :color="statusOf(mockup).color"
               variant="subtle"
               size="sm"
               data-dms-mockup-status
             >
-              {{
-                mockup.status === "built"
-                  ? t("dms.mockup.status_built")
-                  : t("dms.mockup.status_draft")
-              }}
+              {{ statusOf(mockup).label }}
             </UBadge>
           </div>
           <p class="text-muted text-xs" data-dms-mockup-meta>
@@ -125,7 +154,11 @@ function metaLine(mockup: MockupSummary): string {
             class="flex flex-wrap gap-x-3 gap-y-1 pt-1"
             :aria-label="t('dms.mockup.built_pages')"
           >
-            <li v-for="page in mockup.builtPages" :key="page.path">
+            <li
+              v-for="page in mockup.builtPages"
+              :key="page.path"
+              class="flex items-center gap-1"
+            >
               <DmsLink
                 :to="page.path"
                 class="text-primary relative text-xs hover:underline"
@@ -133,6 +166,17 @@ function metaLine(mockup: MockupSummary): string {
               >
                 {{ page.title }}
               </DmsLink>
+              <button
+                v-if="page.changed && page.pageId"
+                type="button"
+                class="text-warning relative text-xs hover:underline disabled:opacity-50"
+                :disabled="resyncing !== undefined"
+                :title="t('dms.mockup.resync_hint')"
+                data-dms-mockup-resync
+                @click="resync(mockup.name, page.path)"
+              >
+                {{ t("dms.mockup.resync") }}
+              </button>
             </li>
           </ul>
         </div>

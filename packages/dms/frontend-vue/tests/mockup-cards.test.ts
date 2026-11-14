@@ -28,8 +28,8 @@ const built = {
   status: "built",
   builtAt: UPDATED,
   builtPages: [
-    { path: "/bikes", title: "Bikes" },
-    { path: "/bikes/new", title: "/bikes/new" },
+    { path: "/bikes", title: "Bikes", changed: false },
+    { path: "/bikes/new", title: "/bikes/new", changed: false },
   ],
 };
 
@@ -71,6 +71,7 @@ let app: App | undefined;
 let host: HTMLElement;
 
 const authFetch = vi.fn();
+const navigateTo = vi.fn();
 
 beforeEach(() => {
   stubObservers();
@@ -78,6 +79,9 @@ beforeEach(() => {
   authFetch.mockResolvedValue({ pages: [] });
   vi.stubGlobal("useI18n", () => i18n.global);
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  vi.stubGlobal("useApiErrorPresenter", () => ({ presentError: vi.fn() }));
+  navigateTo.mockReset();
+  vi.stubGlobal("useDmsRouter", () => ({ push: navigateTo }));
 });
 
 afterEach(() => {
@@ -224,7 +228,7 @@ it("draws no card for a row that is not a summary, nor for a built page that lea
   const leaving = {
     ...built,
     name: "leaving",
-    builtPages: [{ path: "//evil.example", title: "Evil" }],
+    builtPages: [{ path: "//evil.example", title: "Evil", changed: false }],
   };
   const root = await mountCards([
     built,
@@ -274,4 +278,61 @@ it("reads the first page of each card's own mockup once it scrolls into view", a
     "/api/mockup/bike-rental",
     "/api/mockup/stations-map",
   ]);
+});
+
+/**
+ * Fails an implementation that keeps a built mockup Built after one of its
+ * pages changed, offers to update a page that did not change or that no mockup
+ * page is linked to, converts into another mockup than the card's, or opens
+ * the stale mockup without converting the page into it again.
+ */
+it("badges a built mockup with a changed page Out of sync and updates that page's mockup from it", async () => {
+  const drifted = {
+    ...built,
+    name: "drifted",
+    builtPages: [
+      { path: "/bikes", title: "Bikes", pageId: "bikes", changed: true },
+      {
+        path: "/bikes/new",
+        title: "/bikes/new",
+        pageId: "new",
+        changed: false,
+      },
+      { path: "/stock", title: "Stock", changed: true },
+    ],
+  };
+  const root = await mountCards([built, drifted]);
+
+  expect(text(card(root, "drifted"), "[data-dms-mockup-status]")).toBe(
+    "Out of sync",
+  );
+  expect(
+    card(root, "drifted")
+      .querySelector("[data-dms-mockup-status]")
+      ?.getAttribute("data-color"),
+  ).toBe("warning");
+  expect(
+    card(root, "bike-rental").querySelector("[data-dms-mockup-resync]"),
+  ).toBeNull();
+  const buttons = card(root, "drifted").querySelectorAll(
+    "[data-dms-mockup-resync]",
+  );
+  expect(buttons).toHaveLength(1);
+
+  authFetch.mockReset();
+  authFetch
+    .mockResolvedValueOnce({
+      url: "/mockup?name=bikes",
+      stale: true,
+      digest: "d1",
+    })
+    .mockResolvedValueOnce({ url: "/mockup?name=bikes&page=bikes" });
+  buttons[0]?.dispatchEvent(new MouseEvent("click"));
+  await vi.waitFor(() => expect(navigateTo).toHaveBeenCalled());
+
+  expect(authFetch.mock.calls.map(([, options]) => options.body)).toEqual([
+    { path: "/bikes", mockup: "drifted" },
+    { path: "/bikes", mockup: "drifted", replace: true, digest: "d1" },
+  ]);
+  expect(navigateTo).toHaveBeenCalledWith("/mockup?name=bikes&page=bikes");
 });

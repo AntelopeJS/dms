@@ -37,7 +37,6 @@ function spec(title: string): string {
 
 let root: string;
 let store: MockupStore;
-
 /** One mockup, `desk`, in a fresh mockups directory for each test. */
 function withMockupsDirectory(): void {
   beforeEach(async () => {
@@ -157,9 +156,9 @@ describe("[unit] mockup list status and source", () => {
       builtAt: "2026-11-13T12:00:00+02:00",
     });
     expect(summary).to.have.deep.property("builtPages", [
-      { path: "/orders", title: "Orders" },
-      { path: "/orders/new", title: "/orders/new" },
-      { path: "/stock", title: "/stock" },
+      { path: "/orders", title: "Orders", changed: false },
+      { path: "/orders/new", title: "/orders/new", changed: false },
+      { path: "/stock", title: "/stock", changed: false },
     ]);
   });
 

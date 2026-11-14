@@ -1,3 +1,4 @@
+import type { PageReader } from "./built-sync";
 import { defaultMockupsDir } from "./files";
 import { registerMockupPage } from "./page";
 import {
@@ -29,9 +30,15 @@ let engine: MockupEngine | undefined;
  * Serves the mockups of `mockupsDir` (`<project root>/mockups` by default):
  * the `/api/mockup` routes and the `/mockup` page. Development only.
  */
-export function startMockupEngine(mockupsDir = defaultMockupsDir()): void {
+export function startMockupEngine(
+  mockupsDir = defaultMockupsDir(),
+  livePages?: PageReader,
+): void {
   if (engine) return;
-  engine = { store: new MockupStore(mockupsDir), streams: new Set() };
+  engine = {
+    store: new MockupStore(mockupsDir, livePages),
+    streams: new Set(),
+  };
   registerMockupRoutes(engine);
   registerMockupPage();
 }

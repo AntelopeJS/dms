@@ -4,6 +4,12 @@ import { join } from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { z } from "zod";
 import { listAnnotations, type MockupAnnotation } from "./annotations";
+import {
+  BuilderReads,
+  type BuiltPageSync,
+  builtPageSync,
+  type PageReader,
+} from "./built-sync";
 import { compileSpec, parseSpec } from "./compile";
 import {
   ANNOTATIONS_FILE,
@@ -58,8 +64,11 @@ export type MockupSummary = MockupSummaryBase &
     | {
         status: "built";
         builtAt: string;
-        /** Each page's dashboard path, titled by the path when it has no title. */
-        builtPages: Array<{ path: string; title: string }>;
+        /**
+         * Each page's dashboard path, titled by the path when it has no
+         * title, the spec page linked to it, and whether it changed since.
+         */
+        builtPages: Array<{ path: string; title: string } & BuiltPageSync>;
       }
   );
 
@@ -131,7 +140,11 @@ export class MockupStore {
   private readonly watches = new Map<MockupName, Watch>();
   private watcher: FSWatcher | undefined;
 
-  constructor(readonly mockupsDir: string) {}
+  /** Without `livePages`, as when the builder is off, no built page reads as changed. */
+  constructor(
+    readonly mockupsDir: string,
+    private readonly livePages?: PageReader,
+  ) {}
 
   /**
    * Every mockup whose directory holds a spec, the one changed last first
@@ -145,10 +158,11 @@ export class MockupStore {
       if (parseFsError(error).code === MISSING_FILE) return [];
       throw error;
     }
+    const reads = this.livePages && new BuilderReads(this.livePages);
     const summaries = await Promise.all(
       names.map(async (raw) => {
         const name = parseMockupName(raw);
-        return name ? this.summary(name) : undefined;
+        return name ? this.summary(name, reads) : undefined;
       }),
     );
     return summaries
@@ -164,7 +178,10 @@ export class MockupStore {
    * The summary of a mockup, read as much as it reads cleanly: a spec that is
    * not JSON, or a `source` or `built` that is invalid, lists with what is left.
    */
-  private async summary(name: MockupName): Promise<MockupSummary | undefined> {
+  private async summary(
+    name: MockupName,
+    reads: BuilderReads | undefined,
+  ): Promise<MockupSummary | undefined> {
     const file = await this.specFile(name);
     if (!file) return undefined;
     const { title, pages, source, built } = readSummaryFields(file.text);
@@ -181,10 +198,13 @@ export class MockupStore {
       ...base,
       status: "built",
       builtAt: built.at,
-      builtPages: built.pages.map((page) => ({
-        path: page.path,
-        title: page.title?.trim() || page.path,
-      })),
+      builtPages: await Promise.all(
+        built.pages.map(async (page) => ({
+          path: page.path,
+          title: page.title?.trim() || page.path,
+          ...(await builtPageSync(page.path, pages, reads)),
+        })),
+      ),
     };
   }
 

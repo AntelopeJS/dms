@@ -35,6 +35,7 @@ import {
   getConfig,
   getFrontendConfig,
   getHtmlRenderConfig,
+  isBuilderEnabled,
   isDocsPreviewEnabled,
 } from "./config";
 import {
@@ -66,7 +67,7 @@ import {
   stopPendingExtensionReport,
 } from "./page-extensions";
 import { registerDocsPreviewPage } from "./pages/public/preview";
-import { startMockupEngine, stopMockupEngine } from "./mockup";
+import { BUILDER_PAGES, startMockupEngine, stopMockupEngine } from "./mockup";
 import { deriveOAuthRelaySecret } from "./routes/oauth";
 import { frontendModule } from "./frontend-module";
 import {
@@ -113,7 +114,10 @@ export async function construct(config: Config): Promise<void> {
     registerDocsPreviewPage();
   }
   if (dev) {
-    startMockupEngine();
+    startMockupEngine(
+      undefined,
+      isBuilderEnabled(dev) ? BUILDER_PAGES : undefined,
+    );
   }
 
   await (await import("./mcp")).startMcp(dev);
