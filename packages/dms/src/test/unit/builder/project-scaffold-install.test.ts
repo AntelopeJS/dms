@@ -5,6 +5,7 @@ import { expect } from "chai";
 import { setBuilderConfig } from "../../../config";
 import {
   BUILDER_CODE_INTERFACES,
+  type Scaffold,
   scaffoldLocalModule,
 } from "../../../implementations/dms-builder/engine";
 import { runScript } from "./helpers/processes";
@@ -43,7 +44,7 @@ function withoutRegistryTypescript(text: string): string {
   return text.replace(BUILDER_TYPESCRIPT, "");
 }
 
-function writeScaffold(): string {
+function writeScaffold(): Scaffold {
   const scaffold = scaffoldLocalModule("m", "modules/m");
   for (const [file, text] of [
     ...scaffold.files,
@@ -57,7 +58,16 @@ function writeScaffold(): string {
         : text,
     );
   }
-  return scaffold.root;
+  return scaffold;
+}
+
+/** The scaffold's own install command, kept off the registry and on a store of the test's own. */
+function install(scaffold: Scaffold, store: string) {
+  return runScript(
+    `${scaffold.source.installCommand[0]} --offline --store-dir "${store}"`,
+    scaffold.root,
+    path.dirname(process.execPath),
+  );
 }
 
 describe("scaffolding a module from a project with relative path dependencies", () => {
@@ -81,13 +91,10 @@ describe("scaffolding a module from a project with relative path dependencies", 
   });
 
   it("installs the module with each dependency resolved from the project's folder", () => {
-    const moduleRoot = writeScaffold();
-    const install = runScript(
-      `pnpm install --offline --ignore-workspace --store-dir "${path.join(root, "store")}"`,
-      moduleRoot,
-      path.dirname(process.execPath),
-    );
-    expect(install.status, install.output).to.equal(0);
+    const scaffold = writeScaffold();
+    const moduleRoot = scaffold.root;
+    const installed = install(scaffold, path.join(root, "store"));
+    expect(installed.status, installed.output).to.equal(0);
     const missing = NAMES.filter(
       (name) =>
         !fs.existsSync(
@@ -95,5 +102,78 @@ describe("scaffolding a module from a project with relative path dependencies", 
         ),
     );
     expect(missing).to.deep.equal([]);
+  });
+});
+
+describe("scaffolding a module from a project inside a pnpm workspace", () => {
+  const DMS_INTERFACE = "@antelopejs/interface-dms";
+  /** The pnpm this repository's workspace pins: a nested `pnpm install` under it installs the whole workspace. */
+  const PACKAGE_MANAGER = "pnpm@10.2.0";
+  let workspace: string;
+
+  before(() => {
+    workspace = fs.mkdtempSync(
+      path.join(os.tmpdir(), "dms-builder-workspace-"),
+    );
+    root = path.join(workspace, "project");
+    fs.mkdirSync(root);
+    setBuilderConfig({ projectRoot: root });
+    fs.writeFileSync(
+      path.join(workspace, "package.json"),
+      JSON.stringify({
+        name: "workspace",
+        private: true,
+        packageManager: PACKAGE_MANAGER,
+      }),
+    );
+    fs.writeFileSync(
+      path.join(workspace, "pnpm-workspace.yaml"),
+      "packages:\n  - project\n  - interface\n",
+    );
+    fs.mkdirSync(path.join(workspace, "interface"));
+    fs.writeFileSync(
+      path.join(workspace, "interface", "package.json"),
+      JSON.stringify({ name: DMS_INTERFACE, version: "0.0.0-workspace" }),
+    );
+    fs.writeFileSync(
+      path.join(root, "package.json"),
+      JSON.stringify({
+        name: "project",
+        packageManager: PACKAGE_MANAGER,
+        dependencies: {
+          ...vendorPackages(INTERFACES),
+          [DMS_INTERFACE]: "workspace:*",
+        },
+        devDependencies: vendorPackages(TOOLING),
+      }),
+    );
+    fs.writeFileSync(path.join(root, "tsconfig.json"), "{}");
+    const project = runScript(
+      `pnpm install --offline --store-dir "${path.join(workspace, "store")}"`,
+      workspace,
+      path.dirname(process.execPath),
+    );
+    expect(project.status, project.output).to.equal(0);
+  });
+
+  after(() => {
+    fs.rmSync(workspace, { recursive: true, force: true });
+    setBuilderConfig({});
+  });
+
+  it("installs the module in its own folder, linked to the workspace's copy of a workspace: dependency", () => {
+    const scaffold = writeScaffold();
+    const installed = install(scaffold, path.join(workspace, "store"));
+    expect(installed.status, installed.output).to.equal(0);
+    const missing = NAMES.filter(
+      (name) =>
+        !fs.existsSync(
+          path.join(scaffold.root, "node_modules", name, "package.json"),
+        ),
+    );
+    expect(missing).to.deep.equal([]);
+    expect(
+      fs.realpathSync(path.join(scaffold.root, "node_modules", DMS_INTERFACE)),
+    ).to.equal(fs.realpathSync(path.join(workspace, "interface")));
   });
 });
