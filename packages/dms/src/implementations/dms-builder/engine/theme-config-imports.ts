@@ -1,7 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Project, type SourceFile } from "ts-morph";
-import { stringLiterals } from "./theme-app-config";
+import {
+  type BuiltFileName,
+  builtFileNames,
+  stringLiterals,
+} from "./theme-app-config";
 
 const RESOLVED_SUFFIXES = [
   "",
@@ -64,18 +68,28 @@ function localImports(sourceFile: SourceFile, appDirectory: string): string[] {
     .filter((file) => file !== undefined);
 }
 
+/** The strings a file and the local files it imports spell or build. */
+export interface ReachedStrings {
+  literals: Set<string>;
+  builtFileNames: BuiltFileName[];
+}
+
 /**
  * Every string the app config spells as a literal, and every string a local
  * file it imports spells, through re-exports too: a logo slot may name its
- * path through a constant of another file.
+ * path through a constant of another file. Also every file name a template
+ * literal of those files builds.
  */
-export function reachableStringLiterals(appConfig: SourceFile): Set<string> {
+export function reachableStrings(appConfig: SourceFile): ReachedStrings {
   const appDirectory = path.dirname(appConfig.getFilePath());
   const project = new Project({
     useInMemoryFileSystem: true,
     compilerOptions: { noLib: true },
   });
-  const literals = stringLiterals(appConfig);
+  const reached: ReachedStrings = {
+    literals: stringLiterals(appConfig),
+    builtFileNames: builtFileNames(appConfig),
+  };
   const seen = new Set<string>();
   const pending = localImports(appConfig, appDirectory);
   for (let file = pending.pop(); file !== undefined; file = pending.pop()) {
@@ -85,9 +99,10 @@ export function reachableStringLiterals(appConfig: SourceFile): Set<string> {
     seen.add(file);
     const imported = project.createSourceFile(file, readable(file) ?? "");
     for (const literal of stringLiterals(imported)) {
-      literals.add(literal);
+      reached.literals.add(literal);
     }
+    reached.builtFileNames.push(...builtFileNames(imported));
     pending.push(...localImports(imported, appDirectory));
   }
-  return literals;
+  return reached;
 }
