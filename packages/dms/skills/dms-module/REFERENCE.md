@@ -16,7 +16,7 @@ first-party modules follow `dms-<name>` purely for discoverability.
       src/
         index.ts                    # entry: construct/start/stop/destroy lifecycle
         db/                         # schema, models, tables (if it owns data)
-        pages/                      # @RegisterPage classes + category.ts (see dms-pages)
+        pages/                      # @RegisterPage classes + category.ts (see antelopejs:dms-pages)
         routes/                     # HTTP controllers feeding the components
         implementations/<name>/index.ts  # implementation of the module's own interface
       frontend-vue/                 # Vue module: dms.frontend.ts, app/, i18n/locales/,
