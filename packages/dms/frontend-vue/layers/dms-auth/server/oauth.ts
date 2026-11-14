@@ -2,7 +2,12 @@ import { timingSafeEqual } from "node:crypto";
 import type { DmsServerEvent } from "#dms/server";
 import { privateSecret } from "../../../server/private-options";
 import { persistAccountSession } from "./accounts";
-import { type SessionTokens, sessionFrom } from "./session";
+import {
+  type LoginOutcome,
+  loginOutcome,
+  oauthAuthorization,
+} from "./backend-answers";
+import { sessionFrom } from "./session";
 import type {
   NoHandoff,
   NoWorkspaceHandoff,
@@ -40,14 +45,6 @@ interface OAuthFlow {
   redirect: string;
   language: string;
   invite: string;
-}
-
-interface OAuthResult extends SessionTokens {
-  requires_2fa?: boolean;
-  requires_tenant_assignment?: boolean;
-  two_factor_token?: string;
-  tenant_assignment_token?: string;
-  methods?: unknown;
 }
 
 const attempts = new Map<string, RateWindow>();
@@ -163,12 +160,11 @@ export async function oauthStart(event: DmsServerEvent): Promise<Response> {
   )
     return errorRedirect(FAILED);
   try {
-    const result = await event.backend<{
-      state: string;
-      authorizeUrl: string;
-    }>(`/api/auth/oauth/${provider}/authorize-url`, {
-      headers: relayHeaders(event),
-    });
+    const result = oauthAuthorization.parse(
+      await event.backend(`/api/auth/oauth/${provider}/authorize-url`, {
+        headers: relayHeaders(event),
+      }),
+    );
     const query = event.url.searchParams;
     event.cookies.writeSealed(
       FLOW,
@@ -213,26 +209,30 @@ function validCallback(flow: OAuthFlow | undefined, query: URLSearchParams) {
 function storeOAuthResult(
   event: DmsServerEvent,
   provider: string,
-  result: OAuthResult,
+  outcome: LoginOutcome,
 ) {
   const handoff = { maxAge: HANDOFF_LIFETIME_S, path: FLOW_PATH };
-  if (result.requires_2fa)
+  if (outcome.kind === "2fa")
     event.cookies.writeSealed(
       HANDOFF,
-      { kind: "2fa", token: result.two_factor_token, methods: result.methods },
+      {
+        kind: "2fa",
+        token: outcome.answer.two_factor_token,
+        methods: outcome.answer.methods,
+      },
       handoff,
     );
-  else if (result.requires_tenant_assignment)
+  else if (outcome.kind === "tenant-assignment")
     event.cookies.writeSealed(
       HANDOFF,
       {
         kind: "no-workspace",
-        token: result.tenant_assignment_token,
+        token: outcome.answer.tenant_assignment_token,
         provider,
       },
       handoff,
     );
-  else persistAccountSession(event, sessionFrom(result));
+  else persistAccountSession(event, sessionFrom(outcome.tokens));
 }
 
 async function completeOAuth(
@@ -242,9 +242,8 @@ async function completeOAuth(
 ): Promise<Response> {
   const query = event.url.searchParams;
   try {
-    const result = await event.backend<OAuthResult>(
-      `/api/auth/oauth/${provider}/callback`,
-      {
+    const outcome = loginOutcome.parse(
+      await event.backend(`/api/auth/oauth/${provider}/callback`, {
         method: "POST",
         headers: relayHeaders(event),
         body: {
@@ -254,13 +253,11 @@ async function completeOAuth(
           language: flow.language || undefined,
           invite: flow.invite || undefined,
         },
-      },
+      }),
     );
-    storeOAuthResult(event, provider, result);
+    storeOAuthResult(event, provider, outcome);
     return redirect(
-      flow.redirect &&
-        !result.requires_2fa &&
-        !result.requires_tenant_assignment
+      flow.redirect && outcome.kind === "session"
         ? `${COMPLETE}?redirect=${encodeURIComponent(flow.redirect)}`
         : COMPLETE,
     );
