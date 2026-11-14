@@ -86,6 +86,9 @@ importers:
       '@antelopejs/interface-file-storage':
         specifier: '>=0.1.4 <1.0.0'
         version: 0.1.4(@antelopejs/interface-core@0.4.0)
+      '@types/jsonwebtoken':
+        specifier: ^9.0.10
+        version: 9.0.10
       archiver:
         specifier: ^7.0.1
         version: 7.0.1
@@ -153,9 +156,6 @@ importers:
       '@types/jsdom':
         specifier: ^28.0.3
         version: 28.0.3
-      '@types/jsonwebtoken':
-        specifier: ^9.0.10
-        version: 9.0.10
       '@types/mocha':
         specifier: ^10
         version: 10.0.10
