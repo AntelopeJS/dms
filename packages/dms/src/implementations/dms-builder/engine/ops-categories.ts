@@ -160,7 +160,7 @@ export function configureCategory(
     return unsupported("category options are not a plain object literal");
   }
   const { parent, ...scalar } = patch;
-  if (parent !== undefined) {
+  if (parent !== undefined && parent !== category.parentRef) {
     return unsupported("changing a category's parent is not supported in v1");
   }
   const transaction = new Transaction(opened.sourceFile.getProject());
