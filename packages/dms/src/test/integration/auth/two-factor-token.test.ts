@@ -1,17 +1,14 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { UserModel } from "@antelopejs/interface-dms/auth/db";
+import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
 import { sign } from "jsonwebtoken";
 import {
   generateTwoFactorToken,
   validateRefreshToken,
 } from "../../../implementations/dms-auth";
-import {
-  authKeyFingerprint,
-  tokenSecret,
-} from "../../../implementations/dms-auth/services";
 import { registerUser, type RegisteredUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
+import { signFor } from "../../helpers/forged-tokens";
 import { createClient } from "../../helpers/http";
 
 const TWO_FACTOR_ROUTES = [
@@ -38,10 +35,10 @@ function attempt(route: string, token: string) {
   return post(route, { token, code: TOTP_CODE, method: "totp" });
 }
 
-async function userKey(userId: string): Promise<string> {
+async function storedUser(userId: string): Promise<User> {
   const stored = await GetModel(UserModel).get(userId);
   if (!stored) throw new Error(`No user ${userId}`);
-  return authKeyFingerprint(stored.authKey);
+  return stored;
 }
 
 async function tenantOf(user: RegisteredUser): Promise<string> {
@@ -53,22 +50,17 @@ async function badTokens(
   user: RegisteredUser,
 ): Promise<Record<string, string>> {
   const tenantId = await tenantOf(user);
-  const claims = {
-    id: user.userId,
-    tenantId,
-    key: await userKey(user.userId),
-    purpose: TWO_FACTOR_PURPOSE,
-  };
-  const secret = tokenSecret();
+  const claims = { id: user.userId, tenantId, purpose: TWO_FACTOR_PURPOSE };
+  const stored = await storedUser(user.userId);
   const nowSeconds = Math.floor(Date.now() / 1000);
   return {
     "an unknown user": sign({ ...claims, id: UNKNOWN_USER_ID }, FOREIGN_SECRET),
     "a bad signature": sign(claims, FOREIGN_SECRET),
-    "an expired challenge": sign(
-      { ...claims, exp: nowSeconds - SECONDS_PER_MINUTE },
-      secret,
-    ),
-    "another purpose": sign({ ...claims, purpose: "refresh" }, secret),
+    "an expired challenge": signFor(stored, {
+      ...claims,
+      exp: nowSeconds - SECONDS_PER_MINUTE,
+    }),
+    "another purpose": signFor(stored, { ...claims, purpose: "refresh" }),
   };
 }
 

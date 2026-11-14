@@ -24,26 +24,48 @@ export function tokenSecret(): KeyObject {
   );
 }
 
+const USER_KEY_VERSION = 1;
+
+/** The claims a token's `key` MAC covers, in a fixed order. */
+const BOUND_CLAIMS = ["id", "purpose", "tenantId", "sessionId", "iat", "exp"];
+
 /**
- * The `key` claim that binds a token to the `authKey` it was issued under, so
- * rotating the key invalidates every token issued before.
+ * The `key` claim: a MAC over the token's own claims, keyed by the user's
+ * `authKey` mixed with the instance secret. Forging it needs the `authKey`,
+ * which never leaves the server, and rotating that key invalidates every
+ * token issued before.
+ *
+ * @param authKey The user's current `authKey`
+ * @param claims The token's claims, `key` aside
  */
-export function authKeyFingerprint(authKey: string): string {
-  return createHmac("sha256", tokenSecret())
-    .update(`authKey:${authKey}`)
+export function userTokenMac(authKey: string, claims: JwtPayload): string {
+  const secret = createSecretKey(
+    `${USER_KEY_VERSION}:${authKey}:${getAuthConfig().jwtSecret}`,
+    "utf8",
+  );
+  const bound = BOUND_CLAIMS.map((name) => {
+    const value: unknown = claims[name];
+    return value ?? null;
+  });
+  return createHmac("sha256", secret)
+    .update(JSON.stringify(bound))
     .digest("base64url");
 }
 
 /**
- * Signs `claims` for `user`, naming the user and the `authKey` it holds now.
+ * Signs `claims` for `user`, valid `lifetimeSeconds` from now, with a `key`
+ * MAC that binds them to the `authKey` the user holds now.
  */
 export function signUserToken(
   user: User,
   claims: JwtPayload,
-  options: SignOptions,
+  lifetimeSeconds: number,
+  options: Pick<SignOptions, "jwtid"> = {},
 ): string {
+  const iat = Math.floor(Date.now() / 1000);
+  const payload = { ...claims, id: user._id, iat, exp: iat + lifetimeSeconds };
   return sign(
-    { ...claims, id: user._id, key: authKeyFingerprint(user.authKey) },
+    { ...payload, key: userTokenMac(user.authKey, payload) },
     tokenSecret(),
     options,
   );
@@ -64,15 +86,19 @@ export function verifyUserToken(token: string): JwtPayload | null {
   }
 }
 
-function sameFingerprint(authKey: string, claimed: string): boolean {
-  const expected = Buffer.from(authKeyFingerprint(authKey));
+function sameMac(
+  authKey: string,
+  claims: JwtPayload,
+  claimed: string,
+): boolean {
+  const expected = Buffer.from(userTokenMac(authKey, claims));
   const actual = Buffer.from(claimed);
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 /**
- * The user verified `claims` name, when it still exists and still holds the
- * `authKey` the token was issued under.
+ * The user verified `claims` name, when it still exists and their `key` MAC
+ * checks out against the `authKey` it holds now.
  *
  * @param claims Claims {@link verifyUserToken} returned
  */
@@ -83,5 +109,5 @@ export async function loadTokenUser(
     return undefined;
   }
   const user = await GetModel(UserModel).get(claims.id);
-  return user && sameFingerprint(user.authKey, claims.key) ? user : undefined;
+  return user && sameMac(user.authKey, claims, claims.key) ? user : undefined;
 }

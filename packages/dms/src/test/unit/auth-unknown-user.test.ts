@@ -14,6 +14,7 @@ import {
   hmacsDuring,
   insertTokenUser,
   refusalOf,
+  reuseKeyOf,
   sessionLookupsDuring,
   signFor,
   UNKNOWN_USER_ID,
@@ -115,6 +116,18 @@ describe("[unit] auth tokens naming an unknown user", () => {
       });
       expect(reads, purpose).to.include(user._id);
     }
+  });
+
+  it("refuses a token signed with the instance key that reuses another token's key claim", async () => {
+    const captured = signFor(user, {
+      purpose: "access",
+      sessionId: "captured",
+    });
+    const replayed = reuseKeyOf(captured, { id: user._id, purpose: "access" });
+    const refusal = await refusalOf(() =>
+      internal.AuthRawUserValidator(internal.AuthUserAuthenticator(replayed)),
+    );
+    expect(refusal.status).to.equal(HTTP_UNAUTHORIZED);
   });
 
   it("refuses a refresh token signed for a user deleted since", async () => {

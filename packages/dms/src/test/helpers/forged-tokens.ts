@@ -7,11 +7,12 @@ import {
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { assert, expect } from "chai";
-import { type JwtPayload, sign } from "jsonwebtoken";
+import { decode, type JwtPayload, sign } from "jsonwebtoken";
 import {
-  authKeyFingerprint,
   tokenSecret,
+  userTokenMac,
 } from "../../implementations/dms-auth/services";
+import { isJwtClaims } from "../../utils";
 
 const TENANT_ID = "forged-claims-tenant";
 
@@ -48,17 +49,35 @@ export function forge(claims: JwtPayload): string {
   return sign({ tenantId: TENANT_ID, ...claims }, "forged-secret");
 }
 
-/** A token carrying `claims`, signed for `user`. */
+const TOKEN_LIFETIME_SECONDS = 3600;
+
+/** A token carrying `claims`, signed for `user` with the instance key. */
 export function signFor(user: User, claims: JwtPayload): string {
+  const iat = Math.floor(Date.now() / 1000);
+  const payload = {
+    id: user._id,
+    tenantId: TENANT_ID,
+    iat,
+    exp: iat + TOKEN_LIFETIME_SECONDS,
+    ...claims,
+  };
   return sign(
-    {
-      id: user._id,
-      tenantId: TENANT_ID,
-      key: authKeyFingerprint(user.authKey),
-      ...claims,
-    },
+    { ...payload, key: userTokenMac(user.authKey, payload) },
     tokenSecret(),
   );
+}
+
+/**
+ * A token signed with the instance key that reuses the `key` claim of
+ * `captured` over new `claims`, as someone who knows `jwtSecret` would.
+ */
+export function reuseKeyOf(captured: string, claims: JwtPayload): string {
+  const decoded = decode(captured);
+  assert(isJwtClaims(decoded), "captured token carries claims");
+  const key: unknown = decoded.key;
+  return sign({ tenantId: TENANT_ID, ...claims, key }, tokenSecret(), {
+    expiresIn: TOKEN_LIFETIME_SECONDS * 24,
+  });
 }
 
 /** Stores a validated owner for token tests to name. */

@@ -244,7 +244,7 @@ export function generateAccessToken(
   const token = signUserToken(
     user,
     { tenantId, sessionId, purpose: ACCESS_TOKEN_PURPOSE },
-    { expiresIn: Math.floor(config.accessTokenLifetime / 1000) },
+    Math.floor(config.accessTokenLifetime / 1000),
   );
 
   return {
@@ -262,7 +262,7 @@ export function generateRefreshToken(
   const token = signUserToken(
     user,
     { tenantId, sessionId, purpose: REFRESH_TOKEN_PURPOSE },
-    { expiresIn: Math.floor(config.refreshTokenLifetime / 1000) },
+    Math.floor(config.refreshTokenLifetime / 1000),
   );
 
   return {
@@ -287,10 +287,8 @@ export function generateTwoFactorToken(
   const token = signUserToken(
     user,
     { tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE },
-    {
-      expiresIn: Math.floor(TWO_FACTOR_TOKEN_LIFETIME_MS / 1000),
-      jwtid: randomUUID(),
-    },
+    Math.floor(TWO_FACTOR_TOKEN_LIFETIME_MS / 1000),
+    { jwtid: randomUUID() },
   );
 
   return { token, expiresIn: TWO_FACTOR_TOKEN_LIFETIME_MS };
@@ -300,7 +298,7 @@ export function generateTenantAssignmentToken(user: User): TokenResult {
   const token = signUserToken(
     user,
     { purpose: TENANT_ASSIGNMENT_PURPOSE },
-    { expiresIn: Math.floor(TENANT_ASSIGNMENT_TOKEN_LIFETIME_MS / 1000) },
+    Math.floor(TENANT_ASSIGNMENT_TOKEN_LIFETIME_MS / 1000),
   );
   return { token, expiresIn: TENANT_ASSIGNMENT_TOKEN_LIFETIME_MS };
 }

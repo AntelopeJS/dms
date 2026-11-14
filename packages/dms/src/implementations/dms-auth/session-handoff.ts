@@ -29,7 +29,7 @@ export function generateSessionHandoffToken(
   return signUserToken(
     user,
     { tenantId, sessionId, purpose: SESSION_HANDOFF_PURPOSE },
-    { expiresIn: SESSION_HANDOFF_LIFETIME_SECONDS },
+    SESSION_HANDOFF_LIFETIME_SECONDS,
   );
 }
 
