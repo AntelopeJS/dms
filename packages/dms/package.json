@@ -65,6 +65,9 @@
   ],
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.2.0",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "build": "pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder build && rimraf dist && tsc && tsc-alias",
     "dev": "ajs project run --inspect -w -p playground",

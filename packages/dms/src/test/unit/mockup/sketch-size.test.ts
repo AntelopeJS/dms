@@ -155,4 +155,68 @@ describe("Sketch size", () => {
     );
     expect(Math.max(...deep.map(({ ms }) => ms))).to.be.below(CHECK_BOUND_MS);
   });
+
+  it("refuses a css that ends its style element before parsing it, within the time bound", () => {
+    const attributes = Array.from(
+      { length: 95_000 },
+      (_, index) => ` a${index}`,
+    )
+      .join("")
+      .slice(0, SKETCH_MAX_SOURCE - 20);
+    const timed = [
+      timedCss(filled("</style>", "<div>")),
+      timedCss(filled("</style><table>", "<div>")),
+      timedCss(`p{}</style><b${attributes}>`),
+      timedCss(`p{}</style${attributes}>`),
+    ];
+
+    expect(timed.map(({ refusals }) => refusals)).to.deep.equal(
+      timed.map(() => ["markup such as </style> that ends the style element"]),
+    );
+    expect(Math.max(...timed.map(({ ms }) => ms))).to.be.below(CHECK_BOUND_MS);
+  });
+
+  it("bounds a style element in html by the html's own tag cap", () => {
+    const timed = timedRefusals(filled("<style>p{}</style>", "<div>"));
+
+    expect(timed.refusals).to.deep.equal([`more than 4096 tags`]);
+    expect(timed.ms).to.be.below(CHECK_BOUND_MS);
+  });
+
+  it("refuses markup that makes the parser rebuild elements thousands of times, within the time bound", () => {
+    const opened = (tag: string, count: number): string =>
+      Array.from({ length: count }, (_, index) => `<${tag} id=${index}>`).join(
+        "",
+      );
+    const formatting = [
+      "b",
+      "a",
+      "i",
+      "font",
+      "nobr",
+      "code",
+      "em",
+      "strong",
+      "s",
+      "u",
+      "big",
+      "small",
+      "tt",
+    ];
+    const inputs = [
+      ...formatting.map(
+        (tag) => `<p>${opened(tag, 2046)}${"<p>x".repeat(2046)}`,
+      ),
+      `<a>${opened("b", 2040)}${"</a>x".repeat(2040)}`,
+      "<a id=1><b id=2>x</a>y</b>".repeat(800),
+      `<table>${opened("b", 2040)}${"<tr><td>x</td></tr>".repeat(500)}`,
+      `<table>${opened("b", 2040)}${"x".repeat(2000)}`,
+    ];
+    const timed = inputs.map(timedRefusals);
+
+    expect(timed.filter(({ refusals }) => refusals.length === 0)).to.deep.equal(
+      [],
+    );
+    expect(Math.max(...timed.map(({ ms }) => ms))).to.be.below(CHECK_BOUND_MS);
+  });
 });

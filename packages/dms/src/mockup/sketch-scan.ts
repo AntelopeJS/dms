@@ -32,9 +32,9 @@ function isSpace(character: string): boolean {
   );
 }
 
+/** Whether `character` is an ASCII letter, the only letters that open a tag. */
 function isLetter(character: string): boolean {
-  const lower = character.toLowerCase();
-  return lower >= "a" && lower <= "z" && lower.length === 1;
+  return /^[A-Za-z]$/.test(character);
 }
 
 const STEPS: Record<ScanState, (character: string) => Step> = {

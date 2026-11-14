@@ -26,12 +26,29 @@ type ParentNode = DefaultTreeAdapterTypes.ParentNode;
 function frameDocument(
   head: string,
   body: string,
-): DefaultTreeAdapterTypes.Document {
-  return parse(
-    `<!doctype html><html><head>${head}</head><body>${body}</body></html>`,
-    { scriptingEnabled: false },
-  );
+): DefaultTreeAdapterTypes.Document | undefined {
+  let built = 0;
+  const treeAdapter: typeof defaultTreeAdapter = {
+    ...defaultTreeAdapter,
+    createElement(tagName, namespaceURI, attrs) {
+      built += 1;
+      if (built > MAX_ELEMENTS) throw new TooManyElements();
+      return defaultTreeAdapter.createElement(tagName, namespaceURI, attrs);
+    },
+  };
+  try {
+    return parse(
+      `<!doctype html><html><head>${head}</head><body>${body}</body></html>`,
+      { scriptingEnabled: false, treeAdapter },
+    );
+  } catch (error) {
+    if (error instanceof TooManyElements) return undefined;
+    throw error;
+  }
 }
+
+/** Thrown inside a parse that builds more than {@link MAX_ELEMENTS} elements, to stop it there. */
+class TooManyElements extends Error {}
 
 function elementChildren(node: ParentNode): Element[] {
   return node.childNodes.filter((childNode): childNode is Element =>
@@ -144,6 +161,14 @@ const MAX_DEPTH = 256;
  * elements tags can keep open, so the count is bounded before it parses.
  */
 const MAX_TAGS = 4096;
+/**
+ * How many elements one parse may build. A tag builds at most one, but parse5
+ * rebuilds every open formatting element (`<b>`, `<a>`, `<font>` and the like)
+ * after a block closes them, and the adoption agency and foster parenting
+ * build more, so a few thousand tags could build millions of elements. The
+ * scaffold of the frame document adds three.
+ */
+const MAX_ELEMENTS = 2 * MAX_TAGS + 3;
 /** How many attributes one tag may hold. parse5's time on a tag grows with the square of its attributes. */
 const MAX_ATTRIBUTES = 64;
 /** What opens a tag in HTML: `<` or `</`, then an ASCII letter. */
@@ -181,6 +206,14 @@ function readMarkup(markup: string): ReadMarkup {
     };
   }
   const document = frameDocument("", markup);
+  if (document === undefined) {
+    return {
+      refusals: [
+        `markup that makes the parser build more than ${MAX_ELEMENTS} elements`,
+      ],
+      body: "",
+    };
+  }
   const root = child(document, "html");
   const head = root && child(root, "head");
   const body = root && child(root, "body");
@@ -226,9 +259,15 @@ export function checkMarkup(markup: string): ReadMarkup {
     : first;
 }
 
-/** Whether `css` stays one `<style>` element's text in the frame's head, so it cannot end that element early. */
+/**
+ * Whether `css` stays one `<style>` element's text in the frame's head, so it
+ * cannot end that element early. A `</style` anywhere is refused before any
+ * parse, so parse5 then reads `css` only as raw text, in linear time.
+ */
 export function staysInStyle(css: string): boolean {
-  const root = child(frameDocument(`<style>${css}</style>`, ""), "html");
+  if (/<\/style/i.test(css)) return false;
+  const document = frameDocument(`<style>${css}</style>`, "");
+  const root = document && child(document, "html");
   const head = root && child(root, "head");
   const styles = head ? elementChildren(head) : [];
   return (

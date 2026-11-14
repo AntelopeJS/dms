@@ -204,8 +204,13 @@ interface Frame {
   owner: Owner | undefined;
 }
 
+/** `value` with its ASCII letters lower-cased and nothing else, as CSS matches names: `\212A` (the Kelvin sign) stays itself. */
+function asciiLowerCase(value: string): string {
+  return value.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
+}
+
 function nameOf(value: string): string {
-  return value.toLowerCase().replace(VENDOR_PREFIX, "");
+  return asciiLowerCase(value).replace(VENDOR_PREFIX, "");
 }
 
 function isLoader(owner: Owner | undefined): boolean {
@@ -345,7 +350,10 @@ function loaderTokenRefusal(
 }
 
 function attrRefusal(token: CSSToken): string | undefined {
-  if (isTokenIdent(token) && ATTR_URL_TYPES.has(token[4].value.toLowerCase())) {
+  if (
+    isTokenIdent(token) &&
+    ATTR_URL_TYPES.has(asciiLowerCase(token[4].value))
+  ) {
     return "an attr() read as a URL";
   }
   return isTokenDelim(token) && token[4].value === "<"
@@ -355,8 +363,8 @@ function attrRefusal(token: CSSToken): string | undefined {
 
 /**
  * The tokens of `css`, or `undefined` when the tokenizer gives up: it throws
- * on a name longer than about 150,000 characters, which a check must refuse
- * rather than let through.
+ * on a name longer than the engine lets it spread into one string, which a
+ * check must refuse rather than let through.
  */
 function tokensOf(css: string): CSSToken[] | undefined {
   try {
