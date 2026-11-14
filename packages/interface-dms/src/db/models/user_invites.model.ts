@@ -51,6 +51,17 @@ export class UserInviteModel extends BasicDataModel(
   }
 
   /**
+   * Get every invite sent to the email
+   *
+   * @param email The email the invites were sent to
+   * @returns The stored invites of the email
+   */
+  async listByEmail(email: string): Promise<UserInvite[]> {
+    const rows = await this.table.getAll(normalizeEmail(email), "email").run();
+    return rows.flatMap((row) => UserInviteModel.fromDatabase(row) ?? []);
+  }
+
+  /**
    * Whether the invite is stored and is the only invite sent to its email
    *
    * @param invite The invite to look for

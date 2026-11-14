@@ -15,6 +15,7 @@ import { DeliverInviteExtensions } from "./invite-extensions/internal/delivery";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
 import { isSameInviteContent } from "./internal/invite-content";
 import { decideInvite } from "./invite-resolution";
+import type { InviteResolution } from "./db/tables/inviteResolutions.table";
 import { changeTenantMembers, type TenantMembersWrite } from "./tenant-members";
 import { applyAdmittedTenantOwnership } from "./internal/tenant-ownership";
 import { describeMembershipPatch } from "./internal/member-changes";
@@ -242,29 +243,8 @@ async function createAdmittedInviteToken(
   const existingInvite =
     options.replacesInvite ?? (await userInviteModel.getByEmail(email));
   const replacement = buildInviteSnapshot(options);
-  if (existingInvite) {
-    const resolution = await decideInvite({
-      tenantId,
-      invite: existingInvite,
-      reason: options.replacementReason ?? "replaced",
-      replacement,
-    }).catch(async (error: unknown) => {
-      if (
-        options.replacesInvite ||
-        !(await completeCancellationOfRead(tenantId, existingInvite))
-      )
-        throw error;
-      return undefined;
-    });
-    if (!resolution) return createAdmittedInviteToken(options);
-    await completeAdmittedInviteResolution(resolution);
-    if (!resolution.replacement)
-      throw new Error("Replacement snapshot missing");
-    return {
-      inviteId: resolution.replacement._id,
-      token: resolution.replacement.token,
-    };
-  }
+  if (existingInvite)
+    return replaceInvite(options, existingInvite, replacement);
   await ExecuteHooks(Hook.INVITE_BEING_CREATED, {
     tenantId,
     email,
@@ -290,19 +270,69 @@ async function createAdmittedInviteToken(
   return { inviteId: replacement._id, token: replacement.token };
 }
 
-/**
- * Removes the invite a creation read when a completed cancellation already
- * retired it, so the creation can read the email again.
- *
- * @returns Whether the invite's decision was such a cancellation
- */
-async function completeCancellationOfRead(
-  tenantId: string,
+async function replaceInvite(
+  options: CreateUserInviteTokenOptions,
   invite: UserInvite,
+  replacement: UserInvite,
+): Promise<CreateUserInviteTokenResult> {
+  let resolution: InviteResolution;
+  try {
+    resolution = await decideInvite({
+      tenantId: options.tenantId,
+      invite,
+      reason: options.replacementReason ?? "replaced",
+      replacement,
+    });
+  } catch (error) {
+    const retry = await retryAfterRefusal(options, invite);
+    if (!retry) throw error;
+    return createAdmittedInviteToken(retry);
+  }
+  await completeAdmittedInviteResolution(resolution);
+  if (!resolution.replacement) throw new Error("Replacement snapshot missing");
+  return {
+    inviteId: resolution.replacement._id,
+    token: resolution.replacement.token,
+  };
+}
+
+/**
+ * The creation to run again after `decideInvite` refused to replace `read`.
+ * When a completed cancellation retired the invite a new invitation read, it
+ * reads the email again. When it removed invites a completed cancellation
+ * retired but left stored, such as a fresh invite whose withdrawal failed to
+ * delete it, it replaces `read` again, so any other refusal stands.
+ *
+ * @returns The options to run again with, or undefined to keep the refusal
+ */
+async function retryAfterRefusal(
+  options: CreateUserInviteTokenOptions,
+  read: UserInvite,
+): Promise<CreateUserInviteTokenOptions | undefined> {
+  const { tenantId, email } = options;
+  if (!options.replacesInvite && (await removeIfCancelled(tenantId, read._id)))
+    return options;
+  const stored = await GetModel(UserInviteModel, tenantId).listByEmail(email);
+  const removed = await Promise.all(
+    stored.map((invite) => removeIfCancelled(tenantId, invite._id)),
+  );
+  return removed.includes(true)
+    ? { ...options, replacesInvite: read }
+    : undefined;
+}
+
+/**
+ * Deletes the invite's row when a completed cancellation retired it.
+ *
+ * @returns Whether its decision is such a cancellation
+ */
+async function removeIfCancelled(
+  tenantId: string,
+  inviteId: string,
 ): Promise<boolean> {
   const held = await GetModel(InviteResolutionsModel, tenantId).getForInvite(
     tenantId,
-    invite._id,
+    inviteId,
   );
   if (held?.reason !== "cancelled" || held.replacement || !held.completed)
     return false;

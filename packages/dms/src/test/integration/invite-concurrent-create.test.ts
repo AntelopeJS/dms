@@ -19,6 +19,7 @@ import {
 import { runCleanupUserInvites } from "../../crons";
 import { resetDatabase } from "../helpers/db";
 import { inviteFixture } from "../helpers/invite-resolution-fixtures";
+import { failFirstDelete, holdFirstFreshCaller } from "../helpers/invite-holds";
 
 const TENANT = "invite-concurrent-create-tenant";
 const HTTP_CONFLICT = 409;
@@ -87,31 +88,6 @@ describe("[integration] concurrent invitations of one email", () => {
     assert.equal(refusal.getStatus(), HTTP_CONFLICT);
   });
 });
-
-/** Holds the first caller at `INVITE_BEING_CREATED`, after it read no invitation, until `release` runs. */
-function holdFirstFreshCaller() {
-  let held = false;
-  let park = () => {};
-  const parked = new Promise<void>((resolve) => {
-    park = resolve;
-  });
-  let release = () => {};
-  const released = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const hold = async () => {
-    if (held) return;
-    held = true;
-    park();
-    await released;
-  };
-  RegisterHook(Hook.INVITE_BEING_CREATED, hold);
-  return {
-    parked,
-    release,
-    unregister: () => UnregisterHook(Hook.INVITE_BEING_CREATED, hold),
-  };
-}
 
 describe("[integration] three concurrent invitations of one email", () => {
   let gate: ReturnType<typeof holdFirstFreshCaller>;
@@ -266,18 +242,6 @@ function holdFirstCall(method: "delete" | "insert") {
     writable: true,
   });
   return { parked, release, restore };
-}
-
-/** Makes the first invite `delete` call fail. */
-function failFirstDelete() {
-  const restore = () => {
-    Reflect.deleteProperty(UserInviteModel.prototype, "delete");
-  };
-  UserInviteModel.prototype.delete = () => {
-    restore();
-    return Promise.reject(new Error("delete failed"));
-  };
-  return { restore };
 }
 
 async function retire(
