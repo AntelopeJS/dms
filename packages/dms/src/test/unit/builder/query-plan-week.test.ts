@@ -7,6 +7,7 @@ import {
   type QueryPlan,
   executePlan,
   type PlanPoints,
+  type PlanQuery,
   type PlanStream,
   type PlanValue,
 } from "../../../implementations/dms-builder/engine";
@@ -67,10 +68,12 @@ function dateValue(day: string): PlanValue {
 
 function stampOf(day: string): number {
   let stamp = Number.NaN;
-  const grouped: PlanPoints = Object.assign(Promise.resolve<QueryPoint[]>([]), {
+  const zero: PlanQuery<number> = { run: () => Promise.resolve(0) };
+  const grouped: PlanPoints = {
+    run: () => Promise.resolve<QueryPoint[]>([]),
     orderBy: () => grouped,
     slice: () => grouped,
-  });
+  };
   const stream: PlanStream = {
     filter: () => stream,
     map: (mapper) => {
@@ -79,11 +82,11 @@ function stampOf(day: string): number {
       return stream;
     },
     group: () => grouped,
-    count: () => Promise.resolve(0),
-    sum: () => Promise.resolve(0),
-    avg: () => Promise.resolve(0),
-    min: () => Promise.resolve(0),
-    max: () => Promise.resolve(0),
+    count: () => zero,
+    sum: () => zero,
+    avg: () => zero,
+    min: () => zero,
+    max: () => zero,
   };
   executePlan(stream, PLAN, FIELDS);
   return stamp;

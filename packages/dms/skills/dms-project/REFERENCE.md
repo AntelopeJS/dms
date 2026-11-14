@@ -10,7 +10,9 @@ The DMS's `data-api` interface is standalone (self-hosts — no module to load),
 without it). Add a file-storage module (e.g. `@antelopejs/file-storage-local`) and an email module
 (e.g. `@antelopejs/nodemailer`) when you use File/Image fields, invites, or email validation — the
 project template loads both. Table decorators come from the `@antelopejs/interface-database-decorators`
-**library** — no module entry.
+**library** — no module entry. The database module must implement `@antelopejs/interface-database` 0.4:
+`@antelopejs/mongodb` ≥ 1.8.0, `@antelopejs/postgres` ≥ 0.4.0 or `@antelopejs/rethinkdb` ≥ 1.10.0. A query
+runs only through `.run()`.
 Put secrets/per-deploy values in `envOverrides` (a framework feature); per-environment deltas in
 `environments` (`ajs project dev -e STAGING`).
 

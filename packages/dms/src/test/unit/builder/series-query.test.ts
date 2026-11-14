@@ -70,7 +70,9 @@ function writesSeriesQueries(): void {
     expect(page).to.contain(
       "): Promise<{ series: { x: number | string; y: number | null }[] }> {",
     );
-    expect(page).to.contain("return { series: await model.monthlyRevenue() };");
+    expect(page).to.contain(
+      "return { series: await model.monthlyRevenue().run() };",
+    );
   });
 
   it("writes a top N as an ordering and a limit", async function () {

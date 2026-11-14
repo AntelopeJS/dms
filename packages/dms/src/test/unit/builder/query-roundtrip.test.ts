@@ -64,7 +64,9 @@ function writesAQuery(): void {
 
     const page = app.read(PAGE_FILE);
     expect(page).to.contain('@Get("/stats/paid-revenue")');
-    expect(page).to.contain("return { value: await model.paidRevenue() };");
+    expect(page).to.contain(
+      "return { value: await model.paidRevenue().run() };",
+    );
   });
 
   it("guards the route with the page's own permission", async () => {
