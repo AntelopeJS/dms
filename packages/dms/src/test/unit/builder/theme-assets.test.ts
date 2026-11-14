@@ -260,6 +260,28 @@ function keepsLogoFilesTheAppConfigJoins(): void {
     expect(brandingFiles()).to.deep.equal([]);
   });
 
+  it("keeps a file a slot reaches through a name joined from literals alone, and deletes it once nothing builds it", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("default", "light", PNG_LOGO, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    const shared =
+      expectOk(await GetTheme(), "GetTheme").logos.default?.light ?? "";
+    const hash = /-([0-9a-f]{8})\.png$/.exec(shared)?.[1] ?? "";
+    const joinedConfig = (extension: string): string =>
+      `export default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${shared}" }, email: { light: "/branding/default-light-" + "${hash}.${extension}" } } },\n});\n`;
+    writeLayerFile("app/app.config.ts", joinedConfig("png"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
+    writeLayerFile("app/app.config.ts", joinedConfig("jpg"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.deep.equal([]);
+  });
+
   it("keeps a file a slot reaches through a name built with concat or join, and deletes it once nothing builds it", async () => {
     expectOk(
       await SetTheme(
@@ -310,7 +332,7 @@ function keepsLogoFilesTheAppConfigJoins(): void {
     const hashOf = (logo: string): string =>
       /-([0-9a-f]{8})\.png$/.exec(logo)?.[1] ?? "";
     const builtConfig = (extension: string): string =>
-      `const SLOT = "default";\nconst VERSION = "3";\nconst LIGHT_HASH = "${hashOf(light)}";\nconst DARK_HASH = "${hashOf(dark)}";\nconst COLLAPSED_HASH = "${hashOf(collapsed)}";\nexport const OPTIMIZED = "/_vercel/image?w=64&url=/branding/collapsed-dark-" + COLLAPSED_HASH + ".${extension}";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${light}", dark: "${dark}" }, collapsed: { dark: "${collapsed}" }, email: { light: "/branding/" + SLOT + "-light-" + LIGHT_HASH + ".${extension}?v=" + VERSION, dark: \`/branding/default-dark-\${DARK_HASH}.${extension}#/a/\${VERSION}\` } } },\n});\n`;
+      `const SLOT = "default";\nconst VERSION = "3";\nconst LIGHT_HASH = "${hashOf(light)}";\nconst DARK_HASH = "${hashOf(dark)}";\nconst COLLAPSED_HASH = "${hashOf(collapsed)}";\nexport const OPTIMIZED = "/_vercel/image?url=/branding/collapsed-dark-" + COLLAPSED_HASH + ".${extension}&w=64";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${light}", dark: "${dark}" }, collapsed: { dark: "${collapsed}" }, email: { light: "/branding/" + SLOT + "-light-" + LIGHT_HASH + ".${extension}?v=" + VERSION, dark: \`/branding/default-dark-\${DARK_HASH}.${extension}#/a/\${VERSION}\` } } },\n});\n`;
     writeLayerFile("app/app.config.ts", builtConfig("png"));
     expectOk(await SetTheme(configDraft()), "SetTheme");
     expect(brandingFiles()).to.have.members(
