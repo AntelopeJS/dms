@@ -119,3 +119,10 @@ This package lives in the [`AntelopeJS/dms`](https://github.com/AntelopeJS/dms) 
 ## License
 
 [Apache-2.0](./LICENSE)
+
+## Requirements
+
+<!-- antelopejs-docs-node:start -->
+
+This package requires Node.js `^20.19.0 || >=22.12.0`.
+<!-- antelopejs-docs-node:end -->
