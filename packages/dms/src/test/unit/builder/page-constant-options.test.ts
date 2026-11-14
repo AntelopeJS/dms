@@ -58,10 +58,18 @@ function labelFor(name: string): string {
   return name.toUpperCase();
 }
 
+function iconFor(name: string): string {
+  return \`i-ph-\${name}\`;
+}
+
 @RegisterPage()
 export class ArchivePage extends PageController(
   "archive",
-  { displayName: labelFor("archive"), category: boardCategory },
+  {
+    displayName: labelFor("archive"),
+    icon: iconFor("archive"),
+    category: boardCategory,
+  },
   DefaultLayout({ fullWidth: true }),
 ) {
   static placeholder = Placeholder({ label: "Archive" });
@@ -72,6 +80,19 @@ let app: Fixture;
 
 async function pageMeta(page = PAGE) {
   return expectOk(await GetPageStructure(page), "GetPageStructure").page;
+}
+
+async function echoArchiveWithNullIcon() {
+  const { displayName, icon, category } = await pageMeta(ARCHIVE);
+  expect(icon).to.equal(undefined);
+  expectOk(
+    await ConfigurePage(ARCHIVE, {
+      displayName,
+      category,
+      ...Object.fromEntries([["icon", null]]),
+    }),
+    "ConfigurePage",
+  );
 }
 
 /**
@@ -146,6 +167,12 @@ describe("page options written as constants", () => {
       await ConfigurePage(ARCHIVE, { displayName, category }),
       "ConfigurePage",
     );
+    expect(app.read(FILE)).to.equal(SOURCE);
+  });
+
+  it("are left as written when ConfigurePage echoes an icon written as code as null", async function () {
+    this.timeout(OP_TIMEOUT);
+    await echoArchiveWithNullIcon();
     expect(app.read(FILE)).to.equal(SOURCE);
   });
 
