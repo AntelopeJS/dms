@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { randomInt } from "node:crypto";
 import {
   closeSync,
   existsSync,
@@ -29,6 +30,11 @@ const STOP_GRACE_MS = 10_000;
 const PROBE_TIMEOUT_MS = 3_000;
 const LISTEN_STATE = "0A";
 const HEX = 16;
+const EPHEMERAL_RANGE_FILE = "/proc/sys/net/ipv4/ip_local_port_range";
+const FIRST_UNPRIVILEGED_PORT = 1024;
+const DYNAMIC_PORTS_LOW = 49_152;
+const LAST_PORT = 65_535;
+const RESTARTABLE_PORT_ATTEMPTS = 100;
 
 /**
  * @param {string | import("node:net").AddressInfo | null} address What a listening server reports
@@ -58,6 +64,65 @@ export function freePort() {
       server.close(() => resolve(address.port));
     });
   });
+}
+
+/**
+ * @param {number} port A loopback port
+ * @returns {Promise<boolean>} Whether a server can listen on it now
+ */
+function canListen(port) {
+  return new Promise((resolve) => {
+    const probe = createServer();
+    probe.once("error", () => resolve(false));
+    probe.listen(port, "127.0.0.1", () => probe.close(() => resolve(true)));
+  });
+}
+
+/**
+ * The kernel's ephemeral port range, the ports it gives an outgoing
+ * connection or a `listen(0)`. Where /proc does not tell it, the IANA
+ * dynamic range that BSD and macOS use.
+ *
+ * @returns {{ low: number, high: number }} Its first and last port
+ */
+function ephemeralRange() {
+  if (!existsSync(EPHEMERAL_RANGE_FILE)) {
+    return { low: DYNAMIC_PORTS_LOW, high: LAST_PORT };
+  }
+  const [low, high] = readFileSync(EPHEMERAL_RANGE_FILE, "utf8")
+    .trim()
+    .split(/\s+/)
+    .map(Number);
+  return { low, high };
+}
+
+/**
+ * A free loopback port outside the kernel's ephemeral range, for a server
+ * that must listen on the same port again after it restarts. No outgoing
+ * connection takes such a port as its source port, so none can hold it in
+ * TIME_WAIT and make that listen fail with `EADDRINUSE`, as a port from
+ * {@link freePort} can be held.
+ *
+ * @returns {Promise<number>} The port
+ * @throws When no port outside the range is free
+ */
+export async function restartablePort() {
+  const { low, high } = ephemeralRange();
+  const below = Math.max(low - FIRST_UNPRIVILEGED_PORT, 0);
+  const above = Math.max(LAST_PORT - high, 0);
+  if (below + above > 0) {
+    for (let attempt = 0; attempt < RESTARTABLE_PORT_ATTEMPTS; attempt += 1) {
+      const index = randomInt(below + above);
+      const port =
+        index < below
+          ? FIRST_UNPRIVILEGED_PORT + index
+          : high + 1 + index - below;
+      if (await canListen(port)) return port;
+    }
+  }
+  throw new Error(
+    `no free loopback port outside the ephemeral range ${low}-${high}`,
+  );
 }
 
 /**
