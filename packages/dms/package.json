@@ -108,16 +108,16 @@
   },
   "dependencies": {
     "2fa": "^0.1.2",
-    "@antelopejs/interface-api": ">=0.3.2 <1.0.0",
-    "@antelopejs/interface-api-util": ">=0.3.0 <1.0.0",
-    "@antelopejs/interface-core": ">=0.5.1 <1.0.0",
-    "@antelopejs/interface-data-api": ">=0.8.0 <1.0.0",
-    "@antelopejs/interface-database": ">=0.4.0 <1.0.0",
-    "@antelopejs/interface-database-decorators": ">=0.5.2 <1.0.0",
+    "@antelopejs/interface-api": ">=0.3.2 <0.4.0",
+    "@antelopejs/interface-api-util": ">=0.3.0 <0.4.0",
+    "@antelopejs/interface-core": ">=0.5.1 <0.6.0",
+    "@antelopejs/interface-data-api": ">=0.8.0 <0.9.0",
+    "@antelopejs/interface-database": ">=0.4.0 <0.5.0",
+    "@antelopejs/interface-database-decorators": ">=0.5.2 <0.6.0",
     "@antelopejs/interface-dms": ">=0.14.0 <0.15.0",
     "@antelopejs/interface-dms-builder": ">=0.5.0 <0.6.0",
-    "@antelopejs/interface-email": ">=0.0.6 <1.0.0",
-    "@antelopejs/interface-file-storage": ">=0.1.4 <1.0.0",
+    "@antelopejs/interface-email": ">=0.2.1 <0.3.0",
+    "@antelopejs/interface-file-storage": ">=0.1.4 <0.2.0",
     "@csstools/css-tokenizer": "4.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "archiver": "^7.0.1",
@@ -140,8 +140,8 @@
     "zod-to-json-schema": "~3.24.6"
   },
   "devDependencies": {
-    "@antelopejs/api": "^1.7.0",
-    "@antelopejs/core": ">=1.23.0 <2",
+    "@antelopejs/api": "~1.7.0",
+    "@antelopejs/core": "~1.23.0",
     "@antelopejs/tooling-configs": "^0.5.3",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
@@ -201,13 +201,13 @@
     "registry": "https://registry.npmjs.org/"
   },
   "optionalDependencies": {
-    "@antelopejs/interface-database-catalog": ">=0.0.3 <1.0.0",
-    "@antelopejs/interface-dms-automation": ">=0.6.0 <1.0.0",
-    "@antelopejs/interface-redis": ">=0.0.9 <1.0.0",
+    "@antelopejs/interface-database-catalog": ">=0.0.3 <0.1.0",
+    "@antelopejs/interface-dms-automation": ">=0.7.0 <0.8.0",
+    "@antelopejs/interface-redis": ">=0.0.9 <0.1.0",
     "playwright-core": "~1.65.0"
   },
   "peerDependencies": {
-    "@antelopejs/core": ">=1.23.0 <2",
+    "@antelopejs/core": "~1.23.0",
     "mongodb": "^6.21.0 || ^7.0.0",
     "mysql2": "^3.24.6",
     "pg": "^8.22.0",

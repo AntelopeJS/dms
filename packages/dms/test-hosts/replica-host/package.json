@@ -6,6 +6,6 @@
     "baseUrl": "../../dist/test/replica-host"
   },
   "dependencies": {
-    "@antelopejs/interface-dms": ">=0.3.1 <1.0.0"
+    "@antelopejs/interface-dms": ">=0.14.1 <0.15.0"
   }
 }
