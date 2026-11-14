@@ -248,7 +248,15 @@ async function createAdmittedInviteToken(
       invite: existingInvite,
       reason: options.replacementReason ?? "replaced",
       replacement,
+    }).catch(async (error: unknown) => {
+      if (
+        options.replacesInvite ||
+        !(await completeCancellationOfRead(tenantId, existingInvite))
+      )
+        throw error;
+      return undefined;
     });
+    if (!resolution) return createAdmittedInviteToken(options);
     await completeAdmittedInviteResolution(resolution);
     if (!resolution.replacement)
       throw new Error("Replacement snapshot missing");
@@ -280,6 +288,25 @@ async function createAdmittedInviteToken(
     roleIds,
   });
   return { inviteId: replacement._id, token: replacement.token };
+}
+
+/**
+ * Completes a cancellation that retired the invite a creation read, so the
+ * creation can read the email again.
+ *
+ * @returns Whether the invite's decision was such a cancellation
+ */
+async function completeCancellationOfRead(
+  tenantId: string,
+  invite: UserInvite,
+): Promise<boolean> {
+  const held = await GetModel(InviteResolutionsModel, tenantId).getForInvite(
+    tenantId,
+    invite._id,
+  );
+  if (held?.reason !== "cancelled" || held.replacement) return false;
+  await completeAdmittedInviteResolution(held);
+  return true;
 }
 
 /**
