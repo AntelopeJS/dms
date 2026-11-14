@@ -97,7 +97,7 @@ async function initialState(options) {
     createdAt: new Date().toISOString(),
     environment: ENVIRONMENT,
     playground,
-    moduleRoot: moduleRootOf(playground),
+    moduleRoot: moduleRootOf(playground, checkout.root),
     repo: checkout.root,
     headSha: verified.head,
     baseRef: options.base ?? "origin/main",
