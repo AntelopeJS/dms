@@ -319,7 +319,7 @@
           "partial_title": "Invitations sent: {sent}",
           "partial_description": "{count} address was skipped: already a member or refused. | {count} addresses were skipped: already members or refused.",
           "roles_owner_hint": "Owners have every permission: the roles are ignored.",
-          "roles_owner_level": "{roles} amounts to owner-level access: whoever holds it can make themselves an owner. | {roles} amount to owner-level access: whoever holds them can make themselves an owner.",
+          "roles_owner_level": "{roles} lets whoever holds it change other members’ access. | {roles} let whoever holds them change other members’ access.",
           "roles_hint_empty": "Pick at least one role.",
           "roles_hint": "{roles}: {count} of {total} permissions.",
           "compare_roles": "Compare roles",
@@ -518,9 +518,9 @@
           "requires": "Requires {name}",
           "auto_added": "{name} added automatically",
           "auto_added_many": "{count} added automatically",
-          "owner_level": "Owner-level access",
-          "owner_level_title": "This role amounts to owner-level access",
-          "owner_level_description": "Through {names}, anyone holding it can make themselves an owner or grant themselves any permission.",
+          "owner_level": "Sensitive access",
+          "owner_level_title": "This role can change other members’ access",
+          "owner_level_description": "Through {names}, anyone holding it can change what other members may do. Each permission’s warning says how.",
           "not_grantable": "You don’t hold this permission, so you can’t grant it.",
           "search_empty": "No permission matches “{query}”.",
           "no_permissions": "No permission is registered yet.",
@@ -580,9 +580,9 @@
         "warning": {
           "members": "Anyone with this access can change any member’s roles and make anyone an owner, themselves included. It amounts to owner-level access.",
           "invites": "Anyone with this access can invite people, or change pending invitations, with any role or as owners. It amounts to owner-level access.",
-          "roles": "Anyone with this access can change what every role grants, their own included. It amounts to owner-level access.",
-          "roles_add": "Anyone with this access can create a role that grants any permission, everything included. It amounts to owner-level access.",
-          "roles_delete": "Anyone with this access can delete a role and move its members to any other role, a stronger one included. It amounts to owner-level access."
+          "roles": "Anyone with this access can change what every role grants, their own included, but can only grant permissions they hold.",
+          "roles_add": "Anyone with this access can create roles, granting only permissions they hold.",
+          "roles_delete": "Anyone with this access can delete a role and move its members to any other role, a stronger one included."
         }
       },
       "appearance": {
