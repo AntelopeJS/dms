@@ -34,9 +34,18 @@ function aliasedPath(
   return appAlias ? path.join(appDirectory, specifier.slice(2)) : undefined;
 }
 
+/** A file the scan cannot read holds no literal it can see. */
+function readable(file: string): string | undefined {
+  try {
+    return fs.readFileSync(file, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
 function resolvedFile(base: string): string | undefined {
   return RESOLVED_SUFFIXES.map((suffix) => `${base}${suffix}`).find(
-    (candidate) => fs.statSync(candidate, { throwIfNoEntry: false })?.isFile(),
+    (candidate) => readable(candidate) !== undefined,
   );
 }
 
@@ -75,10 +84,7 @@ export function reachableStringLiterals(appConfig: SourceFile): Set<string> {
       continue;
     }
     seen.add(file);
-    const imported = project.createSourceFile(
-      file,
-      fs.readFileSync(file, "utf8"),
-    );
+    const imported = project.createSourceFile(file, readable(file) ?? "");
     for (const literal of stringLiterals(imported)) {
       literals.add(literal);
     }
