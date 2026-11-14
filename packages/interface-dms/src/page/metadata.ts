@@ -1,4 +1,4 @@
-import { type ControllerClass } from "@antelopejs/interface-api";
+import type { DecoratorTarget } from "@antelopejs/interface-core/decorators";
 import {
   type Component,
   type ComponentInfo,
@@ -21,6 +21,7 @@ import {
 } from "./types";
 import * as metadata from "./internal/metadata-lifecycle";
 import { installPageMetadata } from "./internal/category-resolution";
+import { pageController } from "./internal/page-controller";
 import { isObject } from "../utils/internal/type-check";
 
 export class PageMetadata {
@@ -163,7 +164,7 @@ export class PageMetadata {
   private skipComponentPermissions = false;
   private moduleScoped = false;
 
-  constructor(public readonly target: ControllerClass) {}
+  constructor(public readonly target: DecoratorTarget) {}
 
   inherit(parent: PageMetadata) {
     metadata.inherit(this, parent);
@@ -339,7 +340,7 @@ export class PageMetadata {
 
   private registerLayoutRoute(pageInfo: PageInfo) {
     metadata.registerLayoutRoute(
-      () => this.target,
+      () => pageController(this.target),
       pageInfo,
       () => this.registration,
       (request) => this.resolvePageLayout(request),

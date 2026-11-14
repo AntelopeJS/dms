@@ -23,7 +23,10 @@ import {
 import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { buildFilteredQuery } from "./search-route";
-import { isSymbol } from "@antelopejs/interface-dms/utils/internal/type-check";
+import {
+  isClass,
+  isSymbol,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const IDS_KEY = "ids";
 const HTTP_PAYLOAD_TOO_LARGE = 413;
@@ -59,6 +62,11 @@ function isControllerInstance(value: unknown): value is DataControllerInstance {
  */
 function sourceReader({ model, tableView }: BulkRowSource) {
   const controller = tableView.target;
+  assert(
+    isClass(controller),
+    500,
+    "A table view is declared on a controller class.",
+  );
   const { modelKey } = GetMetadata(controller, DataAPIMeta, true);
   assert(modelKey, 500, `${controller.name} declares no model.`);
   const prototype: unknown = controller.prototype;

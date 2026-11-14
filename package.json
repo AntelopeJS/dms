@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.2.0",
   "devDependencies": {
-    "@antelopejs/core": ">=1.21.0 <2",
+    "@antelopejs/core": ">=1.23.0 <2",
     "@antelopejs/tooling-configs": "^0.5.3",
     "dependency-cruiser": "^18.7.0",
     "fast-check": "^4.10.2",
@@ -44,11 +44,6 @@
   "antelopeJs": {
     "docs": {
       "standard": true
-    }
-  },
-  "pnpm": {
-    "overrides": {
-      "@antelopejs/interface-data-api": "file:.tgz-deps/antelopejs-interface-data-api-170f079.tgz"
     }
   }
 }

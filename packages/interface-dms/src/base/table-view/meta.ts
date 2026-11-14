@@ -1,6 +1,7 @@
 import { GetMetadata } from "@antelopejs/interface-core";
 import {
   type Class,
+  type DecoratorTarget,
   MakeMethodAndPropertyDecorator,
 } from "@antelopejs/interface-core/decorators";
 import {
@@ -170,7 +171,7 @@ export class TableViewMeta {
     installTableViewMeta(TableViewMeta);
   }
 
-  constructor(public readonly target: Class) {}
+  constructor(public readonly target: DecoratorTarget) {}
 
   public options: TableViewOptions<any> = {};
   public readonly columns: Record<string, ColumnOptions> = {};

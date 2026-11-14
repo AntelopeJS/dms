@@ -374,7 +374,8 @@ async function observeTableViewLifecycle() {
         rowIdKey: "identity",
       });
       const receiver = new Proxy(builder, {});
-      const parent = new PageMetadata(class PageController extends ApiController("") {});
+      class PageController extends ApiController("") {}
+      const parent = new PageMetadata(PageController);
       parent.SetInfo(
         "page",
         "/work/:id",
@@ -384,7 +385,7 @@ async function observeTableViewLifecycle() {
         { componentName: "layout" },
       );
       permissionMap.set(builder, "page.table");
-      permissionMap.set(parent.target, "page");
+      permissionMap.set(PageController, "page");
       receiver.onPageCreated?.(parent);
       const serialized = receiver.serializeSync();
       /** @type {unknown} */
@@ -409,7 +410,7 @@ async function observeTableViewLifecycle() {
         actions: Object.keys(builder.actions),
       });
       permissionMap.delete(builder);
-      permissionMap.delete(parent.target);
+      permissionMap.delete(PageController);
     }
     return { results, permissionCalls: calls };
   } finally {
