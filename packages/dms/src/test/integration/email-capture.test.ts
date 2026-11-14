@@ -16,13 +16,13 @@ const EMAIL = {
 const TEMPLATE = { name: "EmailCaptureProbe" };
 const PROPS = { name: "Ada" };
 
-async function rejects(promise: Promise<string>): Promise<boolean> {
+async function failureOf(promise: Promise<string>): Promise<string> {
   try {
     await promise;
-  } catch {
-    return true;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
   }
-  return false;
+  return "resolved";
 }
 
 describe("[integration] email capture, in a suite that asks for it", () => {
@@ -53,7 +53,9 @@ describe("[integration] email capture, once that suite is done", function () {
 
   it("renders through the module, which has no render service", async () => {
     const captured = renderedEmails.length;
-    expect(await rejects(GenerateHtml(TEMPLATE, PROPS))).to.equal(true);
+    expect(await failureOf(GenerateHtml(TEMPLATE, PROPS))).to.equal(
+      "fetch failed",
+    );
     expect(renderedEmails).to.have.length(captured);
   });
 });

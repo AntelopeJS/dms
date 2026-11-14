@@ -28,8 +28,7 @@ export const sentEmails: Parameters<typeof Send>[0][] = [];
 /**
  * Set by a test to have every email fail before it leaves, as a mail outage
  * does; the test sets it back once done. The failure is raised where the
- * email is rendered: the DMS module's `Send` calls are routed to the
- * harness's nodemailer module, which a test cannot replace.
+ * email is rendered, while the suite captures its emails.
  */
 export const emailOutage = { isOn: false };
 
