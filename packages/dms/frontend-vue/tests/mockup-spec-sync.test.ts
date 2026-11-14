@@ -54,9 +54,10 @@ describe("writing the spec", () => {
     await mountEditor();
     let release: (() => void) | undefined;
     const slow = file.fetch.getMockImplementation();
+    if (!slow) throw new Error("the file fetch has no implementation");
     file.fetch.mockImplementationOnce(async (url, init) => {
       await new Promise<void>((resolve) => (release = resolve));
-      return slow?.(url, init);
+      return slow(url, init);
     });
     retitle("First");
     await settle(MOCKUP_WRITE_DELAY_MS);
@@ -163,9 +164,10 @@ describe("a refused write", () => {
     file.refuse = { path: "/pages/0/tree/0/options/x", message: "Bad" };
     let release: (() => void) | undefined;
     const real = file.fetch.getMockImplementation();
+    if (!real) throw new Error("the file fetch has no implementation");
     file.fetch.mockImplementationOnce(async (url, init) => {
       await new Promise<void>((resolve) => (release = resolve));
-      return real?.(url, init);
+      return real(url, init);
     });
     editor.apply({ kind: "setOption", pointer: TITLE, key: "x", value: "y" });
     await settle(MOCKUP_WRITE_DELAY_MS);

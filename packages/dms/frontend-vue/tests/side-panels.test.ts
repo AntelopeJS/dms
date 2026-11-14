@@ -58,7 +58,7 @@ function preferences(): SidePanelPreferences {
 function storePreferences(
   value: Parameters<typeof readSidePanelPreferences>[0],
 ): void {
-  useDmsCookie(SIDE_PANEL_COOKIE).value = value;
+  useDmsCookie<unknown>(SIDE_PANEL_COOKIE).value = value;
 }
 
 function panel(id: string, extra: Partial<SidePanel> = {}): SidePanel {

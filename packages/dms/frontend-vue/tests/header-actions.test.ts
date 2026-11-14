@@ -47,8 +47,11 @@ function useDmsState<T>(key: string, init?: () => T): Ref<T> {
   return sharedState.get(key) as Ref<T>;
 }
 
-function useDmsCookie<T>(name: string, options: CookieOptions = {}): Ref<T> {
-  return useDmsState(`cookie:${name}`, () => options.default?.() ?? null);
+function useDmsCookie(name: string, options: CookieOptions = {}): Ref<unknown> {
+  return useDmsState<unknown>(
+    `cookie:${name}`,
+    () => options.default?.() ?? null,
+  );
 }
 
 const ButtonStub = defineComponent({
@@ -173,7 +176,9 @@ async function hydrateHeader(runOnClient: () => void): Promise<HTMLElement> {
   return host;
 }
 
-function hydrationWarnings(spies: ReturnType<typeof vi.spyOn>[]): string[] {
+function hydrationWarnings(
+  spies: Array<{ mock: { calls: unknown[][] } }>,
+): string[] {
   return spies
     .flatMap((spy) => spy.mock.calls.map((call) => String(call[0])))
     .filter((message) => message.includes("Hydration"));

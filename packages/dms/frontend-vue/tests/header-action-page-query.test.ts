@@ -16,6 +16,7 @@ import {
   reactive,
   ref,
   type App,
+  type Component,
   type FunctionalComponent,
   type VNode,
 } from "vue";
@@ -33,6 +34,7 @@ import {
 } from "../layers/dms-ui/app/composables/layout/usePageHeaderActions";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { stubMiscActions } from "./helpers/misc-runtime";
+import type { LayoutHeaderAction } from "../layers/dms-layout/app/build/components/layout/PageHeaderActionBar.vue";
 import type { LocationQuery } from "#dms/frontend-module";
 import type { NamedValue } from "vue-i18n";
 
@@ -72,11 +74,11 @@ beforeEach(() => {
   authFetch.mockReset();
   rawFetch.mockClear();
   downloads.length = 0;
-  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
-    function () {
-      downloads.push(this.download);
-    },
-  );
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    downloads.push(this.download);
+  });
   vi.stubGlobal(
     "URL",
     class extends URL {
@@ -134,7 +136,8 @@ async function mount(
   path: keyof typeof loaders,
   props: NonNullable<VNode["props"]>,
 ) {
-  const { default: component } = await loaders[path]();
+  const { default: loaded } = await loaders[path]();
+  const component: Component = loaded;
   app = createApp({ render: () => h(component, props) });
   app.component("UButton", ButtonStub);
   app.component("UTooltip", SlotStub);
@@ -474,7 +477,7 @@ describe("a header button's availability", () => {
 });
 
 describe("the order of the header's buttons", () => {
-  const served = (id: string, order?: number) => ({
+  const served = (id: string, order?: number): LayoutHeaderAction => ({
     id,
     label: id,
     target: { type: "page", url: `/${id}` },
@@ -482,7 +485,7 @@ describe("the order of the header's buttons", () => {
   });
 
   async function mountPage(
-    actions: unknown[],
+    actions: LayoutHeaderAction[],
     options?: PageHeaderActionsOptions,
   ) {
     const { default: Outlet } = await import(

@@ -250,11 +250,7 @@ describe("recentModules", () => {
       "/modules/cms/pages",
       "/modules/cms/media",
     ]);
-    const recent = recentModules(
-      [{ moduleId: "cms", path: "/modules/cms/media", visitedAt: 1 }],
-      { cms },
-      tree,
-    );
+    const recent = recentModules([{ moduleId: "cms" }], { cms }, tree);
     expect(recent).toEqual([
       {
         moduleId: "cms",
@@ -269,11 +265,7 @@ describe("recentModules", () => {
     const tree = landingTree("cms", ["/modules/cms/pages"]);
     const crm = { ...cms, id: "crm", hasAccess: false };
     const recent = recentModules(
-      [
-        { moduleId: "crm", path: "/modules/crm", visitedAt: 2 },
-        { moduleId: "cms", path: "/modules/cms/pages", visitedAt: 1 },
-        { moduleId: "gone", path: "/modules/gone", visitedAt: 3 },
-      ],
+      [{ moduleId: "crm" }, { moduleId: "cms" }, { moduleId: "gone" }],
       { cms, crm },
       tree,
     );

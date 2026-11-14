@@ -16,13 +16,14 @@ import { usePreferences } from "../layers/dms-core/app/composables/user/usePrefe
 import { readOnlyFailure } from "./helpers/read-only-refusal";
 import type { TableCountQuery } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 
+const PAGING_DISPLAY_NAME = "TestPagingDisplay";
 const apps: Array<{ unmount: () => void }> = [];
 const requests: string[] = [];
 const queries: Array<TableCountQuery["query"]> = [];
 let total = 0;
 
 async function mount(
-  config: Partial<TableViewConfig> = {},
+  config: Partial<TableViewConfig<Record<string, unknown>>> = {},
   prepare?: () => void,
 ) {
   const result = await mountTableView(config, prepare);
@@ -90,6 +91,9 @@ beforeEach(async () => {
       if (url.endsWith("/list")) queries.push(options?.query ?? {});
       return { results: [], total, offset: 0, limit: 10 };
     },
+  );
+  vi.stubGlobal("resolveDmsComponent", (name: string) =>
+    name === PAGING_DISPLAY_NAME ? PagingDisplay : undefined,
   );
   usePreferences().removePreference("tables");
 });
@@ -309,14 +313,14 @@ const PagingDisplay: FunctionalComponent<{
     "Remember page",
   );
 
-const arrivalConfig: Partial<TableViewConfig> = {
+const arrivalConfig: Partial<TableViewConfig<Record<string, unknown>>> = {
   tableId: "content",
   isSoleTableView: true,
   tabs: [{ id: "open", label: "Open" }],
   displays: [
     { id: "table" },
     { id: "cards" },
-    { id: "test:paging", component: PagingDisplay },
+    { id: "test:paging", component: { componentName: PAGING_DISPLAY_NAME } },
   ],
   views: {
     layout: "strip",

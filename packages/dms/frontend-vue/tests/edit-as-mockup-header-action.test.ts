@@ -1,5 +1,6 @@
-import { computed, ref } from "vue";
+import { computed, createApp, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { dmsAppContext } from "./fixtures/dmsAppContext";
 import type { HeaderAction } from "../layers/dms-layout/app/composables/useHeaderActions";
 
 interface Toast {
@@ -59,7 +60,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function action(): HeaderAction {
   registered.length = 0;
-  plugin();
+  plugin(dmsAppContext(createApp({ render: () => null })));
   const [only] = registered;
   if (!only) throw new Error("the plugin registered no header action");
   return only;
