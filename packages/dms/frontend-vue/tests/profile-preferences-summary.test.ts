@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -92,6 +93,11 @@ const subject = (
 });
 
 describe("summary sentences", () => {
+  beforeAll(() => {
+    weekdayName("fr-FR", 0);
+    weekdayName("en-GB", 0);
+  });
+
   it("lists the roles and says who owns the workspace", () => {
     expect(
       buildAccessSummary(t, {
