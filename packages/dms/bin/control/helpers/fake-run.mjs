@@ -22,6 +22,8 @@ import { down } from "../stack.mjs";
 /** How many runs the tests made, which tells their databases apart */
 let runs = 0;
 const REGISTRY_WAIT_MS = 10_000;
+const FIRST_UNPRIVILEGED_PORT = 1024;
+const LAST_PORT = 65_535;
 
 /** A backend that answers every request with its pid and the database it was started on, and reports both to the test's registry once it listens, with the \`ajs project\` command that started it. */
 const FAKE_BACKEND = `
@@ -99,6 +101,47 @@ await new Promise((resolve) =>
   registry.listen(registryPort, "127.0.0.1", resolve),
 );
 registry.unref();
+
+/**
+ * @param {number} port A loopback port
+ * @returns {Promise<boolean>} Whether a server can listen on it now
+ */
+function canListen(port) {
+  return new Promise((resolve) => {
+    const probe = createServer();
+    probe.once("error", () => resolve(false));
+    probe.listen(port, "127.0.0.1", () => probe.close(() => resolve(true)));
+  });
+}
+
+/**
+ * A free loopback port outside the kernel's ephemeral range. No outgoing
+ * connection takes it as its source port, so a forwarder the test kills can
+ * listen on it again: a port from `freePort` can be held by another
+ * connection's TIME_WAIT by then.
+ *
+ * @returns {Promise<number>} The port
+ */
+async function portOutsideEphemeralRange() {
+  const [low, high] = readFileSync(
+    "/proc/sys/net/ipv4/ip_local_port_range",
+    "utf8",
+  )
+    .trim()
+    .split(/\s+/)
+    .map(Number);
+  const below = Math.max(low - FIRST_UNPRIVILEGED_PORT, 0);
+  const above = LAST_PORT - high;
+  assert.ok(below + above > 0, "some port lies outside the ephemeral range");
+  for (;;) {
+    const index = Math.floor(Math.random() * (below + above));
+    const port =
+      index < below
+        ? FIRST_UNPRIVILEGED_PORT + index
+        : high + 1 + index - below;
+    if (await canListen(port)) return port;
+  }
+}
 
 /**
  * The backend started on `database`, once it listens. Fails the test when
@@ -185,7 +228,7 @@ export async function newRun(t) {
     join(playground, "node_modules/@antelopejs/interface-t"),
   );
   const paths = createRunFolders(join(parent, "run"));
-  const apiPort = await freePort();
+  const apiPort = await portOutsideEphemeralRange();
   runs += 1;
   const prefix = `verify_t${runs}`;
   const state = {
