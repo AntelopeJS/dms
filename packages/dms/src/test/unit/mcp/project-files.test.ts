@@ -23,7 +23,11 @@ const WRITTEN_FOR_EMPTY_PROJECT = `{
 }
 `;
 
-describe("[unit] mcp project files", () => {
+/** Each write starts Windows PowerShell up to twice, which a cold runner can take seconds to do. */
+const WRITE_TIMEOUT_MS = platform() === "win32" ? 30_000 : 2_000;
+
+describe("[unit] mcp project files", function () {
+  this.timeout(WRITE_TIMEOUT_MS);
   let projectPath: string;
   let mcpJsonPath: string;
 

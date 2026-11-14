@@ -122,7 +122,7 @@ const processPins = {
   "src/utils/owner-only-file.ts:5": 'import { promisify } from "node:util";',
   "src/utils/owner-only-file.ts:7":
     "const execFileAsync = promisify(execFile);",
-  "src/utils/owner-only-file.ts:54":
+  "src/utils/owner-only-file.ts:55":
     'await execFileAsync(\n    powershell,\n    ["-NoProfile", "-NonInteractive", "-Command", script],\n    {\n      env: { ...process.env, [TARGET_ENV]: target },\n      timeout: POWERSHELL_TIMEOUT_MS,\n      windowsHide: true,\n    },\n  );',
   "dist/utils/owner-only-file.js:4":
     'const node_child_process_1 = require("node:child_process");',
@@ -130,7 +130,7 @@ const processPins = {
     'const node_util_1 = require("node:util");',
   "dist/utils/owner-only-file.js:9":
     "const execFileAsync = (0, node_util_1.promisify)(node_child_process_1.execFile);",
-  "dist/utils/owner-only-file.js:34":
+  "dist/utils/owner-only-file.js:35":
     'await execFileAsync(powershell, ["-NoProfile", "-NonInteractive", "-Command", script], {\n        env: { ...process.env, [TARGET_ENV]: target },\n        timeout: POWERSHELL_TIMEOUT_MS,\n        windowsHide: true,\n    });',
 };
 

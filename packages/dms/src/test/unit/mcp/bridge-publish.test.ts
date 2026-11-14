@@ -1,5 +1,5 @@
 import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { platform, tmpdir } from "node:os";
 import { join } from "node:path";
 import { mock } from "node:test";
 import { Logging } from "@antelopejs/interface-core/logging";
@@ -16,7 +16,11 @@ const TOKEN = "start-token";
 const CREDENTIAL_FILE = "node_modules/.cache/dms/mcp.json";
 const LAUNCHER_FILE = "node_modules/.cache/dms/mcp-bridge.cjs";
 
-describe("[unit] mcp bridge publication", () => {
+/** Each write starts Windows PowerShell up to twice, which a cold runner can take seconds to do. */
+const WRITE_TIMEOUT_MS = platform() === "win32" ? 30_000 : 2_000;
+
+describe("[unit] mcp bridge publication", function () {
+  this.timeout(WRITE_TIMEOUT_MS);
   let projectPath: string;
   let warn: ReturnType<typeof mock.method<typeof Logging, "Warn">>;
 
