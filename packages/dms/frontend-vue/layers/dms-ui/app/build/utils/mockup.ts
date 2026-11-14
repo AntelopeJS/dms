@@ -97,6 +97,8 @@ export const MOCKUP_SOURCES: readonly MockupSource[] = [
 export interface MockupBuiltPage {
   path: string;
   title: string;
+  /** Whether the page's source changed after the mockup was built. */
+  changed: boolean;
 }
 
 interface MockupSummaryBase {
@@ -297,7 +299,10 @@ function isBuiltPage(
   value: Parameters<typeof isObject>[0],
 ): value is MockupBuiltPage {
   return (
-    isRecord(value) && isDashboardPath(value.path) && isString(value.title)
+    isRecord(value) &&
+    isDashboardPath(value.path) &&
+    isString(value.title) &&
+    typeof value.changed === "boolean"
   );
 }
 

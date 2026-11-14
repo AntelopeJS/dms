@@ -10,7 +10,7 @@ function builtSummary(path: string) {
     updatedAt: "2026-11-13T10:00:00.000Z",
     status: "built",
     builtAt: "2026-11-13T10:00:00.000Z",
-    builtPages: [{ path, title: "Bikes" }],
+    builtPages: [{ path, title: "Bikes", changed: false }],
   };
 }
 
