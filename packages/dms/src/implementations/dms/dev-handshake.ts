@@ -1,12 +1,11 @@
-import { mkdir, rename, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { getFrontendBootstrapSecret } from "../../store/frontend";
+import { writeOwnerOnlyFile } from "../../utils";
 
 const HANDSHAKE_RELATIVE_PATH = join(".antelope", "dms-dev.json");
-const TEMP_FILE_SUFFIX = ".tmp";
-const OWNER_ONLY_MODE = 0o600;
 const JSON_INDENT = 2;
 
 /**
@@ -52,16 +51,13 @@ export async function publishDevBootstrapCredential(): Promise<void> {
     bootstrapSecret,
     updatedAt: new Date().toISOString(),
   };
-  const tempPath = `${filePath}.${process.pid}${TEMP_FILE_SUFFIX}`;
 
   try {
     await mkdir(dirname(filePath), { recursive: true });
-    await writeFile(
-      tempPath,
+    await writeOwnerOnlyFile(
+      filePath,
       `${JSON.stringify(handshake, null, JSON_INDENT)}\n`,
-      { mode: OWNER_ONLY_MODE },
     );
-    await rename(tempPath, filePath);
   } catch (error) {
     Logging.Warn(
       `[DMS] Could not publish the development bootstrap credential to ${filePath}: ` +

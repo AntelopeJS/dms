@@ -1,6 +1,7 @@
 ---
 covers:
   - packages/dms/src/mcp/**
+  - packages/dms/src/utils/owner-only-file.ts
 docs:
   - packages/dms/docs/08.ai-and-claude-code/10.mcp-server.md
 ---
@@ -17,7 +18,7 @@ The MCP server the DMS serves in development, so a coding agent started in the p
 - `route-refuses-uncredentialled-callers`: Exposure: `POST /dms/mcp` answers 401 to a caller with no credential and to one with a wrong credential.
 - `page-verify-reports-a-page`: `page_verify` signs a headless Chromium in as the owner through the session handoff, opens the playground's users table, and reports every block present, the table's data loaded, the New entry form validating an empty submit and the screenshot written under `.antelope/page-verify/`; a route no page serves fails with its own line.
 - `page-verify-member-against-mockup`: Access: on a development backend, `page_verify` with `role` and `mockup` signs the users table in as an invited member holding only that role, and draws the mockup comparison in the `/mockup` viewer through the owner's session: the report names the member, its mockup table pairs with the page's table and the mockup screenshot is written, while the member gets 403 on the mockup the viewer reads.
-- `bridge-files-published`: the backend writes the credential to `node_modules/.cache/dms/mcp.json` with mode `0600` and adds the `dms` server to the project's `.mcp.json`.
+- `bridge-files-published`: the backend writes the credential to `node_modules/.cache/dms/mcp.json` with mode `0600`, on Windows with an ACL that grants the current user alone, and adds the `dms` server to the project's `.mcp.json`.
 
 ## How to get to it (user POV)
 

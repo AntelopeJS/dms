@@ -7,10 +7,10 @@ import {
   fileMode,
   readBridgeConfig,
   readOptionalText,
+  windowsAccessEntries,
 } from "../../helpers/mcp";
 
 const URL = "http://127.0.0.1:5010/dms/mcp";
-const itWithPosixModes = platform() === "win32" ? it.skip : it;
 const TOKEN = "first-token";
 
 const WRITTEN_FOR_EMPTY_PROJECT = `{
@@ -102,14 +102,18 @@ describe("[unit] mcp project files", () => {
     });
   });
 
-  itWithPosixModes(
-    "makes the credential readable by the project's user alone",
-    async () => {
-      await publish();
-      const configPath = join(projectPath, "node_modules/.cache/dms/mcp.json");
+  it("publishes the route and credential readable by the project's user alone", async () => {
+    await publish();
+    const configPath = join(projectPath, "node_modules/.cache/dms/mcp.json");
+    if (platform() === "win32") {
+      const user = `${process.env.USERDOMAIN}\\${process.env.USERNAME}`;
+      expect(windowsAccessEntries(configPath)).to.deep.equal([
+        `${user}:(f)`.toLowerCase(),
+      ]);
+    } else {
       expect(fileMode(configPath)).to.equal(0o600);
-    },
-  );
+    }
+  });
 
   it("replaces the credential on the next start, so an old one stops working", async () => {
     await publish();
