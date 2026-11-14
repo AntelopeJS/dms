@@ -210,6 +210,30 @@ function keepsLogoFilesTheAppConfigReaches(): void {
     expectOk(await SetTheme(configDraft()), "SetTheme");
     expect(brandingFiles()).to.deep.equal([]);
   });
+
+  it("keeps a file another file builds only from substitutions", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("default", "light", PNG_LOGO, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    const shared =
+      expectOk(await GetTheme(), "GetTheme").logos.default?.light ?? "";
+    const hash = /-([0-9a-f]{8})\.png$/.exec(shared)?.[1] ?? "";
+    writeLayerFile(
+      "app/brand/logos.ts",
+      `const SLOT = "default";\nconst HASH = "${hash}";\nexport const EMAIL_LOGO_NAME = \`\${SLOT}-light-\${HASH}.png\`;\n`,
+    );
+    writeLayerFile(
+      "app/app.config.ts",
+      `import { EMAIL_LOGO_NAME } from "~/brand/logos";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${shared}" }, email: { light: "/branding/" + EMAIL_LOGO_NAME } } },\n});\n`,
+    );
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
+  });
 }
 
 function writesOneFileOrNothing(): void {
