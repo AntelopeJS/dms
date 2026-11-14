@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 
 /** A file of a fixture project by its absolute path, as text. */
 export function fileText(filepath: string): string {
@@ -20,9 +21,10 @@ export function directoryNames(directory: string): string[] {
   return fs.readdirSync(directory).sort();
 }
 
-/** Every file and directory under a directory, relative to it, sorted. */
+/** Every file and directory under a directory, relative to it with `/` on every platform, sorted. */
 export function directoryTree(directory: string): string[] {
   return fs
     .readdirSync(directory, { recursive: true, encoding: "utf8" })
+    .map((entry) => entry.split(path.sep).join("/"))
     .sort();
 }

@@ -19,7 +19,7 @@ import { namesIn, treeOf } from "./helpers/tree.mjs";
 import { ExitError } from "./processes.mjs";
 
 const PAGE = join("frontend-vue", "page.vue");
-const SOURCE = join("frontend-modules", "page");
+const SOURCE = "frontend-modules/page";
 const REGISTRY = "generated-frontend-modules.json";
 
 /**
@@ -92,7 +92,7 @@ function fixture(t) {
           log("frontend-build");
           if (!prepared) setUp(workspace, copySources);
           options.build?.(workspace, prepared);
-          const page = treeOf(workspace)?.[join(SOURCE, "page.vue")] ?? "";
+          const page = treeOf(workspace)?.[`${SOURCE}/page.vue`] ?? "";
           write(join(workspace, "dist", "index.html"), page);
           return Promise.resolve();
         },
@@ -106,7 +106,7 @@ function fixture(t) {
       workspace,
       builds,
       frontendBuild: state.frontendBuild,
-      served: laidOut[join("dist", "index.html")],
+      served: laidOut["dist/index.html"],
       registry: laidOut[REGISTRY],
     };
   };
@@ -339,7 +339,8 @@ await test("an install record above TMPDIR that the key cannot read leaves the r
   write(record, '{"layoutVersion":5}\n');
   write(join(outer, "tmp", ".keep"), "");
   symlinkSync(join(outer, "tmp"), join(outer, "linked-tmp"));
-  setEnv(t, { TMPDIR: join(outer, "linked-tmp") });
+  const linked = join(outer, "linked-tmp");
+  setEnv(t, { TMPDIR: linked, TEMP: linked, TMP: linked });
   const { dir, up } = fixture(t);
   write(join(dir, "node_modules", ".modules.yaml"), "layoutVersion: 5\n");
   assert.match(

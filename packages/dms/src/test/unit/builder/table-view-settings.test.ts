@@ -1,3 +1,4 @@
+import path from "node:path";
 import { expect } from "chai";
 import type {
   FooterSummarySetting,
@@ -328,9 +329,9 @@ function setsTheFooterFigures(): void {
     expect(ordersControllerText()).to.include(
       "summary: TableViewRoutes.Summary",
     );
-    expect(result.changes.map((change) => change.path)).to.include(
-      ordersControllerPath(),
-    );
+    expect(
+      result.changes.map((change) => path.resolve(change.path)),
+    ).to.include(path.resolve(ordersControllerPath()));
   });
 
   it("refuses a footer figure on a resource that serves no list", async () => {

@@ -72,11 +72,24 @@ setInterval(() => {}, 1_000_000);
 `;
 
 /**
+ * @param {string} folder A folder
+ * @returns {string} The folder as the script's bash names it, which Git Bash on Windows writes as `/c/...`
+ */
+function bashPath(folder) {
+  return spawnSync("bash", ["-c", "pwd"], {
+    cwd: folder,
+    encoding: "utf8",
+  }).stdout.trim();
+}
+
+/**
  * @param {import("node:test").TestContext} t
  * @returns {{ stub: string, loading: string, project: () => string }} Stub servers and a factory for throwaway projects that `stop` and delete themselves
  */
 function fixture(t) {
-  const base = realpathSync(mkdtempSync(join(tmpdir(), "dms-dev-test-")));
+  const base = realpathSync.native(
+    mkdtempSync(join(tmpdir(), "dms-dev-test-")),
+  );
   const stub = join(base, "stub.mjs");
   writeFileSync(stub, STUB);
   const loading = join(base, "loading.mjs");
@@ -199,7 +212,7 @@ await test("two projects started at once keep their own PORT and logs (fails a s
   assert.match(
     await dmsDev(one, envOne, ["status"]),
     new RegExp(
-      `${one}/\\.antelope/logs/back\\.log, ${one}/\\.antelope/logs/front\\.log`,
+      `${bashPath(one)}/\\.antelope/logs/back\\.log, ${bashPath(one)}/\\.antelope/logs/front\\.log`,
     ),
   );
 });

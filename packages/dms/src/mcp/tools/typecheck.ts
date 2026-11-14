@@ -1,14 +1,11 @@
-import { execFile } from "node:child_process";
 import { access } from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModuleInfo, ListModules } from "@antelopejs/interface-core/modules";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { z } from "zod";
+import { runPackageManager } from "../../utils/package-manager/index";
 import { defineTool, textResult } from "../tool";
-
-const execFileAsync = promisify(execFile);
 
 const TSC_COMMAND = "pnpm";
 const TSC_ARGS = ["exec", "tsc", "--noEmit", "-p", "tsconfig.json"];
@@ -80,11 +77,10 @@ async function runTypecheck(root: string): Promise<string> {
     return "No tsconfig.json in the target module — skipped type check.";
   }
   try {
-    await execFileAsync(TSC_COMMAND, TSC_ARGS, {
+    await runPackageManager(TSC_COMMAND, TSC_ARGS, {
       cwd: root,
       timeout: TIMEOUT_MS,
       maxBuffer: MAX_BUFFER_BYTES,
-      encoding: "utf8",
     });
     return "No type errors.";
   } catch (error) {

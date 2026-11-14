@@ -54,7 +54,9 @@ function build(
     config?.options ?? {},
   );
   const written = new Map<string, string>();
-  const emit = program.emit(undefined, (file, text) => written.set(file, text));
+  const emit = program.emit(undefined, (file, text) =>
+    written.set(path.resolve(file), text),
+  );
   const diagnostics = [
     ...ts.getPreEmitDiagnostics(program),
     ...emit.diagnostics,

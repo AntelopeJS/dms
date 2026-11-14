@@ -27,6 +27,9 @@ import {
   reloadHostProvisionedTenants,
 } from "../../helpers/reload-host";
 
+/** Two module reloads plus up to two seconds of waits: 1.5 s measured on a Windows runner, 0.4 s on Linux. */
+const RELOAD_TEST_TIMEOUT_MS = 10_000;
+
 const EXISTING_TENANT = "instances-existing-tenant";
 const PROVISIONED_TENANT = "instances-provisioned-tenant";
 const ROLE_ID = "instances-role";
@@ -120,7 +123,8 @@ function registerProvisioningResumeCases(): void {
     );
   });
 
-  it("resumes pending provisioning after consumer reloads without overlapping attempts", async () => {
+  it("resumes pending provisioning after consumer reloads without overlapping attempts", async function () {
+    this.timeout(RELOAD_TEST_TIMEOUT_MS);
     await ensureDefaultTenantExists();
     const entered = Promise.withResolvers<void>();
     const release = Promise.withResolvers<void>();

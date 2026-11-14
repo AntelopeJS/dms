@@ -1,13 +1,10 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import {
   isObject,
   isString,
 } from "@antelopejs/interface-dms/utils/internal/type-check";
+import { runPackageManager } from "../utils/package-manager/index";
 import { createLookupCache, type Freshness } from "./cache";
 import type { PackageRelease } from "./types";
-
-const execFileAsync = promisify(execFile);
 
 const RELEASE_LIFETIMES = { found: 60 * 60 * 1000, failed: 5 * 60 * 1000 };
 const NPM_VIEW_TIMEOUT_MS = 30_000;
@@ -36,7 +33,7 @@ export async function npmView(
   // oxlint-disable-next-line anti-slop/no-unknown-returns -- Answers the JSON npm view --json prints for the fields asked, read as npm prints it, and each caller reads its own fields (the antelopejs#367 package.ts class).
 ): Promise<unknown> {
   try {
-    const { stdout } = await execFileAsync(
+    const { stdout } = await runPackageManager(
       "npm",
       ["view", spec, ...fields, "--json"],
       { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS },

@@ -7,6 +7,7 @@ import type {
   ProjectConfigResult,
   ProjectConfigStep,
 } from "@antelopejs/interface-dms-builder";
+import { isInsideFolder } from "./file-paths";
 import { findConfigFile } from "./modules";
 import { invalidConfig, unsupported } from "./ops";
 import { type ConfigDraft, openDraft, StepRefusal } from "./project-config";
@@ -89,7 +90,7 @@ type ScaffoldCheck =
 
 function insideScaffold(draft: ConfigDraft, file: string): boolean {
   return draft.scaffolds.some((scaffold) =>
-    file.startsWith(scaffold.root + path.sep),
+    isInsideFolder(scaffold.root, file),
   );
 }
 

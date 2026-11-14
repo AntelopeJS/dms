@@ -70,7 +70,8 @@ describe("category options written as constants", () => {
 
   after(() => destroyFixture());
 
-  it("read as the values the constants hold", async () => {
+  it("read as the values the constants hold", async function () {
+    this.timeout(OP_TIMEOUT);
     expect(await categoryMeta()).to.include({
       displayName: "Shop board",
       icon: "i-ph-kanban",

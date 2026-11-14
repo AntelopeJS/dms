@@ -1,4 +1,5 @@
 import { rmSync, writeFileSync } from "node:fs";
+import { basename } from "node:path";
 import { test } from "node:test";
 import { assertAccepted, assertRejected, fixturePath } from "./fixtures.mjs";
 
@@ -23,7 +24,7 @@ await test("rejects CSS module imports and CSS @import files", (t) => {
     "forbidden",
     ["", "?raw", "?url"].map((suffix) => [
       fixturePath("frontend-vue/app"),
-      `import "./${style.split("/").at(-1)}${suffix}";`,
+      `import "./${basename(style)}${suffix}";`,
       null,
     ]),
   );

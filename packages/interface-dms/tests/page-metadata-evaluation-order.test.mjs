@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createRequire, registerHooks } from "node:module";
-import { relative } from "node:path";
+import { relative, sep } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
@@ -27,7 +27,7 @@ function loadOrder(entry) {
   const hooks = registerHooks({
     load: (url, context, nextLoad) => {
       if (url.startsWith("file:")) {
-        const file = relative(dist, fileURLToPath(url));
+        const file = relative(dist, fileURLToPath(url)).split(sep).join("/");
         if (!file.startsWith("..")) loaded.push(file.replace(/\.js$/, ""));
       }
       return nextLoad(url, context);

@@ -400,7 +400,7 @@ await test("a sign-in that stays on /auth writes a screenshot into its last step
   assert.equal(fake.shots.length, 1);
   assert.match(
     stepOf(context, fake.shots[0]),
-    /\/\d+-admin-sign-in-click-login$/,
+    /[\\/]\d+-admin-sign-in-click-login$/,
   );
 });
 

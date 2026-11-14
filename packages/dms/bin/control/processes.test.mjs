@@ -8,7 +8,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { canChoosePid, chooseNextPid } from "./helpers/pids.mjs";
-import { isRunning, startTimeOf } from "./identity.mjs";
+import { hasProc, isRunning, startTimeOf } from "./identity.mjs";
 import {
   descendantsOf,
   freePort,
@@ -108,19 +108,27 @@ function bind(port) {
   });
 }
 
-await test("killRecorded ends a SIGTERM-proof tree at once and frees every port", async (t) => {
-  const ports = [await freePort(), await freePort()];
-  const leader = await startTree(t, ports);
-  const started = Date.now();
-  const lines = await killRecorded([leader]);
-  assert.ok(
-    Date.now() - started < SLOW_STOP_MS,
-    "a SIGTERM and a grace period take ten seconds on this tree",
-  );
-  assert.equal(isRunning(leader.pid), false);
-  assert.equal(lines.length, 3);
-  for (const port of ports) assert.equal(await bind(port), true);
-});
+await test(
+  "killRecorded ends a SIGTERM-proof tree at once and frees every port",
+  {
+    skip:
+      !hasProc() &&
+      "the listeners of a port and the descendants of a process are read from /proc",
+  },
+  async (t) => {
+    const ports = [await freePort(), await freePort()];
+    const leader = await startTree(t, ports);
+    const started = Date.now();
+    const lines = await killRecorded([leader]);
+    assert.ok(
+      Date.now() - started < SLOW_STOP_MS,
+      "a SIGTERM and a grace period take ten seconds on this tree",
+    );
+    assert.equal(isRunning(leader.pid), false);
+    assert.equal(lines.length, 3);
+    for (const port of ports) assert.equal(await bind(port), true);
+  },
+);
 
 await test("killRecorded resolves for a process that is already gone", async () => {
   assert.deepEqual(
@@ -129,37 +137,48 @@ await test("killRecorded resolves for a process that is already gone", async () 
   );
 });
 
-await test("killRecorded returns once a killed process is a zombie nothing reaps; waiting for the pid to vanish throws after the grace period", async (t) => {
-  const dir = mkdtempSync(join(tmpdir(), "dms-control-zombie-"));
-  const parent = startDetached({
-    name: "zombie-parent",
-    program: "sh",
-    args: ["-c", "sleep 60 & exec sleep 60"],
-    cwd: dir,
-    env: process.env,
-    logs: dir,
-  });
-  t.after(async () => {
-    await killRecorded([parent]).catch(() => []);
-    rmSync(dir, { recursive: true, force: true });
-  });
-  let children = descendantsOf([parent.pid]);
-  for (
-    let waited = 0;
-    children.length === 0 && waited < SLOW_STOP_MS;
-    waited += POLL_MS
-  ) {
-    await sleep(POLL_MS);
-    children = descendantsOf([parent.pid]);
-  }
-  assert.equal(children.length, 1);
-  const records = children.map((pid) => ({ pid, startTime: startTimeOf(pid) }));
-  const outcome = await Promise.race([
-    killRecorded(records).then(() => "returned"),
-    sleep(3_000).then(() => "still waiting"),
-  ]);
-  assert.equal(outcome, "returned");
-});
+await test(
+  "killRecorded returns once a killed process is a zombie nothing reaps; waiting for the pid to vanish throws after the grace period",
+  {
+    skip:
+      !hasProc() &&
+      "a zombie and the descendants of a process are read from /proc",
+  },
+  async (t) => {
+    const dir = mkdtempSync(join(tmpdir(), "dms-control-zombie-"));
+    const parent = startDetached({
+      name: "zombie-parent",
+      program: "sh",
+      args: ["-c", "sleep 60 & exec sleep 60"],
+      cwd: dir,
+      env: process.env,
+      logs: dir,
+    });
+    t.after(async () => {
+      await killRecorded([parent]).catch(() => []);
+      rmSync(dir, { recursive: true, force: true });
+    });
+    let children = descendantsOf([parent.pid]);
+    for (
+      let waited = 0;
+      children.length === 0 && waited < SLOW_STOP_MS;
+      waited += POLL_MS
+    ) {
+      await sleep(POLL_MS);
+      children = descendantsOf([parent.pid]);
+    }
+    assert.equal(children.length, 1);
+    const records = children.map((pid) => ({
+      pid,
+      startTime: startTimeOf(pid),
+    }));
+    const outcome = await Promise.race([
+      killRecorded(records).then(() => "returned"),
+      sleep(3_000).then(() => "still waiting"),
+    ]);
+    assert.equal(outcome, "returned");
+  },
+);
 
 await test("killRecorded kills a process the caller started and signals nothing else", async (t) => {
   const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
@@ -179,25 +198,40 @@ await test("killRecorded kills a process the caller started and signals nothing 
   );
 });
 
-await test("killRecorded and stopRecorded leave alone a process whose start time is not the one recorded for its pid; a version that signals by pid alone kills it", async (t) => {
-  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
-    stdio: "ignore",
-  });
-  t.after(() => child.kill());
-  const pid = child.pid;
-  assert.ok(pid !== undefined && pid > 1, "the child started");
-  const started = startTimeOf(pid);
-  assert.ok(started !== null, "the child has a start time");
-  const calls = recordKills(t);
-  const earlier = { pid, startTime: started - 1 };
-  await killRecorded([earlier]);
-  await stopRecorded([earlier, { pid, startedAt: "2026-01-01T00:00:00.000Z" }]);
-  assert.deepEqual(
-    calls.filter(([, signal]) => signal !== 0),
-    [],
-  );
-  assert.equal(isRunning(pid), true);
-});
+await test(
+  "killRecorded and stopRecorded leave alone a process whose start time is not the one recorded for its pid; a version that signals by pid alone kills it",
+  {
+    skip:
+      !hasProc() &&
+      "a start time is read from /proc; without it a pid alone names a process",
+  },
+  async (t) => {
+    const child = spawn(
+      process.execPath,
+      ["-e", "setInterval(() => {}, 1000)"],
+      {
+        stdio: "ignore",
+      },
+    );
+    t.after(() => child.kill());
+    const pid = child.pid;
+    assert.ok(pid !== undefined && pid > 1, "the child started");
+    const started = startTimeOf(pid);
+    assert.ok(started !== null, "the child has a start time");
+    const calls = recordKills(t);
+    const earlier = { pid, startTime: started - 1 };
+    await killRecorded([earlier]);
+    await stopRecorded([
+      earlier,
+      { pid, startedAt: "2026-01-01T00:00:00.000Z" },
+    ]);
+    assert.deepEqual(
+      calls.filter(([, signal]) => signal !== 0),
+      [],
+    );
+    assert.equal(isRunning(pid), true);
+  },
+);
 
 await test(
   "stopRecorded sends no SIGKILL to a pid another process took during the SIGTERM grace period; a version that kills every target it signalled kills that process",

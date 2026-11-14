@@ -72,8 +72,8 @@ await test("docs-catalog: fails on a block type two pages document", () => {
   });
   assert.notEqual(check.status, 0);
   assert.match(check.stderr, /Banner: 2 pages/);
-  assert.match(check.stderr, /docs\/Banner\.md/);
-  assert.match(check.stderr, /docs\/more\/Banner\.md/);
+  assert.match(check.stderr, /docs[\\/]Banner\.md/);
+  assert.match(check.stderr, /docs[\\/]more[\\/]Banner\.md/);
 });
 
 await test("docs-catalog: a page with only one of the two directives does not document the type", () => {

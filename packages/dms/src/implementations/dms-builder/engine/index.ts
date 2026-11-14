@@ -23,6 +23,7 @@ export * from "./emit";
 export * from "./entry-connections";
 export * from "./env-lines";
 export * from "./file-batch";
+export * from "./file-paths";
 export * from "./guards";
 export * from "./interface-capabilities";
 export * from "./module-loader";

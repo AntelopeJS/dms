@@ -122,9 +122,9 @@ describe("[unit] store/boundaries — package manifests read from disk", () => {
     expect(manifest.version).to.equal(undefined);
   });
 
-  for (const content of [null, "jobs", 5, [], true]) {
+  for (const [index, content] of [null, "jobs", 5, [], true].entries()) {
     it(`rejects a loaded module whose manifest is ${JSON.stringify(content)}`, async () => {
-      const folder = path.join(root, `loaded-${JSON.stringify(content)}`);
+      const folder = path.join(root, `loaded-${index}`);
       await writePackage(folder, content);
       expect(await outcomeOf(() => loadedManifest(folder))).to.equal(
         "rejected",
@@ -227,6 +227,9 @@ if (Object.hasOwn(answers, spec)) process.stdout.write(JSON.stringify(answers[sp
 else process.exit(1);
 `;
 
+/** The `npm.cmd` that cmd.exe finds on Windows, running the stand-in beside it with this Node. */
+const NPM_CMD_SHIM = `@"${process.execPath}" "%~dp0npm" %*\r\n`;
+
 describe("[unit] store/boundaries — interfaces registry", () => {
   const originalFetch = globalThis.fetch;
   const originalPath = process.env.PATH;
@@ -239,6 +242,7 @@ describe("[unit] store/boundaries — interfaces registry", () => {
     await writeFile(path.join(binFolder, "npm"), NPM_STAND_IN, {
       mode: 0o755,
     });
+    await writeFile(path.join(binFolder, "npm.cmd"), NPM_CMD_SHIM);
     await writeFile(
       path.join(project, "answers.json"),
       JSON.stringify(Object.fromEntries(NPM_ANSWERS)),

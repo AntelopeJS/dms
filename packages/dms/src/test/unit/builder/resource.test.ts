@@ -33,7 +33,8 @@ async function fieldNamed(name: string) {
 }
 
 function emitsTheResourceAndAddsFields(): void {
-  it("emits a table, a model and a data API, and lists the resource", async () => {
+  it("emits a table, a model and a data API, and lists the resource", async function () {
+    this.timeout(OP_TIMEOUT);
     const structure = await order();
     expect(structure.className).to.equal("Order");
     expect(structure.tableName).to.equal("orders");

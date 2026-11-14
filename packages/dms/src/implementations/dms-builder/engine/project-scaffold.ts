@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ts } from "ts-morph";
+import { posixRelative } from "./file-paths";
 import { isString } from "./scalar-guards";
 import { DEFAULT_COMPILER_OPTIONS, resolveProjectRoot } from "./project";
 import { isPlainObject } from "./value";
@@ -312,7 +313,7 @@ export type LocalSource = {
 export function localSource(root: string): LocalSource {
   return {
     type: "local",
-    path: path.relative(resolveProjectRoot(), root),
+    path: posixRelative(resolveProjectRoot(), root),
     watchDir: ["src"],
     installCommand: ["pnpm install", "pnpm run build"],
     reloadCommand: ["pnpm exec tsc"],
