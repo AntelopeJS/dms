@@ -4,6 +4,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { IsDuplicateKeyError } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel, type UserInvite, UserInviteModel } from "./db";
+import { InviteResolutionsModel } from "./db/internal/inviteResolutions.model";
 import { normalizeEmail, UserModel } from "./auth/db";
 import randomstring from "randomstring";
 import { fireAndForget } from "./utils/fire-and-forget";
@@ -247,7 +248,15 @@ async function createAdmittedInviteToken(
       invite: existingInvite,
       reason: options.replacementReason ?? "replaced",
       replacement,
+    }).catch(async (error: unknown) => {
+      if (
+        options.replacesInvite ||
+        !(await completeCancellationOfRead(tenantId, existingInvite))
+      )
+        throw error;
+      return undefined;
     });
+    if (!resolution) return createAdmittedInviteToken(options);
     await completeAdmittedInviteResolution(resolution);
     if (!resolution.replacement)
       throw new Error("Replacement snapshot missing");
@@ -269,10 +278,7 @@ async function createAdmittedInviteToken(
     return yieldToWinner(await userInviteModel.getByEmail(email), replacement);
   }
   const rival = await userInviteModel.getOtherByEmail(email, replacement._id);
-  if (rival) {
-    await userInviteModel.delete(replacement._id);
-    return yieldToWinner(rival, replacement);
-  }
+  if (rival) return withdrawFreshInvite(tenantId, replacement, rival);
   await ExecuteHooks(Hook.INVITE_CREATED, {
     tenantId,
     inviteId: replacement._id,
@@ -282,6 +288,42 @@ async function createAdmittedInviteToken(
     roleIds,
   });
   return { inviteId: replacement._id, token: replacement.token };
+}
+
+/**
+ * Removes the invite a creation read when a completed cancellation already
+ * retired it, so the creation can read the email again.
+ *
+ * @returns Whether the invite's decision was such a cancellation
+ */
+async function completeCancellationOfRead(
+  tenantId: string,
+  invite: UserInvite,
+): Promise<boolean> {
+  const held = await GetModel(InviteResolutionsModel, tenantId).getForInvite(
+    tenantId,
+    invite._id,
+  );
+  if (held?.reason !== "cancelled" || held.replacement || !held.completed)
+    return false;
+  await completeAdmittedInviteResolution(held);
+  return true;
+}
+
+/**
+ * Withdraws a fresh invite that found a rival, through its decision: a
+ * replacement decided on it first is kept instead, and its decider completes it.
+ */
+async function withdrawFreshInvite(
+  tenantId: string,
+  fresh: UserInvite,
+  rival: UserInvite,
+): Promise<CreateUserInviteTokenResult> {
+  const decisions = GetModel(InviteResolutionsModel, tenantId);
+  const { resolution, claimed } = await decisions.withdraw(tenantId, fresh);
+  if (!claimed) return yieldToWinner(resolution.replacement ?? rival, fresh);
+  await GetModel(UserInviteModel, tenantId).delete(fresh._id);
+  return yieldToWinner(rival, fresh);
 }
 
 function yieldToWinner(
