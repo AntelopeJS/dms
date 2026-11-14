@@ -1,5 +1,6 @@
 import {
   Node,
+  type ObjectLiteralExpression,
   type PropertyAssignment,
   type ShorthandPropertyAssignment,
   type SourceFile,
@@ -488,6 +489,27 @@ export interface EditableOptions {
   config: LiteralObject;
   lockedOptions: Record<string, string>;
   reason?: string;
+}
+
+/**
+ * A top-level option of an object literal read as the data it holds: literals,
+ * `const`s holding them, shorthand included, and templates of such constants.
+ * An option written as other code reads back as absent.
+ */
+export function optionValue(
+  obj: ObjectLiteralExpression,
+  name: string,
+): LiteralValue | undefined {
+  const prop = obj.getProperty(name);
+  const node =
+    prop && Node.isShorthandPropertyAssignment(prop)
+      ? prop.getNameNode()
+      : prop && Node.isPropertyAssignment(prop)
+        ? prop.getInitializer()
+        : undefined;
+  if (!node) return undefined;
+  const read = literalToValue(node);
+  return read.fullyLiteral ? read.value : undefined;
 }
 
 /** Top-level options are the edit boundary; nested code locks its whole option. */

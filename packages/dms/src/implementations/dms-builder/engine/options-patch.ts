@@ -1,9 +1,11 @@
+import { isDeepStrictEqual } from "node:util";
 import type {
   ConfigObject,
   EditableCategoryMeta,
   EditablePageMeta,
 } from "@antelopejs/interface-dms-builder";
 import { Node, type ObjectLiteralExpression, type SourceFile } from "ts-morph";
+import { optionValue } from "./config-literal";
 import { propertyKey } from "./paths";
 import { type EmitContext, serializeValue } from "./value";
 import {
@@ -24,15 +26,22 @@ type OptionsPatchValue =
  * its position — arrives as `null`, which no option of a page means. It is
  * read as what the editor meant, an option to take out of the file, rather
  * than written as a `null` the page's types refuse.
+ *
+ * An option the patch sets to the value the file already reads as is left as
+ * written, so echoing what was read back does not turn a constant into its value.
  */
 export function optionsPatch(
+  options: ObjectLiteralExpression,
   patch: Record<string, OptionsPatchValue>,
 ): Record<string, OptionsPatchValue> {
   return Object.fromEntries(
-    Object.entries(patch).map(([key, value]) => [
-      key,
-      value === null ? undefined : value,
-    ]),
+    Object.entries(patch)
+      .map(([key, value]) => [key, value === null ? undefined : value] as const)
+      .filter(
+        ([key, value]) =>
+          value === undefined ||
+          !isDeepStrictEqual(value, optionValue(options, key)),
+      ),
   );
 }
 
