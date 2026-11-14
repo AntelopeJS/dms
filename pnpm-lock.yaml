@@ -135,11 +135,11 @@ importers:
         specifier: ^2.0.9
         version: 2.0.9
       zod:
-        specifier: ~3.24.2
-        version: 3.24.4
+        specifier: ^3.24.2
+        version: 3.25.76
       zod-to-json-schema:
         specifier: ~3.24.6
-        version: 3.24.6(zod@3.24.4)
+        version: 3.24.6(zod@3.25.76)
     devDependencies:
       '@antelopejs/api':
         specifier: ^1.7.0
@@ -507,8 +507,8 @@ importers:
         specifier: workspace:*
         version: link:../../interface-dms
       zod:
-        specifier: ~3.24.4
-        version: 3.24.4
+        specifier: ^3.24.2
+        version: 3.25.76
     devDependencies:
       '@antelopejs/core':
         specifier: '>=1.23.0 <2'
@@ -536,10 +536,10 @@ importers:
         version: 1.3.1
       zod:
         specifier: ^3.24.2
-        version: 3.24.4
+        version: 3.25.76
       zod-to-json-schema:
         specifier: ~3.24.6
-        version: 3.24.6(zod@3.24.4)
+        version: 3.24.6(zod@3.25.76)
     devDependencies:
       '@antelopejs/interface-api':
         specifier: '>=0.3.0 <1.0.0'
@@ -6909,9 +6909,6 @@ packages:
     resolution: {integrity: sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==}
     peerDependencies:
       zod: ^3.24.1
-
-  zod@3.24.4:
-    resolution: {integrity: sha512-OdqJE9UDRPwWsrHjLN2F8bPxvwJBK22EHLWtanu0LSYr5YqzsaaW3RMgmjwr8Rypg5k+meEJdSPXJZXE/yqOMg==}
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
@@ -13326,15 +13323,9 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.7.0
 
-  zod-to-json-schema@3.24.6(zod@3.24.4):
-    dependencies:
-      zod: 3.24.4
-
   zod-to-json-schema@3.24.6(zod@3.25.76):
     dependencies:
       zod: 3.25.76
-
-  zod@3.24.4: {}
 
   zod@3.25.76: {}
 
