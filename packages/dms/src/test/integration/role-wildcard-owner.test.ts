@@ -22,6 +22,7 @@ const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
 
 const CreatedRoleBody = z.object({ id: z.string() });
+const OverviewBody = z.object({ grantable: z.array(z.string()).nullable() });
 const SiteLayoutBody = z.object({ isOwner: z.boolean() });
 
 function createdRoleId(response: BodyResponse): string {
@@ -102,6 +103,23 @@ describe("[integration] the roles API grants only what the editor holds", () => 
     editor = authorizedClient(
       (await registerUser({ roles_ids: [editorRoleId] })).accessToken,
     );
+  });
+
+  it("offers the editor only what they hold, and the owner everything", async () => {
+    const editorView = parseBody(
+      OverviewBody,
+      await editor.get(`${ROLES}/overview`),
+    );
+    expect(editorView.grantable).to.include.members([ADD_ACTION, EDIT_ACTION]);
+    expect(await storedPermissions(editorRoleId)).to.include.members(
+      editorView.grantable ?? [],
+    );
+    expect(editorView.grantable).to.not.include(NOT_HELD);
+    const ownerView = parseBody(
+      OverviewBody,
+      await owner.get(`${ROLES}/overview`),
+    );
+    expect(ownerView.grantable).to.equal(null);
   });
 
   it("refuses * on the editor's own role, and leaves it unchanged", async () => {

@@ -61,8 +61,8 @@ export interface RolesOverview {
   owners: RoleOwnersSummary;
   totalPermissions: number;
   /**
-   * Permission ids the user may grant; `null` when they may grant any — always,
-   * since holding the roles' edit action lets one grant every permission.
+   * Permission ids of the tree the user holds, and so may grant; `null` for
+   * the platform owner, who may grant any.
    */
   grantable: string[] | null;
   capabilities: RoleEditorCapabilities;
