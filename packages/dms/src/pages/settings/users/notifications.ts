@@ -1,4 +1,4 @@
-import { ownValue } from "../../../utils";
+import { ownValue, queryText } from "../../../utils";
 import {
   Context,
   Controller,
@@ -79,12 +79,12 @@ function toSubjectView(
 }
 
 function parsePageSize(value: QueryValue): number {
-  const size = Number(value) || DEFAULT_PAGE_SIZE;
+  const size = Number(queryText(value)) || DEFAULT_PAGE_SIZE;
   return Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 }
 
 function parseOffset(value: QueryValue): number {
-  return Math.max(Number(value) || 0, 0);
+  return Math.max(Number(queryText(value)) || 0, 0);
 }
 
 const INBOX_READ_FILTER_KEY = "filter_isRead";
