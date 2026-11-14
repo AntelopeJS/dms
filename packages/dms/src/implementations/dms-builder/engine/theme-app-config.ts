@@ -157,16 +157,32 @@ export type BuiltFileName = readonly [string, ...string[]];
 /** A character no builder-named file holds, such as `/`, `?`, `#` or `&`. */
 const NOT_IN_FILE_NAME = /[^\w.-]/;
 
+/** A percent-encoded byte, as in `%2F`. */
+const PERCENT_ESCAPE = /%([0-9A-Fa-f]{2})/g;
+
+/**
+ * The text with each percent-encoded byte decoded, so `%2Fbranding%2Flogo.png`
+ * reads as `/branding/logo.png`. A byte above 0x7F decodes to a character no
+ * file name holds, as its UTF-8 sequence would.
+ */
+function decodePercentEscapes(text: string): string {
+  return text.replace(PERCENT_ESCAPE, (_escape, hex: string) =>
+    String.fromCharCode(Number.parseInt(hex, 16)),
+  );
+}
+
 /**
  * Each stretch of the text between characters no file name holds, so a file
- * named in a path, a query or a fragment is one of them, when it spells some
- * text: a name of runtime values alone could be any file.
+ * named in a path, a query or a fragment, percent-encoded or not, is one of
+ * them, when it spells some text: a name of runtime values alone could be any
+ * file.
  */
 function builtSegments(parts: string[]): BuiltFileName[] {
   const segments: string[][] = [];
   let current: string[] = [];
   for (const part of parts) {
-    const [head = "", ...later] = part.split(NOT_IN_FILE_NAME);
+    const [head = "", ...later] =
+      decodePercentEscapes(part).split(NOT_IN_FILE_NAME);
     current.push(head);
     for (const text of later) {
       segments.push(current);

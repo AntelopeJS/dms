@@ -35,7 +35,9 @@ export function holdFirstFreshCaller() {
   };
 }
 
-function restorer(method: "getByEmail" | "isOnlyInviteOfEmail") {
+function restorer(
+  method: "getByEmail" | "isOnlyInviteOfEmail" | "listByEmail",
+) {
   const original = Object.getOwnPropertyDescriptor(
     UserInviteModel.prototype,
     method,
@@ -57,6 +59,50 @@ export function afterFirstEmailRead(effect: () => Promise<void>) {
     const invite = await this.getByEmail(email);
     await effect();
     return invite;
+  };
+  return { restore };
+}
+
+/** Runs `effect` once, before the second `listByEmail` read runs. */
+export function beforeSecondEmailList(effect: () => Promise<void>) {
+  const restore = restorer("listByEmail");
+  UserInviteModel.prototype.listByEmail = async function (
+    this: UserInviteModel,
+    email: string,
+  ) {
+    restore();
+    const first = await this.listByEmail(email);
+    UserInviteModel.prototype.listByEmail = async function (
+      this: UserInviteModel,
+      secondEmail: string,
+    ) {
+      restore();
+      await effect();
+      return this.listByEmail(secondEmail);
+    };
+    return first;
+  };
+  return { restore };
+}
+
+/** Runs `effect` once, before the second `isOnlyInviteOfEmail` check reads. */
+export function beforeSecondOnlyInviteCheck(effect: () => Promise<void>) {
+  const restore = restorer("isOnlyInviteOfEmail");
+  UserInviteModel.prototype.isOnlyInviteOfEmail = async function (
+    this: UserInviteModel,
+    invite: UserInvite,
+  ) {
+    restore();
+    const first = await this.isOnlyInviteOfEmail(invite);
+    UserInviteModel.prototype.isOnlyInviteOfEmail = async function (
+      this: UserInviteModel,
+      secondInvite: UserInvite,
+    ) {
+      restore();
+      await effect();
+      return this.isOnlyInviteOfEmail(secondInvite);
+    };
+    return first;
   };
   return { restore };
 }

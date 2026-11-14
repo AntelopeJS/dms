@@ -10,12 +10,15 @@ import {
   completeInviteResolution,
   decideInvite,
 } from "@antelopejs/interface-dms/invite-resolution";
+import { runCleanupUserInvites } from "../../crons";
 import { resetDatabase } from "../helpers/db";
 import {
   failFirstDelete,
   holdFirstFreshCaller,
   afterFirstEmailRead,
   beforeFirstOnlyInviteCheck,
+  beforeSecondEmailList,
+  beforeSecondOnlyInviteCheck,
   readFirstEmailAs,
 } from "../helpers/invite-holds";
 import { inviteFixture } from "../helpers/invite-resolution-fixtures";
@@ -184,6 +187,38 @@ describe("[integration] an invitation retired while another creation reads it", 
     hold = readFirstEmailAs(keptInvite, () => accept(keptInvite));
     await refusal(createUserInviteToken(inviteOptions()));
     assert.deepEqual(await tokensOf(invites), []);
+  });
+
+  it("invites the email when the kept invite it read beside a withdrawn fresh invite is cancelled during the retry", async () => {
+    const { invites, keptInvite } = await withdrawalThatFailedToDelete();
+    const read = readFirstEmailAs(keptInvite, async () => {});
+    const cancelled = beforeSecondOnlyInviteCheck(() => cancel(keptInvite));
+    hold = {
+      restore: () => {
+        read.restore();
+        cancelled.restore();
+      },
+    };
+    const invited = await createUserInviteToken(inviteOptions());
+    assert.deepEqual(await tokensOf(invites), [invited.token]);
+  });
+
+  it("invites the email when the cleanup removes the withdrawn fresh invite while the kept invite it read is cancelled", async () => {
+    const { invites, keptInvite, stray } = await withdrawalThatFailedToDelete();
+    await invites.update(stray._id, { expiresAt: new Date(0) });
+    const read = readFirstEmailAs(keptInvite, async () => {});
+    const raced = beforeSecondEmailList(async () => {
+      await cancel(keptInvite);
+      await runCleanupUserInvites();
+    });
+    hold = {
+      restore: () => {
+        read.restore();
+        raced.restore();
+      },
+    };
+    const invited = await createUserInviteToken(inviteOptions());
+    assert.deepEqual(await tokensOf(invites), [invited.token]);
   });
 
   it("names no invite to cancel when the invite it resends was resent meanwhile", async () => {
