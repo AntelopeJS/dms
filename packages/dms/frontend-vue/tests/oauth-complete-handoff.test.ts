@@ -146,7 +146,7 @@ async function serveModulePages(paths: string[]): Promise<void> {
   await setupFrontendModules([
     {
       name: "workspace-signup",
-      options: {},
+      options: { public: {} },
       module: {
         setup(sdk) {
           for (const path of paths)

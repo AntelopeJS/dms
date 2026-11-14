@@ -54,8 +54,10 @@ const Button = defineComponent({
       h("button", { onClick: () => emit("click") }, props.label),
 });
 
+type Rows = Record<string, unknown>[] | null | undefined;
+
 async function mount(
-  rows: { name?: string }[],
+  rows: Rows,
   options: { sortable?: boolean; disabled?: boolean } = {},
 ) {
   for (const [name, value] of Object.entries({
@@ -72,7 +74,7 @@ async function mount(
   vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
   const events: string[] = [];
-  const model = ref(rows);
+  const model = ref<Rows>(rows);
   const host = document.createElement("div");
   document.body.append(host);
   app = createApp({
@@ -87,7 +89,7 @@ async function mount(
         ],
         modelValue: model.value,
         ...options,
-        "onUpdate:modelValue": (next: typeof rows) => (model.value = next),
+        "onUpdate:modelValue": (next: Rows) => (model.value = next),
       }),
   });
   const bus = useEventBus<FormEvent<object>, string>(Symbol("form-bus"));

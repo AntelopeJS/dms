@@ -9,8 +9,6 @@ import type { DataTypeFormatter } from "../layers/dms-core/app/composables/data-
 import { displayContext } from "./fixtures/displayContext";
 import { tableViewColumn } from "./fixtures/tableViewColumn";
 
-type Row = { _id: string; name: string; lead: string; done: number };
-
 const column = (
   accessorKey: string,
   typeId: string,
@@ -36,7 +34,7 @@ const formatter = (typeId: string) => ({
 let app: App | undefined;
 
 function mountCards(columns: TableViewColumn[], card?: TableViewCardConfig) {
-  const context = displayContext<Row>({
+  const context = displayContext<Record<string, unknown>>({
     items: [{ _id: "team-05", name: "Platform", lead: "ada.png", done: 3 }],
     columns,
     labelKey: "name",

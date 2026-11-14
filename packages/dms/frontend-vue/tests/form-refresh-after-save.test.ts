@@ -171,12 +171,13 @@ describe("DMS form after a save", () => {
 
   it("applies nothing for a new row, an action or a redirect", async () => {
     answer = () => ({ vatNumber: "as stored" });
-    for (const props of [
+    const cases: Parameters<typeof setupForm>[0][] = [
       { submitUrlMethod: HttpMethod.post, kind: "create" },
       { kind: "action" },
       { redirectOnSuccess: "/settings" },
       { fetchUrl: undefined },
-    ]) {
+    ];
+    for (const props of cases) {
       const form = setupForm(props);
       await saveTyped(form);
       expect(form.state.value.vatNumber, JSON.stringify(props)).not.toBe(
