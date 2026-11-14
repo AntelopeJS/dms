@@ -123,7 +123,9 @@ function deletesUnusedEmailLogoFiles(): void {
     expectOk(await SetTheme(configDraft()), "SetTheme");
     expect(brandingFiles()).to.deep.equal([]);
   });
+}
 
+function keepsLogoFilesTheAppConfigReaches(): void {
   it("keeps a file a slot reaches through a constant of the app config", async () => {
     expectOk(
       await SetTheme(
@@ -187,6 +189,30 @@ function deletesUnusedEmailLogoFiles(): void {
     expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
   });
 
+  it("keeps a file a slot reaches through a file name built only from substitutions, and deletes it once nothing builds it", async () => {
+    expectOk(
+      await SetTheme(
+        configDraft({
+          uploads: [upload("default", "light", PNG_LOGO, "image/png")],
+        }),
+      ),
+      "SetTheme",
+    );
+    const shared =
+      expectOk(await GetTheme(), "GetTheme").logos.default?.light ?? "";
+    const hash = /-([0-9a-f]{8})\.png$/.exec(shared)?.[1] ?? "";
+    const builtConfig = (extension: string): string =>
+      `const SLOT = "default";\nconst HASH = "${hash}";\nexport default defineDmsAppConfig({\n  branding: { logo: { default: { light: "${shared}" }, email: { light: \`/branding/\${SLOT}-light-\${HASH}.${extension}\` } } },\n});\n`;
+    writeLayerFile("app/app.config.ts", builtConfig("png"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(fs.existsSync(layerPath(`public${shared}`))).to.equal(true);
+    writeLayerFile("app/app.config.ts", builtConfig("jpg"));
+    expectOk(await SetTheme(configDraft()), "SetTheme");
+    expect(brandingFiles()).to.deep.equal([]);
+  });
+}
+
+function writesOneFileOrNothing(): void {
   it("writes one file for the email and another slot sent the same bytes", async () => {
     expectOk(
       await SetTheme(
@@ -203,9 +229,7 @@ function deletesUnusedEmailLogoFiles(): void {
     expect(theme.logos.email?.light).to.equal(theme.logos.default?.light);
     expect(brandingFiles()).to.have.length(1);
   });
-}
 
-function writesOneFileOrNothing(): void {
   it("writes only the last of two uploads for one slot and mode", async () => {
     expectOk(
       await SetTheme(
@@ -252,6 +276,7 @@ describe("theme logo files", function () {
 
   checksUploadedFileTypes();
   deletesUnusedEmailLogoFiles();
+  keepsLogoFilesTheAppConfigReaches();
   writesOneFileOrNothing();
 });
 

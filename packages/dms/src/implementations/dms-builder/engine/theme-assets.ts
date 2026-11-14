@@ -6,7 +6,13 @@ import type {
   ValidationIssue,
 } from "@antelopejs/interface-dms-builder";
 import { isString } from "./scalar-guards";
-import { LOGO_SLOTS, logoPaths, slotAccepts } from "./theme-app-config";
+import {
+  buildsFileName,
+  LOGO_SLOTS,
+  logoPaths,
+  slotAccepts,
+} from "./theme-app-config";
+import type { ReachedStrings } from "./theme-config-imports";
 import { THEME_MODES } from "./theme-stylesheet";
 import { sanitizeSvg } from "./theme-svg";
 
@@ -250,21 +256,25 @@ export function withUploads(
 
 /**
  * Absolute paths of builder-named logo files the previous logos used and whose
- * file name no string the saved app config reaches contains: a slot may reach
- * a file through a constant the logos do not read, in the app config or a file
- * it imports, or through a path it builds at runtime around that file name.
+ * file name no string the saved app config reaches contains or can build: a
+ * slot may reach a file through a constant the logos do not read, in the app
+ * config or a file it imports, or through a path it builds at runtime around
+ * that file name or out of its parts.
  */
 export function orphanedAssets(
   publicDirectory: string,
   previousLogos: ThemeLogos,
-  keptStrings: ReadonlySet<string>,
+  { literals, builtFileNames }: ReachedStrings,
 ): string[] {
-  const reached = [...keptStrings];
+  const texts = [...literals];
+  const reaches = (fileName: string): boolean =>
+    texts.some((text) => text.includes(fileName)) ||
+    builtFileNames.some((built) => buildsFileName(built, fileName));
   return [...new Set(logoPaths(previousLogos))]
     .filter(
       (publicPath) =>
         OWNED_ASSET.test(publicPath) &&
-        !reached.some((text) => text.includes(path.posix.basename(publicPath))),
+        !reaches(path.posix.basename(publicPath)),
     )
     .map((publicPath) => path.join(publicDirectory, publicPath));
 }

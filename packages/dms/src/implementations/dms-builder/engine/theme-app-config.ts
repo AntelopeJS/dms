@@ -139,6 +139,73 @@ export function stringLiterals(sourceFile: SourceFile): Set<string> {
   );
 }
 
+/**
+ * The static text of the file name a template literal builds, after its last
+ * `/`, split where a substitution goes: `${slot}-light-${hash}.png` is
+ * `["", "-light-", ".png"]`.
+ */
+export type BuiltFileName = readonly [string, string, ...string[]];
+
+function builtFileName(parts: string[]): BuiltFileName | undefined {
+  const directoryEnd = parts.findLastIndex((part) => part.includes("/"));
+  const fileParts =
+    directoryEnd < 0
+      ? parts
+      : [
+          parts[directoryEnd]?.split("/").pop() ?? "",
+          ...parts.slice(directoryEnd + 1),
+        ];
+  const [first, second, ...rest] = fileParts;
+  return first !== undefined &&
+    second !== undefined &&
+    fileParts.join("") !== ""
+    ? [first, second, ...rest]
+    : undefined;
+}
+
+/**
+ * The file name each template literal of a file builds, when the template
+ * spells some of its text: a name of substitutions alone could be any file.
+ */
+export function builtFileNames(sourceFile: SourceFile): BuiltFileName[] {
+  return sourceFile
+    .getDescendants()
+    .filter(Node.isTemplateExpression)
+    .map((template) =>
+      builtFileName([
+        template.getHead().getLiteralText(),
+        ...template
+          .getTemplateSpans()
+          .map((span) => span.getLiteral().getLiteralText()),
+      ]),
+    )
+    .filter((name) => name !== undefined);
+}
+
+/** Whether some value of the substitutions makes the template build this name. */
+export function buildsFileName(
+  [first, ...later]: BuiltFileName,
+  fileName: string,
+): boolean {
+  const last = later.pop() ?? "";
+  if (
+    !fileName.startsWith(first) ||
+    !fileName.endsWith(last) ||
+    fileName.length < first.length + last.length
+  ) {
+    return false;
+  }
+  let position = first.length;
+  for (const part of later) {
+    const found = fileName.indexOf(part, position);
+    if (found < 0) {
+      return false;
+    }
+    position = found + part.length;
+  }
+  return position <= fileName.length - last.length;
+}
+
 /** The palettes an app config picks under `ui.colors`, string literals only. */
 export function readColors(sourceFile: SourceFile): ThemeColors {
   const config = defaultExportObject(sourceFile);

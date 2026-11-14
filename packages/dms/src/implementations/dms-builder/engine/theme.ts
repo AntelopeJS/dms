@@ -32,7 +32,7 @@ import {
   stageLogos,
   withUploads,
 } from "./theme-assets";
-import { reachableStringLiterals } from "./theme-config-imports";
+import { reachableStrings } from "./theme-config-imports";
 import { isString } from "./scalar-guards";
 import { themeDraftIssues } from "./theme-draft";
 import { importStylesheet, importsStylesheet } from "./theme-entry";
@@ -373,7 +373,7 @@ function writeTheme(
     ...orphanedAssets(
       sources.publicDirectory,
       previousLogos,
-      reachableStringLiterals(sources.appConfig),
+      reachableStrings(sources.appConfig),
     ),
     ...orphanedFontFiles(fonts, sources.publicDirectory),
   ]) {
