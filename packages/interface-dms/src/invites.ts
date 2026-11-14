@@ -249,11 +249,7 @@ async function createAdmittedInviteToken(
       reason: options.replacementReason ?? "replaced",
       replacement,
     }).catch(async (error: unknown) => {
-      if (
-        options.replacesInvite ||
-        !(await completeCancellationOfRead(tenantId, existingInvite))
-      )
-        throw error;
+      if (!(await removeRetiredInvites(tenantId, email))) throw error;
       return undefined;
     });
     if (!resolution) return createAdmittedInviteToken(options);
@@ -291,23 +287,26 @@ async function createAdmittedInviteToken(
 }
 
 /**
- * Removes the invite a creation read when a completed cancellation already
- * retired it, so the creation can read the email again.
+ * Removes the stored invites of the email whose decision is already
+ * completed, so a creation refused because of one can run again. A fresh
+ * invite whose withdrawal failed to delete it is one.
  *
- * @returns Whether the invite's decision was such a cancellation
+ * @returns Whether it removed any
  */
-async function completeCancellationOfRead(
+async function removeRetiredInvites(
   tenantId: string,
-  invite: UserInvite,
+  email: string,
 ): Promise<boolean> {
-  const held = await GetModel(InviteResolutionsModel, tenantId).getForInvite(
-    tenantId,
-    invite._id,
+  const decisions = GetModel(InviteResolutionsModel, tenantId);
+  const stored = await GetModel(UserInviteModel, tenantId).listByEmail(email);
+  const held = await Promise.all(
+    stored.map((invite) => decisions.getForInvite(tenantId, invite._id)),
   );
-  if (held?.reason !== "cancelled" || held.replacement || !held.completed)
-    return false;
-  await completeAdmittedInviteResolution(held);
-  return true;
+  const retired = held.flatMap((decision) =>
+    decision?.completed ? [decision] : [],
+  );
+  await Promise.all(retired.map(completeAdmittedInviteResolution));
+  return retired.length > 0;
 }
 
 /**

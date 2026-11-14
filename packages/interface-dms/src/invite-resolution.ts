@@ -1,3 +1,4 @@
+import { HTTPResult } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { InviteDecision } from "./db/models/inviteResolutions.model";
@@ -61,10 +62,26 @@ function assertSameDecision(
   );
 }
 
+async function assertOnlyInviteOfEmail(
+  tenantId: string,
+  invite: UserInvite,
+): Promise<void> {
+  const invites = GetModel(UserInviteModel, tenantId);
+  if (await invites.isOnlyInviteOfEmail(invite)) return;
+  const other = await invites.getOtherByEmail(invite.email, invite._id);
+  throw new HTTPResult(
+    HTTP_CONFLICT,
+    other
+      ? `Invitation for this email was created concurrently: cancel invitation ${other._id}, created ${other.createdAt.toISOString()}, first`
+      : "Invitation for this email was created concurrently",
+  );
+}
+
 /**
  * Chooses one permanent outcome; all competing lifecycle paths must use this before effects.
  * A new replacement is refused with HTTP 409 unless its invite is the only invite of its email,
- * so a fresh invite that lost a concurrent creation is withdrawn, never replaced.
+ * so a fresh invite that lost a concurrent creation is withdrawn, never replaced. The refusal
+ * names another invite of the email, whose cancellation lets the replacement through.
  */
 export async function decideInvite(
   input: ResolveInviteInput,
@@ -79,15 +96,8 @@ export async function decideInvite(
     HTTP_CONFLICT,
     "Invitation expired before acceptance",
   );
-  assert(
-    !input.replacement ||
-      existing ||
-      (await GetModel(UserInviteModel, input.tenantId).isOnlyInviteOfEmail(
-        input.invite,
-      )),
-    HTTP_CONFLICT,
-    "Invitation for this email was created concurrently",
-  );
+  if (input.replacement && !existing)
+    await assertOnlyInviteOfEmail(input.tenantId, input.invite);
   const extensionKeys = [
     ...new Set([
       ...Object.keys(input.invite.extensions ?? {}),
