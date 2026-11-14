@@ -3,8 +3,8 @@ import { CreateDataType } from "@antelopejs/interface-dms/base/data-types";
 import { z } from "zod";
 import type { Json, JsonObject, MockupIssue } from "./model";
 import { jsonObjectSchema, jsonSchema } from "./model";
+import { FORM_COMPONENT } from "./validate";
 
-const FORM_COMPONENT = "dms-form";
 const entriesSchema = z.array(jsonSchema);
 const sectionsSchema = z.array(jsonObjectSchema);
 
@@ -36,7 +36,7 @@ function typeInput(
 }
 
 /**
- * The field as `dms-form` reads it, with the `component` the `Form` factory
+ * The field as the form component reads it, with the `component` the `Form` factory
  * gives it: the one written, else its `inputComponent`, else its data type's
  * input, a written `null` counting as none. A group's fields get theirs. A field left with no input is dropped,
  * its issue reported, since the component cannot draw it.
@@ -73,7 +73,7 @@ function withInputs(
 }
 
 /**
- * The options of a `dms-form` block with an input on every field, in
+ * The options of a block emitting the form component with an input on every field, in
  * `fields` and in each section's `fields`; other blocks' options as they are.
  * `pointer` is the node's options in the spec.
  */

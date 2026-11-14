@@ -67,7 +67,8 @@ const blockChildren: PreviewAdapter = {
   },
 };
 
-const FORM_COMPONENT = "dms-form-block";
+/** The component the `Form` and `ResourceForm` blocks emit. */
+export const FORM_COMPONENT = "dms-form-block";
 const serializedSectionSchema = z.object({ fieldIds: z.array(z.string()) });
 const fieldIdSchema = z.object({ id: z.string() });
 

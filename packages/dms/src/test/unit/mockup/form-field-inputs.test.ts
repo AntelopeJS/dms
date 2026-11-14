@@ -42,7 +42,7 @@ function factoryComponent(type: string): Json | undefined {
 }
 
 describe("a mockup form field written with a type and no component", () => {
-  it("reaches the preview with its data type's input, as the Form factory serializes it (fails when the field reaches dms-form with no component)", () => {
+  it("reaches the preview with its data type's input, as the Form factory serializes it (fails when the field reaches the form component with no component)", () => {
     const compiled = compile([
       {
         type: "Form",
@@ -61,7 +61,7 @@ describe("a mockup form field written with a type and no component", () => {
     ).to.deep.equal([factoryComponent("string"), factoryComponent("email")]);
   });
 
-  it("gives the fields of a group and of a section their input too, so they draw once moved into fields (fails when only top-level fields are filled)", () => {
+  it("gives the fields of a group and of a section their input too, and reports a section field at its pointer in the section (fails when only top-level fields are filled)", () => {
     const compiled = compile([
       {
         type: "Form",
@@ -74,24 +74,39 @@ describe("a mockup form field written with a type and no component", () => {
             },
           ],
           sections: [
-            { title: "Contact", fields: [{ id: "phone", type: "phone" }] },
+            {
+              id: "contact",
+              label: "Contact",
+              fields: [
+                { id: "phone", type: "phone" },
+                { id: "fax", type: "bogus" },
+              ],
+            },
           ],
         },
       },
     ]);
     const options = z
       .object({
-        fields: z.tuple([z.object({ fields: z.tuple([z.unknown()]) })]),
-        sections: z.tuple([z.object({ fields: z.tuple([z.unknown()]) })]),
+        fields: z.tuple([
+          z.object({ fields: z.tuple([jsonObjectSchema]) }),
+          jsonObjectSchema,
+        ]),
+        sections: z.tuple([z.object({ fieldIds: z.array(z.string()) })]),
       })
       .parse(compiled.pages[0].tree[0].options);
 
-    expect(options.fields[0].fields[0]).to.deep.include({
-      component: factoryComponent("number"),
-    });
-    expect(options.sections[0].fields[0]).to.deep.include({
+    expect(options.fields[0].fields[0].component).to.deep.equal(
+      factoryComponent("number"),
+    );
+    expect(options.fields[1]).to.deep.include({
+      id: "phone",
       component: factoryComponent("phone"),
     });
+    expect(options.sections[0].fieldIds).to.deep.equal(["phone"]);
+    expect(compiled.issues.map((issue) => issue.path)).to.deep.equal([
+      "/pages/0/tree/0/options/sections/0/fields/1/type",
+    ]);
   });
 
   it("gives a ResourceForm's fields their input (fails when only the Form block is filled)", () => {
@@ -112,8 +127,10 @@ describe("a mockup form field written with a type and no component", () => {
       factoryComponent("string"),
     );
   });
+});
 
-  it("keeps a component or an inputComponent the spec writes, and falls back to the type's on null as the factory does (fails when a written input is replaced, or a null one reaches dms-form)", () => {
+describe("a mockup form field that writes its input or cannot get one", () => {
+  it("keeps a component or an inputComponent the spec writes, and falls back to the type's on null as the factory does (fails when a written input is replaced, or a null one reaches the form component)", () => {
     const written = { componentName: "dms-input-textarea", options: {} };
     const compiled = compile([
       {
@@ -139,7 +156,7 @@ describe("a mockup form field written with a type and no component", () => {
     ]);
   });
 
-  it("reports a field it cannot give an input at its pointer, and leaves it out of the preview (fails when dms-form gets a field with no component)", () => {
+  it("reports a field it cannot give an input at its pointer, and leaves it out of the preview (fails when the form component gets a field with no component)", () => {
     const compiled = compile([
       {
         type: "Form",
