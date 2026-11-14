@@ -72,7 +72,7 @@ const processPins = {
   "dist/test/unit/builder/helpers/database-servers.js:22":
     "const run = (0, node_util_1.promisify)(node_child_process_1.execFile);",
   "dist/test/unit/builder/helpers/database-servers.js:27":
-    'exports.dockerAvailable = (0, node_child_process_1.spawnSync)("docker", ["version", "--format", "{{.Server.Version}}"], {\n    stdio: "ignore",\n}).status === 0;',
+    'exports.dockerAvailable = (0, node_child_process_1.spawnSync)("docker", ["version", "--format", "{{.Server.Os}}"], {\n    encoding: "utf8",\n}).stdout?.trim() === "linux";',
   "dist/utils/package-manager.js:5":
     'const node_child_process_1 = require("node:child_process");',
   "dist/utils/package-manager.js:7":

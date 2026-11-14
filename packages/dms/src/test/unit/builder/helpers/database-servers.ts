@@ -11,16 +11,19 @@ const RANDOM_BYTES = 4;
 const POLL_MS = 300;
 const READY_TIMEOUT_MS = 90_000;
 
-/** Whether a Docker daemon answers: the live checks run the engines' own images. */
+/**
+ * Whether a Docker daemon answers and runs Linux containers: the live checks
+ * run the engines' own images, which publish no Windows variant.
+ */
 export const dockerAvailable =
-  spawnSync("docker", ["version", "--format", "{{.Server.Version}}"], {
-    stdio: "ignore",
-  }).status === 0;
+  spawnSync("docker", ["version", "--format", "{{.Server.Os}}"], {
+    encoding: "utf8",
+  }).stdout?.trim() === "linux";
 
 /** What a title says when the live checks cannot run, so a skipped suite names its reason. */
 export const LIVE_SUITE_NOTE = dockerAvailable
   ? ""
-  : " (skipped: no Docker daemon answers)";
+  : " (skipped: no Docker daemon runs Linux containers)";
 
 /** How long a hook may take to start an image and for its server to answer. */
 export const START_TIMEOUT_MS = 180_000;
