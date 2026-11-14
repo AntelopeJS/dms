@@ -49,7 +49,8 @@ function digestOf(text: string): SpecDigest {
     .slice(0, DIGEST_LENGTH);
 }
 
-function parseObject(text: string): JsonObject | undefined {
+/** The JSON object `text` holds, or undefined when it holds none. */
+export function parseSpecObject(text: string): JsonObject | undefined {
   try {
     const parsed = jsonObjectSchema.safeParse(JSON.parse(text));
     return parsed.success ? parsed.data : undefined;
@@ -81,7 +82,7 @@ export async function readSpecSource(
 ): Promise<SpecSource | undefined> {
   const text = await readSpecText(mockupsDir, name);
   if (text === undefined) return undefined;
-  return { spec: parseObject(text), digest: digestOf(text) };
+  return { spec: parseSpecObject(text), digest: digestOf(text) };
 }
 
 /** Writes `spec` as {@link writeSpec} does, inside {@link withSpecLock}. */
@@ -104,6 +105,24 @@ export type SpecStamper = (
   stamps: readonly IdStamp[],
 ) => Promise<void>;
 
+/** A value to write into `spec.json`: member `key` of the object at JSON pointer `path`. */
+interface SpecValue {
+  path: string;
+  key: string;
+  value: Json;
+}
+
+/**
+ * Writes `text`, the `spec.json` read inside {@link withSpecLock}, with each
+ * value set at its place, laid out as a {@link SpecStamper} writes. A new
+ * member goes last in its object; an existing one keeps its place. It does
+ * not compile the spec.
+ */
+export type SpecSetter = (
+  text: string,
+  values: readonly SpecValue[],
+) => Promise<void>;
+
 const writeTails = new Map<string, Promise<void>>();
 
 /**
@@ -115,12 +134,25 @@ const writeTails = new Map<string, Promise<void>>();
 export async function withSpecLock<Result>(
   mockupsDir: string,
   name: MockupName,
-  run: (write: SpecWriter, stamp: SpecStamper) => Promise<Result>,
+  run: (
+    write: SpecWriter,
+    stamp: SpecStamper,
+    set: SpecSetter,
+  ) => Promise<Result>,
 ): Promise<Result> {
   const key = mockupDirectory(mockupsDir, name);
   const previous = writeTails.get(key) ?? Promise.resolve();
+  const set = setNow(mockupsDir, name);
   const turn = previous.then(() =>
-    run(writeNow(mockupsDir, name), stampNow(mockupsDir, name)),
+    run(
+      writeNow(mockupsDir, name),
+      (text, stamps) =>
+        set(
+          text,
+          stamps.map(({ path, id }) => ({ path, key: "id", value: id })),
+        ),
+      set,
+    ),
   );
   const tail = turn.then(
     () => undefined,
@@ -181,7 +213,8 @@ function isJsonObject(value: Json | undefined): value is JsonObject {
   return value instanceof Object && !Array.isArray(value);
 }
 
-function valueAt(value: Json, pointer: string): Json | undefined {
+/** The value at JSON pointer `pointer` of `value`, or undefined when it names none. */
+export function specValueAt(value: Json, pointer: string): Json | undefined {
   return pointer
     .split("/")
     .slice(1)
@@ -193,15 +226,15 @@ function valueAt(value: Json, pointer: string): Json | undefined {
     }, value);
 }
 
-function stampNow(mockupsDir: string, name: MockupName): SpecStamper {
-  return async (text, stamps) => {
+function setNow(mockupsDir: string, name: MockupName): SpecSetter {
+  return async (text, values) => {
     const spec = jsonObjectSchema.parse(JSON.parse(text));
-    for (const { path, id } of stamps) {
-      const node = valueAt(spec, path);
-      if (!isJsonObject(node)) {
+    for (const { path, key, value } of values) {
+      const object = specValueAt(spec, path);
+      if (!isJsonObject(object)) {
         throw new Error(`${path} names no node of mockups/${name}/spec.json`);
       }
-      node.id = id;
+      object[key] = value;
     }
     await persist(mockupsDir, name, laidOutAs(text, spec));
   };

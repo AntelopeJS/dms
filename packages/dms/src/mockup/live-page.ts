@@ -24,6 +24,7 @@ import type {
   MockupSpecPage,
 } from "./model";
 import { parseMockupName, specSchema } from "./model";
+import { queued } from "./queue";
 import { readSpecSource, type SpecDigest, withSpecLock } from "./source";
 
 export interface LivePages {
@@ -32,7 +33,8 @@ export interface LivePages {
   resourceStructure(ref: string): Promise<OpResult<ResourceStructure>>;
 }
 
-const BUILDER_PAGES: LivePages = {
+/** The project's pages, as the builder reads them. */
+export const BUILDER_PAGES: LivePages = {
   listPages: () => ListPages(),
   pageStructure: (ref) => GetPageStructure(ref),
   resourceStructure: (ref) => GetResourceStructure(ref),
@@ -190,7 +192,8 @@ async function slotFor(mockupsDir: string, ref: string): Promise<Slot> {
   throw new Error(`no mockup name is left for the page ${ref}`);
 }
 
-async function readResources(
+/** The structure of each resource of `refs` the builder reads, by ref. */
+export async function readResources(
   refs: readonly string[],
   pages: LivePages,
 ): Promise<Map<string, ResourceStructure>> {
@@ -260,36 +263,14 @@ async function readStructure(
       );
 }
 
-const queues = new Map<string, Promise<void>>();
-
-/**
- * Runs `task` after every task already queued under `key`, whether those
- * succeeded or failed: one failure never holds the queue.
- */
-async function queued<Result>(
-  key: string,
-  task: () => Promise<Result>,
-): Promise<Result> {
-  const run = (queues.get(key) ?? Promise.resolve()).then(task);
-  const tail = run.then(
-    () => undefined,
-    () => undefined,
-  );
-  queues.set(key, tail);
-  try {
-    return await run;
-  } finally {
-    if (queues.get(key) === tail) queues.delete(key);
-  }
-}
-
 /**
  * Converts a live page into a mockup page and writes it, or opens the mockup
  * it already has. The same page always reaches the same mockup: a second
  * call writes nothing and says whether the page changed since, unless it
  * asks to `replace` it, which converts again over that page alone. Calls on
- * one mockups directory run one after the other, so two pages whose names
- * slug alike never pick the same free name.
+ * one mockups directory run one after the other, and after any apply to a
+ * live page queued before them, so two pages whose names slug alike never
+ * pick the same free name.
  */
 export function editPageAsMockup(
   mockupsDir: string,
