@@ -18,13 +18,13 @@ export interface PermissionPreviewResult {
   /**
    * Menu entries (`fullId`) the role opens without all the viewer has there:
    * a page losing a block or an action, a group holding a refused or partial
-   * entry. Absent from servers predating partial access.
+   * entry.
    */
-  partialEntries?: string[];
+  partialEntries: string[];
   /** Header actions of the page (ids) the viewer is shown and the role would not be. */
-  hiddenHeaderActions?: string[];
+  hiddenHeaderActions: string[];
   /** Quick actions (`category:id`) the viewer is served and the role would not be. */
-  hiddenQuickActions?: string[];
+  hiddenQuickActions: string[];
   /** Role permissions outside the viewer's own access, left out of the preview. */
   outOfScope: number;
 }

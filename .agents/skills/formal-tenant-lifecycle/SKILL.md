@@ -101,7 +101,7 @@ Assert only what a caller observes: the answer, `observeTenantLifecycle`, and wh
 
 | Model action | Code |
 | --- | --- |
-| `Init` | `state()` initializes the row once (`packages/interface-dms/src/db/internal/tenantLifecycle.model.ts:22-43`). A loser of the insert reads the winner's row, so the model starts with the row. A legacy row reads the same way. |
+| `Init` | `state()` initializes the row once (`packages/interface-dms/src/db/internal/tenantLifecycle.model.ts:22-43`). A loser of the insert reads the winner's row, so the model starts with the row. |
 | `Start`, `AdmitRead`, `AdmitApplied`, `AdmitStale` and their faults | `model.admit` (model.ts:64-80), `transition` (model.ts:45-61), called at `runTenantLifecycleOperation` (`packages/interface-dms/src/tenant-lifecycle.ts:97-99`) |
 | `WorkSucceeds`, `WorkRefuses`, `WorkFails` | lifecycle.ts:101-120, `isClientErrorStatus` (lifecycle.ts:21-23), `changeTenantMembers` as the work (`packages/interface-dms/src/tenant-members.ts:29-40`) |
 | `FinishRead`, `FinishApplied`, `FinishStale` and their faults | `model.finish` (model.ts:113-122), called through `releaseAttempt` (lifecycle.ts:53-71) after a success, where a fault is tried again |

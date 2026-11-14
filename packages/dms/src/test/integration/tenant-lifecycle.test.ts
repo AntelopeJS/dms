@@ -34,7 +34,7 @@ import {
 } from "../helpers/tenant-lifecycle-fixtures";
 
 const OTHER_TENANT = "tenant-lifecycle-other";
-const LEGACY_LIFECYCLE_ID = "membership-and-invites";
+const SHARED_LIFECYCLE_ID = "membership-and-invites";
 const HTTP_CONFLICT = 409;
 
 async function createTenantProducers(tenantId: string): Promise<void> {
@@ -271,50 +271,18 @@ describe("Tenant lifecycle admission (MongoDB adapter), isolation and arbitratio
     await closeTenantLifecycleAdmission(OTHER_TENANT);
   });
 
-  it("preserves a legacy closed row while a new tenant admits producers", async () => {
-    const legacy = GetModel(TenantLifecycleModel, TENANT);
-    await legacy.insert({
-      _id: LEGACY_LIFECYCLE_ID,
-      revision: "legacy-closed",
+  it("ignores a row whose id names no tenant (fails when the shared row of older releases is still read)", async () => {
+    const model = GetModel(TenantLifecycleModel, TENANT);
+    await model.insert({
+      _id: SHARED_LIFECYCLE_ID,
+      revision: "shared-closed",
       closed: true,
-      activeAttemptIds: ["retained-attempt"],
+      activeAttemptIds: [],
     });
-    await createTenantProducers(OTHER_TENANT);
-    await assert.rejects(legacy.admit(TENANT, "late"), /closed/);
-    await assert.rejects(legacy.close(TENANT), /blocked/);
-    await legacy.finish(TENANT, "retained-attempt");
-    await legacy.close(TENANT);
-    assert.equal((await legacy.state(TENANT))._id, LEGACY_LIFECYCLE_ID);
-    assert.equal((await legacy.state(TENANT)).closed, true);
-    assert.deepEqual((await legacy.state(TENANT)).activeAttemptIds, []);
-    assert.equal((await legacy.getAll()).length, 1);
-    assert.equal(
-      (await GetModel(TenantLifecycleModel, OTHER_TENANT).state(OTHER_TENANT))
-        .closed,
-      false,
-    );
-  });
-
-  it("continues legacy active attempts without creating a replacement row", async () => {
-    const legacy = GetModel(TenantLifecycleModel, TENANT);
-    await legacy.insert({
-      _id: LEGACY_LIFECYCLE_ID,
-      revision: "legacy-active",
-      closed: false,
-      activeAttemptIds: ["legacy-attempt"],
-    });
-    await createTenantProducers(OTHER_TENANT);
-    await legacy.admit(TENANT, "new-attempt");
-    await legacy.finish(TENANT, "legacy-attempt");
-    assert.deepEqual((await legacy.state(TENANT)).activeAttemptIds, [
-      "new-attempt",
-    ]);
-    await assert.rejects(legacy.close(TENANT), /blocked/);
-    await legacy.finish(TENANT, "new-attempt");
-    await legacy.close(TENANT);
-    assert.equal((await legacy.state(TENANT))._id, LEGACY_LIFECYCLE_ID);
-    assert.equal((await legacy.getAll()).length, 1);
-    await assert.rejects(legacy.admit(TENANT, "late"), /closed/);
+    await model.admit(TENANT, "attempt");
+    const state = await model.state(TENANT);
+    assert.equal(state._id, `${SHARED_LIFECYCLE_ID}:${TENANT}`);
+    assert.deepEqual(state.activeAttemptIds, ["attempt"]);
   });
 
   it("arbitrates simultaneous closure and admission on one revision", async () => {

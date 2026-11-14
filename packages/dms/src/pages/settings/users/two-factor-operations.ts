@@ -44,8 +44,6 @@ export interface TwoFactorStatus {
 
 /** What the authenticator setup dialog needs to enrol an app. */
 export interface TotpSetup {
-  /** Raw key, kept for clients of the previous response shape. */
-  secret: string;
   /** Base32 key an authenticator app accepts when typed by hand. */
   manualKey: string;
   otpAuthUrl: string;
@@ -126,7 +124,6 @@ export async function startTotpSetup(
   user.twoFactorPendingSecret = secret;
   await userModel.update(user);
   return {
-    secret,
     manualKey:
       new URL(otpAuthUrl).searchParams.get(OTP_AUTH_SECRET_PARAM) ?? secret,
     otpAuthUrl,
