@@ -115,6 +115,24 @@ describe("the binding forms a patched option read", () => {
       'const labels = ["Board", "Other"];\nconst [board, other] = labels;\nexport const kept = other;',
       "board,",
     ],
+    [
+      "a merged interface",
+      '({ row: "Board", col: 1 } satisfies Shape).row',
+      "interface Shape {\n  row: string;\n}\ninterface Shape {\n  col: number;\n}",
+      "interface Shape",
+    ],
+    [
+      "a merged enum",
+      "Label.Board",
+      'enum Label {\n  Board = "Board",\n}\nenum Label {\n  Other = "Other",\n}',
+      "enum Label",
+    ],
+    [
+      "an overloaded function",
+      'label("Board")',
+      "function label(value: string): string;\nfunction label(value: number): string;\nfunction label(value: unknown): string {\n  return String(value);\n}",
+      "function label",
+    ],
   ];
 
   for (const [form, title, binding, gone] of cases) {

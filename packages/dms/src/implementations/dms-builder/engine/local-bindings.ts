@@ -173,21 +173,23 @@ function localBindings(sourceFile: SourceFile): LocalBinding[] {
 }
 
 /**
- * Whether anything outside its own declaration uses the local. The key of an
- * object literal member shares the symbol of a binding destructured from it
+ * Whether anything outside the local's declarations uses it. Each declaration
+ * of a merged interface or enum, and each signature of an overloaded function,
+ * names the others' symbol without reading it. The key of an object literal
+ * member shares the symbol of a binding destructured from it
  * (`const { board } = { board: "Board" }`) but never reads it.
  */
 function isLocalReferenced(
   sourceFile: SourceFile,
   local: LocalBinding,
 ): boolean {
-  const start = local.scope.getStart();
-  const end = local.scope.getEnd();
   const symbol = local.binding.getSymbol();
+  const scopes = [local.scope, ...(symbol?.getDeclarations() ?? [])];
   return referenceStarts(sourceFile, local.binding).some(
     (position) =>
-      (position < start || position >= end) &&
-      readsSymbol(sourceFile.getDescendantAtPos(position), symbol),
+      scopes.every(
+        (scope) => position < scope.getStart() || position >= scope.getEnd(),
+      ) && readsSymbol(sourceFile.getDescendantAtPos(position), symbol),
   );
 }
 
@@ -231,20 +233,18 @@ export function pruneUnusedLocals(
   sourceFile: SourceFile,
   used: Set<string>,
 ): void {
-  const pending = new Set(used);
-  let orphan = findOrphanedLocal(sourceFile, pending);
+  let orphan = findOrphanedLocal(sourceFile, used);
   while (orphan) {
-    pending.delete(orphan.name);
     orphan.remove();
-    orphan = findOrphanedLocal(sourceFile, pending);
+    orphan = findOrphanedLocal(sourceFile, used);
   }
 }
 
 function findOrphanedLocal(
   sourceFile: SourceFile,
-  pending: Set<string>,
+  used: Set<string>,
 ): LocalBinding | undefined {
   return localBindings(sourceFile).find(
-    (local) => pending.has(local.name) && !isLocalReferenced(sourceFile, local),
+    (local) => used.has(local.name) && !isLocalReferenced(sourceFile, local),
   );
 }
