@@ -68,7 +68,10 @@ async function assertOnlyInviteOfEmail(
 ): Promise<void> {
   const invites = GetModel(UserInviteModel, tenantId);
   if (await invites.isOnlyInviteOfEmail(invite)) return;
-  const other = await invites.getOtherByEmail(invite.email, invite._id);
+  const stored = await invites.listByEmail(invite.email);
+  const other = stored.some((row) => row._id === invite._id)
+    ? stored.find((row) => row._id !== invite._id)
+    : undefined;
   throw new HTTPResult(
     HTTP_CONFLICT,
     other
@@ -80,8 +83,9 @@ async function assertOnlyInviteOfEmail(
 /**
  * Chooses one permanent outcome; all competing lifecycle paths must use this before effects.
  * A new replacement is refused with HTTP 409 unless its invite is the only invite of its email,
- * so a fresh invite that lost a concurrent creation is withdrawn, never replaced. The refusal
- * names another invite of the email, whose cancellation lets the replacement through.
+ * so a fresh invite that lost a concurrent creation is withdrawn, never replaced. While the
+ * invite is stored, the refusal names another invite of the email, whose cancellation lets
+ * the replacement through.
  */
 export async function decideInvite(
   input: ResolveInviteInput,

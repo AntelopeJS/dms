@@ -6,8 +6,17 @@ import {
   type CreateUserInviteTokenOptions,
   createUserInviteToken,
 } from "@antelopejs/interface-dms/invites";
+import {
+  completeInviteResolution,
+  decideInvite,
+} from "@antelopejs/interface-dms/invite-resolution";
 import { resetDatabase } from "../helpers/db";
-import { failFirstDelete, holdFirstFreshCaller } from "../helpers/invite-holds";
+import {
+  failFirstDelete,
+  holdFirstFreshCaller,
+  afterFirstEmailRead,
+  beforeFirstOnlyInviteCheck,
+} from "../helpers/invite-holds";
 import { inviteFixture } from "../helpers/invite-resolution-fixtures";
 
 const TENANT = "invite-stray-fresh-tenant";
@@ -118,5 +127,48 @@ describe("[integration] a fresh invite left beside the kept one", () => {
       (await invites.getAll()).map((row) => row._id).sort(),
       [keptInvite._id, stray._id].sort(),
     );
+  });
+});
+
+async function pendingInvite() {
+  const invites = GetModel(UserInviteModel, TENANT);
+  const { inviteId } = await createUserInviteToken(inviteOptions());
+  const invite = await invites.get(inviteId);
+  assert.ok(invite);
+  return { invites, invite };
+}
+
+async function cancel(invite: UserInvite): Promise<void> {
+  const resolution = await decideInvite({
+    tenantId: TENANT,
+    invite,
+    reason: "cancelled",
+  });
+  await completeInviteResolution(resolution);
+}
+
+describe("[integration] an invitation retired while another creation reads it", () => {
+  let hold: { restore: () => void } | undefined;
+
+  beforeEach(resetDatabase);
+
+  afterEach(() => hold?.restore());
+
+  it("invites the email when the invite it read is cancelled before its decision", async () => {
+    const { invites, invite } = await pendingInvite();
+    hold = afterFirstEmailRead(() => cancel(invite));
+    const invited = await createUserInviteToken(inviteOptions());
+    assert.deepEqual(await tokensOf(invites), [invited.token]);
+  });
+
+  it("names no invite to cancel when the invite it resends was resent meanwhile", async () => {
+    const { invites, invite } = await pendingInvite();
+    let resentMeanwhile = "";
+    hold = beforeFirstOnlyInviteCheck(async () => {
+      resentMeanwhile = (await resend(invite)).token;
+    });
+    const refused = await refusal(resend(invite));
+    assert.doesNotMatch(refused.getBody(), /cancel invitation/);
+    assert.deepEqual(await tokensOf(invites), [resentMeanwhile]);
   });
 });

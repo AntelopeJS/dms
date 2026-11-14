@@ -249,7 +249,8 @@ async function createAdmittedInviteToken(
       reason: options.replacementReason ?? "replaced",
       replacement,
     }).catch(async (error: unknown) => {
-      if (!(await removeRetiredInvites(tenantId, email))) throw error;
+      const read = options.replacesInvite ? [] : [existingInvite];
+      if (!(await removeRetiredInvites(tenantId, email, read))) throw error;
       return undefined;
     });
     if (!resolution) return createAdmittedInviteToken(options);
@@ -287,20 +288,23 @@ async function createAdmittedInviteToken(
 }
 
 /**
- * Removes the stored invites of the email whose decision is already
- * completed, so a creation refused because of one can run again. A fresh
- * invite whose withdrawal failed to delete it is one.
+ * Removes the invites whose decision is already completed, so a creation
+ * refused because of one can run again: the stored invites of the email, such
+ * as a fresh invite whose withdrawal failed to delete it, and the invites the
+ * creation read, whose rows may be gone already.
  *
- * @returns Whether it removed any
+ * @returns Whether it found any
  */
 async function removeRetiredInvites(
   tenantId: string,
   email: string,
+  read: UserInvite[],
 ): Promise<boolean> {
   const decisions = GetModel(InviteResolutionsModel, tenantId);
   const stored = await GetModel(UserInviteModel, tenantId).listByEmail(email);
+  const ids = new Set([...stored, ...read].map((invite) => invite._id));
   const held = await Promise.all(
-    stored.map((invite) => decisions.getForInvite(tenantId, invite._id)),
+    [...ids].map((inviteId) => decisions.getForInvite(tenantId, inviteId)),
   );
   const retired = held.flatMap((decision) =>
     decision?.completed ? [decision] : [],
