@@ -36,7 +36,7 @@ const server = http.createServer((request, response) => {
 server.listen(Number(process.env.PORT), "127.0.0.1", () => {
   const report = http.request(process.env.FAKE_REGISTRY, { method: "POST" });
   report.on("error", () => undefined);
-  report.end(JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE, command: process.argv[3] }));
+  report.end(JSON.stringify({ pid: process.pid, database: process.env.MONGO_DATABASE, command: process.argv.slice(3, process.argv.indexOf("-e")).join(" ") }));
 });
 `;
 
