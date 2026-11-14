@@ -8,6 +8,7 @@ import {
 import { Parameters } from "@antelopejs/interface-data-api/components";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { rowIdText } from "../../db";
 import {
   authorizeAction,
   LIST_ACTION,
@@ -22,7 +23,10 @@ import {
 import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { buildFilteredQuery } from "./search-route";
-import { isSymbol } from "@antelopejs/interface-dms/utils/internal/type-check";
+import {
+  isFunction,
+  isSymbol,
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const IDS_KEY = "ids";
 const HTTP_PAYLOAD_TOO_LARGE = 413;
@@ -58,6 +62,11 @@ function isControllerInstance(value: unknown): value is DataControllerInstance {
  */
 function sourceReader({ model, tableView }: BulkRowSource) {
   const controller = tableView.target;
+  assert(
+    isFunction(controller),
+    500,
+    "A table view is declared on a controller.",
+  );
   const { modelKey } = GetMetadata(controller, DataAPIMeta, true);
   assert(modelKey, 500, `${controller.name} declares no model.`);
   const prototype: unknown = controller.prototype;
@@ -121,5 +130,5 @@ export async function resolveBulkRowIds(
     HTTP_PAYLOAD_TOO_LARGE,
     `More than ${MAX_BULK_MATCHING_ROWS} rows match: narrow the filters.`,
   );
-  return matching.map((row) => String(row[idField]));
+  return matching.map((row) => rowIdText(row[idField]));
 }

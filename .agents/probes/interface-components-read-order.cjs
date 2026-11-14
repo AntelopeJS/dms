@@ -338,8 +338,8 @@ async function observeEvaluationOrder() {
   api.RegisterRoute = (value) => { route = value; return 31; };
   api.UnregisterRoute = () => {};
   try {
-    class First {}
-    class Second {}
+    class First extends Controller("/probe") {}
+    class Second extends Controller("/probe") {}
     /** @type {unknown[]} */
     const trace = [];
     let reads = 0;

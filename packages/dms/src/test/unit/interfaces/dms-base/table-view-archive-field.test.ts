@@ -17,7 +17,10 @@ import {
   ArchiveField,
   TableView,
 } from "@antelopejs/interface-dms/base/table-view";
-import { expect } from "chai";
+import { filterArchiveField } from "@antelopejs/interface-dms/base/table-view/internal/archive-filter";
+import { ValueProxy } from "@antelopejs/interface-database";
+import { assert, expect } from "chai";
+import { untouchedRequestContext } from "../../../helpers/request-context";
 
 @RegisterTable("archive-field-test", CORE_SCHEMA_NAME)
 class ArchiveFieldRow extends Table {
@@ -70,5 +73,26 @@ describe("[unit] interfaces/dms-base/table-view — the archive field", () => {
     expect(() => TableView(OverriddenArchiveController)).to.throw(
       /archive field "isArchived" .* declares its own Filter/,
     );
+  });
+
+  describe("its filter", () => {
+    /** The query stages the archive filter builds for one value and mode. */
+    function stagesOf(value: string | boolean, mode: string): string {
+      const result = filterArchiveField(
+        untouchedRequestContext(),
+        ValueProxy.arg<unknown>(0),
+        "isArchived",
+        value,
+        mode,
+      );
+      assert.instanceOf(result, ValueProxy);
+      return JSON.stringify(result.build());
+    }
+
+    it("compares a boolean a server caller passes as its text (fails when a boolean value is refused or read otherwise)", () => {
+      expect(stagesOf(true, "eq")).to.equal(stagesOf("true", "eq"));
+      expect(stagesOf(false, "ne")).to.equal(stagesOf("false", "ne"));
+      expect(stagesOf(true, "eq")).not.to.equal(stagesOf("false", "eq"));
+    });
   });
 });

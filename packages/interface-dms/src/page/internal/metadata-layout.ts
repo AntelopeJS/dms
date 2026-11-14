@@ -1,12 +1,12 @@
 /** @internal */
 import {
+  type ControllerClass,
   ControllerMeta,
   RegisterRoute,
   UnregisterRoute,
 } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { ComponentInfoSerialized } from "../../component";
-import type { PageMetadata } from "../metadata";
 import type {
   PageInfo,
   PageLayout,
@@ -31,7 +31,7 @@ export function hiddenComponentsFlag(
 
 /** @internal */
 export function registerLayoutRoute(
-  target: () => PageMetadata["target"],
+  target: () => ControllerClass,
   pageInfo: PageInfo,
   registration: () => PageRegistration,
   resolvePageLayout: (request: PageLayoutRequest) => Promise<PageLayout>,

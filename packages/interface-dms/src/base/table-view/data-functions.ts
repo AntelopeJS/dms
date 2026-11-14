@@ -17,7 +17,7 @@ import type {
  * filters and search match.
  */
 export interface TableViewListPage {
-  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The listable fields of each row of whichever table the list serves, as Query.ReadProperties answers them: interface-data-api's RowFields.
+  // oxlint-disable-next-line anti-slop/no-unsafe-dictionary-type -- The listable fields of each row of whichever table the list serves, as Query.ReadProperties answers them (interface-data-api's StoredRow), published with unknown values so a module's own list wrapper may answer any row it builds.
   results: Record<string, unknown>[];
   total: number;
   offset: number;

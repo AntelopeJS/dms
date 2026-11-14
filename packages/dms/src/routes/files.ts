@@ -13,7 +13,11 @@ import { assertValidation } from "@antelopejs/interface-api-util";
 import { AuthTenantMember } from "@antelopejs/interface-dms/guards";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { readAttachment, createAttachmentUpload } from "../attachments";
-import { isUploadValidationError, verifyUploadToken } from "../utils";
+import {
+  isUploadValidationError,
+  queryText,
+  verifyUploadToken,
+} from "../utils";
 import { metadataQuerySchema, presignBodySchema } from "../validation";
 
 const UPLOAD_REJECTED_STATUS = 400;
@@ -65,8 +69,9 @@ export class FilesController extends Controller("/api/files") {
     @Parameter("resourceKey", "query") resourceKey: QueryValue,
     @Parameter("storage", "query") storage: QueryValue,
   ) {
-    const query = assertValidation({ resourceKey, storage }, (value) =>
-      metadataQuerySchema.parse(value),
+    const query = assertValidation(
+      { resourceKey: queryText(resourceKey), storage: queryText(storage) },
+      (value) => metadataQuerySchema.parse(value),
     );
     return readAttachment(context, query.resourceKey, query.storage);
   }
