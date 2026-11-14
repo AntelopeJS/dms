@@ -8,6 +8,29 @@ import test from "node:test";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
+const CMD_EXPANDED_IN_QUOTES = /["%!\p{Cc}]/u;
+
+/**
+ * Runs npm with `args`. On Windows npm is a `.cmd` shim that only cmd.exe
+ * runs, so the command goes through cmd.exe with each argument double-quoted,
+ * as `runPackageManager` in `packages/dms` does. An argument cmd.exe would
+ * expand even inside quotes is refused.
+ *
+ * @param {string[]} args
+ * @param {{ cwd: string }} options
+ * @returns {Promise<{ stdout: string, stderr: string }>}
+ */
+function npm(args, options) {
+  if (process.platform !== "win32") return run("npm", args, options);
+  const unsafe = args.find((argument) => CMD_EXPANDED_IN_QUOTES.test(argument));
+  if (unsafe !== undefined)
+    throw new Error(`cmd.exe cannot pass ${JSON.stringify(unsafe)} unchanged`);
+  const quoted = args.map(
+    (argument) => `"${argument.replace(/(\\+)$/, "$1$1")}"`,
+  );
+  return run(["npm", ...quoted].join(" "), { ...options, shell: "cmd.exe" });
+}
+
 const packageRoot = join(import.meta.dirname, "..");
 const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
 
@@ -51,8 +74,7 @@ const TSCONFIG = {
  * @returns {Promise<string>} The consumer project directory
  */
 async function installConsumer(scratch) {
-  const { stdout } = await run(
-    "npm",
+  const { stdout } = await npm(
     ["pack", "--ignore-scripts", "--silent", "--pack-destination", scratch],
     { cwd: packageRoot },
   );
@@ -73,7 +95,7 @@ async function installConsumer(scratch) {
   );
   await writeFile(join(consumer, "tsconfig.json"), JSON.stringify(TSCONFIG));
   await writeFile(join(consumer, "flag-type.ts"), DATA_TYPE_SUBCLASS);
-  await run("npm", ["install", "--no-audit", "--no-fund", "--loglevel=error"], {
+  await npm(["install", "--no-audit", "--no-fund", "--loglevel=error"], {
     cwd: consumer,
   });
   return consumer;
@@ -86,7 +108,7 @@ async function installConsumer(scratch) {
  * @returns {Promise<string[]>}
  */
 async function installedZodVersions(consumer) {
-  const { stdout } = await run("npm", ["ls", "zod", "--all"], {
+  const { stdout } = await npm(["ls", "zod", "--all"], {
     cwd: consumer,
   });
   return [...new Set(stdout.match(/(?<=(?<![\w-])zod@)\d+\.\d+\.\d+/g))];
