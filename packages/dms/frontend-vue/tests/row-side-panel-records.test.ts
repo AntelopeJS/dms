@@ -25,12 +25,14 @@ import {
   press,
 } from "./row-side-panel-runtime";
 
+const plainRow = (row: Row) => ({ ...row });
+
 describe("row side panel deep link", () => {
   it("keeps the open row in the URL, following the steps", async () => {
     const { targets } = mountPanel();
     const action = panelAction({ deepLink: true });
     expect(isDeepLinkAction(action)).toBe(true);
-    targets.handleCustomRowAction(action, rows[0]);
+    targets.handleCustomRowAction(action, plainRow(rows[0]));
     await settle();
     expect(window.location.search).toBe("?record=r1");
     press("j");
@@ -51,18 +53,21 @@ describe("row side panel deep link", () => {
     expect(isDeepLinkAction(drawer)).toBe(false);
 
     const { targets } = mountPanel();
-    targets.handleCustomRowAction(panelAction(), rows[0]);
+    targets.handleCustomRowAction(panelAction(), plainRow(rows[0]));
     await settle();
     expect(window.location.search).toBe("?record=r1");
     closeRowSidePanel();
-    targets.handleCustomRowAction(panelAction({ deepLink: false }), rows[0]);
+    targets.handleCustomRowAction(
+      panelAction({ deepLink: false }),
+      plainRow(rows[0]),
+    );
     await settle();
     expect(window.location.search).toBe("");
   });
 
   it("leaves the next page's ?record= alone when it closes on the way out", async () => {
     const { targets, showTable } = mountPanel();
-    targets.handleCustomRowAction(panelAction(), rows[0]);
+    targets.handleCustomRowAction(panelAction(), plainRow(rows[0]));
     await settle();
     expect(window.location.search).toBe("?record=r1");
     window.history.pushState(null, "", "/runs?record=run-5");
@@ -75,7 +80,7 @@ describe("row side panel deep link", () => {
 
   it("leaves a ?record= another row wrote on the same page alone", async () => {
     const { targets } = mountPanel();
-    targets.handleCustomRowAction(panelAction(), rows[0]);
+    targets.handleCustomRowAction(panelAction(), plainRow(rows[0]));
     await settle();
     window.history.replaceState(null, "", "/requests?record=other");
     closeRowSidePanel();
@@ -135,7 +140,10 @@ describe("deep link to a row the table does not list", () => {
 
   it("opens the unlisted row without a position, J and K inert", async () => {
     const { host, targets } = mountPanel();
-    targets.handleCustomRowAction(panelAction({ deepLink: true }), older);
+    targets.handleCustomRowAction(
+      panelAction({ deepLink: true }),
+      plainRow(older),
+    );
     await settle();
     expect(shownName(host)).toBe("Older");
     expect(position(host)).toBeUndefined();
@@ -161,7 +169,7 @@ describe("showing another row from the panel", () => {
 
   it("moves the highlight, the position and ?record= onto a listed row", async () => {
     const { host, targets } = mountPanel();
-    targets.handleCustomRowAction(panelAction(), rows[0]);
+    targets.handleCustomRowAction(panelAction(), plainRow(rows[0]));
     await settle();
     await showRow("r3");
     await settle();
@@ -177,7 +185,7 @@ describe("showing another row from the panel", () => {
   it("reads an unlisted row by id, shown without a position", async () => {
     const getRow = vi.fn(async () => older);
     const { host, targets } = mountPanel(ref(rows), getRow);
-    targets.handleCustomRowAction(panelAction(), rows[0]);
+    targets.handleCustomRowAction(panelAction(), plainRow(rows[0]));
     await settle();
     await showRow("r9");
     await settle();
@@ -192,7 +200,7 @@ describe("showing another row from the panel", () => {
     const { host, targets } = mountPanel(ref(rows), async () => {
       throw notFoundError();
     });
-    targets.handleCustomRowAction(panelAction(), rows[0]);
+    targets.handleCustomRowAction(panelAction(), plainRow(rows[0]));
     await settle();
     await showRow("gone");
     await settle();
@@ -203,7 +211,7 @@ describe("showing another row from the panel", () => {
 
   it("rejects a row it cannot read, keeping the row it shows", async () => {
     const { host, targets } = mountPanel();
-    targets.handleCustomRowAction(panelAction(), rows[0]);
+    targets.handleCustomRowAction(panelAction(), plainRow(rows[0]));
     await settle();
     await expect(showRow("r9")).rejects.toThrow("r9");
     await settle();
@@ -217,7 +225,7 @@ describe("showing another row from the panel", () => {
       ref(rows),
       () => new Promise((resolve) => (answer = resolve)),
     );
-    targets.handleCustomRowAction(panelAction(), rows[0]);
+    targets.handleCustomRowAction(panelAction(), plainRow(rows[0]));
     await settle();
     const shown = showRow("r9");
     closeRowSidePanel();

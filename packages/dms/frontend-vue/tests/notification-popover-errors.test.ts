@@ -47,7 +47,9 @@ const UNREAD_NOTIFICATION = {
 
 let app: App;
 let host: HTMLDivElement;
-let errorHandler: ReturnType<typeof vi.fn>;
+type ErrorHandler = NonNullable<App["config"]["errorHandler"]>;
+
+let errorHandler: ReturnType<typeof vi.fn<ErrorHandler>>;
 let notifications: NotificationsStub;
 let state: Map<string, Ref<unknown>>;
 
@@ -169,7 +171,7 @@ function menuBadge() {
 }
 
 beforeEach(() => {
-  errorHandler = vi.fn();
+  errorHandler = vi.fn<ErrorHandler>();
   state = new Map();
   notifications = {
     unreadCount: ref(0),

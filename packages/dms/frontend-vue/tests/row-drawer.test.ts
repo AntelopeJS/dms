@@ -2,7 +2,7 @@
 import { h, nextTick, type Component } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
-import { isFunction } from "../layers/dms-core/app/utils/type-check";
+import { isFunction, isObject } from "../layers/dms-core/app/utils/type-check";
 import RowHeader from "../layers/dms-ui/app/entries/components/containers/row/RowHeader";
 import RowNotFound from "../layers/dms-ui/app/entries/components/containers/row/RowNotFound";
 import {
@@ -69,7 +69,15 @@ describe("a row drawer's header", () => {
 
   it("steps with the header's buttons", async () => {
     const { drawer } = await openOn(drawerAction({ positionLabel: "$p" }));
-    headerOf(drawer)!.navigation!.next();
+    const navigation = headerOf(drawer)?.navigation;
+    if (
+      !isObject(navigation) ||
+      !("next" in navigation) ||
+      !isFunction(navigation.next)
+    ) {
+      throw new Error("The header carries no navigation");
+    }
+    navigation.next();
     expect(headerOf(drawer)?.navigation).toMatchObject({ index: 1 });
   });
 

@@ -74,12 +74,12 @@ describe("DmsInstantSaveBadge", () => {
     const { default: InstantSaveBadge } = await import(
       "../layers/dms-ui/app/components/save-bar/InstantSaveBadge.vue"
     );
-    const icons = {
-      idle: "i-ph-lightning",
-      saving: "i-ph-circle-notch",
-      saved: "i-ph-check",
-    };
-    for (const [state, icon] of Object.entries(icons)) {
+    const icons = [
+      ["idle", "i-ph-lightning"],
+      ["saving", "i-ph-circle-notch"],
+      ["saved", "i-ph-check"],
+    ] as const;
+    for (const [state, icon] of icons) {
       await mount({ render: () => h(InstantSaveBadge, { state }) });
       expect(badge()?.querySelector("i")?.dataset.icon).toBe(icon);
       app?.unmount();
@@ -113,7 +113,7 @@ describe("useInstantSaveHeader", () => {
       setup() {
         actions = providePageHeaderActions();
         return () =>
-          h("div", [h("header", actions?.actions.value?.()), h(Page)]);
+          h("div", [h("header", [actions?.actions.value?.()]), h(Page)]);
       },
     });
     await mount(Layout);

@@ -11,7 +11,15 @@
  * own mount, as the live toggle and dms-api's live traffic do.
  */
 import { defineComponent, h, nextTick, type Component } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from "vitest";
 import {
   provideServerPageLive,
   setCurrentPageLive,
@@ -66,7 +74,7 @@ function pollingController(): PageLiveController {
   return controller;
 }
 
-let warn: ReturnType<typeof vi.spyOn>;
+let warn: MockInstance<Console["warn"]>;
 
 beforeEach(() => {
   vi.stubGlobal("isDmsHydrating", engine.isDmsHydrating);

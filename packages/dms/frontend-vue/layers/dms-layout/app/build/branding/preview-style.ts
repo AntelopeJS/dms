@@ -13,6 +13,10 @@ export interface DmsTokens {
 /** The project's theme stylesheet, which the preview replaces with the draft. */
 const THEME_STYLESHEET = "/app/assets/css/theme.css";
 
+/** The part of a CSSOM style declaration the reader looks at: names, then values by name. */
+type ReadableStyle = Iterable<string> &
+  Pick<CSSStyleDeclaration, "getPropertyValue">;
+
 /**
  * The parts of a CSSOM rule the reader looks at. A style rule has a
  * `selectorText`; the declarations a browser splits off a nested rule
@@ -22,7 +26,7 @@ const THEME_STYLESHEET = "/app/assets/css/theme.css";
 interface ReadableRule {
   cssText: string;
   selectorText?: string;
-  style?: CSSStyleDeclaration;
+  style?: ReadableStyle;
   cssRules?: ArrayLike<ReadableRule>;
   media?: { mediaText: string };
   conditionText?: string;
@@ -64,7 +68,7 @@ function holds(rule: ReadableRule): boolean {
 }
 
 function readDeclarations(
-  style: CSSStyleDeclaration,
+  style: ReadableStyle,
   into: Record<string, string>,
 ): void {
   for (const name of Array.from(style)) {

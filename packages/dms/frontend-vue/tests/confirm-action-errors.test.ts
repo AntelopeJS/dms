@@ -78,9 +78,7 @@ function createConfirmActionErrorsFixture() {
     for (let tick = 0; tick < 6; tick++) await nextTick();
   }
 
-  function mount(
-    props: Partial<InstanceType<typeof ConfirmModal>["$props"]>,
-  ): void {
+  function mount(props: InstanceType<typeof ConfirmModal>["$props"]): void {
     app = createApp({
       render: () =>
         h(DialogRoot, null, () =>

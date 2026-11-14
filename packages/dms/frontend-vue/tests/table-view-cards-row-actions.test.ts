@@ -22,7 +22,7 @@ import CardsDisplay from "../layers/dms-ui/app/entries/components/table-view/Car
 import type { TableViewDisplayContext } from "../layers/dms-ui/app/composables/table-view/types/display";
 import { displayContext } from "./fixtures/displayContext";
 
-type Row = { _id: string; name: string };
+type Row = TableViewDisplayContext["items"][number];
 
 const rows: Row[] = [
   { _id: "t1", name: "Printer jam" },
@@ -62,20 +62,20 @@ function createTable(columns: ColumnDef<Row>[]): Table<Row> {
   return useVueTable({
     data: rows,
     columns,
-    getRowId: (row) => row._id,
+    getRowId: (row) => String(row._id),
     getCoreRowModel: getCoreRowModel(),
   });
 }
 
 function createContext(table?: Table<Row>, componentName?: string) {
   const opened: Row[] = [];
-  const context = reactive<TableViewDisplayContext<Row>>(
+  const context = reactive<TableViewDisplayContext>(
     displayContext<Row>({
       items: rows,
       labelKey: "name",
       options: componentName ? { card: { component: { componentName } } } : {},
       pagination: { total: 2 },
-      actions: { open: (item: Row) => opened.push(item) },
+      actions: { open: (item) => opened.push(item) },
       table,
     }),
   );
@@ -86,7 +86,7 @@ describe("the row actions of the cards display", () => {
   let app: App | undefined;
   let container: HTMLElement;
 
-  const mount = (context: TableViewDisplayContext<Row>) => {
+  const mount = (context: TableViewDisplayContext) => {
     app = createApp({ render: () => h(CardsDisplay, { context }) });
     app.component(
       "UCheckbox",

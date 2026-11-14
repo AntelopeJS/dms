@@ -216,7 +216,7 @@ function registerGuardNotFoundTests() {
     const NOT_FOUND = {
       fetchUrl: "/api/routes/{{params.id}}",
       when: "notFound",
-    };
+    } satisfies Parameters<typeof render>[0];
 
     it("swaps its children for Not found when the route answers 404", async () => {
       authFetch.mockRejectedValue({ statusCode: 404 });

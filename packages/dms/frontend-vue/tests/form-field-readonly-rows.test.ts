@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { expect, it, vi } from "vitest";
 import { defineComponent, h, type App } from "vue";
+import type { FormFieldOrGroup } from "../layers/dms-ui/app/composables/form/types/field";
 import { host, mountForm, unmountForm } from "./helpers/form-runtime";
 
 it.each(["array", "key_value"])(
@@ -15,7 +16,7 @@ it.each(["array", "key_value"])(
         }),
     });
     vi.stubGlobal("resolveDmsComponent", () => Control);
-    const fields = (empty: boolean) => [
+    const fields = (empty: boolean): FormFieldOrGroup[] => [
       {
         id: "rows",
         type,
