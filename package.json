@@ -45,5 +45,10 @@
     "docs": {
       "standard": true
     }
+  },
+  "pnpm": {
+    "overrides": {
+      "@antelopejs/interface-dms-builder": "file:.tgz-deps/antelopejs-interface-dms-builder-008d672.tgz"
+    }
   }
 }
