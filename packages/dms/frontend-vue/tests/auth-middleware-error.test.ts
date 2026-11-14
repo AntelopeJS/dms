@@ -1,6 +1,8 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createApp } from "vue";
 import { createI18n } from "vue-i18n";
+import { useToast } from "@nuxt/ui/composables/useToast";
 import type { DmsMiddleware, DmsRoute } from "#dms/frontend-module";
 
 const pageError: { value: { statusCode: number } | null } = { value: null };
@@ -17,6 +19,7 @@ beforeEach(() => {
     findMatchingRoute: () => ({ metadata: {} }),
   }));
   vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: { value: false } }));
+  vi.stubGlobal("usePermissions", () => ({ loadPermissions: vi.fn() }));
 });
 
 afterEach(() => {
@@ -24,6 +27,7 @@ afterEach(() => {
   navigateDms.mockReset();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 async function loadMiddleware(): Promise<DmsMiddleware> {
@@ -71,6 +75,36 @@ describe("auth middleware", () => {
       expect.objectContaining({ title: "error.500.description" }),
     );
     expect(navigateDms).not.toHaveBeenCalled();
+  });
+
+  it("resolves the toast inside the app context the engine runs the middleware in", async () => {
+    vi.stubGlobal("useToast", useToast);
+    vi.stubGlobal("useDmsState", () => ({ value: new WeakMap() }));
+    vi.stubGlobal("getPluginI18n", () => ({
+      i18n: createI18n({
+        legacy: false,
+        locale: "en",
+        messages: { en: { error: { "500": { description: "Try again" } } } },
+      }).global,
+    }));
+    vi.stubGlobal("useDmsRuntimeConfig", () => ({ public: { dms: {} } }));
+    vi.stubGlobal("useDmsUserSession", () => ({
+      loggedIn: { value: true },
+      user: { value: { isValidated: true } },
+    }));
+    vi.stubGlobal("usePermissions", () => ({
+      loadPermissions: () => Promise.reject(new Error("unreachable")),
+    }));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const middleware = await loadMiddleware();
+
+    await createApp({}).runWithContext(() =>
+      middleware(privateRoute, privateRoute),
+    );
+
+    expect(warn).not.toHaveBeenCalledWith(
+      expect.stringContaining("inject() can only be used"),
+    );
   });
 
   it("lets the signed-in user through a failed permission load during SSR without a loaded catalog", async () => {
