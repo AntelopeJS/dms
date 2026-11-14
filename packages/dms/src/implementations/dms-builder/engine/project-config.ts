@@ -59,6 +59,7 @@ export function refuse(message: string): never {
   throw new StepRefusal(message);
 }
 
+/** The property JavaScript keeps for `name`: the last one written. */
 export function propertyNamed(
   owner: ObjectLiteralExpression,
   name: string,
@@ -66,7 +67,45 @@ export function propertyNamed(
   return owner
     .getProperties()
     .filter(Node.isPropertyAssignment)
-    .find((property) => propertyKey(property.getNameNode()) === name);
+    .findLast((property) => propertyKey(property.getNameNode()) === name);
+}
+
+/**
+ * The one property of the object written as `name: value`, or nothing when none is. Refuses a
+ * key written twice, since an edit of either copy may not be the one that takes effect, and one
+ * written as a shorthand, a method or an accessor.
+ */
+function soleProperty(
+  owner: ObjectLiteralExpression,
+  name: string,
+  where: string,
+): PropertyAssignment | undefined {
+  const copies = owner.getProperties().filter((property) => {
+    const nameNode = Node.isSpreadAssignment(property)
+      ? undefined
+      : property.getNameNode();
+    return nameNode !== undefined && propertyKey(nameNode) === name;
+  });
+  if (copies.length > 1) {
+    refuse(
+      `"${where}" is written ${copies.length} times in the configuration; keep one`,
+    );
+  }
+  const [property] = copies;
+  if (property !== undefined && !Node.isPropertyAssignment(property)) {
+    refuse(`"${where}" in the configuration is not written as \`key: value\``);
+  }
+  return property;
+}
+
+function hasComputedKey(owner: ObjectLiteralExpression): boolean {
+  return owner
+    .getProperties()
+    .some(
+      (property) =>
+        !Node.isSpreadAssignment(property) &&
+        Node.isComputedPropertyName(property.getNameNode()),
+    );
 }
 
 function plainObject(
@@ -78,6 +117,9 @@ function plainObject(
     node.getProperties().some(Node.isSpreadAssignment)
   ) {
     refuse(`"${name}" in the configuration is not a plain object literal`);
+  }
+  if (hasComputedKey(node)) {
+    refuse(`"${name}" in the configuration has a computed key`);
   }
   return node;
 }
@@ -92,12 +134,13 @@ export function objectAt(
   path: string[],
 ): ObjectLiteralExpression | undefined {
   let current = rootObject(draft);
-  for (const key of path) {
-    const property = propertyNamed(current, key);
+  for (const [index, key] of path.entries()) {
+    const where = path.slice(0, index + 1).join(".");
+    const property = soleProperty(current, key, where);
     if (!property) {
       return undefined;
     }
-    current = plainObject(property.getInitializer(), key);
+    current = plainObject(property.getInitializer(), where);
   }
   return current;
 }
@@ -227,7 +270,7 @@ export function setProperty(
 ): void {
   const owner =
     objectAt(draft, path) ?? refuse(`could not find ${path.join(".")}`);
-  const existing = propertyNamed(owner, key);
+  const existing = soleProperty(owner, key, [...path, key].join("."));
   const literal = literalText(value, draft.unit);
   if (!existing) {
     addProperty(draft, path, key, literal);
@@ -283,7 +326,11 @@ function bindVariables(
     const overrides =
       objectAt(draft, [ENV_OVERRIDES]) ??
       refuse("could not write envOverrides");
-    const current = propertyNamed(overrides, variable)?.getInitializer();
+    const current = soleProperty(
+      overrides,
+      variable,
+      `${ENV_OVERRIDES}.${variable}`,
+    )?.getInitializer();
     if (current !== undefined && stringOf(current) !== target) {
       refuse(
         `${variable} already supplies ${stringOf(current) ?? current.getText()}; choose another variable for ${target}`,
@@ -453,7 +500,7 @@ export function addModule(
   const modules =
     objectAt(draft, [MODULES]) ??
     refuse("the configuration has no modules literal");
-  if (propertyNamed(modules, id)) {
+  if (soleProperty(modules, id, `${MODULES}.${id}`)) {
     refuse(`the project already has a module "${id}"`);
   }
   if (!entry.source) {

@@ -1,6 +1,5 @@
 import { ImplementInterface } from "@antelopejs/interface-core";
 import * as Builder from "@antelopejs/interface-dms-builder";
-import type { JsonValue } from "@antelopejs/interface-dms/json";
 import type { ProjectConfigStep } from "@antelopejs/interface-dms-builder";
 import { expect } from "chai";
 import { z } from "zod";
@@ -14,27 +13,17 @@ import {
   recordLaunchEnvironment,
   setCatalogConnectionsForTests,
 } from "../../../implementations/dms-builder/engine";
-import type { McpAccess } from "../../../mcp/access";
-import { answerMcpMessage } from "../../../mcp/protocol";
-import { MCP_TOOLS } from "../../../mcp/tools";
 import { expectOk, setConnectionAccess } from "./harness";
 import {
+  confirmedCall,
   countries,
+  RAISE_REFUSED,
   READ_ONLY,
   refusalOf,
+  reply,
   useErpFixture,
 } from "./helpers/connection-access";
 import { FAKE_CATALOG, OP_TIMEOUT } from "./mapped-database";
-
-const RAISE_REFUSED = "an agent never raises a connection's access";
-const CONFIGURE = "builder_configure_project";
-
-const ToolAnswerSchema = z.object({
-  result: z.object({
-    content: z.array(z.object({ text: z.string() })),
-    isError: z.boolean().optional(),
-  }),
-});
 
 const ErrorReplySchema = z.object({
   error: z.object({ code: z.number(), message: z.string() }),
@@ -54,25 +43,6 @@ function accessSteps(accesses: Record<string, string>) {
       },
     ],
   } satisfies { steps: ProjectConfigStep[] };
-}
-
-function reply(access: McpAccess, args: JsonValue) {
-  return answerMcpMessage(
-    { access, tools: MCP_TOOLS },
-    {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "tools/call",
-      params: { name: CONFIGURE, arguments: args },
-    },
-    "test-session",
-  );
-}
-
-/** Calls the tool twice in full mode, as the repeat-confirmation gate asks; answers the second. */
-async function confirmedCall(args: JsonValue) {
-  await reply("full", args);
-  return ToolAnswerSchema.parse(await reply("full", args)).result;
 }
 
 describe("[unit] builder_configure_project never raises a connection's access", function () {

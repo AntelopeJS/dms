@@ -1,10 +1,15 @@
 import type {
+  ConfigObject,
+  ConfigValue,
   ModuleEntryInput,
   ProjectConfigStep,
 } from "@antelopejs/interface-dms-builder";
+import { readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import path from "node:path";
 import { Node, type ObjectLiteralExpression } from "ts-morph";
 import { z } from "zod";
 import { findConfigFile, propertyKey } from "./modules";
+import { resolveProjectRoot } from "./project";
 import {
   type ConfigDraft,
   ENV_OVERRIDES,
@@ -13,6 +18,7 @@ import {
   openDraft,
   stringOf,
 } from "./project-config";
+import { isString } from "./scalar-guards";
 import { isPlainObject } from "./value";
 
 const CONNECTIONS = "externalConnections";
@@ -179,11 +185,194 @@ function raisedByEnv(
   return undefined;
 }
 
+const TEMPLATE = /\$\{([^}]+)\}/g;
+const MODULE_CONFIG_FILE = /^antelope\..+\.json$/;
+const MODULE_CONFIG_DIRECTORY = /^antelope\./;
+const JSON_FILE = /\.json$/;
+const ANY = /(?:)/;
+const CONFIG_VARIABLE = "@";
+
+function textOf(file: string): string {
+  try {
+    return readFileSync(file, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+function isDirectory(at: string): boolean {
+  try {
+    return statSync(at).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The files under `directory` whose name `kept` matches, and every JSON file in the directories
+ * `entered` matches, at any depth. Symbolic links are followed, as core follows them, and each
+ * directory is read once.
+ */
+function filesIn(
+  directory: string,
+  kept: RegExp,
+  entered: RegExp,
+  seen: Set<string>,
+): string[] {
+  let names: string[];
+  try {
+    const real = realpathSync(directory);
+    if (seen.has(real)) {
+      return [];
+    }
+    seen.add(real);
+    names = readdirSync(directory);
+  } catch {
+    return [];
+  }
+  return names.flatMap((name) => {
+    const at = path.join(directory, name);
+    if (isDirectory(at)) {
+      return entered.test(name) ? filesIn(at, JSON_FILE, ANY, seen) : [];
+    }
+    return kept.test(name) ? [at] : [];
+  });
+}
+
+/**
+ * The `antelope.<id>.json` files core may merge into a module: `<id>` may hold a `/`, as a scoped
+ * package name does, which puts the file under an `antelope.<scope>` directory.
+ */
+function moduleConfigFiles(root: string): string[] {
+  return filesIn(root, MODULE_CONFIG_FILE, MODULE_CONFIG_DIRECTORY, new Set());
+}
+
+/** The keys and string values of a JSON file as core parses it, or its text when it is not JSON. */
+function jsonStrings(file: string): string[] {
+  const text = textOf(file);
+  const strings: string[] = [];
+  try {
+    JSON.parse(text, (key: string, value: ConfigValue) => {
+      strings.push(key);
+      if (isString(value)) {
+        strings.push(value);
+      }
+      return value;
+    });
+  } catch {
+    return [text];
+  }
+  return strings;
+}
+
+/**
+ * The strings antelope.config.ts holds, where a core template can sit. A TypeScript template
+ * literal's `${…}` is resolved before core reads the value, so only its literal text counts. A
+ * configuration that cannot be parsed counts whole.
+ */
+function configStrings(
+  draft: ConfigDraft | undefined,
+  configPath: string,
+): string[] {
+  if (!draft) {
+    return [textOf(configPath)];
+  }
+  return draft.file.getDescendants().flatMap((node) => {
+    if (
+      Node.isStringLiteral(node) ||
+      Node.isNoSubstitutionTemplateLiteral(node)
+    ) {
+      return [node.getLiteralValue()];
+    }
+    return Node.isTemplateHead(node) ||
+      Node.isTemplateMiddle(node) ||
+      Node.isTemplateTail(node)
+      ? [node.getLiteralText()]
+      : [];
+  });
+}
+
+/**
+ * The keys the `${key}` templates of antelope.config.ts and the project's antelope.<id>.json files
+ * read. Core resolves them after `envOverrides`, by a key's full path or by a key's own name, from
+ * any module, so a template on one connection's access may read a key written anywhere.
+ */
+function templateKeys(draft: ConfigDraft | undefined): Set<string> {
+  const configPath = findConfigFile();
+  if (configPath === undefined) {
+    return new Set();
+  }
+  const texts = [
+    ...configStrings(draft, configPath),
+    ...moduleConfigFiles(resolveProjectRoot()).flatMap(jsonStrings),
+  ];
+  return new Set(
+    texts
+      .flatMap((text) => [...text.matchAll(TEMPLATE)])
+      .map(([, key]) => key)
+      .filter((key) => !key.startsWith(CONFIG_VARIABLE)),
+  );
+}
+
+/** A key a step writes: its full path, and its own name as written, which may hold dots. */
+interface WrittenKey {
+  path: string;
+  key: string;
+}
+
+/** Every key a value writes below `prefix`, at any depth. */
+function writtenKeys(prefix: string, value: ConfigValue): WrittenKey[] {
+  if (!isPlainObject(value) && !Array.isArray(value)) {
+    return [];
+  }
+  return Object.entries(value).flatMap(([key, child]) => {
+    const path = `${prefix}.${key}`;
+    return [{ path, key }, ...writtenKeys(path, child)];
+  });
+}
+
+/** The key an `env` binding sets: core splits its config path on dots. */
+function boundKey(entryPath: string, configPath: string): WrittenKey {
+  return {
+    path: `${entryPath}.config.${configPath}`,
+    key: configPath.slice(configPath.lastIndexOf(".") + 1),
+  };
+}
+
+/** Why an entry is refused because it writes or binds a key a template reads, or nothing. */
+function readByTemplate(
+  keys: ReadonlySet<string>,
+  module: string,
+  { env, importOverrides, ...values }: ModuleEntryInput,
+): string | undefined {
+  if (keys.size === 0) {
+    return undefined;
+  }
+  const written: ConfigObject = {
+    ...values,
+    importOverrides: importOverrides?.map((override) => ({ ...override })),
+  };
+  const entryPath = `${MODULES}.${module}`;
+  const read = [
+    ...writtenKeys(entryPath, written),
+    ...Object.keys(env ?? {}).map((configPath) =>
+      boundKey(entryPath, configPath),
+    ),
+  ].find(({ path, key }) => keys.has(path) || keys.has(key))?.path;
+  return (
+    read &&
+    grantRefusal(
+      `write \`${read}\`, which a \`\${…}\` template in the configuration reads and may make a connection's access`,
+    )
+  );
+}
+
 /**
  * Why an agent's configuration steps are refused because one would raise a connection's access:
  * set `config.externalConnections.<id>.access` to `"read-write"` where the module's base entry in
  * `antelope.config.ts` does not already hold that literal, write anything else but `"read"`
- * there, let a variable supply it, or rebind a variable `envOverrides` maps to it. Keeping,
+ * there, let a variable supply it, rebind a variable `envOverrides` maps to it, or write or bind a
+ * key a `${key}` template reads, which may make an access. Keeping,
  * lowering or removing an access passes, so a step may restate the connections it does not
  * change. Every MCP tool that writes project or module configuration calls this first; the
  * builder interface does not, since owner-authenticated routes grant through it.
@@ -192,6 +381,7 @@ export function raisedAccessRefusal(
   steps: readonly ProjectConfigStep[],
 ): string | undefined {
   const draft = readDraft();
+  const keys = templateKeys(draft);
   for (const step of steps) {
     const entry =
       step.op === "RemoveModule" || step.op === "RemoveConnection"
@@ -199,7 +389,9 @@ export function raisedAccessRefusal(
         : step.entry;
     const refusal =
       entry &&
-      (raisedByConfig(draft, step.id, entry) ?? raisedByEnv(draft, entry));
+      (raisedByConfig(draft, step.id, entry) ??
+        raisedByEnv(draft, entry) ??
+        readByTemplate(keys, step.id, entry));
     if (refusal) {
       return refusal;
     }
