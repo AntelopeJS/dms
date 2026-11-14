@@ -8,7 +8,11 @@ import type {
 } from "@antelopejs/interface-dms-automation";
 import { ACTIONS, SEND_EMAIL_ACTION_ID } from "../../automation";
 import { resetDatabase } from "../helpers/db";
-import { captureEmails, renderedEmails, sentEmails } from "../helpers/emails";
+import {
+  captureEmailsInSuite,
+  renderedEmails,
+  sentEmails,
+} from "../helpers/emails";
 
 const TEMPLATE = "automation-send-email-test";
 const RECIPIENT = "recipient@automation.test";
@@ -28,8 +32,9 @@ function send(input: JsonObject) {
 }
 
 describe("Automation action dms.send-email", () => {
+  captureEmailsInSuite();
+
   before(() => {
-    captureEmails();
     RegisterHtmlTemplate(TEMPLATE);
   });
 

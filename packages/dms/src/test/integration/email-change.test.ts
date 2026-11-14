@@ -1,8 +1,3 @@
-import { ImplementInterface } from "@antelopejs/interface-core";
-import {
-  GenerateHtml,
-  type HtmlTemplateRef,
-} from "@antelopejs/interface-dms/html-render";
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { z } from "zod";
@@ -12,6 +7,7 @@ import {
   registerUser,
 } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { captureEmailsInSuite, lastRenderedEmail } from "../helpers/emails";
 import { findUserByEmail, updateUserByEmail } from "../helpers/fixtures";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
@@ -23,53 +19,22 @@ const CODE_TEMPLATE = "EmailChangeVerification";
 const NOTICE_TEMPLATE = "EmailChangeNotice";
 const MAX_CODE_ATTEMPTS = 5;
 const TOO_MANY_ATTEMPTS = "error.email_change_too_many_attempts";
-const POLL_INTERVAL_MS = 20;
-const POLL_ATTEMPTS = 50;
 
 const emailChangeProps = z.object({
   newEmail: z.string(),
   code: z.string().optional(),
 });
 
-interface RenderedEmail {
-  template: string;
-  props: z.infer<typeof emailChangeProps>;
-}
-
-const rendered: RenderedEmail[] = [];
-
-function captureRenderedEmails(): void {
-  ImplementInterface(
-    { GenerateHtml },
-    {
-      GenerateHtml: async <T>(template: HtmlTemplateRef<T>, props: T) => {
-        const parsed = emailChangeProps.safeParse(props);
-        if (parsed.success) {
-          rendered.push({ template: template.name, props: parsed.data });
-        }
-        return "<p>email</p>";
-      },
-    },
-  );
-}
-
-function renderedWith(template: string, newEmail: string) {
-  return rendered.find(
-    (email) => email.template === template && email.props.newEmail === newEmail,
-  );
-}
-
 async function renderedEventually(template: string, newEmail: string) {
-  for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
-    const email = renderedWith(template, newEmail);
-    if (email) return email;
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-  }
-  return undefined;
+  const email = await lastRenderedEmail(
+    template,
+    (props) => emailChangeProps.safeParse(props).data?.newEmail === newEmail,
+  );
+  return email && emailChangeProps.parse(email.props);
 }
 
 async function codeSentTo(newEmail: string): Promise<string> {
-  const code = (await renderedEventually(CODE_TEMPLATE, newEmail))?.props.code;
+  const code = (await renderedEventually(CODE_TEMPLATE, newEmail))?.code;
   if (!code) throw new Error(`No code was sent to ${newEmail}`);
   return code;
 }
@@ -91,10 +56,9 @@ describe("[integration] sign-in email change", () => {
   const confirm = (code: string) =>
     client.post(`${SECURITY}/email/confirm`, { code });
 
-  before(captureRenderedEmails);
+  captureEmailsInSuite();
 
   beforeEach(async () => {
-    rendered.length = 0;
     await resetDatabase();
     user = await registerUser({ owner: true });
     client = authorizedClient(user.accessToken);
