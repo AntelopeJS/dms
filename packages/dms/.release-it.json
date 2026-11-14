@@ -10,7 +10,7 @@
   },
   "hooks": {
     "before:init": [
-      "pnpm --dir ../interface-dms run build",
+      "pnpm --filter @antelopejs/interface-dms --filter @antelopejs/interface-dms-builder build",
       "pnpm --dir ../.. run lint"
     ],
     "after:bump": [
