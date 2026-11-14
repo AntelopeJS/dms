@@ -28,14 +28,25 @@ export const boardCategory = Category("board", {
   order: BOARD_RANK,
   category: pagesCategory,
 });
+
+function labelFor(name: string): string {
+  return name.toUpperCase();
+}
+
+export const archiveCategory = Category("archive", {
+  displayName: labelFor("archive"),
+  category: pagesCategory,
+});
 `;
 
 let app: Fixture;
 
-async function categoryMeta() {
-  const category = (await ListCategories()).find(({ ref }) => ref === REF);
-  expect(category, REF).to.not.equal(undefined);
-  return category ?? { ref: REF, displayName: "" };
+async function categoryMeta(ref = REF) {
+  const category = (await ListCategories()).find(
+    (summary) => summary.ref === ref,
+  );
+  expect(category, ref).to.not.equal(undefined);
+  return category ?? { ref, displayName: "" };
 }
 
 /**
@@ -68,6 +79,17 @@ describe("category options written as constants", () => {
     const { displayName, icon, order, parent } = await categoryMeta();
     expectOk(
       await ConfigureCategory(REF, { displayName, icon, order, parent }),
+      "ConfigureCategory",
+    );
+    expect(app.read(FILE)).to.equal(SOURCE);
+  });
+
+  it("are left as written when the echo carries the id a name written as code reads as", async function () {
+    this.timeout(OP_TIMEOUT);
+    const { ref, displayName, parent } = await categoryMeta("pages.archive");
+    expect(displayName).to.equal("archive");
+    expectOk(
+      await ConfigureCategory(ref, { displayName, parent }),
       "ConfigureCategory",
     );
     expect(app.read(FILE)).to.equal(SOURCE);
