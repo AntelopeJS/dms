@@ -142,6 +142,11 @@ export function currentSketchScheme(): SketchScheme {
 /**
  * The standalone document a sketch is drawn in. The CSP comes first in the
  * head, before anything the sketch wrote, so no later markup can loosen it.
+ *
+ * It draws `sketch.html` and `sketch.css` as given, checking neither: hand it
+ * only the sketch `checkSketch` from `@antelopejs/dms/sketch` answered, as a
+ * compiled mockup holds it. The frame's CSP stops loads but not a link out,
+ * so unchecked markup can navigate the frame away.
  */
 export function buildSketchDocument(
   sketch: PreviewSketch,
