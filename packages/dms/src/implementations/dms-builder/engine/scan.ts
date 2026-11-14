@@ -13,9 +13,8 @@ import {
   type SourceFile,
   SyntaxKind,
 } from "ts-morph";
-import { objectLiteralToValue } from "./config-literal";
+import { objectLiteralToValue, optionValue } from "./config-literal";
 import {
-  getBooleanProperty,
   getCalleeName,
   getExtendsCall,
   getIdentifierProperty,
@@ -24,6 +23,7 @@ import {
   getStringProperty,
   stringLiteralValue,
 } from "./literals";
+import { isBoolean, isNumber, isString } from "./scalar-guards";
 
 export interface CategoryRecord {
   ref: string;
@@ -96,6 +96,16 @@ function readObjectOption(
   }
   const value = objectLiteralToValue(node);
   return value.fullyLiteral ? value.value : undefined;
+}
+
+/** A page option read as the value it holds when that value passes `is`. */
+function readOption<Value>(
+  opts: ObjectLiteralExpression,
+  name: string,
+  is: (value: unknown) => value is Value,
+): Value | undefined {
+  const value = optionValue(opts, name);
+  return is(value) ? value : undefined;
 }
 
 class SourceScanner {
@@ -208,13 +218,13 @@ class SourceScanner {
     this.pages.set(ref, {
       ref,
       id,
-      displayName: getStringProperty(optsArg, "displayName") ?? id,
+      displayName: readOption(optsArg, "displayName", isString) ?? id,
       categoryRef: category?.ref ?? "",
       filepath: cls.getSourceFile().getFilePath(),
-      icon: getStringProperty(optsArg, "icon"),
-      order: getNumberProperty(optsArg, "order"),
-      description: getStringProperty(optsArg, "description"),
-      hidden: getBooleanProperty(optsArg, "hidden"),
+      icon: readOption(optsArg, "icon", isString),
+      order: readOption(optsArg, "order", isNumber),
+      description: readOption(optsArg, "description", isString),
+      hidden: readOption(optsArg, "hidden", isBoolean),
       permission: readObjectOption(optsArg, "permission"),
       live: readObjectOption(optsArg, "live"),
       moduleId: getStringProperty(optsArg, "module"),

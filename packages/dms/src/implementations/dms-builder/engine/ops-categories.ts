@@ -169,7 +169,7 @@ export function configureCategory(
     resolveRef: resourceRefResolver(),
   });
   try {
-    applyPatch(optionsArg, optionsPatch(scalar), false, ctx);
+    applyPatch(optionsArg, optionsPatch(optionsArg, scalar), false, ctx);
   } catch (error) {
     transaction.rollback();
     if (error instanceof InvalidValueError) {
