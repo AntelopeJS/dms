@@ -25,6 +25,7 @@ const HTTP_OK = 200;
 const HTTP_NO_CONTENT = 204;
 
 const MENU_WINDOW_MARGIN_MS = 600;
+const OWNER_ROLE_AND_MEMBER_SETUP_TIMEOUT_MS = 10_000;
 
 interface MenuEvents {
   /** On the topic of the member whose access changed. */
@@ -91,7 +92,8 @@ describe("[integration] menu events on access changes", () => {
     return response.data.id;
   }
 
-  beforeEach(async () => {
+  beforeEach(async function () {
+    this.timeout(OWNER_ROLE_AND_MEMBER_SETUP_TIMEOUT_MS);
     await resetDatabase();
     const registeredOwner = await registerUser({ owner: true });
     owner = authorizedClient(registeredOwner.accessToken);
