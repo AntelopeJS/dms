@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import dns from "node:dns";
 import type {
   DatabaseAccess,
   DatabaseEngine,
@@ -6,8 +7,10 @@ import type {
 import { expect } from "chai";
 import {
   CLOSE_GRACE_MS,
+  checkConnection,
   DATABASE_ENGINES,
   noAnswerReason,
+  parseCheckInput,
   type Probe,
   redact,
   checkDatabase as runCheck,
@@ -343,5 +346,43 @@ describe("the connections a database check closes", () => {
     expect(answer.reachable).to.equal(false);
     expect(JSON.stringify(answer).includes(SAMPLE_SECRET)).to.equal(false);
     expect(JSON.stringify(answer).includes("db.example.com")).to.equal(false);
+  });
+});
+
+/** Fails on a check that refuses an SRV URL, or a probe that hands the driver anything but the URL as typed. */
+describe("checking a MongoDB database by an SRV URL", () => {
+  it("hands the URL to the driver unchanged, which looks up the SRV record of its host", async () => {
+    const host = "cluster0.ab1cd.mongodb.net";
+    const url = `mongodb+srv://app@${host}/shop?retryWrites=true&w=majority`;
+    const lookups: string[] = [];
+    const resolve = dns.promises.resolve;
+    dns.promises.resolve = async (name: string, type: string = "A") => {
+      lookups.push(`${type} ${name}`);
+      throw Object.assign(new Error(`query${type} ENOTFOUND ${name}`), {
+        code: "ENOTFOUND",
+      });
+    };
+    try {
+      const result = await checkConnection(
+        parseCheckInput({ engine: "mongodb", url }),
+        true,
+      );
+      expect(result).to.deep.equal({
+        ok: true,
+        data: {
+          reachable: false,
+          canRead: false,
+          canWrite: false,
+          reason: "This host name could not be found.",
+        },
+        changes: [],
+      });
+      expect(lookups).to.have.members([
+        `SRV _mongodb._tcp.${host}`,
+        `TXT ${host}`,
+      ]);
+    } finally {
+      dns.promises.resolve = resolve;
+    }
   });
 });
