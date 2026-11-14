@@ -38,6 +38,7 @@ export const TSCONFIG = {
     target: "ES2022",
     module: "preserve",
     moduleResolution: "bundler",
+    types: ["node"],
     experimentalDecorators: true,
     emitDecoratorMetadata: true,
     strict: true,
