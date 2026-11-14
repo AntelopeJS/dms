@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import { z } from "zod";
 import type * as Tokenizer from "@csstools/css-tokenizer" with {
   "resolution-mode": "import",
@@ -11,7 +10,7 @@ export type CSSToken = Tokenizer.CSSToken;
 type Exported = (...args: never[]) => void;
 
 function isFunction(value: unknown): value is Exported {
-  return value instanceof Function;
+  return typeof value === "function";
 }
 
 /** One export of `@csstools/css-tokenizer`, typed from the package's own declarations. */
@@ -46,5 +45,5 @@ const CssTokenizerSchema = z.object({
  * build only, so its CommonJS exports are parsed against those declarations.
  */
 export const cssTokenizer = CssTokenizerSchema.parse(
-  createRequire(__filename)("@csstools/css-tokenizer"),
+  require("@csstools/css-tokenizer"),
 );

@@ -4,7 +4,6 @@ import {
   defaultTreeAdapter,
   parse,
 } from "parse5";
-import { createRequire } from "node:module";
 import { z } from "zod";
 import type * as Tokenizer from "@csstools/css-tokenizer" with {
   "resolution-mode": "import",
@@ -17,7 +16,7 @@ type CSSToken = Tokenizer.CSSToken;
 type Exported = (...args: never[]) => void;
 
 function isFunction(value: unknown): value is Exported {
-  return value instanceof Function;
+  return typeof value === "function";
 }
 
 function exported<Name extends keyof typeof Tokenizer>() {
@@ -57,9 +56,7 @@ const {
   isTokenURL,
   isTokenWhiteSpaceOrComment,
   tokenize,
-} = OracleTokenizerSchema.parse(
-  createRequire(__filename)("@csstools/css-tokenizer"),
-);
+} = OracleTokenizerSchema.parse(require("@csstools/css-tokenizer"));
 
 const HTML_INPUTS = 3000;
 const CSS_INPUTS = 500;
