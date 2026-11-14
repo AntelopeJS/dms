@@ -5,6 +5,10 @@ import type { ShallowRef } from "vue";
 import type { Data, TableSharedData, NavItem } from "./TableRoot.vue";
 import { useTableConfigClipboard } from "../../composables/table/useTableConfigClipboard";
 
+export interface MenuRootEmits {
+  (e: "navigate", view: string): void;
+}
+
 const theme = tv({
   slots: {
     list: "p-1.5",
@@ -21,11 +25,7 @@ const theme = tv({
   },
 });
 
-interface Emits {
-  (e: "navigate", view: string): void;
-}
-
-const emits = defineEmits<Emits>();
+const emits = defineEmits<MenuRootEmits>();
 const { t } = useI18n();
 
 const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {

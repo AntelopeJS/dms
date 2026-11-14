@@ -125,6 +125,7 @@ const mutations = [
   ["cap inclusive", (f) => `>=0.${f.minor}.${f.patch} <=0.${f.minor + 1}.0`],
   ["floor exclusive", (f) => `>0.${f.minor}.${f.patch} <0.${f.minor + 1}.0`],
   ["major one", (f) => `>=1.${f.minor}.${f.patch} <1.${f.minor + 1}.0`],
+  ["cap major one", (f) => `>=0.${f.minor}.${f.patch} <1.${f.minor + 1}.0`],
   ["caret", (f) => `^0.${f.minor}.${f.patch}`],
   ["tilde", (f) => `~0.${f.minor}.${f.patch}`],
   ["exact", (f) => `0.${f.minor}.${f.patch}`],

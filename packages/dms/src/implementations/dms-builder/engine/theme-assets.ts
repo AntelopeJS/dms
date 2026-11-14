@@ -249,15 +249,15 @@ export function withUploads(
 }
 
 /**
- * Absolute paths of builder-named logo files the previous logos used and the
- * next ones do not.
+ * Absolute paths of builder-named logo files the previous logos used and no
+ * string of the saved app config names: a slot may reach a file through a
+ * constant the logos do not read.
  */
 export function orphanedAssets(
   publicDirectory: string,
   previousLogos: ThemeLogos,
-  nextLogos: ThemeLogos,
+  keptPaths: ReadonlySet<string>,
 ): string[] {
-  const keptPaths = new Set(logoPaths(nextLogos));
   return [...new Set(logoPaths(previousLogos))]
     .filter(
       (publicPath) =>

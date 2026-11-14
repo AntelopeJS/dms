@@ -21,6 +21,7 @@ import {
   EMPTY_APP_CONFIG,
   readColors,
   readLogos,
+  stringLiterals,
   validateColors,
   validateLogos,
   writeAppConfig,
@@ -368,9 +369,12 @@ function writeTheme(
     return editError;
   }
   const batch = stageFiles(sources, stagedLogos, fontFiles, stylesheetText);
-  const nextLogos = readLogos(sources.appConfig);
   for (const orphan of [
-    ...orphanedAssets(sources.publicDirectory, previousLogos, nextLogos),
+    ...orphanedAssets(
+      sources.publicDirectory,
+      previousLogos,
+      stringLiterals(sources.appConfig),
+    ),
     ...orphanedFontFiles(fonts, sources.publicDirectory),
   ]) {
     batch.stageRemoval(orphan);

@@ -3,6 +3,10 @@ import { tv } from "tailwind-variants";
 import type { Data } from "./TableRoot.vue";
 import { useTableConfigClipboard } from "../../composables/table/useTableConfigClipboard";
 
+export interface MenuImportEmits {
+  (e: "navigate", view: string): void;
+}
+
 const theme = tv({
   slots: {
     root: "divide-default divide-y",
@@ -13,11 +17,7 @@ const theme = tv({
   },
 });
 
-interface Emits {
-  (e: "navigate", view: string): void;
-}
-
-const emits = defineEmits<Emits>();
+const emits = defineEmits<MenuImportEmits>();
 const { t } = useI18n();
 
 const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {

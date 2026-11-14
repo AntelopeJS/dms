@@ -23,7 +23,7 @@ import { stringLiteralValue } from "./literals";
 import { contentVersion, pageVersion } from "./page-structure";
 import { parseBlockPath } from "./paths";
 import { moduleMismatch } from "./modules";
-import { applyPatch } from "./options-patch";
+import { pruningOrphans, writePatch } from "./options-patch";
 import { invalidateResourceIndex, resourceRefResolver } from "./resource-index";
 import { type PageRecord } from "./scan";
 import { findPageRecord, invalidateSourceIndex } from "./source-index";
@@ -315,19 +315,17 @@ export function configureBlock(
   });
   const checkForm = formGuard(resolved.target);
   try {
-    applyPatch(
-      ensureOptionsObject(resolved.target),
-      patch,
-      opts?.replace ?? false,
-      ctx,
-    );
-    if (opts?.meta) {
+    const metaWritten = pruningOrphans(context.sourceFile, () => {
+      const options = ensureOptionsObject(resolved.target);
+      writePatch(options, patch, opts?.replace ?? false, ctx);
+      if (!opts?.meta) return true;
       const metaObject = ensureChildMetaObject(resolved.target);
-      if (!metaObject) {
-        transaction.rollback();
-        return unsupported("child metadata is not a plain object literal");
-      }
-      applyPatch(metaObject, opts.meta, false, ctx);
+      if (metaObject) writePatch(metaObject, opts.meta, false, ctx);
+      return metaObject !== undefined;
+    });
+    if (!metaWritten) {
+      transaction.rollback();
+      return unsupported("child metadata is not a plain object literal");
     }
     checkForm();
   } catch (error) {

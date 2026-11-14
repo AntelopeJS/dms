@@ -114,17 +114,41 @@ function replacesTheShorthand(rename: () => Promise<void>): void {
     expect(app.read(PAGE_FILE)).to.not.contain("./labels");
     expect(await readTitle()).to.equal(RENAMED);
   });
+
+  it("drops the constants a chain led only to the shorthand", async function () {
+    this.timeout(OP_TIMEOUT);
+    writeShorthand(
+      ['const base = "Bo";', 'const displayName = base + "ard";'].join("\n"),
+    );
+
+    await rename();
+
+    expect(app.read(PAGE_FILE)).to.not.match(/const (base|displayName)\b/);
+    expect(await readTitle()).to.equal(RENAMED);
+  });
+
+  it("drops a default import only the shorthand read", async function () {
+    this.timeout(OP_TIMEOUT);
+    app.write(LABELS_FILE, 'export default "Board";\n');
+    writeShorthand('import displayName from "./labels";');
+
+    await rename();
+
+    expect(app.read(PAGE_FILE)).to.not.contain("./labels");
+    expect(await readTitle()).to.equal(RENAMED);
+  });
 }
 
 /**
  * A page option written as a shorthand (`{ displayName, }`) is replaced by the
  * patch, not kept beside it: two `displayName` members fail the typecheck every
- * save runs.
+ * save runs. The app compiles with `noUnusedLocals`, so a binding the patch
+ * leaves unused fails that typecheck too.
  */
 describe("a page option written as a shorthand", () => {
   before(async function () {
     this.timeout(120_000);
-    app = createFixture();
+    app = createFixture({ compilerOptions: { noUnusedLocals: true } });
     expectOk(
       await CreateCategory({ name: "shop", displayName: "Shop" }),
       "CreateCategory",

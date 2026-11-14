@@ -48,7 +48,7 @@ export interface RolesOverview {
   roles: RoleSummary[];
   owners: RoleOwnersSummary;
   totalPermissions: number;
-  /** Permission ids the user may grant; `null` when they may grant any. */
+  /** Permission ids the user holds, and so may grant; `null` for the platform owner. */
   grantable: string[] | null;
   capabilities: RoleEditorCapabilities;
 }

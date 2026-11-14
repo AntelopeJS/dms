@@ -22,6 +22,9 @@ import { parseManifest } from "./manifest.mjs";
 const VERSIONS = ["0.8.9", "0.9.0", "0.9.1", "0.9.5", "0.9.1-next.0", "0.9.5-rc.1", "0.9.5+build.0", "0.10.0", "0.10.0-next.0", "1.9.1"];
 const RANGES = [">=0.9.1 <0.10.0", ">=0.9.1 <0.11.0", ">0.9.1 <0.10.0", ">=0.9.1 <=0.10.0", "^0.9.1", ">=0.09.1 <0.10.0", ">=0.9.1  <0.10.0", ""];
 const CANONICAL = { version: "0.9.5", range: ">=0.9.1 <0.10.0" };
+const BUILDER_VERSIONS = ["0.3.9", "0.4.0", "0.4.1", "0.10.0", "0.4.1-next.0", "0.4.1+build.0", "1.0.0"];
+const BUILDER_RANGES = [">=0.4.0 <1.0.0", ">=0.4.0 <0.5.0", "^0.4.0", ">=0.4.0 <=1.0.0", ">=0.04.0 <1.0.0", ""];
+const BUILDER_CANONICAL = { version: "0.4.1", range: ">=0.4.0 <1.0.0" };
 /** @type {Record<string, (pkg: Manifest) => Manifest>} */
 const MANIFEST_BREAKS = {
   "name": (pkg) => ({ ...pkg, name: "@antelopejs/dms-renamed" }),
@@ -79,15 +82,26 @@ function readManifest(file) {
 
 const pkg = readManifest(path.join(checkout, "packages", "dms", "package.json"));
 const iface = readManifest(path.join(checkout, "packages", "interface-dms", "package.json"));
-const manifests = (/** @type {Manifest} */ dms, /** @type {string} */ version) => ({
+const builderFile = path.join(checkout, "packages", "interface-dms-builder", "package.json");
+const builder = existsSync(builderFile) ? readManifest(builderFile) : undefined;
+const manifests = (/** @type {Manifest} */ dms, /** @type {string} */ version, builderVersion = BUILDER_CANONICAL.version) => ({
   "packages/dms/package.json": dms,
   "packages/interface-dms/package.json": { ...iface, version },
+  ...(builder && { "packages/interface-dms-builder/package.json": { ...builder, version: builderVersion } }),
 });
-const withRange = (/** @type {string} */ range) => ({ ...pkg, dependencies: { ...pkg.dependencies, "@antelopejs/interface-dms": range } });
+const withRange = (/** @type {string} */ range, builderRange = BUILDER_CANONICAL.range) => ({
+  ...pkg,
+  dependencies: { ...pkg.dependencies, "@antelopejs/interface-dms": range, "@antelopejs/interface-dms-builder": builderRange },
+});
 
 for (const range of RANGES) {
   for (const version of VERSIONS) {
     console.log(`range ${JSON.stringify(range)} version ${version}\texit ${decide(checkout, step, manifests(withRange(range), version))}`);
+  }
+}
+for (const range of builder ? BUILDER_RANGES : []) {
+  for (const version of BUILDER_VERSIONS) {
+    console.log(`builder range ${JSON.stringify(range)} version ${version}\texit ${decide(checkout, step, manifests(withRange(CANONICAL.range, range), CANONICAL.version, version))}`);
   }
 }
 for (const [name, broken] of Object.entries(MANIFEST_BREAKS)) {

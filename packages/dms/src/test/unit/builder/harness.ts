@@ -60,6 +60,8 @@ export interface FixtureOptions {
   fromSnapshot?: boolean;
   /** Each external connection's access on a `dms-database` entry; no such entry when absent. */
   connectionAccess?: ConnectionAccessConfig;
+  /** Compiler options the app's `tsconfig.json` sets over the default ones, such as `noUnusedLocals`. */
+  compilerOptions?: Record<string, boolean>;
 }
 
 /** What dms-database lets the DMS do on each external connection, by connection id. */
@@ -127,21 +129,25 @@ function WriteModules(
   }
 }
 
-function WriteEmptyApp(
-  modules: string[],
-  access: ConnectionAccessConfig | undefined,
-): void {
+function WriteEmptyApp(options: FixtureOptions): void {
+  const tsconfig = {
+    ...TSCONFIG,
+    compilerOptions: {
+      ...TSCONFIG.compilerOptions,
+      ...options.compilerOptions,
+    },
+  };
   fs.mkdirSync(path.join(FIXTURE_ROOT, "src"), { recursive: true });
   fs.writeFileSync(
     path.join(FIXTURE_ROOT, "tsconfig.json"),
-    `${JSON.stringify(TSCONFIG, null, 2)}\n`,
+    `${JSON.stringify(tsconfig, null, 2)}\n`,
   );
   fs.writeFileSync(path.join(FIXTURE_ROOT, "src", "index.ts"), "export {};\n");
   fs.writeFileSync(
     path.join(FIXTURE_ROOT, ".editorconfig"),
     "root = true\n\n[*]\nindent_style = space\nindent_size = 2\n",
   );
-  WriteModules(modules, access);
+  WriteModules(options.modules ?? [], options.connectionAccess);
 }
 
 export interface Fixture {
@@ -168,7 +174,7 @@ export function createFixture(options: FixtureOptions = {}): Fixture {
   if (options.fromSnapshot) {
     fs.cpSync(SNAPSHOT_ROOT, FIXTURE_ROOT, { recursive: true });
   } else {
-    WriteEmptyApp(options.modules ?? [], options.connectionAccess);
+    WriteEmptyApp(options);
   }
   fixtureModules = options.modules ?? [];
 

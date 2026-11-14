@@ -29,11 +29,11 @@ import {
 } from "../../composables/table-view/useReorderHandles";
 import { useCardFields } from "../../composables/table-view/useCardFields";
 
-interface CardsDisplayProps {
+export interface CardsDisplayProps<T extends Record<string, unknown>> {
   context: TableViewDisplayContext<T>;
 }
 
-const props = defineProps<CardsDisplayProps>();
+const props = defineProps<CardsDisplayProps<T>>();
 
 const { processI18n } = useTranslation();
 const { processText } = useComposedText();

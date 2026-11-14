@@ -23,6 +23,21 @@ import {
   FIELD_TRIGGER_UI,
 } from "../../../build/utils/fieldTrigger";
 
+export interface DatePickerProps<R extends boolean, M extends boolean>
+  extends Omit<CalendarProps<R, M>, "modelValue"> {
+  /** Id of the trigger, the control a field label points to. */
+  id?: string;
+  /** Earliest day that can be picked (ISO date). */
+  minDate?: string;
+  /** Latest day that can be picked (ISO date). */
+  maxDate?: string;
+  /**
+   * `error` marks the field invalid, as UFormField does for the controls it
+   * wraps; any other colour tints the calendar.
+   */
+  color?: CalendarProps<R, M>["color"] | "error";
+}
+
 interface StrictDateRange {
   start: CalendarDate | undefined;
   end: CalendarDate | undefined;
@@ -46,21 +61,7 @@ type DateValue =
   | null
   | undefined;
 
-interface DatePickerProps extends Omit<CalendarProps<R, M>, "modelValue"> {
-  /** Id of the trigger, the control a field label points to. */
-  id?: string;
-  /** Earliest day that can be picked (ISO date). */
-  minDate?: string;
-  /** Latest day that can be picked (ISO date). */
-  maxDate?: string;
-  /**
-   * `error` marks the field invalid, as UFormField does for the controls it
-   * wraps; any other colour tints the calendar.
-   */
-  color?: CalendarProps<R, M>["color"] | "error";
-}
-
-const props = defineProps<DatePickerProps>();
+const props = defineProps<DatePickerProps<R, M>>();
 const emits = defineEmits<{
   "update:modelValue": [
     value:
@@ -151,7 +152,7 @@ const {
   ariaAttrs,
   emitFormBlur,
   emitFormChange,
-} = useFormField<DatePickerProps>(props);
+} = useFormField<DatePickerProps<R, M>>(props);
 const invalid = computed(() => fieldColor.value === "error");
 
 const RANGE_INCOMPLETE = "$dms.field_errors.range_incomplete";

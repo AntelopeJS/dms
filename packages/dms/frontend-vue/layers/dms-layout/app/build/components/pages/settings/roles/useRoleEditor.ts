@@ -3,10 +3,10 @@ import { useNavBadges } from "#dms-ui/app/entries/composables/navigation/useNavB
 import {
   buildPermissionAreas,
   buildPermissionIndex,
+  clickPermission,
   diffPermissions,
-  grantPermission,
+  grantableBy,
   keepGrantedAutoAdded,
-  revokePermission,
 } from "./role-permissions";
 import {
   NEW_ROLE_ENTRY_ID,
@@ -142,7 +142,8 @@ export function useRoleEditor(data: Ref<RolesPageData | null>) {
     const ids = data.value?.overview.grantable;
     return ids ? new Set(ids) : null;
   });
-  const canGrant = (id: string) => !grantable.value || grantable.value.has(id);
+  const canGrant = (id: string) =>
+    grantableBy(grantable.value, savedIds.value)(id);
 
   function reset(): void {
     draft.value = draftOf(isNew.value ? null : selectedRole.value);
@@ -163,13 +164,15 @@ export function useRoleEditor(data: Ref<RolesPageData | null>) {
   function toggle(id: string, checked: boolean): void {
     const nextAutoAdded = new Map(autoAdded.value);
     nextAutoAdded.delete(id);
-    if (checked) {
-      const grant = grantPermission(index.value, selection.value, id, canGrant);
-      selection.value = grant.selection;
-      if (grant.autoAdded.length > 0) nextAutoAdded.set(id, grant.autoAdded);
-    } else {
-      selection.value = revokePermission(index.value, selection.value, id);
-    }
+    const click = clickPermission(
+      index.value,
+      selection.value,
+      id,
+      checked,
+      canGrant,
+    );
+    selection.value = click.selection;
+    if (click.autoAdded.length > 0) nextAutoAdded.set(id, click.autoAdded);
     autoAdded.value = keepGrantedAutoAdded(nextAutoAdded, selection.value);
   }
 

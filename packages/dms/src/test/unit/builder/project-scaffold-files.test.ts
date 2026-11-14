@@ -135,6 +135,30 @@ describe("scaffolding a module from project files npm, pnpm and tsc accept", () 
     expect(entry).to.match(/^exports\.construct = construct;$/m);
   });
 
+  for (const spec of ["file:~/lib", "file:/opt/lib", "^1.0.0"]) {
+    it(`keeps the project's ${spec} spec, which names its target from any folder`, () => {
+      const text = fileOf(
+        {
+          "package.json": `{"dependencies": {"@antelopejs/interface-api": "${spec}"}}`,
+        },
+        "package.json",
+      );
+      expect(text).to.contain(`"@antelopejs/interface-api": "${spec}"`);
+    });
+  }
+
+  it("rebases a relative spec whose folder name starts with ~", () => {
+    const text = fileOf(
+      {
+        "package.json": `{"dependencies": {"@antelopejs/interface-api": "file:~vendor/api"}}`,
+      },
+      "package.json",
+    );
+    expect(text).to.contain(
+      `"@antelopejs/interface-api": "file:../../~vendor/api"`,
+    );
+  });
+
   it("refuses a dependency whose range is not a string", () => {
     expect(() =>
       scaffoldWith({ "package.json": '{"dependencies": {"a": null}}' }),

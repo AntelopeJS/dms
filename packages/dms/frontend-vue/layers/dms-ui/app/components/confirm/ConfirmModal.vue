@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ComponentInfo } from "#dms-core/app/types/page";
 import { isObject } from "../../../../dms-core/app/utils/type-check";
 import {
   type Slot,

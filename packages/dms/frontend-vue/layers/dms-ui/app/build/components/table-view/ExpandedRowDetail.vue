@@ -12,6 +12,7 @@ import type {
   TableViewExpandedRowProps,
 } from "../../../composables/table-view/types";
 import type { ExpandedRowLoadState } from "../../composables/table-view/useExpandedRowDetails";
+import type { Data } from "../table/TableRoot.vue";
 
 /**
  * Detail band of an expanded TableView row: the configured `component`, which
@@ -19,7 +20,7 @@ import type { ExpandedRowLoadState } from "../../composables/table-view/useExpan
  * (each value drawn by its column's data type, like a cell). While a
  * `lazyLoad` row loads, or if it fails, the band says so in its place.
  */
-interface ExpandedRowDetailProps<T extends Data> {
+export interface ExpandedRowDetailProps<T extends Data> {
   /** What the band details, as a custom band receives it. */
   rowProps: TableViewExpandedRowProps<T>;
   /** The table view's `expandable` configuration. */

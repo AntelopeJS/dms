@@ -399,8 +399,8 @@ importers:
         specifier: '>=1.23.0 <2'
         version: 1.23.0
       '@antelopejs/dms-frontend':
-        specifier: '>=0.10.4 <0.11.0'
-        version: 0.10.6(@antelopejs/core@1.23.0)
+        specifier: '>=0.11.0 <0.12.0'
+        version: 0.11.0(@antelopejs/core@1.23.0)
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -499,8 +499,8 @@ importers:
         specifier: '>=1.23.0 <2'
         version: 1.23.0
       '@antelopejs/dms-frontend':
-        specifier: '>=0.10.0 <0.11.0'
-        version: 0.10.0(@antelopejs/core@1.23.0)
+        specifier: '>=0.11.0 <0.12.0'
+        version: 0.11.0(@antelopejs/core@1.23.0)
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
@@ -615,19 +615,12 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.10.0':
-    resolution: {integrity: sha512-zNsYW0NUPHoJNj3tNUDxubXQUH0171Ga/avp8ka0VK253eQD7KDgImq8Fc3tmG5GD+oBzhUlO4RMun5BapqfYQ==}
+  '@antelopejs/dms-frontend@0.11.0':
+    resolution: {integrity: sha512-FYgmKBJpR1H9G679Z0k07IEjDl5AbWDqeSo7iGsJJDg/eiG6Sm/VWdyvXSLhAl+A/Bx9kkR1wRxGaH6ivyKRFQ==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
-      '@antelopejs/core': '>=1.16.0 <2'
-
-  '@antelopejs/dms-frontend@0.10.6':
-    resolution: {integrity: sha512-hP4lE+38wKYwDMoKQwuLFxyDFyhOW8atUIVGYnHUgMGZfkIlWyzJg5cuj47NxnWUH1K++augdWLg3JQzDGuqng==}
-    engines: {node: '>=20.19.0'}
-    hasBin: true
-    peerDependencies:
-      '@antelopejs/core': '>=1.16.0 <2'
+      '@antelopejs/core': ~1.23.0
 
   '@antelopejs/interface-api-util@0.3.0':
     resolution: {integrity: sha512-9XGBY3rJk/uwJVpEuazVCeehYHtL4llCtyIT/6YAIkUK7ib0bJFGTqj74ni0KRlbH+jtPp4FU6XyUJL5SVxf+Q==}
@@ -6843,22 +6836,7 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.10.0(@antelopejs/core@1.23.0)':
-    dependencies:
-      '@antelopejs/core': 1.23.0
-      '@intlify/message-compiler': 11.4.8
-      chokidar: 4.0.3
-      commander: 13.1.0
-      ignore: 7.0.12
-      semver: 7.8.5
-    optionalDependencies:
-      '@oxc-parser/binding-darwin-arm64': 0.95.0
-      '@oxc-parser/binding-darwin-x64': 0.95.0
-      '@oxc-parser/binding-linux-arm64-gnu': 0.95.0
-      '@oxc-parser/binding-linux-x64-gnu': 0.95.0
-      '@oxc-parser/binding-win32-x64-msvc': 0.95.0
-
-  '@antelopejs/dms-frontend@0.10.6(@antelopejs/core@1.23.0)':
+  '@antelopejs/dms-frontend@0.11.0(@antelopejs/core@1.23.0)':
     dependencies:
       '@antelopejs/core': 1.23.0
       '@intlify/message-compiler': 11.4.8

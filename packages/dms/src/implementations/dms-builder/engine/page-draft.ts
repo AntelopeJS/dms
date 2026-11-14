@@ -372,7 +372,7 @@ function applyPageMeta(
   }
   applyPatch(
     optionsArg,
-    withConstants(optionsPatch(scalar), constantsIn(optionsArg)),
+    withConstants(optionsPatch(optionsArg, scalar), constantsIn(optionsArg)),
     false,
     ctx,
   );
