@@ -92,6 +92,31 @@ export function projectEnvFile(): string | undefined {
   return configPath && path.join(path.dirname(configPath), ENV_FILE);
 }
 
+let inheritedVariables = new Set<string>();
+
+/**
+ * Records the variables the project started with that its `.env` did not supply, such as one
+ * exported in the shell that started it. Core and the configuration's own loaders never overwrite
+ * a variable already set, so a value the builder writes to `.env` for one of them never loads.
+ * Called once the project has loaded its `.env`, at each start.
+ */
+export function recordInheritedVariables(): void {
+  const text = envFileText() ?? "";
+  inheritedVariables = new Set(
+    Object.entries(process.env)
+      .filter(([name, value]) => envValue(text, name) !== value)
+      .map(([name]) => name),
+  );
+}
+
+/** Why `.env` cannot give `name` the value `value`: the project keeps the one it started with. */
+function shadowing(name: string, value: string): string | undefined {
+  if (!inheritedVariables.has(name) || process.env[name] === value) {
+    return undefined;
+  }
+  return `${name} is set in the environment that started the project, which wins over .env, so the project would not load the new value: unset ${name} there and restart the project`;
+}
+
 /**
  * A variable's value in the project's `.env`, for the builder's own use: a caller answers what it
  * reads from it, never the value itself.
@@ -167,7 +192,8 @@ export function writeEnvFiles(
 /**
  * Sets a variable `envOverrides` maps in the project's `.env`, for development. It refuses when the
  * project is in a git repository that does not ignore `.env`, so a value written here never
- * reaches a commit. The value is never answered. `mapped` names the variables
+ * reaches a commit, and when the environment that started the project holds another value for it,
+ * which the project would keep. The value is never answered. `mapped` names the variables
  * `envOverrides` will map, for a batch about to be written; by default, those it maps now.
  */
 export function setProjectVariable(
@@ -185,6 +211,10 @@ export function setProjectVariable(
   }
   if (value === "" || UNQUOTABLE.test(value)) {
     refuse(`the value of ${name} is empty, or holds a quote or a line break`);
+  }
+  const shadowed = shadowing(name, value);
+  if (shadowed) {
+    refuse(shadowed);
   }
   const directory = path.dirname(configPath);
   const risk = commitRisk(directory, ENV_FILE);

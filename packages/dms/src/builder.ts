@@ -46,9 +46,10 @@ export async function startBuilder(dev: boolean, env: string): Promise<void> {
     ImplementInterface(declaration, disabledBuilder(declaration));
     return;
   }
-  const { recordLaunchEnvironment } =
+  const { recordInheritedVariables, recordLaunchEnvironment } =
     await import("./implementations/dms-builder/engine");
   recordLaunchEnvironment(env);
+  recordInheritedVariables();
   void ImplementInterface(
     await import("@antelopejs/interface-dms-builder"),
     await import("./implementations/dms-builder"),
