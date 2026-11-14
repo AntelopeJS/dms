@@ -345,7 +345,7 @@ export function dataApiFieldText(
     `name: ${JSON.stringify(field.label ?? field.name)}`,
     `type: ${serializeValue(field.dataType, ctx)}`,
   ];
-  if (field.filterable) {
+  if (field.filterable && !field.archiveField) {
     columnParts.push("filterable: true");
   }
   if (field.order !== undefined) {

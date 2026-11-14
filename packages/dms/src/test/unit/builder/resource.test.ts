@@ -114,6 +114,28 @@ function emitsTheResourceAndAddsFields(): void {
 
     expect((await fieldNamed("archived")).archiveField).to.equal(true);
   });
+
+  it("leaves an archive field out of the column filters", async function () {
+    this.timeout(OP_TIMEOUT);
+    expectOk(
+      await AddField("order", {
+        name: "closed",
+        dataType: { $dataType: "boolean" },
+        archiveField: true,
+        filterable: true,
+      }),
+      "AddField",
+    );
+    expect((await fieldNamed("closed")).filterable).to.equal(false);
+
+    expectOk(
+      await ConfigureField("order#closed", { filterable: true }),
+      "ConfigureField",
+    );
+    const closed = await fieldNamed("closed");
+    expect(closed.archiveField).to.equal(true);
+    expect(closed.filterable).to.equal(false);
+  });
 }
 
 function createsChangesAndRemovesFields(): void {

@@ -8,6 +8,7 @@ import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { type TableViewAccess, TableViewMeta } from "./meta";
 import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
+import { assertArchiveFieldFilter } from "./internal/archive-filter";
 import type { TableViewOptions, TableViewOptionsSerialized } from "./options";
 import { resourceForm, stampAttachmentFields } from "./internal/resource-form";
 import { TableViewRoutes } from "./routes";
@@ -78,6 +79,8 @@ export function TableView<T extends ControllerClass>(
   const isExportEnabled = Object.keys(TableViewRoutes.ExportRoutes).every(
     (key) => !!endpoints[key],
   );
+
+  assertArchiveFieldFilter(controller, meta.archiveField);
 
   if (options.archiveMode) {
     if (!meta.archiveField) {

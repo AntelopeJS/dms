@@ -300,7 +300,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
         {},
       );
 
-      expect(filters?.isArchived).to.deep.equal([true, "ne"]);
+      expect(filters?.isArchived).to.deep.equal(["true", "ne"]);
       const archived = await applyArchiveFilter(
         controller,
         listContext("showArchived=true"),
@@ -308,7 +308,7 @@ describe("[unit] TableView row rules are those of the controller's writing table
         new Set(["*"]),
         {},
       );
-      expect(archived?.isArchived).to.deep.equal([true, "eq"]);
+      expect(archived?.isArchived).to.deep.equal(["true", "eq"]);
     });
 
     it("lets such a row be archived and edited, not restored or deleted for good", () => {

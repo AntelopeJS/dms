@@ -125,13 +125,11 @@ async function buildIdsExportQuery(
     );
     const archiveConstraint = filtersWithArchive?.[archiveField];
     if (archiveConstraint) {
-      const archiveValue = archiveConstraint[0];
-
       const isNotEqual = archiveConstraint[1] === "ne";
       query = query.filter((row: ValueProxy<RowFields>) =>
         isNotEqual
-          ? row.key(archiveField).ne(archiveValue)
-          : row.key(archiveField).eq(archiveValue),
+          ? row.key(archiveField).ne(true)
+          : row.key(archiveField).eq(true),
       );
     }
   }
