@@ -141,6 +141,28 @@ function forbiddenIn(markup: string, css: string): string[] {
   ];
 }
 
+function htmlRefusals(html: string): string[] {
+  return forbiddenIn(html, cssInHtml(html));
+}
+
+function cssRefusals(css: string): string[] {
+  return forbiddenIn(css, css);
+}
+
+/**
+ * What a sketch holds that its frame may not load or link: one description per
+ * rule it breaks, empty when the sketch is static HTML and CSS. The CSS of
+ * `css` and of the `<style>` elements and `style` attributes of `html` is read
+ * with its escapes decoded. This module needs only `zod`, so a process without
+ * the AntelopeJS runtime can require it as `@antelopejs/dms/sketch`.
+ */
+export function sketchRefusals(sketch: {
+  html: string;
+  css?: string;
+}): string[] {
+  return [...htmlRefusals(sketch.html), ...cssRefusals(sketch.css ?? "")];
+}
+
 /** `sketch` where `node` sat: its id, slot and span, which its layout path and its parent read. */
 function placed(node: MockupNode, sketch: MockupNode): MockupNode {
   const result: MockupNode = { ...sketch };
@@ -173,11 +195,8 @@ export function compileSketch(
   }
   const { html, css, height, caption } = parsed.data;
   const refusals = [
-    ...forbiddenIn(html, cssInHtml(html)).map((what) => ({
-      field: "html",
-      what,
-    })),
-    ...forbiddenIn(css ?? "", css ?? "").map((what) => ({
+    ...htmlRefusals(html).map((what) => ({ field: "html", what })),
+    ...cssRefusals(css ?? "").map((what) => ({
       field: "css",
       what,
     })),

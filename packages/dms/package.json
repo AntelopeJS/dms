@@ -172,6 +172,10 @@
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json",
+    "./sketch": {
+      "types": "./dist/mockup/sketch.d.ts",
+      "default": "./dist/mockup/sketch.js"
+    },
     "./checks/api-error-presentation": {
       "types": "./checks/api-error-presentation.d.mts",
       "default": "./frontend-vue/scripts/check-api-error-presentation.mjs"
