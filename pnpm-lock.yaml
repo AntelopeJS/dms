@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@antelopejs/interface-dms-builder': file:.tgz-deps/antelopejs-interface-dms-builder-2e5218a.tgz
-
 importers:
 
   .:
@@ -81,8 +78,8 @@ importers:
         specifier: '>=0.13.0 <0.14.0'
         version: link:../interface-dms
       '@antelopejs/interface-dms-builder':
-        specifier: file:../../.tgz-deps/antelopejs-interface-dms-builder-2e5218a.tgz
-        version: file:.tgz-deps/antelopejs-interface-dms-builder-2e5218a.tgz(@antelopejs/interface-core@0.5.1)
+        specifier: '>=0.4.1 <0.5.0'
+        version: link:../interface-dms-builder
       '@antelopejs/interface-email':
         specifier: '>=0.0.6 <1.0.0'
         version: 0.0.6(@antelopejs/interface-core@0.5.1)
@@ -684,12 +681,6 @@ packages:
     resolution: {integrity: sha512-cRi62vJRT3bTylFLMIom0aG3c6PImqV4vo/GYRMI1D8JYp4Sf+GbkslBELbjGS7WGwOt+iLpt8LCRh1V6JTToQ==}
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
-
-  '@antelopejs/interface-dms-builder@file:.tgz-deps/antelopejs-interface-dms-builder-2e5218a.tgz':
-    resolution: {integrity: sha512-AxwEYPU890Ffu/75sST0L509VM/mRLtsar1kunO74fjiQIEPOTPMVxxvYM+9WSMKI7INFiD1PzfuU6VgzlagGA==, tarball: file:.tgz-deps/antelopejs-interface-dms-builder-2e5218a.tgz}
-    version: 0.5.0
-    peerDependencies:
-      '@antelopejs/interface-core': '>=0.5.1 <1.0.0'
 
   '@antelopejs/interface-email@0.0.6':
     resolution: {integrity: sha512-GpMv5SQoWKQlxJTsHqMzljJCFKoRnHqLR+OmxaYmsxw0ur9Lzugq+oZpXnUnzaxAG1VX3MiNFrD3CT4BorgYDQ==}
@@ -7023,10 +7014,6 @@ snapshots:
     dependencies:
       '@antelopejs/interface-core': 0.5.1
     optional: true
-
-  '@antelopejs/interface-dms-builder@file:.tgz-deps/antelopejs-interface-dms-builder-2e5218a.tgz(@antelopejs/interface-core@0.5.1)':
-    dependencies:
-      '@antelopejs/interface-core': 0.5.1
 
   '@antelopejs/interface-email@0.0.6(@antelopejs/interface-core@0.5.1)':
     dependencies:

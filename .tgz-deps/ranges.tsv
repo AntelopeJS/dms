@@ -1,3 +1,0 @@
-@antelopejs/interface-dms-builder	packages/dms/package.json	dependencies	>=0.5.0 <0.6.0
-@antelopejs/interface-dms-builder	package.json	pnpm.overrides	
-@antelopejs/interface-dms-builder	pnpm-workspace.yaml	overrides	
