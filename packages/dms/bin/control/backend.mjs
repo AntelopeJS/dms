@@ -47,7 +47,7 @@ export function assertForwardedRun(state) {
  * so a restart inside a journey keeps the mode the journey asked for.
  *
  * @param {RunState} state The run
- * @param {{ playground: string, cwd: string }} [build] Another build to start
+ * @param {{ playground: string, cwd: string, moduleRoot: string }} [build] Another build to start
  * @returns {Promise<void>} Resolves once the backend answers again
  */
 export async function restartBackend(state, build) {

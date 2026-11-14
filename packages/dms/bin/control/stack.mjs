@@ -265,9 +265,15 @@ const BACKEND_ARGS = {
  * `backend_<suffix>.log`, so two backends that run at once write apart; the
  * first database's is `backend.log`.
  *
+ * A watch backend also gets `DMS_MODULE_ROOT`, the module's folder in the
+ * checkout, for its configuration to load the module from. The run's copy of
+ * that folder only links to the module's files, which Node caches under their
+ * real paths, and a restart drops a module's cached files by its folder: from
+ * the copy, the restarted project would run the first launch's module code.
+ *
  * @param {RunState} state The run
  * @param {string} database The database it serves
- * @param {{ playground?: string, cwd?: string }} [build] Another build to start
+ * @param {{ playground: string, cwd: string, moduleRoot: string }} [build] Another build to start
  * @param {BackendMode} [mode] How it runs, the run's mode by default
  * @returns {Promise<import("./run-state.mjs").BackendRecord>} Its record
  */
@@ -286,7 +292,14 @@ export async function launchBackend(
     [...BACKEND_ARGS[mode]],
     build?.cwd,
   );
-  launch.env = { ...launch.env, PORT: String(port), MONGO_DATABASE: database };
+  launch.env = {
+    ...launch.env,
+    PORT: String(port),
+    MONGO_DATABASE: database,
+    ...(mode === "watch" && {
+      DMS_MODULE_ROOT: build?.moduleRoot ?? state.moduleRoot,
+    }),
+  };
   const backend = {
     ...startDetached(launch),
     name: "backend",
@@ -334,7 +347,7 @@ export function waitForBackend(backend) {
  * `build`, and points the API at it once it answers.
  *
  * @param {RunState} state The run
- * @param {{ playground?: string, cwd?: string }} [build] Another build to start
+ * @param {{ playground: string, cwd: string, moduleRoot: string }} [build] Another build to start
  * @param {BackendMode} [mode] How it runs, the run's mode by default
  * @returns {Promise<void>} Resolves once the API reaches it
  */
