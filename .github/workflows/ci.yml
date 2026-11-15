@@ -1,18 +1,13 @@
 name: ci
 
 on:
-  push:
-    branches:
-      - main
-      - next
-  # No branch filter: the lint wave stacks pull requests on top of each other,
-  # and filtering on `main` left every intermediate step ungated -- only the
-  # secret scanner ran.
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [next]
   schedule:
-    - cron: "17 3 * * *"
-  workflow_dispatch: null
+    - cron: "17 2 * * *"
+  workflow_dispatch:
 permissions:
   contents: read
 
@@ -26,7 +21,7 @@ concurrency:
 # that build rather than compiling it again.
 jobs:
   ci:
-    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v1
+    uses: AntelopeJS/.github/.github/workflows/ci-node.yml@v2
     with:
       docs-files: |
         README.md
@@ -46,7 +41,6 @@ jobs:
         pnpm --dir packages/dms check:frontend-declarations
       renovate-sync: false
       test-job: true
-      windows: true
     permissions:
       contents: read
 
@@ -206,17 +200,17 @@ jobs:
       # check and vue-tsc, in a workspace of its own.
       - run: pnpm --dir packages/dms/frontend-vue typecheck
 
-  # GitOps deploys on a successful `ci` push run on main, so this gate has to
-  # run there. Its Docker build kept every pull request waiting, so pull
-  # requests skip it; a manual run of a branch measures it.
+  # The shipped playground image is checked on every push to next, every
+  # nightly run and every manual run. Its Docker build kept every pull request
+  # waiting, so pull requests skip it.
   docs-playground:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      # This also renders every documentation example in both themes. A broken
-      # preview must fail before the successful main CI event reaches GitOps.
+      # This also renders every documentation example in both themes, so a
+      # broken preview fails here.
       - run: docker build -f Dockerfile.playground -t dms-playground:ci .
       - name: Start the shipped artifacts against a fresh database
         shell: bash
@@ -329,4 +323,4 @@ jobs:
     permissions:
       contents: write
       actions: write
-    uses: AntelopeJS/.github/.github/workflows/ci-renovate-sync.yml@v1
+    uses: AntelopeJS/.github/.github/workflows/ci-renovate-sync.yml@v2

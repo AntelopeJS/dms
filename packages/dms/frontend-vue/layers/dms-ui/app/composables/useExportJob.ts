@@ -171,9 +171,9 @@ function createExportToasts(
   function showFailure(
     toastId: string | number,
     opts: RunExportJobOptions,
-    error: unknown,
+    cause: unknown,
   ): void {
-    presenter.presentError(error, {
+    presenter.presentError(cause, {
       fallbackKey: opts.labels?.errorTitle ?? "dms.table.export.error_title",
       replaceToastId: toastId,
       actions: buildRetryActions(opts, () => toastId),

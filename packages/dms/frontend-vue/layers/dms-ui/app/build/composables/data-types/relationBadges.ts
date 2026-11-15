@@ -11,9 +11,6 @@ export interface RelationBadges {
   hidden: string[];
 }
 
-const textOf = (value: unknown): string =>
-  value === undefined || value === null ? "" : String(value);
-
 /**
  * The text a related row shows: its label, or its key when the label is
  * empty. A raw id (join skipped) is shown as is.
@@ -24,9 +21,9 @@ export function readRelationLabel(
   valueKey = DEFAULT_RELATION_VALUE_KEY,
 ): string {
   if (isObject(item) && item !== null) {
-    return textOf(item[labelKey]) || textOf(item[valueKey]);
+    return String(item[labelKey] ?? "") || String(item[valueKey] ?? "");
   }
-  return textOf(item);
+  return String(item ?? "");
 }
 
 /**

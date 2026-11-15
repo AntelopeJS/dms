@@ -179,6 +179,7 @@ const defaultTimeFormatterOptions: Intl.DateTimeFormatOptions = {
 };
 
 export function formatDate(
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Published auto-import that DMS modules call with untyped cell values; it returns null for any value that is not a date, so narrowing it would break their typecheck.
   date: unknown,
   locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions,

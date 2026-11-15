@@ -13,27 +13,17 @@ export interface ModulesListingError {
 
 export const ENDPOINT_MODULES_LISTING = "/dms/modules-listing";
 
-function numberOrUndefined(value: unknown): number | undefined {
-  return isNumber(value) ? value : undefined;
-}
-
 /** The HTTP status a failed request carries: its response's, else its own. */
-function readStatus(error: unknown): number | undefined {
-  if (error === null || !isObject(error)) return undefined;
-  const { response } = error;
+function readStatus(cause: unknown): number | undefined {
+  if (cause === null || !isObject(cause)) return undefined;
+  const { response } = cause;
   const responseStatus =
-    response !== null && isObject(response)
-      ? numberOrUndefined(response.status)
-      : undefined;
-  return (
-    responseStatus ??
-    numberOrUndefined(error.statusCode) ??
-    numberOrUndefined(error.status)
-  );
+    response !== null && isObject(response) ? response.status : undefined;
+  return [responseStatus, cause.statusCode, cause.status].find(isNumber);
 }
 
-function toListingError(error: unknown): ModulesListingError {
-  const status = readStatus(error);
+function toListingError(cause: unknown): ModulesListingError {
+  const status = readStatus(cause);
   if (status === HTTP_FORBIDDEN) return { kind: "forbidden", status };
   return { kind: "failed", status };
 }

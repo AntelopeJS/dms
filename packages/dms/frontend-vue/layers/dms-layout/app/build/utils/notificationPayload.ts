@@ -1,3 +1,4 @@
+import type { JsonValue } from "#dms-core/app/types/json";
 import {
   isBoolean,
   isNumber,
@@ -71,11 +72,14 @@ export function isIdList(value: unknown): value is string[] {
  * The feed's counts an event carries, or undefined when it carries none. An
  * unknown `unreadTone` is left out, the counts kept.
  */
-export function feedCountsOf(value: unknown): FeedCounts | undefined {
-  if (!isRecord(value)) return undefined;
+export function feedCountsOf(
+  value: JsonValue | undefined,
+): FeedCounts | undefined {
+  if (value === null || !isObject(value)) return undefined;
   const { all, unread, unreadTone } = value;
   if (!isNumber(all) || !isNumber(unread)) return undefined;
-  return isNotificationTone(unreadTone)
-    ? { all, unread, unreadTone }
-    : { all, unread };
+  const tone = NOTIFICATION_TONES.find((candidate) => candidate === unreadTone);
+  return tone === undefined
+    ? { all, unread }
+    : { all, unread, unreadTone: tone };
 }

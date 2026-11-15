@@ -98,12 +98,11 @@ function setStep(step: StoreOperationStep): void {
   if (current) current.step = step;
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Renders a rejected value and the members of AggregateError.errors, which JS lets be any value.
-function describeError(error: unknown): string {
-  if (error instanceof AggregateError && error.errors.length > 0) {
-    return error.errors.map(describeError).join("; ");
+function describeError(cause: unknown): string {
+  if (cause instanceof AggregateError && cause.errors.length > 0) {
+    return cause.errors.map(describeError).join("; ");
   }
-  return error instanceof Error ? error.message : String(error);
+  return cause instanceof Error ? cause.message : String(cause);
 }
 
 async function load(

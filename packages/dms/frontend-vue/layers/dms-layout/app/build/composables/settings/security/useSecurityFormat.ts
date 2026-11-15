@@ -73,16 +73,16 @@ export function useSecurityFormat() {
   };
 
   /**
-   * @param error What `$authFetch` threw
+   * @param cause What `$authFetch` threw
    * @param fallbackKey Message used when the error carries no known code
    */
-  const errorMessage = (error: unknown, fallbackKey: string): string => {
-    return errorPresenter.resolveError(error, { fallbackKey })?.message ?? "";
+  const errorMessage = (cause: unknown, fallbackKey: string): string => {
+    return errorPresenter.resolveError(cause, { fallbackKey })?.message ?? "";
   };
 
   /** @returns The error code (`error.xxx`) the API answered with, if any */
-  const errorCode = (error: unknown): string | undefined =>
-    isCodedFetchError(error) ? error.data : undefined;
+  const errorCode = (cause: unknown): string | undefined =>
+    isCodedFetchError(cause) ? cause.data : undefined;
 
   return {
     formatDate,

@@ -3,6 +3,7 @@ import net from "node:net";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { expect } from "chai";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import {
   ConfigureProject,
@@ -82,7 +83,7 @@ describe("checking a database connection", () => {
     const server = await listen();
     try {
       const url = `postgres://u:${SECRET}@127.0.0.1:${server.port}/db`;
-      const bad = [
+      const bad: JsonValue[] = [
         {},
         { engine: "postgres" },
         { url },

@@ -1,3 +1,4 @@
+import type { JsonValue } from "../../../../dms-core/app/types/json";
 import {
   isObject,
   isString,
@@ -35,7 +36,9 @@ type StoredHistory = Record<ModuleHistoryEntry["moduleId"], StoredVisit>;
  * malformed: a hand-edited cookie or an older shape must never break the
  * modules page or the command palette.
  */
-function normalizeHistory(raw: unknown): StoredHistory {
+function normalizeHistory(
+  raw: JsonValue | StoredHistory | undefined,
+): StoredHistory {
   if (raw === null || !isObject(raw) || Array.isArray(raw)) return {};
   const result: StoredHistory = {};
   for (const [moduleId, value] of Object.entries(raw)) {

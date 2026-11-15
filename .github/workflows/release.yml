@@ -1,16 +1,25 @@
-name: Release DMS module
+name: Release
 
 on:
+  push:
+    branches: [next]
   workflow_dispatch:
     inputs:
-      channel:
-        description: npm distribution channel
-        required: true
-        default: latest
-        type: choice
-        options: [latest, next]
       release-version:
-        description: Exact stable version; empty uses the automatic increment
+        description: Stable version to release, set by the release train
+        required: false
+        type: string
+      release-commit:
+        description: Commit SHA to release, set by the release train
+        required: false
+        type: string
+      dependency-ranges:
+        description: JSON object of stable ranges that replace preview pins, set by the release train
+        required: false
+        default: "{}"
+        type: string
+      package-directory:
+        description: Directory of the package to release, set by the release train
         required: false
         type: string
 
@@ -19,81 +28,35 @@ permissions:
   id-token: write
 
 jobs:
-  validate:
-    name: Validate module release metadata
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-      - name: Validate release source and package metadata
-        env:
-          CHANNEL: ${{ inputs.channel }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          case "$CHANNEL" in
-            latest) release_branch=$DEFAULT_BRANCH ;;
-            next) release_branch=next ;;
-            *) exit 1 ;;
-          esac
-          test "$GITHUB_REF" = "refs/heads/$release_branch"
-          node --input-type=module <<'NODE'
-          import { readFileSync } from 'node:fs'
-          const pkg = JSON.parse(readFileSync('./packages/dms/package.json', 'utf8'))
-          const inTree = ['@antelopejs/interface-dms', '@antelopejs/interface-dms-builder']
-          if (
-            pkg.name !== '@antelopejs/dms' ||
-            pkg.private === true ||
-            pkg.license !== 'Apache-2.0' ||
-            pkg.repository.url !== 'git+https://github.com/AntelopeJS/dms.git' ||
-            pkg.publishConfig.registry !== 'https://registry.npmjs.org/' ||
-            pkg.publishConfig.access !== 'public' ||
-            pkg.publishConfig.provenance !== true ||
-            !pkg.antelopeJs.implements.includes('@antelopejs/interface-dms') ||
-            !pkg.antelopeJs.implements.every((name) => inTree.includes(name))
-          ) process.exit(1)
-          NODE
-      # The runtime implements both in-tree interfaces, so each range must admit
-      # the version in the tree and stop below its next minor.
-      - name: Validate the interface ranges
-        run: |
-          for name in interface-dms interface-dms-builder; do
-            version=$(node -p "require('./packages/$name/package.json').version")
-            range=$(node -p "require('./packages/dms/package.json').dependencies['@antelopejs/$name']")
-            next_minor=$(npx --yes semver@7 -i minor "$version")
-            npx --yes semver@7 -r "$range" "$version" >/dev/null
-            if npx --yes semver@7 -r "$range" "$next_minor" >/dev/null; then exit 1; fi
-          done
-      # A module released while an interface it depends on has unreleased source
-      # points at a published interface that lacks what the module calls. Release
-      # the interface first.
-      - name: Refuse unreleased interface source
-        run: |
-          node --input-type=module <<'NODE'
-          import { unreleasedInterfaces } from './checks/unreleased-interfaces.mjs'
-          const unreleased = unreleasedInterfaces('.')
-          for (const { name, reason } of unreleased) console.error(`${name}: ${reason}`)
-          if (unreleased.length > 0) process.exit(1)
-          NODE
-      # The module is built and tested against the in-tree interfaces, so a
-      # module released before one of them is published installs broken. The
-      # interfaces are released by their own workflow; this one only refuses to
-      # run before they have landed.
-      - name: Verify the interface releases it will point at
-        run: |
-          for dir in packages/interface-dms packages/interface-dms-builder; do
-            spec=$(node -p "const p = require('./$dir/package.json'); p.name + '@' + p.version")
-            npm view "$spec" version --registry=https://registry.npmjs.org/
-          done
-  release:
-    needs: validate
-    uses: AntelopeJS/.github/.github/workflows/release-npm-public.yml@492c1f55e32fa1b7bd2c5a65a1714498930d9e20
+  release-packages-dms:
+    if: github.event_name == 'push' || inputs.package-directory == 'packages/dms'
+    uses: AntelopeJS/.github/.github/workflows/release-npm-public.yml@v2
     with:
-      channel: ${{ inputs.channel }}
       release-version: ${{ inputs.release-version }}
+      release-commit: ${{ inputs.release-commit }}
+      dependency-ranges: ${{ inputs.dependency-ranges }}
       package-directory: packages/dms
+    secrets:
+      RELEASE_GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+
+  release-packages-interface-dms:
+    if: github.event_name == 'push' || inputs.package-directory == 'packages/interface-dms'
+    uses: AntelopeJS/.github/.github/workflows/release-npm-public.yml@v2
+    with:
+      release-version: ${{ inputs.release-version }}
+      release-commit: ${{ inputs.release-commit }}
+      dependency-ranges: ${{ inputs.dependency-ranges }}
+      package-directory: packages/interface-dms
+    secrets:
+      RELEASE_GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+
+  release-packages-interface-dms-builder:
+    if: github.event_name == 'push' || inputs.package-directory == 'packages/interface-dms-builder'
+    uses: AntelopeJS/.github/.github/workflows/release-npm-public.yml@v2
+    with:
+      release-version: ${{ inputs.release-version }}
+      release-commit: ${{ inputs.release-commit }}
+      dependency-ranges: ${{ inputs.dependency-ranges }}
+      package-directory: packages/interface-dms-builder
     secrets:
       RELEASE_GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
