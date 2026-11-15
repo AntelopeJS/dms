@@ -83,6 +83,7 @@
     "@eslint/js": "^8.57.0",
     "@inertiajs/vue3": "^3.7.0",
     "@nuxt/ui": "4.10.0",
+    "@types/eslint": "^8.56.12",
     "@types/jsonwebtoken": "^9.0.10",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
