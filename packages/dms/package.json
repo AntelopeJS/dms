@@ -142,7 +142,7 @@
   "devDependencies": {
     "@antelopejs/api": "~1.7.0",
     "@antelopejs/core": "~1.23.0",
-    "@antelopejs/tooling-configs": "^0.5.3",
+    "@antelopejs/tooling-configs": ">=0.7.2 <0.8.0",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
     "@types/jsdom": "^28.0.3",

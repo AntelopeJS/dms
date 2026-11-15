@@ -12,8 +12,8 @@ importers:
         specifier: ~1.23.3
         version: 1.23.3
       '@antelopejs/tooling-configs':
-        specifier: ^0.5.3
-        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
+        specifier: '>=0.7.2 <0.8.0'
+        version: 0.7.2(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
       dependency-cruiser:
         specifier: ^18.7.0
         version: 18.7.0
@@ -154,8 +154,8 @@ importers:
         specifier: ~1.23.0
         version: 1.23.3
       '@antelopejs/tooling-configs':
-        specifier: ^0.5.3
-        version: 0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
+        specifier: '>=0.7.2 <0.8.0'
+        version: 0.7.2(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
       '@types/archiver':
         specifier: ^6.0.4
         version: 6.0.4
@@ -703,8 +703,8 @@ packages:
     peerDependencies:
       '@antelopejs/interface-core': '>=0.2.4 <1.0.0'
 
-  '@antelopejs/tooling-configs@0.5.3':
-    resolution: {integrity: sha512-FDvEVT6JSf8EFlcRjc8d2ckJ2sdDwAkdSgvJ4bq6Ab9IEjFJ/mM4k8Q87Op4v0ahUgx3L6B8Qt/LcZIapF+O1A==}
+  '@antelopejs/tooling-configs@0.7.2':
+    resolution: {integrity: sha512-gYFZesinVKPlz8cekN0SBJJ6YdxP24qtlSITo4I5OMjmg5bfLP0inoaK5uWQ4KXbUqxhaKXpJzrV7HEHNG2W3g==}
     engines: {node: '>=22.18.0'}
     hasBin: true
     peerDependencies:
@@ -2972,6 +2972,10 @@ packages:
   '@typescript-eslint/visitor-keys@8.68.0':
     resolution: {integrity: sha512-YR65gGdGvTUAWLldC3xLOvOzamdGzB4A5/N8rehEaHs3Zvoe39BhgY+u0SPch1OvrVTfLcc55wsSgK2NcnTS/A==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript/typescript6@6.0.2':
+    resolution: {integrity: sha512-mbCddXd+jm7hfx7w2YU64/Av4/NqqeG3GoRZgxPcgoTxYjhrcfJRw9ULch71SS4G+Q3bOXFhRvPqjguN0Hyp5w==}
+    hasBin: true
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
@@ -7046,12 +7050,13 @@ snapshots:
       - supports-color
     optional: true
 
-  '@antelopejs/tooling-configs@0.5.3(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)':
+  '@antelopejs/tooling-configs@0.7.2(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)':
     dependencies:
       '@oxlint/plugins': 1.81.0
+      '@typescript/typescript6': 6.0.2
       dts-bundle-generator: 9.5.1
       minimatch: 10.2.6
-      typescript: 5.9.3
+      semver: 7.8.5
       yaml: 2.9.1
     optionalDependencies:
       knip: 6.34.0
@@ -9233,6 +9238,10 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.68.0
       eslint-visitor-keys: 5.0.1
+
+  '@typescript/typescript6@6.0.2':
+    dependencies:
+      '@typescript/old': typescript@6.0.3
 
   '@ungap/structured-clone@1.3.0': {}
 
