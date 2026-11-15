@@ -282,37 +282,23 @@ interface ControllerChoice {
   reason?: string;
 }
 
-function defaultDisplay(
-  defaults: DisplayDefaults | undefined,
-  field: MappedField,
-  declared: string,
-): ColumnDisplay | undefined {
-  const fallback =
-    defaults?.kind === "mapped"
-      ? defaults.displays.get(field.column)
-      : defaults?.propose(field.column, declared);
-  return fallback && suits(fallback, declared) ? fallback : undefined;
-}
-
 /**
  * The display of a column: the one sent, none for null, and for a field that left it out the one
- * its relation held before or the rules propose, when it suits the declaration. A price sent
- * without a currency takes the currency of that default price.
+ * its relation held before or the rules propose, when it suits the declaration.
  */
 function displayOf(
   defaults: DisplayDefaults | undefined,
   field: MappedField,
   declared: string,
 ): ColumnDisplay | undefined {
-  const sent = field.display;
-  if (sent === undefined) {
-    return defaultDisplay(defaults, field, declared);
+  if (field.display !== undefined) {
+    return field.display ?? undefined;
   }
-  if (sent?.kind !== "price" || sent.currency !== undefined) {
-    return sent ?? undefined;
-  }
-  const fallback = defaultDisplay(defaults, field, declared);
-  return fallback?.kind === "price" ? fallback : sent;
+  const fallback =
+    defaults?.kind === "mapped"
+      ? defaults.displays.get(field.column)
+      : defaults?.propose(field.column, declared);
+  return fallback && suits(fallback, declared) ? fallback : undefined;
 }
 
 /**

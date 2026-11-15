@@ -40,17 +40,9 @@ export type DisplayDefaults =
       propose: (column: string, declared: string) => ColumnDisplay | undefined;
     };
 
-/**
- * Whether a field is one a default can reach: it left its `display` out, or sent a price without
- * its currency, and is not a relation.
- */
+/** Whether a field is one a default can reach: it left its `display` out and is not a relation. */
 function takesDefault(field: MappedResource["fields"][number]): boolean {
-  const { display } = field;
-  return (
-    (display === undefined ||
-      (display?.kind === "price" && display.currency === undefined)) &&
-    field.relation === undefined
-  );
+  return field.display === undefined && field.relation === undefined;
 }
 
 async function profileOf(

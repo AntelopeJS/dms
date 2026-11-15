@@ -401,10 +401,13 @@ export function answerStatus(body: QueryResponseBody): "ok" | "empty" | "zero" {
     return items.length === 0 ? "empty" : "ok";
   }
   if (Array.isArray(series)) {
-    if (series.length === 0) {
+    const points = series.flatMap((entry): unknown[] =>
+      isPlainObject(entry) && Array.isArray(entry.data) ? entry.data : [entry],
+    );
+    if (points.length === 0) {
       return "empty";
     }
-    return series.every((point) => !(isPlainObject(point) && point.y))
+    return points.every((point) => !(isPlainObject(point) ? point.y : point))
       ? "zero"
       : "ok";
   }

@@ -127,7 +127,7 @@ const MAPPED_FIELD = z.object({
           .regex(/^[A-Z]{3}$/)
           .optional()
           .describe(
-            "ISO 4217 code of the amount (`USD`). Left out, the Builder reads it from the column comment or a one-value currency column, else amounts show in euros.",
+            "ISO 4217 code of the amount (`USD`). Left out, the column keeps the price the relation's mapping holds or its analysis proposes, with the currency the Builder read from the column comment or a one-value currency column; with no such price, it is written plain. Send a code to write a price neither holds.",
           ),
       }),
     ])
@@ -253,10 +253,14 @@ const MAP_RESOURCES_INPUT = z.object({
 type SentDisplay = z.infer<typeof MAPPED_FIELD>["display"];
 type SentResource = z.infer<typeof MAPPED_RESOURCE>;
 
-/** A badge sent without its items is the one the Builder reads itself: left out. */
+/**
+ * A badge sent without its items, or a price without its currency, is the display the Builder
+ * reads itself: left out.
+ */
 function displayInput(display: SentDisplay): ColumnDisplay | null | undefined {
-  if (display === undefined || display === null || display.kind === "price") {
-    return display;
+  if (display === undefined || display === null) return display;
+  if (display.kind === "price") {
+    return display.currency === undefined ? undefined : display;
   }
   return display.items === undefined
     ? undefined
