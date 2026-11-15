@@ -38,7 +38,9 @@ import {
   applyArchiveFilter,
   buildFilteredQuery,
   countWithSearch as countWithSearchFunc,
+  type ListScope,
   listWithSearch as listWithSearchFunc,
+  resolveListScope,
 } from "./search-route";
 import {
   fetchRowForGuard as fetchRowForGuardHelper,
@@ -104,39 +106,55 @@ function getPluckFields(
   return pluckFields;
 }
 
-async function buildIdsExportQuery(
+/** The rows an export names by id, and the archive view the user may see of them. */
+interface IdsExportScope {
+  model: ReturnType<typeof Query.GetModel>;
+  ids: string[];
+  idField: string;
+  archive: { field: string; isNotEqual: boolean } | undefined;
+}
+
+async function resolveIdsExportScope(
   controller: DataControllerInstance,
   controllerMetadata: DataAPIMeta,
   ctx: RequestContext,
   ids: string[],
   user: User | undefined,
-) {
+): Promise<IdsExportScope> {
   const model = Query.GetModel(controller, controllerMetadata);
   const tableViewMetadata = getTableViewMetaFor(controller);
   const idField = tableViewMetadata.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
   const archiveField = tableViewMetadata.archiveField;
-
-  let query = model.table.getAll(ids, idField);
-
-  if (archiveField) {
-    const filtersWithArchive = await applyArchiveFilter(
-      controller,
-      ctx,
-      user,
-      undefined,
-      undefined,
-    );
-    const archiveConstraint = filtersWithArchive?.[archiveField];
-    if (archiveConstraint) {
-      const isNotEqual = archiveConstraint[1] === "ne";
-      query = query.filter((row: ValueProxy<StoredRow>) =>
-        isNotEqual
-          ? row.key(archiveField).ne(true)
-          : row.key(archiveField).eq(true),
-      );
-    }
+  if (!archiveField) {
+    return { model, ids, idField, archive: undefined };
   }
+  const filtersWithArchive = await applyArchiveFilter(
+    controller,
+    ctx,
+    user,
+    undefined,
+    undefined,
+  );
+  const archiveConstraint = filtersWithArchive?.[archiveField];
+  return {
+    model,
+    ids,
+    idField,
+    archive: archiveConstraint
+      ? { field: archiveField, isNotEqual: archiveConstraint[1] === "ne" }
+      : undefined,
+  };
+}
 
+function buildIdsExportQuery({ model, ids, idField, archive }: IdsExportScope) {
+  let query = model.table.getAll(ids, idField);
+  if (archive) {
+    query = query.filter((row: ValueProxy<StoredRow>) =>
+      archive.isNotEqual
+        ? row.key(archive.field).ne(true)
+        : row.key(archive.field).eq(true),
+    );
+  }
   return { query, queryTotal: query.count(), model, mergedBy: undefined };
 }
 
@@ -150,24 +168,48 @@ interface ExportQueryInput {
   user: User | undefined;
 }
 
-async function buildExportQuery({
+/** What an export reads, its filters resolved: the rows its ids name, or the rows its list request selects. */
+type ExportScope =
+  | { kind: "ids"; scope: IdsExportScope }
+  | { kind: "list"; scope: ListScope };
+
+async function resolveExportScope({
   controller,
   controllerMetadata,
   ctx,
   listParams,
   ids,
   user,
-}: ExportQueryInput) {
+}: ExportQueryInput): Promise<ExportScope> {
   if (ids && ids.length > 0) {
-    return buildIdsExportQuery(controller, controllerMetadata, ctx, ids, user);
+    return {
+      kind: "ids",
+      scope: await resolveIdsExportScope(
+        controller,
+        controllerMetadata,
+        ctx,
+        ids,
+        user,
+      ),
+    };
   }
+  return {
+    kind: "list",
+    scope: await resolveListScope(controller, ctx, listParams, user),
+  };
+}
 
-  const built = await buildFilteredQuery(controller, ctx, listParams, user);
+/** The unrun queries an export pages through: its rows, their count, and the filters and sort its pages keep. */
+function buildExportQuery(scope: ExportScope) {
+  if (scope.kind === "ids") {
+    return buildIdsExportQuery(scope.scope);
+  }
+  const built = buildFilteredQuery(scope.scope);
   return {
     query: built.query,
     queryTotal: built.queryTotal,
     model: built.model,
-    mergedBy: { filters: built.filters, sortKey: listParams.sortKey },
+    mergedBy: { filters: built.filters, sortKey: scope.scope.params.sortKey },
   };
 }
 
@@ -222,14 +264,16 @@ export async function generateTableViewExport({
 
   writer.writeHeaders(headers);
 
-  const { query, queryTotal, model, mergedBy } = await buildExportQuery({
-    controller,
-    controllerMetadata,
-    ctx,
-    listParams,
-    ids,
-    user,
-  });
+  const { query, queryTotal, model, mergedBy } = buildExportQuery(
+    await resolveExportScope({
+      controller,
+      controllerMetadata,
+      ctx,
+      listParams,
+      ids,
+      user,
+    }),
+  );
 
   const totalRecordsCount = await queryTotal.run();
 

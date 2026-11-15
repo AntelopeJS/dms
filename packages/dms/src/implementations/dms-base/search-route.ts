@@ -262,17 +262,28 @@ function applyIdsRestriction(
   );
 }
 
-export async function buildFilteredQuery(
+/** What a list request reads, its filters resolved, the archive view the user may see included. */
+export interface ListScope {
+  thisObj: DataControllerInstance;
+  reqCtx: RequestContext;
+  params: Parameters.ListParameters;
+  meta: DataAPIMeta;
+  model: ReturnType<typeof Query.GetModel>;
+  filters: Parameters.ListParameters["filters"];
+}
+
+/** The scope of a list request: the controller's model and the filters it resolves, archive view included. */
+export async function resolveListScope(
   thisObj: DataControllerInstance,
   reqCtx: RequestContext,
   params: Parameters.ListParameters,
   user?: User,
   permissions?: Set<string>,
-) {
+): Promise<ListScope> {
   const meta = GetDataControllerMeta(thisObj);
   const model = Query.GetModel(thisObj, meta);
 
-  const filtersWithArchive = await applyArchiveFilter(
+  const filters = await applyArchiveFilter(
     thisObj,
     reqCtx,
     user,
@@ -282,7 +293,18 @@ export async function buildFilteredQuery(
       now: new Date(),
     }),
   );
+  return { thisObj, reqCtx, params, meta, model, filters };
+}
 
+/** The unrun queries of a list request: the rows its filters and search select, their count, and the joins left to its pages. */
+export function buildFilteredQuery({
+  thisObj,
+  reqCtx,
+  params,
+  meta,
+  model,
+  filters: filtersWithArchive,
+}: ListScope) {
   const sort: globalThis.Parameters<typeof Query.List>[4] = params?.sortKey
     ? [params.sortKey, params.sortDirection]
     : undefined;
@@ -331,12 +353,8 @@ export async function countWithSearch(
   user?: User,
   permissions?: Set<string>,
 ): Promise<SearchCountResult> {
-  const { queryTotal } = await buildFilteredQuery(
-    thisObj,
-    reqCtx,
-    params,
-    user,
-    permissions,
+  const { queryTotal } = buildFilteredQuery(
+    await resolveListScope(thisObj, reqCtx, params, user, permissions),
   );
   const total = await queryTotal.run();
   return { total };
@@ -354,12 +372,8 @@ export async function listWithSearch(
   offset: number;
   limit: number;
 }> {
-  const built = await buildFilteredQuery(
-    thisObj,
-    reqCtx,
-    params,
-    user,
-    permissions,
+  const built = buildFilteredQuery(
+    await resolveListScope(thisObj, reqCtx, params, user, permissions),
   );
   const { meta, model, deferredJoined, filters } = built;
   let { query, queryTotal } = built;
