@@ -1,11 +1,15 @@
 import { HTTP_UNAUTHORIZED } from "../../utils/http-status";
 import { isObject } from "../../utils/type-check";
 import { isJsonValue } from "../../build/utils/json";
+import type { JsonValue } from "../../types/json";
 
-/** Receives decoded data and the frame's id (null if absent, empty if reset). */
+/**
+ * Receives the frame's data, parsed as JSON or kept as its text when it is not
+ * JSON, and the frame's id (null if absent, empty if reset).
+ */
 export type SseEventHandler = (
   eventName: string,
-  data: unknown,
+  data: JsonValue,
   id: string | null,
 ) => void;
 

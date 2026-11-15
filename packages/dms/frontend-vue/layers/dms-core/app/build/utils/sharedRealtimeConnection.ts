@@ -17,6 +17,7 @@ import {
   whenReleased,
 } from "./crossTab";
 import { isRecord } from "./record";
+import { isJsonValue } from "./json";
 
 /**
  * The realtime connection one browser shares between its tabs: the elected tab
@@ -47,7 +48,7 @@ interface FrameMessage {
   /** Unset on a frame of the connection itself, which every tab receives. */
   sessionId?: string;
   event: string;
-  data: unknown;
+  data: Parameters<SseEventHandler>[1];
 }
 
 /** A tab joining asks the leader for the connection it holds. */
@@ -99,7 +100,8 @@ function isHubMessage(value: unknown): value is HubMessage {
       return (
         isString(value.connectionId) &&
         isString(value.event) &&
-        (isUndefined(value.sessionId) || isString(value.sessionId))
+        (isUndefined(value.sessionId) || isString(value.sessionId)) &&
+        isJsonValue(value.data)
       );
     default:
       return false;

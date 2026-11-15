@@ -160,14 +160,16 @@ const isSnapshotEntry = (
 const isSnapshotEvent = (
   eventName: string,
   data: RealtimeFrameData,
-): data is RealtimeSnapshotEvent =>
+): data is RealtimeFrameData & RealtimeSnapshotEvent =>
   eventName === SNAPSHOT_EVENT &&
   isRecord(data) &&
   isString(data.topic) &&
   Array.isArray(data.entries) &&
   data.entries.every(isSnapshotEntry);
 
-const isRealtimeEvent = (data: RealtimeFrameData): data is RealtimeEvent =>
+const isRealtimeEvent = (
+  data: RealtimeFrameData,
+): data is RealtimeFrameData & RealtimeEvent =>
   !!data &&
   isObject(data) &&
   isString(data.topic) &&

@@ -118,6 +118,29 @@ describe("useUserRealtime across tabs", () => {
   registerSharedConnectionRecoveryTests();
 });
 
+describe("useUserRealtime relaying a frame from another tab", () => {
+  it("drops it when its data is not JSON", async () => {
+    const [, follower] = await openTabs(2);
+    const relay = browser.openTab().environment.createChannel!(
+      `dms-realtime:${BASE_URL}:${USER_ID}`,
+    );
+    const relayFrame = (data: RealtimeEvent) =>
+      relay.postMessage({
+        kind: "frame",
+        connectionId: "connection-1",
+        sessionId: sessionOf(follower!),
+        event: TOPIC,
+        data,
+      });
+
+    relayFrame({ ...eventFor(1), payload: undefined });
+    relayFrame(eventFor(2));
+    await settle();
+
+    expect(follower!.received).toEqual([eventFor(2)]);
+  });
+});
+
 function registerSharedConnectionDeliveryTests() {
   it("shares one connection between every tab, each with a session of its own", async () => {
     const opened = await openTabs(TAB_COUNT);
