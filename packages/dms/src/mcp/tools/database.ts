@@ -5,6 +5,7 @@ import {
   catalogOf,
   listCatalogConnections,
 } from "../../implementations/dms-builder/engine/catalog-connection";
+import { redactProfile } from "../redact";
 import { defineTool, type McpToolResult, textResult } from "../tool";
 import { opResult } from "./builder-shared";
 
@@ -114,7 +115,7 @@ const profile = defineTool({
   name: "database_profile",
   title: "Profile a database relation",
   description:
-    "Profiles one relation with aggregates only, without writing: rows, and per column nulls, distinct, numeric/date/enum ranges, months, categories (values of few-valued columns, each seen at least 5 times) and text lengths, with traits (enum-like, identifier-like, label-candidate, time-axis, measure); children per parent over each declared reference. A measure past its time answers `timeout`. Large relations are sampled. `references` checks columns that look like references the database does not declare: containment of their values in the target column, and whether the target is a key.",
+    "Profiles the shape of one relation, without writing and without any value from its rows: rows, and per column nulls, distinct, `months` (how many calendar months hold rows), `categories` (for a few-valued column, `rows` per category, each seen at least 5 times, and `other`; never the values) and text lengths in characters, with traits (enum-like, identifier-like, label-candidate, time-axis, measure); children per parent over each declared reference. A measure past its time answers `timeout`. Large relations are sampled. `references` checks columns that look like references the database does not declare: the share of their values the target column holds, and whether the target is a key.",
   effect: "read",
   input: z.object({
     connection: CONNECTION,
@@ -130,7 +131,7 @@ const profile = defineTool({
         profile:
           relation === undefined
             ? undefined
-            : await catalog.Profile({ relation, columns }),
+            : redactProfile(await catalog.Profile({ relation, columns })),
         references: await Promise.all(
           (references ?? []).map((check) => catalog.CheckReference(check)),
         ),

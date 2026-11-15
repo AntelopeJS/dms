@@ -284,6 +284,13 @@ function extendsAPageAndPreviewsQueries(): void {
     expect(answerStatus({ value: 0 })).to.equal("zero");
     expect(answerStatus({ value: 4, sparkline: [] })).to.equal("ok");
     expect(answerStatus({ series: [{ x: "a", y: 3 }] })).to.equal("ok");
+    const card = (data: { x: string; y: number }[]) => ({
+      value: 12,
+      series: [{ name: "Revenue", data }],
+    });
+    expect(answerStatus(card([{ x: "a", y: 5 }]))).to.equal("ok");
+    expect(answerStatus(card([{ x: "a", y: 0 }]))).to.equal("zero");
+    expect(answerStatus(card([]))).to.equal("empty");
   });
 }
 

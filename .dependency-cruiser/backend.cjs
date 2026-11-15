@@ -41,6 +41,7 @@ const faces = new Map(
       "log-buffer",
       "project-files",
       "protocol",
+      "redact",
       "route",
       "tool",
     ],

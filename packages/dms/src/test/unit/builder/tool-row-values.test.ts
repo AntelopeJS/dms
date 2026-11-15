@@ -1,0 +1,258 @@
+import path from "node:path";
+import { ImplementInterface } from "@antelopejs/interface-core";
+import type {
+  MeasureValue,
+  RelationDescription,
+  RelationProfile,
+} from "@antelopejs/interface-database-catalog";
+import type { JsonValue } from "@antelopejs/interface-dms/json";
+import * as Builder from "@antelopejs/interface-dms-builder";
+import { expect } from "chai";
+import { z } from "zod";
+import * as implementation from "../../../implementations/dms-builder";
+import {
+  setCatalogConnectionsForTests,
+  setModuleReloadForTests,
+} from "../../../implementations/dms-builder/engine";
+import { mockupTool, run } from "../../helpers/mockup-mcp";
+import { Column, INFO, Relation } from "./analysis-catalog";
+import { createFixture, destroyFixture, type Fixture } from "./harness";
+import { projectFile } from "./helpers/project-files";
+import { MODULE, OP_TIMEOUT } from "./mapped-database";
+import { reloadedAtOnce } from "./reload-stub";
+
+const CONNECTION = "erp";
+const ORDERS = "erp.orders";
+
+/** Every value the rows of `erp.orders` hold that a profile reads, and the labels made of them. */
+const ROW_VALUES = [
+  "zq_paid",
+  "zq_held",
+  "zq_void",
+  "Zq paid",
+  "Zq held",
+  "Zq void",
+  "JPY",
+  "4471.5",
+  "9901.25",
+  "1987-03-14",
+  "2031-09-02",
+  "2031-07",
+  "2031-09",
+];
+
+function ok<T>(value: T): MeasureValue<T> {
+  return { status: "ok", value };
+}
+
+const DESCRIPTIONS: RelationDescription[] = [
+  Relation({
+    relation: ORDERS,
+    key: ["id"],
+    columns: [
+      Column("id", "string", { nullable: false }),
+      Column("status", "string"),
+      Column("currency", "string"),
+      Column("total", "number"),
+      Column("placed_at", "date"),
+    ],
+  }),
+];
+
+const PROFILE: RelationProfile = {
+  relation: ORDERS,
+  rows: ok({ rows: 10, exact: true }),
+  sample: null,
+  columns: [
+    {
+      name: "id",
+      traits: ["identifier-like"],
+      nulls: ok(0),
+      distinct: ok(10),
+    },
+    {
+      name: "status",
+      traits: ["enum-like"],
+      nulls: ok(0),
+      distinct: ok(3),
+      length: ok({ min: 7, avg: 7, max: 7 }),
+      categories: ok({
+        values: [
+          { value: "zq_paid", rows: 5 },
+          { value: "zq_held", rows: 3 },
+          { value: "zq_void", rows: 2 },
+        ],
+        other: 0,
+      }),
+    },
+    {
+      name: "currency",
+      traits: ["enum-like"],
+      nulls: ok(0),
+      distinct: ok(1),
+      categories: ok({ values: [{ value: "JPY", rows: 10 }], other: 0 }),
+    },
+    {
+      name: "total",
+      traits: ["measure"],
+      nulls: ok(0),
+      range: ok({ min: 4471.5, max: 9901.25 }),
+    },
+    {
+      name: "placed_at",
+      traits: ["time-axis"],
+      nulls: ok(0),
+      range: ok({
+        min: "1987-03-14T08:00:00.000Z",
+        max: "2031-09-02T08:00:00.000Z",
+      }),
+      months: ok([
+        { month: "2031-07", rows: 4 },
+        { month: "2031-09", rows: 6 },
+      ]),
+    },
+  ],
+  references: [],
+  inbound: [],
+};
+
+const MAPPED: JsonValue = {
+  module: MODULE,
+  connection: CONNECTION,
+  resources: [
+    {
+      relation: ORDERS,
+      tableView: true,
+      writable: false,
+      fields: [
+        { column: "id" },
+        {
+          column: "status",
+          filterable: true,
+          display: { kind: "badge", values: 3 },
+        },
+        { column: "currency" },
+        { column: "total", display: { kind: "price" } },
+        { column: "placed_at" },
+      ],
+    },
+  ],
+};
+
+const WrittenSchema = z.object({
+  data: z.object({
+    resources: z.array(z.object({ files: z.array(z.string()) })),
+  }),
+});
+
+let app: Fixture;
+
+/** Calls a tool and answers its text, failing on an error answer or on any value of a row. */
+async function valueFree(name: string, args: JsonValue): Promise<string> {
+  const { text, isError } = await run(mockupTool(name), args);
+  expect(isError, text).to.equal(false);
+  for (const value of ROW_VALUES) {
+    expect(text, `${name} answered ${value}`).to.not.include(value);
+  }
+  return text;
+}
+
+/**
+ * The AI gets the shape of a connected database, never its values. Each tool that reads the
+ * database answers with every value above left out; an implementation that passes a profile's
+ * range, category values or months through, or a proposal's badge items or currency, or a written
+ * file's diff, fails here.
+ */
+describe("[unit] the tools that read a connected database answer no value of a row", function () {
+  this.timeout(OP_TIMEOUT);
+
+  before(() => {
+    ImplementInterface(Builder, implementation);
+  });
+
+  beforeEach(() => {
+    app = createFixture({ modules: [MODULE] });
+    setCatalogConnectionsForTests({
+      [CONNECTION]: {
+        async Info() {
+          return INFO;
+        },
+        async ListRelations() {
+          return DESCRIPTIONS;
+        },
+        async DescribeRelations() {
+          return DESCRIPTIONS;
+        },
+        async Profile() {
+          return PROFILE;
+        },
+        async CheckReference() {
+          return ok({
+            containment: 1,
+            checkedRows: 10,
+            sampled: false,
+            targetIsKey: true,
+          });
+        },
+      },
+    });
+    setModuleReloadForTests(reloadedAtOnce);
+  });
+
+  afterEach(() => {
+    setCatalogConnectionsForTests();
+    setModuleReloadForTests();
+    destroyFixture();
+  });
+
+  it("lists, describes and profiles the relation by counts only", async () => {
+    await valueFree("database_relations", { connection: CONNECTION });
+    await valueFree("database_describe", {
+      connection: CONNECTION,
+      relations: [ORDERS],
+    });
+    const profiled = await valueFree("database_profile", {
+      connection: CONNECTION,
+      relation: ORDERS,
+      references: [
+        {
+          from: { relation: ORDERS, column: "currency" },
+          to: { relation: ORDERS, column: "id" },
+        },
+      ],
+    });
+    expect(profiled).to.include('"rows":[5,3,2]');
+    expect(profiled).to.include('"months":{"status":"ok","value":2}');
+  });
+
+  it("proposes a badge and a price without their values", async () => {
+    const analysed = await valueFree("builder_analyse_database", {
+      connection: CONNECTION,
+      module: MODULE,
+    });
+    expect(analysed).to.include('"status":"done"');
+    expect(analysed).to.include('{"kind":"badge","values":3}');
+    expect(analysed).to.include('{"kind":"price"}');
+  });
+
+  it("writes the badge and the currency it reads itself when they are sent back as shown, and answers neither", async () => {
+    await valueFree("builder_analyse_database", {
+      connection: CONNECTION,
+      module: MODULE,
+    });
+    const written = WrittenSchema.parse(
+      JSON.parse(await valueFree("builder_map_resources", MAPPED)),
+    );
+    const code = written.data.resources
+      .flatMap((resource) => resource.files)
+      .map((file) => projectFile(app.root, path.relative(app.root, file)))
+      .join("\n");
+    expect(code).to.include("zq_paid");
+    expect(code).to.include("JPY");
+    const mapping = await valueFree("builder_mapping", {
+      connection: CONNECTION,
+      module: MODULE,
+    });
+    expect(mapping).to.include('{"kind":"badge","values":3}');
+  });
+});

@@ -1,8 +1,10 @@
 import type {
   OperationName,
   Operations,
+  OpResult,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
+import { type RedactedData, redactedResult } from "../redact";
 import { type McpToolResult, textResult } from "../tool";
 
 export type BuilderAnswer = Exclude<
@@ -26,6 +28,14 @@ export function withEscalationNote(description: string): string {
 export function opResult(answer: BuilderAnswer): McpToolResult {
   const failed = "ok" in answer && answer.ok === false;
   return textResult(JSON.stringify(answer), failed);
+}
+
+/** An operation's answer as the AI reads it: `redact` applied to its data, its diffs left out. */
+export function redactedOpResult<T>(
+  answer: OpResult<T>,
+  redact: (data: T) => RedactedData,
+): McpToolResult {
+  return textResult(JSON.stringify(redactedResult(answer, redact)), !answer.ok);
 }
 
 export function refusalResult(code: string, detail: string): McpToolResult {

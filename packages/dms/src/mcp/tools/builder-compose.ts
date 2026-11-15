@@ -1,7 +1,8 @@
 import { ComposePage } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
 import { JsonObjectSchema } from "../json";
-import { defineTool } from "../tool";
+import { redactPreview } from "../redact";
+import { defineTool, type McpToolResult, textResult } from "../tool";
 import {
   containsExprSentinel,
   exprRefusal,
@@ -11,7 +12,7 @@ import {
 import { QUERY_ARGS, QUERY_FIELDS } from "./builder-queries";
 
 const DESCRIPTION =
-  "Builds a whole page, or adds a group of blocks to one, in a single call: the blocks, the queries they read, the layout rows and the page itself when it does not exist yet. One rewrite, one typecheck, and nothing is written when any block is refused; the error names each refused block by JSON pointer into your input (`/blocks/3/children/0/query/params/groupBy`). A data block carries its `query` inline (the builder_add_query fields, `name` defaulting to the block's name): the route it compiles to is written into the block's `fetchUrl` for you, so never pass `fetchUrl` yourself. Containers (`PageToolbar`, `Grid`, `GridRow`, `Section`…) carry their blocks in `children`, and a child sits in its row in order. Pass `preview: true` first to run every query with `args` and read each block's answer without writing: a block whose `status` is `empty` or `zero` would render nothing useful, so fix its query before the writing call. To put blocks above or below a table already on the page (a KPI row above the TableView a mapping wrote), pass `placement: { before: \"table\" }`; a later builder_map_resources keeps them. Use builder_add_block and builder_add_query for a single edit.";
+  "Builds a whole page, or adds a group of blocks to one, in a single call: the blocks, the queries they read, the layout rows and the page itself when it does not exist yet. One rewrite, one typecheck, and nothing is written when any block is refused; the error names each refused block by JSON pointer into your input (`/blocks/3/children/0/query/params/groupBy`). A data block carries its `query` inline (the builder_add_query fields, `name` defaulting to the block's name): the route it compiles to is written into the block's `fetchUrl` for you, so never pass `fetchUrl` yourself. Containers (`PageToolbar`, `Grid`, `GridRow`, `Section`…) carry their blocks in `children`, and a child sits in its row in order. Pass `preview: true` first to run every query with `args` and read each block's `status` and the types its answer holds, never a value, without writing: a block whose `status` is `empty` or `zero` would render nothing useful, so fix its query before the writing call. To put blocks above or below a table already on the page (a KPI row above the TableView a mapping wrote), pass `placement: { before: \"table\" }`; a later builder_map_resources keeps them. Use builder_add_block and builder_add_query for a single edit.";
 
 const BLOCK_QUERY = z.object({
   ...QUERY_FIELDS,
@@ -101,6 +102,21 @@ const PLACEMENT = z
     'Put the new blocks next to the block of this name among the siblings already there (e.g. `{ "before": "table" }`). Omit to append.',
   );
 
+/** The composition's answer, each preview reduced to the types its body holds. */
+function composeResult(
+  answer: Awaited<ReturnType<typeof ComposePage>>,
+): McpToolResult {
+  if (!answer.ok) return opResult(answer);
+  const previews = answer.data.previews.map(({ preview, ...block }) =>
+    preview === undefined
+      ? block
+      : { ...block, preview: redactPreview(preview) },
+  );
+  return textResult(
+    JSON.stringify({ ...answer, data: { ...answer.data, previews } }),
+  );
+}
+
 export const builderComposeTool = defineTool({
   name: "builder_compose_page",
   title: "Compose page",
@@ -135,6 +151,6 @@ export const builderComposeTool = defineTool({
     const input = { page: pageRef, ...rest };
     return containsExprSentinel.parse(input)
       ? exprRefusal()
-      : opResult(await ComposePage(input));
+      : composeResult(await ComposePage(input));
   },
 });

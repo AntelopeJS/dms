@@ -202,7 +202,10 @@ export function captureErrors(
     sink.console.push({ viewport: sink.viewport, text });
   });
   page.on("pageerror", (error) => {
-    sink.console.push({ viewport: sink.viewport, text: error.message });
+    sink.console.push({
+      viewport: sink.viewport,
+      text: `${error.name}: ${error.message}`,
+    });
   });
   page.on("response", (response) => {
     if (response.status() < HTTP_ERROR_STATUS) return;
