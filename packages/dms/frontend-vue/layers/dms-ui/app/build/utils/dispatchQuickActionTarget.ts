@@ -6,20 +6,18 @@ import {
   QUICK_ACTION_QUERY_KEY,
 } from "../../types/quick-actions";
 
-type QuickActionTargetHandler = (
-  target: QuickActionTarget,
-) => Promise<void> | void;
+type QuickActionTargetHandler = (target: QuickActionTarget) => Promise<void>;
 
 const targetHandlers: Record<
   QuickActionTarget["type"],
   QuickActionTargetHandler
 > = {
-  navigate: (target) => {
+  navigate: async (target) => {
     if (target.type !== "navigate") return;
     return navigateDms({ path: target.to, query: target.query });
   },
 
-  openForm: (target) => {
+  openForm: async (target) => {
     if (target.type !== "openForm") return;
     return navigateDms({
       path: target.to,
@@ -29,7 +27,7 @@ const targetHandlers: Record<
       },
     });
   },
-  button: (target) => {
+  button: async (target) => {
     if (target.type !== "button") return;
     return navigateDms({
       path: target.to,
@@ -40,7 +38,7 @@ const targetHandlers: Record<
       },
     });
   },
-  event: (target) => {
+  event: async (target) => {
     if (target.type !== "event") return;
     if (typeof window === "undefined") return;
     window.dispatchEvent(
@@ -53,13 +51,17 @@ const targetHandlers: Record<
  * Runs the client-side behavior a quick action declares through its
  * discriminated `target`: `navigate`, `openForm` and `button` route to the
  * action's page, `event` dispatches a window `CustomEvent` in place for whoever
- * listens.
+ * listens. A navigation that fails is logged, not thrown.
+ *
+ * @returns Whether a handler took the target: false for a type none handles.
  */
-export function dispatchQuickActionTarget(
-  target: QuickActionTarget,
-): Promise<void> | void {
+export function dispatchQuickActionTarget(target: QuickActionTarget): boolean {
   const handler = targetHandlers[target.type];
-  return handler?.(target);
+  if (!handler) return false;
+  handler(target).catch((error: unknown) => {
+    console.error("[dms] Quick action target failed:", error);
+  });
+  return true;
 }
 
 /**
