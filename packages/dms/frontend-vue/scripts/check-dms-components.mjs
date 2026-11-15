@@ -272,7 +272,7 @@ function fileStrings({ file, source }, tools) {
   if (errors.length)
     throw new Error(`Cannot parse ${file}: ${errors.join(", ")}`);
   const scripts = [descriptor.script, descriptor.scriptSetup]
-    .filter((block) => block !== null)
+    .filter((block) => block !== null && block !== undefined)
     .map((block) => ({
       block,
       tree: parseScript(file, block.content, tools.ts),

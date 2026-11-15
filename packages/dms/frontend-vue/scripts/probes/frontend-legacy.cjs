@@ -501,8 +501,8 @@ function runtimeDeclaration(expression) {
     };
     return { status: "evaluated", value: serialize(module.exports) };
   } catch (error) {
-    if (!hasMessage(error)) throw error;
-    return { status: "runtime-unresolved", reason: error.message };
+    const reason = hasMessage(error) ? error.message : undefined;
+    return { status: "runtime-unresolved", reason };
   }
 }
 

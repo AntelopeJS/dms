@@ -110,7 +110,7 @@ export function apiErrorScripts(file, source, tools) {
   if (errors.length)
     throw new Error(`Cannot parse ${file}: ${errors.join(", ")}`);
   return [descriptor.script, descriptor.scriptSetup]
-    .filter((block) => block !== null)
+    .filter((block) => block !== null && block !== undefined)
     .map((block) => ({
       source: block.content,
       offset: block.loc.start.offset,
