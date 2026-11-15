@@ -10,31 +10,45 @@ import { assertDmsComponents } from "./check-dms-components.mjs";
 import "./test-dms-components.mjs";
 import "./check-autoimport-boundaries.mjs";
 import "./test-autoimport-boundaries.mjs";
-import "./check-page-invariants.mjs";
+import { dig } from "./check-page-invariants.mjs";
 import "../../../../checks/notification-tone-contract.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const LAYERS_DIR = join(ROOT, "layers");
 
+const JsonObject = z.record(z.string(), z.unknown());
+const NonBlankText = z.string().regex(/\S/);
+
+/**
+ * @param {string} file
+ * @returns {unknown}
+ */
+function readJson(file) {
+  return JSON.parse(readFileSync(file, "utf8"));
+}
+
 function checkCoreErrorFallback() {
   for (const locale of ["en-GB", "fr-FR"]) {
-    const messages = JSON.parse(
-      readFileSync(
-        join(LAYERS_DIR, `dms-core/i18n/locales/core-${locale}.json`),
-        "utf8",
-      ),
+    const messages = readJson(
+      join(LAYERS_DIR, `dms-core/i18n/locales/core-${locale}.json`),
     );
     assert.ok(
-      messages.error["500"].description.trim(),
+      NonBlankText.safeParse(dig(messages, ["error", "500", "description"]))
+        .success,
       `${locale}: always load error.500.description`,
     );
     assert.ok(
-      messages.error.read_only_demo.trim(),
+      NonBlankText.safeParse(dig(messages, ["error", "read_only_demo"]))
+        .success,
       `${locale}: translate error.read_only_demo`,
     );
   }
 }
 
+/**
+ * @param {string} dir
+ * @returns {string[]}
+ */
 function collectSources(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const file = join(dir, entry.name);
@@ -102,14 +116,11 @@ function checkCompareModeLabels() {
   );
   const missing = [];
   for (const locale of ["en-GB", "fr-FR"]) {
-    const messages = JSON.parse(
-      readFileSync(
-        join(LAYERS_DIR, `dms-ui/i18n/locales/ui-${locale}.json`),
-        "utf8",
-      ),
+    const messages = readJson(
+      join(LAYERS_DIR, `dms-ui/i18n/locales/ui-${locale}.json`),
     );
     for (const mode of modes) {
-      if (!messages.dms.table.compare_mode[mode])
+      if (!dig(messages, ["dms", "table", "compare_mode", mode]))
         missing.push(`${locale}:${mode}`);
     }
   }
@@ -118,30 +129,55 @@ function checkCompareModeLabels() {
 
 function checkFormErrorSummaryLabels() {
   for (const locale of ["en-GB", "fr-FR"]) {
-    const messages = JSON.parse(
-      readFileSync(
-        join(LAYERS_DIR, `dms-ui/i18n/locales/ui-${locale}.json`),
-        "utf8",
-      ),
+    const messages = readJson(
+      join(LAYERS_DIR, `dms-ui/i18n/locales/ui-${locale}.json`),
     );
-    const resolved = messages.dms?.form?.error_summary?.resolved;
+    const resolved = dig(messages, [
+      "dms",
+      "form",
+      "error_summary",
+      "resolved",
+    ]);
     assert.ok(
-      z.string().regex(/\S/).safeParse(resolved).success,
+      NonBlankText.safeParse(resolved).success,
       `${locale}: translate dms.form.error_summary.resolved`,
     );
   }
 }
 
+/**
+ * @param {Record<string, unknown>} messages
+ * @param {string} [prefix]
+ * @returns {string[]}
+ */
 function messageKeys(messages, prefix = "") {
   return Object.entries(messages).flatMap(([key, value]) => {
     const path = prefix ? `${prefix}.${key}` : key;
-    return value !== null && typeof value === "object" && !Array.isArray(value)
-      ? messageKeys(value, path)
-      : [path];
+    const nested = JsonObject.safeParse(value);
+    return nested.success ? messageKeys(nested.data, path) : [path];
   });
 }
 
+/**
+ * @param {string} layer
+ * @param {{ name: string; keys: Set<string> }[]} catalogs
+ * @returns {string[]}
+ */
+function catalogGaps(layer, catalogs) {
+  /** @type {string[]} */
+  const gaps = [];
+  for (const { name, keys } of catalogs) {
+    for (const other of catalogs) {
+      for (const key of other.keys) {
+        if (!keys.has(key)) gaps.push(`${layer}/${name}: ${key}`);
+      }
+    }
+  }
+  return gaps;
+}
+
 function checkLocaleKeyParity() {
+  /** @type {string[]} */
   const gaps = [];
   for (const layer of readdirSync(LAYERS_DIR)) {
     const dir = join(LAYERS_DIR, layer, "i18n/locales");
@@ -150,32 +186,37 @@ function checkLocaleKeyParity() {
       .filter((name) => name.endsWith(".json"))
       .map((name) => ({
         name,
-        keys: new Set(
-          messageKeys(JSON.parse(readFileSync(join(dir, name), "utf8"))),
-        ),
+        keys: new Set(messageKeys(JsonObject.parse(readJson(join(dir, name))))),
       }));
-    for (const { name, keys } of catalogs) {
-      for (const other of catalogs) {
-        for (const key of other.keys) {
-          if (!keys.has(key)) gaps.push(`${layer}/${name}: ${key}`);
-        }
-      }
-    }
+    gaps.push(...catalogGaps(layer, catalogs));
   }
   assert.deepEqual(gaps, [], "Translate every key in every locale of a layer");
 }
 
+/**
+ * @param {string} key
+ * @param {string} source
+ * @returns {string}
+ */
 function staticPrefix(key, source) {
-  const resolved = key.replace(/\$\{(\w+)\}/g, (interpolation, name) => {
-    const declaration = source.match(
-      new RegExp(`\\bconst ${name} = ("[^"]*"|'[^']*'|\`[^\`$]*\`)`),
-    );
-    return declaration ? declaration[1].slice(1, -1) : interpolation;
-  });
+  const resolved = key.replace(
+    /\$\{(\w+)\}/g,
+    /**
+     * @param {string} interpolation
+     * @param {string} name
+     */
+    (interpolation, name) => {
+      const declaration = source.match(
+        new RegExp(`\\bconst ${name} = ("[^"]*"|'[^']*'|\`[^\`$]*\`)`),
+      );
+      return declaration ? declaration[1].slice(1, -1) : interpolation;
+    },
+  );
   return resolved.split("${")[0] ?? "";
 }
 
 function checkAsyncDataKeyOwners() {
+  /** @type {Map<string, Set<string>>} */
   const owners = new Map();
   for (const { file, source } of sources) {
     for (const match of source.matchAll(
@@ -261,6 +302,11 @@ const WINDOWS_PLATFORM = 3;
 const WINDOWS_UNICODE_BMP = 1;
 const SEGMENT_MAPPING_FORMAT = 4;
 
+/**
+ * @param {Buffer} data
+ * @param {{ at: number }} cursor
+ * @returns {number}
+ */
 function readBase128(data, cursor) {
   let value = 0;
   for (;;) {
@@ -271,6 +317,10 @@ function readBase128(data, cursor) {
   }
 }
 
+/**
+ * @param {Buffer} file
+ * @returns {Buffer}
+ */
 function readCmap(file) {
   const numTables = file.readUInt16BE(NUM_TABLES_OFFSET);
   const cursor = { at: HEADER_SIZE };
@@ -300,6 +350,11 @@ function readCmap(file) {
   throw new Error("no cmap table");
 }
 
+/**
+ * @param {Buffer} cmap
+ * @param {number} codePoint
+ * @returns {number}
+ */
 function glyphOf(cmap, codePoint) {
   const count = cmap.readUInt16BE(2);
   for (let index = 0; index < count; index++) {
@@ -356,7 +411,8 @@ function checkGeistNarrowSpace() {
   }
 }
 
-for (const [name, check] of [
+/** @type {[string, () => unknown][]} */
+const CHECKS = [
   ["API error presentation", () => assertApiErrorPresentation([LAYERS_DIR])],
   [
     "DMS components",
@@ -373,7 +429,9 @@ for (const [name, check] of [
   ["Geist narrow no-break spaces", checkGeistNarrowSpace],
   ["font asset URLs", checkFontAssetUrls],
   ["onboarding page meta", checkOnboardingPageMeta],
-]) {
+];
+
+for (const [name, check] of CHECKS) {
   try {
     await check();
     console.log(`PASS ${name}`);

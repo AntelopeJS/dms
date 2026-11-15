@@ -3,11 +3,45 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { registerHooks } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { z } from "zod";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const layers = join(root, "layers");
+const JsonObject = z.record(z.string(), z.unknown());
+const Text = z.string();
+const ShortLabels = z.record(z.string(), z.string());
+const Manifest = z.object({ dependencies: z.record(z.string(), z.unknown()) });
+const ShortcutKeys = z.object({ key: z.array(z.string()) });
+const SearchMetadata = ShortcutKeys.extend({
+  descriptionKey: z.string(),
+  condition: z.object({ descriptionKey: z.string() }),
+});
+
+/**
+ * @param {string} path
+ * @returns {string}
+ */
 const read = (path) => readFileSync(join(layers, path), "utf8");
 
+/**
+ * @param {unknown} node
+ * @param {string[]} path
+ * @returns {unknown}
+ */
+export function dig(node, path) {
+  let current = node;
+  for (const key of path) {
+    const record = JsonObject.safeParse(current);
+    if (!record.success || !Object.hasOwn(record.data, key)) return undefined;
+    current = record.data[key];
+  }
+  return current;
+}
+
+/**
+ * @param {string} dir
+ * @returns {string[]}
+ */
 function files(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
@@ -75,11 +109,19 @@ function checkServerRouteOwnership() {
 }
 
 function checkSortableDependency() {
-  const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const manifest = Manifest.parse(
+    JSON.parse(readFileSync(join(root, "package.json"), "utf8")),
+  );
   assert.ok(!Object.hasOwn(manifest.dependencies, "vuedraggable"));
   assert.ok(Object.hasOwn(manifest.dependencies, "sortablejs"));
 }
 
+/**
+ * @param {string} layer
+ * @param {string} prefix
+ * @param {string} locale
+ * @returns {unknown}
+ */
 function readLocale(layer, prefix, locale) {
   return JSON.parse(read(`${layer}/i18n/locales/${prefix}-${locale}.json`));
 }
@@ -99,7 +141,9 @@ function checkFormLoadErrorLabels() {
   for (const locale of ["en-GB", "fr-FR"]) {
     const messages = readLocale("dms-ui", "ui", locale);
     assert.deepEqual(
-      Object.keys(messages.dms.form.load_error).sort(),
+      Object.keys(
+        JsonObject.parse(dig(messages, ["dms", "form", "load_error"])),
+      ).sort(),
       keys,
       `${locale} form load error labels`,
     );
@@ -122,68 +166,76 @@ async function checkShortcutTranslations() {
   });
   try {
     const { default: registry } = await import(
-      "../layers/dms-ui/app/config/shortcuts-registry.ts"
+      "../layers/dms-ui/app/config/shortcuts-registry"
     );
-    const {
-      GLOBAL_SLASH_METADATA,
-      GLOBAL_META_SLASH_METADATA,
-      NAV_SEARCH_SHORTCUT,
-      PAGE_SEARCH_HINT_KEYS,
-    } = await import(
+    const searchShortcuts = await import(
       "../layers/dms-ui/app/entries/composables/global/searchShortcuts"
     );
-    assert.deepEqual(GLOBAL_SLASH_METADATA.key, [NAV_SEARCH_SHORTCUT]);
+    const { NAV_SEARCH_SHORTCUT, PAGE_SEARCH_HINT_KEYS } = searchShortcuts;
+    /** @type {unknown[]} */
+    const registered = [
+      searchShortcuts.GLOBAL_SLASH_METADATA,
+      searchShortcuts.GLOBAL_META_SLASH_METADATA,
+    ];
+    const search = registered.map((metadata) => SearchMetadata.parse(metadata));
+    const [slash, metaSlash] = search;
+    assert.deepEqual(slash?.key, [NAV_SEARCH_SHORTCUT]);
     assert.deepEqual(
-      GLOBAL_META_SLASH_METADATA.key,
+      metaSlash?.key,
       PAGE_SEARCH_HINT_KEYS.map((key) =>
         key === "meta" ? "$keyboard.meta" : key,
       ),
       "displayed search shortcut matches the input hint",
     );
-    const search = [GLOBAL_SLASH_METADATA, GLOBAL_META_SLASH_METADATA];
     const global = registry.find((group) => group.component === "Global");
-    for (const metadata of search) {
+    for (const metadata of registered) {
       assert.ok(
         global?.shortcuts.includes(metadata),
         "search shortcut registration",
       );
     }
+    /** @param {string[]} keys */
     const signature = (keys) => keys.join("+").toLowerCase();
     const keys = search.map((metadata) => signature(metadata.key));
     const clashes = registry
-      .flatMap((group) => group.shortcuts)
+      .flatMap(
+        /** @returns {unknown[]} */
+        (group) => group.shortcuts,
+      )
       .filter(
         (shortcut) =>
-          !search.includes(shortcut) && keys.includes(signature(shortcut.key)),
+          !registered.includes(shortcut) &&
+          keys.includes(signature(ShortcutKeys.parse(shortcut).key)),
       );
     assert.deepEqual(clashes, [], "search shortcut key conflicts");
     for (const locale of ["en-GB", "fr-FR"]) {
       const messages = readLocale("dms-ui", "ui", locale);
-      const lookup = (key) =>
-        key
-          .slice(1)
-          .split(".")
-          .reduce((value, part) => value?.[part], messages);
-      for (const metadata of [
-        GLOBAL_SLASH_METADATA,
-        GLOBAL_META_SLASH_METADATA,
-      ]) {
+      /** @param {string} key */
+      const lookup = (key) => dig(messages, key.slice(1).split("."));
+      for (const metadata of search) {
         for (const item of [metadata, metadata.condition]) {
-          assert.match(
-            lookup(item.descriptionKey),
-            /^/,
+          assert.ok(
+            Text.safeParse(lookup(item.descriptionKey)).success,
             `${locale} ${item.descriptionKey}`,
           );
         }
       }
-      const groups = readLocale("dms-layout", "layout", locale).page.settings
-        .shortcuts.groups;
+      const layoutMessages = readLocale("dms-layout", "layout", locale);
       for (const { component } of registry) {
-        const group = groups[component.toLowerCase()];
-        assert.match(group?.title, /^/, `${locale} ${component} title`);
-        assert.match(
-          group?.description,
-          /^/,
+        const group = [
+          "page",
+          "settings",
+          "shortcuts",
+          "groups",
+          component.toLowerCase(),
+        ];
+        assert.ok(
+          Text.safeParse(dig(layoutMessages, [...group, "title"])).success,
+          `${locale} ${component} title`,
+        );
+        assert.ok(
+          Text.safeParse(dig(layoutMessages, [...group, "description"]))
+            .success,
           `${locale} ${component} description`,
         );
       }
@@ -195,7 +247,7 @@ async function checkShortcutTranslations() {
 
 function checkLiveLabels() {
   for (const locale of ["en-GB", "fr-FR"]) {
-    const live = readLocale("dms-ui", "ui", locale).dms.live;
+    const messages = readLocale("dms-ui", "ui", locale);
     for (const key of [
       "direct",
       "paused",
@@ -208,14 +260,17 @@ function checkLiveLabels() {
       "held_sorted",
       "held_scrolled",
     ]) {
-      assert.ok(live[key], `${locale} ${key}`);
+      assert.ok(dig(messages, ["dms", "live", key]), `${locale} ${key}`);
     }
   }
 }
 
 async function checkPeriodLabels() {
-  const { PRESET_SHORT_LABELS } = await import(
+  const periodShortLabels = await import(
     "../layers/dms-ui/app/entries/composables/period/periodShortLabels.ts"
+  );
+  const PRESET_SHORT_LABELS = ShortLabels.parse(
+    periodShortLabels.PRESET_SHORT_LABELS,
   );
   const source = readFileSync(
     resolve(root, "../../interface-dms/src/base/period-selector.ts"),
@@ -236,8 +291,13 @@ async function checkPeriodLabels() {
     "every non-custom period needs a short code",
   );
   for (const locale of ["en-GB", "fr-FR"]) {
-    const labels = readLocale("dms-core", "core", locale).dms.period
-      .short_presets;
+    const labels = ShortLabels.parse(
+      dig(readLocale("dms-core", "core", locale), [
+        "dms",
+        "period",
+        "short_presets",
+      ]),
+    );
     assert.deepEqual(
       Object.keys(labels).sort(),
       Object.keys(PRESET_SHORT_LABELS).sort(),
@@ -264,7 +324,8 @@ function checkDevelopmentPlugin() {
   );
 }
 
-for (const [name, check] of [
+/** @type {[string, () => unknown][]} */
+const CHECKS = [
   ["instant-save page registry", checkInstantSavePages],
   ["server route ownership", checkServerRouteOwnership],
   ["sortable dependency", checkSortableDependency],
@@ -273,7 +334,9 @@ for (const [name, check] of [
   ["live labels", checkLiveLabels],
   ["period short codes", checkPeriodLabels],
   ["development plugin registration", checkDevelopmentPlugin],
-]) {
+];
+
+for (const [name, check] of CHECKS) {
   await check();
   console.log(`PASS ${name}`);
 }

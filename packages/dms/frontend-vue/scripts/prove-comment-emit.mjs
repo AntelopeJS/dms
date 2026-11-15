@@ -4,14 +4,24 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 
+/**
+ * @param {string[]} args
+ * @returns {string}
+ */
 const git = (...args) =>
   execFileSync("git", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 const root = git("rev-parse", "--show-toplevel").trim();
 const area = "packages/dms/frontend-vue";
-const require = createRequire(join(root, area, "package.json"));
-const ts = require("typescript");
-const prettier = require("prettier");
-const { parse, compileTemplate } = require("vue/compiler-sfc");
+const requireFrom = join(root, area, "package.json");
+/** @type {(id: string) => typeof import("typescript")} */
+const loadTypeScript = createRequire(requireFrom);
+/** @type {(id: string) => typeof import("prettier")} */
+const loadPrettier = createRequire(requireFrom);
+/** @type {(id: string) => typeof import("vue/compiler-sfc")} */
+const loadCompilerSfc = createRequire(requireFrom);
+const ts = loadTypeScript("typescript");
+const prettier = loadPrettier("prettier");
+const { parse, compileTemplate } = loadCompilerSfc("vue/compiler-sfc");
 const base = process.argv[2];
 assert.ok(base, "Usage: node frontend-comment-emit.mjs <base-ref>");
 const head = process.argv.includes("--working")
@@ -19,6 +29,11 @@ const head = process.argv.includes("--working")
   : git("rev-parse", "HEAD").trim();
 const printer = ts.createPrinter({ removeComments: true });
 
+/**
+ * @param {string} source
+ * @param {string} file
+ * @returns {Promise<string>}
+ */
 async function scriptSyntax(source, file) {
   const parsed = ts.createSourceFile(
     file,
@@ -29,6 +44,10 @@ async function scriptSyntax(source, file) {
   return prettier.format(printer.printFile(parsed), { parser: "typescript" });
 }
 
+/**
+ * @param {string} source
+ * @param {string} file
+ */
 async function sourceEmit(source, file) {
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
   assert.deepEqual(tree.parseDiagnostics, [], `${file}: syntax diagnostics`);
@@ -53,6 +72,10 @@ async function sourceEmit(source, file) {
   };
 }
 
+/**
+ * @param {string} source
+ * @param {string} file
+ */
 async function vueOutput(source, file) {
   const { descriptor, errors } = parse(source, { filename: file });
   assert.deepEqual(errors, [], `${file}: SFC parse errors`);
@@ -67,6 +90,7 @@ async function vueOutput(source, file) {
     ),
   );
   const template = descriptor.template;
+  /** @param {boolean} ssr */
   function render(ssr) {
     if (!template) return null;
     const result = compileTemplate({
@@ -98,6 +122,10 @@ async function vueOutput(source, file) {
   };
 }
 
+/**
+ * @param {string} ref
+ * @returns {string[]}
+ */
 function files(ref) {
   const paths =
     ref === "WORKTREE"
@@ -122,6 +150,7 @@ const before = files(base);
 const after = files(head);
 assert.deepEqual(after, before, "Product source file set changed");
 for (const file of before) {
+  /** @param {string} ref */
   const compileProduct = (ref) => {
     const source =
       ref === "WORKTREE"

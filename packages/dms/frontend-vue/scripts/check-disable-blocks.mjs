@@ -19,7 +19,13 @@ const SCRIPT_EXTENSIONS = new Set([
 const DIRECTIVE =
   /^(oxlint|eslint)-(disable|enable)(?:\s+(.*?))?\s*(?:--.*)?$/su;
 
-/** Every comment of a script, each once, in source order. */
+/**
+ * Every comment of a script, each once, in source order.
+ *
+ * @param {string} source
+ * @param {string} file
+ * @returns {{ line: number; text: string }[]}
+ */
 function commentsOf(source, file) {
   const kind = /\.[jt]sx$/u.test(file) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
   const tree = ts.createSourceFile(
@@ -29,7 +35,9 @@ function commentsOf(source, file) {
     true,
     kind,
   );
+  /** @type {Map<number, import("typescript").CommentRange>} */
   const ranges = new Map();
+  /** @param {import("typescript").Node} node */
   const collect = (node) => {
     for (const range of [
       ...(ts.getLeadingCommentRanges(source, node.getFullStart()) ?? []),
@@ -51,9 +59,18 @@ function commentsOf(source, file) {
     }));
 }
 
-/** The block directives a script leaves open at its end. */
+/**
+ * The block directives a script leaves open at its end.
+ *
+ * @param {string} source
+ * @param {string} file
+ * @param {number} lineOffset
+ * @returns {string[]}
+ */
 function unclosedBlocks(source, file, lineOffset) {
+  /** @type {Map<string, string>} */
   const open = new Map();
+  /** @type {string[]} */
   const failures = [];
   for (const { line, text } of commentsOf(source, file)) {
     const match = DIRECTIVE.exec(text);
@@ -65,7 +82,7 @@ function unclosedBlocks(source, file, lineOffset) {
       for (const rule of rules.length ? rules : ["*"])
         if (!open.has(`${tool} ${rule}`)) open.set(`${tool} ${rule}`, at);
     } else if (!rules.length) {
-      for (const key of [...open.keys()])
+      for (const key of open.keys())
         if (key.startsWith(`${tool} `)) open.delete(key);
     } else {
       for (const rule of rules)
@@ -85,7 +102,12 @@ function unclosedBlocks(source, file, lineOffset) {
   return failures;
 }
 
-/** The unclosed block directives of one authored file. */
+/**
+ * The unclosed block directives of one authored file.
+ *
+ * @param {string} file
+ * @returns {string[]}
+ */
 function checkFile(file) {
   const source = readFileSync(join(ROOT, file), "utf8");
   if (!/(?:oxlint|eslint)-(?:disable|enable)/u.test(source)) return [];
