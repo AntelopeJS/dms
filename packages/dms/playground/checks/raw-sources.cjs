@@ -20,10 +20,13 @@ const {
 const {
   ANTELOPE_IGNORE_PATTERNS,
 } = require("@antelopejs/tooling-configs/oxc/lint");
-const { ignorePatterns } = require("../../../../oxlint.config.ts").default;
+const {
+  default: { ignorePatterns },
+  PENDING_FRONTEND_VUE,
+} = require("../../../../oxlint.config.ts");
 
-/** The directory oxlint leaves to the Vue layer's own ESLint config. */
-const ESLINT_OWNED = "packages/dms/frontend-vue/**";
+/** The areas of the Vue layer oxlint does not lint yet, which hold no `?raw` import. */
+const pending = new Set(PENDING_FRONTEND_VUE);
 const scriptExtensions = new Set([
   ".js",
   ".jsx",
@@ -295,9 +298,7 @@ const defaults = new Set(ANTELOPE_IGNORE_PATTERNS);
 const listed = new Set(
   ignorePatterns.filter(
     (pattern) =>
-      !defaults.has(pattern) &&
-      pattern !== ESLINT_OWNED &&
-      !isSkillLink(pattern),
+      !defaults.has(pattern) && !pending.has(pattern) && !isSkillLink(pattern),
   ),
 );
 /**

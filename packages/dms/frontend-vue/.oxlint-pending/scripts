@@ -1,0 +1,4 @@
+scripts/**
+eslint-globals.generated.mjs
+eslint-test-quality.mjs
+eslint.config.mjs
