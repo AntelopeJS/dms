@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isBoolean, isObject, isString } from "#dms-core/app/utils/type-check";
 import { MONO_CHIP_CLASS } from "#dms-ui/app/entries/utils/monoChip";
 import DmsModalEscHint from "#dms-ui/app/entries/components/modal/ModalEscHint";
 import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
@@ -11,16 +12,39 @@ import {
   useSessionHandoff,
 } from "../../../../composables/security/useSessionHandoff";
 
+/** A session as the list shows it; the details it can do without are optional. */
 interface SessionInfo {
   _id: string;
-  browser: string;
-  os: string;
-  ip: string;
-  deviceType: string;
-  location: string;
-  createdAt: string;
+  browser?: string | null;
+  os?: string | null;
+  ip?: string | null;
+  deviceType?: string | null;
+  location?: string | null;
+  createdAt?: string | null;
   lastActiveAt: string;
   isCurrent: boolean;
+}
+
+const SESSION_DETAIL_FIELDS = [
+  "browser",
+  "os",
+  "ip",
+  "deviceType",
+  "location",
+  "createdAt",
+] as const satisfies readonly (keyof SessionInfo)[];
+
+function isSessionInfo(value: unknown): value is SessionInfo {
+  return (
+    value !== null &&
+    isObject(value) &&
+    isString(value._id) &&
+    isString(value.lastActiveAt) &&
+    isBoolean(value.isCurrent) &&
+    SESSION_DETAIL_FIELDS.every(
+      (field) => value[field] == null || isString(value[field]),
+    )
+  );
 }
 
 /** The sessions, and when they were read: what "active 5 minutes ago" counts from. */
@@ -41,7 +65,7 @@ const SKELETON_COUNT = 3;
 const BROWSER_VERSION = /\s+[\d.]+$/;
 const DEFAULT_DEVICE_ICON = "i-ph-desktop";
 const DEVICE_ICONS: Readonly<
-  Partial<Record<SessionInfo["deviceType"], string>>
+  Partial<Record<NonNullable<SessionInfo["deviceType"]>, string>>
 > = {
   desktop: "i-ph-desktop",
   mobile: "i-ph-device-mobile",
@@ -58,7 +82,7 @@ const { formatDate, formatRelative } = useSecurityFormat();
 
 const list = useApiData<SessionsRead>(SESSIONS_URL, {
   transform: (sessions) => ({
-    sessions: sessions as SessionInfo[],
+    sessions: Array.isArray(sessions) ? sessions.filter(isSessionInfo) : [],
     readAt: Date.now(),
   }),
 });
@@ -79,7 +103,8 @@ const otherSessions = computed(() =>
 );
 
 const deviceIcon = (session: SessionInfo): string =>
-  DEVICE_ICONS[session.deviceType] ?? DEFAULT_DEVICE_ICON;
+  (session.deviceType ? DEVICE_ICONS[session.deviceType] : undefined) ??
+  DEFAULT_DEVICE_ICON;
 
 const sessionName = (session: SessionInfo): string =>
   t("page.settings.security.sessions.device_name", {
@@ -258,7 +283,7 @@ const retryActions = computed(() => [
           <span v-if="session.isCurrent" class="text-muted text-xs">
             {{
               t("page.settings.security.sessions.signed_in", {
-                date: formatDate(session.createdAt),
+                date: session.createdAt ? formatDate(session.createdAt) : "",
               })
             }}
           </span>

@@ -89,11 +89,68 @@ async function pendingLogoOf(file: File): Promise<PendingLogo | undefined> {
     : undefined;
 }
 
+/**
+ * Where a picked file goes: the file itself in each target, except the email
+ * slot, which takes a copy mail clients can show. A target whose logo cannot
+ * be drawn gets no placement.
+ */
+async function placementsOf(
+  targets: Omit<LogoPlacement, "logo">[],
+  file: File,
+): Promise<LogoPlacement[]> {
+  const picked = await pendingLogoOf(file);
+  const needsRaster = targets.some(({ slot }) => slot === "email");
+  const mailFile =
+    needsRaster && !isMailable(file) ? await rasterizeForEmail(file) : file;
+  const mailLogo = mailFile ? await pendingLogoOf(mailFile) : undefined;
+  const logoFor = (slot: LogoSlot) => (slot === "email" ? mailLogo : picked);
+  return targets.flatMap((target) => {
+    const logo = logoFor(target.slot);
+    return logo ? [{ ...target, logo }] : [];
+  });
+}
+
 function viewerMode(): ThemeMode {
   return typeof document !== "undefined" &&
     document.documentElement.classList.contains("dark")
     ? "dark"
     : "light";
+}
+
+/**
+ * Keeps the device's copy of the draft in step with `edit`: once the edits
+ * settle for {@link DEVICE_SYNC_DELAY_MS}, and at once when the scope ends with
+ * a copy still due. The copy is a best effort that never rejects, so nothing
+ * waits for it.
+ */
+function syncDeviceDraft(
+  load: ShallowRef<BrandingLoad>,
+  edit: ComputedRef<ThemeEdit | null>,
+): void {
+  let syncTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function syncDevice(): void {
+    syncTimer = undefined;
+    const current = edit.value;
+    if (!current) return;
+    const copied =
+      changeCount(current) > 0
+        ? storeDraft(current)
+        : forgetDraft(current.saved.layer);
+    copied.catch(() => undefined);
+  }
+
+  watch(load, () => {
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(syncDevice, DEVICE_SYNC_DELAY_MS);
+  });
+
+  onScopeDispose(() => {
+    if (syncTimer !== undefined) {
+      clearTimeout(syncTimer);
+      syncDevice();
+    }
+  });
 }
 
 /**
@@ -144,16 +201,7 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
     const refusal = logoRefusal(file);
     logoProblem.value = refusal ?? null;
     if (refusal) return;
-    const picked = await pendingLogoOf(file);
-    const needsRaster = targets.some(({ slot }) => slot === "email");
-    const mailFile =
-      needsRaster && !isMailable(file) ? await rasterizeForEmail(file) : file;
-    const mailLogo = mailFile ? await pendingLogoOf(mailFile) : undefined;
-    const logoFor = (slot: LogoSlot) => (slot === "email" ? mailLogo : picked);
-    const placements = targets.flatMap((target) => {
-      const logo = logoFor(target.slot);
-      return logo ? [{ ...target, logo }] : [];
-    });
+    const placements = await placementsOf(targets, file);
     update((current) => placeLogos(current, placements));
     if (placements.length < targets.length) {
       logoProblem.value = "branding.logo.not_drawable";
@@ -214,27 +262,7 @@ export function useBrandingEditor(api: BrandingApi): BrandingEditor {
     load.value = { ...current, created: result.data };
   }
 
-  let syncTimer: ReturnType<typeof setTimeout> | undefined;
-
-  function syncDevice(): void {
-    syncTimer = undefined;
-    const current = edit.value;
-    if (!current) return;
-    if (changeCount(current) > 0) void storeDraft(current);
-    else void forgetDraft(current.saved.layer);
-  }
-
-  watch(load, () => {
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(syncDevice, DEVICE_SYNC_DELAY_MS);
-  });
-
-  onScopeDispose(() => {
-    if (syncTimer !== undefined) {
-      clearTimeout(syncTimer);
-      syncDevice();
-    }
-  });
+  syncDeviceDraft(load, edit);
 
   return {
     load,

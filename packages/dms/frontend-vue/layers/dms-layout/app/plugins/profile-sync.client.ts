@@ -1,10 +1,6 @@
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import { FormEvents } from "#dms-ui/app/composables/form/types/events";
-import type { ComponentEventData } from "#dms-core/app/types/component";
-
-interface FormSubmitSuccessPayload {
-  submitUrl?: string;
-}
+import { submittedUrlOf } from "../build/utils/submittedUrl";
 
 const REGION_PREFERENCES_ROUTE = pageRoutePath(
   "/settings/user/region",
@@ -24,11 +20,8 @@ export default defineDmsPlugin(() => {
   const { refresh } = useCurrentUser();
 
   window.addEventListener(FormEvents.SUBMIT_SUCCESS, (event) => {
-    const detail = (event as CustomEvent<ComponentEventData>).detail;
-    const payload = detail?.data as FormSubmitSuccessPayload | undefined;
-    if (!payload?.submitUrl || !SESSION_FORM_ROUTES.has(payload.submitUrl)) {
-      return;
-    }
+    const submitUrl = submittedUrlOf(event);
+    if (!submitUrl || !SESSION_FORM_ROUTES.has(submitUrl)) return;
     void refresh().catch(() => undefined);
   });
 });

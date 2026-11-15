@@ -1,3 +1,4 @@
+import { isFunction } from "#dms-core/app/utils/type-check";
 import { catalogToken, type ThemeValueKind } from "./catalog";
 import type { ThemeDraft } from "./theme-types";
 import { VARIABLE_SET_NAMES } from "./theme-types";
@@ -56,7 +57,7 @@ function isOfKind(value: string, kind: ThemeValueKind): boolean {
   const css = globalThis.CSS;
   return (
     value.trim() === "" ||
-    typeof css?.supports !== "function" ||
+    !isFunction(css?.supports) ||
     css.supports(kind, value)
   );
 }

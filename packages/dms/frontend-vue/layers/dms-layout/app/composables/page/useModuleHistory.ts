@@ -36,7 +36,7 @@ type StoredHistory = Record<ModuleHistoryEntry["moduleId"], StoredVisit>;
  * modules page or the command palette.
  */
 function normalizeHistory(raw: unknown): StoredHistory {
-  if (!raw || !isObject(raw) || Array.isArray(raw)) return {};
+  if (raw === null || !isObject(raw) || Array.isArray(raw)) return {};
   const result: StoredHistory = {};
   for (const [moduleId, value] of Object.entries(raw)) {
     if (!value || !isObject(value)) continue;

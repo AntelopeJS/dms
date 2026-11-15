@@ -34,7 +34,7 @@ export default defineDmsPlugin(() => {
   const { $i18n: i18n } = useDmsApp();
   const { t } = getAppTranslation();
   const toast = useToast();
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const { logout } = useLogout();
   const { changeLanguage } = useUserLanguage();
   const { copy } = useClipboard({ legacy: true });
@@ -43,8 +43,8 @@ export default defineDmsPlugin(() => {
     uniqueByCode(i18n.locales.value).map((locale) => ({
       label: locale.name ?? locale.code,
       active: i18n.locale.value === locale.code,
-      onSelect: () => {
-        void changeLanguage(locale.code);
+      onSelect: async () => {
+        await changeLanguage(locale.code);
       },
     }));
 
@@ -53,7 +53,7 @@ export default defineDmsPlugin(() => {
       await copy(window.location.href);
       toast.add({ title: t("commandPalette.session.urlCopied") });
     } catch (error) {
-      presentError(error, {
+      errorPresenter.presentError(error, {
         fallbackKey: "commandPalette.session.copyFailed",
       });
     }
@@ -73,15 +73,15 @@ export default defineDmsPlugin(() => {
         {
           label: t("commandPalette.session.copyUrl"),
           icon: COPY_URL_ICON,
-          onSelect: () => {
-            void copyCurrentUrl();
+          onSelect: async () => {
+            await copyCurrentUrl();
           },
         },
         {
           label: t("button.logout"),
           icon: LOGOUT_ICON,
-          onSelect: () => {
-            void logout();
+          onSelect: async () => {
+            await logout();
           },
         },
       ],

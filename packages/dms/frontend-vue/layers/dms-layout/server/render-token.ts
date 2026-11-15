@@ -1,4 +1,4 @@
-import { isString } from "../../dms-core/app/utils/type-check";
+import { isObject, isString } from "../../dms-core/app/utils/type-check";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 const RENDER_TOKEN_LIFETIME_SECONDS = 5 * 60;
@@ -84,9 +84,10 @@ export function validRenderToken(
   if (parts.length !== 3) return false;
   if (!signatureValid(parts, secret)) return false;
   try {
-    const payload: Parameters<typeof claimsValid>[0] = JSON.parse(
+    const payload: unknown = JSON.parse(
       Buffer.from(parts[1], "base64url").toString("utf8"),
     );
+    if (payload === null || !isObject(payload)) return false;
     const now = Math.floor(Date.now() / 1000);
     if (!claimsValid(payload, now)) return false;
     if (usedRenderTokens.has(payload.jti)) return false;

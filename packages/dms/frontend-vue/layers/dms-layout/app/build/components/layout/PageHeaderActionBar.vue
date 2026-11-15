@@ -124,11 +124,11 @@ function baseButton(action: LayoutHeaderAction): ButtonProps {
   };
 }
 
-type LinkTarget = Extract<ActionTarget, { type: "page" | "external" }>;
 type UrlTarget = Extract<ActionTarget, { url: string }>;
+type QuickActionTarget = Extract<ActionTarget, { type: "quickAction" }>;
 
 const hasTargetUrl = (target: ActionTarget): target is UrlTarget =>
-  isString((target as Partial<UrlTarget>).url);
+  "url" in target && isString(target.url);
 
 const pageUrlValues = computed(() => ({
   routeParams: siteLayout.findMatchingRoute(route.path)?.params,
@@ -149,32 +149,44 @@ function withPageValues(action: LayoutHeaderAction): LayoutHeaderAction {
   };
 }
 
-const LINK_TARGETS: Partial<
-  Record<ActionTarget["type"], (target: LinkTarget) => ButtonProps>
-> = {
-  page: (target) => ({ to: target.url }),
-  external: (target) => {
-    const newTab = target.type === "external" && target.newTab;
-    return {
-      to: target.url,
-      target: newTab ? "_blank" : undefined,
-      trailingIcon: newTab ? "i-ph-arrow-square-out" : undefined,
-    };
-  },
-};
-
 function linkProps(action: LayoutHeaderAction): ButtonProps | undefined {
   const { target } = action;
   if (action.confirm || !target) return undefined;
-  return LINK_TARGETS[target.type]?.(target as LinkTarget);
+  if (target.type === "page") return { to: target.url };
+  if (target.type !== "external") return undefined;
+  return {
+    to: target.url,
+    target: target.newTab ? "_blank" : undefined,
+    trailingIcon: target.newTab ? "i-ph-arrow-square-out" : undefined,
+  };
+}
+
+/**
+ * The button the action targets run. A served button with a target is a
+ * `PageHeaderButton`, which always carries a label.
+ */
+function customButtonOf(
+  action: LayoutHeaderAction,
+  target: ActionTarget,
+): CustomButton {
+  return {
+    label: action.label ?? "",
+    target,
+    confirm: action.confirm,
+    disabled: action.disabled,
+    disabledReason: action.disabledReason,
+  };
 }
 
 function resolveQuickActionButton(
   action: LayoutHeaderAction,
   base: ButtonProps,
-  key: string,
+  target: QuickActionTarget,
 ): ResolvedHeaderAction | null {
-  const quickAction = findServedQuickAction(quickActions.value?.actions, key);
+  const quickAction = findServedQuickAction(
+    quickActions.value?.actions,
+    target.id,
+  );
   if (!quickAction) return null;
   return {
     id: action.id,
@@ -185,7 +197,7 @@ function resolveQuickActionButton(
       label: base.label || processI18n(quickAction.displayName),
       onClick: () =>
         action.confirm
-          ? handleCustomButton(action as CustomButton)
+          ? handleCustomButton(customButtonOf(action, target))
           : dispatchQuickActionTarget(quickAction.target),
     },
   };
@@ -212,9 +224,10 @@ function resolveAction(
       disabledReason,
     };
   }
-  if (!action.target) return null;
-  if (action.target.type === "quickAction") {
-    return resolveQuickActionButton(action, base, action.target.id);
+  const { target } = action;
+  if (!target) return null;
+  if (target.type === "quickAction") {
+    return resolveQuickActionButton(action, base, target);
   }
   return {
     id: action.id,
@@ -222,7 +235,7 @@ function resolveAction(
     button: {
       ...base,
       ...(linkProps(action) ?? {
-        onClick: () => handleCustomButton(action as CustomButton),
+        onClick: () => handleCustomButton(customButtonOf(action, target)),
       }),
     },
     disabledReason,

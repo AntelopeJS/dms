@@ -23,7 +23,7 @@ const FOLLOW_INTERVAL_MS = 1000;
  */
 export const useModuleStore = () => {
   const { $authFetch } = useAuthFetch();
-  const { resolveError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const isOwner = useIsOwner();
 
   const initial = useApiData<StoreListing>(() =>
@@ -45,7 +45,7 @@ export const useModuleStore = () => {
   );
   const loadingNotice = computed(() =>
     loadingError.value
-      ? resolveError(loadingError.value, {
+      ? errorPresenter.resolveError(loadingError.value, {
           fallbackKey: "modules.store.load_error",
         })
       : null,
@@ -95,7 +95,7 @@ export const useModuleStore = () => {
       return;
     }
     if (!listing.value) {
-      void load();
+      load().catch(() => undefined);
       return;
     }
     reloadWhenServed();

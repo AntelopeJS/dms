@@ -3,7 +3,7 @@ import type {
   CommandPaletteItem,
   DashboardSearchProps,
 } from "@nuxt/ui";
-import { isFunction } from "#dms-core/app/utils/type-check";
+import { isFunction, isObject, isString } from "#dms-core/app/utils/type-check";
 
 /**
  * A contributor of command-palette (Ctrl/Cmd+K) groups. Like
@@ -73,10 +73,28 @@ function isSearchTextMatch(match: CommandPaletteSearchMatch): boolean {
   return match.key === COMMAND_PALETTE_SEARCH_TEXT_KEY;
 }
 
+function isSearchMatch(value: unknown): value is CommandPaletteSearchMatch {
+  return (
+    value !== null &&
+    isObject(value) &&
+    (value.key === undefined || isString(value.key))
+  );
+}
+
+/** The matches the palette's search left on an item, each one a search match. */
+function searchMatchesOf(
+  item: CommandPaletteItem,
+): CommandPaletteSearchMatch[] | undefined {
+  const matches: unknown = item.matches;
+  if (!Array.isArray(matches)) return undefined;
+  const checked: unknown[] = matches;
+  return checked.every(isSearchMatch) ? checked : undefined;
+}
+
 function withoutSearchTextMatches(
   item: CommandPaletteItem,
 ): CommandPaletteItem {
-  const matches: CommandPaletteSearchMatch[] | undefined = item.matches;
+  const matches = searchMatchesOf(item);
   if (!matches?.some(isSearchTextMatch)) {
     return item;
   }

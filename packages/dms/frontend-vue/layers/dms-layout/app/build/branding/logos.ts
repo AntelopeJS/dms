@@ -73,21 +73,21 @@ export function withoutLogo(
 export const MAX_LOGO_BYTES = 512 * 1024;
 
 /** The types the module accepts, by the extension they are picked by. */
-const LOGO_TYPES_BY_EXTENSION: Record<string, readonly string[]> = {
-  svg: ["image/svg+xml"],
-  png: ["image/png"],
-  jpg: ["image/jpeg"],
-  jpeg: ["image/jpeg"],
-  webp: ["image/webp"],
-  ico: ["image/x-icon", "image/vnd.microsoft.icon"],
-};
+const LOGO_TYPES_BY_EXTENSION = new Map<string, readonly string[]>([
+  ["svg", ["image/svg+xml"]],
+  ["png", ["image/png"]],
+  ["jpg", ["image/jpeg"]],
+  ["jpeg", ["image/jpeg"]],
+  ["webp", ["image/webp"]],
+  ["ico", ["image/x-icon", "image/vnd.microsoft.icon"]],
+]);
 
-const ACCEPTED_TYPES = Object.values(LOGO_TYPES_BY_EXTENSION).flat();
+const ACCEPTED_TYPES = [...LOGO_TYPES_BY_EXTENSION.values()].flat();
 
 export const LOGO_INPUT_ACCEPT = [
   ...new Set([
     ...ACCEPTED_TYPES,
-    ...Object.keys(LOGO_TYPES_BY_EXTENSION).map((extension) => `.${extension}`),
+    ...[...LOGO_TYPES_BY_EXTENSION.keys()].map((extension) => `.${extension}`),
   ]),
 ].join(",");
 
@@ -99,9 +99,7 @@ export function logoContentType(file: PickedFile): string | undefined {
     return ACCEPTED_TYPES.includes(file.type) ? file.type : undefined;
   }
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-  return Object.hasOwn(LOGO_TYPES_BY_EXTENSION, extension)
-    ? LOGO_TYPES_BY_EXTENSION[extension]?.[0]
-    : undefined;
+  return LOGO_TYPES_BY_EXTENSION.get(extension)?.[0];
 }
 
 /** Why a file cannot be a logo, as an i18n key, before it is sent. */

@@ -74,8 +74,8 @@ function categoryOf(name: string): VariableCategory {
 
 function collectNames(rules: CSSRuleList, names: Set<string>): void {
   for (const rule of Array.from(rules)) {
-    if ("cssRules" in rule && rule.cssRules) {
-      collectNames((rule as CSSGroupingRule).cssRules, names);
+    if ("cssRules" in rule && rule.cssRules instanceof CSSRuleList) {
+      collectNames(rule.cssRules, names);
     }
     if (rule instanceof CSSStyleRule) {
       for (const property of Array.from(rule.style)) {

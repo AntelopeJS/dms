@@ -33,6 +33,8 @@ watch(detectedPlatform, (next) => {
 });
 const query = ref("");
 
+const KEYBOARD_PLATFORMS: readonly KeyboardPlatform[] = ["mac", "other"];
+
 const platformItems = computed(() => [
   {
     value: "mac",
@@ -53,7 +55,8 @@ usePageHeaderActions(() =>
     size: "xs",
     ariaLabel: t("page.settings.shortcuts.layout_label"),
     "onUpdate:modelValue": (value: string | number | undefined) => {
-      if (value !== undefined) platform.value = value as KeyboardPlatform;
+      const picked = KEYBOARD_PLATFORMS.find((known) => known === value);
+      if (picked) platform.value = picked;
     },
   }),
 );

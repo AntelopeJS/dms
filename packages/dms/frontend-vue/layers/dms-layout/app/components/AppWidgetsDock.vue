@@ -18,6 +18,8 @@
  * chip that unfolds the stack on hover or focus (a tap focuses it), so the
  * dock covers one chip of the page instead of a column of them.
  */
+import { isNumber } from "#dms-core/app/utils/type-check";
+
 const LAUNCHER_ICON = "i-ph-squares-four-light";
 
 const { widgets } = useAppWidgets();
@@ -45,7 +47,7 @@ const launcherLabel = computed(() =>
 function select(widget: AppWidget, event: MouseEvent): void {
   if (!widget.onSelectEvent) return;
   const clicks = useDmsState<number>(widget.onSelectEvent, () => 0);
-  clicks.value = typeof clicks.value === "number" ? clicks.value + 1 : 1;
+  clicks.value = isNumber(clicks.value) ? clicks.value + 1 : 1;
   if (event.currentTarget instanceof HTMLElement) event.currentTarget.blur();
 }
 </script>

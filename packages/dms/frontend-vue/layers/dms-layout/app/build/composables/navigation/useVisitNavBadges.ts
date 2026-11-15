@@ -1,12 +1,31 @@
 import { watch } from "vue";
 import { useDmsInertiaPage } from "#dms/frontend-module";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 import {
   type CountedNavBadge,
   useNavBadges,
 } from "#dms-ui/app/entries/composables/navigation/useNavBadges";
+import { isDmsTone } from "#dms-ui/app/entries/utils/tone";
 
-interface CountedPage {
-  navBadges?: Record<string, CountedNavBadge>;
+function isCountedNavBadge(value: unknown): value is CountedNavBadge {
+  if (value === null || !isObject(value) || !isString(value.badge)) {
+    return false;
+  }
+  const { tone } = value;
+  return tone === undefined || (isString(tone) && isDmsTone(tone));
+}
+
+/** The counted badges among a visit's `navBadges`. */
+function countedNavBadgesOf(
+  navBadges: unknown,
+): Record<string, CountedNavBadge> | undefined {
+  if (navBadges === null || !isObject(navBadges)) return undefined;
+  return Object.fromEntries(
+    Object.entries(navBadges).filter(
+      (entry): entry is [string, CountedNavBadge] =>
+        isCountedNavBadge(entry[1]),
+    ),
+  );
 }
 
 /**
@@ -19,8 +38,11 @@ export function useVisitNavBadges(): void {
   const inertiaPage = useDmsInertiaPage();
   const { applyCountedNavBadges } = useNavBadges();
   watch(
-    () => (inertiaPage.props.page as CountedPage | undefined)?.navBadges,
-    applyCountedNavBadges,
+    () => {
+      const page: unknown = inertiaPage.props.page;
+      return page !== null && isObject(page) ? page.navBadges : undefined;
+    },
+    (navBadges) => applyCountedNavBadges(countedNavBadgesOf(navBadges)),
     { immediate: true },
   );
 }

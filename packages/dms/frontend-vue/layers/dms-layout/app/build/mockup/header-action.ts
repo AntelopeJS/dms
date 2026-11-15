@@ -71,7 +71,7 @@ export default defineDmsPlugin(() => {
   const { $authFetch } = useAuthFetch();
   const toast = useToast();
   const { t } = getAppTranslation();
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
 
   async function convert(
     path: string,
@@ -103,7 +103,7 @@ export default defineDmsPlugin(() => {
         ],
       });
     } catch (error) {
-      presentError(error, {
+      errorPresenter.presentError(error, {
         fallbackKey: isConflict(error)
           ? "editAsMockup.conflict"
           : "editAsMockup.failed",

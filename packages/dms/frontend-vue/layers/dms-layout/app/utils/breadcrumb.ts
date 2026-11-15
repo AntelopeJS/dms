@@ -1,4 +1,4 @@
-import { isString } from "../../../dms-core/app/utils/type-check";
+import { isObject, isString } from "../../../dms-core/app/utils/type-check";
 import type { PageValidation } from "#dms-core/app/types/page";
 import type { MenuRouteState } from "#dms-core/app/types/menu";
 
@@ -62,7 +62,8 @@ export interface FoldedCrumbs<T> {
 export function isFoldedCrumbs<T>(
   crumb: T | FoldedCrumbs<T>,
 ): crumb is FoldedCrumbs<T> {
-  return (crumb as Partial<FoldedCrumbs<T>>).isFolded === true;
+  const value: unknown = crumb;
+  return value !== null && isObject(value) && value.isFolded === true;
 }
 
 /**

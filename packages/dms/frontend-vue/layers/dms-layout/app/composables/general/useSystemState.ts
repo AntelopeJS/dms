@@ -12,17 +12,16 @@ const DEFAULT_SYSTEM_STATE: SystemState = {
 };
 
 export const useSystemState = () => {
-  const {
-    data: systemState,
-    error,
-    refresh,
-  } = useApiData<SystemState>(SYSTEM_STATE_ENDPOINT, {
+  const systemStateData = useApiData<SystemState>(SYSTEM_STATE_ENDPOINT, {
     key: SYSTEM_STATE_CACHE_KEY,
     lazy: true,
     default: () => ({ ...DEFAULT_SYSTEM_STATE }),
 
     refreshOnPageRefresh: false,
   });
+  const { data: systemState, error } = systemStateData;
+  const refresh: typeof systemStateData.refresh = (options) =>
+    systemStateData.refresh(options);
 
   const metaTitle = computed(() => systemState.value?.meta?.title ?? "");
   const metaDescription = computed(

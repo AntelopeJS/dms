@@ -53,7 +53,7 @@ export function useServedHeaderActions({
 }: ServedHeaderActionsOptions): ComputedRef<LayoutHeaderAction[]> {
   const route = useDmsRoute();
   const siteLayout = useSiteLayout();
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const refreshed = shallowRef<LayoutHeaderAction[] | null>(null);
   let latestRequest = 0;
 
@@ -72,7 +72,9 @@ export function useServedHeaderActions({
       refreshed.value = options?.headerActions ?? [];
     } catch (error: unknown) {
       if (request === latestRequest) {
-        presentError(error, { fallbackKey: "error.500.description" });
+        errorPresenter.presentError(error, {
+          fallbackKey: "error.500.description",
+        });
       }
     }
   }
@@ -94,16 +96,16 @@ export function useServedHeaderActions({
       refreshed.value = null;
       return;
     }
-    void askFor(fillRouteParams(layoutUrl, params), current);
+    askFor(fillRouteParams(layoutUrl, params), current).catch(() => undefined);
   }
 
   function askAgain() {
     const layoutUrl = pageRoute()?.metadata?.layoutUrl;
     if (!servedQuery() || !layoutUrl) return;
-    void askFor(
+    askFor(
       fillRouteParams(layoutUrl, pageRoute()?.params ?? {}),
       pageQueryValues(route.query),
-    );
+    ).catch(() => undefined);
   }
 
   if (!import.meta.env.SSR) {

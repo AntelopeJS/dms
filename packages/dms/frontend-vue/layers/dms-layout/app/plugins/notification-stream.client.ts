@@ -1,9 +1,10 @@
-import type {
-  FeedCounts,
-  UserNotification,
-} from "../composables/notification/useNotifications";
 import type { RealtimeEvent } from "#dms-core/app/composables/realtime/useUserRealtime";
-import { isObject, isString } from "#dms-core/app/utils/type-check";
+import { isString } from "#dms-core/app/utils/type-check";
+import {
+  feedCountsOf,
+  isIdList,
+  isUserNotification,
+} from "../build/utils/notificationPayload";
 
 const NOTIFICATION_TOPIC_PREFIX = "notifications:user:";
 const NOTIFICATION_NEW_TYPE = "notification:new";
@@ -11,19 +12,7 @@ const NOTIFICATION_READ_TYPE = "notification:read";
 const NOTIFICATION_ALL_READ_TYPE = "notification:all-read";
 const NOTIFICATION_UNREAD_TYPE = "notification:unread";
 
-interface IncomingPayload {
-  notification?: UserNotification;
-  ids?: string[];
-  /** The whole feed's counts after a read state change. */
-  counts?: FeedCounts;
-}
-
-const isNotificationEvent = (
-  event: unknown,
-): event is { type: string; payload?: IncomingPayload } =>
-  !!event && isObject(event) && isString(event.type);
-
-type Handler = (payload: IncomingPayload | undefined) => void | Promise<void>;
+type Handler = (payload: RealtimeEvent["payload"]) => void | Promise<void>;
 
 export default defineDmsPlugin(() => {
   const { user, loggedIn } = useDmsUserSession();
@@ -35,23 +24,41 @@ export default defineDmsPlugin(() => {
   } = useNotifications();
   const realtime = useUserRealtime();
 
-  const handlers: Record<RealtimeEvent["type"], Handler> = {
-    [NOTIFICATION_NEW_TYPE]: (payload) => {
-      if (payload?.notification)
-        handleIncomingNotification(payload.notification);
-    },
-    [NOTIFICATION_READ_TYPE]: async (payload) => {
-      if (Array.isArray(payload?.ids))
-        await handleRemoteRead(payload.ids, payload.counts);
-    },
-    [NOTIFICATION_UNREAD_TYPE]: async (payload) => {
-      if (Array.isArray(payload?.ids))
-        await handleRemoteUnread(payload.ids, payload.counts);
-    },
-    [NOTIFICATION_ALL_READ_TYPE]: async (payload) => {
-      await handleRemoteAllRead(payload?.counts);
-    },
-  };
+  const handlers = new Map<RealtimeEvent["type"], Handler>([
+    [
+      NOTIFICATION_NEW_TYPE,
+      (payload) => {
+        const notification = payload?.notification;
+        if (isUserNotification(notification)) {
+          handleIncomingNotification(notification);
+        }
+      },
+    ],
+    [
+      NOTIFICATION_READ_TYPE,
+      async (payload) => {
+        const ids = payload?.ids;
+        if (isIdList(ids)) {
+          await handleRemoteRead(ids, feedCountsOf(payload?.counts));
+        }
+      },
+    ],
+    [
+      NOTIFICATION_UNREAD_TYPE,
+      async (payload) => {
+        const ids = payload?.ids;
+        if (isIdList(ids)) {
+          await handleRemoteUnread(ids, feedCountsOf(payload?.counts));
+        }
+      },
+    ],
+    [
+      NOTIFICATION_ALL_READ_TYPE,
+      async (payload) => {
+        await handleRemoteAllRead(feedCountsOf(payload?.counts));
+      },
+    ],
+  ]);
 
   let unsubscribe: (() => void) | undefined;
 
@@ -60,14 +67,14 @@ export default defineDmsPlugin(() => {
     (userId) => {
       unsubscribe?.();
       unsubscribe = undefined;
-      if (!userId) return;
+      if (!isString(userId) || userId === "") return;
       unsubscribe = realtime.subscribe(
         `${NOTIFICATION_TOPIC_PREFIX}${userId}`,
-        (event) => {
-          if (!isNotificationEvent(event)) return;
-          const handler = handlers[event.type];
+        async (event) => {
+          if (!("type" in event)) return;
+          const handler = handlers.get(event.type);
           if (!handler) return;
-          void handler(event.payload);
+          await handler(event.payload);
         },
       );
     },
