@@ -231,6 +231,53 @@ describe("what a PostgreSQL check sends of this computer", () => {
   });
 });
 
+describe("an ssl value a PostgreSQL check refuses", () => {
+  /** A server that accepts TLS, which is when `pg` reads a key of the `ssl` it was given. */
+  function tlsAcceptingServer(): Promise<Listener> {
+    const chunks: Buffer[] = [];
+    let count = 0;
+    const server = net.createServer((socket) => {
+      count += 1;
+      socket.once("data", (chunk) => {
+        chunks.push(Buffer.from(chunk));
+        socket.write("S");
+      });
+      socket.on("error", () => undefined);
+    });
+    return listen(server, chunks, () => count);
+  }
+
+  /** Fails on a check that hands `pg` an `ssl` it keeps as a string, which ends the process once the server accepts TLS. */
+  it("refuses an ssl value pg would keep as a string, before connecting, and keeps the ones it reads", async () => {
+    const server = await tlsAcceptingServer();
+    try {
+      const base = `postgres://app:pw@127.0.0.1:${server.port}/shop?`;
+      for (const query of [
+        "ssl=false",
+        "ssl=require",
+        "ssl=abc",
+        "ssl=true&ssl=abc",
+      ]) {
+        const answer = await checkDatabase(
+          "postgres",
+          base + query,
+          TIMEOUT_MS,
+        );
+        expect(answer.reason, query).to.equal(
+          "The ssl of the URL must be true, 1, 0 or no-verify; or set sslmode to disable, prefer, require, verify-ca or verify-full.",
+        );
+      }
+      expect(server.connections()).to.equal(0);
+      for (const query of ["ssl=no-verify", "ssl=false&sslmode=require"]) {
+        await checkDatabase("postgres", base + query, 200);
+      }
+      expect(server.connections()).to.equal(2);
+    } finally {
+      await server.close();
+    }
+  });
+});
+
 describe("what a MongoDB check sends of this computer", () => {
   const OTHER_MECHANISM =
     "This check signs in with the user name and password of the URL only: remove authMechanism, or set it to SCRAM-SHA-256, SCRAM-SHA-1 or PLAIN.";

@@ -28,6 +28,16 @@ const LOCAL_FILES =
   "The connection check reads no certificate or key file: remove sslcert, sslkey and sslrootcert from the URL, and connect with sslmode=require or put the CA in the system trust store.";
 const UNREADABLE_URL = "This URL could not be read.";
 
+const SSL_VALUE =
+  "The ssl of the URL must be true, 1, 0 or no-verify; or set sslmode to disable, prefer, require, verify-ca or verify-full.";
+
+/**
+ * The `ssl` values `pg` turns into a TLS setting when the URL sets no `sslmode`. It keeps any other
+ * one as a string and reads a key of it once the server accepts TLS, on a socket event outside any
+ * promise, so the process exits.
+ */
+const SSL_SETTINGS = new Set(["true", "1", "0", "no-verify"]);
+
 /**
  * The URL parameters for which `pg` reads a file of this computer. It reads them synchronously,
  * while it parses the URL and again when it builds the client, so no deadline bounds the read.
@@ -86,8 +96,8 @@ type UrlSignIn =
 /**
  * How the check signs in with `url`, read as the WHATWG parser `pg` reads it with, and refused when
  * that parser would rewrite it. It refuses a URL with no user or no host, which `pg` would fill
- * from this computer (a URL without a host does not parse), and one that names a file of this
- * computer for `pg` to read.
+ * from this computer (a URL without a host does not parse), one that names a file of this
+ * computer for `pg` to read, and an `ssl` value `pg` would keep as a string.
  */
 function urlSignIn(url: string): UrlSignIn {
   if (hasControlCharacter(url)) {
@@ -105,6 +115,12 @@ function urlSignIn(url: string): UrlSignIn {
   const names = [...parsed.searchParams.keys()];
   if (names.some((name) => LOCAL_FILE_PARAMETERS.has(name.toLowerCase()))) {
     return { refusal: LOCAL_FILES };
+  }
+  if (
+    !parsed.searchParams.has("sslmode") &&
+    !parsed.searchParams.getAll("ssl").every((value) => SSL_SETTINGS.has(value))
+  ) {
+    return { refusal: SSL_VALUE };
   }
   return { password: parsed.password !== "" };
 }
