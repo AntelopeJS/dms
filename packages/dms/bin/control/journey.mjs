@@ -366,7 +366,12 @@ export class JourneyContext {
     return this.state.secrets.DMS_SETUP_TOKEN;
   }
 
-  /** Creates the administrator through `POST /api/onboarding/register`, then signs it in. */
+  /**
+   * Creates the administrator through `POST /api/onboarding/register`, then signs it in.
+   *
+   * @param {{ platformName?: string }} [options] Wizard details
+   * @returns {Promise<{ register: import("./session.mjs").ApiAnswer, login: import("./session.mjs").ApiAnswer | null }>} Both answers
+   */
   onboard(options = {}) {
     return onboard(this.state, options);
   }
@@ -494,23 +499,25 @@ async function prepare(state, feature, journey, context) {
 /**
  * Runs one journey: by default on a fresh database with an onboarded
  * administrator (`database: "shared"` keeps the current one, `onboard:
- * false` skips the administrator), with a fresh browser, and writes its
- * result.json.
+ * false` skips the administrator), with fresh browser contexts, and writes
+ * its result.json. The contexts open in `browser`, which it leaves open, or
+ * else in a browser it launches and closes.
  *
  * @param {import("./run-state.mjs").RunState} state The run
  * @param {string} feature The feature it belongs to
  * @param {Journey} journey The journey
  * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
+ * @param {import("playwright-core").Browser} [browser] The browser to open its contexts in, such as Playwright Test's
  * @returns {Promise<FeatureResult>} The result
  */
-export async function runJourney(state, feature, journey, skill) {
+export async function runJourney(state, feature, journey, skill, browser) {
   const stop = stopwatch();
   const detail = { feature, journey: journey.id };
   /** @type {Omit<FeatureResult, "ms"> | undefined} */
   let result;
   let lap = { ms: 0, startedAt: "" };
   try {
-    result = await driveJourney(state, feature, journey, skill);
+    result = await driveJourney(state, feature, journey, skill, browser);
   } finally {
     lap = stop();
     recordTiming(state, "journey", lap, result?.status === "PASS", detail);
@@ -527,16 +534,19 @@ export async function runJourney(state, feature, journey, skill) {
  * @param {string} feature The feature it belongs to
  * @param {Journey} journey The journey
  * @param {import("./verify/skill.mjs").Skill} skill The skill the journey belongs to
+ * @param {import("playwright-core").Browser | undefined} given The browser to open its contexts in, or none to launch one
  * @returns {Promise<Omit<FeatureResult, "ms">>} The result, without its duration
  */
-async function driveJourney(state, feature, journey, skill) {
+async function driveJourney(state, feature, journey, skill, given) {
   const detail = { feature, journey: journey.id };
-  const browser = await timed(
-    state,
-    "browser-launch",
-    () => launchBrowser(resolutionFolders(state)),
-    detail,
-  );
+  const browser =
+    given ??
+    (await timed(
+      state,
+      "browser-launch",
+      () => launchBrowser(resolutionFolders(state)),
+      detail,
+    ));
   const context = new JourneyContext(
     state,
     feature,
@@ -561,7 +571,7 @@ async function driveJourney(state, feature, journey, skill) {
       const closing = `closing the journey failed: ${String(failure?.stack ?? failure)}`;
       error = error === null ? closing : `${error}\n${closing}`;
     }
-    await browser.close();
+    if (given === undefined) await browser.close();
   }
   const judged = judge(
     context.steps,
