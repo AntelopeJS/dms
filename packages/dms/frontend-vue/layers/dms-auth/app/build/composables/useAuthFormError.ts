@@ -39,14 +39,16 @@ export interface AuthFieldErrorTarget {
  * after an `await` without the i18n context.
  */
 export function useAuthFormError() {
-  const { resolveError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const formError = ref<AuthFormError | null>(null);
 
   function showFormError(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     titleKey: string,
   ): void {
-    const notice = resolveError(error, { fallbackKey: titleKey });
+    const notice = errorPresenter.resolveError(error, {
+      fallbackKey: titleKey,
+    });
     formError.value = notice
       ? { title: notice.message, description: "", severity: notice.severity }
       : null;
@@ -90,7 +92,7 @@ export function useAuthFormError() {
     const messages = fields.map((entry) => ({
       name: entry.field,
       message:
-        resolveError(entry.message, {
+        errorPresenter.resolveError(entry.message, {
           fallbackKey: entry.fallbackKey ?? "dms.field_errors.invalid",
           params: entry.params,
         })?.message ?? "",

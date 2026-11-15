@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import * as z from "zod";
+import { z } from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import striptags from "striptags";
 import StageCard from "#dms-layout/app/entries/components/layout/StageCard";

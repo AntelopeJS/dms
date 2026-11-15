@@ -9,7 +9,7 @@ type AppContextRunner = Pick<DmsAppContext, "runWithContext">;
  * otherwise warn that `inject()` was called outside `setup()` and get no value.
  */
 export function lazyPlugin<Context extends AppContextRunner>(
-  load: () => Promise<{ default: (context: Context) => unknown }>,
+  load: () => Promise<{ default: (context: Context) => void | Promise<void> }>,
 ): (context: Context) => Promise<void> {
   return async (context) => {
     const plugin = await load();

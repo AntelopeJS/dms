@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import * as z from "zod";
+import { z } from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
@@ -110,11 +110,17 @@ const invitationState = computed<InvitationState>(() => {
   if (status.value === "idle" || status.value === "pending") return "checking";
   return error.value ? (closedInvitationOf(error.value) ?? "open") : "open";
 });
-const closedInvitation = computed(() =>
-  invitationState.value in CLOSED_INVITATION_NOTICES
-    ? CLOSED_INVITATION_NOTICES[invitationState.value as ClosedInvitation]
-    : undefined,
-);
+function isClosedInvitation(
+  state: typeof invitationState.value,
+): state is ClosedInvitation {
+  return Object.hasOwn(CLOSED_INVITATION_NOTICES, state);
+}
+const closedInvitation = computed(() => {
+  const state = invitationState.value;
+  return isClosedInvitation(state)
+    ? CLOSED_INVITATION_NOTICES[state]
+    : undefined;
+});
 
 const invitationLanguage = locales.value.find(
   (available) => available.code === route.query.lang,

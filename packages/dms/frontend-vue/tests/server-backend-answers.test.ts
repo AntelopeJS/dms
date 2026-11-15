@@ -263,6 +263,27 @@ describe("the backend answers and request bodies the DMS's server routes read", 
     });
   });
 
+  it("shows the OAuth error key a refused provider sign-in answers, and the generic failure for any other refusal", async () => {
+    const callback = async (reply: Reply) =>
+      seen(
+        await askReplying(
+          "/auth/oauth/github/callback?code=c&state=state-1",
+          { "/api/auth/oauth/github/callback": reply },
+          providerRequest(),
+        ),
+      );
+    const taken = await callback({
+      status: 409,
+      body: { message: "error.oauth.email_taken" },
+    });
+    expect(taken.location).toBe("/auth?oauth_error=error.oauth.email_taken");
+    const other = await callback({
+      status: 409,
+      body: { message: "error.409.description" },
+    });
+    expect(other.location).toBe("/auth?oauth_error=error.oauth.failed");
+  });
+
   it("starts no provider sign-in from an authorize-url answer of another shape", async () => {
     const start = async (reply: Reply) =>
       seen(

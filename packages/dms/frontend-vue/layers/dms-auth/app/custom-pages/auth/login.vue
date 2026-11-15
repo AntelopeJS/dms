@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import * as z from "zod";
+import { z } from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
@@ -48,14 +48,22 @@ useLiveFormErrors(form, state);
 function isTwoFactorRequired(
   response: unknown,
 ): response is TwoFactorRequiredResponse {
-  return !!response && isObject(response) && "requires_2fa" in response;
+  return (
+    !!response &&
+    isObject(response) &&
+    "requires_2fa" in response &&
+    response.requires_2fa === true
+  );
 }
 
 function isTenantAssignmentRequired(
   response: unknown,
 ): response is TenantAssignmentRequiredResponse {
   return (
-    !!response && isObject(response) && "requires_tenant_assignment" in response
+    !!response &&
+    isObject(response) &&
+    "requires_tenant_assignment" in response &&
+    response.requires_tenant_assignment === true
   );
 }
 
@@ -84,7 +92,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     isLoading.value = true;
     clearFormError();
 
-    const response = await $fetch("/auth/login", {
+    const response: unknown = await $fetch("/auth/login", {
       method: "POST",
       body: payload.data,
     });

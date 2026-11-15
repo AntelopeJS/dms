@@ -132,11 +132,17 @@ function errorRedirect(key: string): Response {
   return redirect(`${SIGN_IN}?oauth_error=${encodeURIComponent(key)}`);
 }
 
-function failureRedirect(error: unknown): Response {
-  const message = error instanceof Error ? error.message : "";
-  const status = (error as { status?: unknown }).status;
-  return errorRedirect(
-    isNumber(status) && message.startsWith(OAUTH_ERROR) ? message : FAILED,
+/** A refusal the backend answered for the flow, whose message is the key the sign-in page shows. */
+interface OAuthFailure extends Error {
+  status: number;
+}
+
+function isOAuthFailure(error: unknown): error is OAuthFailure {
+  return (
+    error instanceof Error &&
+    "status" in error &&
+    isNumber(error.status) &&
+    error.message.startsWith(OAUTH_ERROR)
   );
 }
 
@@ -179,7 +185,7 @@ export async function oauthStart(event: DmsServerEvent): Promise<Response> {
     );
     return redirect(result.authorizeUrl);
   } catch (error) {
-    return failureRedirect(error);
+    return errorRedirect(isOAuthFailure(error) ? error.message : FAILED);
   }
 }
 
@@ -262,7 +268,7 @@ async function completeOAuth(
         : COMPLETE,
     );
   } catch (error) {
-    return failureRedirect(error);
+    return errorRedirect(isOAuthFailure(error) ? error.message : FAILED);
   }
 }
 

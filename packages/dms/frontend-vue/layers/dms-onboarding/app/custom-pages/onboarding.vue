@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isString } from "#dms-core/app/utils/type-check";
 import StepIndicator from "../build/components/onboarding/StepIndicator.vue";
 import Platform from "../build/components/onboarding/steps/StepPlatform.vue";
 import Ready from "../build/components/onboarding/steps/StepReady.vue";
@@ -34,7 +35,7 @@ useHead({ meta: [{ name: "referrer", content: "no-referrer" }] });
 
 onMounted(() => {
   const { token, ...query } = route.query;
-  if (typeof token !== "string" || !token) return;
+  if (!isString(token) || !token) return;
   setupToken.value = token;
   void router.replace({ query });
 });

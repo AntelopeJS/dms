@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import * as z from "zod";
+import { z } from "zod";
 import type { SelectItem } from "@nuxt/ui";
 import StageCard from "#dms-layout/app/entries/components/layout/StageCard";
 import type { OnboardingPlatform } from "../../../composables/onboarding/steps";
