@@ -78,7 +78,7 @@ function daysAgo(ago) {
  * @param {Record<string, unknown>} args Its arguments
  * @returns {Promise<{ ok: boolean, data: unknown, raw: string }>} Whether the operation succeeded, and what it answered
  */
-async function operation(session, name, args) {
+export async function operation(session, name, args) {
   const answer = toolText(await session.call(name, args));
   const body = parseJson(answer.text);
   return { ok: !answer.isError && fieldOf(body, "ok") === true, data: fieldOf(body, "data"), raw: answer.text };
@@ -90,7 +90,7 @@ async function operation(session, name, args) {
  * @param {Ctx} ctx
  * @returns {Promise<{ passed: boolean, output: string }>} Whether the project compiled, and what the compiler said
  */
-async function rebuild(ctx) {
+export async function rebuild(ctx) {
   const root = ctx.state.runPlayground ?? ctx.state.playground;
   const compiled = spawnSync(join(root, "node_modules", ".bin", "tsc"), [], { cwd: root, encoding: "utf8" });
   const output = `${compiled.stdout}${compiled.stderr}`;

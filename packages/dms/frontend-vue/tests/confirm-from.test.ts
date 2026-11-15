@@ -7,6 +7,7 @@
 import { createApp, defineComponent, h, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
+import { useActionConfirm } from "../layers/dms-ui/app/build/composables/confirm/useActionConfirm";
 import { useConfirmFrom } from "../layers/dms-ui/app/composables/confirm/useConfirmFrom";
 import { isConfirmTextMatch } from "../layers/dms-ui/app/entries/composables/confirm/confirmTextMatch";
 import type { NamedValue } from "vue-i18n";
@@ -20,12 +21,12 @@ const confirm = vi.fn(async () => true);
 const addToast = vi.fn(() => ({ id: "failure" }));
 let app: App | undefined;
 
-function mountConfirmFrom() {
-  let api: ReturnType<typeof useConfirmFrom> | undefined;
+function mountComposable<T>(use: () => T): T {
+  let api: T | undefined;
   app = createApp(
     defineComponent({
       setup() {
-        api = useConfirmFrom();
+        api = use();
         return () => h("div");
       },
     }),
@@ -33,6 +34,8 @@ function mountConfirmFrom() {
   app.mount(document.createElement("div"));
   return api!;
 }
+
+const mountConfirmFrom = () => mountComposable(useConfirmFrom);
 
 beforeEach(() => {
   vi.stubEnv("SSR", false);
@@ -107,6 +110,91 @@ describe("confirmFrom", () => {
     expect(await mountConfirmFrom().confirmFrom("/api/x")).toBe(false);
     expect(confirm).not.toHaveBeenCalled();
     expect(addToast).toHaveBeenCalledOnce();
+  });
+});
+
+describe("confirmFrom on an answer its route's writers control", () => {
+  it("leaves out the component the answer names, and still shows its texts and plain fields", async () => {
+    authFetch.mockResolvedValue({
+      title: "Approve the export?",
+      component: {
+        componentName: "dms-input-secret",
+        options: { rotateUrl: "/api/builder/database/connections/check" },
+      },
+      fields: [
+        {
+          id: "note",
+          type: "string",
+          component: { componentName: "dms-input-text", options: {} },
+        },
+      ],
+    });
+    expect(await mountConfirmFrom().confirmFrom("/api/x")).toBe(true);
+    expect(confirm).toHaveBeenCalledOnce();
+    const shown = confirm.mock.calls[0]?.[0];
+    expect(shown).not.toHaveProperty("component");
+    expect(shown).toMatchObject({
+      title: "Approve the export?",
+      fields: [{ id: "note" }],
+    });
+  });
+
+  it.each([
+    ["a secret input that rotates through a POST", "dms-input-secret"],
+    ["a form block", "dms-form-block"],
+    ["a relation input that adds records", "DmsInputRelation"],
+    ["a component of another module", "acme-widget"],
+  ])(
+    "refuses a dialog whose field is drawn by %s, toasting it",
+    async (_input, componentName) => {
+      authFetch.mockResolvedValue({
+        title: "Renew the token?",
+        fields: [
+          {
+            id: "token",
+            type: "secret",
+            component: {
+              componentName,
+              options: { rotateUrl: "/api/builder/database/connections/check" },
+            },
+          },
+        ],
+      });
+      expect(await mountConfirmFrom().confirmFrom("/api/x")).toBe(false);
+      expect(confirm).not.toHaveBeenCalled();
+      expect(addToast).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("shows a field drawn by a request-free built-in input, however its name is written", async () => {
+    authFetch.mockResolvedValue({
+      title: "Delete the role?",
+      fields: [
+        {
+          id: "reassignTo",
+          type: "select",
+          component: {
+            componentName: "DmsInputSelect",
+            options: { items: [] },
+          },
+        },
+      ],
+    });
+    expect(await mountConfirmFrom().confirmFrom("/api/x")).toBe(true);
+    expect(confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: [expect.objectContaining({ id: "reassignTo" })],
+      }),
+    );
+  });
+
+  it("keeps the component of a dialog declared in code", async () => {
+    const component = { componentName: "acme-preview", options: { id: "p1" } };
+    const { confirmAction } = mountComposable(useActionConfirm);
+    expect(await confirmAction({ title: "Publish?", component })).toBe(true);
+    expect(confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ component }),
+    );
   });
 });
 
