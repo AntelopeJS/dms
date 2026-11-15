@@ -1,4 +1,2 @@
 layers/dms-core/app/composables/data-types/useDataType.ts
 layers/dms-core/app/types/watch.ts
-layers/dms-core/app/composables/user/usePreferences.ts
-layers/dms-core/app/build/composables/user/tablePreferences.ts

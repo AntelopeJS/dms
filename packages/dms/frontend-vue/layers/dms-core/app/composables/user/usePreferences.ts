@@ -11,6 +11,8 @@ import {
 } from "../../build/composables/user/preferencesCookie";
 import { clearLocalTableEntries } from "../../build/composables/user/tablePreferences";
 import { isString } from "../../utils/type-check";
+import { isJsonObject, isJsonValue } from "../../build/utils/json";
+import type { JsonValue } from "../../types/json";
 
 export interface UserPreferences extends PreferencesTree {}
 
@@ -65,9 +67,13 @@ export const usePreferences = () => {
     return true;
   };
 
-  const getPreference = <T = unknown>(keyPath: string, defaultValue?: T): T => {
+  /**
+   * The JSON kept at `keyPath`, `undefined` when there is none. The cookie is
+   * the browser's to change, so parse the value into the shape you keep.
+   */
+  const getPreference = (keyPath: string): JsonValue | undefined => {
     const value = readAt(tree.value, keyPath.split("."));
-    return (value === undefined ? defaultValue : value) as T;
+    return isJsonValue(value) ? value : undefined;
   };
 
   const setPreference = (
@@ -96,8 +102,10 @@ export const usePreferences = () => {
     keyPath: string,
     value: Partial<T>,
   ): void => {
-    const current = getPreference(keyPath, {});
-    const merged = { ...current, ...value };
+    const current = getPreference(keyPath);
+    const merged = isJsonObject(current)
+      ? { ...current, ...value }
+      : { ...value };
     setPreference(keyPath, merged);
   };
 

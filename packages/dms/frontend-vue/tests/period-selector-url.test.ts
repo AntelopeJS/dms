@@ -45,8 +45,7 @@ function followInertiaPage({
 }
 const inertiaReplace = vi.spyOn(inertiaRouter, "replace");
 vi.stubGlobal("usePreferences", () => ({
-  getPreference: (key: string, fallback?: RememberedPeriods) =>
-    preferences.get(key) ?? fallback,
+  getPreference: (key: string) => preferences.get(key),
   setPreference: (key: string, value: RememberedPeriods) =>
     preferences.set(key, value),
 }));

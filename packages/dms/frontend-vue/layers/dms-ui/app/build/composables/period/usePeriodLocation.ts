@@ -8,13 +8,13 @@ import {
   isRangeOffered,
   rememberedPeriodKey,
   rememberPeriod,
-  type RememberedPeriods,
   type RememberedPeriodTarget,
   type PeriodQuery,
   type PeriodQueryKeys,
   type PeriodSelection,
   type PeriodSource,
   resolvePeriodSelection,
+  storedPeriods,
   writePeriodQuery,
 } from "./periodQuery";
 
@@ -116,16 +116,16 @@ function isRouteBehindBrowser(text: string, keys: PeriodQueryKeys): boolean {
 function useRememberedPeriod(target: RememberedPeriodTarget) {
   const { getPreference, setPreference } = usePreferences();
   const key = rememberedPeriodKey(target);
-  const all = () => getPreference<RememberedPeriods>(PERIOD_PREFERENCE_KEY, {});
+  const stored = () => getPreference(PERIOD_PREFERENCE_KEY);
   return {
     source: (): PeriodSource => ({
-      query: all()[key] ?? {},
+      query: storedPeriods(stored())[key] ?? {},
       keys: STORED_KEYS,
     }),
     remember: (selection: PeriodSelection) =>
       setPreference(
         PERIOD_PREFERENCE_KEY,
-        rememberPeriod(all(), key, writePeriodQuery(selection, STORED_KEYS)),
+        rememberPeriod(stored(), key, writePeriodQuery(selection, STORED_KEYS)),
       ),
   };
 }

@@ -373,7 +373,8 @@ function isRememberedPeriods(
   );
 }
 
-function storedPeriods(store: JsonValue | undefined): RememberedPeriods {
+/** The last choices `store` keeps, none when it holds something else. */
+export function storedPeriods(store: JsonValue | undefined): RememberedPeriods {
   return isRememberedPeriods(store) ? store : {};
 }
 
