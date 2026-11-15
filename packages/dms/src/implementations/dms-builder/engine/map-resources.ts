@@ -29,6 +29,7 @@ import {
 } from "./map-resources-references";
 import { MappingRefusal } from "./mapping-refusal";
 import { pageOf } from "./mapped-displays";
+import { recordWrittenLiterals } from "./mapped-literals";
 import { markMapped } from "./mapped-modules";
 import { targetModule } from "./modules";
 import { changesModule, watchReloadOf } from "./module-reload";
@@ -389,6 +390,7 @@ export function mapDescribedResources(
   }
   recordMapping(input, plan);
   const pages = writePages(input, plan, result.data);
+  recordWrittenLiterals(input);
   const data = {
     resources: result.data,
     leftOut: plan.leftOut,

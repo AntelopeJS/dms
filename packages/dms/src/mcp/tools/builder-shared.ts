@@ -5,6 +5,7 @@ import type {
   OpResult,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
+import type { MappedLiteralTest } from "../hidden-values";
 import {
   type RedactedChange,
   type RedactedData,
@@ -39,6 +40,15 @@ export async function mappedFileTest(): Promise<(file: string) => boolean> {
   const { holdsMappedCode } =
     await import("../../implementations/dms-builder/engine");
   return holdsMappedCode;
+}
+
+/** Which row literals of a file a mapping wrote, so the AI reads them hidden. */
+export async function mappedLiteralTest(): Promise<
+  (file: string) => MappedLiteralTest
+> {
+  const { mappedLiteralTestOf } =
+    await import("../../implementations/dms-builder/engine");
+  return mappedLiteralTestOf;
 }
 
 async function shownChanges(

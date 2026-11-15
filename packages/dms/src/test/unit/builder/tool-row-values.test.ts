@@ -175,6 +175,17 @@ const OWN_SELECT: JsonValue = {
   config: { items: [{ label: "Own low", value: "own_low" }] },
 };
 
+/** The record of a mapped module's `package.json`, as far as a test rewrites it. */
+const ManifestSchema = z
+  .object({
+    dmsBuilder: z
+      .object({
+        database: z.object({ rowLiterals: z.array(z.string()) }).passthrough(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
 let app: Fixture;
 
 /** Calls a tool and answers its text, failing on an error answer or on any value of a row. */
@@ -443,6 +454,25 @@ describe("[unit] the builder tools over a mapped resource answer the literals th
     expect(mappedPage).to.include('"tabs":{"$hidden":4}');
     expect(mappedPage).to.include(JSON.stringify(OWN_TABS));
     expect(mappedPage).to.include(JSON.stringify(OWN_SELECT));
+    const manifest = path.join(app.root, "modules", MODULE, "package.json");
+    const record = ManifestSchema.parse(
+      JSON.parse(projectFile(app.root, path.relative(app.root, manifest))),
+    );
+    const { rowLiterals, ...unrecorded } = record.dmsBuilder.database;
+    expect(rowLiterals).to.not.have.lengthOf(0);
+    fs.writeFileSync(
+      manifest,
+      JSON.stringify({
+        ...record,
+        dmsBuilder: { ...record.dmsBuilder, database: unrecorded },
+      }),
+    );
+    const mappedBefore = await valueFree("builder_page_structure", {
+      pageRef: orders.page,
+    });
+    expect(mappedBefore).to.not.include("own_open");
+    expect(mappedBefore).to.not.include("own_low");
+    fs.writeFileSync(manifest, JSON.stringify(record));
     await valueFree("builder_create_category", {
       name: "ops",
       displayName: "Ops",

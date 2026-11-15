@@ -16,7 +16,7 @@ import {
   BUILDER_REF_NOTE,
   containsExprSentinel,
   exprRefusal,
-  mappedFileTest,
+  mappedLiteralTest,
   withEscalationNote,
   opResult,
   TARGET_MODULE,
@@ -118,19 +118,18 @@ const resourceStructure = defineTool({
   name: "builder_resource_structure",
   title: "Resource structure",
   description: withEscalationNote(
-    "Returns a resource's fields with their semantic aspects, its `routes` (absent when it serves the full set), and a version hash for optimistic concurrency. Hand-edited or relation fields come back marked `opaque` — safe mode cannot reconfigure those. In a module mapped from a connected database, a select's `items` and a price's `currency` read `{ $hidden: n }`, n the values the mapping read from rows: leave `dataType` out of a patch to keep them.",
+    "Returns a resource's fields with their semantic aspects, its `routes` (absent when it serves the full set), and a version hash for optimistic concurrency. Hand-edited or relation fields come back marked `opaque` — safe mode cannot reconfigure those. A select's `items` and a price's `currency` that a mapping from a connected database wrote read `{ $hidden: n }`, n the values it read from rows: leave `dataType` out of a patch to keep them. The ones you wrote read as written.",
   ),
   effect: "read",
   input: z.object({ ref: z.string() }),
   async run({ ref }) {
     const answer = await GetResourceStructure(ref);
-    const mapped =
-      answer.ok && (await mappedFileTest())(answer.data.files.dataApi);
-    return opResult(
-      answer.ok && mapped
-        ? { ...answer, data: hideResourceValues(answer.data) }
-        : answer,
-    );
+    if (!answer.ok) return opResult(answer);
+    const isMapped = (await mappedLiteralTest())(answer.data.files.dataApi);
+    return opResult({
+      ...answer,
+      data: hideResourceValues(answer.data, isMapped),
+    });
   },
 });
 

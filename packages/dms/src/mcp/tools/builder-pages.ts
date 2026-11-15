@@ -24,7 +24,7 @@ import {
   BLOCK_PATH_FORMAT,
   containsExprSentinel,
   exprRefusal,
-  mappedFileTest,
+  mappedLiteralTest,
   withEscalationNote,
   opResult,
   PARENT_PATH,
@@ -48,19 +48,18 @@ const pageStructure = defineTool({
   name: "builder_page_structure",
   title: "Builder page structure",
   description: withEscalationNote(
-    `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT} On a page of a module mapped from a connected database, or one that imports from it, a TableView's \`tabs\`, a select's \`items\` and a price's \`currency\` read \`{ $hidden: n }\`, n the values the mapping read from rows: leave that key out of a patch to keep it.`,
+    `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT} A TableView's \`tabs\`, a select's \`items\` and a price's \`currency\` that a mapping from a connected database wrote read \`{ $hidden: n }\`, n the values it read from rows: leave that key out of a patch to keep it. The ones you wrote read as written.`,
   ),
   effect: "read",
   input: z.object({ pageRef: z.string() }),
   async run({ pageRef }) {
     const answer = await GetPageStructure(pageRef);
-    const mapped =
-      answer.ok && (await mappedFileTest())(answer.data.page.filepath);
-    return opResult(
-      answer.ok && mapped
-        ? { ...answer, data: hidePageValues(answer.data) }
-        : answer,
-    );
+    if (!answer.ok) return opResult(answer);
+    const isMapped = (await mappedLiteralTest())(answer.data.page.filepath);
+    return opResult({
+      ...answer,
+      data: hidePageValues(answer.data, isMapped),
+    });
   },
 });
 
@@ -165,12 +164,12 @@ async function droppedHiddenOptions(
   if (hash < 0) return [];
   const structure = await GetPageStructure(path.slice(0, hash));
   if (!structure.ok) return [];
-  if (!(await mappedFileTest())(structure.data.page.filepath)) return [];
+  const isMapped = (await mappedLiteralTest())(structure.data.page.filepath);
   const segments = path
     .slice(hash + 1)
     .split("/")
     .filter((segment) => segment.length > 0);
-  return hiddenOptionsOf(structure.data, segments).filter(
+  return hiddenOptionsOf(structure.data, segments, isMapped).filter(
     (key) => !Object.hasOwn(patch, key),
   );
 }
@@ -198,7 +197,7 @@ const configureBlock = defineTool({
   name: "builder_configure_block",
   title: "Configure block",
   description: withEscalationNote(
-    "Merges (or replaces, with replace:true) options into a block's config. Children are managed with Add/Move/Remove, not here. On a mapped page, replace:true is refused while it would drop an option builder_page_structure shows as `{ $hidden: n }`: merge instead, or send that option yourself.",
+    "Merges (or replaces, with replace:true) options into a block's config. Children are managed with Add/Move/Remove, not here. replace:true is refused while it would drop an option builder_page_structure shows as `{ $hidden: n }`: merge instead, or send that option yourself.",
   ),
   effect: "builder",
   input: z.object({
@@ -213,7 +212,7 @@ const configureBlock = defineTool({
     if (dropped.length > 0) {
       return refusalResult(
         "unsupported",
-        `replace:true would drop ${dropped.join(", ")}, which builder_page_structure hides because the page holds code over a mapped module that may come from rows. Merge the patch without replace to keep them, or send them yourself.`,
+        `replace:true would drop ${dropped.join(", ")}, which builder_page_structure hides because a mapping wrote them from rows. Merge the patch without replace to keep them, or send them yourself.`,
       );
     }
     const judged = await judgePatch(path, patch, replace);

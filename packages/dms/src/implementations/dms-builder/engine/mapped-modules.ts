@@ -1,10 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { ExcludedRelation } from "@antelopejs/interface-dms-builder";
+import type {
+  ConfigValue,
+  ExcludedRelation,
+} from "@antelopejs/interface-dms-builder";
 import { ts } from "ts-morph";
 import { moduleOfFile, targetModule } from "./modules";
 import { resolveProjectRoot } from "./project";
 import { StepRefusal } from "./project-config";
+import { rowLiteralDigest } from "./row-literals";
 import { isString } from "./scalar-guards";
 import { isPlainObject } from "./value";
 
@@ -27,6 +31,11 @@ interface DatabaseRecord {
   connection?: string;
   /** Tables decided against, `"schema.name"` → why, so no analysis proposes them again. */
   excludedTables?: Record<string, string>;
+  /**
+   * The {@link rowLiteralDigest} of each row literal a mapping wrote into the module. A module
+   * mapped before dms recorded them has none, and all of its row literals count as written.
+   */
+  rowLiterals?: string[];
 }
 
 /** What one `MapResources` call changes in the module's record. */
@@ -55,11 +64,16 @@ function isOptionalTextRecord(
   );
 }
 
+function isOptionalTextList(value: unknown): value is string[] | undefined {
+  return value === undefined || (Array.isArray(value) && value.every(isString));
+}
+
 function isDatabaseRecord(value: unknown): value is DatabaseRecord {
   return (
     isPlainObject(value) &&
     isOptionalString(value.connection) &&
-    isOptionalTextRecord(value.excludedTables)
+    isOptionalTextRecord(value.excludedTables) &&
+    isOptionalTextList(value.rowLiterals)
   );
 }
 
@@ -121,6 +135,7 @@ function databaseRecord(manifest: MappedManifest): DatabaseRecord {
   return {
     connection: builder?.database?.connection ?? builder?.mapped,
     excludedTables: builder?.database?.excludedTables ?? builder?.excluded,
+    rowLiterals: builder?.database?.rowLiterals,
   };
 }
 
@@ -136,6 +151,9 @@ function recorded(
   const database: DatabaseRecord = { connection: record.connection };
   if (record.excludedTables && Object.keys(record.excludedTables).length > 0) {
     database.excludedTables = record.excludedTables;
+  }
+  if (record.rowLiterals !== undefined) {
+    database.rowLiterals = record.rowLiterals;
   }
   return { ...manifest, dmsBuilder: { ...builder, database } };
 }
@@ -172,6 +190,22 @@ export function markMapped(module: string, update: MappedRecordUpdate): void {
   writeDatabaseRecord(root, {
     connection: update.connection,
     excludedTables: updatedExclusions(current.excludedTables, update),
+    rowLiterals: current.rowLiterals,
+  });
+}
+
+/** Adds the digests of row literals a mapping wrote into a module to the ones its record keeps. */
+export function recordRowLiterals(module: string, digests: string[]): void {
+  const root = targetModule(module)?.root;
+  if (!root) {
+    return;
+  }
+  const current = databaseRecord(readManifest(root));
+  writeDatabaseRecord(root, {
+    ...current,
+    rowLiterals: [
+      ...new Set([...(current.rowLiterals ?? []), ...digests]),
+    ].sort(),
   });
 }
 
@@ -181,37 +215,69 @@ export function mappedConnectionOfFile(filepath: string): string | undefined {
   return root ? recordedConnection(root) : undefined;
 }
 
-function importsMappedModule(filepath: string): boolean {
+/** The files a file imports by a relative path. */
+function relativeImportsOf(filepath: string): string[] {
   if (!fs.existsSync(filepath)) {
-    return false;
+    return [];
   }
   const { importedFiles } = ts.preProcessFile(
     fs.readFileSync(filepath, "utf8"),
     true,
     true,
   );
-  return importedFiles.some(
-    ({ fileName }) =>
-      fileName.startsWith(".") &&
-      mappedConnectionOfFile(path.resolve(path.dirname(filepath), fileName)) !==
-        undefined,
-  );
+  return importedFiles
+    .filter(({ fileName }) => fileName.startsWith("."))
+    .map(({ fileName }) => path.resolve(path.dirname(filepath), fileName));
+}
+
+/**
+ * The roots of the mapped modules whose code a file may hold: its own module's, and those it
+ * imports from by a relative path, as a mapped page moved into another module's category does.
+ * Refused when one of their records cannot be read.
+ */
+function mappedRootsOf(filepath: string): string[] {
+  const roots = [filepath, ...relativeImportsOf(filepath)].flatMap((file) => {
+    const root = moduleOfFile(file)?.root;
+    return root && recordedConnection(root) !== undefined ? [root] : [];
+  });
+  return [...new Set(roots)];
 }
 
 /**
  * Whether a file may hold code a mapping wrote from rows: it lies in a mapped module, or imports
- * from one by a relative path, as a mapped page moved into another module's category does. A
- * module whose record cannot be read counts as mapped.
+ * from one by a relative path. A module whose record cannot be read counts as mapped.
  */
 export function holdsMappedCode(filepath: string): boolean {
   try {
-    return (
-      mappedConnectionOfFile(filepath) !== undefined ||
-      importsMappedModule(filepath)
-    );
+    return mappedRootsOf(filepath).length > 0;
   } catch (error) {
     if (error instanceof StepRefusal) {
       return true;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Which row literals of a file a mapping wrote: those whose digest the records of the mapped
+ * modules the file holds code of keep. Every one when a record keeps no digests or cannot be
+ * read, none when the file holds no mapped code.
+ */
+export function mappedLiteralTestOf(
+  filepath: string,
+): (value: ConfigValue) => boolean {
+  try {
+    const records = mappedRootsOf(filepath).map(
+      (root) => databaseRecord(readManifest(root)).rowLiterals,
+    );
+    if (records.some((digests) => digests === undefined)) {
+      return () => true;
+    }
+    const written = new Set(records.flat());
+    return (value) => written.has(rowLiteralDigest(value));
+  } catch (error) {
+    if (error instanceof StepRefusal) {
+      return () => true;
     }
     throw error;
   }
