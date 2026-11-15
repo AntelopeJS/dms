@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { tv } from "tailwind-variants";
 import type { Data } from "./TableRoot.vue";
 import { useTableConfigClipboard } from "../../composables/table/useTableConfigClipboard";
@@ -20,10 +21,6 @@ const theme = tv({
 const emits = defineEmits<MenuImportEmits>();
 const { t } = useI18n();
 
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenuImport: Partial<typeof theme> };
-};
-
 const { importConfig } = useTableConfigClipboard<T>();
 
 const code = ref("");
@@ -36,7 +33,7 @@ const applyImport = () => {
 
 const uiTableMenuImportVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenuImport,
+  ...themeOverride("tableMenuImport"),
 });
 const uiTableMenuImport = computed(() => uiTableMenuImportVariant());
 </script>

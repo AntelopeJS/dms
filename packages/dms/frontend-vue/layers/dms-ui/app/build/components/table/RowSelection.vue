@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { themeOverride } from "./tableComponentTheme";
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { isActionEnabled } from "#dms-core/app/utils/row-action-rule-evaluator";
 import type { RowSelectionState } from "@tanstack/vue-table";
@@ -43,9 +44,7 @@ interface TableRowSelectionProps {
 
 const props = defineProps<TableRowSelectionProps>();
 
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableRowSelection: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const { t, locale } = useI18n();
 const { processI18n } = useTranslation();
@@ -135,7 +134,7 @@ const formattedTotal = computed(() =>
 
 const uiTableRowSelectionVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableRowSelection,
+  ...themeOverride("tableRowSelection"),
 });
 const uiTableRowSelection = computed(() =>
   uiTableRowSelectionVariant({ archived: !!props.archived }),

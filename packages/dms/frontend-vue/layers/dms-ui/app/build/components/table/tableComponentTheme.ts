@@ -1,3 +1,4 @@
+import { isNull, isObject } from "#dms-core/app/utils/type-check";
 import { REORDER_HANDLE_CLASS } from "../../composables/table-view/useReorderHandles";
 import { tv } from "tailwind-variants";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
@@ -232,7 +233,17 @@ const theme = tv({
   ],
 });
 
+/**
+ * The `tailwind-variants` config an app sets under `ui[key]` of its app config
+ * to restyle a table component, or none when it sets no object there.
+ */
+function themeOverride(key: string) {
+  const override = useDmsAppConfig().ui?.[key];
+  return isObject(override) && !isNull(override) ? override : undefined;
+}
+
 export {
+  themeOverride,
   PANEL_MATCH_BG,
   HEADER_PLACEMENT,
   HEADER_MATCH_BG,

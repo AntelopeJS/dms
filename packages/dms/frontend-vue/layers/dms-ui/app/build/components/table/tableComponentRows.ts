@@ -26,7 +26,8 @@ export function useTableComponentRows<T extends Data>(
   const hoveredRowId = ref<string | null>(null);
 
   const handleRowHover = (row: { original: T; id: string }) => {
-    hoveredRowId.value = get(row.original, rowIdKey);
+    const id: unknown = get(row.original, rowIdKey);
+    hoveredRowId.value = isString(id) ? id : null;
   };
 
   const handleRowLeave = () => {
@@ -35,8 +36,8 @@ export function useTableComponentRows<T extends Data>(
 
   const getRowPresence = (row: T): TableRowPresenceActor[] | undefined => {
     if (!props.presenceByRow) return undefined;
-    const id: string | undefined = get(row, rowIdKey);
-    if (!id) return undefined;
+    const id: unknown = get(row, rowIdKey);
+    if (!isString(id) || !id) return undefined;
     const actors = props.presenceByRow[id];
     return actors && actors.length > 0 ? actors : undefined;
   };

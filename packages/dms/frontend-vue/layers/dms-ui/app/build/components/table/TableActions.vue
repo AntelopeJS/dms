@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { injectLocal, useFocusWithin } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import { nextTick, type ShallowRef } from "vue";
@@ -151,9 +152,7 @@ const showSortControl = computed(
     hasSortableColumns.value,
 );
 
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableActions: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();
@@ -356,7 +355,7 @@ const hasTrailingButtons = computed(
 
 const uiTableActionsVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableActions,
+  ...themeOverride("tableActions"),
 });
 const uiTableActions = computed(() => uiTableActionsVariant());
 </script>

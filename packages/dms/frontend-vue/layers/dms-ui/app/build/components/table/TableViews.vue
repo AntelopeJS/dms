@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { themeOverride } from "./tableComponentTheme";
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { tv } from "tailwind-variants";
@@ -67,12 +68,10 @@ const theme = tv({
   },
 });
 
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableViews: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 const uiVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableViews,
+  ...themeOverride("tableViews"),
 });
 const ui = computed(() => uiVariant({ divided: props.divided }));
 

@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { injectLocal } from "@vueuse/core";
 
 import type { Data, TableFilter, TableSharedData } from "./TableRoot.vue";
@@ -44,9 +45,7 @@ const tableSharedData = computed(() => tableSharedDataRef?.value);
 const { getDataType } = useDataTypes();
 const { t, locale } = useI18n();
 
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenuFilter: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const usedAccessorKeys = computed(() => {
   const filtersValue = tableSharedData.value?.columnFiltersState.value || [];
@@ -240,7 +239,7 @@ if (props.isFormOnly) {
 
 const uiTableMenuFilterVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenuFilter,
+  ...themeOverride("tableMenuFilter"),
 });
 const uiTableMenuFilter = computed(() => uiTableMenuFilterVariant());
 

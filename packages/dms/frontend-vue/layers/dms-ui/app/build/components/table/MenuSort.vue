@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
+import { themeOverride } from "./tableComponentTheme";
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { ShallowRef } from "vue";
@@ -35,10 +36,6 @@ const tableSharedData =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 
 const { t } = useI18n();
-
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenuSort: Partial<typeof theme> };
-};
 
 interface SortableColumnItem {
   id: string;
@@ -128,7 +125,7 @@ function resetToDefault() {
 
 const uiTableMenuSortVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenuSort,
+  ...themeOverride("tableMenuSort"),
 });
 const uiTableMenuSort = computed(() => uiTableMenuSortVariant());
 </script>

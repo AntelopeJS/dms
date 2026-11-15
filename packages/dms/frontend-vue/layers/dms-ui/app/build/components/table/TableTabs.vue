@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { themeOverride } from "./tableComponentTheme";
 import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import { MONO_CHIP_CLASS } from "../../utils/monoChip";
 import { onMounted, ref, resolveComponent, useTemplateRef } from "vue";
@@ -92,13 +93,9 @@ const theme = tv({
   },
 });
 
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableTabs: Partial<typeof theme> };
-};
-
 const uiVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableTabs,
+  ...themeOverride("tableTabs"),
 });
 
 const ui = computed(() => uiVariant({ inline: props.inline }));

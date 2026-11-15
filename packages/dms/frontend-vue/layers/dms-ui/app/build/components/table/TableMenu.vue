@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { themeOverride } from "./tableComponentTheme";
 import type { Component } from "vue";
 import { Popover } from "reka-ui/namespaced";
 import TableMenuRoot from "./MenuRoot.vue";
@@ -32,9 +33,7 @@ const props = withDefaults(defineProps<TableMenuProps>(), {
 
 const { t } = useI18n();
 
-const appConfig = useDmsAppConfig() as ReturnType<typeof useDmsAppConfig> & {
-  ui: { tableMenu: Partial<typeof theme> };
-};
+const appConfig = useDmsAppConfig();
 
 const menuViews: Record<
   | "root"
@@ -92,7 +91,7 @@ const canGoBack = computed(
 
 const uiTableMenuVariant = tv({
   extend: tv(theme),
-  ...appConfig.ui?.tableMenu,
+  ...themeOverride("tableMenu"),
 });
 const uiTableMenu = computed(() => uiTableMenuVariant());
 </script>
