@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { isString } from "../layers/dms-core/app/utils/type-check";
 import { formSubmitEvent } from "./helpers/form-submit-event";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
@@ -35,7 +36,10 @@ const STORED = {
 const authFetch = vi.fn();
 let scope: EffectScope;
 type EditAnswer =
-  | (Partial<typeof STORED> & { _id?: string; success?: boolean })
+  | ({ [Field in keyof typeof STORED]?: JsonValue } & {
+      _id?: string;
+      success?: boolean;
+    })
   | string[]
   | undefined;
 let answer: () => EditAnswer;
