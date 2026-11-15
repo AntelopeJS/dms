@@ -1,5 +1,5 @@
 import { isString } from "../../../../dms-core/app/utils/type-check";
-import { type JsonObject, isJsonObject } from "./json";
+import { type JsonWritableObject, isJsonWritableObject } from "./json";
 
 /** An input component, with the options its field declares. */
 interface ComponentWithOptions {
@@ -26,10 +26,10 @@ const LIST_OPTIONS = ["items", "columns"] as const;
 const ENTRY_TEXTS = ["label", "description"] as const;
 
 function translateTexts(
-  source: JsonObject,
+  source: JsonWritableObject,
   keys: readonly string[],
   processI18n: Translate,
-): JsonObject {
+): JsonWritableObject {
   const translated = { ...source };
   for (const key of keys) {
     const text = Object.hasOwn(source, key) ? source[key] : undefined;
@@ -44,10 +44,10 @@ function translateTexts(
  * so a select inside a repeater shows its options in the reader's language.
  */
 function translateNestedField(
-  entry: JsonObject,
+  entry: JsonWritableObject,
   processI18n: Translate,
-): JsonObject {
-  if (!isJsonObject(entry.component)) return entry;
+): JsonWritableObject {
+  if (!isJsonWritableObject(entry.component)) return entry;
   return {
     ...entry,
     component: translateComponent(entry.component, processI18n),
@@ -59,14 +59,14 @@ function translateComponent<C extends ComponentWithOptions>(
   processI18n: Translate,
 ): C {
   const opts = component.options;
-  if (!isJsonObject(opts)) return component;
+  if (!isJsonWritableObject(opts)) return component;
 
   const options = translateTexts(opts, TEXT_OPTIONS, processI18n);
   for (const key of LIST_OPTIONS) {
     const list = Object.hasOwn(opts, key) ? opts[key] : undefined;
     if (!Array.isArray(list)) continue;
     options[key] = list.map((entry) =>
-      isJsonObject(entry)
+      isJsonWritableObject(entry)
         ? translateNestedField(
             translateTexts(entry, ENTRY_TEXTS, processI18n),
             processI18n,
@@ -74,7 +74,7 @@ function translateComponent<C extends ComponentWithOptions>(
         : entry,
     );
   }
-  if (isJsonObject(opts.value)) {
+  if (isJsonWritableObject(opts.value)) {
     options.value = translateNestedField(opts.value, processI18n);
   }
 

@@ -65,3 +65,10 @@ export function isWritableObject(
 ): value is JsonWritableObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+/** Whether `value` is a {@link JsonWritableObject}: not `null`, not a list, and {@link JsonWritable} all the way down. */
+export function isJsonWritableObject(
+  value: unknown,
+): value is JsonWritableObject {
+  return isJsonWritable(value) && isWritableObject(value);
+}
