@@ -13,23 +13,40 @@ const SERVER = String.raw`(?:(?<![\w.-])(?:\.\.\x2F)+|playground\x2F)(?:src|dist
  * A way client code loads a file that dependency-cruiser does not read.
  */
 
+/**
+ * A template literal part that reaches server code, or that ends on a `../` climb,
+ * where the interpolation that follows can name `src` or `dist`.
+ */
+const TEMPLATE_SERVER = String.raw`${SERVER}|(?<![\w.-])(?:\.\.\x2F)+$`;
+
+/** The string arguments of a call that loads a path. */
+const PATH_ARGUMENTS = [
+  `Literal[value=/${SERVER}/]`,
+  `TemplateLiteral > TemplateElement[value.raw=/${TEMPLATE_SERVER}/]`,
+];
+
+/**
+ * @param {string} call
+ * @returns {string}
+ */
+const pathArgumentOf = (call) =>
+  PATH_ARGUMENTS.map((path) => `${call} > ${path}`).join(", ");
+
 /** @type {Form[]} */
 const SCRIPT_FORMS = [
   {
     form: "import.meta.glob",
-    selector: `CallExpression[callee.object.type="MetaProperty"][callee.property.name=/^glob/] :matches(Literal[value=/${SERVER}/], TemplateElement[value.raw=/${SERVER}/])`,
+    selector: `CallExpression[callee.object.type="MetaProperty"][callee.property.name=/^glob/] :matches(Literal[value=/${SERVER}/], TemplateElement[value.raw=/${TEMPLATE_SERVER}/])`,
   },
   {
     form: "new URL(…, import.meta.url)",
-    selector: [
-      `Literal[value=/${SERVER}/]`,
-      `TemplateLiteral > TemplateElement[value.raw=/${SERVER}/]`,
-    ]
-      .map(
-        (path) =>
-          `NewExpression[callee.name="URL"][arguments.1.object.type="MetaProperty"][arguments.1.property.name="url"] > ${path}`,
-      )
-      .join(", "),
+    selector: pathArgumentOf(
+      `NewExpression[callee.name="URL"][arguments.1.object.type="MetaProperty"][arguments.1.property.name="url"]`,
+    ),
+  },
+  {
+    form: "an interpolated dynamic import",
+    selector: `ImportExpression > TemplateLiteral > TemplateElement[value.raw=/${TEMPLATE_SERVER}/]`,
   },
 ];
 
@@ -44,8 +61,8 @@ const DOCUMENT_FORMS = [
     selector: `VDocumentFragment > VElement > VStartTag > VAttribute[directive=false][key.name="src"][value.value=/${SERVER}/]`,
   },
   {
-    form: "a style @import or url()",
-    selector: `VDocumentFragment > VElement[name="style"] > VText[value=/(?:@import|url\\()[^;]*${SERVER}/]`,
+    form: "a style block path",
+    selector: `VDocumentFragment > VElement[name="style"] > VText[value=/${SERVER}/]`,
   },
 ];
 
@@ -63,7 +80,7 @@ export default [
   { ignores: ["node_modules/**", ".nuxt/**", ".output/**"] },
   ...vue.configs["flat/base"],
   {
-    files: ["**/*.{js,mjs,cjs,ts,mts,cts,vue}"],
+    files: ["**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,vue}"],
     languageOptions: {
       parserOptions: { parser: typescriptParser, sourceType: "module" },
     },
@@ -72,7 +89,7 @@ export default [
     },
   },
   {
-    files: ["**/*.{ts,mts,cts}"],
+    files: ["**/*.{ts,mts,cts,tsx}"],
     languageOptions: { parser: typescriptParser },
   },
   {
