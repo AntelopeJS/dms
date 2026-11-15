@@ -1,6 +1,7 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import { effectScope, shallowRef, watch } from "vue";
 import type { RowNavigation } from "../../../types/row-navigation";
+import { detachRun } from "./detachRun";
 
 /**
  * Where a row stands among all the rows the table lists, under its current
@@ -168,7 +169,7 @@ export function trackRowNavigation(
     const neighbour = neighbourOf(direction, loaded);
 
     if (neighbour) return go(neighbour);
-    void stepPast(direction, loaded);
+    detachRun(stepPast(direction, loaded));
   };
 
   const scope = effectScope(true);
@@ -193,7 +194,7 @@ export function trackRowNavigation(
           isUnlisted = false;
           return;
         }
-        if (!isUnlisted) void locate();
+        if (!isUnlisted) detachRun(locate());
       },
       { immediate: true },
     );

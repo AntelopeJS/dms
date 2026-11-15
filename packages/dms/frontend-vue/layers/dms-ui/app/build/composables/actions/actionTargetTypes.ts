@@ -28,7 +28,7 @@ export interface ComponentTargetRun extends TargetRunExtras {
   missingId?: string;
 }
 
-export type TargetsByKind = {
+type TargetsByKind = {
   [Kind in ActionTarget["type"]]: Extract<ActionTarget, { type: Kind }>;
 };
 export type TargetHandler<Kind extends ActionTarget["type"]> = (

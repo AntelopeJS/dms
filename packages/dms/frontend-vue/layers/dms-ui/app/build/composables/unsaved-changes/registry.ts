@@ -1,3 +1,5 @@
+import { isFunction } from "#dms-core/app/utils/type-check";
+
 /**
  * Every form holding unsaved changes, wherever it is (a page, a drawer, a
  * modal, a settings panel), and the one confirmation asked before leaving
@@ -142,6 +144,28 @@ let revisit: BrowserLeaveGuardsOptions["revisit"] = (href) => {
 
 let isTraversing = false;
 
+const isNavigationLike = (value: unknown): value is NavigationLike =>
+  value instanceof EventTarget &&
+  "traverseTo" in value &&
+  isFunction(value.traverseTo);
+
+const navigationOf = (target: Window): NavigationLike | undefined => {
+  const navigation: unknown =
+    "navigation" in target ? target.navigation : undefined;
+  return isNavigationLike(navigation) ? navigation : undefined;
+};
+
+/** Asks the one confirmation and runs `onLeave` once the user chose to leave. */
+function leaveOnConfirm(onLeave: () => void): void {
+  confirmLeave()
+    .then((shouldLeave) => {
+      if (shouldLeave) onLeave();
+    })
+    .catch((error: unknown) => {
+      throw error;
+    });
+}
+
 /**
  * Whether a router visit leaves the page holding unsaved changes: a page
  * visit to another path. A prefetch on hover, a background refresh of the
@@ -178,9 +202,7 @@ export function installBrowserLeaveGuards(
     if (!hasUnsavedChanges()) return;
     event.preventDefault();
     const { pathname, search, hash } = visit.url;
-    void confirmLeave().then((shouldLeave) => {
-      if (shouldLeave) revisit(`${pathname}${search}${hash}`);
-    });
+    leaveOnConfirm(() => revisit(`${pathname}${search}${hash}`));
   });
 
   window.addEventListener("beforeunload", (event) => {
@@ -190,7 +212,7 @@ export function installBrowserLeaveGuards(
     event.returnValue = "";
   });
 
-  const navigation = (window as { navigation?: NavigationLike }).navigation;
+  const navigation = navigationOf(window);
   navigation?.addEventListener("navigate", (event) => {
     const traverse: TraverseEvent = event;
     const destination = traverse.destination;
@@ -204,8 +226,7 @@ export function installBrowserLeaveGuards(
     if (new URL(destination.url).pathname === currentPath()) return;
     if (!hasUnsavedChanges()) return;
     traverse.preventDefault();
-    void confirmLeave().then((shouldLeave) => {
-      if (!shouldLeave) return;
+    leaveOnConfirm(() => {
       isTraversing = true;
       navigation.traverseTo(destination.key);
     });

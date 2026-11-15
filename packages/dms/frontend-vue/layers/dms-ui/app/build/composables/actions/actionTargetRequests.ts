@@ -6,7 +6,7 @@ import type { BulkSelection } from "./bulkSelection";
 import { resolveResponseToast } from "../../utils/responseWarning";
 import { resolveConfirmText } from "../confirm/confirmDialogTexts";
 import { readBulkCount } from "../table-view/utils/bulkActions";
-import { saveDownload } from "../../utils/fileDownload";
+import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
 import { downloadTargetFilename, targetUrl } from "./actionTargetUrl";
 
 const JOB_ID_TOKEN = /\{\{\s*job\.id\s*\}\}/g;
@@ -69,7 +69,7 @@ export interface ActionRequestServices {
   handleApiError: ActionTargetsConfig["handleApiError"];
   t: ReturnType<typeof useI18n>["t"];
   copyToClipboard: UseClipboardReturn<false>["copy"];
-  fetchRaw: ReturnType<typeof useAuthFetch>["$authFetch"]["raw"];
+  fetchRaw: DownloadFetch;
 }
 
 export function createActionRequests(

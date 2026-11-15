@@ -1,11 +1,10 @@
-import { type VNodeChild } from "vue";
 import type {
   DataType,
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
 import { isObject } from "#dms-core/app/utils/type-check";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
-import { readRowTone, type Row } from "./cellHelpers";
+import { childOf, readRowTone, type Row } from "./cellHelpers";
 import {
   dateFilterEditorValue,
   numberFilterEditorValue,
@@ -38,13 +37,17 @@ function renderBoolean(value: CellValue) {
 }
 
 function dateBoundsOf(value: CellValue): [unknown, unknown] {
+  if (Array.isArray(value)) {
+    const pair: unknown[] = value;
+    return [pair[0], pair[1]];
+  }
   const bounds: { start?: unknown; end?: unknown } = value ?? {};
   return [bounds.start, bounds.end];
 }
 
 function formatDateBetween(value: CellValue, locale: string): string {
   const { t } = getAppTranslation();
-  const [rawStart, rawEnd] = Array.isArray(value) ? value : dateBoundsOf(value);
+  const [rawStart, rawEnd] = dateBoundsOf(value);
   const start = formatDate(rawStart, locale) ?? t("dms.date.undefined");
   const end = formatDate(rawEnd, locale) ?? t("dms.date.undefined");
   return `${start} - ${end}`;
@@ -56,7 +59,7 @@ function formatAddress(value: CellValue): string {
   const { processI18n } = getAppTranslation();
   const addr = value;
   const countryName = addr.countryCode
-    ? processI18n(`$country.${addr.countryCode}`)
+    ? processI18n(`$country.${String(addr.countryCode)}`)
     : addr.countryCode;
   const number = [addr.houseNumber, addr.boxNumber].filter(Boolean).join("/");
   const street = [addr.streetName, number].filter(Boolean).join(" ");
@@ -90,13 +93,11 @@ function renderText(
   row?: Row,
 ): ReturnType<DataTypeFormatter> {
   if (value === "") return null;
-  const tone = readRowTone(
-    row,
-    (options as TextOptions | undefined)?.toneField,
-  );
+  const opts: TextOptions = options ?? {};
+  const tone = readRowTone(row, opts.toneField);
   if (!tone) return value;
 
-  return h("span", { class: DMS_TONE_TEXT[tone] }, [value as VNodeChild]);
+  return h("span", { class: DMS_TONE_TEXT[tone] }, [childOf(value)]);
 }
 
 export const registerPrimitiveTypes = (

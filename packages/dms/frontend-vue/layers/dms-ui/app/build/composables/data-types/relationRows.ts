@@ -29,8 +29,8 @@ interface RelationSourceOptions {
 export function relationSelectSource(
   options: Parameters<NonNullable<DataType["selectSource"]>>[0],
 ): DataTypeSelectSource | undefined {
-  const opts = options as RelationSourceOptions | undefined;
-  if (!isString(opts?.searchUrl)) return undefined;
+  const opts: RelationSourceOptions = options ?? {};
+  if (!isString(opts.searchUrl)) return undefined;
   return { searchUrl: opts.searchUrl, keyMapping: opts.keyMapping };
 }
 

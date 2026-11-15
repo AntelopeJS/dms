@@ -125,7 +125,7 @@ export function progressShares(done: number, failed: number, total: number) {
  * end, and "done / total"; green once every item is done.
  */
 function renderProgress(options: Parameters<DataTypeFormatter>[2], row: Row) {
-  const opts = (options ?? {}) as ProgressOptions;
+  const opts: Partial<ProgressOptions> = options ?? {};
   const done = numberOf(readRowField(row, opts.doneField));
   const total = numberOf(readRowField(row, opts.totalField));
   const failed = numberOf(readRowField(row, opts.errorField));
@@ -165,7 +165,7 @@ interface SparklineOptions {
 
 /** `sparkline`: a small line chart of a list of numbers. */
 function renderSparkline(options: Parameters<DataTypeFormatter>[2], row: Row) {
-  const opts = (options ?? {}) as SparklineOptions;
+  const opts: Partial<SparklineOptions> = options ?? {};
   const series = readRowField(row, opts.field);
   const values = Array.isArray(series)
     ? series.map(Number).filter(Number.isFinite)
@@ -270,6 +270,10 @@ function renderDuration(
  * Cell data types a column picks through its `display` option to draw a
  * metric: a status, a progress, a series, a duration, a size, an id.
  */
+interface MonoOptions {
+  copy?: boolean;
+}
+
 export const registerMetricCellTypes = (
   registerDataType: (dataType: DataType) => void,
 ) => {
@@ -310,12 +314,14 @@ export const registerMetricCellTypes = (
   registerDataType({
     id: "mono",
     formatter: {
-      default: (value, _locale, options) =>
-        h(MonoCell, {
+      default: (value, _locale, options) => {
+        const opts: MonoOptions = options ?? {};
+        return h(MonoCell, {
           value: String(value),
-          copy: !!(options as { copy?: boolean } | undefined)?.copy,
+          copy: !!opts.copy,
           class: CELL_TEXT_CLASS,
-        }),
+        });
+      },
     },
   });
 };

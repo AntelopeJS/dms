@@ -9,6 +9,7 @@ import type {
   ConfirmValues,
 } from "../../../composables/confirm/types";
 import { resolveConfirmDialog } from "./confirmDialogTexts";
+import type { DownloadFetch } from "../../utils/fileDownload";
 import { secondaryTargetRunner } from "./secondaryTarget";
 import { namesPageValue, resolveLinkVariables } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
@@ -41,9 +42,11 @@ export interface ActionConfirmRequest {
 export function useActionConfirm() {
   const { confirm } = useConfirm();
   const { $authFetch } = useAuthFetch();
+  const fetchRaw: DownloadFetch = (url, options) =>
+    $authFetch.raw(url, options);
   const { t } = useI18n();
-  const { presentError } = useApiErrorPresenter();
-  const runSecondaryTarget = secondaryTargetRunner($authFetch.raw);
+  const errorPresenter = useApiErrorPresenter();
+  const runSecondaryTarget = secondaryTargetRunner(fetchRaw);
 
   const loadDialog = async (
     declared: ActionConfirm,
@@ -60,7 +63,9 @@ export function useActionConfirm() {
     try {
       return await $authFetch<ConfirmDialog>(url);
     } catch (error) {
-      presentError(error, { fallbackKey: "dms.action_error.generic" });
+      errorPresenter.presentError(error, {
+        fallbackKey: "dms.action_error.generic",
+      });
       return undefined;
     }
   };

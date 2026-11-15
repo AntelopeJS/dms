@@ -2,6 +2,7 @@ import { h, type VNodeChild } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
 import { isNumber, isString } from "#dms-core/app/utils/type-check";
+import { childOf } from "./cellHelpers";
 
 /**
  * A data type a column borrows for its cells only: the column keeps its own
@@ -45,7 +46,7 @@ function renderEmptyFallback(
   isNumeric: boolean,
 ): VNodeChild {
   const fallback =
-    (options?.fallback as string) ??
+    childOf(options?.fallback) ??
     (surface === "detail" ? DETAIL_FALLBACK : DEFAULT_FALLBACK);
   return isNumeric
     ? h("span", { class: NUMERIC_EMPTY_CELL_CLASS }, fallback)
@@ -93,7 +94,7 @@ export function useColumnValueRenderer() {
 
     if (value === null || value === undefined) {
       if (formatter?.empty) {
-        return formatter.empty(value, locale.value, options, row) as VNodeChild;
+        return childOf(formatter.empty(value, locale.value, options, row));
       }
       return renderEmptyFallback(options, surface, isNumeric);
     }
@@ -105,7 +106,7 @@ export function useColumnValueRenderer() {
       : value;
 
     if (!isString(formatted) && !isNumber(formatted)) {
-      return formatted as VNodeChild;
+      return childOf(formatted);
     }
     if (isNumeric) {
       const numericClass =
@@ -125,7 +126,8 @@ export function useColumnValueRenderer() {
     surface: ColumnValueSurface = "cell",
   ): VNodeChild => {
     const key = column.accessorKey ?? column.id;
-    const value = key === undefined ? undefined : get(row, String(key));
+    const value: unknown =
+      key === undefined ? undefined : get(row, String(key));
     return renderValue(column, value, row, surface);
   };
 
