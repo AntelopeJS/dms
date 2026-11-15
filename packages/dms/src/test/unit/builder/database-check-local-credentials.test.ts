@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -123,6 +122,9 @@ async function withEnvironment<Result>(
 }
 
 describe("what a PostgreSQL check sends of this computer", () => {
+  const LOCAL_FILES =
+    "The connection check reads no certificate or key file: remove sslcert, sslkey and sslrootcert from the URL, and connect with sslmode=require or put the CA in the system trust store.";
+
   /** Fails on a check that lets `pg` fill a missing password, user or option from `PG*` variables. */
   it("sends no variable of this process to the server when the URL has no password, and says the server asks for one", async () => {
     const server = await passwordAskingServer();
@@ -188,8 +190,8 @@ describe("what a PostgreSQL check sends of this computer", () => {
       expect(reasons).to.deep.equal([
         "The URL names no user: add it before the host, as postgres://user:password@host/database.",
         "This URL could not be read.",
-        "This check signs in with no certificate or key of this computer: remove sslcert and sslkey from the URL.",
-        "This check signs in with no certificate or key of this computer: remove sslcert and sslkey from the URL.",
+        LOCAL_FILES,
+        LOCAL_FILES,
         "This URL could not be read.",
         "This URL could not be read.",
       ]);
@@ -198,29 +200,33 @@ describe("what a PostgreSQL check sends of this computer", () => {
     }
   });
 
-  /** Fails on a check that lets `pg` read an `sslrootcert` that never ends, which holds the process before any deadline. */
-  it("answers an sslrootcert that is a device, a pipe or a file that never ends at once, before connecting", async function () {
-    if (process.platform === "win32") {
-      this.skip();
-    }
+  /** Fails on a check that lets `pg` read an `sslrootcert`, which it reads synchronously while it parses the URL, so a file that never ends holds the process before any deadline. */
+  it("refuses every sslrootcert at once, a device or a file that never ends included, before connecting", async () => {
     const server = await passwordAskingServer();
-    const folder = fs.mkdtempSync(path.join(os.tmpdir(), "dms-rootcert-"));
-    const pipe = path.join(folder, "pipe");
-    execFileSync("mkfifo", [pipe]);
     try {
-      const base = `postgres://app:pw@127.0.0.1:${server.port}/shop?sslmode=require&sslrootcert=`;
-      for (const file of ["/dev/zero", pipe, "/proc/self/pagemap"]) {
+      const base = `postgres://app:pw@127.0.0.1:${server.port}/shop?sslmode=require&`;
+      for (const query of [
+        "sslrootcert=/dev/zero",
+        "sslrootcert=/proc/self/pagemap",
+        "sslrootcert=/sys/kernel/security/apparmor/revision",
+        "sslrootcert=/etc/hostname",
+        "SSLROOTCERT=/dev/zero",
+        `${"sslrootcert=/etc/hostname&".repeat(10_000)}sslrootcert=/dev/zero`,
+      ]) {
         const started = performance.now();
-        const answer = await checkDatabase("postgres", base + file, TIMEOUT_MS);
-        expect(performance.now() - started, file).to.be.lessThan(TIMEOUT_MS);
-        expect(answer.reason, file).to.equal(
-          "The sslrootcert of the URL must be a file of at most 1 MiB.",
+        const answer = await checkDatabase(
+          "postgres",
+          base + query,
+          TIMEOUT_MS,
         );
+        expect(performance.now() - started, query.slice(0, 40)).to.be.lessThan(
+          TIMEOUT_MS,
+        );
+        expect(answer.reason, query.slice(0, 40)).to.equal(LOCAL_FILES);
       }
       expect(server.connections()).to.equal(0);
     } finally {
       await server.close();
-      fs.rmSync(folder, { recursive: true, force: true });
     }
   });
 });
