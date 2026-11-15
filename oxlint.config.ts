@@ -27,12 +27,6 @@ const CLAUDE_SKILL_LINKS = readdirSync(CLAUDE_SKILLS, { withFileTypes: true })
     `.claude/skills/${entry.name}/**`,
   ]);
 
-/**
- * The journeys and their helpers, which the lint never read under the hidden
- * `.agents/skills/verify-dms` folder they came from.
- */
-const UNLINTED_JOURNEYS = ["e2e/journeys/**", "e2e/*.mjs"];
-
 const FRONTEND_VUE = "packages/dms/frontend-vue";
 const PENDING = join(import.meta.dirname, FRONTEND_VUE, ".oxlint-pending");
 
@@ -114,7 +108,6 @@ export default defineConfig({
     ...ANTELOPE_IGNORE_PATTERNS,
     ...CLAUDE_SKILL_LINKS,
     ...PENDING_FRONTEND_VUE,
-    ...UNLINTED_JOURNEYS,
     "packages/dms/playground/frontend-vue/app/plugins/app-widget-demo.ts",
     "packages/dms/playground/frontend-vue/app/plugins/command-palette-assistant-demo.client.ts",
     "packages/dms/playground/frontend-vue/app/plugins/command-palette-source-demo.client.ts",
