@@ -54,26 +54,29 @@ function writeMockup(root) {
 }
 
 /**
- * The screenshots under the project's `.antelope/page-verify/`, by path from that folder.
+ * Every entry under the project's `.antelope/page-verify/`, of any kind, by path from that folder.
  *
  * @param {string} root
  */
-function screenshotsOf(root) {
+function verifyFilesOf(root) {
   const folder = join(root, ".antelope", "page-verify");
   /** @type {string[]} */
   const files = existsSync(folder) ? readdirSync(folder, { recursive: true }).map(String) : [];
-  return new Set(files.filter((file) => file.endsWith(".png")));
+  return new Set(files);
 }
 
 /**
- * The screenshots a call wrote: those under `.antelope/page-verify/` after it that were not there before.
+ * The entries a call wrote under `.antelope/page-verify/`: those there after it that were not there before.
  *
  * @param {Set<string>} before
  * @param {string} root
  */
 function writtenSince(before, root) {
-  return [...screenshotsOf(root)].filter((file) => !before.has(file));
+  return [...verifyFilesOf(root)].filter((file) => !before.has(file));
 }
+
+/** An image, video, trace or document extension, or the word screenshot, in a tool answer. */
+const IMAGE_MENTION = /\.(?:png|jpe?g|webp|gif|pdf|webm|mp4|zip|har)\b|screenshot/i;
 
 /** The MCP server the DMS serves in development, reached through its stdio bridge. */
 export const journeys = [
@@ -159,7 +162,7 @@ export const journeys = [
     entryPoint: `node ${BRIDGE_LAUNCHER}, tools/call page_verify`,
     async run(/** @type {Ctx} */ ctx) {
       const root = ctx.state.runPlayground ?? ctx.state.playground;
-      const before = screenshotsOf(root);
+      const before = verifyFilesOf(root);
       await withBridge(ctx, async (session) => {
         const { text, isError } = toolText(
           await session.call("page_verify", { page: [USERS_PAGE, "/no-such-page"], viewports: ["desktop"] }),
@@ -175,8 +178,8 @@ export const journeys = [
           ctx.holds("users page passes", fieldOf(users, "ok") === true, JSON.stringify(fieldOf(users, "failures"))),
           ctx.equal("the table loaded rows", fieldOf(table, "state"), "ok"),
           ctx.holds("the New entry form showed validation", fieldOf(form, "ok") === true, JSON.stringify(form)),
-          ctx.equal("no screenshot is written", written, []),
-          ctx.holds("the report names no screenshot", !text.includes(".png") && !text.includes("screenshot"), text.slice(0, 400)),
+          ctx.equal("no file is written under .antelope/page-verify", written, []),
+          ctx.holds("the report names no screenshot or file", !IMAGE_MENTION.test(text), text.slice(0, 400)),
           ctx.holds("the unknown route names its failure", textOf(itemsOf(fieldOf(missing, "failures"))[0]).startsWith("not a registered page route"), JSON.stringify(missing)),
         ]);
       });
@@ -198,7 +201,7 @@ export const journeys = [
       const owner = await ctx.api("GET the mockup as the owner", { method: "GET", path: `/api/mockup/${MOCKUP}` });
       const member = await ctx.api("GET the mockup as the member", { method: "GET", path: `/api/mockup/${MOCKUP}`, as: "iris" });
       await ctx.verify("only the owner reads the mockup the viewer draws", [ctx.status(owner, 200), ctx.status(member, 403)]);
-      const before = screenshotsOf(root);
+      const before = verifyFilesOf(root);
       await withBridge(ctx, async (session) => {
         const { text } = toolText(
           await session.call("page_verify", { page: USERS_PAGE, role: roleName, mockup: MOCKUP, viewports: ["desktop"] }),
@@ -218,8 +221,8 @@ export const journeys = [
           ctx.equal("the comparison names the mockup", fieldOf(comparison, "mockup"), MOCKUP),
           ctx.equal("the viewer drew the mockup", fieldOf(comparison, "unavailable"), undefined),
           ctx.equal("the viewer drew the KPI that reads a live route", fieldOf(kpi, "type"), "dms-kpi-card"),
-          ctx.equal("no screenshot is written, of the page or of the mockup", written, []),
-          ctx.holds("the report names no screenshot", !text.includes(".png") && !text.includes("creenshot"), text.slice(0, 400)),
+          ctx.equal("no file is written under .antelope/page-verify, of the page or of the mockup", written, []),
+          ctx.holds("the report names no screenshot or file", !IMAGE_MENTION.test(text), text.slice(0, 400)),
           ctx.equal("the mockup table pairs with the page table", fieldOf(table, "status"), "matched"),
           ctx.equal("the member's page drew that table", fieldOf(pageTable, "present"), true),
         ]);
