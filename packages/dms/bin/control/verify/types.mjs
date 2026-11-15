@@ -8,6 +8,7 @@
  * @typedef {{ feature: string, files: string[] }} TouchedFeature
  * @typedef {{ baseRef: string, baseSha: string, headSha: string, changed: string[], touched: TouchedFeature[], shared: string[], unmapped: string[], docs: string[], run: string[] }} Plan
  * @typedef {{ name: string, pass: boolean, detail: string }} JourneyCheck
+ * @typedef {{ name: string, folder: string, checks: JourneyCheck[] }} JourneyStep
  * @typedef {"pass" | "fail" | "known" | "fixed"} Verdict `known`: a check the journey lists as a known failure failed; `fixed`: it passed
  * @typedef {JourneyCheck & { verdict: Verdict, finding?: string }} JudgedCheck `finding`: why a listed check fails today
  * @typedef {{ name: string, folder: string, checks: JudgedCheck[] }} JudgedStep

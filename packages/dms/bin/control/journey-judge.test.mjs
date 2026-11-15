@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { judge } from "./journey.mjs";
+import { judge } from "./journey-judge.mjs";
 
 const ENDED = { error: null, abortedAt: null };
 const FINDING = "dms#1: the restart never finishes";
@@ -8,7 +8,7 @@ const FINDING = "dms#1: the restart never finishes";
 /**
  * @param {string} name The step name
  * @param {[string, boolean][]} checks Each check's name and whether it passed
- * @returns {import("./journey.mjs").Step} The step
+ * @returns {import("./verify/types.mjs").JourneyStep} The step
  */
 function step(name, checks) {
   return {
