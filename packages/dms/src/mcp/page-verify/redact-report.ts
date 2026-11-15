@@ -16,7 +16,7 @@ const UNKNOWN_PATH = "/…";
 const OTHER_ORIGIN = "other origin";
 const URL_BASE = "http://dms.invalid";
 const WEB_SCHEMES: ReadonlySet<string> = new Set(["http:", "https:"]);
-const ERROR_NAME = /^[A-Z][A-Za-z]*(?:Error|Exception)\b/;
+const ERROR_NAME = /^(?:[A-Z][A-Za-z]*)?(?:Error|Exception)\b/;
 const CONSOLE_ERROR = "console error";
 
 /** The details that quote what the page shows, cut where the page's text begins. */

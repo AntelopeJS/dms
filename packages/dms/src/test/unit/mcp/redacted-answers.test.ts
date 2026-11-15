@@ -72,6 +72,7 @@ function verifyReport(): PageVerifyReport {
               text: 'E11000 dup key { email: "qx@acme.io" }',
             },
             { viewport: "desktop", text: 'TypeError: no row "Qx Acme"' },
+            { viewport: "desktop", text: "Error: Qx Globex is archived" },
           ],
           failedRequests: [
             {
@@ -194,6 +195,7 @@ describe("[unit] the previews and page checks the AI reads", () => {
     expect(orders.errors.console.map((entry) => entry.text)).to.deep.equal([
       "console error",
       "TypeError",
+      "Error",
     ]);
     expect(orders.data.map((block) => block.source)).to.deep.equal([
       "/api/orders",
