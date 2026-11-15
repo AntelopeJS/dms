@@ -1,10 +1,6 @@
 {
-  "extends": "../../.frontend-vue-types/tsconfig.json",
-  "compilerOptions": {
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
-    "allowJs": true,
-    "maxNodeModuleJsDepth": 1
-  },
-  "include": ["./**/*.ts"],
-  "exclude": []
+  "extends": [
+    "../../playground/.frontend-vue-types/tsconfig.json",
+    "./tsconfig-options.json"
+  ]
 }
