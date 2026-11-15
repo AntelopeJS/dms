@@ -5,6 +5,7 @@ import type { ModalSize } from "../../../../types/modal";
 import type {
   ContainerColor,
   ContainerInstance,
+  ContainerOptions,
 } from "../../../../composables/containers/types";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import {
@@ -20,11 +21,11 @@ interface DynamicModalProps {
   size?: ModalSize;
   containerId: string;
   component: Component;
-  componentOptions?: Record<string, unknown>;
+  componentOptions?: ContainerOptions["componentOptions"];
   /** Mounts the body component anew when it changes. */
   componentKey?: string;
   headerComponent?: Component;
-  headerComponentOptions?: Record<string, unknown>;
+  headerComponentOptions?: ContainerOptions["headerComponentOptions"];
   icon?: string;
   color?: ContainerColor;
 }

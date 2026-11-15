@@ -8,6 +8,7 @@
  */
 import { computed } from "vue";
 import type { Component } from "vue";
+import type { ContainerOptions } from "../../../../composables/containers/types";
 import type { RowNavigation } from "../../../../types/row-navigation";
 
 interface RowHeaderProps {
@@ -25,7 +26,7 @@ interface RowHeaderProps {
   subtitleClass?: string;
   /** Drawn under the position line (pills, hints). */
   component?: Component;
-  componentOptions?: Record<string, unknown>;
+  componentOptions?: ContainerOptions["componentOptions"];
 }
 
 const props = withDefaults(defineProps<RowHeaderProps>(), {

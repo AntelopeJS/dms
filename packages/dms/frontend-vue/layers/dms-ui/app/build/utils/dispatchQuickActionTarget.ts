@@ -55,7 +55,9 @@ const targetHandlers: Record<
  * action's page, `event` dispatches a window `CustomEvent` in place for whoever
  * listens.
  */
-export function dispatchQuickActionTarget(target: QuickActionTarget): unknown {
+export function dispatchQuickActionTarget(
+  target: QuickActionTarget,
+): ReturnType<QuickActionTargetHandler> {
   const handler = targetHandlers[target.type];
   return handler?.(target);
 }
@@ -70,5 +72,6 @@ export function findServedQuickAction(
   key: string,
 ): QuickActionInfo | undefined {
   if (!served) return undefined;
-  return served[key] ?? Object.values(served).find((entry) => entry.id === key);
+  const direct = Object.hasOwn(served, key) ? served[key] : undefined;
+  return direct ?? Object.values(served).find((entry) => entry.id === key);
 }

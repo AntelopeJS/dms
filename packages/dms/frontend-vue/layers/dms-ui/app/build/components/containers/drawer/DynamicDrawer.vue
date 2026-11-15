@@ -15,6 +15,7 @@ import { useWindowSize } from "@vueuse/core";
 import type {
   ContainerColor,
   ContainerInstance,
+  ContainerOptions,
   DrawerDirection,
 } from "../../../../composables/containers/types";
 import type { ModalSize } from "../../../../types/modal";
@@ -42,11 +43,11 @@ interface DynamicDrawerProps {
   description?: string;
   containerId: string;
   component: Component;
-  componentOptions?: Record<string, unknown>;
+  componentOptions?: ContainerOptions["componentOptions"];
   /** Mounts the body component anew when it changes. */
   componentKey?: string;
   headerComponent?: Component;
-  headerComponentOptions?: Record<string, unknown>;
+  headerComponentOptions?: ContainerOptions["headerComponentOptions"];
   direction?: DrawerDirection;
   /**
    * Width a side drawer opens at, from `lg`: a modal's width at that size;
@@ -95,7 +96,7 @@ const NUXT_UI_FORM_KEYS: symbol[] = [
 ];
 const drawerInstance = currentInstanceProvides();
 if (drawerInstance && props.callerProvides) {
-  drawerInstance.provides = Object.create(toRaw(props.callerProvides));
+  drawerInstance.provides = { __proto__: toRaw(props.callerProvides) };
 
   for (const key of NUXT_UI_FORM_KEYS) provide(key, undefined);
 }

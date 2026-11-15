@@ -1,6 +1,7 @@
 import { isString, isNumber } from "../../../../dms-core/app/utils/type-check";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { MenuRouteState } from "#dms-core/app/types/menu";
+import type { JsonObject } from "./json";
 
 const PARAM_KEY = String.raw`params\.(\w+(?::\d+)?)`;
 
@@ -19,7 +20,7 @@ const TOKEN_OPENING = "{{";
 export interface ReplaceUrlVariablesContext {
   routeParams?: Record<string, string>;
   routeQuery: MenuRouteState["query"];
-  response?: Record<string, unknown>;
+  response?: JsonObject;
 }
 
 type EncodeValue = (value: string) => string;
