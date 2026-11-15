@@ -4,11 +4,14 @@ on:
   push:
     branches:
       - main
+      - next
   # No branch filter: the lint wave stacks pull requests on top of each other,
   # and filtering on `main` left every intermediate step ungated -- only the
   # secret scanner ran.
   pull_request:
-
+    types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    - cron: "17 3 * * *"
   workflow_dispatch: null
 permissions:
   contents: read
@@ -47,13 +50,89 @@ jobs:
     permissions:
       contents: read
 
+  # ci-node.yml exposes no outputs, so this copies its tier rule for the jobs
+  # declared here and narrows them to the packages the change touches.
+  select:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tier: ${{ steps.tier.outputs.tier }}
+      os: ${{ steps.tier.outputs.os }}
+      packages: ${{ steps.packages.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Pick the tier from the event, the target branch and the draft flag
+        id: tier
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          REPOSITORY: ${{ github.repository }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+        run: |
+          case "$EVENT" in
+            pull_request)
+              if [[ "$BASE_REF" == "$DEFAULT_BRANCH" && "$HEAD_REPOSITORY" == "$REPOSITORY" && "$HEAD_REF" =~ ^(next|develop)$ ]]; then
+                tier=none
+              elif [[ "$DRAFT" == true ]]; then
+                tier=draft
+              elif [[ "$BASE_REF" == "$DEFAULT_BRANCH" ]]; then
+                tier=full
+              else
+                tier=fast
+              fi
+              ;;
+            push)
+              if [[ "$REF_NAME" == "$DEFAULT_BRANCH" ]]; then tier=none; else tier=full; fi
+              ;;
+            schedule) tier=nightly ;;
+            *) tier=full ;;
+          esac
+
+          test_base=""
+          if [[ "$tier" == fast ]]; then
+            test_base=$(git rev-parse --verify HEAD^1)
+          fi
+
+          os='["ubuntu-latest"]'
+          if [[ "$tier" == nightly ]]; then
+            os='["ubuntu-latest","windows-latest"]'
+          fi
+
+          {
+            echo "tier=${tier}"
+            echo "test-base=${test_base}"
+            echo "os=${os}"
+          } >> "$GITHUB_OUTPUT"
+      - name: Select the packages whose tests run
+        id: packages
+        env:
+          ANTELOPEJS_CI_TIER: ${{ steps.tier.outputs.tier }}
+          ANTELOPEJS_TEST_BASE: ${{ steps.tier.outputs.test-base }}
+        run: |
+          set -euo pipefail
+          packages=$(node checks/affected-packages.mjs)
+          echo "packages=${packages}" >> "$GITHUB_OUTPUT"
+          echo "Tier \`${ANTELOPEJS_CI_TIER}\`: ${packages}" >> "$GITHUB_STEP_SUMMARY"
+
   backend:
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'dms')
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ matrix.os == 'windows-latest' && 35 || 20 }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(needs.select.outputs.os) }}
         suite: [unit, integration, "builder:1", "builder:2"]
     defaults:
       run:
@@ -82,12 +161,14 @@ jobs:
       - run: pnpm --dir packages/dms test:${{ matrix.suite }}
 
   frontend-test:
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'frontend-vue')
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(needs.select.outputs.os) }}
         shard: [1, 2]
     defaults:
       run:
@@ -104,12 +185,14 @@ jobs:
       - run: pnpm --dir packages/dms/frontend-vue test --shard=${{ matrix.shard }}/2
 
   frontend-verify:
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'frontend-vue')
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(needs.select.outputs.os) }}
     defaults:
       run:
         shell: bash
@@ -164,12 +247,14 @@ jobs:
           exit 1
 
   verify-map:
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'agents')
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ fromJSON(needs.select.outputs.os) }}
     defaults:
       run:
         shell: bash
@@ -181,6 +266,8 @@ jobs:
       - run: node packages/dms/bin/dms-control.mjs map
 
   formal:
+    needs: select
+    if: contains(fromJSON(needs.select.outputs.packages), 'agents')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -211,11 +298,14 @@ jobs:
         run: node .agents/skills/formal-default-tenant-provisioning/history.mjs
 
   # The one check branch protection requires was the single job's name, so it
-  # stays: green only when every job above is. docs-playground may be skipped
-  # on a pull request only.
+  # stays: green only when every job above is. A job the package selection
+  # skipped does not fail it, and docs-playground may be skipped on a pull
+  # request only. A draft pull request fails it, so merge-when-green cannot
+  # merge on the draft run.
   ubuntu:
     if: always()
     needs:
+      - select
       - ci
       - backend
       - frontend-test
@@ -227,8 +317,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - if: >-
-          contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.ci.result == 'skipped' || needs.backend.result == 'skipped' || needs.frontend-test.result == 'skipped' || needs.frontend-verify.result == 'skipped' || needs.verify-map.result == 'skipped' || needs.formal.result == 'skipped' || (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped')
+          needs.select.result != 'success' || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.ci.result == 'skipped' || (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped')
         run: exit 1
+      - if: needs.select.outputs.tier == 'draft'
+        run: |
+          echo "::error::Draft pull request: only lint and typecheck ran. Mark it ready for review to run the tests."
+          exit 1
   renovate-sync:
     if: >-
       github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate/') && github.event.pull_request.head.repo.full_name == github.repository
