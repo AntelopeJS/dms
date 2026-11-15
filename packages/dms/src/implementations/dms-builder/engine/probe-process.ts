@@ -10,7 +10,10 @@ import {
 } from "./probe-protocol";
 
 const CHILD = path.join(__dirname, "probe-child.js");
-const OUTPUT_LIMIT = 1_048_576;
+const STDERR_LIMIT = 65_536;
+const LINE_LIMIT = 65_536;
+const ANSWER_LIMIT = 16_777_216;
+const TOO_LARGE = "The driver's probe answered with more than the check reads.";
 const ENDED = "The driver's probe ended without an answer";
 const UNREAD = "The driver's probe answered in a way the check does not read.";
 
@@ -37,15 +40,8 @@ function crashLine(stderr: string): string | undefined {
     .find((line) => /^(?:[A-Z]\w*)?Error\b/.test(line));
 }
 
-/** The outcome in the child's marked stdout line, once it has written it whole. */
-function outcomeIn(stdout: string): ProbeOutcome | undefined {
-  const line = stdout
-    .split("\n")
-    .slice(0, -1)
-    .find((candidate) => candidate.startsWith(OUTCOME_MARK));
-  if (line === undefined) {
-    return undefined;
-  }
+/** The outcome a marked line holds, or a failure when it holds none the check reads. */
+function outcomeOf(line: string): ProbeOutcome {
   try {
     const outcome = ProbeOutcomeSchema.safeParse(
       JSON.parse(line.slice(OUTCOME_MARK.length)),
@@ -54,6 +50,50 @@ function outcomeIn(stdout: string): ProbeOutcome | undefined {
   } catch {
     return { kind: "failed", message: UNREAD };
   }
+}
+
+/**
+ * Reads the child's stdout as it comes, line by line, and calls `found` with the outcome of the
+ * first marked line. Only the line not yet ended is kept, so whatever a driver prints costs the
+ * check no more than one pass over it: an unmarked line longer than `LINE_LIMIT` is dropped as it
+ * comes, and a marked one longer than `ANSWER_LIMIT` is answered as a failure.
+ */
+function outcomeReader(
+  found: (outcome: ProbeOutcome) => void,
+): (text: string) => void {
+  let pending = "";
+  let dropping = false;
+  let done = false;
+  const finish = (line: string) => {
+    if (!dropping && line.startsWith(OUTCOME_MARK)) {
+      done = true;
+      found(outcomeOf(line));
+    }
+    dropping = false;
+  };
+  return (text) => {
+    let start = 0;
+    let end = text.indexOf("\n");
+    while (!done && end >= 0) {
+      finish(pending + text.slice(start, end));
+      pending = "";
+      start = end + 1;
+      end = text.indexOf("\n", start);
+    }
+    if (done || dropping) {
+      return;
+    }
+    pending += text.slice(start);
+    const marked = pending.startsWith(OUTCOME_MARK);
+    if (pending.length > (marked ? ANSWER_LIMIT : LINE_LIMIT)) {
+      if (marked) {
+        done = true;
+        found({ kind: "failed", message: TOO_LARGE });
+      }
+      pending = "";
+      dropping = true;
+    }
+  };
 }
 
 /**
@@ -73,30 +113,32 @@ export function probeInChild(
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
-    let stdout = "";
     let stderr = "";
+    let outcome: ProbeOutcome | undefined;
+    const read = outcomeReader((found) => {
+      outcome = found;
+      resolve(found);
+    });
     const kill = () => {
       child.kill("SIGKILL");
     };
     signal.addEventListener("abort", kill, { once: true });
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdout = (stdout + chunk.toString("utf8")).slice(-OUTPUT_LIMIT);
-      const outcome = outcomeIn(stdout);
-      if (outcome !== undefined) {
-        resolve(outcome);
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", read);
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (text: string) => {
+      if (stderr.length < STDERR_LIMIT) {
+        stderr = (stderr + text).slice(0, STDERR_LIMIT);
       }
-    });
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderr = (stderr + chunk.toString("utf8")).slice(0, OUTPUT_LIMIT);
     });
     child.on("error", (error) => {
       resolve({ kind: "failed", message: error.message });
     });
-    child.on("exit", (code, exitSignal) => {
+    child.on("close", (code, exitSignal) => {
       signal.removeEventListener("abort", kill);
       const line = crashLine(stderr);
       resolve(
-        outcomeIn(stdout) ?? {
+        outcome ?? {
           kind: "failed",
           message:
             line === undefined

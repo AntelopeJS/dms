@@ -188,7 +188,68 @@ describe("what a database check's probe process survives and gets", () => {
       await new Promise((closed) => server.close(closed));
     }
   }).timeout(10_000);
+});
 
+describe("what a database check reads of its probe's output", () => {
+  /** Fails on a check that settles on the child's exit before its last stdout chunk, or splits a character across chunks. */
+  it("answers what the driver decided after it printed megabytes of lines, and keeps its text whole", async () => {
+    const user = "é".repeat(100_000);
+    const answers = await withStandIn(
+      `exports.probe = async () => {
+  for (let line = 0; line < 200_000; line += 1) console.log("line " + line);
+  return { outcome: "signed-in", latencyMs: 1, user: ${JSON.stringify(user)}, canRead: true, canWrite: true };
+};
+`,
+      () =>
+        Promise.all(
+          Array.from({ length: 8 }, () =>
+            checkDatabase(
+              "postgres",
+              "postgres://app:pw@127.0.0.1:1/shop",
+              TIMEOUT_MS * 25,
+            ),
+          ),
+        ),
+    );
+    for (const answer of answers) {
+      expect(answer.canRead).to.equal(true);
+      expect(answer.canWrite).to.equal(true);
+      expect(answer.user === user, "user unchanged").to.equal(true);
+    }
+  }).timeout(30_000);
+
+  /** Fails on a check that re-reads everything a driver printed on every chunk, which holds this process's event loop. */
+  it("keeps this process responsive while a driver floods its stdout", async () => {
+    let longest = 0;
+    let last = performance.now();
+    const ticker = setInterval(() => {
+      const now = performance.now();
+      longest = Math.max(longest, now - last);
+      last = now;
+    }, 10);
+    try {
+      await withStandIn(
+        `exports.probe = () => new Promise(() => {
+  const chunk = "l\\n".repeat(32768);
+  const go = () => process.stdout.write(chunk, go);
+  go();
+});
+`,
+        () =>
+          checkDatabase(
+            "postgres",
+            "postgres://app:pw@127.0.0.1:1/shop",
+            TIMEOUT_MS * 5,
+          ),
+      );
+    } finally {
+      clearInterval(ticker);
+    }
+    expect(longest).to.be.lessThan(250);
+  }).timeout(10_000);
+});
+
+describe("what a database check's probe process gets", () => {
   /** Fails on a check that hands the probe this process's environment. */
   it("runs the probe with no variable of this process", async () => {
     process.env.DMS_ISOLATION_SECRET = "isolation-secret-6d1f";
