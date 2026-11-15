@@ -76,15 +76,15 @@ export interface DataType {
   ) => DataTypeSelectSource | undefined;
   displayComponent?: Component;
 }
-const dataTypes: Record<string, DataType> = {};
+const dataTypes = new Map<string, DataType>();
 
 export const useDataTypes = () => {
   function registerDataType(dataType: DataType) {
-    dataTypes[dataType.id] = dataType;
+    dataTypes.set(dataType.id, dataType);
   }
 
   function getDataType(id: string) {
-    return dataTypes[id];
+    return dataTypes.get(id);
   }
 
   return {
