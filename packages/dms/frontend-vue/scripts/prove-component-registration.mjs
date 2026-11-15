@@ -8,6 +8,7 @@ import { z } from "zod";
 
 const frontend = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const root = resolve(frontend, "../../..");
+/** @type {(id: string) => typeof import("vite")} */
 const require = createRequire(import.meta.url);
 const { createServer } = require("vite");
 const baseRef = process.argv[2] ?? "HEAD^";
@@ -98,32 +99,115 @@ const server = await createServer({
     },
   ],
 });
-async function registration(module) {
-  const events = [];
-  const sdk = new Proxy(
-    { options: { public: {} } },
-    {
-      get(target, name) {
-        if (name in target) return target[name];
-        return (...args) =>
-          events.push([
-            name,
-            ...args.map((value) =>
-              z.function().safeParse(value).success
-                ? {
-                    function: value.name,
-                    arity: value.length,
-                    importedModule: value.registryId,
-                  }
-                : value?.__asyncLoader
-                  ? { kind: "async-component" }
-                  : value,
-            ),
-          ]);
-      },
-    },
+/**
+ * A module as the observer plugin loads it: the layer's registration function and the maps it fills.
+ *
+ * @typedef {object} RegistryModule
+ * @property {{ setup: (sdk: object) => unknown }} default
+ * @property {Record<string, Record<string, () => unknown>>} registryMaps
+ */
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isRecord(value) {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is () => unknown}
+ */
+function isLoader(value) {
+  return typeof value === "function";
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, () => unknown>}
+ */
+function isLoaderMap(value) {
+  return isRecord(value) && Object.values(value).every(isLoader);
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is RegistryModule}
+ */
+function isRegistryModule(value) {
+  return (
+    isRecord(value) &&
+    isRecord(value.default) &&
+    typeof value.default.setup === "function" &&
+    isRecord(value.registryMaps) &&
+    Object.values(value.registryMaps).every(isLoaderMap)
   );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is { default: { target: unknown } }}
+ */
+function hasTarget(value) {
+  return (
+    isRecord(value) &&
+    isRecord(value.default) &&
+    Object.hasOwn(value.default, "target")
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is ((...args: never[]) => unknown) & { registryId?: unknown }}
+ */
+function isFunction(value) {
+  return z.function().safeParse(value).success;
+}
+
+/**
+ * @param {string} id
+ * @returns {Promise<RegistryModule>}
+ */
+async function loadRegistry(id) {
+  /** @type {unknown} */
+  const module = await server.ssrLoadModule(id);
+  if (!isRegistryModule(module))
+    throw new Error(`${id} exports no registration setup and registry maps`);
+  return module;
+}
+
+/**
+ * @param {RegistryModule} module
+ * @returns {Promise<{ events: unknown[][], maps: Record<string, [string, unknown][]> }>}
+ */
+async function registration(module) {
+  /** @type {unknown[][]} */
+  const events = [];
+  /** @type {Record<string | symbol, unknown>} */
+  const target = { options: { public: {} } };
+  const sdk = new Proxy(target, {
+    get(target, name) {
+      if (name in target) return target[name];
+      return (/** @type {unknown[]} */ ...args) =>
+        events.push([
+          name,
+          ...args.map((value) => {
+            if (isFunction(value))
+              return {
+                function: value.name,
+                arity: value.length,
+                importedModule: value.registryId,
+              };
+            return isRecord(value) && value.__asyncLoader
+              ? { kind: "async-component" }
+              : value;
+          }),
+        ]);
+    },
+  });
   module.default.setup(sdk);
+  /** @type {Record<string, [string, unknown][]>} */
   const maps = {};
   for (const [name, entries] of Object.entries(module.registryMaps)) {
     maps[name] = [];
@@ -131,14 +215,16 @@ async function registration(module) {
       a.localeCompare(b),
     )) {
       const loaded = await load();
+      if (!hasTarget(loaded))
+        throw new Error(`${key} loads no default export with a target`);
       maps[name].push([key, loaded.default.target]);
     }
   }
   return { events, maps };
 }
 try {
-  const before = await registration(await server.ssrLoadModule(baseId));
-  const after = await registration(await server.ssrLoadModule(currentId));
+  const before = await registration(await loadRegistry(baseId));
+  const after = await registration(await loadRegistry(currentId));
   assert.deepEqual(
     after.maps,
     before.maps,

@@ -7,6 +7,27 @@ import {
   RENDERER,
   rendererComponentNames,
 } from "./dms-components-dependencies.mjs";
+import {
+  layerPrefix,
+  parseScript,
+  scriptBindings,
+  scriptStrings,
+} from "./dms-components-script.mjs";
+
+/**
+ * @typedef {import("./dms-components-dependencies.mjs").DmsComponentsTools} Tools
+ * @typedef {import("../../checks/dms-components.mjs").DmsComponentsOptions} DmsComponentsOptions
+ * @typedef {import("./dms-components-script.mjs").UseKind} UseKind
+ * @typedef {{ kind: UseKind, name: string, unprefixed?: boolean, file: string, line: number }} Use
+ * @typedef {{ file: string, source: string }} SourceText
+ * @typedef {{ tags: Set<string>, components: Set<string>, layouts: Set<string> }} KnownNames
+ * @typedef {import("vue/compiler-sfc").SFCTemplateBlock["ast"]} TemplateRoot
+ * @typedef {NonNullable<TemplateRoot> | NonNullable<TemplateRoot>["children"][number]} TemplateNode
+ * @typedef {Extract<TemplateNode, { tagType: unknown }>} TemplateElement
+ * @typedef {TemplateElement["props"][number]} TemplateProp
+ * @typedef {Extract<TemplateProp, { value: unknown }>} TemplateAttribute
+ * @typedef {TemplateAttribute & { value: NonNullable<TemplateAttribute["value"]> }} StaticAttribute
+ */
 
 const DMS_PREFIX = "Dms";
 const DMS_LAYERS = fileURLToPath(new URL("../layers", import.meta.url));
@@ -27,14 +48,23 @@ const UNREGISTERED_DMS_FILES = new Set([
   "dms-ui/app/build/components/table/TableBody.vue",
 ]);
 
-/** The second names dms.frontend.ts registers some components under. */
+/**
+ * The second names dms.frontend.ts registers some components under.
+ *
+ * @type {Readonly<Record<string, string>>}
+ */
 const DMS_ALIASES = {
   ActivityFeed: "ActivityFeedBlock",
   SectionPanel: "SectionBlock",
   FieldRow: "FieldRowBlock",
 };
 
-/** A file path as dms.frontend.ts names its component: `notice-banner.vue` is `NoticeBanner`. */
+/**
+ * A file path as dms.frontend.ts names its component: `notice-banner.vue` is `NoticeBanner`.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
 function pascalCase(name) {
   return name
     .replace(/\.vue$/, "")
@@ -44,13 +74,31 @@ function pascalCase(name) {
     .join("");
 }
 
-/** The last name Vue's `resolveComponent` tries for a tag: `dms-card-panel` is `DmsCardPanel`. */
+/**
+ * The last name Vue's `resolveComponent` tries for a tag: `dms-card-panel` is `DmsCardPanel`.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
 function vueName(name) {
-  const camel = name.replace(/-(\w)/g, (_, letter) => letter.toUpperCase());
+  const camel = name.replace(
+    /-(\w)/g,
+    /**
+     * @param {string} _
+     * @param {string} letter
+     * @returns {string}
+     */
+    (_, letter) => letter.toUpperCase(),
+  );
   return `${camel.charAt(0).toUpperCase()}${camel.slice(1)}`;
 }
 
-/** A component name as the renderer's `resolveDmsComponent` compares it. */
+/**
+ * A component name as the renderer's `resolveDmsComponent` compares it.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
 function componentKey(name) {
   return name
     .replace(/^lazy/i, "")
@@ -58,7 +106,12 @@ function componentKey(name) {
     .toLowerCase();
 }
 
-/** A layout name as the renderer's `registerLayout` compares it. */
+/**
+ * A layout name as the renderer's `registerLayout` compares it.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
 function layoutKey(name) {
   return name
     .replace(/^lazy/i, "")
@@ -67,6 +120,11 @@ function layoutKey(name) {
     .toLowerCase();
 }
 
+/**
+ * @param {string} root
+ * @param {(path: string) => boolean} keep
+ * @returns {string[]}
+ */
 function files(root, keep) {
   if (!existsSync(root)) return [];
   return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
@@ -83,6 +141,10 @@ function files(root, keep) {
  * `app/components/` or `app/build/components/`, the path below
  * `app/custom-pages/` of a custom page, the path below `app/custom-layouts/`
  * of a layout.
+ *
+ * @param {string} root
+ * @param {Set<string>} [skip]
+ * @returns {{ components: string[], layouts: string[] }}
  */
 function registeredFiles(root, skip = new Set()) {
   const components = [];
@@ -103,6 +165,8 @@ function registeredFiles(root, skip = new Set()) {
  * The names the installed `@antelopejs/dms` registers, as its
  * `dms.frontend.ts` does: each component with its `Dms` prefix and aliases,
  * and each layout.
+ *
+ * @returns {{ components: Set<string>, layouts: Set<string> }}
  */
 export function dmsRegistrations() {
   const { components, layouts } = registeredFiles(
@@ -121,235 +185,70 @@ export function dmsRegistrations() {
   };
 }
 
-function parseScript(file, source, ts) {
-  return ts.createSourceFile(
-    file,
-    source,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  );
-}
-
-function unwrap(node, ts) {
-  let inner = node;
-  while (
-    ts.isParenthesizedExpression(inner) ||
-    ts.isAsExpression(inner) ||
-    ts.isSatisfiesExpression(inner) ||
-    ts.isNonNullExpression(inner) ||
-    ts.isTypeAssertionExpression(inner)
-  )
-    inner = inner.expression;
-  return inner;
-}
-
-function literalText(node, ts) {
-  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
-    ? node.text
-    : undefined;
-}
-
-function bindingNames(name, ts) {
-  if (ts.isIdentifier(name)) return [name.text];
-  return name.elements.flatMap((element) =>
-    ts.isOmittedExpression(element) ? [] : bindingNames(element.name, ts),
-  );
-}
-
 /**
- * What the statements of one scope declare under `name`: the text of a
- * `const` holding a string, `{}` for any other declaration, or nothing.
+ * @param {string} source
+ * @param {number} offset
+ * @returns {number}
  */
-function declaredIn(statements, name, ts) {
-  for (const statement of statements) {
-    if (ts.isVariableStatement(statement))
-      for (const declaration of statement.declarationList.declarations) {
-        if (!bindingNames(declaration.name, ts).includes(name)) continue;
-        const constant =
-          statement.declarationList.flags & ts.NodeFlags.Const &&
-          ts.isIdentifier(declaration.name) &&
-          declaration.initializer;
-        return {
-          text: constant
-            ? literalText(unwrap(declaration.initializer, ts), ts)
-            : undefined,
-        };
-      }
-    const imported = ts.isImportDeclaration(statement)
-      ? [
-          statement.importClause?.name,
-          ...(statement.importClause?.namedBindings?.elements ?? []),
-        ]
-      : [statement.name];
-    if (
-      imported.some((binding) => nameOf(binding?.name ?? binding, ts) === name)
-    )
-      return {};
-  }
-  return undefined;
-}
-
-function shadows(scope, name, ts) {
-  const loop =
-    (ts.isForStatement(scope) ||
-      ts.isForOfStatement(scope) ||
-      ts.isForInStatement(scope)) &&
-    scope.initializer &&
-    ts.isVariableDeclarationList(scope.initializer);
-  const declarations = [
-    ...(ts.isFunctionLike(scope) ? scope.parameters : []),
-    ...(loop ? scope.initializer.declarations : []),
-    ...(ts.isCatchClause(scope) && scope.variableDeclaration
-      ? [scope.variableDeclaration]
-      : []),
-  ];
-  return declarations.some((declaration) =>
-    bindingNames(declaration.name, ts).includes(name),
-  );
-}
-
-/** The string the `const` that `identifier` refers to holds, when the nearest declaration of its name is one. */
-function constantFor(identifier, ts) {
-  for (let scope = identifier.parent; scope; scope = scope.parent) {
-    if (shadows(scope, identifier.text, ts)) return undefined;
-    if (
-      ts.isBlock(scope) ||
-      ts.isSourceFile(scope) ||
-      ts.isModuleBlock(scope)
-    ) {
-      const declared = declaredIn(scope.statements, identifier.text, ts);
-      if (declared) return declared.text;
-    }
-  }
-  return undefined;
-}
-
-/** A string literal, or a `const` of the same file in scope holding one. */
-function stringOf(node, ts) {
-  if (!node) return undefined;
-  const value = unwrap(node, ts);
-  return ts.isIdentifier(value)
-    ? constantFor(value, ts)
-    : literalText(value, ts);
-}
-
-function nameOf(node, ts) {
-  if (!node) return undefined;
-  if (ts.isIdentifier(node) || ts.isStringLiteral(node)) return node.text;
-  if (ts.isPropertyAccessExpression(node)) return node.name.text;
-  return undefined;
-}
-
-function isBanner(object, ts) {
-  const keys = new Set(object.properties.map((p) => nameOf(p.name, ts)));
-  return keys.has("key") && keys.has("variant");
-}
-
-/**
- * What a node names by string: a component Vue resolves (`resolveComponent`),
- * one an interface-dms builder takes (`CustomComponent`, `new
- * ComponentBuilder`, a `componentName` property, a layout banner's
- * `component`), or one the layer registers.
- */
-function namedString(node, ts) {
-  const callee =
-    (ts.isCallExpression(node) || ts.isNewExpression(node)) &&
-    nameOf(node.expression, ts);
-  const argument = callee && node.arguments?.[0];
-  if (callee === "resolveComponent") return { kind: "vue", node: argument };
-  if (
-    callee === "CustomComponent" ||
-    (callee === "ComponentBuilder" && ts.isNewExpression(node))
-  )
-    return { kind: "builder", node: argument };
-  if (callee === "registerComponent" || callee === "registerLayout")
-    return { kind: callee, node: argument, unprefixed: unprefixed(node, ts) };
-  if (ts.isShorthandPropertyAssignment(node))
-    return nameOf(node.name, ts) === "componentName"
-      ? { kind: "componentName", node: node.name }
-      : undefined;
-  if (!ts.isPropertyAssignment(node)) return undefined;
-  const property = nameOf(node.name, ts);
-  if (property === "componentName")
-    return { kind: "componentName", node: node.initializer };
-  return property === "component" && isBanner(node.parent, ts)
-    ? { kind: "builder", node: node.initializer }
-    : undefined;
-}
-
-/** Whether a `registerComponent` call passes `{ prefix: false }`. */
-function unprefixed(call, ts) {
-  const options = call.arguments?.[2];
-  return Boolean(
-    options &&
-      ts.isObjectLiteralExpression(options) &&
-      options.properties.some(
-        (property) =>
-          ts.isPropertyAssignment(property) &&
-          nameOf(property.name, ts) === "prefix" &&
-          property.initializer.kind === ts.SyntaxKind.FalseKeyword,
-      ),
-  );
-}
-
-/** The component names a script names by string, with the offset of each. */
-function scriptStrings(tree, ts) {
-  const found = [];
-  const visit = (node) => {
-    const named = namedString(node, ts);
-    const name = named && stringOf(named.node, ts);
-    if (name)
-      found.push({
-        kind: named.kind,
-        name,
-        unprefixed: named.unprefixed,
-        offset: named.node.getStart(tree),
-      });
-    ts.forEachChild(node, visit);
-  };
-  visit(tree);
-  return found;
-}
-
 function lineAt(source, offset) {
   return source.slice(0, offset).split("\n").length;
 }
 
-/** The names a script declares at its top level, which its template may use as tags. */
-function scriptBindings(tree, ts) {
-  return tree.statements.flatMap((statement) => {
-    if (ts.isImportDeclaration(statement)) {
-      const clause = statement.importClause;
-      if (!clause || clause.isTypeOnly) return [];
-      const named = clause.namedBindings;
-      return [
-        ...(clause.name ? [clause.name.text] : []),
-        ...(named && ts.isNamedImports(named)
-          ? named.elements
-              .filter((element) => !element.isTypeOnly)
-              .map((element) => element.name.text)
-          : []),
-      ];
-    }
-    if (ts.isVariableStatement(statement))
-      return statement.declarationList.declarations.flatMap((declaration) =>
-        bindingNames(declaration.name, ts),
-      );
-    return (ts.isFunctionDeclaration(statement) ||
-      ts.isClassDeclaration(statement)) &&
-      statement.name
-      ? [statement.name.text]
-      : [];
-  });
+/**
+ * @param {TemplateNode} node
+ * @returns {node is TemplateElement}
+ */
+function isElement(node) {
+  return node.type === ELEMENT;
 }
 
-function templateUses(node) {
-  const children = (node.children ?? []).flatMap(templateUses);
-  if (node.type !== ELEMENT) return children;
-  const is = node.props.find(
-    (prop) => prop.type === ATTRIBUTE && prop.name === "is" && prop.value,
+/**
+ * @param {TemplateProp} prop
+ * @returns {prop is StaticAttribute}
+ */
+function isStaticIs(prop) {
+  return (
+    prop.type === ATTRIBUTE &&
+    "value" in prop &&
+    prop.name === "is" &&
+    Boolean(prop.value)
   );
+}
+
+/**
+ * @param {TemplateNode} node
+ * @returns {TemplateNode[]}
+ */
+function childrenOf(node) {
+  /** @type {TemplateNode[]} */
+  const children = [];
+  if ("children" in node)
+    for (const child of node.children)
+      if (isTemplateNode(child)) children.push(child);
+  return children;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is TemplateNode}
+ */
+function isTemplateNode(value) {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    typeof value.type === "number"
+  );
+}
+
+/**
+ * @param {TemplateNode} node
+ * @returns {{ kind: "vue", name: string, line: number }[]}
+ */
+function templateUses(node) {
+  const children = childrenOf(node).flatMap(templateUses);
+  if (!isElement(node)) return children;
+  const is = node.props.find(isStaticIs);
   const tag = node.tagType === COMPONENT_TAG ? node.tag : undefined;
   const name = node.tag === "component" ? is?.value.content : tag;
   return name
@@ -357,7 +256,13 @@ function templateUses(node) {
     : children;
 }
 
-/** What one source file names by string or tag, with the line of each. */
+/**
+ * What one source file names by string or tag, with the line of each.
+ *
+ * @param {SourceText} sourceText
+ * @param {Tools} tools
+ * @returns {Use[]}
+ */
 function fileStrings({ file, source }, tools) {
   if (!file.endsWith(".vue"))
     return scriptStrings(parseScript(file, source, tools.ts), tools.ts).map(
@@ -367,7 +272,7 @@ function fileStrings({ file, source }, tools) {
   if (errors.length)
     throw new Error(`Cannot parse ${file}: ${errors.join(", ")}`);
   const scripts = [descriptor.script, descriptor.scriptSetup]
-    .filter(Boolean)
+    .filter((block) => block !== null)
     .map((block) => ({
       block,
       tree: parseScript(file, block.content, tools.ts),
@@ -393,32 +298,10 @@ function fileStrings({ file, source }, tools) {
 }
 
 /**
- * The `componentPrefix` of the layer's `dms.frontend.ts`: the first one
- * written as a string, or as a `const` of that file holding one.
+ * @param {string[]} roots
+ * @param {RegExp} pattern
+ * @returns {SourceText[]}
  */
-function layerPrefix(layer, ts) {
-  const entry = join(layer, "dms.frontend.ts");
-  if (!existsSync(entry)) return "";
-  const tree = parseScript(entry, readFileSync(entry, "utf8"), ts);
-  const declared = [];
-  const visit = (node) => {
-    if (
-      (ts.isPropertyAssignment(node) ||
-        ts.isShorthandPropertyAssignment(node)) &&
-      nameOf(node.name, ts) === "componentPrefix"
-    )
-      declared.push(stringOf(node.initializer ?? node.name, ts));
-    ts.forEachChild(node, visit);
-  };
-  visit(tree);
-  const prefix = declared.find((value) => value !== undefined);
-  if (declared.length && prefix === undefined)
-    throw new Error(
-      `${entry}: write componentPrefix as a string, or a const of that file holding one, so that the DMS component check reads it`,
-    );
-  return prefix ?? "";
-}
-
 function readSources(roots, pattern) {
   return roots
     .flatMap((root) => {
@@ -430,11 +313,19 @@ function readSources(roots, pattern) {
     .map((file) => ({ file, source: readFileSync(file, "utf8") }));
 }
 
-/** The names Vue and the renderer resolve, from dms, the renderer and the layer. */
+/**
+ * The names Vue and the renderer resolve, from dms, the renderer and the layer.
+ *
+ * @param {string} root
+ * @param {Use[]} layerStrings
+ * @param {Tools} tools
+ * @returns {Promise<KnownNames>}
+ */
 async function knownNames(root, layerStrings, tools) {
   const dms = dmsRegistrations();
   const prefix = layerPrefix(root, tools.ts);
   const own = registeredFiles(root);
+  /** @param {UseKind} kind */
   const registered = (kind) => layerStrings.filter((use) => use.kind === kind);
   const tags = new Set([
     ...dms.components,
@@ -457,6 +348,11 @@ async function knownNames(root, layerStrings, tools) {
   };
 }
 
+/**
+ * @param {Pick<Use, "kind" | "name">} use
+ * @param {KnownNames} known
+ * @returns {boolean}
+ */
 function isKnown({ kind, name }, known) {
   if (kind === "vue")
     return known.tags.has(name) || known.tags.has(vueName(name));
@@ -474,11 +370,18 @@ function isKnown({ kind, name }, known) {
  * the layer or in `sources` (the module's backend directories). Vue renders
  * an unknown tag as an empty element, with no error. Each diagnostic names
  * the file, the line and the name.
+ *
+ * @param {DmsComponentsOptions} options
+ * @returns {Promise<string[]>}
  */
 export async function checkDmsComponents(options) {
   return (await inspect(options)).diagnostics;
 }
 
+/**
+ * @param {DmsComponentsOptions} options
+ * @returns {Promise<{ diagnostics: string[], root: string, rendererMissing: boolean }>}
+ */
 async function inspect({ layer, sources = [] }) {
   const root = resolve(layer);
   const tools = dependencies(root);
@@ -506,6 +409,9 @@ async function inspect({ layer, sources = [] }) {
  * Rejects with every diagnostic of {@link checkDmsComponents}, one per line.
  * When `@antelopejs/dms-frontend` is not installed, the last line says that
  * the components its renderer registers count as unknown, and how to add it.
+ *
+ * @param {DmsComponentsOptions} options
+ * @returns {Promise<void>}
  */
 export async function assertDmsComponents(options) {
   const { diagnostics, root, rendererMissing } = await inspect(options);
