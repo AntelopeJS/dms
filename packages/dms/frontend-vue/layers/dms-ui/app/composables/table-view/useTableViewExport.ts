@@ -1,3 +1,5 @@
+import { isObject } from "../../../../dms-core/app/utils/type-check";
+
 interface UseTableViewExportOptions {
   componentId?: string;
 }
@@ -26,9 +28,7 @@ export const useTableViewExport = (options: UseTableViewExportOptions = {}) => {
         runJob({
           startUrl: `${location}/export/start`,
           startMethod: "GET",
-          startQuery: query as NonNullable<
-            Parameters<typeof runJob>[0]["startQuery"]
-          >,
+          startQuery: query,
           statusUrl: (ticket) => `${location}/export/status/${ticket.jobId}`,
           downloadUrl: (ticket) =>
             `${location}/export/download/${ticket.jobId}`,
@@ -40,8 +40,9 @@ export const useTableViewExport = (options: UseTableViewExportOptions = {}) => {
           query: queryRequest,
           ids,
           error:
-            (error as { data?: string; message?: string })?.data ||
-            (error as Error)?.message,
+            isObject(error) && error !== null
+              ? error.data || error.message
+              : undefined,
         }),
       },
     );

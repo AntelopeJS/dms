@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/vue-3";
 import TiptapStarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
+import { isString } from "#dms-core/app/utils/type-check";
 import { FIELD_SURFACE_INVALID_CLASS } from "../../../build/utils/fieldTrigger";
 
 interface RichTextProps {
@@ -94,12 +95,12 @@ const linkUrl = ref("");
 const showLinkInput = ref(false);
 
 function handleLink() {
-  const previousUrl = unref(editor)?.getAttributes("link").href;
+  const previousUrl: unknown = unref(editor)?.getAttributes("link").href;
   if (unref(editor)?.state.selection.empty) {
     return;
   }
 
-  linkUrl.value = previousUrl || "";
+  linkUrl.value = isString(previousUrl) ? previousUrl : "";
   showLinkInput.value = true;
 }
 

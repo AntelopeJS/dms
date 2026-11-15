@@ -226,8 +226,8 @@ const mapCountryData = (item: Record<string, string>) => {
   const valueKey = props.keyMapping?.value || "value";
 
   return {
-    label: item[labelKey],
-    value: item[valueKey],
+    label: Object.hasOwn(item, labelKey) ? item[labelKey] : undefined,
+    value: Object.hasOwn(item, valueKey) ? item[valueKey] : undefined,
   };
 };
 

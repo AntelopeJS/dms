@@ -1,3 +1,4 @@
+import type { JsonValue } from "#dms-core/app/types/json";
 import type { DrawerDirection } from "../../containers/types";
 
 /** What a side panel says on a row that is gone (backend `SidePanelNotFoundTexts`). */
@@ -84,7 +85,7 @@ export type ActionTarget =
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
       /** JSON body sent with the request. */
-      body?: Record<string, unknown>;
+      body?: Record<string, JsonValue>;
       /** Field of the JSON response copied to the clipboard on success. */
       copy?: string;
       successMessage: string;

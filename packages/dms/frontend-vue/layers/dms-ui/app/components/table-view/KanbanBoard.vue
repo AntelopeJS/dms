@@ -298,7 +298,7 @@ const awaitNewerMoves = async (itemId: string, current: Promise<void>) => {
   }
 };
 
-const notifyMoveError = (error: unknown) => {
+const notifyMoveError = (error: Parameters<typeof presentError>[0]) => {
   presentError(
     error,
     tableWriteErrorOptions(
@@ -350,11 +350,16 @@ const onColumnChange = async (
   }
 };
 
-const customCardProps = (item: T, groupValue: string) => ({
-  ...props.cardComponent?.options,
-  ...(props.cardContext ? buildCardProps(item, props.cardContext) : {}),
-  groupValue,
-});
+const customCardProps = (item: T, groupValue: string) => {
+  const cardProps = props.cardContext
+    ? buildCardProps(item, props.cardContext)
+    : undefined;
+  return {
+    ...props.cardComponent?.options,
+    ...cardProps,
+    groupValue,
+  };
+};
 
 const customCardComponent = computed(() => {
   const componentName = props.cardComponent?.componentName;

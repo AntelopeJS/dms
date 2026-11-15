@@ -30,9 +30,9 @@ export function createTableViewShiftAShortcut<T extends Data>(
       const rowIdKey = tableProps.value.rowIdKey ?? DEFAULT_ROW_ID_KEY;
       const newSelection: RowSelectionState = {};
       data.value.results.forEach((row: T) => {
-        const id = get(row, rowIdKey);
+        const id: unknown = get(row, rowIdKey);
         if (id) {
-          newSelection[id] = true;
+          newSelection[String(id)] = true;
         }
       });
       rowSelect.value = { ...rowSelect.value, ...newSelection };

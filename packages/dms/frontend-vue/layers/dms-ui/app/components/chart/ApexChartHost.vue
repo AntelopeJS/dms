@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { isObject } from "../../../../dms-core/app/utils/type-check";
+import {
+  isBigint,
+  isBoolean,
+  isFunction,
+  isNull,
+  isNumber,
+  isObject,
+  isString,
+  isSymbol,
+  isUndefined,
+} from "../../../../dms-core/app/utils/type-check";
 import {
   computed,
   defineAsyncComponent,
@@ -13,12 +23,13 @@ import {
   type Component,
 } from "vue";
 import type { VueApexChartsComponentMethods } from "vue3-apexcharts";
+import type { RawOptionSection } from "../../build/composables/chart/apexRawOptions";
 import { ensureApexLocale } from "../../composables/chart/apexLocales";
 
 interface Props {
   apexType: string;
   height: number | string;
-  options: Record<string, unknown>;
+  options: RawOptionSection;
   series: unknown;
 }
 
@@ -78,6 +89,42 @@ onBeforeUnmount(() => {
   hostResizes?.disconnect();
 });
 
+type ApexFunction = typeof isFunction extends (
+  value: unknown,
+) => value is infer F
+  ? F
+  : never;
+
+/** A value Apex is handed: its options and series, formatters and dates included. */
+type ApexInput =
+  | string
+  | number
+  | boolean
+  | bigint
+  | symbol
+  | null
+  | undefined
+  | Date
+  | ApexFunction
+  | ApexInput[]
+  | { [key: string]: ApexInput };
+
+function isApexLeaf(
+  value: unknown,
+): value is Exclude<ApexInput, ApexInput[] | { [key: string]: ApexInput }> {
+  return (
+    isString(value) ||
+    isNumber(value) ||
+    isBoolean(value) ||
+    isBigint(value) ||
+    isSymbol(value) ||
+    isNull(value) ||
+    isUndefined(value) ||
+    isFunction(value) ||
+    value instanceof Date
+  );
+}
+
 /**
  * A plain, non-reactive copy of a value handed to Apex. Apex writes into the
  * series and options it is given, and the wrapper deep-watches its `series`
@@ -87,23 +134,24 @@ onBeforeUnmount(() => {
  * deep watcher only reacts to a new series, breaks that loop. Functions
  * (formatters, event handlers) and dates are kept as they are.
  */
-function toApexInput<T>(value: T): T {
+function toApexInput(value: unknown): ApexInput {
   const raw = toRaw(value);
+  if (isApexLeaf(raw)) return raw;
   if (Array.isArray(raw)) {
-    return raw.map((entry) => toApexInput(entry)) as T;
+    return raw.map((entry) => toApexInput(entry));
   }
-  if (raw && isObject(raw) && !(raw instanceof Date)) {
-    const copy: Props["options"] = {};
+  const copy: { [key: string]: ApexInput } = {};
+  if (isObject(raw)) {
     for (const [key, entry] of Object.entries(raw)) {
       copy[key] = toApexInput(entry);
     }
-    return copy as T;
   }
-  return raw;
+  return copy;
 }
 
-function rawApexInput<T extends object>(value: T): T {
-  return markRaw(toApexInput(value));
+function rawApexInput(value: unknown): ApexInput {
+  const copy = toApexInput(value);
+  return isObject(copy) ? markRaw(copy) : copy;
 }
 
 const apexSeries = computed(() => rawApexInput(props.series ?? []));
@@ -117,7 +165,7 @@ const apexSeries = computed(() => rawApexInput(props.series ?? []));
  * so for as long as the page is open, and a screenshot taken mid-redraw
  * shows the ring off centre. The host redraws on width changes instead.
  */
-function apexOptions(options: Props["options"]): Props["options"] {
+function apexOptions(options: Props["options"]): ApexInput {
   const chart = isObject(options.chart) ? options.chart : {};
   return rawApexInput({
     ...options,
@@ -125,7 +173,7 @@ function apexOptions(options: Props["options"]): Props["options"] {
   });
 }
 
-const pinnedOptions = shallowRef<Props["options"]>(apexOptions(props.options));
+const pinnedOptions = shallowRef<ApexInput>(apexOptions(props.options));
 
 function pushOptionsWithoutGroupBroadcast(
   instance: ApexChartInstance,
@@ -142,7 +190,8 @@ function pushOptionsWithoutGroupBroadcast(
 }
 
 function axisTypeOf(options: Props["options"]) {
-  return (options.xaxis as { type?: unknown } | undefined)?.type;
+  const xaxis = options.xaxis;
+  return isObject(xaxis) && !isNull(xaxis) ? xaxis.type : undefined;
 }
 
 /**

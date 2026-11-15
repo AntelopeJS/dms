@@ -1,3 +1,4 @@
+import type ApexCharts from "apexcharts";
 import type { ComputedRef } from "vue";
 import type { RawOptionSection } from "../../build/composables/chart/apexRawOptions";
 import type {
@@ -25,8 +26,8 @@ export interface ApexClickOpts {
 }
 
 export type ApexClickHandler = (
-  event: unknown,
-  ctx: unknown,
+  event: MouseEvent,
+  ctx: ApexCharts,
   opts: ApexClickOpts,
 ) => void;
 

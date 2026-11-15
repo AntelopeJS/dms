@@ -1,4 +1,8 @@
-import { isNumber } from "../../../../dms-core/app/utils/type-check";
+import {
+  isNull,
+  isNumber,
+  isObject,
+} from "../../../../dms-core/app/utils/type-check";
 import type { ChartType } from "./types";
 
 export const CHART_EVENT_NAMES = {
@@ -37,8 +41,7 @@ export function readPointValue(
   point: Parameters<typeof isNumber>[0],
 ): ClickPointValue {
   if (isNumber(point)) return { value: point };
-  const y = (point as { y?: Parameters<typeof isNumber>[0] } | null | undefined)
-    ?.y;
+  const y = isObject(point) && !isNull(point) ? point.y : undefined;
   if (Array.isArray(y)) return { value: null, values: y };
   return { value: isNumber(y) ? y : null };
 }

@@ -42,11 +42,15 @@ export interface UseExportJobLabels {
   retry: string;
 }
 
+type ExportFetchInit = NonNullable<
+  Parameters<ReturnType<typeof useAuthFetch>["$authFetch"]>[1]
+>;
+
 export interface RunExportJobOptions {
   startUrl: string;
   startMethod?: "GET" | "POST";
-  startQuery?: Record<string, unknown>;
-  startBody?: Record<string, unknown>;
+  startQuery?: ExportFetchInit["query"];
+  startBody?: ExportFetchInit["body"];
   /** Function from jobId → URL. Defaults to `${startBase}/status/${jobId}`. */
   statusUrl?: (ticket: ExportJobTicket) => string;
   /** Function from jobId → URL. Defaults to `${startBase}/download/${jobId}`. */
@@ -92,7 +96,7 @@ function createExportToasts(
 ) {
   const toast = useToast();
   const { t } = useI18n();
-  const { presentError } = useApiErrorPresenter();
+  const presenter = useApiErrorPresenter();
   const { $authFetch } = useAuthFetch();
 
   function resolveLabels(
@@ -156,9 +160,9 @@ function createExportToasts(
     return [
       {
         labelKey: opts.labels?.retry ?? "dms.table.export.retry",
-        onSelect: () => {
+        onSelect: async () => {
           toast.remove(getCurrentToastId());
-          void runJob(opts);
+          await runJob(opts);
         },
       },
     ];
@@ -169,7 +173,7 @@ function createExportToasts(
     opts: RunExportJobOptions,
     error: unknown,
   ): void {
-    presentError(error, {
+    presenter.presentError(error, {
       fallbackKey: opts.labels?.errorTitle ?? "dms.table.export.error_title",
       replaceToastId: toastId,
       actions: buildRetryActions(opts, () => toastId),
@@ -291,20 +295,28 @@ function createExportTransport(context: ReturnType<typeof createExportToasts>) {
   };
 }
 
+const isArrayBufferBacked = (
+  bytes: Uint8Array,
+): bytes is Uint8Array<ArrayBuffer> => bytes.buffer instanceof ArrayBuffer;
+
 async function readExportStream(
   stream: ReadableStream<Uint8Array>,
   totalBytes: number,
   onProgress: (progress: ProgressValue) => void,
 ): Promise<Blob> {
   const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
+  const chunks: Uint8Array<ArrayBuffer>[] = [];
   let receivedBytes = 0;
 
   onProgress(totalBytes > 0 ? 0 : null);
 
   let chunk = await reader.read();
   while (!chunk.done) {
-    chunks.push(chunk.value);
+    chunks.push(
+      isArrayBufferBacked(chunk.value)
+        ? chunk.value
+        : new Uint8Array(chunk.value),
+    );
     receivedBytes += chunk.value.length;
     if (totalBytes > 0) {
       onProgress(Math.floor((receivedBytes / totalBytes) * 100));
@@ -318,7 +330,7 @@ async function readExportStream(
     );
   }
 
-  return new Blob(chunks as BlobPart[]);
+  return new Blob(chunks);
 }
 
 export const useExportJob = () => {

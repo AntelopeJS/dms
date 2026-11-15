@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { VNode } from "vue";
+
 interface MdItem {
   value: string | number;
   label: string;
@@ -14,7 +16,7 @@ defineProps<{
 const selected = defineModel<string | number>();
 
 defineSlots<{
-  default?: (props: { selected: string | number | undefined }) => unknown;
+  default?: (props: { selected: string | number | undefined }) => VNode[];
 }>();
 </script>
 

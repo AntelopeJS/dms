@@ -77,7 +77,7 @@ export function usePageLiveRefresh(
     useIdleRefresh(
       options.idleRefresh * MS_PER_SECOND,
       () => lastReadAt,
-      gate.trigger,
+      () => gate.trigger(),
     );
   }
   return {

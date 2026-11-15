@@ -12,7 +12,6 @@ import {
   BANNER_TONE_ICONS,
   type BannerTone,
 } from "../../utils/bannerToneIcons";
-import type { CustomButton } from "../../composables/table-view/types/custom-button";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
@@ -155,7 +154,7 @@ function dismiss(): void {
 }
 
 function press(action: BlockButtonAction): void {
-  handleCustomButton(action as CustomButton);
+  handleCustomButton({ ...action, variant: undefined });
 }
 </script>
 

@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from "vue";
+import {
+  isNull,
+  isObject,
+  isString,
+} from "../../../../dms-core/app/utils/type-check";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsChartSkeleton from "../../build/components/chart/internal/ChartSkeleton.vue";
 import {
@@ -137,14 +142,18 @@ function localized(series: ChartSeries[]): ChartSeries[] {
 const staticSeries = computed<ChartSeries[]>(() => {
   if (isCircular.value) return [];
   if (!props.staticDataset) return [];
-  return localized(props.staticDataset as ChartSeries[]);
+  const dataset: Array<ChartSeries | DonutRecord> = props.staticDataset;
+  return localized(
+    dataset.flatMap((entry) => ("data" in entry ? [entry] : [])),
+  );
 });
 
 const staticDonut = computed<DonutRecord[]>(() => {
   if (!isCircular.value) return [];
   if (!props.staticDataset) return [];
+  const dataset: Array<ChartSeries | DonutRecord> = props.staticDataset;
   return localizeDonutRecords(
-    props.staticDataset as DonutRecord[],
+    dataset.flatMap((entry) => ("data" in entry ? [] : [entry])),
     processI18n,
   );
 });
@@ -200,6 +209,12 @@ function buildCircularClickPayload(opts: {
   };
 }
 
+/** The `label` a series point carries, which the click payload names it by. */
+function pointLabel(point: ChartSeries["data"][number] | undefined) {
+  if (!isObject(point) || isNull(point)) return undefined;
+  return isString(point.label) ? point.label : undefined;
+}
+
 function buildXyClickPayload(opts: {
   dataPointIndex: number;
   seriesIndex: number;
@@ -211,10 +226,7 @@ function buildXyClickPayload(opts: {
   );
   const point = series?.data[dataPointIndex];
   const pointValue = readPointValue(point);
-  const label =
-    typeof point === "object" && point !== null && "label" in point
-      ? point.label
-      : undefined;
+  const label = pointLabel(point);
   return {
     dataPointIndex,
     seriesIndex: opts.seriesIndex,

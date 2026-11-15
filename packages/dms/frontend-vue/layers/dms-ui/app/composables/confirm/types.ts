@@ -2,6 +2,7 @@ import type { VNodeChild } from "vue";
 import type {
   ConfirmDialog,
   ConfirmDialogColor,
+  ConfirmDialogField,
   ConfirmDialogImpact,
 } from "#dms-core/app/types/confirm-dialog";
 
@@ -17,7 +18,10 @@ export type ConfirmBodyRender = () => VNodeChild;
 export type ConfirmImpact = ConfirmDialogImpact;
 
 /** The values the dialog's fields hold when the user confirms. */
-export type ConfirmValues = Record<string, unknown>;
+export type ConfirmValues = Record<
+  ConfirmDialogField["id"],
+  ConfirmDialogField["defaultValue"]
+>;
 
 /**
  * A confirmation dialog as `useConfirm()` opens it: a {@link ConfirmDialog}

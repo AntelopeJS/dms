@@ -211,11 +211,12 @@ const modalContent = computed(() =>
   props.initialFocus
     ? {
         onOpenAutoFocus: (event: Event) => {
-          const button = (
-            event.target as HTMLElement | null
-          )?.querySelector<HTMLElement>(
-            `[data-confirm-action="${props.initialFocus}"]`,
-          );
+          const button =
+            event.target instanceof Element
+              ? event.target.querySelector<HTMLElement>(
+                  `[data-confirm-action="${props.initialFocus}"]`,
+                )
+              : null;
           if (!button) return;
           event.preventDefault();
           button.focus();
@@ -244,7 +245,9 @@ const isPartialOutcome = (
 ): value is ConfirmPartialOutcome =>
   isObject(value) && value !== null && "partial" in value;
 
-function resolveConfirmationFailure(error: unknown): ApiErrorNotice | null {
+function resolveConfirmationFailure(
+  error: Parameters<ApiErrorPresenter["resolveError"]>[0],
+): ApiErrorNotice | null {
   const action = error instanceof ConfirmActionError ? error : undefined;
   return resolveError(error, {
     fallbackKey: action?.message ?? "dms.action_error.generic",

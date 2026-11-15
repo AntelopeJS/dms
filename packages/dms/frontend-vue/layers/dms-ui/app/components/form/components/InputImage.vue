@@ -296,14 +296,11 @@ const onDrop = (event: DragEvent) => {
   addFiles(event.dataTransfer?.files ?? null);
 };
 
-const isEditableTarget = (target: EventTarget | null): boolean => {
-  const element = target as HTMLElement | null;
-  return (
-    element?.tagName === "INPUT" ||
-    element?.tagName === "TEXTAREA" ||
-    Boolean(element?.isContentEditable)
-  );
-};
+const isEditableTarget = (target: EventTarget | null): boolean =>
+  target instanceof HTMLElement &&
+  (target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.isContentEditable);
 
 const onPaste = (event: ClipboardEvent) => {
   if (isEditableTarget(event.target)) return;

@@ -15,7 +15,7 @@ export function useModal() {
   function open<Result = unknown>(
     options: ModalOptions,
   ): ContainerInstance<Result> {
-    return openDynamicContainer<Result, ModalOptions>(
+    return openDynamicContainer<Result>(
       overlay,
       DynamicModal,
       MODAL_ID_PREFIX,

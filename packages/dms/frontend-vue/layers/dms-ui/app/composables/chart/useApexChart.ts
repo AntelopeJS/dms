@@ -139,13 +139,35 @@ function applyMixedSeriesDefs(
 }
 
 const RANGE_AREA_APEX_TYPE = "rangeArea";
+const FALLBACK_APEX_TYPE = "line";
+
+const DMS_APEX_TYPES = [
+  "line",
+  "area",
+  "rangeArea",
+  "bar",
+  "scatter",
+  "donut",
+  "pie",
+  "radar",
+  "radialBar",
+  "heatmap",
+  "candlestick",
+] as const satisfies ReadonlyArray<
+  NonNullable<NonNullable<ApexOptions["chart"]>["type"]>
+>;
+
+function isDmsApexType(
+  value: string,
+): value is (typeof DMS_APEX_TYPES)[number] {
+  return DMS_APEX_TYPES.some((type) => type === value);
+}
 
 function resolveApexType(
   input: UseApexChartInput,
 ): NonNullable<NonNullable<ApexOptions["chart"]>["type"]> {
-  const baseType = APEX_TYPE_CONFIGS[input.type].apexType as NonNullable<
-    NonNullable<ApexOptions["chart"]>["type"]
-  >;
+  const configured = APEX_TYPE_CONFIGS[input.type].apexType;
+  const baseType = isDmsApexType(configured) ? configured : FALLBACK_APEX_TYPE;
   if (input.type !== "mixed") return baseType;
   const hasRangeBand = input.seriesDefs?.some(
     (def) => def.type === RANGE_AREA_APEX_TYPE,
@@ -289,7 +311,8 @@ function applyDatetimeBuckets(
   options.tooltip = {
     ...tooltip,
     x: {
-      formatter: (value: unknown) => bucketTooltip(String(value ?? "")),
+      formatter: (value: string | number | null | undefined) =>
+        bucketTooltip(String(value ?? "")),
     },
   };
 }
