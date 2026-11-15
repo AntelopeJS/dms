@@ -81,7 +81,7 @@ it("reads nothing until the band scrolls into view", async () => {
  * page's tree, or posts a reactive proxy that a browser cannot clone into the
  * frame (a deep `ref` over the mockup state).
  */
-it("draws the first page in an inert /dms-preview frame at desktop width scaled to the band", async () => {
+it("draws the first page in an inert /dms-preview frame on its fixtures alone, at desktop width scaled to the band", async () => {
   authFetch.mockResolvedValue(
     mockupState({
       pages: [
@@ -110,7 +110,7 @@ it("draws the first page in an inert /dms-preview frame at desktop width scaled 
   );
   await flush();
 
-  expect(iframe.getAttribute("src")).toBe("/dms-preview");
+  expect(iframe.getAttribute("src")).toBe("/dms-preview?fixtures=only");
   expect(iframe.getAttribute("tabindex")).toBe("-1");
   expect(iframe.getAttribute("aria-hidden")).toBe("true");
   expect(stage?.classList.contains("pointer-events-none")).toBe(true);

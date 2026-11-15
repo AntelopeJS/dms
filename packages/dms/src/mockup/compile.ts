@@ -17,6 +17,7 @@ import type {
   MockupSpecPage,
 } from "./model";
 import { specSchema, zodIssues } from "./model";
+import { confineToFixtures } from "./sample-routes";
 import { compileSketch, SKETCH_TYPE } from "./sketch";
 import {
   componentOptionsOf,
@@ -213,6 +214,15 @@ const NODE_KINDS: readonly NodeKind[] = [
   unknownKind,
 ];
 
+/**
+ * A compiled node as its tree draws it: on the fixtures alone, its options
+ * reach no live route; with Real data, as compiled.
+ */
+function drawnOn(node: MockupNode, scope: PageScope): MockupNode {
+  if (scope.routes || !node.options) return node;
+  return { ...node, options: confineToFixtures(node.options, scope) };
+}
+
 function compileNode(
   node: MockupNode,
   pointer: string,
@@ -222,7 +232,7 @@ function compileNode(
   scope.paths[layoutPath] = pointer;
   for (const kind of NODE_KINDS) {
     const compile = kind.resolve(node, scope);
-    if (compile) return compile(pointer, layoutPath);
+    if (compile) return drawnOn(compile(pointer, layoutPath), scope);
   }
   return node;
 }

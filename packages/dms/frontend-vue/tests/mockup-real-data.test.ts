@@ -59,6 +59,7 @@ describe("Real data", () => {
 
     toggle()?.click();
     await flush();
+    await viewer.say({ type: "ready" });
 
     expect(toggle()?.getAttribute("aria-checked")).toBe("false");
     expect(lastTree()).toEqual(SAMPLE_TREE);

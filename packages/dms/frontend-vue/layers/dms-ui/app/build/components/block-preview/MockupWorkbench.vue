@@ -32,6 +32,10 @@ import {
 } from "../../utils/mockup";
 import { blockName, nodeLabel, outlineRows } from "../../utils/mockupOutline";
 import { layoutPathOf, nodeAt, pageIndexOf } from "../../utils/mockupSpec";
+import {
+  FIXTURES_ONLY_QUERY,
+  FIXTURES_ONLY_VALUE,
+} from "../../utils/previewFixturesOnly";
 import { currentSketchScheme } from "../../utils/sketch";
 import MockupBlockCatalog from "./MockupBlockCatalog.vue";
 import MockupCommentPanel from "./MockupCommentPanel.vue";
@@ -176,6 +180,17 @@ const navigation = computed(
     })),
     active: currentPage.value?.id,
   }),
+);
+
+/**
+ * The preview frame's document: on fixtures, one that refuses every live
+ * route. Switching Real data replaces the frame, so no tree is drawn in the
+ * document of the other mode.
+ */
+const previewSrc = computed(() =>
+  realData.value
+    ? PREVIEW_PATH
+    : `${PREVIEW_PATH}?${FIXTURES_ONLY_QUERY}=${FIXTURES_ONLY_VALUE}`,
 );
 
 function syncPreview(): void {
@@ -415,8 +430,9 @@ const stageStyle = computed(() => ({
           <div class="relative" :style="stageStyle">
             <iframe
               ref="preview"
+              :key="previewSrc"
               class="bg-default ring-default block rounded-md ring-1"
-              :src="PREVIEW_PATH"
+              :src="previewSrc"
               :title="t('dms.mockup.frame_title')"
               :style="previewStyle"
             />

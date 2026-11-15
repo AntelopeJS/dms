@@ -13,6 +13,10 @@ import {
   type PreviewResolvedNode,
   type PreviewTree,
 } from "../../build/utils/blockPreview";
+import {
+  FIXTURES_ONLY_QUERY,
+  FIXTURES_ONLY_VALUE,
+} from "../../build/utils/previewFixturesOnly";
 import { childComponentId } from "../../utils/componentId";
 
 const { resolveError } = useApiErrorPresenter();
@@ -71,7 +75,12 @@ function switchLocale(code: string): void {
 }
 
 const embed = props.embed
-  ? useBlockPreviewEmbed({ root, initialState, setLocale: switchLocale })
+  ? useBlockPreviewEmbed({
+      root,
+      initialState,
+      setLocale: switchLocale,
+      fixturesOnly: route.query[FIXTURES_ONLY_QUERY] === FIXTURES_ONLY_VALUE,
+    })
   : undefined;
 
 const fetchedBlockTypes = ref<PreviewBlockTypes>();
