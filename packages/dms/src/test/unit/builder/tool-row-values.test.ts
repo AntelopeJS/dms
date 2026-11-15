@@ -346,6 +346,12 @@ describe("[unit] the builder tools over a mapped module's code answer no value o
     });
     expect(replaced.isError).to.equal(true);
     expect(replaced.text).to.include("would drop tabs");
+    const slashed = await run(mockupTool("builder_configure_block"), {
+      path: `${orders.page}#table/`,
+      patch: { caption: "Orders" },
+      replace: true,
+    });
+    expect(slashed.isError).to.equal(true);
     const code = [...orders.files, pageFile]
       .map((file) => projectFile(app.root, path.relative(app.root, file)))
       .join("\n");

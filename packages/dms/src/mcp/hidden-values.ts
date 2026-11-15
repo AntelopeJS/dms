@@ -101,21 +101,23 @@ export function hidePageValues(structure: PageStructure): PageStructure {
   return { ...structure, blocks: structure.blocks.map(hideBlock) };
 }
 
-function findBlock(blocks: BlockNode[], path: string): BlockNode | undefined {
-  for (const block of blocks) {
-    const found =
-      block.path === path ? block : findBlock(block.children ?? [], path);
-    if (found) return found;
-  }
-  return undefined;
+function blockAt(
+  blocks: BlockNode[],
+  [name, ...rest]: string[],
+): BlockNode | undefined {
+  const block = blocks.find((candidate) => candidate.name === name);
+  return block && rest.length > 0 ? blockAt(block.children ?? [], rest) : block;
 }
 
-/** The options of a mapped page's block that hold a {@link HiddenValue}. */
+/**
+ * The options of a mapped page's block that hold a {@link HiddenValue}, the block named by the
+ * segments of its path after the `#`.
+ */
 export function hiddenOptionsOf(
   structure: PageStructure,
-  path: string,
+  segments: string[],
 ): string[] {
-  const config = findBlock(hidePageValues(structure).blocks, path)?.config;
+  const config = blockAt(hidePageValues(structure).blocks, segments)?.config;
   return Object.entries(config ?? {}).flatMap(([key, value]) =>
     containsHiddenValue.parse(value) ? [key] : [],
   );
@@ -140,4 +142,4 @@ export const containsHiddenValue: z.ZodType<boolean, z.ZodTypeDef, unknown> =
 
 /** Why a tool refuses arguments that send a {@link HiddenValue} back. */
 export const HIDDEN_VALUE_REFUSAL =
-  "Refused: a `{ $hidden: n }` value stands for n values that a mapped module's code holds and that its mapping read from rows, which no tool shows. Leave its key out of the patch to keep what the code holds, or send a value of your own in its place.";
+  "Refused: a `{ $hidden: n }` value stands for n values that code over a mapped module holds and that may come from rows, which no tool shows. Leave its key out of the patch to keep what the code holds, or send a value of your own in its place.";

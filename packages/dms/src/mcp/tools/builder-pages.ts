@@ -153,10 +153,16 @@ async function droppedHiddenOptions(
   path: string,
   patch: JsonObject,
 ): Promise<string[]> {
-  const structure = await GetPageStructure(path.split("#")[0] ?? path);
+  const hash = path.indexOf("#");
+  if (hash < 0) return [];
+  const structure = await GetPageStructure(path.slice(0, hash));
   if (!structure.ok) return [];
   if (!(await mappedFileTest())(structure.data.page.filepath)) return [];
-  return hiddenOptionsOf(structure.data, path).filter(
+  const segments = path
+    .slice(hash + 1)
+    .split("/")
+    .filter((segment) => segment.length > 0);
+  return hiddenOptionsOf(structure.data, segments).filter(
     (key) => !Object.hasOwn(patch, key),
   );
 }
@@ -180,7 +186,7 @@ const configureBlock = defineTool({
     return dropped.length > 0
       ? refusalResult(
           "unsupported",
-          `replace:true would drop ${dropped.join(", ")}, which hold values the mapping read from rows that no tool shows. Merge the patch without replace to keep them, or send them yourself.`,
+          `replace:true would drop ${dropped.join(", ")}, which builder_page_structure hides because the page holds code over a mapped module that may come from rows. Merge the patch without replace to keep them, or send them yourself.`,
         )
       : opResult(await ConfigureBlock(path, patch, { replace }));
   },
