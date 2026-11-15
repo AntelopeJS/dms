@@ -198,6 +198,59 @@ describe("confirmFrom on an answer its route's writers control", () => {
   });
 });
 
+describe("confirmFrom on the options and links an answer names", () => {
+  it("keeps only the options its input's factory emits, dropping one that would write the input's HTML", async () => {
+    authFetch.mockResolvedValue({
+      title: "Add a note?",
+      fields: [
+        {
+          id: "note",
+          type: "string",
+          component: {
+            componentName: "dms-input-text",
+            options: {
+              placeholder: "Why",
+              innerHTML: '<img src="/api/x">',
+              onclick: "fetch('/api/x',{method:'POST'})",
+            },
+          },
+        },
+      ],
+    });
+    expect(await mountConfirmFrom().confirmFrom("/api/x")).toBe(true);
+    expect(confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: [
+          expect.objectContaining({
+            component: {
+              componentName: "dms-input-text",
+              options: { placeholder: "Why" },
+            },
+          }),
+        ],
+      }),
+    );
+  });
+
+  it.each([
+    ["javascript:fetch('/api/x',{method:'POST'})", false],
+    [" java\tscript:alert(1)", false],
+    ["java{{row.x}}script:alert(1)", false],
+    ["https://docs.example.com/roles", true],
+    ["/docs/roles?for={{row.id}}", true],
+  ])("opens a dialog whose secondary link is %s: %s", async (url, opens) => {
+    authFetch.mockResolvedValue({
+      title: "Grant the role?",
+      secondaryAction: {
+        label: "Read the docs",
+        target: { type: "external", url },
+      },
+    });
+    expect(await mountConfirmFrom().confirmFrom("/api/x")).toBe(opens);
+    expect(confirm).toHaveBeenCalledTimes(opens ? 1 : 0);
+  });
+});
+
 describe("isConfirmTextMatch", () => {
   it("compares the trimmed text, ignoring case only when asked", () => {
     expect(isConfirmTextMatch(" ACME ", "ACME")).toBe(true);
