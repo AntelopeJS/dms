@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.20.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.2...v0.20.3)
+
+### 🩹 Fixes
+
+- **dms:** Post e-mail renders to the dashboard's own origin ([#1060](https://github.com/AntelopeJS/dms/pull/1060))
+- **dms:** Refuse a database driver's connection target written as a value ([#1059](https://github.com/AntelopeJS/dms/pull/1059))
+
+### 💅 Refactors
+
+- **dms:** Fix the anti-slop findings of the dms-layout layer ([#1064](https://github.com/AntelopeJS/dms/pull/1064))
+- **dms:** Fix the anti-slop findings of the dms-ui build composables ([#1068](https://github.com/AntelopeJS/dms/pull/1068))
+
+### 📦 Build
+
+- **dms:** Lint the Vue layer with the AntelopeJS preset, starting with dms-auth and dms-onboarding (ANT-2241) ([#1056](https://github.com/AntelopeJS/dms/pull/1056))
+- **deps:** Move dms to core 1.24, dms-frontend 0.11.4 and the batch driver patches ([#1062](https://github.com/AntelopeJS/dms/pull/1062))
+
+### ✅ Tests
+
+- **dms:** Run the scaffold ranges check with the installed antelopejs-checks ([#1058](https://github.com/AntelopeJS/dms/pull/1058))
+- **dms:** Expect the dms-frontend install hint at the range the Vue layer declares ([#1069](https://github.com/AntelopeJS/dms/pull/1069))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.20.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.1...v0.20.2)
