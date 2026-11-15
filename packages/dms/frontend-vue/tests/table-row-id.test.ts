@@ -12,11 +12,12 @@ import {
 import { useTable } from "../layers/dms-ui/app/entries/composables/table/useTable";
 import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import * as colors from "../layers/dms-core/app/types/color";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { isFunction, isString } from "../layers/dms-core/app/utils/type-check";
 import { modelRef } from "./fixtures/modelRef";
 import { TABLE_STYLE_SLOTS } from "./fixtures/tableStyleSlots";
 
-type Row = Record<string, unknown>;
+type Row = Record<string, JsonValue>;
 
 beforeEach(() => {
   for (const [name, value] of Object.entries({ ...ruleEvaluator, ...colors })) {

@@ -4,12 +4,20 @@ import { nextTick } from "vue";
 import { host, mountForm, t } from "./helpers/form-runtime";
 import { engine } from "./helpers/api-data-runtime";
 
-let deliver: (event: unknown) => void;
+interface WireRowEvent {
+  type: string;
+  payload: { ids: string | string[] | number[] };
+  actorId: string | null;
+}
+
+type Delivered = WireRowEvent | null | undefined;
+
+let deliver: (event: Delivered) => void;
 
 beforeEach(() => {
   vi.stubGlobal(
     "useRealtimeTopic",
-    (_topic: unknown, handler: (event: unknown) => void) => {
+    (_topic: string, handler: (event: Delivered) => void) => {
       deliver = handler;
     },
   );
@@ -29,7 +37,7 @@ async function openRowForm() {
   );
 }
 
-async function receive(event: unknown) {
+async function receive(event: Delivered) {
   deliver(event);
   await nextTick();
 }

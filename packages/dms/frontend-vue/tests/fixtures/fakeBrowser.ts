@@ -32,15 +32,6 @@ class FakeLockManager implements LockManager {
 
   request<Result>(
     name: string,
-    critical: LockCallback<Result>,
-  ): Promise<Result>;
-  request<Result>(
-    name: string,
-    options: LockOptions,
-    critical: LockCallback<Result>,
-  ): Promise<Result>;
-  request<Result>(
-    name: string,
     optionsOrCritical: LockOptions | LockCallback<Result>,
     only?: LockCallback<Result>,
   ): Promise<Result> {

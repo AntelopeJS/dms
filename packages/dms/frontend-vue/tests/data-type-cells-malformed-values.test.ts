@@ -73,7 +73,7 @@ describe("a date cell given a value that is no date", () => {
 });
 
 describe("an identity cell given a malformed avatar", () => {
-  const avatarOf = (field: unknown) => {
+  const avatarOf = (field: { key: string | number }) => {
     const cell = formatterOf("identity")(
       "Ada",
       "en",
