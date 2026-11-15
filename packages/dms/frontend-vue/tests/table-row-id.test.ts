@@ -83,4 +83,12 @@ describe("the id of a table row", () => {
   it("reads a numeric id as the string every row action takes", () => {
     expect(rowIdsOf("id", [{ id: 42 }])).toEqual(["42"]);
   });
+
+  it("falls back to the row index when a row carries no id", () => {
+    expect(rowIdsOf("id", [{}, { id: null }, { id: "c" }])).toEqual([
+      "0",
+      "1",
+      "c",
+    ]);
+  });
 });
