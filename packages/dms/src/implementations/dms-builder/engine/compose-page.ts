@@ -11,6 +11,7 @@ import type {
   AddBlockInput,
   AddQueryInput,
   BlockPath,
+  BlockWriteOpts,
   BuilderError,
   ComposeBlock,
   ComposedBlock,
@@ -37,6 +38,7 @@ import {
 import { stagePage } from "./ops-blocks";
 import { isIdentifier, parseBlockPath } from "./paths";
 import { runQueryPreview } from "./query-preview";
+import { requestIssues } from "./request-targets";
 import { stageQuery } from "./query-ops-emit";
 import { stringLiteralValue } from "./literals";
 import { isPlainObject } from "./value";
@@ -227,6 +229,8 @@ function startIndex(
 
 interface Staging {
   target: Target;
+  /** Whether the blocks are written for an agent, and so judged on the requests they send. */
+  agent: boolean;
   issues: ValidationIssue[];
   warnings: OpWarning[];
   added: ComposedBlock[];
@@ -262,6 +266,9 @@ function stageEntry(
   const config = { ...block.config };
   if (route !== undefined) {
     config[block.query?.into ?? DEFAULT_ROUTE_KEY] = route;
+  }
+  if (staging.agent) {
+    staging.issues.push(...requestIssues(config, `${pointer}/config`));
   }
   const add: AddBlockInput = {
     page: target.page,
@@ -350,13 +357,19 @@ function openTarget(
 
 function write(
   input: ComposePageInput,
-  opts: MutationOpts | undefined,
+  opts: BlockWriteOpts | undefined,
 ): OpResult<ComposePageData> {
   const target = openTarget(input, opts);
   if ("ok" in target) {
     return target;
   }
-  const staging: Staging = { target, issues: [], warnings: [], added: [] };
+  const staging: Staging = {
+    target,
+    agent: opts?.agent === true,
+    issues: [],
+    warnings: [],
+    added: [],
+  };
   try {
     const start = startIndex(target, input);
     if ("ok" in start) {
@@ -467,7 +480,7 @@ async function preview(
 
 export async function composePage(
   input: ComposePageInput,
-  opts?: MutationOpts,
+  opts?: BlockWriteOpts,
 ): Promise<OpResult<ComposePageData>> {
   if (input.preview) {
     return preview(input);

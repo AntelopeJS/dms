@@ -87,8 +87,22 @@ export interface MoveDest {
   index: number;
 }
 
+/** Options for a write of block options: `AddBlock`, `ConfigureBlock` and `ComposePage`. */
+export interface BlockWriteOpts extends MutationOpts {
+  /**
+   * The write is made for an agent. It is refused with `invalid_config`, and
+   * writes nothing, when the options it writes send a request outside the
+   * page's data API (a resource's DataAPI endpoint) or hold a link that would
+   * run a script. The options are judged as the builder writes them, after the
+   * version check: a `ConfigureBlock` patch on the options it merges into, a
+   * `ComposePage` block with its query's route in the option `query.into`
+   * names.
+   */
+  agent?: boolean;
+}
+
 /** Options for `ConfigureBlock`. */
-export interface ConfigureBlockOpts extends MutationOpts {
+export interface ConfigureBlockOpts extends BlockWriteOpts {
   /** Replace the whole options object instead of merging. */
   replace?: boolean;
   /**
@@ -165,7 +179,7 @@ export const AddBlock =
   InterfaceFunction<
     (
       input: AddBlockInput,
-      opts?: MutationOpts,
+      opts?: BlockWriteOpts,
     ) => Promise<OpResult<{ path: BlockPath }>>
   >();
 export const ConfigureBlock =
