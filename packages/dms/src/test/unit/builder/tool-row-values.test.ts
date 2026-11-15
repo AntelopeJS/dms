@@ -170,6 +170,24 @@ async function valueFree(name: string, args: JsonValue): Promise<string> {
   return text;
 }
 
+type MappedOrders = z.infer<typeof WrittenSchema>["data"]["resources"][number];
+
+/** Analyses the connection and maps `erp.orders` as sent back from the proposal. */
+async function mapOrders(): Promise<MappedOrders> {
+  await valueFree("builder_analyse_database", {
+    connection: CONNECTION,
+    module: MODULE,
+  });
+  const written = WrittenSchema.parse(
+    JSON.parse(await valueFree("builder_map_resources", MAPPED)),
+  );
+  const [orders] = written.data.resources;
+  if (orders === undefined) {
+    expect.fail("builder_map_resources mapped no resource");
+  }
+  return orders;
+}
+
 /** Maps the module's interface and serves `erp.orders` through a catalog connection. */
 function connectDatabase(): void {
   before(() => {
@@ -276,16 +294,7 @@ describe("[unit] the tools that read a connected database answer no value of a r
   });
 
   it("reads the code it wrote back with the values it read from rows hidden, and keeps them on an edit", async () => {
-    await valueFree("builder_analyse_database", {
-      connection: CONNECTION,
-      module: MODULE,
-    });
-    const written = WrittenSchema.parse(
-      JSON.parse(await valueFree("builder_map_resources", MAPPED)),
-    );
-    const [orders] = written.data.resources;
-    if (orders === undefined)
-      expect.fail("builder_map_resources mapped no resource");
+    const orders = await mapOrders();
     const fields = await valueFree("builder_resource_structure", {
       ref: orders.ref,
     });
@@ -327,5 +336,27 @@ describe("[unit] the tools that read a connected database answer no value of a r
     expect(code).to.include("status-zq-paid");
     expect(code).to.include("zq_paid");
     expect(code).to.include("JPY");
+  });
+
+  it("keeps the values hidden on a mapped page moved into a project category", async () => {
+    const orders = await mapOrders();
+    await valueFree("builder_create_category", {
+      name: "ops",
+      displayName: "Ops",
+    });
+    const moved = await valueFree("builder_configure_page", {
+      pageRef: orders.page,
+      patch: { category: "pages.ops" },
+    });
+    expect(moved).to.include('"kind":"create"');
+    const page = await valueFree("builder_page_structure", {
+      pageRef: "/ops/erp-orders",
+    });
+    expect(page).to.include('"tabs":{"$hidden":4}');
+    const recaptioned = await valueFree("builder_configure_block", {
+      path: "/ops/erp-orders#table",
+      patch: { caption: "Placed orders" },
+    });
+    expect(recaptioned).to.not.include('"diff"');
   });
 });

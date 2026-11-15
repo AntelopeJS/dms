@@ -45,7 +45,7 @@ const pageStructure = defineTool({
   name: "builder_page_structure",
   title: "Builder page structure",
   description: withEscalationNote(
-    `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT} On a page of a module mapped from a connected database, a TableView's \`tabs\`, a select's \`items\` and a price's \`currency\` read \`{ $hidden: n }\`, n the values the mapping read from rows: leave that key out of a patch to keep it.`,
+    `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT} On a page of a module mapped from a connected database, or one that imports from it, a TableView's \`tabs\`, a select's \`items\` and a price's \`currency\` read \`{ $hidden: n }\`, n the values the mapping read from rows: leave that key out of a patch to keep it.`,
   ),
   effect: "read",
   input: z.object({ pageRef: z.string() }),

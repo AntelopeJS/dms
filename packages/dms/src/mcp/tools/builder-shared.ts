@@ -32,13 +32,13 @@ export function withEscalationNote(description: string): string {
 }
 
 /**
- * Whether a file lies in a module mapped from a connected database, whose code holds the badge
- * items, tabs and currencies its mapping read from rows.
+ * Whether a file may hold the badge items, tabs and currencies a mapping read from rows: it lies
+ * in a module mapped from a connected database, or imports from one.
  */
 export async function mappedFileTest(): Promise<(file: string) => boolean> {
-  const { mappedConnectionOfFile } =
+  const { holdsMappedCode } =
     await import("../../implementations/dms-builder/engine");
-  return (file) => mappedConnectionOfFile(file) !== undefined;
+  return holdsMappedCode;
 }
 
 async function shownChanges(
