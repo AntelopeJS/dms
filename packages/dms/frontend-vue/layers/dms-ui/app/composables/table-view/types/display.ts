@@ -163,7 +163,7 @@ export interface TableViewCardConfig {
 }
 
 /** A value of a display's per-instance options: the backend config's JSON, or a card config. */
-type TableViewDisplayOption = JsonValue | TableViewCardConfig | undefined;
+type TableViewDisplayOptionValue = JsonValue | TableViewCardConfig | undefined;
 
 /**
  * The props a custom card component receives, the same in the `kanban` and
@@ -258,7 +258,7 @@ export interface TableViewDisplayContext<T = Data> {
   componentId?: string;
   pageId?: string;
   /** Per-instance options declared for this display in the backend config. */
-  options?: Record<string, TableViewDisplayOption>;
+  options?: Record<string, TableViewDisplayOptionValue>;
   /**
    * A self-managed display hands the rows it shows, in the order the user
    * reads them (a board: column by column), each time they change: a row
