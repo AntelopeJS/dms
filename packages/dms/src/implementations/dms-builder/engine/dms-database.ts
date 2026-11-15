@@ -34,7 +34,7 @@ function propertyText(
 }
 
 /** The `name` in the `package.json` of the folder `local`, relative to the project; nothing when it has none. */
-function localPackageName(local: string): string | undefined {
+export function localPackageName(local: string): string | undefined {
   try {
     const manifest: unknown = JSON.parse(
       fs.readFileSync(

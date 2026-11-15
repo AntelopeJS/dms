@@ -187,13 +187,13 @@ const configureProject = defineTool({
   name: "builder_configure_project",
   title: "Configure project",
   description:
-    "Edits antelope.config.ts in one step: adds modules (AddModule), merges into existing ones (ConfigureModule: config, importOverrides pins and connections, exportPriority, env variable names) and scaffolds local modules (CreateLocalModule). To connect a database, plan the batch from database_project: its driver package and range, a tables module pinned to the driver, the catalog connection on `self`, and the pins it names. Every step is validated before anything is written, and a refused step writes nothing. The user always approves the change, shown as a diff. A restart is needed before new modules load. It never raises an external connection's access: a step that sets `config.externalConnections.<id>.access` to `read-write` where the module's entry in antelope.config.ts does not already hold the literal string `read-write`, to anything else but `read`, supplies it from a variable, or rebinds a variable `envOverrides` maps to it, is refused. Keeping, lowering or removing an access works, so restate the connections you do not change. A person grants writes in the Database module's Data browser or the assistant's connect step.",
+    "Edits antelope.config.ts in one step: adds modules (AddModule), merges into existing ones (ConfigureModule: config, importOverrides pins and connections, exportPriority, env variable names) and scaffolds local modules (CreateLocalModule). To connect a database, plan the batch from database_project: its driver package and range, a tables module pinned to the driver, the catalog connection on `self`, and the pins it names. Every step is validated before anything is written, and a refused step writes nothing. The user always approves the change, shown as a diff. A restart is needed before new modules load. It never raises an external connection's access: a step that sets `config.externalConnections.<id>.access` to `read-write` where the module's entry in antelope.config.ts does not already hold the literal string `read-write`, to anything else but `read`, supplies it from a variable, or rebinds a variable `envOverrides` maps to it, is refused. Keeping, lowering or removing an access works, so restate the connections you do not change. A person grants writes in the Database module's Data browser or the assistant's connect step. A database driver's connection target is never written as a value: a step that writes anything at an option of a driver's config that names a server or an account (its `url`, or a host, port, socket, user or password among the client options it passes on) is refused; map the variable instead, with `env: { url: \"<VARIABLE>\" }`.",
   effect: "project",
   input: z.object({ steps: z.array(STEP).min(1) }),
   async run({ steps }, sessionId) {
-    const { raisedAccessRefusal } =
+    const { literalTargetRefusal, raisedAccessRefusal } =
       await import("../../implementations/dms-builder/engine");
-    const raised = raisedAccessRefusal(steps);
+    const raised = raisedAccessRefusal(steps) ?? literalTargetRefusal(steps);
     if (raised !== undefined) return refusalResult("invalid_config", raised);
     const planned = await ConfigureProject(steps, { dryRun: true });
     if (!planned.ok) return opResult(planned);
