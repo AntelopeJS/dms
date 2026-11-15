@@ -1,6 +1,5 @@
 import type { DatabaseAccess } from "@antelopejs/interface-dms-builder";
 import net from "node:net";
-import type { parse as ParseConnectionString } from "pg-connection-string";
 import { z } from "zod";
 import { postgresAccess, type PostgresRelationRow } from "./access-postgres";
 import {
@@ -29,17 +28,14 @@ const NO_USER =
 const LOCAL_FILES =
   "The connection check reads no certificate or key file: remove sslcert, sslkey and sslrootcert from the URL, and connect with sslmode=require or put the CA in the system trust store.";
 const UNREADABLE_URL = "This URL could not be read.";
+const NO_HOST =
+  "The URL names no host: add it after the user name, as postgres://user:password@host/database.";
 
 const SSL_VALUE =
   "The ssl of the URL must be true, 1, 0 or no-verify; or set sslmode to disable, prefer, require, verify-ca or verify-full.";
 
-/**
- * The one `ssl` string `pg` turns into a TLS setting. It keeps any other string the URL's parser
- * leaves and reads a key of it once the server accepts TLS, on a socket event outside any promise,
- * so the process exits.
- */
-const SSL_STRING_SETTING = "no-verify";
-const ParsedSsl = z.object({ ssl: z.string().optional() });
+/** An `ssl` `pg` kept as text, which is no TLS setting: empty text asks for no TLS. */
+const SslText = z.string().min(1);
 
 /**
  * The URL parameters for which `pg` reads a file of this computer. It reads them synchronously,
@@ -91,54 +87,58 @@ function refusal(
   }
 }
 
-/** How the check signs in with `url`: refused before connecting, or with its password or none. */
-type UrlSignIn =
-  | { refusal: string }
-  | { refusal?: undefined; password: boolean };
+/** What splits a URL into the `key=value` pairs `pg` could read: wherever a query could start or go on. */
+const PAIR_SEPARATORS = /[?&]/;
 
-/**
- * How the check signs in with `url`, read as the WHATWG parser `pg` reads it with, and refused when
- * that parser would rewrite it. It refuses a URL with no user or no host, which `pg` would fill
- * from this computer (a URL without a host does not parse), and one that names a file of this
- * computer for `pg` to read.
- */
-function urlSignIn(url: string): UrlSignIn {
-  if (hasControlCharacter(url)) {
-    return { refusal: UNREADABLE_URL };
-  }
-  let parsed: URL;
+function decodedKey(pair: string): string {
+  const key = pair.split("=", 1)[0] ?? "";
   try {
-    parsed = new URL(url);
+    return decodeURIComponent(key).toLowerCase();
   } catch {
-    return { refusal: UNREADABLE_URL };
+    return key.toLowerCase();
   }
-  if (parsed.username === "") {
-    return { refusal: NO_USER };
-  }
-  const names = [...parsed.searchParams.keys()];
-  if (names.some((name) => LOCAL_FILE_PARAMETERS.has(name.toLowerCase()))) {
-    return { refusal: LOCAL_FILES };
-  }
-  return { password: parsed.password !== "" };
 }
 
 /**
- * Whether `pg` reads the `ssl` of `url` as a TLS setting, judged on what `parse`, the parser `pg`
- * reads the URL with, gives: a key's presence says nothing, since an empty `sslmode` leaves `ssl`
- * as written. A URL `parse` refuses is not one.
+ * Why the check refuses `url` before `pg` reads it: a control character the WHATWG parser of
+ * `pg-connection-string` would drop, or a parameter for which `pg` reads a file of this computer,
+ * synchronously, while it parses the URL. Every pair of the whole URL is read, decoded and
+ * lowercased, which finds whatever key `pg` would find. `undefined` when `pg` may read the URL.
  */
-function readsSsl(url: string, parse: typeof ParseConnectionString): boolean {
-  let ssl: z.SafeParseReturnType<unknown, z.infer<typeof ParsedSsl>>;
-  try {
-    ssl = ParsedSsl.safeParse(parse(url));
-  } catch {
-    return false;
+function localRefusal(url: string): string | undefined {
+  if (hasControlCharacter(url)) {
+    return UNREADABLE_URL;
   }
-  return (
-    !ssl.success ||
-    ssl.data.ssl === undefined ||
-    ssl.data.ssl === SSL_STRING_SETTING
-  );
+  const keys = url.split(PAIR_SEPARATORS).slice(1).map(decodedKey);
+  return keys.some((key) => LOCAL_FILE_PARAMETERS.has(key))
+    ? LOCAL_FILES
+    : undefined;
+}
+
+/** What `pg` read in the URL, as its own parser and its own client resolved it. */
+const Present = z
+  .string()
+  .nullish()
+  .transform((value) => (value ? value : undefined));
+const ReadUrl = z.object({ host: Present, user: Present, password: Present });
+
+/**
+ * Why the check refuses the URL `pg` read, from what `parse`, the parser `pg` reads it with, gave
+ * and the `ssl` the client resolved: no user or no host, which `pg` would fill with the user this
+ * computer runs as and `localhost`, or an `ssl` it kept as text, which it reads a key of once the server accepts TLS, on a socket
+ * event outside any promise, so the process exits. An empty `ssl` asks for no TLS.
+ */
+function readRefusal(
+  read: z.infer<typeof ReadUrl>,
+  sslIsText: boolean,
+): string | undefined {
+  if (read.user === undefined) {
+    return NO_USER;
+  }
+  if (read.host === undefined) {
+    return NO_HOST;
+  }
+  return sslIsText ? SSL_VALUE : undefined;
 }
 
 /**
@@ -167,30 +167,38 @@ export const probePostgres: Probe = async (url, timeoutMs, connections) => {
   if (!pg) {
     return missingClient("pg", "PostgreSQL");
   }
-  const signIn = urlSignIn(url);
-  if (signIn.refusal !== undefined) {
-    return unanswered(signIn.refusal);
-  }
+  const local = localRefusal(url);
   const connectionStrings = loadClient("pg-connection-string");
-  if (!connectionStrings || !readsSsl(url, connectionStrings.parse)) {
-    return unanswered(SSL_VALUE);
+  if (local !== undefined || !connectionStrings) {
+    return unanswered(local ?? UNREADABLE_URL);
   }
   const sockets: net.Socket[] = [];
-  const client = withoutEnvironment(
-    () =>
-      new pg.Client({
-        connectionString: url,
-        connectionTimeoutMillis: timeoutMs,
-        query_timeout: timeoutMs,
-        statement_timeout: timeoutMs,
-        stream: () => {
-          const socket = new net.Socket();
-          sockets.push(socket);
-          return socket;
-        },
-      }),
-  );
-  if (!signIn.password) {
+  let client: InstanceType<typeof pg.Client>;
+  let read: z.infer<typeof ReadUrl>;
+  try {
+    read = ReadUrl.parse(connectionStrings.parse(url));
+    client = withoutEnvironment(
+      () =>
+        new pg.Client({
+          connectionString: url,
+          connectionTimeoutMillis: timeoutMs,
+          query_timeout: timeoutMs,
+          statement_timeout: timeoutMs,
+          stream: () => {
+            const socket = new net.Socket();
+            sockets.push(socket);
+            return socket;
+          },
+        }),
+    );
+  } catch {
+    return unanswered(UNREADABLE_URL);
+  }
+  const refused = readRefusal(read, SslText.safeParse(client.ssl).success);
+  if (refused !== undefined) {
+    return unanswered(refused);
+  }
+  if (read.password === undefined) {
     Object.defineProperty(client, "password", {
       configurable: true,
       writable: true,

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { type MysqlRelationRow, mysqlAccess } from "./access-mysql";
 import {
   failureMessage,
+  hasControlCharacter,
   missingClient,
   noAnswerReason,
   type Probe,
@@ -116,6 +117,68 @@ async function relationAccess(
   };
 }
 
+const UNREADABLE_URL = "This URL could not be read.";
+const SSL_SETTING =
+  'The ssl of a MySQL URL may only be "Amazon RDS" or an object of rejectUnauthorized and ca.';
+
+/**
+ * The URL options the check passes on to `mysql2`, each with the values it takes. `mysql2` reads
+ * every option of a URL, each through `JSON.parse`, and some of them only once the server has
+ * accepted TLS, on a socket event outside any promise, where a value of another type ends the
+ * process. The options that only shape how rows are read change nothing the check answers, so the
+ * others are dropped. A client certificate or key of this computer is never one of them.
+ */
+const KEPT_OPTIONS = new Map<string, z.ZodType>([
+  [
+    "ssl",
+    z.union([
+      z.literal("Amazon RDS"),
+      z
+        .object({
+          rejectUnauthorized: z.boolean().optional(),
+          ca: z.string().optional(),
+        })
+        .strict(),
+    ]),
+  ],
+  ["socketPath", z.string()],
+]);
+
+/** Whether `mysql2` reads `value` as `setting` accepts it: through `JSON.parse`, else as written. */
+function readsAs(setting: z.ZodType, value: string): boolean {
+  try {
+    return setting.safeParse(JSON.parse(value)).success;
+  } catch {
+    return setting.safeParse(value).success;
+  }
+}
+
+/** The URL the check hands `mysql2`: `url` with only the options of `KEPT_OPTIONS`, or why it refuses it. */
+function mysqlTarget(url: string): { uri: string } | { refusal: string } {
+  if (hasControlCharacter(url)) {
+    return { refusal: UNREADABLE_URL };
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { refusal: UNREADABLE_URL };
+  }
+  for (const name of new Set(parsed.searchParams.keys())) {
+    const setting = KEPT_OPTIONS.get(name);
+    if (setting === undefined) {
+      parsed.searchParams.delete(name);
+    } else if (
+      !parsed.searchParams
+        .getAll(name)
+        .every((value) => readsAs(setting, value))
+    ) {
+      return { refusal: name === "ssl" ? SSL_SETTING : UNREADABLE_URL };
+    }
+  }
+  return { uri: parsed.toString() };
+}
+
 /** What `mysql2` passes its stream factory: where to connect, as it read the URL. */
 interface StreamRequest {
   config: { host: string; port: number; socketPath?: string };
@@ -147,9 +210,13 @@ export const probeMysql: Probe = async (url, timeoutMs, connections) => {
   if (!mysql) {
     return missingClient("mysql2", "MySQL or MariaDB");
   }
+  const target = mysqlTarget(url);
+  if ("refusal" in target) {
+    return unanswered(target.refusal);
+  }
   const sockets: net.Socket[] = [];
   const connection = mysql.createConnection({
-    uri: url,
+    uri: target.uri,
     connectTimeout: timeoutMs,
     stream: ({ config: { host, port, socketPath } }: StreamRequest) => {
       const socket = socketPath

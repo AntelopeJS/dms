@@ -189,7 +189,7 @@ describe("what a PostgreSQL check sends of this computer", () => {
       expect(server.connections()).to.equal(0);
       expect(reasons).to.deep.equal([
         "The URL names no user: add it before the host, as postgres://user:password@host/database.",
-        "This URL could not be read.",
+        "The URL names no host: add it after the user name, as postgres://user:password@host/database.",
         LOCAL_FILES,
         LOCAL_FILES,
         "This URL could not be read.",
@@ -197,6 +197,20 @@ describe("what a PostgreSQL check sends of this computer", () => {
       ]);
     } finally {
       await server.close();
+    }
+  });
+
+  /** Fails on a refusal so wide that it turns away a URL that names a socket directory, which `pg` connects to as written. */
+  it("lets a URL that names a socket directory through", async () => {
+    for (const url of [
+      "postgres://app:pw@%2Fnonexistent-dms-socket-dir/shop",
+      "postgres://app:pw@/shop?host=/nonexistent-dms-socket-dir",
+    ]) {
+      const answer = await checkDatabase("postgres", url, 200);
+      expect(answer.reachable, url).to.equal(false);
+      expect(answer.reason, url).to.match(
+        /^Could not check the database: .*ENOENT/,
+      );
     }
   });
 
@@ -271,12 +285,69 @@ describe("an ssl value a PostgreSQL check refuses", () => {
         );
       }
       expect(server.connections()).to.equal(0);
-      for (const query of ["ssl=no-verify", "ssl=false&sslmode=require"]) {
+      for (const query of [
+        "ssl=no-verify",
+        "ssl=false&sslmode=require",
+        "ssl=",
+        "ssl=0",
+      ]) {
         await checkDatabase("postgres", base + query, 200);
       }
-      expect(server.connections()).to.equal(2);
+      expect(server.connections()).to.equal(4);
     } finally {
       await server.close();
+    }
+  });
+});
+
+describe("the URL options a MySQL check passes on", () => {
+  const SSL_SETTING =
+    'The ssl of a MySQL URL may only be "Amazon RDS" or an object of rejectUnauthorized and ca.';
+
+  /** Fails on a check that hands `mysql2` a client certificate of this computer, or an option value of a type it dereferences on a socket event. */
+  it("refuses an ssl with a certificate or a value of another type, and a socketPath that is not a path, before connecting", async () => {
+    const server = await silentServer();
+    try {
+      const base = `mysql://app:pw@127.0.0.1:${server.port}/shop?`;
+      const refusals: [string, string][] = [
+        [`ssl=${encodeURIComponent('{"cert":"x","key":"y"}')}`, SSL_SETTING],
+        [`ssl=${encodeURIComponent('{"pfx":"x"}')}`, SSL_SETTING],
+        [`ssl=${encodeURIComponent('{"ca":1}')}`, SSL_SETTING],
+        ["ssl=abc", SSL_SETTING],
+        ["ssl=1", SSL_SETTING],
+        ["ssl=true", SSL_SETTING],
+        [`ssl=%7B%7D&ssl=${encodeURIComponent('{"key":"y"}')}`, SSL_SETTING],
+        [
+          `socketPath=${encodeURIComponent('{"port":1}')}`,
+          "This URL could not be read.",
+        ],
+        ["ss\tl=abc", "This URL could not be read."],
+      ];
+      for (const [query, reason] of refusals) {
+        const answer = await checkDatabase("mysql", base + query, TIMEOUT_MS);
+        expect(answer.reason, query).to.equal(reason);
+      }
+      expect(server.connections()).to.equal(0);
+    } finally {
+      await server.close();
+    }
+  });
+
+  /** Fails on a refusal so wide that it turns away a URL whose other options only shape how rows are read. */
+  it("lets the ssl settings it reads through, and drops the other options", async () => {
+    for (const query of [
+      "ssl=%7B%7D",
+      `ssl=${encodeURIComponent('{"rejectUnauthorized":false}')}`,
+      `connectAttributes=${encodeURIComponent('{"x":1}')}&timezone=Z`,
+    ]) {
+      const answer = await checkDatabase(
+        "mysql",
+        `mysql://app:pw@127.0.0.1:1/shop?${query}`,
+        TIMEOUT_MS,
+      );
+      expect(answer.reason, query).to.equal(
+        "Nothing is listening at this host and port.",
+      );
     }
   });
 });
@@ -323,6 +394,9 @@ describe("what a MongoDB check sends of this computer", () => {
         ["&tlsCAFile=/etc/hostname", LOCAL_FILES],
         ["&TLSCERTIFICATEKEYFILE=/etc/hostname", LOCAL_FILES],
         ["&tls%43RLFile=/etc/hostname", LOCAL_FILES],
+        ["&sslCA=/dev/zero", LOCAL_FILES],
+        ["&SSLKEY=/etc/hostname", LOCAL_FILES],
+        ["&tlsCertificateFile=/etc/hostname", LOCAL_FILES],
         ["&auth\tMechanism=MONGODB-AWS", "This URL could not be read."],
         ["&authMechanism=MONGODB-\nAWS", "This URL could not be read."],
         ["&tlsCA\rFile=/etc/hostname", "This URL could not be read."],

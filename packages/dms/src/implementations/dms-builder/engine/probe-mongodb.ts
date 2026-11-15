@@ -40,12 +40,21 @@ const URL_MECHANISMS = new Set([
   "PLAIN",
 ]);
 
-/** The options, lowercased, for which `mongodb` reads a file of this computer. */
+/**
+ * The options, lowercased, for which `mongodb` reads a file of this computer: those of 6 and 7, and
+ * those 4 and 5 read with `readFileSync` while they parse the URL, since a project may resolve one.
+ */
 const LOCAL_FILE_OPTIONS = new Set([
   "tlscafile",
   "tlscrlfile",
   "tlscertificatekeyfile",
   "tlscertificatekeyfilepassword",
+  "tlscertificatefile",
+  "sslca",
+  "sslcrl",
+  "sslcert",
+  "sslkey",
+  "sslpass",
 ]);
 
 /** The options of a URL, as the parser `mongodb` reads it with gives them. */
