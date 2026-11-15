@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dmsVersion": "0.20.6",
+  "dmsVersion": "0.20.7",
   "blocks": [
     {
       "type": "ActivityFeed",

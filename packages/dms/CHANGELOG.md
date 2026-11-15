@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.20.7
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.6...v0.20.7)
+
+### 🩹 Fixes
+
+- **dms:** Refuse a builder block that sends requests outside its page's data API ([#1074](https://github.com/AntelopeJS/dms/pull/1074))
+- **dms:** Keep a mockup's sample tree off live routes ([#1075](https://github.com/AntelopeJS/dms/pull/1075))
+- **dms:** Judge mockup_apply_to_page writes and drop x-dms-ui- headers from uploads ([#1076](https://github.com/AntelopeJS/dms/pull/1076))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.20.6
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.5...v0.20.6)
