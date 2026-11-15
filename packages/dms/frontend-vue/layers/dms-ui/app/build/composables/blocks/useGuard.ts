@@ -93,9 +93,7 @@ export function readFieldPath(
 }
 
 /** Absent, `null`, `false`, `0`, `""` or an empty list: nothing to show. */
-export function isEmptyValue(
-  value: unknown,
-): value is null | undefined | false | 0 | "" | readonly [] {
+export function isEmptyValue(value: GuardAnswerValue): boolean {
   if (Array.isArray(value)) return value.length === 0;
   return !value;
 }

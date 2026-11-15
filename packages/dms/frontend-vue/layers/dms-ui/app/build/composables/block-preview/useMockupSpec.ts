@@ -152,7 +152,7 @@ function sameSpec(
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function detach(task: Promise<void>): void {
+function ignoreRejection(task: Promise<void>): void {
   task.catch(() => undefined);
 }
 
@@ -272,7 +272,7 @@ class MockupSpecSync {
     if (!source || this.isClosed) return;
     if (source.digest === this.digest) {
       if (!this.isBusy() && present !== this.written.value) {
-        detach(this.write());
+        ignoreRejection(this.write());
       }
       return;
     }
@@ -307,7 +307,7 @@ class MockupSpecSync {
       MOCKUP_RETRY_MAX_DELAY_MS,
     );
     this.failures += 1;
-    this.retryTimer = setTimeout(() => detach(this.write()), delay);
+    this.retryTimer = setTimeout(() => ignoreRejection(this.write()), delay);
   }
 
   private failed(cause: unknown): void {
@@ -376,14 +376,17 @@ class MockupSpecSync {
       this.schedule();
     } else if (this.isCheckDue && !this.isClosed) {
       this.isCheckDue = false;
-      detach(this.check());
+      ignoreRejection(this.check());
     }
   }
 
   private schedule(): void {
     if (this.isClosed) return;
     if (this.timer !== undefined) clearTimeout(this.timer);
-    this.timer = setTimeout(() => detach(this.write()), MOCKUP_WRITE_DELAY_MS);
+    this.timer = setTimeout(
+      () => ignoreRejection(this.write()),
+      MOCKUP_WRITE_DELAY_MS,
+    );
   }
 
   move(next: MockupHistory<MockupSpecDocument>): void {
@@ -431,13 +434,13 @@ export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
     () => options.state.value?.revision,
     () => {
       sync.isAwaitingState.value = false;
-      detach(sync.check());
+      ignoreRejection(sync.check());
     },
   );
   onBeforeUnmount(() => {
     const isDue = sync.hasDueWrite();
     sync.stopTimers();
-    if (isDue) detach(sync.write());
+    if (isDue) ignoreRejection(sync.write());
     sync.isClosed = true;
   });
 
