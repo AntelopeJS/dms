@@ -43,20 +43,32 @@ function mountEmbed(fixturesOnly: boolean): string | undefined {
   );
 }
 
-/** The sources of one directive of `policy`. */
+/** The sources the browser applies to `directive` of `policy`: its own, else `default-src`'s. */
 function sourcesOf(policy: string, directive: string): string[] {
-  const entry = policy
-    .split(";")
-    .map((part) => part.trim().split(/\s+/))
-    .find(([name]) => name === directive);
+  const entries = policy.split(";").map((part) => part.trim().split(/\s+/));
+  const entry =
+    entries.find(([name]) => name === directive) ??
+    entries.find(([name]) => name === "default-src");
   return entry ? entry.slice(1) : [];
 }
+
+/** The kinds of load a value a block draws can start, by their directive. */
+const LOADS = [
+  "img-src",
+  "media-src",
+  "font-src",
+  "style-src",
+  "worker-src",
+  "manifest-src",
+  "connect-src",
+];
 
 /** Whether a CSP source list admits `url`, as a browser matches a scheme, a host or a path prefix. */
 function admits(sources: readonly string[], url: string): boolean {
   const target = new URL(url, window.location.origin);
   return sources.some((source) => {
     if (source === "*" || source === "'self'") return true;
+    if (source.startsWith("'")) return false;
     if (source.endsWith(":") && !source.includes("/"))
       return target.protocol === source;
     const allowed = new URL(source);
@@ -80,9 +92,9 @@ afterEach(() => {
 });
 
 describe("a preview drawn on fixtures", () => {
-  it("lets no image, media or connection reach a route outside the mockup's own", () => {
+  it("lets no image, media, style, font, worker, manifest or connection reach a route outside the mockup's own", () => {
     const policy = mountEmbed(true) ?? "";
-    for (const directive of ["img-src", "media-src", "connect-src"]) {
+    for (const directive of LOADS) {
       const sources = sourcesOf(policy, directive);
       expect(sources.length, directive).toBeGreaterThan(0);
       for (const url of LIVE)
@@ -101,6 +113,10 @@ describe("a preview drawn on fixtures", () => {
     ).toBe(true);
     expect(admits(connect, "/api/realtime/session")).toBe(true);
     expect(admits(images, "/_nuxt/logo.svg")).toBe(true);
+    expect(admits(images, "/images/logo.svg")).toBe(true);
+    expect(admits(sourcesOf(policy, "font-src"), "/assets/inter.woff2")).toBe(
+      true,
+    );
     expect(admits(images, "data:image/png;base64,AA==")).toBe(true);
   });
 

@@ -15,6 +15,12 @@ const LIVE = { kpi: "/api/dashboard/kpi/revenue", chart: "/api/dashboard/sales",
 const ROWS_FIXTURE = "users";
 /** Sample rows whose image and file cells name a live route and file keys, as the AI could write them. */
 const SAMPLE_ROWS = [{ _id: "s1", name: "Sample row", pic: LIVE.kpi, doc: "probe-resource-key", gallery: [{ key: "probe-image-key" }] }];
+/** A record whose read-only rich text carries styles that import a live route and load a font from another. */
+const RECORD_FIXTURE = "record";
+const SAMPLE_RECORD = {
+  notes: `<p>Notes</p><style>@import url('${LIVE.chart}');</style>`,
+  bio: `<p>Bio</p><style>@font-face{font-family:Probe;src:url('${LIVE.table}')} p{font-family:Probe}</style>`,
+};
 /** The file metadata route an image or file cell reads a key from. */
 const FILE_METADATA = "/api/files/metadata";
 const PREVIEW_PATH = "/dms-preview";
@@ -48,7 +54,7 @@ const PLUGIN_ROUTES = [/^GET \/api\/playground-features$/];
 function writeSampleSpec(ctx, tree) {
   const folder = join(ctx.state.runPlayground ?? ctx.state.playground, "mockups", SAMPLE_MOCKUP);
   mkdirSync(folder, { recursive: true });
-  const page = { id: "live", title: "Live", fixtures: { [ROWS_FIXTURE]: SAMPLE_ROWS }, tree };
+  const page = { id: "live", title: "Live", fixtures: { [ROWS_FIXTURE]: SAMPLE_ROWS, [RECORD_FIXTURE]: SAMPLE_RECORD }, tree };
   writeFileSync(join(folder, "spec.json"), JSON.stringify({ version: 1, title: "Sample on live routes", pages: [page] }));
 }
 
@@ -161,7 +167,7 @@ export const journeys = [
   },
   {
     id: "mockup-sample-reads-no-live-route",
-    title: "with Real data off, the /mockup viewer requests no live route, even for a KPI, a chart and a serialized table that name one directly, or image and file cells whose fixture values do",
+    title: "with Real data off, the /mockup viewer requests no live route, even for a KPI, a chart and a serialized table that name one directly, or image, file and rich text values of its fixtures do",
     entryPoint: "/mockup?data=sample",
     backend: "dev",
     async run(/** @type {Ctx} */ ctx) {
@@ -192,8 +198,18 @@ export const journeys = [
             },
           },
         },
+        {
+          type: "ResourceForm",
+          options: {
+            fetchUrl: `fixture:${RECORD_FIXTURE}`,
+            fields: [
+              { id: "notes", type: "rich_text", label: "Notes", readonly: true },
+              { id: "bio", type: "rich_text", label: "Bio", readonly: true },
+            ],
+          },
+        },
       ]);
-      const compiled = await compiledTree(ctx, 4);
+      const compiled = await compiledTree(ctx, 5);
       const admin = await ctx.tab("admin");
       await admin.signIn("admin");
       /** Every request the server answered, by method and path: one the frame's policy refused never leaves the browser. */

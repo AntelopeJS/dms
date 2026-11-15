@@ -144,6 +144,30 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("the policy of a preview drawn on fixtures", () => {
+  const policy = () =>
+    document.head
+      .querySelector('meta[http-equiv="Content-Security-Policy"]')
+      ?.getAttribute("content");
+
+  afterEach(() => {
+    document.head
+      .querySelectorAll('meta[http-equiv="Content-Security-Policy"]')
+      .forEach((meta) => meta.remove());
+  });
+
+  it("is put on the document of /dms-preview?fixtures=only", async () => {
+    vi.stubGlobal("useDmsRoute", () => ({ query: { fixtures: "only" } }));
+    await mountPreview();
+    expect(policy()).toContain("default-src");
+  });
+
+  it("is not put on /dms-preview without the query, as a docs or Real data preview loads it", async () => {
+    await mountPreview();
+    expect(policy()).toBeUndefined();
+  });
+});
+
 describe("inspect messages", () => {
   it("accepts a boolean enabled flag and nothing else", () => {
     const parse = (enabled: JsonValue | undefined) =>
