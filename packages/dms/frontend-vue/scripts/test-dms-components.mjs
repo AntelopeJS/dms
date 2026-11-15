@@ -3,6 +3,7 @@ import {
   copyFileSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -14,6 +15,15 @@ import {
   assertDmsComponents,
   checkDmsComponents,
 } from "./check-dms-components.mjs";
+import { z } from "zod";
+
+const RENDERER_RANGE = z
+  .object({ engines: z.object({ "@antelopejs/dms-frontend": z.string() }) })
+  .parse(
+    JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ),
+  ).engines["@antelopejs/dms-frontend"];
 
 const NODE_MODULES = fileURLToPath(new URL("../node_modules", import.meta.url));
 
@@ -196,11 +206,17 @@ assert.deepEqual(
   }),
   [],
 );
-assert.match(
+const missingRenderer =
   (
     await diagnose({ screen: "<DmsLink />", renderer: false, asserted: true })
-  ).at(-1),
-  /^@antelopejs\/dms-frontend is not installed in <layer>, so the components its renderer registers, such as DmsLink, count as unknown\. If the layer uses one, run in <layer>: \S+ (?:add|install) -[Dd] "@antelopejs\/dms-frontend@>=0\.11\.0 <0\.12\.0"$/,
+  ).at(-1) ?? "";
+assert.match(
+  missingRenderer,
+  /^@antelopejs\/dms-frontend is not installed in <layer>, so the components its renderer registers, such as DmsLink, count as unknown\. If the layer uses one, run in <layer>: \S+ (?:add|install) -[Dd] "@antelopejs\/dms-frontend@[^"]+"$/,
+);
+assert.ok(
+  missingRenderer.endsWith(`"@antelopejs/dms-frontend@${RENDERER_RANGE}"`),
+  missingRenderer,
 );
 assert.deepEqual(await diagnose({ screen: "<DmsLink />", asserted: true }), []);
 
