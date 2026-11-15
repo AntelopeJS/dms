@@ -1,4 +1,10 @@
-import { ListResources } from "@antelopejs/interface-dms-builder";
+import { isDeepStrictEqual } from "node:util";
+import {
+  type BlockDraft,
+  type BlockNode,
+  ListResources,
+  type ValidationIssue,
+} from "@antelopejs/interface-dms-builder";
 import { HttpMethod } from "@antelopejs/interface-dms/base/types";
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
@@ -181,11 +187,11 @@ const REQUEST_REFUSED =
 const LINK_REFUSED =
   "names a scheme a link may not use: a link the builder writes is a dashboard path or an http, https, mailto or tel URL, with no {{token}} before its first /, ? or #.";
 
-function refusal(
+function issuesOf(
   targets: readonly UrlTarget[],
   routes: ReadonlySet<string>,
-): McpToolResult | undefined {
-  const issues = targets
+): ValidationIssue[] {
+  return targets
     .filter(({ rule, url }) =>
       rule.kind === "link"
         ? !isSafeLink(url)
@@ -195,6 +201,13 @@ function refusal(
       pointer,
       message: `${JSON.stringify(url)} ${rule.kind === "link" ? LINK_REFUSED : REQUEST_REFUSED}`,
     }));
+}
+
+function refusal(
+  targets: readonly UrlTarget[],
+  routes: ReadonlySet<string>,
+): McpToolResult | undefined {
+  const issues = issuesOf(targets, routes);
   return issues.length === 0
     ? undefined
     : jsonResult(
@@ -326,4 +339,77 @@ export async function judgePatch(
   return refused === undefined
     ? { ok: true, expectedVersion: target.version }
     : { ok: false, refusal: refused };
+}
+
+/** Options as JSON: what the builder reads back, its absent options left out. */
+function jsonOptions(config: BlockDraft["config"]): JsonObject {
+  const parsed = JsonObjectSchema.safeParse(
+    JSON.parse(JSON.stringify(config ?? {})),
+  );
+  return parsed.success ? parsed.data : {};
+}
+
+interface DraftJudgement {
+  targets: UrlTarget[];
+  unreadable: string[];
+}
+
+function judgeDraftBlocks(
+  blocks: readonly BlockDraft[],
+  live: readonly BlockNode[],
+  pointer: string,
+  out: DraftJudgement,
+): DraftJudgement {
+  blocks.forEach((block, index) => {
+    const at = `${pointer}/${index}`;
+    const current = live.find(({ name }) => name === block.name);
+    if (block.preserve !== true) {
+      const config = jsonOptions(block.config);
+      const before = jsonOptions(current?.config);
+      const changed = Object.fromEntries(
+        Object.entries(config).filter(
+          ([key, value]) => !isDeepStrictEqual(value, before[key]),
+        ),
+      );
+      if (readsCodeOption(changed, Object.keys(current?.lockedOptions ?? {}))) {
+        out.unreadable.push(at);
+      }
+      out.targets.push(
+        ...urlTargets(config, `${at}/config`).filter(patchedBy(changed)),
+      );
+    }
+    judgeDraftBlocks(
+      block.children ?? [],
+      current?.children ?? [],
+      `${at}/children`,
+      out,
+    );
+  });
+  return out;
+}
+
+/**
+ * The request-target issues of a whole-page draft, as `mockup_apply_to_page`
+ * writes one: each block it writes is judged as {@link judgePatch} judges a
+ * patch, on the URLs whose value differs from the live block's or that its
+ * changes turn into a request, so a block kept as written passes.
+ *
+ * @param blocks The draft's blocks
+ * @param live The live page's blocks the draft is written over
+ */
+export async function draftRequestIssues(
+  blocks: readonly BlockDraft[],
+  live: readonly BlockNode[],
+): Promise<ValidationIssue[]> {
+  const { targets, unreadable } = judgeDraftBlocks(blocks, live, "/blocks", {
+    targets: [],
+    unreadable: [],
+  });
+  const routes = targets.some(({ rule }) => rule.kind === "request")
+    ? await dataApiRoutes()
+    : new Set<string>();
+  return [
+    ...unreadable.map((pointer) => ({ pointer, message: UNREADABLE_BLOCK })),
+    ...issuesOf(targets, routes),
+  ];
 }

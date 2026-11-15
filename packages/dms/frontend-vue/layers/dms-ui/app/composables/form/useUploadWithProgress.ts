@@ -36,7 +36,12 @@ const FORBIDDEN_REQUEST_HEADERS = new Set([
   "upgrade",
   "via",
 ]);
-const FORBIDDEN_REQUEST_HEADER_PREFIXES = ["proxy-", "sec-"];
+/**
+ * Prefixes of the names never copied: the browser's own (`proxy-`, `sec-`),
+ * and `x-dms-ui-`, which the dashboard relay forwards as the marker of a
+ * module's own UI, so no presign answer may set one.
+ */
+const FORBIDDEN_REQUEST_HEADER_PREFIXES = ["proxy-", "sec-", "x-dms-ui-"];
 
 const isForbiddenRequestHeader = (name: string): boolean => {
   const normalized = name.trim().toLowerCase();

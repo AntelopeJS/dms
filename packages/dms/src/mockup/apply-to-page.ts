@@ -39,7 +39,8 @@ export interface LivePageWriter extends LivePages {
   ): Promise<OpResult<{ version: string }>>;
 }
 
-const BUILDER_WRITER: LivePageWriter = {
+/** The builder interface, as {@link applyMockupToPage} reads and writes a live page by default. */
+export const BUILDER_WRITER: LivePageWriter = {
   ...BUILDER_PAGES,
   setPageBlocks: (ref, draft, opts) => SetPageBlocks(ref, draft, opts),
 };
