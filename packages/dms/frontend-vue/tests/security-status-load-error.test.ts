@@ -101,6 +101,7 @@ it("says a failed summary failed, with a retry, instead of loading forever", asy
   host.querySelector("button")!.click();
   await vi.waitFor(() => {
     expect(authFetch).toHaveBeenCalledOnce();
+    expect(authFetch.mock.calls[0]).toHaveLength(2);
     expect(authFetch.mock.calls[0]?.[0]).toBe(
       "/dms/pages/settings/user/security",
     );

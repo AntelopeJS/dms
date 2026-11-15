@@ -27,6 +27,12 @@ type CellValue = string | number | { name: string } | null | undefined;
 const display = (value: CellValue): string =>
   isObject(value) && value ? String(value.name) : String(value);
 
+/** A scalar formatter: a relation row it is wrongly handed prints as `[object Object]`. */
+const scalar = (value: CellValue): string =>
+  isObject(value) && value
+    ? Object.prototype.toString.call(value)
+    : String(value);
+
 const PRODUCT = {
   id: "product",
   label: "Product",
@@ -113,8 +119,8 @@ async function mountTable(
   const formatters = new Map<string, (value: CellValue) => string>(
     Object.entries({
       relation: display,
-      price: (value: CellValue) => `€${display(value)}`,
-      number: display,
+      price: (value: CellValue) => `€${scalar(value)}`,
+      number: scalar,
     }),
   );
   vi.stubGlobal("useDataTypes", () => ({

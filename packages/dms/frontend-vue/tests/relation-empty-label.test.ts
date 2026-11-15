@@ -76,6 +76,7 @@ describe("multiple relation cell without a label", () => {
     if (!isVNode(cell) || !Array.isArray(cell.children)) {
       throw new Error("expected a vnode of badges");
     }
+    expect(cell.children.every(isVNode)).toBe(true);
     return cell.children
       .filter(isVNode)
       .map((badge) => String(badge.props?.label));

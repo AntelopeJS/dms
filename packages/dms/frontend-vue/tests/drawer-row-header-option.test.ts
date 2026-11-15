@@ -150,8 +150,8 @@ describe("useDrawer's row header", () => {
     expect(patched.componentOptions).toEqual({ id: "k2" });
     expect(patched.headerComponentOptions).toMatchObject({
       heading: "Second",
-      navigation: next,
     });
+    expect(patched.headerComponentOptions).toHaveProperty("navigation", next);
   });
 
   it("steps with J and K while open, and no more once closed", async () => {

@@ -84,6 +84,9 @@ describe("rows ordered by hand", () => {
     expect(reorderState.value?.enabled).toBe(true);
     reorderState.value!.move(2, 0);
     await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
     expect(data.value?.results.map((row) => row._id)).toEqual([
       "r2",
       "r0",

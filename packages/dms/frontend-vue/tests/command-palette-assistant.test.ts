@@ -207,6 +207,8 @@ describe("command palette assistant registry", () => {
   });
 
   it("ignores an entry whose suggestions were stripped by the SSR payload", () => {
+    state.set(ASSISTANTS_STATE_KEY, ref([ASSISTANT]));
+    expect(useCommandPaletteAssistant().assistant.value?.id).toBe(ASSISTANT.id);
     const { id, label, icon, answerComponent } = ASSISTANT;
     state.set(
       ASSISTANTS_STATE_KEY,
