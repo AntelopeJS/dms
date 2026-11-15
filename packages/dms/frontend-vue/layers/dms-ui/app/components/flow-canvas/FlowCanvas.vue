@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { Background } from "@vue-flow/background";
 import { ControlButton, Controls } from "@vue-flow/controls";
-import { Panel, PanelPosition, useVueFlow, VueFlow } from "@vue-flow/core";
+import {
+  type Edge,
+  type Node,
+  Panel,
+  PanelPosition,
+  useVueFlow,
+  VueFlow,
+} from "@vue-flow/core";
 import { MiniMap } from "@vue-flow/minimap";
 import type { Component } from "vue";
 import { computed, useId, useSlots } from "vue";
+import { isString } from "#dms-core/app/utils/type-check";
 
 const DMS_GRID_GAP = 24;
 const DMS_GRID_DOT_SIZE = 1.2;
@@ -27,24 +35,6 @@ const PANEL_POSITIONS: readonly PanelPosition[] = [
 type GridVariant = "dots" | "lines";
 type DeleteKeyCode = string | string[] | null;
 
-interface FlowNode {
-  id: string;
-  type?: string;
-  position: { x: number; y: number };
-  data?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-interface FlowEdge {
-  id: string;
-  source: string;
-  target: string;
-  sourceHandle?: string | null;
-  targetHandle?: string | null;
-  type?: string;
-  [key: string]: unknown;
-}
-
 interface DeleteAffordance {
   id: string;
   x: number;
@@ -53,9 +43,9 @@ interface DeleteAffordance {
 
 interface Props {
   /** Flow nodes (forwarded to VueFlow; kept in sync by its store). */
-  nodes?: FlowNode[];
+  nodes?: Node[];
   /** Flow edges. */
-  edges?: FlowEdge[];
+  edges?: Edge[];
   /** Map of `type` → node renderer component (consumer-owned, business). */
   nodeTypes?: Record<string, Component>;
   /** Map of `type` → edge renderer component (consumer-owned). */
@@ -150,7 +140,7 @@ const deleteKeys = computed<Set<string>>(() => {
       ? DEFAULT_DELETE_KEYS
       : props.deleteKeyCode;
   if (code === null) return new Set();
-  return new Set(Array.isArray(code) ? code : [code]);
+  return new Set(isString(code) ? [code] : code);
 });
 
 const resolvedDeleteKeyCode = computed<DeleteKeyCode | undefined>(() =>

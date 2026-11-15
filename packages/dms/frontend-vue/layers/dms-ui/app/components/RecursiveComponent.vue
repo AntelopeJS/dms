@@ -35,8 +35,8 @@ interface Props {
 const props = defineProps<Props>();
 
 let anchored: ComponentPublicInstance | null = null;
-function anchorBlock(instance: Element | ComponentPublicInstance | null): void {
-  const block = (instance as ComponentPublicInstance | null) ?? null;
+function anchorBlock(instance: ComponentPublicInstance | null): void {
+  const block = instance ?? null;
   registerBlockAnchor(props.layoutPath, block, anchored);
   anchored = block;
 }
@@ -72,10 +72,7 @@ function calculateColumnCount(
   children: ResolvedComponentInfo[] | undefined,
 ): number {
   if (!children) return 0;
-  return children.reduce(
-    (sum, child) => sum + ((child.colSpan as number) || 1),
-    0,
-  );
+  return children.reduce((sum, child) => sum + (Number(child.colSpan) || 1), 0);
 }
 
 function getColSpanStyle(

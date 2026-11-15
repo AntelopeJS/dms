@@ -5,6 +5,7 @@ import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
 import type { Tone } from "#dms-core/app/types/tone";
+import { isString } from "#dms-core/app/utils/type-check";
 import { MONO_TAG_CLASS } from "../../build/utils/monoChip";
 import { navBadgeClass } from "../../build/utils/navBadge";
 
@@ -63,7 +64,9 @@ const theme = tv({
 });
 
 const ui = theme();
-const rootClass = computed(() => ui.root({ class: attrs.class as string }));
+const rootClass = computed(() =>
+  ui.root({ class: isString(attrs.class) ? attrs.class : undefined }),
+);
 const passthrough = computed(() => {
   const { class: _class, ...rest } = attrs;
   return rest;

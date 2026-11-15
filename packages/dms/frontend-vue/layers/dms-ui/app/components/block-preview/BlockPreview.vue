@@ -95,22 +95,23 @@ function componentFor(node: PreviewResolvedNode): Component | string {
   return resolveDmsComponent(node.componentName) ?? "div";
 }
 
-function optionsFor(node: PreviewResolvedNode): Record<string, unknown> {
+function optionsFor(node: PreviewResolvedNode) {
   if (node.issue) return { issue: node.issue };
   if (node.sketch) return { sketch: node.sketch };
   return node.options;
 }
 
 function toPageComponent(node: PreviewResolvedNode): ResolvedComponentInfo {
-  return {
+  const page: ResolvedComponentInfo = {
     id: node.id,
     component: componentFor(node),
     componentName: node.componentName,
     options: optionsFor(node),
     children: node.children.map(toPageComponent),
-    ...(node.slot ? { slot: node.slot } : {}),
-    ...(node.colSpan === undefined ? {} : { colSpan: node.colSpan }),
   };
+  if (node.slot) page.slot = node.slot;
+  if (node.colSpan !== undefined) page.colSpan = node.colSpan;
+  return page;
 }
 
 const components = computed(() => resolved.value.map(toPageComponent));
