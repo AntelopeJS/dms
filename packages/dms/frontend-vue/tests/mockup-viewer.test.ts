@@ -75,7 +75,7 @@ describe("live render", () => {
     expect(rendered(posted)).toHaveLength(2);
     expect(viewer.host.querySelector("iframe")).toBe(iframe);
     expect(iframe.getAttribute("src")).toBe(src);
-    expect(src).toBe("/dms-preview");
+    expect(src).toBe("/dms-preview?fixtures=only");
   });
 
   it("sends each page's padding, padded when the page says nothing", async () => {

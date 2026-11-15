@@ -13,7 +13,10 @@ const SAMPLE_MOCKUP = "sample-live-routes";
 /** Live routes of the playground, each named directly by a block of the sample mockup. */
 const LIVE = { kpi: "/api/dashboard/kpi/revenue", chart: "/api/dashboard/sales", table: "/api/user/list" };
 const ROWS_FIXTURE = "users";
-const SAMPLE_ROWS = [{ _id: "s1", name: "Sample row" }];
+/** Sample rows whose image and file cells name a live route and file keys, as the AI could write them. */
+const SAMPLE_ROWS = [{ _id: "s1", name: "Sample row", pic: LIVE.kpi, doc: "probe-resource-key", gallery: [{ key: "probe-image-key" }] }];
+/** The file metadata route an image or file cell reads a key from. */
+const FILE_METADATA = "/api/files/metadata";
 const PREVIEW_PATH = "/dms-preview";
 const DRAW_TIMEOUT_MS = 30_000;
 const POLL_MS = 500;
@@ -158,7 +161,7 @@ export const journeys = [
   },
   {
     id: "mockup-sample-reads-no-live-route",
-    title: "with Real data off, the /mockup viewer requests no live route, even for a KPI, a chart and a serialized table that name one directly",
+    title: "with Real data off, the /mockup viewer requests no live route, even for a KPI, a chart and a serialized table that name one directly, or image and file cells whose fixture values do",
     entryPoint: "/mockup?data=sample",
     backend: "dev",
     async run(/** @type {Ctx} */ ctx) {
@@ -175,30 +178,60 @@ export const journeys = [
         { type: "KpiCard", options: { title: "Revenue", fetchUrl: LIVE.kpi, valueFormat: "currency" } },
         { type: "ChartCard", options: { title: "Sales", fetchUrl: LIVE.chart, valueFormat: "currency" }, children: [{ id: "chart", type: "ChartArea" }] },
         { type: "TableView", options: serialized },
+        {
+          type: "TableView",
+          options: {
+            caption: "Cells",
+            fetchUrl: `fixture:${ROWS_FIXTURE}`,
+            rowIdKey: "_id",
+            columns: {
+              name: { name: "Name", type: "string" },
+              pic: { name: "Picture", type: "image" },
+              doc: { name: "Document", type: "file" },
+              gallery: { name: "Gallery", type: "image" },
+            },
+          },
+        },
       ]);
-      const compiled = await compiledTree(ctx, 3);
+      const compiled = await compiledTree(ctx, 4);
       const admin = await ctx.tab("admin");
       await admin.signIn("admin");
+      /** Every request the server answered, by method and path: one the frame's policy refused never leaves the browser. */
       /** @type {{ entry: string, inPreview: boolean }[]} */
       const requests = [];
       const viewer = await admin.page.context().newPage();
-      viewer.on("request", (request) =>
-        requests.push({ entry: `${request.method()} ${new URL(request.url()).pathname}`, inPreview: request.frame().url().includes(PREVIEW_PATH) }),
-      );
+      /** @type {string[]} */
+      const refused = [];
+      viewer.on("console", (message) => {
+        if (message.text().includes("Content Security Policy")) refused.push(message.text().slice(0, 160));
+      });
+      viewer.on("response", (response) => {
+        const request = response.request();
+        requests.push({ entry: `${request.method()} ${new URL(request.url()).pathname}`, inPreview: request.frame().url().includes(PREVIEW_PATH) });
+      });
       await viewer.goto(new URL(`/mockup?name=${SAMPLE_MOCKUP}&page=live&data=sample`, admin.page.url()).href);
       const states = await previewStates(viewer);
+      const frame = viewer.frames().find((candidate) => candidate.url().includes(PREVIEW_PATH));
+      const policy = await frame
+        ?.evaluate(() => document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute("content") ?? "")
+        .catch(() => "");
+      const frameUrl = frame?.url() ?? "";
       await viewer.close();
       const apiOf = (/** @type {boolean} */ inPreview) =>
         [...new Set(requests.filter((request) => request.inPreview === inPreview).map((request) => request.entry))].filter((entry) => entry.includes(" /api/"));
-      const live = requests.filter(({ entry }) => Object.values(LIVE).some((route) => entry.endsWith(` ${route}`))).map(({ entry }) => entry);
+      const live = requests
+        .filter(({ entry }) => Object.values(LIVE).some((route) => entry.endsWith(` ${route}`)) || entry.endsWith(` ${FILE_METADATA}`))
+        .map(({ entry }) => entry);
       const previewOutsideMockup = apiOf(true).filter((entry) => !entry.includes(" /api/mockup/") && ![...SHELL_ROUTES, ...PLUGIN_ROUTES].some((route) => route.test(entry)));
       await ctx.verify("the viewer reads only the mockup's own routes in sample mode", [
+        ctx.holds("the preview frame draws on fixtures under a policy", (policy ?? "").includes("connect-src"), `${frameUrl} ${policy ?? ""}`),
         ctx.holds("the preview drew the data blocks", states.length >= Object.keys(LIVE).length, JSON.stringify(states)),
-        ctx.equal("no request of the page or its frames reads a live route a block names", live, []),
+        ctx.equal("no request of the page or its frames reads a live route a block or a fixture cell names", live, []),
         ctx.equal("every API request of the preview frame is a mockup route or the dashboard's own", previewOutsideMockup, []),
         ctx.holds("what each block shows", true, JSON.stringify({ states, issues: compiled.issues })),
         ctx.holds("the API requests of the preview frame", requests.length > 0, JSON.stringify(apiOf(true))),
         ctx.holds("the API requests of the page around it", true, JSON.stringify(apiOf(false))),
+        ctx.holds("what the preview's policy refused", true, JSON.stringify(refused)),
       ]);
     },
   },

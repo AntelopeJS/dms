@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { isString } from "../../../../dms-core/app/utils/type-check";
-import { markRaw, type Component } from "vue";
+import { markRaw, onBeforeMount, type Component } from "vue";
 import BlockPreviewIssue from "../../build/components/block-preview/BlockPreviewIssue.vue";
 import BlockPreviewSketch from "../../build/components/block-preview/BlockPreviewSketch.vue";
 import { useBlockPreviewEmbed } from "../../build/composables/block-preview/useBlockPreviewEmbed";
@@ -13,6 +13,11 @@ import {
   type PreviewResolvedNode,
   type PreviewTree,
 } from "../../build/utils/blockPreview";
+import {
+  applyFixturesOnlyPolicy,
+  FIXTURES_ONLY_QUERY,
+  FIXTURES_ONLY_VALUE,
+} from "../../build/utils/previewFixturesOnly";
 import { childComponentId } from "../../utils/componentId";
 
 const { resolveError } = useApiErrorPresenter();
@@ -57,6 +62,10 @@ const STATE_QUERY = "state";
 const { t, locale, locales, setLocale } = useI18n();
 const route = useDmsRoute();
 const root = useTemplateRef<HTMLElement>("root");
+
+if (props.embed && route.query[FIXTURES_ONLY_QUERY] === FIXTURES_ONLY_VALUE) {
+  onBeforeMount(() => applyFixturesOnlyPolicy(document, window.location));
+}
 
 const stateParam = route.query[STATE_QUERY];
 const initialState =

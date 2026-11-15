@@ -348,14 +348,24 @@ export async function mountViewer(): Promise<MountedViewer> {
   app.component("UIcon", UIcon);
   app.mount(host);
   await flush();
-  const iframe = host.querySelector("iframe");
-  const frameWindow = iframe?.contentWindow;
-  if (!iframe || !frameWindow) throw new Error("The viewer drew no preview");
   const posted: PreviewInboundMessage[] = [];
-  vi.spyOn(frameWindow, "postMessage").mockImplementation((message) => {
-    const parsed = parsePreviewMessage(message);
-    if (parsed) posted.push(parsed);
-  });
+  const spied = new WeakSet<Window>();
+  /** The preview's current window, its posts recorded: switching Real data replaces the frame. */
+  const frameWindow = (): Window => {
+    const current = host.querySelector("iframe")?.contentWindow;
+    if (!current) throw new Error("The viewer drew no preview");
+    if (!spied.has(current)) {
+      spied.add(current);
+      vi.spyOn(current, "postMessage").mockImplementation((message) => {
+        const parsed = parsePreviewMessage(message);
+        if (parsed) posted.push(parsed);
+      });
+    }
+    return current;
+  };
+  const iframe = host.querySelector("iframe");
+  if (!iframe) throw new Error("The viewer drew no preview");
+  frameWindow();
   const stream = FakeEventSource.instances[0];
   return {
     host,
@@ -370,7 +380,7 @@ export async function mountViewer(): Promise<MountedViewer> {
       window.dispatchEvent(
         new MessageEvent("message", {
           data: { channel: PREVIEW_CHANNEL, ...message },
-          source: frameWindow,
+          source: frameWindow(),
         }),
       );
       await flush();

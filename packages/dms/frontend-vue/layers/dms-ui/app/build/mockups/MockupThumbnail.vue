@@ -13,6 +13,10 @@ import {
   parseMockupState,
   type MockupState,
 } from "../utils/mockup";
+import {
+  FIXTURES_ONLY_QUERY,
+  FIXTURES_ONLY_VALUE,
+} from "../utils/previewFixturesOnly";
 import { currentSketchScheme } from "../utils/sketch";
 
 /**
@@ -23,7 +27,8 @@ import { currentSketchScheme } from "../utils/sketch";
  */
 const props = defineProps<{ name: string }>();
 
-const PREVIEW_PATH = "/dms-preview";
+/** The preview on the mockup's fixtures, which refuses every live route. */
+const PREVIEW_PATH = `/dms-preview?${FIXTURES_ONLY_QUERY}=${FIXTURES_ONLY_VALUE}`;
 const BAND_HEIGHT_PX = 84;
 const HOME_ICON = "i-ph-house-light";
 

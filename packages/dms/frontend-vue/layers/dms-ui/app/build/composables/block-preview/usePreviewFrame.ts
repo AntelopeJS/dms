@@ -4,6 +4,7 @@ import {
   ref,
   type Ref,
   type ShallowRef,
+  watch,
 } from "vue";
 import {
   parsePreviewOutboundMessage,
@@ -39,6 +40,8 @@ export interface PreviewFrame {
 /**
  * Talks to the preview iframe: posts it messages once it said `ready`, and
  * follows what it reports back. Only the frame's own window is listened to.
+ * A new frame element is a new document, so nothing is posted to it before
+ * it says `ready` in turn.
  */
 export function usePreviewFrame(options: PreviewFrameOptions): PreviewFrame {
   const height = ref<number>();
@@ -77,6 +80,9 @@ export function usePreviewFrame(options: PreviewFrameOptions): PreviewFrame {
     if (message) handlers[message.type](message);
   }
 
+  watch(options.frame, () => {
+    isReady.value = false;
+  });
   onMounted(() => window.addEventListener("message", onMessage));
   onBeforeUnmount(() => window.removeEventListener("message", onMessage));
 
