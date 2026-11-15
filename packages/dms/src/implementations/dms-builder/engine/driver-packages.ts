@@ -26,25 +26,38 @@ interface Driver {
  * gets a range of its own segments only: a release for another line fails to resolve. Each table
  * starts at the driver's first release that exports `probe` and provides
  * `@antelopejs/interface-database-catalog` 0.1, the line this module consumes: core refuses an
- * earlier release beside it. Moving the DMS to another line of an interface, or a driver
+ * earlier release beside it. On `@antelopejs/interface-database` 0.4.1 and later, which hands a
+ * cursor batches of rows, it starts at the release that answers in batches. Moving the DMS to another line of an interface, or a driver
  * release, means updating this table only.
  */
 const DRIVERS: Record<DatabaseEngine, Driver> = {
   postgres: {
     package: "@antelopejs/postgres",
-    segments: [{ from: "0.4.1", interfaceDatabase: ">=0.4.0 <0.5.0" }],
+    segments: [
+      { from: "0.4.1", interfaceDatabase: ">=0.4.0 <0.4.1" },
+      { from: "0.4.2", interfaceDatabase: ">=0.4.1 <0.5.0" },
+    ],
   },
   mysql: {
     package: "@antelopejs/mysql",
-    segments: [{ from: "0.2.3", interfaceDatabase: ">=0.4.0 <0.5.0" }],
+    segments: [
+      { from: "0.2.3", interfaceDatabase: ">=0.4.0 <0.4.1" },
+      { from: "0.2.4", interfaceDatabase: ">=0.4.1 <0.5.0" },
+    ],
   },
   mongodb: {
     package: "@antelopejs/mongodb",
-    segments: [{ from: "1.8.3", interfaceDatabase: ">=0.4.0 <0.5.0" }],
+    segments: [
+      { from: "1.8.3", interfaceDatabase: ">=0.4.0 <0.4.1" },
+      { from: "1.8.4", interfaceDatabase: ">=0.4.1 <0.5.0" },
+    ],
   },
   rethinkdb: {
     package: "@antelopejs/rethinkdb",
-    segments: [{ from: "1.10.2", interfaceDatabase: ">=0.4.0 <0.5.0" }],
+    segments: [
+      { from: "1.10.2", interfaceDatabase: ">=0.4.0 <0.4.1" },
+      { from: "1.10.3", interfaceDatabase: ">=0.4.1 <0.5.0" },
+    ],
   },
 };
 

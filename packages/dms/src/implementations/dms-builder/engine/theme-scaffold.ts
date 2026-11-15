@@ -40,7 +40,7 @@ import {
  * The `@antelopejs/dms-frontend` releases the frontend modules of a theme layer run on, written into
  * the `package.json` of a layer the builder creates.
  */
-const FRONTEND_LOADER_RANGE = ">=0.10.0 <0.11.0";
+const FRONTEND_LOADER_RANGE = ">=0.11.4 <0.12.0";
 
 const LAYER_PRIORITY = 1;
 
