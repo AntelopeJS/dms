@@ -236,7 +236,6 @@ function checksRolesAndListsFailures(): void {
       viewport: "mobile",
       width: 390,
       height: 844,
-      screenshot: "page.png",
       blocks: [
         block("total", "dms-kpi-card"),
         { ...block("chart", "dms-chart-card"), present: false },

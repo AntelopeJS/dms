@@ -1,5 +1,3 @@
-import { mkdir } from "node:fs/promises";
-import path from "node:path";
 import type { Role } from "@antelopejs/interface-dms/db";
 import type { Browser, BrowserContext } from "./playwright";
 import {
@@ -27,10 +25,7 @@ import {
   openPage,
   readDataBlocks,
   readLayout,
-  fileSegment,
   renderAtViewport,
-  type ShotStore,
-  shotFile,
 } from "./render";
 import type {
   DataBlock,
@@ -53,7 +48,6 @@ export * from "./report";
 export * from "./targets";
 
 const ESTABLISH_PATH = "/auth/establish";
-const RUNS_FOLDER = [".antelope", "page-verify"];
 const SUGGESTED_ROUTES = 20;
 const MODULE_LOAD_FAILURE = "Failed to fetch dynamically imported module";
 
@@ -66,7 +60,6 @@ export interface VerifyRequest {
   submit: boolean;
   /** The dashboard origin, such as `http://localhost:3001`. */
   origin: string;
-  projectPath: string;
 }
 
 /** The browser contexts of a run and the sessions they hold, closed together. */
@@ -128,7 +121,6 @@ interface PageRun {
   workspace: Workspace;
   account: VerifyAccount;
   guard: WriteGuard;
-  store: ShotStore;
 }
 
 /** What the browser saw of a page signed in as a role's member, and why. */
@@ -159,15 +151,9 @@ async function observedAccess(
     await openPage(page, new URL(target.route, origin).href);
     const drawn = (await probePage(page)).blocks.length;
     if (drawn > 0) return { observed: "rendered" };
-    const shot = shotFile(run.store, [
-      "access",
-      `${fileSegment(target.route)}-${fileSegment(account.user.email)}.png`,
-    ]);
-    await mkdir(path.dirname(shot.file), { recursive: true });
-    await page.screenshot({ path: shot.file, fullPage: true });
     return {
       observed: "refused",
-      note: `the layout was served, but ${page.url()} drew no block: see ${shot.relative}`,
+      note: `the layout was served, but ${page.url()} drew no block`,
     };
   } finally {
     await page.close();
@@ -281,7 +267,6 @@ async function verifyPage(
         url,
         viewport,
         layout.blocks,
-        run.store,
       );
       viewports.push(outcome.render);
       data.push(...readDataBlocks(outcome.probe, viewport.name, layout.blocks));
@@ -307,10 +292,7 @@ async function verifyPage(
             origin,
             request.mockup,
             rendered[0].blocks,
-            {
-              store: run.store,
-              viewport: first,
-            },
+            first,
           )
         : undefined;
     const report = {
@@ -378,11 +360,6 @@ async function pickAccount(
   return ownerAccount(workspace);
 }
 
-function runFolder(projectPath: string): string {
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return path.join(projectPath, ...RUNS_FOLDER, stamp);
-}
-
 /**
  * Opens each page in a headless Chromium signed in as the account `role`
  * names, and reports what it renders, the data its blocks load, the errors
@@ -394,14 +371,10 @@ export async function verifyPages(
   const notes: string[] = [];
   const workspace = await loadWorkspace();
   const account = await pickAccount(workspace, request.role, notes);
-  const store: ShotStore = {
-    projectPath: request.projectPath,
-    dir: runFolder(request.projectPath),
-  };
   const guard: WriteGuard = { submit: request.submit, writes: [] };
   const browser = await launchBrowser();
   const sessions = new Sessions(browser, request.origin);
-  const run: PageRun = { sessions, workspace, account, guard, store };
+  const run: PageRun = { sessions, workspace, account, guard };
   try {
     const pages: PageReport[] = [];
     for (const name of request.pages) {
@@ -426,7 +399,6 @@ export async function verifyPages(
       ok: pages.every((page) => page.ok),
       dashboardUrl: request.origin,
       account: account.summary,
-      screenshots: path.relative(request.projectPath, store.dir),
       notes,
       pages,
     };

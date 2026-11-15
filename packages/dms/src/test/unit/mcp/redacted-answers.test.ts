@@ -38,7 +38,6 @@ function verifyReport(): PageVerifyReport {
     ok: false,
     dashboardUrl: "http://localhost:5173",
     account: { kind: "owner", email: "owner@example.test" },
-    screenshots: ".antelope/page-verify/run",
     notes: [
       "Writes held back (submit: false): PUT /api/items/urn:isbn:9781, POST /api/customers/smith,john, PUT /api/orders",
       RERUN,

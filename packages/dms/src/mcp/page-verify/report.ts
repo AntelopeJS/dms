@@ -33,17 +33,16 @@ export interface RenderedBlock {
   drewNothing?: boolean;
   /** Not drawn on load, but once the tab holding it was selected. */
   inTab?: boolean;
-  /** Project-relative path of the block's screenshot, when it was visible. */
-  screenshot?: string;
 }
 
-/** What the page looked like at one viewport. */
+/**
+ * What the page looked like at one viewport, read from the DOM. No screenshot is taken: it would
+ * show the values of the page's rows to the AI that reads the report.
+ */
 export interface ViewportRender {
   viewport: string;
   width: number;
   height: number;
-  /** Project-relative path of the full-page screenshot. */
-  screenshot: string;
   blocks: RenderedBlock[];
   layout: {
     /** The document is wider than the viewport: the page scrolls sideways. */
@@ -63,9 +62,6 @@ export interface MockupBlockComparison {
   type: string;
   /** Layout path of the page block matched to it, by path then by type in order. */
   pagePath?: string;
-  /** Project-relative paths of the two screenshots to compare side by side. */
-  mockupScreenshot?: string;
-  pageScreenshot?: string;
   status: "matched" | "missing";
 }
 
@@ -73,8 +69,6 @@ export interface MockupBlockComparison {
 export interface MockupComparison {
   mockup: string;
   page: string;
-  /** Project-relative path of the full mockup screenshot, desktop width. */
-  screenshot?: string;
   blocks: MockupBlockComparison[];
   /** Page blocks with no counterpart in the mockup. */
   extraPageBlocks: string[];
@@ -162,8 +156,6 @@ export interface PageVerifyReport {
   ok: boolean;
   dashboardUrl: string;
   account: VerifyAccountSummary;
-  /** Project-relative folder holding every screenshot of this run. */
-  screenshots: string;
   /** What the run could not do, such as a role no member holds. */
   notes: string[];
   pages: PageReport[];

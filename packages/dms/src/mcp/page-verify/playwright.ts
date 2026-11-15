@@ -76,7 +76,6 @@ export interface Locator {
   innerText(options?: { timeout: number }): Promise<string>;
   isVisible(): Promise<boolean>;
   isEnabled(): Promise<boolean>;
-  screenshot(options: { path: string; timeout?: number }): Promise<Buffer>;
   evaluateAll<R>(fn: (elements: Element[]) => R): Promise<R>;
   page(): Page;
 }
@@ -100,7 +99,6 @@ export interface Frame {
 
 export interface Page extends Frame {
   setViewportSize(size: { width: number; height: number }): Promise<void>;
-  screenshot(options: { path: string; fullPage: boolean }): Promise<Buffer>;
   frames(): Frame[];
   context(): BrowserContext;
   getByRole(role: string): Locator;
