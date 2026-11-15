@@ -6,6 +6,7 @@
  * localized field does the same for each locale's control.
  */
 import {
+  type App,
   computed,
   createApp,
   defineAsyncComponent,
@@ -20,7 +21,11 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerDmsComponent } from "#dms/frontend-module";
 import LocalizedField from "../layers/dms-ui/app/components/form/LocalizedField.vue";
-import { FORM_ENTRY_CONTEXT_KEY } from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
+import {
+  FORM_ENTRY_CONTEXT_KEY,
+  type FormEntryContext,
+} from "../layers/dms-ui/app/entries/composables/form/formEntryContext";
+import type { FormField } from "../layers/dms-ui/app/composables/form/types/field";
 
 const CONTEXT_ATTRIBUTES = [
   "initial-value",
@@ -39,8 +44,7 @@ const Undeclaring = defineComponent({
   setup: () => () => h("div", { class: "undeclaring" }),
 });
 
-/** @type {unknown[]} */
-let seenInSetup = [];
+let seenInSetup: unknown[] = [];
 const Declaring = defineComponent({
   props: {
     modelValue: { type: null, default: undefined },
@@ -63,14 +67,12 @@ const Slot = defineComponent({
       slots.default?.(),
 });
 
-/** @type {import("vue").App | undefined} */
-let app;
+let app: App | undefined;
 
-/**
- * @param {{ id: string, localized?: boolean, component: { componentName: string } }} field
- * @param {Record<string, unknown>} initialValues
- */
-async function mountField(field, initialValues) {
+async function mountField(
+  field: FormField,
+  initialValues: FormEntryContext["initialValues"]["value"],
+) {
   const { default: FormFieldControl } = await import(
     "../layers/dms-ui/app/entries/components/form/FormFieldControl"
   );
@@ -85,8 +87,20 @@ async function mountField(field, initialValues) {
     componentId: "form-1",
     pageId: "page-1",
     routeParams: { id: "42" },
+    layoutClasses: () => ({
+      rows: "",
+      row: { layout: "form", inset: false, spacing: "row" },
+    }),
+    isFieldHidden: () => false,
     isFieldDisabled: () => false,
-  });
+    isFieldRequired: () => false,
+    isReadOnly: ref(false),
+    showsChanges: true,
+    isFieldChanged: () => false,
+    baselineValue: () => undefined,
+    fieldSaveState: () => "idle",
+    retrySave: () => {},
+  } satisfies FormEntryContext);
   app.config.globalProperties.$t = String;
   app.component("UFormField", Slot);
   app.component("UButton", Slot);
@@ -107,8 +121,7 @@ async function mountField(field, initialValues) {
   return root;
 }
 
-/** @param {Element | null} element */
-function contextAttributes(element) {
+function contextAttributes(element: Element | null) {
   return CONTEXT_ATTRIBUTES.filter((name) => element?.hasAttribute(name));
 }
 

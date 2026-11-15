@@ -14,6 +14,8 @@ import {
   type VNode,
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
+import { stubDmsState } from "./helpers/dms-state-stub";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
@@ -35,10 +37,7 @@ beforeEach(() => {
   Object.entries({ computed, ref, watch, onMounted, useTemplateRef }).forEach(
     ([key, value]) => vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
-    if (!state.has(key)) state.set(key, ref(initial()));
-    return state.get(key);
-  });
+  stubDmsState(state);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) => value,
@@ -116,16 +115,18 @@ describe("the counts a page visit carries", () => {
 const MenuStub = defineComponent(
   (props: { items: NavigationMenuItem[][] }, { slots }) => {
     const renderItem = (item: NavigationMenuItem): VNode => {
-      const badge = typeof item.badge === "object" ? item.badge : undefined;
+      const badge = isObject(item.badge) ? item.badge : undefined;
+      const entry: unknown = item.fullId;
+      const trailingIcon: unknown = item.trailingIcon;
       return h(
         "div",
         {
-          "data-entry": item.fullId,
+          "data-entry": entry,
           "data-badge": badge?.label,
           "data-color": badge?.color,
           "data-variant": badge?.variant,
           "data-prefetch": String(item.prefetch),
-          "data-trailing-icon": item.trailingIcon,
+          "data-trailing-icon": trailingIcon,
         },
         [
           slots["item-leading"]?.({
@@ -172,14 +173,14 @@ describe("NavigationMenu badges", () => {
     app.component(
       "UIcon",
       defineComponent({
-        props: ["name"],
+        props: { name: String },
         setup: (props) => () => h("i", { "data-icon": props.name }),
       }),
     );
     app.component(
       "UChip",
       defineComponent({
-        props: ["color"],
+        props: { color: String },
         setup:
           (props, { slots }) =>
           () =>

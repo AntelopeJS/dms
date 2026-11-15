@@ -41,7 +41,7 @@ function registerUi(app: App) {
   app.component(
     "UButton",
     defineComponent({
-      props: ["label", "icon"],
+      props: { label: String, icon: String },
       setup: (props) => () =>
         h("button", { "aria-label": props.label || props.icon }, props.label),
     }),

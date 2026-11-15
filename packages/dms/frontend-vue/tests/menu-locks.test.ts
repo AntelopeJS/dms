@@ -12,6 +12,8 @@ import {
   type VNode,
 } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
+import { stubDmsState } from "./helpers/dms-state-stub";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
@@ -31,10 +33,7 @@ beforeEach(() => {
   Object.entries({ computed, ref, watch }).forEach(([key, value]) =>
     vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
-    if (!state.has(key)) state.set(key, ref(initial()));
-    return state.get(key);
-  });
+  stubDmsState(state);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) =>
@@ -64,21 +63,24 @@ const ITEMS = [
   { label: "Tables", fullId: "database.tables", to: "/modules/database" },
 ] satisfies NavigationMenuItem[];
 
-const renderMenuItem = (item: NavigationMenuItem): VNode =>
-  h(
+const renderMenuItem = (item: NavigationMenuItem): VNode => {
+  const entry: unknown = item.fullId;
+  const trailingIcon: unknown = item.trailingIcon;
+  const ariaDisabled: unknown = item["aria-disabled"];
+  return h(
     "div",
     {
-      "data-entry": item.fullId,
+      "data-entry": entry,
       "data-to": item.to,
-      "data-badge":
-        typeof item.badge === "object" ? item.badge.label : undefined,
-      "data-trailing-icon": item.trailingIcon,
+      "data-badge": isObject(item.badge) ? item.badge.label : undefined,
+      "data-trailing-icon": trailingIcon,
       title: item.title,
       class: item.class,
-      "aria-disabled": item["aria-disabled"],
+      "aria-disabled": ariaDisabled,
     },
     item.children?.map(renderMenuItem),
   );
+};
 
 const MenuStub = defineComponent(
   (props: { items: NavigationMenuItem[][] }) => () =>

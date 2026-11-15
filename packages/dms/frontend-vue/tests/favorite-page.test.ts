@@ -19,12 +19,14 @@ const PROJECT_PAGE = {
   validation: { requiredQueryParams: ["project"] },
 };
 
-const ROUTES: Record<string, typeof SETTINGS_PAGE | typeof PROJECT_PAGE> = {
-  "/settings": SETTINGS_PAGE,
-  "/projects/project": PROJECT_PAGE,
+const ROUTES = new Map([
+  ["/settings", SETTINGS_PAGE],
+  ["/projects/project", PROJECT_PAGE],
+]);
+const resolveRoute = (path: string) => {
+  const metadata = ROUTES.get(path);
+  return metadata ? { metadata } : null;
 };
-const resolveRoute = (path: string) =>
-  ROUTES[path] ? { metadata: ROUTES[path] } : null;
 
 describe("buildFavoritePage", () => {
   it("keeps a plain page on its path and its translatable display name", () => {

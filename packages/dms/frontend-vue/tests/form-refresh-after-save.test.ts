@@ -34,7 +34,11 @@ const STORED = {
 
 const authFetch = vi.fn();
 let scope: EffectScope;
-let answer: () => unknown;
+type EditAnswer =
+  | (Partial<typeof STORED> & { _id?: string; success?: boolean })
+  | string[]
+  | undefined;
+let answer: () => EditAnswer;
 
 function setupForm(
   props: Partial<Parameters<typeof useForm>[0]> = {},

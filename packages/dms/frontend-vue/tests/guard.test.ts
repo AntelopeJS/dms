@@ -24,7 +24,7 @@ import { stubBlockRuntime } from "./helpers/block-runtime";
 import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
 import { useApiData } from "../layers/dms-core/app/composables/auth/useApiData";
 
-const authFetch = vi.fn<(...args: unknown[]) => Promise<unknown>>();
+const authFetch = vi.fn<(...args: unknown[]) => Promise<object | null>>();
 
 const Slot = defineComponent({
   setup:

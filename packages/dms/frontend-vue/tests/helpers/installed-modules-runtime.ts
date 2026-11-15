@@ -6,8 +6,9 @@ import { vi } from "vitest";
  * endpoint to what it returns, and an endpoint without one returns nothing.
  */
 export function stubModuleReads(answers: Record<string, unknown> = {}): void {
+  const table = new Map(Object.entries(answers));
   vi.stubGlobal("useApiData", (url: () => string | null) => ({
-    data: ref(answers[url() ?? ""] ?? null),
+    data: ref(table.get(url() ?? "") ?? null),
     error: ref(null),
     pending: ref(false),
     status: ref("success"),

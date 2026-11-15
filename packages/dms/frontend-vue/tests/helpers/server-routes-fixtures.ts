@@ -6,7 +6,12 @@ import {
   readSealedCookie,
   writeSealedCookie,
 } from "@antelopejs/dms-frontend/templates/vue/server/auth/session.mjs";
-import { isObject, isString } from "../../layers/dms-core/app/utils/type-check";
+import {
+  isNull,
+  isNumber,
+  isObject,
+  isString,
+} from "../../layers/dms-core/app/utils/type-check";
 
 const RELAY_SECRET = "relay-secret-for-tests-only";
 const RENDER_SECRET = "render-secret-for-tests-only";
@@ -40,10 +45,21 @@ const USER = {
   language: "fr",
 };
 
-/** Answers a test puts in place of the backend's own, by path. */
-const answerOverrides = new Map<string, { status: number; body: unknown }>();
+interface BackendReply {
+  status: number;
+  body: unknown;
+}
 
-function signedIn(serial: string, refreshToken: string) {
+interface BackendBody {
+  password?: string;
+  email?: string;
+  token?: string;
+}
+
+/** Answers a test puts in place of the backend's own, by path. */
+const answerOverrides = new Map<string, BackendReply>();
+
+function signedIn(serial: string, refreshToken: string): BackendReply {
   return {
     status: 200,
     body: {
@@ -54,17 +70,11 @@ function signedIn(serial: string, refreshToken: string) {
   };
 }
 
-/** What the backend answers each path with. */
-function backendAnswer(
-  path: string,
-  body: { password?: string; email?: string; token?: string },
-  authorization?: string,
-) {
-  const override = answerOverrides.get(path);
-  if (override) return override;
-  if (path === "/api/auth/login" && body.password === "wrong")
+/** What the backend answers a login that signs in a known account. */
+function knownLoginAnswer(body: BackendBody): BackendReply | undefined {
+  if (body.password === "wrong")
     return { status: 401, body: { message: "error.auth.invalid_credentials" } };
-  if (path === "/api/auth/login" && body.email === "2fa@example.test")
+  if (body.email === "2fa@example.test")
     return {
       status: 200,
       body: {
@@ -73,12 +83,22 @@ function backendAnswer(
         methods: ["totp"],
       },
     };
-  if (path === "/api/auth/login" && body.email === REVOKED_EMAIL)
-    return signedIn("login", "revoked");
-  if (path === "/api/auth/login" && body.email === EXPIRED_EMAIL)
-    return signedIn("expired", "refresh-1");
-  if (path === "/api/auth/login" && body.email === GONE_EMAIL)
-    return signedIn("expired", "revoked-gone");
+  if (body.email === REVOKED_EMAIL) return signedIn("login", "revoked");
+  if (body.email === EXPIRED_EMAIL) return signedIn("expired", "refresh-1");
+  if (body.email === GONE_EMAIL) return signedIn("expired", "revoked-gone");
+  return undefined;
+}
+
+/** What the backend answers each path with. */
+function backendAnswer(
+  path: string,
+  body: BackendBody,
+  authorization?: string,
+): BackendReply {
+  const override = answerOverrides.get(path);
+  if (override) return override;
+  const login = path === "/api/auth/login" ? knownLoginAnswer(body) : undefined;
+  if (login) return login;
   if (
     path === "/api/auth/logout" &&
     authorization === `Bearer ${accessToken("t1", "expired")}`
@@ -125,15 +145,24 @@ function backendAnswer(
 
 const calls: BackendCall[] = [];
 
-function readBody(
-  request: IncomingMessage,
-): Promise<Parameters<typeof backendAnswer>[1]> {
+function isBackendBody(value: unknown): value is BackendBody {
+  return (
+    isObject(value) &&
+    !isNull(value) &&
+    [value.password, value.email, value.token].every(
+      (field) => field === undefined || isString(field),
+    )
+  );
+}
+
+function readBody(request: IncomingMessage): Promise<BackendBody> {
   return new Promise((settle) => {
     const chunks: Buffer[] = [];
     request.on("data", (chunk: Buffer) => chunks.push(chunk));
     request.on("end", () => {
       const text = Buffer.concat(chunks).toString("utf8");
-      settle(text ? JSON.parse(text) : {});
+      const body: unknown = text ? JSON.parse(text) : {};
+      settle(isBackendBody(body) ? body : {});
     });
   });
 }
@@ -141,7 +170,7 @@ function readBody(
 async function listen(server: Server): Promise<string> {
   await new Promise<void>((settle) => server.listen(0, "127.0.0.1", settle));
   const address = server.address();
-  if (!address || !isObject(address)) throw new Error("no address");
+  if (!address || isString(address)) throw new Error("no address");
   return `http://127.0.0.1:${address.port}`;
 }
 
@@ -160,13 +189,27 @@ interface Answer {
   calls: BackendCall[];
 }
 
-function normalized<T>(value: T): T {
-  return JSON.parse(
-    JSON.stringify(value ?? null)
+function isAnswer(value: unknown): value is Answer {
+  return (
+    isObject(value) &&
+    !isNull(value) &&
+    isNumber(value.status) &&
+    (isNull(value.location) || isString(value.location)) &&
+    Array.isArray(value.cookies) &&
+    Array.isArray(value.calls) &&
+    "body" in value
+  );
+}
+
+function normalized(value: Answer): Answer {
+  const normal: unknown = JSON.parse(
+    JSON.stringify(value)
       .replaceAll(UUID, "<account>")
       .replaceAll(/"updatedAt":\d+/g, '"updatedAt":"<stamp>"')
       .replaceAll(/"expiresAt":\d+/g, '"expiresAt":"<time>"'),
   );
+  if (!isAnswer(normal)) throw new Error("the normalised answer is no answer");
+  return normal;
 }
 
 /** A Set-Cookie header, its sealed value decoded. */

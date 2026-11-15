@@ -133,7 +133,8 @@ export async function mountTableView(
     ],
     ...overrides,
   };
-  return mountInBrowser(
+  const registrations: Array<ReturnType<typeof register>> = [];
+  const mounted = mountInBrowser(
     vue.defineComponent({
       setup: () => () =>
         vue.h(vue.Suspense, null, {
@@ -142,9 +143,11 @@ export async function mountTableView(
     }),
     (app) =>
       app.runWithContext(() => {
-        register(engine.useDmsApp());
-        registerDisplays(engine.useDmsApp());
+        registrations.push(register(engine.useDmsApp()));
+        registrations.push(registerDisplays(engine.useDmsApp()));
         prepare?.();
       }),
   );
+  for (const registration of registrations) await registration;
+  return mounted;
 }

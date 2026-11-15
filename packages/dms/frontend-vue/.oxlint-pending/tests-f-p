@@ -1,1 +1,5 @@
-tests/[f-p]*
+tests/fixtures/realtimeServer.ts
+tests/helpers/api-data-runtime.ts
+tests/helpers/branding-editor.ts
+tests/helpers/cookie-shapes.ts
+tests/helpers/installed-modules-runtime.ts

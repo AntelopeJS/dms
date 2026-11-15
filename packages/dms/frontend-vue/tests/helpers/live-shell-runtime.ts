@@ -15,7 +15,7 @@ import { createI18n } from "vue-i18n";
 import { App as InertiaApp } from "@inertiajs/vue3";
 import { useToast } from "@nuxt/ui/composables/useToast";
 
-const shellModules = import.meta.glob<Record<string, unknown>>([
+const shellModules = import.meta.glob<object>([
   "../../layers/dms-layout/app/composables/**/*.ts",
   "../../layers/dms-layout/app/utils/*.ts",
   "../../layers/dms-core/app/types/page.ts",

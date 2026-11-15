@@ -41,7 +41,7 @@ async function renderIconTags(): Promise<string[]> {
   const app = createSSRApp({ render: () => null });
   const head = createHead();
   app.use(head);
-  app.runWithContext(() => faviconPlugin(dmsAppContext(app)));
+  await app.runWithContext(() => faviconPlugin(dmsAppContext(app)));
   const { headTags } = await renderSSRHead(head);
   return headTags.split("\n").filter((tag) => tag.startsWith(ICON_TAG_START));
 }
@@ -109,7 +109,7 @@ describe("in the browser", () => {
     const app = createApp({ render: () => null });
     const head = createClientHead();
     app.use(head);
-    app.runWithContext(() => faviconPlugin(dmsAppContext(app)));
+    await app.runWithContext(() => faviconPlugin(dmsAppContext(app)));
     await renderDOMHead(head);
     expect(
       document.head.querySelector("link[rel=icon]")?.getAttribute("href"),

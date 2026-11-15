@@ -196,13 +196,15 @@ function registerPendingSaveTests() {
     expect(values.name).toBe("Acme");
   });
 
-  it("sends a pending change at once when flushed", () => {
+  it("sends a pending change at once when flushed", async () => {
     const server = deferredServer();
     const { instant } = setup(server.save);
 
     instant.change("name", "Acme Inc", { debounce: true });
-    void instant.flush();
+    const flushed = instant.flush();
     expect(server.save).toHaveBeenCalledWith({ name: "Acme Inc" });
+    server.calls[0]!.resolve();
+    await flushed;
   });
 
   it("drops a pending change once cancelled", () => {

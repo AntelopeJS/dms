@@ -94,20 +94,19 @@ function registerPreviewSessionAndRenderingTests() {
   });
 
   it("offers the pages reachable without parameters", () => {
-    const pages: Record<
-      string,
-      PreviewablePageSource & { displayName: string }
-    > = {
-      "/": { displayName: "Home" },
-      "/orders": { displayName: "Orders", hasAccess: true },
-      "/denied": { displayName: "Denied", hasAccess: false },
-      "/auth/login": { displayName: "Login", publicAccess: true },
-      "/hidden": { displayName: "Hidden", hidden: true },
-      "/orders/:id": { displayName: "Order" },
-      "/edit": {
+    const page = (source: PreviewablePageSource & { displayName: string }) =>
+      source;
+    const pages = {
+      "/": page({ displayName: "Home" }),
+      "/orders": page({ displayName: "Orders", hasAccess: true }),
+      "/denied": page({ displayName: "Denied", hasAccess: false }),
+      "/auth/login": page({ displayName: "Login", publicAccess: true }),
+      "/hidden": page({ displayName: "Hidden", hidden: true }),
+      "/orders/:id": page({ displayName: "Order" }),
+      "/edit": page({
         displayName: "Edit",
         validation: { requiredQueryParams: ["id"] },
-      },
+      }),
     };
     expect(listPreviewablePages(pages).map(({ slug }) => slug)).toEqual([
       "/",

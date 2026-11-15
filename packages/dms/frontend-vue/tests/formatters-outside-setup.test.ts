@@ -201,7 +201,9 @@ describe("the price formatter", () => {
     const { renderer, app } = mountRenderer(useColumnValueRenderer);
     try {
       const text = (node: unknown): string =>
-        isVNode(node) ? String(node.children) : String(node);
+        isVNode(node) && typeChecks.isString(node.children)
+          ? node.children
+          : String(node);
       const typed = {
         accessorKey: "total",
         type: dataType("price", { currency: "USD" }),

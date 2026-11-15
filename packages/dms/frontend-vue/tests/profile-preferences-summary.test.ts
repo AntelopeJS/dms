@@ -237,7 +237,7 @@ describe("access gating", () => {
 });
 
 const navPages = ref<{ fullId: string; to: string }[]>([]);
-let authFetch: Mock<(url: string) => Promise<unknown>>;
+let authFetch: Mock<(url: string) => Promise<object>>;
 let resolveAccess: (value: Parameters<typeof buildAccessSummary>[1]) => void;
 let resolvePreferences: (value: Record<string, boolean>) => void;
 let feed: ReturnType<typeof useNotifications>;
@@ -343,7 +343,7 @@ beforeEach(() => {
         categories: [{ id: "core", labelKey: "Core" }],
         subjects: [subject("a"), subject("b", { locked: true }), subject("c")],
       });
-    return new Promise((resolve) => {
+    return new Promise<object>((resolve) => {
       if (url.endsWith("/access")) resolveAccess = resolve;
       else resolvePreferences = resolve;
     });

@@ -18,6 +18,7 @@ import {
   unwrapUnionIssue,
   validateFormState,
 } from "../layers/dms-ui/app/entries/composables/form/formValidation";
+import { evaluateZodObject } from "./helpers/zod-source";
 
 type JsonSchema = Parameters<typeof jsonSchemaToZod>[0];
 
@@ -33,7 +34,7 @@ function roundTrip(
     /\.strict\(\)$/,
     ".passthrough()",
   );
-  return new Function("z", `"use strict"; return (${code})`)(z);
+  return evaluateZodObject(code);
 }
 
 function optional(schema: z.ZodTypeAny): z.ZodTypeAny {

@@ -15,10 +15,12 @@ import {
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { setupFrontendModules } from "#dms/frontend-module";
+import { stubDmsState } from "./helpers/dms-state-stub";
 import { usePostLoginRedirect } from "../layers/dms-auth/app/composables/usePostLoginRedirect";
 import { usePageLayout } from "../layers/dms-layout/app/composables/page/usePageLayout";
 import { useSiteLayout } from "../layers/dms-core/app/composables/page/useSiteLayout";
 import type { PageLayout } from "../layers/dms-core/app/types/page";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 
 const { default: OAuthCompletePage } = await import(
   "../layers/dms-auth/app/custom-pages/auth/oauth-complete.vue"
@@ -30,9 +32,16 @@ const SITE_LAYOUT_URL = "/dms/sitelayout";
 const HANDOFF_URL = "/auth/oauth/handoff";
 const HOMEPAGE = "/home";
 
-const state = new Map<string, Ref>();
+interface Handoff {
+  kind: string;
+  token?: string;
+  provider?: string;
+}
+
+const state = new Map<string, Ref<unknown>>();
 const authFetch = vi.fn();
-const fetchHandoff = vi.fn();
+const fetchHandoff =
+  vi.fn<(options: Parameters<typeof $fetch>[1]) => Promise<Handoff>>();
 const navigate = vi.fn();
 let mounts = 0;
 let route: { path: string; query: Record<string, string> };
@@ -89,15 +98,13 @@ function installRuntime() {
   vi.stubGlobal("onMounted", (hook: Parameters<typeof onMounted>[0]) =>
     onMounted(() => {
       mounts += 1;
-      return hook();
+      const mounted: unknown = hook();
+      return mounted;
     }),
   );
   vi.stubGlobal("useDmsApp", () => runtime);
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
-    if (!state.has(key)) state.set(key, ref(initial()));
-    return state.get(key);
-  });
+  stubDmsState(state);
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("useSiteLayout", useSiteLayout);
   vi.stubGlobal("useHomepage", () => HOMEPAGE);
@@ -174,7 +181,7 @@ beforeEach(async () => {
   route = reactive({ path: PATH, query: {} });
 
   navigate.mockImplementation(async (to: string | { path: string }) => {
-    route.path = typeof to === "string" ? to : to.path;
+    route.path = isString(to) ? to : to.path;
   });
   installRuntime();
   host = document.createElement("div");

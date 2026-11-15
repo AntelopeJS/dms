@@ -1,11 +1,5 @@
 const NOT_RECORDS: readonly unknown[] = [null, [], "text", 5, true];
 
-function without(value: Record<string, unknown>, field: string) {
-  return Object.fromEntries(
-    Object.entries(value).filter(([key]) => key !== field),
-  );
-}
-
 /**
  * Every single-field spoilage of `valid` (each field alone replaced by each of
  * its `wrong` values, each `required` field alone left out) plus the values
@@ -21,7 +15,11 @@ export function spoiledShapes(
     ...Object.entries(wrong).flatMap(([field, values]) =>
       values.map((value) => ({ ...valid, [field]: value })),
     ),
-    ...required.map((field) => without(valid, field)),
+    ...required.map((field) =>
+      Object.fromEntries(
+        Object.entries(valid).filter(([key]) => key !== field),
+      ),
+    ),
     ...NOT_RECORDS,
   ];
 }

@@ -1,4 +1,10 @@
+import { shallowRef } from "vue";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { ComponentEventData } from "../layers/dms-core/app/types/component";
+import type {
+  WatchAction,
+  WatchActionFunction,
+} from "../layers/dms-core/app/types/watch";
 import { registerFormFunctions } from "../layers/dms-ui/app/entries/composables/form/registerFormFunctions";
 
 const FUNCTIONS = {
@@ -8,24 +14,18 @@ const FUNCTIONS = {
   SET_FIELD_VALUE: "value",
 };
 
-type Handler = (
-  action: { component: string; event: string; functionId: string; params?: object },
-  eventData: { data?: unknown },
-  state: { value: Record<string, unknown> },
-) => void;
-
-const handlers = new Map<string, Handler>();
+const handlers = new Map<string, WatchActionFunction>();
 
 function run(
   id: string,
-  params: object | undefined,
-  data: unknown = { fieldId: "stage", value: "won" },
-  state: Record<string, unknown> = {},
+  params: WatchAction["params"],
+  data: ComponentEventData["data"] = { fieldId: "stage", value: "won" },
+  state: Parameters<WatchActionFunction>[2]["value"] = {},
 ) {
-  const box = { value: state };
+  const box = shallowRef(state);
   handlers.get(id)!(
     { component: "c", event: "e", functionId: id, params },
-    { data },
+    { component: "c", data },
     box,
   );
   return box.value;
@@ -35,7 +35,8 @@ describe("form watch functions", () => {
   beforeAll(() => {
     vi.stubGlobal("FormFunctions", FUNCTIONS);
     vi.stubGlobal("useDefinedFunctions", () => ({
-      registerFunction: (id: string, fn: Handler) => handlers.set(id, fn),
+      registerFunction: (id: string, fn: WatchActionFunction) =>
+        handlers.set(id, fn),
     }));
     registerFormFunctions();
   });
@@ -55,7 +56,12 @@ describe("form watch functions", () => {
 
   it("keeps the other targets of the set", () => {
     const first = run("hidden", { targetField: "a", setHidden: true });
-    const both = run("hidden", { targetField: "b", setHidden: true }, {}, first);
+    const both = run(
+      "hidden",
+      { targetField: "b", setHidden: true },
+      {},
+      first,
+    );
     expect(both.hiddenFields).toEqual(new Set(["a", "b"]));
   });
 
@@ -79,10 +85,18 @@ describe("form watch functions", () => {
 
   it("writes nothing for a value the map has no entry for, or on the initial event", () => {
     expect(
-      run("value", { targetField: "p", valueMap: { lost: 0 } }, { value: "won" }),
+      run(
+        "value",
+        { targetField: "p", valueMap: { lost: 0 } },
+        { value: "won" },
+      ),
     ).toEqual({});
     expect(
-      run("value", { targetField: "p", value: 1 }, { value: "won", initial: true }),
+      run(
+        "value",
+        { targetField: "p", value: 1 },
+        { value: "won", initial: true },
+      ),
     ).toEqual({});
   });
 });

@@ -11,7 +11,7 @@ import { useEventedAction } from "../layers/dms-core/app/composables/useEventedA
 import core from "../layers/dms-core/app/entries/i18n/locales/core-en-GB.json";
 import ui from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import layout from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
-import { isObject } from "../layers/dms-core/app/utils/type-check";
+import { isFunction, isObject } from "../layers/dms-core/app/utils/type-check";
 import type { ModalOptions } from "../layers/dms-ui/app/composables/containers/types";
 import { FormContainerType } from "../layers/dms-ui/app/entries/composables/table-view/types";
 
@@ -25,7 +25,7 @@ interface Messages {
 }
 const merge = (target: Messages, source: Messages): Messages => {
   for (const [key, value] of Object.entries(source)) {
-    const current = target[key];
+    const current = Object.hasOwn(target, key) ? target[key] : undefined;
     target[key] =
       current && isObject(current) && isObject(value)
         ? merge({ ...current }, value)
@@ -78,11 +78,13 @@ function invitesRowActions() {
       edit: {
         componentName: "DmsFormBlock",
         options: {
+          componentId: "edit",
+          pageId: "settings.workspace.invites",
           fields: [],
           fetchUrl: "/api/tables/admin-invites/get?id={{params.id}}",
           submitUrl: "/api/tables/admin-invites/edit?id={{params.id}}",
         },
-      } as never,
+      },
     },
     refreshCallback: refresh,
   });
@@ -122,7 +124,7 @@ afterEach(() => {
 
 describe("Invitations table: Edit invitation", () => {
   it("opens the form in a modal over the list, not on a page", async () => {
-    const { editRow } = await invitesRowActions();
+    const { editRow } = invitesRowActions();
     await editRow(INVITE);
 
     expect(navigateDms).not.toHaveBeenCalled();
@@ -142,12 +144,12 @@ describe("Invitations table: Edit invitation", () => {
   });
 
   it("closes the modal and refreshes the list once saved", async () => {
-    const { editRow } = await invitesRowActions();
+    const { editRow } = invitesRowActions();
     await editRow(INVITE);
 
     const [opened] = openModal.mock.calls[0]!;
     const onSuccess = opened.componentOptions?.onSuccessCallback;
-    if (typeof onSuccess !== "function")
+    if (!isFunction(onSuccess))
       throw new Error("the modal hands no onSuccessCallback");
     onSuccess();
 

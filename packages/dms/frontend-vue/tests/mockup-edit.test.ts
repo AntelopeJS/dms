@@ -149,7 +149,7 @@ describe("options", () => {
   });
 });
 
-describe("inserting, duplicating, replacing", () => {
+describe("inserting", () => {
   it("inserts at the page root or under a node and selects the new node (fails on a wrong index or pointer)", () => {
     const atRoot = apply({
       kind: "insertNode",
@@ -234,7 +234,9 @@ describe("inserting, duplicating, replacing", () => {
     });
     expect(result.spec).toBe(before);
   });
+});
 
+describe("duplicating and replacing", () => {
   it("duplicates a node right after it with a fresh id, and selects the copy (fails on a shared id or a shared object)", () => {
     const { spec: next, select } = apply({
       kind: "duplicateNode",

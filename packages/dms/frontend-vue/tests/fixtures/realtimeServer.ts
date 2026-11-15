@@ -207,11 +207,10 @@ const relayHeaders = (
   init: RequestInit | undefined,
 ) => {
   const relayed: Record<string, string> = {};
-  for (const [name, value] of Object.entries(init?.headers ?? {})) {
-    const key = name.toLowerCase();
-    if (RELAYED_HEADERS.has(key)) relayed[key] = value;
+  new Headers(init?.headers).forEach((value, name) => {
+    if (RELAYED_HEADERS.has(name)) relayed[name] = value;
     else server.droppedHeaders.push(name);
-  }
+  });
   return relayed;
 };
 
@@ -220,7 +219,7 @@ const relayHeaders = (
  * renderer's backend proxy.
  */
 export function installRealtimeFetch(server: FakeRealtimeServer): void {
-  globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+  const realtimeFetch = vi.fn(async (url: string, init?: RequestInit) => {
     const headers = relayHeaders(server, init);
     if (url === CONNECTION_URL) {
       server.streamAttempts += 1;
@@ -246,5 +245,6 @@ export function installRealtimeFetch(server: FakeRealtimeServer): void {
       return recordPageCall(server, url, headers[SESSION_HEADER]!);
     }
     return json({}, HTTP_NOT_FOUND);
-  }) as unknown as typeof fetch;
+  });
+  vi.stubGlobal("fetch", realtimeFetch);
 }

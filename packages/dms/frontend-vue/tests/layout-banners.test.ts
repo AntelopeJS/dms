@@ -24,7 +24,6 @@ import {
 import {
   MODULE_URL_PREFIX,
   type LayoutBanner,
-  type LayoutBannerVariant,
   type SiteLayout,
 } from "../layers/dms-core/app/types/page";
 
@@ -46,6 +45,10 @@ const banner = (extra: Partial<LayoutBanner> = {}): LayoutBanner => ({
   text: "Heads up",
   ...extra,
 });
+
+/** A banner a server on a newer contract sends: its variant is none this build knows. */
+const bannerOfUnknownVariant = (variant: string): LayoutBanner =>
+  Object.defineProperty(banner(), "variant", { value: variant });
 
 function serveBanners(banners: LayoutBanner[]): void {
   siteLayout.value = { pages: {}, categories: {}, banners };
@@ -138,7 +141,7 @@ describe("resolveLayoutBannerPresentation", () => {
 
   it("renders an unknown variant as info rather than unstyled", () => {
     const presentation = resolveLayoutBannerPresentation(
-      banner({ variant: "success" as LayoutBannerVariant }),
+      bannerOfUnknownVariant("success"),
     );
     expect(presentation).toEqual(
       resolveLayoutBannerPresentation(banner({ variant: "info" })),

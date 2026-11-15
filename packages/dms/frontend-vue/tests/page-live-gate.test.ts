@@ -78,11 +78,12 @@ it("leaves a page without live as it was: every event refetches", async () => {
   const onRefresh = mountBlock();
   await publish();
   await publish();
-  refreshPageBlocks();
+  const refreshed = refreshPageBlocks();
   refreshLivePageBlocks();
   expect(onRefresh).toHaveBeenCalledTimes(4);
   expect(usePageLive().isEnabled.value).toBe(false);
   expect(usePageLive().isLive.value).toBe(true);
+  await refreshed;
 });
 
 it("refetches on each event in Direct when no maxRate is set", async () => {
@@ -150,12 +151,13 @@ it("refreshes on a user's refreshPageBlocks even while paused", async () => {
   await publish();
   expect(live.missedCount.value).toBe(1);
 
-  refreshPageBlocks();
+  const refreshed = refreshPageBlocks();
   expect(onRefresh).toHaveBeenCalledTimes(1);
   expect(live.isPaused.value).toBe(true);
 
   live.resume();
   expect(onRefresh).toHaveBeenCalledTimes(1);
+  await refreshed;
 });
 
 it("caps a live refresh like a realtime event in Direct", () => {

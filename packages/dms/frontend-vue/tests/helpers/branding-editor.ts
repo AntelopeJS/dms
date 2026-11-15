@@ -19,6 +19,12 @@ export interface BrandingCall {
 
 type Answer = (call: BrandingCall) => unknown;
 
+interface BrandingRuntime {
+  calls: BrandingCall[];
+  confirm: ReturnType<typeof vi.fn>;
+  showDmsError: ReturnType<typeof vi.fn>;
+}
+
 /**
  * Stubs the editor's auto-imports: a real i18n composer, the confirm dialog,
  * the DMS defaults, the viewer's ownership of the platform, the error page,
@@ -28,11 +34,7 @@ type Answer = (call: BrandingCall) => unknown;
 export function installBrandingRuntime(
   answer: Answer,
   { owner = true }: { owner?: boolean } = {},
-): {
-  calls: BrandingCall[];
-  confirm: ReturnType<typeof vi.fn>;
-  showDmsError: ReturnType<typeof vi.fn>;
-} {
+): BrandingRuntime {
   const calls: BrandingCall[] = [];
   const confirm = vi.fn(async () => true);
   const showDmsError = vi.fn();
@@ -95,7 +97,7 @@ const TitledStub: FunctionalComponent = (_, { attrs, slots }) => {
   ]);
 };
 
-const STUBS: Record<string, Component> = {
+const STUBS = {
   UButton: ButtonStub,
   UBadge: passthrough("span"),
   USkeleton: passthrough("div"),
@@ -106,7 +108,7 @@ const STUBS: Record<string, Component> = {
   DmsEyebrowLabel: TitledStub,
   DmsNoticeBanner: TitledStub,
   DmsEmptyState: TitledStub,
-};
+} satisfies Record<string, Component>;
 
 /** Waits for the editor's reads and renders to settle. */
 export async function settle(): Promise<void> {

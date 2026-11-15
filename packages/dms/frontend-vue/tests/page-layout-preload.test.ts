@@ -35,7 +35,10 @@ function stubLazyComponents() {
 
 const settled = async (promise: Promise<void>) => {
   let isSettled = false;
-  void promise.then(() => (isSettled = true));
+  const markSettled = () => {
+    isSettled = true;
+  };
+  promise.then(markSettled, markSettled);
 
   for (let turn = 0; turn < 10; turn++) await Promise.resolve();
   return isSettled;
@@ -50,11 +53,11 @@ describe("the preload of a page's components", () => {
     ]);
   });
 
-  it("looks up only components among the components", () => {
+  it("looks up only components among the components", async () => {
     vi.stubEnv("SSR", false);
     const resolve = vi.fn((_name: string) => undefined);
     vi.stubGlobal("resolveDmsComponent", resolve);
-    preloadPageLayoutComponents(LAYOUT);
+    await preloadPageLayoutComponents(LAYOUT);
     expect(resolve.mock.calls.map(([name]) => name)).toEqual([
       "PageBanner",
       "DmsCardPanel",

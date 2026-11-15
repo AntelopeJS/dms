@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { effectScope, nextTick, ref } from "vue";
+import { z } from "zod";
 import { useMultiAccount } from "../layers/dms-core/app/composables/auth/useMultiAccount";
 
 const STORAGE_KEY = "antelopejs-accounts";
@@ -40,9 +41,11 @@ function signedIn(
   }));
 }
 
+const StoredAccounts = z.array(z.object({ userId: z.string() }));
+
 function storedUserIds(): string[] {
-  const stored: SeededAccount[] = JSON.parse(
-    localStorage.getItem(STORAGE_KEY) ?? "[]",
+  const stored = StoredAccounts.parse(
+    JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]"),
   );
   return stored.map((account) => account.userId);
 }

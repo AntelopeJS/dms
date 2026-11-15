@@ -56,7 +56,9 @@ const TREND = /12[.,]4\s?%/;
 function translate(key: string, params?: Record<string, string> | string) {
   const template = TRANSLATIONS.get(key) ?? key;
   if (!isObject(params)) return template;
-  return template.replace(/\{(\w+)\}/g, (_, name) => params[name] ?? "");
+  return template.replace(/\{(\w+)\}/g, (_, name: string) =>
+    Object.hasOwn(params, name) ? (params[name] ?? "") : "",
+  );
 }
 
 function periodState(
@@ -90,20 +92,20 @@ async function render(
           ),
         );
       return () => {
-        const cardProps: Partial<InstanceType<typeof KpiCard>["$props"]> = {
+        const base = {
           title: "Revenue",
           componentId: "card",
           pageId: "page",
           periodScope: SCOPE,
-          fetchUrl: state ? "/revenue" : undefined,
-          ...(state
-            ? {}
-            : {
-                staticValue: 48200,
-                staticDelta: 12.4,
-                staticPreviousValue: 42900,
-              }),
         };
+        const cardProps: Partial<InstanceType<typeof KpiCard>["$props"]> = state
+          ? { ...base, fetchUrl: "/revenue" }
+          : {
+              ...base,
+              staticValue: 48200,
+              staticDelta: 12.4,
+              staticPreviousValue: 42900,
+            };
         return h(card, { ...cardProps, ...props });
       };
     },

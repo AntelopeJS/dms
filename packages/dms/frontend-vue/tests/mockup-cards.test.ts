@@ -70,7 +70,15 @@ const UBadge = defineComponent({
 let app: App | undefined;
 let host: HTMLElement;
 
-const authFetch = vi.fn();
+interface Reply {
+  pages?: unknown[];
+  url?: string;
+  stale?: boolean;
+  digest?: string;
+}
+
+const authFetch =
+  vi.fn<(url: string, options?: { body?: unknown }) => Promise<Reply>>();
 const navigateTo = vi.fn();
 
 beforeEach(() => {
@@ -93,7 +101,7 @@ afterEach(() => {
 
 async function mountCards(
   items: unknown[],
-  context: Record<string, unknown> = {},
+  context: { firstPageLoading?: boolean } = {},
 ): Promise<HTMLElement> {
   host = document.createElement("div");
   document.body.append(host);
@@ -330,7 +338,7 @@ it("badges a built mockup with a changed page Out of sync and updates that page'
   buttons[0]?.dispatchEvent(new MouseEvent("click"));
   await vi.waitFor(() => expect(navigateTo).toHaveBeenCalled());
 
-  expect(authFetch.mock.calls.map(([, options]) => options.body)).toEqual([
+  expect(authFetch.mock.calls.map(([, options]) => options?.body)).toEqual([
     { path: "/bikes", mockup: "drifted" },
     { path: "/bikes", mockup: "drifted", replace: true, digest: "d1" },
   ]);

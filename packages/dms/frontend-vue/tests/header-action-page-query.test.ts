@@ -62,7 +62,9 @@ const ButtonStub = defineComponent({
       {
         disabled: props.disabled,
         "data-to": props.to,
-        onClick: () => props.onClick?.(),
+        onClick: () => {
+          props.onClick?.();
+        },
       },
       props.label,
     ),
@@ -336,20 +338,20 @@ describe("a header button's label", () => {
   });
 });
 
+const download = (disabled: boolean) => ({
+  id: "download",
+  label: "Download",
+  target: { type: "page", url: "/download" },
+  disabled,
+});
+
+const mountOutlet = (servedQuery?: Record<string, string>) =>
+  mount(
+    "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue",
+    { actions: [download(false)], servedQuery },
+  );
+
 describe("a header button's availability", () => {
-  const download = (disabled: boolean) => ({
-    id: "download",
-    label: "Download",
-    target: { type: "page", url: "/download" },
-    disabled,
-  });
-
-  const mountOutlet = (servedQuery?: Record<string, string>) =>
-    mount(
-      "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue",
-      { actions: [download(false)], servedQuery },
-    );
-
   it("is not asked again while the query is the one it was served for", async () => {
     await mountOutlet({ workspace: "web" });
     expect(authFetch).not.toHaveBeenCalled();
@@ -419,7 +421,9 @@ describe("a header button's availability", () => {
     await nextTick();
     expect(labels()).toEqual(["Download", "Add key"]);
   });
+});
 
+describe("a header button's availability on a record and after a write", () => {
   it("is asked again on the record of the page's route parameters", async () => {
     const pattern = "/projects/project/:id";
     vi.stubGlobal("useSiteLayout", () => ({

@@ -4,6 +4,7 @@
  */
 import { computed, ref, type Ref } from "vue";
 import { createI18n } from "vue-i18n";
+import type { useDmsState } from "#dms/frontend-module";
 import { beforeEach, expect, it, vi } from "vitest";
 import en from "../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
 import fr from "../layers/dms-layout/app/entries/i18n/locales/layout-fr-FR.json";
@@ -16,7 +17,8 @@ const push = vi.fn(async () => undefined);
 vi.stubGlobal("computed", computed);
 vi.stubGlobal(
   "useDmsState",
-  (_key: string, init: () => unknown) => (actions ??= ref(init())),
+  (_key: string, init: NonNullable<Parameters<typeof useDmsState>[1]>) =>
+    (actions ??= ref(init())),
 );
 vi.stubGlobal("defineDmsPlugin", <T>(setup: T) => setup);
 vi.stubGlobal("useIsOwner", () => computed(() => isOwner.value));
@@ -38,11 +40,11 @@ const i18n = createI18n({
   messages: { en, fr },
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   actions = undefined;
   isOwner.value = false;
   push.mockClear();
-  plugin(dmsAppContext(emptyApp()));
+  await plugin(dmsAppContext(emptyApp()));
 });
 
 const mockupsAction = () =>

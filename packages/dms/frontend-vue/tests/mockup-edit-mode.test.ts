@@ -219,7 +219,9 @@ describe("edit mode", () => {
     await flush();
     expect(titles(await written())).toEqual(["Revenue", "Sales"]);
   });
+});
 
+describe("edit mode shortcuts and blocks", () => {
   it("undoes with Ctrl+Z and redoes with Shift+Ctrl+Z outside a field (fails when the shortcut does nothing or both undo)", async () => {
     await pick("block-0");
     await click("[data-dms-mockup-remove]");
@@ -312,8 +314,8 @@ describe("a write still pending", () => {
     await viewer.say({ type: "select", path: "block-0" });
 
     const field = find("[data-dms-mockup-field=title] input");
-    expect(field).toBeInstanceOf(HTMLInputElement);
-    expect((field as HTMLInputElement).value).toBe("Revenue");
+    if (!(field instanceof HTMLInputElement)) throw new Error("no title field");
+    expect(field.value).toBe("Revenue");
   });
 
   it("ignores a click on the preview, whose paths are those of the spec before the edit (fails when the click selects the block that sat there)", async () => {
@@ -330,8 +332,8 @@ describe("a write still pending", () => {
     await viewer.say({ type: "select", path: "block-0" });
 
     const field = find("[data-dms-mockup-field=title] input");
-    expect(field).toBeInstanceOf(HTMLInputElement);
-    expect((field as HTMLInputElement).value).toBe("Revenue");
+    if (!(field instanceof HTMLInputElement)) throw new Error("no title field");
+    expect(field.value).toBe("Revenue");
   });
 });
 
