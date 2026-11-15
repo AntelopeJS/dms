@@ -6,6 +6,8 @@ export interface ReorderEdit {
   value: number;
 }
 
+export type ReorderRow = NonNullable<Parameters<typeof get>[0]>;
+
 const POSITION_STEP = 1;
 
 /** The rows with the one at `from` moved to `to`. */
@@ -17,10 +19,10 @@ export function moveRow<T>(rows: readonly T[], from: number, to: number): T[] {
 }
 
 const positionOf = (
-  row: Parameters<typeof reorderEdits>[0][number],
+  row: ReorderRow | undefined,
   field: string,
 ): number | undefined => {
-  const value = Number(get(row as Parameters<typeof get>[0], field));
+  const value = Number(get(row, field));
   return Number.isFinite(value) ? value : undefined;
 };
 
@@ -46,13 +48,12 @@ function slotBetween(
  * the rows whose position changed.
  */
 export function reorderEdits(
-  rows: readonly unknown[],
+  rows: readonly ReorderRow[],
   movedIndex: number,
   field: string,
   rowIdKey: string,
 ): ReorderEdit[] {
-  const idOf = (row: (typeof rows)[number]) =>
-    String(get(row as Parameters<typeof get>[0], rowIdKey));
+  const idOf = (row: ReorderRow | undefined) => String(get(row, rowIdKey));
   const slot = slotBetween(
     positionOf(rows[movedIndex - 1], field),
     positionOf(rows[movedIndex + 1], field),

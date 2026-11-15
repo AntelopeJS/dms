@@ -6,6 +6,7 @@ import {
   rowCustomActions,
 } from "../../../utils/rowClickAction";
 import type { TableViewScope } from "./tableViewScope";
+import { detach } from "./utils/detach";
 
 export function useTableViewDisplayActions<T extends Data>(
   scope: Pick<
@@ -47,7 +48,7 @@ export function useTableViewDisplayActions<T extends Data>(
     const action = resolveRowClickAction(tableProps.value.rowActions, item);
     if (!action) return;
     if (isStringType(action)) {
-      void builtInRowClicks[action](item);
+      detach(builtInRowClicks[action](item));
       return;
     }
     handleCustomRowAction(action, item);

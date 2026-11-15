@@ -18,7 +18,7 @@ import {
 } from "../../../composables/confirm/types";
 import { getErrorPayload } from "./tableRowActionValues";
 export type TableRowActionErrorHandler = (
-  error: unknown,
+  error: Parameters<ApiErrorPresenter["presentError"]>[0],
   title?: string,
 ) => void;
 const createBulkRequest = (config: TableRowActionsConfig) => {
@@ -92,7 +92,7 @@ export const createTableRowBulkOutcomes = (
   handleApiError: TableRowActionErrorHandler,
 ) => {
   const { t } = services;
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const requestBulkAction = createBulkRequest(config);
   const reportBulkSuccess = createBulkReporter(config, services);
   /**
@@ -139,7 +139,7 @@ export const createTableRowBulkOutcomes = (
     }
     const shortfall = bulkActionShortfall(bulkConfig.kind, outcome, t);
     if (outcome.processed === 0) {
-      presentError(null, {
+      errorPresenter.presentError(null, {
         fallbackKey: `dms.table.bulk_refused.${bulkConfig.kind}`,
         params: { count: outcome.skipped },
       });

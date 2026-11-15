@@ -84,11 +84,7 @@ export function useTableViewCountsData<T extends Data>(
   const { liveHold } = scope.liveHold;
   const { tableViewItems, canSaveViews } = scope.views;
   const { props } = scope;
-  const {
-    data: tabCountsData,
-    status: tabCountsStatus,
-    refresh: refreshTabCounts,
-  } = useTableCountsData<T>({
+  const tabCounts = useTableCountsData<T>({
     componentId,
     pageId,
     rows: tableRows,
@@ -96,6 +92,9 @@ export function useTableViewCountsData<T extends Data>(
     archiveQuery,
     heldQuery: liveHold.heldQuery,
   });
+  const { data: tabCountsData, status: tabCountsStatus } = tabCounts;
+  const refreshTabCounts: typeof tabCounts.refresh = (...args) =>
+    tabCounts.refresh(...args);
 
   /**
    * The counters are still on their way: no answer yet, and no failure. A

@@ -9,6 +9,7 @@ import {
 import { registerQuickActionTarget } from "../../utils/quickActionTargets";
 import { buildTableViewShortcuts } from "../../../composables/table-view/shortcuts";
 import type { TableViewScope } from "./tableViewScope";
+import { detach } from "./utils/detach";
 
 export function useTableViewQuickActions<T extends Data>(
   scope: Pick<
@@ -40,7 +41,7 @@ export function useTableViewQuickActions<T extends Data>(
   function runQuickActionIntent(intent: QuickActionIntent) {
     switch (intent.kind) {
       case "add":
-        handleRowAdd();
+        detach(handleRowAdd());
         break;
       case "button":
         pressCustomButton(intent.button);
@@ -59,12 +60,12 @@ export function useTableViewQuickActions<T extends Data>(
       if (!intent) return;
 
       if (import.meta.env.SSR) {
-        void clearQuickActionQuery();
+        detach(clearQuickActionQuery());
         return;
       }
 
       runQuickActionIntent(intent);
-      void clearQuickActionQuery();
+      detach(clearQuickActionQuery());
     },
     { immediate: true },
   );

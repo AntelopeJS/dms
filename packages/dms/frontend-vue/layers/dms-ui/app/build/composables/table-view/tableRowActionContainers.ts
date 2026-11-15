@@ -227,23 +227,7 @@ export const createTableRowFormContainer = <T extends Data>(
   ) => {
     const { fetchUrl, submitDefaults } = containerConfig;
     const handler = containerHandlers[containerType];
-    if (
-      handler === containerHandlers[FormContainerType.modal] ||
-      handler === containerHandlers[FormContainerType.drawer]
-    ) {
-      return handler?.(resolved, { fetchUrl, submitDefaults });
-    }
-    if (handler == null) return;
-    return Reflect.apply(handler, undefined, [
-      resolved.title,
-      resolved.description,
-      resolved.containerId,
-      resolved.componentIdSuffix,
-      resolved.pageIdSuffix,
-      resolved.processedOptions,
-      fetchUrl,
-      submitDefaults,
-    ]);
+    return handler?.(resolved, { fetchUrl, submitDefaults });
   };
 
   const createFormContainer = (containerConfig: FormContainerConfig<T>) => {

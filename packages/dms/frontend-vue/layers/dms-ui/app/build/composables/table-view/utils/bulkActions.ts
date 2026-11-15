@@ -97,7 +97,9 @@ const COUNT_KEYS = [
  * The number of rows a bulk route says it changed: a bare number or one of
  * its count keys, `undefined` when it does not say.
  */
-export const readBulkCount = (response: unknown): number | undefined => {
+export const readBulkCount = (
+  response: Parameters<typeof isNumber>[0],
+): number | undefined => {
   if (isNumber(response)) return response;
   if (!response || !isObject(response)) return undefined;
   for (const key of COUNT_KEYS) {

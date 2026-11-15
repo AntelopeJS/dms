@@ -3,7 +3,9 @@ import {
   useUserRealtime,
   type RealtimeTopicHandler,
 } from "#dms-core/app/composables/realtime/useUserRealtime";
+import { isString } from "#dms-core/app/utils/type-check";
 import type { RealtimePresenceMap } from "./tableViewTypes";
+import { detach } from "./utils/detach";
 import type { TableViewScope } from "./tableViewScope";
 
 export function useTableViewRowRealtime<T extends Data>(
@@ -150,17 +152,17 @@ export function useTableViewRowEvents<T extends Data>(
   };
 
   useRealtimeTopic(realtimeRowTopic, (event) => {
-    const payload = event as { type: string; payload?: { ids?: string[] } };
-    const handler = realtimeEventHandlers[payload.type];
+    if (!("type" in event)) return;
+    const handler = realtimeEventHandlers[event.type];
     if (!handler) return;
-    const ids = payload.payload?.ids ?? [];
-    if (ids.length === 0 && payload.type !== REALTIME_EVENT_TYPE.CREATED)
-      return;
+    const rawIds = event.payload?.ids;
+    const ids = Array.isArray(rawIds) ? rawIds.filter(isString) : [];
+    if (ids.length === 0 && event.type !== REALTIME_EVENT_TYPE.CREATED) return;
     if (isPageLive.value) {
-      gateRowEvent(payload.type, ids, event);
+      gateRowEvent(event.type, ids, event);
       return;
     }
-    void handler(ids);
+    detach(Promise.resolve(handler(ids)));
   });
 
   watch(useUserRealtime().pageTopics, (topics) => {

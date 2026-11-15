@@ -20,7 +20,7 @@ import {
   usePeriodScope,
 } from "#dms-core/app/composables/period/usePeriodScope";
 
-type Query = Record<string, unknown>;
+type Query = Record<string, string | number | boolean | string[] | undefined>;
 
 /** One count of a batch: its id and its list query. */
 export interface TableCountQuery {
@@ -398,7 +398,9 @@ export function useTableRows<T extends Record<string, unknown>>(
           }),
         ),
       );
-      return Object.assign({}, ...counts);
+      return Object.fromEntries(
+        counts.flatMap((batch) => Object.entries(batch)),
+      );
     }
     const totals = await Promise.all(
       queries.map(async ({ id, query }) => {

@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { detach } from "./utils/detach";
 
 /** Where the row a `lazyLoad` band shows stands. */
 export type ExpandedRowLoadState = "loading" | "error" | "ready";
@@ -18,7 +19,7 @@ export function useExpandedRowDetails<T>(
   getRow: (id: string) => Promise<T | undefined>,
 ) {
   const entries = ref<Record<string, ExpandedRowDetailEntry<T>>>({});
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   let generation = 0;
 
   const setEntry = (id: string, entry: ExpandedRowDetailEntry<T>) => {
@@ -33,7 +34,9 @@ export function useExpandedRowDetails<T>(
       row = await getRow(id);
     } catch (error) {
       if (loadedFor !== generation) return;
-      presentError(error, { fallbackKey: "dms.table.load_error_title" });
+      errorPresenter.presentError(error, {
+        fallbackKey: "dms.table.load_error_title",
+      });
       row = undefined;
     }
     if (loadedFor !== generation) return;
@@ -43,7 +46,7 @@ export function useExpandedRowDetails<T>(
   /** Reads the rows among `ids` not read yet. */
   function ensure(ids: string[]): void {
     for (const id of ids) {
-      if (!entries.value[id]) void load(id);
+      if (!entries.value[id]) detach(load(id));
     }
   }
 

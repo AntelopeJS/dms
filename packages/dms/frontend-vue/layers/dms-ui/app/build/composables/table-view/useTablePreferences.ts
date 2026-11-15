@@ -38,10 +38,26 @@ export interface TablePreferences {
   ) => void;
 }
 
+type StoredValue = ReturnType<typeof readLocalTableEntry>[string];
+
+/** A table state `restore` fills, with the check its caller gave it. */
+interface RestoreTarget {
+  state: Ref<unknown>;
+  isValid?(value: StoredValue): boolean;
+}
+
 interface PendingRestore {
   field: LocalTableField;
-  apply: (value: ReturnType<typeof readLocalTableEntry>[string]) => void;
+  apply: (value: StoredValue) => void;
 }
+
+const restoreInto = (target: RestoreTarget, restored: StoredValue) => {
+  const isUnchanged =
+    JSON.stringify(restored) === JSON.stringify(target.state.value);
+  if (isUnchanged) return;
+  if (target.isValid && !target.isValid(restored)) return;
+  target.state.value = restored;
+};
 
 /** The table's entry in the cookie: `tables.<id>`, its server fields. */
 function useServerTableEntry(id: string) {
@@ -135,17 +151,8 @@ export function useTablePreferences(
         ? server.set(field, value, defaultValue)
         : setLocalField(id, field, value, defaultValue),
     restore: (field, state, isValid) => {
-      pending.push({
-        field,
-        apply: (value) => {
-          const restored = value as typeof state.value;
-          const isUnchanged =
-            JSON.stringify(restored) === JSON.stringify(state.value);
-          if (!isUnchanged && (!isValid || isValid(restored))) {
-            state.value = restored;
-          }
-        },
-      });
+      const target: RestoreTarget = { state, isValid };
+      pending.push({ field, apply: (value) => restoreInto(target, value) });
     },
   };
 }

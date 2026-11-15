@@ -4,6 +4,7 @@ import {
   startDragPreview,
   type DragPreview,
 } from "./dragPreview";
+import { detach } from "./utils/detach";
 import type {
   TableViewDisplayReorder,
   TableViewReorderHandle,
@@ -111,8 +112,14 @@ export function useReorderHandles(options: ReorderHandlesOptions) {
     const delta = STEP_BY_KEY[event.key];
     if (delta === undefined) return;
     event.preventDefault();
-    const handle = event.currentTarget as HTMLElement | null;
-    if (step(index, delta)) void nextTick(() => handle?.focus());
+    const handle = event.currentTarget;
+    if (step(index, delta)) {
+      detach(
+        nextTick(() => {
+          if (handle instanceof HTMLElement) handle.focus();
+        }),
+      );
+    }
   };
 
   const handleFor = (index: number): TableViewReorderHandle => {

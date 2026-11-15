@@ -111,7 +111,7 @@ export function useTableViewListState<T extends Data>(
   const { activeGroupedOptions } = scope.groupingOptions;
   const { isGroupedDisplay, pickedSorting } = scope.querySorting;
   const { rowSelect } = scope.urlFilters;
-  const { data, status, error, refresh } = useTableListData<T>({
+  const listData = useTableListData<T>({
     componentId,
     pageId,
     rows: tableRows,
@@ -120,6 +120,9 @@ export function useTableViewListState<T extends Data>(
     isSelfManaged: isActiveDisplaySelfManaged,
     heldQuery: liveHold.heldQuery,
   });
+  const { data, status, error } = listData;
+  const refresh: typeof listData.refresh = (...args) =>
+    listData.refresh(...args);
 
   const settledError = computed(() =>
     status.value === "pending" ? null : error.value,

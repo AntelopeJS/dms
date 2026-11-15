@@ -34,7 +34,7 @@ export function useTableViewReorder<T extends Data>(
   const { activeDisplayId } = scope.displayOptions;
   const { processI18n } = scope.arrival;
   const { props } = scope;
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const ORDERED_DISPLAY_IDS = new Set([TABLE_DISPLAY_ID, CARDS_DISPLAY_ID]);
   const { reorderState } = useTableReorder<T>({
     reorder: reorderConfig,
@@ -54,7 +54,7 @@ export function useTableViewReorder<T extends Data>(
     ),
     refresh: () => refresh(),
     onError: (failure) => {
-      presentError(
+      errorPresenter.presentError(
         failure,
         tableWriteErrorOptions(
           failure,
