@@ -168,7 +168,7 @@ function accountPrivilegeCases() {
       canRead: false,
     });
     expect(answer.reason).to.equal(
-      "This account cannot list the collections of this database.",
+      "This account cannot list the tables or collections of this database.",
     );
   });
 }

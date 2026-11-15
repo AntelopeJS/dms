@@ -1,53 +1,45 @@
 import { randomBytes } from "node:crypto";
-import dns from "node:dns";
+import type {
+  Probe,
+  ProbeAnswer,
+  ProbeConfig,
+} from "@antelopejs/interface-database-catalog";
 import type {
   DatabaseAccess,
   DatabaseEngine,
 } from "@antelopejs/interface-dms-builder";
 import { expect } from "chai";
 import {
-  CLOSE_GRACE_MS,
-  checkConnection,
+  checkDatabase,
   DATABASE_ENGINES,
   noAnswerReason,
-  parseCheckInput,
-  type Probe,
+  type LoadedProbe,
   redact,
-  checkDatabase as runCheck,
-  serverRefusal,
-  setClientLoaderForTests,
-  signedIn,
+  signInRefusal,
+  setProbeLoaderForTests,
 } from "../../../implementations/dms-builder/engine";
 
 const SAMPLE_SECRET = `${randomBytes(4).toString("hex")}@/x`;
 const ENCODED = encodeURIComponent(SAMPLE_SECRET);
 const CHECKED_URL = `postgres://${["app", ENCODED].join(":")}@db.example.com:5432/shop`;
 
-/** What a probe of these specs answers when it reaches a database. */
-const ANSWERED: DatabaseAccess = {
-  reachable: true,
-  canRead: true,
-  canWrite: false,
-};
-
-type Check = (
-  engine: DatabaseEngine,
-  url: string,
-  timeoutMs: number,
-) => Promise<DatabaseAccess>;
-
-/** The check with each engine's probe answered by the given one. */
-function loadCheck(probes: Record<DatabaseEngine, Probe>): Check {
-  return (engine, url, timeoutMs) => runCheck(engine, url, timeoutMs, probes);
+/** The check of `engine` with every driver's `probe` answered by `probe`. */
+async function checkWith(
+  probe: LoadedProbe,
+  engine: DatabaseEngine = "postgres",
+  timeoutMs = 40,
+): Promise<DatabaseAccess> {
+  setProbeLoaderForTests(() => probe);
+  try {
+    return await checkDatabase(engine, CHECKED_URL, timeoutMs);
+  } finally {
+    setProbeLoaderForTests();
+  }
 }
 
-function loadCheckWith(probe: Probe): Check {
-  return loadCheck({
-    postgres: probe,
-    mysql: probe,
-    mongodb: probe,
-    rethinkdb: probe,
-  });
+/** A driver whose `probe` answers `answer`. */
+function answering(answer: ProbeAnswer): Probe {
+  return async () => answer;
 }
 
 function pause(ms: number): Promise<void> {
@@ -82,9 +74,24 @@ describe("the reasons a database check answers", () => {
     expect(
       noAnswerReason("connect ECONNREFUSED 127.0.0.1:1", CHECKED_URL),
     ).to.equal("Nothing is listening at this host and port.");
-    expect(
-      noAnswerReason("Server selection timed out after 700 ms", CHECKED_URL),
-    ).to.equal("The database did not answer in time.");
+    for (const message of [
+      "Server selection timed out after 700 ms",
+      "the server did not answer within 1000 ms",
+    ]) {
+      expect(noAnswerReason(message, CHECKED_URL), message).to.equal(
+        "The database did not answer in time.",
+      );
+    }
+  });
+
+  /** Fails on an implementation that answers an empty message as "Could not check the database: " with nothing after it. */
+  it("a failure that carries no message, such as a refused localhost on Node 24, gets a sentence of its own", () => {
+    for (const message of ["", "  "]) {
+      expect(
+        noAnswerReason(message, CHECKED_URL),
+        JSON.stringify(message),
+      ).to.equal("The database could not be reached at this host and port.");
+    }
   });
 
   /** Fails on an implementation that answers a driver's message as it is. */
@@ -98,26 +105,22 @@ describe("the reasons a database check answers", () => {
     expect(reason).to.match(/^Could not check the database: /);
   });
 
-  /** Fails on an implementation that sends `user: undefined`, or a reason with a readable database. */
-  it("an account answers with its user and a reason only when it cannot read", () => {
+  /** Fails on a redaction or a query cut whose regular expression backtracks quadratically, which blocks the event loop past the deadline. */
+  it("words a message of hundreds of thousands of characters in well under a second", () => {
+    const started = performance.now();
+    for (const filler of ["a", " ", "a1"]) {
+      const message = filler.repeat(100_000);
+      signInRefusal(message, CHECKED_URL);
+      noAnswerReason(message, CHECKED_URL);
+    }
+    expect(performance.now() - started).to.be.lessThan(1000);
+  });
+
+  /** Fails on a redaction that only knows connection strings whose scheme starts the word. */
+  it("redact removes a connection string glued to the text before it", () => {
     expect(
-      signedIn(2, undefined, { canRead: true, canWrite: false }),
-    ).to.deep.equal({
-      reachable: true,
-      latencyMs: 2,
-      canRead: true,
-      canWrite: false,
-    });
-    expect(
-      signedIn(2, "app", { canRead: false, canWrite: false }),
-    ).to.deep.equal({
-      reachable: true,
-      latencyMs: 2,
-      user: "app",
-      canRead: false,
-      canWrite: false,
-      reason: "This account cannot read this database.",
-    });
+      redact(`at1postgres://other:pw@h/x and x-mysql://u@h`, CHECKED_URL),
+    ).to.equal("[hidden] and [hidden]");
   });
 
   /** Fails on an implementation that answers a driver's message with the query it echoes: ReQL's backtrace, MongoDB's command. */
@@ -129,8 +132,8 @@ describe("the reasons a database check answers", () => {
     );
     const command =
       'not authorized on shop to execute command { find: "orders", filter: { card: "4111" }, $db: "shop" }';
-    expect(serverRefusal(command, CHECKED_URL)).to.equal(
-      "The server refused the request: not authorized on shop to execute command",
+    expect(signInRefusal(command, CHECKED_URL)).to.equal(
+      "Could not sign in: not authorized on shop to execute command",
     );
   });
 
@@ -144,46 +147,280 @@ describe("the reasons a database check answers", () => {
   });
 });
 
-describe("the probe a database check runs and the deadline it keeps", () => {
-  /** Fails on an implementation that sends an engine's URL to another engine's probe. */
-  it("each engine is checked by its own probe, with the URL and the timeout", async () => {
-    const asked: string[] = [];
-    const probe =
-      (engine: string): Probe =>
-      async (url, timeoutMs) => {
-        asked.push(`${engine} ${url} ${timeoutMs}`);
-        return { ...ANSWERED, user: engine };
-      };
-    const checkDatabase = loadCheck({
-      postgres: probe("postgres"),
-      mysql: probe("mysql"),
-      mongodb: probe("mongodb"),
-      rethinkdb: probe("rethinkdb"),
-    });
-    const answers: (string | undefined)[] = [];
-    for (const engine of DATABASE_ENGINES) {
-      answers.push((await checkDatabase(engine, `${engine}://h/db`, 50)).user);
+describe("what a database check answers for its driver's probe", () => {
+  /** Fails on an implementation that recomputes, defaults or swaps the read and write verdict of the driver. */
+  it("answers the read and write verdict of the driver as it is, for every combination", async () => {
+    for (const canRead of [true, false]) {
+      for (const canWrite of [true, false]) {
+        const answer = await checkWith(
+          answering({
+            outcome: "signed-in",
+            latencyMs: 3,
+            user: "app",
+            canRead,
+            canWrite,
+          }),
+        );
+        expect(
+          [answer.canRead, answer.canWrite],
+          `${canRead} ${canWrite}`,
+        ).to.deep.equal([canRead, canWrite]);
+      }
     }
-    expect(answers).to.deep.equal([
-      "postgres",
+  });
+
+  /** Fails on an implementation that parses the account the driver reports, which a user name holding `@` breaks. */
+  it("answers the account the driver reports as it is, `@` included", async () => {
+    const answer = await checkWith(
+      answering({
+        outcome: "signed-in",
+        latencyMs: 2.2,
+        user: "ops@team@%",
+        canRead: true,
+        canWrite: false,
+      }),
       "mysql",
-      "mongodb",
-      "rethinkdb",
+    );
+    expect(answer).to.deep.equal({
+      reachable: true,
+      latencyMs: 3,
+      user: "ops@team@%",
+      canRead: true,
+      canWrite: false,
+    });
+  });
+
+  /** Fails on an implementation that sends `user: undefined`, or a reason with a readable database. */
+  it("answers no user when the driver reports none, and a reason only when the account cannot read", async () => {
+    expect(
+      await checkWith(
+        answering({
+          outcome: "signed-in",
+          latencyMs: 1,
+          canRead: true,
+          canWrite: true,
+        }),
+        "mongodb",
+      ),
+    ).to.deep.equal({
+      reachable: true,
+      latencyMs: 1,
+      canRead: true,
+      canWrite: true,
+    });
+    const unreadable: ProbeAnswer = {
+      outcome: "signed-in",
+      latencyMs: 1,
+      user: "app",
+      canRead: false,
+      canWrite: false,
+    };
+    const reasons: string[] = [];
+    for (const why of [
+      undefined,
+      "no-database-named",
+      "no-database",
+      "cannot-list",
+    ] as const) {
+      const answer = await checkWith(
+        answering(
+          why === undefined ? unreadable : { ...unreadable, unreadable: why },
+        ),
+      );
+      reasons.push(answer.reason ?? "none");
+    }
+    expect(reasons).to.deep.equal([
+      "This account cannot read this database.",
+      "The URL names no database: add its name after the host and port.",
+      "The server has no database with this name.",
+      "This account cannot list the tables or collections of this database.",
     ]);
-    expect(asked).to.deep.equal([
-      "postgres postgres://h/db 50",
-      "mysql mysql://h/db 50",
-      "mongodb mongodb://h/db 50",
-      "rethinkdb rethinkdb://h/db 50",
+  });
+});
+
+describe("what a database check answers when its driver's probe gets no verdict", () => {
+  /** Fails on an implementation that shows a refusal's raw message, or the URL and password in it. */
+  it("answers each refusal of the driver with its sentence, and any other with the server's message without the secrets", async () => {
+    const reasons: string[] = [];
+    for (const refusal of [
+      "credentials",
+      "host",
+      "database",
+      "database-denied",
+      "sign-in-required",
+      "other",
+    ] as const) {
+      const answer = await checkWith(
+        answering({
+          outcome: "refused",
+          refusal,
+          message: `denied for ${CHECKED_URL} (${SAMPLE_SECRET})`,
+        }),
+      );
+      expect(answer.reachable, refusal).to.equal(true);
+      expect([answer.canRead, answer.canWrite], refusal).to.deep.equal([
+        false,
+        false,
+      ]);
+      reasons.push(answer.reason ?? "none");
+    }
+    expect(reasons).to.deep.equal([
+      "The database refused this user name or password.",
+      "The database does not let this account connect from here.",
+      "The server has no database with this name.",
+      "This account may not use this database.",
+      "This server asks for a user name and a password.",
+      "Could not sign in: denied for [hidden] ([hidden])",
     ]);
   });
 
-  /** Fails on an implementation with no deadline, which waits for a probe that never answers. */
-  it("a probe that never answers ends the check as unreachable within three timeouts", async () => {
-    const hung: Probe = () => new Promise(() => undefined);
-    const checkDatabase = loadCheckWith(hung);
+  /** Fails on an implementation that answers a server nobody reached as reachable, or with the driver's raw message. */
+  it("answers a server the driver did not reach as unreachable, with the sentence of its failure", async () => {
+    expect(
+      await checkWith(
+        answering({
+          outcome: "unreachable",
+          message: "connect ECONNREFUSED 127.0.0.1:1",
+        }),
+      ),
+    ).to.deep.equal({
+      reachable: false,
+      canRead: false,
+      canWrite: false,
+      reason: "Nothing is listening at this host and port.",
+    });
+  });
+});
+
+describe("what a database check answers for a driver that misbehaves", () => {
+  /** Fails on an implementation that trusts what a driver answers without reading it. */
+  it("answers a driver that answers in another shape as unreachable, holding nothing it sent", async () => {
+    for (const answer of [
+      undefined,
+      { reachable: true, canRead: true, canWrite: true },
+      { outcome: "signed-in", latencyMs: 1, canRead: "yes", canWrite: true },
+      {
+        outcome: "signed-in",
+        latencyMs: Number.POSITIVE_INFINITY,
+        canRead: true,
+        canWrite: true,
+      },
+      { outcome: "refused", refusal: "banned", message: SAMPLE_SECRET },
+    ]) {
+      expect(
+        await checkWith(async () => answer),
+        JSON.stringify(answer),
+      ).to.deep.equal({
+        reachable: false,
+        canRead: false,
+        canWrite: false,
+        reason:
+          "The database driver answered in a way this check does not understand.",
+      });
+    }
+  });
+
+  /** Fails on an implementation that lets a driver's error through, with the password in it. */
+  it("answers a probe that throws without the password", async () => {
+    const throwing: Probe = async () => {
+      throw new Error(`driver failed on ${CHECKED_URL}: ${SAMPLE_SECRET}`);
+    };
+    const answer = await checkWith(throwing);
+    expect(answer.reachable).to.equal(false);
+    expect(JSON.stringify(answer).includes(SAMPLE_SECRET)).to.equal(false);
+    expect(JSON.stringify(answer).includes("db.example.com")).to.equal(false);
+  });
+
+  /** Fails on an implementation that reads a thrown error's message as a string without checking it, which rejects the check. */
+  it("resolves when a probe throws an error whose message is not a string or cannot be read", async () => {
+    const unreadable = new Error("x");
+    Object.defineProperty(unreadable, "message", {
+      get() {
+        throw new Error(`boom ${CHECKED_URL}`);
+      },
+    });
+    const numeric = new Error("x");
+    Object.defineProperty(numeric, "message", { value: 42 });
+    const thrown = [numeric, unreadable];
+    const reasons: (string | undefined)[] = [];
+    for (const error of thrown) {
+      const answer = await checkWith(async () => {
+        throw error;
+      });
+      expect(answer.reachable).to.equal(false);
+      reasons.push(answer.reason);
+    }
+    expect(reasons).to.deep.equal([
+      "Could not check the database: The check ended with an error that carries no message.",
+      "The check ended with an error it could not read.",
+    ]);
+  });
+
+  /** Fails on an implementation that answers a driver without `probe` with the error of its require. */
+  it("answers an engine whose driver is not installed with the sentence that installs it", async () => {
+    setProbeLoaderForTests(() => undefined);
+    try {
+      const reasons: (string | undefined)[] = [];
+      for (const engine of DATABASE_ENGINES) {
+        reasons.push((await checkDatabase(engine, CHECKED_URL, 40)).reason);
+      }
+      expect(reasons).to.deep.equal([
+        "Install @antelopejs/postgres to connect a PostgreSQL database.",
+        "Install @antelopejs/mysql to connect a MySQL or MariaDB database.",
+        "Install @antelopejs/mongodb to connect a MongoDB database.",
+        "Install @antelopejs/rethinkdb to connect a RethinkDB database.",
+      ]);
+    } finally {
+      setProbeLoaderForTests();
+    }
+  });
+});
+
+describe("the driver a database check calls and the deadline it keeps", () => {
+  /** Fails on an implementation that sends an engine's URL to another engine's driver, or loads every driver. */
+  it("each engine is checked by the probe of its own driver, with the URL and the timeout", async () => {
+    const loaded: string[] = [];
+    const asked: string[] = [];
+    setProbeLoaderForTests((engine) => {
+      loaded.push(engine);
+      return async ({ url, timeoutMs }) => {
+        asked.push(`${engine} ${url} ${timeoutMs}`);
+        return {
+          outcome: "signed-in",
+          latencyMs: 1,
+          user: engine,
+          canRead: true,
+          canWrite: false,
+        };
+      };
+    });
+    try {
+      const users: (string | undefined)[] = [];
+      for (const engine of DATABASE_ENGINES) {
+        users.push((await checkDatabase(engine, `${engine}://h/db`, 50)).user);
+      }
+      expect(users).to.deep.equal([...DATABASE_ENGINES]);
+      expect(loaded).to.deep.equal([...DATABASE_ENGINES]);
+      expect(asked).to.deep.equal([
+        "postgres postgres://h/db 50",
+        "mysql mysql://h/db 50",
+        "mongodb mongodb://h/db 50",
+        "rethinkdb rethinkdb://h/db 50",
+      ]);
+    } finally {
+      setProbeLoaderForTests();
+    }
+  });
+
+  /** Fails on an implementation with no deadline, or one that leaves the driver's connections open when it passes. */
+  it("a probe that never answers ends the check as unreachable within three timeouts, and its signal is aborted", async () => {
+    const signals: AbortSignal[] = [];
+    const hung: Probe = ({ signal }: ProbeConfig) => {
+      signals.push(signal);
+      return new Promise(() => undefined);
+    };
     const started = performance.now();
-    const answer = await checkDatabase("postgres", CHECKED_URL, 40);
+    const answer = await checkWith(hung, "rethinkdb", 40);
     expect(answer).to.deep.equal({
       reachable: false,
       canRead: false,
@@ -191,198 +428,26 @@ describe("the probe a database check runs and the deadline it keeps", () => {
       reason: "The database did not answer in time.",
     });
     expect(performance.now() - started).to.be.lessThan(1000);
+    expect(signals.map(({ aborted }) => aborted)).to.deep.equal([true]);
   }).timeout(3000);
 
-  /** Fails on an implementation that leaves a connection open when the deadline passes, or answers before it has started closing it. */
-  it("the deadline closes what the probe opened, before it answers", async () => {
-    const events: string[] = [];
-    const stalled: Probe = (_url, _timeoutMs, connections) => {
-      connections.add(async () => {
-        events.push("closed");
-      });
-      return new Promise(() => undefined);
+  /** Fails on an implementation that aborts the probe before it answers, or never tells it the check is over. */
+  it("the signal is aborted once the probe has answered, and not before", async () => {
+    const seen: boolean[] = [];
+    let handed: AbortSignal | undefined;
+    const slow: Probe = async ({ signal }: ProbeConfig) => {
+      handed = signal;
+      await pause(10);
+      seen.push(signal.aborted);
+      return {
+        outcome: "signed-in",
+        latencyMs: 1,
+        canRead: true,
+        canWrite: false,
+      };
     };
-    const checkDatabase = loadCheckWith(stalled);
-    const answer = await checkDatabase("rethinkdb", CHECKED_URL, 40);
-    events.push("answered");
-    expect(answer.reason).to.equal("The database did not answer in time.");
-    expect(events).to.deep.equal(["closed", "answered"]);
-  });
-
-  /** Fails on an implementation that asks for another engine's client, or for none, when it checks one. */
-  it("a client is required only when its engine is checked", async () => {
-    const asked: string[] = [];
-    setClientLoaderForTests((name) => {
-      asked.push(name);
-      return undefined;
-    });
-    try {
-      const answer = await runCheck(
-        "postgres",
-        "postgres://u@127.0.0.1:1/db",
-        500,
-      );
-      expect(asked).to.deep.equal(["pg"]);
-      expect(answer.reason).to.equal(
-        "Install pg to connect a PostgreSQL database.",
-      );
-    } finally {
-      setClientLoaderForTests();
-    }
-  });
-});
-
-describe("the connections a database check closes", () => {
-  /** Fails on an implementation that closes a connection only at the deadline, or makes the answer wait for the close to finish. */
-  it("an answer starts closing what the probe opened, once, and does not wait for it", async () => {
-    const events: string[] = [];
-    const answering: Probe = async (_url, _timeoutMs, connections) => {
-      connections.add(async () => {
-        events.push("closing");
-        await pause(20);
-        events.push("closed");
-      });
-      return ANSWERED;
-    };
-    const checkDatabase = loadCheckWith(answering);
-    const answer = await checkDatabase("mongodb", CHECKED_URL, 100);
-    events.push("answered");
-    expect(answer).to.deep.equal(ANSWERED);
-    expect(events).to.deep.equal(["closing", "answered"]);
-    await pause(400);
-    expect(events).to.deep.equal(["closing", "answered", "closed"]);
-  });
-
-  /** Fails on an implementation that waits for a close before it answers: a close that never ends lets the deadline replace the probe's answer. */
-  it("the answer is the probe's own when a connection never finishes closing", async () => {
-    const stuck: Probe = async (_url, _timeoutMs, connections) => {
-      connections.add(() => new Promise(() => undefined));
-      return ANSWERED;
-    };
-    const checkDatabase = loadCheckWith(stuck);
-    expect(await checkDatabase("postgres", CHECKED_URL, 40)).to.deep.equal(
-      ANSWERED,
-    );
-  }).timeout(3000);
-
-  /** Fails on an implementation that never shuts a socket its library leaves open, that shuts it before the grace, or that shuts one that closed. */
-  it("a connection still open after the grace is shut, and one that closed is left alone", async () => {
-    const shut: string[] = [];
-    const probe: Probe = async (_url, _timeoutMs, connections) => {
-      const never = () => new Promise<void>(() => undefined);
-      connections.add(never, () => {
-        shut.push("hung");
-      });
-      connections.add(
-        async () => undefined,
-        () => {
-          shut.push("closed");
-        },
-      );
-      connections.add(
-        () => {
-          throw new Error("close threw");
-        },
-        () => {
-          shut.push("failed");
-        },
-      );
-      connections.add(never, () => {
-        throw new Error("destroy threw");
-      });
-      return ANSWERED;
-    };
-    const checkDatabase = loadCheckWith(probe);
-    expect(await checkDatabase("postgres", CHECKED_URL, 40)).to.deep.equal(
-      ANSWERED,
-    );
-    expect(shut, "nothing is shut before the grace").to.deep.equal([]);
-    await pause(CLOSE_GRACE_MS + 200);
-    expect(shut).to.have.length(2);
-    expect(new Set(shut)).to.deep.equal(new Set(["failed", "hung"]));
-  });
-
-  /** Fails on an implementation that closes only what was open when the deadline passed, so a late connection stays open. */
-  it("a connection opened after the deadline is closed at once", async () => {
-    const closed: string[] = [];
-    const late: Probe = async (_url, _timeoutMs, connections) => {
-      await pause(200);
-      connections.add(async () => {
-        closed.push("late");
-      });
-      return ANSWERED;
-    };
-    const checkDatabase = loadCheckWith(late);
-    const answer = await checkDatabase("postgres", CHECKED_URL, 40);
-    expect(answer.reason).to.equal("The database did not answer in time.");
-    await pause(300);
-    expect(closed).to.deep.equal(["late"]);
-  });
-
-  /** Fails on an implementation that lets a connection that fails to close, or throws when asked, take the answer with it. */
-  it("a connection that cannot be closed does not change the answer", async () => {
-    const stubborn: Probe = async (_url, _timeoutMs, connections) => {
-      connections.add(async () => {
-        throw new Error("close failed");
-      });
-      connections.add(() => {
-        throw new Error("close threw");
-      });
-      return ANSWERED;
-    };
-    const checkDatabase = loadCheckWith(stubborn);
-    expect(await checkDatabase("postgres", CHECKED_URL, 40)).to.deep.equal(
-      ANSWERED,
-    );
-  });
-
-  /** Fails on an implementation that lets a probe's error out, or that answers its message with the password in it. */
-  it("a probe that throws is answered, without the password", async () => {
-    const broken: Probe = async () => {
-      throw new Error(`driver failed on ${CHECKED_URL}: ${SAMPLE_SECRET}`);
-    };
-    const checkDatabase = loadCheckWith(broken);
-    const answer = await checkDatabase("postgres", CHECKED_URL, 40);
-    expect(answer.reachable).to.equal(false);
-    expect(JSON.stringify(answer).includes(SAMPLE_SECRET)).to.equal(false);
-    expect(JSON.stringify(answer).includes("db.example.com")).to.equal(false);
-  });
-});
-
-/** Fails on a check that refuses an SRV URL, or a probe that hands the driver anything but the URL as typed. */
-describe("checking a MongoDB database by an SRV URL", () => {
-  it("hands the URL to the driver unchanged, which looks up the SRV record of its host", async () => {
-    const host = "cluster0.ab1cd.mongodb.net";
-    const url = `mongodb+srv://app@${host}/shop?retryWrites=true&w=majority`;
-    const lookups: string[] = [];
-    const resolve = dns.promises.resolve;
-    dns.promises.resolve = async (name: string, type: string = "A") => {
-      lookups.push(`${type} ${name}`);
-      throw Object.assign(new Error(`query${type} ENOTFOUND ${name}`), {
-        code: "ENOTFOUND",
-      });
-    };
-    try {
-      const result = await checkConnection(
-        parseCheckInput({ engine: "mongodb", url }),
-        true,
-      );
-      expect(result).to.deep.equal({
-        ok: true,
-        data: {
-          reachable: false,
-          canRead: false,
-          canWrite: false,
-          reason: "This host name could not be found.",
-        },
-        changes: [],
-      });
-      expect(lookups).to.have.members([
-        `SRV _mongodb._tcp.${host}`,
-        `TXT ${host}`,
-      ]);
-    } finally {
-      dns.promises.resolve = resolve;
-    }
+    await checkWith(slow);
+    expect(seen).to.deep.equal([false]);
+    expect(handed?.aborted).to.equal(true);
   });
 });
