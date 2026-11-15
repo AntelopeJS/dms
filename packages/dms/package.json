@@ -157,12 +157,14 @@
     "chai": "^4.5.0",
     "knip": "^6.34.0",
     "mongodb": "^7.1.1",
+    "mongodb-connection-string-url": "^7.0.1",
     "mongodb-memory-server-core": "^11.0.1",
     "mysql2": "^3.24.6",
     "oxfmt": "^0.66.0",
     "oxlint": "1.81.0",
     "oxlint-tsgolint": "^7.0.2001",
     "pg": "^8.22.0",
+    "pg-connection-string": "^2.14.1",
     "release-it": "^19.2.4",
     "release-it-changelogen": "^0.1.0",
     "rethinkdb-ts": "^2.7.0",
@@ -201,7 +203,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "optionalDependencies": {
-    "@antelopejs/interface-database-catalog": ">=0.0.3 <0.1.0",
+    "@antelopejs/interface-database-catalog": ">=0.1.0 <0.2.0",
     "@antelopejs/interface-dms-automation": ">=0.7.0 <0.8.0",
     "@antelopejs/interface-redis": ">=0.0.9 <0.1.0",
     "playwright-core": "~1.65.0"

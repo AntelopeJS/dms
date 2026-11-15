@@ -40,7 +40,7 @@ const NO_READ = "This account cannot read this database.";
 const NOT_CHECKED = "Could not check the database";
 const REDACTED = "[hidden]";
 const USERINFO = /^[a-z][a-z0-9+.-]*:\/\/([^/?#]*)@/i;
-const CONNECTION_STRING = /[a-z][a-z0-9+.-]*:\/\/[^\s"']+/gi;
+const CONNECTION_STRING = /(?<![a-z0-9+.-])[a-z0-9+.-]+:\/\/[^\s"']+/gi;
 
 const NO_ANSWER_REASONS: readonly (readonly [RegExp, string])[] = [
   [/ECONNREFUSED/, "Nothing is listening at this host and port."],
@@ -103,6 +103,23 @@ export function missingClient(
   );
 }
 
+const LAST_CONTROL_CHARACTER = 0x1f;
+const DELETE_CHARACTER = 0x7f;
+
+/**
+ * Whether `url` holds a C0 control character or DEL, which the WHATWG URL parser the clients read a
+ * URL with drops or rewrites: a check that reads such a URL otherwise sees other keys than the client.
+ */
+export function hasControlCharacter(url: string): boolean {
+  for (let index = 0; index < url.length; index += 1) {
+    const code = url.charCodeAt(index);
+    if (code <= LAST_CONTROL_CHARACTER || code === DELETE_CHARACTER) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function decoded(text: string): string {
   try {
     return decodeURIComponent(text);
@@ -144,7 +161,7 @@ export function failureMessage(error: unknown): string {
  * `in:`, and the command document of MongoDB's authorization error.
  */
 const QUERY_ECHOES: readonly RegExp[] = [
-  /\s+in:\s*\n[\s\S]*$/,
+  /(?<!\s)\s+in:\s*\n[\s\S]*$/,
   /(?<=\bcommand) \{[\s\S]*$/,
 ];
 

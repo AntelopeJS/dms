@@ -1,7 +1,9 @@
 import path from "node:path";
 import type * as Mongodb from "mongodb";
+import type * as MongodbConnectionStringUrl from "mongodb-connection-string-url";
 import type * as Mysql2 from "mysql2";
 import type * as Pg from "pg";
+import type * as PgConnectionString from "pg-connection-string";
 import { z } from "zod";
 import { requireFrom } from "./module-loader";
 import { resolveProjectRoot } from "./project";
@@ -16,9 +18,20 @@ interface ClientModules {
   mongodb: typeof Mongodb;
   mysql2: typeof Mysql2;
   "rethinkdb-ts": RethinkdbClient;
+  "mongodb-connection-string-url": typeof MongodbConnectionStringUrl;
+  "pg-connection-string": typeof PgConnectionString;
 }
 
 export type ClientName = keyof ClientModules;
+
+/**
+ * The packages a client reads its URL with, each required from where that client is installed, so
+ * a probe reads a URL with the very parser the client reads it with.
+ */
+const INSTALLED_WITH: Partial<Record<ClientName, ClientName>> = {
+  "mongodb-connection-string-url": "mongodb",
+  "pg-connection-string": "pg",
+};
 
 type ClientRequire = <Name extends ClientName>(
   name: Name,
@@ -36,19 +49,29 @@ function clientRequireFrom(file: string): ClientRequire {
 
 /**
  * The client package `name`, required only when its engine is checked: from this module's
- * dependencies first, then from the project's. `undefined` when neither installs it. A package
- * that is installed but fails to load throws.
+ * dependencies first, then from the project's, and a package of `INSTALLED_WITH` from where its
+ * client is installed. `undefined` when neither installs it. A package that is installed but fails
+ * to load throws.
  */
 function installedClient<Name extends ClientName>(
   name: Name,
 ): ClientModules[Name] | undefined {
+  const owner = INSTALLED_WITH[name];
+  const missing = owner === undefined ? [name] : [name, owner];
   const bases = [__filename, path.join(resolveProjectRoot(), "package.json")];
   for (const base of bases) {
     try {
-      return clientRequireFrom(base)(name);
+      const from =
+        owner === undefined ? base : requireFrom(base).resolve(owner);
+      return clientRequireFrom(from)(name);
     } catch (error) {
       const failure = NotInstalled.safeParse(error);
-      if (!failure.success || !failure.data.message.includes(`'${name}'`)) {
+      const notInstalled =
+        failure.success &&
+        missing.some((package_) =>
+          failure.data.message.includes(`'${package_}'`),
+        );
+      if (!notInstalled) {
         throw error;
       }
     }

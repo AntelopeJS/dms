@@ -52,6 +52,7 @@ export * from "./query-template-emit";
 export * from "./resource-emit";
 export * from "./resource-index";
 export * from "./scan";
+export * from "./scram-bound";
 export * from "./source-index";
 export * from "./table-readers";
 export * from "./theme-font-catalog";
