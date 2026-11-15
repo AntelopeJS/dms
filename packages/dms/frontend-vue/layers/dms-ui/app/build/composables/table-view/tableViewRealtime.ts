@@ -21,7 +21,7 @@ export function useTableViewRowRealtime<T extends Data>(
     REALTIME_PRESENCE_TOPIC_PREFIX,
   } = scope.configuration;
   const { tableRows } = scope.rows;
-  const { data } = scope.listState;
+  const { data, listReads } = scope.listState;
   const { props } = scope;
   const rowIdKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
 
@@ -59,15 +59,20 @@ export function useTableViewRowRealtime<T extends Data>(
   let rowReadCount = 0;
   const appliedRowReads = new Map<string, number>();
 
+  const findRow = (id: string) =>
+    data.value?.results.findIndex((row) => getRowId(row) === id) ?? -1;
+
   const patchRowLocal = async (id: string) => {
-    if (!data.value?.results) return;
-    const idx = data.value.results.findIndex((row) => getRowId(row) === id);
-    if (idx === -1) return;
+    if (findRow(id) === -1) return;
     rowReadCount += 1;
     const read = rowReadCount;
+    const listRead = listReads();
     try {
       const fresh = await tableRows.getRow(id);
-      if (!fresh || read < (appliedRowReads.get(id) ?? 0)) return;
+      if (!fresh || listReads() !== listRead) return;
+      if (read < (appliedRowReads.get(id) ?? 0)) return;
+      const idx = findRow(id);
+      if (!data.value || idx === -1) return;
       appliedRowReads.set(id, read);
       const next = [...data.value.results];
       next[idx] = fresh;

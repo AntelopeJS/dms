@@ -22,6 +22,8 @@ export interface TableListDataOptions<T extends Record<string, unknown>> {
    * bound must not list the rows again by changing (see useTableLiveHold).
    */
   heldQuery?: () => Query;
+  /** Called as each list read leaves. */
+  onRead?: () => void;
 }
 
 /** One counter: its id and its list query, as the table view builds it. */
@@ -82,13 +84,14 @@ export function useTableListData<T extends Record<string, unknown>>(
   return useDmsAsyncData(
     key,
 
-    ({ signal }): Promise<TableViewListResponse<T> | null> =>
-      isSelfManaged.value
-        ? Promise.resolve(EMPTY_LIST_RESULT)
-        : rows.list(
-            { ...query.value, ...archiveQuery.value, ...heldQuery() },
-            signal,
-          ),
+    ({ signal }): Promise<TableViewListResponse<T> | null> => {
+      if (isSelfManaged.value) return Promise.resolve(EMPTY_LIST_RESULT);
+      options.onRead?.();
+      return rows.list(
+        { ...query.value, ...archiveQuery.value, ...heldQuery() },
+        signal,
+      );
+    },
     {
       watch: [
         byValue(query),
