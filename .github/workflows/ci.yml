@@ -273,13 +273,14 @@ jobs:
         shard: ${{ fromJSON(needs.select.outputs.tier == 'nightly' && '[1, 2]' || '[1]') }}
     env:
       TIER: ${{ needs.select.outputs.tier }}
-      DMS_CONTROL_RUNS: ${{ runner.temp }}/dms-runs
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       # The base-version journey builds origin/main in a worktree.
-      - run: git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+      - run: |
+          git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+          echo "DMS_CONTROL_RUNS=${RUNNER_TEMP}/dms-runs" >> "$GITHUB_ENV"
       - uses: ./.github/actions/setup
       - uses: actions/cache@v4
         with:
