@@ -12,14 +12,19 @@ import {
   isBoolean,
   isNumber,
 } from "../../../../dms-core/app/utils/type-check";
-import { isJsonValue, isObjectValue, type JsonObject } from "./json";
-import type { JsonValue } from "../../../../dms-core/app/types/json";
+import {
+  isJsonWritable,
+  isWritableObject,
+  type JsonObject,
+  type JsonWritable,
+  type JsonWritableObject,
+} from "./json";
 export interface PreviewNode {
   /** Block registry type, e.g. `KpiCard`. Wins over `componentName`. */
   type?: string;
   /** Component a registered block type emits, e.g. `dms-kpi-card`. */
   componentName?: string;
-  options?: JsonObject;
+  options?: JsonWritableObject;
   children?: PreviewChildNode[];
 }
 
@@ -93,7 +98,7 @@ export interface PreviewIssue {
 export interface PreviewResolvedNode {
   id: string;
   componentName?: string;
-  options: JsonObject;
+  options: JsonWritableObject;
   children: PreviewResolvedNode[];
   slot?: string;
   colSpan?: number;
@@ -121,17 +126,19 @@ function isOptionalString(value: Parameters<typeof isString>[0]): boolean {
   return value === undefined || isString(value);
 }
 
-function isPreviewNode(value: JsonValue): value is JsonObject & PreviewNode {
-  if (!isObjectValue(value)) return false;
+function isPreviewNode(
+  value: JsonWritable,
+): value is JsonWritableObject & PreviewNode {
+  if (!isWritableObject(value)) return false;
   if (!isOptionalString(value.type)) return false;
   if (!isOptionalString(value.componentName)) return false;
-  if (value.options !== undefined && !isObjectValue(value.options))
+  if (value.options !== undefined && !isWritableObject(value.options))
     return false;
   if (value.children === undefined) return true;
   return Array.isArray(value.children) && value.children.every(isPreviewNode);
 }
 
-function isTreeValue(value: JsonValue): value is JsonValue & PreviewTree {
+function isTreeValue(value: JsonWritable): value is JsonWritable & PreviewTree {
   return Array.isArray(value)
     ? value.every(isPreviewNode)
     : isPreviewNode(value);
@@ -139,7 +146,7 @@ function isTreeValue(value: JsonValue): value is JsonValue & PreviewTree {
 
 /** Whether `value` is JSON, and a node or a list of nodes. */
 export function isPreviewTree(value: unknown): value is PreviewTree {
-  return isJsonValue(value) && isTreeValue(value);
+  return isJsonWritable(value) && isTreeValue(value);
 }
 
 export function isPreviewTheme(value: unknown): value is PreviewTheme {
@@ -148,8 +155,8 @@ export function isPreviewTheme(value: unknown): value is PreviewTheme {
 
 function isPreviewState(value: unknown): value is PreviewState {
   return (
-    isJsonValue(value) &&
-    isObjectValue(value) &&
+    isJsonWritable(value) &&
+    isWritableObject(value) &&
     value.tree !== undefined &&
     isTreeValue(value.tree) &&
     (value.theme === undefined || isPreviewTheme(value.theme)) &&
@@ -293,7 +300,7 @@ function matchBlockType(
  * (`TableView.fromSource`): it reads `source.fetchUrl`, which a preview can
  * call like any other block's URL.
  */
-function readsRouteSource(options: JsonObject): boolean {
+function readsRouteSource(options: JsonWritableObject): boolean {
   const source = options[ROUTE_SOURCE_OPTION];
   return isRecord(source) && isString(source.fetchUrl);
 }
@@ -305,7 +312,7 @@ function readsRouteSource(options: JsonObject): boolean {
  */
 function readsSerializedForm(
   blockType: PreviewBlockType,
-  options: JsonObject,
+  options: JsonWritableObject,
 ): boolean {
   return (
     blockType.componentName === "dms-form-block" &&
@@ -318,7 +325,7 @@ function readsSerializedForm(
 function issueFor(
   node: PreviewNode,
   match: MatchedBlockType | undefined,
-  options: JsonObject,
+  options: JsonWritableObject,
 ): PreviewIssue | undefined {
   if (!match) {
     return {
@@ -355,7 +362,7 @@ function clampSketchHeight(height: unknown): number {
  * default instead of refusing the sketch.
  */
 function parseSketch(
-  options: JsonObject | undefined,
+  options: JsonWritableObject | undefined,
 ): PreviewSketch | undefined {
   if (!options || !isString(options.html)) return undefined;
   const sketch: PreviewSketch = {
