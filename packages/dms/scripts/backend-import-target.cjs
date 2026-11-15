@@ -83,7 +83,7 @@ const processPins = {
     'return (0, node_os_1.platform)() === "win32"\n        ? execFileAsync(windowsCommandLine(manager, args), {\n            ...options,\n            shell: "cmd.exe",\n        })\n        : execFileAsync(manager, args, options);',
   "dist/test/helpers/replica-process.js:4":
     'const node_child_process_1 = require("node:child_process");',
-  "dist/test/helpers/replica-process.js:110":
+  "dist/test/helpers/replica-process.js:114":
     'const child = (0, node_child_process_1.spawn)(process.execPath, [AJS, "project", "run", "--project", directory], {\n            cwd: directory,\n            env: { ...process.env, REPLICA_HOST_HOLD_MS: String(holdMs) },\n        });',
   "dist/test/unit/interfaces/dms-base/table-view-evaluation-order.test.js:3":
     'const node_child_process_1 = require("node:child_process");',
