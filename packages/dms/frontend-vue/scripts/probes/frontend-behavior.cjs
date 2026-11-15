@@ -360,7 +360,8 @@ const evaluateRegister = evaluate;
  * @returns {value is { loader: unknown }}
  */
 function hasLoader(value) {
-  return isObjectLike(value) && "loader" in value && Boolean(value.loader);
+  const holder = isObjectLike(value) || typeof value === "function";
+  return holder && "loader" in value && Boolean(value.loader);
 }
 
 /**
