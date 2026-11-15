@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { detach } from "./utils/detach";
+import { detach } from "../detach";
 
 /** Where the row a `lazyLoad` band shows stands. */
 export type ExpandedRowLoadState = "loading" | "error" | "ready";

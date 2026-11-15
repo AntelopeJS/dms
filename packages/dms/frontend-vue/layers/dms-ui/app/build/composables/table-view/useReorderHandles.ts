@@ -4,7 +4,7 @@ import {
   startDragPreview,
   type DragPreview,
 } from "./dragPreview";
-import { detach } from "./utils/detach";
+import { detach } from "../detach";
 import type {
   TableViewDisplayReorder,
   TableViewReorderHandle,

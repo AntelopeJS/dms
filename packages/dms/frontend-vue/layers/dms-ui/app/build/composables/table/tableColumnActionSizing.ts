@@ -77,7 +77,7 @@ const actionsCellWidth = (descriptors: RowActionDescriptor[]): number => {
 
 const shownActionsWidth = <T extends Data>(
   context: TableColumnContext<T>,
-  row: T,
+  row: T | undefined,
 ): number => {
   return actionsCellWidth(
     buildRowActionDescriptors(context, row).filter(
@@ -92,7 +92,7 @@ const labelledActionsColumnSize = <T extends Data>(
   const { config } = context;
 
   const rows = config.data.value;
-  if (rows.length === 0) return shownActionsWidth(context, {} as T);
+  if (rows.length === 0) return shownActionsWidth(context, undefined);
   return Math.max(...rows.map((value) => shownActionsWidth(context, value)));
 };
 

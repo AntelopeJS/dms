@@ -12,7 +12,7 @@ import {
 } from "./types";
 import { getItemId, DEFAULT_ROW_ID_KEY } from "./tableRowActionValues";
 import type { createTableRowFormContainer } from "./tableRowActionContainers";
-import { detach } from "./utils/detach";
+import { detach } from "../detach";
 export const createTableRowNavigation = <T extends Data>(
   config: TableRowActionsConfig,
   route: TableRowActionServices["route"],

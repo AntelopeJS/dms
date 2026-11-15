@@ -5,7 +5,7 @@ import {
 } from "#dms-core/app/composables/realtime/useUserRealtime";
 import { isString } from "#dms-core/app/utils/type-check";
 import type { RealtimePresenceMap } from "./tableViewTypes";
-import { detach } from "./utils/detach";
+import { detach } from "../detach";
 import type { TableViewScope } from "./tableViewScope";
 
 export function useTableViewRowRealtime<T extends Data>(

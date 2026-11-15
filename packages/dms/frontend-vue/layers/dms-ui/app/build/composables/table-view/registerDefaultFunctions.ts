@@ -2,7 +2,7 @@ import type { LocationQueryValue } from "#dms/frontend-module";
 import type { WatchAction } from "#dms-core/app/types/watch";
 import { isNull, isObject, isString } from "#dms-core/app/utils/type-check";
 import { resolveLinkVariables } from "../../utils/urlVariables";
-import { detach } from "./utils/detach";
+import { detach } from "../detach";
 
 type RouteQuery = Record<string, LocationQueryValue | LocationQueryValue[]>;
 

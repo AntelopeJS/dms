@@ -24,7 +24,7 @@ import {
   type ComponentTargetContext,
 } from "./actionTargetContainers";
 import type { createSidePanelHandler } from "./actionTargetSidePanel";
-import { detachRun } from "./detachRun";
+import { detach } from "../detach";
 
 function rowRun(
   action: CustomRowAction,
@@ -68,7 +68,7 @@ export function createCustomActions(
       });
       return;
     }
-    detachRun(
+    detach(
       handleActionTarget(
         button.target,
         button.label,
@@ -83,7 +83,7 @@ export function createCustomActions(
       rowData,
       rowIdOf,
     );
-    detachRun(
+    detach(
       handleActionTarget(target, action.label, row, confirm, {
         deepLink: isDeepLinkAction(action),
         textParams,
@@ -101,7 +101,7 @@ export function createCustomActions(
       action.confirm && isConfirmFrom(action.confirm)
         ? { from: withQuery(dropRowTokens(action.confirm.from), query) }
         : action.confirm;
-    detachRun(
+    detach(
       handleActionTarget(
         targetWithSelection(action.target, query),
         action.label,

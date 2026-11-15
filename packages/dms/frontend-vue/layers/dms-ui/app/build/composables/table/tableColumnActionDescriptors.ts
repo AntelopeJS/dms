@@ -64,7 +64,7 @@ export const isOffMode = <T extends Data>(
 const isActionDisabled = <T extends Data>(
   context: TableColumnContext<T>,
   actionConfig: boolean | RowActionConfig | undefined,
-  rowData: T,
+  rowData: Data,
 ): boolean => {
   const { config } = context;
 
@@ -83,7 +83,7 @@ const isActionDisabled = <T extends Data>(
 const rowText = <T extends Data>(
   context: TableColumnContext<T>,
   text: string,
-  rowData: T,
+  rowData: Data,
 ): string => {
   const { t } = context;
   return resolveConfirmText(text, rowData, t);
@@ -108,7 +108,7 @@ export const menuLabel = <T extends Data>(
 const isCustomActionDisabled = <T extends Data>(
   context: TableColumnContext<T>,
   action: CustomRowAction,
-  rowData: T,
+  rowData: Data,
 ): boolean => {
   const { config } = context;
 
@@ -174,17 +174,25 @@ const copyLinkAfterConfirm = async <T extends Data>(
   await buildCopyLinkOnSelect(context, rowData)();
 };
 
+/** Runs an action on the row a descriptor stands for; a descriptor built for no row selects nothing. */
+const onRow =
+  <T extends Data>(rowData: T | undefined, act: (row: T) => void) =>
+  (): void => {
+    if (rowData !== undefined) act(rowData);
+  };
+
 const buildCustomActionDescriptors = <T extends Data>(
   context: TableColumnContext<T>,
-  rowData: T,
+  rowData: T | undefined,
 ): RowActionDescriptor[] => {
   const { config } = context;
+  const shown: Data = rowData ?? {};
   return (config.rowActions?.custom || []).map((action) => ({
-    label: rowText(context, action.label, rowData),
+    label: rowText(context, action.label, shown),
 
     icon: action.icon || (action.showLabel ? "" : "i-ph-lightning"),
-    onSelect: () => config.onCustomRowAction?.(action, rowData),
-    disabled: isCustomActionDisabled(context, action, rowData),
+    onSelect: onRow(rowData, (row) => config.onCustomRowAction?.(action, row)),
+    disabled: isCustomActionDisabled(context, action, shown),
     visible: isCustomActionInline(action),
     color: action.color,
     variant: action.variant,
@@ -213,54 +221,53 @@ const builtInIcon = <T extends Data>(
 
 const buildBuiltInActionDescriptors = <T extends Data>(
   context: TableColumnContext<T>,
-  rowData: T,
+  rowData: T | undefined,
 ): RowActionDescriptor[] => {
   const { config, t } = context;
+  const shown: Data = rowData ?? {};
   return [
     {
       key: "copyLink",
       label: builtInLabel(context, "copyLink", t("dms.button.copy_link")),
       icon: builtInIcon(context, "copyLink", "i-ph-link"),
-      onSelect: () => copyLinkAfterConfirm(context, rowData),
-      disabled: isActionDisabled(context, config.rowActions?.copyLink, rowData),
+      onSelect: onRow(rowData, (row) => copyLinkAfterConfirm(context, row)),
+      disabled: isActionDisabled(context, config.rowActions?.copyLink, shown),
       visible: isActionVisible(config.rowActions?.copyLink),
     },
     {
       key: "details",
       label: builtInLabel(context, "details", t("dms.button.details")),
       icon: builtInIcon(context, "details", "i-ph-info"),
-      onSelect: () => config.emits("details", rowData),
-      disabled: isActionDisabled(context, config.rowActions?.details, rowData),
+      onSelect: onRow(rowData, (row) => config.emits("details", row)),
+      disabled: isActionDisabled(context, config.rowActions?.details, shown),
       visible: isActionVisible(config.rowActions?.details),
     },
     {
       key: "edit",
       label: builtInLabel(context, "edit", t("dms.button.edit")),
       icon: builtInIcon(context, "edit", "i-ph-pencil"),
-      onSelect: () => config.emits("edit", rowData),
-      disabled: isActionDisabled(context, config.rowActions?.edit, rowData),
+      onSelect: onRow(rowData, (row) => config.emits("edit", row)),
+      disabled: isActionDisabled(context, config.rowActions?.edit, shown),
       visible: isActionVisible(config.rowActions?.edit),
     },
     {
       key: "duplicate",
       label: builtInLabel(context, "duplicate", t("dms.button.duplicate")),
       icon: builtInIcon(context, "duplicate", "i-ph-copy"),
-      onSelect: () =>
-        config.emits("duplicate", rowIdOf(rowData, config.rowIdKey)),
-      disabled: isActionDisabled(
-        context,
-        config.rowActions?.duplicate,
-        rowData,
+      onSelect: onRow(rowData, (row) =>
+        config.emits("duplicate", rowIdOf(row, config.rowIdKey)),
       ),
+      disabled: isActionDisabled(context, config.rowActions?.duplicate, shown),
       visible: isActionVisible(config.rowActions?.duplicate),
     },
     {
       key: "delete",
       label: builtInLabel(context, "delete", t("dms.button.delete")),
       icon: builtInIcon(context, "delete", "i-ph-trash"),
-      onSelect: () =>
-        config.emits("delete", [rowIdOf(rowData, config.rowIdKey)]),
-      disabled: isActionDisabled(context, config.rowActions?.delete, rowData),
+      onSelect: onRow(rowData, (row) =>
+        config.emits("delete", [rowIdOf(row, config.rowIdKey)]),
+      ),
+      disabled: isActionDisabled(context, config.rowActions?.delete, shown),
       visible: isActionVisible(config.rowActions?.delete),
       color: Color.error,
     },
@@ -268,18 +275,20 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       key: "archive",
       label: builtInLabel(context, "archive", t("dms.button.archive")),
       icon: builtInIcon(context, "archive", "i-ph-archive"),
-      onSelect: () =>
-        config.emits("archive", [rowIdOf(rowData, config.rowIdKey)]),
-      disabled: isActionDisabled(context, config.rowActions?.archive, rowData),
+      onSelect: onRow(rowData, (row) =>
+        config.emits("archive", [rowIdOf(row, config.rowIdKey)]),
+      ),
+      disabled: isActionDisabled(context, config.rowActions?.archive, shown),
       visible: isActionVisible(config.rowActions?.archive),
     },
     {
       key: "restore",
       label: builtInLabel(context, "restore", t("dms.button.restore")),
       icon: builtInIcon(context, "restore", "i-ph-arrow-counter-clockwise"),
-      onSelect: () =>
-        config.emits("restore", [rowIdOf(rowData, config.rowIdKey)]),
-      disabled: isActionDisabled(context, config.rowActions?.restore, rowData),
+      onSelect: onRow(rowData, (row) =>
+        config.emits("restore", [rowIdOf(row, config.rowIdKey)]),
+      ),
+      disabled: isActionDisabled(context, config.rowActions?.restore, shown),
       visible: isActionVisible(config.rowActions?.restore),
     },
   ];
@@ -287,7 +296,7 @@ const buildBuiltInActionDescriptors = <T extends Data>(
 
 export const buildRowActionDescriptors = <T extends Data>(
   context: TableColumnContext<T>,
-  rowData: T,
+  rowData: T | undefined,
 ): RowActionDescriptor[] => {
   const builtIns = buildBuiltInActionDescriptors(context, rowData);
   return [

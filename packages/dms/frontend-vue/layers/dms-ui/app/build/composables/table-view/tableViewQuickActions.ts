@@ -9,7 +9,7 @@ import {
 import { registerQuickActionTarget } from "../../utils/quickActionTargets";
 import { buildTableViewShortcuts } from "../../../composables/table-view/shortcuts";
 import type { TableViewScope } from "./tableViewScope";
-import { detach } from "./utils/detach";
+import { detach } from "../detach";
 
 export function useTableViewQuickActions<T extends Data>(
   scope: Pick<

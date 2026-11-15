@@ -5,7 +5,7 @@ import type {
   useForm,
 } from "../../../composables/form/useForm";
 import { fieldErrorPattern } from "./formEntryContext";
-import { detach } from "./detached";
+import { detach } from "../detach";
 import {
   changedServerErrorFields,
   keptServerErrors,

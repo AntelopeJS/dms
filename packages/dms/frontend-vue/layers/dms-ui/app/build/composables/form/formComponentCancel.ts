@@ -1,6 +1,6 @@
 import { computed, onMounted, ref } from "vue";
 import { isString } from "#dms-core/app/utils/type-check";
-import { detach } from "./detached";
+import { detach } from "../detach";
 import type { FormProps } from "../../../composables/form/types/props";
 import type { DmsContainerContext } from "../containers/context";
 

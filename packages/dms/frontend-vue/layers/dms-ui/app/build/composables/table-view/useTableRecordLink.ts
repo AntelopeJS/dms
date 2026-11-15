@@ -7,7 +7,7 @@ import {
   readRecordId,
   writeRecordId,
 } from "./utils/recordLink";
-import { detach } from "./utils/detach";
+import { detach } from "../detach";
 import { queryOfUrl } from "./utils/urlFilters";
 import type { TableUrlScope } from "./utils/views";
 import type { LocationQuery } from "#dms/frontend-module";

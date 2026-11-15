@@ -3,7 +3,7 @@ import type { FormField } from "../../../composables/form/types/field";
 import type { validateFormState } from "./formValidation";
 import { cloneFormValue } from "../../../composables/form/useForm";
 import type { apiErrorStatus } from "#dms-core/app/composables/useFieldErrors";
-import { detach } from "./detached";
+import { detach } from "../detach";
 import { sameFormValue } from "../unsaved-changes/formValue";
 import {
   type InstantSave,

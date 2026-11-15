@@ -2,7 +2,7 @@ import { TableViewEvents } from "../../../composables/table-view/types";
 import { selectedRowIds } from "./utils/bulkActions";
 import { type WatchOptions, type WatchSource } from "vue";
 import type { TableViewScope } from "./tableViewScope";
-import { detach } from "./utils/detach";
+import { detach } from "../detach";
 
 export function useTableViewEvents<T extends Data>(
   scope: Pick<

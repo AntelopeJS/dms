@@ -11,7 +11,7 @@ import { pageArrivalKind } from "./utils/pageArrival";
 import { useTableLinkedVisit } from "./useTableLinkedVisit";
 import { readTableUrlTab } from "./useTableUrlTab";
 import type { TableViewScope } from "./tableViewScope";
-import { detach } from "./utils/detach";
+import { detach } from "../detach";
 
 export function useTableViewArrival<T extends Data>(
   scope: Pick<TableViewScope<T>, "configuration" | "props" | "deferred">,
