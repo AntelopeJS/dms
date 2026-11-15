@@ -1,3 +1,5 @@
+import type { JsonValue } from "../../../../dms-core/app/types/json";
+import type { JsonObject } from "./json";
 import type { MockupHistory } from "./mockupHistory";
 import {
   nodeAt,
@@ -73,9 +75,15 @@ function isSameKind(left: MockupSpecNode, right: MockupSpecNode): boolean {
   return left.type === right.type && left.componentName === right.componentName;
 }
 
-function partsOf(node: MockupSpecNode): unknown[] {
+function isHeldObject(
+  value: MockupSpecNode[keyof MockupSpecNode],
+): value is JsonObject | JsonValue[] | MockupSpecNode[] {
+  return typeof value === "object" && value !== null;
+}
+
+function partsOf(node: MockupSpecNode): object[] {
   return [
-    ...Object.values(node).filter((value) => value instanceof Object),
+    ...Object.values(node).filter(isHeldObject),
     ...(node.children ?? []),
   ];
 }
@@ -197,7 +205,7 @@ function retyped(
   if (!node || node.id !== undefined || !isSameKind(node, stamp.node)) {
     return undefined;
   }
-  const restored = JSON.stringify(present, (_key, value: unknown) =>
+  const restored = JSON.stringify(present, (_key, value: JsonValue) =>
     value === node ? stamp.node : value,
   );
   return restored === JSON.stringify(base)

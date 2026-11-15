@@ -26,3 +26,10 @@ export function isJsonObject(value: unknown): value is JsonObject {
     isJsonValue(value)
   );
 }
+
+/** Whether a value already known to be JSON is an object: not `null`, not a list. */
+export function isObjectValue(
+  value: JsonValue | undefined,
+): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

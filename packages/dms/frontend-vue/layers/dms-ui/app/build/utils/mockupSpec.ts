@@ -1,8 +1,11 @@
+import type { JsonValue } from "../../../../dms-core/app/types/json";
+import { isNumber, isString } from "../../../../dms-core/app/utils/type-check";
 import {
-  isNumber,
-  isObject,
-  isString,
-} from "../../../../dms-core/app/utils/type-check";
+  isJsonObject,
+  isJsonValue,
+  isObjectValue,
+  type JsonObject,
+} from "./json";
 
 /**
  * `mockups/<name>/spec.json` as the editor reads and writes it: the spec as
@@ -14,12 +17,12 @@ import {
 export interface MockupSpecNode {
   type?: string;
   componentName?: string;
-  options?: Record<string, unknown>;
+  options?: JsonObject;
   children?: MockupSpecNode[];
   id?: string;
   slot?: string;
   colSpan?: number;
-  [field: string]: unknown;
+  [field: string]: JsonValue | MockupSpecNode[] | undefined;
 }
 
 /** One page of a spec, as written. */
@@ -27,13 +30,13 @@ export interface MockupSpecPage {
   id: string;
   title: string;
   tree: MockupSpecNode[];
-  [field: string]: unknown;
+  [field: string]: JsonValue | MockupSpecNode[];
 }
 
 /** The whole spec, as written. */
 export interface MockupSpecDocument {
   pages: MockupSpecPage[];
-  [field: string]: unknown;
+  [field: string]: JsonValue | MockupSpecPage[];
 }
 
 /** Where a node sits: its page's index, then its index at each level down. */
@@ -62,52 +65,55 @@ export function authoredId(node: MockupSpecNode): string | undefined {
     : node.id;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return isObject(value) && value !== null && !Array.isArray(value);
-}
-
-function isOptional<Value>(
-  value: unknown,
-  guard: (entry: unknown) => entry is Value,
-): boolean {
+function isOptional<Value extends JsonValue>(
+  value: JsonValue | undefined,
+  guard: (entry: JsonValue) => entry is Value,
+): value is Value | undefined {
   return value === undefined || guard(value);
 }
 
 /** The fixtures a page holds, keyed as written; none when it holds no object of them. */
-export function pageFixtures(page: MockupSpecPage): Record<string, unknown> {
-  return isRecord(page.fixtures) ? page.fixtures : {};
+export function pageFixtures(page: MockupSpecPage): JsonObject {
+  const { fixtures } = page;
+  return !Array.isArray(fixtures) && isObjectValue(fixtures) ? fixtures : {};
 }
 
-/** Whether `value` is a node whose known fields have their types, at every depth. */
-export function isMockupSpecNode(value: unknown): value is MockupSpecNode {
-  if (!isRecord(value)) return false;
+function isWrittenNode(value: JsonValue): value is JsonObject & MockupSpecNode {
+  if (!isObjectValue(value)) return false;
   return (
     isOptional(value.type, isString) &&
     isOptional(value.componentName, isString) &&
-    isOptional(value.options, isRecord) &&
+    isOptional(value.options, isObjectValue) &&
     isOptional(value.id, isString) &&
     isOptional(value.slot, isString) &&
     isOptional(value.colSpan, isNumber) &&
     (value.children === undefined ||
-      (Array.isArray(value.children) && value.children.every(isMockupSpecNode)))
+      (Array.isArray(value.children) && value.children.every(isWrittenNode)))
   );
 }
 
-function isMockupSpecPage(value: unknown): value is MockupSpecPage {
+/** Whether `value` is JSON, and a node whose known fields have their types, at every depth. */
+export function isMockupSpecNode(value: unknown): value is MockupSpecNode {
+  return isJsonValue(value) && isWrittenNode(value);
+}
+
+function isMockupSpecPage(
+  value: JsonValue,
+): value is JsonObject & MockupSpecPage {
   return (
-    isRecord(value) &&
+    isObjectValue(value) &&
     isString(value.id) &&
     isString(value.title) &&
     Array.isArray(value.tree) &&
-    value.tree.every(isMockupSpecNode)
+    value.tree.every(isWrittenNode)
   );
 }
 
-/** The spec `value` holds, or undefined when it is not one the editor can change. */
+/** The spec `value` holds, or undefined when it is not JSON or not a spec the editor can change. */
 export function parseMockupSpec(
   value: unknown,
 ): MockupSpecDocument | undefined {
-  if (!isRecord(value)) return undefined;
+  if (!isJsonObject(value)) return undefined;
   const { pages } = value;
   if (!Array.isArray(pages) || !pages.every(isMockupSpecPage)) {
     return undefined;

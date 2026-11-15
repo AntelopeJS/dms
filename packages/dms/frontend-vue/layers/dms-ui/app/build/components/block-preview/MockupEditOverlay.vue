@@ -61,7 +61,7 @@ watch(
   },
 );
 
-function box(rect: PreviewRect): Record<string, string> {
+function box(rect: PreviewRect) {
   return {
     left: `${rect.x}px`,
     top: `${rect.y}px`,
@@ -98,7 +98,7 @@ const textStyle = computed(() => {
   };
 });
 
-function pointOf(event: DragEvent): { x: number; y: number } {
+function pointOf(event: DragEvent) {
   const target = event.currentTarget;
   const origin =
     target instanceof Element
