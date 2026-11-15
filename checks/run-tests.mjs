@@ -17,6 +17,7 @@ const DMS_TESTS = [
   "bin/control/frontend-workspace",
   "bin/control/identity",
   "bin/control/journey",
+  "bin/control/journey-judge",
   "bin/control/json",
   "bin/control/mail",
   "bin/control/module-root",
