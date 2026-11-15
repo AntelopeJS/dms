@@ -10,6 +10,7 @@ export * from "./catalog-connection";
 export * from "./catalog-inference";
 export * from "./compose-page";
 export * from "./connection-access-config";
+export * from "./connection-targets";
 export * from "./database-access";
 export * from "./database-check";
 export * from "./database-check-input";
