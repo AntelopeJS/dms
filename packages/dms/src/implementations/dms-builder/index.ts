@@ -76,7 +76,6 @@ import {
   ListEntryConnections,
   RemoveDatabaseConnection,
   RepairDatabaseConnections,
-  SampleDatabaseRows,
   SetDatabaseConnectionUrl,
 } from "./database";
 
@@ -520,7 +519,6 @@ export const Operations = {
   RemoveField,
   RemoveQuery,
   RepairDatabaseConnections,
-  SampleDatabaseRows,
   SetDatabaseConnectionUrl,
   SetPageBlocks,
   SetTheme,

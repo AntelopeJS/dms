@@ -10,8 +10,6 @@ import type {
   OpResult,
   ProjectConfigOpts,
   ProjectConfigResult,
-  RowSample,
-  RowSampleRequest,
 } from "@antelopejs/interface-dms-builder";
 import { latestAnalysis } from "./engine/analysis-job";
 import { catalogOf, listCatalogConnections } from "./engine/catalog-connection";
@@ -142,29 +140,6 @@ export async function GetLatestAnalysis(
   connection: string,
 ): Promise<OpResult<AnalysisState>> {
   return latestAnalysis(connection);
-}
-
-export async function SampleDatabaseRows(
-  connection: string,
-  request: RowSampleRequest,
-): Promise<OpResult<RowSample>> {
-  try {
-    const catalog = catalogOf(connection);
-    if (!catalog) {
-      return notFound<RowSample>(connection);
-    }
-    return succeeded(
-      await catalog.SampleRows({
-        relation: request.relation,
-        columns: request.columns,
-        limit: request.limit,
-      }),
-    );
-  } catch (error) {
-    return invalidConfig<RowSample>(
-      error instanceof Error ? error.message : String(error),
-    );
-  }
 }
 
 export async function ListEntryConnections(
