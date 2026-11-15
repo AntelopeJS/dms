@@ -100,7 +100,6 @@ export interface Frame {
 
 export interface Page extends Frame {
   setViewportSize(size: { width: number; height: number }): Promise<void>;
-  screenshot(options: { path: string; fullPage: boolean }): Promise<Buffer>;
   frames(): Frame[];
   context(): BrowserContext;
   getByRole(role: string): Locator;

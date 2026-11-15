@@ -1,14 +1,7 @@
 import { TABLE_VIEW_COMPONENT_NAME } from "@antelopejs/interface-dms/component-options/internal/page-layout";
-import { mkdir } from "node:fs/promises";
-import path from "node:path";
 import type { BrowserContext, Frame, Page, Request } from "./playwright";
 import { z } from "zod";
-import {
-  blockSelector,
-  type PageProbe,
-  type PageRect,
-  probePage,
-} from "./page-probe";
+import { type PageProbe, type PageRect, probePage } from "./page-probe";
 import type {
   ConsoleError,
   DataBlock,
@@ -22,8 +15,6 @@ import type {
 const NAVIGATION_TIMEOUT_MS = 60_000;
 const SETTLE_TIMEOUT_MS = 20_000;
 const SETTLE_PAUSE_MS = 500;
-const BLOCK_SHOT_TIMEOUT_MS = 5_000;
-const MAX_BLOCK_SHOTS = 40;
 const PROBE_ATTEMPTS = 10;
 const PROBE_INTERVAL_MS = 500;
 const EDGE_TOLERANCE_PX = 1;
@@ -50,31 +41,6 @@ const SETTLED = [
   `!!document.querySelector("[data-dms-page-content]")?.childElementCount`,
   `!document.querySelector("[data-dms-block-state=loading]")`,
 ].join(" && ");
-
-/** Where a run writes its screenshots, and how a written file reads in the report. */
-export interface ShotStore {
-  projectPath: string;
-  /** Absolute folder of the run. */
-  dir: string;
-}
-
-/** A screenshot file: where it is written, and how the report names it. */
-export interface ShotFile {
-  file: string;
-  /** Relative to the project. */
-  relative: string;
-}
-
-/** The screenshot file at `segments` under the run's folder. */
-export function shotFile(store: ShotStore, segments: string[]): ShotFile {
-  const file = path.join(store.dir, ...segments);
-  return { file, relative: path.relative(store.projectPath, file) };
-}
-
-/** A file name segment from a route or a layout path. */
-export function fileSegment(value: string): string {
-  return value.replace(/^\/+/, "").replace(/[^A-Za-z0-9_.-]+/g, "_") || "root";
-}
 
 /**
  * The options of a served block that name where it reads: `fetchUrl` for
@@ -264,23 +230,6 @@ export async function waitSettled(page: Page | Frame): Promise<void> {
   await page.waitForTimeout(SETTLE_PAUSE_MS);
 }
 
-/** Screenshots the block a probe marked, quietly skipping one that cannot be drawn. */
-export async function shootBlock(
-  target: Page | Frame,
-  blockPath: string,
-  file: ShotFile,
-): Promise<string | undefined> {
-  try {
-    await target
-      .locator(blockSelector(blockPath))
-      .first()
-      .screenshot({ path: file.file, timeout: BLOCK_SHOT_TIMEOUT_MS });
-    return file.relative;
-  } catch {
-    return undefined;
-  }
-}
-
 function insideWidth(rect: PageRect, width: number): boolean {
   return (
     rect.x >= -EDGE_TOLERANCE_PX &&
@@ -360,43 +309,27 @@ export interface ViewportOutcome {
   probe: PageProbe;
 }
 
-async function shootBlocks(
-  page: Page,
-  expected: ExpectedBlock[],
+function renderedBlocks(
+  expected: readonly ExpectedBlock[],
   probe: PageProbe,
-  store: ShotStore,
-  folder: string[],
-): Promise<RenderedBlock[]> {
-  const blocks: RenderedBlock[] = [];
-  for (const block of expected) {
+): RenderedBlock[] {
+  return expected.map((block) => {
     const rect = probe.blocks.find(
       (probed) => probed.path === block.path,
     )?.rect;
     const present = probe.blocks.some((probed) => probed.path === block.path);
-    const visible =
-      rect !== undefined &&
-      rect !== null &&
-      insideWidth(rect, probe.documentWidth);
-    const screenshot =
-      visible &&
-      blocks.filter((shot) => shot.screenshot).length < MAX_BLOCK_SHOTS
-        ? await shootBlock(
-            page,
-            block.path,
-            shotFile(store, [...folder, `${fileSegment(block.path)}.png`]),
-          )
-        : undefined;
-    blocks.push({
+    return {
       path: block.path,
       component: block.component,
       present,
-      visible,
+      visible:
+        rect !== undefined &&
+        rect !== null &&
+        insideWidth(rect, probe.documentWidth),
       ...(present &&
         (rect === undefined || rect === null) && { drewNothing: true }),
-      ...(screenshot && { screenshot }),
-    });
-  }
-  return blocks;
+    };
+  });
 }
 
 /**
@@ -418,13 +351,12 @@ async function probeUntilDrawn(
   return probe;
 }
 
-/** Draws the page at one viewport: full and per-block screenshots, layout and data. */
+/** Draws the page at one viewport and reads its blocks, layout and data from the DOM. */
 export async function renderAtViewport(
   page: Page,
   url: string,
   viewport: Viewport,
   expected: ExpectedBlock[],
-  store: ShotStore,
 ): Promise<ViewportOutcome> {
   await page.setViewportSize({
     width: viewport.width,
@@ -432,22 +364,13 @@ export async function renderAtViewport(
   });
   await openSteadily(page, url);
   const probe = await probeUntilDrawn(page, expected);
-  const folder = [
-    fileSegment(new URL(url).pathname),
-    fileSegment(viewport.name),
-  ];
-  await mkdir(path.join(store.dir, ...folder), { recursive: true });
-  const full = shotFile(store, [...folder, "page.png"]);
-  await page.screenshot({ path: full.file, fullPage: true });
-  const blocks = await shootBlocks(page, expected, probe, store, folder);
   return {
     probe,
     render: {
       viewport: viewport.name,
       width: viewport.width,
       height: viewport.height,
-      screenshot: full.relative,
-      blocks,
+      blocks: renderedBlocks(expected, probe),
       layout: {
         horizontalOverflow:
           probe.documentWidth > probe.viewportWidth + EDGE_TOLERANCE_PX,

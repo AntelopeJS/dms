@@ -1,4 +1,3 @@
-import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import type { Role } from "@antelopejs/interface-dms/db";
 import type { Browser, BrowserContext } from "./playwright";
@@ -19,7 +18,7 @@ import { launchBrowser } from "./browser";
 import { listFailures } from "./failures";
 import { guardWrites, type WriteGuard } from "./controls";
 import { checkInteractions } from "./interactions";
-import { compareWithMockup, type MockupTarget } from "./mockup";
+import { compareWithMockup, type MockupTarget, type ShotStore } from "./mockup";
 import { probePage } from "./page-probe";
 import {
   captureErrors,
@@ -27,10 +26,7 @@ import {
   openPage,
   readDataBlocks,
   readLayout,
-  fileSegment,
   renderAtViewport,
-  type ShotStore,
-  shotFile,
 } from "./render";
 import type {
   DataBlock,
@@ -159,15 +155,9 @@ async function observedAccess(
     await openPage(page, new URL(target.route, origin).href);
     const drawn = (await probePage(page)).blocks.length;
     if (drawn > 0) return { observed: "rendered" };
-    const shot = shotFile(run.store, [
-      "access",
-      `${fileSegment(target.route)}-${fileSegment(account.user.email)}.png`,
-    ]);
-    await mkdir(path.dirname(shot.file), { recursive: true });
-    await page.screenshot({ path: shot.file, fullPage: true });
     return {
       observed: "refused",
-      note: `the layout was served, but ${page.url()} drew no block: see ${shot.relative}`,
+      note: `the layout was served, but ${page.url()} drew no block`,
     };
   } finally {
     await page.close();
@@ -281,7 +271,6 @@ async function verifyPage(
         url,
         viewport,
         layout.blocks,
-        run.store,
       );
       viewports.push(outcome.render);
       data.push(...readDataBlocks(outcome.probe, viewport.name, layout.blocks));
@@ -426,7 +415,6 @@ export async function verifyPages(
       ok: pages.every((page) => page.ok),
       dashboardUrl: request.origin,
       account: account.summary,
-      screenshots: path.relative(request.projectPath, store.dir),
       notes,
       pages,
     };

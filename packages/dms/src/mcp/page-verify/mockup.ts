@@ -1,8 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import type { BrowserContext, Frame, Page } from "./playwright";
-import { type ProbedBlock, probePage } from "./page-probe";
-import { fileSegment, type ShotStore, shootBlock, shotFile } from "./render";
+import { blockSelector, type ProbedBlock, probePage } from "./page-probe";
 import type {
   MockupBlockComparison,
   MockupComparison,
@@ -16,6 +15,50 @@ const POLL_MS = 500;
 /** The custom component `/dms-preview` draws the previewed tree in. */
 const PREVIEW_HOST = "DmsBlockPreview";
 const HTTP_NOT_FOUND = 404;
+const BLOCK_SHOT_TIMEOUT_MS = 5_000;
+/** The viewer's data mode that draws a page on its fixtures, never on the live routes it maps. */
+const SAMPLE_DATA = "sample";
+
+/** Where a run writes the mockup's screenshots, and how a written file reads in the report. */
+export interface ShotStore {
+  projectPath: string;
+  /** Absolute folder of the run. */
+  dir: string;
+}
+
+/** A screenshot file: where it is written, and how the report names it. */
+interface ShotFile {
+  file: string;
+  /** Relative to the project. */
+  relative: string;
+}
+
+function shotFile(store: ShotStore, segments: string[]): ShotFile {
+  const file = path.join(store.dir, ...segments);
+  return { file, relative: path.relative(store.projectPath, file) };
+}
+
+/** A file name segment from a mockup name or a layout path. */
+function fileSegment(value: string): string {
+  return value.replace(/^\/+/, "").replace(/[^A-Za-z0-9_.-]+/g, "_") || "root";
+}
+
+/** Screenshots a block of the preview frame, quietly skipping one that cannot be drawn. */
+async function shootBlock(
+  frame: Frame,
+  blockPath: string,
+  file: ShotFile,
+): Promise<string | undefined> {
+  try {
+    await frame
+      .locator(blockSelector(blockPath))
+      .first()
+      .screenshot({ path: file.file, timeout: BLOCK_SHOT_TIMEOUT_MS });
+    return file.relative;
+  } catch {
+    return undefined;
+  }
+}
 
 /** The mockup page a run compares the page with. */
 export interface MockupTarget {
@@ -28,6 +71,7 @@ function viewerUrl(origin: string, target: MockupTarget): string {
   const url = new URL("/mockup", origin);
   url.searchParams.set("name", target.name);
   url.searchParams.set("width", "desktop");
+  url.searchParams.set("data", SAMPLE_DATA);
   if (target.page !== undefined) url.searchParams.set("page", target.page);
   return url.href;
 }
@@ -147,7 +191,6 @@ async function compareDrawn(
       status: match ? "matched" : "missing",
       ...(match && { pagePath: match.path }),
       ...(mockupScreenshot && { mockupScreenshot }),
-      ...(match?.screenshot && { pageScreenshot: match.screenshot }),
     });
   }
   const pairedPaths = new Set([...paired.values()].map((block) => block.path));
@@ -164,9 +207,10 @@ async function compareDrawn(
 
 /**
  * Draws the mockup page in the dashboard's `/mockup` viewer at the desktop
- * width and pairs its blocks with the page's, each pair screenshotted for a
- * side-by-side look. The viewer is owner-only, so `context` is signed in as
- * the platform owner whatever role the page was opened as.
+ * width, on its fixtures, and pairs its blocks with the page's. The mockup
+ * and each of its blocks are screenshotted; the page is not, since it shows
+ * the values of its rows. The viewer is owner-only, so `context` is signed
+ * in as the platform owner whatever role the page was opened as.
  */
 export async function compareWithMockup(
   context: BrowserContext,

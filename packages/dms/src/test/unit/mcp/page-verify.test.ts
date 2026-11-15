@@ -3,6 +3,7 @@ import type { PageInfo } from "@antelopejs/interface-dms/page";
 import { expect } from "chai";
 import { isToolAllowed } from "../../../mcp/access";
 import {
+  compareWithMockup,
   listFailures,
   type MemberRoles,
   pickMember,
@@ -15,6 +16,11 @@ import {
   resolvePage,
   withoutEditor,
 } from "../../../mcp/page-verify";
+import type {
+  BrowserContext,
+  Locator,
+  Page,
+} from "../../../mcp/page-verify/playwright";
 import { MCP_TOOLS } from "../../../mcp/tools";
 import { pagesBySlug } from "../../../utils";
 
@@ -53,6 +59,58 @@ function emptyReport(): Omit<PageReport, "ok" | "failures"> {
     errors: { console: [], failedRequests: [] },
     interactions: [],
     permissions: [],
+  };
+}
+
+function unused(): never {
+  throw new Error(
+    "the mockup viewer check called an unexpected browser method",
+  );
+}
+
+/** A context whose one page records the URLs it opens, each answered 404 as a dashboard without the viewer. */
+function recordingContext(opened: string[]): BrowserContext {
+  const request = { method: () => "GET", url: () => "", failure: () => null };
+  const locator: Locator = {
+    first: () => locator,
+    last: () => locator,
+    nth: () => locator,
+    locator: () => locator,
+    count: unused,
+    click: unused,
+    fill: unused,
+    inputValue: unused,
+    getAttribute: unused,
+    innerText: unused,
+    isVisible: unused,
+    isEnabled: unused,
+    screenshot: unused,
+    evaluateAll: unused,
+    page: unused,
+  };
+  const page: Page = {
+    goto: async (url) => {
+      opened.push(url);
+      return { status: () => 404, url: () => url, request: () => request };
+    },
+    waitForFunction: unused,
+    waitForTimeout: async () => undefined,
+    locator: () => locator,
+    evaluate: unused,
+    url: () => opened.at(-1) ?? "about:blank",
+    setViewportSize: async () => undefined,
+    frames: () => [],
+    context: unused,
+    getByRole: () => locator,
+    keyboard: { press: unused },
+    close: async () => undefined,
+    on: () => undefined,
+    off: () => undefined,
+  };
+  return {
+    request: { get: unused, post: unused },
+    newPage: async () => page,
+    route: unused,
   };
 }
 
@@ -123,6 +181,26 @@ function readsPageBlocks(): void {
     expect(paired.get("kpis.revenue")?.path).to.equal("kpis.revenue");
     expect(paired.get("block-0")?.path).to.equal("kpis.orders");
     expect(paired.has("block-1")).to.equal(false);
+  });
+
+  it("opens the mockup viewer on the mockup's fixtures, never on the live routes of a converted page", async () => {
+    const opened: string[] = [];
+    const comparison = await compareWithMockup(
+      recordingContext(opened),
+      "http://localhost:3001",
+      { name: "orders-desk", page: "orders" },
+      [],
+      {
+        store: { projectPath: "/project", dir: "/project/run" },
+        viewport: { name: "desktop", width: 1440, height: 900 },
+      },
+    );
+    expect(opened).to.have.length(1);
+    const viewer = new URL(opened[0]);
+    expect(viewer.pathname).to.equal("/mockup");
+    expect(viewer.searchParams.get("name")).to.equal("orders-desk");
+    expect(viewer.searchParams.get("data")).to.equal("sample");
+    expect(comparison.unavailable).to.match(/serves no \/mockup viewer/);
   });
 
   it("reads a layout whose block options are null or name no string fetchUrl", async () => {
@@ -236,7 +314,6 @@ function checksRolesAndListsFailures(): void {
       viewport: "mobile",
       width: 390,
       height: 844,
-      screenshot: "page.png",
       blocks: [
         block("total", "dms-kpi-card"),
         { ...block("chart", "dms-chart-card"), present: false },
