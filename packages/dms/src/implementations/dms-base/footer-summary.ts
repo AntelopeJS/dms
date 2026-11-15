@@ -24,7 +24,7 @@ import type {
 } from "@antelopejs/interface-dms/base/table-view";
 import type { RowActionRule } from "@antelopejs/interface-dms/base/types/row-action";
 import { isRuleOperand, type RuleOperand } from "./row-rule-operand";
-import { buildFilteredQuery } from "./search-route";
+import { buildFilteredQuery, resolveListScope } from "./search-route";
 
 type SummaryReceiver = globalThis.Parameters<typeof SummarizeDeclaration>[0];
 type Row = ValueProxy<StoredRow>;
@@ -153,12 +153,8 @@ export async function summarizeWithSearch(
   user?: User,
   permissions?: Set<string>,
 ): Promise<FooterSummaryValues> {
-  const { query } = await buildFilteredQuery(
-    thisObj,
-    reqCtx,
-    params,
-    user,
-    permissions,
+  const { query } = buildFilteredQuery(
+    await resolveListScope(thisObj, reqCtx, params, user, permissions),
   );
   const meta = GetDataControllerMeta(thisObj);
   const entries = await Promise.all(

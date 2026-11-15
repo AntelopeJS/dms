@@ -50,6 +50,11 @@ interface CachedStars {
   fetchedAt: number;
 }
 
+/** What this page reads of GitHub's answer for the repository. */
+interface StarCountAnswer {
+  stargazers_count: number;
+}
+
 const stars = ref<number | null>(null);
 const formattedStars = computed(() =>
   stars.value === null
@@ -59,10 +64,34 @@ const formattedStars = computed(() =>
       ),
 );
 
+/** Whether `value` holds a number at its own field `key`. */
+function hasOwnNumber<Key extends string>(
+  value: unknown,
+  key: Key,
+): value is Record<Key, number> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Object.hasOwn(value, key) &&
+    typeof Object.getOwnPropertyDescriptor(value, key)?.value === "number"
+  );
+}
+
+/** Whether `value` is a star count this page cached, with the time it fetched it. */
+function isCachedStars(value: unknown): value is CachedStars {
+  return hasOwnNumber(value, "count") && hasOwnNumber(value, "fetchedAt");
+}
+
+/** Whether GitHub answered a star count. */
+function isStarCountAnswer(value: unknown): value is StarCountAnswer {
+  return hasOwnNumber(value, "stargazers_count");
+}
+
 function readCachedStars(): CachedStars | null {
   try {
     const raw = sessionStorage.getItem(STARS_CACHE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const cached: unknown = raw ? JSON.parse(raw) : null;
+    return isCachedStars(cached) ? cached : null;
   } catch {
     return null;
   }
@@ -76,19 +105,14 @@ function writeCachedStars(count: number): void {
   }
 }
 
-/** Whether GitHub answered a star count. */
-function isStarCount(count: unknown): count is number {
-  return typeof count === "number";
-}
-
 async function fetchStars(): Promise<number | null> {
   try {
     const response = await fetch(REPOSITORY_API, {
       headers: { Accept: "application/vnd.github+json" },
     });
     if (!response.ok) return null;
-    const { stargazers_count: count } = await response.json();
-    return isStarCount(count) ? count : null;
+    const answer: unknown = await response.json();
+    return isStarCountAnswer(answer) ? answer.stargazers_count : null;
   } catch {
     return null;
   }

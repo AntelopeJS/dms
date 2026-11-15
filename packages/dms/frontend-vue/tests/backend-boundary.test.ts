@@ -48,7 +48,9 @@ it("fails on an import of the backend source and names both files", async () => 
   await expect(failing).rejects.toThrow(
     normalizePath(join(root, "frontend/entry.ts")),
   );
-  await expect(failing).rejects.toThrow(join(root, "backend/src/api.ts"));
+  await expect(failing).rejects.toThrow(
+    normalizePath(join(root, "backend/src/api.ts")),
+  );
 });
 
 it("accepts another file of the backend package", async () => {
@@ -89,7 +91,7 @@ it("follows a symlink the resolver returns to the backend source", async () => {
     bundle(IMPORT_TARGET, [
       resolvingTo(() => join(root, "frontend/linked.ts")),
     ]),
-  ).rejects.toThrow(join(root, "backend/src/api.ts"));
+  ).rejects.toThrow(normalizePath(join(root, "backend/src/api.ts")));
 });
 
 it("sees through a query on the resolved id", async () => {
@@ -97,7 +99,7 @@ it("sees through a query on the resolved id", async () => {
     bundle(IMPORT_TARGET, [
       resolvingTo(() => `${join(root, "backend/src/api.ts")}?raw`),
     ]),
-  ).rejects.toThrow(join(root, "backend/src/api.ts"));
+  ).rejects.toThrow(normalizePath(join(root, "backend/src/api.ts")));
 });
 
 it("lets the owning package decide, not the directory name", async () => {

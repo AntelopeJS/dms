@@ -22,7 +22,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { getTableViewMetaFor } from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
-import { buildFilteredQuery } from "./search-route";
+import { buildFilteredQuery, resolveListScope } from "./search-route";
 import {
   isFunction,
   isSymbol,
@@ -112,12 +112,8 @@ export async function resolveBulkRowIds(
     ctx,
     GetDataControllerMeta(thisObj),
   );
-  const { query: rows } = await buildFilteredQuery(
-    thisObj,
-    ctx,
-    { filters },
-    user,
-    permissions,
+  const { query: rows } = buildFilteredQuery(
+    await resolveListScope(thisObj, ctx, { filters }, user, permissions),
   );
   const idField =
     getTableViewMetaFor(thisObj).options.rowIdKey ?? DEFAULT_ROW_ID_FIELD;
