@@ -35,9 +35,7 @@ i18n-registry.generated.ts
 test-results
 playwright-report
 
-# TypeScript config (local only — not shipped as part of the layer), but for the
-# layer root one that type-aware lint reads, which the package leaves out
+# TypeScript config (local only — not shipped as part of the layer)
 tsconfig.json
 tsconfig.*.json
-!/tsconfig.json
 
