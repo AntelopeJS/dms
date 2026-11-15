@@ -61,7 +61,7 @@ export type SubmitField =
 export type SubmitTarget =
   import("../../build/composables/form/useFormModel").SubmitTarget;
 
-/** A toast a submit response asks for, on top of the success one. */
+/** A toast that a submit response asks for, on top of the success one. */
 interface FormSubmitNotice {
   title: string;
   description?: string | null;
