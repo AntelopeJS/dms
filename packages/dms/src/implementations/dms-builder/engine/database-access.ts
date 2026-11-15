@@ -3,7 +3,6 @@ import type {
   DatabaseEngine,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
-import type { ProbeConnections } from "./probe-connections";
 
 /**
  * The engines `CheckDatabaseConnection` takes, as the values of the interface's `DatabaseEngine`.
@@ -15,29 +14,9 @@ export const DATABASE_ENGINES = [
   "rethinkdb",
 ] as const satisfies readonly DatabaseEngine[];
 
-export interface Privileges {
-  canRead: boolean;
-  canWrite: boolean;
-}
-
-/** What an account may do to one relation it can see: a table, a view, a collection. */
-export interface RelationAccess {
-  readable: boolean;
-  writable: boolean;
-}
-
-/**
- * Checks one connection, with `timeoutMs` to connect, and never rejects with the URL in it. Each
- * client it opens is registered with `connections` at once: the check closes them, not the probe.
- */
-export type Probe = (
-  url: string,
-  timeoutMs: number,
-  connections: ProbeConnections,
-) => Promise<DatabaseAccess>;
-
-const NO_READ = "This account cannot read this database.";
 const NOT_CHECKED = "Could not check the database";
+/** The sentence for a failure that carries no message, such as the empty `AggregateError` of a refused `localhost`, which tries each of its addresses. */
+const NO_MESSAGE = "The database could not be reached at this host and port.";
 const REDACTED = "[hidden]";
 const USERINFO = /^[a-z][a-z0-9+.-]*:\/\/([^/?#]*)@/i;
 const CONNECTION_STRING = /(?<![a-z0-9+.-])[a-z0-9+.-]+:\/\/[^\s"']+/gi;
@@ -45,79 +24,15 @@ const CONNECTION_STRING = /(?<![a-z0-9+.-])[a-z0-9+.-]+:\/\/[^\s"']+/gi;
 const NO_ANSWER_REASONS: readonly (readonly [RegExp, string])[] = [
   [/ECONNREFUSED/, "Nothing is listening at this host and port."],
   [/ENOTFOUND|EAI_AGAIN/, "This host name could not be found."],
-  [/time(?:d)? ?out|in less than/i, "The database did not answer in time."],
+  [
+    /time(?:d)? ?out|in less than|did not answer/i,
+    "The database did not answer in time.",
+  ],
 ];
-
-/**
- * Whether the account may read the database and write to it, from what it may do to each relation
- * it can see. It writes when it can write to any relation, and it reads when it can read any
- * relation or when it sees none, as the catalogs of the database drivers decide.
- */
-export function summarizeRelations(
-  relations: readonly RelationAccess[],
-): Privileges {
-  return {
-    canRead:
-      relations.length === 0 || relations.some(({ readable }) => readable),
-    canWrite: relations.some(({ writable }) => writable),
-  };
-}
 
 /** No server answered: the host, the port or the network is wrong. */
 export function unanswered(reason: string): DatabaseAccess {
   return { reachable: false, canRead: false, canWrite: false, reason };
-}
-
-/** A server answered and turned the sign-in, or the database, down. */
-export function refusedBy(reason: string): DatabaseAccess {
-  return { reachable: true, canRead: false, canWrite: false, reason };
-}
-
-/**
- * The account signed in, or the server asked for no sign-in and `user` is `undefined`. A reason
- * comes with it when it cannot read.
- */
-export function signedIn(
-  latencyMs: number,
-  user: string | undefined,
-  privileges: Privileges,
-  unreadable: string = NO_READ,
-): DatabaseAccess {
-  const access: DatabaseAccess = { reachable: true, latencyMs, ...privileges };
-  if (user !== undefined) {
-    access.user = user;
-  }
-  if (!privileges.canRead) {
-    access.reason = unreadable;
-  }
-  return access;
-}
-
-/** The client package of the engine is installed neither with this module nor in the project. */
-export function missingClient(
-  packageName: string,
-  engineLabel: string,
-): DatabaseAccess {
-  return unanswered(
-    `Install ${packageName} to connect a ${engineLabel} database.`,
-  );
-}
-
-const LAST_CONTROL_CHARACTER = 0x1f;
-const DELETE_CHARACTER = 0x7f;
-
-/**
- * Whether `url` holds a C0 control character or DEL, which the WHATWG URL parser the clients read a
- * URL with drops or rewrites: a check that reads such a URL otherwise sees other keys than the client.
- */
-export function hasControlCharacter(url: string): boolean {
-  for (let index = 0; index < url.length; index += 1) {
-    const code = url.charCodeAt(index);
-    if (code <= LAST_CONTROL_CHARACTER || code === DELETE_CHARACTER) {
-      return true;
-    }
-  }
-  return false;
 }
 
 function decoded(text: string): string {
@@ -148,10 +63,11 @@ export function redact(message: string, url: string): string {
 
 const ThrownMessage = z
   .instanceof(Error)
+  .pipe(z.object({ message: z.string() }))
   .transform(({ message }) => message)
   .catch("The check ended with an error that carries no message.");
 
-/** The message of a thrown `Error`; any other thrown value says nothing a person could use. */
+/** The message of a thrown `Error`; any other thrown value, or a message that is no string, says nothing a person could use. */
 export function failureMessage(error: unknown): string {
   return ThrownMessage.parse(error);
 }
@@ -172,12 +88,19 @@ function withoutQuery(message: string): string {
 
 /** The sentence for a failure no server answered: its own, or the driver's message with the query and the secrets removed. */
 export function noAnswerReason(message: string, url: string): string {
-  const text = withoutQuery(message);
+  const text = withoutQuery(message).trim();
+  if (text === "") {
+    return NO_MESSAGE;
+  }
   const known = NO_ANSWER_REASONS.find(([pattern]) => pattern.test(text));
   return known ? known[1] : `${NOT_CHECKED}: ${redact(text, url)}`;
 }
 
-/** The sentence for a failure a server answered with, when the engine has none of its own. */
-export function serverRefusal(message: string, url: string): string {
-  return `The server refused the request: ${redact(withoutQuery(message), url)}`;
+/**
+ * The sentence for a sign-in that did not happen and has no sentence of its own: the server
+ * refused it, or the driver's probe refused the URL, such as a mechanism that would sign in with
+ * the identity of this host. It names no culprit, since it cannot tell the two apart.
+ */
+export function signInRefusal(message: string, url: string): string {
+  return `Could not sign in: ${redact(withoutQuery(message), url)}`;
 }

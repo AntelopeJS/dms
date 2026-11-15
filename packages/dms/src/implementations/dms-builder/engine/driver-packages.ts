@@ -61,6 +61,11 @@ const DRIVERS: Record<DatabaseEngine, Driver> = {
   },
 };
 
+/** The package of the driver module of `engine`. */
+export function driverPackageName(engine: DatabaseEngine): string {
+  return DRIVERS[engine].package;
+}
+
 const Manifest = z.object({ version: z.string() });
 
 /**

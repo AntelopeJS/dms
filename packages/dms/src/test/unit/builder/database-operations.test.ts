@@ -15,7 +15,7 @@ import {
   checkConnection,
   parseCheckInput,
   setCatalogConnectionsForTests,
-  setClientLoaderForTests,
+  setProbeLoaderForTests,
 } from "../../../implementations/dms-builder/engine";
 import {
   DATABASE_ENGINE_SCHEMES,
@@ -109,7 +109,7 @@ describe("checking a database connection", () => {
   });
 
   it("refuses a MySQL URL whose host is a socket path, which mysql2 would look up as a host name", async () => {
-    setClientLoaderForTests(() => undefined);
+    setProbeLoaderForTests(() => undefined);
     const answer = async (engine: DatabaseEngine, url: string) => {
       const result = await checkConnection(
         parseCheckInput({ engine, url }),
@@ -150,20 +150,23 @@ describe("checking a database connection", () => {
         await answer("postgres", "postgres://u@%2Fvar%2Frun%2Fpostgresql/erp"),
       ).to.equal("checked");
     } finally {
-      setClientLoaderForTests();
+      setProbeLoaderForTests();
     }
   });
 });
 
-/** Fails on a check that sends an input to another engine's probe, or answers a missing client with the driver's error. */
-describe("checking a database whose client is not installed", () => {
-  it("answers, for every scheme of every engine, the sentence that installs that engine's client", async () => {
-    setClientLoaderForTests(() => undefined);
+/** Fails on a check that sends an input to another engine's probe, or answers a missing driver with its require error. */
+describe("checking a database whose driver is not installed", () => {
+  it("answers, for every scheme of every engine, the sentence that installs that engine's driver", async () => {
+    setProbeLoaderForTests(() => undefined);
     const sentences: Record<DatabaseEngine, string> = {
-      postgres: "Install pg to connect a PostgreSQL database.",
-      mysql: "Install mysql2 to connect a MySQL or MariaDB database.",
-      mongodb: "Install mongodb to connect a MongoDB database.",
-      rethinkdb: "Install rethinkdb-ts to connect a RethinkDB database.",
+      postgres:
+        "Install @antelopejs/postgres to connect a PostgreSQL database.",
+      mysql:
+        "Install @antelopejs/mysql to connect a MySQL or MariaDB database.",
+      mongodb: "Install @antelopejs/mongodb to connect a MongoDB database.",
+      rethinkdb:
+        "Install @antelopejs/rethinkdb to connect a RethinkDB database.",
     };
     try {
       for (const [engine, schemes] of Object.entries(DATABASE_ENGINE_SCHEMES)) {
@@ -187,7 +190,7 @@ describe("checking a database whose client is not installed", () => {
         }
       }
     } finally {
-      setClientLoaderForTests();
+      setProbeLoaderForTests();
     }
   });
 });
