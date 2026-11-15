@@ -79,7 +79,7 @@ const STEPS = [
   },
   {
     when: (selected) => selected.has("verify-dms"),
-    command: "node --test .agents/skills/verify-dms/rows.test.mjs",
+    command: "node --test e2e/rows.test.mjs",
   },
   {
     when: (selected) => selected.has("dms"),

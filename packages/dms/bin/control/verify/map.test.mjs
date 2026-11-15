@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { checkMap, planFor } from "./map.mjs";
+import { loadSkill } from "./skill.mjs";
 
 const JOURNEYS = (/** @type {string} */ id) =>
   `export const journeys = [{ id: "${id}", title: "t", entryPoint: "e", async run() {} }];\n`;
@@ -167,6 +168,30 @@ await test("all runs every feature on a diff that touches none and lists no shar
   assert.deepEqual(plan.run, ["smoke", "a", "b"]);
   assert.deepEqual(plan.shared, []);
   assert.deepEqual(planFor(skill, base).run, ["smoke"]);
+});
+
+await test("a config that names a journeys folder has map read the journeys there and name that path; a loader that keeps the skill's journeys/ reports every feature without journeys", async (t) => {
+  const { repo } = fixture(t, {
+    "skill/verify.config.ts": `export default ${JSON.stringify({
+      playground: "p",
+      prepare: [],
+      userFacing: ["src/**"],
+      smoke: "smoke",
+      smokeJourney: "",
+      journeys: "e2e/journeys",
+      doors: {},
+      formal: [],
+    })};\n`,
+    "e2e/journeys/smoke.mjs": JOURNEYS("smoke"),
+    "e2e/journeys/a.mjs": JOURNEYS("a-journey"),
+    "e2e/journeys/orphan.mjs": JOURNEYS("orphan"),
+  });
+  git(repo, "rm", "-q", "skill/journeys/b.mjs");
+  const skill = await loadSkill(join(repo, "skill"), repo);
+  assert.deepEqual(await checkMap(skill), [
+    "skill/features/b.md: no e2e/journeys/b.mjs",
+    "e2e/journeys/orphan.mjs has no features/orphan.md",
+  ]);
 });
 
 await test("map fails a shared glob that matches no tracked file or only notShared ones; a checkMap blind to shared globs lets a renamed lockfile glob rot", async (t) => {

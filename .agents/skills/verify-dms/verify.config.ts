@@ -35,6 +35,8 @@ export interface VerifyConfig {
   notShared: string[];
   smoke: string;
   smokeJourney: string;
+  /** The folder of the journeys modules, relative to the repository root. Absent: `journeys/` in the skill folder. */
+  journeys?: string;
   doors: Record<DoorKind, DoorRule | null>;
   formal: FormalCheck[];
 }
@@ -78,6 +80,7 @@ const config: VerifyConfig = {
   notShared: ["packages/dms/test-hosts/**", "packages/interface-dms/src/**/*.test.ts"],
   smoke: "smoke",
   smokeJourney: "onboard → login → invite a member → reload",
+  journeys: "e2e/journeys",
   doors: {
     data: {
       globs: [

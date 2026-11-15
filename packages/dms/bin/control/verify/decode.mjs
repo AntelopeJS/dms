@@ -36,7 +36,7 @@ const isDoorRule = objectOf({
   why: isString,
 });
 
-/** The default export of a skill's `verify.config.ts`. `notUserFacing`, `shared` and `notShared` may be absent. */
+/** The default export of a skill's `verify.config.ts`. `notUserFacing`, `shared`, `notShared`, `renderer` and `journeys` may be absent. */
 export const isSkillConfig = objectOf(
   {
     playground: isString,
@@ -52,6 +52,7 @@ export const isSkillConfig = objectOf(
     shared: strings,
     notShared: strings,
     renderer: isString,
+    journeys: isString,
   },
 );
 
