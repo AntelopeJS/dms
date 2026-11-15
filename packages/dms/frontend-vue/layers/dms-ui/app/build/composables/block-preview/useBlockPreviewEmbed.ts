@@ -30,6 +30,7 @@ import {
   previewNavigation,
 } from "./previewNavigation";
 import { useBlockInspector } from "./useBlockInspector";
+import { applyFixturesOnlyPolicy } from "../../utils/previewFixturesOnly";
 
 /** What the embedded preview shows: `?state=` first, then each message. */
 export interface BlockPreviewEmbed {
@@ -50,6 +51,11 @@ interface EmbedOptions {
   root: Readonly<ShallowRef<HTMLElement | null>>;
   initialState: PreviewState | undefined;
   setLocale: (locale: string) => void;
+  /**
+   * Draws a mockup on its fixtures alone: before it says `ready`, the page
+   * puts on its document a policy that refuses every live route.
+   */
+  fixturesOnly?: boolean;
 }
 
 function postToParent(message: PreviewOutboundMessage): void {
@@ -164,6 +170,9 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   watch(locale, (next) => next && options.setLocale(next), { immediate: true });
 
   onMounted(() => {
+    if (options.fixturesOnly) {
+      applyFixturesOnlyPolicy(document, window.location);
+    }
     applyTheme(theme.value);
     window.addEventListener("message", onMessage);
     window.addEventListener("resize", reportLayout);

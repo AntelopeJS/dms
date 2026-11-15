@@ -1,11 +1,47 @@
-import { describe, expect, it } from "vitest";
-import { fixturesOnlyPolicy } from "../layers/dms-ui/app/build/utils/previewFixturesOnly";
+/** @vitest-environment jsdom */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type App, createApp, defineComponent, h, shallowRef } from "vue";
+import { useBlockPreviewEmbed } from "../layers/dms-ui/app/entries/composables/block-preview/useBlockPreviewEmbed";
 
-const LOCATION = {
-  origin: "http://localhost:3001",
-  host: "localhost:3001",
-  protocol: "http:",
-};
+const POLICY = 'meta[http-equiv="Content-Security-Policy"]';
+const LIVE = [
+  "/api/dashboard/kpi/revenue",
+  "/api/files/metadata?resourceKey=k",
+  "/api/user/list",
+  "/avatar.png",
+  "https://elsewhere.test/api/mockup/demo/pages/p/fixtures/k",
+];
+
+let app: App | undefined;
+
+class FakeResizeObserver {
+  observe(): void {}
+  disconnect(): void {}
+}
+
+/** Mounts the embed side of `/dms-preview`, and answers the policy its document then carries. */
+function mountEmbed(fixturesOnly: boolean): string | undefined {
+  const host = document.createElement("div");
+  document.body.append(host);
+  app = createApp(
+    defineComponent({
+      setup() {
+        const root = shallowRef<HTMLElement | null>(null);
+        useBlockPreviewEmbed({
+          root,
+          initialState: undefined,
+          setLocale: () => undefined,
+          fixturesOnly,
+        });
+        return () => h("div", { ref: root });
+      },
+    }),
+  );
+  app.mount(host);
+  return (
+    document.head.querySelector(POLICY)?.getAttribute("content") ?? undefined
+  );
+}
 
 /** The sources of one directive of `policy`. */
 function sourcesOf(policy: string, directive: string): string[] {
@@ -18,7 +54,7 @@ function sourcesOf(policy: string, directive: string): string[] {
 
 /** Whether a CSP source list admits `url`, as a browser matches a scheme, a host or a path prefix. */
 function admits(sources: readonly string[], url: string): boolean {
-  const target = new URL(url);
+  const target = new URL(url, window.location.origin);
   return sources.some((source) => {
     if (source === "*" || source === "'self'") return true;
     if (source.endsWith(":") && !source.includes("/"))
@@ -31,53 +67,44 @@ function admits(sources: readonly string[], url: string): boolean {
   });
 }
 
-const LIVE = [
-  "http://localhost:3001/api/dashboard/kpi/revenue",
-  "http://localhost:3001/api/files/metadata?resourceKey=k",
-  "http://localhost:3001/api/user/list",
-  "http://localhost:3001/avatar.png",
-  "https://elsewhere.test/api/mockup/demo/pages/p/fixtures/k",
-];
+beforeEach(() => {
+  vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+});
+
+afterEach(() => {
+  app?.unmount();
+  app = undefined;
+  document.head.querySelectorAll(POLICY).forEach((meta) => meta.remove());
+  document.body.innerHTML = "";
+  vi.unstubAllGlobals();
+});
 
 describe("a preview drawn on fixtures", () => {
   it("lets no image, media or connection reach a route outside the mockup's own", () => {
-    const policy = fixturesOnlyPolicy(LOCATION);
+    const policy = mountEmbed(true) ?? "";
     for (const directive of ["img-src", "media-src", "connect-src"]) {
       const sources = sourcesOf(policy, directive);
       expect(sources.length, directive).toBeGreaterThan(0);
       for (const url of LIVE)
         expect(admits(sources, url), `${directive} ${url}`).toBe(false);
     }
+    expect(sourcesOf(policy, "frame-src")).toEqual(["'none'"]);
+    expect(sourcesOf(policy, "object-src")).toEqual(["'none'"]);
   });
 
   it("still reads the mockup's fixtures, its realtime session and its assets", () => {
-    const policy = fixturesOnlyPolicy(LOCATION);
+    const policy = mountEmbed(true) ?? "";
+    const connect = sourcesOf(policy, "connect-src");
+    const images = sourcesOf(policy, "img-src");
     expect(
-      admits(
-        sourcesOf(policy, "connect-src"),
-        "http://localhost:3001/api/mockup/demo/pages/p/fixtures/k/rows?offset=0",
-      ),
+      admits(connect, "/api/mockup/demo/pages/p/fixtures/k/rows?offset=0"),
     ).toBe(true);
-    expect(
-      admits(
-        sourcesOf(policy, "connect-src"),
-        "http://localhost:3001/api/realtime/session",
-      ),
-    ).toBe(true);
-    expect(
-      admits(
-        sourcesOf(policy, "img-src"),
-        "http://localhost:3001/_nuxt/logo.svg",
-      ),
-    ).toBe(true);
-    expect(
-      admits(sourcesOf(policy, "img-src"), "data:image/png;base64,AA=="),
-    ).toBe(true);
+    expect(admits(connect, "/api/realtime/session")).toBe(true);
+    expect(admits(images, "/_nuxt/logo.svg")).toBe(true);
+    expect(admits(images, "data:image/png;base64,AA==")).toBe(true);
   });
 
-  it("refuses frames and plugins outright", () => {
-    const policy = fixturesOnlyPolicy(LOCATION);
-    expect(sourcesOf(policy, "frame-src")).toEqual(["'none'"]);
-    expect(sourcesOf(policy, "object-src")).toEqual(["'none'"]);
+  it("puts no policy on a preview that reads live routes, such as a docs or Real data one", () => {
+    expect(mountEmbed(false)).toBeUndefined();
   });
 });
