@@ -7,7 +7,6 @@ import { scaffoldLocalModule } from "../../../implementations/dms-builder/engine
 import { gitInit, runScript } from "./helpers/processes";
 
 const CHECK_TIMEOUT = 180_000;
-const TOOLING_CONFIGS = "@antelopejs/tooling-configs@0.7.2";
 const RANGES_STEP = "dependency:ranges";
 const SKIP_VARIABLE = "ANTELOPEJS_CHECKS_SKIP";
 const OTHER_STEPS = [
@@ -28,17 +27,15 @@ const OTHER_STEPS = [
   "published:types",
 ];
 const NODE_BIN = path.dirname(process.execPath);
+/** The bins this package installs, `antelopejs-checks` among them. */
+const PACKAGE_BIN = path.resolve(__dirname, "../../../../node_modules/.bin");
 
 let root: string;
 let skipped: string | undefined;
 
 /** The `dependency:ranges` step of the AntelopeJS checks, alone, on the repository at `directory`. */
 function checkRanges(directory: string) {
-  return runScript(
-    `pnpm --silent --package=${TOOLING_CONFIGS} dlx antelopejs-checks --no-services`,
-    directory,
-    NODE_BIN,
-  );
+  return runScript("antelopejs-checks --no-services", directory, PACKAGE_BIN);
 }
 
 describe("the manifest of a scaffolded module", function () {
