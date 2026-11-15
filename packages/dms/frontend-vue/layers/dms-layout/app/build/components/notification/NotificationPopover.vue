@@ -3,6 +3,7 @@ import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import NotificationCard from "./NotificationCard.vue";
 import { useNavBadges } from "#dms-ui/app/entries/composables/navigation/useNavBadges";
 import { settleWidgetRequest } from "./widgetRequest";
+import { submittedUrlOf } from "../../utils/submittedUrl";
 import {
   settledRenderedBellCounts,
   type UserNotification,
@@ -73,10 +74,7 @@ const refreshCounts = () =>
   });
 
 const handleFormSubmitSuccess = async (event: Event) => {
-  const customEvent = event as CustomEvent;
-  const submitUrl = customEvent.detail?.data?.submitUrl;
-
-  if (submitUrl && submitUrl.includes("/api/notification/")) {
+  if (submittedUrlOf(event)?.includes("/api/notification/")) {
     if (!isOpen.value) {
       await refreshCounts();
     }

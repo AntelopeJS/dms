@@ -136,11 +136,11 @@ function handOverToRerun(state: CoordinatorState): boolean {
   if (!state.rerunPending) return false;
   state.rerunPending = false;
 
-  void runRefresh(
+  runRefresh(
     state,
     state.deps.currentPath(),
     state.deps.now() + ROUTE_READY_TIMEOUT_MS,
-  );
+  ).catch(() => false);
   return true;
 }
 
@@ -156,7 +156,7 @@ function runRefresh(
     deps.setReloading(false);
   }, RELOAD_FLAG_MAX_MS);
   const started: Promise<boolean> = softRefresh(path, deadline, deps, deps)
-    .catch((err) => {
+    .catch((err: unknown) => {
       console.error("[dms-dev-reload] Soft refresh failed:", err);
       return false;
     })
@@ -315,7 +315,7 @@ export function useDevReloadHolder(): DevReloadHolder {
       if (router.currentRoute.value.path !== recoveredPath) return;
       const err = currentError.value;
       if (!err || err.statusCode !== HTTP_NOT_FOUND) return;
-      void clearDmsError();
+      currentError.value = null;
     },
     setReloading: (value) => {
       reloading.value = value;

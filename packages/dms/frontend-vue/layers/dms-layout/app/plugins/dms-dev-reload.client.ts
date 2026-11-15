@@ -30,7 +30,7 @@ export default defineDmsPlugin(() => {
     {
       endpoint,
       onReload: () => {
-        void coordinator.requestRefresh().catch((err) => {
+        void coordinator.requestRefresh().catch((err: unknown) => {
           console.error("[dms-dev-reload] Reload handler failed:", err);
         });
       },

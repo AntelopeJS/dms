@@ -1,4 +1,5 @@
-import type { AsyncComponentLoader } from "vue";
+import type { AsyncComponentLoader, Component } from "vue";
+import { isFunction } from "#dms-core/app/utils/type-check";
 
 function collectFromComponentInfo(
   info: ComponentInfo | undefined,
@@ -35,17 +36,24 @@ export function collectPageLayoutComponentNames(
   return [...names];
 }
 
+/** A component `defineAsyncComponent` made, which keeps its chunk loader. */
 interface AsyncComponentWithLoader {
-  __asyncLoader?: AsyncComponentLoader;
+  __asyncLoader: AsyncComponentLoader;
+}
+
+function hasAsyncLoader(
+  component: Component,
+): component is Component & AsyncComponentWithLoader {
+  return "__asyncLoader" in component && isFunction(component.__asyncLoader);
 }
 
 function loadPageLayoutComponents(layout: PageLayout | null | undefined) {
   return Promise.all(
-    collectPageLayoutComponentNames(layout).map((name) => {
-      const component = resolveDmsComponent(name) as
-        | AsyncComponentWithLoader
-        | undefined;
-      return component?.__asyncLoader?.();
+    collectPageLayoutComponentNames(layout).flatMap((name) => {
+      const component = resolveDmsComponent(name);
+      return component && hasAsyncLoader(component)
+        ? [component.__asyncLoader()]
+        : [];
     }),
   );
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
+import { isString } from "#dms-core/app/utils/type-check";
 import UButton from "@nuxt/ui/components/Button.vue";
 import RoleEditor from "../../build/components/pages/settings/roles/RoleEditor.vue";
 import RoleOwnerPanel from "../../build/components/pages/settings/roles/RoleOwnerPanel.vue";
@@ -230,7 +231,10 @@ async function requestDelete(): Promise<void> {
     {
       urlParams: { id: encodeURIComponent(role._id) },
       run: (values) =>
-        deleteRole(role, (values.reassignTo as string | null) ?? null),
+        deleteRole(
+          role,
+          isString(values.reassignTo) ? values.reassignTo : null,
+        ),
     },
   );
 }

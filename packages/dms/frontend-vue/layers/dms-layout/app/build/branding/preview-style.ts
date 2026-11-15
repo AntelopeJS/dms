@@ -1,5 +1,6 @@
 import { PALETTE_SHADES, paletteShade } from "./catalog";
-import type { ThemeDraft, ThemeMode } from "./theme-types";
+import { isFunction, isUndefined } from "#dms-core/app/utils/type-check";
+import type { ThemeDraft, ThemeMode, ThemeVariables } from "./theme-types";
 
 /**
  * The custom properties the DMS's own stylesheets declare, raw (`var(...)`
@@ -57,12 +58,12 @@ function modeOf(selectorText: string): keyof DmsTokens | undefined {
 function holds(rule: ReadableRule): boolean {
   if (rule.media) {
     return (
-      typeof matchMedia !== "function" ||
+      !isFunction(globalThis.matchMedia) ||
       matchMedia(rule.media.mediaText).matches
     );
   }
   if (rule.conditionText !== undefined) {
-    return typeof CSS === "undefined" || CSS.supports(rule.conditionText);
+    return isUndefined(globalThis.CSS) || CSS.supports(rule.conditionText);
   }
   return true;
 }
@@ -147,15 +148,15 @@ export interface PreviewStyleInput {
 function paletteVariables(
   draft: ThemeDraft,
   dmsColors: PreviewStyleInput["dmsColors"],
-): Record<string, string> {
+): ThemeVariables {
   const roles = new Set([
     ...Object.keys(dmsColors),
     ...Object.keys(draft.colors),
   ]);
-  const draftColors: Partial<Record<string, string>> = draft.colors;
-  const variables: Record<string, string> = {};
+  const draftColors = new Map(Object.entries(draft.colors));
+  const variables: ThemeVariables = {};
   for (const role of roles) {
-    const palette = draftColors[role] ?? dmsColors[role];
+    const palette = draftColors.get(role) ?? dmsColors[role];
     if (!palette) continue;
     for (const shade of PALETTE_SHADES) {
       variables[`--ui-color-${role}-${shade}`] = paletteShade(palette, shade);
@@ -170,11 +171,12 @@ function paletteVariables(
  * draft's shared and mode values. Inline beats every stylesheet rule, so the
  * saved theme and the page's own mode cannot leak in.
  */
-export function previewStyle(input: PreviewStyleInput): Record<string, string> {
+export function previewStyle(input: PreviewStyleInput): ThemeVariables {
   const { tokens, draft, mode } = input;
+  const modeTokens =
+    mode === "dark" ? { ...tokens.light, ...tokens.dark } : tokens.light;
   return {
-    ...tokens.light,
-    ...(mode === "dark" ? tokens.dark : {}),
+    ...modeTokens,
     ...paletteVariables(draft, input.dmsColors),
     ...draft.variables.shared,
     ...draft.variables[mode],

@@ -60,10 +60,10 @@ export function accountExportFilename(at: Date = new Date()): string {
 function useAccountDataContext() {
   const { $authFetch } = useAuthFetch();
   const { confirm } = useConfirm();
-  const { user, clear } = useDmsUserSession<User>();
+  const userSession = useDmsUserSession<User>();
   const { removeAccount } = useMultiAccount();
   const { processApiMessage } = useTranslation();
-  const { presentError, resolveError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const toast = useToast();
   const { t } = useI18n();
 
@@ -86,15 +86,17 @@ function useAccountDataContext() {
         title: t(`${I18N}.export_done`),
       });
     } catch (error) {
-      presentError(error, { fallbackKey: `${I18N}.export_error` });
+      errorPresenter.presentError(error, {
+        fallbackKey: `${I18N}.export_error`,
+      });
     } finally {
       isExporting.value = false;
     }
   }
 
   async function signOutDeleted(): Promise<void> {
-    const userId = user.value?._id;
-    await clear().catch(() => undefined);
+    const userId = userSession.user.value?._id;
+    await userSession.clear().catch(() => undefined);
     if (userId) await removeAccount(userId).catch(() => undefined);
     toast.add({
       color: "success",
@@ -113,8 +115,7 @@ function useAccountDataContext() {
     t,
     isExporting,
     isCheckingDeletion,
-    presentError,
-    resolveError,
+    errorPresenter,
     exportData,
     signOutDeleted,
   };
@@ -246,8 +247,7 @@ export function useAccountData() {
   const {
     $authFetch,
     confirm,
-    presentError,
-    resolveError,
+    errorPresenter,
     t,
     isCheckingDeletion,
     signOutDeleted,
@@ -293,7 +293,7 @@ export function useAccountData() {
         throw new ConfirmTextError(fieldError.message, { cause: error });
       }
       if (fieldError?.field === "password") {
-        passwordError.value = resolveError(fieldError.message, {
+        passwordError.value = errorPresenter.resolveError(fieldError.message, {
           fallbackKey: fieldError.fallbackKey ?? "dms.field_errors.invalid",
           params: fieldError.params,
         })?.message;
@@ -301,7 +301,9 @@ export function useAccountData() {
         passwordInput.value?.inputRef?.focus();
         return false;
       }
-      presentError(error, { fallbackKey: `${I18N}.delete_error` });
+      errorPresenter.presentError(error, {
+        fallbackKey: `${I18N}.delete_error`,
+      });
       return false;
     }
   }
@@ -337,7 +339,9 @@ export function useAccountData() {
     try {
       impact = await $authFetch<AccountDeletionImpact>(DELETION_ENDPOINT);
     } catch (error) {
-      presentError(error, { fallbackKey: `${I18N}.delete_error` });
+      errorPresenter.presentError(error, {
+        fallbackKey: `${I18N}.delete_error`,
+      });
       return;
     } finally {
       isCheckingDeletion.value = false;

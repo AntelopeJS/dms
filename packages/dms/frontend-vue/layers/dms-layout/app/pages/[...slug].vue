@@ -7,12 +7,16 @@ import { usePageDataRefresh } from "#dms-ui/app/entries/composables/live/usePage
 import { usePageRecordDeletion } from "../composables/page/usePageRecordDeletion";
 import { pageValidationRedirect } from "../build/utils/pageValidationRedirect";
 import { resolveComponentChildren } from "#dms-ui/app/utils/componentTree";
-import { isFunction } from "#dms-core/app/utils/type-check";
+import { isFunction, isObject, isString } from "#dms-core/app/utils/type-check";
 import type { ValidationRouteContext } from "#dms-core/app/utils/query-validation";
 
 defineOptions({ inheritAttrs: false });
 
 const devReloading = import.meta.env.DEV ? useDevReloading() : ref(false);
+
+function isComponentEventData(value: unknown): value is ComponentEventData {
+  return value !== null && isObject(value) && isString(value.component);
+}
 
 function normalizePath(path: string): string {
   return withoutTrailingSlash(path) || "/";
@@ -108,8 +112,12 @@ function isPageValid(
     query,
   );
 
-  const getValidationFunction = (id: string) =>
-    getFunction(id) as ValidationFunction | undefined;
+  const getValidationFunction = (
+    id: string,
+  ): ValidationFunction | undefined => {
+    const validate = getFunction(id);
+    return validate && ((route) => validate(route) === true);
+  };
 
   const isCustomValid = runCustomValidation(
     validation.customFunctionId,
@@ -244,8 +252,8 @@ function buildPageSetupContext(
     },
     on(component, event, handler) {
       const listener = (e: Event) => {
-        const detail = (e as CustomEvent<ComponentEventData>).detail;
-        if (!detail || detail.component !== component) {
+        const detail: unknown = e instanceof CustomEvent ? e.detail : null;
+        if (!isComponentEventData(detail) || detail.component !== component) {
           return;
         }
         handler(detail.data);

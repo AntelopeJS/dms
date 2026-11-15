@@ -28,8 +28,8 @@ export default defineDmsPlugin(async () => {
   });
 
   if (typeof window !== "undefined")
-    watch(metaTitle, (title) => {
-      if (!title) void refresh();
+    watch(metaTitle, async (title) => {
+      if (!title) await refresh();
     });
 
   if (!metaTitle.value) await refresh();

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, type VNode } from "vue";
 
 import DmsIconWell, {
   type IconWellTone,
@@ -46,7 +46,7 @@ const placeholderText = computed(() =>
 
 defineSlots<{
   /** The summary, after the lead. */
-  default?: () => unknown;
+  default?: () => VNode[];
 }>();
 
 const { t } = useI18n();

@@ -1,3 +1,5 @@
+import { isString } from "#dms-core/app/utils/type-check";
+
 const NAVIGATE_TOPIC = "dms:navigate";
 
 /**
@@ -6,8 +8,8 @@ const NAVIGATE_TOPIC = "dms:navigate";
  */
 export default defineDmsPlugin(() => {
   const router = useDmsRouter();
-  useUserRealtime().subscribe(NAVIGATE_TOPIC, (event) => {
+  useUserRealtime().subscribe(NAVIGATE_TOPIC, async (event) => {
     const path = "payload" in event ? event.payload?.path : undefined;
-    if (typeof path === "string") void router.push(path);
+    if (isString(path)) await router.push(path);
   });
 });

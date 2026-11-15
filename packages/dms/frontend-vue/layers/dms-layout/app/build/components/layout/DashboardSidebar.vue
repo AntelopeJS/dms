@@ -59,7 +59,7 @@ watch(
 
 function closeOnLinkClick(event: MouseEvent): void {
   if (!sidebarOpen.value) return;
-  if ((event.target as Element | null)?.closest("a[href]")) {
+  if (event.target instanceof Element && event.target.closest("a[href]")) {
     closeMobileSidebar();
   }
 }

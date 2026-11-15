@@ -1,5 +1,5 @@
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
-import { isString } from "#dms-core/app/utils/type-check";
+import { isObject, isString } from "#dms-core/app/utils/type-check";
 
 const MS_PER_SECOND = 1000;
 const MS_PER_MINUTE = 60 * MS_PER_SECOND;
@@ -22,8 +22,13 @@ const RELATIVE_UNITS: RelativeUnit[] = [
   { unit: "minute", ms: MS_PER_MINUTE },
 ];
 
-interface FetchErrorLike {
-  data?: unknown;
+/** A `$authFetch` failure whose body is an API error code (`error.xxx`). */
+interface CodedFetchError {
+  data: string;
+}
+
+function isCodedFetchError(error: unknown): error is CodedFetchError {
+  return error !== null && isObject(error) && isString(error.data);
 }
 
 type DateInput = string | Date;
@@ -34,7 +39,7 @@ type DateInput = string | Date;
  */
 export function useSecurityFormat() {
   const { locale } = useI18n();
-  const { resolveError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
 
   const formatDate = (value: DateInput): string =>
     regionalDateTimeFormat(locale.value, { dateStyle: "medium" }).format(
@@ -72,14 +77,12 @@ export function useSecurityFormat() {
    * @param fallbackKey Message used when the error carries no known code
    */
   const errorMessage = (error: unknown, fallbackKey: string): string => {
-    return resolveError(error, { fallbackKey })?.message ?? "";
+    return errorPresenter.resolveError(error, { fallbackKey })?.message ?? "";
   };
 
   /** @returns The error code (`error.xxx`) the API answered with, if any */
-  const errorCode = (error: unknown): string | undefined => {
-    const code = (error as FetchErrorLike | undefined)?.data;
-    return isString(code) ? code : undefined;
-  };
+  const errorCode = (error: unknown): string | undefined =>
+    isCodedFetchError(error) ? error.data : undefined;
 
   return {
     formatDate,

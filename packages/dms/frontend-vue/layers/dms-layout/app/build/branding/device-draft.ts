@@ -1,3 +1,4 @@
+import { isString } from "#dms-core/app/utils/type-check";
 import {
   logoKey,
   parseLogoKey,
@@ -235,7 +236,7 @@ async function storedBlob(
     store.get(blobKeyOf(layer, name)),
   );
   const value: unknown = found?.result;
-  return typeof value === "string" ? value : undefined;
+  return isString(value) ? value : undefined;
 }
 
 /** The draft with a slot showing in a mode what the saved theme holds there. */

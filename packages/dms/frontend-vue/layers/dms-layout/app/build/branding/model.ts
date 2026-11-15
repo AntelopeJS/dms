@@ -83,9 +83,13 @@ export function editOf(saved: SavedTheme): ThemeEdit {
 
 type Values = Partial<Record<string, string>>;
 
+function ownValue(values: Values, key: string): string | undefined {
+  return Object.hasOwn(values, key) ? values[key] : undefined;
+}
+
 function differingKeys(next: Values, saved: Values): string[] {
   return [...new Set([...Object.keys(next), ...Object.keys(saved)])].filter(
-    (key) => next[key] !== saved[key],
+    (key) => ownValue(next, key) !== ownValue(saved, key),
   );
 }
 
@@ -134,7 +138,7 @@ function rebaseValues(
     ),
   );
   for (const key of differingKeys(draft, from)) {
-    const value = draft[key];
+    const value = ownValue(draft, key);
     if (value === undefined) result.delete(key);
     else result.set(key, value);
   }

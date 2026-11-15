@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { type ComponentPublicInstance, ref } from "vue";
 import { backgroundHex } from "./color-input";
 import { THEME_MODES, type ThemeMode } from "./theme-types";
 
@@ -23,7 +23,10 @@ const pickerValue = ref<Record<ThemeMode, string>>({
   dark: "#000000",
 });
 
-function setHalf(mode: ThemeMode, element: unknown): void {
+function setHalf(
+  mode: ThemeMode,
+  element: Element | ComponentPublicInstance | null,
+): void {
   halves[mode] = element instanceof HTMLElement ? element : null;
 }
 

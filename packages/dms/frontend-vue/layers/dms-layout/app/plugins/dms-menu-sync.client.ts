@@ -37,13 +37,13 @@ export default defineDmsPlugin(() => {
           permissions.fetchPermissions(),
         ]);
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error("[dms-menu-sync] Menu resync failed:", error);
       });
 
-  const onMenuEvent: RealtimeTopicHandler = (event) => {
+  const onMenuEvent: RealtimeTopicHandler = async (event) => {
     if (!("type" in event) || event.type !== MENU_CHANGED_EVENT_TYPE) return;
-    void refresh();
+    await refresh();
   };
 
   watchRealtimeReconnects(realtime.sessionId, () => void refresh());

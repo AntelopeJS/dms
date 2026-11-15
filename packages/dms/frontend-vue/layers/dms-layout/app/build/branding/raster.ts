@@ -33,11 +33,14 @@ export function svgAspect(text: string): number | undefined {
   return width > 0 && height > 0 ? width / height : undefined;
 }
 
-/** The email header's size for an aspect ratio. */
-export function emailLogoSize(aspect: number): {
+/** A drawing's size in pixels. */
+interface PixelSize {
   width: number;
   height: number;
-} {
+}
+
+/** The email header's size for an aspect ratio. */
+export function emailLogoSize(aspect: number): PixelSize {
   const width = Math.min(
     Math.round(EMAIL_LOGO_HEIGHT * aspect),
     EMAIL_LOGO_MAX_WIDTH,
@@ -57,7 +60,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 function drawnSize(
   image: HTMLImageElement,
   svgText: string | undefined,
-): { width: number; height: number } {
+): PixelSize {
   const width = image.naturalWidth || 1;
   const height = image.naturalHeight || 1;
   if (svgText !== undefined) {

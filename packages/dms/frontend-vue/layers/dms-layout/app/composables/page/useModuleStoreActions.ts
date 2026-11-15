@@ -58,7 +58,7 @@ export const useModuleStoreActions = (
 ) => {
   const { t } = useI18n();
   const { processI18n } = useTranslation();
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const { confirm } = useConfirm();
 
   /**
@@ -152,7 +152,7 @@ export const useModuleStoreActions = (
     try {
       await moduleStore.run(kind, entry);
     } catch (error) {
-      presentError(error, {
+      errorPresenter.presentError(error, {
         fallbackKey: "modules.store.action_failed",
         params: { module: title },
       });
