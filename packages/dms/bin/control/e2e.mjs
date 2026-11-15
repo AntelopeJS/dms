@@ -35,6 +35,7 @@ export function e2eConfig() {
   return {
     testDir: ".",
     testMatch: /\.spec\.ts$/,
+    outputDir: "test-results",
     fullyParallel: true,
     workers: 1,
     retries: 0,
