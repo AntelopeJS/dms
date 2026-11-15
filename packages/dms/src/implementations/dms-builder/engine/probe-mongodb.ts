@@ -17,6 +17,7 @@ import {
   unanswered,
 } from "./database-access";
 import { loadClient } from "./probe-client";
+import { MAX_SCRAM_ITERATIONS, withBoundedScram } from "./scram-bound";
 
 const WRONG_ACCOUNT = "The database refused this user name or password.";
 const NEEDS_SIGN_IN = "This server asks for a user name and a password.";
@@ -158,53 +159,60 @@ export const probeMongodb: Probe = async (url, timeoutMs, connections) => {
   if (refused !== undefined) {
     return unanswered(refused);
   }
-  try {
-    const client = new mongodb.MongoClient(url, {
-      serverSelectionTimeoutMS: timeoutMs,
-      connectTimeoutMS: timeoutMs,
-      socketTimeoutMS: timeoutMs,
-    });
-    connections.add(() => client.close());
-    await client.connect();
-    const db = client.db();
-    const started = performance.now();
-    const status = ConnectionStatus.safeParse(
-      await db.command({ connectionStatus: 1, showPrivileges: true }),
-    );
-    const latencyMs = Math.ceil(performance.now() - started);
-    if (!status.success) {
-      return refusedBy(NOT_UNDERSTOOD);
-    }
-    const { authenticatedUsers, authenticatedUserPrivileges } =
-      status.data.authInfo;
-    const user = authenticatedUsers[0]?.user;
-    const relations = await listRelations(db);
-    if (!relations) {
-      return user === undefined
-        ? refusedBy(NEEDS_SIGN_IN)
-        : signedIn(
-            latencyMs,
-            user,
-            { canRead: false, canWrite: false },
-            CANNOT_LIST,
-          );
-    }
-    return signedIn(
-      latencyMs,
-      user,
-      mongoAccess({
-        database: db.databaseName,
+  const { answer, refused: iterations } = await withBoundedScram(async () => {
+    try {
+      const client = new mongodb.MongoClient(url, {
+        serverSelectionTimeoutMS: timeoutMs,
+        connectTimeoutMS: timeoutMs,
+        socketTimeoutMS: timeoutMs,
+      });
+      connections.add(() => client.close());
+      await client.connect();
+      const db = client.db();
+      const started = performance.now();
+      const status = ConnectionStatus.safeParse(
+        await db.command({ connectionStatus: 1, showPrivileges: true }),
+      );
+      const latencyMs = Math.ceil(performance.now() - started);
+      if (!status.success) {
+        return refusedBy(NOT_UNDERSTOOD);
+      }
+      const { authenticatedUsers, authenticatedUserPrivileges } =
+        status.data.authInfo;
+      const user = authenticatedUsers[0]?.user;
+      const relations = await listRelations(db);
+      if (!relations) {
+        return user === undefined
+          ? refusedBy(NEEDS_SIGN_IN)
+          : signedIn(
+              latencyMs,
+              user,
+              { canRead: false, canWrite: false },
+              CANNOT_LIST,
+            );
+      }
+      return signedIn(
+        latencyMs,
         user,
-        privileges: privilegesOf(authenticatedUserPrivileges),
-        relations,
-      }),
-    );
-  } catch (error) {
-    if (error instanceof mongodb.MongoServerError) {
-      return error.code === AUTHENTICATION_FAILED
-        ? refusedBy(WRONG_ACCOUNT)
-        : refusedBy(serverRefusal(error.message, url));
+        mongoAccess({
+          database: db.databaseName,
+          user,
+          privileges: privilegesOf(authenticatedUserPrivileges),
+          relations,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof mongodb.MongoServerError) {
+        return error.code === AUTHENTICATION_FAILED
+          ? refusedBy(WRONG_ACCOUNT)
+          : refusedBy(serverRefusal(error.message, url));
+      }
+      return unanswered(noAnswerReason(failureMessage(error), url));
     }
-    return unanswered(noAnswerReason(failureMessage(error), url));
-  }
+  });
+  return iterations === undefined
+    ? answer
+    : refusedBy(
+        `The server asks to derive the password with ${iterations} SCRAM iterations; the check derives at most ${MAX_SCRAM_ITERATIONS}.`,
+      );
 };
