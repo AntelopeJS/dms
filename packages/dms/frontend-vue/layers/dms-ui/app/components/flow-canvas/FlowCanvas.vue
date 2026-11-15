@@ -3,6 +3,8 @@ import { Background } from "@vue-flow/background";
 import { ControlButton, Controls } from "@vue-flow/controls";
 import {
   type Edge,
+  type GraphEdge,
+  type GraphNode,
   type Node,
   Panel,
   PanelPosition,
@@ -35,6 +37,12 @@ const PANEL_POSITIONS: readonly PanelPosition[] = [
 type GridVariant = "dots" | "lines";
 type DeleteKeyCode = string | string[] | null;
 
+/** A node handed to VueFlow, which may open selected. */
+type FlowNode = Node & Partial<Pick<GraphNode, "selected">>;
+
+/** An edge handed to VueFlow, which may open selected. */
+type FlowEdge = Edge & Partial<Pick<GraphEdge, "selected">>;
+
 interface DeleteAffordance {
   id: string;
   x: number;
@@ -43,9 +51,9 @@ interface DeleteAffordance {
 
 interface Props {
   /** Flow nodes (forwarded to VueFlow; kept in sync by its store). */
-  nodes?: Node[];
+  nodes?: FlowNode[];
   /** Flow edges. */
-  edges?: Edge[];
+  edges?: FlowEdge[];
   /** Map of `type` → node renderer component (consumer-owned, business). */
   nodeTypes?: Record<string, Component>;
   /** Map of `type` → edge renderer component (consumer-owned). */
