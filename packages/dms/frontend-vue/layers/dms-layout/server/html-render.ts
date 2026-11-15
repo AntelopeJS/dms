@@ -47,7 +47,11 @@ export async function renderHtml(event: DmsServerEvent): Promise<Response> {
       { locale: event.request.headers.get("x-content-language") ?? undefined },
     );
     return Response.json({ html });
-  } catch {
+  } catch (error) {
+    console.error(
+      `[dms] Render of the e-mail template "${input.templateName}" failed:`,
+      error,
+    );
     return failure(
       404,
       `Template "${input.templateName}" not found or render failed`,

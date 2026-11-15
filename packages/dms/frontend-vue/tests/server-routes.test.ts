@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { serveModuleRoutes } from "@antelopejs/dms-frontend/templates/vue/server/module-testing.mjs";
 import dmsServer from "../dms.server";
 import { createServerRoutesFixture } from "./helpers/server-routes-fixture";
@@ -295,6 +295,30 @@ function registerServiceRouteTests(
       }),
     );
     expect(missing.status).toBe(404);
+  });
+
+  it("logs why a render failed and answers 404", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const failed = await fixture.askDms("/api/html/render", () =>
+        Promise.resolve({
+          origin: false,
+          headers: { "x-dms-service-token": renderToken() },
+          body: { templateName: "EmailLayout", props: {} },
+        }),
+      );
+
+      expect(failed.status).toBe(404);
+      expect(failed.body).toEqual({
+        message: 'Template "EmailLayout" not found or render failed',
+      });
+      expect(logged).toHaveBeenCalledWith(
+        '[dms] Render of the e-mail template "EmailLayout" failed:',
+        expect.any(Error),
+      );
+    } finally {
+      logged.mockRestore();
+    }
   });
 }
 

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { HtmlTemplateRef } from "@antelopejs/interface-dms/html-render";
-import { getHtmlRenderConfig } from "../../config";
+import { getHtmlRenderEndpoint } from "../../config";
 import { SERVICE_JWT_HEADER } from "./constants";
 import { generateServiceToken } from "./service-jwt";
 
@@ -22,7 +22,12 @@ export async function GenerateHtml<TData = unknown>(
   props: TData,
   language?: string,
 ): Promise<string> {
-  const config = getHtmlRenderConfig();
+  const renderEndpoint = getHtmlRenderEndpoint();
+  if (!renderEndpoint) {
+    throw new Error(
+      "Failed to render HTML template: set htmlRender.renderEndpoint or clientBaseUrl",
+    );
+  }
   const serviceToken = generateServiceToken();
   const headers = new Headers({
     "Content-Type": "application/json",
@@ -30,7 +35,7 @@ export async function GenerateHtml<TData = unknown>(
   });
   if (language) headers.set("x-content-language", language);
 
-  const response = await fetch(config.renderEndpoint, {
+  const response = await fetch(renderEndpoint, {
     method: "POST",
     headers,
     body: JSON.stringify({

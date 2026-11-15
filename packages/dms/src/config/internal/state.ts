@@ -276,9 +276,16 @@ export interface BuilderConfig {
   theme?: BuilderThemeConfig;
 }
 
+/**
+ * The `htmlRender` block. Without `renderEndpoint`, `GenerateHtml` posts to
+ * the dashboard's `/api/html/render`, under `getClientBaseUrl()`.
+ */
+export type DmsHtmlRenderConfig = Omit<HtmlRenderConfig, "renderEndpoint"> &
+  Partial<Pick<HtmlRenderConfig, "renderEndpoint">>;
+
 export interface Config {
   auth?: AuthConfig;
-  htmlRender?: HtmlRenderConfig;
+  htmlRender?: DmsHtmlRenderConfig;
   homepage?: string;
   /** Prefills the login form once without submitting or enabling keep-login. */
   loginPrefill?: LoginPrefillConfig;
@@ -316,12 +323,13 @@ let globalAuthConfig: AuthConfig = {
 
 const SERVICE_TOKEN_LIFETIME_MINUTES = 5;
 
-let globalHtmlRenderConfig: HtmlRenderConfig = {
+let globalHtmlRenderConfig: DmsHtmlRenderConfig = {
   serviceSecret: "dev",
   serviceTokenLifetime:
     SERVICE_TOKEN_LIFETIME_MINUTES * MILLISECONDS_PER_MINUTE,
-  renderEndpoint: "http://localhost:3001/api/html/render",
 };
+
+const HTML_RENDER_PATH = "/api/html/render";
 
 const BYTES_IN_KILOBYTE = 1024;
 const KILOBYTES_IN_MEGABYTE = 1024;
@@ -410,8 +418,19 @@ export function getAuthConfig(): AuthConfig {
   return globalAuthConfig;
 }
 
-export function getHtmlRenderConfig(): HtmlRenderConfig {
+export function getHtmlRenderConfig(): DmsHtmlRenderConfig {
   return globalHtmlRenderConfig;
+}
+
+/**
+ * Where `GenerateHtml` posts: the configured `htmlRender.renderEndpoint`,
+ * else `/api/html/render` on the dashboard's current origin.
+ */
+export function getHtmlRenderEndpoint(): string | undefined {
+  const configured = globalHtmlRenderConfig.renderEndpoint;
+  if (configured) return configured;
+  const clientBaseUrl = getClientBaseUrl();
+  return clientBaseUrl && new URL(HTML_RENDER_PATH, clientBaseUrl).href;
 }
 
 export function getUploadsConfig(): UploadsConfig {

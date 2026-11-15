@@ -33,7 +33,6 @@ export default defineConfig({
         },
         htmlRender: {
           serviceSecret: process.env.DMS_HTML_RENDER_SECRET ?? "dev",
-          renderEndpoint: dmsClientUrl && `${dmsClientUrl}/api/html/render`,
         },
         apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
         clientBaseUrl: dmsClientUrl,
