@@ -22,7 +22,7 @@ The fixed journey every verdict runs, whatever the diff touches: a fresh platfor
 dms-control journey "$RUN" smoke
 ```
 
-The journey's steps, checks and evidence are in `journeys/smoke.mjs` and under `$RUN/evidence/smoke/smoke/`.
+The journey's steps, checks and evidence are in `e2e/journeys/smoke.mjs` and under `$RUN/evidence/smoke/smoke/`.
 
 ## Gotchas
 
