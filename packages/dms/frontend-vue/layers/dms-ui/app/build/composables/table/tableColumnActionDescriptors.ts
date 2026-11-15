@@ -61,23 +61,31 @@ export const isOffMode = <T extends Data>(
     : descriptor.key === "restore";
 };
 
+/** Whether a rule keeps an action off a row: the listed row with the same raw id fails it, or no listed row has that id. */
+const isRuleBlocked = <T extends Data>(
+  context: TableColumnContext<T>,
+  rule: Parameters<typeof evaluateRowActionRule>[0],
+  rowData: Data,
+): boolean => {
+  const { config } = context;
+  const id: unknown = get(rowData, config.rowIdKey);
+  const listed = config.data.value.find((row) => {
+    const listedId: unknown = get(row, config.rowIdKey);
+    return listedId === id;
+  });
+  return listed === undefined || !evaluateRowActionRule(rule, listed);
+};
+
 const isActionDisabled = <T extends Data>(
   context: TableColumnContext<T>,
   actionConfig: boolean | RowActionConfig | undefined,
   rowData: Data,
 ): boolean => {
-  const { config } = context;
-
   const actionConfigNormalized = normalizeActionConfig(actionConfig);
   if (!actionConfigNormalized.isEnabled) return true;
   if (!actionConfigNormalized.rule) return false;
 
-  const validator = createActionValidator(
-    actionConfigNormalized,
-    config.data.value,
-    config.rowIdKey,
-  );
-  return !validator.canPerformAction(rowIdOf(rowData, config.rowIdKey));
+  return isRuleBlocked(context, actionConfigNormalized.rule, rowData);
 };
 
 const rowText = <T extends Data>(
@@ -110,16 +118,9 @@ const isCustomActionDisabled = <T extends Data>(
   action: CustomRowAction,
   rowData: Data,
 ): boolean => {
-  const { config } = context;
-
   if (!action.rule) return false;
 
-  const validator = createActionValidator(
-    { isEnabled: true, rule: action.rule },
-    config.data.value,
-    config.rowIdKey,
-  );
-  return !validator.canPerformAction(rowIdOf(rowData, config.rowIdKey));
+  return isRuleBlocked(context, action.rule, rowData);
 };
 
 const buildCopyLinkOnSelect = <T extends Data>(

@@ -7,3 +7,9 @@ export const rowIdOf = (row: Data, idKey: string): string => {
   const id: unknown = get(row, idKey);
   return isString(id) ? id : String(id);
 };
+
+/** The id a row carries under `idKey` as a string, or `undefined` when it carries none. */
+export const rowKeyOf = (row: Data, idKey: string): string | undefined => {
+  const id: unknown = get(row, idKey);
+  return id === undefined || id === null ? undefined : rowIdOf(row, idKey);
+};
