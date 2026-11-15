@@ -6,6 +6,7 @@
  * cookie is the source of truth, and vueuse's store, which Nuxt UI's
  * components share, mirrors it both ways.
  */
+import { runInThisContext } from "node:vm";
 import { useHead } from "@unhead/vue";
 import {
   createHead as createClientHead,
@@ -64,7 +65,7 @@ async function renderServerHead(): Promise<string> {
   const app = createSSRApp({ render: () => null });
   const head = createServerHead();
   app.use(head);
-  app.runWithContext(() => colorModePlugin(dmsAppContext(app)));
+  await app.runWithContext(() => colorModePlugin(dmsAppContext(app)));
   vi.unstubAllEnvs();
   return (await renderSSRHead(head)).headTags;
 }
@@ -93,7 +94,7 @@ function loadDocument(cookie?: string): void {
   if (cookie !== undefined) document.cookie = `dms-color-mode=${cookie}`;
   document.head.innerHTML = serverHead;
   const script = document.querySelector("script#dms-color-mode");
-  new Function(script?.textContent ?? "")();
+  runInThisContext(script?.textContent ?? "");
 }
 
 /** What `@nuxt/ui/vue-plugin` runs when the app installs it. */
@@ -106,11 +107,11 @@ function mountNuxtUiComponent() {
   return scope.run(() => useColorMode())!;
 }
 
-function bootDmsPlugin(): void {
+async function bootDmsPlugin(): Promise<void> {
   const app = createApp({ render: () => null });
   clientHead = createClientHead();
   app.use(clientHead);
-  scope.run(() =>
+  await scope.run(() =>
     app.runWithContext(() => colorModePlugin(dmsAppContext(app))),
   );
 }
@@ -208,7 +209,7 @@ describe("pre-paint script", () => {
   it("is left in place by the client head, which neither removes nor re-inserts it", async () => {
     loadDocument("%22dark%22");
     bootNuxtUi();
-    bootDmsPlugin();
+    await bootDmsPlugin();
     await settle();
 
     expect(document.querySelectorAll("script#dms-color-mode")).toHaveLength(1);
@@ -216,7 +217,7 @@ describe("pre-paint script", () => {
 
   it("is never inserted by the client head when the page was rendered without it", async () => {
     bootNuxtUi();
-    bootDmsPlugin();
+    await bootDmsPlugin();
     await settle();
 
     expect(document.querySelectorAll("script#dms-color-mode")).toHaveLength(0);
@@ -230,7 +231,7 @@ describe("sync with Nuxt UI's store", () => {
     const setItem = vi.spyOn(Storage.prototype, "setItem");
 
     bootNuxtUi();
-    bootDmsPlugin();
+    await bootDmsPlugin();
     await settle();
 
     expect(setItem).not.toHaveBeenCalled();
@@ -244,7 +245,7 @@ describe("sync with Nuxt UI's store", () => {
     localStorage.setItem(VUEUSE_STORAGE_KEY, "light");
 
     const isDark = bootNuxtUi();
-    bootDmsPlugin();
+    await bootDmsPlugin();
     await settle();
 
     expect(isDark.value).toBe(true);
@@ -255,7 +256,7 @@ describe("sync with Nuxt UI's store", () => {
   it("mirrors a preference change into the store Nuxt UI's components read", async () => {
     loadDocument();
     bootNuxtUi();
-    bootDmsPlugin();
+    await bootDmsPlugin();
     const component = mountNuxtUiComponent();
 
     preference.value = "dark";
@@ -275,7 +276,7 @@ describe("sync with Nuxt UI's store", () => {
   it("writes a theme picked in a Nuxt UI component back to the cookie", async () => {
     loadDocument();
     bootNuxtUi();
-    bootDmsPlugin();
+    await bootDmsPlugin();
     const component = mountNuxtUiComponent();
 
     component.store.value = "dark";
@@ -298,7 +299,7 @@ describe("sync with Nuxt UI's store", () => {
       storedPreference.value = mode;
       loadDocument(`%22${mode}%22`);
       bootNuxtUi();
-      bootDmsPlugin();
+      await bootDmsPlugin();
       await settle();
 
       preference.value = "system";
@@ -311,7 +312,7 @@ describe("sync with Nuxt UI's store", () => {
   it("follows the system color scheme while the preference is system", async () => {
     loadDocument();
     bootNuxtUi();
-    bootDmsPlugin();
+    await bootDmsPlugin();
     await settle();
     expect(htmlClasses()).toEqual(["light"]);
 

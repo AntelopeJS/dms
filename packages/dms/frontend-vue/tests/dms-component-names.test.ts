@@ -16,8 +16,8 @@ async function productionRegistrations(): Promise<{
   const components = new Set<string>();
   const layouts = new Set<string>();
   const probe: DmsFrontendModule = {
-    setup(sdk: DmsFrontendSdk) {
-      frontendModule.setup({
+    async setup(sdk: DmsFrontendSdk) {
+      await frontendModule.setup({
         ...sdk,
         registerPlugin: () => undefined,
         registerComponent: (name) => components.add(`Dms${name}`),

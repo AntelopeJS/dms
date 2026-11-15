@@ -5,7 +5,15 @@
  * header component: the row's title, its position, previous / next and J / K,
  * as on a row action's drawer, patched as the drawer steps.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
 import { defineComponent, type Component } from "vue";
 import RowHeader from "../layers/dms-ui/app/entries/components/containers/row/RowHeader";
 import type { RowNavigation } from "../layers/dms-ui/app/types/row-navigation";
@@ -15,7 +23,7 @@ const Editor = defineComponent({ name: "KeyEditor", render: () => null });
 
 interface CreatedDrawer {
   props: DrawerOptions;
-  patch: ReturnType<typeof vi.fn>;
+  patch: Mock<(update: Partial<DrawerOptions>) => void>;
   settle: () => void;
 }
 
@@ -30,7 +38,7 @@ beforeEach(() => {
       const opened = new Promise<void>((resolve) => {
         settle = resolve;
       });
-      const patch = vi.fn();
+      const patch = vi.fn<(update: Partial<DrawerOptions>) => void>();
       created.push({ props, patch, settle });
       return { open: () => opened, close: vi.fn(), patch };
     },
@@ -106,13 +114,16 @@ describe("useDrawer's row header", () => {
     drawer.patch({
       rowHeader: { title: "billing.total", subtitle: "helio › other" },
     });
-    expect(created[0]!.patch).toHaveBeenCalledWith({
-      headerComponentOptions: expect.objectContaining({
-        heading: "billing.total",
-        subtitle: "helio › other",
-        component: undefined,
-      }),
+    const patched = created[0]!.patch.mock.lastCall![0];
+    expect(Object.keys(patched)).toEqual(["headerComponentOptions"]);
+    expect(patched.headerComponentOptions).toMatchObject({
+      heading: "billing.total",
+      subtitle: "helio › other",
     });
+    expect(patched.headerComponentOptions).toHaveProperty(
+      "component",
+      undefined,
+    );
   });
 
   it("titles the header with the drawer's title without its own", async () => {
@@ -131,12 +142,15 @@ describe("useDrawer's row header", () => {
       componentOptions: { id: "k2" },
       rowHeader: { title: "Second", navigation: next },
     });
-    expect(created[0]!.patch).toHaveBeenCalledWith({
-      componentOptions: { id: "k2" },
-      headerComponentOptions: expect.objectContaining({
-        heading: "Second",
-        navigation: next,
-      }),
+    const patched = created[0]!.patch.mock.lastCall![0];
+    expect(Object.keys(patched).sort()).toEqual([
+      "componentOptions",
+      "headerComponentOptions",
+    ]);
+    expect(patched.componentOptions).toEqual({ id: "k2" });
+    expect(patched.headerComponentOptions).toMatchObject({
+      heading: "Second",
+      navigation: next,
     });
   });
 

@@ -20,12 +20,17 @@ import {
   parsePreviewOutboundMessage,
   PREVIEW_CHANNEL,
   type PreviewBlockTypes,
+  type PreviewInspectMessage,
+  type PreviewNavigation,
+  type PreviewOutboundMessage,
+  type PreviewRenderMessage,
 } from "../layers/dms-ui/app/entries/utils/blockPreview";
 import {
   PREVIEW_NAVIGATION_ATTRIBUTE,
   previewNavigation,
 } from "../layers/dms-ui/app/entries/composables/block-preview/previewNavigation";
 import { registerBlockAnchor } from "../layers/dms-ui/app/entries/composables/page/blockAnchors";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 
 const BLOCK_TYPES: PreviewBlockTypes = {
@@ -44,12 +49,14 @@ const NAVIGATION = {
   ],
   active: "orders",
 };
-const BOXES: Record<string, [number, number, number, number]> = {
-  probe: [10, 20, 100, 40],
-  frame: [10, 80, 300, 120],
-};
+const BOXES = new Map<string, [number, number, number, number]>([
+  ["probe", [10, 20, 100, 40]],
+  ["frame", [10, 80, 300, 120]],
+]);
 
-const parentWindow = { postMessage: vi.fn() };
+const parentWindow = {
+  postMessage: vi.fn<(message: PreviewOutboundMessage) => void>(),
+};
 const clicked = vi.fn();
 let app: App | undefined;
 let host: HTMLElement;
@@ -73,12 +80,16 @@ const Frame: FunctionalComponent = (_props, { slots }) =>
     }),
     slots.default?.(),
   ]);
-const BLOCKS: Record<string, Component> = {
-  "dms-probe": Probe,
-  "dms-frame": Frame,
-};
+const BLOCKS = new Map<string, Component>([
+  ["dms-probe", Probe],
+  ["dms-frame", Frame],
+]);
 
-function postFromParent(data: Record<string, unknown>): void {
+type FromParent =
+  | Omit<PreviewRenderMessage, "channel">
+  | Omit<PreviewInspectMessage, "channel">;
+
+function postFromParent(data: FromParent): void {
   window.dispatchEvent(
     new MessageEvent("message", {
       data: { channel: PREVIEW_CHANNEL, ...data },
@@ -87,13 +98,16 @@ function postFromParent(data: Record<string, unknown>): void {
   );
 }
 
-const posted = (type: string) =>
+const posted = <Type extends PreviewOutboundMessage["type"]>(type: Type) =>
   parentWindow.postMessage.mock.calls
     .map(([message]) => message)
-    .filter((message) => message.type === type);
+    .filter(
+      (message): message is Extract<PreviewOutboundMessage, { type: Type }> =>
+        message.type === type,
+    );
 
 function boxOf(element: Element): DOMRect {
-  const [x, y, width, height] = BOXES[element.className] ?? [0, 0, 0, 0];
+  const [x, y, width, height] = BOXES.get(element.className) ?? [0, 0, 0, 0];
   return new DOMRect(x, y, width, height);
 }
 
@@ -136,7 +150,7 @@ beforeEach(() => {
   }));
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
   vi.stubGlobal("useDmsRoute", () => ({ query: {} }));
-  vi.stubGlobal("resolveDmsComponent", (name: string) => BLOCKS[name]);
+  vi.stubGlobal("resolveDmsComponent", (name: string) => BLOCKS.get(name));
   vi.stubGlobal("ResizeObserver", FakeResizeObserver);
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
     function (this: Element) {
@@ -168,7 +182,7 @@ afterEach(() => {
 
 describe("editing messages", () => {
   it("reads a sidebar on render and refuses a malformed one (fails when a bad entry reaches the layout)", () => {
-    const render = (navigation: unknown) =>
+    const render = (navigation: JsonValue | PreviewNavigation) =>
       parsePreviewMessage({
         channel: PREVIEW_CHANNEL,
         type: "render",
@@ -191,7 +205,7 @@ describe("editing messages", () => {
       color: "rgb(0, 0, 0)",
       align: "start",
     };
-    const outbound = (data: Record<string, unknown>) =>
+    const outbound = (data: Record<string, JsonValue>) =>
       parsePreviewOutboundMessage({ channel: PREVIEW_CHANNEL, ...data });
     expect(
       outbound({

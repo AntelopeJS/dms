@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
 import type { ChartClickPayload } from "../layers/dms-ui/app/composables/chart/events";
 import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
+import { isNumber, isString } from "../layers/dms-core/app/utils/type-check";
 import { chartRuntime } from "./helpers/charts-runtime";
 
 type LabelFormatter = (
@@ -16,8 +17,8 @@ interface ProbedOptions {
   chart: {
     events?: {
       dataPointSelection?: (
-        event: unknown,
-        context: unknown,
+        event: null,
+        context: null,
         opts: { seriesIndex: number; dataPointIndex: number },
       ) => void;
     };
@@ -86,7 +87,7 @@ async function draw(
 }
 
 function xCoordinate(point: ChartSeries["data"][number]): string {
-  if (typeof point === "number" || typeof point.x !== "string") {
+  if (isNumber(point) || !isString(point.x)) {
     throw new Error("expected a point with a string x coordinate");
   }
   return point.x;

@@ -12,12 +12,13 @@ import {
   useBlockPreviewEmbed,
   type BlockPreviewEmbed,
 } from "../layers/dms-ui/app/entries/composables/block-preview/useBlockPreviewEmbed";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import {
   PREVIEW_CHANNEL,
   type PreviewState,
 } from "../layers/dms-ui/app/entries/utils/blockPreview";
 
-const parentWindow = { postMessage: vi.fn() };
+const parentWindow = { postMessage: vi.fn<(message: JsonValue) => void>() };
 const setLocale = vi.fn();
 let resizeCallback: (() => void) | undefined;
 let app: App | undefined;
@@ -47,7 +48,7 @@ function mount(initialState?: PreviewState): HTMLElement {
   return host;
 }
 
-function postFromParent(data: unknown): void {
+function postFromParent(data: JsonValue): void {
   window.dispatchEvent(
     new MessageEvent("message", {
       data,

@@ -16,6 +16,8 @@ import {
   settle,
   type BrandingCall,
 } from "./helpers/branding-editor";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
+import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
 
 const THEME_URL = "/api/branding/theme";
 
@@ -29,12 +31,17 @@ function files(version: string, colors: Record<string, string> = {}) {
   };
 }
 
-const ok = (data: unknown) => ({ ok: true, data });
+interface StaleRefusal {
+  ok: false;
+  error: { code: string; ref: string; currentVersion: string };
+}
+
+const ok = (data: JsonValue) => ({ ok: true as const, data });
 
 let app: App | undefined;
 
 async function openEditor(
-  answer: (call: BrandingCall) => unknown,
+  answer: (call: BrandingCall) => ReturnType<typeof ok> | StaleRefusal,
   viewer: { owner?: boolean } = {},
 ) {
   const runtime = installBrandingRuntime(answer, viewer);
@@ -99,10 +106,8 @@ describe("Save", () => {
         },
       },
     });
-    const uploads = (sent?.body as { draft: { uploads: unknown[] } }).draft
-      .uploads;
-    expect(uploads).toHaveLength(4);
-    expect(uploads[0]).toEqual({
+    expect(sent?.body).toHaveProperty("draft.uploads.length", 4);
+    expect(sent?.body).toHaveProperty("draft.uploads.0", {
       slot: "default",
       mode: "light",
       contentType: "image/png",
@@ -136,8 +141,9 @@ describe("a stale save", () => {
     const { host, calls } = await openEditor((call) => {
       if (call.method !== "PUT") return ok(onDisk);
       if (
-        call.body &&
-        (call.body as { expectedVersion: string }).expectedVersion === "v1"
+        isObject(call.body) &&
+        !isNull(call.body) &&
+        call.body.expectedVersion === "v1"
       ) {
         onDisk = files("v2", { info: "sky" });
         return {

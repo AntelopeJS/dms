@@ -14,16 +14,18 @@ import {
   provideBlockRuntime,
   registerBlockUi,
 } from "./helpers/block-network-runtime";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 
 const SHOWN = "Pending orders";
-const ANSWERS: Record<string, unknown> = {
-  "/api/orders/kpi": { value: 4321 },
-  "/api/orders/facts": { items: [{ label: SHOWN, value: "12" }] },
-  "/api/orders/cards": {
-    items: [{ title: SHOWN, icon: "i-ph-package", to: "/orders" }],
-  },
-  "/api/orders/banner": { title: SHOWN },
-};
+const ANSWERS = new Map<string, JsonValue>([
+  ["/api/orders/kpi", { value: 4321 }],
+  ["/api/orders/facts", { items: [{ label: SHOWN, value: "12" }] }],
+  [
+    "/api/orders/cards",
+    { items: [{ title: SHOWN, icon: "i-ph-package", to: "/orders" }] },
+  ],
+  ["/api/orders/banner", { title: SHOWN }],
+]);
 const requests: string[] = [];
 
 const { default: KpiCard } = await import(
@@ -94,7 +96,7 @@ beforeEach(async () => {
   requests.length = 0;
   await installBlockNetwork(async (url: string) => {
     requests.push(url);
-    return ANSWERS[url] ?? null;
+    return ANSWERS.get(url) ?? null;
   });
 });
 

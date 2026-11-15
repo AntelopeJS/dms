@@ -5,7 +5,9 @@ import { isFunction } from "../layers/dms-core/app/utils/type-check";
 import { browserRuntime } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 
-const authFetch = vi.fn<(...args: unknown[]) => Promise<unknown>>();
+type SnippetAnswer = { code: string; language?: string } | null;
+
+const authFetch = vi.fn<(...args: unknown[]) => Promise<SnippetAnswer>>();
 
 let app: App | undefined;
 let runtime: ReturnType<typeof browserRuntime> | undefined;

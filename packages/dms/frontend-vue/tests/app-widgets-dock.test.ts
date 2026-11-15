@@ -18,13 +18,15 @@ import {
 
 const SELECT_KEY = "demo:widget-selected";
 
-let sharedState: Map<string, Ref<unknown>>;
+type DockState = AppWidget[] | number | undefined;
+
+let sharedState: Map<string, Ref<DockState>>;
 let app: App | undefined;
 
-function useDmsState(key: string, init?: () => unknown): Ref<unknown> {
+function useDmsState(key: string, init?: () => DockState): Ref<DockState> {
   const existing = sharedState.get(key);
   if (existing) return existing;
-  const created = ref(init?.());
+  const created: Ref<DockState> = ref(init?.());
   sharedState.set(key, created);
   return created;
 }

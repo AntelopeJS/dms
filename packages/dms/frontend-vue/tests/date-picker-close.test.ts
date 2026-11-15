@@ -25,7 +25,12 @@ import type { CalendarProps } from "@nuxt/ui/components/Calendar.vue";
 
 let app: App | undefined;
 let host: HTMLDivElement;
-let pick: (value: unknown) => void = () => {};
+type PickedValue =
+  | CalendarDate
+  | CalendarDate[]
+  | { start: CalendarDate; end: CalendarDate | undefined };
+
+let pick: (value: PickedValue) => void = () => {};
 
 async function flush(): Promise<void> {
   for (let tick = 0; tick < 4; tick++) await nextTick();

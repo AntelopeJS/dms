@@ -19,6 +19,7 @@ import {
   PREVIEW_CHANNEL,
   type PreviewBlockTypes,
 } from "../layers/dms-ui/app/entries/utils/blockPreview";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 
 const BLOCK_TYPES: PreviewBlockTypes = {
@@ -31,7 +32,13 @@ const TREE = [
   { type: "Frame", children: [{ id: "inner", type: "Probe" }] },
 ];
 
-const parentWindow = { postMessage: vi.fn() };
+interface SentMessage {
+  channel: string;
+  type: string;
+  path?: string;
+}
+
+const parentWindow = { postMessage: vi.fn<(message: SentMessage) => void>() };
 const clicked = vi.fn();
 let app: App | undefined;
 let host: HTMLElement;
@@ -47,10 +54,10 @@ const Probe: FunctionalComponent = () =>
 const Frame: FunctionalComponent = (_props, { slots }) =>
   h("section", { class: "frame" }, slots.default?.());
 
-const BLOCKS: Record<string, Component> = {
-  "dms-probe": Probe,
-  "dms-frame": Frame,
-};
+const BLOCKS = new Map<string, Component>([
+  ["dms-probe", Probe],
+  ["dms-frame", Frame],
+]);
 
 function postFromParent(data: Parameters<typeof parsePreviewMessage>[0]): void {
   window.dispatchEvent(
@@ -60,7 +67,7 @@ function postFromParent(data: Parameters<typeof parsePreviewMessage>[0]): void {
 
 const render = (tree = TREE) =>
   postFromParent({ channel: PREVIEW_CHANNEL, type: "render", tree });
-const inspect = (enabled: unknown) =>
+const inspect = (enabled: JsonValue | undefined) =>
   postFromParent({ channel: PREVIEW_CHANNEL, type: "inspect", enabled });
 
 const selections = () =>
@@ -114,7 +121,7 @@ beforeEach(() => {
   }));
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
   vi.stubGlobal("useDmsRoute", () => ({ query: {} }));
-  vi.stubGlobal("resolveDmsComponent", (name: string) => BLOCKS[name]);
+  vi.stubGlobal("resolveDmsComponent", (name: string) => BLOCKS.get(name));
   vi.stubGlobal("ResizeObserver", FakeResizeObserver);
   Object.defineProperty(window, "parent", {
     value: parentWindow,
@@ -139,7 +146,7 @@ afterEach(() => {
 
 describe("inspect messages", () => {
   it("accepts a boolean enabled flag and nothing else", () => {
-    const parse = (enabled: unknown) =>
+    const parse = (enabled: JsonValue | undefined) =>
       parsePreviewMessage({
         channel: PREVIEW_CHANNEL,
         type: "inspect",

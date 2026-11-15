@@ -12,7 +12,11 @@ import type {
   ChartSeries,
   ChartXAxis,
 } from "../layers/dms-ui/app/composables/chart/types";
-import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
+import {
+  isFunction,
+  isNull,
+  isObject,
+} from "../layers/dms-core/app/utils/type-check";
 
 const SERIES: ChartSeries[] = [
   { name: "p50 – p99", data: [{ x: "10:00", y: [12, 48] }] },
@@ -75,7 +79,9 @@ describe("typed X axis", () => {
         "xaxis",
       );
       const labels = sectionIn(axis, "labels");
-      const drawn = labels.formatter as typeof formatter;
+      const drawn = labels.formatter;
+      if (!isFunction(drawn))
+        throw new Error("The x axis labels hold no formatter");
       expect(drawn("16", 7)).toBe(formatter("16", 7));
       expect(labels.format).toBe(
         xaxisType === "datetime" ? "dd MMM" : undefined,
@@ -114,7 +120,10 @@ describe("typed X axis", () => {
     input.xAxisFormatter = undefined;
     expect(sectionIn(chart.options.value, "xaxis").tickAmount).toBeUndefined();
     const labels = sectionIn(sectionIn(chart.options.value, "xaxis"), "labels");
-    expect((labels.formatter as (value: string) => string)("16")).toBe("16");
+    const drawn = labels.formatter;
+    if (!isFunction(drawn))
+      throw new Error("The x axis labels hold no formatter");
+    expect(drawn("16")).toBe("16");
   });
 });
 

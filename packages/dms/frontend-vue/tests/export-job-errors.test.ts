@@ -4,7 +4,11 @@ import { useExportJob } from "../layers/dms-ui/app/composables/useExportJob";
 import { requestRefusal } from "./helpers/api-error-runtime";
 
 const add = vi.fn(() => ({ id: "export" }));
-const update = vi.fn();
+interface ToastUpdate {
+  actions: Array<{ label: string; onClick: () => void }>;
+}
+
+const update = vi.fn<(id: string, payload: ToastUpdate) => void>();
 const remove = vi.fn();
 const authFetch = vi.fn();
 
@@ -57,9 +61,9 @@ it.each([
     );
     const [id, payload] = update.mock.calls[0]!;
     expect(id).toBe("export");
-    expect(payload.actions[0].label).toBe("dms.table.export.retry");
+    expect(payload.actions[0]!.label).toBe("dms.table.export.retry");
     authFetch.mockRejectedValueOnce(requestRefusal());
-    payload.actions[0].onClick();
+    payload.actions[0]!.onClick();
     await vi.advanceTimersByTimeAsync(0);
     expect(authFetch).toHaveBeenCalledTimes(3);
     expect(remove).toHaveBeenCalledWith("export");

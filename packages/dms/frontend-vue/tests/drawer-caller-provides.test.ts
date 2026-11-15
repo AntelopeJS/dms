@@ -74,10 +74,10 @@ it("gives a module drawer's body the refs useI18n returns", async () => {
   const { useDrawer } = await import(
     "../layers/dms-ui/app/composables/containers/useDrawer"
   );
-  const read: { locale?: unknown } = {};
+  let readLocale: string | undefined;
   const Body: Component = {
     setup() {
-      read.locale = useI18n().locale.value;
+      readLocale = useI18n().locale.value;
       return () => null;
     },
   };
@@ -97,5 +97,5 @@ it("gives a module drawer's body the refs useI18n returns", async () => {
   await nextTick();
   await nextTick();
 
-  expect(read.locale).toBe("fr");
+  expect(readLocale).toBe("fr");
 });

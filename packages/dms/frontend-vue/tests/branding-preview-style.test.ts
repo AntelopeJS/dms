@@ -53,8 +53,9 @@ describe("readDmsTokens", () => {
 
 /** A style declaration as the CSSOM lists one: iterable names, values by name. */
 function declarations(values: Record<string, string>) {
-  return Object.assign(Object.keys(values), {
-    getPropertyValue: (name: string) => values[name] ?? "",
+  const table = new Map(Object.entries(values));
+  return Object.assign([...table.keys()], {
+    getPropertyValue: (name: string) => table.get(name) ?? "",
   });
 }
 

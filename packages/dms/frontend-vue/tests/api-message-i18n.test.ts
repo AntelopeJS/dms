@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { resolveApiMessage } from "../layers/dms-core/app/composables/translation/useTranslation";
 
-const MESSAGES: Record<string, string> = {
-  "error.unauthorized": "You are not allowed to perform this action.",
-  "page.settings.invites.error.not_found": "This invitation no longer exists.",
-};
+const MESSAGES = new Map([
+  ["error.unauthorized", "You are not allowed to perform this action."],
+  [
+    "page.settings.invites.error.not_found",
+    "This invitation no longer exists.",
+  ],
+]);
 
-const translate = (key: string) => MESSAGES[key] ?? key;
+const translate = (key: string) => MESSAGES.get(key) ?? key;
 
 describe("resolveApiMessage", () => {
   it("translates a bare backend key", () => {

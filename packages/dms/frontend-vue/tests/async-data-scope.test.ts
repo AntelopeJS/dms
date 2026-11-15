@@ -48,15 +48,15 @@ const Root = defineComponent({
 
 const mounted: App[] = [];
 
-function start(
+async function start(
   app: App,
   runtime: DmsFrontendRuntime,
   session: typeof ACCOUNT_A,
-) {
+): Promise<void> {
   engine.provideDmsFrontendRuntime(app, runtime);
-  app.runWithContext(() => {
+  await app.runWithContext(() => {
     sessionState().value = session;
-    void asyncDataScopePlugin(dmsAppContext(app));
+    return asyncDataScopePlugin(dmsAppContext(app));
   });
 }
 
@@ -91,7 +91,7 @@ describe("the async data scope", () => {
   it("hands the server's data to the browser under the same session", async () => {
     const server = engine.createDmsFrontendRuntime(undefined, {}, true);
     const serverApp = createSSRApp(Root);
-    start(serverApp, server, ACCOUNT_A);
+    await start(serverApp, server, ACCOUNT_A);
     expect(await renderToString(serverApp)).toBe("<p>orders of account A</p>");
     const payload = structuredClone(engine.serializeDmsPayload(server));
     expect(JSON.stringify(payload)).not.toContain("account-a");
@@ -99,7 +99,7 @@ describe("the async data scope", () => {
     handler.mockClear();
     const browser = engine.createDmsFrontendRuntime(undefined, {});
     const browserApp = createApp(Root);
-    start(browserApp, browser, ACCOUNT_A);
+    await start(browserApp, browser, ACCOUNT_A);
     engine.restoreDmsPayload(browser, payload);
     const host = document.createElement("div");
     browserApp.mount(host);
@@ -113,7 +113,7 @@ describe("the async data scope", () => {
   it("drops the previous account's data once the session switches", async () => {
     const browser = engine.createDmsFrontendRuntime(undefined, {});
     const browserApp = createApp(Root);
-    start(browserApp, browser, ACCOUNT_A);
+    await start(browserApp, browser, ACCOUNT_A);
     const host = document.createElement("div");
     browserApp.mount(host);
     mounted.push(browserApp);

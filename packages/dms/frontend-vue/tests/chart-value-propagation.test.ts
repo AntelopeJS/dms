@@ -10,24 +10,28 @@ import type { ValuePrecision } from "../layers/dms-ui/app/composables/chart/type
 
 const AMOUNT = 9.391;
 
-const PlotProbe = defineComponent({
-  props: {
-    options: { type: Object, required: true },
-  },
-  setup: (props) => () =>
-    h("output", [
-      h(
-        "span",
-        { class: "axis" },
-        props.options.yaxis.labels.formatter(AMOUNT),
-      ),
-      h(
-        "span",
-        { class: "tooltip" },
-        props.options.tooltip.y.formatter(AMOUNT),
-      ),
-    ]),
-});
+const PlotProbe = defineComponent(
+  (props: {
+    options: {
+      yaxis: { labels: { formatter: (value: number) => string } };
+      tooltip: { y: { formatter: (value: number) => string } };
+    };
+  }) =>
+    () =>
+      h("output", [
+        h(
+          "span",
+          { class: "axis" },
+          props.options.yaxis.labels.formatter(AMOUNT),
+        ),
+        h(
+          "span",
+          { class: "tooltip" },
+          props.options.tooltip.y.formatter(AMOUNT),
+        ),
+      ]),
+  { props: { options: { type: Object, required: true } } },
+);
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>

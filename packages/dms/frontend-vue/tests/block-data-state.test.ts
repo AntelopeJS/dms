@@ -22,6 +22,7 @@ import {
   registerBlockUi,
   Slot,
 } from "./helpers/block-network-runtime";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { BLOCK_PATH_KEY } from "../layers/dms-ui/app/entries/composables/blocks/blockDataState";
 
 const { default: Chart } = await import(
@@ -41,15 +42,15 @@ const STATE = "data-dms-block-state";
 const mounted: Array<{ unmount: () => void }> = [];
 const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
-let answer: () => Promise<unknown>;
+let answer: () => Promise<JsonValue>;
 
 interface BlockCase {
   name: string;
   type: string;
   component: Component;
-  props?: Record<string, unknown>;
-  ok: unknown;
-  empty: unknown[];
+  props?: Record<string, JsonValue>;
+  ok: JsonValue;
+  empty: JsonValue[];
 }
 
 const POINTS = [{ name: "Revenue", data: [{ x: "Jan", y: 12 }] }];

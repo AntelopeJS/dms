@@ -73,7 +73,7 @@ const probe = (run: () => void) => mount({ render: () => h(Probe, { run }) });
 function mount(component: Component): HTMLElement {
   const app = createApp(component);
   for (const name of ["UIcon", "UButton", "DmsLink"]) {
-    app.component(name, (props: NonNullable<Parameters<typeof h>[1]>) =>
+    app.component(name, (props: { label?: string }) =>
       h("i", { "data-stub": name, "data-label": props.label }),
     );
   }
