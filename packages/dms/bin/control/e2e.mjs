@@ -59,9 +59,9 @@ export function e2eConfig() {
  * Registers every journey of the checkout's verification skill, in the order
  * of its feature files and with those marked `last` after all others: one
  * test per journey, named by its id under its feature's name, with the
- * journey's `tag` and its title and entry point as annotations. A test drives its journey through `runJourney` in
- * Playwright's browser, on the run of the global setup, then replays the
- * judged result into the report.
+ * journey's `tag` and its title and entry point as annotations. A test
+ * drives its journey through `runJourney` in Playwright's browser, on the
+ * run of the global setup, then replays the judged result into the report.
  *
  * @returns {Promise<void>}
  * @throws When a feature has no journeys module, or two journeys share an id
