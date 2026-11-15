@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { ImplementInterface } from "@antelopejs/interface-core";
 import type {
@@ -234,8 +235,7 @@ function connectDatabase(): void {
  * The AI gets the shape of a connected database, never its values. Each tool that reads the
  * database answers with every value above left out; an implementation that passes a profile's
  * range, category values or months through, or a proposal's badge items or currency, or a written
- * file's diff, or a structure or edit of the mapped code that shows its badge items, tabs or
- * currency, fails here.
+ * file's diff, fails here.
  */
 describe("[unit] the tools that read a connected database answer no value of a row", function () {
   this.timeout(OP_TIMEOUT);
@@ -292,6 +292,18 @@ describe("[unit] the tools that read a connected database answer no value of a r
     });
     expect(mapping).to.include('{"kind":"badge","values":3}');
   });
+});
+
+/**
+ * The code a mapping wrote holds badge items, tabs and a currency read from rows. Each builder tool
+ * that reads or edits that code answers with every value above left out; an implementation that
+ * shows a structure or a diff of the mapped code, or of a mapped page moved out of its module,
+ * fails here, and so does one that lets an edit drop what it hides.
+ */
+describe("[unit] the builder tools over a mapped module's code answer no value of a row", function () {
+  this.timeout(OP_TIMEOUT);
+
+  connectDatabase();
 
   it("reads the code it wrote back with the values it read from rows hidden, and keeps them on an edit", async () => {
     const orders = await mapOrders();
@@ -327,6 +339,13 @@ describe("[unit] the tools that read a connected database answer no value of a r
     });
     expect(echoed.isError).to.equal(true);
     expect(echoed.text).to.include("$hidden");
+    const replaced = await run(mockupTool("builder_configure_block"), {
+      path: `${orders.page}#table`,
+      patch: { caption: "Orders" },
+      replace: true,
+    });
+    expect(replaced.isError).to.equal(true);
+    expect(replaced.text).to.include("would drop tabs");
     const code = [...orders.files, pageFile]
       .map((file) => projectFile(app.root, path.relative(app.root, file)))
       .join("\n");
@@ -358,5 +377,15 @@ describe("[unit] the tools that read a connected database answer no value of a r
       patch: { caption: "Placed orders" },
     });
     expect(recaptioned).to.not.include('"diff"');
+    fs.appendFileSync(
+      path.join(app.root, "modules", MODULE, "package.json"),
+      ",",
+    );
+    const unreadable = await valueFree("builder_configure_block", {
+      path: "/ops/erp-orders#table",
+      patch: { caption: "Orders again" },
+    });
+    expect(unreadable).to.include('"kind":"modify"');
+    expect(unreadable).to.not.include('"diff"');
   });
 });

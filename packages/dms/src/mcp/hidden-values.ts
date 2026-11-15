@@ -101,6 +101,26 @@ export function hidePageValues(structure: PageStructure): PageStructure {
   return { ...structure, blocks: structure.blocks.map(hideBlock) };
 }
 
+function findBlock(blocks: BlockNode[], path: string): BlockNode | undefined {
+  for (const block of blocks) {
+    const found =
+      block.path === path ? block : findBlock(block.children ?? [], path);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** The options of a mapped page's block that hold a {@link HiddenValue}. */
+export function hiddenOptionsOf(
+  structure: PageStructure,
+  path: string,
+): string[] {
+  const config = findBlock(hidePageValues(structure).blocks, path)?.config;
+  return Object.entries(config ?? {}).flatMap(([key, value]) =>
+    containsHiddenValue.parse(value) ? [key] : [],
+  );
+}
+
 const HIDDEN_VALUE = z
   .record(z.string(), z.unknown())
   .refine((object) => Object.hasOwn(object, "$hidden"));

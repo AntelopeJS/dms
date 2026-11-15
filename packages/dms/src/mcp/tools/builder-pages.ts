@@ -14,8 +14,8 @@ import {
   RemoveBlock,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
-import { hidePageValues } from "../hidden-values";
-import { JsonObjectSchema } from "../json";
+import { hiddenOptionsOf, hidePageValues } from "../hidden-values";
+import { type JsonObject, JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
 import { defineTool, textResult } from "../tool";
 import {
@@ -27,6 +27,7 @@ import {
   withEscalationNote,
   opResult,
   PARENT_PATH,
+  refusalResult,
   TARGET_MODULE,
 } from "./builder-shared";
 
@@ -147,11 +148,24 @@ const addBlock = defineTool({
       : opResult(await AddBlock(input)),
 });
 
+/** The options a `replace` of a mapped page's block would drop unseen: those it holds hidden. */
+async function droppedHiddenOptions(
+  path: string,
+  patch: JsonObject,
+): Promise<string[]> {
+  const structure = await GetPageStructure(path.split("#")[0] ?? path);
+  if (!structure.ok) return [];
+  if (!(await mappedFileTest())(structure.data.page.filepath)) return [];
+  return hiddenOptionsOf(structure.data, path).filter(
+    (key) => !Object.hasOwn(patch, key),
+  );
+}
+
 const configureBlock = defineTool({
   name: "builder_configure_block",
   title: "Configure block",
   description: withEscalationNote(
-    "Merges (or replaces, with replace:true) options into a block's config. Children are managed with Add/Move/Remove, not here.",
+    "Merges (or replaces, with replace:true) options into a block's config. Children are managed with Add/Move/Remove, not here. On a mapped page, replace:true is refused while it would drop an option builder_page_structure shows as `{ $hidden: n }`: merge instead, or send that option yourself.",
   ),
   effect: "builder",
   input: z.object({
@@ -159,10 +173,17 @@ const configureBlock = defineTool({
     patch: JsonObjectSchema,
     replace: z.boolean().optional(),
   }),
-  run: async ({ path, patch, replace }) =>
-    containsExprSentinel.parse(patch)
-      ? exprRefusal()
-      : opResult(await ConfigureBlock(path, patch, { replace })),
+  async run({ path, patch, replace }) {
+    if (containsExprSentinel.parse(patch)) return exprRefusal();
+    const dropped =
+      replace === true ? await droppedHiddenOptions(path, patch) : [];
+    return dropped.length > 0
+      ? refusalResult(
+          "unsupported",
+          `replace:true would drop ${dropped.join(", ")}, which hold values the mapping read from rows that no tool shows. Merge the patch without replace to keep them, or send them yourself.`,
+        )
+      : opResult(await ConfigureBlock(path, patch, { replace }));
+  },
 });
 
 const moveBlock = defineTool({

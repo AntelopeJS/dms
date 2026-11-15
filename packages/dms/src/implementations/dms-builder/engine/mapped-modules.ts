@@ -200,13 +200,21 @@ function importsMappedModule(filepath: string): boolean {
 
 /**
  * Whether a file may hold code a mapping wrote from rows: it lies in a mapped module, or imports
- * from one by a relative path, as a mapped page moved into another module's category does.
+ * from one by a relative path, as a mapped page moved into another module's category does. A
+ * module whose record cannot be read counts as mapped.
  */
 export function holdsMappedCode(filepath: string): boolean {
-  return (
-    mappedConnectionOfFile(filepath) !== undefined ||
-    importsMappedModule(filepath)
-  );
+  try {
+    return (
+      mappedConnectionOfFile(filepath) !== undefined ||
+      importsMappedModule(filepath)
+    );
+  } catch (error) {
+    if (error instanceof StepRefusal) {
+      return true;
+    }
+    throw error;
+  }
 }
 
 /** The relations recorded as decided against in a module, with why. */
