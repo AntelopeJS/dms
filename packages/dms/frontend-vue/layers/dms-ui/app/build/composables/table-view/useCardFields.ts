@@ -22,7 +22,7 @@ export function useCardFields() {
     if (!isString(rendered) && !isNumber(rendered)) {
       return rendered;
     }
-    const value = get(item, column.accessorKey);
+    const value: unknown = get(item, column.accessorKey);
 
     const isMissing = value === null || value === undefined;
     return h(

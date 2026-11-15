@@ -7,6 +7,7 @@ import {
   readRecordId,
   writeRecordId,
 } from "./utils/recordLink";
+import { detach } from "../detach";
 import { queryOfUrl } from "./utils/urlFilters";
 import type { TableUrlScope } from "./utils/views";
 import type { LocationQuery } from "#dms/frontend-module";
@@ -49,7 +50,7 @@ export function useTableRecordLink<T>(
   options: TableRecordLinkOptions<T>,
 ): TableRecordLink {
   const { action, urlScope } = options;
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
 
   let linkedId: string | undefined;
 
@@ -64,7 +65,9 @@ export function useTableRecordLink<T>(
     writeRecordId(urlScope);
     if (linkedId === id) linkedId = undefined;
     if (outcome === "notifyFailed")
-      presentError(found.error, { fallbackKey: "dms.table.load_error_title" });
+      errorPresenter.presentError(found.error, {
+        fallbackKey: "dms.table.load_error_title",
+      });
     else options.notify(outcome);
   };
 
@@ -72,7 +75,7 @@ export function useTableRecordLink<T>(
     const id = readRecordId(query, urlScope);
     if (!id || id === linkedId) return;
     linkedId = id;
-    void settle(id);
+    detach(settle(id));
   };
 
   let stopFollowingVisits: (() => void) | undefined;

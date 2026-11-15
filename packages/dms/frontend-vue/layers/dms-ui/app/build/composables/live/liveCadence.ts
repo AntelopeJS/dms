@@ -1,4 +1,4 @@
-import type { PageLiveOptions, PageLivePeriod } from "#dms-core/app/types/live";
+import type { PageLiveOptions } from "#dms-core/app/types/live";
 
 const MS_PER_SECOND = 1000;
 const MS_PER_UNIT = {
@@ -14,7 +14,7 @@ const PERIOD_PATTERN = /^(\d+)([mhd])$/;
  *
  * @internal
  */
-export function livePeriodMs(period: PageLivePeriod | string): number | null {
+export function livePeriodMs(period: string): number | null {
   const match = PERIOD_PATTERN.exec(period);
   if (!match) return null;
   const [, amount, unit] = match;

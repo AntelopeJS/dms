@@ -2,7 +2,7 @@ import {
   isObject,
   isNumber,
 } from "../../../../../dms-core/app/utils/type-check";
-import { ref, type Component, type ComponentOptions, type Ref } from "vue";
+import { ref, type Component, type Ref } from "vue";
 import type { DrawerDirection } from "../../../composables/containers/types";
 import type { ModalSize } from "../../../types/modal";
 import type { ResizeBounds, ResizeStorage } from "./useResizableSize";
@@ -166,9 +166,9 @@ const ASYNC_WRAPPER_NAME = "AsyncComponentWrapper";
  * @internal
  */
 export function componentSizeKey(component: Component): string | undefined {
-  const named = component as Pick<ComponentOptions, "name" | "__name">;
-  const { name, __name } = named;
-  const componentName = [name, __name].find(
+  const { name } = component;
+  const compiledName = "__name" in component ? component.__name : undefined;
+  const componentName = [name, compiledName].find(
     (candidate) => candidate && candidate !== ASYNC_WRAPPER_NAME,
   );
   return componentName

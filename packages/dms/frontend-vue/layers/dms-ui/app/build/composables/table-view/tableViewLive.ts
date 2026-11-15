@@ -51,7 +51,10 @@ export function useTableViewLiveHold<T extends Data>(
       isRowOpen: () => openRowId.value !== undefined,
       isSearching: () => !!effectiveGlobalFilter.value,
       isSorted: () => !isSameSorting(effectiveSorting.value, defaultSortState),
-      tableElement: () => tableRoot.value?.$el ?? null,
+      tableElement: () => {
+        const element: unknown = tableRoot.value?.$el;
+        return element instanceof HTMLElement ? element : null;
+      },
     },
 
     newRows: {

@@ -30,7 +30,7 @@ export interface TableLiveHoldSignals {
    * The table's element: whether it is on screen, and where its first row
    * stands for `whileScrolled`.
    */
-  tableElement?: () => unknown;
+  tableElement?: () => HTMLElement | null;
 }
 
 /** Why a table holds its rows by itself, its page staying live. */
@@ -118,11 +118,7 @@ function useLocalHold(
   holdOptions: TableViewLiveHoldOptions | null,
   signals: TableLiveHoldSignals,
 ): ComputedRef<LocalHoldReason | null> {
-  const tableElement = signals.tableElement ?? NO_ELEMENT;
-  const element = () => {
-    const target = tableElement();
-    return target instanceof HTMLElement ? target : null;
-  };
+  const element = signals.tableElement ?? NO_ELEMENT;
   const holdsOnScreen = !!holdOptions && holdOptions.whileOnScreen !== false;
   const isScrolled = useScrolledPastTop(element, !!holdOptions?.whileScrolled);
   const isReached = useTableReached(element, holdsOnScreen);

@@ -21,7 +21,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/vue-table";
-import { get } from "@nuxt/ui/runtime/utils/index.js";
+import { rowKeyOf } from "./utils/rowId";
 import {
   useTableColumns,
   type LabeledColumn,
@@ -162,7 +162,9 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
 
     state: stateGetters,
 
-    getRowId: (row: T) => get(row, rowIdKey),
+    getRowId: (row: T, index: number, parent?: { id: string }) =>
+      rowKeyOf(row, rowIdKey) ??
+      (parent ? [parent.id, index].join(".") : String(index)),
 
     getCoreRowModel: getCoreRowModel(),
   });

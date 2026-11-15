@@ -1,9 +1,6 @@
 import type { Ref } from "vue";
 import type { MarkFieldSaved } from "../../../composables/form/types/field-saved";
-import type {
-  FormData,
-  FormFieldValue,
-} from "../../../composables/form/types/value";
+import type { FormData } from "../../../composables/form/types/value";
 import { cloneFormValue } from "../../../composables/form/useForm";
 import type { UseFormDirtyReturn } from "../../../composables/unsaved-changes/useFormDirty";
 import type { InstantForm, InstantFormOptions } from "./useInstantForm";
@@ -30,10 +27,11 @@ export interface FieldSavedTargets {
 export function fieldSavedMarker(targets: FieldSavedTargets): MarkFieldSaved {
   return (id, value) => {
     if (!targets.hasField(id)) return;
-    targets.initialValues.value = {
-      ...targets.initialValues.value,
-      [id]: cloneFormValue(value as FormFieldValue) as FormFieldValue,
-    };
+    const saved = cloneFormValue(value);
+    const initialValues = { ...targets.initialValues.value };
+    if (saved === undefined) delete initialValues[id];
+    else initialValues[id] = saved;
+    targets.initialValues.value = initialValues;
     targets.dirty.markClean({ ...targets.dirty.baseline.value, [id]: value });
     targets.instantSave?.confirmField(id, value);
   };

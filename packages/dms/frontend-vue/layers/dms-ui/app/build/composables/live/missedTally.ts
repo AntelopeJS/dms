@@ -4,12 +4,14 @@ import {
 } from "../../../../../dms-core/app/utils/type-check";
 import { readonly, ref, type Ref } from "vue";
 
-interface PublishedEvent {
+/** What a block's gate counts: a realtime message, or the browser event of a page refresh. */
+export interface LiveEvent {
   topic?: unknown;
+  type?: string;
   payload?: { ids?: unknown; count?: unknown };
 }
 
-function rowKeysOf(event: PublishedEvent): string[] {
+function rowKeysOf(event: LiveEvent): string[] {
   const ids = event.payload?.ids;
   if (!Array.isArray(ids)) return [];
   const topic = isString(event.topic) ? event.topic : "";
@@ -18,7 +20,7 @@ function rowKeysOf(event: PublishedEvent): string[] {
     .map((id) => JSON.stringify([topic, id]));
 }
 
-function batchCountOf(event: PublishedEvent): number | null {
+function batchCountOf(event: LiveEvent): number | null {
   const count = event.payload?.count;
   return isNumber(count) && Number.isInteger(count) && count > 0 ? count : null;
 }
@@ -35,12 +37,12 @@ function batchCountOf(event: PublishedEvent): number | null {
  */
 export class MissedTally {
   private readonly count = ref(0);
-  private events = new WeakSet<object>();
+  private events = new WeakSet<LiveEvent>();
   private rows = new Set<string>();
   /** The rows and events counted since the last reset. */
   readonly total: Readonly<Ref<number>> = readonly(this.count);
 
-  add(event: object | undefined): void {
+  add(event: LiveEvent | undefined): void {
     if (event) {
       if (this.events.has(event)) return;
       this.events.add(event);
@@ -54,7 +56,7 @@ export class MissedTally {
     this.rows = new Set();
   }
 
-  private weightOf(event: PublishedEvent | undefined): number {
+  private weightOf(event: LiveEvent | undefined): number {
     if (!event) return 1;
     const rowKeys = rowKeysOf(event);
     if (rowKeys.length > 0) {

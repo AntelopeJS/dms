@@ -44,7 +44,7 @@ export function useGroupedRows(options: GroupedRowsOptions) {
   const { isActive, columns, rows } = options;
   const { t, locale } = useI18n();
   const { renderColumnValue } = useColumnValueRenderer();
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const grouped = computed(() => toValue(options.grouped));
   const by = computed(() => grouped.value?.by ?? "value");
   const field = computed(() => grouped.value?.groupByField ?? "");
@@ -68,11 +68,9 @@ export function useGroupedRows(options: GroupedRowsOptions) {
         }),
       );
     }
-    return column.value
-      ? renderColumnValue(column.value, {
-          [field.value]: get(row, field.value),
-        })
-      : key;
+    if (!column.value) return key;
+    const value: unknown = get(row, field.value);
+    return renderColumnValue(column.value, { [field.value]: value });
   };
 
   const counts = ref<Record<string, number>>({});
@@ -95,7 +93,9 @@ export function useGroupedRows(options: GroupedRowsOptions) {
     try {
       counts.value = await options.countBatch(queries);
     } catch (error: unknown) {
-      presentError(error, { fallbackKey: "dms.table.load_error_title" });
+      errorPresenter.presentError(error, {
+        fallbackKey: "dms.table.load_error_title",
+      });
     }
   };
 

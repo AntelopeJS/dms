@@ -60,7 +60,7 @@ export function useMockupSession(options: MockupSessionOptions): MockupSession {
 
   async function loadAnnotations(): Promise<void> {
     try {
-      const answer = await options.authFetch(annotationsEndpoint);
+      const answer: unknown = await options.authFetch(annotationsEndpoint);
       annotations.value = parseAnnotations(answer) ?? annotations.value;
     } catch {
       hasRequestFailed.value = true;
@@ -95,7 +95,7 @@ export function useMockupSession(options: MockupSessionOptions): MockupSession {
         },
       },
     );
-    void loadAnnotations();
+    loadAnnotations().catch(() => undefined);
   });
   onBeforeUnmount(() => stream?.close());
 

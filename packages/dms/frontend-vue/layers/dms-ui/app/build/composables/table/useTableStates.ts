@@ -1,3 +1,4 @@
+import { functionalUpdate } from "@tanstack/vue-table";
 import type { ModelRef } from "vue";
 import type {
   ColumnPinningState,
@@ -25,10 +26,11 @@ interface TableStates {
 }
 
 export const useTableStates = (states: TableStates) => {
-  const updateStateValue = (updaterOrValue: Updater<any>, stateRef: Ref) => {
-    stateRef.value = isFunction(updaterOrValue)
-      ? updaterOrValue(stateRef.value)
-      : updaterOrValue;
+  const updateStateValue = <V>(
+    updaterOrValue: Updater<V>,
+    stateRef: Ref<V>,
+  ) => {
+    stateRef.value = functionalUpdate(updaterOrValue, stateRef.value);
   };
 
   const deleteFilter = (index: number) => {

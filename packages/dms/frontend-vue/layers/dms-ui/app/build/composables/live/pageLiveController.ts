@@ -16,7 +16,7 @@ import { liveIntervalMs } from "./liveCadence";
 import { LiveHolds, toLiveNote } from "./liveHolds";
 import { LivePoller } from "./livePoller";
 import { liveStorageKey, readStoredPause, storePause } from "./liveStorage";
-import { MissedTally } from "./missedTally";
+import { MissedTally, type LiveEvent } from "./missedTally";
 
 /**
  * Why a page hidden in a background tab is paused.
@@ -39,7 +39,7 @@ export interface LiveSubscription {
    * reaching several blocks counts once in the page's `missedCount`; its
    * `payload.ids` or `payload.count` say how many rows it stands for.
    */
-  trigger(event?: object): void;
+  trigger: (event?: LiveEvent) => void;
   /** Rows and events the block received while paused or held, not read yet. */
   readonly missed: Readonly<Ref<number>>;
   /** When the block last read through the gate (ms since the epoch), 0 before. */

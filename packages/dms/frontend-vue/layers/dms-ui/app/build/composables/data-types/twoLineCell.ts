@@ -3,12 +3,19 @@ import type {
   DataType,
   DataTypeFormatter,
 } from "#dms-core/app/composables/data-types/useDataType";
+import { isNumber, isString } from "#dms-core/app/utils/type-check";
 import { getAppComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import {
   type ComposableText,
   isComposedText,
 } from "../../../../../dms-core/app/utils/composedText";
-import { readRowField, readSubline, toneClass, type Row } from "./cellHelpers";
+import {
+  childOf,
+  readRowField,
+  readSubline,
+  toneClass,
+  type Row,
+} from "./cellHelpers";
 
 const EMPTY = "—";
 const PRIMARY_CLASS = "text-highlighted truncate text-[13px] font-medium";
@@ -30,6 +37,17 @@ interface TwoLineOptions {
   typeOptions?: unknown;
 }
 
+const composableOf = (
+  value: Parameters<DataTypeFormatter>[0],
+): ComposableText =>
+  value === null ||
+  value === undefined ||
+  isNumber(value) ||
+  isString(value) ||
+  isComposedText(value)
+    ? value
+    : String(value);
+
 const isBlank = (value: Parameters<DataTypeFormatter>[0]): boolean =>
   value === null || value === undefined || value === "";
 
@@ -46,7 +64,7 @@ function formatColumnValue(
     : undefined;
   const format = formatter?.cell ?? formatter?.default;
   if (!format) return String(value);
-  return format(value, locale, opts.typeOptions, row) as VNodeChild;
+  return childOf(format(value, locale, opts.typeOptions, row));
 }
 
 /** The primary line, or nothing when the row has none to show. */
@@ -59,7 +77,7 @@ function readPrimary(
   const { processText } = getAppComposedText();
   if (opts.primaryField) {
     const text = processText(
-      readRowField(row, opts.primaryField) as ComposableText,
+      composableOf(readRowField(row, opts.primaryField)),
     );
     return text || undefined;
   }

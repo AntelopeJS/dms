@@ -17,6 +17,10 @@ interface RelationValueOptions {
   keyMapping?: RelationKeyMapping;
 }
 
+const relationOptionsOf = (
+  options: Parameters<BeforeStateMapper>[1],
+): RelationValueOptions => options ?? {};
+
 /**
  * The form state of a relation value: the id of each row it references, as
  * the picker holds it, whether the server sent the joined rows or their ids.
@@ -27,13 +31,14 @@ export function mapRelationBeforeState(
 ) {
   if (!value) return value;
 
-  const opts = options as RelationValueOptions | undefined;
-  const valueKey = opts?.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
+  const opts = relationOptionsOf(options);
+  const valueKey = opts.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
 
   if (isString(value) || isNumber(value)) return value;
 
-  if (opts?.multiple && Array.isArray(value)) {
-    return value.map((item) =>
+  if (opts.multiple && Array.isArray(value)) {
+    const items: unknown[] = value;
+    return items.map((item) =>
       isObject(item) && item !== null ? item[valueKey] : item,
     );
   }
@@ -70,7 +75,7 @@ export function sameRelationValue(
   right: Parameters<DataTypeValueComparer>[1],
   options: Parameters<DataTypeValueComparer>[2],
 ): boolean {
-  const isSet = !!(options as RelationValueOptions | undefined)?.multiple;
+  const isSet = !!relationOptionsOf(options).multiple;
   const comparable = (value: Parameters<DataTypeValueComparer>[0]) => {
     const ids = relationIds(value, options);
     return isSet ? ids.sort(compareIdText) : ids;

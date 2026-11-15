@@ -112,6 +112,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return isObject(value) && value !== null && !Array.isArray(value);
 }
 
+function isList(value: unknown): value is unknown[] {
+  return Array.isArray(value);
+}
+
 function parseSource(value: unknown): SpecSource | undefined {
   if (!isRecord(value) || !isString(value.digest)) return undefined;
   const spec = parseMockupSpec(value.spec);
@@ -127,7 +131,7 @@ function parseWriteAnswer(value: unknown): WriteAnswer | undefined {
   if (value.ok === true && isString(value.digest)) {
     return { ok: true, digest: value.digest };
   }
-  const [first] = Array.isArray(value.errors) ? value.errors : [];
+  const [first] = isList(value.errors) ? value.errors : [];
   if (value.ok !== false || !isRecord(first)) return undefined;
   const { path, message } = first;
   return isString(path) && isString(message)
@@ -148,6 +152,259 @@ function sameSpec(
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function ignoreRejection(task: Promise<void>): void {
+  task.catch(() => undefined);
+}
+
+/** The reads, writes and retries that keep one editor's spec and `spec.json` in step. */
+class MockupSpecSync {
+  readonly history = shallowRef<MockupHistory<MockupSpecDocument>>();
+  readonly written = shallowRef<MockupSpecDocument>();
+  readonly adoption = shallowRef<MockupAdoption>();
+  readonly hasFailed = shallowRef(false);
+  readonly isAwaitingState = shallowRef(false);
+  isClosed = false;
+  private readonly endpoint: string;
+  private digest: string | undefined;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private retryTimer: ReturnType<typeof setTimeout> | undefined;
+  private failures = 0;
+  /** Specs sent whose answer never came: the file may hold any of them. */
+  private unconfirmed: MockupSpecDocument[] = [];
+  private isWriting = false;
+  private isCheckDue = false;
+
+  constructor(private readonly options: MockupSpecOptions) {
+    this.endpoint = mockupEndpoint(options.name, "/spec");
+  }
+
+  /**
+   * Reads the file; undefined when it cannot be read or holds no valid spec.
+   * `onError` hears why, and only a write that needed the read reports it.
+   */
+  async read(
+    onError?: (cause: unknown) => void,
+  ): Promise<SpecSource | undefined> {
+    try {
+      const source = parseSource(await this.options.authFetch(this.endpoint));
+      if (!source) onError?.(new Error("spec.json could not be read"));
+      return source;
+    } catch (error) {
+      onError?.(error);
+      return undefined;
+    }
+  }
+
+  stopTimers(): void {
+    if (this.timer !== undefined) clearTimeout(this.timer);
+    if (this.retryTimer !== undefined) clearTimeout(this.retryTimer);
+    this.timer = undefined;
+    this.retryTimer = undefined;
+  }
+
+  hasDueWrite(): boolean {
+    return this.timer !== undefined || this.retryTimer !== undefined;
+  }
+
+  private landed(): void {
+    this.failures = 0;
+    this.unconfirmed = [];
+    this.hasFailed.value = false;
+  }
+
+  /**
+   * Takes the file as the editor's own write when it holds the spec shown or
+   * one sent without an answer; false when someone else wrote it.
+   */
+  private claim(source: SpecSource): boolean {
+    const own = [this.history.value?.present, ...this.unconfirmed].find(
+      (spec) => spec !== undefined && sameSpec(source.spec, spec),
+    );
+    if (!own) return false;
+    this.digest = source.digest;
+    this.written.value = own;
+    this.landed();
+    return true;
+  }
+
+  /**
+   * Takes the file as the spec last written or read, or one sent without an
+   * answer, with ids a note stamped; false when it changed more.
+   */
+  private takeStamps(source: SpecSource): boolean {
+    const bases = [this.written.value, ...this.unconfirmed].flatMap(
+      (spec) => spec ?? [],
+    );
+    const stamped =
+      this.history.value &&
+      stampedHistory(this.history.value, bases, source.spec);
+    if (!stamped) return false;
+    this.history.value = stamped.history;
+    this.digest = source.digest;
+    this.written.value = stamped.written;
+    this.landed();
+    return true;
+  }
+
+  adopt(source: SpecSource, isNews: boolean): void {
+    const previous = this.history.value?.present;
+    this.stopTimers();
+    this.landed();
+    this.digest = source.digest;
+    this.written.value = source.spec;
+    this.history.value = reset(source.spec);
+    if (!isNews) return;
+    this.adoption.value = { previous, next: source.spec };
+    this.options.onNotice({ kind: "adopted" });
+  }
+
+  private isBusy(): boolean {
+    return this.isWriting || this.timer !== undefined;
+  }
+
+  async check(): Promise<void> {
+    if (this.isBusy()) {
+      this.isCheckDue = true;
+      return;
+    }
+    const source = await this.read();
+    const present = this.history.value?.present;
+    if (!source || this.isClosed) return;
+    if (source.digest === this.digest) {
+      if (!this.isBusy() && present !== this.written.value) {
+        ignoreRejection(this.write());
+      }
+      return;
+    }
+    if (this.isBusy()) {
+      this.isCheckDue = true;
+      return;
+    }
+    if (!this.claim(source) && !this.takeStamps(source)) {
+      this.adopt(source, present !== undefined);
+      return;
+    }
+    this.stopTimers();
+    if (this.history.value?.present !== this.written.value) this.schedule();
+  }
+
+  private revert(issue: MockupIssue, sent: MockupSpecDocument): void {
+    const current = this.history.value;
+    const discarded = !!current && current.present !== sent;
+    if (current && this.written.value) {
+      this.history.value = revertTo(current, this.written.value);
+    }
+    this.stopTimers();
+    this.landed();
+    this.options.onNotice({ kind: "refused", issue, discarded });
+  }
+
+  private retryLater(): void {
+    if (this.isClosed) return;
+    if (this.retryTimer !== undefined) clearTimeout(this.retryTimer);
+    const delay = Math.min(
+      MOCKUP_RETRY_DELAY_MS * 2 ** this.failures,
+      MOCKUP_RETRY_MAX_DELAY_MS,
+    );
+    this.failures += 1;
+    this.retryTimer = setTimeout(() => ignoreRejection(this.write()), delay);
+  }
+
+  private failed(cause: unknown): void {
+    if (!this.hasFailed.value) {
+      this.options.onNotice({ kind: "failed", error: cause });
+    }
+    this.hasFailed.value = true;
+    this.retryLater();
+  }
+
+  private async onWriteError(
+    cause: unknown,
+    sent: MockupSpecDocument,
+  ): Promise<void> {
+    if (statusOf(cause) !== HTTP_CONFLICT) {
+      if (!this.unconfirmed.includes(sent)) this.unconfirmed.push(sent);
+      this.failed(cause);
+      return;
+    }
+    let readError: unknown;
+    const source = await this.read((reason) => {
+      readError = reason;
+    });
+    if (this.isClosed) return;
+    if (!source) this.failed(readError);
+    else if (!this.claim(source) && !this.takeStamps(source)) {
+      this.adopt(source, true);
+    }
+  }
+
+  async write(): Promise<void> {
+    this.timer = undefined;
+    if (this.retryTimer !== undefined) clearTimeout(this.retryTimer);
+    this.retryTimer = undefined;
+    const spec = this.history.value?.present;
+    if (!spec || this.isWriting || this.isClosed) return;
+    if (spec === this.written.value && !this.unconfirmed.length) {
+      this.landed();
+      return;
+    }
+    const sentAt = this.options.state.value?.revision;
+    this.isWriting = true;
+    try {
+      const answer = parseWriteAnswer(
+        await this.options.authFetch(this.endpoint, {
+          method: "PUT",
+          body: { spec, digest: this.digest },
+        }),
+      );
+      if (answer?.ok) {
+        this.digest = answer.digest;
+        this.written.value = spec;
+        this.isAwaitingState.value =
+          this.options.state.value?.revision === sentAt;
+        this.landed();
+      } else if (answer) {
+        this.revert(answer.issue, spec);
+      }
+    } catch (error) {
+      await this.onWriteError(error, spec);
+    } finally {
+      this.isWriting = false;
+    }
+    const present = this.history.value?.present;
+    if (present !== this.written.value && this.retryTimer === undefined) {
+      this.schedule();
+    } else if (this.isCheckDue && !this.isClosed) {
+      this.isCheckDue = false;
+      ignoreRejection(this.check());
+    }
+  }
+
+  private schedule(): void {
+    if (this.isClosed) return;
+    if (this.timer !== undefined) clearTimeout(this.timer);
+    this.timer = setTimeout(
+      () => ignoreRejection(this.write()),
+      MOCKUP_WRITE_DELAY_MS,
+    );
+  }
+
+  move(next: MockupHistory<MockupSpecDocument>): void {
+    if (next === this.history.value) return;
+    this.history.value = next;
+    this.schedule();
+  }
+
+  apply(edit: MockupEdit, coalesceKey?: string): MockupEditResult | undefined {
+    const current = this.history.value;
+    if (!current) return undefined;
+    const result = applyMockupEdit(current.present, edit);
+    if (result.spec === current.present) return undefined;
+    this.move(commit(current, result.spec, coalesceKey));
+    return result;
+  }
+}
+
 /**
  * Edits `mockups/<name>/spec.json` from the browser: reads it, applies each
  * edit through the reducer and the undo history, and writes the result about
@@ -166,268 +423,44 @@ function sameSpec(
  * joins every step of the history that holds its block.
  */
 export function useMockupSpec(options: MockupSpecOptions): MockupSpecEditor {
-  const endpoint = mockupEndpoint(options.name, "/spec");
-  const history = shallowRef<MockupHistory<MockupSpecDocument>>();
-  const written = shallowRef<MockupSpecDocument>();
-  const adoption = shallowRef<MockupAdoption>();
-  const hasFailed = shallowRef(false);
-  const isAwaitingState = shallowRef(false);
-  let digest: string | undefined;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let retryTimer: ReturnType<typeof setTimeout> | undefined;
-  let failures = 0;
-  /** Specs sent whose answer never came: the file may hold any of them. */
-  let unconfirmed: MockupSpecDocument[] = [];
-  let isWriting = false;
-  let isCheckDue = false;
-  let isClosed = false;
-
-  /**
-   * Reads the file; undefined when it cannot be read or holds no valid spec.
-   * `onError` hears why, and only a write that needed the read reports it.
-   */
-  async function read(
-    onError?: (error: unknown) => void,
-  ): Promise<SpecSource | undefined> {
-    try {
-      const source = parseSource(await options.authFetch(endpoint));
-      if (!source) onError?.(new Error("spec.json could not be read"));
-      return source;
-    } catch (error) {
-      onError?.(error);
-      return undefined;
-    }
-  }
-
-  function stopTimers(): void {
-    if (timer !== undefined) clearTimeout(timer);
-    if (retryTimer !== undefined) clearTimeout(retryTimer);
-    timer = undefined;
-    retryTimer = undefined;
-  }
-
-  function landed(): void {
-    failures = 0;
-    unconfirmed = [];
-    hasFailed.value = false;
-  }
-
-  /**
-   * Takes the file as the editor's own write when it holds the spec shown or
-   * one sent without an answer; false when someone else wrote it.
-   */
-  function claim(source: SpecSource): boolean {
-    const own = [history.value?.present, ...unconfirmed].find(
-      (spec) => spec !== undefined && sameSpec(source.spec, spec),
-    );
-    if (!own) return false;
-    digest = source.digest;
-    written.value = own;
-    landed();
-    return true;
-  }
-
-  /**
-   * Takes the file as the spec last written or read, or one sent without an
-   * answer, with ids a note stamped; false when it changed more.
-   */
-  function takeStamps(source: SpecSource): boolean {
-    const bases = [written.value, ...unconfirmed].flatMap((spec) => spec ?? []);
-    const stamped =
-      history.value && stampedHistory(history.value, bases, source.spec);
-    if (!stamped) return false;
-    history.value = stamped.history;
-    digest = source.digest;
-    written.value = stamped.written;
-    landed();
-    return true;
-  }
-
-  function adopt(source: SpecSource, isNews: boolean): void {
-    const previous = history.value?.present;
-    stopTimers();
-    landed();
-    digest = source.digest;
-    written.value = source.spec;
-    history.value = reset(source.spec);
-    if (!isNews) return;
-    adoption.value = { previous, next: source.spec };
-    options.onNotice({ kind: "adopted" });
-  }
-
-  function isBusy(): boolean {
-    return isWriting || timer !== undefined;
-  }
-
-  async function check(): Promise<void> {
-    if (isBusy()) {
-      isCheckDue = true;
-      return;
-    }
-    const source = await read();
-    const present = history.value?.present;
-    if (!source || isClosed) return;
-    if (source.digest === digest) {
-      if (!isBusy() && present !== written.value) void write();
-      return;
-    }
-    if (isBusy()) {
-      isCheckDue = true;
-      return;
-    }
-    if (!claim(source) && !takeStamps(source)) {
-      adopt(source, present !== undefined);
-      return;
-    }
-    stopTimers();
-    if (history.value?.present !== written.value) schedule();
-  }
-
-  function revert(issue: MockupIssue, sent: MockupSpecDocument): void {
-    const current = history.value;
-    const discarded = !!current && current.present !== sent;
-    if (current && written.value) {
-      history.value = revertTo(current, written.value);
-    }
-    stopTimers();
-    landed();
-    options.onNotice({ kind: "refused", issue, discarded });
-  }
-
-  function retryLater(): void {
-    if (isClosed) return;
-    if (retryTimer !== undefined) clearTimeout(retryTimer);
-    const delay = Math.min(
-      MOCKUP_RETRY_DELAY_MS * 2 ** failures,
-      MOCKUP_RETRY_MAX_DELAY_MS,
-    );
-    failures += 1;
-    retryTimer = setTimeout(() => void write(), delay);
-  }
-
-  function failed(error: unknown): void {
-    if (!hasFailed.value) options.onNotice({ kind: "failed", error });
-    hasFailed.value = true;
-    retryLater();
-  }
-
-  async function onWriteError(
-    error: unknown,
-    sent: MockupSpecDocument,
-  ): Promise<void> {
-    if (statusOf(error) !== HTTP_CONFLICT) {
-      if (!unconfirmed.includes(sent)) unconfirmed.push(sent);
-      failed(error);
-      return;
-    }
-    let readError: unknown;
-    const source = await read((cause) => {
-      readError = cause;
-    });
-    if (isClosed) return;
-    if (!source) failed(readError);
-    else if (!claim(source) && !takeStamps(source)) adopt(source, true);
-  }
-
-  async function write(): Promise<void> {
-    timer = undefined;
-    if (retryTimer !== undefined) clearTimeout(retryTimer);
-    retryTimer = undefined;
-    const spec = history.value?.present;
-    if (!spec || isWriting || isClosed) return;
-    if (spec === written.value && !unconfirmed.length) {
-      landed();
-      return;
-    }
-    const sentAt = options.state.value?.revision;
-    isWriting = true;
-    try {
-      const answer = parseWriteAnswer(
-        await options.authFetch(endpoint, {
-          method: "PUT",
-          body: { spec, digest },
-        }),
-      );
-      if (answer?.ok) {
-        digest = answer.digest;
-        written.value = spec;
-        isAwaitingState.value = options.state.value?.revision === sentAt;
-        landed();
-      } else if (answer) {
-        revert(answer.issue, spec);
-      }
-    } catch (error) {
-      await onWriteError(error, spec);
-    } finally {
-      isWriting = false;
-    }
-    const present = history.value?.present;
-    if (present !== written.value && retryTimer === undefined) schedule();
-    else if (isCheckDue && !isClosed) {
-      isCheckDue = false;
-      void check();
-    }
-  }
-
-  function schedule(): void {
-    if (isClosed) return;
-    if (timer !== undefined) clearTimeout(timer);
-    timer = setTimeout(() => void write(), MOCKUP_WRITE_DELAY_MS);
-  }
-
-  function move(next: MockupHistory<MockupSpecDocument>): void {
-    if (next === history.value) return;
-    history.value = next;
-    schedule();
-  }
-
-  function apply(
-    edit: MockupEdit,
-    coalesceKey?: string,
-  ): MockupEditResult | undefined {
-    const current = history.value;
-    if (!current) return undefined;
-    const result = applyMockupEdit(current.present, edit);
-    if (result.spec === current.present) return undefined;
-    move(commit(current, result.spec, coalesceKey));
-    return result;
-  }
+  const sync = new MockupSpecSync(options);
+  const { history, written } = sync;
 
   onMounted(async () => {
-    const source = await read();
-    if (source && !isClosed && !history.value) adopt(source, false);
+    const source = await sync.read();
+    if (source && !sync.isClosed && !history.value) sync.adopt(source, false);
   });
   watch(
     () => options.state.value?.revision,
     () => {
-      isAwaitingState.value = false;
-      void check();
+      sync.isAwaitingState.value = false;
+      ignoreRejection(sync.check());
     },
   );
   onBeforeUnmount(() => {
-    const isDue = timer !== undefined || retryTimer !== undefined;
-    stopTimers();
-    if (isDue) void write();
-    isClosed = true;
+    const isDue = sync.hasDueWrite();
+    sync.stopTimers();
+    if (isDue) ignoreRejection(sync.write());
+    sync.isClosed = true;
   });
 
   return {
     spec: computed(() => history.value?.present),
     canUndo: computed(() => !!history.value?.past.length),
     canRedo: computed(() => !!history.value?.future.length),
-    adoption,
-    hasFailed: computed(() => hasFailed.value),
+    adoption: sync.adoption,
+    hasFailed: computed(() => sync.hasFailed.value),
     isPending: computed(
       () =>
         !!history.value &&
-        (history.value.present !== written.value || isAwaitingState.value),
+        (history.value.present !== written.value || sync.isAwaitingState.value),
     ),
-    apply,
+    apply: (edit, coalesceKey) => sync.apply(edit, coalesceKey),
     undo: () => {
-      if (history.value) move(undo(history.value));
+      if (history.value) sync.move(undo(history.value));
     },
     redo: () => {
-      if (history.value) move(redo(history.value));
+      if (history.value) sync.move(redo(history.value));
     },
   };
 }

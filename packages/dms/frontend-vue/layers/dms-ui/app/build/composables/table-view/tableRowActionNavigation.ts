@@ -12,6 +12,7 @@ import {
 } from "./types";
 import { getItemId, DEFAULT_ROW_ID_KEY } from "./tableRowActionValues";
 import type { createTableRowFormContainer } from "./tableRowActionContainers";
+import { detach } from "../detach";
 export const createTableRowNavigation = <T extends Data>(
   config: TableRowActionsConfig,
   route: TableRowActionServices["route"],
@@ -37,7 +38,9 @@ export const createTableRowNavigation = <T extends Data>(
   const openRowByIdImpl = (itemId: string, item?: T) => {
     const viewPageUrl = config.formPages?.view;
     if (getContainerType() === FormContainerType.page && viewPageUrl) {
-      navigateDms(fillFormPageUrl(viewPageUrl, config.routeParams, itemId));
+      detach(
+        navigateDms(fillFormPageUrl(viewPageUrl, config.routeParams, itemId)),
+      );
       return;
     }
 
@@ -66,7 +69,7 @@ export const createTableRowNavigation = <T extends Data>(
         path: fillFormPageUrl(editPageUrl, config.routeParams, itemId),
       };
       if (forwardedQuery) target.query = forwardedQuery;
-      navigateDms(target);
+      detach(navigateDms(target));
       return;
     }
 
@@ -86,7 +89,7 @@ export const createTableRowNavigation = <T extends Data>(
         path: fillFormPageUrl(newPageUrl, config.routeParams),
       };
       if (forwardedQuery) target.query = forwardedQuery;
-      navigateDms(target);
+      detach(navigateDms(target));
       return;
     }
 
@@ -99,10 +102,12 @@ export const createTableRowNavigation = <T extends Data>(
   const duplicateRowImpl = (itemId: string) => {
     const newPageUrl = config.formPages?.new;
     if (getContainerType() === FormContainerType.page && newPageUrl) {
-      navigateDms({
-        path: fillFormPageUrl(newPageUrl, config.routeParams),
-        query: { duplicate: itemId },
-      });
+      detach(
+        navigateDms({
+          path: fillFormPageUrl(newPageUrl, config.routeParams),
+          query: { duplicate: itemId },
+        }),
+      );
       return;
     }
 

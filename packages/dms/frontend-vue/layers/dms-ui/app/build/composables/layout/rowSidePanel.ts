@@ -1,4 +1,5 @@
 import { type Component, type ShallowRef, shallowRef } from "vue";
+import type { ContainerOptions } from "../../../composables/containers/types";
 import type { RowNavigationSource } from "#dms-ui/app/build/composables/actions/rowNavigation";
 import {
   registerSidePanel,
@@ -53,7 +54,7 @@ export interface RowSidePanelContent {
   positionLabel?: string;
   component: Component;
   /** Props of the component besides `rowData` and `navigation`. */
-  componentOptions: Record<string, unknown>;
+  componentOptions: NonNullable<ContainerOptions["componentOptions"]>;
   row?: Data;
   /** Id of `row`: the key the component is mounted under, the row the table highlights. */
   rowKey?: string;

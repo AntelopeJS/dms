@@ -1,8 +1,9 @@
 import { type ComputedRef, type Ref, watch } from "vue";
 import type { FormField } from "../../../composables/form/types/field";
-import type { FormFieldValue } from "../../../composables/form/types/value";
 import type { validateFormState } from "./formValidation";
 import { cloneFormValue } from "../../../composables/form/useForm";
+import type { apiErrorStatus } from "#dms-core/app/composables/useFieldErrors";
+import { detach } from "../detach";
 import { sameFormValue } from "../unsaved-changes/formValue";
 import {
   type InstantSave,
@@ -46,7 +47,7 @@ export interface InstantFormOptions {
   /** Sends the changed fields, alone (a partial submit). */
   submit: (changes: FormValues) => Promise<void>;
   /** Says why a save was refused, once its values are put back. */
-  onRefused: (error: unknown) => void;
+  onRefused: (error: Parameters<typeof apiErrorStatus>[0]) => void;
 }
 
 export interface InstantForm extends InstantSave<FormValues> {
@@ -60,7 +61,7 @@ export interface InstantForm extends InstantSave<FormValues> {
 }
 
 const clone = (value: FormValues[string]): FormValues[string] =>
-  cloneFormValue(value as FormFieldValue | undefined);
+  cloneFormValue(value);
 
 /**
  * The instant save of a `Form` (`saveMode: "instant"`): each field the user
@@ -125,7 +126,7 @@ export function useInstantForm(options: InstantFormOptions): InstantForm {
           instant.confirm({ [field.id]: value });
           continue;
         }
-        void saveField(field, value);
+        detach(saveField(field, value));
       }
     },
     { deep: true },

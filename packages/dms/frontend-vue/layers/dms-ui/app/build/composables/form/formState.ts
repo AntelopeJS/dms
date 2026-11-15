@@ -17,9 +17,11 @@ import {
 import { apiErrorStatus } from "#dms-core/app/composables/useFieldErrors";
 import { HTTP_NOT_FOUND } from "#dms-core/app/utils/http-status";
 import { sameFormValue } from "../unsaved-changes/formValue";
+import { isStringSet } from "./stringSet";
 import {
   type FieldValueComparer,
   buildValidationSchema,
+  cloneRecordValues,
   createBaseValidationSchema,
   createFieldValueComparer,
   flattenFields,
@@ -28,6 +30,10 @@ import {
   watchFieldChanges,
   withConditionFields,
 } from "./useFormModel";
+
+function stringSetOf(value: Parameters<typeof isStringSet>[0]) {
+  return isStringSet(value) ? value : undefined;
+}
 
 function createFormState(props: FormProps) {
   const toast = useToast();
@@ -95,14 +101,14 @@ function createFormState(props: FormProps) {
 
   const inactiveFields = computed(() =>
     withConditionFields(allFields.value, state.value, {
-      disabled: state.value.disabledFields as Set<string> | undefined,
-      hidden: state.value.hiddenFields as Set<string> | undefined,
+      disabled: stringSetOf(state.value.disabledFields),
+      hidden: stringSetOf(state.value.hiddenFields),
     }),
   );
   const disabledFields = computed(() => inactiveFields.value.disabled);
   const hiddenFields = computed(() => inactiveFields.value.hidden);
-  const requiredFields = computed(
-    () => state.value.requiredFields as Set<string> | undefined,
+  const requiredFields = computed(() =>
+    stringSetOf(state.value.requiredFields),
   );
 
   return {
@@ -131,7 +137,7 @@ function createFormState(props: FormProps) {
 /** @internal */
 export function createFormFields(props: FormProps) {
   const context = createFormState(props);
-  const { presentError } = useApiErrorPresenter();
+  const presenter = useApiErrorPresenter();
   const {
     $authFetch,
     getDataType,
@@ -184,7 +190,7 @@ export function createFormFields(props: FormProps) {
     });
     initialValues.value = {
       ...initialValues.value,
-      ...JSON.parse(JSON.stringify(fetchedData)),
+      ...cloneRecordValues(fetchedData),
     };
     return processBeforeStateMappers(
       fetchedData,
@@ -204,7 +210,9 @@ export function createFormFields(props: FormProps) {
   };
 
   const showFetchErrorToast = (error: Parameters<typeof apiErrorStatus>[0]) => {
-    presentError(error, { fallbackKey: "dms.form.fetch_error_unknown" });
+    presenter.presentError(error, {
+      fallbackKey: "dms.form.fetch_error_unknown",
+    });
   };
 
   const baseSchema = createBaseValidationSchema(props.schema);

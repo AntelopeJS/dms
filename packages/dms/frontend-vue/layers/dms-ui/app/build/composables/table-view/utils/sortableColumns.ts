@@ -175,21 +175,48 @@ export const sortDirectionLabelKey = (
   desc: boolean,
 ): string => `dms.sort.direction.${kind}.${desc ? "desc" : "asc"}`;
 
-const isObject = (
-  value: Parameters<typeof isUnsortableFieldError>[0],
-): value is Record<string, unknown> => hasObjectType(value) && value !== null;
+interface FailureFields {
+  response?: unknown;
+  statusCode?: unknown;
+  status?: unknown;
+  data?: unknown;
+  statusMessage?: unknown;
+  message?: unknown;
+}
 
-const statusOf = (error: Record<string, unknown>): number | undefined => {
-  const response = isObject(error.response) ? error.response : undefined;
+interface ResponseFields {
+  status?: unknown;
+}
+
+interface BodyFields {
+  message?: unknown;
+}
+
+const isFailureFields = (
+  value: Parameters<typeof hasObjectType>[0],
+): value is FailureFields => hasObjectType(value) && value !== null;
+
+const isResponseFields = (
+  value: Parameters<typeof hasObjectType>[0],
+): value is ResponseFields => hasObjectType(value) && value !== null;
+
+const isBodyFields = (
+  value: Parameters<typeof hasObjectType>[0],
+): value is BodyFields => hasObjectType(value) && value !== null;
+
+const statusOf = (error: FailureFields): number | undefined => {
+  const response = isResponseFields(error.response)
+    ? error.response
+    : undefined;
   const status = error.statusCode ?? error.status ?? response?.status;
   return isNumber(status) ? status : undefined;
 };
 
-const messagesOf = (error: Record<string, unknown>): string[] => {
+const messagesOf = (error: FailureFields): string[] => {
   const { data } = error;
   return [
     isString(data) ? data : undefined,
-    isObject(data) && isString(data.message) ? data.message : undefined,
+    isBodyFields(data) && isString(data.message) ? data.message : undefined,
     isString(error.statusMessage) ? error.statusMessage : undefined,
     isString(error.message) ? error.message : undefined,
   ].filter((message): message is string => !!message);
@@ -200,8 +227,10 @@ const messagesOf = (error: Record<string, unknown>): string[] => {
  * not sortable.`): a sort the route never accepted, or a column whose
  * `@Sortable()` was removed since the page was loaded.
  */
-export const isUnsortableFieldError = (error: unknown): boolean => {
-  if (!isObject(error)) return false;
+export const isUnsortableFieldError = (
+  error: Parameters<typeof hasObjectType>[0],
+): boolean => {
+  if (!isFailureFields(error)) return false;
   const status = statusOf(error);
   if (status !== undefined && status !== HTTP_BAD_REQUEST) return false;
   return messagesOf(error).some((message) =>

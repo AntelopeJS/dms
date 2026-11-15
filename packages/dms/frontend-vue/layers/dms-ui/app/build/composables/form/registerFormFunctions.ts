@@ -1,5 +1,7 @@
+import { cloneFormValue } from "./useFormModel";
+import { isStringSet } from "./stringSet";
 import {
-  type FieldChangePayload,
+  isFieldChangePayload,
   readFieldFlagParams,
   readSetFieldValueParams,
   resolveFieldValueWrite,
@@ -16,8 +18,8 @@ function createFieldSetMutator(stateKey: FieldSetStateKey, flagKey: string) {
   ) => {
     const params = readFieldFlagParams(action.params, flagKey);
     if (!params) return;
-    const current =
-      (componentState.value[stateKey] as Set<string>) || new Set();
+    const stored = componentState.value[stateKey];
+    const current = isStringSet(stored) ? stored : new Set<string>();
     const nextSet = new Set(current);
 
     if (params.flag) {
@@ -39,14 +41,11 @@ function setFieldValue(
   if (!params) return;
   const write = resolveFieldValueWrite(
     params,
-    eventData.data as FieldChangePayload | undefined,
+    isFieldChangePayload(eventData.data) ? eventData.data : undefined,
   );
   if (!write) return;
 
-  componentState.value[params.targetField] =
-    write.value === undefined
-      ? undefined
-      : JSON.parse(JSON.stringify(write.value));
+  componentState.value[params.targetField] = cloneFormValue(write.value);
 }
 
 export function registerFormFunctions() {

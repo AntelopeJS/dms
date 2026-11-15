@@ -2,6 +2,7 @@ import { TableViewEvents } from "../../../composables/table-view/types";
 import { selectedRowIds } from "./utils/bulkActions";
 import { type WatchOptions, type WatchSource } from "vue";
 import type { TableViewScope } from "./tableViewScope";
+import { detach } from "../detach";
 
 export function useTableViewEvents<T extends Data>(
   scope: Pick<
@@ -74,14 +75,14 @@ export function useTableViewMount<T extends Data>(
     const itemId = route.query[urlParamKey];
 
     if (itemId && isString(itemId)) {
-      openRowById(itemId);
+      detach(openRowById(itemId));
     }
   };
 
   onMounted(() => {
     checkUrlParameter();
-    void loadRelationQuickFilters();
-    void refreshLinkTabCounts();
+    detach(loadRelationQuickFilters());
+    detach(refreshLinkTabCounts());
 
     if (
       activeDisplayId.value !== fallbackDisplayId &&

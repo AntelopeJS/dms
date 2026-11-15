@@ -10,11 +10,12 @@ import { createTableRowFormContainer } from "./tableRowActionContainers";
 import { createTableRowNavigation } from "./tableRowActionNavigation";
 import { createTableRowEvents } from "./tableRowActionEvents";
 import { createTableRowBulkActions } from "./tableRowActionBulkConfirm";
+import type { TableRowActionErrorHandler } from "./tableRowActionBulkRequests";
 export const useTableRowActions = <T extends Data>(
   config: TableRowActionsConfig,
 ) => {
   const toast = useToast();
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const { t, locale } = useI18n();
   const { confirm } = useConfirm();
   const { confirmAction } = useActionConfirm();
@@ -39,8 +40,8 @@ export const useTableRowActions = <T extends Data>(
    * what failed, the description is the server's message when it is meant
    * for users, else a translated fallback (never a raw error line).
    */
-  const handleApiError = (error: unknown, title?: string) => {
-    presentError(
+  const handleApiError: TableRowActionErrorHandler = (error, title) => {
+    errorPresenter.presentError(
       error,
       tableWriteErrorOptions(error, t, config.columns, processI18n, title),
     );
@@ -63,10 +64,10 @@ export const useTableRowActions = <T extends Data>(
    * Runs a built-in action (edit, details, duplicate, add…) after the
    * confirmation it declares, if any.
    */
-  const runConfirmedBuiltIn = async <Result>(
+  const runConfirmedBuiltIn = async (
     actionConfig: boolean | RowActionConfig | undefined,
     rowData: Data | undefined,
-    proceed: () => Result,
+    proceed: () => ReturnType<typeof openRow>,
   ): Promise<void> => {
     const declared = normalizeActionConfig(actionConfig).confirm;
     if (declared) {

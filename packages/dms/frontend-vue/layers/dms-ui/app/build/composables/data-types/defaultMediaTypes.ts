@@ -45,20 +45,20 @@ function renderImage(value: CellValue, options: CellOptions) {
   const images = toImageList(value);
   if (!images.length) return "";
 
-  const opts = options as ImageOptions | undefined;
-  return h(ImagePreview, { images, storage: opts?.storage });
+  const opts: ImageOptions = options ?? {};
+  return h(ImagePreview, { images, storage: opts.storage });
 }
 
 function renderFile(value: CellValue, options: CellOptions) {
   const { t } = getAppTranslation();
-  const opts = options as FileOptions | undefined;
+  const opts: FileOptions = options ?? {};
 
-  if (opts?.multiple && Array.isArray(value)) {
+  if (opts.multiple && Array.isArray(value)) {
     return t("dms.form.file.count", { count: value.length });
   }
 
   if (isString(value)) {
-    return h(FilePreview, { resourceKey: value, storage: opts?.storage });
+    return h(FilePreview, { resourceKey: value, storage: opts.storage });
   }
 
   return "";

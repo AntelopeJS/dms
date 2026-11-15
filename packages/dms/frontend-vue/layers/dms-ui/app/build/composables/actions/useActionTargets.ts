@@ -1,6 +1,8 @@
 import { useClipboard } from "@vueuse/core";
 import type { RowNavigationSource } from "./rowNavigation";
+import type { ApiErrorPresenter } from "#dms-core/app/composables/useApiErrorPresenter";
 import type { TableUrlScope } from "../table-view/utils/views";
+import type { DownloadFetch } from "../../utils/fileDownload";
 import { useActionConfirm } from "../confirm/useActionConfirm";
 import {
   createActionRequests,
@@ -25,7 +27,10 @@ export interface ActionTargetsConfig {
   /** Called once a target changed something (an API call, a closed form). */
   refreshCallback?: () => void;
   /** Toasts a failure no dialog shows. */
-  handleApiError: (error: unknown, title?: string) => void;
+  handleApiError: (
+    error: Parameters<ApiErrorPresenter["presentError"]>[0],
+    title?: string,
+  ) => void;
   /** The rows a drawer or modal opened on a row steps through (J / K). */
   rowNavigation?: RowNavigationSource;
   /** Where a `deepLink` action writes the row it has open in the URL. */
@@ -57,7 +62,9 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const { copy: copyToClipboard } = useClipboard({ legacy: true });
   const { confirmAction } = useActionConfirm();
   const { handleApiError } = config;
-  const fetchRaw = useAuthFetch().$authFetch.raw;
+  const { $authFetch } = useAuthFetch();
+  const fetchRaw: DownloadFetch = (url, options) =>
+    $authFetch.raw(url, options);
   const requests = createActionRequests(config, {
     toast,
     processI18n,

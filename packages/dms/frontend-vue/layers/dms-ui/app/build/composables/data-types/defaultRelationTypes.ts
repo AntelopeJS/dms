@@ -94,11 +94,11 @@ function renderRelationBadges(
 }
 
 function renderRelation(value: CellValue, options: CellOptions) {
-  const opts = options as RelationOptions | undefined;
-  const labelKey = opts?.keyMapping?.label || DEFAULT_RELATION_LABEL_KEY;
-  const valueKey = opts?.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
+  const opts: RelationOptions = options ?? {};
+  const labelKey = opts.keyMapping?.label || DEFAULT_RELATION_LABEL_KEY;
+  const valueKey = opts.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
 
-  if (opts?.multiple && Array.isArray(value)) {
+  if (opts.multiple && Array.isArray(value)) {
     return renderRelationBadges(value, labelKey, valueKey);
   }
 
@@ -106,7 +106,7 @@ function renderRelation(value: CellValue, options: CellOptions) {
   if (!value || !isObject(value)) return value;
 
   const valueObject = value;
-  const avatarKey = opts?.keyMapping?.avatar;
+  const avatarKey = opts.keyMapping?.avatar;
   const label = readRelationLabel(value, labelKey, valueKey);
 
   if (!avatarKey || !valueObject[avatarKey]) return label;
@@ -122,14 +122,14 @@ function renderRelation(value: CellValue, options: CellOptions) {
 }
 
 function renderCascaderRelation(value: CellValue, options: CellOptions) {
-  const opts = options as CascaderRelationOptions | undefined;
+  const opts: CascaderRelationOptions = options ?? {};
 
   if (!value) return value;
 
   return h(CascaderPath, {
     value,
-    searchUrl: opts?.searchUrl,
-    keyMapping: opts?.keyMapping,
+    searchUrl: opts.searchUrl,
+    keyMapping: opts.keyMapping,
   });
 }
 

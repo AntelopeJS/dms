@@ -28,7 +28,9 @@ export function useTableViewTabs<T extends Data>(
     scope.arrival;
   const { tabs } = scope.configuration;
   const { activeCapabilities } = scope.displayComponent;
-  const { t, te, locale } = useI18n();
+  const i18n = useI18n();
+  const { t, locale } = i18n;
+  const te: typeof i18n.te = (...args) => i18n.te(...args);
 
   const activeTabId = ref<string>(
     readTableUrlTab(route.query, urlScope) ??
@@ -153,9 +155,7 @@ export function useTableViewNavBadges<T extends Data>(
         if (count === undefined) continue;
         const fullId = source.to ? source.toPage : pageId;
         const tone =
-          typeof source.navBadge === "object"
-            ? source.navBadge.tone
-            : undefined;
+          source.navBadge === true ? undefined : source.navBadge.tone;
         if (fullId) {
           setNavBadge(fullId, count > 0 ? String(count) : "", tone);
         }

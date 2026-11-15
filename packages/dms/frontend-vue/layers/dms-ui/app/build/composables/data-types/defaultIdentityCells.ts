@@ -56,6 +56,20 @@ const matchesBadge = (badge: IdentityBadgeOption, value: CellValue): boolean =>
     ? value !== badge.notEquals
     : value === (badge.equals ?? true);
 
+interface AvatarFile {
+  key: string;
+  alt?: string;
+}
+
+const isAvatarFile = (value: CellValue): value is AvatarFile =>
+  isObject(value) &&
+  value !== null &&
+  isString(value.key) &&
+  (value.alt === undefined || isString(value.alt));
+
+const avatarOf = (value: CellValue): AvatarFile | string | null | undefined =>
+  value === null || isString(value) || isAvatarFile(value) ? value : undefined;
+
 /**
  * `identity`: avatar or icon tile, the value as the name, a "You" tag on the
  * signed-in user's row, badges and a secondary line (an address as written,
@@ -84,10 +98,7 @@ export function renderIdentity(
     subtitleClass: toneClass(subtitle?.tone ?? opts.subtitleTone, "dimmed"),
     emptyLabel: opts.emptyLabel ? processI18n(opts.emptyLabel) : undefined,
     emptyIcon: opts.emptyIcon,
-    avatar: readRowField(row, opts.avatarField) as
-      | { key: string }
-      | string
-      | null,
+    avatar: avatarOf(readRowField(row, opts.avatarField)),
     icon: stringOf(readRowField(row, opts.iconField)) ?? opts.icon,
     selfId: stringOf(readRowField(row, opts.selfField)),
     selfLabel: opts.selfLabel ? processI18n(opts.selfLabel) : undefined,
@@ -121,13 +132,13 @@ const PILL_FILLED_CLASS =
  */
 interface PillItem {
   label: string;
-  tone?: string;
-  variant?: string;
+  tone?: unknown;
+  variant?: unknown;
 }
 
 const DEFAULT_PILL_VARIANT: StatusPillVariant = "soft";
 
-const pillVariantOf = (variant: string | undefined): StatusPillVariant =>
+const pillVariantOf = (variant: PillItem["variant"]): StatusPillVariant =>
   variant === "soft" || variant === "outline" ? variant : DEFAULT_PILL_VARIANT;
 
 const DEFAULT_PILL_TONE = "neutral";
@@ -170,7 +181,10 @@ function renderPill(pill: PillItem) {
   }
   return h(StatusPill, {
     label: pill.label,
-    tone: pill.tone && isDmsTone(pill.tone) ? pill.tone : DEFAULT_PILL_TONE,
+    tone:
+      isString(pill.tone) && isDmsTone(pill.tone)
+        ? pill.tone
+        : DEFAULT_PILL_TONE,
     variant: pillVariantOf(pill.variant),
     dot: "none",
     class: PILL_SHRINK_CLASS,

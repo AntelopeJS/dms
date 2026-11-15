@@ -30,12 +30,10 @@ const UNIT_SEPARATOR = " ";
  */
 export function withNumberSuffix(format: NumberFormatter): DataTypeFormatter {
   return (value, locale, options) => {
-    const formatted = format(
-      value,
-      locale,
-      options as Intl.NumberFormatOptions | undefined,
-    );
-    const suffix = (options as NumberSuffixOptions | undefined)?.suffix;
+    const opts: (Intl.NumberFormatOptions & NumberSuffixOptions) | undefined =
+      options ?? undefined;
+    const formatted = format(value, locale, opts);
+    const suffix = opts?.suffix;
     if (!suffix || !isNumber(value) || !isString(formatted)) {
       return formatted;
     }

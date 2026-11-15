@@ -1,5 +1,10 @@
 import type { WatchAction } from "#dms-core/app/types/watch";
-import { isString, isNumber, isBoolean, isObject } from "#dms-core/app/utils/type-check";
+import {
+  isString,
+  isNumber,
+  isBoolean,
+  isObject,
+} from "#dms-core/app/utils/type-check";
 
 /** What a `SetFieldValue` watch writes, and where. */
 export interface SetFieldValueParams {
@@ -10,7 +15,7 @@ export interface SetFieldValueParams {
 
 /** The own member `key` of `source`, wrapped so that an absent one stays apart from an `undefined` one. */
 function ownMember(
-  source: object,
+  source: NonNullable<WatchAction["params"]>,
   key: string,
 ): { value: unknown } | undefined {
   return isObject(source) && Object.hasOwn(source, key)
@@ -67,6 +72,18 @@ export interface FieldChangePayload {
   value?: unknown;
   /** The field still holds the value the form started from. */
   initial?: boolean;
+}
+
+/** Whether a `FieldChange` event carries a payload of the shape the form sends. */
+export function isFieldChangePayload(
+  data: unknown,
+): data is FieldChangePayload {
+  return (
+    isObject(data) &&
+    data !== null &&
+    (data.fieldId === undefined || isString(data.fieldId)) &&
+    (data.initial === undefined || isBoolean(data.initial))
+  );
 }
 
 /** A value to write, or nothing to write. */

@@ -2,6 +2,7 @@ import type { Data } from "../../components/table/TableRoot.vue";
 import { isObject, isNumber } from "#dms-core/app/utils/type-check";
 import type { DropdownMenuItem } from "@nuxt/ui/components/DropdownMenu.vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import { rowIdOf } from "./utils/rowId";
 import { createMenuItem } from "./utils/menuItemFactory";
 import {
   FormContainerType,
@@ -60,29 +61,37 @@ export const isOffMode = <T extends Data>(
     : descriptor.key === "restore";
 };
 
+/** Whether a rule keeps an action off a row: the listed row with the same raw id fails it, or no listed row has that id. */
+const isRuleBlocked = <T extends Data>(
+  context: TableColumnContext<T>,
+  rule: Parameters<typeof evaluateRowActionRule>[0],
+  rowData: Data,
+): boolean => {
+  const { config } = context;
+  const id: unknown = get(rowData, config.rowIdKey);
+  const listed = config.data.value.find((row) => {
+    const listedId: unknown = get(row, config.rowIdKey);
+    return listedId === id;
+  });
+  return listed === undefined || !evaluateRowActionRule(rule, listed);
+};
+
 const isActionDisabled = <T extends Data>(
   context: TableColumnContext<T>,
   actionConfig: boolean | RowActionConfig | undefined,
-  rowData: T,
+  rowData: Data,
 ): boolean => {
-  const { config } = context;
-
   const actionConfigNormalized = normalizeActionConfig(actionConfig);
   if (!actionConfigNormalized.isEnabled) return true;
   if (!actionConfigNormalized.rule) return false;
 
-  const validator = createActionValidator(
-    actionConfigNormalized,
-    config.data.value,
-    config.rowIdKey,
-  );
-  return !validator.canPerformAction(get(rowData, config.rowIdKey));
+  return isRuleBlocked(context, actionConfigNormalized.rule, rowData);
 };
 
 const rowText = <T extends Data>(
   context: TableColumnContext<T>,
   text: string,
-  rowData: T,
+  rowData: Data,
 ): string => {
   const { t } = context;
   return resolveConfirmText(text, rowData, t);
@@ -96,7 +105,9 @@ export const menuLabel = <T extends Data>(
 
   const declared = config.rowActions?.menuLabel;
   if (declared) return rowText(context, declared, rowData);
-  const label = config.labelKey ? get(rowData, config.labelKey) : undefined;
+  const label: unknown = config.labelKey
+    ? get(rowData, config.labelKey)
+    : undefined;
   return isString(label) || isNumber(label)
     ? t("dms.table.row_actions_for", { label })
     : t("dms.table.row_actions");
@@ -105,18 +116,11 @@ export const menuLabel = <T extends Data>(
 const isCustomActionDisabled = <T extends Data>(
   context: TableColumnContext<T>,
   action: CustomRowAction,
-  rowData: T,
+  rowData: Data,
 ): boolean => {
-  const { config } = context;
-
   if (!action.rule) return false;
 
-  const validator = createActionValidator(
-    { isEnabled: true, rule: action.rule },
-    config.data.value,
-    config.rowIdKey,
-  );
-  return !validator.canPerformAction(get(rowData, config.rowIdKey));
+  return isRuleBlocked(context, action.rule, rowData);
 };
 
 const buildCopyLinkOnSelect = <T extends Data>(
@@ -135,12 +139,12 @@ const buildCopyLinkOnSelect = <T extends Data>(
         ? config.formPages?.view
         : undefined;
     if (viewPageUrl) {
-      const itemId = get(rowData, config.rowIdKey);
+      const itemId = rowIdOf(rowData, config.rowIdKey);
       itemUrl = `${window.location.origin}${fillFormPageUrl(viewPageUrl, config.routeParams, itemId)}`;
     } else {
       const updatedQuery = {
         ...currentRoute.query,
-        [`${config.componentId}:id`]: get(rowData, config.rowIdKey),
+        [`${config.componentId}:id`]: rowIdOf(rowData, config.rowIdKey),
       };
       itemUrl = `${window.location.origin}${currentRoute.path}?${new URLSearchParams(updatedQuery).toString()}`;
     }
@@ -164,24 +168,32 @@ const copyLinkAfterConfirm = async <T extends Data>(
   if (declared) {
     const isConfirmed = await confirmAction(declared, {
       row: rowData,
-      urlParams: { id: get(rowData, config.rowIdKey) },
+      urlParams: { id: rowIdOf(rowData, config.rowIdKey) },
     });
     if (!isConfirmed) return;
   }
   await buildCopyLinkOnSelect(context, rowData)();
 };
 
+/** Runs an action on the row a descriptor stands for; a descriptor built for no row selects nothing. */
+const onRow =
+  <T extends Data>(rowData: T | undefined, act: (row: T) => void) =>
+  (): void => {
+    if (rowData !== undefined) act(rowData);
+  };
+
 const buildCustomActionDescriptors = <T extends Data>(
   context: TableColumnContext<T>,
-  rowData: T,
+  rowData: T | undefined,
 ): RowActionDescriptor[] => {
   const { config } = context;
+  const shown: Data = rowData ?? {};
   return (config.rowActions?.custom || []).map((action) => ({
-    label: rowText(context, action.label, rowData),
+    label: rowText(context, action.label, shown),
 
     icon: action.icon || (action.showLabel ? "" : "i-ph-lightning"),
-    onSelect: () => config.onCustomRowAction?.(action, rowData),
-    disabled: isCustomActionDisabled(context, action, rowData),
+    onSelect: onRow(rowData, (row) => config.onCustomRowAction?.(action, row)),
+    disabled: isCustomActionDisabled(context, action, shown),
     visible: isCustomActionInline(action),
     color: action.color,
     variant: action.variant,
@@ -210,52 +222,53 @@ const builtInIcon = <T extends Data>(
 
 const buildBuiltInActionDescriptors = <T extends Data>(
   context: TableColumnContext<T>,
-  rowData: T,
+  rowData: T | undefined,
 ): RowActionDescriptor[] => {
   const { config, t } = context;
+  const shown: Data = rowData ?? {};
   return [
     {
       key: "copyLink",
       label: builtInLabel(context, "copyLink", t("dms.button.copy_link")),
       icon: builtInIcon(context, "copyLink", "i-ph-link"),
-      onSelect: () => copyLinkAfterConfirm(context, rowData),
-      disabled: isActionDisabled(context, config.rowActions?.copyLink, rowData),
+      onSelect: onRow(rowData, (row) => copyLinkAfterConfirm(context, row)),
+      disabled: isActionDisabled(context, config.rowActions?.copyLink, shown),
       visible: isActionVisible(config.rowActions?.copyLink),
     },
     {
       key: "details",
       label: builtInLabel(context, "details", t("dms.button.details")),
       icon: builtInIcon(context, "details", "i-ph-info"),
-      onSelect: () => config.emits("details", rowData),
-      disabled: isActionDisabled(context, config.rowActions?.details, rowData),
+      onSelect: onRow(rowData, (row) => config.emits("details", row)),
+      disabled: isActionDisabled(context, config.rowActions?.details, shown),
       visible: isActionVisible(config.rowActions?.details),
     },
     {
       key: "edit",
       label: builtInLabel(context, "edit", t("dms.button.edit")),
       icon: builtInIcon(context, "edit", "i-ph-pencil"),
-      onSelect: () => config.emits("edit", rowData),
-      disabled: isActionDisabled(context, config.rowActions?.edit, rowData),
+      onSelect: onRow(rowData, (row) => config.emits("edit", row)),
+      disabled: isActionDisabled(context, config.rowActions?.edit, shown),
       visible: isActionVisible(config.rowActions?.edit),
     },
     {
       key: "duplicate",
       label: builtInLabel(context, "duplicate", t("dms.button.duplicate")),
       icon: builtInIcon(context, "duplicate", "i-ph-copy"),
-      onSelect: () => config.emits("duplicate", get(rowData, config.rowIdKey)),
-      disabled: isActionDisabled(
-        context,
-        config.rowActions?.duplicate,
-        rowData,
+      onSelect: onRow(rowData, (row) =>
+        config.emits("duplicate", rowIdOf(row, config.rowIdKey)),
       ),
+      disabled: isActionDisabled(context, config.rowActions?.duplicate, shown),
       visible: isActionVisible(config.rowActions?.duplicate),
     },
     {
       key: "delete",
       label: builtInLabel(context, "delete", t("dms.button.delete")),
       icon: builtInIcon(context, "delete", "i-ph-trash"),
-      onSelect: () => config.emits("delete", [get(rowData, config.rowIdKey)]),
-      disabled: isActionDisabled(context, config.rowActions?.delete, rowData),
+      onSelect: onRow(rowData, (row) =>
+        config.emits("delete", [rowIdOf(row, config.rowIdKey)]),
+      ),
+      disabled: isActionDisabled(context, config.rowActions?.delete, shown),
       visible: isActionVisible(config.rowActions?.delete),
       color: Color.error,
     },
@@ -263,16 +276,20 @@ const buildBuiltInActionDescriptors = <T extends Data>(
       key: "archive",
       label: builtInLabel(context, "archive", t("dms.button.archive")),
       icon: builtInIcon(context, "archive", "i-ph-archive"),
-      onSelect: () => config.emits("archive", [get(rowData, config.rowIdKey)]),
-      disabled: isActionDisabled(context, config.rowActions?.archive, rowData),
+      onSelect: onRow(rowData, (row) =>
+        config.emits("archive", [rowIdOf(row, config.rowIdKey)]),
+      ),
+      disabled: isActionDisabled(context, config.rowActions?.archive, shown),
       visible: isActionVisible(config.rowActions?.archive),
     },
     {
       key: "restore",
       label: builtInLabel(context, "restore", t("dms.button.restore")),
       icon: builtInIcon(context, "restore", "i-ph-arrow-counter-clockwise"),
-      onSelect: () => config.emits("restore", [get(rowData, config.rowIdKey)]),
-      disabled: isActionDisabled(context, config.rowActions?.restore, rowData),
+      onSelect: onRow(rowData, (row) =>
+        config.emits("restore", [rowIdOf(row, config.rowIdKey)]),
+      ),
+      disabled: isActionDisabled(context, config.rowActions?.restore, shown),
       visible: isActionVisible(config.rowActions?.restore),
     },
   ];
@@ -280,7 +297,7 @@ const buildBuiltInActionDescriptors = <T extends Data>(
 
 export const buildRowActionDescriptors = <T extends Data>(
   context: TableColumnContext<T>,
-  rowData: T,
+  rowData: T | undefined,
 ): RowActionDescriptor[] => {
   const builtIns = buildBuiltInActionDescriptors(context, rowData);
   return [

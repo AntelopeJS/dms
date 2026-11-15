@@ -6,7 +6,7 @@ import type {
 } from "../../../../composables/table-view/types/display";
 import type { TableViewColumn } from "../../../../composables/table-view/types/column";
 import type { DataTypeFormatter } from "#dms-core/app/composables/data-types/useDataType";
-import { isObject, isString } from "#dms-core/app/utils/type-check";
+import { isNull, isObject, isString } from "#dms-core/app/utils/type-check";
 
 const FALLBACK_CARD_FIELD_COUNT = 4;
 
@@ -19,9 +19,14 @@ export interface CardShownKeys {
   others?: string[];
 }
 
+type CardRow = Parameters<typeof isObject>[0];
+
+const rowOf = (item: CardRow): Parameters<typeof get>[0] =>
+  isObject(item) && !isNull(item) ? item : undefined;
+
 /** The id of a row, read with the table's `rowIdKey`. */
-export function cardRowId<T>(item: T, rowIdKey: string): string {
-  return String(get(item as Parameters<typeof get>[0], rowIdKey) ?? "");
+export function cardRowId(item: CardRow, rowIdKey: string): string {
+  return String(get(rowOf(item), rowIdKey) ?? "");
 }
 
 /**
@@ -126,12 +131,12 @@ const hasValue = (value: Parameters<DataTypeFormatter>[0]): boolean =>
  * (`rowIdKey: "code"`) and the title is not it already. The database `_id`
  * is never shown: a UUID or `proj-074` tells the reader nothing.
  */
-export function cardSubtitle<T>(
-  item: T,
+export function cardSubtitle(
+  item: CardRow,
   identity: CardIdentity,
   shown: CardShownKeys,
 ): Parameters<DataTypeFormatter>[0] {
-  const row = item as Parameters<typeof get>[0];
+  const row = rowOf(item);
   if (identity.subtitleField) {
     const subtitle: unknown = get(row, identity.subtitleField);
     if (hasValue(subtitle)) return subtitle;
@@ -143,15 +148,12 @@ export function cardSubtitle<T>(
 }
 
 /** The avatar a card draws in place of the title's initials, if any. */
-export function cardAvatar<T>(
-  item: T,
+export function cardAvatar(
+  item: CardRow,
   identity: CardIdentity,
 ): { key: string } | string | undefined {
   if (!identity.avatarField) return undefined;
-  const avatar: unknown = get(
-    item as Parameters<typeof get>[0],
-    identity.avatarField,
-  );
+  const avatar: unknown = get(rowOf(item), identity.avatarField);
   if (isString(avatar)) return avatar || undefined;
   if (avatar && isObject(avatar) && "key" in avatar) {
     const { key } = avatar;

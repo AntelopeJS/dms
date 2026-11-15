@@ -21,7 +21,7 @@ export function useTableViewQuickFilters<T extends Data>(
   const { t } = scope.tabs;
   const { props } = scope;
   const { getDataType } = useDataTypes();
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
   const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
 
   const relationQuickFiltersLoaded = ref(false);
@@ -61,7 +61,9 @@ export function useTableViewQuickFilters<T extends Data>(
               ),
             };
           } catch (error: unknown) {
-            presentError(error, { fallbackKey: "dms.table.load_error_title" });
+            errorPresenter.presentError(error, {
+              fallbackKey: "dms.table.load_error_title",
+            });
           }
         }),
     );

@@ -112,6 +112,11 @@ export const navBadgeCount = (
   counts: Record<string, number> | null | undefined,
   tabId: string,
   isNarrowed: boolean,
-): number | undefined =>
-  counts?.[`${NAV_BADGE_COUNT_ID_PREFIX}${tabId}`] ??
-  (isNarrowed ? undefined : counts?.[tabId]);
+): number | undefined => {
+  const countOf = (id: string): number | undefined =>
+    counts && Object.hasOwn(counts, id) ? counts[id] : undefined;
+  return (
+    countOf(`${NAV_BADGE_COUNT_ID_PREFIX}${tabId}`) ??
+    (isNarrowed ? undefined : countOf(tabId))
+  );
+};

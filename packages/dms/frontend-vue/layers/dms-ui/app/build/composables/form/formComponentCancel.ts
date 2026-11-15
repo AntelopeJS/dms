@@ -1,5 +1,6 @@
 import { computed, onMounted, ref } from "vue";
 import { isString } from "#dms-core/app/utils/type-check";
+import { detach } from "../detach";
 import type { FormProps } from "../../../composables/form/types/props";
 import type { DmsContainerContext } from "../containers/context";
 
@@ -35,7 +36,7 @@ export function formComponentCancel(source: FormCancelSource) {
   function cancelForm(): void {
     if (source.isDirty()) source.discardChanges();
     if (source.container) {
-      void source.container.close();
+      detach(source.container.close());
       return;
     }
     if (previousAppPage()) {

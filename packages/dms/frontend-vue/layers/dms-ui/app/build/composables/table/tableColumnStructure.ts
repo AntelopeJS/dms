@@ -36,8 +36,8 @@ export const processColumn = <T extends Data>(
 ): TableColumn<T> => {
   const { isNumericColumn } = context;
 
-  if (!col.id && "accessorKey" in col) {
-    col.id = col.accessorKey as string;
+  if (!col.id && "accessorKey" in col && isString(col.accessorKey)) {
+    col.id = col.accessorKey;
   }
 
   if (!isString(col.header) || col.id === ACTIONS_COLUMN_ID) {

@@ -1,3 +1,4 @@
+import type { BeforeStateMapper } from "#dms-core/app/composables/data-types/useDataType";
 import {
   isObject,
   isNumber,
@@ -8,14 +9,17 @@ import {
  * saved). Typing a value then putting the original back makes it clean again.
  */
 
-type PlainObject = Record<string, unknown>;
+/** What a form field holds: the value a data type's mapper takes. */
+type FormValue = Parameters<BeforeStateMapper>[0];
+
+type PlainObject = Record<string, FormValue>;
 
 /** Whether a value is a plain object (not a list, a date, a file or an instance). */
-export function isPlainObject(value: unknown): value is PlainObject {
+export function isPlainObject(value: FormValue): value is PlainObject {
   if (!isObject(value) || value === null) return false;
   if (Array.isArray(value) || value instanceof Date) return false;
   if (typeof Blob !== "undefined" && value instanceof Blob) return false;
-  const prototype = Object.getPrototypeOf(value);
+  const prototype: unknown = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
 }
 
@@ -25,7 +29,7 @@ export function isPlainObject(value: unknown): value is PlainObject {
  * filled). A control that empties itself to `""`, `null`, `[]` or `false`
  * leaves its field as clean as one never touched.
  */
-export function isEmptyFormValue(value: unknown): boolean {
+export function isEmptyFormValue(value: FormValue): boolean {
   if (value === undefined || value === null) return true;
   if (value === "" || value === false) return true;
   if (isNumber(value)) return Number.isNaN(value);
@@ -40,7 +44,7 @@ export function isEmptyFormValue(value: unknown): boolean {
  * by item (order counts), objects key by key (whatever their order), dates by
  * their time; any two empty values are the same (see {@link isEmptyFormValue}).
  */
-export function sameFormValue(left: unknown, right: unknown): boolean {
+export function sameFormValue(left: FormValue, right: FormValue): boolean {
   if (Object.is(left, right)) return true;
   const isLeftEmpty = isEmptyFormValue(left);
   const isRightEmpty = isEmptyFormValue(right);
@@ -72,30 +76,36 @@ export function sameFormValue(left: unknown, right: unknown): boolean {
  * reach it: lists, plain objects and dates are copied; files and other
  * instances are kept as they are (compared by identity).
  */
-export function snapshotFormValue<T>(value: T): T {
+export function snapshotFormValue<T>(value: T): T;
+export function snapshotFormValue(value: FormValue): FormValue {
   if (Array.isArray(value)) {
-    return value.map((item) => snapshotFormValue(item)) as T;
+    const items: FormValue[] = value;
+    return items.map((item) => snapshotFormValue(item));
   }
-  if (value instanceof Date) return new Date(value.getTime()) as T;
+  if (value instanceof Date) return new Date(value.getTime());
   if (isPlainObject(value)) {
     return Object.fromEntries(
       Object.entries(value).map(([key, part]) => [
         key,
         snapshotFormValue(part),
       ]),
-    ) as T;
+    );
   }
   return value;
 }
 
 /** The keys whose value differs between the current values and the baseline. */
 export function changedFormKeys(
-  current: Readonly<Record<string, unknown>>,
-  baseline: Readonly<Record<string, unknown>>,
+  current: Readonly<PlainObject>,
+  baseline: Readonly<PlainObject>,
   keys: Iterable<string> = new Set([
     ...Object.keys(current),
     ...Object.keys(baseline),
   ]),
 ): string[] {
-  return [...keys].filter((key) => !sameFormValue(current[key], baseline[key]));
+  const read = (table: Readonly<PlainObject>, key: string): FormValue =>
+    Object.hasOwn(table, key) ? table[key] : undefined;
+  return [...keys].filter(
+    (key) => !sameFormValue(read(current, key), read(baseline, key)),
+  );
 }

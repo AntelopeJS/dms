@@ -21,7 +21,12 @@ import type { useWatch } from "#dms-core/app/composables/watch/useWatch";
 import type { useComponentEvent } from "#dms-core/app/composables/components/useComponentEvent";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
-import { isObject, isString } from "#dms-core/app/utils/type-check";
+import {
+  isBoolean,
+  isNumber,
+  isObject,
+  isString,
+} from "#dms-core/app/utils/type-check";
 import { isPlainObject, sameFormValue } from "../unsaved-changes/formValue";
 import { createStartingValueTracker } from "./fieldValueRule";
 import {
@@ -32,6 +37,7 @@ import {
 } from "../../utils/urlVariables";
 
 type FormState = ReturnType<typeof useWatch>["state"]["value"];
+type StateValue = FormState[string];
 type ResetStateValues = Record<string, FormFieldValue | undefined>;
 
 const INTERNAL_STATE_KEYS = new Set([
@@ -40,11 +46,30 @@ const INTERNAL_STATE_KEYS = new Set([
   "requiredFields",
 ]);
 
-export function cloneFormValue(
-  value: FormFieldValue | undefined,
-): FormFieldValue | undefined {
+function isFormFieldValue(value: unknown): value is FormFieldValue {
+  if (value === null || isString(value) || isNumber(value)) return true;
+  if (isBoolean(value)) return true;
+  if (Array.isArray(value)) return value.every(isFormFieldValue);
+  return isPlainObject(value) && Object.values(value).every(isFormFieldValue);
+}
+
+function parseClonedValue(json: string): FormFieldValue {
+  const parsed: unknown = JSON.parse(json);
+  if (!isFormFieldValue(parsed)) {
+    throw new TypeError("A JSON clone is not a form field value");
+  }
+  return parsed;
+}
+
+export function cloneFormValue(value: StateValue): FormFieldValue | undefined {
   if (value === undefined) return undefined;
-  return JSON.parse(JSON.stringify(value));
+  return parseClonedValue(JSON.stringify(value));
+}
+
+/** The record a form loaded, cloned by value; what is not a plain record clones to none. */
+export function cloneRecordValues(record: FormData): FormData {
+  const cloned = parseClonedValue(JSON.stringify(record));
+  return isPlainObject(cloned) ? { ...cloned } : {};
 }
 
 /** Whether a form has somewhere to save and an editable field, or is an action. */
@@ -59,7 +84,7 @@ export function formShowsActions(
   );
 }
 
-export function computeResetState(state: FormState, initialValues: FormData) {
+export function computeResetState(state: FormState, initialValues: FormState) {
   const result: ResetStateValues = {};
   for (const key of Object.keys(state)) {
     if (INTERNAL_STATE_KEYS.has(key)) continue;
@@ -69,7 +94,11 @@ export function computeResetState(state: FormState, initialValues: FormData) {
 }
 
 export function snapshotFormState(state: FormState): FormData {
-  return computeResetState(state, state as FormData) as FormData;
+  const snapshot: FormData = {};
+  for (const [key, value] of Object.entries(computeResetState(state, state))) {
+    if (value !== undefined) snapshot[key] = value;
+  }
+  return snapshot;
 }
 
 export function flattenFields(items: FormFieldOrGroup[]): FormField[] {
@@ -90,7 +119,9 @@ export function createBaseValidationSchema(
       /\.strict\(\)$/,
       ".passthrough()",
     );
-    return new Function("z", `"use strict"; return (${zodCode})`)(z);
+    return zodObjectSchema.parse(
+      new Function("z", `"use strict"; return (${zodCode})`)(z),
+    );
   } catch {
     return z.object({});
   }
@@ -280,17 +311,30 @@ export function fieldValuesOfSubmitDefaults(
   return values;
 }
 
+const zodTypeSchema = z.custom<z.ZodTypeAny>(
+  (value) => value instanceof z.ZodType,
+);
+const zodObjectSchema = z.custom<z.ZodObject<Record<string, z.ZodTypeAny>>>(
+  (value) => value instanceof z.ZodObject,
+);
+
+const parseZodType = (value: unknown): z.ZodTypeAny =>
+  zodTypeSchema.parse(value);
+
+const parseZodTypes = (value: unknown): z.ZodTypeAny[] =>
+  z.array(zodTypeSchema).parse(value);
+
 export function makeFieldSchemaRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable)
-    return makeFieldSchemaRequired(schema.unwrap());
+    return makeFieldSchemaRequired(parseZodType(schema.unwrap()));
   if (schema instanceof z.ZodDefault)
-    return makeFieldSchemaRequired(schema.removeDefault());
+    return makeFieldSchemaRequired(parseZodType(schema.removeDefault()));
   if (schema instanceof z.ZodUnion) {
-    const nonNullOptions = schema.options.filter(
-      (option: z.ZodTypeAny) => !(option instanceof z.ZodNull),
+    const nonNullOptions = parseZodTypes(schema.options).filter(
+      (option) => !(option instanceof z.ZodNull),
     );
     if (nonNullOptions.length === 1)
-      return makeFieldSchemaRequired(nonNullOptions[0]);
+      return makeFieldSchemaRequired(nonNullOptions[0]!);
     return schema;
   }
   if (schema instanceof z.ZodString || schema instanceof z.ZodArray)
@@ -381,7 +425,7 @@ export function watchFieldChanges(
 ): void {
   if (!componentId) return;
   const id = componentId;
-  const previousValuesJson: Record<string, string> = {};
+  const previousValuesJson = new Map<string, string>();
   const isInitial = createStartingValueTracker(isStartingValue);
   onMounted(() => {
     watch(() => state.value, sendChanges, { deep: true, immediate: true });
@@ -395,14 +439,14 @@ export function watchFieldChanges(
       } catch {
         newJson = String(newState[fieldId]);
       }
-      if (newJson !== previousValuesJson[fieldId]) {
+      if (newJson !== previousValuesJson.get(fieldId)) {
         sendComponentEvent(FormEvents.FIELD_CHANGE, id, {
           fieldId,
           value: newState[fieldId],
           formValues: newState,
           initial: isInitial(fieldId, newState[fieldId]),
         });
-        previousValuesJson[fieldId] = newJson;
+        previousValuesJson.set(fieldId, newJson);
       }
     }
   }

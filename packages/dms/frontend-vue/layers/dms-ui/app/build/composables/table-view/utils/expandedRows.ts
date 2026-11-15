@@ -12,7 +12,7 @@ export function defaultExpandedRows(
   rowIds: string[],
   mode: ExpandedDefault = "none",
   single = false,
-): ExpandedRowMap {
+) {
   if (mode === "none" || rowIds.length === 0) return {};
   if (mode === "first" || single) return { [rowIds[0]!]: true };
   return Object.fromEntries(rowIds.map((id) => [id, true]));
@@ -34,7 +34,9 @@ export function nextExpandedRows(
       ? Object.fromEntries(rowIds.map((id) => [id, true]))
       : Object.fromEntries(Object.entries(next).filter(([, open]) => open));
   if (!single) return nextMap;
-  const opened = Object.keys(nextMap).filter((id) => !previous[id]);
+  const opened = Object.keys(nextMap).filter(
+    (id) => !(Object.hasOwn(previous, id) && previous[id]),
+  );
   const kept = opened.at(-1) ?? Object.keys(nextMap).at(-1);
   return kept ? { [kept]: true } : {};
 }
