@@ -50,7 +50,7 @@ export function retitle(title: string): void {
   );
 }
 
-export function titleOf(spec: MockupSpecDocument | undefined): unknown {
+export function titleOf(spec: MockupSpecDocument | undefined) {
   return spec?.pages[0]?.tree[0]?.options?.title;
 }
 

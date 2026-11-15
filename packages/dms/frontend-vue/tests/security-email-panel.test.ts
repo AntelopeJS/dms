@@ -24,7 +24,16 @@ const overview = ref({
 });
 const refresh = vi.fn(async () => ({ ...overview.value }));
 const refreshSession = vi.fn(async () => {});
-const authFetch = vi.fn();
+type AuthFetchOptions = Parameters<
+  ReturnType<typeof useAuthFetch>["$authFetch"]
+>[1];
+const authFetch =
+  vi.fn<
+    (
+      url: string,
+      options?: AuthFetchOptions,
+    ) => Promise<{ pendingEmail: string }>
+  >();
 const addToast = vi.fn();
 
 let app: App;
@@ -165,14 +174,10 @@ beforeEach(() => {
     te: () => false,
   }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
-  stubApiData(
-    async (
-      url: string,
-      options?: Parameters<ReturnType<typeof useAuthFetch>["$authFetch"]>[1],
-    ) =>
-      url === "/dms/pages/settings/user/security"
-        ? refresh()
-        : authFetch(url, options),
+  stubApiData(async (url: string, options?: AuthFetchOptions) =>
+    url === "/dms/pages/settings/user/security"
+      ? refresh()
+      : authFetch(url, options),
   );
   vi.stubGlobal("useCurrentUser", () => ({ refresh: refreshSession }));
   vi.stubGlobal("useTranslation", () => ({

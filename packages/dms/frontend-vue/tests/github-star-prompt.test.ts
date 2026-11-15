@@ -27,6 +27,8 @@ import {
 } from "../layers/dms-layout/app/entries/composables/general/useGithubStarPrompt";
 import { GITHUB_REPOSITORY_URL } from "../layers/dms-layout/app/entries/utils/github-repository";
 import { useSidePanel } from "../layers/dms-ui/app/composables/useSidePanel";
+import type { useDmsCookie } from "#dms/frontend-module";
+import { stubDmsState } from "./helpers/dms-state-stub";
 import { registerSidePanel } from "../layers/dms-ui/app/composables/useAppSidePanels";
 
 const MINUTE_MS = 60 * 1000;
@@ -140,15 +142,12 @@ beforeEach(async () => {
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useCurrentUser", () => ({ user }));
-  const state = new Map<string, Ref>();
-  vi.stubGlobal("useDmsState", <Value>(key: string, initial: () => Value) => {
-    if (!state.has(key)) state.set(key, ref(initial()));
-    return state.get(key);
-  });
+  const state = new Map<string, Ref<unknown>>();
+  stubDmsState(state);
   vi.stubGlobal(
     "useDmsCookie",
-    <Value>(key: string, options: { default: () => Value }) => {
-      if (!state.has(key)) state.set(key, ref(options.default()));
+    (key: string, options: Parameters<typeof useDmsCookie>[1]) => {
+      if (!state.has(key)) state.set(key, ref(options?.default?.()));
       return state.get(key);
     },
   );

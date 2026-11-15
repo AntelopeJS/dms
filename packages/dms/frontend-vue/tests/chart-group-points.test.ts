@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { serverRender } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
+import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
 
 const TITLE = "Invoices by month";
 
@@ -16,14 +17,20 @@ type ChartProps = InstanceType<typeof Chart>["$props"];
 
 const authFetch = vi.fn();
 
-const PlotProbe = defineComponent({
-  props: {
-    options: { type: Object, required: true },
-    series: { type: Array, required: true },
+let plotted: ChartSeries[] = [];
+
+const PlotProbe = defineComponent(
+  (props: { options: object; series: ChartSeries[] }) => () => {
+    plotted = props.series;
+    return h("output");
   },
-  setup: (props) => () =>
-    h("output", { class: "series" }, JSON.stringify(props.series)),
-});
+  {
+    props: {
+      options: { type: Object, required: true },
+      series: { type: Array, required: true },
+    },
+  },
+);
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>
@@ -58,10 +65,9 @@ async function plottedSeries(
   type: ChartProps["type"],
   xaxisType?: ChartProps["xaxisType"],
 ) {
-  const { html } = await serverRender(chartPage(type, xaxisType), registerUi);
-  const probe = document.createElement("div");
-  probe.innerHTML = html;
-  return JSON.parse(probe.querySelector(".series")?.textContent ?? "null");
+  plotted = [];
+  await serverRender(chartPage(type, xaxisType), registerUi);
+  return plotted;
 }
 
 beforeEach(async () => {

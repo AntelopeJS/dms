@@ -13,6 +13,7 @@ import {
   provideBlockRuntime,
   registerBlockUi,
 } from "./helpers/block-network-runtime";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { useChartFetch } from "../layers/dms-ui/app/composables/chart/useChartFetch";
 
@@ -53,7 +54,7 @@ const SKELETON_MARK = "data-test-skeleton";
 interface BlockCase {
   name: string;
   component: Component;
-  answer: unknown;
+  answer: ApiAnswer;
   /** What the answer draws, to check it is on screen. */
   shows: string;
   /** Whether the block draws a skeleton before its first answer. */

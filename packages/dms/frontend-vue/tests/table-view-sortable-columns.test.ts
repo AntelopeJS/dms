@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { isObject } from "../layers/dms-core/app/utils/type-check";
 import enGB from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import frFR from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
 import {
@@ -285,7 +286,7 @@ describe("sort direction labels", () => {
     type Message = string | { [key: string]: Message };
     const lookup = (messages: Message, key: string) =>
       key.split(".").reduce<Message | undefined>((node, part) => {
-        return typeof node === "object" ? node[part] : undefined;
+        return isObject(node) ? node[part] : undefined;
       }, messages);
     for (const kind of ["number", "date", "text"] as const) {
       for (const desc of [false, true]) {

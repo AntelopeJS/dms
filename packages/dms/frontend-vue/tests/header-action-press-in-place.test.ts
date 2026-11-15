@@ -38,7 +38,9 @@ const ButtonStub = defineComponent({
       {
         disabled: props.disabled,
         "data-to": props.to,
-        onClick: () => props.onClick?.(),
+        onClick: () => {
+          props.onClick?.();
+        },
       },
       props.label,
     ),

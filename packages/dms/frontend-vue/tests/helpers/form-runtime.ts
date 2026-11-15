@@ -70,7 +70,11 @@ const FormBoundary = Vue.defineComponent({
   },
 });
 const Button = Vue.defineComponent({
-  props: ["label", "disabled", "type"],
+  props: {
+    label: String,
+    disabled: { type: Boolean, default: undefined },
+    type: String,
+  },
   setup:
     (props, { attrs }) =>
     () =>

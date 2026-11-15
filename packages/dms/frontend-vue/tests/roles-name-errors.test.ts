@@ -27,8 +27,9 @@ const ROLE = {
   permissions: [],
 };
 const addToast = vi.fn(() => ({ id: "failure" }));
-const write = vi.fn();
-const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
+type FetchOptions = { method?: string };
+const write = vi.fn<(url: string, options?: FetchOptions) => Promise<number>>();
+const authFetch = vi.fn(async (url: string, options?: FetchOptions) => {
   if (url.endsWith("/overview"))
     return {
       roles: [ROLE],

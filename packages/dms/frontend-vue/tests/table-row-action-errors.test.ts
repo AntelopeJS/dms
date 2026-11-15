@@ -30,7 +30,7 @@ const { useTableRowActions } = await import(
 type Messages = { [key: string]: string | Messages };
 const merge = (target: Messages, source: Messages): Messages => {
   for (const [key, value] of Object.entries(source)) {
-    const current = target[key];
+    const current = Object.hasOwn(target, key) ? target[key] : undefined;
     target[key] =
       isObject(current) && isObject(value)
         ? merge({ ...current }, value)
@@ -149,7 +149,7 @@ function registerRowActionRefusalTests() {
   it("returns false for a direct marked restore, keeping rows and selection rather than refreshing", async () => {
     installReadOnlyRefusal();
     api.mockRejectedValue(readOnlyFailure());
-    const actions = await rowActions();
+    const actions = rowActions();
     const selected = ["t1"];
     expect(await actions.restoreRows(selected, true)).toBe(false);
     expect(selected).toEqual(["t1"]);
@@ -167,7 +167,7 @@ function registerRowActionRefusalTests() {
     api.mockRejectedValue(
       fetchError(404, "$page.settings.invites.error.not_found"),
     );
-    const { handleCustomRowAction } = await rowActions();
+    const { handleCustomRowAction } = rowActions();
     handleCustomRowAction(
       {
         label: "Resend",
@@ -196,7 +196,7 @@ function registerRowActionRefusalTests() {
     api.mockRejectedValue(
       fetchError(403, "Forbidden: missing permission settings.invites"),
     );
-    const { handleCustomRowAction } = await rowActions();
+    const { handleCustomRowAction } = rowActions();
     handleCustomRowAction(
       {
         label: "Copy link",
@@ -225,7 +225,7 @@ function registerRowActionRefusalTests() {
 
   it("sums up a bulk action some rows refused, applying the rest", async () => {
     api.mockResolvedValue({ success: true, archivedCount: 3 });
-    const { archiveRows } = await rowActions();
+    const { archiveRows } = rowActions();
 
     const done = await archiveRows(["1", "2", "3", "4", "5"], true);
 
@@ -250,7 +250,7 @@ function registerRowActionRefusalTests() {
 function registerBulkActionRefusalTests() {
   it("keeps the dialog open when the rules refused every row", async () => {
     api.mockResolvedValue({ deleted: 0 });
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     const done = await deleteRows(["1", "2"], true);
 
@@ -264,7 +264,7 @@ function registerBulkActionRefusalTests() {
 
   it("leaves a failed bulk request to the dialog", async () => {
     api.mockRejectedValue(fetchError(undefined));
-    const { archiveRows } = await rowActions();
+    const { archiveRows } = rowActions();
 
     expect(await archiveRows(["1"], true)).toBe(false);
     expect(dialogs[0]!.error).toHaveProperty("name", "FetchError");
@@ -272,7 +272,7 @@ function registerBulkActionRefusalTests() {
   });
 
   it("toasts a restore (no dialog) that failed or went only part of the way", async () => {
-    const { restoreRows } = await rowActions();
+    const { restoreRows } = rowActions();
 
     api.mockRejectedValueOnce(fetchError(undefined));
     expect(await restoreRows(["1", "2"], true)).toBe(false);
@@ -298,7 +298,7 @@ function registerBulkActionRefusalTests() {
   it("sends the values of the dialog's fields with the request, merged into its body", async () => {
     api.mockResolvedValue({});
     dialogValues = { reason: "spam", notify: false };
-    const { handleCustomRowAction } = await rowActions();
+    const { handleCustomRowAction } = rowActions();
     handleCustomRowAction(
       {
         label: "Ban",
@@ -329,7 +329,7 @@ function registerRowActionDialogTests() {
         ? { title: "$dms.table.delete_rows", params: { count: 1 } }
         : 1,
     );
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     const done = await deleteRows(["t1"], {
       confirm: { from: "/api/task/{{row.id}}/delete-confirm" },
@@ -345,7 +345,7 @@ function registerRowActionDialogTests() {
 
   it("words a fixed dialog with the fields of the one row it deletes", async () => {
     api.mockResolvedValue(1);
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     await deleteRows(["t1"], { confirm: { title: "Delete {name}?" } });
 
@@ -354,7 +354,7 @@ function registerRowActionDialogTests() {
 
   it("words a fixed dialog with the row its caller hands (a kanban card)", async () => {
     api.mockResolvedValue(1);
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     await deleteRows(
       ["t9"],
@@ -369,7 +369,7 @@ function registerRowActionDialogTests() {
   it("reads by id the one row a fixed dialog words, when the table does not show it", async () => {
     api.mockResolvedValue(1);
     getRow.mockResolvedValue({ _id: "t9", name: "Plan the launch" });
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     await deleteRows(["t9"], { confirm: { title: "Delete {name}?" } });
 
@@ -380,7 +380,7 @@ function registerRowActionDialogTests() {
   it("asks a fixed dialog anyway when the row cannot be read", async () => {
     api.mockResolvedValue(1);
     getRow.mockRejectedValue(fetchError(404));
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     const done = await deleteRows(["t9"], {
       confirm: { title: "Delete {count} task?" },
@@ -392,7 +392,7 @@ function registerRowActionDialogTests() {
 
   it("words a fixed dialog with the count of the rows it deletes", async () => {
     api.mockResolvedValue(2);
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     await deleteRows(["t1", "t2"], {
       confirm: { title: "Delete {count} tasks?" },
@@ -403,7 +403,7 @@ function registerRowActionDialogTests() {
 
   it("keeps the generic confirmation for several rows of a `from` dialog", async () => {
     api.mockResolvedValue(2);
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     await deleteRows(["t1", "t2"], {
       confirm: { from: "/api/task/{{row.id}}/delete-confirm" },
@@ -422,7 +422,7 @@ function registerRowActionConfirmationTests() {
         : 2,
     );
     dialogValues = { reassignTo: "r3" };
-    const { deleteRows } = await rowActions();
+    const { deleteRows } = rowActions();
 
     const done = await deleteRows(["r1", "r2"], {
       confirm: { from: "/api/roles/delete-confirm" },
@@ -441,7 +441,7 @@ function registerRowActionConfirmationTests() {
 
   it("asks a built-in action's confirmation before running it", async () => {
     const proceed = vi.fn();
-    const { runConfirmedBuiltIn } = await rowActions();
+    const { runConfirmedBuiltIn } = rowActions();
 
     await runConfirmedBuiltIn(
       { confirm: { title: "Edit {name}?" } },

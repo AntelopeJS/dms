@@ -1,5 +1,6 @@
-// @vitest-environment jsdom
 /**
+ * @vitest-environment jsdom
+ *
  * Keyboard hints across a server render and its hydration, on the renderer's
  * own runtime (cookies, transferred state, `isDmsHydrating`, the page
  * `<Suspense>`), laid out as a dashboard page is: a hint in the layout, which

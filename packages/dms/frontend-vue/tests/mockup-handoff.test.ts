@@ -59,7 +59,7 @@ const STATE = mockupState({
 });
 
 let viewer: MountedViewer;
-let received: MockupAssistantPrompt[];
+let received: unknown[];
 let claim: boolean;
 
 function listen(event: Event): void {

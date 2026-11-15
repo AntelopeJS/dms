@@ -8,6 +8,7 @@ import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRealDataEngine } from "./fixtures/dataEngine";
 import { createI18n } from "vue-i18n";
+import type { ApiAnswer } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 
 const i18n = createI18n({
@@ -20,7 +21,7 @@ const i18n = createI18n({
 
 const copied: string[] = [];
 
-let fetchedItems: unknown[] = [];
+let fetchedItems: ApiAnswer[] = [];
 
 const KeyValueListBlock = (
   await import("../layers/dms-ui/app/components/blocks/KeyValueListBlock.vue")

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import {
   collectPreviewIssues,
   decodePreviewState,
@@ -45,7 +46,7 @@ describe("preview state parameter", () => {
   });
 
   it("refuses garbage, a missing tree and an unknown theme", () => {
-    const encode = <Value>(value: Value) =>
+    const encode = (value: JsonValue) =>
       Buffer.from(JSON.stringify(value)).toString("base64url");
     expect(decodePreviewState("%%%")).toBeUndefined();
     expect(decodePreviewState(encode({ theme: "dark" }))).toBeUndefined();

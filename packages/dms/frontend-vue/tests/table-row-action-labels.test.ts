@@ -116,9 +116,9 @@ function actionsCell({ custom, menuLabel, labelKey }: ActionsCellOptions) {
     .find((entry) => entry.column.id === "actions")
     ?.getContext();
   const cell = columns.value.find((entry) => entry.id === "actions")?.cell;
-  if (!context || typeof cell !== "function")
+  if (!context || !isFunction(cell))
     throw new Error("the table has no actions cell");
-  const rendered = cell(context);
+  const rendered: unknown = cell(context);
   if (!isVNode(rendered)) throw new Error("the actions cell is not a VNode");
   return rendered;
 }

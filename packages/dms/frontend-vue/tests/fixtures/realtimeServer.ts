@@ -1,4 +1,8 @@
 import { vi } from "vitest";
+import type {
+  RealtimeEvent,
+  RealtimeSnapshotEvent,
+} from "../../layers/dms-core/app/composables/realtime/useUserRealtime";
 
 /**
  * The backend's realtime routes as the browser sees them: shared connections
@@ -36,11 +40,26 @@ const HTTP_NOT_FOUND = 404;
 
 const encoder = new TextEncoder();
 
+/** What a frame of one session carries: a topic's event or snapshot, or the end of the session. */
+type SessionFrameData =
+  | RealtimeEvent
+  | RealtimeSnapshotEvent
+  | { sessionId: string };
+
+/**
+ * What a frame of the connection carries: its greeting, a frame of one
+ * session, or an event for every tab or for the tab that holds the stream.
+ */
+type ConnectionFrameData =
+  | { connectionId: string; ts: number }
+  | { sessionId: string; event: string; data: SessionFrameData }
+  | RealtimeEvent;
+
 export interface FakeConnection {
   id: string;
   signal: AbortSignal;
   isOpen(): boolean;
-  write<Data>(eventName: string, data: Data): void;
+  write(eventName: string, data: ConnectionFrameData): void;
   end(): void;
 }
 
@@ -77,7 +96,7 @@ export interface FakeRealtimeServer {
   openConnections(): FakeConnection[];
   lastConnection(): FakeConnection;
   /** Sends a frame to one session, through the connection it rides on. */
-  send<Data>(sessionId: string, eventName: string, data: Data): void;
+  send(sessionId: string, eventName: string, data: SessionFrameData): void;
   /** Stream requests the browser made, refused ones included. */
   streamAttempts: number;
   /** Request headers the renderer's proxy would have dropped. */
@@ -207,11 +226,10 @@ const relayHeaders = (
   init: RequestInit | undefined,
 ) => {
   const relayed: Record<string, string> = {};
-  for (const [name, value] of Object.entries(init?.headers ?? {})) {
-    const key = name.toLowerCase();
-    if (RELAYED_HEADERS.has(key)) relayed[key] = value;
+  new Headers(init?.headers).forEach((value, name) => {
+    if (RELAYED_HEADERS.has(name)) relayed[name] = value;
     else server.droppedHeaders.push(name);
-  }
+  });
   return relayed;
 };
 
@@ -220,7 +238,7 @@ const relayHeaders = (
  * renderer's backend proxy.
  */
 export function installRealtimeFetch(server: FakeRealtimeServer): void {
-  globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+  const realtimeFetch = vi.fn(async (url: string, init?: RequestInit) => {
     const headers = relayHeaders(server, init);
     if (url === CONNECTION_URL) {
       server.streamAttempts += 1;
@@ -246,5 +264,6 @@ export function installRealtimeFetch(server: FakeRealtimeServer): void {
       return recordPageCall(server, url, headers[SESSION_HEADER]!);
     }
     return json({}, HTTP_NOT_FOUND);
-  }) as unknown as typeof fetch;
+  });
+  vi.stubGlobal("fetch", realtimeFetch);
 }

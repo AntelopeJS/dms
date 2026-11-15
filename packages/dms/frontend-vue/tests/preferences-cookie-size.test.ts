@@ -26,6 +26,7 @@ import {
   tablePreferenceId,
 } from "../layers/dms-core/app/entries/composables/user/tablePreferences";
 import { useTablePreferences } from "../layers/dms-ui/app/entries/composables/table-view/useTablePreferences";
+import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
 
 const COMPONENT_ID = "content-child-main-child-main-child-languages";
 const PAGE_ID = "modules.lang.manage.workspace";
@@ -57,7 +58,7 @@ const cookieBytes = () => preferencesCookieBytes(stored.value);
 const storedTree = () => decodePreferencesTree(stored.value);
 const storedTableIds = (): string[] => {
   const { tables } = storedTree();
-  if (typeof tables !== "object" || tables === null) {
+  if (!isObject(tables) || isNull(tables)) {
     throw new Error("The cookie holds no tables");
   }
   return Object.keys(tables);

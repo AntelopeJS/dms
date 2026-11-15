@@ -20,6 +20,7 @@ import {
   type Component,
   type InjectionKey,
   type Ref,
+  type StyleValue,
   type VNode,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,7 +29,6 @@ import {
   DRAWER_SIZE_COOKIE,
   readDrawerSizePreferences,
 } from "../layers/dms-ui/app/entries/composables/containers/drawerSize";
-
 import { DialogRoot } from "reka-ui";
 import type { DrawerOptions } from "../layers/dms-ui/app/composables/containers/types";
 import type { formFieldInjectionKey as FormFieldKey } from "@nuxt/ui/composables/useFormField";
@@ -57,17 +57,7 @@ let cookies: Map<string, DrawerSizeCookie>;
 let renderedRect = { width: 600, height: 320 };
 
 function domRect(width: number, height: number): DOMRect {
-  return {
-    x: 0,
-    y: 0,
-    top: 0,
-    left: 0,
-    right: width,
-    bottom: height,
-    width,
-    height,
-    toJSON: () => ({ width, height }),
-  };
+  return new DOMRect(0, 0, width, height);
 }
 
 const rendered = reactive<{
@@ -91,15 +81,17 @@ function useDmsCookie(
 const storedSizes = () =>
   readDrawerSizePreferences(cookies.get(DRAWER_SIZE_COOKIE)?.value);
 
-const DrawerStub = defineComponent({
-  props: {
-    direction: String,
-    ui: Object,
-    content: Object,
-    handle: { type: Boolean, default: true },
-    dismissible: { type: Boolean, default: true },
-  },
-  setup(props, { slots }) {
+const DrawerStub = defineComponent(
+  (
+    props: {
+      direction?: string;
+      ui?: Record<string, string>;
+      content?: { style?: StyleValue };
+      handle: boolean;
+      dismissible: boolean;
+    },
+    { slots },
+  ) => {
     return () => {
       rendered.ui = props.ui;
       rendered.handle = props.handle;
@@ -113,7 +105,16 @@ const DrawerStub = defineComponent({
       );
     };
   },
-});
+  {
+    props: {
+      direction: String,
+      ui: Object,
+      content: Object,
+      handle: { type: Boolean, default: true },
+      dismissible: { type: Boolean, default: true },
+    },
+  },
+);
 
 async function mountDrawer(props: DrawerProps): Promise<void> {
   app?.unmount();
@@ -493,7 +494,10 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
           id: "outer",
           close: () => Promise.resolve(),
         });
-        provide(formFieldInjectionKey, { name: "outer-field" } as never);
+        provide(
+          formFieldInjectionKey,
+          computed(() => ({ name: "outer-field", ariaId: "outer-field" })),
+        );
         drawer.open(
           wrap({
             title: "Details",
@@ -526,7 +530,6 @@ describe("a drawer opened through useDrawer, and its caller's provides", () => {
     expect(await injectedByBody((options) => options)).toEqual({
       explorer: "library-1",
       containerId: "inner",
-
       formField: undefined,
     });
   });

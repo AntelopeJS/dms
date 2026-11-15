@@ -74,7 +74,7 @@ it("leaves the account destinations to the session group", async () => {
   const { default: setup } = await import(
     "../layers/dms-layout/app/plugins/command-palette-navigation.client"
   );
-  setup(dmsAppContext(createApp({ render: () => null })));
+  await setup(dmsAppContext(createApp({ render: () => null })));
 
   const targets = registered!
     .groups()

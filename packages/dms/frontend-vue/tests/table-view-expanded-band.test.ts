@@ -12,7 +12,12 @@ const OrderLines = defineComponent({
   setup: (props) => () =>
     h(
       "button",
-      { "data-lines": props.rowId, onClick: () => props.refresh?.() },
+      {
+        "data-lines": props.rowId,
+        onClick: () => {
+          props.refresh?.();
+        },
+      },
       String(props.row?.number),
     ),
 });

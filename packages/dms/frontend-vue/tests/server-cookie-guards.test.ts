@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
-import { spoiledShapes } from "./helpers/cookie-shapes";
+import { spoiledRecords } from "./helpers/cookie-shapes";
 import { createServerRoutesFixture } from "./helpers/server-routes-fixture";
 import { sealedCookie } from "./helpers/server-routes-fixtures";
 
@@ -22,16 +22,18 @@ const DESCRIPTOR_WRONG = {
   persistent: ["yes", 1],
 };
 
-describe("the sealed cookies the DMS's server routes read", () => {
-  const fixture = createServerRoutesFixture();
-  let clients = 0;
+type SealedValue = Parameters<typeof sealedCookie>[1];
 
-  beforeAll(() => {
-    process.env.DMS_CLIENT_IP_HEADER = "x-client-ip";
-  });
+const fixture = createServerRoutesFixture();
+let clients = 0;
 
+beforeAll(() => {
+  process.env.DMS_CLIENT_IP_HEADER = "x-client-ip";
+});
+
+describe("the account cookies the DMS's server routes read", () => {
   it("keeps an account index whose every entry has a descriptor's shape, and forgets any other", async () => {
-    const indexAfterLogin = async (index: unknown) => {
+    const indexAfterLogin = async (index: SealedValue) => {
       const answer = await fixture.askDms("/auth/login", {
         cookie: sealedCookie("dms_account_index", index),
         body: { email: "ada@example.test", password: "secret" },
@@ -51,12 +53,12 @@ describe("the sealed cookies the DMS's server routes read", () => {
       }),
     ).toEqual(["other", "<account>"]);
     const refused = [
-      ...spoiledShapes(DESCRIPTOR, DESCRIPTOR_WRONG, [
+      ...spoiledRecords(DESCRIPTOR, DESCRIPTOR_WRONG, [
         "accountId",
         "persistent",
       ]).map((descriptor) => ({ other: descriptor })),
       [DESCRIPTOR],
-      ...spoiledShapes(DESCRIPTOR, {}, []),
+      ...spoiledRecords(DESCRIPTOR, {}, []),
     ];
     for (const index of refused)
       expect(await indexAfterLogin(index), JSON.stringify(index)).toEqual([
@@ -67,7 +69,7 @@ describe("the sealed cookies the DMS's server routes read", () => {
   it("switches to a stored account of a descriptor's shape and a refresh token, and to no other", async () => {
     const accountId = randomUUID();
     const name = `dms_account_${accountId.replaceAll("-", "")}`;
-    const switchTo = (account: unknown) =>
+    const switchTo = (account: SealedValue) =>
       fixture.askDms("/auth/switch-account", {
         cookie: sealedCookie(name, account),
         body: { accountId },
@@ -75,7 +77,7 @@ describe("the sealed cookies the DMS's server routes read", () => {
     const stored = { ...DESCRIPTOR, accountId, refreshToken: "refresh-1" };
     expect((await switchTo(stored)).status).toBe(200);
     expect((await switchTo({ accountId, persistent: false })).status).toBe(200);
-    for (const account of spoiledShapes(
+    for (const account of spoiledRecords(
       stored,
       { ...DESCRIPTOR_WRONG, accountId: [5], refreshToken: [5] },
       ["accountId", "persistent"],
@@ -85,10 +87,12 @@ describe("the sealed cookies the DMS's server routes read", () => {
       expect(refused.calls).toEqual([]);
     }
   });
+});
 
+describe("the login cookies the DMS's server routes read", () => {
   it("keeps the browser-only choice of a pending login cookie of the right shape, and the default for any other", async () => {
     const pending = { token: "challenge-1", persistent: false };
-    const verify = (cookie: unknown, token: unknown) =>
+    const verify = (cookie: SealedValue, token: SealedValue) =>
       fixture.askDms("/auth/verify-2fa", {
         cookie: sealedCookie("dms_pending_login", cookie),
         body: { token, code: "123456" },
@@ -100,7 +104,7 @@ describe("the sealed cookies the DMS's server routes read", () => {
     const browserOnly = await verify(pending, "challenge-1");
     expect(browserOnly.status).toBe(200);
     expect(outlives(browserOnly)).toBe(false);
-    for (const cookie of spoiledShapes(
+    for (const cookie of spoiledRecords(
       pending,
       { token: [5], persistent: ["yes", 0] },
       ["token", "persistent"],
@@ -130,9 +134,11 @@ describe("the sealed cookies the DMS's server routes read", () => {
       ),
     ).toBe(true);
   });
+});
 
+describe("the OAuth cookies the DMS's server routes read", () => {
   it("runs the callback of an OAuth flow of the right shape, and refuses any other", async () => {
-    const callbackWith = (flow: unknown) => {
+    const callbackWith = (flow: SealedValue) => {
       clients += 1;
       return fixture.askDms(
         "/auth/oauth/github/callback?code=c&state=state-1",
@@ -154,7 +160,7 @@ describe("the sealed cookies the DMS's server routes read", () => {
     expect((await callbackWith(flow)).location).toBe(
       "/auth/oauth/complete?redirect=%2Fprojects",
     );
-    for (const spoiled of spoiledShapes(
+    for (const spoiled of spoiledRecords(
       flow,
       {
         state: [5],
@@ -174,7 +180,7 @@ describe("the sealed cookies the DMS's server routes read", () => {
   });
 
   it("hands over an OAuth handoff of either step's shape, and none for any other", async () => {
-    const handoffOf = (value: unknown) =>
+    const handoffOf = (value: SealedValue) =>
       fixture.askDms("/auth/oauth/handoff", {
         cookie: sealedCookie("dms_oauth_handoff", value),
       });
@@ -187,12 +193,12 @@ describe("the sealed cookies the DMS's server routes read", () => {
     for (const handoff of [twoFactor, noWorkspace])
       expect((await handoffOf(handoff)).body).toEqual(handoff);
     const refused = [
-      ...spoiledShapes(
+      ...spoiledRecords(
         twoFactor,
         { kind: ["other", "none", 5], token: [5], methods: ["totp", [5], {}] },
         ["token", "methods"],
       ),
-      ...spoiledShapes(
+      ...spoiledRecords(
         noWorkspace,
         { kind: ["other", "none", 5], token: [5], provider: [5] },
         ["token", "provider"],

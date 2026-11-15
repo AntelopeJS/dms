@@ -7,15 +7,26 @@ import { createApp, createSSRApp, type App, type Component } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { vi } from "vitest";
 import type { DmsFrontendRuntime, DmsPayload } from "#dms/frontend-module";
+import type { JsonPrimitive } from "../../layers/dms-core/app/types/json";
 
 export const engine = await import("#dms/frontend-module");
 const { useApiData } = await import(
   "../../layers/dms-core/app/composables/auth/useApiData"
 );
 
+/**
+ * What the backend answers a request, as its reader sees the parsed JSON body:
+ * a field the body lacks reads as `undefined`, and so does an empty body.
+ */
+export type ApiAnswer =
+  | JsonPrimitive
+  | undefined
+  | readonly ApiAnswer[]
+  | { readonly [field: string]: ApiAnswer };
+
 /** Stubs the globals `useApiData` reads, `$authFetch` being `authFetch`. */
-export function stubApiData<Result>(
-  authFetch: (...args: never[]) => Result,
+export function stubApiData(
+  authFetch: (...args: never[]) => Promise<ApiAnswer>,
 ): void {
   vi.stubGlobal("useDmsFetch", engine.useDmsFetch);
   vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);

@@ -152,6 +152,34 @@ async function mountBoard() {
   await nextTick();
 }
 
+/** The event Sortable hands its handlers for the card it drags. */
+class CardDragEvent extends Event implements Sortable.SortableEvent {
+  readonly clone: HTMLElement;
+  readonly from: HTMLElement;
+  readonly items: HTMLElement[];
+  readonly target: HTMLElement;
+  readonly to: HTMLElement;
+  readonly oldDraggableIndex = undefined;
+  readonly newDraggableIndex = undefined;
+  readonly pullMode = undefined;
+  readonly oldIndicies = [];
+  readonly newIndicies = [];
+  readonly swapItem = null;
+
+  constructor(
+    readonly item: HTMLElement,
+    readonly oldIndex: number | undefined,
+    readonly newIndex: number | undefined,
+  ) {
+    super("sortable");
+    this.clone = item;
+    this.from = item;
+    this.items = [item];
+    this.target = item;
+    this.to = item;
+  }
+}
+
 describe("a card dropped on a column the server refuses", () => {
   it.each([false, true])(
     "keeps the refusal visible and rolls back when read-only=%s",
@@ -164,12 +192,14 @@ describe("a card dropped on a column the server refuses", () => {
         .filter((list) => list !== undefined);
       expect(lists).toHaveLength(2);
       const [source, target] = lists;
-      const item = source!.el.children[0]!;
-      source!.option("onStart")!({ item, oldIndex: 0 } as never);
+      const item = source!.el.children[0];
+      if (!(item instanceof HTMLElement))
+        throw new Error("the board has no card");
+      source!.option("onStart")!(new CardDragEvent(item, 0, undefined));
       target!.el.append(item);
-      target!.option("onAdd")!({ item, newIndex: 0 } as never);
-      source!.option("onRemove")!({ item, oldIndex: 0 } as never);
-      source!.option("onEnd")!({} as never);
+      target!.option("onAdd")!(new CardDragEvent(item, undefined, 0));
+      source!.option("onRemove")!(new CardDragEvent(item, 0, undefined));
+      source!.option("onEnd")!(new CardDragEvent(item, undefined, undefined));
       await flushPromises();
       await flushPromises();
 

@@ -103,7 +103,12 @@ const original = {
     return null;
   },
   getAllChildIds(node: RolePermissionNode): string[] {
-    return [node.id, ...(node.children ?? []).flatMap(original.getAllChildIds)];
+    return [
+      node.id,
+      ...(node.children ?? []).flatMap((child) =>
+        original.getAllChildIds(child),
+      ),
+    ];
   },
   getAncestorPaths(path: string): string[] {
     const parts = path.split(".");

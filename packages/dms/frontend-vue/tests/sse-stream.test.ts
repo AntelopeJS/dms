@@ -261,11 +261,10 @@ function registerSseResumeTests() {
     let token = "first";
     const options: Partial<SseStreamOptions> = {
       headers: () => {
-        const headers: Record<string, string> = {
-          Authorization: `Bearer ${token}`,
-        };
-        if (cursor) headers["Last-Event-ID"] = cursor;
-        return headers;
+        const authorization = { Authorization: `Bearer ${token}` };
+        return cursor
+          ? { ...authorization, "Last-Event-ID": cursor }
+          : authorization;
       },
       onEvent: (_name, _data, id) => {
         if (id !== null) cursor = id;

@@ -227,9 +227,10 @@ function registerRefreshTests(
       const first = coordinator.requestRefresh("/pages/a");
       const second = coordinator.requestRefresh("/pages/a");
       expect(second).toBe(first);
-      coordinator.requestRefresh("/pages/a");
+      const third = coordinator.requestRefresh("/pages/a");
 
       await coordinator.settled();
+      await third;
 
       expect(fixture.harness.derivedFor).toEqual(["/pages/a", "/current"]);
     });
@@ -240,9 +241,10 @@ function registerRefreshTests(
       const coordinator = createDevReloadCoordinator(fixture.harness.deps);
 
       const first = coordinator.requestRefresh("/current");
-      coordinator.requestRefresh("/current");
+      const second = coordinator.requestRefresh("/current");
       await first;
       await coordinator.settled();
+      await second;
 
       expect(fixture.harness.reloadingLog).toEqual([true, true, false]);
     });

@@ -32,9 +32,9 @@ afterEach(() => {
 });
 
 describe("dev error log", () => {
-  it("logs the original error before the error page takes it", () => {
+  it("logs the original error before the error page takes it", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
-    install();
+    await install();
     const error = new Error("Must be called at the top of a `setup` function");
     app.config.errorHandler!(error, null, "component update");
     expect(log).toHaveBeenCalledWith(
@@ -44,9 +44,9 @@ describe("dev error log", () => {
     expect(showErrorPage).toHaveBeenCalledWith(error, null, "component update");
   });
 
-  it("leaves the handler as it is outside development", () => {
+  it("leaves the handler as it is outside development", async () => {
     vi.stubEnv("DEV", false);
-    install();
+    await install();
     expect(app.config.errorHandler).toBe(showErrorPage);
   });
 

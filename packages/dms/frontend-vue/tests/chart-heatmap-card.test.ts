@@ -11,26 +11,30 @@ const HEATMAP_SERIES = [
   { name: "Tue", data: [{ x: "09:00", y: 3400 }] },
 ];
 
-const PlotProbe = defineComponent({
-  props: {
-    options: { type: Object, required: true },
-  },
-  setup: (props) => () =>
-    h("output", [
-      h(
-        "span",
-        { class: "rows" },
-        HEATMAP_SERIES.map(({ name }) =>
-          props.options.yaxis.labels.formatter(name),
-        ).join("|"),
-      ),
-      h(
-        "span",
-        { class: "value" },
-        props.options.tooltip.y?.formatter(1200) ?? "",
-      ),
-    ]),
-});
+const PlotProbe = defineComponent(
+  (props: {
+    options: {
+      yaxis: { labels: { formatter: (value: string) => string } };
+      tooltip: { y?: { formatter: (value: number) => string } };
+    };
+  }) =>
+    () =>
+      h("output", [
+        h(
+          "span",
+          { class: "rows" },
+          HEATMAP_SERIES.map(({ name }) =>
+            props.options.yaxis.labels.formatter(name),
+          ).join("|"),
+        ),
+        h(
+          "span",
+          { class: "value" },
+          props.options.tooltip.y?.formatter(1200) ?? "",
+        ),
+      ]),
+  { props: { options: { type: Object, required: true } } },
+);
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>

@@ -68,6 +68,7 @@ const settle = (ms = SETTLE_MS) =>
 
 const mounted: Array<{ unmount: () => void }> = [];
 const controllers: PageLiveController[] = [];
+const pluginRuns: Array<ReturnType<typeof livePauseSourcePlugin>> = [];
 
 const publish = () => publishBlockEvent(TOPIC);
 
@@ -88,7 +89,7 @@ function mount(setup: () => void): void {
     }),
   );
   browserRuntime(app);
-  livePauseSourcePlugin(dmsAppContext(app));
+  pluginRuns.push(livePauseSourcePlugin(dmsAppContext(app)));
   app.mount(document.createElement("div"));
   mounted.push(app);
 }
@@ -112,6 +113,7 @@ afterEach(async () => {
   mounted.splice(0).forEach((app) => app.unmount());
   controllers.splice(0).forEach((controller) => controller.dispose());
   setCurrentPageLive(null);
+  for (const run of pluginRuns.splice(0)) await run;
   await stopBlockRealtime();
 });
 
@@ -240,13 +242,16 @@ describe("a component polling with refreshInterval on a live page", () => {
 
   it("keeps polling in an app without a pause source", async () => {
     installLive().pause();
+    const loads: Array<ReturnType<typeof useApiData>> = [];
     const app = createApp(
       defineComponent({
         setup() {
-          useApiData(POLLED_URL, {
-            refreshInterval: POLL_MS,
-            refreshOnPageRefresh: false,
-          });
+          loads.push(
+            useApiData(POLLED_URL, {
+              refreshInterval: POLL_MS,
+              refreshOnPageRefresh: false,
+            }),
+          );
           return () => h("div");
         },
       }),
@@ -256,6 +261,7 @@ describe("a component polling with refreshInterval on a live page", () => {
     mounted.push(app);
     await settle(POLL_MS * 4);
     expect(sentTo(POLLED_URL)).toBeGreaterThan(2);
+    await Promise.all(loads);
   });
 
   it("keeps polling on a page without live", async () => {

@@ -1,3 +1,4 @@
+import type { ProcessEventMap } from "node:process";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { effectScope, nextTick, reactive } from "vue";
 import { useInstantSave } from "../layers/dms-ui/app/entries/composables/instant-save/useInstantSave";
@@ -6,9 +7,11 @@ interface Settings {
   theme: string;
 }
 
-const unhandled: unknown[] = [];
+type Rejection = ProcessEventMap["unhandledRejection"][0];
 
-function remember(reason: unknown): void {
+const unhandled: Rejection[] = [];
+
+function remember(reason: Rejection): void {
   unhandled.push(reason);
 }
 

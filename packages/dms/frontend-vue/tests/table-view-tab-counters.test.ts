@@ -15,7 +15,7 @@ const TABS = [
   },
 ];
 
-async function mount(answerCounts: () => unknown) {
+async function mount(answerCounts: () => Record<string, number>) {
   await tableViewRuntime(async (url: string) => {
     if (url.endsWith("/count/batch")) return answerCounts();
     return { results: [], total: 3, offset: 0, limit: 10 };

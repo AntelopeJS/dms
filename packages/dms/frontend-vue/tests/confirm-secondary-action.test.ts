@@ -146,30 +146,30 @@ describe("a confirmation's secondary target", () => {
   });
 });
 
+const Slots = defineComponent({
+  setup:
+    (_, { slots }) =>
+    () =>
+      h("div", [slots.header?.(), slots.body?.(), slots.footer?.()]),
+});
+const Button = defineComponent({
+  props: { label: String },
+  emits: ["click"],
+  setup:
+    (props, { emit }) =>
+    () =>
+      h("button", { onClick: () => emit("click") }, props.label),
+});
+const Alert = defineComponent({
+  props: { title: String },
+  setup: (props) => () => h("p", { "data-alert": "" }, props.title),
+});
+const Empty = defineComponent({ setup: () => () => null });
+
 describe("ConfirmModal secondary action", () => {
   let app: App | undefined;
   let host: HTMLDivElement;
   const closed = vi.fn();
-
-  const Slots = defineComponent({
-    setup:
-      (_, { slots }) =>
-      () =>
-        h("div", [slots.header?.(), slots.body?.(), slots.footer?.()]),
-  });
-  const Button = defineComponent({
-    props: { label: String },
-    emits: ["click"],
-    setup:
-      (props, { emit }) =>
-      () =>
-        h("button", { onClick: () => emit("click") }, props.label),
-  });
-  const Alert = defineComponent({
-    props: { title: String },
-    setup: (props) => () => h("p", { "data-alert": "" }, props.title),
-  });
-  const Empty = defineComponent({ setup: () => () => null });
 
   async function flush(): Promise<void> {
     for (let tick = 0; tick < 6; tick++) await nextTick();

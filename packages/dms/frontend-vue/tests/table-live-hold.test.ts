@@ -183,7 +183,7 @@ it("reads on a user's refresh while held, and holds from then", async () => {
   await publish();
 
   vi.setSystemTime(new Date("2026-10-11T08:03:00.000Z"));
-  refreshPageBlocks();
+  const refreshed = refreshPageBlocks();
 
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(live.isPaused.value).toBe(true);
@@ -191,6 +191,7 @@ it("reads on a user's refresh while held, and holds from then", async () => {
   expect(hold.heldQuery()).toEqual({
     [LIVE_HELD_AT_QUERY_KEY]: "2026-10-11T08:03:00.000Z",
   });
+  await refreshed;
 });
 
 it("holds the table alone while a row is open, the page staying live", async () => {

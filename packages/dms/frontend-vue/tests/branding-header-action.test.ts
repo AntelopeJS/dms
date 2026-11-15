@@ -7,15 +7,16 @@ import { createI18n } from "vue-i18n";
 import { beforeEach, expect, it, vi } from "vitest";
 import fr from "../layers/dms-layout/app/entries/i18n/locales/layout-fr-FR.json";
 import { dmsAppContext } from "./fixtures/dmsAppContext";
+import type { HeaderAction } from "../layers/dms-layout/app/composables/useHeaderActions";
 
-let actions: Ref<unknown> | undefined;
+let actions: Ref<HeaderAction[]> | undefined;
 const isOwner = ref(false);
 const push = vi.fn(async () => undefined);
 
 vi.stubGlobal("computed", computed);
 vi.stubGlobal(
   "useDmsState",
-  (_key: string, init: () => unknown) => (actions ??= ref(init())),
+  (_key: string, init: () => HeaderAction[]) => (actions ??= ref(init())),
 );
 vi.stubGlobal("defineDmsPlugin", <T>(setup: T) => setup);
 vi.stubGlobal("useIsOwner", () => computed(() => isOwner.value));
@@ -32,10 +33,10 @@ const { default: plugin } = await import(
 
 const i18n = createI18n({ legacy: false, locale: "fr", messages: { fr } });
 
-beforeEach(() => {
+beforeEach(async () => {
   actions = undefined;
   isOwner.value = false;
-  plugin(dmsAppContext(createApp({ render: () => null })));
+  await plugin(dmsAppContext(createApp({ render: () => null })));
 });
 
 const brandingAction = () =>

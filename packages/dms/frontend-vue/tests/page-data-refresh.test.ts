@@ -72,11 +72,14 @@ function installLive(): PageLiveController {
 }
 
 async function mountPage(): Promise<void> {
+  const loads: Array<ReturnType<typeof useApiData>> = [];
   const Page = defineComponent({
     setup() {
       usePageDataRefresh({ pageTopics, subscribe });
-      useApiData("/api/orders");
-      useApiData("/api/own-triggers", { refreshOnPageRefresh: false });
+      loads.push(useApiData("/api/orders"));
+      loads.push(
+        useApiData("/api/own-triggers", { refreshOnPageRefresh: false }),
+      );
       return () => h("div");
     },
   });
@@ -84,6 +87,7 @@ async function mountPage(): Promise<void> {
   app.mount(document.createElement("div"));
   mounted.push(app);
   await settle();
+  await Promise.all(loads);
 }
 
 beforeEach(() => {
@@ -106,10 +110,11 @@ describe("the page's data refresh", () => {
     expect(requests.sort()).toEqual(["/api/orders", "/api/own-triggers"]);
     requests.length = 0;
 
-    refreshPageBlocks();
+    const refreshed = refreshPageBlocks();
     await settle();
 
     expect(requests).toEqual(["/api/orders"]);
+    await refreshed;
   });
 
   it("resolves refreshPageBlocks() once the page's data is read again", async () => {

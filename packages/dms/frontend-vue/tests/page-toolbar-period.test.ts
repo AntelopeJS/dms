@@ -32,8 +32,8 @@ let host: HTMLDivElement;
 type ShortPresets = Record<string, string>;
 
 /** The locale's short codes, keyed as `t` reads them; any other key echoes. */
-function shortPresetMessages(codes: ShortPresets): Record<string, string> {
-  return Object.fromEntries(
+function shortPresetMessages(codes: ShortPresets): Map<string, string> {
+  return new Map<string, string>(
     Object.entries(codes).map(([preset, code]) => [
       `dms.period.short_presets.${preset}`,
       code,
@@ -41,8 +41,8 @@ function shortPresetMessages(codes: ShortPresets): Record<string, string> {
   );
 }
 
-let messages: Record<string, string> = {};
-const t = (key: string) => messages[key] ?? key;
+let messages = new Map<string, string>();
+const t = (key: string) => messages.get(key) ?? key;
 
 /** The period child's options, as `pageToolbar()` serializes them. */
 function toolbarPeriod(

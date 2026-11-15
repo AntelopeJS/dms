@@ -8,6 +8,7 @@
 import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchClientMock } from "./fixtures/unusedApi";
+import type { useExportJob } from "../layers/dms-ui/app/composables/useExportJob";
 import { useActionTargets } from "../layers/dms-ui/app/entries/composables/actions/useActionTargets";
 import {
   interpolateRowText,
@@ -32,7 +33,7 @@ const route = reactive<{ path: string; query: Record<string, string> }>({
   query: {},
 });
 const api = fetchClientMock();
-const runJob = vi.fn();
+const runJob = vi.fn<ReturnType<typeof useExportJob>["runJob"]>();
 let app: App | undefined;
 
 function mountTargets() {
@@ -228,8 +229,8 @@ describe("an action target's URL", () => {
     await vi.waitFor(() => expect(runJob).toHaveBeenCalled());
     const job = runJob.mock.calls[0]![0];
     expect(job.startUrl).toBe("/api/stores/s1/export?store=north");
-    expect(job.statusUrl({ jobId: "j1" })).toBe("/api/stores/s1/export/j1");
-    expect(job.downloadUrl({ jobId: "j1" })).toBe(
+    expect(job.statusUrl?.({ jobId: "j1" })).toBe("/api/stores/s1/export/j1");
+    expect(job.downloadUrl?.({ jobId: "j1" })).toBe(
       "/api/stores/s1/export/j1/file",
     );
   });

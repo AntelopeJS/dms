@@ -11,7 +11,7 @@ import {
   watchEffect,
   type App,
 } from "vue";
-import * as z from "zod";
+import { z } from "zod";
 import SignupPage from "../layers/dms-auth/app/custom-pages/auth/signup.vue";
 import {
   browserRuntime,

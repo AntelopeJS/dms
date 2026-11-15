@@ -6,6 +6,7 @@
  */
 import { createApp, ref } from "vue";
 import { beforeEach, expect, it, vi } from "vitest";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("$fetch", engine.$fetch);
@@ -53,7 +54,7 @@ const platformFetch = vi.fn(
   },
 );
 
-const json = (body: object, status = 200) =>
+const json = (body: JsonValue, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json" },

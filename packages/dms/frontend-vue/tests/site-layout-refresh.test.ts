@@ -34,10 +34,7 @@ function createSiteLayoutRefresher(
         state.loadingPromise = null;
       }
     }
-    if (!state.loadingPromise) {
-      start();
-    }
-    await state.loadingPromise;
+    await (state.loadingPromise ?? start());
   };
 
   return { refresh, start, state };
@@ -60,10 +57,11 @@ describe("useSiteLayout refresh", () => {
     const fetchLayout = vi.fn(() => answers.shift() ?? Promise.resolve());
     const { refresh, start } = createSiteLayoutRefresher(fetchLayout);
 
-    start();
+    const started = start();
     const refreshed = refresh();
     first.resolve();
     await refreshed;
+    await started;
 
     expect(fetchLayout).toHaveBeenCalledTimes(2);
   });
@@ -74,10 +72,10 @@ describe("useSiteLayout refresh", () => {
     const fetchLayout = vi.fn(() => answers.shift() ?? Promise.resolve());
     const { refresh, start } = createSiteLayoutRefresher(fetchLayout);
 
-    start();
+    const started = start();
     const refreshes = [refresh(), refresh(), refresh()];
     first.resolve();
-    await Promise.all(refreshes);
+    await Promise.all([started, ...refreshes]);
 
     expect(fetchLayout).toHaveBeenCalledTimes(2);
   });
@@ -106,10 +104,11 @@ describe("useSiteLayout refresh", () => {
     const instanceA = createSiteLayoutRefresher(fetchLayout, holder);
     const instanceB = createSiteLayoutRefresher(fetchLayout, holder);
 
-    instanceA.start();
+    const started = instanceA.start();
     const refreshed = instanceB.refresh();
     first.resolve();
     await refreshed;
+    await started;
 
     expect(fetchLayout).toHaveBeenCalledTimes(2);
   });

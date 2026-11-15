@@ -5,6 +5,7 @@
  * browser hydrates with it and follows reactive requests, and every request
  * keeps `$authFetch`'s headers and session retry.
  */
+import { surfaceRejection } from "./surface-rejection";
 import {
   createApp,
   createSSRApp,
@@ -81,7 +82,8 @@ const transport: NonNullable<
       response: { status },
     });
   }
-  return { url, page: options.query?.page ?? null };
+  const page: unknown = options.query?.page ?? null;
+  return { url, page };
 };
 
 const mounted: App[] = [];
@@ -358,7 +360,9 @@ function registerApiPollingTests() {
     const interval = ref(20);
     const Install = defineComponent({
       setup() {
-        useApiData("/api/install-check", { refreshInterval: interval });
+        surfaceRejection(
+          useApiData("/api/install-check", { refreshInterval: interval }),
+        );
         return () => h("p");
       },
     });
@@ -383,7 +387,7 @@ function registerApiPollingTests() {
     engine.provideDmsFrontendRuntime(app, runtime);
     const polling = ref(true);
     await settle();
-    app.runWithContext(() =>
+    await app.runWithContext(() =>
       useApiData("/api/_ai/status", {
         refreshInterval: () => (polling.value ? 20 : null),
       }),

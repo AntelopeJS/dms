@@ -3,19 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
 import uiEn from "../layers/dms-ui/app/entries/i18n/locales/ui-en-GB.json";
 import uiFr from "../layers/dms-ui/app/entries/i18n/locales/ui-fr-FR.json";
+import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 import { providePageHeaderActions } from "../layers/dms-ui/app/composables/layout/usePageHeaderActions";
 
-type Messages = typeof uiEn | typeof uiFr;
+interface MessageTree {
+  readonly [part: string]: string | MessageTree;
+}
 
-const translator = (messages: Messages) => (key: string) =>
-  String(
-    key
-      .split(".")
-      .reduce<unknown>(
-        (node, part) => (node as Record<string, unknown> | undefined)?.[part],
-        messages,
-      ) ?? key,
-  );
+const translator = (messages: MessageTree) => (key: string) => {
+  let node: string | MessageTree | undefined = messages;
+  for (const part of key.split("."))
+    node = isObject(node) && Object.hasOwn(node, part) ? node[part] : undefined;
+  return isString(node) ? node : key;
+};
 
 const IconStub = defineComponent({
   props: { name: String },

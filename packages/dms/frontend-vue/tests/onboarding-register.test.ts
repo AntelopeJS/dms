@@ -18,7 +18,10 @@ import {
   passwordSchema,
   usePasswordStrength,
 } from "../layers/dms-ui/app/composables/usePasswordStrength";
+import type { localizeSchema } from "../layers/dms-core/app/composables/useFormValidation";
 import { mountInBrowser } from "./helpers/api-data-runtime";
+
+type FormSchema = ReturnType<typeof localizeSchema>;
 
 const register = vi.fn();
 const login = vi.fn();
@@ -42,16 +45,14 @@ function registerUi(app: App) {
   app.config.globalProperties.$t = (key: string) => key;
   app.component(
     "UForm",
-    defineComponent({
-      props: {
-        schema: {
-          type: Object,
-          required: true,
+    defineComponent(
+      (
+        props: {
+          schema: FormSchema;
+          state: Parameters<FormSchema["~standard"]["validate"]>[0];
         },
-        state: { type: Object, required: true },
-      },
-      emits: ["submit", "error"],
-      setup(props, { slots, emit, expose }) {
+        { slots, emit, expose },
+      ) => {
         expose({
           getErrors: () => [],
           setErrors: () => undefined,
@@ -73,7 +74,8 @@ function registerUi(app: App) {
             slots.default?.(),
           );
       },
-    }),
+      { props: ["schema", "state"], emits: ["submit", "error"] },
+    ),
   );
   app.component(
     "UFormField",
@@ -105,7 +107,7 @@ function registerUi(app: App) {
   app.component(
     "UButton",
     defineComponent({
-      props: ["label", "loading"],
+      props: { label: String, loading: Boolean },
       setup: (props) => () => h("button", { type: "button" }, props.label),
     }),
   );

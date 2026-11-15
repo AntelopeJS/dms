@@ -191,7 +191,8 @@ describe("loading the permission set", () => {
     const refresh = permissions.fetchPermissions();
     const outcome = refresh.then(
       () => "resolved",
-      (reason: Error) => reason.message,
+      (reason: unknown) =>
+        reason instanceof Error ? reason.message : String(reason),
     );
     await settle();
     for (const request of requests.splice(0))

@@ -103,9 +103,10 @@ it("re-fetches every mounted block, keeping its values until the answer", async 
   expect(requests).toEqual(["/api/ws/ws-1/facts", "/api/ws/ws-1/tab-counts"]);
 
   answer = 2;
-  refreshPageBlocks();
+  const refreshed = refreshPageBlocks();
   expect(facts.probe.isLoading?.value).toBe(false);
   expect(facts.probe.data?.value).toEqual({ value: 1 });
+  await refreshed;
   await settle();
 
   expect(requests).toEqual([
@@ -121,7 +122,7 @@ it("leaves an unmounted block alone", async () => {
   const block = mountBlock("/api/ws/{{params.id}}/facts");
   await settle();
   block.unmount();
-  refreshPageBlocks();
+  await refreshPageBlocks();
   await settle();
   expect(requests).toEqual(["/api/ws/ws-1/facts"]);
 });
@@ -129,7 +130,7 @@ it("leaves an unmounted block alone", async () => {
 it("does not request a URL whose token is unresolved", async () => {
   const block = mountBlock("/api/ws/{{params.workspace}}/facts");
   apps.push(block.unmount);
-  refreshPageBlocks();
+  await refreshPageBlocks();
   await settle();
   expect(requests).toEqual([]);
 });

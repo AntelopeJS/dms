@@ -1,20 +1,28 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 /**
  * A relation cell whose joined row has no label shows the row's key, never
  * the row itself stringified (`[object Object]`), and a multiple relation
  * keeps a badge for it.
  */
-import { h, type VNode } from "vue";
+import { h, isVNode } from "vue";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
+import type {
+  DataType,
+  DataTypeFormatter,
+} from "../layers/dms-core/app/composables/data-types/useDataType";
 import { Size } from "../layers/dms-core/app/types/size";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 
-type Formatter = (value: unknown, locale: string, options: unknown) => unknown;
+interface RelationOptions {
+  multiple?: boolean;
+  keyMapping?: { label?: string; value?: string };
+}
 
-const formatters = new Map<string, Formatter>();
+type RelationRow = Record<string, string | number | null>;
+
+const formatters = new Map<string, DataTypeFormatter | undefined>();
 const register = (dataType: DataType) =>
-  formatters.set(dataType.id, dataType.formatter?.default as Formatter);
+  formatters.set(dataType.id, dataType.formatter?.default);
 
 beforeAll(async () => {
   vi.stubGlobal("h", h);
@@ -31,8 +39,10 @@ beforeAll(async () => {
   registerDefaultDataTypes();
 });
 
-const renderRelation = (value: unknown, options: unknown) =>
-  formatters.get("relation")!(value, "en-GB", options);
+const renderRelation = (
+  value: RelationRow | RelationRow[],
+  options: RelationOptions,
+) => formatters.get("relation")!(value, "en-GB", options);
 
 describe("relation cell without a label", () => {
   const options = { keyMapping: { label: "id", value: "_id" } };
@@ -61,9 +71,15 @@ describe("relation cell without a label", () => {
 describe("multiple relation cell without a label", () => {
   const options = { multiple: true, keyMapping: { label: "name" } };
 
-  const badgeLabels = (value: unknown[]) => {
-    const cell = renderRelation(value, options) as VNode;
-    return (cell.children as VNode[]).map((badge) => badge.props?.label);
+  const badgeLabels = (value: RelationRow[]) => {
+    const cell = renderRelation(value, options);
+    if (!isVNode(cell) || !Array.isArray(cell.children)) {
+      throw new Error("expected a vnode of badges");
+    }
+    expect(cell.children.every(isVNode)).toBe(true);
+    return cell.children
+      .filter(isVNode)
+      .map((badge) => String(badge.props?.label));
   };
 
   it("keeps a badge with the row's key for an empty or null label", () => {

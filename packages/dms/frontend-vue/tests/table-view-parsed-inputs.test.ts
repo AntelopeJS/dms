@@ -11,6 +11,10 @@ import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { Color } from "../layers/dms-core/app/types/color";
 import { normalizeActionConfig } from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import { useEventedAction } from "../layers/dms-core/app/composables/useEventedAction";
+import type { ComponentEventData } from "../layers/dms-core/app/types/component";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
+import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
+import type { useModal } from "../layers/dms-ui/app/composables/containers/useModal";
 import { rowGroupKey } from "../layers/dms-ui/app/entries/composables/table-view/utils/groupedRows";
 
 vi.stubGlobal("ref", ref);
@@ -26,8 +30,15 @@ const { registerDefaultFunctions } = await import(
 );
 
 describe("a row action", () => {
-  const sendComponentEvent = vi.fn();
-  const openModal = vi.fn();
+  const sendComponentEvent =
+    vi.fn<
+      (
+        name: string,
+        componentId: string,
+        data?: ComponentEventData["data"],
+      ) => void
+    >();
+  const openModal = vi.fn<ReturnType<typeof useModal>["open"]>();
 
   beforeEach(() => {
     sendComponentEvent.mockReset();
@@ -86,7 +97,7 @@ describe("a row action", () => {
     return options?.componentOptions?.fetchUrl;
   };
 
-  const errorPayloadOf = async (failure: unknown) => {
+  const errorPayloadOf = async (failure: JsonValue) => {
     openModal.mockImplementation(() => {
       throw failure;
     });
@@ -96,16 +107,18 @@ describe("a row action", () => {
     const [, , payload] = sendComponentEvent.mock.calls.find(
       ([event]) => event === TableViewEvents.ROW_CLICK_ERROR,
     )!;
+    if (!isObject(payload) || isNull(payload))
+      throw new Error("The row click error event carried no payload");
     return payload.error;
   };
 
-  it("opens a row whose id is a number, as its text", () => {
-    rowActions().openRow({ _id: 7 });
+  it("opens a row whose id is a number, as its text", async () => {
+    await rowActions().openRow({ _id: 7 });
     expect(openedUrl()).toBe("/api/task/get?id=7&action=details");
   });
 
-  it("falls back to the id field when the first one is no id", () => {
-    rowActions().openRow({ _id: {}, id: "row-1" });
+  it("falls back to the id field when the first one is no id", async () => {
+    await rowActions().openRow({ _id: {}, id: "row-1" });
     expect(openedUrl()).toBe("/api/task/get?id=row-1&action=details");
   });
 

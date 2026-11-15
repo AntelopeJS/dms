@@ -12,6 +12,7 @@ import { hydrate, serverRender } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import Chart from "../layers/dms-ui/app/components/chart/ChartBlock.vue";
+import type { ChartSeries } from "../layers/dms-ui/app/composables/chart/types";
 
 const AMOUNT = 9.391;
 const AXIS = 'class="axis">€9<';
@@ -22,21 +23,27 @@ const authFetch = vi.fn(async () => ({
   series: [{ name: SERIES_NAME, data: [AMOUNT] }],
 }));
 
-const PlotProbe = defineComponent({
-  props: {
-    options: { type: Object, required: true },
-    series: { type: Array, required: true },
+const PlotProbe = defineComponent(
+  (props: {
+    options: { yaxis: { labels: { formatter: (value: number) => string } } };
+    series: ChartSeries[];
+  }) =>
+    () =>
+      h("output", [
+        h(
+          "span",
+          { class: "axis" },
+          props.options.yaxis.labels.formatter(AMOUNT),
+        ),
+        h("span", { class: "series" }, JSON.stringify(props.series)),
+      ]),
+  {
+    props: {
+      options: { type: Object, required: true },
+      series: { type: Array, required: true },
+    },
   },
-  setup: (props) => () =>
-    h("output", [
-      h(
-        "span",
-        { class: "axis" },
-        props.options.yaxis.labels.formatter(AMOUNT),
-      ),
-      h("span", { class: "series" }, JSON.stringify(props.series)),
-    ]),
-});
+);
 const Slot = defineComponent({
   setup:
     (_, { slots }) =>

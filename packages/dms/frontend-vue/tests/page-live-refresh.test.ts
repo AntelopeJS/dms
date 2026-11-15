@@ -113,16 +113,17 @@ it("reads nothing while paused, counts what it missed, and reads once on resume"
   expect(handle.missed.value).toBe(0);
 });
 
-it("reads at once on a refresh the user asks for, paused or not", () => {
+it("reads at once on a refresh the user asks for, paused or not", async () => {
   const controller = installLive();
   const { onRefresh, handle } = mountComponent();
   controller.pause();
 
-  refreshPageBlocks();
+  const refreshed = refreshPageBlocks();
   expect(onRefresh).toHaveBeenCalledTimes(1);
 
   handle.refreshNow();
   expect(onRefresh).toHaveBeenCalledTimes(2);
+  await refreshed;
 });
 
 it("gates its own trigger like an event", () => {

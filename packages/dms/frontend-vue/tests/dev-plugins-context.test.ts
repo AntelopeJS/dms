@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import * as vue from "vue";
 import { computed, createApp } from "vue";
 import { createI18n } from "vue-i18n";
@@ -18,8 +18,8 @@ async function clientPlugins(): Promise<DmsPluginSetup[]> {
   const { default: frontendModule } = await import("../dms.frontend");
   const registered: DmsPluginSetup[] = [];
   const probe: DmsFrontendModule = {
-    setup(sdk: DmsFrontendSdk) {
-      frontendModule.setup({
+    async setup(sdk: DmsFrontendSdk) {
+      await frontendModule.setup({
         ...sdk,
         registerPlugin: (setup, options) => {
           if (options?.clientOnly) registered.push(setup);

@@ -64,10 +64,12 @@ async function startOnPage(pageName: string) {
   );
   session.value = ACCOUNT_A;
   const context = dmsAppContext(app);
-  await app.runWithContext(() => {
-    const setups = [asyncDataScopePlugin(context), seoPlugin(context)];
+  await app.runWithContext(async () => {
+    const scoped = asyncDataScopePlugin(context);
+    const seo = seoPlugin(context);
     useHead({ title: pageName });
-    return Promise.all(setups);
+    await scoped;
+    await seo;
   });
   const title = async () => {
     await settle();

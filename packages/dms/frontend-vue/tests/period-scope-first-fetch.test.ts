@@ -346,7 +346,7 @@ describe("chart fetch loading state", () => {
     await nextTick();
     expect(pending).toHaveLength(1);
 
-    void refresh?.();
+    const refreshed = refresh?.();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(pending).toHaveLength(2);
     expect(loading?.value).toBe(true);
@@ -354,6 +354,7 @@ describe("chart fetch loading state", () => {
     pending[1]!.resolve({ value: 2 });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(loading?.value).toBe(false);
+    await refreshed;
 
     watched.value = 1;
     await nextTick();

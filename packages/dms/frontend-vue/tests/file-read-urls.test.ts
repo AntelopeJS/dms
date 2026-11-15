@@ -163,10 +163,11 @@ function registerFileUrlRefreshTests() {
 
   it("uses the full localized form language for metadata authorization", async () => {
     authFetch.mockResolvedValue({ url: "https://example.test/file" });
+    const lookups: Array<Promise<void>> = [];
     const Field = defineComponent({
       setup() {
         const { getUrl, resolve } = useFileReadUrls("private");
-        void resolve(RESOURCE_KEY);
+        lookups.push(resolve(RESOURCE_KEY));
         return () => h("img", { src: getUrl(RESOURCE_KEY) ?? "" });
       },
     });
@@ -175,11 +176,13 @@ function registerFileUrlRefreshTests() {
     );
     mounted.push(app);
     await vi.advanceTimersByTimeAsync(0);
+    const anyAbortSignal: unknown = expect.any(AbortSignal);
     expect(authFetch).toHaveBeenCalledWith("/api/files/metadata", {
       query: { resourceKey: RESOURCE_KEY, storage: "private" },
       headers: { "x-content-language": "*" },
-      signal: expect.any(AbortSignal),
+      signal: anyAbortSignal,
     });
+    await Promise.all(lookups);
   });
 
   it("retries the first failed lookup while the component stays mounted", async () => {
@@ -211,9 +214,9 @@ function registerFileUrlRefreshTests() {
 
 function registerDeferredFileUrlTests() {
   it("does not restart refresh timers when an in-flight lookup finishes after disposal", async () => {
-    let finish!: (value: unknown) => void;
+    let finish!: (answer: { url: string; expiresAt: number }) => void;
     authFetch.mockReturnValue(
-      new Promise((resolve) => {
+      new Promise<{ url: string; expiresAt: number }>((resolve) => {
         finish = resolve;
       }),
     );

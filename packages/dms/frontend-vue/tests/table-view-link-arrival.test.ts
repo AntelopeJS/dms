@@ -144,7 +144,7 @@ describe("linkedArrivalPreferences", () => {
   const preferences: TablePreferences = {
     // SAFETY: holds when the V a caller requests for a field is the type of the value `kept` seeds under it; a field absent from `kept` returns the caller's fallback, which is a V.
     get: <V>(field: string, fallback: V) =>
-      (field in kept
+      (Object.hasOwn(kept, field)
         ? new Map(Object.entries(kept)).get(field)
         : fallback) as V,
     set: (field, value) => {
@@ -384,7 +384,7 @@ describe("a link to the kept tab, reloads and the user's pick", () => {
       kept,
       // SAFETY: holds when the V a caller requests for a field is the type of the value last stored under it with set; a field never stored returns the caller's fallback, which is a V.
       get: <V>(field: string, fallback: V) =>
-        (field in kept ? kept[field] : fallback) as V,
+        (Object.hasOwn(kept, field) ? kept[field] : fallback) as V,
       set: (field, value) => {
         if (value === undefined) Reflect.deleteProperty(kept, field);
         else kept[field] = value;

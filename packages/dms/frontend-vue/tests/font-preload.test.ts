@@ -20,7 +20,7 @@ describe("the dashboard fonts", () => {
       const { default: plugin } = await import(
         "../layers/dms-layout/app/plugins/font-preload"
       );
-      plugin(dmsAppContext(createApp({ render: () => null })));
+      await plugin(dmsAppContext(createApp({ render: () => null })));
     } finally {
       vi.unstubAllEnvs();
       vi.unstubAllGlobals();

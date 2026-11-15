@@ -68,7 +68,7 @@ it("requests nothing while paused and reads once on resume", async () => {
   expect(requests).toHaveLength(2);
 
   live.pause();
-  refreshPageBlocks();
+  await refreshPageBlocks();
   await settle();
   expect(requests).toHaveLength(3);
   live.dispose();

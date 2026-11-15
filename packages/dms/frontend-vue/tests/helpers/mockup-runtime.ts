@@ -14,6 +14,11 @@ import {
   type FunctionalComponent,
 } from "vue";
 import { vi } from "vitest";
+import type { Toast } from "@nuxt/ui/composables/useToast";
+import type {
+  ApiErrorPresenter,
+  PresentApiErrorOptions,
+} from "../../layers/dms-core/app/composables/useApiErrorPresenter";
 import {
   parsePreviewMessage,
   PREVIEW_CHANNEL,
@@ -203,6 +208,9 @@ interface RuntimeOptions {
   blocks?: MockupBlockType[];
 }
 
+/** What the viewer raised: a toast it added, or a failure it presented. */
+type RaisedToast = Toast | (PresentApiErrorOptions & Pick<Toast, "color">);
+
 export interface MockupRuntime {
   authFetch: ReturnType<typeof vi.fn>;
   /** The notes the fake backend holds. */
@@ -210,7 +218,7 @@ export interface MockupRuntime {
   /** `spec.json` as the fake backend holds it, and its digest. */
   file: { spec: MockupSpecDocument; version: number };
   /** The toasts the viewer raised. */
-  toasts: Array<Record<string, unknown>>;
+  toasts: RaisedToast[];
 }
 
 const SPEC_URL = "/api/mockup/demo/spec";
@@ -220,7 +228,7 @@ const CATALOG_URL = "/api/mockup/schema/blocks";
 export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
   FakeEventSource.instances = [];
   const notes: MockupAnnotation[] = [];
-  const toasts: Array<Record<string, unknown>> = [];
+  const toasts: RaisedToast[] = [];
   const file = { spec: options.spec ?? mockupSpec(), version: 1 };
   const authFetch = vi.fn(
     async (
@@ -286,12 +294,11 @@ export function stubMockupRuntime(options: RuntimeOptions = {}): MockupRuntime {
     public: { dms: { baseURL: "http://backend/" } },
   }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
-  vi.stubGlobal("useApiErrorPresenter", () => ({
-    presentError: (_error: unknown, init: Record<string, unknown>) =>
-      toasts.push({ color: "error", ...init }),
-  }));
+  const presentError: ApiErrorPresenter["presentError"] = (_error, init) =>
+    toasts.push({ color: "error", ...init });
+  vi.stubGlobal("useApiErrorPresenter", () => ({ presentError }));
   vi.stubGlobal("useToast", () => ({
-    add: (toast: Record<string, unknown>) => toasts.push(toast),
+    add: (toast: Toast) => toasts.push(toast),
   }));
   return { authFetch, notes, file, toasts };
 }

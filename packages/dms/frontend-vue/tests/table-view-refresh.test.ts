@@ -43,14 +43,14 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-it("refreshes on each page refresh while mounted", () => {
+it("refreshes on each page refresh while mounted", async () => {
   const block = mountBlock(undefined);
-  refreshPageBlocks();
+  await refreshPageBlocks();
   expect(block.onRefresh).toHaveBeenCalledTimes(1);
 
   block.unmount();
   mounted.length = 0;
-  refreshPageBlocks();
+  await refreshPageBlocks();
   expect(block.onRefresh).toHaveBeenCalledTimes(1);
 });
 

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+/** @vitest-environment jsdom */
 import { createApp, inject, type App } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { lazyPlugin } from "../lazy-plugin";

@@ -9,6 +9,7 @@ import {
 import { createI18n } from "vue-i18n";
 import { vi } from "vitest";
 import en from "../../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
+import type { JsonValue } from "../../layers/dms-core/app/types/json";
 
 /** What the fake `/api/branding` routes received. */
 export interface BrandingCall {
@@ -17,7 +18,18 @@ export interface BrandingCall {
   body: unknown;
 }
 
-type Answer = (call: BrandingCall) => unknown;
+/** What a fake `/api/branding` route answers: its data, or a refusal such as a stale version. */
+export type BrandingAnswer =
+  | { ok: true; data: JsonValue }
+  | { ok: false; error: { code: string; ref: string; currentVersion: string } };
+
+type Answer = (call: BrandingCall) => BrandingAnswer;
+
+interface BrandingRuntime {
+  calls: BrandingCall[];
+  confirm: ReturnType<typeof vi.fn>;
+  showDmsError: ReturnType<typeof vi.fn>;
+}
 
 /**
  * Stubs the editor's auto-imports: a real i18n composer, the confirm dialog,
@@ -28,11 +40,7 @@ type Answer = (call: BrandingCall) => unknown;
 export function installBrandingRuntime(
   answer: Answer,
   { owner = true }: { owner?: boolean } = {},
-): {
-  calls: BrandingCall[];
-  confirm: ReturnType<typeof vi.fn>;
-  showDmsError: ReturnType<typeof vi.fn>;
-} {
+): BrandingRuntime {
   const calls: BrandingCall[] = [];
   const confirm = vi.fn(async () => true);
   const showDmsError = vi.fn();
@@ -95,7 +103,7 @@ const TitledStub: FunctionalComponent = (_, { attrs, slots }) => {
   ]);
 };
 
-const STUBS: Record<string, Component> = {
+const STUBS = {
   UButton: ButtonStub,
   UBadge: passthrough("span"),
   USkeleton: passthrough("div"),
@@ -106,7 +114,7 @@ const STUBS: Record<string, Component> = {
   DmsEyebrowLabel: TitledStub,
   DmsNoticeBanner: TitledStub,
   DmsEmptyState: TitledStub,
-};
+} satisfies Record<string, Component>;
 
 /** Waits for the editor's reads and renders to settle. */
 export async function settle(): Promise<void> {

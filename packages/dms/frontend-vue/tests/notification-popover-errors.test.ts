@@ -15,6 +15,7 @@ import {
 } from "vue";
 import NotificationPopover from "../layers/dms-layout/app/entries/components/notification/NotificationPopover";
 import { useNavBadges } from "../layers/dms-ui/app/entries/composables/navigation/useNavBadges";
+import { stubDmsState } from "./helpers/dms-state-stub";
 
 const HTTP_FORBIDDEN = 403;
 const UNREAD_COUNT = 4;
@@ -104,10 +105,7 @@ function installRuntime(): void {
     onMounted,
     onUnmounted,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
-  vi.stubGlobal("useDmsState", <T>(key: string, init: () => T) => {
-    if (!state.has(key)) state.set(key, ref(init()));
-    return state.get(key);
-  });
+  stubDmsState(state);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key, locale: "en" }));
   vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: ref(true) }));
   vi.stubGlobal("useTranslation", () => ({

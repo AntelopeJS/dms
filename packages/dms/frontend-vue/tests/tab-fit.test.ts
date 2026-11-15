@@ -23,16 +23,17 @@ let received: TabsUi = {};
 let app: vue.App | undefined;
 let runtime: ReturnType<typeof browserRuntime> | undefined;
 
-const Tabs = vue.defineComponent({
-  props: { ui: { type: Object, default: () => ({}) } },
-  setup: (props) => () => {
-    received = { list: props.ui.list, trigger: props.ui.trigger };
-    return vue.h("div");
-  },
-});
+const Tabs = (props: { ui?: TabsUi }) => {
+  received = { list: props.ui?.list, trigger: props.ui?.trigger };
+  return vue.h("div");
+};
 
-const classesOf = (value: unknown): string =>
-  [value].flat(Infinity).filter(isString).filter(Boolean).join(" ");
+const classesOf = (value: TabsUi["list"]): string => {
+  if (Array.isArray(value)) {
+    return value.map(classesOf).filter(Boolean).join(" ");
+  }
+  return isString(value) ? value : "";
+};
 
 async function mount(props: Partial<TabProps>): Promise<TabsUi> {
   const { default: Tab } = await import(

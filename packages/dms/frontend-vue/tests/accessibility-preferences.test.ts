@@ -208,7 +208,7 @@ describe("useAccessibilityPreferences", () => {
 
 describe("server render", () => {
   async function renderHead(
-    cookies: Record<string, unknown>,
+    cookies: Readonly<Record<string, AccessibilityPreferences>>,
     colorMode?: string,
   ) {
     for (const [name, value] of Object.entries(cookies))
@@ -216,9 +216,9 @@ describe("server render", () => {
     const app = createSSRApp({ render: () => null });
     const head = createHead();
     app.use(head);
-    app.runWithContext(() => {
+    await app.runWithContext(() => {
       if (colorMode) useHead({ htmlAttrs: { class: colorMode } });
-      accessibilityPlugin(dmsAppContext(app));
+      return accessibilityPlugin(dmsAppContext(app));
     });
     return renderSSRHead(head);
   }
@@ -259,10 +259,12 @@ describe("in the browser", () => {
     const app = createApp({ render: () => null });
     const head = createClientHead();
     app.use(head);
-    const { underlineLinks, reduceMotion } = app.runWithContext(() => {
-      accessibilityPlugin(dmsAppContext(app));
-      return useAccessibilityPreferences();
-    });
+    const { underlineLinks, reduceMotion } = await app.runWithContext(
+      async () => {
+        await accessibilityPlugin(dmsAppContext(app));
+        return useAccessibilityPreferences();
+      },
+    );
     await renderDOMHead(head);
     expect([...document.documentElement.classList]).toEqual(["dark"]);
 

@@ -13,10 +13,11 @@ import {
   registerBlockUi,
 } from "./helpers/block-network-runtime";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import type { ConfirmValues } from "../layers/dms-ui/app/composables/confirm/types";
 
 const requests: string[] = [];
-let answer: unknown = null;
+let answer: JsonValue | undefined = null;
 
 const { default: BannerBlock } = await import(
   "../layers/dms-ui/app/components/blocks/BannerBlock.vue"
@@ -125,12 +126,12 @@ it("follows a page refresh, appearing and going away", async () => {
   expect(banner.read()).toBeNull();
 
   answer = { title: "Degraded" };
-  refreshPageBlocks();
+  await refreshPageBlocks();
   await settle();
   expect(banner.read()).toMatchObject({ text: "Degraded" });
 
   answer = null;
-  refreshPageBlocks();
+  await refreshPageBlocks();
   await settle();
   expect(banner.read()).toBeNull();
   expect(requests).toHaveLength(3);

@@ -33,12 +33,20 @@ function stubLazyComponents() {
   return pending;
 }
 
+/** Whether `promise` resolved within a few microtask turns; a rejection reads as not settled. */
 const settled = async (promise: Promise<void>) => {
-  let isSettled = false;
-  void promise.then(() => (isSettled = true));
+  let isResolved = false;
+  promise.then(
+    () => {
+      isResolved = true;
+    },
+    () => {
+      isResolved = false;
+    },
+  );
 
   for (let turn = 0; turn < 10; turn++) await Promise.resolve();
-  return isSettled;
+  return isResolved;
 };
 
 describe("the preload of a page's components", () => {
@@ -50,16 +58,17 @@ describe("the preload of a page's components", () => {
     ]);
   });
 
-  it("looks up only components among the components", () => {
+  it("looks up only components among the components", async () => {
     vi.stubEnv("SSR", false);
     const resolve = vi.fn((_name: string) => undefined);
     vi.stubGlobal("resolveDmsComponent", resolve);
-    preloadPageLayoutComponents(LAYOUT);
+    const preloaded = preloadPageLayoutComponents(LAYOUT);
     expect(resolve.mock.calls.map(([name]) => name)).toEqual([
       "PageBanner",
       "DmsCardPanel",
       "DmsTableRoot",
     ]);
+    await preloaded;
   });
 
   it("settles once every chunk is in, for the page's setup to await", async () => {

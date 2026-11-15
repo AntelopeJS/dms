@@ -76,7 +76,7 @@ const asked: string[] = [];
 const backend = vi.fn(async (url: string) => {
   asked.push(url);
   return Object.entries(ANSWERS).find(([path]) => path === url)?.[1];
-}) as unknown as NonNullable<DmsFrontendRuntime["serverFetch"]>;
+});
 vi.stubGlobal("useAuthFetch", () => ({ $authFetch: engine.$fetch }));
 
 const { useTrailingDeduper } = await import(
@@ -122,8 +122,11 @@ const settle = async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
 };
 
-/** Attaches `runtime` to `app` the way the DMS app does, and runs its plugins. */
-function install(app: App, runtime: DmsFrontendRuntime): void {
+/**
+ * Attaches `runtime` to `app` the way the DMS app does, and starts its
+ * plugins. The result settles once they have.
+ */
+function install(app: App, runtime: DmsFrontendRuntime): Promise<void[]> {
   const context: DmsAppContext = {
     ...dmsAppContext(app),
     runWithContext: app.runWithContext.bind(app),
@@ -134,8 +137,11 @@ function install(app: App, runtime: DmsFrontendRuntime): void {
   runtime.route.fullPath = "/orders";
   runtime.route.matched = [{}];
   engine.provideDmsFrontendRuntime(app, runtime);
-  for (const plugin of [onboardingPreload, permissionsPreload])
-    app.runWithContext(() => plugin(context));
+  return Promise.all(
+    [onboardingPreload, permissionsPreload].map((plugin) =>
+      app.runWithContext(async () => plugin(context)),
+    ),
+  );
 }
 
 /** A server render, its runtime set up as the renderer's SSR entry does. */
@@ -146,8 +152,9 @@ async function serverRender(): Promise<{ html: string; payload: DmsPayload }> {
   runtime.inAsyncDataHandler = () => handlers.getStore() === true;
   runtime.devWarnings = true;
   const app = createSSRApp(Page);
-  install(app, runtime);
+  const started = install(app, runtime);
   const html = await renderToString(app);
+  await started;
   return {
     html,
     payload: structuredClone(engine.serializeDmsPayload(runtime)),
@@ -205,10 +212,11 @@ describe("the reads of a server render's guards", () => {
     const host = document.createElement("div");
     host.innerHTML = html;
     const app = createSSRApp(Page);
-    install(app, runtime);
+    const started = install(app, runtime);
     app.mount(host);
     mounted.push(app);
     await settle();
+    await started;
     expect(host.textContent).toBe("can read");
     expect(asked).toEqual([]);
 
@@ -225,8 +233,9 @@ describe("the reads of a server render's guards", () => {
     const runtime = engine.createDmsFrontendRuntime(backend);
 
     const app = createApp(Page);
-    install(app, runtime);
+    const started = install(app, runtime);
     await settle();
+    await started;
     expect(asked.sort()).toEqual([ONBOARDING, PERMISSIONS].sort());
     asked.length = 0;
 

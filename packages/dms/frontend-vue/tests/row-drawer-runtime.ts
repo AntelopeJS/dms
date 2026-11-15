@@ -146,7 +146,10 @@ function mountTargets(
 }
 
 const latest = (drawer: OpenedDrawer): DrawerOptions =>
-  Object.assign({}, drawer.options, ...drawer.patches);
+  drawer.patches.reduce<DrawerOptions>(
+    (merged, patch) => ({ ...merged, ...patch }),
+    { ...drawer.options },
+  );
 
 const isRowNavigation = (value: unknown): value is RowNavigation =>
   isObject(value) &&

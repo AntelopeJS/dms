@@ -36,16 +36,27 @@ function install() {
   return i18n.global;
 }
 
-function refusal(data: unknown, status = 403) {
+type RefusalData = string | { message: string; severity: string };
+
+type Envelope = string | { status: number; body: Envelope };
+
+function refusal(data: RefusalData, status = 403) {
   return { response: new Response(null, { status }), data };
 }
 
-describe("API error presentation", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    install();
-  });
+const plainBody = (text: string) => ({ text, contentType: "text/plain" });
 
+const jsonBody = (body: RefusalData) => ({
+  text: JSON.stringify(body),
+  contentType: "application/json",
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  install();
+});
+
+describe("API error presentation", () => {
   it("shows a translated JSON reason and severity once across captures and cause wrappers", () => {
     const error = refusal({
       message: "error.read_only_demo",
@@ -69,138 +80,25 @@ describe("API error presentation", () => {
   });
 
   it("does not merge distinct responses or suppress an unmarked 403", () => {
-    const { presentError } = useApiErrorPresenter();
-    presentError(refusal("untranslated.server.key"), { fallbackKey: "caller" });
-    presentError(refusal("untranslated.server.key"), { fallbackKey: "caller" });
+    const presenter = useApiErrorPresenter();
+    presenter.presentError(refusal("untranslated.server.key"), {
+      fallbackKey: "caller",
+    });
+    presenter.presentError(refusal("untranslated.server.key"), {
+      fallbackKey: "caller",
+    });
     expect(add).toHaveBeenCalledTimes(2);
     expect(add).toHaveBeenLastCalledWith(
       expect.objectContaining({ title: "Could not save", color: "warning" }),
     );
   });
 
-  it("accepts plain assert keys and valid severity independently of message availability", () => {
-    const { resolveError } = useApiErrorPresenter();
-    expect(
-      resolveError(refusal("$error.read_only_demo", 409), {
-        fallbackKey: "caller",
-      }),
-    ).toEqual({ message: "Read-only demo", severity: "warning" });
-    expect(
-      resolveError(refusal({ message: "unknown", severity: "info" }, 500), {
-        fallbackKey: "caller",
-      }),
-    ).toEqual({ message: "Could not save", severity: "info" });
-    expect(
-      resolveError(refusal({ message: "equal", severity: "error" }, 400), {
-        fallbackKey: "caller",
-      }),
-    ).toEqual({ message: "equal", severity: "error" });
-    expect(
-      resolveError(refusal({ message: "equal", severity: "bad" }, 400), {
-        fallbackKey: "caller",
-      })?.severity,
-    ).toBe("warning");
-  });
-
-  it("never displays serialized export envelopes or technical prose", () => {
-    const { resolveError } = useApiErrorPresenter();
-    const envelope = JSON.stringify({
-      status: 500,
-      body: "Failed to upload export: HTTP 403",
-    });
-    expect(
-      resolveError(new Error(envelope), { fallbackKey: "caller" }),
-    ).toEqual({ message: "Could not save", severity: "error" });
-    expect(
-      resolveError(
-        new Error(
-          JSON.stringify({
-            status: 500,
-            body: { status: 403, body: "error.read_only_demo" },
-          }),
-        ),
-        { fallbackKey: "caller" },
-      ),
-    ).toEqual({ message: "Read-only demo", severity: "error" });
-    expect(
-      resolveError(new Error("raw prose"), { fallbackKey: "missing" })?.message,
-    ).toBe("Try again");
-    let nested: unknown = "error.read_only_demo";
-    for (let depth = 0; depth < 10; depth++)
-      nested = { status: 500, body: nested };
-    expect(
-      resolveError(new Error(JSON.stringify(nested)), { fallbackKey: "caller" })
-        ?.message,
-    ).toBe("Could not save");
-  });
-
-  it("silences aborts but not timeouts, network failures, or real failed responses", () => {
-    const { presentError, resolveError } = useApiErrorPresenter();
-    presentError(
-      new Error("fetch", {
-        cause: new DOMException("cancelled", "AbortError"),
-      }),
-      { fallbackKey: "caller", replaceToastId: "progress" },
-    );
-    expect(add).not.toHaveBeenCalled();
-    expect(remove).toHaveBeenCalledWith("progress");
-    expect(
-      resolveError(new DOMException("timeout", "TimeoutError"), {
-        fallbackKey: "caller",
-      })?.severity,
-    ).toBe("error");
-    expect(
-      resolveError(new TypeError("network"), { fallbackKey: "caller" })
-        ?.message,
-    ).toBe("Could not save");
-    expect(
-      resolveError(
-        { name: "AbortError", statusCode: 403 },
-        {
-          fallbackKey: "caller",
-        },
-      ),
-    ).toBeNull();
-    expect(
-      resolveError(
-        { ...refusal("unknown"), name: "AbortError" },
-        { fallbackKey: "caller" },
-      )?.severity,
-    ).toBe("warning");
-  });
-
-  it("uses live locale, fallback locale and interpolation without claiming inline resolution", () => {
-    const composer = install();
-    const { resolveError, presentError } = useApiErrorPresenter();
-    const error = refusal("error.read_only_demo");
-    expect(resolveError(error, { fallbackKey: "caller" })?.message).toBe(
-      "Read-only demo",
-    );
-    composer.locale.value = "fr";
-    expect(resolveError(error, { fallbackKey: "caller" })?.message).toBe(
-      "Démo en lecture seule",
-    );
-    expect(
-      resolveError(new Error("limit"), {
-        fallbackKey: "caller",
-        params: { max: 7 },
-      })?.message,
-    ).toBe("At most 7");
-    expect(
-      resolveError(new Error("wrapper", { cause: "error.read_only_demo" }), {
-        fallbackKey: "caller",
-      })?.message,
-    ).toBe("Démo en lecture seule");
-    presentError(error, { fallbackKey: "caller" });
-    expect(add).toHaveBeenCalledTimes(1);
-  });
-
   it("settles progress without removing its own failure on repeated catches", () => {
-    const { presentError } = useApiErrorPresenter();
+    const presenter = useApiErrorPresenter();
     const error = refusal("error.read_only_demo");
     const options = { fallbackKey: "caller", replaceToastId: "progress" };
-    presentError(error, options);
-    presentError(error, options);
+    presenter.presentError(error, options);
+    presenter.presentError(error, options);
     expect(update).toHaveBeenCalledTimes(1);
     expect(update).toHaveBeenCalledWith(
       "progress",
@@ -211,52 +109,9 @@ describe("API error presentation", () => {
       }),
     );
     expect(remove).not.toHaveBeenCalled();
-    presentError(error, { ...options, replaceToastId: "stale" });
+    presenter.presentError(error, { ...options, replaceToastId: "stale" });
     expect(remove).toHaveBeenCalledWith("stale");
   });
-
-  it.each([
-    [
-      403,
-      { message: "error.read_only_demo", severity: "warning" },
-      "Read-only demo",
-      "warning",
-    ],
-    [409, "error.read_only_demo", "Read-only demo", "warning"],
-    [500, { message: "missing", severity: "info" }, "Could not save", "info"],
-    [
-      400,
-      { message: "error.read_only_demo", severity: "error" },
-      "Read-only demo",
-      "error",
-    ],
-  ])(
-    "presents the parsed body from real ofetch for HTTP %s",
-    async (status, body, title, color) => {
-      const response = new Response(
-        typeof body === "string" ? body : JSON.stringify(body),
-        {
-          status: Number(status),
-          headers: {
-            "content-type":
-              typeof body === "string" ? "text/plain" : "application/json",
-          },
-        },
-      );
-      vi.stubGlobal("fetch", async () => response);
-      const error = await $fetch
-        .raw("https://fixture.test/write", { retry: 0 })
-        .catch((failure: unknown) => failure);
-      const { presentError } = useApiErrorPresenter();
-      presentError(error, { fallbackKey: "caller" });
-      presentError(new Error("wrapper", { cause: error }), {
-        fallbackKey: "caller",
-      });
-      expect(add).toHaveBeenCalledExactlyOnceWith(
-        expect.objectContaining({ title, color }),
-      );
-    },
-  );
 
   it("does not claim a response during SSR and rolls back a failed toast emission", () => {
     const presenter = useApiErrorPresenter();
@@ -274,4 +129,182 @@ describe("API error presentation", () => {
     presenter.presentError(error, { fallbackKey: "caller" });
     expect(add).toHaveBeenCalledTimes(2);
   });
+});
+
+describe("API error resolution", () => {
+  it("accepts plain assert keys and valid severity independently of message availability", () => {
+    const presenter = useApiErrorPresenter();
+    expect(
+      presenter.resolveError(refusal("$error.read_only_demo", 409), {
+        fallbackKey: "caller",
+      }),
+    ).toEqual({ message: "Read-only demo", severity: "warning" });
+    expect(
+      presenter.resolveError(
+        refusal({ message: "unknown", severity: "info" }, 500),
+        {
+          fallbackKey: "caller",
+        },
+      ),
+    ).toEqual({ message: "Could not save", severity: "info" });
+    expect(
+      presenter.resolveError(
+        refusal({ message: "equal", severity: "error" }, 400),
+        {
+          fallbackKey: "caller",
+        },
+      ),
+    ).toEqual({ message: "equal", severity: "error" });
+    expect(
+      presenter.resolveError(
+        refusal({ message: "equal", severity: "bad" }, 400),
+        {
+          fallbackKey: "caller",
+        },
+      )?.severity,
+    ).toBe("warning");
+  });
+
+  it("never displays serialized export envelopes or technical prose", () => {
+    const presenter = useApiErrorPresenter();
+    const envelope = JSON.stringify({
+      status: 500,
+      body: "Failed to upload export: HTTP 403",
+    });
+    expect(
+      presenter.resolveError(new Error(envelope), { fallbackKey: "caller" }),
+    ).toEqual({ message: "Could not save", severity: "error" });
+    expect(
+      presenter.resolveError(
+        new Error(
+          JSON.stringify({
+            status: 500,
+            body: { status: 403, body: "error.read_only_demo" },
+          }),
+        ),
+        { fallbackKey: "caller" },
+      ),
+    ).toEqual({ message: "Read-only demo", severity: "error" });
+    expect(
+      presenter.resolveError(new Error("raw prose"), { fallbackKey: "missing" })
+        ?.message,
+    ).toBe("Try again");
+    let nested: Envelope = "error.read_only_demo";
+    for (let depth = 0; depth < 10; depth++)
+      nested = { status: 500, body: nested };
+    expect(
+      presenter.resolveError(new Error(JSON.stringify(nested)), {
+        fallbackKey: "caller",
+      })?.message,
+    ).toBe("Could not save");
+  });
+
+  it("silences aborts but not timeouts, network failures, or real failed responses", () => {
+    const presenter = useApiErrorPresenter();
+    presenter.presentError(
+      new Error("fetch", {
+        cause: new DOMException("cancelled", "AbortError"),
+      }),
+      { fallbackKey: "caller", replaceToastId: "progress" },
+    );
+    expect(add).not.toHaveBeenCalled();
+    expect(remove).toHaveBeenCalledWith("progress");
+    expect(
+      presenter.resolveError(new DOMException("timeout", "TimeoutError"), {
+        fallbackKey: "caller",
+      })?.severity,
+    ).toBe("error");
+    expect(
+      presenter.resolveError(new TypeError("network"), {
+        fallbackKey: "caller",
+      })?.message,
+    ).toBe("Could not save");
+    expect(
+      presenter.resolveError(
+        { name: "AbortError", statusCode: 403 },
+        {
+          fallbackKey: "caller",
+        },
+      ),
+    ).toBeNull();
+    expect(
+      presenter.resolveError(
+        { ...refusal("unknown"), name: "AbortError" },
+        { fallbackKey: "caller" },
+      )?.severity,
+    ).toBe("warning");
+  });
+});
+
+describe("API error wording and transport", () => {
+  it("uses live locale, fallback locale and interpolation without claiming inline resolution", () => {
+    const composer = install();
+    const presenter = useApiErrorPresenter();
+    const error = refusal("error.read_only_demo");
+    expect(
+      presenter.resolveError(error, { fallbackKey: "caller" })?.message,
+    ).toBe("Read-only demo");
+    composer.locale.value = "fr";
+    expect(
+      presenter.resolveError(error, { fallbackKey: "caller" })?.message,
+    ).toBe("Démo en lecture seule");
+    expect(
+      presenter.resolveError(new Error("limit"), {
+        fallbackKey: "caller",
+        params: { max: 7 },
+      })?.message,
+    ).toBe("At most 7");
+    expect(
+      presenter.resolveError(
+        new Error("wrapper", { cause: "error.read_only_demo" }),
+        {
+          fallbackKey: "caller",
+        },
+      )?.message,
+    ).toBe("Démo en lecture seule");
+    presenter.presentError(error, { fallbackKey: "caller" });
+    expect(add).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [
+      403,
+      jsonBody({ message: "error.read_only_demo", severity: "warning" }),
+      "Read-only demo",
+      "warning",
+    ],
+    [409, plainBody("error.read_only_demo"), "Read-only demo", "warning"],
+    [
+      500,
+      jsonBody({ message: "missing", severity: "info" }),
+      "Could not save",
+      "info",
+    ],
+    [
+      400,
+      jsonBody({ message: "error.read_only_demo", severity: "error" }),
+      "Read-only demo",
+      "error",
+    ],
+  ])(
+    "presents the parsed body from real ofetch for HTTP %s",
+    async (status, body, title, color) => {
+      const response = new Response(body.text, {
+        status,
+        headers: { "content-type": body.contentType },
+      });
+      vi.stubGlobal("fetch", async () => response);
+      const error = await $fetch
+        .raw("https://fixture.test/write", { retry: 0 })
+        .catch((failure: unknown) => failure);
+      const presenter = useApiErrorPresenter();
+      presenter.presentError(error, { fallbackKey: "caller" });
+      presenter.presentError(new Error("wrapper", { cause: error }), {
+        fallbackKey: "caller",
+      });
+      expect(add).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ title, color }),
+      );
+    },
+  );
 });

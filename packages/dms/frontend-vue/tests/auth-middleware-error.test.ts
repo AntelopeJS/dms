@@ -1,11 +1,11 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createApp } from "vue";
+import { createApp, shallowRef } from "vue";
 import { createI18n } from "vue-i18n";
 import { useToast } from "@nuxt/ui/composables/useToast";
 import type { DmsMiddleware, DmsRoute } from "#dms/frontend-module";
 
-const pageError: { value: { statusCode: number } | null } = { value: null };
+const pageError = shallowRef<{ statusCode: number } | null>(null);
 const navigateDms = vi.fn();
 
 beforeEach(() => {

@@ -7,6 +7,7 @@ import { useComponentEvent } from "../layers/dms-core/app/composables/components
 import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import { installAuthSettingsRuntime } from "./helpers/auth-settings-runtime";
 import { requestRefusal } from "./helpers/api-error-runtime";
+import type { useOverlay } from "@nuxt/ui/composables/useOverlay";
 
 const BASE = "/dms/pages/settings/user/notifications";
 const authFetch = vi.fn(async (url: string) =>
@@ -15,7 +16,8 @@ const authFetch = vi.fn(async (url: string) =>
     : { counts: { all: 2, unread: 1 } },
 );
 const confirmOpen = vi.fn(async () => true);
-const createOverlay = vi.fn((_component: unknown, _config: unknown) => ({
+type OverlayCreateArgs = Parameters<ReturnType<typeof useOverlay>["create"]>;
+const createOverlay = vi.fn((..._args: OverlayCreateArgs) => ({
   open: confirmOpen,
 }));
 const addToast = vi.fn(() => ({ id: "failure" }));

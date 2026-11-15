@@ -14,6 +14,7 @@ import {
 import { Popover } from "reka-ui/namespaced";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableActions from "../layers/dms-ui/app/entries/components/table/TableActions";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/entries/composables/table-view/utils/chrome";
 
 const presentError = vi.fn();
@@ -29,7 +30,7 @@ const CONFIG = {
   density: "compact",
 };
 
-const encode = (config: object) =>
+const encode = (config: JsonValue) =>
   window.btoa(unescape(encodeURIComponent(JSON.stringify(config))));
 
 const PassThrough = defineComponent({
@@ -79,19 +80,22 @@ class FakeResizeObserver {
 }
 
 let app: App | undefined;
-let state: Record<string, { value: unknown }>;
+
+const createTableState = () => ({
+  globalFilterState: ref(""),
+  columnFiltersState: ref([]),
+  columnOrderState: ref([]),
+  columnVisibilityState: ref({}),
+  columnPinningState: ref({}),
+  sortingState: ref([]),
+  paginationState: ref({ pageIndex: 0, pageSize: 10 }),
+  densityState: ref("default"),
+});
+
+let state: ReturnType<typeof createTableState>;
 
 function mountMenu() {
-  state = {
-    globalFilterState: ref(""),
-    columnFiltersState: ref([]),
-    columnOrderState: ref([]),
-    columnVisibilityState: ref({}),
-    columnPinningState: ref({}),
-    sortingState: ref([]),
-    paginationState: ref({ pageIndex: 0, pageSize: 10 }),
-    densityState: ref("default"),
-  };
+  state = createTableState();
   const Host = defineComponent({
     setup() {
       provide(
@@ -189,12 +193,12 @@ describe("importing a table config", () => {
 
   it("applies a config an export wrote", async () => {
     const container = await importCode(encode(CONFIG));
-    expect(state.paginationState?.value).toEqual({
+    expect(state.paginationState.value).toEqual({
       pageIndex: 2,
       pageSize: 50,
     });
-    expect(state.sortingState?.value).toEqual([{ id: "title", desc: true }]);
-    expect(state.densityState?.value).toBe("compact");
+    expect(state.sortingState.value).toEqual([{ id: "title", desc: true }]);
+    expect(state.densityState.value).toBe("compact");
     expect(container.querySelector("textarea")).toBeNull();
   });
 
@@ -203,7 +207,7 @@ describe("importing a table config", () => {
       encode({ ...CONFIG, sorting: ["title"] }),
     );
     expect(presentError).toHaveBeenCalledOnce();
-    expect(state.sortingState?.value).toEqual([]);
+    expect(state.sortingState.value).toEqual([]);
     expect(container.querySelector("textarea")).not.toBeNull();
   });
 
@@ -211,7 +215,7 @@ describe("importing a table config", () => {
     const { pagination: _pagination, ...partial } = CONFIG;
     await importCode(encode(partial));
     expect(presentError).toHaveBeenCalledOnce();
-    expect(state.paginationState?.value).toEqual({
+    expect(state.paginationState.value).toEqual({
       pageIndex: 0,
       pageSize: 10,
     });
@@ -220,6 +224,6 @@ describe("importing a table config", () => {
   it("refuses a config of another version", async () => {
     await importCode(encode({ ...CONFIG, v: 2 }));
     expect(presentError).toHaveBeenCalledOnce();
-    expect(state.densityState?.value).toBe("default");
+    expect(state.densityState.value).toBe("default");
   });
 });

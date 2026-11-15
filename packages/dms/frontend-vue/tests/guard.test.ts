@@ -19,12 +19,12 @@ import {
   isEmptyValue,
   readFieldPath,
 } from "../layers/dms-ui/app/entries/composables/blocks/useGuard";
-import { engine } from "./helpers/api-data-runtime";
+import { engine, type ApiAnswer } from "./helpers/api-data-runtime";
 import { stubBlockRuntime } from "./helpers/block-runtime";
 import { registerPeriodScope } from "../layers/dms-core/app/composables/period/usePeriodScope";
 import { useApiData } from "../layers/dms-core/app/composables/auth/useApiData";
 
-const authFetch = vi.fn<(...args: unknown[]) => Promise<unknown>>();
+const authFetch = vi.fn<(...args: unknown[]) => Promise<ApiAnswer>>();
 
 const Slot = defineComponent({
   setup:

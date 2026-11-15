@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { useForm } from "../layers/dms-ui/app/composables/form/useForm";
 import { isString } from "../layers/dms-core/app/utils/type-check";
+import type { Toast } from "@nuxt/ui/composables/useToast";
 
 const authFetch = vi.fn();
-const toastAdd = vi.fn((_toast: object) => ({ id: "failure" }));
+const toastAdd = vi.fn((_toast: Toast) => ({ id: "failure" }));
 let scope: EffectScope;
 
 function readRecord() {

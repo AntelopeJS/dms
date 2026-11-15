@@ -82,7 +82,11 @@ describe("rows ordered by hand", () => {
     const api = fetchClient(async () => ({}));
     const { reorderState, data } = reorderOf(api);
     expect(reorderState.value?.enabled).toBe(true);
-    await reorderState.value!.move(2, 0);
+    reorderState.value!.move(2, 0);
+    await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
     expect(data.value?.results.map((row) => row._id)).toEqual([
       "r2",
       "r0",
@@ -102,9 +106,11 @@ describe("rows ordered by hand", () => {
       throw new Error("denied");
     });
     const { reorderState, refresh, onError } = reorderOf(api);
-    await reorderState.value!.move(0, 1);
-    expect(onError).toHaveBeenCalled();
-    expect(refresh).toHaveBeenCalled();
+    reorderState.value!.move(0, 1);
+    await vi.waitFor(() => {
+      expect(onError).toHaveBeenCalled();
+      expect(refresh).toHaveBeenCalled();
+    });
     expect(reorderOf(api, true).reorderState.value?.enabled).toBe(false);
   });
 

@@ -20,6 +20,7 @@ import {
 } from "#dms-core/app/entries/utils/permission-preview";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
+import { stubDmsState } from "./helpers/dms-state-stub";
 
 const HIDDEN = new Set(["pages.sales.invoices"]);
 const PARTIAL = new Set(["pages.sales", "pages.sales.orders", "settings"]);
@@ -180,21 +181,25 @@ function createPermissionPreviewPartialFixture() {
 
   const MenuStub = defineComponent(
     (props: { items: NavigationMenuItem[][] }) => {
-      const renderItem = (item: NavigationMenuItem): VNode =>
-        h("div", { "data-entry": item.fullId }, [
+      const renderItem = (item: NavigationMenuItem): VNode => {
+        const entry: unknown = item.fullId;
+        const previewState: unknown = item.previewState;
+        const trailing: unknown = item.trailingIcon;
+        return h("div", { "data-entry": entry }, [
           h(
             "a",
             {
               class: item.class,
               title: item.title,
-              "data-state": item.previewState,
-              "data-trailing": item.trailingIcon,
+              "data-state": previewState,
+              "data-trailing": trailing,
               "data-trailing-class": item.ui?.linkTrailingIcon,
             },
             item.label,
           ),
           ...(item.children ?? []).map(renderItem),
         ]);
+      };
       return () => h("nav", props.items.flat().map(renderItem));
     },
     { props: { items: { type: Array, required: true } } },
@@ -237,10 +242,7 @@ function createPermissionPreviewPartialFixture() {
     vi.stubGlobal("useTranslation", () => ({
       processI18n: (value: string) => value,
     }));
-    vi.stubGlobal("useDmsState", <T>(key: string, initial: () => T) => {
-      if (!state.has(key)) state.set(key, ref(initial()));
-      return state.get(key);
-    });
+    stubDmsState(state);
     vi.stubGlobal("MENU_STATUS_TEXT_CLASSES", MENU_STATUS_TEXT_CLASSES);
     host = document.createElement("div");
     document.body.append(host);

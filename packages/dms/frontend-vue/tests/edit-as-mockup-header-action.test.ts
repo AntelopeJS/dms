@@ -8,12 +8,18 @@ interface Toast {
   actions?: Array<{ label?: string; onClick?: () => void }>;
 }
 
+interface ConversionBody {
+  path?: string;
+  replace?: boolean;
+  digest?: string;
+}
+
 const route = { path: "/books" };
 const registered: HeaderAction[] = [];
 const pushed: string[] = [];
-const posted: Array<Record<string, unknown>> = [];
+const posted: Array<{ url: string } & ConversionBody> = [];
 const toasts: Toast[] = [];
-const presented: unknown[] = [];
+const presented: Error[] = [];
 const fallbackKeys: string[] = [];
 let answers: unknown[] = [];
 
@@ -44,7 +50,7 @@ vi.stubGlobal("useSiteLayout", () => ({
     MATCHED.has(path) ? { pattern: path } : null,
 }));
 vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: (url: string, init: { body: Record<string, unknown> }) => {
+  $authFetch: (url: string, init: { body: ConversionBody }) => {
     posted.push({ url, ...init.body });
     const next = answers.shift();
     return next instanceof Error ? Promise.reject(next) : Promise.resolve(next);
@@ -58,9 +64,9 @@ const { default: plugin } = await import(
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function action(): HeaderAction {
+async function action(): Promise<HeaderAction> {
   registered.length = 0;
-  plugin(dmsAppContext(createApp({ render: () => null })));
+  await plugin(dmsAppContext(createApp({ render: () => null })));
   const [only] = registered;
   if (!only) throw new Error("the plugin registered no header action");
   return only;
@@ -71,7 +77,7 @@ beforeEach(() => {
     add: (toast: Toast) => toasts.push(toast),
   }));
   vi.stubGlobal("useApiErrorPresenter", () => ({
-    presentError: (error: unknown, options: { fallbackKey: string }) => {
+    presentError: (error: Error, options: { fallbackKey: string }) => {
       presented.push(error);
       fallbackKeys.push(options.fallbackKey);
     },
@@ -87,8 +93,8 @@ beforeEach(() => {
 });
 
 describe("Edit as mockup header action", () => {
-  it("sits at order 89, before Mockups and Branding, as the pencil labelled Edit as mockup (fails on an order clash)", () => {
-    const { id, order, icon, label } = action();
+  it("sits at order 89, before Mockups and Branding, as the pencil labelled Edit as mockup (fails on an order clash)", async () => {
+    const { id, order, icon, label } = await action();
 
     expect({ id, order, icon, label }).toEqual({
       id: "dms-edit-as-mockup",
@@ -98,8 +104,8 @@ describe("Edit as mockup header action", () => {
     });
   });
 
-  it("shows on a page of the dashboard and hides on the dev tool pages and on unknown paths (fails when it offers to convert /mockup itself)", () => {
-    const { isVisible } = action();
+  it("shows on a page of the dashboard and hides on the dev tool pages and on unknown paths (fails when it offers to convert /mockup itself)", async () => {
+    const { isVisible } = await action();
     const visibleOn = (path: string) => {
       route.path = path;
       return isVisible?.();
@@ -117,8 +123,8 @@ describe("Edit as mockup header action", () => {
     }
   });
 
-  it("hides from a viewer who is not the platform owner, whom the mockup API refuses (fails when a member is offered a conversion that answers 403)", () => {
-    const { isVisible } = action();
+  it("hides from a viewer who is not the platform owner, whom the mockup API refuses (fails when a member is offered a conversion that answers 403)", async () => {
+    const { isVisible } = await action();
     isOwner.value = false;
 
     expect(isVisible?.()).toBe(false);
@@ -133,7 +139,7 @@ describe("Edit as mockup header action", () => {
       },
     ];
 
-    action().onSelect?.();
+    (await action()).onSelect?.();
     await flush();
 
     expect(posted).toEqual([{ url: "/api/mockup/from-page", path: "/books" }]);
@@ -157,7 +163,7 @@ describe("Edit as mockup header action", () => {
       },
     ];
 
-    action().onSelect?.();
+    (await action()).onSelect?.();
     await flush();
     route.path = "/mockup";
     toasts[0]?.actions?.[0]?.onClick?.();
@@ -178,7 +184,7 @@ describe("Edit as mockup header action", () => {
   it("presents a refusal and opens nothing (fails when a failed conversion navigates)", async () => {
     answers = [new Error("404 not_found")];
 
-    action().onSelect?.();
+    (await action()).onSelect?.();
     await flush();
 
     expect(presented).toHaveLength(1);
@@ -195,7 +201,7 @@ describe("Edit as mockup header action", () => {
 
     const attempts = answers.length;
     for (let attempt = 0; attempt < attempts; attempt += 1) {
-      action().onSelect?.();
+      (await action()).onSelect?.();
       await flush();
     }
 

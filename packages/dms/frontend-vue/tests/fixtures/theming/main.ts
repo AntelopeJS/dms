@@ -22,7 +22,7 @@ const ThemingPage = defineComponent({
   render: () => h(App),
 });
 
-createInertiaApp({
+await createInertiaApp({
   page: {
     component: "theming",
     props: { config, errors: {} },

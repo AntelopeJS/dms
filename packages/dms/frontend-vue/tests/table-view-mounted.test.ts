@@ -1,31 +1,28 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { h, type FunctionalComponent } from "vue";
 import {
   mountTableView,
   settleTable,
   tableViewRuntime,
 } from "./helpers/table-view-runtime";
 import { engine } from "./helpers/api-data-runtime";
-import type {
-  TableViewConfig,
-  TableViewDisplayContext,
-} from "../layers/dms-ui/app/composables/table-view/types";
+import {
+  arrivalConfig,
+  PAGING_DISPLAY_NAME,
+  PagingDisplay,
+  type MountConfig,
+} from "./table-view-paging-display";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
 import { readOnlyFailure } from "./helpers/read-only-refusal";
 import type { TableCountQuery } from "../layers/dms-ui/app/entries/composables/table-view/useTableRows";
 
-const PAGING_DISPLAY_NAME = "TestPagingDisplay";
 const apps: Array<{ unmount: () => void }> = [];
 const requests: string[] = [];
 const queries: Array<TableCountQuery["query"]> = [];
 let total = 0;
 
-async function mount(
-  config: Partial<TableViewConfig<Record<string, unknown>>> = {},
-  prepare?: () => void,
-) {
+async function mount(config: MountConfig = {}, prepare?: () => void) {
   const result = await mountTableView(config, prepare);
   apps.push(result.app);
   return result.container;
@@ -159,7 +156,7 @@ it.each([500, 404])(
     const recovered = { results: [{ _id: "r1", name: "Recovered" }], total: 1 };
     let retry = false;
     let answer = (_value: typeof recovered) => {};
-    await tableViewRuntime((url: string) => {
+    await tableViewRuntime(async (url: string) => {
       if (!url.endsWith("/list")) return {};
       if (!retry)
         throw { statusCode, data: { message: "error.read_only_demo" } };
@@ -228,7 +225,7 @@ it("a hand-ordered table neither restores nor offers nor overwrites saved sortin
 
 it("refreshes a refused reorder without a second operation-specific toast", async () => {
   const add = vi.fn(() => ({ id: "failure" }));
-  await tableViewRuntime((url: string) => {
+  await tableViewRuntime(async (url: string) => {
     requests.push(url);
     if (url.endsWith("/edit")) throw readOnlyFailure();
     return {
@@ -297,45 +294,6 @@ it("reapplies sorting capability when switching away from a display and back", a
   await settleTable();
   expect(queries.at(-1)?.sortKey).toBe("name");
 });
-
-const PagingDisplay: FunctionalComponent<{
-  context: TableViewDisplayContext;
-}> = ({ context }) =>
-  h(
-    "button",
-    {
-      id: "remember-page",
-      onClick: () => {
-        context.pagination.setPageSize(24);
-        context.pagination.setPage(3);
-      },
-    },
-    "Remember page",
-  );
-
-const arrivalConfig: Partial<TableViewConfig<Record<string, unknown>>> = {
-  tableId: "content",
-  isSoleTableView: true,
-  tabs: [{ id: "open", label: "Open" }],
-  displays: [
-    { id: "table" },
-    { id: "cards" },
-    { id: "test:paging", component: { componentName: PAGING_DISPLAY_NAME } },
-  ],
-  views: {
-    layout: "strip",
-    items: [
-      {
-        id: "kept",
-        label: "Kept view",
-        sort: [{ field: "name", desc: true }],
-        filters: [{ accessorKey: "secret", mode: "is", value: "remembered" }],
-        columns: { hidden: ["secret"] },
-        display: "test:paging",
-      },
-    ],
-  },
-};
 
 async function saveArrival(display = "table") {
   total = 100;

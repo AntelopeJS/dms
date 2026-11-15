@@ -15,7 +15,13 @@ describe("table view states", () => {
   registerViewOrderAndUrlTests();
 });
 
-describe("table views strip", () => {
+const items = [
+  { id: "all", label: "All workspaces" },
+  { id: "late", label: "Past due", tone: "error", count: 3 },
+  { id: "user-1", label: "Mine", isUserView: true },
+];
+
+function useStripHarness() {
   let app: App | undefined;
 
   const mountStrip = (props: InstanceType<typeof TableViews>["$props"]) => {
@@ -82,12 +88,11 @@ describe("table views strip", () => {
     app = undefined;
     vi.unstubAllGlobals();
   });
+  return mountStrip;
+}
 
-  const items = [
-    { id: "all", label: "All workspaces" },
-    { id: "late", label: "Past due", tone: "error", count: 3 },
-    { id: "user-1", label: "Mine", isUserView: true },
-  ];
+describe("table views strip", () => {
+  const mountStrip = useStripHarness();
 
   it("draws the views as pills with their counters and opens the one clicked", () => {
     const { container, emitted } = mountStrip({
@@ -136,6 +141,10 @@ describe("table views strip", () => {
       .click();
     expect(emitted).toEqual([["delete", "user-1"]]);
   });
+});
+
+describe("table views strip when the table diverged", () => {
+  const mountStrip = useStripHarness();
 
   it("names no view once the table diverged from the open one, still offering Reset and Save current view", () => {
     const { container, emitted } = mountStrip({

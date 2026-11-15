@@ -21,7 +21,19 @@ const { default: SecurityPassword } = await import(
 );
 
 const overview = ref({ hasPassword: true, activeSessions: 1 });
-const authFetch = vi.fn();
+type AuthFetchOptions = Parameters<
+  ReturnType<typeof useAuthFetch>["$authFetch"]
+>[1];
+const authFetch = vi.fn<
+  (
+    url: string,
+    options?: AuthFetchOptions,
+  ) => Promise<{
+    passwordChangedAt: string;
+    signedOutSessions: number;
+    sessionHandoff: { endpoint: string; payload: { token: string } };
+  }>
+>();
 const addToast = vi.fn();
 const sessionFetch = vi.fn(async () => {});
 const handoffFetch = vi.fn(async () => ({}));
@@ -134,14 +146,10 @@ beforeEach(() => {
     te: () => false,
   }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
-  stubApiData(
-    async (
-      url: string,
-      options?: Parameters<ReturnType<typeof useAuthFetch>["$authFetch"]>[1],
-    ) =>
-      url === "/dms/pages/settings/user/security"
-        ? { ...overview.value }
-        : authFetch(url, options),
+  stubApiData(async (url: string, options?: AuthFetchOptions) =>
+    url === "/dms/pages/settings/user/security"
+      ? { ...overview.value }
+      : authFetch(url, options),
   );
   vi.stubGlobal("$fetch", handoffFetch);
   vi.stubGlobal("useDmsUserSession", () => ({

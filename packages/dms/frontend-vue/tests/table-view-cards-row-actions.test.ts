@@ -36,7 +36,7 @@ const actionsColumn = (edited: string[]): ColumnDef<Row> => ({
       h(
         "button",
         {
-          "aria-label": `Actions for ${row.original.name}`,
+          "aria-label": `Actions for ${String(row.original.name)}`,
           onClick: (event: Event) => {
             event.stopPropagation();
             edited.push(row.id);

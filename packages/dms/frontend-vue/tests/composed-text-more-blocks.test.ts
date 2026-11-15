@@ -15,7 +15,7 @@ import {
   provideExtraRuntime,
   registerTextBoundaries,
 } from "./helpers/chart-extra-runtime";
-import { engine } from "./helpers/api-data-runtime";
+import { engine, type ApiAnswer } from "./helpers/api-data-runtime";
 import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regional";
 
 const NOW = Date.UTC(2026, 9, 10, 12);
@@ -72,10 +72,11 @@ for (const [locale, localeMessages] of Object.entries(messages)) {
   i18n.global.setLocaleMessage(locale, localeMessages);
 }
 
-let meterData: Pick<
+type MeterAnswer = Pick<
   InstanceType<typeof MeterBlock>["$props"],
   "value" | "max" | "hint"
-> | null = null;
+>;
+let meterData: ApiAnswer = null;
 
 const ActivityFeed = (
   await import("../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue")
@@ -223,7 +224,7 @@ describe("MeterBlock", () => {
       value: 4,
       max: 10,
       hint: { key: "media.used", params: { size: "4 GB" } },
-    };
+    } satisfies MeterAnswer;
     const root = mount(MeterBlock, { fetchUrl: "/api/storage" });
 
     await vi.waitFor(() => expect(root.textContent).toContain("4 GB used"));

@@ -37,7 +37,7 @@ function mountFile() {
   app.component(
     "UIcon",
     defineComponent({
-      props: ["name"],
+      props: { name: String },
       setup: (props) => () => h("i", { "data-icon": props.name }),
     }),
   );

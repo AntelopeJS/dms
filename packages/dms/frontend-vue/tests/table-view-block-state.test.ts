@@ -12,7 +12,14 @@ import {
 
 const STATE = "data-dms-block-state";
 const apps: Array<{ unmount: () => void }> = [];
-let list: () => Promise<unknown>;
+type ListAnswer = {
+  results: { _id: string; name: string }[];
+  total: number;
+  offset: number;
+  limit: number;
+};
+
+let list: () => Promise<ListAnswer>;
 
 async function stateOfMountedTable(): Promise<string | null | undefined> {
   const { app, container } = await mountTableView();

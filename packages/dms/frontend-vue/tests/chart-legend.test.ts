@@ -22,19 +22,21 @@ const SERIES: ChartSeries[] = [
   { name: "p95", data: [{ x: "10:00", y: 96 }] },
 ];
 
-const LegendProbe = defineComponent({
-  props: {
-    options: {
-      type: Object,
-      required: true,
-    },
-  },
-  setup: (props) => () =>
+const LegendProbe = defineComponent(
+  (props: { options: { legend: { show: boolean; position: string } } }) => () =>
     h("output", {
       "data-show": String(props.options.legend.show),
       "data-position": props.options.legend.position,
     }),
-});
+  {
+    props: {
+      options: {
+        type: Object,
+        required: true,
+      },
+    },
+  },
+);
 
 const Slot = defineComponent({
   setup:
@@ -119,7 +121,8 @@ describe("chart legend", () => {
   it("is drawn in the dashboard's theme", () => {
     const legend = legendOf({});
     expect(legend.show).toBe(true);
-    expect(legend.markers).toMatchObject({ shape: "square", strokeWidth: 0 });
+    expect(legend.markers).toHaveProperty("shape", "square");
+    expect(legend.markers).toHaveProperty("strokeWidth", 0);
     expect(legend.labels).toHaveProperty("colors");
   });
 });
