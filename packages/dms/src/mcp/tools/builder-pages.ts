@@ -14,7 +14,8 @@ import {
   RemoveBlock,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
-import { JsonObjectSchema } from "../json";
+import { hiddenOptionsOf, hidePageValues } from "../hidden-values";
+import { type JsonObject, JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
 import { defineTool, textResult } from "../tool";
 import {
@@ -22,9 +23,11 @@ import {
   BLOCK_PATH_FORMAT,
   containsExprSentinel,
   exprRefusal,
+  mappedFileTest,
   withEscalationNote,
   opResult,
   PARENT_PATH,
+  refusalResult,
   TARGET_MODULE,
 } from "./builder-shared";
 
@@ -43,11 +46,20 @@ const pageStructure = defineTool({
   name: "builder_page_structure",
   title: "Builder page structure",
   description: withEscalationNote(
-    `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT}`,
+    `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT} On a page of a module mapped from a connected database, or one that imports from it, a TableView's \`tabs\`, a select's \`items\` and a price's \`currency\` read \`{ $hidden: n }\`, n the values the mapping read from rows: leave that key out of a patch to keep it.`,
   ),
   effect: "read",
   input: z.object({ pageRef: z.string() }),
-  run: async ({ pageRef }) => opResult(await GetPageStructure(pageRef)),
+  async run({ pageRef }) {
+    const answer = await GetPageStructure(pageRef);
+    const mapped =
+      answer.ok && (await mappedFileTest())(answer.data.page.filepath);
+    return opResult(
+      answer.ok && mapped
+        ? { ...answer, data: hidePageValues(answer.data) }
+        : answer,
+    );
+  },
 });
 
 const createPage = defineTool({
@@ -136,11 +148,30 @@ const addBlock = defineTool({
       : opResult(await AddBlock(input)),
 });
 
+/** The options a `replace` of a mapped page's block would drop unseen: those it holds hidden. */
+async function droppedHiddenOptions(
+  path: string,
+  patch: JsonObject,
+): Promise<string[]> {
+  const hash = path.indexOf("#");
+  if (hash < 0) return [];
+  const structure = await GetPageStructure(path.slice(0, hash));
+  if (!structure.ok) return [];
+  if (!(await mappedFileTest())(structure.data.page.filepath)) return [];
+  const segments = path
+    .slice(hash + 1)
+    .split("/")
+    .filter((segment) => segment.length > 0);
+  return hiddenOptionsOf(structure.data, segments).filter(
+    (key) => !Object.hasOwn(patch, key),
+  );
+}
+
 const configureBlock = defineTool({
   name: "builder_configure_block",
   title: "Configure block",
   description: withEscalationNote(
-    "Merges (or replaces, with replace:true) options into a block's config. Children are managed with Add/Move/Remove, not here.",
+    "Merges (or replaces, with replace:true) options into a block's config. Children are managed with Add/Move/Remove, not here. On a mapped page, replace:true is refused while it would drop an option builder_page_structure shows as `{ $hidden: n }`: merge instead, or send that option yourself.",
   ),
   effect: "builder",
   input: z.object({
@@ -148,10 +179,17 @@ const configureBlock = defineTool({
     patch: JsonObjectSchema,
     replace: z.boolean().optional(),
   }),
-  run: async ({ path, patch, replace }) =>
-    containsExprSentinel.parse(patch)
-      ? exprRefusal()
-      : opResult(await ConfigureBlock(path, patch, { replace })),
+  async run({ path, patch, replace }) {
+    if (containsExprSentinel.parse(patch)) return exprRefusal();
+    const dropped =
+      replace === true ? await droppedHiddenOptions(path, patch) : [];
+    return dropped.length > 0
+      ? refusalResult(
+          "unsupported",
+          `replace:true would drop ${dropped.join(", ")}, which builder_page_structure hides because the page holds code over a mapped module that may come from rows. Merge the patch without replace to keep them, or send them yourself.`,
+        )
+      : opResult(await ConfigureBlock(path, patch, { replace }));
+  },
 });
 
 const moveBlock = defineTool({

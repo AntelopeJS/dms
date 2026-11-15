@@ -2,12 +2,13 @@ import { ComposePage } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
 import { JsonObjectSchema } from "../json";
 import { redactPreview } from "../redact";
-import { defineTool, type McpToolResult, textResult } from "../tool";
+import { defineTool, type McpToolResult } from "../tool";
 import {
   containsExprSentinel,
   exprRefusal,
   withEscalationNote,
   opResult,
+  shownOpResult,
 } from "./builder-shared";
 import { QUERY_ARGS, QUERY_FIELDS } from "./builder-queries";
 
@@ -103,18 +104,16 @@ const PLACEMENT = z
   );
 
 /** The composition's answer, each preview reduced to the types its body holds. */
-function composeResult(
+async function composeResult(
   answer: Awaited<ReturnType<typeof ComposePage>>,
-): McpToolResult {
+): Promise<McpToolResult> {
   if (!answer.ok) return opResult(answer);
   const previews = answer.data.previews.map(({ preview, ...block }) =>
     preview === undefined
       ? block
       : { ...block, preview: redactPreview(preview) },
   );
-  return textResult(
-    JSON.stringify({ ...answer, data: { ...answer.data, previews } }),
-  );
+  return shownOpResult({ ...answer, data: { ...answer.data, previews } });
 }
 
 export const builderComposeTool = defineTool({

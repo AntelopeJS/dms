@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { ExcludedRelation } from "@antelopejs/interface-dms-builder";
+import { ts } from "ts-morph";
 import { moduleOfFile, targetModule } from "./modules";
 import { resolveProjectRoot } from "./project";
 import { StepRefusal } from "./project-config";
@@ -178,6 +179,42 @@ export function markMapped(module: string, update: MappedRecordUpdate): void {
 export function mappedConnectionOfFile(filepath: string): string | undefined {
   const root = moduleOfFile(filepath)?.root;
   return root ? recordedConnection(root) : undefined;
+}
+
+function importsMappedModule(filepath: string): boolean {
+  if (!fs.existsSync(filepath)) {
+    return false;
+  }
+  const { importedFiles } = ts.preProcessFile(
+    fs.readFileSync(filepath, "utf8"),
+    true,
+    true,
+  );
+  return importedFiles.some(
+    ({ fileName }) =>
+      fileName.startsWith(".") &&
+      mappedConnectionOfFile(path.resolve(path.dirname(filepath), fileName)) !==
+        undefined,
+  );
+}
+
+/**
+ * Whether a file may hold code a mapping wrote from rows: it lies in a mapped module, or imports
+ * from one by a relative path, as a mapped page moved into another module's category does. A
+ * module whose record cannot be read counts as mapped.
+ */
+export function holdsMappedCode(filepath: string): boolean {
+  try {
+    return (
+      mappedConnectionOfFile(filepath) !== undefined ||
+      importsMappedModule(filepath)
+    );
+  } catch (error) {
+    if (error instanceof StepRefusal) {
+      return true;
+    }
+    throw error;
+  }
 }
 
 /** The relations recorded as decided against in a module, with why. */

@@ -26,6 +26,7 @@ export * from "./file-paths";
 export * from "./guards";
 export * from "./inherited-variables";
 export * from "./interface-capabilities";
+export * from "./mapped-modules";
 export * from "./module-loader";
 export * from "./module-reload";
 export * from "./modules";
