@@ -57,7 +57,9 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "(?:^|/)(?:node_modules|dist)/" },
-    exclude: { path: "(?:^|/)(?:node_modules|\\.nuxt|\\.output)/" },
+    exclude: {
+      path: "(?:^|/)(?:node_modules|\\.nuxt|\\.output|\\.frontend-vue-types)/",
+    },
     includeOnly: "^(?:packages/|#dms-)",
     tsPreCompilationDeps: true,
     tsConfig: { fileName: ".dependency-cruiser.tsconfig.json" },
