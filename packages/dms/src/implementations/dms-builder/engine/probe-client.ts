@@ -3,6 +3,7 @@ import type * as Mongodb from "mongodb";
 import type * as MongodbConnectionStringUrl from "mongodb-connection-string-url";
 import type * as Mysql2 from "mysql2";
 import type * as Pg from "pg";
+import type * as PgConnectionString from "pg-connection-string";
 import { z } from "zod";
 import { requireFrom } from "./module-loader";
 import { resolveProjectRoot } from "./project";
@@ -18,6 +19,7 @@ interface ClientModules {
   mysql2: typeof Mysql2;
   "rethinkdb-ts": RethinkdbClient;
   "mongodb-connection-string-url": typeof MongodbConnectionStringUrl;
+  "pg-connection-string": typeof PgConnectionString;
 }
 
 export type ClientName = keyof ClientModules;
@@ -28,6 +30,7 @@ export type ClientName = keyof ClientModules;
  */
 const INSTALLED_WITH: Partial<Record<ClientName, ClientName>> = {
   "mongodb-connection-string-url": "mongodb",
+  "pg-connection-string": "pg",
 };
 
 type ClientRequire = <Name extends ClientName>(

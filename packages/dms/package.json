@@ -164,6 +164,7 @@
     "oxlint": "1.81.0",
     "oxlint-tsgolint": "^7.0.2001",
     "pg": "^8.22.0",
+    "pg-connection-string": "^2.14.1",
     "release-it": "^19.2.4",
     "release-it-changelogen": "^0.1.0",
     "rethinkdb-ts": "^2.7.0",

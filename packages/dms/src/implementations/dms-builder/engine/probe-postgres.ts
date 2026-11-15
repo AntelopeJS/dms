@@ -1,5 +1,7 @@
 import type { DatabaseAccess } from "@antelopejs/interface-dms-builder";
 import net from "node:net";
+import type { parse as ParseConnectionString } from "pg-connection-string";
+import { z } from "zod";
 import { postgresAccess, type PostgresRelationRow } from "./access-postgres";
 import {
   failureMessage,
@@ -32,11 +34,12 @@ const SSL_VALUE =
   "The ssl of the URL must be true, 1, 0 or no-verify; or set sslmode to disable, prefer, require, verify-ca or verify-full.";
 
 /**
- * The `ssl` values `pg` turns into a TLS setting when the URL sets no `sslmode`. It keeps any other
- * one as a string and reads a key of it once the server accepts TLS, on a socket event outside any
- * promise, so the process exits.
+ * The one `ssl` string `pg` turns into a TLS setting. It keeps any other string the URL's parser
+ * leaves and reads a key of it once the server accepts TLS, on a socket event outside any promise,
+ * so the process exits.
  */
-const SSL_SETTINGS = new Set(["true", "1", "0", "no-verify"]);
+const SSL_STRING_SETTING = "no-verify";
+const ParsedSsl = z.object({ ssl: z.string().optional() });
 
 /**
  * The URL parameters for which `pg` reads a file of this computer. It reads them synchronously,
@@ -96,8 +99,8 @@ type UrlSignIn =
 /**
  * How the check signs in with `url`, read as the WHATWG parser `pg` reads it with, and refused when
  * that parser would rewrite it. It refuses a URL with no user or no host, which `pg` would fill
- * from this computer (a URL without a host does not parse), one that names a file of this
- * computer for `pg` to read, and an `ssl` value `pg` would keep as a string.
+ * from this computer (a URL without a host does not parse), and one that names a file of this
+ * computer for `pg` to read.
  */
 function urlSignIn(url: string): UrlSignIn {
   if (hasControlCharacter(url)) {
@@ -116,13 +119,26 @@ function urlSignIn(url: string): UrlSignIn {
   if (names.some((name) => LOCAL_FILE_PARAMETERS.has(name.toLowerCase()))) {
     return { refusal: LOCAL_FILES };
   }
-  if (
-    !parsed.searchParams.has("sslmode") &&
-    !parsed.searchParams.getAll("ssl").every((value) => SSL_SETTINGS.has(value))
-  ) {
-    return { refusal: SSL_VALUE };
-  }
   return { password: parsed.password !== "" };
+}
+
+/**
+ * Whether `pg` reads the `ssl` of `url` as a TLS setting, judged on what `parse`, the parser `pg`
+ * reads the URL with, gives: a key's presence says nothing, since an empty `sslmode` leaves `ssl`
+ * as written. A URL `parse` refuses is not one.
+ */
+function readsSsl(url: string, parse: typeof ParseConnectionString): boolean {
+  let ssl: z.SafeParseReturnType<unknown, z.infer<typeof ParsedSsl>>;
+  try {
+    ssl = ParsedSsl.safeParse(parse(url));
+  } catch {
+    return false;
+  }
+  return (
+    !ssl.success ||
+    ssl.data.ssl === undefined ||
+    ssl.data.ssl === SSL_STRING_SETTING
+  );
 }
 
 /**
@@ -154,6 +170,10 @@ export const probePostgres: Probe = async (url, timeoutMs, connections) => {
   const signIn = urlSignIn(url);
   if (signIn.refusal !== undefined) {
     return unanswered(signIn.refusal);
+  }
+  const connectionStrings = loadClient("pg-connection-string");
+  if (!connectionStrings || !readsSsl(url, connectionStrings.parse)) {
+    return unanswered(SSL_VALUE);
   }
   const sockets: net.Socket[] = [];
   const client = withoutEnvironment(

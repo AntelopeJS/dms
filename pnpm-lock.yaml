@@ -219,6 +219,9 @@ importers:
       pg:
         specifier: ^8.22.0
         version: 8.23.1
+      pg-connection-string:
+        specifier: ^2.14.1
+        version: 2.14.1
       release-it:
         specifier: ^19.2.4
         version: 19.2.4(@types/node@26.6.5)

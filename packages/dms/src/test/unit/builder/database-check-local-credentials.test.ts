@@ -257,6 +257,9 @@ describe("an ssl value a PostgreSQL check refuses", () => {
         "ssl=require",
         "ssl=abc",
         "ssl=true&ssl=abc",
+        "ssl=false&sslmode=",
+        "sslmode=&ssl=require",
+        "sslmode=&ssl=true&ssl=false",
       ]) {
         const answer = await checkDatabase(
           "postgres",
