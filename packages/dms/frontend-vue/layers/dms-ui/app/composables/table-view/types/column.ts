@@ -1,3 +1,5 @@
+import type { JsonValue } from "#dms-core/app/types/json";
+
 export enum AccessMode {
   ReadOnly = 1,
   WriteOnly = 2,
@@ -20,7 +22,7 @@ export interface ReadonlyBehavior {
 export interface TableViewColumnDisplay {
   /** Id of the frontend data type drawing the cells. */
   type: string;
-  options?: Record<string, unknown>;
+  options?: Record<string, JsonValue>;
 }
 
 export interface TableViewColumn {

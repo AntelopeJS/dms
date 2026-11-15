@@ -90,9 +90,9 @@ export function useTab(
   const goToFirstTab = () => goToTab(0);
   const goToLastTab = () => goToTab(totalTabs.value - 1);
 
-  const resetTabs = () => {
+  const resetTabs = async () => {
     activeTab.value = "0";
-    updateUrl("0");
+    await updateUrl("0");
   };
 
   watch(activeTab, async (newTab, oldTab) => {

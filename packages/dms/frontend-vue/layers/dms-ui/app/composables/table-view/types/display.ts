@@ -1,4 +1,5 @@
 import type { Component } from "vue";
+import type { JsonValue } from "#dms-core/app/types/json";
 import type { Table } from "@tanstack/vue-table";
 import type { TableViewColumn } from "./column";
 import type { CustomRowAction } from "../../../types/row-action";
@@ -161,6 +162,9 @@ export interface TableViewCardConfig {
   skeletonHeight?: string;
 }
 
+/** A value of a display's per-instance options: the backend config's JSON, or a card config. */
+type TableViewDisplayOption = JsonValue | TableViewCardConfig | undefined;
+
 /**
  * The props a custom card component receives, the same in the `kanban` and
  * `cards` displays.
@@ -249,12 +253,12 @@ export interface TableViewDisplayContext<T = Data> {
   /** Data API location (`{location}/list`, `/get`, ...). Needed by self-managed displays. */
   location: string;
   /** Active filters/search/sort query (no limit/offset) — for self-managed fetching. */
-  query: Record<string, unknown>;
+  query: Record<string, JsonValue>;
   /** Stable component/page identifiers, e.g. for per-instance fetch keys. */
   componentId?: string;
   pageId?: string;
   /** Per-instance options declared for this display in the backend config. */
-  options?: Record<string, unknown>;
+  options?: Record<string, TableViewDisplayOption>;
   /**
    * A self-managed display hands the rows it shows, in the order the user
    * reads them (a board: column by column), each time they change: a row
