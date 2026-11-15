@@ -7,7 +7,8 @@
   "packageManager": "pnpm@10.2.0",
   "scripts": {
     "build": "rimraf dist && tsc",
-    "test": "pnpm build && node --test dist/prototype-keys.test.js dist/form/demo-forms.test.js && node --import ./checks/resolve-ts.mjs --test checks/docs-fixtures.test.mjs",
+    "test": "pnpm build && node --test dist/prototype-keys.test.js dist/form/demo-forms.test.js checks/client-lint.test.mjs && node --import ./checks/resolve-ts.mjs --test checks/docs-fixtures.test.mjs",
+    "lint:client": "cd frontend-vue && ESLINT_USE_FLAT_CONFIG=true ../../frontend-vue/node_modules/.bin/eslint --config ../checks/client-lint.config.mjs --max-warnings 0 .",
     "dev": "ajs project run -w",
     "frontend:dev": "ajs dms dev",
     "types:prepare": "ajs dms prepare-types -q --out .frontend-vue-types --layer ../frontend-vue --module frontend-vue --local-package @antelopejs/dms=.. --local-package @antelopejs/interface-dms=../../interface-dms",
