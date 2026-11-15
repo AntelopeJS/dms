@@ -19,10 +19,10 @@ interface StatusError {
   status: number;
 }
 
-/** Whether `error` is an object that carries a numeric HTTP `status`. */
+/** Whether `error` is an object or a function that carries a numeric HTTP `status`. */
 function hasStatus(error: unknown): error is StatusError {
   return (
-    typeof error === "object" &&
+    (typeof error === "object" || typeof error === "function") &&
     error !== null &&
     "status" in error &&
     isNumber(error.status)
@@ -64,6 +64,8 @@ export function sessionFrom(
       "base64url",
     ).toString() || "{}",
   );
+  if (payload === null)
+    throw new TypeError("The access token carries no claims");
   return {
     user: result.user,
     accessToken: result.access_token,

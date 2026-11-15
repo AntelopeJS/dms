@@ -4,11 +4,18 @@ import type { JsonValue } from "../layers/dms-core/app/types/json";
 /** A JSON object, as a parsed request body holds one. */
 export type JsonObject = { [key: string]: JsonValue };
 
+/** Whether `value` and every value it holds is JSON, walked without recursion so that no nesting depth `JSON.parse` accepts exhausts the stack. */
 function isJsonValue(value: unknown): value is JsonValue {
-  if (value === null) return true;
-  if (Array.isArray(value)) return value.every(isJsonValue);
-  if (typeof value === "object") return Object.values(value).every(isJsonValue);
-  return ["string", "number", "boolean"].includes(typeof value);
+  const pending: unknown[] = [value];
+  while (pending.length > 0) {
+    const next = pending.pop();
+    if (next === null || ["string", "number", "boolean"].includes(typeof next))
+      continue;
+    if (typeof next !== "object") return false;
+    for (const held of Array.isArray(next) ? next : Object.values(next))
+      pending.push(held);
+  }
+  return true;
 }
 
 function isJsonObject(value: unknown): value is JsonObject {
