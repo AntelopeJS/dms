@@ -3,7 +3,7 @@ import {
   isNumber,
   isObject,
 } from "../../../../dms-core/app/utils/type-check";
-import type { ChartSeries, ChartType } from "./types";
+import type { ChartType } from "./types";
 
 export const CHART_EVENT_NAMES = {
   segmentClick: "DmsComponent.Chart.SegmentClick",
@@ -44,12 +44,4 @@ export function readPointValue(
   const y = isObject(point) && !isNull(point) ? point.y : undefined;
   if (Array.isArray(y)) return { value: null, values: y };
   return { value: isNumber(y) ? y : null };
-}
-
-/** The `label` a series point carries, which a slice or a tooltip names it by. */
-export function readPointLabel(
-  point: ChartSeries["data"][number] | undefined,
-): string | undefined {
-  if (isNumber(point) || !point) return undefined;
-  return "label" in point ? point.label : undefined;
 }

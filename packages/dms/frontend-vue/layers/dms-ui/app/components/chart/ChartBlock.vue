@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from "vue";
+import {
+  isNull,
+  isObject,
+  isString,
+} from "../../../../dms-core/app/utils/type-check";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsChartSkeleton from "../../build/components/chart/internal/ChartSkeleton.vue";
 import {
@@ -26,7 +31,6 @@ import {
 import {
   CHART_EVENT_NAMES,
   isSegmentChart,
-  readPointLabel,
   readPointValue,
   type ChartClickPayload,
 } from "../../composables/chart/events";
@@ -205,6 +209,12 @@ function buildCircularClickPayload(opts: {
   };
 }
 
+/** The `label` a series point carries, which the click payload names it by. */
+function pointLabel(point: ChartSeries["data"][number] | undefined) {
+  if (!isObject(point) || isNull(point)) return undefined;
+  return isString(point.label) ? point.label : undefined;
+}
+
 function buildXyClickPayload(opts: {
   dataPointIndex: number;
   seriesIndex: number;
@@ -216,7 +226,7 @@ function buildXyClickPayload(opts: {
   );
   const point = series?.data[dataPointIndex];
   const pointValue = readPointValue(point);
-  const label = readPointLabel(point);
+  const label = pointLabel(point);
   return {
     dataPointIndex,
     seriesIndex: opts.seriesIndex,

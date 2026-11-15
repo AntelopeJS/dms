@@ -1,10 +1,21 @@
-import { isNumber, isString } from "../../../../dms-core/app/utils/type-check";
+import {
+  isNull,
+  isObject,
+  isString,
+} from "../../../../dms-core/app/utils/type-check";
 import type { ChartSeries, DonutRecord } from "./types";
 
 /** Writes one display string in the reader's language (`processI18n`). */
 export type ChartTextTranslate = (text: string) => string;
 
 type ChartSeriesEntry = ChartSeries["data"][number];
+
+/** Whether a point is one of the object shapes, which carry an `x` and maybe a `label`. */
+function isPointObject(
+  point: ChartSeriesEntry,
+): point is Exclude<ChartSeriesEntry, number> {
+  return isObject(point) && !isNull(point);
+}
 
 function translateText<T extends string | number | Date | undefined>(
   value: T,
@@ -22,7 +33,7 @@ function localizePoint(
   point: ChartSeriesEntry,
   translate: ChartTextTranslate,
 ): ChartSeriesEntry {
-  if (isNumber(point) || !point) return point;
+  if (!isPointObject(point)) return point;
   const localized: typeof point & { label?: string } = { ...point };
   if ("x" in point) localized.x = translateText(point.x, translate);
   if ("label" in point) localized.label = translateText(point.label, translate);
