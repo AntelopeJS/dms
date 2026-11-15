@@ -249,6 +249,51 @@ describe("what a database check reads of its probe's output", () => {
   }).timeout(10_000);
 });
 
+describe("when a database check takes its probe's answer", () => {
+  /** Fails on a check that waits for its probe's pipes to close, which a process the probe started can hold open. */
+  it("answers a probe that ends while a process it started holds its output, without waiting for that process", async () => {
+    const started = performance.now();
+    const answer = await withStandIn(
+      `const { spawn } = require("node:child_process");
+exports.probe = () => {
+  spawn(process.execPath, ["-e", "setTimeout(() => {}, 2000)"], {
+    stdio: ["ignore", "inherit", "inherit"],
+    detached: true,
+  }).unref();
+  setTimeout(() => process.exit(3), 50);
+  return new Promise(() => {});
+};
+`,
+      () =>
+        checkDatabase(
+          "postgres",
+          "postgres://app:pw@127.0.0.1:1/shop",
+          TIMEOUT_MS * 5,
+        ),
+    );
+    expect(answer.reason).to.match(/ended without an answer \(3\)/);
+    expect(performance.now() - started).to.be.lessThan(TIMEOUT_MS * 5);
+  });
+
+  /** Fails on a check that misses the answer of a driver that printed text with no end of line before it. */
+  it("answers what the driver decided after it printed text with no end of line", async () => {
+    const answer = await withStandIn(
+      `exports.probe = async () => {
+  process.stdout.write("progress...");
+  return { outcome: "signed-in", latencyMs: 1, canRead: true, canWrite: false };
+};
+`,
+      () =>
+        checkDatabase(
+          "postgres",
+          "postgres://app:pw@127.0.0.1:1/shop",
+          TIMEOUT_MS,
+        ),
+    );
+    expect([answer.canRead, answer.canWrite]).to.deep.equal([true, false]);
+  });
+});
+
 describe("what a database check's probe process gets", () => {
   /** Fails on a check that hands the probe this process's environment. */
   it("runs the probe with no variable of this process", async () => {

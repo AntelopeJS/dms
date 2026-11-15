@@ -56,9 +56,9 @@ function installedProbe(
   return undefined;
 }
 
-/** Writes what the probe came to as the one line the check reads. */
+/** Writes what the probe came to as the one line the check reads, on a line of its own whatever the driver printed before. */
 function reply(outcome: ProbeOutcome): void {
-  process.stdout.write(`${OUTCOME_MARK}${JSON.stringify(outcome)}\n`);
+  process.stdout.write(`\n${OUTCOME_MARK}${JSON.stringify(outcome)}\n`);
 }
 
 async function answer(): Promise<void> {

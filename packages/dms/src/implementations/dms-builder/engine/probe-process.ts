@@ -15,6 +15,11 @@ const LINE_LIMIT = 65_536;
 const ANSWER_LIMIT = 16_777_216;
 const TOO_LARGE = "The driver's probe answered with more than the check reads.";
 const ENDED = "The driver's probe ended without an answer";
+/**
+ * How long the check waits, once the child exits, for the rest of its stdout: a process it
+ * started may hold the pipe open long after, so the check does not wait for the pipe to close.
+ */
+const EXIT_GRACE_MS = 200;
 const UNREAD = "The driver's probe answered in a way the check does not read.";
 
 /**
@@ -100,8 +105,8 @@ function outcomeReader(
  * Runs the driver's `probe` in a process of its own and answers what it came to. A driver that
  * throws on a socket event, holds the event loop or the threadpool, or never answers ends only
  * that process: the check kills it when `signal` aborts, which it does once it has its answer or
- * when its deadline passes. The child gets no environment but its request, and none of this
- * process's Node options.
+ * when its deadline passes, and once the child has exited it closes its ends of the pipes. The
+ * child gets no environment but its request, and none of this process's Node options.
  */
 export function probeInChild(
   request: ProbeRequest,
@@ -134,8 +139,15 @@ export function probeInChild(
     child.on("error", (error) => {
       resolve({ kind: "failed", message: error.message });
     });
-    child.on("close", (code, exitSignal) => {
+    let ended = false;
+    const end = (code: number | null, exitSignal: NodeJS.Signals | null) => {
+      if (ended) {
+        return;
+      }
+      ended = true;
       signal.removeEventListener("abort", kill);
+      child.stdout.destroy();
+      child.stderr.destroy();
       const line = crashLine(stderr);
       resolve(
         outcome ?? {
@@ -146,6 +158,10 @@ export function probeInChild(
               : `${ENDED}: ${line}`,
         },
       );
+    };
+    child.on("close", end);
+    child.on("exit", (code, exitSignal) => {
+      setTimeout(() => end(code, exitSignal), EXIT_GRACE_MS).unref();
     });
     if (signal.aborted) {
       kill();
