@@ -1,6 +1,6 @@
 import type { FormSubmitEvent } from "@nuxt/ui";
 import { nextTick } from "vue";
-import type { FormProps, FormSubmitResponse } from "./types";
+import type { FormFetchResponse, FormProps, FormSubmitResponse } from "./types";
 import { FormEvents } from "./types/events";
 import type { FormData, FormFieldValue } from "./types/value";
 import { isFieldGroup } from "./types/field";
@@ -8,7 +8,6 @@ import { resolveResponseToast } from "../../build/utils/responseWarning";
 import { resolveLinkVariables } from "../../build/utils/urlVariables";
 import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
 import {
-  isBoolean,
   isNull,
   isNumber,
   isObject,
@@ -83,19 +82,18 @@ function isFormSubmitNotice(value: unknown): value is FormSubmitNotice {
   );
 }
 
-function isFormFieldValue(value: unknown): value is FormFieldValue {
-  if (isString(value) || isNumber(value) || isNull(value)) return true;
-  if (isBoolean(value) || value instanceof Date) return true;
-  if (Array.isArray(value)) return value.every(isFormFieldValue);
-  return isPlainObject(value) && Object.values(value).every(isString);
-}
+/** What a submit answers: its outcome, and the saved record's fields when the route returns them. */
+type FormSubmitAnswer = FormSubmitResponse & FormFetchResponse;
 
-function formDataOf(entries: Iterable<readonly [string, unknown]>): FormData {
-  return Object.fromEntries(
-    Array.from(entries).filter((entry): entry is [string, FormFieldValue] =>
-      isFormFieldValue(entry[1]),
-    ),
-  );
+/** The entries of `values` that hold a value, as JSON keeps them. */
+function definedValues(
+  values: Record<string, FormFieldValue | undefined>,
+): FormData {
+  const result: FormData = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined) result[key] = value;
+  }
+  return result;
 }
 
 /** A server error shown under its field, translated. */
@@ -161,8 +159,8 @@ function createFormNotices(
   };
 
   /** Shows a server-authored notice next to the ordinary success toast. */
-  const showSubmitNotice = (response: FormSubmitResponse | undefined) => {
-    const notice = isObject(response) ? response.notice : undefined;
+  const showSubmitNotice = (response: FormSubmitAnswer | undefined) => {
+    const notice = response?.notice;
     if (!isFormSubmitNotice(notice) || !notice.title) return;
     toast.add({
       title: noticeText(notice.title, notice.params),
@@ -242,7 +240,7 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
     Object.assign(state.value, {
       ...restored,
       ...processBeforeStateMappers(
-        formDataOf(Object.entries(restored)),
+        definedValues(restored),
         props.fields ?? [],
         getDataType,
       ),
@@ -281,21 +279,24 @@ function createSavedForm(context: ReturnType<typeof createFormNotices>) {
 
   /** Uses response fields as the saved record, otherwise re-reads fetchUrl. */
   const showSavedRecord = async (
-    response: FormSubmitResponse | undefined,
+    response: FormSubmitAnswer | undefined,
   ): Promise<void> => {
     if (!submitSucceeded.value) return;
     const fieldIds = new Set(allFields.value.map((field) => field.id));
-    const record = isPlainObject(response)
-      ? formDataOf(
+    const record: FormData = isPlainObject(response)
+      ? Object.fromEntries(
           Object.entries(response).filter(([key]) => fieldIds.has(key)),
         )
       : {};
     if (Object.keys(record).length === 0) return refreshSavedRecord();
     initialValues.value = {
       ...initialValues.value,
-      ...formDataOf(
-        Object.entries(record).map(
-          ([key, value]) => [key, cloneFormValue(value)] as const,
+      ...definedValues(
+        Object.fromEntries(
+          Object.entries(record).map(([key, value]) => [
+            key,
+            cloneFormValue(value),
+          ]),
         ),
       ),
     };
@@ -321,7 +322,7 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
   } = context;
 
   const handleSubmitSuccess = async (
-    response: FormSubmitResponse | undefined,
+    response: FormSubmitAnswer | undefined,
     plainData: FormData,
   ) => {
     showSubmitSuccessToast(response);
@@ -330,7 +331,7 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
     if (props.redirectOnSuccess) {
       const target = resolveLinkVariables(
         props.redirectOnSuccess,
-        buildUrlContext(isObject(response) ? response : undefined),
+        buildUrlContext(response),
       );
       await navigateDms(target);
     }
@@ -345,11 +346,11 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
     submitUrl: string,
     body: FormData,
     onAccepted?: () => void,
-  ): Promise<FormSubmitResponse | undefined> => {
-    let submitResponse: FormSubmitResponse | undefined;
+  ): Promise<FormSubmitAnswer | undefined> => {
+    let submitResponse: FormSubmitAnswer | undefined;
     await executeSubmit(
       () =>
-        $authFetch<FormSubmitResponse>(submitUrl, {
+        $authFetch<FormSubmitAnswer>(submitUrl, {
           method: props.submitUrlMethod || "PUT",
           body,
           headers: { [CONTENT_LANGUAGE_HEADER]: "*" },

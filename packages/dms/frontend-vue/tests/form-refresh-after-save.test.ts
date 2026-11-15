@@ -135,18 +135,16 @@ describe("DMS form after a save", () => {
     expect(form.state.value.vatNumber).toBe(STORED.vatNumber);
   });
 
-  it("writes no answered value the form cannot hold", async () => {
-    answer = () => ({
-      vatNumber: "as stored",
-      headers: [{ name: "X-Token", rows: 2 }],
-    });
+  it("keeps an answered value whose rows hold more than text", async () => {
+    const headers = [{ name: "X-Token", rows: 2 }];
+    answer = () => ({ vatNumber: "as stored", headers });
     const form = setupForm();
 
     await saveTyped(form);
 
     expect(form.state.value.vatNumber).toBe("as stored");
-    expect(form.state.value.headers).toEqual(TYPED.headers);
-    expect(form.initialValues.value.headers).toEqual(TYPED.headers);
+    expect(form.state.value.headers).toEqual(headers);
+    expect(form.initialValues.value.headers).toEqual(headers);
   });
 
   it("reads the record again when the route answers no record", async () => {

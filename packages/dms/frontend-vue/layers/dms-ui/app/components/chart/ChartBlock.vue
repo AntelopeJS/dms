@@ -1,10 +1,5 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from "vue";
-import {
-  isNumber,
-  isObject,
-  isString,
-} from "../../../../dms-core/app/utils/type-check";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsChartSkeleton from "../../build/components/chart/internal/ChartSkeleton.vue";
 import {
@@ -140,30 +135,23 @@ function localized(series: ChartSeries[]): ChartSeries[] {
   return series.map((entry) => localizeSeries(entry, processI18n));
 }
 
-function isStaticSeries(
-  entry: ChartSeries | DonutRecord,
-): entry is ChartSeries {
-  return isObject(entry) && isString(entry.name) && Array.isArray(entry.data);
-}
-
-function isStaticDonutRecord(
-  entry: ChartSeries | DonutRecord,
-): entry is DonutRecord {
-  return isObject(entry) && isString(entry.label) && isNumber(entry.value);
-}
-
 const staticSeries = computed<ChartSeries[]>(() => {
   if (isCircular.value) return [];
   if (!props.staticDataset) return [];
   const dataset: Array<ChartSeries | DonutRecord> = props.staticDataset;
-  return localized(dataset.filter(isStaticSeries));
+  return localized(
+    dataset.flatMap((entry) => ("data" in entry ? [entry] : [])),
+  );
 });
 
 const staticDonut = computed<DonutRecord[]>(() => {
   if (!isCircular.value) return [];
   if (!props.staticDataset) return [];
   const dataset: Array<ChartSeries | DonutRecord> = props.staticDataset;
-  return localizeDonutRecords(dataset.filter(isStaticDonutRecord), processI18n);
+  return localizeDonutRecords(
+    dataset.flatMap((entry) => ("data" in entry ? [] : [entry])),
+    processI18n,
+  );
 });
 
 const isNested = computed(() => !!nestedContext);
