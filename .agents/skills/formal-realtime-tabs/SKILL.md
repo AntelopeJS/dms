@@ -30,7 +30,7 @@ Java 11 or later comes from `$JAVA`, else `java` on PATH, else the `eclipse-temu
 | Configuration | Bounds | States (page, table) | Wall time, 4 cores | Wall time, Docker Java 21 |
 | --- | --- | --- | --- | --- |
 | CI (`.ci.cfg`) | page: two tabs, 1 save, 1 drop while one tab is open, 1 tab close. table: one tab, 2 saves, 1 drop | 77,719, 3,232 | 9.4 to 9.5 s | 10.4 to 10.8 s |
-| Full (`.cfg`) | two tabs, 2 saves, 1 drop, 1 tab close, for each view | 21,108,577, 62,887,781 | 5 min 3 s on 8 cores | 3 min 3 s |
+| Full (`.cfg`) | two tabs, 2 saves, 1 drop, 1 tab close, for each view | 21,108,577, 23,725,469 | 5 min 3 s on 8 cores | 3 min 3 s |
 
 The run that checks the rules that hold uses every core it sees, and each finding runs on one worker. The 4- and 8-core times are Java 25 pinned to those cores with `taskset`; the Docker times saw 32 cores. All ran on a shared machine with a load average of 20 to 35. A CI run is mostly the start-up of its 7 TLC runs.
 
