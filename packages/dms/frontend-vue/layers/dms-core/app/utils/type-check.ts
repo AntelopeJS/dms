@@ -1,4 +1,5 @@
-type CallableFunction = (...args: any[]) => any;
+/** Any function: what it returns is unknown until a guard reads it. */
+type CallableFunction = (...args: any[]) => Parameters<typeof isNull>[0];
 
 /** The type each `typeof` result a guard below tests for narrows to. */
 interface TypeofResults {
