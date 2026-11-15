@@ -50,3 +50,23 @@ it("forwards presign headers except the ones a browser refuses to set", async ()
     ["x-amz-meta-owner", "tenant"],
   ]);
 });
+
+it("copies no x-dms-ui- header from a presign answer, so stored data cannot pass for a module's own UI", async () => {
+  const { uploadWithProgress } = useUploadWithProgress();
+
+  await uploadWithProgress(
+    {
+      uploadUrl: UPLOAD_URL,
+      resourceKey: "__staging__/cover.png",
+      headers: {
+        "Content-Type": "image/png",
+        "X-DMS-UI-Module": "dms-assistant",
+        " x-dms-ui-origin ": "builder",
+      },
+    },
+    new File(["bytes"], "cover.png", { type: "image/png" }),
+    () => undefined,
+  );
+
+  expect(setRequestHeader.mock.calls).toEqual([["Content-Type", "image/png"]]);
+});
