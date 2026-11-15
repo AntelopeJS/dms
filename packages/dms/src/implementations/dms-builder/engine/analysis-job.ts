@@ -262,6 +262,10 @@ function run(
     (finished) => {
       job.status = "done";
       job.proposal = finished.proposal;
+      if (finished.progress.timeouts > 0) {
+        reusableByConnection.delete(input.connection);
+        return;
+      }
       reusableByConnection.set(input.connection, {
         ...finished,
         progress: { ...finished.progress },

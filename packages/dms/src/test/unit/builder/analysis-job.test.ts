@@ -221,6 +221,29 @@ function proposesWhatIsMappable(): void {
     ).to.deep.equal([]);
   });
 
+  it("profiles again after an analysis whose measures timed out", async () => {
+    const slow = catalogOver(RELATIONS);
+    setCatalogConnectionsForTests({
+      erp: {
+        ...slow,
+        async Profile(request) {
+          const profile = await slow.Profile!(request);
+          return { ...profile, rows: { status: "timeout" } };
+        },
+      },
+    });
+    try {
+      expect((await analysed(["erp", "timeouts"])).progress.timeouts).to.equal(
+        3,
+      );
+    } finally {
+      setCatalogConnectionsForTests({ erp: catalogOver(RELATIONS) });
+    }
+    calls.length = 0;
+    await analysed(["erp", "timeouts"]);
+    expect(profiled()).to.have.length(3);
+  });
+
   it("profiles again once the database's catalog changed", async () => {
     await analysed(["erp"]);
     calls.length = 0;
