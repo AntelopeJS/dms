@@ -209,9 +209,7 @@ interface RuntimeOptions {
 }
 
 /** What the viewer raised: a toast it added, or a failure it presented. */
-type RaisedToast =
-  | Toast
-  | (PresentApiErrorOptions & Pick<Toast, "color">);
+type RaisedToast = Toast | (PresentApiErrorOptions & Pick<Toast, "color">);
 
 export interface MockupRuntime {
   authFetch: ReturnType<typeof vi.fn>;

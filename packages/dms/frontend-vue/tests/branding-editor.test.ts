@@ -17,15 +17,12 @@ import {
   type BrandingAnswer,
   type BrandingCall,
 } from "./helpers/branding-editor";
-import type {
-  ThemeColors,
-  ThemeStructure,
-} from "../layers/dms-layout/app/build/branding/theme-types";
+import type { JsonValue } from "../layers/dms-core/app/types/json";
 import { isNull, isObject } from "../layers/dms-core/app/utils/type-check";
 
 const THEME_URL = "/api/branding/theme";
 
-function files(version: string, colors: ThemeColors = {}): ThemeStructure {
+function files(version: string, colors: Record<string, string> = {}) {
   return {
     layer: { name: "project", sourcePath: "/project/frontend-vue" },
     variables: { shared: {}, light: {}, dark: {} },
@@ -35,7 +32,7 @@ function files(version: string, colors: ThemeColors = {}): ThemeStructure {
   };
 }
 
-const ok = (data: ThemeStructure | { version: string }): BrandingAnswer => ({
+const ok = (data: JsonValue): BrandingAnswer => ({
   ok: true,
   data,
 });

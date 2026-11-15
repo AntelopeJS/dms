@@ -9,10 +9,7 @@ import {
 import { createI18n } from "vue-i18n";
 import { vi } from "vitest";
 import en from "../../layers/dms-layout/app/entries/i18n/locales/layout-en-GB.json";
-import type {
-  OpResult,
-  ThemeStructure,
-} from "../../layers/dms-layout/app/build/branding/theme-types";
+import type { JsonValue } from "../../layers/dms-core/app/types/json";
 
 /** What the fake `/api/branding` routes received. */
 export interface BrandingCall {
@@ -21,8 +18,10 @@ export interface BrandingCall {
   body: unknown;
 }
 
-/** What a fake `/api/branding` route answers: the theme read, the version a save wrote, or a refusal. */
-export type BrandingAnswer = OpResult<ThemeStructure | { version: string }>;
+/** What a fake `/api/branding` route answers: its data, or a refusal such as a stale version. */
+export type BrandingAnswer =
+  | { ok: true; data: JsonValue }
+  | { ok: false; error: { code: string; ref: string; currentVersion: string } };
 
 type Answer = (call: BrandingCall) => BrandingAnswer;
 
