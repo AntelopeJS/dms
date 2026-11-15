@@ -4,9 +4,6 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { readFeatureResults } from "./decode.mjs";
-import { readFormalResult } from "./formal.mjs";
-import { readJudgement } from "./judgement.mjs";
 import { loadSkill } from "./skill.mjs";
 
 /**
@@ -18,103 +15,6 @@ function scratch(t) {
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
-
-/**
- * @param {string} file The file
- * @param {unknown} value What it holds as JSON
- */
-function writeJson(file, value) {
-  mkdirSync(join(file, ".."), { recursive: true });
-  writeFileSync(file, JSON.stringify(value));
-}
-
-const FORMAL = {
-  name: "formal-add",
-  exitCode: 0,
-  violated: [],
-  passing: ["AddWorks"],
-  folder: "formal/formal-add",
-};
-
-await test("a formal result is read as recorded", (t) => {
-  const evidence = scratch(t);
-  writeJson(join(evidence, "formal", "formal-add", "result.json"), {
-    ...FORMAL,
-    base: null,
-    fixed: [],
-  });
-  assert.deepEqual(readFormalResult({ evidence }, "formal-add"), {
-    ...FORMAL,
-    base: null,
-    fixed: [],
-  });
-  assert.equal(readFormalResult({ evidence }, "formal-other"), undefined);
-});
-
-await test("a formal result whose rules are no list is refused", (t) => {
-  const evidence = scratch(t);
-  writeJson(join(evidence, "formal", "formal-add", "result.json"), {
-    ...FORMAL,
-    violated: "AddWorks",
-  });
-  assert.throws(
-    () => readFormalResult({ evidence }, "formal-add"),
-    /result\.json is malformed: expected a formal check result/,
-  );
-});
-
-const RESULT = {
-  feature: "smoke",
-  journey: "onboard",
-  title: "Onboard",
-  entryPoint: "/",
-  status: "PASS",
-  database: "dms_run",
-  steps: [
-    { name: "open", checks: [{ name: "loads", pass: true, detail: "" }] },
-  ],
-  error: null,
-  folder: "smoke/onboard",
-};
-
-await test("journey results are read as recorded and none when absent", (t) => {
-  const dir = scratch(t);
-  assert.deepEqual(readFeatureResults(join(dir, "feature.json")), []);
-  writeJson(join(dir, "feature.json"), [RESULT]);
-  assert.deepEqual(readFeatureResults(join(dir, "feature.json")), [RESULT]);
-});
-
-await test("a journey result keeps its duration, and one whose duration is no number is refused", (t) => {
-  const dir = scratch(t);
-  writeJson(join(dir, "feature.json"), [{ ...RESULT, ms: 4200 }]);
-  assert.equal(readFeatureResults(join(dir, "feature.json"))[0].ms, 4200);
-  writeJson(join(dir, "feature.json"), [{ ...RESULT, ms: "4.2s" }]);
-  assert.throws(
-    () => readFeatureResults(join(dir, "feature.json")),
-    /malformed: expected a list of journey results/,
-  );
-});
-
-await test("a journey result with a status that is neither PASS nor FAIL is refused", (t) => {
-  const dir = scratch(t);
-  writeJson(join(dir, "feature.json"), [{ ...RESULT, status: "PASSED" }]);
-  assert.throws(
-    () => readFeatureResults(join(dir, "feature.json")),
-    /feature\.json is malformed: expected a list of journey results/,
-  );
-});
-
-await test("a journey result whose check does not say pass or fail is refused", (t) => {
-  const dir = scratch(t);
-  const steps = [
-    { name: "open", checks: [{ name: "loads", pass: "yes", detail: "" }] },
-  ];
-  writeJson(join(dir, "feature.json"), [{ ...RESULT, steps }]);
-  assert.throws(
-    () => readFeatureResults(join(dir, "feature.json")),
-    /malformed: expected a list of journey results/,
-  );
-});
 
 const CONFIG = `export default {
   playground: "playground",
@@ -205,7 +105,7 @@ await test("a config whose formal check pattern is a string is refused", async (
     t,
     CONFIG.replace(
       "formal: []",
-      'formal: [{ name: "f", covers: [], command: ["node"], violation: "^x", passing: null }]',
+      'formal: [{ name: "f", covers: [], command: ["node"], violation: "^x" }]',
     ),
   );
   await assert.rejects(
@@ -220,52 +120,4 @@ await test("a config module without a default export is refused", async (t) => {
     loadSkill(dir, tmpdir()),
     /verify\.config\.ts is malformed/,
   );
-});
-
-const JUDGEMENT = {
-  verifier: "thread",
-  notVerified: ["ui"],
-  attention: [],
-  docs: [{ page: "docs/a.md", matches: true, note: "ok" }],
-  doors: { none: "no door" },
-};
-
-await test("a judgement is read into the verdict's shape", async (t) => {
-  const skill = await loadSkill(skillFolder(t, CONFIG), tmpdir());
-  const file = join(scratch(t), "judgement.json");
-  writeJson(file, JUDGEMENT);
-  assert.deepEqual(readJudgement(skill, file), {
-    notVerified: ["ui"],
-    attention: [],
-    docs: [{ page: "docs/a.md", matches: true, note: "ok" }],
-    doorsNone: "no door",
-    doors: [],
-    falsePositives: [],
-    verifier: "thread",
-  });
-});
-
-await test("a judgement whose lists hold other than strings is refused", async (t) => {
-  const skill = await loadSkill(skillFolder(t, CONFIG), tmpdir());
-  const file = join(scratch(t), "judgement.json");
-  writeJson(file, { ...JUDGEMENT, notVerified: "ui" });
-  assert.throws(
-    () => readJudgement(skill, file),
-    /judgement\.json is malformed: expected a verifier's judgement/,
-  );
-  writeJson(file, {
-    ...JUDGEMENT,
-    docs: [{ page: "docs/a.md", matches: "yes" }],
-  });
-  assert.throws(
-    () => readJudgement(skill, file),
-    /malformed: expected a verifier/,
-  );
-});
-
-await test("a judgement that is no object is refused", async (t) => {
-  const skill = await loadSkill(skillFolder(t, CONFIG), tmpdir());
-  const file = join(scratch(t), "judgement.json");
-  writeJson(file, ["verifier"]);
-  assert.throws(() => readJudgement(skill, file), /is malformed/);
 });

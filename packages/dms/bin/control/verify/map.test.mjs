@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { checkMap, planFor } from "./map.mjs";
-import { renderVerdict } from "./verdict.mjs";
 
 const JOURNEYS = (/** @type {string} */ id) =>
   `export const journeys = [{ id: "${id}", title: "t", entryPoint: "e", async run() {} }];\n`;
@@ -185,76 +184,4 @@ await test("map fails a shared glob that matches no tracked file or only notShar
     "verify.config.ts: shared glob gone/** matches no tracked file",
     "verify.config.ts: shared glob fixtures/** matches no tracked file",
   ]);
-});
-
-/**
- * @param {string} evidence
- * @param {string[]} features
- */
-function recordPassing(evidence, features) {
-  for (const feature of features) {
-    mkdirSync(join(evidence, feature), { recursive: true });
-    const journey = feature === "smoke" ? "smoke" : `${feature}-journey`;
-    writeFileSync(
-      join(evidence, feature, "feature.json"),
-      JSON.stringify([
-        {
-          feature,
-          journey,
-          title: "t",
-          entryPoint: "e",
-          status: "PASS",
-          database: "d",
-          steps: [],
-          error: null,
-          folder: `${feature}/${journey}`,
-        },
-      ]),
-    );
-  }
-}
-
-const JUDGEMENT = {
-  notVerified: [],
-  attention: [],
-  docs: [],
-  doorsNone: "none",
-  doors: [],
-  falsePositives: [],
-  verifier: "v",
-};
-
-await test("the verdict fails a run that skipped features the shared-file plan required; a verdict that requires only the touched features passes the smoke-only run", async (t) => {
-  const { skill, base, head } = fixture(t, { "pnpm-lock.yaml": "lock: 2\n" });
-  const evidence = mkdtempSync(join(tmpdir(), "dms-control-evidence-test-"));
-  t.after(() => rmSync(evidence, { recursive: true, force: true }));
-  const state = { baseRef: base, headSha: head, evidence };
-  recordPassing(evidence, ["smoke"]);
-  const skipped = await renderVerdict(skill, state, 1, JUDGEMENT);
-  assert.equal(skipped.result, "FAIL");
-  assert.deepEqual(skipped.reasons, [
-    "a/a-journey was not run",
-    "b/b-journey was not run",
-  ]);
-  recordPassing(evidence, ["a", "b"]);
-  assert.equal(
-    (await renderVerdict(skill, state, 1, JUDGEMENT)).result,
-    "PASS",
-  );
-});
-
-await test("the verdict of a covered-only diff needs the other features only when all is set; a verdict that drops all passes an incomplete release run", async (t) => {
-  const { skill, base, head } = fixture(t, {
-    "src/a/x.ts": "export const x = 2;\n",
-  });
-  const evidence = mkdtempSync(join(tmpdir(), "dms-control-evidence-test-"));
-  t.after(() => rmSync(evidence, { recursive: true, force: true }));
-  const state = { baseRef: base, headSha: head, evidence };
-  recordPassing(evidence, ["smoke", "a"]);
-  assert.equal(
-    (await renderVerdict(skill, state, 1, JUDGEMENT)).result,
-    "PASS",
-  );
-  const release = await renderVerdict(skill, state, 1, JUDGEMENT, true);
-  assert.deepEqual(release.reasons, ["b/b-journey was not run"]);
 });

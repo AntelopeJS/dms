@@ -181,7 +181,7 @@ export function summarize(entries) {
  * @param {number} ms A duration
  * @returns {string} It in seconds with one decimal
  */
-export function formatSeconds(ms) {
+function formatSeconds(ms) {
   return (ms / MS_PER_SECOND).toFixed(1);
 }
 
@@ -226,19 +226,4 @@ export function formatTimings(summary) {
         .trimEnd(),
     )
     .join("\n");
-}
-
-/**
- * The summary as the Markdown table of the verdict's Timing section.
- *
- * @param {TimingSummary} summary The summary
- * @returns {string[]} The lines of the table
- */
-export function markdownTimings(summary) {
-  const [header, ...body] = cellsOf(summary);
-  return [
-    `| ${header.join(" | ")} |`,
-    `|${header.map(() => "---").join("|")}|`,
-    ...body.map((row) => `| ${row.join(" | ")} |`),
-  ];
 }

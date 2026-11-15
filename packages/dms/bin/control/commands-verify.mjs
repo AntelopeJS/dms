@@ -1,18 +1,12 @@
 import { join } from "node:path";
 import { print } from "./commands-stack.mjs";
 import { runJourneyFile } from "./journey.mjs";
-import { loadRun, readRun } from "./run-state.mjs";
+import { loadRun } from "./run-state.mjs";
 import { timed } from "./timing.mjs";
 import { doorLine, flaggedDoors, patchFiles } from "./verify/doors.mjs";
-import {
-  formalGate,
-  runFormalCheck,
-  touchedFormalChecks,
-} from "./verify/formal.mjs";
-import { readJudgement } from "./verify/judgement.mjs";
+import { runFormalCheck, touchedFormalChecks } from "./verify/formal.mjs";
 import { checkMap, planFor } from "./verify/map.mjs";
 import { journeysFile, loadSkill } from "./verify/skill.mjs";
-import { renderVerdict } from "./verify/verdict.mjs";
 
 /**
  * @typedef {import("./options.mjs").Values} Values
@@ -108,31 +102,22 @@ async function commandFormal(dir, values) {
   const plan = planFor(skill, state.baseRef);
   const touched = touchedFormalChecks(skill, plan.changed);
   const checks = values.all ? skill.config.formal : touched;
-  const diff = {
-    baseSha: plan.baseSha,
-    headSha: plan.headSha,
-    changed: plan.changed,
-  };
   for (const check of checks) {
-    const gate = touched.includes(check);
     const result = await timed(
       state,
       "formal",
-      () => runFormalCheck(skill, state, check, gate ? diff : null),
+      () => runFormalCheck(skill, state, check),
       { check: check.name },
     );
-    const weight = formalGate(result);
-    const outcome = gate
-      ? weight.fails
-        ? "FAIL"
-        : "PASS"
-      : result.violated.length > 0
+    const outcome =
+      result.violated.length > 0
         ? "VIOLATED"
         : result.exitCode === 0
           ? "HOLDS"
           : "ERROR";
+    const scope = touched.includes(check) ? "" : " (does not cover the diff)";
     print(
-      `${outcome} ${check.name}: ${gate ? weight.outcome : `${result.violated.join(", ") || "no violated rule"} (does not cover the diff)`} (exit ${result.exitCode})`,
+      `${outcome} ${check.name}: ${result.violated.join(", ") || "no violated rule"}${scope} (exit ${result.exitCode})`,
     );
   }
   if (checks.length === 0) print("no formal check covers the diff");
@@ -140,32 +125,8 @@ async function commandFormal(dir, values) {
 }
 
 /**
- * @param {string} dir The run root
- * @param {Values} values The options of the command line
- * @returns {Promise<number>} The exit code
- */
-async function commandVerdict(dir, values) {
-  const pr = Number(values.pr);
-  if (!Number.isInteger(pr) || pr <= 0) {
-    print("verdict needs --pr <number>");
-    return 2;
-  }
-  const state = readRun(dir);
-  const skill = await skillOf(values, state);
-  const verdict = await renderVerdict(
-    skill,
-    state,
-    pr,
-    readJudgement(skill, join(state.evidence, "judgement.json")),
-    values.all,
-  );
-  print(verdict.markdown);
-  return verdict.result === "FAIL" ? 1 : 0;
-}
-
-/**
  * Runs a command of the verification harness: `map`, `plan`, `journey`,
- * `doors`, `formal` and `verdict`.
+ * `doors` and `formal`.
  *
  * @param {string} command The command
  * @param {string[]} rest Its positional arguments
@@ -184,8 +145,6 @@ export function runVerifyCommand(command, rest, values) {
       return commandDoors(rest[0], values);
     case "formal":
       return commandFormal(rest[0], values);
-    case "verdict":
-      return commandVerdict(rest[0], values);
     default:
       return Promise.resolve(undefined);
   }

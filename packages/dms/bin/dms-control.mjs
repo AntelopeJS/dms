@@ -43,8 +43,6 @@ Verify a change (the .agents/skills/verify-* folder of the checkout, or --skill 
   journey <run> <feature> [ids...]  run a feature's journeys and record evidence
   doors [patch] [--base <ref>]      print the One-way-door line for a patch, or for the diff
   formal <run> [--all]              run the formal checks that cover the diff (or every one)
-  verdict <run> --pr <n> [--all]    render evidence/verdict.md from the results and evidence/judgement.json
-                       (--all requires every feature, for a release)
 `;
 
 /**
