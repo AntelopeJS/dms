@@ -6,6 +6,7 @@ export * from "./catalog";
 export * from "./catalog-connection";
 export * from "./catalog-inference";
 export * from "./compose-page";
+export * from "./configure-target";
 export * from "./connection-access-config";
 export * from "./connection-targets";
 export * from "./database-access";

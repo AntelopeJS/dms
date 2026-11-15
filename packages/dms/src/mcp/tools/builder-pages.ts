@@ -1,6 +1,7 @@
 import {
   AddBlock,
   ConfigureBlock,
+  type ConfigureBlockOpts,
   ConfigureCategory,
   ConfigurePage,
   CreateCategory,
@@ -17,7 +18,7 @@ import { z } from "zod";
 import { hiddenOptionsOf, hidePageValues } from "../hidden-values";
 import { type JsonObject, JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
-import { defineTool, textResult } from "../tool";
+import { defineTool, jsonResult, textResult } from "../tool";
 import {
   BLOCK_PATH,
   BLOCK_PATH_FORMAT,
@@ -30,6 +31,7 @@ import {
   refusalResult,
   TARGET_MODULE,
 } from "./builder-shared";
+import { foreignRequestRefusal, judgePatch } from "./builder-request-targets";
 
 const listPages = defineTool({
   name: "builder_list_pages",
@@ -142,10 +144,16 @@ const addBlock = defineTool({
         "Resource ref (from builder_list_resources) for a controller-leading block such as TableView. Required for those types; rejected for others.",
       ),
   }),
-  run: async (input) =>
-    containsExprSentinel.parse(input.config)
-      ? exprRefusal()
-      : opResult(await AddBlock(input)),
+  async run(input) {
+    if (containsExprSentinel.parse(input.config)) return exprRefusal();
+    const { isBlockName } =
+      await import("../../implementations/dms-builder/engine");
+    if (!isBlockName(input.name)) return nameRefusal(input.name);
+    return (
+      (await foreignRequestRefusal(input.config, "/config")) ??
+      opResult(await AddBlock(input))
+    );
+  },
 });
 
 /** The options a `replace` of a mapped page's block would drop unseen: those it holds hidden. */
@@ -167,6 +175,25 @@ async function droppedHiddenOptions(
   );
 }
 
+/** The refusal of a block name a block path could not tell apart from a path, as builder_compose_page refuses it. */
+function nameRefusal(name: string) {
+  return jsonResult(
+    {
+      ok: false,
+      error: {
+        code: "invalid_config",
+        issues: [
+          {
+            pointer: "/name",
+            message: `"${name}" is not a valid block name; expected an identifier`,
+          },
+        ],
+      },
+    },
+    true,
+  );
+}
+
 const configureBlock = defineTool({
   name: "builder_configure_block",
   title: "Configure block",
@@ -183,12 +210,19 @@ const configureBlock = defineTool({
     if (containsExprSentinel.parse(patch)) return exprRefusal();
     const dropped =
       replace === true ? await droppedHiddenOptions(path, patch) : [];
-    return dropped.length > 0
-      ? refusalResult(
-          "unsupported",
-          `replace:true would drop ${dropped.join(", ")}, which builder_page_structure hides because the page holds code over a mapped module that may come from rows. Merge the patch without replace to keep them, or send them yourself.`,
-        )
-      : opResult(await ConfigureBlock(path, patch, { replace }));
+    if (dropped.length > 0) {
+      return refusalResult(
+        "unsupported",
+        `replace:true would drop ${dropped.join(", ")}, which builder_page_structure hides because the page holds code over a mapped module that may come from rows. Merge the patch without replace to keep them, or send them yourself.`,
+      );
+    }
+    const judged = await judgePatch(path, patch, replace);
+    if (!judged.ok) return judged.refusal;
+    const opts: ConfigureBlockOpts = { replace };
+    if (judged.expectedVersion !== undefined) {
+      opts.expectedVersion = judged.expectedVersion;
+    }
+    return opResult(await ConfigureBlock(path, patch, opts));
   },
 });
 

@@ -4,6 +4,7 @@ covers:
   - packages/dms/src/utils/owner-only-file.ts
 docs:
   - packages/dms/docs/08.ai-and-claude-code/10.mcp-server.md
+  - packages/dms/docs/08.ai-and-claude-code/15.block-requests.md
 ---
 
 # MCP server
@@ -14,6 +15,7 @@ The MCP server the DMS serves in development, so a coding agent started in the p
 
 - `bridge-initializes-and-lists-tools`: the bridge answers `initialize` with the `dms` server, and `tools/list` serves the read, builder and project tools of the full scope, with the read tools marked read-only.
 - `bridge-calls-a-read-tool`: `tools/call` through the bridge runs `builder_catalog` and answers the block types, the DataTypes and the reserved field names as text.
+- `builder-refuses-a-form-posting-to-the-connect-check`: Access: `builder_add_block` refuses a Form whose `submitUrl` is the assistant's owner-only `POST /api/builder/database/connections/check` with the `invalid_config` issue `/config/submitUrl`, and `builder_page_structure` shows the page holds no block posting there. A block an agent builds sends writes only to the DataAPI endpoints of the project's resources.
 - `bridge-refuses-unknown-tool-and-method`: error path: an unknown tool answers JSON-RPC `-32602` and an unknown method `-32601`.
 - `route-refuses-uncredentialled-callers`: Exposure: `POST /dms/mcp` answers 401 to a caller with no credential and to one with a wrong credential.
 - `page-verify-reports-a-page`: `page_verify` signs a headless Chromium in as the owner through the session handoff, opens the playground's users table, and reports every block present, the table's data loaded, the New entry form validating an empty submit, and writes and names no screenshot; a route no page serves fails with its own line.
