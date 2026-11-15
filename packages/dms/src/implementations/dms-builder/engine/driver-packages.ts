@@ -21,44 +21,30 @@ interface Driver {
 }
 
 /**
- * The releases of each driver with external mode, by the `@antelopejs/interface-database` range
- * each one's own dependency names, oldest first. A project on another line of the interface gets
- * a range of its own segments only: a release for another line fails to resolve. Moving the DMS
- * to another line of the interface, or a driver release, means updating this table only.
+ * The releases of each driver the connect flow installs, by the `@antelopejs/interface-database`
+ * range each one's own dependency names, oldest first. A project on another line of the interface
+ * gets a range of its own segments only: a release for another line fails to resolve. Each table
+ * starts at the driver's first release that exports `probe` and provides
+ * `@antelopejs/interface-database-catalog` 0.1, the line this module consumes: core refuses an
+ * earlier release beside it. Moving the DMS to another line of an interface, or a driver
+ * release, means updating this table only.
  */
 const DRIVERS: Record<DatabaseEngine, Driver> = {
   postgres: {
     package: "@antelopejs/postgres",
-    segments: [
-      { from: "0.2.5", interfaceDatabase: ">=0.3.0 <0.4.0" },
-      { from: "0.2.6", interfaceDatabase: ">=0.3.1 <0.4.0" },
-      { from: "0.3.0", interfaceDatabase: ">=0.3.3 <0.4.0" },
-      { from: "0.4.0", interfaceDatabase: ">=0.4.0 <0.5.0" },
-    ],
+    segments: [{ from: "0.4.1", interfaceDatabase: ">=0.4.0 <0.5.0" }],
   },
   mysql: {
     package: "@antelopejs/mysql",
-    segments: [
-      { from: "0.1.0", interfaceDatabase: ">=0.3.1 <0.4.0" },
-      { from: "0.2.0", interfaceDatabase: ">=0.4.0 <0.5.0" },
-    ],
+    segments: [{ from: "0.2.3", interfaceDatabase: ">=0.4.0 <0.5.0" }],
   },
   mongodb: {
     package: "@antelopejs/mongodb",
-    segments: [
-      { from: "1.6.2", interfaceDatabase: ">=0.3.0 <0.4.0" },
-      { from: "1.6.3", interfaceDatabase: ">=0.3.1 <0.4.0" },
-      { from: "1.8.0", interfaceDatabase: ">=0.4.0 <0.5.0" },
-    ],
+    segments: [{ from: "1.8.3", interfaceDatabase: ">=0.4.0 <0.5.0" }],
   },
   rethinkdb: {
     package: "@antelopejs/rethinkdb",
-    segments: [
-      { from: "1.7.0", interfaceDatabase: ">=0.3.0 <0.4.0" },
-      { from: "1.7.1", interfaceDatabase: ">=0.3.1 <0.4.0" },
-      { from: "1.9.0", interfaceDatabase: ">=0.3.3 <0.4.0" },
-      { from: "1.10.0", interfaceDatabase: ">=0.4.0 <0.5.0" },
-    ],
+    segments: [{ from: "1.10.2", interfaceDatabase: ">=0.4.0 <0.5.0" }],
   },
 };
 

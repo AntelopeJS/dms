@@ -17,73 +17,56 @@ import { projectFile } from "./helpers/project-files";
 
 const OP_TIMEOUT = 60_000;
 
-/** The first release of each driver built for `@antelopejs/interface-database` 0.4. */
-const BUILT_FOR_0_4: Record<"postgres" | "mongodb" | "rethinkdb", string> = {
-  postgres: "0.4.0",
-  mongodb: "1.8.0",
-  rethinkdb: "1.10.0",
-};
-
 /**
- * The latest release of each driver on npm on 2026-11-14. Each one depends on
+ * The first release of each driver that exports `probe` and provides
+ * `@antelopejs/interface-database-catalog` 0.1, released on 2026-11-15. Each one depends on
  * `@antelopejs/interface-database` `>=0.4.0 <0.5.0`.
  */
-const LATEST_ON_2026_11_14: Record<Builder.DatabaseEngine, string> = {
+const FIRST_WITH_PROBE: Record<Builder.DatabaseEngine, string> = {
+  postgres: "0.4.1",
+  mysql: "0.2.3",
+  mongodb: "1.8.3",
+  rethinkdb: "1.10.2",
+};
+
+/** The last release of each driver before `probe`, which provides the catalog 0.0 line. */
+const LAST_WITHOUT_PROBE: Record<Builder.DatabaseEngine, string> = {
   postgres: "0.4.0",
-  mysql: "0.2.1",
-  mongodb: "1.8.1",
+  mysql: "0.2.2",
+  mongodb: "1.8.2",
   rethinkdb: "1.10.1",
 };
 
 /** The first postgres release past the 0.4 line, which a closed range refuses. */
 const NEXT_POSTGRES_LINE = "0.5.0";
 
-const ENGINES_ON_0_4: (keyof typeof BUILT_FOR_0_4)[] = [
-  "postgres",
-  "mongodb",
-  "rethinkdb",
-];
-
-/** Fails on an open driver range, which resolves a release built for another line of the interface. */
+/** Fails on an open driver range, which resolves a release built for another line of an interface. */
 describe("the driver range a project can install", () => {
-  it("stops a 0.3 project before every driver release built for 0.4", () => {
-    const drivers = driverPackages("0.3.4");
-    for (const engine of ENGINES_ON_0_4) {
-      const range = drivers[engine]?.version;
-      expect(range, engine).to.be.a("string");
+  it("offers a 0.4 project each driver from its first release with probe, closed before its next minor", () => {
+    const drivers = driverPackages("0.4.2");
+    expect(drivers.postgres?.version).to.equal(">=0.4.1 <0.5.0");
+    expect(drivers.mysql?.version).to.equal(">=0.2.3 <0.3.0");
+    expect(drivers.mongodb?.version).to.equal(">=1.8.3 <1.9.0");
+    expect(drivers.rethinkdb?.version).to.equal(">=1.10.2 <1.11.0");
+  });
+
+  it("never offers a driver release core refuses beside this module", () => {
+    const drivers = driverPackages("0.4.0");
+    for (const engine of DATABASE_ENGINES) {
+      const range = drivers[engine]?.version ?? "<0.0.0";
       expect(
-        semver.satisfies(BUILT_FOR_0_4[engine], range ?? ""),
+        semver.satisfies(FIRST_WITH_PROBE[engine], range),
+        engine,
+      ).to.equal(true);
+      expect(
+        semver.satisfies(LAST_WITHOUT_PROBE[engine], range),
         engine,
       ).to.equal(false);
     }
-    expect(drivers.mysql?.version).to.equal(">=0.1.0 <0.2.0");
   });
 
-  it("leaves out the releases that need a later patch than the project's", () => {
-    const drivers = driverPackages("0.3.1");
-    expect(drivers.postgres?.version).to.equal(">=0.2.5 <0.3.0");
-    expect(drivers.rethinkdb?.version).to.equal(">=1.7.0 <1.9.0");
-    expect(drivers.mongodb?.version).to.equal(">=1.6.2 <1.8.0");
-  });
-
-  it("offers a 0.4 project only the drivers built for 0.4", () => {
-    const drivers = driverPackages("0.4.2");
-    expect(drivers.postgres?.version).to.equal(">=0.4.0 <0.5.0");
-    expect(drivers.mysql?.version).to.equal(">=0.2.0 <0.3.0");
-    expect(drivers.mongodb?.version).to.equal(">=1.8.0 <1.9.0");
-    expect(drivers.rethinkdb?.version).to.equal(">=1.10.0 <1.11.0");
-  });
-
-  it("offers every engine its latest driver on interface-database 0.4.0, as npm listed them on 2026-11-14", () => {
-    const drivers = driverPackages("0.4.0");
-    for (const engine of DATABASE_ENGINES) {
-      const range = drivers[engine]?.version;
-      expect(range, `${engine} has a driver`).to.be.a("string");
-      expect(
-        semver.satisfies(LATEST_ON_2026_11_14[engine], range ?? "<0.0.0"),
-        `${engine} ${range}`,
-      ).to.equal(true);
-    }
+  it("offers a project on interface-database 0.3 no driver, since none built for it exports probe", () => {
+    expect(driverPackages("0.3.4")).to.deep.equal({});
   });
 
   it("offers nothing when the project resolves no interface-database", () => {
@@ -135,7 +118,7 @@ describe("connecting a driver to the project", function () {
       config.slice(config.indexOf("postgres-erp")),
     )?.[1];
     expect(written).to.equal(postgres?.version);
-    expect(semver.satisfies(BUILT_FOR_0_4.postgres, written ?? "")).to.equal(
+    expect(semver.satisfies(FIRST_WITH_PROBE.postgres, written ?? "")).to.equal(
       true,
     );
     expect(semver.satisfies(NEXT_POSTGRES_LINE, written ?? "")).to.equal(false);

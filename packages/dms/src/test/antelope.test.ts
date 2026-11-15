@@ -125,7 +125,7 @@ export default defineConfig({
       source: providerSource(
         LOCAL_MONGODB_PATH,
         "@antelopejs/mongodb",
-        "1.8.0",
+        "1.8.3",
       ),
     },
     "auth-jwt": {
