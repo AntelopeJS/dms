@@ -7,7 +7,7 @@ export function pageQueryValues(
 ): Record<string, string> {
   return Object.fromEntries(
     Object.entries(query ?? {}).flatMap(([name, value]) => {
-      const last = Array.isArray(value) ? value.at(-1) : value;
+      const last: unknown = Array.isArray(value) ? value.at(-1) : value;
       return isString(last) ? [[name, last]] : [];
     }),
   );

@@ -33,7 +33,7 @@ export function periodQueryKeys(id?: string): PeriodQueryKeys {
 function firstText(
   value: Parameters<typeof withPeriodQuery>[1][string],
 ): string | undefined {
-  const text = Array.isArray(value) ? value[0] : value;
+  const text: unknown = Array.isArray(value) ? value[0] : value;
   return isString(text) && text ? text : undefined;
 }
 

@@ -1,5 +1,3 @@
-import type { JsonPrimitive } from "../types/json";
-
 export function validateRequiredQueryParams(
   requiredParams: string[] | undefined,
   queryParams: ValidationRouteContext["query"],
@@ -15,8 +13,7 @@ export function validateRequiredQueryParams(
 }
 
 export interface ValidationRouteContext {
-  /** By name, the value or values a route or a stored selection carries. */
-  query: Record<string, JsonPrimitive | JsonPrimitive[]>;
+  query: Record<string, unknown>;
   params: ValidationRouteContext["query"];
 }
 
