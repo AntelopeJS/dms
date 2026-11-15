@@ -134,8 +134,14 @@ export const writeAt = (
   const lastKey = keys.at(-1)!;
   let current = tree;
   for (const key of keys.slice(0, -1)) {
-    if (!isBranch(current[key])) current[key] = {};
-    current = current[key] as PreferencesTree;
+    const next = current[key];
+    if (isBranch(next)) {
+      current = next;
+      continue;
+    }
+    const branch: PreferencesTree = {};
+    current[key] = branch;
+    current = branch;
   }
   current[lastKey] = value;
 };

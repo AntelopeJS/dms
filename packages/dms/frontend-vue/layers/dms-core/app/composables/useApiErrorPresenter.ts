@@ -35,13 +35,16 @@ export interface PresentApiErrorOptions extends ResolveApiErrorOptions {
   readonly replaceToastId?: ApiErrorToastId;
 }
 
+/** Anything thrown or rejected, as `decodeApiFailure` reads it. */
+type ApiFailure = Parameters<typeof decodeApiFailure>[0];
+
 /** Captured during setup and callable after awaits. */
 export interface ApiErrorPresenter {
   resolveError(
-    error: unknown,
+    error: ApiFailure,
     options: ResolveApiErrorOptions,
   ): ApiErrorNotice | null;
-  presentError(error: unknown, options: PresentApiErrorOptions): void;
+  presentError(error: ApiFailure, options: PresentApiErrorOptions): void;
 }
 
 const GENERIC_KEY = "error.500.description";
@@ -53,7 +56,17 @@ const ICONS: Record<ApiErrorSeverity, string> = {
   error: "i-ph-warning-circle",
 };
 
-function isCompiledMessage(value: unknown): boolean {
+/** A message vue-i18n compiled ahead of time: its AST, typed `0` at the root. */
+type CompiledMessage = { type: 0 } | { t: 0 };
+
+/** A message `rt` renders: its source text, a message function or a compiled AST. */
+type RenderableMessage =
+  | string
+  | ((...args: never[]) => string)
+  | CompiledMessage;
+
+function isRenderableMessage(value: unknown): value is RenderableMessage {
+  if (typeof value === "string" || typeof value === "function") return true;
   return (
     value !== null &&
     typeof value === "object" &&
@@ -80,12 +93,7 @@ export function useApiErrorPresenter(): ApiErrorPresenter {
     if (!key) return null;
     try {
       const message = i18n.tm(key.startsWith("$") ? key.slice(1) : key);
-      if (
-        typeof message !== "string" &&
-        typeof message !== "function" &&
-        !isCompiledMessage(message)
-      )
-        return null;
+      if (!isRenderableMessage(message)) return null;
       return i18n.rt(message, params);
     } catch {
       return null;
@@ -110,13 +118,16 @@ export function useApiErrorPresenter(): ApiErrorPresenter {
   }
 
   function resolveError(
-    error: unknown,
+    error: ApiFailure,
     options: ResolveApiErrorOptions,
   ): ApiErrorNotice | null {
     return noticeOf(decodeApiFailure(error), options);
   }
 
-  function presentError(error: unknown, options: PresentApiErrorOptions): void {
+  function presentError(
+    error: ApiFailure,
+    options: PresentApiErrorOptions,
+  ): void {
     if (import.meta.env.SSR) return;
     const failure = decodeApiFailure(error);
     const notice = noticeOf(failure, options);
