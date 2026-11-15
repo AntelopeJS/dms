@@ -155,15 +155,14 @@ describe("[unit] a block the builder writes for an agent sends requests only to 
 
   it("refuses an API action and a non-GET load nested anywhere in the options, but not a GET load", async () => {
     expect(
-      (
-        await refusedPointers("builder_compose_page", {
-          pageRef: PAGE,
-          blocks: NESTED_REQUESTS,
-        })
-      ).filter((pointer) => pointer.includes("/config/")),
+      await refusedPointers("builder_compose_page", {
+        pageRef: PAGE,
+        blocks: NESTED_REQUESTS,
+      }),
     ).to.deep.equal([
       "/blocks/0/config/fetchUrl",
       "/blocks/1/config/fields/0/type/config/rotateUrl",
+      "/blocks/1",
       "/blocks/3/config/rowActions/custom/0/target/url",
       "/blocks/3/config/rowActions/custom/1/target/url",
       "/blocks/3/config/rowActions/custom/3/target/url",

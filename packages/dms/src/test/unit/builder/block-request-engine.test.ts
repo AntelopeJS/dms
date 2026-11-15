@@ -185,7 +185,7 @@ function engineWrittenCases(): void {
     expect(read.isError, read.text).to.equal(undefined);
   });
 
-  it("lets only one of two patches judged against the same page write", async () => {
+  it("lets only one of two patches sent at once turn a load into a write", async () => {
     await call("builder_add_block", {
       page: PAGE,
       name: "raceCard",
@@ -295,6 +295,17 @@ function entryPointCases(): void {
       ),
     ).to.deep.equal(["/config/submitUrl"]);
     expect(readShop(PAGE_FILE)).to.equal(before);
+  });
+
+  it("AddBlock refuses a link written as code, whose scheme it cannot read", async () => {
+    expect(
+      enginePointers(
+        await AddBlock(
+          addForm("exprLink", { to: { $expr: "'javascript:alert(1)'" } }),
+          { agent: true },
+        ),
+      ),
+    ).to.deep.equal(["/config/to"]);
   });
 
   it("ConfigureBlock refuses a patch that turns a foreign load into a write", async () => {

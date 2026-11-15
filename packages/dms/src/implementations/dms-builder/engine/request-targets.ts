@@ -186,10 +186,12 @@ function urlTargets(
  * Whether a link leaves the page without running a script: a written-out
  * `http`, `https`, `mailto` or `tel` scheme, whatever tokens follow it, or no
  * scheme and no `{{token}}` before the first `/`, `?` or `#`, where a filled
- * token could spell one. A link that is not text, such as a route object,
- * names no scheme.
+ * token could spell one. A link written as code (`$expr`) is never safe,
+ * since the builder cannot read its scheme. Another link that is not text,
+ * such as a route object, names no scheme.
  */
 function isSafeLink(url: ConfigValue): boolean {
+  if (isOptions(url) && Object.hasOwn(url, "$expr")) return false;
   const parsed = LinkSchema.safeParse(url);
   if (!parsed.success) return true;
   const scheme = URL_SCHEME.exec(parsed.data)?.[1]?.toLowerCase();

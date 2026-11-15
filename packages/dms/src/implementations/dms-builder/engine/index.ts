@@ -49,7 +49,7 @@ export * from "./query-plan-execute";
 export * from "./query-preview";
 export * from "./query-structure";
 export * from "./query-template-emit";
-export { draftRequestIssues } from "./request-targets";
+export * from "./request-targets";
 export * from "./resource-emit";
 export * from "./resource-index";
 export * from "./scan";
