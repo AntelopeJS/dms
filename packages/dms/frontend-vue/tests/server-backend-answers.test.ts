@@ -29,6 +29,13 @@ const FAILED: Reply = {
 
 const ACCESS_TOKEN = `header.${Buffer.from('{"tenantId":"t1"}').toString("base64url")}.signature`;
 const PAIR = { access_token: ACCESS_TOKEN, refresh_token: "refresh-1" };
+/** Deeper than a recursive walk of a parsed body reaches before it exhausts the stack. */
+const DEEP_NESTING = 20_000;
+
+/** An access token whose payload is `claims`, as the session reads it. */
+function tokenWithClaims(claims: string): string {
+  return `header.${Buffer.from(claims).toString("base64url")}.signature`;
+}
 const TOKENS = { ...PAIR, user: USER };
 const CHALLENGE = {
   requires_2fa: true,
@@ -263,6 +270,27 @@ describe("the backend answers and request bodies the DMS's server routes read", 
     });
   });
 
+  it("shows the OAuth error key a refused provider sign-in answers, and the generic failure for any other refusal", async () => {
+    const callback = async (reply: Reply) =>
+      seen(
+        await askReplying(
+          "/auth/oauth/github/callback?code=c&state=state-1",
+          { "/api/auth/oauth/github/callback": reply },
+          providerRequest(),
+        ),
+      );
+    const taken = await callback({
+      status: 409,
+      body: { message: "error.oauth.email_taken" },
+    });
+    expect(taken.location).toBe("/auth?oauth_error=error.oauth.email_taken");
+    const other = await callback({
+      status: 409,
+      body: { message: "error.409.description" },
+    });
+    expect(other.location).toBe("/auth?oauth_error=error.oauth.failed");
+  });
+
   it("starts no provider sign-in from an authorize-url answer of another shape", async () => {
     const start = async (reply: Reply) =>
       seen(
@@ -352,6 +380,57 @@ describe("the backend answers and request bodies the DMS's server routes read", 
         await askAccount("/auth/switch-account", { "/api/auth/me": ok(user) }),
         JSON.stringify(user),
       ).toEqual(userFailed);
+  });
+
+  it("answers a body whose unread field nests deeper than a recursive walk reaches as one without it", async () => {
+    const accountId = randomUUID();
+    const cookie = sealedCookie(
+      `dms_account_${accountId.replaceAll("-", "")}`,
+      { accountId, persistent: true, refreshToken: "refresh-1" },
+    );
+    const deep = `${"[".repeat(DEEP_NESTING)}${"]".repeat(DEEP_NESTING)}`;
+    const fields = `"accountId":${JSON.stringify(accountId)},"tenantId":"t2","endpoint":"/api/nope"`;
+    for (const route of [
+      "/auth/remove-account",
+      "/auth/switch-account",
+      "/auth/validate-account",
+      "/auth/establish",
+      "/auth/switch-tenant",
+    ]) {
+      const ask = (rawBody: string) =>
+        askReplying(
+          route,
+          { "/api/auth/refresh": FAILED },
+          { cookie, rawBody },
+        );
+      const shallow = await ask(`{${fields}}`);
+      const nested = await ask(`{${fields},"extra":${deep}}`);
+      expect({ status: nested.status, body: nested.body }, route).toEqual({
+        status: shallow.status,
+        body: shallow.body,
+      });
+    }
+  });
+
+  it("opens no session from tokens whose claims are null, and opens the default tenant for a tenant id that is no string", async () => {
+    const signIn = (reply: Reply) =>
+      askReplying(
+        "/auth/login",
+        { "/api/auth/login": reply },
+        { body: SIGN_IN },
+      );
+    const failed = await signIn(FAILED);
+    expect(
+      await signIn(ok({ ...TOKENS, access_token: tokenWithClaims("null") })),
+    ).toEqual(failed);
+    const numbered = await signIn(
+      ok({ ...TOKENS, access_token: tokenWithClaims('{"tenantId":5}') }),
+    );
+    expect(numbered.status).toBe(200);
+    expect(
+      numbered.cookies.find((cookie) => cookie.name.startsWith("dms_session"))
+        ?.value,
+    ).toMatchObject({ activeTenantId: "default" });
   });
 
   it("refuses a JSON body that is no object as one that is no JSON, before it calls the backend", async () => {

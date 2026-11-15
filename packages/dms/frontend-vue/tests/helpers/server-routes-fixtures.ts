@@ -188,6 +188,8 @@ async function ask(
   init: {
     method?: string;
     body?: unknown;
+    /** A body already written as JSON text, sent as it is in place of `body`. */
+    rawBody?: string;
     cookie?: string;
     origin?: boolean;
     headers?: Record<string, string>;
@@ -197,11 +199,14 @@ async function ask(
   const headers = new Headers(init.headers);
   if (init.cookie) headers.set("cookie", init.cookie);
   if (init.origin !== false) headers.set("origin", base);
-  if (init.body !== undefined) headers.set("content-type", "application/json");
+  const body =
+    init.rawBody ??
+    (init.body === undefined ? undefined : JSON.stringify(init.body));
+  if (body !== undefined) headers.set("content-type", "application/json");
   const response = await fetch(`${base}${path}`, {
     method: init.method ?? "POST",
     headers,
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    body,
     redirect: "manual",
   });
   const text = await response.text();

@@ -261,8 +261,12 @@ const frontendModule: DmsFrontendModule = {
     registerMiddleware(sdk);
     registerComponents(sdk);
     registerCustomPages(sdk);
-    registerEntries(dynamicPages, "pages", sdk.registerDynamicPage);
-    registerEntries(layouts, "custom-layouts", sdk.registerLayout);
+    registerEntries(dynamicPages, "pages", (name, component, preload) =>
+      sdk.registerDynamicPage(name, component, preload),
+    );
+    registerEntries(layouts, "custom-layouts", (name, component, preload) =>
+      sdk.registerLayout(name, component, preload),
+    );
     sortedEntries(errorPages).forEach(([, loader]) => {
       sdk.registerErrorPage(lazyComponent(loader), loader);
     });

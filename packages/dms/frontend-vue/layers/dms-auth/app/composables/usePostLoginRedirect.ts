@@ -19,12 +19,13 @@ export async function usePostLoginRedirect(
   options: PostLoginRedirectOptions = {},
 ) {
   const dmsApp = useDmsApp();
-  const { fetch: refreshUser, user } = useDmsUserSession<User>();
+  const userSession = useDmsUserSession<User>();
+  const { user } = userSession;
   const { addCurrentAccount } = useMultiAccount();
   const siteLayout = useSiteLayout();
   const homepage = useHomepage();
 
-  await refreshUser();
+  await userSession.fetch();
   if (!user.value) {
     throw new Error(
       "Unable to load the authenticated session. Please sign in again.",

@@ -3,7 +3,7 @@ pre-commit:
   commands:
     playground-types:
       priority: 1
-      glob: "packages/dms/playground/frontend-vue/**/*.{ts,vue}"
+      glob: "packages/dms/{playground/frontend-vue,frontend-vue}/**/*.{ts,vue}"
       run: test -e packages/dms/playground/.frontend-vue-types/tsconfig.json || pnpm --dir packages/dms/playground run -s types:prepare
     antelopejs-format:
       run: pnpm exec oxfmt --no-error-on-unmatched-pattern {staged_files}

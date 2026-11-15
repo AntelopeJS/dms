@@ -19,12 +19,14 @@ function isAuthOptions(value: MiddlewareMeta): value is AuthMiddlewareOptions {
  */
 async function loadPermissionsIfNeeded(
   { loadPermissions }: ReturnType<typeof usePermissions>,
-  { presentError }: ReturnType<typeof useApiErrorPresenter>,
+  errorPresenter: ReturnType<typeof useApiErrorPresenter>,
 ) {
   try {
     await loadPermissions();
   } catch (error: unknown) {
-    presentError(error, { fallbackKey: "error.500.description" });
+    errorPresenter.presentError(error, {
+      fallbackKey: "error.500.description",
+    });
   }
 }
 

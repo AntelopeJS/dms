@@ -1,0 +1,9 @@
+layers/dms-ui/app/build/types/**
+layers/dms-ui/app/components/**
+layers/dms-ui/app/composables/**
+layers/dms-ui/app/config/**
+layers/dms-ui/app/entries/**
+layers/dms-ui/app/plugins/**
+layers/dms-ui/app/types/**
+layers/dms-ui/app/utils/**
+layers/dms-ui/i18n/**

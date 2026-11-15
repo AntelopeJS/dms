@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, realpathSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { join, sep } from "node:path";
 import {
   ANTELOPE_IGNORE_PATTERNS,
@@ -26,6 +26,21 @@ const CLAUDE_SKILL_LINKS = readdirSync(CLAUDE_SKILLS, { withFileTypes: true })
     `.claude/skills/${entry.name}`,
     `.claude/skills/${entry.name}/**`,
   ]);
+
+const FRONTEND_VUE = "packages/dms/frontend-vue";
+const PENDING = join(import.meta.dirname, FRONTEND_VUE, ".oxlint-pending");
+
+/**
+ * The areas of the Vue layer the preset does not lint yet (ANT-2241): one file per
+ * area in `packages/dms/frontend-vue/.oxlint-pending`, each line a glob under the
+ * layer. The change that fixes an area's findings deletes its file.
+ */
+export const PENDING_FRONTEND_VUE = readdirSync(PENDING).flatMap((area) =>
+  readFileSync(join(PENDING, area), "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map((glob) => `${FRONTEND_VUE}/${glob}`),
+);
 
 /**
  * Reaching the runtime root from a leaf creates an evaluation cycle for
@@ -92,7 +107,7 @@ export default defineConfig({
   ignorePatterns: [
     ...ANTELOPE_IGNORE_PATTERNS,
     ...CLAUDE_SKILL_LINKS,
-    "packages/dms/frontend-vue/**",
+    ...PENDING_FRONTEND_VUE,
     "packages/dms/playground/frontend-vue/app/plugins/app-widget-demo.ts",
     "packages/dms/playground/frontend-vue/app/plugins/command-palette-assistant-demo.client.ts",
     "packages/dms/playground/frontend-vue/app/plugins/command-palette-source-demo.client.ts",

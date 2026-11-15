@@ -16,7 +16,7 @@ const FALLBACK_ERROR_KEY = "error.oauth.failed";
 export function useOAuthErrorToast(): void {
   const route = useDmsRoute();
   const router = useDmsRouter();
-  const { presentError } = useApiErrorPresenter();
+  const errorPresenter = useApiErrorPresenter();
 
   function toErrorMessageKey(
     value: ReturnType<typeof useDmsRoute>["query"][string],
@@ -26,13 +26,15 @@ export function useOAuthErrorToast(): void {
     return FALLBACK_ERROR_KEY;
   }
 
-  onMounted(() => {
+  onMounted(async () => {
     const messageKey = toErrorMessageKey(route.query[OAUTH_ERROR_QUERY]);
     if (!messageKey) return;
 
-    presentError(messageKey, { fallbackKey: FALLBACK_ERROR_KEY });
+    errorPresenter.presentError(messageKey, {
+      fallbackKey: FALLBACK_ERROR_KEY,
+    });
 
     const { [OAUTH_ERROR_QUERY]: _consumed, ...query } = route.query;
-    void router.replace({ query });
+    await router.replace({ query });
   });
 }

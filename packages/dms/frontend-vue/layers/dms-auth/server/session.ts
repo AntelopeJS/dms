@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { DmsPublicSession, DmsServerEvent, DmsSession } from "#dms/server";
 import { isPersistent, persistAccountSession, removeAccount } from "./accounts";
 import { type SessionTokens, sessionUser, tokenPair } from "./backend-answers";
-import { isNumber } from "../../dms-core/app/utils/type-check";
+import { isNumber, isString } from "../../dms-core/app/utils/type-check";
 
 const REFRESH_TTL_MS = 15_000;
 const REFUSED = [400, 401, 403];
@@ -14,9 +14,38 @@ interface RefreshFlight {
 
 const refreshes = new Map<string, RefreshFlight>();
 
-export function isRefusal(error: unknown): boolean {
-  const status = (error as { status?: unknown } | undefined)?.status;
-  return isNumber(status) && REFUSED.includes(status);
+/** A thrown value that carries an HTTP status, as a refused backend call does. */
+interface StatusError {
+  status: number;
+}
+
+/** Whether `error` is an object or a function that carries a numeric HTTP `status`. */
+function hasStatus(error: unknown): error is StatusError {
+  return (
+    (typeof error === "object" || typeof error === "function") &&
+    error !== null &&
+    "status" in error &&
+    isNumber(error.status)
+  );
+}
+
+/** Whether `error` is the backend refusing the session: a 400, 401 or 403. */
+export function isRefusal(error: unknown): error is StatusError {
+  return hasStatus(error) && REFUSED.includes(error.status);
+}
+
+/** What this module reads of an access token's payload. */
+interface AccessTokenClaims {
+  tenantId: string;
+}
+
+function hasTenantId(payload: unknown): payload is AccessTokenClaims {
+  return (
+    typeof payload === "object" &&
+    payload !== null &&
+    "tenantId" in payload &&
+    isString(payload.tenantId)
+  );
 }
 
 /**
@@ -29,17 +58,19 @@ export function sessionFrom(
   result: SessionTokens,
   persistent = true,
 ): DmsSession {
-  const payload = JSON.parse(
+  const payload: unknown = JSON.parse(
     Buffer.from(
       result.access_token.split(".")[1] ?? "",
       "base64url",
     ).toString() || "{}",
   );
+  if (payload === null)
+    throw new TypeError("The access token carries no claims");
   return {
     user: result.user,
     accessToken: result.access_token,
     refreshToken: result.refresh_token,
-    activeTenantId: payload.tenantId ?? "default",
+    activeTenantId: hasTenantId(payload) ? payload.tenantId : "default",
     persistent,
   };
 }
