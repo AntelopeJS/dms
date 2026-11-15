@@ -1,6 +1,6 @@
 import { ComposePage } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
-import { JsonObjectSchema } from "../json";
+import { JsonObjectSchema, JsonValueSchema } from "../json";
 import { redactPreview } from "../redact";
 import { defineTool, type McpToolResult } from "../tool";
 import {
@@ -11,6 +11,7 @@ import {
   shownOpResult,
 } from "./builder-shared";
 import { QUERY_ARGS, QUERY_FIELDS } from "./builder-queries";
+import { foreignRequestRefusal } from "./builder-request-targets";
 
 const DESCRIPTION =
   "Builds a whole page, or adds a group of blocks to one, in a single call: the blocks, the queries they read, the layout rows and the page itself when it does not exist yet. One rewrite, one typecheck, and nothing is written when any block is refused; the error names each refused block by JSON pointer into your input (`/blocks/3/children/0/query/params/groupBy`). A data block carries its `query` inline (the builder_add_query fields, `name` defaulting to the block's name): the route it compiles to is written into the block's `fetchUrl` for you, so never pass `fetchUrl` yourself. Containers (`PageToolbar`, `Grid`, `GridRow`, `Section`…) carry their blocks in `children`, and a child sits in its row in order. Pass `preview: true` first to run every query with `args` and read each block's `status` and the types its answer holds, never a value, without writing: a block whose `status` is `empty` or `zero` would render nothing useful, so fix its query before the writing call. To put blocks above or below a table already on the page (a KPI row above the TableView a mapping wrote), pass `placement: { before: \"table\" }`; a later builder_map_resources keeps them. Use builder_add_block and builder_add_query for a single edit.";
@@ -103,6 +104,29 @@ const PLACEMENT = z
     'Put the new blocks next to the block of this name among the siblings already there (e.g. `{ "before": "table" }`). Omit to append.',
   );
 
+/**
+ * The blocks as the engine writes them: a block's query route goes into the
+ * option its `query.into` names (`fetchUrl` by default), so a route written
+ * into `submitUrl` is judged as the request it becomes. The route stands as
+ * its query's name, which no request rule allows: a query answers reads.
+ */
+function withQueryRoutes(blocks: ComposeBlockInput[]): ComposeBlockInput[] {
+  return blocks.map((block) => {
+    const written: ComposeBlockInput = {
+      ...block,
+      children: withQueryRoutes(block.children ?? []),
+    };
+    if (block.query !== undefined) {
+      written.config = {
+        ...block.config,
+        [block.query.into ?? "fetchUrl"]:
+          `<route of query ${block.query.name ?? block.name}>`,
+      };
+    }
+    return written;
+  });
+}
+
 /** The composition's answer, each preview reduced to the types its body holds. */
 async function composeResult(
   answer: Awaited<ReturnType<typeof ComposePage>>,
@@ -148,8 +172,12 @@ export const builderComposeTool = defineTool({
   }),
   async run({ pageRef, ...rest }) {
     const input = { page: pageRef, ...rest };
-    return containsExprSentinel.parse(input)
-      ? exprRefusal()
-      : composeResult(await ComposePage(input));
+    if (containsExprSentinel.parse(input)) return exprRefusal();
+    return (
+      (await foreignRequestRefusal(
+        JsonValueSchema.parse(withQueryRoutes(rest.blocks)),
+        "/blocks",
+      )) ?? composeResult(await ComposePage(input))
+    );
   },
 });
