@@ -1,6 +1,7 @@
 import { ownModuleId } from "./own-connections";
 import { randomUUID } from "node:crypto";
 import type {
+  CatalogInfo,
   RelationDescription,
   RelationProfile,
   RelationSummary,
@@ -29,6 +30,16 @@ const PROFILE_LIMIT = 200;
 const jobs = new Map<string, AnalysisState>();
 /** Each connection's latest job, by id: the running one, or else the last to finish. */
 const latestByConnection = new Map<string, string>();
+
+/** A finished proposal, with the key of everything it was computed from. */
+interface Reusable {
+  read: string;
+  proposal: MappingProposal;
+  progress: AnalysisProgress;
+}
+
+/** Each connection's last finished proposal, which the next analysis reuses when it reads the same. */
+const reusableByConnection = new Map<string, Reusable>();
 
 function jobOf(connection: string): AnalysisState | undefined {
   const id = latestByConnection.get(connection);
@@ -119,6 +130,24 @@ function settledIn(module: string): Settled {
   };
 }
 
+function readKey(
+  input: AnalyseDatabaseInput,
+  settled: Settled,
+  info: CatalogInfo,
+  summaries: RelationSummary[],
+  described: RelationDescription[],
+): string {
+  return JSON.stringify({
+    module: input.module,
+    schemas: input.schemas,
+    mapped: [...settled.mapped].sort(([a], [b]) => a.localeCompare(b)),
+    excluded: [...settled.excluded].sort(),
+    info,
+    summaries,
+    described,
+  });
+}
+
 function mappedTargets(
   descriptions: RelationDescription[],
   settled: Settled,
@@ -160,7 +189,8 @@ async function analyse(
   input: AnalyseDatabaseInput,
   catalog: CatalogConnection,
   progress: AnalysisProgress,
-): Promise<MappingProposal> {
+  previous: Reusable | undefined,
+): Promise<Reusable> {
   const settled = settledIn(input.module);
   const info = await catalog.Info();
   const summaries = await catalog.ListRelations(input.schemas);
@@ -173,16 +203,18 @@ async function analyse(
   const mappable = pending.filter((summary) => !summary.unmappable);
   const base = { connection: input.connection, module: input.module, info };
   if (!input.schemas && mappable.length > PROFILE_LIMIT) {
+    const proposal = proposeMapping({
+      ...base,
+      summaries: [],
+      descriptions: [],
+      profiles: [],
+      references: [],
+      mapped: {},
+    });
     return {
-      ...proposeMapping({
-        ...base,
-        summaries: [],
-        descriptions: [],
-        profiles: [],
-        references: [],
-        mapped: {},
-      }),
-      open: [schemasQuestion(input, mappable)],
+      read: readKey(input, settled, info, summaries, []),
+      proposal: { ...proposal, open: [schemasQuestion(input, mappable)] },
+      progress,
     };
   }
   const toDescribe = [
@@ -192,6 +224,11 @@ async function analyse(
       .filter((relation) => settled.mapped.has(relation)),
   ];
   const described = await describeAll(catalog, toDescribe, progress);
+  const read = readKey(input, settled, info, summaries, described);
+  if (previous?.read === read) {
+    Object.assign(progress, previous.progress);
+    return { ...previous, progress };
+  }
   const descriptions = described.filter(
     (description) => !settled.mapped.has(relationName(description)),
   );
@@ -200,7 +237,7 @@ async function analyse(
     descriptions.map(relationName),
     progress,
   );
-  return proposeMapping({
+  const proposal = proposeMapping({
     ...base,
     summaries: pending,
     descriptions,
@@ -208,6 +245,7 @@ async function analyse(
     references: await checkReferences(catalog, described, settled),
     mapped: mappedTargets(described, settled),
   });
+  return { read, proposal, progress };
 }
 
 function run(
@@ -215,10 +253,19 @@ function run(
   input: AnalyseDatabaseInput,
   catalog: CatalogConnection,
 ): void {
-  analyse(input, catalog, job.progress).then(
-    (proposal) => {
+  analyse(
+    input,
+    catalog,
+    job.progress,
+    reusableByConnection.get(input.connection),
+  ).then(
+    (finished) => {
       job.status = "done";
-      job.proposal = proposal;
+      job.proposal = finished.proposal;
+      reusableByConnection.set(input.connection, {
+        ...finished,
+        progress: { ...finished.progress },
+      });
     },
     (error: unknown) => {
       job.status = "failed";
@@ -237,7 +284,9 @@ function snapshot(job: AnalysisState): OpResult<AnalysisState> {
 
 /**
  * Starts an analysis of one of the builder's connections, or answers the one running on it. A
- * finished job is replaced by the next one on its connection.
+ * finished job is replaced by the next one on its connection, which reads the catalog again and
+ * reuses the finished proposal, profiling nothing, when the module's mapping, the schemas and the
+ * catalog's relations and descriptions are unchanged.
  */
 export function startAnalysis(
   input: AnalyseDatabaseInput,

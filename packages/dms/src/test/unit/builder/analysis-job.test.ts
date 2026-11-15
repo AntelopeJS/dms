@@ -160,8 +160,16 @@ function jobOf(result: OpResult<AnalysisState>): AnalysisState {
   return result.data;
 }
 
-async function analysed(): Promise<AnalysisState> {
-  const started = await AnalyseDatabase({ connection: "erp", module: MODULE });
+function profiled(): string[] {
+  return calls.filter((call) => call.startsWith("Profile:"));
+}
+
+async function analysed(schemas?: string[]): Promise<AnalysisState> {
+  const started = await AnalyseDatabase({
+    connection: "erp",
+    module: MODULE,
+    schemas,
+  });
   if (!started.ok) {
     throw new Error(`AnalyseDatabase: ${JSON.stringify(started.error)}`);
   }
@@ -189,18 +197,49 @@ function proposesWhatIsMappable(): void {
     expect(
       invoice.fields.find((field) => field.column === "order_id")?.relation,
     ).to.include({ value: "erp.orders", rule: "F5" });
+    expect(profiled()).to.deep.equal([
+      "Profile:erp.customers",
+      "Profile:erp.orders",
+      "Profile:erp.invoices",
+    ]);
+    expect(calls.some((call) => call.includes("erp.people"))).to.equal(false);
   });
 
-  it("describes and profiles only what is mappable, one relation at a time", () => {
-    return analysed().then(() => {
-      expect(calls.filter((call) => call.startsWith("Profile:"))).to.deep.equal(
-        ["Profile:erp.customers", "Profile:erp.orders", "Profile:erp.invoices"],
-      );
-      expect(calls.some((call) => call.includes("erp.people"))).to.equal(false);
-    });
+  it("reuses a finished analysis while the mapping, the schemas and the database are unchanged", async () => {
+    const first = await analysed(["erp"]);
+    expect(profiled()).to.have.length(3);
+    calls.length = 0;
+    const second = await analysed(["erp"]);
+    expect(second.id).to.not.equal(first.id);
+    expect(second.proposal).to.deep.equal(first.proposal);
+    expect(second.progress).to.deep.equal(first.progress);
+    expect(
+      calls.filter(
+        (call) =>
+          call.startsWith("Profile:") || call.startsWith("CheckReference:"),
+      ),
+    ).to.deep.equal([]);
+  });
+
+  it("profiles again once the database's catalog changed", async () => {
+    await analysed(["erp"]);
+    calls.length = 0;
+    const grown = RELATIONS.map((relation) =>
+      relation.name === "invoices"
+        ? { ...relation, estimatedRows: 1000 }
+        : relation,
+    );
+    setCatalogConnectionsForTests({ erp: catalogOver(grown) });
+    try {
+      await analysed(["erp"]);
+      expect(profiled()).to.have.length(3);
+    } finally {
+      setCatalogConnectionsForTests({ erp: catalogOver(RELATIONS) });
+    }
   });
 
   it("leaves out what the module mapped or excluded, and points references at what it mapped", async () => {
+    await analysed();
     const mapped = await MapResources({
       module: MODULE,
       connection: "erp",

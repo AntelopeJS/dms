@@ -202,7 +202,9 @@ export interface AnalysisState {
 /**
  * Starts an analysis of a connection's database, and answers its job at once. Profiling is
  * slow, so the proposal comes later through `GetAnalysis`. One job runs per connection; starting
- * another while one runs answers the running one.
+ * another while one runs answers the running one. A new job reuses the last finished proposal on
+ * its connection, profiling nothing, while the module's mapping, the schemas and the catalog are
+ * unchanged.
  */
 export const AnalyseDatabase =
   InterfaceFunction<
