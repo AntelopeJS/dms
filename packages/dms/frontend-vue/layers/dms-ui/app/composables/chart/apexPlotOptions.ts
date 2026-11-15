@@ -1,7 +1,6 @@
 import type { ApexOptions } from "apexcharts";
 import type { UseApexChartInput } from "./useApexChart.types";
 import type { ChartType } from "./types";
-import type { RawOptionSection } from "../../build/composables/chart/apexRawOptions";
 import {
   readThemeDimmed,
   readThemeHighlighted,
@@ -138,6 +137,6 @@ const PLOT_BUILDERS: Partial<Record<ChartType, PlotBuilder>> = {
   heatmap: buildHeatmapPlot,
 };
 
-export function buildPlotOptions(input: UseApexChartInput): RawOptionSection {
+export function buildPlotOptions(input: UseApexChartInput): PlotOptions {
   return PLOT_BUILDERS[input.type]?.(input) ?? {};
 }
