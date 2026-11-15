@@ -189,11 +189,18 @@ export interface QuickActionsPayload {
   actions: Record<string, QuickActionInfo>;
 }
 
-export interface ComponentChild<T = object> {
+/**
+ * The metadata a child carries in its parent's layout, which its parent's
+ * block type declares: the columns it spans in a `GridRow`.
+ */
+interface ComponentChildPlacement {
+  slot?: string;
+  colSpan?: number;
+}
+
+export interface ComponentChild<T = object> extends ComponentChildPlacement {
   id: string;
   component: ComponentInfo<T>;
-  slot?: string;
-  [key: string]: unknown;
 }
 
 export interface ComponentInfo<T = object> {
@@ -202,14 +209,13 @@ export interface ComponentInfo<T = object> {
   children?: ComponentChild<T>[];
 }
 
-export interface ResolvedComponentInfo<T = object> {
+export interface ResolvedComponentInfo<T = object>
+  extends ComponentChildPlacement {
   id: string;
   options?: T;
   component: unknown;
   componentName?: string;
   children: ResolvedComponentInfo[];
-  slot?: string;
-  [key: string]: ComponentChild<T>[string];
 }
 
 export interface PageLayout {
