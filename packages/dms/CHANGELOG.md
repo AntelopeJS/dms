@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.20.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.1...v0.20.2)
+
+### 🩹 Fixes
+
+- **dms:** Scaffold a builder module on the interface ranges the DMS declares ([#1052](https://github.com/AntelopeJS/dms/pull/1052))
+- **dms:** Sign in to a checked database with the URL's credentials only ([#1057](https://github.com/AntelopeJS/dms/pull/1057))
+
+### 📦 Build
+
+- **deps:** Lock @antelopejs/core 1.23.3 in the workspace ([#1054](https://github.com/AntelopeJS/dms/pull/1054))
+- **deps:** Move to @antelopejs/tooling-configs 0.7.2 ([#1053](https://github.com/AntelopeJS/dms/pull/1053))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.20.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.0...v0.20.1)
