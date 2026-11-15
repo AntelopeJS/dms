@@ -152,6 +152,29 @@ describe("[unit] mockup sample tree reads no live route", () => {
     ).to.deep.equal([NO_FIXTURE_ROUTE, NO_FIXTURE_ROUTE, NO_FIXTURE_ROUTE]);
   });
 
+  it("confines each route of a list under a requested key, and keeps an inline data: image", () => {
+    const inline = "data:image/png;base64,AAAA";
+    const compiled = compile(
+      page([
+        {
+          type: "KpiCard",
+          options: {
+            title: "Revenue",
+            fetchUrl: [LIVE, "fixture:orders"],
+            logo: { src: inline },
+          },
+        },
+      ]),
+    );
+
+    const options = optionsOf(compiled);
+    expect(options.fetchUrl).to.deep.equal([
+      NO_FIXTURE_ROUTE,
+      "/api/mockup/demo/pages/sales/fixtures/orders",
+    ]);
+    expect(options.logo).to.deep.equal({ src: inline });
+  });
+
   it("leaves the Real data tree on the routes the spec names", () => {
     const compiled = compile(
       page(

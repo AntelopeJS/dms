@@ -16,27 +16,42 @@ const NO_FIXTURE = "~live-route";
 /** The origin a request URL is resolved against, standing for the dashboard's own. */
 const DASHBOARD = "http://dashboard.invalid";
 
+/** A URL that carries its content and loads nothing. */
+const INLINE_DATA = "data:";
+
 const requestValueSchema = z.string().min(1);
 
-/** Whether `value`, resolved as the browser resolves it, reads one of the page's fixtures. */
-function readsFixture(value: string, scope: FixtureScope): boolean {
+/**
+ * Whether `value`, resolved as the browser resolves it, reads nothing but
+ * one of the page's fixtures: a fixture route, or a `data:` URL.
+ */
+function readsFixtureOnly(value: string, scope: FixtureScope): boolean {
   const prefix = fixtureUrl(scope.name, scope.pageId, "");
   try {
     const url = new URL(value, `${DASHBOARD}/`);
+    if (url.protocol === INLINE_DATA) return true;
     return url.origin === DASHBOARD && url.pathname.startsWith(prefix);
   } catch {
     return false;
   }
 }
 
-function confineEntry(key: string, entry: Json, scope: FixtureScope): Json {
-  const request = REQUEST_KEY.test(key)
-    ? requestValueSchema.safeParse(entry)
-    : undefined;
-  if (!request?.success) return confineValue(entry, scope);
-  return readsFixture(request.data, scope)
+/** A value under a key a block requests: each string of it, alone or in a list, confined. */
+function confineRequest(entry: Json, scope: FixtureScope): Json {
+  if (Array.isArray(entry)) {
+    return entry.map((item) => confineRequest(item, scope));
+  }
+  const request = requestValueSchema.safeParse(entry);
+  if (!request.success) return confineValue(entry, scope);
+  return readsFixtureOnly(request.data, scope)
     ? request.data
     : fixtureUrl(scope.name, scope.pageId, NO_FIXTURE);
+}
+
+function confineEntry(key: string, entry: Json, scope: FixtureScope): Json {
+  return REQUEST_KEY.test(key)
+    ? confineRequest(entry, scope)
+    : confineValue(entry, scope);
 }
 
 function confineValue(value: Json, scope: FixtureScope): Json {
