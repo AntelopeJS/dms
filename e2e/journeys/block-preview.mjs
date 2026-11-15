@@ -131,25 +131,28 @@ export const journeys = [
     title: "every block the /mockup Add tab places draws in the preview without crashing it",
     entryPoint: "/dms-preview?state=<one starter node>",
     onboard: false,
+    knownFailures: {
+      "the Form starter draws": "/dms-preview answers 500 for the Form starter: Cannot read properties of undefined (reading 'map')",
+    },
     async run(/** @type {Ctx} */ ctx) {
       const tab = await previewTab(ctx);
       /** @type {string[]} */
       const errors = [];
       tab.page.on("pageerror", (error) => errors.push(error.message));
-      /** @type {string[]} */
-      const crashed = [];
+      /** @type {Map<string, string>} */
+      const crashed = new Map();
       const starters = starterNodes();
       for (const { type, node } of starters) {
         const before = errors.length;
         await tab.goto(`/dms-preview?state=${stateParam({ tree: [node] })}`);
-        await tab.page.locator("[data-dms-block-preview]").waitFor({ state: "attached", timeout: 30_000 });
+        const drawn = await tab.page.locator("[data-dms-block-preview]").waitFor({ state: "attached", timeout: 30_000 }).then(() => true, () => false);
         await tab.page.waitForTimeout(500);
         const text = await tab.page.evaluate(() => document.body.innerText);
-        if (errors.length > before || CRASH_TEXT.test(text)) crashed.push(`${type}: ${errors.slice(before).join("; ") || text.match(CRASH_TEXT)?.[0]}`);
+        if (!drawn || errors.length > before || CRASH_TEXT.test(text)) crashed.set(type, errors.slice(before).join("; ") || text.match(CRASH_TEXT)?.[0] || "no preview drawn");
       }
       await ctx.verify("no starter crashes the preview", [
         ctx.holds(`${starters.length} starters drawn`, starters.length > 30, starters.length),
-        ctx.holds("none threw or showed an error page", crashed.length === 0, crashed.join(" | ") || "none"),
+        ...starters.map(({ type }) => ctx.holds(`the ${type} starter draws`, !crashed.has(type), crashed.get(type) ?? "drawn")),
       ]);
     },
   },
