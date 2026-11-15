@@ -259,6 +259,100 @@ jobs:
           node-version-file: .nvmrc
       - run: node packages/dms/bin/dms-control.mjs map
 
+  # The journeys of e2e/ as a Playwright suite: the @smoke ones on the full
+  # tier, every journey in shards on the nightly tier, nothing on a draft or
+  # the fast tier. Its global setup prepares and starts one dms-control run.
+  e2e:
+    needs: select
+    if: needs.select.outputs.tier == 'full' || needs.select.outputs.tier == 'nightly'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.select.outputs.tier == 'nightly' && '[1, 2]' || '[1]') }}
+    env:
+      TIER: ${{ needs.select.outputs.tier }}
+      DMS_CONTROL_RUNS: ${{ runner.temp }}/dms-runs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # The base-version journey builds origin/main in a worktree.
+      - run: git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/mongodb-binaries
+            ~/.cache/ms-playwright
+            packages/dms/playground/.antelope/cache
+          key: e2e-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'packages/dms/playground/antelope.config.ts') }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/dms-control/frontend
+          key: dms-control-frontend-${{ github.sha }}
+          restore-keys: dms-control-frontend-
+      - name: Install Chromium and its system packages
+        run: |
+          if timeout 240 pnpm exec playwright install --with-deps --only-shell chromium; then
+            exit 0
+          fi
+          echo "::warning::Chromium's system packages did not install: installing the browser alone"
+          pnpm exec playwright install --only-shell chromium
+      - if: env.TIER == 'full'
+        run: pnpm e2e --grep @smoke
+      - if: env.TIER == 'nightly'
+        run: pnpm e2e --shard=${{ matrix.shard }}/2 --reporter=blob
+        env:
+          PLAYWRIGHT_BLOB_OUTPUT_DIR: e2e/blob-report
+      # The declarations @antelopejs/dms/e2e publishes, built by the run's prepare.
+      - if: success() || failure()
+        run: pnpm exec tsc --noEmit -p e2e
+      - if: always() && env.TIER == 'nightly'
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: e2e/blob-report
+          retention-days: 3
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-evidence-${{ matrix.shard }}
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            ${{ runner.temp }}/dms-runs/*/evidence
+            ${{ runner.temp }}/dms-runs/*/logs
+          retention-days: 7
+
+  # One HTML and JSON report of the nightly shards.
+  e2e-report:
+    needs: [select, e2e]
+    if: always() && needs.select.outputs.tier == 'nightly'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: e2e/blob-reports
+          merge-multiple: true
+      - run: pnpm exec playwright merge-reports --reporter html,json e2e/blob-reports
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: e2e/playwright-report
+          PLAYWRIGHT_HTML_OPEN: never
+          PLAYWRIGHT_JSON_OUTPUT_FILE: e2e/playwright-report/results.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 14
+
   formal:
     needs: select
     if: contains(fromJSON(needs.select.outputs.packages), 'agents')
@@ -309,11 +403,12 @@ jobs:
       - docs-playground
       - verify-map
       - formal
+      - e2e
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - if: >-
-          needs.select.result != 'success' || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.ci.result == 'skipped' || (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped')
+          needs.select.result != 'success' || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.ci.result == 'skipped' || (github.event_name != 'pull_request' && needs.docs-playground.result == 'skipped') || ((needs.select.outputs.tier == 'full' || needs.select.outputs.tier == 'nightly') && needs.e2e.result == 'skipped')
         run: exit 1
       - if: needs.select.outputs.tier == 'draft'
         run: |
