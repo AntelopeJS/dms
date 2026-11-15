@@ -3,7 +3,7 @@ import {
   regionalDateTimeFormat,
   regionalDayNumber,
 } from "./regional";
-import { isDate, isNull, isNumber, isUndefined } from "./type-check";
+import { isDate, isNull, isNumber, isString, isUndefined } from "./type-check";
 import type { I18nTranslate } from "../composables/translation/useTranslation";
 
 const DEFAULT_LOCALE = "en-US";
@@ -278,7 +278,7 @@ const CURRENCY_CODE = /^[A-Za-z]{3}$/;
  */
 function priceCurrency(options: Intl.NumberFormatOptions | undefined): string {
   const code = options?.currency;
-  return code !== undefined && CURRENCY_CODE.test(code)
+  return isString(code) && CURRENCY_CODE.test(code)
     ? code.toUpperCase()
     : DEFAULT_CURRENCY;
 }

@@ -344,23 +344,20 @@ const connectTab = (
     name: `${CONNECTION_NAME_PREFIX}:${baseUrl}:${userKey}`,
     streamUrl: `${baseUrl}${REALTIME_CONNECTION_PATH}`,
     sessionCloseUrl,
-    onConnection: async (next) => {
-      if (retries.isCancelled()) return;
+    onConnection: (next) => {
+      if (retries.isCancelled()) return undefined;
       if (state.sessionId.value) callbacks.onDisconnected();
       buffered = undefined;
       connectionId = next;
-      if (next) await openSession(next);
+      return next ? openSession(next) : undefined;
     },
-    onFrame: async (sessionId, eventName, data) => {
+    onFrame: (sessionId, eventName, data) => {
       if (sessionId === undefined) {
         if (state.sessionId.value) dispatch(eventName, data);
         return;
       }
       if (sessionId === state.sessionId.value) {
-        if (eventName === SESSION_ENDED_EVENT) {
-          await renewSession();
-          return;
-        }
+        if (eventName === SESSION_ENDED_EVENT) return renewSession();
         dispatch(eventName, data);
         return;
       }
@@ -514,7 +511,9 @@ const buildApi = (): UserRealtimeApi => {
 
     watch(
       () => sessionScopeOf(session?.value),
-      () => state.connection?.renewSession(),
+      () => {
+        state.connection?.renewSession();
+      },
     );
   }
 

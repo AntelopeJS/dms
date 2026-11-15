@@ -27,8 +27,16 @@ interface PageClaim {
  */
 const pageClaims: PageClaim[] = [];
 
-const applyLatestClaim = (user: UserRealtimeApi): Promise<void> =>
-  user.setPage(pageClaims.at(-1)?.pageId ?? null);
+/**
+ * Moves the session to the latest claimed page, in the background. A failed
+ * page call leaves the page drawn as it is and is logged: the page is not
+ * marked applied, so the next reconcile subscribes it again.
+ */
+const applyLatestClaim = (user: UserRealtimeApi): void => {
+  user.setPage(pageClaims.at(-1)?.pageId ?? null).catch((error: unknown) => {
+    console.error("[dms] page realtime subscription failed", error);
+  });
+};
 
 const raiseClaim = (claim: PageClaim): void => {
   const index = pageClaims.indexOf(claim);
@@ -53,16 +61,16 @@ export function usePageRealtime(
     const claim: PageClaim = { pageId: undefined };
     watch(
       resolvedPageId,
-      async (next) => {
+      (next) => {
         claim.pageId = next;
         raiseClaim(claim);
-        await applyLatestClaim(user);
+        applyLatestClaim(user);
       },
       { immediate: true },
     );
-    onScopeDispose(async () => {
+    onScopeDispose(() => {
       dropClaim(claim);
-      await applyLatestClaim(user);
+      applyLatestClaim(user);
     });
   }
 

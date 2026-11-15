@@ -1,5 +1,5 @@
 import { isRecord } from "../../build/utils/record";
-import { isString, isUndefined } from "../../utils/type-check";
+import { isNull, isString, isUndefined } from "../../utils/type-check";
 import { ComponentId } from "../../types/watch";
 
 function getValueByPath(
@@ -9,8 +9,9 @@ function getValueByPath(
   const keys = path.split(".");
   let current: unknown = obj;
   for (const key of keys) {
-    if (!isRecord(current)) return undefined;
-    current = current[key];
+    if (isNull(current) || isUndefined(current)) return undefined;
+    const target: unknown = Object(current);
+    current = isRecord(target) ? target[key] : undefined;
   }
   return current;
 }
