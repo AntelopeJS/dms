@@ -166,7 +166,7 @@ async function checkShortcutTranslations() {
   });
   try {
     const { default: registry } = await import(
-      "../layers/dms-ui/app/config/shortcuts-registry"
+      "../layers/dms-ui/app/config/shortcuts-registry.ts"
     );
     const searchShortcuts = await import(
       "../layers/dms-ui/app/entries/composables/global/searchShortcuts"
