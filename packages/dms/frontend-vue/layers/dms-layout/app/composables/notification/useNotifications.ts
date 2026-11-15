@@ -14,9 +14,9 @@ export type NotificationTone =
 export interface UserNotification {
   _id: string;
   userId: string;
-  icon: string;
+  icon?: string;
   title: string;
-  description: string;
+  description?: string;
   params: Record<string, string | number> | null;
   linkTo: string | null;
   isRead: boolean;

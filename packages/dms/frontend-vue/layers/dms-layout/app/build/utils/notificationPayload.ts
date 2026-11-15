@@ -21,9 +21,7 @@ const NOTIFICATION_TONES: readonly NotificationTone[] = [
 const NOTIFICATION_TEXT_FIELDS = [
   "_id",
   "userId",
-  "icon",
   "title",
-  "description",
   "categoryId",
   "createdAt",
   "updatedAt",
@@ -52,6 +50,8 @@ export function isUserNotification(value: unknown): value is UserNotification {
   return (
     isRecord(value) &&
     NOTIFICATION_TEXT_FIELDS.every((field) => isString(value[field])) &&
+    (value.icon === undefined || isString(value.icon)) &&
+    (value.description === undefined || isString(value.description)) &&
     isBoolean(value.isRead) &&
     (value.linkTo === null || isString(value.linkTo)) &&
     isNotificationParams(value.params) &&
@@ -67,13 +67,15 @@ export function isIdList(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((id) => isString(id));
 }
 
-/** The feed's counts an event carries, or undefined when it carries none. */
+/**
+ * The feed's counts an event carries, or undefined when it carries none. An
+ * unknown `unreadTone` is left out, the counts kept.
+ */
 export function feedCountsOf(value: unknown): FeedCounts | undefined {
   if (!isRecord(value)) return undefined;
   const { all, unread, unreadTone } = value;
   if (!isNumber(all) || !isNumber(unread)) return undefined;
-  if (unreadTone === undefined) return { all, unread };
   return isNotificationTone(unreadTone)
     ? { all, unread, unreadTone }
-    : undefined;
+    : { all, unread };
 }

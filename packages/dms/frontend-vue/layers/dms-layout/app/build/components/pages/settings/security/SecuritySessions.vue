@@ -15,12 +15,12 @@ import {
 /** A session as the list shows it; the details it can do without are optional. */
 interface SessionInfo {
   _id: string;
-  browser?: string;
-  os?: string;
-  ip?: string;
-  deviceType?: string;
-  location?: string;
-  createdAt?: string;
+  browser?: string | null;
+  os?: string | null;
+  ip?: string | null;
+  deviceType?: string | null;
+  location?: string | null;
+  createdAt?: string | null;
   lastActiveAt: string;
   isCurrent: boolean;
 }
@@ -42,7 +42,7 @@ function isSessionInfo(value: unknown): value is SessionInfo {
     isString(value.lastActiveAt) &&
     isBoolean(value.isCurrent) &&
     SESSION_DETAIL_FIELDS.every(
-      (field) => value[field] === undefined || isString(value[field]),
+      (field) => value[field] == null || isString(value[field]),
     )
   );
 }
@@ -103,9 +103,8 @@ const otherSessions = computed(() =>
 );
 
 const deviceIcon = (session: SessionInfo): string =>
-  (session.deviceType === undefined
-    ? undefined
-    : DEVICE_ICONS[session.deviceType]) ?? DEFAULT_DEVICE_ICON;
+  (session.deviceType ? DEVICE_ICONS[session.deviceType] : undefined) ??
+  DEFAULT_DEVICE_ICON;
 
 const sessionName = (session: SessionInfo): string =>
   t("page.settings.security.sessions.device_name", {
