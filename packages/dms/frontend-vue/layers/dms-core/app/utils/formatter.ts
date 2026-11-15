@@ -3,7 +3,7 @@ import {
   regionalDateTimeFormat,
   regionalDayNumber,
 } from "./regional";
-import { isNumber } from "./type-check";
+import { isDate, isNull, isNumber, isUndefined } from "./type-check";
 import type { I18nTranslate } from "../composables/translation/useTranslation";
 
 const DEFAULT_LOCALE = "en-US";
@@ -183,7 +183,7 @@ export function formatDate(
   locale: string = DEFAULT_LOCALE,
   options?: Intl.DateTimeFormatOptions,
 ): string | null {
-  if (date === undefined || date === null) {
+  if (isUndefined(date) || isNull(date)) {
     return null;
   }
 
@@ -191,10 +191,10 @@ export function formatDate(
   const formatOptions = options || defaultDateFormatterOptions;
 
   try {
-    if (date instanceof Date) {
+    if (isDate(date)) {
       validDate = date;
     } else {
-      validDate = new Date(date as string | number);
+      validDate = new Date(isNumber(date) ? date : String(date));
     }
 
     if (Number.isNaN(validDate.getTime())) {
@@ -278,7 +278,7 @@ const CURRENCY_CODE = /^[A-Za-z]{3}$/;
  */
 function priceCurrency(options: Intl.NumberFormatOptions | undefined): string {
   const code = options?.currency;
-  return typeof code === "string" && CURRENCY_CODE.test(code)
+  return code !== undefined && CURRENCY_CODE.test(code)
     ? code.toUpperCase()
     : DEFAULT_CURRENCY;
 }

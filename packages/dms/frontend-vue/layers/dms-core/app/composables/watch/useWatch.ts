@@ -1,4 +1,5 @@
-import { isUndefined } from "../../utils/type-check";
+import { isRecord } from "../../build/utils/record";
+import { isString, isUndefined } from "../../utils/type-check";
 import { ComponentId } from "../../types/watch";
 
 function getValueByPath(
@@ -8,8 +9,8 @@ function getValueByPath(
   const keys = path.split(".");
   let current: unknown = obj;
   for (const key of keys) {
-    if (current === null || current === undefined) return undefined;
-    current = (current as Record<string, unknown>)[key];
+    if (!isRecord(current)) return undefined;
+    current = current[key];
   }
   return current;
 }
@@ -40,6 +41,13 @@ interface WatchEventDetail {
 }
 
 type WatchEvent = Event & Partial<Pick<CustomEvent, "detail">>;
+
+function isWatchEventDetail(value: unknown): value is WatchEventDetail {
+  return (
+    isRecord(value) &&
+    (isUndefined(value.component) || isString(value.component))
+  );
+}
 
 function checkParamConditions(
   onParam: WatchAction["onParam"],
@@ -87,7 +95,7 @@ export function useWatch(
    */
   function runMatchingActions(
     matchingActions: WatchAction[],
-    event: WatchEvent,
+    detail: WatchEventDetail,
   ) {
     isLoading.value = true;
     try {
@@ -98,7 +106,7 @@ export function useWatch(
         }
         // prettier-ignore
         try {
-          actionFn(action, event.detail, componentState);
+          actionFn(action, detail, componentState);
         } catch {
           // eslint-disable-line no-empty -- A synchronous action failure does not stop subsequent actions.
         }
@@ -109,8 +117,8 @@ export function useWatch(
   }
 
   function handleWatchEvent(event: WatchEvent) {
-    const { detail } = event;
-    if (!detail) {
+    const detail: unknown = event.detail;
+    if (!isWatchEventDetail(detail)) {
       return;
     }
 
@@ -122,7 +130,7 @@ export function useWatch(
       return;
     }
 
-    runMatchingActions(matchingActions, event);
+    runMatchingActions(matchingActions, detail);
   }
 
   onMounted(() => {

@@ -13,7 +13,8 @@ export function validateRequiredQueryParams(
 }
 
 export interface ValidationRouteContext {
-  query: Record<string, unknown>;
+  /** By name, the value or values the route carries, as the router reads them. */
+  query: Record<string, string | null | (string | null)[]>;
   params: ValidationRouteContext["query"];
 }
 

@@ -1,8 +1,9 @@
 import { isString } from "#dms-core/app/utils/type-check";
+import type { ValidationRouteContext } from "./query-validation";
 
 /** The page query as the server reads it: one value per name, the last one. */
 export function pageQueryValues(
-  query: Record<string, unknown> | undefined,
+  query: ValidationRouteContext["query"] | undefined,
 ): Record<string, string> {
   return Object.fromEntries(
     Object.entries(query ?? {}).flatMap(([name, value]) => {
@@ -65,7 +66,7 @@ export function fillRouteParams(
   params: Record<string, string>,
 ): string {
   return layoutUrl.replace(/:([^/]+)/g, (segment, name: string) =>
-    name in params ? params[name]! : segment,
+    Object.hasOwn(params, name) ? params[name]! : segment,
   );
 }
 
@@ -77,6 +78,8 @@ export function isSameRouteParams(
   const names = Object.keys(left);
   return (
     names.length === Object.keys(right).length &&
-    names.every((name) => left[name] === right[name])
+    names.every(
+      (name) => Object.hasOwn(right, name) && left[name] === right[name],
+    )
   );
 }

@@ -51,7 +51,8 @@ export function withPeriodQuery(
   const [beforeFragment = "", ...fragment] = link.split(FRAGMENT_SEPARATOR);
   const [path = "", ...search] = beforeFragment.split(QUERY_SEPARATOR);
   const params = new URLSearchParams(search.join(QUERY_SEPARATOR));
-  for (const key of Object.values(periodQueryKeys(id))) {
+  const keys: Record<keyof PeriodQueryKeys, string> = periodQueryKeys(id);
+  for (const key of Object.values(keys)) {
     const value = firstText(query[key]);
     if (value && !params.has(key)) params.set(key, value);
   }

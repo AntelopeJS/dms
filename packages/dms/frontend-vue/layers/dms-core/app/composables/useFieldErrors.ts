@@ -317,7 +317,9 @@ function lookupCode<F extends string>(
 ): ApiFieldError | undefined {
   if (!code || !codes) return undefined;
   const bare = code.startsWith("$") ? code.slice(1) : code;
-  const entry = codes[code] ?? codes[bare] ?? codes[`$${bare}`];
+  const own = (key: string) =>
+    Object.hasOwn(codes, key) ? codes[key] : undefined;
+  const entry = own(code) ?? own(bare) ?? own(`$${bare}`);
   if (!entry) return undefined;
   return isString(entry)
     ? { field: entry, message: code }
@@ -484,8 +486,12 @@ export interface HandleApiErrorOptions {
 export function useFieldErrors<F extends string>(
   options: UseFieldErrorsOptions<F>,
 ) {
-  const { presentError, resolveError } = useApiErrorPresenter();
-  const fieldIds = Object.keys(options.fields) as F[];
+  const errorPresenter = useApiErrorPresenter();
+  const fieldIds = Object.keys(options.fields).filter((key): key is F =>
+    Object.hasOwn(options.fields, key),
+  );
+  const knownFields = new Set<string>(fieldIds);
+  const isField = (name: string): name is F => knownFields.has(name);
   const errors: Partial<Record<F, string>> = reactive({});
 
   function controlId(field: F): string {
@@ -547,12 +553,14 @@ export function useFieldErrors<F extends string>(
     if (fields.length === 0) return false;
     clear();
     for (const entry of fields) {
-      errors[entry.field as F] = resolveError(entry.message, {
+      if (!isField(entry.field)) continue;
+      errors[entry.field] = errorPresenter.resolveError(entry.message, {
         fallbackKey: entry.fallbackKey ?? "dms.field_errors.invalid",
         params: entry.params,
       })?.message;
     }
-    await focus(fields[0]!.field as F);
+    const first = fields[0]!.field;
+    if (isField(first)) await focus(first);
     return !hasUnmatched;
   }
 
@@ -561,7 +569,7 @@ export function useFieldErrors<F extends string>(
     error: Parameters<typeof resolveApiErrorMessage>[0],
     toastOptions: HandleApiErrorOptions,
   ) {
-    presentError(error, {
+    errorPresenter.presentError(error, {
       fallbackKey: toastOptions.toastDescription ?? toastOptions.toastTitle,
     });
   }
