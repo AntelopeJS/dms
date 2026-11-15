@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.20.5
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.4...v0.20.5)
+
+### 💅 Refactors
+
+- **dms:** Check a database connection with the probe its driver exports ([#1055](https://github.com/AntelopeJS/dms/pull/1055))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.20.4
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.3...v0.20.4)
