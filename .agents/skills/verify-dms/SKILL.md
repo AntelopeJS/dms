@@ -184,18 +184,6 @@ The skill is not Trusted yet. It becomes Trusted when it passes a shadow run of 
 - `up` and the frontend build install from the npm registry. A package published minutes earlier can answer 404 until the registry propagates it; `up` then fails on its `frontend-build` or `project-build` log. Run `up` again a few minutes later.
 - Writing a journey: a check (`tab.visible`, `tab.shows`, `tab.at`, `ctx.equal`…) only counts inside `ctx.verify`. Uppercase styling changes `innerText`, so match such text case-insensitively. `ctx.api` signs the account in again on a 401; pass `token` to observe a refused token. The raw Playwright page is `tab.page`, for popups, downloads and visually hidden inputs. `ctx.stopDatabase()` stops the run's mongod, for a database-down state, and kills the next database's standby so none that booted without a database is reused. `ctx.startDatabase()` starts it again at the same URL with the same data. It resolves once mongod listens, before the backend has reconnected, so wait for the recovered state with a check that polls. A journey that ends with mongod stopped has it started again. Both refuse a `--mongo-url` run. A journey that drives what only development serves sets `backend: "dev"`, one that drives a reload sets `backend: "watch"`, and one that asserts their absence sets `backend: "production"`, so neither depends on how `up` was run; a journey on a `shared` database cannot set it. A journey whose modules spawn a process that shares a file of the checkout with every backend, such as the dms-assistant sidecar and its `sidecar.lock`, sets `standby: false`: its fresh database gets a backend started for it instead of the standby booted before it, and no standby boots while it runs, while the other journeys keep theirs; a journey on a `shared` database cannot set it either.
 
-## Component probes
-
-`antelopejs-api-diff <base-ref> --probe <file.cjs>` captures one file, so the `interface-dms` component coverage in `.agents/probes/` is five standalone scripts. Pass the ones whose keys your change reaches, one api-diff run each.
-
-| Probe | Keys it prints |
-|---|---|
-| `interface-components-builder.cjs` | `sync`, `serialized`, `filtered`, `shadowedCall`, `ownKeys`, `positional`, `permission`, `uploadConstraintReads`, `defaultTypesFresh`, `dataTypesAndHints` |
-| `interface-components-routes.cjs` | `routes`, `factoryHelpers`, `metadata`, `lifecycle` |
-| `interface-components-read-order.cjs` | `pageInfoPrecedence`, `extractedPageCalls`, `evaluationOrder` |
-| `interface-components-type-boundaries.cjs` | `typeBoundaries` |
-| `interface-components-owner-order.cjs` | `ownerAccessorOrder`, `publicWatchFilterOrder`, `publicPageScheduling` |
-
 ## Feature map
 
 [features/README.md](features/README.md).
