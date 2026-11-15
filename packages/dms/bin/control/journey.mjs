@@ -26,9 +26,10 @@ import { Tab } from "./tab.mjs";
 import { recordTiming, stopwatch, timed } from "./timing.mjs";
 
 /**
- * @typedef {{ name: string, pass: boolean, detail: string }} Check
+ * @typedef {import("./verify/types.mjs").JourneyCheck} Check
  * @typedef {ReturnType<typeof capturedMail>[number]} CapturedMail
  * @typedef {import("./verify/types.mjs").FeatureResult} FeatureResult
+ * @typedef {import("./verify/types.mjs").JudgedStep} JudgedStep
  * @typedef {import("./journey-load.mjs").Journey} Journey
  * @typedef {{ name: string, folder: string, checks: Check[] }} Step
  */
@@ -38,7 +39,52 @@ const POLL_MS = 250;
 const DETAIL_LENGTH = 300;
 const UNIQUE_BYTES = 3;
 
-class JourneyAbort extends Error {}
+/**
+ * @param {string} step The critical step that failed
+ * @returns {string} The error of a journey that this step ended
+ */
+function abortMessage(step) {
+  return `critical step ${step} failed`;
+}
+
+class JourneyAbort extends Error {
+  /** @param {string} step The critical step that failed */
+  constructor(step) {
+    super(abortMessage(step));
+    this.step = step;
+  }
+}
+
+/**
+ * Judges the steps a journey recorded: each check gets its verdict, and the
+ * journey fails on a failed check or an error.
+ *
+ * @param {Step[]} steps The steps the journey recorded
+ * @param {{ error: string | null, abortedAt: string | null }} end How the journey ended: `abortedAt` names the critical step whose failure ended it, `error` any other error
+ * @param {Readonly<Record<string, string>>} knownFailures The journey's known failures: check name to finding
+ * @returns {{ status: "PASS" | "FAIL", steps: JudgedStep[], error: string | null }} The judged journey
+ */
+export function judge(steps, end, knownFailures) {
+  void knownFailures;
+  const judged = steps.map((step) => ({
+    ...step,
+    checks: step.checks.map((check) => ({
+      ...check,
+      verdict: check.pass ? /** @type {const} */ ("pass") : "fail",
+    })),
+  }));
+  const errors = [
+    end.abortedAt === null ? null : abortMessage(end.abortedAt),
+    end.error,
+  ].filter((entry) => entry !== null);
+  const error = errors.length === 0 ? null : errors.join("\n");
+  const failed =
+    error !== null ||
+    judged.some((step) =>
+      step.checks.some((check) => check.verdict !== "pass"),
+    );
+  return { status: failed ? "FAIL" : "PASS", steps: judged, error };
+}
 
 /**
  * @param {string} text The text
@@ -172,9 +218,7 @@ export class JourneyContext {
     writeJson(join(folder, "checks.json"), checks);
     const passed = checks.every((check) => check.pass);
     if (!passed && options.critical) {
-      throw new JourneyAbort(
-        `critical step ${relative(this.folder, folder)} failed`,
-      );
+      throw new JourneyAbort(relative(this.folder, folder));
     }
     return passed;
   }
@@ -477,15 +521,16 @@ async function driveJourney(state, feature, journey, skill) {
     browser,
     skill,
   );
+  /** @type {string | null} */
   let error = null;
+  /** @type {string | null} */
+  let abortedAt = null;
   try {
     await prepare(state, feature, journey, context);
     await timed(state, "journey-run", () => journey.run(context), detail);
   } catch (failure) {
-    error =
-      failure instanceof JourneyAbort
-        ? failure.message
-        : String(failure?.stack ?? failure);
+    if (failure instanceof JourneyAbort) abortedAt = failure.step;
+    else error = String(failure?.stack ?? failure);
   } finally {
     try {
       await context.close();
@@ -495,18 +540,20 @@ async function driveJourney(state, feature, journey, skill) {
     }
     await browser.close();
   }
-  const failed =
-    error !== null ||
-    context.steps.some((step) => step.checks.some((check) => !check.pass));
+  const judged = judge(
+    context.steps,
+    { error, abortedAt },
+    journey.knownFailures ?? {},
+  );
   return {
     feature,
     journey: journey.id,
     title: journey.title,
     entryPoint: journey.entryPoint,
-    status: failed ? "FAIL" : "PASS",
+    status: judged.status,
     database: state.database,
-    steps: context.steps,
-    error,
+    steps: judged.steps,
+    error: judged.error,
     folder: relative(state.evidence, context.folder),
   };
 }
