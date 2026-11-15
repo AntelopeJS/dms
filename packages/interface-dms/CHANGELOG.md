@@ -1,5 +1,48 @@
 # Changelog
 
+## v0.14.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.1...v0.14.2)
+
+### 🚀 Enhancements
+
+- **dms:** Fail a layer's lint on a Dms component nothing installed registers ([#1033](https://github.com/AntelopeJS/dms/pull/1033))
+
+### 🩹 Fixes
+
+- **dms:** Offer the MySQL driver on interface-database 0.4 ([#1029](https://github.com/AntelopeJS/dms/pull/1029))
+- **dms:** Capture the auth middleware's toast before its first await ([#1031](https://github.com/AntelopeJS/dms/pull/1031))
+- **dms:** Finish a dms-control watch restart of the playground ([#1035](https://github.com/AntelopeJS/dms/pull/1035))
+- **dms:** Keep a logo the app config names in a query, a fragment or a literal-only join ([#1036](https://github.com/AntelopeJS/dms/pull/1036))
+- **interface-dms:** Let a resend through a withdrawn fresh invite left by a failed delete, and name the invite that blocks it ([#1037](https://github.com/AntelopeJS/dms/pull/1037))
+- **deps:** Require zod 3.25 in interface-dms and dms so a reused lock drops zod 3.24 ([#1039](https://github.com/AntelopeJS/dms/pull/1039))
+- **interface-dms:** Hand a fresh invite whose rival retires during its withdrawal a pending invitation ([#1038](https://github.com/AntelopeJS/dms/pull/1038))
+- **dms:** Refuse access and refresh tokens that carry no session ([#1042](https://github.com/AntelopeJS/dms/pull/1042))
+- **dms:** Keep a logo the app config names in a percent-encoded optimizer URL ([#1041](https://github.com/AntelopeJS/dms/pull/1041))
+- **interface-dms:** Keep a new invitation's re-read when its stray-removal retry finds the read invite cancelled ([#1045](https://github.com/AntelopeJS/dms/pull/1045))
+- **dms:** Run the DMS component check without @antelopejs/dms-frontend, and name what a layer must install ([#1044](https://github.com/AntelopeJS/dms/pull/1044))
+- **interface-dms:** Settle a fresh invite once as kept or withdrawn, so no caller yields to one that then withdraws ([#1046](https://github.com/AntelopeJS/dms/pull/1046))
+- **dms:** Report a connection variable the starting environment shadows instead of writing it to .env ([#1049](https://github.com/AntelopeJS/dms/pull/1049))
+- **dms:** Let a restart load a .env value after a builder call loaded the configuration ([#1050](https://github.com/AntelopeJS/dms/pull/1050))
+- **deps:** Cap every @antelopejs range below the next minor ([#1051](https://github.com/AntelopeJS/dms/pull/1051))
+
+### 📖 Documentation
+
+- **dms:** Replace dms-ai and dms-builder with dms-assistant ([#894](https://github.com/AntelopeJS/dms/pull/894))
+- Name the assistant dms-assistant where dms-ai was left ([#1048](https://github.com/AntelopeJS/dms/pull/1048))
+
+### ✅ Tests
+
+- **dms:** Restore the mail renderer and sender after each suite that captures emails ([#1030](https://github.com/AntelopeJS/dms/pull/1030))
+- **dms:** Give the menu-access-events setup hook a timeout sized to its sign-ups ([#1032](https://github.com/AntelopeJS/dms/pull/1032))
+- **dms:** Size the sketch rebuild test's timeout to its seventeen checks ([#1040](https://github.com/AntelopeJS/dms/pull/1040))
+- **dms:** Keep the integration file storage off the test mongod's disk ([#1028](https://github.com/AntelopeJS/dms/pull/1028))
+- **dms:** Move cold module and Intl setup out of two frontend-vue test bodies ([#1047](https://github.com/AntelopeJS/dms/pull/1047))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.14.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.14.0...v0.14.1)
