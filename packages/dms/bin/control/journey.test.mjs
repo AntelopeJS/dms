@@ -39,7 +39,7 @@ function journeysModule(t, source) {
 await test("a module exporting well-formed journeys loads them", async (t) => {
   const file = journeysModule(
     t,
-    `export const journeys = [${JOURNEY}, { id: "b", title: "t", entryPoint: "e", database: "fresh", onboard: false, standby: false, tag: ["@smoke", "@slow-2"], knownFailures: { "the page answers": "dms#1 times out" }, async run() {} }, { id: "c", title: "t", entryPoint: "e", tag: "@smoke", async run() {} }];`,
+    `export const journeys = [${JOURNEY}, { id: "b", title: "t", entryPoint: "e", database: "fresh", onboard: false, standby: false, tag: ["@smoke", "@slow-2"], knownFailures: { "the page answers": "dms#1 times out" }, async run() {} }, { id: "c", title: "t", entryPoint: "e", tag: "@smoke", last: true, async run() {} }];`,
   );
   const journeys = await loadJourneys(file);
   assert.deepEqual(
@@ -75,6 +75,7 @@ await test("a journey missing a field a run reads is refused", async (t) => {
     '{ id: "x", title: "t", entryPoint: "e", knownFailures: ["the page answers"], async run() {} }',
     '{ id: "x", title: "t", entryPoint: "e", knownFailures: { "the page answers": "" }, async run() {} }',
     '{ id: "x", title: "t", entryPoint: "e", knownFailures: { "the page answers": true }, async run() {} }',
+    '{ id: "x", title: "t", entryPoint: "e", last: "yes", async run() {} }',
     "null",
   ];
   for (const journey of broken) {

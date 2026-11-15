@@ -57,9 +57,9 @@ export function e2eConfig() {
 
 /**
  * Registers every journey of the checkout's verification skill, in the order
- * of its feature files: a `describe` per feature, holding one test per
- * journey named by its id, with the journey's `tag` and its title and entry
- * point as annotations. A test drives its journey through `runJourney` in
+ * of its feature files and with those marked `last` after all others: one
+ * test per journey, named by its id under its feature's name, with the
+ * journey's `tag` and its title and entry point as annotations. A test drives its journey through `runJourney` in
  * Playwright's browser, on the run of the global setup, then replays the
  * judged result into the report.
  *
@@ -81,31 +81,35 @@ export async function registerJourneys() {
   if (repeated.length > 0) {
     throw new Error(`Journey ids registered twice: ${repeated.join(", ")}`);
   }
-  for (const feature of features) {
-    test.describe(feature.name, () => {
-      for (const journey of feature.journeys) {
-        const annotation = [
-          { type: "title", description: journey.title },
-          { type: "entry point", description: journey.entryPoint },
-        ];
-        test(
-          journey.id,
-          { tag: journey.tag, annotation },
-          async ({ browser }, testInfo) => {
-            const state = currentRun();
-            assertForwardedRun(state);
-            const result = await runJourney(
-              state,
-              feature.name,
-              journey,
-              skill,
-              browser,
-            );
-            saveRun(state);
-            await report(result, state, testInfo);
-          },
-        );
-      }
+  const entries = features.flatMap((feature) =>
+    feature.journeys.map((journey) => ({ feature: feature.name, journey })),
+  );
+  for (const { feature, journey } of [
+    ...entries.filter((entry) => !entry.journey.last),
+    ...entries.filter((entry) => entry.journey.last),
+  ]) {
+    const annotation = [
+      { type: "title", description: journey.title },
+      { type: "entry point", description: journey.entryPoint },
+    ];
+    test.describe(feature, () => {
+      test(
+        journey.id,
+        { tag: journey.tag, annotation },
+        async ({ browser }, testInfo) => {
+          const state = currentRun();
+          assertForwardedRun(state);
+          const result = await runJourney(
+            state,
+            feature,
+            journey,
+            skill,
+            browser,
+          );
+          saveRun(state);
+          await report(result, state, testInfo);
+        },
+      );
     });
   }
 }

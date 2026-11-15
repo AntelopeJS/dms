@@ -30,5 +30,4 @@ Evidence is under `$RUN/evidence/database-connect/<journey>/`.
 ## Gotchas
 
 - The form writes the variables and the batch in one `ConfigureProject` call; the MCP tool writes no variables, so the journey writes `.env` first and waits out the restart that write triggers.
-- The batch stays in the run's copy of the playground: the connection and its modules are loaded by every later backend of the run. Run it last, or `down` the run after it.
-- A `-w` restart of this repository's playground never finishes: the dms module's `construct` waits on `registerDmsFrontend` for good, connection or not, so the journey fails at its first restart, before the batch. The same playground copied outside the workspace, with dms and `@antelopejs/interface-dms` installed from packed tarballs, restarts.
+- The batch stays in the run's copy of the playground: every later production backend of the run refuses to start ("The configuration does not load the modules the build was created with"). The journey sets `last: true`, so the Playwright suite runs it after every other journey; with `dms-control journey`, run it last, or `down` the run after it.

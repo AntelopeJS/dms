@@ -127,6 +127,7 @@ export const journeys = [
     entryPoint: "MCP tools database_project, builder_configure_project, database_connections",
     backend: "watch",
     standby: false,
+    last: true,
     async run(/** @type {Ctx} */ ctx) {
       await withBridge(ctx, async (session) => {
         const id = `shop${randomBytes(3).toString("hex")}`;
