@@ -1,7 +1,5 @@
-import { mkdir } from "node:fs/promises";
-import path from "node:path";
 import type { BrowserContext, Frame, Page } from "./playwright";
-import { blockSelector, type ProbedBlock, probePage } from "./page-probe";
+import { type ProbedBlock, probePage } from "./page-probe";
 import type {
   MockupBlockComparison,
   MockupComparison,
@@ -15,50 +13,6 @@ const POLL_MS = 500;
 /** The custom component `/dms-preview` draws the previewed tree in. */
 const PREVIEW_HOST = "DmsBlockPreview";
 const HTTP_NOT_FOUND = 404;
-const BLOCK_SHOT_TIMEOUT_MS = 5_000;
-/** The viewer's data mode that draws a page on its fixtures, never on the live routes it maps. */
-const SAMPLE_DATA = "sample";
-
-/** Where a run writes the mockup's screenshots, and how a written file reads in the report. */
-export interface ShotStore {
-  projectPath: string;
-  /** Absolute folder of the run. */
-  dir: string;
-}
-
-/** A screenshot file: where it is written, and how the report names it. */
-interface ShotFile {
-  file: string;
-  /** Relative to the project. */
-  relative: string;
-}
-
-function shotFile(store: ShotStore, segments: string[]): ShotFile {
-  const file = path.join(store.dir, ...segments);
-  return { file, relative: path.relative(store.projectPath, file) };
-}
-
-/** A file name segment from a mockup name or a layout path. */
-function fileSegment(value: string): string {
-  return value.replace(/^\/+/, "").replace(/[^A-Za-z0-9_.-]+/g, "_") || "root";
-}
-
-/** Screenshots a block of the preview frame, quietly skipping one that cannot be drawn. */
-async function shootBlock(
-  frame: Frame,
-  blockPath: string,
-  file: ShotFile,
-): Promise<string | undefined> {
-  try {
-    await frame
-      .locator(blockSelector(blockPath))
-      .first()
-      .screenshot({ path: file.file, timeout: BLOCK_SHOT_TIMEOUT_MS });
-    return file.relative;
-  } catch {
-    return undefined;
-  }
-}
 
 /** The mockup page a run compares the page with. */
 export interface MockupTarget {
@@ -71,7 +25,6 @@ function viewerUrl(origin: string, target: MockupTarget): string {
   const url = new URL("/mockup", origin);
   url.searchParams.set("name", target.name);
   url.searchParams.set("width", "desktop");
-  url.searchParams.set("data", SAMPLE_DATA);
   if (target.page !== undefined) url.searchParams.set("page", target.page);
   return url.href;
 }
@@ -89,9 +42,7 @@ async function previewBlocks(frame: Frame): Promise<ProbedBlock[]> {
  * changing: nested blocks mount after their parents, once their own
  * components have loaded.
  */
-async function drawnPreview(
-  page: Page,
-): Promise<{ frame: Frame; blocks: ProbedBlock[] } | undefined> {
+async function drawnPreview(page: Page): Promise<ProbedBlock[] | undefined> {
   const deadline = Date.now() + FRAME_TIMEOUT_MS;
   let previous = "";
   while (Date.now() < deadline) {
@@ -100,9 +51,7 @@ async function drawnPreview(
       .find((candidate) => candidate.url().includes(PREVIEW_PATH));
     const blocks = frame ? await previewBlocks(frame) : [];
     const drawn = blocks.map((block) => block.path).join(" ");
-    if (frame && blocks.length > 0 && drawn === previous) {
-      return { frame, blocks };
-    }
+    if (frame && blocks.length > 0 && drawn === previous) return blocks;
     previous = drawn;
     await page.waitForTimeout(POLL_MS);
   }
@@ -161,43 +110,25 @@ function unavailable(target: MockupTarget, reason: string): MockupComparison {
   };
 }
 
-async function compareDrawn(
-  page: Page,
-  drawn: { frame: Frame; blocks: ProbedBlock[] },
+function compareDrawn(
+  drawn: ProbedBlock[],
   target: MockupTarget,
   pageBlocks: RenderedBlock[],
-  store: ShotStore,
-): Promise<MockupComparison> {
-  const folder = [
-    "mockup",
-    fileSegment(target.name),
-    fileSegment(target.page ?? "default"),
-  ];
-  await mkdir(path.join(store.dir, ...folder), { recursive: true });
-  const full = shotFile(store, [...folder, "mockup.png"]);
-  await page.locator("iframe").first().screenshot({ path: full.file });
-  const paired = pairBlocks(drawn.blocks, pageBlocks);
-  const blocks: MockupBlockComparison[] = [];
-  for (const mockup of drawn.blocks) {
+): MockupComparison {
+  const paired = pairBlocks(drawn, pageBlocks);
+  const blocks = drawn.map((mockup): MockupBlockComparison => {
     const match = paired.get(mockup.path);
-    const mockupScreenshot = await shootBlock(
-      drawn.frame,
-      mockup.path,
-      shotFile(store, [...folder, `${fileSegment(mockup.path)}.png`]),
-    );
-    blocks.push({
+    return {
       mockupPath: mockup.path,
       type: mockup.componentName ?? mockup.issue ?? "",
       status: match ? "matched" : "missing",
       ...(match && { pagePath: match.path }),
-      ...(mockupScreenshot && { mockupScreenshot }),
-    });
-  }
+    };
+  });
   const pairedPaths = new Set([...paired.values()].map((block) => block.path));
   return {
     mockup: target.name,
     page: target.page ?? "",
-    screenshot: full.relative,
     blocks,
     extraPageBlocks: pageBlocks
       .filter((block) => !pairedPaths.has(block.path))
@@ -207,8 +138,8 @@ async function compareDrawn(
 
 /**
  * Draws the mockup page in the dashboard's `/mockup` viewer at the desktop
- * width, on its fixtures, and pairs its blocks with the page's. The mockup
- * and each of its blocks are screenshotted; the page is not, since it shows
+ * width and pairs its blocks with the page's, read from the DOM. Neither is
+ * screenshotted: a mockup block can read a live route, and the page shows
  * the values of its rows. The viewer is owner-only, so `context` is signed
  * in as the platform owner whatever role the page was opened as.
  */
@@ -217,13 +148,13 @@ export async function compareWithMockup(
   origin: string,
   target: MockupTarget,
   pageBlocks: RenderedBlock[],
-  options: { store: ShotStore; viewport: Viewport },
+  viewport: Viewport,
 ): Promise<MockupComparison> {
   const page = await context.newPage();
   try {
     await page.setViewportSize({
-      width: options.viewport.width,
-      height: options.viewport.height,
+      width: viewport.width,
+      height: viewport.height,
     });
     const response = await page.goto(viewerUrl(origin, target), {
       waitUntil: "load",
@@ -241,7 +172,7 @@ export async function compareWithMockup(
         `The mockup "${target.name}" drew no block within ${FRAME_TIMEOUT_MS / 1000} s: check its name, its page id and its spec issues.`,
       );
     }
-    return await compareDrawn(page, drawn, target, pageBlocks, options.store);
+    return compareDrawn(drawn, target, pageBlocks);
   } finally {
     await page.close();
   }

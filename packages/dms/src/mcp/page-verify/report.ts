@@ -36,8 +36,8 @@ export interface RenderedBlock {
 }
 
 /**
- * What the page looked like at one viewport, read from the DOM. No screenshot is taken of the
- * page: it would show the values of its rows to the AI that reads the report.
+ * What the page looked like at one viewport, read from the DOM. No screenshot is taken: it would
+ * show the values of the page's rows to the AI that reads the report.
  */
 export interface ViewportRender {
   viewport: string;
@@ -62,8 +62,6 @@ export interface MockupBlockComparison {
   type: string;
   /** Layout path of the page block matched to it, by path then by type in order. */
   pagePath?: string;
-  /** Project-relative path of the mockup block's screenshot, drawn on the mockup's fixtures. */
-  mockupScreenshot?: string;
   status: "matched" | "missing";
 }
 
@@ -71,8 +69,6 @@ export interface MockupBlockComparison {
 export interface MockupComparison {
   mockup: string;
   page: string;
-  /** Project-relative path of the full mockup screenshot, desktop width, drawn on its fixtures. */
-  screenshot?: string;
   blocks: MockupBlockComparison[];
   /** Page blocks with no counterpart in the mockup. */
   extraPageBlocks: string[];

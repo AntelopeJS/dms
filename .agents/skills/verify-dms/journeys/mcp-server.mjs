@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, sep } from "node:path";
+import { join } from "node:path";
 import { BRIDGE_LAUNCHER, fieldOf, itemsOf, parseJson, textOf, toolText, withBridge } from "../mcp-bridge.mjs";
 import { createRole, joinedMember } from "./settings-members/steps.mjs";
 
@@ -15,6 +15,8 @@ const INVALID_PARAMS = -32602;
 const USERS_PAGE = "/table-view/table-view-users";
 const USERS_PERMISSION = "library.components.table-view.table-view-users";
 const MOCKUP = "page-verify-member";
+/** A live route of the playground: a mockup block reading it draws a value of the backend, not a fixture. */
+const LIVE_KPI_ROUTE = "/api/dashboard/kpi/revenue";
 const MOCKUP_SPEC = {
   version: 1,
   title: "Users desk",
@@ -33,6 +35,7 @@ const MOCKUP_SPEC = {
             columns: { name: { name: "Name", type: "string", order: 1 } },
           },
         },
+        { type: "KpiCard", options: { title: "Revenue", fetchUrl: LIVE_KPI_ROUTE } },
       ],
     },
   ],
@@ -152,7 +155,7 @@ export const journeys = [
   },
   {
     id: "page-verify-reports-a-page",
-    title: "page_verify opens a page in a headless Chromium as the owner and reports its blocks, data and form validation without a screenshot of the page, and fails a route no page serves",
+    title: "page_verify opens a page in a headless Chromium as the owner and reports its blocks, data and form validation without a screenshot, and fails a route no page serves",
     entryPoint: `node ${BRIDGE_LAUNCHER}, tools/call page_verify`,
     async run(/** @type {Ctx} */ ctx) {
       const root = ctx.state.runPlayground ?? ctx.state.playground;
@@ -172,7 +175,7 @@ export const journeys = [
           ctx.holds("users page passes", fieldOf(users, "ok") === true, JSON.stringify(fieldOf(users, "failures"))),
           ctx.equal("the table loaded rows", fieldOf(table, "state"), "ok"),
           ctx.holds("the New entry form showed validation", fieldOf(form, "ok") === true, JSON.stringify(form)),
-          ctx.equal("no screenshot of the page is written", written, []),
+          ctx.equal("no screenshot is written", written, []),
           ctx.holds("the report names no screenshot", !text.includes(".png") && !text.includes("screenshot"), text.slice(0, 400)),
           ctx.holds("the unknown route names its failure", textOf(itemsOf(fieldOf(missing, "failures"))[0]).startsWith("not a registered page route"), JSON.stringify(missing)),
         ]);
@@ -201,12 +204,11 @@ export const journeys = [
           await session.call("page_verify", { page: USERS_PAGE, role: roleName, mockup: MOCKUP, viewports: ["desktop"] }),
         );
         const written = writtenSince(before, root);
-        const mockupFolder = `${sep}mockup${sep}`;
         const report = parseJson(text);
         const account = fieldOf(report, "account");
         const [users] = itemsOf(fieldOf(report, "pages"));
         const comparison = fieldOf(fieldOf(users, "render"), "mockup");
-        const [table] = itemsOf(fieldOf(comparison, "blocks"));
+        const [table, kpi] = itemsOf(fieldOf(comparison, "blocks"));
         const [desktop] = itemsOf(fieldOf(fieldOf(users, "render"), "viewports"));
         const pageTable = itemsOf(fieldOf(desktop, "blocks")).find((block) => fieldOf(block, "path") === fieldOf(table, "pagePath"));
         await ctx.verify("the page opened as the member and the mockup was drawn beside it", [
@@ -215,9 +217,9 @@ export const journeys = [
           ctx.equal("the member holds the asked role", fieldOf(account, "role"), roleName),
           ctx.equal("the comparison names the mockup", fieldOf(comparison, "mockup"), MOCKUP),
           ctx.equal("the viewer drew the mockup", fieldOf(comparison, "unavailable"), undefined),
-          ctx.holds("the mockup screenshot is written", textOf(fieldOf(comparison, "screenshot")).startsWith(".antelope/page-verify/") && statSync(join(root, textOf(fieldOf(comparison, "screenshot")))).size > 0, JSON.stringify(comparison)),
-          ctx.holds("every screenshot written is of the mockup", written.length > 0 && written.every((file) => file.includes(mockupFolder)), JSON.stringify(written)),
-          ctx.equal("the comparison names no page screenshot", fieldOf(table, "pageScreenshot"), undefined),
+          ctx.equal("the viewer drew the KPI that reads a live route", fieldOf(kpi, "type"), "dms-kpi-card"),
+          ctx.equal("no screenshot is written, of the page or of the mockup", written, []),
+          ctx.holds("the report names no screenshot", !text.includes(".png") && !text.includes("creenshot"), text.slice(0, 400)),
           ctx.equal("the mockup table pairs with the page table", fieldOf(table, "status"), "matched"),
           ctx.equal("the member's page drew that table", fieldOf(pageTable, "present"), true),
         ]);

@@ -76,7 +76,6 @@ export interface Locator {
   innerText(options?: { timeout: number }): Promise<string>;
   isVisible(): Promise<boolean>;
   isEnabled(): Promise<boolean>;
-  screenshot(options: { path: string; timeout?: number }): Promise<Buffer>;
   evaluateAll<R>(fn: (elements: Element[]) => R): Promise<R>;
   page(): Page;
 }
