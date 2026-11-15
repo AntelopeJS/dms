@@ -5,6 +5,7 @@ import { FormEvents } from "./types/events";
 import type { FormData, FormFieldValue } from "./types/value";
 import { isFieldGroup } from "./types/field";
 import { resolveResponseToast } from "../../build/utils/responseWarning";
+import { isJsonObject } from "../../build/utils/json";
 import { resolveLinkVariables } from "../../build/utils/urlVariables";
 import type { I18nTranslate } from "#dms-core/app/composables/translation/useTranslation";
 import {
@@ -331,7 +332,7 @@ function createFormSubmission(context: ReturnType<typeof createSavedForm>) {
     if (props.redirectOnSuccess) {
       const target = resolveLinkVariables(
         props.redirectOnSuccess,
-        buildUrlContext(response),
+        buildUrlContext(isJsonObject(response) ? response : undefined),
       );
       await navigateDms(target);
     }
