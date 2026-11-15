@@ -2,11 +2,14 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   AnalyseDatabase,
   type AnalysisState,
+  type ColumnDisplay,
   ConfigureProject,
   GetAnalysis,
   GetMapping,
   MapResources,
+  type MapResourcesInput,
   type MapResourcesResult,
+  type MappedResource,
   type OpResult,
   PreviewMapResources,
 } from "@antelopejs/interface-dms-builder";
@@ -14,7 +17,8 @@ import { z } from "zod";
 import { JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
 import { defineTool, type McpToolResult, textResult } from "../tool";
-import { opResult, refusalResult } from "./builder-shared";
+import { redactAnalysis, redactMapping } from "../redact";
+import { opResult, refusalResult, redactedOpResult } from "./builder-shared";
 import { TABLE_VIEW_SETTINGS } from "./builder-table-view";
 
 const ANALYSIS_WAIT_MS = 60_000;
@@ -89,21 +93,26 @@ const MAPPED_FIELD = z.object({
     .union([
       z.object({
         kind: z.literal("badge"),
-        items: z.array(
-          z.object({
-            value: z.string(),
-            label: z.string(),
-            tone: z.enum([
-              "neutral",
-              "primary",
-              "secondary",
-              "success",
-              "warning",
-              "error",
-              "info",
-            ]),
-          }),
-        ),
+        items: z
+          .array(
+            z.object({
+              value: z.string(),
+              label: z.string(),
+              tone: z.enum([
+                "neutral",
+                "primary",
+                "secondary",
+                "success",
+                "warning",
+                "error",
+                "info",
+              ]),
+            }),
+          )
+          .optional()
+          .describe(
+            "Left out, the Builder reads the column's values itself: the badge the relation's mapping holds, else the one its analysis proposes.",
+          ),
       }),
       z.object({
         kind: z.literal("price"),
@@ -119,7 +128,7 @@ const MAPPED_FIELD = z.object({
     .nullable()
     .optional()
     .describe(
-      "How the column is drawn: a `badge` on a text column of few values, a `price` on an amount. The proposal's display when left out; `null` writes the column plain.",
+      "How the column is drawn: a `badge` on a text column of few values, a `price` on an amount. The proposal's display when left out; `null` writes the column plain. A badge's values are never shown to you: send the badge back as the proposal or builder_mapping shows it, `{ kind: \"badge\", values: 3 }`.",
     ),
 });
 
@@ -221,26 +230,58 @@ function unapprovedPagesRefusal(
   return issue === undefined ? undefined : textResult(issue.message, true);
 }
 
+const MAP_RESOURCES_INPUT = z.object({
+  module: BOUND_MODULE,
+  connection: CONNECTION,
+  resources: z.array(MAPPED_RESOURCE),
+  excluded: z
+    .array(
+      z.object({
+        relation: z.string().describe("`schema.name`."),
+        reason: z.string(),
+      }),
+    )
+    .optional(),
+});
+
+type SentDisplay = z.infer<typeof MAPPED_FIELD>["display"];
+type SentResource = z.infer<typeof MAPPED_RESOURCE>;
+
+/** A badge sent without its items is the one the Builder reads itself: left out. */
+function displayInput(display: SentDisplay): ColumnDisplay | null | undefined {
+  if (display === undefined || display === null || display.kind === "price") {
+    return display;
+  }
+  return display.items === undefined
+    ? undefined
+    : { kind: "badge", items: display.items };
+}
+
+function resourceInput(resource: SentResource): MappedResource {
+  return {
+    ...resource,
+    fields: resource.fields.map(({ display, ...field }) => {
+      const sent = displayInput(display);
+      return sent === undefined ? field : { ...field, display: sent };
+    }),
+  };
+}
+
+function withReadBadges(
+  sent: z.infer<typeof MAP_RESOURCES_INPUT>,
+): MapResourcesInput {
+  return { ...sent, resources: sent.resources.map(resourceInput) };
+}
+
 const mapResources = defineTool({
   name: "builder_map_resources",
   title: "Map resources",
   description:
-    "Maps relations of a connected database into a project module bound to it (created with builder_configure_project): table classes and models with the database's names verbatim, DataAPI controllers and one TableView page per relation that has a key. Only your choices are sent: the Builder reads the relations' descriptions from its own catalog connection and checks every choice against them. A relation mapped before is rewritten from the new choices, its page created, kept or removed; a mapping that would remove a page asks the person first, listing it, and a denial writes nothing, and a page that appeared after the person approved is never removed: that write is refused, so call again to ask. `excluded` records relations decided against, so the next analysis does not propose them. A connection is read-only unless the dms-database entry of antelope.config.ts sets `config.externalConnections.<id>.access` to `read-write`: on a read-only one, a `writable: true` resource with a TableView is refused, and so are a ResourceForm that creates or edits its rows and a block over a table that still serves write routes. Only a person changes the access. Answers what was written and `leftOut`: columns a TableView cannot show, with why.",
+    "Maps relations of a connected database into a project module bound to it (created with builder_configure_project): table classes and models with the database's names verbatim, DataAPI controllers and one TableView page per relation that has a key. Only your choices are sent: the Builder reads the relations' descriptions from its own catalog connection and checks every choice against them. A relation mapped before is rewritten from the new choices, its page created, kept or removed; a mapping that would remove a page asks the person first, listing it, and a denial writes nothing, and a page that appeared after the person approved is never removed: that write is refused, so call again to ask. `excluded` records relations decided against, so the next analysis does not propose them. A connection is read-only unless the dms-database entry of antelope.config.ts sets `config.externalConnections.<id>.access` to `read-write`: on a read-only one, a `writable: true` resource with a TableView is refused, and so are a ResourceForm that creates or edits its rows and a block over a table that still serves write routes. Only a person changes the access. Answers the files it wrote, without their diffs, and `leftOut`: columns a TableView cannot show, with why.",
   effect: "builder",
-  input: z.object({
-    module: BOUND_MODULE,
-    connection: CONNECTION,
-    resources: z.array(MAPPED_RESOURCE),
-    excluded: z
-      .array(
-        z.object({
-          relation: z.string().describe("`schema.name`."),
-          reason: z.string(),
-        }),
-      )
-      .optional(),
-  }),
-  async run(input, sessionId) {
+  input: MAP_RESOURCES_INPUT,
+  async run(sent, sessionId) {
+    const input = withReadBadges(sent);
     const preview = await PreviewMapResources(input);
     if (!preview.ok) return opResult(preview);
     const { pagesToRemove } = preview.data;
@@ -249,14 +290,17 @@ const mapResources = defineTool({
         ...input,
         approvedPageRemovals: pagesToRemove,
       });
-      return unapprovedPagesRefusal(written) ?? opResult(written);
+      return (
+        unapprovedPagesRefusal(written) ??
+        redactedOpResult(written, (data) => data)
+      );
     };
     return pagesToRemove.length === 0
       ? write()
       : repeatConfirmation.run(
           sessionId,
           "builder_map_resources",
-          { ...input, pagesToRemove },
+          { ...sent, pagesToRemove },
           write,
         );
   },
@@ -307,7 +351,7 @@ const analyseDatabase = defineTool({
   name: "builder_analyse_database",
   title: "Analyse database",
   description:
-    "Runs the Builder's analysis of a connected database: it reads the catalog and the profiles and proposes a mapping by fixed rules, writing nothing. Answers the proposal: resources in the shape builder_map_resources takes, each choice with its rule and `kind` (`fact` from the catalog, or `default`, a judgement to check), the relations excluded and why, and `open`: what the rules could not decide, each with its options. Profiling is slow: when the analysis is still running after a minute this answers its progress and `job`; call again with that `job` to read on.",
+    "Runs the Builder's analysis of a connected database: it reads the catalog and the profiles and proposes a mapping by fixed rules, writing nothing. Answers the proposal: resources in the shape builder_map_resources takes, each choice with its rule and `kind` (`fact` from the catalog, or `default`, a judgement to check), the relations excluded and why, and `open`: what the rules could not decide, each with its options. It carries the database's redact, never a value from its rows: a field's `profile` holds traits, nulls, distinct and the rows of each category, a badge `{ kind: \"badge\", values }` says how many values it draws, and a price names no currency; builder_map_resources reads the values itself. Profiling is slow: when the analysis is still running after a minute this answers its progress and `job`; call again with that `job` to read on.",
   effect: "read",
   input: AnalyseDatabaseInputSchema,
   async run(args) {
@@ -327,7 +371,7 @@ const analyseDatabase = defineTool({
       await delay(ANALYSIS_POLL_MS);
       answer = await GetAnalysis(answer.data.id);
     }
-    return opResult(answer);
+    return redactedOpResult(answer, redactAnalysis);
   },
 });
 
@@ -335,11 +379,13 @@ const mapping = defineTool({
   name: "builder_mapping",
   title: "Builder mapping",
   description:
-    "The relations a module maps for a connection, read back from its code as their current choices, in the proposal's shape (every rule `mapped`), with `included`: the columns the module declares. Read it before mapping a relation again with builder_map_resources, so you send its current choices with only what you change.",
+    "The relations a module maps for a connection, read back from its code as their current choices, in the proposal's shape (every rule `mapped`), with `included`: the columns the module declares. A badge shows how many values it draws, not the values, and a price no currency. Read it before mapping a relation again with builder_map_resources, so you send its current choices with only what you change.",
   effect: "read",
   input: z.object({ connection: CONNECTION, module: BOUND_MODULE }),
   run: async ({ connection, module }) =>
-    opResult(await GetMapping(connection, module)),
+    redactedOpResult(await GetMapping(connection, module), (relations) =>
+      relations.map(redactMapping),
+    ),
 });
 
 export const BUILDER_PROJECT_TOOLS = [

@@ -8,12 +8,14 @@ import {
 import { z } from "zod";
 import { JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
+import { redactPreview } from "../redact";
 import { defineTool } from "../tool";
 import {
   containsExprSentinel,
   exprRefusal,
   withEscalationNote,
   opResult,
+  redactedOpResult,
 } from "./builder-shared";
 
 const QUERY_REF = z
@@ -29,7 +31,7 @@ const QUERY_ENDPOINT = z
   );
 
 const QUERY_PARAMS = JsonObjectSchema.describe(
-  "The template's parameters, keyed exactly as the `params` schema builder_query_templates reports for it — that schema documents every key and value shape, and an unrecognised key is rejected.",
+  "The template's parameters, keyed exactly as the `params` schema builder_query_templates reports for it — that schema documents every key and value redact, and an unrecognised key is rejected.",
 );
 
 const QUERY_RESPONSE = z
@@ -108,15 +110,16 @@ const previewQuery = defineTool({
   name: "builder_preview_query",
   title: "Preview query",
   description: withEscalationNote(
-    "Runs a query that is not saved and answers what its route would, as `{ body, truncated }`, writing nothing. Takes builder_add_query's query fields (no page) and `args`. An empty `series` or `items` in `body` means the block reading it renders empty: fix the query before wiring its route.",
+    'Runs a query that is not saved and answers the shape of what its route would, as `{ body, truncated }`, writing nothing. `body` holds no value from a row: each leaf is its type (`"string"`, `"number"`, `"boolean"`, `"null"`) and each list `{ length, items }`, with the distinct shapes of its elements. Takes builder_add_query\'s query fields (no page) and `args`. A `series` or `items` of length 0 in `body` means the block reading it renders empty: fix the query before wiring its route.',
   ),
   effect: "read",
   input: z.object({ ...QUERY_FIELDS, args: QUERY_ARGS.optional() }),
   run: async ({ args, ...query }) =>
     containsExprSentinel.parse({ query, args })
       ? exprRefusal()
-      : opResult(
+      : redactedOpResult(
           await PreviewQuery(args === undefined ? { query } : { query, args }),
+          redactPreview,
         ),
 });
 
