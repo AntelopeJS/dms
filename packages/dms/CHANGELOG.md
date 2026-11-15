@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.20.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.3...v0.20.4)
+
+### 🩹 Fixes
+
+- **dms:** The tools the AI calls answer the shape of a connected database, never its values ([#1065](https://github.com/AntelopeJS/dms/pull/1065))
+- **dms:** Resolve a form's success link from its submit answer read as JSON ([#1071](https://github.com/AntelopeJS/dms/pull/1071))
+
+### 💅 Refactors
+
+- **dms:** Lint the dms-ui app area of the Vue layer ([#1067](https://github.com/AntelopeJS/dms/pull/1067))
+- **dms:** Lint the Vue layer's scripts with the AntelopeJS preset ([#1070](https://github.com/AntelopeJS/dms/pull/1070))
+- **dms:** Fix the anti-slop findings of the dms-ui build components, mockups and utils ([#1063](https://github.com/AntelopeJS/dms/pull/1063))
+- **dms:** Fix the anti-slop findings of the dms-core layer ([#1066](https://github.com/AntelopeJS/dms/pull/1066))
+- **dms:** Fix the anti-slop findings of the Vue layer's tests ([#1061](https://github.com/AntelopeJS/dms/pull/1061))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli ([@Upd4ting](http://github.com/Upd4ting))
+
 ## v0.20.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.20.2...v0.20.3)
