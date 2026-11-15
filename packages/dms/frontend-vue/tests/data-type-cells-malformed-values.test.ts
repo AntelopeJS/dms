@@ -2,7 +2,7 @@ import { h } from "vue";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
 import { changedFormKeys } from "../layers/dms-ui/app/entries/composables/unsaved-changes/formValue";
-import { renderIdentity } from "../layers/dms-ui/app/build/composables/data-types/defaultIdentityCells";
+import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { childOf } from "../layers/dms-ui/app/entries/composables/data-types/cellHelpers";
 
 describe("changedFormKeys reads own keys only", () => {
@@ -31,34 +31,59 @@ describe("a value drawn as a child of a cell", () => {
   });
 });
 
-describe("a date cell given a value that is no date", () => {
-  beforeAll(() => {
-    vi.stubGlobal("isObject", isObject);
-    vi.stubGlobal("useDmsApp", () => ({
-      $i18n: { t: (key: string) => key, locale: { value: "en" } },
-    }));
-  });
+const registered = new Map<string, DataType["formatter"]>();
 
-  it("writes it as it is, where a date or a timestamp is read as one", async () => {
-    const { renderRelativeDate } = await import(
-      "../layers/dms-ui/app/build/composables/data-types/defaultDateCells"
-    );
-    expect(renderRelativeDate(true, "en", {}, {})).toBe("true");
+function formatterOf(
+  id: string,
+): NonNullable<DataType["formatter"]>["default"] {
+  const formatter = registered.get(id)?.default;
+  if (!formatter) throw new Error(`No formatter registered for ${id}`);
+  return formatter;
+}
+
+beforeAll(async () => {
+  vi.stubGlobal("h", h);
+  vi.stubGlobal("isObject", isObject);
+  for (const name of [
+    "formatNumber",
+    "formatPrice",
+    "formatPercentage",
+    "formatDate",
+    "getBooleanLabel",
+  ]) {
+    vi.stubGlobal(name, () => "");
+  }
+  vi.stubGlobal("useDmsApp", () => ({
+    $i18n: { t: (key: string) => key, locale: { value: "en" } },
+  }));
+  vi.stubGlobal("useDataTypes", () => ({
+    registerDataType: (dataType: DataType) =>
+      registered.set(dataType.id, dataType.formatter),
+  }));
+  const { registerDefaultDataTypes } = await import(
+    "../layers/dms-ui/app/entries/composables/data-types/registerDefaults"
+  );
+  registerDefaultDataTypes();
+});
+
+describe("a date cell given a value that is no date", () => {
+  it("writes it as it is, where a date or a timestamp is read as one", () => {
+    expect(formatterOf("relative_date")(true, "en", {}, {})).toBe("true");
   });
 });
 
 describe("an identity cell given a malformed avatar", () => {
-  beforeAll(() => {
-    vi.stubGlobal("h", h);
-    vi.stubGlobal("isObject", isObject);
-    vi.stubGlobal("useDmsApp", () => ({
-      $i18n: { t: (key: string) => key, locale: { value: "en" } },
-    }));
-  });
-
-  const avatarOf = (field: unknown) =>
-    renderIdentity("Ada", { avatarField: "avatar" }, { avatar: field }).props
-      ?.avatar;
+  const avatarOf = (field: unknown) => {
+    const cell = formatterOf("identity")(
+      "Ada",
+      "en",
+      { avatarField: "avatar" },
+      { avatar: field },
+    );
+    return isObject(cell) && isObject(cell.props)
+      ? cell.props.avatar
+      : undefined;
+  };
 
   it("draws no avatar for a file key that is no text", () => {
     expect(avatarOf({ key: 5 })).toBeUndefined();

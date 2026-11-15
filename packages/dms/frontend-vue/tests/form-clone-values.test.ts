@@ -1,24 +1,89 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { computed, effectScope, ref, watch, type EffectScope } from "vue";
+import { HttpMethod } from "../layers/dms-core/app/types/http";
+import { isString } from "../layers/dms-core/app/utils/type-check";
 import {
   cloneFormValue,
   snapshotFormState,
+  useForm,
 } from "../layers/dms-ui/app/composables/form/useForm";
-import {
-  cloneRecordValues,
-  createBaseValidationSchema,
-} from "../layers/dms-ui/app/build/composables/form/useFormModel";
 
-describe("cloneRecordValues", () => {
-  it("clones a record by value", () => {
+const authFetch = vi.fn();
+let scope: EffectScope;
+
+function formOf(props: Partial<Parameters<typeof useForm>[0]> = {}) {
+  return scope.run(() =>
+    useForm({
+      componentId: "form-1",
+      pageId: "page-1",
+      fields: [],
+      fetchUrl: "/api/plans/get?id=pro",
+      ...props,
+    }),
+  )!;
+}
+
+beforeEach(() => {
+  scope = effectScope();
+  vi.stubGlobal("computed", computed);
+  vi.stubGlobal("ref", ref);
+  vi.stubGlobal("watch", watch);
+  vi.stubGlobal("isString", isString);
+  vi.stubGlobal("HttpMethod", HttpMethod);
+  vi.stubGlobal("Color", { error: "error", success: "success", info: "info" });
+  vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "Content-Language");
+  vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
+  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
+  vi.stubGlobal("useTranslation", () => ({
+    processI18n: (key: string) => key,
+    processApiMessage: (message: string) => message,
+  }));
+  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal("useDmsRoute", () => ({ query: {} }));
+  vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
+  vi.stubGlobal("useEventedAction", () => ({ execute: vi.fn() }));
+  vi.stubGlobal(
+    "useWatch",
+    (
+      ...[_actions, _id, initial]: Parameters<
+        typeof import("../layers/dms-core/app/composables/watch/useWatch").useWatch
+      >
+    ) => ({
+      isLoading: ref(false),
+      state: ref({ ...initial }),
+    }),
+  );
+});
+
+afterEach(() => {
+  scope.stop();
+  vi.unstubAllGlobals();
+  vi.resetAllMocks();
+});
+
+describe("the record a form loaded", () => {
+  it("is kept as a clone of the record, not the record itself", async () => {
     const record = { tags: ["a"], title: "t" };
-    const cloned = cloneRecordValues(record);
-    expect(cloned).toEqual(record);
-    expect(cloned.tags).not.toBe(record.tags);
+    authFetch.mockResolvedValue(record);
+    const form = formOf();
+    await form.fetchData();
+    expect(form.initialValues.value).toEqual(record);
+    expect(form.initialValues.value.tags).not.toBe(record.tags);
   });
 
-  it("clones a record that is not a plain record to an empty one", () => {
-    expect(cloneRecordValues(JSON.parse("null"))).toEqual({});
-    expect(cloneRecordValues(JSON.parse("[1, 2]"))).toEqual({});
+  it("is kept as an empty record when the server sends none", async () => {
+    authFetch.mockResolvedValue(JSON.parse("null"));
+    const form = formOf();
+    await form.fetchData();
+    expect(form.initialValues.value).toEqual({});
+  });
+
+  it("is kept as an empty record when the server sends a list", async () => {
+    authFetch.mockResolvedValue(JSON.parse("[1, 2]"));
+    const form = formOf();
+    await form.fetchData();
+    expect(form.initialValues.value).toEqual({});
   });
 });
 
@@ -42,17 +107,16 @@ describe("snapshotFormState", () => {
   });
 });
 
-describe("createBaseValidationSchema", () => {
-  it("falls back to an empty object schema for a schema that is not an object", () => {
-    const schema = createBaseValidationSchema({ type: "string" });
-    expect(Object.keys(schema.shape)).toEqual([]);
+describe("the validation schema of a form", () => {
+  it("is an empty object schema when the schema is not an object", () => {
+    const form = formOf({ schema: { type: "string" } });
+    expect(Object.keys(form.validationSchema.value.shape)).toEqual([]);
   });
 
-  it("builds the object schema of an object schema", () => {
-    const schema = createBaseValidationSchema({
-      type: "object",
-      properties: { title: { type: "string" } },
+  it("has the fields of an object schema", () => {
+    const form = formOf({
+      schema: { type: "object", properties: { title: { type: "string" } } },
     });
-    expect(Object.keys(schema.shape)).toEqual(["title"]);
+    expect(Object.keys(form.validationSchema.value.shape)).toEqual(["title"]);
   });
 });

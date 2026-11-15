@@ -1,27 +1,70 @@
-import { describe, expect, it } from "vitest";
-import { isRowEvent } from "../layers/dms-ui/app/build/composables/form/formComponentRealtime";
+/** @vitest-environment jsdom */
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { nextTick } from "vue";
+import { host, mountForm, t } from "./helpers/form-runtime";
+import { engine } from "./helpers/api-data-runtime";
 
-describe("isRowEvent", () => {
-  it("accepts an update event of a row", () => {
-    expect(
-      isRowEvent({ type: "updated", payload: { ids: ["a"] }, actorId: "u1" }),
-    ).toBe(true);
+let deliver: (event: unknown) => void;
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "useRealtimeTopic",
+    (_topic: unknown, handler: (event: unknown) => void) => {
+      deliver = handler;
+    },
+  );
+});
+
+async function openRowForm() {
+  await engine.setupFrontendModules([]);
+  const runtime = engine.createDmsFrontendRuntime();
+  vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
+  vi.stubGlobal("useAuthFetch", () => ({
+    $authFetch: vi.fn(async () => ({ name: "Ada" })),
+  }));
+  await mountForm(
+    { fetchUrl: "/api/invoices/get?id=r1&_presence=1" },
+    undefined,
+    (app) => engine.provideDmsFrontendRuntime(app, runtime),
+  );
+}
+
+async function receive(event: unknown) {
+  deliver(event);
+  await nextTick();
+}
+
+const bannerShown = () =>
+  host.textContent?.includes(t("dms.realtime.concurrent_edit_banner_title"));
+
+describe("a realtime event on the row a form edits", () => {
+  it("warns of a concurrent edit when another user updated the row", async () => {
+    await openRowForm();
+    await receive({
+      type: "updated",
+      payload: { ids: ["r1"] },
+      actorId: "u1",
+    });
+    expect(bannerShown()).toBe(true);
   });
 
-  it("accepts an event with no payload or actor", () => {
-    expect(isRowEvent({ type: "updated", payload: null, actorId: null })).toBe(
-      true,
-    );
-    expect(isRowEvent({ type: "updated" })).toBe(true);
+  it("warns of a concurrent edit when the event names no actor", async () => {
+    await openRowForm();
+    await receive({ type: "updated", payload: { ids: ["r1"] }, actorId: null });
+    expect(bannerShown()).toBe(true);
   });
 
-  it("refuses a missing event", () => {
-    expect(isRowEvent(null)).toBe(false);
-    expect(isRowEvent(undefined)).toBe(false);
+  it("is ignored when there is no event", async () => {
+    await openRowForm();
+    await receive(null);
+    await receive(undefined);
+    expect(bannerShown()).toBe(false);
   });
 
-  it("refuses ids that are not a list of ids", () => {
-    expect(isRowEvent({ type: "updated", payload: { ids: "a" } })).toBe(false);
-    expect(isRowEvent({ type: "updated", payload: { ids: [1] } })).toBe(false);
+  it("is ignored when its ids are not a list of ids", async () => {
+    await openRowForm();
+    await receive({ type: "updated", payload: { ids: "r1" }, actorId: "u1" });
+    await receive({ type: "updated", payload: { ids: [1] }, actorId: "u1" });
+    expect(bannerShown()).toBe(false);
   });
 });

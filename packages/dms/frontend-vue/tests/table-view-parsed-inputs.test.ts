@@ -1,41 +1,134 @@
-import { ref } from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  getErrorPayload,
-  getItemId,
-} from "../layers/dms-ui/app/build/composables/table-view/tableRowActionValues";
-import {
-  isGroupedConfig,
-  isKanbanConfig,
-} from "../layers/dms-ui/app/build/composables/table-view/utils/displayOptions";
+import { ref, shallowRef } from "vue";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FormContainerType } from "../layers/dms-ui/app/entries/composables/table-view/types";
+import { fetchClientMock } from "./fixtures/unusedApi";
 import { navBadgeCount } from "../layers/dms-ui/app/entries/composables/table-view/utils/tableCounts";
 import { nextExpandedRows } from "../layers/dms-ui/app/entries/composables/table-view/utils/expandedRows";
 import { TableViewFunctions } from "../layers/dms-ui/app/composables/table-view/types/functions";
+import { TableViewEvents } from "../layers/dms-ui/app/composables/table-view/types/events";
+import { HttpMethod } from "../layers/dms-core/app/types/http";
+import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
+import { Color } from "../layers/dms-core/app/types/color";
+import { normalizeActionConfig } from "../layers/dms-core/app/utils/row-action-rule-evaluator";
+import { useEventedAction } from "../layers/dms-core/app/composables/useEventedAction";
 import { rowGroupKey } from "../layers/dms-ui/app/entries/composables/table-view/utils/groupedRows";
 
 vi.stubGlobal("ref", ref);
+vi.stubGlobal("shallowRef", shallowRef);
 const { useDefinedFunctions } = await import(
   "../layers/dms-core/app/composables/functions/useDefinedFunction"
+);
+const { useTableRowActions } = await import(
+  "../layers/dms-ui/app/entries/composables/table-view/useTableViewRowActions"
 );
 const { registerDefaultFunctions } = await import(
   "../layers/dms-ui/app/entries/composables/table-view/registerDefaultFunctions"
 );
 
-describe("a row id is read as text", () => {
-  it("stringifies a numeric id and skips a value that is no id", () => {
-    expect(getItemId({ _id: 7 })).toBe("7");
-    expect(getItemId({ _id: {}, id: "row-1" })).toBe("row-1");
-    expect(getItemId({ _id: null })).toBeUndefined();
-  });
-});
+describe("a row action", () => {
+  const sendComponentEvent = vi.fn();
+  const openModal = vi.fn();
 
-describe("an error payload reaches listeners as the server sent it", () => {
-  it("keeps a body object, falls back to the message, ignores a non-error", () => {
+  beforeEach(() => {
+    sendComponentEvent.mockReset();
+    openModal.mockReset();
+    vi.stubGlobal("HttpMethod", HttpMethod);
+    vi.stubGlobal("Color", Color);
+    vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
+    vi.stubGlobal("useApiErrorPresenter", () => ({ presentError: vi.fn() }));
+    vi.stubGlobal("useI18n", () => ({
+      t: (key: string) => key,
+      locale: ref("en"),
+    }));
+    vi.stubGlobal("useConfirm", () => ({ confirm: vi.fn() }));
+    vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
+    vi.stubGlobal("useTranslation", () => ({
+      processI18n: (value: string) => value,
+    }));
+    vi.stubGlobal("useModal", () => ({ open: openModal }));
+    vi.stubGlobal("useDrawer", () => ({ open: vi.fn() }));
+    vi.stubGlobal("useExportJob", () => ({ runJob: vi.fn() }));
+    vi.stubGlobal("interpolateUrl", interpolateUrl);
+    vi.stubGlobal("navigateDms", vi.fn());
+    vi.stubGlobal("resolveDmsComponent", vi.fn());
+    vi.stubGlobal("useDmsRoute", () => ({ query: {} }));
+    vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent }));
+    vi.stubGlobal("useEventedAction", useEventedAction);
+    vi.stubGlobal("normalizeActionConfig", normalizeActionConfig);
+    vi.stubGlobal("getPluginI18n", () => ({
+      i18n: { t: (key: string) => key },
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal("ref", ref);
+  });
+
+  const rowActions = () =>
+    useTableRowActions({
+      api: fetchClientMock(),
+      location: "/api/task",
+      columns: [],
+      componentId: "table",
+      pageId: "tasks",
+      formContainer: { type: FormContainerType.modal },
+      formComponents: {
+        view: {
+          componentName: "DmsFormBlock",
+          options: { componentId: "form", pageId: "tasks" },
+        },
+      },
+    });
+
+  const openedUrl = () => {
+    const [options] = openModal.mock.calls[0] ?? [];
+    return options?.componentOptions?.fetchUrl;
+  };
+
+  const errorPayloadOf = async (failure: unknown) => {
+    openModal.mockImplementation(() => {
+      throw failure;
+    });
+    await rowActions()
+      .openRow({ _id: "t1" })
+      ?.catch(() => undefined);
+    const [, , payload] = sendComponentEvent.mock.calls.find(
+      ([event]) => event === TableViewEvents.ROW_CLICK_ERROR,
+    )!;
+    return payload.error;
+  };
+
+  it("opens a row whose id is a number, as its text", () => {
+    rowActions().openRow({ _id: 7 });
+    expect(openedUrl()).toBe("/api/task/get?id=7&action=details");
+  });
+
+  it("falls back to the id field when the first one is no id", () => {
+    rowActions().openRow({ _id: {}, id: "row-1" });
+    expect(openedUrl()).toBe("/api/task/get?id=row-1&action=details");
+  });
+
+  it("opens nothing for a row with no usable id", () => {
+    expect(rowActions().openRow({ _id: null })).toBeUndefined();
+    expect(openModal).not.toHaveBeenCalled();
+    expect(sendComponentEvent).not.toHaveBeenCalled();
+  });
+
+  it("tells listeners a failure with the body the server sent", async () => {
     const body = { message: "Refused", fields: ["name"] };
-    expect(getErrorPayload({ data: body, message: "x" })).toBe(body);
-    expect(getErrorPayload({ data: "", message: "Failed" })).toBe("Failed");
-    expect(getErrorPayload(null)).toBeUndefined();
-    expect(getErrorPayload("boom")).toBeUndefined();
+    expect(await errorPayloadOf({ data: body, message: "x" })).toBe(body);
+  });
+
+  it("tells listeners a failure with its message when it has no body", async () => {
+    expect(await errorPayloadOf({ data: "", message: "Failed" })).toBe(
+      "Failed",
+    );
+  });
+
+  it("tells listeners no payload for a failure that is no error", async () => {
+    expect(await errorPayloadOf(null)).toBeUndefined();
+    expect(await errorPayloadOf("boom")).toBeUndefined();
   });
 });
 
@@ -59,21 +152,6 @@ describe("a group key is read from a date only", () => {
     expect(rowGroupKey("2024-05-01T10:00:00Z", "day", "en-GB")).toBe(
       "2024-05-01",
     );
-  });
-});
-
-describe("display options are taken whole or not at all", () => {
-  it("rejects options whose field is not a name or whose flags are not flags", () => {
-    expect(isKanbanConfig({ groupByField: "status", draggable: true })).toBe(
-      true,
-    );
-    expect(isKanbanConfig({ groupByField: 3 })).toBe(false);
-    expect(isKanbanConfig({ groupByField: "status", draggable: "yes" })).toBe(
-      false,
-    );
-    expect(isGroupedConfig({ groupByField: "day", by: "week" })).toBe(true);
-    expect(isGroupedConfig({ groupByField: "day", by: "year" })).toBe(false);
-    expect(isGroupedConfig(undefined)).toBe(false);
   });
 });
 
