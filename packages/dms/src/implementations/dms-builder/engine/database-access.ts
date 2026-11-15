@@ -103,6 +103,23 @@ export function missingClient(
   );
 }
 
+const LAST_CONTROL_CHARACTER = 0x1f;
+const DELETE_CHARACTER = 0x7f;
+
+/**
+ * Whether `url` holds a C0 control character or DEL, which the WHATWG URL parser the clients read a
+ * URL with drops or rewrites: a check that reads such a URL otherwise sees other keys than the client.
+ */
+export function hasControlCharacter(url: string): boolean {
+  for (let index = 0; index < url.length; index += 1) {
+    const code = url.charCodeAt(index);
+    if (code <= LAST_CONTROL_CHARACTER || code === DELETE_CHARACTER) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function decoded(text: string): string {
   try {
     return decodeURIComponent(text);

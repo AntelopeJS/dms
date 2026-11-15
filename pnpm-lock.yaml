@@ -198,6 +198,9 @@ importers:
       mongodb:
         specifier: ^7.1.1
         version: 7.3.0(socks@2.8.7)
+      mongodb-connection-string-url:
+        specifier: ^7.0.1
+        version: 7.0.1
       mongodb-memory-server-core:
         specifier: ^11.0.1
         version: 11.2.0(socks@2.8.7)

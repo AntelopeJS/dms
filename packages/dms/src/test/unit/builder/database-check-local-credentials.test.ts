@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -167,29 +168,59 @@ describe("what a PostgreSQL check sends of this computer", () => {
     }
   });
 
-  /** Fails on a check that signs in as this computer's user, or lets `pg` read a certificate or key file of it. */
-  it("refuses a URL with no user, or naming a certificate or key file, before connecting", async () => {
+  /** Fails on a check that lets `pg` fill the user or the host from this computer, or present a certificate of it, or reads the URL otherwise than `pg`. */
+  it("refuses a URL with no user or host, naming a certificate or key, or holding a control character, before connecting", async () => {
     const server = await passwordAskingServer();
     try {
       const base = `127.0.0.1:${server.port}/shop`;
       const reasons: (string | undefined)[] = [];
       for (const url of [
         `postgres://${base}`,
+        `postgres://app:pw@/shop`,
         `postgres://app:pw@${base}?sslcert=/etc/hostname`,
         `postgres://app:pw@${base}?SSLKEY=/etc/hostname`,
-        `postgres://app:pw@${base}?sslmode=require&sslrootcert=/etc/hostname`,
+        `postgres://app:pw@${base}?ssl\tkey=/etc/hostname`,
+        `postgres://app:pw@${base}?sslroot\tcert=/dev/zero`,
       ]) {
         reasons.push((await checkDatabase("postgres", url, TIMEOUT_MS)).reason);
       }
       expect(server.connections()).to.equal(0);
       expect(reasons).to.deep.equal([
         "The URL names no user: add it before the host, as postgres://user:password@host/database.",
-        "This check reads no certificate or key file of this computer: remove sslcert, sslkey and sslrootcert from the URL.",
-        "This check reads no certificate or key file of this computer: remove sslcert, sslkey and sslrootcert from the URL.",
-        "This check reads no certificate or key file of this computer: remove sslcert, sslkey and sslrootcert from the URL.",
+        "This URL could not be read.",
+        "This check signs in with no certificate or key of this computer: remove sslcert and sslkey from the URL.",
+        "This check signs in with no certificate or key of this computer: remove sslcert and sslkey from the URL.",
+        "This URL could not be read.",
+        "This URL could not be read.",
       ]);
     } finally {
       await server.close();
+    }
+  });
+
+  /** Fails on a check that lets `pg` read an `sslrootcert` that never ends, which holds the process before any deadline. */
+  it("answers an sslrootcert that is a device, a pipe or a file that never ends at once, before connecting", async function () {
+    if (process.platform === "win32") {
+      this.skip();
+    }
+    const server = await passwordAskingServer();
+    const folder = fs.mkdtempSync(path.join(os.tmpdir(), "dms-rootcert-"));
+    const pipe = path.join(folder, "pipe");
+    execFileSync("mkfifo", [pipe]);
+    try {
+      const base = `postgres://app:pw@127.0.0.1:${server.port}/shop?sslmode=require&sslrootcert=`;
+      for (const file of ["/dev/zero", pipe, "/proc/self/pagemap"]) {
+        const started = performance.now();
+        const answer = await checkDatabase("postgres", base + file, TIMEOUT_MS);
+        expect(performance.now() - started, file).to.be.lessThan(TIMEOUT_MS);
+        expect(answer.reason, file).to.equal(
+          "The sslrootcert of the URL must be a file of at most 1 MiB.",
+        );
+      }
+      expect(server.connections()).to.equal(0);
+    } finally {
+      await server.close();
+      fs.rmSync(folder, { recursive: true, force: true });
     }
   });
 });
@@ -220,7 +251,7 @@ describe("what a MongoDB check sends of this computer", () => {
     }
   });
 
-  /** Fails on a refusal that a change of case, a repeated key or percent-encoding gets past. */
+  /** Fails on a refusal that a change of case, a repeated key, percent-encoding or a control character the client's parser drops gets past. */
   it("refuses every other mechanism and every file option, however the URL spells it, before connecting", async () => {
     const server = await silentServer();
     try {
@@ -236,6 +267,9 @@ describe("what a MongoDB check sends of this computer", () => {
         ["&tlsCAFile=/etc/hostname", LOCAL_FILES],
         ["&TLSCERTIFICATEKEYFILE=/etc/hostname", LOCAL_FILES],
         ["&tls%43RLFile=/etc/hostname", LOCAL_FILES],
+        ["&auth\tMechanism=MONGODB-AWS", "This URL could not be read."],
+        ["&authMechanism=MONGODB-\nAWS", "This URL could not be read."],
+        ["&tlsCA\rFile=/etc/hostname", "This URL could not be read."],
       ];
       for (const [query, reason] of refusals) {
         const answer = await checkDatabase("mongodb", base + query, TIMEOUT_MS);

@@ -7,6 +7,7 @@ import {
 } from "./access-mongodb";
 import {
   failureMessage,
+  hasControlCharacter,
   missingClient,
   noAnswerReason,
   type Probe,
@@ -47,33 +48,33 @@ const LOCAL_FILE_OPTIONS = new Set([
   "tlscertificatekeyfilepassword",
 ]);
 
-/** What splits the URL into the `key=value` pairs the check reads: wherever a query could start or go on. */
-const PAIR_SEPARATORS = /[?&;]/;
+/** The options of a URL, as the parser `mongodb` reads it with gives them. */
+type UrlOptions = Iterable<[string, string]>;
 
 /**
  * Why the check refuses `url` before `mongodb` reads it: a mechanism that signs in with an identity
  * of this computer (its AWS keys, a Kerberos ticket, an OIDC token file or metadata service, a
  * certificate), or an option that reads a file of it. `mongodb` matches `authMechanism` as a regular
  * expression while it builds the client, so a value outside the four names is refused here, before
- * it can hold the process. Every `key=value` of the whole URL is read, percent-decoded and compared
- * without regard to case, so a pair the client reads is never missed. `undefined` when it signs in
- * with what the URL carries only.
+ * it can hold the process. The URL is read by `parse`, the parser `mongodb` reads it with, and a
+ * URL that parser would rewrite is refused, so the check sees the very keys and values the client
+ * sees. `undefined` when it signs in with what the URL carries only.
  */
-function localRefusal(url: string): string | undefined {
-  for (const pair of url.split(PAIR_SEPARATORS).slice(1)) {
-    const equals = pair.indexOf("=");
-    let key: string;
-    let value: string;
-    try {
-      key = decodeURIComponent(
-        (equals < 0 ? pair : pair.slice(0, equals)).replaceAll("+", " "),
-      ).toLowerCase();
-      value = decodeURIComponent(
-        (equals < 0 ? "" : pair.slice(equals + 1)).replaceAll("+", " "),
-      );
-    } catch {
-      return UNREADABLE_URL;
-    }
+function localRefusal(
+  url: string,
+  parse: (url: string) => UrlOptions,
+): string | undefined {
+  if (hasControlCharacter(url)) {
+    return UNREADABLE_URL;
+  }
+  let options: UrlOptions;
+  try {
+    options = parse(url);
+  } catch {
+    return UNREADABLE_URL;
+  }
+  for (const [name, value] of options) {
+    const key = name.toLowerCase();
     if (key === "authmechanism" && !URL_MECHANISMS.has(value.toUpperCase())) {
       return OTHER_MECHANISM;
     }
@@ -138,7 +139,13 @@ export const probeMongodb: Probe = async (url, timeoutMs, connections) => {
   if (!mongodb) {
     return missingClient("mongodb", "MongoDB");
   }
-  const refused = localRefusal(url);
+  const urls = loadClient("mongodb-connection-string-url");
+  const refused = urls
+    ? localRefusal(
+        url,
+        (written) => new urls.ConnectionString(written).searchParams,
+      )
+    : UNREADABLE_URL;
   if (refused !== undefined) {
     return unanswered(refused);
   }

@@ -1,8 +1,10 @@
 import type { DatabaseAccess } from "@antelopejs/interface-dms-builder";
+import fs from "node:fs";
 import net from "node:net";
 import { postgresAccess, type PostgresRelationRow } from "./access-postgres";
 import {
   failureMessage,
+  hasControlCharacter,
   missingClient,
   noAnswerReason,
   type Probe,
@@ -24,11 +26,15 @@ const NEEDS_SIGN_IN = "This server asks for a user name and a password.";
 const NO_USER =
   "The URL names no user: add it before the host, as postgres://user:password@host/database.";
 const LOCAL_FILES =
-  "This check reads no certificate or key file of this computer: remove sslcert, sslkey and sslrootcert from the URL.";
+  "This check signs in with no certificate or key of this computer: remove sslcert and sslkey from the URL.";
+const ROOT_CERT_UNREADABLE =
+  "The sslrootcert of the URL must be a file of at most 1 MiB.";
+const ROOT_CERT = "sslrootcert";
+const ROOT_CERT_LIMIT_BYTES = 1024 * 1024;
 const UNREADABLE_URL = "This URL could not be read.";
 
-/** The URL parameters `pg` reads a file of this computer for. */
-const LOCAL_FILE_PARAMETERS = new Set(["sslcert", "sslkey", "sslrootcert"]);
+/** The URL parameters for which `pg` presents a certificate of this computer. */
+const LOCAL_FILE_PARAMETERS = new Set(["sslcert", "sslkey"]);
 
 /** Thrown in place of a password the URL does not give, so `pg` sends none. */
 class PasswordWithheld extends Error {}
@@ -80,10 +86,56 @@ type UrlSignIn =
   | { refusal?: undefined; password: boolean };
 
 /**
- * How the check signs in with `url`. It refuses a URL with no user, for which `pg` would sign in as
- * the user this computer runs as, and one that names a certificate or key file of this computer.
+ * Whether `file` is a regular file that ends within `ROOT_CERT_LIMIT_BYTES`. `pg` reads it whole
+ * and synchronously while it parses the URL, so a device or a pipe would hold the process; the end
+ * is found by reading, since `stat` reports 0 bytes for many files that never end. It is opened
+ * without blocking, so a pipe swapped in after the `stat` fails to read instead of waiting.
+ */
+function isBoundedFile(file: string): boolean {
+  let descriptor: number | undefined;
+  try {
+    if (!fs.statSync(file).isFile()) {
+      return false;
+    }
+    descriptor = fs.openSync(
+      file,
+      fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK ?? 0),
+    );
+    const buffer = Buffer.alloc(ROOT_CERT_LIMIT_BYTES + 1);
+    let total = 0;
+    while (total < buffer.length) {
+      const read = fs.readSync(
+        descriptor,
+        buffer,
+        total,
+        buffer.length - total,
+        null,
+      );
+      if (read === 0) {
+        return true;
+      }
+      total += read;
+    }
+    return false;
+  } catch {
+    return false;
+  } finally {
+    if (descriptor !== undefined) {
+      fs.closeSync(descriptor);
+    }
+  }
+}
+
+/**
+ * How the check signs in with `url`, read as the WHATWG parser `pg` reads it with, and refused when
+ * that parser would rewrite it. It refuses a URL with no user or no host, which `pg` would fill
+ * from this computer (a URL without a host does not parse), one that names a certificate or key of this computer, and an `sslrootcert`
+ * that is not a regular file of at most 1 MiB.
  */
 function urlSignIn(url: string): UrlSignIn {
+  if (hasControlCharacter(url)) {
+    return { refusal: UNREADABLE_URL };
+  }
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -96,6 +148,9 @@ function urlSignIn(url: string): UrlSignIn {
   const names = [...parsed.searchParams.keys()];
   if (names.some((name) => LOCAL_FILE_PARAMETERS.has(name.toLowerCase()))) {
     return { refusal: LOCAL_FILES };
+  }
+  if (!parsed.searchParams.getAll(ROOT_CERT).every(isBoundedFile)) {
+    return { refusal: ROOT_CERT_UNREADABLE };
   }
   return { password: parsed.password !== "" };
 }
