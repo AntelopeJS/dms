@@ -178,10 +178,13 @@ export const selectPackages = ({ tier, base }, changedFiles) => {
 };
 
 /**
+ * The paths that differ between a base commit and HEAD. Exits the process when
+ * git fails.
+ *
  * @param {string} base
  * @returns {string[]}
  */
-const gitChangedFiles = (base) => {
+export const gitChangedFiles = (base) => {
   const diff = spawnSync(
     "git",
     ["diff", "--name-only", "--no-renames", base, "HEAD"],
