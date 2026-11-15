@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.2.0",
   "devDependencies": {
-    "@antelopejs/core": "~1.23.3",
+    "@antelopejs/core": "~1.24.0",
     "@antelopejs/tooling-configs": ">=0.7.2 <0.8.0",
     "dependency-cruiser": "^18.7.0",
     "fast-check": "^4.10.2",

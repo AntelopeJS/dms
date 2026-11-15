@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@antelopejs/core':
-        specifier: ~1.23.3
-        version: 1.23.3
+        specifier: ~1.24.0
+        version: 1.24.0
       '@antelopejs/tooling-configs':
         specifier: '>=0.7.2 <0.8.0'
         version: 0.7.2(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
@@ -149,10 +149,10 @@ importers:
     devDependencies:
       '@antelopejs/api':
         specifier: ~1.7.0
-        version: 1.7.0(@antelopejs/core@1.23.3)
+        version: 1.7.0(@antelopejs/core@1.24.0)
       '@antelopejs/core':
-        specifier: ~1.23.0
-        version: 1.23.3
+        specifier: ~1.24.0
+        version: 1.24.0
       '@antelopejs/tooling-configs':
         specifier: '>=0.7.2 <0.8.0'
         version: 0.7.2(knip@6.34.0)(mongodb-memory-server@11.3.0(socks@2.8.7))(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))(pixelmatch@8.0.0)(playwright-core@1.65.0)(sharp@0.35.5)
@@ -423,11 +423,11 @@ importers:
         version: 3.25.76
     devDependencies:
       '@antelopejs/core':
-        specifier: ~1.23.0
-        version: 1.23.3
+        specifier: ~1.24.0
+        version: 1.24.0
       '@antelopejs/dms-frontend':
-        specifier: '>=0.11.1 <0.12.0'
-        version: 0.11.1(@antelopejs/core@1.23.3)
+        specifier: '>=0.11.4 <0.12.0'
+        version: 0.11.4(@antelopejs/core@1.24.0)
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -523,11 +523,11 @@ importers:
         version: 3.25.76
     devDependencies:
       '@antelopejs/core':
-        specifier: ~1.23.0
-        version: 1.23.3
+        specifier: ~1.24.0
+        version: 1.24.0
       '@antelopejs/dms-frontend':
-        specifier: '>=0.11.0 <0.12.0'
-        version: 0.11.1(@antelopejs/core@1.23.3)
+        specifier: '>=0.11.4 <0.12.0'
+        version: 0.11.4(@antelopejs/core@1.24.0)
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
@@ -637,17 +637,17 @@ packages:
       '@antelopejs/core':
         optional: true
 
-  '@antelopejs/core@1.23.3':
-    resolution: {integrity: sha512-W9ekdNXaZCuK4lsKn5bBF3F+LoQhvwlmLoprw4m0W6jdS0DA6Bb7B2+2ttgla0oggAJwyFUxHcpBVloFnlv91w==}
+  '@antelopejs/core@1.24.0':
+    resolution: {integrity: sha512-lYw0iwu8pMohkWvU+aRTHRsZvRi2YXph+ALF3lwCyjilxeXlMxoCDwHroGP3iWXrAhqK8G/8iTloOz/b0WGUKw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.11.1':
-    resolution: {integrity: sha512-Owu88uYgEfH3TTSVt30PYEeZFydq5aqLamZcSitYaFBNDUyZAglbR8HqAwqQM67nSFCwJ/sdQaqVcV52jDXjzw==}
+  '@antelopejs/dms-frontend@0.11.4':
+    resolution: {integrity: sha512-/YD6LapIXKonGsyiru+zuI1kFvLlh+KwhPW41SxowYmPPMP9DyYg+n5jSKEx+ht3P3BPixPVr79VTguZCjJAAg==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
-      '@antelopejs/core': ~1.23.0
+      '@antelopejs/core': ~1.24.0
 
   '@antelopejs/interface-api-util@0.3.0':
     resolution: {integrity: sha512-9XGBY3rJk/uwJVpEuazVCeehYHtL4llCtyIT/6YAIkUK7ib0bJFGTqj74ni0KRlbH+jtPp4FU6XyUJL5SVxf+Q==}
@@ -6953,7 +6953,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@antelopejs/api@1.7.0(@antelopejs/core@1.23.3)':
+  '@antelopejs/api@1.7.0(@antelopejs/core@1.24.0)':
     dependencies:
       '@antelopejs/interface-api': 0.3.2(@antelopejs/interface-core@0.5.1)
       '@antelopejs/interface-api-util': 0.3.0(@antelopejs/interface-api@0.3.2(@antelopejs/interface-core@0.5.1))(@antelopejs/interface-core@0.5.1)
@@ -6961,12 +6961,12 @@ snapshots:
       reflect-metadata: 0.2.2
       ws: 8.22.1
     optionalDependencies:
-      '@antelopejs/core': 1.23.3
+      '@antelopejs/core': 1.24.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@antelopejs/core@1.23.3':
+  '@antelopejs/core@1.24.0':
     dependencies:
       '@antelopejs/interface-core': 0.5.1
       '@clack/prompts': 1.8.1
@@ -6978,17 +6978,17 @@ snapshots:
       picocolors: 1.1.1
       proper-lockfile: 4.1.2
       reflect-metadata: 0.2.2
-      semver: 7.8.5
+      semver: 7.8.6
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.11.1(@antelopejs/core@1.23.3)':
+  '@antelopejs/dms-frontend@0.11.4(@antelopejs/core@1.24.0)':
     dependencies:
-      '@antelopejs/core': 1.23.3
+      '@antelopejs/core': 1.24.0
       '@intlify/message-compiler': 11.4.8
       chokidar: 4.0.3
       commander: 13.1.0
       ignore: 7.0.12
-      semver: 7.8.5
+      semver: 7.8.6
       yaml: 2.9.1
     optionalDependencies:
       '@oxc-parser/binding-darwin-arm64': 0.95.0
