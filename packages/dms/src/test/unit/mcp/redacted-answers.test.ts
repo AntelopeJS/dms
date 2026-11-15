@@ -16,7 +16,11 @@ const ROW_VALUES = [
   "4471",
   "john-smith",
   "dup key",
+  "isbn",
+  "smith,john",
 ];
+
+const RERUN = "/orders: verified again after the dashboard reloaded";
 
 const REFUSED = "the page refused owner@example.test: its layout answered 403";
 
@@ -35,7 +39,10 @@ function verifyReport(): PageVerifyReport {
     dashboardUrl: "http://localhost:5173",
     account: { kind: "owner", email: "owner@example.test" },
     screenshots: ".antelope/page-verify/run",
-    notes: ["Writes held back (submit: false): PUT /api/orders/john-smith"],
+    notes: [
+      "Writes held back (submit: false): PUT /api/items/urn:isbn:9781, POST /api/customers/smith,john, PUT /api/orders",
+      RERUN,
+    ],
     pages: [
       {
         page: "/orders",
@@ -49,6 +56,13 @@ function verifyReport(): PageVerifyReport {
             state: "ok",
             viewport: "desktop",
             source: "/api/orders?status=zq_paid",
+          },
+          {
+            path: "page.lines",
+            type: "TableView",
+            state: "ok",
+            viewport: "desktop",
+            source: "/api/orders/{{params.id}}/lines",
           },
         ],
         errors: {
@@ -77,6 +91,12 @@ function verifyReport(): PageVerifyReport {
               method: "GET",
               url: "http://localhost:5173/api/orders?page=2",
               status: 500,
+            },
+            {
+              viewport: "desktop",
+              method: "GET",
+              url: "https://john-smith.example.com/avatar.png",
+              status: "net::ERR_NAME_NOT_RESOLVED",
             },
           ],
         },
@@ -169,14 +189,19 @@ describe("[unit] the previews and page checks the AI reads", () => {
       "http://localhost:5173/…",
       "http://localhost:5173/…",
       "http://localhost:5173/api/orders",
+      "other origin",
     ]);
     expect(orders.errors.console.map((entry) => entry.text)).to.deep.equal([
       "console error",
       "TypeError",
     ]);
-    expect(orders.data[0].source).to.equal("/api/orders");
+    expect(orders.data.map((block) => block.source)).to.deep.equal([
+      "/api/orders",
+      "/api/orders/{{params.id}}/lines",
+    ]);
     expect(redacted.notes).to.deep.equal([
-      "Writes held back (submit: false): PUT /…",
+      "Writes held back (submit: false): PUT /…, POST /…, PUT /api/orders",
+      RERUN,
     ]);
     expect(orders.failures).to.include(
       "tab: tab #1: stayed unselected after a click",
