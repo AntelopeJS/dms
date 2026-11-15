@@ -7,6 +7,7 @@ import {
   type MaybeRefOrGetter,
   type Ref,
 } from "vue";
+import { isNumber } from "#dms-core/app/utils/type-check";
 import type { ChartSeries } from "../../../composables/chart/types";
 
 /**
@@ -54,7 +55,7 @@ export function resolveBlockState(facts: BlockStateFacts): BlockDataState {
 }
 
 function isDrawable(point: ChartSeries["data"][number]): boolean {
-  if (typeof point === "number") return Number.isFinite(point);
+  if (isNumber(point)) return Number.isFinite(point);
   return point.y !== null && point.y !== undefined;
 }
 

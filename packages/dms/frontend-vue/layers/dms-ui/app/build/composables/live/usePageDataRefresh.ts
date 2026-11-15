@@ -60,13 +60,13 @@ export function usePageDataRefresh(source: PageDataRefreshSource): void {
 
 interface BurstRefresh {
   /** Joins the burst under way, or starts one; resolves once it is read. */
-  refresh(): Promise<void>;
-  cancel(): void;
+  refresh: () => Promise<void>;
+  cancel: () => void;
 }
 
 interface Burst {
   promise: Promise<void>;
-  done(): void;
+  done: () => void;
 }
 
 function startBurst(): Burst {

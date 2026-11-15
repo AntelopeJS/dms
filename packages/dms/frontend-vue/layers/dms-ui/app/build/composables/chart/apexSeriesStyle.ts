@@ -123,6 +123,32 @@ function buildStrokeWidths(
   );
 }
 
+type StrokeCurve = Extract<
+  NonNullable<NonNullable<ApexOptions["stroke"]>["curve"]>,
+  string
+>;
+
+const STROKE_CURVES: readonly StrokeCurve[] = [
+  "smooth",
+  "straight",
+  "stepline",
+  "linestep",
+  "monotoneCubic",
+];
+
+function isStrokeCurve(value: string): value is StrokeCurve {
+  return STROKE_CURVES.some((curve) => curve === value);
+}
+
+function defaultStroke(
+  defaults: ApexTypeConfig["defaultStroke"],
+): NonNullable<ApexOptions["stroke"]> {
+  const { curve, ...rest } = defaults;
+  return curve !== undefined && isStrokeCurve(curve)
+    ? { ...rest, curve }
+    : { ...rest };
+}
+
 export function buildStroke(
   input: UseApexChartInput,
   config: ApexTypeConfig,
@@ -130,11 +156,14 @@ export function buildStroke(
   comparison: ComparisonContext,
   surface: string,
 ): NonNullable<ApexOptions["stroke"]> {
-  const initialStroke = { ...config.defaultStroke };
-  const stroke = initialStroke as NonNullable<ApexOptions["stroke"]>;
+  const stroke = defaultStroke(config.defaultStroke);
   if (input.smooth === false && stroke.curve) stroke.curve = "straight";
   if (input.curve) stroke.curve = input.curve;
-  stroke.width = buildStrokeWidths(input, comparison, initialStroke.width);
+  stroke.width = buildStrokeWidths(
+    input,
+    comparison,
+    config.defaultStroke.width,
+  );
   stroke.lineCap = "round";
   if (comparisonDashArray) stroke.dashArray = comparisonDashArray;
   applySegmentGap(stroke, input, config, surface);

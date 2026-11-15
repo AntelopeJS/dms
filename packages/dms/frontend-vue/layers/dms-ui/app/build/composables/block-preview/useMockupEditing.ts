@@ -34,6 +34,8 @@ import {
   parentPointer,
   parseNodePointer,
   siblingsAt,
+  type MockupSpecDocument,
+  type MockupSpecNode,
 } from "../../utils/mockupSpec";
 import type { MockupCatalog } from "./useMockupCatalog";
 import type { MockupAdoption, MockupSpecEditor } from "./useMockupSpec";
@@ -103,31 +105,114 @@ function isSameNode(adopted: MockupAdoption, pointer: string): boolean {
     : before.id === after.id;
 }
 
-/** Wires edit mode: every action becomes one reducer edit, whose result picks the selection. */
-export function useMockupEditing(options: EditingOptions): MockupEditing {
-  const { editor, catalog } = options;
-  const selection = ref<string>();
-  const rects = shallowRef<PreviewBlockRect[]>([]);
+interface EditingCore {
+  options: EditingOptions;
+  catalog: MockupCatalog;
+  spec: MockupSpecEditor["spec"];
+  selection: Ref<string | undefined>;
+  edit: (next: MockupEdit, coalesceKey?: string) => void;
+  newNode: (type: string) => MockupNewBlock;
+  pageId: () => string | undefined;
+}
+
+function useDragging(core: EditingCore, rects: ShallowRef<PreviewBlockRect[]>) {
+  const { options, catalog, spec, edit, newNode, pageId } = core;
   const drag = ref<MockupDrag>();
   const drop = ref<MockupDropTarget>();
+
+  function dropContext() {
+    const current = spec.value;
+    const page = options.page.value;
+    if (!current || !page) return undefined;
+    return {
+      spec: current,
+      page: options.pageIndex.value,
+      blocks: rects.value,
+      paths: page.paths,
+      catalog: catalog.byType.value,
+    };
+  }
+
+  function dragOver(point: { x: number; y: number }): void {
+    const context = dropContext();
+    drop.value =
+      context && drag.value
+        ? dropTarget(context, drag.value, point)
+        : undefined;
+  }
+
+  function dropAt(point: { x: number; y: number }): void {
+    const current = drag.value;
+    const context = dropContext();
+    const page = pageId();
+    drag.value = undefined;
+    drop.value = undefined;
+    if (!current || !context || !page) return;
+    const target = dropTarget(context, current, point);
+    edit(dropEdit(current, target, page, () => newNode(current.type)));
+  }
+
+  return { drag, drop, dragOver, dropAt };
+}
+
+function useInlineText(core: EditingCore) {
+  const { options, spec, selection, edit } = core;
   const text = ref<MockupInlineText>();
-  /** The revision drawn when nodes last moved, until a newer one is laid out. */
-  const movedAt = ref<number>();
 
-  const spec = editor.spec;
-  const selectedNode = computed(() =>
-    spec.value && selection.value
-      ? nodeAt(spec.value, selection.value)
-      : undefined,
-  );
-  const position = computed(() => {
-    const address = selection.value && parseNodePointer(selection.value);
-    const page = address && spec.value?.pages[address.page];
-    if (!address || !page) return undefined;
-    const siblings = siblingsAt(page, address.steps) ?? [];
-    return { index: address.steps.at(-1) ?? 0, count: siblings.length };
-  });
+  function openText(message: PreviewTextMessage): void {
+    if (options.editor.isPending.value) return;
+    const page = options.page.value;
+    const pointer = page ? specPointerFor(page, message.path) : undefined;
+    const node =
+      spec.value && pointer ? nodeAt(spec.value, pointer) : undefined;
+    const wanted = message.text.trim();
+    const key = Object.entries(node?.options ?? {}).find(
+      ([, value]) => isString(value) && value.trim() === wanted,
+    )?.[0];
+    if (!pointer) return;
+    selection.value = pointer;
+    if (key === undefined) return;
+    text.value = {
+      pointer,
+      key,
+      value: message.text,
+      rect: message.rect,
+      font: message.font,
+    };
+  }
 
+  function commitText(value: string): void {
+    const current = text.value;
+    text.value = undefined;
+    if (!current || value === current.value) return;
+    edit({
+      kind: "setText",
+      pointer: current.pointer,
+      key: current.key,
+      value,
+    });
+  }
+
+  return { text, openText, commitText };
+}
+
+function positionOf(
+  current: MockupSpecDocument | undefined,
+  pointer: string | undefined,
+): { index: number; count: number } | undefined {
+  const address = pointer && parseNodePointer(pointer);
+  const page = address && current?.pages[address.page];
+  if (!address || !page) return undefined;
+  const siblings = siblingsAt(page, address.steps) ?? [];
+  return { index: address.steps.at(-1) ?? 0, count: siblings.length };
+}
+
+function watchSelection(
+  core: EditingCore,
+  selectedNode: ComputedRef<MockupSpecNode | undefined>,
+  text: Ref<MockupInlineText | undefined>,
+): void {
+  const { options, spec, selection } = core;
   watch([spec, () => options.pageIndex.value], () => {
     if (!selectedNode.value) selection.value = undefined;
     const address = selection.value && parseNodePointer(selection.value);
@@ -135,12 +220,59 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
       selection.value = undefined;
     }
   });
-  watch(editor.adoption, (adopted) => {
+  watch(options.editor.adoption, (adopted) => {
     text.value = undefined;
     const pointer = selection.value;
     if (!adopted || !pointer) return;
     if (!isSameNode(adopted, pointer)) selection.value = undefined;
   });
+}
+
+function selectedBlock(
+  core: EditingCore,
+  rects: ShallowRef<PreviewBlockRect[]>,
+  selectedNode: ComputedRef<MockupSpecNode | undefined>,
+  movedAt: Ref<number | undefined>,
+): { rect: PreviewRect; label: string } | undefined {
+  if (movedAt.value !== undefined) return undefined;
+  const page = core.options.page.value;
+  const path =
+    page && core.selection.value
+      ? layoutPathFor(page, core.selection.value)
+      : undefined;
+  const rect = rects.value.find((block) => block.path === path)?.rect;
+  const node = selectedNode.value;
+  if (!rect || !node) return undefined;
+  return { rect, label: node.type ?? node.componentName ?? "" };
+}
+
+/** Wires edit mode: every action becomes one reducer edit, whose result picks the selection. */
+export function useMockupEditing(options: EditingOptions): MockupEditing {
+  const { editor, catalog } = options;
+  const selection = ref<string>();
+  const rects = shallowRef<PreviewBlockRect[]>([]);
+  /** The revision drawn when nodes last moved, until a newer one is laid out. */
+  const movedAt = ref<number>();
+
+  const spec = editor.spec;
+  const core: EditingCore = {
+    options,
+    catalog,
+    spec,
+    selection,
+    edit,
+    newNode,
+    pageId,
+  };
+  const { drag, drop, dragOver, dropAt } = useDragging(core, rects);
+  const { text, openText, commitText } = useInlineText(core);
+  const selectedNode = computed(() =>
+    spec.value && selection.value
+      ? nodeAt(spec.value, selection.value)
+      : undefined,
+  );
+  const position = computed(() => positionOf(spec.value, selection.value));
+  watchSelection(core, selectedNode, text);
 
   function markMoved(): void {
     movedAt.value = options.revision.value ?? -1;
@@ -206,84 +338,9 @@ export function useMockupEditing(options: EditingOptions): MockupEditing {
     edit({ kind: "insertNode", page, ...at, ...newNode(type) });
   }
 
-  function dropContext() {
-    const current = spec.value;
-    const page = options.page.value;
-    if (!current || !page) return undefined;
-    return {
-      spec: current,
-      page: options.pageIndex.value,
-      blocks: rects.value,
-      paths: page.paths,
-      catalog: catalog.byType.value,
-    };
-  }
-
-  function dragOver(point: { x: number; y: number }): void {
-    const context = dropContext();
-    drop.value =
-      context && drag.value
-        ? dropTarget(context, drag.value, point)
-        : undefined;
-  }
-
-  function dropAt(point: { x: number; y: number }): void {
-    const current = drag.value;
-    const context = dropContext();
-    const page = pageId();
-    drag.value = undefined;
-    drop.value = undefined;
-    if (!current || !context || !page) return;
-    const target = dropTarget(context, current, point);
-    edit(dropEdit(current, target, page, () => newNode(current.type)));
-  }
-
-  function openText(message: PreviewTextMessage): void {
-    if (editor.isPending.value) return;
-    const page = options.page.value;
-    const pointer = page ? specPointerFor(page, message.path) : undefined;
-    const node =
-      spec.value && pointer ? nodeAt(spec.value, pointer) : undefined;
-    const wanted = message.text.trim();
-    const key = Object.entries(node?.options ?? {}).find(
-      ([, value]) => isString(value) && value.trim() === wanted,
-    )?.[0];
-    if (!pointer) return;
-    selection.value = pointer;
-    if (key === undefined) return;
-    text.value = {
-      pointer,
-      key,
-      value: message.text,
-      rect: message.rect,
-      font: message.font,
-    };
-  }
-
-  function commitText(value: string): void {
-    const current = text.value;
-    text.value = undefined;
-    if (!current || value === current.value) return;
-    edit({
-      kind: "setText",
-      pointer: current.pointer,
-      key: current.key,
-      value,
-    });
-  }
-
-  const selected = computed(() => {
-    if (movedAt.value !== undefined) return undefined;
-    const page = options.page.value;
-    const path =
-      page && selection.value
-        ? layoutPathFor(page, selection.value)
-        : undefined;
-    const rect = rects.value.find((block) => block.path === path)?.rect;
-    const node = selectedNode.value;
-    if (!rect || !node) return undefined;
-    return { rect, label: node.type ?? node.componentName ?? "" };
-  });
+  const selected = computed(() =>
+    selectedBlock(core, rects, selectedNode, movedAt),
+  );
 
   return {
     selection,

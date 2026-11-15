@@ -40,10 +40,20 @@ export interface GuardSource {
   field?: string;
 }
 
+/** A value the route answers with, parsed from JSON. */
+export type GuardAnswerValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | readonly GuardAnswerValue[]
+  | { readonly [field: string]: GuardAnswerValue };
+
 /** What the route answers: any value, maybe with an `emptyState` laid over the fallback. */
 export interface GuardResponse {
   emptyState?: GuardFallback;
-  [field: string]: unknown;
+  [field: string]: GuardAnswerValue | GuardFallback;
 }
 
 /** Which condition held: the fallback to show, before its defaults. */
@@ -57,26 +67,45 @@ export interface GuardState {
 
 const FIELD_PATH_SEPARATOR = ".";
 
+type GuardAnswerNode = { readonly [field: string]: GuardAnswerValue };
+
+function isAnswerNode(value: GuardAnswerValue): value is GuardAnswerNode {
+  return isObject(value) && value !== null;
+}
+
+function isAnswerFallback(
+  value: GuardAnswerValue,
+): value is GuardAnswerNode & GuardFallback {
+  return isAnswerNode(value);
+}
+
 /** The value at a dot path of an answer, `undefined` where the path stops. */
-export function readFieldPath(source: unknown, path: string) {
-  return path.split(FIELD_PATH_SEPARATOR).reduce<unknown>((value, key) => {
-    if (value === null || !isObject(value)) return undefined;
-    return value[key];
-  }, source);
+export function readFieldPath(
+  source: GuardAnswerValue,
+  path: string,
+): GuardAnswerValue {
+  return path
+    .split(FIELD_PATH_SEPARATOR)
+    .reduce<GuardAnswerValue>(
+      (value, key) => (isAnswerNode(value) ? value[key] : undefined),
+      source,
+    );
 }
 
 /** Absent, `null`, `false`, `0`, `""` or an empty list: nothing to show. */
-export function isEmptyValue(value: unknown): boolean {
+export function isEmptyValue(
+  value: unknown,
+): value is null | undefined | false | 0 | "" | readonly [] {
   if (Array.isArray(value)) return value.length === 0;
   return !value;
 }
 
-function answerOverride(answer: unknown): GuardFallback | undefined {
-  if (!answer || !isObject(answer) || Array.isArray(answer)) {
+function answerOverride(answer: GuardAnswerValue): GuardFallback | undefined {
+  if (!answer || !isAnswerNode(answer) || Array.isArray(answer)) {
     return undefined;
   }
   const { emptyState } = answer;
-  return emptyState && isObject(emptyState) ? emptyState : undefined;
+  return emptyState && isAnswerFallback(emptyState) ? emptyState : undefined;
 }
 
 /**
@@ -91,7 +120,7 @@ export function useGuard(
   routeParams: () => Record<string, string> | undefined,
 ): ComputedRef<GuardState | null> {
   const initial = options();
-  const { data, error } = useChartFetch<unknown>({
+  const { data, error } = useChartFetch<GuardAnswerValue>({
     fetchUrl: initial.fetchUrl,
     fetchUrlMethod: initial.fetchUrlMethod,
     periodScope: initial.periodScope,
