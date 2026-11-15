@@ -7,7 +7,7 @@ import { ConfigureProject } from "../../../implementations/dms-builder";
 import {
   configuredModuleIds,
   setProjectVariable,
-  BUILDER_CODE_INTERFACES,
+  builderCodeInterfaces,
   invalidateResourceIndex,
   invalidateSourceIndex,
   resetWritableProject,
@@ -132,7 +132,7 @@ describe("a project that is its configuration alone", function () {
       root,
       "modules/builder-db-erp-tables/package.json",
     );
-    expect(manifest.dependencies).to.deep.equal(BUILDER_CODE_INTERFACES);
+    expect(manifest.dependencies).to.deep.equal(builderCodeInterfaces());
   });
 
   it("writes the variable into .env, which no repository can commit", () => {

@@ -4,13 +4,13 @@ import path from "node:path";
 import { expect } from "chai";
 import { setBuilderConfig } from "../../../config";
 import {
-  BUILDER_CODE_INTERFACES,
+  builderCodeInterfaces,
   type Scaffold,
   scaffoldLocalModule,
 } from "../../../implementations/dms-builder/engine";
 import { runScript } from "./helpers/processes";
 
-const INTERFACES = Object.keys(BUILDER_CODE_INTERFACES);
+const INTERFACES = Object.keys(builderCodeInterfaces());
 const TOOLING = ["rimraf", "@types/node"];
 const NAMES = [...INTERFACES, ...TOOLING];
 const PREFIXES = ["file:", "link:", "./"];

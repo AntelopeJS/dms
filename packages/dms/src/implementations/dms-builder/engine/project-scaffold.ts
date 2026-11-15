@@ -1,25 +1,65 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ts } from "ts-morph";
+import { z } from "zod";
 import { posixRelative } from "./file-paths";
 import { isString } from "./scalar-guards";
 import { DEFAULT_COMPILER_OPTIONS, resolveProjectRoot } from "./project";
 import { isPlainObject } from "./value";
 
 const INTERFACE_PACKAGE = /^@antelopejs\/interface-/;
+/** The interface packages the code the builder writes imports. */
+const BUILDER_CODE_INTERFACE_NAMES = [
+  "@antelopejs/interface-api",
+  "@antelopejs/interface-core",
+  "@antelopejs/interface-data-api",
+  "@antelopejs/interface-database",
+  "@antelopejs/interface-database-decorators",
+  "@antelopejs/interface-dms",
+] as const;
+const DMS_PACKAGE = "@antelopejs/dms";
+const DmsManifestSchema = z.object({
+  name: z.literal(DMS_PACKAGE),
+  dependencies: z.record(z.string(), z.string()),
+});
+
+/** The dependencies the `package.json` of this DMS package declares: the first above this file that names it. */
+function dmsDependencies(): Record<string, string> {
+  for (
+    let folder = __dirname;
+    folder !== path.dirname(folder);
+    folder = path.dirname(folder)
+  ) {
+    const file = path.join(folder, "package.json");
+    const manifest = fs.existsSync(file)
+      ? DmsManifestSchema.safeParse(JSON.parse(fs.readFileSync(file, "utf8")))
+      : undefined;
+    if (manifest?.success) {
+      return manifest.data.dependencies;
+    }
+  }
+  throw new Error(`no package.json of ${DMS_PACKAGE} above ${__dirname}`);
+}
+
 /**
- * The interface packages the code the builder writes imports, at the builder's own ranges: a
- * module it scaffolds depends on them, so what it later writes there resolves and builds once the
- * restart that follows has installed them. The project's own range wins for one it declares.
+ * The interface packages the code the builder writes imports, at the ranges this DMS package
+ * declares for them: a module it scaffolds depends on them, so what it later writes there resolves
+ * and builds once the restart that follows has installed them, and it loads beside this DMS on the
+ * copies this DMS was built against. The project's own range wins for one it declares.
+ *
+ * @throws When this DMS package declares no range for one of them.
  */
-export const BUILDER_CODE_INTERFACES = {
-  "@antelopejs/interface-api": ">=0.3.2 <1.0.0",
-  "@antelopejs/interface-core": ">=0.4.0 <1.0.0",
-  "@antelopejs/interface-data-api": ">=0.6.1 <1.0.0",
-  "@antelopejs/interface-database": ">=0.3.0 <1.0.0",
-  "@antelopejs/interface-database-decorators": ">=0.2.0 <1.0.0",
-  "@antelopejs/interface-dms": ">=0.12.0 <1.0.0",
-} satisfies Record<string, string>;
+export function builderCodeInterfaces(): Record<string, string> {
+  const dependencies = dmsDependencies();
+  return Object.fromEntries(
+    BUILDER_CODE_INTERFACE_NAMES.map((name) => {
+      if (!Object.hasOwn(dependencies, name)) {
+        throw new Error(`${DMS_PACKAGE} declares no range for ${name}`);
+      }
+      return [name, dependencies[name]];
+    }),
+  );
+}
 /**
  * The build tooling a module needs, at these ranges when the project does not declare its own.
  * TypeScript always stays at this range: a module compiles `commonjs` with `bundler` resolution,
@@ -237,7 +277,7 @@ function manifestText(
     main: "dist/index.js",
     scripts: { build: "rimraf dist && tsc", typecheck: "tsc --noEmit" },
     dependencies: {
-      ...BUILDER_CODE_INTERFACES,
+      ...builderCodeInterfaces(),
       ...picked(all, (name) => INTERFACE_PACKAGE.test(name)),
     },
     devDependencies: {
