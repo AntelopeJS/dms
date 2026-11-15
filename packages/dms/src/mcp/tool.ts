@@ -1,6 +1,7 @@
 import type { JsonValue } from "@antelopejs/interface-dms/json";
 import { z } from "zod";
 import type { McpClient } from "./bridge";
+import { containsHiddenValue, HIDDEN_VALUE_REFUSAL } from "./hidden-values";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { JsonObjectSchema } from "./json";
 
@@ -111,7 +112,9 @@ function inputSchemaOf<Fields extends McpInputFields>(
 /**
  * Declares one MCP tool. The JSON Schema `tools/list` hands out is derived
  * from `input`, and `call` refuses arguments `input` rejects, so the schema an
- * agent reads and the one the handler trusts cannot drift apart.
+ * agent reads and the one the handler trusts cannot drift apart. A tool that
+ * changes the project also refuses arguments that send a `$hidden` value back,
+ * so a value the AI was never shown is not written over the one the code holds.
  */
 export function defineTool<Fields extends McpInputFields>(
   spec: McpToolSpec<Fields>,
@@ -125,6 +128,9 @@ export function defineTool<Fields extends McpInputFields>(
     async call(args, sessionId, client) {
       const parsed = spec.input.safeParse(args ?? {});
       if (!parsed.success) return textResult(issuesText(parsed.error), true);
+      if (spec.effect !== "read" && containsHiddenValue.parse(parsed.data)) {
+        return textResult(HIDDEN_VALUE_REFUSAL, true);
+      }
       return spec.run(parsed.data, sessionId, client);
     },
   };

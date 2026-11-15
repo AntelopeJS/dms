@@ -14,6 +14,7 @@ import {
   RemoveBlock,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
+import { hidePageValues } from "../hidden-values";
 import { JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
 import { defineTool, textResult } from "../tool";
@@ -22,6 +23,7 @@ import {
   BLOCK_PATH_FORMAT,
   containsExprSentinel,
   exprRefusal,
+  mappedFileTest,
   withEscalationNote,
   opResult,
   PARENT_PATH,
@@ -43,11 +45,20 @@ const pageStructure = defineTool({
   name: "builder_page_structure",
   title: "Builder page structure",
   description: withEscalationNote(
-    `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT}`,
+    `Returns a page's block tree (each block's path, type, editability, config) plus a version hash for optimistic concurrency. ${BLOCK_PATH_FORMAT} On a page of a module mapped from a connected database, a TableView's \`tabs\`, a select's \`items\` and a price's \`currency\` read \`{ $hidden: n }\`, n the values the mapping read from rows: leave that key out of a patch to keep it.`,
   ),
   effect: "read",
   input: z.object({ pageRef: z.string() }),
-  run: async ({ pageRef }) => opResult(await GetPageStructure(pageRef)),
+  async run({ pageRef }) {
+    const answer = await GetPageStructure(pageRef);
+    const mapped =
+      answer.ok && (await mappedFileTest())(answer.data.page.filepath);
+    return opResult(
+      answer.ok && mapped
+        ? { ...answer, data: hidePageValues(answer.data) }
+        : answer,
+    );
+  },
 });
 
 const createPage = defineTool({

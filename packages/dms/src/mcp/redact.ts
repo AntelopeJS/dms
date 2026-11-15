@@ -244,7 +244,8 @@ export function redactMapping(mapped: MappedRelation): RedactedMappedRelation {
   return { ...mapped, resource: redactResource(mapped.resource) };
 }
 
-function redactChange({ path, kind }: FileChange): RedactedChange {
+/** A changed file without its diff. */
+export function redactChange({ path, kind }: FileChange): RedactedChange {
   return { path, kind };
 }
 

@@ -8,6 +8,7 @@ import {
   RemoveField,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
+import { hideResourceValues } from "../hidden-values";
 import { JsonObjectSchema } from "../json";
 import { repeatConfirmation } from "../confirmation-gate";
 import { defineTool } from "../tool";
@@ -15,6 +16,7 @@ import {
   BUILDER_REF_NOTE,
   containsExprSentinel,
   exprRefusal,
+  mappedFileTest,
   withEscalationNote,
   opResult,
   TARGET_MODULE,
@@ -116,11 +118,20 @@ const resourceStructure = defineTool({
   name: "builder_resource_structure",
   title: "Resource structure",
   description: withEscalationNote(
-    "Returns a resource's fields with their semantic aspects, its `routes` (absent when it serves the full set), and a version hash for optimistic concurrency. Hand-edited or relation fields come back marked `opaque` — safe mode cannot reconfigure those.",
+    "Returns a resource's fields with their semantic aspects, its `routes` (absent when it serves the full set), and a version hash for optimistic concurrency. Hand-edited or relation fields come back marked `opaque` — safe mode cannot reconfigure those. In a module mapped from a connected database, a select's `items` and a price's `currency` read `{ $hidden: n }`, n the values the mapping read from rows: leave `dataType` out of a patch to keep them.",
   ),
   effect: "read",
   input: z.object({ ref: z.string() }),
-  run: async ({ ref }) => opResult(await GetResourceStructure(ref)),
+  async run({ ref }) {
+    const answer = await GetResourceStructure(ref);
+    const mapped =
+      answer.ok && (await mappedFileTest())(answer.data.files.dataApi);
+    return opResult(
+      answer.ok && mapped
+        ? { ...answer, data: hideResourceValues(answer.data) }
+        : answer,
+    );
+  },
 });
 
 const createResource = defineTool({

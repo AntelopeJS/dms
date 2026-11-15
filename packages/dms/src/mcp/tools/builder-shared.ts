@@ -1,10 +1,16 @@
 import type {
+  FileChange,
   OperationName,
   Operations,
   OpResult,
 } from "@antelopejs/interface-dms-builder";
 import { z } from "zod";
-import { type RedactedData, redactedResult } from "../redact";
+import {
+  type RedactedChange,
+  type RedactedData,
+  redactChange,
+  redactedResult,
+} from "../redact";
 import { type McpToolResult, textResult } from "../tool";
 
 export type BuilderAnswer = Exclude<
@@ -25,9 +31,40 @@ export function withEscalationNote(description: string): string {
   return `${description}\n\n${BUILDER_ESCALATION_NOTE}`;
 }
 
-export function opResult(answer: BuilderAnswer): McpToolResult {
-  const failed = "ok" in answer && answer.ok === false;
-  return textResult(JSON.stringify(answer), failed);
+/**
+ * Whether a file lies in a module mapped from a connected database, whose code holds the badge
+ * items, tabs and currencies its mapping read from rows.
+ */
+export async function mappedFileTest(): Promise<(file: string) => boolean> {
+  const { mappedConnectionOfFile } =
+    await import("../../implementations/dms-builder/engine");
+  return (file) => mappedConnectionOfFile(file) !== undefined;
+}
+
+async function shownChanges(
+  changes: FileChange[],
+): Promise<(FileChange | RedactedChange)[]> {
+  if (changes.every(({ diff }) => diff === "")) return changes;
+  const isMapped = await mappedFileTest();
+  return changes.map((change) =>
+    isMapped(change.path) ? redactChange(change) : change,
+  );
+}
+
+/** An operation's result as the AI reads it: each change to a mapped module without its diff. */
+export async function shownOpResult(
+  answer: OpResult<unknown>,
+): Promise<McpToolResult> {
+  if (!answer.ok) return textResult(JSON.stringify(answer), true);
+  const changes = await shownChanges(answer.changes);
+  return textResult(JSON.stringify({ ...answer, changes }));
+}
+
+/** A builder answer as the AI reads it, an operation's result through {@link shownOpResult}. */
+export async function opResult(answer: BuilderAnswer): Promise<McpToolResult> {
+  return "ok" in answer
+    ? shownOpResult(answer)
+    : textResult(JSON.stringify(answer));
 }
 
 /** An operation's answer as the AI reads it: `redact` applied to its data, its diffs left out. */
